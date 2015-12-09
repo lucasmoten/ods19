@@ -98,7 +98,7 @@ func (h uploader) serveHTTPUploadGETMsg(msg string, w http.ResponseWriter, r *ht
 	who := "certChain length = " + string(len(peerCerts))
 	for i := 0; i < len(peerCerts); i++ {
 		theCookie = h.UploadCookie
-		who += "/" + string(peerCerts[i].RawIssuer)
+		who += "/" + peerCerts[i].Subject.CommonName
 	}
 	r.Header.Set("Content-Type", "text/html")
 	fmt.Fprintf(w, "<html>")
