@@ -2,8 +2,11 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -90,15 +93,22 @@ func (h uploader) serveHTTPUploadPOSTDrain(fileName string, w http.ResponseWrite
 */
 func (h uploader) serveHTTPUploadGETMsg(msg string, w http.ResponseWriter, r *http.Request) {
 	log.Print("get an upload get")
+	theCookie := "wrong"
+	peerCerts := r.TLS.PeerCertificates
+	who := "certChain length = " + string(len(peerCerts))
+	for i := 0; i < len(peerCerts); i++ {
+		theCookie = h.UploadCookie
+		who += "/" + string(peerCerts[i].RawIssuer)
+	}
 	r.Header.Set("Content-Type", "text/html")
 	fmt.Fprintf(w, "<html>")
 	fmt.Fprintf(w, "<head>")
 	fmt.Fprintf(w, "<title>Upload A File</title>")
 	fmt.Fprintf(w, "</head>")
 	fmt.Fprintf(w, "<body>")
-	fmt.Fprintf(w, msg+"<br>")
+	fmt.Fprintf(w, who+" "+msg+"<br>")
 	fmt.Fprintf(w, "<form action='/upload' method='POST' enctype='multipart/form-data'>")
-	fmt.Fprintf(w, "<input type='hidden' value='"+h.UploadCookie+"' name='uploadCookie'>")
+	fmt.Fprintf(w, "<input type='hidden' value='"+theCookie+"' name='uploadCookie'>")
 	fmt.Fprintf(w, "The File: <input name='theFile' type='file'>")
 	fmt.Fprintf(w, "<input type='submit'>")
 	fmt.Fprintf(w, "</form>")
@@ -341,5 +351,31 @@ func makeServer(
 func main() {
 	s := makeServer("/tmp/uploader", "127.0.0.1", 6060, "y0UMayUpL0Ad")
 	log.Printf("open a browser at: %s", "https://"+s.Addr+"/upload")
+
+	certBytes, err := ioutil.ReadFile("cert.pem")
+	if err != nil {
+		log.Fatalln("Unable to read cert.pem", err)
+	}
+
+	clientCertPool := x509.NewCertPool()
+	if ok := clientCertPool.AppendCertsFromPEM(certBytes); !ok {
+		log.Fatalln("Unable to add certificate to certificate pool")
+	}
+
+	tlsConfig := &tls.Config{
+		// Reject any TLS certificate that cannot be validated
+		ClientAuth: tls.RequireAndVerifyClientCert,
+		// Ensure that we only use our "CA" to validate certificates
+		ClientCAs: clientCertPool,
+		// PFS because we can but this will reject client with RSA certificates
+		//CipherSuites: []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
+		// Force it server side
+		PreferServerCipherSuites: true,
+		// TLS 1.2 because we can
+		MinVersion: tls.VersionTLS10,
+	}
+	tlsConfig.BuildNameToCertificate()
+	s.TLSConfig = tlsConfig
+
 	log.Fatal(s.ListenAndServeTLS("cert.pem", "key.pem"))
 }
