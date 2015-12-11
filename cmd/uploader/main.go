@@ -2,9 +2,12 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -12,11 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/net/context"
-
-	httptransport "github.com/go-kit/kit/transport/http"
-
-	"decipher.com/oduploader/services/transfer"
+	"strconv"
 )
 
 /**
@@ -94,15 +93,16 @@ func (h uploader) serveHTTPUploadPOSTDrain(fileName string, w http.ResponseWrite
   than this must fail.  But for the multi-part mime chunks,
   we must handle files larger than memory.
 */
-func serveHTTPUploadGETMsg(w http.ResponseWriter, r *http.Request) {
+
+func (h uploader) serveHTTPUploadGETMsg(msg string, w http.ResponseWriter, r *http.Request) {
 	log.Print("get an upload get")
 	theCookie := "wrong"
-	// peerCerts := r.TLS.PeerCertificates   // TODO bring this back
-	// who := "certChain length = " + string(len(peerCerts))
-	// for i := 0; i < len(peerCerts); i++ {
-	// 	theCookie = "y0UMayUpL0Ad"
-	// 	who += "/" + peerCerts[i].Subject.CommonName
-	// }
+	peerCerts := r.TLS.PeerCertificates
+	who := "certChain length = " + string(len(peerCerts))
+	for i := 0; i < len(peerCerts); i++ {
+		theCookie = h.UploadCookie
+		who += "/" + string(peerCerts[i].RawIssuer)
+	}
 	r.Header.Set("Content-Type", "text/html")
 	fmt.Fprintf(w, "<html>")
 	fmt.Fprintf(w, "<head>")
@@ -110,6 +110,7 @@ func serveHTTPUploadGETMsg(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "</head>")
 	fmt.Fprintf(w, "<body>")
 	fmt.Fprintf(w, "TODO: extract NAME/DN/ETC...<br>")
+	fmt.Fprintf(w, who+" "+msg+"<br>")
 	fmt.Fprintf(w, "<form action='/upload' method='POST' enctype='multipart/form-data'>")
 	fmt.Fprintf(w, "<input type='hidden' value='"+theCookie+"' name='uploadCookie'>")
 	fmt.Fprintf(w, "The File: <input name='theFile' type='file'>")
@@ -159,6 +160,24 @@ func (h uploader) checkUploadCookie(part *multipart.Part) bool {
 	return valCheck(buffer, uploadCookieBytes, part)
 }
 
+/**
+  Demonstrate efficient uploading in the face of any
+  crazy request we get.  We can use heuristics such as
+  the names of parts to DECIDE whether it's reasonable to
+  put the data into memory (json metadata), or to create a
+  file handle to drain it off, or to start off in memory
+  and then drain it off somewhere if it becomes unreasonably
+  large (may be useful for being optimally efficient).
+  This is the key to scalability, because we have
+  full control over handling HTTP.
+
+  If we have an SLA to handle a certain number of connections,
+  putting an upper bound on memory usage per session lets us
+  have such a guarantee, where we can use admission control (TBD)
+  to limit the number of sessions to amounts within the SLA
+  to ensure that sessions started can complete without interference
+  from sessions that are doomed to fail from congestion.
+*/
 func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	log.Print("handling an upload post")
@@ -206,6 +225,7 @@ func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	h.serveHTTPUploadGETMsg("ok", w, r)
 	stopTime := time.Now()
 	timeDiff := (stopTime.UnixNano()-startTime.UnixNano())/(1000*1000) + 1
 	throughput := (1000 * partBytes) / timeDiff
@@ -219,6 +239,16 @@ func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 }
 
 /**
+<<<<<<< 4303adb0756b1f366e78b5331f67fcd46a9072f1
+=======
+Uploader method to show a form with no status from previous upload
+*/
+func (h uploader) serveHTTPUploadGET(w http.ResponseWriter, r *http.Request) {
+	h.serveHTTPUploadGETMsg("", w, r)
+}
+
+/**
+>>>>>>> Reorganized code to have buildable executables under a `cmd` directory. The `uploader` executable is built by running `go build` in /uploader
 Efficiently retrieve a file
 */
 func (h uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
@@ -265,37 +295,6 @@ func (h uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Download: time = %dms, size = %d B, throughput = %d B/s, partSize = %d B", timeDiff, bytesWritten, throughput, partSize)
 }
 
-func main() {
-	// Making go-kit work
-	ctx := context.Background()
-	svc := transfer.TransferServiceImpl{}
-
-	uploadHandler := httptransport.NewServer(
-		ctx,
-		transfer.MakeUploadEndpoint(svc),
-		decodeUploadRequest,
-		encodeResponse,
-	)
-
-	// Registers uploadHandler with DefaultServerMux, a package-level map of handlers in "net/http".
-	http.Handle("/upload", uploadHandler)
-	// Registers with DefaultServerMux, but only requires a simple HandlerFunc.
-	http.HandleFunc("/form", serveHTTPUploadGETMsg)
-
-	// Make our server with custom TLS config.
-	// s := &http.Server{
-	// 	TLSConfig:      config.NewUploaderTLSConfig(),
-	// 	Addr:           "127.0.0.1:6060",
-	// 	ReadTimeout:    10000 * time.Second,
-	// 	WriteTimeout:   10000 * time.Second,
-	// 	MaxHeaderBytes: 1 << 20,
-	// }
-
-	s := &http.Server{Addr: "127.0.0.1:6060"}
-	//log.Fatal("DEV NOT HTTPS", s.ListenAndServe())
-	log.Fatal("Error on call to ListenAndServeTLS", s.ListenAndServeTLS("cert.pem", "key.pem"))
-}
-
 // TODO these decode/encode functions should live somewhere else: services/transfer?
 
 func decodeUploadRequest(r *http.Request) (interface{}, error) {
@@ -306,4 +305,96 @@ func decodeUploadRequest(r *http.Request) (interface{}, error) {
 
 func encodeResponse(w http.ResponseWriter, response interface{}) error {
 	return json.NewEncoder(w).Encode(response)
+}
+
+/**
+  Handle command routing explicitly.
+*/
+func (h uploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if strings.Compare(r.URL.RequestURI(), "/upload") == 0 {
+		if strings.Compare(r.Method, "GET") == 0 {
+			h.serveHTTPUploadGET(w, r)
+		} else {
+			if strings.Compare(r.Method, "POST") == 0 {
+				h.serveHTTPUploadPOST(w, r)
+			}
+		}
+	} else {
+		if strings.HasPrefix(r.URL.RequestURI(), "/download/") {
+			h.serveHTTPDownloadGET(w, r)
+		}
+	}
+}
+
+/**
+Generate a simple server in the root that we specify.
+We assume that the directory may not exist, and we set permissions
+on it
+*/
+func makeServer(
+	theRoot string,
+	bind string,
+	port int,
+	uploadCookie string,
+) *http.Server {
+	//Just ensure that this directory exists
+	os.Mkdir(theRoot, 0700)
+	h := uploader{
+		HomeBucket:   theRoot,
+		Port:         port,
+		Bind:         bind,
+		UploadCookie: uploadCookie,
+		BufferSize:   1024 * 8, //Each session takes a buffer that guarantees the number of sessions in our SLA
+	}
+	h.Addr = h.Bind + ":" + strconv.Itoa(h.Port)
+
+	//A web server is running
+	return &http.Server{
+		Addr:           h.Addr,
+		Handler:        h,
+		ReadTimeout:    10000 * time.Second, //This breaks big downloads
+		WriteTimeout:   10000 * time.Second,
+		MaxHeaderBytes: 1 << 20, //This prevents clients from DOS'ing us
+	}
+}
+
+/**
+  Use the lowest level of control for creating the Server
+  so that we know what all of the options are.
+
+  Timeouts really should handled in the URL handler.
+  Timeout should be based on lack of progress,
+  rather than total time (ie: should active telnet sessions die based on time?),
+  because large files just take longer.
+*/
+func main() {
+	s := makeServer("/tmp/uploader", "127.0.0.1", 6060, "y0UMayUpL0Ad")
+	log.Printf("open a browser at: %s", "https://"+s.Addr+"/upload")
+
+	certBytes, err := ioutil.ReadFile("cert.pem")
+	if err != nil {
+		log.Fatalln("Unable to read cert.pem", err)
+	}
+
+	clientCertPool := x509.NewCertPool()
+	if ok := clientCertPool.AppendCertsFromPEM(certBytes); !ok {
+		log.Fatalln("Unable to add certificate to certificate pool")
+	}
+
+	tlsConfig := &tls.Config{
+		// Reject any TLS certificate that cannot be validated
+		ClientAuth: tls.RequireAndVerifyClientCert,
+		// Ensure that we only use our "CA" to validate certificates
+		ClientCAs: clientCertPool,
+		// PFS because we can but this will reject client with RSA certificates
+		//CipherSuites: []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
+		// Force it server side
+		PreferServerCipherSuites: true,
+		// TLS 1.2 because we can
+		MinVersion: tls.VersionTLS10,
+	}
+	tlsConfig.BuildNameToCertificate()
+	s.TLSConfig = tlsConfig
+
+	log.Fatal(s.ListenAndServeTLS("cert.pem", "key.pem"))
 }

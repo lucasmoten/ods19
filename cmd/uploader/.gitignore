@@ -1,0 +1,6 @@
+# uploader binary directory's .gitignore
+
+# Do not commit the binary
+uploader
+uploader.exe
+
