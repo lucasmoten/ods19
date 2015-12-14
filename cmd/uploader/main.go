@@ -156,24 +156,6 @@ func (h uploader) checkUploadCookie(part *multipart.Part) bool {
 	return valCheck(buffer, uploadCookieBytes, part)
 }
 
-/**
-  Demonstrate efficient uploading in the face of any
-  crazy request we get.  We can use heuristics such as
-  the names of parts to DECIDE whether it's reasonable to
-  put the data into memory (json metadata), or to create a
-  file handle to drain it off, or to start off in memory
-  and then drain it off somewhere if it becomes unreasonably
-  large (may be useful for being optimally efficient).
-  This is the key to scalability, because we have
-  full control over handling HTTP.
-
-  If we have an SLA to handle a certain number of connections,
-  putting an upper bound on memory usage per session lets us
-  have such a guarantee, where we can use admission control (TBD)
-  to limit the number of sessions to amounts within the SLA
-  to ensure that sessions started can complete without interference
-  from sessions that are doomed to fail from congestion.
-*/
 func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	log.Print("handling an upload post")
@@ -319,7 +301,9 @@ func makeServer(
 	uploadCookie string,
 ) *http.Server {
 	//Just ensure that this directory exists
-	os.Mkdir(theRoot, 0700)
+	if err := os.Mkdir(theRoot, 0700); !os.IsExist(err) {
+		log.Fatal(err)
+	}
 	h := uploader{
 		HomeBucket:   theRoot,
 		Port:         port,
