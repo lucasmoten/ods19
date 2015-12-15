@@ -1,0 +1,17 @@
+
+# Do commit certificates
+*.pem
+*.p12
+*.csr
+*.srl
+
+# Editor files
+*.swp
+*sublime-*
+.idea
+
+# Ignore build dirs
+out
+release
+
+
