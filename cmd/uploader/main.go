@@ -16,7 +16,6 @@ import (
 
 	httptransport "github.com/go-kit/kit/transport/http"
 
-	"decipher.com/oduploader/config"
 	"decipher.com/oduploader/services/transfer"
 )
 
@@ -98,13 +97,12 @@ func (h uploader) serveHTTPUploadPOSTDrain(fileName string, w http.ResponseWrite
 func serveHTTPUploadGETMsg(w http.ResponseWriter, r *http.Request) {
 	log.Print("get an upload get")
 	theCookie := "wrong"
-	peerCerts := r.TLS.PeerCertificates
-	who := "certChain length = " + string(len(peerCerts))
-	for i := 0; i < len(peerCerts); i++ {
-		//theCookie = h.UploadCookie   // how does this work?
-		theCookie = "FAKECOOKIE"
-		who += "/" + string(peerCerts[i].RawIssuer)
-	}
+	// peerCerts := r.TLS.PeerCertificates   // TODO bring this back
+	// who := "certChain length = " + string(len(peerCerts))
+	// for i := 0; i < len(peerCerts); i++ {
+	// 	theCookie = "y0UMayUpL0Ad"
+	// 	who += "/" + peerCerts[i].Subject.CommonName
+	// }
 	r.Header.Set("Content-Type", "text/html")
 	fmt.Fprintf(w, "<html>")
 	fmt.Fprintf(w, "<head>")
@@ -285,16 +283,17 @@ func main() {
 	http.HandleFunc("/form", serveHTTPUploadGETMsg)
 
 	// Make our server with custom TLS config.
-	s := &http.Server{
-		TLSConfig:      config.NewUploaderTLSConfig(),
-		Addr:           "127.0.0.1:6060",
-		ReadTimeout:    10000 * time.Second,
-		WriteTimeout:   10000 * time.Second,
-		MaxHeaderBytes: 1 << 20,
-	}
+	// s := &http.Server{
+	// 	TLSConfig:      config.NewUploaderTLSConfig(),
+	// 	Addr:           "127.0.0.1:6060",
+	// 	ReadTimeout:    10000 * time.Second,
+	// 	WriteTimeout:   10000 * time.Second,
+	// 	MaxHeaderBytes: 1 << 20,
+	// }
 
-	//log.Fatal(s.ListenAndServeTLS("cert.pem", "key.pem"))
-	log.Fatal("err!!", s.ListenAndServeTLS("cert.pem", "key.pem"))
+	s := &http.Server{Addr: "127.0.0.1:6060"}
+	//log.Fatal("DEV NOT HTTPS", s.ListenAndServe())
+	log.Fatal("Error on call to ListenAndServeTLS", s.ListenAndServeTLS("cert.pem", "key.pem"))
 }
 
 // TODO these decode/encode functions should live somewhere else: services/transfer?
