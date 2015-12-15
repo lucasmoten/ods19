@@ -1,6 +1,7 @@
 package transfer
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"log"
@@ -23,7 +24,6 @@ type TransferServiceImpl struct{}
 // Upload ...
 func (t TransferServiceImpl) Upload(r *multipart.Reader) error {
 
-	log.Println("got this reader", r)
 	var partBytes int
 	for {
 		part, partErr := r.NextPart()
@@ -82,4 +82,16 @@ func MakeUploadEndpoint(svc TransferService) endpoint.Endpoint {
 
 	}
 
+}
+
+// TODO these decode/encode functions should live somewhere else: services/transfer?
+
+func DecodeUploadRequest(r *http.Request) (interface{}, error) {
+	// our decoder func is just a pass-through, since we are not doing an
+	// "RPC-style" Endpoint with the "/upload" route.
+	return r, nil
+}
+
+func EncodeResponse(w http.ResponseWriter, response interface{}) error {
+	return json.NewEncoder(w).Encode(response)
 }
