@@ -1,10 +1,20 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
+	"flag"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"io"
 	"io/ioutil"
 	"log"
@@ -16,6 +26,10 @@ import (
 	"time"
 )
 
+type fileDirPath string
+type bindIPAddr string
+type bindURL string
+
 /**
   Uploader is a special type of Http server.
   Put any config state in here.
@@ -24,12 +38,128 @@ import (
   for large files.
 */
 type uploader struct {
-	HomeBucket   string
+	HomeBucket   fileDirPath
 	Port         int
-	Bind         string
-	Addr         string
+	Bind         bindIPAddr
+	Addr         bindURL
 	UploadCookie string
 	BufferSize   int
+	KeyBytes     int
+}
+
+//Generate unique opaque names for uploaded files
+func obfuscateHash(key string) string {
+	if hideFileNames {
+		hashBytes := sha256.Sum256([]byte(key))
+		keyString := base64.StdEncoding.EncodeToString(hashBytes[:])
+		return strings.Replace(strings.Replace(keyString, "/", "~", -1), "=", "Z", -1)
+	}
+	return key
+}
+
+// CountingStreamReader takes statistics as it writes
+type CountingStreamReader struct {
+	S cipher.Stream
+	R io.Reader
+}
+
+// Read takes statistics as it writes
+func (r CountingStreamReader) Read(dst []byte) (n int, err error) {
+	n, err = r.R.Read(dst)
+	r.S.XORKeyStream(dst[:n], dst[:n])
+	return
+}
+
+// CountingStreamWriter keeps statistics as it writes
+type CountingStreamWriter struct {
+	S     cipher.Stream
+	W     io.Writer
+	Error error
+}
+
+func (w CountingStreamWriter) Write(src []byte) (n int, err error) {
+	c := make([]byte, len(src))
+	w.S.XORKeyStream(c, src)
+	n, err = w.W.Write(c)
+	if n != len(src) {
+		if err == nil {
+			err = io.ErrShortWrite
+		}
+	}
+	return
+}
+
+// Close closes underlying stream
+func (w CountingStreamWriter) Close() error {
+	if c, ok := w.W.(io.Closer); ok {
+		return c.Close()
+	}
+	return nil
+}
+
+func (h uploader) createKeyIVPair() (key []byte, iv []byte) {
+	key = make([]byte, h.KeyBytes)
+	rand.Read(key)
+	iv = make([]byte, aes.BlockSize)
+	rand.Read(iv)
+	return
+}
+
+func (h uploader) retrieveKeyIVPair(fileName string, r *http.Request) (key []byte, iv []byte, ret error) {
+	keyFileName := fileName + "_" + obfuscateHash(h.getDN(r)) + ".key"
+	ivFileName := fileName + ".iv"
+
+	log.Printf("opening: %s\n", keyFileName)
+	keyFile, err := os.Open(keyFileName)
+	if err != nil {
+		return key, iv, err
+	}
+	defer keyFile.Close()
+	key = make([]byte, h.KeyBytes)
+	keyFile.Read(key)
+
+	log.Printf("opening: %s\n", ivFileName)
+	ivFile, err := os.Open(ivFileName)
+	if err != nil {
+		return key, iv, err
+	}
+	defer ivFile.Close()
+	iv = make([]byte, aes.BlockSize)
+	ivFile.Read(iv)
+	return key, iv, ret
+}
+
+func doCipherByReaderWriter(inFile io.Reader, outFile io.Writer, key []byte, iv []byte) error {
+	log.Printf("creating cipher with key of length %d\n", len(key))
+	writeCipher, err := aes.NewCipher(key)
+	log.Print("got it")
+	if err != nil {
+		log.Printf("%v", err)
+		return err
+	}
+	log.Printf("creating block mode with iv of length %d\n", len(iv))
+	writeCipherStream := cipher.NewCTR(writeCipher, iv[:])
+	if err != nil {
+		log.Printf("%v", err)
+		return err
+	}
+
+	log.Print("copying stream cipher")
+	reader := &CountingStreamReader{S: writeCipherStream, R: inFile}
+	_, err = io.Copy(outFile, reader)
+	if err != nil {
+		log.Printf("%v", err)
+	}
+	return err
+}
+
+func doReaderWriter(inFile io.Reader, outFile io.Writer) error {
+	_, err := io.Copy(outFile, inFile)
+	return err
+}
+
+func (h uploader) getDN(r *http.Request) string {
+	return r.TLS.PeerCertificates[0].Subject.CommonName
 }
 
 /**
@@ -38,45 +168,27 @@ type uploader struct {
   The part name (or file name, content type, etc) may insinuate that the file
   is small, and should be held in memory.
 */
-func (h uploader) serveHTTPUploadPOSTDrain(fileName string, w http.ResponseWriter, part *multipart.Part) (bytesWritten int64, partsWritten int64) {
+func (h uploader) serveHTTPUploadPOSTDrain(fileName string, w http.ResponseWriter, r *http.Request, part *multipart.Part) error {
 	log.Printf("read part %s", fileName)
-	//Dangerous... Should whitelist char names to prevent writes
-	//outside the homeBucket!
-	drainTo, drainErr := os.Create(fileName)
-	defer drainTo.Close()
-
+	drainTo, drainErr := os.Create(string(h.HomeBucket) + "/" + fileName)
 	if drainErr != nil {
-		log.Printf("cannot write out file %s, %v", fileName, drainErr)
-		http.Error(w, "cannot write out file", 500)
-		return bytesWritten, partsWritten
+		log.Printf("error draining file: %v", drainErr)
 	}
-
-	drain := bufio.NewWriter(drainTo)
-	var lastBytesRead int
-	buffer := make([]byte, h.BufferSize)
-	for lastBytesRead >= 0 {
-		bytesRead, berr := part.Read(buffer)
-		lastBytesRead = bytesRead
-		if berr == io.EOF {
-			break
-		}
-		if berr != nil {
-			log.Printf("error reading data! %v", berr)
-			http.Error(w, "error reading data", 500)
-			return bytesWritten, partsWritten
-		}
-		if lastBytesRead > 0 {
-			bytesWritten += int64(lastBytesRead)
-			drain.Write(buffer[:bytesRead])
-			partsWritten++
-		}
+	defer drainTo.Close()
+	key, iv := h.createKeyIVPair()
+	keyFileName := string(h.HomeBucket) + "/" + fileName + "_" + obfuscateHash(h.getDN(r)) + ".key"
+	keyFile, err := os.Create(keyFileName)
+	defer keyFile.Close()
+	if err != nil {
+		log.Printf("Could not open key file")
+		return err
 	}
-	drain.Flush()
-	log.Printf("wrote file %s of length %d", fileName, bytesWritten)
-	//Watchout for hardcoding.  This is here to make it convenient to retrieve what you downloaded
-	log.Printf("https://127.0.0.1:%d/download/%s", h.Port, fileName[1+len(h.HomeBucket):])
-
-	return bytesWritten, partsWritten
+	ivFileName := string(h.HomeBucket) + "/" + fileName + ".iv"
+	ivFile, err := os.Create(ivFileName)
+	defer ivFile.Close()
+	doReaderWriter(bytes.NewBuffer(key), keyFile)
+	doReaderWriter(bytes.NewBuffer(iv), ivFile)
+	return doCipherByReaderWriter(part, drainTo, key, iv)
 }
 
 /**
@@ -95,7 +207,7 @@ func (h uploader) serveHTTPUploadGETMsg(msg string, w http.ResponseWriter, r *ht
 	log.Print("get an upload get")
 	theCookie := "wrong"
 	peerCerts := r.TLS.PeerCertificates
-	who := "certChain length = " + string(len(peerCerts))
+	who := ""
 	for i := 0; i < len(peerCerts); i++ {
 		theCookie = h.UploadCookie
 		who += "/" + peerCerts[i].Subject.CommonName
@@ -166,7 +278,6 @@ func (h uploader) checkUploadCookie(part *multipart.Part) bool {
   large (may be useful for being optimally efficient).
   This is the key to scalability, because we have
   full control over handling HTTP.
-
   If we have an SLA to handle a certain number of connections,
   putting an upper bound on memory usage per session lets us
   have such a guarantee, where we can use admission control (TBD)
@@ -175,10 +286,7 @@ func (h uploader) checkUploadCookie(part *multipart.Part) bool {
   from sessions that are doomed to fail from congestion.
 */
 func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
-	log.Print("handling an upload post")
 	multipartReader, err := r.MultipartReader()
-
 	if err != nil {
 		log.Printf("failed to get a multipart reader %v", err)
 		http.Error(w, "failed to get a multipart reader", 500)
@@ -186,8 +294,6 @@ func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 	}
 
 	isAuthorized := false
-	partBytes := int64(0)
-	partCount := int64(0)
 	for {
 		//DOS problem .... what if this header is very large?  (Intentionally)
 		part, partErr := multipartReader.NextPart()
@@ -207,11 +313,13 @@ func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 			} else {
 				if len(part.FileName()) > 0 {
 					if isAuthorized {
-						fileName := h.HomeBucket + "/" + part.FileName()
+						fileName := part.FileName()
+						keyName := obfuscateHash(fileName)
 						//Could take an *indefinite* amount of time!!
-						partBytesIncr, partCountIncr := h.serveHTTPUploadPOSTDrain(fileName, w, part)
-						partBytes += partBytesIncr
-						partCount += partCountIncr
+						err := h.serveHTTPUploadPOSTDrain(keyName, w, r, part)
+						if err != nil {
+							log.Printf("error draining part: %v", err)
+						}
 					} else {
 						log.Printf("failed authorization for file")
 						http.Error(w, "failed authorization for file", 400)
@@ -222,16 +330,6 @@ func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	h.serveHTTPUploadGETMsg("ok", w, r)
-	stopTime := time.Now()
-	timeDiff := (stopTime.UnixNano()-startTime.UnixNano())/(1000*1000) + 1
-	throughput := (1000 * partBytes) / timeDiff
-	partSize := int64(0)
-	if partCount <= 0 {
-		partSize = 0
-	} else {
-		partSize = partBytes / partCount
-	}
-	log.Printf("Upload: time = %dms, size = %d B, throughput = %d B/s, partSize = %d B", timeDiff, partBytes, throughput, partSize)
 }
 
 /**
@@ -245,47 +343,21 @@ func (h uploader) serveHTTPUploadGET(w http.ResponseWriter, r *http.Request) {
 Efficiently retrieve a file
 */
 func (h uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
-	fileName := h.HomeBucket + "/" + r.URL.RequestURI()[len("/download/"):]
-	log.Printf("download request for %s", fileName)
+	originalFileName := r.URL.RequestURI()[len("/download/"):]
+	fileName := string(h.HomeBucket) + "/" + obfuscateHash(originalFileName)
+	log.Printf("download request for %s", originalFileName)
+	key, iv, err := h.retrieveKeyIVPair(fileName, r)
+	if err != nil {
+		log.Print("Unable to retrieve iv and key")
+	}
 	downloadFrom, err := os.Open(fileName)
 	if err != nil {
 		log.Print("failed to open file for reading")
 		http.Error(w, "failed to open file for reading", 500)
 		return
 	}
-	var partsWritten = int64(0)
-	var bytesWritten = int64(0)
-	var lastBytesRead = 0
-	buffer := make([]byte, h.BufferSize)
-	for lastBytesRead >= 0 {
-		bytesRead, berr := downloadFrom.Read(buffer)
-		lastBytesRead = bytesRead
-		if berr == io.EOF {
-			break
-		}
-		if berr != nil {
-			log.Printf("error reading data! %v", berr)
-			http.Error(w, "error reading data", 500)
-			return
-		}
-		if lastBytesRead > 0 {
-			bytesWritten += int64(lastBytesRead)
-			partsWritten++
-			w.Write(buffer[:bytesRead])
-		}
-	}
-	log.Printf("returned file %s of length %d", fileName, bytesWritten)
-	stopTime := time.Now()
-	timeDiff := (stopTime.UnixNano()-startTime.UnixNano())/(1000*1000) + 1
-	throughput := (1000 * bytesWritten) / timeDiff
-	partSize := int64(0)
-	if partsWritten <= 0 {
-		partSize = 0
-	} else {
-		partSize = bytesWritten / partsWritten
-	}
-	log.Printf("Download: time = %dms, size = %d B, throughput = %d B/s, partSize = %d B", timeDiff, bytesWritten, throughput, partSize)
+	defer downloadFrom.Close()
+	doCipherByReaderWriter(downloadFrom, w, key, iv)
 }
 
 /**
@@ -317,27 +389,39 @@ func makeServer(
 	bind string,
 	port int,
 	uploadCookie string,
-) *http.Server {
+) (*http.Server, error) {
 	//Just ensure that this directory exists
 	os.Mkdir(theRoot, 0700)
 	h := uploader{
-		HomeBucket:   theRoot,
+		HomeBucket:   fileDirPath(theRoot),
 		Port:         port,
-		Bind:         bind,
+		Bind:         bindIPAddr(bind),
 		UploadCookie: uploadCookie,
-		BufferSize:   1024 * 8, //Each session takes a buffer that guarantees the number of sessions in our SLA
+		BufferSize:   4 * 1024, //Each session takes a buffer that guarantees the number of sessions in our SLA
+		KeyBytes:     32,
 	}
-	h.Addr = h.Bind + ":" + strconv.Itoa(h.Port)
+	h.Addr = bindURL(string(h.Bind) + ":" + strconv.Itoa(h.Port))
 
 	//A web server is running
 	return &http.Server{
-		Addr:           h.Addr,
+		Addr:           string(h.Addr),
 		Handler:        h,
 		ReadTimeout:    10000 * time.Second, //This breaks big downloads
 		WriteTimeout:   10000 * time.Second,
 		MaxHeaderBytes: 1 << 20, //This prevents clients from DOS'ing us
-	}
+	}, nil
 }
+
+func generateSession(account string) *s3.S3 {
+	sessionConfig := &aws.Config{
+		Credentials: credentials.NewSharedCredentials("", account),
+	}
+	sess := session.New(sessionConfig)
+	svc := s3.New(sess)
+	return svc
+}
+
+var hideFileNames bool
 
 /**
   Use the lowest level of control for creating the Server
@@ -349,8 +433,15 @@ func makeServer(
   because large files just take longer.
 */
 func main() {
-	s := makeServer("/tmp/uploader", "127.0.0.1", 6060, "y0UMayUpL0Ad")
-	log.Printf("open a browser at: %s", "https://"+s.Addr+"/upload")
+	flag.BoolVar(&hideFileNames, "hideFileNames", true, "use unhashed file and user names")
+	flag.Parse()
+
+	s, err := makeServer("/tmp/uploader", "127.0.0.1", 6060, "y0UMayUpL0Ad")
+	if err != nil {
+		log.Printf("unable to make server: %v\n", err)
+		return
+	}
+	log.Printf("open a browser at %s\n", "https://"+s.Addr+"/upload")
 
 	certBytes, err := ioutil.ReadFile("cert.pem")
 	if err != nil {
@@ -377,5 +468,10 @@ func main() {
 	tlsConfig.BuildNameToCertificate()
 	s.TLSConfig = tlsConfig
 
+	//This cert is used for HTTPS, but since it's a signing cert, it can
+	//be used to certify that it was this service that performed the upload.
+	//
+	//This service will be certified to do an AAC check, so we can
+	//require cryptographic evidence that the grant was sanctioned by AAC.
 	log.Fatal(s.ListenAndServeTLS("cert.pem", "key.pem"))
 }
