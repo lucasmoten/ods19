@@ -422,6 +422,10 @@ func generateSession(account string) *s3.S3 {
 }
 
 var hideFileNames bool
+var tcpPort int
+var tcpBind string
+var simpleSecret string
+var homeBucket string
 
 /**
   Use the lowest level of control for creating the Server
@@ -434,9 +438,13 @@ var hideFileNames bool
 */
 func main() {
 	flag.BoolVar(&hideFileNames, "hideFileNames", true, "use unhashed file and user names")
+	flag.IntVar(&tcpPort, "tcpPort", 6060, "set the tcp port")
+	flag.StringVar(&simpleSecret, "simpleSecret", "y0UMayUpL0Ad", "a simple nuisance secret")
+	flag.StringVar(&tcpBind, "tcpBind", "127.0.0.1", "tcp bind port")
+	flag.StringVar(&homeBucket, "homeBucket", "/tmp/uploader", "home bucket to store files in")
 	flag.Parse()
 
-	s, err := makeServer("/tmp/uploader", "127.0.0.1", 6060, "y0UMayUpL0Ad")
+	s, err := makeServer(homeBucket, tcpBind, tcpPort, simpleSecret)
 	if err != nil {
 		log.Printf("unable to make server: %v\n", err)
 		return
