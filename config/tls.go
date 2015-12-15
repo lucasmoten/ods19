@@ -8,6 +8,9 @@ import (
 	"os"
 )
 
+// Information about DoDIIS two-way SSL is here:
+// https://confluence.363-283.io/pages/viewpage.action?pageId=557803
+
 var certPath string
 
 func init() {

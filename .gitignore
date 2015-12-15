@@ -5,3 +5,7 @@
 *.csr
 *.srl
 
+# Editor files
+*.swp
+*sublime-*
+.idea

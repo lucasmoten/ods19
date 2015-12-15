@@ -2,17 +2,22 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
+	"golang.org/x/net/context"
+
+	httptransport "github.com/go-kit/kit/transport/http"
+
 	"decipher.com/oduploader/config"
+	"decipher.com/oduploader/services/transfer"
 )
 
 /**
@@ -90,13 +95,14 @@ func (h uploader) serveHTTPUploadPOSTDrain(fileName string, w http.ResponseWrite
   than this must fail.  But for the multi-part mime chunks,
   we must handle files larger than memory.
 */
-func (h uploader) serveHTTPUploadGETMsg(msg string, w http.ResponseWriter, r *http.Request) {
+func serveHTTPUploadGETMsg(w http.ResponseWriter, r *http.Request) {
 	log.Print("get an upload get")
 	theCookie := "wrong"
 	peerCerts := r.TLS.PeerCertificates
 	who := "certChain length = " + string(len(peerCerts))
 	for i := 0; i < len(peerCerts); i++ {
-		theCookie = h.UploadCookie
+		//theCookie = h.UploadCookie   // how does this work?
+		theCookie = "FAKECOOKIE"
 		who += "/" + string(peerCerts[i].RawIssuer)
 	}
 	r.Header.Set("Content-Type", "text/html")
@@ -105,7 +111,7 @@ func (h uploader) serveHTTPUploadGETMsg(msg string, w http.ResponseWriter, r *ht
 	fmt.Fprintf(w, "<title>Upload A File</title>")
 	fmt.Fprintf(w, "</head>")
 	fmt.Fprintf(w, "<body>")
-	fmt.Fprintf(w, who+" "+msg+"<br>")
+	fmt.Fprintf(w, "TODO: extract NAME/DN/ETC...<br>")
 	fmt.Fprintf(w, "<form action='/upload' method='POST' enctype='multipart/form-data'>")
 	fmt.Fprintf(w, "<input type='hidden' value='"+theCookie+"' name='uploadCookie'>")
 	fmt.Fprintf(w, "The File: <input name='theFile' type='file'>")
@@ -202,7 +208,6 @@ func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	h.serveHTTPUploadGETMsg("ok", w, r)
 	stopTime := time.Now()
 	timeDiff := (stopTime.UnixNano()-startTime.UnixNano())/(1000*1000) + 1
 	throughput := (1000 * partBytes) / timeDiff
@@ -213,13 +218,6 @@ func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 		partSize = partBytes / partCount
 	}
 	log.Printf("Upload: time = %dms, size = %d B, throughput = %d B/s, partSize = %d B", timeDiff, partBytes, throughput, partSize)
-}
-
-/**
-Uploader method to show a form with no status from previous upload
-*/
-func (h uploader) serveHTTPUploadGET(w http.ResponseWriter, r *http.Request) {
-	h.serveHTTPUploadGETMsg("", w, r)
 }
 
 /**
@@ -269,73 +267,44 @@ func (h uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Download: time = %dms, size = %d B, throughput = %d B/s, partSize = %d B", timeDiff, bytesWritten, throughput, partSize)
 }
 
-/**
-  Handle command routing explicitly.
-*/
-func (h uploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if strings.Compare(r.URL.RequestURI(), "/upload") == 0 {
-		if strings.Compare(r.Method, "GET") == 0 {
-			h.serveHTTPUploadGET(w, r)
-		} else {
-			if strings.Compare(r.Method, "POST") == 0 {
-				h.serveHTTPUploadPOST(w, r)
-			}
-		}
-	} else {
-		if strings.HasPrefix(r.URL.RequestURI(), "/download/") {
-			h.serveHTTPDownloadGET(w, r)
-		}
-	}
-}
-
-/**
-Generate a simple server in the root that we specify.
-We assume that the directory may not exist, and we set permissions
-on it
-*/
-func makeServer(
-	theRoot string,
-	bind string,
-	port int,
-	uploadCookie string,
-) *http.Server {
-	//Just ensure that this directory exists
-	if err := os.Mkdir(theRoot, 0700); !os.IsExist(err) {
-		log.Fatal(err)
-	}
-	h := uploader{
-		HomeBucket:   theRoot,
-		Port:         port,
-		Bind:         bind,
-		UploadCookie: uploadCookie,
-		BufferSize:   1024 * 8, //Each session takes a buffer that guarantees the number of sessions in our SLA
-	}
-	h.Addr = h.Bind + ":" + strconv.Itoa(h.Port)
-
-	//A web server is running
-	return &http.Server{
-		Addr:           h.Addr,
-		Handler:        h,
-		ReadTimeout:    10000 * time.Second, //This breaks big downloads
-		WriteTimeout:   10000 * time.Second,
-		MaxHeaderBytes: 1 << 20, //This prevents clients from DOS'ing us
-	}
-}
-
-/**
-  Use the lowest level of control for creating the Server
-  so that we know what all of the options are.
-
-  Timeouts really should handled in the URL handler.
-  Timeout should be based on lack of progress,
-  rather than total time (ie: should active telnet sessions die based on time?),
-  because large files just take longer.
-*/
 func main() {
-	s := makeServer("/tmp/uploader", "127.0.0.1", 6060, "y0UMayUpL0Ad")
-	log.Printf("open a browser at: %s", "https://"+s.Addr+"/upload")
+	// Making go-kit work
+	ctx := context.Background()
+	svc := transfer.TransferServiceImpl{}
 
-	s.TLSConfig = config.NewUploaderTLSConfig()
+	uploadHandler := httptransport.NewServer(
+		ctx,
+		transfer.MakeUploadEndpoint(svc),
+		decodeUploadRequest,
+		encodeResponse,
+	)
 
-	log.Fatal(s.ListenAndServeTLS("cert.pem", "key.pem"))
+	// Registers uploadHandler with DefaultServerMux, a package-level map of handlers in "net/http".
+	http.Handle("/upload", uploadHandler)
+	// Registers with DefaultServerMux, but only requires a simple HandlerFunc.
+	http.HandleFunc("/form", serveHTTPUploadGETMsg)
+
+	// Make our server with custom TLS config.
+	s := &http.Server{
+		TLSConfig:      config.NewUploaderTLSConfig(),
+		Addr:           "127.0.0.1:6060",
+		ReadTimeout:    10000 * time.Second,
+		WriteTimeout:   10000 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	//log.Fatal(s.ListenAndServeTLS("cert.pem", "key.pem"))
+	log.Fatal("err!!", s.ListenAndServeTLS("cert.pem", "key.pem"))
+}
+
+// TODO these decode/encode functions should live somewhere else: services/transfer?
+
+func decodeUploadRequest(r *http.Request) (interface{}, error) {
+	// our decoder func is just a pass-through, since we are not doing an
+	// "RPC-style" Endpoint with the "/upload" route.
+	return r, nil
+}
+
+func encodeResponse(w http.ResponseWriter, response interface{}) error {
+	return json.NewEncoder(w).Encode(response)
 }
