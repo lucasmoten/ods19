@@ -9,3 +9,9 @@
 *.swp
 *sublime-*
 .idea
+
+# ignore build directories
+out
+release
+
+
