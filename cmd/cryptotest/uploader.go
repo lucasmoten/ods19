@@ -282,6 +282,7 @@ func (h uploader) serveHTTPUploadGET(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
+	//"mp4 -> video/mp4"
 	originalFileName := r.URL.RequestURI()[len("/download/"):]
 	fileName := string(h.HomeBucket) + "/" + obfuscateHash(originalFileName)
 	log.Printf("download request for %s", originalFileName)
@@ -353,11 +354,11 @@ func (h uploader) listingRetrieve(w http.ResponseWriter, r *http.Request) {
   Handle command routing explicitly.
 */
 func (h uploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if strings.Compare(r.URL.RequestURI(), "/upload") == 0 {
-		if strings.Compare(r.Method, "GET") == 0 {
+	if r.URL.RequestURI() == "/upload" {
+		if r.Method == "GET" {
 			h.serveHTTPUploadGET(w, r)
 		} else {
-			if strings.Compare(r.Method, "POST") == 0 {
+			if r.Method == "POST" {
 				h.serveHTTPUploadPOST(w, r)
 			}
 		}
@@ -463,6 +464,7 @@ func main() {
 	flagSetup()
 
 	s, err := makeServer(homeBucket, tcpBind, tcpPort, masterKey)
+	//TODO: mime type setup ... need to detect on upload, and/or set on download
 	if err != nil {
 		log.Printf("unable to make server: %v\n", err)
 		return
