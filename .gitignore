@@ -5,7 +5,6 @@
 *.csr
 *.srl
 
-<<<<<<< 4303adb0756b1f366e78b5331f67fcd46a9072f1
 # Editor files
 *.swp
 *sublime-*
@@ -15,6 +14,3 @@
 out
 release
 
-
-=======
->>>>>>> Reorganized code to have buildable executables under a `cmd` directory. The `uploader` executable is built by running `go build` in /uploader
