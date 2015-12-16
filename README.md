@@ -1,4 +1,4 @@
-# Large File Uploader
+#Large File Uploader
 
 This is a project to make a simple Go uploader that can deal
 with the largest files, by using multipart mime protocol
@@ -20,6 +20,18 @@ Browser:
   - masterkey=djklerwjkl23 go run uploader.go
 * by default it uses /tmp/uploader, a directory that should exist
 * https://localhost:6060/upload   (pick some file, like foo.txt)
+
+
+# Cross compiling
+
+From the root directory, run:
+
+```
+$ ./scripts/cross-compile.sh
+```
+
+The tar files for multiple system binaries should be available in the
+`/release` directory.
 
 TODO:
 
