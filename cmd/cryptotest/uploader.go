@@ -5,6 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
@@ -15,9 +16,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/hashicorp/golang-lru"
 	"io"
 	"io/ioutil"
 	"log"
+	"math/big"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -38,13 +41,15 @@ type bindURL string
   for large files.
 */
 type uploader struct {
-	HomeBucket   fileDirPath
-	Port         int
-	Bind         bindIPAddr
-	Addr         bindURL
-	UploadCookie string
-	BufferSize   int
-	KeyBytes     int
+	HomeBucket         fileDirPath
+	Port               int
+	Bind               bindIPAddr
+	Addr               bindURL
+	UploadCookie       string
+	BufferSize         int
+	KeyBytes           int
+	UnlockedCertStores *lru.ARCCache
+	RSAEncryptBits     int
 }
 
 //Generate unique opaque names for uploaded files
@@ -228,63 +233,6 @@ func (h uploader) serveHTTPUploadGETMsg(msg string, w http.ResponseWriter, r *ht
 	fmt.Fprintf(w, "</html>")
 }
 
-/**
-  Check a value against a bounded(!) buffer
-*/
-func valCheck(buffer []byte, refVal []byte, checkedVal *multipart.Part) bool {
-	totalBytesRead := 0
-	bufferLength := len(buffer)
-	for {
-		if totalBytesRead >= bufferLength {
-			break
-		}
-		bytesRead, err := checkedVal.Read(buffer[totalBytesRead:])
-		if bytesRead < 0 || err == io.EOF {
-			break
-		}
-		totalBytesRead += bytesRead
-	}
-
-	i := 0
-	refValLength := len(refVal)
-	if totalBytesRead != refValLength {
-		return false
-	}
-	for i < refValLength {
-		if refVal[i] != buffer[i] {
-			return false
-		}
-		i++
-	}
-
-	return true
-
-}
-
-func (h uploader) checkUploadCookie(part *multipart.Part) bool {
-	//We must do a BOUNDED read of the cookie.  Just let it fail if it's not < 8k
-	buffer := make([]byte, h.BufferSize)
-	uploadCookieBytes := []byte(h.UploadCookie)
-	return valCheck(buffer, uploadCookieBytes, part)
-}
-
-/**
-  Demonstrate efficient uploading in the face of any
-  crazy request we get.  We can use heuristics such as
-  the names of parts to DECIDE whether it's reasonable to
-  put the data into memory (json metadata), or to create a
-  file handle to drain it off, or to start off in memory
-  and then drain it off somewhere if it becomes unreasonably
-  large (may be useful for being optimally efficient).
-  This is the key to scalability, because we have
-  full control over handling HTTP.
-  If we have an SLA to handle a certain number of connections,
-  putting an upper bound on memory usage per session lets us
-  have such a guarantee, where we can use admission control (TBD)
-  to limit the number of sessions to amounts within the SLA
-  to ensure that sessions started can complete without interference
-  from sessions that are doomed to fail from congestion.
-*/
 func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
@@ -293,29 +241,24 @@ func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isAuthorized := false
+	isAuthorized := true
 	for {
-		//DOS problem .... what if this header is very large?  (Intentionally)
-		part, partErr := multipartReader.NextPart()
-		if partErr != nil {
-			if partErr == io.EOF {
+		part, err := multipartReader.NextPart()
+		if err != nil {
+			if err == io.EOF {
 				break //just an eof...not an error
 			} else {
-				log.Printf("error getting a part %v", partErr)
+				log.Printf("error getting a part %v", err)
 				http.Error(w, "error getting a part", 500)
 				return
 			}
 		} else {
 			if strings.Compare(part.FormName(), "uploadCookie") == 0 {
-				if h.checkUploadCookie(part) {
-					isAuthorized = true
-				}
 			} else {
 				if len(part.FileName()) > 0 {
 					if isAuthorized {
 						fileName := part.FileName()
 						keyName := obfuscateHash(fileName)
-						//Could take an *indefinite* amount of time!!
 						err := h.serveHTTPUploadPOSTDrain(keyName, w, r, part)
 						if err != nil {
 							log.Printf("error draining part: %v", err)
@@ -360,6 +303,142 @@ func (h uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	doCipherByReaderWriter(downloadFrom, w, key, iv)
 }
 
+type rawRSA struct {
+	N *big.Int
+	D *big.Int
+	E *big.Int
+}
+
+func (h uploader) generateRawRSA() *rawRSA {
+	rsaKey, err := rsa.GenerateKey(rand.Reader, h.RSAEncryptBits)
+	if err != nil {
+		log.Printf("generateRawRSA: %v", err)
+	}
+	return &rawRSA{
+		N: rsaKey.N,
+		D: rsaKey.D,
+		E: big.NewInt(int64(rsaKey.E)),
+	}
+}
+
+func storeBigInt(v *big.Int, theFile string) {
+	rawBytes := v.Bytes()
+	vFile, err := os.Create(theFile)
+	if err != nil {
+		log.Printf("unable to open file for rsa modulus: %v", err)
+		return
+	}
+	defer vFile.Close()
+	doReaderWriter(bytes.NewBuffer(rawBytes), vFile)
+}
+
+func retrieveBigInt(theFile string) (v *big.Int) {
+	theFileReader, err := os.Open(theFile)
+	defer theFileReader.Close()
+	if err != nil {
+		log.Printf("unable to open file for big int %v", err)
+	}
+	rawBytes, err := ioutil.ReadAll(theFileReader)
+	if err != nil {
+		log.Printf("unable to retrieve value %v", err)
+	}
+	return big.NewInt(int64(0)).SetBytes(rawBytes)
+}
+
+func rightPad2Len(s string, padStr string, overallLen int) string {
+	var padCountInt int
+	padCountInt = 1 + ((overallLen - len(padStr)) / len(padStr))
+	var retStr = s + strings.Repeat(padStr, padCountInt)
+	return retStr[:overallLen]
+}
+
+//SimpleEncrypt - I do not know what to do for "strong password scrambling",
+// I'm x0r-ing the password over the RSA key for now.
+// You need a pretty random password for this to be strong of course.
+func simpleEncrypt(key, text []byte) (result []byte) {
+	//Just XOR scribble the RSA key with the password
+	k := len(key)
+	result = make([]byte, len(text))
+	for i := 0; i < len(result); i++ {
+		result[i] = key[i%k] ^ text[i]
+	}
+	return
+}
+
+func retrieveDecryptedBigInt(withPhrase string, theFile string) (v *big.Int) {
+	theFileReader, err := os.Open(theFile)
+	defer theFileReader.Close()
+	if err != nil {
+		log.Printf("unable to open file for big int %v", err)
+	}
+	rawBytes, err := ioutil.ReadAll(theFileReader)
+	if err != nil {
+		log.Printf("unable to retrieve value %v", err)
+	}
+	decryptedBytes := simpleEncrypt([]byte(withPhrase), rawBytes)
+	return big.NewInt(int64(0)).SetBytes(decryptedBytes)
+}
+
+func storeEncryptedBigInt(withPhrase string, v *big.Int, theFile string) {
+	rawBytes := v.Bytes()
+	vFile, err := os.Create(theFile)
+	if err != nil {
+		log.Printf("unable to open file for rsa modulus: %v", err)
+		return
+	}
+	defer vFile.Close()
+	encryptedBytes := simpleEncrypt([]byte(withPhrase), rawBytes)
+	doReaderWriter(bytes.NewBuffer(encryptedBytes), vFile)
+}
+
+func bigExp(x, y, n big.Int) big.Int {
+	R := big.NewInt(int64(0))
+	return *(R).Exp(&x, &y, &n)
+}
+
+/**
+  Keys cannot be unwrapped unless the user is unlocked.
+	This is like a session.  It will be based on a lease.
+	The idea is that users that are not around cannot have
+	their keys used.  Grant to a user that will be around if you must.
+*/
+func (h uploader) lease(w http.ResponseWriter, r *http.Request) {
+	withPhrase := r.URL.Query().Get("withPhrase")
+
+	//	forSeconds := r.URL.Query().Get("forSeconds")
+	user := h.getDN(r) //Note tht it's really a CN at the moment
+	userScrambled := string(h.HomeBucket) + "/" + obfuscateHash(user)
+
+	var rawRSAVals *rawRSA
+	//Create a store if private key does not exist
+	if _, err := os.Stat(userScrambled + ".rsa.n"); os.IsNotExist(err) {
+		rawRSAVals = h.generateRawRSA()
+		storeBigInt(rawRSAVals.N, userScrambled+".rsa.n")
+		storeBigInt(rawRSAVals.E, userScrambled+".rsa.e")
+		storeEncryptedBigInt(withPhrase, rawRSAVals.D, userScrambled+".rsa.d")
+		log.Printf("stored: %v", rawRSAVals.D)
+	} else {
+		n := retrieveBigInt(userScrambled + ".rsa.n")
+		e := retrieveBigInt(userScrambled + ".rsa.e")
+		d := retrieveDecryptedBigInt(withPhrase, userScrambled+".rsa.d")
+		log.Printf("retrieved: %v", d)
+		rawRSAVals = &rawRSA{
+			N: n,
+			D: d,
+			E: e,
+		}
+		m := big.NewInt(int64(666))
+		log.Printf(
+			"keyTest:%v -> %v -> %v",
+			*m,
+			bigExp(*m, *e, *n),
+			bigExp(bigExp(*m, *e, *n), *d, *n),
+		)
+	}
+	//Ensure that the unlocked user is in memory.
+	h.UnlockedCertStores.Add(user, rawRSAVals)
+}
+
 /**
   Handle command routing explicitly.
 */
@@ -375,6 +454,13 @@ func (h uploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		if strings.HasPrefix(r.URL.RequestURI(), "/download/") {
 			h.serveHTTPDownloadGET(w, r)
+		} else {
+			//Parameters:
+			// withPhrase=    (a password)
+			// forSeconds=     (number of seconds)
+			if strings.HasPrefix(r.URL.RequestURI(), "/lease") {
+				h.lease(w, r)
+			}
 		}
 	}
 }
@@ -390,15 +476,22 @@ func makeServer(
 	port int,
 	uploadCookie string,
 ) (*http.Server, error) {
+
+	lruCache, err := lru.NewARC(unlockedCertStores)
+	if err != nil {
+		log.Printf("trying to create new cache %v", err)
+	}
 	//Just ensure that this directory exists
 	os.Mkdir(theRoot, 0700)
 	h := uploader{
-		HomeBucket:   fileDirPath(theRoot),
-		Port:         port,
-		Bind:         bindIPAddr(bind),
-		UploadCookie: uploadCookie,
-		BufferSize:   4 * 1024, //Each session takes a buffer that guarantees the number of sessions in our SLA
-		KeyBytes:     32,
+		HomeBucket:         fileDirPath(theRoot),
+		Port:               port,
+		Bind:               bindIPAddr(bind),
+		UploadCookie:       uploadCookie,
+		BufferSize:         bufferSize, //Each session takes a buffer that guarantees the number of sessions in our SLA
+		KeyBytes:           keyBytes,
+		UnlockedCertStores: lruCache,
+		RSAEncryptBits:     rsaEncryptBits,
 	}
 	h.Addr = bindURL(string(h.Bind) + ":" + strconv.Itoa(h.Port))
 
@@ -426,6 +519,27 @@ var tcpPort int
 var tcpBind string
 var simpleSecret string
 var homeBucket string
+var bufferSize int
+var keyBytes int
+var serverCertFile string
+var serverKeyFile string
+var unlockedCertStores int
+var rsaEncryptBits int
+
+func flagSetup() {
+	flag.BoolVar(&hideFileNames, "hideFileNames", true, "use unhashed file and user names")
+	flag.IntVar(&tcpPort, "tcpPort", 6060, "set the tcp port")
+	flag.StringVar(&simpleSecret, "simpleSecret", "y0UMayUpL0Ad", "a simple nuisance secret")
+	flag.StringVar(&tcpBind, "tcpBind", "127.0.0.1", "tcp bind port")
+	flag.StringVar(&homeBucket, "homeBucket", "/tmp/uploader", "home bucket to store files in")
+	flag.IntVar(&bufferSize, "bufferSize", 1024*4, "the size of a buffer between streams in a session")
+	flag.IntVar(&keyBytes, "keyBytes", 32, "AES key size in bytes")
+	flag.StringVar(&serverCertFile, "serverCertFile", "cert.pem", "The SSL Cert in PEM format for this server")
+	flag.StringVar(&serverKeyFile, "serverKeyFile", "key.pem", "The private key for the SSL Cert for this server")
+	flag.IntVar(&unlockedCertStores, "unlockedCertStores", 10000, "The number of unlocked cert stores we allow in the system")
+	flag.IntVar(&rsaEncryptBits, "rsaEncryptBits", 1024, "The number of bits to encrypt a user file key with")
+	flag.Parse()
+}
 
 /**
   Use the lowest level of control for creating the Server
@@ -437,12 +551,7 @@ var homeBucket string
   because large files just take longer.
 */
 func main() {
-	flag.BoolVar(&hideFileNames, "hideFileNames", true, "use unhashed file and user names")
-	flag.IntVar(&tcpPort, "tcpPort", 6060, "set the tcp port")
-	flag.StringVar(&simpleSecret, "simpleSecret", "y0UMayUpL0Ad", "a simple nuisance secret")
-	flag.StringVar(&tcpBind, "tcpBind", "127.0.0.1", "tcp bind port")
-	flag.StringVar(&homeBucket, "homeBucket", "/tmp/uploader", "home bucket to store files in")
-	flag.Parse()
+	flagSetup()
 
 	s, err := makeServer(homeBucket, tcpBind, tcpPort, simpleSecret)
 	if err != nil {
@@ -481,5 +590,5 @@ func main() {
 	//
 	//This service will be certified to do an AAC check, so we can
 	//require cryptographic evidence that the grant was sanctioned by AAC.
-	log.Fatal(s.ListenAndServeTLS("cert.pem", "key.pem"))
+	log.Fatal(s.ListenAndServeTLS(serverCertFile, serverKeyFile))
 }
