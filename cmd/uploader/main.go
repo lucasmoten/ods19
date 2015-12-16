@@ -250,7 +250,6 @@ func (h uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// Making go-kit work
 	ctx := context.Background()
 	svc := transfer.TransferServiceImpl{}
 
@@ -261,21 +260,9 @@ func main() {
 		transfer.EncodeResponse,
 	)
 
-	// Registers uploadHandler with DefaultServerMux, a package-level map of handlers in "net/http".
 	http.Handle("/upload", uploadHandler)
-	// Registers with DefaultServerMux, but only requires a simple HandlerFunc.
 	http.HandleFunc("/form", serveHTTPUploadGETMsg)
 
-	// Make our server with custom TLS config.
-	// s := &http.Server{
-	// 	TLSConfig:      config.NewUploaderTLSConfig(),
-	// 	Addr:           "127.0.0.1:6060",
-	// 	ReadTimeout:    10000 * time.Second,
-	// 	WriteTimeout:   10000 * time.Second,
-	// 	MaxHeaderBytes: 1 << 20,
-	// }
-
 	s := &http.Server{Addr: "127.0.0.1:6060"}
-	//log.Fatal("DEV NOT HTTPS", s.ListenAndServe())
 	log.Fatal("Error on call to ListenAndServeTLS", s.ListenAndServeTLS("cert.pem", "key.pem"))
 }
