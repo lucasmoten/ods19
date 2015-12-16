@@ -2,12 +2,8 @@ package main
 
 import (
 	"bufio"
-	"crypto/tls"
-	"crypto/x509"
-	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -16,6 +12,12 @@ import (
 	"time"
 
 	"strconv"
+
+	"golang.org/x/net/context"
+
+	httptransport "github.com/go-kit/kit/transport/http"
+
+	"decipher.com/oduploader/services/transfer"
 )
 
 /**
@@ -94,15 +96,22 @@ func (h uploader) serveHTTPUploadPOSTDrain(fileName string, w http.ResponseWrite
   we must handle files larger than memory.
 */
 
-func (h uploader) serveHTTPUploadGETMsg(msg string, w http.ResponseWriter, r *http.Request) {
+func (h uploader) serveHTTPUploadGETMsg(w http.ResponseWriter, r *http.Request) {
+	return
+}
+func (h uploader) serveHTTPUploadGET(w http.ResponseWriter, r *http.Request) {
+	return
+}
+
+func serveHTTPUploadGETMsg(w http.ResponseWriter, r *http.Request) {
 	log.Print("get an upload get")
 	theCookie := "wrong"
-	peerCerts := r.TLS.PeerCertificates
-	who := "certChain length = " + string(len(peerCerts))
-	for i := 0; i < len(peerCerts); i++ {
-		theCookie = h.UploadCookie
-		who += "/" + string(peerCerts[i].RawIssuer)
-	}
+	// peerCerts := r.TLS.PeerCertificates   // TODO bring this back
+	// who := "certChain length = " + string(len(peerCerts))
+	// for i := 0; i < len(peerCerts); i++ {
+	// 	theCookie = "y0UMayUpL0Ad"
+	// 	who += "/" + peerCerts[i].Subject.CommonName
+	// }
 	r.Header.Set("Content-Type", "text/html")
 	fmt.Fprintf(w, "<html>")
 	fmt.Fprintf(w, "<head>")
@@ -110,7 +119,6 @@ func (h uploader) serveHTTPUploadGETMsg(msg string, w http.ResponseWriter, r *ht
 	fmt.Fprintf(w, "</head>")
 	fmt.Fprintf(w, "<body>")
 	fmt.Fprintf(w, "TODO: extract NAME/DN/ETC...<br>")
-	fmt.Fprintf(w, who+" "+msg+"<br>")
 	fmt.Fprintf(w, "<form action='/upload' method='POST' enctype='multipart/form-data'>")
 	fmt.Fprintf(w, "<input type='hidden' value='"+theCookie+"' name='uploadCookie'>")
 	fmt.Fprintf(w, "The File: <input name='theFile' type='file'>")
@@ -207,7 +215,7 @@ func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	h.serveHTTPUploadGETMsg("ok", w, r)
+	h.serveHTTPUploadGETMsg(w, r)
 	stopTime := time.Now()
 	timeDiff := (stopTime.UnixNano()-startTime.UnixNano())/(1000*1000) + 1
 	throughput := (1000 * partBytes) / timeDiff
@@ -220,19 +228,6 @@ func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Upload: time = %dms, size = %d B, throughput = %d B/s, partSize = %d B", timeDiff, partBytes, throughput, partSize)
 }
 
-/**
-<<<<<<< 4303adb0756b1f366e78b5331f67fcd46a9072f1
-=======
-Uploader method to show a form with no status from previous upload
-*/
-func (h uploader) serveHTTPUploadGET(w http.ResponseWriter, r *http.Request) {
-	h.serveHTTPUploadGETMsg("", w, r)
-}
-
-/**
->>>>>>> Reorganized code to have buildable executables under a `cmd` directory. The `uploader` executable is built by running `go build` in /uploader
-Efficiently retrieve a file
-*/
 func (h uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	fileName := h.HomeBucket + "/" + r.URL.RequestURI()[len("/download/"):]
@@ -278,16 +273,6 @@ func (h uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 }
 
 // TODO these decode/encode functions should live somewhere else: services/transfer?
-
-func decodeUploadRequest(r *http.Request) (interface{}, error) {
-	// our decoder func is just a pass-through, since we are not doing an
-	// "RPC-style" Endpoint with the "/upload" route.
-	return r, nil
-}
-
-func encodeResponse(w http.ResponseWriter, response interface{}) error {
-	return json.NewEncoder(w).Encode(response)
-}
 
 /**
   Handle command routing explicitly.
@@ -352,33 +337,32 @@ func makeServer(
   because large files just take longer.
 */
 func main() {
-	s := makeServer("/tmp/uploader", "127.0.0.1", 6060, "y0UMayUpL0Ad")
-	log.Printf("open a browser at: %s", "https://"+s.Addr+"/upload")
+	// Making go-kit work
+	ctx := context.Background()
+	svc := transfer.TransferServiceImpl{}
 
-	certBytes, err := ioutil.ReadFile("cert.pem")
-	if err != nil {
-		log.Fatalln("Unable to read cert.pem", err)
-	}
+	uploadHandler := httptransport.NewServer(
+		ctx,
+		transfer.MakeUploadEndpoint(svc),
+		transfer.DecodeUploadRequest,
+		transfer.EncodeResponse,
+	)
 
-	clientCertPool := x509.NewCertPool()
-	if ok := clientCertPool.AppendCertsFromPEM(certBytes); !ok {
-		log.Fatalln("Unable to add certificate to certificate pool")
-	}
+	// Registers uploadHandler with DefaultServerMux, a package-level map of handlers in "net/http".
+	http.Handle("/upload", uploadHandler)
+	// Registers with DefaultServerMux, but only requires a simple HandlerFunc.
+	http.HandleFunc("/form", serveHTTPUploadGETMsg)
 
-	tlsConfig := &tls.Config{
-		// Reject any TLS certificate that cannot be validated
-		ClientAuth: tls.RequireAndVerifyClientCert,
-		// Ensure that we only use our "CA" to validate certificates
-		ClientCAs: clientCertPool,
-		// PFS because we can but this will reject client with RSA certificates
-		//CipherSuites: []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
-		// Force it server side
-		PreferServerCipherSuites: true,
-		// TLS 1.2 because we can
-		MinVersion: tls.VersionTLS10,
-	}
-	tlsConfig.BuildNameToCertificate()
-	s.TLSConfig = tlsConfig
+	// Make our server with custom TLS config.
+	// s := &http.Server{
+	// 	TLSConfig:      config.NewUploaderTLSConfig(),
+	// 	Addr:           "127.0.0.1:6060",
+	// 	ReadTimeout:    10000 * time.Second,
+	// 	WriteTimeout:   10000 * time.Second,
+	// 	MaxHeaderBytes: 1 << 20,
+	// }
 
-	log.Fatal(s.ListenAndServeTLS("cert.pem", "key.pem"))
+	s := &http.Server{Addr: "127.0.0.1:6060"}
+	//log.Fatal("DEV NOT HTTPS", s.ListenAndServe())
+	log.Fatal("Error on call to ListenAndServeTLS", s.ListenAndServeTLS("cert.pem", "key.pem"))
 }

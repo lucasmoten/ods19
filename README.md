@@ -33,6 +33,18 @@ $ ./scripts/cross-compile.sh
 The tar files for multiple system binaries should be available in the
 `/release` directory.
 
+
+# Cross compiling
+
+From the root directory, run:
+
+```
+$ ./scripts/cross-compile.sh
+```
+
+The tar files for multiple system binaries should be available in the
+`/release` directory.
+
 TODO:
 
 Because this is might be an auxillary service to a different service,
