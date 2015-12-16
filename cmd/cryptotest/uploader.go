@@ -172,27 +172,33 @@ func (h uploader) getDN(r *http.Request) string {
   The part name (or file name, content type, etc) may insinuate that the file
   is small, and should be held in memory.
 */
-func (h uploader) serveHTTPUploadPOSTDrain(fileName string, w http.ResponseWriter, r *http.Request, part *multipart.Part) error {
-	log.Printf("read part %s", fileName)
-	drainTo, drainErr := os.Create(string(h.HomeBucket) + "/" + fileName)
+func (h uploader) serveHTTPUploadPOSTDrain(originalFileName string, keyName string, w http.ResponseWriter, r *http.Request, part *multipart.Part) error {
+	log.Printf("read part %s", keyName)
+	drainTo, drainErr := os.Create(string(h.HomeBucket) + "/" + keyName)
 	if drainErr != nil {
 		log.Printf("error draining file: %v", drainErr)
 	}
 	defer drainTo.Close()
+	obfuscatedDN := obfuscateHash(h.getDN(r))
 	key, iv := h.createKeyIVPair()
-	keyFileName := string(h.HomeBucket) + "/" + fileName + "_" + obfuscateHash(h.getDN(r)) + ".key"
+	keyFileName := string(h.HomeBucket) + "/" + keyName + "_" + obfuscatedDN + ".key"
 	keyFile, err := os.Create(keyFileName)
 	defer keyFile.Close()
 	if err != nil {
 		log.Printf("Could not open key file")
 		return err
 	}
-	ivFileName := string(h.HomeBucket) + "/" + fileName + ".iv"
+	ivFileName := string(h.HomeBucket) + "/" + keyName + ".iv"
 	ivFile, err := os.Create(ivFileName)
 	defer ivFile.Close()
 	doReaderWriter(bytes.NewBuffer(key), keyFile)
 	doReaderWriter(bytes.NewBuffer(iv), ivFile)
-	return doCipherByReaderWriter(part, drainTo, key, iv)
+	err = doCipherByReaderWriter(part, drainTo, key, iv)
+	if err != nil {
+		return err
+	}
+	h.listingUpdate(originalFileName, w, r)
+	return err
 }
 
 /**
@@ -209,13 +215,7 @@ func (h uploader) serveHTTPUploadPOSTDrain(fileName string, w http.ResponseWrite
 */
 func (h uploader) serveHTTPUploadGETMsg(msg string, w http.ResponseWriter, r *http.Request) {
 	log.Print("get an upload get")
-	theCookie := "wrong"
-	peerCerts := r.TLS.PeerCertificates
-	who := ""
-	for i := 0; i < len(peerCerts); i++ {
-		theCookie = h.UploadCookie
-		who += "/" + peerCerts[i].Subject.CommonName
-	}
+	who := h.getDN(r)
 	r.Header.Set("Content-Type", "text/html")
 	fmt.Fprintf(w, "<html>")
 	fmt.Fprintf(w, "<head>")
@@ -224,7 +224,6 @@ func (h uploader) serveHTTPUploadGETMsg(msg string, w http.ResponseWriter, r *ht
 	fmt.Fprintf(w, "<body>")
 	fmt.Fprintf(w, who+" "+msg+"<br>")
 	fmt.Fprintf(w, "<form action='/upload' method='POST' enctype='multipart/form-data'>")
-	fmt.Fprintf(w, "<input type='hidden' value='"+theCookie+"' name='uploadCookie'>")
 	fmt.Fprintf(w, "The File: <input name='theFile' type='file'>")
 	fmt.Fprintf(w, "<input type='submit'>")
 	fmt.Fprintf(w, "</form>")
@@ -240,6 +239,7 @@ func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var fileName string
 	isAuthorized := true
 	for {
 		part, err := multipartReader.NextPart()
@@ -256,9 +256,9 @@ func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 			} else {
 				if len(part.FileName()) > 0 {
 					if isAuthorized {
-						fileName := part.FileName()
+						fileName = part.FileName()
 						keyName := obfuscateHash(fileName)
-						err := h.serveHTTPUploadPOSTDrain(keyName, w, r, part)
+						err := h.serveHTTPUploadPOSTDrain(fileName, keyName, w, r, part)
 						if err != nil {
 							log.Printf("error draining part: %v", err)
 						}
@@ -271,7 +271,7 @@ func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	h.serveHTTPUploadGETMsg("ok", w, r)
+	h.serveHTTPUploadGETMsg("<a href='/download'>download</a>", w, r)
 }
 
 /**
@@ -281,9 +281,6 @@ func (h uploader) serveHTTPUploadGET(w http.ResponseWriter, r *http.Request) {
 	h.serveHTTPUploadGETMsg("", w, r)
 }
 
-/**
-Efficiently retrieve a file
-*/
 func (h uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	originalFileName := r.URL.RequestURI()[len("/download/"):]
 	fileName := string(h.HomeBucket) + "/" + obfuscateHash(originalFileName)
@@ -303,13 +300,53 @@ func (h uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	doCipherByReaderWriter(downloadFrom, w, key, iv)
 }
 
-//A retarded xor key scramble for now
+//A retarded xor key scramble for now - at least we are xor'ing with
+//a random key
 func scramble(key, text []byte) {
 	k := len(key)
 	for i := 0; i < len(text); i++ {
 		text[i] = key[i%k] ^ text[i]
 	}
 	return
+}
+
+//In order to make the uploader usable without a user interface,
+//at least provide a per-user listing of files in his object drive partition
+func (h uploader) listingUpdate(originalFileName string, w http.ResponseWriter, r *http.Request) {
+	log.Printf("insert " + originalFileName + " into listing")
+	obfuscatedDN := obfuscateHash(h.getDN(r))
+	dirListingName := string(h.HomeBucket) + "/" + obfuscatedDN
+	var dirListing *os.File
+	var err error
+	if _, err = os.Stat(dirListingName); os.IsNotExist(err) {
+		dirListing, err = os.Create(dirListingName)
+	} else {
+		dirListing, err = os.OpenFile(dirListingName, os.O_RDWR|os.O_APPEND, 0600)
+	}
+	if err != nil {
+		log.Printf("unable to read/write directory listing %v", err)
+	}
+	defer dirListing.Close()
+	newRecord := "<a href='/download/" + originalFileName + "'><hr>" + originalFileName + "</a>"
+	dirListing.Write([]byte(newRecord + "\n"))
+}
+
+//In order to make the uploader usable without a user interface,
+//at least provide a per-user listing of files in his object drive partition
+func (h uploader) listingRetrieve(w http.ResponseWriter, r *http.Request) {
+	log.Printf("getting a listing")
+	obfuscatedDN := obfuscateHash(h.getDN(r))
+	dirListingName := string(h.HomeBucket) + "/" + obfuscatedDN
+	var dirListing *os.File
+	var err error
+	dirListing, err = os.Open(dirListingName)
+	if err != nil {
+		log.Printf("unable to read directory listing %v", err)
+	}
+	defer dirListing.Close()
+	w.Write([]byte("<html>\n"))
+	io.Copy(w, dirListing)
+	w.Write([]byte("</html>\n"))
 }
 
 /**
@@ -327,6 +364,10 @@ func (h uploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		if strings.HasPrefix(r.URL.RequestURI(), "/download/") {
 			h.serveHTTPDownloadGET(w, r)
+		} else {
+			if strings.HasPrefix(r.URL.RequestURI(), "/download") {
+				h.listingRetrieve(w, r)
+			}
 		}
 	}
 }
