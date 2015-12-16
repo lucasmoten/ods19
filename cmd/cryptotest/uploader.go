@@ -5,7 +5,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
@@ -20,7 +19,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"math/big"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -131,6 +129,7 @@ func (h uploader) retrieveKeyIVPair(fileName string, r *http.Request) (key []byt
 	defer ivFile.Close()
 	iv = make([]byte, aes.BlockSize)
 	ivFile.Read(iv)
+	scramble([]byte(masterKey), key)
 	return key, iv, ret
 }
 
@@ -290,6 +289,7 @@ func (h uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	fileName := string(h.HomeBucket) + "/" + obfuscateHash(originalFileName)
 	log.Printf("download request for %s", originalFileName)
 	key, iv, err := h.retrieveKeyIVPair(fileName, r)
+	scramble([]byte(masterKey), key)
 	if err != nil {
 		log.Print("Unable to retrieve iv and key")
 	}
@@ -303,140 +303,13 @@ func (h uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	doCipherByReaderWriter(downloadFrom, w, key, iv)
 }
 
-type rawRSA struct {
-	N *big.Int
-	D *big.Int
-	E *big.Int
-}
-
-func (h uploader) generateRawRSA() *rawRSA {
-	rsaKey, err := rsa.GenerateKey(rand.Reader, h.RSAEncryptBits)
-	if err != nil {
-		log.Printf("generateRawRSA: %v", err)
-	}
-	return &rawRSA{
-		N: rsaKey.N,
-		D: rsaKey.D,
-		E: big.NewInt(int64(rsaKey.E)),
-	}
-}
-
-func storeBigInt(v *big.Int, theFile string) {
-	rawBytes := v.Bytes()
-	vFile, err := os.Create(theFile)
-	if err != nil {
-		log.Printf("unable to open file for rsa modulus: %v", err)
-		return
-	}
-	defer vFile.Close()
-	doReaderWriter(bytes.NewBuffer(rawBytes), vFile)
-}
-
-func retrieveBigInt(theFile string) (v *big.Int) {
-	theFileReader, err := os.Open(theFile)
-	defer theFileReader.Close()
-	if err != nil {
-		log.Printf("unable to open file for big int %v", err)
-	}
-	rawBytes, err := ioutil.ReadAll(theFileReader)
-	if err != nil {
-		log.Printf("unable to retrieve value %v", err)
-	}
-	return big.NewInt(int64(0)).SetBytes(rawBytes)
-}
-
-func rightPad2Len(s string, padStr string, overallLen int) string {
-	var padCountInt int
-	padCountInt = 1 + ((overallLen - len(padStr)) / len(padStr))
-	var retStr = s + strings.Repeat(padStr, padCountInt)
-	return retStr[:overallLen]
-}
-
-//SimpleEncrypt - I do not know what to do for "strong password scrambling",
-// I'm x0r-ing the password over the RSA key for now.
-// You need a pretty random password for this to be strong of course.
-func simpleEncrypt(key, text []byte) (result []byte) {
-	//Just XOR scribble the RSA key with the password
+//A retarded xor key scramble for now
+func scramble(key, text []byte) {
 	k := len(key)
-	result = make([]byte, len(text))
-	for i := 0; i < len(result); i++ {
-		result[i] = key[i%k] ^ text[i]
+	for i := 0; i < len(text); i++ {
+		text[i] = key[i%k] ^ text[i]
 	}
 	return
-}
-
-func retrieveDecryptedBigInt(withPhrase string, theFile string) (v *big.Int) {
-	theFileReader, err := os.Open(theFile)
-	defer theFileReader.Close()
-	if err != nil {
-		log.Printf("unable to open file for big int %v", err)
-	}
-	rawBytes, err := ioutil.ReadAll(theFileReader)
-	if err != nil {
-		log.Printf("unable to retrieve value %v", err)
-	}
-	decryptedBytes := simpleEncrypt([]byte(withPhrase), rawBytes)
-	return big.NewInt(int64(0)).SetBytes(decryptedBytes)
-}
-
-func storeEncryptedBigInt(withPhrase string, v *big.Int, theFile string) {
-	rawBytes := v.Bytes()
-	vFile, err := os.Create(theFile)
-	if err != nil {
-		log.Printf("unable to open file for rsa modulus: %v", err)
-		return
-	}
-	defer vFile.Close()
-	encryptedBytes := simpleEncrypt([]byte(withPhrase), rawBytes)
-	doReaderWriter(bytes.NewBuffer(encryptedBytes), vFile)
-}
-
-func bigExp(x, y, n big.Int) big.Int {
-	R := big.NewInt(int64(0))
-	return *(R).Exp(&x, &y, &n)
-}
-
-/**
-  Keys cannot be unwrapped unless the user is unlocked.
-	This is like a session.  It will be based on a lease.
-	The idea is that users that are not around cannot have
-	their keys used.  Grant to a user that will be around if you must.
-*/
-func (h uploader) lease(w http.ResponseWriter, r *http.Request) {
-	withPhrase := r.URL.Query().Get("withPhrase")
-
-	//	forSeconds := r.URL.Query().Get("forSeconds")
-	user := h.getDN(r) //Note tht it's really a CN at the moment
-	userScrambled := string(h.HomeBucket) + "/" + obfuscateHash(user)
-
-	var rawRSAVals *rawRSA
-	//Create a store if private key does not exist
-	if _, err := os.Stat(userScrambled + ".rsa.n"); os.IsNotExist(err) {
-		rawRSAVals = h.generateRawRSA()
-		storeBigInt(rawRSAVals.N, userScrambled+".rsa.n")
-		storeBigInt(rawRSAVals.E, userScrambled+".rsa.e")
-		storeEncryptedBigInt(withPhrase, rawRSAVals.D, userScrambled+".rsa.d")
-		log.Printf("stored: %v", rawRSAVals.D)
-	} else {
-		n := retrieveBigInt(userScrambled + ".rsa.n")
-		e := retrieveBigInt(userScrambled + ".rsa.e")
-		d := retrieveDecryptedBigInt(withPhrase, userScrambled+".rsa.d")
-		log.Printf("retrieved: %v", d)
-		rawRSAVals = &rawRSA{
-			N: n,
-			D: d,
-			E: e,
-		}
-		m := big.NewInt(int64(666))
-		log.Printf(
-			"keyTest:%v -> %v -> %v",
-			*m,
-			bigExp(*m, *e, *n),
-			bigExp(bigExp(*m, *e, *n), *d, *n),
-		)
-	}
-	//Ensure that the unlocked user is in memory.
-	h.UnlockedCertStores.Add(user, rawRSAVals)
 }
 
 /**
@@ -454,13 +327,6 @@ func (h uploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		if strings.HasPrefix(r.URL.RequestURI(), "/download/") {
 			h.serveHTTPDownloadGET(w, r)
-		} else {
-			//Parameters:
-			// withPhrase=    (a password)
-			// forSeconds=     (number of seconds)
-			if strings.HasPrefix(r.URL.RequestURI(), "/lease") {
-				h.lease(w, r)
-			}
 		}
 	}
 }
@@ -517,7 +383,7 @@ func generateSession(account string) *s3.S3 {
 var hideFileNames bool
 var tcpPort int
 var tcpBind string
-var simpleSecret string
+var masterKey string
 var homeBucket string
 var bufferSize int
 var keyBytes int
@@ -527,9 +393,11 @@ var unlockedCertStores int
 var rsaEncryptBits int
 
 func flagSetup() {
+	//Pass in on launch like:
+	//     masterkey=3kdk3kfk588kfskweui23yui ./uploader ...
+	masterKey = os.Getenv("masterkey")
 	flag.BoolVar(&hideFileNames, "hideFileNames", true, "use unhashed file and user names")
 	flag.IntVar(&tcpPort, "tcpPort", 6060, "set the tcp port")
-	flag.StringVar(&simpleSecret, "simpleSecret", "y0UMayUpL0Ad", "a simple nuisance secret")
 	flag.StringVar(&tcpBind, "tcpBind", "127.0.0.1", "tcp bind port")
 	flag.StringVar(&homeBucket, "homeBucket", "/tmp/uploader", "home bucket to store files in")
 	flag.IntVar(&bufferSize, "bufferSize", 1024*4, "the size of a buffer between streams in a session")
@@ -553,7 +421,7 @@ func flagSetup() {
 func main() {
 	flagSetup()
 
-	s, err := makeServer(homeBucket, tcpBind, tcpPort, simpleSecret)
+	s, err := makeServer(homeBucket, tcpBind, tcpPort, masterKey)
 	if err != nil {
 		log.Printf("unable to make server: %v\n", err)
 		return
