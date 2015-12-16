@@ -81,6 +81,18 @@ func (h uploader) serveHTTPUploadPOSTDrain(fileName string, w http.ResponseWrite
 	return bytesWritten, partsWritten
 }
 
+/**
+  Uploader retrieve a form for doing uploads.
+
+  Serve up an example form.  There is nothing preventing
+  a client from deciding to send us a POST with 1000
+  1Gb to 64Gb files in them.  That would be something like
+  S3 bucket uploads.
+
+  We can make it a matter of specification that headers larger
+  than this must fail.  But for the multi-part mime chunks,
+  we must handle files larger than memory.
+*/
 func serveHTTPUploadGETMsg(w http.ResponseWriter, r *http.Request) {
 	log.Print("get an upload get")
 	theCookie := "wrong"
@@ -205,6 +217,9 @@ func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Upload: time = %dms, size = %d B, throughput = %d B/s, partSize = %d B", timeDiff, partBytes, throughput, partSize)
 }
 
+/**
+Efficiently retrieve a file
+*/
 func (h uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	fileName := h.HomeBucket + "/" + r.URL.RequestURI()[len("/download/"):]
@@ -250,6 +265,7 @@ func (h uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// Making go-kit work
 	ctx := context.Background()
 	svc := transfer.TransferServiceImpl{}
 
@@ -260,9 +276,23 @@ func main() {
 		transfer.EncodeResponse,
 	)
 
+	// Registers uploadHandler with DefaultServerMux, a package-level map of handlers in "net/http".
 	http.Handle("/upload", uploadHandler)
+	// Registers with DefaultServerMux, but only requires a simple HandlerFunc.
 	http.HandleFunc("/form", serveHTTPUploadGETMsg)
 
+	// Make our server with custom TLS config.
+	// s := &http.Server{
+	// 	TLSConfig:      config.NewUploaderTLSConfig(),
+	// 	Addr:           "127.0.0.1:6060",
+	// 	ReadTimeout:    10000 * time.Second,
+	// 	WriteTimeout:   10000 * time.Second,
+	// 	MaxHeaderBytes: 1 << 20,
+	// }
+
 	s := &http.Server{Addr: "127.0.0.1:6060"}
+	//log.Fatal("DEV NOT HTTPS", s.ListenAndServe())
 	log.Fatal("Error on call to ListenAndServeTLS", s.ListenAndServeTLS("cert.pem", "key.pem"))
 }
+
+// TODO these decode/encode functions should live somewhere else: services/transfer?

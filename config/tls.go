@@ -3,7 +3,6 @@ package config
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -22,12 +21,6 @@ func init() {
 	} else {
 		certPath = "cert.pem"
 	}
-}
-
-// Stuffs does so much stuff, it's really a great function, you guys.
-
-func DoStuff() {
-	fmt.Println("Stuff done!")
 }
 
 // NewUploaderTLSConfig reads the environment for paths to X509 certificates

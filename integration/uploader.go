@@ -12,13 +12,13 @@ import (
 	"golang.org/x/net/context"
 
 	"decipher.com/oduploader/services/transfer"
+
 	httptransport "github.com/go-kit/kit/transport/http"
 )
 
 // TODO extract config port
 var serviceIP = "127.0.0.1:6060"
 
-// TestUploadFile exercises the Uploader service
 func TestUploadFile(t *testing.T) {
 
 	filename := "./testfiles/plaintext.txt"

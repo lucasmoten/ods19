@@ -9,9 +9,12 @@
 *.swp
 *sublime-*
 .idea
+<<<<<<< HEAD
 
 # ignore build directories
 out
 release
 
 
+=======
+>>>>>>> 05231bf329249e0affbdb75c809dab6a995fab7f

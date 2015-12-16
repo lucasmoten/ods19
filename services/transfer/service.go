@@ -24,6 +24,7 @@ type TransferServiceImpl struct{}
 // Upload ...
 func (t TransferServiceImpl) Upload(r *multipart.Reader) error {
 
+	log.Println("got this reader", r)
 	var partBytes int
 	for {
 		part, partErr := r.NextPart()
