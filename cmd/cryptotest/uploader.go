@@ -441,7 +441,7 @@ func flagSetup() {
 	masterKey = os.Getenv("masterkey")
 	flag.BoolVar(&hideFileNames, "hideFileNames", true, "use unhashed file and user names")
 	flag.IntVar(&tcpPort, "tcpPort", 6443, "set the tcp port")
-	flag.StringVar(&tcpBind, "tcpBind", "127.0.0.1", "tcp bind port")
+	flag.StringVar(&tcpBind, "tcpBind", "0.0.0.0", "tcp bind port")
 	flag.StringVar(&homeBucket, "homeBucket", "bucket", "home bucket to store files in")
 	flag.IntVar(&bufferSize, "bufferSize", 1024*4, "the size of a buffer between streams in a session")
 	flag.IntVar(&keyBytes, "keyBytes", 32, "AES key size in bytes")
