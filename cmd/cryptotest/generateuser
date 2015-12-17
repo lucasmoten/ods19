@@ -1,11 +1,12 @@
 #!/bin/bash
 
 theuser=$1
+mkdir -p generate/$theuser
 
-openssl genrsa -out $theuser.key.pem 2048 && \
-openssl req -new -key $theuser.key.pem -out $theuser.csr && \
-openssl x509 -req -in $theuser.csr -CA cert.pem -CAkey key.pem -CAcreateserial -out $theuser.cert.pem && \
-openssl x509 -in $theuser.cert.pem -text
-chmod 400 $theuser.key.pem
-openssl pkcs12 -export -in $theuser.cert.pem -inkey $theuser.key.pem -out $theuser.p12 -name $theuser
+openssl genrsa -out generate/$theuser/$theuser.key.pem 2048 && \
+openssl req -new -key generate/$theuser/$theuser.key.pem -out generate/$theuser/$theuser.csr && \
+openssl x509 -req -in generate/$theuser/$theuser.csr -CA generate/server/cert.pem -CAkey generate/server/key.pem -CAcreateserial -out generate/$theuser/$theuser.cert.pem && \
+openssl x509 -in generate/$theuser/$theuser.cert.pem -text
+chmod 400 generate/$theuser/$theuser.key.pem
+openssl pkcs12 -export -in generate/$theuser/$theuser.cert.pem -inkey generate/$theuser/$theuser.key.pem -out generate/$theuser/$theuser.p12 -name $theuser
 

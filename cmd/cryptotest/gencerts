@@ -1,5 +1,6 @@
 #!/bin/bash
 
-openssl genrsa -out key.pem 2048 && \
-openssl req -x509 -new -nodes -key key.pem -days 720 -out cert.pem && \
-openssl x509 -in cert.pem -text
+mkdir generated 2>&1 > /dev/null
+openssl genrsa -out generated/server.key.pem 2048 && \
+openssl req -x509 -new -nodes -key generated/server.key.pem -days 720 -out generated/server.cert.pem && \
+openssl x509 -in generated/server.cert.pem -text

@@ -431,6 +431,7 @@ var bufferSize int
 var keyBytes int
 var serverCertFile string
 var serverKeyFile string
+var serverTrustFile string
 var unlockedCertStores int
 var rsaEncryptBits int
 
@@ -439,13 +440,14 @@ func flagSetup() {
 	//     masterkey=3kdk3kfk588kfskweui23yui ./uploader ...
 	masterKey = os.Getenv("masterkey")
 	flag.BoolVar(&hideFileNames, "hideFileNames", true, "use unhashed file and user names")
-	flag.IntVar(&tcpPort, "tcpPort", 6060, "set the tcp port")
+	flag.IntVar(&tcpPort, "tcpPort", 6443, "set the tcp port")
 	flag.StringVar(&tcpBind, "tcpBind", "127.0.0.1", "tcp bind port")
-	flag.StringVar(&homeBucket, "homeBucket", "/tmp/uploader", "home bucket to store files in")
+	flag.StringVar(&homeBucket, "homeBucket", "bucket", "home bucket to store files in")
 	flag.IntVar(&bufferSize, "bufferSize", 1024*4, "the size of a buffer between streams in a session")
 	flag.IntVar(&keyBytes, "keyBytes", 32, "AES key size in bytes")
-	flag.StringVar(&serverCertFile, "serverCertFile", "cert.pem", "The SSL Cert in PEM format for this server")
-	flag.StringVar(&serverKeyFile, "serverKeyFile", "key.pem", "The private key for the SSL Cert for this server")
+	flag.StringVar(&serverTrustFile, "serverTrustFile", "defaultcerts/server/server.trust.pem", "The SSL Trust in PEM format for this server")
+	flag.StringVar(&serverCertFile, "serverCertFile", "defaultcerts/server/server.cert.pem", "The SSL Cert in PEM format for this server")
+	flag.StringVar(&serverKeyFile, "serverKeyFile", "defaultcerts/server/server.key.pem", "The private key for the SSL Cert for this server")
 	flag.IntVar(&unlockedCertStores, "unlockedCertStores", 10000, "The number of unlocked cert stores we allow in the system")
 	flag.IntVar(&rsaEncryptBits, "rsaEncryptBits", 1024, "The number of bits to encrypt a user file key with")
 	flag.Parse()
@@ -471,7 +473,7 @@ func main() {
 	}
 	log.Printf("open a browser at %s\n", "https://"+s.Addr+"/upload")
 
-	certBytes, err := ioutil.ReadFile("cert.pem")
+	certBytes, err := ioutil.ReadFile(serverTrustFile)
 	if err != nil {
 		log.Fatalln("Unable to read cert.pem", err)
 	}
