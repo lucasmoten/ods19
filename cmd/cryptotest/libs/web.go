@@ -190,7 +190,7 @@ func (h Uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 Uploader method to show a form with no status from previous upload
 */
 func (h Uploader) serveHTTPUploadGET(w http.ResponseWriter, r *http.Request) {
-	h.serveHTTPUploadGETMsg("", w, r)
+	h.serveHTTPUploadGETMsg("<a href='/download'>download</a>", w, r)
 }
 
 func (h Uploader) getDN(r *http.Request) string {
