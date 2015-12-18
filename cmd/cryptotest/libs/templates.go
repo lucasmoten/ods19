@@ -1,4 +1,4 @@
-package templates
+package libs
 
 /*
  * These are the templates to give a basic user interface.
@@ -17,9 +17,10 @@ var IndexForm = `
 //UploadForm is the user interface element to post data without programming
 var UploadForm = `
 <html>
-  <head><title>Upload A File</title>
+  <head><title>Raw Uploader</title>
 	<body>
-		%s
+		UploadBy:%s
+		<br>
 		%s
 		<br>
 		<form action='/upload' method='POST' enctype='multipart/form-data'>
