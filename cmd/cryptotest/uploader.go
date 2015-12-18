@@ -15,7 +15,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/hashicorp/golang-lru"
+	//"github.com/hashicorp/golang-lru"
+	templates "decipher.com/oduploader/cmd/cryptotest/templates"
 	"io"
 	"io/ioutil"
 	"log"
@@ -26,40 +27,6 @@ import (
 	"strings"
 	"time"
 )
-
-/*
- * These are the templates to give a basic user interface.
- */
-
-var indexForm = `
-<html>
-	<head><title>OD Uploader</title>
-	<body>
-		<a href='/upload'>Upload</a>
-	</body>
-</html>
-`
-
-var uploadForm = `
-<html>
-  <head><title>Upload A File</title>
-	<body>
-		%s
-		%s
-		<br>
-		<form action='/upload' method='POST' enctype='multipart/form-data'>
-			<select name='classification'>
-				<option value='U'>Unclassified</option>
-				<option value='C'>Classified</option>
-				<option value='S'>Secret</option>
-				<option value='T'>Top Secret</option>
-			</select>
-			The File:<input name='theFile' type='file'>
-			<input type='submit'>
-		</form>
-	</body>
-</html>
-`
 
 /* ServeHTTP handles the routing of requests
  */
@@ -97,15 +64,15 @@ type bindURL string
   for large files.
 */
 type uploader struct {
-	HomeBucket         fileDirPath
-	Port               int
-	Bind               bindIPAddr
-	Addr               bindURL
-	UploadCookie       string
-	BufferSize         int
-	KeyBytes           int
-	UnlockedCertStores *lru.ARCCache
-	RSAEncryptBits     int
+	HomeBucket   fileDirPath
+	Port         int
+	Bind         bindIPAddr
+	Addr         bindURL
+	UploadCookie string
+	BufferSize   int
+	KeyBytes     int
+	//UnlockedCertStores *lru.ARCCache
+	RSAEncryptBits int
 }
 
 //Generate unique opaque names for uploaded files
@@ -286,7 +253,7 @@ func (h uploader) serveHTTPUploadGETMsg(msg string, w http.ResponseWriter, r *ht
 	log.Print("get an upload get")
 	who := h.getDN(r)
 	r.Header.Set("Content-Type", "text/html")
-	fmt.Fprintf(w, uploadForm, who, msg)
+	fmt.Fprintf(w, templates.UploadForm, who, msg)
 }
 
 func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
@@ -429,21 +396,21 @@ func makeServer(
 	uploadCookie string,
 ) (*http.Server, error) {
 
-	lruCache, err := lru.NewARC(unlockedCertStores)
-	if err != nil {
-		log.Printf("trying to create new cache %v", err)
-	}
+	//lruCache, err := lru.NewARC(unlockedCertStores)
+	//if err != nil {
+	//	log.Printf("trying to create new cache %v", err)
+	//}
 	//Just ensure that this directory exists
 	os.Mkdir(theRoot, 0700)
 	h := uploader{
-		HomeBucket:         fileDirPath(theRoot),
-		Port:               port,
-		Bind:               bindIPAddr(bind),
-		UploadCookie:       uploadCookie,
-		BufferSize:         bufferSize, //Each session takes a buffer that guarantees the number of sessions in our SLA
-		KeyBytes:           keyBytes,
-		UnlockedCertStores: lruCache,
-		RSAEncryptBits:     rsaEncryptBits,
+		HomeBucket:   fileDirPath(theRoot),
+		Port:         port,
+		Bind:         bindIPAddr(bind),
+		UploadCookie: uploadCookie,
+		BufferSize:   bufferSize, //Each session takes a buffer that guarantees the number of sessions in our SLA
+		KeyBytes:     keyBytes,
+		//		UnlockedCertStores: lruCache,
+		RSAEncryptBits: rsaEncryptBits,
 	}
 	h.Addr = bindURL(string(h.Bind) + ":" + strconv.Itoa(h.Port))
 
