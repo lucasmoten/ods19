@@ -4,6 +4,7 @@
 package main
 
 import (
+	"decipher.com/oduploader/cmd/cryptotest/gen-go/aac"
 	"flag"
 	"fmt"
 	"git.apache.org/thrift.git/lib/go/thrift"
@@ -13,7 +14,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"thrift"
 )
 
 func Usage() {
@@ -121,7 +121,7 @@ func main() {
 		Usage()
 		os.Exit(1)
 	}
-	client := thrift.NewAacServiceClientFactory(trans, protocolFactory)
+	client := aac.NewAacServiceClientFactory(trans, protocolFactory)
 	if err := trans.Open(); err != nil {
 		fmt.Fprintln(os.Stderr, "Error opening socket to ", host, ":", port, " ", err)
 		os.Exit(1)
@@ -143,7 +143,7 @@ func main() {
 		}
 		factory51 := thrift.NewTSimpleJSONProtocolFactory()
 		jsProt52 := factory51.GetProtocol(mbTrans49)
-		containerStruct0 := thrift.NewAacServiceBuildAcmArgs()
+		containerStruct0 := aac.NewAacServiceBuildAcmArgs()
 		err53 := containerStruct0.ReadField1(jsProt52)
 		if err53 != nil {
 			Usage()
@@ -163,7 +163,7 @@ func main() {
 		}
 		factory58 := thrift.NewTSimpleJSONProtocolFactory()
 		jsProt59 := factory58.GetProtocol(mbTrans56)
-		containerStruct2 := thrift.NewAacServiceBuildAcmArgs()
+		containerStruct2 := aac.NewAacServiceBuildAcmArgs()
 		err60 := containerStruct2.ReadField3(jsProt59)
 		if err60 != nil {
 			Usage()
@@ -189,7 +189,7 @@ func main() {
 		}
 		factory64 := thrift.NewTSimpleJSONProtocolFactory()
 		jsProt65 := factory64.GetProtocol(mbTrans62)
-		containerStruct0 := thrift.NewAacServiceValidateAcmsArgs()
+		containerStruct0 := aac.NewAacServiceValidateAcmsArgs()
 		err66 := containerStruct0.ReadField1(jsProt65)
 		if err66 != nil {
 			Usage()
@@ -285,7 +285,7 @@ func main() {
 		}
 		factory85 := thrift.NewTSimpleJSONProtocolFactory()
 		jsProt86 := factory85.GetProtocol(mbTrans83)
-		containerStruct1 := thrift.NewAacServiceRollupAcmsArgs()
+		containerStruct1 := aac.NewAacServiceRollupAcmsArgs()
 		err87 := containerStruct1.ReadField2(jsProt86)
 		if err87 != nil {
 			Usage()
@@ -333,7 +333,7 @@ func main() {
 		}
 		factory98 := thrift.NewTSimpleJSONProtocolFactory()
 		jsProt99 := factory98.GetProtocol(mbTrans96)
-		containerStruct2 := thrift.NewAacServiceCheckAccessAndPopulateArgs()
+		containerStruct2 := aac.NewAacServiceCheckAccessAndPopulateArgs()
 		err100 := containerStruct2.ReadField3(jsProt99)
 		if err100 != nil {
 			Usage()
