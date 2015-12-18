@@ -36,7 +36,7 @@ createRelease() {
 		ldflags="$ldflags -X $ARMVAR $arm"
 	fi
 
-	binname=odrive
+	binname=cryptotest
 	if [ "$osname" = windows ]
 	then
 		binname="$binname.exe"
@@ -47,9 +47,9 @@ createRelease() {
 
 	if [ "$arm" ]
 	then
-		GOOS=$os GOARCH=$arch GOARM=$arm go build -ldflags "$ldflags" -o "out/$binname" cmd/cryptotest/uploader.go
+		GOOS=$os GOARCH=$arch GOARM=$arm go build -ldflags "$ldflags" -o "out/$binname" cmd/cryptotest/cryptotest.go
 	else
-		GOOS=$os GOARCH=$arch go build -ldflags "$ldflags" -o "out/$binname" cmd/cryptotest/uploader.go
+		GOOS=$os GOARCH=$arch go build -ldflags "$ldflags" -o "out/$binname" cmd/cryptotest/cryptotest.go
 	fi
 
 	cd out

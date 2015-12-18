@@ -1,4 +1,0 @@
-#!/bin/bash
-
-#ASSUMES that you have thrift installed on your system!
-thrift -r --gen go thrift/AacService.thrift
