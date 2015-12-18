@@ -7,13 +7,13 @@ import (
 	"flag"
 	"fmt"
 	"git.apache.org/thrift.git/lib/go/thrift"
-	"gov/ic/cte/acm/service"
 	"math"
 	"net"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
+	"thrift"
 )
 
 func Usage() {
@@ -121,7 +121,7 @@ func main() {
 		Usage()
 		os.Exit(1)
 	}
-	client := service.NewAacServiceClientFactory(trans, protocolFactory)
+	client := thrift.NewAacServiceClientFactory(trans, protocolFactory)
 	if err := trans.Open(); err != nil {
 		fmt.Fprintln(os.Stderr, "Error opening socket to ", host, ":", port, " ", err)
 		os.Exit(1)
@@ -143,7 +143,7 @@ func main() {
 		}
 		factory51 := thrift.NewTSimpleJSONProtocolFactory()
 		jsProt52 := factory51.GetProtocol(mbTrans49)
-		containerStruct0 := service.NewAacServiceBuildAcmArgs()
+		containerStruct0 := thrift.NewAacServiceBuildAcmArgs()
 		err53 := containerStruct0.ReadField1(jsProt52)
 		if err53 != nil {
 			Usage()
@@ -163,7 +163,7 @@ func main() {
 		}
 		factory58 := thrift.NewTSimpleJSONProtocolFactory()
 		jsProt59 := factory58.GetProtocol(mbTrans56)
-		containerStruct2 := service.NewAacServiceBuildAcmArgs()
+		containerStruct2 := thrift.NewAacServiceBuildAcmArgs()
 		err60 := containerStruct2.ReadField3(jsProt59)
 		if err60 != nil {
 			Usage()
@@ -189,7 +189,7 @@ func main() {
 		}
 		factory64 := thrift.NewTSimpleJSONProtocolFactory()
 		jsProt65 := factory64.GetProtocol(mbTrans62)
-		containerStruct0 := service.NewAacServiceValidateAcmsArgs()
+		containerStruct0 := thrift.NewAacServiceValidateAcmsArgs()
 		err66 := containerStruct0.ReadField1(jsProt65)
 		if err66 != nil {
 			Usage()
@@ -285,7 +285,7 @@ func main() {
 		}
 		factory85 := thrift.NewTSimpleJSONProtocolFactory()
 		jsProt86 := factory85.GetProtocol(mbTrans83)
-		containerStruct1 := service.NewAacServiceRollupAcmsArgs()
+		containerStruct1 := thrift.NewAacServiceRollupAcmsArgs()
 		err87 := containerStruct1.ReadField2(jsProt86)
 		if err87 != nil {
 			Usage()
@@ -333,7 +333,7 @@ func main() {
 		}
 		factory98 := thrift.NewTSimpleJSONProtocolFactory()
 		jsProt99 := factory98.GetProtocol(mbTrans96)
-		containerStruct2 := service.NewAacServiceCheckAccessAndPopulateArgs()
+		containerStruct2 := thrift.NewAacServiceCheckAccessAndPopulateArgs()
 		err100 := containerStruct2.ReadField3(jsProt99)
 		if err100 != nil {
 			Usage()

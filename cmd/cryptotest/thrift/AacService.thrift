@@ -1,4 +1,6 @@
-namespace * gov.ic.cte.acm.service
+namespace java gov.ic.cte.acm.service
+namespace go thrift
+
 /**
  *  ACM object optionally identified by a path
  *
