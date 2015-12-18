@@ -1,5 +1,10 @@
 package libs
 
+import (
+	"github.com/aws/aws-sdk-go/service/s3"
+	"io"
+)
+
 type fileDirPath string
 type bindIPAddr string
 type bindURL string
@@ -19,4 +24,15 @@ type Uploader struct {
 	BufferSize     int
 	KeyBytes       int
 	RSAEncryptBits int
+	Session        *s3.S3
+	Backend        *Backend
+}
+
+//Backend can be implemented as S3, filesystem, etc
+type Backend struct {
+	GetBucketReadHandle   func(bucketKeyName string) (r io.Reader, c io.Closer, err error)
+	GetBucketWriteHandle  func(bucketKeyName string) (w io.Writer, c io.Closer, err error)
+	EnsureBucketExists    func(bucketName string) error
+	GetBucketFileExists   func(bucketKeyName string) (bool, error)
+	GetBucketAppendHandle func(bucketKeyName string) (w io.Writer, c io.Closer, err error)
 }

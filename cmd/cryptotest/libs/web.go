@@ -2,19 +2,11 @@ package libs
 
 import (
 	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/base64"
 	"flag"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
 	"io"
 	"io/ioutil"
 	"log"
@@ -30,6 +22,7 @@ import (
  */
 func (h Uploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
+
 	//Upload a file into the bucket
 	//      $HOMEBUCKET/?fileName
 	case r.URL.RequestURI() == "/upload":
@@ -41,6 +34,7 @@ func (h Uploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				h.serveHTTPUploadPOST(w, r)
 			}
 		}
+
 	//Get a file from the bucket
 	//      $HOMEBUCKET/:fileName
 	//This will get a specific file for a user.  The slash is used
@@ -51,6 +45,7 @@ func (h Uploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		{
 			h.serveHTTPDownloadGET(w, r)
 		}
+
 	//This will get a listing of files for this user
 	case strings.HasPrefix(r.URL.RequestURI(), "/download"):
 		{
@@ -63,119 +58,6 @@ func (h Uploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h Uploader) sendErrorResponse(w http.ResponseWriter, code int, err error, msg string) {
 	log.Printf(msg+":%v", err)
 	http.Error(w, msg, code)
-}
-
-//Generate unique opaque names for uploaded files
-//This would be straight base64 encoding, except the characters need
-//to be valid filenames
-func obfuscateHash(key string) string {
-	if hideFileNames {
-		hashBytes := sha256.Sum256([]byte(key))
-		keyString := base64.StdEncoding.EncodeToString(hashBytes[:])
-		return strings.Replace(strings.Replace(keyString, "/", "~", -1), "=", "Z", -1)
-	}
-	return key
-}
-
-// CountingStreamReader takes statistics as it writes
-type CountingStreamReader struct {
-	S cipher.Stream
-	R io.Reader
-}
-
-// Read takes statistics as it writes
-func (r CountingStreamReader) Read(dst []byte) (n int, err error) {
-	n, err = r.R.Read(dst)
-	r.S.XORKeyStream(dst[:n], dst[:n])
-	return
-}
-
-// CountingStreamWriter keeps statistics as it writes
-type CountingStreamWriter struct {
-	S     cipher.Stream
-	W     io.Writer
-	Error error
-}
-
-func (w CountingStreamWriter) Write(src []byte) (n int, err error) {
-	c := make([]byte, len(src))
-	w.S.XORKeyStream(c, src)
-	n, err = w.W.Write(c)
-	if n != len(src) {
-		if err == nil {
-			err = io.ErrShortWrite
-		}
-	}
-	return
-}
-
-// Close closes underlying stream
-func (w CountingStreamWriter) Close() error {
-	if c, ok := w.W.(io.Closer); ok {
-		return c.Close()
-	}
-	return nil
-}
-
-func (h Uploader) createKeyIVPair() (key []byte, iv []byte) {
-	key = make([]byte, h.KeyBytes)
-	rand.Read(key)
-	iv = make([]byte, aes.BlockSize)
-	rand.Read(iv)
-	return
-}
-
-func (h Uploader) retrieveKeyIVPair(fileName string, r *http.Request) (key []byte, iv []byte, ret error) {
-	keyFileName := fileName + "_" + obfuscateHash(h.getDN(r)) + ".key"
-	ivFileName := fileName + ".iv"
-
-	keyFile, closer, err := h.getBucketReadHandle(keyFileName)
-	if err != nil {
-		return key, iv, err
-	}
-	defer closer.Close()
-	key = make([]byte, h.KeyBytes)
-	keyFile.Read(key)
-
-	ivFile, closer, err := h.getBucketReadHandle(ivFileName)
-	if err != nil {
-		return key, iv, err
-	}
-	defer closer.Close()
-	iv = make([]byte, aes.BlockSize)
-	ivFile.Read(iv)
-
-	applyPassphrase([]byte(masterKey), key)
-	return key, iv, ret
-}
-
-func doCipherByReaderWriter(inFile io.Reader, outFile io.Writer, key []byte, iv []byte) error {
-	writeCipher, err := aes.NewCipher(key)
-	if err != nil {
-		log.Printf("unable to use cipher: %v", err)
-		return err
-	}
-	writeCipherStream := cipher.NewCTR(writeCipher, iv[:])
-	if err != nil {
-		log.Printf("unable to use block mode:%v", err)
-		return err
-	}
-
-	reader := &CountingStreamReader{S: writeCipherStream, R: inFile}
-	_, err = io.Copy(outFile, reader)
-	if err != nil {
-		log.Printf("unable to copy out to file:%v", err)
-	}
-	return err
-}
-
-func doReaderWriter(inFile io.Reader, outFile io.Writer) error {
-	_, err := io.Copy(outFile, inFile)
-	return err
-}
-
-func (h Uploader) getDN(r *http.Request) string {
-	return r.TLS.PeerCertificates[0].Subject.CommonName
 }
 
 /**
@@ -192,7 +74,7 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	r *http.Request,
 	part *multipart.Part,
 ) error {
-	drainTo, closer, drainErr := h.getBucketWriteHandle(string(h.HomeBucket) + "/" + keyName)
+	drainTo, closer, drainErr := h.Backend.GetBucketWriteHandle(string(h.HomeBucket) + "/" + keyName)
 	if drainErr != nil {
 		h.sendErrorResponse(w, 500, drainErr, "cant drain file")
 		return drainErr
@@ -202,7 +84,7 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	obfuscatedDN := obfuscateHash(h.getDN(r))
 	key, iv := h.createKeyIVPair()
 	keyFileName := string(h.HomeBucket) + "/" + keyName + "_" + obfuscatedDN + ".key"
-	keyFile, closer, err := h.getBucketWriteHandle(keyFileName)
+	keyFile, closer, err := h.Backend.GetBucketWriteHandle(keyFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open key file")
 		return err
@@ -210,14 +92,14 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	defer closer.Close()
 
 	ivFileName := string(h.HomeBucket) + "/" + keyName + ".iv"
-	ivFile, closer, err := h.getBucketWriteHandle(ivFileName)
+	ivFile, closer, err := h.Backend.GetBucketWriteHandle(ivFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open iv")
 	}
 	defer closer.Close()
 
 	classFileName := string(h.HomeBucket) + "/" + keyName + ".class"
-	classFile, closer, err := h.getBucketWriteHandle(classFileName)
+	classFile, closer, err := h.Backend.GetBucketWriteHandle(classFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open classification")
 	}
@@ -253,6 +135,8 @@ func (h Uploader) serveHTTPUploadGETMsg(msg string, w http.ResponseWriter, r *ht
 	fmt.Fprintf(w, UploadForm, who, msg)
 }
 
+/* Really upload a file into the server
+ */
 func (h Uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
@@ -309,6 +193,10 @@ func (h Uploader) serveHTTPUploadGET(w http.ResponseWriter, r *http.Request) {
 	h.serveHTTPUploadGETMsg("", w, r)
 }
 
+func (h Uploader) getDN(r *http.Request) string {
+	return r.TLS.PeerCertificates[0].Subject.CommonName
+}
+
 /**
  * Retrieve encrypted files by URL
  */
@@ -316,14 +204,14 @@ func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	originalFileName := r.URL.RequestURI()[len("/download/"):]
 	fileName := string(h.HomeBucket) + "/" + obfuscateHash(originalFileName)
 
-	key, iv, err := h.retrieveKeyIVPair(fileName, r)
+	key, iv, err := h.retrieveKeyIVPair(fileName, h.getDN(r))
 	applyPassphrase([]byte(masterKey), key)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "unable to retrieve key and iv")
 		return
 	}
 
-	downloadFrom, closer, err := h.getBucketReadHandle(fileName)
+	downloadFrom, closer, err := h.Backend.GetBucketReadHandle(fileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "failed to open file for reading")
 		return
@@ -352,14 +240,14 @@ func (h Uploader) listingUpdate(originalFileName string, w http.ResponseWriter, 
 	dirListingName := string(h.HomeBucket) + "/" + obfuscatedDN
 
 	//Just open and close the file to make sure that it exists (touch)
-	exists, err := h.getBucketFileExists(dirListingName)
+	exists, err := h.Backend.GetBucketFileExists(dirListingName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "unable to get existing directory listing")
 		return
 	}
 	//Just touch the file to make it exist
 	if exists == false {
-		_, closer, err := h.getBucketWriteHandle(dirListingName)
+		_, closer, err := h.Backend.GetBucketWriteHandle(dirListingName)
 		if err != nil {
 			h.sendErrorResponse(w, 500, err, "unable to touch existing directory listing")
 			return
@@ -368,7 +256,7 @@ func (h Uploader) listingUpdate(originalFileName string, w http.ResponseWriter, 
 	}
 
 	//Append to the file
-	dirListing, closer, err := h.getBucketAppendHandle(dirListingName)
+	dirListing, closer, err := h.Backend.GetBucketAppendHandle(dirListingName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "unable to read/write directory listing")
 		return
@@ -387,7 +275,7 @@ func (h Uploader) listingRetrieve(w http.ResponseWriter, r *http.Request) {
 	obfuscatedDN := obfuscateHash(h.getDN(r))
 	dirListingName := string(h.HomeBucket) + "/" + obfuscatedDN
 
-	dirListing, closer, err := h.getBucketReadHandle(dirListingName)
+	dirListing, closer, err := h.Backend.GetBucketReadHandle(dirListingName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "unable to read/write directory listing")
 		return
@@ -425,7 +313,9 @@ func makeServer(
 		KeyBytes:       keyBytes,
 		RSAEncryptBits: rsaEncryptBits,
 	}
-	h.ensureBucketExists(theRoot)
+	//Swap out with S3 at this point
+	h.Backend = h.NewFilesystemBackend()
+	h.Backend.EnsureBucketExists(theRoot)
 	h.Addr = bindURL(string(h.Bind) + ":" + strconv.Itoa(h.Port))
 
 	//A web server is running
@@ -436,15 +326,6 @@ func makeServer(
 		WriteTimeout:   10000 * time.Second,
 		MaxHeaderBytes: 1 << 20, //This prevents clients from DOS'ing us
 	}, nil
-}
-
-func generateSession(account string) *s3.S3 {
-	sessionConfig := &aws.Config{
-		Credentials: credentials.NewSharedCredentials("", account),
-	}
-	sess := session.New(sessionConfig)
-	svc := s3.New(sess)
-	return svc
 }
 
 var hideFileNames bool
@@ -476,14 +357,14 @@ func flagSetup() {
 	flag.Parse()
 }
 
-/**
-  Use the lowest level of control for creating the Server
-  so that we know what all of the options are.
+/*Runit is just the main function, with everything as a lib
+Use the lowest level of control for creating the Server
+so that we know what all of the options are.
 
-  Timeouts really should handled in the URL handler.
-  Timeout should be based on lack of progress,
-  rather than total time (ie: should active telnet sessions die based on time?),
-  because large files just take longer.
+Timeouts really should handled in the URL handler.
+Timeout should be based on lack of progress,
+rather than total time (ie: should active telnet sessions die based on time?),
+because large files just take longer.
 */
 func Runit() {
 	flagSetup()
