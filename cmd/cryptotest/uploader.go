@@ -27,6 +27,64 @@ import (
 	"time"
 )
 
+/*
+ * These are the templates to give a basic user interface.
+ */
+
+var indexForm = `
+<html>
+	<head><title>OD Uploader</title>
+	<body>
+		<a href='/upload'>Upload</a>
+	</body>
+</html>
+`
+
+var uploadForm = `
+<html>
+  <head><title>Upload A File</title>
+	<body>
+		%s
+		%s
+		<br>
+		<form action='/upload' method='POST' enctype='multipart/form-data'>
+			<select name='classification'>
+				<option value='U'>Unclassified</option>
+				<option value='C'>Classified</option>
+				<option value='S'>Secret</option>
+				<option value='T'>Top Secret</option>
+			</select>
+			The File:<input name='theFile' type='file'>
+			<input type='submit'>
+		</form>
+	</body>
+</html>
+`
+
+/* ServeHTTP handles the routing of requests
+ */
+func (h uploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch {
+	case r.URL.RequestURI() == "/upload":
+		{
+			switch {
+			case r.Method == "GET":
+				h.serveHTTPUploadGET(w, r)
+			case r.Method == "POST":
+				h.serveHTTPUploadPOST(w, r)
+			}
+		}
+	case strings.HasPrefix(r.URL.RequestURI(), "/download/"):
+		{
+			h.serveHTTPDownloadGET(w, r)
+		}
+	case strings.HasPrefix(r.URL.RequestURI(), "/download"):
+		{
+			h.listingRetrieve(w, r)
+		}
+	}
+}
+
 type fileDirPath string
 type bindIPAddr string
 type bindURL string
@@ -172,7 +230,14 @@ func (h uploader) getDN(r *http.Request) string {
   The part name (or file name, content type, etc) may insinuate that the file
   is small, and should be held in memory.
 */
-func (h uploader) serveHTTPUploadPOSTDrain(originalFileName string, keyName string, w http.ResponseWriter, r *http.Request, part *multipart.Part) error {
+func (h uploader) serveHTTPUploadPOSTDrain(
+	originalFileName string,
+	keyName string,
+	classification string,
+	w http.ResponseWriter,
+	r *http.Request,
+	part *multipart.Part,
+) error {
 	log.Printf("read part %s", keyName)
 	drainTo, drainErr := os.Create(string(h.HomeBucket) + "/" + keyName)
 	if drainErr != nil {
@@ -191,8 +256,12 @@ func (h uploader) serveHTTPUploadPOSTDrain(originalFileName string, keyName stri
 	ivFileName := string(h.HomeBucket) + "/" + keyName + ".iv"
 	ivFile, err := os.Create(ivFileName)
 	defer ivFile.Close()
+	classFileName := string(h.HomeBucket) + "/" + keyName + ".class"
+	classFile, err := os.Create(classFileName)
+	defer classFile.Close()
 	doReaderWriter(bytes.NewBuffer(key), keyFile)
 	doReaderWriter(bytes.NewBuffer(iv), ivFile)
+	doReaderWriter(bytes.NewBuffer([]byte(classification)), classFile)
 	err = doCipherByReaderWriter(part, drainTo, key, iv)
 	if err != nil {
 		return err
@@ -217,18 +286,7 @@ func (h uploader) serveHTTPUploadGETMsg(msg string, w http.ResponseWriter, r *ht
 	log.Print("get an upload get")
 	who := h.getDN(r)
 	r.Header.Set("Content-Type", "text/html")
-	fmt.Fprintf(w, "<html>")
-	fmt.Fprintf(w, "<head>")
-	fmt.Fprintf(w, "<title>Upload A File</title>")
-	fmt.Fprintf(w, "</head>")
-	fmt.Fprintf(w, "<body>")
-	fmt.Fprintf(w, who+" "+msg+"<br>")
-	fmt.Fprintf(w, "<form action='/upload' method='POST' enctype='multipart/form-data'>")
-	fmt.Fprintf(w, "The File: <input name='theFile' type='file'>")
-	fmt.Fprintf(w, "<input type='submit'>")
-	fmt.Fprintf(w, "</form>")
-	fmt.Fprintf(w, "</body>")
-	fmt.Fprintf(w, "</html>")
+	fmt.Fprintf(w, uploadForm, who, msg)
 }
 
 func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
@@ -240,7 +298,8 @@ func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var fileName string
-	isAuthorized := true
+	isAuthorized := true //NEED an AAC check here?
+	classification := ""
 	for {
 		part, err := multipartReader.NextPart()
 		if err != nil {
@@ -252,13 +311,21 @@ func (h uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		} else {
-			if strings.Compare(part.FormName(), "uploadCookie") == 0 {
+			if strings.Compare(part.FormName(), "classification") == 0 {
+				classificationAsBytes := make([]byte, 64)
+				_, err := part.Read(classificationAsBytes)
+				if err != nil {
+					log.Printf("Unable to parse classification: %v", err)
+					http.Error(w, "Unable to parse classification", 500)
+					return
+				}
+				classification = string(classificationAsBytes)
 			} else {
 				if len(part.FileName()) > 0 {
 					if isAuthorized {
 						fileName = part.FileName()
 						keyName := obfuscateHash(fileName)
-						err := h.serveHTTPUploadPOSTDrain(fileName, keyName, w, r, part)
+						err := h.serveHTTPUploadPOSTDrain(fileName, keyName, classification, w, r, part)
 						if err != nil {
 							log.Printf("error draining part: %v", err)
 						}
@@ -348,29 +415,6 @@ func (h uploader) listingRetrieve(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("<html>\n"))
 	io.Copy(w, dirListing)
 	w.Write([]byte("</html>\n"))
-}
-
-/**
-  Handle command routing explicitly.
-*/
-func (h uploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.URL.RequestURI() == "/upload" {
-		if r.Method == "GET" {
-			h.serveHTTPUploadGET(w, r)
-		} else {
-			if r.Method == "POST" {
-				h.serveHTTPUploadPOST(w, r)
-			}
-		}
-	} else {
-		if strings.HasPrefix(r.URL.RequestURI(), "/download/") {
-			h.serveHTTPDownloadGET(w, r)
-		} else {
-			if strings.HasPrefix(r.URL.RequestURI(), "/download") {
-				h.listingRetrieve(w, r)
-			}
-		}
-	}
 }
 
 /**
@@ -471,7 +515,7 @@ func main() {
 		log.Printf("unable to make server: %v\n", err)
 		return
 	}
-	log.Printf("open a browser at %s\n", "https://"+s.Addr+"/upload")
+	log.Printf("open a browser at https://127.0.0.1:%d/upload\n", tcpPort)
 
 	certBytes, err := ioutil.ReadFile(serverTrustFile)
 	if err != nil {
