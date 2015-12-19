@@ -202,6 +202,9 @@ func (h Uploader) getDN(r *http.Request) string {
  */
 func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	originalFileName := r.URL.RequestURI()[len("/download/"):]
+	if strings.HasSuffix(originalFileName, "mp4") {
+		r.Header.Set("Content-type", "video/mp4")
+	}
 	fileName := string(h.HomeBucket) + "/" + obfuscateHash(originalFileName)
 
 	key, iv, err := h.retrieveKeyIVPair(fileName, h.getDN(r))
