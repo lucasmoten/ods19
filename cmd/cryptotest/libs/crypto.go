@@ -66,8 +66,18 @@ func obfuscateHash(key string) string {
 func (h Uploader) createKeyIVPair() (key []byte, iv []byte) {
 	key = make([]byte, h.KeyBytes)
 	rand.Read(key)
+	//XXX I have read advice that with CTR blocks, the last four bytes
+	//of an iv should be zero, because the last four bytes are
+	//actually a counter for - seeking in the stream?
+	//That may allow appending to files - tbd
+	//Also note that we have fewer issues with iv sizes being large
+	//enough due to using this to encrypt random keys.
 	iv = make([]byte, aes.BlockSize)
 	rand.Read(iv)
+	iv[aes.BlockSize-1] = 0
+	iv[aes.BlockSize-2] = 0
+	iv[aes.BlockSize-3] = 0
+	iv[aes.BlockSize-4] = 0
 	return
 }
 
