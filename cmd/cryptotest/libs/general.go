@@ -5,10 +5,6 @@ import (
 	"io"
 )
 
-type fileDirPath string
-type bindIPAddr string
-type bindURL string
-
 /*Uploader is a special type of Http server.
   Put any config state in here.
   The point of this server is to show how
@@ -16,10 +12,10 @@ type bindURL string
   for large files.
 */
 type Uploader struct {
-	HomeBucket     fileDirPath
+	HomeBucket     string
 	Port           int
-	Bind           bindIPAddr
-	Addr           bindURL
+	Bind           string
+	Addr           string
 	UploadCookie   string
 	BufferSize     int
 	KeyBytes       int

@@ -368,9 +368,9 @@ func makeServer(
 	//}
 	//Just ensure that this directory exists
 	h := Uploader{
-		HomeBucket:     fileDirPath(theRoot),
+		HomeBucket:     theRoot,
 		Port:           port,
-		Bind:           bindIPAddr(bind),
+		Bind:           bind,
 		UploadCookie:   uploadCookie,
 		BufferSize:     bufferSize, //Each session takes a buffer that guarantees the number of sessions in our SLA
 		KeyBytes:       keyBytes,
@@ -379,7 +379,7 @@ func makeServer(
 	//Swap out with S3 at this point
 	h.Backend = h.NewAWSBackend()
 	h.Backend.EnsureBucketExists(theRoot)
-	h.Addr = bindURL(string(h.Bind) + ":" + strconv.Itoa(h.Port))
+	h.Addr = h.Bind + ":" + strconv.Itoa(h.Port)
 
 	//A web server is running
 	return &http.Server{
