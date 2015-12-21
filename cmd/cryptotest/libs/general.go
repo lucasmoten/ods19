@@ -24,7 +24,7 @@ type Uploader struct {
 	BufferSize     int
 	KeyBytes       int
 	RSAEncryptBits int
-	Session        *s3.S3
+	Session        *s3.S3 //??? should this not be global due to locks???
 	Backend        *Backend
 }
 

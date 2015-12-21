@@ -1,0 +1,3 @@
+#!/bin/bash
+
+masterkey=otterpaws go run cryptotest.go

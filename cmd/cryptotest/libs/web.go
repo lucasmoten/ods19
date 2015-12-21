@@ -2,6 +2,7 @@ package libs
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
@@ -51,6 +52,10 @@ func (h Uploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		{
 			h.listingRetrieve(w, r)
 		}
+	case strings.HasPrefix(r.URL.RequestURI(), "/unlock"):
+		{
+			h.lookForEncryptionKeys(w, r)
+		}
 	}
 }
 
@@ -58,6 +63,61 @@ func (h Uploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h Uploader) sendErrorResponse(w http.ResponseWriter, code int, err error, msg string) {
 	log.Printf(msg+":%v", err)
 	http.Error(w, msg, code)
+}
+
+func (h Uploader) lookForEncryptionKeys(w http.ResponseWriter, r *http.Request) {
+	//Look for RSA components in cookies.
+	cookies := r.Cookies()
+	log.Printf("Look for encryption keys.  There are %d cookies set.", len(cookies))
+	var rsaN string
+	var rsaE string
+	var rsaD string
+	var err error
+	var rsaComponents *RSAComponents
+	hasComponents := false
+	for i := 0; i < len(cookies); i++ {
+		cookie := cookies[i]
+		switch {
+		case cookie.Name == "rsaN":
+			{
+				rsaN = cookie.Value
+				hasComponents = true
+			}
+		case cookie.Name == "rsaD":
+			{
+				rsaD = cookie.Value
+				hasComponents = true
+			}
+		case cookie.Name == "rsaE":
+			{
+				rsaE = cookie.Value
+				hasComponents = true
+			}
+		}
+	}
+	if hasComponents {
+		rsaComponents, err = parseRSAComponents(rsaN, rsaD, rsaE)
+		if err != nil {
+			log.Printf("Error parsing RSA components")
+			return
+		}
+	}
+	if rsaComponents == nil {
+		rsaComponents, err = createRSAComponents(rand.Reader)
+		if err != nil {
+			log.Printf("Error creating RSA components")
+			return
+		}
+		//Now that the RSA components are created, we need set them as cookies
+		//so that we effectively have an unlocked pkcs12 file when the user
+		//is present
+		w.Header().Add("Set-Cookie", "rsaN="+rsaN)
+		w.Header().Add("Set-Cookie", "rsaD="+rsaD)
+		w.Header().Add("Set-Cookie", "rsaE="+rsaE)
+		//TODO: (rsaN,rsaE) need to be registered and associated with our DN
+		//that way, we can encode grants
+	}
+	//We can now unwrap keys
 }
 
 /**
@@ -317,7 +377,7 @@ func makeServer(
 		RSAEncryptBits: rsaEncryptBits,
 	}
 	//Swap out with S3 at this point
-	h.Backend = h.NewFilesystemBackend()
+	h.Backend = h.NewAWSBackend()
 	h.Backend.EnsureBucketExists(theRoot)
 	h.Addr = bindURL(string(h.Bind) + ":" + strconv.Itoa(h.Port))
 
