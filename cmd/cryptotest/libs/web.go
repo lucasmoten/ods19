@@ -131,10 +131,10 @@ func (h Uploader) drainFileToS3(svc *s3.S3, bucket *string, fName string) error 
 		return err
 	}
 	defer fIn.Close()
-	log.Printf("draining to: %s", fName)
+	log.Printf("draining to S3 %s: %s", *bucket, fName)
 	_, err = svc.PutObject(&s3.PutObjectInput{
 		Bucket: bucket, //Should probably be globally used
-		Key:    aws.String(fName),
+		Key:    aws.String(h.HomeBucket + "/" + fName),
 		Body:   fIn,
 	})
 	if err != nil {
@@ -146,7 +146,7 @@ func (h Uploader) drainFileToS3(svc *s3.S3, bucket *string, fName string) error 
 func (h Uploader) drainToS3(keyName, keyFileName, ivFileName, classFileName string) error {
 	var err error
 	svc := h.awsS3(awsConfig)
-	bucket := aws.String(h.HomeBucket)
+	bucket := aws.String(awsBucket)
 	h.drainFileToS3(svc, bucket, keyName)
 	h.drainFileToS3(svc, bucket, keyFileName)
 	h.drainFileToS3(svc, bucket, ivFileName)
@@ -293,10 +293,10 @@ func (h Uploader) getDN(r *http.Request) string {
 }
 
 func (h Uploader) transferFileFromS3(svc *s3.S3, bucket *string, theFile string) {
-	log.Printf("Get from S3: %s", theFile)
+	log.Printf("Get from S3 bucket %s: %s", *bucket, theFile)
 	getObjOut, err := svc.GetObject(&s3.GetObjectInput{
 		Bucket: bucket,
-		Key:    aws.String(theFile),
+		Key:    aws.String(h.HomeBucket + "/" + theFile),
 	})
 	if err != nil {
 		log.Printf("Failed to get object %s: %v", theFile, err)
@@ -319,7 +319,7 @@ func (h Uploader) transferFromS3(fileKey, dn string) {
 	fNameClass := fName + ".class"
 
 	svc := h.awsS3(awsConfig)
-	bucket := aws.String(h.HomeBucket)
+	bucket := aws.String(awsBucket)
 
 	h.transferFileFromS3(svc, bucket, fName)
 	h.transferFileFromS3(svc, bucket, fNameKey)
@@ -376,6 +376,12 @@ func (h Uploader) listingUpdate(originalFileName string, w http.ResponseWriter, 
 	obfuscatedDN := obfuscateHash(h.getDN(r))
 	dirListingName := string(h.HomeBucket) + "/" + obfuscatedDN
 
+	svc := h.awsS3(awsConfig)
+	bucket := aws.String(awsBucket)
+
+	//We ignore an error if it doesnt exist
+	h.transferFileFromS3(svc, bucket, obfuscatedDN)
+
 	//Just open and close the file to make sure that it exists (touch)
 	exists, err := h.Backend.GetBucketFileExists(dirListingName)
 	if err != nil {
@@ -404,6 +410,9 @@ func (h Uploader) listingUpdate(originalFileName string, w http.ResponseWriter, 
 	//This is an *append* operation.  It is in plaintext, so it's not hiding filenames right now.
 	newRecord := "<a href='/download/" + originalFileName + "'><br>" + originalFileName + "</a>"
 	dirListing.Write([]byte(newRecord + "\n"))
+
+	//Ship the new version back
+	h.drainFileToS3(svc, bucket, obfuscatedDN)
 }
 
 //In order to make the uploader usable without a user interface,
@@ -411,6 +420,12 @@ func (h Uploader) listingUpdate(originalFileName string, w http.ResponseWriter, 
 func (h Uploader) listingRetrieve(w http.ResponseWriter, r *http.Request) {
 	obfuscatedDN := obfuscateHash(h.getDN(r))
 	dirListingName := string(h.HomeBucket) + "/" + obfuscatedDN
+
+	svc := h.awsS3(awsConfig)
+	bucket := aws.String(awsBucket)
+
+	//We ignore an error if it doesnt exist
+	h.transferFileFromS3(svc, bucket, obfuscatedDN)
 
 	dirListing, closer, err := h.Backend.GetBucketReadHandle(dirListingName)
 	if err != nil {
@@ -477,6 +492,7 @@ var serverKeyFile string
 var serverTrustFile string
 var rsaEncryptBits int
 var awsConfig string
+var awsBucket string
 
 func flagSetup() {
 	//Pass in on launch like:
@@ -486,7 +502,8 @@ func flagSetup() {
 	flag.BoolVar(&hideFileNames, "hideFileNames", true, "use unhashed file and user names")
 	flag.IntVar(&tcpPort, "tcpPort", 6443, "set the tcp port")
 	flag.StringVar(&tcpBind, "tcpBind", "0.0.0.0", "tcp bind port")
-	flag.StringVar(&homeBucket, "homeBucket", "decipherers", "home bucket to store files in")
+	flag.StringVar(&awsBucket, "awsBucket", "decipherers", "home bucket to store files in")
+	flag.StringVar(&homeBucket, "homeBucket", "homeBucket", "home bucket to store files in")
 	flag.IntVar(&bufferSize, "bufferSize", 1024*4, "the size of a buffer between streams in a session")
 	flag.IntVar(&keyBytes, "keyBytes", 32, "AES key size in bytes")
 	flag.StringVar(&serverTrustFile, "serverTrustFile", "defaultcerts/server/server.trust.pem", "The SSL Trust in PEM format for this server")
