@@ -10,8 +10,9 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	//	"github.com/aws/aws-sdk-go/aws/credentials"
-	//	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"io"
 	"io/ioutil"
 	"log"
@@ -124,7 +125,7 @@ func (h Uploader) lookForEncryptionKeys(w http.ResponseWriter, r *http.Request) 
 	//We can now unwrap keys
 }
 
-func (h Uploader) drainFileToS3(svc *s3.S3, bucket *string, fName string) error {
+func (h Uploader) drainFileToS3(svc *s3.S3, sess *session.Session, bucket *string, fName string) error {
 	fIn, err := os.Open(h.HomeBucket + "/" + fName)
 	if err != nil {
 		log.Printf("Cant drain off file: %v", err)
@@ -132,25 +133,36 @@ func (h Uploader) drainFileToS3(svc *s3.S3, bucket *string, fName string) error 
 	}
 	defer fIn.Close()
 	log.Printf("draining to S3 %s: %s", *bucket, fName)
-	_, err = svc.PutObject(&s3.PutObjectInput{
-		Bucket: bucket, //Should probably be globally used
-		Key:    aws.String(h.HomeBucket + "/" + fName),
+
+	uploader := s3manager.NewUploader(sess)
+	result, err := uploader.Upload(&s3manager.UploadInput{
 		Body:   fIn,
+		Bucket: bucket,
+		Key:    aws.String(h.HomeBucket + "/" + fName),
 	})
+	/*
+		_, err = svc.PutObject(&s3.PutObjectInput{
+			Bucket: bucket, //Should probably be globally used
+			Key:    aws.String(h.HomeBucket + "/" + fName),
+			Body:   fIn,
+		})
+	*/
 	if err != nil {
 		log.Printf("Could not write to S3: %v", err)
+		return err
 	}
+	log.Printf("Uploaded to %v: %v", bucket, result.Location)
 	return err
 }
 
 func (h Uploader) drainToS3(keyName, keyFileName, ivFileName, classFileName string) error {
 	var err error
-	svc := h.awsS3(awsConfig)
+	svc, sess := h.awsS3(awsConfig)
 	bucket := aws.String(awsBucket)
-	h.drainFileToS3(svc, bucket, keyName)
-	h.drainFileToS3(svc, bucket, keyFileName)
-	h.drainFileToS3(svc, bucket, ivFileName)
-	h.drainFileToS3(svc, bucket, classFileName)
+	h.drainFileToS3(svc, sess, bucket, keyName)
+	h.drainFileToS3(svc, sess, bucket, keyFileName)
+	h.drainFileToS3(svc, sess, bucket, ivFileName)
+	h.drainFileToS3(svc, sess, bucket, classFileName)
 	return err
 }
 
@@ -292,23 +304,38 @@ func (h Uploader) getDN(r *http.Request) string {
 	return r.TLS.PeerCertificates[0].Subject.CommonName
 }
 
-func (h Uploader) transferFileFromS3(svc *s3.S3, bucket *string, theFile string) {
+func (h Uploader) transferFileFromS3(svc *s3.S3, sess *session.Session, bucket *string, theFile string) {
 	log.Printf("Get from S3 bucket %s: %s", *bucket, theFile)
-	getObjOut, err := svc.GetObject(&s3.GetObjectInput{
-		Bucket: bucket,
-		Key:    aws.String(h.HomeBucket + "/" + theFile),
-	})
-	if err != nil {
-		log.Printf("Failed to get object %s: %v", theFile, err)
-		return
-	}
-	defer getObjOut.Body.Close()
+	/*
+		getObjOut, err := svc.GetObject(&s3.GetObjectInput{
+			Bucket: bucket,
+			Key:    aws.String(h.HomeBucket + "/" + theFile),
+		})
+
+		if err != nil {
+			log.Printf("Failed to get object %s: %v", theFile, err)
+			return
+		}
+		defer getObjOut.Body.Close()
+	*/
+
 	fOut, err := os.Create(h.HomeBucket + "/" + theFile)
 	if err != nil {
 		log.Printf("Unable to write local buffer file %s: %v", theFile, err)
 	}
 	defer fOut.Close()
-	io.Copy(fOut, getObjOut.Body)
+
+	downloader := s3manager.NewDownloader(sess)
+	_, err = downloader.Download(
+		fOut,
+		&s3.GetObjectInput{
+			Bucket: bucket,
+			Key:    aws.String(h.HomeBucket + "/" + theFile),
+		},
+	)
+	if err != nil {
+		log.Printf("Unable to download out of S3 bucket %v: %v", bucket, theFile)
+	}
 }
 
 //Ensure that we get copies on the filesystem from S3
@@ -318,13 +345,13 @@ func (h Uploader) transferFromS3(fileKey, dn string) {
 	fNameIV := fName + ".iv"
 	fNameClass := fName + ".class"
 
-	svc := h.awsS3(awsConfig)
+	svc, sess := h.awsS3(awsConfig)
 	bucket := aws.String(awsBucket)
 
-	h.transferFileFromS3(svc, bucket, fName)
-	h.transferFileFromS3(svc, bucket, fNameKey)
-	h.transferFileFromS3(svc, bucket, fNameIV)
-	h.transferFileFromS3(svc, bucket, fNameClass)
+	h.transferFileFromS3(svc, sess, bucket, fName)
+	h.transferFileFromS3(svc, sess, bucket, fNameKey)
+	h.transferFileFromS3(svc, sess, bucket, fNameIV)
+	h.transferFileFromS3(svc, sess, bucket, fNameClass)
 }
 
 /**
@@ -376,11 +403,11 @@ func (h Uploader) listingUpdate(originalFileName string, w http.ResponseWriter, 
 	obfuscatedDN := obfuscateHash(h.getDN(r))
 	dirListingName := string(h.HomeBucket) + "/" + obfuscatedDN
 
-	svc := h.awsS3(awsConfig)
+	svc, sess := h.awsS3(awsConfig)
 	bucket := aws.String(awsBucket)
 
 	//We ignore an error if it doesnt exist
-	h.transferFileFromS3(svc, bucket, obfuscatedDN)
+	h.transferFileFromS3(svc, sess, bucket, obfuscatedDN)
 
 	//Just open and close the file to make sure that it exists (touch)
 	exists, err := h.Backend.GetBucketFileExists(dirListingName)
@@ -412,7 +439,7 @@ func (h Uploader) listingUpdate(originalFileName string, w http.ResponseWriter, 
 	dirListing.Write([]byte(newRecord + "\n"))
 
 	//Ship the new version back
-	h.drainFileToS3(svc, bucket, obfuscatedDN)
+	h.drainFileToS3(svc, sess, bucket, obfuscatedDN)
 }
 
 //In order to make the uploader usable without a user interface,
@@ -421,11 +448,11 @@ func (h Uploader) listingRetrieve(w http.ResponseWriter, r *http.Request) {
 	obfuscatedDN := obfuscateHash(h.getDN(r))
 	dirListingName := string(h.HomeBucket) + "/" + obfuscatedDN
 
-	svc := h.awsS3(awsConfig)
+	svc, sess := h.awsS3(awsConfig)
 	bucket := aws.String(awsBucket)
 
 	//We ignore an error if it doesnt exist
-	h.transferFileFromS3(svc, bucket, obfuscatedDN)
+	h.transferFileFromS3(svc, sess, bucket, obfuscatedDN)
 
 	dirListing, closer, err := h.Backend.GetBucketReadHandle(dirListingName)
 	if err != nil {

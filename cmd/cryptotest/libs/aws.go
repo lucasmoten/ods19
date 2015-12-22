@@ -12,13 +12,13 @@ import (
 	//"time"
 )
 
-func (h Uploader) awsS3(account string) *s3.S3 {
+func (h Uploader) awsS3(account string) (*s3.S3, *session.Session) {
 	sessionConfig := &aws.Config{
 		Credentials: credentials.NewSharedCredentials("", account),
 	}
 	sess := session.New(sessionConfig)
 	svc := s3.New(sess)
-	return svc
+	return svc, sess
 }
 
 //NewAWSBackend makes S3 backend for data storage
