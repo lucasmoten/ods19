@@ -6,7 +6,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"io"
+	//"log"
+	//"net/http"
 	"os"
+	//"time"
 )
 
 func (h Uploader) awsS3(account string) *s3.S3 {
@@ -35,8 +38,7 @@ func (h Uploader) awsGetBucketReadHandle(bucketKeyName string) (r io.Reader, c i
 	return f, f, ferr
 }
 
-//Hide filesystem writes so they can be S3 buckets
-func (h Uploader) awsGetBucketWriteHandle(bucketKeyName string) (w io.Writer, c io.Closer, err error) {
+func (h Uploader) awsGetBucketWriteHandle(bucketKeyName string) (io.Writer, io.Closer, error) {
 	f, ferr := os.Create(bucketKeyName)
 	return f, f, ferr
 }

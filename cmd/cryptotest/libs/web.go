@@ -8,6 +8,10 @@ import (
 	"crypto/x509"
 	"flag"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	//	"github.com/aws/aws-sdk-go/aws/credentials"
+	//	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"io"
 	"io/ioutil"
 	"log"
@@ -120,6 +124,36 @@ func (h Uploader) lookForEncryptionKeys(w http.ResponseWriter, r *http.Request) 
 	//We can now unwrap keys
 }
 
+func (h Uploader) drainFileToS3(svc *s3.S3, bucket *string, fName string) error {
+	fIn, err := os.Open(h.HomeBucket + "/" + fName)
+	if err != nil {
+		log.Printf("Cant drain off file: %v", err)
+		return err
+	}
+	defer fIn.Close()
+	log.Printf("draining to: %s", fName)
+	_, err = svc.PutObject(&s3.PutObjectInput{
+		Bucket: bucket, //Should probably be globally used
+		Key:    aws.String(fName),
+		Body:   fIn,
+	})
+	if err != nil {
+		log.Printf("Could not write to S3: %v", err)
+	}
+	return err
+}
+
+func (h Uploader) drainToS3(keyName, keyFileName, ivFileName, classFileName string) error {
+	var err error
+	svc := h.awsS3(awsConfig)
+	bucket := aws.String(h.HomeBucket)
+	h.drainFileToS3(svc, bucket, keyName)
+	h.drainFileToS3(svc, bucket, keyFileName)
+	h.drainFileToS3(svc, bucket, ivFileName)
+	h.drainFileToS3(svc, bucket, classFileName)
+	return err
+}
+
 /**
   Uploader has a function to drain an http request off to a filename
   Note that writing to a file is not the only possible course of action.
@@ -134,7 +168,7 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	r *http.Request,
 	part *multipart.Part,
 ) error {
-	drainTo, closer, drainErr := h.Backend.GetBucketWriteHandle(string(h.HomeBucket) + "/" + keyName)
+	drainTo, closer, drainErr := h.Backend.GetBucketWriteHandle(h.HomeBucket + "/" + keyName)
 	if drainErr != nil {
 		h.sendErrorResponse(w, 500, drainErr, "cant drain file")
 		return drainErr
@@ -143,23 +177,23 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 
 	obfuscatedDN := obfuscateHash(h.getDN(r))
 	key, iv := h.createKeyIVPair()
-	keyFileName := string(h.HomeBucket) + "/" + keyName + "_" + obfuscatedDN + ".key"
-	keyFile, closer, err := h.Backend.GetBucketWriteHandle(keyFileName)
+	keyFileName := keyName + "_" + obfuscatedDN + ".key"
+	keyFile, closer, err := h.Backend.GetBucketWriteHandle(h.HomeBucket + "/" + keyFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open key file")
 		return err
 	}
 	defer closer.Close()
 
-	ivFileName := string(h.HomeBucket) + "/" + keyName + ".iv"
-	ivFile, closer, err := h.Backend.GetBucketWriteHandle(ivFileName)
+	ivFileName := keyName + ".iv"
+	ivFile, closer, err := h.Backend.GetBucketWriteHandle(h.HomeBucket + "/" + ivFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open iv")
 	}
 	defer closer.Close()
 
-	classFileName := string(h.HomeBucket) + "/" + keyName + ".class"
-	classFile, closer, err := h.Backend.GetBucketWriteHandle(classFileName)
+	classFileName := keyName + ".class"
+	classFile, closer, err := h.Backend.GetBucketWriteHandle(h.HomeBucket + "/" + classFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open classification")
 	}
@@ -174,6 +208,7 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 		return err
 	}
 	h.listingUpdate(originalFileName, w, r)
+	err = h.drainToS3(keyName, keyFileName, ivFileName, classFileName)
 	return err
 }
 
@@ -402,15 +437,17 @@ var serverCertFile string
 var serverKeyFile string
 var serverTrustFile string
 var rsaEncryptBits int
+var awsConfig string
 
 func flagSetup() {
 	//Pass in on launch like:
 	//     masterkey=3kdk3kfk588kfskweui23yui ./uploader ...
 	masterKey = os.Getenv("masterkey")
+	flag.StringVar(&awsConfig, "awsConfig", "default", "the config entry to connect to aws")
 	flag.BoolVar(&hideFileNames, "hideFileNames", true, "use unhashed file and user names")
 	flag.IntVar(&tcpPort, "tcpPort", 6443, "set the tcp port")
 	flag.StringVar(&tcpBind, "tcpBind", "0.0.0.0", "tcp bind port")
-	flag.StringVar(&homeBucket, "homeBucket", "bucket", "home bucket to store files in")
+	flag.StringVar(&homeBucket, "homeBucket", "decipherers", "home bucket to store files in")
 	flag.IntVar(&bufferSize, "bufferSize", 1024*4, "the size of a buffer between streams in a session")
 	flag.IntVar(&keyBytes, "keyBytes", 32, "AES key size in bytes")
 	flag.StringVar(&serverTrustFile, "serverTrustFile", "defaultcerts/server/server.trust.pem", "The SSL Trust in PEM format for this server")
