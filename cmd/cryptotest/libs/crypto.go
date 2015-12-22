@@ -137,13 +137,22 @@ func (h Uploader) createKeyIVPair() (key []byte, iv []byte) {
 	return
 }
 
-func (h Uploader) retrieveKeyIVPair(fileName string, dn string) (key []byte, iv []byte, ret error) {
+func (h Uploader) retrieveMetaData(fileName string, dn string) (key []byte, iv []byte, cls []byte, err error) {
 	keyFileName := fileName + "_" + obfuscateHash(dn) + ".key"
 	ivFileName := fileName + ".iv"
+	classFileName := fileName + ".class"
+
+	classFile, closer, err := h.Backend.GetBucketReadHandle(classFileName)
+	if err != nil {
+		return key, iv, cls, err
+	}
+	defer closer.Close()
+	cls = make([]byte, 80)
+	classFile.Read(cls)
 
 	keyFile, closer, err := h.Backend.GetBucketReadHandle(keyFileName)
 	if err != nil {
-		return key, iv, err
+		return key, iv, cls, err
 	}
 	defer closer.Close()
 	key = make([]byte, h.KeyBytes)
@@ -151,14 +160,14 @@ func (h Uploader) retrieveKeyIVPair(fileName string, dn string) (key []byte, iv 
 
 	ivFile, closer, err := h.Backend.GetBucketReadHandle(ivFileName)
 	if err != nil {
-		return key, iv, err
+		return key, iv, cls, err
 	}
 	defer closer.Close()
 	iv = make([]byte, aes.BlockSize)
 	ivFile.Read(iv)
 
 	applyPassphrase([]byte(masterKey), key)
-	return key, iv, ret
+	return key, iv, cls, nil
 }
 
 func doCipherByReaderWriter(inFile io.Reader, outFile io.Writer, key []byte, iv []byte) error {

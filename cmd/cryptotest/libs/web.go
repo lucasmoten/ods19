@@ -144,7 +144,7 @@ func (h Uploader) drainFileToS3(svc *s3.S3, sess *session.Session, bucket *strin
 		log.Printf("Could not write to S3: %v", err)
 		return err
 	}
-	log.Printf("Uploaded to %v: %v", bucket, result.Location)
+	log.Printf("Uploaded to %v: %v", *bucket, result.Location)
 	return err
 }
 
@@ -320,8 +320,7 @@ func (h Uploader) transferFileFromS3(svc *s3.S3, sess *session.Session, bucket *
 }
 
 //Ensure that we get copies on the filesystem from S3
-func (h Uploader) transferFromS3(fileKey, dn string) {
-	fName := fileKey
+func (h Uploader) transferFromS3(fName, dn string) {
 	fNameKey := fName + "_" + dn + ".key"
 	fNameIV := fName + ".iv"
 	fNameClass := fName + ".class"
@@ -344,17 +343,19 @@ func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 		r.Header.Set("Content-type", "video/mp4")
 	}
 	fileKey := obfuscateHash(originalFileName)
-	fileName := string(h.HomeBucket) + "/" + fileKey
+	fileName := h.HomeBucket + "/" + fileKey
 
 	//Transfer back all files from S3.
 	h.transferFromS3(fileKey, obfuscateHash(h.getDN(r)))
 
-	key, iv, err := h.retrieveKeyIVPair(fileName, h.getDN(r))
+	key, iv, cls, err := h.retrieveMetaData(fileName, h.getDN(r))
 	applyPassphrase([]byte(masterKey), key)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "unable to retrieve key and iv")
 		return
 	}
+	//Set the classification in the http header for download
+	w.Header().Add("classification", string(cls))
 
 	downloadFrom, closer, err := h.Backend.GetBucketReadHandle(fileName)
 	if err != nil {
@@ -458,12 +459,6 @@ func makeServer(
 	port int,
 	uploadCookie string,
 ) (*http.Server, error) {
-
-	//lruCache, err := lru.NewARC(unlockedCertStores)
-	//if err != nil {
-	//	log.Printf("trying to create new cache %v", err)
-	//}
-	//Just ensure that this directory exists
 	h := Uploader{
 		HomeBucket:     theRoot,
 		Port:           port,
