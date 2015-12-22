@@ -292,6 +292,41 @@ func (h Uploader) getDN(r *http.Request) string {
 	return r.TLS.PeerCertificates[0].Subject.CommonName
 }
 
+func (h Uploader) transferFileFromS3(svc *s3.S3, bucket *string, theFile string) {
+	log.Printf("Get from S3: %s", theFile)
+	getObjOut, err := svc.GetObject(&s3.GetObjectInput{
+		Bucket: bucket,
+		Key:    aws.String(theFile),
+	})
+	if err != nil {
+		log.Printf("Failed to get object %s: %v", theFile, err)
+		return
+	}
+	defer getObjOut.Body.Close()
+	fOut, err := os.Create(h.HomeBucket + "/" + theFile)
+	if err != nil {
+		log.Printf("Unable to write local buffer file %s: %v", theFile, err)
+	}
+	defer fOut.Close()
+	io.Copy(fOut, getObjOut.Body)
+}
+
+//Ensure that we get copies on the filesystem from S3
+func (h Uploader) transferFromS3(fileKey, dn string) {
+	fName := fileKey
+	fNameKey := fName + "_" + dn + ".key"
+	fNameIV := fName + ".iv"
+	fNameClass := fName + ".class"
+
+	svc := h.awsS3(awsConfig)
+	bucket := aws.String(h.HomeBucket)
+
+	h.transferFileFromS3(svc, bucket, fName)
+	h.transferFileFromS3(svc, bucket, fNameKey)
+	h.transferFileFromS3(svc, bucket, fNameIV)
+	h.transferFileFromS3(svc, bucket, fNameClass)
+}
+
 /**
  * Retrieve encrypted files by URL
  */
@@ -300,7 +335,11 @@ func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	if strings.HasSuffix(originalFileName, "mp4") {
 		r.Header.Set("Content-type", "video/mp4")
 	}
-	fileName := string(h.HomeBucket) + "/" + obfuscateHash(originalFileName)
+	fileKey := obfuscateHash(originalFileName)
+	fileName := string(h.HomeBucket) + "/" + fileKey
+
+	//Transfer back all files from S3.
+	h.transferFromS3(fileKey, obfuscateHash(h.getDN(r)))
 
 	key, iv, err := h.retrieveKeyIVPair(fileName, h.getDN(r))
 	applyPassphrase([]byte(masterKey), key)
