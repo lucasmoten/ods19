@@ -140,13 +140,6 @@ func (h Uploader) drainFileToS3(svc *s3.S3, sess *session.Session, bucket *strin
 		Bucket: bucket,
 		Key:    aws.String(h.HomeBucket + "/" + fName),
 	})
-	/*
-		_, err = svc.PutObject(&s3.PutObjectInput{
-			Bucket: bucket, //Should probably be globally used
-			Key:    aws.String(h.HomeBucket + "/" + fName),
-			Body:   fIn,
-		})
-	*/
 	if err != nil {
 		log.Printf("Could not write to S3: %v", err)
 		return err
@@ -306,18 +299,6 @@ func (h Uploader) getDN(r *http.Request) string {
 
 func (h Uploader) transferFileFromS3(svc *s3.S3, sess *session.Session, bucket *string, theFile string) {
 	log.Printf("Get from S3 bucket %s: %s", *bucket, theFile)
-	/*
-		getObjOut, err := svc.GetObject(&s3.GetObjectInput{
-			Bucket: bucket,
-			Key:    aws.String(h.HomeBucket + "/" + theFile),
-		})
-
-		if err != nil {
-			log.Printf("Failed to get object %s: %v", theFile, err)
-			return
-		}
-		defer getObjOut.Body.Close()
-	*/
 
 	fOut, err := os.Create(h.HomeBucket + "/" + theFile)
 	if err != nil {
