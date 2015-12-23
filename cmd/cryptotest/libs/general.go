@@ -26,9 +26,9 @@ type Uploader struct {
 
 //Backend can be implemented as S3, filesystem, etc
 type Backend struct {
-	GetBucketReadHandle   func(bucketKeyName string) (r io.Reader, c io.Closer, err error)
-	GetBucketWriteHandle  func(bucketKeyName string) (w io.Writer, c io.Closer, err error)
-	EnsureBucketExists    func(bucketName string) error
-	GetBucketFileExists   func(bucketKeyName string) (bool, error)
-	GetBucketAppendHandle func(bucketKeyName string) (w io.Writer, c io.Closer, err error)
+	GetReadHandle         func(fileName string) (r io.Reader, c io.Closer, err error)
+	GetWriteHandle        func(fileName string) (w io.Writer, c io.Closer, err error)
+	EnsurePartitionExists func(fileName string) error
+	GetFileExists         func(fileName string) (bool, error)
+	GetAppendHandle       func(fileName string) (w io.Writer, c io.Closer, err error)
 }

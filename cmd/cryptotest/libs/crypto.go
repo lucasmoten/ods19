@@ -142,7 +142,7 @@ func (h Uploader) retrieveMetaData(fileName string, dn string) (key []byte, iv [
 	ivFileName := fileName + ".iv"
 	classFileName := fileName + ".class"
 
-	classFile, closer, err := h.Backend.GetBucketReadHandle(classFileName)
+	classFile, closer, err := h.Backend.GetReadHandle(classFileName)
 	if err != nil {
 		return key, iv, cls, err
 	}
@@ -150,7 +150,7 @@ func (h Uploader) retrieveMetaData(fileName string, dn string) (key []byte, iv [
 	cls = make([]byte, 80)
 	classFile.Read(cls)
 
-	keyFile, closer, err := h.Backend.GetBucketReadHandle(keyFileName)
+	keyFile, closer, err := h.Backend.GetReadHandle(keyFileName)
 	if err != nil {
 		return key, iv, cls, err
 	}
@@ -158,7 +158,7 @@ func (h Uploader) retrieveMetaData(fileName string, dn string) (key []byte, iv [
 	key = make([]byte, h.KeyBytes)
 	keyFile.Read(key)
 
-	ivFile, closer, err := h.Backend.GetBucketReadHandle(ivFileName)
+	ivFile, closer, err := h.Backend.GetReadHandle(ivFileName)
 	if err != nil {
 		return key, iv, cls, err
 	}

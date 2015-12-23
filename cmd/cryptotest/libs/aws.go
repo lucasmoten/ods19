@@ -25,32 +25,32 @@ func (h Uploader) awsS3(account string) (*s3.S3, *session.Session) {
 //NewAWSBackend makes S3 backend for data storage
 func (h Uploader) NewAWSBackend() *Backend {
 	return &Backend{
-		GetBucketReadHandle:   h.awsGetBucketReadHandle,
-		GetBucketWriteHandle:  h.awsGetBucketWriteHandle,
-		EnsureBucketExists:    h.awsEnsureBucketExists,
-		GetBucketFileExists:   h.awsGetBucketFileExists,
-		GetBucketAppendHandle: h.awsGetBucketAppendHandle,
+		GetReadHandle:         h.awsGetReadHandle,
+		GetWriteHandle:        h.awsGetWriteHandle,
+		EnsurePartitionExists: h.awsEnsurePartitionExists,
+		GetFileExists:         h.awsGetFileExists,
+		GetAppendHandle:       h.awsGetAppendHandle,
 	}
 }
 
 //Hide filesystem reads so they can be S3 buckets
-func (h Uploader) awsGetBucketReadHandle(bucketKeyName string) (r io.Reader, c io.Closer, err error) {
-	f, ferr := os.Open(bucketKeyName)
+func (h Uploader) awsGetReadHandle(bucketKeyName string) (r io.Reader, c io.Closer, err error) {
+	f, ferr := os.Open(h.Partition + "/" + bucketKeyName)
 	return f, f, ferr
 }
 
-func (h Uploader) awsGetBucketWriteHandle(bucketKeyName string) (io.Writer, io.Closer, error) {
-	f, ferr := os.Create(bucketKeyName)
+func (h Uploader) awsGetWriteHandle(bucketKeyName string) (io.Writer, io.Closer, error) {
+	f, ferr := os.Create(h.Partition + "/" + bucketKeyName)
 	return f, f, ferr
 }
 
-func (h Uploader) awsEnsureBucketExists(bucketName string) error {
+func (h Uploader) awsEnsurePartitionExists(bucketName string) error {
 	err := os.Mkdir(bucketName, 0700)
 	return err
 }
 
-func (h Uploader) awsGetBucketFileExists(bucketKeyName string) (bool, error) {
-	_, err := os.Stat(bucketKeyName)
+func (h Uploader) awsGetFileExists(bucketKeyName string) (bool, error) {
+	_, err := os.Stat(h.Partition + "/" + bucketKeyName)
 
 	if os.IsNotExist(err) {
 		return false, nil
@@ -63,8 +63,8 @@ func (h Uploader) awsGetBucketFileExists(bucketKeyName string) (bool, error) {
 	return true, nil
 }
 
-func (h Uploader) awsGetBucketAppendHandle(bucketKeyName string) (w io.Writer, c io.Closer, err error) {
-	f, ferr := os.OpenFile(bucketKeyName, os.O_RDWR|os.O_APPEND, 0600)
+func (h Uploader) awsGetAppendHandle(bucketKeyName string) (w io.Writer, c io.Closer, err error) {
+	f, ferr := os.OpenFile(h.Partition+"/"+bucketKeyName, os.O_RDWR|os.O_APPEND, 0600)
 	return f, f, ferr
 }
 

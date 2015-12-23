@@ -135,7 +135,7 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	r *http.Request,
 	part *multipart.Part,
 ) error {
-	drainTo, closer, drainErr := h.Backend.GetBucketWriteHandle(h.Partition + "/" + keyName)
+	drainTo, closer, drainErr := h.Backend.GetWriteHandle(keyName)
 	if drainErr != nil {
 		h.sendErrorResponse(w, 500, drainErr, "cant drain file")
 		return drainErr
@@ -145,7 +145,7 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	obfuscatedDN := obfuscateHash(h.getDN(r))
 	key, iv := h.createKeyIVPair()
 	keyFileName := keyName + "_" + obfuscatedDN + ".key"
-	keyFile, closer, err := h.Backend.GetBucketWriteHandle(h.Partition + "/" + keyFileName)
+	keyFile, closer, err := h.Backend.GetWriteHandle(keyFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open key file")
 		return err
@@ -153,14 +153,14 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	defer closer.Close()
 
 	ivFileName := keyName + ".iv"
-	ivFile, closer, err := h.Backend.GetBucketWriteHandle(h.Partition + "/" + ivFileName)
+	ivFile, closer, err := h.Backend.GetWriteHandle(ivFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open iv")
 	}
 	defer closer.Close()
 
 	classFileName := keyName + ".class"
-	classFile, closer, err := h.Backend.GetBucketWriteHandle(h.Partition + "/" + classFileName)
+	classFile, closer, err := h.Backend.GetWriteHandle(classFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open classification")
 	}
@@ -268,7 +268,7 @@ func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 		r.Header.Set("Content-type", "video/mp4")
 	}
 	fileKey := obfuscateHash(originalFileName)
-	fileName := h.Partition + "/" + fileKey
+	fileName := fileKey
 
 	//Transfer back all files from S3.
 	h.transferFromS3(fileKey, obfuscateHash(h.getDN(r)))
@@ -282,7 +282,7 @@ func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	//Set the classification in the http header for download
 	w.Header().Add("classification", string(cls))
 
-	downloadFrom, closer, err := h.Backend.GetBucketReadHandle(fileName)
+	downloadFrom, closer, err := h.Backend.GetReadHandle(fileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "failed to open file for reading")
 		return
@@ -308,7 +308,7 @@ func applyPassphrase(key, text []byte) {
 //at least provide a per-user listing of files in his object drive partition
 func (h Uploader) listingUpdate(originalFileName string, w http.ResponseWriter, r *http.Request) {
 	obfuscatedDN := obfuscateHash(h.getDN(r))
-	dirListingName := h.Partition + "/" + obfuscatedDN
+	dirListingName := obfuscatedDN
 
 	svc, sess := h.awsS3(awsConfig)
 	bucket := aws.String(awsBucket)
@@ -317,14 +317,14 @@ func (h Uploader) listingUpdate(originalFileName string, w http.ResponseWriter, 
 	h.transferFileFromS3(svc, sess, bucket, obfuscatedDN)
 
 	//Just open and close the file to make sure that it exists (touch)
-	exists, err := h.Backend.GetBucketFileExists(dirListingName)
+	exists, err := h.Backend.GetFileExists(dirListingName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "unable to get existing directory listing")
 		return
 	}
 	//Just touch the file to make it exist
 	if exists == false {
-		_, closer, err := h.Backend.GetBucketWriteHandle(dirListingName)
+		_, closer, err := h.Backend.GetWriteHandle(dirListingName)
 		if err != nil {
 			h.sendErrorResponse(w, 500, err, "unable to touch existing directory listing")
 			return
@@ -333,7 +333,7 @@ func (h Uploader) listingUpdate(originalFileName string, w http.ResponseWriter, 
 	}
 
 	//Append to the file
-	dirListing, closer, err := h.Backend.GetBucketAppendHandle(dirListingName)
+	dirListing, closer, err := h.Backend.GetAppendHandle(dirListingName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "unable to read/write directory listing")
 		return
@@ -346,14 +346,14 @@ func (h Uploader) listingUpdate(originalFileName string, w http.ResponseWriter, 
 	dirListing.Write([]byte(newRecord + "\n"))
 
 	//Ship the new version back
-	h.drainFileToS3(svc, sess, bucket, obfuscatedDN)
+	h.drainFileToS3(svc, sess, bucket, dirListingName)
 }
 
 //In order to make the uploader usable without a user interface,
 //at least provide a per-user listing of files in his object drive partition
 func (h Uploader) listingRetrieve(w http.ResponseWriter, r *http.Request) {
 	obfuscatedDN := obfuscateHash(h.getDN(r))
-	dirListingName := h.Partition + "/" + obfuscatedDN
+	dirListingName := obfuscatedDN
 
 	svc, sess := h.awsS3(awsConfig)
 	bucket := aws.String(awsBucket)
@@ -361,7 +361,7 @@ func (h Uploader) listingRetrieve(w http.ResponseWriter, r *http.Request) {
 	//We ignore an error if it doesnt exist
 	h.transferFileFromS3(svc, sess, bucket, obfuscatedDN)
 
-	dirListing, closer, err := h.Backend.GetBucketReadHandle(dirListingName)
+	dirListing, closer, err := h.Backend.GetReadHandle(dirListingName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "unable to read/write directory listing")
 		return
@@ -395,7 +395,10 @@ func makeServer(
 	}
 	//Swap out with S3 at this point
 	h.Backend = h.NewAWSBackend()
-	h.Backend.EnsureBucketExists(theRoot)
+	err := h.Backend.EnsurePartitionExists(theRoot)
+	if err != nil {
+		log.Printf("Could not create partition: %v", err)
+	}
 	h.Addr = h.Bind + ":" + strconv.Itoa(h.Port)
 
 	//A web server is running
