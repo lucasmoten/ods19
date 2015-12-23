@@ -8,49 +8,34 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"hash"
 	"io"
 	"log"
 	"math/big"
 )
 
-// CountingStreamReader takes statistics as it writes
-type CountingStreamReader struct {
+// CipherStreamReader takes statistics as it writes
+type CipherStreamReader struct {
 	S cipher.Stream
 	R io.Reader
+	H hash.Hash
+}
+
+// NewCipherStreamReader Create a new ciphered stream with hashing
+func NewCipherStreamReader(w cipher.Stream, r io.Reader) *CipherStreamReader {
+	return &CipherStreamReader{
+		S: w,
+		R: r,
+		H: sha256.New(),
+	}
 }
 
 // Read takes statistics as it writes
-func (r CountingStreamReader) Read(dst []byte) (n int, err error) {
+func (r CipherStreamReader) Read(dst []byte) (n int, err error) {
 	n, err = r.R.Read(dst)
 	r.S.XORKeyStream(dst[:n], dst[:n])
+	r.H.Write(dst[:n])
 	return
-}
-
-// CountingStreamWriter keeps statistics as it writes
-type CountingStreamWriter struct {
-	S     cipher.Stream
-	W     io.Writer
-	Error error
-}
-
-func (w CountingStreamWriter) Write(src []byte) (n int, err error) {
-	c := make([]byte, len(src))
-	w.S.XORKeyStream(c, src)
-	n, err = w.W.Write(c)
-	if n != len(src) {
-		if err == nil {
-			err = io.ErrShortWrite
-		}
-	}
-	return
-}
-
-// Close closes underlying stream
-func (w CountingStreamWriter) Close() error {
-	if c, ok := w.W.(io.Closer); ok {
-		return c.Close()
-	}
-	return nil
 }
 
 //RSAComponents is effectively a parsed and unlocked pkcs12 store
@@ -136,57 +121,29 @@ func (h Uploader) createKeyIVPair() (key []byte, iv []byte) {
 	return
 }
 
-func (h Uploader) retrieveMetaData(fileName string, dn string) (key []byte, iv []byte, cls []byte, err error) {
-	keyFileName := obfuscateHash(dn) + "_" + fileName + ".key"
-	ivFileName := fileName + ".iv"
-	classFileName := fileName + ".class"
-
-	classFile, closer, err := h.Backend.GetReadHandle(classFileName)
-	if err != nil {
-		return key, iv, cls, err
-	}
-	defer closer.Close()
-	cls = make([]byte, 80)
-	classFile.Read(cls)
-
-	keyFile, closer, err := h.Backend.GetReadHandle(keyFileName)
-	if err != nil {
-		return key, iv, cls, err
-	}
-	defer closer.Close()
-	key = make([]byte, h.KeyBytes)
-	keyFile.Read(key)
-
-	ivFile, closer, err := h.Backend.GetReadHandle(ivFileName)
-	if err != nil {
-		return key, iv, cls, err
-	}
-	defer closer.Close()
-	iv = make([]byte, aes.BlockSize)
-	ivFile.Read(iv)
-
-	applyPassphrase([]byte(masterKey), key)
-	return key, iv, cls, nil
-}
-
-func doCipherByReaderWriter(inFile io.Reader, outFile io.Writer, key []byte, iv []byte) error {
+func doCipherByReaderWriter(
+	inFile io.Reader,
+	outFile io.Writer,
+	key []byte,
+	iv []byte,
+) (checksum []byte, err error) {
 	writeCipher, err := aes.NewCipher(key)
 	if err != nil {
 		log.Printf("unable to use cipher: %v", err)
-		return err
+		return nil, err
 	}
 	writeCipherStream := cipher.NewCTR(writeCipher, iv[:])
 	if err != nil {
 		log.Printf("unable to use block mode:%v", err)
-		return err
+		return nil, err
 	}
 
-	reader := &CountingStreamReader{S: writeCipherStream, R: inFile}
+	reader := NewCipherStreamReader(writeCipherStream, inFile)
 	_, err = io.Copy(outFile, reader)
 	if err != nil {
 		log.Printf("unable to copy out to file:%v", err)
 	}
-	return err
+	return reader.H.Sum(nil), err
 }
 
 func doReaderWriter(inFile io.Reader, outFile io.Writer) error {

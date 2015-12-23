@@ -9,6 +9,8 @@ import (
 	"io"
 	"log"
 	//"net/http"
+	"crypto/aes"
+	"crypto/sha256"
 	"os"
 	//"time"
 )
@@ -34,12 +36,16 @@ func (h Uploader) NewAWSBackend() *Backend {
 }
 
 //Hide filesystem reads so they can be S3 buckets
-func (h Uploader) awsGetReadHandle(bucketKeyName string) (r io.Reader, c io.Closer, err error) {
+func (h Uploader) awsGetReadHandle(
+	bucketKeyName string,
+) (r io.Reader, c io.Closer, err error) {
 	f, ferr := os.Open(h.Partition + "/" + bucketKeyName)
 	return f, f, ferr
 }
 
-func (h Uploader) awsGetWriteHandle(bucketKeyName string) (io.Writer, io.Closer, error) {
+func (h Uploader) awsGetWriteHandle(
+	bucketKeyName string,
+) (io.Writer, io.Closer, error) {
 	f, ferr := os.Create(h.Partition + "/" + bucketKeyName)
 	return f, f, ferr
 }
@@ -63,12 +69,19 @@ func (h Uploader) awsGetFileExists(bucketKeyName string) (bool, error) {
 	return true, nil
 }
 
-func (h Uploader) awsGetAppendHandle(bucketKeyName string) (w io.Writer, c io.Closer, err error) {
+func (h Uploader) awsGetAppendHandle(
+	bucketKeyName string,
+) (w io.Writer, c io.Closer, err error) {
 	f, ferr := os.OpenFile(h.Partition+"/"+bucketKeyName, os.O_RDWR|os.O_APPEND, 0600)
 	return f, f, ferr
 }
 
-func (h Uploader) drainFileToS3(svc *s3.S3, sess *session.Session, bucket *string, fName string) error {
+func (h Uploader) drainFileToS3(
+	svc *s3.S3,
+	sess *session.Session,
+	bucket *string,
+	fName string,
+) error {
 	fIn, err := os.Open(h.Partition + "/" + fName)
 	if err != nil {
 		log.Printf("Cant drain off file: %v", err)
@@ -91,7 +104,13 @@ func (h Uploader) drainFileToS3(svc *s3.S3, sess *session.Session, bucket *strin
 	return err
 }
 
-func (h Uploader) drainToS3(keyName, keyFileName, ivFileName, classFileName string) error {
+func (h Uploader) drainToS3(
+	keyName,
+	keyFileName,
+	ivFileName,
+	classFileName,
+	checksumFileName string,
+) error {
 	var err error
 	svc, sess := h.awsS3(awsConfig)
 	bucket := aws.String(awsBucket)
@@ -99,10 +118,16 @@ func (h Uploader) drainToS3(keyName, keyFileName, ivFileName, classFileName stri
 	h.drainFileToS3(svc, sess, bucket, keyFileName)
 	h.drainFileToS3(svc, sess, bucket, ivFileName)
 	h.drainFileToS3(svc, sess, bucket, classFileName)
+	h.drainFileToS3(svc, sess, bucket, checksumFileName)
 	return err
 }
 
-func (h Uploader) transferFileFromS3(svc *s3.S3, sess *session.Session, bucket *string, theFile string) {
+func (h Uploader) transferFileFromS3(
+	svc *s3.S3,
+	sess *session.Session,
+	bucket *string,
+	theFile string,
+) {
 	log.Printf("Get from S3 bucket %s: %s", *bucket, theFile)
 
 	fOut, err := os.Create(h.Partition + "/" + theFile)
@@ -129,6 +154,7 @@ func (h Uploader) transferFromS3(fName, dn string) {
 	fNameKey := dn + "_" + fName + ".key"
 	fNameIV := fName + ".iv"
 	fNameClass := fName + ".class"
+	fNameHash := fName + ".hash"
 
 	svc, sess := h.awsS3(awsConfig)
 	bucket := aws.String(awsBucket)
@@ -137,4 +163,50 @@ func (h Uploader) transferFromS3(fName, dn string) {
 	h.transferFileFromS3(svc, sess, bucket, fNameKey)
 	h.transferFileFromS3(svc, sess, bucket, fNameIV)
 	h.transferFileFromS3(svc, sess, bucket, fNameClass)
+	h.transferFileFromS3(svc, sess, bucket, fNameHash)
+}
+
+func (h Uploader) retrieveChecksumData(fileName string) (checksum []byte, err error) {
+	checksumFileName := fileName + ".hash"
+	checksumFile, closer, err := h.Backend.GetReadHandle(checksumFileName)
+	if err != nil {
+		return checksum, err
+	}
+	defer closer.Close()
+	checksum = make([]byte, sha256.BlockSize)
+	checksumFile.Read(checksum)
+	return checksum, err
+}
+
+func (h Uploader) retrieveMetaData(fileName string, dn string) (key []byte, iv []byte, cls []byte, err error) {
+	keyFileName := obfuscateHash(dn) + "_" + fileName + ".key"
+	ivFileName := fileName + ".iv"
+	classFileName := fileName + ".class"
+
+	classFile, closer, err := h.Backend.GetReadHandle(classFileName)
+	if err != nil {
+		return key, iv, cls, err
+	}
+	defer closer.Close()
+	cls = make([]byte, 80)
+	classFile.Read(cls)
+
+	keyFile, closer, err := h.Backend.GetReadHandle(keyFileName)
+	if err != nil {
+		return key, iv, cls, err
+	}
+	defer closer.Close()
+	key = make([]byte, h.KeyBytes)
+	keyFile.Read(key)
+
+	ivFile, closer, err := h.Backend.GetReadHandle(ivFileName)
+	if err != nil {
+		return key, iv, cls, err
+	}
+	defer closer.Close()
+	iv = make([]byte, aes.BlockSize)
+	ivFile.Read(iv)
+
+	applyPassphrase([]byte(masterKey), key)
+	return key, iv, cls, nil
 }

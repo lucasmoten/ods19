@@ -169,13 +169,23 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	doReaderWriter(bytes.NewBuffer(key), keyFile)
 	doReaderWriter(bytes.NewBuffer(iv), ivFile)
 	doReaderWriter(bytes.NewBuffer([]byte(classification)), classFile)
-	err = doCipherByReaderWriter(part, drainTo, key, iv)
+
+	checksumFileName := keyName + ".hash"
+	checksumFile, closer, err := h.Backend.GetWriteHandle(checksumFileName)
+	if err != nil {
+		h.sendErrorResponse(w, 500, err, "cant open checksum")
+	}
+	defer closer.Close()
+
+	checksum, err := doCipherByReaderWriter(part, drainTo, key, iv)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant encrypt file")
 		return err
 	}
+	doReaderWriter(bytes.NewBuffer(checksum), checksumFile)
+
 	h.listingUpdate(originalFileName, w, r)
-	err = h.drainToS3(keyName, keyFileName, ivFileName, classFileName)
+	err = h.drainToS3(keyName, keyFileName, ivFileName, classFileName, checksumFileName)
 	return err
 }
 
@@ -259,6 +269,26 @@ func (h Uploader) getDN(r *http.Request) string {
 	return r.TLS.PeerCertificates[0].Subject.CommonName
 }
 
+func (h Uploader) hasFileChanged(fileName string) (fileHasChanged bool) {
+	checksumPrevious, err := h.retrieveChecksumData(fileName)
+	if err == nil {
+		//Get the checksum from S3
+		checksum, err := h.retrieveChecksumData(fileName)
+		if err != nil {
+			log.Printf("error retrieving checksum from S3: %v", err)
+			return true
+		}
+		for i := 0; i < sha256.BlockSize; i++ {
+			if checksumPrevious[i] != checksum[i] {
+				fileHasChanged = true
+			}
+		}
+	} else {
+		fileHasChanged = true
+	}
+	return fileHasChanged
+}
+
 /**
  * Retrieve encrypted files by URL
  */
@@ -270,8 +300,18 @@ func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	fileKey := obfuscateHash(originalFileName)
 	fileName := fileKey
 
-	//Transfer back all files from S3.
-	h.transferFromS3(fileKey, obfuscateHash(h.getDN(r)))
+	//Get the locally cached checksum - it's not an error if it isn't here
+	fileHasChanged := h.hasFileChanged(fileName)
+	if fileHasChanged {
+		//Transfer back all files from S3. (TODO: this includes the hash)
+		h.transferFromS3(fileKey, obfuscateHash(h.getDN(r)))
+	}
+
+	_, err := h.retrieveChecksumData(fileName)
+	if err != nil {
+		h.sendErrorResponse(w, 500, err, "unable to retrieve checksum")
+		return
+	}
 
 	key, iv, cls, err := h.retrieveMetaData(fileName, h.getDN(r))
 	applyPassphrase([]byte(masterKey), key)
