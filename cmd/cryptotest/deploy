@@ -11,4 +11,4 @@ thebin=odrive-linux-64bit.tgz
 scp $GOPATH/src/decipher.com/oduploader/release/$thebin $where:/home/centos/$thebin
 scp defaultcerts/server/server.* $where:/home/centos/
 ssh $where tar xvf $thebin
-ssh -L$1:0.0.0.0:$1 $where nohup masterkey=otterpaws ./cryptotest -tcpPort $1 -partition partition.$USER.$1 -serverTrustFile server.trust.pem -serverCertFile server.cert.pem -serverKeyFile server.key.pem
+ssh -L$1:0.0.0.0:$1 $where AWS_REGION=$AWS_REGION masterkey=otterpaws ./cryptotest -tcpPort $1 -partition partition.$USER.$1 -serverTrustFile server.trust.pem -serverCertFile server.cert.pem -serverKeyFile server.key.pem
