@@ -7,10 +7,10 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"io"
 	"log"
 	"math/big"
-	"strings"
 )
 
 // CountingStreamReader takes statistics as it writes
@@ -113,8 +113,7 @@ func createRSAComponents(randReader io.Reader) (*RSAComponents, error) {
 func obfuscateHash(key string) string {
 	if hideFileNames {
 		hashBytes := sha256.Sum256([]byte(key))
-		keyString := base64.StdEncoding.EncodeToString(hashBytes[:])
-		return strings.Replace(strings.Replace(keyString, "/", "~", -1), "=", "Z", -1)
+		return hex.EncodeToString(hashBytes[:])
 	}
 	return key
 }
@@ -138,7 +137,7 @@ func (h Uploader) createKeyIVPair() (key []byte, iv []byte) {
 }
 
 func (h Uploader) retrieveMetaData(fileName string, dn string) (key []byte, iv []byte, cls []byte, err error) {
-	keyFileName := fileName + "_" + obfuscateHash(dn) + ".key"
+	keyFileName := obfuscateHash(dn) + "_" + fileName + ".key"
 	ivFileName := fileName + ".iv"
 	classFileName := fileName + ".class"
 

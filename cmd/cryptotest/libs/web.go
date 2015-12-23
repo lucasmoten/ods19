@@ -144,7 +144,7 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 
 	obfuscatedDN := obfuscateHash(h.getDN(r))
 	key, iv := h.createKeyIVPair()
-	keyFileName := keyName + "_" + obfuscatedDN + ".key"
+	keyFileName := obfuscatedDN + "_" + keyName + ".key"
 	keyFile, closer, err := h.Backend.GetWriteHandle(keyFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open key file")

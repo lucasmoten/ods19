@@ -126,7 +126,7 @@ func (h Uploader) transferFileFromS3(svc *s3.S3, sess *session.Session, bucket *
 
 //Ensure that we get copies on the filesystem from S3
 func (h Uploader) transferFromS3(fName, dn string) {
-	fNameKey := fName + "_" + dn + ".key"
+	fNameKey := dn + "_" + fName + ".key"
 	fNameIV := fName + ".iv"
 	fNameClass := fName + ".class"
 
