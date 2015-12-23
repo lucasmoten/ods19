@@ -3,7 +3,7 @@
 echo supply a port number as a parameter
 
 # Make the binary in our GOPATH
-(cd ../..; scripts/cross-compile.sh)
+#(cd ../..; scripts/cross-compile.sh)
 
 ## Put cryptotest and the certs on the machine
 where=centos@54.236.228.140

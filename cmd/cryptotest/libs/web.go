@@ -294,6 +294,9 @@ func (h Uploader) hasFileChanged(fileName string) (fileHasChanged bool) {
  */
 func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	originalFileName := r.URL.RequestURI()[len("/download/"):]
+	if strings.HasSuffix(originalFileName, "m4v") {
+		r.Header.Set("Content-type", "video/mp4")
+	}
 	if strings.HasSuffix(originalFileName, "mp4") {
 		r.Header.Set("Content-type", "video/mp4")
 	}
@@ -439,8 +442,8 @@ func makeServer(
 	//Swap out with S3 at this point
 	h.Backend = h.NewAWSBackend()
 	err := h.Backend.EnsurePartitionExists(theRoot)
-	if err != nil {
-		log.Printf("Could not create partition: %v", err)
+	if err == nil {
+		log.Printf("Created a new partition %s", theRoot)
 	}
 	h.Addr = h.Bind + ":" + strconv.Itoa(h.Port)
 
