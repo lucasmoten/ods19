@@ -145,7 +145,7 @@ func (h Uploader) transferFileFromS3(
 		},
 	)
 	if err != nil {
-		log.Printf("Unable to download out of S3 bucket %v: %v", bucket, theFile)
+		log.Printf("Unable to download out of S3 bucket %v: %v", *bucket, theFile)
 	}
 }
 

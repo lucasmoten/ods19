@@ -184,7 +184,7 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	}
 	doReaderWriter(bytes.NewBuffer(checksum), checksumFile)
 
-	h.listingUpdate(originalFileName, w, r)
+	h.listingUpdate(originalFileName, classification, w, r)
 	err = h.drainToS3(keyName, keyFileName, ivFileName, classFileName, checksumFileName)
 	return err
 }
@@ -346,15 +346,15 @@ func applyPassphrase(key, text []byte) {
 
 //In order to make the uploader usable without a user interface,
 //at least provide a per-user listing of files in his object drive partition
-func (h Uploader) listingUpdate(originalFileName string, w http.ResponseWriter, r *http.Request) {
+func (h Uploader) listingUpdate(originalFileName string, clas string, w http.ResponseWriter, r *http.Request) {
 	obfuscatedDN := obfuscateHash(h.getDN(r))
-	dirListingName := obfuscatedDN
+	dirListingName := obfuscatedDN + ".listing"
 
 	svc, sess := h.awsS3(awsConfig)
 	bucket := aws.String(awsBucket)
 
 	//We ignore an error if it doesnt exist
-	h.transferFileFromS3(svc, sess, bucket, obfuscatedDN)
+	h.transferFileFromS3(svc, sess, bucket, dirListingName)
 
 	//Just open and close the file to make sure that it exists (touch)
 	exists, err := h.Backend.GetFileExists(dirListingName)
@@ -380,9 +380,12 @@ func (h Uploader) listingUpdate(originalFileName string, w http.ResponseWriter, 
 	}
 	defer closer.Close()
 
-	//XXX:
 	//This is an *append* operation.  It is in plaintext, so it's not hiding filenames right now.
-	newRecord := "<a href='/download/" + originalFileName + "'><br>" + originalFileName + "</a>"
+	newRecord :=
+		"<a href='/download/" +
+			originalFileName + "'>(" + clas + ") " + originalFileName +
+			"</a><br>"
+
 	dirListing.Write([]byte(newRecord + "\n"))
 
 	//Ship the new version back
@@ -393,13 +396,13 @@ func (h Uploader) listingUpdate(originalFileName string, w http.ResponseWriter, 
 //at least provide a per-user listing of files in his object drive partition
 func (h Uploader) listingRetrieve(w http.ResponseWriter, r *http.Request) {
 	obfuscatedDN := obfuscateHash(h.getDN(r))
-	dirListingName := obfuscatedDN
+	dirListingName := obfuscatedDN + ".listing"
 
 	svc, sess := h.awsS3(awsConfig)
 	bucket := aws.String(awsBucket)
 
 	//We ignore an error if it doesnt exist
-	h.transferFileFromS3(svc, sess, bucket, obfuscatedDN)
+	h.transferFileFromS3(svc, sess, bucket, dirListingName)
 
 	dirListing, closer, err := h.Backend.GetReadHandle(dirListingName)
 	if err != nil {
