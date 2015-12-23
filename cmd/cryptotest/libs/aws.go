@@ -5,8 +5,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"io"
-	//"log"
+	"log"
 	//"net/http"
 	"os"
 	//"time"
@@ -65,4 +66,75 @@ func (h Uploader) awsGetBucketFileExists(bucketKeyName string) (bool, error) {
 func (h Uploader) awsGetBucketAppendHandle(bucketKeyName string) (w io.Writer, c io.Closer, err error) {
 	f, ferr := os.OpenFile(bucketKeyName, os.O_RDWR|os.O_APPEND, 0600)
 	return f, f, ferr
+}
+
+func (h Uploader) drainFileToS3(svc *s3.S3, sess *session.Session, bucket *string, fName string) error {
+	fIn, err := os.Open(h.Partition + "/" + fName)
+	if err != nil {
+		log.Printf("Cant drain off file: %v", err)
+		return err
+	}
+	defer fIn.Close()
+	log.Printf("draining to S3 %s: %s", *bucket, fName)
+
+	uploader := s3manager.NewUploader(sess)
+	result, err := uploader.Upload(&s3manager.UploadInput{
+		Body:   fIn,
+		Bucket: bucket,
+		Key:    aws.String(h.Partition + "/" + fName),
+	})
+	if err != nil {
+		log.Printf("Could not write to S3: %v", err)
+		return err
+	}
+	log.Printf("Uploaded to %v: %v", *bucket, result.Location)
+	return err
+}
+
+func (h Uploader) drainToS3(keyName, keyFileName, ivFileName, classFileName string) error {
+	var err error
+	svc, sess := h.awsS3(awsConfig)
+	bucket := aws.String(awsBucket)
+	h.drainFileToS3(svc, sess, bucket, keyName)
+	h.drainFileToS3(svc, sess, bucket, keyFileName)
+	h.drainFileToS3(svc, sess, bucket, ivFileName)
+	h.drainFileToS3(svc, sess, bucket, classFileName)
+	return err
+}
+
+func (h Uploader) transferFileFromS3(svc *s3.S3, sess *session.Session, bucket *string, theFile string) {
+	log.Printf("Get from S3 bucket %s: %s", *bucket, theFile)
+
+	fOut, err := os.Create(h.Partition + "/" + theFile)
+	if err != nil {
+		log.Printf("Unable to write local buffer file %s: %v", theFile, err)
+	}
+	defer fOut.Close()
+
+	downloader := s3manager.NewDownloader(sess)
+	_, err = downloader.Download(
+		fOut,
+		&s3.GetObjectInput{
+			Bucket: bucket,
+			Key:    aws.String(h.Partition + "/" + theFile),
+		},
+	)
+	if err != nil {
+		log.Printf("Unable to download out of S3 bucket %v: %v", bucket, theFile)
+	}
+}
+
+//Ensure that we get copies on the filesystem from S3
+func (h Uploader) transferFromS3(fName, dn string) {
+	fNameKey := fName + "_" + dn + ".key"
+	fNameIV := fName + ".iv"
+	fNameClass := fName + ".class"
+
+	svc, sess := h.awsS3(awsConfig)
+	bucket := aws.String(awsBucket)
+
+	h.transferFileFromS3(svc, sess, bucket, fName)
+	h.transferFileFromS3(svc, sess, bucket, fNameKey)
+	h.transferFileFromS3(svc, sess, bucket, fNameIV)
+	h.transferFileFromS3(svc, sess, bucket, fNameClass)
 }

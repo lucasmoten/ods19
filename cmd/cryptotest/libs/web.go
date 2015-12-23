@@ -9,10 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
-	//	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"io"
 	"io/ioutil"
 	"log"
@@ -125,40 +121,6 @@ func (h Uploader) lookForEncryptionKeys(w http.ResponseWriter, r *http.Request) 
 	//We can now unwrap keys
 }
 
-func (h Uploader) drainFileToS3(svc *s3.S3, sess *session.Session, bucket *string, fName string) error {
-	fIn, err := os.Open(h.HomeBucket + "/" + fName)
-	if err != nil {
-		log.Printf("Cant drain off file: %v", err)
-		return err
-	}
-	defer fIn.Close()
-	log.Printf("draining to S3 %s: %s", *bucket, fName)
-
-	uploader := s3manager.NewUploader(sess)
-	result, err := uploader.Upload(&s3manager.UploadInput{
-		Body:   fIn,
-		Bucket: bucket,
-		Key:    aws.String(h.HomeBucket + "/" + fName),
-	})
-	if err != nil {
-		log.Printf("Could not write to S3: %v", err)
-		return err
-	}
-	log.Printf("Uploaded to %v: %v", *bucket, result.Location)
-	return err
-}
-
-func (h Uploader) drainToS3(keyName, keyFileName, ivFileName, classFileName string) error {
-	var err error
-	svc, sess := h.awsS3(awsConfig)
-	bucket := aws.String(awsBucket)
-	h.drainFileToS3(svc, sess, bucket, keyName)
-	h.drainFileToS3(svc, sess, bucket, keyFileName)
-	h.drainFileToS3(svc, sess, bucket, ivFileName)
-	h.drainFileToS3(svc, sess, bucket, classFileName)
-	return err
-}
-
 /**
   Uploader has a function to drain an http request off to a filename
   Note that writing to a file is not the only possible course of action.
@@ -173,7 +135,7 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	r *http.Request,
 	part *multipart.Part,
 ) error {
-	drainTo, closer, drainErr := h.Backend.GetBucketWriteHandle(h.HomeBucket + "/" + keyName)
+	drainTo, closer, drainErr := h.Backend.GetBucketWriteHandle(h.Partition + "/" + keyName)
 	if drainErr != nil {
 		h.sendErrorResponse(w, 500, drainErr, "cant drain file")
 		return drainErr
@@ -183,7 +145,7 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	obfuscatedDN := obfuscateHash(h.getDN(r))
 	key, iv := h.createKeyIVPair()
 	keyFileName := keyName + "_" + obfuscatedDN + ".key"
-	keyFile, closer, err := h.Backend.GetBucketWriteHandle(h.HomeBucket + "/" + keyFileName)
+	keyFile, closer, err := h.Backend.GetBucketWriteHandle(h.Partition + "/" + keyFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open key file")
 		return err
@@ -191,14 +153,14 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	defer closer.Close()
 
 	ivFileName := keyName + ".iv"
-	ivFile, closer, err := h.Backend.GetBucketWriteHandle(h.HomeBucket + "/" + ivFileName)
+	ivFile, closer, err := h.Backend.GetBucketWriteHandle(h.Partition + "/" + ivFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open iv")
 	}
 	defer closer.Close()
 
 	classFileName := keyName + ".class"
-	classFile, closer, err := h.Backend.GetBucketWriteHandle(h.HomeBucket + "/" + classFileName)
+	classFile, closer, err := h.Backend.GetBucketWriteHandle(h.Partition + "/" + classFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open classification")
 	}
@@ -297,43 +259,6 @@ func (h Uploader) getDN(r *http.Request) string {
 	return r.TLS.PeerCertificates[0].Subject.CommonName
 }
 
-func (h Uploader) transferFileFromS3(svc *s3.S3, sess *session.Session, bucket *string, theFile string) {
-	log.Printf("Get from S3 bucket %s: %s", *bucket, theFile)
-
-	fOut, err := os.Create(h.HomeBucket + "/" + theFile)
-	if err != nil {
-		log.Printf("Unable to write local buffer file %s: %v", theFile, err)
-	}
-	defer fOut.Close()
-
-	downloader := s3manager.NewDownloader(sess)
-	_, err = downloader.Download(
-		fOut,
-		&s3.GetObjectInput{
-			Bucket: bucket,
-			Key:    aws.String(h.HomeBucket + "/" + theFile),
-		},
-	)
-	if err != nil {
-		log.Printf("Unable to download out of S3 bucket %v: %v", bucket, theFile)
-	}
-}
-
-//Ensure that we get copies on the filesystem from S3
-func (h Uploader) transferFromS3(fName, dn string) {
-	fNameKey := fName + "_" + dn + ".key"
-	fNameIV := fName + ".iv"
-	fNameClass := fName + ".class"
-
-	svc, sess := h.awsS3(awsConfig)
-	bucket := aws.String(awsBucket)
-
-	h.transferFileFromS3(svc, sess, bucket, fName)
-	h.transferFileFromS3(svc, sess, bucket, fNameKey)
-	h.transferFileFromS3(svc, sess, bucket, fNameIV)
-	h.transferFileFromS3(svc, sess, bucket, fNameClass)
-}
-
 /**
  * Retrieve encrypted files by URL
  */
@@ -343,7 +268,7 @@ func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 		r.Header.Set("Content-type", "video/mp4")
 	}
 	fileKey := obfuscateHash(originalFileName)
-	fileName := h.HomeBucket + "/" + fileKey
+	fileName := h.Partition + "/" + fileKey
 
 	//Transfer back all files from S3.
 	h.transferFromS3(fileKey, obfuscateHash(h.getDN(r)))
@@ -383,7 +308,7 @@ func applyPassphrase(key, text []byte) {
 //at least provide a per-user listing of files in his object drive partition
 func (h Uploader) listingUpdate(originalFileName string, w http.ResponseWriter, r *http.Request) {
 	obfuscatedDN := obfuscateHash(h.getDN(r))
-	dirListingName := string(h.HomeBucket) + "/" + obfuscatedDN
+	dirListingName := h.Partition + "/" + obfuscatedDN
 
 	svc, sess := h.awsS3(awsConfig)
 	bucket := aws.String(awsBucket)
@@ -428,7 +353,7 @@ func (h Uploader) listingUpdate(originalFileName string, w http.ResponseWriter, 
 //at least provide a per-user listing of files in his object drive partition
 func (h Uploader) listingRetrieve(w http.ResponseWriter, r *http.Request) {
 	obfuscatedDN := obfuscateHash(h.getDN(r))
-	dirListingName := string(h.HomeBucket) + "/" + obfuscatedDN
+	dirListingName := h.Partition + "/" + obfuscatedDN
 
 	svc, sess := h.awsS3(awsConfig)
 	bucket := aws.String(awsBucket)
@@ -460,7 +385,7 @@ func makeServer(
 	uploadCookie string,
 ) (*http.Server, error) {
 	h := Uploader{
-		HomeBucket:     theRoot,
+		Partition:      theRoot,
 		Port:           port,
 		Bind:           bind,
 		UploadCookie:   uploadCookie,
@@ -487,7 +412,7 @@ var hideFileNames bool
 var tcpPort int
 var tcpBind string
 var masterKey string
-var homeBucket string
+var partition string
 var bufferSize int
 var keyBytes int
 var serverCertFile string
@@ -506,7 +431,7 @@ func flagSetup() {
 	flag.IntVar(&tcpPort, "tcpPort", 6443, "set the tcp port")
 	flag.StringVar(&tcpBind, "tcpBind", "0.0.0.0", "tcp bind port")
 	flag.StringVar(&awsBucket, "awsBucket", "decipherers", "home bucket to store files in")
-	flag.StringVar(&homeBucket, "homeBucket", "homeBucket", "home bucket to store files in")
+	flag.StringVar(&partition, "partition", "partition", "partition within a bucket, and file cache location")
 	flag.IntVar(&bufferSize, "bufferSize", 1024*4, "the size of a buffer between streams in a session")
 	flag.IntVar(&keyBytes, "keyBytes", 32, "AES key size in bytes")
 	flag.StringVar(&serverTrustFile, "serverTrustFile", "defaultcerts/server/server.trust.pem", "The SSL Trust in PEM format for this server")
@@ -528,7 +453,7 @@ because large files just take longer.
 func Runit() {
 	flagSetup()
 
-	s, err := makeServer(homeBucket, tcpBind, tcpPort, masterKey)
+	s, err := makeServer(partition, tcpBind, tcpPort, masterKey)
 	//TODO: mime type setup ... need to detect on upload, and/or set on download
 	if err != nil {
 		log.Fatalln("unable to make server: %v\n", err)

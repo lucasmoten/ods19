@@ -12,7 +12,7 @@ import (
   for large files.
 */
 type Uploader struct {
-	HomeBucket     string
+	Partition      string
 	Port           int
 	Bind           string
 	Addr           string
