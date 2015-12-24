@@ -1,9 +1,24 @@
 package libs
 
 import (
-	"github.com/aws/aws-sdk-go/service/s3"
 	"io"
 )
+
+// Stat is some number of events over an observation period
+type Stat struct {
+	EventType  string
+	BeginTime  int64
+	EndTime    int64
+	EventCount int64
+}
+
+// StatCollect is where we aggregate statistical reports for event types
+type StatCollect struct {
+	EventCount        int64
+	ObservationPeriod int64
+	Units             string
+	Name              string
+}
 
 /*Uploader is a special type of Http server.
   Put any config state in here.
@@ -20,8 +35,9 @@ type Uploader struct {
 	BufferSize     int
 	KeyBytes       int
 	RSAEncryptBits int
-	Session        *s3.S3 //??? should this not be global due to locks???
 	Backend        *Backend
+	StatsReport    chan Stat
+	StatsQuery     chan []StatCollect
 }
 
 //Backend can be implemented as S3, filesystem, etc

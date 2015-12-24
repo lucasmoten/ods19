@@ -16,25 +16,28 @@ import (
 
 // CipherStreamReader takes statistics as it writes
 type CipherStreamReader struct {
-	S cipher.Stream
-	R io.Reader
-	H hash.Hash
+	S    cipher.Stream
+	R    io.Reader
+	H    hash.Hash
+	Size int64
 }
 
 // NewCipherStreamReader Create a new ciphered stream with hashing
 func NewCipherStreamReader(w cipher.Stream, r io.Reader) *CipherStreamReader {
 	return &CipherStreamReader{
-		S: w,
-		R: r,
-		H: sha256.New(),
+		S:    w,
+		R:    r,
+		H:    sha256.New(),
+		Size: int64(0),
 	}
 }
 
 // Read takes statistics as it writes
-func (r CipherStreamReader) Read(dst []byte) (n int, err error) {
+func (r *CipherStreamReader) Read(dst []byte) (n int, err error) {
 	n, err = r.R.Read(dst)
 	r.S.XORKeyStream(dst[:n], dst[:n])
 	r.H.Write(dst[:n])
+	r.Size += int64(n)
 	return
 }
 
@@ -126,16 +129,16 @@ func doCipherByReaderWriter(
 	outFile io.Writer,
 	key []byte,
 	iv []byte,
-) (checksum []byte, err error) {
+) (checksum []byte, length int64, err error) {
 	writeCipher, err := aes.NewCipher(key)
 	if err != nil {
 		log.Printf("unable to use cipher: %v", err)
-		return nil, err
+		return nil, 0, err
 	}
 	writeCipherStream := cipher.NewCTR(writeCipher, iv[:])
 	if err != nil {
 		log.Printf("unable to use block mode:%v", err)
-		return nil, err
+		return nil, 0, err
 	}
 
 	reader := NewCipherStreamReader(writeCipherStream, inFile)
@@ -143,7 +146,7 @@ func doCipherByReaderWriter(
 	if err != nil {
 		log.Printf("unable to copy out to file:%v", err)
 	}
-	return reader.H.Sum(nil), err
+	return reader.H.Sum(nil), reader.Size, err
 }
 
 func doReaderWriter(inFile io.Reader, outFile io.Writer) error {

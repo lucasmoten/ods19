@@ -21,7 +21,8 @@ var UploadForm = `
 	<body>
 		UploadBy:%s
 		<br>
-		%s
+		<a href='/download'>Downloads</a>
+		<a href='/stats'>Stats</a>
 		<br>
 		<form action='/upload' method='POST' enctype='multipart/form-data'>
 			<select name='classification'>

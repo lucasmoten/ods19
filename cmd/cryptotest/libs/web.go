@@ -20,6 +20,28 @@ import (
 	"time"
 )
 
+func (h Uploader) newStatistic(statType string) *Stat {
+	return &Stat{
+		EventType: statType,
+		BeginTime: time.Now().Unix(),
+	}
+}
+
+func (h Uploader) incrementStatistic(stat *Stat, count int64) {
+	stat.EventCount += count
+}
+
+func (h Uploader) reportStatistic(stat *Stat) {
+	stat.EndTime = time.Now().Unix()
+	h.StatsReport <- *stat
+}
+
+func (h Uploader) getStats() []StatCollect {
+	//Send in a null statistic, and a report will be enqueued
+	h.StatsReport <- Stat{}
+	return <-h.StatsQuery
+}
+
 /* ServeHTTP handles the routing of requests
  */
 func (h Uploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -56,6 +78,10 @@ func (h Uploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case strings.HasPrefix(r.URL.RequestURI(), "/unlock"):
 		{
 			h.lookForEncryptionKeys(w, r)
+		}
+	case strings.HasPrefix(r.URL.RequestURI(), "/stats"):
+		{
+			h.reportStats(w, r)
 		}
 	}
 }
@@ -135,9 +161,10 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	r *http.Request,
 	part *multipart.Part,
 ) error {
-	h.Backend.EnsurePartitionExists(h.Partition + "/" + keyName)
+	stat := h.newStatistic("upload")
 
-	drainTo, closer, drainErr := h.Backend.GetWriteHandle(keyName + "/data")
+	dataFileName := keyName + ".data"
+	drainTo, closer, drainErr := h.Backend.GetWriteHandle(dataFileName)
 	if drainErr != nil {
 		h.sendErrorResponse(w, 500, drainErr, "cant drain file")
 		return drainErr
@@ -156,14 +183,14 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	}
 	defer closer.Close()
 
-	ivFileName := keyName + "/iv"
+	ivFileName := keyName + ".iv"
 	ivFile, closer, err := h.Backend.GetWriteHandle(ivFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open iv")
 	}
 	defer closer.Close()
 
-	classFileName := keyName + "/class"
+	classFileName := keyName + ".class"
 	classFile, closer, err := h.Backend.GetWriteHandle(classFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open classification")
@@ -174,22 +201,26 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	doReaderWriter(bytes.NewBuffer(iv), ivFile)
 	doReaderWriter(bytes.NewBuffer([]byte(classification)), classFile)
 
-	checksumFileName := keyName + "/hash"
+	checksumFileName := keyName + ".hash"
 	checksumFile, closer, err := h.Backend.GetWriteHandle(checksumFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open checksum")
 	}
 	defer closer.Close()
 
-	checksum, err := doCipherByReaderWriter(part, drainTo, key, iv)
+	checksum, length, err := doCipherByReaderWriter(part, drainTo, key, iv)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant encrypt file")
 		return err
 	}
 	doReaderWriter(bytes.NewBuffer(checksum), checksumFile)
 
+	log.Printf("uploaded %v bytes", length)
+
 	h.listingUpdate(originalFileName, classification, w, r)
-	err = h.drainToS3(keyName, keyFileName, ivFileName, classFileName, checksumFileName)
+	err = h.drainToS3(dataFileName, keyFileName, ivFileName, classFileName, checksumFileName)
+	h.incrementStatistic(stat, length)
+	h.reportStatistic(stat)
 	return err
 }
 
@@ -208,7 +239,25 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 func (h Uploader) serveHTTPUploadGETMsg(msg string, w http.ResponseWriter, r *http.Request) {
 	who := h.getDN(r)
 	r.Header.Set("Content-Type", "text/html")
-	fmt.Fprintf(w, UploadForm, who, msg)
+	fmt.Fprintf(w, UploadForm, who)
+}
+
+func (h Uploader) reportStats(w http.ResponseWriter, r *http.Request) {
+	r.Header.Set("Content-Type", "text/html")
+	stats := h.getStats()
+	fmt.Fprintf(w, "<html><body>")
+	for i := 0; i < len(stats); i++ {
+		stat := stats[i]
+		nm := stat.Name
+		units := stat.Units
+		events := float64(stat.EventCount)
+		observationPeriod := float64(stat.ObservationPeriod)
+		if observationPeriod > 0 {
+			rate := events / observationPeriod
+			fmt.Fprintf(w, "%s: %f%s<br>", nm, rate, units)
+		}
+	}
+	fmt.Fprintf(w, "</body></html>")
 }
 
 /* Really upload a file into the server
@@ -297,6 +346,7 @@ func (h Uploader) hasFileChanged(fileName string) (fileHasChanged bool) {
  * Retrieve encrypted files by URL
  */
 func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
+	stat := h.newStatistic("download")
 	originalFileName := r.URL.RequestURI()[len("/download/"):]
 	if strings.HasSuffix(originalFileName, "m4v") {
 		r.Header.Set("Content-type", "video/mp4")
@@ -329,14 +379,19 @@ func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	//Set the classification in the http header for download
 	w.Header().Add("classification", string(cls))
 
-	downloadFrom, closer, err := h.Backend.GetReadHandle(fileName + "/data")
+	downloadFrom, closer, err := h.Backend.GetReadHandle(fileName + ".data")
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "failed to open file for reading")
 		return
 	}
 	defer closer.Close()
 
-	doCipherByReaderWriter(downloadFrom, w, key, iv)
+	_, length, err := doCipherByReaderWriter(downloadFrom, w, key, iv)
+	if err != nil {
+		h.sendErrorResponse(w, 500, err, "unable to decrypt file")
+	}
+	h.incrementStatistic(stat, length)
+	h.reportStatistic(stat)
 }
 
 //XXX:
@@ -425,6 +480,46 @@ func (h Uploader) listingRetrieve(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("</html>\n"))
 }
 
+func statsRoutine(stats chan Stat, statsQuery chan []StatCollect) {
+	StatisticsMap := make(map[string]*StatCollect)
+	StatisticsMap["upload"] = &StatCollect{
+		Name:  "upload",
+		Units: "B/s",
+	}
+	StatisticsMap["download"] = &StatCollect{
+		Name:  "download",
+		Units: "B/s",
+	}
+	for {
+		stat := <-stats
+		//Sending in a null report causes us to send out a copy of current stats
+		if stat.EventType == "" {
+			result := make([]StatCollect, len(StatisticsMap))
+			idx := 0
+			for _, v := range StatisticsMap {
+				result[idx] = *v
+				idx++
+			}
+			statsQuery <- result
+		} else {
+			observationPeriod := stat.EndTime - stat.BeginTime
+			m := StatisticsMap[stat.EventType]
+			if m == nil {
+				m = &StatCollect{Name: stat.EventType, Units: "event/s"}
+				StatisticsMap[stat.EventType] = m
+			}
+			m.ObservationPeriod += observationPeriod
+			m.EventCount += stat.EventCount
+			//Prevent divide by zero and only report stats with a non-zero observation period
+			if observationPeriod > 0 {
+				rate := float64(stat.EventCount) /
+					float64(observationPeriod)
+				log.Printf("current %s: %f%s", stat.EventType, rate, m.Units)
+			}
+		}
+	}
+}
+
 /**
 Generate a simple server in the root that we specify.
 We assume that the directory may not exist, and we set permissions
@@ -444,6 +539,8 @@ func makeServer(
 		BufferSize:     bufferSize, //Each session takes a buffer that guarantees the number of sessions in our SLA
 		KeyBytes:       keyBytes,
 		RSAEncryptBits: rsaEncryptBits,
+		StatsReport:    make(chan Stat),
+		StatsQuery:     make(chan []StatCollect),
 	}
 	//Swap out with S3 at this point
 	h.Backend = h.NewAWSBackend()
@@ -452,6 +549,9 @@ func makeServer(
 		log.Printf("Created a new partition %s", theRoot)
 	}
 	h.Addr = h.Bind + ":" + strconv.Itoa(h.Port)
+
+	//Launch the statistics routine
+	go statsRoutine(h.StatsReport, h.StatsQuery)
 
 	//A web server is running
 	return &http.Server{
