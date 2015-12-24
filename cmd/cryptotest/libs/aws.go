@@ -151,7 +151,7 @@ func (h Uploader) transferFileFromS3(
 
 //Ensure that we get copies on the filesystem from S3
 func (h Uploader) transferFromS3(fName, dn string) {
-	fNameKey := dn + "_" + fName + ".key"
+	fNameKey := dn + "/" + fName + ".key"
 	fNameIV := fName + ".iv"
 	fNameClass := fName + ".class"
 	fNameHash := fName + ".hash"
@@ -179,7 +179,7 @@ func (h Uploader) retrieveChecksumData(fileName string) (checksum []byte, err er
 }
 
 func (h Uploader) retrieveMetaData(fileName string, dn string) (key []byte, iv []byte, cls []byte, err error) {
-	keyFileName := obfuscateHash(dn) + "_" + fileName + ".key"
+	keyFileName := obfuscateHash(dn) + "/" + fileName + ".key"
 	ivFileName := fileName + ".iv"
 	classFileName := fileName + ".class"
 

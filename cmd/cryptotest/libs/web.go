@@ -143,8 +143,10 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	defer closer.Close()
 
 	obfuscatedDN := obfuscateHash(h.getDN(r))
+	h.Backend.EnsurePartitionExists(h.Partition + "/" + obfuscatedDN)
+
 	key, iv := h.createKeyIVPair()
-	keyFileName := obfuscatedDN + "_" + keyName + ".key"
+	keyFileName := obfuscatedDN + "/" + keyName + ".key"
 	keyFile, closer, err := h.Backend.GetWriteHandle(keyFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open key file")
@@ -351,12 +353,13 @@ func applyPassphrase(key, text []byte) {
 //at least provide a per-user listing of files in his object drive partition
 func (h Uploader) listingUpdate(originalFileName string, clas string, w http.ResponseWriter, r *http.Request) {
 	obfuscatedDN := obfuscateHash(h.getDN(r))
-	dirListingName := obfuscatedDN + ".listing"
+	dirListingName := obfuscatedDN + "/listing"
 
 	svc, sess := h.awsS3(awsConfig)
 	bucket := aws.String(awsBucket)
 
 	//We ignore an error if it doesnt exist
+	h.Backend.EnsurePartitionExists(h.Partition + "/" + obfuscatedDN)
 	h.transferFileFromS3(svc, sess, bucket, dirListingName)
 
 	//Just open and close the file to make sure that it exists (touch)
@@ -399,12 +402,13 @@ func (h Uploader) listingUpdate(originalFileName string, clas string, w http.Res
 //at least provide a per-user listing of files in his object drive partition
 func (h Uploader) listingRetrieve(w http.ResponseWriter, r *http.Request) {
 	obfuscatedDN := obfuscateHash(h.getDN(r))
-	dirListingName := obfuscatedDN + ".listing"
+	dirListingName := obfuscatedDN + "/listing"
 
 	svc, sess := h.awsS3(awsConfig)
 	bucket := aws.String(awsBucket)
 
 	//We ignore an error if it doesnt exist
+	h.Backend.EnsurePartitionExists(h.Partition + "/" + obfuscatedDN)
 	h.transferFileFromS3(svc, sess, bucket, dirListingName)
 
 	dirListing, closer, err := h.Backend.GetReadHandle(dirListingName)

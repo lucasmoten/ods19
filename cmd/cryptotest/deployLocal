@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rm -rf $USER.bucket && masterkey=otterpaws go run cryptotest.go -partition $USER.bucket
+rm -rf $USER.bucket1 && masterkey=otterpaws go run cryptotest.go -tcpPort 6444 -partition $USER.bucket1
