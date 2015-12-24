@@ -152,9 +152,9 @@ func (h Uploader) transferFileFromS3(
 //Ensure that we get copies on the filesystem from S3
 func (h Uploader) transferFromS3(fName, dn string) {
 	fNameKey := dn + "/" + fName + ".key"
-	fNameIV := fName + ".iv"
-	fNameClass := fName + ".class"
-	fNameHash := fName + ".hash"
+	fNameIV := fName + "/iv"
+	fNameClass := fName + "/class"
+	fNameHash := fName + "/hash"
 
 	svc, sess := h.awsS3(awsConfig)
 	bucket := aws.String(awsBucket)
@@ -167,7 +167,7 @@ func (h Uploader) transferFromS3(fName, dn string) {
 }
 
 func (h Uploader) retrieveChecksumData(fileName string) (checksum []byte, err error) {
-	checksumFileName := fileName + ".hash"
+	checksumFileName := fileName + "/hash"
 	checksumFile, closer, err := h.Backend.GetReadHandle(checksumFileName)
 	if err != nil {
 		return checksum, err
@@ -180,8 +180,8 @@ func (h Uploader) retrieveChecksumData(fileName string) (checksum []byte, err er
 
 func (h Uploader) retrieveMetaData(fileName string, dn string) (key []byte, iv []byte, cls []byte, err error) {
 	keyFileName := obfuscateHash(dn) + "/" + fileName + ".key"
-	ivFileName := fileName + ".iv"
-	classFileName := fileName + ".class"
+	ivFileName := fileName + "/iv"
+	classFileName := fileName + "/class"
 
 	classFile, closer, err := h.Backend.GetReadHandle(classFileName)
 	if err != nil {

@@ -135,7 +135,9 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	r *http.Request,
 	part *multipart.Part,
 ) error {
-	drainTo, closer, drainErr := h.Backend.GetWriteHandle(keyName)
+	h.Backend.EnsurePartitionExists(h.Partition + "/" + keyName)
+
+	drainTo, closer, drainErr := h.Backend.GetWriteHandle(keyName + "/data")
 	if drainErr != nil {
 		h.sendErrorResponse(w, 500, drainErr, "cant drain file")
 		return drainErr
@@ -154,14 +156,14 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	}
 	defer closer.Close()
 
-	ivFileName := keyName + ".iv"
+	ivFileName := keyName + "/iv"
 	ivFile, closer, err := h.Backend.GetWriteHandle(ivFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open iv")
 	}
 	defer closer.Close()
 
-	classFileName := keyName + ".class"
+	classFileName := keyName + "/class"
 	classFile, closer, err := h.Backend.GetWriteHandle(classFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open classification")
@@ -172,7 +174,7 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	doReaderWriter(bytes.NewBuffer(iv), ivFile)
 	doReaderWriter(bytes.NewBuffer([]byte(classification)), classFile)
 
-	checksumFileName := keyName + ".hash"
+	checksumFileName := keyName + "/hash"
 	checksumFile, closer, err := h.Backend.GetWriteHandle(checksumFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open checksum")
@@ -327,7 +329,7 @@ func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	//Set the classification in the http header for download
 	w.Header().Add("classification", string(cls))
 
-	downloadFrom, closer, err := h.Backend.GetReadHandle(fileName)
+	downloadFrom, closer, err := h.Backend.GetReadHandle(fileName + "/data")
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "failed to open file for reading")
 		return
