@@ -38,7 +38,7 @@ func (h Uploader) reportStatistic(stat *Stat) {
 
 func (h Uploader) getStats() []StatCollect {
 	//Send in a null statistic, and a report will be enqueued
-	h.StatsReport <- Stat{}
+	h.StatsNeeded <- StatsNeeded{}
 	return <-h.StatsQuery
 }
 
@@ -138,9 +138,9 @@ func (h Uploader) lookForEncryptionKeys(w http.ResponseWriter, r *http.Request) 
 		//Now that the RSA components are created, we need set them as cookies
 		//so that we effectively have an unlocked pkcs12 file when the user
 		//is present
-		w.Header().Add("Set-Cookie", "rsaN="+rsaN)
-		w.Header().Add("Set-Cookie", "rsaD="+rsaD)
-		w.Header().Add("Set-Cookie", "rsaE="+rsaE)
+		w.Header().Add("Set-Cookie", "rsaN="+rsaComponents.N.String())
+		w.Header().Add("Set-Cookie", "rsaD="+rsaComponents.D.String())
+		w.Header().Add("Set-Cookie", "rsaE="+rsaComponents.E.String())
 		//TODO: (rsaN,rsaE) need to be registered and associated with our DN
 		//that way, we can encode grants
 	}
@@ -480,7 +480,12 @@ func (h Uploader) listingRetrieve(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("</html>\n"))
 }
 
-func statsRoutine(stats chan Stat, statsQuery chan []StatCollect) {
+func statsRoutine(
+	stats chan Stat,
+	statsNeeded chan StatsNeeded,
+	statsQuery chan []StatCollect,
+) {
+
 	StatisticsMap := make(map[string]*StatCollect)
 	StatisticsMap["upload"] = &StatCollect{
 		Name:  "upload",
@@ -490,31 +495,34 @@ func statsRoutine(stats chan Stat, statsQuery chan []StatCollect) {
 		Name:  "download",
 		Units: "B/s",
 	}
+
 	for {
-		stat := <-stats
-		//Sending in a null report causes us to send out a copy of current stats
-		if stat.EventType == "" {
-			result := make([]StatCollect, len(StatisticsMap))
-			idx := 0
-			for _, v := range StatisticsMap {
-				result[idx] = *v
-				idx++
+		select {
+		case <-statsNeeded:
+			{
+				result := make([]StatCollect, len(StatisticsMap))
+				idx := 0
+				for _, v := range StatisticsMap {
+					result[idx] = *v
+					idx++
+				}
+				statsQuery <- result
 			}
-			statsQuery <- result
-		} else {
-			observationPeriod := stat.EndTime - stat.BeginTime
-			m := StatisticsMap[stat.EventType]
-			if m == nil {
-				m = &StatCollect{Name: stat.EventType, Units: "event/s"}
-				StatisticsMap[stat.EventType] = m
-			}
-			m.ObservationPeriod += observationPeriod
-			m.EventCount += stat.EventCount
-			//Prevent divide by zero and only report stats with a non-zero observation period
-			if observationPeriod > 0 {
-				rate := float64(stat.EventCount) /
-					float64(observationPeriod)
-				log.Printf("current %s: %f%s", stat.EventType, rate, m.Units)
+		case stat := <-stats:
+			{
+				observationPeriod := stat.EndTime - stat.BeginTime
+				m := StatisticsMap[stat.EventType]
+				if m == nil {
+					m = &StatCollect{Name: stat.EventType, Units: "event/s"}
+					StatisticsMap[stat.EventType] = m
+				}
+				m.ObservationPeriod += observationPeriod
+				m.EventCount += stat.EventCount
+				//Prevent divide by zero and only report stats with a non-zero observation period
+				if observationPeriod > 0 {
+					rate := float64(stat.EventCount) / float64(observationPeriod)
+					log.Printf("current %s: %f%s", stat.EventType, rate, m.Units)
+				}
 			}
 		}
 	}
@@ -541,6 +549,7 @@ func makeServer(
 		RSAEncryptBits: rsaEncryptBits,
 		StatsReport:    make(chan Stat),
 		StatsQuery:     make(chan []StatCollect),
+		StatsNeeded:    make(chan StatsNeeded),
 	}
 	//Swap out with S3 at this point
 	h.Backend = h.NewAWSBackend()
@@ -551,7 +560,7 @@ func makeServer(
 	h.Addr = h.Bind + ":" + strconv.Itoa(h.Port)
 
 	//Launch the statistics routine
-	go statsRoutine(h.StatsReport, h.StatsQuery)
+	go statsRoutine(h.StatsReport, h.StatsNeeded, h.StatsQuery)
 
 	//A web server is running
 	return &http.Server{

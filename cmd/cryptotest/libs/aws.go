@@ -160,6 +160,8 @@ func (h Uploader) transferFromS3(fName, dn string) {
 	svc, sess := h.awsS3(awsConfig)
 	bucket := aws.String(awsBucket)
 
+	h.Backend.EnsurePartitionExists(h.Partition + "/" + dn)
+
 	h.transferFileFromS3(svc, sess, bucket, fNameData)
 	h.transferFileFromS3(svc, sess, bucket, fNameKey)
 	h.transferFileFromS3(svc, sess, bucket, fNameIV)
@@ -180,7 +182,8 @@ func (h Uploader) retrieveChecksumData(fileName string) (checksum []byte, err er
 }
 
 func (h Uploader) retrieveMetaData(fileName string, dn string) (key []byte, iv []byte, cls []byte, err error) {
-	keyFileName := obfuscateHash(dn) + "/" + fileName + ".key"
+	userDir := obfuscateHash(dn)
+	keyFileName := userDir + "/" + fileName + ".key"
 	ivFileName := fileName + ".iv"
 	classFileName := fileName + ".class"
 

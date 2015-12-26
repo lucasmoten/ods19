@@ -4,6 +4,10 @@ import (
 	"io"
 )
 
+// StatsNeeded We send one of these when we want to query statistics
+type StatsNeeded struct {
+}
+
 // Stat is some number of events over an observation period
 type Stat struct {
 	EventType  string
@@ -37,6 +41,7 @@ type Uploader struct {
 	RSAEncryptBits int
 	Backend        *Backend
 	StatsReport    chan Stat
+	StatsNeeded    chan StatsNeeded
 	StatsQuery     chan []StatCollect
 }
 
