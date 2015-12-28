@@ -160,14 +160,12 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	w http.ResponseWriter,
 	r *http.Request,
 	part *multipart.Part,
-) error {
-	stat := h.newStatistic("upload")
-
+) (int64, error) {
 	dataFileName := keyName + ".data"
 	drainTo, closer, drainErr := h.Backend.GetWriteHandle(dataFileName)
 	if drainErr != nil {
 		h.sendErrorResponse(w, 500, drainErr, "cant drain file")
-		return drainErr
+		return 0, drainErr
 	}
 	defer closer.Close()
 
@@ -179,7 +177,7 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	keyFile, closer, err := h.Backend.GetWriteHandle(keyFileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant open key file")
-		return err
+		return 0, err
 	}
 	defer closer.Close()
 
@@ -211,7 +209,7 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 	checksum, length, err := doCipherByReaderWriter(part, drainTo, key, iv)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cant encrypt file")
-		return err
+		return 0, err
 	}
 	doReaderWriter(bytes.NewBuffer(checksum), checksumFile)
 
@@ -219,9 +217,7 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 
 	h.listingUpdate(originalFileName, classification, w, r)
 	err = h.drainToS3(dataFileName, keyFileName, ivFileName, classFileName, checksumFileName)
-	h.incrementStatistic(stat, length)
-	h.reportStatistic(stat)
-	return err
+	return length, err
 }
 
 /**
@@ -263,6 +259,8 @@ func (h Uploader) reportStats(w http.ResponseWriter, r *http.Request) {
 /* Really upload a file into the server
  */
 func (h Uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
+	stat := h.newStatistic("upload")
+
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "failed to get a multipart reader")
@@ -272,6 +270,7 @@ func (h Uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 	var fileName string
 	isAuthorized := true //NEED an AAC check here?
 	classification := ""
+	var length int64
 	for {
 		part, err := multipartReader.NextPart()
 		if err != nil {
@@ -295,7 +294,7 @@ func (h Uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 					if isAuthorized {
 						fileName = part.FileName()
 						keyName := obfuscateHash(fileName)
-						err := h.serveHTTPUploadPOSTDrain(fileName, keyName, classification, w, r, part)
+						length, err = h.serveHTTPUploadPOSTDrain(fileName, keyName, classification, w, r, part)
 						if err != nil {
 							h.sendErrorResponse(w, 500, err, "unable to drain file")
 							return
@@ -309,6 +308,8 @@ func (h Uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	h.serveHTTPUploadGETMsg("<a href='/download'>download</a>", w, r)
+	h.incrementStatistic(stat, length)
+	h.reportStatistic(stat)
 }
 
 /**
@@ -348,11 +349,15 @@ func (h Uploader) hasFileChanged(fileName string) (fileHasChanged bool) {
 func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	stat := h.newStatistic("download")
 	originalFileName := r.URL.RequestURI()[len("/download/"):]
-	if strings.HasSuffix(originalFileName, "m4v") {
+	switch {
+	case strings.HasSuffix(originalFileName, "m4v"):
 		r.Header.Set("Content-type", "video/mp4")
-	}
-	if strings.HasSuffix(originalFileName, "mp4") {
+	case strings.HasSuffix(originalFileName, "mp4"):
 		r.Header.Set("Content-type", "video/mp4")
+	case strings.HasSuffix(originalFileName, "mov"):
+		r.Header.Set("Content-type", "video/mov")
+	case strings.HasSuffix(originalFileName, "MOV"):
+		r.Header.Set("Content-type", "video/mov")
 	}
 	fileKey := obfuscateHash(originalFileName)
 	fileName := fileKey
