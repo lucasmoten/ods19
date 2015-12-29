@@ -1,0 +1,11 @@
+rm twlserver.p12
+keytool -importkeystore \
+        -srcstorepass password \
+        -deststorepass password \
+        -srckeystore twlserver.jks \
+        -destkeystore twlserver.p12 \
+        -srcstoretype jks \
+        -deststoretype pkcs12
+
+openssl pkcs12 \
+        -in twlserver.p12 -nodes -nokeys > client.trust.pem

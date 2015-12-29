@@ -14,4 +14,4 @@ scp $GOPATH/src/decipher.com/oduploader/release/$thebin $where:/home/centos/$the
 ssh $where tar xvf $thebin
 #Note the trick to run the password as an env var so that
 #it's not written on the filesystem or showing up in ps
-ssh -L$1:0.0.0.0:$1 $where AWS_REGION=$AWS_REGION masterkey=otterpaws ./cryptotest -tcpPort $1 
+#ssh -L$1:0.0.0.0:$1 $where AWS_REGION=$AWS_REGION masterkey=otterpaws ./cryptotest -tcpPort $1 
