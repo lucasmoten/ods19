@@ -36,3 +36,5 @@ openssl pkcs12 \
 	-in ../clients/test_1.p12 -clcerts -nokeys > ../clients/test_1.cert.pem
 openssl pkcs12 \
 	-in ../clients/test_1.p12 -nocerts -nodes > ../clients/test_1.key.pem
+openssl pkcs12 \
+	-in ../clients/test_1.p12 > ../clients/test_1.pem
