@@ -24,8 +24,8 @@ func main() {
 
 	//Load client key pair
 	cert, err := tls.LoadX509KeyPair(
-		"test01.crt.pem",
-		"test01.key.pem",
+		"test_1.cert.pem",
+		"test_1.key.pem",
 	)
 	if err != nil {
 		log.Printf("could not parse client cert: %v\n", cert)
@@ -35,7 +35,7 @@ func main() {
 	//Actually connect
 	hostName := "twl-server-generic2" // change this
 	//hostName := "54.236.228.140"
-	portNum := "9998"
+	portNum := "7444"
 	log.Printf("Connecting to %s\n", hostName)
 	tlsConfig := &tls.Config{
 		RootCAs:      caCertPool,
