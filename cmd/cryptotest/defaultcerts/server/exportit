@@ -1,5 +1,7 @@
 #Convert the original jks to p12
 rm twlserver.p12
+rm truststore.p12
+
 keytool -importkeystore \
         -srcstorepass password \
         -deststorepass password \
@@ -18,3 +20,16 @@ openssl pkcs12 \
 	-in twlserver.p12 -clcerts -nokeys > server.cert.pem  
 openssl pkcs12 \
 	-in twlserver.p12 -clcerts -nocerts -nodes > server.key.pem  
+
+keytool -importkeystore \
+        -srcstorepass password \
+        -deststorepass password \
+        -srckeystore originals/truststore.jks \
+        -destkeystore truststore.p12 \
+        -srcstoretype jks \
+        -deststoretype pkcs12
+openssl pkcs12 \
+	-in truststore.p12 -nodes -nokeys > server.trust.pem
+
+rm twlserver.p12
+rm truststore.p12
