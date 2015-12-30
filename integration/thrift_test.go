@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"log"
 	"testing"
 
@@ -11,7 +12,7 @@ import (
 
 func TestThriftCommunication(t *testing.T) {
 
-	cfg := config.NewUploaderTLSConfig()
+	cfg := config.NewAACTLSConfig()
 	cfg.InsecureSkipVerify = true
 	transport, err := thrift.NewTSSLSocket("dockervm:9093", cfg)
 	// transportFactory := thrift.NewTTransportFactory()
@@ -42,6 +43,7 @@ func stringToInt8Slice(input string) ([]int8, error) {
 	result := make([]int8, len(byteSliced))
 	for i := 0; i < len(byteSliced); i++ {
 		// TODO this can panic. Is this a case for panic/recover?
+		fmt.Printf("slicin! %v of %v \n", i, len(byteSliced))
 		result[i] = int8(byteSliced[i])
 	}
 	return result, nil

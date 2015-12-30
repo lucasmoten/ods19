@@ -8,7 +8,6 @@ import (
 	"crypto/x509"
 	"flag"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
 	"io"
 	"io/ioutil"
 	"log"
@@ -18,6 +17,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
 )
 
 func (h Uploader) newStatistic(statType string) *Stat {
