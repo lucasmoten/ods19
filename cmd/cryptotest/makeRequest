@@ -3,6 +3,10 @@
 thehost=twl-server-generic2
 #thehost=dockervm
 
-curl -X GET -v --cacert defaultcerts/clients/client.trust.pem --cert defaultcerts/clients/test_1.p12:password https://$thehost:7444/capco/allcapcodata?userToken=CN%3Dtest%20tester01,OU%3DPeople,OU%3DDAS,OU%3DChimera,O%3DU.S.%20Government,C%3DUS
+curl -X GET -v \
+	--cacert defaultcerts/clients/client.trust.pem \
+	--cert   defaultcerts/clients/test_1.cert.pem \
+	--key    defaultcerts/clients/test_1.key.pem \
+	https://$thehost:7444/capco/allcapcodata?userToken=CN%3Dtest%20tester01,OU%3DPeople,OU%3DDAS,OU%3DChimera,O%3DU.S.%20Government,C%3DUS
 
 #acm/checkaccess
