@@ -11,7 +11,7 @@ import (
 
 func main() {
 	//Load trust file
-	certBytes, err := ioutil.ReadFile("server.trust.pem")
+	certBytes, err := ioutil.ReadFile("../cryptotest/defaultcerts/clients/client.trust.pem")
 	if err != nil {
 		log.Printf("Unable to trust file: %v\n", err)
 		return
@@ -24,8 +24,8 @@ func main() {
 
 	//Load client key pair
 	cert, err := tls.LoadX509KeyPair(
-		"test_1.cert.pem",
-		"test_1.key.pem",
+		"../cryptotest/defaultcerts/clients/test_1.cert.pem",
+		"../cryptotest/defaultcerts/clients/test_1.key.pem",
 	)
 	if err != nil {
 		log.Printf("could not parse client cert: %v\n", cert)

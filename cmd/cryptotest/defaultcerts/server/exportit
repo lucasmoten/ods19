@@ -12,13 +12,16 @@ keytool -importkeystore \
 
 #Export the entire server cert chain as a client trust
 openssl pkcs12 \
+	-password pass:password \
         -in twlserver.p12 -nodes -nokeys > server.trust.pem
 cp server.trust.pem ../clients/client.trust.pem
 
 #Export the p12 to pem for the sake of the server
 openssl pkcs12 \
+	-password pass:password \
 	-in twlserver.p12 -clcerts -nokeys > server.cert.pem  
 openssl pkcs12 \
+	-password pass:password \
 	-in twlserver.p12 -clcerts -nocerts -nodes > server.key.pem  
 
 keytool -importkeystore \
@@ -29,12 +32,15 @@ keytool -importkeystore \
         -srcstoretype jks \
         -deststoretype pkcs12
 openssl pkcs12 \
-	-in truststore.p12 -nodes -nokeys > server.trust.pem
-cat server.trust.pem >> ../clients/client.trust.pem
+	-password pass:password \
+	-in truststore.p12 -nodes -nokeys > trust.pem
 
+for i in `seq 0 9`
+do
 openssl pkcs12 \
-	-in ../clients/test_1.p12 -clcerts -nokeys > ../clients/test_1.cert.pem
-openssl pkcs12 \
-	-in ../clients/test_1.p12 -nocerts -nodes > ../clients/test_1.key.pem
-openssl pkcs12 \
-	-in ../clients/test_1.p12 > ../clients/test_1.pem
+	-password pass:password \
+	-in ../clients/test_${i}.p12 -clcerts -nokeys >> trust.pem
+done
+
+cp trust.pem ../clients/client.trust.pem
+cp trust.pem server.trust.pem
