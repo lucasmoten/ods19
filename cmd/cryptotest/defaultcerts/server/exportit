@@ -40,6 +40,12 @@ do
 openssl pkcs12 \
 	-password pass:password \
 	-in ../clients/test_${i}.p12 -clcerts -nokeys >> trust.pem
+openssl pkcs12 \
+	-password pass:password \
+	-in ../clients/test_${i}.p12 -clcerts -nokeys > ../clients/test_${i}.cert.pem
+openssl pkcs12 \
+	-password pass:password \
+	-in ../clients/test_${i}.p12 -nodes -nocerts > ../clients/test_${i}.key.pem
 done
 
 cp trust.pem ../clients/client.trust.pem
