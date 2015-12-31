@@ -1,9 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
+	"encoding/json"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -33,8 +34,8 @@ func main() {
 	}
 
 	//Actually connect
-	hostName := "twl-server-generic2" // change this
-	//hostName := "54.236.228.140"
+	//hostName := "dockervm" // change this
+	hostName := "twl-server-generic2"
 	portNum := "7444"
 	log.Printf("Connecting to %s\n", hostName)
 	tlsConfig := &tls.Config{
@@ -45,12 +46,29 @@ func main() {
 
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
 	client := &http.Client{Transport: transport}
+	//resp, err := client.Get("https://" + hostName + ":" + portNum + "/capco/allcapcodata?userTokenType=pki_dias")
 
-	resp, err := client.Get("https://" + hostName + ":" + portNum + "/stats")
+	var data map[string]json.RawMessage
+	jsonStr := []byte(` { "userToken": "C=us, O=U.S. Government, OU=Chimera, OU=DAS, OU=people, CN=test tester01", "userTokenType": "pki_dias", "acm": { "version": "2.1.0", "classif": "U" } } `)
+	err = json.Unmarshal(jsonStr, &data)
 	if err != nil {
-		fmt.Printf("unable to connect: %v\n", err)
+		log.Printf("%v", err)
+	}
+	url := "https://" + hostName + ":" + portNum + "/acm/checkaccess"
+	req, err := http.NewRequest(
+		"POST", url,
+		bytes.NewBuffer(jsonStr),
+	)
+	if err != nil {
+		log.Printf("unable to make request: %v\n", err)
 		return
 	}
+
+	resp, err := client.Do(req)
 	contents, err := ioutil.ReadAll(resp.Body)
-	fmt.Printf("%s\n", string(contents))
+	if err != nil {
+		log.Printf("unable to connect: %v\n", err)
+		return
+	}
+	log.Printf("got:%s\n", string(contents))
 }
