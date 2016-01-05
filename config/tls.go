@@ -116,12 +116,17 @@ func NewOpenSSLTransport() (*openssl.Conn, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	ctx.SetOptions(openssl.CipherServerPreference)
+	// ctx.SetOptions(openssl.NoCompression)
+	ctx.SetOptions(openssl.NoSSLv3)
 
 	trustLoc := "../cmd/cryptotest/defaultcerts/clients/client.trust.pem"
-	err = ctx.LoadVerifyLocations(trustLoc, trustLoc)
+	err = ctx.LoadVerifyLocations(trustLoc, "")
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println("Using this verify mode: ", ctx.VerifyMode())
+
 	certBytes, err := ioutil.ReadFile("../cmd/cryptotest/defaultcerts/clients/test_1.cert.pem")
 	if err != nil {
 		log.Fatalf("Unable to trust file: %v\n", err)
@@ -143,11 +148,10 @@ func NewOpenSSLTransport() (*openssl.Conn, error) {
 	}
 	ctx.UsePrivateKey(privKey)
 
-	conn, err := openssl.Dial("tcp", "twl-server-generic2:9093", ctx, 0)
+	conn, err := openssl.Dial("tcp", "twl-server-generic2:9093", ctx, 1)
 	if err != nil {
 		log.Println("Error making openssl conn!")
 		log.Fatal(err)
 	}
-
 	return conn, nil
 }
