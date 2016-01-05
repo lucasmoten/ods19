@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/spacemonkeygo/openssl"
 )
 
 // Information about DoDIIS two-way SSL is here:
@@ -70,6 +72,7 @@ func NewUploaderTLSConfig() *tls.Config {
 	return tlsConfig
 }
 
+// NewAACTLSConfig ...
 func NewAACTLSConfig() *tls.Config {
 
 	certBytes, err := ioutil.ReadFile(thriftClientCertPath)
@@ -105,4 +108,46 @@ func NewAACTLSConfig() *tls.Config {
 	}
 	tlsConfig.BuildNameToCertificate()
 	return tlsConfig
+}
+
+// NewOpenSSLTransport ...
+func NewOpenSSLTransport() (*openssl.Conn, error) {
+	ctx, err := openssl.NewCtx()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	trustLoc := "../cmd/cryptotest/defaultcerts/clients/client.trust.pem"
+	err = ctx.LoadVerifyLocations(trustLoc, trustLoc)
+	if err != nil {
+		log.Fatal(err)
+	}
+	certBytes, err := ioutil.ReadFile("../cmd/cryptotest/defaultcerts/clients/test_1.cert.pem")
+	if err != nil {
+		log.Fatalf("Unable to trust file: %v\n", err)
+	}
+
+	cert, err := openssl.LoadCertificateFromPEM(certBytes)
+	if err != nil {
+		log.Printf("Unable to parse cert:%v", err)
+	}
+	ctx.UseCertificate(cert)
+
+	keyBytes, err := ioutil.ReadFile("../cmd/cryptotest/defaultcerts/clients/test_1.key.pem")
+	if err != nil {
+		log.Fatalf("Unable to key file: %v\n", err)
+	}
+	privKey, err := openssl.LoadPrivateKeyFromPEM(keyBytes)
+	if err != nil {
+		log.Fatalf("Unable to parse private key:%v", nil)
+	}
+	ctx.UsePrivateKey(privKey)
+
+	conn, err := openssl.Dial("tcp", "twl-server-generic2:9093", ctx, 0)
+	if err != nil {
+		log.Println("Error making openssl conn!")
+		log.Fatal(err)
+	}
+
+	return conn, nil
 }

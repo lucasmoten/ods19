@@ -5,35 +5,44 @@ import (
 	"log"
 	"testing"
 
-	aac "decipher.com/oduploader/cmd/cryptotest/gen-go/aac"
+	aac "decipher.com/oduploader/cmd/cryptotest/gen-go2/aac"
 	"decipher.com/oduploader/config"
-	"git.apache.org/thrift.git/lib/go/thrift"
+	t2 "github.com/samuel/go-thrift/thrift"
 )
 
 func TestThriftCommunication(t *testing.T) {
 
-	cfg := config.NewAACTLSConfig()
-	cfg.InsecureSkipVerify = true
-	transport, err := thrift.NewTSSLSocket("dockervm:9093", cfg)
-	// transportFactory := thrift.NewTTransportFactory()
-	// transport = transportFactory.GetTransport(transport)
-	defer transport.Close()
-	if err = transport.Open(); err != nil {
-		log.Println("Failed to open transport.")
-		t.Fail()
+	// dur, _ := time.ParseDuration("20s")
+	// cfg := config.NewAACTLSConfig()
+	// cfg.InsecureSkipVerify = true
+	// transport, err := thrift.NewTSSLSocket("twl-server-generic2:9093", cfg)
+	conn, err := config.NewOpenSSLTransport()
+	if err != nil {
+		log.Fatal(err)
 	}
-	// get protocol fac
-	fac := thrift.NewTBinaryProtocolFactoryDefault()
-	client := aac.NewAacServiceClientFactory(transport, fac) // (t thrift.TTransport, f thrift.TProtocolFactory) *AacServiceClient
 
-	byteList, _ := stringToInt8Slice("<ddms:title ism:classification='S'>Foo</ddms:title>")
+	// try other Thrift lib
+	trns := t2.NewTransport(conn, t2.BinaryProtocol)
+	client := t2.NewClient(trns, false)
+
+	aacClient := aac.AacServiceClient{Client: client}
+	// log.Println(aacClient)
+
+	// byteList, _ := stringToInt8Slice("<ddms:title ism:classification='S'>Foo</ddms:title>")
+	byteList := []byte("<ddms:title ism:classification='S'>Foo</ddms:title>")
+	log.Println(byteList)
 	propertiesMap := make(map[string]string)
 
 	propertiesMap["bedrock.message.traffic.dia.orgs"] = "DIA DOD_DIA"
 	propertiesMap["bedrock.message.traffic.orcon.project"] = "DCTC"
 	propertiesMap["bedrock.message.traffic.orcon.group"] = "All"
 
-	client.BuildAcm(byteList, "XML", propertiesMap)
+	resp, err := aacClient.BuildAcm(byteList, "XML", propertiesMap)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Reponse: ", resp)
+	// client.BuildAcm(byteList, "XML", propertiesMap)
 
 	return
 }
