@@ -32,3 +32,4 @@ keytool -list \
 	-storetype jks
 
 cp server.cert.pem ../clients/client.trust.pem
+cp server.jks $OD_ROOT/cte-security-service/aac-client-test/src/main/java/resources/server.jks
