@@ -1,45 +1,13 @@
 package integration
 
 import (
-	"crypto/tls"
-	"fmt"
 	"log"
 	"testing"
-	"time"
 
-	apacheAac "decipher.com/oduploader/cmd/cryptotest/gen-go/aac"
 	aac "decipher.com/oduploader/cmd/cryptotest/gen-go2/aac"
 	"decipher.com/oduploader/config"
-	apacheThrift "git.apache.org/thrift.git/lib/go/thrift"
 	t2 "github.com/samuel/go-thrift/thrift"
 )
-
-func ApacheThriftImpl(t *testing.T) {
-
-	dur, _ := time.ParseDuration("20s")
-	// transport, err := apacheThrift.NewTSSLSocket("twl-server-generic2:9093", cfg)
-	fac := apacheThrift.NewTBinaryProtocolFactoryDefault()
-	conn, err := config.NewOpenSSLTransport()
-	if err != nil {
-		log.Fatal(err)
-	}
-	cfg := tls.Config{InsecureSkipVerify: true}
-	transport := apacheThrift.NewTSSLSocketFromConnTimeout(conn, &cfg, dur)
-	//protocol := fac.GetProtocol(transport)
-	client := apacheAac.NewAacServiceClientFactory(transport, fac)
-
-	propertiesMap := make(map[string]string)
-	propertiesMap["bedrock.message.traffic.dia.orgs"] = "DIA DOD_DIA"
-	propertiesMap["bedrock.message.traffic.orcon.project"] = "DCTC"
-	propertiesMap["bedrock.message.traffic.orcon.group"] = "All"
-	byteList, _ := stringToInt8Slice("<ddms:title ism:classification='S'>Foo</ddms:title>")
-	res, err := client.BuildAcm(byteList, "XML", propertiesMap)
-	if err != nil {
-		log.Println("error encountered")
-		log.Fatal(err)
-	}
-	log.Println("Success?  ----  ", res.GetAcmValid())
-}
 
 func TestThriftCommunication(t *testing.T) {
 
@@ -72,16 +40,4 @@ func TestThriftCommunication(t *testing.T) {
 		log.Fatal(err)
 	}
 	log.Println("Reponse: ", resp)
-}
-
-func stringToInt8Slice(input string) ([]int8, error) {
-	byteSliced := []byte(input)
-	result := make([]int8, len(byteSliced))
-	for i := 0; i < len(byteSliced); i++ {
-		// TODO this can panic. Is this a case for panic/recover?
-		fmt.Printf("slicin! %v of %v \n", i, len(byteSliced))
-		result[i] = int8(byteSliced[i])
-	}
-	fmt.Println("Returning...")
-	return result, nil
 }
