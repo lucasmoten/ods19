@@ -22,7 +22,7 @@ func TestThriftCommunication(t *testing.T) {
 	}
 
 	// try other Thrift lib
-	trns := t2.NewTransport(conn, t2.BinaryProtocol)
+	trns := t2.NewTransport(t2.NewFramedReadWriteCloser(conn, 0), t2.BinaryProtocol)
 	client := t2.NewClient(trns, false)
 
 	aacClient := aac.AacServiceClient{Client: client}
