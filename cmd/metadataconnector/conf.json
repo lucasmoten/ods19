@@ -1,0 +1,14 @@
+{
+  "DatabaseConnection": {
+    "Username": "dbuser",
+    "Password": "dbPassword",
+    "Host": "fqdn.for.metadatadb.local",
+    "Port": "3306",
+    "Schema": "metadatadb",
+    "Params": "parseTime=true",
+    "UseTLS": true,
+    "CAPath": "/home/lucasmoten/workspace/cte/object-drive/docker/metadatadb/ca.pem",
+    "ClientCert": "/home/lucasmoten/workspace/cte/object-drive/docker/metadatadb/client-cert.pem",
+    "ClientKey": "/home/lucasmoten/workspace/cte/object-drive/docker/metadatadb/client-key.pem"
+  }
+}
