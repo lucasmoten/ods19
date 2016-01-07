@@ -9,7 +9,7 @@ import (
 var _ = fmt.Sprintf
 
 type AcmInfo struct {
-	Path            string `thrift:"1,required" json:"path"` // NOTE: codegen made this field "required"
+	Path            string `thrift:"1,optional" json:"path"` // NOTE: codegen made this field "required"
 	Acm             string `thrift:"2,required" json:"acm"`
 	IncludeInRollup bool   `thrift:"3,required" json:"includeInRollup"`
 }
@@ -23,7 +23,7 @@ type AcmResponse struct {
 }
 
 type AcmsForRollupWithPath struct {
-	AcmInfo *AcmInfo `thrift:"1,required" json:"acmInfo"`
+	AcmInfo *AcmInfo `thrift:"1,optional" json:"acmInfo"` // NOTE: codegen made this field "required"
 	Path    string   `thrift:"2,required" json:"path"`
 }
 
@@ -330,7 +330,7 @@ type AacServiceCheckAccessResponse struct {
 type AacServiceCheckAccessAndPopulateRequest struct {
 	UserToken       string     `thrift:"1,required" json:"userToken"`
 	TokenType       string     `thrift:"2,required" json:"tokenType"`
-	AcmInfoList     []*AcmInfo `thrift:"3,required" json:"acmInfoList"`
+	AcmInfoList     []*AcmInfo `thrift:"3,optional" json:"acmInfoList"` // NOTE: marked as required originally
 	CalculateRollup bool       `thrift:"4,required" json:"calculateRollup"`
 	ShareType       string     `thrift:"5,required" json:"shareType"`
 	Share           string     `thrift:"6,required" json:"share"`
@@ -452,7 +452,7 @@ type AacServiceValidateAcmResponse struct {
 }
 
 type AacServiceValidateAcmsRequest struct {
-	AcmInfoList []*AcmInfo `thrift:"1,required" json:"acmInfoList"`
+	AcmInfoList []*AcmInfo `thrift:"1,optional" json:"acmInfoList"` // NOTE: generated code marked this as required
 	UserToken   string     `thrift:"2,required" json:"userToken"`
 	TokenType   string     `thrift:"3,required" json:"tokenType"`
 	ShareType   string     `thrift:"4,required" json:"shareType"`

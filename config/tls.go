@@ -117,7 +117,6 @@ func NewOpenSSLTransport() (*openssl.Conn, error) {
 		log.Fatal(err)
 	}
 	ctx.SetOptions(openssl.CipherServerPreference)
-	// ctx.SetOptions(openssl.NoCompression)
 	ctx.SetOptions(openssl.NoSSLv3)
 
 	trustLoc := "../cmd/cryptotest/defaultcerts/clients/client.trust.pem"
@@ -125,7 +124,6 @@ func NewOpenSSLTransport() (*openssl.Conn, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Using this verify mode: ", ctx.VerifyMode())
 
 	certBytes, err := ioutil.ReadFile("../cmd/cryptotest/defaultcerts/clients/test_1.cert.pem")
 	if err != nil {
