@@ -21,28 +21,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 )
 
-func (h Uploader) newStatistic(statType string) *Stat {
-	return &Stat{
-		EventType: statType,
-		BeginTime: time.Now().Unix(),
-	}
-}
-
-func (h Uploader) incrementStatistic(stat *Stat, count int64) {
-	stat.EventCount += count
-}
-
-func (h Uploader) reportStatistic(stat *Stat) {
-	stat.EndTime = time.Now().Unix()
-	h.StatsReport <- *stat
-}
-
-func (h Uploader) getStats() []StatCollect {
-	//Send in a null statistic, and a report will be enqueued
-	h.StatsNeeded <- StatsNeeded{}
-	return <-h.StatsQuery
-}
-
 /* ServeHTTP handles the routing of requests
  */
 func (h Uploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -241,17 +219,17 @@ func (h Uploader) serveHTTPUploadGETMsg(msg string, w http.ResponseWriter, r *ht
 
 func (h Uploader) reportStats(w http.ResponseWriter, r *http.Request) {
 	r.Header.Set("Content-Type", "text/html")
-	stats := h.getStats()
+	statTypes := []ReporterID{UploadCounter, DownloadCounter}
+
 	fmt.Fprintf(w, "<html><body>")
-	for i := 0; i < len(stats); i++ {
-		stat := stats[i]
+	for i := 0; i < len(statTypes); i++ {
+		stat := h.Tracker.Report(statTypes[i])
 		nm := stat.Name
-		units := stat.Units
-		events := float64(stat.EventCount)
-		observationPeriod := float64(stat.ObservationPeriod)
+		events := stat.Size
+		observationPeriod := stat.Duration
 		if observationPeriod > 0 {
 			rate := events / observationPeriod
-			fmt.Fprintf(w, "%s: %f%s<br>", nm, rate, units)
+			fmt.Fprintf(w, "%s: %d%s<br>", nm, rate, "B/s")
 		}
 	}
 	fmt.Fprintf(w, "</body></html>")
@@ -260,8 +238,6 @@ func (h Uploader) reportStats(w http.ResponseWriter, r *http.Request) {
 /* Really upload a file into the server
  */
 func (h Uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
-	stat := h.newStatistic("upload")
-
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "failed to get a multipart reader")
@@ -294,8 +270,10 @@ func (h Uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 				if len(part.FileName()) > 0 {
 					if isAuthorized {
 						fileName = part.FileName()
+						beganJob := h.Tracker.BeginTime(UploadCounter, fileName)
 						keyName := obfuscateHash(fileName)
 						length, err = h.serveHTTPUploadPOSTDrain(fileName, keyName, classification, w, r, part)
+						h.Tracker.EndTime(UploadCounter, beganJob, fileName, SizeJob(length))
 						if err != nil {
 							h.sendErrorResponse(w, 500, err, "unable to drain file")
 							return
@@ -309,8 +287,6 @@ func (h Uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	h.serveHTTPUploadGETMsg("<a href='/download'>download</a>", w, r)
-	h.incrementStatistic(stat, length)
-	h.reportStatistic(stat)
 }
 
 /**
@@ -348,7 +324,6 @@ func (h Uploader) hasFileChanged(fileName string) (fileHasChanged bool) {
  * Retrieve encrypted files by URL
  */
 func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
-	stat := h.newStatistic("download")
 	originalFileName := r.URL.RequestURI()[len("/download/"):]
 	switch {
 	case strings.HasSuffix(originalFileName, "m4v"):
@@ -391,13 +366,12 @@ func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer closer.Close()
-
+	beganJob := h.Tracker.BeginTime(DownloadCounter, fileName)
 	_, length, err := doCipherByReaderWriter(downloadFrom, w, key, iv)
+	h.Tracker.EndTime(DownloadCounter, beganJob, fileName, SizeJob(length))
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "unable to decrypt file")
 	}
-	h.incrementStatistic(stat, length)
-	h.reportStatistic(stat)
 }
 
 //XXX:
@@ -486,54 +460,6 @@ func (h Uploader) listingRetrieve(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("</html>\n"))
 }
 
-func statsRoutine(
-	stats chan Stat,
-	statsNeeded chan StatsNeeded,
-	statsQuery chan []StatCollect,
-) {
-
-	StatisticsMap := make(map[string]*StatCollect)
-	StatisticsMap["upload"] = &StatCollect{
-		Name:  "upload",
-		Units: "B/s",
-	}
-	StatisticsMap["download"] = &StatCollect{
-		Name:  "download",
-		Units: "B/s",
-	}
-
-	for {
-		select {
-		case <-statsNeeded:
-			{
-				result := make([]StatCollect, len(StatisticsMap))
-				idx := 0
-				for _, v := range StatisticsMap {
-					result[idx] = *v
-					idx++
-				}
-				statsQuery <- result
-			}
-		case stat := <-stats:
-			{
-				observationPeriod := stat.EndTime - stat.BeginTime
-				m := StatisticsMap[stat.EventType]
-				if m == nil {
-					m = &StatCollect{Name: stat.EventType, Units: "event/s"}
-					StatisticsMap[stat.EventType] = m
-				}
-				m.ObservationPeriod += observationPeriod
-				m.EventCount += stat.EventCount
-				//Prevent divide by zero and only report stats with a non-zero observation period
-				if observationPeriod > 0 {
-					rate := float64(stat.EventCount) / float64(observationPeriod)
-					log.Printf("current %s: %f%s", stat.EventType, rate, m.Units)
-				}
-			}
-		}
-	}
-}
-
 /**
 Generate a simple server in the root that we specify.
 We assume that the directory may not exist, and we set permissions
@@ -553,9 +479,7 @@ func makeServer(
 		BufferSize:     bufferSize, //Each session takes a buffer that guarantees the number of sessions in our SLA
 		KeyBytes:       keyBytes,
 		RSAEncryptBits: rsaEncryptBits,
-		StatsReport:    make(chan Stat),
-		StatsQuery:     make(chan []StatCollect),
-		StatsNeeded:    make(chan StatsNeeded),
+		Tracker:        NewJobReporters(),
 	}
 	//Swap out with S3 at this point
 	h.Backend = h.NewAWSBackend()
@@ -564,9 +488,6 @@ func makeServer(
 		log.Printf("Created a new partition %s", theRoot)
 	}
 	h.Addr = h.Bind + ":" + strconv.Itoa(h.Port)
-
-	//Launch the statistics routine
-	go statsRoutine(h.StatsReport, h.StatsNeeded, h.StatsQuery)
 
 	//A web server is running
 	return &http.Server{

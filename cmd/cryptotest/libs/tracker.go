@@ -122,6 +122,12 @@ type ReportsQueue struct {
 }
 
 // NewReportsQueue creates a queue for new reports
+// It is a circular queue that quietly drops when it is at capacity,
+// and items pushed in are reconciled in a way that is specific to
+// JobReports.
+//
+// When reconciled, at every time period, the population and throughput
+// are well defined.
 func NewReportsQueue(capacity int) *ReportsQueue {
 	return &ReportsQueue{
 		Reports:  make([]JobReport, capacity),
@@ -133,10 +139,18 @@ func NewReportsQueue(capacity int) *ReportsQueue {
 
 // PushTail moves cursor to write into the tail
 // Write into the tail after this.
+//
+// TODO: need to reconcile tail statistics when we push.
 func (r *ReportsQueue) PushTail(jobReport JobReport) {
+	if (r.Head+1)%r.Capacity == r.Tail {
+		//We are full.  Purge an entry.
+		r.Head++
+		r.Head %= r.Capacity
+	}
 	r.Tail++
 	r.Tail %= r.Capacity
 	r.Reports[r.Tail] = jobReport
+	//TODO: link up timestamps and redistribute rates
 }
 
 // PopHead discards the first element of the queue
