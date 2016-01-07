@@ -9,7 +9,7 @@ import (
 var _ = fmt.Sprintf
 
 type AcmInfo struct {
-	Path            string `thrift:"1,required" json:"path"`
+	Path            string `thrift:"1,required" json:"path"` // NOTE: codegen made this field "required"
 	Acm             string `thrift:"2,required" json:"acm"`
 	IncludeInRollup bool   `thrift:"3,required" json:"includeInRollup"`
 }
@@ -19,7 +19,7 @@ type AcmResponse struct {
 	Messages  []string `thrift:"2,required" json:"messages"`
 	AcmValid  bool     `thrift:"3,required" json:"acmValid"`
 	HasAccess bool     `thrift:"4,required" json:"hasAccess"`
-	AcmInfo   *AcmInfo `thrift:"5,required" json:"acmInfo"`
+	AcmInfo   *AcmInfo `thrift:"5,optional" json:"acmInfo"` // NOTE: codegen made this field "required"
 }
 
 type AcmsForRollupWithPath struct {
