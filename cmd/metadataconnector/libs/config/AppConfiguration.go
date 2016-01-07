@@ -8,6 +8,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 )
 
 /*
@@ -23,13 +26,16 @@ DatabaseConnectionConfiguration is a structure that defines the attributes
 needed for setting up database connection
 */
 type DatabaseConnectionConfiguration struct {
+	Driver     string
 	Username   string
 	Password   string
+	Protocol   string
 	Host       string
 	Port       string
 	Schema     string
 	Params     string
 	UseTLS     bool
+	SkipVerify bool
 	CAPath     string
 	ClientCert string
 	ClientKey  string
@@ -49,7 +55,34 @@ func NewAppConfiguration() AppConfiguration {
 	return configuration
 }
 
-func (r *DatabaseConnectionConfiguration) GetDSN() string {
+func (r *DatabaseConnectionConfiguration) GetDatabaseHandle() (*sqlx.DB, error) {
+	// Establish configuration settings for Database Connection using
+	// the TLS settings in config file
+	if r.UseTLS {
+		dbTLS := r.buildTLSConfig()
+		switch r.Driver {
+		case "mysql":
+			mysql.RegisterTLSConfig("custom", &dbTLS)
+		default:
+			panic("Driver not supported")
+		}
+	}
+	// Setup handle to the database
+	db, err := sqlx.Open(r.Driver, r.buildDSN())
+	return db, err
+}
+
+// =============================================================================
+// Unexported members
+// =============================================================================
+
+/*
+buildDSN prepares a Data Source Name (DNS) suitable for mysql using the driver
+and documentation found here: https://github.com/go-sql-driver/mysql.
+This format is similar to the PEAR DB format but may need alteration
+http://pear.php.net/manual/en/package.database.db.intro-dsn.php
+*/
+func (r *DatabaseConnectionConfiguration) buildDSN() string {
 	var dbDSN = ""
 	if len(r.Username) > 0 {
 		dbDSN += r.Username
@@ -60,8 +93,27 @@ func (r *DatabaseConnectionConfiguration) GetDSN() string {
 	if len(dbDSN) > 0 {
 		dbDSN += "@"
 	}
-	if len(r.Host) > 0 {
-		dbDSN += "tcp(" + r.Host + ":" + r.Port + ")"
+	if len(r.Protocol) > 0 {
+		dbDSN += r.Protocol + "("
+		if len(r.Host) > 0 {
+			dbDSN += r.Host
+		} else {
+			// default to localhost
+			dbDSN += "127.0.0.1"
+		}
+		dbDSN += ":"
+		if len(r.Port) > 0 {
+			dbDSN += r.Port
+		} else {
+			// default port by database type
+			switch r.Driver {
+			case "mysql":
+				dbDSN += "3306"
+			default:
+				panic("Driver not supported")
+			}
+		}
+		dbDSN += ")"
 	}
 	dbDSN += "/"
 	if len(r.Schema) > 0 {
@@ -82,7 +134,7 @@ func (r *DatabaseConnectionConfiguration) GetDSN() string {
 	return dbDSN
 }
 
-func (r *DatabaseConnectionConfiguration) GetTLSConfig() tls.Config {
+func (r *DatabaseConnectionConfiguration) buildTLSConfig() tls.Config {
 	// Certificates setup for TLS to MySQL database
 	rootCertPool := x509.NewCertPool()
 	pem, err := ioutil.ReadFile(r.CAPath)
@@ -98,10 +150,11 @@ func (r *DatabaseConnectionConfiguration) GetTLSConfig() tls.Config {
 		log.Fatal(err)
 	}
 	clientCert = append(clientCert, certs)
+
 	return tls.Config{
-		RootCAs:      rootCertPool,
-		Certificates: clientCert,
-		ServerName:   r.Host,
-		//InsecureSkipVerify: true,
+		RootCAs:            rootCertPool,
+		Certificates:       clientCert,
+		ServerName:         r.Host,
+		InsecureSkipVerify: r.SkipVerify,
 	}
 }

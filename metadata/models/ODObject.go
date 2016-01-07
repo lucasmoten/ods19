@@ -11,22 +11,22 @@ type ODObject struct {
 		IsAncestorDeleted is flagged as true if a parent in the tree has their
 		ODDeletable.IsDeleted flag marked as true
 	*/
-	IsAncestorDeleted bool `db:"isAncestorDeleted"`
+	IsAncestorDeleted bool `db:"isAncestorDeleted" json:"-"`
 	/*
 		IsExpunged denotes whether this object is considered permanently deleted
 		and will be excluded from all API calls and reports
 	*/
-	IsExpunged bool `db:"isExpunged"`
+	IsExpunged bool `db:"isExpunged" json:"-"`
 	/*
 		ExpungedDate reflects the datetime for which the object was marked as
 		expunged if IsExpunged is set to true
 	*/
-	ExpungedDate NullTime `db:"expungedDate"`
+	ExpungedDate NullTime `db:"expungedDate" json:"-"`
 	/*
 		ExpungedBy contains the	distinguishedName of the user that marked the object
 		as expunged if IsExpunged is set to true
 	*/
-	ExpungedBy NullString `db:"expungedBy"`
+	ExpungedBy NullString `db:"expungedBy" json:"-"`
 	/*
 		OwnedBy indicates the individual user or group that currently owns the
 		object and has implict full permissions on the object
@@ -56,17 +56,17 @@ type ODObject struct {
 		ContentConnector contains connection information for the storage of the
 		content of this object (e.g., S3 connection settings for bucket)
 	*/
-	ContentConnector NullString `db:"contentConnector"`
+	ContentConnector NullString `db:"contentConnector" json:"-"`
 	/*
 		EncryptIV contains the initialization vector information for encrypting the
 		content stream for this object at result
 	*/
-	EncryptIV NullString `db:"encryptIV"`
+	EncryptIV NullString `db:"encryptIV" json:"-"`
 	/*
 		EncryptKey contains the encryption key for encrypting/decrypting the content
 		stream for this object at rest
 	*/
-	EncryptKey NullString `db:"encryptKey"`
+	EncryptKey NullString `db:"encryptKey" json:"-"`
 	/*
 		ContentType indicates the mime-type, and potentially the character set
 		encoding for the object contents
@@ -86,4 +86,14 @@ type ODObject struct {
 		structured as key/value with portion marking.
 	*/
 	Properties []ODObjectPropertyEx
+}
+
+/*
+ODObjectResultset encapsulates the ODObject defined herein as an array with
+resultset metric information to expose page size, page number, total rows, and
+page count information when retrieving from the database
+*/
+type ODObjectResultset struct {
+	Resultset
+	Objects []ODObject
 }

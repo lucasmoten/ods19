@@ -13,3 +13,13 @@ type ODUser struct {
 	DisplayName       NullString `db:"displayName"`
 	Email             NullString `db:"email"`
 }
+
+/*
+ODUserResultset encapsulates the ODUser defined herein as an array with
+resultset metric information to expose page size, page number, total rows, and
+page count information when retrieving from the database
+*/
+type ODUserResultset struct {
+	Resultset
+	Users []ODUser
+}
