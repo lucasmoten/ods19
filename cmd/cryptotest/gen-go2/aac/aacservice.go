@@ -29,7 +29,7 @@ type AcmsForRollupWithPath struct {
 
 type CheckAccessAndPopulateResponse struct {
 	Success           bool           `thrift:"1,required" json:"success"`
-	Messages          []string       `thrift:"2,required" json:"messages"`
+	Messages          []string       `thrift:"2,optional" json:"messages"` // NOTE: codegen made this field "required"
 	AcmResponseList   []*AcmResponse `thrift:"3,required" json:"AcmResponseList"`
 	RollupAcmResponse *AcmResponse   `thrift:"4,required" json:"rollupAcmResponse"`
 }
