@@ -2,11 +2,8 @@ package config
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"os"
 
 	"github.com/go-sql-driver/mysql"
@@ -19,6 +16,7 @@ for this application.
 */
 type AppConfiguration struct {
 	DatabaseConnection DatabaseConnectionConfiguration
+	ServerSettings     ServerSettingsConfiguration
 }
 
 /*
@@ -42,6 +40,22 @@ type DatabaseConnectionConfiguration struct {
 }
 
 /*
+ServerSettingsConfiguration is a structure defining the attributes needed for
+setting up the server listener
+*/
+type ServerSettingsConfiguration struct {
+	ListenPort        string
+	ListenBind        string
+	UseTLS            bool
+	CAPath            string
+	ServerCert        string
+	ServerKey         string
+	RequireClientCert string
+	CipherSuites      []string
+	MinimumVersion    string
+}
+
+/*
 NewAppConfiguration loads the configuration file and returns the mapped object
 */
 func NewAppConfiguration() AppConfiguration {
@@ -55,6 +69,9 @@ func NewAppConfiguration() AppConfiguration {
 	return configuration
 }
 
+/*
+GetDatabaseHandle initializes database connection using the configuration
+*/
 func (r *DatabaseConnectionConfiguration) GetDatabaseHandle() (*sqlx.DB, error) {
 	// Establish configuration settings for Database Connection using
 	// the TLS settings in config file
@@ -134,27 +151,10 @@ func (r *DatabaseConnectionConfiguration) buildDSN() string {
 	return dbDSN
 }
 
+/*
+buildTLSConfig prepares a standard go tls.Config with RootCAs and client
+Certificates for communicating with the database securely.
+*/
 func (r *DatabaseConnectionConfiguration) buildTLSConfig() tls.Config {
-	// Certificates setup for TLS to MySQL database
-	rootCertPool := x509.NewCertPool()
-	pem, err := ioutil.ReadFile(r.CAPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if ok := rootCertPool.AppendCertsFromPEM(pem); !ok {
-		log.Fatal("Failed to append PEM.")
-	}
-	clientCert := make([]tls.Certificate, 0, 1)
-	certs, err := tls.LoadX509KeyPair(r.ClientCert, r.ClientKey)
-	if err != nil {
-		log.Fatal(err)
-	}
-	clientCert = append(clientCert, certs)
-
-	return tls.Config{
-		RootCAs:            rootCertPool,
-		Certificates:       clientCert,
-		ServerName:         r.Host,
-		InsecureSkipVerify: r.SkipVerify,
-	}
+	return buildClientTLSConfig(r.CAPath, r.ClientCert, r.ClientKey, r.Host, r.SkipVerify)
 }
