@@ -19,6 +19,8 @@ var acmComplete2 = "{\"version\":\"2.1.0\",\"classif\":\"S\",\"owner_prod\":[],\
 var acmComplete3 = "{\"version\":\"2.1.0\",\"classif\":\"C\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"C\",\"banner\":\"CONFIDENTIAL\",\"dissem_countries\":[\"USA\"],\"f_clearance\":[\"c\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}"
 var acmComplete4 = "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"FOUO\"],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U//FOUO\",\"banner\":\"UNCLASSIFIED//FOUO\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}"
 
+var snippetType = "ES"
+
 // This package level var will be populated by init()
 var aacClient = aac.AacServiceClient{}
 
@@ -43,7 +45,6 @@ func TestCheckAccess(t *testing.T) {
 	if err != nil {
 		log.Printf("Error calling CheckAccess(): %v", err)
 	}
-	log.Println("Reponse: ", resp)
 
 	if resp.Success != true {
 		log.Println("Expected true, got ", resp.Success)
@@ -175,6 +176,37 @@ func TestCheckAccessAndPopulate(t *testing.T) {
 	return
 }
 
-func TestGetUserAttributes(t *testing.T) { return }
-func TestGetSnippets(t *testing.T)       { return }
-func TestGetShare(t *testing.T)          { return }
+func TestGetUserAttributes(t *testing.T) {
+
+	resp, err := aacClient.GetUserAttributes(userDN1, "pki_dias", "")
+
+	if err != nil {
+		log.Printf("Error from remote call GetUserAttributes() method: %v\n", err)
+		t.Fail()
+	}
+
+	if !resp.Success {
+		log.Printf("Error in GetUserAttributes response. Expected Success: true. Got: %v\n", resp.Success)
+		t.Fail()
+	}
+
+}
+
+func TestGetSnippets(t *testing.T) {
+
+	resp, err := aacClient.GetSnippets(userDN1, "pki_dias", snippetType)
+
+	if err != nil {
+		log.Printf("Error from remote call GetSnippets() method: %v\n", err)
+		t.Fail()
+	}
+
+	if !resp.Success {
+		log.Printf("Error in GetSnippet() response. Expected Success: true. Got: %v\n", resp.Success)
+		t.Fail()
+	}
+
+	_ = resp
+	_ = err
+}
+func TestGetShare(t *testing.T) { return }
