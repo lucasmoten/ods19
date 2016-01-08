@@ -1,5 +1,12 @@
 package integration
 
+// To run integration tests. Run the following command from within the
+// /integration directory.
+//
+// ```
+// go test -v
+// ```
+
 import (
 	"log"
 	"testing"
@@ -13,6 +20,10 @@ var userDN1 = "CN=Holmes Jonathan,OU=People,OU=Bedrock,OU=Six 3 Systems,O=U.S. G
 var shareType1 = "public"
 var shareType2 = "private"
 var shareType3 = "other"
+var share1 = ""
+var share2 = "{\"users\":[\"b86b59b6d96b467db3dd2dafee2cb3d7\"],\"projects\":null}"
+var share3 = "{\"users\":[\"b86b59b6d96b467db3dd2dafee2cb3d7\", \"4838db45d94343d888322f012b918de0\"],\"projects\":null}"
+
 var acmPartial1 = "{ \"path\": \"\", \"classif\":\"TS\", \"sci_ctrls\":[ \"HCS\", \"SI-G\", \"TK\" ], \"dissem_ctrls\":[ \"OC\" ], \"dissem_countries\":[ \"USA\" ], \"oc_attribs\":[ { \"orgs\":[ \"dia\" ] } ] }"
 var acmComplete1 = "{ \"version\":\"2.1.0\", \"classif\":\"TS\", \"owner_prod\":[], \"atom_energy\":[], \"sar_id\":[], \"sci_ctrls\":[ \"HCS\", \"SI-G\", \"TK\" ], \"disponly_to\":[ \"\" ], \"dissem_ctrls\":[ \"OC\" ], \"non_ic\":[], \"rel_to\":[], \"fgi_open\":[], \"fgi_protect\":[], \"portion\":\"TS//HCS/SI-G/TK//OC\", \"banner\":\"TOP SECRET//HCS/SI-G/TK//ORCON\", \"dissem_countries\":[ \"USA\" ], \"accms\":[], \"macs\":[], \"oc_attribs\":[ { \"orgs\":[ \"dia\" ], \"missions\":[], \"regions\":[] } ], \"f_clearance\":[ \"ts\" ], \"f_sci_ctrls\":[ \"hcs\", \"si_g\", \"tk\" ], \"f_accms\":[], \"f_oc_org\":[ \"dia\", \"dni\" ], \"f_regions\":[], \"f_missions\":[], \"f_share\":[], \"f_atom_energy\":[], \"f_macs\":[], \"disp_only\":\"\" }"
 var acmComplete2 = "{\"version\":\"2.1.0\",\"classif\":\"S\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"NF\"],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"S//NF\",\"banner\":\"SECRET//NOFORN\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"s\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}"
@@ -206,7 +217,27 @@ func TestGetSnippets(t *testing.T) {
 		t.Fail()
 	}
 
-	_ = resp
-	_ = err
+	if len(resp.Snippets) <= 0 {
+		log.Printf("Error in GetSnippet() response object: Snippet length should not be zero.")
+		t.Fail()
+	}
+
 }
-func TestGetShare(t *testing.T) { return }
+
+func TestGetShare(t *testing.T) {
+
+	// NOTE: when using private AAC, use the userToken passed. For Chimera this
+	// should use the GUID generated not the DN.  This is only for this method.
+	resp, err := aacClient.GetShare(userDN1, "pki_dias", shareType3, share3)
+
+	if err != nil {
+		log.Printf("Error from remote call GetShare() method: %v\n", err)
+		t.Fail()
+	}
+
+	if !resp.Success {
+		log.Printf("Error in GetShare() response. Expected Success: true. Got: %v\n", resp.Success)
+		t.Fail()
+	}
+
+}
