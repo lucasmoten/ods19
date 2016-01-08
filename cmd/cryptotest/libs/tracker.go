@@ -62,11 +62,12 @@ type SizeJob int64
 // JobReport is the atomic unit of reporting progress into reporters
 //Time units are opaque to the user of this API.
 type JobReport struct {
-	Start      BeganJob
-	Stop       EndedJob
-	SizeJob    SizeJob
-	Population int
-	JobName    string
+	Start           BeganJob
+	Stop            EndedJob
+	SizeJob         SizeJob
+	PopulationStart int
+	PopulationStop  int
+	JobName         string
 }
 
 // EndingJob is used to signal that a job is ending
@@ -91,6 +92,7 @@ var PanicOnProblem bool
 // When a job name ref count goes to zero, put it in the list for
 // deleting.  We do not want to download and delete at the same time.
 type JobReporters struct {
+	CreateTime       EndedJob
 	Reporters        map[ReporterID]*JobReporter
 	JobNameRefCount  map[string]int
 	JobNameDeleting  []string
@@ -200,6 +202,7 @@ func (r *ReportsQueue) PushTail(jr JobReport) {
 				// Keep the portion of events from bi to aj in ci, push remainder to j
 				//
 				// example: (with population count included as di,dj)
+				//   0 0 0   0
 				//   4 0 0   1
 				//   5 0 0   2     row j
 				//   4 9 10  1     row i
@@ -215,6 +218,8 @@ func (r *ReportsQueue) PushTail(jr JobReport) {
 				//  the integer divide is intentional so that we don't lose data,
 				//  at the cost of slightly jittering the original throughput:
 				//  ad <= ci
+				//
+				//  as jobs end, they adopt the population of the entry before them
 				//
 				//  4 0 0  1
 				//  5 4 2  2  //needs a swap before stopping - bj should not be zero unless ai was
@@ -233,6 +238,7 @@ func (r *ReportsQueue) PushTail(jr JobReport) {
 				r.Reports[i].Start = BeganJob(aj)
 				r.Reports[j].SizeJob += SizeJob(ci - d)
 				r.Reports[i].SizeJob = SizeJob(d)
+				//				r.Reports[i].Population = r.Reports[j].Population
 				if r.Reports[j].SizeJob < 0 || r.Reports[i].SizeJob < 0 {
 					log.Printf("%v", r)
 					if PanicOnProblem {
@@ -266,6 +272,7 @@ func (r *ReportsQueue) PushTail(jr JobReport) {
 					d := ci * (bi - bj) / (bi - ai)
 					r.Reports[j].SizeJob += SizeJob(ci - d)
 					r.Reports[i].Start = BeganJob(bj)
+					//r.Reports[i].Population = r.Reports[j].Population
 					r.Reports[i].JobName = ""
 					if verbose {
 						log.Printf("after rebuild2 %v", r)
@@ -279,7 +286,7 @@ func (r *ReportsQueue) PushTail(jr JobReport) {
 						} else {
 							if ai == bi && ci == 0 {
 								/////Leaving zero intervals null
-								//r.Reports[i].Start = BeganJob(r.Reports[j].Stop)
+								r.Reports[i].Start = BeganJob(r.Reports[j].Stop)
 								break
 							} else {
 								log.Printf("unhandled: i:%d %d %d, j:%d %d %d", ai, bi, ci, aj, bj, cj)
@@ -344,16 +351,18 @@ func jobReportersBeginning(r *JobReporters, beginningJob BeginningJob) BeganJob 
 	reporter := r.Reporters[beginningJob.ReporterID]
 
 	jobReport := JobReport{
-		Start:   beganJob,
-		Stop:    EndedJob(0),
+		Start: beganJob,
+		//The lowest possible timestamp that is within our observation period
+		Stop:    r.CreateTime,
 		SizeJob: SizeJob(0),
 	}
 
 	var prevPopulation = 0
 	if reporter.Q.Empty() == false {
-		prevPopulation = reporter.Q.PeekTail().Population
+		prevPopulation = reporter.Q.PeekTail().PopulationStop
 	}
-	jobReport.Population = prevPopulation + 1
+	jobReport.PopulationStart = prevPopulation + 1
+	jobReport.PopulationStop = prevPopulation + 1
 
 	reporter.Q.PushTail(jobReport)
 	r.JobNameRefCount[beginningJob.JobName]++
@@ -371,15 +380,16 @@ func jobReportersJobReport(r *JobReporters, j EndingJob) {
 	reporter.TotalTime += duration
 	reporter.TotalBytes += int64(j.JobReport.SizeJob)
 
-	var prevPopulation = reporter.Q.PeekTail().Population
-	if prevPopulation < 1 {
+	var prevPopulation = reporter.Q.PeekTail().PopulationStop
+	if prevPopulation < 0 {
 		log.Printf("r:%v", r)
 		panic("we cannot call this with a zero or less population!")
 	}
-	j.JobReport.Population = prevPopulation - 1
+	j.JobReport.PopulationStart = prevPopulation - 1
+	j.JobReport.PopulationStop = prevPopulation - 1
 	reporter.Q.PushTail(j.JobReport)
 
-	reporter.PopWeightedByTime += duration * int64(j.JobReport.Population)
+	reporter.PopWeightedByTime += duration * int64(j.JobReport.PopulationStart)
 
 	//Decrement the reference count on this file
 	r.JobNameRefCount[j.JobReport.JobName]--
@@ -423,7 +433,8 @@ func jobReportersThread(r *JobReporters) {
 //  Channels are buffered to allow for async progress
 func NewJobReporters(canDeleteHandler CanDeleteHandler) *JobReporters {
 	reporters := &JobReporters{
-		Reporters: make(map[ReporterID]*JobReporter),
+		CreateTime: EndedJob(getTStamp()),
+		Reporters:  make(map[ReporterID]*JobReporter),
 		//this is why the channels are shared
 		JobNameRefCount:  make(map[string]int),
 		BeginningJob:     make(chan BeginningJob, 10),

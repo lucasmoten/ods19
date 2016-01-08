@@ -30,4 +30,5 @@ type Backend struct {
 	EnsurePartitionExists func(fileName string) error
 	GetFileExists         func(fileName string) (bool, error)
 	GetAppendHandle       func(fileName string) (w io.Writer, c io.Closer, err error)
+	DeleteFile            func(fileName string) error
 }

@@ -13,7 +13,12 @@ func (h Uploader) NewFilesystemBackend() *Backend {
 		EnsurePartitionExists: h.filesystemEnsurePartitionExists,
 		GetFileExists:         h.filesystemGetFileExists,
 		GetAppendHandle:       h.filesystemGetAppendHandle,
+		DeleteFile:            h.filesystemDeleteFile,
 	}
+}
+
+func (h Uploader) filesystemDeleteFile(bucketKeyName string) error {
+	return os.Remove(bucketKeyName)
 }
 
 //Hide filesystem reads so they can be S3 buckets

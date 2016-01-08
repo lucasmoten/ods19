@@ -32,7 +32,12 @@ func (h Uploader) NewAWSBackend() *Backend {
 		EnsurePartitionExists: h.awsEnsurePartitionExists,
 		GetFileExists:         h.awsGetFileExists,
 		GetAppendHandle:       h.awsGetAppendHandle,
+		DeleteFile:            h.awsDeleteFile,
 	}
+}
+
+func (h Uploader) awsDeleteFile(bucketKeyName string) error {
+	return os.Remove(bucketKeyName)
 }
 
 //Hide filesystem reads so they can be S3 buckets

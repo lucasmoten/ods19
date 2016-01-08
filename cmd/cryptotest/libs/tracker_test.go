@@ -80,11 +80,42 @@ func TestReportingThread_NonDeterministic(t *testing.T) {
 				float32(counter.PopulationWeightedByDuration)/float32(counter.Duration),
 			)
 		}
+		//Check invariants
+		q := reporters.Reporters[jobType].Q
+		h := q.Head
+		t := q.Tail
+		p := q.Reports[t].PopulationStop
+		if p != 0 {
+			log.Printf("%v", reporters.Reporters[jobType].Q)
+			panic("inconsistent population")
+		}
+		idx := h
+		for {
+			if int64(q.Reports[idx].Start) > int64(q.Reports[idx].Stop) {
+				log.Printf("%v", reporters.Reporters[jobType].Q)
+				panic("start times should be before stop times")
+			}
+			prevIdx := idx
+			idx = (idx + 1) % q.Capacity
+			if int64(q.Reports[idx].Start) < int64(q.Reports[prevIdx].Stop) {
+				log.Printf("%v", reporters.Reporters[jobType].Q)
+				panic("start times of current should not be less than previous")
+			}
+			if idx == t {
+				break
+			}
+		}
+		//Dump the end result
+		log.Printf("%v", reporters.Reporters[jobType].Q)
 	}
 	reporters.Stop()
 }
 
+func logPurge(name string) {
+	log.Printf("files can be removed for %s", name)
+}
+
 func init() {
 	PanicOnProblem = true
-	reporters = NewJobReporters(purgeFile)
+	reporters = NewJobReporters(logPurge)
 }
