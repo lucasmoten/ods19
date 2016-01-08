@@ -52,7 +52,7 @@ type RejectAccessResponse struct {
 
 type ShareResponse struct {
 	Success  bool     `thrift:"1,required" json:"success"`
-	Messages []string `thrift:"2,required" json:"messages"`
+	Messages []string `thrift:"2,optional" json:"messages"` // NOTE:  generator marked this as required
 	Share    string   `thrift:"3,required" json:"share"`
 }
 
@@ -63,13 +63,13 @@ type SimpleAcmResponse struct {
 
 type SnippetResponse struct {
 	Success  bool     `thrift:"1,required" json:"success"`
-	Messages []string `thrift:"2,required" json:"messages"`
+	Messages []string `thrift:"2,optional" json:"messages"` // NOTE:  generator marked this as required
 	Snippets string   `thrift:"3,required" json:"snippets"`
 }
 
 type UserAttributesResponse struct {
 	Success        bool     `thrift:"1,required" json:"success"`
-	Messages       []string `thrift:"2,required" json:"messages"`
+	Messages       []string `thrift:"2,optional" json:"messages"` // NOTE: generator marked this as required
 	UserAttributes string   `thrift:"3,required" json:"userAttributes"`
 }
 
