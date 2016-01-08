@@ -75,6 +75,16 @@ type EndingJob struct {
 	ReporterID ReporterID
 }
 
+// CanDeleteHandler is invoked to remove cached files, we might
+// want to delete it immediately.  There is currently
+// a race condition until we can be certain that there
+// are no readers/writers on it in between getting this signal
+// and doing the delete
+type CanDeleteHandler func(jobName string)
+
+// PanicOnProblem is true during unit testing
+var PanicOnProblem bool
+
 // JobReporters is the collection of JobReporter objects that
 //share ref counts on files.
 //
@@ -90,6 +100,8 @@ type JobReporters struct {
 	RequestingReport chan RequestingReport
 	RequestedReport  chan RequestedReport
 	Quit             chan int
+	CanDelete        chan string
+	CanDeleteHandler CanDeleteHandler
 }
 
 // BeginningJob is a request to the goroutine to generate a
@@ -137,20 +149,155 @@ func NewReportsQueue(capacity int) *ReportsQueue {
 	}
 }
 
+var verbose = false
+
 // PushTail moves cursor to write into the tail
 // Write into the tail after this.
 //
-// TODO: need to reconcile tail statistics when we push.
-func (r *ReportsQueue) PushTail(jobReport JobReport) {
-	if (r.Head+1)%r.Capacity == r.Tail {
-		//We are full.  Purge an entry.
+// It then reconciles the records so that throughput
+// for intervals accurately accounts for concurrency,
+// by effectively subtracting out double-counted time
+// and splitting records to reflect overlaps.
+func (r *ReportsQueue) PushTail(jr JobReport) {
+	if (r.Tail+2)%r.Capacity == r.Head {
 		r.Head++
 		r.Head %= r.Capacity
+		if int64(jr.Start) > int64(jr.Stop) {
+			log.Printf("")
+			log.Printf("WARNING: we lost track of when an upload began")
+			if PanicOnProblem {
+				panic("make the window larger")
+			}
+		}
 	}
 	r.Tail++
 	r.Tail %= r.Capacity
-	r.Reports[r.Tail] = jobReport
-	//TODO: link up timestamps and redistribute rates
+	r.Reports[r.Tail] = jr
+	if verbose {
+		log.Printf("appending %v", r)
+	}
+	if r.Tail == r.Head {
+		//There is only one entry
+	} else {
+		i := r.Tail
+		for {
+			ai := int64(r.Reports[i].Start)
+			bi := int64(r.Reports[i].Stop)
+			ci := int64(r.Reports[i].SizeJob)
+			//Previous item-- circularly
+			j := ((i - 1) + r.Capacity) % r.Capacity
+			aj := int64(r.Reports[j].Start)
+			bj := int64(r.Reports[j].Stop)
+			cj := int64(r.Reports[j].SizeJob)
+			if ai < bi && aj > bj {
+				//if ai==bi we get divide by zero
+				//bi cannot be edited, because that's tied to population change
+				//
+				// .. .. ..     - even earlier reports
+				// aj bj cj     (start, stop, count) - earlier report
+				// ai bi ci     (start, stop, count) - later report
+				//
+				// Keep the portion of events from bi to aj in ci, push remainder to j
+				//
+				// example: (with population count included as di,dj)
+				//   4 0 0   1
+				//   5 0 0   2     row j
+				//   4 9 10  1     row i
+				//
+				//  Something began at time 5, and we don't know when it ended.
+				//  But since 4 9 10 came in at time 9, we know that the job at
+				//  time 5 must end at time 9 or later.
+				//
+				//  A job from 4 to 9 had 10 events.  So we split up the data
+				//  to reflect actual throughput for the timespan:
+				//   d = ci*(bi-aj)/(bi-aj)
+				//   d = 10*(9-5)/(9-4) = 10*4/5 = 40/5 = 8
+				//  the integer divide is intentional so that we don't lose data,
+				//  at the cost of slightly jittering the original throughput:
+				//  ad <= ci
+				//
+				//  4 0 0  1
+				//  5 4 2  2  //needs a swap before stopping - bj should not be zero unless ai was
+				//  5 9 8  1
+				//
+				//  4 0 0  1
+				//  4 5 2  2  * continue this algorithm from this point
+				//  5 9 8  1
+				//
+				// Note case:
+				//      4 0 0
+				//      5 0 0
+				//      5 9 10
+				d := ci * (bi - aj) / (bi - ai)
+				r.Reports[j].Stop = EndedJob(ai)
+				r.Reports[i].Start = BeganJob(aj)
+				r.Reports[j].SizeJob += SizeJob(ci - d)
+				r.Reports[i].SizeJob = SizeJob(d)
+				if r.Reports[j].SizeJob < 0 || r.Reports[i].SizeJob < 0 {
+					log.Printf("%v", r)
+					if PanicOnProblem {
+						panic("impossible state")
+					}
+				}
+				//Swap start and stop for row j if they are now inverted
+				if int64(r.Reports[j].Start) > int64(r.Reports[j].Stop) {
+					r.Reports[j].Stop = EndedJob(r.Reports[j].Start)
+					r.Reports[j].Start = BeganJob(ai)
+				}
+				//row i no longer associated with the entire download
+				//and row j is related to this one in addition to whatever else it was
+				r.Reports[i].JobName = ""
+				if verbose {
+					log.Printf("after rebuild1 %v", r)
+				}
+			} else {
+				//We have two records overlapping in end record, but start are in order
+				if ai < bi && aj < bj && ai <= bj {
+					//if ai==bi we get divide by zero
+					//bi cannot be edited, because that's tied to population change
+					//
+					//4  9 24
+					//6 12 13
+					//
+					// d = 13*(12-9)/(12-6) = 13*3/6 = 39/6 = 6
+					//
+					//4  9 31
+					//9 12 6
+					d := ci * (bi - bj) / (bi - ai)
+					r.Reports[j].SizeJob += SizeJob(ci - d)
+					r.Reports[i].Start = BeganJob(bj)
+					r.Reports[i].JobName = ""
+					if verbose {
+						log.Printf("after rebuild2 %v", r)
+					}
+				} else {
+					if ai > bi {
+						//ignore it...this is just appending start markers
+					} else {
+						if aj == bj && cj == 0 {
+							//ignore it as it's just where a population count changes
+						} else {
+							if ai == bi && ci == 0 {
+								/////Leaving zero intervals null
+								//r.Reports[i].Start = BeganJob(r.Reports[j].Stop)
+								break
+							} else {
+								log.Printf("unhandled: i:%d %d %d, j:%d %d %d", ai, bi, ci, aj, bj, cj)
+								if PanicOnProblem {
+									panic("unhandled case")
+								}
+							}
+						}
+					}
+				}
+			}
+			//Previous item - circularly
+			if i == r.Head {
+				break
+			}
+			i = ((i - 1) + r.Capacity) % r.Capacity
+		}
+	}
 }
 
 // PopHead discards the first element of the queue
@@ -187,8 +334,12 @@ type JobReporter struct {
 	PopWeightedByTime int64
 }
 
+func getTStamp() int64 {
+	return (time.Now().UnixNano() / (1000 * 1000))
+}
+
 func jobReportersBeginning(r *JobReporters, beginningJob BeginningJob) BeganJob {
-	beganJob := BeganJob(time.Now().UnixNano() / (1000 * 1000))
+	beganJob := BeganJob(getTStamp())
 
 	reporter := r.Reporters[beginningJob.ReporterID]
 
@@ -212,7 +363,7 @@ func jobReportersBeginning(r *JobReporters, beginningJob BeginningJob) BeganJob 
 
 func jobReportersJobReport(r *JobReporters, j EndingJob) {
 	//Snap to millisecond
-	j.JobReport.Stop = EndedJob(time.Now().UnixNano() / (1000 * 1000))
+	j.JobReport.Stop = EndedJob(getTStamp())
 	duration := int64(j.JobReport.Stop) - int64(j.JobReport.Start)
 
 	//Increment the counters
@@ -233,7 +384,7 @@ func jobReportersJobReport(r *JobReporters, j EndingJob) {
 	//Decrement the reference count on this file
 	r.JobNameRefCount[j.JobReport.JobName]--
 	if r.JobNameRefCount[j.JobReport.JobName] == 0 {
-		log.Printf("canDelete:%s", j.JobReport.JobName)
+		r.CanDelete <- j.JobReport.JobName
 	}
 }
 
@@ -270,9 +421,10 @@ func jobReportersThread(r *JobReporters) {
 // the ref counts on files in progress.
 //
 //  Channels are buffered to allow for async progress
-func NewJobReporters() *JobReporters {
+func NewJobReporters(canDeleteHandler CanDeleteHandler) *JobReporters {
 	reporters := &JobReporters{
-		Reporters:        make(map[ReporterID]*JobReporter),
+		Reporters: make(map[ReporterID]*JobReporter),
+		//this is why the channels are shared
 		JobNameRefCount:  make(map[string]int),
 		BeginningJob:     make(chan BeginningJob, 10),
 		BeganJob:         make(chan BeganJob, 10),
@@ -280,10 +432,23 @@ func NewJobReporters() *JobReporters {
 		RequestingReport: make(chan RequestingReport, 10),
 		RequestedReport:  make(chan RequestedReport, 10),
 		Quit:             make(chan int),
+		CanDelete:        make(chan string, 20),
+		CanDeleteHandler: canDeleteHandler,
 	}
 	reporters.Reporters[UploadCounter] = reporters.makeReporter("upload")
 	reporters.Reporters[DownloadCounter] = reporters.makeReporter("download")
+
+	//Listen in on job reports
 	go jobReportersThread(reporters)
+
+	//Delete files that are elegible for deletion
+	go func() {
+		for {
+			toDelete := <-reporters.CanDelete
+			reporters.CanDeleteHandler(toDelete)
+		}
+	}()
+
 	return reporters
 }
 
@@ -293,7 +458,7 @@ func (jrs *JobReporters) Stop() {
 }
 
 func (jrs *JobReporters) makeReporter(name string) *JobReporter {
-	capacity := 512
+	capacity := 128
 	reporter := &JobReporter{
 		Name: name,
 		Q:    NewReportsQueue(capacity),
@@ -311,6 +476,10 @@ func (jrs *JobReporters) BeginTime(reporterID ReporterID, jobName string) BeganJ
 }
 
 // EndTime reports how much data was transferred.
+// Note that we can delete this file
+// BUG(000) there is a rare race condition until we figure out how to delete files
+// without blocking the goroutine.  We want to block reading or writing the file
+// until the delete finishes, based on the data structures in the goroutine.
 func (jrs *JobReporters) EndTime(reporterID ReporterID, start BeganJob, jobName string, sizeJob SizeJob) {
 	jrs.EndingJob <- EndingJob{
 		ReporterID: reporterID,

@@ -297,7 +297,29 @@ func (h Uploader) serveHTTPUploadGET(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Uploader) getDN(r *http.Request) string {
-	return r.TLS.PeerCertificates[0].Subject.CommonName
+	dnSeq := r.TLS.PeerCertificates[0].Subject.ToRDNSequence()
+	dnArray := ""
+	for i := 0; i < len(dnSeq); i++ {
+		dnPart := dnSeq[len(dnSeq)-i-1]
+		var pPart string
+		for j := 0; j < len(dnPart); j++ {
+			if i > 0 || j > 0 {
+				dnArray = dnArray + ","
+			}
+			switch {
+			case dnPart[j].Type.String() == "2.5.4.6":
+				pPart = "C"
+			case dnPart[j].Type.String() == "2.5.4.10":
+				pPart = "O"
+			case dnPart[j].Type.String() == "2.5.4.11":
+				pPart = "OU"
+			case dnPart[j].Type.String() == "2.5.4.3":
+				pPart = "CN"
+			}
+			dnArray = dnArray + fmt.Sprintf("%s=%v", pPart, dnPart[j].Value)
+		}
+	}
+	return dnArray
 }
 
 func (h Uploader) hasFileChanged(fileName string) (fileHasChanged bool) {
@@ -460,6 +482,10 @@ func (h Uploader) listingRetrieve(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("</html>\n"))
 }
 
+func purgeFile(name string) {
+	log.Printf("TODO: purge cached items for %s", name)
+}
+
 /**
 Generate a simple server in the root that we specify.
 We assume that the directory may not exist, and we set permissions
@@ -479,7 +505,7 @@ func makeServer(
 		BufferSize:     bufferSize, //Each session takes a buffer that guarantees the number of sessions in our SLA
 		KeyBytes:       keyBytes,
 		RSAEncryptBits: rsaEncryptBits,
-		Tracker:        NewJobReporters(),
+		Tracker:        NewJobReporters(purgeFile),
 	}
 	//Swap out with S3 at this point
 	h.Backend = h.NewAWSBackend()

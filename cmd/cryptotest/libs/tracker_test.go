@@ -31,15 +31,20 @@ func TestReportingThread_NonDeterministic(t *testing.T) {
 	//Perform random actions on the API
 	var started = make([]job, 0)
 	var running = true
+	//drop to zero population this many times
+	rounds := 5
 	for running {
 		//Random sleep
-		time.Sleep(time.Duration(rand.Int()%300) * time.Millisecond)
-		if (rand.Int()%10) > 5 || len(started) == 0 {
+		time.Sleep(time.Duration(rand.Int()%1000) * time.Millisecond)
+		//Either start or finish a job
+		if len(started) == 0 || (rand.Int()%10) > 4 {
 			//Randomly up or down and random job name
 			nm := jobNames[rand.Int()%len(jobNames)]
 			jt := jobTypes[rand.Int()%len(jobTypes)]
+			////The API call
+			startedAt := reporters.BeginTime(jt, nm)
 			job := job{
-				Start:      reporters.BeginTime(jt, nm),
+				Start:      startedAt,
 				FileName:   nm,
 				ReporterID: jt,
 			}
@@ -51,13 +56,18 @@ func TestReportingThread_NonDeterministic(t *testing.T) {
 			job := started[nth]
 			started = append(started[:nth], started[nth+1:]...)
 			size := SizeJob(rand.Int() % 1000000)
+			////The API call
 			reporters.EndTime(job.ReporterID, job.Start, job.FileName, size)
 			log.Printf("ended %d:%s", job.ReporterID, job.FileName)
 		}
-		if rand.Int()%4 == 0 && len(started) == 0 {
-			running = false
+		if len(started) == 0 {
+			rounds--
+			if rounds <= 0 {
+				running = false
+			}
 		}
 	}
+
 	log.Printf("Getting reports")
 	for i := 0; i < len(jobTypes); i++ {
 		jobType := jobTypes[i]
@@ -75,5 +85,6 @@ func TestReportingThread_NonDeterministic(t *testing.T) {
 }
 
 func init() {
-	reporters = NewJobReporters()
+	PanicOnProblem = true
+	reporters = NewJobReporters(purgeFile)
 }
