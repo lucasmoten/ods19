@@ -13,6 +13,7 @@ import (
 
 	aac "decipher.com/oduploader/cmd/cryptotest/gen-go2/aac"
 	"decipher.com/oduploader/config"
+	"decipher.com/oduploader/util"
 	t2 "github.com/samuel/go-thrift/thrift"
 )
 
@@ -48,7 +49,6 @@ func init() {
 
 func TestCheckAccess(t *testing.T) {
 
-	// checkAccess params
 	tokenType := "pki_dias"
 	acmComplete := "{ \"version\":\"2.1.0\", \"classif\":\"TS\", \"owner_prod\":[], \"atom_energy\":[], \"sar_id\":[], \"sci_ctrls\":[ \"HCS\", \"SI-G\", \"TK\" ], \"disponly_to\":[ \"\" ], \"dissem_ctrls\":[ \"OC\" ], \"non_ic\":[], \"rel_to\":[], \"fgi_open\":[], \"fgi_protect\":[], \"portion\":\"TS//HCS/SI-G/TK//OC\", \"banner\":\"TOP SECRET//HCS/SI-G/TK//ORCON\", \"dissem_countries\":[ \"USA\" ], \"accms\":[], \"macs\":[], \"oc_attribs\":[ { \"orgs\":[ \"dia\" ], \"missions\":[], \"regions\":[] } ], \"f_clearance\":[ \"ts\" ], \"f_sci_ctrls\":[ \"hcs\", \"si_g\", \"tk\" ], \"f_accms\":[], \"f_oc_org\":[ \"dia\", \"dni\" ], \"f_regions\":[], \"f_missions\":[], \"f_share\":[], \"f_atom_energy\":[], \"f_macs\":[], \"disp_only\":\"\" }"
 	resp, err := aacClient.CheckAccess(userDN1, tokenType, acmComplete)
@@ -65,15 +65,28 @@ func TestCheckAccess(t *testing.T) {
 
 func TestBuildAcm(t *testing.T) {
 
-	// TODO: this is currently broken. We need to pass []int8 instead of []byte
-	// buildAcm params
-	// byteList := []byte("<ddms:title ism:classification='S'>Foo</ddms:title>")
-	// propertiesMap := make(map[string]string)
-	// propertiesMap["bedrock.message.traffic.dia.orgs"] = "DIA DOD_DIA"
-	// propertiesMap["bedrock.message.traffic.orcon.project"] = "DCTC"
-	// propertiesMap["bedrock.message.traffic.orcon.group"] = "All"
-	//resp, err := aacClient.BuildAcm(byteList, "XML", propertiesMap)
-	return
+	// NOTE: This relies on a hacky find/replace in the generated code, changing
+	// every instance of []byte to []int8. This is due to a bug in the Thrift lib
+	// https://github.com/samuel/go-thrift/issues/84
+	byteList, err := util.StringToInt8Slice("<ddms:title ism:classification='S'>Foo</ddms:title>")
+	if err != nil {
+		log.Fatal("Could not convert string to []int8")
+	}
+	propertiesMap := make(map[string]string)
+	propertiesMap["bedrock.message.traffic.dia.orgs"] = "DIA DOD_DIA" // propertiesMap["bedrock.message.traffic.orcon.project"] = "DCTC"
+	propertiesMap["bedrock.message.traffic.orcon.group"] = "All"
+	resp, err := aacClient.BuildAcm(byteList, "XML", propertiesMap)
+
+	if err != nil {
+		log.Printf("Error from BuildAcm() method: %v", err)
+		t.Fail()
+	}
+
+	if !resp.Success {
+		log.Printf("Unexpected BuildAcm response: Success: %v\n", err)
+	}
+
+	// TODO: Check the validity of specific fields in AcmInfo objects returned.
 }
 
 func TestValidateAcm(t *testing.T) {
