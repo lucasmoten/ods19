@@ -29,7 +29,7 @@ type AcmsForRollupWithPath struct {
 
 type CheckAccessAndPopulateResponse struct {
 	Success           bool           `thrift:"1,required" json:"success"`
-	Messages          []string       `thrift:"2,required" json:"messages"`
+	Messages          []string       `thrift:"2,optional" json:"messages"` // NOTE: codegen made this field "required"
 	AcmResponseList   []*AcmResponse `thrift:"3,required" json:"AcmResponseList"`
 	RollupAcmResponse *AcmResponse   `thrift:"4,required" json:"rollupAcmResponse"`
 }
@@ -52,7 +52,7 @@ type RejectAccessResponse struct {
 
 type ShareResponse struct {
 	Success  bool     `thrift:"1,required" json:"success"`
-	Messages []string `thrift:"2,required" json:"messages"`
+	Messages []string `thrift:"2,optional" json:"messages"` // NOTE:  generator marked this as required
 	Share    string   `thrift:"3,required" json:"share"`
 }
 
@@ -63,13 +63,13 @@ type SimpleAcmResponse struct {
 
 type SnippetResponse struct {
 	Success  bool     `thrift:"1,required" json:"success"`
-	Messages []string `thrift:"2,required" json:"messages"`
+	Messages []string `thrift:"2,optional" json:"messages"` // NOTE:  generator marked this as required
 	Snippets string   `thrift:"3,required" json:"snippets"`
 }
 
 type UserAttributesResponse struct {
 	Success        bool     `thrift:"1,required" json:"success"`
-	Messages       []string `thrift:"2,required" json:"messages"`
+	Messages       []string `thrift:"2,optional" json:"messages"` // NOTE: generator marked this as required
 	UserAttributes string   `thrift:"3,required" json:"userAttributes"`
 }
 
@@ -102,7 +102,7 @@ func (e *SecurityServiceException) Error() string {
 }
 
 type AacService interface {
-	BuildAcm(byteList []byte, dataType string, propertiesMap map[string]string) (*AcmResponse, error)
+	BuildAcm(byteList []int8, dataType string, propertiesMap map[string]string) (*AcmResponse, error)
 	CheckAccess(userToken string, tokenType string, acm string) (*CheckAccessResponse, error)
 	CheckAccessAndPopulate(userToken string, tokenType string, acmInfoList []*AcmInfo, calculateRollup bool, shareType string, share string) (*CheckAccessAndPopulateResponse, error)
 	ClearUserAttributesFromCache(userToken string, tokenType string) (*ClearUserAttributesResponse, error)
@@ -304,7 +304,7 @@ func (s *AacServiceServer) ValidateAcms(req *AacServiceValidateAcmsRequest, res 
 }
 
 type AacServiceBuildAcmRequest struct {
-	ByteList      []byte            `thrift:"1,required" json:"byteList"`
+	ByteList      []int8            `thrift:"1,required" json:"byteList"`
 	DataType      string            `thrift:"2,required" json:"dataType"`
 	PropertiesMap map[string]string `thrift:"3,required" json:"propertiesMap"`
 }
@@ -471,7 +471,7 @@ type AacServiceClient struct {
 	Client RPCClient
 }
 
-func (s *AacServiceClient) BuildAcm(byteList []byte, dataType string, propertiesMap map[string]string) (ret *AcmResponse, err error) {
+func (s *AacServiceClient) BuildAcm(byteList []int8, dataType string, propertiesMap map[string]string) (ret *AcmResponse, err error) {
 	req := &AacServiceBuildAcmRequest{
 		ByteList:      byteList,
 		DataType:      dataType,
