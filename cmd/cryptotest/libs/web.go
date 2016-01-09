@@ -485,17 +485,19 @@ func (h Uploader) listingRetrieve(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Uploader) purgeFile(name string) {
-	keyName := obfuscateHash(name)
-	//Must delete hash to cause file to download
-	//At a minimum we must also delete data to save space
-	h.Backend.DeleteFile(keyName + ".data")
-	h.Backend.DeleteFile(keyName + ".iv")
-	h.Backend.DeleteFile(keyName + ".key")
-	h.Backend.DeleteFile(keyName + ".hash")
-	h.Backend.DeleteFile(keyName + ".class")
-	//The grants for this file are currently left in, as that involves a
-	//per user search to get rid of them.
-	log.Printf("TODO: purge cached items for %s, except user grants", name)
+	go func() {
+		keyName := obfuscateHash(name)
+		//Must delete hash to cause file to download
+		//At a minimum we must also delete data to save space
+		h.Backend.DeleteFile(keyName + ".data")
+		h.Backend.DeleteFile(keyName + ".iv")
+		h.Backend.DeleteFile(keyName + ".key")
+		h.Backend.DeleteFile(keyName + ".hash")
+		h.Backend.DeleteFile(keyName + ".class")
+		//The grants for this file are currently left in, as that involves a
+		//per user search to get rid of them.
+		log.Printf("TODO: purge cached items for %s, except user grants", name)
+	}()
 }
 
 /**
@@ -518,7 +520,7 @@ func makeServer(
 		KeyBytes:       keyBytes,
 		RSAEncryptBits: rsaEncryptBits,
 	}
-	h.Tracker = NewJobReporters(h.purgeFile)
+	h.Tracker = NewJobReporters(1024, h.purgeFile)
 	//Swap out with S3 at this point
 	h.Backend = h.NewAWSBackend()
 	err := h.Backend.EnsurePartitionExists(theRoot)
