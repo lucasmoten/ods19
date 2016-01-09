@@ -92,6 +92,7 @@ var PanicOnProblem bool
 // When a job name ref count goes to zero, put it in the list for
 // deleting.  We do not want to download and delete at the same time.
 type JobReporters struct {
+	Capacity         int
 	CreateTime       EndedJob
 	Reporters        map[ReporterID]*JobReporter
 	JobNameRefCount  map[string]int
@@ -119,6 +120,11 @@ type RequestingReport struct {
 }
 
 // RequestedReport is enough information to display the report
+// TODO: make this be an array of such structs to handle load
+// dependent throughput calculations
+//
+//  with a bucket for each population range: (1 << n) ... ((1 << (n+1))-1)
+//
 type RequestedReport struct {
 	Name                         string
 	Size                         int64
@@ -129,10 +135,11 @@ type RequestedReport struct {
 // ReportsQueue is a specialized queue for reports
 // - Tail is where we can read the last pushed element
 type ReportsQueue struct {
-	Reports  []JobReport
-	Capacity int
-	Head     int
-	Tail     int
+	RequestedReport RequestedReport
+	Reports         []JobReport
+	Capacity        int
+	Head            int
+	Tail            int
 }
 
 // NewReportsQueue creates a queue for new reports
@@ -159,21 +166,25 @@ var verbose = false
 // It then reconciles the records so that throughput
 // for intervals accurately accounts for concurrency,
 // by effectively subtracting out double-counted time
-// and splitting records to reflect overlaps.
+// and splitting records to reflect time overlaps.
 func (r *ReportsQueue) PushTail(jr JobReport) {
-	if (r.Tail+2)%r.Capacity == r.Head {
-		r.Head++
-		r.Head %= r.Capacity
-		if int64(jr.Start) > int64(jr.Stop) {
-			log.Printf("")
-			log.Printf("WARNING: we lost track of when an upload began")
-			if PanicOnProblem {
-				panic("make the window larger")
-			}
-		}
-	}
 	r.Tail++
 	r.Tail %= r.Capacity
+	if ((r.Tail + 1) % r.Capacity) == r.Head {
+		if int64(r.Reports[r.Head].Start) > int64(r.Reports[r.Head].Stop) {
+			log.Printf("WARNING: make ReportsQueue.Reports larger")
+		}
+		//Save off information we lose from head into a summary
+		size := int64(r.Reports[r.Head].SizeJob)
+		stop := int64(r.Reports[r.Head].Stop)
+		start := int64(r.Reports[r.Head].Start)
+		pop := int64(r.Reports[r.Head].PopulationStart)
+		r.RequestedReport.Size += size
+		r.RequestedReport.Duration += (stop - start)
+		r.RequestedReport.PopulationWeightedByDuration += (stop - start) * pop
+		r.Head++
+		r.Head %= r.Capacity
+	}
 	r.Reports[r.Tail] = jr
 	if verbose {
 		log.Printf("appending %v", r)
@@ -193,7 +204,14 @@ func (r *ReportsQueue) PushTail(jr JobReport) {
 			cj := int64(r.Reports[j].SizeJob)
 			if ai < bi && aj > bj {
 				//if ai==bi we get divide by zero
-				//bi cannot be edited, because that's tied to population change
+				//
+				// As if on graph paper, the timestamps are on the *lines*, instead
+				// of denoting the squares.  From a to b, is denoted the number of
+				// bytes that happend over time interval (b-a)
+				//
+				// This means that instants where population goes up, the population
+				// before and population after need to be maintained separately, as
+				// the time interval itself is of zero length.
 				//
 				// .. .. ..     - even earlier reports
 				// aj bj cj     (start, stop, count) - earlier report
@@ -202,10 +220,10 @@ func (r *ReportsQueue) PushTail(jr JobReport) {
 				// Keep the portion of events from bi to aj in ci, push remainder to j
 				//
 				// example: (with population count included as di,dj)
-				//   0 0 0   0
-				//   4 0 0   1
-				//   5 0 0   2     row j
-				//   4 9 10  1     row i
+				//   0 0 0   0 0
+				//   4 0 0   0 1
+				//   5 0 0   1 2    row j
+				//   4 9 10  2 1    row i
 				//
 				//  Something began at time 5, and we don't know when it ended.
 				//  But since 4 9 10 came in at time 9, we know that the job at
@@ -221,24 +239,25 @@ func (r *ReportsQueue) PushTail(jr JobReport) {
 				//
 				//  as jobs end, they adopt the population of the entry before them
 				//
-				//  4 0 0  1
-				//  5 4 2  2  //needs a swap before stopping - bj should not be zero unless ai was
-				//  5 9 8  1
+				//  4 0 0  0 1
+				//  5 4 2  1 2  //needs a swap before stopping - bj should not be zero unless ai was
+				//  5 9 8  2 1
 				//
-				//  4 0 0  1
-				//  4 5 2  2  * continue this algorithm from this point
-				//  5 9 8  1
+				//  4 0 0  0 1
+				//  4 5 2  1 2  * continue this algorithm from this point
+				//  5 9 8  2 1
+				//
 				//
 				// Note case:
-				//      4 0 0
-				//      5 0 0
-				//      5 9 10
+				//      4 0 0  0 1
+				//      5 0 0  1 2
+				//      5 9 10 2 1
+				//
 				d := ci * (bi - aj) / (bi - ai)
 				r.Reports[j].Stop = EndedJob(ai)
 				r.Reports[i].Start = BeganJob(aj)
 				r.Reports[j].SizeJob += SizeJob(ci - d)
 				r.Reports[i].SizeJob = SizeJob(d)
-				//				r.Reports[i].Population = r.Reports[j].Population
 				if r.Reports[j].SizeJob < 0 || r.Reports[i].SizeJob < 0 {
 					log.Printf("%v", r)
 					if PanicOnProblem {
@@ -259,8 +278,16 @@ func (r *ReportsQueue) PushTail(jr JobReport) {
 			} else {
 				//We have two records overlapping in end record, but start are in order
 				if ai < bi && aj < bj && ai <= bj {
-					//if ai==bi we get divide by zero
-					//bi cannot be edited, because that's tied to population change
+					//if ai==bi we get divide by zero - this is a problem if the system
+					// is fast enough to complete a download in 1ms!!
+					//We are currently ok with:  5 5 0
+					//But there is no sane handling for: 5 5 20 (20 events in 0ms)
+					//If we smear time by adding 1ms, we need to make sure that future
+					//events cannot come in at time 5 as well.  Or, we could smear the
+					//time to move the previous timestamp back by 1ms.
+					//
+					//bi cannot be edited for stop events, because of PopulationAfter
+					//ai must stay same for start events, because of PopulationBefore
 					//
 					//4  9 24
 					//6 12 13
@@ -272,7 +299,6 @@ func (r *ReportsQueue) PushTail(jr JobReport) {
 					d := ci * (bi - bj) / (bi - ai)
 					r.Reports[j].SizeJob += SizeJob(ci - d)
 					r.Reports[i].Start = BeganJob(bj)
-					//r.Reports[i].Population = r.Reports[j].Population
 					r.Reports[i].JobName = ""
 					if verbose {
 						log.Printf("after rebuild2 %v", r)
@@ -361,7 +387,7 @@ func jobReportersBeginning(r *JobReporters, beginningJob BeginningJob) BeganJob 
 	if reporter.Q.Empty() == false {
 		prevPopulation = reporter.Q.PeekTail().PopulationStop
 	}
-	jobReport.PopulationStart = prevPopulation + 1
+	jobReport.PopulationStart = prevPopulation
 	jobReport.PopulationStop = prevPopulation + 1
 
 	reporter.Q.PushTail(jobReport)
@@ -385,7 +411,7 @@ func jobReportersJobReport(r *JobReporters, j EndingJob) {
 		log.Printf("r:%v", r)
 		panic("we cannot call this with a zero or less population!")
 	}
-	j.JobReport.PopulationStart = prevPopulation - 1
+	j.JobReport.PopulationStart = prevPopulation
 	j.JobReport.PopulationStop = prevPopulation - 1
 	reporter.Q.PushTail(j.JobReport)
 
@@ -431,19 +457,20 @@ func jobReportersThread(r *JobReporters) {
 // the ref counts on files in progress.
 //
 //  Channels are buffered to allow for async progress
-func NewJobReporters(canDeleteHandler CanDeleteHandler) *JobReporters {
+func NewJobReporters(capacity int, canDeleteHandler CanDeleteHandler) *JobReporters {
 	reporters := &JobReporters{
+		Capacity:   capacity,
 		CreateTime: EndedJob(getTStamp()),
 		Reporters:  make(map[ReporterID]*JobReporter),
 		//this is why the channels are shared
 		JobNameRefCount:  make(map[string]int),
-		BeginningJob:     make(chan BeginningJob, 10),
-		BeganJob:         make(chan BeganJob, 10),
-		EndingJob:        make(chan EndingJob, 10),
-		RequestingReport: make(chan RequestingReport, 10),
-		RequestedReport:  make(chan RequestedReport, 10),
+		BeginningJob:     make(chan BeginningJob, 32),
+		BeganJob:         make(chan BeganJob, 32),
+		EndingJob:        make(chan EndingJob, 32),
+		RequestingReport: make(chan RequestingReport, 32),
+		RequestedReport:  make(chan RequestedReport, 32),
 		Quit:             make(chan int),
-		CanDelete:        make(chan string, 20),
+		CanDelete:        make(chan string, 1024),
 		CanDeleteHandler: canDeleteHandler,
 	}
 	reporters.Reporters[UploadCounter] = reporters.makeReporter("upload")
@@ -469,7 +496,7 @@ func (jrs *JobReporters) Stop() {
 }
 
 func (jrs *JobReporters) makeReporter(name string) *JobReporter {
-	capacity := 128
+	capacity := jrs.Capacity
 	reporter := &JobReporter{
 		Name: name,
 		Q:    NewReportsQueue(capacity),
@@ -508,4 +535,33 @@ func (jrs *JobReporters) Report(reporterID ReporterID) RequestedReport {
 		ReporterID: reporterID,
 	}
 	return <-jrs.RequestedReport
+}
+
+// InvariantsCheck is a check for valid state after the population is 0
+func (j *JobReporter) InvariantsCheck() {
+	//Check invariants
+	q := j.Q
+	h := q.Head
+	t := q.Tail
+	p := q.Reports[t].PopulationStop
+	if p != 0 {
+		log.Printf("%v", j.Q)
+		panic("inconsistent population")
+	}
+	idx := h
+	for {
+		if int64(q.Reports[idx].Start) > int64(q.Reports[idx].Stop) {
+			log.Printf("%v", j.Q)
+			panic("start times should be before stop times")
+		}
+		prevIdx := idx
+		idx = (idx + 1) % q.Capacity
+		if int64(q.Reports[idx].Start) < int64(q.Reports[prevIdx].Stop) {
+			log.Printf("%v", j.Q)
+			panic("start times of current should not be less than previous")
+		}
+		if idx == t {
+			break
+		}
+	}
 }
