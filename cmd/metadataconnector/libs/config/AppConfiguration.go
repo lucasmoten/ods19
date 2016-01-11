@@ -44,13 +44,13 @@ ServerSettingsConfiguration is a structure defining the attributes needed for
 setting up the server listener
 */
 type ServerSettingsConfiguration struct {
-	ListenPort        string
+	ListenPort        int
 	ListenBind        string
 	UseTLS            bool
 	CAPath            string
-	ServerCert        string
+	ServerCertChain   string
 	ServerKey         string
-	RequireClientCert string
+	RequireClientCert bool
 	CipherSuites      []string
 	MinimumVersion    string
 }
@@ -87,6 +87,14 @@ func (r *DatabaseConnectionConfiguration) GetDatabaseHandle() (*sqlx.DB, error) 
 	// Setup handle to the database
 	db, err := sqlx.Open(r.Driver, r.buildDSN())
 	return db, err
+}
+
+/*
+GetTLSConfig returns the build TLS Configuration object based upon Server
+Settings Configuration
+*/
+func (r *ServerSettingsConfiguration) GetTLSConfig() tls.Config {
+	return r.buildTLSConfig()
 }
 
 // =============================================================================
@@ -157,4 +165,8 @@ Certificates for communicating with the database securely.
 */
 func (r *DatabaseConnectionConfiguration) buildTLSConfig() tls.Config {
 	return buildClientTLSConfig(r.CAPath, r.ClientCert, r.ClientKey, r.Host, r.SkipVerify)
+}
+
+func (r *ServerSettingsConfiguration) buildTLSConfig() tls.Config {
+	return buildServerTLSConfig(r.CAPath, r.ServerCertChain, r.ServerKey, r.RequireClientCert, r.CipherSuites, r.MinimumVersion)
 }
