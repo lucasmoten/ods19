@@ -14,7 +14,7 @@ func buildClientTLSConfig(CAPath string, ClientCertPath string, ClientKeyPath st
 	// The set of root certificate authorities that this client will use when
 	// verifying the server certificate indicated as the identity of the
 	// server this config will be used to connect to.
-	rootCAsCertPool := buildCertPoolFromPath(CAPath)
+	rootCAsCertPool := buildCertPoolFromPath(CAPath, "for client")
 
 	// Client public and private certificate
 	clientCert := buildx509Identity(ClientCertPath, ClientKeyPath)
@@ -31,7 +31,7 @@ func buildServerTLSConfig(CAPath string, ServerCertPath string, ServerKeyPath st
 	// Client Certificate pool
 	// The set of root certificate authorities that the sever will use to verify
 	// client certificates
-	clientCAsCertPool := buildCertPoolFromPath(CAPath)
+	clientCAsCertPool := buildCertPoolFromPath(CAPath, "for server")
 
 	// Server public and private certificate
 	serverCert := buildx509Identity(ServerCertPath, ServerKeyPath)
@@ -55,6 +55,14 @@ func buildServerTLSConfig(CAPath string, ServerCertPath string, ServerKeyPath st
 	if MinimumVersion == "1.2" {
 		minimumVersion = tls.VersionTLS12
 	}
+	switch minimumVersion {
+	case tls.VersionTLS10:
+		log.Println("TLS MinVersion set to 1.0")
+	case tls.VersionTLS11:
+		log.Println("TLS MinVersion set to 1.1")
+	case tls.VersionTLS12:
+		log.Println("TLS MinVersion set to 1.2")
+	}
 
 	return tls.Config{
 		Certificates:             serverCert,
@@ -65,26 +73,6 @@ func buildServerTLSConfig(CAPath string, ServerCertPath string, ServerKeyPath st
 		MinVersion:               minimumVersion,
 	}
 }
-
-/*
-var cipherNameConstLookup = map[uint16]string{
-  tls.TLS_RSA_WITH_RC4_128_SHA                : `TLS_RSA_WITH_RC4_128_SHA`,
-  tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA           : `TLS_RSA_WITH_3DES_EDE_CBC_SHA`,
-  tls.TLS_RSA_WITH_AES_128_CBC_SHA            : `TLS_RSA_WITH_AES_128_CBC_SHA`,
-  tls.TLS_RSA_WITH_AES_256_CBC_SHA            : `TLS_RSA_WITH_AES_256_CBC_SHA`,
-  tls.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA        : `TLS_ECDHE_ECDSA_WITH_RC4_128_SHA`,
-  tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA    : `TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA`,
-  tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA    : `TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA`,
-  tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA          : `TLS_ECDHE_RSA_WITH_RC4_128_SHA`,
-  tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA     : `TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA`,
-  tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA      : `TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA`,
-  tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA      : `TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA`,
-  tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256   : `TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256`,
-  tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 : `TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256`,
-  tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384   : `TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384`,
-  tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 : `TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384`,
-}
-*/
 
 func buildCipherSuites(CipherSuiteNames []string) []uint16 {
 	var cipherSuites []uint16
@@ -105,8 +93,23 @@ func buildCipherSuites(CipherSuiteNames []string) []uint16 {
 		`TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384`:   tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 		`TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384`: tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 	}
-	for i := 0; i < len(CipherSuiteNames); i++ {
-		cipherSuites = append(cipherSuites, cipherValueConstLookup[CipherSuiteNames[i]])
+	if len(CipherSuiteNames) > 0 {
+		for i := 0; i < len(CipherSuiteNames); i++ {
+			v := cipherValueConstLookup[CipherSuiteNames[i]]
+			if v > 0 {
+				log.Println("Enabling cipher suite: " + CipherSuiteNames[i])
+				cipherSuites = append(cipherSuites, v)
+			} else {
+				log.Println("WARN: Cipher suite `" + CipherSuiteNames[i] + "` declared in configuration is not known to this system.")
+			}
+		}
+	} else {
+		log.Println("WARN: CipherSuites not declared in configuration. Adding all known cipher suites.")
+		log.Println("WARN: This is inherently less secure as it may be overly permissive by enabling weaker ciphers")
+		for key, value := range cipherValueConstLookup {
+			log.Println("Enabling cipher suite: " + key)
+			cipherSuites = append(cipherSuites, value)
+		}
 	}
 	return cipherSuites
 }
@@ -115,27 +118,28 @@ func buildx509Identity(certFile string, keyFile string) []tls.Certificate {
 	theCert := make([]tls.Certificate, 0, 1)
 	certs, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Error: " + err.Error())
 	}
 	theCert = append(theCert, certs)
 	return theCert
 }
 
-func buildCertPoolFromPath(filePath string) *x509.CertPool {
+func buildCertPoolFromPath(filePath string, poolName string) *x509.CertPool {
 
+	log.Println("Preparing certificate pool " + poolName)
 	theCertPool := x509.NewCertPool()
 
 	// Open path indicated in configuration
 	pathSpec, err := os.Open(filePath)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal("Error: " + err.Error())
 	}
 	defer pathSpec.Close()
 
 	// Check information about the path specification
 	pathSpecInfo, err := pathSpec.Stat()
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal("Error: " + err.Error())
 	}
 
 	// Handle cases based on the type of path
@@ -144,14 +148,16 @@ func buildCertPoolFromPath(filePath string) *x509.CertPool {
 		// The path is a directory, read all the files
 		files, err := ioutil.ReadDir(filePath)
 		if err != nil {
-			log.Fatal(err.Error())
+			log.Fatal("Error: " + err.Error())
 		}
 		if !strings.HasSuffix(filePath, "/") {
 			filePath += "/"
 		}
 		// With each file
 		for f := 0; f < len(files); f++ {
-			addPEMFileToPool(filePath+files[f].Name(), theCertPool)
+			if !files[f].IsDir() {
+				addPEMFileToPool(filePath+files[f].Name(), theCertPool)
+			}
 		}
 	case mode.IsRegular():
 		addPEMFileToPool(filePath, theCertPool)
@@ -161,10 +167,10 @@ func buildCertPoolFromPath(filePath string) *x509.CertPool {
 }
 
 func addPEMFileToPool(PEMfile string, certPool *x509.CertPool) {
-	log.Println("Adding PEM file " + PEMfile + " to certificate pool")
+	log.Println("Adding PEM file " + PEMfile)
 	pem, err := ioutil.ReadFile(PEMfile)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal("Error: " + err.Error())
 	}
 	if ok := certPool.AppendCertsFromPEM(pem); !ok {
 		log.Fatal("Failed to append PEM.")
