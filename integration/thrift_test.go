@@ -54,11 +54,17 @@ func TestCheckAccess(t *testing.T) {
 	resp, err := aacClient.CheckAccess(userDN1, tokenType, acmComplete)
 
 	if err != nil {
-		log.Printf("Error calling CheckAccess(): %v", err)
+		t.Logf("Error calling CheckAccess(): %v \n", err)
+		t.FailNow()
 	}
 
 	if resp.Success != true {
-		log.Println("Expected true, got ", resp.Success)
+		t.Logf("Expected true, got %v \n", resp.Success)
+		t.Fail()
+	}
+
+	if !resp.HasAccess {
+		t.Logf("Expected resp.HasAccess to be true\n")
 		t.Fail()
 	}
 }
@@ -70,7 +76,8 @@ func TestBuildAcm(t *testing.T) {
 	// https://github.com/samuel/go-thrift/issues/84
 	byteList, err := util.StringToInt8Slice("<ddms:title ism:classification='S'>Foo</ddms:title>")
 	if err != nil {
-		log.Fatal("Could not convert string to []int8")
+		t.Logf("Could not convert string to []int8\n")
+		t.FailNow()
 	}
 	propertiesMap := make(map[string]string)
 	propertiesMap["bedrock.message.traffic.dia.orgs"] = "DIA DOD_DIA" // propertiesMap["bedrock.message.traffic.orcon.project"] = "DCTC"
@@ -78,12 +85,13 @@ func TestBuildAcm(t *testing.T) {
 	resp, err := aacClient.BuildAcm(byteList, "XML", propertiesMap)
 
 	if err != nil {
-		log.Printf("Error from BuildAcm() method: %v", err)
+		t.Logf("Error from BuildAcm() method: %v \n", err)
 		t.Fail()
 	}
 
 	if !resp.Success {
-		log.Printf("Unexpected BuildAcm response: Success: %v\n", err)
+		t.Logf("Unexpected BuildAcm response: Success: %v\n", resp.Success)
+		t.Fail()
 	}
 
 	// TODO: Check the validity of specific fields in AcmInfo objects returned.
@@ -92,18 +100,18 @@ func TestBuildAcm(t *testing.T) {
 func TestValidateAcm(t *testing.T) {
 	resp, err := aacClient.ValidateAcm(acmPartial1)
 	if err != nil {
-		log.Printf("Error from ValidateAcm() method: %v", err)
-		t.Fail()
+		t.Logf("Error from ValidateAcm() method: %v \n", err)
+		t.FailNow()
 	}
 	success := resp.Success
 	if !success {
-		log.Printf("Unexpected ValidateAcm response: Success: %v \n", resp.Success)
+		t.Logf("Unexpected ValidateAcm response: Success: %v \n", resp.Success)
 		t.Fail()
 	}
 	acmValid := resp.AcmValid
 	if acmValid != false {
 		// TODO should this be false?
-		log.Printf("Unexpected ValidateAcm response: AcmValid: %v \n", resp.AcmValid)
+		t.Logf("Unexpected ValidateAcm response: AcmValid: %v \n", resp.AcmValid)
 		t.Fail()
 	}
 }
@@ -112,19 +120,19 @@ func TestPopulateAndValidateAcm(t *testing.T) {
 
 	resp, err := aacClient.PopulateAndValidateAcm(acmComplete1)
 	if err != nil {
-		log.Println("Error from remote call PopulateAndValidateAcm() method: ", err)
-		t.Fail()
+		t.Logf("Error from remote call PopulateAndValidateAcm() method: %v \n", err)
+		t.FailNow()
 	}
 	result := resp.AcmValid
 	if !result {
-		log.Printf("Unexpected PopulateAndValidateAcm response: AcmValid: %v \n", resp.AcmValid)
+		t.Logf("Unexpected PopulateAndValidateAcm response: AcmValid: %v \n", resp.AcmValid)
 		t.Fail()
 	}
 	return
 }
 
 func TestCreateAcmFromBannerMarking(t *testing.T) {
-	log.Printf("CreateAcmFromBannerMarking() not implemented within service.\n")
+	t.Skipf("CreateAcmFromBannerMarking() not implemented within service.\n")
 }
 
 func TestRollupAcms(t *testing.T) {
@@ -137,17 +145,17 @@ func TestRollupAcms(t *testing.T) {
 
 	resp, err := aacClient.RollupAcms(userDN1, acmList, shareType1, "")
 	if err != nil {
-		log.Printf("Error from remote call RollupAcms() method: %v\n", err)
-		t.Fail()
+		t.Logf("Error from remote call RollupAcms() method: %v \n", err)
+		t.FailNow()
 	}
 
 	if !resp.Success {
-		log.Printf("Error in RollupAcms() response. Expected Success: true. Got: %v\n", resp.Success)
+		t.Logf("Error in RollupAcms() response. Expected Success: true. Got: %v \n", resp.Success)
 		t.Fail()
 	}
 
 	if !resp.AcmValid {
-		log.Printf("Error in RollupAcms() response. Expected AcmValid: true. Got %v\n", resp.AcmValid)
+		t.Logf("Error in RollupAcms() response. Expected AcmValid: true. Got %v \n", resp.AcmValid)
 		t.Fail()
 	}
 	return
@@ -170,17 +178,17 @@ func TestCheckAccessAndPopulate(t *testing.T) {
 		userDN1, "pki_dias", acmInfoList, true, shareType1, "")
 
 	if err != nil {
-		log.Printf("Error from remote call CheckAccessAndPopulate() method: %v\n", err)
-		t.Fail()
+		t.Logf("Error from remote call CheckAccessAndPopulate() method: %v \n", err)
+		t.FailNow()
 	}
 
 	if !resp.Success {
-		log.Printf("Error in CheckAccessAndPopulate response. Expected Success: true. Got: %v\n", resp.Success)
+		t.Logf("Error in CheckAccessAndPopulate response. Expected Success: true. Got: %v \n", resp.Success)
 		t.Fail()
 	}
 
 	if numResponses := len(resp.AcmResponseList); numResponses != 4 {
-		log.Printf("Expected 4 AcmResponse objects in AcmResponseList. Got: %v", numResponses)
+		t.Logf("Expected 4 AcmResponse objects in AcmResponseList. Got: %v", numResponses)
 		t.Fail()
 	}
 
@@ -189,15 +197,14 @@ func TestCheckAccessAndPopulate(t *testing.T) {
 		expectedValid := true
 		expectedHasAccess := true
 		if item.AcmValid != expectedValid {
-			log.Printf("Expected AcmValid to be %v. Got: %v", expectedValid, item.AcmValid)
+			t.Logf("Expected AcmValid to be %v. Got: %v", expectedValid, item.AcmValid)
 			t.Fail()
 		}
 		if item.HasAccess != expectedHasAccess {
-			log.Printf("Expected HasAccess to be %v. Got: %v", expectedHasAccess, item.HasAccess)
+			t.Logf("Expected HasAccess to be %v. Got: %v", expectedHasAccess, item.HasAccess)
 			t.Fail()
 		}
 	}
-	return
 }
 
 func TestGetUserAttributes(t *testing.T) {
@@ -205,15 +212,14 @@ func TestGetUserAttributes(t *testing.T) {
 	resp, err := aacClient.GetUserAttributes(userDN1, "pki_dias", "")
 
 	if err != nil {
-		log.Printf("Error from remote call GetUserAttributes() method: %v\n", err)
-		t.Fail()
+		t.Logf("Error from remote call GetUserAttributes() method: %v \n", err)
+		t.FailNow()
 	}
 
 	if !resp.Success {
-		log.Printf("Error in GetUserAttributes response. Expected Success: true. Got: %v\n", resp.Success)
+		t.Logf("Error in GetUserAttributes response. Expected Success: true. Got: %v\n", resp.Success)
 		t.Fail()
 	}
-
 }
 
 func TestGetSnippets(t *testing.T) {
@@ -221,17 +227,17 @@ func TestGetSnippets(t *testing.T) {
 	resp, err := aacClient.GetSnippets(userDN1, "pki_dias", snippetType)
 
 	if err != nil {
-		log.Printf("Error from remote call GetSnippets() method: %v\n", err)
-		t.Fail()
+		t.Logf("Error from remote call GetSnippets() method: %v \n", err)
+		t.FailNow()
 	}
 
 	if !resp.Success {
-		log.Printf("Error in GetSnippet() response. Expected Success: true. Got: %v\n", resp.Success)
+		t.Logf("Error in GetSnippet() response. Expected Success: true. Got: %v \n", resp.Success)
 		t.Fail()
 	}
 
 	if len(resp.Snippets) <= 0 {
-		log.Printf("Error in GetSnippet() response object: Snippet length should not be zero.")
+		t.Logf("Error in GetSnippet() response object: Snippet length should not be zero.")
 		t.Fail()
 	}
 
@@ -244,12 +250,12 @@ func TestGetShare(t *testing.T) {
 	resp, err := aacClient.GetShare(userDN1, "pki_dias", shareType3, share3)
 
 	if err != nil {
-		log.Printf("Error from remote call GetShare() method: %v\n", err)
-		t.Fail()
+		t.Logf("Error from remote call GetShare() method: %v \n", err)
+		t.FailNow()
 	}
 
 	if !resp.Success {
-		log.Printf("Error in GetShare() response. Expected Success: true. Got: %v\n", resp.Success)
+		t.Logf("Error in GetShare() response. Expected Success: true. Got: %v \n", resp.Success)
 		t.Fail()
 	}
 
