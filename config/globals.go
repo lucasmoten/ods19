@@ -40,7 +40,7 @@ func locateProjectRoot() string {
 			log.Fatal(err)
 		}
 	} else {
-		projectRoot = filepath.Join(gopath, "decipher.com", ProjectName)
+		projectRoot = filepath.Join(gopath, "src", "decipher.com", ProjectName)
 	}
 
 	ok, err := util.PathExists(projectRoot)
