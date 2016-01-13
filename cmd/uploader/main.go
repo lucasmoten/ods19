@@ -2,6 +2,9 @@ package main
 
 import (
 	//"bytes"
+	"path/filepath"
+
+	"decipher.com/oduploader/config"
 	openssl "github.com/spacemonkeygo/openssl"
 	//"crypto/tls"
 	//"crypto/x509"
@@ -12,19 +15,6 @@ import (
 )
 
 func main() {
-	/*
-		//Load trust file
-		certBytes, err := ioutil.ReadFile("../cryptotest/defaultcerts/clients/client.trust.pem")
-		if err != nil {
-			log.Printf("Unable to trust file: %v\n", err)
-			return
-		}
-		caCertPool := x509.NewCertPool()
-		if ok := caCertPool.AppendCertsFromPEM(certBytes); !ok {
-			log.Printf("Unable to add certificate to certificate pool: %v\n", ok)
-			return
-		}
-	*/
 
 	//Load client key pair
 	ctx, err := openssl.NewCtx()
@@ -32,14 +22,14 @@ func main() {
 		log.Printf("Unable to create openssl context: %v", ctx)
 	}
 	err = ctx.LoadVerifyLocations(
-		"../cryptotest/defaultcerts/clients/client.trust.pem",
-		"../cryptotest/defaultcerts/clients/client.trust.pem",
+		filepath.Join(config.CertsDir, "clients", "client.trust.pem"),
+		filepath.Join(config.CertsDir, "clients", "client.trust.pem"),
 	)
 	if err != nil {
 		log.Printf("Unable to load trust: %v", err)
 	}
 
-	certBytes, err := ioutil.ReadFile("../cryptotest/defaultcerts/clients/test_1.cert.pem")
+	certBytes, err := ioutil.ReadFile(filepath.Join(config.CertsDir, "clients", "test_1.cert.pem"))
 	if err != nil {
 		log.Printf("Unable to trust file: %v\n", err)
 		return
@@ -51,7 +41,7 @@ func main() {
 	}
 	ctx.UseCertificate(cert)
 
-	keyBytes, err := ioutil.ReadFile("../cryptotest/defaultcerts/clients/test_1.key.pem")
+	keyBytes, err := ioutil.ReadFile(filepath.Join(config.CertsDir, "clients", "test_1.key.pem"))
 	if err != nil {
 		log.Printf("Unable to key file: %v\n", err)
 		return
@@ -61,16 +51,6 @@ func main() {
 		log.Printf("Unable to parse private key:%v", nil)
 	}
 	ctx.UsePrivateKey(privKey)
-	/*
-		cert, err := tls.LoadX509KeyPair(
-			"../cryptotest/defaultcerts/clients/test_1.cert.pem",
-			"../cryptotest/defaultcerts/clients/test_1.key.pem",
-		)
-		if err != nil {
-			log.Printf("could not parse client cert: %v\n", cert)
-			return
-		}
-	*/
 
 	//Actually connect
 	//hostName := "dockervm" // change this

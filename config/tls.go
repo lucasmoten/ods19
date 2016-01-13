@@ -6,6 +6,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
+
+	"decipher.com/oduploader/config"
 
 	"github.com/spacemonkeygo/openssl"
 )
@@ -119,13 +122,14 @@ func NewOpenSSLTransport() (*openssl.Conn, error) {
 	ctx.SetOptions(openssl.CipherServerPreference)
 	ctx.SetOptions(openssl.NoSSLv3)
 
-	trustLoc := "../cmd/cryptotest/defaultcerts/clients/client.trust.pem"
+	trustLoc := filepath.Join(config.CertsDir, "clients", "client.trust.pem")
 	err = ctx.LoadVerifyLocations(trustLoc, "")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	certBytes, err := ioutil.ReadFile("../cmd/cryptotest/defaultcerts/clients/test_1.cert.pem")
+	certPath := filepath.Join(config.CertDir, "clients", "test_1.cert.pem")
+	certBytes, err := ioutil.ReadFile(certPath)
 	if err != nil {
 		log.Fatalf("Unable to trust file: %v\n", err)
 	}
@@ -136,7 +140,8 @@ func NewOpenSSLTransport() (*openssl.Conn, error) {
 	}
 	ctx.UseCertificate(cert)
 
-	keyBytes, err := ioutil.ReadFile("../cmd/cryptotest/defaultcerts/clients/test_1.key.pem")
+	keyPath := filepath.Join(config.CertsDir, "clients", "test_1.key.pem")
+	keyBytes, err := ioutil.ReadFile(keyPath)
 	if err != nil {
 		log.Fatalf("Unable to key file: %v\n", err)
 	}
