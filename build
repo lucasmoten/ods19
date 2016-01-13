@@ -13,13 +13,13 @@ PROJECT_ROOT = os.path.join(GOPATH, 'src', 'decipher.com', 'oduploader')
 
 
 def generate_certs():
-    gencerts_dir = os.path.join(PROJECT_ROOT, 'cmd', 'cryptotest', 'defaultcerts', 'server')
+    gencerts_dir = os.path.join(PROJECT_ROOT, 'defaultcerts', 'server')
     if os.path.exists(gencerts_dir):
         os.chdir(gencerts_dir)
         try:
             subprocess.check_call(['./exportit'])
-        except subprocess.CalledProcessError:
-            log.error('Error in call to exportit script')
+        except subprocess.CalledProcessError as e:
+            log.error('Error from command {0}: {1}'.format(e.cmd, str(e)))
 
 
 def go_get_libs():
@@ -27,8 +27,8 @@ def go_get_libs():
     try:
         log.info('Running `go get`')
         subprocess.check_call(['go', 'get', './...', ])
-    except subprocess.CalledProcessError:
-        log.error('Error in call to `go get .\...`')
+    except subprocess.CalledProcessError as e:
+        log.error('Error from command {0}: {1}'.format(e.cmd, str(e)))
 
 
 def update_thrift_lib():
