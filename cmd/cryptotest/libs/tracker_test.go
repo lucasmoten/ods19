@@ -3,6 +3,7 @@ package libs
 import (
 	"log"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 )
@@ -64,8 +65,8 @@ func TestSimulation(t *testing.T) {
 		remaining--
 		log.Printf("remaining: %d", remaining)
 	}
-	reporters.Reporters[UploadCounter].Q.Dump()
-	reporters.Reporters[DownloadCounter].Q.Dump()
+	reporters.Reporters[UploadCounter].Q.Dump(os.Stdout)
+	reporters.Reporters[DownloadCounter].Q.Dump(os.Stdout)
 }
 
 func logPurge(name string) {

@@ -230,16 +230,21 @@ func (r *ReportsQueue) InsertStat(jr JobReport) {
 			if eOld.TStamp == beginAt {
 				eOld.Population++
 			} else {
-				//end and start at same time (endAt is offset by 1 to prevent 0 div)
+				//1ms job case
 				ePrev := &r.Entry[(r.Tail+r.Capacity-1)%r.Capacity]
 				if ePrev.TStamp == beginAt {
 					ePrev.Population++
 					eOld.Population++
 				} else {
-					//beginAt < eOld.TStamp && endAt == 0
-					log.Printf("ERROR: %d < %d && %d == 0", beginAt, eOld.TStamp, endAt)
-					if PanicOnProblem {
-						panic("bad state")
+					//End then begin at same timestamp
+					if eOld.TStamp-1 == beginAt {
+						eOld.Population++
+					} else {
+						//beginAt < eOld.TStamp && endAt == 0
+						log.Printf("ERROR: %d < %d && %d == 0", beginAt, eOld.TStamp, endAt)
+						if PanicOnProblem {
+							panic("bad state")
+						}
 					}
 				}
 			}
@@ -250,7 +255,9 @@ func (r *ReportsQueue) InsertStat(jr JobReport) {
 			eOld.Population--
 			if eOld.Population < 0 {
 				log.Printf("%v", r)
-				panic("pop went below zero")
+				if PanicOnProblem {
+					panic("pop went below zero")
+				}
 			}
 			amountToDistribute = size
 		} else {
@@ -262,7 +269,9 @@ func (r *ReportsQueue) InsertStat(jr JobReport) {
 			eNext.TStamp = endAt
 			eNext.Population = eOld.Population - 1
 			if eNext.Population < 0 {
-				panic("pop went below zero")
+				if PanicOnProblem {
+					panic("pop went below zero")
+				}
 			}
 			amountToDistribute = size
 		}
@@ -271,11 +280,17 @@ func (r *ReportsQueue) InsertStat(jr JobReport) {
 	//Proportionally distribute bytes across the time period
 	i := r.Tail
 	for {
+		if amountToDistribute < 0 {
+			if PanicOnProblem {
+				log.Printf("cannot redistribute %dB", amountToDistribute)
+				panic("cannot redistribute")
+			}
+		}
 		if amountToDistribute == 0 {
 			break
 		}
 		j := (i + r.Capacity - 1) % r.Capacity
-		if r.Entry[j].TStamp == beginAt {
+		if r.Entry[j].TStamp <= beginAt {
 			r.Entry[j].Bytes += amountToDistribute
 			amountToDistribute = 0
 			break
@@ -307,7 +322,6 @@ func (r *ReportsQueue) Dump(w io.Writer) {
 
 	var maxPop = int64(0)
 
-	fmt.Fprintf(w, "head:%d, tail:%d\n", r.Head, r.Tail)
 	i := r.Tail
 	for {
 		j := (i + r.Capacity - 1) % r.Capacity
@@ -317,8 +331,7 @@ func (r *ReportsQueue) Dump(w io.Writer) {
 		if t > 0 && b > 0 {
 			fmt.Fprintf(
 				w,
-				"%d: %dQ %vkB/s => %vB in %v ms\n",
-				j,
+				"%dQ %vkB/s => %vB in %v ms\n",
 				r.Entry[j].Population,
 				(1.0*r.Entry[j].Bytes)/t,
 				r.Entry[j].Bytes,
@@ -334,38 +347,30 @@ func (r *ReportsQueue) Dump(w io.Writer) {
 		i = (i + r.Capacity - 1) % r.Capacity
 	}
 
-	fmt.Fprintf(
-		w,
-		"estimates (that may change when downloads complete - 0Pop):\n",
-	)
-
-	//XXX stupidly inefficient O(p * q) algorithm!!! Do not use if population
-	//gets very high.  This can be done incrementally and efficiently, but could
-	//be costly in memory without exponentially weighting buckets per pop
-	//ie: only store for population: 0,2,4,8,16,...
 	entryPerPop := make([]QStat, maxPop+1)
 
+	i = r.Tail
 	//Calculate throughput per population
-	for p := int64(0); p <= maxPop; p++ {
-		for {
-			j := (i + r.Capacity - 1) % r.Capacity
-			t := r.Entry[i].TStamp - r.Entry[j].TStamp
-			b := r.Entry[j].Bytes
-			w := r.Entry[j].Population * t
-			if p == r.Entry[j].Population && b > 0 && t > 0 {
-				entryPerPop[p].TotalBytes += b
-				entryPerPop[p].TotalTime += t
-				entryPerPop[p].PopWeightedByTime += w
-			}
-			if j == r.Head {
-				break
-			}
-			i = (i + r.Capacity - 1) % r.Capacity
+	for {
+		j := (i + r.Capacity - 1) % r.Capacity
+		t := r.Entry[i].TStamp - r.Entry[j].TStamp
+		b := r.Entry[j].Bytes
+		w := r.Entry[j].Population * t
+		p := r.Entry[j].Population
+		entryPerPop[p].TotalBytes += b
+		entryPerPop[p].TotalTime += t
+		entryPerPop[p].PopWeightedByTime += w
+
+		if j == r.Head {
+			break
 		}
+		i = (i + r.Capacity - 1) % r.Capacity
 	}
+
+	fmt.Fprintf(w, "\nThroughput By Queue Length:\n")
 	//Show throughput per population
 	for p := int64(0); p <= maxPop; p++ {
-		if entryPerPop[p].TotalTime > 0 && entryPerPop[p].TotalBytes > 0 {
+		if entryPerPop[p].TotalTime > 0 {
 			fmt.Fprintf(
 				w,
 				"%dQ %vkB/s\n",
