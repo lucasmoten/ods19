@@ -1,4 +1,6 @@
-#Convert the original jks to p12
+#!/bin/bash
+
+# Convert the original jks to p12
 rm twlserver.p12
 rm truststore.p12
 

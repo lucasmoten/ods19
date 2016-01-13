@@ -1,0 +1,44 @@
+#!/bin/python
+
+import os
+import sys
+import logging
+
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+log = logging.getLogger('BUILD')
+
+
+GOPATH = os.getenv('GOPATH')
+PROJECT_ROOT = os.path.join(GOPATH, 'src', 'decipher.com', 'oduploader')
+
+
+def generate_certs():
+    gencerts_dir = os.path.join(PROJECT_ROOT, 'cmd', 'cryptotest', 'defaultcerts', 'server')
+    if os.path.exists(gencerts_dir):
+        os.chdir(gencerts_dir)
+
+        import subprocess
+        try:
+            subprocess.check_call(['./exportit'])
+        except subprocess.CalledProcessError:
+            log.error('Error in call to exportit script')
+
+
+def go_get_libs():
+    os.getcwdu()
+    pass
+
+
+def main():
+    generate_certs()
+    go_get_libs()
+
+
+if __name__ == '__main__':
+    try:
+        log.info("Starting build.")
+        main()
+        log.info("Build finished.")
+
+    except Exception:
+        sys.exit(1)
