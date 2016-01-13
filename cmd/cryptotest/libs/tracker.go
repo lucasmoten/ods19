@@ -1,6 +1,8 @@
 package libs
 
 import (
+	"fmt"
+	"io"
 	"log"
 	"time"
 )
@@ -10,9 +12,9 @@ type ReporterID int
 
 const (
 	// UploadCounter handles counts for uploading
-	UploadCounter = ReporterID(7)
+	UploadCounter = ReporterID(1)
 	// DownloadCounter handles counts for downloading
-	DownloadCounter = ReporterID(13)
+	DownloadCounter = ReporterID(2)
 )
 
 /*
@@ -62,12 +64,10 @@ type SizeJob int64
 // JobReport is the atomic unit of reporting progress into reporters
 //Time units are opaque to the user of this API.
 type JobReport struct {
-	Start           BeganJob
-	Stop            EndedJob
-	SizeJob         SizeJob
-	PopulationStart int
-	PopulationStop  int
-	JobName         string
+	Start   BeganJob
+	Stop    EndedJob
+	SizeJob SizeJob
+	JobName string
 }
 
 // EndingJob is used to signal that a job is ending
@@ -132,14 +132,29 @@ type RequestedReport struct {
 	PopulationWeightedByDuration int64
 }
 
+// QEntry - entries in the queue where logged events are reconciled
+type QEntry struct {
+	TStamp     int64
+	Population int64
+	Bytes      int64
+}
+
+// QStat Statistics for items that aged out of the queue
+type QStat struct {
+	TotalTime         int64
+	TotalBytes        int64
+	PopWeightedByTime int64
+}
+
 // ReportsQueue is a specialized queue for reports
 // - Tail is where we can read the last pushed element
 type ReportsQueue struct {
 	RequestedReport RequestedReport
-	Reports         []JobReport
+	Entry           []QEntry
 	Capacity        int
 	Head            int
 	Tail            int
+	Stat            QStat
 }
 
 // NewReportsQueue creates a queue for new reports
@@ -150,211 +165,231 @@ type ReportsQueue struct {
 // When reconciled, at every time period, the population and throughput
 // are well defined.
 func NewReportsQueue(capacity int) *ReportsQueue {
-	return &ReportsQueue{
-		Reports:  make([]JobReport, capacity),
+	q := &ReportsQueue{
+		Entry:    make([]QEntry, capacity),
 		Head:     0,
 		Tail:     capacity - 1,
 		Capacity: capacity,
 	}
+	return q
 }
 
 var verbose = false
 
-// PushTail moves cursor to write into the tail
-// Write into the tail after this.
-//
-// It then reconciles the records so that throughput
-// for intervals accurately accounts for concurrency,
-// by effectively subtracting out double-counted time
-// and splitting records to reflect time overlaps.
-func (r *ReportsQueue) PushTail(jr JobReport) {
-	r.Tail++
-	r.Tail %= r.Capacity
-	if ((r.Tail + 1) % r.Capacity) == r.Head {
-		if int64(r.Reports[r.Head].Start) > int64(r.Reports[r.Head].Stop) {
-			log.Printf("WARNING: make ReportsQueue.Reports larger")
-		}
-		//Save off information we lose from head into a summary
-		size := int64(r.Reports[r.Head].SizeJob)
-		stop := int64(r.Reports[r.Head].Stop)
-		start := int64(r.Reports[r.Head].Start)
-		pop := int64(r.Reports[r.Head].PopulationStart)
-		r.RequestedReport.Size += size
-		r.RequestedReport.Duration += (stop - start)
-		r.RequestedReport.PopulationWeightedByDuration += (stop - start) * pop
+//AdvanceHead the head even though we are full
+//Absorb lost information into stats counters
+func (r *ReportsQueue) AdvanceHead() {
+	//If the queue is full
+	if ((r.Tail + 2) % r.Capacity) == r.Head {
+		//Dump off the head into statistics
+		i := r.Head
+		j := (r.Head + 1) % r.Capacity
+		t := r.Entry[j].TStamp - r.Entry[i].TStamp
+		r.Stat.TotalTime += t
+		r.Stat.PopWeightedByTime += t * r.Entry[i].Population
+		r.Stat.TotalBytes += r.Entry[i].Bytes
 		r.Head++
 		r.Head %= r.Capacity
 	}
-	r.Reports[r.Tail] = jr
-	if verbose {
-		log.Printf("appending %v", r)
+}
+
+// InsertStat stuffs reports into the statistics queue
+// The reason we have the queue is that we need to reconcile time overlaps
+// to remove double-counted time.  Otherwise, we will only be
+// getting statistics that reflect the individual transactions as experienced
+// by the user.  We also need numbers that reflect aggregate throughput
+// due to concurrency.
+func (r *ReportsQueue) InsertStat(jr JobReport) {
+
+	var eOld = &r.Entry[r.Tail]
+	var amountToDistribute = int64(0)
+
+	beginAt := int64(jr.Start)
+	endAt := int64(jr.Stop)
+	size := int64(jr.SizeJob)
+
+	interval := endAt - beginAt
+
+	if interval == 0 {
+		log.Printf("%v", jr)
+		panic("we cannot work with intervals of length 0")
 	}
-	if r.Tail == r.Head {
-		//There is only one entry
-	} else {
-		i := r.Tail
-		for {
-			ai := int64(r.Reports[i].Start)
-			bi := int64(r.Reports[i].Stop)
-			ci := int64(r.Reports[i].SizeJob)
-			//Previous item-- circularly
-			j := ((i - 1) + r.Capacity) % r.Capacity
-			aj := int64(r.Reports[j].Start)
-			bj := int64(r.Reports[j].Stop)
-			cj := int64(r.Reports[j].SizeJob)
-			if ai < bi && aj > bj {
-				//if ai==bi we get divide by zero
-				//
-				// As if on graph paper, the timestamps are on the *lines*, instead
-				// of denoting the squares.  From a to b, is denoted the number of
-				// bytes that happend over time interval (b-a)
-				//
-				// This means that instants where population goes up, the population
-				// before and population after need to be maintained separately, as
-				// the time interval itself is of zero length.
-				//
-				// .. .. ..     - even earlier reports
-				// aj bj cj     (start, stop, count) - earlier report
-				// ai bi ci     (start, stop, count) - later report
-				//
-				// Keep the portion of events from bi to aj in ci, push remainder to j
-				//
-				// example: (with population count included as di,dj)
-				//   0 0 0   0 0
-				//   4 0 0   0 1
-				//   5 0 0   1 2    row j
-				//   4 9 10  2 1    row i
-				//
-				//  Something began at time 5, and we don't know when it ended.
-				//  But since 4 9 10 came in at time 9, we know that the job at
-				//  time 5 must end at time 9 or later.
-				//
-				//  A job from 4 to 9 had 10 events.  So we split up the data
-				//  to reflect actual throughput for the timespan:
-				//   d = ci*(bi-aj)/(bi-aj)
-				//   d = 10*(9-5)/(9-4) = 10*4/5 = 40/5 = 8
-				//  the integer divide is intentional so that we don't lose data,
-				//  at the cost of slightly jittering the original throughput:
-				//  ad <= ci
-				//
-				//  as jobs end, they adopt the population of the entry before them
-				//
-				//  4 0 0  0 1
-				//  5 4 2  1 2  //needs a swap before stopping - bj should not be zero unless ai was
-				//  5 9 8  2 1
-				//
-				//  4 0 0  0 1
-				//  4 5 2  1 2  * continue this algorithm from this point
-				//  5 9 8  2 1
-				//
-				//
-				// Note case:
-				//      4 0 0  0 1
-				//      5 0 0  1 2
-				//      5 9 10 2 1
-				//
-				d := ci * (bi - aj) / (bi - ai)
-				r.Reports[j].Stop = EndedJob(ai)
-				r.Reports[i].Start = BeganJob(aj)
-				r.Reports[j].SizeJob += SizeJob(ci - d)
-				r.Reports[i].SizeJob = SizeJob(d)
-				if r.Reports[j].SizeJob < 0 || r.Reports[i].SizeJob < 0 {
-					log.Printf("%v", r)
-					if PanicOnProblem {
-						panic("impossible state")
-					}
-				}
-				//Swap start and stop for row j if they are now inverted
-				if int64(r.Reports[j].Start) > int64(r.Reports[j].Stop) {
-					r.Reports[j].Stop = EndedJob(r.Reports[j].Start)
-					r.Reports[j].Start = BeganJob(ai)
-				}
-				//row i no longer associated with the entire download
-				//and row j is related to this one in addition to whatever else it was
-				r.Reports[i].JobName = ""
-				if verbose {
-					log.Printf("after rebuild1 %v", r)
-				}
+
+	// negative interval indicates starting a txn only.
+	if beginAt > 0 && endAt == 0 {
+		if eOld.TStamp < beginAt {
+			// don't lose stats when we advance tail over head
+			r.AdvanceHead()
+			r.Tail++
+			r.Tail %= r.Capacity
+			eCurrent := &r.Entry[r.Tail]
+			eCurrent.TStamp = beginAt
+			eCurrent.Population = eOld.Population + 1
+		} else {
+			//stacking multiple starts
+			if eOld.TStamp == beginAt {
+				eOld.Population++
 			} else {
-				//We have two records overlapping in end record, but start are in order
-				if ai < bi && aj < bj && ai <= bj {
-					//if ai==bi we get divide by zero - this is a problem if the system
-					// is fast enough to complete a download in 1ms!!
-					//We are currently ok with:  5 5 0
-					//But there is no sane handling for: 5 5 20 (20 events in 0ms)
-					//If we smear time by adding 1ms, we need to make sure that future
-					//events cannot come in at time 5 as well.  Or, we could smear the
-					//time to move the previous timestamp back by 1ms.
-					//
-					//bi cannot be edited for stop events, because of PopulationAfter
-					//ai must stay same for start events, because of PopulationBefore
-					//
-					//4  9 24
-					//6 12 13
-					//
-					// d = 13*(12-9)/(12-6) = 13*3/6 = 39/6 = 6
-					//
-					//4  9 31
-					//9 12 6
-					d := ci * (bi - bj) / (bi - ai)
-					r.Reports[j].SizeJob += SizeJob(ci - d)
-					r.Reports[i].Start = BeganJob(bj)
-					r.Reports[i].JobName = ""
-					if verbose {
-						log.Printf("after rebuild2 %v", r)
-					}
+				//end and start at same time (endAt is offset by 1 to prevent 0 div)
+				ePrev := &r.Entry[(r.Tail+r.Capacity-1)%r.Capacity]
+				if ePrev.TStamp == beginAt {
+					ePrev.Population++
+					eOld.Population++
 				} else {
-					if ai > bi {
-						//ignore it...this is just appending start markers
-					} else {
-						if aj == bj && cj == 0 {
-							//ignore it as it's just where a population count changes
-						} else {
-							if ai == bi && ci == 0 {
-								/////Leaving zero intervals null
-								r.Reports[i].Start = BeganJob(r.Reports[j].Stop)
-								break
-							} else {
-								log.Printf("unhandled: i:%d %d %d, j:%d %d %d", ai, bi, ci, aj, bj, cj)
-								if PanicOnProblem {
-									panic("unhandled case")
-								}
-							}
-						}
+					//beginAt < eOld.TStamp && endAt == 0
+					log.Printf("ERROR: %d < %d && %d == 0", beginAt, eOld.TStamp, endAt)
+					if PanicOnProblem {
+						panic("bad state")
 					}
 				}
 			}
-			//Previous item - circularly
-			if i == r.Head {
-				break
+		}
+	} else {
+		// a txn has completed in these cases
+		if eOld.TStamp == endAt {
+			eOld.Population--
+			if eOld.Population < 0 {
+				log.Printf("%v", r)
+				panic("pop went below zero")
 			}
-			i = ((i - 1) + r.Capacity) % r.Capacity
+			amountToDistribute = size
+		} else {
+			// don't lose stats when we advance tail over head
+			r.AdvanceHead()
+			r.Tail++
+			r.Tail %= r.Capacity
+			eNext := &r.Entry[r.Tail]
+			eNext.TStamp = endAt
+			eNext.Population = eOld.Population - 1
+			if eNext.Population < 0 {
+				panic("pop went below zero")
+			}
+			amountToDistribute = size
 		}
 	}
+
+	//Proportionally distribute bytes across the time period
+	i := r.Tail
+	for {
+		if amountToDistribute == 0 {
+			break
+		}
+		j := (i + r.Capacity - 1) % r.Capacity
+		if r.Entry[j].TStamp == beginAt {
+			r.Entry[j].Bytes += amountToDistribute
+			amountToDistribute = 0
+			break
+		}
+		ourInterval := r.Entry[i].TStamp - r.Entry[j].TStamp
+		d := amountToDistribute * ourInterval / interval
+		r.Entry[j].Bytes += d
+		amountToDistribute -= d
+		i = (i + r.Capacity - 1) % r.Capacity
+	}
 }
 
-// PopHead discards the first element of the queue
-// Read that element out of head before you pop
-func (r *ReportsQueue) PopHead() JobReport {
-	retval := r.Reports[r.Head]
-	r.Head++
-	r.Head %= r.Capacity
-	return retval
+// Length of the queue
+func (r *ReportsQueue) Length() int {
+	if r.Head == (r.Tail+1)%r.Capacity {
+		return 0
+	}
+	if r.Head < r.Tail {
+		return r.Tail - r.Head + 1
+	}
+	return (r.Tail - r.Head + 1 + r.Capacity)
 }
 
-// PeekHead gets the item in head of queue
-func (r *ReportsQueue) PeekHead() JobReport {
-	return r.Reports[r.Head]
+// Dump shows the internal state of the queue
+func (r *ReportsQueue) Dump(w io.Writer) {
+	if r.Length() < 1 {
+		return
+	}
+
+	var maxPop = int64(0)
+
+	fmt.Fprintf(w, "head:%d, tail:%d\n", r.Head, r.Tail)
+	i := r.Tail
+	for {
+		j := (i + r.Capacity - 1) % r.Capacity
+		//This is supposedly impossible to be zero....
+		t := (r.Entry[i].TStamp - r.Entry[j].TStamp)
+		b := r.Entry[j].Bytes
+		if t > 0 && b > 0 {
+			fmt.Fprintf(
+				w,
+				"%d: %dQ %vkB/s => %vB in %v ms\n",
+				j,
+				r.Entry[j].Population,
+				(1.0*r.Entry[j].Bytes)/t,
+				r.Entry[j].Bytes,
+				r.Entry[i].TStamp-r.Entry[j].TStamp,
+			)
+		}
+		if r.Entry[j].Population > int64(maxPop) {
+			maxPop = r.Entry[j].Population
+		}
+		if j == r.Head {
+			break
+		}
+		i = (i + r.Capacity - 1) % r.Capacity
+	}
+
+	fmt.Fprintf(
+		w,
+		"estimates (that may change when downloads complete - 0Pop):\n",
+	)
+
+	//XXX stupidly inefficient O(p * q) algorithm!!! Do not use if population
+	//gets very high.  This can be done incrementally and efficiently, but could
+	//be costly in memory without exponentially weighting buckets per pop
+	//ie: only store for population: 0,2,4,8,16,...
+	entryPerPop := make([]QStat, maxPop+1)
+
+	//Calculate throughput per population
+	for p := int64(0); p <= maxPop; p++ {
+		for {
+			j := (i + r.Capacity - 1) % r.Capacity
+			t := r.Entry[i].TStamp - r.Entry[j].TStamp
+			b := r.Entry[j].Bytes
+			w := r.Entry[j].Population * t
+			if p == r.Entry[j].Population && b > 0 && t > 0 {
+				entryPerPop[p].TotalBytes += b
+				entryPerPop[p].TotalTime += t
+				entryPerPop[p].PopWeightedByTime += w
+			}
+			if j == r.Head {
+				break
+			}
+			i = (i + r.Capacity - 1) % r.Capacity
+		}
+	}
+	//Show throughput per population
+	for p := int64(0); p <= maxPop; p++ {
+		if entryPerPop[p].TotalTime > 0 && entryPerPop[p].TotalBytes > 0 {
+			fmt.Fprintf(
+				w,
+				"%dQ %vkB/s\n",
+				p,
+				(1.0*entryPerPop[p].TotalBytes)/entryPerPop[p].TotalTime,
+			)
+		}
+	}
+
+	if r.Stat.TotalTime > 0 {
+		fmt.Fprintf(
+			w,
+			"flushed: %v %vkB/s => %vB in %vms\n",
+			(1.0*r.Stat.PopWeightedByTime)/r.Stat.TotalTime,
+			((1.0)*r.Stat.TotalBytes)/r.Stat.TotalTime,
+			r.Stat.TotalBytes,
+			r.Stat.TotalTime,
+		)
+	}
 }
 
 // PeekTail gets the item in the tail of the queue
-func (r *ReportsQueue) PeekTail() JobReport {
-	return r.Reports[r.Tail]
-}
-
-// Empty checks to see if there is data in the queue
-func (r *ReportsQueue) Empty() bool {
-	return ((r.Tail+1)%r.Capacity == r.Head)
+func (r *ReportsQueue) PeekTail() QEntry {
+	return r.Entry[r.Tail]
 }
 
 // JobReporter is an individual counter
@@ -367,12 +402,12 @@ type JobReporter struct {
 	PopWeightedByTime int64
 }
 
-func getTStamp() int64 {
+func getTStampMS() int64 {
 	return (time.Now().UnixNano() / (1000 * 1000))
 }
 
 func jobReportersBeginning(r *JobReporters, beginningJob BeginningJob) BeganJob {
-	beganJob := BeganJob(getTStamp())
+	beganJob := BeganJob(getTStampMS())
 
 	reporter := r.Reporters[beginningJob.ReporterID]
 
@@ -383,22 +418,16 @@ func jobReportersBeginning(r *JobReporters, beginningJob BeginningJob) BeganJob 
 		SizeJob: SizeJob(0),
 	}
 
-	var prevPopulation = 0
-	if reporter.Q.Empty() == false {
-		prevPopulation = reporter.Q.PeekTail().PopulationStop
-	}
-	jobReport.PopulationStart = prevPopulation
-	jobReport.PopulationStop = prevPopulation + 1
-
-	reporter.Q.PushTail(jobReport)
+	reporter.Q.InsertStat(jobReport)
 	r.JobNameRefCount[beginningJob.JobName]++
 
 	return beganJob
 }
 
 func jobReportersJobReport(r *JobReporters, j EndingJob) {
-	//Snap to millisecond
-	j.JobReport.Stop = EndedJob(getTStamp())
+	//Snap to millisecond - notice that end stamps always are ahead by 1, to make
+	//divide by zero impossible.
+	j.JobReport.Stop = EndedJob(getTStampMS() + int64(1))
 	duration := int64(j.JobReport.Stop) - int64(j.JobReport.Start)
 
 	//Increment the counters
@@ -406,16 +435,10 @@ func jobReportersJobReport(r *JobReporters, j EndingJob) {
 	reporter.TotalTime += duration
 	reporter.TotalBytes += int64(j.JobReport.SizeJob)
 
-	var prevPopulation = reporter.Q.PeekTail().PopulationStop
-	if prevPopulation < 0 {
-		log.Printf("r:%v", r)
-		panic("we cannot call this with a zero or less population!")
-	}
-	j.JobReport.PopulationStart = prevPopulation
-	j.JobReport.PopulationStop = prevPopulation - 1
-	reporter.Q.PushTail(j.JobReport)
+	reporter.Q.InsertStat(j.JobReport)
 
-	reporter.PopWeightedByTime += duration * int64(j.JobReport.PopulationStart)
+	//TODO: we need to look at the tail of the queue  to find current population.
+	//reporter.PopWeightedByTime += duration * int64(j.JobReport.PopulationStart)
 
 	//Decrement the reference count on this file
 	r.JobNameRefCount[j.JobReport.JobName]--
@@ -427,10 +450,10 @@ func jobReportersJobReport(r *JobReporters, j EndingJob) {
 func jobReportersRequestingReport(reporters *JobReporters, requestingReport RequestingReport) RequestedReport {
 	r := reporters.Reporters[requestingReport.ReporterID]
 	rr := RequestedReport{
-		Size:     r.TotalBytes,
-		Duration: r.TotalTime,
+		Size:     r.Q.Stat.TotalBytes,
+		Duration: r.Q.Stat.TotalTime,
 		Name:     r.Name,
-		PopulationWeightedByDuration: r.PopWeightedByTime,
+		PopulationWeightedByDuration: r.Q.Stat.PopWeightedByTime,
 	}
 	return rr
 }
@@ -441,10 +464,10 @@ func jobReportersRequestingReport(reporters *JobReporters, requestingReport Requ
 func jobReportersThread(r *JobReporters) {
 	for {
 		select {
-		case beginningJob := <-r.BeginningJob:
-			r.BeganJob <- jobReportersBeginning(r, beginningJob)
 		case endingJob := <-r.EndingJob:
 			jobReportersJobReport(r, endingJob)
+		case beginningJob := <-r.BeginningJob:
+			r.BeganJob <- jobReportersBeginning(r, beginningJob)
 		case requestingReport := <-r.RequestingReport:
 			r.RequestedReport <- jobReportersRequestingReport(r, requestingReport)
 		case _ = <-r.Quit:
@@ -460,7 +483,7 @@ func jobReportersThread(r *JobReporters) {
 func NewJobReporters(capacity int, canDeleteHandler CanDeleteHandler) *JobReporters {
 	reporters := &JobReporters{
 		Capacity:   capacity,
-		CreateTime: EndedJob(getTStamp()),
+		CreateTime: EndedJob(0),
 		Reporters:  make(map[ReporterID]*JobReporter),
 		//this is why the channels are shared
 		JobNameRefCount:  make(map[string]int),
@@ -469,7 +492,7 @@ func NewJobReporters(capacity int, canDeleteHandler CanDeleteHandler) *JobReport
 		EndingJob:        make(chan EndingJob, 32),
 		RequestingReport: make(chan RequestingReport, 32),
 		RequestedReport:  make(chan RequestedReport, 32),
-		Quit:             make(chan int),
+		Quit:             make(chan int, 32),
 		CanDelete:        make(chan string, 1024),
 		CanDeleteHandler: canDeleteHandler,
 	}
@@ -535,33 +558,4 @@ func (jrs *JobReporters) Report(reporterID ReporterID) RequestedReport {
 		ReporterID: reporterID,
 	}
 	return <-jrs.RequestedReport
-}
-
-// InvariantsCheck is a check for valid state after the population is 0
-func (j *JobReporter) InvariantsCheck() {
-	//Check invariants
-	q := j.Q
-	h := q.Head
-	t := q.Tail
-	p := q.Reports[t].PopulationStop
-	if p != 0 {
-		log.Printf("%v", j.Q)
-		panic("inconsistent population")
-	}
-	idx := h
-	for {
-		if int64(q.Reports[idx].Start) > int64(q.Reports[idx].Stop) {
-			log.Printf("%v", j.Q)
-			panic("start times should be before stop times")
-		}
-		prevIdx := idx
-		idx = (idx + 1) % q.Capacity
-		if int64(q.Reports[idx].Start) < int64(q.Reports[prevIdx].Stop) {
-			log.Printf("%v", j.Q)
-			panic("start times of current should not be less than previous")
-		}
-		if idx == t {
-			break
-		}
-	}
 }
