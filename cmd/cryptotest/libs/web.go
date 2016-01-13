@@ -218,21 +218,13 @@ func (h Uploader) serveHTTPUploadGETMsg(msg string, w http.ResponseWriter, r *ht
 }
 
 func (h Uploader) reportStats(w http.ResponseWriter, r *http.Request) {
-	r.Header.Set("Content-Type", "text/html")
-	statTypes := []ReporterID{UploadCounter, DownloadCounter}
+	r.Header.Set("Content-Type", "text/plain")
 
-	fmt.Fprintf(w, "<html><body>")
-	for i := 0; i < len(statTypes); i++ {
-		stat := h.Tracker.Report(statTypes[i])
-		nm := stat.Name
-		events := stat.Size
-		observationPeriod := stat.Duration
-		if observationPeriod > 0 {
-			rate := events / observationPeriod
-			fmt.Fprintf(w, "%s: %d%s<br>", nm, rate, "B/s")
-		}
-	}
-	fmt.Fprintf(w, "</body></html>")
+	fmt.Fprintf(w, "\nUploaders Aggregate:\n")
+	h.Tracker.Reporters[UploadCounter].Q.Dump(w)
+
+	fmt.Fprintf(w, "\nDownloaders Aggregate:\n")
+	h.Tracker.Reporters[DownloadCounter].Q.Dump(w)
 }
 
 /* Really upload a file into the server
@@ -359,6 +351,7 @@ func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	}
 	fileKey := obfuscateHash(originalFileName)
 	fileName := fileKey
+	beganJob := h.Tracker.BeginTime(DownloadCounter, fileName)
 
 	//Get the locally cached checksum - it's not an error if it isn't here
 	fileHasChanged := h.hasFileChanged(fileName)
@@ -370,6 +363,8 @@ func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	_, err := h.retrieveChecksumData(fileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "unable to retrieve checksum")
+		h.Tracker.EndTime(DownloadCounter, beganJob, fileName, SizeJob(0))
+
 		return
 	}
 
@@ -377,6 +372,8 @@ func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	applyPassphrase([]byte(masterKey), key)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "unable to retrieve key and iv")
+		h.Tracker.EndTime(DownloadCounter, beganJob, fileName, SizeJob(0))
+
 		return
 	}
 	//Set the classification in the http header for download
@@ -385,10 +382,10 @@ func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	downloadFrom, closer, err := h.Backend.GetReadHandle(fileName + ".data")
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "failed to open file for reading")
+		h.Tracker.EndTime(DownloadCounter, beganJob, fileName, SizeJob(0))
 		return
 	}
 	defer closer.Close()
-	beganJob := h.Tracker.BeginTime(DownloadCounter, fileName)
 	_, length, err := doCipherByReaderWriter(downloadFrom, w, key, iv)
 	h.Tracker.EndTime(DownloadCounter, beganJob, fileName, SizeJob(length))
 	if err != nil {
@@ -518,7 +515,24 @@ func makeServer(
 		KeyBytes:       keyBytes,
 		RSAEncryptBits: rsaEncryptBits,
 	}
-	h.Tracker = NewJobReporters(1024, h.purgeFile)
+
+	purgeFile := func(name string) {
+		go func() {
+			keyName := obfuscateHash(name)
+			//Must delete hash to cause file to download
+			//At a minimum we must also delete data to save space
+			h.Backend.DeleteFile(keyName + ".data")
+			h.Backend.DeleteFile(keyName + ".iv")
+			h.Backend.DeleteFile(keyName + ".key")
+			h.Backend.DeleteFile(keyName + ".hash")
+			h.Backend.DeleteFile(keyName + ".class")
+			//The grants for this file are currently left in, as that involves a
+			//per user search to get rid of them.
+			log.Printf("TODO: purge cached items for %s, except user grants", name)
+		}()
+	}
+	h.Tracker = NewJobReporters(1024, purgeFile)
+
 	//Swap out with S3 at this point
 	h.Backend = h.NewAWSBackend()
 	err := h.Backend.EnsurePartitionExists(theRoot)
