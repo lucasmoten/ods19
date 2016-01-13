@@ -1,12 +1,12 @@
-#!/bin/python
+#!/usr/bin/env python
 
 import os
 import sys
 import logging
+import subprocess
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 log = logging.getLogger('BUILD')
-
 
 GOPATH = os.getenv('GOPATH')
 PROJECT_ROOT = os.path.join(GOPATH, 'src', 'decipher.com', 'oduploader')
@@ -16,8 +16,6 @@ def generate_certs():
     gencerts_dir = os.path.join(PROJECT_ROOT, 'cmd', 'cryptotest', 'defaultcerts', 'server')
     if os.path.exists(gencerts_dir):
         os.chdir(gencerts_dir)
-
-        import subprocess
         try:
             subprocess.check_call(['./exportit'])
         except subprocess.CalledProcessError:
@@ -25,8 +23,20 @@ def generate_certs():
 
 
 def go_get_libs():
-    os.getcwdu()
-    pass
+    os.chdir(PROJECT_ROOT)
+    try:
+        log.info('Running `go get`')
+        subprocess.check_call(['go', 'get', './...', ])
+    except subprocess.CalledProcessError:
+        log.error('Error in call to `go get .\...`')
+
+
+def update_thrift_lib():
+    repository = 'github.com/samuel/go-thrift/generator'
+    try:
+        subprocess.check_call(['go', 'get', '-u', repository])
+    except subprocess.CalledProcessError:
+        log.error('Could not get repository %s' % repository)
 
 
 def main():
