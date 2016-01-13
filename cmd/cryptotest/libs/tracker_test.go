@@ -53,6 +53,9 @@ func simulate(i int, done chan int) {
 }
 
 func TestSimulation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping statistics simulation test.")
+	}
 	//Run a random number of jobs
 	total := 100
 	done := make(chan int)
