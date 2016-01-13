@@ -3,6 +3,7 @@ package libs
 import (
 	"log"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 )
@@ -12,103 +13,63 @@ var reporters *JobReporters
 type job struct {
 	ReporterID ReporterID
 	Start      BeganJob
-	FileName   string
+	File       fileDescription
 }
 
-func TestReportingThread_NonDeterministic(t *testing.T) {
-	//A set of files to download and upload
-	jobNames := []string{
-		"chewbacca.jpg",
-		"odrive.pdf",
-		"ConcurrencyIsNotParallelism.mp4",
-	}
-	jobTypes := []ReporterID{
-		UploadCounter,
-		DownloadCounter,
-	}
+type fileDescription struct {
+	Name string
+	Size int64
+}
 
-	log.Printf("Starting test")
-	//Perform random actions on the API
-	var started = make([]job, 0)
-	var running = true
-	//drop to zero population this many times
-	rounds := 5
-	for running {
-		//Random sleep
-		time.Sleep(time.Duration(rand.Int()%1000) * time.Millisecond)
-		//Either start or finish a job
-		if len(started) == 0 || (rand.Int()%10) > 4 {
-			//Randomly up or down and random job name
-			nm := jobNames[rand.Int()%len(jobNames)]
-			jt := jobTypes[rand.Int()%len(jobTypes)]
-			////The API call
-			startedAt := reporters.BeginTime(jt, nm)
-			job := job{
-				Start:      startedAt,
-				FileName:   nm,
-				ReporterID: jt,
-			}
-			started = append(started, job)
-			log.Printf("started %d:%s", job.ReporterID, job.FileName)
-		} else {
-			//Pick a random job to complete
-			nth := rand.Int() % len(started)
-			job := started[nth]
-			started = append(started[:nth], started[nth+1:]...)
-			size := SizeJob(rand.Int() % 1000000)
-			////The API call
-			reporters.EndTime(job.ReporterID, job.Start, job.FileName, size)
-			log.Printf("ended %d:%s", job.ReporterID, job.FileName)
-		}
-		if len(started) == 0 {
-			rounds--
-			if rounds <= 0 {
-				running = false
-			}
-		}
-	}
+//A set of files to download and upload
+var files []fileDescription
+var jobTypes []ReporterID
 
-	log.Printf("Getting reports")
-	for i := 0; i < len(jobTypes); i++ {
-		jobType := jobTypes[i]
-		counter := reporters.Report(jobType)
-		if counter.Duration > 0 {
-			log.Printf(
-				"%s:%d B/s, %f SessionAverage",
-				counter.Name,
-				counter.Size/counter.Duration,
-				float32(counter.PopulationWeightedByDuration)/float32(counter.Duration),
-			)
-		}
-		//Check invariants
-		q := reporters.Reporters[jobType].Q
-		h := q.Head
-		t := q.Tail
-		p := q.Reports[t].PopulationStop
-		if p != 0 {
-			log.Printf("%v", reporters.Reporters[jobType].Q)
-			panic("inconsistent population")
-		}
-		idx := h
-		for {
-			if int64(q.Reports[idx].Start) > int64(q.Reports[idx].Stop) {
-				log.Printf("%v", reporters.Reporters[jobType].Q)
-				panic("start times should be before stop times")
-			}
-			prevIdx := idx
-			idx = (idx + 1) % q.Capacity
-			if int64(q.Reports[idx].Start) < int64(q.Reports[prevIdx].Stop) {
-				log.Printf("%v", reporters.Reporters[jobType].Q)
-				panic("start times of current should not be less than previous")
-			}
-			if idx == t {
-				break
-			}
-		}
-		//Dump the end result
-		log.Printf("%v", reporters.Reporters[jobType].Q)
+func simulate(i int, done chan int) {
+	log.Printf("sim start:%d", i)
+
+	//Pick a random job type and file
+	n := rand.Int() % len(files)
+	jt := jobTypes[rand.Int()%1]
+
+	//Noise between 1.0 and 1.5
+	var noise = 1.0 + float32(rand.Int()%500)/1000.0
+
+	time.Sleep(time.Duration(rand.Int()%10000) * time.Millisecond)
+
+	//and run for some jittery time proportional to file size
+	//100kB/s with some noise
+	var bandwidth float32 = 100000.0
+	startedAt := reporters.BeginTime(jt, files[n].Name)
+	//log.Printf(" began[%d]", i)
+
+	transactionTime := noise * float32(files[n].Size) / bandwidth
+	log.Printf("%d transactionTime will be %vs", i, transactionTime)
+	//Do the actual sleep
+	time.Sleep(time.Duration(transactionTime) * time.Second)
+	reporters.EndTime(jt, startedAt, files[n].Name, SizeJob(files[n].Size))
+
+	done <- 1
+}
+
+func TestSimulation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping statistics simulation test.")
 	}
-	reporters.Stop()
+	//Run a random number of jobs
+	total := 100
+	done := make(chan int)
+	for i := 0; i < total; i++ {
+		go simulate(i, done)
+	}
+	remaining := total
+	for remaining > 0 {
+		_ = <-done
+		remaining--
+		log.Printf("remaining: %d", remaining)
+	}
+	reporters.Reporters[UploadCounter].Q.Dump(os.Stdout)
+	reporters.Reporters[DownloadCounter].Q.Dump(os.Stdout)
 }
 
 func logPurge(name string) {
@@ -117,5 +78,17 @@ func logPurge(name string) {
 
 func init() {
 	PanicOnProblem = true
-	reporters = NewJobReporters(logPurge)
+	reporters = NewJobReporters(32, logPurge)
+	//A set of files to download and upload
+	files = []fileDescription{
+		fileDescription{"chewbacca.jpg", 10234},
+		fileDescription{"grumptycat.jpg", 8214},
+		fileDescription{"odrive.pdf", 90234},
+		fileDescription{"ConcurrencyIsNotParallelism.mp4", 1300000},
+		fileDescription{"everything.doc", 28385},
+	}
+	jobTypes = []ReporterID{
+		UploadCounter,
+		DownloadCounter,
+	}
 }
