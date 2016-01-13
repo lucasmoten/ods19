@@ -14,10 +14,12 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
+	"decipher.com/oduploader/config"
 	"github.com/aws/aws-sdk-go/aws"
 )
 
@@ -569,6 +571,8 @@ func flagSetup() {
 	//Pass in on launch like:
 	//     masterkey=3kdk3kfk588kfskweui23yui ./uploader ...
 	masterKey = os.Getenv("masterkey")
+	// TODO: use a proper path join in case we need to support Windows someday
+	certsDir := filepath.Join(config.ProjectRoot, "defaultcerts")
 	flag.StringVar(&awsConfig, "awsConfig", "default", "the config entry to connect to aws")
 	flag.BoolVar(&hideFileNames, "hideFileNames", true, "use unhashed file and user names")
 	flag.IntVar(&tcpPort, "tcpPort", 6443, "set the tcp port")
@@ -577,9 +581,9 @@ func flagSetup() {
 	flag.StringVar(&partition, "partition", "partition", "partition within a bucket, and file cache location")
 	flag.IntVar(&bufferSize, "bufferSize", 1024*4, "the size of a buffer between streams in a session")
 	flag.IntVar(&keyBytes, "keyBytes", 32, "AES key size in bytes")
-	flag.StringVar(&serverTrustFile, "serverTrustFile", "defaultcerts/server/server.trust.pem", "The SSL Trust in PEM format for this server")
-	flag.StringVar(&serverCertFile, "serverCertFile", "defaultcerts/server/server.cert.pem", "The SSL Cert in PEM format for this server")
-	flag.StringVar(&serverKeyFile, "serverKeyFile", "defaultcerts/server/server.key.pem", "The private key for the SSL Cert for this server")
+	flag.StringVar(&serverTrustFile, "serverTrustFile", filepath.Join(certsDir, "server", "server.trust.pem"), "The SSL Trust in PEM format for this server")
+	flag.StringVar(&serverCertFile, "serverCertFile", filepath.Join(certsDir, "server", "server.cert.pem"), "The SSL Cert in PEM format for this server")
+	flag.StringVar(&serverKeyFile, "serverKeyFile", filepath.Join(certsDir, "server", "server.key.pem"), "The private key for the SSL Cert for this server")
 	flag.IntVar(&rsaEncryptBits, "rsaEncryptBits", 1024, "The number of bits to encrypt a user file key with")
 	flag.Parse()
 }

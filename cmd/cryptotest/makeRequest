@@ -1,12 +1,13 @@
 #!/bin/bash
 
+project_root=$GOPATH/src/decipher.com/oduploader
 thehost=twl-server-generic2
 #thehost=dockervm
 #thehost=e79e38f8fd8c
 
 curl -X GET -vv --cert-type p12 \
-	--cacert defaultcerts/clients/client.trust.backwards.tpem \
-	--cert   defaultcerts/clients/test_1.p12:password \
+	--cacert $project_root/defaultcerts/clients/client.trust.backwards.tpem \
+	--cert   $project_root/defaultcerts/clients/test_1.p12:password \
 	https://$thehost:7444/capco/allcapcodata?userToken=CN%3Dtest%20tester01,OU%3DPeople,OU%3DDAS,OU%3DChimera,O%3DU.S.%20Government,C%3DUS
 
 #acm/checkaccess

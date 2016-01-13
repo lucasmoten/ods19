@@ -49,6 +49,10 @@ func init() {
 
 func TestCheckAccess(t *testing.T) {
 
+	if testing.Short() {
+		t.Skip("Skipping as integration test.")
+	}
+
 	tokenType := "pki_dias"
 	acmComplete := "{ \"version\":\"2.1.0\", \"classif\":\"TS\", \"owner_prod\":[], \"atom_energy\":[], \"sar_id\":[], \"sci_ctrls\":[ \"HCS\", \"SI-G\", \"TK\" ], \"disponly_to\":[ \"\" ], \"dissem_ctrls\":[ \"OC\" ], \"non_ic\":[], \"rel_to\":[], \"fgi_open\":[], \"fgi_protect\":[], \"portion\":\"TS//HCS/SI-G/TK//OC\", \"banner\":\"TOP SECRET//HCS/SI-G/TK//ORCON\", \"dissem_countries\":[ \"USA\" ], \"accms\":[], \"macs\":[], \"oc_attribs\":[ { \"orgs\":[ \"dia\" ], \"missions\":[], \"regions\":[] } ], \"f_clearance\":[ \"ts\" ], \"f_sci_ctrls\":[ \"hcs\", \"si_g\", \"tk\" ], \"f_accms\":[], \"f_oc_org\":[ \"dia\", \"dni\" ], \"f_regions\":[], \"f_missions\":[], \"f_share\":[], \"f_atom_energy\":[], \"f_macs\":[], \"disp_only\":\"\" }"
 	resp, err := aacClient.CheckAccess(userDN1, tokenType, acmComplete)
@@ -70,6 +74,10 @@ func TestCheckAccess(t *testing.T) {
 }
 
 func TestBuildAcm(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip("Skipping as integration test.")
+	}
 
 	// NOTE: This relies on a hacky find/replace in the generated code, changing
 	// every instance of []byte to []int8. This is due to a bug in the Thrift lib
@@ -98,6 +106,11 @@ func TestBuildAcm(t *testing.T) {
 }
 
 func TestValidateAcm(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip("Skipping as integration test.")
+	}
+
 	resp, err := aacClient.ValidateAcm(acmPartial1)
 	if err != nil {
 		t.Logf("Error from ValidateAcm() method: %v \n", err)
@@ -118,6 +131,10 @@ func TestValidateAcm(t *testing.T) {
 
 func TestPopulateAndValidateAcm(t *testing.T) {
 
+	if testing.Short() {
+		t.Skip("Skipping as integration test.")
+	}
+
 	resp, err := aacClient.PopulateAndValidateAcm(acmComplete1)
 	if err != nil {
 		t.Logf("Error from remote call PopulateAndValidateAcm() method: %v \n", err)
@@ -132,10 +149,20 @@ func TestPopulateAndValidateAcm(t *testing.T) {
 }
 
 func TestCreateAcmFromBannerMarking(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip("Skipping as integration test.")
+	}
+
 	t.Skipf("CreateAcmFromBannerMarking() not implemented within service.\n")
 }
 
 func TestRollupAcms(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip("Skipping as integration test.")
+	}
+
 	acmList := []string{
 		acmComplete1,
 		acmComplete2,
@@ -162,6 +189,10 @@ func TestRollupAcms(t *testing.T) {
 }
 
 func TestCheckAccessAndPopulate(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip("Skipping as integration test.")
+	}
 
 	// TODO: Refactor to table-driven test with failure scenarios. Right now,
 	// everything succeeds. This is not realistic.
@@ -209,6 +240,10 @@ func TestCheckAccessAndPopulate(t *testing.T) {
 
 func TestGetUserAttributes(t *testing.T) {
 
+	if testing.Short() {
+		t.Skip("Skipping as integration test.")
+	}
+
 	resp, err := aacClient.GetUserAttributes(userDN1, "pki_dias", "")
 
 	if err != nil {
@@ -223,6 +258,10 @@ func TestGetUserAttributes(t *testing.T) {
 }
 
 func TestGetSnippets(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip("Skipping as integration test.")
+	}
 
 	resp, err := aacClient.GetSnippets(userDN1, "pki_dias", snippetType)
 
@@ -244,6 +283,10 @@ func TestGetSnippets(t *testing.T) {
 }
 
 func TestGetShare(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip("Skipping as integration test.")
+	}
 
 	// NOTE: when using private AAC, use the userToken passed. For Chimera this
 	// should use the GUID generated not the DN.  This is only for this method.
