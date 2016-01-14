@@ -219,3 +219,23 @@ func (h Uploader) retrieveMetaData(fileName string, dn string) (key []byte, iv [
 	applyPassphrase([]byte(masterKey), key)
 	return key, iv, cls, nil
 }
+
+/**
+Get a key,iv appropriate for obfuscating the listing.
+*/
+func (h Uploader) retrieveUserMetaData(dn string) (key []byte, iv []byte) {
+	//Generate a key and iv off of username and obfuscation password:
+	key = make([]byte, h.KeyBytes)
+	iv = make([]byte, aes.BlockSize)
+
+	pass := masterKey
+
+	//These silly things being applied are just to force the key to come out
+	//different from iv.  What is important is that pass is in both of these.
+	applyPassphrase([]byte("sodiumChloride"+pass), key)
+	applyPassphrase([]byte("nitrousOxide"+dn), key)
+	applyPassphrase([]byte("earth"+pass), iv)
+	applyPassphrase([]byte("pluto"+dn), iv)
+
+	return key, iv
+}

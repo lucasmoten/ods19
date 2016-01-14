@@ -6,8 +6,11 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
+	"decipher.com/oduploader/config"
+	"decipher.com/oduploader/performance"
 	"flag"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
 	"io"
 	"io/ioutil"
 	"log"
@@ -18,9 +21,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"decipher.com/oduploader/config"
-	"github.com/aws/aws-sdk-go/aws"
 )
 
 /* ServeHTTP handles the routing of requests
@@ -196,9 +196,13 @@ func (h Uploader) serveHTTPUploadPOSTDrain(
 
 	log.Printf("uploaded %v bytes", length)
 
-	h.listingUpdate(originalFileName, classification, w, r)
-	err = h.drainToS3(dataFileName, keyFileName, ivFileName, classFileName, checksumFileName)
-	return length, err
+	go func() {
+		h.listingUpdate(originalFileName, classification, w, r)
+		beganAt := h.Tracker.BeginTime(performance.S3DrainTo, originalFileName)
+		h.drainToS3(dataFileName, keyFileName, ivFileName, classFileName, checksumFileName)
+		h.Tracker.EndTime(performance.S3DrainTo, beganAt, originalFileName, performance.SizeJob(length))
+	}()
+	return length, nil
 }
 
 /**
@@ -223,10 +227,13 @@ func (h Uploader) reportStats(w http.ResponseWriter, r *http.Request) {
 	r.Header.Set("Content-Type", "text/plain")
 
 	fmt.Fprintf(w, "\nUploaders Aggregate:\n")
-	h.Tracker.Reporters[UploadCounter].Q.Dump(w)
+	h.Tracker.Reporters[performance.UploadCounter].Q.Dump(w)
+
+	fmt.Fprintf(w, "\nS3 DrainTo Aggregate:\n")
+	h.Tracker.Reporters[performance.S3DrainTo].Q.Dump(w)
 
 	fmt.Fprintf(w, "\nDownloaders Aggregate:\n")
-	h.Tracker.Reporters[DownloadCounter].Q.Dump(w)
+	h.Tracker.Reporters[performance.DownloadCounter].Q.Dump(w)
 }
 
 /* Really upload a file into the server
@@ -264,10 +271,10 @@ func (h Uploader) serveHTTPUploadPOST(w http.ResponseWriter, r *http.Request) {
 				if len(part.FileName()) > 0 {
 					if isAuthorized {
 						fileName = part.FileName()
-						beganJob := h.Tracker.BeginTime(UploadCounter, fileName)
+						beganJob := h.Tracker.BeginTime(performance.UploadCounter, fileName)
 						keyName := obfuscateHash(fileName)
 						length, err = h.serveHTTPUploadPOSTDrain(fileName, keyName, classification, w, r, part)
-						h.Tracker.EndTime(UploadCounter, beganJob, fileName, SizeJob(length))
+						h.Tracker.EndTime(performance.UploadCounter, beganJob, fileName, performance.SizeJob(length))
 						if err != nil {
 							h.sendErrorResponse(w, 500, err, "unable to drain file")
 							return
@@ -353,7 +360,7 @@ func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	}
 	fileKey := obfuscateHash(originalFileName)
 	fileName := fileKey
-	beganJob := h.Tracker.BeginTime(DownloadCounter, fileName)
+	beganJob := h.Tracker.BeginTime(performance.DownloadCounter, fileName)
 
 	//Get the locally cached checksum - it's not an error if it isn't here
 	fileHasChanged := h.hasFileChanged(fileName)
@@ -365,7 +372,7 @@ func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	_, err := h.retrieveChecksumData(fileName)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "unable to retrieve checksum")
-		h.Tracker.EndTime(DownloadCounter, beganJob, fileName, SizeJob(0))
+		h.Tracker.EndTime(performance.DownloadCounter, beganJob, fileName, performance.SizeJob(0))
 
 		return
 	}
@@ -374,7 +381,7 @@ func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	applyPassphrase([]byte(masterKey), key)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "unable to retrieve key and iv")
-		h.Tracker.EndTime(DownloadCounter, beganJob, fileName, SizeJob(0))
+		h.Tracker.EndTime(performance.DownloadCounter, beganJob, fileName, performance.SizeJob(0))
 
 		return
 	}
@@ -384,12 +391,12 @@ func (h Uploader) serveHTTPDownloadGET(w http.ResponseWriter, r *http.Request) {
 	downloadFrom, closer, err := h.Backend.GetReadHandle(fileName + ".data")
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "failed to open file for reading")
-		h.Tracker.EndTime(DownloadCounter, beganJob, fileName, SizeJob(0))
+		h.Tracker.EndTime(performance.DownloadCounter, beganJob, fileName, performance.SizeJob(0))
 		return
 	}
 	defer closer.Close()
 	_, length, err := doCipherByReaderWriter(downloadFrom, w, key, iv)
-	h.Tracker.EndTime(DownloadCounter, beganJob, fileName, SizeJob(length))
+	h.Tracker.EndTime(performance.DownloadCounter, beganJob, fileName, performance.SizeJob(length))
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "unable to decrypt file")
 	}
@@ -436,13 +443,33 @@ func (h Uploader) listingUpdate(originalFileName string, clas string, w http.Res
 		closer.Close()
 	}
 
-	//Append to the file
-	dirListing, closer, err := h.Backend.GetAppendHandle(dirListingName)
+	//Now... the file exists locally, it is encrypted, and we know its key.
+	//We need to append data to it, and flush it back to S3.
+	key, iv := h.retrieveUserMetaData(h.getDN(r))
+	dirListing, closer, err := h.Backend.GetReadHandle(dirListingName)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "unable to read/write directory listing")
+		h.sendErrorResponse(w, 500, err, "unable to read directory listing")
 		return
 	}
 	defer closer.Close()
+	//XXX - temporarily written to plaintext
+	dirListingPlaintext, closer, err := h.Backend.GetWriteHandle(dirListingName + ".plain")
+	if err != nil {
+		h.sendErrorResponse(w, 500, err, "unable to write updated directory listing")
+	}
+	defer closer.Close()
+	doCipherByReaderWriter(dirListing, dirListingPlaintext, key, iv)
+	//Open in append mode
+	dirListingAppend, err := os.OpenFile(h.Partition+"/"+dirListingName+".plain", os.O_RDWR|os.O_APPEND, 0600)
+	if err != nil {
+		h.sendErrorResponse(w, 500, err, "unable to write append directory listing")
+	}
+	defer func() {
+		os.Remove(h.Partition + "/" + dirListingName + ".plain")
+	}()
+	defer dirListingAppend.Close()
+	//Not it's written locally to plaintext.  Append to plaintext, write back to ciphertext,
+	//and delete the listing.
 
 	//This is an *append* operation.  It is in plaintext, so it's not hiding filenames right now.
 	newRecord :=
@@ -450,8 +477,22 @@ func (h Uploader) listingUpdate(originalFileName string, clas string, w http.Res
 			originalFileName + "'>(" + clas + ") " + originalFileName +
 			"</a><br>"
 
-	dirListing.Write([]byte(newRecord + "\n"))
+	dirListingAppend.Write([]byte(newRecord + "\n"))
 
+	dirListingPlaintextRd, closer, err := h.Backend.GetReadHandle(dirListingName + ".plain")
+	if err != nil {
+		h.sendErrorResponse(w, 500, err, "unable to read directory plaintext listing")
+		return
+	}
+	defer closer.Close()
+
+	dirListingFlush, closer, err := h.Backend.GetWriteHandle(dirListingName)
+	if err != nil {
+		h.sendErrorResponse(w, 500, err, "unable to flush existing directory listing")
+		return
+	}
+	defer closer.Close()
+	doCipherByReaderWriter(dirListingPlaintextRd, dirListingFlush, key, iv)
 	//Ship the new version back
 	h.drainFileToS3(svc, sess, bucket, dirListingName)
 }
@@ -476,8 +517,9 @@ func (h Uploader) listingRetrieve(w http.ResponseWriter, r *http.Request) {
 	}
 	defer closer.Close()
 
+	key, iv := h.retrieveUserMetaData(h.getDN(r))
 	w.Write([]byte("<html>\n"))
-	io.Copy(w, dirListing)
+	doCipherByReaderWriter(dirListing, w, key, iv)
 	w.Write([]byte("</html>\n"))
 }
 
@@ -533,7 +575,7 @@ func makeServer(
 			log.Printf("TODO: purge cached items for %s, except user grants", name)
 		}()
 	}
-	h.Tracker = NewJobReporters(1024, purgeFile)
+	h.Tracker = performance.NewJobReporters(1024, purgeFile)
 
 	//Swap out with S3 at this point
 	h.Backend = h.NewAWSBackend()
