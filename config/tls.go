@@ -22,6 +22,7 @@ var (
 	thriftClientCertPath string
 )
 
+//TODO: globals should deal with this in flags and envs.
 func init() {
 	if certPathFromEnv := os.Getenv("ODRIVE_UPLOADER_CERT"); certPathFromEnv != "" {
 		log.Printf("UPLOADER X509 certificate path read from environment: %s", certPathFromEnv)
@@ -41,21 +42,48 @@ func init() {
 // NewUploaderTLSConfig reads the environment for paths to X509 certificates
 // or uses a default. A pointer to TLSConfig is returned
 func NewUploaderTLSConfig() *tls.Config {
+	//XXX This doesn't look right (cert.pem),
+	// as files going into clientCertPool are trust certs.
+	return NewUploaderTLSConfigWithParms(uploaderCertPath, "")
+}
 
-	certBytes, err := ioutil.ReadFile(uploaderCertPath)
-	if err != nil {
-		log.Fatalln("Unable to open file at: ", uploaderCertPath, err)
-	}
+// NewUploaderTLSConfigWithEnvironment picks through the environment
+// to give us a custom TLS configuration
+func NewUploaderTLSConfigWithEnvironment(env *Environment) *tls.Config {
+	return NewUploaderTLSConfigWithParms("", env.ServerTrustFile)
+}
 
+// NewUploaderTLSConfigWithParms reads the environment for paths to X509 certificates
+// or uses a default. A pointer to TLSConfig is returned
+//
+// TODO: fatals should not be in libraries.  Return error codes
+func NewUploaderTLSConfigWithParms(certPath string, trustPath string) *tls.Config {
 	clientCertPool := x509.NewCertPool()
-	actualCert, err := x509.ParseCertificate(certBytes)
-	if err != nil {
-		log.Fatal("Error parsing cert: ", err)
+
+	//XXX this does not seem right - clientCertPool should be trusts
+	// but parsing it on startup might be interesting
+	if certPath != "" {
+		certBytes, err := ioutil.ReadFile(certPath)
+		if err != nil {
+			log.Fatalln("Unable to open cert file at: ", certPath, err)
+		}
+		actualCert, err := x509.ParseCertificate(certBytes)
+		if err != nil {
+			log.Fatal("Error parsing cert: ", err)
+		}
+		clientCertPool.AddCert(actualCert)
 	}
-	clientCertPool.AddCert(actualCert)
-	// if ok := clientCertPool.AppendCertsFromPEM(certBytes); !ok {
-	//	log.Fatalln("Unable to add certificate to certificate pool")
-	//	}
+
+	//TODO: this does not explicitly sanity check the certificates here
+	if trustPath != "" {
+		trustBytes, err := ioutil.ReadFile(trustPath)
+		if err != nil {
+			log.Fatalln("Unable to open trust file at: ", trustPath, err)
+		}
+		if ok := clientCertPool.AppendCertsFromPEM(trustBytes); !ok {
+			log.Fatal("Error appending cert: ", err)
+		}
+	}
 
 	tlsConfig := &tls.Config{
 		// Reject any TLS certificate that cannot be validated
