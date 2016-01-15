@@ -207,5 +207,6 @@ func GetDistinguishedName(theCert *x509.Certificate) string {
 	if len(result) > 0 {
 		result = result[2:len(result)]
 	}
+
 	return result
 }

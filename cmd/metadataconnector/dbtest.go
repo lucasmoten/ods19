@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -14,6 +13,7 @@ import (
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
 )
 
 func main() {
@@ -37,127 +37,35 @@ func main() {
 
 	// Setup web server
 	s, err := makeServer(serverConfig, db)
+	// with TLS support
 	stls := serverConfig.GetTLSConfig()
 	s.TLSConfig = &stls
 	serverCertFile := serverConfig.ServerCertChain
 	serverKeyFile := serverConfig.ServerKey
-	//func ListenAndServeTLS(addr string, certFile string, keyFile string, handler Handler) error
+	// start it
 	log.Println("Starting server on " + s.Addr)
 	log.Fatalln(s.ListenAndServeTLS(serverCertFile, serverKeyFile))
 
 	//dbtest()
 }
 
-/* ServeHTTP handles the routing of requests
- */
-func (h MCServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch {
-	case r.URL.RequestURI() == "/":
-		h.home(w, r)
-	case r.URL.RequestURI() == "/listObjects":
-		h.listObjects(w, r)
-	case r.URL.RequestURI() == "/getObject":
-		h.getObject(w, r)
-	default:
-		who := config.GetDistinguishedName(r.TLS.PeerCertificates[0])
-		msg := who + " requested uri: " + r.URL.RequestURI() + " from address: " + r.RemoteAddr + " with user agent: " + r.UserAgent()
-		log.Println("WARN: " + msg)
-		http.Error(w, "Resource not found", 404)
-	}
-}
-
-var pageTemplateStart = `
-<html>
-  <head><title>Object-Drive</title>
-	<body>
-		Method: %s
-		<br />
-		Distinguished Name:%s
-		<br />
-		<hr />
-`
-
-var pageTemplateEnd = `
-	</body>
-</html>
-`
-
-func (h MCServer) home(w http.ResponseWriter, r *http.Request) {
-	who := config.GetDistinguishedName(r.TLS.PeerCertificates[0])
-	r.Header.Set("Content-Type", "text/html")
-	fmt.Fprintf(w, pageTemplateStart, "Home Page", who)
-	fmt.Fprintf(w, "Length of distinguished name: "+strconv.Itoa(len(who)))
-	fmt.Fprintf(w, "<hr />")
-	fmt.Fprintf(w, "<a href='/listObjects'>List All Objects at Root</a><br />")
-	fmt.Fprintf(w, "<a href='/getObject'>Get Object</a><br />")
-	fmt.Fprintf(w, pageTemplateEnd)
-}
-func (h MCServer) listObjects(w http.ResponseWriter, r *http.Request) {
-	who := config.GetDistinguishedName(r.TLS.PeerCertificates[0])
-	r.Header.Set("Content-Type", "text/html")
-	fmt.Fprintf(w, pageTemplateStart, "listObjects", who)
-
-	response, err := dao.GetRootObjectsWithProperties(h.MetadataDB, "createdDate DESC", 1, 20)
-	objects := response.Objects
-	if err != nil {
-		panic(err.Error())
-	}
-	fmt.Fprintf(w, "Page "+strconv.Itoa(response.PageNumber)+" of "+strconv.Itoa(response.PageCount)+".<br />")
-	fmt.Fprintf(w, "Page Size: "+strconv.Itoa(response.PageSize)+", Page Rows: "+strconv.Itoa(response.PageRows)+", Total Rows: "+strconv.Itoa(response.TotalRows)+"<br />")
-	fmt.Fprintf(w, `<table width="100%" border="1" bordercolor="red" style="width:100%;border:1px solid red;"><tr><td>ID</td><td>Created Date</td><td>Created By</td><td>Name</td></tr>`)
-	for idx := range objects {
-		object := objects[idx]
-
-		fmt.Fprintf(w, "<tr><td>")
-		fmt.Fprintf(w, hex.EncodeToString(object.ID))
-		fmt.Fprintf(w, "</td><td>")
-		fmt.Fprintf(w, object.CreatedDate.Format(time.RFC3339))
-		fmt.Fprintf(w, "</td><td>")
-		fmt.Fprintf(w, object.CreatedBy)
-		fmt.Fprintf(w, "</td><td>")
-		fmt.Fprintf(w, object.Name)
-		fmt.Fprintf(w, "</td></tr>")
-	}
-	fmt.Fprintf(w, "</table>")
-	fmt.Fprintf(w, pageTemplateEnd)
-}
-func (h MCServer) getObject(w http.ResponseWriter, r *http.Request) {
-	who := config.GetDistinguishedName(r.TLS.PeerCertificates[0])
-	r.Header.Set("Content-Type", "text/html")
-	fmt.Fprintf(w, pageTemplateStart, "getObject", who)
-	fmt.Fprintf(w, pageTemplateEnd)
-}
-func (h MCServer) sendErrorResponse(w http.ResponseWriter, code int, err error, msg string) {
-	log.Printf(msg+":%v", err)
-	http.Error(w, msg, code)
-}
-
-/*
-MCServer contains definition for the metadata server
-*/
-type MCServer struct {
-	Port       int
-	Bind       string
-	Addr       string
-	MetadataDB *sqlx.DB
-}
-
 func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*http.Server, error) {
-	h := MCServer{
+	httpHandler := server.AppServer{
 		Port:       serverConfig.ListenPort,
 		Bind:       serverConfig.ListenBind,
 		Addr:       serverConfig.ListenBind + ":" + strconv.Itoa(serverConfig.ListenPort),
 		MetadataDB: db,
 	}
 	return &http.Server{
-		Addr:           string(h.Addr),
-		Handler:        h,
+		Addr:           string(httpHandler.Addr),
+		Handler:        httpHandler,
 		ReadTimeout:    10000 * time.Second, //This breaks big downloads
 		WriteTimeout:   10000 * time.Second,
 		MaxHeaderBytes: 1 << 20, //This prevents clients from DOS'ing us
 	}, nil
 }
 
+// This function will be removed as these sample calls are transitioned into corresponding handlers
 func dbtest() {
 
 	// Load Configuration from conf.json
