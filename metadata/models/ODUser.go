@@ -6,6 +6,7 @@ Object Drive for caching purposes.  Unique to this element is the fact that
 its identifier is the DistinguishedName rather then ID.
 */
 type ODUser struct {
+	ODID
 	ODCreatable
 	ODModifiable
 	ODChangeTracking
