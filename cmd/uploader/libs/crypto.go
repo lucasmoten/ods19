@@ -99,15 +99,12 @@ func createRSAComponents(randReader io.Reader) (*RSAComponents, error) {
 //This would be straight base64 encoding, except the characters need
 //to be valid filenames
 func obfuscateHash(key string) string {
-	if hideFileNames {
-		hashBytes := sha256.Sum256([]byte(key))
-		return hex.EncodeToString(hashBytes[:])
-	}
-	return key
+	hashBytes := sha256.Sum256([]byte(key))
+	return hex.EncodeToString(hashBytes[:])
 }
 
-func (h Uploader) createKeyIVPair() (key []byte, iv []byte) {
-	key = make([]byte, h.KeyBytes)
+func (u Uploader) createKeyIVPair() (key []byte, iv []byte) {
+	key = make([]byte, u.Environment.KeyBytes)
 	rand.Read(key)
 	//XXX I have read advice that with CTR blocks, the last four bytes
 	//of an iv should be zero, because the last four bytes are
@@ -124,8 +121,6 @@ func (h Uploader) createKeyIVPair() (key []byte, iv []byte) {
 	return
 }
 
-//XXX Need a proper read-write pipe that will xor with the key as it writes,
-// need to facilitate efficient encrypted append.
 func doCipherByReaderWriter(
 	inFile io.Reader,
 	outFile io.Writer,

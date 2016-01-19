@@ -1,4 +1,4 @@
-package libs
+package performance
 
 import (
 	"fmt"
@@ -15,6 +15,8 @@ const (
 	UploadCounter = ReporterID(1)
 	// DownloadCounter handles counts for downloading
 	DownloadCounter = ReporterID(2)
+	// S3DrainTo is the time to drain a file back into S3
+	S3DrainTo = ReporterID(3)
 )
 
 /*
@@ -503,6 +505,7 @@ func NewJobReporters(capacity int, canDeleteHandler CanDeleteHandler) *JobReport
 	}
 	reporters.Reporters[UploadCounter] = reporters.makeReporter("upload")
 	reporters.Reporters[DownloadCounter] = reporters.makeReporter("download")
+	reporters.Reporters[S3DrainTo] = reporters.makeReporter("s3drainto")
 
 	//Listen in on job reports
 	go jobReportersThread(reporters)

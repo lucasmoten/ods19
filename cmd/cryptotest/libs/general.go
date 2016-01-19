@@ -1,6 +1,7 @@
 package libs
 
 import (
+	"decipher.com/oduploader/performance"
 	"io"
 )
 
@@ -20,7 +21,7 @@ type Uploader struct {
 	KeyBytes       int
 	RSAEncryptBits int
 	Backend        *Backend
-	Tracker        *JobReporters
+	Tracker        *performance.JobReporters
 }
 
 //Backend can be implemented as S3, filesystem, etc

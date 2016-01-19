@@ -3,12 +3,13 @@ package config
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"fmt"
+	"github.com/spacemonkeygo/openssl"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
-
-	"github.com/spacemonkeygo/openssl"
 )
 
 // Information about DoDIIS two-way SSL is here:
@@ -16,6 +17,7 @@ import (
 
 // PKCS12 implementation is here: https://godoc.org/golang.org/x/crypto/pkcs12
 
+/////XXX we should probably eliminate globals from config
 // TODO export these as globals so we can set them with command line flags also?
 var (
 	uploaderCertPath     string
@@ -183,4 +185,34 @@ func NewOpenSSLTransport() (*openssl.Conn, error) {
 		log.Fatal(err)
 	}
 	return conn, nil
+}
+
+// GetDNFromCert will extract the dn in the format that everything expects
+func GetDNFromCert(name pkix.Name) string {
+	dnSeq := name.ToRDNSequence()
+	dnArray := ""
+	iLen := len(dnSeq)
+	//Traverse the pkix name backwards
+	for i := 0; i < iLen; i++ {
+		dnPart := dnSeq[iLen-1-i]
+		jLen := len(dnPart)
+		var pPart string
+		for j := 0; j < jLen; j++ {
+			if i > 0 || j > 0 {
+				dnArray = dnArray + ","
+			}
+			switch {
+			case dnPart[j].Type.String() == "2.5.4.6":
+				pPart = "C"
+			case dnPart[j].Type.String() == "2.5.4.10":
+				pPart = "O"
+			case dnPart[j].Type.String() == "2.5.4.11":
+				pPart = "OU"
+			case dnPart[j].Type.String() == "2.5.4.3":
+				pPart = "CN"
+			}
+			dnArray = dnArray + fmt.Sprintf("%s=%v", pPart, dnPart[j].Value)
+		}
+	}
+	return dnArray
 }

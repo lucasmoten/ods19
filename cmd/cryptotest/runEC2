@@ -1,0 +1,3 @@
+#!/bin/bash
+
+masterkey=$masterkey go run cryptotest.go -tcpPort 9998 -partition ec2.9998
