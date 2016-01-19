@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+// buildClientTLSConfig prepares a tls.Config object for this application to use
+// when acting as a client connecting to a dependent resource.
 func buildClientTLSConfig(CAPath string, ClientCertPath string, ClientKeyPath string, ServerName string, InsecureSkipVerify bool) tls.Config {
 	// Root Certificate pool
 	// The set of root certificate authorities that this client will use when
@@ -27,6 +29,8 @@ func buildClientTLSConfig(CAPath string, ClientCertPath string, ClientKeyPath st
 	}
 }
 
+// buildServerTLSConfig prepares a tls.Config object for this application to
+// listen for connecting clients.
 func buildServerTLSConfig(CAPath string, ServerCertPath string, ServerKeyPath string, RequireClientCert bool, CipherSuites []string, MinimumVersion string) tls.Config {
 	// Client Certificate pool
 	// The set of root certificate authorities that the sever will use to verify
@@ -74,6 +78,9 @@ func buildServerTLSConfig(CAPath string, ServerCertPath string, ServerKeyPath st
 	}
 }
 
+// buildCipherSuites takes a passed in array of cipher names and returns back
+// the mapped cipher id value. If the passed in array is empty, then all ciphers
+// known in the map are added.
 func buildCipherSuites(CipherSuiteNames []string) []uint16 {
 	var cipherSuites []uint16
 	var cipherValueConstLookup = map[string]uint16{
@@ -114,6 +121,8 @@ func buildCipherSuites(CipherSuiteNames []string) []uint16 {
 	return cipherSuites
 }
 
+// buildx509Identity takes the path of a public and private certificate file in
+// PEM format and loads as a standard tls.Certificate in response
 func buildx509Identity(certFile string, keyFile string) []tls.Certificate {
 	theCert := make([]tls.Certificate, 0, 1)
 	certs, err := tls.LoadX509KeyPair(certFile, keyFile)
@@ -124,6 +133,10 @@ func buildx509Identity(certFile string, keyFile string) []tls.Certificate {
 	return theCert
 }
 
+// buildCertPoolFromPath prepares a certificate pool from the passed in file
+// path. If the file path is an indivdual file, then a single PEM is placed
+// in the pool. If it is a folder, then all files in the folder are read to See
+// if they are PEM files, and if so, added to the pool.
 func buildCertPoolFromPath(filePath string, poolName string) *x509.CertPool {
 
 	log.Println("Preparing certificate pool " + poolName)
@@ -166,6 +179,9 @@ func buildCertPoolFromPath(filePath string, poolName string) *x509.CertPool {
 	return theCertPool
 }
 
+// addPEMFileToPool takes a file path representing a certificate in PEM format
+// and appends it to the passed in certificate pool. Intended for building up
+// a certificate pool of trusted certificate authorities
 func addPEMFileToPool(PEMfile string, certPool *x509.CertPool) {
 	log.Println("Adding PEM file " + PEMfile)
 	pem, err := ioutil.ReadFile(PEMfile)
@@ -177,10 +193,9 @@ func addPEMFileToPool(PEMfile string, certPool *x509.CertPool) {
 	}
 }
 
-/*
-GetDistinguishedName returns the common formatted distinguished name built up
-from the sets of attributes on the certificate subject.
-*/
+// GetDistinguishedName returns the common formatted distinguished name built up
+// from the sets of attributes on the certificate subject.
+// TODO: Callers will eventually make user of user_dn header value from NGINX
 func GetDistinguishedName(theCert *x509.Certificate) string {
 	result := ""
 	if len(theCert.Subject.CommonName) > 0 {

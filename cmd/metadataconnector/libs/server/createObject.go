@@ -11,6 +11,8 @@ import (
 	"decipher.com/oduploader/metadata/models"
 )
 
+// createObject is a method handler on AppServer for createObject microservice
+// operation.
 func (h AppServer) createObject(w http.ResponseWriter, r *http.Request) {
 	who := config.GetDistinguishedName(r.TLS.PeerCertificates[0])
 
@@ -118,6 +120,13 @@ classification: %s
 
 }
 
+// getFormValueAsString reads a multipart value into a limited length byte
+// array and returns it.
+// TODO: Move to a utility file since this is useful for all other requests
+// doing multipart.
+// TODO: This effectively limits the acceptable length of a field to 1KB which
+// is too restrictive for certain values (lengthy descriptions, abstracts, etc)
+// which will need revisited
 func getFormValueAsString(part *multipart.Part) string {
 	valueAsBytes := make([]byte, 1024)
 	n, err := part.Read(valueAsBytes)

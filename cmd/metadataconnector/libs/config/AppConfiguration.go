@@ -10,19 +10,21 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-/*
-AppConfiguration is a structure that defines the known configuration format
-for this application.
-*/
+var (
+	defaultDBDriver = "mysql"
+	defaultDBHost = "127.0.0.1"
+	defaultDBPort = "3306"
+)
+
+// AppConfiguration is a structure that defines the known configuration format
+// for this application.
 type AppConfiguration struct {
 	DatabaseConnection DatabaseConnectionConfiguration
 	ServerSettings     ServerSettingsConfiguration
 }
 
-/*
-DatabaseConnectionConfiguration is a structure that defines the attributes
-needed for setting up database connection
-*/
+// DatabaseConnectionConfiguration is a structure that defines the attributes
+// needed for setting up database connection
 type DatabaseConnectionConfiguration struct {
 	Driver     string
 	Username   string
@@ -39,10 +41,8 @@ type DatabaseConnectionConfiguration struct {
 	ClientKey  string
 }
 
-/*
-ServerSettingsConfiguration is a structure defining the attributes needed for
-setting up the server listener
-*/
+// ServerSettingsConfiguration is a structure defining the attributes needed for
+// setting up the server listener
 type ServerSettingsConfiguration struct {
 	ListenPort        int
 	ListenBind        string
@@ -55,9 +55,8 @@ type ServerSettingsConfiguration struct {
 	MinimumVersion    string
 }
 
-/*
-NewAppConfiguration loads the configuration file and returns the mapped object
-*/
+// NewAppConfiguration loads the configuration file and returns the mapped
+// object
 func NewAppConfiguration() AppConfiguration {
 	file, _ := os.Open("conf.json")
 	decoder := json.NewDecoder(file)
@@ -69,16 +68,14 @@ func NewAppConfiguration() AppConfiguration {
 	return configuration
 }
 
-/*
-GetDatabaseHandle initializes database connection using the configuration
-*/
+// GetDatabaseHandle initializes database connection using the configuration
 func (r *DatabaseConnectionConfiguration) GetDatabaseHandle() (*sqlx.DB, error) {
 	// Establish configuration settings for Database Connection using
 	// the TLS settings in config file
 	if r.UseTLS {
 		dbTLS := r.buildTLSConfig()
 		switch r.Driver {
-		case "mysql":
+		case defaultDBDriver:
 			mysql.RegisterTLSConfig("custom", &dbTLS)
 		default:
 			panic("Driver not supported")
@@ -89,10 +86,8 @@ func (r *DatabaseConnectionConfiguration) GetDatabaseHandle() (*sqlx.DB, error) 
 	return db, err
 }
 
-/*
-GetTLSConfig returns the build TLS Configuration object based upon Server
-Settings Configuration
-*/
+// GetTLSConfig returns the build TLS Configuration object based upon Server
+// Settings Configuration
 func (r *ServerSettingsConfiguration) GetTLSConfig() tls.Config {
 	return r.buildTLSConfig()
 }
@@ -101,12 +96,10 @@ func (r *ServerSettingsConfiguration) GetTLSConfig() tls.Config {
 // Unexported members
 // =============================================================================
 
-/*
-buildDSN prepares a Data Source Name (DNS) suitable for mysql using the driver
-and documentation found here: https://github.com/go-sql-driver/mysql.
-This format is similar to the PEAR DB format but may need alteration
-http://pear.php.net/manual/en/package.database.db.intro-dsn.php
-*/
+// buildDSN prepares a Data Source Name (DNS) suitable for mysql using the
+// driver and documentation found here: https://github.com/go-sql-driver/mysql.
+// This format is similar to the PEAR DB format but may need alteration
+// http://pear.php.net/manual/en/package.database.db.intro-dsn.php
 func (r *DatabaseConnectionConfiguration) buildDSN() string {
 	var dbDSN = ""
 	if len(r.Username) > 0 {
@@ -124,7 +117,7 @@ func (r *DatabaseConnectionConfiguration) buildDSN() string {
 			dbDSN += r.Host
 		} else {
 			// default to localhost
-			dbDSN += "127.0.0.1"
+			dbDSN += defaultDBHost
 		}
 		dbDSN += ":"
 		if len(r.Port) > 0 {
@@ -132,8 +125,8 @@ func (r *DatabaseConnectionConfiguration) buildDSN() string {
 		} else {
 			// default port by database type
 			switch r.Driver {
-			case "mysql":
-				dbDSN += "3306"
+			case defaultDBDriver:
+				dbDSN += defaultDBPort
 			default:
 				panic("Driver not supported")
 			}
@@ -159,14 +152,14 @@ func (r *DatabaseConnectionConfiguration) buildDSN() string {
 	return dbDSN
 }
 
-/*
-buildTLSConfig prepares a standard go tls.Config with RootCAs and client
-Certificates for communicating with the database securely.
-*/
+// buildTLSConfig prepares a standard go tls.Config with RootCAs and client
+// Certificates for communicating with the database securely.
 func (r *DatabaseConnectionConfiguration) buildTLSConfig() tls.Config {
 	return buildClientTLSConfig(r.CAPath, r.ClientCert, r.ClientKey, r.Host, r.SkipVerify)
 }
 
+// buildTLSConfig prepares a standard go tls.Config with trusted CAs and
+// server identity certificates to listen for connecting clients
 func (r *ServerSettingsConfiguration) buildTLSConfig() tls.Config {
 	return buildServerTLSConfig(r.CAPath, r.ServerCertChain, r.ServerKey, r.RequireClientCert, r.CipherSuites, r.MinimumVersion)
 }

@@ -10,12 +10,16 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// getSanitizedPageNumber takes an input number, and ensures that it is no less
+// than 1
 func getSanitizedPageNumber(pageNumber int) int {
 	if pageNumber < 1 {
 		return 1
 	}
 	return pageNumber
 }
+// getSanitizedPageSize takes an input number, and ensures it is within the
+// range of 1 .. 10000
 func getSanitizedPageSize(pageSize int) int {
 	if pageSize < 1 {
 		return 1
@@ -25,12 +29,19 @@ func getSanitizedPageSize(pageSize int) int {
 	}
 	return pageSize
 }
+// getLimit is used for determining the upper bound of records to request from
+// the database, specifically pageNumber * pageSize
 func getLimit(pageNumber int, pageSize int) int {
 	return getSanitizedPageNumber(pageNumber) * getSanitizedPageSize(pageSize)
 }
+// getOffset is used for determining the lower bound of records to request from
+// the database, starting with the first item on a given page based on size
 func getOffset(pageNumber int, pageSize int) int {
 	return getLimit(pageNumber, pageSize) - pageSize
 }
+
+// getPageCount determines the total number of pages that would exist when the
+// totalRows and pageSize are known
 func getPageCount(totalRows int, pageSize int) int {
 	var pageCount int
 	pageCount = totalRows / pageSize
@@ -40,10 +51,8 @@ func getPageCount(totalRows int, pageSize int) int {
 	return pageCount
 }
 
-/*
-GetRootObjects retrieves a list of Objects in Object Drive that are not nested
-beneath any other objects natively (natural parentId is null)
-*/
+// GetRootObjects retrieves a list of Objects in Object Drive that are not
+// nested beneath any other objects natively (natural parentId is null)
 func GetRootObjects(db *sqlx.DB, orderByClause string, pageNumber int, pageSize int) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	limit := getLimit(pageNumber, pageSize)
@@ -70,10 +79,8 @@ func GetRootObjects(db *sqlx.DB, orderByClause string, pageNumber int, pageSize 
 	return response, err
 }
 
-/*
-GetChildObjects retrieves a list of Objects in Object Drive that are nested
-beneath a specified object by parentID
-*/
+// GetChildObjects retrieves a list of Objects in Object Drive that are nested
+// beneath a specified object by parentID
 func GetChildObjects(db *sqlx.DB, orderByClause string, pageNumber int, pageSize int, parentID string) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	limit := getLimit(pageNumber, pageSize)
@@ -100,11 +107,9 @@ func GetChildObjects(db *sqlx.DB, orderByClause string, pageNumber int, pageSize
 	return response, err
 }
 
-/*
-GetRootObjectsByOwner retrieves a list of Objects in Object Drive that are not
-nested beneath any other objects natively (natural parentId is null) and are
-owned by the specified user or group.
-*/
+// GetRootObjectsByOwner retrieves a list of Objects in Object Drive that are
+// not nested beneath any other objects natively (natural parentId is null) and
+// are owned by the specified user or group.
 func GetRootObjectsByOwner(db *sqlx.DB, orderByClause string, pageNumber int, pageSize int, owner string) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	limit := getLimit(pageNumber, pageSize)
@@ -134,11 +139,9 @@ func GetRootObjectsByOwner(db *sqlx.DB, orderByClause string, pageNumber int, pa
 	return response, err
 }
 
-/*
-GetChildObjectsByOwner retrieves a list of Objects in Object Drive that are
-nested beneath a specified object by parentID and are owned by the specified
-user or group
-*/
+// GetChildObjectsByOwner retrieves a list of Objects in Object Drive that are
+// nested beneath a specified object by parentID and are owned by the specified
+// user or group
 func GetChildObjectsByOwner(db *sqlx.DB, orderByClause string, pageNumber int, pageSize int, parentID string, owner string) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	limit := getLimit(pageNumber, pageSize)
@@ -168,9 +171,7 @@ func GetChildObjectsByOwner(db *sqlx.DB, orderByClause string, pageNumber int, p
 	return response, err
 }
 
-/*
-GetPropertiesForObject retrieves the properties for a given object
-*/
+// GetPropertiesForObject retrieves the properties for a given object
 func GetPropertiesForObject(db *sqlx.DB, objectID []byte) ([]models.ODObjectPropertyEx, error) {
 	response := []models.ODObjectPropertyEx{}
 	query := `select p.* from property p inner join object_property op on p.id = op.propertyid where p.isdeleted = 0 and op.isdeleted = 0 and op.objectid = ?`
@@ -181,32 +182,29 @@ func GetPropertiesForObject(db *sqlx.DB, objectID []byte) ([]models.ODObjectProp
 	return response, err
 }
 
-/*
-GetRootObjectsWithProperties retrieves a list of Objects and their Properties in
-Object Drive that are not nested beneath any other objects natively (natural
-parentId is null)
-*/
+// GetRootObjectsWithProperties retrieves a list of Objects and their Properties
+// in Object Drive that are not nested beneath any other objects natively
+// (natural parentId is null)
 func GetRootObjectsWithProperties(db *sqlx.DB, orderByClause string, pageNumber int, pageSize int) (models.ODObjectResultset, error) {
 	response, err := GetRootObjects(db, orderByClause, pageNumber, pageSize)
 	if err != nil {
 		print(err.Error())
 		return response, err
 	}
-	for i := 0; i < len(response.Objects); i++ {
-		properties, err := GetPropertiesForObject(db, response.Objects[i].ID)
+	for _, object := range response.Objects {
+		properties, err := GetPropertiesForObject(db, object.ID)
 		if err != nil {
 			print(err.Error())
 			return response, err
 		}
-		response.Objects[i].Properties = properties
+		object.Properties = properties
 	}
 	return response, err
 }
 
-/*
-GetChildObjectsWithProperties retrieves a list of Objects and their Properties in
-Object Drive that are nested beneath the specified parent object
-*/
+// GetChildObjectsWithProperties retrieves a list of Objects and their
+// Properties in Object Drive that are nested beneath the specified parent
+// object
 func GetChildObjectsWithProperties(db *sqlx.DB, orderByClause string, pageNumber int, pageSize int, parentID string) (models.ODObjectResultset, error) {
 	response, err := GetChildObjects(db, orderByClause, pageNumber, pageSize, parentID)
 	if err != nil {
@@ -224,11 +222,10 @@ func GetChildObjectsWithProperties(db *sqlx.DB, orderByClause string, pageNumber
 	return response, err
 }
 
-/*
-GetRootObjectsWithPropertiesByOwner retrieves a list of Objects and their
-Properties in Object Drive that are not nested beneath any other objects
-natively (natural parentId is null) and are owned by the specified user or group.
-*/
+// GetRootObjectsWithPropertiesByOwner retrieves a list of Objects and their
+// Properties in Object Drive that are not nested beneath any other objects
+// natively (natural parentId is null) and are owned by the specified user or
+// group.
 func GetRootObjectsWithPropertiesByOwner(db *sqlx.DB, orderByClause string, pageNumber int, pageSize int, owner string) (models.ODObjectResultset, error) {
 	response, err := GetRootObjectsByOwner(db, orderByClause, pageNumber, pageSize, owner)
 	if err != nil {
@@ -246,11 +243,9 @@ func GetRootObjectsWithPropertiesByOwner(db *sqlx.DB, orderByClause string, page
 	return response, err
 }
 
-/*
-GetChildObjectsWithPropertiesByOwner retrieves a list of Objects and their
-Properties in Object Drive that are nested beneath the specified object by
-parentID and are owned by the specified user or group.
-*/
+// GetChildObjectsWithPropertiesByOwner retrieves a list of Objects and their
+// Properties in Object Drive that are nested beneath the specified object by
+// parentID and are owned by the specified user or group.
 func GetChildObjectsWithPropertiesByOwner(db *sqlx.DB, orderByClause string, pageNumber int, pageSize int, parentID string, owner string) (models.ODObjectResultset, error) {
 	response, err := GetChildObjectsByOwner(db, orderByClause, pageNumber, pageSize, parentID, owner)
 	if err != nil {
@@ -268,12 +263,10 @@ func GetChildObjectsWithPropertiesByOwner(db *sqlx.DB, orderByClause string, pag
 	return response, err
 }
 
-/*
-CreateObjectType adds a new object type definition to the database based upon
-the passed in object type settings.  At a minimm, createdBy and the name of
-the object type must exist.  Once added, the record is retrieved and the
-object type passed in by reference is updated with the remaining attributes
-*/
+// CreateObjectType adds a new object type definition to the database based upon
+// the passed in object type settings.  At a minimm, createdBy and the name of
+// the object type must exist.  Once added, the record is retrieved and the
+// object type passed in by reference is updated with the remaining attributes
 func CreateObjectType(db *sqlx.DB, objectType *models.ODObjectType) {
 	// Setup the statement
 	addObjectTypeStatement, err := db.Prepare(`insert object_type set createdBy = ?, name = ?, description = ?, contentConnector = ?`)
@@ -306,10 +299,8 @@ func CreateObjectType(db *sqlx.DB, objectType *models.ODObjectType) {
 	}
 }
 
-/*
-GetObjectTypeByName looks up an object type by its name, and if it doesn't exist,
-optionally calls CreateObjectType to add it.
-*/
+// GetObjectTypeByName looks up an object type by its name, and if it doesn't
+// exist, optionally calls CreateObjectType to add it.
 func GetObjectTypeByName(db *sqlx.DB, typeName string, addIfMissing bool, createdBy string) models.ODObjectType {
 	var objectType models.ODObjectType
 	// Get the ID of the newly created object and assign to passed in object
@@ -330,12 +321,10 @@ func GetObjectTypeByName(db *sqlx.DB, typeName string, addIfMissing bool, create
 	return objectType
 }
 
-/*
-CreateUser adds a new user definition to the database based upon the passed in
-ODUser object settings. At a minimm, createdBy and the distinguishedName of the
-user must already be assigned.  Once added, the record is retrieved and the
-user passed in by reference is updated with the remaining attributes
-*/
+// CreateUser adds a new user definition to the database based upon the passed
+// in ODUser object settings. At a minimm, createdBy and the distinguishedName
+// of the user must already be assigned.  Once added, the record is retrieved
+// and the user passed in by reference is updated with the remaining attributes
 func CreateUser(db *sqlx.DB, user *models.ODUser) {
 	addUserStatement, err := db.Prepare(`insert user set createdBy = ?, distinguishedName = ?, displayName = ?, email = ?`)
 	if err != nil {
@@ -359,10 +348,8 @@ func CreateUser(db *sqlx.DB, user *models.ODUser) {
 	}
 }
 
-/*
-GetUserByDistinguishedName looks up user record from the database using the
-provided distinguished name
-*/
+// GetUserByDistinguishedName looks up user record from the database using the
+// provided distinguished name
 func GetUserByDistinguishedName(db *sqlx.DB, distinguishedName string) models.ODUser {
 	var user models.ODUser
 	getUserStatement := `select * from user where distinguishedName = ?`
@@ -377,12 +364,10 @@ func GetUserByDistinguishedName(db *sqlx.DB, distinguishedName string) models.OD
 	return user
 }
 
-/*
-CreateObject uses the passed in object and acm configuration and makes the
-appropriate sql calls to the database to insert the object, insert the acm
-configuration, associate the two together. Identifiers are captured and
-assigned to the relevant objects
-*/
+// CreateObject uses the passed in object and acm configuration and makes the
+// appropriate sql calls to the database to insert the object, insert the acm
+// configuration, associate the two together. Identifiers are captured and
+// assigned to the relevant objects
 func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error {
 
 	// lookup type, assign its id to the object for reference
@@ -413,14 +398,14 @@ func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 		panic("Object inserted but no rows affected")
 	}
 	// Get the ID of the newly created object and assign to passed in object
-	/*
-		getObjectStatement := `select * from object where createdby = ? and typeId = ? and name = ? and description = ? and parentId = ? and contentConnector = ? and encryptIV = ? and encryptKey = ? and contentType = ? and contentSize = ? and isdeleted = 0 order by createddate desc limit 1`
-		err = db.Get(object, getObjectStatement, object.CreatedBy, object.TypeID,
-			object.Name, object.Description.String, object.ParentID,
-			object.ContentConnector.String, object.EncryptIV.String,
-			object.EncryptKey.String, object.ContentType.String,
-			object.ContentSize)
-	*/
+	// The following block uses all parameters but doesnt take into account null
+	// values...
+			// getObjectStatement := `select * from object where createdby = ? and typeId = ? and name = ? and description = ? and parentId = ? and contentConnector = ? and encryptIV = ? and encryptKey = ? and contentType = ? and contentSize = ? and isdeleted = 0 order by createddate desc limit 1`
+			// err = db.Get(object, getObjectStatement, object.CreatedBy, object.TypeID,
+			// 	object.Name, object.Description.String, object.ParentID,
+			// 	object.ContentConnector.String, object.EncryptIV.String,
+			// 	object.EncryptKey.String, object.ContentType.String,
+			// 	object.ContentSize)
 	getObjectStatement := `select * from object where createdby = ? and typeId = ? and name = ? and isdeleted = 0 order by createddate desc limit 1`
 	err = db.Get(object, getObjectStatement, object.CreatedBy, object.TypeID, object.Name)
 	if err != nil {
@@ -434,10 +419,8 @@ func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 	return nil
 }
 
-/*
-AddPropertyToObject creates a new property with the provided name and value, and
-then associates that Property object to the Object indicated by ObjectID
-*/
+// AddPropertyToObject creates a new property with the provided name and value,
+// and then associates that Property object to the Object indicated by ObjectID
 func AddPropertyToObject(db *sqlx.DB, createdBy string, objectID []byte, propertyName string, propertyValue string, classificationPM string) {
 	// Setup the statement
 	addPropertyStatement, err := db.Prepare(`insert property set createdby = ?, name = ?, propertyvalue = ?, classificationpm = ?`)

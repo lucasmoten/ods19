@@ -19,6 +19,23 @@ type listObjectsRequest struct {
 	pageSize   int
 }
 
+// listObjects is a method handler on AppServer for implementing the listObjects
+// microservice operation.  If an ID is given in the request URI, then it is
+// used to list the children within it, otherwise, the root for the given user
+// is listed.  For a user, the root is defined as those objects that they own
+// which have no parent identifier set.
+// Request format:
+//				GET /services/object-drive/object/{objectId}/list HTTP/1.1
+//				Host: fully.qualified.domain.name
+//				Content-Type: application/json;
+//				Content-Length: nnn
+//
+//				{
+//					"pageNumber": "{pageNumber}",
+//					"pageSize": {pageSize}
+//				}
+// TODO: Implement proper paging and and result information
+// TODO: Convert response to JSON
 func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request) {
 	//peerDistinguishedName := config.GetDistinguishedName(r.TLS.PeerCertificates[0])
 	//userDistinguishedName := r.Header.Get("USER_DN")
@@ -26,7 +43,7 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request) {
 	who := config.GetDistinguishedName(r.TLS.PeerCertificates[0])
 
 	// Find parentId from request URI
-	parentID := getParentIDToListObjects(r)
+	parentID := getParentIDToListObjects(r.URL.RequestURI())
 
 	// Find pageNmber and pageSize from the body
 	pageNumber := 1
@@ -84,26 +101,18 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// getFormattedDate formats a passed in time as RFC3339 format, which is
+// basically:    YYYY-MM-DDTHH:mm:ss.nnnZ
+// TODO: Move this utility method to a common file to make it clear its
+// available by all operations
 func getFormattedDate(t time.Time) string {
 	return t.Format(time.RFC3339)
 }
 
-func getParentIDToListObjects(r *http.Request) string {
-	/*
-		RESTful API Request
-
-		GET /services/object-drive/object/{objectId}/list HTTP/1.1
-		Host: fully.qualified.domain.name
-		Content-Type: application/json;
-		Content-Length: nnn
-
-		{
-		  "pageNumber": "{pageNumber}",
-		  "pageSize": {pageSize}
-		}
-	*/
+// getParentIDToListObjects accepts a passed in URI and finds whether an
+// object identifier was passed within it for which child items are sought.
+func getParentIDToListObjects(uri string) string {
 	re, _ := regexp.Compile("/object/(.*)/list")
-	uri := r.URL.RequestURI()
 	matchIndexes := re.FindStringSubmatchIndex(uri)
 	if len(matchIndexes) == 0 {
 		return ""
@@ -112,6 +121,9 @@ func getParentIDToListObjects(r *http.Request) string {
 	return value
 }
 
+// getListObjectsRequestAsJSON is used for parsing the request as json to get
+// the pageNumber and pageSize of results requested.
+// TODO: This especially needs a test as it is as yet unvalidated
 func getListObjectsRequestAsJSON(r *http.Request) listObjectsRequest {
 	decoder := json.NewDecoder(r.Body)
 	var result listObjectsRequest

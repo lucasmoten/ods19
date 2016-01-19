@@ -12,9 +12,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-/*
-AppServer contains definition for the metadata server
-*/
+// AppServer contains definition for the metadata server
 type AppServer struct {
 	Port       int
 	Bind       string
@@ -22,8 +20,7 @@ type AppServer struct {
 	MetadataDB *sqlx.DB
 }
 
-/* ServeHTTP handles the routing of requests
- */
+// ServeHTTP handles the routing of requests
 func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// See who is making the call
 	who := config.GetDistinguishedName(r.TLS.PeerCertificates[0])
