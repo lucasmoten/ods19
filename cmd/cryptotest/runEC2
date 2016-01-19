@@ -1,3 +1,5 @@
 #!/bin/bash
 
+#Just wipe the cache on startup
+rm -rf ec2.9998
 masterkey=$masterkey go run cryptotest.go -tcpPort 9998 -partition ec2.9998
