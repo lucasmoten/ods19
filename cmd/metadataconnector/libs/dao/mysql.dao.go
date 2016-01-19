@@ -18,6 +18,7 @@ func getSanitizedPageNumber(pageNumber int) int {
 	}
 	return pageNumber
 }
+
 // getSanitizedPageSize takes an input number, and ensures it is within the
 // range of 1 .. 10000
 func getSanitizedPageSize(pageSize int) int {
@@ -29,11 +30,13 @@ func getSanitizedPageSize(pageSize int) int {
 	}
 	return pageSize
 }
+
 // getLimit is used for determining the upper bound of records to request from
 // the database, specifically pageNumber * pageSize
 func getLimit(pageNumber int, pageSize int) int {
 	return getSanitizedPageNumber(pageNumber) * getSanitizedPageSize(pageSize)
 }
+
 // getOffset is used for determining the lower bound of records to request from
 // the database, starting with the first item on a given page based on size
 func getOffset(pageNumber int, pageSize int) int {
@@ -400,12 +403,12 @@ func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 	// Get the ID of the newly created object and assign to passed in object
 	// The following block uses all parameters but doesnt take into account null
 	// values...
-			// getObjectStatement := `select * from object where createdby = ? and typeId = ? and name = ? and description = ? and parentId = ? and contentConnector = ? and encryptIV = ? and encryptKey = ? and contentType = ? and contentSize = ? and isdeleted = 0 order by createddate desc limit 1`
-			// err = db.Get(object, getObjectStatement, object.CreatedBy, object.TypeID,
-			// 	object.Name, object.Description.String, object.ParentID,
-			// 	object.ContentConnector.String, object.EncryptIV.String,
-			// 	object.EncryptKey.String, object.ContentType.String,
-			// 	object.ContentSize)
+	// getObjectStatement := `select * from object where createdby = ? and typeId = ? and name = ? and description = ? and parentId = ? and contentConnector = ? and encryptIV = ? and encryptKey = ? and contentType = ? and contentSize = ? and isdeleted = 0 order by createddate desc limit 1`
+	// err = db.Get(object, getObjectStatement, object.CreatedBy, object.TypeID,
+	// 	object.Name, object.Description.String, object.ParentID,
+	// 	object.ContentConnector.String, object.EncryptIV.String,
+	// 	object.EncryptKey.String, object.ContentType.String,
+	// 	object.ContentSize)
 	getObjectStatement := `select * from object where createdby = ? and typeId = ? and name = ? and isdeleted = 0 order by createddate desc limit 1`
 	err = db.Get(object, getObjectStatement, object.CreatedBy, object.TypeID, object.Name)
 	if err != nil {

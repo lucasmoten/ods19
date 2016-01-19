@@ -12,8 +12,8 @@ import (
 
 var (
 	defaultDBDriver = "mysql"
-	defaultDBHost = "127.0.0.1"
-	defaultDBPort = "3306"
+	defaultDBHost   = "127.0.0.1"
+	defaultDBPort   = "3306"
 )
 
 // AppConfiguration is a structure that defines the known configuration format
