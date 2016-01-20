@@ -1,0 +1,56 @@
+{
+  "DatabaseConnection": {
+    "Driver": "mysql"
+    ,"Username": "dbuser"
+    ,"Password": "dbPassword"
+    ,"Protocol": "tcp"
+    ,"Host": "fqdn.for.metadatadb.local"
+    ,"Port": "3306"
+    ,"Schema": "metadatadb"
+    ,"Params": "parseTime=true"
+    ,"UseTLS": true
+    ,"SkipVerify": false
+    ,"CAPath": "/home/lucasmoten/workspace/certs"
+    ,"ClientCert": "/home/lucasmoten/workspace/cte/object-drive/docker/metadatadb/client-cert.pem"
+    ,"ClientKey": "/home/lucasmoten/workspace/cte/object-drive/docker/metadatadb/client-key.pem"
+  },
+  "ServerSettings": {
+    "ListenPort": 4430
+    ,"ListenBind": "0.0.0.0"
+    ,"UseTLS": true
+    ,"CAPath": "/home/lucasmoten/workspace/certs"
+    ,"ServerCertChain": "/home/lucasmoten/workspace/certs/ids/server/server-ca-chain.pem"
+    ,"ServerKey": "/home/lucasmoten/workspace/certs/ids/server/server-key.pem"
+    ,"RequireClientCert": true
+    ,"CipherSuites" : [
+      "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+    ]
+    ,"CipherSuitesWorksWithFF":[
+      "Firefox Cipher Suites"
+     ,"TLS_RSA_WITH_3DES_EDE_CBC_SHA"
+     ,"TLS_RSA_WITH_AES_128_CBC_SHA"
+     ,"TLS_RSA_WITH_AES_256_CBC_SHA"
+     ,"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA"
+     ,"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA"
+     ,"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+    ]
+    ,"CipherSuitesAll": [
+       "TLS_RSA_WITH_RC4_128_SHA"
+  		,"TLS_RSA_WITH_3DES_EDE_CBC_SHA"
+  		,"TLS_RSA_WITH_AES_128_CBC_SHA"
+  		,"TLS_RSA_WITH_AES_256_CBC_SHA"
+  		,"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA"
+  		,"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
+  		,"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA"
+  		,"TLS_ECDHE_RSA_WITH_RC4_128_SHA"
+  		,"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA"
+  		,"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA"
+  		,"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA"
+  		,"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+  		,"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+  		,"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+  		,"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
+    ]
+    ,"MinimumVersion": "1.2"
+  }
+}
