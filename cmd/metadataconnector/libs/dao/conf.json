@@ -1,0 +1,17 @@
+{
+  "DatabaseConnection": {
+    "Driver": "mysql"
+    ,"Username": "dbuser"
+    ,"Password": "dbPassword"
+    ,"Protocol": "tcp"
+    ,"Host": "fqdn.for.metadatadb.local"
+    ,"Port": "3306"
+    ,"Schema": "metadatadb"
+    ,"Params": "parseTime=true"
+    ,"UseTLS": true
+    ,"SkipVerify": false
+    ,"CAPath": "/home/lucasmoten/workspace/src/decipher.com/oduploader/defaultcerts/client-mysql/trust"
+    ,"ClientCert": "/home/lucasmoten/workspace/src/decipher.com/oduploader/defaultcerts/client-mysql/id/client-cert.pem"
+    ,"ClientKey": "/home/lucasmoten/workspace/src/decipher.com/oduploader/defaultcerts/client-mysql/id/client-key.pem"
+  }
+}

@@ -58,10 +58,15 @@ type ServerSettingsConfiguration struct {
 // NewAppConfiguration loads the configuration file and returns the mapped
 // object
 func NewAppConfiguration() AppConfiguration {
-	file, _ := os.Open("conf.json")
+	file, err := os.Open("conf.json")
+	if err != nil {
+		fmt.Println("error:", err)
+		displayFormatForConfigFile()
+		panic("conf.json must be defined in the working folder")
+	}
 	decoder := json.NewDecoder(file)
 	configuration := AppConfiguration{}
-	err := decoder.Decode(&configuration)
+	err = decoder.Decode(&configuration)
 	if err != nil {
 		fmt.Println("error:", err)
 	}
@@ -78,6 +83,56 @@ func NewAppConfiguration() AppConfiguration {
 
 	// Done
 	return configuration
+}
+
+func displayFormatForConfigFile() {
+	samplefile := `
+	{
+	  "DatabaseConnection": {
+	    "Driver": "mysql"
+	    ,"Username": "username"
+	    ,"Password": "password"
+	    ,"Protocol": "tcp"
+	    ,"Host": "fully.qualified.domain.name.for.database.host"
+	    ,"Port": "port"
+	    ,"Schema": "databasename"
+	    ,"Params": "additional parameters, if any"
+	    ,"UseTLS": true
+	    ,"SkipVerify": false
+	    ,"CAPath": "/path/to/trust/folder/of/ca/pems"
+	    ,"ClientCert": "/path/to/database/client/cert/pem"
+	    ,"ClientKey": "/path/to/database/client/key/pem"
+	  },
+	  "ServerSettings": {
+	    "ListenPort": port
+	    ,"ListenBind": "0.0.0.0"
+	    ,"UseTLS": true
+	    ,"CAPath": "/path/to/trust/folder/of/ca/pems"
+	    ,"ServerCertChain": "/path/to/web/server/cert/pem"
+	    ,"ServerKey": "/path/to/web/server/key/pem"
+	    ,"RequireClientCert": true
+	    ,"CipherSuites" : [
+	       "TLS_RSA_WITH_RC4_128_SHA"
+	  		,"TLS_RSA_WITH_3DES_EDE_CBC_SHA"
+	  		,"TLS_RSA_WITH_AES_128_CBC_SHA"
+	  		,"TLS_RSA_WITH_AES_256_CBC_SHA"
+	  		,"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA"
+	  		,"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
+	  		,"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA"
+	  		,"TLS_ECDHE_RSA_WITH_RC4_128_SHA"
+	  		,"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA"
+	  		,"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA"
+	  		,"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA"
+	  		,"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+	  		,"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+	  		,"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+	  		,"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
+	    ]
+	    ,"MinimumVersion": "1.2"
+	  }
+	}
+	`
+	fmt.Println(samplefile)
 }
 
 // GetDatabaseHandle initializes database connection using the configuration

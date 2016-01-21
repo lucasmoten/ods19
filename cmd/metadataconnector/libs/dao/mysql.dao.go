@@ -10,56 +10,12 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// getSanitizedPageNumber takes an input number, and ensures that it is no less
-// than 1
-func getSanitizedPageNumber(pageNumber int) int {
-	if pageNumber < 1 {
-		return 1
-	}
-	return pageNumber
-}
-
-// getSanitizedPageSize takes an input number, and ensures it is within the
-// range of 1 .. 10000
-func getSanitizedPageSize(pageSize int) int {
-	if pageSize < 1 {
-		return 1
-	}
-	if pageSize > 10000 {
-		return 10000
-	}
-	return pageSize
-}
-
-// getLimit is used for determining the upper bound of records to request from
-// the database, specifically pageNumber * pageSize
-func getLimit(pageNumber int, pageSize int) int {
-	return getSanitizedPageNumber(pageNumber) * getSanitizedPageSize(pageSize)
-}
-
-// getOffset is used for determining the lower bound of records to request from
-// the database, starting with the first item on a given page based on size
-func getOffset(pageNumber int, pageSize int) int {
-	return getLimit(pageNumber, pageSize) - pageSize
-}
-
-// getPageCount determines the total number of pages that would exist when the
-// totalRows and pageSize are known
-func getPageCount(totalRows int, pageSize int) int {
-	var pageCount int
-	pageCount = totalRows / pageSize
-	for (pageCount * pageSize) < totalRows {
-		pageCount++
-	}
-	return pageCount
-}
-
 // GetRootObjects retrieves a list of Objects in Object Drive that are not
 // nested beneath any other objects natively (natural parentId is null)
 func GetRootObjects(db *sqlx.DB, orderByClause string, pageNumber int, pageSize int) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
-	limit := getLimit(pageNumber, pageSize)
-	offset := getOffset(pageNumber, pageSize)
+	limit := GetLimit(pageNumber, pageSize)
+	offset := GetOffset(pageNumber, pageSize)
 	query := `select sql_calc_found_rows * from object where isdeleted = 0 and parentid is null`
 	if len(orderByClause) > 0 {
 		query += ` order by ` + orderByClause
@@ -78,7 +34,7 @@ func GetRootObjects(db *sqlx.DB, orderByClause string, pageNumber int, pageSize 
 	response.PageNumber = pageNumber
 	response.PageSize = pageSize
 	response.PageRows = len(response.Objects)
-	response.PageCount = getPageCount(response.TotalRows, pageSize)
+	response.PageCount = GetPageCount(response.TotalRows, pageSize)
 	return response, err
 }
 
@@ -86,8 +42,8 @@ func GetRootObjects(db *sqlx.DB, orderByClause string, pageNumber int, pageSize 
 // beneath a specified object by parentID
 func GetChildObjects(db *sqlx.DB, orderByClause string, pageNumber int, pageSize int, parentID string) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
-	limit := getLimit(pageNumber, pageSize)
-	offset := getOffset(pageNumber, pageSize)
+	limit := GetLimit(pageNumber, pageSize)
+	offset := GetOffset(pageNumber, pageSize)
 	query := `select sql_calc_found_rows * from object where isdeleted = 0 and parentid = unhex(?)`
 	if len(orderByClause) > 0 {
 		query += ` order by ` + orderByClause
@@ -106,7 +62,7 @@ func GetChildObjects(db *sqlx.DB, orderByClause string, pageNumber int, pageSize
 	response.PageNumber = pageNumber
 	response.PageSize = pageSize
 	response.PageRows = len(response.Objects)
-	response.PageCount = getPageCount(response.TotalRows, pageSize)
+	response.PageCount = GetPageCount(response.TotalRows, pageSize)
 	return response, err
 }
 
@@ -115,8 +71,8 @@ func GetChildObjects(db *sqlx.DB, orderByClause string, pageNumber int, pageSize
 // are owned by the specified user or group.
 func GetRootObjectsByOwner(db *sqlx.DB, orderByClause string, pageNumber int, pageSize int, owner string) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
-	limit := getLimit(pageNumber, pageSize)
-	offset := getOffset(pageNumber, pageSize)
+	limit := GetLimit(pageNumber, pageSize)
+	offset := GetOffset(pageNumber, pageSize)
 	query := `select sql_calc_found_rows * from object where isdeleted = 0 and parentid is null and ownedby = ?`
 	if len(orderByClause) > 0 {
 		query += ` order by ` + orderByClause
@@ -138,7 +94,7 @@ func GetRootObjectsByOwner(db *sqlx.DB, orderByClause string, pageNumber int, pa
 	response.PageNumber = pageNumber
 	response.PageSize = pageSize
 	response.PageRows = len(response.Objects)
-	response.PageCount = getPageCount(response.TotalRows, pageSize)
+	response.PageCount = GetPageCount(response.TotalRows, pageSize)
 	return response, err
 }
 
@@ -147,8 +103,8 @@ func GetRootObjectsByOwner(db *sqlx.DB, orderByClause string, pageNumber int, pa
 // user or group
 func GetChildObjectsByOwner(db *sqlx.DB, orderByClause string, pageNumber int, pageSize int, parentID string, owner string) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
-	limit := getLimit(pageNumber, pageSize)
-	offset := getOffset(pageNumber, pageSize)
+	limit := GetLimit(pageNumber, pageSize)
+	offset := GetOffset(pageNumber, pageSize)
 	query := `select sql_calc_found_rows * from object where isdeleted = 0 and parentid = ? and ownedby = ?`
 	if len(orderByClause) > 0 {
 		query += ` order by ` + orderByClause
@@ -170,7 +126,7 @@ func GetChildObjectsByOwner(db *sqlx.DB, orderByClause string, pageNumber int, p
 	response.PageNumber = pageNumber
 	response.PageSize = pageSize
 	response.PageRows = len(response.Objects)
-	response.PageCount = getPageCount(response.TotalRows, pageSize)
+	response.PageCount = GetPageCount(response.TotalRows, pageSize)
 	return response, err
 }
 
