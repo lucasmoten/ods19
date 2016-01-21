@@ -36,8 +36,7 @@ func GetOffset(pageNumber int, pageSize int) int {
 // GetPageCount determines the total number of pages that would exist when the
 // totalRows and pageSize are known
 func GetPageCount(totalRows int, pageSize int) int {
-	var pageCount int
-	pageCount = totalRows / pageSize
+	pageCount := totalRows / pageSize
 	for (pageCount * pageSize) < totalRows {
 		pageCount++
 	}
