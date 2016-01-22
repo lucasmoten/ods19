@@ -64,6 +64,7 @@ func TestCheckAccess(t *testing.T) {
 
 	if resp.Success != true {
 		t.Logf("Expected true, got %v \n", resp.Success)
+		t.Log("Messages: ", resp.Messages)
 		t.Fail()
 	}
 
