@@ -20,7 +20,7 @@ func GetChildObjectsWithPropertiesByOwner(db *sqlx.DB, orderByClause string, pag
 			print(err.Error())
 			return response, err
 		}
-		responseObject.Properties = properties
+		responseObject.Properties = *properties
 	}
 	return response, err
 }

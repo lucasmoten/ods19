@@ -21,7 +21,7 @@ func GetRootObjectsWithPropertiesByOwner(db *sqlx.DB, orderByClause string, page
 			print(err.Error())
 			return response, err
 		}
-		responseObject.Properties = properties
+		responseObject.Properties = *properties
 	}
 	return response, err
 }

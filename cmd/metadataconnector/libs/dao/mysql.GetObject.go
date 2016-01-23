@@ -20,7 +20,7 @@ func GetObject(db *sqlx.DB, object *models.ODObject, loadProperties bool) (*mode
 
 	if loadProperties {
 		properties, err := GetPropertiesForObject(db, dbObject.ID)
-		dbObject.Properties = properties
+		dbObject.Properties = *properties
 		if err != nil {
 			return &dbObject, err
 		}
