@@ -20,7 +20,7 @@ func GetRootObjectsWithProperties(db *sqlx.DB, orderByClause string, pageNumber 
 			print(err.Error())
 			return response, err
 		}
-		object.Properties = properties
+		object.Properties = *properties
 	}
 	return response, err
 }

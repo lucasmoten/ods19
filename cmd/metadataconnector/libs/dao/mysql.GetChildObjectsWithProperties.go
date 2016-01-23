@@ -19,7 +19,8 @@ func GetChildObjectsWithProperties(db *sqlx.DB, orderByClause string, pageNumber
 		if err != nil {
 			return response, err
 		}
-		responseObject.Properties = properties
+		responseObject.Properties = *properties
 	}
+
 	return response, err
 }
