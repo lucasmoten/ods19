@@ -15,13 +15,13 @@ func GetRootObjectsWithPropertiesByOwner(db *sqlx.DB, orderByClause string, page
 		print(err.Error())
 		return response, err
 	}
-	for i := 0; i < len(response.Objects); i++ {
-		properties, err := GetPropertiesForObject(db, response.Objects[i].ID)
+	for _, responseObject := range response.Objects {
+		properties, err := GetPropertiesForObject(db, responseObject.ID)
 		if err != nil {
 			print(err.Error())
 			return response, err
 		}
-		response.Objects[i].Properties = properties
+		responseObject.Properties = properties
 	}
 	return response, err
 }

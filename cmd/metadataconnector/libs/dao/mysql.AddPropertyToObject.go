@@ -36,6 +36,9 @@ func AddPropertyToObject(db *sqlx.DB, createdBy string, objectID []byte, propert
 	}
 	// Add association to the object
 	addObjectPropertyStatement, err := db.Prepare(`insert object_property set createdby = ?, objectid = ?, propertyid = ?`)
+	if err != nil {
+		return err
+	}
 	result, err = addObjectPropertyStatement.Exec(createdBy, objectID, newPropertyID)
 	if err != nil {
 		return err
