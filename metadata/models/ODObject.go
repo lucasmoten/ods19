@@ -58,6 +58,17 @@ type ODObject struct {
 	*/
 	ContentConnector NullString `db:"contentConnector" json:"-"`
 	/*
+		ContentType indicates the mime-type, and potentially the character set
+		encoding for the object contents
+	*/
+	ContentType NullString `db:"contentType"`
+	/*
+		ContentSize denotes the length of the content stream for this object, in
+		bytes
+	*/
+	ContentSize NullInt64  `db:"contentSize"`
+	ContentHash NullString `db:"contentHash"`
+	/*
 		EncryptIV contains the initialization vector information for encrypting the
 		content stream for this object at result
 	*/
@@ -67,16 +78,6 @@ type ODObject struct {
 		stream for this object at rest
 	*/
 	EncryptKey NullString `db:"encryptKey" json:"-"`
-	/*
-		ContentType indicates the mime-type, and potentially the character set
-		encoding for the object contents
-	*/
-	ContentType NullString `db:"contentType"`
-	/*
-		ContentSize denotes the length of the content stream for this object, in
-		bytes
-	*/
-	ContentSize NullInt64 `db:"contentSize"`
 	/*
 		TypeName reflects the name of the object type associated with TypeID
 	*/

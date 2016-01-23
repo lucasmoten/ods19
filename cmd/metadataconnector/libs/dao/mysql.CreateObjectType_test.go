@@ -1,7 +1,6 @@
 package dao_test
 
 import (
-	"fmt"
 	"testing"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
@@ -35,7 +34,6 @@ func TestCreateObjectType(t *testing.T) {
 	if objectType.ModifiedBy != objectType.CreatedBy {
 		t.Error("expected ModifiedBy to match CreatedBy")
 	}
-	fmt.Println(objectType.CreatedDate)
 
 	err = dao.DeleteObjectType(db, &objectType)
 	if err != nil {
