@@ -13,12 +13,12 @@ func GetChildObjectsWithPropertiesByOwner(db *sqlx.DB, orderByClause string, pag
 	if err != nil {
 		return response, err
 	}
-	for _, responseObject := range response.Objects {
-		properties, err := GetPropertiesForObject(db, responseObject.ID)
+	for i := 0; i < len(response.Objects); i++ {
+		properties, err := GetPropertiesForObject(db, &response.Objects[i])
 		if err != nil {
 			return response, err
 		}
-		responseObject.Properties = *properties
+		response.Objects[i].Properties = properties
 	}
 	return response, err
 }

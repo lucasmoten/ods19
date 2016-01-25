@@ -76,4 +76,5 @@ func TestGetChildObjects(t *testing.T) {
 		t.Error(err)
 	}
 
+	db.Close()
 }

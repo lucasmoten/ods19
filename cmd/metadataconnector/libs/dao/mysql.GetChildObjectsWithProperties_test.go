@@ -1,6 +1,7 @@
 package dao_test
 
 import (
+	"fmt"
 	"testing"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
@@ -60,11 +61,11 @@ func TestGetChildObjectsWithProperties(t *testing.T) {
 		t.Error("expected TypeID to be set")
 	}
 	// property on child 1
-	err = dao.AddPropertyToObject(db, child1.CreatedBy, child1.ID, "Test Property C1P1", "Test Property 1 Value", "UNCLASSIFIED")
+	err = dao.AddPropertyToObject(db, child1.CreatedBy, &child1, "Test Property C1P1", "Test Property 1 Value", "UNCLASSIFIED")
 	if err != nil {
 		t.Error(err)
 	}
-	err = dao.AddPropertyToObject(db, child1.CreatedBy, child1.ID, "Test Property C1P2", "Test Property 2 Value", "UNCLASSIFIED")
+	err = dao.AddPropertyToObject(db, child1.CreatedBy, &child1, "Test Property C1P2", "Test Property 2 Value", "UNCLASSIFIED")
 	if err != nil {
 		t.Error(err)
 	}
@@ -91,17 +92,17 @@ func TestGetChildObjectsWithProperties(t *testing.T) {
 		t.Error("expected TypeID to be set")
 	}
 	// property on child 1
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, child2.ID, "Test Property C2P1", "Test Property 1 Value", "UNCLASSIFIED")
+	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, "Test Property C2P1", "Test Property 1 Value", "UNCLASSIFIED")
 	if err != nil {
 		t.Error(err)
 	}
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, child2.ID, "Test Property C2P2", "Test Property 2 Value", "UNCLASSIFIED")
+	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, "Test Property C2P2", "Test Property 2 Value", "UNCLASSIFIED")
 	if err != nil {
 		t.Error(err)
 	}
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, child2.ID, "Test Property C2P3", "Test Property 3 Value", "UNCLASSIFIED")
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, child2.ID, "Test Property C2P4", "Test Property 4 Value", "UNCLASSIFIED")
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, child2.ID, "Test Property C2P5", "Test Property 5 Value", "UNCLASSIFIED")
+	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, "Test Property C2P3", "Test Property 3 Value", "UNCLASSIFIED")
+	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, "Test Property C2P4", "Test Property 4 Value", "UNCLASSIFIED")
+	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, "Test Property C2P5", "Test Property 5 Value", "UNCLASSIFIED")
 
 	// Get child objects with properties from a single page of up to 10
 	resultset, err := dao.GetChildObjectsWithProperties(db, "", 1, 10, &parent)
@@ -115,16 +116,16 @@ func TestGetChildObjectsWithProperties(t *testing.T) {
 		t.Error("Expected 2 objects")
 	} else {
 		if resultset.Objects[0].Name != child1.Name {
-			t.Error("Name of first child didn't match expected value")
+			t.Error(fmt.Errorf("Name of first child didn't match expected value. Got %s, expected %s", resultset.Objects[0].Name, child1.Name))
 		}
 		if resultset.Objects[1].Name != child2.Name {
-			t.Error("Name of second child didn't match expected value")
+			t.Error(fmt.Errorf("Name of second child didn't match expected value. Got %s, expected %s", resultset.Objects[1].Name, child2.Name))
 		}
 		if len(resultset.Objects[0].Properties) != 2 {
-			t.Error("Expected first child to have 2 properties")
+			t.Error(fmt.Errorf("Expected first child to have 2 properties, but has %d", len(resultset.Objects[0].Properties)))
 		}
 		if len(resultset.Objects[1].Properties) != 5 {
-			t.Error("Expected second child to have 5 properties")
+			t.Error(fmt.Errorf("Expected second child to have 5 properties, but has %d", len(resultset.Objects[1].Properties)))
 		}
 	}
 
@@ -173,4 +174,5 @@ func TestGetChildObjectsWithProperties(t *testing.T) {
 	}
 	dao.DeleteObject(db, &parent, true)
 
+	db.Close()
 }

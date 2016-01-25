@@ -3,14 +3,16 @@ package dao
 import (
 	"errors"
 
+	"decipher.com/oduploader/metadata/models"
 	"github.com/jmoiron/sqlx"
 )
 
 // AddPropertyToObject creates a new property with the provided name and value,
 // and then associates that Property object to the Object indicated by ObjectID
-func AddPropertyToObject(db *sqlx.DB, createdBy string, objectID []byte, propertyName string, propertyValue string, classificationPM string) error {
+func AddPropertyToObject(db *sqlx.DB, createdBy string, object *models.ODObject, propertyName string, propertyValue string, classificationPM string) error {
+	tx := db.MustBegin()
 	// Setup the statement
-	addPropertyStatement, err := db.Prepare(`insert property set createdby = ?, name = ?, propertyvalue = ?, classificationpm = ?`)
+	addPropertyStatement, err := tx.Prepare(`insert property set createdby = ?, name = ?, propertyvalue = ?, classificationpm = ?`)
 	if err != nil {
 		return err
 	}
@@ -26,7 +28,7 @@ func AddPropertyToObject(db *sqlx.DB, createdBy string, objectID []byte, propert
 	}
 	// Get the ID of the newly created property
 	var newPropertyID []byte
-	getPropertyIDStatement, err := db.Prepare(`select id from property where createdby = ? and name = ? and propertyvalue = ? and classificationpm = ? order by createddate desc limit 1`)
+	getPropertyIDStatement, err := tx.Prepare(`select id from property where createdby = ? and name = ? and propertyvalue = ? and classificationpm = ? order by createddate desc limit 1`)
 	if err != nil {
 		return err
 	}
@@ -35,14 +37,15 @@ func AddPropertyToObject(db *sqlx.DB, createdBy string, objectID []byte, propert
 		return err
 	}
 	// Add association to the object
-	addObjectPropertyStatement, err := db.Prepare(`insert object_property set createdby = ?, objectid = ?, propertyid = ?`)
+	addObjectPropertyStatement, err := tx.Prepare(`insert object_property set createdby = ?, objectid = ?, propertyid = ?`)
 	if err != nil {
 		return err
 	}
-	result, err = addObjectPropertyStatement.Exec(createdBy, objectID, newPropertyID)
+	result, err = addObjectPropertyStatement.Exec(createdBy, object.ID, newPropertyID)
 	if err != nil {
 		return err
 	}
+	tx.Commit()
 
 	return nil
 }

@@ -1,6 +1,7 @@
 package dao_test
 
 import (
+	"fmt"
 	"testing"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
@@ -63,11 +64,11 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 		t.Error("expected TypeID to be set")
 	}
 	// property on child 1
-	err = dao.AddPropertyToObject(db, child1.CreatedBy, child1.ID, "Test Property C1P1", "Test Property 1 Value", "UNCLASSIFIED")
+	err = dao.AddPropertyToObject(db, child1.CreatedBy, &child1, "Test Property C1P1", "Test Property 1 Value", "UNCLASSIFIED")
 	if err != nil {
 		t.Error(err)
 	}
-	err = dao.AddPropertyToObject(db, child1.CreatedBy, child1.ID, "Test Property C1P2", "Test Property 2 Value", "UNCLASSIFIED")
+	err = dao.AddPropertyToObject(db, child1.CreatedBy, &child1, "Test Property C1P2", "Test Property 2 Value", "UNCLASSIFIED")
 	if err != nil {
 		t.Error(err)
 	}
@@ -94,17 +95,17 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 		t.Error("expected TypeID to be set")
 	}
 	// property on child 1
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, child2.ID, "Test Property C2P1", "Test Property 1 Value", "UNCLASSIFIED")
+	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, "Test Property C2P1", "Test Property 1 Value", "UNCLASSIFIED")
 	if err != nil {
 		t.Error(err)
 	}
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, child2.ID, "Test Property C2P2", "Test Property 2 Value", "UNCLASSIFIED")
+	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, "Test Property C2P2", "Test Property 2 Value", "UNCLASSIFIED")
 	if err != nil {
 		t.Error(err)
 	}
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, child2.ID, "Test Property C2P3", "Test Property 3 Value", "UNCLASSIFIED")
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, child2.ID, "Test Property C2P4", "Test Property 4 Value", "UNCLASSIFIED")
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, child2.ID, "Test Property C2P5", "Test Property 5 Value", "UNCLASSIFIED")
+	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, "Test Property C2P3", "Test Property 3 Value", "UNCLASSIFIED")
+	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, "Test Property C2P4", "Test Property 4 Value", "UNCLASSIFIED")
+	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, "Test Property C2P5", "Test Property 5 Value", "UNCLASSIFIED")
 
 	// Get child objects with properties from a single page of up to 10
 	resultset, err := dao.GetChildObjectsWithPropertiesByOwner(db, "", 1, 10, &parent, user1)
@@ -124,10 +125,10 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 			t.Error("Name of second child didn't match expected value")
 		}
 		if len(resultset.Objects[0].Properties) != 2 {
-			t.Error("Expected first child to have 2 properties")
+			t.Error(fmt.Errorf("Expected first child to have 2 properties, but it had %d", len(resultset.Objects[0].Properties)))
 		}
 		if len(resultset.Objects[1].Properties) != 5 {
-			t.Error("Expected second child to have 5 properties")
+			t.Error(fmt.Errorf("Expected second child to have 5 properties, but it had %d", len(resultset.Objects[1].Properties)))
 		}
 	}
 
@@ -146,7 +147,7 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 			t.Error("Name of first child didn't match expected value")
 		}
 		if len(resultset.Objects[0].Properties) != 2 {
-			t.Error("Expected first child to have 2 properties")
+			t.Error(fmt.Errorf("Expected first child to have 2 properties, but it had %d", len(resultset.Objects[0].Properties)))
 		}
 	}
 	resultset, err = dao.GetChildObjectsWithPropertiesByOwner(db, "", 2, 1, &parent, user1)
@@ -163,7 +164,7 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 			t.Error("Name of first child didn't match expected value")
 		}
 		if len(resultset.Objects[0].Properties) != 5 {
-			t.Error("Expected child on page 2 to have 5 properties")
+			t.Error(fmt.Errorf("Expected child on page 2 to have 5 properties, but it had %d", len(resultset.Objects[0].Properties)))
 		}
 	}
 
@@ -184,4 +185,5 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 	}
 	dao.DeleteObject(db, &parent, true)
 
+	db.Close()
 }

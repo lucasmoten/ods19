@@ -39,7 +39,7 @@ func TestAddPropertyToObject(t *testing.T) {
 	}
 
 	// add property
-	err = dao.AddPropertyToObject(db, obj.CreatedBy, obj.ID, "Test Property", "Test Property Value", "UNCLASSIFIED")
+	err = dao.AddPropertyToObject(db, obj.CreatedBy, &obj, "Test Property", "Test Property Value", "UNCLASSIFIED")
 	if err != nil {
 		t.Error(err)
 	}
@@ -71,4 +71,6 @@ func TestAddPropertyToObject(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
+	db.Close()
 }

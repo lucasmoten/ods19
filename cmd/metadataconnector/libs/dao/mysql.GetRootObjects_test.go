@@ -20,7 +20,7 @@ func TestGetRootObjects(t *testing.T) {
 	// Get root Objects
 	resultset, err := dao.GetRootObjects(db, "", 1, 1)
 	if err != nil {
-		t.Failed()
+		t.Error(err)
 	}
 	// capture how many objects are rooted before changes
 	originalTotalRows := resultset.TotalRows
@@ -48,7 +48,7 @@ func TestGetRootObjects(t *testing.T) {
 	// Get root Objects
 	resultset, err = dao.GetRootObjects(db, "", 1, 1)
 	if err != nil {
-		t.Failed()
+		t.Error(err)
 	}
 	if resultset.TotalRows < (originalTotalRows + 1) {
 		t.Error("expected an increase in objects at root")
@@ -63,10 +63,11 @@ func TestGetRootObjects(t *testing.T) {
 	// Get root Objects
 	resultset, err = dao.GetRootObjects(db, "", 1, 1)
 	if err != nil {
-		t.Failed()
+		t.Error(err)
 	}
 	if resultset.TotalRows != originalTotalRows {
 		t.Error("expected same number of objects as before the test")
 	}
 
+	db.Close()
 }
