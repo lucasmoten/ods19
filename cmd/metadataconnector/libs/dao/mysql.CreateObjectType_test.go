@@ -21,7 +21,10 @@ func TestCreateObjectType(t *testing.T) {
 	objectType.Name = "Test Type"
 	objectType.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 
-	dbObjectType := dao.GetObjectTypeByName(db, objectType.Name, false, objectType.CreatedBy)
+	dbObjectType, err := dao.GetObjectTypeByName(db, objectType.Name, false, objectType.CreatedBy)
+	if err != nil {
+		t.Error(err)
+	}
 	if dbObjectType.ID == nil {
 		dao.CreateObjectType(db, &objectType)
 	} else {

@@ -9,7 +9,7 @@ import (
 
 // GetObjectTypeByName looks up an object type by its name, and if it doesn't
 // exist, optionally calls CreateObjectType to add it.
-func GetObjectTypeByName(db *sqlx.DB, typeName string, addIfMissing bool, createdBy string) models.ODObjectType {
+func GetObjectTypeByName(db *sqlx.DB, typeName string, addIfMissing bool, createdBy string) (models.ODObjectType, error) {
 	var objectType models.ODObjectType
 	// Get the ID of the newly created object and assign to passed in object
 	getObjectTypeStatement := `select * from object_type where name = ?	and isdeleted = 0 order by createddate desc limit 1`
@@ -22,9 +22,9 @@ func GetObjectTypeByName(db *sqlx.DB, typeName string, addIfMissing bool, create
 				CreateObjectType(db, &objectType)
 			} // if addIfMissing {
 		} else {
-			panic(err)
+			return objectType, err
 		} // if err == sql.NoRows
 	} // if err != nil
 
-	return objectType
+	return objectType, err
 }
