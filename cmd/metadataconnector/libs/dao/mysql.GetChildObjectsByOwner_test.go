@@ -107,4 +107,5 @@ func TestGetChildObjectsByOwner(t *testing.T) {
 		t.Error(err)
 	}
 
+	db.Close()
 }

@@ -23,7 +23,7 @@ func TestGetRootObjectsByOwner(t *testing.T) {
 	// Get root Objects
 	resultset, err := dao.GetRootObjectsByOwner(db, "", 1, 1, user1)
 	if err != nil {
-		t.Failed()
+		t.Error(err)
 	}
 	// capture how many objects are rooted before changes
 	originalTotalRows1 := resultset.TotalRows
@@ -77,14 +77,14 @@ func TestGetRootObjectsByOwner(t *testing.T) {
 	// Get root Objects again
 	resultset, err = dao.GetRootObjectsByOwner(db, "", 1, 1, user1)
 	if err != nil {
-		t.Failed()
+		t.Error(err)
 	}
 	if resultset.TotalRows != (originalTotalRows1 + 1) {
 		t.Error("expected an increase in objects at root")
 	}
 	resultset, err = dao.GetRootObjectsByOwner(db, "", 1, 1, user2)
 	if err != nil {
-		t.Failed()
+		t.Error(err)
 	}
 	if resultset.TotalRows != (originalTotalRows2 + 1) {
 		t.Error("expected an increase in objects at root")
@@ -103,16 +103,18 @@ func TestGetRootObjectsByOwner(t *testing.T) {
 	// Get root Objects again
 	resultset, err = dao.GetRootObjectsByOwner(db, "", 1, 1, user1)
 	if err != nil {
-		t.Failed()
+		t.Error(err)
 	}
 	if resultset.TotalRows != originalTotalRows1 {
 		t.Error("expected same number of objects as before the test")
 	}
 	resultset, err = dao.GetRootObjectsByOwner(db, "", 1, 1, user2)
 	if err != nil {
-		t.Failed()
+		t.Error(err)
 	}
 	if resultset.TotalRows != originalTotalRows2 {
 		t.Error("expected same number of objects as before the test")
 	}
+
+	db.Close()
 }

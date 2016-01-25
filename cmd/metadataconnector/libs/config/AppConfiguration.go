@@ -150,6 +150,8 @@ func (r *DatabaseConnectionConfiguration) GetDatabaseHandle() (*sqlx.DB, error) 
 	}
 	// Setup handle to the database
 	db, err := sqlx.Open(r.Driver, r.buildDSN())
+	db.SetMaxIdleConns(10)
+	db.SetMaxOpenConns(10)
 	return db, err
 }
 

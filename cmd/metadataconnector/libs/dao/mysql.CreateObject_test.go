@@ -17,13 +17,22 @@ func TestCreateObject(t *testing.T) {
 	}
 	defer db.Close()
 
-	obj, acm := setupObject("Test CreateObject", "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US", "File", "UNCLASSIFIED")
+	var obj models.ODObject
+	obj.Name = "Test CreateObject"
+	obj.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	obj.TypeName.String = "File"
+	obj.TypeName.Valid = true
+	var acm models.ODACM
+	acm.CreatedBy = obj.CreatedBy
+	acm.Classification.String = "UNCLASSIFIED"
+	acm.Classification.Valid = true
+
 	dao.CreateObject(db, &obj, &acm)
 	if obj.ID == nil {
 		t.Error("expected ID to be set")
 	}
 	if obj.ModifiedBy != obj.CreatedBy {
-		t.Error("expcted ModifiedBy to match CreatedBy")
+		t.Error("expected ModifiedBy to match CreatedBy")
 	}
 	if obj.TypeID == nil {
 		t.Error("expected TypeID to be set")
@@ -33,18 +42,6 @@ func TestCreateObject(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-}
 
-func setupObject(name string, createdBy string, typeName string, classification string) (models.ODObject, models.ODACM) {
-	var obj models.ODObject
-	obj.Name = name
-	obj.CreatedBy = createdBy
-	obj.TypeName.String = typeName
-	obj.TypeName.Valid = true
-	var acm models.ODACM
-	acm.CreatedBy = obj.CreatedBy
-	acm.Classification.String = classification
-	acm.Classification.Valid = true
-
-	return obj, acm
+	db.Close()
 }
