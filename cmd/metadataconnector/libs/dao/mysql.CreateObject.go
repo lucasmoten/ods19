@@ -13,14 +13,17 @@ func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 
 	// lookup type, assign its id to the object for reference
 	if object.TypeID == nil {
-		objectType := GetObjectTypeByName(db, object.TypeName.String, true, object.CreatedBy)
+		objectType, err := GetObjectTypeByName(db, object.TypeName.String, true, object.CreatedBy)
+		if err != nil {
+			return err
+		}
 		object.TypeID = objectType.ID
 	}
 
 	// insert object
 	addObjectStatement, err := db.Prepare(`insert object set createdBy = ?, typeId = ?, name = ?, description = ?, parentId = ?, contentConnector = ?, encryptIV = ?, encryptKey = ?, contentType = ?, contentSize = ? `)
 	if err != nil {
-		print(err.Error())
+		return err
 	}
 	// Add it
 	result, err := addObjectStatement.Exec(object.CreatedBy, object.TypeID,
@@ -29,11 +32,11 @@ func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 		object.EncryptKey.String, object.ContentType.String,
 		object.ContentSize)
 	if err != nil {
-		print(err.Error())
+		return err
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		panic(err)
+		return err
 	}
 	if rowsAffected <= 0 {
 		panic("Object inserted but no rows affected")
@@ -50,7 +53,7 @@ func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 	getObjectStatement := `select * from object where createdby = ? and typeId = ? and name = ? and isdeleted = 0 order by createddate desc limit 1`
 	err = db.Get(object, getObjectStatement, object.CreatedBy, object.TypeID, object.Name)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	// TODO: add properties of object.Properties []models.ODObjectPropertyEx
