@@ -1,21 +1,17 @@
 package dao_test
 
 import (
+	"log"
 	"testing"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 )
 
 func TestAddPropertyToObject(t *testing.T) {
-	appConfiguration := config.NewAppConfiguration()
-	dbConfig := appConfiguration.DatabaseConnection
-	db, err := dbConfig.GetDatabaseHandle()
-	if err != nil {
-		t.Error("Unable to get handle to database: ", err.Error())
+	if db == nil {
+		log.Fatal("db is nil")
 	}
-	defer db.Close()
 
 	// create object
 	var obj models.ODObject
@@ -39,7 +35,13 @@ func TestAddPropertyToObject(t *testing.T) {
 	}
 
 	// add property
-	err = dao.AddPropertyToObject(db, obj.CreatedBy, &obj, "Test Property", "Test Property Value", "UNCLASSIFIED")
+	var property models.ODProperty
+	property.Name = "Test Property"
+	property.Value.String = "Test Property Value"
+	property.Value.Valid = true
+	property.ClassificationPM.String = "UNCLASSIFIED"
+	property.ClassificationPM.Valid = true
+	err := dao.AddPropertyToObject(db, obj.CreatedBy, &obj, &property)
 	if err != nil {
 		t.Error(err)
 	}
@@ -51,19 +53,20 @@ func TestAddPropertyToObject(t *testing.T) {
 	}
 	if len(objectWithProperty.Properties) != 1 {
 		t.Error("Expected one property on the object")
-	}
-	if objectWithProperty.Properties[0].Name != "Test Property" {
-		t.Error("Expected property name to be Test Property")
-	}
-	if objectWithProperty.Properties[0].Value.String != "Test Property Value" {
-		t.Error("Expected property value to be Test Property Value")
-	}
+	} else {
+		if objectWithProperty.Properties[0].Name != "Test Property" {
+			t.Error("Expected property name to be Test Property")
+		}
+		if objectWithProperty.Properties[0].Value.String != "Test Property Value" {
+			t.Error("Expected property value to be Test Property Value")
+		}
 
-	// delete the Property
-	theProperty := objectWithProperty.Properties[0]
-	err = dao.DeleteObjectProperty(db, &theProperty)
-	if err != nil {
-		t.Error(err)
+		// delete the Property
+		theProperty := objectWithProperty.Properties[0]
+		err = dao.DeleteObjectProperty(db, &theProperty)
+		if err != nil {
+			t.Error(err)
+		}
 	}
 
 	// delete the object
@@ -71,6 +74,4 @@ func TestAddPropertyToObject(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-
-	db.Close()
 }

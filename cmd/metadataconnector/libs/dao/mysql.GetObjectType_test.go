@@ -4,20 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 )
 
 func TestGetObjectType(t *testing.T) {
-	appConfiguration := config.NewAppConfiguration()
-	dbConfig := appConfiguration.DatabaseConnection
-	db, err := dbConfig.GetDatabaseHandle()
-	if err != nil {
-		t.Error("Unable to get handle to database: ", err.Error())
-	}
-	defer db.Close()
-
 	// create object type
 	var objectType models.ODObjectType
 	objectType.Name = "Test Object Type"
@@ -59,6 +50,4 @@ func TestGetObjectType(t *testing.T) {
 	if !objectTypeByID2.IsDeleted {
 		t.Error("Object type was not marked as deleted")
 	}
-
-	db.Close()
 }

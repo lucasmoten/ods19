@@ -9,7 +9,7 @@ import (
 
 // AddPropertyToObject creates a new property with the provided name and value,
 // and then associates that Property object to the Object indicated by ObjectID
-func AddPropertyToObject(db *sqlx.DB, createdBy string, object *models.ODObject, propertyName string, propertyValue string, classificationPM string) error {
+func AddPropertyToObject(db *sqlx.DB, createdBy string, object *models.ODObject, property *models.ODProperty) error {
 	tx := db.MustBegin()
 	// Setup the statement
 	addPropertyStatement, err := tx.Prepare(`insert property set createdby = ?, name = ?, propertyvalue = ?, classificationpm = ?`)
@@ -17,7 +17,7 @@ func AddPropertyToObject(db *sqlx.DB, createdBy string, object *models.ODObject,
 		return err
 	}
 	// Add it
-	result, err := addPropertyStatement.Exec(createdBy, propertyName, propertyValue, classificationPM)
+	result, err := addPropertyStatement.Exec(createdBy, property.Name, property.Value.String, property.ClassificationPM.String)
 	if err != nil {
 		return err
 	}
@@ -32,7 +32,12 @@ func AddPropertyToObject(db *sqlx.DB, createdBy string, object *models.ODObject,
 	if err != nil {
 		return err
 	}
-	err = getPropertyIDStatement.QueryRow(createdBy, propertyName, propertyValue, classificationPM).Scan(&newPropertyID)
+	err = getPropertyIDStatement.QueryRow(createdBy, property.Name, property.Value.String, property.ClassificationPM.String).Scan(&newPropertyID)
+	if err != nil {
+		return err
+	}
+	// Retrieve back into property
+	err = tx.Get(property, `select * from property where id = ?`, newPropertyID)
 	if err != nil {
 		return err
 	}
@@ -44,6 +49,10 @@ func AddPropertyToObject(db *sqlx.DB, createdBy string, object *models.ODObject,
 	result, err = addObjectPropertyStatement.Exec(createdBy, object.ID, newPropertyID)
 	if err != nil {
 		return err
+	}
+	rowCount, err = result.RowsAffected()
+	if rowCount < 1 {
+		return errors.New("No rows added from inserting object_property")
 	}
 	tx.Commit()
 
