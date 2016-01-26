@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"fmt"
+
 	"decipher.com/oduploader/metadata/models"
 	"github.com/jmoiron/sqlx"
 )
@@ -15,7 +17,8 @@ func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 	if object.TypeID == nil {
 		objectType, err := GetObjectTypeByName(db, object.TypeName.String, true, object.CreatedBy)
 		if err != nil {
-			return err
+			fmt.Println("error 20")
+			return fmt.Errorf("CreateObject Error calling GetObjectTypeByName, %s", err.Error())
 		}
 		object.TypeID = objectType.ID
 	}
@@ -23,7 +26,8 @@ func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 	// insert object
 	addObjectStatement, err := db.Prepare(`insert object set createdBy = ?, typeId = ?, name = ?, description = ?, parentId = ?, contentConnector = ?, encryptIV = ?, encryptKey = ?, contentType = ?, contentSize = ? `)
 	if err != nil {
-		return err
+		fmt.Println("error 29")
+		return fmt.Errorf("CreateObject Preparing add object statement, %s", err.Error())
 	}
 	// Add it
 	result, err := addObjectStatement.Exec(object.CreatedBy, object.TypeID,
@@ -32,14 +36,17 @@ func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 		object.EncryptKey.String, object.ContentType.String,
 		object.ContentSize)
 	if err != nil {
-		return err
+		fmt.Println("error 39")
+		return fmt.Errorf("CreateObject Error executing add object statement, %s", err.Error())
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return err
+		fmt.Println("error 44")
+		return fmt.Errorf("CreateObject Error checking result for rows affected, %s", err.Error())
 	}
 	if rowsAffected <= 0 {
-		panic("Object inserted but no rows affected")
+		fmt.Println("error 48")
+		return fmt.Errorf("CreateObject object inserted but no rows affected!")
 	}
 	// Get the ID of the newly created object and assign to passed in object
 	// The following block uses all parameters but doesnt take into account null
@@ -53,7 +60,8 @@ func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 	getObjectStatement := `select * from object where createdby = ? and typeId = ? and name = ? and isdeleted = 0 order by createddate desc limit 1`
 	err = db.Get(object, getObjectStatement, object.CreatedBy, object.TypeID, object.Name)
 	if err != nil {
-		return err
+		fmt.Println("error 63")
+		return fmt.Errorf("CreateObject Error retrieving object, %s", err.Error())
 	}
 
 	// TODO: add properties of object.Properties []models.ODObjectPropertyEx

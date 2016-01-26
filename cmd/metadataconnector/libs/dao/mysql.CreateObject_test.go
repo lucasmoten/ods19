@@ -3,19 +3,11 @@ package dao_test
 import (
 	"testing"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 )
 
 func TestCreateObject(t *testing.T) {
-	appConfiguration := config.NewAppConfiguration()
-	dbConfig := appConfiguration.DatabaseConnection
-	db, err := dbConfig.GetDatabaseHandle()
-	if err != nil {
-		t.Error("Unable to get handle to database: ", err.Error())
-	}
-	defer db.Close()
 
 	var obj models.ODObject
 	obj.Name = "Test CreateObject"
@@ -38,10 +30,9 @@ func TestCreateObject(t *testing.T) {
 		t.Error("expected TypeID to be set")
 	}
 
-	err = dao.DeleteObject(db, &obj, true)
+	err := dao.DeleteObject(db, &obj, true)
 	if err != nil {
 		t.Error(err)
 	}
 
-	db.Close()
 }

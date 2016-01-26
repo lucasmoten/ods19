@@ -5,19 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 )
 
 func TestGetChildObjectsByOwner(t *testing.T) {
-	appConfiguration := config.NewAppConfiguration()
-	dbConfig := appConfiguration.DatabaseConnection
-	db, err := dbConfig.GetDatabaseHandle()
-	if err != nil {
-		t.Error("Unable to get handle to database: ", err.Error())
-	}
-	defer db.Close()
+
 	var parent models.ODObject
 	var child1 models.ODObject
 	var child2 models.ODObject
@@ -27,7 +20,7 @@ func TestGetChildObjectsByOwner(t *testing.T) {
 	parent.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	parent.TypeName.String = "Test Type"
 	parent.TypeName.Valid = true
-	err = dao.CreateObject(db, &parent, nil)
+	err := dao.CreateObject(db, &parent, nil)
 	if err != nil {
 		t.Error(err)
 	} else {
@@ -107,5 +100,4 @@ func TestGetChildObjectsByOwner(t *testing.T) {
 		t.Error(err)
 	}
 
-	db.Close()
 }

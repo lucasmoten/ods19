@@ -3,20 +3,11 @@ package dao_test
 import (
 	"testing"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 )
 
 func TestGetRootObjectsByOwner(t *testing.T) {
-	appConfiguration := config.NewAppConfiguration()
-	dbConfig := appConfiguration.DatabaseConnection
-	db, err := dbConfig.GetDatabaseHandle()
-	if err != nil {
-		t.Error("Unable to get handle to database: ", err.Error())
-	}
-	defer db.Close()
-
 	user1 := "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	user2 := "CN=test tester02, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 
@@ -115,6 +106,4 @@ func TestGetRootObjectsByOwner(t *testing.T) {
 	if resultset.TotalRows != originalTotalRows2 {
 		t.Error("expected same number of objects as before the test")
 	}
-
-	db.Close()
 }

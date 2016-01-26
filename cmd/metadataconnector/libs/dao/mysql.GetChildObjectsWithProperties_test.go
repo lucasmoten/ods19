@@ -4,20 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 )
 
 func TestGetChildObjectsWithProperties(t *testing.T) {
-	appConfiguration := config.NewAppConfiguration()
-	dbConfig := appConfiguration.DatabaseConnection
-	db, err := dbConfig.GetDatabaseHandle()
-	if err != nil {
-		t.Error("Unable to get handle to database: ", err.Error())
-	}
-	defer db.Close()
-
 	// create parent object
 	var parent models.ODObject
 	parent.Name = "Test Parent Object for GetChildObjectsWithProperties"
@@ -61,11 +52,23 @@ func TestGetChildObjectsWithProperties(t *testing.T) {
 		t.Error("expected TypeID to be set")
 	}
 	// property on child 1
-	err = dao.AddPropertyToObject(db, child1.CreatedBy, &child1, "Test Property C1P1", "Test Property 1 Value", "UNCLASSIFIED")
+	var property1 models.ODProperty
+	property1.Name = "Test Property C1P1"
+	property1.Value.String = "Test Property 1 Value"
+	property1.Value.Valid = true
+	property1.ClassificationPM.String = "UNCLASSIFIED"
+	property1.ClassificationPM.Valid = true
+	err := dao.AddPropertyToObject(db, child1.CreatedBy, &child1, &property1)
 	if err != nil {
 		t.Error(err)
 	}
-	err = dao.AddPropertyToObject(db, child1.CreatedBy, &child1, "Test Property C1P2", "Test Property 2 Value", "UNCLASSIFIED")
+	var property2 models.ODProperty
+	property2.Name = "Test Property C1P2"
+	property2.Value.String = "Test Property 2 Value"
+	property2.Value.Valid = true
+	property2.ClassificationPM.String = "UNCLASSIFIED"
+	property2.ClassificationPM.Valid = true
+	err = dao.AddPropertyToObject(db, child1.CreatedBy, &child1, &property2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -92,17 +95,56 @@ func TestGetChildObjectsWithProperties(t *testing.T) {
 		t.Error("expected TypeID to be set")
 	}
 	// property on child 1
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, "Test Property C2P1", "Test Property 1 Value", "UNCLASSIFIED")
+	var propertyc2p1 models.ODProperty
+	propertyc2p1.Name = "Test Property C2P1"
+	propertyc2p1.Value.String = "Test Property 1 Value"
+	propertyc2p1.Value.Valid = true
+	propertyc2p1.ClassificationPM.String = "UNCLASSIFIED"
+	propertyc2p1.ClassificationPM.Valid = true
+	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, &propertyc2p1)
 	if err != nil {
 		t.Error(err)
 	}
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, "Test Property C2P2", "Test Property 2 Value", "UNCLASSIFIED")
+	var propertyc2p2 models.ODProperty
+	propertyc2p2.Name = "Test Property C2P2"
+	propertyc2p2.Value.String = "Test Property 2 Value"
+	propertyc2p2.Value.Valid = true
+	propertyc2p2.ClassificationPM.String = "UNCLASSIFIED"
+	propertyc2p2.ClassificationPM.Valid = true
+	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, &propertyc2p2)
 	if err != nil {
 		t.Error(err)
 	}
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, "Test Property C2P3", "Test Property 3 Value", "UNCLASSIFIED")
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, "Test Property C2P4", "Test Property 4 Value", "UNCLASSIFIED")
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, "Test Property C2P5", "Test Property 5 Value", "UNCLASSIFIED")
+	var propertyc2p3 models.ODProperty
+	propertyc2p3.Name = "Test Property C2P3"
+	propertyc2p3.Value.String = "Test Property 3 Value"
+	propertyc2p3.Value.Valid = true
+	propertyc2p3.ClassificationPM.String = "UNCLASSIFIED"
+	propertyc2p3.ClassificationPM.Valid = true
+	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, &propertyc2p3)
+	if err != nil {
+		t.Error(err)
+	}
+	var propertyc2p4 models.ODProperty
+	propertyc2p4.Name = "Test Property C2P4"
+	propertyc2p4.Value.String = "Test Property 4 Value"
+	propertyc2p4.Value.Valid = true
+	propertyc2p4.ClassificationPM.String = "UNCLASSIFIED"
+	propertyc2p4.ClassificationPM.Valid = true
+	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, &propertyc2p4)
+	if err != nil {
+		t.Error(err)
+	}
+	var propertyc2p5 models.ODProperty
+	propertyc2p5.Name = "Test Property C2P5"
+	propertyc2p5.Value.String = "Test Property 5 Value"
+	propertyc2p5.Value.Valid = true
+	propertyc2p5.ClassificationPM.String = "UNCLASSIFIED"
+	propertyc2p5.ClassificationPM.Valid = true
+	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, &propertyc2p5)
+	if err != nil {
+		t.Error(err)
+	}
 
 	// Get child objects with properties from a single page of up to 10
 	resultset, err := dao.GetChildObjectsWithProperties(db, "", 1, 10, &parent)
@@ -174,5 +216,4 @@ func TestGetChildObjectsWithProperties(t *testing.T) {
 	}
 	dao.DeleteObject(db, &parent, true)
 
-	db.Close()
 }
