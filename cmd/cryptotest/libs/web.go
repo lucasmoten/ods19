@@ -523,22 +523,6 @@ func (h Uploader) listingRetrieve(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("</html>\n"))
 }
 
-func (h Uploader) purgeFile(name string) {
-	go func() {
-		keyName := obfuscateHash(name)
-		//Must delete hash to cause file to download
-		//At a minimum we must also delete data to save space
-		h.Backend.DeleteFile(keyName + ".data")
-		h.Backend.DeleteFile(keyName + ".iv")
-		h.Backend.DeleteFile(keyName + ".key")
-		h.Backend.DeleteFile(keyName + ".hash")
-		h.Backend.DeleteFile(keyName + ".class")
-		//The grants for this file are currently left in, as that involves a
-		//per user search to get rid of them.
-		log.Printf("TODO: purge cached items for %s, except user grants", name)
-	}()
-}
-
 /**
 Generate a simple server in the root that we specify.
 We assume that the directory may not exist, and we set permissions
@@ -560,9 +544,17 @@ func makeServer(
 		RSAEncryptBits: rsaEncryptBits,
 	}
 
+	//Swap out with S3 at this point
+	h.Backend = h.NewAWSBackend()
+	err := h.Backend.EnsurePartitionExists(theRoot)
+	if err == nil {
+		log.Printf("Created a new partition %s", theRoot)
+	}
+	h.Addr = h.Bind + ":" + strconv.Itoa(h.Port)
+
 	purgeFile := func(name string) {
 		go func() {
-			keyName := obfuscateHash(name)
+			keyName := name
 			//Must delete hash to cause file to download
 			//At a minimum we must also delete data to save space
 			h.Backend.DeleteFile(keyName + ".data")
@@ -576,14 +568,6 @@ func makeServer(
 		}()
 	}
 	h.Tracker = performance.NewJobReporters(1024, purgeFile)
-
-	//Swap out with S3 at this point
-	h.Backend = h.NewAWSBackend()
-	err := h.Backend.EnsurePartitionExists(theRoot)
-	if err == nil {
-		log.Printf("Created a new partition %s", theRoot)
-	}
-	h.Addr = h.Bind + ":" + strconv.Itoa(h.Port)
 
 	//A web server is running
 	return &http.Server{

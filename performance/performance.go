@@ -157,6 +157,7 @@ type ReportsQueue struct {
 	Head            int
 	Tail            int
 	Stat            QStat
+	UserStat        QStat
 }
 
 // NewReportsQueue creates a queue for new reports
@@ -262,6 +263,9 @@ func (r *ReportsQueue) InsertStat(jr JobReport) {
 				}
 			}
 			amountToDistribute = size
+			r.UserStat.TotalTime += interval
+			r.UserStat.TotalBytes += size
+			r.UserStat.PopWeightedByTime += interval * eOld.Population
 		} else {
 			// don't lose stats when we advance tail over head
 			r.AdvanceHead()
@@ -276,6 +280,9 @@ func (r *ReportsQueue) InsertStat(jr JobReport) {
 				}
 			}
 			amountToDistribute = size
+			r.UserStat.TotalTime += interval
+			r.UserStat.TotalBytes += size
+			r.UserStat.PopWeightedByTime += interval * eNext.Population
 		}
 	}
 
@@ -392,6 +399,17 @@ func (r *ReportsQueue) Dump(w io.Writer) {
 			r.Stat.TotalTime,
 		)
 	}
+	if r.UserStat.TotalTime > 0 {
+		fmt.Fprintf(
+			w,
+			"userExperience: %v %vkB/s => %vB in %vms\n",
+			(1.0*r.UserStat.PopWeightedByTime)/r.UserStat.TotalTime,
+			((1.0)*r.UserStat.TotalBytes)/r.UserStat.TotalTime,
+			r.UserStat.TotalBytes,
+			r.UserStat.TotalTime,
+		)
+	}
+
 }
 
 // PeekTail gets the item in the tail of the queue

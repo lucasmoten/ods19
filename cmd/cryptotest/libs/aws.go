@@ -37,7 +37,11 @@ func (h Uploader) NewAWSBackend() *Backend {
 }
 
 func (h Uploader) awsDeleteFile(bucketKeyName string) error {
-	return os.Remove(bucketKeyName)
+	err := os.Remove(h.Partition + "/" + bucketKeyName)
+	if err != nil {
+		log.Printf("Could not delete %s: %v", bucketKeyName, err)
+	}
+	return err
 }
 
 //Hide filesystem reads so they can be S3 buckets
