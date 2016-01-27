@@ -70,6 +70,18 @@ func NewAppConfiguration() AppConfiguration {
 	if err != nil {
 		fmt.Println("error:", err)
 	}
+
+	// Use reflection to iterate over the struct
+	//ExpandEnvironmentVariables(configuration)
+	// reflection issues with structs and pointers for now, so just hardcoding this. As the struct changes, this logic will also need updated
+	configuration.DatabaseConnection.CAPath = os.ExpandEnv(configuration.DatabaseConnection.CAPath)
+	configuration.DatabaseConnection.ClientCert = os.ExpandEnv(configuration.DatabaseConnection.ClientCert)
+	configuration.DatabaseConnection.ClientKey = os.ExpandEnv(configuration.DatabaseConnection.ClientKey)
+	configuration.ServerSettings.CAPath = os.ExpandEnv(configuration.ServerSettings.CAPath)
+	configuration.ServerSettings.ServerCertChain = os.ExpandEnv(configuration.ServerSettings.ServerCertChain)
+	configuration.ServerSettings.ServerKey = os.ExpandEnv(configuration.ServerSettings.ServerKey)
+
+	// Done
 	return configuration
 }
 

@@ -10,17 +10,17 @@
     ,"Params": "parseTime=true"
     ,"UseTLS": true
     ,"SkipVerify": false
-    ,"CAPath": "/home/lucasmoten/workspace/src/decipher.com/oduploader/defaultcerts/client-mysql/trust"
-    ,"ClientCert": "/home/lucasmoten/workspace/src/decipher.com/oduploader/defaultcerts/client-mysql/id/client-cert.pem"
-    ,"ClientKey": "/home/lucasmoten/workspace/src/decipher.com/oduploader/defaultcerts/client-mysql/id/client-key.pem"
+    ,"CAPath": "$GOPATH/src/decipher.com/oduploader/defaultcerts/client-mysql/trust"
+    ,"ClientCert": "$GOPATH/src/decipher.com/oduploader/defaultcerts/client-mysql/id/client-cert.pem"
+    ,"ClientKey": "$GOPATH/src/decipher.com/oduploader/defaultcerts/client-mysql/id/client-key.pem"
   },
   "ServerSettings": {
     "ListenPort": 4430
     ,"ListenBind": "0.0.0.0"
     ,"UseTLS": true
-    ,"CAPath": "/home/lucasmoten/workspace/src/decipher.com/oduploader/defaultcerts/server-web/trust"
-    ,"ServerCertChain": "/home/lucasmoten/workspace/src/decipher.com/oduploader/defaultcerts/server-web/id/server.cert.pem"
-    ,"ServerKey": "/home/lucasmoten/workspace/src/decipher.com/oduploader/defaultcerts/server-web/id/server.key.pem"
+    ,"CAPath": "$GOPATH/src/decipher.com/oduploader/defaultcerts/server-web/trust"
+    ,"ServerCertChain": "$GOPATH/src/decipher.com/oduploader/defaultcerts/server-web/id/server.cert.pem"
+    ,"ServerKey": "$GOPATH/src/decipher.com/oduploader/defaultcerts/server-web/id/server.key.pem"
     ,"RequireClientCert": true
     ,"CipherSuites" : [
       "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
