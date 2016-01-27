@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -68,7 +69,12 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request) {
 	var response models.ODObjectResultset
 	var err error
 	if parentID != "" {
-		response, err = dao.GetChildObjectsWithPropertiesByOwner(h.MetadataDB, "createddate desc", pageNumber, pageSize, parentID, who)
+		var parentObject models.ODObject
+		parentObject.ID, err = hex.DecodeString(parentID)
+		if err != nil {
+			log.Fatal(err)
+		}
+		response, err = dao.GetChildObjectsWithPropertiesByOwner(h.MetadataDB, "createddate desc", pageNumber, pageSize, &parentObject, who)
 	} else {
 		response, err = dao.GetRootObjectsWithPropertiesByOwner(h.MetadataDB, "createddate desc", pageNumber, pageSize, who)
 	}
