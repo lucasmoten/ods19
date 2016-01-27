@@ -10,8 +10,8 @@
     ,"Params": "parseTime=true"
     ,"UseTLS": true
     ,"SkipVerify": false
-    ,"CAPath": "/home/lucasmoten/workspace/src/decipher.com/oduploader/defaultcerts/client-mysql/trust"
-    ,"ClientCert": "/home/lucasmoten/workspace/src/decipher.com/oduploader/defaultcerts/client-mysql/id/client-cert.pem"
-    ,"ClientKey": "/home/lucasmoten/workspace/src/decipher.com/oduploader/defaultcerts/client-mysql/id/client-key.pem"
+    ,"CAPath": "$GOPATH/src/decipher.com/oduploader/defaultcerts/client-mysql/trust"
+    ,"ClientCert": "$GOPATH/src/decipher.com/oduploader/defaultcerts/client-mysql/id/client-cert.pem"
+    ,"ClientKey": "$GOPATH/src/decipher.com/oduploader/defaultcerts/client-mysql/id/client-key.pem"
   }
 }
