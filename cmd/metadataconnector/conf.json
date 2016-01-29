@@ -18,9 +18,9 @@
     "ListenPort": 4430
     ,"ListenBind": "0.0.0.0"
     ,"UseTLS": true
-    ,"CAPath": "$GOPATH/src/decipher.com/oduploader/defaultcerts/server-web/trust"
-    ,"ServerCertChain": "$GOPATH/src/decipher.com/oduploader/defaultcerts/server-web/id/server.cert.pem"
-    ,"ServerKey": "$GOPATH/src/decipher.com/oduploader/defaultcerts/server-web/id/server.key.pem"
+    ,"CAPath": "$GOPATH/src/decipher.com/oduploader/defaultcerts/server/trust.pem"
+    ,"ServerCertChain": "$GOPATH/src/decipher.com/oduploader/defaultcerts/server/server.cert.pem"
+    ,"ServerKey": "$GOPATH/src/decipher.com/oduploader/defaultcerts/server/server.key.pem"
     ,"RequireClientCert": true
     ,"CipherSuites" : [
       "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
