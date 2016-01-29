@@ -202,16 +202,16 @@ func GetDNFromCert(name pkix.Name) string {
 				dnArray = dnArray + ","
 			}
 			switch {
-			case dnPart[j].Type.String() == "2.5.4.6":
+			case dnPart[jLen-1-j].Type.String() == "2.5.4.6":
 				pPart = "C"
-			case dnPart[j].Type.String() == "2.5.4.10":
+			case dnPart[jLen-1-j].Type.String() == "2.5.4.10":
 				pPart = "O"
-			case dnPart[j].Type.String() == "2.5.4.11":
+			case dnPart[jLen-1-j].Type.String() == "2.5.4.11":
 				pPart = "OU"
-			case dnPart[j].Type.String() == "2.5.4.3":
+			case dnPart[jLen-1-j].Type.String() == "2.5.4.3":
 				pPart = "CN"
 			}
-			dnArray = dnArray + fmt.Sprintf("%s=%v", pPart, dnPart[j].Value)
+			dnArray = dnArray + fmt.Sprintf("%s=%v", pPart, dnPart[jLen-1-j].Value)
 		}
 	}
 	return dnArray

@@ -95,6 +95,17 @@ func createRSAComponents(randReader io.Reader) (*RSAComponents, error) {
 	}, nil
 }
 
+//Simple passphrase based encryption.
+//XOR a hash of password over the data
+func applyPassphrase(key, text []byte) {
+	hashBytes := sha256.Sum256([]byte(key))
+	k := len(hashBytes)
+	for i := 0; i < len(text); i++ {
+		text[i] = hashBytes[i%k] ^ text[i]
+	}
+	return
+}
+
 //Generate unique opaque names for uploaded files
 //This would be straight base64 encoding, except the characters need
 //to be valid filenames
