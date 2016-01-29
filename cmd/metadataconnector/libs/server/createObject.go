@@ -6,18 +6,16 @@ import (
 	"mime/multipart"
 	"net/http"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 )
 
 // createObject is a method handler on AppServer for createObject microservice
 // operation.
-func (h AppServer) createObject(w http.ResponseWriter, r *http.Request) {
-	who := config.GetDistinguishedName(r.TLS.PeerCertificates[0])
+func (h AppServer) createObject(w http.ResponseWriter, r *http.Request, caller Caller) {
 
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, pageTemplateStart, "createObject", who)
+	fmt.Fprintf(w, pageTemplateStart, "createObject", caller.DistinguishedName)
 
 	fmt.Fprintf(w, `
 	<hr />
@@ -56,8 +54,8 @@ func (h AppServer) createObject(w http.ResponseWriter, r *http.Request) {
 		var acm models.ODACM
 
 		// Set creator
-		obj.CreatedBy = who
-		acm.CreatedBy = who
+		obj.CreatedBy = caller.DistinguishedName
+		acm.CreatedBy = caller.DistinguishedName
 
 		// TODO: Access Check
 

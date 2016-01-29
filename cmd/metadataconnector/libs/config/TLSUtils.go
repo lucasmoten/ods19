@@ -225,3 +225,17 @@ func GetDistinguishedName(theCert *x509.Certificate) string {
 
 	return result
 }
+
+// GetCommonName returns the CN value part of a passed in distinguished name
+func GetCommonName(DistinguishedName string) string {
+	if DistinguishedName == "" {
+		return ""
+	}
+	dnParts := strings.Split(DistinguishedName, ",")
+	for _, s := range dnParts {
+		if strings.Index(strings.ToUpper(s), "CN=") == 0 {
+			return s[3:len(s)]
+		}
+	}
+	return DistinguishedName
+}

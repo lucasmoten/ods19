@@ -12,7 +12,7 @@ import (
 func GetObject(db *sqlx.DB, object *models.ODObject, loadProperties bool) (*models.ODObject, error) {
 
 	var dbObject models.ODObject
-	getObjectStatement := `select * from object where id = ?`
+	getObjectStatement := `select o.*, ot.name typeName from object o inner join object_type ot on o.typeid = ot.id where o.id = ?`
 	err := db.Get(&dbObject, getObjectStatement, object.ID)
 	if err != nil {
 		return &dbObject, err

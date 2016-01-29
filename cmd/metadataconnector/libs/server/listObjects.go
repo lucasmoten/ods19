@@ -37,12 +37,7 @@ type listObjectsRequest struct {
 //				}
 // TODO: Implement proper paging and and result information
 // TODO: Convert response to JSON
-func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request) {
-	//peerDistinguishedName := config.GetDistinguishedName(r.TLS.PeerCertificates[0])
-	//userDistinguishedName := r.Header.Get("USER_DN")
-	//externalSystemDistinguishedName := r.Header.Get("EXTERNAL_SYS_DN")
-	who := config.GetDistinguishedName(r.TLS.PeerCertificates[0])
-
+func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Caller) {
 	// Find parentId from request URI
 	parentID := getParentIDToListObjects(r.URL.RequestURI())
 
@@ -55,7 +50,7 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request) {
 	case r.Method == "GET":
 		// Output
 		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprintf(w, pageTemplateStart, "listObjects", who)
+		fmt.Fprintf(w, pageTemplateStart, "listObjects", caller.DistinguishedName)
 		fmt.Fprintf(w, pageTemplatePager, "listObjectsPager")
 		fmt.Fprintf(w, pageTemplateDataTable, "listObjectsResults")
 		fmt.Fprintf(w, pageTemplateEnd)
@@ -74,9 +69,9 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		response, err = dao.GetChildObjectsWithPropertiesByOwner(h.MetadataDB, "createddate desc", pageNumber, pageSize, &parentObject, who)
+		response, err = dao.GetChildObjectsWithPropertiesByOwner(h.MetadataDB, "createddate desc", pageNumber, pageSize, &parentObject, caller.DistinguishedName)
 	} else {
-		response, err = dao.GetRootObjectsWithPropertiesByOwner(h.MetadataDB, "createddate desc", pageNumber, pageSize, who)
+		response, err = dao.GetRootObjectsWithPropertiesByOwner(h.MetadataDB, "createddate desc", pageNumber, pageSize, caller.DistinguishedName)
 	}
 	if err != nil {
 		panic(err.Error())
@@ -87,20 +82,31 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Page "+strconv.Itoa(response.PageNumber)+" of "+strconv.Itoa(response.PageCount)+".<br />")
 	fmt.Fprintf(w, "Page Size: "+strconv.Itoa(response.PageSize)+", Page Rows: "+strconv.Itoa(response.PageRows)+", Total Rows: "+strconv.Itoa(response.TotalRows)+"<br />")
 	fmt.Fprintf(w, `<table id="listObjectsResults">`)
-	fmt.Fprintf(w, `<tr><td>Name</td><td>Created Date</td><td>Created By</td></tr>`)
+	fmt.Fprintf(w, `<tr><td>Name</td><td>Type</td><td>Created Date</td><td>Created By</td></tr>`)
 	for idx := range objects {
 		object := objects[idx]
 
 		fmt.Fprintf(w, "<tr><td>")
-		fmt.Fprintf(w, "<a href='/object/")
-		fmt.Fprintf(w, hex.EncodeToString(object.ID))
-		fmt.Fprintf(w, "/list'>")
-		fmt.Fprintf(w, object.Name)
-		fmt.Fprintf(w, "</a>")
+		switch {
+		case object.TypeName.String == "Folder":
+			fmt.Fprintf(w, "<a href='/object/")
+			fmt.Fprintf(w, hex.EncodeToString(object.ID))
+			fmt.Fprintf(w, "/list'>")
+			fmt.Fprintf(w, object.Name)
+			fmt.Fprintf(w, "</a>")
+		default:
+			fmt.Fprintf(w, "<a href='/object/")
+			fmt.Fprintf(w, hex.EncodeToString(object.ID))
+			fmt.Fprintf(w, "/stream'>")
+			fmt.Fprintf(w, object.Name)
+			fmt.Fprintf(w, "</a>")
+		}
+		fmt.Fprintf(w, "</td><td>")
+		fmt.Fprintf(w, object.TypeName.String)
 		fmt.Fprintf(w, "</td><td>")
 		fmt.Fprintf(w, getFormattedDate(object.CreatedDate))
 		fmt.Fprintf(w, "</td><td>")
-		fmt.Fprintf(w, object.CreatedBy)
+		fmt.Fprintf(w, config.GetCommonName(object.CreatedBy))
 		fmt.Fprintf(w, "</td></tr>")
 	}
 	fmt.Fprintf(w, "</table>")
