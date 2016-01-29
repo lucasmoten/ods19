@@ -9,15 +9,38 @@ import (
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
+	"decipher.com/oduploader/metadata/models"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+
 	"github.com/jmoiron/sqlx"
 )
 
 // AppServer contains definition for the metadata server
 type AppServer struct {
-	Port       int
-	Bind       string
-	Addr       string
-	MetadataDB *sqlx.DB
+	Port          int
+	Bind          string
+	Addr          string
+	MetadataDB    *sqlx.DB
+	S3            *s3.S3
+	AWSSession    *session.Session
+	CacheLocation string
+}
+
+// UserSession is per session information that needs to be passed around
+type UserSession struct {
+	User models.ODUser
+}
+
+func (h AppServer) findWho(r *http.Request) string {
+	who := "anonymous" //Should be a DN
+	if len(r.TLS.PeerCertificates) > 0 {
+		//Direct 2way ssl connection
+		who = config.GetDistinguishedName(r.TLS.PeerCertificates[0])
+	} else {
+		//get from a header
+	}
+	return who
 }
 
 // Caller provides the distinguished names obtained from specific request
@@ -31,8 +54,8 @@ type Caller struct {
 
 // ServeHTTP handles the routing of requests
 func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// See who is making the call
 	caller := GetCaller(r)
+
 	// Add/Load them
 	user := dao.GetUserByDistinguishedName(h.MetadataDB, caller.DistinguishedName)
 	if len(user.ModifiedBy) == 0 {

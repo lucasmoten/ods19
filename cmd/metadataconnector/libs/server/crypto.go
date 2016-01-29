@@ -1,4 +1,4 @@
-package libs
+package server
 
 import (
 	"crypto/aes"
@@ -95,8 +95,29 @@ func createRSAComponents(randReader io.Reader) (*RSAComponents, error) {
 	}, nil
 }
 
-//Simple passphrase based encryption.
-//XOR a hash of password over the data
+//Generate unique opaque names for uploaded files
+//This would be straight base64 encoding, except the characters need
+//to be valid filenames
+func obfuscateHash(key string) string {
+	hashBytes := sha256.Sum256([]byte(key))
+	return hex.EncodeToString(hashBytes[:])
+}
+
+func createRandomName() string {
+	//Sha256 keys are 256 bits
+	key := make([]byte, 32)
+	rand.Read(key)
+	return hex.EncodeToString(key)
+}
+
+//XXX:
+//Eventually, we need to use public key encryption to encrypt to
+//the user.  But given that there is a pkcs12 file that requires
+//a password to unlock, this is effectively the same thing if
+//we have the user's password to encrypt to him.
+//
+//We can use masterkey salted with userDN as well to uniquely
+//encrypt password per user.
 func applyPassphrase(key, text []byte) {
 	hashBytes := sha256.Sum256([]byte(key))
 	k := len(hashBytes)
@@ -106,16 +127,9 @@ func applyPassphrase(key, text []byte) {
 	return
 }
 
-//Generate unique opaque names for uploaded files
-//This would be straight base64 encoding, except the characters need
-//to be valid filenames
-func obfuscateHash(key string) string {
-	hashBytes := sha256.Sum256([]byte(key))
-	return hex.EncodeToString(hashBytes[:])
-}
-
-func (u Uploader) createKeyIVPair() (key []byte, iv []byte) {
-	key = make([]byte, u.Environment.KeyBytes)
+func createKeyIVPair() (key []byte, iv []byte) {
+	//256 bit keys
+	key = make([]byte, 32)
 	rand.Read(key)
 	//XXX I have read advice that with CTR blocks, the last four bytes
 	//of an iv should be zero, because the last four bytes are
@@ -132,6 +146,8 @@ func (u Uploader) createKeyIVPair() (key []byte, iv []byte) {
 	return
 }
 
+//XXX Need a proper read-write pipe that will xor with the key as it writes,
+// need to facilitate efficient encrypted append.
 func doCipherByReaderWriter(
 	inFile io.Reader,
 	outFile io.Writer,

@@ -14,7 +14,23 @@ import (
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
+
+//TODO: not sure how much is safe to share concurrently
+//This is account as in the ["default"] entry in ~/.aws/credentials
+func awsS3(account string) (*s3.S3, *session.Session) {
+	sessionConfig := &aws.Config{
+		Credentials: credentials.NewSharedCredentials("", account),
+	}
+	sess := session.New(sessionConfig)
+	svc := s3.New(sess)
+	return svc, sess
+}
 
 func main() {
 
@@ -49,12 +65,20 @@ func main() {
 }
 
 func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*http.Server, error) {
+	//On machines with multiple configs, we at least assume that objectdrive is aliased to
+	//the default config
+	s3, awsSession := awsS3("default")
+
 	httpHandler := server.AppServer{
-		Port:       serverConfig.ListenPort,
-		Bind:       serverConfig.ListenBind,
-		Addr:       serverConfig.ListenBind + ":" + strconv.Itoa(serverConfig.ListenPort),
-		MetadataDB: db,
+		Port:          serverConfig.ListenPort,
+		Bind:          serverConfig.ListenBind,
+		Addr:          serverConfig.ListenBind + ":" + strconv.Itoa(serverConfig.ListenPort),
+		MetadataDB:    db,
+		S3:            s3,
+		AWSSession:    awsSession,
+		CacheLocation: "cache",
 	}
+
 	return &http.Server{
 		Addr:           string(httpHandler.Addr),
 		Handler:        httpHandler,

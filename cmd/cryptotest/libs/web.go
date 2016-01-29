@@ -298,29 +298,7 @@ func (h Uploader) serveHTTPUploadGET(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Uploader) getDN(r *http.Request) string {
-	dnSeq := r.TLS.PeerCertificates[0].Subject.ToRDNSequence()
-	dnArray := ""
-	for i := 0; i < len(dnSeq); i++ {
-		dnPart := dnSeq[len(dnSeq)-i-1]
-		var pPart string
-		for j := 0; j < len(dnPart); j++ {
-			if i > 0 || j > 0 {
-				dnArray = dnArray + ","
-			}
-			switch {
-			case dnPart[j].Type.String() == "2.5.4.6":
-				pPart = "C"
-			case dnPart[j].Type.String() == "2.5.4.10":
-				pPart = "O"
-			case dnPart[j].Type.String() == "2.5.4.11":
-				pPart = "OU"
-			case dnPart[j].Type.String() == "2.5.4.3":
-				pPart = "CN"
-			}
-			dnArray = dnArray + fmt.Sprintf("%s=%v", pPart, dnPart[j].Value)
-		}
-	}
-	return dnArray
+	return config.GetDNFromCert(r.TLS.PeerCertificates[0].Subject)
 }
 
 func (h Uploader) hasFileChanged(fileName string) (fileHasChanged bool) {
