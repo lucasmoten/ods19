@@ -24,7 +24,7 @@ func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 	}
 
 	// insert object
-	addObjectStatement, err := db.Prepare(`insert object set createdBy = ?, typeId = ?, name = ?, description = ?, parentId = ?, contentConnector = ?, encryptIV = ?, encryptKey = ?, contentType = ?, contentSize = ? `)
+	addObjectStatement, err := db.Prepare(`insert object set createdBy = ?, typeId = ?, name = ?, description = ?, parentId = ?, contentConnector = ?, contentType = ?, contentSize = ?, contentHash = ?, encryptIV = ?`)
 	if err != nil {
 		fmt.Println("error 29")
 		return fmt.Errorf("CreateObject Preparing add object statement, %s", err.Error())
@@ -32,9 +32,8 @@ func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 	// Add it
 	result, err := addObjectStatement.Exec(object.CreatedBy, object.TypeID,
 		object.Name, object.Description.String, object.ParentID,
-		object.ContentConnector.String, object.EncryptIV.String,
-		object.EncryptKey.String, object.ContentType.String,
-		object.ContentSize)
+		object.ContentConnector.String, object.ContentType.String,
+		object.ContentSize, object.ContentHash.String, object.EncryptIV)
 	if err != nil {
 		fmt.Println("error 39")
 		return fmt.Errorf("CreateObject Error executing add object statement, %s", err.Error())
@@ -49,14 +48,7 @@ func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 		return fmt.Errorf("CreateObject object inserted but no rows affected!")
 	}
 	// Get the ID of the newly created object and assign to passed in object
-	// The following block uses all parameters but doesnt take into account null
-	// values...
-	// getObjectStatement := `select * from object where createdby = ? and typeId = ? and name = ? and description = ? and parentId = ? and contentConnector = ? and encryptIV = ? and encryptKey = ? and contentType = ? and contentSize = ? and isdeleted = 0 order by createddate desc limit 1`
-	// err = db.Get(object, getObjectStatement, object.CreatedBy, object.TypeID,
-	// 	object.Name, object.Description.String, object.ParentID,
-	// 	object.ContentConnector.String, object.EncryptIV.String,
-	// 	object.EncryptKey.String, object.ContentType.String,
-	// 	object.ContentSize)
+	// This assumes most recent created by the user of the type and name
 	getObjectStatement := `select * from object where createdby = ? and typeId = ? and name = ? and isdeleted = 0 order by createddate desc limit 1`
 	err = db.Get(object, getObjectStatement, object.CreatedBy, object.TypeID, object.Name)
 	if err != nil {

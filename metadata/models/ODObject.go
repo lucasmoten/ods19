@@ -47,15 +47,14 @@ type ODObject struct {
 	ContentHash NullString `db:"contentHash"`
 	// EncryptIV contains the initialization vector information for encrypting the
 	// content stream for this object at result
-	EncryptIV NullString `db:"encryptIV" json:"-"`
-	// EncryptKey contains the encryption key for encrypting/decrypting the
-	// content stream for this object at rest
-	EncryptKey NullString `db:"encryptKey" json:"-"`
+	EncryptIV []byte `db:"encryptIV" json:"-"`
 	// TypeName reflects the name of the object type associated with TypeID
 	TypeName NullString `db:"typeName"`
 	// Properties is an array of Object Properties associated with this object
 	// structured as key/value with portion marking.
 	Properties []ODObjectPropertyEx
+	// Permissions is an array of Object Permissions associated with this object
+	Permissions []ODObjectPermission
 }
 
 // ODObjectResultset encapsulates the ODObject defined herein as an array with
