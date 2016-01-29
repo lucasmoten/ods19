@@ -1,14 +1,69 @@
 package server
 
 import (
-	"fmt"
-	"io"
-	"mime/multipart"
-	"net/http"
-
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
+	"encoding/hex"
+	"fmt"
+	"io"
+	"log"
+	"mime/multipart"
+	"net/http"
+	"os"
 )
+
+func (h AppServer) beginUpload(
+	w http.ResponseWriter,
+	r *http.Request,
+	caller Caller,
+	part *multipart.Part,
+	obj models.ODObject,
+	acm models.ODACM,
+) (grant models.ODObjectPermission, err error) {
+	if _, err = os.Stat(h.CacheLocation); os.IsNotExist(err) {
+		err = os.Mkdir(h.CacheLocation, 0700)
+		log.Printf("Unable to make cache directory %s: %v", h.CacheLocation, err)
+	}
+	//Make up a random name for our file - don't deal with versioning yet
+	rName := createRandomName()
+	outFileUploading := h.CacheLocation + "/" + rName + ".uploading"
+	outFileUploaded := h.CacheLocation + "/" + rName + ".uploaded"
+
+	outFile, err := os.Create(outFileUploading)
+	if err != nil {
+		log.Printf("Unable to open ciphertext uploading file %s %v:", outFileUploading, err)
+		return grant, err
+	}
+	defer outFile.Close()
+
+	//Generate random key and iv
+	key, iv := createKeyIVPair()
+
+	//Write the encrypted data to the filesystem
+	checksum, length, err := doCipherByReaderWriter(part, outFile, key, iv)
+	if err != nil {
+		log.Printf("Unable to write ciphertext %s %v:", outFileUploading, err)
+		return grant, err
+	}
+	//Rename it to indicate that it can be moved to S3
+	err = os.Rename(outFileUploading, outFileUploaded)
+	if err != nil {
+		log.Printf("Unable to rename uploaded file %s %v:", outFileUploading, err)
+		return grant, err
+	}
+
+	//Record metadata
+	obj.ContentConnector.String = rName
+	obj.ContentHash.String = hex.EncodeToString(checksum)
+	obj.ContentSize.Int64 = length
+	obj.EncryptIV = iv
+	log.Printf("TODO: trying to create a grant when I don't yet know the objectID")
+	grant.ObjectID = obj.ID
+	grant.Grantee = caller.DistinguishedName
+	grant.EncryptKey = key
+	//Uploaded file is effectively enqueued for S3 upload.
+	return grant, err
+}
 
 // createObject is a method handler on AppServer for createObject microservice
 // operation.
@@ -52,6 +107,8 @@ func (h AppServer) createObject(w http.ResponseWriter, r *http.Request, caller C
 	if r.Method == "POST" {
 		var obj models.ODObject
 		var acm models.ODACM
+		var grant models.ODObjectPermission
+		var err error
 
 		// Set creator
 		obj.CreatedBy = caller.DistinguishedName
@@ -86,7 +143,12 @@ func (h AppServer) createObject(w http.ResponseWriter, r *http.Request, caller C
 				acm.Classification.Valid = (len(acm.Classification.String) > 0)
 			case len(part.FileName()) > 0:
 				if len(obj.Name) == 0 {
-					obj.Name = part.FileName()
+					//obj.Name = part.FileName()
+					grant, err = h.beginUpload(w, r, caller, part, obj, acm)
+					if err != nil {
+						h.sendErrorResponse(w, 500, err, "error caching file")
+						return
+					}
 					// TODO: Drain file to temporary local space and then puh to S3
 					// TODO: Capture info needed into obj
 					//			obj.ContentConnector (should define S3 + bucketName)
@@ -101,6 +163,7 @@ func (h AppServer) createObject(w http.ResponseWriter, r *http.Request, caller C
 
 		// TODO: add object to database
 		dao.CreateObject(h.MetadataDB, &obj, &acm)
+		log.Printf("TODO: add grant permission: %v", grant)
 
 		fmt.Fprintf(w, `
 		<hr />
