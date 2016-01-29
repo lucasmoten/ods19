@@ -1,8 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"os"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -26,9 +30,10 @@ func main() {
 	}
 	defer db.Close()
 	// Validate the DSN for the database by pinging it
-	err = db.Ping()
-	if err != nil {
-		panic(err.Error())
+	pingDBresult := pingDB(db)
+	if pingDBresult != 0 {
+		// stop if we couldnt ping
+		os.Exit(pingDBresult)
 	}
 
 	// Setup web server
@@ -41,8 +46,6 @@ func main() {
 	// start it
 	log.Println("Starting server on " + s.Addr)
 	log.Fatalln(s.ListenAndServeTLS(serverCertFile, serverKeyFile))
-
-	//dbtest()
 }
 
 func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*http.Server, error) {
@@ -59,4 +62,46 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		WriteTimeout:   10000 * time.Second,
 		MaxHeaderBytes: 1 << 20, //This prevents clients from DOS'ing us
 	}, nil
+}
+
+func pingDB(db *sqlx.DB) int {
+	// But ensure database is up, retrying every 3 seconds for up to 1 minute
+	dbPingAttempt := 0
+	dbPingSuccess := false
+	dbPingAttemptMax := 20
+	exitCode := 2
+	for dbPingAttempt < dbPingAttemptMax && !dbPingSuccess {
+		dbPingAttempt++
+		err := db.Ping()
+		if err == nil {
+			dbPingSuccess = true
+			exitCode = 0
+		} else if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+			fmt.Println("Timeout connecting to database.")
+			exitCode = 28
+		} else if match, _ := regexp.MatchString(".*lookup.*", err.Error()); match {
+			fmt.Println("Unknown host error connecting to database. Review conf.json configuration. Halting")
+			exitCode = 6
+			return exitCode
+		} else if match, _ := regexp.MatchString(".*connection refused.*", err.Error()); match {
+			fmt.Println("Connection refused connecting to database. Database may not yet be online.")
+			exitCode = 7
+		} else {
+			fmt.Println("Unhandled error while connecting to database.")
+			fmt.Println(err.Error())
+			fmt.Println("Halting")
+			exitCode = 1
+			return exitCode
+		}
+		if !dbPingSuccess {
+			if dbPingAttempt < dbPingAttemptMax {
+				fmt.Println("Retrying in 3 seconds")
+				time.Sleep(time.Second * 3)
+			} else {
+				fmt.Println("Maximum retries exhausted. Halting")
+				return exitCode
+			}
+		}
+	}
+	return exitCode
 }

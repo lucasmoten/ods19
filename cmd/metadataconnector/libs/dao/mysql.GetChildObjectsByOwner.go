@@ -14,11 +14,11 @@ func GetChildObjectsByOwner(db *sqlx.DB, orderByClause string, pageNumber int, p
 	response := models.ODObjectResultset{}
 	limit := GetLimit(pageNumber, pageSize)
 	offset := GetOffset(pageNumber, pageSize)
-	query := `select sql_calc_found_rows * from object where isdeleted = 0 and parentid = ? and ownedby = ?`
+	query := `select sql_calc_found_rows o.*, ot.name typeName from object o inner join object_type ot on o.typeid = ot.id where o.isdeleted = 0 and o.parentid = ? and o.ownedby = ?`
 	if len(orderByClause) > 0 {
-		query += ` order by ` + orderByClause
+		query += ` order by o.` + orderByClause
 	} else {
-		query += ` order by createddate desc`
+		query += ` order by o.createddate desc`
 	}
 	query += ` limit ` + strconv.Itoa(limit) + ` offset ` + strconv.Itoa(offset)
 	err := db.Select(&response.Objects, query, object.ID, owner)
