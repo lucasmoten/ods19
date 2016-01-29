@@ -4,7 +4,7 @@
     ,"Username": "dbuser"
     ,"Password": "dbPassword"
     ,"Protocol": "tcp"
-    ,"Host": "fqdn.for.metadatadb.local"
+    ,"Host": "metadatadb"
     ,"Port": "3306"
     ,"Schema": "metadatadb"
     ,"Params": "parseTime=true"
