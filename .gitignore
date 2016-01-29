@@ -1,6 +1,5 @@
 
 # Do commit certificates
-*.pem
 *.csr
 *.srl
 
