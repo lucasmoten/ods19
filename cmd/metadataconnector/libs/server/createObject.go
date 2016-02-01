@@ -192,20 +192,11 @@ func (h AppServer) createObject(w http.ResponseWriter, r *http.Request, caller C
 				acm.Classification.String = getFormValueAsString(part)
 				acm.Classification.Valid = (len(acm.Classification.String) > 0)
 			case len(part.FileName()) > 0:
-				if len(obj.Name) == 0 {
-					//obj.Name = part.FileName()
-					grant, err = h.beginUpload(w, r, caller, part, obj, acm)
-					if err != nil {
-						h.sendErrorResponse(w, 500, err, "error caching file")
-						return
-					}
-					// TODO: Drain file to temporary local space and then puh to S3
-					// TODO: Capture info needed into obj
-					//			obj.ContentConnector (should define S3 + bucketName)
-					//			obj.EncyrptIV
-					//			obj.EncyrptKey
-					//			obj.ContentSize
-				} // if len(obj.Name) == 0 {
+				grant, err = h.beginUpload(w, r, caller, part, obj, acm)
+				if err != nil {
+					h.sendErrorResponse(w, 500, err, "error caching file")
+					return
+				}
 			} // switch
 		} //for
 
