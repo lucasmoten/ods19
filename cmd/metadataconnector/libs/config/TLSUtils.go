@@ -240,7 +240,9 @@ func GetNormalizedDistinguishedName(distinguishedName string) string {
 	dnParts := strings.Split(distinguishedName, "/")
 	result := ""
 	for p := len(dnParts); p > 0; p-- {
-		result += "," + dnParts[p-1]
+		if len(dnParts[p-1]) > 0 {
+			result += "," + dnParts[p-1]
+		}
 	}
 	if len(result) > 0 {
 		result = result[1:len(result)]
