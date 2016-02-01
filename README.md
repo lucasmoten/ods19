@@ -64,3 +64,23 @@ Cryptotest Browser (deprecated):
 
 You should be able to build the source like this.
 
+```
+$ git clone ssh://git@gitlab.363-283.io:2252/rob.fielding/oduploader.git $GOPATH/src/decipher.com
+$ cd $GOPATH/src/decipher.com
+$ ./build
+```
+
+This invokes the Python build script that fetches dependencies, builds binaries,
+and exports required certificates.
+
+# Generating Thrift Code
+
+Once you have the latest version of the go-thrift library installed, put it's **generator** 
+binary on your PATH. Then run the top-level thrift Service IDL file through the generator.
+
+Example (from within /services/audit/thrift):
+
+```
+generator -go.signedbytes=true AuditService.thrift ../generated
+```
+
