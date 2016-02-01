@@ -18,6 +18,13 @@ func GetObject(db *sqlx.DB, object *models.ODObject, loadProperties bool) (*mode
 		return &dbObject, err
 	}
 
+	// Load permissions always
+	dbObject.Permissions, err = GetPermissionsForObject(db, &dbObject)
+	if err != nil {
+		return &dbObject, err
+	}
+
+	// Load properties if requested
 	if loadProperties {
 		dbObject.Properties, err = GetPropertiesForObject(db, &dbObject)
 		if err != nil {
@@ -25,5 +32,6 @@ func GetObject(db *sqlx.DB, object *models.ODObject, loadProperties bool) (*mode
 		}
 	}
 
+	// All ready ....
 	return &dbObject, err
 }

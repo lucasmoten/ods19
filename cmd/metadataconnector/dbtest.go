@@ -34,6 +34,22 @@ func awsS3(account string) (*s3.S3, *session.Session) {
 
 func main() {
 
+	// uri := "/object//list"
+	// var rxListObjects = regexp.MustCompile("" + "/object/.*/list")
+	// var rxObject = regexp.MustCompile("" + "/object")
+	// switch {
+	// case rxListObjects.MatchString(uri):
+	// 	fmt.Println("matched rxListObjects")
+	// case rxObject.MatchString(uri):
+	// 	fmt.Println("matched rxObject")
+	// case true:
+	// 	fmt.Println("true #1")
+	// 	fallthrough
+	// case true:
+	// 	fmt.Println("true #2")
+	// }
+	// os.Exit(-1)
+
 	// Load Configuration from conf.json
 	appConfiguration := config.NewAppConfiguration()
 	dbConfig := appConfiguration.DatabaseConnection
@@ -77,6 +93,7 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		S3:            s3,
 		AWSSession:    awsSession,
 		CacheLocation: "cache",
+		ServicePrefix: serverConfig.ServiceName + serverConfig.ServiceVersion,
 	}
 
 	return &http.Server{

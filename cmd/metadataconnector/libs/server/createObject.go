@@ -1,8 +1,6 @@
 package server
 
 import (
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/metadata/models"
 	"encoding/hex"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
@@ -12,6 +10,9 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+
+	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
+	"decipher.com/oduploader/metadata/models"
 )
 
 func (h AppServer) drainFileToS3(
@@ -124,7 +125,7 @@ func (h AppServer) createObject(w http.ResponseWriter, r *http.Request, caller C
 
 	fmt.Fprintf(w, `
 	<hr />
-	<form method="post" action="/services/object-drive/object" enctype="multipart/form-data">
+	<form method="post" action="https://twl-server-generic2:8080/service/metadataconnector/1.0/object" enctype="multipart/form-data">
 	<table>
 		<tr>
 			<td>Object Name</td>
