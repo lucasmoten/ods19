@@ -306,6 +306,7 @@ func GetCaller(r *http.Request) Caller {
 			log.Println("WARNING: No distinguished name set!!!")
 		}
 	}
+	caller.DistinguishedName = config.GetNormalizedDistinguishedName(caller.DistinguishedName)
 	caller.CommonName = config.GetCommonName(caller.DistinguishedName)
 	return caller
 }
