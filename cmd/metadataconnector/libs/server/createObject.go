@@ -5,12 +5,53 @@ import (
 	"decipher.com/oduploader/metadata/models"
 	"encoding/hex"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
 )
+
+func (h AppServer) drainFileToS3(
+	bucket *string,
+	rName string,
+) error {
+	sess := h.AWSSession
+	outFileUploaded := h.CacheLocation + "/" + rName + ".uploaded"
+
+	fIn, err := os.Open(outFileUploaded)
+	if err != nil {
+		log.Printf("Cant drain off file: %v", err)
+		return err
+	}
+	defer fIn.Close()
+	log.Printf("draining to S3 %s: %s", *bucket, rName)
+
+	uploader := s3manager.NewUploader(sess)
+	result, err := uploader.Upload(&s3manager.UploadInput{
+		Body:   fIn,
+		Bucket: bucket,
+		Key:    aws.String(h.CacheLocation + "/" + rName),
+	})
+	if err != nil {
+		log.Printf("Could not write to S3: %v", err)
+		return err
+	}
+
+	//Rename the file to note that it only lives here as cached for download
+	//It might be deleted at any time
+	outFileCached := h.CacheLocation + "/" + rName + ".cached"
+	err = os.Rename(outFileUploaded, outFileCached)
+	if err != nil {
+		log.Printf("Unable to rename uploaded file %s %v:", outFileUploaded, err)
+		return err
+	}
+
+	log.Printf("Uploaded to %v: %v", *bucket, result.Location)
+	return err
+}
 
 func (h AppServer) beginUpload(
 	w http.ResponseWriter,
@@ -22,7 +63,11 @@ func (h AppServer) beginUpload(
 ) (grant models.ODObjectPermission, err error) {
 	if _, err = os.Stat(h.CacheLocation); os.IsNotExist(err) {
 		err = os.Mkdir(h.CacheLocation, 0700)
-		log.Printf("Unable to make cache directory %s: %v", h.CacheLocation, err)
+		log.Printf("Creating cache directory %s", h.CacheLocation)
+		if err != nil {
+			log.Printf("Cannot create cache directory: %v", err)
+			return grant, err
+		}
 	}
 	//Make up a random name for our file - don't deal with versioning yet
 	rName := createRandomName()
@@ -62,6 +107,11 @@ func (h AppServer) beginUpload(
 	grant.Grantee = caller.DistinguishedName
 	grant.EncryptKey = key
 	//Uploaded file is effectively enqueued for S3 upload.
+	//Go ugly early, and just make this drain-off a goroutine
+	//We may need to have a limited number of concurrent uploads,
+	//with something like Fair-Weighted-Queueing to pick the order
+	//in which they happen (ie: look at file sizes and create timestamps)
+	go h.drainFileToS3(aws.String("decipherers"), rName)
 	return grant, err
 }
 
