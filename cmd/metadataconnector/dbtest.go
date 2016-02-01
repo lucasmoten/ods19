@@ -21,35 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-//TODO: not sure how much is safe to share concurrently
-//This is account as in the ["default"] entry in ~/.aws/credentials
-func awsS3(account string) (*s3.S3, *session.Session) {
-	sessionConfig := &aws.Config{
-		Credentials: credentials.NewSharedCredentials("", account),
-	}
-	sess := session.New(sessionConfig)
-	svc := s3.New(sess)
-	return svc, sess
-}
-
 func main() {
-
-	// uri := "/object//list"
-	// var rxListObjects = regexp.MustCompile("" + "/object/.*/list")
-	// var rxObject = regexp.MustCompile("" + "/object")
-	// switch {
-	// case rxListObjects.MatchString(uri):
-	// 	fmt.Println("matched rxListObjects")
-	// case rxObject.MatchString(uri):
-	// 	fmt.Println("matched rxObject")
-	// case true:
-	// 	fmt.Println("true #1")
-	// 	fallthrough
-	// case true:
-	// 	fmt.Println("true #2")
-	// }
-	// os.Exit(-1)
-
 	// Load Configuration from conf.json
 	appConfiguration := config.NewAppConfiguration()
 	dbConfig := appConfiguration.DatabaseConnection
@@ -78,6 +50,17 @@ func main() {
 	// start it
 	log.Println("Starting server on " + s.Addr)
 	log.Fatalln(s.ListenAndServeTLS(serverCertFile, serverKeyFile))
+}
+
+//TODO: not sure how much is safe to share concurrently
+//This is account as in the ["default"] entry in ~/.aws/credentials
+func awsS3(account string) (*s3.S3, *session.Session) {
+	sessionConfig := &aws.Config{
+		Credentials: credentials.NewSharedCredentials("", account),
+	}
+	sess := session.New(sessionConfig)
+	svc := s3.New(sess)
+	return svc, sess
 }
 
 func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*http.Server, error) {
