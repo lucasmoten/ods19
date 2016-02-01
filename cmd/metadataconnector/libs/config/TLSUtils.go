@@ -199,30 +199,54 @@ func addPEMFileToPool(PEMfile string, certPool *x509.CertPool) {
 func GetDistinguishedName(theCert *x509.Certificate) string {
 	result := ""
 	if len(theCert.Subject.CommonName) > 0 {
-		result += ", CN=" + theCert.Subject.CommonName
+		result += ",CN=" + theCert.Subject.CommonName
 	}
-	for l := 0; l < len(theCert.Subject.Locality); l++ {
-		result += ", L=" + theCert.Subject.Locality[l]
+	for l := len(theCert.Subject.Locality); l > 0; l-- {
+		result += ",L=" + theCert.Subject.Locality[l-1]
 	}
-	for p := 0; p < len(theCert.Subject.Province); p++ {
-		result += ", ST=" + theCert.Subject.Province[p]
+	for p := len(theCert.Subject.Province); p > 0; p-- {
+		result += ",ST=" + theCert.Subject.Province[p-1]
 	}
-	for o := 0; o < len(theCert.Subject.Organization); o++ {
-		result += ", O=" + theCert.Subject.Organization[o]
+	for ou := len(theCert.Subject.OrganizationalUnit); ou > 0; ou-- {
+		result += ",OU=" + theCert.Subject.OrganizationalUnit[ou-1]
 	}
-	for ou := 0; ou < len(theCert.Subject.OrganizationalUnit); ou++ {
-		result += ", OU=" + theCert.Subject.OrganizationalUnit[ou]
+	for o := len(theCert.Subject.Organization); o > 0; o-- {
+		result += ",O=" + theCert.Subject.Organization[o-1]
 	}
-	for c := 0; c < len(theCert.Subject.Country); c++ {
-		result += ", C=" + theCert.Subject.Country[c]
+	for c := len(theCert.Subject.Country); c > 0; c-- {
+		result += ",C=" + theCert.Subject.Country[c-1]
 	}
-	for street := 0; street < len(theCert.Subject.StreetAddress); street++ {
-		result += ", STREET=" + theCert.Subject.StreetAddress[street]
+	for street := len(theCert.Subject.StreetAddress); street > 0; street-- {
+		result += ",STREET=" + theCert.Subject.StreetAddress[street-1]
 	}
 	if len(result) > 0 {
-		result = result[2:len(result)]
+		result = result[1:len(result)]
 	}
 
+	return result
+}
+
+// GetNormalizedDistinguishedName returns a normalized distinguished name that
+// reverses the apache format and comma delimits.
+func GetNormalizedDistinguishedName(distinguishedName string) string {
+	if strings.Index(distinguishedName, "/") == -1 {
+		// assume already in appropriate format
+		return distinguishedName
+	}
+
+	// Apache format...
+	//  in:  /C=US/O=U.S. Government/OU=chimera/OU=DAE/OU=People/CN=test tester10
+	// out: CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US
+	dnParts := strings.Split(distinguishedName, "/")
+	result := ""
+	for p := len(dnParts); p > 0; p-- {
+		if len(dnParts[p-1]) > 0 {
+			result += "," + dnParts[p-1]
+		}
+	}
+	if len(result) > 0 {
+		result = result[1:len(result)]
+	}
 	return result
 }
 

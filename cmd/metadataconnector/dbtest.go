@@ -21,19 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-//TODO: not sure how much is safe to share concurrently
-//This is account as in the ["default"] entry in ~/.aws/credentials
-func awsS3(account string) (*s3.S3, *session.Session) {
-	sessionConfig := &aws.Config{
-		Credentials: credentials.NewSharedCredentials("", account),
-	}
-	sess := session.New(sessionConfig)
-	svc := s3.New(sess)
-	return svc, sess
-}
-
 func main() {
-
 	// Load Configuration from conf.json
 	appConfiguration := config.NewAppConfiguration()
 	dbConfig := appConfiguration.DatabaseConnection
@@ -64,6 +52,17 @@ func main() {
 	log.Fatalln(s.ListenAndServeTLS(serverCertFile, serverKeyFile))
 }
 
+//TODO: not sure how much is safe to share concurrently
+//This is account as in the ["default"] entry in ~/.aws/credentials
+func awsS3(account string) (*s3.S3, *session.Session) {
+	sessionConfig := &aws.Config{
+		Credentials: credentials.NewSharedCredentials("", account),
+	}
+	sess := session.New(sessionConfig)
+	svc := s3.New(sess)
+	return svc, sess
+}
+
 func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*http.Server, error) {
 	//On machines with multiple configs, we at least assume that objectdrive is aliased to
 	//the default config
@@ -77,6 +76,7 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		S3:            s3,
 		AWSSession:    awsSession,
 		CacheLocation: "cache",
+		ServicePrefix: serverConfig.ServiceName + serverConfig.ServiceVersion,
 	}
 
 	return &http.Server{
