@@ -104,8 +104,12 @@ func (h AppServer) beginUpload(
 	obj.ContentSize.Int64 = length
 	obj.EncryptIV = iv
 	log.Printf("TODO: trying to create a grant when I don't yet know the objectID")
-	grant.ObjectID = obj.ID
+	//	grant.ObjectID = obj.ID
 	grant.Grantee = caller.DistinguishedName
+	grant.AllowRead = true
+	grant.AllowCreate = true
+	grant.AllowUpdate = true
+	grant.AllowDelete = true
 	grant.EncryptKey = key
 	//Uploaded file is effectively enqueued for S3 upload.
 	//Go ugly early, and just make this drain-off a goroutine
@@ -204,8 +208,15 @@ func (h AppServer) createObject(w http.ResponseWriter, r *http.Request, caller C
 		// TODO: Validation
 
 		// TODO: add object to database
-		dao.CreateObject(h.MetadataDB, &obj, &acm)
-		log.Printf("TODO: add grant permission: %v", grant)
+		obj.Permissions = make([]models.ODObjectPermission, 1)
+		obj.Permissions[0] = grant
+
+		err = dao.CreateObject(h.MetadataDB, &obj, &acm)
+		if err != nil {
+			h.sendErrorResponse(w, 500, err, "error storing object")
+			return
+		}
+		//log.Printf("TODO: add grant permission: %v", grant)
 
 		fmt.Fprintf(w, `
 		<hr />
