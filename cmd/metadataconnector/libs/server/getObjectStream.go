@@ -1,14 +1,13 @@
 package server
 
 import (
+	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
+	"decipher.com/oduploader/metadata/models"
 	"encoding/hex"
 	"fmt"
 	"net/http"
 	"regexp"
 	"strconv"
-
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/metadata/models"
 )
 
 func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, caller Caller) {
@@ -17,15 +16,13 @@ func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, calle
 	objectID := getIDOfObjectTORetrieveStream(r.URL.RequestURI())
 	// If not valid, return
 	if objectID == "" {
-		w.WriteHeader(400)
-		fmt.Println("URI provided by caller does not specify an object identifier")
+		h.sendErrorResponse(w, 400, nil, "URI provided by caller does not specify an object identifier")
 		return
 	}
 	// Convert to byte
 	objectIDByte, err := hex.DecodeString(objectID)
 	if err != nil {
-		w.WriteHeader(400)
-		fmt.Println("Identifier provided by caller is not a hexidecimal string")
+		h.sendErrorResponse(w, 400, nil, "Identifier provided by caller is not a hexidecimal string")
 		return
 	}
 	// Retrieve from database
@@ -33,8 +30,7 @@ func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, calle
 	objectRequested.ID = objectIDByte
 	object, err := dao.GetObject(h.MetadataDB, &objectRequested, false)
 	if err != nil {
-		w.WriteHeader(500)
-		fmt.Println(err)
+		h.sendErrorResponse(w, 500, err, "cannot get object")
 		return
 	}
 
@@ -46,8 +42,7 @@ func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, calle
 	// TODO Check object permission grants
 
 	if !canRetrieve {
-		w.WriteHeader(403)
-		fmt.Println("Caller does not have permission to the requested object")
+		h.sendErrorResponse(w, 403, nil, "Caller does not have permission to the requested object")
 	}
 
 	// TODO: Based upon object metadata, get the object from S3

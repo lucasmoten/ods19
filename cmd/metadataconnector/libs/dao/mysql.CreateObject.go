@@ -89,7 +89,7 @@ func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 				if !permission.AllowDelete {
 					crud[3] = "-"
 				}
-				return fmt.Errorf("Error saving permission # %d {Grantee: \"%s\", Permission: \"%s\") when creating object", i, permission.Grantee, crud)
+				return fmt.Errorf("Error saving permission # %d {Grantee: \"%s\", Permission: \"%s\") when creating object:%v", i, permission.Grantee, crud, err)
 			}
 
 		}

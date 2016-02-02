@@ -8,7 +8,7 @@ import (
 // GetPermissionsForObject retrieves the grants for a given object
 func GetPermissionsForObject(db *sqlx.DB, object *models.ODObject) ([]models.ODObjectPermission, error) {
 	response := []models.ODObjectPermission{}
-	query := `select op.* from pbject_permission op inner join object o on op.objectid = o.objectid where op.isdeleted = 0 and op.objectid = ?`
+	query := `select op.* from object_permission op inner join object o on op.objectid = o.id where op.isdeleted = 0 and op.objectid = ?`
 	err := db.Select(&response, query, object.ID)
 	if err != nil {
 		return response, err
