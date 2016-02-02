@@ -56,7 +56,7 @@ func main() {
 //This is account as in the ["default"] entry in ~/.aws/credentials
 func awsS3(account string) (*s3.S3, *session.Session) {
 	sessionConfig := &aws.Config{
-		Credentials: credentials.NewSharedCredentials("", account),
+		Credentials: credentials.NewEnvCredentials(),
 	}
 	sess := session.New(sessionConfig)
 	svc := s3.New(sess)

@@ -126,10 +126,10 @@ func (h AppServer) createObject(w http.ResponseWriter, r *http.Request, caller C
 
 	w.Header().Set("Content-Type", "text/html")
 	fmt.Fprintf(w, pageTemplateStart, "createObject", caller.DistinguishedName)
-
+	rootURL := "/service/metadataconnector/1.0"
 	fmt.Fprintf(w, `
-	<hr />
-	<form method="post" action="https://twl-server-generic2:8080/service/metadataconnector/1.0/object" enctype="multipart/form-data">
+	<hr/>
+	<form method="post" action="%s/object" enctype="multipart/form-data">
 	<table>
 		<tr>
 			<td>Object Name</td>
@@ -157,7 +157,7 @@ func (h AppServer) createObject(w http.ResponseWriter, r *http.Request, caller C
 	<input type="submit" value="Upload" />
 	</form>
 
-			`)
+			`, rootURL)
 
 	if r.Method == "POST" {
 		var obj models.ODObject
