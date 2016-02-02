@@ -3,19 +3,14 @@ package server
 import (
 	"fmt"
 	"net/http"
-	"strconv"
-
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 )
 
 // home is a method handler on AppServer for displaying a response when the
 // root URI is requested without an operation. In this context, a UI is provided
 // listing and linking to some available operations
-func (h AppServer) home(w http.ResponseWriter, r *http.Request) {
-	who := config.GetDistinguishedName(r.TLS.PeerCertificates[0])
+func (h AppServer) home(w http.ResponseWriter, r *http.Request, caller Caller) {
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, pageTemplateStart, "Home Page", who)
-	fmt.Fprintf(w, "Length of distinguished name: "+strconv.Itoa(len(who)))
+	fmt.Fprintf(w, pageTemplateStart, "Home Page", caller.DistinguishedName)
 	rootURL := "/service/metadataconnector/1.0"
 	fmt.Fprintf(w, `
 <hr/>

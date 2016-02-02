@@ -3,13 +3,14 @@ package server
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
@@ -149,6 +150,7 @@ func (h AppServer) createObject(w http.ResponseWriter, r *http.Request, caller C
 					<option>UNCLASSIFIED</option>
 					</select>
 			</td>
+		</tr>
 		<tr>
 			<td>File Content</td>
 			<td><input type="file" name="filestream" /></td>

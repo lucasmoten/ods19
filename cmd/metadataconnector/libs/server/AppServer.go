@@ -104,7 +104,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		switch {
 		case uri == h.ServicePrefix+"/", uri == h.ServicePrefix+"//":
-			h.home(w, r)
+			h.home(w, r, caller)
 		case uri == h.ServicePrefix+"/favicon.ico", uri == h.ServicePrefix+"//favicon.ico":
 			h.favicon(w, r)
 		// from longest to shortest...
@@ -209,101 +209,31 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Resource not found", 404)
 		}
 	}
-
-	// switch {
-	//
-	// // case ((strings.Index(r.URL.RequestURI(), "/object/") > -1) && (strings.Index(r.URL.RequestURI(), "/list") > -1)):
-	// // 	h.listObjects(w, r, caller)
-	// // case r.Method == "POST" && strings.HasSuffix(r.URL.RequestURI(), "/object"):
-	// // 	h.createObject(w, r, caller)
-	// // case r.Method == "GET" && ((strings.Index(r.URL.RequestURI(), "/object/") > -1) && (strings.Index(r.URL.RequestURI(), "/stream") > -1)):
-	// // 	h.getObjectStream(w, r, caller)
-	//
-	// // review: convert to restful. these are the thrift names that were planned
-	//
-	// case strings.Index(r.URL.RequestURI(), "/addObjectToFavorites") == 0:
-	// 	h.addObjectToFavorites(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/addObjectToFolder") == 0:
-	// 	h.addObjectToFolder(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/changeOwner") == 0:
-	// 	h.changeOwner(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/createFolder") == 0:
-	// 	h.createFolder(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/createObject") == 0:
-	// 	h.createObject(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/deleteObjectForever") == 0:
-	// 	h.deleteObjectForever(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/deleteObject") == 0:
-	// 	h.deleteObject(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/getObjectStreamForRevision") == 0:
-	// 	h.getObjectStreamForRevision(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/getObjectStream") == 0:
-	// 	h.getObjectStream(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/getObject") == 0:
-	// 	h.getObject(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/getRelationships") == 0:
-	// 	h.getRelationships(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/listFavorites") == 0:
-	// 	h.listFavorites(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/listObjectRevisions") == 0:
-	// 	h.listObjectRevisions(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/listObjectsImages") == 0:
-	// 	h.listObjectsImages(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/listObjectsTrashed") == 0:
-	// 	h.listObjectsTrashed(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/listObjects") == 0:
-	// 	h.listObjects(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/listObjectShares") == 0:
-	// 	h.listObjectShares(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/listObjectsSubscriptions") == 0:
-	// 	h.listObjectsSubscriptions(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/listUserObjectShares") == 0:
-	// 	h.listUserObjectShares(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/listUserObjectsShared") == 0:
-	// 	h.listUserObjectsShared(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/moveObject") == 0:
-	// 	h.moveObject(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/query") == 0:
-	// 	h.query(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/removeObjectFromFavorites") == 0:
-	// 	h.removeObjectFromFavorites(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/removeObjectFromFolder") == 0:
-	// 	h.removeObjectFromFolder(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/removeObjectFromTrash") == 0:
-	// 	h.removeObjectFromTrash(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/removeObjectShare") == 0:
-	// 	h.removeObjectShare(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/removeObjectSubscription") == 0:
-	// 	h.removeObjectSubscription(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/updateObjectPermissions") == 0:
-	// 	h.updateObjectPermissions(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/updateObjectStream") == 0:
-	// 	h.updateObjectStream(w, r, caller)
-	// case strings.Index(r.URL.RequestURI(), "/updateObject") == 0:
-	// 	h.updateObject(w, r, caller)
-	// default:
-	// 	msg := caller.DistinguishedName + " requested uri: " + r.URL.RequestURI() + " from address: " + r.RemoteAddr + " with user agent: " + r.UserAgent()
-	// 	log.Println("WARN: " + msg)
-	// 	http.Error(w, "Resource not found", 404)
-	// }
 }
 
 // GetCaller populates a Caller object based upon request headers and peer
 // certificates. Logically this is intended to work with or without NGINX as
 // a front end
 func GetCaller(r *http.Request) Caller {
+	var localDebug = false
 	var caller Caller
 	caller.UserDistinguishedName = r.Header.Get("USER_DN")
 	caller.ExternalSystemDistinguishedName = r.Header.Get("EXTERNAL_SYS_DN")
 	if caller.UserDistinguishedName != "" {
-		log.Println("Assigning distinguished name from USER_DN")
+		if localDebug {
+			log.Println("Assigning distinguished name from USER_DN")
+		}
 		caller.DistinguishedName = caller.UserDistinguishedName
 	} else {
 		if len(r.TLS.PeerCertificates) > 0 {
-			log.Println("Assigning distinguished name from peer certificate")
+			if localDebug {
+				log.Println("Assigning distinguished name from peer certificate")
+			}
 			caller.DistinguishedName = config.GetDistinguishedName(r.TLS.PeerCertificates[0])
 		} else {
-			log.Println("WARNING: No distinguished name set!!!")
+			if localDebug {
+				log.Println("WARNING: No distinguished name set!!!")
+			}
 		}
 	}
 	caller.DistinguishedName = config.GetNormalizedDistinguishedName(caller.DistinguishedName)
