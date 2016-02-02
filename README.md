@@ -26,6 +26,7 @@ $GOPATH/
       oduploader/
 ```
 
+
 We use ~/gocode as my $GOPATH.
 Checkouts from gitlab are cloned into decipher.com,
 which allows for cross-references between packages.
@@ -38,7 +39,22 @@ is the directory into which we check out the object-drive project.
 Having these conventions is essential, because we have references
 across repositories to built artifacts and static files.
 
-Browser:
+Note that $OD_ROOT is where object-drive is checked out.
+Both directories ($GOPATH $OD_ROOT) allow compile and build steps
+to reference each other.
+
+```
+$OD_ROOT/object-drive
+```
+
+Metadataconnector Browser:
+
+* Make sure that you set these environment variables:
+  * AWS_REGION=us-east-1
+  * AWS_ACCESS_KEY
+  * AWS_SECRET_ACCESS_KEY
+
+Cryptotest Browser (deprecated):
 
 * use a consistent master key to launch it:
   - masterkey=djklerwjkl23 go run uploader.go
@@ -48,22 +64,3 @@ Browser:
 
 You should be able to build the source like this.
 
-```
-$ git clone ssh://git@gitlab.363-283.io:2252/rob.fielding/oduploader.git $GOPATH/src/decipher.com
-$ cd $GOPATH/src/decipher.com
-$ ./build
-```
-
-This invokes the Python build script that fetches dependencies, builds binaries,
-and exports required certificates.
-
-# Cross compiling
-
-From the root directory, run:
-
-```
-$ ./scripts/cross-compile.sh
-```
-
-The tar files for multiple system binaries should be available in the
-`/release` directory.

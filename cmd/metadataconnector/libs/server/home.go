@@ -16,20 +16,21 @@ func (h AppServer) home(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	fmt.Fprintf(w, pageTemplateStart, "Home Page", who)
 	fmt.Fprintf(w, "Length of distinguished name: "+strconv.Itoa(len(who)))
+	rootURL := "/service/metadataconnector/1.0"
 	fmt.Fprintf(w, `
-<hr />
+<hr/>
 <h1>Microservice API</h1>
 
-<a href="https://twl-server-generic2:8080/service/metadataconnector/1.0/object">Create Object</a> - Normally, this operation is a POST
+<a href="%s/object">Create Object</a> - Normally, this operation is a POST
 	only to ../object-drive/object to add a new object to the system. When you
 	click this link, a form will be displayed allowing you to set the name and
 	type, and specify a file
 
 <p />
 
-<a href="https://twl-server-generic2:8080/service/metadataconnector/1.0/objects">List Objects</a> - This operation will result in a GET
+<a href="%s/objects">List Objects</a> - This operation will result in a GET
 	call to list root objects with default paging.
 
-		`)
+		`, rootURL, rootURL)
 	fmt.Fprintf(w, pageTemplateEnd)
 }
