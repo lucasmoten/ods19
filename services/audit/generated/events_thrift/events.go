@@ -3,8 +3,9 @@
 package events_thrift
 
 import (
-	"components_thrift"
 	"fmt"
+
+	"decipher.com/oduploader/services/audit/generated/components_thrift"
 )
 
 var _ = fmt.Sprintf
