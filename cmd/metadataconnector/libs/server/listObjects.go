@@ -84,19 +84,20 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 	fmt.Fprintf(w, "Page Size: "+strconv.Itoa(response.PageSize)+", Page Rows: "+strconv.Itoa(response.PageRows)+", Total Rows: "+strconv.Itoa(response.TotalRows)+"<br />")
 	fmt.Fprintf(w, `<table id="listObjectsResults">`)
 	fmt.Fprintf(w, `<tr><td>Name</td><td>Type</td><td>Created Date</td><td>Created By</td></tr>`)
+	rootURL := "/service/metadataconnector/1.0"
 	for idx := range objects {
 		object := objects[idx]
 
 		fmt.Fprintf(w, "<tr><td>")
 		switch {
 		case object.TypeName.String == "Folder":
-			fmt.Fprintf(w, "<a href='/object/")
+			fmt.Fprintf(w, "<a href='%s/object/", rootURL)
 			fmt.Fprintf(w, hex.EncodeToString(object.ID))
 			fmt.Fprintf(w, "/list'>")
 			fmt.Fprintf(w, object.Name)
 			fmt.Fprintf(w, "</a>")
 		default:
-			fmt.Fprintf(w, "<a href='/object/")
+			fmt.Fprintf(w, "<a href='%s/object/", rootURL)
 			fmt.Fprintf(w, hex.EncodeToString(object.ID))
 			fmt.Fprintf(w, "/stream'>")
 			fmt.Fprintf(w, object.Name)
