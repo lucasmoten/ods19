@@ -44,7 +44,7 @@ func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 	}
 	// Get the ID of the newly created object and assign to passed in object
 	// This assumes most recent created by the user of the type and name
-	getObjectStatement := `select * from object where createdby = ? and typeId = ? and name = ? and isdeleted = 0 order by createddate desc limit 1`
+	getObjectStatement := `select o.*, ot.name typeName from object o inner join object_type ot on o.typeId = ot.id where o.createdby = ? and o.typeId = ? and o.name = ? and o.isdeleted = 0 order by o.createddate desc limit 1`
 	err = db.Get(object, getObjectStatement, object.CreatedBy, object.TypeID, object.Name)
 	if err != nil {
 		return fmt.Errorf("CreateObject Error retrieving object, %s", err.Error())
