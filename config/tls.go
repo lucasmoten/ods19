@@ -120,7 +120,9 @@ func NewAACTLSConfig() *tls.Config {
 	}
 	clientCertPool.AddCert(actualCert)
 
-	cert, err := tls.LoadX509KeyPair(thriftClientCertPath, "./certs/ling/twlserver.key")
+	certLocation := CertsDir + "/server/server.cert.pem"
+	keyLocation := CertsDir + "/server/server.key.pem"
+	cert, err := tls.LoadX509KeyPair(certLocation, keyLocation)
 	if err != nil {
 		log.Fatal("Error parsing cert: ", err)
 	}
@@ -179,7 +181,7 @@ func NewOpenSSLTransport() (*openssl.Conn, error) {
 	}
 	ctx.UsePrivateKey(privKey)
 
-	conn, err := openssl.Dial("tcp", "twl-server-generic2:9093", ctx, 1)
+	conn, err := openssl.Dial("tcp", "192.168.99.100:9093", ctx, 1)
 	if err != nil {
 		log.Println("Error making openssl conn!")
 		log.Fatal(err)

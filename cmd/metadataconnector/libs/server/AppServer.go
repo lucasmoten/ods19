@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"regexp"
 
+	aac "decipher.com/oduploader/cmd/cryptotest/gen-go2/aac"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
@@ -18,14 +19,16 @@ import (
 
 // AppServer contains definition for the metadata server
 type AppServer struct {
-	Port          int
-	Bind          string
-	Addr          string
-	MetadataDB    *sqlx.DB
-	S3            *s3.S3
-	AWSSession    *session.Session
-	CacheLocation string
-	ServicePrefix string
+	Port            int
+	Bind            string
+	Addr            string
+	MetadataDB      *sqlx.DB
+	S3              *s3.S3
+	AWSSession      *session.Session
+	CacheLocation   string
+	ServicePrefix   string
+	AAC             *aac.AacServiceClient
+	Classifications map[string]string
 }
 
 // UserSession is per session information that needs to be passed around
@@ -309,4 +312,34 @@ func GetCaller(r *http.Request) Caller {
 	caller.DistinguishedName = config.GetNormalizedDistinguishedName(caller.DistinguishedName)
 	caller.CommonName = config.GetCommonName(caller.DistinguishedName)
 	return caller
+}
+
+func (h AppServer) checkAccess(dn string, clasKey string) bool {
+	if h.AAC == nil {
+		log.Printf("no aac checks for now")
+		return true
+	}
+	//XXX XXX hack until I can reliably lookup real dns from whatever environment
+	//i work on.  This is enough to at least exercise that the API works,
+	//and will still work if it comes from a header
+	dn = "CN=Holmes Jonathan,OU=People,OU=Bedrock,OU=Six 3 Systems,O=U.S. Government,C=US"
+	//clasKey = "S"
+
+	tokenType := "pki_dias"
+	acmComplete := h.Classifications[clasKey]
+	resp, err := h.AAC.CheckAccess(dn, tokenType, acmComplete)
+
+	if err != nil {
+		log.Printf("Error calling CheckAccess(): %v \n", err)
+	}
+
+	if resp.Success != true {
+		log.Printf("Expected true, got %v \n", resp.Success)
+		return false
+	}
+
+	if !resp.HasAccess {
+		log.Printf("Expected resp.HasAccess to be true\n")
+	}
+	return true
 }
