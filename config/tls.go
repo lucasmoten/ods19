@@ -103,6 +103,43 @@ func NewUploaderTLSConfigWithParms(certPath string, trustPath string) *tls.Confi
 	return tlsConfig
 }
 
+// NewTLSConfigFromPEM ...
+func NewTLSConfigFromPEM(trustPath, certPath string) (*tls.Config, error) {
+
+	clientCertPool := x509.NewCertPool()
+
+	if certPath != "" {
+		certBytes, err := ioutil.ReadFile(certPath)
+		if err != nil {
+			log.Fatalln("Unable to open cert file at: ", certPath, err)
+		}
+		ok := clientCertPool.AppendCertsFromPEM(certBytes)
+		if !ok {
+			return nil, fmt.Errorf("Could not append cert from PEM file: %s\n", certPath)
+		}
+	}
+
+	if trustPath != "" {
+		trustBytes, err := ioutil.ReadFile(trustPath)
+		if err != nil {
+			log.Fatalln("Unable to open trust file at: ", trustPath, err)
+		}
+		if ok := clientCertPool.AppendCertsFromPEM(trustBytes); !ok {
+			return nil, fmt.Errorf("Could not append trusts from PEM file: %s\n", trustPath)
+		}
+	}
+
+	tlsConfig := &tls.Config{
+		ClientAuth:               tls.RequireAndVerifyClientCert,
+		ClientCAs:                clientCertPool,
+		PreferServerCipherSuites: true,
+		MinVersion:               tls.VersionTLS10,
+		InsecureSkipVerify:       true,
+	}
+	tlsConfig.BuildNameToCertificate()
+	return tlsConfig, nil
+}
+
 // NewAACTLSConfig ...
 func NewAACTLSConfig() *tls.Config {
 
