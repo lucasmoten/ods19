@@ -1,9 +1,8 @@
 package dao
 
 import (
-	"fmt"
-
 	"decipher.com/oduploader/metadata/models"
+	"fmt"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -49,7 +48,6 @@ func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 	if err != nil {
 		return fmt.Errorf("CreateObject Error retrieving object, %s", err.Error())
 	}
-
 	// Add properties of object.Properties []models.ODObjectPropertyEx
 	for i, property := range object.Properties {
 		if property.Name != "" {

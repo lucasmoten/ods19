@@ -1,7 +1,7 @@
 package server
 
 import (
-	"encoding/hex"
+	//"encoding/hex"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -59,8 +59,8 @@ func (h AppServer) beginUpload(
 	r *http.Request,
 	caller Caller,
 	part *multipart.Part,
-	obj models.ODObject,
-	acm models.ODACM,
+	obj *models.ODObject,
+	acm *models.ODACM,
 ) (grant models.ODObjectPermission, err error) {
 	if _, err = os.Stat(h.CacheLocation); os.IsNotExist(err) {
 		err = os.Mkdir(h.CacheLocation, 0700)
@@ -86,7 +86,7 @@ func (h AppServer) beginUpload(
 	key, iv := createKeyIVPair()
 
 	//Write the encrypted data to the filesystem
-	checksum, length, err := doCipherByReaderWriter(part, outFile, key, iv)
+	_, length, err := doCipherByReaderWriter(part, outFile, key, iv)
 	if err != nil {
 		log.Printf("Unable to write ciphertext %s %v:", outFileUploading, err)
 		return grant, err
@@ -100,7 +100,7 @@ func (h AppServer) beginUpload(
 
 	//Record metadata
 	obj.ContentConnector.String = rName
-	obj.ContentHash.String = hex.EncodeToString(checksum)
+	//obj.ContentHash.String = hex.EncodeToString(checksum)
 	obj.ContentSize.Int64 = length
 	obj.EncryptIV = iv
 	log.Printf("TODO: trying to create a grant when I don't yet know the objectID")
@@ -197,7 +197,7 @@ func (h AppServer) createObject(w http.ResponseWriter, r *http.Request, caller C
 				acm.Classification.String = getFormValueAsString(part)
 				acm.Classification.Valid = (len(acm.Classification.String) > 0)
 			case len(part.FileName()) > 0:
-				grant, err = h.beginUpload(w, r, caller, part, obj, acm)
+				grant, err = h.beginUpload(w, r, caller, part, &obj, &acm)
 				if err != nil {
 					h.sendErrorResponse(w, 500, err, "error caching file")
 					return
@@ -216,6 +216,7 @@ func (h AppServer) createObject(w http.ResponseWriter, r *http.Request, caller C
 			h.sendErrorResponse(w, 500, err, "error storing object")
 			return
 		}
+		log.Printf("server created object:%v with contentConnector:%v", obj.ODID, obj.ContentConnector.String)
 		//log.Printf("TODO: add grant permission: %v", grant)
 
 		fmt.Fprintf(w, `
