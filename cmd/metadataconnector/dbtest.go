@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	thrift "github.com/samuel/go-thrift/thrift"
 	"log"
 	"net"
 	"net/http"
@@ -15,11 +16,85 @@ import (
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
 
+	aac "decipher.com/oduploader/cmd/cryptotest/gen-go2/aac"
+	oduconfig "decipher.com/oduploader/config"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
+
+//BuildClassificationMap explicitly builds the classification map,
+//which might come from a file later
+//XXX it's an eyesore to be here, but we need something for now.
+func BuildClassificationMap() map[string]string {
+	log.Printf("building classification map....")
+
+	ClassificationMap := make(map[string]string)
+
+	ClassificationMap["U"] = `
+        {"version":"2.1.0", "classif":"U"}
+        `
+
+	ClassificationMap["C"] = `
+        {"version":"2.1.0", "classif":"C"}
+        `
+	ClassificationMap["S"] = `
+        {"version":"2.1.0", "classif":"S"}
+        `
+	ClassificationMap["T"] = `
+        {"version":"2.1.0", "classif":"T"}
+        `
+
+	ClassificationMap["SCI1"] = `
+{
+ "version":"2.1.0",
+ "classif":"TS",
+ "owner_prod":[],
+ "atom_energy":[],
+ "sar_id":[],
+ "sci_ctrls":[ "HCS", "SI-G", "TK" ],
+        "disponly_to":[ "" ],
+        "dissem_ctrls":[ "OC" ],
+        "non_ic":[],
+        "rel_to":[],
+        "fgi_open":[],
+        "fgi_protect":[],
+        "portion":"TS//HCS/SI-G/TK//OC",
+        "banner":"TOP SECRET//HCS/SI-G/TK//ORCON",
+        "dissem_countries":[ "USA" ],
+        "accms":[],
+        "macs":[],
+        "oc_attribs":[ { "orgs":[ "dia" ], "missions":[], "regions":[] } ],
+        "f_clearance":[ "ts" ],
+        "f_sci_ctrls":[ "hcs", "si_g", "tk" ],
+        "f_accms":[],
+        "f_oc_org":[ "dia", "dni" ],
+        "f_regions":[],
+				"f_missions":[],
+        "f_share":[],
+        "f_atom_energy":[],
+        "f_macs":[],
+        "disp_only":""
+}`
+	return ClassificationMap
+}
+
+/**
+Get an instance of AAC on startup.
+Fail to come up if we can't do this.
+TODO: restart uploader if we lose AAC connection
+*/
+func getAACClient() (*aac.AacServiceClient, error) {
+	conn, err := oduconfig.NewOpenSSLTransport()
+	if err != nil {
+		log.Printf("cannot create aac client: %v", err)
+		return nil, err
+	}
+	trns := thrift.NewTransport(thrift.NewFramedReadWriteCloser(conn, 0), thrift.BinaryProtocol)
+	client := thrift.NewClient(trns, true)
+	return &aac.AacServiceClient{Client: client}, nil
+}
 
 func main() {
 	// Load Configuration from conf.json
@@ -41,12 +116,25 @@ func main() {
 	}
 
 	// Setup web server
-	s, err := makeServer(serverConfig, db)
+	s, handler, err := makeServer(serverConfig, db)
 	// with TLS support
 	stls := serverConfig.GetTLSConfig()
 	s.TLSConfig = &stls
 	serverCertFile := serverConfig.ServerCertChain
 	serverKeyFile := serverConfig.ServerKey
+
+	//Try to connect to AAC
+	var aac *aac.AacServiceClient
+	time.Sleep(10 * time.Second) //there is a fatal in aac connecting, so must sleep
+	aac, err = getAACClient()
+	if err != nil {
+		//TODO: include in DB ping
+		log.Printf("XXXX aac not yet available...going on with out it for now:%v", err)
+	} else {
+		handler.AAC = aac
+		log.Printf("We are connected to AAC")
+	}
+
 	// start it
 	log.Println("Starting server on " + s.Addr)
 	log.Fatalln(s.ListenAndServeTLS(serverCertFile, serverKeyFile))
@@ -54,7 +142,7 @@ func main() {
 
 //TODO: not sure how much is safe to share concurrently
 //This is account as in the ["default"] entry in ~/.aws/credentials
-func awsS3(account string) (*s3.S3, *session.Session) {
+func awsS3() (*s3.S3, *session.Session) {
 	sessionConfig := &aws.Config{
 		Credentials: credentials.NewEnvCredentials(),
 	}
@@ -63,20 +151,21 @@ func awsS3(account string) (*s3.S3, *session.Session) {
 	return svc, sess
 }
 
-func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*http.Server, error) {
+func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*http.Server, *server.AppServer, error) {
 	//On machines with multiple configs, we at least assume that objectdrive is aliased to
 	//the default config
-	s3, awsSession := awsS3("default")
+	s3, awsSession := awsS3()
 
 	httpHandler := server.AppServer{
-		Port:          serverConfig.ListenPort,
-		Bind:          serverConfig.ListenBind,
-		Addr:          serverConfig.ListenBind + ":" + strconv.Itoa(serverConfig.ListenPort),
-		MetadataDB:    db,
-		S3:            s3,
-		AWSSession:    awsSession,
-		CacheLocation: "cache",
-		ServicePrefix: serverConfig.ServiceName + serverConfig.ServiceVersion,
+		Port:            serverConfig.ListenPort,
+		Bind:            serverConfig.ListenBind,
+		Addr:            serverConfig.ListenBind + ":" + strconv.Itoa(serverConfig.ListenPort),
+		MetadataDB:      db,
+		S3:              s3,
+		AWSSession:      awsSession,
+		CacheLocation:   "cache",
+		ServicePrefix:   serverConfig.ServiceName + serverConfig.ServiceVersion,
+		Classifications: BuildClassificationMap(),
 	}
 
 	return &http.Server{
@@ -85,7 +174,7 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		ReadTimeout:    10000 * time.Second, //This breaks big downloads
 		WriteTimeout:   10000 * time.Second,
 		MaxHeaderBytes: 1 << 20, //This prevents clients from DOS'ing us
-	}, nil
+	}, &httpHandler, nil
 }
 
 func pingDB(db *sqlx.DB) int {

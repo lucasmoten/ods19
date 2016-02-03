@@ -19,6 +19,9 @@ func GetObject(db *sqlx.DB, object *models.ODObject, loadProperties bool) (*mode
 	}
 
 	// Load permissions always
+	//XXX --- we load the permissions for *this* user for *this* object.
+	// The object could have a very large number of permissions associated
+	//with it, of which only one is relevant.
 	dbObject.Permissions, err = GetPermissionsForObject(db, &dbObject)
 	if err != nil {
 		return &dbObject, err
