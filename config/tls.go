@@ -181,7 +181,7 @@ func NewOpenSSLTransport() (*openssl.Conn, error) {
 	}
 	ctx.UsePrivateKey(privKey)
 
-	conn, err := openssl.Dial("tcp", "192.168.99.100:9093", ctx, 1)
+	conn, err := openssl.Dial("tcp", "aac:9093", ctx, 1)
 	if err != nil {
 		log.Println("Error making openssl conn!")
 		log.Fatal(err)
