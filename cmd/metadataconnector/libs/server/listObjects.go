@@ -37,6 +37,7 @@ type listObjectsRequest struct {
 // TODO: Implement proper paging and and result information
 // TODO: Convert response to JSON
 func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Caller) {
+	rootURL := "/service/metadataconnector/1.0"
 	// Find parentId from request URI
 	parentID := getParentIDToListObjects(r.URL.RequestURI())
 
@@ -48,11 +49,6 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 	switch {
 	case r.Method == "GET":
 		// Output
-		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprintf(w, pageTemplateStart, "listObjects", caller.DistinguishedName)
-		fmt.Fprintf(w, pageTemplatePager, "listObjectsPager")
-		fmt.Fprintf(w, pageTemplateDataTable, "listObjectsResults")
-		fmt.Fprintf(w, pageTemplateEnd)
 	case r.Method == "POST":
 		jsonRequest := getListObjectsRequestAsJSON(r)
 		pageNumber = jsonRequest.pageNumber
@@ -60,6 +56,7 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 	}
 
 	// Fetch the matching objects
+	linkToParent := ""
 	var response models.ODObjectResultset
 	var err error
 	if parentID != "" {
@@ -71,15 +68,34 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 			return
 		}
 		response, err = dao.GetChildObjectsWithPropertiesByOwner(h.MetadataDB, "createddate desc", pageNumber, pageSize, &parentObject, caller.DistinguishedName)
+		loadedParent, err := dao.GetObject(h.MetadataDB, &parentObject, false)
+		if err != nil {
+			w.WriteHeader(500)
+			fmt.Fprintf(w, "Unable to retrieve object represented by Parent Identifier: %s", err)
+		}
+		if len(loadedParent.ParentID) > 0 {
+			linkToParent = fmt.Sprintf("<a href='%s/object/%s/list'>Up to Parent</a><br />", rootURL, hex.EncodeToString(loadedParent.ParentID))
+
+		} else {
+			linkToParent = fmt.Sprintf("<a href='%s/objects'>Up to Root</a><br />", rootURL)
+		}
 	} else {
 		response, err = dao.GetRootObjectsWithPropertiesByOwner(h.MetadataDB, "createddate desc", pageNumber, pageSize, caller.DistinguishedName)
 	}
 	if err != nil {
-		panic(err.Error())
+		w.WriteHeader(500)
+		fmt.Fprintf(w, "Error: %s", err)
+		return
 	}
 	// Get objects from response
 	objects := response.Objects
 
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprintf(w, pageTemplateStart, "listObjects", caller.DistinguishedName)
+	fmt.Fprintf(w, pageTemplatePager, "listObjectsPager")
+	fmt.Fprintf(w, pageTemplateDataTable, "listObjectsResults")
+	fmt.Fprintf(w, pageTemplateEnd)
+	fmt.Fprintf(w, linkToParent)
 	fmt.Fprintf(w, "Page "+strconv.Itoa(response.PageNumber)+" of "+strconv.Itoa(response.PageCount)+".<br />")
 	fmt.Fprintf(w, "Page Size: "+strconv.Itoa(response.PageSize)+", Page Rows: "+strconv.Itoa(response.PageRows)+", Total Rows: "+strconv.Itoa(response.TotalRows)+"<br />")
 	fmt.Fprintf(w, `<table id="listObjectsResults">`)
@@ -113,6 +129,20 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 	}
 	fmt.Fprintf(w, "</table>")
 
+	fmt.Fprintf(w, `
+	<hr/>
+	<form method="post" action="%s/folder" enctype="multipart/form-data">
+	<input type="hidden" name="parentId" value="%s" />
+	<input type="hidden" name="type" value="Folder" />
+	<table>
+		<tr>
+			<td>New Folder Name</td>
+			<td><input type="text" id="title" name="title" /></td>
+			<td><input type="submit" value="Create" /></td>
+		</tr>
+	</table>
+	</form>
+			`, rootURL, parentID)
 }
 
 // getFormattedDate formats a passed in time as RFC3339 format, which is
