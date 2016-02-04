@@ -5,11 +5,11 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
-	"github.com/spacemonkeygo/openssl"
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
+
+	"github.com/spacemonkeygo/openssl"
 )
 
 // Information about DoDIIS two-way SSL is here:
@@ -144,47 +144,45 @@ func NewAACTLSConfig() *tls.Config {
 }
 
 // NewOpenSSLTransport ...
-func NewOpenSSLTransport() (*openssl.Conn, error) {
+func NewOpenSSLTransport(trustPath, certPath, keyPath, host, port string) (*openssl.Conn, error) {
 	ctx, err := openssl.NewCtx()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	ctx.SetOptions(openssl.CipherServerPreference)
-	ctx.SetOptions(openssl.NoSSLv3)
+	// ctx.SetOptions(openssl.NoSSLv3)
 
-	trustLoc := filepath.Join(CertsDir, "clients", "client.trust.pem")
-	err = ctx.LoadVerifyLocations(trustLoc, "")
+	err = ctx.LoadVerifyLocations(trustPath, "")
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	certPath := filepath.Join(CertsDir, "clients", "test_1.cert.pem")
 	certBytes, err := ioutil.ReadFile(certPath)
 	if err != nil {
-		log.Fatalf("Unable to trust file: %v\n", err)
+		return nil, err
 	}
 
 	cert, err := openssl.LoadCertificateFromPEM(certBytes)
 	if err != nil {
-		log.Printf("Unable to parse cert:%v", err)
+		return nil, err
 	}
 	ctx.UseCertificate(cert)
 
-	keyPath := filepath.Join(CertsDir, "clients", "test_1.key.pem")
 	keyBytes, err := ioutil.ReadFile(keyPath)
 	if err != nil {
-		log.Fatalf("Unable to key file: %v\n", err)
+		return nil, err
 	}
 	privKey, err := openssl.LoadPrivateKeyFromPEM(keyBytes)
 	if err != nil {
-		log.Fatalf("Unable to parse private key:%v", nil)
+		return nil, err
 	}
 	ctx.UsePrivateKey(privKey)
 
-	conn, err := openssl.Dial("tcp", "aac:9093", ctx, 1)
+	addr := host + ":" + port
+	conn, err := openssl.Dial("tcp", addr, ctx, 1)
 	if err != nil {
 		log.Println("Error making openssl conn!")
-		log.Fatal(err)
+		return nil, err
 	}
 	return conn, nil
 }

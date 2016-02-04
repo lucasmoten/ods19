@@ -2,15 +2,17 @@ package main
 
 import (
 	"fmt"
-	thrift "github.com/samuel/go-thrift/thrift"
 	"log"
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	thrift "github.com/samuel/go-thrift/thrift"
 
 	"github.com/jmoiron/sqlx"
 
@@ -87,7 +89,12 @@ Fail to come up if we can't do this.
 TODO: restart uploader if we lose AAC connection
 */
 func getAACClient() (*aac.AacServiceClient, error) {
-	conn, err := oduconfig.NewOpenSSLTransport()
+	trustPath := filepath.Join(oduconfig.CertsDir, "clients", "client.trust.pem")
+	certPath := filepath.Join(oduconfig.CertsDir, "clients", "test_1.cert.pem")
+	keyPath := filepath.Join(oduconfig.CertsDir, "clients", "test_1.key.pem")
+	conn, err := oduconfig.NewOpenSSLTransport(
+		trustPath, certPath, keyPath, "twl-server-generic2", "9093")
+
 	if err != nil {
 		log.Printf("cannot create aac client: %v", err)
 		return nil, err
