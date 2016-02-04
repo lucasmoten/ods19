@@ -21,6 +21,7 @@ import (
 
 	aac "decipher.com/oduploader/cmd/cryptotest/gen-go2/aac"
 	oduconfig "decipher.com/oduploader/config"
+	"decipher.com/oduploader/performance"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -143,7 +144,8 @@ func main() {
 
 	//Try to connect to AAC
 	var aac *aac.AacServiceClient
-	time.Sleep(10 * time.Second) //there is a fatal in aac connecting, so must sleep
+	//Give time for AAC connect - EC2 micro needs about 20s
+	time.Sleep(20 * time.Second) //there is a fatal in aac connecting, so must sleep
 	aac, err = getAACClient()
 	if err != nil {
 		//TODO: include in DB ping
@@ -180,6 +182,15 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 	//the default config
 	s3, awsSession := awsS3()
 
+	// track performance statistics when uploads and downloads happen
+	purgeFile := func(name string) {
+		go func() {
+			///////Not removing just because ref count is zero.... new strategy soon.
+			////os.Remove(h.CacheLocation + "/" + name + ".cached")
+			log.Printf("TODO: %s reference count is 0", name)
+		}()
+	}
+
 	httpHandler := server.AppServer{
 		Port:            serverConfig.ListenPort,
 		Bind:            serverConfig.ListenBind,
@@ -190,6 +201,7 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		CacheLocation:   "cache",
 		ServicePrefix:   serverConfig.ServiceName + serverConfig.ServiceVersion,
 		Classifications: BuildClassificationMap(),
+		Tracker:         performance.NewJobReporters(1024, purgeFile),
 	}
 
 	return &http.Server{

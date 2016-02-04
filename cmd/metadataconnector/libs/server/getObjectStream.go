@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strconv"
 	//"strings"
+	"decipher.com/oduploader/performance"
 )
 
 func (h AppServer) transferFileFromS3(
@@ -48,8 +49,11 @@ func (h AppServer) transferFileFromS3(
 	}
 }
 
+/*
+  We are wrapping around getting object streams to time them.
+	TODO: This is including cache miss time.
+*/
 func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, caller Caller) {
-
 	// Identify requested object
 	objectID := getIDOfObjectTORetrieveStream(r.URL.RequestURI())
 	// If not valid, return
@@ -71,6 +75,21 @@ func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, calle
 		h.sendErrorResponse(w, 500, err, "cannot get object")
 		return
 	}
+
+	beganAt := h.Tracker.BeginTime(performance.DownloadCounter, object.Name)
+
+	h.getObjectStreamWithObject(w, r, caller, object)
+
+	h.Tracker.EndTime(
+		performance.DownloadCounter,
+		beganAt,
+		object.Name,
+		performance.SizeJob(object.ContentSize.Int64),
+	)
+}
+
+func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Request, caller Caller, object *models.ODObject) {
+	var err error
 
 	//Make sure that the cache exists
 	if _, err = os.Stat(h.CacheLocation); os.IsNotExist(err) {

@@ -11,6 +11,7 @@ import (
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/performance"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 
@@ -30,6 +31,7 @@ type AppServer struct {
 	AAC             *aac.AacServiceClient
 	Classifications map[string]string
 	MasterKey       string
+	Tracker         *performance.JobReporters
 }
 
 // UserSession is per session information that needs to be passed around
@@ -103,6 +105,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var rxListObjectSubscriptions = regexp.MustCompile(h.ServicePrefix + "/object/.*/subscriptions$")
 	var rxListImages = regexp.MustCompile(h.ServicePrefix + "/images/.*/list$")
 	var rxTrashObject = regexp.MustCompile(h.ServicePrefix + "/trash/.*")
+	var rxStatsObject = regexp.MustCompile(h.ServicePrefix + "/stats$")
 
 	switch r.Method {
 	case "GET":
@@ -146,6 +149,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.listObjectsTrashed(w, r, caller)
 		case rxQuery.MatchString(uri):
 			h.query(w, r, caller)
+		case rxStatsObject.MatchString(uri):
+			h.getStats(w, r, caller)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)

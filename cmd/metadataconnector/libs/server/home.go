@@ -26,6 +26,11 @@ func (h AppServer) home(w http.ResponseWriter, r *http.Request, caller Caller) {
 <a href="%s/objects">List Objects</a> - This operation will result in a GET
 	call to list root objects with default paging.
 
-		`, rootURL, rootURL)
+<p />
+
+<a href="%s/stats">Statistics</a> - This operation will result in a GET
+		call to list root objects with default paging.
+
+		`, rootURL, rootURL, rootURL)
 	fmt.Fprintf(w, pageTemplateEnd)
 }
