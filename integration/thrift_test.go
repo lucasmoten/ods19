@@ -9,6 +9,7 @@ package integration
 
 import (
 	"log"
+	"path/filepath"
 	"testing"
 
 	aac "decipher.com/oduploader/cmd/cryptotest/gen-go2/aac"
@@ -38,7 +39,11 @@ var aacClient = aac.AacServiceClient{}
 
 func init() {
 
-	conn, err := config.NewOpenSSLTransport()
+	trustPath := filepath.Join(config.CertsDir, "clients", "client.trust.pem")
+	certPath := filepath.Join(config.CertsDir, "clients", "test_1.cert.pem")
+	keyPath := filepath.Join(config.CertsDir, "clients", "test_1.key.pem")
+	conn, err := config.NewOpenSSLTransport(
+		trustPath, certPath, keyPath, "twl-server-generic2", "9093")
 	if err != nil {
 		log.Fatal(err)
 	}
