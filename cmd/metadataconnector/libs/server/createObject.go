@@ -4,6 +4,7 @@ import (
 	//"encoding/hex"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/performance"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -61,6 +62,8 @@ func extIs(name string, ext string) bool {
 func guessContentType(name string) string {
 	contentType := "text/html"
 	switch {
+	case extIs(name, ".mp3"):
+		contentType = "audio/mp3"
 	case extIs(name, ".pdf"):
 		contentType = "application/pdf"
 	case extIs(name, ".jpg"):
@@ -83,6 +86,28 @@ func guessContentType(name string) string {
 }
 
 func (h AppServer) beginUpload(
+	w http.ResponseWriter,
+	r *http.Request,
+	caller Caller,
+	part *multipart.Part,
+	obj *models.ODObject,
+	acm *models.ODACM,
+) (grant models.ODObjectPermission, err error) {
+
+	beganAt := h.Tracker.BeginTime(performance.UploadCounter, part.FileName())
+	grant, err = h.beginUploadTimed(w, r, caller, part, obj, acm)
+
+	h.Tracker.EndTime(
+		performance.UploadCounter,
+		beganAt,
+		part.FileName(),
+		performance.SizeJob(obj.ContentSize.Int64),
+	)
+
+	return grant, err
+}
+
+func (h AppServer) beginUploadTimed(
 	w http.ResponseWriter,
 	r *http.Request,
 	caller Caller,
