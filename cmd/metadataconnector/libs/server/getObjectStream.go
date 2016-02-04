@@ -5,12 +5,17 @@ import (
 	"decipher.com/oduploader/metadata/models"
 	"encoding/hex"
 	//"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	//"path"
 	"regexp"
-	//"strconv"
+	"strconv"
+	//"strings"
 )
 
 func (h AppServer) dumpCacheLocation() {
@@ -24,6 +29,37 @@ func (h AppServer) dumpCacheLocation() {
 	}
 	for _, f := range files {
 		log.Printf("%s", f.Name())
+	}
+}
+
+func (h AppServer) transferFileFromS3(
+	bucket *string,
+	theFile string,
+) {
+	log.Printf("Get from S3 bucket %s: %s", *bucket, theFile)
+	foutCaching := h.CacheLocation + "/" + theFile + ".caching"
+	foutCached := h.CacheLocation + "/" + theFile + ".cached"
+	fOut, err := os.Create(foutCaching)
+	if err != nil {
+		log.Printf("Unable to write local buffer file %s: %v", theFile, err)
+	}
+	defer fOut.Close()
+
+	downloader := s3manager.NewDownloader(h.AWSSession)
+	_, err = downloader.Download(
+		fOut,
+		&s3.GetObjectInput{
+			Bucket: bucket,
+			Key:    aws.String(h.CacheLocation + "/" + theFile),
+		},
+	)
+	if err != nil {
+		log.Printf("Unable to download out of S3 bucket %v: %v", *bucket, theFile)
+	}
+	//Signal that we finally cached the file
+	err = os.Rename(foutCaching, foutCached)
+	if err != nil {
+		log.Printf("Failed to rename from %s to %s", foutCaching, foutCached)
 	}
 }
 
@@ -82,15 +118,19 @@ func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, calle
 	h.dumpCacheLocation()
 
 	//hasStream := false
-	cipherTextName := h.CacheLocation + "/" + object.ContentConnector.String + ".cached"
+	cipherTextS3Name := h.CacheLocation + "/" + object.ContentConnector.String
+	cipherTextName := cipherTextS3Name + ".cached"
 	_, err = os.Stat(cipherTextName)
 	if err == nil {
 		log.Printf("file exists and is cached as: %s", object.ContentConnector.String)
 		//hasStream = true
 	} else {
 		if os.IsNotExist(err) {
-			log.Printf("file is not cached: %v", err)
-			//Need to recache it - a blocking operation
+			log.Printf("file is not cached.  Caching it now.")
+			bucket := aws.String("decipherers")
+			//When this finishes, cipherTextName should exist.  It could take a
+			//very long time though.
+			h.transferFileFromS3(bucket, cipherTextS3Name)
 		}
 	}
 	var key []byte
@@ -101,7 +141,6 @@ func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, calle
 	} else {
 		key = object.Permissions[0].EncryptKey
 	}
-	log.Printf("decrypt with iv:%v key:%v", iv, key)
 
 	cipherText, err := os.Open(cipherTextName)
 	if err != nil {
@@ -110,6 +149,20 @@ func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, calle
 	}
 	defer cipherText.Close()
 
+	//Sanity check to dump metadata about what is currently being downloaded
+	log.Printf(
+		"decrypt with iv:%v key:%v type:%v sz:%v",
+		iv,
+		key,
+		object.ContentType.String,
+		object.ContentSize.Int64,
+	)
+
+	w.Header().Set("Content-Type", object.ContentType.String)
+	if object.ContentSize.Valid && object.ContentSize.Int64 > int64(0) {
+		w.Header().Set("Content-Length", strconv.FormatInt(object.ContentSize.Int64, 10))
+	}
+
 	//Actually send back the ciphertext
 	_, _, err = doCipherByReaderWriter(
 		cipherText,
@@ -117,6 +170,7 @@ func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, calle
 		key,
 		iv,
 	)
+
 	if err != nil {
 		log.Printf("error sending decrypted ciphertext %s:%v", cipherTextName, err)
 		return
@@ -130,15 +184,9 @@ func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, calle
 			fmt.Fprintf(w, pageTemplateEnd)
 			return
 		}
+	*/
 
-		contentType := "text/html"
-		if object.ContentType.Valid {
-			contentType = object.ContentType.String
-		}
-		w.Header().Set("Content-Type", contentType)
-		if object.ContentSize.Valid {
-			w.Header().Set("Content-Length", strconv.FormatInt(object.ContentSize.Int64, 10))
-		}
+	/*
 		fmt.Fprintf(w, pageTemplateStart, "getObjectStream", caller.DistinguishedName)
 		fmt.Fprintf(w, pageTemplateEnd)
 	*/

@@ -100,7 +100,6 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 	fmt.Fprintf(w, "Page Size: "+strconv.Itoa(response.PageSize)+", Page Rows: "+strconv.Itoa(response.PageRows)+", Total Rows: "+strconv.Itoa(response.TotalRows)+"<br />")
 	fmt.Fprintf(w, `<table id="listObjectsResults">`)
 	fmt.Fprintf(w, `<tr><td>Name</td><td>Type</td><td>Created Date</td><td>Created By</td></tr>`)
-	rootURL := "/service/metadataconnector/1.0"
 	for idx := range objects {
 		object := objects[idx]
 

@@ -2,18 +2,17 @@ package server
 
 import (
 	//"encoding/hex"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
+	"decipher.com/oduploader/metadata/models"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/metadata/models"
+	"strings"
 )
 
 func (h AppServer) drainFileToS3(
@@ -53,6 +52,32 @@ func (h AppServer) drainFileToS3(
 
 	log.Printf("Uploaded to %v: %v", *bucket, result.Location)
 	return err
+}
+
+func extIs(name string, ext string) bool {
+	return strings.Contains(strings.ToLower(name), ext)
+}
+
+func guessContentType(name string) string {
+	contentType := "text/html"
+	switch {
+	case extIs(name, ".jpg"):
+		contentType = "image/jpeg"
+	case extIs(name, ".gif"):
+		contentType = "image/gif"
+	case extIs(name, ".m4v"):
+		contentType = "video/mp4"
+	case extIs(name, ".mp4"):
+		contentType = "video/mp4"
+	case extIs(name, ".mov"):
+		contentType = "video/mov"
+	case extIs(name, ".json"):
+		contentType = "text/json"
+	case extIs(name, ".xml"):
+		contentType = "text/xml"
+	}
+	log.Printf("assuming %s is a %s", name, contentType)
+	return contentType
 }
 
 func (h AppServer) beginUpload(
@@ -104,6 +129,7 @@ func (h AppServer) beginUpload(
 	//obj.ContentHash.String = hex.EncodeToString(checksum)
 	obj.ContentSize.Int64 = length
 	obj.EncryptIV = iv
+	obj.ContentType.String = guessContentType(part.FileName())
 	log.Printf("TODO: trying to create a grant when I don't yet know the objectID")
 	//	grant.ObjectID = obj.ID
 	grant.Grantee = caller.DistinguishedName
@@ -250,9 +276,8 @@ func getFormValueAsString(part *multipart.Part) string {
 	if err != nil {
 		if err == io.EOF {
 			return ""
-		} else {
-			panic(err)
 		}
+		panic(err)
 	} // if err != nil
 	return string(valueAsBytes[0:n])
 }
