@@ -1,6 +1,9 @@
 package server
 
 import (
+	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
+	"decipher.com/oduploader/metadata/models"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -8,10 +11,6 @@ import (
 	"regexp"
 	"strconv"
 	"time"
-
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/metadata/models"
 )
 
 type listObjectsRequest struct {
@@ -99,32 +98,34 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 	fmt.Fprintf(w, "Page "+strconv.Itoa(response.PageNumber)+" of "+strconv.Itoa(response.PageCount)+".<br />")
 	fmt.Fprintf(w, "Page Size: "+strconv.Itoa(response.PageSize)+", Page Rows: "+strconv.Itoa(response.PageRows)+", Total Rows: "+strconv.Itoa(response.TotalRows)+"<br />")
 	fmt.Fprintf(w, `<table id="listObjectsResults">`)
-	fmt.Fprintf(w, `<tr><td>Name</td><td>Type</td><td>Created Date</td><td>Created By</td></tr>`)
+	fmt.Fprintf(w, `<tr><td>Name</td><td>Type</td><td>Created Date</td><td>Created By</td><td>Size</td></tr>`)
 	for idx := range objects {
 		object := objects[idx]
-
-		fmt.Fprintf(w, "<tr><td>")
+		fmt.Fprintf(w, "<tr>")
 		switch {
 		case object.TypeName.String == "Folder":
-			fmt.Fprintf(w, "<a href='%s/object/", rootURL)
-			fmt.Fprintf(w, hex.EncodeToString(object.ID))
-			fmt.Fprintf(w, "/list'>")
-			fmt.Fprintf(w, object.Name)
-			fmt.Fprintf(w, "</a>")
+			fmt.Fprintf(
+				w,
+				"<td><a href='%s/object/%s/list'>%s</a></td>",
+				rootURL,
+				hex.EncodeToString(object.ID),
+				object.Name,
+			)
 		default:
-			fmt.Fprintf(w, "<a href='%s/object/", rootURL)
-			fmt.Fprintf(w, hex.EncodeToString(object.ID))
-			fmt.Fprintf(w, "/stream'>")
-			fmt.Fprintf(w, object.Name)
-			fmt.Fprintf(w, "</a>")
+			fmt.Fprintf(
+				w,
+				"<td><a href='%s/object/%s/stream'>%s</a></td>",
+				rootURL,
+				hex.EncodeToString(object.ID),
+				object.Name,
+			)
 		}
-		fmt.Fprintf(w, "</td><td>")
-		fmt.Fprintf(w, object.TypeName.String)
-		fmt.Fprintf(w, "</td><td>")
-		fmt.Fprintf(w, getFormattedDate(object.CreatedDate))
-		fmt.Fprintf(w, "</td><td>")
-		fmt.Fprintf(w, config.GetCommonName(object.CreatedBy))
-		fmt.Fprintf(w, "</td></tr>")
+
+		fmt.Fprintf(w, "<td>%s</td>", object.TypeName.String)
+		fmt.Fprintf(w, "<td>%s</td>", getFormattedDate(object.CreatedDate))
+		fmt.Fprintf(w, "<td>%s</td>", config.GetCommonName(object.CreatedBy))
+		fmt.Fprintf(w, "<td>%d</td>", object.ContentSize.Int64)
+		fmt.Fprintf(w, "</tr>")
 	}
 	fmt.Fprintf(w, "</table>")
 

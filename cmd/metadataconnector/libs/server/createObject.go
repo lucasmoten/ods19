@@ -114,7 +114,7 @@ func (h AppServer) beginUpload(
 	fileKey, iv := createKeyIVPair()
 
 	//Write the encrypted data to the filesystem
-	_, length, err := doCipherByReaderWriter(part, outFile, fileKey, iv)
+	checksum, _, err := doCipherByReaderWriter(part, outFile, fileKey, iv)
 	if err != nil {
 		log.Printf("Unable to write ciphertext %s %v:", outFileUploading, err)
 		return grant, err
@@ -130,10 +130,15 @@ func (h AppServer) beginUpload(
 		return grant, err
 	}
 
+	stat, err := os.Stat(outFileUploaded)
+	if err != nil {
+		log.Printf("Unable to get stat on uploaded file %s: %v", outFileUploaded, err)
+	}
+
 	//Record metadata
 	obj.ContentConnector.String = rName
-	//obj.ContentHash.String = hex.EncodeToString(checksum)
-	obj.ContentSize.Int64 = length
+	obj.ContentHash = checksum
+	obj.ContentSize.Int64 = stat.Size()
 	obj.EncryptIV = iv
 	obj.ContentType.String = guessContentType(part.FileName())
 	log.Printf("TODO: trying to create a grant when I don't yet know the objectID")

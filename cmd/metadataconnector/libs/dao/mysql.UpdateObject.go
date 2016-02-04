@@ -30,7 +30,7 @@ func UpdateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 	result, err := updateObjectStatement.Exec(object.ModifiedBy, object.TypeID,
 		object.Name, object.Description.String, object.ParentID,
 		object.ContentConnector.String, object.ContentType.String,
-		object.ContentSize, object.ContentHash.String, object.EncryptIV,
+		object.ContentSize, object.ContentHash, object.EncryptIV,
 		object.ID, object.ChangeToken)
 	if err != nil {
 		return fmt.Errorf("UpdateObject Error executing update object statement, %s", err.Error())

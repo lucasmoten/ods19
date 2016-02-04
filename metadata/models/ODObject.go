@@ -44,7 +44,7 @@ type ODObject struct {
 	// ContentHash represents a hash (MD5? SHA1? SHA256?) of the contents of the
 	// object stream and can be used for deduplication with other objects stored
 	// in a backend repository.
-	ContentHash NullString `db:"contentHash"`
+	ContentHash []byte `db:"contentHash"`
 	// EncryptIV contains the initialization vector information for encrypting the
 	// content stream for this object at result
 	EncryptIV []byte `db:"encryptIV" json:"-"`
