@@ -30,7 +30,7 @@ func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 	result, err := addObjectStatement.Exec(object.CreatedBy, object.TypeID,
 		object.Name, object.Description.String, object.ParentID,
 		object.ContentConnector.String, object.ContentType.String,
-		object.ContentSize, object.ContentHash.String, object.EncryptIV)
+		object.ContentSize.Int64, object.ContentHash, object.EncryptIV)
 	if err != nil {
 		return fmt.Errorf("CreateObject Error executing add object statement, %s", err.Error())
 	}

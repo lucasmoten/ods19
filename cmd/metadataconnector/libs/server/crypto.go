@@ -110,19 +110,21 @@ func createRandomName() string {
 	return hex.EncodeToString(key)
 }
 
-//XXX:
-//Eventually, we need to use public key encryption to encrypt to
-//the user.  But given that there is a pkcs12 file that requires
-//a password to unlock, this is effectively the same thing if
-//we have the user's password to encrypt to him.
+//XXX: Only use this for 256bit or less text,
+//     because this is effectively ECB mode!
 //
-//We can use masterkey salted with userDN as well to uniquely
-//encrypt password per user.
-func applyPassphrase(key, text []byte) {
-	hashBytes := sha256.Sum256([]byte(key))
+// We use this to store filekeys that do longer AES256 ciphering
+//
+// Salt the masterkey with dn for diversity
+// - what we are missing and actually need is a per-user secret
+//   so that we can make sure that neither the per-user secret
+//   not the masterkey are sufficient to decrypt data
+//
+func applyPassphrase(passphrase string, fileKey []byte) {
+	hashBytes := sha256.Sum256([]byte(passphrase))
 	k := len(hashBytes)
-	for i := 0; i < len(text); i++ {
-		text[i] = hashBytes[i%k] ^ text[i]
+	for i := 0; i < len(fileKey); i++ {
+		fileKey[i] = hashBytes[i%k] ^ fileKey[i] // ^ fileKey[i]
 	}
 	return
 }

@@ -61,6 +61,8 @@ func extIs(name string, ext string) bool {
 func guessContentType(name string) string {
 	contentType := "text/html"
 	switch {
+	case extIs(name, ".pdf"):
+		contentType = "application/pdf"
 	case extIs(name, ".jpg"):
 		contentType = "image/jpeg"
 	case extIs(name, ".gif"):
@@ -72,9 +74,9 @@ func guessContentType(name string) string {
 	case extIs(name, ".mov"):
 		contentType = "video/mov"
 	case extIs(name, ".json"):
-		contentType = "text/json"
+		contentType = "application/json"
 	case extIs(name, ".xml"):
-		contentType = "text/xml"
+		contentType = "application/xml"
 	}
 	log.Printf("assuming %s is a %s", name, contentType)
 	return contentType
@@ -109,14 +111,18 @@ func (h AppServer) beginUpload(
 	defer outFile.Close()
 
 	//Generate random key and iv
-	key, iv := createKeyIVPair()
+	fileKey, iv := createKeyIVPair()
 
 	//Write the encrypted data to the filesystem
-	_, length, err := doCipherByReaderWriter(part, outFile, key, iv)
+	checksum, _, err := doCipherByReaderWriter(part, outFile, fileKey, iv)
 	if err != nil {
 		log.Printf("Unable to write ciphertext %s %v:", outFileUploading, err)
 		return grant, err
 	}
+
+	//Scramble the fileKey with the masterkey - will need it once more on retrieve
+	applyPassphrase(h.MasterKey+caller.DistinguishedName, fileKey)
+
 	//Rename it to indicate that it can be moved to S3
 	err = os.Rename(outFileUploading, outFileUploaded)
 	if err != nil {
@@ -124,10 +130,15 @@ func (h AppServer) beginUpload(
 		return grant, err
 	}
 
+	stat, err := os.Stat(outFileUploaded)
+	if err != nil {
+		log.Printf("Unable to get stat on uploaded file %s: %v", outFileUploaded, err)
+	}
+
 	//Record metadata
 	obj.ContentConnector.String = rName
-	//obj.ContentHash.String = hex.EncodeToString(checksum)
-	obj.ContentSize.Int64 = length
+	obj.ContentHash = checksum
+	obj.ContentSize.Int64 = stat.Size()
 	obj.EncryptIV = iv
 	obj.ContentType.String = guessContentType(part.FileName())
 	log.Printf("TODO: trying to create a grant when I don't yet know the objectID")
@@ -137,7 +148,7 @@ func (h AppServer) beginUpload(
 	grant.AllowCreate = true
 	grant.AllowUpdate = true
 	grant.AllowDelete = true
-	grant.EncryptKey = key
+	grant.EncryptKey = fileKey
 	//Uploaded file is effectively enqueued for S3 upload.
 	//Go ugly early, and just make this drain-off a goroutine
 	//We may need to have a limited number of concurrent uploads,

@@ -9,6 +9,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -96,6 +97,16 @@ func getAACClient() (*aac.AacServiceClient, error) {
 	return &aac.AacServiceClient{Client: client}, nil
 }
 
+func getEnvVar(name, defaultValue string) string {
+	for _, e := range os.Environ() {
+		kv := strings.Split(e, "=")
+		if kv[0] == name {
+			return kv[1]
+		}
+	}
+	return defaultValue
+}
+
 func main() {
 	// Load Configuration from conf.json
 	appConfiguration := config.NewAppConfiguration()
@@ -133,6 +144,12 @@ func main() {
 	} else {
 		handler.AAC = aac
 		log.Printf("We are connected to AAC")
+	}
+
+	handler.MasterKey = getEnvVar("masterkey", "otterpaws")
+	if handler.MasterKey == "otterpaws" {
+		log.Printf("You should pass in an environment variable 'masterkey' to encrypt database keys")
+		log.Printf("Note that if you change masterkey, then the encrypted keys are invalidated")
 	}
 
 	// start it

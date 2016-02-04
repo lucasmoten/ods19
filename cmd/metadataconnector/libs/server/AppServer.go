@@ -29,6 +29,7 @@ type AppServer struct {
 	ServicePrefix   string
 	AAC             *aac.AacServiceClient
 	Classifications map[string]string
+	MasterKey       string
 }
 
 // UserSession is per session information that needs to be passed around
