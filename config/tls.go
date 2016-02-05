@@ -12,17 +12,28 @@ import (
 	"github.com/spacemonkeygo/openssl"
 )
 
-// Information about DoDIIS two-way SSL is here:
-// https://confluence.363-283.io/pages/viewpage.action?pageId=557803
-
-// PKCS12 implementation is here: https://godoc.org/golang.org/x/crypto/pkcs12
-
 /////XXX we should probably eliminate globals from config
 // TODO export these as globals so we can set them with command line flags also?
 var (
 	uploaderCertPath     string
 	thriftClientCertPath string
 )
+
+// OpenSSLDialOptions wraps the bitmask flags that are passed as the last arg
+// to openssl.Dial
+type OpenSSLDialOptions struct {
+	Flags openssl.DialFlags
+}
+
+// SetInsecureSkipHostVerification sets flag openssl.InsecureSkipHostVerification
+func (opts *OpenSSLDialOptions) SetInsecureSkipHostVerification() {
+	opts.Flags = opts.Flags | 1
+}
+
+// SetDisableSNI sets the flag openssl.DisableSNI
+func (opts *OpenSSLDialOptions) SetDisableSNI() {
+	opts.Flags = opts.Flags | 2
+}
 
 //TODO: globals should deal with this in flags and envs.
 func init() {
@@ -88,16 +99,10 @@ func NewUploaderTLSConfigWithParms(certPath string, trustPath string) *tls.Confi
 	}
 
 	tlsConfig := &tls.Config{
-		// Reject any TLS certificate that cannot be validated
-		ClientAuth: tls.RequireAndVerifyClientCert,
-		// Ensure that we only use our "CA" to validate certificates
-		ClientCAs: clientCertPool,
-		// PFS because we can but this will reject client with RSA certificates
-		// CipherSuites: []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
-		// Force it server side
+		ClientAuth:               tls.RequireAndVerifyClientCert,
+		ClientCAs:                clientCertPool,
 		PreferServerCipherSuites: true,
-		// TLS 1.2 because we can
-		MinVersion: tls.VersionTLS10,
+		MinVersion:               tls.VersionTLS10,
 	}
 	tlsConfig.BuildNameToCertificate()
 	return tlsConfig
@@ -148,8 +153,6 @@ func NewAACTLSConfig() *tls.Config {
 		log.Fatalln("Unable to read cert.pem", err)
 	}
 
-	//cert := pkcs12.Decode(certBytes, "password")
-	//pemBlocks, err := pkcs12.ToPEM(certBytes, "password")
 	clientCertPool := x509.NewCertPool()
 	actualCert, err := x509.ParseCertificate(certBytes)
 	if err != nil {
@@ -165,29 +168,32 @@ func NewAACTLSConfig() *tls.Config {
 	}
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
-		// Reject any TLS certificate that cannot be validated
-		// ClientAuth: tls.RequireAndVerifyClientCert,
 		// Ensure that we only use our "CA" to validate certificates
 		ClientCAs: clientCertPool,
 		// PFS because we can but this will reject client with RSA certificates
 		// CipherSuites: []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
 		// Force it server side
 		PreferServerCipherSuites: true,
-		// TLS 1.2 because we can
-		MinVersion: tls.VersionTLS10,
+		MinVersion:               tls.VersionTLS10,
 	}
 	tlsConfig.BuildNameToCertificate()
 	return tlsConfig
 }
 
-// NewOpenSSLTransport ...
-func NewOpenSSLTransport(trustPath, certPath, keyPath, host, port string) (*openssl.Conn, error) {
+// NewOpenSSLTransport returns a TCP connection establish with OpenSSL.
+func NewOpenSSLTransport(trustPath, certPath, keyPath, host, port string, dialOpts *OpenSSLDialOptions) (*openssl.Conn, error) {
+
+	// Default to flag 0
+	if dialOpts == nil {
+		dialOpts = &OpenSSLDialOptions{}
+	}
+
 	ctx, err := openssl.NewCtx()
 	if err != nil {
 		return nil, err
 	}
 	ctx.SetOptions(openssl.CipherServerPreference)
-	// ctx.SetOptions(openssl.NoSSLv3)
+	ctx.SetOptions(openssl.NoSSLv3)
 
 	err = ctx.LoadVerifyLocations(trustPath, "")
 	if err != nil {
@@ -224,7 +230,7 @@ func NewOpenSSLTransport(trustPath, certPath, keyPath, host, port string) (*open
 	return conn, nil
 }
 
-// GetDNFromCert will extract the dn in the format that everything expects
+// GetDNFromCert will extract the DN in the format that everything expects.
 func GetDNFromCert(name pkix.Name) string {
 	dnSeq := name.ToRDNSequence()
 	dnArray := ""
