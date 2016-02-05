@@ -42,8 +42,11 @@ func init() {
 	trustPath := filepath.Join(config.CertsDir, "clients", "client.trust.pem")
 	certPath := filepath.Join(config.CertsDir, "clients", "test_1.cert.pem")
 	keyPath := filepath.Join(config.CertsDir, "clients", "test_1.key.pem")
+
+	dialOpts := &config.OpenSSLDialOptions{}
+	dialOpts.SetInsecureSkipHostVerification()
 	conn, err := config.NewOpenSSLTransport(
-		trustPath, certPath, keyPath, "twl-server-generic2", "9093")
+		trustPath, certPath, keyPath, "twl-server-generic2", "9093", dialOpts)
 	if err != nil {
 		log.Fatal(err)
 	}
