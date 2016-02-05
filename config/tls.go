@@ -222,7 +222,7 @@ func NewOpenSSLTransport(trustPath, certPath, keyPath, host, port string, dialOp
 	ctx.UsePrivateKey(privKey)
 
 	addr := host + ":" + port
-	conn, err := openssl.Dial("tcp", addr, ctx, 1)
+	conn, err := openssl.Dial("tcp", addr, ctx, dialOpts.Flags)
 	if err != nil {
 		log.Println("Error making openssl conn!")
 		return nil, err

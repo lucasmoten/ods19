@@ -17,7 +17,7 @@ type Event struct {
 	auditevents.AuditEvent
 }
 
-// NewAuditServiceClient ...
+// NewAuditServiceClient creates an audit.Client given an openssl.Conn pointer.
 func NewAuditServiceClient(conn *openssl.Conn) *Client {
 	trns := thrift.NewTransport(
 		thrift.NewFramedReadWriteCloser(conn, 0), thrift.BinaryProtocol)
