@@ -167,6 +167,10 @@ func (h AppServer) beginUploadTimed(
 	obj.ContentSize.Int64 = stat.Size()
 	obj.EncryptIV = iv
 	obj.ContentType.String = guessContentType(part.FileName())
+	//Give a default name
+	if obj.Name == "" {
+		obj.Name = part.FileName()
+	}
 	log.Printf("TODO: trying to create a grant when I don't yet know the objectID")
 	//	grant.ObjectID = obj.ID
 	grant.Grantee = caller.DistinguishedName
