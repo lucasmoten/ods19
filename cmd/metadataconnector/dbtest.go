@@ -161,6 +161,8 @@ func main() {
 		log.Printf("Note that if you change masterkey, then the encrypted keys are invalidated")
 	}
 
+	go handler.CachePurge()
+
 	// start it
 	log.Println("Starting server on " + s.Addr)
 	log.Fatalln(s.ListenAndServeTLS(serverCertFile, serverKeyFile))

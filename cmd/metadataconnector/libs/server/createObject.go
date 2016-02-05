@@ -13,6 +13,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 )
 
@@ -59,15 +60,22 @@ func extIs(name string, ext string) bool {
 	return strings.Contains(strings.ToLower(name), ext)
 }
 
+//I'm sure there is a function call somewhere with this database....
 func guessContentType(name string) string {
 	contentType := "text/html"
 	switch {
+	case extIs(name, ".htm"):
+		contentType = "html"
+	case extIs(name, ".html"):
+		contentType = "text/html"
+	case extIs(name, ".txt"):
+		contentType = "text"
 	case extIs(name, ".mp3"):
 		contentType = "audio/mp3"
-	case extIs(name, ".pdf"):
-		contentType = "application/pdf"
 	case extIs(name, ".jpg"):
 		contentType = "image/jpeg"
+	case extIs(name, ".png"):
+		contentType = "image/png"
 	case extIs(name, ".gif"):
 		contentType = "image/gif"
 	case extIs(name, ".m4v"):
@@ -76,12 +84,9 @@ func guessContentType(name string) string {
 		contentType = "video/mp4"
 	case extIs(name, ".mov"):
 		contentType = "video/mov"
-	case extIs(name, ".json"):
-		contentType = "application/json"
-	case extIs(name, ".xml"):
-		contentType = "application/xml"
+	default:
+		contentType = fmt.Sprintf("application/%s", path.Ext(name))
 	}
-	log.Printf("assuming %s is a %s", name, contentType)
 	return contentType
 }
 
@@ -115,13 +120,9 @@ func (h AppServer) beginUploadTimed(
 	obj *models.ODObject,
 	acm *models.ODACM,
 ) (grant models.ODObjectPermission, err error) {
-	if _, err = os.Stat(h.CacheLocation); os.IsNotExist(err) {
-		err = os.Mkdir(h.CacheLocation, 0700)
-		log.Printf("Creating cache directory %s", h.CacheLocation)
-		if err != nil {
-			log.Printf("Cannot create cache directory: %v", err)
-			return grant, err
-		}
+	err = h.CacheMustExist()
+	if err != nil {
+		return grant, err
 	}
 	//Make up a random name for our file - don't deal with versioning yet
 	rName := createRandomName()
