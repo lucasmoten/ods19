@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 	//"path"
 	"regexp"
 	"strconv"
@@ -92,30 +93,23 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 	var err error
 
 	//Make sure that the cache exists
-	if _, err = os.Stat(h.CacheLocation); os.IsNotExist(err) {
-		err = os.Mkdir(h.CacheLocation, 0700)
-		log.Printf("Creating cache directory %s", h.CacheLocation)
-		if err != nil {
-			log.Printf("Cannot create cache directory: %v", err)
-			return
-		}
+	err = h.CacheMustExist()
+	if err != nil {
+		return
 	}
 
 	//Ensure that the actual file exists
 	cipherTextS3Name := h.CacheLocation + "/" + object.ContentConnector.String
 	cipherTextName := cipherTextS3Name + ".cached"
 	_, err = os.Stat(cipherTextName)
-	if err == nil {
-		log.Printf("file exists and is cached as: %s", object.ContentConnector.String)
-		//hasStream = true
-	} else {
+	if err != nil {
 		if os.IsNotExist(err) {
 			log.Printf("file is not cached.  Caching it now.")
 			bucket := aws.String("decipherers")
 			//When this finishes, cipherTextName should exist.  It could take a
 			//very long time though.
 			//XXX blocks for a long time
-			h.transferFileFromS3(bucket, cipherTextS3Name)
+			h.transferFileFromS3(bucket, object.ContentConnector.String)
 		}
 	}
 
@@ -174,6 +168,11 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 		log.Printf("error sending decrypted ciphertext %s:%v", cipherTextName, err)
 		return
 	}
+
+	//Update the timestamps to note the last time it was used
+	tm := time.Now()
+	os.Chtimes(cipherTextName, tm, tm)
+
 	/*
 		//XXX should be returning an http error code in this case
 		if !hasStream {
