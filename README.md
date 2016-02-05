@@ -75,8 +75,9 @@ and exports required certificates.
 
 # Generating Thrift Code
 
-Once you have the latest version of the go-thrift library installed, put it's **generator** 
-binary on your PATH. Then run the top-level thrift Service IDL file through the generator.
+Once you have the latest version of the go-thrift library installed, put it's
+**generator** binary on your PATH. Then run the top-level thrift Service IDL
+file through the generator.
 
 Example (from within /services/audit/thrift):
 
@@ -84,3 +85,18 @@ Example (from within /services/audit/thrift):
 generator -go.signedbytes=true AuditService.thrift ../generated
 ```
 
+# Running Tests
+
+Run **every** test in the project with a `./...` recursive walk.
+
+```
+go test ./... -v
+```
+
+Only run short tests by specifying `-short=true`:
+
+```
+go test ./... -short=true -v
+```
+
+Hooray for automated tests!
