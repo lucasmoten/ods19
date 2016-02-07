@@ -17,6 +17,8 @@ const (
 	DownloadCounter = ReporterID(2)
 	// S3DrainTo is the time to drain a file back into S3
 	S3DrainTo = ReporterID(3)
+	// S3DrainFrom is time to recache file
+	S3DrainFrom = ReporterID(4)
 )
 
 /*
@@ -524,6 +526,7 @@ func NewJobReporters(capacity int, canDeleteHandler CanDeleteHandler) *JobReport
 	reporters.Reporters[UploadCounter] = reporters.makeReporter("upload")
 	reporters.Reporters[DownloadCounter] = reporters.makeReporter("download")
 	reporters.Reporters[S3DrainTo] = reporters.makeReporter("s3drainto")
+	reporters.Reporters[S3DrainFrom] = reporters.makeReporter("s3drainfrom")
 
 	//Listen in on job reports
 	go jobReportersThread(reporters)

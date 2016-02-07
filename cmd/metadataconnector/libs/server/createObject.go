@@ -21,6 +21,27 @@ func (h AppServer) drainFileToS3(
 	bucket *string,
 	rName string,
 ) error {
+	beganAt := h.Tracker.BeginTime(performance.S3DrainTo, rName)
+	err := h.drainFileToS3Timed(bucket, rName)
+	stat, cachedErr := os.Stat(h.CacheLocation + "/" + rName + ".cached")
+	if cachedErr != nil {
+		log.Printf("could not get length of cached file %s", rName)
+	}
+	length := stat.Size()
+
+	h.Tracker.EndTime(
+		performance.S3DrainTo,
+		beganAt,
+		rName,
+		performance.SizeJob(length),
+	)
+	return err
+}
+
+func (h AppServer) drainFileToS3Timed(
+	bucket *string,
+	rName string,
+) error {
 	sess := h.AWSSession
 	outFileUploaded := h.CacheLocation + "/" + rName + ".uploaded"
 
@@ -57,15 +78,15 @@ func (h AppServer) drainFileToS3(
 }
 
 func extIs(name string, ext string) bool {
-	return strings.Contains(strings.ToLower(name), ext)
+	return strings.ToLower(path.Ext(name)) == strings.ToLower(ext)
 }
 
 //I'm sure there is a function call somewhere with this database....
 func guessContentType(name string) string {
-	contentType := "text/html"
+	contentType := "text/plain"
 	switch {
 	case extIs(name, ".htm"):
-		contentType = "html"
+		contentType = "text/html"
 	case extIs(name, ".html"):
 		contentType = "text/html"
 	case extIs(name, ".txt"):
@@ -85,8 +106,12 @@ func guessContentType(name string) string {
 	case extIs(name, ".mov"):
 		contentType = "video/mov"
 	default:
-		contentType = fmt.Sprintf("application/%s", path.Ext(name))
+		ext := path.Ext(name)
+		if len(ext) > 1 {
+			contentType = fmt.Sprintf("application/%s", ext[1:])
+		}
 	}
+	log.Printf("uploaded %s as %s", name, contentType)
 	return contentType
 }
 

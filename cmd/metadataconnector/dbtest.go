@@ -94,7 +94,7 @@ func getAACClient() (*aac.AacServiceClient, error) {
 	certPath := filepath.Join(oduconfig.CertsDir, "clients", "test_1.cert.pem")
 	keyPath := filepath.Join(oduconfig.CertsDir, "clients", "test_1.key.pem")
 	conn, err := oduconfig.NewOpenSSLTransport(
-		trustPath, certPath, keyPath, "twl-server-generic2", "9093")
+		trustPath, certPath, keyPath, "twl-server-generic2", "9093", nil)
 
 	if err != nil {
 		log.Printf("cannot create aac client: %v", err)
