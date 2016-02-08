@@ -23,6 +23,27 @@ func (h AppServer) transferFileFromS3(
 	bucket *string,
 	theFile string,
 ) {
+	beganAt := h.Tracker.BeginTime(performance.S3DrainFrom, theFile)
+	h.transferFileFromS3Timed(bucket, theFile)
+
+	stat, cachedErr := os.Stat(h.CacheLocation + "/" + theFile + ".cached")
+	if cachedErr != nil {
+		log.Printf("could not get length of cached file %s", theFile)
+	}
+	length := stat.Size()
+
+	h.Tracker.EndTime(
+		performance.S3DrainFrom,
+		beganAt,
+		theFile,
+		performance.SizeJob(length),
+	)
+}
+
+func (h AppServer) transferFileFromS3Timed(
+	bucket *string,
+	theFile string,
+) {
 	log.Printf("Get from S3 bucket %s: %s", *bucket, theFile)
 	foutCaching := h.CacheLocation + "/" + theFile + ".caching"
 	foutCached := h.CacheLocation + "/" + theFile + ".cached"
