@@ -142,19 +142,6 @@ func main() {
 	serverCertFile := serverConfig.ServerCertChain
 	serverKeyFile := serverConfig.ServerKey
 
-	//Try to connect to AAC
-	var aac *aac.AacServiceClient
-	//Give time for AAC connect - EC2 micro needs about 20s
-	time.Sleep(20 * time.Second) //there is a fatal in aac connecting, so must sleep
-	aac, err = getAACClient()
-	if err != nil {
-		//TODO: include in DB ping
-		log.Printf("XXXX aac not yet available...going on with out it for now:%v", err)
-	} else {
-		handler.AAC = aac
-		log.Printf("We are connected to AAC")
-	}
-
 	handler.MasterKey = getEnvVar("masterkey", "otterpaws")
 	if handler.MasterKey == "otterpaws" {
 		log.Printf("You should pass in an environment variable 'masterkey' to encrypt database keys")
@@ -184,6 +171,19 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 	//the default config
 	s3, awsSession := awsS3()
 
+	//Try to connect to AAC
+	var aac *aac.AacServiceClient
+	//Give time for AAC connect - EC2 micro needs about 20s
+	log.Printf("Waiting to connect to AAC.")
+	time.Sleep(20 * time.Second) //there is a fatal in aac connecting, so must sleep
+	aac, err := getAACClient()
+	if err != nil || aac == nil {
+		//TODO: include in DB ping
+		log.Printf("XXXX aac not yet available...going on with out it for now:%v", err)
+	} else {
+		log.Printf("We are connected to AAC")
+	}
+
 	// track performance statistics when uploads and downloads happen
 	purgeFile := func(name string) {
 		go func() {
@@ -204,6 +204,7 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		ServicePrefix:   serverConfig.ServiceName + serverConfig.ServiceVersion,
 		Classifications: BuildClassificationMap(),
 		Tracker:         performance.NewJobReporters(1024, purgeFile),
+		AAC:             aac,
 	}
 
 	return &http.Server{

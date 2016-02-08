@@ -35,6 +35,8 @@ type ODObject struct {
 	// ContentConnector contains connection information for the storage of the
 	// content of this object (e.g., S3 connection settings for bucket)
 	ContentConnector NullString `db:"contentConnector" json:"-"`
+	// RawACM is the raw ACM string that got supplied to create this object
+	RawAcm NullString `db:"rawAcm"`
 	// ContentType indicates the mime-type, and potentially the character set
 	// encoding for the object contents
 	ContentType NullString `db:"contentType"`
