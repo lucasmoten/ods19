@@ -2,7 +2,9 @@ package integration
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"path/filepath"
 	"testing"
 
@@ -11,6 +13,30 @@ import (
 )
 
 var auditClient *audit.Client
+
+func TestAuditServiceProxyThroughGatekeeper(t *testing.T) {
+	trustPath := filepath.Join(config.CertsDir, "clients", "client.trust.pem")
+	certPath := filepath.Join(config.CertsDir, "clients", "test_0.cert.pem")
+	tlsConfig, err := config.NewTLSConfigFromPEM(trustPath, certPath)
+	if err != nil {
+		t.Logf("Error from NewTLSConfigFromPEM: %v", err)
+		t.Fail()
+	}
+	transport := &http.Transport{TLSClientConfig: tlsConfig}
+	client := &http.Client{Transport: transport}
+	resp, err := client.Get("https://twl-server-generic2:8080/service/auditservice/1.0/ping")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer resp.Body.Close()
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(string(data))
+}
 
 func TestAuditServiceThriftCommunication(t *testing.T) {
 
