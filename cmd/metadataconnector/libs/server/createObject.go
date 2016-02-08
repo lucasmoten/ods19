@@ -239,7 +239,10 @@ func (h AppServer) createObject(w http.ResponseWriter, r *http.Request, caller C
 		<tr>
 			<td>Classification</td>
 			<td><select id="classification" name="classification">
-					<option>UNCLASSIFIED</option>
+					<option value='U'>UNCLASSIFIED</option>
+					<option value='C'>CLASSIFIED</option>
+					<option value='S'>SECRET</option>
+					<option value='T'>TOP SECRET</option>
 					</select>
 			</td>
 		</tr>
@@ -290,6 +293,8 @@ func (h AppServer) createObject(w http.ResponseWriter, r *http.Request, caller C
 			case part.FormName() == "classification":
 				acm.Classification.String = getFormValueAsString(part)
 				acm.Classification.Valid = (len(acm.Classification.String) > 0)
+				//XXX We just have a small set of objects that map to raw acm at the moment
+				obj.RawAcm.String = h.Classifications[acm.Classification.String]
 			case len(part.FileName()) > 0:
 				grant, err = h.beginUpload(w, r, caller, part, &obj, &acm)
 				if err != nil {

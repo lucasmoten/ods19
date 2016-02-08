@@ -99,7 +99,7 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 	fmt.Fprintf(w, "Page "+strconv.Itoa(response.PageNumber)+" of "+strconv.Itoa(response.PageCount)+".<br />")
 	fmt.Fprintf(w, "Page Size: "+strconv.Itoa(response.PageSize)+", Page Rows: "+strconv.Itoa(response.PageRows)+", Total Rows: "+strconv.Itoa(response.TotalRows)+"<br />")
 	fmt.Fprintf(w, `<table id="listObjectsResults">`)
-	fmt.Fprintf(w, `<tr><td>Name</td><td>Type</td><td>Created Date</td><td>Created By</td><td>Size</td></tr>`)
+	fmt.Fprintf(w, `<tr><td>Name</td><td>Type</td><td>Created Date</td><td>Created By</td><td>Size</td><td>ACM</td></tr>`)
 	rootURL = "/service/metadataconnector/1.0"
 	for idx := range objects {
 		object := objects[idx]
@@ -127,6 +127,7 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 		fmt.Fprintf(w, "<td>%s</td>", getFormattedDate(object.CreatedDate))
 		fmt.Fprintf(w, "<td>%s</td>", config.GetCommonName(object.CreatedBy))
 		fmt.Fprintf(w, "<td>%d</td>", object.ContentSize.Int64)
+		fmt.Fprintf(w, "<td>%s</td>", object.RawAcm.String)
 		fmt.Fprintf(w, "</tr>")
 	}
 	fmt.Fprintf(w, "</table>")
