@@ -126,6 +126,12 @@ func doSleep(i int) {
 	//log.Printf("%d sleeps for %ds", i, zzz)
 }
 
+func getRandomClassification() string {
+	r := rand.Intn(4)
+	classes := []string{"U", "C", "S", "T"}
+	return classes[r]
+}
+
 func generateUploadRequest(name string, fqName string) (*http.Request, error) {
 	f, err := os.Open(fqName)
 	defer f.Close()
@@ -136,6 +142,7 @@ func generateUploadRequest(name string, fqName string) (*http.Request, error) {
 	//Create a multipart mime request
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
+	w.WriteField("classification", getRandomClassification())
 	fw, err := w.CreateFormFile("filestream", name)
 	if err != nil {
 		log.Printf("unable to create form file from %s:%v", fqName, err)
