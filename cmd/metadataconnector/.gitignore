@@ -1,3 +1,7 @@
 # the resulting binar(y/ies)
 dbtest
 metadataconnector
+
+# object cache directory
+cache
+

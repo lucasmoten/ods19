@@ -283,10 +283,11 @@ func pingDB(db *sqlx.DB) int {
 // are not set.
 func checkAWSEnvironmentVars() {
 	region := os.Getenv("AWS_REGION")
-	accessKey := os.Getenv("AWS_ACCESS_KEY")
+	secretKey := os.Getenv("AWS_SECRET_KEY")
+	secretKeyAlt := os.Getenv("AWS_SECRET_ACCESS_KEY")
 	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
-	if region == "" || accessKey == "" || accessKeyID == "" {
-		log.Fatal("Fatal Error: Environment variables AWS_REGION, AWS_ACCESS_KEY, and AWS_ACCESS_KEY_ID must be set.")
+	if region == "" || (secretKey == "" && secretKeyAlt == "") || accessKeyID == "" {
+		log.Fatal("Fatal Error: Environment variables AWS_REGION, AWS_SECRET_KEY, and AWS_ACCESS_KEY_ID must be set.")
 	}
 	return
 }
