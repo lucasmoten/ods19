@@ -199,7 +199,8 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 
 	templates, err := template.ParseGlob(
 		filepath.Join(oduconfig.ProjectRoot,
-			"cmd", "metadataconnector", "libs", "server", "templates", "*"))
+			"cmd", "metadataconnector", "libs", "server",
+			"static", "templates", "*"))
 	if err != nil {
 		log.Printf("Cloud not discover templates.")
 		return nil, nil, err
