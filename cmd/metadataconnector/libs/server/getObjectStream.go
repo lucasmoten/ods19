@@ -145,11 +145,6 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	////Clean out the permission if aac check fails
-	//if h.AAC.CheckAccess(caller.DistinguishedName, "pki-dias", acm) == false {
-	// permission = nil
-	//}
-
 	for _, v := range object.Permissions {
 		permission = &v
 		if permission.AllowRead && permission.Grantee == caller.DistinguishedName {
@@ -157,6 +152,28 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 			//Unscramble the fileKey with the masterkey - will need it once more on retrieve
 			applyPassphrase(h.MasterKey+caller.DistinguishedName, fileKey)
 		}
+	}
+
+	////Clean out the permission if aac check fails
+	tokenType := "pki_dias"
+	//dn := "CN=Holmes Jonathan,OU=People,OU=Bedrock,OU=Six 3 Systems,O=U.S. Government,C=US"
+	dn := caller.DistinguishedName
+	aacResponse, err := h.AAC.CheckAccess(dn, tokenType, object.RawAcm.String)
+	if err != nil {
+		log.Printf(
+			"AAC not responding to checkaccess for %s:%s:%s:%v",
+			dn, tokenType, object.RawAcm.String, err,
+		)
+		permission = nil
+	}
+	if aacResponse == nil {
+		log.Printf(
+			"AAC null response for checkaccess for %s:%s:%s:%v",
+			dn, tokenType, object.RawAcm.String, err,
+		)
+		permission = nil
+	} else {
+		log.Printf("AAC grants access to %s for %s", dn, object.RawAcm.String)
 	}
 
 	if permission == nil {

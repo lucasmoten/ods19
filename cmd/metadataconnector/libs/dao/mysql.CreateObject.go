@@ -22,14 +22,14 @@ func CreateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 	}
 
 	// insert object
-	addObjectStatement, err := db.Prepare(`insert object set createdBy = ?, typeId = ?, name = ?, description = ?, parentId = ?, contentConnector = ?, contentType = ?, contentSize = ?, contentHash = ?, encryptIV = ?`)
+	addObjectStatement, err := db.Prepare(`insert object set createdBy = ?, typeId = ?, name = ?, description = ?, parentId = ?, contentConnector = ?, rawAcm = ?, contentType = ?, contentSize = ?, contentHash = ?, encryptIV = ?`)
 	if err != nil {
 		return fmt.Errorf("CreateObject Preparing add object statement, %s", err.Error())
 	}
 	// Add it
 	result, err := addObjectStatement.Exec(object.CreatedBy, object.TypeID,
 		object.Name, object.Description.String, object.ParentID,
-		object.ContentConnector.String, object.ContentType.String,
+		object.ContentConnector.String, object.RawAcm.String, object.ContentType.String,
 		object.ContentSize.Int64, object.ContentHash, object.EncryptIV)
 	if err != nil {
 		return fmt.Errorf("CreateObject Error executing add object statement, %s", err.Error())
