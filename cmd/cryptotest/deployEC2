@@ -1,6 +1,0 @@
-#!/bin/bash
-
-where=centos@54.236.228.140
-rsync -azP $GOPATH/src $where:/home/centos/gocode
-
-

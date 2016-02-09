@@ -71,7 +71,6 @@ type JobReport struct {
 	Start   BeganJob
 	Stop    EndedJob
 	SizeJob SizeJob
-	JobName string
 }
 
 // EndingJob is used to signal that a job is ending
@@ -79,13 +78,6 @@ type EndingJob struct {
 	JobReport  JobReport
 	ReporterID ReporterID
 }
-
-// CanDeleteHandler is invoked to remove cached files, we might
-// want to delete it immediately.  There is currently
-// a race condition until we can be certain that there
-// are no readers/writers on it in between getting this signal
-// and doing the delete
-type CanDeleteHandler func(jobName string)
 
 // PanicOnProblem is true during unit testing
 var PanicOnProblem bool
@@ -107,14 +99,11 @@ type JobReporters struct {
 	RequestingReport chan RequestingReport
 	RequestedReport  chan RequestedReport
 	Quit             chan int
-	CanDelete        chan string
-	CanDeleteHandler CanDeleteHandler
 }
 
 // BeginningJob is a request to the goroutine to generate a
 // timestamp for the start of the job
 type BeginningJob struct {
-	JobName    string
 	ReporterID ReporterID
 }
 
@@ -446,7 +435,6 @@ func jobReportersBeginning(r *JobReporters, beginningJob BeginningJob) BeganJob 
 	}
 
 	reporter.Q.InsertStat(jobReport)
-	r.JobNameRefCount[beginningJob.JobName]++
 
 	return beganJob
 }
@@ -463,15 +451,6 @@ func jobReportersJobReport(r *JobReporters, j EndingJob) {
 	reporter.TotalBytes += int64(j.JobReport.SizeJob)
 
 	reporter.Q.InsertStat(j.JobReport)
-
-	//TODO: we need to look at the tail of the queue  to find current population.
-	//reporter.PopWeightedByTime += duration * int64(j.JobReport.PopulationStart)
-
-	//Decrement the reference count on this file
-	r.JobNameRefCount[j.JobReport.JobName]--
-	if r.JobNameRefCount[j.JobReport.JobName] == 0 {
-		r.CanDelete <- j.JobReport.JobName
-	}
 }
 
 func jobReportersRequestingReport(reporters *JobReporters, requestingReport RequestingReport) RequestedReport {
@@ -507,7 +486,7 @@ func jobReportersThread(r *JobReporters) {
 // the ref counts on files in progress.
 //
 //  Channels are buffered to allow for async progress
-func NewJobReporters(capacity int, canDeleteHandler CanDeleteHandler) *JobReporters {
+func NewJobReporters(capacity int) *JobReporters {
 	reporters := &JobReporters{
 		Capacity:   capacity,
 		CreateTime: EndedJob(0),
@@ -520,8 +499,6 @@ func NewJobReporters(capacity int, canDeleteHandler CanDeleteHandler) *JobReport
 		RequestingReport: make(chan RequestingReport, 32),
 		RequestedReport:  make(chan RequestedReport, 32),
 		Quit:             make(chan int, 32),
-		CanDelete:        make(chan string, 1024),
-		CanDeleteHandler: canDeleteHandler,
 	}
 	reporters.Reporters[UploadCounter] = reporters.makeReporter("upload")
 	reporters.Reporters[DownloadCounter] = reporters.makeReporter("download")
@@ -530,14 +507,6 @@ func NewJobReporters(capacity int, canDeleteHandler CanDeleteHandler) *JobReport
 
 	//Listen in on job reports
 	go jobReportersThread(reporters)
-
-	//Delete files that are elegible for deletion
-	go func() {
-		for {
-			toDelete := <-reporters.CanDelete
-			reporters.CanDeleteHandler(toDelete)
-		}
-	}()
 
 	return reporters
 }
@@ -560,7 +529,6 @@ func (jrs *JobReporters) makeReporter(name string) *JobReporter {
 func (jrs *JobReporters) BeginTime(reporterID ReporterID, jobName string) BeganJob {
 	jrs.BeginningJob <- BeginningJob{
 		ReporterID: reporterID,
-		JobName:    jobName,
 	}
 	return <-jrs.BeganJob
 }
@@ -575,7 +543,6 @@ func (jrs *JobReporters) EndTime(reporterID ReporterID, start BeganJob, jobName 
 		ReporterID: reporterID,
 		JobReport: JobReport{
 			Start:   start,
-			JobName: jobName,
 			SizeJob: sizeJob,
 		},
 	}

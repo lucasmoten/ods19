@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"regexp"
 
-	aac "decipher.com/oduploader/cmd/cryptotest/gen-go2/aac"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/performance"
+	aac "decipher.com/oduploader/services/aac"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 

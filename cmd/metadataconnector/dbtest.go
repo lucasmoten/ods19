@@ -19,9 +19,9 @@ import (
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
 
-	aac "decipher.com/oduploader/cmd/cryptotest/gen-go2/aac"
 	oduconfig "decipher.com/oduploader/config"
 	"decipher.com/oduploader/performance"
+	aac "decipher.com/oduploader/services/aac"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -192,13 +192,6 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		}
 	}
 
-	// track performance statistics when uploads and downloads happen
-	purgeFile := func(name string) {
-		go func() {
-			///////Reference counting is no longer used.
-		}()
-	}
-
 	httpHandler := server.AppServer{
 		Port:            serverConfig.ListenPort,
 		Bind:            serverConfig.ListenBind,
@@ -209,7 +202,7 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		CacheLocation:   "cache",
 		ServicePrefix:   serverConfig.ServiceName + serverConfig.ServiceVersion,
 		Classifications: BuildClassificationMap(),
-		Tracker:         performance.NewJobReporters(1024, purgeFile),
+		Tracker:         performance.NewJobReporters(1024),
 		AAC:             aac,
 	}
 
