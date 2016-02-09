@@ -122,6 +122,9 @@ func main() {
 	dbConfig := appConfiguration.DatabaseConnection
 	serverConfig := appConfiguration.ServerSettings
 
+	// Check environment variables
+	checkAWSEnvironmentVars()
+
 	// Setup handle to the database
 	db, err := dbConfig.GetDatabaseHandle()
 	if err != nil {
@@ -274,4 +277,16 @@ func pingDB(db *sqlx.DB) int {
 		}
 	}
 	return exitCode
+}
+
+// checkAWSEnvironmentVars prevents the server from starting if appropriate vars
+// are not set.
+func checkAWSEnvironmentVars() {
+	region := os.Getenv("AWS_REGION")
+	accessKey := os.Getenv("AWS_ACCESS_KEY")
+	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
+	if region == "" || accessKey == "" || accessKeyID == "" {
+		log.Fatal("Fatal Error: Environment variables AWS_REGION, AWS_ACCESS_KEY, and AWS_ACCESS_KEY_ID must be set.")
+	}
+	return
 }
