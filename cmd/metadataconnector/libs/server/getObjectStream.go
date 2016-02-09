@@ -156,7 +156,6 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 
 	////Clean out the permission if aac check fails
 	tokenType := "pki_dias"
-	//dn := "CN=Holmes Jonathan,OU=People,OU=Bedrock,OU=Six 3 Systems,O=U.S. Government,C=US"
 	dn := caller.DistinguishedName
 	aacResponse, err := h.AAC.CheckAccess(dn, tokenType, object.RawAcm.String)
 	if err != nil {

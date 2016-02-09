@@ -173,12 +173,13 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 
 	//Try to connect to AAC
 	var aac *aac.AacServiceClient
-	attempts := 20
+	var err error
+	attempts := 120
 	for {
 		//Give time for AAC connect - EC2 micro needs about 20s
 		log.Printf("Waiting to connect to AAC.")
 		time.Sleep(1 * time.Second) //there is a fatal in aac connecting, so must sleep
-		aac, err := getAACClient()
+		aac, err = getAACClient()
 		if err != nil || aac == nil {
 			//TODO: include in DB ping
 			log.Printf("Waiting for AAC:%v", err)
@@ -204,6 +205,10 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		Classifications: BuildClassificationMap(),
 		Tracker:         performance.NewJobReporters(1024),
 		AAC:             aac,
+	}
+
+	if httpHandler.AAC == nil {
+		panic("We cannot run without the AAC!")
 	}
 
 	return &http.Server{
