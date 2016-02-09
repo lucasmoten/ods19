@@ -34,7 +34,8 @@ func TestAuditServiceProxyThroughGatekeeper(t *testing.T) {
 	client := &http.Client{Transport: transport}
 	resp, err := client.Get("https://dockervm:8080/service/auditservice/1.0/ping")
 	if err != nil {
-		log.Fatal(err)
+		t.Log(err)
+		t.Fail()
 	}
 	defer resp.Body.Close()
 
