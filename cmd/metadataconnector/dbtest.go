@@ -137,6 +137,9 @@ func main() {
 
 	// Setup web server
 	s, handler, err := makeServer(serverConfig, db)
+	if err != nil {
+		log.Fatalf("Fatal error in call to makeServer(): %v", err)
+	}
 	// with TLS support
 	stls := serverConfig.GetTLSConfig()
 	s.TLSConfig = &stls
@@ -194,7 +197,9 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		}
 	}
 
-	templates, err := template.ParseGlob("./server/templates/*")
+	templates, err := template.ParseGlob(
+		filepath.Join(oduconfig.ProjectRoot,
+			"cmd", "metadataconnector", "libs", "server", "templates", "*"))
 	if err != nil {
 		log.Printf("Cloud not discover templates.")
 		return nil, nil, err
