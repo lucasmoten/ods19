@@ -1,8 +1,11 @@
 package integration
 
 import (
+	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"path/filepath"
 	"testing"
 
@@ -11,6 +14,38 @@ import (
 )
 
 var auditClient *audit.Client
+
+func TestAuditServiceProxyThroughGatekeeper(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip()
+	}
+	trustPath := filepath.Join(config.CertsDir, "clients", "client.trust.pem")
+	certPath := filepath.Join(config.CertsDir, "clients", "test_0.cert.pem")
+	keyPath := filepath.Join(config.CertsDir, "clients", "test_0.key.pem")
+	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
+	tlsConfig, err := config.NewTLSConfigFromPEM(trustPath, certPath)
+	if err != nil {
+		t.Logf("Error from NewTLSConfigFromPEM: %v", err)
+		t.Fail()
+	}
+	tlsConfig.Certificates = []tls.Certificate{cert}
+	transport := &http.Transport{TLSClientConfig: tlsConfig}
+	client := &http.Client{Transport: transport}
+	resp, err := client.Get("https://dockervm:8080/service/auditservice/1.0/ping")
+	if err != nil {
+		t.Log(err)
+		t.Fail()
+	}
+	defer resp.Body.Close()
+
+	// We don't care about the response, only that it succeeds.
+	_, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Log("Error calling out to audit service. Are you on the VPN?")
+		t.Fail()
+	}
+}
 
 func TestAuditServiceThriftCommunication(t *testing.T) {
 
