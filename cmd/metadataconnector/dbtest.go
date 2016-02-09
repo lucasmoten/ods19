@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"net"
 	"net/http"
@@ -193,6 +194,12 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		}
 	}
 
+	templates, err := template.ParseGlob("./server/templates/*")
+	if err != nil {
+		log.Printf("Cloud not discover templates.")
+		return nil, nil, err
+	}
+
 	httpHandler := server.AppServer{
 		Port:            serverConfig.ListenPort,
 		Bind:            serverConfig.ListenBind,
@@ -205,6 +212,7 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		Classifications: BuildClassificationMap(),
 		Tracker:         performance.NewJobReporters(1024),
 		AAC:             aac,
+		TemplateCache:   templates,
 	}
 
 	if httpHandler.AAC == nil {

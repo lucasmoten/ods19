@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"regexp"
@@ -32,6 +33,7 @@ type AppServer struct {
 	Classifications map[string]string
 	MasterKey       string
 	Tracker         *performance.JobReporters
+	TemplateCache   *template.Template
 }
 
 // UserSession is per session information that needs to be passed around
@@ -107,6 +109,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var rxTrashObject = regexp.MustCompile(h.ServicePrefix + "/trash/.*")
 	var rxStatsObject = regexp.MustCompile(h.ServicePrefix + "/stats$")
 
+	// TODO: use StripPrefix in handler?
+	// https://golang.org/pkg/net/http/#StripPrefix
 	switch r.Method {
 	case "GET":
 		switch {
