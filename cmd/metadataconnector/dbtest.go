@@ -173,23 +173,29 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 
 	//Try to connect to AAC
 	var aac *aac.AacServiceClient
-	//Give time for AAC connect - EC2 micro needs about 20s
-	log.Printf("Waiting to connect to AAC.")
-	time.Sleep(20 * time.Second) //there is a fatal in aac connecting, so must sleep
-	aac, err := getAACClient()
-	if err != nil || aac == nil {
-		//TODO: include in DB ping
-		log.Printf("XXXX aac not yet available...going on with out it for now:%v", err)
-	} else {
-		log.Printf("We are connected to AAC")
+	attempts := 20
+	for {
+		//Give time for AAC connect - EC2 micro needs about 20s
+		log.Printf("Waiting to connect to AAC.")
+		time.Sleep(1 * time.Second) //there is a fatal in aac connecting, so must sleep
+		aac, err := getAACClient()
+		if err != nil || aac == nil {
+			//TODO: include in DB ping
+			log.Printf("Waiting for AAC:%v", err)
+		} else {
+			log.Printf("We are connected to AAC")
+			break
+		}
+		attempts--
+		if attempts <= 0 {
+			break
+		}
 	}
 
 	// track performance statistics when uploads and downloads happen
 	purgeFile := func(name string) {
 		go func() {
-			///////Not removing just because ref count is zero.... new strategy soon.
-			////os.Remove(h.CacheLocation + "/" + name + ".cached")
-			log.Printf("TODO: %s reference count is 0", name)
+			///////Reference counting is no longer used.
 		}()
 	}
 
