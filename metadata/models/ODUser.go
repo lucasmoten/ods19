@@ -1,25 +1,27 @@
 package models
 
-/*
-ODUser is a structure defining the attributes of a user as referenced in
-Object Drive for caching purposes.  Unique to this element is the fact that
-its identifier is the DistinguishedName rather then ID.
-*/
+// ODUser is a structure defining the attributes of a user as referenced in
+// Object Drive for caching purposes.  Unique to this element is the fact that
+// its identifier is the DistinguishedName rather then ID.
 type ODUser struct {
 	ODID
 	ODCreatable
 	ODModifiable
 	ODChangeTracking
-	DistinguishedName string     `db:"distinguishedName"`
-	DisplayName       NullString `db:"displayName"`
-	Email             NullString `db:"email"`
+	// DistinguishedName is the unique identifier of a user of the system. This
+	// is generally mapped to the subject of an X509 certificate.
+	DistinguishedName string `db:"distinguishedName"`
+	// DisplayName is a 'nice' name to be used for rendering in user interfaces
+	// when referring to a user instead of the lengthy distinguishedName
+	DisplayName NullString `db:"displayName"`
+	// Email is the address for sending correspondence to the user via electronic
+	// mail.
+	Email NullString `db:"email"`
 }
 
-/*
-ODUserResultset encapsulates the ODUser defined herein as an array with
-resultset metric information to expose page size, page number, total rows, and
-page count information when retrieving from the database
-*/
+// ODUserResultset encapsulates the ODUser defined herein as an array with
+// resultset metric information to expose page size, page number, total rows,
+// and page count information when retrieving from the database
 type ODUserResultset struct {
 	Resultset
 	Users []ODUser
