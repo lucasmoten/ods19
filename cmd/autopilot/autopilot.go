@@ -4,12 +4,16 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
+	"encoding/json"
+	"flag"
 	"io"
 	"io/ioutil"
 	"log"
 	"math/rand"
 	"mime/multipart"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"strconv"
 	"time"
@@ -27,7 +31,7 @@ type ClientIdentity struct {
 	Index         int
 }
 
-var host = "https://twl-server-generic2:8080"
+var host = "https://dockervm:8080"
 
 // NewClientTLSConfig creates a per-client tls config
 func NewClientTLSConfig(client *ClientIdentity) (*tls.Config, error) {
@@ -78,19 +82,20 @@ func getClientIdentity(i int, name string) (*ClientIdentity, error) {
 	}
 	ci.Config = cfg
 	ci.Name = name
-	//XXX keep this huge directory out of $GOPATH
+
+	//Keep this huge directory out of $GOPATH
 	if os.ExpandEnv("$AUTOPILOT_HOME") == "" {
-		os.Setenv("$AUTOPILOT_HOME", "~/autopilot")
+		os.Setenv("$AUTOPILOT_HOME", os.ExpandEnv("$HOME/autopilot"))
 		os.Mkdir("~/autopilot", 0700)
 	}
-	ci.UploadCache = os.ExpandEnv("$AUTOPILOT_HOME/uploadCache" + name)
-	ci.DownloadCache = os.ExpandEnv("$AUTOPILOT_HOME/downloadCache" + name)
+	ci.UploadCache = os.ExpandEnv("$HOME/autopilot/uploadCache" + name)
+	ci.DownloadCache = os.ExpandEnv("$HOME/autopilot/downloadCache" + name)
 	ci.Index = i
 	_, err = os.Stat(ci.UploadCache)
 	if os.IsNotExist(err) {
 		err = os.Mkdir(ci.UploadCache, 0700)
 		if err != nil {
-			log.Printf("Unable to make an upload cache for %s:%v", name, err)
+			log.Printf("Unable to make an upload cache for %s:%v", ci.UploadCache, err)
 			return nil, err
 		}
 	}
@@ -115,13 +120,13 @@ func populateClients(population int) {
 		if err != nil {
 			log.Printf("Could not create client %d: %v", i, err)
 		} else {
-			log.Printf("Creating client %d", i)
+			//log.Printf("Creating client %d", i)
 		}
 	}
 }
 
 func doSleep(i int) {
-	zzz := rand.Intn(60)
+	zzz := rand.Intn(sleepTime)
 	time.Sleep(time.Duration(zzz) * time.Second)
 	//log.Printf("%d sleeps for %ds", i, zzz)
 }
@@ -169,7 +174,7 @@ func generateUploadRequest(name string, fqName string) (*http.Request, error) {
 }
 
 func doUpload(i int) {
-	log.Printf("%d upload out of %s", i, clients[i].UploadCache)
+	//log.Printf("%d upload out of %s", i, clients[i].UploadCache)
 	//Pick a random file
 	listing, err := ioutil.ReadDir(clients[i].UploadCache)
 	if err != nil {
@@ -205,31 +210,98 @@ func doUpload(i int) {
 			log.Printf("bad status: %s", res.Status)
 			return
 		}
-		log.Printf("uploaded %s", fqName)
+		log.Printf("%s uploaded %s", clients[i].Name, fqName)
 	}
 }
 
 func doDownload(i int) {
-	log.Printf("%d download", i)
+	//log.Printf("%d download", i)
+	log.Printf("first, we must get a listing of objects to choose from")
+	req, err := http.NewRequest(
+		"GET",
+		host+"/service/metadataconnector/1.0/objects",
+		nil,
+	)
+	if err != nil {
+		log.Printf("unable to do request for object listing:%v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	reqBytes, err := httputil.DumpRequestOut(req, true)
+	log.Printf("%v\n%s", err, string(reqBytes))
+
+	transport := &http.Transport{TLSClientConfig: clients[i].Config}
+	client := &http.Client{Transport: transport}
+	res, err := client.Do(req)
+	if err != nil {
+		log.Printf("Error doing listing request:%v", err)
+		return
+	}
+	resBytes, err := httputil.DumpResponse(res, true)
+	log.Printf("%v\n%s", err, string(resBytes))
+
+	// Check the response
+	if res.StatusCode != http.StatusOK {
+		log.Printf("bad status: %s", res.Status)
+		return
+	}
+	decoder := json.NewDecoder(res.Body)
+	var listing []server.ObjectLink
+	err = decoder.Decode(&listing)
+
+	//Grab a random item (if any exist) and download it
+	if len(listing) > 0 {
+
+		//Download the listing from which to grab a random item
+		randomIndex := rand.Intn(len(listing))
+		link := listing[randomIndex]
+
+		dlReq, err := http.NewRequest(
+			"GET",
+			host+link.URL+"/stream",
+			nil,
+		)
+		if err != nil {
+			log.Printf("Unable to generate request:%v", err)
+			return
+		}
+
+		//Now download the stream into a file
+		transport2 := &http.Transport{TLSClientConfig: clients[i].Config}
+		client2 := &http.Client{Transport: transport2}
+
+		dlRes, err := client2.Do(dlReq)
+		if err != nil {
+			log.Printf("Unable to do request:%v", err)
+			return
+		}
+		drainFileName := clients[i].DownloadCache + "/" + link.Name
+		drainFile, err := os.Create(drainFileName)
+		if err != nil {
+			log.Printf("Cant open %s", drainFileName)
+			return
+		}
+		defer drainFile.Close()
+		io.Copy(drainFile, dlRes.Body)
+	}
 }
 
 func doRandomAction(i int) bool {
+	doSleep(i)
 	r := rand.Intn(100)
 	switch {
 	case r > 70:
-		doSleep(i)
-	case r > 50:
 		doUpload(i)
 	case r > 40:
 		doDownload(i)
-	case r > 38:
+	case r > 20:
 		return false
 	}
 	return true
 }
 
 func doClient(i int, clientExited chan int) {
-	log.Printf("running client %d", i)
+	//log.Printf("running client %d", i)
 	for {
 		if doRandomAction(i) == false {
 			break
@@ -238,7 +310,16 @@ func doClient(i int, clientExited chan int) {
 	clientExited <- i
 }
 
+var population = 10
+var perPopulation = 20
+var sleepTime = 240
+
 func main() {
+	flag.StringVar(&host, "url", "https://dockervm:8080", "The URL at which to direct uploads/downloads")
+	flag.IntVar(&perPopulation, "perPopulation", 20, "number of uploads per user")
+	flag.IntVar(&sleepTime, "sleepTime", 120, "number of seconds to sleep when we decide to sleep")
+	flag.Parse()
+
 	//We have 10 test certs (note the test_0 is known as tester10)
 	population := 10
 	populateClients(population)

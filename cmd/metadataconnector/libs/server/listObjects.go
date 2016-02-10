@@ -1,17 +1,17 @@
 package server
 
 import (
+	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
+	"decipher.com/oduploader/metadata/models"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	//"log"
 	"net/http"
 	"regexp"
 	"strconv"
 	"time"
-
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/metadata/models"
 )
 
 type listObjectsRequest struct {
@@ -63,15 +63,13 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 		var parentObject models.ODObject
 		parentObject.ID, err = hex.DecodeString(parentID)
 		if err != nil {
-			w.WriteHeader(400)
-			fmt.Println("Parent Identifier provided by caller is not a hexidecimal string")
+			h.sendErrorResponse(w, 400, err, "ParentID provided by caller is not a hex string")
 			return
 		}
 		response, err = dao.GetChildObjectsWithPropertiesByOwner(h.MetadataDB, "createddate desc", pageNumber, pageSize, &parentObject, caller.DistinguishedName)
 		loadedParent, err := dao.GetObject(h.MetadataDB, &parentObject, false)
 		if err != nil {
-			w.WriteHeader(500)
-			fmt.Fprintf(w, "Unable to retrieve object represented by Parent Identifier: %s", err)
+			h.sendErrorResponse(w, 500, err, "Unable to retrieve ParentID")
 		}
 		if len(loadedParent.ParentID) > 0 {
 			linkToParent = fmt.Sprintf("<a href='%s/object/%s/list'>Up to Parent</a><br />", rootURL, hex.EncodeToString(loadedParent.ParentID))
@@ -80,13 +78,78 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 			linkToParent = fmt.Sprintf("<a href='%s/objects'>Up to Root</a><br />", rootURL)
 		}
 	} else {
+		linkToParent = ""
 		response, err = dao.GetRootObjectsWithPropertiesByOwner(h.MetadataDB, "createddate desc", pageNumber, pageSize, caller.DistinguishedName)
 	}
 	if err != nil {
-		w.WriteHeader(500)
-		fmt.Fprintf(w, "Error: %s", err)
+		h.sendErrorResponse(w, 500, err, "General error")
 		return
 	}
+	if r.Header.Get("Content-Type") == "application/json" {
+		h.listObjectsAsJSON(w, r, caller, &response, parentID, linkToParent, rootURL)
+	} else {
+		h.listObjectsAsHTML(w, r, caller, &response, parentID, linkToParent, rootURL)
+	}
+}
+
+// ObjectLinkResponse is the container for returned data
+type ObjectLinkResponse struct {
+	TotalRows  int
+	PageCount  int
+	PageNumber int
+	PageSize   int
+	PageRows   int
+	Objects    []ObjectLink
+}
+
+// ObjectLink is the links as exposed to the user of the API
+type ObjectLink struct {
+	URL        string
+	Name       string
+	Type       string
+	CreateDate string
+	CreatedBy  string
+	Size       int64
+	ACM        string
+}
+
+func (h AppServer) listObjectsAsJSON(
+	w http.ResponseWriter,
+	r *http.Request,
+	caller Caller,
+	response *models.ODObjectResultset,
+	parentID string,
+	linkToParent string,
+	rootURL string,
+) {
+	w.Header().Set("Content-Type", "application/json")
+	var links []ObjectLink
+	for idx := range response.Objects {
+		object := response.Objects[idx]
+		link := ObjectLink{
+			URL:        rootURL + "/object/" + hex.EncodeToString(object.ID),
+			Name:       object.Name,
+			Type:       object.TypeName.String,
+			CreateDate: getFormattedDate(object.CreatedDate),
+			CreatedBy:  config.GetCommonName(object.CreatedBy),
+			Size:       object.ContentSize.Int64,
+			ACM:        object.RawAcm.String,
+		}
+		links = append(links, link)
+	}
+	encoder := json.NewEncoder(w)
+	encoder.Encode(links)
+}
+
+func (h AppServer) listObjectsAsHTML(
+	w http.ResponseWriter,
+	r *http.Request,
+	caller Caller,
+	response *models.ODObjectResultset,
+	parentID string,
+	linkToParent string,
+	rootURL string,
+) {
 	// Get objects from response
 	objects := response.Objects
 
@@ -100,7 +163,6 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 	fmt.Fprintf(w, "Page Size: "+strconv.Itoa(response.PageSize)+", Page Rows: "+strconv.Itoa(response.PageRows)+", Total Rows: "+strconv.Itoa(response.TotalRows)+"<br />")
 	fmt.Fprintf(w, `<table id="listObjectsResults">`)
 	fmt.Fprintf(w, `<tr><td>Name</td><td>Type</td><td>Created Date</td><td>Created By</td><td>Size</td><td>ACM</td></tr>`)
-	rootURL = "/service/metadataconnector/1.0"
 	for idx := range objects {
 		object := objects[idx]
 		fmt.Fprintf(w, "<tr>")

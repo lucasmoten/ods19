@@ -196,7 +196,6 @@ func (h AppServer) beginUploadTimed(
 	if obj.Name == "" {
 		obj.Name = part.FileName()
 	}
-	log.Printf("TODO: trying to create a grant when I don't yet know the objectID")
 	//	grant.ObjectID = obj.ID
 	grant.Grantee = caller.DistinguishedName
 	grant.AllowRead = true
