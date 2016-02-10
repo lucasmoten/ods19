@@ -12,7 +12,7 @@ func (h AppServer) home(w http.ResponseWriter, r *http.Request, caller Caller) {
 	// Anonymous struct syntax is tricky.
 	apiFuncs := []struct{ Name, RelativeLink, Description string }{
 		{"List Objects", "/service/metadataconnector/1.0/objects", "This operation will result in a GET call to list root objects with default paging."},
-		{"Create Object", "/service/metadataconnector/1.0/object-drive/object", "When you click this link, a form will be displayed allowing you to set the name and type, and specify a file"},
+		{"Create Object", "/service/metadataconnector/1.0/object", "When you click this link, a form will be displayed allowing you to set the name and type, and specify a file"},
 		{"Statistics", "/service/metadataconnector/1.0/stats", "This operation will result in a GET call to list root objects with default paging."},
 	}
 
