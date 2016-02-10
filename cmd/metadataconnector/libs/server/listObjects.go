@@ -1,12 +1,14 @@
 package server
 
 import (
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/metadata/models"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
+
+	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
+	"decipher.com/oduploader/metadata/models"
 	//"log"
 	"net/http"
 	"regexp"
@@ -45,9 +47,6 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 		// do RESTful request
 	} else {
 		// render template with submit button
-		tmpl := h.TemplateCache.Lookup("listObjects.html")
-		data := struct{ ParentID string }{parentID}
-		tmpl.Execute(w, data)
 	}
 
 	// Find pageNmber and pageSize from the body
@@ -98,7 +97,16 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 	if r.Header.Get("Content-Type") == "application/json" {
 		h.listObjectsAsJSON(w, r, caller, &response, parentID, linkToParent, rootURL)
 	} else {
-		h.listObjectsAsHTML(w, r, caller, &response, parentID, linkToParent, rootURL)
+		// h.listObjectsAsHTML(w, r, caller, &response, parentID, linkToParent, rootURL)
+		tmpl := h.TemplateCache.Lookup("listObjects.html")
+		log.Println("Number of templates: ", len(h.TemplateCache.Templates()))
+		data := struct{ DistinguishedName, ParentID string }{caller.DistinguishedName, parentID}
+		log.Println("Executing template: ", tmpl)
+		err := tmpl.Execute(w, data)
+		if err != nil {
+			log.Println(err)
+			h.sendErrorResponse(w, 500, err, "General error")
+		}
 	}
 }
 
@@ -249,6 +257,7 @@ func getListObjectsRequestAsJSON(r *http.Request) listObjectsRequest {
 	err := decoder.Decode(&result)
 	if err != nil {
 		//TODO: Log it
+		log.Println("Error decoding JSON request.")
 
 		// Force to page 1, size of 20
 		result.pageNumber = 1
