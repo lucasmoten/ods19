@@ -1,25 +1,20 @@
 package server
 
 import (
+	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
+	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
-
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/metadata/models"
 	//"log"
 	"net/http"
 	"regexp"
 	"strconv"
 	"time"
 )
-
-type listObjectsRequest struct {
-	pageNumber int // `json:"pageNumber"`
-	pageSize   int // `json:"pageSize"`
-}
 
 // listObjects is a method handler on AppServer for implementing the listObjects
 // microservice operation.  If an ID is given in the request URI, then it is
@@ -39,7 +34,6 @@ type listObjectsRequest struct {
 // TODO: Implement proper paging and and result information
 // TODO: Convert response to JSON
 func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Caller) {
-	rootURL := "/service/metadataconnector/1.0"
 	// Find parentId from request URI
 	parentID := getParentIDToListObjects(r.URL.RequestURI())
 
@@ -50,17 +44,14 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 	}
 
 	// Find pageNmber and pageSize from the body
-	pageNumber := 1
-	pageSize := 20
+	objectLinkResponse := &protocol.ObjectLinkResponse{PageNumber: 1, PageSize: 20}
 
 	// Initialize output
 	switch {
 	case r.Method == "GET":
 		// Output
 	case r.Method == "POST":
-		jsonRequest := getListObjectsRequestAsJSON(r)
-		pageNumber = jsonRequest.pageNumber
-		pageSize = jsonRequest.pageSize
+		getListObjectsRequestAsJSON(r, objectLinkResponse)
 	}
 
 	// Fetch the matching objects
@@ -75,29 +66,40 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 			return
 		}
 		response, err = dao.GetChildObjectsWithPropertiesByOwner(
-			h.MetadataDB, "createddate desc", pageNumber, pageSize, &parentObject, caller.DistinguishedName)
+			h.MetadataDB,
+			"createddate desc",
+			objectLinkResponse.PageNumber,
+			objectLinkResponse.PageSize,
+			&parentObject,
+			caller.DistinguishedName,
+		)
 		loadedParent, err := dao.GetObject(h.MetadataDB, &parentObject, false)
 		if err != nil {
 			h.sendErrorResponse(w, 500, err, "Unable to retrieve ParentID")
 		}
 		if len(loadedParent.ParentID) > 0 {
-			linkToParent = fmt.Sprintf("<a href='%s/object/%s/list'>Up to Parent</a><br />", rootURL, hex.EncodeToString(loadedParent.ParentID))
+			linkToParent = fmt.Sprintf("<a href='%s/object/%s/list'>Up to Parent</a><br />", config.RootURL, hex.EncodeToString(loadedParent.ParentID))
 
 		} else {
-			linkToParent = fmt.Sprintf("<a href='%s/objects'>Up to Root</a><br />", rootURL)
+			linkToParent = fmt.Sprintf("<a href='%s/objects'>Up to Root</a><br />", config.RootURL)
 		}
 	} else {
 		linkToParent = ""
-		response, err = dao.GetRootObjectsWithPropertiesByOwner(h.MetadataDB, "createddate desc", pageNumber, pageSize, caller.DistinguishedName)
+		response, err = dao.GetRootObjectsWithPropertiesByOwner(
+			h.MetadataDB,
+			"createddate desc",
+			objectLinkResponse.PageNumber,
+			objectLinkResponse.PageSize,
+			caller.DistinguishedName,
+		)
 	}
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "General error")
 		return
 	}
 	if r.Header.Get("Content-Type") == "application/json" {
-		h.listObjectsAsJSON(w, r, caller, &response, parentID, linkToParent, rootURL)
+		h.listObjectsAsJSON(w, r, caller, &response, parentID, linkToParent, config.RootURL, objectLinkResponse)
 	} else {
-		// h.listObjectsAsHTML(w, r, caller, &response, parentID, linkToParent, rootURL)
 		tmpl := h.TemplateCache.Lookup("listObjects.html")
 		log.Println("Number of templates: ", len(h.TemplateCache.Templates()))
 		data := struct{ DistinguishedName, ParentID string }{caller.DistinguishedName, parentID}
@@ -110,25 +112,19 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 	}
 }
 
-// ObjectLinkResponse is the container for returned data
-type ObjectLinkResponse struct {
-	TotalRows  int
-	PageCount  int
-	PageNumber int
-	PageSize   int
-	PageRows   int
-	Objects    []ObjectLink
-}
-
-// ObjectLink is the links as exposed to the user of the API
-type ObjectLink struct {
-	URL        string
-	Name       string
-	Type       string
-	CreateDate string
-	CreatedBy  string
-	Size       int64
-	ACM        string
+// GetObjectLinkFromObject - given an object from the database, render it back to the user as json
+func GetObjectLinkFromObject(rootURL string, object *models.ODObject) protocol.ObjectLink {
+	link := protocol.ObjectLink{
+		URL:         rootURL + "/object/" + hex.EncodeToString(object.ID),
+		Name:        object.Name,
+		Type:        object.TypeName.String,
+		CreateDate:  getFormattedDate(object.CreatedDate),
+		CreatedBy:   config.GetCommonName(object.CreatedBy),
+		Size:        object.ContentSize.Int64,
+		ACM:         object.RawAcm.String,
+		ChangeToken: object.ChangeToken,
+	}
+	return link
 }
 
 func (h AppServer) listObjectsAsJSON(
@@ -139,24 +135,18 @@ func (h AppServer) listObjectsAsJSON(
 	parentID string,
 	linkToParent string,
 	rootURL string,
+	objectLinkResponse *protocol.ObjectLinkResponse,
 ) {
 	w.Header().Set("Content-Type", "application/json")
-	var links []ObjectLink
+	var links []protocol.ObjectLink
 	for idx := range response.Objects {
 		object := response.Objects[idx]
-		link := ObjectLink{
-			URL:        rootURL + "/object/" + hex.EncodeToString(object.ID),
-			Name:       object.Name,
-			Type:       object.TypeName.String,
-			CreateDate: getFormattedDate(object.CreatedDate),
-			CreatedBy:  config.GetCommonName(object.CreatedBy),
-			Size:       object.ContentSize.Int64,
-			ACM:        object.RawAcm.String,
-		}
+		link := GetObjectLinkFromObject(rootURL, &object)
 		links = append(links, link)
 	}
+	objectLinkResponse.Objects = links
 	encoder := json.NewEncoder(w)
-	encoder.Encode(links)
+	encoder.Encode(*objectLinkResponse)
 }
 
 func (h AppServer) listObjectsAsHTML(
@@ -167,6 +157,7 @@ func (h AppServer) listObjectsAsHTML(
 	parentID string,
 	linkToParent string,
 	rootURL string,
+	objectLinkResponse *protocol.ObjectLinkResponse,
 ) {
 	// Get objects from response
 	objects := response.Objects
@@ -180,7 +171,7 @@ func (h AppServer) listObjectsAsHTML(
 	fmt.Fprintf(w, "Page "+strconv.Itoa(response.PageNumber)+" of "+strconv.Itoa(response.PageCount)+".<br />")
 	fmt.Fprintf(w, "Page Size: "+strconv.Itoa(response.PageSize)+", Page Rows: "+strconv.Itoa(response.PageRows)+", Total Rows: "+strconv.Itoa(response.TotalRows)+"<br />")
 	fmt.Fprintf(w, `<table id="listObjectsResults">`)
-	fmt.Fprintf(w, `<tr><td>Name</td><td>Type</td><td>Created Date</td><td>Created By</td><td>Size</td><td>ACM</td></tr>`)
+	fmt.Fprintf(w, `<tr><td>Name</td><td>Type</td><td>Created Date</td><td>Created By</td><td>Size</td><td>ChangeToken</td><td>ACM</td></tr>`)
 	for idx := range objects {
 		object := objects[idx]
 		fmt.Fprintf(w, "<tr>")
@@ -207,6 +198,7 @@ func (h AppServer) listObjectsAsHTML(
 		fmt.Fprintf(w, "<td>%s</td>", getFormattedDate(object.CreatedDate))
 		fmt.Fprintf(w, "<td>%s</td>", config.GetCommonName(object.CreatedBy))
 		fmt.Fprintf(w, "<td>%d</td>", object.ContentSize.Int64)
+		fmt.Fprintf(w, "<td>%s</td>", object.ChangeToken)
 		fmt.Fprintf(w, "<td>%s</td>", object.RawAcm.String)
 		fmt.Fprintf(w, "</tr>")
 	}
@@ -251,23 +243,21 @@ func getParentIDToListObjects(uri string) string {
 // getListObjectsRequestAsJSON is used for parsing the request as json to get
 // the pageNumber and pageSize of results requested.
 // TODO: This especially needs a test as it is as yet unvalidated
-func getListObjectsRequestAsJSON(r *http.Request) listObjectsRequest {
+func getListObjectsRequestAsJSON(r *http.Request, objectLinkResponse *protocol.ObjectLinkResponse) {
 	decoder := json.NewDecoder(r.Body)
-	var result listObjectsRequest
-	err := decoder.Decode(&result)
+	err := decoder.Decode(objectLinkResponse)
 	if err != nil {
 		//TODO: Log it
 		log.Println("Error decoding JSON request.")
 
 		// Force to page 1, size of 20
-		result.pageNumber = 1
-		result.pageSize = 20
+		objectLinkResponse.PageNumber = 1
+		objectLinkResponse.PageSize = 20
 	}
-	if result.pageNumber < 1 {
-		result.pageNumber = 1
+	if objectLinkResponse.PageNumber < 1 {
+		objectLinkResponse.PageNumber = 1
 	}
-	if result.pageSize < 1 {
-		result.pageSize = 20
+	if objectLinkResponse.PageSize < 1 {
+		objectLinkResponse.PageSize = 20
 	}
-	return result
 }

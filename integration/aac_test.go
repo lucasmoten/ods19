@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	aac "decipher.com/oduploader/cmd/cryptotest/gen-go2/aac"
 	"decipher.com/oduploader/config"
+	aac "decipher.com/oduploader/services/aac"
 	"decipher.com/oduploader/util"
 	t2 "github.com/samuel/go-thrift/thrift"
 )

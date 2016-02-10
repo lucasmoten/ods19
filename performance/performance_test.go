@@ -40,14 +40,14 @@ func simulate(i int, done chan int) {
 	//and run for some jittery time proportional to file size
 	//100kB/s with some noise
 	var bandwidth float32 = 100000.0
-	startedAt := reporters.BeginTime(jt, files[n].Name)
+	startedAt := reporters.BeginTime(jt)
 	//log.Printf(" began[%d]", i)
 
 	transactionTime := noise * float32(files[n].Size) / bandwidth
 	log.Printf("%d transactionTime will be %vs", i, transactionTime)
 	//Do the actual sleep
 	time.Sleep(time.Duration(transactionTime) * time.Second)
-	reporters.EndTime(jt, startedAt, files[n].Name, SizeJob(files[n].Size))
+	reporters.EndTime(jt, startedAt, SizeJob(files[n].Size))
 
 	done <- 1
 }
@@ -72,13 +72,9 @@ func TestSimulation(t *testing.T) {
 	reporters.Reporters[DownloadCounter].Q.Dump(os.Stdout)
 }
 
-func logPurge(name string) {
-	log.Printf("files can be removed for %s", name)
-}
-
 func init() {
 	PanicOnProblem = true
-	reporters = NewJobReporters(32, logPurge)
+	reporters = NewJobReporters(32)
 	//A set of files to download and upload
 	files = []fileDescription{
 		fileDescription{"chewbacca.jpg", 10234},

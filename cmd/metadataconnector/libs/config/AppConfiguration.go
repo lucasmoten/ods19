@@ -14,6 +14,8 @@ var (
 	defaultDBDriver = "mysql"
 	defaultDBHost   = "127.0.0.1"
 	defaultDBPort   = "3306"
+	//RootURL is the url string being referenced everywhere to complete URLs
+	RootURL = "/service/metadataconnector/1.0"
 )
 
 // AppConfiguration is a structure that defines the known configuration format

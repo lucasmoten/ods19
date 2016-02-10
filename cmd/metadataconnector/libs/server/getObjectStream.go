@@ -1,9 +1,11 @@
 package server
 
 import (
+	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 	"encoding/hex"
+	"encoding/json"
 	//"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -23,7 +25,7 @@ func (h AppServer) transferFileFromS3(
 	bucket *string,
 	theFile string,
 ) {
-	beganAt := h.Tracker.BeginTime(performance.S3DrainFrom, theFile)
+	beganAt := h.Tracker.BeginTime(performance.S3DrainFrom)
 	h.transferFileFromS3Timed(bucket, theFile)
 
 	stat, cachedErr := os.Stat(h.CacheLocation + "/" + theFile + ".cached")
@@ -35,7 +37,6 @@ func (h AppServer) transferFileFromS3(
 	h.Tracker.EndTime(
 		performance.S3DrainFrom,
 		beganAt,
-		theFile,
 		performance.SizeJob(length),
 	)
 }
@@ -71,23 +72,19 @@ func (h AppServer) transferFileFromS3Timed(
 	}
 }
 
-/*
-  We are wrapping around getting object streams to time them.
-	TODO: This is including cache miss time.
-*/
-func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, caller Caller) {
+func (h AppServer) getObjectStreamObject(w http.ResponseWriter, r *http.Request, caller Caller) (*models.ODObject, error) {
 	// Identify requested object
 	objectID := getIDOfObjectTORetrieveStream(r.URL.RequestURI())
 	// If not valid, return
 	if objectID == "" {
 		h.sendErrorResponse(w, 400, nil, "URI provided by caller does not specify an object identifier")
-		return
+		return nil, nil
 	}
 	// Convert to byte
 	objectIDByte, err := hex.DecodeString(objectID)
 	if err != nil {
 		h.sendErrorResponse(w, 400, nil, "Identifier provided by caller is not a hexidecimal string")
-		return
+		return nil, err
 	}
 	// Retrieve from database
 	var objectRequested models.ODObject
@@ -95,17 +92,34 @@ func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, calle
 	object, err := dao.GetObject(h.MetadataDB, &objectRequested, false)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cannot get object")
+		return nil, err
+	}
+	return object, nil
+}
+
+/*
+  We are wrapping around getting object streams to time them.
+	TODO: This is including cache miss time.
+*/
+func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, caller Caller) {
+	object, err := h.getObjectStreamObject(w, r, caller)
+	if err != nil {
+		h.sendErrorResponse(w, 500, err, "cannot get object")
+		return
+	}
+	if object == nil {
+		log.Printf("did not find an object")
+		h.sendErrorResponse(w, 500, err, "did not get object")
 		return
 	}
 
-	beganAt := h.Tracker.BeginTime(performance.DownloadCounter, object.Name)
+	beganAt := h.Tracker.BeginTime(performance.DownloadCounter)
 
 	h.getObjectStreamWithObject(w, r, caller, object)
 
 	h.Tracker.EndTime(
 		performance.DownloadCounter,
 		beganAt,
-		object.Name,
 		performance.SizeJob(object.ContentSize.Int64),
 	)
 }
@@ -193,6 +207,17 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 		w.Header().Set("Content-Length", strconv.FormatInt(object.ContentSize.Int64, 10))
 	}
 
+	//A visibility hack, so that I can see metadata about the object from a GET
+	//This lets you look in a browser and check attributes on an object that came
+	//back.
+	objectLink := GetObjectLinkFromObject(config.RootURL, object)
+	objectLinkAsJSONBytes, err := json.Marshal(objectLink)
+	if err != nil {
+		log.Printf("Unable to marshal object metadata:%v", err)
+	}
+	objectLinkAsJSON := string(objectLinkAsJSONBytes)
+	w.Header().Set("Object-Data", objectLinkAsJSON)
+
 	//Actually send back the ciphertext
 	_, _, err = doCipherByReaderWriter(
 		cipherText,
@@ -209,22 +234,6 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 	//Update the timestamps to note the last time it was used
 	tm := time.Now()
 	os.Chtimes(cipherTextName, tm, tm)
-
-	/*
-		//XXX should be returning an http error code in this case
-		if !hasStream {
-			w.Header().Set("Content-Type", "text/html")
-			fmt.Fprintf(w, pageTemplateStart, "getObjectStream", caller.DistinguishedName)
-			fmt.Fprintf(w, "No content")
-			fmt.Fprintf(w, pageTemplateEnd)
-			return
-		}
-	*/
-
-	/*
-		fmt.Fprintf(w, pageTemplateStart, "getObjectStream", caller.DistinguishedName)
-		fmt.Fprintf(w, pageTemplateEnd)
-	*/
 }
 
 // getIDOfObjectTORetrieveStream accepts a passed in URI and finds whether an

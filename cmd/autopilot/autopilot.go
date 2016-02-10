@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
+	"decipher.com/oduploader/protocol"
 	"encoding/json"
 	"flag"
 	"io"
@@ -31,6 +31,7 @@ type ClientIdentity struct {
 	Index         int
 }
 
+var showFileUpload = true
 var host = "https://dockervm:8080"
 
 // NewClientTLSConfig creates a per-client tls config
@@ -137,7 +138,7 @@ func getRandomClassification() string {
 	return classes[r]
 }
 
-func generateUploadRequest(name string, fqName string) (*http.Request, error) {
+func generateUploadRequest(name string, fqName string, url string) (*http.Request, error) {
 	f, err := os.Open(fqName)
 	defer f.Close()
 	if err != nil {
@@ -147,6 +148,7 @@ func generateUploadRequest(name string, fqName string) (*http.Request, error) {
 	//Create a multipart mime request
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
+	w.WriteField("type", "File")
 	w.WriteField("classification", getRandomClassification())
 	fw, err := w.CreateFormFile("filestream", name)
 	if err != nil {
@@ -161,9 +163,10 @@ func generateUploadRequest(name string, fqName string) (*http.Request, error) {
 
 	req, err := http.NewRequest(
 		"POST",
-		host+"/service/metadataconnector/1.0/object",
+		url,
 		&b,
 	)
+	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		log.Printf("Could not generate request: %v", err)
 	}
@@ -173,17 +176,19 @@ func generateUploadRequest(name string, fqName string) (*http.Request, error) {
 	return req, err
 }
 
-func doUpload(i int) {
+func doUpload(i int) *protocol.ObjectLink {
+	var link protocol.ObjectLink
+
 	//log.Printf("%d upload out of %s", i, clients[i].UploadCache)
 	//Pick a random file
 	listing, err := ioutil.ReadDir(clients[i].UploadCache)
 	if err != nil {
 		log.Printf("Unable to list upload directory %s", clients[i].UploadCache)
-		return
+		return nil
 	}
 	if len(listing) == 0 {
 		log.Printf("Nothing to upload...")
-		return
+		return nil
 	}
 	//Grab a random item out of the listing (in memory... beware of huge dirs!)
 	r := rand.Intn(len(listing))
@@ -192,30 +197,45 @@ func doUpload(i int) {
 	if filePicked.IsDir() == false {
 		filePickedName := filePicked.Name()
 		fqName := clients[i].UploadCache + "/" + filePickedName
-		req, err := generateUploadRequest(filePickedName, fqName)
+		req, err := generateUploadRequest(
+			filePickedName,
+			fqName,
+			host+"/service/metadataconnector/1.0/object",
+		)
 		if err != nil {
 			log.Printf("Could not generate request:%v", err)
-			return
+			return nil
 		}
 
 		transport := &http.Transport{TLSClientConfig: clients[i].Config}
 		client := &http.Client{Transport: transport}
+
+		reqBytes, err := httputil.DumpRequestOut(req, showFileUpload)
+		log.Printf("%v\n%s", err, string(reqBytes))
+
 		res, err := client.Do(req)
 		if err != nil {
 			log.Printf("Error doing client request:%v", err)
-			return
+			return nil
 		}
 		// Check the response
 		if res.StatusCode != http.StatusOK {
 			log.Printf("bad status: %s", res.Status)
-			return
+			return nil
 		}
 		log.Printf("%s uploaded %s", clients[i].Name, fqName)
+
+		resBytes, err := httputil.DumpResponse(res, true)
+		log.Printf("%v\n%s", err, string(resBytes))
+
+		decoder := json.NewDecoder(res.Body)
+		err = decoder.Decode(&link)
 	}
+	return &link
 }
 
-func doDownload(i int) {
-	//log.Printf("%d download", i)
+//Get candidate objects that we own, to perform operations on them
+func getObjectLinkResponse(i int, olResponse *protocol.ObjectLinkResponse) (err error) {
 	log.Printf("first, we must get a listing of objects to choose from")
 	req, err := http.NewRequest(
 		"GET",
@@ -224,65 +244,159 @@ func doDownload(i int) {
 	)
 	if err != nil {
 		log.Printf("unable to do request for object listing:%v", err)
+		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	reqBytes, err := httputil.DumpRequestOut(req, true)
-	log.Printf("%v\n%s", err, string(reqBytes))
+	if showFileUpload {
+		reqBytes, err := httputil.DumpRequestOut(req, true)
+		log.Printf("%v\n%s", err, string(reqBytes))
+	}
 
 	transport := &http.Transport{TLSClientConfig: clients[i].Config}
 	client := &http.Client{Transport: transport}
 	res, err := client.Do(req)
 	if err != nil {
 		log.Printf("Error doing listing request:%v", err)
+		return err
+	}
+	if showFileUpload {
+		resBytes, err := httputil.DumpResponse(res, true)
+		log.Printf("%v\n%s", err, string(resBytes))
+	}
+
+	// Check the response
+	if res.StatusCode != http.StatusOK {
+		log.Printf("bad status: %s", res.Status)
+		return nil
+	}
+	decoder := json.NewDecoder(res.Body)
+	err = decoder.Decode(olResponse)
+	if err != nil {
+		log.Printf("Unable to decode response:%v", err)
+		return err
+	}
+	return nil
+}
+
+func doDownloadLink(i int, link *protocol.ObjectLink) {
+	dlReq, err := http.NewRequest(
+		"GET",
+		host+link.URL+"/stream",
+		nil,
+	)
+	if err != nil {
+		log.Printf("Unable to generate request:%v", err)
+		return
+	}
+
+	if showFileUpload {
+		reqBytes, err := httputil.DumpRequestOut(dlReq, showFileUpload)
+		log.Printf("%v\n%s", err, string(reqBytes))
+	}
+
+	//Now download the stream into a file
+	transport2 := &http.Transport{TLSClientConfig: clients[i].Config}
+	client2 := &http.Client{Transport: transport2}
+
+	dlRes, err := client2.Do(dlReq)
+	if err != nil {
+		log.Printf("Unable to do request:%v", err)
+		return
+	}
+
+	if showFileUpload {
+		resBytes, err := httputil.DumpResponse(dlRes, true)
+		log.Printf("%v\n%s", err, string(resBytes))
+	}
+
+	drainFileName := clients[i].DownloadCache + "/" + link.Name
+	drainFile, err := os.Create(drainFileName)
+	if err != nil {
+		log.Printf("Cant open %s", drainFileName)
+		return
+	}
+	defer drainFile.Close()
+	io.Copy(drainFile, dlRes.Body)
+	log.Printf("downloaded %s", link.Name)
+}
+
+func doDownload(i int) *protocol.ObjectLink {
+	//Get the links to download
+	var link *protocol.ObjectLink
+	var olResponse protocol.ObjectLinkResponse
+	err := getObjectLinkResponse(i, &olResponse)
+	if err != nil {
+		log.Printf("Unable to do download:%v", err)
+		return link
+	}
+
+	//Grab a random item (if any exist) and download it
+	if len(olResponse.Objects) > 0 {
+
+		//Download the listing from which to grab a random item
+		randomIndex := rand.Intn(len(olResponse.Objects))
+		link = &olResponse.Objects[randomIndex]
+
+		doDownloadLink(i, link)
+	}
+	return link
+}
+
+func doUpdateLink(i int, link *protocol.ObjectLink) {
+	fqName := clients[i].UploadCache + "/" + link.Name
+	req, err := generateUploadRequest(
+		link.Name,
+		fqName,
+		host+link.URL+"/stream",
+	)
+	if err != nil {
+		log.Printf("Could not generate request:%v", err)
+		return
+	}
+
+	reqBytes, err := httputil.DumpRequestOut(req, showFileUpload)
+	log.Printf("%v\n%s", err, string(reqBytes))
+
+	//Now download the stream into a file
+	transport2 := &http.Transport{TLSClientConfig: clients[i].Config}
+	client2 := &http.Client{Transport: transport2}
+
+	res, err := client2.Do(req)
+	if err != nil {
+		log.Printf("Unable to do request:%v", err)
 		return
 	}
 	resBytes, err := httputil.DumpResponse(res, true)
 	log.Printf("%v\n%s", err, string(resBytes))
 
-	// Check the response
-	if res.StatusCode != http.StatusOK {
-		log.Printf("bad status: %s", res.Status)
+	drainFileName := clients[i].DownloadCache + "/" + link.Name
+	drainFile, err := os.Create(drainFileName)
+	if err != nil {
+		log.Printf("Cant open %s", drainFileName)
 		return
 	}
-	decoder := json.NewDecoder(res.Body)
-	var listing []server.ObjectLink
-	err = decoder.Decode(&listing)
+	defer drainFile.Close()
+	io.Copy(drainFile, res.Body)
+}
+
+func doUpdate(i int) {
+	//Get the links to download
+	var olResponse protocol.ObjectLinkResponse
+	err := getObjectLinkResponse(i, &olResponse)
+	if err != nil {
+		log.Printf("Unable to do download:%v", err)
+		return
+	}
 
 	//Grab a random item (if any exist) and download it
-	if len(listing) > 0 {
+	if len(olResponse.Objects) > 0 {
 
 		//Download the listing from which to grab a random item
-		randomIndex := rand.Intn(len(listing))
-		link := listing[randomIndex]
+		randomIndex := rand.Intn(len(olResponse.Objects))
+		link := &olResponse.Objects[randomIndex]
 
-		dlReq, err := http.NewRequest(
-			"GET",
-			host+link.URL+"/stream",
-			nil,
-		)
-		if err != nil {
-			log.Printf("Unable to generate request:%v", err)
-			return
-		}
-
-		//Now download the stream into a file
-		transport2 := &http.Transport{TLSClientConfig: clients[i].Config}
-		client2 := &http.Client{Transport: transport2}
-
-		dlRes, err := client2.Do(dlReq)
-		if err != nil {
-			log.Printf("Unable to do request:%v", err)
-			return
-		}
-		drainFileName := clients[i].DownloadCache + "/" + link.Name
-		drainFile, err := os.Create(drainFileName)
-		if err != nil {
-			log.Printf("Cant open %s", drainFileName)
-			return
-		}
-		defer drainFile.Close()
-		io.Copy(drainFile, dlRes.Body)
+		doUpdateLink(i, link)
 	}
 }
 
@@ -295,6 +409,8 @@ func doRandomAction(i int) bool {
 	case r > 40:
 		doDownload(i)
 	case r > 20:
+		doUpdate(i)
+	case r > 10:
 		return false
 	}
 	return true
@@ -312,7 +428,13 @@ func doClient(i int, clientExited chan int) {
 
 var population = 10
 var perPopulation = 20
-var sleepTime = 240
+var sleepTime = 120
+
+func generatePopulation() {
+	//We have 10 test certs (note the test_0 is known as tester10)
+	population := 10
+	populateClients(population)
+}
 
 func main() {
 	flag.StringVar(&host, "url", "https://dockervm:8080", "The URL at which to direct uploads/downloads")
@@ -320,9 +442,7 @@ func main() {
 	flag.IntVar(&sleepTime, "sleepTime", 120, "number of seconds to sleep when we decide to sleep")
 	flag.Parse()
 
-	//We have 10 test certs (note the test_0 is known as tester10)
-	population := 10
-	populateClients(population)
+	generatePopulation()
 
 	clientExited := make(chan int)
 	N := 20

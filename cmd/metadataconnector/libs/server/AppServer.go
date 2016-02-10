@@ -191,6 +191,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.listObjects(w, r, caller)
 		case rxQuery.MatchString(uri):
 			h.query(w, r, caller)
+		case rxObjectStream.MatchString(uri):
+			h.updateObjectStream(w, r, caller)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)
@@ -206,8 +208,6 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.updateObjectPermissions(w, r, caller)
 		case rxObjectProperties.MatchString(uri):
 			h.updateObject(w, r, caller)
-		case rxObjectStream.MatchString(uri):
-			h.updateObjectStream(w, r, caller)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)
@@ -267,7 +267,7 @@ func GetCaller(r *http.Request) Caller {
 	return caller
 }
 
-func (h AppServer) checkAccess(dn string, clasKey string) bool {
+func (h AppServer) xcheckAccess(dn string, clasKey string) bool {
 	if h.AAC == nil {
 		log.Printf("no aac checks for now")
 		return true
@@ -275,7 +275,7 @@ func (h AppServer) checkAccess(dn string, clasKey string) bool {
 	//XXX XXX hack until I can reliably lookup real dns from whatever environment
 	//i work on.  This is enough to at least exercise that the API works,
 	//and will still work if it comes from a header
-	dn = "CN=Holmes Jonathan,OU=People,OU=Bedrock,OU=Six 3 Systems,O=U.S. Government,C=US"
+	//	dn = "CN=Holmes Jonathan,OU=People,OU=Bedrock,OU=Six 3 Systems,O=U.S. Government,C=US"
 	//clasKey = "S"
 
 	tokenType := "pki_dias"

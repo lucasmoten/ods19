@@ -2,9 +2,11 @@ package server
 
 import (
 	//"encoding/hex"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/performance"
+	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -21,7 +23,7 @@ func (h AppServer) drainFileToS3(
 	bucket *string,
 	rName string,
 ) error {
-	beganAt := h.Tracker.BeginTime(performance.S3DrainTo, rName)
+	beganAt := h.Tracker.BeginTime(performance.S3DrainTo)
 	err := h.drainFileToS3Timed(bucket, rName)
 	stat, cachedErr := os.Stat(h.CacheLocation + "/" + rName + ".cached")
 	if cachedErr != nil {
@@ -32,7 +34,6 @@ func (h AppServer) drainFileToS3(
 	h.Tracker.EndTime(
 		performance.S3DrainTo,
 		beganAt,
-		rName,
 		performance.SizeJob(length),
 	)
 	return err
@@ -122,19 +123,19 @@ func (h AppServer) beginUpload(
 	part *multipart.Part,
 	obj *models.ODObject,
 	acm *models.ODACM,
-) (grant models.ODObjectPermission, err error) {
+	grant *models.ODObjectPermission,
+) (err error) {
 
-	beganAt := h.Tracker.BeginTime(performance.UploadCounter, part.FileName())
-	grant, err = h.beginUploadTimed(w, r, caller, part, obj, acm)
+	beganAt := h.Tracker.BeginTime(performance.UploadCounter)
+	err = h.beginUploadTimed(w, r, caller, part, obj, acm, grant)
 
 	h.Tracker.EndTime(
 		performance.UploadCounter,
 		beganAt,
-		part.FileName(),
 		performance.SizeJob(obj.ContentSize.Int64),
 	)
 
-	return grant, err
+	return err
 }
 
 func (h AppServer) beginUploadTimed(
@@ -144,31 +145,32 @@ func (h AppServer) beginUploadTimed(
 	part *multipart.Part,
 	obj *models.ODObject,
 	acm *models.ODACM,
-) (grant models.ODObjectPermission, err error) {
+	grant *models.ODObjectPermission,
+) (err error) {
+	rName := obj.ContentConnector.String
+	iv := obj.EncryptIV
+	fileKey := grant.EncryptKey
+
 	err = h.CacheMustExist()
 	if err != nil {
-		return grant, err
+		return err
 	}
 	//Make up a random name for our file - don't deal with versioning yet
-	rName := createRandomName()
 	outFileUploading := h.CacheLocation + "/" + rName + ".uploading"
 	outFileUploaded := h.CacheLocation + "/" + rName + ".uploaded"
 
 	outFile, err := os.Create(outFileUploading)
 	if err != nil {
 		log.Printf("Unable to open ciphertext uploading file %s %v:", outFileUploading, err)
-		return grant, err
+		return err
 	}
 	defer outFile.Close()
-
-	//Generate random key and iv
-	fileKey, iv := createKeyIVPair()
 
 	//Write the encrypted data to the filesystem
 	checksum, _, err := doCipherByReaderWriter(part, outFile, fileKey, iv)
 	if err != nil {
 		log.Printf("Unable to write ciphertext %s %v:", outFileUploading, err)
-		return grant, err
+		return err
 	}
 
 	//Scramble the fileKey with the masterkey - will need it once more on retrieve
@@ -178,7 +180,7 @@ func (h AppServer) beginUploadTimed(
 	err = os.Rename(outFileUploading, outFileUploaded)
 	if err != nil {
 		log.Printf("Unable to rename uploaded file %s %v:", outFileUploading, err)
-		return grant, err
+		return err
 	}
 
 	stat, err := os.Stat(outFileUploaded)
@@ -187,125 +189,141 @@ func (h AppServer) beginUploadTimed(
 	}
 
 	//Record metadata
-	obj.ContentConnector.String = rName
 	obj.ContentHash = checksum
 	obj.ContentSize.Int64 = stat.Size()
-	obj.EncryptIV = iv
-	obj.ContentType.String = guessContentType(part.FileName())
-	//Give a default name
-	if obj.Name == "" {
-		obj.Name = part.FileName()
-	}
-	//	grant.ObjectID = obj.ID
-	grant.Grantee = caller.DistinguishedName
-	grant.AllowRead = true
-	grant.AllowCreate = true
-	grant.AllowUpdate = true
-	grant.AllowDelete = true
-	grant.EncryptKey = fileKey
-	//Uploaded file is effectively enqueued for S3 upload.
-	//Go ugly early, and just make this drain-off a goroutine
-	//We may need to have a limited number of concurrent uploads,
-	//with something like Fair-Weighted-Queueing to pick the order
-	//in which they happen (ie: look at file sizes and create timestamps)
-	go h.drainFileToS3(aws.String("decipherers"), rName)
-	return grant, err
+	//XXX making the S3 upload synchronous temporarily, in the absence of a
+	//mechanism for knowing whether the file has made it up to S3 yet
+	h.drainFileToS3(aws.String("decipherers"), rName)
+	return err
+}
+
+var createObjectForm = `
+<hr/>
+<form method="post" action="%s/object" enctype="multipart/form-data">
+<table>
+	<tr>
+		<td>Object Name</td>
+		<td><input type="text" id="title" name="title" /></td>
+	</tr>
+	<tr>
+		<td>Type</td>
+		<td><select id="type" name="type">
+				<option value="File">File</option>
+				<option value="Folder">Folder</option>
+				</select>
+		</td>
+	</tr>
+	<tr>
+		<td>Classification</td>
+		<td><select id="classification" name="classification">
+				<option value='U'>UNCLASSIFIED</option>
+				<option value='C'>CLASSIFIED</option>
+				<option value='S'>SECRET</option>
+				<option value='T'>TOP SECRET</option>
+				</select>
+		</td>
+	</tr>
+	<tr>
+		<td>File Content</td>
+		<td><input type="file" name="filestream" /></td>
+	</tr>
+</table>
+<input type="submit" value="Upload" />
+</form>
+
+<hr />
+Values received
+<br />
+title: %s
+<br />
+type: %s
+<br />
+classification: %s
+	`
+
+func (h AppServer) acceptObjectUpload(
+	w http.ResponseWriter,
+	r *http.Request,
+	caller Caller,
+	obj *models.ODObject,
+	acm *models.ODACM,
+	grant *models.ODObjectPermission,
+) {
+	r.ParseForm()
+	multipartReader, err := r.MultipartReader()
+	if err != nil {
+		panic(err)
+	} // if err != nil
+	for {
+		part, err := multipartReader.NextPart()
+		if err != nil {
+			if err == io.EOF {
+				break //just an eof...not an error
+			} else {
+				h.sendErrorResponse(w, 500, err, "error getting a part")
+				return
+			}
+		} // if err != nil
+
+		switch {
+		case part.FormName() == "title":
+			obj.Name = getFormValueAsString(part)
+		case part.FormName() == "type":
+			obj.TypeName.String = getFormValueAsString(part)
+			obj.TypeName.Valid = (len(obj.TypeName.String) > 0)
+		case part.FormName() == "classification":
+			acm.Classification.String = getFormValueAsString(part)
+			acm.Classification.Valid = (len(acm.Classification.String) > 0)
+			//XXX We just have a small set of objects that map to raw acm at the moment
+			obj.RawAcm.String = h.Classifications[acm.Classification.String]
+		case len(part.FileName()) > 0:
+			//Guess the content type and name
+			obj.ContentType.String = guessContentType(part.FileName())
+			if obj.Name == "" {
+				obj.Name = part.FileName()
+			}
+			err = h.beginUpload(w, r, caller, part, obj, acm, grant)
+			if err != nil {
+				h.sendErrorResponse(w, 500, err, "error caching file")
+				return
+			}
+		} // switch
+	} //for
 }
 
 // createObject is a method handler on AppServer for createObject microservice
 // operation.
-func (h AppServer) createObject(w http.ResponseWriter, r *http.Request, caller Caller) {
+func (h AppServer) createObject(
+	w http.ResponseWriter,
+	r *http.Request,
+	caller Caller,
+) {
 
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, pageTemplateStart, "createObject", caller.DistinguishedName)
-	rootURL := "/service/metadataconnector/1.0"
-	fmt.Fprintf(w, `
-	<hr/>
-	<form method="post" action="%s/object" enctype="multipart/form-data">
-	<table>
-		<tr>
-			<td>Object Name</td>
-			<td><input type="text" id="title" name="title" /></td>
-		</tr>
-		<tr>
-			<td>Type</td>
-			<td><select id="type" name="type">
-					<option value="File">File</option>
-					<option value="Folder">Folder</option>
-					</select>
-			</td>
-		</tr>
-		<tr>
-			<td>Classification</td>
-			<td><select id="classification" name="classification">
-					<option value='U'>UNCLASSIFIED</option>
-					<option value='C'>CLASSIFIED</option>
-					<option value='S'>SECRET</option>
-					<option value='T'>TOP SECRET</option>
-					</select>
-			</td>
-		</tr>
-		<tr>
-			<td>File Content</td>
-			<td><input type="file" name="filestream" /></td>
-		</tr>
-	</table>
-	<input type="submit" value="Upload" />
-	</form>
-
-			`, rootURL)
+	var obj models.ODObject
+	var acm models.ODACM
+	var grant models.ODObjectPermission
+	var err error
 
 	if r.Method == "POST" {
-		var obj models.ODObject
-		var acm models.ODACM
-		var grant models.ODObjectPermission
-		var err error
+
+		//	grant.ObjectID = obj.ID
+		grant.Grantee = caller.DistinguishedName
+		grant.AllowRead = true
+		grant.AllowCreate = true
+		grant.AllowUpdate = true
+		grant.AllowDelete = true
 
 		// Set creator
 		obj.CreatedBy = caller.DistinguishedName
 		acm.CreatedBy = caller.DistinguishedName
 
-		// TODO: Access Check
+		rName := createRandomName()
+		fileKey, iv := createKeyIVPair()
+		obj.ContentConnector.String = rName
+		obj.EncryptIV = iv
+		grant.EncryptKey = fileKey
+		h.acceptObjectUpload(w, r, caller, &obj, &acm, &grant)
 
-		r.ParseForm()
-		multipartReader, err := r.MultipartReader()
-		if err != nil {
-			panic(err)
-		} // if err != nil
-		for {
-			part, err := multipartReader.NextPart()
-			if err != nil {
-				if err == io.EOF {
-					break //just an eof...not an error
-				} else {
-					h.sendErrorResponse(w, 500, err, "error getting a part")
-					return
-				}
-			} // if err != nil
-
-			switch {
-			case part.FormName() == "title":
-				obj.Name = getFormValueAsString(part)
-			case part.FormName() == "type":
-				obj.TypeName.String = getFormValueAsString(part)
-				obj.TypeName.Valid = (len(obj.TypeName.String) > 0)
-			case part.FormName() == "classification":
-				acm.Classification.String = getFormValueAsString(part)
-				acm.Classification.Valid = (len(acm.Classification.String) > 0)
-				//XXX We just have a small set of objects that map to raw acm at the moment
-				obj.RawAcm.String = h.Classifications[acm.Classification.String]
-			case len(part.FileName()) > 0:
-				grant, err = h.beginUpload(w, r, caller, part, &obj, &acm)
-				if err != nil {
-					h.sendErrorResponse(w, 500, err, "error caching file")
-					return
-				}
-			} // switch
-		} //for
-
-		// TODO: Validation
-
-		// TODO: add object to database
 		obj.Permissions = make([]models.ODObjectPermission, 1)
 		obj.Permissions[0] = grant
 
@@ -315,22 +333,23 @@ func (h AppServer) createObject(w http.ResponseWriter, r *http.Request, caller C
 			return
 		}
 		log.Printf("server created object:%v with contentConnector:%v", obj.ODID, obj.ContentConnector.String)
-		//log.Printf("TODO: add grant permission: %v", grant)
+	}
 
-		fmt.Fprintf(w, `
-		<hr />
-Values received
-<br />
-title: %s
-<br />
-type: %s
-<br />
-classification: %s
-			`, obj.Name, obj.TypeName.String, acm.Classification.String)
-	} // if r.Method == "POST" {
-
-	fmt.Fprintf(w, pageTemplateEnd)
-
+	if r.Method == "POST" {
+		//TODO: json response rendering
+		w.Header().Set("Content-Type", "application/json")
+		link := GetObjectLinkFromObject(config.RootURL, &obj)
+		//Write a link back to the user so that it's possible to do an update on this object
+		encoder := json.NewEncoder(w)
+		encoder.Encode(&link)
+	} else {
+		//Push all of the html stuff in one place, so that we can eliminate it
+		//when we have a real user interface that uses the API
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprintf(w, pageTemplateStart, "createObject", caller.DistinguishedName)
+		fmt.Fprintf(w, createObjectForm, config.RootURL, obj.Name, obj.TypeName.String, acm.Classification.String)
+		fmt.Fprintf(w, pageTemplateEnd)
+	}
 }
 
 // getFormValueAsString reads a multipart value into a limited length byte
