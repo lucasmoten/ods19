@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"net"
 	"net/http"
@@ -121,6 +122,9 @@ func main() {
 	dbConfig := appConfiguration.DatabaseConnection
 	serverConfig := appConfiguration.ServerSettings
 
+	// Check environment variables
+	checkAWSEnvironmentVars()
+
 	// Setup handle to the database
 	db, err := dbConfig.GetDatabaseHandle()
 	if err != nil {
@@ -136,6 +140,9 @@ func main() {
 
 	// Setup web server
 	s, handler, err := makeServer(serverConfig, db)
+	if err != nil {
+		log.Fatalf("Fatal error in call to makeServer(): %v", err)
+	}
 	// with TLS support
 	stls := serverConfig.GetTLSConfig()
 	s.TLSConfig = &stls
@@ -193,6 +200,17 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		}
 	}
 
+	templates, err := template.ParseGlob(
+		filepath.Join(oduconfig.ProjectRoot,
+			"cmd", "metadataconnector", "libs", "server",
+			"static", "templates", "*"))
+	if err != nil {
+		log.Printf("Cloud not discover templates.")
+		return nil, nil, err
+	}
+
+	staticPath := filepath.Join(oduconfig.ProjectRoot, "cmd", "metadataconnector", "libs", "server", "static")
+
 	httpHandler := server.AppServer{
 		Port:            serverConfig.ListenPort,
 		Bind:            serverConfig.ListenBind,
@@ -205,6 +223,8 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		Classifications: BuildClassificationMap(),
 		Tracker:         performance.NewJobReporters(1024),
 		AAC:             aac,
+		TemplateCache:   templates,
+		StaticDir:       staticPath,
 	}
 
 	if httpHandler.AAC == nil {
@@ -260,4 +280,17 @@ func pingDB(db *sqlx.DB) int {
 		}
 	}
 	return exitCode
+}
+
+// checkAWSEnvironmentVars prevents the server from starting if appropriate vars
+// are not set.
+func checkAWSEnvironmentVars() {
+	region := os.Getenv("AWS_REGION")
+	secretKey := os.Getenv("AWS_SECRET_KEY")
+	secretKeyAlt := os.Getenv("AWS_SECRET_ACCESS_KEY")
+	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
+	if region == "" || (secretKey == "" && secretKeyAlt == "") || accessKeyID == "" {
+		log.Fatal("Fatal Error: Environment variables AWS_REGION, AWS_SECRET_KEY, and AWS_ACCESS_KEY_ID must be set.")
+	}
+	return
 }

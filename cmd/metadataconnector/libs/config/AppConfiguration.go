@@ -84,9 +84,8 @@ func NewAppConfiguration() AppConfiguration {
 	configuration.ServerSettings.ServerKey = os.ExpandEnv(configuration.ServerSettings.ServerKey)
 
 	// Set service name and version
-	//configuration.ServerSettings.ServiceName = "/service/metadataconnector/"
-	//configuration.ServerSettings.ServiceName = "/services/object-drive/"
-	//configuration.ServerSettings.ServiceVersion = "1.0"
+	configuration.ServerSettings.ServiceName = `/service/metadataconnector/`
+	configuration.ServerSettings.ServiceVersion = `1\.0`
 
 	// Done
 	return configuration

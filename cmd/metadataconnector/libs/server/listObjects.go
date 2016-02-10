@@ -15,8 +15,8 @@ import (
 )
 
 type listObjectsRequest struct {
-	pageNumber int
-	pageSize   int
+	pageNumber int // `json:"pageNumber"`
+	pageSize   int // `json:"pageSize"`
 }
 
 // listObjects is a method handler on AppServer for implementing the listObjects
@@ -40,6 +40,15 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 	rootURL := "/service/metadataconnector/1.0"
 	// Find parentId from request URI
 	parentID := getParentIDToListObjects(r.URL.RequestURI())
+
+	if r.Header.Get("Content-Type") == "application/json" {
+		// do RESTful request
+	} else {
+		// render template with submit button
+		tmpl := h.TemplateCache.Lookup("listObjects.html")
+		data := struct{ ParentID string }{parentID}
+		tmpl.Execute(w, data)
+	}
 
 	// Find pageNmber and pageSize from the body
 	pageNumber := 1
@@ -66,7 +75,8 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 			h.sendErrorResponse(w, 400, err, "ParentID provided by caller is not a hex string")
 			return
 		}
-		response, err = dao.GetChildObjectsWithPropertiesByOwner(h.MetadataDB, "createddate desc", pageNumber, pageSize, &parentObject, caller.DistinguishedName)
+		response, err = dao.GetChildObjectsWithPropertiesByOwner(
+			h.MetadataDB, "createddate desc", pageNumber, pageSize, &parentObject, caller.DistinguishedName)
 		loadedParent, err := dao.GetObject(h.MetadataDB, &parentObject, false)
 		if err != nil {
 			h.sendErrorResponse(w, 500, err, "Unable to retrieve ParentID")

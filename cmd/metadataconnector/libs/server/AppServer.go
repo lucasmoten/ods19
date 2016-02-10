@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"regexp"
@@ -32,6 +33,8 @@ type AppServer struct {
 	Classifications map[string]string
 	MasterKey       string
 	Tracker         *performance.JobReporters
+	TemplateCache   *template.Template
+	StaticDir       string
 }
 
 // UserSession is per session information that needs to be passed around
@@ -77,9 +80,15 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var uri = r.URL.RequestURI()
 
+	log.Println("LOGGING APP SERVER CONFIG:")
+	log.Println(h.ServicePrefix)
+	log.Println("LOGGING URI: ")
+	log.Println(uri)
+
 	// These regular expressions to match uri patterns
 	var rxFavorites = regexp.MustCompile(h.ServicePrefix + "/favorites$")
 	var rxFolder = regexp.MustCompile(h.ServicePrefix + "/folder$")
+	var rxHome = regexp.MustCompile(h.ServicePrefix + "/?$")
 	var rxImages = regexp.MustCompile(h.ServicePrefix + "/images$")
 	var rxObject = regexp.MustCompile(h.ServicePrefix + "/object$")
 	var rxQuery = regexp.MustCompile(h.ServicePrefix + "/query/.*")
@@ -106,11 +115,14 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var rxListImages = regexp.MustCompile(h.ServicePrefix + "/images/.*/list$")
 	var rxTrashObject = regexp.MustCompile(h.ServicePrefix + "/trash/.*")
 	var rxStatsObject = regexp.MustCompile(h.ServicePrefix + "/stats$")
+	var rxStaticFiles = regexp.MustCompile(h.ServicePrefix + "/static/(?P<path>.*)")
 
+	// TODO: use StripPrefix in handler?
+	// https://golang.org/pkg/net/http/#StripPrefix
 	switch r.Method {
 	case "GET":
 		switch {
-		case uri == h.ServicePrefix+"/", uri == h.ServicePrefix+"//":
+		case rxHome.MatchString(uri):
 			h.home(w, r, caller)
 		case uri == h.ServicePrefix+"/favicon.ico", uri == h.ServicePrefix+"//favicon.ico":
 			h.favicon(w, r)
@@ -151,6 +163,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.query(w, r, caller)
 		case rxStatsObject.MatchString(uri):
 			h.getStats(w, r, caller)
+		case rxStaticFiles.MatchString(uri):
+			h.serveStatic(w, r, rxStaticFiles, uri)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)
