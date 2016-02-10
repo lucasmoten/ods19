@@ -127,9 +127,10 @@ func buildx509Identity(certFile string, keyFile string) []tls.Certificate {
 	theCert := make([]tls.Certificate, 0, 1)
 	certs, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
-		log.Fatal("Error: " + err.Error())
+		log.Printf("Error loading x509 Key Pair: %s", err.Error())
+	} else {
+		theCert = append(theCert, certs)
 	}
-	theCert = append(theCert, certs)
 	return theCert
 }
 
@@ -145,14 +146,17 @@ func buildCertPoolFromPath(filePath string, poolName string) *x509.CertPool {
 	// Open path indicated in configuration
 	pathSpec, err := os.Open(filePath)
 	if err != nil {
-		log.Fatal("Error: " + err.Error())
+		log.Printf("Error opening filepath: %s", err.Error())
+		return theCertPool
+
 	}
 	defer pathSpec.Close()
 
 	// Check information about the path specification
 	pathSpecInfo, err := pathSpec.Stat()
 	if err != nil {
-		log.Fatal("Error: " + err.Error())
+		log.Printf("Error retrieving path specification information: %s", err.Error())
+		return theCertPool
 	}
 
 	// Handle cases based on the type of path
@@ -161,7 +165,8 @@ func buildCertPoolFromPath(filePath string, poolName string) *x509.CertPool {
 		// The path is a directory, read all the files
 		files, err := ioutil.ReadDir(filePath)
 		if err != nil {
-			log.Fatal("Error: " + err.Error())
+			log.Printf("Error reading directory: %s", err.Error())
+			return theCertPool
 		}
 		if !strings.HasSuffix(filePath, "/") {
 			filePath += "/"
@@ -186,10 +191,12 @@ func addPEMFileToPool(PEMfile string, certPool *x509.CertPool) {
 	log.Println("Adding PEM file " + PEMfile)
 	pem, err := ioutil.ReadFile(PEMfile)
 	if err != nil {
-		log.Fatal("Error: " + err.Error())
+		log.Printf("Error reading PEM file: %s", err.Error())
+		return
 	}
 	if ok := certPool.AppendCertsFromPEM(pem); !ok {
-		log.Fatal("Failed to append PEM.")
+		log.Println("Failed to append the PEM to the pool")
+		return
 	}
 }
 

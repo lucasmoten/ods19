@@ -54,7 +54,7 @@ func init() {
 
 // NewUploaderTLSConfig reads the environment for paths to X509 certificates
 // or uses a default. A pointer to TLSConfig is returned
-func NewUploaderTLSConfig() *tls.Config {
+func NewUploaderTLSConfig() (*tls.Config, int) {
 	//XXX This doesn't look right (cert.pem),
 	// as files going into clientCertPool are trust certs.
 	return NewUploaderTLSConfigWithParms(uploaderCertPath, "")
@@ -62,7 +62,7 @@ func NewUploaderTLSConfig() *tls.Config {
 
 // NewUploaderTLSConfigWithEnvironment picks through the environment
 // to give us a custom TLS configuration
-func NewUploaderTLSConfigWithEnvironment(env *Environment) *tls.Config {
+func NewUploaderTLSConfigWithEnvironment(env *Environment) (*tls.Config, int) {
 	return NewUploaderTLSConfigWithParms("", env.ServerTrustFile)
 }
 
@@ -70,42 +70,55 @@ func NewUploaderTLSConfigWithEnvironment(env *Environment) *tls.Config {
 // or uses a default. A pointer to TLSConfig is returned
 //
 // TODO: fatals should not be in libraries.  Return error codes
-func NewUploaderTLSConfigWithParms(certPath string, trustPath string) *tls.Config {
+func NewUploaderTLSConfigWithParms(certPath string, trustPath string) (*tls.Config, int) {
 	clientCertPool := x509.NewCertPool()
+	errCode := 0
 
 	//XXX this does not seem right - clientCertPool should be trusts
 	// but parsing it on startup might be interesting
 	if certPath != "" {
 		certBytes, err := ioutil.ReadFile(certPath)
 		if err != nil {
-			log.Fatalln("Unable to open cert file at: ", certPath, err)
+			log.Printf("Unable to open certificate file at path '%s': %s", certPath, err.Error())
+			errCode = 1
+		} else {
+			actualCert, err := x509.ParseCertificate(certBytes)
+			if err != nil {
+				log.Printf("Error parsing certificate: %s", err.Error())
+				errCode = 2
+			} else {
+				clientCertPool.AddCert(actualCert)
+			}
 		}
-		actualCert, err := x509.ParseCertificate(certBytes)
-		if err != nil {
-			log.Fatal("Error parsing cert: ", err)
-		}
-		clientCertPool.AddCert(actualCert)
 	}
 
 	//TODO: this does not explicitly sanity check the certificates here
 	if trustPath != "" {
 		trustBytes, err := ioutil.ReadFile(trustPath)
 		if err != nil {
-			log.Fatalln("Unable to open trust file at: ", trustPath, err)
-		}
-		if ok := clientCertPool.AppendCertsFromPEM(trustBytes); !ok {
-			log.Fatal("Error appending cert: ", err)
+			log.Printf("Unable to open trust file at path '%s': %s", trustPath, err.Error())
+			errCode = 3
+		} else {
+			if ok := clientCertPool.AppendCertsFromPEM(trustBytes); !ok {
+				log.Printf("Error appending the cert to the pool: %s", err.Error())
+				errCode = 4
+			}
 		}
 	}
 
-	tlsConfig := &tls.Config{
-		ClientAuth:               tls.RequireAndVerifyClientCert,
-		ClientCAs:                clientCertPool,
-		PreferServerCipherSuites: true,
-		MinVersion:               tls.VersionTLS10,
+	if errCode == 0 {
+		tlsConfig := &tls.Config{
+			ClientAuth:               tls.RequireAndVerifyClientCert,
+			ClientCAs:                clientCertPool,
+			PreferServerCipherSuites: true,
+			MinVersion:               tls.VersionTLS10,
+		}
+		tlsConfig.BuildNameToCertificate()
+		return tlsConfig, 0
+	} else {
+		return nil, errCode
 	}
-	tlsConfig.BuildNameToCertificate()
-	return tlsConfig
+
 }
 
 // NewTLSConfigFromPEM ...
@@ -224,7 +237,7 @@ func NewOpenSSLTransport(trustPath, certPath, keyPath, host, port string, dialOp
 	addr := host + ":" + port
 	conn, err := openssl.Dial("tcp", addr, ctx, dialOpts.Flags)
 	if err != nil {
-		log.Println("Error making openssl conn!")
+		log.Printf("Error making openssl connection: %s", err.Error())
 		return nil, err
 	}
 	return conn, nil
