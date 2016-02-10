@@ -209,6 +209,8 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		return nil, nil, err
 	}
 
+	staticPath := filepath.Join(oduconfig.ProjectRoot, "cmd", "metadataconnector", "libs", "server", "static")
+
 	httpHandler := server.AppServer{
 		Port:            serverConfig.ListenPort,
 		Bind:            serverConfig.ListenBind,
@@ -222,6 +224,7 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		Tracker:         performance.NewJobReporters(1024),
 		AAC:             aac,
 		TemplateCache:   templates,
+		StaticDir:       staticPath,
 	}
 
 	if httpHandler.AAC == nil {

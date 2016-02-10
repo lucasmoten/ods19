@@ -34,6 +34,7 @@ type AppServer struct {
 	MasterKey       string
 	Tracker         *performance.JobReporters
 	TemplateCache   *template.Template
+	StaticDir       string
 }
 
 // UserSession is per session information that needs to be passed around
@@ -108,6 +109,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var rxListImages = regexp.MustCompile(h.ServicePrefix + "/images/.*/list$")
 	var rxTrashObject = regexp.MustCompile(h.ServicePrefix + "/trash/.*")
 	var rxStatsObject = regexp.MustCompile(h.ServicePrefix + "/stats$")
+	var rxStaticFiles = regexp.MustCompile(h.ServicePrefix + "/static/(?P<path>.*)")
 
 	// TODO: use StripPrefix in handler?
 	// https://golang.org/pkg/net/http/#StripPrefix
@@ -155,6 +157,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.query(w, r, caller)
 		case rxStatsObject.MatchString(uri):
 			h.getStats(w, r, caller)
+		case rxStaticFiles.MatchString(uri):
+			h.serveStatic(w, r, rxStaticFiles, uri)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)
