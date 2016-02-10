@@ -5,16 +5,20 @@
     <meta charset='utf-8'>
     <base href="/service/metadataconnector/1.0" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-beta1/jquery.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reqwest/2.0.5/reqwest.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/then-request/2.1.1/request.js"></script>
     <script src="/service/metadataconnector/1.0/static/js/listObjects.js"></script>
   </head>
 	<body>
     <a href="">Return Home</a>
+    <p>
 		{{ .DistinguishedName }}
-		<br />
-		<hr />
+  </p>
+  <h1>List of Objects!</h1>
+  <table id="listObjectResults">
+    <tr><td>Name</td><td>Type</td><td>Created Date</td><td>Created By</td><td>Size</td><td>ACM</td></tr>
+  </table>
 
-    <div id="object-list"></div>
-		<hr />
     <button>List Objects</button>
   </body>
 </html>

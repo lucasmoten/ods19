@@ -83,7 +83,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println("LOGGING APP SERVER CONFIG:")
 	log.Println(h.ServicePrefix)
 	log.Println("LOGGING URI: ")
-	log.Println(uri)
+	log.Println(r.Method, uri)
 
 	// These regular expressions to match uri patterns
 	var rxFavorites = regexp.MustCompile(h.ServicePrefix + "/favorites$")
@@ -180,6 +180,9 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.addObjectToFavorites(w, r, caller)
 		case rxObjectLink.MatchString(uri):
 			h.addObjectToFolder(w, r, caller)
+		case rxObjects.MatchString(uri):
+			log.Println("POST list objects")
+			h.listObjects(w, r, caller)
 		case rxFolder.MatchString(uri):
 			h.createFolder(w, r, caller)
 		case rxObject.MatchString(uri):
