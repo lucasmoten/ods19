@@ -10,6 +10,10 @@ data in memory without ever writing it to disk, and flushes
 to disk when a session is going to begin to use unfair amounts
 of memory
 
+# Project Management
+
+Issues are tracked internally in this [Google Doc](https://docs.google.com/spreadsheets/d/1Eiuu8uH6O6_uPtz6icOgLof3JYExhPDo9RelJDFsDeA/edit#gid=538633894)
+
 
 # Hosting The Code
 
@@ -113,5 +117,5 @@ downloadCachetest_0	downloadCachetest_4	downloadCachetest_8	uploadCachetest_2	up
 downloadCachetest_1	downloadCachetest_5	downloadCachetest_9	uploadCachetest_3	uploadCachetest_7
 downloadCachetest_2	downloadCachetest_6	uploadCachetest_0	uploadCachetest_4	uploadCachetest_8
 downloadCachetest_3	downloadCachetest_7	uploadCachetest_1	uploadCachetest_5	uploadCachetest_9
-Robs-MacBook-Pro:docker rfielding$ 
+Robs-MacBook-Pro:docker rfielding$
 ```
