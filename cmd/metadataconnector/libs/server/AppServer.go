@@ -95,6 +95,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var rxShared = regexp.MustCompile(h.ServicePrefix + "/shared$")
 	var rxShares = regexp.MustCompile(h.ServicePrefix + "/shares$")
 	var rxTrash = regexp.MustCompile(h.ServicePrefix + "/trash$")
+	var rxUsers = regexp.MustCompile(h.ServicePrefix + "/users$")
 	var rxObjectChangeOwner = regexp.MustCompile(h.ServicePrefix + "/object/.*/changeowner/.*")
 	var rxObjectExpunge = regexp.MustCompile(h.ServicePrefix + "/object/.*/expunge$")
 	var rxObjectFavorite = regexp.MustCompile(h.ServicePrefix + "/object/.*/favorite$")
@@ -165,6 +166,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.getStats(w, r, caller)
 		case rxStaticFiles.MatchString(uri):
 			h.serveStatic(w, r, rxStaticFiles, uri)
+		case rxUsers.MatchString(uri):
+			h.listUsers(w, r, caller)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)

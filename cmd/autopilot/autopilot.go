@@ -430,6 +430,7 @@ func doClient(i int, clientExited chan int) {
 var population = 10
 var perPopulation = 20
 var sleepTime = 120
+var isQuickTest = true
 
 func generatePopulation() {
 	//We have 10 test certs (note the test_0 is known as tester10)
@@ -437,18 +438,7 @@ func generatePopulation() {
 	populateClients(population)
 }
 
-// TODO define the following modes:
-// - full "load test" with lots of goroutines with random actions
-// - exercise the REST API
-
-func main() {
-	flag.StringVar(&host, "url", "https://dockervm:8080", "The URL at which to direct uploads/downloads")
-	flag.IntVar(&perPopulation, "perPopulation", 20, "number of uploads per user")
-	flag.IntVar(&sleepTime, "sleepTime", 120, "number of seconds to sleep when we decide to sleep")
-	flag.Parse()
-
-	generatePopulation()
-
+func bigTest() {
 	clientExited := make(chan int)
 	N := 20
 	//Launch all clients Nx
@@ -468,5 +458,50 @@ func main() {
 		if stillRunning <= 0 {
 			break
 		}
+	}
+}
+
+var userID = 0
+
+/*
+  Do a simple sequence to see that it actually works.
+	Capture the output so that we can see the raw http.
+*/
+func quickTest() {
+	//Upload some random file
+	link := doUpload(userID)
+	log.Printf("")
+	//var listing server.ObjectLinkResponse
+	//getObjectLinkResponse(userID, &listing)
+	//link = &listing.Objects[0]
+
+	if link != nil {
+		//Download THAT file
+		doDownloadLink(userID, link)
+		log.Printf("")
+		//Update THAT file
+		doUpdateLink(userID, link)
+		log.Printf("")
+		//Try to re-download it
+		doDownloadLink(userID, link)
+		log.Printf("")
+	} else {
+		log.Printf("We uploaded a file but got no link back!")
+	}
+}
+
+func main() {
+	flag.StringVar(&host, "url", "https://dockervm:8080", "The URL at which to direct uploads/downloads")
+	flag.IntVar(&perPopulation, "perPopulation", 20, "number of uploads per user")
+	flag.IntVar(&sleepTime, "sleepTime", 120, "number of seconds to sleep when we decide to sleep")
+	flag.BoolVar(&isQuickTest, "quickTest", true, "just run a simple up/down test")
+	flag.Parse()
+
+	generatePopulation()
+
+	if isQuickTest == false {
+		bigTest()
+	} else {
+		quickTest()
 	}
 }
