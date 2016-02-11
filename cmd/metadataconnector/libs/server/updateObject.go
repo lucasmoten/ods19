@@ -80,7 +80,7 @@ func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller C
 
 	// Check that the parent of the object passed in matches the current state
 	// of the object in the data store.
-	if requestObject.ParentID != dbObject.ParentID {
+	if bytes.Compare(requestObject.ParentID, dbObject.ParentID) != 0 {
 		h.sendErrorResponse(w, 428, nil, "ParentID does not match expected value. Use moveObject to change this objects location.")
 		return
 	}
