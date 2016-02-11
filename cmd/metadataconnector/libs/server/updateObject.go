@@ -31,7 +31,7 @@ func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller C
 
 	// Business Logic...
 
-	// 1. dbObject = GetObject using the identity referenced
+	// Retrieve existing object from the data store
 	dbObject, err := dao.GetObject(h.MetadataDB, requestObject, true)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Error retrieving object")
@@ -39,10 +39,10 @@ func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller C
 	}
 
 	// TODO
-	// 2. Check AAC to compare user clearance to NEW metadata Classifications
+	// Check AAC to compare user clearance to NEW metadata Classifications
 	// 		Check if Classification is allowed for this User
 
-	// 3. Check if the user has permissions to update the ODObject
+	// Check if the user has permissions to update the ODObject
 	//		Permission.grantee matches caller, and AllowUpdate is true
 	authorizedToUpdate := false
 	for _, permission := range dbObject.Permissions {
@@ -55,17 +55,44 @@ func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller C
 		return
 	}
 
-	// 4. Does dbObject.changeToken match that of the request object?
+	// Make sure the object isn't deleted. To remove an object from the trash,
+	// use removeObjectFromTrash call.
+	if dbObject.IsDeleted {
+		switch {
+		case dbObject.IsExpunged:
+			h.sendErrorResponse(w, 410, err, "The object no longer exists.")
+			return
+		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
+			h.sendErrorResponse(w, 405, err, "The object cannot be modified because an ancestor is deleted.")
+			return
+		case dbObject.IsDeleted:
+			h.sendErrorResponse(w, 405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it")
+			return
+		}
+	}
+
+	// Check that the change token on the object passed in matches the current
+	// state of the object in the data store
 	if requestObject.ChangeToken != dbObject.ChangeToken {
 		h.sendErrorResponse(w, 428, nil, "ChangeToken does not match expected value. Object may have been changed by another request.")
 		return
 	}
 
-	// 5. Call DAO to update the ODObject
+	// Check that the parent of the object passed in matches the current state
+	// of the object in the data store.
+	if requestObject.ParentID != dbObject.ParentID {
+		h.sendErrorResponse(w, 428, nil, "ParentID does not match expected value. Use moveObject to change this objects location.")
+		return
+	}
+
+	// Call metadata connector to update the object in the data store
 	// TODO: Handle ACM. This needs to be parsed as separate object? Maybe the
 	// model should have it nested like has been changed in the wiki page
+	// Force the modified by to be that of the caller
 	requestObject.ModifiedBy = caller.DistinguishedName
 	dao.UpdateObject(h.MetadataDB, requestObject, nil)
+
+	// After the update, check that key values have changed...
 	if requestObject.ChangeCount <= dbObject.ChangeCount {
 		h.sendErrorResponse(w, 500, nil, "ChangeCount didn't update when processing request")
 		return
