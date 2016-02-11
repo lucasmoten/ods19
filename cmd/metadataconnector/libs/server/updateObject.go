@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
@@ -95,13 +96,11 @@ func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller C
 func parseUpdateObjectRequestAsJSON(r *http.Request) (*models.ODObject, error) {
 	var jsonObject models.ODObject
 	var err error
-	// If simple body...
-	if r.Header.Get("Content-Type") == "application/json" {
-		decoder := json.NewDecoder(r.Body) // io.ReadCloser
-		err = decoder.Decode(&jsonObject)
-	}
 
-	if r.Header.Get("Content-Type") == "multipart/form-data" {
+	switch {
+	case r.Header.Get("Content-Type") == "application/json":
+		err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
+	case r.Header.Get("Content-Type") == "multipart/form-data":
 		r.ParseForm()
 		multipartReader, err := r.MultipartReader()
 		if err != nil {
@@ -112,14 +111,18 @@ func parseUpdateObjectRequestAsJSON(r *http.Request) (*models.ODObject, error) {
 			if err != nil {
 				return nil, err
 			}
-			if part.Header.Get("Content-Type") == "application/json" {
+			switch {
+			case part.Header.Get("Content-Type") == "application/json":
+
+				// Read in the JSON - up to 10K
 				valueAsBytes := make([]byte, 10240)
 				n, err := part.Read(valueAsBytes)
 				if err != nil {
 					return nil, err
 				}
-				decoder := json.NewDecoder(bytes.NewReader(valueAsBytes[0:n]))
-				err = decoder.Decode(&jsonObject)
+				err = (json.NewDecoder(bytes.NewReader(valueAsBytes[0:n]))).Decode(&jsonObject)
+			case part.Header.Get("Content-Disposition") == "form-data":
+				// TODO: Maybe these header checks need to be if the value begins with?
 			}
 		}
 	}
@@ -137,7 +140,12 @@ func updateObjectResponseAsJSON(
 	response *models.ODObject,
 ) {
 	w.Header().Set("Content-Type", "application/json")
-
+	jsonData, err := json.MarshalIndent(response, "", "  ")
+	if err != nil {
+		log.Printf("Error marshalling response as json: %s", err.Error())
+		return
+	}
+	w.Write(jsonData)
 }
 
 func updateObjectResponseAsHTML(
@@ -149,6 +157,14 @@ func updateObjectResponseAsHTML(
 
 	w.Header().Set("Content-Type", "text/html")
 	fmt.Fprintf(w, pageTemplateStart, "updateObject", caller.DistinguishedName)
+
+	jsonData, err := json.MarshalIndent(response, "", "  ")
+	if err != nil {
+		log.Printf("Error marshalling response as json: %s", err.Error())
+		return
+	}
+	w.Write(jsonData)
+
 	fmt.Fprintf(w, pageTemplateEnd)
 
 }
