@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
@@ -73,7 +74,7 @@ func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller C
 
 	// Check that the change token on the object passed in matches the current
 	// state of the object in the data store
-	if requestObject.ChangeToken != dbObject.ChangeToken {
+	if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) != 0 {
 		h.sendErrorResponse(w, 428, nil, "ChangeToken does not match expected value. Object may have been changed by another request.")
 		return
 	}
@@ -97,7 +98,7 @@ func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller C
 		h.sendErrorResponse(w, 500, nil, "ChangeCount didn't update when processing request")
 		return
 	}
-	if requestObject.ChangeToken == dbObject.ChangeToken {
+	if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) == 0 {
 		h.sendErrorResponse(w, 500, nil, "ChangeToken didn't update when processing request")
 		return
 	}
