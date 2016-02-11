@@ -1,6 +1,7 @@
 package server
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -66,8 +67,26 @@ type Caller struct {
 func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	caller := GetCaller(r)
 
-	// Add/Load them
-	user := dao.GetUserByDistinguishedName(h.MetadataDB, caller.DistinguishedName)
+	// Load user from database, adding if they dont exist
+	var user models.ODUser
+	user.DistinguishedName = caller.DistinguishedName
+	err := dao.GetUserByDistinguishedName(h.MetadataDB, &user)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// Doesn't exist yet, lets add this user
+			user.DistinguishedName = caller.DistinguishedName
+			user.DisplayName.String = caller.CommonName
+			user.CreatedBy = caller.DistinguishedName
+			err = dao.CreateUser(h.MetadataDB, &user)
+			if err != nil {
+				msg := caller.DistinguishedName + " does not exist in database, and encountering error creating them."
+				log.Println("WARN: " + msg)
+				http.Error(w, "Error accesing resource", 500)
+				return
+			}
+		} // if err == sql.NoRows
+	}
+
 	if len(user.ModifiedBy) == 0 {
 		fmt.Println("User does not have modified by set!")
 		jsonData, err := json.MarshalIndent(user, "", "  ")
