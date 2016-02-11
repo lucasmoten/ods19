@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"decipher.com/oduploader/protocol"
 	"encoding/json"
 	"flag"
 	"io"
@@ -17,6 +16,8 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"decipher.com/oduploader/protocol"
 )
 
 // ClientIdentity is a user that is going to connect to oru service
@@ -435,6 +436,10 @@ func generatePopulation() {
 	population := 10
 	populateClients(population)
 }
+
+// TODO define the following modes:
+// - full "load test" with lots of goroutines with random actions
+// - exercise the REST API
 
 func main() {
 	flag.StringVar(&host, "url", "https://dockervm:8080", "The URL at which to direct uploads/downloads")
