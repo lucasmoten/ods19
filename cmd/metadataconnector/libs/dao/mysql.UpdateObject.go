@@ -50,6 +50,8 @@ func UpdateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 		return fmt.Errorf("UpdateObject Error retrieving object, %s", err.Error())
 	}
 
+	// TODO: Process ACM changes
+
 	// Compare properties on database object to properties associated with passed
 	// in object
 	for o, objectProperty := range object.Properties {
@@ -118,14 +120,16 @@ func UpdateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 					objectPermission.AllowDelete != dbPermission.AllowDelete {
 					// The permission is different, we need to do an update on the record
 					dbPermission.ModifiedBy = object.ModifiedBy
+					// TODO: Should EncrypKey be updated? Seems like it would need to be
+					// assigned if the user didn't have AllowRead beforehand
+					if !dbPermission.AllowRead && objectPermission.AllowRead {
+						// TODO: Need to assign new EncryptKey value here and possibly do
+						// something to the stream? Check with Rob Fielding
+					}
 					dbPermission.AllowCreate = objectPermission.AllowCreate
 					dbPermission.AllowRead = objectPermission.AllowRead
 					dbPermission.AllowUpdate = objectPermission.AllowUpdate
 					dbPermission.AllowDelete = objectPermission.AllowUpdate
-					// Dont update EncryptKey here. That should only be updated when
-					// UpdateContentStream is called
-					// TODO: Should EncrypKey be updated? Seems like it would need to be
-					// assigned if the user didn't have AllowRead beforehand
 					err := UpdatePermission(db, &dbPermission)
 					if err != nil {
 						return fmt.Errorf("Error updating permission %d (%s) when updating object", o, objectPermission.Grantee)
