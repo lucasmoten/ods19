@@ -39,22 +39,23 @@ func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller C
 		return
 	}
 
-	// TODO
-	// Check AAC to compare user clearance to NEW metadata Classifications
-	// 		Check if Classification is allowed for this User
-
 	// Check if the user has permissions to update the ODObject
 	//		Permission.grantee matches caller, and AllowUpdate is true
 	authorizedToUpdate := false
 	for _, permission := range dbObject.Permissions {
-		if permission.Grantee == caller.DistinguishedName && permission.AllowUpdate {
+		if permission.Grantee == caller.DistinguishedName &&
+			permission.AllowRead && permission.AllowUpdate {
 			authorizedToUpdate = true
+			break
 		}
 	}
 	if !authorizedToUpdate {
 		h.sendErrorResponse(w, 403, nil, "Unauthorized")
 		return
 	}
+
+	// TODO: ACM check for whether user has permission to read this object
+	// from a clearance perspective
 
 	// Make sure the object isn't deleted. To remove an object from the trash,
 	// use removeObjectFromTrash call.
@@ -86,12 +87,18 @@ func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller C
 		return
 	}
 
+	// TODO
+	// Check AAC to compare user clearance to NEW metadata Classifications
+	// 		Check if Classification is allowed for this User
+
 	// Call metadata connector to update the object in the data store
-	// TODO: Handle ACM. This needs to be parsed as separate object? Maybe the
-	// model should have it nested like has been changed in the wiki page
 	// Force the modified by to be that of the caller
 	requestObject.ModifiedBy = caller.DistinguishedName
-	dao.UpdateObject(h.MetadataDB, requestObject, nil)
+	err = dao.UpdateObject(h.MetadataDB, requestObject, nil)
+	if err != nil {
+		h.sendErrorResponse(w, 500, err, "DAO Error updating object")
+		return
+	}
 
 	// After the update, check that key values have changed...
 	if requestObject.ChangeCount <= dbObject.ChangeCount {
