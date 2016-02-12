@@ -1,7 +1,6 @@
 package server
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -68,23 +67,27 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	caller := GetCaller(r)
 
 	// Load user from database, adding if they dont exist
-	var user models.ODUser
-	user.DistinguishedName = caller.DistinguishedName
-	err := dao.GetUserByDistinguishedName(h.MetadataDB, &user)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			// Doesn't exist yet, lets add this user
-			user.DistinguishedName = caller.DistinguishedName
-			user.DisplayName.String = caller.CommonName
-			user.CreatedBy = caller.DistinguishedName
-			err = dao.CreateUser(h.MetadataDB, &user)
-			if err != nil {
-				msg := caller.DistinguishedName + " does not exist in database, and encountering error creating them."
-				log.Println("WARN: " + msg)
-				http.Error(w, "Error accesing resource", 500)
-				return
-			}
-		} // if err == sql.NoRows
+	var user *models.ODUser
+	var userRequested models.ODUser
+	userRequested.DistinguishedName = caller.DistinguishedName
+	user, err := dao.GetUserByDistinguishedName(h.MetadataDB, &userRequested)
+	if err != nil || user.DistinguishedName != caller.DistinguishedName {
+		// log.Printf("User was not found in database: %s", err.Error())
+		// if err == sql.ErrNoRows || user.DistinguishedName != caller.DistinguishedName {
+		// Doesn't exist yet, lets add this user
+		userRequested.DistinguishedName = caller.DistinguishedName
+		userRequested.DisplayName.String = caller.CommonName
+		userRequested.DisplayName.Valid = true
+		userRequested.CreatedBy = caller.DistinguishedName
+		user, err = dao.CreateUser(h.MetadataDB, &userRequested)
+		if err != nil {
+			log.Printf("%s does not exist in database. Error creating: %s", caller.DistinguishedName, err.Error())
+			http.Error(w, "Error accesing resource", 500)
+			return
+		}
+		// } else {
+		// 	log.Printf(err.Error())
+		// }
 	}
 
 	if len(user.ModifiedBy) == 0 {

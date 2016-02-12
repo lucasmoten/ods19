@@ -2,7 +2,7 @@ package dao
 
 import (
 	"database/sql"
-	"fmt"
+	"log"
 
 	"decipher.com/oduploader/metadata/models"
 	"github.com/jmoiron/sqlx"
@@ -11,11 +11,11 @@ import (
 // CreateUser adds the passed in user to the database. Once added, the record is
 // retrieved and the user passed in by reference is updated with the remaining
 // attributes
-func CreateUser(db *sqlx.DB, user *models.ODUser) error {
-
+func CreateUser(db *sqlx.DB, user *models.ODUser) (*models.ODUser, error) {
+	var dbUser *models.ODUser
 	addUserStatement, err := db.Prepare(`insert user set createdBy = ?, distinguishedName = ?, displayName = ?, email = ?`)
 	if err != nil {
-		return err
+		return dbUser, err
 	}
 
 	result, err := addUserStatement.Exec(user.CreatedBy, user.DistinguishedName, user.DisplayName, user.Email)
@@ -23,27 +23,29 @@ func CreateUser(db *sqlx.DB, user *models.ODUser) error {
 		// Possible race condition here... Distinguished Name must be unique, and if
 		// a parallel request is adding them then this attempt to insert will fail.
 		// Attempt to retrieve them
-		err := GetUserByDistinguishedName(db, user)
+		dbUser, err = GetUserByDistinguishedName(db, user)
 		if err != nil {
-			return err
+			return dbUser, err
 		}
-		// Created already, and the get has populate the object, so return
-		return nil
+		// Created already, and the get has populated the object, so return
+		return dbUser, nil
 	}
 	rowCount, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return dbUser, err
 	}
 	if rowCount < 1 {
-		fmt.Println("No rows added from inserting user")
+		log.Printf("No rows were added when inserting the user!")
 	}
 	// Get the newly added user
-	err = GetUserByDistinguishedName(db, user)
+	dbUser, err = GetUserByDistinguishedName(db, user)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Println("User was not found even after just adding!")
+			log.Printf("User was not found even after just adding: %s", err.Error())
+		} else {
+			log.Printf("An error occurred retrieving newly added user: %s", err.Error())
 		}
-		return err
+		return dbUser, err
 	}
-	return nil
+	return dbUser, nil
 }

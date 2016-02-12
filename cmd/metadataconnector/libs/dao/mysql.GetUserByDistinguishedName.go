@@ -7,8 +7,9 @@ import (
 
 // GetUserByDistinguishedName looks up user record from the database using the
 // provided distinguished name
-func GetUserByDistinguishedName(db *sqlx.DB, user *models.ODUser) error {
+func GetUserByDistinguishedName(db *sqlx.DB, user *models.ODUser) (*models.ODUser, error) {
+	var dbUser models.ODUser
 	getUserStatement := `select * from user where distinguishedName = ?`
-	err := db.Get(&user, getUserStatement, user.DistinguishedName)
-	return err
+	err := db.Get(&dbUser, getUserStatement, user.DistinguishedName)
+	return &dbUser, err
 }
