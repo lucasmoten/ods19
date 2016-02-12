@@ -1,19 +1,16 @@
 package server
 
 import (
+	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
+	"decipher.com/oduploader/metadata/models"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
-
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/metadata/models"
 )
 
 func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller Caller) {
-
-	rootURL := "/service/metadataconnector/1.0"
-
 	if r.Method == "POST" {
 		var obj models.ODObject
 		var acm models.ODACM
@@ -95,7 +92,7 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 		}
 
 		// Bounce to redraw the list
-		listObjectsURL := rootURL
+		listObjectsURL := config.RootURL
 		if len(obj.ParentID) > 0 {
 			listObjectsURL += "/object/" + parentID + "/list"
 		} else {

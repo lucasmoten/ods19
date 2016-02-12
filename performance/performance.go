@@ -526,7 +526,7 @@ func (jrs *JobReporters) makeReporter(name string) *JobReporter {
 }
 
 // BeginTime gets us a timestamp to use for reporting end time
-func (jrs *JobReporters) BeginTime(reporterID ReporterID, jobName string) BeganJob {
+func (jrs *JobReporters) BeginTime(reporterID ReporterID) BeganJob {
 	jrs.BeginningJob <- BeginningJob{
 		ReporterID: reporterID,
 	}
@@ -538,7 +538,7 @@ func (jrs *JobReporters) BeginTime(reporterID ReporterID, jobName string) BeganJ
 // BUG(000) there is a rare race condition until we figure out how to delete files
 // without blocking the goroutine.  We want to block reading or writing the file
 // until the delete finishes, based on the data structures in the goroutine.
-func (jrs *JobReporters) EndTime(reporterID ReporterID, start BeganJob, jobName string, sizeJob SizeJob) {
+func (jrs *JobReporters) EndTime(reporterID ReporterID, start BeganJob, sizeJob SizeJob) {
 	jrs.EndingJob <- EndingJob{
 		ReporterID: reporterID,
 		JobReport: JobReport{
