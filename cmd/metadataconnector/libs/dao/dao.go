@@ -13,14 +13,14 @@ type DAO interface {
 	CreateObjectType(objectType *models.ODObjectType) error
 	DeleteObject(object *models.ODObject, explicit bool) error
 	DeleteObjectProperty(objectProperty *models.ODObjectPropertyEx) error
-	// DeleteObjectTypDeleteObjectType(objectType *models.ODObjectType) error
+	DeleteObjectType(objectType *models.ODObjectType) error
 	GetChildObjects(orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error)
 	// GetChildObjectsByOwner(orderByClause string, pageNumber int, pageSize int, object *models.ODObject, owner string) (models.ODObjectResultset, error)
 	// GetChildObjectsWithProperties(orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error)
 	// GetChildObjectsWithPropertiesByOwner(orderByClause string, pageNumber int, pageSize int, object *models.ODObject, owner string) (models.ODObjectResultset, error)
 	GetObject(object *models.ODObject, loadProperties bool) (*models.ODObject, error)
 	GetObjectProperty(objectProperty *models.ODObjectPropertyEx) (*models.ODObjectPropertyEx, error)
-	// GetObjectType(objectType *models.ODObjectType) (*models.ODObjectType, error)
+	GetObjectType(objectType *models.ODObjectType) (*models.ODObjectType, error)
 	GetObjectTypeByName(typeName string, addIfMissing bool, createdBy string) (models.ODObjectType, error)
 	GetPermissionsForObject(object *models.ODObject) ([]models.ODObjectPermission, error)
 	GetPropertiesForObject(object *models.ODObject) ([]models.ODObjectPropertyEx, error)

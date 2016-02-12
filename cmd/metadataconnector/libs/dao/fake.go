@@ -46,6 +46,11 @@ func (fake *FakeDAO) DeleteObjectProperty(objectProperty *models.ODObjectPropert
 	return fake.Err
 }
 
+// DeleteObjectType for FakeDAO.
+func (fake *FakeDAO) DeleteObjectType(objectType *models.ODObjectType) error {
+	return fake.Err
+}
+
 // GetChildObjects for FakeDAO.
 func (fake *FakeDAO) GetChildObjects(orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
@@ -59,6 +64,11 @@ func (fake *FakeDAO) GetObject(object *models.ODObject, loadProperties bool) (*m
 // GetObjectProperty for FakeDAO.
 func (fake *FakeDAO) GetObjectProperty(objectProperty *models.ODObjectPropertyEx) (*models.ODObjectPropertyEx, error) {
 	return fake.ObjectProperty, fake.Err
+}
+
+// GetObjectType for FakeDAO.
+func (fake *FakeDAO) GetObjectType(objectType *models.ODObjectType) (*models.ODObjectType, error) {
+	return &fake.ObjectType, fake.Err
 }
 
 // GetPermissionsForObject for FakeDAO.
