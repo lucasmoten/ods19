@@ -11,6 +11,7 @@ type FakeDAO struct {
 	ObjectPermissions []models.ODObjectPermission
 	ObjectProperites  []models.ODObjectPropertyEx
 	ObjectType        models.ODObjectType
+	ObjectResultSet   models.ODObjectResultset
 	// TODO: all required responses should be fields.
 }
 
@@ -26,20 +27,27 @@ func (fake *FakeDAO) AddPropertyToObject(createdBy string, object *models.ODObje
 
 // CreateObject for FakeDAO.
 func (fake *FakeDAO) CreateObject(object *models.ODObject, acm *models.ODACM) error {
-	fake.Object = object
 	return fake.Err
 }
 
 // CreateObjectType for FakeDAO.
 func (fake *FakeDAO) CreateObjectType(objectType *models.ODObjectType) error {
-	fake.ObjectType = *objectType
 	return fake.Err
+}
+
+// DeleteObject for FakeDAO.
+func (fake *FakeDAO) DeleteObject(object *models.ODObject, explicit bool) error {
+	return fake.Err
+}
+
+// GetChildObjects for FakeDAO.
+func (fake *FakeDAO) GetChildObjects(orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error) {
+	return fake.ObjectResultSet, fake.Err
 }
 
 // GetObject for FakeDAO.
 func (fake *FakeDAO) GetObject(object *models.ODObject, loadProperties bool) (*models.ODObject, error) {
-	// return what we set on the field
-	return fake.Object, nil
+	return fake.Object, fake.Err
 }
 
 // GetPermissionsForObject for FakeDAO.
