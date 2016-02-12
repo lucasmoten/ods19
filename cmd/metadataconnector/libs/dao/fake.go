@@ -109,6 +109,17 @@ func (fake *FakeDAO) GetRootObjects(orderByClause string, pageNumber int, pageSi
 	return fake.ObjectResultSet, fake.Err
 }
 
+// GetRootObjectsByOwner for FakeDAO.
+func (fake *FakeDAO) GetRootObjectsByOwner(
+	orderByClause string, pageNumber int, pageSize int, owner string) (models.ODObjectResultset, error) {
+	return fake.ObjectResultSet, fake.Err
+}
+
+func (fake *FakeDAO) GetRootObjectsWithProperties(
+	orderByClause string, pageNumber int, pageSize int) (models.ODObjectResultset, error) {
+	return fake.ObjectResultSet, fake.Err
+}
+
 func (fake *FakeDAO) clearError() {
 	fake.Err = nil
 }
