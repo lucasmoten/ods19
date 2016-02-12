@@ -1,6 +1,7 @@
 package dao_test
 
 import (
+	"database/sql"
 	"testing"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
@@ -13,11 +14,17 @@ func TestCreateObjectType(t *testing.T) {
 	objectType.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 
 	dbObjectType, err := dao.GetObjectTypeByName(db, objectType.Name, false, objectType.CreatedBy)
+	objectTypeCreated := false
+	// we can have an error if the object type not present
 	if err != nil {
-		t.Error(err)
+		// but it has to be a no rows error. anything else, fails the test
+		if err != sql.ErrNoRows {
+			t.Error(err)
+		}
 	}
 	if dbObjectType.ID == nil {
 		dao.CreateObjectType(db, &objectType)
+		objectTypeCreated = true
 	} else {
 		objectType = dbObjectType
 	}
@@ -29,8 +36,10 @@ func TestCreateObjectType(t *testing.T) {
 		t.Error("expected ModifiedBy to match CreatedBy")
 	}
 
-	err = dao.DeleteObjectType(db, &objectType)
-	if err != nil {
-		t.Error(err)
+	if objectTypeCreated {
+		err = dao.DeleteObjectType(db, &objectType)
+		if err != nil {
+			t.Error(err)
+		}
 	}
 }
