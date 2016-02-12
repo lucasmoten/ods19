@@ -235,7 +235,7 @@ func moveObjectResponseAsHTML(
 ) {
 
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, pageTemplateStart, "updateObject", caller.DistinguishedName)
+	fmt.Fprintf(w, pageTemplateStart, "moveObject", caller.DistinguishedName)
 
 	jsonData, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
