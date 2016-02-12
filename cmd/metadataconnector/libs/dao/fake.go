@@ -56,6 +56,18 @@ func (fake *FakeDAO) GetChildObjects(orderByClause string, pageNumber int, pageS
 	return fake.ObjectResultSet, fake.Err
 }
 
+// GetChildObjectsByOwner for FakeDAO.
+func (fake *FakeDAO) GetChildObjectsByOwner(
+	orderByClause string, pageNumber int, pageSize int, object *models.ODObject, owner string) (models.ODObjectResultset, error) {
+	return fake.ObjectResultSet, fake.Err
+}
+
+// GetChildObjectsWithProperties for FakeDAO.
+func (fake *FakeDAO) GetChildObjectsWithProperties(
+	orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error) {
+	return fake.ObjectResultSet, fake.Err
+}
+
 // GetObject for FakeDAO.
 func (fake *FakeDAO) GetObject(object *models.ODObject, loadProperties bool) (*models.ODObject, error) {
 	return fake.Object, fake.Err

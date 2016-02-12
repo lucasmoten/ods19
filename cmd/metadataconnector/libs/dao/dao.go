@@ -15,8 +15,8 @@ type DAO interface {
 	DeleteObjectProperty(objectProperty *models.ODObjectPropertyEx) error
 	DeleteObjectType(objectType *models.ODObjectType) error
 	GetChildObjects(orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error)
-	// GetChildObjectsByOwner(orderByClause string, pageNumber int, pageSize int, object *models.ODObject, owner string) (models.ODObjectResultset, error)
-	// GetChildObjectsWithProperties(orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error)
+	GetChildObjectsByOwner(orderByClause string, pageNumber int, pageSize int, object *models.ODObject, owner string) (models.ODObjectResultset, error)
+	GetChildObjectsWithProperties(orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error)
 	// GetChildObjectsWithPropertiesByOwner(orderByClause string, pageNumber int, pageSize int, object *models.ODObject, owner string) (models.ODObjectResultset, error)
 	GetObject(object *models.ODObject, loadProperties bool) (*models.ODObject, error)
 	GetObjectProperty(objectProperty *models.ODObjectPropertyEx) (*models.ODObjectPropertyEx, error)
