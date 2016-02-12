@@ -44,13 +44,13 @@ type AppServer struct {
 	AAC *aac.AacServiceClient
 	// TODO: Classifications is ????
 	Classifications map[string]string
-	// TODO: MasterKey is ????
+	// MasterKey is the secret passphrase used in scrambling keys
 	MasterKey string
-	// TODO: Tracker is ????
+	// Tracker captures metrics about upload/download begin and end time and transfer bytes
 	Tracker *performance.JobReporters
-	// TODO: TemplateCache is ????
+	// TemplateCache is location of HTML templates used by server
 	TemplateCache *template.Template
-	// TODO: StaticDir is ????
+	// StaticDir is location of static objects like javascript
 	StaticDir string
 }
 
