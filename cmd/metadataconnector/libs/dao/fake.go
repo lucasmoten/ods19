@@ -6,10 +6,16 @@ import "decipher.com/oduploader/metadata/models"
 // reponses for each of the methods that FakeDAO will implement. These fake
 // response fields can be explicitly set in tests.
 type FakeDAO struct {
+	Err               error
 	Object            *models.ODObject
 	ObjectPermissions []models.ODObjectPermission
 	ObjectProperites  []models.ODObjectPropertyEx
 	// TODO: all required responses should be fields.
+}
+
+// AddPerAddPermissionToObject for FakeDAO.
+func (fake *FakeDAO) AddPerAddPermissionToObject(createdBy string, object *models.ODObject, permission *models.ODObjectPermission) error {
+	return fake.Err
 }
 
 // GetObject for FakeDAO.

@@ -7,7 +7,7 @@ import (
 
 // DAO defines the contract our app has with the database.
 type DAO interface {
-	// AddAddPermissionToObject(createdBy string, object *models.ODObject, permission *models.ODObjectPermission) error
+	AddPermissionToObject(createdBy string, object *models.ODObject, permission *models.ODObjectPermission) error
 	// AddPropertyToObject(createdBy string, object *models.ODObject, property *models.ODProperty) error
 	// CreateObject(object *models.ODObject, acm *models.ODACM) error
 	// CreateObjectType(objectType *models.ODObjectType) error
