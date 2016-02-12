@@ -2,10 +2,13 @@ package server
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
@@ -151,6 +154,19 @@ func parseUpdateObjectRequestAsJSON(r *http.Request) (*models.ODObject, error) {
 				err = (json.NewDecoder(bytes.NewReader(valueAsBytes[0:n]))).Decode(&jsonObject)
 			case part.Header.Get("Content-Disposition") == "form-data":
 				// TODO: Maybe these header checks need to be if the value begins with?
+			}
+		}
+	}
+
+	// Portions from the request URI itself ...
+	uri := r.URL.RequestURI()
+	re, _ := regexp.Compile("/object/(.*)/properties")
+	matchIndexes := re.FindStringSubmatchIndex(uri)
+	if len(matchIndexes) != 0 {
+		if len(matchIndexes) > 3 {
+			jsonObject.ID, err = hex.DecodeString(uri[matchIndexes[2]:matchIndexes[3]])
+			if err != nil {
+				return nil, errors.New("Object Identifier in Request URI is not a hex string")
 			}
 		}
 	}
