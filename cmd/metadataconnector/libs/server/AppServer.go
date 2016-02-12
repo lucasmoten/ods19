@@ -29,6 +29,7 @@ type AppServer struct {
 	Addr string
 	// MetadataDB is a handle to the database connection
 	MetadataDB *sqlx.DB
+	DAO        dao.DataAccessLayer
 	// TODO: Convert this as appropriate to non implementation specific
 	// S3 is the handle to the S3 Client
 	S3 *s3.S3
