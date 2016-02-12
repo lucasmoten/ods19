@@ -10,6 +10,7 @@ type FakeDAO struct {
 	Object            *models.ODObject
 	ObjectPermissions []models.ODObjectPermission
 	ObjectProperites  []models.ODObjectPropertyEx
+	ObjectProperty    *models.ODObjectPropertyEx
 	ObjectType        models.ODObjectType
 	ObjectResultSet   models.ODObjectResultset
 	// TODO: all required responses should be fields.
@@ -40,6 +41,11 @@ func (fake *FakeDAO) DeleteObject(object *models.ODObject, explicit bool) error 
 	return fake.Err
 }
 
+// DeleteObjectProperty for FakeDAO.
+func (fake *FakeDAO) DeleteObjectProperty(objectProperty *models.ODObjectPropertyEx) error {
+	return fake.Err
+}
+
 // GetChildObjects for FakeDAO.
 func (fake *FakeDAO) GetChildObjects(orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
@@ -48,6 +54,11 @@ func (fake *FakeDAO) GetChildObjects(orderByClause string, pageNumber int, pageS
 // GetObject for FakeDAO.
 func (fake *FakeDAO) GetObject(object *models.ODObject, loadProperties bool) (*models.ODObject, error) {
 	return fake.Object, fake.Err
+}
+
+// GetObjectProperty for FakeDAO.
+func (fake *FakeDAO) GetObjectProperty(objectProperty *models.ODObjectPropertyEx) (*models.ODObjectPropertyEx, error) {
+	return fake.ObjectProperty, fake.Err
 }
 
 // GetPermissionsForObject for FakeDAO.
