@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"log"
+
 	"decipher.com/oduploader/metadata/models"
 	"github.com/jmoiron/sqlx"
 )
@@ -11,6 +13,7 @@ func GetPropertiesForObject(db *sqlx.DB, object *models.ODObject) ([]models.ODOb
 	query := `select p.* from property p inner join object_property op on p.id = op.propertyid where p.isdeleted = 0 and op.isdeleted = 0 and op.objectid = ?`
 	err := db.Select(&response, query, object.ID)
 	if err != nil {
+		log.Printf("Error getting properties for object: %s", err.Error())
 		return response, err
 	}
 	return response, err

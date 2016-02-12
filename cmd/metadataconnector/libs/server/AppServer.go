@@ -66,8 +66,30 @@ type Caller struct {
 func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	caller := GetCaller(r)
 
-	// Add/Load them
-	user := dao.GetUserByDistinguishedName(h.MetadataDB, caller.DistinguishedName)
+	// Load user from database, adding if they dont exist
+	var user *models.ODUser
+	var userRequested models.ODUser
+	userRequested.DistinguishedName = caller.DistinguishedName
+	user, err := dao.GetUserByDistinguishedName(h.MetadataDB, &userRequested)
+	if err != nil || user.DistinguishedName != caller.DistinguishedName {
+		// log.Printf("User was not found in database: %s", err.Error())
+		// if err == sql.ErrNoRows || user.DistinguishedName != caller.DistinguishedName {
+		// Doesn't exist yet, lets add this user
+		userRequested.DistinguishedName = caller.DistinguishedName
+		userRequested.DisplayName.String = caller.CommonName
+		userRequested.DisplayName.Valid = true
+		userRequested.CreatedBy = caller.DistinguishedName
+		user, err = dao.CreateUser(h.MetadataDB, &userRequested)
+		if err != nil {
+			log.Printf("%s does not exist in database. Error creating: %s", caller.DistinguishedName, err.Error())
+			http.Error(w, "Error accesing resource", 500)
+			return
+		}
+		// } else {
+		// 	log.Printf(err.Error())
+		// }
+	}
+
 	if len(user.ModifiedBy) == 0 {
 		fmt.Println("User does not have modified by set!")
 		jsonData, err := json.MarshalIndent(user, "", "  ")

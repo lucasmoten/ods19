@@ -50,6 +50,8 @@ func UpdateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 		return fmt.Errorf("UpdateObject Error retrieving object, %s", err.Error())
 	}
 
+	// TODO: Process ACM changes
+
 	// Compare properties on database object to properties associated with passed
 	// in object
 	for o, objectProperty := range object.Properties {
@@ -59,27 +61,29 @@ func UpdateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 				// Updating an existing property
 				existingProperty = true
 				if len(objectProperty.Value.String) == 0 {
-					// Deleting properties of this name
+					// Deleting matching properties by name. The id and changeToken are
+					// implicit from dbObject for each one that matches.
 					dbProperty.ModifiedBy = object.ModifiedBy
 					DeleteObjectProperty(db, &dbProperty)
+					// don't break for loop here because we want to clean out all of the
+					// existing properties with the same name in this case.
 				} else {
-					// The property exists, and may or may not have changed. For now, this
-					// is going to delete the properties and re-add them below.  Ideally,
-					// we need to compare all the values passed in, compared to all the
-					// values present in the db properties of the same name to see which
-					// are new values, and which are no longer present to perform isolated
-					// delete and adds.
-					// TODO: Change the logic here per the above to do less db calls and
-					// keep accurate change history.
-					dbProperty.ModifiedBy = object.ModifiedBy
-					DeleteObjectProperty(db, &dbProperty)
-					// causes it to be readded later.
-					existingProperty = false
+					// The name matched, but value isn't empty. Is it different?
+					if (objectProperty.Value.String != dbProperty.Value.String) ||
+						(objectProperty.ClassificationPM.String != dbProperty.Value.String) {
+						// Existing property, but with a new value... need to update
+						dbProperty.ModifiedBy = object.ModifiedBy
+						dbProperty.Value.String = objectProperty.Value.String
+						dbProperty.ClassificationPM.String = objectProperty.ClassificationPM.String
+						UpdateObjectProperty(db, &dbProperty)
+					}
+					// break out of the for loop on database objects
+					break
 				}
 			}
-		}
+		} // dbPropety
 		if !existingProperty {
-			// Add the passed in property
+			// Add the newly passed in property
 			var newProperty models.ODProperty
 			newProperty.CreatedBy = object.ModifiedBy
 			newProperty.Name = objectProperty.Name
@@ -95,8 +99,10 @@ func UpdateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 			if err != nil {
 				return fmt.Errorf("Error saving property %d (%s) when updating object", o, objectProperty.Name)
 			}
+		} else {
+			// This existing property needs to be updated
 		}
-	}
+	} //objectProperty
 
 	// Permissions
 	// Iterate permissions passed with the object
@@ -107,19 +113,23 @@ func UpdateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 			// If its the same user... (and hencec forcing collapse to only one per grantee)
 			if objectPermission.Grantee == dbPermission.Grantee {
 				existingPermission = true
-				// See if the permission is the same...
+				// if the permission is not the same... we need to update it
 				if objectPermission.AllowCreate != dbPermission.AllowCreate ||
 					objectPermission.AllowRead != dbPermission.AllowRead ||
 					objectPermission.AllowUpdate != dbPermission.AllowUpdate ||
 					objectPermission.AllowDelete != dbPermission.AllowDelete {
 					// The permission is different, we need to do an update on the record
 					dbPermission.ModifiedBy = object.ModifiedBy
+					// TODO: Should EncrypKey be updated? Seems like it would need to be
+					// assigned if the user didn't have AllowRead beforehand
+					if !dbPermission.AllowRead && objectPermission.AllowRead {
+						// TODO: Need to assign new EncryptKey value here and possibly do
+						// something to the stream? Check with Rob Fielding
+					}
 					dbPermission.AllowCreate = objectPermission.AllowCreate
 					dbPermission.AllowRead = objectPermission.AllowRead
 					dbPermission.AllowUpdate = objectPermission.AllowUpdate
 					dbPermission.AllowDelete = objectPermission.AllowUpdate
-					// Dont update EncryptKey here. That should only be updated when
-					// UpdateContentStream is called
 					err := UpdatePermission(db, &dbPermission)
 					if err != nil {
 						return fmt.Errorf("Error updating permission %d (%s) when updating object", o, objectPermission.Grantee)
@@ -129,6 +139,8 @@ func UpdateObject(db *sqlx.DB, object *models.ODObject, acm *models.ODACM) error
 		}
 		if !existingPermission {
 			// No existing permission. Need to add it
+			// TODO: Since this is a new permission, we need to establish the
+			// encryptKey for this grantee.
 			err := AddPermissionToObject(db, object.ModifiedBy, object, &objectPermission)
 			if err != nil {
 				crud := []string{"C", "R", "U", "D"}
