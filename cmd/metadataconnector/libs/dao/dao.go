@@ -7,6 +7,17 @@ import (
 
 // DAO defines the contract our app has with the database.
 type DAO interface {
+	// AddAddPermissionToObject(createdBy string, object *models.ODObject, permission *models.ODObjectPermission) error
+	// AddPropertyToObject(createdBy string, object *models.ODObject, property *models.ODProperty) error
+	// CreateObject(object *models.ODObject, acm *models.ODACM) error
+	// CreateObjectType(objectType *models.ODObjectType) error
+	// DeleteObject(object *models.ODObject, explicit bool) error
+	// DeleteObjectProperty(objectProperty *models.ODObjectPropertyEx) error
+	// DeleteObjectTypDeleteObjectType(objectType *models.ODObjectType) error
+	// GetChildObjects(orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error)
+	// GetChildObjectsByOwner(orderByClause string, pageNumber int, pageSize int, object *models.ODObject, owner string) (models.ODObjectResultset, error)
+	// GetChildObjectsWithProperties(orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error)
+	// GetChildObjectsWithPropertiesByOwner(orderByClause string, pageNumber int, pageSize int, object *models.ODObject, owner string) (models.ODObjectResultset, error)
 	GetObject(object *models.ODObject, loadProperties bool) (*models.ODObject, error)
 	GetPermissionsForObject(object *models.ODObject) ([]models.ODObjectPermission, error)
 	GetPropertiesForObject(object *models.ODObject) ([]models.ODObjectPropertyEx, error)
