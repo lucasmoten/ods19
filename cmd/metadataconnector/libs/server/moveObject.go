@@ -112,6 +112,22 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 		return
 	}
 
+	// #60 Check that the parent being assigned for the object passed in does not
+	// result in a circular reference
+	if bytes.Compare(requestObject.ParentID, requestObject.ID) == 0 {
+		h.sendErrorResponse(w, 400, err, "ParentID cannot be set to the ID of the object. Circular references are not allowed.")
+		return
+	}
+	circular, err := dao.IsParentIDADescendent(h.MetadataDB, requestObject.ID, requestObject.ParentID)
+	if err != nil {
+		h.sendErrorResponse(w, 400, err, "Error retrieving ancestor to check for circular references")
+		return
+	}
+	if circular {
+		h.sendErrorResponse(w, 400, err, "ParentID cannot be set to the value specified as would result in a circular reference")
+		return
+	}
+
 	// Check that the parent of the object passed in is different then the current
 	// state of the object in the data store
 	if bytes.Compare(requestObject.ParentID, dbObject.ParentID) == 0 {
@@ -245,5 +261,4 @@ func moveObjectResponseAsHTML(
 	w.Write(jsonData)
 
 	fmt.Fprintf(w, pageTemplateEnd)
-
 }
