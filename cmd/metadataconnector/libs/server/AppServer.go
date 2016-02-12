@@ -21,45 +21,50 @@ import (
 
 // AppServer contains definition for the metadata server
 type AppServer struct {
-	Port            int
-	Bind            string
-	Addr            string
-	MetadataDB      *sqlx.DB
-	S3              *s3.S3
-	AWSSession      *session.Session
-	CacheLocation   string
-	ServicePrefix   string
-	AAC             *aac.AacServiceClient
+	// Port is the TCP port that the web server listens on
+	Port int
+	// Bind is the Network Address that the web server will use.
+	Bind string
+	// Addr is the combined network address and port the server listens on
+	Addr string
+	// MetadataDB is a handle to the database connection
+	MetadataDB *sqlx.DB
+	// TODO: Convert this as appropriate to non implementation specific
+	// S3 is the handle to the S3 Client
+	S3 *s3.S3
+	// AWSSession is a handle to active Amazon Web Service session
+	AWSSession *session.Session
+	// CacheLocation is the location locally for temporary storage of content
+	// streams encrypted at rest
+	CacheLocation string
+	// ServicePrefix is the base RootURL for all public operations of web server
+	ServicePrefix string
+	// AAC is a handle to the Authorization and Access Control client
+	// TODO: This will need to be converted to be pluggable later
+	AAC *aac.AacServiceClient
+	// TODO: Classifications is ????
 	Classifications map[string]string
-	MasterKey       string
-	Tracker         *performance.JobReporters
-	TemplateCache   *template.Template
-	StaticDir       string
-}
-
-// UserSession is per session information that needs to be passed around
-type UserSession struct {
-	User models.ODUser
-}
-
-func (h AppServer) findWho(r *http.Request) string {
-	who := "anonymous" //Should be a DN
-	if len(r.TLS.PeerCertificates) > 0 {
-		//Direct 2way ssl connection
-		who = config.GetDistinguishedName(r.TLS.PeerCertificates[0])
-	} else {
-		//get from a header
-	}
-	return who
+	// TODO: MasterKey is ????
+	MasterKey string
+	// TODO: Tracker is ????
+	Tracker *performance.JobReporters
+	// TODO: TemplateCache is ????
+	TemplateCache *template.Template
+	// TODO: StaticDir is ????
+	StaticDir string
 }
 
 // Caller provides the distinguished names obtained from specific request
 // headers and peer certificate if called directly
 type Caller struct {
-	DistinguishedName               string
-	UserDistinguishedName           string
+	// DistinguishedName is the unique identity of a user
+	DistinguishedName string
+	// UserDistinguishedName holds the value passed in header USER_DN
+	UserDistinguishedName string
+	// ExternalSystemDistinguishedName holds the value passed in header EXTERNAL_SYS_DN
 	ExternalSystemDistinguishedName string
-	CommonName                      string
+	// CommonName is the CN value part of the DistinguishedName
+	CommonName string
 }
 
 // ServeHTTP handles the routing of requests

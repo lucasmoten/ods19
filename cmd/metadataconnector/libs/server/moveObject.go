@@ -42,16 +42,14 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 		return
 	}
 
-	// TODO
-	// Check AAC to compare user clearance to NEW metadata Classifications
-	// 		Check if Classification is allowed for this User
-
 	// Check if the user has permissions to update the ODObject
 	//		Permission.grantee matches caller, and AllowUpdate is true
 	authorizedToUpdate := false
 	for _, permission := range dbObject.Permissions {
-		if permission.Grantee == caller.DistinguishedName && permission.AllowUpdate {
+		if permission.Grantee == caller.DistinguishedName &&
+			permission.AllowRead && permission.AllowUpdate {
 			authorizedToUpdate = true
+			break
 		}
 	}
 	if !authorizedToUpdate {
@@ -70,8 +68,10 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 	}
 	authorizedToMoveTo := false
 	for _, parentPermission := range targetParent.Permissions {
-		if parentPermission.Grantee == caller.DistinguishedName && parentPermission.AllowCreate {
+		if parentPermission.Grantee == caller.DistinguishedName &&
+			parentPermission.AllowRead && parentPermission.AllowCreate {
 			authorizedToMoveTo = true
+			break
 		}
 	}
 	if !authorizedToMoveTo {
@@ -82,10 +82,10 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 	// parent must not be deleted
 	if targetParent.IsDeleted {
 		if targetParent.IsExpunged {
-			h.sendErrorResponse(w, 400, err, "Unable to move object into an object that does not exist")
+			h.sendErrorResponse(w, 410, err, "Unable to move object into an object that does not exist")
 			return
 		}
-		h.sendErrorResponse(w, 400, err, "Unable to move object into an object that is deleted")
+		h.sendErrorResponse(w, 405, err, "Unable to move object into an object that is deleted")
 		return
 	}
 
@@ -94,13 +94,13 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			h.sendErrorResponse(w, 400, err, "The object no longer exists.")
+			h.sendErrorResponse(w, 410, err, "The object no longer exists.")
 			return
 		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-			h.sendErrorResponse(w, 400, err, "The object cannot be modified because an ancestor is deleted.")
+			h.sendErrorResponse(w, 405, err, "The object cannot be modified because an ancestor is deleted.")
 			return
 		case dbObject.IsDeleted:
-			h.sendErrorResponse(w, 400, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it")
+			h.sendErrorResponse(w, 405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it")
 			return
 		}
 	}
@@ -134,9 +134,6 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 		// NOOP, will return current state
 		requestObject = dbObject
 	} else {
-
-		// TODO: Handle ACM. This needs to be parsed as separate object? Maybe the
-		// model should have it nested like has been changed in the wiki page
 
 		// Call metadata connector to update the object in the data store
 		// We reference the dbObject here instead of request to isolate what is
