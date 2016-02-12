@@ -13,6 +13,8 @@ type FakeDAO struct {
 	ObjectProperty    *models.ODObjectPropertyEx
 	ObjectType        models.ODObjectType
 	ObjectResultSet   models.ODObjectResultset
+	User              *models.ODUser
+	Users             []string
 	// TODO: all required responses should be fields.
 }
 
@@ -74,6 +76,17 @@ func (fake *FakeDAO) GetChildObjectsWithPropertiesByOwner(
 	return fake.ObjectResultSet, fake.Err
 }
 
+// GetUserByDistinguishedName for FakeDAO.
+func (fake *FakeDAO) GetUserByDistinguishedName(user *models.ODUser) (*models.ODUser, error) {
+	return fake.User, fake.Err
+
+}
+
+// GetUsers for FakeDAO.
+func (fake *FakeDAO) GetUsers() ([]string, error) {
+	return fake.Users, fake.Err
+}
+
 // GetObject for FakeDAO.
 func (fake *FakeDAO) GetObject(object *models.ODObject, loadProperties bool) (*models.ODObject, error) {
 	return fake.Object, fake.Err
@@ -115,16 +128,33 @@ func (fake *FakeDAO) GetRootObjectsByOwner(
 	return fake.ObjectResultSet, fake.Err
 }
 
+// GetRootObjectsWithProperties for FakeDAO.
 func (fake *FakeDAO) GetRootObjectsWithProperties(
 	orderByClause string, pageNumber int, pageSize int) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
-func (fake *FakeDAO) clearError() {
-	fake.Err = nil
+// GetRootObjectsWithPropertiesByOwner for FakeDAO.
+func (fake *FakeDAO) GetRootObjectsWithPropertiesByOwner(
+	orderByClause string, pageNumber int, pageSize int, owner string) (models.ODObjectResultset, error) {
+	return fake.ObjectResultSet, fake.Err
 }
 
-// TODO: remove this. This is just to make the compiler mad when I leave off methods.
-func getFakeDAO() DAO {
-	return &FakeDAO{}
+// UpdateObject for FakeDAO.
+func (fake *FakeDAO) UpdateObject(object *models.ODObject, acm *models.ODACM) error {
+	return fake.Err
+}
+
+// UpdateObjectProperty for FakeDAO.
+func (fake *FakeDAO) UpdateObjectProperty(objectProperty *models.ODObjectPropertyEx) error {
+	return fake.Err
+}
+
+// UpdatePermission for FakeDAO.
+func (fake *FakeDAO) UpdatePermission(permission *models.ODObjectPermission) error {
+	return fake.Err
+}
+
+func (fake *FakeDAO) clearError() {
+	fake.Err = nil
 }

@@ -27,21 +27,15 @@ type DAO interface {
 	GetRootObjects(orderByClause string, pageNumber int, pageSize int) (models.ODObjectResultset, error)
 	GetRootObjectsByOwner(orderByClause string, pageNumber int, pageSize int, owner string) (models.ODObjectResultset, error)
 	GetRootObjectsWithProperties(orderByClause string, pageNumber int, pageSize int) (models.ODObjectResultset, error)
-	// GetRootObjectsWithPropertiesByOwner(orderByClause string, pageNumber int, pageSize int, owner string) (models.ODObjectResultset, error)
-	// GetUserByDistinguishedName(user *models.ODUser) (*models.ODUser, error)
-	// GetUsers() ([]string, error)
-	// UpdateObject(object *models.ODObject, acm *models.ODACM) error
-	// UpdateObjectProperty(objectProperty *models.ODObjectPropertyEx) error
-	// UpdatePermission(permission *models.ODObjectPermission) error
+	GetRootObjectsWithPropertiesByOwner(orderByClause string, pageNumber int, pageSize int, owner string) (models.ODObjectResultset, error)
+	GetUserByDistinguishedName(user *models.ODUser) (*models.ODUser, error)
+	GetUsers() ([]string, error)
+	UpdateObject(object *models.ODObject, acm *models.ODACM) error
+	UpdateObjectProperty(objectProperty *models.ODObjectPropertyEx) error
+	UpdatePermission(permission *models.ODObjectPermission) error
 }
 
-// DataAccessLayer is a concrete DAO implementation with a true db conn.
-// Production servers should use this.
+// DataAccessLayer is a concrete DAO implementation with a true DB connection.
 type DataAccessLayer struct {
 	MetadataDB *sqlx.DB
-}
-
-// TODO: remove this. This is just to make the compiler mad when I leave off methods.
-func getRealDAO() DAO {
-	return &DataAccessLayer{}
 }
