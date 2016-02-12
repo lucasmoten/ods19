@@ -499,7 +499,7 @@ func main() {
 
 	generatePopulation()
 
-	if isQuickTest == false {
+	if true {
 		bigTest()
 	} else {
 		quickTest()

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 	"encoding/json"
@@ -22,11 +23,23 @@ func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, ca
 	//Descramble key (and rescramble when we go to save object back)
 	applyPassphrase(h.MasterKey+caller.DistinguishedName, grant.EncryptKey)
 
+	//We need a name for the new text, and a new iv
 	rName := createRandomName()
-	//_, iv := createKeyIVPair() //This object version has a fresh IV, but same key
+	_, iv := createKeyIVPair()
 	object.ContentConnector.String = rName
-	//XXX TODO ... trying to figure out why no decrypt.  Leaving key,iv alone
-	//object.EncryptIV = iv
+	object.EncryptIV = iv
+
+	for _, permission := range object.Permissions {
+		if permission.Grantee == caller.DistinguishedName && permission.AllowUpdate {
+			grant = &permission
+			break
+		}
+	}
+
+	if grant == nil {
+		h.sendErrorResponse(w, 403, nil, "Unauthorized")
+		return
+	}
 
 	//Do an upload that is basically the same as for a new object.
 	h.acceptObjectUpload(w, r, caller, object, &acm, grant)
@@ -38,15 +51,13 @@ func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, ca
 	//Rescramble key
 	applyPassphrase(h.MasterKey+caller.DistinguishedName, grant.EncryptKey)
 
-	rootURL := "/service/metadataconnector/1.0"
-
 	object, err = h.getObjectStreamObject(w, r, caller)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Could not retrieve object")
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	link := GetObjectLinkFromObject(rootURL, object)
+	link := GetObjectLinkFromObject(config.RootURL, object)
 	//Write a link back to the user so that it's possible to do an update on this object
 	encoder := json.NewEncoder(w)
 	encoder.Encode(&link)
