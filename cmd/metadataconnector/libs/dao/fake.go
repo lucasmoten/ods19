@@ -4,7 +4,7 @@ import "decipher.com/oduploader/metadata/models"
 
 // FakeDAO is suitable for tests. Add fields to this struct to hold fake
 // reponses for each of the methods that FakeDAO will implement. These fake
-// response fields can be explicitly set in tests.
+// response fields can be explicitly set, or setup functions can be defined.
 type FakeDAO struct {
 	Err               error
 	Object            *models.ODObject
@@ -15,7 +15,7 @@ type FakeDAO struct {
 	ObjectResultSet   models.ODObjectResultset
 	User              *models.ODUser
 	Users             []string
-	// TODO: all required responses should be fields.
+	// TODO: More fields required?
 }
 
 // AddPermissionToObject for FakeDAO.
