@@ -11,7 +11,9 @@ import (
 	"regexp"
 	"strings"
 
+	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 )
 
 func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller Caller) {
@@ -119,19 +121,20 @@ func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller C
 	// since that may need to also update the content stream with new EncryptKey
 
 	// Response in requested format
+	apiResponse := mapping.MapODObjectToObject(requestObject)
 	switch {
 	case r.Header.Get("Content-Type") == "multipart/form-data":
 		fallthrough
 	case r.Header.Get("Content-Type") == "application/json":
-		updateObjectResponseAsJSON(w, r, caller, requestObject)
+		updateObjectResponseAsJSON(w, r, caller, &apiResponse)
 	default:
-		updateObjectResponseAsHTML(w, r, caller, requestObject)
+		updateObjectResponseAsHTML(w, r, caller, &apiResponse)
 	}
 
 }
 
 func parseUpdateObjectRequestAsJSON(r *http.Request) (*models.ODObject, error) {
-	var jsonObject models.ODObject
+	var jsonObject protocol.Object
 	var err error
 
 	switch {
@@ -177,7 +180,9 @@ func parseUpdateObjectRequestAsJSON(r *http.Request) (*models.ODObject, error) {
 		}
 	}
 
-	return &jsonObject, err
+	// Map to internal object type
+	object := mapping.MapObjectToODObject(&jsonObject)
+	return &object, err
 }
 func parseUpdateObjectRequestAsHTML(r *http.Request) *models.ODObject {
 	return nil
@@ -187,9 +192,10 @@ func updateObjectResponseAsJSON(
 	w http.ResponseWriter,
 	r *http.Request,
 	caller Caller,
-	response *models.ODObject,
+	response *protocol.Object,
 ) {
 	w.Header().Set("Content-Type", "application/json")
+
 	jsonData, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
 		log.Printf("Error marshalling response as json: %s", err.Error())
@@ -202,7 +208,7 @@ func updateObjectResponseAsHTML(
 	w http.ResponseWriter,
 	r *http.Request,
 	caller Caller,
-	response *models.ODObject,
+	response *protocol.Object,
 ) {
 
 	w.Header().Set("Content-Type", "text/html")

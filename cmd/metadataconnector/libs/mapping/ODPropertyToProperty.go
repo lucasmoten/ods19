@@ -5,7 +5,9 @@ import (
 	"decipher.com/oduploader/protocol"
 )
 
-func mapODPropertyToProperty(i models.ODObjectPropertyEx) protocol.Property {
+// MapODPropertyToProperty converts an ODObjectPropertyEx from internal model
+// format to exposable API protocol format
+func MapODPropertyToProperty(i *models.ODObjectPropertyEx) protocol.Property {
 	o := protocol.Property{}
 	o.ID = i.ID
 	o.CreatedDate = i.CreatedDate
@@ -28,15 +30,19 @@ func mapODPropertyToProperty(i models.ODObjectPropertyEx) protocol.Property {
 	return o
 }
 
-func mapODPropertiesToProperties(i []models.ODObjectPropertyEx) []protocol.Property {
-	o := make([]protocol.Property, len(i))
-	for p, q := range i {
-		o[p] = mapODPropertyToProperty(q)
+// MapODPropertiesToProperties converts an array of ODObjectPropertyEx struct
+// from internal model format to exposable API protocol format
+func MapODPropertiesToProperties(i *[]models.ODObjectPropertyEx) []protocol.Property {
+	o := make([]protocol.Property, len(*i))
+	for p, q := range *i {
+		o[p] = MapODPropertyToProperty(&q)
 	}
 	return o
 }
 
-func mapPropertyToODProperty(i protocol.Property) models.ODObjectPropertyEx {
+// MapPropertyToODProperty converts an exposable API protocol format of a
+// Property to an internal ODObjectPropertyEx model
+func MapPropertyToODProperty(i *protocol.Property) models.ODObjectPropertyEx {
 	o := models.ODObjectPropertyEx{}
 	o.ID = i.ID
 	o.CreatedDate = i.CreatedDate
@@ -53,10 +59,13 @@ func mapPropertyToODProperty(i protocol.Property) models.ODObjectPropertyEx {
 	return o
 }
 
-func mapPropertiesToODProperties(i []protocol.Property) []models.ODObjectPropertyEx {
-	o := make([]models.ODObjectPropertyEx, len(i))
-	for p, q := range i {
-		o[p] = mapPropertyToODProperty(q)
+// MapPropertiesToODProperties converts an array of exposable API protocol
+// format of properties into an array of internally usable ODObjectPropertyEx
+// models
+func MapPropertiesToODProperties(i *[]protocol.Property) []models.ODObjectPropertyEx {
+	o := make([]models.ODObjectPropertyEx, len(*i))
+	for p, q := range *i {
+		o[p] = MapPropertyToODProperty(&q)
 	}
 	return o
 }
