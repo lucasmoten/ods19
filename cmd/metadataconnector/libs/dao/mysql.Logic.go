@@ -3,7 +3,7 @@ package dao
 import (
 	"bytes"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
+	//"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 	"github.com/jmoiron/sqlx"
 )
@@ -17,7 +17,7 @@ func IsParentIDADescendent(db *sqlx.DB, id []byte, parentID []byte) (bool, error
 	}
 	var targetObject models.ODObject
 	targetObject.ID = parentID
-	dbObject, err := dao.GetObject(db, &targetObject, false)
+	dbObject, err := GetObject(db, &targetObject, false)
 	if err != nil {
 		return true, err
 	}
