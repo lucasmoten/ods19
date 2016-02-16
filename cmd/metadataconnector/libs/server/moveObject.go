@@ -11,7 +11,6 @@ import (
 	"regexp"
 	"strings"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 )
 
@@ -141,7 +140,7 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 		// Force the modified by to be that of the caller
 		dbObject.ModifiedBy = caller.DistinguishedName
 		dbObject.ParentID = requestObject.ParentID
-		dao.UpdateObject(h.MetadataDB, dbObject, nil)
+		h.DAO.UpdateObject(dbObject, nil)
 
 		// After the update, check that key values have changed...
 		if requestObject.ChangeCount <= dbObject.ChangeCount {
