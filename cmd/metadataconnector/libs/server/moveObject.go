@@ -11,7 +11,9 @@ import (
 	"regexp"
 	"strings"
 
+	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 )
 
 func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Caller) {
@@ -154,19 +156,20 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 	}
 
 	// Response in requested format
+	apiResponse := mapping.MapODObjectToObject(dbObject)
 	switch {
 	case r.Header.Get("Content-Type") == "multipart/form-data":
 		fallthrough
 	case r.Header.Get("Content-Type") == "application/json":
-		moveObjectResponseAsJSON(w, r, caller, dbObject)
+		moveObjectResponseAsJSON(w, r, caller, &apiResponse)
 	default:
-		moveObjectResponseAsHTML(w, r, caller, dbObject)
+		moveObjectResponseAsHTML(w, r, caller, &apiResponse)
 	}
 
 }
 
 func parseMoveObjectRequestAsJSON(r *http.Request) (*models.ODObject, error) {
-	var jsonObject models.ODObject
+	var jsonObject protocol.Object
 	var err error
 
 	switch {
@@ -218,7 +221,9 @@ func parseMoveObjectRequestAsJSON(r *http.Request) (*models.ODObject, error) {
 		}
 	}
 
-	return &jsonObject, err
+	// Map to internal object type
+	object := mapping.MapObjectToODObject(&jsonObject)
+	return &object, err
 }
 func parseMoveObjectRequestAsHTML(r *http.Request) *models.ODObject {
 	return nil
@@ -228,7 +233,7 @@ func moveObjectResponseAsJSON(
 	w http.ResponseWriter,
 	r *http.Request,
 	caller Caller,
-	response *models.ODObject,
+	response *protocol.Object,
 ) {
 	w.Header().Set("Content-Type", "application/json")
 	jsonData, err := json.MarshalIndent(response, "", "  ")
@@ -243,7 +248,7 @@ func moveObjectResponseAsHTML(
 	w http.ResponseWriter,
 	r *http.Request,
 	caller Caller,
-	response *models.ODObject,
+	response *protocol.Object,
 ) {
 
 	w.Header().Set("Content-Type", "text/html")
