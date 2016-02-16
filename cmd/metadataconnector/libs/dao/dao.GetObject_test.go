@@ -1,21 +1,20 @@
 package dao_test
 
 import (
-	"log"
+	"encoding/json"
+	"fmt"
 	"testing"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 )
 
-func TestAddPropertyToObject(t *testing.T) {
-	if db == nil {
-		log.Fatal("db is nil")
-	}
+func TestDAOGetObject(t *testing.T) {
 
-	// create object
+	if testing.Short() {
+		t.Skip()
+	}
 	var obj models.ODObject
-	obj.Name = "Test Object for Adding Property"
+	obj.Name = "Test Object for GetObject"
 	obj.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	obj.TypeName.String = "File"
 	obj.TypeName.Valid = true
@@ -23,7 +22,7 @@ func TestAddPropertyToObject(t *testing.T) {
 	acm.CreatedBy = obj.CreatedBy
 	acm.Classification.String = "UNCLASSIFIED"
 	acm.Classification.Valid = true
-	dao.CreateObject(db, &obj, &acm)
+	d.CreateObject(&obj, &acm)
 	if obj.ID == nil {
 		t.Error("expected ID to be set")
 	}
@@ -41,18 +40,23 @@ func TestAddPropertyToObject(t *testing.T) {
 	property.Value.Valid = true
 	property.ClassificationPM.String = "UNCLASSIFIED"
 	property.ClassificationPM.Valid = true
-	err := dao.AddPropertyToObject(db, obj.CreatedBy, &obj, &property)
+	err := d.AddPropertyToObject(obj.CreatedBy, &obj, &property)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// get object with properties
-	objectWithProperty, err := dao.GetObject(db, &obj, true)
+	objectWithProperty, err := d.GetObject(&obj, true)
 	if err != nil {
 		t.Error(err)
 	}
 	if len(objectWithProperty.Properties) != 1 {
-		t.Error("Expected one property on the object")
+
+		jsonData, _ := json.MarshalIndent(objectWithProperty, "", "  ")
+		jsonified := string(jsonData)
+		fmt.Println(jsonified)
+
+		t.Errorf("Expected one property on the object, got %d", len(objectWithProperty.Properties))
 	} else {
 		if objectWithProperty.Properties[0].Name != "Test Property" {
 			t.Error("Expected property name to be Test Property")
@@ -60,17 +64,28 @@ func TestAddPropertyToObject(t *testing.T) {
 		if objectWithProperty.Properties[0].Value.String != "Test Property Value" {
 			t.Error("Expected property value to be Test Property Value")
 		}
+	}
 
-		// delete the Property
+	// get object without properties
+	objectWithoutProperty, err := d.GetObject(&obj, false)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(objectWithoutProperty.Properties) != 0 {
+		t.Error("Expected zero properties on the object")
+	}
+
+	// delete the Property
+	if len(objectWithProperty.Properties) > 0 {
 		theProperty := objectWithProperty.Properties[0]
-		err = dao.DeleteObjectProperty(db, &theProperty)
+		err = d.DeleteObjectProperty(&theProperty)
 		if err != nil {
 			t.Error(err)
 		}
 	}
 
 	// delete the object
-	err = dao.DeleteObject(db, objectWithProperty, true)
+	err = d.DeleteObject(objectWithProperty, true)
 	if err != nil {
 		t.Error(err)
 	}

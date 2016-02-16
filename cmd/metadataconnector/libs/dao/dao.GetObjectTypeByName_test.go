@@ -4,18 +4,21 @@ import (
 	"fmt"
 	"testing"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 )
 
-func TestGetObjectTypeByName(t *testing.T) {
+func TestDAOGetObjectTypeByName(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
 	var objectTypeName = "Test Object Type By Name"
 
 	// create object type
 	var objectType models.ODObjectType
 	objectType.Name = objectTypeName
 	objectType.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
-	dao.CreateObjectType(db, &objectType)
+	d.CreateObjectType(&objectType)
 	if objectType.ID == nil {
 		t.Error("expected ID to be set")
 	}
@@ -24,7 +27,7 @@ func TestGetObjectTypeByName(t *testing.T) {
 	}
 
 	// get the object type by name
-	objectTypeByName, err := dao.GetObjectTypeByName(db, objectTypeName, false, "")
+	objectTypeByName, err := d.GetObjectTypeByName(objectTypeName, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -36,13 +39,13 @@ func TestGetObjectTypeByName(t *testing.T) {
 	}
 
 	// delete the object type
-	err = dao.DeleteObjectType(db, &objectTypeByName)
+	err = d.DeleteObjectType(&objectTypeByName)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// Refetch by id
-	objectTypeByName2, err := dao.GetObjectTypeByName(db, objectTypeName, false, "")
+	objectTypeByName2, err := d.GetObjectTypeByName(objectTypeName, false, "")
 	if err != nil {
 		t.Error(err)
 	}

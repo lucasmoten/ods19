@@ -4,25 +4,24 @@ import (
 	"fmt"
 	"testing"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 )
 
-func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
-	user1 := "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
-	user2 := "CN=test tester02, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
-
+func TestDAOGetChildObjectsWithProperties(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	// create parent object
 	var parent models.ODObject
 	parent.Name = "Test Parent Object for GetChildObjectsWithProperties"
-	parent.CreatedBy = user1
+	parent.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	parent.TypeName.String = "File"
 	parent.TypeName.Valid = true
 	var acm models.ODACM
 	acm.CreatedBy = parent.CreatedBy
 	acm.Classification.String = "UNCLASSIFIED"
 	acm.Classification.Valid = true
-	dao.CreateObject(db, &parent, &acm)
+	d.CreateObject(&parent, &acm)
 	if parent.ID == nil {
 		t.Error("expected ID to be set")
 	}
@@ -36,7 +35,7 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 	// create child 1
 	var child1 models.ODObject
 	child1.Name = "Test Child Object 1 for GetChildObjectsWithProperties"
-	child1.CreatedBy = user1
+	child1.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	child1.TypeName.String = "File"
 	child1.TypeName.Valid = true
 	child1.ParentID = parent.ID
@@ -44,7 +43,7 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 	acm1.CreatedBy = child1.CreatedBy
 	acm1.Classification.String = "UNCLASSIFIED"
 	acm1.Classification.Valid = true
-	dao.CreateObject(db, &child1, &acm1)
+	d.CreateObject(&child1, &acm1)
 	if child1.ID == nil {
 		t.Error("expected ID to be set")
 	}
@@ -61,7 +60,7 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 	property1.Value.Valid = true
 	property1.ClassificationPM.String = "UNCLASSIFIED"
 	property1.ClassificationPM.Valid = true
-	err := dao.AddPropertyToObject(db, child1.CreatedBy, &child1, &property1)
+	err := d.AddPropertyToObject(child1.CreatedBy, &child1, &property1)
 	if err != nil {
 		t.Error(err)
 	}
@@ -71,7 +70,7 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 	property2.Value.Valid = true
 	property2.ClassificationPM.String = "UNCLASSIFIED"
 	property2.ClassificationPM.Valid = true
-	err = dao.AddPropertyToObject(db, child1.CreatedBy, &child1, &property2)
+	err = d.AddPropertyToObject(child1.CreatedBy, &child1, &property2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -79,7 +78,7 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 	// create child 2
 	var child2 models.ODObject
 	child2.Name = "Test Child Object 2 for GetChildObjectsWithProperties"
-	child2.CreatedBy = user1
+	child2.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	child2.TypeName.String = "File"
 	child2.TypeName.Valid = true
 	child2.ParentID = parent.ID
@@ -87,7 +86,7 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 	acm2.CreatedBy = child2.CreatedBy
 	acm2.Classification.String = "UNCLASSIFIED"
 	acm2.Classification.Valid = true
-	dao.CreateObject(db, &child2, &acm2)
+	d.CreateObject(&child2, &acm2)
 	if child2.ID == nil {
 		t.Error("expected ID to be set")
 	}
@@ -104,7 +103,7 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 	propertyc2p1.Value.Valid = true
 	propertyc2p1.ClassificationPM.String = "UNCLASSIFIED"
 	propertyc2p1.ClassificationPM.Valid = true
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, &propertyc2p1)
+	err = d.AddPropertyToObject(child2.CreatedBy, &child2, &propertyc2p1)
 	if err != nil {
 		t.Error(err)
 	}
@@ -114,7 +113,7 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 	propertyc2p2.Value.Valid = true
 	propertyc2p2.ClassificationPM.String = "UNCLASSIFIED"
 	propertyc2p2.ClassificationPM.Valid = true
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, &propertyc2p2)
+	err = d.AddPropertyToObject(child2.CreatedBy, &child2, &propertyc2p2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -124,7 +123,7 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 	propertyc2p3.Value.Valid = true
 	propertyc2p3.ClassificationPM.String = "UNCLASSIFIED"
 	propertyc2p3.ClassificationPM.Valid = true
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, &propertyc2p3)
+	err = d.AddPropertyToObject(child2.CreatedBy, &child2, &propertyc2p3)
 	if err != nil {
 		t.Error(err)
 	}
@@ -134,7 +133,7 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 	propertyc2p4.Value.Valid = true
 	propertyc2p4.ClassificationPM.String = "UNCLASSIFIED"
 	propertyc2p4.ClassificationPM.Valid = true
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, &propertyc2p4)
+	err = d.AddPropertyToObject(child2.CreatedBy, &child2, &propertyc2p4)
 	if err != nil {
 		t.Error(err)
 	}
@@ -144,13 +143,13 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 	propertyc2p5.Value.Valid = true
 	propertyc2p5.ClassificationPM.String = "UNCLASSIFIED"
 	propertyc2p5.ClassificationPM.Valid = true
-	err = dao.AddPropertyToObject(db, child2.CreatedBy, &child2, &propertyc2p5)
+	err = d.AddPropertyToObject(child2.CreatedBy, &child2, &propertyc2p5)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// Get child objects with properties from a single page of up to 10
-	resultset, err := dao.GetChildObjectsWithPropertiesByOwner(db, "", 1, 10, &parent, user1)
+	resultset, err := d.GetChildObjectsWithProperties("", 1, 10, &parent)
 	if err != nil {
 		t.Error(err)
 	}
@@ -161,21 +160,21 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 		t.Error("Expected 2 objects")
 	} else {
 		if resultset.Objects[0].Name != child1.Name {
-			t.Error("Name of first child didn't match expected value")
+			t.Error(fmt.Errorf("Name of first child didn't match expected value. Got %s, expected %s", resultset.Objects[0].Name, child1.Name))
 		}
 		if resultset.Objects[1].Name != child2.Name {
-			t.Error("Name of second child didn't match expected value")
+			t.Error(fmt.Errorf("Name of second child didn't match expected value. Got %s, expected %s", resultset.Objects[1].Name, child2.Name))
 		}
 		if len(resultset.Objects[0].Properties) != 2 {
-			t.Error(fmt.Errorf("Expected first child to have 2 properties, but it had %d", len(resultset.Objects[0].Properties)))
+			t.Error(fmt.Errorf("Expected first child to have 2 properties, but has %d", len(resultset.Objects[0].Properties)))
 		}
 		if len(resultset.Objects[1].Properties) != 5 {
-			t.Error(fmt.Errorf("Expected second child to have 5 properties, but it had %d", len(resultset.Objects[1].Properties)))
+			t.Error(fmt.Errorf("Expected second child to have 5 properties, but has %d", len(resultset.Objects[1].Properties)))
 		}
 	}
 
 	// Get from first page of 1, then second page of 1
-	resultset, err = dao.GetChildObjectsWithPropertiesByOwner(db, "", 1, 1, &parent, user1)
+	resultset, err = d.GetChildObjectsWithProperties("", 1, 1, &parent)
 	if err != nil {
 		t.Error(err)
 	}
@@ -189,10 +188,10 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 			t.Error("Name of first child didn't match expected value")
 		}
 		if len(resultset.Objects[0].Properties) != 2 {
-			t.Error(fmt.Errorf("Expected first child to have 2 properties, but it had %d", len(resultset.Objects[0].Properties)))
+			t.Error("Expected first child to have 2 properties")
 		}
 	}
-	resultset, err = dao.GetChildObjectsWithPropertiesByOwner(db, "", 2, 1, &parent, user1)
+	resultset, err = d.GetChildObjectsWithProperties("", 2, 1, &parent)
 	if err != nil {
 		t.Error(err)
 	}
@@ -206,25 +205,17 @@ func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 			t.Error("Name of first child didn't match expected value")
 		}
 		if len(resultset.Objects[0].Properties) != 5 {
-			t.Error(fmt.Errorf("Expected child on page 2 to have 5 properties, but it had %d", len(resultset.Objects[0].Properties)))
+			t.Error("Expected child on page 2 to have 5 properties")
 		}
-	}
-
-	resultset, err = dao.GetChildObjectsWithPropertiesByOwner(db, "", 1, 10, &parent, user2)
-	if err != nil {
-		t.Error(err)
-	}
-	if resultset.TotalRows != 0 {
-		t.Error("Expected 0 children for user2")
 	}
 
 	// cleanup
 	for _, object := range resultset.Objects {
 		for _, property := range object.Properties {
-			dao.DeleteObjectProperty(db, &property)
+			d.DeleteObjectProperty(&property)
 		}
-		dao.DeleteObject(db, &object, true)
+		d.DeleteObject(&object, true)
 	}
-	dao.DeleteObject(db, &parent, true)
+	d.DeleteObject(&parent, true)
 
 }

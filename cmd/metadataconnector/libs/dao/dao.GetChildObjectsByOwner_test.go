@@ -5,12 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 )
 
-func TestGetChildObjectsByOwner(t *testing.T) {
-
+func TestDAOGetChildObjectsByOwner(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	var parent models.ODObject
 	var child1 models.ODObject
 	var child2 models.ODObject
@@ -20,7 +21,7 @@ func TestGetChildObjectsByOwner(t *testing.T) {
 	parent.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	parent.TypeName.String = "Test Type"
 	parent.TypeName.Valid = true
-	err := dao.CreateObject(db, &parent, nil)
+	err := d.CreateObject(&parent, nil)
 	if err != nil {
 		t.Error(err)
 	} else {
@@ -40,7 +41,7 @@ func TestGetChildObjectsByOwner(t *testing.T) {
 		child1.ParentID = parent.ID
 		child1.TypeName.String = "Test Type"
 		child1.TypeName.Valid = true
-		err = dao.CreateObject(db, &child1, nil)
+		err = d.CreateObject(&child1, nil)
 		if err != nil {
 			t.Error(err)
 		}
@@ -63,7 +64,7 @@ func TestGetChildObjectsByOwner(t *testing.T) {
 		child2.ParentID = parent.ID
 		child2.TypeName.String = "Test Type"
 		child2.TypeName.Valid = true
-		err = dao.CreateObject(db, &child2, nil)
+		err = d.CreateObject(&child2, nil)
 		if err != nil {
 			t.Error(err)
 		}
@@ -79,7 +80,7 @@ func TestGetChildObjectsByOwner(t *testing.T) {
 		if !bytes.Equal(child2.ParentID, parent.ID) {
 			t.Error("expected child parentID to match parent ID")
 		}
-		resultset, err := dao.GetChildObjectsByOwner(db, "", 1, 10, &parent, child2.CreatedBy)
+		resultset, err := d.GetChildObjectsByOwner("", 1, 10, &parent, child2.CreatedBy)
 		if err != nil {
 			t.Error(err)
 		}
@@ -95,9 +96,8 @@ func TestGetChildObjectsByOwner(t *testing.T) {
 	}
 
 	// cleanup
-	err = dao.DeleteObject(db, &parent, true)
+	err = d.DeleteObject(&parent, true)
 	if err != nil {
 		t.Error(err)
 	}
-
 }

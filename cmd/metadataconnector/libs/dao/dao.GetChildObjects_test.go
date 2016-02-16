@@ -4,18 +4,21 @@ import (
 	"bytes"
 	"testing"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 )
 
-func TestGetChildObjects(t *testing.T) {
+func TestDAOGetChildObjects(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip()
+	}
 	// Create our parent object
 	var parent models.ODObject
 	parent.Name = "Test GetChildObjects Parent"
 	parent.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	parent.TypeName.String = "Test Type"
 	parent.TypeName.Valid = true
-	err := dao.CreateObject(db, &parent, nil)
+	err := d.CreateObject(&parent, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -36,7 +39,7 @@ func TestGetChildObjects(t *testing.T) {
 	child.ParentID = parent.ID
 	child.TypeName.String = "Test Type"
 	child.TypeName.Valid = true
-	err = dao.CreateObject(db, &child, nil)
+	err = d.CreateObject(&child, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -53,7 +56,7 @@ func TestGetChildObjects(t *testing.T) {
 		t.Error("expected child parentID to match parent ID")
 	}
 
-	resultset, err := dao.GetChildObjects(db, "", 1, 10, &parent)
+	resultset, err := d.GetChildObjects("", 1, 10, &parent)
 	if err != nil {
 		t.Error(err)
 	}
@@ -62,7 +65,7 @@ func TestGetChildObjects(t *testing.T) {
 	}
 
 	// cleanup
-	err = dao.DeleteObject(db, &parent, true)
+	err = d.DeleteObject(&parent, true)
 	if err != nil {
 		t.Error(err)
 	}

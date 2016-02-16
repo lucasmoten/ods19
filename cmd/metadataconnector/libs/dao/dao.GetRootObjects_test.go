@@ -3,13 +3,16 @@ package dao_test
 import (
 	"testing"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 )
 
-func TestGetRootObjects(t *testing.T) {
+func TestDAOGetRootObjects(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
 	// Get root Objects
-	resultset, err := dao.GetRootObjects(db, "", 1, 1)
+	resultset, err := d.GetRootObjects("", 1, 1)
 	if err != nil {
 		t.Error(err)
 	}
@@ -22,7 +25,7 @@ func TestGetRootObjects(t *testing.T) {
 	object1.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	object1.TypeName.String = "Test Type"
 	object1.TypeName.Valid = true
-	err = dao.CreateObject(db, &object1, nil)
+	err = d.CreateObject(&object1, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -37,7 +40,7 @@ func TestGetRootObjects(t *testing.T) {
 	}
 
 	// Get root Objects
-	resultset, err = dao.GetRootObjects(db, "", 1, 1)
+	resultset, err = d.GetRootObjects("", 1, 1)
 	if err != nil {
 		t.Error(err)
 	}
@@ -46,13 +49,13 @@ func TestGetRootObjects(t *testing.T) {
 	}
 
 	// Delete the object
-	err = dao.DeleteObject(db, &object1, true)
+	err = d.DeleteObject(&object1, true)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// Get root Objects
-	resultset, err = dao.GetRootObjects(db, "", 1, 1)
+	resultset, err = d.GetRootObjects("", 1, 1)
 	if err != nil {
 		t.Error(err)
 	}
