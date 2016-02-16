@@ -21,3 +21,13 @@ type ObjectLink struct {
 	Size        int64
 	ACM         string
 }
+
+// ObjectGrant is the grant of an object to a user - possibly the owner
+// Granter and URL are implicit in the form of the POST
+type ObjectGrant struct {
+	Grantee string
+	Create  bool
+	Read    bool
+	Update  bool
+	Delete  bool
+}

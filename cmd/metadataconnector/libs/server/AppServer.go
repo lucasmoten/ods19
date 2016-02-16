@@ -145,6 +145,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var rxTrashObject = regexp.MustCompile(h.ServicePrefix + "/trash/.*")
 	var rxStatsObject = regexp.MustCompile(h.ServicePrefix + "/stats$")
 	var rxStaticFiles = regexp.MustCompile(h.ServicePrefix + "/static/(?P<path>.*)")
+	var rxGrant = regexp.MustCompile(h.ServicePrefix + "/object.*/grant?")
 
 	// TODO: use StripPrefix in handler?
 	// https://golang.org/pkg/net/http/#StripPrefix
@@ -224,6 +225,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.query(w, r, caller)
 		case rxObjectStream.MatchString(uri):
 			h.updateObjectStream(w, r, caller)
+		case rxGrant.MatchString(uri):
+			h.updateObjectPermissions(w, r, caller)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)
