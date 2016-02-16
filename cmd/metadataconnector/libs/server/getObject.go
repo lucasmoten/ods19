@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"regexp"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 )
 
@@ -38,7 +37,7 @@ func (h AppServer) getObject(w http.ResponseWriter, r *http.Request, caller Call
 	// Business Logic...
 
 	// Retrieve existing object from the data store
-	dbObject, err := dao.GetObject(h.MetadataDB, requestObject, true)
+	dbObject, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Error retrieving object")
 		return
@@ -121,6 +120,7 @@ func parseGetObjectRequestAsJSON(r *http.Request) (*models.ODObject, error) {
 	}
 
 	// Portions from the request URI itself ...
+	// TODO can we use the regex capture groups function in /util?
 	uri := r.URL.RequestURI()
 	re, _ := regexp.Compile("/object/(.*)/properties")
 	matchIndexes := re.FindStringSubmatchIndex(uri)

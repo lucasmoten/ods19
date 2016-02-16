@@ -1,19 +1,20 @@
 package server
 
 import (
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/metadata/models"
 	"encoding/hex"
 	"encoding/json"
+
+	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
+	"decipher.com/oduploader/metadata/models"
 	//"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	//"path"
 	"regexp"
 	"strconv"
@@ -89,7 +90,7 @@ func (h AppServer) getObjectStreamObject(w http.ResponseWriter, r *http.Request,
 	// Retrieve from database
 	var objectRequested models.ODObject
 	objectRequested.ID = objectIDByte
-	object, err := dao.GetObject(h.MetadataDB, &objectRequested, false)
+	object, err := h.DAO.GetObject(&objectRequested, false)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cannot get object")
 		return nil, err

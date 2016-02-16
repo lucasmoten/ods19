@@ -1,11 +1,11 @@
 package server
 
 import (
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/metadata/models"
 	"encoding/json"
 	"net/http"
+
+	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
+	"decipher.com/oduploader/metadata/models"
 )
 
 /**
@@ -43,7 +43,7 @@ func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, ca
 
 	//Do an upload that is basically the same as for a new object.
 	h.acceptObjectUpload(w, r, caller, object, &acm, grant)
-	err = dao.UpdateObject(h.MetadataDB, object, &acm)
+	err = h.DAO.UpdateObject(object, &acm)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "error storing object")
 		return

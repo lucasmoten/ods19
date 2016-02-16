@@ -2,14 +2,8 @@ package server
 
 import (
 	//"encoding/hex"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/performance"
 	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"io"
 	"log"
 	"mime/multipart"
@@ -17,6 +11,12 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
+	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/performance"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 func (h AppServer) drainFileToS3(
@@ -327,7 +327,7 @@ func (h AppServer) createObject(
 		obj.Permissions = make([]models.ODObjectPermission, 1)
 		obj.Permissions[0] = grant
 
-		err = dao.CreateObject(h.MetadataDB, &obj, &acm)
+		err = h.DAO.CreateObject(&obj, &acm)
 		if err != nil {
 			h.sendErrorResponse(w, 500, err, "error storing object")
 			return

@@ -18,6 +18,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
 
 	oduconfig "decipher.com/oduploader/config"
@@ -200,6 +201,8 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		}
 	}
 
+	concreteDAO := dao.DataAccessLayer{MetadataDB: db}
+
 	templates, err := template.ParseGlob(
 		filepath.Join(oduconfig.ProjectRoot,
 			"cmd", "metadataconnector", "libs", "server",
@@ -215,7 +218,7 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		Port:            serverConfig.ListenPort,
 		Bind:            serverConfig.ListenBind,
 		Addr:            serverConfig.ListenBind + ":" + strconv.Itoa(serverConfig.ListenPort),
-		MetadataDB:      db,
+		DAO:             concreteDAO,
 		S3:              s3,
 		AWSSession:      awsSession,
 		CacheLocation:   "cache",

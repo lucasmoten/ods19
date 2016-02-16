@@ -11,7 +11,6 @@ import (
 	"regexp"
 	"strings"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 )
 
@@ -36,7 +35,7 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 	// Business Logic...
 
 	// Retrieve existing object from the data store
-	dbObject, err := dao.GetObject(h.MetadataDB, requestObject, true)
+	dbObject, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Error retrieving object")
 		return
@@ -61,7 +60,7 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 	// object for which they are moving this one to (the parentID)
 	var targetParent *models.ODObject
 	targetParent.ID = requestObject.ParentID
-	targetParent, err = dao.GetObject(h.MetadataDB, targetParent, false)
+	targetParent, err = h.DAO.GetObject(targetParent, false)
 	if err != nil {
 		h.sendErrorResponse(w, 400, err, "Error retrieving parent to move object into")
 		return
@@ -118,7 +117,7 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 		h.sendErrorResponse(w, 400, err, "ParentID cannot be set to the ID of the object. Circular references are not allowed.")
 		return
 	}
-	circular, err := dao.IsParentIDADescendent(h.MetadataDB, requestObject.ID, requestObject.ParentID)
+	circular, err := h.DAO.IsParentIDADescendent(requestObject.ID, requestObject.ParentID)
 	if err != nil {
 		h.sendErrorResponse(w, 400, err, "Error retrieving ancestor to check for circular references")
 		return
@@ -141,7 +140,7 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 		// Force the modified by to be that of the caller
 		dbObject.ModifiedBy = caller.DistinguishedName
 		dbObject.ParentID = requestObject.ParentID
-		dao.UpdateObject(h.MetadataDB, dbObject, nil)
+		h.DAO.UpdateObject(dbObject, nil)
 
 		// After the update, check that key values have changed...
 		if requestObject.ChangeCount <= dbObject.ChangeCount {

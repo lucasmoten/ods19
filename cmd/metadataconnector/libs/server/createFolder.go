@@ -1,13 +1,13 @@
 package server
 
 import (
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/metadata/models"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
+
+	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
+	"decipher.com/oduploader/metadata/models"
 )
 
 func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller Caller) {
@@ -48,7 +48,7 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 					obj.ParentID, err = hex.DecodeString(parentID)
 					var p models.ODObject
 					p.ID = obj.ParentID
-					parentObject, err := dao.GetObject(h.MetadataDB, &p, true)
+					parentObject, err := h.DAO.GetObject(&p, true)
 					if err != nil {
 						h.sendErrorResponse(w, 500, err, "error loading parent")
 						return
@@ -85,7 +85,7 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 		// TODO: Access Check
 
 		// Add object to database
-		err = dao.CreateObject(h.MetadataDB, &obj, &acm)
+		err = h.DAO.CreateObject(&obj, &acm)
 		if err != nil {
 			h.sendErrorResponse(w, 500, err, "error saving folder")
 			return

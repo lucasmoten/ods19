@@ -29,6 +29,7 @@ type AppServer struct {
 	Addr string
 	// MetadataDB is a handle to the database connection
 	MetadataDB *sqlx.DB
+	DAO        dao.DataAccessLayer
 	// TODO: Convert this as appropriate to non implementation specific
 	// S3 is the handle to the S3 Client
 	S3 *s3.S3
@@ -75,7 +76,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var user *models.ODUser
 	var userRequested models.ODUser
 	userRequested.DistinguishedName = caller.DistinguishedName
-	user, err := dao.GetUserByDistinguishedName(h.MetadataDB, &userRequested)
+	user, err := h.DAO.GetUserByDistinguishedName(&userRequested)
 	if err != nil || user.DistinguishedName != caller.DistinguishedName {
 		// log.Printf("User was not found in database: %s", err.Error())
 		// if err == sql.ErrNoRows || user.DistinguishedName != caller.DistinguishedName {
@@ -84,7 +85,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		userRequested.DisplayName.String = caller.CommonName
 		userRequested.DisplayName.Valid = true
 		userRequested.CreatedBy = caller.DistinguishedName
-		user, err = dao.CreateUser(h.MetadataDB, &userRequested)
+		user, err = h.DAO.CreateUser(&userRequested)
 		if err != nil {
 			log.Printf("%s does not exist in database. Error creating: %s", caller.DistinguishedName, err.Error())
 			http.Error(w, "Error accesing resource", 500)
