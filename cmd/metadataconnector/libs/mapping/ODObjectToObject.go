@@ -5,7 +5,9 @@ import (
 	"decipher.com/oduploader/protocol"
 )
 
-func mapODObjectToObject(i models.ODObject) protocol.Object {
+// MapODObjectToObject converts an internal ODObject model object into an API
+// exposable protocol Object
+func MapODObjectToObject(i *models.ODObject) protocol.Object {
 	o := protocol.Object{}
 	o.ID = i.ID
 	o.CreatedDate = i.CreatedDate
@@ -47,20 +49,24 @@ func mapODObjectToObject(i models.ODObject) protocol.Object {
 	} else {
 		o.ContentSize = 0
 	}
-	o.Properties = mapODPropertiesToProperties(i.Properties)
-	o.Permissions = mapODPermissionsToPermissions(i.Permissions)
+	o.Properties = MapODPropertiesToProperties(&i.Properties)
+	o.Permissions = MapODPermissionsToPermissions(&i.Permissions)
 	return o
 }
 
-func mapODObjectsToObjects(i []models.ODObject) []protocol.Object {
-	o := make([]protocol.Object, len(i))
-	for p, iobj := range i {
-		o[p] = mapODObjectToObject(iobj)
+// MapODObjectsToObjects converts an array of internal ODObject model Objects
+// into an array of API exposable protocol Objects
+func MapODObjectsToObjects(i *[]models.ODObject) []protocol.Object {
+	o := make([]protocol.Object, len(*i))
+	for p, q := range *i {
+		o[p] = MapODObjectToObject(&q)
 	}
 	return o
 }
 
-func mapObjectToODObject(i protocol.Object) models.ODObject {
+// MapObjectToODObject converts an API exposable protocol Object into an
+// internally usable model object.
+func MapObjectToODObject(i *protocol.Object) models.ODObject {
 	o := models.ODObject{}
 	o.ID = i.ID
 	o.CreatedDate = i.CreatedDate
@@ -84,15 +90,17 @@ func mapObjectToODObject(i protocol.Object) models.ODObject {
 	o.ContentType.String = i.ContentType
 	o.ContentSize.Valid = true
 	o.ContentSize.Int64 = i.ContentSize
-	o.Properties = mapPropertiesToODProperties(i.Properties)
-	o.Permissions = mapPermissionsToODPermissions(i.Permissions)
+	o.Properties = MapPropertiesToODProperties(&i.Properties)
+	o.Permissions = MapPermissionsToODPermissions(&i.Permissions)
 	return o
 }
 
-func mapObjectsToODObjects(i []protocol.Object) []models.ODObject {
-	o := make([]models.ODObject, len(i))
-	for p, iobj := range i {
-		o[p] = mapObjectToODObject(iobj)
+// MapObjectsToODObjects converts an array of API exposable protocol Objects
+// into an array of internally usable model Objects
+func MapObjectsToODObjects(i *[]protocol.Object) []models.ODObject {
+	o := make([]models.ODObject, len(*i))
+	for p, q := range *i {
+		o[p] = MapObjectToODObject(&q)
 	}
 	return o
 }
