@@ -11,6 +11,7 @@ type DAO interface {
 	AddPropertyToObject(createdBy string, object *models.ODObject, property *models.ODProperty) error
 	CreateObject(object *models.ODObject, acm *models.ODACM) error
 	CreateObjectType(objectType *models.ODObjectType) error
+	CreateUser(*models.ODUser) (*models.ODUser, error)
 	DeleteObject(object *models.ODObject, explicit bool) error
 	DeleteObjectProperty(objectProperty *models.ODObjectPropertyEx) error
 	DeleteObjectType(objectType *models.ODObjectType) error
@@ -30,6 +31,7 @@ type DAO interface {
 	GetRootObjectsWithPropertiesByOwner(orderByClause string, pageNumber int, pageSize int, owner string) (models.ODObjectResultset, error)
 	GetUserByDistinguishedName(user *models.ODUser) (*models.ODUser, error)
 	GetUsers() ([]string, error)
+	IsParentIDADescendent(id []byte, parentID []byte) (bool, error)
 	UpdateObject(object *models.ODObject, acm *models.ODACM) error
 	UpdateObjectProperty(objectProperty *models.ODObjectPropertyEx) error
 	UpdatePermission(permission *models.ODObjectPermission) error
@@ -38,4 +40,9 @@ type DAO interface {
 // DataAccessLayer is a concrete DAO implementation with a true DB connection.
 type DataAccessLayer struct {
 	MetadataDB *sqlx.DB
+}
+
+func daoCompileCheck() DAO {
+	// function exists to make compiler complain when interface changes.
+	return &DataAccessLayer{}
 }

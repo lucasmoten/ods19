@@ -7,6 +7,7 @@ import "decipher.com/oduploader/metadata/models"
 // response fields can be explicitly set, or setup functions can be defined.
 type FakeDAO struct {
 	Err               error
+	IsDescendent      bool
 	Object            *models.ODObject
 	ObjectPermissions []models.ODObjectPermission
 	ObjectProperites  []models.ODObjectPropertyEx
@@ -36,6 +37,11 @@ func (fake *FakeDAO) CreateObject(object *models.ODObject, acm *models.ODACM) er
 // CreateObjectType for FakeDAO.
 func (fake *FakeDAO) CreateObjectType(objectType *models.ODObjectType) error {
 	return fake.Err
+}
+
+// CreateUser for FakeDAO.
+func (fake *FakeDAO) CreateUser(user *models.ODUser) (*models.ODUser, error) {
+	return fake.User, fake.Err
 }
 
 // DeleteObject for FakeDAO.
@@ -140,6 +146,11 @@ func (fake *FakeDAO) GetRootObjectsWithPropertiesByOwner(
 	return fake.ObjectResultSet, fake.Err
 }
 
+// IsParentIDADescendent for FakeDAO.
+func (fake *FakeDAO) IsParentIDADescendent(id []byte, parentID []byte) (bool, error) {
+	return fake.IsDescendent, fake.Err
+}
+
 // UpdateObject for FakeDAO.
 func (fake *FakeDAO) UpdateObject(object *models.ODObject, acm *models.ODACM) error {
 	return fake.Err
@@ -157,4 +168,8 @@ func (fake *FakeDAO) UpdatePermission(permission *models.ODObjectPermission) err
 
 func (fake *FakeDAO) clearError() {
 	fake.Err = nil
+}
+
+func fakeCompileCheck() DAO {
+	return &FakeDAO{}
 }

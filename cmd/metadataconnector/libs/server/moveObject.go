@@ -36,7 +36,7 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 	// Business Logic...
 
 	// Retrieve existing object from the data store
-	dbObject, err := dao.GetObject(h.MetadataDB, requestObject, true)
+	dbObject, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Error retrieving object")
 		return
@@ -61,7 +61,7 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 	// object for which they are moving this one to (the parentID)
 	var targetParent *models.ODObject
 	targetParent.ID = requestObject.ParentID
-	targetParent, err = dao.GetObject(h.MetadataDB, targetParent, false)
+	targetParent, err = h.DAO.GetObject(targetParent, false)
 	if err != nil {
 		h.sendErrorResponse(w, 400, err, "Error retrieving parent to move object into")
 		return
@@ -118,7 +118,7 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 		h.sendErrorResponse(w, 400, err, "ParentID cannot be set to the ID of the object. Circular references are not allowed.")
 		return
 	}
-	circular, err := dao.IsParentIDADescendent(h.MetadataDB, requestObject.ID, requestObject.ParentID)
+	circular, err := h.DAO.IsParentIDADescendent(requestObject.ID, requestObject.ParentID)
 	if err != nil {
 		h.sendErrorResponse(w, 400, err, "Error retrieving ancestor to check for circular references")
 		return

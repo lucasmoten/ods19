@@ -1,19 +1,19 @@
 package server
 
 import (
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/protocol"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
-	//"log"
+
 	"net/http"
 	"regexp"
 	"strconv"
 	"time"
+
+	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
+	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 )
 
 // listObjects is a method handler on AppServer for implementing the listObjects
@@ -65,15 +65,14 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 			h.sendErrorResponse(w, 400, err, "ParentID provided by caller is not a hex string")
 			return
 		}
-		response, err = dao.GetChildObjectsWithPropertiesByOwner(
-			h.MetadataDB,
+		response, err = h.DAO.GetChildObjectsWithPropertiesByOwner(
 			"createddate desc",
 			objectLinkResponse.PageNumber,
 			objectLinkResponse.PageSize,
 			&parentObject,
 			caller.DistinguishedName,
 		)
-		loadedParent, err := dao.GetObject(h.MetadataDB, &parentObject, false)
+		loadedParent, err := h.DAO.GetObject(&parentObject, false)
 		if err != nil {
 			h.sendErrorResponse(w, 500, err, "Unable to retrieve ParentID")
 		}
@@ -85,8 +84,7 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 		}
 	} else {
 		linkToParent = ""
-		response, err = dao.GetRootObjectsWithPropertiesByOwner(
-			h.MetadataDB,
+		response, err = h.DAO.GetRootObjectsWithPropertiesByOwner(
 			"createddate desc",
 			objectLinkResponse.PageNumber,
 			objectLinkResponse.PageSize,

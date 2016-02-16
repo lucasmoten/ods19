@@ -11,7 +11,6 @@ import (
 	"regexp"
 	"strings"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 )
 
@@ -36,7 +35,7 @@ func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller C
 	// Business Logic...
 
 	// Retrieve existing object from the data store
-	dbObject, err := dao.GetObject(h.MetadataDB, requestObject, true)
+	dbObject, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Error retrieving object")
 		return
@@ -97,7 +96,7 @@ func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller C
 	// Call metadata connector to update the object in the data store
 	// Force the modified by to be that of the caller
 	requestObject.ModifiedBy = caller.DistinguishedName
-	err = dao.UpdateObject(h.MetadataDB, requestObject, nil)
+	err = h.DAO.UpdateObject(requestObject, nil)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "DAO Error updating object")
 		return
