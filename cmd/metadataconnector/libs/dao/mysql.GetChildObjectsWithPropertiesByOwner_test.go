@@ -8,7 +8,7 @@ import (
 	"decipher.com/oduploader/metadata/models"
 )
 
-func TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
+func _TestGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 	user1 := "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	user2 := "CN=test tester02, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 

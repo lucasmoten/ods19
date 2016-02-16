@@ -7,7 +7,7 @@ import (
 	"decipher.com/oduploader/metadata/models"
 )
 
-func TestGetRootObjects(t *testing.T) {
+func _TestGetRootObjects(t *testing.T) {
 	// Get root Objects
 	resultset, err := dao.GetRootObjects(db, "", 1, 1)
 	if err != nil {

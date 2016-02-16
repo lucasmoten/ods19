@@ -8,7 +8,7 @@ import (
 	"decipher.com/oduploader/metadata/models"
 )
 
-func TestGetObjectType(t *testing.T) {
+func _TestGetObjectType(t *testing.T) {
 	// create object type
 	var objectType models.ODObjectType
 	objectType.Name = "Test Object Type"
