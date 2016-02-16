@@ -64,6 +64,19 @@ func MapODObjectsToObjects(i *[]models.ODObject) []protocol.Object {
 	return o
 }
 
+// MapODObjectResultsetToObjectResultset converts an internal resultset of
+// ODObjects into a corresponding protocol resultset of Objects
+func MapODObjectResultsetToObjectResultset(i *models.ODObjectResultset) protocol.ObjectResultset {
+	o := protocol.ObjectResultset{}
+	o.Resultset.TotalRows = i.Resultset.TotalRows
+	o.Resultset.PageCount = i.Resultset.PageCount
+	o.Resultset.PageNumber = i.Resultset.PageNumber
+	o.Resultset.PageSize = i.Resultset.PageSize
+	o.Resultset.PageRows = i.Resultset.PageRows
+	o.Objects = MapODObjectsToObjects(&i.Objects)
+	return o
+}
+
 // MapObjectToODObject converts an API exposable protocol Object into an
 // internally usable model object.
 func MapObjectToODObject(i *protocol.Object) models.ODObject {
