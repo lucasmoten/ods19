@@ -10,6 +10,50 @@ import (
 	"decipher.com/oduploader/metadata/models"
 )
 
+var createObjectForm = `
+<hr/>
+<form method="post" action="%s/object" enctype="multipart/form-data">
+<table>
+	<tr>
+		<td>Object Name</td>
+		<td><input type="text" id="title" name="title" /></td>
+	</tr>
+	<tr>
+		<td>Type</td>
+		<td><select id="type" name="type">
+				<option value="File">File</option>
+				<option value="Folder">Folder</option>
+				</select>
+		</td>
+	</tr>
+	<tr>
+		<td>Classification</td>
+		<td><select id="classification" name="classification">
+				<option value='U'>UNCLASSIFIED</option>
+				<option value='C'>CLASSIFIED</option>
+				<option value='S'>SECRET</option>
+				<option value='T'>TOP SECRET</option>
+				</select>
+		</td>
+	</tr>
+	<tr>
+		<td>File Content</td>
+		<td><input type="file" name="filestream" /></td>
+	</tr>
+</table>
+<input type="submit" value="Upload" />
+</form>
+
+<hr />
+Values received
+<br />
+title: %s
+<br />
+type: %s
+<br />
+classification: %s
+	`
+
 // createObject is a method handler on AppServer for createObject microservice
 // operation.
 func (h AppServer) createObject(
