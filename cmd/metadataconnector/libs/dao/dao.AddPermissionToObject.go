@@ -1,9 +1,8 @@
 package dao
 
 import (
-	"errors"
-
 	"decipher.com/oduploader/metadata/models"
+	"errors"
 )
 
 // AddPermissionToObject creates a new permission with the provided object id,

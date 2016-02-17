@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"decipher.com/oduploader/protocol"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -16,11 +18,9 @@ import (
 	"os"
 	"strconv"
 	"time"
-
-	"decipher.com/oduploader/protocol"
 )
 
-// ClientIdentity is a user that is going to connect to oru service
+// ClientIdentity is a user that is going to connect to our service
 type ClientIdentity struct {
 	TrustPem      string
 	CertPem       string
@@ -33,6 +33,8 @@ type ClientIdentity struct {
 }
 
 var showFileUpload = true
+
+//XXX This ASSUMES that you have an /etc/hosts entry for dockervm
 var host = "https://dockervm:8080"
 
 // NewClientTLSConfig creates a per-client tls config
@@ -139,7 +141,7 @@ func getRandomClassification() string {
 	return classes[r]
 }
 
-func generateUploadRequest(name string, fqName string, url string) (*http.Request, error) {
+func generateUploadRequest(name string, fqName string, url string, async bool) (*http.Request, error) {
 	f, err := os.Open(fqName)
 	defer f.Close()
 	if err != nil {
@@ -149,6 +151,9 @@ func generateUploadRequest(name string, fqName string, url string) (*http.Reques
 	//Create a multipart mime request
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
+	if async {
+		w.WriteField("async", "true")
+	}
 	w.WriteField("type", "File")
 	w.WriteField("classification", getRandomClassification())
 	fw, err := w.CreateFormFile("filestream", name)
@@ -177,7 +182,7 @@ func generateUploadRequest(name string, fqName string, url string) (*http.Reques
 	return req, err
 }
 
-func doUpload(i int) *protocol.ObjectLink {
+func doUpload(i int, async bool) *protocol.ObjectLink {
 	var link protocol.ObjectLink
 
 	//log.Printf("%d upload out of %s", i, clients[i].UploadCache)
@@ -202,6 +207,7 @@ func doUpload(i int) *protocol.ObjectLink {
 			filePickedName,
 			fqName,
 			host+"/service/metadataconnector/1.0/object",
+			async,
 		)
 		if err != nil {
 			log.Printf("Could not generate request:%v", err)
@@ -350,6 +356,7 @@ func doUpdateLink(i int, link *protocol.ObjectLink) {
 		link.Name,
 		fqName,
 		host+link.URL+"/stream",
+		false,
 	)
 	if err != nil {
 		log.Printf("Could not generate request:%v", err)
@@ -406,7 +413,7 @@ func doRandomAction(i int) bool {
 	r := rand.Intn(100)
 	switch {
 	case r > 70:
-		doUpload(i)
+		doUpload(i, false)
 	case r > 40:
 		doDownload(i)
 	case r > 20:
@@ -425,6 +432,65 @@ func doClient(i int, clientExited chan int) {
 		}
 	}
 	clientExited <- i
+}
+
+func dnFromInt(n int) string {
+	if n == 0 {
+		n = 10
+	}
+	return fmt.Sprintf(
+		"CN=test tester%02d,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US", n,
+	)
+}
+
+// Have user i grant link to j
+func doGrant(i int, link *protocol.ObjectLink, j int) {
+	//	dnFrom := dnFromInt(i)
+	dnTo := dnFromInt(j)
+
+	jsonObj := protocol.ObjectGrant{
+		Grantee: dnTo,
+		Create:  true,
+		Read:    true,
+		Update:  true,
+		Delete:  true,
+	}
+
+	jsonStr, err := json.Marshal(jsonObj)
+	if err != nil {
+		log.Printf("Unable to marshal json for request:%v", err)
+	}
+
+	req, err := http.NewRequest(
+		"POST",
+		host+link.URL+"/grant",
+		bytes.NewBuffer(jsonStr),
+	)
+	if err != nil {
+		log.Printf("Unable to generate request:%v", err)
+		return
+	}
+
+	if showFileUpload {
+		reqBytes, err := httputil.DumpRequestOut(req, showFileUpload)
+		log.Printf("%v\n%s", err, string(reqBytes))
+	}
+
+	//Now download the stream into a file
+	transport2 := &http.Transport{TLSClientConfig: clients[i].Config}
+	client2 := &http.Client{Transport: transport2}
+
+	res, err := client2.Do(req)
+	if err != nil {
+		log.Printf("Unable to do request:%v", err)
+		return
+	}
+
+	if showFileUpload {
+		resBytes, err := httputil.DumpResponse(res, true)
+		log.Printf("%v\n%s", err, string(resBytes))
+	}
+
 }
 
 var population = 10
@@ -462,14 +528,20 @@ func bigTest() {
 }
 
 var userID = 0
+var userID2 = 1
 
 /*
   Do a simple sequence to see that it actually works.
 	Capture the output so that we can see the raw http.
 */
 func quickTest() {
+
 	//Upload some random file
-	link := doUpload(userID)
+	link := doUpload(userID, false)
+
+	//Have userID2 upload a file so that he exists in the database
+	doUpload(userID2, true)
+
 	log.Printf("")
 	//var listing server.ObjectLinkResponse
 	//getObjectLinkResponse(userID, &listing)
@@ -485,6 +557,8 @@ func quickTest() {
 		//Try to re-download it
 		doDownloadLink(userID, link)
 		log.Printf("")
+
+		doGrant(userID, link, userID2)
 	} else {
 		log.Printf("We uploaded a file but got no link back!")
 	}
@@ -499,7 +573,7 @@ func main() {
 
 	generatePopulation()
 
-	if true {
+	if false {
 		bigTest()
 	} else {
 		quickTest()
