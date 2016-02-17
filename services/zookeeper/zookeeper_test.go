@@ -10,8 +10,7 @@ import (
 )
 
 func TestCreateZookeeperPath(t *testing.T) {
-	//TODO: Skip until we fix failing test
-	t.Skip()
+
 	zkAddress := "dockervm:2181"
 	if testing.Short() {
 		t.Skip("Skipping integration test.")
