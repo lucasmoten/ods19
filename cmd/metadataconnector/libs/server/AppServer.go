@@ -68,6 +68,91 @@ type Caller struct {
 	CommonName string
 }
 
+// initRegex should be used everywhere to ensure that static regexes are compiled.
+func initRegex(rx string) *regexp.Regexp {
+	compiled, err := regexp.Compile(rx)
+	if err != nil {
+		log.Printf("Unable to compile regex %s:%v", rx, err)
+		return nil
+	}
+	return compiled
+}
+
+// StaticRx is a bunch of static compiled regexes
+type StaticRx struct {
+	Favorites               *regexp.Regexp
+	Folder                  *regexp.Regexp
+	Home                    *regexp.Regexp
+	Images                  *regexp.Regexp
+	Object                  *regexp.Regexp
+	Query                   *regexp.Regexp
+	Shared                  *regexp.Regexp
+	Shares                  *regexp.Regexp
+	Trash                   *regexp.Regexp
+	Users                   *regexp.Regexp
+	ObjectChangeOwner       *regexp.Regexp
+	ObjectExpunge           *regexp.Regexp
+	ObjectFavorite          *regexp.Regexp
+	ObjectLink              *regexp.Regexp
+	ObjectLinks             *regexp.Regexp
+	ObjectMove              *regexp.Regexp
+	ObjectPermission        *regexp.Regexp
+	ObjectProperties        *regexp.Regexp
+	Objects                 *regexp.Regexp
+	ObjectShare             *regexp.Regexp
+	ObjectStream            *regexp.Regexp
+	ObjectStreamRevision    *regexp.Regexp
+	ObjectSubscription      *regexp.Regexp
+	ListObjects             *regexp.Regexp
+	ListObjectRevisions     *regexp.Regexp
+	ListObjectShares        *regexp.Regexp
+	ListObjectSubscriptions *regexp.Regexp
+	ListImages              *regexp.Regexp
+	TrashObject             *regexp.Regexp
+	StatsObject             *regexp.Regexp
+	StaticFiles             *regexp.Regexp
+}
+
+func (h AppServer) initRegex() *StaticRx {
+	return &StaticRx{
+		// These regular expressions to match uri patterns
+		Favorites:               initRegex(h.ServicePrefix + "/favorites$"),
+		Folder:                  initRegex(h.ServicePrefix + "/folder$"),
+		Home:                    initRegex(h.ServicePrefix + "/?$"),
+		Images:                  initRegex(h.ServicePrefix + "/images$"),
+		Object:                  initRegex(h.ServicePrefix + "/object$"),
+		Query:                   initRegex(h.ServicePrefix + "/query/.*"),
+		Shared:                  initRegex(h.ServicePrefix + "/shared$"),
+		Shares:                  initRegex(h.ServicePrefix + "/shares$"),
+		Trash:                   initRegex(h.ServicePrefix + "/trash$"),
+		Users:                   initRegex(h.ServicePrefix + "/users$"),
+		ObjectChangeOwner:       initRegex(h.ServicePrefix + "/object/.*/changeowner/.*"),
+		ObjectExpunge:           initRegex(h.ServicePrefix + "/object/.*/expunge$"),
+		ObjectFavorite:          initRegex(h.ServicePrefix + "/object/.*/favorite$"),
+		ObjectLink:              initRegex(h.ServicePrefix + "/object/.*/link/.*"),
+		ObjectLinks:             initRegex(h.ServicePrefix + "/object/.*/links$"),
+		ObjectMove:              initRegex(h.ServicePrefix + "/object/.*/move/.*"),
+		ObjectPermission:        initRegex(h.ServicePrefix + "/object/.*/permission/.*"),
+		ObjectProperties:        initRegex(h.ServicePrefix + "/object/.*/properties$"),
+		Objects:                 initRegex(h.ServicePrefix + "/objects$"),
+		ObjectShare:             initRegex(h.ServicePrefix + "/object/.*/share$"),
+		ObjectStream:            initRegex(h.ServicePrefix + "/object/.*/stream$"),
+		ObjectStreamRevision:    initRegex(h.ServicePrefix + "/object/.*/history/.*/stream$"),
+		ObjectSubscription:      initRegex(h.ServicePrefix + "/object/.*/subscribe$"),
+		ListObjects:             initRegex(h.ServicePrefix + "/object/.*/list$"),
+		ListObjectRevisions:     initRegex(h.ServicePrefix + "/object/.*/history$"),
+		ListObjectShares:        initRegex(h.ServicePrefix + "/object/.*/shares$"),
+		ListObjectSubscriptions: initRegex(h.ServicePrefix + "/object/.*/subscriptions$"),
+		ListImages:              initRegex(h.ServicePrefix + "/images/.*/list$"),
+		TrashObject:             initRegex(h.ServicePrefix + "/trash/.*"),
+		StatsObject:             initRegex(h.ServicePrefix + "/stats$"),
+		StaticFiles:             initRegex(h.ServicePrefix + "/static/(?P<path>.*)"),
+	}
+}
+
+// Store this globally for now.  It could go into h.
+var rx *StaticRx
+
 // ServeHTTP handles the routing of requests
 func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	caller := GetCaller(r)
@@ -113,89 +198,60 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println("LOGGING URI: ")
 	log.Println(r.Method, uri)
 
-	// These regular expressions to match uri patterns
-	var rxFavorites = regexp.MustCompile(h.ServicePrefix + "/favorites$")
-	var rxFolder = regexp.MustCompile(h.ServicePrefix + "/folder$")
-	var rxHome = regexp.MustCompile(h.ServicePrefix + "/?$")
-	var rxImages = regexp.MustCompile(h.ServicePrefix + "/images$")
-	var rxObject = regexp.MustCompile(h.ServicePrefix + "/object$")
-	var rxQuery = regexp.MustCompile(h.ServicePrefix + "/query/.*")
-	var rxShared = regexp.MustCompile(h.ServicePrefix + "/shared$")
-	var rxShares = regexp.MustCompile(h.ServicePrefix + "/shares$")
-	var rxTrash = regexp.MustCompile(h.ServicePrefix + "/trash$")
-	var rxUsers = regexp.MustCompile(h.ServicePrefix + "/users$")
-	var rxObjectChangeOwner = regexp.MustCompile(h.ServicePrefix + "/object/.*/changeowner/.*")
-	var rxObjectExpunge = regexp.MustCompile(h.ServicePrefix + "/object/.*/expunge$")
-	var rxObjectFavorite = regexp.MustCompile(h.ServicePrefix + "/object/.*/favorite$")
-	var rxObjectLink = regexp.MustCompile(h.ServicePrefix + "/object/.*/link/.*")
-	var rxObjectLinks = regexp.MustCompile(h.ServicePrefix + "/object/.*/links$")
-	var rxObjectMove = regexp.MustCompile(h.ServicePrefix + "/object/.*/move/.*")
-	var rxObjectPermission = regexp.MustCompile(h.ServicePrefix + "/object/.*/permission/.*")
-	var rxObjectProperties = regexp.MustCompile(h.ServicePrefix + "/object/.*/properties$")
-	var rxObjects = regexp.MustCompile(h.ServicePrefix + "/objects$")
-	var rxObjectShare = regexp.MustCompile(h.ServicePrefix + "/object/.*/share$")
-	var rxObjectStream = regexp.MustCompile(h.ServicePrefix + "/object/.*/stream$")
-	var rxObjectStreamRevision = regexp.MustCompile(h.ServicePrefix + "/object/.*/history/.*/stream$")
-	var rxObjectSubscription = regexp.MustCompile(h.ServicePrefix + "/object/.*/subscribe$")
-	var rxListObjects = regexp.MustCompile(h.ServicePrefix + "/object/.*/list$")
-	var rxListObjectRevisions = regexp.MustCompile(h.ServicePrefix + "/object/.*/history$")
-	var rxListObjectShares = regexp.MustCompile(h.ServicePrefix + "/object/.*/shares$")
-	var rxListObjectSubscriptions = regexp.MustCompile(h.ServicePrefix + "/object/.*/subscriptions$")
-	var rxListImages = regexp.MustCompile(h.ServicePrefix + "/images/.*/list$")
-	var rxTrashObject = regexp.MustCompile(h.ServicePrefix + "/trash/.*")
-	var rxStatsObject = regexp.MustCompile(h.ServicePrefix + "/stats$")
-	var rxStaticFiles = regexp.MustCompile(h.ServicePrefix + "/static/(?P<path>.*)")
-	var rxGrant = regexp.MustCompile(h.ServicePrefix + "/object.*/grant?")
+	//This will only compile the regexes once
+	if rx == nil {
+		rx = h.initRegex()
+	}
 
 	// TODO: use StripPrefix in handler?
 	// https://golang.org/pkg/net/http/#StripPrefix
 	switch r.Method {
 	case "GET":
 		switch {
-		case rxHome.MatchString(uri):
+		case rx.Home.MatchString(uri):
 			h.home(w, r, caller)
 		case uri == h.ServicePrefix+"/favicon.ico", uri == h.ServicePrefix+"//favicon.ico":
 			h.favicon(w, r)
-		// from longest to shortest...
-		case rxObjectStreamRevision.MatchString(uri):
+			// from longest to shortest...
+		case rx.ObjectStreamRevision.MatchString(uri):
 			h.getObjectStreamForRevision(w, r, caller)
-		case rxObjectStream.MatchString(uri):
+		case rx.ObjectStream.MatchString(uri):
 			h.getObjectStream(w, r, caller)
-		case rxObjectProperties.MatchString(uri):
+		case rx.ObjectProperties.MatchString(uri):
 			h.getObject(w, r, caller)
-		case rxObjectLinks.MatchString(uri):
+		case rx.ObjectLinks.MatchString(uri):
 			h.getRelationships(w, r, caller)
-		case rxObjects.MatchString(uri):
+		case rx.Objects.MatchString(uri):
 			h.listObjects(w, r, caller)
-		case rxListObjects.MatchString(uri):
+		case rx.ListObjects.MatchString(uri):
 			h.listObjects(w, r, caller)
-		case rxImages.MatchString(uri), rxListImages.MatchString(uri):
+		case rx.Images.MatchString(uri), rx.ListImages.MatchString(uri):
 			h.listObjectsImages(w, r, caller)
-		case rxListObjectRevisions.MatchString(uri):
+		case rx.ListObjectRevisions.MatchString(uri):
 			h.listObjectRevisions(w, r, caller)
-		case rxListObjectShares.MatchString(uri):
+		case rx.ListObjectShares.MatchString(uri):
 			h.listObjectShares(w, r, caller)
-		case rxListObjectSubscriptions.MatchString(uri):
+		case rx.ListObjectSubscriptions.MatchString(uri):
 			h.listObjectsSubscriptions(w, r, caller)
-		// single quick matchers
-		case rxFavorites.MatchString(uri):
+			// single quick matchers
+		case rx.Favorites.MatchString(uri):
 			h.listFavorites(w, r, caller)
-		case rxShared.MatchString(uri):
+		case rx.Shared.MatchString(uri):
 			h.listUserObjectsShared(w, r, caller)
-		case rxShares.MatchString(uri):
+		case rx.Shares.MatchString(uri):
 			h.listUserObjectShares(w, r, caller)
-		// TODO: Find out why this is showing up for /object//list
-		case rxObject.MatchString(uri):
+			// TODO: Find out why this is showing up for /object//list
+		case rx.Object.MatchString(uri):
 			h.createObject(w, r, caller)
-		case rxTrash.MatchString(uri):
+		case rx.Trash.MatchString(uri):
 			h.listObjectsTrashed(w, r, caller)
-		case rxQuery.MatchString(uri):
+		case rx.Query.MatchString(uri):
 			h.query(w, r, caller)
-		case rxStatsObject.MatchString(uri):
+		case rx.StatsObject.MatchString(uri):
 			h.getStats(w, r, caller)
-		case rxStaticFiles.MatchString(uri):
-			h.serveStatic(w, r, rxStaticFiles, uri)
-		case rxUsers.MatchString(uri):
+		case rx.StaticFiles.MatchString(uri):
+			h.serveStatic(w, r, rx.StaticFiles, uri)
+		case rx.Users.MatchString(uri):
 			h.listUsers(w, r, caller)
 		default:
 			jurl, _ := json.MarshalIndent(r.URL, "", "  ")
@@ -207,29 +263,29 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	case "POST":
 		switch {
-		case rxObjectShare.MatchString(uri):
+		case rx.ObjectShare.MatchString(uri):
 			h.addObjectShare(w, r, caller)
-		case rxObjectSubscription.MatchString(uri):
+		case rx.ObjectSubscription.MatchString(uri):
 			h.addObjectSubscription(w, r, caller)
-		case rxObjectFavorite.MatchString(uri):
+		case rx.ObjectFavorite.MatchString(uri):
 			h.addObjectToFavorites(w, r, caller)
-		case rxObjectLink.MatchString(uri):
+		case rx.ObjectLink.MatchString(uri):
 			h.addObjectToFolder(w, r, caller)
-		case rxObjects.MatchString(uri):
+		case rx.Objects.MatchString(uri):
 			log.Println("POST list objects")
 			h.listObjects(w, r, caller)
-		case rxFolder.MatchString(uri):
+		case rx.Folder.MatchString(uri):
 			h.createFolder(w, r, caller)
-		case rxObject.MatchString(uri):
+		case rx.Object.MatchString(uri):
 			h.createObject(w, r, caller)
-		case rxListObjects.MatchString(uri):
+		case rx.ListObjects.MatchString(uri):
 			h.listObjects(w, r, caller)
-		case rxQuery.MatchString(uri):
+		case rx.Query.MatchString(uri):
 			h.query(w, r, caller)
-		case rxObjectStream.MatchString(uri):
+		case rx.ObjectStream.MatchString(uri):
 			h.updateObjectStream(w, r, caller)
-		case rxGrant.MatchString(uri):
-			h.updateObjectPermissions(w, r, caller)
+		case rx.ObjectShare.MatchString(uri):
+			h.addObjectShare(w, r, caller)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)
@@ -237,13 +293,13 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	case "PUT":
 		switch {
-		case rxObjectChangeOwner.MatchString(uri):
+		case rx.ObjectChangeOwner.MatchString(uri):
 			h.changeOwner(w, r, caller)
-		case rxObjectMove.MatchString(uri):
+		case rx.ObjectMove.MatchString(uri):
 			h.moveObject(w, r, caller)
-		case rxObjectPermission.MatchString(uri):
+		case rx.ObjectPermission.MatchString(uri):
 			h.updateObjectPermissions(w, r, caller)
-		case rxObjectProperties.MatchString(uri):
+		case rx.ObjectProperties.MatchString(uri):
 			h.updateObject(w, r, caller)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
@@ -252,19 +308,19 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	case "DELETE":
 		switch {
-		case rxObject.MatchString(uri):
+		case rx.Object.MatchString(uri):
 			h.deleteObject(w, r, caller)
-		case rxObjectExpunge.MatchString(uri):
+		case rx.ObjectExpunge.MatchString(uri):
 			h.deleteObjectForever(w, r, caller)
-		case rxObjectFavorite.MatchString(uri):
+		case rx.ObjectFavorite.MatchString(uri):
 			h.removeObjectFromFavorites(w, r, caller)
-		case rxObjectLink.MatchString(uri):
+		case rx.ObjectLink.MatchString(uri):
 			h.removeObjectFromFolder(w, r, caller)
-		case rxTrashObject.MatchString(uri):
+		case rx.TrashObject.MatchString(uri):
 			h.removeObjectFromTrash(w, r, caller)
-		case rxObjectShare.MatchString(uri):
+		case rx.ObjectShare.MatchString(uri):
 			h.removeObjectShare(w, r, caller)
-		case rxObjectSubscription.MatchString(uri):
+		case rx.ObjectSubscription.MatchString(uri):
 			h.removeObjectSubscription(w, r, caller)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
