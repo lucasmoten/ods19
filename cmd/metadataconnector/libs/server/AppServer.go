@@ -106,7 +106,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(jsonified)
 	}
 
-	var uri = r.URL.RequestURI()
+	var uri = r.URL.Path
 
 	log.Println("LOGGING APP SERVER CONFIG:")
 	log.Println(h.ServicePrefix)
@@ -198,6 +198,9 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case rxUsers.MatchString(uri):
 			h.listUsers(w, r, caller)
 		default:
+			jurl, _ := json.MarshalIndent(r.URL, "", "  ")
+			fmt.Println(string(jurl))
+
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)
 			http.Error(w, "Resource not found", 404)

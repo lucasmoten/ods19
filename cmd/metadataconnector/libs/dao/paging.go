@@ -24,13 +24,13 @@ func GetSanitizedPageSize(pageSize int) int {
 // GetLimit is used for determining the upper bound of records to request from
 // the database, specifically pageNumber * pageSize
 func GetLimit(pageNumber int, pageSize int) int {
-	return GetSanitizedPageNumber(pageNumber) * GetSanitizedPageSize(pageSize)
+	return GetSanitizedPageSize(pageSize)
 }
 
 // GetOffset is used for determining the lower bound of records to request from
 // the database, starting with the first item on a given page based on size
 func GetOffset(pageNumber int, pageSize int) int {
-	return GetLimit(pageNumber, pageSize) - pageSize
+	return ((GetSanitizedPageNumber(pageNumber) - 1) * GetSanitizedPageSize(pageSize))
 }
 
 // GetPageCount determines the total number of pages that would exist when the

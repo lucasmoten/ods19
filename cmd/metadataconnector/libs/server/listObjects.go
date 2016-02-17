@@ -312,8 +312,10 @@ func listObjectsResponseAsHTML(
 		fmt.Fprintf(w, linkToParent)
 	}
 	// Horizontal Navigation (pages)
+	fmt.Fprintf(w, "Page "+strconv.Itoa(response.PageNumber)+" of "+strconv.Itoa(response.PageCount)+".<br />")
+	fmt.Fprintf(w, "Page Size: "+strconv.Itoa(response.PageSize)+", Page Rows: "+strconv.Itoa(response.PageRows)+", Total Rows: "+strconv.Itoa(response.TotalRows)+"<br />")
 	if response.PageCount > 1 {
-		fmt.Fprintf(w, createPagerAsHTML(r.URL.RequestURI(), response.PageCount, response.PageNumber))
+		fmt.Fprintf(w, createPagerAsHTML(r.URL.Path, response.PageCount, response.PageNumber, response.PageSize))
 	}
 	// Now render the table of objects...
 	fmt.Fprintf(w, `<table id="listObjectsResults">`)
@@ -355,10 +357,15 @@ func listObjectsResponseAsHTML(
 
 	// Finally, provide a form to add a new child folder here
 	canCreateFolder := false
-	for _, perm := range parentObject.Permissions {
-		if perm.AllowCreate && perm.Grantee == caller.DistinguishedName {
-			canCreateFolder = true
-			break
+	if parentObject.ID == nil {
+		// Its the user's root, so they can create here
+		canCreateFolder = true
+	} else {
+		for _, perm := range parentObject.Permissions {
+			if perm.AllowCreate && perm.Grantee == caller.DistinguishedName {
+				canCreateFolder = true
+				break
+			}
 		}
 	}
 	if canCreateFolder {
@@ -379,16 +386,16 @@ func listObjectsResponseAsHTML(
 	}
 }
 
-func createPagerAsHTML(baseURI string, PageCount int, PageNumber int) string {
+func createPagerAsHTML(baseURI string, PageCount int, PageNumber int, PageSize int) string {
 	var o string
 	o += "<table id='listObjectsPager'><tr>"
 	for pc := 1; pc <= PageCount; pc++ {
-		if PageCount == PageNumber {
+		if pc == PageNumber {
 			o += "<td width='50' align='center' bgcolor='grey'>&nbsp;"
 			o += strconv.Itoa(pc)
 		} else {
 			o += "<td width='50' align='center'>&nbsp;"
-			o += "<a href='" + baseURI + "?PageNumber=" + strconv.Itoa(pc) + "&PageSize=20'>" + strconv.Itoa(pc) + "</a>"
+			o += "<a href='" + baseURI + "?PageNumber=" + strconv.Itoa(pc) + "&PageSize=" + strconv.Itoa(PageSize) + "'>" + strconv.Itoa(pc) + "</a>"
 		}
 		o += "&nbsp;</td>"
 	}
