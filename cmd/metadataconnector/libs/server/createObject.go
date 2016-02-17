@@ -15,6 +15,7 @@ var createObjectForm = `
 <hr/>
 <form method="post" action="%s/object" enctype="multipart/form-data">
 <table>
+	<input type="hidden" name="async" value="true"/>
 	<tr>
 		<td>Object Name</td>
 		<td><input type="text" id="title" name="title" /></td>
