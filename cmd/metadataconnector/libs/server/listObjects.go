@@ -61,6 +61,7 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 	// Fetch the matching objects
 	var response models.ODObjectResultset
 	if parentObject.ID == nil {
+		// Requesting root
 		response, err = h.DAO.GetRootObjectsWithPropertiesByOwner(
 			"createddate desc",
 			pagingRequest.PageNumber,
@@ -68,6 +69,41 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 			caller.DistinguishedName,
 		)
 	} else {
+		// Requesting children of an object. Load it...
+		dbObject, err := h.DAO.GetObject(parentObject, false)
+		if err != nil {
+			log.Println(err)
+			h.sendErrorResponse(w, 500, err, "Error retrieving object")
+			return
+		}
+		// Check for permission to read this object
+		canReadObject := false
+		for _, perm := range dbObject.Permissions {
+			if perm.AllowRead && perm.Grantee == caller.DistinguishedName {
+				canReadObject = true
+				break
+			}
+		}
+		if !canReadObject {
+			h.sendErrorResponse(w, 403, err, "Insufficient permissions to list contents of this object")
+			return
+		}
+		// Is it deleted?
+		if dbObject.IsDeleted {
+			switch {
+			case dbObject.IsExpunged:
+				h.sendErrorResponse(w, 410, err, "The object no longer exists.")
+				return
+			case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
+				h.sendErrorResponse(w, 405, err, "The object cannot be read because an ancestor is deleted.")
+				return
+			case dbObject.IsDeleted:
+				h.sendErrorResponse(w, 405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it before listing its contents")
+				return
+			}
+		}
+
+		// Get the objects
 		response, err = h.DAO.GetChildObjectsWithPropertiesByOwner(
 			"createddate desc",
 			pagingRequest.PageNumber,
@@ -93,50 +129,6 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 		listObjectsResponseAsHTML(w, r, caller, h.DAO, parentObject, &response)
 	}
 	return
-
-	// // ------------------------------- done
-	//
-	// linkToParent := ""
-	//
-	// if parentID != "" {
-	// 	var parentObject models.ODObject
-	// 	parentObject.ID, err = hex.DecodeString(parentID)
-	// 	if err != nil {
-	// 		h.sendErrorResponse(w, 400, err, "ParentID provided by caller is not a hex string")
-	// 		return
-	// 	}
-	//
-	// 	loadedParent, err := h.DAO.GetObject(&parentObject, false)
-	// 	if err != nil {
-	// 		h.sendErrorResponse(w, 500, err, "Unable to retrieve ParentID")
-	// 	}
-	// 	if len(loadedParent.ParentID) > 0 {
-	// 		linkToParent = fmt.Sprintf("<a href='%s/object/%s/list'>Up to Parent</a><br />", config.RootURL, hex.EncodeToString(loadedParent.ParentID))
-	//
-	// 	} else {
-	// 		linkToParent = fmt.Sprintf("<a href='%s/objects'>Up to Root</a><br />", config.RootURL)
-	// 	}
-	// } else {
-	// 	linkToParent = ""
-	//
-	// }
-	// if err != nil {
-	// 	h.sendErrorResponse(w, 500, err, "General error")
-	// 	return
-	// }
-	// if r.Header.Get("Content-Type") == "application/json" {
-	// 	h.listObjectsAsJSON(w, r, caller, &response, parentID, linkToParent, config.RootURL, objectLinkResponse)
-	// } else {
-	// 	tmpl := h.TemplateCache.Lookup("listObjects.html")
-	// 	log.Println("Number of templates: ", len(h.TemplateCache.Templates()))
-	// 	data := struct{ DistinguishedName, ParentID string }{caller.DistinguishedName, parentID}
-	// 	log.Println("Executing template: ", tmpl)
-	// 	err := tmpl.Execute(w, data)
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 		h.sendErrorResponse(w, 500, err, "General error")
-	// 	}
-	// }
 }
 
 func parseListObjectsRequestAsHTML(r *http.Request) (*models.ODObject, *protocol.PagingRequest, error) {
@@ -291,25 +283,35 @@ func listObjectsResponseAsHTML(
 	parentObject *models.ODObject,
 	response *models.ODObjectResultset,
 ) {
+	canCreateFolder := false
 	w.Header().Set("Content-Type", "text/html")
 	fmt.Fprintf(w, pageTemplateStart, "listObjects", caller.DistinguishedName)
 	// Vertical Navigation (Up to Parent)
 	// Check if the object referenced is the root for displaying a link up
 	if parentObject.ID != nil {
 		// Not the root, get the parent of the referenced Object
-		loadedParent, err := dao.GetObject(parentObject, false)
+		dbObject, err := dao.GetObject(parentObject, false)
 		linkToParent := ""
 		if err != nil {
 			// swallow this error for HTML output
 		} else {
-			if len(loadedParent.ParentID) > 0 {
-				linkToParent = fmt.Sprintf("<a href='%s/object/%s/list'>Up to Parent</a><br />", config.RootURL, hex.EncodeToString(loadedParent.ParentID))
+			if len(dbObject.ParentID) > 0 {
+				linkToParent = fmt.Sprintf("<a href='%s/object/%s/list'>Up to Parent</a><br />", config.RootURL, hex.EncodeToString(dbObject.ParentID))
 
 			} else {
 				linkToParent = fmt.Sprintf("<a href='%s/objects'>Up to Root</a><br />", config.RootURL)
 			}
 		}
 		fmt.Fprintf(w, linkToParent)
+		// Check permission to create folder, for displaying form later
+		for _, perm := range dbObject.Permissions {
+			if perm.AllowCreate && perm.Grantee == caller.DistinguishedName {
+				canCreateFolder = true
+				break
+			}
+		}
+	} else {
+		canCreateFolder = true
 	}
 	// Horizontal Navigation (pages)
 	fmt.Fprintf(w, "Page "+strconv.Itoa(response.PageNumber)+" of "+strconv.Itoa(response.PageCount)+".<br />")
@@ -356,18 +358,6 @@ func listObjectsResponseAsHTML(
 	fmt.Fprintf(w, "</table>")
 
 	// Finally, provide a form to add a new child folder here
-	canCreateFolder := false
-	if parentObject.ID == nil {
-		// Its the user's root, so they can create here
-		canCreateFolder = true
-	} else {
-		for _, perm := range parentObject.Permissions {
-			if perm.AllowCreate && perm.Grantee == caller.DistinguishedName {
-				canCreateFolder = true
-				break
-			}
-		}
-	}
 	if canCreateFolder {
 		fmt.Fprintf(w, `
 	<hr/>
@@ -402,119 +392,3 @@ func createPagerAsHTML(baseURI string, PageCount int, PageNumber int, PageSize i
 	o += "</tr></table>"
 	return o
 }
-
-//
-// func (h AppServer) listObjectsAsJSON(
-// 	w http.ResponseWriter,
-// 	r *http.Request,
-// 	caller Caller,
-// 	response *models.ODObjectResultset,
-// 	parentID string,
-// 	linkToParent string,
-// 	rootURL string,
-// 	objectLinkResponse *protocol.ObjectLinkResponse,
-// ) {
-// 	w.Header().Set("Content-Type", "application/json")
-// 	var links []protocol.ObjectLink
-// 	for idx := range response.Objects {
-// 		object := response.Objects[idx]
-// 		link := GetObjectLinkFromObject(rootURL, &object)
-// 		links = append(links, link)
-// 	}
-// 	objectLinkResponse.Objects = links
-// 	encoder := json.NewEncoder(w)
-// 	encoder.Encode(*objectLinkResponse)
-// }
-//
-// func (h AppServer) listObjectsAsHTML(
-// 	w http.ResponseWriter,
-// 	r *http.Request,
-// 	caller Caller,
-// 	response *models.ODObjectResultset,
-// 	parentID string,
-// 	linkToParent string,
-// 	rootURL string,
-// 	objectLinkResponse *protocol.ObjectLinkResponse,
-// ) {
-// 	// Get objects from response
-// 	objects := response.Objects
-//
-// 	w.Header().Set("Content-Type", "text/html")
-// 	fmt.Fprintf(w, pageTemplateStart, "listObjects", caller.DistinguishedName)
-// 	fmt.Fprintf(w, pageTemplatePager, "listObjectsPager")
-// 	fmt.Fprintf(w, pageTemplateDataTable, "listObjectsResults")
-// 	fmt.Fprintf(w, pageTemplateEnd)
-// 	fmt.Fprintf(w, linkToParent)
-// 	fmt.Fprintf(w, "Page "+strconv.Itoa(response.PageNumber)+" of "+strconv.Itoa(response.PageCount)+".<br />")
-// 	fmt.Fprintf(w, "Page Size: "+strconv.Itoa(response.PageSize)+", Page Rows: "+strconv.Itoa(response.PageRows)+", Total Rows: "+strconv.Itoa(response.TotalRows)+"<br />")
-// 	fmt.Fprintf(w, `<table id="listObjectsResults">`)
-// 	fmt.Fprintf(w, `<tr><td>Name</td><td>Type</td><td>Created Date</td><td>Created By</td><td>Size</td><td>ChangeToken</td><td>ACM</td></tr>`)
-// 	for idx := range objects {
-// 		object := objects[idx]
-// 		fmt.Fprintf(w, "<tr>")
-// 		switch {
-// 		case object.TypeName.String == "Folder":
-// 			fmt.Fprintf(
-// 				w,
-// 				"<td><a href='%s/object/%s/list'>%s</a></td>",
-// 				rootURL,
-// 				hex.EncodeToString(object.ID),
-// 				object.Name,
-// 			)
-// 		default:
-// 			fmt.Fprintf(
-// 				w,
-// 				"<td><a href='%s/object/%s/stream'>%s</a></td>",
-// 				rootURL,
-// 				hex.EncodeToString(object.ID),
-// 				object.Name,
-// 			)
-// 		}
-//
-// 		fmt.Fprintf(w, "<td>%s</td>", object.TypeName.String)
-// 		fmt.Fprintf(w, "<td>%s</td>", getFormattedDate(object.CreatedDate))
-// 		fmt.Fprintf(w, "<td>%s</td>", config.GetCommonName(object.CreatedBy))
-// 		fmt.Fprintf(w, "<td>%d</td>", object.ContentSize.Int64)
-// 		fmt.Fprintf(w, "<td>%s</td>", object.ChangeToken)
-// 		fmt.Fprintf(w, "<td>%s</td>", object.RawAcm.String)
-// 		fmt.Fprintf(w, "</tr>")
-// 	}
-// 	fmt.Fprintf(w, "</table>")
-//
-// 	fmt.Fprintf(w, `
-// 	<hr/>
-// 	<form method="post" action="%s/folder" enctype="multipart/form-data">
-// 	<input type="hidden" name="parentId" value="%s" />
-// 	<input type="hidden" name="type" value="Folder" />
-// 	<table>
-// 		<tr>
-// 			<td>New Folder Name</td>
-// 			<td><input type="text" id="title" name="title" /></td>
-// 			<td><input type="submit" value="Create" /></td>
-// 		</tr>
-// 	</table>
-// 	</form>
-// 			`, rootURL, parentID)
-// }
-//
-// // getListObjectsRequestAsJSON is used for parsing the request as json to get
-// // the pageNumber and pageSize of results requested.
-// // TODO: This especially needs a test as it is as yet unvalidated
-// func getListObjectsRequestAsJSON(r *http.Request, objectLinkResponse *protocol.ObjectLinkResponse) {
-// 	decoder := json.NewDecoder(r.Body)
-// 	err := decoder.Decode(objectLinkResponse)
-// 	if err != nil {
-// 		//TODO: Log it
-// 		log.Println("Error decoding JSON request.")
-//
-// 		// Force to page 1, size of 20
-// 		objectLinkResponse.PageNumber = 1
-// 		objectLinkResponse.PageSize = 20
-// 	}
-// 	if objectLinkResponse.PageNumber < 1 {
-// 		objectLinkResponse.PageNumber = 1
-// 	}
-// 	if objectLinkResponse.PageSize < 1 {
-// 		objectLinkResponse.PageSize = 20
-// 	}
-// }
