@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-// ClientIdentity is a user that is going to connect to oru service
+// ClientIdentity is a user that is going to connect to our service
 type ClientIdentity struct {
 	TrustPem      string
 	CertPem       string
@@ -33,6 +33,8 @@ type ClientIdentity struct {
 }
 
 var showFileUpload = true
+
+//XXX This ASSUMES that you have an /etc/hosts entry for dockervm
 var host = "https://dockervm:8080"
 
 // NewClientTLSConfig creates a per-client tls config
@@ -139,7 +141,7 @@ func getRandomClassification() string {
 	return classes[r]
 }
 
-func generateUploadRequest(name string, fqName string, url string) (*http.Request, error) {
+func generateUploadRequest(name string, fqName string, url string, async bool) (*http.Request, error) {
 	f, err := os.Open(fqName)
 	defer f.Close()
 	if err != nil {
@@ -149,6 +151,9 @@ func generateUploadRequest(name string, fqName string, url string) (*http.Reques
 	//Create a multipart mime request
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
+	if async {
+		w.WriteField("async", "true")
+	}
 	w.WriteField("type", "File")
 	w.WriteField("classification", getRandomClassification())
 	fw, err := w.CreateFormFile("filestream", name)
@@ -177,7 +182,7 @@ func generateUploadRequest(name string, fqName string, url string) (*http.Reques
 	return req, err
 }
 
-func doUpload(i int) *protocol.ObjectLink {
+func doUpload(i int, async bool) *protocol.ObjectLink {
 	var link protocol.ObjectLink
 
 	//log.Printf("%d upload out of %s", i, clients[i].UploadCache)
@@ -202,6 +207,7 @@ func doUpload(i int) *protocol.ObjectLink {
 			filePickedName,
 			fqName,
 			host+"/service/metadataconnector/1.0/object",
+			async,
 		)
 		if err != nil {
 			log.Printf("Could not generate request:%v", err)
@@ -350,6 +356,7 @@ func doUpdateLink(i int, link *protocol.ObjectLink) {
 		link.Name,
 		fqName,
 		host+link.URL+"/stream",
+		false,
 	)
 	if err != nil {
 		log.Printf("Could not generate request:%v", err)
@@ -406,7 +413,7 @@ func doRandomAction(i int) bool {
 	r := rand.Intn(100)
 	switch {
 	case r > 70:
-		doUpload(i)
+		doUpload(i, false)
 	case r > 40:
 		doDownload(i)
 	case r > 20:
@@ -530,10 +537,10 @@ var userID2 = 1
 func quickTest() {
 
 	//Upload some random file
-	link := doUpload(userID)
+	link := doUpload(userID, false)
 
 	//Have userID2 upload a file so that he exists in the database
-	doUpload(userID2)
+	doUpload(userID2, true)
 
 	log.Printf("")
 	//var listing server.ObjectLinkResponse
