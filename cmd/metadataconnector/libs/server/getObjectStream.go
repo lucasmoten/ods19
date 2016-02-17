@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
 	//"fmt"
 	"log"
@@ -13,65 +14,12 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	//"path"
 	"regexp"
 	"strconv"
 	//"strings"
 	"decipher.com/oduploader/performance"
 )
-
-func (h AppServer) transferFileFromS3(
-	bucket *string,
-	theFile string,
-) {
-	beganAt := h.Tracker.BeginTime(performance.S3DrainFrom)
-	h.transferFileFromS3Timed(bucket, theFile)
-
-	stat, cachedErr := os.Stat(h.CacheLocation + "/" + theFile + ".cached")
-	if cachedErr != nil {
-		log.Printf("could not get length of cached file %s", theFile)
-	}
-	length := stat.Size()
-
-	h.Tracker.EndTime(
-		performance.S3DrainFrom,
-		beganAt,
-		performance.SizeJob(length),
-	)
-}
-
-func (h AppServer) transferFileFromS3Timed(
-	bucket *string,
-	theFile string,
-) {
-	log.Printf("Get from S3 bucket %s: %s", *bucket, theFile)
-	foutCaching := h.CacheLocation + "/" + theFile + ".caching"
-	foutCached := h.CacheLocation + "/" + theFile + ".cached"
-	fOut, err := os.Create(foutCaching)
-	if err != nil {
-		log.Printf("Unable to write local buffer file %s: %v", theFile, err)
-	}
-	defer fOut.Close()
-
-	downloader := s3manager.NewDownloader(h.AWSSession)
-	_, err = downloader.Download(
-		fOut,
-		&s3.GetObjectInput{
-			Bucket: bucket,
-			Key:    aws.String(h.CacheLocation + "/" + theFile),
-		},
-	)
-	if err != nil {
-		log.Printf("Unable to download out of S3 bucket %v: %v", *bucket, theFile)
-	}
-	//Signal that we finally cached the file
-	err = os.Rename(foutCaching, foutCached)
-	if err != nil {
-		log.Printf("Failed to rename from %s to %s", foutCaching, foutCached)
-	}
-}
 
 func (h AppServer) getObjectStreamObject(w http.ResponseWriter, r *http.Request, caller Caller) (*models.ODObject, error) {
 	// Identify requested object
@@ -211,7 +159,7 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 	//A visibility hack, so that I can see metadata about the object from a GET
 	//This lets you look in a browser and check attributes on an object that came
 	//back.
-	objectLink := GetObjectLinkFromObject(config.RootURL, object)
+	objectLink := mapping.GetObjectLinkFromObject(config.RootURL, object)
 	objectLinkAsJSONBytes, err := json.Marshal(objectLink)
 	if err != nil {
 		log.Printf("Unable to marshal object metadata:%v", err)
