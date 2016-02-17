@@ -29,7 +29,8 @@ func (h AppServer) acceptObjectUpload(
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
 		panic(err)
-	} // if err != nil
+	}
+	async := false
 	for {
 		part, err := multipartReader.NextPart()
 		if err != nil {
@@ -42,6 +43,10 @@ func (h AppServer) acceptObjectUpload(
 		} // if err != nil
 
 		switch {
+		case part.FormName() == "async":
+			if getFormValueAsString(part) == "true" {
+				async = true
+			}
 		case part.FormName() == "title":
 			obj.Name = getFormValueAsString(part)
 		case part.FormName() == "type":
@@ -58,7 +63,7 @@ func (h AppServer) acceptObjectUpload(
 			if obj.Name == "" {
 				obj.Name = part.FileName()
 			}
-			err = h.beginUpload(w, r, caller, part, obj, acm, grant)
+			err = h.beginUpload(w, r, caller, part, obj, acm, grant, async)
 			if err != nil {
 				h.sendErrorResponse(w, 500, err, "error caching file")
 				return
@@ -75,10 +80,11 @@ func (h AppServer) beginUpload(
 	obj *models.ODObject,
 	acm *models.ODACM,
 	grant *models.ODObjectPermission,
+	async bool,
 ) (err error) {
 
 	beganAt := h.Tracker.BeginTime(performance.UploadCounter)
-	err = h.beginUploadTimed(w, r, caller, part, obj, acm, grant)
+	err = h.beginUploadTimed(w, r, caller, part, obj, acm, grant, async)
 
 	h.Tracker.EndTime(
 		performance.UploadCounter,
@@ -97,6 +103,7 @@ func (h AppServer) beginUploadTimed(
 	obj *models.ODObject,
 	acm *models.ODACM,
 	grant *models.ODObjectPermission,
+	async bool,
 ) (err error) {
 	rName := obj.ContentConnector.String
 	iv := obj.EncryptIV
@@ -142,9 +149,13 @@ func (h AppServer) beginUploadTimed(
 	//Record metadata
 	obj.ContentHash = checksum
 	obj.ContentSize.Int64 = stat.Size()
-	//XXX making the S3 upload synchronous temporarily, in the absence of a
-	//mechanism for knowing whether the file has made it up to S3 yet
-	h.drainFileToS3(aws.String("decipherers"), rName)
+	//Just return 200 when we run async, because the client tells
+	//us whether it's async or not.
+	if async {
+		go h.drainFileToS3(aws.String("decipherers"), rName)
+	} else {
+		h.drainFileToS3(aws.String("decipherers"), rName)
+	}
 	return err
 }
 
