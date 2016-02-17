@@ -1,7 +1,6 @@
 package server
 
 import (
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
 	"encoding/hex"
@@ -40,7 +39,7 @@ func (h AppServer) getObjectGrantObject(w http.ResponseWriter, r *http.Request, 
 	// Retrieve from database
 	var objectRequested models.ODObject
 	objectRequested.ID = objectIDByte
-	object, err := dao.GetObject(h.MetadataDB, &objectRequested, false)
+	object, err := h.DAO.GetObject(&objectRequested, false)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cannot get object")
 		return nil, err
@@ -98,7 +97,7 @@ func (h AppServer) updateObjectPermissions(w http.ResponseWriter, r *http.Reques
 	newGrant.AllowDelete = objectGrant.Delete
 
 	//Now that we have a new grant, we need to add it in
-	err = dao.AddPermissionToObject(h.MetadataDB, object.CreatedBy, object, &newGrant)
+	err = h.DAO.AddPermissionToObject(caller.DistinguishedName, object, &newGrant)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Error updating permission")
 	}
