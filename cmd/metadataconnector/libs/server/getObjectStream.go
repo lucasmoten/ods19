@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
 	//"fmt"
 	"log"
@@ -158,7 +159,7 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 	//A visibility hack, so that I can see metadata about the object from a GET
 	//This lets you look in a browser and check attributes on an object that came
 	//back.
-	objectLink := GetObjectLinkFromObject(config.RootURL, object)
+	objectLink := mapping.GetObjectLinkFromObject(config.RootURL, object)
 	objectLinkAsJSONBytes, err := json.Marshal(objectLink)
 	if err != nil {
 		log.Printf("Unable to marshal object metadata:%v", err)
