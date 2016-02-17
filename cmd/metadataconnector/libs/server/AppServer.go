@@ -42,7 +42,7 @@ type AppServer struct {
 	ServicePrefix string
 	// AAC is a handle to the Authorization and Access Control client
 	// TODO: This will need to be converted to be pluggable later
-	AAC *aac.AacServiceClient
+	AAC aac.AacService
 	// TODO: Classifications is ????
 	Classifications map[string]string
 	// MasterKey is the secret passphrase used in scrambling keys
