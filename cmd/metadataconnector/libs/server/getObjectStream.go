@@ -75,27 +75,8 @@ func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, calle
 
 func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Request, caller Caller, object *models.ODObject) {
 	var err error
-
-	//Make sure that the cache exists
-	err = h.CacheMustExist()
-	if err != nil {
-		return
-	}
-
-	//Ensure that the actual file exists
-	cipherTextS3Name := h.CacheLocation + "/" + object.ContentConnector.String
-	cipherTextName := cipherTextS3Name + ".cached"
-	_, err = os.Stat(cipherTextName)
-	if err != nil {
-		if os.IsNotExist(err) {
-			log.Printf("file is not cached.  Caching it now.")
-			bucket := aws.String("decipherers")
-			//When this finishes, cipherTextName should exist.  It could take a
-			//very long time though.
-			//XXX blocks for a long time
-			h.transferFileFromS3(bucket, object.ContentConnector.String)
-		}
-	}
+	var err2 error
+	var err3 error
 
 	// Get the key from the permission
 	var permission *models.ODObjectPermission
@@ -108,6 +89,7 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	//XXX watch for very large number of permissions on a file!
 	for _, v := range object.Permissions {
 		permission = &v
 		if permission.AllowRead && permission.Grantee == caller.DistinguishedName {
@@ -143,12 +125,77 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	//Open up the ciphertext file
-	cipherText, err := os.Open(cipherTextName)
+	// Database checks and AAC checks take time, particularly AAC.
+	// We may have just uploaded this file, with it still draining
+	// to S3 in the background.  So open the file as late as possible
+	// so that we take advantage of that parallelism.
+
+	//Make sure that the cache exists
+	err = h.CacheMustExist()
 	if err != nil {
-		log.Printf("Unable to open ciphertext %s:%v", cipherTextName, err)
 		return
 	}
+
+	//Fall back on the uploaded copy for download if we need to
+	var cipherText *os.File
+	cipherTextS3Name := h.CacheLocation + "/" + object.ContentConnector.String
+	cipherTextName := cipherTextS3Name + ".cached"
+	cipherTextUploadedName := cipherTextS3Name + ".uploaded"
+
+	//Try to find the cached file
+	if cipherText, err = os.Open(cipherTextName); err != nil {
+		if os.IsNotExist(err) {
+			//Try the file being uploaded into S3
+			if cipherText, err2 = os.Open(cipherTextUploadedName); err2 != nil {
+				if os.IsNotExist(err2) {
+					//Maybe it's cached now?
+					if cipherText, err3 = os.Open(cipherTextName); err3 != nil {
+						if os.IsNotExist(err3) {
+							//File is really not cached or uploaded.
+							//If it's caching, it's partial anyway
+							//leave cipherText nil, and wait for re-cache
+						} else {
+							//Some other error.  Pretend it's permissions
+							h.sendErrorResponse(w, 403, err, "No permission for file")
+							return
+						}
+					} else {
+						//cached file exists
+					}
+				} else {
+					//Some other error.  Pretend it's permissions
+					h.sendErrorResponse(w, 403, err, "No permission for file")
+					return
+				}
+			} else {
+				//uploaded file exists.  use it.
+				log.Printf("using uploaded file")
+			}
+		} else {
+			//Some other error.  Pretend it's permissions
+			h.sendErrorResponse(w, 403, err, "No permission for file")
+			return
+		}
+	} else {
+		//the cached file exists
+	}
+
+	//We have no choice but to recache and wait
+	if cipherText == nil {
+		log.Printf("file is not cached.  Caching it now.")
+		bucket := aws.String("decipherers")
+		//When this finishes, cipherTextName should exist.  It could take a
+		//very long time though.
+		//XXX blocks for a long time - maybe we should return an error code and
+		// an estimate of WHEN to retry in this case
+		h.transferFileFromS3(bucket, object.ContentConnector.String)
+		if cipherText, err = os.Open(cipherTextName); err != nil {
+			h.sendErrorResponse(w, 403, err, "No permission for file")
+			return
+		}
+	}
+
+	//We have the file and it's open.  Be sure to close it.
 	defer cipherText.Close()
 
 	w.Header().Set("Content-Type", object.ContentType.String)
