@@ -444,7 +444,7 @@ func dnFromInt(n int) string {
 }
 
 // Have user i grant link to j
-func doGrant(i int, link *protocol.ObjectLink, j int) {
+func doShare(i int, link *protocol.ObjectLink, j int) {
 	//	dnFrom := dnFromInt(i)
 	dnTo := dnFromInt(j)
 
@@ -463,7 +463,7 @@ func doGrant(i int, link *protocol.ObjectLink, j int) {
 
 	req, err := http.NewRequest(
 		"POST",
-		host+link.URL+"/grant",
+		host+link.URL+"/share",
 		bytes.NewBuffer(jsonStr),
 	)
 	if err != nil {
