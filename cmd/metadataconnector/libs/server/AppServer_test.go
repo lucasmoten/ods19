@@ -19,9 +19,13 @@ func TestAppServerGetObject(t *testing.T) {
 
 	// set up server
 	fakeServer := server.AppServer{DAO: &fakeDAO}
+	s := httptest.NewServer(fakeServer)
+
+	defer s.Close()
+	s.URL = ""
 
 	// set up request
-	s := httptest.NewServer(fakeServer)
+	// req, err := http.NewRequest("GET", )
 
 	s.Start()
 
