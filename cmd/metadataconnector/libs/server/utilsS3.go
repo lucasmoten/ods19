@@ -1,7 +1,13 @@
 package server
 
 import (
+	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/performance"
+	"encoding/hex"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"io"
 	"log"
 	"mime/multipart"
@@ -9,12 +15,6 @@ import (
 	"os"
 	"path"
 	"strings"
-
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/performance"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 func (h AppServer) acceptObjectUpload(
@@ -24,6 +24,7 @@ func (h AppServer) acceptObjectUpload(
 	obj *models.ODObject,
 	acm *models.ODACM,
 	grant *models.ODObjectPermission,
+	parentID *string,
 ) {
 	r.ParseForm()
 	multipartReader, err := r.MultipartReader()
@@ -43,6 +44,14 @@ func (h AppServer) acceptObjectUpload(
 		} // if err != nil
 
 		switch {
+		case part.FormName() == "parentId":
+			pid := getFormValueAsString(part)
+			if len(pid) > 0 {
+				obj.ParentID, err = hex.DecodeString(pid)
+				if err != nil {
+					log.Printf("Parent id %s did not decode correctly:%v", pid, err)
+				}
+			}
 		case part.FormName() == "async":
 			if getFormValueAsString(part) == "true" {
 				async = true

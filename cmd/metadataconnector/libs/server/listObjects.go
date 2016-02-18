@@ -359,20 +359,8 @@ func listObjectsResponseAsHTML(
 
 	// Finally, provide a form to add a new child folder here
 	if canCreateFolder {
-		fmt.Fprintf(w, `
-	<hr/>
-	<form method="post" action="%s/folder" enctype="multipart/form-data">
-	<input type="hidden" name="parentId" value="%s" />
-	<input type="hidden" name="type" value="Folder" />
-	<table>
-		<tr>
-			<td>New Folder Name</td>
-			<td><input type="text" id="title" name="title" /></td>
-			<td><input type="submit" value="Create" /></td>
-		</tr>
-	</table>
-	</form>
-			`, config.RootURL, parentObject.ID)
+		fmt.Fprintf(w, createFileForm, config.RootURL, hex.EncodeToString(parentObject.ID))
+		fmt.Fprintf(w, createObjectForm, config.RootURL, hex.EncodeToString(parentObject.ID))
 	}
 }
 
@@ -392,3 +380,59 @@ func createPagerAsHTML(baseURI string, PageCount int, PageNumber int, PageSize i
 	o += "</tr></table>"
 	return o
 }
+
+//Temporary goo before JSON libs
+var createFileForm = `
+<hr/>
+<h2>Create Folder</h2>
+<form method="post" action="%s/folder" enctype="multipart/form-data">
+<input type="hidden" name="parentId" value="%s" />
+<input type="hidden" name="type" value="Folder" />
+<table>
+	<tr>
+		<td>New Folder Name</td>
+		<td><input type="text" id="title" name="title" /></td>
+		<td><input type="submit" value="Create" /></td>
+	</tr>
+</table>
+</form>
+`
+
+//Temporary goo before JSON libs
+var createObjectForm = `
+<hr/>
+<h2>Create File</h2>
+<form method="post" action="%s/object" enctype="multipart/form-data">
+<table>
+	<input type="hidden" name="parentId" value="%s"/>
+	<input type="hidden" name="async" value="true"/>
+	<tr>
+		<td>Object Name</td>
+		<td><input type="text" id="title" name="title" /></td>
+	</tr>
+	<tr>
+		<td>Type</td>
+		<td><select id="type" name="type">
+				<option value="File">File</option>
+				<option value="Folder">Folder</option>
+				</select>
+		</td>
+	</tr>
+	<tr>
+		<td>Classification</td>
+		<td><select id="classification" name="classification">
+				<option value='U'>UNCLASSIFIED</option>
+				<option value='C'>CLASSIFIED</option>
+				<option value='S'>SECRET</option>
+				<option value='T'>TOP SECRET</option>
+				</select>
+		</td>
+	</tr>
+	<tr>
+		<td>File Content</td>
+		<td><input type="file" name="filestream" /></td>
+	</tr>
+</table>
+<input type="submit" value="Upload" />
+</form>
+	`

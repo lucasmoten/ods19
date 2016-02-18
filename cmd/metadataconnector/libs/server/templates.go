@@ -11,7 +11,7 @@ var pageTemplateStart = `
 	<body>
     <a href="">Return Home</a>
     <br />
-		Method: %s
+		<h2> %s </h2>
 		<br />
 		Distinguished Name:%s
 		<br />
