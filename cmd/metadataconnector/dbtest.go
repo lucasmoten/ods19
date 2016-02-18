@@ -218,7 +218,7 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		Port:            serverConfig.ListenPort,
 		Bind:            serverConfig.ListenBind,
 		Addr:            serverConfig.ListenBind + ":" + strconv.Itoa(serverConfig.ListenPort),
-		DAO:             concreteDAO,
+		DAO:             &concreteDAO,
 		S3:              s3,
 		AWSSession:      awsSession,
 		CacheLocation:   "cache",
@@ -233,6 +233,9 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 	if httpHandler.AAC == nil {
 		panic("We cannot run without the AAC!")
 	}
+
+	// Compile regexes for Routes
+	httpHandler.InitRegex()
 
 	return &http.Server{
 		Addr:           string(httpHandler.Addr),

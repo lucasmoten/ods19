@@ -13,10 +13,9 @@ import (
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/performance"
 	aac "decipher.com/oduploader/services/aac"
+	audit "decipher.com/oduploader/services/audit/generated/auditservice_thrift"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-
-	"github.com/jmoiron/sqlx"
 )
 
 // AppServer contains definition for the metadata server
@@ -27,9 +26,8 @@ type AppServer struct {
 	Bind string
 	// Addr is the combined network address and port the server listens on
 	Addr string
-	// MetadataDB is a handle to the database connection
-	MetadataDB *sqlx.DB
-	DAO        dao.DataAccessLayer
+	// DAO is the interface contract with the database.
+	DAO dao.DAO
 	// TODO: Convert this as appropriate to non implementation specific
 	// S3 is the handle to the S3 Client
 	S3 *s3.S3
@@ -42,7 +40,9 @@ type AppServer struct {
 	ServicePrefix string
 	// AAC is a handle to the Authorization and Access Control client
 	// TODO: This will need to be converted to be pluggable later
-	AAC *aac.AacServiceClient
+	AAC aac.AacService
+	// Audit Service is for remote logging for compliance.
+	Auditer audit.AuditService
 	// TODO: Classifications is ????
 	Classifications map[string]string
 	// MasterKey is the secret passphrase used in scrambling keys
@@ -53,6 +53,8 @@ type AppServer struct {
 	TemplateCache *template.Template
 	// StaticDir is location of static objects like javascript
 	StaticDir string
+	// Routes holds the routes.
+	Routes *StaticRx
 }
 
 // Caller provides the distinguished names obtained from specific request
@@ -113,8 +115,9 @@ type StaticRx struct {
 	StaticFiles             *regexp.Regexp
 }
 
-func (h AppServer) initRegex() *StaticRx {
-	return &StaticRx{
+// InitRegex compiles static regexes and initializes the AppServer Routes field.
+func (h *AppServer) InitRegex() {
+	h.Routes = &StaticRx{
 		// These regular expressions to match uri patterns
 		Favorites:               initRegex(h.ServicePrefix + "/favorites$"),
 		Folder:                  initRegex(h.ServicePrefix + "/folder$"),
@@ -149,9 +152,6 @@ func (h AppServer) initRegex() *StaticRx {
 		StaticFiles:             initRegex(h.ServicePrefix + "/static/(?P<path>.*)"),
 	}
 }
-
-// Store this globally for now.  It could go into h.
-var rx *StaticRx
 
 // ServeHTTP handles the routing of requests
 func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -198,60 +198,55 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println("LOGGING URI: ")
 	log.Println(r.Method, uri)
 
-	//This will only compile the regexes once
-	if rx == nil {
-		rx = h.initRegex()
-	}
-
 	// TODO: use StripPrefix in handler?
 	// https://golang.org/pkg/net/http/#StripPrefix
 	switch r.Method {
 	case "GET":
 		switch {
-		case rx.Home.MatchString(uri):
+		case h.Routes.Home.MatchString(uri):
 			h.home(w, r, caller)
 		case uri == h.ServicePrefix+"/favicon.ico", uri == h.ServicePrefix+"//favicon.ico":
 			h.favicon(w, r)
 			// from longest to shortest...
-		case rx.ObjectStreamRevision.MatchString(uri):
+		case h.Routes.ObjectStreamRevision.MatchString(uri):
 			h.getObjectStreamForRevision(w, r, caller)
-		case rx.ObjectStream.MatchString(uri):
+		case h.Routes.ObjectStream.MatchString(uri):
 			h.getObjectStream(w, r, caller)
-		case rx.ObjectProperties.MatchString(uri):
+		case h.Routes.ObjectProperties.MatchString(uri):
 			h.getObject(w, r, caller)
-		case rx.ObjectLinks.MatchString(uri):
+		case h.Routes.ObjectLinks.MatchString(uri):
 			h.getRelationships(w, r, caller)
-		case rx.Objects.MatchString(uri):
+		case h.Routes.Objects.MatchString(uri):
 			h.listObjects(w, r, caller)
-		case rx.ListObjects.MatchString(uri):
+		case h.Routes.ListObjects.MatchString(uri):
 			h.listObjects(w, r, caller)
-		case rx.Images.MatchString(uri), rx.ListImages.MatchString(uri):
+		case h.Routes.Images.MatchString(uri), h.Routes.ListImages.MatchString(uri):
 			h.listObjectsImages(w, r, caller)
-		case rx.ListObjectRevisions.MatchString(uri):
+		case h.Routes.ListObjectRevisions.MatchString(uri):
 			h.listObjectRevisions(w, r, caller)
-		case rx.ListObjectShares.MatchString(uri):
+		case h.Routes.ListObjectShares.MatchString(uri):
 			h.listObjectShares(w, r, caller)
-		case rx.ListObjectSubscriptions.MatchString(uri):
+		case h.Routes.ListObjectSubscriptions.MatchString(uri):
 			h.listObjectsSubscriptions(w, r, caller)
 			// single quick matchers
-		case rx.Favorites.MatchString(uri):
+		case h.Routes.Favorites.MatchString(uri):
 			h.listFavorites(w, r, caller)
-		case rx.Shared.MatchString(uri):
+		case h.Routes.Shared.MatchString(uri):
 			h.listUserObjectsShared(w, r, caller)
-		case rx.Shares.MatchString(uri):
+		case h.Routes.Shares.MatchString(uri):
 			h.listUserObjectShares(w, r, caller)
 			// TODO: Find out why this is showing up for /object//list
-		case rx.Object.MatchString(uri):
+		case h.Routes.Object.MatchString(uri):
 			h.createObject(w, r, caller)
-		case rx.Trash.MatchString(uri):
+		case h.Routes.Trash.MatchString(uri):
 			h.listObjectsTrashed(w, r, caller)
-		case rx.Query.MatchString(uri):
+		case h.Routes.Query.MatchString(uri):
 			h.query(w, r, caller)
-		case rx.StatsObject.MatchString(uri):
+		case h.Routes.StatsObject.MatchString(uri):
 			h.getStats(w, r, caller)
-		case rx.StaticFiles.MatchString(uri):
-			h.serveStatic(w, r, rx.StaticFiles, uri)
-		case rx.Users.MatchString(uri):
+		case h.Routes.StaticFiles.MatchString(uri):
+			h.serveStatic(w, r, h.Routes.StaticFiles, uri)
+		case h.Routes.Users.MatchString(uri):
 			h.listUsers(w, r, caller)
 		default:
 			jurl, _ := json.MarshalIndent(r.URL, "", "  ")
@@ -263,28 +258,28 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	case "POST":
 		switch {
-		case rx.ObjectShare.MatchString(uri):
+		case h.Routes.ObjectShare.MatchString(uri):
 			h.addObjectShare(w, r, caller)
-		case rx.ObjectSubscription.MatchString(uri):
+		case h.Routes.ObjectSubscription.MatchString(uri):
 			h.addObjectSubscription(w, r, caller)
-		case rx.ObjectFavorite.MatchString(uri):
+		case h.Routes.ObjectFavorite.MatchString(uri):
 			h.addObjectToFavorites(w, r, caller)
-		case rx.ObjectLink.MatchString(uri):
+		case h.Routes.ObjectLink.MatchString(uri):
 			h.addObjectToFolder(w, r, caller)
-		case rx.Objects.MatchString(uri):
+		case h.Routes.Objects.MatchString(uri):
 			log.Println("POST list objects")
 			h.listObjects(w, r, caller)
-		case rx.Folder.MatchString(uri):
+		case h.Routes.Folder.MatchString(uri):
 			h.createFolder(w, r, caller)
-		case rx.Object.MatchString(uri):
+		case h.Routes.Object.MatchString(uri):
 			h.createObject(w, r, caller)
-		case rx.ListObjects.MatchString(uri):
+		case h.Routes.ListObjects.MatchString(uri):
 			h.listObjects(w, r, caller)
-		case rx.Query.MatchString(uri):
+		case h.Routes.Query.MatchString(uri):
 			h.query(w, r, caller)
-		case rx.ObjectStream.MatchString(uri):
+		case h.Routes.ObjectStream.MatchString(uri):
 			h.updateObjectStream(w, r, caller)
-		case rx.ObjectShare.MatchString(uri):
+		case h.Routes.ObjectShare.MatchString(uri):
 			h.addObjectShare(w, r, caller)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
@@ -293,13 +288,13 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	case "PUT":
 		switch {
-		case rx.ObjectChangeOwner.MatchString(uri):
+		case h.Routes.ObjectChangeOwner.MatchString(uri):
 			h.changeOwner(w, r, caller)
-		case rx.ObjectMove.MatchString(uri):
+		case h.Routes.ObjectMove.MatchString(uri):
 			h.moveObject(w, r, caller)
-		case rx.ObjectPermission.MatchString(uri):
+		case h.Routes.ObjectPermission.MatchString(uri):
 			h.updateObjectPermissions(w, r, caller)
-		case rx.ObjectProperties.MatchString(uri):
+		case h.Routes.ObjectProperties.MatchString(uri):
 			h.updateObject(w, r, caller)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
@@ -308,19 +303,19 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	case "DELETE":
 		switch {
-		case rx.Object.MatchString(uri):
+		case h.Routes.Object.MatchString(uri):
 			h.deleteObject(w, r, caller)
-		case rx.ObjectExpunge.MatchString(uri):
+		case h.Routes.ObjectExpunge.MatchString(uri):
 			h.deleteObjectForever(w, r, caller)
-		case rx.ObjectFavorite.MatchString(uri):
+		case h.Routes.ObjectFavorite.MatchString(uri):
 			h.removeObjectFromFavorites(w, r, caller)
-		case rx.ObjectLink.MatchString(uri):
+		case h.Routes.ObjectLink.MatchString(uri):
 			h.removeObjectFromFolder(w, r, caller)
-		case rx.TrashObject.MatchString(uri):
+		case h.Routes.TrashObject.MatchString(uri):
 			h.removeObjectFromTrash(w, r, caller)
-		case rx.ObjectShare.MatchString(uri):
+		case h.Routes.ObjectShare.MatchString(uri):
 			h.removeObjectShare(w, r, caller)
-		case rx.ObjectSubscription.MatchString(uri):
+		case h.Routes.ObjectSubscription.MatchString(uri):
 			h.removeObjectSubscription(w, r, caller)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri

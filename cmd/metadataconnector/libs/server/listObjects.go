@@ -279,7 +279,7 @@ func listObjectsResponseAsHTML(
 	w http.ResponseWriter,
 	r *http.Request,
 	caller Caller,
-	dao dao.DataAccessLayer,
+	dao dao.DAO,
 	parentObject *models.ODObject,
 	response *models.ODObjectResultset,
 ) {
