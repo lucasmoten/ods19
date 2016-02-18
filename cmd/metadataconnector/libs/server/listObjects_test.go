@@ -328,8 +328,8 @@ func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level 
 
 	// Response validation
 	if res.StatusCode != http.StatusOK {
-		log.Printf("bad status: %s", res.Status)
-		t.Fail()
+		log.Printf("bad status: %s %s", res.Status, hex.EncodeToString(childid))
+		return
 	}
 	decoder := json.NewDecoder(res.Body)
 	var listOfObjects protocol.ObjectResultset

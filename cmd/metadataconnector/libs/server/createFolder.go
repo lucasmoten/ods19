@@ -48,6 +48,9 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 
 	// Clear any passed in permission assignments on create
 	requestObject.Permissions = make([]models.ODObjectPermission, 0)
+	// Always set Type
+	requestObject.TypeName.String = "Folder"
+	requestObject.TypeName.Valid = true
 
 	// Check if parent defined
 	if requestObject.ParentID == nil {
@@ -117,8 +120,16 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 		}
 	}
 
+	// Disallow creating as deleted
+	if requestObject.IsDeleted || requestObject.IsAncestorDeleted || requestObject.IsExpunged {
+		h.sendErrorResponse(w, 428, nil, "Creating object in a deleted state is not allowed")
+		return
+	}
+
 	// Setup meta data...
 	requestObject.CreatedBy = caller.DistinguishedName
+	requestObject.OwnedBy.String = caller.DistinguishedName
+	requestObject.OwnedBy.Valid = true
 	requestACM.CreatedBy = caller.DistinguishedName
 
 	// Add to database
@@ -141,6 +152,7 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 
 func parseCreateFolderRequestAsJSON(r *http.Request) (*models.ODObject, *models.ODACM, error) {
 	var jsonObject protocol.Object
+	acm := models.ODACM{}
 	var err error
 
 	switch {
@@ -150,12 +162,12 @@ func parseCreateFolderRequestAsJSON(r *http.Request) (*models.ODObject, *models.
 		r.ParseForm()
 		multipartReader, err := r.MultipartReader()
 		if err != nil {
-			return nil, nil, err
+			return nil, &acm, err
 		}
 		for {
 			part, err := multipartReader.NextPart()
 			if err != nil {
-				return nil, nil, err
+				return nil, &acm, err
 			}
 			switch {
 			case part.Header.Get("Content-Type") == "application/json":
@@ -164,7 +176,7 @@ func parseCreateFolderRequestAsJSON(r *http.Request) (*models.ODObject, *models.
 				valueAsBytes := make([]byte, 10240)
 				n, err := part.Read(valueAsBytes)
 				if err != nil {
-					return nil, nil, err
+					return nil, &acm, err
 				}
 				err = (json.NewDecoder(bytes.NewReader(valueAsBytes[0:n]))).Decode(&jsonObject)
 			case part.Header.Get("Content-Disposition") == "form-data":
@@ -177,7 +189,7 @@ func parseCreateFolderRequestAsJSON(r *http.Request) (*models.ODObject, *models.
 	object := mapping.MapObjectToODObject(&jsonObject)
 	// TODO: Figure out how we want to pass ACM into this operation. Should it
 	// be nested in protocol Object? If so, should ODObject contain ODACM ?
-	return &object, nil, err
+	return &object, &acm, err
 }
 func parseCreateFolderRequestAsHTML(r *http.Request) (*models.ODObject, *models.ODACM, error) {
 	object := models.ODObject{}
