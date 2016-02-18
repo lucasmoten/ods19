@@ -234,6 +234,9 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		panic("We cannot run without the AAC!")
 	}
 
+	// Compile regexes for Routes
+	httpHandler.InitRegex()
+
 	return &http.Server{
 		Addr:           string(httpHandler.Addr),
 		Handler:        httpHandler,
