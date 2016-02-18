@@ -13,10 +13,9 @@ import (
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/performance"
 	aac "decipher.com/oduploader/services/aac"
+	audit "decipher.com/oduploader/services/audit/generated/auditservice_thrift"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-
-	"github.com/jmoiron/sqlx"
 )
 
 // AppServer contains definition for the metadata server
@@ -27,9 +26,8 @@ type AppServer struct {
 	Bind string
 	// Addr is the combined network address and port the server listens on
 	Addr string
-	// MetadataDB is a handle to the database connection
-	MetadataDB *sqlx.DB
-	DAO        dao.DataAccessLayer
+	// DAO is the interface contract with the database.
+	DAO dao.DAO
 	// TODO: Convert this as appropriate to non implementation specific
 	// S3 is the handle to the S3 Client
 	S3 *s3.S3
@@ -43,6 +41,8 @@ type AppServer struct {
 	// AAC is a handle to the Authorization and Access Control client
 	// TODO: This will need to be converted to be pluggable later
 	AAC aac.AacService
+	// Audit Service is for remote logging for compliance.
+	Auditer audit.AuditService
 	// TODO: Classifications is ????
 	Classifications map[string]string
 	// MasterKey is the secret passphrase used in scrambling keys
