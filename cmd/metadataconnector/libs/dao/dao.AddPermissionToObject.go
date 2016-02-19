@@ -1,8 +1,9 @@
 package dao
 
 import (
-	"decipher.com/oduploader/metadata/models"
 	"errors"
+
+	"decipher.com/oduploader/metadata/models"
 )
 
 // AddPermissionToObject creates a new permission with the provided object id,
@@ -24,6 +25,7 @@ func (dao *DataAccessLayer) AddPermissionToObject(createdBy string, object *mode
 	if rowCount < 1 {
 		return errors.New("No rows added from inserting permission")
 	}
+	addPermissionStatement.Close()
 	// Get the ID of the newly created permission
 	var newPermissionID []byte
 	getPermissionIDStatement, err := tx.Prepare(`select id from object_permission where createdby = ? and objectId = ? and grantee = ? and isdeleted = 0 order by createddate desc limit 1`)
@@ -34,6 +36,7 @@ func (dao *DataAccessLayer) AddPermissionToObject(createdBy string, object *mode
 	if err != nil {
 		return err
 	}
+	getPermissionIDStatement.Close()
 	// Retrieve back into permission
 	err = tx.Get(permission, `select * from object_permission where id = ?`, newPermissionID)
 	if err != nil {

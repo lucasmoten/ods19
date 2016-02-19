@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 	"testing"
 
 	"decipher.com/oduploader/protocol"
@@ -101,6 +100,7 @@ func TestListObjectsRootPaging(t *testing.T) {
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
 		t.Fail()
+		return
 	}
 
 	// Request
@@ -108,6 +108,7 @@ func TestListObjectsRootPaging(t *testing.T) {
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
 		t.Fail()
+		return
 	}
 	req.Header.Set("Content-Type", "application/json")
 	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
@@ -116,12 +117,14 @@ func TestListObjectsRootPaging(t *testing.T) {
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.Fail()
+		return
 	}
 
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
 		t.Fail()
+		return
 	}
 	if verboseOutput {
 		log.Printf("Status: %s", res.Status)
@@ -132,6 +135,7 @@ func TestListObjectsRootPaging(t *testing.T) {
 	if err != nil {
 		log.Printf("Error decoding json to ObjectResultset: %v", err)
 		t.Fail()
+		return
 	}
 	if verboseOutput {
 		log.Printf("Total Rows: %d", listOfObjects.TotalRows)
@@ -152,12 +156,14 @@ func TestListObjectsRootPaging(t *testing.T) {
 		if err != nil {
 			log.Printf("Unable to marshal json for request:%v", err)
 			t.Fail()
+			return
 		}
 		// Request
 		req, err := http.NewRequest("GET", uri, bytes.NewBuffer(jsonBody))
 		if err != nil {
 			log.Printf("Error setting up HTTP Request: %v", err)
 			t.Fail()
+			return
 		}
 		req.Header.Set("Content-Type", "application/json")
 		transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
@@ -166,11 +172,13 @@ func TestListObjectsRootPaging(t *testing.T) {
 		if err != nil {
 			log.Printf("Unable to do request:%v", err)
 			t.Fail()
+			return
 		}
 		// Response validation
 		if res.StatusCode != http.StatusOK {
 			log.Printf("bad status: %s", res.Status)
 			t.Fail()
+			return
 		}
 		if verboseOutput {
 			log.Printf("Status: %s", res.Status)
@@ -181,6 +189,7 @@ func TestListObjectsRootPaging(t *testing.T) {
 		if err != nil {
 			log.Printf("Error decoding json to ObjectResultset: %v", err)
 			t.Fail()
+			return
 		}
 		if verboseOutput {
 			log.Printf("Page %d: size %d, rows %d", listOfObjects.PageNumber, listOfObjects.PageSize, listOfObjects.PageRows)
@@ -193,7 +202,7 @@ func TestListObjectsRootPaging(t *testing.T) {
 
 func TestListObjectsChild(t *testing.T) {
 	if testing.Short() {
-		t.Skip()
+		//t.Skip()
 	}
 	verboseOutput := testing.Verbose()
 	clientid := 0
@@ -210,10 +219,14 @@ func TestListObjectsChild(t *testing.T) {
 	paging := protocol.PagingRequest{}
 	paging.PageNumber = 1
 	paging.PageSize = 1000
+	if testing.Short() {
+		paging.PageSize = 20
+	}
 	jsonBody, err := json.Marshal(paging)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
 		t.Fail()
+		return
 	}
 
 	// Request
@@ -221,6 +234,7 @@ func TestListObjectsChild(t *testing.T) {
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
 		t.Fail()
+		return
 	}
 	req.Header.Set("Content-Type", "application/json")
 	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
@@ -229,106 +243,13 @@ func TestListObjectsChild(t *testing.T) {
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.Fail()
+		return
 	}
 
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
 		t.Fail()
-	}
-	decoder := json.NewDecoder(res.Body)
-	var listOfObjects protocol.ObjectResultset
-	err = decoder.Decode(&listOfObjects)
-	if err != nil {
-		log.Printf("Error decoding json to ObjectResultset: %v", err)
-		t.Fail()
-	}
-
-	level := 0
-	depthstring := ""
-	if level > 0 {
-		depthstring = strings.Repeat("..", level)
-	}
-	for _, obj := range listOfObjects.Objects {
-		if verboseOutput {
-			fmt.Printf("%s  %s\n", depthstring, obj.Name)
-		}
-		childlevel := level + 1
-		showChildTree(t, verboseOutput, client, childlevel, obj.ID)
-	}
-	for pn := 2; pn <= listOfObjects.PageCount; pn++ {
-		paging.PageNumber = pn
-		jsonBody, err := json.Marshal(paging)
-		if err != nil {
-			log.Printf("Unable to marshal json for request:%v", err)
-			t.Fail()
-		}
-		// Request
-		req, err := http.NewRequest("GET", uri, bytes.NewBuffer(jsonBody))
-		if err != nil {
-			log.Printf("Error setting up HTTP Request: %v", err)
-			t.Fail()
-		}
-		req.Header.Set("Content-Type", "application/json")
-		transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
-		client := &http.Client{Transport: transport}
-		res, err := client.Do(req)
-		if err != nil {
-			log.Printf("Unable to do request:%v", err)
-			t.Fail()
-		}
-		// Response validation
-		if res.StatusCode != http.StatusOK {
-			log.Printf("bad status: %s", res.Status)
-			t.Fail()
-		}
-		decoder := json.NewDecoder(res.Body)
-		var listOfObjects protocol.ObjectResultset
-		err = decoder.Decode(&listOfObjects)
-		if err != nil {
-			log.Printf("Error decoding json to ObjectResultset: %v", err)
-			t.Fail()
-		}
-		for _, obj := range listOfObjects.Objects {
-			if verboseOutput {
-				fmt.Printf("%s  %s\n", depthstring, obj.Name)
-			}
-			childlevel := level + 1
-			showChildTree(t, verboseOutput, client, childlevel, obj.ID)
-		}
-	}
-}
-
-func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level int, childid []byte) {
-	// URLs
-	uri := host + "/service/metadataconnector/1.0/object/" + hex.EncodeToString(childid) + "/list"
-
-	// Body
-	paging := protocol.PagingRequest{}
-	paging.PageNumber = 1
-	paging.PageSize = 1000
-	jsonBody, err := json.Marshal(paging)
-	if err != nil {
-		log.Printf("Unable to marshal json for request:%v", err)
-		t.Fail()
-	}
-
-	// Request
-	req, err := http.NewRequest("GET", uri, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
-		t.Fail()
-	}
-	req.Header.Set("Content-Type", "application/json")
-	res, err := client.Do(req)
-	if err != nil {
-		log.Printf("Unable to do request:%v", err)
-		t.Fail()
-	}
-
-	// Response validation
-	if res.StatusCode != http.StatusOK {
-		log.Printf("bad status: %s %s", res.Status, hex.EncodeToString(childid))
 		return
 	}
 	decoder := json.NewDecoder(res.Body)
@@ -337,42 +258,55 @@ func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level 
 	if err != nil {
 		log.Printf("Error decoding json to ObjectResultset: %v", err)
 		t.Fail()
+		return
 	}
 
-	depthstring := ""
-	if level > 0 {
-		depthstring = strings.Repeat("..", level)
-	}
+	level := 0
+	depthstring := "+-"
 	for _, obj := range listOfObjects.Objects {
 		if verboseOutput {
-			fmt.Printf("%s  %s\n", depthstring, obj.Name)
+			fmt.Printf(depthstring)
+			fmt.Printf(obj.Name)
+			fmt.Println()
 		}
 		childlevel := level + 1
 		showChildTree(t, verboseOutput, client, childlevel, obj.ID)
+		if t.Failed() {
+			return
+		}
 	}
 	for pn := 2; pn <= listOfObjects.PageCount; pn++ {
+		if testing.Short() && pn >= 3 {
+			return
+		}
 		paging.PageNumber = pn
 		jsonBody, err := json.Marshal(paging)
 		if err != nil {
 			log.Printf("Unable to marshal json for request:%v", err)
 			t.Fail()
+			return
 		}
 		// Request
 		req, err := http.NewRequest("GET", uri, bytes.NewBuffer(jsonBody))
 		if err != nil {
 			log.Printf("Error setting up HTTP Request: %v", err)
 			t.Fail()
+			return
 		}
 		req.Header.Set("Content-Type", "application/json")
+		transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
+		client := &http.Client{Transport: transport}
 		res, err := client.Do(req)
 		if err != nil {
 			log.Printf("Unable to do request:%v", err)
 			t.Fail()
+			return
 		}
 		// Response validation
 		if res.StatusCode != http.StatusOK {
 			log.Printf("bad status: %s", res.Status)
 			t.Fail()
+			return
 		}
 		decoder := json.NewDecoder(res.Body)
 		var listOfObjects protocol.ObjectResultset
@@ -380,13 +314,143 @@ func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level 
 		if err != nil {
 			log.Printf("Error decoding json to ObjectResultset: %v", err)
 			t.Fail()
+			return
 		}
 		for _, obj := range listOfObjects.Objects {
 			if verboseOutput {
-				fmt.Printf("%s  %s\n", depthstring, obj.Name)
+				fmt.Printf(depthstring)
+				fmt.Printf(obj.Name)
+				fmt.Println()
 			}
 			childlevel := level + 1
 			showChildTree(t, verboseOutput, client, childlevel, obj.ID)
+			if t.Failed() {
+				return
+			}
+		}
+	}
+}
+
+func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level int, childid []byte) {
+	// URLs
+	uri := host + "/service/metadataconnector/1.0/object/" + hex.EncodeToString(childid) + "/list"
+	depthstring := ""
+	if level > 0 {
+		for l := 0; l < level; l++ {
+			depthstring += "| "
+		}
+	}
+
+	// Body
+	paging := protocol.PagingRequest{}
+	paging.PageNumber = 1
+	paging.PageSize = 1000
+	if testing.Short() {
+		paging.PageSize = 20
+	}
+	jsonBody, err := json.Marshal(paging)
+	if err != nil {
+		log.Printf("Unable to marshal json for request:%v", err)
+		t.Fail()
+		return
+	}
+
+	// Request
+	req, err := http.NewRequest("GET", uri, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		log.Printf("Error setting up HTTP Request: %v", err)
+		t.Fail()
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	res, err := client.Do(req)
+	if err != nil {
+		log.Printf("Unable to do request:%v", err)
+		t.Fail()
+		return
+	}
+
+	// Response validation
+	if res.StatusCode != http.StatusOK {
+		//log.Printf("bad status: %s %s", res.Status, hex.EncodeToString(childid))
+		fmt.Printf(depthstring)
+		fmt.Printf(" >>> 403 Unauthorized to read this object, so cannot list children")
+		fmt.Println()
+		t.Fail()
+		return
+	}
+	decoder := json.NewDecoder(res.Body)
+	var listOfObjects protocol.ObjectResultset
+	err = decoder.Decode(&listOfObjects)
+	if err != nil {
+		log.Printf("Error decoding json to ObjectResultset: %v", err)
+		t.Fail()
+		return
+	}
+
+	depthstring += "+-"
+	for _, obj := range listOfObjects.Objects {
+		if verboseOutput {
+			fmt.Printf(depthstring)
+			fmt.Printf(obj.Name)
+			fmt.Println()
+		}
+		childlevel := level + 1
+		showChildTree(t, verboseOutput, client, childlevel, obj.ID)
+		if t.Failed() {
+			return
+		}
+	}
+	for pn := 2; pn <= listOfObjects.PageCount; pn++ {
+		if testing.Short() && pn >= 3 {
+			return
+		}
+		paging.PageNumber = pn
+		jsonBody, err := json.Marshal(paging)
+		if err != nil {
+			log.Printf("Unable to marshal json for request:%v", err)
+			t.Fail()
+			return
+		}
+		// Request
+		req, err := http.NewRequest("GET", uri, bytes.NewBuffer(jsonBody))
+		if err != nil {
+			log.Printf("Error setting up HTTP Request: %v", err)
+			t.Fail()
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+		res, err := client.Do(req)
+		if err != nil {
+			log.Printf("Unable to do request:%v", err)
+			t.Fail()
+			return
+		}
+		// Response validation
+		if res.StatusCode != http.StatusOK {
+			log.Printf("bad status: %s", res.Status)
+			t.Fail()
+			return
+		}
+		decoder := json.NewDecoder(res.Body)
+		var listOfObjects protocol.ObjectResultset
+		err = decoder.Decode(&listOfObjects)
+		if err != nil {
+			log.Printf("Error decoding json to ObjectResultset: %v", err)
+			t.Fail()
+			return
+		}
+		for _, obj := range listOfObjects.Objects {
+			if verboseOutput {
+				fmt.Printf(depthstring)
+				fmt.Printf(obj.Name)
+				fmt.Println()
+			}
+			childlevel := level + 1
+			showChildTree(t, verboseOutput, client, childlevel, obj.ID)
+			if t.Failed() {
+				return
+			}
 		}
 	}
 }

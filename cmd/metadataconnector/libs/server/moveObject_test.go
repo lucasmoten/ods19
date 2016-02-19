@@ -15,7 +15,7 @@ import (
 	"decipher.com/oduploader/protocol"
 )
 
-func makeFolderViaJSON(folderName string, clientid int) (protocol.Object, error) {
+func makeFolderViaJSON(folderName string, clientid int) (*protocol.Object, error) {
 	folderuri := host + "/service/metadataconnector/1.0/folder"
 	folder := protocol.Object{}
 	folder.Name = folderName
@@ -54,7 +54,7 @@ func makeFolderViaJSON(folderName string, clientid int) (protocol.Object, error)
 		log.Println()
 		return nil, err
 	}
-	return createdFolder, nil
+	return &createdFolder, nil
 }
 
 func TestMoveObject(t *testing.T) {
@@ -73,23 +73,28 @@ func TestMoveObject(t *testing.T) {
 	folder1, err := makeFolderViaJSON("Test Folder 1 "+strconv.FormatInt(time.Now().Unix(), 10), clientid)
 	if err != nil {
 		t.Fail()
+		return
 	}
 	folder2, err := makeFolderViaJSON("Test Folder 2 "+strconv.FormatInt(time.Now().Unix(), 10), clientid)
 	if err != nil {
 		t.Fail()
+		return
 	}
 
 	// Attempt to move folder 2 under folder 1
-	moveuri := host + "/service/metadataconnector/1.0/object/" + hex.EncodeToString(folder2.ID) + "/move/" + hex.EncodeToString(folder1)
+	moveuri := host + "/service/metadataconnector/1.0/object/" + hex.EncodeToString(folder2.ID) + "/move/" + hex.EncodeToString(folder1.ID)
 	jsonBody, err := json.Marshal(folder2)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
 		t.Fail()
+		return
 	}
 	req, err := http.NewRequest("PUT", moveuri, bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
-		return nil, err
+		t.Fail()
+		return
 	}
 	// do the request
 	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
@@ -98,11 +103,13 @@ func TestMoveObject(t *testing.T) {
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.Fail()
+		return
 	}
 	// process Response
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
 		t.Fail()
+		return
 	}
 	decoder := json.NewDecoder(res.Body)
 	var updatedFolder protocol.Object
