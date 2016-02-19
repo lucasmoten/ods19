@@ -176,10 +176,10 @@ func fakeCompileCheck() DAO {
 
 // GetObjectsSharedToMe gives a listing of files that were shared to us
 func (fake *FakeDAO) GetObjectsSharedToMe(
-	owner string,
+	grantee string,
 	orderByClause string,
 	pageNumber int,
 	pageSize int,
 ) (models.ODObjectResultset, error) {
-	return models.ODObjectResultset{}, nil
+	return fake.ObjectResultSet, fake.Err
 }
