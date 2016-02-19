@@ -7,10 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
-
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
@@ -126,7 +126,7 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 		apiResponse := mapping.MapODObjectResultsetToObjectResultset(&response)
 		listObjectsResponseAsJSON(w, r, caller, &apiResponse)
 	default:
-		listObjectsResponseAsHTML(w, r, caller, h.DAO, parentObject, &response)
+		h.listObjectsResponseAsHTML(w, r, caller, h.DAO, parentObject, &response)
 	}
 	return
 }
@@ -176,6 +176,9 @@ func parseListObjectsRequestAsHTML(r *http.Request) (*models.ODObject, *protocol
 
 	return &object, &paging, err
 }
+
+//XXX Note that you don't need multipart/form-data for anything that won't be uploading files.
+//Just leave off enctype for a trivial parameter encoding to make this ugly multipart parse go away.
 func parseListObjectsRequestAsJSON(r *http.Request) (*models.ODObject, *protocol.PagingRequest, error) {
 	var jsonObject protocol.Object
 	var jsonPaging protocol.PagingRequest
@@ -275,7 +278,88 @@ func listObjectsResponseAsJSON(
 	w.Write(jsonData)
 }
 
-func listObjectsResponseAsHTML(
+func extractCNfromDN(dn string) (cn string) {
+	cn = dn[strings.Index(dn, "=")+1 : strings.Index(dn, ",")]
+	return
+}
+
+//The simplest solution for this is to put an html form inside the table cell,
+//but you cannot do this in html.  (The submit button will do nothing).
+//So we need at least enough javascript to respond to the button to do the grant POST
+func (h AppServer) writeUserListForm(w http.ResponseWriter, createdBy string, oid string) {
+	users, err := h.DAO.GetUsers()
+	if err != nil {
+		log.Printf("Cannot get user data:%v", err)
+		return
+	}
+	//We have a column that picks out the row to grant
+	fmt.Fprintf(w, "<td>")
+	fmt.Fprintf(w, "<select name='grantee-%s'>", oid)
+	for i := 0; i < len(users); i++ {
+		//We assume that the creator of the file is the one excluded, just because
+		//we have no caller reference from here.
+		dn := users[i]
+		cn := extractCNfromDN(dn)
+		if dn != createdBy {
+			fmt.Fprintf(w, "<option value='%s'>%s</option>", dn, cn)
+		}
+	}
+	fmt.Fprintf(w, "</select>")
+	fmt.Fprintf(w, "<input type='submit' name='share-%s' value='share'>", oid)
+	fmt.Fprintf(w, "</td>")
+}
+
+func (h AppServer) listObjectsResponseAsHTMLTable(
+	w http.ResponseWriter,
+	response *models.ODObjectResultset,
+) {
+	//Because you can't put a form inside of a table cell,
+	//you can't set the action properly without some Javascript, or taking
+	//the objectId out of the URL.
+	fmt.Fprintf(w, "<form method='post' action='%s/shareto'>", config.RootURL)
+	fmt.Fprintf(w, `<table id="listObjectsResults">`)
+	fmt.Fprintf(w, `<tr><td>Name</td><td>Type</td><td>Created Date</td><td>Created By</td><td>Modified Date</td><td>Modified By</td><td>Size</td><td>Change Count</td><td>ChangeToken</td><td>ACM</td><td>ShareTo</td></tr>`)
+	objects := response.Objects
+	for idx := range objects {
+		object := objects[idx]
+		oid := hex.EncodeToString(object.ID)
+		fmt.Fprintf(w, "<tr>")
+		switch {
+		case object.TypeName.String == "Folder":
+			fmt.Fprintf(
+				w,
+				"<td><a href='%s/object/%s/list'>%s</a></td>",
+				config.RootURL,
+				oid,
+				object.Name,
+			)
+		default:
+			fmt.Fprintf(
+				w,
+				"<td><a href='%s/object/%s/stream'>%s</a></td>",
+				config.RootURL,
+				oid,
+				object.Name,
+			)
+		}
+		fmt.Fprintf(w, "<td>%s</td>", object.TypeName.String)
+		fmt.Fprintf(w, "<td>%s</td>", GetFormattedDate(object.CreatedDate))
+		fmt.Fprintf(w, "<td>%s</td>", config.GetCommonName(object.CreatedBy))
+		fmt.Fprintf(w, "<td>%s</td>", GetFormattedDate(object.ModifiedDate))
+		fmt.Fprintf(w, "<td>%s</td>", config.GetCommonName(object.ModifiedBy))
+		fmt.Fprintf(w, "<td>%d</td>", object.ContentSize.Int64)
+		fmt.Fprintf(w, "<td>%d</td>", object.ChangeCount)
+		fmt.Fprintf(w, "<td>%s</td>", object.ChangeToken)
+		fmt.Fprintf(w, "<td>%s</td>", object.RawAcm.String)
+		h.writeUserListForm(w, object.CreatedBy, oid)
+		fmt.Fprintf(w, "</tr>")
+	}
+	fmt.Fprintf(w, "</table>")
+	fmt.Fprintf(w, "</form>")
+
+}
+
+func (h AppServer) listObjectsResponseAsHTML(
 	w http.ResponseWriter,
 	r *http.Request,
 	caller Caller,
@@ -319,48 +403,24 @@ func listObjectsResponseAsHTML(
 	if response.PageCount > 1 {
 		fmt.Fprintf(w, createPagerAsHTML(r.URL.Path, response.PageCount, response.PageNumber, response.PageSize))
 	}
-	// Now render the table of objects...
-	fmt.Fprintf(w, `<table id="listObjectsResults">`)
-	fmt.Fprintf(w, `<tr><td>Name</td><td>Type</td><td>Created Date</td><td>Created By</td><td>Modified Date</td><td>Modified By</td><td>Size</td><td>Change Count</td><td>ChangeToken</td><td>ACM</td></tr>`)
-	objects := response.Objects
-	for idx := range objects {
-		object := objects[idx]
-		fmt.Fprintf(w, "<tr>")
-		switch {
-		case object.TypeName.String == "Folder":
-			fmt.Fprintf(
-				w,
-				"<td><a href='%s/object/%s/list'>%s</a></td>",
-				config.RootURL,
-				hex.EncodeToString(object.ID),
-				object.Name,
-			)
-		default:
-			fmt.Fprintf(
-				w,
-				"<td><a href='%s/object/%s/stream'>%s</a></td>",
-				config.RootURL,
-				hex.EncodeToString(object.ID),
-				object.Name,
-			)
-		}
-		fmt.Fprintf(w, "<td>%s</td>", object.TypeName.String)
-		fmt.Fprintf(w, "<td>%s</td>", GetFormattedDate(object.CreatedDate))
-		fmt.Fprintf(w, "<td>%s</td>", config.GetCommonName(object.CreatedBy))
-		fmt.Fprintf(w, "<td>%s</td>", GetFormattedDate(object.ModifiedDate))
-		fmt.Fprintf(w, "<td>%s</td>", config.GetCommonName(object.ModifiedBy))
-		fmt.Fprintf(w, "<td>%d</td>", object.ContentSize.Int64)
-		fmt.Fprintf(w, "<td>%d</td>", object.ChangeCount)
-		fmt.Fprintf(w, "<td>%s</td>", object.ChangeToken)
-		fmt.Fprintf(w, "<td>%s</td>", object.RawAcm.String)
-		fmt.Fprintf(w, "</tr>")
-	}
-	fmt.Fprintf(w, "</table>")
+	h.listObjectsResponseAsHTMLTable(w, response)
 
-	// Finally, provide a form to add a new child folder here
+	// This is the available operations given the directory we are in
 	if canCreateFolder {
+		//We can create a folder
 		fmt.Fprintf(w, createFileForm, config.RootURL, hex.EncodeToString(parentObject.ID))
+
+		//We can create a file
 		fmt.Fprintf(w, createObjectForm, config.RootURL, hex.EncodeToString(parentObject.ID))
+
+		//We have a listing of shares that is independent of folder, so it's convenient to reuse logic for it
+		//to be here (there is a rest request for this as well)
+		result, err := h.DAO.GetObjectsSharedToMe(caller.DistinguishedName, "", 0, 20)
+		if err != nil {
+			h.sendErrorResponse(w, 500, err, "GetObjectsSharedToMe query failed")
+		}
+		fmt.Fprintf(w, "<h2>SharedTo:%s</h2>", caller.CommonName)
+		h.listObjectsResponseAsHTMLTable(w, &result)
 	}
 }
 

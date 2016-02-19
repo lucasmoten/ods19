@@ -7,6 +7,7 @@ import (
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
+	"log"
 )
 
 /**
@@ -60,8 +61,9 @@ func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, ca
 
 	w.Header().Set("Content-Type", "application/json")
 	link := mapping.GetObjectLinkFromObject(config.RootURL, object)
-	//Write a link back to the user so that it's possible to do an update on this object
-	encoder := json.NewEncoder(w)
-	encoder.Encode(&link)
-
+	data, err := json.MarshalIndent(link, "", "  ")
+	if err != nil {
+		log.Printf("Error marshalling json data:%v", err)
+	}
+	w.Write(data)
 }

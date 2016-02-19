@@ -20,12 +20,20 @@ import (
 	"time"
 )
 
+// AutopilotArgs are the things passed in to command line
+type AutopilotArgs struct {
+	Host          string
+	PerPopulation int
+	SleepTime     int
+	QuickTest     bool
+}
+
 // ClientIdentity is a user that is going to connect to our service
 type ClientIdentity struct {
 	TrustPem      string
 	CertPem       string
 	KeyPem        string
-	Config        *tls.Config
+	Config        *tls.Config `json:"-"`
 	Name          string
 	UploadCache   string
 	DownloadCache string
@@ -182,7 +190,61 @@ func generateUploadRequest(name string, fqName string, url string, async bool) (
 	return req, err
 }
 
-func doUpload(i int, async bool) *protocol.ObjectLink {
+func dumpAutopilotParams() {
+	fmt.Printf("# Global Parameters\n")
+	fmt.Printf("```json\n")
+	ap := AutopilotArgs{
+		Host:          host,
+		PerPopulation: perPopulation,
+		SleepTime:     sleepTime,
+		QuickTest:     isQuickTest,
+	}
+	data, err := json.MarshalIndent(ap, "", "  ")
+	if err != nil {
+		log.Printf("Unable to marshal global args")
+	}
+	fmt.Printf("%s\n", data)
+	fmt.Printf("```\n")
+}
+
+//Dump the transport with a label. TODO: with message
+func dumpTransport(i int) {
+	fmt.Printf("# Transport Parameters for User %d\n", i)
+	fmt.Printf("```\n")
+	fmt.Printf("MinVersion:%v\n", clients[i].Config.MinVersion)
+	fmt.Printf("MaxVersion:%v\n", clients[i].Config.MaxVersion)
+	fmt.Printf("InsecureSkipVerify:%v\n", clients[i].Config.InsecureSkipVerify)
+	fmt.Printf("```\n")
+}
+
+//Dump the request with a label.  TODO: with message
+func dumpRequest(req *http.Request, title string, msg string) {
+	reqBytes, err := httputil.DumpRequestOut(req, showFileUpload)
+	fmt.Printf("# %s\n", title+" Request\n")
+	fmt.Printf("%s\n", msg+".")
+	fmt.Printf("```http\n")
+	if err != nil {
+		log.Printf("%v", err)
+	} else {
+		fmt.Printf("%s", string(reqBytes))
+	}
+	fmt.Printf("\n```\n")
+}
+
+//Dump the response with a label.  TODO: wth message.
+func dumpResponse(res *http.Response, msg string) {
+	reqBytes, err := httputil.DumpResponse(res, showFileUpload)
+	fmt.Printf("%s\n", msg)
+	fmt.Printf("```http\n")
+	if err != nil {
+		log.Printf("%v", err)
+	} else {
+		fmt.Printf("%s", string(reqBytes))
+	}
+	fmt.Printf("\n```\n")
+}
+
+func doUpload(i int, async bool, msg string) *protocol.ObjectLink {
 	var link protocol.ObjectLink
 
 	//log.Printf("%d upload out of %s", i, clients[i].UploadCache)
@@ -190,10 +252,6 @@ func doUpload(i int, async bool) *protocol.ObjectLink {
 	listing, err := ioutil.ReadDir(clients[i].UploadCache)
 	if err != nil {
 		log.Printf("Unable to list upload directory %s", clients[i].UploadCache)
-		return nil
-	}
-	if len(listing) == 0 {
-		log.Printf("Nothing to upload...")
 		return nil
 	}
 	//Grab a random item out of the listing (in memory... beware of huge dirs!)
@@ -217,8 +275,7 @@ func doUpload(i int, async bool) *protocol.ObjectLink {
 		transport := &http.Transport{TLSClientConfig: clients[i].Config}
 		client := &http.Client{Transport: transport}
 
-		reqBytes, err := httputil.DumpRequestOut(req, showFileUpload)
-		log.Printf("%v\n%s", err, string(reqBytes))
+		dumpRequest(req, "Upload", msg)
 
 		res, err := client.Do(req)
 		if err != nil {
@@ -230,10 +287,8 @@ func doUpload(i int, async bool) *protocol.ObjectLink {
 			log.Printf("bad status: %s", res.Status)
 			return nil
 		}
-		log.Printf("%s uploaded %s", clients[i].Name, fqName)
 
-		resBytes, err := httputil.DumpResponse(res, true)
-		log.Printf("%v\n%s", err, string(resBytes))
+		dumpResponse(res, "json of the uploaded object is returned, as soon as EC2 has it. use it to perform further actions on the file.")
 
 		decoder := json.NewDecoder(res.Body)
 		err = decoder.Decode(&link)
@@ -242,8 +297,7 @@ func doUpload(i int, async bool) *protocol.ObjectLink {
 }
 
 //Get candidate objects that we own, to perform operations on them
-func getObjectLinkResponse(i int, olResponse *protocol.ObjectLinkResponse) (err error) {
-	log.Printf("first, we must get a listing of objects to choose from")
+func getObjectLinkResponse(i int, olResponse *protocol.ObjectLinkResponse, msg string) (err error) {
 	req, err := http.NewRequest(
 		"GET",
 		host+"/service/metadataconnector/1.0/objects",
@@ -256,8 +310,7 @@ func getObjectLinkResponse(i int, olResponse *protocol.ObjectLinkResponse) (err 
 	req.Header.Set("Content-Type", "application/json")
 
 	if showFileUpload {
-		reqBytes, err := httputil.DumpRequestOut(req, true)
-		log.Printf("%v\n%s", err, string(reqBytes))
+		dumpRequest(req, "Listing", msg)
 	}
 
 	transport := &http.Transport{TLSClientConfig: clients[i].Config}
@@ -268,8 +321,7 @@ func getObjectLinkResponse(i int, olResponse *protocol.ObjectLinkResponse) (err 
 		return err
 	}
 	if showFileUpload {
-		resBytes, err := httputil.DumpResponse(res, true)
-		log.Printf("%v\n%s", err, string(resBytes))
+		dumpResponse(res, "Got a listing of available files")
 	}
 
 	// Check the response
@@ -286,7 +338,7 @@ func getObjectLinkResponse(i int, olResponse *protocol.ObjectLinkResponse) (err 
 	return nil
 }
 
-func doDownloadLink(i int, link *protocol.ObjectLink) {
+func doDownloadLink(i int, link *protocol.ObjectLink, msg string) {
 	dlReq, err := http.NewRequest(
 		"GET",
 		host+link.URL+"/stream",
@@ -298,8 +350,7 @@ func doDownloadLink(i int, link *protocol.ObjectLink) {
 	}
 
 	if showFileUpload {
-		reqBytes, err := httputil.DumpRequestOut(dlReq, showFileUpload)
-		log.Printf("%v\n%s", err, string(reqBytes))
+		dumpRequest(dlReq, "GetObject", msg)
 	}
 
 	//Now download the stream into a file
@@ -313,8 +364,7 @@ func doDownloadLink(i int, link *protocol.ObjectLink) {
 	}
 
 	if showFileUpload {
-		resBytes, err := httputil.DumpResponse(dlRes, true)
-		log.Printf("%v\n%s", err, string(resBytes))
+		dumpResponse(dlRes, "Got the raw file.")
 	}
 
 	drainFileName := clients[i].DownloadCache + "/" + link.Name
@@ -325,14 +375,13 @@ func doDownloadLink(i int, link *protocol.ObjectLink) {
 	}
 	defer drainFile.Close()
 	io.Copy(drainFile, dlRes.Body)
-	log.Printf("downloaded %s", link.Name)
 }
 
-func doDownload(i int) *protocol.ObjectLink {
+func doDownload(i int, msg string) *protocol.ObjectLink {
 	//Get the links to download
 	var link *protocol.ObjectLink
 	var olResponse protocol.ObjectLinkResponse
-	err := getObjectLinkResponse(i, &olResponse)
+	err := getObjectLinkResponse(i, &olResponse, msg)
 	if err != nil {
 		log.Printf("Unable to do download:%v", err)
 		return link
@@ -345,12 +394,12 @@ func doDownload(i int) *protocol.ObjectLink {
 		randomIndex := rand.Intn(len(olResponse.Objects))
 		link = &olResponse.Objects[randomIndex]
 
-		doDownloadLink(i, link)
+		doDownloadLink(i, link, msg)
 	}
 	return link
 }
 
-func doUpdateLink(i int, link *protocol.ObjectLink) {
+func doUpdateLink(i int, link *protocol.ObjectLink, msg string) {
 	fqName := clients[i].UploadCache + "/" + link.Name
 	req, err := generateUploadRequest(
 		link.Name,
@@ -363,8 +412,7 @@ func doUpdateLink(i int, link *protocol.ObjectLink) {
 		return
 	}
 
-	reqBytes, err := httputil.DumpRequestOut(req, showFileUpload)
-	log.Printf("%v\n%s", err, string(reqBytes))
+	dumpRequest(req, "UpdateObject", msg)
 
 	//Now download the stream into a file
 	transport2 := &http.Transport{TLSClientConfig: clients[i].Config}
@@ -375,8 +423,8 @@ func doUpdateLink(i int, link *protocol.ObjectLink) {
 		log.Printf("Unable to do request:%v", err)
 		return
 	}
-	resBytes, err := httputil.DumpResponse(res, true)
-	log.Printf("%v\n%s", err, string(resBytes))
+
+	dumpResponse(res, "The metadata is different after the update")
 
 	drainFileName := clients[i].DownloadCache + "/" + link.Name
 	drainFile, err := os.Create(drainFileName)
@@ -388,10 +436,10 @@ func doUpdateLink(i int, link *protocol.ObjectLink) {
 	io.Copy(drainFile, res.Body)
 }
 
-func doUpdate(i int) {
+func doUpdate(i int, msg string) {
 	//Get the links to download
 	var olResponse protocol.ObjectLinkResponse
-	err := getObjectLinkResponse(i, &olResponse)
+	err := getObjectLinkResponse(i, &olResponse, msg)
 	if err != nil {
 		log.Printf("Unable to do download:%v", err)
 		return
@@ -404,7 +452,7 @@ func doUpdate(i int) {
 		randomIndex := rand.Intn(len(olResponse.Objects))
 		link := &olResponse.Objects[randomIndex]
 
-		doUpdateLink(i, link)
+		doUpdateLink(i, link, msg)
 	}
 }
 
@@ -413,11 +461,11 @@ func doRandomAction(i int) bool {
 	r := rand.Intn(100)
 	switch {
 	case r > 70:
-		doUpload(i, false)
+		doUpload(i, false, "")
 	case r > 40:
-		doDownload(i)
+		doDownload(i, "")
 	case r > 20:
-		doUpdate(i)
+		doUpdate(i, "")
 	case r > 10:
 		return false
 	}
@@ -443,8 +491,34 @@ func dnFromInt(n int) string {
 	)
 }
 
+func findShares(i int, msg string) {
+	req, err := http.NewRequest(
+		"GET",
+		host+"/service/metadataconnector/1.0/shares",
+		nil,
+	)
+	req.Header.Set("Content-Type", "application/json")
+	if err != nil {
+		log.Printf("Could not generate request:%v", err)
+		return
+	}
+
+	dumpRequest(req, "ListShares", msg)
+
+	//Now download the stream into a file
+	transport2 := &http.Transport{TLSClientConfig: clients[i].Config}
+	client2 := &http.Client{Transport: transport2}
+
+	res, err := client2.Do(req)
+	if err != nil {
+		log.Printf("Unable to do request:%v", err)
+		return
+	}
+	dumpResponse(res, "ListShares")
+}
+
 // Have user i grant link to j
-func doShare(i int, link *protocol.ObjectLink, j int) {
+func doShare(i int, link *protocol.ObjectLink, j int, msg string) {
 	//	dnFrom := dnFromInt(i)
 	dnTo := dnFromInt(j)
 
@@ -456,7 +530,7 @@ func doShare(i int, link *protocol.ObjectLink, j int) {
 		Delete:  true,
 	}
 
-	jsonStr, err := json.Marshal(jsonObj)
+	jsonStr, err := json.MarshalIndent(jsonObj, "", "  ")
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
 	}
@@ -466,14 +540,14 @@ func doShare(i int, link *protocol.ObjectLink, j int) {
 		host+link.URL+"/share",
 		bytes.NewBuffer(jsonStr),
 	)
+	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		log.Printf("Unable to generate request:%v", err)
 		return
 	}
 
 	if showFileUpload {
-		reqBytes, err := httputil.DumpRequestOut(req, showFileUpload)
-		log.Printf("%v\n%s", err, string(reqBytes))
+		dumpRequest(req, "Share", msg)
 	}
 
 	//Now download the stream into a file
@@ -487,8 +561,7 @@ func doShare(i int, link *protocol.ObjectLink, j int) {
 	}
 
 	if showFileUpload {
-		resBytes, err := httputil.DumpResponse(res, true)
-		log.Printf("%v\n%s", err, string(resBytes))
+		dumpResponse(res, "Share")
 	}
 
 }
@@ -532,33 +605,37 @@ var userID2 = 1
 
 /*
   Do a simple sequence to see that it actually works.
-	Capture the output so that we can see the raw http.
+	Capture the output in markdown so that we can see the raw http.
 */
 func quickTest() {
+	//The global parameters
+	dumpAutopilotParams()
+	//The two users involved
+	dumpTransport(userID)
+	dumpTransport(userID2)
 
 	//Upload some random file
-	link := doUpload(userID, false)
+	link := doUpload(userID, false, "Uploading a file for Alice")
 
 	//Have userID2 upload a file so that he exists in the database
-	doUpload(userID2, true)
+	doUpload(userID2, true, "Uploading a file for Bob")
 
-	log.Printf("")
 	//var listing server.ObjectLinkResponse
 	//getObjectLinkResponse(userID, &listing)
 	//link = &listing.Objects[0]
 
 	if link != nil {
 		//Download THAT file
-		doDownloadLink(userID, link)
-		log.Printf("")
+		doDownloadLink(userID, link, "Alice downloads the file")
 		//Update THAT file
-		doUpdateLink(userID, link)
-		log.Printf("")
+		doUpdateLink(userID, link, "Alice updates the file")
 		//Try to re-download it
-		doDownloadLink(userID, link)
-		log.Printf("")
+		doDownloadLink(userID, link, "Alice downloads it again")
+		//Share with a different user
+		doShare(userID, link, userID2, "Alice shares file to Bob")
 
-		doGrant(userID, link, userID2)
+		//List this users shares
+		findShares(userID2, "Look at the shares that Bob has")
 	} else {
 		log.Printf("We uploaded a file but got no link back!")
 	}
