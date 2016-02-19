@@ -32,35 +32,48 @@ function doRequest() {
   })
 };
 
-$("#submitCreateObject").click(function() {
-  // get the form data
-  var objectName = $("#newObjectName").val();
-  var classification = $("#classification").val();
-  var jsFileObject = $("#fileHandle")[0].files[0];
-  var mimeType = jsFileObject.type || "text/plain";
-  var fileName = jsFileObject.name;
-  var size = jsFileObject.size;
+function init() {
+  $("#submitCreateObject").click(function() {
+    console.log("submit called!!!")
+    // get the form data
+    var objectName = $("#newObjectName").val();
+    var classification = $("#classification").val();
+    var jsFileObject = $("#fileHandle")[0].files[0];
+    var mimeType = jsFileObject.type || "text/plain";
+    var fileName = jsFileObject.name;
+    var size = jsFileObject.size;
 
-  var req = {
-    classification: classification,
-    title: objectName,
-    fileName: fileName,
-    size: size,
-    mimeType: mimeType
-  }
+    var req = {
+      classification: classification,
+      title: objectName,
+      fileName: fileName,
+      size: size,
+      mimeType: mimeType
+    }
 
-  // call the server with the data
-  var formData = new FormData();
-  formData.append("CreateObjectRequest", JSON.stringify(req));
-  formData.append("filestream", jsFileObject);
+    // call the server with the data
+    var formData = new FormData();
+    formData.append("CreateObjectRequest", JSON.stringify(req));
+    formData.append("filestream", jsFileObject);
 
+    $.ajax({
+    url: '/service/metadataconnector/1.0/object',
+    data: formData,
+    cache: false,
+    contentType: false,
+    processData: false,
+    type: 'POST',
+    success: function(data){
+      console.log("We did it!")
+      console.log(data);
+    }
 });
 
-function submitCreateObject(data) {
-  console.log("submitCreateObject called!")
+  });
+
 };
 
-document.onload = doRequest();
+$(document).ready(init);
 
 
 /*

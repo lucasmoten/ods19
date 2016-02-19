@@ -52,8 +52,25 @@ func (h AppServer) acceptObjectUpload(
 			var createObjectRequest protocol.CreateObjectRequest
 			err := json.Unmarshal([]byte(s), &createObjectRequest)
 			if err != nil {
-				h.sendErrorResponse(w, 400, err, "Could not decode CreateObjectRequest")
+				h.sendErrorResponse(w, 400, err, "Could not decode CreateObjectRequest.")
 			}
+
+			pid := createObjectRequest.ParentID
+			async = true
+			_ = async
+
+			// check for nils
+			id, err := hex.DecodeString(pid)
+			_ = id
+			if err != nil {
+				h.sendErrorResponse(w, 400, err, "Could not decode object hex ID.")
+			}
+			// obj.ParentID = id
+			obj.Name = createObjectRequest.Title
+			obj.ContentSize.Int64 = createObjectRequest.Size
+
+			log.Println("logging object:", obj)
+
 		case part.FormName() == "parentId":
 			pid := getFormValueAsString(part)
 			if len(pid) > 0 {

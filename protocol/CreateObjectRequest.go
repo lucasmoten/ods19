@@ -2,6 +2,7 @@ package protocol
 
 // CreateObjectRequest ...
 type CreateObjectRequest struct {
+	ParentID       string `json:"parentId"`
 	Classification string `json:"classification"`
 	Title          string `json:"objectName"`
 	FileName       string `json:"fileName"`
