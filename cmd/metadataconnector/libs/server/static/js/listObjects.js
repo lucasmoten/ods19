@@ -1,37 +1,44 @@
 
-
 var __state = {};
 
+function newParent(id) {
+  __state.parentId = id;
+  refreshListObjects();
+};
 
 function refreshListObjects() {
   var t = $('#listObjectResults');
+
+  // remove children first
+  $('#listObjectResults tbody > tr').remove();
+
   reqwest({
       url: '/service/metadataconnector/1.0/objects'
     , method: 'post'
     , type: 'json'
     , contentType: 'application/json'
-    , data: { pageNumber: '1', pageSize: 20 }
+    , data: { pageNumber: '1', pageSize: 20, parentId: __state.parentId }
     , success: function (resp) {
-        // qwery('#listObjectsResults tr:last').html(resp)
-
         $.each(resp.Objects, function(index, item){
-        console.log(item.Name)
-        // Name	Type	Created Date	Created By	Size	ACM
-        var name = '<td><a href=' + item.url + '/stream>' + item.name + '</a></td>';
-        var type = '<td>' + item.contentType + '</td>';
-        var createdDate = '<td>' + item.createdDate + '</td>';
-        var createdBy = '<td>' + item.createdBy + '</td>';
-        var size = '<td>' + item.contentSize + '</td>';
-        var changeToken = '<td>' + item.changeToken + '</td>';
-        var acm = '<td>' + item.acm + '</td>';
-        console.log('<tr>' + name + type + createdDate + createdBy + size + changeToken + acm + '</tr>');
-         $('#listObjectResults').append('<tr>' + name + type + createdDate + createdBy + size + changeToken + acm + '</tr>');
-        // t.append('<tr>' + name + type + createdDate + createdBy + size + acm + '</tr>');
+          // render each row
+          $('#listObjectResults').append(_renderListObjectRow(item));
         })
-
       }
   })
 };
+
+// Return a <tr> string suitable to append to table.
+function _renderListObjectRow(item) {
+  // Name	Type	Created Date	Created By	Size	ACM
+  var name = '<td><a href=' + item.url + '/stream>' + item.name + '</a></td>';
+  var type = '<td>' + item.contentType + '</td>';
+  var createdDate = '<td>' + item.createdDate + '</td>';
+  var createdBy = '<td>' + item.createdBy + '</td>';
+  var size = '<td>' + item.contentSize + '</td>';
+  var changeToken = '<td>' + item.changeToken + '</td>';
+  var acm = '<td>' + item.acm + '</td>';
+  return '<tr>' + name + type + createdDate + createdBy + size + changeToken + acm + '</tr>'
+}
 
 function createObject() {
       console.log("createObject called");
@@ -62,7 +69,7 @@ function createObject() {
       cache: false,
       contentType: false,
       processData: false,
-      type: 'POST',
+      method: 'POST',
       success: function(data){
         console.log("We did it!")
         console.log(data);
@@ -70,10 +77,31 @@ function createObject() {
   });
 }
 
+function createFolder() {
+  var folderName = $("#folderNameInput").val();
+  var data = {
+    typeName: "Folder",
+    parentId: __state.parentId,
+    name: folderName
+  }
+      $.ajax({
+      url: '/service/metadataconnector/1.0/folder',
+      data: JSON.stringify(data),
+      method: 'POST',
+      contentType: 'application/json',
+      success: function(data){
+        console.log("createFolder success.")
+        console.log(data);
+      }
+  });
+
+}
+
 function init() {
   // Set up click handlers
   $("#submitCreateObject").click(createObject);
-  $("#refreshListObjects").click(refreshListObjects)
+  $("#refreshListObjects").click(refreshListObjects);
+  $("#submitCreateFolder").click(createFolder);
 
   // initial state
   __state.parentId = "";
