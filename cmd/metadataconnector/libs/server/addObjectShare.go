@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 )
 
 var rxShare = initRegex("/object/(.*)/share")
@@ -61,28 +60,6 @@ func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller
 		}
 		//Get the original object, with respect to the caller.
 		objectID = getIDOfObjectTORetrieveGrant(r.URL.RequestURI())
-	} else {
-		//XXX this is support for non-javascript UI renditions that
-		//need to implement granting
-		//We iterate the submit buttons to figure out the grantee and the objectID
-		log.Printf("Iterating form parameters to figure out what is granted")
-		r.ParseForm()
-		sharePrefix := "share-"
-		granteePrefix := "grantee-"
-		for k := range r.Form {
-			if strings.HasPrefix(k, sharePrefix) {
-				//This is the button that was pressed.
-				//Everything after prefix is objectID
-				objectID = k[len(sharePrefix):]
-			}
-		}
-		for k, v := range r.Form {
-			if k == granteePrefix+objectID {
-				objectGrant.Grantee = v[0]
-			}
-		}
-		//For now, use json for fine-grained control
-		objectGrant.Read = true
 	}
 	log.Printf("Granting:%s to %s", objectID, objectGrant.Grantee)
 
@@ -105,7 +82,7 @@ func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller
 				permission.AllowRead &&
 				permission.AllowUpdate
 
-		if isAllowed && object.TypeName.String == "File" {
+		if isAllowed && object.TypeName.String != "Folder" {
 			newGrant.EncryptKey = make([]byte, 32)
 			newGrant.EncryptKey = permission.EncryptKey
 			//Decrypt from grantor
@@ -117,6 +94,8 @@ func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller
 	if len(newGrant.EncryptKey) == 0 {
 		log.Printf("Grant was not created")
 		h.sendErrorResponse(w, 500, err, "did not find grant to transfer")
+	} else {
+		log.Printf("Grant was created")
 	}
 	newGrant.Grantee = objectGrant.Grantee
 	newGrant.AllowCreate = objectGrant.Create

@@ -55,10 +55,9 @@ func (h AppServer) acceptObjectUpload(
 				h.sendErrorResponse(w, 400, err, "Could not decode CreateObjectRequest.")
 			}
 
-			pid := createObjectRequest.ParentID
 			async = true
-			_ = async
 
+			pid := getFormValueAsString(part)
 			// check for nils
 			id, err := hex.DecodeString(pid)
 			_ = id
@@ -66,33 +65,25 @@ func (h AppServer) acceptObjectUpload(
 				h.sendErrorResponse(w, 400, err, "Could not decode object hex ID.")
 			}
 			// obj.ParentID = id
-			obj.Name = createObjectRequest.Title
+
 			obj.ContentSize.Int64 = createObjectRequest.Size
 
-			log.Println("logging object:", obj)
+			if createObjectRequest.Title != "" {
+				obj.Name = createObjectRequest.Title
+			}
 
-		case part.FormName() == "parentId":
-			pid := getFormValueAsString(part)
+			obj.RawAcm.String = h.Classifications[createObjectRequest.Classification]
+
+			obj.TypeName.String = createObjectRequest.TypeName
+
+			pid = createObjectRequest.ParentID
 			if len(pid) > 0 {
 				obj.ParentID, err = hex.DecodeString(pid)
 				if err != nil {
 					log.Printf("Parent id %s did not decode correctly:%v", pid, err)
 				}
 			}
-		case part.FormName() == "async":
-			if getFormValueAsString(part) == "true" {
-				async = true
-			}
-		case part.FormName() == "title":
-			obj.Name = getFormValueAsString(part)
-		case part.FormName() == "type":
-			obj.TypeName.String = getFormValueAsString(part)
-			obj.TypeName.Valid = (len(obj.TypeName.String) > 0)
-		case part.FormName() == "classification":
-			acm.Classification.String = getFormValueAsString(part)
-			acm.Classification.Valid = (len(acm.Classification.String) > 0)
-			//XXX We just have a small set of objects that map to raw acm at the moment
-			obj.RawAcm.String = h.Classifications[acm.Classification.String]
+
 		case len(part.FileName()) > 0:
 			//Guess the content type and name
 			obj.ContentType.String = guessContentType(part.FileName())

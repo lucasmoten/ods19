@@ -8,5 +8,5 @@ type CreateObjectRequest struct {
 	FileName       string `json:"fileName"`
 	Size           int64  `json:"size"`
 	MimeType       string `json:"mimeType"`
-	Type           string `json:"objectType"`
+	TypeName       string `json:"typeName"`
 }

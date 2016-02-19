@@ -24,14 +24,6 @@ type ObjectLink struct {
 }
 */
 
-// UploadMetadata ...
-type UploadMetadata struct {
-	Classification string
-	Async          bool
-	Type           string
-	Title          string
-}
-
 // ObjectGrant is the grant of an object to a user - possibly the owner
 // Granter and URL are implicit in the form of the POST
 type ObjectGrant struct {
