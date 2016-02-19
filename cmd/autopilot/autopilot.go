@@ -160,11 +160,16 @@ func generateUploadRequest(name string, fqName string, url string, async bool) (
 	//Create a multipart mime request
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
-	if async {
-		w.WriteField("async", "true")
+	um := protocol.UploadMetadata{
+		Async:          true,
+		Type:           "File",
+		Classification: getRandomClassification(),
 	}
-	w.WriteField("type", "File")
-	w.WriteField("classification", getRandomClassification())
+	umStr, err := json.MarshalIndent(um, "", "  ")
+	if err != nil {
+		log.Printf("Cannot marshal object:%v", err)
+	}
+	w.WriteField("CreateObjectRequest", string(umStr))
 	fw, err := w.CreateFormFile("filestream", name)
 	if err != nil {
 		log.Printf("unable to create form file from %s:%v", fqName, err)

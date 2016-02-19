@@ -273,7 +273,7 @@ func createFolderResponseAsHTML(
 	// Bounce to redraw the list
 	listObjectsURL := config.RootURL
 	if len(response.ParentID) > 0 {
-		parentID := hex.EncodeToString(response.ParentID)
+		parentID := response.ParentID
 		listObjectsURL += "/object/" + parentID + "/list"
 	} else {
 		listObjectsURL += "/objects"
