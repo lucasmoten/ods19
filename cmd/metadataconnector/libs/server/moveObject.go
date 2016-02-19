@@ -60,15 +60,15 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 
 	// Check if the user has permission to create children under the target
 	// object for which they are moving this one to (the parentID)
-	var targetParent *models.ODObject
+	targetParent := models.ODObject{}
 	targetParent.ID = requestObject.ParentID
-	targetParent, err = h.DAO.GetObject(targetParent, false)
+	dbParent, err := h.DAO.GetObject(&targetParent, false)
 	if err != nil {
 		h.sendErrorResponse(w, 400, err, "Error retrieving parent to move object into")
 		return
 	}
 	authorizedToMoveTo := false
-	for _, parentPermission := range targetParent.Permissions {
+	for _, parentPermission := range dbParent.Permissions {
 		if parentPermission.Grantee == caller.DistinguishedName &&
 			parentPermission.AllowRead && parentPermission.AllowCreate {
 			authorizedToMoveTo = true

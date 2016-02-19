@@ -77,6 +77,12 @@ func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller C
 		}
 	}
 
+	// Check that assignment as deleted isn't occuring here. Should use deleteObject operations
+	if requestObject.IsDeleted || requestObject.IsAncestorDeleted || requestObject.IsExpunged {
+		h.sendErrorResponse(w, 428, nil, "Assigning object as deleted through update operation not allowed. Use deleteObject operation")
+		return
+	}
+
 	// Check that the change token on the object passed in matches the current
 	// state of the object in the data store
 	if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) != 0 {

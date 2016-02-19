@@ -45,6 +45,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject, acm *models.OD
 	if rowsAffected <= 0 {
 		return fmt.Errorf("UpdateObject did not affect any rows (Possible bad ID or changeToken)!")
 	}
+	updateObjectStatement.Close()
 
 	// Retrieve current state of object from database to reflect alterations to..
 	// ModifiedDate, ChangeToken, ChangeCount

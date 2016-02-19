@@ -25,6 +25,7 @@ func (dao *DataAccessLayer) AddPropertyToObject(createdBy string, object *models
 	if rowCount < 1 {
 		return errors.New("No rows added from inserting property")
 	}
+	addPropertyStatement.Close()
 	// Get the ID of the newly created property
 	var newPropertyID []byte
 	getPropertyIDStatement, err := tx.Prepare(`select id from property where createdby = ? and name = ? and propertyvalue = ? and classificationpm = ? order by createddate desc limit 1`)
@@ -35,6 +36,7 @@ func (dao *DataAccessLayer) AddPropertyToObject(createdBy string, object *models
 	if err != nil {
 		return err
 	}
+	getPropertyIDStatement.Close()
 	// Retrieve back into property
 	err = tx.Get(property, `select * from property where id = ?`, newPropertyID)
 	if err != nil {
@@ -53,6 +55,7 @@ func (dao *DataAccessLayer) AddPropertyToObject(createdBy string, object *models
 	if rowCount < 1 {
 		return errors.New("No rows added from inserting object_property")
 	}
+	addObjectPropertyStatement.Close()
 	tx.Commit()
 
 	return nil
