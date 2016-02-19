@@ -85,6 +85,7 @@ type StaticRx struct {
 	Favorites               *regexp.Regexp
 	Folder                  *regexp.Regexp
 	Home                    *regexp.Regexp
+	HomeListObjects         *regexp.Regexp
 	Images                  *regexp.Regexp
 	Object                  *regexp.Regexp
 	Query                   *regexp.Regexp
@@ -123,6 +124,7 @@ func (h *AppServer) InitRegex() {
 		Favorites:               initRegex(h.ServicePrefix + "/favorites$"),
 		Folder:                  initRegex(h.ServicePrefix + "/folder$"),
 		Home:                    initRegex(h.ServicePrefix + "/?$"),
+		HomeListObjects:         initRegex(h.ServicePrefix + "/home/listObjects/?$"),
 		Images:                  initRegex(h.ServicePrefix + "/images$"),
 		Object:                  initRegex(h.ServicePrefix + "/object$"),
 		Query:                   initRegex(h.ServicePrefix + "/query/.*"),
@@ -207,6 +209,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case h.Routes.Home.MatchString(uri):
 			h.home(w, r, caller)
+		case h.Routes.HomeListObjects.MatchString(uri):
+			h.homeListObjects(w, r, caller)
 		case uri == h.ServicePrefix+"/favicon.ico", uri == h.ServicePrefix+"//favicon.ico":
 			h.favicon(w, r)
 			// from longest to shortest...
