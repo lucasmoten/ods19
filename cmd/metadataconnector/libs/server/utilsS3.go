@@ -1,13 +1,9 @@
 package server
 
 import (
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/performance"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"io"
 	"log"
 	"mime/multipart"
@@ -15,6 +11,13 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/performance"
+	"decipher.com/oduploader/protocol"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 func (h AppServer) acceptObjectUpload(
@@ -44,6 +47,13 @@ func (h AppServer) acceptObjectUpload(
 		} // if err != nil
 
 		switch {
+		case part.FormName() == "CreateObjectRequest":
+			s := getFormValueAsString(part)
+			var createObjectRequest protocol.CreateObjectRequest
+			err := json.Unmarshal([]byte(s), &createObjectRequest)
+			if err != nil {
+				h.sendErrorResponse(w, 400, err, "Could not decode CreateObjectRequest")
+			}
 		case part.FormName() == "parentId":
 			pid := getFormValueAsString(part)
 			if len(pid) > 0 {
