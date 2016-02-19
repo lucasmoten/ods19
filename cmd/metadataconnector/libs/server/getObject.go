@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -18,20 +17,10 @@ func (h AppServer) getObject(w http.ResponseWriter, r *http.Request, caller Call
 	var requestObject *models.ODObject
 	var err error
 
-	// Parse Request in sent format
-	switch {
-	case r.Header.Get("Content-Type") == "application/json":
-		requestObject, err = parseGetObjectRequestAsJSON(r)
-		if err != nil {
-			h.sendErrorResponse(w, 500, err, "Error parsing JSON")
-			return
-		}
-	default:
-		requestObject, err = parseGetObjectRequestAsHTML(r)
-		if err != nil {
-			h.sendErrorResponse(w, 500, err, "Error parsing URI")
-			return
-		}
+	requestObject, err = parseGetObjectRequestAsHTML(r)
+	if err != nil {
+		h.sendErrorResponse(w, 500, err, "Error parsing URI")
+		return
 	}
 
 	// Business Logic...
@@ -85,56 +74,6 @@ func (h AppServer) getObject(w http.ResponseWriter, r *http.Request, caller Call
 
 }
 
-func parseGetObjectRequestAsJSON(r *http.Request) (*models.ODObject, error) {
-	var jsonObject models.ODObject
-	var err error
-
-	switch {
-	case r.Header.Get("Content-Type") == "application/json":
-		err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
-	case r.Header.Get("Content-Type") == "multipart/form-data":
-		r.ParseForm()
-		multipartReader, err := r.MultipartReader()
-		if err != nil {
-			return nil, err
-		}
-		for {
-			part, err := multipartReader.NextPart()
-			if err != nil {
-				return nil, err
-			}
-			switch {
-			case part.Header.Get("Content-Type") == "application/json":
-
-				// Read in the JSON - up to 10K
-				valueAsBytes := make([]byte, 10240)
-				n, err := part.Read(valueAsBytes)
-				if err != nil {
-					return nil, err
-				}
-				err = (json.NewDecoder(bytes.NewReader(valueAsBytes[0:n]))).Decode(&jsonObject)
-			case part.Header.Get("Content-Disposition") == "form-data":
-				// TODO: Maybe these header checks need to be if the value begins with?
-			}
-		}
-	}
-
-	// Portions from the request URI itself ...
-	// TODO can we use the regex capture groups function in /util?
-	uri := r.URL.RequestURI()
-	re, _ := regexp.Compile("/object/(.*)/properties")
-	matchIndexes := re.FindStringSubmatchIndex(uri)
-	if len(matchIndexes) != 0 {
-		if len(matchIndexes) > 3 {
-			jsonObject.ID, err = hex.DecodeString(uri[matchIndexes[2]:matchIndexes[3]])
-			if err != nil {
-				return nil, errors.New("Object Identifier in Request URI is not a hex string")
-			}
-		}
-	}
-
-	return &jsonObject, err
-}
 func parseGetObjectRequestAsHTML(r *http.Request) (*models.ODObject, error) {
 	var htmlObject models.ODObject
 	var err error
