@@ -283,11 +283,11 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.updateObjectStream(w, r, caller)
 		case h.Routes.ObjectShare.MatchString(uri):
 			h.addObjectShare(w, r, caller)
-		//XXX This is a case that's necessary to have a very basic UI without JS.
-		//Parameters hiding in POST urls is a problem without Javascript
-		//But for now... we still need a UI to go with automated
-		//testing (which does work fine)
-		case rx.Shareto.MatchString(uri):
+			//XXX This is a case that's necessary to have a very basic UI without JS.
+			//Parameters hiding in POST urls is a problem without Javascript
+			//But for now... we still need a UI to go with automated
+			//testing (which does work fine)
+		case h.Routes.Shareto.MatchString(uri):
 			h.addObjectShare(w, r, caller)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
