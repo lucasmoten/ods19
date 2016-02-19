@@ -1,6 +1,7 @@
 package protocol
 
 // ObjectLinkResponse is the container for returned data
+/*
 type ObjectLinkResponse struct {
 	TotalRows  int
 	PageCount  int
@@ -21,6 +22,7 @@ type ObjectLink struct {
 	Size        int64
 	ACM         string
 }
+*/
 
 // ObjectGrant is the grant of an object to a user - possibly the owner
 // Granter and URL are implicit in the form of the POST

@@ -1,13 +1,11 @@
 package server
 
 import (
-	"encoding/json"
-	"net/http"
-
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
+	"encoding/json"
 	"log"
+	"net/http"
 )
 
 /**
@@ -60,7 +58,7 @@ func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, ca
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	link := mapping.GetObjectLinkFromObject(config.RootURL, object)
+	link := mapping.MapODObjectToObject(object)
 	data, err := json.MarshalIndent(link, "", "  ")
 	if err != nil {
 		log.Printf("Error marshalling json data:%v", err)

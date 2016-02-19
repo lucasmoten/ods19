@@ -1,7 +1,6 @@
 package server
 
 import (
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
 	"encoding/json"
@@ -17,7 +16,7 @@ func (h AppServer) listUserObjectShares(w http.ResponseWriter, r *http.Request, 
 	}
 	if r.Header.Get("Content-Type") == "application/json" {
 		w.Header().Set("Content-Type", "application/json")
-		returnValue := mapping.GetObjectResultsetFromODResultset(config.RootURL, &result)
+		returnValue := mapping.MapODObjectResultsetToObjectResultset(&result)
 		data, err := json.MarshalIndent(returnValue, "", "  ")
 		if err != nil {
 			log.Printf("Error marshalling json data:%v", err)

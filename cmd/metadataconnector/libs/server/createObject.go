@@ -2,13 +2,11 @@ package server
 
 import (
 	//"encoding/hex"
-	"encoding/json"
-	"net/http"
-
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
+	"encoding/json"
 	"log"
+	"net/http"
 )
 
 // createObject is a method handler on AppServer for createObject microservice
@@ -57,7 +55,7 @@ func (h AppServer) createObject(
 
 	//TODO: json response rendering
 	w.Header().Set("Content-Type", "application/json")
-	link := mapping.GetObjectLinkFromObject(config.RootURL, &obj)
+	link := mapping.MapODObjectToObject(&obj)
 	//Write a link back to the user so that it's possible to do an update on this object
 	data, err := json.MarshalIndent(link, "", "  ")
 	if err != nil {

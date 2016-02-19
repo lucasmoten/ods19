@@ -251,7 +251,7 @@ func parseListObjectsRequestAsJSON(r *http.Request) (*models.ODObject, *protocol
 	matchIndexes := re.FindStringSubmatchIndex(uri)
 	if len(matchIndexes) != 0 {
 		if len(matchIndexes) > 3 {
-			jsonObject.ID, err = hex.DecodeString(uri[matchIndexes[2]:matchIndexes[3]])
+			jsonObject.ID = uri[matchIndexes[2]:matchIndexes[3]]
 			if err != nil {
 				return nil, nil, errors.New("Object Identifier in Request URI is not a hex string")
 			}

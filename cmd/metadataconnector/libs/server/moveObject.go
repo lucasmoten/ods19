@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -208,13 +207,13 @@ func parseMoveObjectRequestAsJSON(r *http.Request) (*models.ODObject, error) {
 	matchIndexes := re.FindStringSubmatchIndex(uri)
 	if len(matchIndexes) != 0 {
 		if len(matchIndexes) > 3 {
-			jsonObject.ID, err = hex.DecodeString(uri[matchIndexes[2]:matchIndexes[3]])
+			jsonObject.ID = uri[matchIndexes[2]:matchIndexes[3]]
 			if err != nil {
 				return nil, errors.New("Object Identifier in Request URI is not a hex string")
 			}
 		}
 		if len(matchIndexes) > 5 {
-			jsonObject.ParentID, err = hex.DecodeString(uri[matchIndexes[4]:matchIndexes[5]])
+			jsonObject.ParentID = uri[matchIndexes[4]:matchIndexes[5]]
 			if err != nil {
 				return nil, errors.New("Parent Identifier in Request URI is not a hex string")
 			}

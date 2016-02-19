@@ -44,6 +44,7 @@ var showFileUpload = true
 
 //XXX This ASSUMES that you have an /etc/hosts entry for dockervm
 var host = "https://dockervm:8080"
+var rootURL = "/service/metadataconnector/1.0"
 
 // NewClientTLSConfig creates a per-client tls config
 func NewClientTLSConfig(client *ClientIdentity) (*tls.Config, error) {
@@ -244,8 +245,8 @@ func dumpResponse(res *http.Response, msg string) {
 	fmt.Printf("\n```\n")
 }
 
-func doUpload(i int, async bool, msg string) *protocol.ObjectLink {
-	var link protocol.ObjectLink
+func doUpload(i int, async bool, msg string) *protocol.Object {
+	var link protocol.Object
 
 	//log.Printf("%d upload out of %s", i, clients[i].UploadCache)
 	//Pick a random file
@@ -297,10 +298,10 @@ func doUpload(i int, async bool, msg string) *protocol.ObjectLink {
 }
 
 //Get candidate objects that we own, to perform operations on them
-func getObjectLinkResponse(i int, olResponse *protocol.ObjectLinkResponse, msg string) (err error) {
+func getObjectLinkResponse(i int, olResponse *protocol.ObjectResultset, msg string) (err error) {
 	req, err := http.NewRequest(
 		"GET",
-		host+"/service/metadataconnector/1.0/objects",
+		host+rootURL+"/objects",
 		nil,
 	)
 	if err != nil {
@@ -338,10 +339,10 @@ func getObjectLinkResponse(i int, olResponse *protocol.ObjectLinkResponse, msg s
 	return nil
 }
 
-func doDownloadLink(i int, link *protocol.ObjectLink, msg string) {
+func doDownloadLink(i int, link *protocol.Object, msg string) {
 	dlReq, err := http.NewRequest(
 		"GET",
-		host+link.URL+"/stream",
+		host+rootURL+"/object/"+link.ID+"/stream",
 		nil,
 	)
 	if err != nil {
@@ -377,10 +378,10 @@ func doDownloadLink(i int, link *protocol.ObjectLink, msg string) {
 	io.Copy(drainFile, dlRes.Body)
 }
 
-func doDownload(i int, msg string) *protocol.ObjectLink {
+func doDownload(i int, msg string) *protocol.Object {
 	//Get the links to download
-	var link *protocol.ObjectLink
-	var olResponse protocol.ObjectLinkResponse
+	var link *protocol.Object
+	var olResponse protocol.ObjectResultset
 	err := getObjectLinkResponse(i, &olResponse, msg)
 	if err != nil {
 		log.Printf("Unable to do download:%v", err)
@@ -399,12 +400,12 @@ func doDownload(i int, msg string) *protocol.ObjectLink {
 	return link
 }
 
-func doUpdateLink(i int, link *protocol.ObjectLink, msg string) {
+func doUpdateLink(i int, link *protocol.Object, msg string) {
 	fqName := clients[i].UploadCache + "/" + link.Name
 	req, err := generateUploadRequest(
 		link.Name,
 		fqName,
-		host+link.URL+"/stream",
+		host+rootURL+"/object/"+link.ID+"/stream",
 		false,
 	)
 	if err != nil {
@@ -438,7 +439,7 @@ func doUpdateLink(i int, link *protocol.ObjectLink, msg string) {
 
 func doUpdate(i int, msg string) {
 	//Get the links to download
-	var olResponse protocol.ObjectLinkResponse
+	var olResponse protocol.ObjectResultset
 	err := getObjectLinkResponse(i, &olResponse, msg)
 	if err != nil {
 		log.Printf("Unable to do download:%v", err)
@@ -494,7 +495,7 @@ func dnFromInt(n int) string {
 func findShares(i int, msg string) {
 	req, err := http.NewRequest(
 		"GET",
-		host+"/service/metadataconnector/1.0/shares",
+		host+rootURL+"/shares",
 		nil,
 	)
 	req.Header.Set("Content-Type", "application/json")
@@ -518,7 +519,7 @@ func findShares(i int, msg string) {
 }
 
 // Have user i grant link to j
-func doShare(i int, link *protocol.ObjectLink, j int, msg string) {
+func doShare(i int, link *protocol.Object, j int, msg string) {
 	//	dnFrom := dnFromInt(i)
 	dnTo := dnFromInt(j)
 
@@ -537,7 +538,7 @@ func doShare(i int, link *protocol.ObjectLink, j int, msg string) {
 
 	req, err := http.NewRequest(
 		"POST",
-		host+link.URL+"/share",
+		host+rootURL+"/object/"+link.ID+"/share",
 		bytes.NewBuffer(jsonStr),
 	)
 	req.Header.Set("Content-Type", "application/json")

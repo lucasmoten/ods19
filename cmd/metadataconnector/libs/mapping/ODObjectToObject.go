@@ -3,13 +3,15 @@ package mapping
 import (
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
+	"encoding/hex"
+	"log"
 )
 
 // MapODObjectToObject converts an internal ODObject model object into an API
 // exposable protocol Object
 func MapODObjectToObject(i *models.ODObject) protocol.Object {
 	o := protocol.Object{}
-	o.ID = i.ID
+	o.ID = hex.EncodeToString(i.ID)
 	o.CreatedDate = i.CreatedDate
 	o.CreatedBy = i.CreatedBy
 	o.ModifiedDate = i.ModifiedDate
@@ -21,7 +23,7 @@ func MapODObjectToObject(i *models.ODObject) protocol.Object {
 	} else {
 		o.OwnedBy = ""
 	}
-	o.TypeID = i.TypeID
+	o.TypeID = hex.EncodeToString(i.TypeID)
 	if i.TypeName.Valid {
 		o.TypeName = i.TypeName.String
 	} else {
@@ -33,7 +35,7 @@ func MapODObjectToObject(i *models.ODObject) protocol.Object {
 	} else {
 		o.Description = ""
 	}
-	o.ParentID = i.ParentID
+	o.ParentID = hex.EncodeToString(i.ParentID)
 	if i.RawAcm.Valid {
 		o.RawAcm = i.RawAcm.String
 	} else {
@@ -80,8 +82,12 @@ func MapODObjectResultsetToObjectResultset(i *models.ODObjectResultset) protocol
 // MapObjectToODObject converts an API exposable protocol Object into an
 // internally usable model object.
 func MapObjectToODObject(i *protocol.Object) models.ODObject {
+	var err error
 	o := models.ODObject{}
-	o.ID = i.ID
+	o.ID, err = hex.DecodeString(i.ID)
+	if err != nil {
+		log.Printf("Unable to decode id")
+	}
 	o.CreatedDate = i.CreatedDate
 	o.CreatedBy = i.CreatedBy
 	o.ModifiedDate = i.ModifiedDate
@@ -90,13 +96,19 @@ func MapObjectToODObject(i *protocol.Object) models.ODObject {
 	o.ChangeToken = i.ChangeToken
 	o.OwnedBy.Valid = true
 	o.OwnedBy.String = i.OwnedBy
-	o.TypeID = i.TypeID
+	o.TypeID, err = hex.DecodeString(i.TypeID)
+	if err != nil {
+		log.Printf("Unable to decode type id")
+	}
 	o.TypeName.Valid = true
 	o.TypeName.String = i.TypeName
 	o.Name = i.Name
 	o.Description.Valid = true
 	o.Description.String = i.Description
-	o.ParentID = i.ParentID
+	o.ParentID, err = hex.DecodeString(i.ParentID)
+	if err != nil {
+		log.Printf("Unable to decode parent id")
+	}
 	o.RawAcm.Valid = true
 	o.RawAcm.String = i.RawAcm
 	o.ContentType.Valid = true

@@ -6,7 +6,7 @@ import "time"
 // in Object Drive
 type Object struct {
 	// ID is the unique identifier for this object in Object Drive.
-	ID []byte `db:"id" json:"id"`
+	ID string `db:"id" json:"id"`
 	// CreatedDate is the timestamp of when an item was created.
 	CreatedDate time.Time `db:"createdDate" json:"createdDate"`
 	// CreatedBy is the user that created this item.
@@ -26,7 +26,7 @@ type Object struct {
 	OwnedBy string `db:"ownedBy" json:"ownedBy"`
 	// TypeID references the ODObjectType by its ID indicating the type of this
 	// object
-	TypeID []byte `db:"typeId" json:"typeId"`
+	TypeID string `db:"typeId" json:"typeId"`
 	// TypeName reflects the name of the object type associated with TypeID
 	TypeName string `db:"typeName" json:"typeName"`
 	// Name is the given name for the object. (e.g., filename)
@@ -37,7 +37,7 @@ type Object struct {
 	// any, contains, or is an ancestor of this object. (e.g., folder). An object
 	// without a parent is considered to be contained within the 'root' or at the
 	// 'top level'.
-	ParentID []byte `db:"parentId" json:"parentId"`
+	ParentID string `db:"parentId" json:"parentId"`
 	// RawACM is the raw ACM string that got supplied to create this object
 	RawAcm string `db:"rawAcm" json:"acm"`
 	// ContentType indicates the mime-type, and potentially the character set
@@ -49,6 +49,10 @@ type Object struct {
 	// Properties is an array of Object Properties associated with this object
 	// structured as key/value with portion marking.
 	Properties []Property `json:"properties"`
+	// Permission is the permission for this object
+	Permission Permission `json:"permission"`
 	// Permissions is an array of Object Permissions associated with this object
+	// This might be null.  It could have a large list of permission objects
+	// relevant to this file (ie: shared with an organization)
 	Permissions []Permission `json:"permissions"`
 }
