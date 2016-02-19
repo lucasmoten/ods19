@@ -299,7 +299,7 @@ func (h AppServer) writeUserListForm(w http.ResponseWriter, createdBy string, oi
 		//We assume that the creator of the file is the one excluded, just because
 		//we have no caller reference from here.
 		dn := users[i]
-		cn := extractCNfromDN(dn)
+		cn := config.GetCommonName(dn)
 		if dn != createdBy {
 			fmt.Fprintf(w, "<option value='%s'>%s</option>", dn, cn)
 		}
