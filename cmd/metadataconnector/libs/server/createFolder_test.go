@@ -21,15 +21,13 @@ func TestCreateFolderAtRoot(t *testing.T) {
 	clientid := 0
 
 	if verboseOutput {
-		fmt.Printf("(Verbose Mode) Using client id %d", clientid)
-		fmt.Println()
+		fmt.Printf("(Verbose Mode) Using client id %d\n", clientid)
 	}
 
 	// URL
 	uri := host + "/service/metadataconnector/1.0/folder"
 	if verboseOutput {
-		fmt.Printf("(Verbose Mode) uri: %s", uri)
-		fmt.Println()
+		fmt.Printf("(Verbose Mode) uri: %s\n", uri)
 	}
 
 	// Body

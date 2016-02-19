@@ -52,6 +52,12 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 	requestObject.TypeName.String = "Folder"
 	requestObject.TypeName.Valid = true
 
+	// If JavaScript passes parentId as emptry string, set it to nil to satisfy
+	// the DAO.
+	if string(requestObject.ParentID) == "" {
+		requestObject.ParentID = nil
+	}
+
 	// Check if parent defined
 	if requestObject.ParentID == nil {
 		// No parent set, but need to setup permission
