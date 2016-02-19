@@ -47,7 +47,7 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 	// Business Logic...
 
 	// Clear any passed in permission assignments on create
-	requestObject.Permissions = make([]models.ODObjectPermission, 0)
+	//requestObject.Permissions = make([]models.ODObjectPermission, 0)
 	// Always set Type
 	requestObject.TypeName.String = "Folder"
 	requestObject.TypeName.Valid = true
