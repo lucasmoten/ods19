@@ -105,7 +105,7 @@ func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller
 				permission.AllowRead &&
 				permission.AllowUpdate
 
-		if isAllowed {
+		if isAllowed && object.TypeName.String == "File" {
 			newGrant.EncryptKey = make([]byte, 32)
 			newGrant.EncryptKey = permission.EncryptKey
 			//Decrypt from grantor

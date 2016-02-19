@@ -367,9 +367,9 @@ func (h AppServer) listObjectsResponseAsHTML(
 	parentObject *models.ODObject,
 	response *models.ODObjectResultset,
 ) {
-	canCreateFolder := false
+	havePermission := false
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, pageTemplateStart, "listObjects", caller.DistinguishedName)
+	fmt.Fprintf(w, pageTemplateStart, "ListObjects of "+caller.CommonName, caller.DistinguishedName)
 	// Vertical Navigation (Up to Parent)
 	// Check if the object referenced is the root for displaying a link up
 	if parentObject.ID != nil {
@@ -390,12 +390,12 @@ func (h AppServer) listObjectsResponseAsHTML(
 		// Check permission to create folder, for displaying form later
 		for _, perm := range dbObject.Permissions {
 			if perm.AllowCreate && perm.Grantee == caller.DistinguishedName {
-				canCreateFolder = true
+				havePermission = true
 				break
 			}
 		}
 	} else {
-		canCreateFolder = true
+		havePermission = true
 	}
 	// Horizontal Navigation (pages)
 	fmt.Fprintf(w, "Page "+strconv.Itoa(response.PageNumber)+" of "+strconv.Itoa(response.PageCount)+".<br />")
@@ -406,13 +406,7 @@ func (h AppServer) listObjectsResponseAsHTML(
 	h.listObjectsResponseAsHTMLTable(w, response)
 
 	// This is the available operations given the directory we are in
-	if canCreateFolder {
-		//We can create a folder
-		fmt.Fprintf(w, createFileForm, config.RootURL, hex.EncodeToString(parentObject.ID))
-
-		//We can create a file
-		fmt.Fprintf(w, createObjectForm, config.RootURL, hex.EncodeToString(parentObject.ID))
-
+	if havePermission {
 		//We have a listing of shares that is independent of folder, so it's convenient to reuse logic for it
 		//to be here (there is a rest request for this as well)
 		result, err := h.DAO.GetObjectsSharedToMe(caller.DistinguishedName, "", 0, 20)
@@ -421,6 +415,12 @@ func (h AppServer) listObjectsResponseAsHTML(
 		}
 		fmt.Fprintf(w, "<h2>SharedTo:%s</h2>", caller.CommonName)
 		h.listObjectsResponseAsHTMLTable(w, &result)
+
+		//We can create a folder
+		fmt.Fprintf(w, createFileForm, config.RootURL, hex.EncodeToString(parentObject.ID))
+
+		//We can create a file
+		fmt.Fprintf(w, createObjectForm, config.RootURL, hex.EncodeToString(parentObject.ID))
 	}
 }
 
