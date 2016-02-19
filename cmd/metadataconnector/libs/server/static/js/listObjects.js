@@ -20,21 +20,25 @@ function refreshListObjects() {
     , data: { pageNumber: '1', pageSize: 20, parentId: __state.parentId }
     , success: function (resp) {
         $.each(resp.Objects, function(index, item){
-        console.log(item.Name)
-        // Name	Type	Created Date	Created By	Size	ACM
-        var name = '<td><a href=' + item.url + '/stream>' + item.name + '</a></td>';
-        var type = '<td>' + item.contentType + '</td>';
-        var createdDate = '<td>' + item.createdDate + '</td>';
-        var createdBy = '<td>' + item.createdBy + '</td>';
-        var size = '<td>' + item.contentSize + '</td>';
-        var changeToken = '<td>' + item.changeToken + '</td>';
-        var acm = '<td>' + item.acm + '</td>';
-        console.log('<tr>' + name + type + createdDate + createdBy + size + changeToken + acm + '</tr>');
-         $('#listObjectResults').append('<tr>' + name + type + createdDate + createdBy + size + changeToken + acm + '</tr>');
+          // render each row
+          $('#listObjectResults').append(_renderListObjectRow(item));
         })
       }
   })
 };
+
+// Return a <tr> string suitable to append to table.
+function _renderListObjectRow(item) {
+  // Name	Type	Created Date	Created By	Size	ACM
+  var name = '<td><a href=' + item.url + '/stream>' + item.name + '</a></td>';
+  var type = '<td>' + item.contentType + '</td>';
+  var createdDate = '<td>' + item.createdDate + '</td>';
+  var createdBy = '<td>' + item.createdBy + '</td>';
+  var size = '<td>' + item.contentSize + '</td>';
+  var changeToken = '<td>' + item.changeToken + '</td>';
+  var acm = '<td>' + item.acm + '</td>';
+  return '<tr>' + name + type + createdDate + createdBy + size + changeToken + acm + '</tr>'
+}
 
 function createObject() {
       console.log("createObject called");
