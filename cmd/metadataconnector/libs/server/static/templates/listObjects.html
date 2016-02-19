@@ -15,8 +15,28 @@
 		{{ .DistinguishedName }}
   </p>
   <h1>List Objects</h1>
+  <!-- results table -->
+  <div>
+  <table id="listObjectResults">
+    <tr><td>Name</td><td>Type</td><td>Created Date</td><td>Created By</td><td>Size</td><td>ACM</td></tr>
+  </table>
+  <button id="refreshListObjects">Refresh</button>
+  <div>
 
+
+  <h1>Shared With Others</h1>
+  <div>
+  </div>
+
+  <h1>Create Folder</h1>
+  <div>
+  <form >
+    <input id="folderNameInput"  type="text"  />
+  </form>
+  <button id="submitCreateFolder">Submit</button>
+  </div>
 <!-- create object form -->
+  <h1>Create Object</h1>
 <div>
   <form >
     <input id="newObjectName"  type="text"  />
@@ -32,9 +52,5 @@
 </div>
 
 
-  <!-- results table -->
-  <table id="listObjectResults">
-    <tr><td>Name</td><td>Type</td><td>Created Date</td><td>Created By</td><td>Size</td><td>ACM</td></tr>
-  </table>
   </body>
 </html>
