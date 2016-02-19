@@ -10,7 +10,7 @@ function refreshListObjects() {
   var t = $('#listObjectResults');
 
   // remove children first
-  t.find('tr').remove();
+  $('#listObjectResults tbody > tr').remove();
 
   reqwest({
       url: '/service/metadataconnector/1.0/objects'
