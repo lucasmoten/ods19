@@ -9,7 +9,7 @@ import (
 // GetObjectsSharedToMe retrieves a list of Objects that are not nested
 // beneath any other objects natively (natural parentId is null).
 func (dao *DataAccessLayer) GetObjectsSharedToMe(
-	owner string,
+	grantee string,
 	orderByClause string,
 	pageNumber int,
 	pageSize int,
@@ -29,6 +29,8 @@ func (dao *DataAccessLayer) GetObjectsSharedToMe(
   inner join object_permission op on op.objectId = o.id
   where
     o.isdeleted = 0 and
+		op.allowread = 1 and
+		op.isdeleted = 0 and
     o.parentid is null and
     op.grantee = ? and
     op.createdBy <> ?
@@ -40,7 +42,7 @@ func (dao *DataAccessLayer) GetObjectsSharedToMe(
 		query += ` order by o.createddate desc`
 	}
 	query += ` limit ` + strconv.Itoa(limit) + ` offset ` + strconv.Itoa(offset)
-	err := dao.MetadataDB.Select(&response.Objects, query, owner, owner)
+	err := dao.MetadataDB.Select(&response.Objects, query, grantee, grantee)
 	if err != nil {
 		print(err.Error())
 	}
