@@ -84,6 +84,7 @@ func (fake *FakeDAO) GetChildObjectsWithPropertiesByOwner(
 
 // GetUserByDistinguishedName for FakeDAO.
 func (fake *FakeDAO) GetUserByDistinguishedName(user *models.ODUser) (*models.ODUser, error) {
+	fake.User.ModifiedBy = user.DistinguishedName
 	return fake.User, fake.Err
 
 }
