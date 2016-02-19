@@ -5,8 +5,10 @@ import (
 	"decipher.com/oduploader/protocol"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"strings"
 )
 
 var rxShare = initRegex("/object/(.*)/share")
@@ -22,9 +24,7 @@ func getIDOfObjectTORetrieveGrant(uri string) string {
 	return value
 }
 
-func (h AppServer) getObjectGrantObject(w http.ResponseWriter, r *http.Request, caller Caller) (*models.ODObject, error) {
-	// Identify requested object
-	objectID := getIDOfObjectTORetrieveGrant(r.URL.RequestURI())
+func (h AppServer) getObjectGrantObject(w http.ResponseWriter, r *http.Request, caller Caller, objectID string) (*models.ODObject, error) {
 	// If not valid, return
 	if objectID == "" {
 		h.sendErrorResponse(w, 400, nil, "URI provided by caller does not specify an object identifier")
@@ -50,15 +50,43 @@ func (h AppServer) getObjectGrantObject(w http.ResponseWriter, r *http.Request, 
 func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller Caller) {
 	//Get the json data from the request
 	var objectGrant protocol.ObjectGrant
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&objectGrant)
-	if err != nil {
-		h.sendErrorResponse(w, 500, err, "unable to decode json grant")
-		return
-	}
+	var objectID string
 
-	//Get the original object, with respect to the caller.
-	object, err := h.getObjectGrantObject(w, r, caller)
+	if r.Header.Get("Content-Type") == "application/json" {
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&objectGrant)
+		if err != nil {
+			h.sendErrorResponse(w, 500, err, "unable to decode json grant")
+			return
+		}
+		//Get the original object, with respect to the caller.
+		objectID = getIDOfObjectTORetrieveGrant(r.URL.RequestURI())
+	} else {
+		//XXX this is support for non-javascript UI renditions that
+		//need to implement granting
+		//We iterate the submit buttons to figure out the grantee and the objectID
+		log.Printf("Iterating form parameters to figure out what is granted")
+		r.ParseForm()
+		sharePrefix := "share-"
+		granteePrefix := "grantee-"
+		for k := range r.Form {
+			if strings.HasPrefix(k, sharePrefix) {
+				//This is the button that was pressed.
+				//Everything after prefix is objectID
+				objectID = k[len(sharePrefix):]
+			}
+		}
+		for k, v := range r.Form {
+			if k == granteePrefix+objectID {
+				objectGrant.Grantee = v[0]
+			}
+		}
+		//For now, use json for fine-grained control
+		objectGrant.Read = true
+	}
+	log.Printf("Granting:%s to %s", objectID, objectGrant.Grantee)
+
+	object, err := h.getObjectGrantObject(w, r, caller, objectID)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "unable to retrieve object to update")
 		return
@@ -77,7 +105,7 @@ func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller
 				permission.AllowRead &&
 				permission.AllowUpdate
 
-		if isAllowed {
+		if isAllowed && object.TypeName.String == "File" {
 			newGrant.EncryptKey = make([]byte, 32)
 			newGrant.EncryptKey = permission.EncryptKey
 			//Decrypt from grantor
@@ -101,4 +129,8 @@ func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Error updating permission")
 	}
+	//Just signify something that corresponds with the correct http code.
+	//User in browser will just know to hit back button.  API user will
+	//ignore.
+	fmt.Fprintf(w, "ok")
 }

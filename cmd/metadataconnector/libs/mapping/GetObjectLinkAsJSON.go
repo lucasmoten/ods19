@@ -23,3 +23,12 @@ func GetObjectLinkFromObject(rootURL string, object *models.ODObject) protocol.O
 	}
 	return link
 }
+
+// GetObjectResultsetFromODResultset is a conversion to the protocol object
+func GetObjectResultsetFromODResultset(rootURL string, object *models.ODObjectResultset) []protocol.ObjectLink {
+	var result []protocol.ObjectLink
+	for i := 0; i < len(object.Objects); i++ {
+		result = append(result, GetObjectLinkFromObject(rootURL, &object.Objects[i]))
+	}
+	return result
+}

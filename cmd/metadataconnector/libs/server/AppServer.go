@@ -90,6 +90,7 @@ type StaticRx struct {
 	Query                   *regexp.Regexp
 	Shared                  *regexp.Regexp
 	Shares                  *regexp.Regexp
+	Shareto                 *regexp.Regexp
 	Trash                   *regexp.Regexp
 	Users                   *regexp.Regexp
 	ObjectChangeOwner       *regexp.Regexp
@@ -127,6 +128,7 @@ func (h *AppServer) InitRegex() {
 		Query:                   initRegex(h.ServicePrefix + "/query/.*"),
 		Shared:                  initRegex(h.ServicePrefix + "/shared$"),
 		Shares:                  initRegex(h.ServicePrefix + "/shares$"),
+		Shareto:                 initRegex(h.ServicePrefix + "/shareto$"),
 		Trash:                   initRegex(h.ServicePrefix + "/trash$"),
 		Users:                   initRegex(h.ServicePrefix + "/users$"),
 		ObjectChangeOwner:       initRegex(h.ServicePrefix + "/object/.*/changeowner/.*"),
@@ -280,6 +282,12 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.ObjectStream.MatchString(uri):
 			h.updateObjectStream(w, r, caller)
 		case h.Routes.ObjectShare.MatchString(uri):
+			h.addObjectShare(w, r, caller)
+		//XXX This is a case that's necessary to have a very basic UI without JS.
+		//Parameters hiding in POST urls is a problem without Javascript
+		//But for now... we still need a UI to go with automated
+		//testing (which does work fine)
+		case rx.Shareto.MatchString(uri):
 			h.addObjectShare(w, r, caller)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri

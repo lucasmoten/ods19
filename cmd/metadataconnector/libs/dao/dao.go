@@ -35,6 +35,7 @@ type DAO interface {
 	UpdateObject(object *models.ODObject, acm *models.ODACM) error
 	UpdateObjectProperty(objectProperty *models.ODObjectPropertyEx) error
 	UpdatePermission(permission *models.ODObjectPermission) error
+	GetObjectsSharedToMe(owner string, orderByClause string, pageNumber int, pageSize int) (models.ODObjectResultset, error)
 }
 
 // DataAccessLayer is a concrete DAO implementation with a true DB connection.
