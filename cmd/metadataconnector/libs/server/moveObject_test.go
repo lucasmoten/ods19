@@ -83,7 +83,9 @@ func TestMoveObject(t *testing.T) {
 
 	// Attempt to move folder 2 under folder 1
 	moveuri := host + "/service/metadataconnector/1.0/object/" + hex.EncodeToString(folder2.ID) + "/move/" + hex.EncodeToString(folder1.ID)
-	jsonBody, err := json.Marshal(folder2)
+	objChangeToken := protocol.ChangeTokenStruct{}
+	objChangeToken.ChangeToken = folder2.ChangeToken
+	jsonBody, err := json.Marshal(objChangeToken)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
 		t.Fail()
