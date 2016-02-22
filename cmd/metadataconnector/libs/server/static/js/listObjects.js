@@ -26,7 +26,7 @@ function refreshListObjects() {
   console.log('Requesting...' + url);
 
   reqwest({
-      url: '/service/metadataconnector/1.0/objects'
+      url: url
     , method: 'post'
     , type: 'json'
     , contentType: 'application/json'
@@ -79,7 +79,8 @@ function createObject() {
         title: objectName,
         fileName: fileName,
         size: size,
-        mimeType: mimeType
+        mimeType: mimeType,
+        parentId: __state.parentId
       }
 
       // call the server with the data
@@ -132,9 +133,9 @@ function init() {
   // Get parentId from hidden field, if set.
   __state.parentId = $('#hiddenParentId').attr('data-value') || "";
   console.log(__state);
-
-  // initial state
-  // __state.parentId = "";
+  refreshListObjects();
 };
 
 $(document).ready(init);
+
+//window.onunload = init;
