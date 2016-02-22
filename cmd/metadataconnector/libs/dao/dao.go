@@ -30,7 +30,7 @@ type DAO interface {
 	GetRootObjectsWithProperties(orderByClause string, pageNumber int, pageSize int) (models.ODObjectResultset, error)
 	GetRootObjectsWithPropertiesByOwner(orderByClause string, pageNumber int, pageSize int, owner string) (models.ODObjectResultset, error)
 	GetUserByDistinguishedName(user *models.ODUser) (*models.ODUser, error)
-	GetUsers() ([]string, error)
+	GetUsers() ([]models.ODUser, error)
 	IsParentIDADescendent(id []byte, parentID []byte) (bool, error)
 	UpdateObject(object *models.ODObject, acm *models.ODACM) error
 	UpdateObjectProperty(objectProperty *models.ODObjectPropertyEx) error

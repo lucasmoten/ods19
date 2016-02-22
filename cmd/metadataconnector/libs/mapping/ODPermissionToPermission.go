@@ -3,20 +3,22 @@ package mapping
 import (
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
+	"encoding/hex"
+	"log"
 )
 
 // MapODPermissionToPermission converts an internal ODPermission model to an
 // API exposable Permission
 func MapODPermissionToPermission(i *models.ODObjectPermission) protocol.Permission {
 	o := protocol.Permission{}
-	o.ID = i.ID
+	o.ID = hex.EncodeToString(i.ID)
 	o.CreatedDate = i.CreatedDate
 	o.CreatedBy = i.CreatedBy
 	o.ModifiedDate = i.ModifiedDate
 	o.ModifiedBy = i.ModifiedBy
 	o.ChangeCount = i.ChangeCount
 	o.ChangeToken = i.ChangeToken
-	o.ObjectID = i.ObjectID
+	o.ObjectID = hex.EncodeToString(i.ObjectID)
 	o.Grantee = i.Grantee
 	o.AllowCreate = i.AllowCreate
 	o.AllowRead = i.AllowRead
@@ -38,15 +40,22 @@ func MapODPermissionsToPermissions(i *[]models.ODObjectPermission) []protocol.Pe
 // MapPermissionToODPermission converts an API exposable Permission object to
 // an internally usable ODPermission model
 func MapPermissionToODPermission(i *protocol.Permission) models.ODObjectPermission {
+	var err error
 	o := models.ODObjectPermission{}
-	o.ID = i.ID
+	o.ID, err = hex.DecodeString(i.ID)
+	if err != nil {
+		log.Printf("Unable to decode permission id")
+	}
 	o.CreatedDate = i.CreatedDate
 	o.CreatedBy = i.CreatedBy
 	o.ModifiedDate = i.ModifiedDate
 	o.ModifiedBy = i.ModifiedBy
 	o.ChangeCount = i.ChangeCount
 	o.ChangeToken = i.ChangeToken
-	o.ObjectID = i.ObjectID
+	o.ObjectID, err = hex.DecodeString(i.ObjectID)
+	if err != nil {
+		log.Printf("Unable to decode object id")
+	}
 	o.Grantee = i.Grantee
 	o.AllowCreate = i.AllowCreate
 	o.AllowRead = i.AllowRead

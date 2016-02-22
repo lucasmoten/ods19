@@ -7,7 +7,7 @@ import "time"
 // in Object Drive
 type Permission struct {
 	// ID is the unique identifier for this permission in Object Drive.
-	ID []byte `db:"id" json:"id"`
+	ID string `db:"id" json:"id"`
 	// CreatedDate is the timestamp of when a permission was created.
 	CreatedDate time.Time `db:"createdDate" json:"createdDate"`
 	// CreatedBy is the user that created this permission.
@@ -23,7 +23,7 @@ type Permission struct {
 	// existing value on record to prevent accidental overwrites.
 	ChangeToken string `db:"changeToken" json:"changeToken"`
 	// ObjectID identifies the object for which this permission applies.
-	ObjectID []byte `db:"objectId"`
+	ObjectID string `db:"id" json:"id"`
 	// Grantee indicates the user, identified by distinguishedName from the user
 	// table for which this grant applies
 	Grantee string `db:"grantee"`
