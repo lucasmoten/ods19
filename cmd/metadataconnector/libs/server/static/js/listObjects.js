@@ -1,6 +1,8 @@
 
 var __state = {};
 
+var BASE_SERVICE_URL = '/service/metadataconnector/1.0/'
+
 function newParent(id) {
   __state.parentId = id;
   refreshListObjects();
@@ -16,7 +18,7 @@ function refreshListObjects() {
 
   // choose correct listObjects URL
   if (__state.parentId === "") {
-    url  = '/service/metadataconnector/1.0/objects';
+    url  = BASE_SERVICE_URL + 'objects';
   } else {
     url = '/service/metadataconnector/1.0/object/' + __state.parentId + '/list'
   }
@@ -41,7 +43,7 @@ function refreshListObjects() {
 // Return a <tr> string suitable to append to table.
 function _renderListObjectRow(item) {
   // Name	Type	Created Date	Created By	Size	ACM
-  var name = '<td><a href=' + item.url + '/stream>' + item.name + '</a></td>';
+  var name = '<td><a href='+ BASE_SERVICE_URL + 'object/' + item.id + '/stream>' + item.name + '</a></td>';
   var type = '<td>' + item.contentType + '</td>';
   var createdDate = '<td>' + item.createdDate + '</td>';
   var createdBy = '<td>' + item.createdBy + '</td>';
