@@ -49,6 +49,12 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 		h.sendErrorResponse(w, 500, err, "Unsupported request type. Send application/json.")
 	}
 
+	// TODO better way to handle JS passing empty string?
+	if string(parentObject.ID) == "" {
+		log.Println("parentObject.ID was empty string, converting to nil.")
+		parentObject.ID = nil
+	}
+
 	// Fetch the matching objects
 	var response models.ODObjectResultset
 	if parentObject.ID == nil {
