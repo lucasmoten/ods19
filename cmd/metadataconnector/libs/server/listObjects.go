@@ -2,18 +2,13 @@ package server
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
@@ -51,11 +46,13 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 			return
 		}
 	default:
-		parentObject, pagingRequest, err = parseListObjectsRequestAsHTML(r)
-		if err != nil {
-			h.sendErrorResponse(w, 500, err, "Error parsing HTML request")
-			return
-		}
+		h.sendErrorResponse(w, 500, err, "Unsupported request type. Send application/json.")
+	}
+
+	// TODO better way to handle JS passing empty string?
+	if string(parentObject.ID) == "" {
+		log.Println("parentObject.ID was empty string, converting to nil.")
+		parentObject.ID = nil
 	}
 
 	// Fetch the matching objects
@@ -69,7 +66,7 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 			caller.DistinguishedName,
 		)
 	} else {
-		// Requesting children of an object. Load it...
+		// Requesting children of an object. Load parent first.
 		dbObject, err := h.DAO.GetObject(parentObject, false)
 		if err != nil {
 			log.Println(err)
@@ -119,62 +116,9 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 	}
 
 	// Response in requested format
-	switch {
-	case r.Header.Get("Content-Type") == "multipart/form-data":
-		fallthrough
-	case r.Header.Get("Content-Type") == "application/json":
-		apiResponse := mapping.MapODObjectResultsetToObjectResultset(&response)
-		listObjectsResponseAsJSON(w, r, caller, &apiResponse)
-	default:
-		h.listObjectsResponseAsHTML(w, r, caller, h.DAO, parentObject, &response)
-	}
+	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&response)
+	listObjectsResponseAsJSON(w, r, caller, &apiResponse)
 	return
-}
-
-func parseListObjectsRequestAsHTML(r *http.Request) (*models.ODObject, *protocol.PagingRequest, error) {
-	var object models.ODObject
-	var paging protocol.PagingRequest
-	var err error
-	// defaults
-	paging.PageNumber = 1
-	paging.PageSize = 20
-
-	// Portions from the request URI itself ...
-	uri := r.URL.RequestURI()
-	re, _ := regexp.Compile("/object/(.*)/list")
-	matchIndexes := re.FindStringSubmatchIndex(uri)
-	if len(matchIndexes) != 0 {
-		if len(matchIndexes) > 3 {
-			object.ID, err = hex.DecodeString(uri[matchIndexes[2]:matchIndexes[3]])
-			if err != nil {
-				return nil, nil, errors.New("Object Identifier in Request URI is not a hex string")
-			}
-		}
-	}
-
-	// Query string arguments
-	pageNumber := r.URL.Query().Get("PageNumber")
-	if len(pageNumber) > 0 {
-		paging.PageNumber, err = strconv.Atoi(pageNumber)
-		if err != nil {
-			// TODO: Log this parsing error
-			err = nil
-			// default
-			paging.PageNumber = 1
-		}
-	}
-	pageSize := r.URL.Query().Get("PageSize")
-	if len(pageSize) > 0 {
-		paging.PageSize, err = strconv.Atoi(pageSize)
-		if err != nil {
-			// TODO: Log this parsing Error
-			err = nil
-			// default
-			paging.PageSize = 20
-		}
-	}
-
-	return &object, &paging, err
 }
 
 //XXX Note that you don't need multipart/form-data for anything that won't be uploading files.
@@ -239,6 +183,7 @@ func parseListObjectsRequestAsJSON(r *http.Request) (*models.ODObject, *protocol
 						}
 					case part.Header.Get("Content-Disposition") == "form-data":
 						// TODO: Maybe these header checks need to be if the value begins with?
+						// Will we ever use this? We are not posting a new object.
 					}
 				}
 			}
@@ -282,217 +227,3 @@ func extractCNfromDN(dn string) (cn string) {
 	cn = dn[strings.Index(dn, "=")+1 : strings.Index(dn, ",")]
 	return
 }
-
-//The simplest solution for this is to put an html form inside the table cell,
-//but you cannot do this in html.  (The submit button will do nothing).
-//So we need at least enough javascript to respond to the button to do the grant POST
-func (h AppServer) writeUserListForm(w http.ResponseWriter, createdBy string, oid string) {
-	users, err := h.DAO.GetUsers()
-	if err != nil {
-		log.Printf("Cannot get user data:%v", err)
-		return
-	}
-	//We have a column that picks out the row to grant
-	fmt.Fprintf(w, "<td>")
-	fmt.Fprintf(w, "<select name='grantee-%s'>", oid)
-	for i := 0; i < len(users); i++ {
-		//We assume that the creator of the file is the one excluded, just because
-		//we have no caller reference from here.
-		dn := users[i]
-		cn := config.GetCommonName(dn)
-		if dn != createdBy {
-			fmt.Fprintf(w, "<option value='%s'>%s</option>", dn, cn)
-		}
-	}
-	fmt.Fprintf(w, "</select>")
-	fmt.Fprintf(w, "<input type='submit' name='share-%s' value='share'>", oid)
-	fmt.Fprintf(w, "</td>")
-}
-
-func (h AppServer) listObjectsResponseAsHTMLTable(
-	w http.ResponseWriter,
-	response *models.ODObjectResultset,
-) {
-	//Because you can't put a form inside of a table cell,
-	//you can't set the action properly without some Javascript, or taking
-	//the objectId out of the URL.
-	fmt.Fprintf(w, "<form method='post' action='%s/shareto'>", config.RootURL)
-	fmt.Fprintf(w, `<table id="listObjectsResults">`)
-	fmt.Fprintf(w, `<tr><td>Name</td><td>Type</td><td>Created Date</td><td>Created By</td><td>Modified Date</td><td>Modified By</td><td>Size</td><td>Change Count</td><td>ChangeToken</td><td>ACM</td><td>ShareTo</td></tr>`)
-	objects := response.Objects
-	for idx := range objects {
-		object := objects[idx]
-		oid := hex.EncodeToString(object.ID)
-		fmt.Fprintf(w, "<tr>")
-		switch {
-		case object.TypeName.String == "Folder":
-			fmt.Fprintf(
-				w,
-				"<td><a href='%s/object/%s/list'>%s</a></td>",
-				config.RootURL,
-				oid,
-				object.Name,
-			)
-		default:
-			fmt.Fprintf(
-				w,
-				"<td><a href='%s/object/%s/stream'>%s</a></td>",
-				config.RootURL,
-				oid,
-				object.Name,
-			)
-		}
-		fmt.Fprintf(w, "<td>%s</td>", object.TypeName.String)
-		fmt.Fprintf(w, "<td>%s</td>", GetFormattedDate(object.CreatedDate))
-		fmt.Fprintf(w, "<td>%s</td>", config.GetCommonName(object.CreatedBy))
-		fmt.Fprintf(w, "<td>%s</td>", GetFormattedDate(object.ModifiedDate))
-		fmt.Fprintf(w, "<td>%s</td>", config.GetCommonName(object.ModifiedBy))
-		fmt.Fprintf(w, "<td>%d</td>", object.ContentSize.Int64)
-		fmt.Fprintf(w, "<td>%d</td>", object.ChangeCount)
-		fmt.Fprintf(w, "<td>%s</td>", object.ChangeToken)
-		fmt.Fprintf(w, "<td>%s</td>", object.RawAcm.String)
-		h.writeUserListForm(w, object.CreatedBy, oid)
-		fmt.Fprintf(w, "</tr>")
-	}
-	fmt.Fprintf(w, "</table>")
-	fmt.Fprintf(w, "</form>")
-
-}
-
-func (h AppServer) listObjectsResponseAsHTML(
-	w http.ResponseWriter,
-	r *http.Request,
-	caller Caller,
-	dao dao.DAO,
-	parentObject *models.ODObject,
-	response *models.ODObjectResultset,
-) {
-	havePermission := false
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, pageTemplateStart, "ListObjects of "+caller.CommonName, caller.DistinguishedName)
-	// Vertical Navigation (Up to Parent)
-	// Check if the object referenced is the root for displaying a link up
-	if parentObject.ID != nil {
-		// Not the root, get the parent of the referenced Object
-		dbObject, err := dao.GetObject(parentObject, false)
-		linkToParent := ""
-		if err != nil {
-			// swallow this error for HTML output
-		} else {
-			if len(dbObject.ParentID) > 0 {
-				linkToParent = fmt.Sprintf("<a href='%s/object/%s/list'>Up to Parent</a><br />", config.RootURL, hex.EncodeToString(dbObject.ParentID))
-
-			} else {
-				linkToParent = fmt.Sprintf("<a href='%s/objects'>Up to Root</a><br />", config.RootURL)
-			}
-		}
-		fmt.Fprintf(w, linkToParent)
-		// Check permission to create folder, for displaying form later
-		for _, perm := range dbObject.Permissions {
-			if perm.AllowCreate && perm.Grantee == caller.DistinguishedName {
-				havePermission = true
-				break
-			}
-		}
-	} else {
-		havePermission = true
-	}
-	// Horizontal Navigation (pages)
-	fmt.Fprintf(w, "Page "+strconv.Itoa(response.PageNumber)+" of "+strconv.Itoa(response.PageCount)+".<br />")
-	fmt.Fprintf(w, "Page Size: "+strconv.Itoa(response.PageSize)+", Page Rows: "+strconv.Itoa(response.PageRows)+", Total Rows: "+strconv.Itoa(response.TotalRows)+"<br />")
-	if response.PageCount > 1 {
-		fmt.Fprintf(w, createPagerAsHTML(r.URL.Path, response.PageCount, response.PageNumber, response.PageSize))
-	}
-	h.listObjectsResponseAsHTMLTable(w, response)
-
-	// This is the available operations given the directory we are in
-	if havePermission {
-		//We have a listing of shares that is independent of folder, so it's convenient to reuse logic for it
-		//to be here (there is a rest request for this as well)
-		result, err := h.DAO.GetObjectsSharedToMe(caller.DistinguishedName, "", 0, 20)
-		if err != nil {
-			h.sendErrorResponse(w, 500, err, "GetObjectsSharedToMe query failed")
-		}
-		fmt.Fprintf(w, "<h2>SharedTo:%s</h2>", caller.CommonName)
-		h.listObjectsResponseAsHTMLTable(w, &result)
-
-		//We can create a folder
-		fmt.Fprintf(w, createFileForm, config.RootURL, hex.EncodeToString(parentObject.ID))
-
-		//We can create a file
-		fmt.Fprintf(w, createObjectForm, config.RootURL, hex.EncodeToString(parentObject.ID))
-	}
-}
-
-func createPagerAsHTML(baseURI string, PageCount int, PageNumber int, PageSize int) string {
-	var o string
-	o += "<table id='listObjectsPager'><tr>"
-	for pc := 1; pc <= PageCount; pc++ {
-		if pc == PageNumber {
-			o += "<td width='50' align='center' bgcolor='grey'>&nbsp;"
-			o += strconv.Itoa(pc)
-		} else {
-			o += "<td width='50' align='center'>&nbsp;"
-			o += "<a href='" + baseURI + "?PageNumber=" + strconv.Itoa(pc) + "&PageSize=" + strconv.Itoa(PageSize) + "'>" + strconv.Itoa(pc) + "</a>"
-		}
-		o += "&nbsp;</td>"
-	}
-	o += "</tr></table>"
-	return o
-}
-
-//Temporary goo before JSON libs
-var createFileForm = `
-<hr/>
-<h2>Create Folder</h2>
-<form method="post" action="%s/folder" enctype="multipart/form-data">
-<input type="hidden" name="parentId" value="%s" />
-<input type="hidden" name="type" value="Folder" />
-<table>
-	<tr>
-		<td>New Folder Name</td>
-		<td><input type="text" id="title" name="title" /></td>
-		<td><input type="submit" value="Create" /></td>
-	</tr>
-</table>
-</form>
-`
-
-//Temporary goo before JSON libs
-var createObjectForm = `
-<hr/>
-<h2>Create File</h2>
-<form method="post" action="%s/object" enctype="multipart/form-data">
-<table>
-	<input type="hidden" name="parentId" value="%s"/>
-	<input type="hidden" name="async" value="true"/>
-	<tr>
-		<td>Object Name</td>
-		<td><input type="text" id="title" name="title" /></td>
-	</tr>
-	<tr>
-		<td>Type</td>
-		<td><select id="type" name="type">
-				<option value="File">File</option>
-				<option value="Folder">Folder</option>
-				</select>
-		</td>
-	</tr>
-	<tr>
-		<td>Classification</td>
-		<td><select id="classification" name="classification">
-				<option value='U'>UNCLASSIFIED</option>
-				<option value='C'>CLASSIFIED</option>
-				<option value='S'>SECRET</option>
-				<option value='T'>TOP SECRET</option>
-				</select>
-		</td>
-	</tr>
-	<tr>
-		<td>File Content</td>
-		<td><input type="file" name="filestream" /></td>
-	</tr>
-</table>
-<input type="submit" value="Upload" />
-</form>
-	`

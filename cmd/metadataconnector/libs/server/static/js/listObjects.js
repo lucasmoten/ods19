@@ -7,10 +7,21 @@ function newParent(id) {
 };
 
 function refreshListObjects() {
+  var url;
   var t = $('#listObjectResults');
 
   // remove children first
   $('#listObjectResults tbody > tr').remove();
+
+
+  // choose correct listObjects URL
+  if (__state.parentId === "") {
+    url  = '/service/metadataconnector/1.0/objects';
+  } else {
+    url = '/service/metadataconnector/1.0/object/' + __state.parentId + '/list'
+  }
+
+  console.log('Requesting...' + url);
 
   reqwest({
       url: '/service/metadataconnector/1.0/objects'
@@ -73,6 +84,7 @@ function createObject() {
       success: function(data){
         console.log("We did it!")
         console.log(data);
+        refreshListObjects();
       }
   });
 }
@@ -92,6 +104,7 @@ function createFolder() {
       success: function(data){
         console.log("createFolder success.")
         console.log(data);
+        refreshListObjects();
       }
   });
 

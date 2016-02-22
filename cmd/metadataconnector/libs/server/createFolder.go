@@ -29,6 +29,8 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 			h.sendErrorResponse(w, 500, err, "Error parsing JSON")
 			return
 		}
+		log.Println("Logging createFolder JSON request:")
+		log.Println(requestObject)
 	default:
 		requestObject, requestACM, err = parseCreateFolderRequestAsHTML(r)
 		if err != nil {
