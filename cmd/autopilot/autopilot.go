@@ -522,6 +522,23 @@ func findShares(i int, msg string) {
 	dumpResponse(res, "ListShares")
 }
 
+func doUserList(i int, msg string) {
+	req, err := http.NewRequest(
+		"GET",
+		host+rootURL+"/users",
+		nil,
+	)
+	dumpRequest(req, "User Listing", "Get the users.")
+	transport2 := &http.Transport{TLSClientConfig: clients[i].Config}
+	client2 := &http.Client{Transport: transport2}
+	res, err := client2.Do(req)
+	if err != nil {
+		log.Printf("Unable to do request:%v", err)
+		return
+	}
+	dumpResponse(res, "All users who have visited the site gave us their identity")
+}
+
 // Have user i grant link to j
 func doShare(i int, link *protocol.Object, j int, msg string) {
 	//	dnFrom := dnFromInt(i)
@@ -624,6 +641,8 @@ func quickTest() {
 
 	//Have userID2 upload a file so that he exists in the database
 	doUpload(userID2, true, "Uploading a file for Bob")
+
+	doUserList(userID, "See which users exist as a side-effect of visiting the site with their certificates.")
 
 	//var listing server.ObjectLinkResponse
 	//getObjectLinkResponse(userID, &listing)
