@@ -2,12 +2,12 @@ package dao
 
 import "decipher.com/oduploader/metadata/models"
 
-// GetChildObjectsWithPropertiesByOwner retrieves a list of Objects and their
+// GetChildObjectsWithPropertiesByUser retrieves a list of Objects and their
 // Properties in Object Drive that are nested beneath the specified object by
 // parentID and are owned by the specified user or group.
-func (dao *DataAccessLayer) GetChildObjectsWithPropertiesByOwner(
-	orderByClause string, pageNumber int, pageSize int, object *models.ODObject, owner string) (models.ODObjectResultset, error) {
-	response, err := dao.GetChildObjectsByOwner(orderByClause, pageNumber, pageSize, object, owner)
+func (dao *DataAccessLayer) GetChildObjectsWithPropertiesByUser(
+	orderByClause string, pageNumber int, pageSize int, object *models.ODObject, user string) (models.ODObjectResultset, error) {
+	response, err := dao.GetChildObjectsByUser(orderByClause, pageNumber, pageSize, object, user)
 	if err != nil {
 		return response, err
 	}

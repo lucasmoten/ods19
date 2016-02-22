@@ -59,7 +59,7 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 	var response models.ODObjectResultset
 	if parentObject.ID == nil {
 		// Requesting root
-		response, err = h.DAO.GetRootObjectsWithPropertiesByOwner(
+		response, err = h.DAO.GetRootObjectsWithPropertiesByUser(
 			"createddate desc",
 			pagingRequest.PageNumber,
 			pagingRequest.PageSize,
@@ -101,7 +101,7 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 		}
 
 		// Get the objects
-		response, err = h.DAO.GetChildObjectsWithPropertiesByOwner(
+		response, err = h.DAO.GetChildObjectsWithPropertiesByUser(
 			"createddate desc",
 			pagingRequest.PageNumber,
 			pagingRequest.PageSize,

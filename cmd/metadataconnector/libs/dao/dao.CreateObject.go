@@ -2,7 +2,6 @@ package dao
 
 import (
 	"fmt"
-	"log"
 
 	"decipher.com/oduploader/metadata/models"
 )
@@ -10,8 +9,8 @@ import (
 // CreateObject ...
 func (dao *DataAccessLayer) CreateObject(object *models.ODObject, acm *models.ODACM) error {
 
-	if string(object.TypeID) == "" {
-		log.Println("Converting object TypeID from zero length byte slice to nil.")
+	if len(object.TypeID) == 0 {
+		//log.Println("Converting object TypeID from zero length byte slice to nil.")
 		object.TypeID = nil
 	}
 
@@ -37,6 +36,7 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject, acm *models.OD
 	if err != nil {
 		return fmt.Errorf("CreateObject Error executing add object statement, %s", err.Error())
 	}
+	addObjectStatement.Close()
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("CreateObject Error checking result for rows affected, %s", err.Error())

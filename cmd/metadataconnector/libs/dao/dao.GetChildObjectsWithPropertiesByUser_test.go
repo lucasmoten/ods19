@@ -7,7 +7,7 @@ import (
 	"decipher.com/oduploader/metadata/models"
 )
 
-func TestDAOGetChildObjectsWithPropertiesByOwner(t *testing.T) {
+func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
@@ -16,7 +16,7 @@ func TestDAOGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 
 	// create parent object
 	var parent models.ODObject
-	parent.Name = "Test Parent Object for GetChildObjectsWithProperties"
+	parent.Name = "Test Parent Object for GetChildObjectsWithPropertiesByUser"
 	parent.CreatedBy = user1
 	parent.TypeName.String = "File"
 	parent.TypeName.Valid = true
@@ -37,7 +37,7 @@ func TestDAOGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 
 	// create child 1
 	var child1 models.ODObject
-	child1.Name = "Test Child Object 1 for GetChildObjectsWithProperties"
+	child1.Name = "Test Child Object 1 for GetChildObjectsWithPropertiesByUser"
 	child1.CreatedBy = user1
 	child1.TypeName.String = "File"
 	child1.TypeName.Valid = true
@@ -80,7 +80,7 @@ func TestDAOGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 
 	// create child 2
 	var child2 models.ODObject
-	child2.Name = "Test Child Object 2 for GetChildObjectsWithProperties"
+	child2.Name = "Test Child Object 2 for GetChildObjectsWithPropertiesByUser"
 	child2.CreatedBy = user1
 	child2.TypeName.String = "File"
 	child2.TypeName.Valid = true
@@ -152,7 +152,7 @@ func TestDAOGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 	}
 
 	// Get child objects with properties from a single page of up to 10
-	resultset, err := d.GetChildObjectsWithPropertiesByOwner("", 1, 10, &parent, user1)
+	resultset, err := d.GetChildObjectsWithPropertiesByUser("", 1, 10, &parent, user1)
 	if err != nil {
 		t.Error(err)
 	}
@@ -177,7 +177,7 @@ func TestDAOGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 	}
 
 	// Get from first page of 1, then second page of 1
-	resultset, err = d.GetChildObjectsWithPropertiesByOwner("", 1, 1, &parent, user1)
+	resultset, err = d.GetChildObjectsWithPropertiesByUser("", 1, 1, &parent, user1)
 	if err != nil {
 		t.Error(err)
 	}
@@ -194,7 +194,7 @@ func TestDAOGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 			t.Error(fmt.Errorf("Expected first child to have 2 properties, but it had %d", len(resultset.Objects[0].Properties)))
 		}
 	}
-	resultset, err = d.GetChildObjectsWithPropertiesByOwner("", 2, 1, &parent, user1)
+	resultset, err = d.GetChildObjectsWithPropertiesByUser("", 2, 1, &parent, user1)
 	if err != nil {
 		t.Error(err)
 	}
@@ -212,7 +212,7 @@ func TestDAOGetChildObjectsWithPropertiesByOwner(t *testing.T) {
 		}
 	}
 
-	resultset, err = d.GetChildObjectsWithPropertiesByOwner("", 1, 10, &parent, user2)
+	resultset, err = d.GetChildObjectsWithPropertiesByUser("", 1, 10, &parent, user2)
 	if err != nil {
 		t.Error(err)
 	}

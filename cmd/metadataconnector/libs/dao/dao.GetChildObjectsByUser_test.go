@@ -8,7 +8,7 @@ import (
 	"decipher.com/oduploader/metadata/models"
 )
 
-func TestDAOGetChildObjectsByOwner(t *testing.T) {
+func TestDAOGetChildObjectsByUser(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
@@ -17,7 +17,7 @@ func TestDAOGetChildObjectsByOwner(t *testing.T) {
 	var child2 models.ODObject
 
 	// Create our parent object
-	parent.Name = "Test GetChildObjectsByOwner Parent"
+	parent.Name = "Test GetChildObjectsByUser Parent"
 	parent.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	parent.TypeName.String = "Test Type"
 	parent.TypeName.Valid = true
@@ -36,7 +36,7 @@ func TestDAOGetChildObjectsByOwner(t *testing.T) {
 		}
 
 		// Create our child object from TP1
-		child1.Name = "Test GetChildObjectsByOwner Child by TP1"
+		child1.Name = "Test GetChildObjectsByUser Child by TP1"
 		child1.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 		child1.ParentID = parent.ID
 		child1.TypeName.String = "Test Type"
@@ -59,7 +59,7 @@ func TestDAOGetChildObjectsByOwner(t *testing.T) {
 		}
 
 		// Create our child object from TP2
-		child2.Name = "Test GetChildObjectsByOwner Child by TP2"
+		child2.Name = "Test GetChildObjectsByUser Child by TP2"
 		child2.CreatedBy = "CN=test tester02, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 		child2.ParentID = parent.ID
 		child2.TypeName.String = "Test Type"
@@ -80,18 +80,19 @@ func TestDAOGetChildObjectsByOwner(t *testing.T) {
 		if !bytes.Equal(child2.ParentID, parent.ID) {
 			t.Error("expected child parentID to match parent ID")
 		}
-		resultset, err := d.GetChildObjectsByOwner("", 1, 10, &parent, child2.CreatedBy)
+		resultset, err := d.GetChildObjectsByUser("", 1, 10, &parent, child2.CreatedBy)
 		if err != nil {
 			t.Error(err)
 		}
 		if resultset.TotalRows != 1 {
 			t.Error("expected 1 child")
-		}
-		if resultset.Objects[0].ModifiedBy != child2.CreatedBy {
-			t.Error("expected result modifiedBy to match child2 created by")
-		}
-		if !strings.Contains(resultset.Objects[0].ModifiedBy, "tester02") {
-			t.Error("expected result ModifiedBy to be by tester02")
+		} else {
+			if resultset.Objects[0].ModifiedBy != child2.CreatedBy {
+				t.Error("expected result modifiedBy to match child2 created by")
+			}
+			if !strings.Contains(resultset.Objects[0].ModifiedBy, "tester02") {
+				t.Error("expected result ModifiedBy to be by tester02")
+			}
 		}
 	}
 

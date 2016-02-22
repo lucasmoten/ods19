@@ -64,9 +64,9 @@ func (fake *FakeDAO) GetChildObjects(orderByClause string, pageNumber int, pageS
 	return fake.ObjectResultSet, fake.Err
 }
 
-// GetChildObjectsByOwner for FakeDAO.
-func (fake *FakeDAO) GetChildObjectsByOwner(
-	orderByClause string, pageNumber int, pageSize int, object *models.ODObject, owner string) (models.ODObjectResultset, error) {
+// GetChildObjectsByUser for FakeDAO.
+func (fake *FakeDAO) GetChildObjectsByUser(
+	orderByClause string, pageNumber int, pageSize int, object *models.ODObject, user string) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
@@ -76,9 +76,9 @@ func (fake *FakeDAO) GetChildObjectsWithProperties(
 	return fake.ObjectResultSet, fake.Err
 }
 
-// GetChildObjectsWithPropertiesByOwner for FakeDAO.
-func (fake *FakeDAO) GetChildObjectsWithPropertiesByOwner(
-	orderByClause string, pageNumber int, pageSize int, object *models.ODObject, owner string) (models.ODObjectResultset, error) {
+// GetChildObjectsWithPropertiesByUser for FakeDAO.
+func (fake *FakeDAO) GetChildObjectsWithPropertiesByUser(
+	orderByClause string, pageNumber int, pageSize int, object *models.ODObject, user string) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
@@ -129,9 +129,9 @@ func (fake *FakeDAO) GetRootObjects(orderByClause string, pageNumber int, pageSi
 	return fake.ObjectResultSet, fake.Err
 }
 
-// GetRootObjectsByOwner for FakeDAO.
-func (fake *FakeDAO) GetRootObjectsByOwner(
-	orderByClause string, pageNumber int, pageSize int, owner string) (models.ODObjectResultset, error) {
+// GetRootObjectsByUser for FakeDAO.
+func (fake *FakeDAO) GetRootObjectsByUser(
+	orderByClause string, pageNumber int, pageSize int, user string) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
@@ -141,9 +141,9 @@ func (fake *FakeDAO) GetRootObjectsWithProperties(
 	return fake.ObjectResultSet, fake.Err
 }
 
-// GetRootObjectsWithPropertiesByOwner for FakeDAO.
-func (fake *FakeDAO) GetRootObjectsWithPropertiesByOwner(
-	orderByClause string, pageNumber int, pageSize int, owner string) (models.ODObjectResultset, error) {
+// GetRootObjectsWithPropertiesByUser for FakeDAO.
+func (fake *FakeDAO) GetRootObjectsWithPropertiesByUser(
+	orderByClause string, pageNumber int, pageSize int, user string) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 

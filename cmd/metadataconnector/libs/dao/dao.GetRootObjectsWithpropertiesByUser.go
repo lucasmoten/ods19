@@ -2,14 +2,14 @@ package dao
 
 import "decipher.com/oduploader/metadata/models"
 
-// GetRootObjectsWithPropertiesByOwner retrieves a list of Objects and their
+// GetRootObjectsWithPropertiesByUser retrieves a list of Objects and their
 // Properties in Object Drive that are not nested beneath any other objects
 // natively (natural parentId is null) and are owned by the specified user or
 // group.
-func (dao *DataAccessLayer) GetRootObjectsWithPropertiesByOwner(
-	orderByClause string, pageNumber int, pageSize int, owner string) (models.ODObjectResultset, error) {
+func (dao *DataAccessLayer) GetRootObjectsWithPropertiesByUser(
+	orderByClause string, pageNumber int, pageSize int, user string) (models.ODObjectResultset, error) {
 
-	response, err := dao.GetRootObjectsByOwner(orderByClause, pageNumber, pageSize, owner)
+	response, err := dao.GetRootObjectsByUser(orderByClause, pageNumber, pageSize, user)
 	if err != nil {
 		print(err.Error())
 		return response, err
