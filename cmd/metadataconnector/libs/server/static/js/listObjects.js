@@ -70,16 +70,16 @@ function createObject() {
       var objectName = $("#newObjectName").val();
       var classification = $("#classification").val();
       var jsFileObject = $("#fileHandle")[0].files[0];
-      var mimeType = jsFileObject.type || "text/plain";
+      var contentType = jsFileObject.type || "text/plain";
       var fileName = jsFileObject.name;
       var size = jsFileObject.size;
-
+      var rawAcm = '{"version":"2.1.0","classif":"'+classification+'"}'
       var req = {
-        classification: classification,
+        rawAcm: rawAcm,
         title: objectName,
         fileName: fileName,
         size: size,
-        mimeType: mimeType,
+        contentType: contentType,
         parentId: __state.parentId
       }
 

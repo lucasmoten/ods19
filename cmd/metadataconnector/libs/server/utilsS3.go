@@ -49,7 +49,9 @@ func (h AppServer) acceptObjectUpload(
 		switch {
 		case part.FormName() == "CreateObjectRequest":
 			s := getFormValueAsString(part)
-			var createObjectRequest protocol.CreateObjectRequest
+			//It's the same as the database object, but this function might be
+			//dealing with a retrieved object, so we get fields individually
+			var createObjectRequest protocol.Object
 			err := json.Unmarshal([]byte(s), &createObjectRequest)
 			if err != nil {
 				h.sendErrorResponse(w, 400, err, "Could not decode CreateObjectRequest.")
@@ -66,13 +68,14 @@ func (h AppServer) acceptObjectUpload(
 			}
 			// obj.ParentID = id
 
-			obj.ContentSize.Int64 = createObjectRequest.Size
+			obj.ContentSize.Int64 = createObjectRequest.ContentSize
 
-			if createObjectRequest.Title != "" {
-				obj.Name = createObjectRequest.Title
+			if createObjectRequest.Name != "" {
+				obj.Name = createObjectRequest.Name
 			}
 
-			obj.RawAcm.String = h.Classifications[createObjectRequest.Classification]
+			obj.ContentType.String = createObjectRequest.ContentType
+			obj.RawAcm.String = createObjectRequest.RawAcm
 
 			obj.TypeName.String = createObjectRequest.TypeName
 
@@ -85,8 +88,10 @@ func (h AppServer) acceptObjectUpload(
 			}
 
 		case len(part.FileName()) > 0:
-			//Guess the content type and name
-			obj.ContentType.String = guessContentType(part.FileName())
+			//Guess the content type and name if it wasn't supplied
+			if obj.ContentType.Valid == false || len(obj.ContentType.String) == 0 {
+				obj.ContentType.String = guessContentType(part.FileName())
+			}
 			if obj.Name == "" {
 				obj.Name = part.FileName()
 			}

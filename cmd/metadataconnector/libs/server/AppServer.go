@@ -43,8 +43,6 @@ type AppServer struct {
 	AAC aac.AacService
 	// Audit Service is for remote logging for compliance.
 	Auditer audit.AuditService
-	// TODO: Classifications is ????
-	Classifications map[string]string
 	// MasterKey is the secret passphrase used in scrambling keys
 	MasterKey string
 	// Tracker captures metrics about upload/download begin and end time and transfer bytes
@@ -365,34 +363,4 @@ func GetCaller(r *http.Request) Caller {
 	caller.DistinguishedName = config.GetNormalizedDistinguishedName(caller.DistinguishedName)
 	caller.CommonName = config.GetCommonName(caller.DistinguishedName)
 	return caller
-}
-
-func (h AppServer) xcheckAccess(dn string, clasKey string) bool {
-	if h.AAC == nil {
-		log.Printf("no aac checks for now")
-		return true
-	}
-	//XXX XXX hack until I can reliably lookup real dns from whatever environment
-	//i work on.  This is enough to at least exercise that the API works,
-	//and will still work if it comes from a header
-	//	dn = "CN=Holmes Jonathan,OU=People,OU=Bedrock,OU=Six 3 Systems,O=U.S. Government,C=US"
-	//clasKey = "S"
-
-	tokenType := "pki_dias"
-	acmComplete := h.Classifications[clasKey]
-	resp, err := h.AAC.CheckAccess(dn, tokenType, acmComplete)
-
-	if err != nil {
-		log.Printf("Error calling CheckAccess(): %v \n", err)
-	}
-
-	if resp.Success != true {
-		log.Printf("Expected true, got %v \n", resp.Success)
-		return false
-	}
-
-	if !resp.HasAccess {
-		log.Printf("Expected resp.HasAccess to be true\n")
-	}
-	return true
 }

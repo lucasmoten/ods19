@@ -30,62 +30,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-//BuildClassificationMap explicitly builds the classification map,
-//which might come from a file later
-//XXX it's an eyesore to be here, but we need something for now.
-func BuildClassificationMap() map[string]string {
-	log.Printf("building classification map....")
-
-	ClassificationMap := make(map[string]string)
-
-	ClassificationMap["U"] = `
-        {"version":"2.1.0", "classif":"U"}
-        `
-
-	ClassificationMap["C"] = `
-        {"version":"2.1.0", "classif":"C"}
-        `
-	ClassificationMap["S"] = `
-        {"version":"2.1.0", "classif":"S"}
-        `
-	ClassificationMap["T"] = `
-        {"version":"2.1.0", "classif":"T"}
-        `
-
-	ClassificationMap["SCI1"] = `
-{
- "version":"2.1.0",
- "classif":"TS",
- "owner_prod":[],
- "atom_energy":[],
- "sar_id":[],
- "sci_ctrls":[ "HCS", "SI-G", "TK" ],
-        "disponly_to":[ "" ],
-        "dissem_ctrls":[ "OC" ],
-        "non_ic":[],
-        "rel_to":[],
-        "fgi_open":[],
-        "fgi_protect":[],
-        "portion":"TS//HCS/SI-G/TK//OC",
-        "banner":"TOP SECRET//HCS/SI-G/TK//ORCON",
-        "dissem_countries":[ "USA" ],
-        "accms":[],
-        "macs":[],
-        "oc_attribs":[ { "orgs":[ "dia" ], "missions":[], "regions":[] } ],
-        "f_clearance":[ "ts" ],
-        "f_sci_ctrls":[ "hcs", "si_g", "tk" ],
-        "f_accms":[],
-        "f_oc_org":[ "dia", "dni" ],
-        "f_regions":[],
-				"f_missions":[],
-        "f_share":[],
-        "f_atom_energy":[],
-        "f_macs":[],
-        "disp_only":""
-}`
-	return ClassificationMap
-}
-
 /**
 Get an instance of AAC on startup.
 Fail to come up if we can't do this.
@@ -215,19 +159,18 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 	staticPath := filepath.Join(oduconfig.ProjectRoot, "cmd", "metadataconnector", "libs", "server", "static")
 
 	httpHandler := server.AppServer{
-		Port:            serverConfig.ListenPort,
-		Bind:            serverConfig.ListenBind,
-		Addr:            serverConfig.ListenBind + ":" + strconv.Itoa(serverConfig.ListenPort),
-		DAO:             &concreteDAO,
-		S3:              s3,
-		AWSSession:      awsSession,
-		CacheLocation:   "cache",
-		ServicePrefix:   serverConfig.ServiceName + serverConfig.ServiceVersion,
-		Classifications: BuildClassificationMap(),
-		Tracker:         performance.NewJobReporters(1024),
-		AAC:             aac,
-		TemplateCache:   templates,
-		StaticDir:       staticPath,
+		Port:          serverConfig.ListenPort,
+		Bind:          serverConfig.ListenBind,
+		Addr:          serverConfig.ListenBind + ":" + strconv.Itoa(serverConfig.ListenPort),
+		DAO:           &concreteDAO,
+		S3:            s3,
+		AWSSession:    awsSession,
+		CacheLocation: "cache",
+		ServicePrefix: serverConfig.ServiceName + serverConfig.ServiceVersion,
+		Tracker:       performance.NewJobReporters(1024),
+		AAC:           aac,
+		TemplateCache: templates,
+		StaticDir:     staticPath,
 	}
 
 	if httpHandler.AAC == nil {
