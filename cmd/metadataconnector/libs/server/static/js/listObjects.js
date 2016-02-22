@@ -133,9 +133,9 @@ function init() {
   // Get parentId from hidden field, if set.
   __state.parentId = $('#hiddenParentId').attr('data-value') || "";
   console.log(__state);
-
-  // initial state
-  // __state.parentId = "";
+  refreshListObjects();
 };
 
 $(document).ready(init);
+
+//window.onunload = init;
