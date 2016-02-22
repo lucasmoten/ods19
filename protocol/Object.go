@@ -26,7 +26,7 @@ type Object struct {
 	OwnedBy string `db:"ownedBy" json:"ownedBy"`
 	// TypeID references the ODObjectType by its ID indicating the type of this
 	// object
-	TypeID string `db:"typeId" json:"typeId"`
+	TypeID string `db:"typeId" json:"typeId,omitempty"`
 	// TypeName reflects the name of the object type associated with TypeID
 	TypeName string `db:"typeName" json:"typeName"`
 	// Name is the given name for the object. (e.g., filename)

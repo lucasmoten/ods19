@@ -2,11 +2,18 @@ package dao
 
 import (
 	"fmt"
+	"log"
 
 	"decipher.com/oduploader/metadata/models"
 )
 
+// CreateObject ...
 func (dao *DataAccessLayer) CreateObject(object *models.ODObject, acm *models.ODACM) error {
+
+	if string(object.TypeID) == "" {
+		log.Println("Converting object TypeID from zero length byte slice to nil.")
+		object.TypeID = nil
+	}
 
 	// lookup type, assign its id to the object for reference
 	if object.TypeID == nil {

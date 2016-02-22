@@ -66,7 +66,7 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 			caller.DistinguishedName,
 		)
 	} else {
-		// Requesting children of an object. Load it...
+		// Requesting children of an object. Load parent first.
 		dbObject, err := h.DAO.GetObject(parentObject, false)
 		if err != nil {
 			log.Println(err)
