@@ -8,23 +8,26 @@ function newParent(id) {
   refreshListObjects();
 };
 
+function listUsers() {
+  return $.ajax({
+    url: '/service/metadataconnector/1.0/users',
+    contentType: 'application/json',
+    method: 'GET'
+  });
+};
+
 function refreshListObjects() {
   var url;
   var t = $('#listObjectResults');
-
   // remove children first
   $('#listObjectResults tbody > tr').remove();
-
-
   // choose correct listObjects URL
   if (__state.parentId === "") {
     url  = BASE_SERVICE_URL + 'objects';
   } else {
     url = '/service/metadataconnector/1.0/object/' + __state.parentId + '/list'
   }
-
   console.log('Requesting...' + url);
-
   reqwest({
       url: url
     , method: 'post'
@@ -32,16 +35,44 @@ function refreshListObjects() {
     , contentType: 'application/json'
     , data: { pageNumber: '1', pageSize: 20, parentId: __state.parentId }
     , success: function (resp) {
+      $.when(listUsers()).done(function (udata) {
+
+        console.log('got users');
+        console.log(udata[0]);
+
         $.each(resp.Objects, function(index, item){
           // render each row
-          $('#listObjectResults').append(_renderListObjectRow(item));
+          $('#listObjectResults').append(_renderListObjectRow(index, item));
         })
+
       }
+
+      );
+    }
   })
 };
 
+function refreshSharedWithMe() {
+      // todo
+      // $.ajax({
+      //   url: '/service/metadataconnector/1.0/object',
+      //   data: formData,
+      //   contentType: 'application/json',
+      //   method: 'POST',
+      //   success: function(data){
+      //     console.log("Got shares.")
+      //     // render share data
+      //   }
+      // });
+
+};
+
 // Return a <tr> string suitable to append to table.
-function _renderListObjectRow(item) {
+function _renderListObjectRow(index, item) {
+
+  // make a rowId to identify the row
+  var rowId = 'listObjectRow_' + index;
+
   // Name	Type	Created Date	Created By	Size	ACM
   var name = _renderObjectLink(item);
   var type = '<td>' + item.contentType + '</td>';
@@ -50,8 +81,13 @@ function _renderListObjectRow(item) {
   var size = '<td>' + item.contentSize + '</td>';
   var changeToken = '<td>' + item.changeToken + '</td>';
   var acm = '<td>' + item.acm + '</td>';
-  return '<tr>' + name + type + createdDate + createdBy + size + changeToken + acm + '</tr>'
+  var shareTo = '<td>' + item.acm + '</td>';
+  return '<tr id="' + rowId + '" >' + 
+     name + type + createdDate + createdBy + size + changeToken + acm
+     + '</tr>'
 }
+
+
 
 // Render a proper href, depending on whether an object is a folder or an object proper.
 function _renderObjectLink(item) {
@@ -89,18 +125,18 @@ function createObject() {
       formData.append("filestream", jsFileObject);
 
       $.ajax({
-      url: '/service/metadataconnector/1.0/object',
-      data: formData,
-      cache: false,
-      contentType: false,
-      processData: false,
-      method: 'POST',
-      success: function(data){
-        console.log("We did it!")
-        console.log(data);
-        refreshListObjects();
-      }
-  });
+        url: '/service/metadataconnector/1.0/object',
+        data: formData,
+        cache: false,
+        contentType: false,
+        processData: false,
+        method: 'POST',
+        success: function(data){
+          console.log("We did it!")
+          console.log(data);
+          refreshListObjects();
+        }
+      });
 }
 
 function createFolder() {
@@ -121,7 +157,6 @@ function createFolder() {
         refreshListObjects();
       }
   });
-
 }
 
 function init() {
@@ -132,10 +167,11 @@ function init() {
 
   // Get parentId from hidden field, if set.
   __state.parentId = $('#hiddenParentId').attr('data-value') || "";
-  console.log(__state);
+  __state.users = [];
+
   refreshListObjects();
+  refreshSharedWithMe();
+
 };
 
 $(document).ready(init);
-
-//window.onunload = init;
