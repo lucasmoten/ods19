@@ -1,12 +1,11 @@
 package server
 
 import (
-	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
-	"decipher.com/oduploader/metadata/models"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
+
+	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 )
 
 func (h AppServer) listUserObjectShares(w http.ResponseWriter, r *http.Request, caller Caller) {
@@ -23,19 +22,7 @@ func (h AppServer) listUserObjectShares(w http.ResponseWriter, r *http.Request, 
 		}
 		w.Write(data)
 	} else {
-		h.listUserObjectSharesAsHTML(w, r, caller, &result)
+		// Removed HTML printing
+		h.sendErrorResponse(w, 500, err, "listUserObjectShares requires content type application/json")
 	}
-}
-
-func (h AppServer) listUserObjectSharesAsHTML(
-	w http.ResponseWriter,
-	r *http.Request,
-	caller Caller,
-	response *models.ODObjectResultset,
-) {
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, pageTemplateStart, "listUserObjectShares", caller.DistinguishedName)
-	fmt.Fprintf(w, "<h2>SharedTo:%s<h2>", caller.CommonName)
-	h.listObjectsResponseAsHTMLTable(w, response)
-	fmt.Fprintf(w, pageTemplateEnd)
 }
