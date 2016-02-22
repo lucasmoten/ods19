@@ -5,7 +5,7 @@ import "time"
 // Property is a structure defining the attributes for a property
 type Property struct {
 	// ID is the unique identifier for this property in Object Drive.
-	ID []byte `db:"id" json:"id"`
+	ID string `db:"id" json:"id"`
 	// CreatedDate is the timestamp of when a property was created.
 	CreatedDate time.Time `db:"createdDate" json:"createdDate"`
 	// CreatedBy is the user that created this property.

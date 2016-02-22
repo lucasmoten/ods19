@@ -15,7 +15,7 @@ type FakeDAO struct {
 	ObjectType        models.ODObjectType
 	ObjectResultSet   models.ODObjectResultset
 	User              *models.ODUser
-	Users             []string
+	Users             []models.ODUser
 	// TODO: More fields required?
 }
 
@@ -90,7 +90,7 @@ func (fake *FakeDAO) GetUserByDistinguishedName(user *models.ODUser) (*models.OD
 }
 
 // GetUsers for FakeDAO.
-func (fake *FakeDAO) GetUsers() ([]string, error) {
+func (fake *FakeDAO) GetUsers() ([]models.ODUser, error) {
 	return fake.Users, fake.Err
 }
 
