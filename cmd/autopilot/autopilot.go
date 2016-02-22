@@ -47,6 +47,7 @@ var showFileUpload = true
 //XXX This ASSUMES that you have an /etc/hosts entry for dockervm
 var host = "https://dockervm:8080"
 var rootURL = "/service/metadataconnector/1.0"
+var autopilotRoot = "$GOPATH/src/decipher.com/oduploader/autopilot"
 
 // NewClientTLSConfig creates a per-client tls config
 func NewClientTLSConfig(client *ClientIdentity) (*tls.Config, error) {
@@ -98,13 +99,8 @@ func getClientIdentity(i int, name string) (*ClientIdentity, error) {
 	ci.Config = cfg
 	ci.Name = name
 
-	//Keep this huge directory out of $GOPATH
-	if os.ExpandEnv("$AUTOPILOT_HOME") == "" {
-		os.Setenv("$AUTOPILOT_HOME", os.ExpandEnv("$HOME/autopilot"))
-		os.Mkdir("~/autopilot", 0700)
-	}
-	ci.UploadCache = os.ExpandEnv("$HOME/autopilot/uploadCache" + name)
-	ci.DownloadCache = os.ExpandEnv("$HOME/autopilot/downloadCache" + name)
+	ci.UploadCache = os.ExpandEnv(autopilotRoot + "/uploadCache" + name)
+	ci.DownloadCache = os.ExpandEnv(autopilotRoot + "/downloadCache" + name)
 	ci.Index = i
 	_, err = os.Stat(ci.UploadCache)
 	if os.IsNotExist(err) {
@@ -698,7 +694,7 @@ func quickTest() {
 	}
 }
 
-func main() {
+func doMainDefault() {
 	flag.StringVar(&host, "url", "https://dockervm:8080", "The URL at which to direct uploads/downloads")
 	flag.IntVar(&perPopulation, "perPopulation", 20, "number of uploads per user")
 	flag.IntVar(&sleepTime, "sleepTime", 120, "number of seconds to sleep when we decide to sleep")
@@ -712,4 +708,8 @@ func main() {
 	} else {
 		quickTest()
 	}
+}
+
+func main() {
+	doMainDefault()
 }
