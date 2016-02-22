@@ -15,8 +15,10 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httputil"
+	"net/textproto"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -150,6 +152,36 @@ func getRandomClassification() string {
 	return classes[r]
 }
 
+//-----BEGIN-rewrite-part-of-Go-SDK-----
+
+//multipart form-data writing doesn't let Content-Type get emitted.
+//So this code lets us call w.WritePartField(w,fieldname,value),
+//while also setting the Content-Type
+
+var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+
+func escapeQuotes(s string) string {
+	return quoteEscaper.Replace(s)
+}
+
+func createFormField(w *multipart.Writer, fieldname, contentType string) (io.Writer, error) {
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"`, escapeQuotes(fieldname)))
+	h.Set("Content-Type", contentType)
+	return w.CreatePart(h)
+}
+
+func writePartField(w *multipart.Writer, fieldname, value, contentType string) error {
+	p, err := createFormField(w, fieldname, contentType)
+	if err != nil {
+		return err
+	}
+	_, err = p.Write([]byte(value))
+	return err
+}
+
+//-----END-rewrite-part-of-Go-SDK-----
+
 func generateUploadRequest(name string, fqName string, url string, async bool) (*http.Request, error) {
 	f, err := os.Open(fqName)
 	defer f.Close()
@@ -168,7 +200,8 @@ func generateUploadRequest(name string, fqName string, url string, async bool) (
 	if err != nil {
 		log.Printf("Cannot marshal object:%v", err)
 	}
-	w.WriteField("CreateObjectRequest", string(umStr))
+	//Hmm... had to rewrite part of std Go sdk locally to do this
+	writePartField(w, "CreateObjectRequest", string(umStr), "application/json")
 	fw, err := w.CreateFormFile("filestream", name)
 	if err != nil {
 		log.Printf("unable to create form file from %s:%v", fqName, err)
