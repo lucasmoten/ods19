@@ -194,7 +194,7 @@ func generateUploadRequest(name string, fqName string, url string, async bool) (
 	w := multipart.NewWriter(&b)
 	um := protocol.Object{
 		TypeName: "File",
-		RawAcm:   `{"version":"2.1.0","classif":"U"}`,
+		RawAcm:   `{"version":"2.1.0","classif":"S"}`,
 	}
 	umStr, err := json.MarshalIndent(um, "", "  ")
 	if err != nil {
@@ -437,8 +437,18 @@ func doDownload(i int, msg string) *protocol.Object {
 	return link
 }
 
-func doUpdateLink(i int, link *protocol.Object, msg string) {
-	fqName := clients[i].UploadCache + "/" + link.Name
+func doUpdateLink(i int, link *protocol.Object, msg, toAppend string) {
+	//Assuming that the file has been downloaded.  Modify it.
+	fqName := clients[i].DownloadCache + "/" + link.Name
+	//Modify the file a little
+	f, err := os.OpenFile(fqName, os.O_APPEND, os.ModeAppend)
+	if err != nil {
+		log.Printf("Could not append to file")
+	}
+	defer f.Close()
+	f.WriteString(toAppend)
+	f.Close()
+
 	req, err := generateUploadRequest(
 		link.Name,
 		fqName,
@@ -474,7 +484,7 @@ func doUpdateLink(i int, link *protocol.Object, msg string) {
 	io.Copy(drainFile, res.Body)
 }
 
-func doUpdate(i int, msg string) {
+func doUpdate(i int, msg, toAppend string) {
 	//Get the links to download
 	var olResponse protocol.ObjectResultset
 	err := getObjectLinkResponse(i, &olResponse, msg)
@@ -490,7 +500,7 @@ func doUpdate(i int, msg string) {
 		randomIndex := rand.Intn(len(olResponse.Objects))
 		link := &olResponse.Objects[randomIndex]
 
-		doUpdateLink(i, link, msg)
+		doUpdateLink(i, link, msg, toAppend)
 	}
 }
 
@@ -503,7 +513,7 @@ func doRandomAction(i int) bool {
 	case r > 40:
 		doDownload(i, "")
 	case r > 20:
-		doUpdate(i, "")
+		doUpdate(i, "", "")
 	case r > 10:
 		return false
 	}
@@ -684,8 +694,8 @@ func quickTest() {
 	if link != nil {
 		//Download THAT file
 		doDownloadLink(userID, link, "Alice downloads the file")
-		//Update THAT file
-		doUpdateLink(userID, link, "Alice updates the file")
+		//Update THAT file - the copy in the download cache
+		doUpdateLink(userID, link, "Alice updates the file", "moreAppendedJunk")
 		//Try to re-download it
 		doDownloadLink(userID, link, "Alice downloads it again")
 		//Share with a different user

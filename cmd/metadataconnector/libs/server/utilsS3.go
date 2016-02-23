@@ -2,7 +2,7 @@ package server
 
 import (
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"encoding/hex"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,38 +20,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
-
-//With a given object from the database, or a blank that we are filling out,
-//extract the contents of a protocol.Object over it
-func (h AppServer) overwriteODObjectWithProtocolObject(w http.ResponseWriter, o *models.ODObject, i *protocol.Object) error {
-	id, err := hex.DecodeString(i.ID)
-	if err != nil {
-		h.sendErrorResponse(w, 400, err, "Could not decode object hex ID.")
-		return err
-	}
-	o.ID = id
-
-	pid, err := hex.DecodeString(i.ID)
-	if err != nil {
-		h.sendErrorResponse(w, 400, err, "Could not decode object parent hex ID.")
-		return err
-	}
-	o.ParentID = pid
-	if len(o.ParentID) == 0 {
-		o.ParentID = nil
-	}
-
-	o.ContentSize.Int64 = i.ContentSize
-	if i.Name != "" {
-		o.Name = i.Name
-	}
-
-	o.ContentType.String = i.ContentType
-	o.RawAcm.String = i.RawAcm
-	o.TypeName.String = i.TypeName
-
-	return nil
-}
 
 func (h AppServer) acceptObjectUpload(
 	w http.ResponseWriter,
@@ -89,9 +57,9 @@ func (h AppServer) acceptObjectUpload(
 				h.sendErrorResponse(w, 400, err, "Could not decode CreateObjectRequest.")
 			}
 
-			err = h.overwriteODObjectWithProtocolObject(w, obj, &createObjectRequest)
+			err = mapping.OverwriteODObjectWithProtocolObject(obj, &createObjectRequest)
 			if err != nil {
-				//It's already logged
+				h.sendErrorResponse(w, 400, err, "Could not extract data from json response")
 				return
 			}
 		case len(part.FileName()) > 0:

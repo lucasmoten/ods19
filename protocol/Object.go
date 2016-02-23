@@ -8,7 +8,7 @@ type Object struct {
 	// ID is the unique identifier for this object in Object Drive.
 	ID string `json:"id"`
 	// CreatedDate is the timestamp of when an item was created.
-	CreatedDate time.Time `djson:"createdDate"`
+	CreatedDate time.Time `json:"createdDate"`
 	// CreatedBy is the user that created this item.
 	CreatedBy string `json:"createdBy"`
 	// ModifiedDate is the timestamp of when an item was modified or created.
@@ -48,9 +48,9 @@ type Object struct {
 	ContentSize int64 `json:"contentSize"`
 	// Properties is an array of Object Properties associated with this object
 	// structured as key/value with portion marking.
-	Properties []Property `json:"properties"`
+	Properties []Property `json:"properties,omitempty"`
 	// Permission is the permission for this object
-	Permission Permission `json:"permission,omitempty"`
+	//Permission Permission `json:"permission,omitempty"`
 	// Permissions is an array of Object Permissions associated with this object
 	// This might be null.  It could have a large list of permission objects
 	// relevant to this file (ie: shared with an organization)
