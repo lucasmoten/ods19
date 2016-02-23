@@ -75,7 +75,7 @@ function createObject() {
       var size = jsFileObject.size;
       var rawAcm = '{"version":"2.1.0","classif":"'+classification+'"}'
       var req = {
-        rawAcm: rawAcm,
+        acm: rawAcm,
         title: objectName,
         fileName: fileName,
         size: size,

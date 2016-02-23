@@ -23,29 +23,29 @@ type Object struct {
 	ChangeTokenStruct
 	// OwnedBy indicates the individual user or group that currently owns the
 	// object and has implict full permissions on the object
-	OwnedBy string `db:"ownedBy" json:"ownedBy"`
+	OwnedBy string `json:"ownedBy"`
 	// TypeID references the ODObjectType by its ID indicating the type of this
 	// object
-	TypeID string `db:"typeId" json:"typeId,omitempty"`
+	TypeID string `json:"typeId,omitempty"`
 	// TypeName reflects the name of the object type associated with TypeID
-	TypeName string `db:"typeName" json:"typeName"`
+	TypeName string `json:"typeName"`
 	// Name is the given name for the object. (e.g., filename)
-	Name string `db:"name" json:"name"`
+	Name string `json:"name"`
 	// Description is an abstract of the object or its contents
-	Description string `db:"description" json:"description"`
+	Description string `json:"description"`
 	// ParentID references another Object by its ID indicating which object, if
 	// any, contains, or is an ancestor of this object. (e.g., folder). An object
 	// without a parent is considered to be contained within the 'root' or at the
 	// 'top level'.
-	ParentID string `db:"parentId" json:"parentId"`
+	ParentID string `json:"parentId,omitempty"`
 	// RawACM is the raw ACM string that got supplied to create this object
-	RawAcm string `db:"rawAcm" json:"acm"`
+	RawAcm string `json:"acm"`
 	// ContentType indicates the mime-type, and potentially the character set
 	// encoding for the object contents
-	ContentType string `db:"contentType" json:"contentType"`
+	ContentType string `json:"contentType"`
 	// ContentSize denotes the length of the content stream for this object, in
 	// bytes
-	ContentSize int64 `db:"contentSize" json:"contentSize"`
+	ContentSize int64 `json:"contentSize"`
 	// Properties is an array of Object Properties associated with this object
 	// structured as key/value with portion marking.
 	Properties []Property `json:"properties"`
@@ -55,4 +55,8 @@ type Object struct {
 	// This might be null.  It could have a large list of permission objects
 	// relevant to this file (ie: shared with an organization)
 	Permissions []Permission `json:"permissions"`
+	// Title suggested by the client - effectively an override of FileName
+	Title string `json:"title,omitempty"`
+	// The filename suggested to us
+	FileName string `json:"fileName,omitempty"`
 }

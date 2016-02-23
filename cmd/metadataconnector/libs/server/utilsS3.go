@@ -21,6 +21,38 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
+//With a given object from the database, or a blank that we are filling out,
+//extract the contents of a protocol.Object over it
+func (h AppServer) overwriteODObjectWithProtocolObject(w http.ResponseWriter, o *models.ODObject, i *protocol.Object) error {
+	id, err := hex.DecodeString(i.ID)
+	if err != nil {
+		h.sendErrorResponse(w, 400, err, "Could not decode object hex ID.")
+		return err
+	}
+	o.ID = id
+
+	pid, err := hex.DecodeString(i.ID)
+	if err != nil {
+		h.sendErrorResponse(w, 400, err, "Could not decode object parent hex ID.")
+		return err
+	}
+	o.ParentID = pid
+	if len(o.ParentID) == 0 {
+		o.ParentID = nil
+	}
+
+	o.ContentSize.Int64 = i.ContentSize
+	if i.Name != "" {
+		o.Name = i.Name
+	}
+
+	o.ContentType.String = i.ContentType
+	o.RawAcm.String = i.RawAcm
+	o.TypeName.String = i.TypeName
+
+	return nil
+}
+
 func (h AppServer) acceptObjectUpload(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -35,7 +67,6 @@ func (h AppServer) acceptObjectUpload(
 	if err != nil {
 		panic(err)
 	}
-	async := false
 	for {
 		part, err := multipartReader.NextPart()
 		if err != nil {
@@ -58,35 +89,11 @@ func (h AppServer) acceptObjectUpload(
 				h.sendErrorResponse(w, 400, err, "Could not decode CreateObjectRequest.")
 			}
 
-			async = true
-
-			pid := getFormValueAsString(part)
-			// check for nils
-			id, err := hex.DecodeString(pid)
-			_ = id
+			err = h.overwriteODObjectWithProtocolObject(w, obj, &createObjectRequest)
 			if err != nil {
-				h.sendErrorResponse(w, 400, err, "Could not decode object hex ID.")
+				//It's already logged
+				return
 			}
-			// obj.ParentID = id
-
-			obj.ContentSize.Int64 = createObjectRequest.ContentSize
-			if createObjectRequest.Name != "" {
-				obj.Name = createObjectRequest.Name
-			}
-
-			obj.ContentType.String = createObjectRequest.ContentType
-			obj.RawAcm.String = createObjectRequest.RawAcm
-
-			obj.TypeName.String = createObjectRequest.TypeName
-
-			pid = createObjectRequest.ParentID
-			if len(pid) > 0 {
-				obj.ParentID, err = hex.DecodeString(pid)
-				if err != nil {
-					log.Printf("Parent id %s did not decode correctly:%v", pid, err)
-				}
-			}
-
 		case len(part.FileName()) > 0:
 			//Guess the content type and name if it wasn't supplied
 			if obj.ContentType.Valid == false || len(obj.ContentType.String) == 0 {
@@ -95,6 +102,7 @@ func (h AppServer) acceptObjectUpload(
 			if obj.Name == "" {
 				obj.Name = part.FileName()
 			}
+			async := true
 			err = h.beginUpload(w, r, caller, part, obj, acm, grant, async)
 			if err != nil {
 				h.sendErrorResponse(w, 500, err, "error caching file")
