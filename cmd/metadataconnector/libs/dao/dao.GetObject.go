@@ -13,14 +13,14 @@ func (dao *DataAccessLayer) GetObject(object *models.ODObject, loadProperties bo
 		return &dbObject, err
 	}
 
-	dbObject.Permissions, err = dao.GetPermissionsForObject(&dbObject)
+	dbObject.Permissions, err = dao.GetPermissionsForObject(object)
 	if err != nil {
 		return &dbObject, err
 	}
 
 	// Load properties if requested
 	if loadProperties {
-		dbObject.Properties, err = dao.GetPropertiesForObject(&dbObject)
+		dbObject.Properties, err = dao.GetPropertiesForObject(object)
 		if err != nil {
 			return &dbObject, err
 		}

@@ -18,7 +18,7 @@ func TestDAOAddPropertyToObject(t *testing.T) {
 	// create object
 	var obj models.ODObject
 	obj.Name = "Test Object for Adding Property"
-	obj.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	obj.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	obj.TypeName.String = "File"
 	obj.TypeName.Valid = true
 	var acm models.ODACM

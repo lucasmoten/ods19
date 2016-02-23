@@ -14,7 +14,7 @@ func TestDAOGetObjectType(t *testing.T) {
 	// create object type
 	var objectType models.ODObjectType
 	objectType.Name = "Test Object Type"
-	objectType.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	objectType.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	d.CreateObjectType(&objectType)
 	if objectType.ID == nil {
 		t.Error("expected ID to be set")

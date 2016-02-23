@@ -14,7 +14,7 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	// create parent object
 	var parent models.ODObject
 	parent.Name = "Test Parent Object for GetChildObjectsWithProperties"
-	parent.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	parent.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	parent.TypeName.String = "File"
 	parent.TypeName.Valid = true
 	var acm models.ODACM
@@ -35,7 +35,7 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	// create child 1
 	var child1 models.ODObject
 	child1.Name = "Test Child Object 1 for GetChildObjectsWithProperties"
-	child1.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	child1.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	child1.TypeName.String = "File"
 	child1.TypeName.Valid = true
 	child1.ParentID = parent.ID
@@ -78,7 +78,7 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	// create child 2
 	var child2 models.ODObject
 	child2.Name = "Test Child Object 2 for GetChildObjectsWithProperties"
-	child2.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	child2.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	child2.TypeName.String = "File"
 	child2.TypeName.Valid = true
 	child2.ParentID = parent.ID

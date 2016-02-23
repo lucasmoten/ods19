@@ -18,7 +18,7 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 
 	// Create our parent object
 	parent.Name = "Test GetChildObjectsByUser Parent"
-	parent.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	parent.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	parent.TypeName.String = "Test Type"
 	parent.TypeName.Valid = true
 	err := d.CreateObject(&parent, nil)
@@ -37,7 +37,7 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 
 		// Create our child object from TP1
 		child1.Name = "Test GetChildObjectsByUser Child by TP1"
-		child1.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+		child1.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 		child1.ParentID = parent.ID
 		child1.TypeName.String = "Test Type"
 		child1.TypeName.Valid = true
@@ -60,7 +60,7 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 
 		// Create our child object from TP2
 		child2.Name = "Test GetChildObjectsByUser Child by TP2"
-		child2.CreatedBy = "CN=test tester02, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+		child2.CreatedBy = usernames[2] // "CN=test tester02, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 		child2.ParentID = parent.ID
 		child2.TypeName.String = "Test Type"
 		child2.TypeName.Valid = true
