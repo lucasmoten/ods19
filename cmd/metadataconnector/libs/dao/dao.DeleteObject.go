@@ -3,6 +3,7 @@ package dao
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"decipher.com/oduploader/metadata/models"
 )
@@ -45,13 +46,15 @@ func (dao *DataAccessLayer) DeleteObject(object *models.ODObject, explicit bool)
 	// Mark as deleted
 	dbObject.IsDeleted = true
 	dbObject.ModifiedBy = object.ModifiedBy
+	dbObject.DeletedDate.Time = time.Now().UTC()
+	dbObject.DeletedDate.Valid = true
 	dbObject.IsAncestorDeleted = !explicit
 	updateObjectStatement, err := dao.MetadataDB.Prepare(`
-    update object set modifiedby = ?, isdeleted = ?, isancestordeleted = ? where id = ?`)
+    update object set modifiedby = ?, isdeleted = ?, deletedDate = ?, isancestordeleted = ? where id = ?`)
 	if err != nil {
 		return err
 	}
-	_, err = updateObjectStatement.Exec(dbObject.ModifiedBy, dbObject.IsDeleted, dbObject.IsAncestorDeleted, dbObject.ID)
+	_, err = updateObjectStatement.Exec(dbObject.ModifiedBy, dbObject.IsDeleted, dbObject.DeletedDate, dbObject.IsAncestorDeleted, dbObject.ID)
 	if err != nil {
 		return err
 	}
