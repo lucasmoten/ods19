@@ -1,22 +1,19 @@
 package server
 
 import (
+	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/performance"
 	"encoding/hex"
 	"encoding/json"
-	//"fmt"
+	"github.com/aws/aws-sdk-go/aws"
 	"log"
 	"net/http"
 	"os"
-	"time"
-
-	"github.com/aws/aws-sdk-go/aws"
-	//"path"
 	"regexp"
 	"strconv"
-	//"strings"
-	"decipher.com/oduploader/performance"
+	"time"
 )
 
 func (h AppServer) getObjectStreamObject(w http.ResponseWriter, r *http.Request, caller Caller) (*models.ODObject, error) {
@@ -181,7 +178,7 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 	//We have no choice but to recache and wait
 	if cipherText == nil {
 		log.Printf("file is not cached.  Caching it now.")
-		bucket := aws.String("decipherers")
+		bucket := aws.String(config.DefaultBucket)
 		//When this finishes, cipherTextName should exist.  It could take a
 		//very long time though.
 		//XXX blocks for a long time - maybe we should return an error code and

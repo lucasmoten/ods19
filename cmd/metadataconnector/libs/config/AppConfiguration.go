@@ -16,6 +16,12 @@ var (
 	defaultDBPort   = "3306"
 	//RootURL is the url string being referenced everywhere to complete URLs
 	RootURL = "/service/metadataconnector/1.0"
+	//DefaultBucket is the AWS S3 bucket name
+	DefaultBucket = "decipherers"
+	//DefaultBucketPartition is the directory in the bucket - used to allow multiple users
+	//XXX should be unique per database instance to assist in garbage collection
+	//of the bucket
+	DefaultBucketPartition = "cache"
 )
 
 // AppConfiguration is a structure that defines the known configuration format

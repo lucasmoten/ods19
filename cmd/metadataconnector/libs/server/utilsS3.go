@@ -1,6 +1,7 @@
 package server
 
 import (
+	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -181,9 +182,9 @@ func (h AppServer) beginUploadTimed(
 	//Just return 200 when we run async, because the client tells
 	//us whether it's async or not.
 	if async {
-		go h.drainFileToS3(aws.String("decipherers"), rName, length, 3)
+		go h.drainFileToS3(aws.String(config.DefaultBucket), rName, length, 3)
 	} else {
-		h.drainFileToS3(aws.String("decipherers"), rName, length, 3)
+		h.drainFileToS3(aws.String(config.DefaultBucket), rName, length, 3)
 	}
 	return err
 }
