@@ -96,7 +96,7 @@ function _renderUsersDropdown(obj, users, rowId) {
   for ( i=0; i < users.length; i ++ ) {
    sel.append($("<option>").attr('value',users[i].distinguishedName).text(users[i].distinguishedName));
   }
-  return '<select>'+sel.html()+'</select>'
+  return '<td><select>'+sel.html()+'</select></td>'
 
 };
 
