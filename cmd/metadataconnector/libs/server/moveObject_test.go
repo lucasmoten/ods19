@@ -2,7 +2,6 @@ package server_test
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,7 +19,7 @@ func makeFolderViaJSON(folderName string, clientid int) (*protocol.Object, error
 	folder := protocol.Object{}
 	folder.Name = folderName
 	folder.TypeName = "Folder"
-	folder.ParentID = nil
+	folder.ParentID = ""
 	// marshall request
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
@@ -82,7 +81,7 @@ func TestMoveObject(t *testing.T) {
 	}
 
 	// Attempt to move folder 2 under folder 1
-	moveuri := host + "/service/metadataconnector/1.0/object/" + hex.EncodeToString(folder2.ID) + "/move/" + hex.EncodeToString(folder1.ID)
+	moveuri := host + "/service/metadataconnector/1.0/object/" + folder2.ID + "/move/" + folder1.ID
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder2.ChangeToken
 	jsonBody, err := json.Marshal(objChangeToken)

@@ -2,7 +2,6 @@ package server_test
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -34,7 +33,7 @@ func TestUpdateObject(t *testing.T) {
 	}
 
 	// Attempt to rename the folder
-	updateuri := host + "/service/metadataconnector/1.0/object/" + hex.EncodeToString(folder.ID) + "/properties"
+	updateuri := host + "/service/metadataconnector/1.0/object/" + folder.ID + "/properties"
 	folder.Name = "Test Folder Updated " + strconv.FormatInt(time.Now().Unix(), 10)
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {

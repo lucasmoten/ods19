@@ -34,7 +34,8 @@ func TestCreateFolderAtRoot(t *testing.T) {
 	folder := protocol.Object{}
 	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().Unix(), 10)
 	folder.TypeName = "Folder"
-	folder.ParentID = nil
+	// Cannot use nil for string
+	folder.ParentID = ""
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
@@ -103,7 +104,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 	folder := protocol.Object{}
 	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().Unix(), 10)
 	folder.TypeName = "Folder"
-	folder.ParentID = nil
+	folder.ParentID = ""
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
@@ -219,7 +220,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 	folder := protocol.Object{}
 	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().Unix(), 10)
 	folder.TypeName = "Folder"
-	folder.ParentID = nil
+	folder.ParentID = ""
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
@@ -324,7 +325,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 	folder := protocol.Object{}
 	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().Unix(), 10)
 	folder.TypeName = "Folder"
-	folder.ParentID = nil
+	folder.ParentID = ""
 	grant2client2 := protocol.Permission{}
 	grant2client2.Grantee = "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
 	grant2client2.AllowRead = true

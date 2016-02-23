@@ -2,7 +2,6 @@ package server_test
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -331,9 +330,9 @@ func TestListObjectsChild(t *testing.T) {
 	}
 }
 
-func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level int, childid []byte) {
+func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level int, childid string) {
 	// URLs
-	uri := host + "/service/metadataconnector/1.0/object/" + hex.EncodeToString(childid) + "/list"
+	uri := host + "/service/metadataconnector/1.0/object/" + childid + "/list"
 	depthstring := ""
 	if level > 0 {
 		for l := 0; l < level; l++ {
