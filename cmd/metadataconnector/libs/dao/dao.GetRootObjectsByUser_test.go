@@ -7,6 +7,11 @@ import (
 )
 
 func TestDAOGetRootObjectsByUser(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip()
+	}
+
 	user1 := usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	user2 := usernames[2] // "CN=test tester02, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 
