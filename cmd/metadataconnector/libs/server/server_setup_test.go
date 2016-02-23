@@ -1,12 +1,18 @@
 package server_test
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
+
+	"decipher.com/oduploader/protocol"
 )
 
 var host string
@@ -131,4 +137,46 @@ func NewClientTLSConfig(client *ClientIdentity) (*tls.Config, error) {
 	}
 	tlsConfig.BuildNameToCertificate()
 	return tlsConfig, nil
+}
+
+func makeFolderViaJSON(folderName string, clientid int) (*protocol.Object, error) {
+	folderuri := host + "/service/metadataconnector/1.0/folder"
+	folder := protocol.Object{}
+	folder.Name = folderName
+	folder.TypeName = "Folder"
+	folder.ParentID = ""
+	// marshall request
+	jsonBody, err := json.Marshal(folder)
+	if err != nil {
+		log.Printf("Unable to marshal json for request:%v", err)
+		return nil, err
+	}
+	req, err := http.NewRequest("POST", folderuri, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		log.Printf("Error setting up HTTP Request: %v", err)
+		return nil, err
+	}
+	// do the request
+	req.Header.Set("Content-Type", "application/json")
+	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
+	client := &http.Client{Transport: transport}
+	res, err := client.Do(req)
+	if err != nil {
+		log.Printf("Unable to do request:%v", err)
+		return nil, err
+	}
+	// process Response
+	if res.StatusCode != http.StatusOK {
+		log.Printf("bad status: %s", res.Status)
+		return nil, errors.New("Status was " + res.Status)
+	}
+	decoder := json.NewDecoder(res.Body)
+	var createdFolder protocol.Object
+	err = decoder.Decode(&createdFolder)
+	if err != nil {
+		log.Printf("Error decoding json to Object: %v", err)
+		log.Println()
+		return nil, err
+	}
+	return &createdFolder, nil
 }

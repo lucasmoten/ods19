@@ -39,14 +39,14 @@ func TestCreateFolderAtRoot(t *testing.T) {
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
-		t.Fail()
+		t.FailNow()
 	}
 
 	// Request
 	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
-		t.Fail()
+		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
 	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
@@ -54,13 +54,13 @@ func TestCreateFolderAtRoot(t *testing.T) {
 	res, err := client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
-		t.Fail()
+		t.FailNow()
 	}
 
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
-		t.Fail()
+		t.FailNow()
 	}
 	decoder := json.NewDecoder(res.Body)
 	var createdFolder protocol.Object
@@ -68,7 +68,7 @@ func TestCreateFolderAtRoot(t *testing.T) {
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()
-		t.Fail()
+		t.FailNow()
 	}
 	if verboseOutput {
 		jsonData, err := json.MarshalIndent(createdFolder, "", "  ")
@@ -108,14 +108,14 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
-		t.Fail()
+		t.FailNow()
 	}
 
 	// Request
 	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
-		t.Fail()
+		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
 	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
@@ -123,13 +123,13 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 	res, err := client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
-		t.Fail()
+		t.FailNow()
 	}
 
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
-		t.Fail()
+		t.FailNow()
 	}
 	decoder := json.NewDecoder(res.Body)
 	var createdFolder protocol.Object
@@ -137,7 +137,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()
-		t.Fail()
+		t.FailNow()
 	}
 	if verboseOutput {
 		jsonData, err := json.MarshalIndent(createdFolder, "", "  ")
@@ -155,26 +155,26 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 	jsonBody, err = json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
-		t.Fail()
+		t.FailNow()
 	}
 
 	// Request
 	req, err = http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
-		t.Fail()
+		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
 	res, err = client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
-		t.Fail()
+		t.FailNow()
 	}
 
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
-		t.Fail()
+		t.FailNow()
 	}
 	decoder = json.NewDecoder(res.Body)
 	var createdSubFolder protocol.Object
@@ -182,7 +182,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()
-		t.Fail()
+		t.FailNow()
 	}
 	if verboseOutput {
 		jsonData, err := json.MarshalIndent(createdSubFolder, "", "  ")
@@ -224,14 +224,14 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
-		t.Fail()
+		t.FailNow()
 	}
 
 	// Request
 	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
-		t.Fail()
+		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
 	transport1 := &http.Transport{TLSClientConfig: clients[clientid1].Config}
@@ -239,13 +239,13 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 	res, err := client1.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
-		t.Fail()
+		t.FailNow()
 	}
 
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
-		t.Fail()
+		t.FailNow()
 	}
 	decoder := json.NewDecoder(res.Body)
 	var createdFolder protocol.Object
@@ -253,7 +253,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()
-		t.Fail()
+		t.FailNow()
 	}
 	if verboseOutput {
 		jsonData, err := json.MarshalIndent(createdFolder, "", "  ")
@@ -271,14 +271,14 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 	jsonBody, err = json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
-		t.Fail()
+		t.FailNow()
 	}
 
 	// Request
 	req, err = http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
-		t.Fail()
+		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
 	transport2 := &http.Transport{TLSClientConfig: clients[clientid2].Config}
@@ -286,13 +286,13 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 	res, err = client2.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
-		t.Fail()
+		t.FailNow()
 	}
 
 	// Response validation
 	if res.StatusCode == http.StatusOK {
 		log.Printf("The second user was allowed to create a folder even without grant!!!")
-		t.Fail()
+		t.FailNow()
 	}
 }
 
@@ -334,26 +334,26 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
-		t.Fail()
+		t.FailNow()
 	}
 
 	// Request
 	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
-		t.Fail()
+		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
 	res, err := client1.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
-		t.Fail()
+		t.FailNow()
 	}
 
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
-		t.Fail()
+		t.FailNow()
 	}
 	decoder := json.NewDecoder(res.Body)
 	var createdFolder protocol.Object
@@ -361,7 +361,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()
-		t.Fail()
+		t.FailNow()
 	}
 	if verboseOutput {
 		jsonData, err := json.MarshalIndent(createdFolder, "", "  ")
@@ -379,25 +379,25 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 	jsonBody, err = json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
-		t.Fail()
+		t.FailNow()
 	}
 
 	// Request
 	req, err = http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
-		t.Fail()
+		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
 	res, err = client2.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
-		t.Fail()
+		t.FailNow()
 	}
 
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		log.Printf("The second user was not allowed to create a folder but they should have permissions granted")
-		t.Fail()
+		t.FailNow()
 	}
 }
