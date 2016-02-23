@@ -183,8 +183,8 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 	return &http.Server{
 		Addr:           string(httpHandler.Addr),
 		Handler:        httpHandler,
-		ReadTimeout:    10000 * time.Second, //This breaks big downloads
-		WriteTimeout:   10000 * time.Second,
+		ReadTimeout:    100000 * time.Second, //This breaks big downloads
+		WriteTimeout:   100000 * time.Second,
 		MaxHeaderBytes: 1 << 20, //This prevents clients from DOS'ing us
 	}, &httpHandler, nil
 }

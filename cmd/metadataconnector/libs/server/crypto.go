@@ -38,6 +38,9 @@ func (r *CipherStreamReader) Read(dst []byte) (n int, err error) {
 	r.H.Write(dst[:n])
 	r.S.XORKeyStream(dst[:n], dst[:n])
 	r.Size += int64(n)
+	////XXX not good for performance, but we are getting cut-offs, and this
+	////is insightful to uncomment
+	//log.Printf("transferred:%d to %d", int64(n), r.Size)
 	return
 }
 
@@ -155,22 +158,23 @@ func doCipherByReaderWriter(
 	outFile io.Writer,
 	key []byte,
 	iv []byte,
+	description string,
 ) (checksum []byte, length int64, err error) {
 	writeCipher, err := aes.NewCipher(key)
 	if err != nil {
-		log.Printf("unable to use cipher: %v", err)
+		log.Printf("unable to use cipher %s: %v", description, err)
 		return nil, 0, err
 	}
 	writeCipherStream := cipher.NewCTR(writeCipher, iv[:])
 	if err != nil {
-		log.Printf("unable to use block mode:%v", err)
+		log.Printf("unable to use block mode (%s):%v", description, err)
 		return nil, 0, err
 	}
 
 	reader := NewCipherStreamReader(writeCipherStream, inFile)
 	_, err = io.Copy(outFile, reader)
 	if err != nil {
-		log.Printf("unable to copy out to file:%v", err)
+		log.Printf("unable to copy out to file (%s):%v", description, err)
 	}
 	return reader.H.Sum(nil), reader.Size, err
 }

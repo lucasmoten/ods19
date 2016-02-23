@@ -218,6 +218,7 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 		w,
 		fileKey,
 		iv,
+		"downloading from client",
 	)
 
 	if err != nil {
