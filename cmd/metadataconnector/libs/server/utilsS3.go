@@ -2,7 +2,7 @@ package server
 
 import (
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"encoding/hex"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -35,7 +35,6 @@ func (h AppServer) acceptObjectUpload(
 	if err != nil {
 		panic(err)
 	}
-	async := false
 	for {
 		part, err := multipartReader.NextPart()
 		if err != nil {
@@ -58,35 +57,11 @@ func (h AppServer) acceptObjectUpload(
 				h.sendErrorResponse(w, 400, err, "Could not decode CreateObjectRequest.")
 			}
 
-			async = true
-
-			pid := getFormValueAsString(part)
-			// check for nils
-			id, err := hex.DecodeString(pid)
-			_ = id
+			err = mapping.OverwriteODObjectWithProtocolObject(obj, &createObjectRequest)
 			if err != nil {
-				h.sendErrorResponse(w, 400, err, "Could not decode object hex ID.")
+				h.sendErrorResponse(w, 400, err, "Could not extract data from json response")
+				return
 			}
-			// obj.ParentID = id
-
-			obj.ContentSize.Int64 = createObjectRequest.ContentSize
-			if createObjectRequest.Name != "" {
-				obj.Name = createObjectRequest.Name
-			}
-
-			obj.ContentType.String = createObjectRequest.ContentType
-			obj.RawAcm.String = createObjectRequest.RawAcm
-
-			obj.TypeName.String = createObjectRequest.TypeName
-
-			pid = createObjectRequest.ParentID
-			if len(pid) > 0 {
-				obj.ParentID, err = hex.DecodeString(pid)
-				if err != nil {
-					log.Printf("Parent id %s did not decode correctly:%v", pid, err)
-				}
-			}
-
 		case len(part.FileName()) > 0:
 			//Guess the content type and name if it wasn't supplied
 			if obj.ContentType.Valid == false || len(obj.ContentType.String) == 0 {
@@ -95,6 +70,7 @@ func (h AppServer) acceptObjectUpload(
 			if obj.Name == "" {
 				obj.Name = part.FileName()
 			}
+			async := true
 			err = h.beginUpload(w, r, caller, part, obj, acm, grant, async)
 			if err != nil {
 				h.sendErrorResponse(w, 500, err, "error caching file")

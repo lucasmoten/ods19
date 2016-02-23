@@ -195,10 +195,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var uri = r.URL.Path
 
-	log.Println("LOGGING APP SERVER CONFIG:")
-	log.Println(h.ServicePrefix)
-	log.Println("LOGGING URI: ")
-	log.Println(r.Method, uri)
+	log.Printf("LOGGING APP SERVER CONFIG:%s URI:%s, %s", h.ServicePrefix, r.Method, uri)
 
 	// TODO: use StripPrefix in handler?
 	// https://golang.org/pkg/net/http/#StripPrefix

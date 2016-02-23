@@ -148,3 +148,36 @@ func MapObjectsToODObjects(i *[]protocol.Object) []models.ODObject {
 	}
 	return o
 }
+
+// OverwriteODObjectWithProtocolObject ...
+// When we get a decoded json object, for uploads, we have specific items that
+// we should extract and write over the object that we have
+func OverwriteODObjectWithProtocolObject(o *models.ODObject, i *protocol.Object) error {
+	id, err := hex.DecodeString(i.ID)
+	if err != nil {
+		log.Printf("Count not decode id")
+		return err
+	}
+	o.ID = id
+
+	pid, err := hex.DecodeString(i.ID)
+	if err != nil {
+		log.Printf("Count not decode parent id")
+		return err
+	}
+	o.ParentID = pid
+	if len(o.ParentID) == 0 {
+		o.ParentID = nil
+	}
+
+	o.ContentSize.Int64 = i.ContentSize
+	if i.Name != "" {
+		o.Name = i.Name
+	}
+
+	o.ContentType.String = i.ContentType
+	o.RawAcm.String = i.RawAcm
+	o.TypeName.String = i.TypeName
+
+	return nil
+}

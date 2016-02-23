@@ -51,7 +51,6 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 
 	// TODO better way to handle JS passing empty string?
 	if string(parentObject.ID) == "" {
-		log.Println("parentObject.ID was empty string, converting to nil.")
 		parentObject.ID = nil
 	}
 
