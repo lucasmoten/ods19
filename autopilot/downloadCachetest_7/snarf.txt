@@ -1,0 +1,1 @@
+{"URL":"/service/metadataconnector/1.0/object/11e5d4d05d50f1a0a8280242ac110002","Name":"snarf.txt","Type":"File","CreateDate":"2016-02-16T17:11:48Z","CreatedBy":"test tester07","ChangeToken":"d8a8a164aef0edb46832bc96d0be6a35","Size":18,"ACM":"\n        {\"version\":\"2.1.0\", \"classif\":\"S\"}\n        "}

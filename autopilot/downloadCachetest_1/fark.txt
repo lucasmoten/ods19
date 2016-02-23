@@ -1,0 +1,1 @@
+{"URL":"/service/metadataconnector/1.0/object/11e5d4d079a487d5a8280242ac110002","Name":"fark.txt","Type":"File","CreateDate":"2016-02-16T17:12:36Z","CreatedBy":"test tester01","ChangeToken":"f64583c0d93a42b655815a1815e148aa","Size":8,"ACM":"\n        {\"version\":\"2.1.0\", \"classif\":\"U\"}\n        "}
