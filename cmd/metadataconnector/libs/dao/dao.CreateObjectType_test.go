@@ -13,7 +13,7 @@ func TestDAOCreateObjectType(t *testing.T) {
 	}
 	var objectType models.ODObjectType
 	objectType.Name = "Test Type"
-	objectType.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	objectType.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 
 	dbObjectType, err := d.GetObjectTypeByName(objectType.Name, false, objectType.CreatedBy)
 	objectTypeCreated := false

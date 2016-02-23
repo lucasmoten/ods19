@@ -16,9 +16,9 @@ type DAO interface {
 	DeleteObjectProperty(objectProperty *models.ODObjectPropertyEx) error
 	DeleteObjectType(objectType *models.ODObjectType) error
 	GetChildObjects(orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error)
-	GetChildObjectsByOwner(orderByClause string, pageNumber int, pageSize int, object *models.ODObject, owner string) (models.ODObjectResultset, error)
+	GetChildObjectsByUser(orderByClause string, pageNumber int, pageSize int, object *models.ODObject, user string) (models.ODObjectResultset, error)
 	GetChildObjectsWithProperties(orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error)
-	GetChildObjectsWithPropertiesByOwner(orderByClause string, pageNumber int, pageSize int, object *models.ODObject, owner string) (models.ODObjectResultset, error)
+	GetChildObjectsWithPropertiesByUser(orderByClause string, pageNumber int, pageSize int, object *models.ODObject, user string) (models.ODObjectResultset, error)
 	GetObject(object *models.ODObject, loadProperties bool) (*models.ODObject, error)
 	GetObjectProperty(objectProperty *models.ODObjectPropertyEx) (*models.ODObjectPropertyEx, error)
 	GetObjectType(objectType *models.ODObjectType) (*models.ODObjectType, error)
@@ -26,9 +26,9 @@ type DAO interface {
 	GetPermissionsForObject(object *models.ODObject) ([]models.ODObjectPermission, error)
 	GetPropertiesForObject(object *models.ODObject) ([]models.ODObjectPropertyEx, error)
 	GetRootObjects(orderByClause string, pageNumber int, pageSize int) (models.ODObjectResultset, error)
-	GetRootObjectsByOwner(orderByClause string, pageNumber int, pageSize int, owner string) (models.ODObjectResultset, error)
+	GetRootObjectsByUser(orderByClause string, pageNumber int, pageSize int, user string) (models.ODObjectResultset, error)
 	GetRootObjectsWithProperties(orderByClause string, pageNumber int, pageSize int) (models.ODObjectResultset, error)
-	GetRootObjectsWithPropertiesByOwner(orderByClause string, pageNumber int, pageSize int, owner string) (models.ODObjectResultset, error)
+	GetRootObjectsWithPropertiesByUser(orderByClause string, pageNumber int, pageSize int, user string) (models.ODObjectResultset, error)
 	GetUserByDistinguishedName(user *models.ODUser) (*models.ODUser, error)
 	GetUsers() ([]models.ODUser, error)
 	IsParentIDADescendent(id []byte, parentID []byte) (bool, error)

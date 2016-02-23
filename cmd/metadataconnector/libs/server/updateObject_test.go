@@ -2,7 +2,6 @@ package server_test
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -29,25 +28,22 @@ func TestUpdateObject(t *testing.T) {
 	// Create 1 folders under root
 	folder, err := makeFolderViaJSON("Test Folder for Update "+strconv.FormatInt(time.Now().Unix(), 10), clientid)
 	if err != nil {
-		t.Fail()
-		return
+		t.FailNow()
 	}
 
 	// Attempt to rename the folder
-	updateuri := host + "/service/metadataconnector/1.0/object/" + hex.EncodeToString(folder.ID) + "/properties"
+	updateuri := host + "/service/metadataconnector/1.0/object/" + folder.ID + "/properties"
 	folder.Name = "Test Folder Updated " + strconv.FormatInt(time.Now().Unix(), 10)
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
-		t.Fail()
-		return
+		t.FailNow()
 	}
 	req, err := http.NewRequest("PUT", updateuri, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
-		t.Fail()
-		return
+		t.FailNow()
 	}
 	// do the request
 	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
@@ -55,14 +51,12 @@ func TestUpdateObject(t *testing.T) {
 	res, err := client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
-		t.Fail()
-		return
+		t.FailNow()
 	}
 	// process Response
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
-		t.Fail()
-		return
+		t.FailNow()
 	}
 	decoder := json.NewDecoder(res.Body)
 	var updatedFolder protocol.Object
@@ -70,7 +64,7 @@ func TestUpdateObject(t *testing.T) {
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()
-		t.Fail()
+		t.FailNow()
 	}
 	if verboseOutput {
 		jsonData, err := json.MarshalIndent(updatedFolder, "", "  ")

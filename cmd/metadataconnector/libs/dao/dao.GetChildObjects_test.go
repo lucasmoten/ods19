@@ -15,7 +15,7 @@ func TestDAOGetChildObjects(t *testing.T) {
 	// Create our parent object
 	var parent models.ODObject
 	parent.Name = "Test GetChildObjects Parent"
-	parent.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	parent.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	parent.TypeName.String = "Test Type"
 	parent.TypeName.Valid = true
 	err := d.CreateObject(&parent, nil)
@@ -35,7 +35,7 @@ func TestDAOGetChildObjects(t *testing.T) {
 	// Create our child object
 	var child models.ODObject
 	child.Name = "Test GetChildObjects Child"
-	child.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	child.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	child.ParentID = parent.ID
 	child.TypeName.String = "Test Type"
 	child.TypeName.Valid = true

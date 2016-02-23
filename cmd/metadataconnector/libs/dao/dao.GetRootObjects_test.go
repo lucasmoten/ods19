@@ -22,7 +22,7 @@ func TestDAOGetRootObjects(t *testing.T) {
 	// Create an object with no parent
 	var object1 models.ODObject
 	object1.Name = "Test GetRootObjects"
-	object1.CreatedBy = "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	object1.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	object1.TypeName.String = "Test Type"
 	object1.TypeName.Valid = true
 	err = d.CreateObject(&object1, nil)

@@ -6,19 +6,24 @@ import (
 	"decipher.com/oduploader/metadata/models"
 )
 
-func TestDAOGetRootObjectsByOwner(t *testing.T) {
-	user1 := "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
-	user2 := "CN=test tester02, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+func TestDAOGetRootObjectsByUser(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	user1 := usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	user2 := usernames[2] // "CN=test tester02, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 
 	// Get root Objects
-	resultset, err := d.GetRootObjectsByOwner("", 1, 1, user1)
+	resultset, err := d.GetRootObjectsByUser("", 1, 1, user1)
 	if err != nil {
 		t.Error(err)
 	}
 	// capture how many objects are rooted before changes
 	originalTotalRows1 := resultset.TotalRows
 	// The same for user2
-	resultset, err = d.GetRootObjectsByOwner("", 1, 1, user2)
+	resultset, err = d.GetRootObjectsByUser("", 1, 1, user2)
 	if err != nil {
 		t.Failed()
 	}
@@ -26,7 +31,7 @@ func TestDAOGetRootObjectsByOwner(t *testing.T) {
 
 	// Create an object with no parent under user1
 	var object1 models.ODObject
-	object1.Name = "Test GetRootObjectsByOwner for user1"
+	object1.Name = "Test GetRootObjectsByUser for user1"
 	object1.CreatedBy = user1
 	object1.TypeName.String = "Test Type"
 	object1.TypeName.Valid = true
@@ -46,7 +51,7 @@ func TestDAOGetRootObjectsByOwner(t *testing.T) {
 
 	// Create an object with no parent under user2
 	var object2 models.ODObject
-	object2.Name = "Test GetRootObjectsByOwner for user2"
+	object2.Name = "Test GetRootObjectsByUser for user2"
 	object2.CreatedBy = user2
 	object2.TypeName.String = "Test Type"
 	object2.TypeName.Valid = true
@@ -65,14 +70,14 @@ func TestDAOGetRootObjectsByOwner(t *testing.T) {
 	}
 
 	// Get root Objects again
-	resultset, err = d.GetRootObjectsByOwner("", 1, 1, user1)
+	resultset, err = d.GetRootObjectsByUser("", 1, 1, user1)
 	if err != nil {
 		t.Error(err)
 	}
 	if resultset.TotalRows != (originalTotalRows1 + 1) {
 		t.Error("expected an increase in objects at root")
 	}
-	resultset, err = d.GetRootObjectsByOwner("", 1, 1, user2)
+	resultset, err = d.GetRootObjectsByUser("", 1, 1, user2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -91,14 +96,14 @@ func TestDAOGetRootObjectsByOwner(t *testing.T) {
 	}
 
 	// Get root Objects again
-	resultset, err = d.GetRootObjectsByOwner("", 1, 1, user1)
+	resultset, err = d.GetRootObjectsByUser("", 1, 1, user1)
 	if err != nil {
 		t.Error(err)
 	}
 	if resultset.TotalRows != originalTotalRows1 {
 		t.Error("expected same number of objects as before the test")
 	}
-	resultset, err = d.GetRootObjectsByOwner("", 1, 1, user2)
+	resultset, err = d.GetRootObjectsByUser("", 1, 1, user2)
 	if err != nil {
 		t.Error(err)
 	}
