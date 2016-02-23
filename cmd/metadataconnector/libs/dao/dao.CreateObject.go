@@ -29,6 +29,9 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject, acm *models.OD
 	if err != nil {
 		return fmt.Errorf("CreateObject Preparing add object statement, %s", err.Error())
 	}
+	if object.ContentSize.Int64 < 0 {
+		return fmt.Errorf("Impossible file size:%d", object.ContentSize.Int64)
+	}
 	// Add it
 	result, err := addObjectStatement.Exec(object.CreatedBy, object.TypeID,
 		object.Name, object.Description.String, object.ParentID,

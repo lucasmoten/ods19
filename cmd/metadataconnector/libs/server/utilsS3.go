@@ -1,6 +1,7 @@
 package server
 
 import (
+	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -69,7 +70,6 @@ func (h AppServer) acceptObjectUpload(
 			// obj.ParentID = id
 
 			obj.ContentSize.Int64 = createObjectRequest.ContentSize
-
 			if createObjectRequest.Name != "" {
 				obj.Name = createObjectRequest.Name
 			}
@@ -156,8 +156,10 @@ func (h AppServer) beginUploadTimed(
 	}
 	defer outFile.Close()
 
+	log.Printf("uploading %s with provisional length of %d", obj.Name, obj.ContentSize.Int64)
+
 	//Write the encrypted data to the filesystem
-	checksum, _, err := doCipherByReaderWriter(part, outFile, fileKey, iv)
+	checksum, length, err := doCipherByReaderWriter(part, outFile, fileKey, iv, "uploading from browser")
 	if err != nil {
 		log.Printf("Unable to write ciphertext %s %v:", outFileUploading, err)
 		return err
@@ -173,47 +175,63 @@ func (h AppServer) beginUploadTimed(
 		return err
 	}
 
-	stat, err := os.Stat(outFileUploaded)
-	if err != nil {
-		log.Printf("Unable to get stat on uploaded file %s: %v", outFileUploaded, err)
-	}
-
 	//Record metadata
 	obj.ContentHash = checksum
-	obj.ContentSize.Int64 = stat.Size()
+	obj.ContentSize.Int64 = length
+
 	//Just return 200 when we run async, because the client tells
 	//us whether it's async or not.
 	if async {
-		go h.drainFileToS3(aws.String("decipherers"), rName)
+		go h.drainFileToS3(aws.String(config.DefaultBucket), rName, length, 3)
 	} else {
-		h.drainFileToS3(aws.String("decipherers"), rName)
+		h.drainFileToS3(aws.String(config.DefaultBucket), rName, length, 3)
 	}
 	return err
 }
 
+//We get penalized on throughput if these fail a lot.
+//I think that's reasonable to be measuring "goodput" this way.
 func (h AppServer) drainFileToS3(
 	bucket *string,
 	rName string,
+	size int64,
+	tries int,
 ) error {
 	beganAt := h.Tracker.BeginTime(performance.S3DrainTo)
-	err := h.drainFileToS3Timed(bucket, rName)
-	stat, cachedErr := os.Stat(h.CacheLocation + "/" + rName + ".cached")
-	if cachedErr != nil {
-		log.Printf("could not get length of cached file %s", rName)
-	}
-	length := stat.Size()
-
+	err := h.drainFileToS3Attempt(bucket, rName, size, tries)
 	h.Tracker.EndTime(
 		performance.S3DrainTo,
 		beganAt,
-		performance.SizeJob(length),
+		performance.SizeJob(size),
 	)
+	return err
+}
+
+func (h AppServer) drainFileToS3Attempt(
+	bucket *string,
+	rName string,
+	size int64,
+	tries int,
+) error {
+	err := h.drainFileToS3Timed(bucket, rName, size)
+	tries = tries - 1
+	if err != nil {
+		//The problem is that we get things like transient DNS errors,
+		//after we took custody of the file.  We will need something
+		//more robust than this eventually.  We have the file, while
+		//not being uploaded if all attempts fail.
+		log.Printf("unable to drain file to S3.  Trying again:%v", err)
+		if tries > 0 {
+			err = h.drainFileToS3Attempt(bucket, rName, size, tries)
+		}
+	}
 	return err
 }
 
 func (h AppServer) drainFileToS3Timed(
 	bucket *string,
 	rName string,
+	size int64,
 ) error {
 	sess := h.AWSSession
 	outFileUploaded := h.CacheLocation + "/" + rName + ".uploaded"
