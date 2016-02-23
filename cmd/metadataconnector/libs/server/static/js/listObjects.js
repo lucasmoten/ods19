@@ -35,10 +35,10 @@ function refreshListObjects() {
     , contentType: 'application/json'
     , data: { pageNumber: '1', pageSize: 20, parentId: __state.parentId }
     , success: function (resp) {
-      $.when(listUsers()).done(function (udata) {
+      $.when(listUsers()).done(function (userdata) {
 
         console.log('got users');
-        console.log(udata[0]);
+        __state.users = userdata[0];
 
         $.each(resp.Objects, function(index, item){
           // render each row
@@ -68,7 +68,7 @@ function refreshSharedWithMe() {
 };
 
 // Return a <tr> string suitable to append to table.
-function _renderListObjectRow(index, item) {
+function _renderListObjectRow(index, item, elm) {
 
   // make a rowId to identify the row
   var rowId = 'listObjectRow_' + index;
@@ -81,13 +81,24 @@ function _renderListObjectRow(index, item) {
   var size = '<td>' + item.contentSize + '</td>';
   var changeToken = '<td>' + item.changeToken + '</td>';
   var acm = '<td>' + item.acm + '</td>';
-  var shareTo = '<td>' + item.acm + '</td>';
-  return '<tr id="' + rowId + '" >' + 
-     name + type + createdDate + createdBy + size + changeToken + acm
-     + '</tr>'
+  var shareDropdown = _renderUsersDropdown(item, __state.users, rowId);
+  console.log('share dropdown');
+  console.log(shareDropdown);
+  //return '<tr id="' + rowId + '" >' +
+  return '<tr>' +
+     name + type + createdDate + createdBy + size + changeToken + acm + shareDropdown +
+     '</tr>';
 }
 
+// _renderUsersDropdown
+function _renderUsersDropdown(obj, users, rowId) {
+  var sel = $('<select></select>');
+  for ( i=0; i < users.length; i ++ ) {
+   sel.append($("<option>").attr('value',users[i].distinguishedName).text(users[i].distinguishedName));
+  }
+  return '<select>'+sel.html()+'</select>'
 
+};
 
 // Render a proper href, depending on whether an object is a folder or an object proper.
 function _renderObjectLink(item) {
