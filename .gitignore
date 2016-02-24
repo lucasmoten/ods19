@@ -8,6 +8,7 @@
 *sublime-*
 .idea
 .DS_Store
+.vscode
 
 # Ignore build dirs
 out
