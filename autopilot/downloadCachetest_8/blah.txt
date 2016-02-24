@@ -1,1 +1,0 @@
-{"URL":"/service/metadataconnector/1.0/object/11e5d4d06cd3df8da8280242ac110002","Name":"blah.txt","Type":"File","CreateDate":"2016-02-16T17:12:14Z","CreatedBy":"test tester08","ChangeToken":"0011c85c6569f031c21a4817a849ba52","Size":25,"ACM":"\n        {\"version\":\"2.1.0\", \"classif\":\"S\"}\n        "}

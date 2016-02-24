@@ -1,1 +1,0 @@
-{"URL":"/service/metadataconnector/1.0/object/11e5d4d069e8deefa8280242ac110002","Name":"bah.txt","Type":"File","CreateDate":"2016-02-16T17:12:09Z","CreatedBy":"test tester09","ChangeToken":"675214523117b9def29fbd4f12b3eec6","Size":20,"ACM":"\n        {\"version\":\"2.1.0\", \"classif\":\"C\"}\n        "}
