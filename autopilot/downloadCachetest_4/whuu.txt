@@ -1,1 +1,0 @@
-{"URL":"/service/metadataconnector/1.0/object/11e5d4d06ce482a4a8280242ac110002","Name":"whuu.txt","Type":"File","CreateDate":"2016-02-16T17:12:14Z","CreatedBy":"test tester04","ChangeToken":"2e8a4a8e67fc918f3d6a7a668616c621","Size":15,"ACM":"\n        {\"version\":\"2.1.0\", \"classif\":\"T\"}\n        "}

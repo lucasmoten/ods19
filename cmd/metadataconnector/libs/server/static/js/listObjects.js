@@ -53,6 +53,13 @@ function refreshListObjects() {
               })
             })('#listObjectRow_' + i, __state.Objects[i])
           }
+          for ( var i = 0; i < resp.Objects.length; i++ ) {
+            (function (_drowId, _obj) {
+              $(_drowId).click(function() {
+                doDelete(_obj.id, _obj.changeToken)
+              })
+            })('#deleteObjectRow_' + i, __state.Objects[i])
+          }
       });
     }
   })
@@ -112,13 +119,29 @@ function doShare(objectId, userId, opts) {
       refreshSharedWithMe();
     }
   });
-
 };
+
+function doDelete(objectId, changeToken) {
+  var folderName = $("#folderNameInput").val();
+  var data = {
+    changeToken: changeToken
+  }
+  $.ajax({
+      url: '/service/metadataconnector/1.0/object/'+objectId,
+      method: 'DELETE',
+      data: JSON.stringify(data),
+      contentType: 'application/json',
+      success: function(data){
+        refreshListObjects();
+      }
+  });
+}
 
 // Return a <tr> string suitable to append to table.
 function _renderListObjectRow(index, item, elm) {
 
   var rowId = 'listObjectRow_' + index;
+  var drowId = 'deleteObjectRow_' + index;
 
   var name = _renderObjectLink(item);
   var type = '<td>' + item.contentType + '</td>';
@@ -128,10 +151,10 @@ function _renderListObjectRow(index, item, elm) {
   var changeToken = '<td>' + item.changeToken + '</td>';
   var acm = '<td>' + item.acm + '</td>';
   var shareDropdown = _renderUsersDropdown(item, __state.users, rowId);
-  console.log('share dropdown');
-  console.log(shareDropdown);
+  var deleteButton = _renderDeleteButton(item, __state.users, drowId);
+
   return '<tr>' +
-     name + type + createdDate + createdBy + size + changeToken + acm + shareDropdown +
+     name + type + createdDate + createdBy + size + changeToken + acm + shareDropdown + deleteButton +
      '</tr>';
 }
 
@@ -144,6 +167,9 @@ function _renderUsersDropdown(obj, users, rowId) {
   return '<td><select id="' + rowId + '">' + sel.html() + '</select><button class="shareButton">share</button></td>'
 };
 
+function _renderDeleteButton(obj, users, drowId) {
+  return '<td><button id="'+drowId+'" class="deleteButton">delete</button></td>'
+}
 
 // Render a proper href, depending on whether an object is a folder or an object proper.
 function _renderObjectLink(item) {
@@ -188,8 +214,6 @@ function createObject() {
         processData: false,
         method: 'POST',
         success: function(data){
-          console.log("We did it!")
-          console.log(data);
           refreshListObjects();
         }
       });
