@@ -160,7 +160,7 @@ func OverwriteODObjectWithProtocolObject(o *models.ODObject, i *protocol.Object)
 	}
 	o.ID = id
 
-	pid, err := hex.DecodeString(i.ID)
+	pid, err := hex.DecodeString(i.ParentID)
 	if err != nil {
 		log.Printf("Count not decode parent id")
 		return err

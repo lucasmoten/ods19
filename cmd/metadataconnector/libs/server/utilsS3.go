@@ -28,7 +28,6 @@ func (h AppServer) acceptObjectUpload(
 	obj *models.ODObject,
 	acm *models.ODACM,
 	grant *models.ODObjectPermission,
-	parentID *string,
 ) {
 	r.ParseForm()
 	multipartReader, err := r.MultipartReader()
@@ -56,7 +55,6 @@ func (h AppServer) acceptObjectUpload(
 			if err != nil {
 				h.sendErrorResponse(w, 400, err, "Could not decode CreateObjectRequest.")
 			}
-
 			err = mapping.OverwriteODObjectWithProtocolObject(obj, &createObjectRequest)
 			if err != nil {
 				h.sendErrorResponse(w, 400, err, "Could not extract data from json response")

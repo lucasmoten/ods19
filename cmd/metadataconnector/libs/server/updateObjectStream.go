@@ -12,8 +12,6 @@ import (
 Almost all code is similar to that of createObject.go, so reuse much code from there.
 */
 func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, caller Caller) {
-
-	var parentID string
 	var acm models.ODACM //Still blank, but we need to pass it around
 	object, err := h.getObjectStreamObject(w, r, caller)
 	if err != nil {
@@ -43,7 +41,7 @@ func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, ca
 	}
 
 	//Do an upload that is basically the same as for a new object.
-	h.acceptObjectUpload(w, r, caller, object, &acm, grant, &parentID)
+	h.acceptObjectUpload(w, r, caller, object, &acm, grant)
 	err = h.DAO.UpdateObject(object, &acm)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "error storing object")
