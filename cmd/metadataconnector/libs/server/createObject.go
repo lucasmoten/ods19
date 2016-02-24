@@ -36,7 +36,8 @@ func (h AppServer) createObject(
 		acm.CreatedBy = caller.DistinguishedName
 
 		rName := createRandomName()
-		fileKey, iv := createKeyIVPair()
+		fileKey := createKey()
+		iv := createIV()
 		obj.ContentConnector.String = rName
 		obj.EncryptIV = iv
 		grant.EncryptKey = fileKey

@@ -1,9 +1,10 @@
 package dao
 
 import (
-	"fmt"
-
+	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
+	"fmt"
+	"log"
 )
 
 // UpdateObject uses the passed in object and acm configuration and makes the
@@ -43,7 +44,8 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject, acm *models.OD
 		return fmt.Errorf("UpdateObject Error checking result for rows affected, %s", err.Error())
 	}
 	if rowsAffected <= 0 {
-		return fmt.Errorf("UpdateObject did not affect any rows (Possible bad ID or changeToken)!")
+		jobject := mapping.MapODObjectToJSON(object)
+		log.Printf("WARNING:UpdateObject did not affect any rows (Possible bad ID or changeToken)!:%s", jobject)
 	}
 	updateObjectStatement.Close()
 
@@ -168,7 +170,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject, acm *models.OD
 	// Refetch object again with properties and permissions
 	object, err = dao.GetObject(object, true)
 	if err != nil {
-		return fmt.Errorf("UpdateObject Error retrieving object, %s", err.Error())
+		return fmt.Errorf("UpdateObject Error retrieving object %v, %s", object, err.Error())
 	}
 
 	return nil

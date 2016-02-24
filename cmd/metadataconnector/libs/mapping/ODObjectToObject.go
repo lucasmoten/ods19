@@ -4,6 +4,7 @@ import (
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
 	"encoding/hex"
+	"encoding/json"
 	"log"
 )
 
@@ -96,6 +97,17 @@ func MapODObjectResultsetToObjectResultset(i *models.ODObjectResultset) protocol
 	o.Resultset.PageRows = i.Resultset.PageRows
 	o.Objects = MapODObjectsToObjects(&i.Objects)
 	return o
+}
+
+// MapODObjectToJSON writes a database object to a json representation,
+// which is mostly useful in error messages
+func MapODObjectToJSON(i *models.ODObject) string {
+	o := MapODObjectToObject(i)
+	jsonobj, err := json.MarshalIndent(o, "", "  ")
+	if err != nil {
+		log.Printf("Unable to marshal object to json:%v", err)
+	}
+	return string(jsonobj)
 }
 
 // MapObjectToODObject converts an API exposable protocol Object into an
