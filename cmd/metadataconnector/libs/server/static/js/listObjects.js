@@ -3,6 +3,11 @@ var __state = {};
 
 var BASE_SERVICE_URL = '/service/metadataconnector/1.0/'
 
+
+function getCN(dn) {
+  return dn.substring(dn.indexOf('=')+1, dn.indexOf(','))
+}
+
 function newParent(id) {
   __state.parentId = id;
   refreshListObjects();
@@ -89,7 +94,7 @@ function _renderSharedWithMeRow(index, item) {
   var name = _renderObjectLink(item);
   var type = '<td>' + item.contentType + '</td>';
   var createdDate = '<td>' + item.createdDate + '</td>';
-  var createdBy = '<td>' + item.createdBy + '</td>';
+  var createdBy = '<td>' + getCN(item.createdBy) + '</td>';
   var size = '<td>' + item.contentSize + '</td>';
   var changeToken = '<td>' + item.changeToken + '</td>';
   var acm = '<td>' + item.acm + '</td>';
@@ -137,6 +142,7 @@ function doDelete(objectId, changeToken) {
   });
 }
 
+
 // Return a <tr> string suitable to append to table.
 function _renderListObjectRow(index, item, elm) {
 
@@ -146,7 +152,7 @@ function _renderListObjectRow(index, item, elm) {
   var name = _renderObjectLink(item);
   var type = '<td>' + item.contentType + '</td>';
   var createdDate = '<td>' + item.createdDate + '</td>';
-  var createdBy = '<td>' + item.createdBy + '</td>';
+  var createdBy = '<td>' + getCN(item.createdBy) + '</td>';
   var size = '<td>' + item.contentSize + '</td>';
   var changeToken = '<td>' + item.changeToken + '</td>';
   var acm = '<td>' + item.acm + '</td>';
@@ -162,7 +168,7 @@ function _renderUsersDropdown(obj, users, rowId) {
   var sel = $('<select></select>');
    sel.append($("<option>").attr('value', '').text('--'));
   for ( i=0; i < users.length; i ++ ) {
-   sel.append($("<option>").attr('value', users[i].distinguishedName).text(users[i].distinguishedName.substring(3, 16)));
+   sel.append($("<option>").attr('value', users[i].distinguishedName).text(getCN(users[i].distinguishedName)));
   }
   return '<td><select id="' + rowId + '">' + sel.html() + '</select><button class="shareButton">share</button></td>'
 };
