@@ -94,8 +94,6 @@ func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller
 	if len(newGrant.EncryptKey) == 0 {
 		log.Printf("Grant was not created")
 		h.sendErrorResponse(w, 500, err, "did not find grant to transfer")
-	} else {
-		log.Printf("Grant was created")
 	}
 	newGrant.Grantee = objectGrant.Grantee
 	newGrant.AllowCreate = objectGrant.Create

@@ -44,8 +44,6 @@ func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, ca
 	//Rescramble key
 	applyPassphrase(h.MasterKey+caller.DistinguishedName, grant.EncryptKey)
 
-	//Now, we update the object metadata, primarily because of the new ContentConnector and iv
-	log.Printf("updating object to look like %s", mapping.MapODObjectToJSON(object))
 	err = h.DAO.UpdateObject(object, &acm)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "error storing object")

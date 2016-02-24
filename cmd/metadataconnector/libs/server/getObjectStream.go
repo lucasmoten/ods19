@@ -33,13 +33,11 @@ func (h AppServer) getObjectStreamObject(w http.ResponseWriter, r *http.Request,
 	// Retrieve from database
 	var objectRequested models.ODObject
 	objectRequested.ID = objectIDByte
-	log.Printf("retrieving original object %s", mapping.MapODObjectToJSON(&objectRequested))
 	object, err := h.DAO.GetObject(&objectRequested, false)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cannot get object")
 		return nil, err
 	}
-	log.Printf("retrieved original object %s", mapping.MapODObjectToJSON(&objectRequested))
 	return object, nil
 }
 
