@@ -21,7 +21,6 @@ func (h AppServer) createObject(
 	var acm models.ODACM
 	var grant models.ODObjectPermission
 	var err error
-	var parentID string
 
 	if r.Method == "POST" {
 
@@ -41,7 +40,7 @@ func (h AppServer) createObject(
 		obj.ContentConnector.String = rName
 		obj.EncryptIV = iv
 		grant.EncryptKey = fileKey
-		h.acceptObjectUpload(w, r, caller, &obj, &acm, &grant, &parentID)
+		h.acceptObjectUpload(w, r, caller, &obj, &acm, &grant)
 
 		obj.Permissions = make([]models.ODObjectPermission, 1)
 		obj.Permissions[0] = grant
