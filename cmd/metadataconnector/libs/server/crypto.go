@@ -113,29 +113,29 @@ func createRandomName() string {
 	return hex.EncodeToString(key)
 }
 
-//XXX: Only use this for 256bit or less text,
-//     because this is effectively ECB mode!
-//
-// We use this to store filekeys that do longer AES256 ciphering
-//
-// Salt the masterkey with dn for diversity
-// - what we are missing and actually need is a per-user secret
-//   so that we can make sure that neither the per-user secret
-//   not the masterkey are sufficient to decrypt data
-//
 func applyPassphrase(passphrase string, fileKey []byte) {
 	hashBytes := sha256.Sum256([]byte(passphrase))
-	k := len(hashBytes)
-	for i := 0; i < len(fileKey); i++ {
-		fileKey[i] = hashBytes[i%k] ^ fileKey[i] // ^ fileKey[i]
+	fklen := len(fileKey)
+	hlen := len(hashBytes)
+	if fklen > hlen {
+		//If we conveniently use this to encrypt long data, it's effectively
+		//ECB mode without some changes.  Don't use for more than keys
+		log.Fatal("Do not applyPassphrase to anything that is longer than a sha256 hash!")
+	}
+	for i := 0; i < fklen; i++ {
+		fileKey[i] = hashBytes[i] ^ fileKey[i]
 	}
 	return
 }
 
-func createKeyIVPair() (key []byte, iv []byte) {
+func createKey() (key []byte) {
 	//256 bit keys
 	key = make([]byte, 32)
 	rand.Read(key)
+	return
+}
+
+func createIV() (iv []byte) {
 	//XXX I have read advice that with CTR blocks, the last four bytes
 	//of an iv should be zero, because the last four bytes are
 	//actually a counter for - seeking in the stream?

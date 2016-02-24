@@ -2,6 +2,7 @@ package mapping
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"log"
 
 	"decipher.com/oduploader/metadata/models"
@@ -131,6 +132,17 @@ func MapODObjectResultsetToObjectResultset(i *models.ODObjectResultset) protocol
 	return o
 }
 
+// MapODObjectToJSON writes a database object to a json representation,
+// which is mostly useful in error messages
+func MapODObjectToJSON(i *models.ODObject) string {
+	o := MapODObjectToObject(i)
+	jsonobj, err := json.MarshalIndent(o, "", "  ")
+	if err != nil {
+		log.Printf("Unable to marshal object to json:%v", err)
+	}
+	return string(jsonobj)
+}
+
 // MapObjectToODObject converts an API exposable protocol Object into an
 // internally usable model object.
 func MapObjectToODObject(i *protocol.Object) models.ODObject {
@@ -191,14 +203,18 @@ func OverwriteODObjectWithProtocolObject(o *models.ODObject, i *protocol.Object)
 		log.Printf("Count not decode id")
 		return err
 	}
-	o.ID = id
+	if len(id) > 0 {
+		o.ID = id
+	}
 
 	pid, err := hex.DecodeString(i.ParentID)
 	if err != nil {
 		log.Printf("Count not decode parent id")
 		return err
 	}
-	o.ParentID = pid
+	if len(pid) > 0 {
+		o.ParentID = pid
+	}
 	if len(o.ParentID) == 0 {
 		o.ParentID = nil
 	}
