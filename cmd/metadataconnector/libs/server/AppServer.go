@@ -85,13 +85,14 @@ type StaticRx struct {
 	Home                    *regexp.Regexp
 	HomeListObjects         *regexp.Regexp
 	Images                  *regexp.Regexp
-	Object                  *regexp.Regexp
+	ObjectCreate            *regexp.Regexp
 	Query                   *regexp.Regexp
 	Shared                  *regexp.Regexp
 	Shares                  *regexp.Regexp
 	Shareto                 *regexp.Regexp
 	Trash                   *regexp.Regexp
 	Users                   *regexp.Regexp
+	Object                  *regexp.Regexp
 	ObjectChangeOwner       *regexp.Regexp
 	ObjectExpunge           *regexp.Regexp
 	ObjectFavorite          *regexp.Regexp
@@ -124,32 +125,33 @@ func (h *AppServer) InitRegex() {
 		Home:                    initRegex(h.ServicePrefix + "/?$"),
 		HomeListObjects:         initRegex(h.ServicePrefix + "/home/listObjects/?$"),
 		Images:                  initRegex(h.ServicePrefix + "/images$"),
-		Object:                  initRegex(h.ServicePrefix + "/object$"),
+		ObjectCreate:            initRegex(h.ServicePrefix + "/object$"),
 		Query:                   initRegex(h.ServicePrefix + "/query/.*"),
 		Shared:                  initRegex(h.ServicePrefix + "/shared$"),
 		Shares:                  initRegex(h.ServicePrefix + "/shares$"),
 		Shareto:                 initRegex(h.ServicePrefix + "/shareto$"),
 		Trash:                   initRegex(h.ServicePrefix + "/trash$"),
 		Users:                   initRegex(h.ServicePrefix + "/users$"),
-		ObjectChangeOwner:       initRegex(h.ServicePrefix + "/object/.*/changeowner/.*"),
-		ObjectExpunge:           initRegex(h.ServicePrefix + "/object/.*/expunge$"),
-		ObjectFavorite:          initRegex(h.ServicePrefix + "/object/.*/favorite$"),
-		ObjectLink:              initRegex(h.ServicePrefix + "/object/.*/link/.*"),
-		ObjectLinks:             initRegex(h.ServicePrefix + "/object/.*/links$"),
-		ObjectMove:              initRegex(h.ServicePrefix + "/object/.*/move/.*"),
-		ObjectPermission:        initRegex(h.ServicePrefix + "/object/.*/permission/.*"),
-		ObjectProperties:        initRegex(h.ServicePrefix + "/object/.*/properties$"),
+		Object:                  initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)$"),
+		ObjectChangeOwner:       initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/changeowner/.*"),
+		ObjectExpunge:           initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/expunge$"),
+		ObjectFavorite:          initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/favorite$"),
+		ObjectLink:              initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/link/([0-9a-fA-F]*)"),
+		ObjectLinks:             initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/links$"),
+		ObjectMove:              initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/move/([0-9a-fA-F]*)"),
+		ObjectPermission:        initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/permission/([0-9a-fA-F]*)"),
+		ObjectProperties:        initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/properties$"),
 		Objects:                 initRegex(h.ServicePrefix + "/objects$"),
-		ObjectShare:             initRegex(h.ServicePrefix + "/object/.*/share$"),
-		ObjectStream:            initRegex(h.ServicePrefix + "/object/.*/stream$"),
-		ObjectStreamRevision:    initRegex(h.ServicePrefix + "/object/.*/history/.*/stream$"),
-		ObjectSubscription:      initRegex(h.ServicePrefix + "/object/.*/subscribe$"),
-		ListObjects:             initRegex(h.ServicePrefix + "/object/.*/list$"),
-		ListObjectRevisions:     initRegex(h.ServicePrefix + "/object/.*/history$"),
-		ListObjectShares:        initRegex(h.ServicePrefix + "/object/.*/shares$"),
-		ListObjectSubscriptions: initRegex(h.ServicePrefix + "/object/.*/subscriptions$"),
-		ListImages:              initRegex(h.ServicePrefix + "/images/.*/list$"),
-		TrashObject:             initRegex(h.ServicePrefix + "/trash/.*"),
+		ObjectShare:             initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/share$"),
+		ObjectStream:            initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/stream$"),
+		ObjectStreamRevision:    initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/history/.*/stream$"),
+		ObjectSubscription:      initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/subscribe$"),
+		ListObjects:             initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/list$"),
+		ListObjectRevisions:     initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/history$"),
+		ListObjectShares:        initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/shares$"),
+		ListObjectSubscriptions: initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/subscriptions$"),
+		ListImages:              initRegex(h.ServicePrefix + "/images/([0-9a-fA-F]*)/list$"),
+		TrashObject:             initRegex(h.ServicePrefix + "/trash/([0-9a-fA-F]*)"),
 		StatsObject:             initRegex(h.ServicePrefix + "/stats$"),
 		StaticFiles:             initRegex(h.ServicePrefix + "/static/(?P<path>.*)"),
 	}
@@ -236,9 +238,6 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.listUserObjectsShared(w, r, caller)
 		case h.Routes.Shares.MatchString(uri):
 			h.listUserObjectShares(w, r, caller)
-			// TODO: Find out why this is showing up for /object//list
-		case h.Routes.Object.MatchString(uri):
-			h.createObject(w, r, caller)
 		case h.Routes.Trash.MatchString(uri):
 			h.listObjectsTrashed(w, r, caller)
 		case h.Routes.Query.MatchString(uri):
@@ -272,7 +271,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.listObjects(w, r, caller)
 		case h.Routes.Folder.MatchString(uri):
 			h.createFolder(w, r, caller)
-		case h.Routes.Object.MatchString(uri):
+		case h.Routes.ObjectCreate.MatchString(uri):
 			h.createObject(w, r, caller)
 		case h.Routes.ListObjects.MatchString(uri):
 			h.listObjects(w, r, caller)
