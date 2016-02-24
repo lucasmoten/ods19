@@ -227,6 +227,24 @@ func TestDeleteWithChildObject(t *testing.T) {
 	// 	fmt.Println(string(jsonData))
 	// }
 
-	// TODO: Make sure we can't get folder2 anymore (because its a child of a deleted item)
+	// Make sure we can't get folder2 anymore (because its a child of a deleted item)
+	geturi := host + "/service/metadataconnector/1.0/object/" + folder2.ID + "/properties"
+	req, err = http.NewRequest("GET", geturi, nil)
+	req.Header.Set("Content-Type", "application/json")
+	if err != nil {
+		log.Printf("Error setting up HTTP Request: %v", err)
+		t.FailNow()
+	}
+	// do the request
+	res, err = client.Do(req)
+	if err != nil {
+		log.Printf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// process Response
+	if res.StatusCode == http.StatusOK {
+		log.Printf("able to get folder2 when its parent is deleted")
+		t.FailNow()
+	}
 
 }
