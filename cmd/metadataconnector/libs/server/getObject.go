@@ -4,11 +4,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
 
+	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
 )
 
@@ -17,7 +17,7 @@ func (h AppServer) getObject(w http.ResponseWriter, r *http.Request, caller Call
 	var requestObject *models.ODObject
 	var err error
 
-	requestObject, err = parseGetObjectRequestAsHTML(r)
+	requestObject, err = parseGetObjectRequest(r)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Error parsing URI")
 		return
@@ -62,19 +62,14 @@ func (h AppServer) getObject(w http.ResponseWriter, r *http.Request, caller Call
 		}
 	}
 
-	// Response in requested format
-	switch {
-	case r.Header.Get("Content-Type") == "multipart/form-data":
-		fallthrough
-	case r.Header.Get("Content-Type") == "application/json":
-		getObjectResponseAsJSON(w, r, caller, dbObject)
-	default:
-		getObjectResponseAsHTML(w, r, caller, dbObject)
-	}
+	// Response
+	err = getObjectResponse(w, r, caller, dbObject)
+	if err != nil {
 
+	}
 }
 
-func parseGetObjectRequestAsHTML(r *http.Request) (*models.ODObject, error) {
+func parseGetObjectRequest(r *http.Request) (*models.ODObject, error) {
 	var htmlObject models.ODObject
 	var err error
 
@@ -94,38 +89,27 @@ func parseGetObjectRequestAsHTML(r *http.Request) (*models.ODObject, error) {
 	return &htmlObject, err
 }
 
-func getObjectResponseAsJSON(
+func getObjectResponse(
 	w http.ResponseWriter,
 	r *http.Request,
 	caller Caller,
 	response *models.ODObject,
-) {
+) error {
 	w.Header().Set("Content-Type", "application/json")
-	jsonData, err := json.MarshalIndent(response, "", "  ")
+	var err error
+	var jsonData []byte
+	err = nil
+	if response.IsDeleted {
+		apiResponse := mapping.MapODObjectToDeletedObject(response)
+		jsonData, err = json.MarshalIndent(apiResponse, "", "  ")
+	} else {
+		apiResponse := mapping.MapODObjectToObject(response)
+		jsonData, err = json.MarshalIndent(apiResponse, "", "  ")
+	}
 	if err != nil {
 		log.Printf("Error marshalling response as json: %s", err.Error())
-		return
+	} else {
+		w.Write(jsonData)
 	}
-	w.Write(jsonData)
-}
-
-func getObjectResponseAsHTML(
-	w http.ResponseWriter,
-	r *http.Request,
-	caller Caller,
-	response *models.ODObject,
-) {
-
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, pageTemplateStart, "getObject", caller.DistinguishedName)
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		log.Printf("Error marshalling response as json: %s", err.Error())
-		return
-	}
-	w.Write(jsonData)
-
-	fmt.Fprintf(w, pageTemplateEnd)
-
+	return err
 }

@@ -68,19 +68,52 @@ func TestDeleteObject(t *testing.T) {
 		log.Println()
 		t.FailNow()
 	}
-	if verboseOutput {
-		jsonData, err := json.MarshalIndent(deletedFolder, "", "  ")
-		if err != nil {
-			log.Printf("(Error in Verbose Mode) Error marshalling response back to json: %s", err.Error())
-			return
-		}
-		fmt.Println("Here is the json object:")
-		fmt.Println(string(jsonData))
+	// if verboseOutput {
+	// 	jsonData, err := json.MarshalIndent(deletedFolder, "", "  ")
+	// 	if err != nil {
+	// 		log.Printf("(Error in Verbose Mode) Error marshalling response back to json: %s", err.Error())
+	// 		return
+	// 	}
+	// 	fmt.Println("Here is the json object:")
+	// 	fmt.Println(string(jsonData))
+	// }
+
+	// now make sure the item is marked as deleted when calling for properties
+	geturi := host + "/service/metadataconnector/1.0/object/" + folder1.ID + "/properties"
+	req, err = http.NewRequest("GET", geturi, nil)
+	req.Header.Set("Content-Type", "application/json")
+	if err != nil {
+		log.Printf("Error setting up HTTP Request: %v", err)
+		t.FailNow()
+	}
+	// do the request
+	res, err = client.Do(req)
+	if err != nil {
+		log.Printf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// process Response
+	if res.StatusCode != http.StatusOK {
+		log.Printf("bad status: %s", res.Status)
+		t.FailNow()
+	}
+	decoder = json.NewDecoder(res.Body)
+	var getResponse protocol.DeletedObject
+	err = decoder.Decode(&getResponse)
+	if err != nil {
+		log.Printf("Error decoding json to Object: %v", err)
+		log.Println()
+		t.FailNow()
+	}
+	// Verify that it has deletedDate and deletedBy
+	if len(getResponse.DeletedBy) == 0 {
+		log.Printf("Deleted by is not set")
+		t.FailNow()
 	}
 
 }
 
-func TestDeleteChildObject(t *testing.T) {
+func TestDeleteWithChildObject(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
@@ -140,15 +173,15 @@ func TestDeleteChildObject(t *testing.T) {
 		log.Println()
 		t.FailNow()
 	}
-	if verboseOutput {
-		jsonData, err := json.MarshalIndent(updatedFolder, "", "  ")
-		if err != nil {
-			log.Printf("(Error in Verbose Mode) Error marshalling response back to json: %s", err.Error())
-			return
-		}
-		fmt.Println("Here is the json object:")
-		fmt.Println(string(jsonData))
-	}
+	// if verboseOutput {
+	// 	jsonData, err := json.MarshalIndent(updatedFolder, "", "  ")
+	// 	if err != nil {
+	// 		log.Printf("(Error in Verbose Mode) Error marshalling response back to json: %s", err.Error())
+	// 		return
+	// 	}
+	// 	fmt.Println("Here is the json object:")
+	// 	fmt.Println(string(jsonData))
+	// }
 
 	// Now delete the first folder
 	deleteuri := host + "/service/metadataconnector/1.0/object/" + folder1.ID
@@ -184,15 +217,15 @@ func TestDeleteChildObject(t *testing.T) {
 		log.Println()
 		t.FailNow()
 	}
-	if verboseOutput {
-		jsonData, err := json.MarshalIndent(deletedFolder, "", "  ")
-		if err != nil {
-			log.Printf("(Error in Verbose Mode) Error marshalling response back to json: %s", err.Error())
-			return
-		}
-		fmt.Println("Here is the response body:")
-		fmt.Println(string(jsonData))
-	}
+	// if verboseOutput {
+	// 	jsonData, err := json.MarshalIndent(deletedFolder, "", "  ")
+	// 	if err != nil {
+	// 		log.Printf("(Error in Verbose Mode) Error marshalling response back to json: %s", err.Error())
+	// 		return
+	// 	}
+	// 	fmt.Println("Here is the response body:")
+	// 	fmt.Println(string(jsonData))
+	// }
 
 	// TODO: Make sure we can't get folder2 anymore (because its a child of a deleted item)
 
