@@ -43,15 +43,11 @@ function refreshListObjects() {
           $('#listObjectResults').append(_renderListObjectRow(index, item));
         })
 
-        } // end done
-      ).then(function(){
+        }).then(function(){
         // set up share handlers
           for ( var i = 0; i < resp.Objects.length; i++ ) {
             (function (_rowId, _obj) {
               $(_rowId).siblings('.shareButton').click(function() {
-                // get value from dropdown
-                console.log('inside closure')
-                console.log(_obj)
                 var dn = $(_rowId).val();
                 doShare(_obj.id, dn)
               })
@@ -83,7 +79,7 @@ function _renderSharedWithMeTable(objs) {
 
 function _renderSharedWithMeRow(index, item) {
 
-  var name = item.name;
+  var name = _renderObjectLink(item);
   var type = '<td>' + item.contentType + '</td>';
   var createdDate = '<td>' + item.createdDate + '</td>';
   var createdBy = '<td>' + item.createdBy + '</td>';
