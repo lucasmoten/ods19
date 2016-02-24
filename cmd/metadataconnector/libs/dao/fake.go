@@ -59,6 +59,11 @@ func (fake *FakeDAO) DeleteObjectType(objectType *models.ODObjectType) error {
 	return fake.Err
 }
 
+// ExpungeObject for FakeDAO.
+func (fake *FakeDAO) ExpungeObject(object *models.ODObject, explicit bool) error {
+	return fake.Err
+}
+
 // GetChildObjects for FakeDAO.
 func (fake *FakeDAO) GetChildObjects(orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err

@@ -1,30 +1,12 @@
 package mapping
 
 import (
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/protocol"
 	"encoding/hex"
 	"log"
+
+	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 )
-
-// MapODUserToUser ...
-func MapODUserToUser(i *models.ODUser) protocol.User {
-	o := protocol.User{}
-	o.DistinguishedName = i.DistinguishedName
-	o.DisplayName = i.DisplayName.String
-	o.Email = i.Email.String
-	return o
-}
-
-// MapODUsersToUsers converts an array of internal ODUsers model Users
-// into an array of API exposable protocol Objects
-func MapODUsersToUsers(i *[]models.ODUser) []protocol.User {
-	o := make([]protocol.User, len(*i))
-	for p, q := range *i {
-		o[p] = MapODUserToUser(&q)
-	}
-	return o
-}
 
 // MapODObjectToObject converts an internal ODObject model object into an API
 // exposable protocol Object
@@ -35,6 +17,57 @@ func MapODObjectToObject(i *models.ODObject) protocol.Object {
 	o.CreatedBy = i.CreatedBy
 	o.ModifiedDate = i.ModifiedDate
 	o.ModifiedBy = i.ModifiedBy
+	o.ChangeCount = i.ChangeCount
+	o.ChangeToken = i.ChangeToken
+	if i.OwnedBy.Valid {
+		o.OwnedBy = i.OwnedBy.String
+	} else {
+		o.OwnedBy = ""
+	}
+	o.TypeID = hex.EncodeToString(i.TypeID)
+	if i.TypeName.Valid {
+		o.TypeName = i.TypeName.String
+	} else {
+		o.TypeName = ""
+	}
+	o.Name = i.Name
+	if i.Description.Valid {
+		o.Description = i.Description.String
+	} else {
+		o.Description = ""
+	}
+	o.ParentID = hex.EncodeToString(i.ParentID)
+	if i.RawAcm.Valid {
+		o.RawAcm = i.RawAcm.String
+	} else {
+		o.RawAcm = ""
+	}
+	if i.ContentType.Valid {
+		o.ContentType = i.ContentType.String
+	} else {
+		o.ContentType = ""
+	}
+	if i.ContentSize.Valid {
+		o.ContentSize = i.ContentSize.Int64
+	} else {
+		o.ContentSize = 0
+	}
+	o.Properties = MapODPropertiesToProperties(&i.Properties)
+	o.Permissions = MapODPermissionsToPermissions(&i.Permissions)
+	return o
+}
+
+// MapODObjectToDeletedObject converts an internal ODObject model object into an
+// API exposable protocol DeletedObject
+func MapODObjectToDeletedObject(i *models.ODObject) protocol.DeletedObject {
+	o := protocol.DeletedObject{}
+	o.ID = hex.EncodeToString(i.ID)
+	o.CreatedDate = i.CreatedDate
+	o.CreatedBy = i.CreatedBy
+	o.ModifiedDate = i.ModifiedDate
+	o.ModifiedBy = i.ModifiedBy
+	o.DeletedDate = i.DeletedDate.Time
+	o.DeletedBy = i.DeletedBy.String
 	o.ChangeCount = i.ChangeCount
 	o.ChangeToken = i.ChangeToken
 	if i.OwnedBy.Valid {
