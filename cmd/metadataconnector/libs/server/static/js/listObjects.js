@@ -8,41 +8,77 @@ function newParent(id) {
   refreshListObjects();
 };
 
+function listUsers() {
+  return $.ajax({
+    url: '/service/metadataconnector/1.0/users',
+    contentType: 'application/json',
+    method: 'GET'
+  });
+};
+
 function refreshListObjects() {
   var url;
   var t = $('#listObjectResults');
-
   // remove children first
   $('#listObjectResults tbody > tr').remove();
-
-
   // choose correct listObjects URL
   if (__state.parentId === "") {
     url  = BASE_SERVICE_URL + 'objects';
   } else {
-    url = '/service/metadataconnector/1.0/object/' + __state.parentId + '/list'
+    url = BASE_SERVICE_URL + 'object/' + __state.parentId + '/list'
   }
-
-  console.log('Requesting...' + url);
-
   reqwest({
       url: url
     , method: 'post'
     , type: 'json'
     , contentType: 'application/json'
-    , data: { pageNumber: '1', pageSize: 20, parentId: __state.parentId }
+    , data: { pageNumber: 1, pageSize: 20, parentId: __state.parentId }
     , success: function (resp) {
+      $.when(listUsers()).done(function (userdata) {
+
+        __state.users = userdata[0];
+        __state.Objects = resp.Objects;
+
         $.each(resp.Objects, function(index, item){
-          // render each row
-          $('#listObjectResults').append(_renderListObjectRow(item));
+          $('#listObjectResults').append(_renderListObjectRow(index, item));
         })
-      }
+
+        }).then(function(){
+        // set up share handlers
+          for ( var i = 0; i < resp.Objects.length; i++ ) {
+            (function (_rowId, _obj) {
+              $(_rowId).siblings('.shareButton').click(function() {
+                var dn = $(_rowId).val();
+                doShare(_obj.id, dn)
+              })
+            })('#listObjectRow_' + i, __state.Objects[i])
+          }
+      });
+    }
   })
 };
 
-// Return a <tr> string suitable to append to table.
-function _renderListObjectRow(item) {
-  // Name	Type	Created Date	Created By	Size	ACM
+function refreshSharedWithMe() {
+  $('#listSharedWithMeResults tbody > tr').remove();
+  $.ajax({
+    url: BASE_SERVICE_URL + 'shares',
+    contentType: 'application/json',
+    method: 'GET',
+    success: function(resp) {
+      _renderSharedWithMeTable(resp.Objects);
+    }
+  });
+};
+
+
+function _renderSharedWithMeTable(objs) {
+  $.each(objs, function(index, item){
+    $('#listSharedWithMeResults').append(_renderSharedWithMeRow(index, item));
+  })
+}
+
+function _renderSharedWithMeRow(index, item) {
+
   var name = _renderObjectLink(item);
   var type = '<td>' + item.contentType + '</td>';
   var createdDate = '<td>' + item.createdDate + '</td>';
@@ -50,8 +86,64 @@ function _renderListObjectRow(item) {
   var size = '<td>' + item.contentSize + '</td>';
   var changeToken = '<td>' + item.changeToken + '</td>';
   var acm = '<td>' + item.acm + '</td>';
-  return '<tr>' + name + type + createdDate + createdBy + size + changeToken + acm + '</tr>'
+
+  return '<tr>' +
+     name + type + createdDate + createdBy + size + changeToken + acm +
+     '</tr>';
 }
+
+function doShare(objectId, userId, opts) {
+  if (!opts) {
+    opts = { create: true, read: true, update: true, delete: true}
+  }
+  var data = {
+    grantee: userId,
+    create: opts.create,
+    read: opts.read,
+    update: opts.update,
+    delete: opts.delete
+  };
+  $.ajax({
+    url: BASE_SERVICE_URL + 'object/' + objectId + '/share',
+    contentType: 'application/json',
+    method: 'POST',
+    data: JSON.stringify(data),
+    success: function(resp) {
+      refreshSharedWithMe();
+    }
+  });
+
+};
+
+// Return a <tr> string suitable to append to table.
+function _renderListObjectRow(index, item, elm) {
+
+  var rowId = 'listObjectRow_' + index;
+
+  var name = _renderObjectLink(item);
+  var type = '<td>' + item.contentType + '</td>';
+  var createdDate = '<td>' + item.createdDate + '</td>';
+  var createdBy = '<td>' + item.createdBy + '</td>';
+  var size = '<td>' + item.contentSize + '</td>';
+  var changeToken = '<td>' + item.changeToken + '</td>';
+  var acm = '<td>' + item.acm + '</td>';
+  var shareDropdown = _renderUsersDropdown(item, __state.users, rowId);
+  console.log('share dropdown');
+  console.log(shareDropdown);
+  return '<tr>' +
+     name + type + createdDate + createdBy + size + changeToken + acm + shareDropdown +
+     '</tr>';
+}
+
+function _renderUsersDropdown(obj, users, rowId) {
+  var sel = $('<select></select>');
+   sel.append($("<option>").attr('value', '').text('--'));
+  for ( i=0; i < users.length; i ++ ) {
+   sel.append($("<option>").attr('value', users[i].distinguishedName).text(users[i].distinguishedName.substring(3, 16)));
+  }
+  return '<td><select id="' + rowId + '">' + sel.html() + '</select><button class="shareButton">share</button></td>'
+};
+
 
 // Render a proper href, depending on whether an object is a folder or an object proper.
 function _renderObjectLink(item) {
@@ -89,18 +181,18 @@ function createObject() {
       formData.append("filestream", jsFileObject);
 
       $.ajax({
-      url: '/service/metadataconnector/1.0/object',
-      data: formData,
-      cache: false,
-      contentType: false,
-      processData: false,
-      method: 'POST',
-      success: function(data){
-        console.log("We did it!")
-        console.log(data);
-        refreshListObjects();
-      }
-  });
+        url: '/service/metadataconnector/1.0/object',
+        data: formData,
+        cache: false,
+        contentType: false,
+        processData: false,
+        method: 'POST',
+        success: function(data){
+          console.log("We did it!")
+          console.log(data);
+          refreshListObjects();
+        }
+      });
 }
 
 function createFolder() {
@@ -121,21 +213,24 @@ function createFolder() {
         refreshListObjects();
       }
   });
-
 }
+
+function shareTo() {};
 
 function init() {
   // Set up click handlers
   $("#submitCreateObject").click(createObject);
   $("#refreshListObjects").click(refreshListObjects);
   $("#submitCreateFolder").click(createFolder);
+  $("#refreshSharedWithMe").click(refreshSharedWithMe);
 
   // Get parentId from hidden field, if set.
   __state.parentId = $('#hiddenParentId').attr('data-value') || "";
-  console.log(__state);
+  __state.users = [];
+
   refreshListObjects();
+  refreshSharedWithMe();
+
 };
 
 $(document).ready(init);
-
-//window.onunload = init;

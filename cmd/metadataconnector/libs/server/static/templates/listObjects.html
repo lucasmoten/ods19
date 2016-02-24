@@ -1,61 +1,81 @@
 <!DOCTYPE html>
 <html lang='en'>
-  <head>
-    <title>Object-Drive</title>
-    <meta charset='utf-8'>
-    <base href="/service/metadataconnector/1.0" />
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
-        integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-beta1/jquery.js"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/reqwest/2.0.5/reqwest.js"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/then-request/2.1.1/request.js"></script>
-    <script src="/service/metadataconnector/1.0/static/js/listObjects.js"></script>
-  </head>
-	<body>
-    <a href="">Return Home</a>
-    <p>
-		{{ .DistinguishedName }}
-  </p>
-  <div id="hiddenParentId" type="hidden" data-value="{{ .ParentID }}" ></div>
-  <h1>List Objects</h1>
-  <!-- results table -->
-  <div>
-  <table class="table" id="listObjectResults">
-    <thead>
-    <tr><td>Name</td><td>Type</td><td>Created Date</td><td>Created By</td><td>Size</td><td>ChangeToken</td><td>ACM</td></tr>
-    </thead>
-  <tbody>
-  </tbody>
-  </table>
-  <button id="refreshListObjects">Refresh</button>
-  <div>
-
-
-  <h1>Shared With Others</h1>
-  <div>
-  </div>
-
-  <h1>Create Folder</h1>
-  <div>
-  <form >
-    <input id="folderNameInput"  type="text"  />
-  </form>
-  <button id="submitCreateFolder">Submit</button>
-  </div>
-<!-- create object form -->
-  <h1>Create Object</h1>
-<div>
-  <form >
-    <input id="newObjectName"  type="text"  />
-    <select id="classification"  type="select">
-      <option value="U">UNCLASSIFIED</option>
-      <option value="C">CLASSIFIED</option>
-      <option value="S">SECRET</option>
-      <option value="T">TOP SECRET</option>
-  </select>
-    <input id="fileHandle"  type="file" name="filestream"/>
-  </form>
-  <button id="submitCreateObject">Submit</button>
-</div>
-
-
-  </body>
+   <head>
+      <title>Object-Drive</title>
+      <meta charset='utf-8'>
+      <base href="/service/metadataconnector/1.0" />
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
+         integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-beta1/jquery.js"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/reqwest/2.0.5/reqwest.js"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/then-request/2.1.1/request.js"></script>
+      <script src="/service/metadataconnector/1.0/static/js/listObjects.js"></script>
+   </head>
+   <body>
+     <div class="container-fluid">
+      <a href="">Return Home</a>
+      <p>
+         {{ .DistinguishedName }}
+      </p>
+      <div id="hiddenParentId" type="hidden" data-value="{{ .ParentID }}" ></div>
+      <h1>List Objects</h1>
+      <!-- results table -->
+      <div>
+         <table class="table" id="listObjectResults">
+            <thead>
+               <tr>
+                  <td>Name</td>
+                  <td>Type</td>
+                  <td>Created Date</td>
+                  <td>Created By</td>
+                  <td>Size</td>
+                  <td>ACM</td>
+                  <td>Share To</td>
+               </tr>
+            </thead>
+            <tbody>
+            </tbody>
+         </table>
+         <button id="refreshListObjects">Refresh</button>
+      </div>
+      <h1>Shared With Me</h1>
+      <div>
+         <table class="table" id="listSharedWithMeResults">
+            <thead>
+               <tr>
+                  <td>Name</td>
+                  <td>Type</td>
+                  <td>Created Date</td>
+                  <td>Created By</td>
+                  <td>Size</td>
+                  <td>ACM</td>
+               </tr>
+            </thead>
+            <tbody>
+            </tbody>
+         </table>
+         <button id="refreshSharedWithMe">Refresh</button>
+      </div>
+      <h1>Create Folder</h1>
+      <div>
+         <form >
+            <input id="folderNameInput"  type="text"  />
+         </form>
+         <button id="submitCreateFolder">Submit</button>
+      </div>
+      <!-- create object form -->
+      <h1>Create Object</h1>
+      <div>
+         <form >
+            <input id="newObjectName"  type="text"  />
+            <select id="classification"  type="select">
+               <option value="U">UNCLASSIFIED</option>
+               <option value="C">CLASSIFIED</option>
+               <option value="S">SECRET</option>
+               <option value="T">TOP SECRET</option>
+            </select>
+            <input id="fileHandle"  type="file" name="filestream"/>
+         </form>
+         <button id="submitCreateObject">Submit</button>
+      </div>
+    </div>
+   </body>
 </html>
