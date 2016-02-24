@@ -1,6 +1,10 @@
 package dao
 
-import "decipher.com/oduploader/metadata/models"
+import (
+	"errors"
+
+	"decipher.com/oduploader/metadata/models"
+)
 
 // FakeDAO is suitable for tests. Add fields to this struct to hold fake
 // reponses for each of the methods that FakeDAO will implement. These fake
@@ -89,8 +93,13 @@ func (fake *FakeDAO) GetChildObjectsWithPropertiesByUser(
 
 // GetUserByDistinguishedName for FakeDAO.
 func (fake *FakeDAO) GetUserByDistinguishedName(user *models.ODUser) (*models.ODUser, error) {
-	fake.User.ModifiedBy = user.DistinguishedName
-	return fake.User, fake.Err
+	for _, u := range fake.Users {
+		if user.DistinguishedName == u.DistinguishedName {
+			u.ModifiedBy = u.DistinguishedName
+			return &u, nil
+		}
+	}
+	return fake.User, errors.New("DistinguishedName not found in fake.Users slice. Did you set it on the fake?")
 
 }
 
