@@ -1,30 +1,12 @@
 package mapping
 
 import (
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/protocol"
 	"encoding/hex"
 	"log"
+
+	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 )
-
-// MapODUserToUser ...
-func MapODUserToUser(i *models.ODUser) protocol.User {
-	o := protocol.User{}
-	o.DistinguishedName = i.DistinguishedName
-	o.DisplayName = i.DisplayName.String
-	o.Email = i.Email.String
-	return o
-}
-
-// MapODUsersToUsers converts an array of internal ODUsers model Users
-// into an array of API exposable protocol Objects
-func MapODUsersToUsers(i *[]models.ODUser) []protocol.User {
-	o := make([]protocol.User, len(*i))
-	for p, q := range *i {
-		o[p] = MapODUserToUser(&q)
-	}
-	return o
-}
 
 // MapODObjectToObject converts an internal ODObject model object into an API
 // exposable protocol Object

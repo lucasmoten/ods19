@@ -38,7 +38,7 @@ func (h AppServer) deleteObject(w http.ResponseWriter, r *http.Request, caller C
 	authorizedToDelete := false
 	for _, permission := range dbObject.Permissions {
 		if permission.Grantee == caller.DistinguishedName &&
-			permission.AllowDelete && permission.AllowUpdate {
+			permission.AllowDelete {
 			authorizedToDelete = true
 			break
 		}
@@ -63,6 +63,7 @@ func (h AppServer) deleteObject(w http.ResponseWriter, r *http.Request, caller C
 		// Call metadata connector to update the object to reflect that it is
 		// deleted.  The DAO checks the changeToken and handles the child calls
 		dbObject.ModifiedBy = caller.DistinguishedName
+		dbObject.ChangeToken = requestObject.ChangeToken
 		err = h.DAO.DeleteObject(dbObject, true)
 		if err != nil {
 			h.sendErrorResponse(w, 500, err, "DAO Error deleting object")
@@ -71,7 +72,7 @@ func (h AppServer) deleteObject(w http.ResponseWriter, r *http.Request, caller C
 	}
 
 	// Response in requested format
-	apiResponse := mapping.MapODObjectToObject(dbObject)
+	apiResponse := mapping.MapODObjectToDeletedObjectResponse(dbObject)
 	deleteObjectResponse(w, r, caller, &apiResponse)
 
 }
@@ -107,7 +108,7 @@ func deleteObjectResponse(
 	w http.ResponseWriter,
 	r *http.Request,
 	caller Caller,
-	response *protocol.Object,
+	response *protocol.DeletedObjectResponse,
 ) {
 	w.Header().Set("Content-Type", "application/json")
 
