@@ -1,10 +1,12 @@
 package dao
 
 import (
-	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
-	"decipher.com/oduploader/metadata/models"
+	"errors"
 	"fmt"
 	"log"
+
+	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
+	"decipher.com/oduploader/metadata/models"
 )
 
 // UpdateObject uses the passed in object and acm configuration and makes the
@@ -12,6 +14,33 @@ import (
 // changing properties and permissions associated.
 func (dao *DataAccessLayer) UpdateObject(object *models.ODObject, acm *models.ODACM) error {
 
+	// Pre-DB Validation
+	if object.ID == nil {
+		return errors.New("Object ID was not specified for object being updated")
+	}
+	if object.ChangeToken == "" {
+		return errors.New("Object ChangeToken was not specified for object being updated")
+	}
+	if object.ModifiedBy == "" {
+		return errors.New("Object ModifiedBy was not specified for object being updated")
+	}
+
+	// Fetch current state of object
+	dbObject, err := dao.GetObject(object, false)
+	if err != nil {
+		return fmt.Errorf("UpdateObject Error retrieving object, %s", err.Error())
+	}
+	// Check if changeToken matches
+	if object.ChangeToken != dbObject.ChangeToken {
+		return fmt.Errorf("Object ChangeToken does not match expected value %s", dbObject.ChangeToken)
+	}
+	// Check if deleted
+	if dbObject.IsDeleted {
+		// NOOP
+		return nil
+	}
+
+	tx := dao.MetadataDB.MustBegin()
 	// lookup type, assign its id to the object for reference
 	if object.TypeID == nil {
 		objectType, err := dao.GetObjectTypeByName(object.TypeName.String, true, object.CreatedBy)
@@ -51,7 +80,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject, acm *models.OD
 
 	// Retrieve current state of object from database to reflect alterations to..
 	// ModifiedDate, ChangeToken, ChangeCount
-	dbObject, err := dao.GetObject(object, true)
+	dbObject, err = dao.GetObject(object, true)
 	if err != nil {
 		return fmt.Errorf("UpdateObject Error retrieving object, %s", err.Error())
 	}
@@ -166,12 +195,13 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject, acm *models.OD
 			}
 		}
 	}
-
+	tx.Commit()
 	// Refetch object again with properties and permissions
-	object, err = dao.GetObject(object, true)
+	dbObject, err = dao.GetObject(object, true)
 	if err != nil {
 		return fmt.Errorf("UpdateObject Error retrieving object %v, %s", object, err.Error())
 	}
+	object = dbObject
 
 	return nil
 }
