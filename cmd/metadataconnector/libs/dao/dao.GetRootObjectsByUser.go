@@ -49,10 +49,18 @@ func (dao *DataAccessLayer) GetRootObjectsByUser(
 	if err != nil {
 		print(err.Error())
 	}
-	response.PageNumber = pageNumber
-	response.PageSize = pageSize
+	response.PageNumber = GetSanitizedPageNumber(pageNumber)
+	response.PageSize = GetSanitizedPageSize(pageSize)
 	response.PageRows = len(response.Objects)
-	response.PageCount = GetPageCount(response.TotalRows, pageSize)
+	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	tx.Rollback()
+	for i := 0; i < len(response.Objects); i++ {
+		permissions, err := dao.GetPermissionsForObject(&response.Objects[i])
+		if err != nil {
+			print(err.Error())
+			return response, err
+		}
+		response.Objects[i].Permissions = permissions
+	}
 	return response, err
 }
