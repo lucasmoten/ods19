@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"log"
 
+	"github.com/jmoiron/sqlx"
+
 	"decipher.com/oduploader/metadata/models"
 )
 
@@ -11,8 +13,19 @@ import (
 // retrieved and the user passed in by reference is updated with the remaining
 // attributes.
 func (dao *DataAccessLayer) CreateUser(user *models.ODUser) (*models.ODUser, error) {
+	tx := dao.MetadataDB.MustBegin()
+	dbUser, err := createUserInTransaction(tx, user)
+	if err != nil {
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return dbUser, err
+}
+
+func createUserInTransaction(tx *sqlx.Tx, user *models.ODUser) (*models.ODUser, error) {
 	var dbUser *models.ODUser
-	addUserStatement, err := dao.MetadataDB.Prepare(
+	addUserStatement, err := tx.Prepare(
 		`insert user set createdBy = ?, distinguishedName = ?, displayName = ?, email = ?`)
 	if err != nil {
 		return dbUser, err
@@ -23,7 +36,7 @@ func (dao *DataAccessLayer) CreateUser(user *models.ODUser) (*models.ODUser, err
 		// Possible race condition here... Distinguished Name must be unique, and if
 		// a parallel request is adding them then this attempt to insert will fail.
 		// Attempt to retrieve them
-		dbUser, err = dao.GetUserByDistinguishedName(user)
+		dbUser, err = getUserByDistinguishedNameInTransaction(tx, user)
 		if err != nil {
 			return dbUser, err
 		}
@@ -38,7 +51,7 @@ func (dao *DataAccessLayer) CreateUser(user *models.ODUser) (*models.ODUser, err
 		log.Printf("No rows were added when inserting the user!")
 	}
 	// Get the newly added user
-	dbUser, err = dao.GetUserByDistinguishedName(user)
+	dbUser, err = getUserByDistinguishedNameInTransaction(tx, user)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Printf("User was not found even after just adding: %s", err.Error())

@@ -147,7 +147,10 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 		log.Printf("Right before update")
 		log.Printf("148 request id: %s, token: %s, count %d", hex.EncodeToString(requestObject.ID), requestObject.ChangeToken, requestObject.ChangeCount)
 		log.Printf("149 dboject id: %s, token: %s, count %d", hex.EncodeToString(dbObject.ID), dbObject.ChangeToken, dbObject.ChangeCount)
-		h.DAO.UpdateObject(dbObject, nil)
+		err = h.DAO.UpdateObject(dbObject, nil)
+		if err != nil {
+			log.Printf("Error updating object: %v", err)
+		}
 		log.Printf("Right after update")
 		log.Printf("152 request id: %s, token: %s, count %d", hex.EncodeToString(requestObject.ID), requestObject.ChangeToken, requestObject.ChangeCount)
 		log.Printf("153 dboject id: %s, token: %s, count %d", hex.EncodeToString(dbObject.ID), dbObject.ChangeToken, dbObject.ChangeCount)

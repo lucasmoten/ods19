@@ -3,6 +3,8 @@ package dao
 import (
 	"errors"
 
+	"github.com/jmoiron/sqlx"
+
 	"decipher.com/oduploader/metadata/models"
 )
 
@@ -10,6 +12,17 @@ import (
 // grant, and permissions.
 func (dao *DataAccessLayer) AddPermissionToObject(createdBy string, object *models.ODObject, permission *models.ODObjectPermission) error {
 	tx := dao.MetadataDB.MustBegin()
+	err := addPermissionToObjectInTransaction(tx, createdBy, object, permission)
+	if err != nil {
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return err
+}
+
+func addPermissionToObjectInTransaction(tx *sqlx.Tx, createdBy string, object *models.ODObject, permission *models.ODObjectPermission) error {
+
 	// Setup the statement
 	addPermissionStatement, err := tx.Prepare(`insert object_permission set createdby = ?, objectId = ?, grantee = ?, allowCreate = ?, allowRead = ?, allowUpdate = ?, allowDelete = ?, encryptKey = ?`)
 	if err != nil {
@@ -42,7 +55,6 @@ func (dao *DataAccessLayer) AddPermissionToObject(createdBy string, object *mode
 	if err != nil {
 		return err
 	}
-	tx.Commit()
 
 	return nil
 }

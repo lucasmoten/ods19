@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/jmoiron/sqlx"
+
 	"decipher.com/oduploader/metadata/models"
 )
 
@@ -12,8 +14,19 @@ import (
 // the object type must exist.  Once added, the record is retrieved and the
 // object type passed in by reference is updated with the remaining attributes
 func (dao *DataAccessLayer) CreateObjectType(objectType *models.ODObjectType) error {
+	tx := dao.MetadataDB.MustBegin()
+	err := createObjectTypeInTransaction(tx, objectType)
+	if err != nil {
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return err
+}
 
-	addObjectTypeStatement, err := dao.MetadataDB.Prepare(
+func createObjectTypeInTransaction(tx *sqlx.Tx, objectType *models.ODObjectType) error {
+
+	addObjectTypeStatement, err := tx.Prepare(
 		`insert object_type set createdBy = ?, name = ?, description = ?, contentConnector = ?`)
 	if err != nil {
 		return fmt.Errorf("CreateObjectType error preparing add object type statement, %s", err.Error())
@@ -34,7 +47,7 @@ func (dao *DataAccessLayer) CreateObjectType(objectType *models.ODObjectType) er
 	// Get the ID of the newly created object type and assign to passed in objectType
 	getObjectTypeStatement := `select * from object_type where createdBy = ?
   and name = ? and isdeleted = 0 order by createdDate desc limit 1`
-	err = dao.MetadataDB.Get(objectType, getObjectTypeStatement, objectType.CreatedBy, objectType.Name)
+	err = tx.Get(objectType, getObjectTypeStatement, objectType.CreatedBy, objectType.Name)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return fmt.Errorf("CreateObjectType type was not found even after just adding it!, %s", err.Error())
