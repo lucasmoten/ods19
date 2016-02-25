@@ -26,7 +26,7 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 	case r.Header.Get("Content-Type") == "application/json":
 		requestObject, requestACM, err = parseCreateFolderRequestAsJSON(r)
 		if err != nil {
-			h.sendErrorResponse(w, 500, err, "Error parsing JSON")
+			h.sendErrorResponse(w, 400, err, "Error parsing JSON")
 			return
 		}
 		log.Println("Logging createFolder JSON request:")
@@ -143,7 +143,7 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 	// Add to database
 	err = h.DAO.CreateObject(requestObject, requestACM)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "DAO Error updating object")
+		h.sendErrorResponse(w, 500, err, "DAO Error creating object")
 		return
 	}
 

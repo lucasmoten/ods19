@@ -19,7 +19,7 @@ func (h AppServer) getObject(w http.ResponseWriter, r *http.Request, caller Call
 
 	requestObject, err = parseGetObjectRequest(r)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Error parsing URI")
+		h.sendErrorResponse(w, 400, err, "Error parsing URI")
 		return
 	}
 
