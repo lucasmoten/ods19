@@ -81,9 +81,20 @@ func (dao *DataAccessLayer) ExpungeObject(object *models.ODObject, explicit bool
 	// Process children
 	resultset, err := dao.GetChildObjects("", 1, 10000, dbObject)
 	for i := 0; i < len(resultset.Objects); i++ {
-		err = dao.ExpungeObject(&resultset.Objects[i], false)
-		if err != nil {
-			return err
+		authorizedToDelete := false
+		for _, permission := range resultset.Objects[i].Permissions {
+			if permission.Grantee == object.ModifiedBy &&
+				permission.AllowDelete {
+				authorizedToDelete = true
+				break
+			}
+		}
+		if authorizedToDelete {
+			resultset.Objects[i].ModifiedBy = object.ModifiedBy
+			err = dao.ExpungeObject(&resultset.Objects[i], false)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

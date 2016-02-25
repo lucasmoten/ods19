@@ -129,7 +129,7 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 	// Add to database
 	err = h.DAO.CreateObject(requestObject, requestACM)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "DAO Error updating object")
+		h.sendErrorResponse(w, 500, err, "DAO Error creating object")
 		return
 	}
 

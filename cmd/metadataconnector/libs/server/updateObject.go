@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -111,11 +112,23 @@ func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller C
 
 	// After the update, check that key values have changed...
 	if requestObject.ChangeCount <= dbObject.ChangeCount {
-		h.sendErrorResponse(w, 500, nil, "ChangeCount didn't update when processing request")
+		if requestObject.ID == nil {
+			log.Println("requestObject.ID = nil")
+		}
+		if dbObject.ID == nil {
+			log.Println("dbObject.ID = nil")
+		}
+		log.Println(hex.EncodeToString(requestObject.ID))
+		log.Println(hex.EncodeToString(dbObject.ID))
+
+		msg := fmt.Sprintf("old changeCount: %d, new changeCount: %d, req id: %s, db id: %s", requestObject.ChangeCount, dbObject.ChangeCount, hex.EncodeToString(requestObject.ID), hex.EncodeToString(dbObject.ID))
+		log.Println(msg)
+		h.sendErrorResponse(w, 500, nil, "ChangeCount didn't update when processing request "+msg)
 		return
 	}
 	if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) == 0 {
-		h.sendErrorResponse(w, 500, nil, "ChangeToken didn't update when processing request")
+		msg := fmt.Sprintf("old token: %s, new token: %s", requestObject.ChangeToken, dbObject.ChangeToken)
+		h.sendErrorResponse(w, 500, nil, "ChangeToken didn't update when processing request "+msg)
 		return
 	}
 

@@ -143,13 +143,13 @@ func TestDeleteWithChildObject(t *testing.T) {
 	objChangeToken.ChangeToken = folder2.ChangeToken
 	jsonBody, err := json.Marshal(objChangeToken)
 	if err != nil {
-		log.Printf("Unable to marshal json for request:%v", err)
+		log.Printf("moving folder Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
 	req, err := http.NewRequest("PUT", moveuri, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
+		log.Printf("moving folderError setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
 	// do the request
@@ -157,19 +157,19 @@ func TestDeleteWithChildObject(t *testing.T) {
 	client := &http.Client{Transport: transport}
 	res, err := client.Do(req)
 	if err != nil {
-		log.Printf("Unable to do request:%v", err)
+		log.Printf("moving folder Unable to do request:%v", err)
 		t.FailNow()
 	}
 	// process Response
 	if res.StatusCode != http.StatusOK {
-		log.Printf("bad status: %s", res.Status)
+		log.Printf("moving folder bad status: %s", res.Status)
 		t.FailNow()
 	}
 	decoder := json.NewDecoder(res.Body)
 	var updatedFolder protocol.Object
 	err = decoder.Decode(&updatedFolder)
 	if err != nil {
-		log.Printf("Error decoding json to Object: %v", err)
+		log.Printf("moving folder Error decoding json to Object: %v", err)
 		log.Println()
 		t.FailNow()
 	}
@@ -189,31 +189,31 @@ func TestDeleteWithChildObject(t *testing.T) {
 	objChangeToken.ChangeToken = folder1.ChangeToken
 	jsonBody, err = json.Marshal(objChangeToken)
 	if err != nil {
-		log.Printf("Unable to marshal json for request:%v", err)
+		log.Printf("deleting folder Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
 	req, err = http.NewRequest("DELETE", deleteuri, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
+		log.Printf("deleting folder Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
 	// do the request
 	res, err = client.Do(req)
 	if err != nil {
-		log.Printf("Unable to do request:%v", err)
+		log.Printf("deleting folder Unable to do request:%v", err)
 		t.FailNow()
 	}
 	// process Response
 	if res.StatusCode != http.StatusOK {
-		log.Printf("bad status: %s", res.Status)
+		log.Printf("deleting folder bad status: %s", res.Status)
 		t.FailNow()
 	}
 	decoder = json.NewDecoder(res.Body)
 	var deletedFolder protocol.Object
 	err = decoder.Decode(&deletedFolder)
 	if err != nil {
-		log.Printf("Error decoding json to Object: %v", err)
+		log.Printf("deleting folder Error decoding json to Object: %v", err)
 		log.Println()
 		t.FailNow()
 	}
