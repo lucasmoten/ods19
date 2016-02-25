@@ -1,13 +1,14 @@
 package server
 
 import (
-	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"io"
 	"log"
 	"net/http"
 	"regexp"
-	"strings"
+	"strconv"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
@@ -33,25 +34,21 @@ import (
 // TODO: Convert response to JSON
 func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Caller) {
 
-	var parentObject *models.ODObject
+	parentObject := models.ODObject{}
 	var pagingRequest *protocol.PagingRequest
 	var err error
 
-	// Parse Request in sent format
-	switch {
-	case r.Header.Get("Content-Type") == "application/json":
-		parentObject, pagingRequest, err = parseListObjectsRequestAsJSON(r)
-		if err != nil {
-			h.sendErrorResponse(w, 500, err, "Error parsing JSON")
-			return
-		}
-	default:
-		h.sendErrorResponse(w, 500, err, "Unsupported request type. Send application/json.")
-	}
+	// Parse Request
 
-	// TODO better way to handle JS passing empty string?
-	if string(parentObject.ID) == "" {
+	pagingRequest, err = parseListObjectsRequest(r)
+	if err != nil {
+		h.sendErrorResponse(w, 400, err, "Error parsing request")
+		return
+	}
+	if len(pagingRequest.ParentID) == 0 {
 		parentObject.ID = nil
+	} else {
+		parentObject.ID, _ = hex.DecodeString(pagingRequest.ParentID)
 	}
 
 	// Fetch the matching objects
@@ -66,7 +63,7 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 		)
 	} else {
 		// Requesting children of an object. Load parent first.
-		dbObject, err := h.DAO.GetObject(parentObject, false)
+		dbObject, err := h.DAO.GetObject(&parentObject, false)
 		if err != nil {
 			log.Println(err)
 			h.sendErrorResponse(w, 500, err, "Error retrieving object")
@@ -104,7 +101,7 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 			"createddate desc",
 			pagingRequest.PageNumber,
 			pagingRequest.PageSize,
-			parentObject,
+			&parentObject,
 			caller.DistinguishedName,
 		)
 	}
@@ -122,89 +119,60 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 
 //XXX Note that you don't need multipart/form-data for anything that won't be uploading files.
 //Just leave off enctype for a trivial parameter encoding to make this ugly multipart parse go away.
-func parseListObjectsRequestAsJSON(r *http.Request) (*models.ODObject, *protocol.PagingRequest, error) {
-	var jsonObject protocol.Object
+func parseListObjectsRequest(r *http.Request) (*protocol.PagingRequest, error) {
 	var jsonPaging protocol.PagingRequest
 	jsonPaging.PageNumber = 1
 	jsonPaging.PageSize = 20
 	var err error
 
-	switch {
-	case r.Header.Get("Content-Type") == "application/json":
-		err = (json.NewDecoder(r.Body)).Decode(&jsonPaging)
-		if err != nil {
-			// TODO: log it?
-			// but this is paging, so goto defaults and reset the Error
-			jsonPaging.PageNumber = 1
-			jsonPaging.PageSize = 20
-			err = nil
+	// TODO: Determine what happens if there is no body. Does the Decode fail?
+	err = (json.NewDecoder(r.Body)).Decode(&jsonPaging)
+	if err != nil {
+		if err != io.EOF {
+			log.Printf("Error parsing paging information in json: %v", err)
+			return &jsonPaging, err
 		}
-	case r.Header.Get("Content-Type") == "multipart/form-data":
-		r.ParseForm()
-		multipartReader, err := r.MultipartReader()
-		if err != nil {
-			// TODO: log it?
-			// but this is paging, so goto defaults and reset the Error
-			jsonPaging.PageNumber = 1
-			jsonPaging.PageSize = 20
-			err = nil
-		} else {
-			for {
-				part, err := multipartReader.NextPart()
-				if err != nil {
-					// TODO: log it?
-					// but this is paging, so goto defaults and reset the Error
-					jsonPaging.PageNumber = 1
-					jsonPaging.PageSize = 20
-					err = nil
-				} else {
-					switch {
-					case part.Header.Get("Content-Type") == "application/json":
-
-						// Read in the JSON - up to 10K
-						valueAsBytes := make([]byte, 10240)
-						n, err := part.Read(valueAsBytes)
-						if err != nil {
-							// TODO: log it?
-							// but this is paging, so goto defaults and reset the Error
-							jsonPaging.PageNumber = 1
-							jsonPaging.PageSize = 20
-							err = nil
-						} else {
-							err = (json.NewDecoder(bytes.NewReader(valueAsBytes[0:n]))).Decode(&jsonPaging)
-							if err != nil {
-								// TODO: log it?
-								// but this is paging, so goto defaults and reset the Error
-								jsonPaging.PageNumber = 1
-								jsonPaging.PageSize = 20
-								err = nil
-							}
-						}
-					case part.Header.Get("Content-Disposition") == "form-data":
-						// TODO: Maybe these header checks need to be if the value begins with?
-						// Will we ever use this? We are not posting a new object.
-					}
-				}
-			}
-		}
+		// EOF ok. Reassign defaults and reset the error
+		jsonPaging.PageNumber = 1
+		jsonPaging.PageSize = 20
+		err = nil
 	}
 
-	// Portions from the request URI itself ...
-	uri := r.URL.RequestURI()
+	// Portions from the request path itself to pick up object ID to list children
+	// Note that a call to /objects will not match, and hence the ID wont be set
+	uri := r.URL.Path
 	re, _ := regexp.Compile("/object/(.*)/list")
 	matchIndexes := re.FindStringSubmatchIndex(uri)
 	if len(matchIndexes) != 0 {
 		if len(matchIndexes) > 3 {
-			jsonObject.ID = uri[matchIndexes[2]:matchIndexes[3]]
+			jsonPaging.ParentID = uri[matchIndexes[2]:matchIndexes[3]]
+			_, err := hex.DecodeString(jsonPaging.ParentID)
 			if err != nil {
-				return nil, nil, errors.New("Object Identifier in Request URI is not a hex string")
+				return &jsonPaging, errors.New("Object Identifier in Request URI is not a hex string")
 			}
 		}
 	}
 
+	// Paging provided as querystring arguments
+	sPageNumber := r.URL.Query().Get("PageNumber")
+	sPageSize := r.URL.Query().Get("PageSize")
+	pageNumber, errPageNumber := strconv.Atoi(sPageNumber)
+	if errPageNumber == nil && pageNumber > 0 {
+		jsonPaging.PageNumber = pageNumber
+	}
+	pageSize, errPageSize := strconv.Atoi(sPageSize)
+	if errPageSize == nil && pageSize > 0 {
+		jsonPaging.PageSize = pageSize
+	}
+	if jsonPaging.PageNumber <= 0 {
+		jsonPaging.PageNumber = 1
+	}
+	if jsonPaging.PageSize <= 0 {
+		jsonPaging.PageSize = 20
+	}
+
 	// Map to internal object type
-	object := mapping.MapObjectToODObject(&jsonObject)
-	return &object, &jsonPaging, err
+	return &jsonPaging, err
 }
 
 func listObjectsResponseAsJSON(
@@ -220,9 +188,4 @@ func listObjectsResponseAsJSON(
 		return
 	}
 	w.Write(jsonData)
-}
-
-func extractCNfromDN(dn string) (cn string) {
-	cn = dn[strings.Index(dn, "=")+1 : strings.Index(dn, ",")]
-	return
 }

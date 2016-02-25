@@ -26,7 +26,7 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 	case r.Header.Get("Content-Type") == "application/json":
 		requestObject, err = parseMoveObjectRequestAsJSON(r)
 		if err != nil {
-			h.sendErrorResponse(w, 500, err, "Error parsing JSON")
+			h.sendErrorResponse(w, 400, err, "Error parsing JSON")
 			return
 		}
 	default:
