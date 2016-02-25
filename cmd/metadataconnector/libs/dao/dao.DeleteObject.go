@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+
 	"decipher.com/oduploader/metadata/models"
 )
 
@@ -19,7 +21,17 @@ import (
 //      whose purpose is to mark child items as implicitly deleted due to an
 //      ancestor being deleted.
 func (dao *DataAccessLayer) DeleteObject(object *models.ODObject, explicit bool) error {
+	tx := dao.MetadataDB.MustBegin()
+	err := deleteObjectInTransaction(tx, object, explicit)
+	if err != nil {
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return err
+}
 
+func deleteObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, explicit bool) error {
 	// Pre-DB Validation
 	if object.ID == nil {
 		return errors.New("Object ID was not specified for object being deleted")
@@ -29,7 +41,7 @@ func (dao *DataAccessLayer) DeleteObject(object *models.ODObject, explicit bool)
 	}
 
 	// Fetch object
-	dbObject, err := dao.GetObject(object, false)
+	dbObject, err := getObjectInTransaction(tx, object, false)
 	if err != nil {
 		return err
 	}
@@ -52,7 +64,7 @@ func (dao *DataAccessLayer) DeleteObject(object *models.ODObject, explicit bool)
 	dbObject.DeletedBy.String = dbObject.ModifiedBy
 	dbObject.DeletedBy.Valid = true
 	dbObject.IsAncestorDeleted = !explicit
-	updateObjectStatement, err := dao.MetadataDB.Prepare(`
+	updateObjectStatement, err := tx.Prepare(`
     update object set modifiedby = ?,
 		isdeleted = ?, deleteddate = ?, deletedby = ?,
 		isancestordeleted = ? where id = ?`)
@@ -67,7 +79,7 @@ func (dao *DataAccessLayer) DeleteObject(object *models.ODObject, explicit bool)
 	}
 
 	// Process children
-	resultset, err := dao.GetChildObjects("", 1, 10000, dbObject)
+	resultset, err := getChildObjectsInTransaction(tx, "", 1, 10000, dbObject)
 	for i := 0; i < len(resultset.Objects); i++ {
 		if !resultset.Objects[i].IsAncestorDeleted {
 			authorizedToDelete := false
@@ -80,7 +92,7 @@ func (dao *DataAccessLayer) DeleteObject(object *models.ODObject, explicit bool)
 			}
 			if authorizedToDelete {
 				resultset.Objects[i].ModifiedBy = object.ModifiedBy
-				err = dao.DeleteObject(&resultset.Objects[i], false)
+				err = deleteObjectInTransaction(tx, &resultset.Objects[i], false)
 				if err != nil {
 					return err
 				}

@@ -3,6 +3,8 @@ package dao
 import (
 	"strconv"
 
+	"github.com/jmoiron/sqlx"
+
 	"decipher.com/oduploader/metadata/models"
 )
 
@@ -12,6 +14,17 @@ import (
 func (dao *DataAccessLayer) GetRootObjectsByUser(
 	orderByClause string, pageNumber int, pageSize int, user string) (models.ODObjectResultset, error) {
 	tx := dao.MetadataDB.MustBegin()
+	response, err := getRootObjectsByUserInTransaction(tx, orderByClause, pageNumber, pageSize, user)
+	if err != nil {
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return response, err
+}
+
+func getRootObjectsByUserInTransaction(tx *sqlx.Tx, orderByClause string, pageNumber int, pageSize int, user string) (models.ODObjectResultset, error) {
+
 	response := models.ODObjectResultset{}
 	limit := GetLimit(pageNumber, pageSize)
 	offset := GetOffset(pageNumber, pageSize)
@@ -53,9 +66,8 @@ func (dao *DataAccessLayer) GetRootObjectsByUser(
 	response.PageSize = GetSanitizedPageSize(pageSize)
 	response.PageRows = len(response.Objects)
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
-	tx.Rollback()
 	for i := 0; i < len(response.Objects); i++ {
-		permissions, err := dao.GetPermissionsForObject(&response.Objects[i])
+		permissions, err := getPermissionsForObjectInTransaction(tx, &response.Objects[i])
 		if err != nil {
 			print(err.Error())
 			return response, err

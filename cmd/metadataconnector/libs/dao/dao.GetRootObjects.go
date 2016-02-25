@@ -3,13 +3,25 @@ package dao
 import (
 	"strconv"
 
+	"github.com/jmoiron/sqlx"
+
 	"decipher.com/oduploader/metadata/models"
 )
 
 // GetRootObjects retrieves a list of Objects that are not nested
 // beneath any other objects natively (natural parentId is null).
 func (dao *DataAccessLayer) GetRootObjects(orderByClause string, pageNumber int, pageSize int) (models.ODObjectResultset, error) {
+	tx := dao.MetadataDB.MustBegin()
+	response, err := getRootObjectsInTransaction(tx, orderByClause, pageNumber, pageSize)
+	if err != nil {
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return response, err
+}
 
+func getRootObjectsInTransaction(tx *sqlx.Tx, orderByClause string, pageNumber int, pageSize int) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	limit := GetLimit(pageNumber, pageSize)
 	offset := GetOffset(pageNumber, pageSize)
@@ -22,11 +34,11 @@ func (dao *DataAccessLayer) GetRootObjects(orderByClause string, pageNumber int,
 		query += ` order by o.createddate desc`
 	}
 	query += ` limit ` + strconv.Itoa(limit) + ` offset ` + strconv.Itoa(offset)
-	err := dao.MetadataDB.Select(&response.Objects, query)
+	err := tx.Select(&response.Objects, query)
 	if err != nil {
 		print(err.Error())
 	}
-	err = dao.MetadataDB.Get(&response.TotalRows, "select found_rows()")
+	err = tx.Get(&response.TotalRows, "select found_rows()")
 	if err != nil {
 		print(err.Error())
 	}
@@ -35,7 +47,7 @@ func (dao *DataAccessLayer) GetRootObjects(orderByClause string, pageNumber int,
 	response.PageRows = len(response.Objects)
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	for i := 0; i < len(response.Objects); i++ {
-		permissions, err := dao.GetPermissionsForObject(&response.Objects[i])
+		permissions, err := getPermissionsForObjectInTransaction(tx, &response.Objects[i])
 		if err != nil {
 			print(err.Error())
 			return response, err

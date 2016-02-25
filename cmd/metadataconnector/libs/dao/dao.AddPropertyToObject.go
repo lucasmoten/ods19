@@ -3,6 +3,8 @@ package dao
 import (
 	"errors"
 
+	"github.com/jmoiron/sqlx"
+
 	"decipher.com/oduploader/metadata/models"
 )
 
@@ -10,6 +12,16 @@ import (
 // and then associates that Property object to the Object indicated by ObjectID
 func (dao *DataAccessLayer) AddPropertyToObject(createdBy string, object *models.ODObject, property *models.ODProperty) error {
 	tx := dao.MetadataDB.MustBegin()
+	err := addPropertyToObjectInTransaction(tx, createdBy, object, property)
+	if err != nil {
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return err
+}
+
+func addPropertyToObjectInTransaction(tx *sqlx.Tx, createdBy string, object *models.ODObject, property *models.ODProperty) error {
 	// Setup the statement
 	addPropertyStatement, err := tx.Prepare(`insert property set createdby = ?, name = ?, propertyvalue = ?, classificationpm = ?`)
 	if err != nil {
@@ -56,7 +68,6 @@ func (dao *DataAccessLayer) AddPropertyToObject(createdBy string, object *models
 		return errors.New("No rows added from inserting object_property")
 	}
 	addObjectPropertyStatement.Close()
-	tx.Commit()
 
 	return nil
 }

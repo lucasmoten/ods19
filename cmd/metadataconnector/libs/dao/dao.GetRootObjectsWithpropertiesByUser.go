@@ -1,6 +1,9 @@
 package dao
 
-import "decipher.com/oduploader/metadata/models"
+import (
+	"decipher.com/oduploader/metadata/models"
+	"github.com/jmoiron/sqlx"
+)
 
 // GetRootObjectsWithPropertiesByUser retrieves a list of Objects and their
 // Properties in Object Drive that are not nested beneath any other objects
@@ -8,14 +11,25 @@ import "decipher.com/oduploader/metadata/models"
 // group.
 func (dao *DataAccessLayer) GetRootObjectsWithPropertiesByUser(
 	orderByClause string, pageNumber int, pageSize int, user string) (models.ODObjectResultset, error) {
+	tx := dao.MetadataDB.MustBegin()
+	response, err := getRootObjectsWithPropertiesByUserInTransaction(tx, orderByClause, pageNumber, pageSize, user)
+	if err != nil {
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return response, err
+}
 
-	response, err := dao.GetRootObjectsByUser(orderByClause, pageNumber, pageSize, user)
+func getRootObjectsWithPropertiesByUserInTransaction(tx *sqlx.Tx, orderByClause string, pageNumber int, pageSize int, user string) (models.ODObjectResultset, error) {
+
+	response, err := getRootObjectsByUserInTransaction(tx, orderByClause, pageNumber, pageSize, user)
 	if err != nil {
 		print(err.Error())
 		return response, err
 	}
 	for i := 0; i < len(response.Objects); i++ {
-		properties, err := dao.GetPropertiesForObject(&response.Objects[i])
+		properties, err := getPropertiesForObjectInTransaction(tx, &response.Objects[i])
 		if err != nil {
 			print(err.Error())
 			return response, err
