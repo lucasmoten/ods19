@@ -184,6 +184,34 @@ func MapObjectToODObject(i *protocol.Object) models.ODObject {
 	return o
 }
 
+// TypeName string `json:"typeName"`
+// Name     string `json:"name"`
+// ParentID string `json:"parentId,omitempty"`
+// RawAcm string `json:"acm"`
+// ContentType string `json:"contentType"`
+// ContentSize int64 `json:"contentSize"`
+
+// MapCreateObjectRequestToODObject ...
+func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) models.ODObject {
+
+	var err error
+	o := models.ODObject{}
+	o.TypeName.Valid = true
+	o.TypeName.String = i.TypeName
+	o.Name = i.Name
+	o.ParentID, err = hex.DecodeString(i.ParentID)
+	if err != nil {
+		log.Printf("Unable to decode parent id")
+	}
+	o.RawAcm.Valid = true
+	o.RawAcm.String = i.RawAcm
+	o.ContentType.Valid = true
+	o.ContentType.String = i.ContentType
+	o.ContentSize.Valid = true
+	o.ContentSize.Int64 = i.ContentSize
+	return o
+}
+
 // MapObjectsToODObjects converts an array of API exposable protocol Objects
 // into an array of internally usable model Objects
 func MapObjectsToODObjects(i *[]protocol.Object) []models.ODObject {

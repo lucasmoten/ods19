@@ -11,3 +11,8 @@ type ODCreatable struct {
 	// item.
 	CreatedBy string `db:"createdBy"`
 }
+
+// NewoODCreateableWithDN is a helper constructor for ODCreatable.
+func NewoODCreateableWithDN(dn string) ODCreatable {
+	return ODCreatable{CreatedDate: time.Now(), CreatedBy: dn}
+}

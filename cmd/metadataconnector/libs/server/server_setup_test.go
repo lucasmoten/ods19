@@ -179,7 +179,7 @@ func makeFolderViaJSON(folderName string, clientid int) (*protocol.Object, error
 	return &createdFolder, nil
 }
 
-func NewFakeServerWithDAOUsers() server.AppServer {
+func NewFakeServerWithDAOUsers() *server.AppServer {
 	user1 := models.ODUser{DistinguishedName: fakeDN1}
 	user2 := models.ODUser{DistinguishedName: fakeDN2}
 	user1.CreatedBy = fakeDN1
@@ -190,5 +190,5 @@ func NewFakeServerWithDAOUsers() server.AppServer {
 	s := server.AppServer{DAO: &fakeDAO}
 	// Panics occur if regex routes are not compiled with InitRegex()
 	s.InitRegex()
-	return s
+	return &s
 }

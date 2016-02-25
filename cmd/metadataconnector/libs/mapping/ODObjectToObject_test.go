@@ -28,3 +28,19 @@ func TestOverwriteODObjectWithProtocolObject(t *testing.T) {
 	}
 
 }
+
+func TestMapCreateObjectRequestToODObject(t *testing.T) {
+
+	input := protocol.CreateObjectRequest{
+		Name:        "Test",
+		ParentID:    "",
+		RawAcm:      "{}",
+		ContentType: "text/plain",
+		ContentSize: 1024,
+	}
+	result := mapping.MapCreateObjectRequestToODObject(&input)
+
+	if result.Name != input.Name {
+		t.Fail()
+	}
+}
