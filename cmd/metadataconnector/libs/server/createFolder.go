@@ -71,6 +71,7 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 		// parent.
 		//		Permission.grantee matches caller, and AllowCreate is true
 		authorizedToCreate := false
+        if len(dbParentObject.Permissions) > 0 {
 		for _, permission := range dbParentObject.Permissions {
 			if permission.Grantee == caller.DistinguishedName &&
 				permission.AllowRead && permission.AllowCreate {
@@ -78,6 +79,9 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 				break
 			}
 		}
+        } else {
+            log.Println("WARNING: No permissions on the object!")
+        }
 		if !authorizedToCreate {
 			h.sendErrorResponse(w, 403, nil, "Unauthorized")
 			return
@@ -113,6 +117,7 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 			}
 		}
 	}
+    log.Printf("There are %d permissions being added..", len(requestObject.Permissions))
 
 	// Disallow creating as deleted
 	if requestObject.IsDeleted || requestObject.IsAncestorDeleted || requestObject.IsExpunged {

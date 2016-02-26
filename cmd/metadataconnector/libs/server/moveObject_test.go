@@ -53,9 +53,7 @@ func TestMoveObject(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
-	client := &http.Client{Transport: transport}
-	res, err := client.Do(req)
+	res, err := httpclients[clientid].Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()

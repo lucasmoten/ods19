@@ -72,9 +72,7 @@ func TestCreateFolderAtRoot(t *testing.T) {
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
-	client := &http.Client{Transport: transport}
-	res, err := client.Do(req)
+	res, err := httpclients[clientid].Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -141,9 +139,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
-	client := &http.Client{Transport: transport}
-	res, err := client.Do(req)
+	res, err := httpclients[clientid].Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -188,7 +184,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err = client.Do(req)
+	res, err = httpclients[clientid].Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -257,9 +253,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	transport1 := &http.Transport{TLSClientConfig: clients[clientid1].Config}
-	client1 := &http.Client{Transport: transport1}
-	res, err := client1.Do(req)
+	res, err := httpclients[clientid1].Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -304,9 +298,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	transport2 := &http.Transport{TLSClientConfig: clients[clientid2].Config}
-	client2 := &http.Client{Transport: transport2}
-	res, err = client2.Do(req)
+	res, err = httpclients[clientid2].Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -324,12 +316,8 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 		t.Skip()
 	}
 	verboseOutput := testing.Verbose()
-	clientid1 := 0
-	transport1 := &http.Transport{TLSClientConfig: clients[clientid1].Config}
-	client1 := &http.Client{Transport: transport1}
-	clientid2 := 1
-	transport2 := &http.Transport{TLSClientConfig: clients[clientid2].Config}
-	client2 := &http.Client{Transport: transport2}
+	clientid1 := 0 // CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US
+	clientid2 := 1 // CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US
 
 	if verboseOutput {
 		fmt.Printf("(Verbose Mode) Using client id %d to create folder in root", clientid1)
@@ -350,7 +338,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 	folder.TypeName = "Folder"
 	folder.ParentID = ""
 	grant2client2 := protocol.Permission{}
-	grant2client2.Grantee = "CN=test tester02,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
+	grant2client2.Grantee = "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
 	grant2client2.AllowRead = true
 	grant2client2.AllowCreate = true
 	folder.Permissions = append(folder.Permissions, grant2client2)
@@ -367,7 +355,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := client1.Do(req)
+	res, err := httpclients[clientid1].Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -412,7 +400,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err = client2.Do(req)
+	res, err = httpclients[clientid2].Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()

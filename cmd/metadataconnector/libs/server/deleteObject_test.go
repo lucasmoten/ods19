@@ -33,8 +33,6 @@ func TestDeleteObject(t *testing.T) {
 	}
 
 	// Now delete the first folder
-	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
-	client := &http.Client{Transport: transport}
 	deleteuri := host + "/service/metadataconnector/1.0/object/" + folder1.ID
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder1.ChangeToken
@@ -50,7 +48,7 @@ func TestDeleteObject(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	res, err := client.Do(req)
+	res, err := httpclients[clientid].Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -87,7 +85,7 @@ func TestDeleteObject(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	res, err = client.Do(req)
+	res, err = httpclients[clientid].Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -153,9 +151,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
-	client := &http.Client{Transport: transport}
-	res, err := client.Do(req)
+	res, err := httpclients[clientid].Do(req)
 	if err != nil {
 		log.Printf("moving folder Unable to do request:%v", err)
 		t.FailNow()
@@ -199,7 +195,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	res, err = client.Do(req)
+	res, err = httpclients[clientid].Do(req)
 	if err != nil {
 		log.Printf("deleting folder Unable to do request:%v", err)
 		t.FailNow()
@@ -236,7 +232,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	res, err = client.Do(req)
+	res, err = httpclients[clientid].Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()

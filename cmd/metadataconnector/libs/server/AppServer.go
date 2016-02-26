@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+    "strings"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
@@ -197,7 +198,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var uri = r.URL.Path
 
-	log.Printf("LOGGING APP SERVER CONFIG:%s URI:%s, %s", h.ServicePrefix, r.Method, uri)
+	log.Printf("LOGGING APP SERVER CONFIG:%s URI:%s %s BY USER:%s", h.ServicePrefix, r.Method, uri, user.DistinguishedName)
 
 	// TODO: use StripPrefix in handler?
 	// https://golang.org/pkg/net/http/#StripPrefix
@@ -208,7 +209,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.home(w, r, caller)
 		case h.Routes.HomeListObjects.MatchString(uri):
 			h.homeListObjects(w, r, caller)
-		case uri == h.ServicePrefix+"/favicon.ico", uri == h.ServicePrefix+"//favicon.ico":
+		case uri == h.ServicePrefix+"/favicon.ico", uri == h.ServicePrefix+"//favicon.ico", strings.HasSuffix(uri,"/favicon.ico"):
 			h.favicon(w, r)
 			// from longest to shortest...
 		case h.Routes.ObjectStreamRevision.MatchString(uri):

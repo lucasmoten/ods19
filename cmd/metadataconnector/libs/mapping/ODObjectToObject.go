@@ -199,6 +199,8 @@ func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) models.OD
 	o.TypeName.Valid = true
 	o.TypeName.String = i.TypeName
 	o.Name = i.Name
+    o.Description.Valid = true
+    o.Description.String = i.Description
 	o.ParentID, err = hex.DecodeString(i.ParentID)
 	if err != nil {
 		log.Printf("Unable to decode parent id")
@@ -209,6 +211,8 @@ func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) models.OD
 	o.ContentType.String = i.ContentType
 	o.ContentSize.Valid = true
 	o.ContentSize.Int64 = i.ContentSize
+    o.Properties = MapPropertiesToODProperties(&i.Properties)
+    o.Permissions = MapPermissionsToODPermissions(&i.Permissions)
 	return o
 }
 
