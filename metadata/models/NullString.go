@@ -14,3 +14,14 @@ type NullString struct {
 func (r NullString) MarshalJSON() ([]byte, error) {
 	return json.Marshal(r.String)
 }
+
+// UnmarshalJSON transforms a NullString into a type JSON understands.
+func (r NullString) UnmarshalJSON(b []byte) error {
+	if len(b) == 0 {
+		r.Valid = false
+		return nil
+	} else {
+		r.String = string(b)
+		return nil
+	}
+}
