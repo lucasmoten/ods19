@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"log"
+
 	"decipher.com/oduploader/metadata/models"
 	"github.com/jmoiron/sqlx"
 )
@@ -11,6 +13,7 @@ func (dao *DataAccessLayer) GetObjectType(objectType *models.ODObjectType) (*mod
 	tx := dao.MetadataDB.MustBegin()
 	dbObjectType, err := getObjectTypeInTransaction(tx, objectType)
 	if err != nil {
+		log.Printf("Error in GetObjectType: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()

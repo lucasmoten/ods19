@@ -3,6 +3,7 @@ package dao
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -25,6 +26,7 @@ func (dao *DataAccessLayer) ExpungeObject(object *models.ODObject, explicit bool
 	tx := dao.MetadataDB.MustBegin()
 	err := expungeObjectInTransaction(tx, object, explicit)
 	if err != nil {
+		log.Printf("Error in ExpungeObject: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -72,7 +74,7 @@ func expungeObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, explicit b
 	dbObject.ExpungedDate.Valid = true
 	dbObject.ExpungedBy.String = dbObject.ModifiedBy
 	dbObject.ExpungedBy.Valid = true
-	updateObjectStatement, err := tx.Prepare(`
+	updateObjectStatement, err := tx.Preparex(`
     update object set modifiedby = ?,
     isdeleted = ?, deleteddate = ?, deletedby = ?,
     isancestordeleted = ?,

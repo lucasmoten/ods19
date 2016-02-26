@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"log"
+
 	"decipher.com/oduploader/metadata/models"
 	"github.com/jmoiron/sqlx"
 )
@@ -11,6 +13,7 @@ func (dao *DataAccessLayer) GetPermissionsForObject(object *models.ODObject) ([]
 	tx := dao.MetadataDB.MustBegin()
 	response, err := getPermissionsForObjectInTransaction(tx, object)
 	if err != nil {
+		log.Printf("Error in GetPermissionsForObject: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()

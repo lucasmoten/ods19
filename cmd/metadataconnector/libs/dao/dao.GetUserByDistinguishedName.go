@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"log"
+
 	"decipher.com/oduploader/metadata/models"
 	"github.com/jmoiron/sqlx"
 )
@@ -11,6 +13,7 @@ func (dao *DataAccessLayer) GetUserByDistinguishedName(user *models.ODUser) (*mo
 	tx := dao.MetadataDB.MustBegin()
 	dbUser, err := getUserByDistinguishedNameInTransaction(tx, user)
 	if err != nil {
+		log.Printf("Error in GetUserByDistinguishedName: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()

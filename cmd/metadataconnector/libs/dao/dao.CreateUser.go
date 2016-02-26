@@ -16,6 +16,7 @@ func (dao *DataAccessLayer) CreateUser(user *models.ODUser) (*models.ODUser, err
 	tx := dao.MetadataDB.MustBegin()
 	dbUser, err := createUserInTransaction(tx, user)
 	if err != nil {
+		log.Printf("Error in CreateUser: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -25,7 +26,7 @@ func (dao *DataAccessLayer) CreateUser(user *models.ODUser) (*models.ODUser, err
 
 func createUserInTransaction(tx *sqlx.Tx, user *models.ODUser) (*models.ODUser, error) {
 	var dbUser *models.ODUser
-	addUserStatement, err := tx.Prepare(
+	addUserStatement, err := tx.Preparex(
 		`insert user set createdBy = ?, distinguishedName = ?, displayName = ?, email = ?`)
 	if err != nil {
 		return dbUser, err

@@ -2,6 +2,7 @@ package dao
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/jmoiron/sqlx"
 
@@ -21,6 +22,7 @@ func (dao *DataAccessLayer) UpdateObjectProperty(objectProperty *models.ODObject
 	tx := dao.MetadataDB.MustBegin()
 	err := updateObjectPropertyInTransaction(tx, objectProperty)
 	if err != nil {
+		log.Printf("Error in UpdateObjectProperty: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -54,7 +56,7 @@ func updateObjectPropertyInTransaction(tx *sqlx.Tx, objectProperty *models.ODObj
 	dbObjectProperty.ModifiedBy = objectProperty.ModifiedBy
 	dbObjectProperty.Value.String = objectProperty.Value.String
 	dbObjectProperty.ClassificationPM.String = objectProperty.ClassificationPM.String
-	updateObjectPropertyStatement, err := tx.Prepare(`
+	updateObjectPropertyStatement, err := tx.Preparex(`
     update property set modifiedby = ?, value = ?, classificationpm = ? where id = ?`)
 	if err != nil {
 		return err

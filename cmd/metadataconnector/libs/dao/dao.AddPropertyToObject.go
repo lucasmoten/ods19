@@ -2,6 +2,7 @@ package dao
 
 import (
 	"errors"
+	"log"
 
 	"github.com/jmoiron/sqlx"
 
@@ -14,6 +15,7 @@ func (dao *DataAccessLayer) AddPropertyToObject(createdBy string, object *models
 	tx := dao.MetadataDB.MustBegin()
 	err := addPropertyToObjectInTransaction(tx, createdBy, object, property)
 	if err != nil {
+		log.Printf("Error in AddPropertyToObject: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -23,7 +25,7 @@ func (dao *DataAccessLayer) AddPropertyToObject(createdBy string, object *models
 
 func addPropertyToObjectInTransaction(tx *sqlx.Tx, createdBy string, object *models.ODObject, property *models.ODProperty) error {
 	// Setup the statement
-	addPropertyStatement, err := tx.Prepare(`insert property set createdby = ?, name = ?, propertyvalue = ?, classificationpm = ?`)
+	addPropertyStatement, err := tx.Preparex(`insert property set createdby = ?, name = ?, propertyvalue = ?, classificationpm = ?`)
 	if err != nil {
 		return err
 	}
@@ -40,11 +42,11 @@ func addPropertyToObjectInTransaction(tx *sqlx.Tx, createdBy string, object *mod
 	addPropertyStatement.Close()
 	// Get the ID of the newly created property
 	var newPropertyID []byte
-	getPropertyIDStatement, err := tx.Prepare(`select id from property where createdby = ? and name = ? and propertyvalue = ? and classificationpm = ? order by createddate desc limit 1`)
+	getPropertyIDStatement, err := tx.Preparex(`select id from property where createdby = ? and name = ? and propertyvalue = ? and classificationpm = ? order by createddate desc limit 1`)
 	if err != nil {
 		return err
 	}
-	err = getPropertyIDStatement.QueryRow(createdBy, property.Name, property.Value.String, property.ClassificationPM.String).Scan(&newPropertyID)
+	err = getPropertyIDStatement.QueryRowx(createdBy, property.Name, property.Value.String, property.ClassificationPM.String).Scan(&newPropertyID)
 	if err != nil {
 		return err
 	}
@@ -55,7 +57,7 @@ func addPropertyToObjectInTransaction(tx *sqlx.Tx, createdBy string, object *mod
 		return err
 	}
 	// Add association to the object
-	addObjectPropertyStatement, err := tx.Prepare(`insert object_property set createdby = ?, objectid = ?, propertyid = ?`)
+	addObjectPropertyStatement, err := tx.Preparex(`insert object_property set createdby = ?, objectid = ?, propertyid = ?`)
 	if err != nil {
 		return err
 	}

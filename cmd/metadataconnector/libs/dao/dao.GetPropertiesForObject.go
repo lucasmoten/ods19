@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"log"
+
 	"decipher.com/oduploader/metadata/models"
 	"github.com/jmoiron/sqlx"
 )
@@ -11,6 +13,7 @@ func (dao *DataAccessLayer) GetPropertiesForObject(object *models.ODObject) ([]m
 	tx := dao.MetadataDB.MustBegin()
 	response, err := getPropertiesForObjectInTransaction(tx, object)
 	if err != nil {
+		log.Printf("Error in GetPropertiesForObject: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()

@@ -2,6 +2,9 @@ package dao
 
 import (
 	"fmt"
+	"log"
+
+	"github.com/jmoiron/sqlx"
 
 	"decipher.com/oduploader/metadata/models"
 )
@@ -13,6 +16,18 @@ import (
 //    objectType.ChangeToken must be set to the current value
 //    objectType.ModifiedBy must be set to the user performing the operation
 func (dao *DataAccessLayer) DeleteObjectType(objectType *models.ODObjectType) error {
+	tx := dao.MetadataDB.MustBegin()
+	err := deleteObjectTypeInTransaction(tx, objectType)
+	if err != nil {
+		log.Printf("Error in DeleteObjectType: %v", err)
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return err
+}
+
+func deleteObjectTypeInTransaction(tx *sqlx.Tx, objectType *models.ODObjectType) error {
 	// Pre-DB Validation
 	if objectType.ID == nil {
 		return errMissingID
@@ -21,7 +36,7 @@ func (dao *DataAccessLayer) DeleteObjectType(objectType *models.ODObjectType) er
 		return errMissingChangeToken
 	}
 
-	existingObjectType, err := dao.GetObjectType(objectType)
+	existingObjectType, err := getObjectTypeInTransaction(tx, objectType)
 	if err != nil {
 		return err
 	}
@@ -37,7 +52,7 @@ func (dao *DataAccessLayer) DeleteObjectType(objectType *models.ODObjectType) er
 	// Mark as deleted
 	existingObjectType.IsDeleted = true
 	existingObjectType.ModifiedBy = objectType.ModifiedBy
-	updateObjectTypeStatement, err := dao.MetadataDB.Prepare(
+	updateObjectTypeStatement, err := tx.Preparex(
 		`update object_type set modifiedby = ?, isdeleted = ? where id = ?`)
 	if err != nil {
 		return err

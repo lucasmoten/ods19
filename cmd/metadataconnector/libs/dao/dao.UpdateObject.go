@@ -18,6 +18,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject, acm *models.OD
 	tx := dao.MetadataDB.MustBegin()
 	err := updateObjectInTransaction(tx, object, acm)
 	if err != nil {
+		log.Printf("Error in UpdateObject: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -63,7 +64,7 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 	}
 
 	// update object
-	updateObjectStatement, err := tx.Prepare(
+	updateObjectStatement, err := tx.Preparex(
 		`update object set modifiedBy = ?, typeId = ?, name = ?,
     description = ?, parentId = ?, contentConnector = ?,
     contentType = ?, contentSize = ?, contentHash = ?, encryptIV = ?
@@ -188,7 +189,7 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 			// No existing permission. Need to add it
 			// TODO: Since this is a new permission, we need to establish the
 			// encryptKey for this grantee.
-			err := addPermissionToObjectInTransaction(tx, object.ModifiedBy, object, &objectPermission)
+			dbPermission, err := addPermissionToObjectInTransaction(tx, object.ModifiedBy, object, &objectPermission)
 			if err != nil {
 				crud := []string{"C", "R", "U", "D"}
 				if !objectPermission.AllowCreate {
@@ -205,6 +206,10 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 				}
 				return fmt.Errorf("Error saving permission # %d {Grantee: \"%s\", Permission: \"%s\") when creating object", o, objectPermission.Grantee, crud)
 			}
+			if dbPermission.ModifiedBy != objectPermission.CreatedBy {
+				return fmt.Errorf("When updating object, permision did not get modifiedby set to createdby")
+			}
+
 		}
 	}
 	// Refetch object again with properties and permissions

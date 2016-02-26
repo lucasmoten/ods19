@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"log"
+
 	"decipher.com/oduploader/metadata/models"
 	"github.com/jmoiron/sqlx"
 )
@@ -14,6 +16,7 @@ func (dao *DataAccessLayer) GetRootObjectsWithPropertiesByUser(
 	tx := dao.MetadataDB.MustBegin()
 	response, err := getRootObjectsWithPropertiesByUserInTransaction(tx, orderByClause, pageNumber, pageSize, user)
 	if err != nil {
+		log.Printf("Error in GetRootObjectsWithPropertiesByUser: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()

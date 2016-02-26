@@ -2,6 +2,7 @@ package dao
 
 import (
 	"fmt"
+	"log"
 
 	"decipher.com/oduploader/metadata/models"
 	"github.com/jmoiron/sqlx"
@@ -12,6 +13,7 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject, acm *models.OD
 	tx := dao.MetadataDB.MustBegin()
 	err := createObjectInTransaction(tx, object, acm)
 	if err != nil {
+		log.Printf("Error in CreateObject: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -35,7 +37,7 @@ func createObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 	}
 
 	// insert object
-	addObjectStatement, err := tx.Prepare(`insert object set createdBy = ?, typeId = ?, name = ?, description = ?, parentId = ?, contentConnector = ?, rawAcm = ?, contentType = ?, contentSize = ?, contentHash = ?, encryptIV = ?`)
+	addObjectStatement, err := tx.Preparex(`insert object set createdBy = ?, typeId = ?, name = ?, description = ?, parentId = ?, contentConnector = ?, rawAcm = ?, contentType = ?, contentSize = ?, contentHash = ?, encryptIV = ?`)
 	if err != nil {
 		return fmt.Errorf("CreateObject Preparing add object statement, %s", err.Error())
 	}
@@ -50,7 +52,10 @@ func createObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 	if err != nil {
 		return fmt.Errorf("CreateObject Error executing add object statement, %s", err.Error())
 	}
-	addObjectStatement.Close()
+	err = addObjectStatement.Close()
+	if err != nil {
+		return fmt.Errorf("CreateObject Error closing addObjectStatement, %s", err.Error())
+	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("CreateObject Error checking result for rows affected, %s", err.Error())
@@ -89,7 +94,7 @@ func createObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 	// Add permissions
 	for i, permission := range object.Permissions {
 		if permission.Grantee != "" {
-			err := addPermissionToObjectInTransaction(tx, object.CreatedBy, object, &permission)
+			dbPermission, err := addPermissionToObjectInTransaction(tx, object.CreatedBy, object, &permission)
 			if err != nil {
 				crud := []string{"C", "R", "U", "D"}
 				if !permission.AllowCreate {
@@ -105,6 +110,9 @@ func createObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 					crud[3] = "-"
 				}
 				return fmt.Errorf("Error saving permission # %d {Grantee: \"%s\", Permission: \"%s\") when creating object:%v", i, permission.Grantee, crud, err)
+			}
+			if dbPermission.ModifiedBy != permission.CreatedBy {
+				return fmt.Errorf("When creating object, permision did not get modifiedby set to createdby")
 			}
 
 		}

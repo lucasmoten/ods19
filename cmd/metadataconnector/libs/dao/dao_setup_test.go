@@ -1,8 +1,12 @@
 package dao_test
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"strconv"
+	"testing"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -28,7 +32,7 @@ func init() {
 
 	// Create users referenced by these tests
 	user := models.ODUser{}
-	var createdUser *models.ODUser
+	//var createdUser *models.ODUser
 	for i := 0; i < len(usernames); i++ {
 		if i == 0 {
 			usernames[i] = "CN=[DAOTEST]test tester10, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
@@ -41,9 +45,14 @@ func init() {
 		user.DisplayName.String = config.GetCommonName(user.DistinguishedName)
 		user.DisplayName.Valid = true
 		user.CreatedBy = user.DistinguishedName
-		createdUser, err = d.CreateUser(&user)
-		log.Printf("User "+strconv.Itoa(i)+" Change Count and Token: %d - %s", createdUser.ChangeCount, createdUser.ChangeToken)
+		_, err = d.CreateUser(&user)
+		//createdUser, err = d.CreateUser(&user)
+		//log.Printf("User "+strconv.Itoa(i)+" Change Count and Token: %d - %s", createdUser.ChangeCount, createdUser.ChangeToken)
 	}
+
+	user.DistinguishedName = "Bob"
+	user.CreatedBy = "Bob"
+	_, err = d.CreateUser(&user)
 
 	// var user *models.ODUser
 	// var user1 models.ODUser
@@ -68,4 +77,76 @@ func init() {
 	// user, err = d.CreateUser(&user10)
 	// log.Printf("User 10 Change Count and Token: %d - %s", user.ChangeCount, user.ChangeToken)
 
+}
+
+func TestTransactionalUpdate(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	tx := db.MustBegin()
+
+	// Add
+	typeName := "New Type " + strconv.Itoa(time.Now().UTC().Nanosecond())
+	addObjectTypeStatement, err := tx.Preparex(
+		`insert object_type set createdBy = ?, name = ?, description = ?, contentConnector = ?`)
+	if err != nil {
+		log.Printf("Error %v", err)
+	}
+	_, err = addObjectTypeStatement.Exec("Bob", typeName, "No Decription", "No Content Connector")
+	if err != nil {
+		log.Printf("Error %v", err)
+	}
+
+	// Select 1st time
+	dbObjectType1 := models.ODObjectType{}
+	jsonData, err := json.MarshalIndent(dbObjectType1, "", "  ")
+	if err != nil {
+		log.Printf("Error %v", err)
+	}
+	jsonified := string(jsonData)
+	fmt.Println(jsonified)
+
+	getObjectTypeStatement1 := "select * from object_type where name = ?"
+	err = tx.Get(&dbObjectType1, getObjectTypeStatement1, typeName)
+	if err != nil {
+		log.Printf("Error %v", err)
+	}
+	log.Printf("Change Count = %d", dbObjectType1.ChangeCount)
+	jsonData, err = json.MarshalIndent(dbObjectType1, "", "  ")
+	if err != nil {
+		log.Printf("Error %v", err)
+	}
+	jsonified = string(jsonData)
+	fmt.Println(jsonified)
+
+	// Update (Triggers will alter the changeCount and modifiedDate and changeToken)
+	newTypeName := "New Type " + strconv.Itoa(time.Now().UTC().Nanosecond())
+	updateObjectTypeStatement, err := tx.Preparex(
+		`update object_type set modifiedBy = ?, name = ? where name = ?`)
+	if err != nil {
+		log.Printf("Error %v", err)
+	}
+	_, err = updateObjectTypeStatement.Exec("Bob", newTypeName, typeName)
+	if err != nil {
+		log.Printf("Error %v", err)
+	}
+
+	// Select 2nd time
+	var dbObjectType2 models.ODObjectType
+	getObjectTypeStatement2 := "select * from object_type where name = ?"
+	err = tx.Get(&dbObjectType2, getObjectTypeStatement2, newTypeName)
+	if err != nil {
+		log.Printf("Error %v", err)
+	}
+	log.Printf("Change Count = %d", dbObjectType2.ChangeCount)
+	jsonData, err = json.MarshalIndent(dbObjectType2, "", "  ")
+	if err != nil {
+		log.Printf("Error %v", err)
+	}
+	jsonified = string(jsonData)
+	fmt.Println(jsonified)
+
+	tx.Commit()
 }

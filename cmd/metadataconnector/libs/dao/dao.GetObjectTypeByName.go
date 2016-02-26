@@ -3,6 +3,7 @@ package dao
 import (
 	"database/sql"
 	"fmt"
+	"log"
 
 	"github.com/jmoiron/sqlx"
 
@@ -15,6 +16,7 @@ func (dao *DataAccessLayer) GetObjectTypeByName(typeName string, addIfMissing bo
 	tx := dao.MetadataDB.MustBegin()
 	objectType, err := getObjectTypeByNameInTransaction(tx, typeName, addIfMissing, createdBy)
 	if err != nil {
+		log.Printf("Error in GetObjectTypeByName: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()
