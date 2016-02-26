@@ -12,6 +12,7 @@ func (dao *DataAccessLayer) GetUsers() ([]models.ODUser, error) {
 	tx := dao.MetadataDB.MustBegin()
 	result, err := getUsersInTransaction(tx)
 	if err != nil {
+		log.Printf("Error in GetUsers: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()

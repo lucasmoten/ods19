@@ -13,6 +13,7 @@ type FakeDAO struct {
 	Err               error
 	IsDescendent      bool
 	Object            *models.ODObject
+	ObjectPermission  models.ODObjectPermission
 	ObjectPermissions []models.ODObjectPermission
 	ObjectProperites  []models.ODObjectPropertyEx
 	ObjectProperty    *models.ODObjectPropertyEx
@@ -24,8 +25,8 @@ type FakeDAO struct {
 }
 
 // AddPermissionToObject for FakeDAO.
-func (fake *FakeDAO) AddPermissionToObject(createdBy string, object *models.ODObject, permission *models.ODObjectPermission) error {
-	return fake.Err
+func (fake *FakeDAO) AddPermissionToObject(createdBy string, object *models.ODObject, permission *models.ODObjectPermission) (models.ODObjectPermission, error) {
+	return fake.ObjectPermission, fake.Err
 }
 
 // AddPropertyToObject for FakeDAO.

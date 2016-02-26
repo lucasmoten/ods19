@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"log"
+
 	"decipher.com/oduploader/metadata/models"
 	"github.com/jmoiron/sqlx"
 )
@@ -13,6 +15,7 @@ func (dao *DataAccessLayer) GetChildObjectsWithPropertiesByUser(
 	tx := dao.MetadataDB.MustBegin()
 	response, err := getChildObjectsWithPropertiesByUserInTransaction(tx, orderByClause, pageNumber, pageSize, object, user)
 	if err != nil {
+		log.Printf("Error in GetChildObjectsWithPropertiesByUser: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()

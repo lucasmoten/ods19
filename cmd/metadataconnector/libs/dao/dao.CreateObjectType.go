@@ -3,6 +3,7 @@ package dao
 import (
 	"database/sql"
 	"fmt"
+	"log"
 
 	"github.com/jmoiron/sqlx"
 
@@ -17,6 +18,7 @@ func (dao *DataAccessLayer) CreateObjectType(objectType *models.ODObjectType) er
 	tx := dao.MetadataDB.MustBegin()
 	err := createObjectTypeInTransaction(tx, objectType)
 	if err != nil {
+		log.Printf("Error in CreateObjectType: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -26,7 +28,7 @@ func (dao *DataAccessLayer) CreateObjectType(objectType *models.ODObjectType) er
 
 func createObjectTypeInTransaction(tx *sqlx.Tx, objectType *models.ODObjectType) error {
 
-	addObjectTypeStatement, err := tx.Prepare(
+	addObjectTypeStatement, err := tx.Preparex(
 		`insert object_type set createdBy = ?, name = ?, description = ?, contentConnector = ?`)
 	if err != nil {
 		return fmt.Errorf("CreateObjectType error preparing add object type statement, %s", err.Error())

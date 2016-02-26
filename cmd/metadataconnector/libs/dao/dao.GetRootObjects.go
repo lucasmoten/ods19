@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"log"
 	"strconv"
 
 	"github.com/jmoiron/sqlx"
@@ -14,6 +15,7 @@ func (dao *DataAccessLayer) GetRootObjects(orderByClause string, pageNumber int,
 	tx := dao.MetadataDB.MustBegin()
 	response, err := getRootObjectsInTransaction(tx, orderByClause, pageNumber, pageSize)
 	if err != nil {
+		log.Printf("Error in GetRootObjects: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()

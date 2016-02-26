@@ -2,6 +2,7 @@ package dao
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/jmoiron/sqlx"
 
@@ -20,6 +21,7 @@ func (dao *DataAccessLayer) DeleteObjectProperty(objectProperty *models.ODObject
 	tx := dao.MetadataDB.MustBegin()
 	err := deleteObjectPropertyInTransaction(tx, objectProperty)
 	if err != nil {
+		log.Printf("Error in DeleteObjectProperty: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -51,7 +53,7 @@ func deleteObjectPropertyInTransaction(tx *sqlx.Tx, objectProperty *models.ODObj
 	// Mark property as deleted
 	dbObjectProperty.IsDeleted = true
 	dbObjectProperty.ModifiedBy = objectProperty.ModifiedBy
-	updateObjectPropertyStatement, err := tx.Prepare(
+	updateObjectPropertyStatement, err := tx.Preparex(
 		`update property set modifiedby = ?, isdeleted = ? where id = ?`)
 	if err != nil {
 		return err
@@ -61,7 +63,7 @@ func deleteObjectPropertyInTransaction(tx *sqlx.Tx, objectProperty *models.ODObj
 		return err
 	}
 	// Mark relationship between the property and objects as deleted
-	updateRelationshipStatement, err := tx.Prepare(
+	updateRelationshipStatement, err := tx.Preparex(
 		`update object_property set modifiedby = ?, isdeleted = ? where propertyid = ?`)
 	if err != nil {
 		return err

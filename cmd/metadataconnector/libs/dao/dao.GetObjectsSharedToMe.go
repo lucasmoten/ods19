@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"log"
 	"strconv"
 
 	"github.com/jmoiron/sqlx"
@@ -19,6 +20,7 @@ func (dao *DataAccessLayer) GetObjectsSharedToMe(
 	tx := dao.MetadataDB.MustBegin()
 	response, err := getObjectsSharedToMeInTransaction(tx, grantee, orderByClause, pageNumber, pageSize)
 	if err != nil {
+		log.Printf("Error in GetObjectsSharedTome: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()

@@ -1,8 +1,6 @@
 package dao_test
 
 import (
-	"encoding/json"
-	"fmt"
 	"testing"
 
 	"decipher.com/oduploader/metadata/models"
@@ -52,9 +50,9 @@ func TestDAOGetObject(t *testing.T) {
 	}
 	if len(objectWithProperty.Properties) != 1 {
 
-		jsonData, _ := json.MarshalIndent(objectWithProperty, "", "  ")
-		jsonified := string(jsonData)
-		fmt.Println(jsonified)
+		// jsonData, _ := json.MarshalIndent(objectWithProperty, "", "  ")
+		// jsonified := string(jsonData)
+		// fmt.Println(jsonified)
 
 		t.Errorf("Expected one property on the object, got %d", len(objectWithProperty.Properties))
 	} else {

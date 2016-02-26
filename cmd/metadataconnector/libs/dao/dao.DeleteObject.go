@@ -3,6 +3,7 @@ package dao
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -24,6 +25,7 @@ func (dao *DataAccessLayer) DeleteObject(object *models.ODObject, explicit bool)
 	tx := dao.MetadataDB.MustBegin()
 	err := deleteObjectInTransaction(tx, object, explicit)
 	if err != nil {
+		log.Printf("Error in DeleteObject: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -64,7 +66,7 @@ func deleteObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, explicit bo
 	dbObject.DeletedBy.String = dbObject.ModifiedBy
 	dbObject.DeletedBy.Valid = true
 	dbObject.IsAncestorDeleted = !explicit
-	updateObjectStatement, err := tx.Prepare(`
+	updateObjectStatement, err := tx.Preparex(`
     update object set modifiedby = ?,
 		isdeleted = ?, deleteddate = ?, deletedby = ?,
 		isancestordeleted = ? where id = ?`)

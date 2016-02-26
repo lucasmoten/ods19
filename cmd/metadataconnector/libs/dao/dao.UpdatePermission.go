@@ -2,6 +2,7 @@ package dao
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/jmoiron/sqlx"
 
@@ -14,6 +15,7 @@ func (dao *DataAccessLayer) UpdatePermission(permission *models.ODObjectPermissi
 	tx := dao.MetadataDB.MustBegin()
 	err := updatePermissionInTransaction(tx, permission)
 	if err != nil {
+		log.Printf("Error in UpdateObjectPermission: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -23,7 +25,7 @@ func (dao *DataAccessLayer) UpdatePermission(permission *models.ODObjectPermissi
 
 func updatePermissionInTransaction(tx *sqlx.Tx, permission *models.ODObjectPermission) error {
 
-	updatePermissionStatement, err := tx.Prepare(`update object_permission set modifiedBy = ?, grantee = ?, allowCreate = ?, allowRead = ?, allowUpdate = ?, allowDelete = ?, encryptKey = ? where id = ? and changeToken = ?`)
+	updatePermissionStatement, err := tx.Preparex(`update object_permission set modifiedBy = ?, grantee = ?, allowCreate = ?, allowRead = ?, allowUpdate = ?, allowDelete = ?, encryptKey = ? where id = ? and changeToken = ?`)
 	if err != nil {
 		return fmt.Errorf("UpdatePermission Preparing update statement, %s", err.Error())
 	}
