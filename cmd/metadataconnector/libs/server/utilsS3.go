@@ -148,6 +148,7 @@ func (h AppServer) beginUploadTimed(
 		log.Printf("Unable to rename uploaded file %s %v:", outFileUploading, err)
 		return err
 	}
+    log.Printf("rename:%s -> %s",outFileUploading,outFileUploaded)
 
 	//Record metadata
 	obj.ContentHash = checksum
@@ -237,6 +238,7 @@ func (h AppServer) drainFileToS3Timed(
 		log.Printf("Unable to rename uploaded file %s %v:", outFileUploaded, err)
 		return err
 	}
+    log.Printf("rename:%s -> %s",outFileUploaded,outFileCached)
 
 	log.Printf("Uploaded to %v: %v", *bucket, result.Location)
 	return err
@@ -329,4 +331,5 @@ func (h AppServer) transferFileFromS3Timed(
 	if err != nil {
 		log.Printf("Failed to rename from %s to %s", foutCaching, foutCached)
 	}
+    log.Printf("rename:%s -> %s",foutCaching,foutCached)
 }
