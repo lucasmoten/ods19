@@ -55,17 +55,13 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 		child1.TypeName.String = "Test Type"
 		child1.TypeName.Valid = true
 		// NEW! Add permissions...
-		permissions1 := make([]models.ODObjectPermission, 2)
+		permissions1 := make([]models.ODObjectPermission, 1)
 		permissions1[0].CreatedBy = child1.CreatedBy
 		permissions1[0].Grantee = usernames[1]
 		permissions1[0].AllowCreate = true
 		permissions1[0].AllowRead = true
 		permissions1[0].AllowUpdate = true
 		permissions1[0].AllowDelete = true
-		permissions1[1].CreatedBy = child1.CreatedBy
-		permissions1[1].Grantee = usernames[2]
-		permissions1[1].AllowCreate = true
-		permissions1[1].AllowRead = true
 		child1.Permissions = permissions1
 		err = d.CreateObject(&child1, nil)
 		if err != nil {
