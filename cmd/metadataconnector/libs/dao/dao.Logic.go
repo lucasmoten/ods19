@@ -3,6 +3,8 @@ package dao
 import (
 	"bytes"
 
+	"github.com/jmoiron/sqlx"
+
 	"decipher.com/oduploader/metadata/models"
 )
 
@@ -10,12 +12,24 @@ import (
 // be assigned, and walks the tree from the target parent to the root (nil)
 // looking to see if it references the same object.
 func (dao *DataAccessLayer) IsParentIDADescendent(id []byte, parentID []byte) (bool, error) {
+	tx := dao.MetadataDB.MustBegin()
+	result, err := isParentIDADescendentInTransaction(tx, id, parentID)
+	if err != nil {
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return result, err
+}
+
+func isParentIDADescendentInTransaction(tx *sqlx.Tx, id []byte, parentID []byte) (bool, error) {
+
 	if parentID == nil {
 		return false, nil
 	}
 	var targetObject models.ODObject
 	targetObject.ID = parentID
-	dbObject, err := dao.GetObject(&targetObject, false)
+	dbObject, err := getObjectInTransaction(tx, &targetObject, false)
 	if err != nil {
 		return true, err
 	}
@@ -23,5 +37,5 @@ func (dao *DataAccessLayer) IsParentIDADescendent(id []byte, parentID []byte) (b
 		// circular found
 		return true, nil
 	}
-	return dao.IsParentIDADescendent(id, dbObject.ParentID)
+	return isParentIDADescendentInTransaction(tx, id, dbObject.ParentID)
 }

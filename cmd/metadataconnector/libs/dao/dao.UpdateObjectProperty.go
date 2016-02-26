@@ -2,6 +2,9 @@ package dao
 
 import (
 	"fmt"
+	"log"
+
+	"github.com/jmoiron/sqlx"
 
 	"decipher.com/oduploader/metadata/models"
 )
@@ -16,6 +19,18 @@ import (
 //    objectProperty.Value.String must be set to the new value.
 func (dao *DataAccessLayer) UpdateObjectProperty(objectProperty *models.ODObjectPropertyEx) error {
 
+	tx := dao.MetadataDB.MustBegin()
+	err := updateObjectPropertyInTransaction(tx, objectProperty)
+	if err != nil {
+		log.Printf("Error in UpdateObjectProperty: %v", err)
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return err
+}
+
+func updateObjectPropertyInTransaction(tx *sqlx.Tx, objectProperty *models.ODObjectPropertyEx) error {
 	// Pre-DB Validation
 	if objectProperty.ID == nil {
 		return errMissingID
@@ -24,7 +39,7 @@ func (dao *DataAccessLayer) UpdateObjectProperty(objectProperty *models.ODObject
 		return errMissingChangeToken
 	}
 	// Fetch object property
-	dbObjectProperty, err := dao.GetObjectProperty(objectProperty)
+	dbObjectProperty, err := getObjectPropertyInTransaction(tx, objectProperty)
 	if err != nil {
 		return err
 	}
@@ -41,7 +56,7 @@ func (dao *DataAccessLayer) UpdateObjectProperty(objectProperty *models.ODObject
 	dbObjectProperty.ModifiedBy = objectProperty.ModifiedBy
 	dbObjectProperty.Value.String = objectProperty.Value.String
 	dbObjectProperty.ClassificationPM.String = objectProperty.ClassificationPM.String
-	updateObjectPropertyStatement, err := dao.MetadataDB.Prepare(`
+	updateObjectPropertyStatement, err := tx.Preparex(`
     update property set modifiedby = ?, value = ?, classificationpm = ? where id = ?`)
 	if err != nil {
 		return err

@@ -2,6 +2,9 @@ package dao
 
 import (
 	"fmt"
+	"log"
+
+	"github.com/jmoiron/sqlx"
 
 	"decipher.com/oduploader/metadata/models"
 )
@@ -14,6 +17,19 @@ import (
 //    objectProperty.ChangeToken must be set to the current value
 //    objectProperty.ModifiedBy must be set to the user performing the operation
 func (dao *DataAccessLayer) DeleteObjectProperty(objectProperty *models.ODObjectPropertyEx) error {
+
+	tx := dao.MetadataDB.MustBegin()
+	err := deleteObjectPropertyInTransaction(tx, objectProperty)
+	if err != nil {
+		log.Printf("Error in DeleteObjectProperty: %v", err)
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return err
+}
+
+func deleteObjectPropertyInTransaction(tx *sqlx.Tx, objectProperty *models.ODObjectPropertyEx) error {
 	if objectProperty.ID == nil {
 		return errMissingID
 	}
@@ -21,7 +37,7 @@ func (dao *DataAccessLayer) DeleteObjectProperty(objectProperty *models.ODObject
 		return errMissingChangeToken
 	}
 	// Fetch object property
-	dbObjectProperty, err := dao.GetObjectProperty(objectProperty)
+	dbObjectProperty, err := getObjectPropertyInTransaction(tx, objectProperty)
 	if err != nil {
 		return err
 	}
@@ -37,7 +53,7 @@ func (dao *DataAccessLayer) DeleteObjectProperty(objectProperty *models.ODObject
 	// Mark property as deleted
 	dbObjectProperty.IsDeleted = true
 	dbObjectProperty.ModifiedBy = objectProperty.ModifiedBy
-	updateObjectPropertyStatement, err := dao.MetadataDB.Prepare(
+	updateObjectPropertyStatement, err := tx.Preparex(
 		`update property set modifiedby = ?, isdeleted = ? where id = ?`)
 	if err != nil {
 		return err
@@ -47,7 +63,7 @@ func (dao *DataAccessLayer) DeleteObjectProperty(objectProperty *models.ODObject
 		return err
 	}
 	// Mark relationship between the property and objects as deleted
-	updateRelationshipStatement, err := dao.MetadataDB.Prepare(
+	updateRelationshipStatement, err := tx.Preparex(
 		`update object_property set modifiedby = ?, isdeleted = ? where propertyid = ?`)
 	if err != nil {
 		return err

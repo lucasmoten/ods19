@@ -3,7 +3,10 @@ package dao
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 
 	"decipher.com/oduploader/metadata/models"
 )
@@ -20,7 +23,18 @@ import (
 //      whose purpose is to mark child items as implicitly deleted due to an
 //      ancestor being deleted.
 func (dao *DataAccessLayer) ExpungeObject(object *models.ODObject, explicit bool) error {
+	tx := dao.MetadataDB.MustBegin()
+	err := expungeObjectInTransaction(tx, object, explicit)
+	if err != nil {
+		log.Printf("Error in ExpungeObject: %v", err)
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return err
+}
 
+func expungeObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, explicit bool) error {
 	// Pre-DB Validation
 	if object.ID == nil {
 		return errors.New("Object ID was not specified for object being expunged")
@@ -30,7 +44,7 @@ func (dao *DataAccessLayer) ExpungeObject(object *models.ODObject, explicit bool
 	}
 
 	// Fetch object
-	dbObject, err := dao.GetObject(object, false)
+	dbObject, err := getObjectInTransaction(tx, object, false)
 	if err != nil {
 		return err
 	}
@@ -60,7 +74,7 @@ func (dao *DataAccessLayer) ExpungeObject(object *models.ODObject, explicit bool
 	dbObject.ExpungedDate.Valid = true
 	dbObject.ExpungedBy.String = dbObject.ModifiedBy
 	dbObject.ExpungedBy.Valid = true
-	updateObjectStatement, err := dao.MetadataDB.Prepare(`
+	updateObjectStatement, err := tx.Preparex(`
     update object set modifiedby = ?,
     isdeleted = ?, deleteddate = ?, deletedby = ?,
     isancestordeleted = ?,
@@ -79,11 +93,22 @@ func (dao *DataAccessLayer) ExpungeObject(object *models.ODObject, explicit bool
 	}
 
 	// Process children
-	resultset, err := dao.GetChildObjects("", 1, 10000, dbObject)
+	resultset, err := getChildObjectsInTransaction(tx, "", 1, 10000, dbObject)
 	for i := 0; i < len(resultset.Objects); i++ {
-		err = dao.ExpungeObject(&resultset.Objects[i], false)
-		if err != nil {
-			return err
+		authorizedToDelete := false
+		for _, permission := range resultset.Objects[i].Permissions {
+			if permission.Grantee == object.ModifiedBy &&
+				permission.AllowDelete {
+				authorizedToDelete = true
+				break
+			}
+		}
+		if authorizedToDelete {
+			resultset.Objects[i].ModifiedBy = object.ModifiedBy
+			err = expungeObjectInTransaction(tx, &resultset.Objects[i], false)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

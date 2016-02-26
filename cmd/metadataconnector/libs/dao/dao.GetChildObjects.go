@@ -1,7 +1,10 @@
 package dao
 
 import (
+	"log"
 	"strconv"
+
+	"github.com/jmoiron/sqlx"
 
 	"decipher.com/oduploader/metadata/models"
 )
@@ -10,7 +13,18 @@ import (
 // beneath a specified object by parentID
 func (dao *DataAccessLayer) GetChildObjects(
 	orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error) {
+	tx := dao.MetadataDB.MustBegin()
+	response, err := getChildObjectsInTransaction(tx, orderByClause, pageNumber, pageSize, object)
+	if err != nil {
+		log.Printf("Error in GetChildObjects: %v", err)
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return response, err
+}
 
+func getChildObjectsInTransaction(tx *sqlx.Tx, orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	limit := GetLimit(pageNumber, pageSize)
 	offset := GetOffset(pageNumber, pageSize)
@@ -21,18 +35,26 @@ func (dao *DataAccessLayer) GetChildObjects(
 		query += ` order by o.createddate desc`
 	}
 	query += ` limit ` + strconv.Itoa(limit) + ` offset ` + strconv.Itoa(offset)
-	err := dao.MetadataDB.Select(&response.Objects, query, object.ID)
+	err := tx.Select(&response.Objects, query, object.ID)
 	if err != nil {
-		print(err.Error())
+		return response, err
 	}
-	err = dao.MetadataDB.Get(&response.TotalRows, "select found_rows()")
+	err = tx.Get(&response.TotalRows, "select found_rows()")
 	if err != nil {
-		print(err.Error())
+		return response, err
 	}
-	response.PageNumber = pageNumber
-	response.PageSize = pageSize
+	response.PageNumber = GetSanitizedPageNumber(pageNumber)
+	response.PageSize = GetSanitizedPageSize(pageSize)
 	response.PageRows = len(response.Objects)
-	response.PageCount = GetPageCount(response.TotalRows, pageSize)
+	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
+	for i := 0; i < len(response.Objects); i++ {
+		permissions, err := getPermissionsForObjectInTransaction(tx, &response.Objects[i])
+		if err != nil {
+			print(err.Error())
+			return response, err
+		}
+		response.Objects[i].Permissions = permissions
+	}
 	return response, err
 
 }

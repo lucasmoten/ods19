@@ -1,20 +1,62 @@
 package dao
 
 import (
-	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
-	"decipher.com/oduploader/metadata/models"
+	"errors"
 	"fmt"
 	"log"
+
+	"github.com/jmoiron/sqlx"
+
+	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
+	"decipher.com/oduploader/metadata/models"
 )
 
 // UpdateObject uses the passed in object and acm configuration and makes the
 // appropriate sql calls to the database to update the existing object and acm
 // changing properties and permissions associated.
 func (dao *DataAccessLayer) UpdateObject(object *models.ODObject, acm *models.ODACM) error {
+	tx := dao.MetadataDB.MustBegin()
+	err := updateObjectInTransaction(tx, object, acm)
+	if err != nil {
+		log.Printf("Error in UpdateObject: %v", err)
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return err
+}
+
+func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models.ODACM) error {
+
+	// Pre-DB Validation
+	if object.ID == nil {
+		return errors.New("Object ID was not specified for object being updated")
+	}
+	if object.ChangeToken == "" {
+		return errors.New("Object ChangeToken was not specified for object being updated")
+	}
+	if object.ModifiedBy == "" {
+		return errors.New("Object ModifiedBy was not specified for object being updated")
+	}
+
+	// Fetch current state of object
+	dbObject, err := getObjectInTransaction(tx, object, false)
+	if err != nil {
+		return fmt.Errorf("UpdateObject Error retrieving object, %s", err.Error())
+	}
+	// Check if changeToken matches
+	if object.ChangeToken != dbObject.ChangeToken {
+		return fmt.Errorf("Object ChangeToken does not match expected value %s", dbObject.ChangeToken)
+	}
+	// Check if deleted
+	if dbObject.IsDeleted {
+		// NOOP
+		return nil
+	}
 
 	// lookup type, assign its id to the object for reference
 	if object.TypeID == nil {
-		objectType, err := dao.GetObjectTypeByName(object.TypeName.String, true, object.CreatedBy)
+		objectType, err := getObjectTypeByNameInTransaction(tx, object.TypeName.String, true, object.CreatedBy)
 		if err != nil {
 			return fmt.Errorf("CreateObject Error calling GetObjectTypeByName, %s", err.Error())
 		}
@@ -22,7 +64,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject, acm *models.OD
 	}
 
 	// update object
-	updateObjectStatement, err := dao.MetadataDB.Prepare(
+	updateObjectStatement, err := tx.Preparex(
 		`update object set modifiedBy = ?, typeId = ?, name = ?,
     description = ?, parentId = ?, contentConnector = ?,
     contentType = ?, contentSize = ?, contentHash = ?, encryptIV = ?
@@ -51,7 +93,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject, acm *models.OD
 
 	// Retrieve current state of object from database to reflect alterations to..
 	// ModifiedDate, ChangeToken, ChangeCount
-	dbObject, err := dao.GetObject(object, true)
+	dbObject, err = getObjectInTransaction(tx, object, true)
 	if err != nil {
 		return fmt.Errorf("UpdateObject Error retrieving object, %s", err.Error())
 	}
@@ -70,7 +112,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject, acm *models.OD
 					// Deleting matching properties by name. The id and changeToken are
 					// implicit from dbObject for each one that matches.
 					dbProperty.ModifiedBy = object.ModifiedBy
-					dao.DeleteObjectProperty(&dbProperty)
+					deleteObjectPropertyInTransaction(tx, &dbProperty)
 					// don't break for loop here because we want to clean out all of the
 					// existing properties with the same name in this case.
 				} else {
@@ -81,7 +123,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject, acm *models.OD
 						dbProperty.ModifiedBy = object.ModifiedBy
 						dbProperty.Value.String = objectProperty.Value.String
 						dbProperty.ClassificationPM.String = objectProperty.ClassificationPM.String
-						dao.UpdateObjectProperty(&dbProperty)
+						updateObjectPropertyInTransaction(tx, &dbProperty)
 					}
 					// break out of the for loop on database objects
 					break
@@ -101,7 +143,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject, acm *models.OD
 				newProperty.ClassificationPM.Valid = true
 				newProperty.ClassificationPM.String = objectProperty.ClassificationPM.String
 			}
-			err := dao.AddPropertyToObject(object.CreatedBy, object, &newProperty)
+			err := addPropertyToObjectInTransaction(tx, object.CreatedBy, object, &newProperty)
 			if err != nil {
 				return fmt.Errorf("Error saving property %d (%s) when updating object", o, objectProperty.Name)
 			}
@@ -136,7 +178,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject, acm *models.OD
 					dbPermission.AllowRead = objectPermission.AllowRead
 					dbPermission.AllowUpdate = objectPermission.AllowUpdate
 					dbPermission.AllowDelete = objectPermission.AllowUpdate
-					err := dao.UpdatePermission(&dbPermission)
+					err := updatePermissionInTransaction(tx, &dbPermission)
 					if err != nil {
 						return fmt.Errorf("Error updating permission %d (%s) when updating object", o, objectPermission.Grantee)
 					}
@@ -147,7 +189,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject, acm *models.OD
 			// No existing permission. Need to add it
 			// TODO: Since this is a new permission, we need to establish the
 			// encryptKey for this grantee.
-			err := dao.AddPermissionToObject(object.ModifiedBy, object, &objectPermission)
+			dbPermission, err := addPermissionToObjectInTransaction(tx, object.ModifiedBy, object, &objectPermission)
 			if err != nil {
 				crud := []string{"C", "R", "U", "D"}
 				if !objectPermission.AllowCreate {
@@ -164,14 +206,18 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject, acm *models.OD
 				}
 				return fmt.Errorf("Error saving permission # %d {Grantee: \"%s\", Permission: \"%s\") when creating object", o, objectPermission.Grantee, crud)
 			}
+			if dbPermission.ModifiedBy != objectPermission.CreatedBy {
+				return fmt.Errorf("When updating object, permision did not get modifiedby set to createdby")
+			}
+
 		}
 	}
-
 	// Refetch object again with properties and permissions
-	object, err = dao.GetObject(object, true)
+	dbObject, err = getObjectInTransaction(tx, object, true)
 	if err != nil {
 		return fmt.Errorf("UpdateObject Error retrieving object %v, %s", object, err.Error())
 	}
+	object = dbObject
 
 	return nil
 }

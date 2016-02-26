@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,13 +26,14 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 	case r.Header.Get("Content-Type") == "application/json":
 		requestObject, err = parseMoveObjectRequestAsJSON(r)
 		if err != nil {
-			h.sendErrorResponse(w, 500, err, "Error parsing JSON")
+			h.sendErrorResponse(w, 400, err, "Error parsing JSON")
 			return
 		}
 	default:
 		h.sendErrorResponse(w, 501, nil, "Reading from HTML form post not supported")
 		requestObject = parseMoveObjectRequestAsHTML(r)
 	}
+	log.Printf("036 request id: %s, token: %s, count: %d", hex.EncodeToString(requestObject.ID), requestObject.ChangeToken, requestObject.ChangeCount)
 
 	// Business Logic...
 
@@ -41,6 +43,7 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 		h.sendErrorResponse(w, 500, err, "Error retrieving object")
 		return
 	}
+	log.Printf("046 dboject id: %s, token: %s, count: %d", hex.EncodeToString(dbObject.ID), dbObject.ChangeToken, dbObject.ChangeCount)
 
 	// Check if the user has permissions to update the ODObject
 	//		Permission.grantee matches caller, and AllowUpdate is true
@@ -141,15 +144,23 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 		// Force the modified by to be that of the caller
 		dbObject.ModifiedBy = caller.DistinguishedName
 		dbObject.ParentID = requestObject.ParentID
-		h.DAO.UpdateObject(dbObject, nil)
-
+		log.Printf("Right before update")
+		log.Printf("148 request id: %s, token: %s, count %d", hex.EncodeToString(requestObject.ID), requestObject.ChangeToken, requestObject.ChangeCount)
+		log.Printf("149 dboject id: %s, token: %s, count %d", hex.EncodeToString(dbObject.ID), dbObject.ChangeToken, dbObject.ChangeCount)
+		err = h.DAO.UpdateObject(dbObject, nil)
+		if err != nil {
+			log.Printf("Error updating object: %v", err)
+		}
+		log.Printf("Right after update")
+		log.Printf("152 request id: %s, token: %s, count %d", hex.EncodeToString(requestObject.ID), requestObject.ChangeToken, requestObject.ChangeCount)
+		log.Printf("153 dboject id: %s, token: %s, count %d", hex.EncodeToString(dbObject.ID), dbObject.ChangeToken, dbObject.ChangeCount)
 		// After the update, check that key values have changed...
 		if requestObject.ChangeCount <= dbObject.ChangeCount {
-			h.sendErrorResponse(w, 500, nil, "ChangeCount didn't update when processing request")
+			h.sendErrorResponse(w, 500, nil, "ChangeCount didn't update when processing move request")
 			return
 		}
 		if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) == 0 {
-			h.sendErrorResponse(w, 500, nil, "ChangeToken didn't update when processing request")
+			h.sendErrorResponse(w, 500, nil, "ChangeToken didn't update when processing move request")
 			return
 		}
 	}

@@ -1,7 +1,10 @@
 package dao
 
 import (
+	"log"
 	"strconv"
+
+	"github.com/jmoiron/sqlx"
 
 	"decipher.com/oduploader/metadata/models"
 )
@@ -10,6 +13,22 @@ import (
 // beneath any other objects natively (natural parentId is null).
 func (dao *DataAccessLayer) GetObjectsSharedToMe(
 	grantee string,
+	orderByClause string,
+	pageNumber int,
+	pageSize int,
+) (models.ODObjectResultset, error) {
+	tx := dao.MetadataDB.MustBegin()
+	response, err := getObjectsSharedToMeInTransaction(tx, grantee, orderByClause, pageNumber, pageSize)
+	if err != nil {
+		log.Printf("Error in GetObjectsSharedTome: %v", err)
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return response, err
+}
+
+func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, grantee string,
 	orderByClause string,
 	pageNumber int,
 	pageSize int,
@@ -42,11 +61,11 @@ func (dao *DataAccessLayer) GetObjectsSharedToMe(
 		query += ` order by o.createddate desc`
 	}
 	query += ` limit ` + strconv.Itoa(limit) + ` offset ` + strconv.Itoa(offset)
-	err := dao.MetadataDB.Select(&response.Objects, query, grantee, grantee)
+	err := tx.Select(&response.Objects, query, grantee, grantee)
 	if err != nil {
 		print(err.Error())
 	}
-	err = dao.MetadataDB.Get(&response.TotalRows, "select found_rows()")
+	err = tx.Get(&response.TotalRows, "select found_rows()")
 	if err != nil {
 		print(err.Error())
 	}

@@ -54,9 +54,9 @@ type ODObject struct {
 	TypeName NullString `db:"typeName"`
 	// Properties is an array of Object Properties associated with this object
 	// structured as key/value with portion marking.
-	Properties []ODObjectPropertyEx
+	Properties []ODObjectPropertyEx `json:"properties"`
 	// Permissions is an array of Object Permissions associated with this object
-	Permissions []ODObjectPermission
+	Permissions []ODObjectPermission `json:"permissions"`
 }
 
 // ODObjectResultset encapsulates the ODObject defined herein as an array with

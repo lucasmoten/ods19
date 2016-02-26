@@ -2,6 +2,9 @@ package dao
 
 import (
 	"errors"
+	"log"
+
+	"github.com/jmoiron/sqlx"
 
 	"decipher.com/oduploader/metadata/models"
 )
@@ -10,8 +13,19 @@ import (
 // and then associates that Property object to the Object indicated by ObjectID
 func (dao *DataAccessLayer) AddPropertyToObject(createdBy string, object *models.ODObject, property *models.ODProperty) error {
 	tx := dao.MetadataDB.MustBegin()
+	err := addPropertyToObjectInTransaction(tx, createdBy, object, property)
+	if err != nil {
+		log.Printf("Error in AddPropertyToObject: %v", err)
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return err
+}
+
+func addPropertyToObjectInTransaction(tx *sqlx.Tx, createdBy string, object *models.ODObject, property *models.ODProperty) error {
 	// Setup the statement
-	addPropertyStatement, err := tx.Prepare(`insert property set createdby = ?, name = ?, propertyvalue = ?, classificationpm = ?`)
+	addPropertyStatement, err := tx.Preparex(`insert property set createdby = ?, name = ?, propertyvalue = ?, classificationpm = ?`)
 	if err != nil {
 		return err
 	}
@@ -28,11 +42,11 @@ func (dao *DataAccessLayer) AddPropertyToObject(createdBy string, object *models
 	addPropertyStatement.Close()
 	// Get the ID of the newly created property
 	var newPropertyID []byte
-	getPropertyIDStatement, err := tx.Prepare(`select id from property where createdby = ? and name = ? and propertyvalue = ? and classificationpm = ? order by createddate desc limit 1`)
+	getPropertyIDStatement, err := tx.Preparex(`select id from property where createdby = ? and name = ? and propertyvalue = ? and classificationpm = ? order by createddate desc limit 1`)
 	if err != nil {
 		return err
 	}
-	err = getPropertyIDStatement.QueryRow(createdBy, property.Name, property.Value.String, property.ClassificationPM.String).Scan(&newPropertyID)
+	err = getPropertyIDStatement.QueryRowx(createdBy, property.Name, property.Value.String, property.ClassificationPM.String).Scan(&newPropertyID)
 	if err != nil {
 		return err
 	}
@@ -43,7 +57,7 @@ func (dao *DataAccessLayer) AddPropertyToObject(createdBy string, object *models
 		return err
 	}
 	// Add association to the object
-	addObjectPropertyStatement, err := tx.Prepare(`insert object_property set createdby = ?, objectid = ?, propertyid = ?`)
+	addObjectPropertyStatement, err := tx.Preparex(`insert object_property set createdby = ?, objectid = ?, propertyid = ?`)
 	if err != nil {
 		return err
 	}
@@ -56,7 +70,6 @@ func (dao *DataAccessLayer) AddPropertyToObject(createdBy string, object *models
 		return errors.New("No rows added from inserting object_property")
 	}
 	addObjectPropertyStatement.Close()
-	tx.Commit()
 
 	return nil
 }

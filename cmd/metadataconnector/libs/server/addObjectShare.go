@@ -1,13 +1,14 @@
 package server
 
 import (
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/protocol"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+
+	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 )
 
 var rxShare = initRegex("/object/(.*)/share")
@@ -102,7 +103,7 @@ func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller
 	newGrant.AllowDelete = objectGrant.Delete
 
 	//Now that we have a new grant, we need to add it in
-	err = h.DAO.AddPermissionToObject(caller.DistinguishedName, object, &newGrant)
+	_, err = h.DAO.AddPermissionToObject(caller.DistinguishedName, object, &newGrant)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Error updating permission")
 	}
