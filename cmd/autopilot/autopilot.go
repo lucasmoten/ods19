@@ -188,7 +188,7 @@ func generateUploadRequest(name string, fqName string, url string, async bool) (
 	//Create a multipart mime request
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
-	um := protocol.ObjectForCreate{
+	um := protocol.CreateObjectRequest{
 		TypeName: "File",
 		RawAcm:   `{"version":"2.1.0","classif":"S"}`,
 	}

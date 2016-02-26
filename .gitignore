@@ -17,3 +17,7 @@ release
 # ignore build directories
 out
 release
+
+# Delve debugger compiled binaries
+debug.*
+

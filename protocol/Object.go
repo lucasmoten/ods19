@@ -61,10 +61,8 @@ type Object struct {
 	FileName string `json:"fileName,omitempty"`
 }
 
-// ObjectForCreate is a subset of object for use with creating objects
-// XXX it is still a manual process to ensure that this really is a subset
-// of object!!
-type ObjectForCreate struct {
+// CreateObjectRequest is a subset of Object for use to disallow providing certain fields.
+type CreateObjectRequest struct {
 	// TypeName reflects the name of the object type associated with TypeID
 	TypeName string `json:"typeName"`
 	// Name is the given name for the object. (e.g., filename)
@@ -74,10 +72,10 @@ type ObjectForCreate struct {
 	RawAcm string `json:"acm"`
 	// ContentType indicates the mime-type, and potentially the character set
 	// encoding for the object contents
-	ContentType string `json:"contentType"`
+	ContentType string `json:"contentTypei,omitempty"`
 	// ContentSize denotes the length of the content stream for this object, in
 	// bytes
-	ContentSize int64 `json:"contentSize"`
+	ContentSize int64 `json:"contentSize,omitempty"`
 	// Properties is an array of Object Properties associated with this object
 	// structured as key/value with portion marking.
 }

@@ -6,12 +6,35 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"testing"
 	"time"
 
 	"decipher.com/oduploader/protocol"
 )
+
+func TestCreateFolderProtocol(t *testing.T) {
+
+	jsonNoParent := `
+    { "typeName": "Folder", "name": "",  "parentId": "", "acm": "{}", "contentType": "", "contentSize": 0 }`
+
+	s := NewFakeServerWithDAOUsers()
+
+	r, err := http.NewRequest("POST", "/service/metadataconnector/1.0/folder", bytes.NewBuffer([]byte(jsonNoParent)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Add("USER_DN", fakeDN1)
+	r.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected OK, got %v", w.Code)
+	}
+
+}
 
 func TestCreateFolderAtRoot(t *testing.T) {
 	if testing.Short() {

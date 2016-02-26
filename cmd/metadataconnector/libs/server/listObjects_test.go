@@ -191,7 +191,7 @@ func TestListObjectsRootPaging(t *testing.T) {
 
 func TestListObjectsChild(t *testing.T) {
 	if testing.Short() {
-		//t.Skip()
+		t.Skip()
 	}
 	verboseOutput := testing.Verbose()
 	clientid := 0

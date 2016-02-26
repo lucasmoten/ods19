@@ -12,8 +12,14 @@ import (
 	"os"
 	"strconv"
 
+	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
+	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
 )
+
+var fakeDN1 = `CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US`
+var fakeDN2 = `CN=test tester02, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US`
 
 var host string
 var clients []*ClientIdentity
@@ -22,14 +28,6 @@ func init() {
 	generatePopulation()
 	host = "https://dockervm:8080"
 }
-
-// These functions copied from autopilot. In short, this will setup 10
-// ClientIdentity structs defined below mapped to the test user certs, and the
-// clients[].Config is the tlsConfig.  To use...
-//      transport := &http.Transport{TLSClientConfig: clients[0].Config}
-//      client := &http.Client{Transport: transport}
-// And then after setting up an http.Request..
-//      client.Do(request)
 
 func generatePopulation() {
 	//We have 10 test certs (note the test_0 is known as tester10)
@@ -179,4 +177,18 @@ func makeFolderViaJSON(folderName string, clientid int) (*protocol.Object, error
 		return nil, err
 	}
 	return &createdFolder, nil
+}
+
+func NewFakeServerWithDAOUsers() *server.AppServer {
+	user1 := models.ODUser{DistinguishedName: fakeDN1}
+	user2 := models.ODUser{DistinguishedName: fakeDN2}
+	user1.CreatedBy = fakeDN1
+	user2.CreatedBy = fakeDN2
+
+	fakeDAO := dao.FakeDAO{Users: []models.ODUser{user1, user2}}
+
+	s := server.AppServer{DAO: &fakeDAO}
+	// Panics occur if regex routes are not compiled with InitRegex()
+	s.InitRegex()
+	return &s
 }

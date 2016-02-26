@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -17,32 +17,18 @@ import (
 
 func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller Caller) {
 
-	var requestObject *models.ODObject
-	var requestACM *models.ODACM
-	var err error
+	// var requestObject *models.ODObject
+	// var requestACM *models.ODACM
+	// var err error
 
-	// Parse Request in sent format
-	switch {
-	case r.Header.Get("Content-Type") == "application/json":
-		requestObject, requestACM, err = parseCreateFolderRequestAsJSON(r)
-		if err != nil {
-			h.sendErrorResponse(w, 500, err, "Error parsing JSON")
-			return
-		}
-		log.Println("Logging createFolder JSON request:")
-		log.Println(requestObject)
-	default:
-		requestObject, requestACM, err = parseCreateFolderRequestAsHTML(r)
-		if err != nil {
-			h.sendErrorResponse(w, 500, err, "Error parsing HTML Form")
-			return
-		}
+	if r.Header.Get("Content-Type") != "application/json" {
+
+		h.sendErrorResponse(w, http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
+		return
 	}
-	// Old UI
-	if r.Method == "GET" {
-		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprintf(w, pageTemplateStart, "createFolder", caller.DistinguishedName)
-		fmt.Fprintf(w, pageTemplateEnd)
+	requestObject, requestACM, err := parseCreateFolderRequestAsJSON(r)
+	if err != nil {
+		h.sendErrorResponse(w, 500, err, "Error parsing JSON")
 		return
 	}
 
@@ -159,7 +145,7 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 }
 
 func parseCreateFolderRequestAsJSON(r *http.Request) (*models.ODObject, *models.ODACM, error) {
-	var jsonObject protocol.Object
+	var jsonObject protocol.CreateObjectRequest
 	acm := models.ODACM{}
 	var err error
 
@@ -194,11 +180,12 @@ func parseCreateFolderRequestAsJSON(r *http.Request) (*models.ODObject, *models.
 	}
 
 	// Map to internal object type
-	object := mapping.MapObjectToODObject(&jsonObject)
+	object := mapping.MapCreateObjectRequestToODObject(&jsonObject)
 	// TODO: Figure out how we want to pass ACM into this operation. Should it
 	// be nested in protocol Object? If so, should ODObject contain ODACM ?
 	return &object, &acm, err
 }
+
 func parseCreateFolderRequestAsHTML(r *http.Request) (*models.ODObject, *models.ODACM, error) {
 	object := models.ODObject{}
 	acm := models.ODACM{}
