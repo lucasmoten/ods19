@@ -101,12 +101,14 @@ func TestTransactionalUpdate(t *testing.T) {
 
 	// Select 1st time
 	dbObjectType1 := models.ODObjectType{}
-	jsonData, err := json.MarshalIndent(dbObjectType1, "", "  ")
-	if err != nil {
-		log.Printf("Error %v", err)
+	if testing.Verbose() {
+		jsonData, err := json.MarshalIndent(dbObjectType1, "", "  ")
+		if err != nil {
+			log.Printf("Error %v", err)
+		}
+		jsonified := string(jsonData)
+		fmt.Println(jsonified)
 	}
-	jsonified := string(jsonData)
-	fmt.Println(jsonified)
 
 	getObjectTypeStatement1 := "select * from object_type where name = ?"
 	err = tx.Get(&dbObjectType1, getObjectTypeStatement1, typeName)
@@ -114,12 +116,14 @@ func TestTransactionalUpdate(t *testing.T) {
 		log.Printf("Error %v", err)
 	}
 	log.Printf("Change Count = %d", dbObjectType1.ChangeCount)
-	jsonData, err = json.MarshalIndent(dbObjectType1, "", "  ")
-	if err != nil {
-		log.Printf("Error %v", err)
+	if testing.Verbose() {
+		jsonData, err := json.MarshalIndent(dbObjectType1, "", "  ")
+		if err != nil {
+			log.Printf("Error %v", err)
+		}
+		jsonified := string(jsonData)
+		fmt.Println(jsonified)
 	}
-	jsonified = string(jsonData)
-	fmt.Println(jsonified)
 
 	// Update (Triggers will alter the changeCount and modifiedDate and changeToken)
 	newTypeName := "New Type " + strconv.Itoa(time.Now().UTC().Nanosecond())
@@ -141,12 +145,13 @@ func TestTransactionalUpdate(t *testing.T) {
 		log.Printf("Error %v", err)
 	}
 	log.Printf("Change Count = %d", dbObjectType2.ChangeCount)
-	jsonData, err = json.MarshalIndent(dbObjectType2, "", "  ")
-	if err != nil {
-		log.Printf("Error %v", err)
+	if testing.Verbose() {
+		jsonData, err := json.MarshalIndent(dbObjectType2, "", "  ")
+		if err != nil {
+			log.Printf("Error %v", err)
+		}
+		jsonified := string(jsonData)
+		fmt.Println(jsonified)
 	}
-	jsonified = string(jsonData)
-	fmt.Println(jsonified)
-
 	tx.Commit()
 }
