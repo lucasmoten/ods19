@@ -37,7 +37,7 @@ function refreshListObjects() {
     , method: 'post'
     , type: 'json'
     , contentType: 'application/json'
-    , data: { pageNumber: 1, pageSize: 20, parentId: __state.parentId }
+    , data: JSON.stringify({ pageNumber: 1, pageSize: 20, parentId: __state.parentId })
     , success: function (resp) {
       $.when(listUsers()).done(function (userdata) {
 
