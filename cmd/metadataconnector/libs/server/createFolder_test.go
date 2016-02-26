@@ -350,7 +350,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 	folder.TypeName = "Folder"
 	folder.ParentID = ""
 	grant2client2 := protocol.Permission{}
-	grant2client2.Grantee = "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
+	grant2client2.Grantee = "CN=test tester02,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
 	grant2client2.AllowRead = true
 	grant2client2.AllowCreate = true
 	folder.Permissions = append(folder.Permissions, grant2client2)
@@ -375,7 +375,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 
 	// Response validation
 	if res.StatusCode != http.StatusOK {
-		log.Printf("bad status: %s", res.Status)
+		log.Printf("req1 bad status: %s", res.Status)
 		t.FailNow()
 	}
 	decoder := json.NewDecoder(res.Body)
