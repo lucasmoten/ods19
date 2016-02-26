@@ -59,7 +59,8 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, createdBy string, object *m
 	if err != nil {
 		return dbPermission, err
 	}
-	permission = &dbPermission
+    *permission = dbPermission
+	//permission = &dbPermission
 
 	return dbPermission, nil
 }
