@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"time"
+    "net/http/httputil"
 )
 
 func (h AppServer) getObjectStreamObject(w http.ResponseWriter, r *http.Request, caller Caller) (*models.ODObject, error) {
@@ -46,6 +47,13 @@ func (h AppServer) getObjectStreamObject(w http.ResponseWriter, r *http.Request,
 	TODO: This is including cache miss time.
 */
 func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, caller Caller) {
+    req,err := httputil.DumpRequest(r,true)
+    if err != nil {
+        log.Printf("unable to dump http request:%v", err)
+    } else {
+        log.Printf("%s", string(req))
+    }
+    
 	object, err := h.getObjectStreamObject(w, r, caller)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cannot get object")
@@ -197,7 +205,8 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 	if object.ContentSize.Valid && object.ContentSize.Int64 > int64(0) {
 		w.Header().Set("Content-Length", strconv.FormatInt(object.ContentSize.Int64, 10))
 	}
-
+    w.Header().Set("Accept-Ranges","none")
+    
 	//A visibility hack, so that I can see metadata about the object from a GET
 	//This lets you look in a browser and check attributes on an object that came
 	//back.

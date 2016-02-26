@@ -67,6 +67,9 @@ function refreshListObjects() {
           }
       });
     }
+    , error: function(resp) {
+      console.log("refresh list objects failed!")
+    }
   })
 };
 
@@ -78,6 +81,9 @@ function refreshSharedWithMe() {
     method: 'GET',
     success: function(resp) {
       _renderSharedWithMeTable(resp.Objects);
+    },
+    error: function(resp) {
+      console.log("refresh shared with me failed!")
     }
   });
 };
@@ -95,7 +101,7 @@ function _renderSharedWithMeRow(index, item) {
   var type = '<td>' + item.contentType + '</td>';
   var createdDate = '<td>' + item.createdDate + '</td>';
   var createdBy = '<td>' + getCN(item.createdBy) + '</td>';
-  var size = '<td>' + item.contentSize + '</td>';
+  var size = '<td align=right>' + item.contentSize + '</td>';
   var changeToken = '<td>' + item.changeToken + '</td>';
   var acm = '<td>' + item.acm + '</td>';
 
@@ -122,6 +128,9 @@ function doShare(objectId, userId, opts) {
     data: JSON.stringify(data),
     success: function(resp) {
       refreshSharedWithMe();
+    },
+    error: function(resp) {
+      console.log("do share failed!");  
     }
   });
 };
@@ -138,6 +147,9 @@ function doDelete(objectId, changeToken) {
       contentType: 'application/json',
       success: function(data){
         refreshListObjects();
+      },
+      error: function(data) {
+        console.log("do delete failed!")  
       }
   });
 }
@@ -153,7 +165,7 @@ function _renderListObjectRow(index, item, elm) {
   var type = '<td>' + item.contentType + '</td>';
   var createdDate = '<td>' + item.createdDate + '</td>';
   var createdBy = '<td>' + getCN(item.createdBy) + '</td>';
-  var size = '<td>' + item.contentSize + '</td>';
+  var size = '<td align=right>' + item.contentSize + '</td>';
   var changeToken = '<td>' + item.changeToken + '</td>';
   var acm = '<td>' + item.acm + '</td>';
   var shareDropdown = _renderUsersDropdown(item, __state.users, rowId);
@@ -212,6 +224,7 @@ function createObject() {
       formData.append("CreateObjectRequest", JSON.stringify(req));
       formData.append("filestream", jsFileObject);
 
+      $("#submitCreateObject").prop("disabled", true)
       $.ajax({
         url: '/service/metadataconnector/1.0/object',
         data: formData,
@@ -221,6 +234,11 @@ function createObject() {
         method: 'POST',
         success: function(data){
           refreshListObjects();
+          $("#submitCreateObject").prop("disabled", false)
+        },
+        error: function(data) {
+          console.log("create object failed!")  
+          $("#submitCreateObject").prop("disabled", false)
         }
       });
 }
@@ -241,6 +259,9 @@ function createFolder() {
         console.log("createFolder success.")
         console.log(data);
         refreshListObjects();
+      },
+      error: function(data) {
+        console.log("createFolder failed!")
       }
   });
 }
