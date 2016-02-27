@@ -72,10 +72,10 @@ type ClientIdentity struct {
 	Index         int
 }
 
-//XXX rob - for unit tests that we all need to run, we need to share the same data set 
+//XXX rob - for unit tests that we all need to run, we need to share the same data set
 // so that the result is reproduceable.  $GOPATH/src/decipher.com/autopilot/cache is where
-// I am putting shared test data right now (moved from autopilot to autopilot/cache).  
-// Many of these tests are failing for me, and I don't know 
+// I am putting shared test data right now (moved from autopilot to autopilot/cache).
+// Many of these tests are failing for me, and I don't know
 // if it is related at all to having different test data.
 //
 // The overridden autopilot home exists so that we can use huge files in automation scenarios,
