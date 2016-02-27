@@ -3,8 +3,8 @@ package main
 import (
 	"decipher.com/oduploader/autopilot"
 	"log"
+	"math/rand"
 	"time"
-    "math/rand"
 )
 
 var perPopulation = 20

@@ -18,6 +18,14 @@ var userID0 = 0
 var userID1 = 1
 
 func TestShare(t *testing.T) {
+	//This test is actually fast (particularly the second time around),
+	//but it does use the real server.
+	if testing.Short() == false {
+		RunShare(t)
+	}
+}
+
+func RunShare(t *testing.T) {
 	var res *http.Response
 	var err error
 	var link *protocol.Object
