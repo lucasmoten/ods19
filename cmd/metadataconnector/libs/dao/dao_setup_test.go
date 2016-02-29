@@ -115,8 +115,8 @@ func TestTransactionalUpdate(t *testing.T) {
 	if err != nil {
 		log.Printf("Error %v", err)
 	}
-	log.Printf("Change Count = %d", dbObjectType1.ChangeCount)
 	if testing.Verbose() {
+		log.Printf("Change Count = %d", dbObjectType1.ChangeCount)
 		jsonData, err := json.MarshalIndent(dbObjectType1, "", "  ")
 		if err != nil {
 			log.Printf("Error %v", err)
@@ -144,8 +144,8 @@ func TestTransactionalUpdate(t *testing.T) {
 	if err != nil {
 		log.Printf("Error %v", err)
 	}
-	log.Printf("Change Count = %d", dbObjectType2.ChangeCount)
 	if testing.Verbose() {
+		log.Printf("Change Count = %d", dbObjectType2.ChangeCount)
 		jsonData, err := json.MarshalIndent(dbObjectType2, "", "  ")
 		if err != nil {
 			log.Printf("Error %v", err)

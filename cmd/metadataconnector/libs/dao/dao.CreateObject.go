@@ -120,7 +120,7 @@ func createObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 				return dbObject, fmt.Errorf("Error saving permission # %d {Grantee: \"%s\", Permission: \"%s\") when creating object:%v", i, permission.Grantee, crud, err)
 			}
 			if dbPermission.ModifiedBy != permission.CreatedBy {
-				return dbObject, fmt.Errorf("When creating object, permision did not get modifiedby set to createdby")
+				return dbObject, fmt.Errorf("When creating object, permission did not get modifiedby set to createdby")
 			}
 
 		}
