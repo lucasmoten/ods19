@@ -2,11 +2,12 @@ package server
 
 import (
 	//"encoding/hex"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
-	"decipher.com/oduploader/metadata/models"
 	"encoding/json"
 	"log"
 	"net/http"
+
+	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
+	"decipher.com/oduploader/metadata/models"
 )
 
 // createObject is a method handler on AppServer for createObject microservice
@@ -18,6 +19,7 @@ func (h AppServer) createObject(
 ) {
 
 	var obj models.ODObject
+	var createdObject models.ODObject
 	var acm models.ODACM
 	var grant models.ODObjectPermission
 	var err error
@@ -46,7 +48,7 @@ func (h AppServer) createObject(
 		obj.Permissions = make([]models.ODObjectPermission, 1)
 		obj.Permissions[0] = grant
 
-		err = h.DAO.CreateObject(&obj, &acm)
+		createdObject, err = h.DAO.CreateObject(&obj, &acm)
 		if err != nil {
 			h.sendErrorResponse(w, 500, err, "error storing object")
 			return
@@ -55,9 +57,9 @@ func (h AppServer) createObject(
 
 	//TODO: json response rendering
 	w.Header().Set("Content-Type", "application/json")
-	link := mapping.MapODObjectToObject(&obj)
+	protocolObject := mapping.MapODObjectToObject(&createdObject)
 	//Write a link back to the user so that it's possible to do an update on this object
-	data, err := json.MarshalIndent(link, "", "  ")
+	data, err := json.MarshalIndent(protocolObject, "", "  ")
 	if err != nil {
 		log.Printf("Error marshalling json data:%v", err)
 	}

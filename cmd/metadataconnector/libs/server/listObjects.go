@@ -63,7 +63,7 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 		)
 	} else {
 		// Requesting children of an object. Load parent first.
-		dbObject, err := h.DAO.GetObject(&parentObject, false)
+		dbObject, err := h.DAO.GetObject(parentObject, false)
 		if err != nil {
 			log.Println(err)
 			h.sendErrorResponse(w, 500, err, "Error retrieving object")
@@ -101,7 +101,7 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 			"createddate desc",
 			pagingRequest.PageNumber,
 			pagingRequest.PageSize,
-			&parentObject,
+			parentObject,
 			caller.DistinguishedName,
 		)
 	}

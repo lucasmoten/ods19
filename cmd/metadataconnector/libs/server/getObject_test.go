@@ -35,7 +35,7 @@ func TestAppServerGetObject(t *testing.T) {
 
 	// Fake the DAO interface.
 	fakeDAO := dao.FakeDAO{
-		Object: &obj,
+		Object: obj,
 		Users:  []models.ODUser{user},
 	}
 

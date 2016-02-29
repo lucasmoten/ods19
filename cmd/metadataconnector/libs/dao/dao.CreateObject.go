@@ -29,6 +29,9 @@ func createObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 		//log.Println("Converting object TypeID from zero length byte slice to nil.")
 		object.TypeID = nil
 	}
+	if len(object.ParentID) == 0 {
+		object.ParentID = nil
+	}
 
 	// lookup type, assign its id to the object for reference
 	if object.TypeID == nil {

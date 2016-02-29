@@ -2,10 +2,8 @@ package server
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -18,7 +16,7 @@ import (
 
 func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Caller) {
 
-	var requestObject *models.ODObject
+	var requestObject models.ODObject
 	var err error
 
 	// Parse Request in sent format
@@ -31,9 +29,7 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 		}
 	default:
 		h.sendErrorResponse(w, 501, nil, "Reading from HTML form post not supported")
-		requestObject = parseMoveObjectRequestAsHTML(r)
 	}
-	log.Printf("036 request id: %s, token: %s, count: %d", hex.EncodeToString(requestObject.ID), requestObject.ChangeToken, requestObject.ChangeCount)
 
 	// Business Logic...
 
@@ -43,7 +39,9 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 		h.sendErrorResponse(w, 500, err, "Error retrieving object")
 		return
 	}
-	log.Printf("046 dboject id: %s, token: %s, count: %d", hex.EncodeToString(dbObject.ID), dbObject.ChangeToken, dbObject.ChangeCount)
+
+	// Capture and overwrite here for comparison later after the update
+	requestObject.ChangeCount = dbObject.ChangeCount
 
 	// Check if the user has permissions to update the ODObject
 	//		Permission.grantee matches caller, and AllowUpdate is true
@@ -64,7 +62,7 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 	// object for which they are moving this one to (the parentID)
 	targetParent := models.ODObject{}
 	targetParent.ID = requestObject.ParentID
-	dbParent, err := h.DAO.GetObject(&targetParent, false)
+	dbParent, err := h.DAO.GetObject(targetParent, false)
 	if err != nil {
 		h.sendErrorResponse(w, 400, err, "Error retrieving parent to move object into")
 		return
@@ -82,7 +80,8 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 		// log this, but done send back to client as it leaks existence
 		log.Printf("User has insufficient permissions to move object into new parent")
 	}
-	// parent must not be deleted
+
+	// Parent must not be deleted
 	if targetParent.IsDeleted {
 		if targetParent.IsExpunged {
 			h.sendErrorResponse(w, 410, err, "Unable to move object into an object that does not exist")
@@ -144,18 +143,13 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 		// Force the modified by to be that of the caller
 		dbObject.ModifiedBy = caller.DistinguishedName
 		dbObject.ParentID = requestObject.ParentID
-		log.Printf("Right before update")
-		log.Printf("148 request id: %s, token: %s, count %d", hex.EncodeToString(requestObject.ID), requestObject.ChangeToken, requestObject.ChangeCount)
-		log.Printf("149 dboject id: %s, token: %s, count %d", hex.EncodeToString(dbObject.ID), dbObject.ChangeToken, dbObject.ChangeCount)
-		err = h.DAO.UpdateObject(dbObject, nil)
+		err := h.DAO.UpdateObject(&dbObject, nil)
 		if err != nil {
 			log.Printf("Error updating object: %v", err)
 		}
-		log.Printf("Right after update")
-		log.Printf("152 request id: %s, token: %s, count %d", hex.EncodeToString(requestObject.ID), requestObject.ChangeToken, requestObject.ChangeCount)
-		log.Printf("153 dboject id: %s, token: %s, count %d", hex.EncodeToString(dbObject.ID), dbObject.ChangeToken, dbObject.ChangeCount)
+
 		// After the update, check that key values have changed...
-		if requestObject.ChangeCount <= dbObject.ChangeCount {
+		if dbObject.ChangeCount <= requestObject.ChangeCount {
 			h.sendErrorResponse(w, 500, nil, "ChangeCount didn't update when processing move request")
 			return
 		}
@@ -166,35 +160,30 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 	}
 
 	// Response in requested format
-	apiResponse := mapping.MapODObjectToObject(dbObject)
-	switch {
-	case r.Header.Get("Content-Type") == "multipart/form-data":
-		fallthrough
-	case r.Header.Get("Content-Type") == "application/json":
-		moveObjectResponseAsJSON(w, r, caller, &apiResponse)
-	default:
-		moveObjectResponseAsHTML(w, r, caller, &apiResponse)
-	}
+	apiResponse := mapping.MapODObjectToObject(&dbObject)
+	moveObjectResponseAsJSON(w, r, caller, &apiResponse)
 
 }
 
-func parseMoveObjectRequestAsJSON(r *http.Request) (*models.ODObject, error) {
+func parseMoveObjectRequestAsJSON(r *http.Request) (models.ODObject, error) {
 	var jsonObject protocol.Object
+	var requestObject models.ODObject
 	var err error
 
 	switch {
 	case r.Header.Get("Content-Type") == "application/json":
+		// Depends on this for the changeToken
 		err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
 	case r.Header.Get("Content-Type") == "multipart/form-data":
 		r.ParseForm()
 		multipartReader, err := r.MultipartReader()
 		if err != nil {
-			return nil, err
+			return requestObject, err
 		}
 		for {
 			part, err := multipartReader.NextPart()
 			if err != nil {
-				return nil, err
+				return requestObject, err
 			}
 			switch {
 			case part.Header.Get("Content-Type") == "application/json":
@@ -203,7 +192,7 @@ func parseMoveObjectRequestAsJSON(r *http.Request) (*models.ODObject, error) {
 				valueAsBytes := make([]byte, 10240)
 				n, err := part.Read(valueAsBytes)
 				if err != nil {
-					return nil, err
+					return requestObject, err
 				}
 				err = (json.NewDecoder(bytes.NewReader(valueAsBytes[0:n]))).Decode(&jsonObject)
 			case part.Header.Get("Content-Disposition") == "form-data":
@@ -220,23 +209,20 @@ func parseMoveObjectRequestAsJSON(r *http.Request) (*models.ODObject, error) {
 		if len(matchIndexes) > 3 {
 			jsonObject.ID = uri[matchIndexes[2]:matchIndexes[3]]
 			if err != nil {
-				return nil, errors.New("Object Identifier in Request URI is not a hex string")
+				return requestObject, errors.New("Object Identifier in Request URI is not a hex string")
 			}
 		}
 		if len(matchIndexes) > 5 {
 			jsonObject.ParentID = uri[matchIndexes[4]:matchIndexes[5]]
 			if err != nil {
-				return nil, errors.New("Parent Identifier in Request URI is not a hex string")
+				return requestObject, errors.New("Parent Identifier in Request URI is not a hex string")
 			}
 		}
 	}
 
 	// Map to internal object type
-	object := mapping.MapObjectToODObject(&jsonObject)
-	return &object, err
-}
-func parseMoveObjectRequestAsHTML(r *http.Request) *models.ODObject {
-	return nil
+	requestObject = mapping.MapObjectToODObject(&jsonObject)
+	return requestObject, err
 }
 
 func moveObjectResponseAsJSON(
@@ -252,24 +238,4 @@ func moveObjectResponseAsJSON(
 		return
 	}
 	w.Write(jsonData)
-}
-
-func moveObjectResponseAsHTML(
-	w http.ResponseWriter,
-	r *http.Request,
-	caller Caller,
-	response *protocol.Object,
-) {
-
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, pageTemplateStart, "moveObject", caller.DistinguishedName)
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		log.Printf("Error marshalling response as json: %s", err.Error())
-		return
-	}
-	w.Write(jsonData)
-
-	fmt.Fprintf(w, pageTemplateEnd)
 }

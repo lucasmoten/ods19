@@ -1,43 +1,45 @@
 package server
 
 import (
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/performance"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/aws/aws-sdk-go/aws"
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"regexp"
 	"strconv"
 	"time"
-    "net/http/httputil"
+
+	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
+	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/performance"
+	"github.com/aws/aws-sdk-go/aws"
 )
 
-func (h AppServer) getObjectStreamObject(w http.ResponseWriter, r *http.Request, caller Caller) (*models.ODObject, error) {
+func (h AppServer) getObjectStreamObject(w http.ResponseWriter, r *http.Request, caller Caller) (models.ODObject, error) {
+	var object models.ODObject
 	// Identify requested object
 	objectID := getIDOfObjectTORetrieveStream(r.URL.RequestURI())
 	// If not valid, return
 	if objectID == "" {
 		h.sendErrorResponse(w, 400, nil, "URI provided by caller does not specify an object identifier")
-		return nil, nil
+		return object, nil
 	}
 	// Convert to byte
 	objectIDByte, err := hex.DecodeString(objectID)
 	if err != nil {
 		h.sendErrorResponse(w, 400, nil, "Identifier provided by caller is not a hexidecimal string")
-		return nil, err
+		return object, err
 	}
 	// Retrieve from database
 	var objectRequested models.ODObject
 	objectRequested.ID = objectIDByte
-	object, err := h.DAO.GetObject(&objectRequested, false)
+	object, err = h.DAO.GetObject(objectRequested, false)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cannot get object")
-		return nil, err
+		return object, err
 	}
 	return object, nil
 }
@@ -47,19 +49,19 @@ func (h AppServer) getObjectStreamObject(w http.ResponseWriter, r *http.Request,
 	TODO: This is including cache miss time.
 */
 func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, caller Caller) {
-    req,err := httputil.DumpRequest(r,true)
-    if err != nil {
-        log.Printf("unable to dump http request:%v", err)
-    } else {
-        log.Printf("%s", string(req))
-    }
-    
+	req, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		log.Printf("unable to dump http request:%v", err)
+	} else {
+		log.Printf("%s", string(req))
+	}
+
 	object, err := h.getObjectStreamObject(w, r, caller)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cannot get object")
 		return
 	}
-	if object == nil {
+	if object.ID == nil {
 		log.Printf("did not find an object")
 		h.sendErrorResponse(w, 500, err, "did not get object")
 		return
@@ -76,7 +78,7 @@ func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, calle
 	)
 }
 
-func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Request, caller Caller, object *models.ODObject) {
+func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Request, caller Caller, object models.ODObject) {
 	var err error
 	var err2 error
 	var err3 error
@@ -205,12 +207,12 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 	if object.ContentSize.Valid && object.ContentSize.Int64 > int64(0) {
 		w.Header().Set("Content-Length", strconv.FormatInt(object.ContentSize.Int64, 10))
 	}
-    w.Header().Set("Accept-Ranges","none")
-    
+	w.Header().Set("Accept-Ranges", "none")
+
 	//A visibility hack, so that I can see metadata about the object from a GET
 	//This lets you look in a browser and check attributes on an object that came
 	//back.
-	objectLink := mapping.MapODObjectToObject(object)
+	objectLink := mapping.MapODObjectToObject(&object)
 	objectLinkAsJSONBytes, err := json.Marshal(objectLink)
 	if err != nil {
 		log.Printf("Unable to marshal object metadata:%v", err)
