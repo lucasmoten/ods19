@@ -130,8 +130,6 @@ func (h AppServer) beginUploadTimed(
 	}
 	defer outFile.Close()
 
-	log.Printf("uploading %s with provisional length of %d", obj.Name, obj.ContentSize.Int64)
-
 	//Write the encrypted data to the filesystem
 	checksum, length, err := doCipherByReaderWriter(part, outFile, fileKey, iv, "uploading from browser")
 	if err != nil {
@@ -148,7 +146,7 @@ func (h AppServer) beginUploadTimed(
 		log.Printf("Unable to rename uploaded file %s %v:", outFileUploading, err)
 		return err
 	}
-    log.Printf("rename:%s -> %s",outFileUploading,outFileUploaded)
+	log.Printf("rename:%s -> %s", outFileUploading, outFileUploaded)
 
 	//Record metadata
 	obj.ContentHash = checksum
@@ -238,7 +236,7 @@ func (h AppServer) drainFileToS3Timed(
 		log.Printf("Unable to rename uploaded file %s %v:", outFileUploaded, err)
 		return err
 	}
-    log.Printf("rename:%s -> %s",outFileUploaded,outFileCached)
+	log.Printf("rename:%s -> %s", outFileUploaded, outFileCached)
 
 	log.Printf("Uploaded to %v: %v", *bucket, result.Location)
 	return err
@@ -285,15 +283,10 @@ func guessContentType(name string) string {
 func (h AppServer) transferFileFromS3(
 	bucket *string,
 	theFile string,
+    length int64,
 ) {
 	beganAt := h.Tracker.BeginTime(performance.S3DrainFrom)
 	h.transferFileFromS3Timed(bucket, theFile)
-
-	stat, cachedErr := os.Stat(h.CacheLocation + "/" + theFile + ".cached")
-	if cachedErr != nil {
-		log.Printf("could not get length of cached file %s", theFile)
-	}
-	length := stat.Size()
 
 	h.Tracker.EndTime(
 		performance.S3DrainFrom,
@@ -331,5 +324,5 @@ func (h AppServer) transferFileFromS3Timed(
 	if err != nil {
 		log.Printf("Failed to rename from %s to %s", foutCaching, foutCached)
 	}
-    log.Printf("rename:%s -> %s",foutCaching,foutCached)
+	log.Printf("rename:%s -> %s", foutCaching, foutCached)
 }

@@ -193,7 +193,7 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 		//very long time though.
 		//XXX blocks for a long time - maybe we should return an error code and
 		// an estimate of WHEN to retry in this case
-		h.transferFileFromS3(bucket, object.ContentConnector.String)
+		h.transferFileFromS3(bucket, object.ContentConnector.String, object.ContentSize.Int64)
 		if cipherText, err = os.Open(cipherTextName); err != nil {
 			h.sendErrorResponse(w, 403, err, "No permission for file")
 			return

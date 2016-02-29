@@ -35,6 +35,13 @@ func NewCipherStreamReader(w cipher.Stream, r io.Reader) *CipherStreamReader {
 // Read takes statistics as it writes
 func (r *CipherStreamReader) Read(dst []byte) (n int, err error) {
 	n, err = r.R.Read(dst)
+	if err != nil {
+		if err == io.EOF {
+			//nothing is wrong
+		} else {
+			log.Printf("error while reading from cipher stream:%v at size %d", err, r.Size)
+		}
+	}
 	r.H.Write(dst[:n])
 	r.S.XORKeyStream(dst[:n], dst[:n])
 	r.Size += int64(n)
