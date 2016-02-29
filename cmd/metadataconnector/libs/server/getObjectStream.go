@@ -107,6 +107,7 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 	////Clean out the permission if aac check fails
 	tokenType := "pki_dias"
 	dn := caller.DistinguishedName
+    log.Printf("Waiting for AAC to respond to %s for %s", dn, object.RawAcm.String)
 	aacResponse, err := h.AAC.CheckAccess(dn, tokenType, object.RawAcm.String)
 	if err != nil {
 		log.Printf(

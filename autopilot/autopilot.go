@@ -316,7 +316,7 @@ func DoUpload(i int, async bool, msg string) (link *protocol.Object, res *http.R
 }
 
 //Get candidate objects that we own, to perform operations on them
-func GetObjectLinkResponse(i int, olResponse *protocol.ObjectResultset, msg string) (res *http.Response, err error) {
+func GetLinks(i int, olResponse *protocol.ObjectResultset, msg string) (res *http.Response, err error) {
     var req *http.Request
 	req, err = http.NewRequest(
 		"GET",
@@ -355,6 +355,27 @@ func GetObjectLinkResponse(i int, olResponse *protocol.ObjectResultset, msg stri
 		log.Printf("Unable to decode response:%v", err)
 		return
 	}
+    return
+}
+
+func DownloadLinkByName(
+    name string,
+    i int, 
+    msg string,
+) (link *protocol.Object, res *http.Response, err error) {
+	var olResponse protocol.ObjectResultset
+	res, err = GetLinks(i, &olResponse, msg)
+	if err != nil {
+		log.Printf("Unable to do download:%v", err)
+		return
+	}
+
+    for k,v := range olResponse.Objects {
+        if name == v.Name {
+            link = &olResponse.Objects[k]
+    		res, err = DoDownloadLink(i, link, msg)
+        }
+    }
     return
 }
 
@@ -402,7 +423,7 @@ func DoDownloadLink(i int, link *protocol.Object, msg string) (res *http.Respons
 func DoDownload(i int, msg string) (link *protocol.Object, res *http.Response, err error) {
 	//Get the links to download
 	var olResponse protocol.ObjectResultset
-	res, err = GetObjectLinkResponse(i, &olResponse, msg)
+	res, err = GetLinks(i, &olResponse, msg)
 	if err != nil {
 		log.Printf("Unable to do download:%v", err)
 		return
@@ -421,17 +442,19 @@ func DoDownload(i int, msg string) (link *protocol.Object, res *http.Response, e
 }
 
 func DoUpdateLink(i int, link *protocol.Object, msg, toAppend string) (res *http.Response, err error) {
-	//Assuming that the file has been downloaded.  Modify it.
+	//Assuming that the file has been downloaded.  Modify it by appending data
 	fqName := clients[i].DownloadCache + "/" + link.Name
 	//Modify the file a little
-	f, err := os.OpenFile(fqName, os.O_APPEND, os.ModeAppend)
+	f, err := os.OpenFile(fqName,os.O_RDWR|os.O_APPEND, os.ModeAppend)
 	if err != nil {
 		log.Printf("Could not append to file")
 	}
-	defer f.Close()
-	f.WriteString(toAppend)
+	n, err := f.WriteString(toAppend)
+    if err != nil {
+        log.Printf("%d %v", n, err)
+    }
 	f.Close()
-
+    
 	req, err := generateUploadRequest(
 		link.Name,
 		fqName,
@@ -471,7 +494,7 @@ func DoUpdateLink(i int, link *protocol.Object, msg, toAppend string) (res *http
 func DoUpdate(i int, msg, toAppend string) (res *http.Response, err error) {
 	//Get the links to download
 	var olResponse protocol.ObjectResultset
-	res, err = GetObjectLinkResponse(i, &olResponse, msg)
+	res, err = GetLinks(i, &olResponse, msg)
 	if err != nil {
 		log.Printf("Unable to do download:%v", err)
 		return
