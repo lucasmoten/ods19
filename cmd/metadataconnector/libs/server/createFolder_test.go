@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
 )
 
@@ -32,6 +33,11 @@ func TestCreateFolderProtocol(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected OK, got %v", w.Code)
+	}
+	var resp models.ODObject
+	err = (json.NewDecoder(w.Body)).Decode(&resp)
+	if err != nil {
+		t.Errorf("Could not decode createFolder response as models.Object: %s", err)
 	}
 
 }
@@ -89,8 +95,7 @@ func TestCreateFolderAtRoot(t *testing.T) {
 	var createdFolder protocol.Object
 	err = decoder.Decode(&createdFolder)
 	if err != nil {
-		log.Printf("Error decoding json to Object: %v", err)
-		log.Println()
+		log.Printf("Error decoding json to Object: %v\n", err)
 		t.FailNow()
 	}
 	if verboseOutput {
@@ -119,8 +124,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 	// URL
 	uri := host + "/service/metadataconnector/1.0/folder"
 	if verboseOutput {
-		fmt.Printf("(Verbose Mode) uri: %s", uri)
-		fmt.Println()
+		fmt.Printf("(Verbose Mode) uri: %s\n", uri)
 	}
 
 	// Body
@@ -130,14 +134,14 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 	folder.ParentID = ""
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
-		log.Printf("Unable to marshal json for request:%v", err)
+		log.Printf("Unable to marshal json for request:%v\n", err)
 		t.FailNow()
 	}
 
 	// Request
 	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
+		log.Printf("Error setting up HTTP Request: %v\n", err)
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
