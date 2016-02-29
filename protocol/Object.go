@@ -73,7 +73,7 @@ type CreateObjectRequest struct {
 	RawAcm string `json:"acm"`
 	// ContentType indicates the mime-type, and potentially the character set
 	// encoding for the object contents
-	ContentType string `json:"contentTypei,omitempty"`
+	ContentType string `json:"contentType,omitempty"`
 	// ContentSize denotes the length of the content stream for this object, in
 	// bytes
 	ContentSize int64 `json:"contentSize,omitempty"`
