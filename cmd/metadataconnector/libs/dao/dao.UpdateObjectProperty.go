@@ -17,7 +17,7 @@ import (
 //    objectProperty.ChangeToken must be set to the current value
 //    objectProperty.ModifiedBy must be set to the user performing the operation
 //    objectProperty.Value.String must be set to the new value.
-func (dao *DataAccessLayer) UpdateObjectProperty(objectProperty *models.ODObjectPropertyEx) error {
+func (dao *DataAccessLayer) UpdateObjectProperty(objectProperty models.ODObjectPropertyEx) error {
 
 	tx := dao.MetadataDB.MustBegin()
 	err := updateObjectPropertyInTransaction(tx, objectProperty)
@@ -30,7 +30,7 @@ func (dao *DataAccessLayer) UpdateObjectProperty(objectProperty *models.ODObject
 	return err
 }
 
-func updateObjectPropertyInTransaction(tx *sqlx.Tx, objectProperty *models.ODObjectPropertyEx) error {
+func updateObjectPropertyInTransaction(tx *sqlx.Tx, objectProperty models.ODObjectPropertyEx) error {
 	// Pre-DB Validation
 	if objectProperty.ID == nil {
 		return errMissingID

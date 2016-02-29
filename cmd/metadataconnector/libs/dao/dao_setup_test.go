@@ -45,14 +45,14 @@ func init() {
 		user.DisplayName.String = config.GetCommonName(user.DistinguishedName)
 		user.DisplayName.Valid = true
 		user.CreatedBy = user.DistinguishedName
-		_, err = d.CreateUser(&user)
+		_, err = d.CreateUser(user)
 		//createdUser, err = d.CreateUser(&user)
 		//log.Printf("User "+strconv.Itoa(i)+" Change Count and Token: %d - %s", createdUser.ChangeCount, createdUser.ChangeToken)
 	}
 
 	user.DistinguishedName = "Bob"
 	user.CreatedBy = "Bob"
-	_, err = d.CreateUser(&user)
+	_, err = d.CreateUser(user)
 
 	// var user *models.ODUser
 	// var user1 models.ODUser

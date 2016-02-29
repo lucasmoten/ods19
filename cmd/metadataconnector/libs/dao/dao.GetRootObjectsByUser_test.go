@@ -35,17 +35,25 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 	object1.CreatedBy = user1
 	object1.TypeName.String = "Test Type"
 	object1.TypeName.Valid = true
-	err = d.CreateObject(&object1, nil)
+	permissions1 := make([]models.ODObjectPermission, 1)
+	permissions1[0].CreatedBy = user1
+	permissions1[0].Grantee = user1
+	permissions1[0].AllowCreate = true
+	permissions1[0].AllowRead = true
+	permissions1[0].AllowUpdate = true
+	permissions1[0].AllowDelete = true
+	object1.Permissions = permissions1
+	dbObject1, err := d.CreateObject(&object1, nil)
 	if err != nil {
 		t.Error(err)
 	}
-	if object1.ID == nil {
+	if dbObject1.ID == nil {
 		t.Error("expected ID to be set")
 	}
-	if object1.ModifiedBy != object1.CreatedBy {
+	if dbObject1.ModifiedBy != object1.CreatedBy {
 		t.Error("expected ModifiedBy to match CreatedBy")
 	}
-	if object1.TypeID == nil {
+	if dbObject1.TypeID == nil {
 		t.Error("expected TypeID to be set")
 	}
 
@@ -55,17 +63,25 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 	object2.CreatedBy = user2
 	object2.TypeName.String = "Test Type"
 	object2.TypeName.Valid = true
-	err = d.CreateObject(&object2, nil)
+	permissions2 := make([]models.ODObjectPermission, 1)
+	permissions2[0].CreatedBy = user2
+	permissions2[0].Grantee = user2
+	permissions2[0].AllowCreate = true
+	permissions2[0].AllowRead = true
+	permissions2[0].AllowUpdate = true
+	permissions2[0].AllowDelete = true
+	object2.Permissions = permissions2
+	dbObject2, err := d.CreateObject(&object2, nil)
 	if err != nil {
 		t.Error(err)
 	}
-	if object2.ID == nil {
+	if dbObject2.ID == nil {
 		t.Error("expected ID to be set")
 	}
-	if object2.ModifiedBy != object2.CreatedBy {
+	if dbObject2.ModifiedBy != object2.CreatedBy {
 		t.Error("expected ModifiedBy to match CreatedBy")
 	}
-	if object2.TypeID == nil {
+	if dbObject2.TypeID == nil {
 		t.Error("expected TypeID to be set")
 	}
 
@@ -86,11 +102,11 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 	}
 
 	// Delete the objects
-	err = d.DeleteObject(&object1, true)
+	err = d.DeleteObject(dbObject1, true)
 	if err != nil {
 		t.Error(err)
 	}
-	err = d.DeleteObject(&object2, true)
+	err = d.DeleteObject(dbObject2, true)
 	if err != nil {
 		t.Error(err)
 	}

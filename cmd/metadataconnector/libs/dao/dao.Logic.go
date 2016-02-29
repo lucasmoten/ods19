@@ -29,7 +29,7 @@ func isParentIDADescendentInTransaction(tx *sqlx.Tx, id []byte, parentID []byte)
 	}
 	var targetObject models.ODObject
 	targetObject.ID = parentID
-	dbObject, err := getObjectInTransaction(tx, &targetObject, false)
+	dbObject, err := getObjectInTransaction(tx, targetObject, false)
 	if err != nil {
 		return true, err
 	}

@@ -25,17 +25,17 @@ func TestDAOGetRootObjects(t *testing.T) {
 	object1.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	object1.TypeName.String = "Test Type"
 	object1.TypeName.Valid = true
-	err = d.CreateObject(&object1, nil)
+	dbObject1, err := d.CreateObject(&object1, nil)
 	if err != nil {
 		t.Error(err)
 	}
-	if object1.ID == nil {
+	if dbObject1.ID == nil {
 		t.Error("expected ID to be set")
 	}
-	if object1.ModifiedBy != object1.CreatedBy {
+	if dbObject1.ModifiedBy != object1.CreatedBy {
 		t.Error("expected ModifiedBy to match CreatedBy")
 	}
-	if object1.TypeID == nil {
+	if dbObject1.TypeID == nil {
 		t.Error("expected TypeID to be set")
 	}
 
@@ -49,7 +49,7 @@ func TestDAOGetRootObjects(t *testing.T) {
 	}
 
 	// Delete the object
-	err = d.DeleteObject(&object1, true)
+	err = d.DeleteObject(dbObject1, true)
 	if err != nil {
 		t.Error(err)
 	}

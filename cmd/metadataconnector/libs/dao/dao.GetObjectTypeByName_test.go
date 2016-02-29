@@ -18,11 +18,11 @@ func TestDAOGetObjectTypeByName(t *testing.T) {
 	var objectType models.ODObjectType
 	objectType.Name = objectTypeName
 	objectType.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
-	d.CreateObjectType(&objectType)
-	if objectType.ID == nil {
+	dbObjectType, err := d.CreateObjectType(&objectType)
+	if dbObjectType.ID == nil {
 		t.Error("expected ID to be set")
 	}
-	if objectType.ModifiedBy != objectType.CreatedBy {
+	if dbObjectType.ModifiedBy != objectType.CreatedBy {
 		t.Error("expected ModifiedBy to match CreatedBy")
 	}
 
@@ -39,7 +39,7 @@ func TestDAOGetObjectTypeByName(t *testing.T) {
 	}
 
 	// delete the object type
-	err = d.DeleteObjectType(&objectTypeByName)
+	err = d.DeleteObjectType(objectTypeByName)
 	if err != nil {
 		t.Error(err)
 	}

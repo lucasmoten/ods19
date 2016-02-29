@@ -2,6 +2,7 @@ package dao_test
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 
 	"decipher.com/oduploader/metadata/models"
@@ -18,17 +19,17 @@ func TestDAOGetChildObjects(t *testing.T) {
 	parent.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	parent.TypeName.String = "Test Type"
 	parent.TypeName.Valid = true
-	err := d.CreateObject(&parent, nil)
+	dbParent, err := d.CreateObject(&parent, nil)
 	if err != nil {
 		t.Error(err)
 	}
-	if parent.ID == nil {
+	if dbParent.ID == nil {
 		t.Error("expected ID to be set")
 	}
-	if parent.ModifiedBy != parent.CreatedBy {
+	if dbParent.ModifiedBy != parent.CreatedBy {
 		t.Error("expected ModifiedBy to match CreatedBy")
 	}
-	if parent.TypeID == nil {
+	if dbParent.TypeID == nil {
 		t.Error("expected TypeID to be set")
 	}
 
@@ -36,36 +37,37 @@ func TestDAOGetChildObjects(t *testing.T) {
 	var child models.ODObject
 	child.Name = "Test GetChildObjects Child"
 	child.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
-	child.ParentID = parent.ID
+	child.ParentID = dbParent.ID
 	child.TypeName.String = "Test Type"
 	child.TypeName.Valid = true
-	err = d.CreateObject(&child, nil)
+	dbChild, err := d.CreateObject(&child, nil)
 	if err != nil {
 		t.Error(err)
 	}
-	if child.ID == nil {
+	if dbChild.ID == nil {
 		t.Error("expected ID to be set")
 	}
-	if child.ModifiedBy != child.CreatedBy {
+	if dbChild.ModifiedBy != child.CreatedBy {
 		t.Error("expected ModifiedBy to match CreatedBy")
 	}
-	if child.TypeID == nil {
+	if dbChild.TypeID == nil {
 		t.Error("expected TypeID to be set")
 	}
-	if !bytes.Equal(child.ParentID, parent.ID) {
+	if !bytes.Equal(child.ParentID, dbParent.ID) {
 		t.Error("expected child parentID to match parent ID")
 	}
 
-	resultset, err := d.GetChildObjects("", 1, 10, &parent)
+	resultset, err := d.GetChildObjects("name asc", 1, 10, dbParent)
 	if err != nil {
 		t.Error(err)
 	}
 	if resultset.TotalRows != 1 {
+		t.Error(fmt.Errorf("Resultset had %d totalrows", resultset.TotalRows))
 		t.Error("expected 1 child")
 	}
 
 	// cleanup
-	err = d.DeleteObject(&parent, true)
+	err = d.DeleteObject(dbParent, true)
 	if err != nil {
 		t.Error(err)
 	}

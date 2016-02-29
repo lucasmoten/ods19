@@ -39,7 +39,7 @@ func TestDAOCreateObjectType(t *testing.T) {
 	}
 
 	if objectTypeCreated {
-		err = d.DeleteObjectType(&objectType)
+		err = d.DeleteObjectType(objectType)
 		if err != nil {
 			t.Error(err)
 		}

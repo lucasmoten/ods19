@@ -10,7 +10,7 @@ import (
 // GetChildObjectsWithProperties retrieves a list of Objects and their
 // Properties in Object Drive that are nested beneath the parent object.
 func (dao *DataAccessLayer) GetChildObjectsWithProperties(
-	orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error) {
+	orderByClause string, pageNumber int, pageSize int, object models.ODObject) (models.ODObjectResultset, error) {
 
 	tx := dao.MetadataDB.MustBegin()
 	response, err := getChildObjectsWithPropertiesInTransaction(tx, orderByClause, pageNumber, pageSize, object)
@@ -23,7 +23,7 @@ func (dao *DataAccessLayer) GetChildObjectsWithProperties(
 	return response, err
 }
 
-func getChildObjectsWithPropertiesInTransaction(tx *sqlx.Tx, orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error) {
+func getChildObjectsWithPropertiesInTransaction(tx *sqlx.Tx, orderByClause string, pageNumber int, pageSize int, object models.ODObject) (models.ODObjectResultset, error) {
 
 	response, err := getChildObjectsInTransaction(tx, orderByClause, pageNumber, pageSize, object)
 	if err != nil {
@@ -31,7 +31,7 @@ func getChildObjectsWithPropertiesInTransaction(tx *sqlx.Tx, orderByClause strin
 		return response, err
 	}
 	for i := 0; i < len(response.Objects); i++ {
-		properties, err := getPropertiesForObjectInTransaction(tx, &response.Objects[i])
+		properties, err := getPropertiesForObjectInTransaction(tx, response.Objects[i])
 		if err != nil {
 			return response, err
 		}

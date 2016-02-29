@@ -16,7 +16,7 @@ import (
 //    objectProperty.ID must be set to the property to be marked as deleted
 //    objectProperty.ChangeToken must be set to the current value
 //    objectProperty.ModifiedBy must be set to the user performing the operation
-func (dao *DataAccessLayer) DeleteObjectProperty(objectProperty *models.ODObjectPropertyEx) error {
+func (dao *DataAccessLayer) DeleteObjectProperty(objectProperty models.ODObjectPropertyEx) error {
 
 	tx := dao.MetadataDB.MustBegin()
 	err := deleteObjectPropertyInTransaction(tx, objectProperty)
@@ -29,7 +29,7 @@ func (dao *DataAccessLayer) DeleteObjectProperty(objectProperty *models.ODObject
 	return err
 }
 
-func deleteObjectPropertyInTransaction(tx *sqlx.Tx, objectProperty *models.ODObjectPropertyEx) error {
+func deleteObjectPropertyInTransaction(tx *sqlx.Tx, objectProperty models.ODObjectPropertyEx) error {
 	if objectProperty.ID == nil {
 		return errMissingID
 	}

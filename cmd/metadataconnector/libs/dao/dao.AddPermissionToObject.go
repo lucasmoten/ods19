@@ -11,9 +11,9 @@ import (
 
 // AddPermissionToObject creates a new permission with the provided object id,
 // grant, and permissions.
-func (dao *DataAccessLayer) AddPermissionToObject(createdBy string, object *models.ODObject, permission *models.ODObjectPermission) (models.ODObjectPermission, error) {
+func (dao *DataAccessLayer) AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission) (models.ODObjectPermission, error) {
 	tx := dao.MetadataDB.MustBegin()
-	response, err := addPermissionToObjectInTransaction(tx, createdBy, object, permission)
+	response, err := addPermissionToObjectInTransaction(tx, object, permission)
 	if err != nil {
 		log.Printf("Error in AddPermissionToobject: %v", err)
 		tx.Rollback()
@@ -23,7 +23,7 @@ func (dao *DataAccessLayer) AddPermissionToObject(createdBy string, object *mode
 	return response, err
 }
 
-func addPermissionToObjectInTransaction(tx *sqlx.Tx, createdBy string, object *models.ODObject, permission *models.ODObjectPermission) (models.ODObjectPermission, error) {
+func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, permission *models.ODObjectPermission) (models.ODObjectPermission, error) {
 
 	var dbPermission models.ODObjectPermission
 
@@ -33,7 +33,7 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, createdBy string, object *m
 		return dbPermission, err
 	}
 	// Add it
-	result, err := addPermissionStatement.Exec(createdBy, object.ID, permission.Grantee, permission.AllowCreate, permission.AllowRead, permission.AllowUpdate, permission.AllowDelete, permission.EncryptKey)
+	result, err := addPermissionStatement.Exec(permission.CreatedBy, object.ID, permission.Grantee, permission.AllowCreate, permission.AllowRead, permission.AllowUpdate, permission.AllowDelete, permission.EncryptKey)
 	if err != nil {
 		return dbPermission, err
 	}
@@ -49,7 +49,7 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, createdBy string, object *m
 	if err != nil {
 		return dbPermission, err
 	}
-	err = getPermissionIDStatement.QueryRowx(createdBy, object.ID, permission.Grantee).Scan(&newPermissionID)
+	err = getPermissionIDStatement.QueryRowx(permission.CreatedBy, object.ID, permission.Grantee).Scan(&newPermissionID)
 	if err != nil {
 		return dbPermission, err
 	}
@@ -59,7 +59,7 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, createdBy string, object *m
 	if err != nil {
 		return dbPermission, err
 	}
-    *permission = dbPermission
+	*permission = dbPermission
 	//permission = &dbPermission
 
 	return dbPermission, nil

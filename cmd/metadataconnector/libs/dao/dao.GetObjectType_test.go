@@ -2,7 +2,9 @@ package dao_test
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
+	"time"
 
 	"decipher.com/oduploader/metadata/models"
 )
@@ -13,22 +15,25 @@ func TestDAOGetObjectType(t *testing.T) {
 	}
 	// create object type
 	var objectType models.ODObjectType
-	objectType.Name = "Test Object Type"
+	objectType.Name = "Test Object Type" + strconv.Itoa(time.Now().UTC().Nanosecond())
 	objectType.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
-	d.CreateObjectType(&objectType)
-	if objectType.ID == nil {
+	dbObjectType, err := d.CreateObjectType(&objectType)
+	if err != nil {
+		t.Error(err)
+	}
+	if dbObjectType.ID == nil {
 		t.Error("expected ID to be set")
 	}
-	if objectType.ModifiedBy != objectType.CreatedBy {
+	if dbObjectType.ModifiedBy != objectType.CreatedBy {
 		t.Error("expected ModifiedBy to match CreatedBy")
 	}
 
 	// get the object type by id
-	objectTypeByID, err := d.GetObjectType(&objectType)
+	objectTypeByID, err := d.GetObjectType(dbObjectType)
 	if err != nil {
 		t.Error(err)
 	}
-	if objectTypeByID.Name != "Test Object Type" {
+	if objectTypeByID.Name != objectType.Name {
 		t.Error(fmt.Errorf("expected objectTypeByID Name to be Test Object Type, got %s", objectTypeByID.Name))
 	}
 	if objectTypeByID.IsDeleted {
@@ -36,17 +41,17 @@ func TestDAOGetObjectType(t *testing.T) {
 	}
 
 	// delete the object type
-	err = d.DeleteObjectType(objectTypeByID)
+	err = d.DeleteObjectType(*objectTypeByID)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// Refetch by id
-	objectTypeByID2, err := d.GetObjectType(&objectType)
+	objectTypeByID2, err := d.GetObjectType(dbObjectType)
 	if err != nil {
 		t.Error(err)
 	}
-	if objectTypeByID2.Name != "Test Object Type" {
+	if objectTypeByID2.Name != objectType.Name {
 		t.Error(fmt.Errorf("expected objectTypeByID Name to be Test Object Type, got %s", objectTypeByID2.Name))
 	}
 	if !objectTypeByID2.IsDeleted {

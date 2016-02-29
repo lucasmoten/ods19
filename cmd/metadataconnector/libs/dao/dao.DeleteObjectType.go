@@ -15,7 +15,7 @@ import (
 //    objectType.ID must be set to the objectType to be marked as deleted
 //    objectType.ChangeToken must be set to the current value
 //    objectType.ModifiedBy must be set to the user performing the operation
-func (dao *DataAccessLayer) DeleteObjectType(objectType *models.ODObjectType) error {
+func (dao *DataAccessLayer) DeleteObjectType(objectType models.ODObjectType) error {
 	tx := dao.MetadataDB.MustBegin()
 	err := deleteObjectTypeInTransaction(tx, objectType)
 	if err != nil {
@@ -27,7 +27,7 @@ func (dao *DataAccessLayer) DeleteObjectType(objectType *models.ODObjectType) er
 	return err
 }
 
-func deleteObjectTypeInTransaction(tx *sqlx.Tx, objectType *models.ODObjectType) error {
+func deleteObjectTypeInTransaction(tx *sqlx.Tx, objectType models.ODObjectType) error {
 	// Pre-DB Validation
 	if objectType.ID == nil {
 		return errMissingID

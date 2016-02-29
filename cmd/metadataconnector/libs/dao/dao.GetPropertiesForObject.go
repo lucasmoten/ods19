@@ -8,7 +8,7 @@ import (
 )
 
 // GetPropertiesForObject retrieves the properties for a given object.
-func (dao *DataAccessLayer) GetPropertiesForObject(object *models.ODObject) ([]models.ODObjectPropertyEx, error) {
+func (dao *DataAccessLayer) GetPropertiesForObject(object models.ODObject) ([]models.ODObjectPropertyEx, error) {
 
 	tx := dao.MetadataDB.MustBegin()
 	response, err := getPropertiesForObjectInTransaction(tx, object)
@@ -21,7 +21,7 @@ func (dao *DataAccessLayer) GetPropertiesForObject(object *models.ODObject) ([]m
 	return response, err
 }
 
-func getPropertiesForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) ([]models.ODObjectPropertyEx, error) {
+func getPropertiesForObjectInTransaction(tx *sqlx.Tx, object models.ODObject) ([]models.ODObjectPropertyEx, error) {
 	response := []models.ODObjectPropertyEx{}
 	query := `select p.* from property p
             inner join object_property op on p.id = op.propertyid

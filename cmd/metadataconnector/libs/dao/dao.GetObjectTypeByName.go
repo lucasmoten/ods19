@@ -33,9 +33,15 @@ func getObjectTypeByNameInTransaction(tx *sqlx.Tx, typeName string, addIfMissing
 	if err != nil {
 		if err == sql.ErrNoRows {
 			if addIfMissing {
+				err = nil
 				objectType.Name = typeName
 				objectType.CreatedBy = createdBy
-				err = createObjectTypeInTransaction(tx, &objectType)
+				createdObjectType, err := createObjectTypeInTransaction(tx, &objectType)
+				if err != nil {
+					return objectType, fmt.Errorf("Error creating object when missing: %s", err.Error())
+				}
+				objectType = createdObjectType
+				err = nil
 			}
 		} else {
 			return objectType, fmt.Errorf("GetObjectTypeByName error, %s", err.Error())
@@ -44,7 +50,11 @@ func getObjectTypeByNameInTransaction(tx *sqlx.Tx, typeName string, addIfMissing
 	if objectType.IsDeleted && addIfMissing {
 		objectType.Name = typeName
 		objectType.CreatedBy = createdBy
-		err = createObjectTypeInTransaction(tx, &objectType)
+		createdObjectType, err := createObjectTypeInTransaction(tx, &objectType)
+		if err != nil {
+			return objectType, fmt.Errorf("Error recreating object when previous was deleted: %s", err.Error())
+		}
+		objectType = createdObjectType
 	}
 
 	return objectType, err

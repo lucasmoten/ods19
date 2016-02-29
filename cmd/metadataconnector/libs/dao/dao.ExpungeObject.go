@@ -22,7 +22,7 @@ import (
 //      IsAncestorDeleted. IsAncestorDeleted is only set if explicit = false
 //      whose purpose is to mark child items as implicitly deleted due to an
 //      ancestor being deleted.
-func (dao *DataAccessLayer) ExpungeObject(object *models.ODObject, explicit bool) error {
+func (dao *DataAccessLayer) ExpungeObject(object models.ODObject, explicit bool) error {
 	tx := dao.MetadataDB.MustBegin()
 	err := expungeObjectInTransaction(tx, object, explicit)
 	if err != nil {
@@ -34,7 +34,7 @@ func (dao *DataAccessLayer) ExpungeObject(object *models.ODObject, explicit bool
 	return err
 }
 
-func expungeObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, explicit bool) error {
+func expungeObjectInTransaction(tx *sqlx.Tx, object models.ODObject, explicit bool) error {
 	// Pre-DB Validation
 	if object.ID == nil {
 		return errors.New("Object ID was not specified for object being expunged")
@@ -105,7 +105,7 @@ func expungeObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, explicit b
 		}
 		if authorizedToDelete {
 			resultset.Objects[i].ModifiedBy = object.ModifiedBy
-			err = expungeObjectInTransaction(tx, &resultset.Objects[i], false)
+			err = expungeObjectInTransaction(tx, resultset.Objects[i], false)
 			if err != nil {
 				return err
 			}
