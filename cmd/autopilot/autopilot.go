@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var perPopulation = 20
+var perPopulation = 40
 var sleepTime = 120
 
 func doSleep(i int) {
