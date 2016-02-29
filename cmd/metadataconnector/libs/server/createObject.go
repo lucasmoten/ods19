@@ -141,7 +141,9 @@ func (h AppServer) createObject(
 		obj.CreatedBy = caller.DistinguishedName
 		acm.CreatedBy = caller.DistinguishedName
 
-        handleCreatePrerequisites(h, &createdObject, &acm, w, caller)
+        if handleCreatePrerequisites(h, &createdObject, &acm, w, caller) {
+            return
+        }
         
 		rName := createRandomName()
 		fileKey := createKey()
