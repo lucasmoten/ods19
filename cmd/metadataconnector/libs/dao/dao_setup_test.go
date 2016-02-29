@@ -32,7 +32,6 @@ func init() {
 
 	// Create users referenced by these tests
 	user := models.ODUser{}
-	//var createdUser *models.ODUser
 	for i := 0; i < len(usernames); i++ {
 		if i == 0 {
 			usernames[i] = "CN=[DAOTEST]test tester10, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
@@ -46,44 +45,18 @@ func init() {
 		user.DisplayName.Valid = true
 		user.CreatedBy = user.DistinguishedName
 		_, err = d.CreateUser(user)
-		//createdUser, err = d.CreateUser(&user)
-		//log.Printf("User "+strconv.Itoa(i)+" Change Count and Token: %d - %s", createdUser.ChangeCount, createdUser.ChangeToken)
 	}
 
 	user.DistinguishedName = "Bob"
 	user.CreatedBy = "Bob"
 	_, err = d.CreateUser(user)
 
-	// var user *models.ODUser
-	// var user1 models.ODUser
-	// user1.DistinguishedName = "CN=[DAOTEST]test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
-	// user1.DisplayName.String = config.GetCommonName(user1.DistinguishedName)
-	// user1.DisplayName.Valid = true
-	// user1.CreatedBy = user1.DistinguishedName
-	// user, err = d.CreateUser(&user1)
-	// log.Printf("User 1 Change Count and Token: %d - %s", user.ChangeCount, user.ChangeToken)
-	// var user2 models.ODUser
-	// user2.DistinguishedName = "CN=[DAOTEST]test tester02, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
-	// user2.DisplayName.String = config.GetCommonName(user2.DistinguishedName)
-	// user2.DisplayName.Valid = true
-	// user2.CreatedBy = user2.DistinguishedName
-	// user, err = d.CreateUser(&user2)
-	// log.Printf("User 2 Change Count and Token: %d - %s", user.ChangeCount, user.ChangeToken)
-	// var user10 models.ODUser
-	// user10.DistinguishedName = "CN=[DAOTEST]test tester10, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
-	// user10.DisplayName.String = config.GetCommonName(user10.DistinguishedName)
-	// user10.DisplayName.Valid = true
-	// user10.CreatedBy = user10.DistinguishedName
-	// user, err = d.CreateUser(&user10)
-	// log.Printf("User 10 Change Count and Token: %d - %s", user.ChangeCount, user.ChangeToken)
-
 }
 
 func TestTransactionalUpdate(t *testing.T) {
 
-	if testing.Short() {
-		t.Skip()
-	}
+	// Always skip.
+	t.Skip()
 
 	tx := db.MustBegin()
 

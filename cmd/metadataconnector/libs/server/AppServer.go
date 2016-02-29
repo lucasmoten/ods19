@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strings"
 
+	"golang.org/x/net/context"
+
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
@@ -17,6 +19,11 @@ import (
 	audit "decipher.com/oduploader/services/audit/generated/auditservice_thrift"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+)
+
+// Constants serve as keys for setting values on a request-scoped Context.
+const (
+	CallerVal = iota
 )
 
 // AppServer contains definition for the metadata server
@@ -161,6 +168,9 @@ func (h *AppServer) InitRegex() {
 func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	caller := GetCaller(r)
 
+	// Prepare a Context to propagate to request handlers
+	var ctx context.Context
+
 	// Load user from database, adding if they dont exist
 	var user models.ODUser
 	var userRequested models.ODUser
@@ -168,8 +178,6 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	user, err := h.DAO.GetUserByDistinguishedName(userRequested)
 	if err != nil || user.DistinguishedName != caller.DistinguishedName {
 		log.Printf("User was not found in database: %s", err.Error())
-		// if err == sql.ErrNoRows || user.DistinguishedName != caller.DistinguishedName {
-		// Doesn't exist yet, lets add this user
 		userRequested.DistinguishedName = caller.DistinguishedName
 		userRequested.DisplayName.String = caller.CommonName
 		userRequested.DisplayName.Valid = true
@@ -180,9 +188,6 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Error accesing resource", 500)
 			return
 		}
-		// } else {
-		// 	log.Printf(err.Error())
-		// }
 	}
 
 	if len(user.ModifiedBy) == 0 {
@@ -194,6 +199,10 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		jsonified := string(jsonData)
 		fmt.Println(jsonified)
 	}
+
+	// Set the caller as a value on the Context. Background() creates a new context.
+	// Subsequent calls should pass the same ctx instead of initiliazing a new context.
+	ctx = ContextWithCaller(context.Background(), caller)
 
 	var uri = r.URL.Path
 
@@ -239,7 +248,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.Shares.MatchString(uri):
 			h.listUserObjectShares(w, r, caller)
 		case h.Routes.Trash.MatchString(uri):
-			h.listObjectsTrashed(w, r, caller)
+			h.listObjectsTrashed(ctx, w, r)
 		case h.Routes.Query.MatchString(uri):
 			h.query(w, r, caller)
 		case h.Routes.StatsObject.MatchString(uri):
@@ -351,4 +360,18 @@ func GetCaller(r *http.Request) Caller {
 	caller.DistinguishedName = config.GetNormalizedDistinguishedName(caller.DistinguishedName)
 	caller.CommonName = config.GetCommonName(caller.DistinguishedName)
 	return caller
+}
+
+// ContextWithCaller returns a new Context object with a Caller value set. The const CallerVal acts
+// as the key that maps to the caller value.
+func ContextWithCaller(ctx context.Context, caller Caller) context.Context {
+	return context.WithValue(ctx, CallerVal, caller)
+}
+
+// CallerFromContext extracts a Caller from a context, if set.
+func CallerFromContext(ctx context.Context) (Caller, bool) {
+	// ctx.Value returns nil if ctx has no value for the key
+	// the Caller type assertion returns ok=false for nil.
+	caller, ok := ctx.Value(CallerVal).(Caller)
+	return caller, ok
 }

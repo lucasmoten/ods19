@@ -163,6 +163,11 @@ func (fake *FakeDAO) GetRootObjectsWithPropertiesByUser(
 	return fake.ObjectResultSet, fake.Err
 }
 
+// GetTrashedObjectsByUser for FakeDAO.
+func (fake *FakeDAO) GetTrashedObjectsByUser(orderByClause string, pageNumber int, pageSize int, user string) (models.ODObjectResultset, error) {
+	return fake.ObjectResultSet, fake.Err
+}
+
 // IsParentIDADescendent for FakeDAO.
 func (fake *FakeDAO) IsParentIDADescendent(id []byte, parentID []byte) (bool, error) {
 	return fake.IsDescendent, fake.Err
