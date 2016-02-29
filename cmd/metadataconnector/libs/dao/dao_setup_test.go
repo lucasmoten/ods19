@@ -45,14 +45,14 @@ func init() {
 		user.DisplayName.String = config.GetCommonName(user.DistinguishedName)
 		user.DisplayName.Valid = true
 		user.CreatedBy = user.DistinguishedName
-		_, err = d.CreateUser(&user)
+		_, err = d.CreateUser(user)
 		//createdUser, err = d.CreateUser(&user)
 		//log.Printf("User "+strconv.Itoa(i)+" Change Count and Token: %d - %s", createdUser.ChangeCount, createdUser.ChangeToken)
 	}
 
 	user.DistinguishedName = "Bob"
 	user.CreatedBy = "Bob"
-	_, err = d.CreateUser(&user)
+	_, err = d.CreateUser(user)
 
 	// var user *models.ODUser
 	// var user1 models.ODUser
@@ -115,8 +115,8 @@ func TestTransactionalUpdate(t *testing.T) {
 	if err != nil {
 		log.Printf("Error %v", err)
 	}
-	log.Printf("Change Count = %d", dbObjectType1.ChangeCount)
 	if testing.Verbose() {
+		log.Printf("Change Count = %d", dbObjectType1.ChangeCount)
 		jsonData, err := json.MarshalIndent(dbObjectType1, "", "  ")
 		if err != nil {
 			log.Printf("Error %v", err)
@@ -144,8 +144,8 @@ func TestTransactionalUpdate(t *testing.T) {
 	if err != nil {
 		log.Printf("Error %v", err)
 	}
-	log.Printf("Change Count = %d", dbObjectType2.ChangeCount)
 	if testing.Verbose() {
+		log.Printf("Change Count = %d", dbObjectType2.ChangeCount)
 		jsonData, err := json.MarshalIndent(dbObjectType2, "", "  ")
 		if err != nil {
 			log.Printf("Error %v", err)

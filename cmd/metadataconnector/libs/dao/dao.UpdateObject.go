@@ -40,7 +40,7 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 	}
 
 	// Fetch current state of object
-	dbObject, err := getObjectInTransaction(tx, object, false)
+	dbObject, err := getObjectInTransaction(tx, *object, false)
 	if err != nil {
 		return fmt.Errorf("UpdateObject Error retrieving object, %s", err.Error())
 	}
@@ -56,7 +56,7 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 
 	// lookup type, assign its id to the object for reference
 	if object.TypeID == nil {
-		objectType, err := getObjectTypeByNameInTransaction(tx, object.TypeName.String, true, object.CreatedBy)
+		objectType, err := getObjectTypeByNameInTransaction(tx, object.TypeName.String, true, object.ModifiedBy)
 		if err != nil {
 			return fmt.Errorf("CreateObject Error calling GetObjectTypeByName, %s", err.Error())
 		}
@@ -93,7 +93,7 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 
 	// Retrieve current state of object from database to reflect alterations to..
 	// ModifiedDate, ChangeToken, ChangeCount
-	dbObject, err = getObjectInTransaction(tx, object, true)
+	dbObject, err = getObjectInTransaction(tx, *object, true)
 	if err != nil {
 		return fmt.Errorf("UpdateObject Error retrieving object, %s", err.Error())
 	}
@@ -112,7 +112,7 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 					// Deleting matching properties by name. The id and changeToken are
 					// implicit from dbObject for each one that matches.
 					dbProperty.ModifiedBy = object.ModifiedBy
-					deleteObjectPropertyInTransaction(tx, &dbProperty)
+					deleteObjectPropertyInTransaction(tx, dbProperty)
 					// don't break for loop here because we want to clean out all of the
 					// existing properties with the same name in this case.
 				} else {
@@ -123,7 +123,7 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 						dbProperty.ModifiedBy = object.ModifiedBy
 						dbProperty.Value.String = objectProperty.Value.String
 						dbProperty.ClassificationPM.String = objectProperty.ClassificationPM.String
-						updateObjectPropertyInTransaction(tx, &dbProperty)
+						updateObjectPropertyInTransaction(tx, dbProperty)
 					}
 					// break out of the for loop on database objects
 					break
@@ -143,9 +143,12 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 				newProperty.ClassificationPM.Valid = true
 				newProperty.ClassificationPM.String = objectProperty.ClassificationPM.String
 			}
-			err := addPropertyToObjectInTransaction(tx, object.CreatedBy, object, &newProperty)
+			dbProperty, err := addPropertyToObjectInTransaction(tx, *object, &newProperty)
 			if err != nil {
 				return fmt.Errorf("Error saving property %d (%s) when updating object", o, objectProperty.Name)
+			}
+			if dbProperty.ID == nil {
+				return fmt.Errorf("New property does not have an ID")
 			}
 		} else {
 			// This existing property needs to be updated
@@ -178,7 +181,7 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 					dbPermission.AllowRead = objectPermission.AllowRead
 					dbPermission.AllowUpdate = objectPermission.AllowUpdate
 					dbPermission.AllowDelete = objectPermission.AllowUpdate
-					err := updatePermissionInTransaction(tx, &dbPermission)
+					err := updatePermissionInTransaction(tx, dbPermission)
 					if err != nil {
 						return fmt.Errorf("Error updating permission %d (%s) when updating object", o, objectPermission.Grantee)
 					}
@@ -189,7 +192,7 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 			// No existing permission. Need to add it
 			// TODO: Since this is a new permission, we need to establish the
 			// encryptKey for this grantee.
-			dbPermission, err := addPermissionToObjectInTransaction(tx, object.ModifiedBy, object, &objectPermission)
+			dbPermission, err := addPermissionToObjectInTransaction(tx, *object, &objectPermission)
 			if err != nil {
 				crud := []string{"C", "R", "U", "D"}
 				if !objectPermission.AllowCreate {
@@ -213,11 +216,11 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 		}
 	}
 	// Refetch object again with properties and permissions
-	dbObject, err = getObjectInTransaction(tx, object, true)
+	dbObject, err = getObjectInTransaction(tx, *object, true)
 	if err != nil {
 		return fmt.Errorf("UpdateObject Error retrieving object %v, %s", object, err.Error())
 	}
-	object = dbObject
+	*object = dbObject
 
 	return nil
 }

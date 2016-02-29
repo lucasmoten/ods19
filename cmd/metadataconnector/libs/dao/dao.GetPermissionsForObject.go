@@ -8,7 +8,7 @@ import (
 )
 
 // GetPermissionsForObject retrieves the grants for a given object.
-func (dao *DataAccessLayer) GetPermissionsForObject(object *models.ODObject) ([]models.ODObjectPermission, error) {
+func (dao *DataAccessLayer) GetPermissionsForObject(object models.ODObject) ([]models.ODObjectPermission, error) {
 
 	tx := dao.MetadataDB.MustBegin()
 	response, err := getPermissionsForObjectInTransaction(tx, object)
@@ -22,7 +22,7 @@ func (dao *DataAccessLayer) GetPermissionsForObject(object *models.ODObject) ([]
 
 }
 
-func getPermissionsForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) ([]models.ODObjectPermission, error) {
+func getPermissionsForObjectInTransaction(tx *sqlx.Tx, object models.ODObject) ([]models.ODObjectPermission, error) {
 	response := []models.ODObjectPermission{}
 	query := `select op.* from object_permission op inner join object o on op.objectid = o.id where op.isdeleted = 0 and op.objectid = ?`
 	err := tx.Select(&response, query, object.ID)

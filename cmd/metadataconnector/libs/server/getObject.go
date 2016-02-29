@@ -14,7 +14,7 @@ import (
 
 func (h AppServer) getObject(w http.ResponseWriter, r *http.Request, caller Caller) {
 
-	var requestObject *models.ODObject
+	var requestObject models.ODObject
 	var err error
 
 	requestObject, err = parseGetObjectRequest(r)
@@ -56,21 +56,21 @@ func (h AppServer) getObject(w http.ResponseWriter, r *http.Request, caller Call
 		case dbObject.IsExpunged:
 			h.sendErrorResponse(w, 410, err, "The object no longer exists.")
 			return
-		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
+		case dbObject.IsAncestorDeleted:
 			h.sendErrorResponse(w, 405, err, "The object cannot be retreived because an ancestor is deleted.")
 			return
 		}
 	}
 
 	// Response
-	err = getObjectResponse(w, r, caller, dbObject)
+	err = getObjectResponse(w, r, caller, &dbObject)
 	if err != nil {
 
 	}
 }
 
-func parseGetObjectRequest(r *http.Request) (*models.ODObject, error) {
-	var htmlObject models.ODObject
+func parseGetObjectRequest(r *http.Request) (models.ODObject, error) {
+	var requestObject models.ODObject
 	var err error
 
 	// Portions from the request URI itself ...
@@ -79,14 +79,14 @@ func parseGetObjectRequest(r *http.Request) (*models.ODObject, error) {
 	matchIndexes := re.FindStringSubmatchIndex(uri)
 	if len(matchIndexes) != 0 {
 		if len(matchIndexes) > 3 {
-			htmlObject.ID, err = hex.DecodeString(uri[matchIndexes[2]:matchIndexes[3]])
+			requestObject.ID, err = hex.DecodeString(uri[matchIndexes[2]:matchIndexes[3]])
 			if err != nil {
-				return nil, errors.New("Object Identifier in Request URI is not a hex string")
+				return requestObject, errors.New("Object Identifier in Request URI is not a hex string")
 			}
 		}
 	}
 
-	return &htmlObject, err
+	return requestObject, err
 }
 
 func getObjectResponse(

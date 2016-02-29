@@ -2,10 +2,8 @@ package server
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"io"
 	"log"
 	"net/http"
 
@@ -61,7 +59,7 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 
 		parentObject := models.ODObject{}
 		parentObject.ID = requestObject.ParentID
-		dbParentObject, err := h.DAO.GetObject(&parentObject, false)
+		dbParentObject, err := h.DAO.GetObject(parentObject, false)
 		if err != nil {
 			h.sendErrorResponse(w, 500, err, "Error retrieving parent object")
 			return
@@ -71,12 +69,16 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 		// parent.
 		//		Permission.grantee matches caller, and AllowCreate is true
 		authorizedToCreate := false
-		for _, permission := range dbParentObject.Permissions {
-			if permission.Grantee == caller.DistinguishedName &&
-				permission.AllowRead && permission.AllowCreate {
-				authorizedToCreate = true
-				break
+		if len(dbParentObject.Permissions) > 0 {
+			for _, permission := range dbParentObject.Permissions {
+				if permission.Grantee == caller.DistinguishedName &&
+					permission.AllowRead && permission.AllowCreate {
+					authorizedToCreate = true
+					break
+				}
 			}
+		} else {
+			log.Println("WARNING: No permissions on the object!")
 		}
 		if !authorizedToCreate {
 			h.sendErrorResponse(w, 403, nil, "Unauthorized")
@@ -113,6 +115,7 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 			}
 		}
 	}
+	log.Printf("There are %d permissions being added..", len(requestObject.Permissions))
 
 	// Disallow creating as deleted
 	if requestObject.IsDeleted || requestObject.IsAncestorDeleted || requestObject.IsExpunged {
@@ -127,14 +130,14 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 	requestACM.CreatedBy = caller.DistinguishedName
 
 	// Add to database
-	err = h.DAO.CreateObject(requestObject, requestACM)
+	createdObject, err := h.DAO.CreateObject(&requestObject, &requestACM)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "DAO Error creating object")
 		return
 	}
 
 	// Response in requested format
-	apiResponse := mapping.MapODObjectToObject(requestObject)
+	apiResponse := mapping.MapODObjectToObject(&createdObject)
 	switch {
 	case r.Header.Get("Content-Type") == "application/json":
 		createFolderResponseAsJSON(w, r, caller, &apiResponse)
@@ -144,8 +147,9 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 
 }
 
-func parseCreateFolderRequestAsJSON(r *http.Request) (*models.ODObject, *models.ODACM, error) {
+func parseCreateFolderRequestAsJSON(r *http.Request) (models.ODObject, models.ODACM, error) {
 	var jsonObject protocol.CreateObjectRequest
+	object := models.ODObject{}
 	acm := models.ODACM{}
 	var err error
 
@@ -156,12 +160,12 @@ func parseCreateFolderRequestAsJSON(r *http.Request) (*models.ODObject, *models.
 		r.ParseForm()
 		multipartReader, err := r.MultipartReader()
 		if err != nil {
-			return nil, &acm, err
+			return object, acm, err
 		}
 		for {
 			part, err := multipartReader.NextPart()
 			if err != nil {
-				return nil, &acm, err
+				return object, acm, err
 			}
 			switch {
 			case part.Header.Get("Content-Type") == "application/json":
@@ -170,7 +174,7 @@ func parseCreateFolderRequestAsJSON(r *http.Request) (*models.ODObject, *models.
 				valueAsBytes := make([]byte, 10240)
 				n, err := part.Read(valueAsBytes)
 				if err != nil {
-					return nil, &acm, err
+					return object, acm, err
 				}
 				err = (json.NewDecoder(bytes.NewReader(valueAsBytes[0:n]))).Decode(&jsonObject)
 			case part.Header.Get("Content-Disposition") == "form-data":
@@ -180,61 +184,10 @@ func parseCreateFolderRequestAsJSON(r *http.Request) (*models.ODObject, *models.
 	}
 
 	// Map to internal object type
-	object := mapping.MapCreateObjectRequestToODObject(&jsonObject)
+	object = mapping.MapCreateObjectRequestToODObject(&jsonObject)
 	// TODO: Figure out how we want to pass ACM into this operation. Should it
 	// be nested in protocol Object? If so, should ODObject contain ODACM ?
-	return &object, &acm, err
-}
-
-func parseCreateFolderRequestAsHTML(r *http.Request) (*models.ODObject, *models.ODACM, error) {
-	object := models.ODObject{}
-	acm := models.ODACM{}
-	var err error
-
-	if r.Method == "POST" {
-
-		// Assume root
-		parentID := ""
-
-		r.ParseForm()
-		multipartReader, err := r.MultipartReader()
-		if err != nil {
-			return &object, &acm, err
-		} // if err != nil
-		for {
-			part, err := multipartReader.NextPart()
-			if err != nil {
-				if err == io.EOF {
-					break //just an eof...not an error
-				} else {
-					return &object, &acm, err
-				}
-			} // if err != nil
-
-			switch {
-			case part.FormName() == "title":
-				fallthrough
-			case part.FormName() == "name":
-				object.Name = getFormValueAsString(part)
-			case part.FormName() == "type":
-				object.TypeName.String = getFormValueAsString(part)
-				object.TypeName.Valid = (len(object.TypeName.String) > 0)
-			case part.FormName() == "parentId":
-				parentID = getFormValueAsString(part)
-				if parentID != "" {
-					object.ParentID, err = hex.DecodeString(parentID)
-					if err != nil {
-						// failed to decode from string to []binary
-						return &object, &acm, err
-					}
-				}
-			case part.FormName() == "classification":
-				acm.Classification.String = getFormValueAsString(part)
-				acm.Classification.Valid = (len(acm.Classification.String) > 0)
-			} // switch
-		} //for
-	}
-	return &object, &acm, err
+	return object, acm, err
 }
 
 func createFolderResponseAsJSON(

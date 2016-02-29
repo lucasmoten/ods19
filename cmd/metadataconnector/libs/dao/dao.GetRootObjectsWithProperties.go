@@ -31,7 +31,7 @@ func getRootObjectsWithPropertiesInTransaction(tx *sqlx.Tx, orderByClause string
 		return response, err
 	}
 	for i := 0; i < len(response.Objects); i++ {
-		properties, err := getPropertiesForObjectInTransaction(tx, &response.Objects[i])
+		properties, err := getPropertiesForObjectInTransaction(tx, response.Objects[i])
 		if err != nil {
 			print(err.Error())
 			return response, err

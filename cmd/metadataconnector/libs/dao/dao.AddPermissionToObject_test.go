@@ -17,17 +17,17 @@ func TestDAOAddPermissionToObject(t *testing.T) {
 	object.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	object.TypeName.String = "Test Type"
 	object.TypeName.Valid = true
-	err := d.CreateObject(&object, nil)
+	dbObject, err := d.CreateObject(&object, nil)
 	if err != nil {
 		t.Error(err)
 	} else {
-		if object.ID == nil {
+		if dbObject.ID == nil {
 			t.Error("expected ID to be set")
 		}
-		if object.ModifiedBy != object.CreatedBy {
+		if dbObject.ModifiedBy != object.CreatedBy {
 			t.Error("expected ModifiedBy to match CreatedBy")
 		}
-		if object.TypeID == nil {
+		if dbObject.TypeID == nil {
 			t.Error("expected TypeID to be set")
 		}
 
@@ -39,7 +39,7 @@ func TestDAOAddPermissionToObject(t *testing.T) {
 		permission.AllowRead = true
 		permission.AllowUpdate = true
 		permission.AllowDelete = true
-		dbPermission, err := d.AddPermissionToObject(usernames[1], &object, &permission)
+		dbPermission, err := d.AddPermissionToObject(dbObject, &permission)
 		if err != nil {
 			t.Error(err)
 		}

@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
@@ -162,10 +163,10 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	caller := GetCaller(r)
 
 	// Load user from database, adding if they dont exist
-	var user *models.ODUser
+	var user models.ODUser
 	var userRequested models.ODUser
 	userRequested.DistinguishedName = caller.DistinguishedName
-	user, err := h.DAO.GetUserByDistinguishedName(&userRequested)
+	user, err := h.DAO.GetUserByDistinguishedName(userRequested)
 	if err != nil || user.DistinguishedName != caller.DistinguishedName {
 		log.Printf("User was not found in database: %s", err.Error())
 		// if err == sql.ErrNoRows || user.DistinguishedName != caller.DistinguishedName {
@@ -174,7 +175,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		userRequested.DisplayName.String = caller.CommonName
 		userRequested.DisplayName.Valid = true
 		userRequested.CreatedBy = caller.DistinguishedName
-		user, err = h.DAO.CreateUser(&userRequested)
+		user, err = h.DAO.CreateUser(userRequested)
 		if err != nil {
 			log.Printf("%s does not exist in database. Error creating: %s", caller.DistinguishedName, err.Error())
 			http.Error(w, "Error accesing resource", 500)
@@ -197,7 +198,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var uri = r.URL.Path
 
-	log.Printf("LOGGING APP SERVER CONFIG:%s URI:%s, %s", h.ServicePrefix, r.Method, uri)
+	log.Printf("LOGGING APP SERVER CONFIG:%s URI:%s %s BY USER:%s", h.ServicePrefix, r.Method, uri, user.DistinguishedName)
 
 	// TODO: use StripPrefix in handler?
 	// https://golang.org/pkg/net/http/#StripPrefix
@@ -208,7 +209,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.home(w, r, caller)
 		case h.Routes.HomeListObjects.MatchString(uri):
 			h.homeListObjects(w, r, caller)
-		case uri == h.ServicePrefix+"/favicon.ico", uri == h.ServicePrefix+"//favicon.ico":
+		case uri == h.ServicePrefix+"/favicon.ico", uri == h.ServicePrefix+"//favicon.ico", strings.HasSuffix(uri, "/favicon.ico"):
 			h.favicon(w, r)
 			// from longest to shortest...
 		case h.Routes.ObjectStreamRevision.MatchString(uri):

@@ -14,7 +14,7 @@ import (
 
 func (h AppServer) deleteObject(w http.ResponseWriter, r *http.Request, caller Caller) {
 
-	var requestObject *models.ODObject
+	var requestObject models.ODObject
 	var err error
 
 	// Parse Request in sent format
@@ -72,13 +72,14 @@ func (h AppServer) deleteObject(w http.ResponseWriter, r *http.Request, caller C
 	}
 
 	// Response in requested format
-	apiResponse := mapping.MapODObjectToDeletedObjectResponse(dbObject)
+	apiResponse := mapping.MapODObjectToDeletedObjectResponse(&dbObject)
 	deleteObjectResponse(w, r, caller, &apiResponse)
 
 }
 
-func parseDeleteObjectRequest(r *http.Request) (*models.ODObject, error) {
+func parseDeleteObjectRequest(r *http.Request) (models.ODObject, error) {
 	var jsonObject protocol.Object
+	var requestObject models.ODObject
 	var err error
 
 	switch {
@@ -94,14 +95,14 @@ func parseDeleteObjectRequest(r *http.Request) (*models.ODObject, error) {
 		if len(matchIndexes) > 3 {
 			jsonObject.ID = uri[matchIndexes[2]:matchIndexes[3]]
 			if err != nil {
-				return nil, errors.New("Object Identifier in Request URI is not a hex string")
+				return requestObject, errors.New("Object Identifier in Request URI is not a hex string")
 			}
 		}
 	}
 
 	// Map to internal object type
-	object := mapping.MapObjectToODObject(&jsonObject)
-	return &object, err
+	requestObject = mapping.MapObjectToODObject(&jsonObject)
+	return requestObject, err
 }
 
 func deleteObjectResponse(

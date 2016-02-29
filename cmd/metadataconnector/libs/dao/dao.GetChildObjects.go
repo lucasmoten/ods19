@@ -12,7 +12,7 @@ import (
 // GetChildObjects retrieves a list of Objects in Object Drive that are nested
 // beneath a specified object by parentID
 func (dao *DataAccessLayer) GetChildObjects(
-	orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error) {
+	orderByClause string, pageNumber int, pageSize int, object models.ODObject) (models.ODObjectResultset, error) {
 	tx := dao.MetadataDB.MustBegin()
 	response, err := getChildObjectsInTransaction(tx, orderByClause, pageNumber, pageSize, object)
 	if err != nil {
@@ -24,7 +24,7 @@ func (dao *DataAccessLayer) GetChildObjects(
 	return response, err
 }
 
-func getChildObjectsInTransaction(tx *sqlx.Tx, orderByClause string, pageNumber int, pageSize int, object *models.ODObject) (models.ODObjectResultset, error) {
+func getChildObjectsInTransaction(tx *sqlx.Tx, orderByClause string, pageNumber int, pageSize int, object models.ODObject) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	limit := GetLimit(pageNumber, pageSize)
 	offset := GetOffset(pageNumber, pageSize)
@@ -48,7 +48,7 @@ func getChildObjectsInTransaction(tx *sqlx.Tx, orderByClause string, pageNumber 
 	response.PageRows = len(response.Objects)
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	for i := 0; i < len(response.Objects); i++ {
-		permissions, err := getPermissionsForObjectInTransaction(tx, &response.Objects[i])
+		permissions, err := getPermissionsForObjectInTransaction(tx, response.Objects[i])
 		if err != nil {
 			print(err.Error())
 			return response, err

@@ -23,10 +23,12 @@ var fakeDN2 = `CN=test tester02, O=U.S. Government, OU=chimera, OU=DAE, OU=Peopl
 
 var host string
 var clients []*ClientIdentity
+var httpclients []*http.Client
 
 func init() {
-	generatePopulation()
 	host = "https://dockervm:8080"
+	generatePopulation()
+   
 }
 
 func generatePopulation() {
@@ -37,6 +39,8 @@ func generatePopulation() {
 
 func populateClients(population int) {
 	clients = make([]*ClientIdentity, population)
+    httpclients = make([]*http.Client, population)
+    faviconReq, _ := http.NewRequest("GET", host + "/service/metadataconnector/1.0/favicon.ico", nil)
 	for i := 0; i < len(clients); i++ {
 		client, err := getClientIdentity(i, "test_"+strconv.Itoa(i))
 		clients[i] = client
@@ -45,6 +49,14 @@ func populateClients(population int) {
 		} else {
 			//log.Printf("Creating client %d", i)
 		}
+        
+        transport := &http.Transport{TLSClientConfig: clients[i].Config}
+        httpclients[i] = &http.Client{Transport: transport}
+        // Fire-and-Forget call to favicon.ico which will force creation of the
+        // user in the database
+        httpclients[i].Do(faviconReq)
+
+        
 	}
 }
 

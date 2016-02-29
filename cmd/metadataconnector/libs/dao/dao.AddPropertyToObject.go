@@ -11,65 +11,68 @@ import (
 
 // AddPropertyToObject creates a new property with the provided name and value,
 // and then associates that Property object to the Object indicated by ObjectID
-func (dao *DataAccessLayer) AddPropertyToObject(createdBy string, object *models.ODObject, property *models.ODProperty) error {
+func (dao *DataAccessLayer) AddPropertyToObject(object models.ODObject, property *models.ODProperty) (models.ODProperty, error) {
 	tx := dao.MetadataDB.MustBegin()
-	err := addPropertyToObjectInTransaction(tx, createdBy, object, property)
+	dbProperty, err := addPropertyToObjectInTransaction(tx, object, property)
 	if err != nil {
 		log.Printf("Error in AddPropertyToObject: %v", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()
 	}
-	return err
+	return dbProperty, err
 }
 
-func addPropertyToObjectInTransaction(tx *sqlx.Tx, createdBy string, object *models.ODObject, property *models.ODProperty) error {
+func addPropertyToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, property *models.ODProperty) (models.ODProperty, error) {
+	var dbProperty models.ODProperty
+
 	// Setup the statement
 	addPropertyStatement, err := tx.Preparex(`insert property set createdby = ?, name = ?, propertyvalue = ?, classificationpm = ?`)
 	if err != nil {
-		return err
+		return dbProperty, err
 	}
 	// Add it
-	result, err := addPropertyStatement.Exec(createdBy, property.Name, property.Value.String, property.ClassificationPM.String)
+	result, err := addPropertyStatement.Exec(property.CreatedBy, property.Name, property.Value.String, property.ClassificationPM.String)
 	if err != nil {
-		return err
+		return dbProperty, err
 	}
 	// Cannot use result.LastInsertId() as our identifier is not an autoincremented int
 	rowCount, err := result.RowsAffected()
 	if rowCount < 1 {
-		return errors.New("No rows added from inserting property")
+		return dbProperty, errors.New("No rows added from inserting property")
 	}
 	addPropertyStatement.Close()
 	// Get the ID of the newly created property
 	var newPropertyID []byte
 	getPropertyIDStatement, err := tx.Preparex(`select id from property where createdby = ? and name = ? and propertyvalue = ? and classificationpm = ? order by createddate desc limit 1`)
 	if err != nil {
-		return err
+		return dbProperty, err
 	}
-	err = getPropertyIDStatement.QueryRowx(createdBy, property.Name, property.Value.String, property.ClassificationPM.String).Scan(&newPropertyID)
+	err = getPropertyIDStatement.QueryRowx(property.CreatedBy, property.Name, property.Value.String, property.ClassificationPM.String).Scan(&newPropertyID)
 	if err != nil {
-		return err
+		return dbProperty, err
 	}
 	getPropertyIDStatement.Close()
 	// Retrieve back into property
-	err = tx.Get(property, `select * from property where id = ?`, newPropertyID)
+	err = tx.Get(&dbProperty, `select * from property where id = ?`, newPropertyID)
 	if err != nil {
-		return err
+		return dbProperty, err
 	}
+	*property = dbProperty
 	// Add association to the object
 	addObjectPropertyStatement, err := tx.Preparex(`insert object_property set createdby = ?, objectid = ?, propertyid = ?`)
 	if err != nil {
-		return err
+		return dbProperty, err
 	}
-	result, err = addObjectPropertyStatement.Exec(createdBy, object.ID, newPropertyID)
+	result, err = addObjectPropertyStatement.Exec(property.CreatedBy, object.ID, newPropertyID)
 	if err != nil {
-		return err
+		return dbProperty, err
 	}
 	rowCount, err = result.RowsAffected()
 	if rowCount < 1 {
-		return errors.New("No rows added from inserting object_property")
+		return dbProperty, errors.New("No rows added from inserting object_property")
 	}
 	addObjectPropertyStatement.Close()
 
-	return nil
+	return dbProperty, nil
 }

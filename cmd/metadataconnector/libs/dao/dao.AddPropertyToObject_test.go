@@ -25,31 +25,32 @@ func TestDAOAddPropertyToObject(t *testing.T) {
 	acm.CreatedBy = obj.CreatedBy
 	acm.Classification.String = "UNCLASSIFIED"
 	acm.Classification.Valid = true
-	d.CreateObject(&obj, &acm)
-	if obj.ID == nil {
+	dbObject, err := d.CreateObject(&obj, &acm)
+	if dbObject.ID == nil {
 		t.Error("expected ID to be set")
 	}
-	if obj.ModifiedBy != obj.CreatedBy {
+	if dbObject.ModifiedBy != obj.CreatedBy {
 		t.Error("expected ModifiedBy to match CreatedBy")
 	}
-	if obj.TypeID == nil {
+	if dbObject.TypeID == nil {
 		t.Error("expected TypeID to be set")
 	}
 
 	// add property
 	var property models.ODProperty
+	property.CreatedBy = obj.CreatedBy
 	property.Name = "Test Property"
 	property.Value.String = "Test Property Value"
 	property.Value.Valid = true
 	property.ClassificationPM.String = "UNCLASSIFIED"
 	property.ClassificationPM.Valid = true
-	err := d.AddPropertyToObject(obj.CreatedBy, &obj, &property)
+	_, err = d.AddPropertyToObject(dbObject, &property)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// get object with properties
-	objectWithProperty, err := d.GetObject(&obj, true)
+	objectWithProperty, err := d.GetObject(dbObject, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -65,7 +66,7 @@ func TestDAOAddPropertyToObject(t *testing.T) {
 
 		// delete the Property
 		theProperty := objectWithProperty.Properties[0]
-		err = d.DeleteObjectProperty(&theProperty)
+		err = d.DeleteObjectProperty(theProperty)
 		if err != nil {
 			t.Error(err)
 		}

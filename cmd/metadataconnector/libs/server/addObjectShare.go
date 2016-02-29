@@ -39,12 +39,12 @@ func (h AppServer) getObjectGrantObject(w http.ResponseWriter, r *http.Request, 
 	// Retrieve from database
 	var objectRequested models.ODObject
 	objectRequested.ID = objectIDByte
-	object, err := h.DAO.GetObject(&objectRequested, false)
+	object, err := h.DAO.GetObject(objectRequested, false)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cannot get object")
 		return nil, err
 	}
-	return object, nil
+	return &object, nil
 }
 
 func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller Caller) {
@@ -96,6 +96,7 @@ func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller
 		log.Printf("Grant was not created")
 		h.sendErrorResponse(w, 500, err, "did not find grant to transfer")
 	}
+	newGrant.CreatedBy = caller.DistinguishedName
 	newGrant.Grantee = objectGrant.Grantee
 	newGrant.AllowCreate = objectGrant.Create
 	newGrant.AllowRead = objectGrant.Read
@@ -103,7 +104,7 @@ func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller
 	newGrant.AllowDelete = objectGrant.Delete
 
 	//Now that we have a new grant, we need to add it in
-	_, err = h.DAO.AddPermissionToObject(caller.DistinguishedName, object, &newGrant)
+	_, err = h.DAO.AddPermissionToObject(*object, &newGrant)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Error updating permission")
 	}

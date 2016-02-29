@@ -12,7 +12,7 @@ import (
 // CreateUser adds the passed in user to the database. Once added, the record is
 // retrieved and the user passed in by reference is updated with the remaining
 // attributes.
-func (dao *DataAccessLayer) CreateUser(user *models.ODUser) (*models.ODUser, error) {
+func (dao *DataAccessLayer) CreateUser(user models.ODUser) (models.ODUser, error) {
 	tx := dao.MetadataDB.MustBegin()
 	dbUser, err := createUserInTransaction(tx, user)
 	if err != nil {
@@ -24,8 +24,8 @@ func (dao *DataAccessLayer) CreateUser(user *models.ODUser) (*models.ODUser, err
 	return dbUser, err
 }
 
-func createUserInTransaction(tx *sqlx.Tx, user *models.ODUser) (*models.ODUser, error) {
-	var dbUser *models.ODUser
+func createUserInTransaction(tx *sqlx.Tx, user models.ODUser) (models.ODUser, error) {
+	var dbUser models.ODUser
 	addUserStatement, err := tx.Preparex(
 		`insert user set createdBy = ?, distinguishedName = ?, displayName = ?, email = ?`)
 	if err != nil {

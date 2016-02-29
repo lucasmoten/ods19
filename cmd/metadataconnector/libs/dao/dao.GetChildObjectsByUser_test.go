@@ -2,6 +2,7 @@ package dao_test
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -34,24 +35,24 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 	permissions[1].AllowCreate = true
 	permissions[1].AllowRead = true
 	parent.Permissions = permissions
-	err := d.CreateObject(&parent, nil)
+	dbParent, err := d.CreateObject(&parent, nil)
 	if err != nil {
 		t.Error(err)
 	} else {
-		if parent.ID == nil {
+		if dbParent.ID == nil {
 			t.Error("expected ID to be set")
 		}
-		if parent.ModifiedBy != parent.CreatedBy {
+		if dbParent.ModifiedBy != parent.CreatedBy {
 			t.Error("expected ModifiedBy to match CreatedBy")
 		}
-		if parent.TypeID == nil {
+		if dbParent.TypeID == nil {
 			t.Error("expected TypeID to be set")
 		}
 
 		// Create our child object from TP1
 		child1.Name = "Test GetChildObjectsByUser Child by TP1"
 		child1.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
-		child1.ParentID = parent.ID
+		child1.ParentID = dbParent.ID
 		child1.TypeName.String = "Test Type"
 		child1.TypeName.Valid = true
 		// NEW! Add permissions...
@@ -63,27 +64,27 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 		permissions1[0].AllowUpdate = true
 		permissions1[0].AllowDelete = true
 		child1.Permissions = permissions1
-		err = d.CreateObject(&child1, nil)
+		dbChild1, err := d.CreateObject(&child1, nil)
 		if err != nil {
 			t.Error(err)
 		}
-		if child1.ID == nil {
+		if dbChild1.ID == nil {
 			t.Error("expected ID to be set")
 		}
-		if child1.ModifiedBy != child1.CreatedBy {
+		if dbChild1.ModifiedBy != child1.CreatedBy {
 			t.Error("expected ModifiedBy to match CreatedBy")
 		}
-		if child1.TypeID == nil {
+		if dbChild1.TypeID == nil {
 			t.Error("expected TypeID to be set")
 		}
-		if !bytes.Equal(child1.ParentID, parent.ID) {
+		if !bytes.Equal(dbChild1.ParentID, dbParent.ID) {
 			t.Error("expected child parentID to match parent ID")
 		}
 
 		// Create our child object from TP2
 		child2.Name = "Test GetChildObjectsByUser Child by TP2"
 		child2.CreatedBy = usernames[2] // "CN=test tester02, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
-		child2.ParentID = parent.ID
+		child2.ParentID = dbParent.ID
 		child2.TypeName.String = "Test Type"
 		child2.TypeName.Valid = true
 		// NEW! Add permissions...
@@ -99,27 +100,28 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 		permissions2[1].AllowCreate = true
 		permissions2[1].AllowRead = true
 		child2.Permissions = permissions2
-		err = d.CreateObject(&child2, nil)
+		dbChild2, err := d.CreateObject(&child2, nil)
 		if err != nil {
 			t.Error(err)
 		}
-		if child2.ID == nil {
+		if dbChild2.ID == nil {
 			t.Error("expected ID to be set")
 		}
-		if child2.ModifiedBy != child2.CreatedBy {
+		if dbChild2.ModifiedBy != child2.CreatedBy {
 			t.Error("expected ModifiedBy to match CreatedBy")
 		}
-		if child2.TypeID == nil {
+		if dbChild2.TypeID == nil {
 			t.Error("expected TypeID to be set")
 		}
-		if !bytes.Equal(child2.ParentID, parent.ID) {
+		if !bytes.Equal(dbChild2.ParentID, dbParent.ID) {
 			t.Error("expected child parentID to match parent ID")
 		}
-		resultset, err := d.GetChildObjectsByUser("", 1, 10, &parent, child2.CreatedBy)
+		resultset, err := d.GetChildObjectsByUser("", 1, 10, dbParent, dbChild2.CreatedBy)
 		if err != nil {
 			t.Error(err)
 		}
 		if resultset.TotalRows != 1 {
+			t.Error(fmt.Errorf("Resultset had %d totalrows", resultset.TotalRows))
 			t.Error("expected 1 child")
 		} else {
 			if resultset.Objects[0].ModifiedBy != child2.CreatedBy {
@@ -131,9 +133,9 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 		}
 	}
 
-	// cleanup
-	// err = d.DeleteObject(&parent, true)
-	// if err != nil {
-	// 	t.Error(err)
-	// }
+	//cleanup
+	err = d.DeleteObject(dbParent, true)
+	if err != nil {
+		t.Error(err)
+	}
 }

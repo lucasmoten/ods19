@@ -43,9 +43,7 @@ func TestListObjectsRoot(t *testing.T) {
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
-	client := &http.Client{Transport: transport}
-	res, err := client.Do(req)
+	res, err := httpclients[clientid].Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -108,9 +106,7 @@ func TestListObjectsRootPaging(t *testing.T) {
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
-	client := &http.Client{Transport: transport}
-	res, err := client.Do(req)
+	res, err := httpclients[clientid].Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -158,9 +154,7 @@ func TestListObjectsRootPaging(t *testing.T) {
 			t.FailNow()
 		}
 		req.Header.Set("Content-Type", "application/json")
-		transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
-		client := &http.Client{Transport: transport}
-		res, err := client.Do(req)
+		res, err := httpclients[clientid].Do(req)
 		if err != nil {
 			log.Printf("Unable to do request:%v", err)
 			t.FailNow()
@@ -224,9 +218,7 @@ func TestListObjectsChild(t *testing.T) {
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
-	client := &http.Client{Transport: transport}
-	res, err := client.Do(req)
+	res, err := httpclients[clientid].Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -254,7 +246,7 @@ func TestListObjectsChild(t *testing.T) {
 			fmt.Println()
 		}
 		childlevel := level + 1
-		showChildTree(t, verboseOutput, client, childlevel, obj.ID)
+		showChildTree(t, verboseOutput, httpclients[clientid], childlevel, obj.ID)
 		if t.Failed() {
 			return
 		}
@@ -276,9 +268,7 @@ func TestListObjectsChild(t *testing.T) {
 			t.FailNow()
 		}
 		req.Header.Set("Content-Type", "application/json")
-		transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
-		client := &http.Client{Transport: transport}
-		res, err := client.Do(req)
+		res, err := httpclients[clientid].Do(req)
 		if err != nil {
 			log.Printf("Unable to do request:%v", err)
 			t.FailNow()
@@ -302,7 +292,7 @@ func TestListObjectsChild(t *testing.T) {
 				fmt.Println()
 			}
 			childlevel := level + 1
-			showChildTree(t, verboseOutput, client, childlevel, obj.ID)
+			showChildTree(t, verboseOutput, httpclients[clientid], childlevel, obj.ID)
 			if t.Failed() {
 				return
 			}

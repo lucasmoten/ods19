@@ -9,7 +9,7 @@ import (
 
 // GetUserByDistinguishedName looks up user record from the database using the
 // provided distinguished name
-func (dao *DataAccessLayer) GetUserByDistinguishedName(user *models.ODUser) (*models.ODUser, error) {
+func (dao *DataAccessLayer) GetUserByDistinguishedName(user models.ODUser) (models.ODUser, error) {
 	tx := dao.MetadataDB.MustBegin()
 	dbUser, err := getUserByDistinguishedNameInTransaction(tx, user)
 	if err != nil {
@@ -21,9 +21,9 @@ func (dao *DataAccessLayer) GetUserByDistinguishedName(user *models.ODUser) (*mo
 	return dbUser, err
 }
 
-func getUserByDistinguishedNameInTransaction(tx *sqlx.Tx, user *models.ODUser) (*models.ODUser, error) {
+func getUserByDistinguishedNameInTransaction(tx *sqlx.Tx, user models.ODUser) (models.ODUser, error) {
 	var dbUser models.ODUser
 	getUserStatement := `select * from user where distinguishedName = ?`
 	err := tx.Get(&dbUser, getUserStatement, user.DistinguishedName)
-	return &dbUser, err
+	return dbUser, err
 }
