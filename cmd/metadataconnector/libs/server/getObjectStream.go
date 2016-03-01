@@ -105,24 +105,27 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 	}
 
 	////Clean out the permission if aac check fails
-	tokenType := "pki_dias"
-	dn := caller.DistinguishedName
-	aacResponse, err := h.AAC.CheckAccess(dn, tokenType, object.RawAcm.String)
-	if err != nil {
-		log.Printf(
-			"AAC not responding to checkaccess for %s:%s:%s:%v",
-			dn, tokenType, object.RawAcm.String, err,
-		)
-		permission = nil
-	}
-	if aacResponse == nil {
-		log.Printf(
-			"AAC null response for checkaccess for %s:%s:%s:%v",
-			dn, tokenType, object.RawAcm.String, err,
-		)
-		permission = nil
-	} else {
-		log.Printf("AAC grants access to %s for %s", dn, object.RawAcm.String)
+	if true {
+		tokenType := "pki_dias"
+		dn := caller.DistinguishedName
+		log.Printf("Waiting for AAC to respond to %s for %s", dn, object.RawAcm.String)
+		aacResponse, err := h.AAC.CheckAccess(dn, tokenType, object.RawAcm.String)
+		if err != nil {
+			log.Printf(
+				"AAC not responding to checkaccess for %s:%s:%s:%v",
+				dn, tokenType, object.RawAcm.String, err,
+			)
+			permission = nil
+		}
+		if aacResponse == nil {
+			log.Printf(
+				"AAC null response for checkaccess for %s:%s:%s:%v",
+				dn, tokenType, object.RawAcm.String, err,
+			)
+			permission = nil
+		} else {
+			log.Printf("AAC grants access to %s for %s", dn, object.RawAcm.String)
+		}
 	}
 
 	if permission == nil {

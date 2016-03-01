@@ -46,6 +46,8 @@ type Object struct {
 	// ContentSize denotes the length of the content stream for this object, in
 	// bytes
 	ContentSize int64 `json:"contentSize"`
+    // A sha256 hash of the plaintext as hex encoded string
+    ContentHash string `json:"contentHash"`
 	// Properties is an array of Object Properties associated with this object
 	// structured as key/value with portion marking.
 	Properties []Property `json:"properties,omitempty"`
@@ -77,6 +79,8 @@ type CreateObjectRequest struct {
 	// ContentSize denotes the length of the content stream for this object, in
 	// bytes
 	ContentSize int64 `json:"contentSize,omitempty"`
+    // A sha256 hash of the plaintext as hex encoded string
+    ContentHash string `json:"contentHash"`
 	// Properties is an array of Object Properties associated with this object
 	// structured as key/value with portion marking.
     Properties []Property `json:"properties,omitempty"`

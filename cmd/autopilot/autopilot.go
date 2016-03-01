@@ -4,6 +4,7 @@ import (
 	"decipher.com/oduploader/autopilot"
 	"log"
 	"math/rand"
+	"os"
 	"time"
 )
 
@@ -16,39 +17,53 @@ func doSleep(i int) {
 	//log.Printf("%d sleeps for %ds", i, zzz)
 }
 
-func doRandomAction(i int) bool {
+func doRandomAction(ap *autopilot.AutopilotContext, i int) bool {
 	doSleep(i)
 	r := rand.Intn(100)
 	switch {
 	case r > 70:
-		autopilot.DoUpload(i, false, "")
+		ap.DoUpload(i, false, "")
 	case r > 40:
-		autopilot.DoDownload(i, "")
+		ap.DoDownload(i, "")
 	case r > 20:
-		autopilot.DoUpdate(i, "", "")
+		ap.DoUpdate(i, "", "")
 	case r > 10:
 		return false
 	}
 	return true
 }
 
-func doClient(i int, clientExited chan int) {
+func doClient(ap *autopilot.AutopilotContext, i int, clientExited chan int) {
 	//log.Printf("running client %d", i)
 	for {
-		if doRandomAction(i) == false {
+		if doRandomAction(ap, i) == false {
 			break
 		}
 	}
 	clientExited <- i
 }
 
-func bigTest() {
+func randomUploadsAndDownloads() {
+	//Autopilot needs to keep a trace that isn't tangled with other logs.
+	//So give it a file.
+	logHandle, err := os.Create("TestShare.md")
+	if err != nil {
+		log.Printf("Unable to start scenarion: %v", err)
+		return
+	}
+	defer logHandle.Close()
+	ap, err := autopilot.NewAutopilotContext(logHandle)
+	if err != nil {
+		log.Printf("Unable to start autopilot context: %v", err)
+		return
+	}
+
 	clientExited := make(chan int)
 	N := 20
 	//Launch all clients Nx
 	for n := 0; n < N; n++ {
 		for i := 0; i < autopilot.Population; i++ {
-			go doClient(i, clientExited)
+			go doClient(ap, i, clientExited)
 		}
 	}
 
@@ -67,5 +82,5 @@ func bigTest() {
 
 func main() {
 	autopilot.Init()
-	bigTest()
+	randomUploadsAndDownloads()
 }

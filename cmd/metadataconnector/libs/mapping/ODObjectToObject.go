@@ -53,6 +53,12 @@ func MapODObjectToObject(i *models.ODObject) protocol.Object {
 	} else {
 		o.ContentSize = 0
 	}
+	//Currently, it should not possible to have an object without a hash, unless it's a file
+	if i.TypeName.String == "File" {
+		//files don't have a content hash
+	} else {
+		o.ContentHash = hex.EncodeToString(i.ContentHash)
+	}
 	o.Properties = MapODPropertiesToProperties(&i.Properties)
 	o.Permissions = MapODPermissionsToPermissions(&i.Permissions)
 	return o
@@ -104,6 +110,12 @@ func MapODObjectToDeletedObject(i *models.ODObject) protocol.DeletedObject {
 	} else {
 		o.ContentSize = 0
 	}
+	//Currently, it should not possible to have an object without a hash, unless it's a file
+	if i.TypeName.String == "File" {
+		//files don't have a content hash
+	} else {
+		o.ContentHash = hex.EncodeToString(i.ContentHash)
+	}    
 	o.Properties = MapODPropertiesToProperties(&i.Properties)
 	o.Permissions = MapODPermissionsToPermissions(&i.Permissions)
 	return o
@@ -188,6 +200,9 @@ func MapObjectToODObject(i *protocol.Object) models.ODObject {
 	o.ContentType.String = i.ContentType
 	o.ContentSize.Valid = true
 	o.ContentSize.Int64 = i.ContentSize
+    if len(i.ContentHash) > 0 {
+        o.ContentHash, err = hex.DecodeString(i.ContentHash)
+    }
 	o.Properties = MapPropertiesToODProperties(&i.Properties)
 	o.Permissions = MapPermissionsToODPermissions(&i.Permissions)
 	return o
