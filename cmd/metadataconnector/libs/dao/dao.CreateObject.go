@@ -42,6 +42,11 @@ func createObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 		object.TypeID = objectType.ID
 	}
 
+	// Assign a generic name if this object wasn't given a name
+	if len(object.Name) == 0 {
+		object.Name = "New " + object.TypeName.String
+	}
+
 	// Insert object
 	addObjectStatement, err := tx.Preparex(`insert object set createdBy = ?, typeId = ?, name = ?, description = ?, parentId = ?, contentConnector = ?, rawAcm = ?, contentType = ?, contentSize = ?, contentHash = ?, encryptIV = ?`)
 	if err != nil {

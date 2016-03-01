@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -415,4 +416,68 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 		log.Printf("The second user was not allowed to create a folder but they should have permissions granted")
 		t.FailNow()
 	}
+}
+
+func TestCreateFolderWithoutName(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	verboseOutput := testing.Verbose()
+	clientid1 := 0 // CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US
+
+	if verboseOutput {
+		fmt.Printf("(Verbose Mode) Using client id %d to create folder in root", clientid1)
+		fmt.Println()
+	}
+
+	// URL
+	uri := host + "/service/metadataconnector/1.0/folder"
+	if verboseOutput {
+		fmt.Printf("(Verbose Mode) uri: %s", uri)
+		fmt.Println()
+	}
+
+	// Body
+	folder := protocol.Object{}
+	folder.TypeName = "Folder"
+	jsonBody, err := json.Marshal(folder)
+	if err != nil {
+		log.Printf("Unable to marshal json for request:%v", err)
+		t.FailNow()
+	}
+
+	// Request
+	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		log.Printf("Error setting up HTTP Request: %v", err)
+		t.FailNow()
+	}
+	req.Header.Set("Content-Type", "application/json")
+	res, err := httpclients[clientid1].Do(req)
+	if err != nil {
+		log.Printf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+
+	// Response validation
+	if res.StatusCode != http.StatusOK {
+		log.Printf("req1 bad status: %s", res.Status)
+		t.FailNow()
+	}
+	decoder := json.NewDecoder(res.Body)
+	var createdFolder protocol.Object
+	err = decoder.Decode(&createdFolder)
+	if err != nil {
+		log.Printf("Error decoding json to Object: %v", err)
+		log.Println()
+		t.FailNow()
+	}
+
+	if len(createdFolder.Name) == 0 {
+		t.Fail()
+	}
+	if !strings.HasPrefix(createdFolder.Name, "New") {
+		t.Fail()
+	}
+
 }
