@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"testing"
 )
 
@@ -22,13 +21,13 @@ func TestShare(t *testing.T) {
 	logHandle, err := os.Create("TestShare.md")
 	if err != nil {
 		log.Printf("Unable to start scenarion: %v", err)
-        t.Fail()
+		t.Fail()
 	}
 	defer logHandle.Close()
 	ap, err := autopilot.NewAutopilotContext(logHandle)
 	if err != nil {
 		log.Printf("Unable to start autopilot context: %v", err)
-        t.Fail()
+		t.Fail()
 	}
 
 	fmt.Fprintf(ap.Log, "#TestShare")
@@ -48,8 +47,8 @@ func RunShare(t *testing.T, ap *autopilot.AutopilotContext) {
 	var users []*protocol.User
 	//Have both users do an upload and a download so they both exist
 	//Remember the first upload link, because that is what we will share
-	link, res, err = UploadDownload(t, ap, userID0)
-	_, res, err = UploadDownload(t, ap, userID1)
+	link, res, err = ap.DoUpload(userID0, false, "Uploading a file for User 0")
+	_, res, err = ap.DoUpload(userID0, false, "Uploading a file for User 1")
 	//The first user gets a list of all users, and is looking for somebody to share with
 	users, res, err = ap.DoUserList(userID0, "See which users exist as a side-effect of visiting the site with their certificates.")
 	resErrCheck(t, res, err)
@@ -71,24 +70,9 @@ func RunShare(t *testing.T, ap *autopilot.AutopilotContext) {
 		//Second user download the first thing that was shared to him
 		//XXX we could hunt for the right &links.Objects[n], but
 		//just passing in link to make it simple
-		res, err = DownloadLink(t, ap, userID1, link)
+		res, err = ap.DoDownloadLink(userID1, link, "1 downloads the file")
 		resErrCheck(t, res, err)
 	} else {
 		t.Fail()
 	}
-
-}
-
-func UploadDownload(t *testing.T, ap *autopilot.AutopilotContext, user int) (link *protocol.Object, res *http.Response, err error) {
-	//Upload some random file
-	link, res, err = ap.DoUpload(user, false, "Uploading a file for Alice")
-	resErrCheck(t, res, err)
-	res, err = DownloadLink(t, ap, user, link)
-	return
-}
-
-func DownloadLink(t *testing.T, ap *autopilot.AutopilotContext, user int, link *protocol.Object) (res *http.Response, err error) {
-	res, err = ap.DoDownloadLink(user, link, strconv.Itoa(user)+" downloads the file")
-	resErrCheck(t, res, err)
-	return
 }

@@ -21,13 +21,13 @@ func TestUpdate(t *testing.T) {
 	logHandle, err := os.Create("TestUpdate.md")
 	if err != nil {
 		log.Printf("Unable to start scenarion: %v", err)
-        t.Fail()
+		t.Fail()
 	}
 	defer logHandle.Close()
 	ap, err := autopilot.NewAutopilotContext(logHandle)
 	if err != nil {
 		log.Printf("Unable to start autopilot context: %v", err)
-        t.Fail()
+		t.Fail()
 	}
 
 	fmt.Fprintf(ap.Log, "#TestUpdate")

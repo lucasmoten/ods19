@@ -49,13 +49,13 @@ func randomUploadsAndDownloads() {
 	logHandle, err := os.Create("TestShare.md")
 	if err != nil {
 		log.Printf("Unable to start scenarion: %v", err)
-        return
+		return
 	}
 	defer logHandle.Close()
 	ap, err := autopilot.NewAutopilotContext(logHandle)
 	if err != nil {
 		log.Printf("Unable to start autopilot context: %v", err)
-        return
+		return
 	}
 
 	clientExited := make(chan int)
