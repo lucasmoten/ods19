@@ -13,6 +13,8 @@ import (
 	"decipher.com/oduploader/protocol"
 )
 
+
+
 func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller Caller) {
 
 	// var requestObject *models.ODObject
@@ -38,96 +40,10 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 	requestObject.TypeName.String = "Folder"
 	requestObject.TypeName.Valid = true
 
-	// If JavaScript passes parentId as emptry string, set it to nil to satisfy
-	// the DAO.
-	if string(requestObject.ParentID) == "" {
-		requestObject.ParentID = nil
-	}
-
-	// Check if parent defined
-	if requestObject.ParentID == nil {
-		// No parent set, but need to setup permission
-		newPermission := models.ODObjectPermission{}
-		newPermission.Grantee = caller.DistinguishedName
-		newPermission.AllowCreate = true
-		newPermission.AllowRead = true
-		newPermission.AllowUpdate = true
-		newPermission.AllowDelete = true
-		requestObject.Permissions = append(requestObject.Permissions, newPermission)
-	} else {
-		// Parent is defined, retrieve existing parent object from the data store
-
-		parentObject := models.ODObject{}
-		parentObject.ID = requestObject.ParentID
-		dbParentObject, err := h.DAO.GetObject(parentObject, false)
-		if err != nil {
-			h.sendErrorResponse(w, 500, err, "Error retrieving parent object")
-			return
-		}
-
-		// Check if the user has permissions to create child objects under the
-		// parent.
-		//		Permission.grantee matches caller, and AllowCreate is true
-		authorizedToCreate := false
-		if len(dbParentObject.Permissions) > 0 {
-			for _, permission := range dbParentObject.Permissions {
-				if permission.Grantee == caller.DistinguishedName &&
-					permission.AllowRead && permission.AllowCreate {
-					authorizedToCreate = true
-					break
-				}
-			}
-		} else {
-			log.Println("WARNING: No permissions on the object!")
-		}
-		if !authorizedToCreate {
-			h.sendErrorResponse(w, 403, nil, "Unauthorized")
-			return
-		}
-
-		// Make sure the object isn't deleted. To remove an object from the trash,
-		// use removeObjectFromTrash call.
-		if dbParentObject.IsDeleted {
-			switch {
-			case dbParentObject.IsExpunged:
-				h.sendErrorResponse(w, 410, err, "The object no longer exists.")
-				return
-			case dbParentObject.IsAncestorDeleted && !dbParentObject.IsDeleted:
-				h.sendErrorResponse(w, 405, err, "Unallowed to create child objects under a deleted object.")
-				return
-			case dbParentObject.IsDeleted:
-				h.sendErrorResponse(w, 405, err, "The object under which this object is being created is currently in the trash. Use removeObjectFromTrash to restore it first.")
-				return
-			}
-		}
-
-		// Copy permissions from parent into request Object
-		for _, permission := range dbParentObject.Permissions {
-			if !permission.IsDeleted {
-				newPermission := models.ODObjectPermission{}
-				newPermission.Grantee = permission.Grantee
-				isCreator := (permission.Grantee == caller.DistinguishedName)
-				newPermission.AllowCreate = permission.AllowCreate || isCreator
-				newPermission.AllowRead = permission.AllowRead || isCreator
-				newPermission.AllowUpdate = permission.AllowUpdate || isCreator
-				newPermission.AllowDelete = permission.AllowDelete || isCreator
-				requestObject.Permissions = append(requestObject.Permissions, newPermission)
-			}
-		}
-	}
-	log.Printf("There are %d permissions being added..", len(requestObject.Permissions))
-
-	// Disallow creating as deleted
-	if requestObject.IsDeleted || requestObject.IsAncestorDeleted || requestObject.IsExpunged {
-		h.sendErrorResponse(w, 428, nil, "Creating object in a deleted state is not allowed")
-		return
-	}
-
-	// Setup meta data...
-	requestObject.CreatedBy = caller.DistinguishedName
-	requestObject.OwnedBy.String = caller.DistinguishedName
-	requestObject.OwnedBy.Valid = true
-	requestACM.CreatedBy = caller.DistinguishedName
+    //Setup creation prerequisites, and return if we are done with the http request due to an error
+    if handleCreatePrerequisites(h, &requestObject, &requestACM, w, caller) {
+      return
+    }
 
 	// Add to database
 	createdObject, err := h.DAO.CreateObject(&requestObject, &requestACM)
