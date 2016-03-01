@@ -80,8 +80,7 @@ func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller
 		//XXX There is no explicit grant permission
 		isAllowed :=
 			permission.Grantee == caller.DistinguishedName &&
-				permission.AllowRead &&
-				permission.AllowUpdate
+				(permission.AllowRead || permission.AllowUpdate)
 
 		if isAllowed && object.TypeName.String != "Folder" {
 			newGrant.EncryptKey = make([]byte, 32)
