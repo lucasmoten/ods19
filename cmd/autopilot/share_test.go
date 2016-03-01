@@ -3,7 +3,7 @@ package main
 import (
 	"decipher.com/oduploader/autopilot"
 	"decipher.com/oduploader/protocol"
-	"log"
+	"fmt"
 	"net/http"
 	"strconv"
 	"testing"
@@ -14,54 +14,9 @@ import (
 	Capture the output in markdown so that we can see the raw http.
 */
 
-var userID0 = 0
-var userID1 = 1
 
-func resErrCheck(t *testing.T, res *http.Response, err error) {
-	if err != nil {
-            log.Printf("error came back:%v", err)
-			t.Fail()
-		}
-		if res.StatusCode != http.StatusOK {
-            log.Printf("http status must be ok")
-			t.Fail()
-		}    
-}
-
-func xTestUpdate(t *testing.T) {
-	//This test is actually fast (particularly the second time around),
-	//but it does use the real server.
-	if testing.Short() == false {
-    	var res *http.Response
-    	var err error
-    	var link *protocol.Object
-        //Upload a random file
-    	link, res, err = autopilot.DoUpload(userID0, false, "uploading a file to update")
-        resErrCheck(t,res,err)
-
-        fname := link.Name
-        //Download that same file and get an updated link
-		link, res, err = autopilot.DownloadLinkByName(fname, userID0, "get the file we uploaded")
-        resErrCheck(t,res,err)
-        
-        //Update that file (modify in the *download* cache and send it up)
-        oldChangeToken := link.ChangeToken
-        res, err = autopilot.DoUpdateLink(userID0, link, "updating a file", "xxxx")
-        resErrCheck(t,res, err)
-
-        //Change token must be new on update
-        if oldChangeToken == link.ChangeToken {
-            log.Printf("change token must be new on update")
-            t.Fail()
-        }
-        
-        //Download that same file.  It should have the xxxx in the tail of it.
-		link, res, err = autopilot.DownloadLinkByName(fname, userID0, "get the file we uploaded")
-        resErrCheck(t,res, err)
-	}    
-}
-
-func TestShare(t *testing.T) {
+func doTestShare(t *testing.T) {
+    fmt.Println("#TestShare")
 	//This test is actually fast (particularly the second time around),
 	//but it does use the real server.
 	if testing.Short() == false {
@@ -122,6 +77,3 @@ func DownloadLink(t *testing.T, user int, link *protocol.Object) (res *http.Resp
 	return
 }
 
-func init() {
-	autopilot.Init()
-}
