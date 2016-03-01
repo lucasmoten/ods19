@@ -196,7 +196,7 @@ func parseMoveObjectRequestAsJSON(r *http.Request) (models.ODObject, error) {
 	}
 
 	// Map to internal object type
-	requestObject = mapping.MapObjectToODObject(&jsonObject)
+	requestObject, err = mapping.MapObjectToODObject(&jsonObject)
 	return requestObject, err
 }
 

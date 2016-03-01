@@ -12,8 +12,6 @@ import (
 	"decipher.com/oduploader/protocol"
 )
 
-
-
 func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller Caller) {
 
 	// var requestObject *models.ODObject
@@ -39,10 +37,10 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 	requestObject.TypeName.String = "Folder"
 	requestObject.TypeName.Valid = true
 
-    //Setup creation prerequisites, and return if we are done with the http request due to an error
-    if handleCreatePrerequisites(h, &requestObject, &requestACM, w, caller) {
-      return
-    }
+	//Setup creation prerequisites, and return if we are done with the http request due to an error
+	if handleCreatePrerequisites(h, &requestObject, &requestACM, w, caller) {
+		return
+	}
 
 	// Add to database
 	createdObject, err := h.DAO.CreateObject(&requestObject, &requestACM)
@@ -75,7 +73,8 @@ func parseCreateFolderRequestAsJSON(r *http.Request) (models.ODObject, models.OD
 	}
 
 	// Map to internal object type
-	object = mapping.MapCreateObjectRequestToODObject(&jsonObject)
+	object, err = mapping.MapCreateObjectRequestToODObject(&jsonObject)
+
 	// TODO: Figure out how we want to pass ACM into this operation. Should it
 	// be nested in protocol Object? If so, should ODObject contain ODACM ?
 	return object, acm, err
