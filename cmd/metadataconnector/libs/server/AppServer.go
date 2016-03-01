@@ -130,7 +130,6 @@ func (h *AppServer) InitRegex() {
 		Query:                   initRegex(h.ServicePrefix + "/query/.*"),
 		Shared:                  initRegex(h.ServicePrefix + "/shared$"),
 		Shares:                  initRegex(h.ServicePrefix + "/shares$"),
-		Shareto:                 initRegex(h.ServicePrefix + "/shareto$"),
 		Trash:                   initRegex(h.ServicePrefix + "/trash$"),
 		Users:                   initRegex(h.ServicePrefix + "/users$"),
 		Object:                  initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)$"),
@@ -280,10 +279,6 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.query(w, r, caller)
 		case h.Routes.ObjectStream.MatchString(uri):
 			h.updateObjectStream(w, r, caller)
-		case h.Routes.ObjectShare.MatchString(uri):
-			h.addObjectShare(w, r, caller)
-		case h.Routes.Shareto.MatchString(uri):
-			h.addObjectShare(w, r, caller)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)

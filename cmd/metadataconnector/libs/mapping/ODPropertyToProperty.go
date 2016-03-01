@@ -1,10 +1,11 @@
 package mapping
 
 import (
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/protocol"
 	"encoding/hex"
 	"log"
+
+	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 )
 
 // MapODPropertyToProperty converts an ODObjectPropertyEx from internal model
@@ -47,10 +48,21 @@ func MapODPropertiesToProperties(i *[]models.ODObjectPropertyEx) []protocol.Prop
 func MapPropertyToODProperty(i *protocol.Property) models.ODObjectPropertyEx {
 	var err error
 	o := models.ODObjectPropertyEx{}
-	o.ID, err = hex.DecodeString(i.ID)
-	if err != nil {
-		log.Printf("Cannot decode property id")
+
+	// ID convert string to byte, reassign to nil if empty
+	ID, err := hex.DecodeString(i.ID)
+	switch {
+	case err != nil:
+		if len(i.ID) > 0 {
+			log.Printf("Unable to decode property id")
+		}
+	case len(ID) == 0:
+		//log.Printf(Property is undefined")
+		o.ID = nil
+	default:
+		o.ID = ID
 	}
+
 	o.CreatedDate = i.CreatedDate
 	o.CreatedBy = i.CreatedBy
 	o.ModifiedDate = i.ModifiedDate

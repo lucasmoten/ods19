@@ -1,10 +1,11 @@
 package mapping
 
 import (
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/protocol"
 	"encoding/hex"
 	"log"
+
+	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 )
 
 // MapODPermissionToPermission converts an internal ODPermission model to an
@@ -42,20 +43,43 @@ func MapODPermissionsToPermissions(i *[]models.ODObjectPermission) []protocol.Pe
 func MapPermissionToODPermission(i *protocol.Permission) models.ODObjectPermission {
 	var err error
 	o := models.ODObjectPermission{}
-	o.ID, err = hex.DecodeString(i.ID)
-	if err != nil {
-		log.Printf("Unable to decode permission id")
+
+	// ID convert string to byte, reassign to nil if empty
+	ID, err := hex.DecodeString(i.ID)
+	switch {
+	case err != nil:
+		if len(i.ID) > 0 {
+			log.Printf("Unable to decode permission id")
+		}
+	case len(ID) == 0:
+		//log.Printf(Permission is undefined")
+		o.ID = nil
+	default:
+		o.ID = ID
 	}
+
 	o.CreatedDate = i.CreatedDate
 	o.CreatedBy = i.CreatedBy
 	o.ModifiedDate = i.ModifiedDate
 	o.ModifiedBy = i.ModifiedBy
 	o.ChangeCount = i.ChangeCount
 	o.ChangeToken = i.ChangeToken
-	o.ObjectID, err = hex.DecodeString(i.ObjectID)
-	if err != nil {
-		log.Printf("Unable to decode object id")
+
+	// Object ID convert string to byte, reassign to nil if empty
+	objectID, err := hex.DecodeString(i.ObjectID)
+	switch {
+	case err != nil:
+		if len(i.ObjectID) > 0 {
+			log.Printf("Unable to decode object id")
+			return err
+		}
+	case len(objectID) == 0:
+		log.Printf("Target object is undefined")
+		o.ObjectID = nil
+	default:
+		o.ObjectID = ObjectID
 	}
+
 	o.Grantee = i.Grantee
 	o.AllowCreate = i.AllowCreate
 	o.AllowRead = i.AllowRead

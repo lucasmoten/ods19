@@ -226,8 +226,11 @@ func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) models.OD
 	o.Description.Valid = true
 	o.Description.String = i.Description
 	o.ParentID, err = hex.DecodeString(i.ParentID)
-	if err != nil {
+	switch {
+	case err != nil:
 		log.Printf("Unable to decode parent id")
+	case len(o.ParentID) == 0:
+		o.ParentID = nil
 	}
 	o.RawAcm.Valid = true
 	o.RawAcm.String = i.RawAcm
@@ -254,25 +257,44 @@ func MapObjectsToODObjects(i *[]protocol.Object) []models.ODObject {
 // When we get a decoded json object, for uploads, we have specific items that
 // we should extract and write over the object that we have
 func OverwriteODObjectWithProtocolObject(o *models.ODObject, i *protocol.Object) error {
+	// ID convert string to byte, reassign to nil if empty
 	id, err := hex.DecodeString(i.ID)
-	if err != nil {
-		log.Printf("Count not decode id")
+	switch {
+	case err != nil:
+		log.Printf("Unable to decode id")
 		return err
-	}
-	if len(id) > 0 {
+	case len(id) == 0:
+		o.ID = nil
+	default:
 		o.ID = id
 	}
 
-	pid, err := hex.DecodeString(i.ParentID)
-	if err != nil {
-		log.Printf("Count not decode parent id")
-		return err
+	// Type ID convert string to byte, reassign to nil if empty
+	typeID, err := hex.DecodeString(i.TypeID)
+	switch {
+	case err != nil:
+		if len(i.TypeID) > 0 {
+			log.Printf("Unable to decode type id")
+			return err
+		}
+	case len(typeID) == 0:
+		o.TypeID = nil
+	default:
+		o.TypeID = typeID
 	}
-	if len(pid) > 0 {
-		o.ParentID = pid
-	}
-	if len(o.ParentID) == 0 {
+
+	// Parent ID convert string to byte, reassign to nil if empty
+	parentID, err := hex.DecodeString(i.ParentID)
+	switch {
+	case err != nil:
+		if len(i.ParentID) > 0 {
+			log.Printf("Unable to decode parent id")
+			return err
+		}
+	case len(parentID) == 0:
 		o.ParentID = nil
+	default:
+		o.ParentID = parentID
 	}
 
 	o.ContentSize.Int64 = i.ContentSize

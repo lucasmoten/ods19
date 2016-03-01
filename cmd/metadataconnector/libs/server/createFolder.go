@@ -1,13 +1,12 @@
 package server
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
@@ -54,12 +53,7 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 
 	// Response in requested format
 	apiResponse := mapping.MapODObjectToObject(&createdObject)
-	switch {
-	case r.Header.Get("Content-Type") == "application/json":
-		createFolderResponseAsJSON(w, r, caller, &apiResponse)
-	default:
-		createFolderResponseAsHTML(w, r, caller, &apiResponse)
-	}
+	createFolderResponseAsJSON(w, r, caller, &apiResponse)
 
 }
 
@@ -69,34 +63,15 @@ func parseCreateFolderRequestAsJSON(r *http.Request) (models.ODObject, models.OD
 	acm := models.ODACM{}
 	var err error
 
-	switch {
-	case r.Header.Get("Content-Type") == "application/json":
-		err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
-	case r.Header.Get("Content-Type") == "multipart/form-data":
-		r.ParseForm()
-		multipartReader, err := r.MultipartReader()
-		if err != nil {
-			return object, acm, err
-		}
-		for {
-			part, err := multipartReader.NextPart()
-			if err != nil {
-				return object, acm, err
-			}
-			switch {
-			case part.Header.Get("Content-Type") == "application/json":
+	if r.Header.Get("Content-Type") != "application/json" {
+		err = fmt.Errorf("Content-Type is '%s', expected application/json", r.Header.Get("Content-Type"))
+		return object, acm, err
+	}
 
-				// Read in the JSON - up to 10K
-				valueAsBytes := make([]byte, 10240)
-				n, err := part.Read(valueAsBytes)
-				if err != nil {
-					return object, acm, err
-				}
-				err = (json.NewDecoder(bytes.NewReader(valueAsBytes[0:n]))).Decode(&jsonObject)
-			case part.Header.Get("Content-Disposition") == "form-data":
-				// TODO: Maybe these header checks need to be if the value begins with?
-			}
-		}
+	// Decode to JSON
+	err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
+	if err != nil {
+		return object, acm, err
 	}
 
 	// Map to internal object type
@@ -120,21 +95,4 @@ func createFolderResponseAsJSON(
 		return
 	}
 	w.Write(jsonData)
-}
-
-func createFolderResponseAsHTML(
-	w http.ResponseWriter,
-	r *http.Request,
-	caller Caller,
-	response *protocol.Object,
-) {
-	// Bounce to redraw the list
-	listObjectsURL := config.RootURL
-	if len(response.ParentID) > 0 {
-		parentID := response.ParentID
-		listObjectsURL += "/object/" + parentID + "/list"
-	} else {
-		listObjectsURL += "/objects"
-	}
-	http.Redirect(w, r, listObjectsURL, 301)
 }
