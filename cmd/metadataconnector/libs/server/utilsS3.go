@@ -29,7 +29,7 @@ func (h AppServer) acceptObjectUpload(
 	obj *models.ODObject,
 	acm *models.ODACM,
 	grant *models.ODObjectPermission,
-) {
+) (*AppError, error) {
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
 		panic(err)
@@ -40,8 +40,7 @@ func (h AppServer) acceptObjectUpload(
 			if err == io.EOF {
 				break //just an eof...not an error
 			} else {
-				h.sendErrorResponse(w, 500, err, "error getting a part")
-				return
+				return &AppError{Code:500, Err:err, Msg:"error getting a part"},err
 			}
 		} // if err != nil
 
@@ -53,12 +52,11 @@ func (h AppServer) acceptObjectUpload(
 			var createObjectRequest protocol.Object
 			err := json.Unmarshal([]byte(s), &createObjectRequest)
 			if err != nil {
-				h.sendErrorResponse(w, 400, err, "Could not decode CreateObjectRequest.")
+				return &AppError{400, err, "Could not decode CreateObjectRequest."},err
 			}
 			err = mapping.OverwriteODObjectWithProtocolObject(obj, &createObjectRequest)
 			if err != nil {
-				h.sendErrorResponse(w, 400, err, "Could not extract data from json response")
-				return
+				return &AppError{400, err, "Could not extract data from json response"},err
 			}
 		case len(part.FileName()) > 0:
 			//Guess the content type and name if it wasn't supplied
@@ -69,13 +67,16 @@ func (h AppServer) acceptObjectUpload(
 				obj.Name = part.FileName()
 			}
 			async := true
-			err = h.beginUpload(w, r, caller, part, obj, acm, grant, async)
+			herr,err := h.beginUpload(w, r, caller, part, obj, acm, grant, async)
+            if herr != nil {
+                return herr,err
+            }
 			if err != nil {
-				h.sendErrorResponse(w, 500, err, "error caching file")
-				return
+				return &AppError{500, err, "error caching file"},err
 			}
 		} // switch
 	} //for
+    return nil, nil
 }
 
 func (h AppServer) beginUpload(
@@ -87,18 +88,20 @@ func (h AppServer) beginUpload(
 	acm *models.ODACM,
 	grant *models.ODObjectPermission,
 	async bool,
-) (err error) {
+) (herr *AppError, err error) {
 
 	beganAt := h.Tracker.BeginTime(performance.UploadCounter)
-	err = h.beginUploadTimed( /*w, r,*/ caller, part, obj, acm, grant, async)
-
+	herr, err = h.beginUploadTimed(caller, part, obj, acm, grant, async)
+    if herr != nil {
+        return herr,err
+    }
 	h.Tracker.EndTime(
 		performance.UploadCounter,
 		beganAt,
 		performance.SizeJob(obj.ContentSize.Int64),
 	)
 
-	return err
+	return herr, err
 }
 
 func (h AppServer) beginUploadTimed(
@@ -110,14 +113,14 @@ func (h AppServer) beginUploadTimed(
 	acm *models.ODACM,
 	grant *models.ODObjectPermission,
 	async bool,
-) (err error) {
+) (herr *AppError, err error) {
 	rName := obj.ContentConnector.String
 	iv := obj.EncryptIV
 	fileKey := grant.EncryptKey
 
 	err = h.CacheMustExist()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	//Make up a random name for our file - don't deal with versioning yet
 	outFileUploading := h.CacheLocation + "/" + rName + ".uploading"
@@ -126,7 +129,7 @@ func (h AppServer) beginUploadTimed(
 	outFile, err := os.Create(outFileUploading)
 	if err != nil {
 		log.Printf("Unable to open ciphertext uploading file %s %v:", outFileUploading, err)
-		return err
+		return nil, err
 	}
 	defer outFile.Close()
 
@@ -134,7 +137,7 @@ func (h AppServer) beginUploadTimed(
 	checksum, length, err := doCipherByReaderWriter(part, outFile, fileKey, iv, "uploading from browser")
 	if err != nil {
 		log.Printf("Unable to write ciphertext %s %v:", outFileUploading, err)
-		return err
+		return nil, err
 	}
 
 	//Scramble the fileKey with the masterkey - will need it once more on retrieve
@@ -144,7 +147,7 @@ func (h AppServer) beginUploadTimed(
 	err = os.Rename(outFileUploading, outFileUploaded)
 	if err != nil {
 		log.Printf("Unable to rename uploaded file %s %v:", outFileUploading, err)
-		return err
+		return nil, err
 	}
 	log.Printf("rename:%s -> %s", outFileUploading, outFileUploaded)
 
@@ -159,7 +162,7 @@ func (h AppServer) beginUploadTimed(
 	} else {
 		h.drainFileToS3(aws.String(config.DefaultBucket), rName, length, 3)
 	}
-	return err
+	return nil,err
 }
 
 //We get penalized on throughput if these fail a lot.
@@ -169,15 +172,18 @@ func (h AppServer) drainFileToS3(
 	rName string,
 	size int64,
 	tries int,
-) error {
+) (*AppError, error) {
 	beganAt := h.Tracker.BeginTime(performance.S3DrainTo)
-	err := h.drainFileToS3Attempt(bucket, rName, size, tries)
+	herr, err := h.drainFileToS3Attempt(bucket, rName, size, tries)
+    if herr != nil {
+        return herr,err
+    }
 	h.Tracker.EndTime(
 		performance.S3DrainTo,
 		beganAt,
 		performance.SizeJob(size),
 	)
-	return err
+	return herr, err
 }
 
 func (h AppServer) drainFileToS3Attempt(
@@ -185,8 +191,11 @@ func (h AppServer) drainFileToS3Attempt(
 	rName string,
 	size int64,
 	tries int,
-) error {
-	err := h.drainFileToS3Timed(bucket, rName, size)
+) (*AppError, error) {
+	herr, err := h.drainFileToS3Timed(bucket, rName, size)
+    if herr != nil {
+        return herr,err
+    }
 	tries = tries - 1
 	if err != nil {
 		//The problem is that we get things like transient DNS errors,
@@ -195,24 +204,24 @@ func (h AppServer) drainFileToS3Attempt(
 		//not being uploaded if all attempts fail.
 		log.Printf("unable to drain file to S3.  Trying again:%v", err)
 		if tries > 0 {
-			err = h.drainFileToS3Attempt(bucket, rName, size, tries)
+			herr,err = h.drainFileToS3Attempt(bucket, rName, size, tries)
 		}
 	}
-	return err
+	return herr, err
 }
 
 func (h AppServer) drainFileToS3Timed(
 	bucket *string,
 	rName string,
 	size int64,
-) error {
+) (*AppError,error) {
 	sess := h.AWSSession
 	outFileUploaded := h.CacheLocation + "/" + rName + ".uploaded"
 
 	fIn, err := os.Open(outFileUploaded)
 	if err != nil {
 		log.Printf("Cant drain off file: %v", err)
-		return err
+		return nil,err
 	}
 	defer fIn.Close()
 	log.Printf("draining to S3 %s: %s", *bucket, rName)
@@ -225,7 +234,7 @@ func (h AppServer) drainFileToS3Timed(
 	})
 	if err != nil {
 		log.Printf("Could not write to S3: %v", err)
-		return err
+		return nil,err
 	}
 
 	//Rename the file to note that it only lives here as cached for download
@@ -234,12 +243,12 @@ func (h AppServer) drainFileToS3Timed(
 	err = os.Rename(outFileUploaded, outFileCached)
 	if err != nil {
 		log.Printf("Unable to rename uploaded file %s %v:", outFileUploaded, err)
-		return err
+		return nil,err
 	}
 	log.Printf("rename:%s -> %s", outFileUploaded, outFileCached)
 
 	log.Printf("Uploaded to %v: %v", *bucket, result.Location)
-	return err
+	return nil,err
 }
 
 func extIs(name string, ext string) bool {
@@ -283,22 +292,25 @@ func guessContentType(name string) string {
 func (h AppServer) transferFileFromS3(
 	bucket *string,
 	theFile string,
-	length int64,
-) {
+    length int64,
+) (*AppError,error) {
 	beganAt := h.Tracker.BeginTime(performance.S3DrainFrom)
-	h.transferFileFromS3Timed(bucket, theFile)
-
+	herr, err := h.transferFileFromS3Timed(bucket, theFile)
+    if herr != nil {
+        return herr,err
+    }
 	h.Tracker.EndTime(
 		performance.S3DrainFrom,
 		beganAt,
 		performance.SizeJob(length),
 	)
+    return nil,nil
 }
 
 func (h AppServer) transferFileFromS3Timed(
 	bucket *string,
 	theFile string,
-) {
+) (*AppError,error) {
 	log.Printf("Get from S3 bucket %s: %s", *bucket, theFile)
 	foutCaching := h.CacheLocation + "/" + theFile + ".caching"
 	foutCached := h.CacheLocation + "/" + theFile + ".cached"
@@ -325,4 +337,5 @@ func (h AppServer) transferFileFromS3Timed(
 		log.Printf("Failed to rename from %s to %s", foutCaching, foutCached)
 	}
 	log.Printf("rename:%s -> %s", foutCaching, foutCached)
+    return nil,nil
 }

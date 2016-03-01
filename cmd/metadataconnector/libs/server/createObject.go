@@ -153,8 +153,11 @@ func (h AppServer) createObject(
 		obj.ContentConnector.String = rName
 		obj.EncryptIV = iv
 		grant.EncryptKey = fileKey
-		h.acceptObjectUpload(w, r, caller, &obj, &acm, &grant)
-
+		herr, err := h.acceptObjectUpload(w, r, caller, &obj, &acm, &grant)
+        if herr != nil {
+            h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
+            return
+        }
 		obj.Permissions = make([]models.ODObjectPermission, 1)
 		obj.Permissions = append(obj.Permissions, grant)
 

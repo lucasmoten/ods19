@@ -41,7 +41,11 @@ func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, ca
 	//Descramble key (and rescramble when we go to save object back)
 	applyPassphrase(h.MasterKey+caller.DistinguishedName, grant.EncryptKey)
 	//Do an upload that is basically the same as for a new object.
-	h.acceptObjectUpload(w, r, caller, &object, &acm, grant)
+	herr, err := h.acceptObjectUpload(w, r, caller, &object, &acm, grant)
+    if herr != nil {
+        h.sendErrorResponse(w,herr.Code, herr.Err, herr.Msg)
+        return 
+    }
 	//Rescramble key
 	applyPassphrase(h.MasterKey+caller.DistinguishedName, grant.EncryptKey)
 
