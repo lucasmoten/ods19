@@ -1,10 +1,11 @@
 package mapping
 
 import (
+	"encoding/hex"
+	"fmt"
+
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
-	"encoding/hex"
-	"log"
 )
 
 // MapODPropertyToProperty converts an ODObjectPropertyEx from internal model
@@ -44,13 +45,21 @@ func MapODPropertiesToProperties(i *[]models.ODObjectPropertyEx) []protocol.Prop
 
 // MapPropertyToODProperty converts an exposable API protocol format of a
 // Property to an internal ODObjectPropertyEx model
-func MapPropertyToODProperty(i *protocol.Property) models.ODObjectPropertyEx {
+func MapPropertyToODProperty(i *protocol.Property) (models.ODObjectPropertyEx, error) {
 	var err error
 	o := models.ODObjectPropertyEx{}
-	o.ID, err = hex.DecodeString(i.ID)
+
+	// ID convert string to byte, reassign to nil if empty
+	ID, err := hex.DecodeString(i.ID)
 	if err != nil {
-		log.Printf("Cannot decode property id")
+		return o, fmt.Errorf("Unable to decode property id from %s", i.ID)
 	}
+	if len(o.ID) == 0 {
+		o.ID = nil
+	} else {
+		o.ID = ID
+	}
+
 	o.CreatedDate = i.CreatedDate
 	o.CreatedBy = i.CreatedBy
 	o.ModifiedDate = i.ModifiedDate
@@ -62,16 +71,20 @@ func MapPropertyToODProperty(i *protocol.Property) models.ODObjectPropertyEx {
 	o.Value.String = i.Value
 	o.ClassificationPM.Valid = true
 	o.ClassificationPM.String = i.ClassificationPM
-	return o
+	return o, nil
 }
 
 // MapPropertiesToODProperties converts an array of exposable API protocol
 // format of properties into an array of internally usable ODObjectPropertyEx
 // models
-func MapPropertiesToODProperties(i *[]protocol.Property) []models.ODObjectPropertyEx {
+func MapPropertiesToODProperties(i *[]protocol.Property) ([]models.ODObjectPropertyEx, error) {
 	o := make([]models.ODObjectPropertyEx, len(*i))
 	for p, q := range *i {
-		o[p] = MapPropertyToODProperty(&q)
+		mappedProperty, err := MapPropertyToODProperty(&q)
+		if err != nil {
+			return o, err
+		}
+		o[p] = mappedProperty
 	}
-	return o
+	return o, nil
 }

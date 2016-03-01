@@ -1,8 +1,6 @@
 package server
 
 import (
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +10,9 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/performance"
@@ -90,7 +91,7 @@ func (h AppServer) beginUpload(
 ) (err error) {
 
 	beganAt := h.Tracker.BeginTime(performance.UploadCounter)
-	err = h.beginUploadTimed(w, r, caller, part, obj, acm, grant, async)
+	err = h.beginUploadTimed( /*w, r,*/ caller, part, obj, acm, grant, async)
 
 	h.Tracker.EndTime(
 		performance.UploadCounter,
@@ -102,8 +103,8 @@ func (h AppServer) beginUpload(
 }
 
 func (h AppServer) beginUploadTimed(
-	w http.ResponseWriter,
-	r *http.Request,
+	//	w http.ResponseWriter,
+	//	r *http.Request,
 	caller Caller,
 	part *multipart.Part,
 	obj *models.ODObject,
@@ -283,7 +284,7 @@ func guessContentType(name string) string {
 func (h AppServer) transferFileFromS3(
 	bucket *string,
 	theFile string,
-    length int64,
+	length int64,
 ) {
 	beganAt := h.Tracker.BeginTime(performance.S3DrainFrom)
 	h.transferFileFromS3Timed(bucket, theFile)

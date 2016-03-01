@@ -38,7 +38,11 @@ func TestMapCreateObjectRequestToODObject(t *testing.T) {
 		ContentType: "text/plain",
 		ContentSize: 1024,
 	}
-	result := mapping.MapCreateObjectRequestToODObject(&input)
+	result, err := mapping.MapCreateObjectRequestToODObject(&input)
+
+	if err != nil {
+		t.Fail()
+	}
 
 	if result.Name != input.Name {
 		t.Fail()

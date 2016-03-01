@@ -74,8 +74,8 @@ func parseGetObjectRequest(r *http.Request) (models.ODObject, error) {
 	var err error
 
 	// Portions from the request URI itself ...
-	uri := r.URL.RequestURI()
-	re, _ := regexp.Compile("/object/(.*)/properties")
+	uri := r.URL.Path
+	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)/properties")
 	matchIndexes := re.FindStringSubmatchIndex(uri)
 	if len(matchIndexes) != 0 {
 		if len(matchIndexes) > 3 {

@@ -21,7 +21,7 @@ import (
 func (h AppServer) getObjectStreamObject(w http.ResponseWriter, r *http.Request, caller Caller) (models.ODObject, error) {
 	var object models.ODObject
 	// Identify requested object
-	objectID := getIDOfObjectTORetrieveStream(r.URL.RequestURI())
+	objectID := getIDOfObjectTORetrieveStream(r.URL.Path)
 	// If not valid, return
 	if objectID == "" {
 		h.sendErrorResponse(w, 400, nil, "URI provided by caller does not specify an object identifier")
@@ -101,6 +101,8 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 			fileKey = permission.EncryptKey
 			//Unscramble the fileKey with the masterkey - will need it once more on retrieve
 			applyPassphrase(h.MasterKey+caller.DistinguishedName, fileKey)
+			// Once we have a match, quit looking and avoid reapplying passphrase
+			break
 		}
 	}
 
@@ -245,7 +247,7 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 // getIDOfObjectTORetrieveStream accepts a passed in URI and finds whether an
 // object identifier was passed within it for which the content stream is sought
 func getIDOfObjectTORetrieveStream(uri string) string {
-	re, _ := regexp.Compile("/object/(.*)/stream")
+	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)/stream")
 	matchIndexes := re.FindStringSubmatchIndex(uri)
 	if len(matchIndexes) == 0 {
 		return ""

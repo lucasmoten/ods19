@@ -141,7 +141,7 @@ func parseListObjectsRequest(r *http.Request) (*protocol.PagingRequest, error) {
 	// Portions from the request path itself to pick up object ID to list children
 	// Note that a call to /objects will not match, and hence the ID wont be set
 	uri := r.URL.Path
-	re, _ := regexp.Compile("/object/(.*)/list")
+	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)/list")
 	matchIndexes := re.FindStringSubmatchIndex(uri)
 	if len(matchIndexes) != 0 {
 		if len(matchIndexes) > 3 {

@@ -74,6 +74,21 @@ func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller
 		return
 	}
 
+	// Check if the object is deleted
+	if object.IsDeleted {
+		switch {
+		case object.IsExpunged:
+			h.sendErrorResponse(w, 410, err, "The object no longer exists.")
+			return
+		case object.IsAncestorDeleted && !object.IsDeleted:
+			h.sendErrorResponse(w, 405, err, "Unallowed to share deleted objects.")
+			return
+		case object.IsDeleted:
+			h.sendErrorResponse(w, 405, err, "Use removeObjectFromTrash to restore this object before adding shares.")
+			return
+		}
+	}
+
 	//Get the existing grant, make one for the grantee
 	var newGrant models.ODObjectPermission
 	for _, permission := range object.Permissions {

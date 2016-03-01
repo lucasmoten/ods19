@@ -3,6 +3,7 @@ package mapping
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 
 	"decipher.com/oduploader/metadata/models"
@@ -115,7 +116,7 @@ func MapODObjectToDeletedObject(i *models.ODObject) protocol.DeletedObject {
 		//files don't have a content hash
 	} else {
 		o.ContentHash = hex.EncodeToString(i.ContentHash)
-	}    
+	}
 	o.Properties = MapODPropertiesToProperties(&i.Properties)
 	o.Permissions = MapODPermissionsToPermissions(&i.Permissions)
 	return o
@@ -157,14 +158,14 @@ func MapODObjectToJSON(i *models.ODObject) string {
 
 // MapObjectToODObject converts an API exposable protocol Object into an
 // internally usable model object.
-func MapObjectToODObject(i *protocol.Object) models.ODObject {
+func MapObjectToODObject(i *protocol.Object) (models.ODObject, error) {
 	var err error
 	o := models.ODObject{}
 	o.ID, err = hex.DecodeString(i.ID)
-	switch {
-	case err != nil:
-		log.Printf("Unable to decode id")
-	case len(o.ID) == 0:
+	if err != nil {
+		return o, fmt.Errorf("Unable to decode id from %s", i.ID)
+	}
+	if len(o.ID) == 0 {
 		o.ID = nil
 	}
 	o.CreatedDate = i.CreatedDate
@@ -176,10 +177,11 @@ func MapObjectToODObject(i *protocol.Object) models.ODObject {
 	o.OwnedBy.Valid = true
 	o.OwnedBy.String = i.OwnedBy
 	o.TypeID, err = hex.DecodeString(i.TypeID)
-	switch {
-	case err != nil:
-		log.Printf("Unable to decode type id")
-	case len(o.TypeID) == 0:
+
+	if err != nil {
+		return o, fmt.Errorf("Unable to decode type id from %s", i.TypeID)
+	}
+	if len(o.TypeID) == 0 {
 		o.TypeID = nil
 	}
 	o.TypeName.Valid = true
@@ -188,10 +190,10 @@ func MapObjectToODObject(i *protocol.Object) models.ODObject {
 	o.Description.Valid = true
 	o.Description.String = i.Description
 	o.ParentID, err = hex.DecodeString(i.ParentID)
-	switch {
-	case err != nil:
-		log.Printf("Unable to decode parent id")
-	case len(o.ParentID) == 0:
+	if err != nil {
+		return o, fmt.Errorf("Unable to decode parent id from %s", i.ParentID)
+	}
+	if len(o.ParentID) == 0 {
 		o.ParentID = nil
 	}
 	o.RawAcm.Valid = true
@@ -200,12 +202,19 @@ func MapObjectToODObject(i *protocol.Object) models.ODObject {
 	o.ContentType.String = i.ContentType
 	o.ContentSize.Valid = true
 	o.ContentSize.Int64 = i.ContentSize
-    if len(i.ContentHash) > 0 {
-        o.ContentHash, err = hex.DecodeString(i.ContentHash)
-    }
-	o.Properties = MapPropertiesToODProperties(&i.Properties)
-	o.Permissions = MapPermissionsToODPermissions(&i.Permissions)
-	return o
+	// TODO: Is this really needed to be either exposed to user or received from user via Protocol?
+	if len(i.ContentHash) > 0 {
+		o.ContentHash, err = hex.DecodeString(i.ContentHash)
+	}
+	o.Properties, err = MapPropertiesToODProperties(&i.Properties)
+	if err != nil {
+		return o, err
+	}
+	o.Permissions, err = MapPermissionsToODPermissions(&i.Permissions)
+	if err != nil {
+		return o, err
+	}
+	return o, nil
 }
 
 // TypeName string `json:"typeName"`
@@ -216,7 +225,7 @@ func MapObjectToODObject(i *protocol.Object) models.ODObject {
 // ContentSize int64 `json:"contentSize"`
 
 // MapCreateObjectRequestToODObject ...
-func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) models.ODObject {
+func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) (models.ODObject, error) {
 
 	var err error
 	o := models.ODObject{}
@@ -227,7 +236,10 @@ func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) models.OD
 	o.Description.String = i.Description
 	o.ParentID, err = hex.DecodeString(i.ParentID)
 	if err != nil {
-		log.Printf("Unable to decode parent id")
+		return o, fmt.Errorf("Unable to decode parent id from %s", i.ParentID)
+	}
+	if len(o.ParentID) == 0 {
+		o.ParentID = nil
 	}
 	o.RawAcm.Valid = true
 	o.RawAcm.String = i.RawAcm
@@ -235,44 +247,73 @@ func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) models.OD
 	o.ContentType.String = i.ContentType
 	o.ContentSize.Valid = true
 	o.ContentSize.Int64 = i.ContentSize
-	o.Properties = MapPropertiesToODProperties(&i.Properties)
-	o.Permissions = MapPermissionsToODPermissions(&i.Permissions)
-	return o
+	o.Properties, err = MapPropertiesToODProperties(&i.Properties)
+	if err != nil {
+		return o, err
+	}
+	o.Permissions, err = MapPermissionsToODPermissions(&i.Permissions)
+	if err != nil {
+		return o, err
+	}
+	return o, nil
 }
 
 // MapObjectsToODObjects converts an array of API exposable protocol Objects
 // into an array of internally usable model Objects
-func MapObjectsToODObjects(i *[]protocol.Object) []models.ODObject {
+func MapObjectsToODObjects(i *[]protocol.Object) ([]models.ODObject, error) {
 	o := make([]models.ODObject, len(*i))
 	for p, q := range *i {
-		o[p] = MapObjectToODObject(&q)
+		mappedObject, err := MapObjectToODObject(&q)
+		if err != nil {
+			return o, err
+		}
+		o[p] = mappedObject
 	}
-	return o
+	return o, nil
 }
 
 // OverwriteODObjectWithProtocolObject ...
 // When we get a decoded json object, for uploads, we have specific items that
 // we should extract and write over the object that we have
 func OverwriteODObjectWithProtocolObject(o *models.ODObject, i *protocol.Object) error {
+	// ID convert string to byte, reassign to nil if empty
 	id, err := hex.DecodeString(i.ID)
-	if err != nil {
-		log.Printf("Count not decode id")
+	switch {
+	case err != nil:
+		log.Printf("Unable to decode id")
 		return err
-	}
-	if len(id) > 0 {
+	case len(id) == 0:
+		o.ID = nil
+	default:
 		o.ID = id
 	}
 
-	pid, err := hex.DecodeString(i.ParentID)
-	if err != nil {
-		log.Printf("Count not decode parent id")
-		return err
+	// Type ID convert string to byte, reassign to nil if empty
+	typeID, err := hex.DecodeString(i.TypeID)
+	switch {
+	case err != nil:
+		if len(i.TypeID) > 0 {
+			log.Printf("Unable to decode type id")
+			return err
+		}
+	case len(typeID) == 0:
+		o.TypeID = nil
+	default:
+		o.TypeID = typeID
 	}
-	if len(pid) > 0 {
-		o.ParentID = pid
-	}
-	if len(o.ParentID) == 0 {
+
+	// Parent ID convert string to byte, reassign to nil if empty
+	parentID, err := hex.DecodeString(i.ParentID)
+	switch {
+	case err != nil:
+		if len(i.ParentID) > 0 {
+			log.Printf("Unable to decode parent id")
+			return err
+		}
+	case len(parentID) == 0:
 		o.ParentID = nil
+	default:
+		o.ParentID = parentID
 	}
 
 	o.ContentSize.Int64 = i.ContentSize
