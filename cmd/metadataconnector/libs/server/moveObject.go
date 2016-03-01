@@ -20,15 +20,15 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 	var err error
 
 	// Parse Request in sent format
-	switch {
-	case r.Header.Get("Content-Type") == "application/json":
-		requestObject, err = parseMoveObjectRequestAsJSON(r)
-		if err != nil {
-			h.sendErrorResponse(w, 400, err, "Error parsing JSON")
-			return
-		}
-	default:
-		h.sendErrorResponse(w, 501, nil, "Reading from HTML form post not supported")
+	if r.Header.Get("Content-Type") != "application/json" {
+
+		h.sendErrorResponse(w, http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
+		return
+	}
+	requestObject, err = parseMoveObjectRequestAsJSON(r)
+	if err != nil {
+		h.sendErrorResponse(w, 400, err, "Error parsing JSON")
+		return
 	}
 
 	// Business Logic...
@@ -170,40 +170,15 @@ func parseMoveObjectRequestAsJSON(r *http.Request) (models.ODObject, error) {
 	var requestObject models.ODObject
 	var err error
 
-	switch {
-	case r.Header.Get("Content-Type") == "application/json":
-		// Depends on this for the changeToken
-		err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
-	case r.Header.Get("Content-Type") == "multipart/form-data":
-		r.ParseForm()
-		multipartReader, err := r.MultipartReader()
-		if err != nil {
-			return requestObject, err
-		}
-		for {
-			part, err := multipartReader.NextPart()
-			if err != nil {
-				return requestObject, err
-			}
-			switch {
-			case part.Header.Get("Content-Type") == "application/json":
-
-				// Read in the JSON - up to 10K
-				valueAsBytes := make([]byte, 10240)
-				n, err := part.Read(valueAsBytes)
-				if err != nil {
-					return requestObject, err
-				}
-				err = (json.NewDecoder(bytes.NewReader(valueAsBytes[0:n]))).Decode(&jsonObject)
-			case part.Header.Get("Content-Disposition") == "form-data":
-				// TODO: Maybe these header checks need to be if the value begins with?
-			}
-		}
+	// Depends on this for the changeToken
+	err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
+	if err != nil {
+		return requestObject, err
 	}
 
 	// Portions from the request URI itself ...
-	uri := r.URL.RequestURI()
-	re, _ := regexp.Compile("/object/(.*)/move/(.*)")
+	uri := r.URL.Path
+	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)/move/([0-9a-fA-F]*)")
 	matchIndexes := re.FindStringSubmatchIndex(uri)
 	if len(matchIndexes) != 0 {
 		if len(matchIndexes) > 3 {

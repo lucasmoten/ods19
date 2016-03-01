@@ -9,6 +9,7 @@ import (
 )
 
 func (h AppServer) listUserObjectShares(w http.ResponseWriter, r *http.Request, caller Caller) {
+	// TODO: handle paging
 	result, err := h.DAO.GetObjectsSharedToMe(caller.DistinguishedName, "", 0, 20)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "GetObjectsSharedToMe query failed")

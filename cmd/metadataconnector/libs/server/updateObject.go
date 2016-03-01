@@ -148,39 +148,14 @@ func parseUpdateObjectRequestAsJSON(r *http.Request) (models.ODObject, error) {
 	var requestObject models.ODObject
 	var err error
 
-	switch {
-	case r.Header.Get("Content-Type") == "application/json":
-		err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
-	case r.Header.Get("Content-Type") == "multipart/form-data":
-		r.ParseForm()
-		multipartReader, err := r.MultipartReader()
-		if err != nil {
-			return requestObject, err
-		}
-		for {
-			part, err := multipartReader.NextPart()
-			if err != nil {
-				return requestObject, err
-			}
-			switch {
-			case part.Header.Get("Content-Type") == "application/json":
-
-				// Read in the JSON - up to 10K
-				valueAsBytes := make([]byte, 10240)
-				n, err := part.Read(valueAsBytes)
-				if err != nil {
-					return requestObject, err
-				}
-				err = (json.NewDecoder(bytes.NewReader(valueAsBytes[0:n]))).Decode(&jsonObject)
-			case part.Header.Get("Content-Disposition") == "form-data":
-				// TODO: Maybe these header checks need to be if the value begins with?
-			}
-		}
+	err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
+	if err != nil {
+		return requestObject, err
 	}
 
 	// Portions from the request URI itself ...
-	uri := r.URL.RequestURI()
-	re, _ := regexp.Compile("/object/(.*)/properties")
+	uri := r.URL.Path
+	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)/properties")
 	matchIndexes := re.FindStringSubmatchIndex(uri)
 	if len(matchIndexes) != 0 {
 		if len(matchIndexes) > 3 {
