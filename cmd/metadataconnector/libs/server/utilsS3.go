@@ -30,7 +30,6 @@ func (h AppServer) acceptObjectUpload(
 	acm *models.ODACM,
 	grant *models.ODObjectPermission,
 ) {
-	r.ParseForm()
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
 		panic(err)
