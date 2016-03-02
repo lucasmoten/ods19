@@ -64,6 +64,9 @@ func TestDAOGetTrashedObjectsByUser(t *testing.T) {
 			success = true
 		}
 	}
+	if !success {
+		t.Error("Object parent1 is deleted but does not appear in trash")
+	}
 	// Assert child is not in trash.
 	for _, o := range results.Objects {
 		if o.Name == child1.Name {

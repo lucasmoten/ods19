@@ -30,7 +30,6 @@ import (
 //					"pageNumber": "{pageNumber}",
 //					"pageSize": {pageSize}
 //				}
-// TODO: Implement proper paging and and result information
 func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Caller) {
 
 	parentObject := models.ODObject{}
