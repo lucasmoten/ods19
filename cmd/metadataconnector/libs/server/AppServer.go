@@ -237,7 +237,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.ListObjectRevisions.MatchString(uri):
 			h.listObjectRevisions(w, r, caller)
 		case h.Routes.ListObjectShares.MatchString(uri):
-			h.listObjectShares(w, r, caller)
+			h.listObjectShares(ctx, w, r)
 		case h.Routes.ListObjectSubscriptions.MatchString(uri):
 			h.listObjectsSubscriptions(w, r, caller)
 			// single quick matchers
