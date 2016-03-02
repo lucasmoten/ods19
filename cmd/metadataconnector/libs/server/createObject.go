@@ -26,7 +26,6 @@ func handleCreatePrerequisites(
     h AppServer, 
     requestObject *models.ODObject, 
     requestACM *models.ODACM, 
-    w http.ResponseWriter, 
     caller Caller,
 ) (*AppError) {
 >>>>>>> Cleaning up error handling
@@ -175,11 +174,6 @@ func (h AppServer) createObject(
 
 		obj.CreatedBy = caller.DistinguishedName
 		acm.CreatedBy = caller.DistinguishedName
-
-        if herr := handleCreatePrerequisites(h, &createdObject, &acm, w, caller); herr != nil {
-            h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
-            return
-        }
         
 		rName := createRandomName()
 		fileKey := createKey()

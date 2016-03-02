@@ -411,6 +411,11 @@ func (ap AutopilotContext) DoDownloadLink(i int, link *protocol.Object, msg stri
 		ap.dumpResponse(res, "Got the raw file.")
 	}
 
+    if res == nil {
+        fmt.Fprintf(ap.Log, "Null response:%v", err)
+        return  
+    }
+    
 	drainFileName := clients[i].DownloadCache + "/" + link.Name
 	drainFile, err := os.Create(drainFileName)
 	if err != nil {

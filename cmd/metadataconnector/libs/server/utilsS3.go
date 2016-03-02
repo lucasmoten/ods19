@@ -32,7 +32,11 @@ func (h AppServer) acceptObjectUpload(
 ) (*AppError, error) {
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
-		panic(err)
+		return &AppError{
+            Code:500, 
+            Err:err, 
+            Msg:"Unable to get multipart reader",
+        },err
 	}
 	for {
 		part, err := multipartReader.NextPart()
@@ -58,6 +62,14 @@ func (h AppServer) acceptObjectUpload(
 			if err != nil {
 				return &AppError{400, err, "Could not extract data from json response"},err
 			}
+            //If this is a new object, check prerequisites
+            if len(obj.ID) == 0 {
+                if herr := handleCreatePrerequisites(h, obj, acm, caller); herr != nil {
+                    return herr,nil
+                }                
+            } else {
+              //We only invoke handleCreatePrerequisites when creating objects  
+            }
 		case len(part.FileName()) > 0:
 			//Guess the content type and name if it wasn't supplied
 			if obj.ContentType.Valid == false || len(obj.ContentType.String) == 0 {

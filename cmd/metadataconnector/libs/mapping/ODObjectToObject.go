@@ -283,7 +283,9 @@ func OverwriteODObjectWithProtocolObject(o *models.ODObject, i *protocol.Object)
 		log.Printf("Unable to decode id")
 		return err
 	case len(id) == 0:
-		o.ID = nil
+        ////If the i.id being sent in is blank, that's a signal to NOT use it
+        //update_test.go catches this.
+		//o.ID = nil
 	default:
 		o.ID = id
 	}
