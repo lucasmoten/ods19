@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"mime/multipart"
-	"net/http"
 	"os"
 	"path"
 	"strings"
@@ -23,21 +22,12 @@ import (
 )
 
 func (h AppServer) acceptObjectUpload(
-	w http.ResponseWriter,
-	r *http.Request,
+    multipartReader *multipart.Reader,
 	caller Caller,
 	obj *models.ODObject,
 	acm *models.ODACM,
 	grant *models.ODObjectPermission,
 ) (*AppError, error) {
-	multipartReader, err := r.MultipartReader()
-	if err != nil {
-		return &AppError{
-            Code:500, 
-            Err:err, 
-            Msg:"Unable to get multipart reader",
-        },err
-	}
 	for {
 		part, err := multipartReader.NextPart()
 		if err != nil {

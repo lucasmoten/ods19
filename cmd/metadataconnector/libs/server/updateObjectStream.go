@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
 )
@@ -47,7 +46,12 @@ func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, ca
 	//Descramble key (and rescramble when we go to save object back)
 	applyPassphrase(h.MasterKey+caller.DistinguishedName, grant.EncryptKey)
 	//Do an upload that is basically the same as for a new object.
-	herr, err := h.acceptObjectUpload(w, r, caller, &object, &acm, grant)
+    multipartReader, err := r.MultipartReader()
+    if err != nil {
+        h.sendErrorResponse(w,500,err,"unable to open multipart reader")
+        return
+    }
+	herr, err := h.acceptObjectUpload(multipartReader, caller, &object, &acm, grant)
     if herr != nil {
         h.sendErrorResponse(w,herr.Code, herr.Err, herr.Msg)
         return 

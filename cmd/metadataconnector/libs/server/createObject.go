@@ -181,7 +181,12 @@ func (h AppServer) createObject(
 		obj.ContentConnector.String = rName
 		obj.EncryptIV = iv
 		grant.EncryptKey = fileKey
-		herr, err := h.acceptObjectUpload(w, r, caller, &obj, &acm, &grant)
+        multipartReader, err := r.MultipartReader()
+        if err != nil {
+            h.sendErrorResponse(w, 500, err, "Unable to get mime multipart")
+            return
+        }
+		herr, err := h.acceptObjectUpload(multipartReader, caller, &obj, &acm, &grant)
         if herr != nil {
             h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
             return
