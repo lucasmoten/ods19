@@ -67,7 +67,7 @@ func (h AppServer) acceptObjectUpload(
 				obj.Name = part.FileName()
 			}
 			async := true
-			herr,err := h.beginUpload(w, r, caller, part, obj, acm, grant, async)
+			herr,err := h.beginUpload(caller, part, obj, acm, grant, async)
             if herr != nil {
                 return herr,err
             }
@@ -80,8 +80,6 @@ func (h AppServer) acceptObjectUpload(
 }
 
 func (h AppServer) beginUpload(
-	w http.ResponseWriter,
-	r *http.Request,
 	caller Caller,
 	part *multipart.Part,
 	obj *models.ODObject,
@@ -105,8 +103,6 @@ func (h AppServer) beginUpload(
 }
 
 func (h AppServer) beginUploadTimed(
-	//	w http.ResponseWriter,
-	//	r *http.Request,
 	caller Caller,
 	part *multipart.Part,
 	obj *models.ODObject,

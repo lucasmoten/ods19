@@ -21,3 +21,5 @@ release
 # Delve debugger compiled binaries
 debug.*
 
+cmd/autopilot/Test*.md
+autopilot/cache/downloadCachetest_*/*
