@@ -2,8 +2,6 @@ package dao
 
 import (
 	"log"
-	"strconv"
-	"time"
 
 	"decipher.com/oduploader/metadata/models"
 	"github.com/jmoiron/sqlx"
@@ -28,9 +26,9 @@ func (dao *DataAccessLayer) GetObject(object models.ODObject, loadProperties boo
 func getObjectInTransaction(tx *sqlx.Tx, object models.ODObject, loadProperties bool) (models.ODObject, error) {
 	var dbObject models.ODObject
 
-	x := strconv.Itoa(time.Now().UTC().Nanosecond())
-
-	getObjectStatement := `select o.*, ot.name typeName, '` + x + `' nanosecond from object o inner join object_type ot on o.typeid = ot.id where o.id = ?`
+	getObjectStatement := `select o.*, ot.name typeName from object o 
+    inner join object_type ot on o.typeid = ot.id 
+    where o.id = ?`
 	err := tx.Unsafe().Get(&dbObject, getObjectStatement, object.ID)
 	if err == nil {
 		dbPermissions, dbPermErr := getPermissionsForObjectInTransaction(tx, object)

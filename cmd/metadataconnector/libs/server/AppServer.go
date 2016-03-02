@@ -302,12 +302,13 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.ObjectLink.MatchString(uri):
 			h.addObjectToFolder(w, r, caller)
 		case h.Routes.Objects.MatchString(uri):
-			log.Println("POST list objects")
 			h.listObjects(w, r, caller)
 		case h.Routes.Folder.MatchString(uri):
 			h.createFolder(w, r, caller)
 		case h.Routes.ObjectCreate.MatchString(uri):
 			h.createObject(ctx, w, r)
+		case h.Routes.Trash.MatchString(uri):
+			h.listObjectsTrashed(ctx, w, r)
 		case h.Routes.ListObjects.MatchString(uri):
 			h.listObjects(w, r, caller)
 		case h.Routes.Query.MatchString(uri):

@@ -105,6 +105,8 @@ func parseDeleteObjectRequest(r *http.Request) (models.ODObject, error) {
 
 	// Map to internal object type
 	requestObject, err = mapping.MapObjectToODObject(&jsonObject)
+	log.Println("RequestObject mapped.")
+	log.Println("TypeID and len", requestObject.TypeName, len(requestObject.TypeID))
 	return requestObject, err
 }
 

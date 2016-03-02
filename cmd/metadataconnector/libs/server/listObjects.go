@@ -177,6 +177,7 @@ func listObjectsResponseAsJSON(
 	caller Caller,
 	response *protocol.ObjectResultset,
 ) {
+	// TODO: Caller passed but not used.
 	w.Header().Set("Content-Type", "application/json")
 	jsonData, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
