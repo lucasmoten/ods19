@@ -125,6 +125,11 @@ func (fake *FakeDAO) GetObjectType(objectType models.ODObjectType) (*models.ODOb
 	return &fake.ObjectType, fake.Err
 }
 
+// GetObjectsIHaveShared for FakeDAO
+func (fake *FakeDAO) GetObjectsIHaveShared(orderByClause string, pageNumber int, pageSize int, user string) (models.ODObjectResultset, error) {
+	return fake.ObjectResultSet, fake.Err
+}
+
 // GetPermissionsForObject for FakeDAO.
 func (fake *FakeDAO) GetPermissionsForObject(object models.ODObject) ([]models.ODObjectPermission, error) {
 	return fake.ObjectPermissions, fake.Err

@@ -26,20 +26,27 @@ type Permission struct {
 	ObjectID string `db:"id" json:"id"`
 	// Grantee indicates the user, identified by distinguishedName from the user
 	// table for which this grant applies
-	Grantee string `db:"grantee"`
+	Grantee string `db:"grantee" json:"grantee"`
 	// AllowCreate indicates whether the grantee has permission to create child
 	// objects beneath this object
-	AllowCreate bool `db:"allowCreate"`
+	AllowCreate bool `db:"allowCreate" json:"allowCrate"`
 	// AllowRead indicates whether the grantee has permission to read this
 	// object. This is the most fundamental permission granted, and should always
 	// be true as only records need to exist where permissions are granted as
 	// the system denies access by default. Read access to an object is necessary
 	// to perform any other action on the object.
-	AllowRead bool `db:"allowRead"`
+	AllowRead bool `db:"allowRead" json:"allowRead"`
 	// AllowUpdate indicates whether the grantee has permission to update this
 	// object
-	AllowUpdate bool `db:"allowUpdate"`
+	AllowUpdate bool `db:"allowUpdate" json:"allowUpdate"`
 	// AllowDelete indicates whether the grantee has permission to delete this
 	// object
-	AllowDelete bool `db:"allowDelete"`
+	AllowDelete bool `db:"allowDelete" json:"allowDelete"`
+	// AllowShare indicates whether the grantee has permission to view and
+	// alter permissions on this object
+	AllowShare bool `db:"allowShare" json:"allowShare"`
+	// ExplicitShare indicates whether this permission was created explicitly
+	// by a user to a grantee, or if it was implicitly created through the
+	// creation of an object that inherited permissions of its parent
+	ExplicitShare bool `db:"explicitShare" json:"explicitShare"`
 }

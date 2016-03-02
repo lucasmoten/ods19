@@ -44,21 +44,18 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 
 	// Check for permission to read this object
 	canReadObject := false
-	relyOnOwnership := true
-	if relyOnOwnership {
-		if strings.Compare(dbObject.OwnedBy.String, caller.DistinguishedName) == 0 {
-			canReadObject = true
-		}
+
+	if strings.Compare(dbObject.OwnedBy.String, caller.DistinguishedName) == 0 {
+		canReadObject = true
 	} else {
-		// TODO: If AllowShare implemented, then users with AllowShare would be able
-		// to see permissions on the object
 		for _, perm := range dbObject.Permissions {
-			if perm.AllowRead && /*perm.AllowShare &&*/ perm.Grantee == caller.DistinguishedName {
+			if perm.AllowRead && perm.AllowShare && perm.Grantee == caller.DistinguishedName {
 				canReadObject = true
 				break
 			}
 		}
 	}
+
 	if !canReadObject {
 		h.sendErrorResponse(w, 403, err, "Insufficient permissions to view shares of this object")
 		return

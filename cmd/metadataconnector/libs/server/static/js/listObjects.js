@@ -284,4 +284,41 @@ function init() {
 
 };
 
+function refreshObjectsIShared() {
+  $('#listUserObjectsSharedResults tbody > tr').remove();
+  $.ajax({
+    url: BASE_SERVICE_URL + 'shared',
+    contentType: 'application/json',
+    method: 'GET',
+    success: function(resp) {
+      _renderObjectsISharedTable(resp.Objects);
+    },
+    error: function(resp) {
+      console.log("refresh objects i shared failed!")
+    }
+  });
+};
+
+
+function _renderObjectsISharedTable(objs) {
+  $.each(objs, function(index, item){
+    $('#listUserObjectsSharedResults').append(_renderObjectsISharedRow(index, item));
+  })
+}
+
+function _renderObjectsISharedRow(index, item) {
+
+  var name = _renderObjectLink(item);
+  var type = '<td>' + item.contentType + '</td>';
+  var createdDate = '<td>' + item.createdDate + '</td>';
+  var createdBy = '<td>' + getCN(item.createdBy) + '</td>';
+  var size = '<td align=right>' + item.contentSize + '</td>';
+  var changeToken = '<td>' + item.changeToken + '</td>';
+  var acm = '<td>' + item.acm + '</td>';
+
+  return '<tr>' +
+     name + type + createdDate + createdBy + size + changeToken + acm +
+     '</tr>';
+}
+
 $(document).ready(init);

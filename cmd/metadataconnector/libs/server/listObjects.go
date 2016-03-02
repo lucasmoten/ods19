@@ -115,24 +115,24 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 	return
 }
 
-//XXX Note that you don't need multipart/form-data for anything that won't be uploading files.
-//Just leave off enctype for a trivial parameter encoding to make this ugly multipart parse go away.
 func parseListObjectsRequest(r *http.Request) (*protocol.PagingRequest, error) {
 	var jsonPaging protocol.PagingRequest
-	jsonPaging.PageNumber = 1
-	jsonPaging.PageSize = 20
+	defaultPage := 1
+	defaultPageSize := 20
+	jsonPaging.PageNumber = defaultPage
+	jsonPaging.PageSize = defaultPageSize
 	var err error
 
-	// TODO: Determine what happens if there is no body. Does the Decode fail?
 	err = (json.NewDecoder(r.Body)).Decode(&jsonPaging)
 	if err != nil {
+		// If there is no body, it's an EOF. So report other errors
 		if err != io.EOF {
 			log.Printf("Error parsing paging information in json: %v", err)
 			return &jsonPaging, err
 		}
 		// EOF ok. Reassign defaults and reset the error
-		jsonPaging.PageNumber = 1
-		jsonPaging.PageSize = 20
+		jsonPaging.PageNumber = defaultPage
+		jsonPaging.PageSize = defaultPageSize
 		err = nil
 	}
 
@@ -163,13 +163,12 @@ func parseListObjectsRequest(r *http.Request) (*protocol.PagingRequest, error) {
 		jsonPaging.PageSize = pageSize
 	}
 	if jsonPaging.PageNumber <= 0 {
-		jsonPaging.PageNumber = 1
+		jsonPaging.PageNumber = defaultPage
 	}
 	if jsonPaging.PageSize <= 0 {
-		jsonPaging.PageSize = 20
+		jsonPaging.PageSize = defaultPageSize
 	}
 
-	// Map to internal object type
 	return &jsonPaging, err
 }
 
