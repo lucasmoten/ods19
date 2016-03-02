@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -25,12 +26,16 @@ func createObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 
 	var dbObject models.ODObject
 
+	// Validations on object passed in.
+
 	if len(object.TypeID) == 0 {
-		//log.Println("Converting object TypeID from zero length byte slice to nil.")
 		object.TypeID = nil
 	}
 	if len(object.ParentID) == 0 {
 		object.ParentID = nil
+	}
+	if object.CreatedBy == "" {
+		return dbObject, errors.New("Cannot create object. Missing CreatedBy field.")
 	}
 
 	// lookup type, assign its id to the object for reference
@@ -48,7 +53,9 @@ func createObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 	}
 
 	// Insert object
-	addObjectStatement, err := tx.Preparex(`insert object set createdBy = ?, typeId = ?, name = ?, description = ?, parentId = ?, contentConnector = ?, rawAcm = ?, contentType = ?, contentSize = ?, contentHash = ?, encryptIV = ?`)
+	addObjectStatement, err := tx.Preparex(`insert object set createdBy = ?, typeId = ?, name = ?, description = ?, 
+        parentId = ?, contentConnector = ?, rawAcm = ?, contentType = ?, 
+        contentSize = ?, contentHash = ?, encryptIV = ?`)
 	if err != nil {
 		return dbObject, fmt.Errorf("CreateObject Preparing add object statement, %s", err.Error())
 	}
@@ -74,9 +81,12 @@ func createObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 		return dbObject, fmt.Errorf("CreateObject object inserted but no rows affected!")
 	}
 
-	// Get the ID of the newly created object and assign to passed in object
-	// This assumes most recent created by the user of the type and name
-	getObjectStatement := `select o.*, ot.name typeName from object o inner join object_type ot on o.typeId = ot.id where o.createdby = ? and o.typeId = ? and o.name = ? and o.isdeleted = 0 order by o.createddate desc limit 1`
+	// Get the ID of the newly created object and assign to returned object.
+	// This assumes most recent created by the user of the type and name.
+	getObjectStatement := `select o.*, ot.name typeName from object o 
+        inner join object_type ot on o.typeId = ot.id 
+        where o.createdby = ? and o.typeId = ? and o.name = ? 
+        and o.isdeleted = 0 order by o.createddate desc limit 1`
 	err = tx.Get(&dbObject, getObjectStatement, object.CreatedBy, object.TypeID, object.Name)
 	if err != nil {
 		return dbObject, fmt.Errorf("CreateObject Error retrieving object, %s", err.Error())

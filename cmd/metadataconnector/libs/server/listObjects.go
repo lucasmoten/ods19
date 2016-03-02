@@ -16,7 +16,7 @@ import (
 )
 
 // listObjects is a method handler on AppServer for implementing the listObjects
-// microservice operation.  If an ID is given in the request URI, then it is
+// microservice operation.  If parentID is given in the request URI, then it is
 // used to list the children within it, otherwise, the root for the given user
 // is listed.  For a user, the root is defined as those objects that they own
 // which have no parent identifier set.
@@ -30,8 +30,6 @@ import (
 //					"pageNumber": "{pageNumber}",
 //					"pageSize": {pageSize}
 //				}
-// TODO: Implement proper paging and and result information
-// TODO: Convert response to JSON
 func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Caller) {
 
 	parentObject := models.ODObject{}

@@ -60,7 +60,7 @@ func (h AppServer) deleteObject(w http.ResponseWriter, r *http.Request, caller C
 			// the output
 		}
 	} else {
-		// Call metadata connector to update the object to reflect that it is
+		// Call DAO to update the object to reflect that it is
 		// deleted.  The DAO checks the changeToken and handles the child calls
 		dbObject.ModifiedBy = caller.DistinguishedName
 		dbObject.ChangeToken = requestObject.ChangeToken
@@ -85,6 +85,9 @@ func parseDeleteObjectRequest(r *http.Request) (models.ODObject, error) {
 	switch {
 	case r.Header.Get("Content-Type") == "application/json":
 		err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
+		if err != nil {
+			return requestObject, err
+		}
 	}
 
 	// Portions from the request URI itself ...
