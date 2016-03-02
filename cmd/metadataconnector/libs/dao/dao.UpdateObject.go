@@ -63,6 +63,11 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 		object.TypeID = objectType.ID
 	}
 
+	// Assign a generic name if this object name is being cleared
+	if len(object.Name) == 0 {
+		object.Name = "Unnamed " + object.TypeName.String
+	}
+
 	// update object
 	updateObjectStatement, err := tx.Preparex(
 		`update object set modifiedBy = ?, typeId = ?, name = ?,
