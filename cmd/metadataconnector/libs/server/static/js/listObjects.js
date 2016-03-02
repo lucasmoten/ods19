@@ -274,6 +274,7 @@ function init() {
   $("#refreshListObjects").click(refreshListObjects);
   $("#submitCreateFolder").click(createFolder);
   $("#refreshSharedWithMe").click(refreshSharedWithMe);
+  $("#refreshListObjectsShared").click(refreshObjectsIShared);
 
   // Get parentId from hidden field, if set.
   __state.parentId = $('#hiddenParentId').attr('data-value') || "";
@@ -281,7 +282,7 @@ function init() {
 
   refreshListObjects();
   refreshSharedWithMe();
-
+  refreshObjectsIShared();
 };
 
 function refreshObjectsIShared() {
