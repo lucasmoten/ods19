@@ -27,6 +27,7 @@ func (h AppServer) acceptObjectUpload(
 	obj *models.ODObject,
 	acm *models.ODACM,
 	grant *models.ODObjectPermission,
+    asCreate bool,
 ) (*AppError, error) {
 	for {
 		part, err := multipartReader.NextPart()
@@ -39,21 +40,21 @@ func (h AppServer) acceptObjectUpload(
 		} // if err != nil
 
 		switch {
-		case part.FormName() == "CreateObjectRequest":
+		case part.FormName() == "ObjectMetadata":
 			s := getFormValueAsString(part)
 			//It's the same as the database object, but this function might be
 			//dealing with a retrieved object, so we get fields individually
 			var createObjectRequest protocol.Object
 			err := json.Unmarshal([]byte(s), &createObjectRequest)
 			if err != nil {
-				return &AppError{400, err, "Could not decode CreateObjectRequest."}, err
+				return &AppError{400, err, "Could not decode ObjectMetadata."}, err
 			}
 			err = mapping.OverwriteODObjectWithProtocolObject(obj, &createObjectRequest)
 			if err != nil {
 				return &AppError{400, err, "Could not extract data from json response"}, err
 			}
 			//If this is a new object, check prerequisites
-			if len(obj.ID) == 0 {
+			if asCreate {
 				if herr := handleCreatePrerequisites(h, obj, acm, caller); herr != nil {
 					return herr, nil
 				}

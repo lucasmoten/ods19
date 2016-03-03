@@ -171,7 +171,7 @@ func (h AppServer) createObject(
             h.sendErrorResponse(w, 500, err, "Unable to get mime multipart")
             return
         }
-		herr, err := h.acceptObjectUpload(multipartReader, caller, &obj, &acm, &grant)
+		herr, err := h.acceptObjectUpload(multipartReader, caller, &obj, &acm, &grant, true)
         if herr != nil {
             h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
             return

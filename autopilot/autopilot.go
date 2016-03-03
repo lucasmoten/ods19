@@ -188,7 +188,7 @@ func (ap AutopilotContext) generateUploadRequest(name string, fqName string, url
 		fmt.Fprintf(ap.Log, "Cannot marshal object:%v", err)
 	}
 	//Hmm... had to rewrite part of std Go sdk locally to do this
-	writePartField(w, "CreateObjectRequest", string(umStr), "application/json")
+	writePartField(w, "ObjectMetadata", string(umStr), "application/json")
 	fw, err := w.CreateFormFile("filestream", name)
 	if err != nil {
 		fmt.Fprintf(ap.Log, "unable to create form file from %s:%v", fqName, err)

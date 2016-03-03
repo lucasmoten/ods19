@@ -51,7 +51,7 @@ func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, ca
 		h.sendErrorResponse(w, 500, err, "unable to open multipart reader")
 		return
 	}
-	herr, err := h.acceptObjectUpload(multipartReader, caller, &object, &acm, grant)
+	herr, err := h.acceptObjectUpload(multipartReader, caller, &object, &acm, grant, false)
 	if herr != nil {
 		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
 		return
