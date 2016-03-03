@@ -197,7 +197,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.FailNow()
 	}
 	if getRes7.StatusCode != http.StatusOK {
-		t.Logf("clientid2 was not able to get object when not shared")
+		t.Logf("clientid2 was not able to get object when shared")
 		t.FailNow()
 	}
 }
