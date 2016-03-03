@@ -10,8 +10,6 @@ import (
 	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
 	"decipher.com/oduploader/metadata/models"
 	"golang.org/x/net/context"
-
-	"decipher.com/oduploader/metadata/models"
 )
 
 /**
