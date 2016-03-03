@@ -4,9 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"hash"
 	"io"
@@ -57,60 +55,6 @@ type RSAComponents struct {
 	N *big.Int
 	D *big.Int
 	E *big.Int
-}
-
-func parseRSAComponents(nStr, dStr, eStr string) (*RSAComponents, error) {
-	nBytes, err := base64.StdEncoding.DecodeString(nStr)
-	if err != nil {
-		log.Printf("Unable to parse RSA component N")
-		return nil, err
-	}
-	var n big.Int
-	n.SetBytes(nBytes)
-
-	dBytes, err := base64.StdEncoding.DecodeString(dStr)
-	if err != nil {
-		log.Printf("Unable to parse RSA component D")
-		return nil, err
-	}
-	var d big.Int
-	d.SetBytes(dBytes)
-
-	eBytes, err := base64.StdEncoding.DecodeString(eStr)
-	if err != nil {
-		log.Printf("Unable to parse RSA component E")
-		return nil, err
-	}
-	var e big.Int
-	e.SetBytes(eBytes)
-
-	return &RSAComponents{
-		N: &n,
-		D: &d,
-		E: &e,
-	}, nil
-}
-
-func createRSAComponents(randReader io.Reader) (*RSAComponents, error) {
-	//TODO: keysize must be a parameter
-	rsaPair, err := rsa.GenerateKey(randReader, 2048)
-	if err != nil {
-		log.Printf("Unable to generate RSA keypair")
-		return nil, err
-	}
-	return &RSAComponents{
-		N: rsaPair.N,
-		D: rsaPair.D,
-		E: big.NewInt(int64(rsaPair.E)),
-	}, nil
-}
-
-//Generate unique opaque names for uploaded files
-//This would be straight base64 encoding, except the characters need
-//to be valid filenames
-func obfuscateHash(key string) string {
-	hashBytes := sha256.Sum256([]byte(key))
-	return hex.EncodeToString(hashBytes[:])
 }
 
 func CreateRandomName() string {
@@ -192,9 +136,4 @@ func DoCipherByReaderWriter(
 		log.Printf("unable to copy out to file (%s):%v", description, err)
 	}
 	return reader.H.Sum(nil), reader.Size, err
-}
-
-func doReaderWriter(inFile io.Reader, outFile io.Writer) error {
-	_, err := io.Copy(outFile, inFile)
-	return err
 }
