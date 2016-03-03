@@ -112,14 +112,16 @@ function _renderSharedWithMeRow(index, item) {
 
 function doShare(objectId, userId, opts) {
   if (!opts) {
-    opts = { create: true, read: true, update: true, delete: true}
+    opts = { create: true, read: true, update: false, delete: false, share: false, propogateToChildren: true}
   }
   var data = {
     grantee: userId,
     create: opts.create,
     read: opts.read,
     update: opts.update,
-    delete: opts.delete
+    delete: opts.delete,
+    share: opts.share,
+    propogateToChildren: opts.propogateToChildren
   };
   $.ajax({
     url: BASE_SERVICE_URL + 'object/' + objectId + '/share',

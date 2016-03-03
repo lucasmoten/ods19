@@ -120,7 +120,7 @@ func createObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 	for i, permission := range object.Permissions {
 		if permission.Grantee != "" {
 			permission.CreatedBy = dbObject.CreatedBy
-			dbPermission, err := addPermissionToObjectInTransaction(tx, dbObject, &permission)
+			dbPermission, err := addPermissionToObjectInTransaction(tx, dbObject, &permission, false, "")
 			if err != nil {
 				crud := []string{"C", "R", "U", "D"}
 				if !permission.AllowCreate {

@@ -6,14 +6,15 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
+	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
 	"decipher.com/oduploader/metadata/models"
 )
 
 // AddPermissionToObject creates a new permission with the provided object id,
 // grant, and permissions.
-func (dao *DataAccessLayer) AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission) (models.ODObjectPermission, error) {
+func (dao *DataAccessLayer) AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission, propogateToChildren bool, masterKey string) (models.ODObjectPermission, error) {
 	tx := dao.MetadataDB.MustBegin()
-	response, err := addPermissionToObjectInTransaction(tx, object, permission)
+	response, err := addPermissionToObjectInTransaction(tx, object, permission, propogateToChildren, masterKey)
 	if err != nil {
 		log.Printf("Error in AddPermissionToobject: %v", err)
 		tx.Rollback()
@@ -23,7 +24,7 @@ func (dao *DataAccessLayer) AddPermissionToObject(object models.ODObject, permis
 	return response, err
 }
 
-func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, permission *models.ODObjectPermission) (models.ODObjectPermission, error) {
+func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, permission *models.ODObjectPermission, propogateToChildren bool, masterKey string) (models.ODObjectPermission, error) {
 
 	var dbPermission models.ODObjectPermission
 
@@ -74,6 +75,65 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, per
 	}
 	*permission = dbPermission
 	//permission = &dbPermission
+
+	// Handle propogation to existing children
+	if propogateToChildren {
+		children, err := getChildObjectsInTransaction(tx, "", 1, MaxPageSize, object)
+		if err != nil {
+			return dbPermission, err
+		}
+		for _, childObject := range children.Objects {
+			propogatedPermission := models.ODObjectPermission{}
+			// - Same Grantee
+			propogatedPermission.Grantee = permission.Grantee
+			// - Propogated permissions are not explicit
+			propogatedPermission.ExplicitShare = false
+			// - Same permissions
+			propogatedPermission.AllowCreate = permission.AllowCreate
+			propogatedPermission.AllowRead = permission.AllowRead
+			propogatedPermission.AllowUpdate = permission.AllowUpdate
+			propogatedPermission.AllowDelete = permission.AllowDelete
+			propogatedPermission.AllowShare = permission.AllowShare
+			// - Encryption
+			propogatedPermission.EncryptKey = make([]byte, 32)
+			propogatedPermission.EncryptKey = permission.EncryptKey
+			utils.ApplyPassphrase(masterKey+permission.CreatedBy, propogatedPermission.EncryptKey)
+			utils.ApplyPassphrase(masterKey+propogatedPermission.Grantee, propogatedPermission.EncryptKey)
+			_, err := addPermissionToObjectInTransaction(tx, childObject, &propogatedPermission, propogateToChildren, masterKey)
+			if err != nil {
+				return dbPermission, err
+			}
+		}
+		// Additional pages
+		for pageNumber := 2; pageNumber < children.PageCount; pageNumber++ {
+			pagedChildren, err := getChildObjectsInTransaction(tx, "", pageNumber, MaxPageSize, object)
+			if err != nil {
+				return dbPermission, err
+			}
+			for _, childObject := range pagedChildren.Objects {
+				propogatedPermission := models.ODObjectPermission{}
+				// - Same Grantee
+				propogatedPermission.Grantee = permission.Grantee
+				// - Propogated permissions are not explicit
+				propogatedPermission.ExplicitShare = false
+				// - Same permissions
+				propogatedPermission.AllowCreate = permission.AllowCreate
+				propogatedPermission.AllowRead = permission.AllowRead
+				propogatedPermission.AllowUpdate = permission.AllowUpdate
+				propogatedPermission.AllowDelete = permission.AllowDelete
+				propogatedPermission.AllowShare = permission.AllowShare
+				// - Encryption
+				propogatedPermission.EncryptKey = make([]byte, 32)
+				propogatedPermission.EncryptKey = permission.EncryptKey
+				utils.ApplyPassphrase(masterKey+permission.CreatedBy, propogatedPermission.EncryptKey)
+				utils.ApplyPassphrase(masterKey+propogatedPermission.Grantee, propogatedPermission.EncryptKey)
+				_, err := addPermissionToObjectInTransaction(tx, childObject, &propogatedPermission, propogateToChildren, masterKey)
+				if err != nil {
+					return dbPermission, err
+				}
+			}
+		}
+	}
 
 	return dbPermission, nil
 }

@@ -1,17 +1,31 @@
 package server
 
 import (
-	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
-	"decipher.com/oduploader/metadata/models"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
+
+	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
+	"decipher.com/oduploader/metadata/models"
+	"golang.org/x/net/context"
+
+	"decipher.com/oduploader/metadata/models"
 )
 
 /**
 Almost all code is similar to that of createObject.go, so reuse much code from there.
 */
-func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, caller Caller) {
+func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	// Get caller value from ctx.
+	caller, ok := CallerFromContext(ctx)
+	if !ok {
+		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		return
+	}
+
 	var acm models.ODACM //Still blank, but we need to pass it around
 	var grant *models.ODObjectPermission
 
@@ -28,8 +42,8 @@ func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, ca
 	}
 
 	//We need a name for the new text, and a new iv
-	object.ContentConnector.String = createRandomName()
-	object.EncryptIV = createIV()
+	object.ContentConnector.String = utils.CreateRandomName()
+	object.EncryptIV = utils.CreateIV()
 
 	for _, permission := range object.Permissions {
 		if permission.Grantee == caller.DistinguishedName && permission.AllowUpdate {
@@ -44,11 +58,11 @@ func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, ca
 	}
 
 	//Descramble key (and rescramble when we go to save object back)
-	applyPassphrase(h.MasterKey+caller.DistinguishedName, grant.EncryptKey)
+	utils.ApplyPassphrase(h.MasterKey+caller.DistinguishedName, grant.EncryptKey)
 	//Do an upload that is basically the same as for a new object.
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "unable to open multipart reader")
+		h.sendErrorResponse(w, 400, err, "unable to open multipart reader")
 		return
 	}
 	herr, err := h.acceptObjectUpload(multipartReader, caller, &object, &acm, grant, false)
@@ -57,8 +71,9 @@ func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, ca
 		return
 	}
 	//Rescramble key
-	applyPassphrase(h.MasterKey+caller.DistinguishedName, grant.EncryptKey)
+	utils.ApplyPassphrase(h.MasterKey+caller.DistinguishedName, grant.EncryptKey)
 
+	object.ModifiedBy = caller.DistinguishedName
 	err = h.DAO.UpdateObject(&object, &acm)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "error storing object")

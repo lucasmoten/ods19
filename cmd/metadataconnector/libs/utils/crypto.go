@@ -1,4 +1,4 @@
-package server
+package utils
 
 import (
 	"crypto/aes"
@@ -113,14 +113,16 @@ func obfuscateHash(key string) string {
 	return hex.EncodeToString(hashBytes[:])
 }
 
-func createRandomName() string {
+func CreateRandomName() string {
 	//Sha256 keys are 256 bits
 	key := make([]byte, 32)
 	rand.Read(key)
 	return hex.EncodeToString(key)
 }
 
-func applyPassphrase(passphrase string, fileKey []byte) {
+// ApplyPassPhrsae takes the passphrase provided and performs a bitwise XOR on
+// each element of the current contents of the passed in array
+func ApplyPassphrase(passphrase string, fileKey []byte) {
 	hashBytes := sha256.Sum256([]byte(passphrase))
 	fklen := len(fileKey)
 	hlen := len(hashBytes)
@@ -135,14 +137,17 @@ func applyPassphrase(passphrase string, fileKey []byte) {
 	return
 }
 
-func createKey() (key []byte) {
+// CreateKey creates a byte array of length 32 initialized with random data
+func CreateKey() (key []byte) {
 	//256 bit keys
 	key = make([]byte, 32)
 	rand.Read(key)
 	return
 }
 
-func createIV() (iv []byte) {
+// CreateIV creates an byte array representing the initialization vector of the
+// same size as the AES Block Size.
+func CreateIV() (iv []byte) {
 	//XXX I have read advice that with CTR blocks, the last four bytes
 	//of an iv should be zero, because the last four bytes are
 	//actually a counter for - seeking in the stream?
@@ -158,9 +163,12 @@ func createIV() (iv []byte) {
 	return
 }
 
+// DoCipherByReaderWriter initializes a new AES cipher with the provided key
+// and initialization vector reading from io.Reader, applying the cipher
+// and writing to the io.Writer.
 //XXX Need a proper read-write pipe that will xor with the key as it writes,
 // need to facilitate efficient encrypted append.
-func doCipherByReaderWriter(
+func DoCipherByReaderWriter(
 	inFile io.Reader,
 	outFile io.Writer,
 	key []byte,
