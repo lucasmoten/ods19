@@ -41,11 +41,21 @@ func TestUpdate(t *testing.T) {
 		link, res, err = ap.DoUpload(userID0, false, "uploading a file to update")
 		resErrCheck(t, res, err)
 
+        if link == nil {
+            log.Printf("didnt get a link back from an upload")
+            t.Fail()    
+        }
+        
 		fname := link.Name
 		//Download that same file and get an updated link
 		link, res, err = ap.DownloadLinkByName(fname, userID0, "get the file we uploaded")
 		resErrCheck(t, res, err)
 
+        if link == nil {
+            log.Printf("didnt get a link back from second upload")
+            t.Fail()    
+        }
+        
 		//Update that file (modify in the *download* cache and send it up)
 		oldChangeToken := link.ChangeToken
 		res, err = ap.DoUpdateLink(userID0, link, "updating a file", "xxxx")

@@ -418,7 +418,9 @@ func (ap AutopilotContext) DoDownloadLink(i int, link *protocol.Object, msg stri
 		return
 	}
 	defer drainFile.Close()
-	io.Copy(drainFile, res.Body)
+    if res.Body != nil {
+    	io.Copy(drainFile, res.Body)        
+    }
 	return
 }
 
