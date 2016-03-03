@@ -20,7 +20,7 @@ func resErrCheck(t *testing.T, res *http.Response, err error) {
 		t.Fail()
 	}
 	if res.StatusCode != http.StatusOK {
-		log.Printf("http status must be ok")
+		log.Printf("http status must be ok.  we got %d.  %s", res.StatusCode, res.Status)
 		t.Fail()
 	}
 }

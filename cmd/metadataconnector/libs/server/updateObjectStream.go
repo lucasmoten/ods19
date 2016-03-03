@@ -1,12 +1,11 @@
 package server
 
 import (
+	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
+	"decipher.com/oduploader/metadata/models"
 	"encoding/json"
 	"log"
 	"net/http"
-
-	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
-	"decipher.com/oduploader/metadata/models"
 )
 
 /**
@@ -20,6 +19,12 @@ func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, ca
 	object, err := h.getObjectStreamObject(w, r, caller)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Could not retrieve object")
+		return
+	}
+
+	if len(object.ID) == 0 {
+		h.sendErrorResponse(w, 500, err, "Object for update doesn't have an id")
+		return
 	}
 
 	//We need a name for the new text, and a new iv
@@ -41,7 +46,16 @@ func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, ca
 	//Descramble key (and rescramble when we go to save object back)
 	applyPassphrase(h.MasterKey+caller.DistinguishedName, grant.EncryptKey)
 	//Do an upload that is basically the same as for a new object.
-	h.acceptObjectUpload(w, r, caller, &object, &acm, grant)
+	multipartReader, err := r.MultipartReader()
+	if err != nil {
+		h.sendErrorResponse(w, 500, err, "unable to open multipart reader")
+		return
+	}
+	herr, err := h.acceptObjectUpload(multipartReader, caller, &object, &acm, grant, false)
+	if herr != nil {
+		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
+		return
+	}
 	//Rescramble key
 	applyPassphrase(h.MasterKey+caller.DistinguishedName, grant.EncryptKey)
 
@@ -54,6 +68,7 @@ func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, ca
 	object, err = h.getObjectStreamObject(w, r, caller)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Could not retrieve object")
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -61,6 +76,7 @@ func (h AppServer) updateObjectStream(w http.ResponseWriter, r *http.Request, ca
 	data, err := json.MarshalIndent(link, "", "  ")
 	if err != nil {
 		log.Printf("Error marshalling json data:%v", err)
+		return
 	}
 	w.Write(data)
 }

@@ -28,10 +28,10 @@ import (
 
 // AutopilotArgs are the things passed in to command line
 type AutopilotContext struct {
-	Host          string
-    Url string
-    Root string
-    Log *os.File
+	Host string
+	Url  string
+	Root string
+	Log  *os.File
 }
 
 // ClientIdentity is a user that is going to connect to our service
@@ -45,7 +45,6 @@ type ClientIdentity struct {
 	DownloadCache string
 	Index         int
 }
-
 
 // NewClientTLSConfig creates a per-client tls config
 func (ap AutopilotContext) NewClientTLSConfig(client *ClientIdentity) (*tls.Config, error) {
@@ -134,8 +133,6 @@ func (ap AutopilotContext) populateClients(population int) {
 	}
 }
 
-
-
 func GetRandomClassification() string {
 	r := rand.Intn(4)
 	classes := []string{"U", "C", "S", "T"}
@@ -188,17 +185,17 @@ func (ap AutopilotContext) generateUploadRequest(name string, fqName string, url
 	}
 	umStr, err := json.MarshalIndent(um, "", "  ")
 	if err != nil {
-		fmt.Fprintf(ap.Log,"Cannot marshal object:%v", err)
+		fmt.Fprintf(ap.Log, "Cannot marshal object:%v", err)
 	}
 	//Hmm... had to rewrite part of std Go sdk locally to do this
-	writePartField(w, "CreateObjectRequest", string(umStr), "application/json")
+	writePartField(w, "ObjectMetadata", string(umStr), "application/json")
 	fw, err := w.CreateFormFile("filestream", name)
 	if err != nil {
-		fmt.Fprintf(ap.Log,"unable to create form file from %s:%v", fqName, err)
+		fmt.Fprintf(ap.Log, "unable to create form file from %s:%v", fqName, err)
 		return nil, err
 	}
 	if _, err = io.Copy(fw, f); err != nil {
-		fmt.Fprintf(ap.Log,"Could not copy file:%v", err)
+		fmt.Fprintf(ap.Log, "Could not copy file:%v", err)
 		return nil, err
 	}
 	w.Close()
@@ -220,52 +217,50 @@ func (ap AutopilotContext) generateUploadRequest(name string, fqName string, url
 
 // Closing the context should flush and write out the file for this trace
 func (ap AutopilotContext) Close() {
-    ap.Log.Close()
+	ap.Log.Close()
 }
-
-
 
 //Dump the transport with a label. TODO: with message
 func (ap AutopilotContext) DumpTransport(i int) {
-	fmt.Fprintf(ap.Log,"# Transport Parameters for User %d\n", i)
-	fmt.Fprintf(ap.Log,"```\n")
-	fmt.Fprintf(ap.Log,"MinVersion:%v\n", clients[i].Config.MinVersion)
-	fmt.Fprintf(ap.Log,"MaxVersion:%v\n", clients[i].Config.MaxVersion)
-	fmt.Fprintf(ap.Log,"InsecureSkipVerify:%v\n", clients[i].Config.InsecureSkipVerify)
-	fmt.Fprintf(ap.Log,"```\n")
+	fmt.Fprintf(ap.Log, "# Transport Parameters for User %d\n", i)
+	fmt.Fprintf(ap.Log, "```\n")
+	fmt.Fprintf(ap.Log, "MinVersion:%v\n", clients[i].Config.MinVersion)
+	fmt.Fprintf(ap.Log, "MaxVersion:%v\n", clients[i].Config.MaxVersion)
+	fmt.Fprintf(ap.Log, "InsecureSkipVerify:%v\n", clients[i].Config.InsecureSkipVerify)
+	fmt.Fprintf(ap.Log, "```\n")
 }
 
 //Dump the request with a label.  TODO: with message
 func (ap AutopilotContext) dumpRequest(req *http.Request, title string, msg string) {
 	reqBytes, err := httputil.DumpRequestOut(req, showFileUpload)
-	fmt.Fprintf(ap.Log,"# %s\n", title+" Request\n")
-	fmt.Fprintf(ap.Log,"%s\n", msg+".")
-	fmt.Fprintf(ap.Log,"```http\n")
+	fmt.Fprintf(ap.Log, "# %s\n", title+" Request\n")
+	fmt.Fprintf(ap.Log, "%s\n", msg+".")
+	fmt.Fprintf(ap.Log, "```http\n")
 	if err != nil {
-		fmt.Fprintf(ap.Log,"%v", err)
+		fmt.Fprintf(ap.Log, "%v", err)
 	} else {
-		fmt.Fprintf(ap.Log,"%s", string(reqBytes))
+		fmt.Fprintf(ap.Log, "%s", string(reqBytes))
 	}
-	fmt.Fprintf(ap.Log,"\n```\n")
+	fmt.Fprintf(ap.Log, "\n```\n")
 }
 
 //Dump the response with a label.  TODO: wth message.
 func (ap AutopilotContext) dumpResponse(res *http.Response, msg string) {
 	reqBytes, err := httputil.DumpResponse(res, showFileUpload)
-	fmt.Fprintf(ap.Log,"%s\n", msg)
-	fmt.Fprintf(ap.Log,"```http\n")
+	fmt.Fprintf(ap.Log, "%s\n", msg)
+	fmt.Fprintf(ap.Log, "```http\n")
 	if err != nil {
-		fmt.Fprintf(ap.Log,"%v", err)
+		fmt.Fprintf(ap.Log, "%v", err)
 	} else {
-		fmt.Fprintf(ap.Log,"%s", string(reqBytes))
+		fmt.Fprintf(ap.Log, "%s", string(reqBytes))
 	}
-	fmt.Fprintf(ap.Log,"\n```\n")
+	fmt.Fprintf(ap.Log, "\n```\n")
 }
 
 func (ap AutopilotContext) DoUpload(i int, async bool, msg string) (link *protocol.Object, res *http.Response, err error) {
-    var listing []os.FileInfo
-    var req *http.Request
-    
+	var listing []os.FileInfo
+	var req *http.Request
+
 	//log.Printf("%d upload out of %s", i, clients[i].UploadCache)
 	//Pick a random file
 	listing, err = ioutil.ReadDir(clients[i].UploadCache)
@@ -319,14 +314,14 @@ func (ap AutopilotContext) DoUpload(i int, async bool, msg string) (link *protoc
 
 //Get candidate objects that we own, to perform operations on them
 func (ap AutopilotContext) GetLinks(i int, olResponse *protocol.ObjectResultset, msg string) (res *http.Response, err error) {
-    var req *http.Request
+	var req *http.Request
 	req, err = http.NewRequest(
 		"GET",
 		host+rootURL+"/objects",
 		nil,
 	)
 	if err != nil {
-		fmt.Fprintf(ap.Log,"unable to do request for object listing:%v", err)
+		fmt.Fprintf(ap.Log, "unable to do request for object listing:%v", err)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -357,13 +352,13 @@ func (ap AutopilotContext) GetLinks(i int, olResponse *protocol.ObjectResultset,
 		fmt.Fprintf(ap.Log, "Unable to decode response:%v", err)
 		return
 	}
-    return
+	return
 }
 
 func (ap AutopilotContext) DownloadLinkByName(
-    name string,
-    i int, 
-    msg string,
+	name string,
+	i int,
+	msg string,
 ) (link *protocol.Object, res *http.Response, err error) {
 	var olResponse protocol.ObjectResultset
 	res, err = ap.GetLinks(i, &olResponse, msg)
@@ -372,17 +367,17 @@ func (ap AutopilotContext) DownloadLinkByName(
 		return
 	}
 
-    for k,v := range olResponse.Objects {
-        if name == v.Name {
-            link = &olResponse.Objects[k]
-    		res, err = ap.DoDownloadLink(i, link, msg)
-        }
-    }
-    return
+	for k, v := range olResponse.Objects {
+		if name == v.Name {
+			link = &olResponse.Objects[k]
+			res, err = ap.DoDownloadLink(i, link, msg)
+		}
+	}
+	return
 }
 
 func (ap AutopilotContext) DoDownloadLink(i int, link *protocol.Object, msg string) (res *http.Response, err error) {
-    var req *http.Request
+	var req *http.Request
 	req, err = http.NewRequest(
 		"GET",
 		host+rootURL+"/object/"+link.ID+"/stream",
@@ -411,15 +406,22 @@ func (ap AutopilotContext) DoDownloadLink(i int, link *protocol.Object, msg stri
 		ap.dumpResponse(res, "Got the raw file.")
 	}
 
+	if res == nil {
+		fmt.Fprintf(ap.Log, "Null response:%v", err)
+		return
+	}
+
 	drainFileName := clients[i].DownloadCache + "/" + link.Name
 	drainFile, err := os.Create(drainFileName)
 	if err != nil {
-		fmt.Fprintf(ap.Log,"Cant open %s", drainFileName)
+		fmt.Fprintf(ap.Log, "Cant open %s", drainFileName)
 		return
 	}
 	defer drainFile.Close()
-	io.Copy(drainFile, res.Body)
-    return
+    if res.Body != nil {
+    	io.Copy(drainFile, res.Body)        
+    }
+	return
 }
 
 func (ap AutopilotContext) DoDownload(i int, msg string) (link *protocol.Object, res *http.Response, err error) {
@@ -427,7 +429,7 @@ func (ap AutopilotContext) DoDownload(i int, msg string) (link *protocol.Object,
 	var olResponse protocol.ObjectResultset
 	res, err = ap.GetLinks(i, &olResponse, msg)
 	if err != nil {
-		fmt.Fprintf(ap.Log,"Unable to do download:%v", err)
+		fmt.Fprintf(ap.Log, "Unable to do download:%v", err)
 		return
 	}
 
@@ -440,23 +442,23 @@ func (ap AutopilotContext) DoDownload(i int, msg string) (link *protocol.Object,
 
 		res, err = ap.DoDownloadLink(i, link, msg)
 	}
-    return
+	return
 }
 
 func (ap AutopilotContext) DoUpdateLink(i int, link *protocol.Object, msg, toAppend string) (res *http.Response, err error) {
 	//Assuming that the file has been downloaded.  Modify it by appending data
 	fqName := clients[i].DownloadCache + "/" + link.Name
 	//Modify the file a little
-	f, err := os.OpenFile(fqName,os.O_RDWR|os.O_APPEND, os.ModeAppend)
+	f, err := os.OpenFile(fqName, os.O_RDWR|os.O_APPEND, os.ModeAppend)
 	if err != nil {
 		fmt.Fprintf(ap.Log, "Could not append to file")
 	}
 	n, err := f.WriteString(toAppend)
-    if err != nil {
-        fmt.Fprintf(ap.Log, "%d %v", n, err)
-    }
+	if err != nil {
+		fmt.Fprintf(ap.Log, "%d %v", n, err)
+	}
 	f.Close()
-    
+
 	req, err := ap.generateUploadRequest(
 		link.Name,
 		fqName,
@@ -464,7 +466,7 @@ func (ap AutopilotContext) DoUpdateLink(i int, link *protocol.Object, msg, toApp
 		false,
 	)
 	if err != nil {
-		fmt.Fprintf(ap.Log,"Could not generate request:%v", err)
+		fmt.Fprintf(ap.Log, "Could not generate request:%v", err)
 		return
 	}
 
@@ -485,12 +487,12 @@ func (ap AutopilotContext) DoUpdateLink(i int, link *protocol.Object, msg, toApp
 	drainFileName := clients[i].DownloadCache + "/" + link.Name
 	drainFile, err := os.Create(drainFileName)
 	if err != nil {
-		fmt.Fprintf(ap.Log,"Cant open %s", drainFileName)
+		fmt.Fprintf(ap.Log, "Cant open %s", drainFileName)
 		return
 	}
 	defer drainFile.Close()
 	io.Copy(drainFile, res.Body)
-    return
+	return
 }
 
 func (ap AutopilotContext) DoUpdate(i int, msg, toAppend string) (res *http.Response, err error) {
@@ -511,10 +513,8 @@ func (ap AutopilotContext) DoUpdate(i int, msg, toAppend string) (res *http.Resp
 
 		res, err = ap.DoUpdateLink(i, link, msg, toAppend)
 	}
-    return
+	return
 }
-
-
 
 func dnFromInt(n int) string {
 	if n == 0 {
@@ -526,7 +526,7 @@ func dnFromInt(n int) string {
 }
 
 func (ap AutopilotContext) FindShares(i int, msg string) (links *protocol.ObjectResultset, res *http.Response, err error) {
-    var req *http.Request
+	var req *http.Request
 	req, err = http.NewRequest(
 		"GET",
 		host+rootURL+"/shares",
@@ -546,36 +546,36 @@ func (ap AutopilotContext) FindShares(i int, msg string) (links *protocol.Object
 
 	res, err = client2.Do(req)
 	if err != nil {
-		fmt.Fprintf(ap.Log,"Unable to do request:%v", err)
+		fmt.Fprintf(ap.Log, "Unable to do request:%v", err)
 		return
 	}
 	ap.dumpResponse(res, "ListShares")
 	decoder := json.NewDecoder(res.Body)
 	err = decoder.Decode(&links)
-    return
+	return
 }
 
 func (ap AutopilotContext) DoUserList(i int, msg string) (users []*protocol.User, res *http.Response, err error) {
-    var req *http.Request
+	var req *http.Request
 	req, err = http.NewRequest(
 		"GET",
 		host+rootURL+"/users",
 		nil,
 	)
-    
+
 	ap.dumpRequest(req, "User Listing", "Get the users.")
-    
+
 	transport2 := &http.Transport{TLSClientConfig: clients[i].Config}
 	client2 := &http.Client{Transport: transport2}
 	res, err = client2.Do(req)
 	if err != nil {
-		fmt.Fprintf(ap.Log,"Unable to do request:%v", err)
+		fmt.Fprintf(ap.Log, "Unable to do request:%v", err)
 		return
 	}
 	ap.dumpResponse(res, "All users who have visited the site gave us their identity")
-    decoder := json.NewDecoder(res.Body)
+	decoder := json.NewDecoder(res.Body)
 	err = decoder.Decode(&users)
-    return
+	return
 }
 
 // Have user i grant link to j
@@ -594,7 +594,7 @@ func (ap AutopilotContext) DoShare(i int, link *protocol.Object, j int, msg stri
 	jsonStr, err := json.MarshalIndent(jsonObj, "", "  ")
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
-        return nil, err
+		return nil, err
 	}
 
 	req, err := http.NewRequest(
@@ -625,7 +625,7 @@ func (ap AutopilotContext) DoShare(i int, link *protocol.Object, j int, msg stri
 	if showFileUpload {
 		ap.dumpResponse(res, "Share")
 	}
-    return res, nil
+	return res, nil
 }
 
 func (ap AutopilotContext) generatePopulation() {
@@ -634,27 +634,26 @@ func (ap AutopilotContext) generatePopulation() {
 	ap.populateClients(population)
 }
 
-
 // Create a new context, in which all output is logged for this trace by file name
 func NewAutopilotContext(logHandle *os.File) (ap *AutopilotContext, err error) {
 	ap = &AutopilotContext{
-		Host:          host,
-        Url: rootURL,
-        Root: autopilotRoot,
-        Log: logHandle,
+		Host: host,
+		Url:  rootURL,
+		Root: autopilotRoot,
+		Log:  logHandle,
 	}
-    ap.generatePopulation()
-	fmt.Fprintf(ap.Log,"# Global Parameters\n")
-	fmt.Fprintf(ap.Log,"```json\n")
-    var data []byte
+	ap.generatePopulation()
+	fmt.Fprintf(ap.Log, "# Global Parameters\n")
+	fmt.Fprintf(ap.Log, "```json\n")
+	var data []byte
 	data, err = json.MarshalIndent(ap, "", "  ")
 	if err != nil {
-		fmt.Fprintf(ap.Log,"Unable to marshal global args")
+		fmt.Fprintf(ap.Log, "Unable to marshal global args")
 	}
-	fmt.Fprintf(ap.Log,"%s\n", data)
-	fmt.Fprintf(ap.Log,"```\n")
-    
-    return ap, err
+	fmt.Fprintf(ap.Log, "%s\n", data)
+	fmt.Fprintf(ap.Log, "```\n")
+
+	return ap, err
 }
 
 var Population = 10
@@ -663,6 +662,7 @@ var showFileUpload = true
 var host = "https://dockervm:8080"
 var rootURL = "/service/metadataconnector/1.0"
 var autopilotRoot = "$GOPATH/src/decipher.com/oduploader/autopilot/cache"
+
 //Set this to true to disable output
 var Quietly = false
 

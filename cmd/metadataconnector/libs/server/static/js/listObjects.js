@@ -221,7 +221,7 @@ function createObject() {
 
       // call the server with the data
       var formData = new FormData();
-      formData.append("CreateObjectRequest", JSON.stringify(req));
+      formData.append("ObjectMetadata", JSON.stringify(req));
       formData.append("filestream", jsFileObject);
 
       $("#submitCreateObject").prop("disabled", true)
