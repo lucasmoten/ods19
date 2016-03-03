@@ -40,7 +40,7 @@ func (h AppServer) createFolder(w http.ResponseWriter, r *http.Request, caller C
 	//Setup creation prerequisites, and return if we are done with the http request due to an error
 	if herr := handleCreatePrerequisites(h, &requestObject, &requestACM, caller); herr != nil {
 		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
-        return
+		return
 	}
 
 	// Add to database

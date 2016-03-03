@@ -15,20 +15,11 @@ import (
    the http request
 */
 func handleCreatePrerequisites(
-<<<<<<< 5d6df11f98da52b9063d690449a20e5353d14fd5
-	h AppServer,
-	requestObject *models.ODObject,
-	requestACM *models.ODACM,
-	w http.ResponseWriter,
-	caller Caller,
-) bool {
-=======
     h AppServer, 
     requestObject *models.ODObject, 
     requestACM *models.ODACM, 
     caller Caller,
 ) (*AppError) {
->>>>>>> Cleaning up error handling
 	// If JavaScript passes parentId as emptry string, set it to nil to satisfy
 	// the DAO.
 	if string(requestObject.ParentID) == "" {
@@ -140,14 +131,8 @@ func handleCreatePrerequisites(
 	requestObject.OwnedBy.String = caller.DistinguishedName
 	requestObject.OwnedBy.Valid = true
 	requestACM.CreatedBy = caller.DistinguishedName
-<<<<<<< 5d6df11f98da52b9063d690449a20e5353d14fd5
-=======
     
     return nil    
-}
->>>>>>> Cleaning up error handling
-
-	return false
 }
 
 // createObject is a method handler on AppServer for createObject microservice
