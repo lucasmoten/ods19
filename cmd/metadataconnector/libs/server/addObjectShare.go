@@ -132,7 +132,10 @@ func parseAddObjectShareRequest(r *http.Request) (models.ODObjectPermission, err
 
 	// Portions from the request URI itself ...
 	uri := r.URL.Path
-	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)/")
+	re, err := regexp.Compile("/object/([0-9a-fA-F]*)/")
+	if err != nil {
+		return requestedPermission, errors.New("Regular Expression for identifing object identifier did not compile")
+	}
 	matchIndexes := re.FindStringSubmatchIndex(uri)
 	if len(matchIndexes) != 0 {
 		if len(matchIndexes) > 3 {
