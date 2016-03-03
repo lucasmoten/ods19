@@ -96,13 +96,6 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 	}
 	updateObjectStatement.Close()
 
-	// // Retrieve current state of object from database to reflect alterations to..
-	// // ModifiedDate, ChangeToken, ChangeCount
-	// dbObject, err = getObjectInTransaction(tx, *object, true)
-	// if err != nil {
-	// 	return fmt.Errorf("UpdateObject Error retrieving object, %s", err.Error())
-	// }
-
 	// TODO: Process ACM changes
 
 	// Compare properties on database object to properties associated with passed
@@ -160,80 +153,6 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 		}
 	} //objectProperty
 
-	// Let's NOT update Permissions when updating the object. Rationale for this is as follows..
-	// 1) DB Triggers don't support updates to permissions, and mandate they be deleted and recreated
-	// 2) The whole encryptKey thing can be problematic, and as yet isn't worked in below
-	// 3) Practical use cases for doing this are nearly non-existent. Most users operate from the
-	//    standpoint of creating something, and setting permissions seperately. Forcing usage of
-	//    addObjectShare and removeObjectShare makes this cleaner for auditing purposes as well
-	if false {
-		// Permissions
-		// Iterate permissions passed with the object
-		for o, objectPermission := range object.Permissions {
-			existingPermission := false
-			// And iterate the permissions currently on the object in the database
-			for _, dbPermission := range dbObject.Permissions {
-				// If its the same user... (and hence forcing collapse to only one per grantee)
-				if objectPermission.Grantee == dbPermission.Grantee {
-					existingPermission = true
-					// if the permission is not the same... we need to update it
-					if objectPermission.AllowCreate != dbPermission.AllowCreate ||
-						objectPermission.AllowRead != dbPermission.AllowRead ||
-						objectPermission.AllowUpdate != dbPermission.AllowUpdate ||
-						objectPermission.AllowDelete != dbPermission.AllowDelete ||
-						objectPermission.AllowShare != dbPermission.AllowShare {
-						// The permission is different, we need to do an update on the record
-						dbPermission.ModifiedBy = object.ModifiedBy
-						// TODO: Should EncrypKey be updated? Seems like it would need to be
-						// assigned if the user didn't have AllowRead beforehand
-						if !dbPermission.AllowRead && objectPermission.AllowRead {
-							// TODO: Need to assign new EncryptKey value here and possibly do
-							// something to the stream? Check with Rob Fielding
-						}
-						dbPermission.AllowCreate = objectPermission.AllowCreate
-						dbPermission.AllowRead = objectPermission.AllowRead
-						dbPermission.AllowUpdate = objectPermission.AllowUpdate
-						dbPermission.AllowDelete = objectPermission.AllowUpdate
-						dbPermission.AllowShare = objectPermission.AllowShare
-						err := updatePermissionInTransaction(tx, dbPermission)
-						if err != nil {
-							// NOTE: This is expected to fail because we dont allow this from the DB Triggers on update
-							return fmt.Errorf("Error updating permission %d (%s) when updating object", o, objectPermission.Grantee)
-						}
-					}
-				}
-			}
-			if !existingPermission {
-				// No existing permission. Need to add it
-				// TODO: Since this is a new permission, we need to establish the
-				// encryptKey for this grantee.
-				dbPermission, err := addPermissionToObjectInTransaction(tx, *object, &objectPermission)
-				if err != nil {
-					crud := []string{"C", "R", "U", "D", "S"}
-					if !objectPermission.AllowCreate {
-						crud[0] = "-"
-					}
-					if !objectPermission.AllowRead {
-						crud[1] = "-"
-					}
-					if !objectPermission.AllowUpdate {
-						crud[2] = "-"
-					}
-					if !objectPermission.AllowDelete {
-						crud[3] = "-"
-					}
-					if !objectPermission.AllowShare {
-						crud[4] = "-"
-					}
-					return fmt.Errorf("Error saving permission # %d {Grantee: \"%s\", Permission: \"%s\") when creating object", o, objectPermission.Grantee, crud)
-				}
-				if dbPermission.ModifiedBy != objectPermission.CreatedBy {
-					return fmt.Errorf("When updating object, permission did not get modifiedby set to createdby")
-				}
-
-			}
-		}
-	}
 	// Refetch object again with properties and permissions
 	dbObject, err = getObjectInTransaction(tx, *object, true)
 	if err != nil {
