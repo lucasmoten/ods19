@@ -32,4 +32,5 @@ type ObjectGrant struct {
 	Read    bool
 	Update  bool
 	Delete  bool
+	Share   bool
 }

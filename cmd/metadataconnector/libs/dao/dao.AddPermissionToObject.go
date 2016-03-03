@@ -28,12 +28,18 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, per
 	var dbPermission models.ODObjectPermission
 
 	// Setup the statement
-	addPermissionStatement, err := tx.Preparex(`insert object_permission set createdby = ?, objectId = ?, grantee = ?, allowCreate = ?, allowRead = ?, allowUpdate = ?, allowDelete = ?, encryptKey = ?`)
+	addPermissionStatement, err := tx.Preparex(`
+    insert object_permission set createdby = ?, objectId = ?, grantee = ?, 
+    allowCreate = ?, allowRead = ?, allowUpdate = ?, allowDelete = ?, 
+    allowShare = ?,  explicitShare = ?, encryptKey = ?`)
 	if err != nil {
 		return dbPermission, err
 	}
 	// Add it
-	result, err := addPermissionStatement.Exec(permission.CreatedBy, object.ID, permission.Grantee, permission.AllowCreate, permission.AllowRead, permission.AllowUpdate, permission.AllowDelete, permission.EncryptKey)
+	result, err := addPermissionStatement.Exec(permission.CreatedBy, object.ID,
+		permission.Grantee, permission.AllowCreate, permission.AllowRead,
+		permission.AllowUpdate, permission.AllowDelete, permission.AllowShare,
+		permission.ExplicitShare, permission.EncryptKey)
 	if err != nil {
 		return dbPermission, err
 	}
@@ -45,11 +51,18 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, per
 	addPermissionStatement.Close()
 	// Get the ID of the newly created permission
 	var newPermissionID []byte
-	getPermissionIDStatement, err := tx.Preparex(`select id from object_permission where createdby = ? and objectId = ? and grantee = ? and isdeleted = 0 order by createddate desc limit 1`)
+	getPermissionIDStatement, err := tx.Preparex(`
+    select id from object_permission where createdby = ? and objectId = ? 
+    and grantee = ? and isdeleted = 0 and allowCreate = ? and allowRead = ? 
+    and allowUpdate = ? and allowDelete = ? and allowShare = ? 
+    order by createddate desc limit 1`)
 	if err != nil {
 		return dbPermission, err
 	}
-	err = getPermissionIDStatement.QueryRowx(permission.CreatedBy, object.ID, permission.Grantee).Scan(&newPermissionID)
+	err = getPermissionIDStatement.QueryRowx(permission.CreatedBy, object.ID,
+		permission.Grantee, permission.AllowCreate, permission.AllowRead,
+		permission.AllowUpdate, permission.AllowDelete,
+		permission.AllowShare).Scan(&newPermissionID)
 	if err != nil {
 		return dbPermission, err
 	}

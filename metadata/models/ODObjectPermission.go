@@ -26,6 +26,13 @@ type ODObjectPermission struct {
 	// AllowDelete indicates whether the grantee has permission to delete this
 	// object
 	AllowDelete bool `db:"allowDelete"`
+	// AllowShare indicates whether the grantee has permission to view and
+	// alter permissions on this object
+	AllowShare bool `db:"allowShare"`
+	// ExplicitShare indicates whether this permission was created explicitly
+	// by a user to a grantee, or if it was implicitly created through the
+	// creation of an object that inherited permissions of its parent
+	ExplicitShare bool `db:"explicitShare"`
 	// EncryptKey contains the encryption key for encrypting/decrypting the
 	// content stream for this object at rest for this particular grantee and
 	// revision

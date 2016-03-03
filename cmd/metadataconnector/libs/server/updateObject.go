@@ -131,12 +131,6 @@ func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller C
 		return
 	}
 
-	// 6. If permissions are different from dbObject, then need to setup NEW
-	//		encrypt keys
-	// TODO: There is a similar todo in updateobject dao, and its unclear at this
-	// point whether it should be done in the dao, or outside here in the bizlogic
-	// since that may need to also update the content stream with new EncryptKey
-
 	// Response in requested format
 	apiResponse := mapping.MapODObjectToObject(&requestObject)
 	updateObjectResponseAsJSON(w, r, caller, &apiResponse)

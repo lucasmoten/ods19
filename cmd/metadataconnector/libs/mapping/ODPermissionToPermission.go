@@ -25,6 +25,8 @@ func MapODPermissionToPermission(i *models.ODObjectPermission) protocol.Permissi
 	o.AllowRead = i.AllowRead
 	o.AllowUpdate = i.AllowUpdate
 	o.AllowDelete = i.AllowDelete
+	o.AllowShare = i.AllowShare
+	o.ExplicitShare = i.ExplicitShare
 	return o
 }
 
@@ -78,6 +80,8 @@ func MapPermissionToODPermission(i *protocol.Permission) (models.ODObjectPermiss
 	o.AllowRead = i.AllowRead
 	o.AllowUpdate = i.AllowUpdate
 	o.AllowDelete = i.AllowDelete
+	o.AllowShare = i.AllowShare
+	o.ExplicitShare = i.ExplicitShare
 	return o, nil
 }
 
@@ -92,5 +96,16 @@ func MapPermissionsToODPermissions(i *[]protocol.Permission) ([]models.ODObjectP
 		}
 		o[p] = mappedPermission
 	}
+	return o, nil
+}
+
+func MapObjectGrantToODPermission(i *protocol.ObjectGrant) (models.ODObjectPermission, error) {
+	o := models.ODObjectPermission{}
+	o.Grantee = i.Grantee
+	o.AllowCreate = i.Create
+	o.AllowRead = i.Read
+	o.AllowUpdate = i.Update
+	o.AllowDelete = i.Delete
+	o.AllowShare = i.Share
 	return o, nil
 }

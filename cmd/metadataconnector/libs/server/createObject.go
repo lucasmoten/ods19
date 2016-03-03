@@ -10,17 +10,16 @@ import (
 	"decipher.com/oduploader/metadata/models"
 )
 
-
 /* This is used by both createObject and createFolder to do common tasks against created objects
    Returns true if the request is now handled - which happens in the case of errors that terminate
    the http request
- */
+*/
 func handleCreatePrerequisites(
-    h AppServer, 
-    requestObject *models.ODObject, 
-    requestACM *models.ODACM, 
-    w http.ResponseWriter, 
-    caller Caller,
+	h AppServer,
+	requestObject *models.ODObject,
+	requestACM *models.ODACM,
+	w http.ResponseWriter,
+	caller Caller,
 ) bool {
 	// If JavaScript passes parentId as emptry string, set it to nil to satisfy
 	// the DAO.
@@ -30,13 +29,14 @@ func handleCreatePrerequisites(
 
 	// Check if parent defined
 	if requestObject.ParentID == nil {
-		// No parent set, but need to setup permission
+		// No parent set, but need to setup permission for the creator
 		newPermission := models.ODObjectPermission{}
 		newPermission.Grantee = caller.DistinguishedName
 		newPermission.AllowCreate = true
 		newPermission.AllowRead = true
 		newPermission.AllowUpdate = true
 		newPermission.AllowDelete = true
+		newPermission.AllowShare = true
 		requestObject.Permissions = append(requestObject.Permissions, newPermission)
 	} else {
 		// Parent is defined, retrieve existing parent object from the data store
@@ -95,10 +95,12 @@ func handleCreatePrerequisites(
 				newPermission.AllowRead = permission.AllowRead || isCreator
 				newPermission.AllowUpdate = permission.AllowUpdate || isCreator
 				newPermission.AllowDelete = permission.AllowDelete || isCreator
+				newPermission.AllowShare = permission.AllowShare || isCreator
 				requestObject.Permissions = append(requestObject.Permissions, newPermission)
 			}
 		}
 	}
+
 	log.Printf("There are %d permissions being added..", len(requestObject.Permissions))
 
 	// Disallow creating as deleted
@@ -112,10 +114,9 @@ func handleCreatePrerequisites(
 	requestObject.OwnedBy.String = caller.DistinguishedName
 	requestObject.OwnedBy.Valid = true
 	requestACM.CreatedBy = caller.DistinguishedName
-    
-    return false    
-}
 
+	return false
+}
 
 // createObject is a method handler on AppServer for createObject microservice
 // operation.
@@ -137,14 +138,15 @@ func (h AppServer) createObject(
 		grant.AllowCreate = true
 		grant.AllowUpdate = true
 		grant.AllowDelete = true
+		grant.AllowShare = true
 
 		obj.CreatedBy = caller.DistinguishedName
 		acm.CreatedBy = caller.DistinguishedName
 
-        if handleCreatePrerequisites(h, &createdObject, &acm, w, caller) {
-            return
-        }
-        
+		if handleCreatePrerequisites(h, &createdObject, &acm, w, caller) {
+			return
+		}
+
 		rName := createRandomName()
 		fileKey := createKey()
 		iv := createIV()
