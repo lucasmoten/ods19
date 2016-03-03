@@ -37,7 +37,6 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 	var err error
 
 	// Parse Request
-
 	pagingRequest, err = parseListObjectsRequest(r)
 	if err != nil {
 		h.sendErrorResponse(w, 400, err, "Error parsing request")
