@@ -24,7 +24,7 @@ func (dao *DataAccessLayer) AddPermissionToObject(object models.ODObject, permis
 	return response, err
 }
 
-func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, permission *models.ODObjectPermission, propogateToChildren bool, masterKey string) (models.ODObjectPermission, error) {
+func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, permission *models.ODObjectPermission, propagateToChildren bool, masterKey string) (models.ODObjectPermission, error) {
 
 	var dbPermission models.ODObjectPermission
 
@@ -76,31 +76,31 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, per
 	*permission = dbPermission
 	//permission = &dbPermission
 
-	// Handle propogation to existing children
-	if propogateToChildren {
+	// Handle propagation to existing children
+	if propagateToChildren {
 		children, err := getChildObjectsInTransaction(tx, "", 1, MaxPageSize, object)
 		if err != nil {
 			return dbPermission, err
 		}
 		for _, childObject := range children.Objects {
-			propogatedPermission := models.ODObjectPermission{}
-			propogatedPermission.CreatedBy = permission.CreatedBy
+			propagatedPermission := models.ODObjectPermission{}
+			propagatedPermission.CreatedBy = permission.CreatedBy
 			// - Same Grantee
-			propogatedPermission.Grantee = permission.Grantee
+			propagatedPermission.Grantee = permission.Grantee
 			// - Propogated permissions are not explicit
-			propogatedPermission.ExplicitShare = false
+			propagatedPermission.ExplicitShare = false
 			// - Same permissions
-			propogatedPermission.AllowCreate = permission.AllowCreate
-			propogatedPermission.AllowRead = permission.AllowRead
-			propogatedPermission.AllowUpdate = permission.AllowUpdate
-			propogatedPermission.AllowDelete = permission.AllowDelete
-			propogatedPermission.AllowShare = permission.AllowShare
+			propagatedPermission.AllowCreate = permission.AllowCreate
+			propagatedPermission.AllowRead = permission.AllowRead
+			propagatedPermission.AllowUpdate = permission.AllowUpdate
+			propagatedPermission.AllowDelete = permission.AllowDelete
+			propagatedPermission.AllowShare = permission.AllowShare
 			// - Encryption
-			propogatedPermission.EncryptKey = make([]byte, 32)
-			propogatedPermission.EncryptKey = permission.EncryptKey
-			utils.ApplyPassphrase(masterKey+permission.CreatedBy, propogatedPermission.EncryptKey)
-			utils.ApplyPassphrase(masterKey+propogatedPermission.Grantee, propogatedPermission.EncryptKey)
-			_, err := addPermissionToObjectInTransaction(tx, childObject, &propogatedPermission, propogateToChildren, masterKey)
+			propagatedPermission.EncryptKey = make([]byte, 32)
+			propagatedPermission.EncryptKey = permission.EncryptKey
+			utils.ApplyPassphrase(masterKey+permission.CreatedBy, propagatedPermission.EncryptKey)
+			utils.ApplyPassphrase(masterKey+propagatedPermission.Grantee, propagatedPermission.EncryptKey)
+			_, err := addPermissionToObjectInTransaction(tx, childObject, &propagatedPermission, propagateToChildren, masterKey)
 			if err != nil {
 				return dbPermission, err
 			}
@@ -112,24 +112,24 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, per
 				return dbPermission, err
 			}
 			for _, childObject := range pagedChildren.Objects {
-				propogatedPermission := models.ODObjectPermission{}
-				propogatedPermission.CreatedBy = permission.CreatedBy
+				propagatedPermission := models.ODObjectPermission{}
+				propagatedPermission.CreatedBy = permission.CreatedBy
 				// - Same Grantee
-				propogatedPermission.Grantee = permission.Grantee
+				propagatedPermission.Grantee = permission.Grantee
 				// - Propogated permissions are not explicit
-				propogatedPermission.ExplicitShare = false
+				propagatedPermission.ExplicitShare = false
 				// - Same permissions
-				propogatedPermission.AllowCreate = permission.AllowCreate
-				propogatedPermission.AllowRead = permission.AllowRead
-				propogatedPermission.AllowUpdate = permission.AllowUpdate
-				propogatedPermission.AllowDelete = permission.AllowDelete
-				propogatedPermission.AllowShare = permission.AllowShare
+				propagatedPermission.AllowCreate = permission.AllowCreate
+				propagatedPermission.AllowRead = permission.AllowRead
+				propagatedPermission.AllowUpdate = permission.AllowUpdate
+				propagatedPermission.AllowDelete = permission.AllowDelete
+				propagatedPermission.AllowShare = permission.AllowShare
 				// - Encryption
-				propogatedPermission.EncryptKey = make([]byte, 32)
-				propogatedPermission.EncryptKey = permission.EncryptKey
-				utils.ApplyPassphrase(masterKey+permission.CreatedBy, propogatedPermission.EncryptKey)
-				utils.ApplyPassphrase(masterKey+propogatedPermission.Grantee, propogatedPermission.EncryptKey)
-				_, err := addPermissionToObjectInTransaction(tx, childObject, &propogatedPermission, propogateToChildren, masterKey)
+				propagatedPermission.EncryptKey = make([]byte, 32)
+				propagatedPermission.EncryptKey = permission.EncryptKey
+				utils.ApplyPassphrase(masterKey+permission.CreatedBy, propagatedPermission.EncryptKey)
+				utils.ApplyPassphrase(masterKey+propagatedPermission.Grantee, propagatedPermission.EncryptKey)
+				_, err := addPermissionToObjectInTransaction(tx, childObject, &propagatedPermission, propagateToChildren, masterKey)
 				if err != nil {
 					return dbPermission, err
 				}

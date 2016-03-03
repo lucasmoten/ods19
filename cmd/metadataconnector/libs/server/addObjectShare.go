@@ -27,7 +27,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 
 	//Get the json data from the request
 	var requestGrant models.ODObjectPermission
-	requestGrant, propgateToChildren, err := parseAddObjectShareRequest(r)
+	requestGrant, propagateToChildren, err := parseAddObjectShareRequest(r)
 	if err != nil {
 		h.sendErrorResponse(w, 400, err, "Error parsing request")
 		return
@@ -108,7 +108,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	newGrant.ExplicitShare = true
 
 	// Add to database
-	createdPermission, err := h.DAO.AddPermissionToObject(dbObject, &newGrant, propgateToChildren, h.MasterKey)
+	createdPermission, err := h.DAO.AddPermissionToObject(dbObject, &newGrant, propagateToChildren, h.MasterKey)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Error updating permission")
 		return
@@ -152,7 +152,7 @@ func parseAddObjectShareRequest(r *http.Request) (models.ODObjectPermission, boo
 		}
 	}
 
-	return requestedPermission, requestedGrant.PropogateToChildren, err
+	return requestedPermission, requestedGrant.PropagateToChildren, err
 }
 
 func addObjectShareResponseAsJSON(

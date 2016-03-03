@@ -20,9 +20,9 @@ type ObjectGrant struct {
 	// Share indicates whether the grantee has permission to delegate the
 	// same permissions established in this grant to others
 	Share bool `json:"share"`
-	// PropogateToChildren indicates whether the characteristics of this
+	// PropagateToChildren indicates whether the characteristics of this
 	// grant will be recursively applied to existing children of the
 	// target of this grant.  New children created always inherit the same
 	// permissions of their parent.
-	PropogateToChildren bool `json:"propogateToChildren"`
+	PropagateToChildren bool `json:"propagateToChildren"`
 }
