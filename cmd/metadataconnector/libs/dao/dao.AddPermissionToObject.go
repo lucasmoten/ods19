@@ -84,6 +84,7 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, per
 		}
 		for _, childObject := range children.Objects {
 			propogatedPermission := models.ODObjectPermission{}
+			propogatedPermission.CreatedBy = permission.CreatedBy
 			// - Same Grantee
 			propogatedPermission.Grantee = permission.Grantee
 			// - Propogated permissions are not explicit
@@ -112,6 +113,7 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, per
 			}
 			for _, childObject := range pagedChildren.Objects {
 				propogatedPermission := models.ODObjectPermission{}
+				propogatedPermission.CreatedBy = permission.CreatedBy
 				// - Same Grantee
 				propogatedPermission.Grantee = permission.Grantee
 				// - Propogated permissions are not explicit

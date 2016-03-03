@@ -132,7 +132,8 @@ function doShare(objectId, userId, opts) {
       refreshSharedWithMe();
     },
     error: function(resp) {
-      console.log("do share failed!");  
+      console.log("do share failed!");
+      console.log(resp);  
     }
   });
 };

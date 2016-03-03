@@ -4,10 +4,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
+
+	"golang.org/x/net/context"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
@@ -15,12 +16,21 @@ import (
 	"decipher.com/oduploader/protocol"
 )
 
-func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller Caller) {
+func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	// Get caller value from ctx.
+	caller, ok := CallerFromContext(ctx)
+	if !ok {
+		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		return
+	}
+
 	//Get the json data from the request
 	var requestGrant models.ODObjectPermission
 	requestGrant, propgateToChildren, err := parseAddObjectShareRequest(r)
 	if err != nil {
 		h.sendErrorResponse(w, 400, err, "Error parsing request")
+		return
 	}
 	log.Printf("Granting:%s to %s", hex.EncodeToString(requestGrant.ObjectID), requestGrant.Grantee)
 
@@ -107,11 +117,6 @@ func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller
 	// Response in requested format
 	apiResponse := mapping.MapODPermissionToPermission(&createdPermission)
 	addObjectShareResponseAsJSON(w, r, caller, &apiResponse)
-
-	//Just signify something that corresponds with the correct http code.
-	//User in browser will just know to hit back button.  API user will
-	//ignore.
-	fmt.Fprintf(w, "ok")
 }
 
 func parseAddObjectShareRequest(r *http.Request) (models.ODObjectPermission, bool, error) {

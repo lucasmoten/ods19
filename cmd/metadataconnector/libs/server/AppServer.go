@@ -294,7 +294,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		switch {
 		case h.Routes.ObjectShare.MatchString(uri):
-			h.addObjectShare(w, r, caller)
+			h.addObjectShare(ctx, w, r)
 		case h.Routes.ObjectSubscription.MatchString(uri):
 			h.addObjectSubscription(w, r, caller)
 		case h.Routes.ObjectFavorite.MatchString(uri):
