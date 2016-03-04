@@ -111,7 +111,7 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 	shareToDelete.ModifiedBy = caller.DistinguishedName
 	shareToDelete.IsDeleted = true
 	shareToDelete.DeletedBy.String = caller.DistinguishedName
-	dbObjectPermission, err := h.DAO.DeleteObjectPermission(*shareToDelete, false)
+	dbObjectPermission, err := h.DAO.DeleteObjectPermission(*shareToDelete, removeObjectShare.PropagateToChildren)
 	if err != nil {
 		h.sendErrorResponse(w, http.StatusInternalServerError, err, "Error deleting permission")
 		return

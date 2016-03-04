@@ -70,14 +70,30 @@ func deleteObjectPermissionInTransaction(tx *sqlx.Tx, objectPermission models.OD
 		return dbObjectPermission, err
 	}
 
-	// Do Recursively to children?
+	// Do Recursively to children
 	if propagateToChildren {
-		// TODO: Determine logic for this as it needs to account for whether this is deleting...
-		//  - all permission other then those establishing full permissions to the owner
-		//  - only permissions created by the same person deleting this one (objectPermission.ModifiedBy)
-		//  - only permissions matching the same share settings as that configured passed in
-		//  - only permissions matching the same share settings and created by the person deleting
-		// lots of options. need to discuss
+		// Find matching inherited permissions for children of the object for
+		// which the share was just deleted that are not explicit permissions
+		matchingPermission := []models.ODObjectPermission{}
+		query := `select op.* from object_permission op 
+            inner join object o on op.objectid = o.id 
+            where op.isdeleted = 0 and op.explicitshare = 0 and o.isdeleted = 0
+                and o.parentid = ? and op.allowcreate = ? and op.allowread = ? 
+                and op.allowupdate = ? and op.allowdelete = ? and op.allowshare = ?`
+		err := tx.Select(&matchingPermission, query, dbObjectPermission.ObjectID,
+			dbObjectPermission.AllowCreate, dbObjectPermission.AllowRead,
+			dbObjectPermission.AllowUpdate, dbObjectPermission.AllowDelete,
+			dbObjectPermission.AllowShare)
+		if err != nil {
+			return dbObjectPermission, err
+		}
+		for _, childPermission := range matchingPermission {
+			childPermission.ModifiedBy = objectPermission.ModifiedBy
+			_, err := deleteObjectPermissionInTransaction(tx, childPermission, propagateToChildren)
+			if err != nil {
+				return dbObjectPermission, err
+			}
+		}
 	}
 
 	return dbObjectPermission, nil
