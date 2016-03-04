@@ -74,7 +74,6 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, per
 		return dbPermission, err
 	}
 	*permission = dbPermission
-	//permission = &dbPermission
 
 	// Handle propagation to existing children
 	if propagateToChildren {
