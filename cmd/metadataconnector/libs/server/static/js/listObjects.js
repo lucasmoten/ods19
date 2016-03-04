@@ -42,15 +42,15 @@ function refreshListObjects() {
       $.when(listUsers()).done(function (userdata) {
 
         __state.users = userdata[0];
-        __state.Objects = resp.Objects;
+        __state.Objects = resp.objects;
 
-        $.each(resp.Objects, function(index, item){
+        $.each(resp.objects, function(index, item){
           $('#listObjectResults').append(_renderListObjectRow(index, item));
         })
 
         }).then(function(){
         // set up share handlers
-          for ( var i = 0; i < resp.Objects.length; i++ ) {
+          for ( var i = 0; i < resp.objects.length; i++ ) {
             (function (_rowId, _obj) {
               $(_rowId).siblings('.shareButton').click(function() {
                 var dn = $(_rowId).val();
@@ -58,7 +58,7 @@ function refreshListObjects() {
               })
             })('#listObjectRow_' + i, __state.Objects[i])
           }
-          for ( var i = 0; i < resp.Objects.length; i++ ) {
+          for ( var i = 0; i < resp.objects.length; i++ ) {
             (function (_drowId, _obj) {
               $(_drowId).click(function() {
                 doDelete(_obj.id, _obj.changeToken)
@@ -80,7 +80,7 @@ function refreshSharedWithMe() {
     contentType: 'application/json',
     method: 'GET',
     success: function(resp) {
-      _renderSharedWithMeTable(resp.Objects);
+      _renderSharedWithMeTable(resp.objects);
     },
     error: function(resp) {
       console.log("refresh shared with me failed!")
@@ -295,7 +295,7 @@ function refreshObjectsIShared() {
     contentType: 'application/json',
     method: 'GET',
     success: function(resp) {
-      _renderObjectsISharedTable(resp.Objects);
+      _renderObjectsISharedTable(resp.objects);
     },
     error: function(resp) {
       console.log("refresh objects i shared failed!")
