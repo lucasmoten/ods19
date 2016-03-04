@@ -90,7 +90,7 @@ func parseDeleteObjectRequest(r *http.Request) (models.ODObject, error) {
 		}
 	}
 
-	// Portions from the request URI itself ...
+	// Extract object ID from the URI.
 	uri := r.URL.Path
 	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)")
 	matchIndexes := re.FindStringSubmatchIndex(uri)
@@ -103,10 +103,8 @@ func parseDeleteObjectRequest(r *http.Request) (models.ODObject, error) {
 		}
 	}
 
-	// Map to internal object type
+	// Map to internal object type.
 	requestObject, err = mapping.MapObjectToODObject(&jsonObject)
-	log.Println("RequestObject mapped.")
-	log.Println("TypeID and len", requestObject.TypeName, len(requestObject.TypeID))
 	return requestObject, err
 }
 

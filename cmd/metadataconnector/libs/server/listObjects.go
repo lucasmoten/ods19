@@ -110,7 +110,7 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 
 	// Response in requested format
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&response)
-	listObjectsResponseAsJSON(w, r, caller, &apiResponse)
+	listObjectsResponseAsJSON(w, r, &apiResponse)
 	return
 }
 
@@ -174,10 +174,8 @@ func parseListObjectsRequest(r *http.Request) (*protocol.PagingRequest, error) {
 func listObjectsResponseAsJSON(
 	w http.ResponseWriter,
 	r *http.Request,
-	caller Caller,
 	response *protocol.ObjectResultset,
 ) {
-	// TODO: Caller passed but not used.
 	w.Header().Set("Content-Type", "application/json")
 	jsonData, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
