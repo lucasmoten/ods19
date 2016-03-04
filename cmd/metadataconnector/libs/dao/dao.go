@@ -7,12 +7,13 @@ import (
 
 // DAO defines the contract our app has with the database.
 type DAO interface {
-	AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission, propogateToChildren bool, masterKey string) (models.ODObjectPermission, error)
+	AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission, propagateToChildren bool, masterKey string) (models.ODObjectPermission, error)
 	AddPropertyToObject(object models.ODObject, property *models.ODProperty) (models.ODProperty, error)
 	CreateObject(object *models.ODObject, acm *models.ODACM) (models.ODObject, error)
 	CreateObjectType(objectType *models.ODObjectType) (models.ODObjectType, error)
 	CreateUser(models.ODUser) (models.ODUser, error)
 	DeleteObject(object models.ODObject, explicit bool) error
+	DeleteObjectPermission(objectPermission models.ODObjectPermission, propagateToChildren bool) (models.ODObjectPermission, error)
 	DeleteObjectProperty(objectProperty models.ODObjectPropertyEx) error
 	DeleteObjectType(objectType models.ODObjectType) error
 	ExpungeObject(object models.ODObject, explicit bool) error
@@ -21,6 +22,7 @@ type DAO interface {
 	GetChildObjectsWithProperties(orderByClause string, pageNumber int, pageSize int, object models.ODObject) (models.ODObjectResultset, error)
 	GetChildObjectsWithPropertiesByUser(orderByClause string, pageNumber int, pageSize int, object models.ODObject, user string) (models.ODObjectResultset, error)
 	GetObject(object models.ODObject, loadProperties bool) (models.ODObject, error)
+	GetObjectPermission(objectPermission models.ODObjectPermission) (models.ODObjectPermission, error)
 	GetObjectProperty(objectProperty models.ODObjectPropertyEx) (models.ODObjectPropertyEx, error)
 	GetObjectType(objectType models.ODObjectType) (*models.ODObjectType, error)
 	GetObjectTypeByName(typeName string, addIfMissing bool, createdBy string) (models.ODObjectType, error)
