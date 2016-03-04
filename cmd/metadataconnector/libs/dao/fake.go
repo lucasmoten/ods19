@@ -26,7 +26,7 @@ type FakeDAO struct {
 }
 
 // AddPermissionToObject for FakeDAO.
-func (fake *FakeDAO) AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission, propogateToChildren bool, masterKey string) (models.ODObjectPermission, error) {
+func (fake *FakeDAO) AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission, propagateToChildren bool, masterKey string) (models.ODObjectPermission, error) {
 	return fake.ObjectPermission, fake.Err
 }
 
@@ -53,6 +53,11 @@ func (fake *FakeDAO) CreateUser(user models.ODUser) (models.ODUser, error) {
 // DeleteObject for FakeDAO.
 func (fake *FakeDAO) DeleteObject(object models.ODObject, explicit bool) error {
 	return fake.Err
+}
+
+// DeleteObjectPermission for FakeDAO.
+func (fake *FakeDAO) DeleteObjectPermission(objectPermission models.ODObjectPermission, propagateToChildren bool) (models.ODObjectPermission, error) {
+	return fake.ObjectPermission, fake.Err
 }
 
 // DeleteObjectProperty for FakeDAO.
@@ -113,6 +118,11 @@ func (fake *FakeDAO) GetUsers() ([]models.ODUser, error) {
 // GetObject for FakeDAO.
 func (fake *FakeDAO) GetObject(object models.ODObject, loadProperties bool) (models.ODObject, error) {
 	return fake.Object, fake.Err
+}
+
+// GetObjectPermission for FakeDAO.
+func (fake *FakeDAO) GetObjectPermission(objectPermission models.ODObjectPermission) (models.ODObjectPermission, error) {
+	return fake.ObjectPermission, fake.Err
 }
 
 // GetObjectProperty for FakeDAO.
