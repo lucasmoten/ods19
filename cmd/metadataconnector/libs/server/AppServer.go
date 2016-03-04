@@ -272,7 +272,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.Shared.MatchString(uri):
 			h.listUserObjectsShared(ctx, w, r)
 		case h.Routes.Shares.MatchString(uri):
-			h.listUserObjectShares(w, r, caller)
+			h.listUserObjectShares(ctx, w, r)
 		case h.Routes.Trash.MatchString(uri):
 			h.listObjectsTrashed(ctx, w, r)
 		case h.Routes.Query.MatchString(uri):
