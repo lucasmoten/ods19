@@ -33,7 +33,7 @@ type DAO interface {
 	GetRootObjectsWithProperties(orderByClause string, pageNumber int, pageSize int) (models.ODObjectResultset, error)
 	GetRootObjectsWithPropertiesByUser(orderByClause string, pageNumber int, pageSize int, user string) (models.ODObjectResultset, error)
 	GetTrashedObjectsByUser(orderByClause string, pageNumber int, pageSize int, user string) (models.ODObjectResultset, error)
-	GetUserByDistinguishedName(user models.ODUser, emptyIsOK bool) (models.ODUser, error)
+	GetUserByDistinguishedName(user models.ODUser) (models.ODUser, error)
 	GetUsers() ([]models.ODUser, error)
 	IsParentIDADescendent(id []byte, parentID []byte) (bool, error)
 	UpdateObject(object *models.ODObject, acm *models.ODACM) error

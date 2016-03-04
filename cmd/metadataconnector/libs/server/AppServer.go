@@ -201,7 +201,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var user models.ODUser
 	var userRequested models.ODUser
 	userRequested.DistinguishedName = caller.DistinguishedName
-	user, err := h.DAO.GetUserByDistinguishedName(userRequested, true)
+	user, err := h.DAO.GetUserByDistinguishedName(userRequested)
 	if err != nil || user.DistinguishedName != caller.DistinguishedName {
 		log.Printf("Creating user in database: %s", err.Error())
 		userRequested.DistinguishedName = caller.DistinguishedName

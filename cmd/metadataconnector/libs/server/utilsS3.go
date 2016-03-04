@@ -44,7 +44,7 @@ func (h AppServer) acceptObjectUpload(
 		switch {
 		case part.FormName() == "ObjectMetadata":
 			//This ID we got off of the URI, because we haven't parsed JSON yet
-			existingID := hex.EncodeToString(obj.ODID.ID)
+			existingID := hex.EncodeToString(obj.ID)
 
 			s := getFormValueAsString(part)
 			//It's the same as the database object, but this function might be
