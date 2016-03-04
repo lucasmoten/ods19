@@ -6,5 +6,5 @@ import "time"
 // is deleted from Object Drive
 type DeletedObjectResponse struct {
 	// DeletedDate is the timestamp of when an item was deleted.
-	DeletedDate time.Time `db:"deletedDate" json:"deletedDate"`
+	DeletedDate time.Time `json:"deletedDate"`
 }

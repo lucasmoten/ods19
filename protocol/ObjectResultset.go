@@ -7,5 +7,5 @@ type ObjectResultset struct {
 	// Resultset contains meta information about the resultset
 	Resultset
 	// Objects contains the list of objects in this (page of) results.
-	Objects []Object
+	Objects []Object `json:"objects,omitempty"`
 }

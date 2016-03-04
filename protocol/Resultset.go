@@ -8,14 +8,14 @@ package protocol
 type Resultset struct {
 	// TotalRows is the total number of items matching the same query resulting
 	// in this page of results
-	TotalRows int
+	TotalRows int `json:"totalRows"`
 	// PageCount is the total rows divided by page size
-	PageCount int
+	PageCount int `json:"pageCount"`
 	// PageNumber is the requested page number for this resultset
-	PageNumber int
+	PageNumber int `json:"pageNumber"`
 	// PageSize is the requested page size for this resultset
-	PageSize int
+	PageSize int `json:"pageSize"`
 	// PageRows is the number of items included in this page of the results, which
 	// may be less than pagesize, but never greater.
-	PageRows int
+	PageRows int `json:"pageRows"`
 }
