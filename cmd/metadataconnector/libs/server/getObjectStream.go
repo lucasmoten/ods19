@@ -13,6 +13,7 @@ import (
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/performance"
 	"github.com/aws/aws-sdk-go/aws"
@@ -100,7 +101,7 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 		if permission.AllowRead && permission.Grantee == caller.DistinguishedName {
 			fileKey = permission.EncryptKey
 			//Unscramble the fileKey with the masterkey - will need it once more on retrieve
-			applyPassphrase(h.MasterKey+caller.DistinguishedName, fileKey)
+			utils.ApplyPassphrase(h.MasterKey+caller.DistinguishedName, fileKey)
 			// Once we have a match, quit looking and avoid reapplying passphrase
 			break
 		}
@@ -226,7 +227,7 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Object-Data", objectLinkAsJSON)
 
 	//Actually send back the ciphertext
-	_, _, err = doCipherByReaderWriter(
+	_, _, err = utils.DoCipherByReaderWriter(
 		cipherText,
 		w,
 		fileKey,

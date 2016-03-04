@@ -3,10 +3,14 @@ package server
 import (
 	//"encoding/hex"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 
+	"golang.org/x/net/context"
+
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
 	"decipher.com/oduploader/metadata/models"
 )
 
@@ -15,11 +19,11 @@ import (
    the http request
 */
 func handleCreatePrerequisites(
-    h AppServer, 
-    requestObject *models.ODObject, 
-    requestACM *models.ODACM, 
-    caller Caller,
-) (*AppError) {
+	h AppServer,
+	requestObject *models.ODObject,
+	requestACM *models.ODACM,
+	caller Caller,
+) *AppError {
 	// If JavaScript passes parentId as emptry string, set it to nil to satisfy
 	// the DAO.
 	if string(requestObject.ParentID) == "" {
@@ -45,10 +49,10 @@ func handleCreatePrerequisites(
 		dbParentObject, err := h.DAO.GetObject(parentObject, false)
 		if err != nil {
 			return &AppError{
-                Code:500, 
-                Err:err, 
-                Msg:"Error retrieving parent object",
-            }
+				Code: 500,
+				Err:  err,
+				Msg:  "Error retrieving parent object",
+			}
 		}
 
 		// Check if the user has permissions to create child objects under the
@@ -68,10 +72,10 @@ func handleCreatePrerequisites(
 		}
 		if !authorizedToCreate {
 			return &AppError{
-                Code:403, 
-                Err:nil, 
-                Msg:"Unauthorized",
-            }
+				Code: 403,
+				Err:  nil,
+				Msg:  "Unauthorized",
+			}
 		}
 
 		// Make sure the object isn't deleted. To remove an object from the trash,
@@ -80,22 +84,22 @@ func handleCreatePrerequisites(
 			switch {
 			case dbParentObject.IsExpunged:
 				return &AppError{
-                    Code:410, 
-                    Err:err, 
-                    Msg:"The object no longer exists.",
-                }
+					Code: 410,
+					Err:  err,
+					Msg:  "The object no longer exists.",
+				}
 			case dbParentObject.IsAncestorDeleted && !dbParentObject.IsDeleted:
 				return &AppError{
-                    Code:405, 
-                    Err:err, 
-                    Msg:"Unallowed to create child objects under a deleted object.",
-                }
+					Code: 405,
+					Err:  err,
+					Msg:  "Unallowed to create child objects under a deleted object.",
+				}
 			case dbParentObject.IsDeleted:
 				return &AppError{
-                    Code:405, 
-                    Err:err, 
-                    Msg:"The object under which this object is being created is currently in the trash. Use removeObjectFromTrash to restore it first.",
-                }
+					Code: 405,
+					Err:  err,
+					Msg:  "The object under which this object is being created is currently in the trash. Use removeObjectFromTrash to restore it first.",
+				}
 			}
 		}
 
@@ -120,10 +124,10 @@ func handleCreatePrerequisites(
 	// Disallow creating as deleted
 	if requestObject.IsDeleted || requestObject.IsAncestorDeleted || requestObject.IsExpunged {
 		return &AppError{
-            Code:428, 
-            Err:nil, 
-            Msg:"Creating object in a deleted state is not allowed",
-        }
+			Code: 428,
+			Err:  nil,
+			Msg:  "Creating object in a deleted state is not allowed",
+		}
 	}
 
 	// Setup meta data...
@@ -131,17 +135,20 @@ func handleCreatePrerequisites(
 	requestObject.OwnedBy.String = caller.DistinguishedName
 	requestObject.OwnedBy.Valid = true
 	requestACM.CreatedBy = caller.DistinguishedName
-    
-    return nil    
+
+	return nil
 }
 
 // createObject is a method handler on AppServer for createObject microservice
 // operation.
-func (h AppServer) createObject(
-	w http.ResponseWriter,
-	r *http.Request,
-	caller Caller,
-) {
+func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
+	r *http.Request) {
+	// Get caller value from ctx.
+	caller, ok := CallerFromContext(ctx)
+	if !ok {
+		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		return
+	}
 
 	var obj models.ODObject
 	var createdObject models.ODObject
@@ -159,23 +166,23 @@ func (h AppServer) createObject(
 
 		obj.CreatedBy = caller.DistinguishedName
 		acm.CreatedBy = caller.DistinguishedName
-        
-		rName := createRandomName()
-		fileKey := createKey()
-		iv := createIV()
+
+		rName := utils.CreateRandomName()
+		fileKey := utils.CreateKey()
+		iv := utils.CreateIV()
 		obj.ContentConnector.String = rName
 		obj.EncryptIV = iv
 		grant.EncryptKey = fileKey
-        multipartReader, err := r.MultipartReader()
-        if err != nil {
-            h.sendErrorResponse(w, 500, err, "Unable to get mime multipart")
-            return
-        }
+		multipartReader, err := r.MultipartReader()
+		if err != nil {
+			h.sendErrorResponse(w, 400, err, "Unable to get mime multipart")
+			return
+		}
 		herr, err := h.acceptObjectUpload(multipartReader, caller, &obj, &acm, &grant, true)
-        if herr != nil {
-            h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
-            return
-        }
+		if herr != nil {
+			h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
+			return
+		}
 		obj.Permissions = make([]models.ODObjectPermission, 1)
 		obj.Permissions = append(obj.Permissions, grant)
 

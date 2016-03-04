@@ -1,12 +1,10 @@
-package server
+package utils
 
 import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"hash"
 	"io"
@@ -59,68 +57,16 @@ type RSAComponents struct {
 	E *big.Int
 }
 
-func parseRSAComponents(nStr, dStr, eStr string) (*RSAComponents, error) {
-	nBytes, err := base64.StdEncoding.DecodeString(nStr)
-	if err != nil {
-		log.Printf("Unable to parse RSA component N")
-		return nil, err
-	}
-	var n big.Int
-	n.SetBytes(nBytes)
-
-	dBytes, err := base64.StdEncoding.DecodeString(dStr)
-	if err != nil {
-		log.Printf("Unable to parse RSA component D")
-		return nil, err
-	}
-	var d big.Int
-	d.SetBytes(dBytes)
-
-	eBytes, err := base64.StdEncoding.DecodeString(eStr)
-	if err != nil {
-		log.Printf("Unable to parse RSA component E")
-		return nil, err
-	}
-	var e big.Int
-	e.SetBytes(eBytes)
-
-	return &RSAComponents{
-		N: &n,
-		D: &d,
-		E: &e,
-	}, nil
-}
-
-func createRSAComponents(randReader io.Reader) (*RSAComponents, error) {
-	//TODO: keysize must be a parameter
-	rsaPair, err := rsa.GenerateKey(randReader, 2048)
-	if err != nil {
-		log.Printf("Unable to generate RSA keypair")
-		return nil, err
-	}
-	return &RSAComponents{
-		N: rsaPair.N,
-		D: rsaPair.D,
-		E: big.NewInt(int64(rsaPair.E)),
-	}, nil
-}
-
-//Generate unique opaque names for uploaded files
-//This would be straight base64 encoding, except the characters need
-//to be valid filenames
-func obfuscateHash(key string) string {
-	hashBytes := sha256.Sum256([]byte(key))
-	return hex.EncodeToString(hashBytes[:])
-}
-
-func createRandomName() string {
+func CreateRandomName() string {
 	//Sha256 keys are 256 bits
 	key := make([]byte, 32)
 	rand.Read(key)
 	return hex.EncodeToString(key)
 }
 
-func applyPassphrase(passphrase string, fileKey []byte) {
+// ApplyPassPhrsae takes the passphrase provided and performs a bitwise XOR on
+// each element of the current contents of the passed in array
+func ApplyPassphrase(passphrase string, fileKey []byte) {
 	hashBytes := sha256.Sum256([]byte(passphrase))
 	fklen := len(fileKey)
 	hlen := len(hashBytes)
@@ -135,14 +81,17 @@ func applyPassphrase(passphrase string, fileKey []byte) {
 	return
 }
 
-func createKey() (key []byte) {
+// CreateKey creates a byte array of length 32 initialized with random data
+func CreateKey() (key []byte) {
 	//256 bit keys
 	key = make([]byte, 32)
 	rand.Read(key)
 	return
 }
 
-func createIV() (iv []byte) {
+// CreateIV creates an byte array representing the initialization vector of the
+// same size as the AES Block Size.
+func CreateIV() (iv []byte) {
 	//XXX I have read advice that with CTR blocks, the last four bytes
 	//of an iv should be zero, because the last four bytes are
 	//actually a counter for - seeking in the stream?
@@ -158,9 +107,12 @@ func createIV() (iv []byte) {
 	return
 }
 
+// DoCipherByReaderWriter initializes a new AES cipher with the provided key
+// and initialization vector reading from io.Reader, applying the cipher
+// and writing to the io.Writer.
 //XXX Need a proper read-write pipe that will xor with the key as it writes,
 // need to facilitate efficient encrypted append.
-func doCipherByReaderWriter(
+func DoCipherByReaderWriter(
 	inFile io.Reader,
 	outFile io.Writer,
 	key []byte,
@@ -184,9 +136,4 @@ func doCipherByReaderWriter(
 		log.Printf("unable to copy out to file (%s):%v", description, err)
 	}
 	return reader.H.Sum(nil), reader.Size, err
-}
-
-func doReaderWriter(inFile io.Reader, outFile io.Writer) error {
-	_, err := io.Copy(outFile, inFile)
-	return err
 }

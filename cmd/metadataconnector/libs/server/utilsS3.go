@@ -12,6 +12,7 @@ import (
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
 
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/performance"
@@ -133,14 +134,14 @@ func (h AppServer) beginUploadTimed(
 	defer outFile.Close()
 
 	//Write the encrypted data to the filesystem
-	checksum, length, err := doCipherByReaderWriter(part, outFile, fileKey, iv, "uploading from browser")
+	checksum, length, err := utils.DoCipherByReaderWriter(part, outFile, fileKey, iv, "uploading from browser")
 	if err != nil {
 		log.Printf("Unable to write ciphertext %s %v:", outFileUploading, err)
 		return nil, err
 	}
 
 	//Scramble the fileKey with the masterkey - will need it once more on retrieve
-	applyPassphrase(h.MasterKey+caller.DistinguishedName, fileKey)
+	utils.ApplyPassphrase(h.MasterKey+caller.DistinguishedName, fileKey)
 
 	//Rename it to indicate that it can be moved to S3
 	err = os.Rename(outFileUploading, outFileUploaded)

@@ -81,7 +81,7 @@ func deleteObjectInTransaction(tx *sqlx.Tx, object models.ODObject, explicit boo
 	}
 
 	// Process children
-	resultset, err := getChildObjectsInTransaction(tx, "", 1, 10000, dbObject)
+	resultset, err := getChildObjectsInTransaction(tx, "", 1, MaxPageSize, dbObject)
 	for i := 0; i < len(resultset.Objects); i++ {
 		if !resultset.Objects[i].IsAncestorDeleted {
 			authorizedToDelete := false
@@ -97,6 +97,28 @@ func deleteObjectInTransaction(tx *sqlx.Tx, object models.ODObject, explicit boo
 				err = deleteObjectInTransaction(tx, resultset.Objects[i], false)
 				if err != nil {
 					return err
+				}
+			}
+		}
+	}
+	for pageNumber := 2; pageNumber < resultset.PageCount; pageNumber++ {
+		pagedResultset, err := getChildObjectsInTransaction(tx, "", pageNumber, MaxPageSize, dbObject)
+		for i := 0; i < len(pagedResultset.Objects); i++ {
+			if !pagedResultset.Objects[i].IsAncestorDeleted {
+				authorizedToDelete := false
+				for _, permission := range pagedResultset.Objects[i].Permissions {
+					if permission.Grantee == object.ModifiedBy &&
+						permission.AllowDelete {
+						authorizedToDelete = true
+						break
+					}
+				}
+				if authorizedToDelete {
+					pagedResultset.Objects[i].ModifiedBy = object.ModifiedBy
+					err = deleteObjectInTransaction(tx, pagedResultset.Objects[i], false)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		}

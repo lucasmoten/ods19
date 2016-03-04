@@ -93,7 +93,7 @@ func expungeObjectInTransaction(tx *sqlx.Tx, object models.ODObject, explicit bo
 	}
 
 	// Process children
-	resultset, err := getChildObjectsInTransaction(tx, "", 1, 10000, dbObject)
+	resultset, err := getChildObjectsInTransaction(tx, "", 1, MaxPageSize, dbObject)
 	for i := 0; i < len(resultset.Objects); i++ {
 		authorizedToDelete := false
 		for _, permission := range resultset.Objects[i].Permissions {
@@ -108,6 +108,26 @@ func expungeObjectInTransaction(tx *sqlx.Tx, object models.ODObject, explicit bo
 			err = expungeObjectInTransaction(tx, resultset.Objects[i], false)
 			if err != nil {
 				return err
+			}
+		}
+	}
+	for pageNumber := 2; pageNumber < resultset.PageCount; pageNumber++ {
+		pagedResultset, err := getChildObjectsInTransaction(tx, "", pageNumber, MaxPageSize, dbObject)
+		for i := 0; i < len(pagedResultset.Objects); i++ {
+			authorizedToDelete := false
+			for _, permission := range pagedResultset.Objects[i].Permissions {
+				if permission.Grantee == object.ModifiedBy &&
+					permission.AllowDelete {
+					authorizedToDelete = true
+					break
+				}
+			}
+			if authorizedToDelete {
+				pagedResultset.Objects[i].ModifiedBy = object.ModifiedBy
+				err = expungeObjectInTransaction(tx, pagedResultset.Objects[i], false)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

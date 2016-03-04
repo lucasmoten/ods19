@@ -4,22 +4,33 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
 
+	"golang.org/x/net/context"
+
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
 )
 
-func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller Caller) {
+func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	// Get caller value from ctx.
+	caller, ok := CallerFromContext(ctx)
+	if !ok {
+		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		return
+	}
+
 	//Get the json data from the request
 	var requestGrant models.ODObjectPermission
-	requestGrant, err := parseAddObjectShareRequest(r)
+	requestGrant, propagateToChildren, err := parseAddObjectShareRequest(r)
 	if err != nil {
 		h.sendErrorResponse(w, 400, err, "Error parsing request")
+		return
 	}
 	log.Printf("Granting:%s to %s", hex.EncodeToString(requestGrant.ObjectID), requestGrant.Grantee)
 
@@ -76,9 +87,9 @@ func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller
 		}
 		// As a non-folder, encrypt key needs to be applied to grantee.
 		// First apply on caller to decrypt
-		applyPassphrase(h.MasterKey+caller.DistinguishedName, permittedGrant.EncryptKey)
+		utils.ApplyPassphrase(h.MasterKey+caller.DistinguishedName, permittedGrant.EncryptKey)
 		//Encrypt to grantee
-		applyPassphrase(h.MasterKey+requestGrant.Grantee, permittedGrant.EncryptKey)
+		utils.ApplyPassphrase(h.MasterKey+requestGrant.Grantee, permittedGrant.EncryptKey)
 	}
 
 	// Setup new grant based upon permitted grant permissions
@@ -97,7 +108,7 @@ func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller
 	newGrant.ExplicitShare = true
 
 	// Add to database
-	createdPermission, err := h.DAO.AddPermissionToObject(dbObject, &newGrant)
+	createdPermission, err := h.DAO.AddPermissionToObject(dbObject, &newGrant, propagateToChildren, h.MasterKey)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Error updating permission")
 		return
@@ -106,14 +117,9 @@ func (h AppServer) addObjectShare(w http.ResponseWriter, r *http.Request, caller
 	// Response in requested format
 	apiResponse := mapping.MapODPermissionToPermission(&createdPermission)
 	addObjectShareResponseAsJSON(w, r, caller, &apiResponse)
-
-	//Just signify something that corresponds with the correct http code.
-	//User in browser will just know to hit back button.  API user will
-	//ignore.
-	fmt.Fprintf(w, "ok")
 }
 
-func parseAddObjectShareRequest(r *http.Request) (models.ODObjectPermission, error) {
+func parseAddObjectShareRequest(r *http.Request) (models.ODObjectPermission, bool, error) {
 	var requestedGrant protocol.ObjectGrant
 	var requestedPermission models.ODObjectPermission
 	var err error
@@ -122,31 +128,31 @@ func parseAddObjectShareRequest(r *http.Request) (models.ODObjectPermission, err
 	decoder := json.NewDecoder(r.Body)
 	err = decoder.Decode(&requestedGrant)
 	if err != nil {
-		return requestedPermission, errors.New("Unable to decode grant from JSON body")
+		return requestedPermission, false, errors.New("Unable to decode grant from JSON body")
 	}
 	// Map to internal permission
 	requestedPermission, err = mapping.MapObjectGrantToODPermission(&requestedGrant)
 	if err != nil {
-		return requestedPermission, errors.New("Error mapping grant to permission")
+		return requestedPermission, false, errors.New("Error mapping grant to permission")
 	}
 
 	// Portions from the request URI itself ...
 	uri := r.URL.Path
 	re, err := regexp.Compile("/object/([0-9a-fA-F]*)/")
 	if err != nil {
-		return requestedPermission, errors.New("Regular Expression for identifing object identifier did not compile")
+		return requestedPermission, false, errors.New("Regular Expression for identifing object identifier did not compile")
 	}
 	matchIndexes := re.FindStringSubmatchIndex(uri)
 	if len(matchIndexes) != 0 {
 		if len(matchIndexes) > 3 {
 			requestedPermission.ObjectID, err = hex.DecodeString(uri[matchIndexes[2]:matchIndexes[3]])
 			if err != nil {
-				return requestedPermission, errors.New("Object Identifier in Request URI is not a hex string")
+				return requestedPermission, false, errors.New("Object Identifier in Request URI is not a hex string")
 			}
 		}
 	}
 
-	return requestedPermission, err
+	return requestedPermission, requestedGrant.PropagateToChildren, err
 }
 
 func addObjectShareResponseAsJSON(

@@ -39,7 +39,8 @@ func TestDAOAddPermissionToObject(t *testing.T) {
 		permission.AllowRead = true
 		permission.AllowUpdate = true
 		permission.AllowDelete = true
-		dbPermission, err := d.AddPermissionToObject(dbObject, &permission)
+		permission.AllowShare = true
+		dbPermission, err := d.AddPermissionToObject(dbObject, &permission, true, "")
 		if err != nil {
 			t.Error(err)
 		}

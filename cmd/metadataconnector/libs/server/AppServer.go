@@ -294,7 +294,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		switch {
 		case h.Routes.ObjectShare.MatchString(uri):
-			h.addObjectShare(w, r, caller)
+			h.addObjectShare(ctx, w, r)
 		case h.Routes.ObjectSubscription.MatchString(uri):
 			h.addObjectSubscription(w, r, caller)
 		case h.Routes.ObjectFavorite.MatchString(uri):
@@ -307,13 +307,13 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.Folder.MatchString(uri):
 			h.createFolder(w, r, caller)
 		case h.Routes.ObjectCreate.MatchString(uri):
-			h.createObject(w, r, caller)
+			h.createObject(ctx, w, r)
 		case h.Routes.ListObjects.MatchString(uri):
 			h.listObjects(w, r, caller)
 		case h.Routes.Query.MatchString(uri):
 			h.query(w, r, caller)
 		case h.Routes.ObjectStream.MatchString(uri):
-			h.updateObjectStream(w, r, caller)
+			h.updateObjectStream(ctx, w, r)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)
