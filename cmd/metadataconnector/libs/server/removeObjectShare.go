@@ -89,7 +89,7 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 		if bytes.Compare(permission.ID, shareID) == 0 {
 			shareFound = true
 			shareToDelete = &permission
-			if strings.Compare(permission.ChangeToken, requestObject.ChangeToken) == 0 {
+			if strings.Compare(permission.ChangeToken, removeObjectShare.ChangeToken) == 0 {
 				tokenMatched = true
 			}
 		}
@@ -136,7 +136,7 @@ func parseRemoveObjectShareRequest(r *http.Request) (protocol.RemoveObjectShareR
 
 	// Portions from the request URI itself ...
 	uri := r.URL.Path
-	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)/share/([0-9a-fA-F])")
+	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)/share/([0-9a-fA-F]*)")
 	matchIndexes := re.FindStringSubmatchIndex(uri)
 	if len(matchIndexes) != 0 {
 		if len(matchIndexes) > 3 {
