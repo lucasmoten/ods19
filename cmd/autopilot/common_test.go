@@ -19,6 +19,10 @@ func resErrCheck(t *testing.T, res *http.Response, err error) {
 		log.Printf("error came back:%v", err)
 		t.Fail()
 	}
+    if res == nil {
+        log.Printf("we got a null result back")
+        t.Fail()
+    }
 	if res.StatusCode != http.StatusOK {
 		log.Printf("http status must be ok.  we got %d.  %s", res.StatusCode, res.Status)
 		t.Fail()

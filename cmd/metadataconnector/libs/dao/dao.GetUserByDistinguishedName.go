@@ -5,6 +5,7 @@ import (
 
 	"decipher.com/oduploader/metadata/models"
 	"github.com/jmoiron/sqlx"
+    "database/sql"
 )
 
 // GetUserByDistinguishedName looks up user record from the database using the
@@ -13,7 +14,9 @@ func (dao *DataAccessLayer) GetUserByDistinguishedName(user models.ODUser) (mode
 	tx := dao.MetadataDB.MustBegin()
 	dbUser, err := getUserByDistinguishedNameInTransaction(tx, user)
 	if err != nil {
-		log.Printf("Error in GetUserByDistinguishedName: %v", err)
+        if err != sql.ErrNoRows {
+    		log.Printf("Error in GetUserByDistinguishedName: %v", err)            
+        }
 		tx.Rollback()
 	} else {
 		tx.Commit()

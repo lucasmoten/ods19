@@ -205,7 +205,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	userRequested.DistinguishedName = caller.DistinguishedName
 	user, err := h.DAO.GetUserByDistinguishedName(userRequested)
 	if err != nil || user.DistinguishedName != caller.DistinguishedName {
-		log.Printf("User was not found in database: %s", err.Error())
+		log.Printf("Creating user in database: %s", err.Error())
 		userRequested.DistinguishedName = caller.DistinguishedName
 		userRequested.DisplayName.String = caller.CommonName
 		userRequested.DisplayName.Valid = true

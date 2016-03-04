@@ -35,8 +35,22 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	}
 
 	if len(object.ID) == 0 {
-		h.sendErrorResponse(w, 500, err, "Object for update doesn't have an id")
+		h.sendErrorResponse(w, 400, err, "Object for update doesn't have an id")
 		return
+	}
+
+	if object.IsDeleted {
+		switch {
+		case object.IsExpunged:
+			h.sendErrorResponse(w, 410, err, "The object no longer exists.")
+			return
+		case object.IsAncestorDeleted:
+			h.sendErrorResponse(w, 405, err, "The object cannot be modified because an ancestor is deleted.")
+			return
+		default:
+			h.sendErrorResponse(w, 405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
+			return
+		}
 	}
 
 	//We need a name for the new text, and a new iv
