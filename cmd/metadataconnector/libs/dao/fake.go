@@ -94,7 +94,7 @@ func (fake *FakeDAO) GetChildObjectsWithPropertiesByUser(
 }
 
 // GetUserByDistinguishedName for FakeDAO.
-func (fake *FakeDAO) GetUserByDistinguishedName(user models.ODUser) (models.ODUser, error) {
+func (fake *FakeDAO) GetUserByDistinguishedName(user models.ODUser, emptyIsOK bool) (models.ODUser, error) {
 	for _, u := range fake.Users {
 		if user.DistinguishedName == u.DistinguishedName {
 			u.ModifiedBy = u.DistinguishedName

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -28,7 +29,7 @@ func (h AppServer) acceptObjectUpload(
 	obj *models.ODObject,
 	acm *models.ODACM,
 	grant *models.ODObjectPermission,
-    asCreate bool,
+	asCreate bool,
 ) (*AppError, error) {
 	for {
 		part, err := multipartReader.NextPart()
@@ -42,6 +43,9 @@ func (h AppServer) acceptObjectUpload(
 
 		switch {
 		case part.FormName() == "ObjectMetadata":
+			//This ID we got off of the URI, because we haven't parsed JSON yet
+			existingID := hex.EncodeToString(obj.ODID.ID)
+
 			s := getFormValueAsString(part)
 			//It's the same as the database object, but this function might be
 			//dealing with a retrieved object, so we get fields individually
@@ -50,17 +54,25 @@ func (h AppServer) acceptObjectUpload(
 			if err != nil {
 				return &AppError{400, err, "Could not decode ObjectMetadata."}, err
 			}
+
 			err = mapping.OverwriteODObjectWithProtocolObject(obj, &createObjectRequest)
 			if err != nil {
 				return &AppError{400, err, "Could not extract data from json response"}, err
 			}
+
 			//If this is a new object, check prerequisites
 			if asCreate {
 				if herr := handleCreatePrerequisites(h, obj, acm, caller); herr != nil {
 					return herr, nil
 				}
 			} else {
-				//We only invoke handleCreatePrerequisites when creating objects
+				if len(createObjectRequest.ID) > 0 && createObjectRequest.ID != existingID {
+					return &AppError{
+						Code: 400,
+						Err:  err,
+						Msg:  "JSON supplied an object id inconsistent with the one supplied from URI",
+					}, nil
+				}
 			}
 		case len(part.FileName()) > 0:
 			//Guess the content type and name if it wasn't supplied

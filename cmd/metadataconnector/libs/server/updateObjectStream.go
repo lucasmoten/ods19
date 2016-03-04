@@ -35,7 +35,12 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	}
 
 	if len(object.ID) == 0 {
-		h.sendErrorResponse(w, 500, err, "Object for update doesn't have an id")
+		h.sendErrorResponse(w, 400, err, "Object for update doesn't have an id")
+		return
+	}
+
+	if object.DeletedDate.Valid {
+		h.sendErrorResponse(w, 400, err, "This object is deleted already")
 		return
 	}
 

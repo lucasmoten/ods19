@@ -9,11 +9,13 @@ import (
 
 // GetUserByDistinguishedName looks up user record from the database using the
 // provided distinguished name
-func (dao *DataAccessLayer) GetUserByDistinguishedName(user models.ODUser) (models.ODUser, error) {
+func (dao *DataAccessLayer) GetUserByDistinguishedName(user models.ODUser, emptyIsOK bool) (models.ODUser, error) {
 	tx := dao.MetadataDB.MustBegin()
 	dbUser, err := getUserByDistinguishedNameInTransaction(tx, user)
 	if err != nil {
-		log.Printf("Error in GetUserByDistinguishedName: %v", err)
+        if emptyIsOK == false {
+    		log.Printf("Error in GetUserByDistinguishedName: %v", err)            
+        }
 		tx.Rollback()
 	} else {
 		tx.Commit()
