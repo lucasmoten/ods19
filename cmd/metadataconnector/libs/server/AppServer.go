@@ -137,6 +137,7 @@ type StaticRx struct {
 	ObjectProperties        *regexp.Regexp
 	Objects                 *regexp.Regexp
 	ObjectShare             *regexp.Regexp
+	ObjectShareID           *regexp.Regexp
 	ObjectStream            *regexp.Regexp
 	ObjectStreamRevision    *regexp.Regexp
 	ObjectSubscription      *regexp.Regexp
@@ -176,6 +177,7 @@ func (h *AppServer) InitRegex() {
 		ObjectProperties:        initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/properties$"),
 		Objects:                 initRegex(h.ServicePrefix + "/objects$"),
 		ObjectShare:             initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/share$"),
+		ObjectShareID:           initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/share/([0-9a-fA-F]*)$"),
 		ObjectStream:            initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/stream$"),
 		ObjectStreamRevision:    initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/history/.*/stream$"),
 		ObjectSubscription:      initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/subscribe$"),
@@ -346,8 +348,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.removeObjectFromFolder(w, r, caller)
 		case h.Routes.TrashObject.MatchString(uri):
 			h.removeObjectFromTrash(w, r, caller)
-		case h.Routes.ObjectShare.MatchString(uri):
-			h.removeObjectShare(w, r, caller)
+		case h.Routes.ObjectShareID.MatchString(uri):
+			h.removeObjectShare(ctx, w, r)
 		case h.Routes.ObjectSubscription.MatchString(uri):
 			h.removeObjectSubscription(w, r, caller)
 		default:
