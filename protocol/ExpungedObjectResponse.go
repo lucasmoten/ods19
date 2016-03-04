@@ -6,5 +6,5 @@ import "time"
 // is expunged from Object Drive
 type ExpungedObjectResponse struct {
 	// ExpungedDate is the timestamp of when an item was deleted permanently.
-	ExpungedDate time.Time `db:"expungedDate" json:"expungedDate"`
+	ExpungedDate time.Time `json:"expungedDate"`
 }

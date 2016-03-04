@@ -7,46 +7,46 @@ import "time"
 // in Object Drive
 type Permission struct {
 	// ID is the unique identifier for this permission in Object Drive.
-	ID string `db:"id" json:"id"`
+	ID string `json:"id"`
 	// CreatedDate is the timestamp of when a permission was created.
-	CreatedDate time.Time `db:"createdDate" json:"createdDate"`
+	CreatedDate time.Time `json:"createdDate"`
 	// CreatedBy is the user that created this permission.
-	CreatedBy string `db:"createdBy" json:"createdBy"`
+	CreatedBy string `json:"createdBy"`
 	// ModifiedDate is the timestamp of when a permission was modified or created.
-	ModifiedDate time.Time `db:"modifiedDate" json:"modifiedDate"`
+	ModifiedDate time.Time `json:"modifiedDate"`
 	// ModifiedBy is the user that last modified this permission
-	ModifiedBy string `db:"modifiedBy" json:"modifiedBy"`
+	ModifiedBy string `json:"modifiedBy"`
 	// ChangeCount indicates the number of times the permission has been modified.
-	ChangeCount int `db:"changeCount" json:"changeCount"`
+	ChangeCount int `json:"changeCount"`
 	// ChangeToken is generated value which is assigned at the database. API calls
 	// performing updates must provide the changeToken to be verified against the
 	// existing value on record to prevent accidental overwrites.
-	ChangeToken string `db:"changeToken" json:"changeToken"`
+	ChangeToken string `json:"changeToken"`
 	// ObjectID identifies the object for which this permission applies.
-	ObjectID string `db:"id" json:"id"`
+	ObjectID string `json:"objectId"`
 	// Grantee indicates the user, identified by distinguishedName from the user
 	// table for which this grant applies
-	Grantee string `db:"grantee" json:"grantee"`
+	Grantee string `json:"grantee"`
 	// AllowCreate indicates whether the grantee has permission to create child
 	// objects beneath this object
-	AllowCreate bool `db:"allowCreate" json:"allowCrate"`
+	AllowCreate bool `json:"allowCrate"`
 	// AllowRead indicates whether the grantee has permission to read this
 	// object. This is the most fundamental permission granted, and should always
 	// be true as only records need to exist where permissions are granted as
 	// the system denies access by default. Read access to an object is necessary
 	// to perform any other action on the object.
-	AllowRead bool `db:"allowRead" json:"allowRead"`
+	AllowRead bool `json:"allowRead"`
 	// AllowUpdate indicates whether the grantee has permission to update this
 	// object
-	AllowUpdate bool `db:"allowUpdate" json:"allowUpdate"`
+	AllowUpdate bool `djson:"allowUpdate"`
 	// AllowDelete indicates whether the grantee has permission to delete this
 	// object
-	AllowDelete bool `db:"allowDelete" json:"allowDelete"`
+	AllowDelete bool `json:"allowDelete"`
 	// AllowShare indicates whether the grantee has permission to view and
 	// alter permissions on this object
-	AllowShare bool `db:"allowShare" json:"allowShare"`
+	AllowShare bool `json:"allowShare"`
 	// ExplicitShare indicates whether this permission was created explicitly
 	// by a user to a grantee, or if it was implicitly created through the
 	// creation of an object that inherited permissions of its parent
-	ExplicitShare bool `db:"explicitShare" json:"explicitShare"`
+	ExplicitShare bool `json:"explicitShare"`
 }
