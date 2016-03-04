@@ -38,7 +38,7 @@ type Permission struct {
 	AllowRead bool `json:"allowRead"`
 	// AllowUpdate indicates whether the grantee has permission to update this
 	// object
-	AllowUpdate bool `djson:"allowUpdate"`
+	AllowUpdate bool `json:"allowUpdate"`
 	// AllowDelete indicates whether the grantee has permission to delete this
 	// object
 	AllowDelete bool `json:"allowDelete"`
