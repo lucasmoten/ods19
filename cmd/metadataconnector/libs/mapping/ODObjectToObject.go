@@ -159,6 +159,7 @@ func MapODObjectToJSON(i *models.ODObject) string {
 // MapObjectToODObject converts an API exposable protocol Object into an
 // internally usable model object.
 func MapObjectToODObject(i *protocol.Object) (models.ODObject, error) {
+
 	var err error
 	o := models.ODObject{}
 	o.ID, err = hex.DecodeString(i.ID)
@@ -189,13 +190,19 @@ func MapObjectToODObject(i *protocol.Object) (models.ODObject, error) {
 	o.Name = i.Name
 	o.Description.Valid = true
 	o.Description.String = i.Description
-	o.ParentID, err = hex.DecodeString(i.ParentID)
-	if err != nil {
-		return o, fmt.Errorf("Unable to decode parent id from %s", i.ParentID)
-	}
-	if len(o.ParentID) == 0 {
+
+	if len(i.ParentID) > 0 {
+		o.ParentID, err = hex.DecodeString(i.ParentID)
+		if err != nil {
+			return o, fmt.Errorf("Unable to decode parent id from %s", i.ParentID)
+		}
+		if len(o.ParentID) == 0 {
+			o.ParentID = nil
+		}
+	} else {
 		o.ParentID = nil
 	}
+
 	o.RawAcm.Valid = true
 	o.RawAcm.String = i.RawAcm
 	o.ContentType.Valid = true

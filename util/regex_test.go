@@ -15,6 +15,8 @@ func TestGetRegexCaptureGroups(t *testing.T) {
 	if result["path"] != "js/listObjects.js" {
 		t.Fail()
 	}
+
+	// TODO handle the case where path is missing.
 }
 
 func TestSanitizePath(t *testing.T) {
