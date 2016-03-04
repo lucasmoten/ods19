@@ -11,4 +11,7 @@ type RemoveObjectShareRequest struct {
 	// performing updates must provide the changeToken to be verified against the
 	// existing value on record to prevent accidental overwrites.
 	ChangeTokenStruct
+	// PropagateToChildren denotes whether the share settings in the refrenced
+	// share should also be removed from descendent child nodes
+	PropagateToChildren bool `json:"propagateToChildren"`
 }
