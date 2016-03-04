@@ -9,7 +9,7 @@ import (
 
 // GetObjectPermission return the requested permission by ID.
 // NOTE: Should we just pass an ID instead?
-func (dao *DataAccessLayer) GetObjectProperty(objectPermission models.ODObjectPermission) (models.ODObjectPermission, error) {
+func (dao *DataAccessLayer) GetObjectPermission(objectPermission models.ODObjectPermission) (models.ODObjectPermission, error) {
 	tx := dao.MetadataDB.MustBegin()
 	dbObjectPermission, err := getObjectPermissionInTransaction(tx, objectPermission)
 	if err != nil {
