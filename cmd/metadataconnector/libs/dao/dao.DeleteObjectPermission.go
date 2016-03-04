@@ -54,12 +54,13 @@ func deleteObjectPermissionInTransaction(tx *sqlx.Tx, objectPermission models.OD
 	dbObjectPermission.IsDeleted = true
 	dbObjectPermission.ModifiedBy = objectPermission.ModifiedBy
 	dbObjectPermission.DeletedBy.String = objectPermission.ModifiedBy
+	dbObjectPermission.DeletedBy.Valid = true
 	updateObjectPermissionStatement, err := tx.Preparex(
 		`update object_permission set modifiedby = ?, isdeleted = ?, deletedby = ? where id = ?`)
 	if err != nil {
 		return dbObjectPermission, err
 	}
-	_, err = updateObjectPermissionStatement.Exec(dbObjectPermission.ModifiedBy, dbObjectPermission.IsDeleted, dbObjectPermission.ModifiedBy, dbObjectPermission.ID)
+	_, err = updateObjectPermissionStatement.Exec(dbObjectPermission.ModifiedBy, dbObjectPermission.IsDeleted, dbObjectPermission.DeletedBy.String, dbObjectPermission.ID)
 	if err != nil {
 		return dbObjectPermission, err
 	}
@@ -79,11 +80,12 @@ func deleteObjectPermissionInTransaction(tx *sqlx.Tx, objectPermission models.OD
             inner join object o on op.objectid = o.id 
             where op.isdeleted = 0 and op.explicitshare = 0 and o.isdeleted = 0
                 and o.parentid = ? and op.allowcreate = ? and op.allowread = ? 
-                and op.allowupdate = ? and op.allowdelete = ? and op.allowshare = ?`
+                and op.allowupdate = ? and op.allowdelete = ? and op.allowshare = ?
+                and op.Grantee = ?`
 		err := tx.Select(&matchingPermission, query, dbObjectPermission.ObjectID,
 			dbObjectPermission.AllowCreate, dbObjectPermission.AllowRead,
 			dbObjectPermission.AllowUpdate, dbObjectPermission.AllowDelete,
-			dbObjectPermission.AllowShare)
+			dbObjectPermission.AllowShare, dbObjectPermission.Grantee)
 		if err != nil {
 			return dbObjectPermission, err
 		}
