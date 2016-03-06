@@ -1,7 +1,6 @@
 package dao
 
 import (
-	"errors"
 	"fmt"
 	"log"
 
@@ -30,13 +29,13 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 
 	// Pre-DB Validation
 	if object.ID == nil {
-		return errors.New("Object ID was not specified for object being updated")
+		return errMissingID
 	}
 	if object.ChangeToken == "" {
-		return errors.New("Object ChangeToken was not specified for object being updated")
+		return errMissingChangeToken
 	}
 	if object.ModifiedBy == "" {
-		return errors.New("Object ModifiedBy was not specified for object being updated")
+		return errMissingModifiedBy
 	}
 
 	// Fetch current state of object
@@ -51,6 +50,7 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models
 	// Check if deleted
 	if dbObject.IsDeleted {
 		// NOOP
+		// TODO Do we need to return more information here?
 		return nil
 	}
 

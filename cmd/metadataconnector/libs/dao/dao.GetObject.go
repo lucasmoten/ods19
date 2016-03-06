@@ -15,7 +15,7 @@ func (dao *DataAccessLayer) GetObject(object models.ODObject, loadProperties boo
 	tx := dao.MetadataDB.MustBegin()
 	dbObject, err := getObjectInTransaction(tx, object, loadProperties)
 	if err != nil {
-		log.Printf("Error in GetObject: %v", err)
+		log.Printf("Error in GetObject: %v\n", err)
 		tx.Rollback()
 	} else {
 		tx.Commit()

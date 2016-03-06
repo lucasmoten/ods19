@@ -101,6 +101,7 @@ func deleteObjectInTransaction(tx *sqlx.Tx, object models.ODObject, explicit boo
 			}
 		}
 	}
+	// TODO: Can this second block replace the first wholesale? Change 2 to 1 for pageNumber
 	for pageNumber := 2; pageNumber < resultset.PageCount; pageNumber++ {
 		pagedResultset, err := getChildObjectsInTransaction(tx, "", pageNumber, MaxPageSize, dbObject)
 		for i := 0; i < len(pagedResultset.Objects); i++ {

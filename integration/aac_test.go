@@ -1,12 +1,5 @@
 package integration
 
-// To run integration tests. Run the following command from within the
-// /integration directory.
-//
-// ```
-// go test -v
-// ```
-
 import (
 	"log"
 	"path/filepath"

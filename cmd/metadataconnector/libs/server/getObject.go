@@ -41,7 +41,7 @@ func (h AppServer) getObject(w http.ResponseWriter, r *http.Request, caller Call
 		}
 	}
 	if !authorizedToRead {
-		h.sendErrorResponse(w, 403, nil, "Unauthorized")
+		h.sendErrorResponse(w, 403, errors.New("Unauthorized"), "Unauthorized")
 		return
 	}
 

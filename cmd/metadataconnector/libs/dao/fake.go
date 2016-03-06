@@ -203,6 +203,11 @@ func (fake *FakeDAO) IsParentIDADescendent(id []byte, parentID []byte) (bool, er
 	return fake.IsDescendent, fake.Err
 }
 
+// UndeleteObject for FakeDAO.
+func (fake *FakeDAO) UndeleteObject(object *models.ODObject) (models.ODObject, error) {
+	return fake.Object, fake.Err
+}
+
 // UpdateObject for FakeDAO.
 func (fake *FakeDAO) UpdateObject(object *models.ODObject, acm *models.ODACM) error {
 	return fake.Err
