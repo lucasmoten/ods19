@@ -102,16 +102,6 @@ type Caller struct {
 	CommonName string
 }
 
-// initRegex should be used everywhere to ensure that static regexes are compiled.
-func initRegex(rx string) *regexp.Regexp {
-	compiled, err := regexp.Compile(rx)
-	if err != nil {
-		log.Printf("Unable to compile regex %s:%v", rx, err)
-		return nil
-	}
-	return compiled
-}
-
 // StaticRx is a bunch of static compiled regexes
 type StaticRx struct {
 	Favorites               *regexp.Regexp
@@ -154,41 +144,40 @@ type StaticRx struct {
 // InitRegex compiles static regexes and initializes the AppServer Routes field.
 func (h *AppServer) InitRegex() {
 	h.Routes = &StaticRx{
-		// These regular expressions to match uri patterns
-		Favorites:               initRegex(h.ServicePrefix + "/favorites$"),
-		Folder:                  initRegex(h.ServicePrefix + "/folder$"),
-		Home:                    initRegex(h.ServicePrefix + "/?$"),
-		HomeListObjects:         initRegex(h.ServicePrefix + "/home/listObjects/?$"),
-		Images:                  initRegex(h.ServicePrefix + "/images$"),
-		ObjectCreate:            initRegex(h.ServicePrefix + "/object$"),
-		Query:                   initRegex(h.ServicePrefix + "/query/.*"),
-		Shared:                  initRegex(h.ServicePrefix + "/shared$"),
-		Shares:                  initRegex(h.ServicePrefix + "/shares$"),
-		Trash:                   initRegex(h.ServicePrefix + "/trash$"),
-		Users:                   initRegex(h.ServicePrefix + "/users$"),
-		Object:                  initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)$"),
-		ObjectChangeOwner:       initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/changeowner/.*"),
-		ObjectExpunge:           initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/expunge$"),
-		ObjectFavorite:          initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/favorite$"),
-		ObjectLink:              initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/link/([0-9a-fA-F]*)"),
-		ObjectLinks:             initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/links$"),
-		ObjectMove:              initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/move/([0-9a-fA-F]*)"),
-		ObjectPermission:        initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/permission/([0-9a-fA-F]*)"),
-		ObjectProperties:        initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/properties$"),
-		Objects:                 initRegex(h.ServicePrefix + "/objects$"),
-		ObjectShare:             initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/share$"),
-		ObjectShareID:           initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/share/([0-9a-fA-F]*)$"),
-		ObjectStream:            initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/stream$"),
-		ObjectStreamRevision:    initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/history/.*/stream$"),
-		ObjectSubscription:      initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/subscribe$"),
-		ListObjects:             initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/list$"),
-		ListObjectRevisions:     initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/history$"),
-		ListObjectShares:        initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/shares$"),
-		ListObjectSubscriptions: initRegex(h.ServicePrefix + "/object/([0-9a-fA-F]*)/subscriptions$"),
-		ListImages:              initRegex(h.ServicePrefix + "/images/([0-9a-fA-F]*)/list$"),
-		TrashObject:             initRegex(h.ServicePrefix + "/trash/([0-9a-fA-F]*)"),
-		StatsObject:             initRegex(h.ServicePrefix + "/stats$"),
-		StaticFiles:             initRegex(h.ServicePrefix + "/static/(?P<path>.*)"),
+		Favorites:               regexp.MustCompile(h.ServicePrefix + "/favorites$"),
+		Folder:                  regexp.MustCompile(h.ServicePrefix + "/folder$"),
+		Home:                    regexp.MustCompile(h.ServicePrefix + "/?$"),
+		HomeListObjects:         regexp.MustCompile(h.ServicePrefix + "/home/listObjects/?$"),
+		Images:                  regexp.MustCompile(h.ServicePrefix + "/images$"),
+		ObjectCreate:            regexp.MustCompile(h.ServicePrefix + "/object$"),
+		Query:                   regexp.MustCompile(h.ServicePrefix + "/query/.*"),
+		Shared:                  regexp.MustCompile(h.ServicePrefix + "/shared$"),
+		Shares:                  regexp.MustCompile(h.ServicePrefix + "/shares$"),
+		Trash:                   regexp.MustCompile(h.ServicePrefix + "/trash$"),
+		Users:                   regexp.MustCompile(h.ServicePrefix + "/users$"),
+		Object:                  regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)$"),
+		ObjectChangeOwner:       regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/changeowner/.*"),
+		ObjectExpunge:           regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/expunge$"),
+		ObjectFavorite:          regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/favorite$"),
+		ObjectLink:              regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/link/([0-9a-fA-F]*)"),
+		ObjectLinks:             regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/links$"),
+		ObjectMove:              regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/move/([0-9a-fA-F]*)"),
+		ObjectPermission:        regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/permission/([0-9a-fA-F]*)"),
+		ObjectProperties:        regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/properties$"),
+		Objects:                 regexp.MustCompile(h.ServicePrefix + "/objects$"),
+		ObjectShare:             regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/share$"),
+		ObjectShareID:           regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/share/([0-9a-fA-F]*)$"),
+		ObjectStream:            regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/stream$"),
+		ObjectStreamRevision:    regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/history/.*/stream$"),
+		ObjectSubscription:      regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/subscribe$"),
+		ListObjects:             regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/list$"),
+		ListObjectRevisions:     regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/history$"),
+		ListObjectShares:        regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/shares$"),
+		ListObjectSubscriptions: regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/subscriptions$"),
+		ListImages:              regexp.MustCompile(h.ServicePrefix + "/images/([0-9a-fA-F]*)/list$"),
+		TrashObject:             regexp.MustCompile(h.ServicePrefix + "/trash/([0-9a-fA-F]*)"),
+		StatsObject:             regexp.MustCompile(h.ServicePrefix + "/stats$"),
+		StaticFiles:             regexp.MustCompile(h.ServicePrefix + "/static/(?P<path>.*)"),
 	}
 }
 
