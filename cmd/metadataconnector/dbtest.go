@@ -27,6 +27,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
+    
+    _ "net/http/pprof"
 )
 
 /**
@@ -101,6 +103,11 @@ func main() {
 
 	go handler.CachePurge()
 
+    // start pprof handler
+    go func() {
+        log.Println(http.ListenAndServe("0.0.0.0:4480", nil))
+    }()
+    
 	// start it
 	log.Println("Starting server on " + s.Addr)
 	log.Fatalln(s.ListenAndServeTLS(serverCertFile, serverKeyFile))
