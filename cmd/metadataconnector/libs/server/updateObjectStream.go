@@ -28,7 +28,11 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	var grant *models.ODObjectPermission
 
 	//Get the object from the database, unedited
-	object, err := h.getObjectStreamObject(w, r, caller)
+	object, herr, err := h.getObjectStreamObject(w, r, caller)
+    if herr != nil {
+        h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
+        return
+    }
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Could not retrieve object")
 		return
@@ -77,7 +81,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		h.sendErrorResponse(w, 400, err, "unable to open multipart reader")
 		return
 	}
-	herr, err := h.acceptObjectUpload(multipartReader, caller, &object, &acm, grant, false)
+	herr, err = h.acceptObjectUpload(multipartReader, caller, &object, &acm, grant, false)
 	if herr != nil {
 		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
 		return
@@ -92,7 +96,11 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		return
 	}
 
-	object, err = h.getObjectStreamObject(w, r, caller)
+	object, herr, err = h.getObjectStreamObject(w, r, caller)
+    if herr != nil {
+        h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
+        return
+    }
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Could not retrieve object")
 		return

@@ -105,15 +105,15 @@ func (h AppServer) beginUpload(
 ) (herr *AppError, err error) {
 
 	beganAt := h.Tracker.BeginTime(performance.UploadCounter)
-	herr, err = h.beginUploadTimed(caller, part, obj, acm, grant, async)
-	if herr != nil {
-		return herr, err
-	}
-	h.Tracker.EndTime(
+	defer h.Tracker.EndTime(
 		performance.UploadCounter,
 		beganAt,
 		performance.SizeJob(obj.ContentSize.Int64),
 	)
+	herr, err = h.beginUploadTimed(caller, part, obj, acm, grant, async)
+	if herr != nil {
+		return herr, err
+	}
 
 	return herr, err
 }

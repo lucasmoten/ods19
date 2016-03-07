@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"time"
-
+    "fmt"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
@@ -19,30 +19,30 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 )
 
-func (h AppServer) getObjectStreamObject(w http.ResponseWriter, r *http.Request, caller Caller) (models.ODObject, error) {
+func (h AppServer) getObjectStreamObject(w http.ResponseWriter, r *http.Request, caller Caller) (models.ODObject, *AppError, error) {
 	var object models.ODObject
 	// Identify requested object
 	objectID := getIDOfObjectTORetrieveStream(r.URL.Path)
 	// If not valid, return
 	if objectID == "" {
-		h.sendErrorResponse(w, 400, nil, "URI provided by caller does not specify an object identifier")
-		return object, nil
+        msg := "URI provided by caller does not specify an object identifier"
+        return object, &AppError{400, nil, msg},nil
 	}
 	// Convert to byte
 	objectIDByte, err := hex.DecodeString(objectID)
 	if err != nil {
-		h.sendErrorResponse(w, 400, nil, "Identifier provided by caller is not a hexidecimal string")
-		return object, err
+        msg := "Identifier provided by caller is not a hexidecimal string"
+		return object, &AppError{400, err, msg},err
 	}
 	// Retrieve from database
 	var objectRequested models.ODObject
 	objectRequested.ID = objectIDByte
 	object, err = h.DAO.GetObject(objectRequested, false)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "cannot get object")
-		return object, err
+        msg := "cannot get object"
+		return object, &AppError{500, err, msg}, err
 	}
-	return object, nil
+	return object, nil, nil
 }
 
 /*
@@ -57,7 +57,11 @@ func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, calle
 		log.Printf("%s", string(req))
 	}
 
-	object, err := h.getObjectStreamObject(w, r, caller)
+	object, herr, err := h.getObjectStreamObject(w, r, caller)
+    if herr != nil {
+        h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
+        return
+    }
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "cannot get object")
 		return
@@ -69,17 +73,19 @@ func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, calle
 	}
 
 	beganAt := h.Tracker.BeginTime(performance.DownloadCounter)
-
-	h.getObjectStreamWithObject(w, r, caller, object)
-
-	h.Tracker.EndTime(
+	defer h.Tracker.EndTime(
 		performance.DownloadCounter,
 		beganAt,
 		performance.SizeJob(object.ContentSize.Int64),
 	)
+
+	if herr := h.getObjectStreamWithObject(w, r, caller, object); herr != nil {
+        h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
+    }
+
 }
 
-func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Request, caller Caller, object models.ODObject) {
+func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Request, caller Caller, object models.ODObject) (*AppError) {
 	var err error
 	var err2 error
 	var err3 error
@@ -90,11 +96,19 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 	iv := object.EncryptIV
 
 	if len(object.Permissions) == 0 {
-		log.Printf("We can't decrypt files that don't have permissions!")
-		h.sendErrorResponse(w, 403, nil, "No permission for file")
-		return
+        return &AppError{403, nil, "We cannot decrypt files lacking permissions"}
 	}
 
+	if object.IsDeleted {
+		switch {
+		case object.IsExpunged:
+			return &AppError{410, err, "The object no longer exists."}
+		case object.IsAncestorDeleted:
+			return &AppError{405, err, "The object cannot be modified because an ancestor is deleted."}
+		default:
+			return &AppError{405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it."}
+		}
+	}    
 	//XXX watch for very large number of permissions on a file!
 	for _, v := range object.Permissions {
 		permission = &v
@@ -132,8 +146,7 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 	}
 
 	if permission == nil {
-		h.sendErrorResponse(w, 403, nil, "No permission for file")
-		return
+		return &AppError{403, nil, "No permission for file"}
 	}
 
 	// Database checks and AAC checks take time, particularly AAC.
@@ -144,7 +157,7 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 	//Make sure that the cache exists
 	err = h.CacheMustExist()
 	if err != nil {
-		return
+		return &AppError{500, err, "Our cache needs to exist"}
 	}
 
 	//Fall back on the uploaded copy for download if we need to
@@ -167,16 +180,14 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 							//leave cipherText nil, and wait for re-cache
 						} else {
 							//Some other error.  Pretend it's permissions
-							h.sendErrorResponse(w, 403, err, "No permission for file")
-							return
+							return &AppError{403, err, "No permission for file"}
 						}
 					} else {
 						//cached file exists
 					}
 				} else {
 					//Some other error.  Pretend it's permissions
-					h.sendErrorResponse(w, 403, err, "No permission for file")
-					return
+					return &AppError{403, err, "No permission for file"}
 				}
 			} else {
 				//uploaded file exists.  use it.
@@ -184,8 +195,7 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 			}
 		} else {
 			//Some other error.  Pretend it's permissions
-			h.sendErrorResponse(w, 403, err, "No permission for file")
-			return
+			return &AppError{403, err, "No permission for file"}
 		}
 	} else {
 		//the cached file exists
@@ -201,8 +211,7 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 		// an estimate of WHEN to retry in this case
 		h.transferFileFromS3(bucket, object.ContentConnector.String, object.ContentSize.Int64)
 		if cipherText, err = os.Open(cipherTextName); err != nil {
-			h.sendErrorResponse(w, 403, err, "No permission for file")
-			return
+			return &AppError{403, err, "No permission for file"}
 		}
 	}
 
@@ -236,13 +245,18 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 	)
 
 	if err != nil {
-		log.Printf("error sending decrypted ciphertext %s:%v", cipherTextName, err)
-		return
+        return &AppError{
+            Code:500, 
+            Err:err, 
+            Msg:fmt.Sprintf("error sending decrypted ciphertext (%s)",cipherTextName),
+        }
 	}
 
 	//Update the timestamps to note the last time it was used
 	tm := time.Now()
 	os.Chtimes(cipherTextName, tm, tm)
+    
+    return nil
 }
 
 // getIDOfObjectTORetrieveStream accepts a passed in URI and finds whether an
