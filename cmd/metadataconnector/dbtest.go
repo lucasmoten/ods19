@@ -27,7 +27,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 /**
@@ -109,19 +108,17 @@ func main() {
 
 //TODO: not sure how much is safe to share concurrently
 //This is account as in the ["default"] entry in ~/.aws/credentials
-func awsS3() (*s3.S3, *session.Session) {
+func awsS3() (*session.Session) {
 	sessionConfig := &aws.Config{
 		Credentials: credentials.NewEnvCredentials(),
 	}
-	sess := session.New(sessionConfig)
-	svc := s3.New(sess)
-	return svc, sess
+	return session.New(sessionConfig)
 }
 
 func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*http.Server, *server.AppServer, error) {
 	//On machines with multiple configs, we at least assume that objectdrive is aliased to
 	//the default config
-	s3, awsSession := awsS3()
+	awsSession := awsS3()
 
 	//Try to connect to AAC
 	var aac *aac.AacServiceClient
@@ -163,7 +160,6 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		Bind:          serverConfig.ListenBind,
 		Addr:          serverConfig.ListenBind + ":" + strconv.Itoa(serverConfig.ListenPort),
 		DAO:           &concreteDAO,
-		S3:            s3,
 		AWSSession:    awsSession,
 		CacheLocation: "cache",
 		ServicePrefix: serverConfig.ServiceName + serverConfig.ServiceVersion,
