@@ -31,6 +31,7 @@ func (h AppServer) acceptObjectUpload(
 	grant *models.ODObjectPermission,
 	asCreate bool,
 ) (*AppError, error) {
+    parsedMetadata := false
 	for {
 		part, err := multipartReader.NextPart()
 		if err != nil {
@@ -74,7 +75,15 @@ func (h AppServer) acceptObjectUpload(
 					}, nil
 				}
 			}
+            parsedMetadata = true
 		case len(part.FileName()) > 0:
+            if parsedMetadata == false && asCreate {
+                return &AppError{
+                    Code: 400,
+                    Err: nil,
+                    Msg: "Metadata is required during create",
+                },nil
+            }
 			//Guess the content type and name if it wasn't supplied
 			if obj.ContentType.Valid == false || len(obj.ContentType.String) == 0 {
 				obj.ContentType.String = guessContentType(part.FileName())
