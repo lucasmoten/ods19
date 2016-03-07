@@ -15,7 +15,7 @@ function newParent(id) {
 
 function listUsers() {
   return $.ajax({
-    url: '/service/metadataconnector/1.0/users',
+    url: BASE_SERVICE_URL+'users',
     contentType: 'application/json',
     method: 'GET'
   });
@@ -144,7 +144,7 @@ function doDelete(objectId, changeToken) {
     changeToken: changeToken
   }
   $.ajax({
-      url: '/service/metadataconnector/1.0/object/'+objectId,
+      url: BASE_SERVICE_URL+'object/'+objectId,
       method: 'DELETE',
       data: JSON.stringify(data),
       contentType: 'application/json',
@@ -171,6 +171,7 @@ function _renderListObjectRow(index, item, elm) {
   var size = '<td align=right>' + item.contentSize + '</td>';
   var changeToken = '<td>' + item.changeToken + '</td>';
   var acm = '<td>' + item.acm + '</td>';
+  var hash = '<td>' + item.hash + '</td>';
   var shareDropdown = _renderUsersDropdown(item, __state.users, rowId);
   var deleteButton = _renderDeleteButton(item, __state.users, drowId);
 
@@ -229,7 +230,7 @@ function createObject() {
 
       $("#submitCreateObject").prop("disabled", true)
       $.ajax({
-        url: '/service/metadataconnector/1.0/object',
+        url: BASE_SERVICE_URL+'object',
         data: formData,
         cache: false,
         contentType: false,
@@ -254,7 +255,7 @@ function createFolder() {
     name: folderName
   }
       $.ajax({
-      url: '/service/metadataconnector/1.0/folder',
+      url: BASE_SERVICE_URL+'folder',
       data: JSON.stringify(data),
       method: 'POST',
       contentType: 'application/json',
