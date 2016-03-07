@@ -33,29 +33,50 @@ func getObjectTypeByNameInTransaction(tx *sqlx.Tx, typeName string, addIfMissing
 	if err != nil {
 		if err == sql.ErrNoRows {
 			if addIfMissing {
+				// Clear the error from no rows
 				err = nil
+				// Prepare new object type
 				objectType.Name = typeName
 				objectType.CreatedBy = createdBy
+				// Create it
 				createdObjectType, err := createObjectTypeInTransaction(tx, &objectType)
+				// Any errors? return them
 				if err != nil {
+					// Empty return with error from creation
 					return objectType, fmt.Errorf("Error creating object when missing: %s", err.Error())
 				}
+				// Assign created type to the return value
 				objectType = createdObjectType
-				err = nil
 			}
 		} else {
+			// Some other error besides no matching rows...
+			// Empty return type with error retrieving
 			return objectType, fmt.Errorf("GetObjectTypeByName error, %s", err.Error())
 		}
 	}
-	if objectType.IsDeleted && addIfMissing {
-		objectType.Name = typeName
-		objectType.CreatedBy = createdBy
-		createdObjectType, err := createObjectTypeInTransaction(tx, &objectType)
-		if err != nil {
-			return objectType, fmt.Errorf("Error recreating object when previous was deleted: %s", err.Error())
+
+	// Need to make sure the type retrieved isn't deleted.
+	if objectType.IsDeleted {
+		// Existing type is deleted. Should a new active type be created?
+		if addIfMissing {
+			// Prepare new object type
+			objectType.Name = typeName
+			objectType.CreatedBy = createdBy
+			// Create it
+			createdObjectType, err := createObjectTypeInTransaction(tx, &objectType)
+			// Any errors? return them
+			if err != nil {
+				// Reinitialize objectType first since it may be dirty at this
+				// phase and caller may accidentally use if not properly
+				// checking errors
+				objectType = models.ODObjectType{}
+				return objectType, fmt.Errorf("Error recreating object when previous was deleted: %s", err.Error())
+			}
+			// Assign created type to the return value
+			objectType = createdObjectType
 		}
-		objectType = createdObjectType
 	}
 
+	// Return response
 	return objectType, err
 }
