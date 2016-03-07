@@ -18,7 +18,6 @@ import (
 	aac "decipher.com/oduploader/services/aac"
 	audit "decipher.com/oduploader/services/audit/generated/auditservice_thrift"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 // Constants serve as keys for setting values on a request-scoped Context.
@@ -36,9 +35,6 @@ type AppServer struct {
 	Addr string
 	// DAO is the interface contract with the database.
 	DAO dao.DAO
-	// TODO: Convert this as appropriate to non implementation specific
-	// S3 is the handle to the S3 Client
-	S3 *s3.S3
 	// AWSSession is a handle to active Amazon Web Service session
 	AWSSession *session.Session
 	// CacheLocation is the location locally for temporary storage of content
