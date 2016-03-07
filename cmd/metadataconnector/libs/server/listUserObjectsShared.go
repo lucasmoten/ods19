@@ -3,10 +3,8 @@ package server
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"log"
 	"net/http"
-	"strconv"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/protocol"
@@ -42,45 +40,7 @@ func (h AppServer) listUserObjectsShared(ctx context.Context, w http.ResponseWri
 }
 
 func parseListUserObjectsSharedRequest(r *http.Request) (*protocol.PagingRequest, error) {
-	var jsonPaging protocol.PagingRequest
-	defaultPage := 1
-	defaultPageSize := 20
-	jsonPaging.PageNumber = defaultPage
-	jsonPaging.PageSize = defaultPageSize
-	var err error
-
-	err = (json.NewDecoder(r.Body)).Decode(&jsonPaging)
-	if err != nil {
-		// If there is no body, it's an EOF. So report other errors
-		if err != io.EOF {
-			log.Printf("Error parsing paging information in json: %v", err)
-			return &jsonPaging, err
-		}
-		// EOF ok. Reassign defaults and reset the error
-		jsonPaging.PageNumber = defaultPage
-		jsonPaging.PageSize = defaultPageSize
-		err = nil
-	}
-
-	// Paging provided as querystring arguments
-	sPageNumber := r.URL.Query().Get("PageNumber")
-	sPageSize := r.URL.Query().Get("PageSize")
-	pageNumber, errPageNumber := strconv.Atoi(sPageNumber)
-	if errPageNumber == nil && pageNumber > 0 {
-		jsonPaging.PageNumber = pageNumber
-	}
-	pageSize, errPageSize := strconv.Atoi(sPageSize)
-	if errPageSize == nil && pageSize > 0 {
-		jsonPaging.PageSize = pageSize
-	}
-	if jsonPaging.PageNumber <= 0 {
-		jsonPaging.PageNumber = defaultPage
-	}
-	if jsonPaging.PageSize <= 0 {
-		jsonPaging.PageSize = defaultPageSize
-	}
-
-	return &jsonPaging, err
+	return protocol.NewPagingRequestWithObjectID(r, nil, false)
 }
 
 func listUserObjectsSharedResponseAsJSON(

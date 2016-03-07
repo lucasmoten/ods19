@@ -26,20 +26,22 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 	}
 	_ = caller
 
-	targetObject := models.ODObject{}
 	var err error
 
 	// Parse Request
-	targetObject, err = parseListObjectSharesRequest(r)
+	pagingRequest, err := parseListObjectSharesRequest(r)
 	if err != nil {
 		h.sendErrorResponse(w, 400, err, "Error parsing request")
 		return
 	}
 
 	// Fetch the matching object
+	targetObject := models.ODObject{}
+	targetObject.ID, _ = hex.DecodeString(pagingRequest.ObjectID)
 	dbObject, err := h.DAO.GetObject(targetObject, false)
 	if err != nil {
 		h.sendErrorResponse(w, 404, err, "Resource not found")
+		return
 	}
 
 	// Check for permission to read this object
@@ -86,27 +88,9 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 	return
 }
 
-func parseListObjectSharesRequest(r *http.Request) (models.ODObject, error) {
-	requestedObject := models.ODObject{}
-	var err error
-
-	// Get object ID from request path
-	uri := r.URL.Path
+func parseListObjectSharesRequest(r *http.Request) (*protocol.PagingRequest, error) {
 	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)/")
-	matchIndexes := re.FindStringSubmatchIndex(uri)
-	if len(matchIndexes) != 0 {
-		if len(matchIndexes) > 3 {
-			stringObjectID := uri[matchIndexes[2]:matchIndexes[3]]
-			byteObjectID, err := hex.DecodeString(stringObjectID)
-			if err != nil {
-				return requestedObject, errors.New("Object Identifier in Request URI is not a hex string")
-			}
-			requestedObject.ID = byteObjectID
-		}
-	}
-
-	// Map to internal object type
-	return requestedObject, err
+	return protocol.NewPagingRequestWithObjectID(r, re, true)
 }
 
 func listObjectSharesResponseAsJSON(

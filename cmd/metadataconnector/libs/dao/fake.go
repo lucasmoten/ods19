@@ -130,6 +130,16 @@ func (fake *FakeDAO) GetObjectProperty(objectProperty models.ODObjectPropertyEx)
 	return fake.ObjectPropertyEx, fake.Err
 }
 
+// GetObjectRevisionsByUser for FakeDAO
+func (fake *FakeDAO) GetObjectRevisionsByUser(orderByClause string, pageNumber int, pageSize int, object models.ODObject, user string) (models.ODObjectResultset, error) {
+	return fake.ObjectResultSet, fake.Err
+}
+
+// GetObjectRevisionsWithPropertiesByUser for FakeDAO
+func (fake *FakeDAO) GetObjectRevisionsWithPropertiesByUser(orderByClause string, pageNumber int, pageSize int, object models.ODObject, user string) (models.ODObjectResultset, error) {
+	return fake.ObjectResultSet, fake.Err
+}
+
 // GetObjectType for FakeDAO.
 func (fake *FakeDAO) GetObjectType(objectType models.ODObjectType) (*models.ODObjectType, error) {
 	return &fake.ObjectType, fake.Err
@@ -152,6 +162,11 @@ func (fake *FakeDAO) GetObjectTypeByName(typeName string, addIfMissing bool, cre
 
 // GetPropertiesForObject for FakeDAO.
 func (fake *FakeDAO) GetPropertiesForObject(object models.ODObject) ([]models.ODObjectPropertyEx, error) {
+	return fake.ObjectProperites, nil
+}
+
+// GetPropertiesForObjectRevision for FakeDAO
+func (fake *FakeDAO) GetPropertiesForObjectRevision(object models.ODObject) ([]models.ODObjectPropertyEx, error) {
 	return fake.ObjectProperites, nil
 }
 

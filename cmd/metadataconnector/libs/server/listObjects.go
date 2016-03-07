@@ -4,11 +4,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"io"
 	"log"
 	"net/http"
 	"regexp"
-	"strconv"
+
+	"golang.org/x/net/context"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
@@ -30,7 +30,14 @@ import (
 //					"pageNumber": "{pageNumber}",
 //					"pageSize": {pageSize}
 //				}
-func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Caller) {
+func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	// Get caller value from ctx.
+	caller, ok := CallerFromContext(ctx)
+	if !ok {
+		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		return
+	}
 
 	parentObject := models.ODObject{}
 	var pagingRequest *protocol.PagingRequest
@@ -42,10 +49,10 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 		h.sendErrorResponse(w, 400, err, "Error parsing request")
 		return
 	}
-	if len(pagingRequest.ParentID) == 0 {
+	if len(pagingRequest.ObjectID) == 0 {
 		parentObject.ID = nil
 	} else {
-		parentObject.ID, _ = hex.DecodeString(pagingRequest.ParentID)
+		parentObject.ID, _ = hex.DecodeString(pagingRequest.ObjectID)
 	}
 
 	// Fetch the matching objects
@@ -115,60 +122,8 @@ func (h AppServer) listObjects(w http.ResponseWriter, r *http.Request, caller Ca
 }
 
 func parseListObjectsRequest(r *http.Request) (*protocol.PagingRequest, error) {
-	var jsonPaging protocol.PagingRequest
-	defaultPage := 1
-	defaultPageSize := 20
-	jsonPaging.PageNumber = defaultPage
-	jsonPaging.PageSize = defaultPageSize
-	var err error
-
-	err = (json.NewDecoder(r.Body)).Decode(&jsonPaging)
-	if err != nil {
-		// If there is no body, it's an EOF. So report other errors
-		if err != io.EOF {
-			log.Printf("Error parsing paging information in json: %v", err)
-			return &jsonPaging, err
-		}
-		// EOF ok. Reassign defaults and reset the error
-		jsonPaging.PageNumber = defaultPage
-		jsonPaging.PageSize = defaultPageSize
-		err = nil
-	}
-
-	// Portions from the request path itself to pick up object ID to list children
-	// Note that a call to /objects will not match, and hence the ID wont be set
-	uri := r.URL.Path
 	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)/list")
-	matchIndexes := re.FindStringSubmatchIndex(uri)
-	if len(matchIndexes) != 0 {
-		if len(matchIndexes) > 3 {
-			jsonPaging.ParentID = uri[matchIndexes[2]:matchIndexes[3]]
-			_, err := hex.DecodeString(jsonPaging.ParentID)
-			if err != nil {
-				return &jsonPaging, errors.New("Object Identifier in Request URI is not a hex string")
-			}
-		}
-	}
-
-	// Paging provided as querystring arguments
-	sPageNumber := r.URL.Query().Get("PageNumber")
-	sPageSize := r.URL.Query().Get("PageSize")
-	pageNumber, errPageNumber := strconv.Atoi(sPageNumber)
-	if errPageNumber == nil && pageNumber > 0 {
-		jsonPaging.PageNumber = pageNumber
-	}
-	pageSize, errPageSize := strconv.Atoi(sPageSize)
-	if errPageSize == nil && pageSize > 0 {
-		jsonPaging.PageSize = pageSize
-	}
-	if jsonPaging.PageNumber <= 0 {
-		jsonPaging.PageNumber = defaultPage
-	}
-	if jsonPaging.PageSize <= 0 {
-		jsonPaging.PageSize = defaultPageSize
-	}
-
-	return &jsonPaging, err
+	return protocol.NewPagingRequestWithObjectID(r, re, false)
 }
 
 func listObjectsResponseAsJSON(
