@@ -53,7 +53,11 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	// Fetch matching object
 	obj := models.ODObject{}
 	// valid decoding checked when parsed, no need to check for error again
-	obj.ID, _ = hex.DecodeString(pagingRequest.ObjectID)
+	obj.ID, err = hex.DecodeString(pagingRequest.ObjectID)
+	if err != nil {
+		h.sendErrorResponse(w, 400, err, "Object Identifier in Request URI is not a hex string")
+		return
+	}
 	dbObject, err := h.DAO.GetObject(obj, false)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Error retrieving object")
@@ -108,7 +112,7 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 }
 
 func parseListObjectRevisions(r *http.Request) (*protocol.PagingRequest, error) {
-	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)/history")
+	re := regexp.MustCompile("/object/([0-9a-fA-F]*)/history")
 	return protocol.NewPagingRequestWithObjectID(r, re, true)
 }
 

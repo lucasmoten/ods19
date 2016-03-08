@@ -52,7 +52,11 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 	if len(pagingRequest.ObjectID) == 0 {
 		parentObject.ID = nil
 	} else {
-		parentObject.ID, _ = hex.DecodeString(pagingRequest.ObjectID)
+		parentObject.ID, err = hex.DecodeString(pagingRequest.ObjectID)
+		if err != nil {
+			h.sendErrorResponse(w, 400, err, "Object Identifier in Request URI is not a hex string")
+			return
+		}
 	}
 
 	// Fetch the matching objects
@@ -122,7 +126,7 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 }
 
 func parseListObjectsRequest(r *http.Request) (*protocol.PagingRequest, error) {
-	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)/list")
+	re := regexp.MustCompile("/object/([0-9a-fA-F]*)/list")
 	return protocol.NewPagingRequestWithObjectID(r, re, false)
 }
 

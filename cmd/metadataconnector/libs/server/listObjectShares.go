@@ -89,7 +89,7 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 }
 
 func parseListObjectSharesRequest(r *http.Request) (*protocol.PagingRequest, error) {
-	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)/")
+	re := regexp.MustCompile("/object/([0-9a-fA-F]*)/")
 	return protocol.NewPagingRequestWithObjectID(r, re, true)
 }
 

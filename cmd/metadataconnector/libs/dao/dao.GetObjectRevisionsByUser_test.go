@@ -19,6 +19,7 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	object.CreatedBy = usernames[1]
 	object.Name = "Test Object Revision"
 	object.TypeName.String = "Test Object"
+	object.TypeName.Valid = true
 	permissions := make([]models.ODObjectPermission, 2)
 	permissions[0].CreatedBy = object.CreatedBy
 	permissions[0].Grantee = usernames[1]

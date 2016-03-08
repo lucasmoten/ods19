@@ -34,7 +34,15 @@ func NewPagingRequestFromURLValues(vals url.Values) (PagingRequest, error) {
 
 	// parentID not required, so setting empty string is OK.
 	parentIDString := vals.Get("parentId")
-	pagingRequest.ObjectID = parentIDString
+	if len(parentIDString) > 0 {
+		// Assign it
+		pagingRequest.ObjectID = parentIDString
+		// Validate that it can be decoded
+		_, err := hex.DecodeString(pagingRequest.ObjectID)
+		if err != nil {
+			return pagingRequest, errors.New("Object Identifier in Request URI is not a hex string")
+		}
+	}
 
 	return pagingRequest, nil
 }
