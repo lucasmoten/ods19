@@ -55,8 +55,8 @@ func MapODObjectToObject(i *models.ODObject) protocol.Object {
 		o.ContentSize = 0
 	}
 	//Currently, it should not possible to have an object without a hash, unless it's a file
-	if i.TypeName.String == "File" {
-		//files don't have a content hash
+	if i.TypeName.String == "Folder" {
+		//folders don't have a content hash
 	} else {
 		o.ContentHash = hex.EncodeToString(i.ContentHash)
 	}
