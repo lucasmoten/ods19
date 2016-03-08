@@ -32,7 +32,7 @@ func (h AppServer) acceptObjectUpload(
 	asCreate bool,
 ) (*AppError, error) {
 	parsedMetadata := false
-    var createObjectRequest protocol.Object
+	var createObjectRequest protocol.Object
 	for {
 		part, err := multipartReader.NextPart()
 		if err != nil {
@@ -90,13 +90,13 @@ func (h AppServer) acceptObjectUpload(
 					Msg:  msg,
 				}, nil
 			}
-				if obj.ChangeToken != createObjectRequest.ChangeToken {
-					return &AppError{
-						Code: 400,
-						Err:  nil,
-						Msg:  "Changetoken must be up to date",
-					}, nil
-				}
+			if obj.ChangeToken != createObjectRequest.ChangeToken {
+				return &AppError{
+					Code: 400,
+					Err:  nil,
+					Msg:  "Changetoken must be up to date",
+				}, nil
+			}
 			//Guess the content type and name if it wasn't supplied
 			if obj.ContentType.Valid == false || len(obj.ContentType.String) == 0 {
 				obj.ContentType.String = guessContentType(part.FileName())

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"decipher.com/oduploader/protocol"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -19,6 +18,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"decipher.com/oduploader/protocol"
 )
 
 //
@@ -215,7 +216,6 @@ func (ap AutopilotContext) generateUploadRequest(name string, fqName string, url
 	return req, err
 }
 
-
 func (ap AutopilotContext) generateUpdateRequest(changeToken, name string, fqName string, url string, async bool) (*http.Request, error) {
 	f, err := os.Open(fqName)
 	defer f.Close()
@@ -227,7 +227,7 @@ func (ap AutopilotContext) generateUpdateRequest(changeToken, name string, fqNam
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 	um := protocol.UpdateStreamRequest{
-        ChangeToken: changeToken,
+		ChangeToken: changeToken,
 	}
 	umStr, err := json.MarshalIndent(um, "", "  ")
 	if err != nil {
@@ -260,6 +260,7 @@ func (ap AutopilotContext) generateUpdateRequest(changeToken, name string, fqNam
 
 	return req, err
 }
+
 // Closing the context should flush and write out the file for this trace
 func (ap AutopilotContext) Close() {
 	ap.Log.Close()
@@ -463,9 +464,9 @@ func (ap AutopilotContext) DoDownloadLink(i int, link *protocol.Object, msg stri
 		return
 	}
 	defer drainFile.Close()
-    if res.Body != nil {
-    	io.Copy(drainFile, res.Body)        
-    }
+	if res.Body != nil {
+		io.Copy(drainFile, res.Body)
+	}
 	return
 }
 
@@ -506,7 +507,7 @@ func (ap AutopilotContext) DoUpdateLink(i int, link *protocol.Object, msg, toApp
 
 	req, err := ap.generateUpdateRequest(
 		link.ChangeToken,
-        link.Name,
+		link.Name,
 		fqName,
 		host+rootURL+"/object/"+link.ID+"/stream",
 		false,

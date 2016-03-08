@@ -46,8 +46,8 @@ type Object struct {
 	// ContentSize denotes the length of the content stream for this object, in
 	// bytes
 	ContentSize int64 `json:"contentSize"`
-    // A sha256 hash of the plaintext as hex encoded string
-    ContentHash string `json:"contentHash"`
+	// A sha256 hash of the plaintext as hex encoded string
+	ContentHash string `json:"contentHash"`
 	// Properties is an array of Object Properties associated with this object
 	// structured as key/value with portion marking.
 	Properties []Property `json:"properties,omitempty"`
@@ -68,9 +68,9 @@ type CreateObjectRequest struct {
 	// TypeName reflects the name of the object type associated with TypeID
 	TypeName string `json:"typeName"`
 	// Name is the given name for the object. (e.g., filename)
-	Name     string `json:"name"`
-    Description string `json:"description"`
-	ParentID string `json:"parentId,omitempty"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	ParentID    string `json:"parentId,omitempty"`
 	// RawACM is the raw ACM string that got supplied to create this object
 	RawAcm string `json:"acm"`
 	// ContentType indicates the mime-type, and potentially the character set
@@ -79,9 +79,9 @@ type CreateObjectRequest struct {
 	// ContentSize denotes the length of the content stream for this object, in
 	// bytes
 	ContentSize int64 `json:"contentSize,omitempty"`
-    // Properties is an array of Object Properties associated with this object
-    Properties []Property `json:"properties,omitempty"`
-    Permissions []Permission `json:"permissions,omitempty"`
+	// Properties is an array of Object Properties associated with this object
+	Properties  []Property   `json:"properties,omitempty"`
+	Permissions []Permission `json:"permissions,omitempty"`
 }
 
 // UpdateStreamRequest is for updating the object stream

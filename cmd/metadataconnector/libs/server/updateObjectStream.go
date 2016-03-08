@@ -29,10 +29,10 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 
 	//Get the object from the database, unedited
 	object, herr, err := h.getObjectStreamObject(w, r, caller)
-    if herr != nil {
-        h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
-        return
-    }
+	if herr != nil {
+		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
+		return
+	}
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Could not retrieve object")
 		return
@@ -97,10 +97,10 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	}
 
 	object, herr, err = h.getObjectStreamObject(w, r, caller)
-    if herr != nil {
-        h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
-        return
-    }
+	if herr != nil {
+		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
+		return
+	}
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "Could not retrieve object")
 		return
