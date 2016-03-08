@@ -31,7 +31,7 @@ func TestShare(t *testing.T) {
 		t.Fail()
 	}
 
-	fmt.Fprintf(ap.Log, "#TestShare")
+	fmt.Fprintf(ap.Log, "#TestShare\n")
 	//This test is actually fast (particularly the second time around),
 	//but it does use the real server.
 	if testing.Short() == false {

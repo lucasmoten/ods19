@@ -1,13 +1,14 @@
 package main
 
 import (
-	"decipher.com/oduploader/autopilot"
-	"decipher.com/oduploader/protocol"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"testing"
+
+	"decipher.com/oduploader/autopilot"
+	"decipher.com/oduploader/protocol"
 )
 
 /*
@@ -30,7 +31,7 @@ func TestUpdate(t *testing.T) {
 		t.Fail()
 	}
 
-	fmt.Fprintf(ap.Log, "#TestUpdate")
+	fmt.Fprintf(ap.Log, "#TestUpdate\n")
 	//This test is actually fast (particularly the second time around),
 	//but it does use the real server.
 	if testing.Short() == false {
@@ -41,21 +42,21 @@ func TestUpdate(t *testing.T) {
 		link, res, err = ap.DoUpload(userID0, false, "uploading a file to update")
 		resErrCheck(t, res, err)
 
-        if link == nil {
-            log.Printf("didnt get a link back from an upload")
-            t.Fail()    
-        }
-        
+		if link == nil {
+			log.Printf("didnt get a link back from an upload")
+			t.Fail()
+		}
+
 		fname := link.Name
 		//Download that same file and get an updated link
 		link, res, err = ap.DownloadLinkByName(fname, userID0, "get the file we uploaded")
 		resErrCheck(t, res, err)
 
-        if link == nil {
-            log.Printf("didnt get a link back from second upload")
-            t.Fail()    
-        }
-        
+		if link == nil {
+			log.Printf("didnt get a link back from second upload")
+			t.Fail()
+		}
+
 		//Update that file (modify in the *download* cache and send it up)
 		oldChangeToken := link.ChangeToken
 		res, err = ap.DoUpdateLink(userID0, link, "updating a file", "xxxx")

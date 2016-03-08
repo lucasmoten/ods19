@@ -22,4 +22,5 @@ release
 debug.*
 
 cmd/autopilot/Test*.md
+cmd/metadataconnector/libs/server/Test*.md
 autopilot/cache/downloadCachetest_*/*
