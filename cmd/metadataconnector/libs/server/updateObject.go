@@ -96,6 +96,17 @@ func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller C
 		return
 	}
 
+	// Check that the owner of the object passed in matches the current state
+	// of the object in the data store.
+	if len(requestObject.OwnedBy.String) == 0 {
+		requestObject.OwnedBy.String = dbObject.OwnedBy.String
+		requestObject.OwnedBy.Valid = true
+	}
+	if strings.Compare(requestObject.OwnedBy.String, dbObject.OwnedBy.String) != 0 {
+		h.sendErrorResponse(w, 428, nil, "OwnedBy does not match expected value.  Use changeOwner to transfer ownership.")
+		return
+	}
+
 	// TODO
 	// Check AAC to compare user clearance to NEW metadata Classifications
 	// 		Check if Classification is allowed for this User
