@@ -96,7 +96,7 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 	iv := object.EncryptIV
 
 	if len(object.Permissions) == 0 {
-        return &AppError{403, nil, "We cannot decrypt files lacking permissions"}
+        return &AppError{403, fmt.Errorf("We cannot decrypt files lacking permissions"),"Unauthorized"}
 	}
 
 	if object.IsDeleted {
