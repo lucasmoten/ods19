@@ -164,6 +164,7 @@ func (h AppServer) beginUploadTimed(
 	log.Printf("rename:%s -> %s", outFileUploading, outFileUploaded)
 
 	//Record metadata
+    log.Printf("checksum:%s", hex.EncodeToString(checksum))
 	obj.ContentHash = checksum
 	obj.ContentSize.Int64 = length
 
