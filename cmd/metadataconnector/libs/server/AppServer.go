@@ -242,13 +242,13 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.ObjectLinks.MatchString(uri):
 			h.getRelationships(w, r, caller)
 		case h.Routes.Objects.MatchString(uri):
-			h.listObjects(w, r, caller)
+			h.listObjects(ctx, w, r)
 		case h.Routes.ListObjects.MatchString(uri):
-			h.listObjects(w, r, caller)
+			h.listObjects(ctx, w, r)
 		case h.Routes.Images.MatchString(uri), h.Routes.ListImages.MatchString(uri):
 			h.listObjectsImages(w, r, caller)
 		case h.Routes.ListObjectRevisions.MatchString(uri):
-			h.listObjectRevisions(w, r, caller)
+			h.listObjectRevisions(ctx, w, r)
 		case h.Routes.ListObjectShares.MatchString(uri):
 			h.listObjectShares(ctx, w, r)
 		case h.Routes.ListObjectSubscriptions.MatchString(uri):
@@ -289,7 +289,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.ObjectLink.MatchString(uri):
 			h.addObjectToFolder(w, r, caller)
 		case h.Routes.Objects.MatchString(uri):
-			h.listObjects(w, r, caller)
+			h.listObjects(ctx, w, r)
 		case h.Routes.Folder.MatchString(uri):
 			h.createFolder(w, r, caller)
 		case h.Routes.ObjectCreate.MatchString(uri):
@@ -297,7 +297,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.Trash.MatchString(uri):
 			h.listObjectsTrashed(ctx, w, r)
 		case h.Routes.ListObjects.MatchString(uri):
-			h.listObjects(w, r, caller)
+			h.listObjects(ctx, w, r)
 		case h.Routes.Query.MatchString(uri):
 			h.query(w, r, caller)
 		case h.Routes.ObjectStream.MatchString(uri):

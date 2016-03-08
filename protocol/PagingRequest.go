@@ -1,11 +1,14 @@
 package protocol
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
 	"log"
+	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 )
 
@@ -15,39 +18,33 @@ type PagingRequest struct {
 	PageNumber int `json:"pageNumber"`
 	// PageSize is the requested page size for this request
 	PageSize int `json:"pageSize"`
-	// ParentID if provided lets us list the children
-	ParentID string `json:"parentId"`
+	// ObjectID if provided provides a focus for paging, often the ParentID
+	ObjectID string `json:"objectId"`
 }
 
 // NewPagingRequestFromQueryParams creates a new PagingRequest from the following URL params:
 // pageNumber, pageSize, and parentId. Params are case-sensitive.
 func NewPagingRequestFromURLValues(vals url.Values) (PagingRequest, error) {
-	var pr PagingRequest
-	pageNumberString := vals.Get("pageNumber")
-	if pageNumberString == "" {
-		return pr, errors.New("Must provide pageNumber to create PagingRequest from URL params.")
-	}
-	pageSizeString := vals.Get("pageSize")
-	if pageSizeString == "" {
-		return pr, errors.New("Must provide pageSize to create PagingRequest from URL params.")
-	}
 
-	parsedPageNumber, err := strconv.Atoi(pageNumberString)
-	if err != nil {
-		return pr, errors.New("Invalid pageNumber provided.")
-	}
+	pagingRequest := PagingRequest{}
 
-	parsedPageSize, err := strconv.Atoi(pageSizeString)
-	if err != nil {
-		return pr, errors.New("Invalid pageSize provided.")
-	}
-	pr.PageNumber, pr.PageSize = parsedPageNumber, parsedPageSize
+	// Paging provided as querystring arguments
+	pagingRequest.PageNumber = GetQueryParamAsPositiveInt(vals, []string{"PageNumber", "pageNumber"}, 1)
+	pagingRequest.PageSize = GetQueryParamAsPositiveInt(vals, []string{"PageSize", "pageSize"}, 20)
 
 	// parentID not required, so setting empty string is OK.
 	parentIDString := vals.Get("parentId")
-	pr.ParentID = parentIDString
+	if len(parentIDString) > 0 {
+		// Assign it
+		pagingRequest.ObjectID = parentIDString
+		// Validate that it can be decoded
+		_, err := hex.DecodeString(pagingRequest.ObjectID)
+		if err != nil {
+			return pagingRequest, errors.New("Object Identifier in Request URI is not a hex string")
+		}
+	}
 
-	return pr, nil
+	return pagingRequest, nil
 }
 
 // NewPagingRequestFromJSONBody parses a PagingRequest from a JSON body.
@@ -70,4 +67,75 @@ func NewPagingRequestFromJSONBody(body io.ReadCloser) (PagingRequest, error) {
 	}
 
 	return pr, nil
+}
+
+// NewPagingRequestWithObjectID parses a paging request provided in either the
+// query string arguments of a GET, or the application/json body of a POST
+// along with a key object identifier based upon provided regular expression
+// to match on
+func NewPagingRequestWithObjectID(r *http.Request, pathRegex *regexp.Regexp, isObjectIDRequired bool) (*PagingRequest, error) {
+	var pagingRequest *PagingRequest
+
+	// Paging information...
+	if r.Method == "GET" {
+		vals := r.URL.Query()
+		pr, _ := NewPagingRequestFromURLValues(vals)
+		pagingRequest = &pr
+	} else if r.Method == "POST" {
+		if r.Header.Get("Content-Type") == "application/json" {
+			pr, err := NewPagingRequestFromJSONBody(r.Body)
+			if err != nil {
+				return nil, errors.New("Error parsing request from message body")
+			}
+			pagingRequest = &pr
+		} else {
+			return nil, errors.New("Unsupported content-type to parse paging information")
+		}
+	} else {
+		return nil, errors.New("Unsupported HTTP Method")
+	}
+
+	// Object identifier...
+	if pathRegex != nil {
+		uri := r.URL.Path
+		matchIndexes := pathRegex.FindStringSubmatchIndex(uri)
+		if len(matchIndexes) != 0 {
+			if len(matchIndexes) > 3 {
+				pagingRequest.ObjectID = uri[matchIndexes[2]:matchIndexes[3]]
+				_, err := hex.DecodeString(pagingRequest.ObjectID)
+				if err != nil {
+					return pagingRequest, errors.New("Object Identifier in Request URI is not a hex string")
+				}
+			}
+		}
+	}
+	// Validation check
+	if isObjectIDRequired && len(pagingRequest.ObjectID) != 32 {
+		return nil, errors.New("Object Identifier not found in Request URI")
+	}
+
+	// All ready and no errors
+	return pagingRequest, nil
+}
+
+func GetQueryParamAsPositiveInt(vals url.Values, names []string, defaultValue int) int {
+	rv := 0
+	found := false
+	for _, n := range names {
+		if len(n) > 0 {
+			s := vals.Get(n)
+			if len(s) > 0 {
+				v, err := strconv.Atoi(s)
+				if err == nil && v > 0 {
+					found = true
+					rv = v
+					break
+				}
+			}
+		}
+	}
+	if !found {
+		rv = defaultValue
+	}
+	return rv
 }

@@ -14,35 +14,20 @@ import (
 
 func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	var pagingRequest *protocol.PagingRequest
-	var err error
-
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
 		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
 		return
 	}
 
-	if r.Method == "GET" {
-		vals := r.URL.Query()
-		pr, err := protocol.NewPagingRequestFromURLValues(vals)
-		if err != nil {
-			h.sendErrorResponse(w, 400, err, "Bad GET request for listObjectsTrashed.")
-			return
-		}
-		pagingRequest = &pr
-	} else if r.Method == "POST" && r.Header.Get("Content-Type") == "application/json" {
-		pr, err := protocol.NewPagingRequestFromJSONBody(r.Body)
-		if err != nil {
-			h.sendErrorResponse(w, 400, err, "Error parsing request")
-			return
-		}
-		pagingRequest = &pr
-	} else {
-		h.sendErrorResponse(w, 400, errors.New("Bad Request"), "Unsupported HTTP Method.")
+	// Parse paging info
+	pagingRequest, err := protocol.NewPagingRequestWithObjectID(r, nil, false)
+	if err != nil {
+		h.sendErrorResponse(w, 400, err, "Error parsing request")
 		return
 	}
 
+	// Get trash for this user
 	results, err := h.DAO.GetTrashedObjectsByUser(
 		"createdDate desc",
 		pagingRequest.PageNumber,
@@ -54,8 +39,8 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 		return
 	}
 
+	// Map the response and write it out
 	response := mapping.MapODObjectResultsetToObjectResultset(&results)
-
 	w.Header().Set("Content-Type", "application/json")
 	jsonData, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
