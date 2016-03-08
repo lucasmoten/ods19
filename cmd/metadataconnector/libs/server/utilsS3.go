@@ -87,7 +87,7 @@ func (h AppServer) acceptObjectUpload(
                         Code: 400,
                         Err: nil,
                         Msg: "ChangeToken must be supplied in ObjectMetadata",
-                    }
+                    },nil
                 }
             }
             if !parsedMetadata {
