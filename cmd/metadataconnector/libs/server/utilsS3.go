@@ -31,7 +31,8 @@ func (h AppServer) acceptObjectUpload(
 	grant *models.ODObjectPermission,
 	asCreate bool,
 ) (*AppError, error) {
-    parsedMetadata := false
+	parsedMetadata := false
+    var createObjectRequest protocol.Object
 	for {
 		part, err := multipartReader.NextPart()
 		if err != nil {
@@ -50,7 +51,6 @@ func (h AppServer) acceptObjectUpload(
 			s := getFormValueAsString(part)
 			//It's the same as the database object, but this function might be
 			//dealing with a retrieved object, so we get fields individually
-			var createObjectRequest protocol.Object
 			err := json.Unmarshal([]byte(s), &createObjectRequest)
 			if err != nil {
 				return &AppError{400, err, "Could not decode ObjectMetadata."}, err
@@ -75,28 +75,28 @@ func (h AppServer) acceptObjectUpload(
 					}, nil
 				}
 			}
-            parsedMetadata = true
+			parsedMetadata = true
 		case len(part.FileName()) > 0:
-            var msg string
-            if asCreate {
-                msg = "ObjectMetadata is required during create"
-            } else {
-                msg = "Metadata must be provided in part named 'ObjectMetadata' to create or update an object"
-                if len(obj.ChangeToken) == 0 {
-                    return &AppError{
-                        Code: 400,
-                        Err: nil,
-                        Msg: "ChangeToken must be supplied in ObjectMetadata",
-                    },nil
-                }
-            }
-            if !parsedMetadata {
-                return &AppError{
-                    Code: 400,
-                    Err: nil,
-                    Msg: msg,
-                },nil
-            }
+			var msg string
+			if asCreate {
+				msg = "ObjectMetadata is required during create"
+			} else {
+				msg = "Metadata must be provided in part named 'ObjectMetadata' to create or update an object"
+			}
+			if !parsedMetadata {
+				return &AppError{
+					Code: 400,
+					Err:  nil,
+					Msg:  msg,
+				}, nil
+			}
+				if obj.ChangeToken != createObjectRequest.ChangeToken {
+					return &AppError{
+						Code: 400,
+						Err:  nil,
+						Msg:  "Changetoken must be up to date",
+					}, nil
+				}
 			//Guess the content type and name if it wasn't supplied
 			if obj.ContentType.Valid == false || len(obj.ContentType.String) == 0 {
 				obj.ContentType.String = guessContentType(part.FileName())
@@ -186,7 +186,7 @@ func (h AppServer) beginUploadTimed(
 	log.Printf("rename:%s -> %s", outFileUploading, outFileUploaded)
 
 	//Record metadata
-    log.Printf("checksum:%s", hex.EncodeToString(checksum))
+	log.Printf("checksum:%s", hex.EncodeToString(checksum))
 	obj.ContentHash = checksum
 	obj.ContentSize.Int64 = length
 

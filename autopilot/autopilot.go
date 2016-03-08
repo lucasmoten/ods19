@@ -215,6 +215,51 @@ func (ap AutopilotContext) generateUploadRequest(name string, fqName string, url
 	return req, err
 }
 
+
+func (ap AutopilotContext) generateUpdateRequest(changeToken, name string, fqName string, url string, async bool) (*http.Request, error) {
+	f, err := os.Open(fqName)
+	defer f.Close()
+	if err != nil {
+		fmt.Fprintf(ap.Log, "Unable to open %s: %v", fqName, err)
+		return nil, err
+	}
+	//Create a multipart mime request
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+	um := protocol.UpdateStreamRequest{
+        ChangeToken: changeToken,
+	}
+	umStr, err := json.MarshalIndent(um, "", "  ")
+	if err != nil {
+		fmt.Fprintf(ap.Log, "Cannot marshal object:%v", err)
+	}
+	//Hmm... had to rewrite part of std Go sdk locally to do this
+	writePartField(w, "ObjectMetadata", string(umStr), "application/json")
+	fw, err := w.CreateFormFile("filestream", name)
+	if err != nil {
+		fmt.Fprintf(ap.Log, "unable to create form file from %s:%v", fqName, err)
+		return nil, err
+	}
+	if _, err = io.Copy(fw, f); err != nil {
+		fmt.Fprintf(ap.Log, "Could not copy file:%v", err)
+		return nil, err
+	}
+	w.Close()
+
+	req, err := http.NewRequest(
+		"POST",
+		url,
+		&b,
+	)
+	req.Header.Set("Content-Type", "application/json")
+	if err != nil {
+		fmt.Fprintf(ap.Log, "Could not generate request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	return req, err
+}
 // Closing the context should flush and write out the file for this trace
 func (ap AutopilotContext) Close() {
 	ap.Log.Close()
@@ -459,8 +504,9 @@ func (ap AutopilotContext) DoUpdateLink(i int, link *protocol.Object, msg, toApp
 	}
 	f.Close()
 
-	req, err := ap.generateUploadRequest(
-		link.Name,
+	req, err := ap.generateUpdateRequest(
+		link.ChangeToken,
+        link.Name,
 		fqName,
 		host+rootURL+"/object/"+link.ID+"/stream",
 		false,

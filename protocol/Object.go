@@ -83,3 +83,8 @@ type CreateObjectRequest struct {
     Properties []Property `json:"properties,omitempty"`
     Permissions []Permission `json:"permissions,omitempty"`
 }
+
+// UpdateStreamRequest is for updating the object stream
+type UpdateStreamRequest struct {
+	ChangeToken string `json:"changeToken,omitempty"`
+}
