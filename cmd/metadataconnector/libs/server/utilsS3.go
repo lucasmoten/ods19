@@ -77,11 +77,24 @@ func (h AppServer) acceptObjectUpload(
 			}
             parsedMetadata = true
 		case len(part.FileName()) > 0:
-            if parsedMetadata == false && asCreate {
+            var msg string
+            if asCreate {
+                msg = "ObjectMetadata is required during create"
+            } else {
+                msg = "Metadata must be provided in part named 'ObjectMetadata' to create or update an object"
+                if len(obj.ChangeToken) == 0 {
+                    return &AppError{
+                        Code: 400,
+                        Err: nil,
+                        Msg: "ChangeToken must be supplied in ObjectMetadata",
+                    }
+                }
+            }
+            if !parsedMetadata {
                 return &AppError{
                     Code: 400,
                     Err: nil,
-                    Msg: "Metadata is required during create",
+                    Msg: msg,
                 },nil
             }
 			//Guess the content type and name if it wasn't supplied
