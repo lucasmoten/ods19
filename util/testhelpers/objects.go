@@ -73,7 +73,7 @@ func NewCreateObjectPOSTRequest(host, dn string, f *os.File) (*http.Request, err
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 
-	writePartField(w, "CreateObjectRequest", string(jsonBody), "application/json")
+	writePartField(w, "ObjectMetadata", string(jsonBody), "application/json")
 	fw, err := w.CreateFormFile("filestream", "testfilename.txt")
 	if err != nil {
 		return nil, err
