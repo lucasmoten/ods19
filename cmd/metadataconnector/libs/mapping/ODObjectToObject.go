@@ -304,7 +304,7 @@ func OverwriteODObjectWithProtocolObject(o *models.ODObject, i *protocol.Object)
 			return err
 		}
 	case len(typeID) == 0:
-		o.TypeID = nil
+		////If the i.id being sent in is blank, that's a signal to NOT use it
 	default:
 		o.TypeID = typeID
 	}

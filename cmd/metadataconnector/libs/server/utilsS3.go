@@ -68,7 +68,7 @@ func (h AppServer) acceptObjectUpload(
 					return herr, nil
 				}
 			} else {
-				//Dont allow inconsistent ids
+				// If the id is specified, it must be the same as from the URI
 				if len(createObjectRequest.ID) > 0 && createObjectRequest.ID != existingID {
 					return &AppError{
 						Code: 400,
@@ -76,7 +76,7 @@ func (h AppServer) acceptObjectUpload(
 						Msg:  "JSON supplied an object id inconsistent with the one supplied from URI",
 					}, nil
 				}
-				//Dont allow inconsistent parent ids
+				//Parent id change must not be allowed, as it would let users move the object
 				if len(createObjectRequest.ParentID) > 0 && createObjectRequest.ParentID != existingParentID {
 					return &AppError{
 						Code: 400,
