@@ -28,7 +28,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	var grant *models.ODObjectPermission
 
 	//Get the object from the database, unedited
-	object, herr, err := h.getObjectStreamObject(w, r, caller)
+	object, herr, err := h.getObjectStreamObject(ctx, w, r)
 	if herr != nil {
 		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
 		return
@@ -96,7 +96,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		return
 	}
 
-	object, herr, err = h.getObjectStreamObject(w, r, caller)
+	object, herr, err = h.getObjectStreamObject(ctx, w, r)
 	if herr != nil {
 		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
 		return

@@ -8,6 +8,7 @@ import (
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/services/aac"
 	"decipher.com/oduploader/util"
 )
 
@@ -32,6 +33,8 @@ func TestAppServerGetObject(t *testing.T) {
 		{Grantee: user.DistinguishedName, AllowRead: true}}
 	obj := models.ODObject{Permissions: perms}
 	obj.ID = []byte(guid)
+	obj.RawAcm.String = "Invalid ACM"
+	obj.RawAcm.Valid = true
 
 	// Fake the DAO interface.
 	fakeDAO := dao.FakeDAO{
@@ -39,9 +42,20 @@ func TestAppServerGetObject(t *testing.T) {
 		Users:  []models.ODUser{user},
 	}
 
+	checkAccessResponse := aac.CheckAccessResponse{
+		Success:   true,
+		HasAccess: true,
+	}
+	// Fake the AAC interface
+	fakeAAC := aac.FakeAAC{
+		CheckAccessResp: &checkAccessResponse,
+	}
+
 	// Fake the AppServer.
 	fakeServer := server.AppServer{DAO: &fakeDAO,
-		ServicePrefix: `/service/metadataconnector/1\.0`}
+		ServicePrefix: `/service/metadataconnector/1\.0`,
+		AAC:           &fakeAAC,
+	}
 	fakeServer.InitRegex()
 
 	// Simulate the getObject call.

@@ -98,23 +98,6 @@ func (fake *FakeDAO) GetChildObjectsWithPropertiesByUser(
 	return fake.ObjectResultSet, fake.Err
 }
 
-// GetUserByDistinguishedName for FakeDAO.
-func (fake *FakeDAO) GetUserByDistinguishedName(user models.ODUser) (models.ODUser, error) {
-	for _, u := range fake.Users {
-		if user.DistinguishedName == u.DistinguishedName {
-			u.ModifiedBy = u.DistinguishedName
-			return u, nil
-		}
-	}
-	return fake.User, errors.New("DistinguishedName not found in fake.Users slice. Did you set it on the fake?")
-
-}
-
-// GetUsers for FakeDAO.
-func (fake *FakeDAO) GetUsers() ([]models.ODUser, error) {
-	return fake.Users, fake.Err
-}
-
 // GetObject for FakeDAO.
 func (fake *FakeDAO) GetObject(object models.ODObject, loadProperties bool) (models.ODObject, error) {
 	return fake.Object, fake.Err
@@ -128,6 +111,11 @@ func (fake *FakeDAO) GetObjectPermission(objectPermission models.ODObjectPermiss
 // GetObjectProperty for FakeDAO.
 func (fake *FakeDAO) GetObjectProperty(objectProperty models.ODObjectPropertyEx) (models.ODObjectPropertyEx, error) {
 	return fake.ObjectPropertyEx, fake.Err
+}
+
+// GetObjectRevision for FakeDAO.
+func (fake *FakeDAO) GetObjectRevision(object models.ODObject, loadProperties bool) (models.ODObject, error) {
+	return fake.Object, fake.Err
 }
 
 // GetObjectRevisionsByUser for FakeDAO
@@ -145,19 +133,29 @@ func (fake *FakeDAO) GetObjectType(objectType models.ODObjectType) (*models.ODOb
 	return &fake.ObjectType, fake.Err
 }
 
+// GetObjectTypeByName for FakeDAO.
+func (fake *FakeDAO) GetObjectTypeByName(typeName string, addIfMissing bool, createdBy string) (models.ODObjectType, error) {
+	return fake.ObjectType, fake.Err
+}
+
 // GetObjectsIHaveShared for FakeDAO
 func (fake *FakeDAO) GetObjectsIHaveShared(orderByClause string, pageNumber int, pageSize int, user string) (models.ODObjectResultset, error) {
+	return fake.ObjectResultSet, fake.Err
+}
+
+// GetObjectsSharedToMe for FakeDAO
+func (fake *FakeDAO) GetObjectsSharedToMe(
+	grantee string,
+	orderByClause string,
+	pageNumber int,
+	pageSize int,
+) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
 // GetPermissionsForObject for FakeDAO.
 func (fake *FakeDAO) GetPermissionsForObject(object models.ODObject) ([]models.ODObjectPermission, error) {
 	return fake.ObjectPermissions, fake.Err
-}
-
-// GetObjectTypeByName for FakeDAO.
-func (fake *FakeDAO) GetObjectTypeByName(typeName string, addIfMissing bool, createdBy string) (models.ODObjectType, error) {
-	return fake.ObjectType, fake.Err
 }
 
 // GetPropertiesForObject for FakeDAO.
@@ -198,6 +196,22 @@ func (fake *FakeDAO) GetTrashedObjectsByUser(orderByClause string, pageNumber in
 	return fake.ObjectResultSet, fake.Err
 }
 
+// GetUserByDistinguishedName for FakeDAO.
+func (fake *FakeDAO) GetUserByDistinguishedName(user models.ODUser) (models.ODUser, error) {
+	for _, u := range fake.Users {
+		if user.DistinguishedName == u.DistinguishedName {
+			u.ModifiedBy = u.DistinguishedName
+			return u, nil
+		}
+	}
+	return fake.User, errors.New("DistinguishedName not found in fake.Users slice. Did you set it on the fake?")
+}
+
+// GetUsers for FakeDAO.
+func (fake *FakeDAO) GetUsers() ([]models.ODUser, error) {
+	return fake.Users, fake.Err
+}
+
 // IsParentIDADescendent for FakeDAO.
 func (fake *FakeDAO) IsParentIDADescendent(id []byte, parentID []byte) (bool, error) {
 	return fake.IsDescendent, fake.Err
@@ -229,14 +243,4 @@ func (fake *FakeDAO) clearError() {
 
 func fakeCompileCheck() DAO {
 	return &FakeDAO{}
-}
-
-// GetObjectsSharedToMe gives a listing of files that were shared to us
-func (fake *FakeDAO) GetObjectsSharedToMe(
-	grantee string,
-	orderByClause string,
-	pageNumber int,
-	pageSize int,
-) (models.ODObjectResultset, error) {
-	return fake.ObjectResultSet, fake.Err
 }

@@ -164,7 +164,7 @@ func (h *AppServer) InitRegex() {
 		ObjectShare:             regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/share$"),
 		ObjectShareID:           regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/share/([0-9a-fA-F]*)$"),
 		ObjectStream:            regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/stream$"),
-		ObjectStreamRevision:    regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/history/.*/stream$"),
+		ObjectStreamRevision:    regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/history/(?P<historyId>.*)/stream$"),
 		ObjectSubscription:      regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/subscribe$"),
 		ListObjects:             regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/list$"),
 		ListObjectRevisions:     regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/history$"),
@@ -234,11 +234,11 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.favicon(w, r)
 			// from longest to shortest...
 		case h.Routes.ObjectStreamRevision.MatchString(uri):
-			h.getObjectStreamForRevision(w, r, caller)
+			h.getObjectStreamForRevision(ctx, w, r)
 		case h.Routes.ObjectStream.MatchString(uri):
-			h.getObjectStream(w, r, caller)
+			h.getObjectStream(ctx, w, r)
 		case h.Routes.ObjectProperties.MatchString(uri):
-			h.getObject(w, r, caller)
+			h.getObject(ctx, w, r)
 		case h.Routes.ObjectLinks.MatchString(uri):
 			h.getRelationships(w, r, caller)
 		case h.Routes.Objects.MatchString(uri):

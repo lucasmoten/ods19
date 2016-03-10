@@ -137,7 +137,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.FailNow()
 	}
 	if getRes4.StatusCode != http.StatusOK {
-		t.Logf("clientid2 was not able to get shared object")
+		t.Logf("clientid2 was not able to get shared object, got status %d", getRes4.StatusCode)
 		t.FailNow()
 	}
 
