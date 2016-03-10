@@ -1,11 +1,12 @@
 package config
 
 import (
-	"decipher.com/oduploader/util"
 	"flag"
 	"log"
 	"os"
 	"path/filepath"
+
+	"decipher.com/oduploader/util"
 )
 
 // Environment is all parameters passable into this program
@@ -13,11 +14,9 @@ import (
 //
 // If we are to have multiple programs, they should share as much of the interface
 // as possible.
+// TODO: Where is this used? And which fields are used?
 type Environment struct {
 	UsingServerTLS  bool
-	UsingAWS        bool
-	UsingLog        bool
-	UsingClientTLS  bool
 	HideFileNames   bool
 	TCPPort         int
 	TCPBind         string
@@ -34,14 +33,6 @@ type Environment struct {
 }
 
 // FlagSetup does standard flag setup for this project
-// The defaults should simplify the deployed (not dev) artifact.
-// We can pass in flags to dev scripts and deployed scripts.
-/*  //example:
-func main() {
-	env := config.FlagSetup(&config.Environment{})
-	libs.LaunchUploader(env)
-}
-*/
 func FlagSetup(env *Environment) error {
 	//masterkey comes from env to keep it from showing up in ps output
 	env.MasterKey = os.Getenv("masterkey")
@@ -62,35 +53,23 @@ func FlagSetup(env *Environment) error {
 	//Give errors now if the environment is not consistent
 	if env.UsingServerTLS {
 
-		if env.UsingLog {
-			log.Printf("serverTrustFile: %s", env.ServerTrustFile)
-		}
 		_, err := os.Stat(env.ServerTrustFile)
 		if err != nil {
 			log.Printf("Could not check trust pem %s:%v", env.ServerTrustFile, err)
 			return err
 		}
 
-		if env.UsingLog {
-			log.Printf("serverCertFile: %s", env.ServerCertFile)
-		}
 		_, err = os.Stat(env.ServerCertFile)
 		if err != nil {
 			log.Printf("Could not check cert pem %s:%v", env.ServerCertFile, err)
 			return err
 		}
 
-		if env.UsingLog {
-			log.Printf("serverKeyFile: %s", env.ServerKeyFile)
-		}
 		_, err = os.Stat(env.ServerKeyFile)
 		if err != nil {
 			log.Printf("Could not check key pem %s:%v", env.ServerKeyFile, err)
 			return err
 		}
-	}
-	if env.UsingAWS {
-		//TODO: We may want to actually check AWS right now
 	}
 	return nil
 }

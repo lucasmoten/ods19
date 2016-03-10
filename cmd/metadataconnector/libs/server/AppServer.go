@@ -171,7 +171,7 @@ func (h *AppServer) InitRegex() {
 		ListObjectShares:        regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/shares$"),
 		ListObjectSubscriptions: regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/subscriptions$"),
 		ListImages:              regexp.MustCompile(h.ServicePrefix + "/images/([0-9a-fA-F]*)/list$"),
-		TrashObject:             regexp.MustCompile(h.ServicePrefix + "/trash/([0-9a-fA-F]*)"),
+		TrashObject:             regexp.MustCompile(h.ServicePrefix + "/trash/(?P<objectId>[0-9a-fA-F]*)"),
 		StatsObject:             regexp.MustCompile(h.ServicePrefix + "/stats$"),
 		StaticFiles:             regexp.MustCompile(h.ServicePrefix + "/static/(?P<path>.*)"),
 	}
@@ -317,6 +317,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.updateObjectPermissions(w, r, caller)
 		case h.Routes.ObjectProperties.MatchString(uri):
 			h.updateObject(w, r, caller)
+		case h.Routes.TrashObject.MatchString(uri):
+			h.removeObjectFromTrash(ctx, w, r)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)
@@ -333,7 +335,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.ObjectLink.MatchString(uri):
 			h.removeObjectFromFolder(w, r, caller)
 		case h.Routes.TrashObject.MatchString(uri):
-			h.removeObjectFromTrash(w, r, caller)
+			h.removeObjectFromTrash(ctx, w, r)
 		case h.Routes.ObjectShareID.MatchString(uri):
 			h.removeObjectShare(ctx, w, r)
 		case h.Routes.ObjectSubscription.MatchString(uri):

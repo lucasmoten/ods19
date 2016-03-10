@@ -28,7 +28,10 @@ func getChildObjectsInTransaction(tx *sqlx.Tx, orderByClause string, pageNumber 
 	response := models.ODObjectResultset{}
 	limit := GetLimit(pageNumber, pageSize)
 	offset := GetOffset(pageNumber, pageSize)
-	query := `select sql_calc_found_rows o.*, ot.name typeName from object o inner join object_type ot on o.typeid = ot.id where o.isdeleted = 0 and o.parentid = ?`
+	query := `select sql_calc_found_rows o.*, ot.name typeName 
+              from object o 
+              inner join object_type ot on o.typeid = ot.id 
+              where o.isdeleted = 0 and o.parentid = ?`
 	if len(orderByClause) > 0 {
 		query += ` order by o.` + orderByClause
 	} else {

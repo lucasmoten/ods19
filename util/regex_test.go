@@ -16,7 +16,9 @@ func TestGetRegexCaptureGroups(t *testing.T) {
 		t.Fail()
 	}
 
-	// TODO handle the case where path is missing.
+	if item := result["foo"]; item == "" {
+		t.Log("Foo not found in map.")
+	}
 }
 
 func TestSanitizePath(t *testing.T) {

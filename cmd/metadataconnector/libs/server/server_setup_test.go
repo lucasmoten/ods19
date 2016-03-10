@@ -28,7 +28,7 @@ var httpclients []*http.Client
 func init() {
 	host = "https://dockervm:8080"
 	generatePopulation()
-   
+
 }
 
 func generatePopulation() {
@@ -39,8 +39,8 @@ func generatePopulation() {
 
 func populateClients(population int) {
 	clients = make([]*ClientIdentity, population)
-    httpclients = make([]*http.Client, population)
-    faviconReq, _ := http.NewRequest("GET", host + "/service/metadataconnector/1.0/favicon.ico", nil)
+	httpclients = make([]*http.Client, population)
+	faviconReq, _ := http.NewRequest("GET", host+"/service/metadataconnector/1.0/favicon.ico", nil)
 	for i := 0; i < len(clients); i++ {
 		client, err := getClientIdentity(i, "test_"+strconv.Itoa(i))
 		clients[i] = client
@@ -49,14 +49,15 @@ func populateClients(population int) {
 		} else {
 			//log.Printf("Creating client %d", i)
 		}
-        
-        transport := &http.Transport{TLSClientConfig: clients[i].Config}
-        httpclients[i] = &http.Client{Transport: transport}
-        // Fire-and-Forget call to favicon.ico which will force creation of the
-        // user in the database
-        httpclients[i].Do(faviconReq)
 
-        
+		transport := &http.Transport{TLSClientConfig: clients[i].Config}
+		httpclients[i] = &http.Client{Transport: transport}
+		// Fire-and-Forget call to favicon.ico which will force creation of the
+		// user in the database
+		_, err = httpclients[i].Do(faviconReq)
+		if err != nil {
+			log.Println("Error in populateClients")
+		}
 	}
 }
 
@@ -163,7 +164,6 @@ func makeFolderViaJSON(folderName string, clientid int) (*protocol.Object, error
 	folder.Name = folderName
 	folder.TypeName = "Folder"
 	folder.ParentID = ""
-	// marshall request
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)

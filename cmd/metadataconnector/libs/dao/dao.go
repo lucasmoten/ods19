@@ -41,6 +41,7 @@ type DAO interface {
 	GetUserByDistinguishedName(user models.ODUser) (models.ODUser, error)
 	GetUsers() ([]models.ODUser, error)
 	IsParentIDADescendent(id []byte, parentID []byte) (bool, error)
+	UndeleteObject(object *models.ODObject) (models.ODObject, error)
 	UpdateObject(object *models.ODObject, acm *models.ODACM) error
 	UpdateObjectProperty(objectProperty models.ODObjectPropertyEx) error
 	UpdatePermission(permission models.ODObjectPermission) error

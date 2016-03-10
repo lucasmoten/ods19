@@ -27,15 +27,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
-    
-    _ "net/http/pprof"
+
+	_ "net/http/pprof"
 )
 
-/**
-Get an instance of AAC on startup.
-Fail to come up if we can't do this.
-TODO: restart uploader if we lose AAC connection
-*/
+// getAACClient gets an instance of AAC on startup.
+// TODO: restart uploader if we lose AAC connection.
 func getAACClient() (*aac.AacServiceClient, error) {
 	trustPath := filepath.Join(oduconfig.CertsDir, "clients", "client.trust.pem")
 	certPath := filepath.Join(oduconfig.CertsDir, "clients", "test_1.cert.pem")
@@ -77,6 +74,7 @@ func main() {
 		panic(err.Error())
 	}
 	defer db.Close()
+
 	// Validate the DSN for the database by pinging it
 	pingDBresult := pingDB(db)
 	if pingDBresult != 0 {
@@ -90,6 +88,7 @@ func main() {
 		log.Fatalf("Fatal error in call to makeServer(): %v", err)
 	}
 	// with TLS support
+	// TODO: Should we encapsulate setting this TLSConfig in makeServer?
 	stls := serverConfig.GetTLSConfig()
 	s.TLSConfig = &stls
 	serverCertFile := serverConfig.ServerCertChain
@@ -103,11 +102,11 @@ func main() {
 
 	go handler.CachePurge()
 
-    // start pprof handler
-    go func() {
-        log.Println(http.ListenAndServe("0.0.0.0:4480", nil))
-    }()
-    
+	// start pprof handler
+	//	go func() {
+	//		log.Println(http.ListenAndServe("0.0.0.0:4480", nil))
+	//	}()
+
 	// start it
 	log.Println("Starting server on " + s.Addr)
 	log.Fatalln(s.ListenAndServeTLS(serverCertFile, serverKeyFile))
@@ -115,7 +114,7 @@ func main() {
 
 //TODO: not sure how much is safe to share concurrently
 //This is account as in the ["default"] entry in ~/.aws/credentials
-func awsS3() (*session.Session) {
+func awsS3() *session.Session {
 	sessionConfig := &aws.Config{
 		Credentials: credentials.NewEnvCredentials(),
 	}

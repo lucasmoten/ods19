@@ -6,7 +6,9 @@ import (
 )
 
 // GetRegexCaptureGroups takes a string and a compiled RegExp, and returns
-// a map of capture group name to the captured value. Map may be empty.
+// a map of capture group name to the captured value. Map may be empty, and
+// expected keys may not be present. Test for empty string values when
+// attempting to get values from the resulting map.
 func GetRegexCaptureGroups(s string, re *regexp.Regexp) map[string]string {
 	result := make(map[string]string)
 	match := re.FindStringSubmatch(s)

@@ -17,6 +17,45 @@ import (
 	"decipher.com/oduploader/util"
 )
 
+func NewACMForUser(username, classification string) models.ODACM {
+	var acm models.ODACM
+	acm.CreatedBy = username
+	acm.Classification.String = classification
+	acm.Classification.Valid = true
+	return acm
+}
+
+// NewObjectWithPermissionsAndProperties creates a single minimally populated
+// object with random properties and full permissions.
+func NewObjectWithPermissionsAndProperties(username, objectType string) models.ODObject {
+
+	var obj models.ODObject
+	randomName, err := util.NewGUID()
+	if err != nil {
+		panic(err)
+	}
+
+	obj.Name = randomName
+	obj.CreatedBy = username
+	obj.TypeName.String, obj.TypeName.Valid = objectType, true
+	permissions := make([]models.ODObjectPermission, 1)
+	permissions[0].Grantee = obj.CreatedBy
+	permissions[0].AllowCreate = true
+	permissions[0].AllowRead = true
+	permissions[0].AllowUpdate = true
+	permissions[0].AllowDelete = true
+	obj.Permissions = permissions
+	properties := make([]models.ODObjectPropertyEx, 1)
+	properties[0].Name = "Test Property for " + randomName
+	properties[0].Value.String = "Property Val for " + randomName
+	properties[0].Value.Valid = true
+	properties[0].ClassificationPM.String = "UNCLASSIFIED"
+	properties[0].ClassificationPM.Valid = true
+	obj.Properties = properties
+
+	return obj
+}
+
 // NewTrashedObject creates a deleted object owned by the passed in user.
 // There are no database calls in this function.
 func NewTrashedObject(username string) models.ODObject {
@@ -32,15 +71,12 @@ func NewTrashedObject(username string) models.ODObject {
 
 // CreateParentChildObjectRelationship sets the ParentID of child to the ID of parent.
 // If parent has no ID, a []byte GUID is generated.
-func CreateParentChildObjectRelationship(parent, child *models.ODObject) (*models.ODObject, *models.ODObject, error) {
+func CreateParentChildObjectRelationship(parent, child models.ODObject) (models.ODObject, models.ODObject, error) {
 
-	if parent == nil || child == nil {
-		return nil, nil, errors.New("Parent and child must not be nil.")
-	}
 	if len(parent.ID) == 0 {
 		id, err := util.NewGUIDBytes()
 		if err != nil {
-			return nil, nil, err
+			return parent, child, err
 		}
 		parent.ID = id
 	}
@@ -54,7 +90,7 @@ func CreateParentChildObjectRelationship(parent, child *models.ODObject) (*model
 // e.g. a docker container or localhost. Several object parameters are hardcoded, and this
 // function should only be used for testing purposes.
 func NewCreateObjectPOSTRequest(host, dn string, f *os.File) (*http.Request, error) {
-	uri := host + "/service/metadataconnector/1.0/object"
+	uri := host + TestServicePrefix + "object"
 	testName, err := util.NewGUID()
 	if err != nil {
 		return nil, err
@@ -102,7 +138,7 @@ func NewCreateObjectPOSTRequest(host, dn string, f *os.File) (*http.Request, err
 // localhost.
 func NewDeleteObjectRequest(obj protocol.Object, dn, host string) (*http.Request, error) {
 
-	uri := host + "/service/metadataconnector/1.0/object/" + obj.ID
+	uri := host + TestServicePrefix + "object/" + obj.ID
 
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = obj.ChangeToken
@@ -115,6 +151,45 @@ func NewDeleteObjectRequest(obj protocol.Object, dn, host string) (*http.Request
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if dn != "" {
+		req.Header.Set("USER_DN", dn)
+	}
+	return req, nil
+}
+
+// NewGetObjectRequest ...
+func NewGetObjectRequest(id, dn, host string) (*http.Request, error) {
+
+	uri := host + TestServicePrefix + "object/" + id + "/properties"
+
+	req, err := http.NewRequest("GET", uri, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUndeleteObjectPUTRequest creates a request with the provided objectID in the URI
+// that routes to the removeObjectFromTrash handler.
+func NewUndeleteObjectPUTRequest(id, changeToken, dn, host string) (*http.Request, error) {
+	if id == "" {
+		return nil, errors.New("Test ObjectID cannot be empty string")
+	}
+
+	uri := host + TestServicePrefix + "trash/" + id
+
+	objChangeToken := protocol.ChangeTokenStruct{}
+	objChangeToken.ChangeToken = changeToken
+	jsonBody, err := json.Marshal(objChangeToken)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", uri, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, err
+	}
 	if dn != "" {
 		req.Header.Set("USER_DN", dn)
 	}
