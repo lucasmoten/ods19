@@ -47,6 +47,7 @@ func (h AppServer) acceptObjectUpload(
 		case part.FormName() == "ObjectMetadata":
 			//This ID we got off of the URI, because we haven't parsed JSON yet
 			existingID := hex.EncodeToString(obj.ID)
+			existingParentID := hex.EncodeToString(obj.ParentID)
 
 			s := getFormValueAsString(part)
 			//It's the same as the database object, but this function might be
@@ -67,7 +68,16 @@ func (h AppServer) acceptObjectUpload(
 					return herr, nil
 				}
 			} else {
+				//Dont allow inconsistent ids
 				if len(createObjectRequest.ID) > 0 && createObjectRequest.ID != existingID {
+					return &AppError{
+						Code: 400,
+						Err:  err,
+						Msg:  "JSON supplied an object id inconsistent with the one supplied from URI",
+					}, nil
+				}
+				//Dont allow inconsistent parent ids
+				if len(createObjectRequest.ParentID) > 0 && createObjectRequest.ParentID != existingParentID {
 					return &AppError{
 						Code: 400,
 						Err:  err,
@@ -90,12 +100,14 @@ func (h AppServer) acceptObjectUpload(
 					Msg:  msg,
 				}, nil
 			}
-			if obj.ChangeToken != createObjectRequest.ChangeToken {
-				return &AppError{
-					Code: 400,
-					Err:  nil,
-					Msg:  "Changetoken must be up to date",
-				}, nil
+			if !asCreate {
+				if obj.ChangeToken != createObjectRequest.ChangeToken {
+					return &AppError{
+						Code: 400,
+						Err:  nil,
+						Msg:  "Changetoken must be up to date",
+					}, nil
+				}
 			}
 			//Guess the content type and name if it wasn't supplied
 			if obj.ContentType.Valid == false || len(obj.ContentType.String) == 0 {
