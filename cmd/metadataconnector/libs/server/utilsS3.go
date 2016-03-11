@@ -81,7 +81,7 @@ func (h AppServer) acceptObjectUpload(
 					return &AppError{
 						Code: 400,
 						Err:  err,
-						Msg:  "JSON supplied an object id inconsistent with the one supplied from URI",
+						Msg:  "JSON supplied an parent id",
 					}, nil
 				}
 			}
