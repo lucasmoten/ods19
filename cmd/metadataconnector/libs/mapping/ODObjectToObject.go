@@ -318,7 +318,7 @@ func OverwriteODObjectWithProtocolObject(o *models.ODObject, i *protocol.Object)
 			return err
 		}
 	case len(parentID) == 0:
-		o.ParentID = nil
+		////If the i.id being sent in is blank, that's a signal to NOT use it
 	default:
 		o.ParentID = parentID
 	}
