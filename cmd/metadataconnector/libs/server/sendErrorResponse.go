@@ -6,6 +6,6 @@ import (
 )
 
 func (h AppServer) sendErrorResponse(w http.ResponseWriter, code int, err error, msg string) {
-	log.Printf("%s:%v", msg, err)
+	log.Printf("httpCode %d:%s:%v", code, msg, err)
 	http.Error(w, msg, code)
 }

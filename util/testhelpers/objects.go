@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"math"
 	"mime/multipart"
@@ -19,6 +20,40 @@ import (
 	"decipher.com/oduploader/protocol"
 	"decipher.com/oduploader/util"
 )
+
+// DeferFunc is the function to call with defer
+type DeferFunc func()
+
+// GenerateTempFile gives us a file handle for a string that deletes itself on close:
+//
+//    f,c,err := GenerateTempFile(hugeString)
+//    if err != nil {
+//      return err
+//    }
+//    defer c()
+//
+func GenerateTempFile(data string) (*os.File, DeferFunc, error) {
+	tmp, err := ioutil.TempFile(".", "__tempfile__")
+	tmp.WriteString(data)
+	return tmp, func() {
+		name := tmp.Name()
+		tmp.Close()
+		err = os.Remove(name)
+	}, err
+}
+
+// DoWithDecodedResult is the common case of getting back a json response that is ok
+func DoWithDecodedResult(client *http.Client, req *http.Request) (*http.Response, interface{}, error) {
+	var objResponse protocol.Object
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, objResponse, err
+	}
+	decoder := json.NewDecoder(res.Body)
+	err = decoder.Decode(&objResponse)
+	res.Body.Close()
+	return res, objResponse, err
+}
 
 func NewACMForUser(username, classification string) models.ODACM {
 	var acm models.ODACM
@@ -100,27 +135,50 @@ const (
 // e.g. a docker container or localhost. Several object parameters are hardcoded, and this
 // function should only be used for testing purposes.
 func NewCreateObjectPOSTRequest(host, dn string, f *os.File) (*http.Request, error) {
-	uri := host + TestServicePrefix + "object"
 	testName, err := util.NewGUID()
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO change this to object metadata?
+	// TODO change this to object metadata? rjf - that would serialize unwanted zero fields
 	createRequest := protocol.CreateObjectRequest{
 		Name:     testName,
 		TypeName: "File",
 		RawAcm:   ValidACMUnclassifiedFOUO,
 	}
-	jsonBody, err := json.Marshal(createRequest)
+
+	var jsonBody []byte
+	jsonBody, err = json.Marshal(createRequest)
 	if err != nil {
 		return nil, err
 	}
+
+	req, err := NewCreateObjectPOSTRequestRaw(
+		"object",
+		host, dn,
+		f,
+		"testfilename.txt",
+		jsonBody,
+	)
+	return req, err
+}
+
+// NewCreateObjectPOSTRequestRaw generates a raw request, with enough flexibility to make
+// some malformed requests without too much trouble.
+func NewCreateObjectPOSTRequestRaw(
+	requestType,
+	host, dn string,
+	f *os.File,
+	fileName string,
+	jsonBody []byte,
+) (*http.Request, error) {
+	uri := host + TestServicePrefix + requestType
+
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 
 	writePartField(w, "ObjectMetadata", string(jsonBody), "application/json")
-	fw, err := w.CreateFormFile("filestream", "testfilename.txt")
+	fw, err := w.CreateFormFile("filestream", fileName)
 	if err != nil {
 		return nil, err
 	}
