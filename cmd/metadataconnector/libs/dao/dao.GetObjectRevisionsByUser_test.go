@@ -1,6 +1,7 @@
 package dao_test
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strings"
 	"testing"
@@ -75,12 +76,16 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	}
 
 	// Get list of revisions
-	resultset, err := d.GetObjectRevisionsByUser("", 1, dao.MaxPageSize, object, usernames[1])
+	resultset, err := d.GetObjectRevisionsByUser("changecount desc", 1, dao.MaxPageSize, object, usernames[1])
 	if err != nil {
 		t.Error("Error getting revisions for object")
 	}
 	if resultset.TotalRows != 3 {
 		t.Error(fmt.Errorf("Expected 3 revisions, got %d", resultset.TotalRows))
+	}
+	t.Logf("Object ID: %s", hex.EncodeToString(object.ID))
+	for _, obj := range resultset.Objects {
+		t.Logf("Object CC: %d, ModifiedBy: %s, Name: %s", obj.ChangeCount, obj.ModifiedBy, obj.Name)
 	}
 	if resultset.Objects[1].ModifiedBy != usernames[2] {
 		t.Error(fmt.Errorf("Expected revision to be modified by %s, but got %s", usernames[2], resultset.Objects[1].ModifiedBy))

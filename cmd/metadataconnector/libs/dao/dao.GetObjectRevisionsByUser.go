@@ -50,7 +50,7 @@ func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, orderByClause string, pa
 	if len(orderByClause) > 0 {
 		query += ` order by ao.` + orderByClause
 	} else {
-		query += ` order by ao.createddate desc`
+		query += ` order by ao.modifieddate desc`
 	}
 	query += ` limit ` + strconv.Itoa(limit) + ` offset ` + strconv.Itoa(offset)
 	err := tx.Select(&response.Objects, query, object.ID, user)

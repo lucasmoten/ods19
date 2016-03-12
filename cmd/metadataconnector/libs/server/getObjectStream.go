@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
@@ -20,7 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 )
 
-func (h AppServer) getObjectStreamObject(w http.ResponseWriter, r *http.Request, caller Caller) (models.ODObject, *AppError, error) {
+func (h AppServer) getObjectStreamObject(ctx context.Context, w http.ResponseWriter, r *http.Request) (models.ODObject, *AppError, error) {
 	var object models.ODObject
 	// Identify requested object
 	objectID := getIDOfObjectTORetrieveStream(r.URL.Path)
@@ -50,7 +52,7 @@ func (h AppServer) getObjectStreamObject(w http.ResponseWriter, r *http.Request,
   We are wrapping around getting object streams to time them.
 	TODO: This is including cache miss time.
 */
-func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, caller Caller) {
+func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	req, err := httputil.DumpRequest(r, true)
 	if err != nil {
 		log.Printf("unable to dump http request:%v", err)
@@ -58,7 +60,7 @@ func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, calle
 		log.Printf("%s", string(req))
 	}
 
-	object, herr, err := h.getObjectStreamObject(w, r, caller)
+	object, herr, err := h.getObjectStreamObject(ctx, w, r)
 	if herr != nil {
 		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
 		return
@@ -80,21 +82,25 @@ func (h AppServer) getObjectStream(w http.ResponseWriter, r *http.Request, calle
 		performance.SizeJob(object.ContentSize.Int64),
 	)
 
-	if herr := h.getObjectStreamWithObject(w, r, caller, object); herr != nil {
+	if herr := h.getObjectStreamWithObject(ctx, w, r, object); herr != nil {
 		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
 	}
 
 }
 
-func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Request, caller Caller, object models.ODObject) *AppError {
+func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.ResponseWriter, r *http.Request, object models.ODObject) *AppError {
+
 	var err error
-	var err2 error
-	var err3 error
+
+	// Get caller value from ctx.
+	caller, ok := CallerFromContext(ctx)
+	if !ok {
+		return &AppError{500, err, "Could not determine user"}
+	}
 
 	// Get the key from the permission
 	var permission *models.ODObjectPermission
 	var fileKey []byte
-	iv := object.EncryptIV
 
 	if len(object.Permissions) == 0 {
 		return &AppError{403, fmt.Errorf("We cannot decrypt files lacking permissions"), "Unauthorized"}
@@ -122,140 +128,26 @@ func (h AppServer) getObjectStreamWithObject(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
-	////Clean out the permission if aac check fails
-	if true {
-		tokenType := "pki_dias"
-		dn := caller.DistinguishedName
-		log.Printf("Waiting for AAC to respond to %s for %s", dn, object.RawAcm.String)
-		aacResponse, err := h.AAC.CheckAccess(dn, tokenType, object.RawAcm.String)
-		if err != nil {
-			log.Printf(
-				"AAC not responding to checkaccess for %s:%s:%s:%v",
-				dn, tokenType, object.RawAcm.String, err,
-			)
-			permission = nil
-		}
-		if aacResponse == nil {
-			log.Printf(
-				"AAC null response for checkaccess for %s:%s:%s:%v",
-				dn, tokenType, object.RawAcm.String, err,
-			)
-			permission = nil
-		} else {
-			log.Printf("AAC grants access to %s for %s", dn, object.RawAcm.String)
-		}
+	// Check AAC to compare user clearance to  metadata Classifications
+	// 		Check if Classification is allowed for this User
+	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &object)
+	if err != nil {
+		return &AppError{500, err, "Error communicating with authorization service"}
+	}
+	if !hasAACAccess {
+		return &AppError{403, err, "Unauthorized"}
 	}
 
-	if permission == nil {
-		return &AppError{403, nil, "No permission for file"}
+	// Fail fast: Don't even look at cache or retrieve if the file size is 0
+	if !object.ContentSize.Valid || object.ContentSize.Int64 <= int64(0) {
+		return &AppError{204, nil, "No content"}
 	}
 
 	// Database checks and AAC checks take time, particularly AAC.
 	// We may have just uploaded this file, with it still draining
 	// to S3 in the background.  So open the file as late as possible
 	// so that we take advantage of that parallelism.
-
-	//Make sure that the cache exists
-	err = h.CacheMustExist()
-	if err != nil {
-		return &AppError{500, err, "Our cache needs to exist"}
-	}
-
-	//Fall back on the uploaded copy for download if we need to
-	var cipherText *os.File
-	cipherTextS3Name := h.CacheLocation + "/" + object.ContentConnector.String
-	cipherTextName := cipherTextS3Name + ".cached"
-	cipherTextUploadedName := cipherTextS3Name + ".uploaded"
-
-	//Try to find the cached file
-	if cipherText, err = os.Open(cipherTextName); err != nil {
-		if os.IsNotExist(err) {
-			//Try the file being uploaded into S3
-			if cipherText, err2 = os.Open(cipherTextUploadedName); err2 != nil {
-				if os.IsNotExist(err2) {
-					//Maybe it's cached now?
-					if cipherText, err3 = os.Open(cipherTextName); err3 != nil {
-						if os.IsNotExist(err3) {
-							//File is really not cached or uploaded.
-							//If it's caching, it's partial anyway
-							//leave cipherText nil, and wait for re-cache
-						} else {
-							//Some other error.  Pretend it's permissions
-							return &AppError{403, err, "No permission for file"}
-						}
-					} else {
-						//cached file exists
-					}
-				} else {
-					//Some other error.  Pretend it's permissions
-					return &AppError{403, err, "No permission for file"}
-				}
-			} else {
-				//uploaded file exists.  use it.
-				log.Printf("using uploaded file")
-			}
-		} else {
-			//Some other error.  Pretend it's permissions
-			return &AppError{403, err, "No permission for file"}
-		}
-	} else {
-		//the cached file exists
-	}
-
-	//We have no choice but to recache and wait
-	if cipherText == nil {
-		log.Printf("file is not cached.  Caching it now.")
-		bucket := aws.String(config.DefaultBucket)
-		//When this finishes, cipherTextName should exist.  It could take a
-		//very long time though.
-		//XXX blocks for a long time - maybe we should return an error code and
-		// an estimate of WHEN to retry in this case
-		h.transferFileFromS3(bucket, object.ContentConnector.String, object.ContentSize.Int64)
-		if cipherText, err = os.Open(cipherTextName); err != nil {
-			return &AppError{403, err, "No permission for file"}
-		}
-	}
-
-	//We have the file and it's open.  Be sure to close it.
-	defer cipherText.Close()
-
-	w.Header().Set("Content-Type", object.ContentType.String)
-	if object.ContentSize.Valid && object.ContentSize.Int64 > int64(0) {
-		w.Header().Set("Content-Length", strconv.FormatInt(object.ContentSize.Int64, 10))
-	}
-	w.Header().Set("Accept-Ranges", "none")
-
-	//A visibility hack, so that I can see metadata about the object from a GET
-	//This lets you look in a browser and check attributes on an object that came
-	//back.
-	objectLink := mapping.MapODObjectToObject(&object)
-	objectLinkAsJSONBytes, err := json.Marshal(objectLink)
-	if err != nil {
-		log.Printf("Unable to marshal object metadata:%v", err)
-	}
-	objectLinkAsJSON := string(objectLinkAsJSONBytes)
-	w.Header().Set("Object-Data", objectLinkAsJSON)
-
-	//Actually send back the ciphertext
-	_, _, err = utils.DoCipherByReaderWriter(
-		cipherText,
-		w,
-		fileKey,
-		iv,
-		"client downloading",
-	)
-
-	if err != nil {
-		return &AppError{
-			Code: 500,
-			Err:  err,
-			Msg:  fmt.Sprintf("error sending decrypted ciphertext (%s)", cipherTextName),
-		}
-	}
-
-	//Update the timestamps to note the last time it was used
-	tm := time.Now()
-	os.Chtimes(cipherTextName, tm, tm)
+	h.getAndStreamFile(ctx, &object, w, fileKey, true)
 
 	return nil
 }
@@ -270,4 +162,129 @@ func getIDOfObjectTORetrieveStream(uri string) string {
 	}
 	value := uri[matchIndexes[2]:matchIndexes[3]]
 	return value
+}
+
+// This func broken out from the getObjectStream. It still needs refactored to
+// be more maintainable and make use of an interface for the content streams
+func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject, w http.ResponseWriter, encryptKey []byte, withMetadata bool) *AppError {
+	//Make sure that the cache exists
+	err := h.CacheMustExist()
+	if err != nil {
+		return &AppError{500, err, "Our cache needs to exist"}
+	}
+
+	//Fall back on the uploaded copy for download if we need to
+	var cipherFile *os.File
+	cipherFileNameBasePath := h.CacheLocation + "/" + object.ContentConnector.String
+	cipherFilePathCached := cipherFileNameBasePath + ".cached"
+	cipherFilePathUploaded := cipherFileNameBasePath + ".uploaded"
+
+	//Try to find the cached file
+	if cipherFile, err = os.Open(cipherFilePathCached); err != nil {
+		if os.IsNotExist(err) {
+			//Try the file being uploaded into S3
+			if cipherFile, err = os.Open(cipherFilePathUploaded); err != nil {
+				if os.IsNotExist(err) {
+					//Maybe it's cached now?
+					if cipherFile, err = os.Open(cipherFilePathCached); err != nil {
+						if os.IsNotExist(err) {
+							//File is really not cached or uploaded.
+							//If it's caching, it's partial anyway
+							//leave cipherFile nil, and wait for re-cache
+						} else {
+							//Some other error.
+							return &AppError{500, err, "Error opening file as cached state"}
+						}
+					} else {
+						//cached file exists
+					}
+				} else {
+					//Some other error.
+					return &AppError{500, err, "Error opening file as uploaded state"}
+				}
+			} else {
+				//uploaded file exists.  use it.
+				log.Printf("using uploaded file")
+			}
+		} else {
+			//Some other error.
+			return &AppError{500, err, "Error opening file as initial cached state"}
+		}
+	} else {
+		//the cached file exists
+	}
+
+	// Check if cipherFile was assigned, denoting whether or not pulling from cache
+	if cipherFile == nil {
+		// We have no choice but to recache and wait
+		log.Printf("file is not cached.  Caching it now.")
+		bucket := aws.String(config.DefaultBucket)
+		//When this finishes, cipherFilePathCached should exist.  It could take a
+		//very long time though.
+		//XXX blocks for a long time - maybe we should return an error code and
+		// an estimate of WHEN to retry in this case
+		// RECOMMEND: Break files in S3 greater then X size into 2 parts. One that is
+		// of reasonable size to retrieve to get an initial output going, the other
+		// consisting of the remainder. Only necessary for rather large files
+		h.transferFileFromS3(bucket, object.ContentConnector.String, object.ContentSize.Int64)
+		if cipherFile, err = os.Open(cipherFilePathCached); err != nil {
+			return &AppError{500, err, "Error opening recently cached file"}
+		}
+	}
+
+	//Update the timestamps to note the last time it was used
+	// This is done here, as well as successful end just in case of failures midstream.
+	tm := time.Now()
+	os.Chtimes(cipherFilePathCached, tm, tm)
+
+	//We have the file and it's open.  Be sure to close it.
+	defer cipherFile.Close()
+
+	w.Header().Set("Content-Type", object.ContentType.String)
+	if object.ContentSize.Valid && object.ContentSize.Int64 > int64(0) {
+		w.Header().Set("Content-Length", strconv.FormatInt(object.ContentSize.Int64, 10))
+	}
+	w.Header().Set("Accept-Ranges", "none")
+
+	//A visibility hack, to reveal metadata about the object in the respone header
+	if withMetadata {
+		protocolObject := mapping.MapODObjectToObject(object)
+		protocolObjectAsJSONBytes, err := json.Marshal(protocolObject)
+		if err != nil {
+			log.Printf("Unable to marshal object metadata:%v", err)
+		} else {
+			jsonStringified := string(protocolObjectAsJSONBytes)
+			w.Header().Set("Object-Data", jsonStringified)
+		}
+	}
+
+	//Actually send back the cipherFile
+	_, _, err = utils.DoCipherByReaderWriter(
+		cipherFile,
+		w,
+		encryptKey,
+		object.EncryptIV,
+		"client downloading",
+	)
+
+	if err != nil {
+		// At this point, we've already started sending data to the client,
+		// and so we cant change headers. All we can do is log this error
+		// for reference.
+		// Reportedly a common cause is Firefox ceasing a stream with a
+		// follow up for a range request, which we dont support at this
+		// time.
+		log.Printf("Error sending decrypted cipherFile (%s): %v", cipherFilePathCached, err)
+		// return &AppError{
+		// 	Code: 500,
+		// 	Err:  err,
+		// 	Msg:  fmt.Sprintf("error sending decrypted cipherFile (%s)", cipherFilePathCached),
+		// }
+	}
+
+	//Update the timestamps to note the last time it was used
+	tm = time.Now()
+	os.Chtimes(cipherFilePathCached, tm, tm)
+
+	return nil
 }

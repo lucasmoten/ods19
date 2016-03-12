@@ -2,10 +2,13 @@ package testhelpers
 
 import (
 	"bytes"
+	"crypto/md5"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log"
+	"math"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
@@ -84,6 +87,13 @@ func CreateParentChildObjectRelationship(parent, child models.ODObject) (models.
 	return parent, child, nil
 }
 
+// ValidACMs
+const (
+	ValidACMUnclassified = `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`
+
+	ValidACMUnclassifiedFOUO = `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":["FOUO"],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U//FOUO","banner":"UNCLASSIFIED//FOUO","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`
+)
+
 // NewCreateObjectPOSTRequest generates a http.Request that will route to the createObject
 // controller method, and provide a mutlipart body with the passed-in file object.
 // The dn string is optional. The host string is required to route to the correct server,
@@ -100,7 +110,7 @@ func NewCreateObjectPOSTRequest(host, dn string, f *os.File) (*http.Request, err
 	createRequest := protocol.CreateObjectRequest{
 		Name:     testName,
 		TypeName: "File",
-		RawAcm:   `{"version":"2.1.0","classif":"S"}`,
+		RawAcm:   ValidACMUnclassifiedFOUO,
 	}
 	jsonBody, err := json.Marshal(createRequest)
 	if err != nil {
@@ -114,6 +124,19 @@ func NewCreateObjectPOSTRequest(host, dn string, f *os.File) (*http.Request, err
 	if err != nil {
 		return nil, err
 	}
+
+	// Capture current position of src
+	p, err := f.Seek(0, 1)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		// Restore position on file when exiting
+		f.Seek(p, 0)
+	}()
+	// Start at beginning for the copy
+	f.Seek(0, 0)
+
 	if _, err = io.Copy(fw, f); err != nil {
 		return nil, err
 	}
@@ -129,6 +152,102 @@ func NewCreateObjectPOSTRequest(host, dn string, f *os.File) (*http.Request, err
 		req.Header.Set("USER_DN", dn)
 	}
 
+	return req, nil
+}
+
+// UpdateObjectStreamPOSTRequest generates a http.Request that will route to the updateObjectStream
+// controller method, and provide a mutlipart body with the passed-in file object.
+// The dn string is optional. The host string is required to route to the correct server,
+// e.g. a docker container or localhost. Several object parameters are hardcoded, and this
+// function should only be used for testing purposes.
+func UpdateObjectStreamPOSTRequest(id string, changeToken string, host string, dn string, f *os.File) (*http.Request, error) {
+	uri := host + TestServicePrefix + "object/" + id + "/stream"
+
+	updateRequest := protocol.UpdateStreamRequest{
+		ChangeToken: changeToken,
+	}
+	jsonBody, err := json.Marshal(updateRequest)
+	if err != nil {
+		return nil, err
+	}
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+
+	writePartField(w, "ObjectMetadata", string(jsonBody), "application/json")
+	fw, err := w.CreateFormFile("filestream", "testfilename.txt")
+	if err != nil {
+		return nil, err
+	}
+
+	// Capture current position of src
+	p, err := f.Seek(0, 1)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		// Restore position on file when exiting
+		f.Seek(p, 0)
+	}()
+	// Start at beginning for the copy
+	f.Seek(0, 0)
+
+	if _, err = io.Copy(fw, f); err != nil {
+		return nil, err
+	}
+	w.Close()
+
+	req, err := http.NewRequest("POST", uri, &b)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	if dn != "" {
+		req.Header.Set("USER_DN", dn)
+	}
+
+	return req, nil
+}
+
+func NewCreateReadPermissionRequest(obj protocol.Object, grantee, dn, host string) (*http.Request, error) {
+
+	uri := host + TestServicePrefix + "object/" + obj.ID + "/share"
+	shareSetting := protocol.ObjectGrant{}
+	shareSetting.Grantee = grantee
+	shareSetting.Read = true
+	jsonBody, err := json.Marshal(shareSetting)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if dn != "" {
+		req.Header.Set("USER_DN", dn)
+	}
+	return req, nil
+}
+
+func NewDeletePermissionRequest(obj protocol.Object, share protocol.Permission, dn, host string) (*http.Request, error) {
+	uri := host + TestServicePrefix + "object/" + obj.ID + "/share/" + share.ID
+	removeSetting := protocol.RemoveObjectShareRequest{}
+	removeSetting.ObjectID = obj.ID
+	removeSetting.ShareID = share.ID
+	removeSetting.ChangeToken = share.ChangeToken
+	jsonBody, err := json.Marshal(removeSetting)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("DELETE", uri, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if dn != "" {
+		req.Header.Set("USER_DN", dn)
+	}
 	return req, nil
 }
 
@@ -161,6 +280,32 @@ func NewDeleteObjectRequest(obj protocol.Object, dn, host string) (*http.Request
 func NewGetObjectRequest(id, dn, host string) (*http.Request, error) {
 
 	uri := host + TestServicePrefix + "object/" + id + "/properties"
+
+	req, err := http.NewRequest("GET", uri, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// New GetObjectStreamRequest ...
+func NewGetObjectStreamRequest(id, dn, host string) (*http.Request, error) {
+
+	uri := host + TestServicePrefix + "object/" + id + "/stream"
+
+	req, err := http.NewRequest("GET", uri, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// New GetObjectStreamRevisionRequest ...
+func NewGetObjectStreamRevisionRequest(id string, version string, dn string, host string) (*http.Request, error) {
+
+	uri := host + TestServicePrefix + "object/" + id + "/history/" + version + "/stream"
 
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
@@ -216,4 +361,55 @@ var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
 
 func escapeQuotes(s string) string {
 	return quoteEscaper.Replace(s)
+}
+
+// AreFilesTheSame checks if the contents of the file hash to the same MD5
+func AreFilesTheSame(file1 *os.File, file2 *os.File) bool {
+
+	// Get hashes
+	h1, err := hashMD5OfFile(file1)
+	if err != nil {
+		log.Printf("Error getting hash of file 1: %v", err)
+		return false
+	}
+	h2, err := hashMD5OfFile(file2)
+	if err != nil {
+		log.Printf("Error getting hash of file 2: %v", err)
+		return false
+	}
+
+	return (bytes.Compare(h1, h2) == 0)
+}
+
+const filechunk = 8192
+
+func hashMD5OfFile(file *os.File) ([]byte, error) {
+
+	// Capture current position
+	p, err := file.Seek(0, 1)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		// Restore position on file when exiting
+		file.Seek(p, 0)
+	}()
+	// Start at beginning for processing
+	file.Seek(0, 0)
+
+	// calculate the file size
+	info, _ := file.Stat()
+	filesize := info.Size()
+	blocks := uint64(math.Ceil(float64(filesize) / float64(filechunk)))
+	hash := md5.New()
+
+	for i := uint64(0); i < blocks; i++ {
+		blocksize := int(math.Min(filechunk, float64(filesize-int64(i*filechunk))))
+		buf := make([]byte, blocksize)
+
+		file.Read(buf)
+		io.WriteString(hash, string(buf)) // append into the hash
+	}
+
+	return hash.Sum(nil), nil
 }

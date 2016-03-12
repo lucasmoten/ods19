@@ -8,11 +8,20 @@ import (
 	"net/http"
 	"regexp"
 
+	"golang.org/x/net/context"
+
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
 )
 
-func (h AppServer) getObject(w http.ResponseWriter, r *http.Request, caller Caller) {
+func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	// Get caller value from ctx.
+	caller, ok := CallerFromContext(ctx)
+	if !ok {
+		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		return
+	}
 
 	var requestObject models.ODObject
 	var err error
@@ -45,9 +54,17 @@ func (h AppServer) getObject(w http.ResponseWriter, r *http.Request, caller Call
 		return
 	}
 
-	// TODO
 	// Check AAC to compare user clearance to  metadata Classifications
 	// 		Check if Classification is allowed for this User
+	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
+	if err != nil {
+		h.sendErrorResponse(w, 500, err, "Error communicating with authorization service")
+		return
+	}
+	if !hasAACAccess {
+		h.sendErrorResponse(w, 403, nil, "Unauthorized")
+		return
+	}
 
 	// Make sure the object isn't deleted. To remove an object from the trash,
 	// use removeObjectFromTrash call.

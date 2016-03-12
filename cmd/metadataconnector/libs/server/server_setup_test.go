@@ -16,6 +16,7 @@ import (
 	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
+	"decipher.com/oduploader/util/testhelpers"
 )
 
 var fakeDN1 = `CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US`
@@ -164,6 +165,7 @@ func makeFolderViaJSON(folderName string, clientid int) (*protocol.Object, error
 	folder.Name = folderName
 	folder.TypeName = "Folder"
 	folder.ParentID = ""
+	folder.RawAcm = testhelpers.ValidACMUnclassified
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
