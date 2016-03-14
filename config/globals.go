@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 
@@ -130,4 +131,19 @@ func locateCerts(projectRoot string) string {
 		log.Println("Certificates directory does not exist")
 	}
 	return certsDir
+}
+
+// The default resolve for "dockervm" hostname.  Pass in an IP
+// to get around DNS issues with docker
+var DockerVM = "dockervm"
+
+func init() {
+	ips, err := net.LookupIP("dockervm")
+	if err != nil {
+		log.Printf("unable to resolve hostname: dockervm")
+	}
+	if len(ips) > 0 {
+		theIP := ips[0]
+		DockerVM = theIP.String()
+	}
 }

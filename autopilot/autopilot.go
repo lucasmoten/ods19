@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 
+	cfg "decipher.com/oduploader/config"
 	"decipher.com/oduploader/protocol"
 )
 
@@ -706,7 +707,7 @@ func NewAutopilotContext(logHandle *os.File) (ap *AutopilotContext, err error) {
 var Population = 10
 var isQuickTest = true
 var showFileUpload = true
-var host = "https://dockervm:8080"
+var host = fmt.Sprintf("https://%s:8080", cfg.DockerVM)
 var rootURL = "/service/metadataconnector/1.0"
 var autopilotRoot = "$GOPATH/src/decipher.com/oduploader/autopilot/cache"
 
