@@ -3,6 +3,8 @@ package dao
 import (
 	"errors"
 
+	"time"
+
 	"decipher.com/oduploader/metadata/models"
 )
 
@@ -10,6 +12,7 @@ import (
 // reponses for each of the methods that FakeDAO will implement. These fake
 // response fields can be explicitly set, or setup functions can be defined.
 type FakeDAO struct {
+	DBState           models.DBState
 	Err               error
 	IsDescendent      bool
 	Object            models.ODObject
@@ -96,6 +99,14 @@ func (fake *FakeDAO) GetChildObjectsWithProperties(
 func (fake *FakeDAO) GetChildObjectsWithPropertiesByUser(
 	orderByClause string, pageNumber int, pageSize int, object models.ODObject, user string) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
+}
+
+// GetDBState for FakeDAO
+func (fake *FakeDAO) GetDBState() (models.DBState, error) {
+	fake.DBState.SchemaVersion = SchemaVersion
+	fake.DBState.Identifier = "fake"
+	fake.DBState.CreateDate = time.Now()
+	return fake.DBState, fake.Err
 }
 
 // GetObject for FakeDAO.

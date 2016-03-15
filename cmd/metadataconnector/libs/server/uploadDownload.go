@@ -18,9 +18,6 @@ import (
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/performance"
 	"decipher.com/oduploader/protocol"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 func (h AppServer) acceptObjectUpload(
@@ -164,13 +161,9 @@ func (h AppServer) beginUploadTimed(
 	iv := obj.EncryptIV
 	fileKey := grant.EncryptKey
 
-	err = h.CacheMustExist()
-	if err != nil {
-		return nil, err
-	}
 	//Make up a random name for our file - don't deal with versioning yet
-	outFileUploading := h.CacheLocation + "/" + rName + ".uploading"
-	outFileUploaded := h.CacheLocation + "/" + rName + ".uploaded"
+	outFileUploading := h.DrainProvider.CacheLocation() + "/" + rName + ".uploading"
+	outFileUploaded := h.DrainProvider.CacheLocation() + "/" + rName + ".uploaded"
 
 	outFile, err := os.Create(outFileUploading)
 	if err != nil {
@@ -205,97 +198,50 @@ func (h AppServer) beginUploadTimed(
 	//Just return 200 when we run async, because the client tells
 	//us whether it's async or not.
 	if async {
-		go h.drainFileToS3(aws.String(config.DefaultBucket), rName, length, 3)
+		go h.cacheToDrain(&config.DefaultBucket, rName, length, 3)
 	} else {
-		h.drainFileToS3(aws.String(config.DefaultBucket), rName, length, 3)
+		h.cacheToDrain(&config.DefaultBucket, rName, length, 3)
 	}
 	return nil, err
 }
 
 //We get penalized on throughput if these fail a lot.
 //I think that's reasonable to be measuring "goodput" this way.
-func (h AppServer) drainFileToS3(
+func (h AppServer) cacheToDrain(
 	bucket *string,
 	rName string,
 	size int64,
 	tries int,
-) (*AppError, error) {
+) error {
 	beganAt := h.Tracker.BeginTime(performance.S3DrainTo)
-	herr, err := h.drainFileToS3Attempt(bucket, rName, size, tries)
-	if herr != nil {
-		return herr, err
-	}
+	err := h.cacheToDrainAttempt(bucket, rName, size, tries)
 	h.Tracker.EndTime(
 		performance.S3DrainTo,
 		beganAt,
 		performance.SizeJob(size),
 	)
-	return herr, err
+	return err
 }
 
-func (h AppServer) drainFileToS3Attempt(
+func (h AppServer) cacheToDrainAttempt(
 	bucket *string,
 	rName string,
 	size int64,
 	tries int,
-) (*AppError, error) {
-	herr, err := h.drainFileToS3Timed(bucket, rName, size)
-	if herr != nil {
-		return herr, err
-	}
+) error {
+	err := h.DrainProvider.CacheToDrain(bucket, rName, size)
 	tries = tries - 1
 	if err != nil {
 		//The problem is that we get things like transient DNS errors,
 		//after we took custody of the file.  We will need something
 		//more robust than this eventually.  We have the file, while
 		//not being uploaded if all attempts fail.
-		log.Printf("unable to drain file to S3.  Trying again:%v", err)
+		log.Printf("unable to drain file.  Trying again:%v", err)
 		if tries > 0 {
-			herr, err = h.drainFileToS3Attempt(bucket, rName, size, tries)
+			err = h.cacheToDrainAttempt(bucket, rName, size, tries)
 		}
 	}
-	return herr, err
-}
-
-func (h AppServer) drainFileToS3Timed(
-	bucket *string,
-	rName string,
-	size int64,
-) (*AppError, error) {
-	sess := h.AWSSession
-	outFileUploaded := h.CacheLocation + "/" + rName + ".uploaded"
-
-	fIn, err := os.Open(outFileUploaded)
-	if err != nil {
-		log.Printf("Cant drain off file: %v", err)
-		return nil, err
-	}
-	defer fIn.Close()
-	log.Printf("draining to S3 %s: %s", *bucket, rName)
-
-	uploader := s3manager.NewUploader(sess)
-	result, err := uploader.Upload(&s3manager.UploadInput{
-		Body:   fIn,
-		Bucket: bucket,
-		Key:    aws.String(h.CacheLocation + "/" + rName),
-	})
-	if err != nil {
-		log.Printf("Could not write to S3: %v", err)
-		return nil, err
-	}
-
-	//Rename the file to note that it only lives here as cached for download
-	//It might be deleted at any time
-	outFileCached := h.CacheLocation + "/" + rName + ".cached"
-	err = os.Rename(outFileUploaded, outFileCached)
-	if err != nil {
-		log.Printf("Unable to rename uploaded file %s %v:", outFileUploaded, err)
-		return nil, err
-	}
-	log.Printf("rename:%s -> %s", outFileUploaded, outFileCached)
-
-	log.Printf("Uploaded to %v: %v", *bucket, result.Location)
-	return nil, err
+	return err
 }
 
 func extIs(name string, ext string) bool {
@@ -336,13 +282,13 @@ func guessContentType(name string) string {
 	return contentType
 }
 
-func (h AppServer) transferFileFromS3(
+func (h AppServer) drainToCache(
 	bucket *string,
 	theFile string,
 	length int64,
 ) (*AppError, error) {
 	beganAt := h.Tracker.BeginTime(performance.S3DrainFrom)
-	herr, err := h.transferFileFromS3Timed(bucket, theFile)
+	herr, err := h.DrainProvider.DrainToCache(bucket, theFile)
 	if herr != nil {
 		return herr, err
 	}
@@ -351,38 +297,5 @@ func (h AppServer) transferFileFromS3(
 		beganAt,
 		performance.SizeJob(length),
 	)
-	return nil, nil
-}
-
-func (h AppServer) transferFileFromS3Timed(
-	bucket *string,
-	theFile string,
-) (*AppError, error) {
-	log.Printf("Get from S3 bucket %s: %s", *bucket, theFile)
-	foutCaching := h.CacheLocation + "/" + theFile + ".caching"
-	foutCached := h.CacheLocation + "/" + theFile + ".cached"
-	fOut, err := os.Create(foutCaching)
-	if err != nil {
-		log.Printf("Unable to write local buffer file %s: %v", theFile, err)
-	}
-	defer fOut.Close()
-
-	downloader := s3manager.NewDownloader(h.AWSSession)
-	_, err = downloader.Download(
-		fOut,
-		&s3.GetObjectInput{
-			Bucket: bucket,
-			Key:    aws.String(h.CacheLocation + "/" + theFile),
-		},
-	)
-	if err != nil {
-		log.Printf("Unable to download out of S3 bucket %v: %v", *bucket, theFile)
-	}
-	//Signal that we finally cached the file
-	err = os.Rename(foutCaching, foutCached)
-	if err != nil {
-		log.Printf("Failed to rename from %s to %s", foutCaching, foutCached)
-	}
-	log.Printf("rename:%s -> %s", foutCaching, foutCached)
 	return nil, nil
 }
