@@ -2,16 +2,18 @@ package zookeeper
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"testing"
 	"time"
 
+	cfg "decipher.com/oduploader/config"
 	"github.com/samuel/go-zookeeper/zk"
 )
 
 func TestCreateZookeeperPath(t *testing.T) {
 
-	zkAddress := "dockervm:2181"
+	zkAddress := fmt.Sprintf("%s:2181", cfg.DockerVM)
 	if testing.Short() {
 		t.Skip("Skipping integration test.")
 	}

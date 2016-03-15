@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
+	cfg "decipher.com/oduploader/config"
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
 	"decipher.com/oduploader/util/testhelpers"
@@ -27,7 +29,7 @@ var clients []*ClientIdentity
 var httpclients []*http.Client
 
 func init() {
-	host = "https://dockervm:8080"
+	host = fmt.Sprintf("https://%s:8080", cfg.DockerVM)
 	generatePopulation()
 
 }
