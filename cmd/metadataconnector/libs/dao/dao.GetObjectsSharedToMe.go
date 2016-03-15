@@ -38,22 +38,24 @@ func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, grantee string,
 	limit := GetLimit(pageNumber, pageSize)
 	offset := GetOffset(pageNumber, pageSize)
 
-	//Note: not quite right, because we need to also join in allowUpdate, etc.
+	// Get distinct due to multiple permissions may yield the same.
+	// Filter out object owned by since owner's don't need to list items they've shared to themself
+	// Only list explicit shares to avoid all nested children appearing in same list
 	query := `
-  select
-    sql_calc_found_rows o.*,
-    ot.name typeName
-  from object o
-  inner join object_type ot on o.typeid = ot.id
-  inner join object_permission op on op.objectId = o.id
-  where
-    o.isdeleted = 0 and
-		op.allowread = 1 and
-		op.isdeleted = 0 and
-    o.parentid is null and
-    op.grantee = ? and
-    op.createdBy <> ?
-  `
+        select distinct
+            sql_calc_found_rows o.*,
+            ot.name typeName
+        from object o
+            inner join object_type ot on o.typeid = ot.id
+            inner join object_permission op on op.objectId = o.id
+        where
+            op.isdeleted = 0 and
+            op.allowread = 1 and
+            op.explicitshare = 1 and
+            op.grantee = ? and
+            o.isdeleted = 0 and
+            o.ownedBy <> ?
+        `
 
 	if len(orderByClause) > 0 {
 		query += ` order by o.` + orderByClause
