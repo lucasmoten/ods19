@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -24,9 +25,6 @@ import (
 	oduconfig "decipher.com/oduploader/config"
 	"decipher.com/oduploader/performance"
 	aac "decipher.com/oduploader/services/aac"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
 
 	_ "net/http/pprof"
 )
@@ -65,9 +63,6 @@ func main() {
 	dbConfig := appConfiguration.DatabaseConnection
 	serverConfig := appConfiguration.ServerSettings
 
-	// Check environment variables
-	checkAWSEnvironmentVars()
-
 	// Setup handle to the database
 	db, err := dbConfig.GetDatabaseHandle()
 	if err != nil {
@@ -100,8 +95,6 @@ func main() {
 		log.Printf("Note that if you change masterkey, then the encrypted keys are invalidated")
 	}
 
-	go handler.CachePurge()
-
 	// start pprof handler
 	//	go func() {
 	//		log.Println(http.ListenAndServe("0.0.0.0:4480", nil))
@@ -112,20 +105,27 @@ func main() {
 	log.Fatalln(s.ListenAndServeTLS(serverCertFile, serverKeyFile))
 }
 
-//TODO: not sure how much is safe to share concurrently
-//This is account as in the ["default"] entry in ~/.aws/credentials
-func awsS3() *session.Session {
-	sessionConfig := &aws.Config{
-		Credentials: credentials.NewEnvCredentials(),
+// Check the schema and return the cache id that corresponds to it
+func schemaCheck(concreteDAO dao.DAO) string {
+	//Get information about the database we connected to
+	dbState, err := concreteDAO.GetDBState()
+	if err != nil {
+		log.Printf("!!! Error checking dbState: %v, %v", err, reflect.TypeOf(err))
+	} else {
+		if dbState.SchemaVersion != dao.SchemaVersion {
+			log.Printf(
+				"!!! The schema version does not match.  Upgrade the database or risk corruption !!!. '%s' vs '%s'",
+				dbState.SchemaVersion,
+				dao.SchemaVersion,
+			)
+			log.Printf("TODO: A data/schema migration should happen right here")
+		}
 	}
-	return session.New(sessionConfig)
+	log.Printf("Database version %s instance is %s", dbState.SchemaVersion, dbState.Identifier)
+	return fmt.Sprintf("cache-%s", dbState.Identifier)
 }
 
 func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*http.Server, *server.AppServer, error) {
-	//On machines with multiple configs, we at least assume that objectdrive is aliased to
-	//the default config
-	awsSession := awsS3()
-
 	//Try to connect to AAC
 	var aac *aac.AacServiceClient
 	var err error
@@ -149,6 +149,7 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 	}
 
 	concreteDAO := dao.DataAccessLayer{MetadataDB: db}
+	cacheID := schemaCheck(&concreteDAO)
 
 	templates, err := template.ParseGlob(
 		filepath.Join(oduconfig.ProjectRoot,
@@ -166,8 +167,7 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		Bind:          serverConfig.ListenBind,
 		Addr:          serverConfig.ListenBind + ":" + strconv.Itoa(serverConfig.ListenPort),
 		DAO:           &concreteDAO,
-		AWSSession:    awsSession,
-		CacheLocation: "cache",
+		DrainProvider: server.NewS3DrainProvider(cacheID),
 		ServicePrefix: serverConfig.ServiceName + serverConfig.ServiceVersion,
 		Tracker:       performance.NewJobReporters(1024),
 		AAC:           aac,
@@ -231,17 +231,4 @@ func pingDB(db *sqlx.DB) int {
 		}
 	}
 	return exitCode
-}
-
-// checkAWSEnvironmentVars prevents the server from starting if appropriate vars
-// are not set.
-func checkAWSEnvironmentVars() {
-	region := os.Getenv("AWS_REGION")
-	secretKey := os.Getenv("AWS_SECRET_KEY")
-	secretKeyAlt := os.Getenv("AWS_SECRET_ACCESS_KEY")
-	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
-	if region == "" || (secretKey == "" && secretKeyAlt == "") || accessKeyID == "" {
-		log.Fatal("Fatal Error: Environment variables AWS_REGION, AWS_SECRET_KEY, and AWS_ACCESS_KEY_ID must be set.")
-	}
-	return
 }

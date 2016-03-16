@@ -19,7 +19,6 @@ import (
 	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/performance"
-	"github.com/aws/aws-sdk-go/aws"
 )
 
 func (h AppServer) getObjectStreamObject(ctx context.Context, w http.ResponseWriter, r *http.Request) (models.ODObject, *AppError, error) {
@@ -167,15 +166,11 @@ func getIDOfObjectTORetrieveStream(uri string) string {
 // This func broken out from the getObjectStream. It still needs refactored to
 // be more maintainable and make use of an interface for the content streams
 func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject, w http.ResponseWriter, encryptKey []byte, withMetadata bool) *AppError {
-	//Make sure that the cache exists
-	err := h.CacheMustExist()
-	if err != nil {
-		return &AppError{500, err, "Our cache needs to exist"}
-	}
+	var err error
 
 	//Fall back on the uploaded copy for download if we need to
 	var cipherFile *os.File
-	cipherFileNameBasePath := h.CacheLocation + "/" + object.ContentConnector.String
+	cipherFileNameBasePath := h.DrainProvider.CacheLocation() + "/" + object.ContentConnector.String
 	cipherFilePathCached := cipherFileNameBasePath + ".cached"
 	cipherFilePathUploaded := cipherFileNameBasePath + ".uploaded"
 
@@ -218,7 +213,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	if cipherFile == nil {
 		// We have no choice but to recache and wait
 		log.Printf("file is not cached.  Caching it now.")
-		bucket := aws.String(config.DefaultBucket)
+		bucket := &config.DefaultBucket
 		//When this finishes, cipherFilePathCached should exist.  It could take a
 		//very long time though.
 		//XXX blocks for a long time - maybe we should return an error code and
@@ -226,7 +221,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 		// RECOMMEND: Break files in S3 greater then X size into 2 parts. One that is
 		// of reasonable size to retrieve to get an initial output going, the other
 		// consisting of the remainder. Only necessary for rather large files
-		h.transferFileFromS3(bucket, object.ContentConnector.String, object.ContentSize.Int64)
+		h.drainToCache(bucket, object.ContentConnector.String, object.ContentSize.Int64)
 		if cipherFile, err = os.Open(cipherFilePathCached); err != nil {
 			return &AppError{500, err, "Error opening recently cached file"}
 		}

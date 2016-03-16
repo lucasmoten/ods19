@@ -17,7 +17,6 @@ import (
 	"decipher.com/oduploader/performance"
 	aac "decipher.com/oduploader/services/aac"
 	audit "decipher.com/oduploader/services/audit/generated/auditservice_thrift"
-	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 // Constants serve as keys for setting values on a request-scoped Context.
@@ -35,11 +34,6 @@ type AppServer struct {
 	Addr string
 	// DAO is the interface contract with the database.
 	DAO dao.DAO
-	// AWSSession is a handle to active Amazon Web Service session
-	AWSSession *session.Session
-	// CacheLocation is the location locally for temporary storage of content
-	// streams encrypted at rest
-	CacheLocation string
 	// ServicePrefix is the base RootURL for all public operations of web server
 	ServicePrefix string
 	// AAC is a handle to the Authorization and Access Control client
@@ -57,6 +51,8 @@ type AppServer struct {
 	StaticDir string
 	// Routes holds the routes.
 	Routes *StaticRx
+	// This encapsulates connectivity to long term storage behind the cache
+	DrainProvider DrainProvider
 }
 
 // At points where a goroutine originating from a ServerHTTP call

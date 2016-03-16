@@ -5,6 +5,15 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// SchemaVersion marks compatibility with previously created databases.
+// On startup, we should be checking the schema, and raise some alarm if
+// the schema is out of date, or trigger a migration, etc.
+//
+// This is also here so that the database instance is uniquely identified so that
+// the S3 buckets partition in a way that allows us to know which S3 files
+// go with what instance.
+var SchemaVersion = "20160314"
+
 // DAO defines the contract our app has with the database.
 type DAO interface {
 	AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission, propagateToChildren bool, masterKey string) (models.ODObjectPermission, error)
@@ -21,6 +30,7 @@ type DAO interface {
 	GetChildObjectsByUser(orderByClause string, pageNumber int, pageSize int, object models.ODObject, user string) (models.ODObjectResultset, error)
 	GetChildObjectsWithProperties(orderByClause string, pageNumber int, pageSize int, object models.ODObject) (models.ODObjectResultset, error)
 	GetChildObjectsWithPropertiesByUser(orderByClause string, pageNumber int, pageSize int, object models.ODObject, user string) (models.ODObjectResultset, error)
+	GetDBState() (models.DBState, error)
 	GetObject(object models.ODObject, loadProperties bool) (models.ODObject, error)
 	GetObjectPermission(objectPermission models.ODObjectPermission) (models.ODObjectPermission, error)
 	GetObjectProperty(objectProperty models.ODObjectPropertyEx) (models.ODObjectPropertyEx, error)

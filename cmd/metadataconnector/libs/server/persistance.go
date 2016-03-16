@@ -9,9 +9,3 @@ type Persistance interface {
 	Delete(id string)
 	List(name string)
 }
-
-// TODO create constructor for Persistance
-// func NewS3Persistance(session *aws.Session) (Persistance, error) {
-//
-// 	return
-// }
