@@ -16,6 +16,8 @@ import (
 	"os"
 	"strings"
 
+	cfg "decipher.com/oduploader/config"
+
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
 	"decipher.com/oduploader/util"
@@ -172,7 +174,7 @@ func NewCreateObjectPOSTRequestRaw(
 	fileName string,
 	jsonBody []byte,
 ) (*http.Request, error) {
-	uri := host + TestServicePrefix + requestType
+	uri := host + cfg.RootURL + "/" + requestType
 
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
@@ -219,7 +221,7 @@ func NewCreateObjectPOSTRequestRaw(
 // e.g. a docker container or localhost. Several object parameters are hardcoded, and this
 // function should only be used for testing purposes.
 func UpdateObjectStreamPOSTRequest(id string, changeToken string, host string, dn string, f *os.File) (*http.Request, error) {
-	uri := host + TestServicePrefix + "object/" + id + "/stream"
+	uri := host + cfg.RootURL + "/object/" + id + "/stream"
 
 	updateRequest := protocol.UpdateStreamRequest{
 		ChangeToken: changeToken,
@@ -269,7 +271,7 @@ func UpdateObjectStreamPOSTRequest(id string, changeToken string, host string, d
 
 func NewCreateReadPermissionRequest(obj protocol.Object, grantee, dn, host string) (*http.Request, error) {
 
-	uri := host + TestServicePrefix + "object/" + obj.ID + "/share"
+	uri := host + cfg.RootURL + "/object/" + obj.ID + "/share"
 	shareSetting := protocol.ObjectGrant{}
 	shareSetting.Grantee = grantee
 	shareSetting.Read = true
@@ -289,7 +291,7 @@ func NewCreateReadPermissionRequest(obj protocol.Object, grantee, dn, host strin
 }
 
 func NewDeletePermissionRequest(obj protocol.Object, share protocol.Permission, dn, host string) (*http.Request, error) {
-	uri := host + TestServicePrefix + "object/" + obj.ID + "/share/" + share.ID
+	uri := host + cfg.RootURL + "/object/" + obj.ID + "/share/" + share.ID
 	removeSetting := protocol.RemoveObjectShareRequest{}
 	removeSetting.ObjectID = obj.ID
 	removeSetting.ShareID = share.ID
@@ -315,7 +317,7 @@ func NewDeletePermissionRequest(obj protocol.Object, share protocol.Permission, 
 // localhost.
 func NewDeleteObjectRequest(obj protocol.Object, dn, host string) (*http.Request, error) {
 
-	uri := host + TestServicePrefix + "object/" + obj.ID
+	uri := host + cfg.RootURL + "/object/" + obj.ID
 
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = obj.ChangeToken
@@ -337,7 +339,7 @@ func NewDeleteObjectRequest(obj protocol.Object, dn, host string) (*http.Request
 // NewGetObjectRequest ...
 func NewGetObjectRequest(id, dn, host string) (*http.Request, error) {
 
-	uri := host + TestServicePrefix + "object/" + id + "/properties"
+	uri := host + cfg.RootURL + "/object/" + id + "/properties"
 
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
@@ -350,7 +352,7 @@ func NewGetObjectRequest(id, dn, host string) (*http.Request, error) {
 // New GetObjectStreamRequest ...
 func NewGetObjectStreamRequest(id, dn, host string) (*http.Request, error) {
 
-	uri := host + TestServicePrefix + "object/" + id + "/stream"
+	uri := host + cfg.RootURL + "/object/" + id + "/stream"
 
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
@@ -363,7 +365,7 @@ func NewGetObjectStreamRequest(id, dn, host string) (*http.Request, error) {
 // New GetObjectStreamRevisionRequest ...
 func NewGetObjectStreamRevisionRequest(id string, version string, dn string, host string) (*http.Request, error) {
 
-	uri := host + TestServicePrefix + "object/" + id + "/history/" + version + "/stream"
+	uri := host + cfg.RootURL + "/object/" + id + "/history/" + version + "/stream"
 
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
@@ -380,7 +382,7 @@ func NewUndeleteObjectPUTRequest(id, changeToken, dn, host string) (*http.Reques
 		return nil, errors.New("Test ObjectID cannot be empty string")
 	}
 
-	uri := host + TestServicePrefix + "trash/" + id
+	uri := host + cfg.RootURL + "/trash/" + id
 
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = changeToken

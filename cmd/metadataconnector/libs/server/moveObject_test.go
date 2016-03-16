@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	cfg "decipher.com/oduploader/config"
+
 	"decipher.com/oduploader/protocol"
 )
 
@@ -38,7 +40,7 @@ func TestMoveObject(t *testing.T) {
 	}
 
 	// Attempt to move folder 2 under folder 1
-	moveuri := host + "/service/metadataconnector/1.0/object/" + folder2.ID + "/move/" + folder1.ID
+	moveuri := host + cfg.RootURL + "/object/" + folder2.ID + "/move/" + folder1.ID
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder2.ChangeToken
 	jsonBody, err := json.Marshal(objChangeToken)

@@ -9,6 +9,8 @@ import (
 	"os"
 	"testing"
 
+	cfg "decipher.com/oduploader/config"
+
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
 	"decipher.com/oduploader/metadata/models"
@@ -28,10 +30,10 @@ func TestListObjectsTrashedJSONResponse(t *testing.T) {
 		ObjectResultSet: resultset,
 		Users:           []models.ODUser{user},
 	}
-	s := server.AppServer{DAO: &fakeDAO, ServicePrefix: `/service/metadataconnector/1\.0`}
+	s := server.AppServer{DAO: &fakeDAO, ServicePrefix: cfg.RootURLRegex}
 	s.InitRegex()
 
-	r, err := http.NewRequest("GET", "/service/metadataconnector/1.0/trash?pageNumber=1&pageSize=50", nil)
+	r, err := http.NewRequest("GET", cfg.RootURL+"/trash?pageNumber=1&pageSize=50", nil)
 	r.Header.Set("USER_DN", user.DistinguishedName)
 
 	if err != nil {
@@ -102,7 +104,7 @@ func TestHTTPListObjectsTrashed(t *testing.T) {
 		t.Errorf("Delete request failed: %v\n", err)
 	}
 
-	trashURI := host + "/service/metadataconnector/1.0/trash?pageNumber=1&pageSize=1000"
+	trashURI := host + cfg.RootURL + "/trash?pageNumber=1&pageSize=1000"
 
 	trashReq, err := http.NewRequest("GET", trashURI, nil)
 	trashResp, err := httpclients[clientID].Do(trashReq)
@@ -131,7 +133,7 @@ func TestHTTPListObjectsTrashed(t *testing.T) {
 	}
 
 	// This time use a JSON POST, instead of GET
-	trashPOSTURI := host + "/service/metadataconnector/1.0/trash"
+	trashPOSTURI := host + cfg.RootURL + "/trash"
 	jsonRequest := `
      {"pageNumber": 1, "pageSize": 1000} 
     `

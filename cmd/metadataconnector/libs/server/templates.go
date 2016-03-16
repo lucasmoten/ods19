@@ -6,7 +6,7 @@ var pageTemplateStart = `
   <head>
     <title>Object-Drive</title>
     <meta charset='utf-8'>
-    <base href="/service/metadataconnector/1.0" />
+    <base href="%s" />
   </head>
 	<body>
     <a href="">Return Home</a>

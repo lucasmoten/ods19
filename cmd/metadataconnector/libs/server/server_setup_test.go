@@ -43,7 +43,7 @@ func generatePopulation() {
 func populateClients(population int) {
 	clients = make([]*ClientIdentity, population)
 	httpclients = make([]*http.Client, population)
-	faviconReq, _ := http.NewRequest("GET", host+"/service/metadataconnector/1.0/favicon.ico", nil)
+	faviconReq, _ := http.NewRequest("GET", host+cfg.RootURL+"/favicon.ico", nil)
 	for i := 0; i < len(clients); i++ {
 		client, err := getClientIdentity(i, "test_"+strconv.Itoa(i))
 		clients[i] = client
@@ -162,7 +162,7 @@ func NewClientTLSConfig(client *ClientIdentity) (*tls.Config, error) {
 }
 
 func makeFolderViaJSON(folderName string, clientid int) (*protocol.Object, error) {
-	folderuri := host + "/service/metadataconnector/1.0/folder"
+	folderuri := host + cfg.RootURL + "/folder"
 	folder := protocol.Object{}
 	folder.Name = folderName
 	folder.TypeName = "Folder"

@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"testing"
 
+	cfg "decipher.com/oduploader/config"
+
 	"decipher.com/oduploader/protocol"
 )
 
@@ -24,7 +26,7 @@ func TestListObjectsRoot(t *testing.T) {
 	}
 
 	// URL
-	uri := host + "/service/metadataconnector/1.0/objects"
+	uri := host + cfg.RootURL + "/objects"
 
 	// Body
 	paging := protocol.PagingRequest{}
@@ -87,7 +89,7 @@ func TestListObjectsRootPaging(t *testing.T) {
 	}
 
 	// URL
-	uri := host + "/service/metadataconnector/1.0/objects"
+	uri := host + cfg.RootURL + "/objects"
 
 	// Body
 	paging := protocol.PagingRequest{}
@@ -196,7 +198,7 @@ func TestListObjectsChild(t *testing.T) {
 	}
 
 	// URLs
-	uri := host + "/service/metadataconnector/1.0/objects"
+	uri := host + cfg.RootURL + "/objects"
 
 	// Body
 	paging := protocol.PagingRequest{}
@@ -302,7 +304,7 @@ func TestListObjectsChild(t *testing.T) {
 
 func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level int, childid string) {
 	// URLs
-	uri := host + "/service/metadataconnector/1.0/object/" + childid + "/list"
+	uri := host + cfg.RootURL + "/object/" + childid + "/list"
 	depthstring := ""
 	if level > 0 {
 		for l := 0; l < level; l++ {
