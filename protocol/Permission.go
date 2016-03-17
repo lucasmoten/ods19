@@ -29,7 +29,7 @@ type Permission struct {
 	Grantee string `json:"grantee"`
 	// AllowCreate indicates whether the grantee has permission to create child
 	// objects beneath this object
-	AllowCreate bool `json:"allowCrate"`
+	AllowCreate bool `json:"allowCreate"`
 	// AllowRead indicates whether the grantee has permission to read this
 	// object. This is the most fundamental permission granted, and should always
 	// be true as only records need to exist where permissions are granted as

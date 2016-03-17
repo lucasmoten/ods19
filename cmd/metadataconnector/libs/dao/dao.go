@@ -18,7 +18,7 @@ var SchemaVersion = "20160314"
 type DAO interface {
 	AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission, propagateToChildren bool, masterKey string) (models.ODObjectPermission, error)
 	AddPropertyToObject(object models.ODObject, property *models.ODProperty) (models.ODProperty, error)
-	CreateObject(object *models.ODObject, acm *models.ODACM) (models.ODObject, error)
+	CreateObject(object *models.ODObject) (models.ODObject, error)
 	CreateObjectType(objectType *models.ODObjectType) (models.ODObjectType, error)
 	CreateUser(models.ODUser) (models.ODUser, error)
 	DeleteObject(object models.ODObject, explicit bool) error
@@ -53,7 +53,7 @@ type DAO interface {
 	GetUsers() ([]models.ODUser, error)
 	IsParentIDADescendent(id []byte, parentID []byte) (bool, error)
 	UndeleteObject(object *models.ODObject) (models.ODObject, error)
-	UpdateObject(object *models.ODObject, acm *models.ODACM) error
+	UpdateObject(object *models.ODObject) error
 	UpdateObjectProperty(objectProperty models.ODObjectPropertyEx) error
 	UpdatePermission(permission models.ODObjectPermission) error
 }

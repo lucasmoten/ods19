@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/util/testhelpers"
 )
 
 func TestDAOGetChildObjects(t *testing.T) {
@@ -19,7 +20,8 @@ func TestDAOGetChildObjects(t *testing.T) {
 	parent.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	parent.TypeName.String = "Test Type"
 	parent.TypeName.Valid = true
-	dbParent, err := d.CreateObject(&parent, nil)
+	parent.RawAcm.String = testhelpers.ValidACMUnclassified
+	dbParent, err := d.CreateObject(&parent)
 	if err != nil {
 		t.Error(err)
 	}
@@ -40,7 +42,8 @@ func TestDAOGetChildObjects(t *testing.T) {
 	child.ParentID = dbParent.ID
 	child.TypeName.String = "Test Type"
 	child.TypeName.Valid = true
-	dbChild, err := d.CreateObject(&child, nil)
+	child.RawAcm.String = testhelpers.ValidACMUnclassified
+	dbChild, err := d.CreateObject(&child)
 	if err != nil {
 		t.Error(err)
 	}

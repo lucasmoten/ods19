@@ -13,7 +13,7 @@ import (
 // is too restrictive for certain values (lengthy descriptions, abstracts, etc)
 // which will need revisited
 func getFormValueAsString(part *multipart.Part) string {
-	valueAsBytes := make([]byte, 1024)
+	valueAsBytes := make([]byte, 10240)
 	n, err := part.Read(valueAsBytes)
 	if err != nil {
 		if err == io.EOF {

@@ -13,16 +13,18 @@ import (
 	"time"
 
 	cfg "decipher.com/oduploader/config"
+	"decipher.com/oduploader/util/testhelpers"
 
-	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
 )
 
 func TestCreateFolderProtocol(t *testing.T) {
 
-	jsonNoParent := `
-    { "typeName": "Folder", "name": "",  "parentId": "", "acm": "{}", "contentType": "", "contentSize": 0 }`
+	// Skipping because The ACM here is invalid.... should use testhelpers.ValidACMUnclassified
+	jsonNoParent := fmt.Sprintf(`
+    { "typeName": "Folder", "name": "",  "parentId": "", "acm": "%s", "contentType": "", "contentSize": 0 }`, jsonEscape(testhelpers.ValidACMUnclassified))
 
+	t.Log(jsonNoParent)
 	s := NewFakeServerWithDAOUsers()
 
 	r, err := http.NewRequest("POST", cfg.RootURL+"/folder", bytes.NewBuffer([]byte(jsonNoParent)))
@@ -37,10 +39,10 @@ func TestCreateFolderProtocol(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected OK, got %v", w.Code)
 	}
-	var resp models.ODObject
+	var resp protocol.Object
 	err = (json.NewDecoder(w.Body)).Decode(&resp)
 	if err != nil {
-		t.Errorf("Could not decode createFolder response as models.Object: %s", err)
+		t.Errorf("Could not decode createFolder response as protocol.Object: %s", err)
 	}
 
 }
@@ -66,6 +68,7 @@ func TestCreateFolderAtRoot(t *testing.T) {
 	folder := protocol.Object{}
 	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().Unix(), 10)
 	folder.TypeName = "Folder"
+	folder.RawAcm = testhelpers.ValidACMUnclassified
 	// Cannot use nil for string
 	folder.ParentID = ""
 	jsonBody, err := json.Marshal(folder)
@@ -133,6 +136,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().Unix(), 10)
 	folder.TypeName = "Folder"
 	folder.ParentID = ""
+	folder.RawAcm = testhelpers.ValidACMUnclassified
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v\n", err)
@@ -178,6 +182,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 	// - This creates the subfolder
 	folder.ParentID = createdFolder.ID
 	folder.Name = "Test Subfolder " + strconv.FormatInt(time.Now().Unix(), 10)
+	folder.RawAcm = testhelpers.ValidACMUnclassified
 	jsonBody, err = json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
@@ -247,6 +252,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().Unix(), 10)
 	folder.TypeName = "Folder"
 	folder.ParentID = ""
+	folder.RawAcm = testhelpers.ValidACMUnclassified
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
@@ -292,6 +298,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 	// - This creates the subfolder
 	folder.ParentID = createdFolder.ID
 	folder.Name = "Test Subfolder " + strconv.FormatInt(time.Now().Unix(), 10)
+	folder.RawAcm = testhelpers.ValidACMUnclassified
 	jsonBody, err = json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
@@ -344,6 +351,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().Unix(), 10)
 	folder.TypeName = "Folder"
 	folder.ParentID = ""
+	folder.RawAcm = testhelpers.ValidACMUnclassified
 	grant2client2 := protocol.Permission{}
 	grant2client2.Grantee = "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
 	grant2client2.AllowRead = true
@@ -394,6 +402,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 	// - This creates the subfolder
 	folder.ParentID = createdFolder.ID
 	folder.Name = "Test Subfolder " + strconv.FormatInt(time.Now().Unix(), 10)
+	folder.RawAcm = testhelpers.ValidACMUnclassified
 	jsonBody, err = json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
@@ -442,6 +451,7 @@ func TestCreateFolderWithoutName(t *testing.T) {
 	// Body
 	folder := protocol.Object{}
 	folder.TypeName = "Folder"
+	folder.RawAcm = testhelpers.ValidACMUnclassified
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)

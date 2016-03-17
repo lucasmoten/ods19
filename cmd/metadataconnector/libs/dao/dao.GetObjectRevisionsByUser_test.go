@@ -8,6 +8,7 @@ import (
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/util/testhelpers"
 )
 
 func TestDAOGetObjectRevisionsByUser(t *testing.T) {
@@ -21,6 +22,7 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	object.Name = "Test Object Revision"
 	object.TypeName.String = "Test Object"
 	object.TypeName.Valid = true
+	object.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions := make([]models.ODObjectPermission, 2)
 	permissions[0].CreatedBy = object.CreatedBy
 	permissions[0].Grantee = usernames[1]
@@ -35,7 +37,7 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	permissions[1].AllowRead = true
 	permissions[1].AllowUpdate = true
 	object.Permissions = permissions
-	dbObject, err := d.CreateObject(&object, nil)
+	dbObject, err := d.CreateObject(&object)
 	if err != nil {
 		t.Error("Failed to create object")
 	}
@@ -48,7 +50,7 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	// Change it once
 	object.Name = "Renamed by user 2"
 	object.ModifiedBy = usernames[2]
-	err = d.UpdateObject(&object, nil)
+	err = d.UpdateObject(&object)
 	if err != nil {
 		t.Error("Failed to update object")
 	}
@@ -63,7 +65,7 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	// Change it twice
 	object.Name = "Renamed again by user 1"
 	object.ModifiedBy = usernames[1]
-	err = d.UpdateObject(&object, nil)
+	err = d.UpdateObject(&object)
 	if err != nil {
 		t.Error("Failed to update object")
 	}

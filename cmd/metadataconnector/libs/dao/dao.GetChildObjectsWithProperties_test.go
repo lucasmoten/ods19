@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/util/testhelpers"
 )
 
 func TestDAOGetChildObjectsWithProperties(t *testing.T) {
@@ -17,11 +18,8 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	parent.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	parent.TypeName.String = "File"
 	parent.TypeName.Valid = true
-	var acm models.ODACM
-	acm.CreatedBy = parent.CreatedBy
-	acm.Classification.String = "UNCLASSIFIED"
-	acm.Classification.Valid = true
-	dbParent, err := d.CreateObject(&parent, &acm)
+	parent.RawAcm.String = testhelpers.ValidACMUnclassified
+	dbParent, err := d.CreateObject(&parent)
 	if dbParent.ID == nil {
 		t.Error("expected ID to be set")
 	}
@@ -39,11 +37,8 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	child1.TypeName.String = "File"
 	child1.TypeName.Valid = true
 	child1.ParentID = dbParent.ID
-	var acm1 models.ODACM
-	acm1.CreatedBy = child1.CreatedBy
-	acm1.Classification.String = "UNCLASSIFIED"
-	acm1.Classification.Valid = true
-	dbChild1, err := d.CreateObject(&child1, &acm1)
+	child1.RawAcm.String = testhelpers.ValidACMUnclassified
+	dbChild1, err := d.CreateObject(&child1)
 	if dbChild1.ID == nil {
 		t.Error("expected ID to be set")
 	}
@@ -84,11 +79,8 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	child2.TypeName.String = "File"
 	child2.TypeName.Valid = true
 	child2.ParentID = dbParent.ID
-	var acm2 models.ODACM
-	acm2.CreatedBy = child2.CreatedBy
-	acm2.Classification.String = "UNCLASSIFIED"
-	acm2.Classification.Valid = true
-	dbChild2, err := d.CreateObject(&child2, &acm2)
+	child2.RawAcm.String = testhelpers.ValidACMUnclassified
+	dbChild2, err := d.CreateObject(&child2)
 	if dbChild2.ID == nil {
 		t.Error("expected ID to be set")
 	}

@@ -18,6 +18,8 @@ import (
 	cfg "decipher.com/oduploader/config"
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
+	"decipher.com/oduploader/services/aac"
+	"decipher.com/oduploader/util"
 	"decipher.com/oduploader/util/testhelpers"
 )
 
@@ -209,9 +211,34 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 	user1.CreatedBy = fakeDN1
 	user2.CreatedBy = fakeDN2
 
-	fakeDAO := dao.FakeDAO{Users: []models.ODUser{user1, user2}}
+	guid, err := util.NewGUID()
+	if err != nil {
+		log.Printf("Could not create GUID.")
+	}
+	perms := []models.ODObjectPermission{
+		{Grantee: fakeDN1, AllowRead: true}}
+	obj := models.ODObject{Permissions: perms}
+	obj.ID = []byte(guid)
+	obj.RawAcm.String = testhelpers.ValidACMUnclassified
+	obj.RawAcm.Valid = true
 
-	s := server.AppServer{DAO: &fakeDAO}
+	fakeDAO := dao.FakeDAO{
+		Users:  []models.ODUser{user1, user2},
+		Object: obj,
+	}
+
+	checkAccessResponse := aac.CheckAccessResponse{
+		Success:   true,
+		HasAccess: true,
+	}
+	// Fake the AAC interface
+	fakeAAC := aac.FakeAAC{
+		CheckAccessResp: &checkAccessResponse,
+	}
+
+	s := server.AppServer{DAO: &fakeDAO,
+		ServicePrefix: cfg.RootURLRegex,
+		AAC:           &fakeAAC}
 	// Panics occur if regex routes are not compiled with InitRegex()
 	s.InitRegex()
 	return &s

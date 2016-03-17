@@ -57,6 +57,8 @@ type ODObject struct {
 	Properties []ODObjectPropertyEx `json:"properties"`
 	// Permissions is an array of Object Permissions associated with this object
 	Permissions []ODObjectPermission `json:"permissions"`
+	// ACM stores the flattened ACM values from the RawAcm
+	ACM ODObjectACM
 }
 
 // ODObjectResultset encapsulates the ODObject defined herein as an array with

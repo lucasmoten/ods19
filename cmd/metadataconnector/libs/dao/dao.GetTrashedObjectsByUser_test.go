@@ -5,6 +5,7 @@ import (
 
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/util"
+	"decipher.com/oduploader/util/testhelpers"
 )
 
 func TestDAOGetTrashedObjectsByUser(t *testing.T) {
@@ -19,7 +20,7 @@ func TestDAOGetTrashedObjectsByUser(t *testing.T) {
 	user3 := usernames[3]
 	// Create an object.
 	objA := createTestObjectAllPermissions(user3)
-	createdA, err := d.CreateObject(&objA, nil)
+	createdA, err := d.CreateObject(&objA)
 	if err != nil {
 		t.Fatalf("Error creating objA: %v\n", err)
 	}
@@ -136,12 +137,12 @@ func createParentChildObjectPair(username string) (parent models.ODObject, child
 
 	parent = createTestObjectAllPermissions(username)
 	child = createTestObjectAllPermissions(username)
-	parent, err = d.CreateObject(&parent, nil)
+	parent, err = d.CreateObject(&parent)
 	if err != nil {
 		return parent, child, err
 	}
 	child.ParentID = parent.ID
-	child, err = d.CreateObject(&child, nil)
+	child, err = d.CreateObject(&child)
 	return parent, child, err
 }
 
@@ -156,6 +157,7 @@ func createTestObjectAllPermissions(username string) models.ODObject {
 	obj.CreatedBy = username
 	obj.TypeName.String = "File"
 	obj.TypeName.Valid = true
+	obj.RawAcm.String = testhelpers.ValidACMUnclassified
 
 	var perms models.ODObjectPermission
 	perms.CreatedBy = username

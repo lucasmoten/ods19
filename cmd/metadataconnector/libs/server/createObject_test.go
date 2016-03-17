@@ -2,14 +2,22 @@ package server_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"testing"
 
 	"decipher.com/oduploader/protocol"
 	"decipher.com/oduploader/util"
 	"decipher.com/oduploader/util/testhelpers"
 )
+
+func jsonEscape(i string) string {
+	o := i
+	o = strings.Replace(o, "\"", "\\\"", -1)
+	return o
+}
 
 func TestCreatObjectMalicious(t *testing.T) {
 	if testing.Short() {
@@ -32,17 +40,19 @@ func TestCreatObjectMalicious(t *testing.T) {
 	// without having to carefully track what gets copied into ODObject for every situation).
 	//
 	// this should fail because of an attempt to set the creator
-	jsonString := `
+
+	jsonString := fmt.Sprintf(`
     {
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" : "lol",
       "id":"deadbeef",
       "typeName": "File",
       "name": "",
       "description": "",
-      "acm": "{\"version\":\"2.1.0\",\"classif\":\"S\"}",
+      "acm": "%s",
       "createdBy": "CN=POTUS,C=US"
     }
-    `
+    `, jsonEscape(testhelpers.ValidACMUnclassified))
+	t.Log(jsonString)
 	jsonBody := []byte(jsonString)
 
 	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(

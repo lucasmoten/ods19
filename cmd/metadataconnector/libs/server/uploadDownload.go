@@ -11,23 +11,30 @@ import (
 	"path"
 	"strings"
 
+	"golang.org/x/net/context"
+
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/metadata/models/acm"
 	"decipher.com/oduploader/performance"
 	"decipher.com/oduploader/protocol"
 )
 
 func (h AppServer) acceptObjectUpload(
+	ctx context.Context,
 	multipartReader *multipart.Reader,
-	caller Caller,
 	obj *models.ODObject,
-	acm *models.ODACM,
 	grant *models.ODObjectPermission,
 	asCreate bool,
 ) (*AppError, error) {
+	// Get caller value from ctx.
+	caller, ok := CallerFromContext(ctx)
+	if !ok {
+		return &AppError{Code: 500, Err: nil, Msg: "Could not determine user"}, fmt.Errorf("User not provided in context")
+	}
 	parsedMetadata := false
 	var createObjectRequest protocol.Object
 	for {
@@ -54,6 +61,40 @@ func (h AppServer) acceptObjectUpload(
 				return &AppError{400, err, "Could not decode ObjectMetadata."}, err
 			}
 
+			// If updating and ACM provided differs from what is currently set, then need to
+			// Check AAC to compare user clearance to NEW metadata Classifications
+			// to see if allowed for this user
+			if !asCreate && strings.Compare(obj.RawAcm.String, createObjectRequest.RawAcm) != 0 {
+				// Validate ACM
+				rawAcmString := createObjectRequest.RawAcm
+				// Make sure its parseable
+				parsedACM, err := acm.NewACMFromRawACM(rawAcmString)
+				if err != nil {
+					return &AppError{428, nil, "ACM provided could not be parsed"}, err
+				}
+				// Ensure user is allowed this acm
+				updateObjectRequest := models.ODObject{}
+				updateObjectRequest.RawAcm.String = createObjectRequest.RawAcm
+				hasAACAccessToNewACM, err := h.isUserAllowedForObjectACM(ctx, &updateObjectRequest)
+				if err != nil {
+					return &AppError{500, nil, "Error communicating with authorization service"}, err
+				}
+				if !hasAACAccessToNewACM {
+					return &AppError{403, nil, "Unauthorized"}, err
+				}
+				// Capture values before the mapping
+				acmID := obj.ACM.ID
+				acmACMID := obj.ACM.ACMID
+				acmObjectID := obj.ACM.ObjectID
+				// Map the parsed acm
+				obj.ACM = mapping.MapACMToODObjectACM(&parsedACM)
+				// Assign existinng values back over top
+				obj.ACM.ID = acmID
+				obj.ACM.ACMID = acmACMID
+				obj.ACM.ObjectID = acmObjectID
+				obj.ACM.ModifiedBy = caller.DistinguishedName
+			}
+
 			err = mapping.OverwriteODObjectWithProtocolObject(obj, &createObjectRequest)
 			if err != nil {
 				return &AppError{400, err, "Could not extract data from json response"}, err
@@ -61,7 +102,7 @@ func (h AppServer) acceptObjectUpload(
 
 			//If this is a new object, check prerequisites
 			if asCreate {
-				if herr := handleCreatePrerequisites(h, obj, acm, caller); herr != nil {
+				if herr := handleCreatePrerequisites(ctx, h, obj); herr != nil {
 					return herr, nil
 				}
 			} else {
@@ -114,7 +155,7 @@ func (h AppServer) acceptObjectUpload(
 				obj.Name = part.FileName()
 			}
 			async := true
-			herr, err := h.beginUpload(caller, part, obj, acm, grant, async)
+			herr, err := h.beginUpload(caller, part, obj, grant, async)
 			if herr != nil {
 				return herr, err
 			}
@@ -130,7 +171,6 @@ func (h AppServer) beginUpload(
 	caller Caller,
 	part *multipart.Part,
 	obj *models.ODObject,
-	acm *models.ODACM,
 	grant *models.ODObjectPermission,
 	async bool,
 ) (herr *AppError, err error) {
@@ -141,7 +181,7 @@ func (h AppServer) beginUpload(
 		beganAt,
 		performance.SizeJob(obj.ContentSize.Int64),
 	)
-	herr, err = h.beginUploadTimed(caller, part, obj, acm, grant, async)
+	herr, err = h.beginUploadTimed(caller, part, obj, grant, async)
 	if herr != nil {
 		return herr, err
 	}
@@ -153,7 +193,6 @@ func (h AppServer) beginUploadTimed(
 	caller Caller,
 	part *multipart.Part,
 	obj *models.ODObject,
-	acm *models.ODACM,
 	grant *models.ODObjectPermission,
 	async bool,
 ) (herr *AppError, err error) {

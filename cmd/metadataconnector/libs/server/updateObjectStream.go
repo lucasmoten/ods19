@@ -24,7 +24,6 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		return
 	}
 
-	var acm models.ODACM //Still blank, but we need to pass it around
 	var grant *models.ODObjectPermission
 
 	//Get the object from the database, unedited
@@ -60,16 +59,28 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	//We need a name for the new text, and a new iv
 	object.ContentConnector.String = utils.CreateRandomName()
 	object.EncryptIV = utils.CreateIV()
-
+	// Check for update permission and capture a grant in the process
 	for _, permission := range object.Permissions {
 		if permission.Grantee == caller.DistinguishedName && permission.AllowUpdate {
 			grant = &permission
 			break
 		}
 	}
-
+	// Do we have permission ?
 	if grant == nil {
 		h.sendErrorResponse(w, 403, nil, "Unauthorized")
+		return
+	}
+
+	// ACM check for whether user has permission to read this object
+	// from a clearance perspective
+	hasAACAccessToOLDACM, err := h.isUserAllowedForObjectACM(ctx, &object)
+	if err != nil {
+		h.sendErrorResponse(w, 500, err, "Error communicating with authorization service")
+		return
+	}
+	if !hasAACAccessToOLDACM {
+		h.sendErrorResponse(w, 403, err, "Unauthorized")
 		return
 	}
 
@@ -81,7 +92,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		h.sendErrorResponse(w, 400, err, "unable to open multipart reader")
 		return
 	}
-	herr, err = h.acceptObjectUpload(multipartReader, caller, &object, &acm, grant, false)
+	herr, err = h.acceptObjectUpload(ctx, multipartReader, &object, grant, false)
 	if herr != nil {
 		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
 		return
@@ -90,7 +101,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	utils.ApplyPassphrase(h.MasterKey+caller.DistinguishedName, grant.EncryptKey)
 
 	object.ModifiedBy = caller.DistinguishedName
-	err = h.DAO.UpdateObject(&object, &acm)
+	err = h.DAO.UpdateObject(&object)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "error storing object")
 		return

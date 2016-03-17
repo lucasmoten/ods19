@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/util/testhelpers"
 )
 
 func TestDAOAddPermissionToObject(t *testing.T) {
@@ -17,7 +18,8 @@ func TestDAOAddPermissionToObject(t *testing.T) {
 	object.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	object.TypeName.String = "Test Type"
 	object.TypeName.Valid = true
-	dbObject, err := d.CreateObject(&object, nil)
+	object.RawAcm.String = testhelpers.ValidACMUnclassified
+	dbObject, err := d.CreateObject(&object)
 	if err != nil {
 		t.Error(err)
 	} else {

@@ -12,6 +12,7 @@ import (
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/metadata/models/acm"
 )
 
 /* This is used by both createObject and createFolder to do common tasks against created objects
@@ -19,11 +20,17 @@ import (
    the http request
 */
 func handleCreatePrerequisites(
+	ctx context.Context,
 	h AppServer,
 	requestObject *models.ODObject,
-	requestACM *models.ODACM,
-	caller Caller,
 ) *AppError {
+
+	// Get caller value from ctx.
+	caller, ok := CallerFromContext(ctx)
+	if !ok {
+		return &AppError{Code: 500, Err: nil, Msg: "Could not determine user"}
+	}
+
 	// If JavaScript passes parentId as emptry string, set it to nil to satisfy
 	// the DAO.
 	if string(requestObject.ParentID) == "" {
@@ -130,11 +137,29 @@ func handleCreatePrerequisites(
 		}
 	}
 
+	// Validate ACM
+	rawAcmString := requestObject.RawAcm.String
+	// Make sure its parseable
+	parsedACM, err := acm.NewACMFromRawACM(rawAcmString)
+	if err != nil {
+		return &AppError{Code: 428, Err: err, Msg: "ACM provided could not be parsed"}
+	}
+	// Ensure user is allowed this acm
+	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, requestObject)
+	if err != nil {
+		return &AppError{500, err, "Error communicating with authorization service"}
+	}
+	if !hasAACAccess {
+		return &AppError{403, err, "Unauthorized"}
+	}
+	// Map the parsed acm
+	requestObject.ACM = mapping.MapACMToODObjectACM(&parsedACM)
+
 	// Setup meta data...
 	requestObject.CreatedBy = caller.DistinguishedName
 	requestObject.OwnedBy.String = caller.DistinguishedName
 	requestObject.OwnedBy.Valid = true
-	requestACM.CreatedBy = caller.DistinguishedName
+	requestObject.ACM.CreatedBy = caller.DistinguishedName
 
 	return nil
 }
@@ -178,7 +203,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 			h.sendErrorResponse(w, 400, err, "Unable to get mime multipart")
 			return
 		}
-		herr, err := h.acceptObjectUpload(multipartReader, caller, &obj, &acm, &grant, true)
+		herr, err := h.acceptObjectUpload(ctx, multipartReader, &obj, &grant, true)
 		if herr != nil {
 			h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
 			return
@@ -186,7 +211,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 		obj.Permissions = make([]models.ODObjectPermission, 1)
 		obj.Permissions = append(obj.Permissions, grant)
 
-		createdObject, err = h.DAO.CreateObject(&obj, &acm)
+		createdObject, err = h.DAO.CreateObject(&obj)
 		if err != nil {
 			h.sendErrorResponse(w, 500, err, "error storing object")
 			return

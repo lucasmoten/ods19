@@ -287,7 +287,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.Objects.MatchString(uri):
 			h.listObjects(ctx, w, r)
 		case h.Routes.Folder.MatchString(uri):
-			h.createFolder(w, r, caller)
+			h.createFolder(ctx, w, r)
 		case h.Routes.ObjectCreate.MatchString(uri):
 			h.createObject(ctx, w, r)
 		case h.Routes.Trash.MatchString(uri):
@@ -312,7 +312,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.ObjectPermission.MatchString(uri):
 			h.updateObjectPermissions(w, r, caller)
 		case h.Routes.ObjectProperties.MatchString(uri):
-			h.updateObject(w, r, caller)
+			h.updateObject(ctx, w, r)
 		case h.Routes.TrashObject.MatchString(uri):
 			h.removeObjectFromTrash(ctx, w, r)
 		default:
