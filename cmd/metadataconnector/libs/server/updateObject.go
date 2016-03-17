@@ -11,15 +11,25 @@ import (
 	"regexp"
 	"strings"
 
+	"golang.org/x/net/context"
+
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/metadata/models/acm"
 	"decipher.com/oduploader/protocol"
 )
 
-func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller Caller) {
+func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
 	var requestObject models.ODObject
 	var err error
+
+	// Get caller value from ctx.
+	caller, ok := CallerFromContext(ctx)
+	if !ok {
+		h.sendErrorResponse(w, 500, err, "Could not determine user")
+		return
+	}
 
 	// Parse Request in sent format
 	switch {
@@ -57,8 +67,17 @@ func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller C
 		return
 	}
 
-	// TODO: ACM check for whether user has permission to read this object
+	// ACM check for whether user has permission to read this object
 	// from a clearance perspective
+	hasAACAccessToOLDACM, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
+	if err != nil {
+		h.sendErrorResponse(w, 500, err, "Error communicating with authorization service")
+		return
+	}
+	if !hasAACAccessToOLDACM {
+		h.sendErrorResponse(w, 403, err, "Unauthorized")
+		return
+	}
 
 	// Make sure the object isn't deleted. To remove an object from the trash,
 	// use removeObjectFromTrash call.
@@ -107,14 +126,42 @@ func (h AppServer) updateObject(w http.ResponseWriter, r *http.Request, caller C
 		return
 	}
 
-	// TODO
+	// If ACM provided differs from what is currently set, then need to
 	// Check AAC to compare user clearance to NEW metadata Classifications
-	// 		Check if Classification is allowed for this User
+	// to see if allowed for this user
+	if strings.Compare(dbObject.RawAcm.String, requestObject.RawAcm.String) != 0 {
+		// Validate ACM
+		rawAcmString := requestObject.RawAcm.String
+		// Make sure its parseable
+		parsedACM, err := acm.NewACMFromRawACM(rawAcmString)
+		if err != nil {
+			h.sendErrorResponse(w, 428, nil, "ACM provided could not be parsed")
+			return
+		}
+		// Ensure user is allowed this acm
+		hasAACAccessToNewACM, err := h.isUserAllowedForObjectACM(ctx, &requestObject)
+		if err != nil {
+			h.sendErrorResponse(w, 500, err, "Error communicating with authorization service")
+			return
+		}
+		if !hasAACAccessToNewACM {
+			h.sendErrorResponse(w, 403, err, "Unauthorized")
+			return
+		}
+		// Map the parsed acm
+		requestObject.ACM = mapping.MapACMToODObjectACM(&parsedACM)
+		// Assign existinng database values over top
+		// Depends on DAO retrieving the ACM when calling getObject
+		requestObject.ACM.ID = dbObject.ACM.ID
+		requestObject.ACM.ACMID = dbObject.ACM.ACMID
+		requestObject.ACM.ObjectID = dbObject.ACM.ObjectID
+		requestObject.ACM.ModifiedBy = caller.DistinguishedName
+	}
 
 	// Call metadata connector to update the object in the data store
 	// Force the modified by to be that of the caller
 	requestObject.ModifiedBy = caller.DistinguishedName
-	err = h.DAO.UpdateObject(&requestObject, nil)
+	err = h.DAO.UpdateObject(&requestObject)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "DAO Error updating object")
 		return

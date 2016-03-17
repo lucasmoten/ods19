@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/util/testhelpers"
 )
 
 func TestDAOGetRootObjectsByUser(t *testing.T) {
@@ -35,6 +36,7 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 	object1.CreatedBy = user1
 	object1.TypeName.String = "Test Type"
 	object1.TypeName.Valid = true
+	object1.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions1 := make([]models.ODObjectPermission, 1)
 	permissions1[0].CreatedBy = user1
 	permissions1[0].Grantee = user1
@@ -43,7 +45,7 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 	permissions1[0].AllowUpdate = true
 	permissions1[0].AllowDelete = true
 	object1.Permissions = permissions1
-	dbObject1, err := d.CreateObject(&object1, nil)
+	dbObject1, err := d.CreateObject(&object1)
 	if err != nil {
 		t.Error(err)
 	}
@@ -63,6 +65,7 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 	object2.CreatedBy = user2
 	object2.TypeName.String = "Test Type"
 	object2.TypeName.Valid = true
+	object2.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions2 := make([]models.ODObjectPermission, 1)
 	permissions2[0].CreatedBy = user2
 	permissions2[0].Grantee = user2
@@ -71,7 +74,7 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 	permissions2[0].AllowUpdate = true
 	permissions2[0].AllowDelete = true
 	object2.Permissions = permissions2
-	dbObject2, err := d.CreateObject(&object2, nil)
+	dbObject2, err := d.CreateObject(&object2)
 	if err != nil {
 		t.Error(err)
 	}

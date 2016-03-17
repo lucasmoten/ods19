@@ -57,14 +57,6 @@ func DoWithDecodedResult(client *http.Client, req *http.Request) (*http.Response
 	return res, objResponse, err
 }
 
-func NewACMForUser(username, classification string) models.ODACM {
-	var acm models.ODACM
-	acm.CreatedBy = username
-	acm.Classification.String = classification
-	acm.Classification.Valid = true
-	return acm
-}
-
 // NewObjectWithPermissionsAndProperties creates a single minimally populated
 // object with random properties and full permissions.
 func NewObjectWithPermissionsAndProperties(username, objectType string) models.ODObject {
@@ -78,6 +70,7 @@ func NewObjectWithPermissionsAndProperties(username, objectType string) models.O
 	obj.Name = randomName
 	obj.CreatedBy = username
 	obj.TypeName.String, obj.TypeName.Valid = objectType, true
+	obj.RawAcm.String = ValidACMUnclassified
 	permissions := make([]models.ODObjectPermission, 1)
 	permissions[0].Grantee = obj.CreatedBy
 	permissions[0].AllowCreate = true
@@ -225,6 +218,7 @@ func UpdateObjectStreamPOSTRequest(id string, changeToken string, host string, d
 
 	updateRequest := protocol.UpdateStreamRequest{
 		ChangeToken: changeToken,
+		RawAcm:      ValidACMUnclassifiedFOUO,
 	}
 	jsonBody, err := json.Marshal(updateRequest)
 	if err != nil {

@@ -229,6 +229,7 @@ func (ap AutopilotContext) generateUpdateRequest(changeToken, name string, fqNam
 	w := multipart.NewWriter(&b)
 	um := protocol.UpdateStreamRequest{
 		ChangeToken: changeToken,
+		RawAcm:      `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":["FOUO"],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U//FOUO","banner":"UNCLASSIFIED//FOUO","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
 	}
 	umStr, err := json.MarshalIndent(um, "", "  ")
 	if err != nil {

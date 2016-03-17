@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/util/testhelpers"
 )
 
 func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
@@ -20,6 +21,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	parent.CreatedBy = user1
 	parent.TypeName.String = "File"
 	parent.TypeName.Valid = true
+	parent.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions := make([]models.ODObjectPermission, 1)
 	permissions[0].CreatedBy = user1
 	permissions[0].Grantee = user1
@@ -28,11 +30,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	permissions[0].AllowUpdate = true
 	permissions[0].AllowDelete = true
 	parent.Permissions = permissions
-	var acm models.ODACM
-	acm.CreatedBy = parent.CreatedBy
-	acm.Classification.String = "UNCLASSIFIED"
-	acm.Classification.Valid = true
-	dbParent, err := d.CreateObject(&parent, &acm)
+	dbParent, err := d.CreateObject(&parent)
 	if dbParent.ID == nil {
 		t.Error("expected ID to be set")
 	}
@@ -50,6 +48,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	child1.TypeName.String = "File"
 	child1.TypeName.Valid = true
 	child1.ParentID = dbParent.ID
+	child1.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions1 := make([]models.ODObjectPermission, 1)
 	permissions1[0].CreatedBy = user1
 	permissions1[0].Grantee = user1
@@ -58,11 +57,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	permissions1[0].AllowUpdate = true
 	permissions1[0].AllowDelete = true
 	child1.Permissions = permissions1
-	var acm1 models.ODACM
-	acm1.CreatedBy = child1.CreatedBy
-	acm1.Classification.String = "UNCLASSIFIED"
-	acm1.Classification.Valid = true
-	dbChild1, err := d.CreateObject(&child1, &acm1)
+	dbChild1, err := d.CreateObject(&child1)
 	if dbChild1.ID == nil {
 		t.Error("expected ID to be set")
 	}
@@ -103,6 +98,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	child2.TypeName.String = "File"
 	child2.TypeName.Valid = true
 	child2.ParentID = dbParent.ID
+	child2.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions2 := make([]models.ODObjectPermission, 1)
 	permissions2[0].CreatedBy = user1
 	permissions2[0].Grantee = user1
@@ -111,11 +107,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	permissions2[0].AllowUpdate = true
 	permissions2[0].AllowDelete = true
 	child2.Permissions = permissions2
-	var acm2 models.ODACM
-	acm2.CreatedBy = child2.CreatedBy
-	acm2.Classification.String = "UNCLASSIFIED"
-	acm2.Classification.Valid = true
-	dbChild2, err := d.CreateObject(&child2, &acm2)
+	dbChild2, err := d.CreateObject(&child2)
 	if dbChild2.ID == nil {
 		t.Error("expected ID to be set")
 	}

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/util/testhelpers"
 )
 
 func TestDAOGetRootObjects(t *testing.T) {
@@ -25,7 +26,8 @@ func TestDAOGetRootObjects(t *testing.T) {
 	object1.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	object1.TypeName.String = "Test Type"
 	object1.TypeName.Valid = true
-	dbObject1, err := d.CreateObject(&object1, nil)
+	object1.RawAcm.String = testhelpers.ValidACMUnclassified
+	dbObject1, err := d.CreateObject(&object1)
 	if err != nil {
 		t.Error(err)
 	}

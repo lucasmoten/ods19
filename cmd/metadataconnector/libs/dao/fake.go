@@ -39,7 +39,7 @@ func (fake *FakeDAO) AddPropertyToObject(object models.ODObject, property *model
 }
 
 // CreateObject for FakeDAO.
-func (fake *FakeDAO) CreateObject(object *models.ODObject, acm *models.ODACM) (models.ODObject, error) {
+func (fake *FakeDAO) CreateObject(object *models.ODObject) (models.ODObject, error) {
 	return fake.Object, fake.Err
 }
 
@@ -234,7 +234,7 @@ func (fake *FakeDAO) UndeleteObject(object *models.ODObject) (models.ODObject, e
 }
 
 // UpdateObject for FakeDAO.
-func (fake *FakeDAO) UpdateObject(object *models.ODObject, acm *models.ODACM) error {
+func (fake *FakeDAO) UpdateObject(object *models.ODObject) error {
 	return fake.Err
 }
 

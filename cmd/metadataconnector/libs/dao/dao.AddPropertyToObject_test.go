@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/util/testhelpers"
 )
 
 func TestDAOAddPropertyToObject(t *testing.T) {
@@ -21,11 +22,8 @@ func TestDAOAddPropertyToObject(t *testing.T) {
 	obj.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	obj.TypeName.String = "File"
 	obj.TypeName.Valid = true
-	var acm models.ODACM
-	acm.CreatedBy = obj.CreatedBy
-	acm.Classification.String = "UNCLASSIFIED"
-	acm.Classification.Valid = true
-	dbObject, err := d.CreateObject(&obj, &acm)
+	obj.RawAcm.String = testhelpers.ValidACMUnclassified
+	dbObject, err := d.CreateObject(&obj)
 	if dbObject.ID == nil {
 		t.Error("expected ID to be set")
 	}

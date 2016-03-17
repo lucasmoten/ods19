@@ -24,12 +24,9 @@ func TestUndeleteObjectWithChildren(t *testing.T) {
 		objE
 	*/
 
-	// Create ACM for all test objects.
-	acm1 := testhelpers.NewACMForUser(usernames[1], "UNCLASSIFIED")
-
 	// Create folder1.
 	folder1 := testhelpers.NewObjectWithPermissionsAndProperties(usernames[1], "Folder")
-	folder1, err := d.CreateObject(&folder1, &acm1)
+	folder1, err := d.CreateObject(&folder1)
 
 	// Set up children of folder1.
 	objA := testhelpers.NewObjectWithPermissionsAndProperties(usernames[1], "File")
@@ -41,9 +38,9 @@ func TestUndeleteObjectWithChildren(t *testing.T) {
 	folder2 := testhelpers.NewObjectWithPermissionsAndProperties(usernames[1], "Folder")
 	folder1, folder2, err = testhelpers.CreateParentChildObjectRelationship(folder1, folder2)
 
-	objA, err = d.CreateObject(&objA, &acm1)
-	objB, err = d.CreateObject(&objB, &acm1)
-	folder2, err = d.CreateObject(&folder2, &acm1)
+	objA, err = d.CreateObject(&objA)
+	objB, err = d.CreateObject(&objB)
+	folder2, err = d.CreateObject(&folder2)
 	if err != nil {
 		t.Errorf("Error creating folder1 and children: %v\n ", err)
 	}
@@ -58,9 +55,9 @@ func TestUndeleteObjectWithChildren(t *testing.T) {
 	objE := testhelpers.NewObjectWithPermissionsAndProperties(usernames[1], "File")
 	folder2, objE, err = testhelpers.CreateParentChildObjectRelationship(folder2, objE)
 
-	objC, err = d.CreateObject(&objC, &acm1)
-	folder3, err = d.CreateObject(&folder3, &acm1)
-	objE, err = d.CreateObject(&objE, &acm1)
+	objC, err = d.CreateObject(&objC)
+	folder3, err = d.CreateObject(&folder3)
+	objE, err = d.CreateObject(&objE)
 	if err != nil {
 		t.Errorf("Error creating folder2 children: %v\n ", err)
 	}
@@ -69,7 +66,7 @@ func TestUndeleteObjectWithChildren(t *testing.T) {
 	objD := testhelpers.NewObjectWithPermissionsAndProperties(usernames[1], "File")
 	folder3, objD, err = testhelpers.CreateParentChildObjectRelationship(folder3, objD)
 
-	objD, err = d.CreateObject(&objD, &acm1)
+	objD, err = d.CreateObject(&objD)
 	if err != nil {
 		t.Errorf("Error creating folder3 children: %v\n ", err)
 	}

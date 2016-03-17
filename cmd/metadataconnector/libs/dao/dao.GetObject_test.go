@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/util/testhelpers"
 )
 
 func TestDAOGetObject(t *testing.T) {
@@ -30,11 +31,8 @@ func TestDAOGetObject(t *testing.T) {
 	properties[0].ClassificationPM.String = "UNCLASSIFIED"
 	properties[0].ClassificationPM.Valid = true
 	obj.Properties = properties
-	var acm models.ODACM
-	acm.CreatedBy = obj.CreatedBy
-	acm.Classification.String = "UNCLASSIFIED"
-	acm.Classification.Valid = true
-	dbObject, err := d.CreateObject(&obj, &acm)
+	obj.RawAcm.String = testhelpers.ValidACMUnclassified
+	dbObject, err := d.CreateObject(&obj)
 	if err != nil {
 		t.Error(err)
 	}

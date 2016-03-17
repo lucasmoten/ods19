@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/metadata/models/acm"
 	"decipher.com/oduploader/protocol"
 )
 
@@ -262,7 +264,34 @@ func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) (models.O
 	if err != nil {
 		return o, err
 	}
+
 	return o, nil
+}
+
+func MapACMToODObjectACM(i *acm.ACM) models.ODObjectACM {
+	o := models.ODObjectACM{}
+	o.FlatACCMS.String = strings.Join(i.FlatACCMs, ",")
+	o.FlatACCMS.Valid = true
+	o.FlatAtomEnergy.String = strings.Join(i.FlatAtomEnergy, ",")
+	o.FlatAtomEnergy.Valid = true
+	o.FlatClearance = strings.Join(i.FlatClearance, ",")
+	o.FlatDissemCountries.String = strings.Join(i.DisseminationCountries, ",")
+	o.FlatDissemCountries.Valid = true
+	o.FlatMAC.String = strings.Join(i.FlatMACs, ",")
+	o.FlatMAC.Valid = true
+	o.FlatMissions.String = strings.Join(i.FlatMissions, ",")
+	o.FlatMissions.Valid = true
+	o.FlatOCOrgs.String = strings.Join(i.FlatOCOrgs, ",")
+	o.FlatOCOrgs.Valid = true
+	o.FlatRegions.String = strings.Join(i.FlatRegions, ",")
+	o.FlatRegions.Valid = true
+	o.FlatSAR.String = strings.Join(i.SpecialAccessRequiredID, ",")
+	o.FlatSAR.Valid = true
+	o.FlatSCI.String = strings.Join(i.FlatSCIControls, ",")
+	o.FlatSCI.Valid = true
+	o.FlatShare.String = strings.Join(i.FlatShare, ",")
+	o.FlatShare.Valid = true
+	return o
 }
 
 // MapObjectsToODObjects converts an array of API exposable protocol Objects
@@ -329,8 +358,17 @@ func OverwriteODObjectWithProtocolObject(o *models.ODObject, i *protocol.Object)
 	}
 
 	o.ContentType.String = i.ContentType
-	o.RawAcm.String = i.RawAcm
-	o.TypeName.String = i.TypeName
+	// Accept ACM if provided. Otherwise error
+	if len(i.RawAcm) > 0 {
+		o.RawAcm.String = i.RawAcm
+		o.RawAcm.Valid = true
+	} else {
+		return fmt.Errorf("ACM was not provided on protocol object")
+	}
+	if len(i.TypeName) > 0 {
+		o.TypeName.String = i.TypeName
+		o.TypeName.Valid = true
+	}
 
 	return nil
 }
