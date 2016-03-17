@@ -147,3 +147,9 @@ func init() {
 		DockerVM = theIP.String()
 	}
 }
+
+// RootURLRegex is the routing url regex for our entire app
+var RootURLRegex = `/service/object\-drive/1\.0`
+
+// RootURL is the base url for our app
+var RootURL = `/service/object-drive/1.0`

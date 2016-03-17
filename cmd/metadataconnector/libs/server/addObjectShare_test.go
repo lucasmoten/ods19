@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	cfg "decipher.com/oduploader/config"
+
 	"decipher.com/oduploader/protocol"
 )
 
@@ -39,7 +41,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 
 	// Attempt to move folder 2 under folder 1
-	moveuri := host + "/service/metadataconnector/1.0/object/" + folder2.ID + "/move/" + folder1.ID
+	moveuri := host + cfg.RootURL + "/object/" + folder2.ID + "/move/" + folder1.ID
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder2.ChangeToken
 	jsonBody, err := json.Marshal(objChangeToken)
@@ -66,7 +68,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 
 	// Attempt to retrieve folder1 as clientid2
-	geturi := host + "/service/metadataconnector/1.0/object/" + folder1.ID + "/properties"
+	geturi := host + cfg.RootURL + "/object/" + folder1.ID + "/properties"
 	getReq1, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
@@ -83,7 +85,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 
 	// Attempt to retrieve folder2 as clientid2
-	geturi = host + "/service/metadataconnector/1.0/object/" + folder2.ID + "/properties"
+	geturi = host + cfg.RootURL + "/object/" + folder2.ID + "/properties"
 	getReq2, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
@@ -100,7 +102,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 
 	// Add share as clientid1 for clientid2 to folder1 without propagation
-	shareuri := host + "/service/metadataconnector/1.0/object/" + folder1.ID + "/share"
+	shareuri := host + cfg.RootURL + "/object/" + folder1.ID + "/share"
 	shareSetting := protocol.ObjectGrant{}
 	shareSetting.Grantee = "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
 	shareSetting.Read = true
@@ -125,7 +127,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 
 	// Attempt to retrieve folder1 as clientid2
-	geturi = host + "/service/metadataconnector/1.0/object/" + folder1.ID + "/properties"
+	geturi = host + cfg.RootURL + "/object/" + folder1.ID + "/properties"
 	getReq4, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
@@ -142,7 +144,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 
 	// Attempt to retrieve folder2 as clientid2
-	geturi = host + "/service/metadataconnector/1.0/object/" + folder2.ID + "/properties"
+	geturi = host + cfg.RootURL + "/object/" + folder2.ID + "/properties"
 	getReq5, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
@@ -159,7 +161,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 
 	// Add share as clientid1 for clientid2 to folder1 with propagation
-	shareuri = host + "/service/metadataconnector/1.0/object/" + folder1.ID + "/share"
+	shareuri = host + cfg.RootURL + "/object/" + folder1.ID + "/share"
 	shareSetting = protocol.ObjectGrant{}
 	shareSetting.Grantee = "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
 	shareSetting.Read = true
@@ -185,7 +187,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 
 	// Attempt to retrieve folder2 as clientid2
-	geturi = host + "/service/metadataconnector/1.0/object/" + folder2.ID + "/properties"
+	geturi = host + cfg.RootURL + "/object/" + folder2.ID + "/properties"
 	getReq7, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)

@@ -168,9 +168,9 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		Addr:          serverConfig.ListenBind + ":" + strconv.Itoa(serverConfig.ListenPort),
 		DAO:           &concreteDAO,
 		DrainProvider: server.NewS3DrainProvider(cacheID),
-		ServicePrefix: serverConfig.ServiceName + serverConfig.ServiceVersion,
 		Tracker:       performance.NewJobReporters(1024),
 		AAC:           aac,
+		ServicePrefix: oduconfig.RootURLRegex,
 		TemplateCache: templates,
 		StaticDir:     staticPath,
 	}
@@ -178,6 +178,9 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 	if httpHandler.AAC == nil {
 		panic("We cannot run without the AAC!")
 	}
+
+	log.Printf("Using root url:%s", oduconfig.RootURL)
+	log.Printf("Using root url regex:%s", oduconfig.RootURLRegex)
 
 	// Compile regexes for Routes
 	httpHandler.InitRegex()

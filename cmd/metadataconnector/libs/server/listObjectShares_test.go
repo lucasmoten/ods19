@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	cfg "decipher.com/oduploader/config"
+
 	"decipher.com/oduploader/protocol"
 )
 
@@ -29,7 +31,7 @@ func TestListObjectShares(t *testing.T) {
 	}
 
 	// URL
-	uri := host + "/service/metadataconnector/1.0/object/" + folder1.ID + "/shares"
+	uri := host + cfg.RootURL + "/object/" + folder1.ID + "/shares"
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)

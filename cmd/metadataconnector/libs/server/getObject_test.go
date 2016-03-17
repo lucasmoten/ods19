@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	cfg "decipher.com/oduploader/config"
+
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
 	"decipher.com/oduploader/metadata/models"
@@ -53,14 +55,14 @@ func TestAppServerGetObject(t *testing.T) {
 
 	// Fake the AppServer.
 	fakeServer := server.AppServer{DAO: &fakeDAO,
-		ServicePrefix: `/service/metadataconnector/1\.0`,
+		ServicePrefix: cfg.RootURLRegex,
 		AAC:           &fakeAAC,
 	}
 	fakeServer.InitRegex()
 
 	// Simulate the getObject call.
 	req, err := http.NewRequest(
-		"GET", "/service/metadataconnector/1.0"+objectURL, nil)
+		"GET", cfg.RootURL+objectURL, nil)
 	req.Header.Add("USER_DN", dn)
 	if err != nil {
 		t.Errorf("Error construction HTTP request")

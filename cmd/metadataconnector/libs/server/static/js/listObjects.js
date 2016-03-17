@@ -1,7 +1,7 @@
 
 var __state = {};
 
-var BASE_SERVICE_URL = '/service/metadataconnector/1.0/'
+var BASE_SERVICE_URL = '/service/object-drive/1.0/'
 
 
 function getCN(dn) {

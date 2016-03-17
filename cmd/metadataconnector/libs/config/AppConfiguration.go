@@ -14,8 +14,6 @@ var (
 	defaultDBDriver = "mysql"
 	defaultDBHost   = "127.0.0.1"
 	defaultDBPort   = "3306"
-	//RootURL is the url string being referenced everywhere to complete URLs
-	RootURL = "/service/metadataconnector/1.0"
 	//DefaultBucket is the AWS S3 bucket name
 	DefaultBucket = "decipherers"
 	//DefaultBucketPartition is the directory in the bucket - used to allow multiple users
@@ -61,8 +59,6 @@ type ServerSettingsConfiguration struct {
 	RequireClientCert bool
 	CipherSuites      []string
 	MinimumVersion    string
-	ServiceName       string
-	ServiceVersion    string
 }
 
 // NewAppConfiguration loads the configuration file and returns the mapped
@@ -90,10 +86,6 @@ func NewAppConfiguration() AppConfiguration {
 	configuration.ServerSettings.CAPath = os.ExpandEnv(configuration.ServerSettings.CAPath)
 	configuration.ServerSettings.ServerCertChain = os.ExpandEnv(configuration.ServerSettings.ServerCertChain)
 	configuration.ServerSettings.ServerKey = os.ExpandEnv(configuration.ServerSettings.ServerKey)
-
-	// Set service name and version
-	configuration.ServerSettings.ServiceName = `/service/metadataconnector/`
-	configuration.ServerSettings.ServiceVersion = `1\.0`
 
 	// Done
 	return configuration

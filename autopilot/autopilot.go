@@ -326,7 +326,7 @@ func (ap AutopilotContext) DoUpload(i int, async bool, msg string) (link *protoc
 			req, err = ap.generateUploadRequest(
 				filePickedName,
 				fqName,
-				host+"/service/metadataconnector/1.0/object",
+				host+cfg.RootURL+"/object",
 				async,
 			)
 			if err != nil {
@@ -364,7 +364,7 @@ func (ap AutopilotContext) GetLinks(i int, olResponse *protocol.ObjectResultset,
 	var req *http.Request
 	req, err = http.NewRequest(
 		"GET",
-		host+rootURL+"/objects",
+		host+cfg.RootURL+"/objects",
 		nil,
 	)
 	if err != nil {
@@ -427,7 +427,7 @@ func (ap AutopilotContext) DoDownloadLink(i int, link *protocol.Object, msg stri
 	var req *http.Request
 	req, err = http.NewRequest(
 		"GET",
-		host+rootURL+"/object/"+link.ID+"/stream",
+		host+cfg.RootURL+"/object/"+link.ID+"/stream",
 		nil,
 	)
 	if err != nil {
@@ -510,7 +510,7 @@ func (ap AutopilotContext) DoUpdateLink(i int, link *protocol.Object, msg, toApp
 		link.ChangeToken,
 		link.Name,
 		fqName,
-		host+rootURL+"/object/"+link.ID+"/stream",
+		host+cfg.RootURL+"/object/"+link.ID+"/stream",
 		false,
 	)
 	if err != nil {
@@ -577,7 +577,7 @@ func (ap AutopilotContext) FindShares(i int, msg string) (links *protocol.Object
 	var req *http.Request
 	req, err = http.NewRequest(
 		"GET",
-		host+rootURL+"/shares",
+		host+cfg.RootURL+"/shares",
 		nil,
 	)
 	req.Header.Set("Content-Type", "application/json")
@@ -607,7 +607,7 @@ func (ap AutopilotContext) DoUserList(i int, msg string) (users []*protocol.User
 	var req *http.Request
 	req, err = http.NewRequest(
 		"GET",
-		host+rootURL+"/users",
+		host+cfg.RootURL+"/users",
 		nil,
 	)
 
@@ -647,7 +647,7 @@ func (ap AutopilotContext) DoShare(i int, link *protocol.Object, j int, msg stri
 
 	req, err := http.NewRequest(
 		"POST",
-		host+rootURL+"/object/"+link.ID+"/share",
+		host+cfg.RootURL+"/object/"+link.ID+"/share",
 		bytes.NewBuffer(jsonStr),
 	)
 	req.Header.Set("Content-Type", "application/json")
@@ -686,7 +686,7 @@ func (ap AutopilotContext) generatePopulation() {
 func NewAutopilotContext(logHandle *os.File) (ap *AutopilotContext, err error) {
 	ap = &AutopilotContext{
 		Host: host,
-		Url:  rootURL,
+		Url:  cfg.RootURL,
 		Root: autopilotRoot,
 		Log:  logHandle,
 	}
@@ -708,7 +708,6 @@ var Population = 10
 var isQuickTest = true
 var showFileUpload = true
 var host = fmt.Sprintf("https://%s:8080", cfg.DockerVM)
-var rootURL = "/service/metadataconnector/1.0"
 var autopilotRoot = "$GOPATH/src/decipher.com/oduploader/autopilot/cache"
 
 //Set this to true to disable output

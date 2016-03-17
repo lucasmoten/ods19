@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	cfg "decipher.com/oduploader/config"
+
 	"decipher.com/oduploader/protocol"
 )
 
@@ -33,7 +35,7 @@ func TestUpdateObject(t *testing.T) {
 	}
 
 	// Attempt to rename the folder
-	updateuri := host + "/service/metadataconnector/1.0/object/" + folder.ID + "/properties"
+	updateuri := host + cfg.RootURL + "/object/" + folder.ID + "/properties"
 	folder.Name = "Test Folder Updated " + strconv.FormatInt(time.Now().Unix(), 10)
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
@@ -96,7 +98,7 @@ func TestUpdateObjectToHaveNoName(t *testing.T) {
 	}
 
 	// Attempt to rename the folder
-	updateuri := host + "/service/metadataconnector/1.0/object/" + folder.ID + "/properties"
+	updateuri := host + cfg.RootURL + "/object/" + folder.ID + "/properties"
 	folder.Name = ""
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
@@ -162,7 +164,7 @@ func TestUpdateObjectToChangeOwnedBy(t *testing.T) {
 	}
 
 	// Attempt to change owner
-	updateuri := host + "/service/metadataconnector/1.0/object/" + folder.ID + "/properties"
+	updateuri := host + cfg.RootURL + "/object/" + folder.ID + "/properties"
 	folder.OwnedBy = fakeDN2
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {

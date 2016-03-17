@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	cfg "decipher.com/oduploader/config"
+
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
 )
@@ -23,7 +25,7 @@ func TestCreateFolderProtocol(t *testing.T) {
 
 	s := NewFakeServerWithDAOUsers()
 
-	r, err := http.NewRequest("POST", "/service/metadataconnector/1.0/folder", bytes.NewBuffer([]byte(jsonNoParent)))
+	r, err := http.NewRequest("POST", cfg.RootURL+"/folder", bytes.NewBuffer([]byte(jsonNoParent)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +57,7 @@ func TestCreateFolderAtRoot(t *testing.T) {
 	}
 
 	// URL
-	uri := host + "/service/metadataconnector/1.0/folder"
+	uri := host + cfg.RootURL + "/folder"
 	if verboseOutput {
 		fmt.Printf("(Verbose Mode) uri: %s\n", uri)
 	}
@@ -121,7 +123,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 	}
 
 	// URL
-	uri := host + "/service/metadataconnector/1.0/folder"
+	uri := host + cfg.RootURL + "/folder"
 	if verboseOutput {
 		fmt.Printf("(Verbose Mode) uri: %s\n", uri)
 	}
@@ -234,7 +236,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 	}
 
 	// URL
-	uri := host + "/service/metadataconnector/1.0/folder"
+	uri := host + cfg.RootURL + "/folder"
 	if verboseOutput {
 		fmt.Printf("(Verbose Mode) uri: %s", uri)
 		fmt.Println()
@@ -331,7 +333,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 	}
 
 	// URL
-	uri := host + "/service/metadataconnector/1.0/folder"
+	uri := host + cfg.RootURL + "/folder"
 	if verboseOutput {
 		fmt.Printf("(Verbose Mode) uri: %s", uri)
 		fmt.Println()
@@ -431,7 +433,7 @@ func TestCreateFolderWithoutName(t *testing.T) {
 	}
 
 	// URL
-	uri := host + "/service/metadataconnector/1.0/folder"
+	uri := host + cfg.RootURL + "/folder"
 	if verboseOutput {
 		fmt.Printf("(Verbose Mode) uri: %s", uri)
 		fmt.Println()
