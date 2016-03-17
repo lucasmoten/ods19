@@ -1,77 +1,181 @@
 package zookeeper
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/samuel/go-zookeeper/zk"
 )
 
+var PermissiveACL = zk.WorldACL(zk.PermAll)
+
+// ZKState is everything about zookeeper that we might need to know
+type ZKState struct {
+	// ZKAddress is the set of host:port that zk will try to connect to
+	ZKAddress string
+	// Conn is the open zookeeper connection
+	Conn *zk.Conn
+	// Protocols live under this path in zk
+	Protocols string
+}
+
 // AnnounceData models the data written to a Zookeeper ephemeral node.
 type AnnounceData struct {
 	ServiceEndpoint Address `json:"serviceEndpoint"`
-	Status          string
+	Status          string  `json:"status"`
 }
 
 // Address models a host + port combination.
 type Address struct {
 	Host string `json:"host"`
-	Port string `json:"string"`
+	Port string `json:"port"`
 }
 
-// PerformServiceAnnounce ...
-func PerformServiceAnnounce(zkAddress, zkPath string, data AnnounceData, quit chan bool) {
+func randomID() string {
+	buf := make([]byte, 4)
+	rand.Read(buf)
+	return hex.EncodeToString(buf)
+}
 
-	var c *zk.Conn
+// Put in a new level in the tree.
+// this really only wraps up Create to handle non-existence cleanly.
+func makeNewNode(conn *zk.Conn, pathType, prevPath, appendPath string, flags int32, data []byte) (string, error) {
+	newPath := prevPath + "/" + appendPath
+	exists, _, err := conn.Exists(newPath)
+	if err != nil {
+		return newPath, err
+	}
+	if !exists {
+		log.Printf("zk: %s %s created", pathType, newPath)
+		_, err = conn.Create(newPath, data, flags, PermissiveACL)
+		if err != nil {
+			return newPath, err
+		}
+	} else {
+		log.Printf("zk: %s %s exists", pathType, appendPath)
+	}
+	return newPath, nil
+}
+
+// RegisterApplication registers object-drive directory heirarchy in zookeeper
+// in parallel with the aac.
+// Paths are structured:
+//
+//  /cte - where zk specific stuff to organization is for cte
+//    /service - a type of thing being managed, service in this case
+//      /object-drive - an application name
+//        /1.0   - a version for the application
+//
+//  Under this mount point we should have service announcements (json data)
+//  for each port that this version of the service exposes:
+//
+//    /https
+//        /member_00000000  - includes some json that includes port and ip of member
+//        /member_00000001  ...
+//
+//    {"host":"192.168.99.100", "port":"4430"}
+//
+//  The member nodes should be ephemeral so that they clean out when the service dies
+//
+func RegisterApplication(uri, zkAddress string) (ZKState, error) {
 	var err error
 
-	// get connection to zk
-	c, _, err = zk.Connect([]string{zkAddress}, time.Second*2) //*10)
+	//Get open zookeeper connection, and get a handle on closing it later
+	log.Printf("zk: connect to %s", zkAddress)
+	conn, _, err := zk.Connect([]string{zkAddress}, time.Second*2)
 	if err != nil {
-		ticker := time.NewTicker(time.Millisecond * 500)
+		return ZKState{}, err
+	}
 
-		go func() {
-			for _ = range ticker.C {
-				log.Println("Retrying Zookeeper connection at: ", zkAddress)
-				c, _, err = zk.Connect([]string{zkAddress}, time.Second*2) //*10)
-				if err == nil {
-					ticker.Stop()
-					return
-				}
+	//Bundle up zookeeper context into a single object
+	zkURI := "/cte" + uri
+	zkState := ZKState{
+		ZKAddress: zkAddress,
+		Conn:      conn,
+		Protocols: zkURI,
+	}
 
+	//Setup the environment for our version of the application
+	parts := strings.Split(zkURI, "/")
+	organization := parts[1]
+	appType := parts[2]
+	appName := parts[3]
+	appVersion := parts[4]
+
+	//Create uncreated nodes, and log modifications we made
+	//(it might not be right if we needed to make cte or service)
+	var emptyData []byte
+	var newPath string
+	newPath, err = makeNewNode(conn, "organization", newPath, organization, 0, emptyData)
+	if err == nil {
+		newPath, err = makeNewNode(conn, "app type", newPath, appType, 0, emptyData)
+		if err == nil {
+			newPath, err = makeNewNode(conn, "app name", newPath, appName, 0, emptyData)
+			if err == nil {
+				newPath, err = makeNewNode(conn, "version", newPath, appVersion, 0, emptyData)
 			}
-		}()
-	}
-
-	// we have successfully connected?
-	if err := publishToNode(c, zkPath, data); err != nil {
-		log.Printf("Zookeeper connection established, but writing to path failed.\n\tPath: %s", zkPath)
-	}
-
-	// Loop to stay alive
-	for {
-		select {
-		case msg := <-quit:
-			// Try to delete node if quit message is received.
-			_ = msg
 		}
 	}
+	if err != nil {
+		return zkState, err
+	}
 
+	//return the closer, and zookeeper is running
+	return zkState, nil
 }
 
-func publishToNode(conn *zk.Conn, zkPath string, data AnnounceData) error {
-	asBytes, err := json.Marshal(data)
-	if err != nil {
-		log.Println("PerformServiceAnnounce could not marshal AnnounceData to json: ", err)
+// ServiceAnnouncement ensures that a node for this protocol exists
+// and this member is represented with an announcement
+//  It creates a node with protocol name and 8 random hex digits
+//
+//    https/a83e194d
+//
+// Containing the announcement.
+// When our service dies, this node goes away.
+//
+func ServiceAnnouncement(zkState ZKState, protocol string, stat, host, port string) error {
+
+	//Turn this into a raw json announcement
+	aData := AnnounceData{
+		Status: stat,
+		ServiceEndpoint: Address{
+			Host: host,
+			Port: port,
+		},
 	}
-	acl := zk.WorldACL(zk.PermAll)
-	// TODO: Do we need to pass flags besides 0 here?
-	p, err := conn.Create(zkPath, asBytes, 0, acl)
+
+	//Marshall the announcement into bytes
+	asBytes, err := json.Marshal(aData)
 	if err != nil {
-		return errors.New("Error calling Create with Zookeeper conn: " + err.Error())
+		log.Println("ServiceAnnouncement could not marshal AnnounceData to json: ", err)
+		return err
 	}
-	log.Println("Successfully registered at Zookeeper path: ", p)
-	return nil
+
+	//Ensure that a node exists for our protocol - effectively permanent
+	var emptyData []byte
+	newPath, err := makeNewNode(
+		zkState.Conn,
+		"protocols",
+		zkState.Protocols,
+		protocol,
+		0,
+		emptyData,
+	)
+	if err == nil {
+		//Register a member with our data - ephemeral so that data disappears when we die
+		newPath, err = makeNewNode(
+			zkState.Conn,
+			"announcement",
+			newPath,
+			randomID(),
+			zk.FlagEphemeral,
+			asBytes,
+		)
+		log.Printf("zk: find us at: %s:%s", host, port)
+	}
+	return err
 }

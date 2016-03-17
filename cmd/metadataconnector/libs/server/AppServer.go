@@ -17,6 +17,7 @@ import (
 	"decipher.com/oduploader/performance"
 	aac "decipher.com/oduploader/services/aac"
 	audit "decipher.com/oduploader/services/audit/generated/auditservice_thrift"
+	"decipher.com/oduploader/services/zookeeper"
 )
 
 // Constants serve as keys for setting values on a request-scoped Context.
@@ -53,6 +54,8 @@ type AppServer struct {
 	Routes *StaticRx
 	// This encapsulates connectivity to long term storage behind the cache
 	DrainProvider DrainProvider
+	// ZKState is the current state of zookeeper
+	ZKState zookeeper.ZKState
 }
 
 // At points where a goroutine originating from a ServerHTTP call

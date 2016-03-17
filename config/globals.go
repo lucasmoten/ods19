@@ -136,8 +136,10 @@ func locateCerts(projectRoot string) string {
 // The default resolve for "dockervm" hostname.  Pass in an IP
 // to get around DNS issues with docker
 var DockerVM = "dockervm"
+var MyIP = "dockervm"
 
 func init() {
+	//Resolve the dockervm address
 	ips, err := net.LookupIP("dockervm")
 	if err != nil {
 		log.Printf("unable to resolve hostname: dockervm")
@@ -146,6 +148,25 @@ func init() {
 		theIP := ips[0]
 		DockerVM = theIP.String()
 	}
+	//Find our IP that we want gatekeeper to contact us with
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Printf("could nost lookup hostname")
+	}
+	if len(hostname) > 0 {
+		MyIPs, err := net.LookupIP(hostname)
+		if err != nil {
+			log.Printf("could not get a set of ips for our hostname")
+		}
+		if len(MyIPs) > 0 {
+			MyIP = MyIPs[0].String()
+		} else {
+			log.Printf("We did not find our ip")
+		}
+	} else {
+		log.Printf("We could not find our hostname")
+	}
+	log.Printf("we are %s", MyIP)
 }
 
 // RootURLRegex is the routing url regex for our entire app
