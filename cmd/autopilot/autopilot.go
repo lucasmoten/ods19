@@ -1,11 +1,12 @@
 package main
 
 import (
-	"decipher.com/oduploader/autopilot"
 	"log"
 	"math/rand"
 	"os"
 	"time"
+
+	"decipher.com/oduploader/autopilot"
 )
 
 var perPopulation = 40
@@ -44,9 +45,8 @@ func doClient(ap *autopilot.AutopilotContext, i int, clientExited chan int) {
 }
 
 func randomUploadsAndDownloads() {
-	//Autopilot needs to keep a trace that isn't tangled with other logs.
-	//So give it a file.
-	logHandle, err := os.Create("TestShare.md")
+	//Write output to /dev/null for this case, because the logs are very very large
+	logHandle, err := os.OpenFile("/dev/null", os.O_WRONLY, 0700)
 	if err != nil {
 		log.Printf("Unable to start scenarion: %v", err)
 		return

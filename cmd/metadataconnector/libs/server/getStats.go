@@ -1,9 +1,10 @@
 package server
 
 import (
-	"decipher.com/oduploader/performance"
 	"fmt"
 	"net/http"
+
+	"decipher.com/oduploader/performance"
 )
 
 func (h AppServer) getStats(w http.ResponseWriter, r *http.Request, caller Caller) {
@@ -19,4 +20,6 @@ func (h AppServer) getStats(w http.ResponseWriter, r *http.Request, caller Calle
 	fmt.Fprintf(w, "\nFrom S3:\n")
 	h.Tracker.Reporters[performance.S3DrainFrom].Q.Dump(w)
 
+	fmt.Fprintf(w, "\nFrom AAC:\n")
+	h.Tracker.Reporters[performance.AACCounter].Q.Dump(w)
 }

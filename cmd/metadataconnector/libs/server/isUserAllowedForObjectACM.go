@@ -7,6 +7,7 @@ import (
 	"golang.org/x/net/context"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/performance"
 )
 
 func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models.ODObject) (bool, error) {
@@ -24,6 +25,12 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 	}
 	if !object.RawAcm.Valid {
 		return false, errors.New("Object passed in does not have an ACM set")
+	}
+
+	//We currently lack counters for aac check times, so log in order to get timestamps
+	var beganAt = performance.BeganJob(int64(0))
+	if h.Tracker != nil {
+		beganAt = h.Tracker.BeginTime(performance.AACCounter)
 	}
 
 	// Gather inputs
@@ -47,6 +54,15 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 	}
 	if !aacResponse.Success {
 		return false, errors.New("Response from ACM failed")
+	}
+
+	//We currently lack counters for aac check times, so log in order to get timestamps
+	if h.Tracker != nil {
+		h.Tracker.EndTime(
+			performance.AACCounter,
+			beganAt,
+			performance.SizeJob(1),
+		)
 	}
 
 	// AAC Response returned without error, was successful

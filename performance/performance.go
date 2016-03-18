@@ -19,6 +19,8 @@ const (
 	S3DrainTo = ReporterID(3)
 	// S3DrainFrom is time to recache file
 	S3DrainFrom = ReporterID(4)
+	// AACCounter
+	AACCounter = ReporterID(5)
 )
 
 /*
@@ -149,6 +151,7 @@ type ReportsQueue struct {
 	Tail            int
 	Stat            QStat
 	UserStat        QStat
+	NumeratorUnits  string
 }
 
 // NewReportsQueue creates a queue for new reports
@@ -158,12 +161,13 @@ type ReportsQueue struct {
 //
 // When reconciled, at every time period, the population and throughput
 // are well defined.
-func NewReportsQueue(capacity int) *ReportsQueue {
+func NewReportsQueue(capacity int, numeratorUnits string) *ReportsQueue {
 	q := &ReportsQueue{
-		Entry:    make([]QEntry, capacity),
-		Head:     0,
-		Tail:     capacity - 1,
-		Capacity: capacity,
+		Entry:          make([]QEntry, capacity),
+		Head:           0,
+		Tail:           capacity - 1,
+		Capacity:       capacity,
+		NumeratorUnits: numeratorUnits,
 	}
 	return q
 }
@@ -323,6 +327,7 @@ func (r *ReportsQueue) Dump(w io.Writer) {
 	var maxPop = int64(0)
 
 	i := r.Tail
+	units := r.NumeratorUnits
 	for {
 		j := (i + r.Capacity - 1) % r.Capacity
 		//This is supposedly impossible to be zero....
@@ -331,10 +336,12 @@ func (r *ReportsQueue) Dump(w io.Writer) {
 		if t > 0 && b > 0 {
 			fmt.Fprintf(
 				w,
-				"%dQ %vkB/s => %vB in %v ms\n",
+				"%d Q %v %s/s => %v %s in %v ms\n",
 				r.Entry[j].Population,
-				(1.0*r.Entry[j].Bytes)/t,
+				(1000.0*r.Entry[j].Bytes)/t,
+				units,
 				r.Entry[j].Bytes,
+				units,
 				r.Entry[i].TStamp-r.Entry[j].TStamp,
 			)
 		}
@@ -373,9 +380,10 @@ func (r *ReportsQueue) Dump(w io.Writer) {
 		if entryPerPop[p].TotalTime > 0 {
 			fmt.Fprintf(
 				w,
-				"%dQ %vkB/s\n",
+				"%d Q %v %s/s\n",
 				p,
-				(1.0*entryPerPop[p].TotalBytes)/entryPerPop[p].TotalTime,
+				(1000.0*entryPerPop[p].TotalBytes)/entryPerPop[p].TotalTime,
+				units,
 			)
 		}
 	}
@@ -383,20 +391,24 @@ func (r *ReportsQueue) Dump(w io.Writer) {
 	if r.Stat.TotalTime > 0 {
 		fmt.Fprintf(
 			w,
-			"flushed: %v %vkB/s => %vB in %vms\n",
+			"flushed: %v Q %v %s/s => %v %s in %v ms\n",
 			(1.0*r.Stat.PopWeightedByTime)/r.Stat.TotalTime,
-			((1.0)*r.Stat.TotalBytes)/r.Stat.TotalTime,
+			((1000.0)*r.Stat.TotalBytes)/r.Stat.TotalTime,
+			units,
 			r.Stat.TotalBytes,
+			units,
 			r.Stat.TotalTime,
 		)
 	}
 	if r.UserStat.TotalTime > 0 {
 		fmt.Fprintf(
 			w,
-			"userExperience: %v %vkB/s => %vB in %vms\n",
+			"userExperience: %v Q %v %s/s => %v %s in %v ms\n",
 			(1.0*r.UserStat.PopWeightedByTime)/r.UserStat.TotalTime,
-			((1.0)*r.UserStat.TotalBytes)/r.UserStat.TotalTime,
+			((1000.0)*r.UserStat.TotalBytes)/r.UserStat.TotalTime,
+			units,
 			r.UserStat.TotalBytes,
+			units,
 			r.UserStat.TotalTime,
 		)
 	}
@@ -500,10 +512,11 @@ func NewJobReporters(capacity int) *JobReporters {
 		RequestedReport:  make(chan RequestedReport, 32),
 		Quit:             make(chan int, 32),
 	}
-	reporters.Reporters[UploadCounter] = reporters.makeReporter("upload")
-	reporters.Reporters[DownloadCounter] = reporters.makeReporter("download")
-	reporters.Reporters[S3DrainTo] = reporters.makeReporter("s3drainto")
-	reporters.Reporters[S3DrainFrom] = reporters.makeReporter("s3drainfrom")
+	reporters.Reporters[UploadCounter] = reporters.makeReporter("upload", "B")
+	reporters.Reporters[DownloadCounter] = reporters.makeReporter("download", "B")
+	reporters.Reporters[S3DrainTo] = reporters.makeReporter("s3drainto", "B")
+	reporters.Reporters[S3DrainFrom] = reporters.makeReporter("s3drainfrom", "B")
+	reporters.Reporters[AACCounter] = reporters.makeReporter("aaclookup", "Req")
 
 	//Listen in on job reports
 	go jobReportersThread(reporters)
@@ -516,11 +529,11 @@ func (jrs *JobReporters) Stop() {
 	jrs.Quit <- 0
 }
 
-func (jrs *JobReporters) makeReporter(name string) *JobReporter {
+func (jrs *JobReporters) makeReporter(name string, numeratorUnits string) *JobReporter {
 	capacity := jrs.Capacity
 	reporter := &JobReporter{
 		Name: name,
-		Q:    NewReportsQueue(capacity),
+		Q:    NewReportsQueue(capacity, numeratorUnits),
 	}
 	return reporter
 }

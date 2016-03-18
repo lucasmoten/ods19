@@ -340,10 +340,5 @@ func (h AppServer) drainToCache(
 		)
 		return herr, err
 	}
-	h.Tracker.EndTime(
-		performance.S3DrainFrom,
-		beganAt,
-		performance.SizeJob(length),
-	)
 	return nil, nil
 }

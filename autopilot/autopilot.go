@@ -21,6 +21,7 @@ import (
 
 	cfg "decipher.com/oduploader/config"
 	"decipher.com/oduploader/protocol"
+	"decipher.com/oduploader/util/testhelpers"
 )
 
 //
@@ -135,12 +136,6 @@ func (ap AutopilotContext) populateClients(population int) {
 	}
 }
 
-func GetRandomClassification() string {
-	r := rand.Intn(4)
-	classes := []string{"U", "C", "S", "T"}
-	return classes[r]
-}
-
 //-----BEGIN-rewrite-part-of-Go-SDK-----
 
 //multipart form-data writing doesn't let Content-Type get emitted.
@@ -183,7 +178,7 @@ func (ap AutopilotContext) generateUploadRequest(name string, fqName string, url
 	w := multipart.NewWriter(&b)
 	um := protocol.CreateObjectRequest{
 		TypeName: "File",
-		RawAcm:   `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":["FOUO"],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U//FOUO","banner":"UNCLASSIFIED//FOUO","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
+		RawAcm:   testhelpers.ValidACMUnclassified,
 	}
 	umStr, err := json.MarshalIndent(um, "", "  ")
 	if err != nil {
@@ -229,7 +224,7 @@ func (ap AutopilotContext) generateUpdateRequest(changeToken, name string, fqNam
 	w := multipart.NewWriter(&b)
 	um := protocol.UpdateStreamRequest{
 		ChangeToken: changeToken,
-		RawAcm:      `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":["FOUO"],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U//FOUO","banner":"UNCLASSIFIED//FOUO","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
+		RawAcm:      testhelpers.ValidACMUnclassified,
 	}
 	umStr, err := json.MarshalIndent(um, "", "  ")
 	if err != nil {
@@ -276,6 +271,7 @@ func (ap AutopilotContext) DumpTransport(i int) {
 	fmt.Fprintf(ap.Log, "MaxVersion:%v\n", clients[i].Config.MaxVersion)
 	fmt.Fprintf(ap.Log, "InsecureSkipVerify:%v\n", clients[i].Config.InsecureSkipVerify)
 	fmt.Fprintf(ap.Log, "```\n")
+	ap.Log.Sync()
 }
 
 //Dump the request with a label.  TODO: with message
@@ -290,6 +286,7 @@ func (ap AutopilotContext) dumpRequest(req *http.Request, title string, msg stri
 		fmt.Fprintf(ap.Log, "%s", string(reqBytes))
 	}
 	fmt.Fprintf(ap.Log, "\n```\n")
+	ap.Log.Sync()
 }
 
 //Dump the response with a label.  TODO: wth message.
