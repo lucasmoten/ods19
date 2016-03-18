@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"decipher.com/oduploader/services/zookeeper"
 	thrift "github.com/samuel/go-thrift/thrift"
 
 	"github.com/jmoiron/sqlx"
@@ -160,7 +161,19 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		return nil, nil, err
 	}
 
-	staticPath := filepath.Join(oduconfig.ProjectRoot, "cmd", "metadataconnector", "libs", "server", "static")
+	staticPath := filepath.Join(oduconfig.ProjectRoot, "cmd", oduconfig.MyIP, "libs", "server", "static")
+
+	//XXXX This default resolves from the docker containers.
+	// dockervm doesnt work or resolve from outside
+	zkAddress := getEnvVar("ZKURL", "zk:2181")
+	zkState, err := zookeeper.RegisterApplication(oduconfig.RootURL, zkAddress)
+	if err != nil {
+		panic("We cannot run without zookeeper!")
+	}
+	err = zookeeper.ServiceAnnouncement(zkState, "https", "ALIVE", oduconfig.MyIP, "4430")
+	if err != nil {
+		panic("We were unable to register with zookeeper!")
+	}
 
 	httpHandler := server.AppServer{
 		Port:          serverConfig.ListenPort,
@@ -173,6 +186,7 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		ServicePrefix: oduconfig.RootURLRegex,
 		TemplateCache: templates,
 		StaticDir:     staticPath,
+		ZKState:       zkState,
 	}
 
 	if httpHandler.AAC == nil {
