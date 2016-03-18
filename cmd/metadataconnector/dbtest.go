@@ -161,7 +161,7 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		return nil, nil, err
 	}
 
-	staticPath := filepath.Join(oduconfig.ProjectRoot, "cmd", oduconfig.MyIP, "libs", "server", "static")
+	staticPath := filepath.Join(oduconfig.ProjectRoot, "cmd", "metadataconnector", "libs", "server", "static")
 
 	//XXXX This default resolves from the docker containers.
 	// dockervm doesnt work or resolve from outside
