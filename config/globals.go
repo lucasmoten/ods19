@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"decipher.com/oduploader/util"
 )
@@ -169,8 +170,12 @@ func init() {
 	log.Printf("we are %s", MyIP)
 }
 
-// RootURLRegex is the routing url regex for our entire app
-var RootURLRegex = `/service/object\-drive/1\.0`
+func RegexEscape(str string) string {
+	return strings.Replace(str, ".", "\\.", -1)
+}
 
 // RootURL is the base url for our app
 var RootURL = `/service/object-drive/1.0`
+
+// RootURLRegex is the routing url regex for our entire app
+var RootURLRegex = RegexEscape(RootURL)
