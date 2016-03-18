@@ -176,16 +176,20 @@ func (h AppServer) beginUpload(
 ) (herr *AppError, err error) {
 
 	beganAt := h.Tracker.BeginTime(performance.UploadCounter)
-	defer h.Tracker.EndTime(
+	herr, err = h.beginUploadTimed(caller, part, obj, grant, async)
+	if herr != nil {
+		h.Tracker.EndTime(
+			performance.UploadCounter,
+			beganAt,
+			performance.SizeJob(obj.ContentSize.Int64),
+		)
+		return herr, err
+	}
+	h.Tracker.EndTime(
 		performance.UploadCounter,
 		beganAt,
 		performance.SizeJob(obj.ContentSize.Int64),
 	)
-	herr, err = h.beginUploadTimed(caller, part, obj, grant, async)
-	if herr != nil {
-		return herr, err
-	}
-
 	return herr, err
 }
 
@@ -329,6 +333,11 @@ func (h AppServer) drainToCache(
 	beganAt := h.Tracker.BeginTime(performance.S3DrainFrom)
 	herr, err := h.DrainProvider.DrainToCache(bucket, theFile)
 	if herr != nil {
+		h.Tracker.EndTime(
+			performance.S3DrainFrom,
+			beganAt,
+			performance.SizeJob(length),
+		)
 		return herr, err
 	}
 	h.Tracker.EndTime(
