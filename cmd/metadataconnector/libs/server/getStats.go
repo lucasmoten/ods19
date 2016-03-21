@@ -8,6 +8,9 @@ import (
 )
 
 func (h AppServer) getStats(w http.ResponseWriter, r *http.Request, caller Caller) {
+	fmt.Fprintf(w, "\nErrors:\n")
+	h.renderErrorCounters(w)
+
 	fmt.Fprintf(w, "\nUploaders Aggregate:\n")
 	h.Tracker.Reporters[performance.UploadCounter].Q.Dump(w)
 

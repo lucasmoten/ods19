@@ -175,12 +175,22 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		panic("We were unable to register with zookeeper!")
 	}
 
+	// Pick a drain provider based on whether we run standalone
+	var dp server.DrainProvider
+	if oduconfig.StandaloneMode {
+		log.Printf("Draining cache locally")
+		dp = server.NewNullDrainProvider(cacheID)
+	} else {
+		log.Printf("Draining cache to S3")
+		dp = server.NewS3DrainProvider(cacheID)
+	}
+
 	httpHandler := server.AppServer{
 		Port:          serverConfig.ListenPort,
 		Bind:          serverConfig.ListenBind,
 		Addr:          serverConfig.ListenBind + ":" + strconv.Itoa(serverConfig.ListenPort),
 		DAO:           &concreteDAO,
-		DrainProvider: server.NewS3DrainProvider(cacheID),
+		DrainProvider: dp,
 		Tracker:       performance.NewJobReporters(1024),
 		AAC:           aac,
 		ServicePrefix: oduconfig.RootURLRegex,
@@ -198,6 +208,8 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 
 	// Compile regexes for Routes
 	httpHandler.InitRegex()
+	// Start up the error responder
+	server.InitializeErrResponder()
 
 	return &http.Server{
 		Addr:           string(httpHandler.Addr),

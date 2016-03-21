@@ -21,20 +21,23 @@ func (h AppServer) serveStatic(
 	groups := util.GetRegexCaptureGroups(uri, re)
 	afterStatic, ok := groups["path"]
 	if !ok {
-		http.Error(w, errStaticResourceNotFound, 404)
+		h.sendErrorResponse(w, 404, nil, errStaticResourceNotFound)
+		return
 	}
 	path := filepath.Join(h.StaticDir, afterStatic)
 	if err := util.SanitizePath(path); err != nil {
-		http.Error(w, errStaticResourceNotFound, 404)
+		h.sendErrorResponse(w, 404, nil, errStaticResourceNotFound)
+		return
 	}
 
 	f, err := os.Open(path)
 	if err != nil {
-		http.Error(w, errStaticResourceNotFound, 404)
+		h.sendErrorResponse(w, 404, nil, errStaticResourceNotFound)
 		return
 	}
 	_, err = io.Copy(w, f)
 	if err != nil {
-		http.Error(w, errServingStatic, 500)
+		h.sendErrorResponse(w, 500, nil, errServingStatic)
+		return
 	}
 }

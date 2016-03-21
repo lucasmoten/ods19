@@ -197,7 +197,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		user, err = h.DAO.CreateUser(userRequested)
 		if err != nil {
 			log.Printf("%s does not exist in database. Error creating: %s", caller.DistinguishedName, err.Error())
-			http.Error(w, "Error accesing resource", 500)
+			h.sendErrorResponse(w, 500, nil, "Error accessing resource")
 			return
 		}
 	}
@@ -275,7 +275,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)
-			http.Error(w, "Resource not found", 404)
+			h.sendErrorResponse(w, 404, nil, "Resource not found")
+			return
 		}
 	case "POST":
 		switch {
@@ -304,7 +305,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)
-			http.Error(w, "Resource not found", 404)
+			h.sendErrorResponse(w, 404, nil, "Resource not found")
+			return
 		}
 	case "PUT":
 		switch {
@@ -321,7 +323,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)
-			http.Error(w, "Resource not found", 404)
+			h.sendErrorResponse(w, 404, nil, "Resource not found")
+			return
 		}
 	case "DELETE":
 		switch {
@@ -342,7 +345,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)
-			http.Error(w, "Resource not found", 404)
+			h.sendErrorResponse(w, 404, nil, "Resource not found")
+			return
 		}
 	}
 }

@@ -31,7 +31,7 @@ var clients []*ClientIdentity
 var httpclients []*http.Client
 
 func init() {
-	host = fmt.Sprintf("https://%s:8080", cfg.DockerVM)
+	host = fmt.Sprintf("https://%s:%s", cfg.DockerVM, cfg.Port)
 	generatePopulation()
 
 }

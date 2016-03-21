@@ -138,6 +138,8 @@ func locateCerts(projectRoot string) string {
 // to get around DNS issues with docker
 var DockerVM = "dockervm"
 var MyIP = "dockervm"
+var Port = "8080"
+var StandaloneMode = false
 
 func init() {
 	//Resolve the dockervm address
@@ -168,6 +170,18 @@ func init() {
 		log.Printf("We could not find our hostname")
 	}
 	log.Printf("we are %s", MyIP)
+
+	//Allow us to change the port, to get around nginx
+	p := os.Getenv("dockervmport")
+	if p != "" && len(p) > 0 {
+		Port = p
+	}
+
+	//Allow us to work without a network
+	s := os.Getenv("standalone")
+	if s == "true" {
+		StandaloneMode = true
+	}
 }
 
 func RegexEscape(str string) string {

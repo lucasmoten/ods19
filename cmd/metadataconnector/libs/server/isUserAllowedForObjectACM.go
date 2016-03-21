@@ -6,17 +6,23 @@ import (
 
 	"golang.org/x/net/context"
 
+	"decipher.com/oduploader/config"
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/performance"
 )
 
 func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models.ODObject) (bool, error) {
 
+	// In standalone, we are ignoring AAC
+	if config.StandaloneMode {
+		log.Printf("!!! We are in standalone mode! There is no AAC check right now.")
+		return true, nil
+	}
+
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
 		return false, errors.New("Could not determine user")
-
 	}
 
 	// Validate object

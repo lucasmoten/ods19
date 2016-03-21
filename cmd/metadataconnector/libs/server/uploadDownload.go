@@ -33,7 +33,7 @@ func (h AppServer) acceptObjectUpload(
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		return &AppError{Code: 500, Err: nil, Msg: "Could not determine user"}, fmt.Errorf("User not provided in context")
+		return &AppError{Code: 400, Err: nil, Msg: "Could not determine user"}, fmt.Errorf("User not provided in context")
 	}
 	parsedMetadata := false
 	var createObjectRequest protocol.Object
@@ -43,7 +43,7 @@ func (h AppServer) acceptObjectUpload(
 			if err == io.EOF {
 				break //just an eof...not an error
 			} else {
-				return &AppError{Code: 500, Err: err, Msg: "error getting a part"}, err
+				return &AppError{Code: 400, Err: err, Msg: "error getting a part"}, err
 			}
 		} // if err != nil
 

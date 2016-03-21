@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
@@ -121,7 +120,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	link := mapping.MapODObjectToObject(&object)
 	data, err := json.MarshalIndent(link, "", "  ")
 	if err != nil {
-		log.Printf("Error marshalling json data:%v", err)
+		h.sendErrorResponse(w, 500, err, "could not unmarshal json data")
 		return
 	}
 	w.Write(data)

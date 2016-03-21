@@ -145,6 +145,7 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 		dbObject.ParentID = requestObject.ParentID
 		err := h.DAO.UpdateObject(&dbObject)
 		if err != nil {
+			//TODO: should we not send an error response in this case?
 			log.Printf("Error updating object: %v", err)
 		}
 

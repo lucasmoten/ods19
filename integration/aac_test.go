@@ -30,32 +30,38 @@ var snippetType = "ES"
 // This package level var will be populated by init()
 var aacClient = aac.AacServiceClient{}
 
-func init() {
+func DontRun() bool {
+	return testing.Short() || config.StandaloneMode
+}
 
-	trustPath := filepath.Join(config.CertsDir, "clients", "client.trust.pem")
-	certPath := filepath.Join(config.CertsDir, "clients", "test_1.cert.pem")
-	keyPath := filepath.Join(config.CertsDir, "clients", "test_1.key.pem")
+func TestMain(m *testing.M) {
+	if DontRun() == false {
+		trustPath := filepath.Join(config.CertsDir, "clients", "client.trust.pem")
+		certPath := filepath.Join(config.CertsDir, "clients", "test_1.cert.pem")
+		keyPath := filepath.Join(config.CertsDir, "clients", "test_1.key.pem")
 
-	dialOpts := &config.OpenSSLDialOptions{}
-	dialOpts.SetInsecureSkipHostVerification()
-	conn, err := config.NewOpenSSLTransport(
-		trustPath, certPath, keyPath, "twl-server-generic2", "9093", dialOpts)
-	if err != nil {
-		log.Fatal(err)
+		dialOpts := &config.OpenSSLDialOptions{}
+		dialOpts.SetInsecureSkipHostVerification()
+		conn, err := config.NewOpenSSLTransport(
+			trustPath, certPath, keyPath, "twl-server-generic2", "9093", dialOpts)
+		if err != nil {
+			log.Fatal(err)
+		}
+		trns := t2.NewTransport(t2.NewFramedReadWriteCloser(conn, 0), t2.BinaryProtocol)
+		client := t2.NewClient(trns, true)
+		aacClient = aac.AacServiceClient{Client: client}
 	}
-	trns := t2.NewTransport(t2.NewFramedReadWriteCloser(conn, 0), t2.BinaryProtocol)
-	client := t2.NewClient(trns, true)
-	aacClient = aac.AacServiceClient{Client: client}
 }
 
 func TestCheckAccess(t *testing.T) {
 
-	if testing.Short() {
+	if DontRun() {
 		t.Skip("Skipping as integration test.")
 	}
 
 	tokenType := "pki_dias"
 	acmComplete := "{ \"version\":\"2.1.0\", \"classif\":\"TS\", \"owner_prod\":[], \"atom_energy\":[], \"sar_id\":[], \"sci_ctrls\":[ \"HCS\", \"SI-G\", \"TK\" ], \"disponly_to\":[ \"\" ], \"dissem_ctrls\":[ \"OC\" ], \"non_ic\":[], \"rel_to\":[], \"fgi_open\":[], \"fgi_protect\":[], \"portion\":\"TS//HCS/SI-G/TK//OC\", \"banner\":\"TOP SECRET//HCS/SI-G/TK//ORCON\", \"dissem_countries\":[ \"USA\" ], \"accms\":[], \"macs\":[], \"oc_attribs\":[ { \"orgs\":[ \"dia\" ], \"missions\":[], \"regions\":[] } ], \"f_clearance\":[ \"ts\" ], \"f_sci_ctrls\":[ \"hcs\", \"si_g\", \"tk\" ], \"f_accms\":[], \"f_oc_org\":[ \"dia\", \"dni\" ], \"f_regions\":[], \"f_missions\":[], \"f_share\":[], \"f_atom_energy\":[], \"f_macs\":[], \"disp_only\":\"\" }"
+
 	resp, err := aacClient.CheckAccess(userDN1, tokenType, acmComplete)
 
 	if err != nil {
@@ -77,7 +83,7 @@ func TestCheckAccess(t *testing.T) {
 
 func TestBuildAcm(t *testing.T) {
 
-	if testing.Short() {
+	if DontRun() {
 		t.Skip("Skipping as integration test.")
 	}
 
@@ -109,7 +115,7 @@ func TestBuildAcm(t *testing.T) {
 
 func TestValidateAcm(t *testing.T) {
 
-	if testing.Short() {
+	if DontRun() {
 		t.Skip("Skipping as integration test.")
 	}
 
@@ -133,7 +139,7 @@ func TestValidateAcm(t *testing.T) {
 
 func TestPopulateAndValidateAcm(t *testing.T) {
 
-	if testing.Short() {
+	if DontRun() {
 		t.Skip("Skipping as integration test.")
 	}
 
@@ -152,7 +158,7 @@ func TestPopulateAndValidateAcm(t *testing.T) {
 
 func TestCreateAcmFromBannerMarking(t *testing.T) {
 
-	if testing.Short() {
+	if DontRun() {
 		t.Skip("Skipping as integration test.")
 	}
 
@@ -161,7 +167,7 @@ func TestCreateAcmFromBannerMarking(t *testing.T) {
 
 func TestRollupAcms(t *testing.T) {
 
-	if testing.Short() {
+	if DontRun() {
 		t.Skip("Skipping as integration test.")
 	}
 
@@ -192,7 +198,7 @@ func TestRollupAcms(t *testing.T) {
 
 func TestCheckAccessAndPopulate(t *testing.T) {
 
-	if testing.Short() {
+	if DontRun() {
 		t.Skip("Skipping as integration test.")
 	}
 
@@ -242,7 +248,7 @@ func TestCheckAccessAndPopulate(t *testing.T) {
 
 func TestGetUserAttributes(t *testing.T) {
 
-	if testing.Short() {
+	if DontRun() {
 		t.Skip("Skipping as integration test.")
 	}
 
@@ -261,7 +267,7 @@ func TestGetUserAttributes(t *testing.T) {
 
 func TestGetSnippets(t *testing.T) {
 
-	if testing.Short() {
+	if DontRun() {
 		t.Skip("Skipping as integration test.")
 	}
 
@@ -286,7 +292,7 @@ func TestGetSnippets(t *testing.T) {
 
 func TestGetShare(t *testing.T) {
 
-	if testing.Short() {
+	if DontRun() {
 		t.Skip("Skipping as integration test.")
 	}
 

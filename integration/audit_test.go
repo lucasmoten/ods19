@@ -32,7 +32,7 @@ func TestAuditServiceProxyThroughGatekeeper(t *testing.T) {
 	tlsConfig.Certificates = []tls.Certificate{cert}
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
 	client := &http.Client{Transport: transport}
-	url := fmt.Sprintf("https://%s:8080/service/auditservice/1.0/ping", config.DockerVM)
+	url := fmt.Sprintf("https://%s:%s/service/auditservice/1.0/ping", config.DockerVM, config.Port)
 	resp, err := client.Get(url)
 	if err != nil {
 		t.Log(err)
