@@ -97,6 +97,13 @@ func (d *S3DrainProviderData) DrainUploadedFilesToSafety() {
 		d.CacheLocationString,
 		// We need to capture d because this interface won't let us pass it
 		func(name string, f os.FileInfo, err error) (errReturn error) {
+			if err != nil {
+				log.Printf("Error walking directory on initial upload for %s: %v", name, err)
+				// I didn't generate this error, so I am assuming that I can just log the problem.
+				// TODO: this error is not being counted
+				return nil
+			}
+
 			if f.IsDir() {
 				return nil
 			}
@@ -228,6 +235,12 @@ func CacheMustExist(d DrainProvider) (err error) {
 
 // filePurgeVisit visits every file in the cache to see if we should delete it.
 func filePurgeVisit(name string, f os.FileInfo, err error) (errReturn error) {
+	if err != nil {
+		log.Printf("Error walking directory for %s: %v", name, err)
+		// I didn't generate this error, so I am assuming that I can just log the problem.
+		// TODO: this error is not being counted
+		return nil
+	}
 
 	//Ignore directories.  We should not have an unbounded number of directories.
 	//And we must ignore h.CacheLocation
