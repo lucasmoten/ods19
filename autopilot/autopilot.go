@@ -705,7 +705,7 @@ func NewAutopilotContext(logHandle *os.File) (ap *AutopilotContext, err error) {
 var Population = 10
 var isQuickTest = true
 var showFileUpload = true
-var host = fmt.Sprintf("https://%s:8080", cfg.DockerVM)
+var host = fmt.Sprintf("https://%s:%s", cfg.DockerVM, cfg.Port)
 var autopilotRoot = "$GOPATH/src/decipher.com/oduploader/autopilot/cache"
 
 //Set this to true to disable output

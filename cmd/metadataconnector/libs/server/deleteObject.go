@@ -73,8 +73,11 @@ func (h AppServer) deleteObject(w http.ResponseWriter, r *http.Request, caller C
 
 	// Response in requested format
 	apiResponse := mapping.MapODObjectToDeletedObjectResponse(&dbObject)
-	deleteObjectResponse(w, r, &apiResponse)
-
+	herr := deleteObjectResponse(w, r, &apiResponse)
+	if herr != nil {
+		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
+		return
+	}
 }
 
 func parseDeleteObjectRequest(r *http.Request) (models.ODObject, error) {
@@ -112,16 +115,15 @@ func deleteObjectResponse(
 	w http.ResponseWriter,
 	r *http.Request,
 	response *protocol.DeletedObjectResponse,
-) {
+) *AppError {
 	w.Header().Set("Content-Type", "application/json")
 
 	jsonData, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
 		log.Printf("Error marshalling response as json: %s", err.Error())
 		msg := "Error marshalling response as JSON"
-		http.Error(w, msg, 500)
-		return
+		return &AppError{500, err, msg}
 	}
 	w.Write(jsonData)
-	return
+	return nil
 }

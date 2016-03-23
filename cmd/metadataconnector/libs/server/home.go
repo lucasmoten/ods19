@@ -31,6 +31,7 @@ func (h AppServer) home(w http.ResponseWriter, r *http.Request, caller Caller) {
 	}
 	w.Header().Set("Content-Type", "text/html")
 	if err := tmpl.Execute(w, data); err != nil {
-		http.Error(w, err.Error(), 500)
+		h.sendErrorResponse(w, 500, err, err.Error())
+		return
 	}
 }
