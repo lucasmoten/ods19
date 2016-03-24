@@ -62,31 +62,3 @@ type Object struct {
 	// The filename suggested to us
 	FileName string `json:"fileName,omitempty"`
 }
-
-// CreateObjectRequest is a subset of Object for use to disallow providing certain fields.
-type CreateObjectRequest struct {
-	// TypeName reflects the name of the object type associated with TypeID
-	TypeName string `json:"typeName"`
-	// Name is the given name for the object. (e.g., filename)
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	ParentID    string `json:"parentId,omitempty"`
-	// RawACM is the raw ACM string that got supplied to create this object
-	RawAcm string `json:"acm"`
-	// ContentType indicates the mime-type, and potentially the character set
-	// encoding for the object contents
-	ContentType string `json:"contentType,omitempty"`
-	// ContentSize denotes the length of the content stream for this object, in
-	// bytes
-	ContentSize int64 `json:"contentSize,omitempty"`
-	// Properties is an array of Object Properties associated with this object
-	Properties  []Property   `json:"properties,omitempty"`
-	Permissions []Permission `json:"permissions,omitempty"`
-}
-
-// UpdateStreamRequest is for updating the object stream
-type UpdateStreamRequest struct {
-	ChangeToken string `json:"changeToken,omitempty"`
-	// RawACM is the raw ACM string that got supplied to create this object
-	RawAcm string `json:"acm"`
-}
