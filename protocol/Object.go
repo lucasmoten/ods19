@@ -57,8 +57,4 @@ type Object struct {
 	// This might be null.  It could have a large list of permission objects
 	// relevant to this file (ie: shared with an organization)
 	Permissions []Permission `json:"permissions,omitempty"`
-	// Title suggested by the client - effectively an override of FileName
-	Title string `json:"title,omitempty"`
-	// The filename suggested to us
-	FileName string `json:"fileName,omitempty"`
 }
