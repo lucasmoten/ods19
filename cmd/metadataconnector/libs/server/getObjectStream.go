@@ -1,14 +1,12 @@
 package server
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"os"
-	"regexp"
 	"strconv"
 	"time"
 
@@ -20,32 +18,6 @@ import (
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/performance"
 )
-
-func (h AppServer) getObjectStreamObject(ctx context.Context, w http.ResponseWriter, r *http.Request) (models.ODObject, *AppError, error) {
-	var object models.ODObject
-	// Identify requested object
-	objectID := getIDOfObjectTORetrieveStream(r.URL.Path)
-	// If not valid, return
-	if objectID == "" {
-		msg := "URI provided by caller does not specify an object identifier"
-		return object, &AppError{400, nil, msg}, nil
-	}
-	// Convert to byte
-	objectIDByte, err := hex.DecodeString(objectID)
-	if err != nil {
-		msg := "Identifier provided by caller is not a hexidecimal string"
-		return object, &AppError{400, err, msg}, err
-	}
-	// Retrieve from database
-	var objectRequested models.ODObject
-	objectRequested.ID = objectIDByte
-	object, err = h.DAO.GetObject(objectRequested, false)
-	if err != nil {
-		msg := "cannot get object"
-		return object, &AppError{500, err, msg}, err
-	}
-	return object, nil, nil
-}
 
 /*
   We are wrapping around getting object streams to time them.
@@ -59,7 +31,7 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 		log.Printf("%s", string(req))
 	}
 
-	object, herr, err := h.getObjectStreamObject(ctx, w, r)
+	object, herr, err := retrieveObject(h.DAO, h.Routes.ObjectStream, r.URL.Path)
 	if herr != nil {
 		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
 		return
@@ -149,18 +121,6 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	h.getAndStreamFile(ctx, &object, w, fileKey, true)
 
 	return nil
-}
-
-// getIDOfObjectTORetrieveStream accepts a passed in URI and finds whether an
-// object identifier was passed within it for which the content stream is sought
-func getIDOfObjectTORetrieveStream(uri string) string {
-	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)/stream")
-	matchIndexes := re.FindStringSubmatchIndex(uri)
-	if len(matchIndexes) == 0 {
-		return ""
-	}
-	value := uri[matchIndexes[2]:matchIndexes[3]]
-	return value
 }
 
 // This func broken out from the getObjectStream. It still needs refactored to
