@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 )
 
 // FakeDAO is suitable for tests. Add fields to this struct to hold fake
@@ -226,6 +227,11 @@ func (fake *FakeDAO) GetUsers() ([]models.ODUser, error) {
 // IsParentIDADescendent for FakeDAO.
 func (fake *FakeDAO) IsParentIDADescendent(id []byte, parentID []byte) (bool, error) {
 	return fake.IsDescendent, fake.Err
+}
+
+// SearchObjectsByNameOrDescription for FakeDAO
+func (fake *FakeDAO) SearchObjectsByNameOrDescription(user string, pagingRequest protocol.PagingRequest, loadProperties bool) (models.ODObjectResultset, error) {
+	return fake.ObjectResultSet, fake.Err
 }
 
 // UndeleteObject for FakeDAO.

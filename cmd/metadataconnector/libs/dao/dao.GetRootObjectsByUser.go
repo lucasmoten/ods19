@@ -56,6 +56,7 @@ func getRootObjectsByUserInTransaction(tx *sqlx.Tx, orderByClause string, pageNu
 	err := tx.Select(&response.Objects, query, user)
 	if err != nil {
 		print(err.Error())
+		return response, err
 	}
 	// TODO: This relies on sql_calc_found_rows from previous call, but I dont know if its guaranteed that the reference to db here
 	// for this call would be the same as that used above from the built in connection pooling perspective.  If it isn't, then it
@@ -63,6 +64,7 @@ func getRootObjectsByUserInTransaction(tx *sqlx.Tx, orderByClause string, pageNu
 	err = tx.Get(&response.TotalRows, "select found_rows()")
 	if err != nil {
 		print(err.Error())
+		return response, err
 	}
 	response.PageNumber = GetSanitizedPageNumber(pageNumber)
 	response.PageSize = GetSanitizedPageSize(pageSize)
