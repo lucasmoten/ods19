@@ -48,7 +48,7 @@ func TestMoveObject(t *testing.T) {
 		log.Printf("Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
-	req, err := http.NewRequest("PUT", moveuri, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("POST", moveuri, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)

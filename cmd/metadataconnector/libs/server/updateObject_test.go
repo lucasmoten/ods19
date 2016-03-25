@@ -42,7 +42,7 @@ func TestUpdateObject(t *testing.T) {
 		log.Printf("Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
-	req, err := http.NewRequest("PUT", updateuri, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("POST", updateuri, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
@@ -105,7 +105,7 @@ func TestUpdateObjectToHaveNoName(t *testing.T) {
 		log.Printf("Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
-	req, err := http.NewRequest("PUT", updateuri, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("POST", updateuri, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
@@ -171,7 +171,7 @@ func TestUpdateObjectToChangeOwnedBy(t *testing.T) {
 		log.Printf("Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
-	req, err := http.NewRequest("PUT", updateuri, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("POST", updateuri, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)

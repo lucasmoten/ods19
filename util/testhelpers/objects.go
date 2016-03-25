@@ -371,7 +371,7 @@ func NewGetObjectStreamRevisionRequest(id string, version string, dn string, hos
 
 // NewUndeleteObjectPUTRequest creates a request with the provided objectID in the URI
 // that routes to the removeObjectFromTrash handler.
-func NewUndeleteObjectPUTRequest(id, changeToken, dn, host string) (*http.Request, error) {
+func NewUndeleteObjectDELETERequest(id, changeToken, dn, host string) (*http.Request, error) {
 	if id == "" {
 		return nil, errors.New("Test ObjectID cannot be empty string")
 	}
@@ -385,7 +385,7 @@ func NewUndeleteObjectPUTRequest(id, changeToken, dn, host string) (*http.Reques
 		return nil, err
 	}
 
-	req, err := http.NewRequest("PUT", uri, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("DELETE", uri, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return nil, err
 	}

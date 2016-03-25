@@ -1,14 +1,11 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 
-	cfg "decipher.com/oduploader/config"
+	"golang.org/x/net/context"
 )
 
-func (h AppServer) addObjectToFolder(w http.ResponseWriter, r *http.Request, caller Caller) {
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, pageTemplateStart, cfg.RootURL, "addObjectToFolder", caller.DistinguishedName)
-	fmt.Fprintf(w, pageTemplateEnd)
+func (h AppServer) addObjectToFolder(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	h.sendErrorResponse(w, 501, nil, "addObjectToFolder is not yet implemented")
 }

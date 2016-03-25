@@ -1,14 +1,11 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 
-	cfg "decipher.com/oduploader/config"
+	"golang.org/x/net/context"
 )
 
-func (h AppServer) addObjectSubscription(w http.ResponseWriter, r *http.Request, caller Caller) {
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, pageTemplateStart, cfg.RootURL, "addObjectSubscription", caller.DistinguishedName)
-	fmt.Fprintf(w, pageTemplateEnd)
+func (h AppServer) addObjectSubscription(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	h.sendErrorResponse(w, 501, nil, "addObjectSubscription is not yet implemented")
 }

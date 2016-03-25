@@ -58,6 +58,8 @@ type AppServer struct {
 	ZKState zookeeper.ZKState
 }
 
+// AppError encapsulates an error with a desired http status code so that the server
+// can issue the error code to the client.
 // At points where a goroutine originating from a ServerHTTP call
 // must stop and issue an error to the client and stop any further information in the
 // connection.  This AppError is *not* recoverable in any way, because the connection
@@ -150,26 +152,26 @@ func (h *AppServer) InitRegex() {
 		Shares:                  regexp.MustCompile(h.ServicePrefix + "/shares$"),
 		Trash:                   regexp.MustCompile(h.ServicePrefix + "/trash$"),
 		Users:                   regexp.MustCompile(h.ServicePrefix + "/users$"),
-		Object:                  regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)$"),
-		ObjectChangeOwner:       regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/changeowner/.*"),
-		ObjectExpunge:           regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/expunge$"),
-		ObjectFavorite:          regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/favorite$"),
-		ObjectLink:              regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/link/([0-9a-fA-F]*)"),
-		ObjectLinks:             regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/links$"),
-		ObjectMove:              regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/move/([0-9a-fA-F]*)"),
-		ObjectPermission:        regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/permission/([0-9a-fA-F]*)"),
-		ObjectProperties:        regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/properties$"),
+		Object:                  regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)$"),
+		ObjectChangeOwner:       regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/changeowner/(?P<newOwner>[.]*)"),
+		ObjectExpunge:           regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/expunge$"),
+		ObjectFavorite:          regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/favorite$"),
+		ObjectLink:              regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/link/([0-9a-fA-F]*)"),
+		ObjectLinks:             regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/links$"),
+		ObjectMove:              regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/move/(?P<newParentId>[0-9a-fA-F]*)"),
+		ObjectPermission:        regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/permission/(?P<permissionId>[0-9a-fA-F]*)"),
+		ObjectProperties:        regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/properties$"),
 		Objects:                 regexp.MustCompile(h.ServicePrefix + "/objects$"),
-		ObjectShare:             regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/share$"),
-		ObjectShareID:           regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/share/([0-9a-fA-F]*)$"),
-		ObjectStream:            regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/stream$"),
+		ObjectShare:             regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/share$"),
+		ObjectShareID:           regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/share/(?P<shareId>[0-9a-fA-F]*)$"),
+		ObjectStream:            regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/stream$"),
 		ObjectStreamRevision:    regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/history/(?P<historyId>.*)/stream$"),
-		ObjectSubscription:      regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/subscribe$"),
-		ListObjects:             regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/list$"),
-		ListObjectRevisions:     regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/history$"),
-		ListObjectShares:        regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/shares$"),
-		ListObjectSubscriptions: regexp.MustCompile(h.ServicePrefix + "/object/([0-9a-fA-F]*)/subscriptions$"),
-		ListImages:              regexp.MustCompile(h.ServicePrefix + "/images/([0-9a-fA-F]*)/list$"),
+		ObjectSubscription:      regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/subscribe$"),
+		ListObjects:             regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/list$"),
+		ListObjectRevisions:     regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/history$"),
+		ListObjectShares:        regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/shares$"),
+		ListObjectSubscriptions: regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/subscriptions$"),
+		ListImages:              regexp.MustCompile(h.ServicePrefix + "/images/(?P<objectId>[0-9a-fA-F]*)/list$"),
 		TrashObject:             regexp.MustCompile(h.ServicePrefix + "/trash/(?P<objectId>[0-9a-fA-F]*)"),
 		StatsObject:             regexp.MustCompile(h.ServicePrefix + "/stats$"),
 		StaticFiles:             regexp.MustCompile(h.ServicePrefix + "/static/(?P<path>.*)"),
@@ -218,7 +220,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var uri = r.URL.Path
 
-	log.Printf("LOGGING APP SERVER CONFIG:%s URI:%s %s BY USER:%s", h.ServicePrefix, r.Method, uri, user.DistinguishedName)
+	//log.Printf("LOGGING APP SERVER CONFIG:%s URI:%s %s BY USER:%s", h.ServicePrefix, r.Method, uri, user.DistinguishedName)
+	log.Printf("URI:%s %s USER:%s", r.Method, uri, user.DistinguishedName)
 
 	// TODO: use StripPrefix in handler?
 	// https://golang.org/pkg/net/http/#StripPrefix
@@ -226,11 +229,11 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		switch {
 		case h.Routes.Home.MatchString(uri):
-			h.home(w, r, caller)
+			h.home(ctx, w, r)
 		case h.Routes.HomeListObjects.MatchString(uri):
-			h.homeListObjects(w, r, caller)
+			h.homeListObjects(ctx, w, r)
 		case uri == h.ServicePrefix+"/favicon.ico", uri == h.ServicePrefix+"//favicon.ico", strings.HasSuffix(uri, "/favicon.ico"):
-			h.favicon(w, r)
+			h.favicon(ctx, w, r)
 			// from longest to shortest...
 		case h.Routes.ObjectStreamRevision.MatchString(uri):
 			h.getObjectStreamForRevision(ctx, w, r)
@@ -239,22 +242,22 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.ObjectProperties.MatchString(uri):
 			h.getObject(ctx, w, r)
 		case h.Routes.ObjectLinks.MatchString(uri):
-			h.getRelationships(w, r, caller)
+			h.getRelationships(ctx, w, r)
 		case h.Routes.Objects.MatchString(uri):
 			h.listObjects(ctx, w, r)
 		case h.Routes.ListObjects.MatchString(uri):
 			h.listObjects(ctx, w, r)
 		case h.Routes.Images.MatchString(uri), h.Routes.ListImages.MatchString(uri):
-			h.listObjectsImages(w, r, caller)
+			h.listObjectsImages(ctx, w, r)
 		case h.Routes.ListObjectRevisions.MatchString(uri):
 			h.listObjectRevisions(ctx, w, r)
 		case h.Routes.ListObjectShares.MatchString(uri):
 			h.listObjectShares(ctx, w, r)
 		case h.Routes.ListObjectSubscriptions.MatchString(uri):
-			h.listObjectsSubscriptions(w, r, caller)
+			h.listObjectsSubscriptions(ctx, w, r)
 			// single quick matchers
 		case h.Routes.Favorites.MatchString(uri):
-			h.listFavorites(w, r, caller)
+			h.listFavorites(ctx, w, r)
 		case h.Routes.Shared.MatchString(uri):
 			h.listUserObjectsShared(ctx, w, r)
 		case h.Routes.Shares.MatchString(uri):
@@ -262,13 +265,13 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.Trash.MatchString(uri):
 			h.listObjectsTrashed(ctx, w, r)
 		case h.Routes.Query.MatchString(uri):
-			h.query(w, r, caller)
+			h.query(ctx, w, r)
 		case h.Routes.StatsObject.MatchString(uri):
-			h.getStats(w, r, caller)
+			h.getStats(ctx, w, r)
 		case h.Routes.StaticFiles.MatchString(uri):
 			h.serveStatic(w, r, h.Routes.StaticFiles, uri)
 		case h.Routes.Users.MatchString(uri):
-			h.listUsers(w, r, caller)
+			h.listUsers(ctx, w, r)
 		default:
 			jurl, _ := json.MarshalIndent(r.URL, "", "  ")
 			fmt.Println(string(jurl))
@@ -283,23 +286,31 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.ObjectShare.MatchString(uri):
 			h.addObjectShare(ctx, w, r)
 		case h.Routes.ObjectSubscription.MatchString(uri):
-			h.addObjectSubscription(w, r, caller)
+			h.addObjectSubscription(ctx, w, r)
 		case h.Routes.ObjectFavorite.MatchString(uri):
-			h.addObjectToFavorites(w, r, caller)
+			h.addObjectToFavorites(ctx, w, r)
 		case h.Routes.ObjectLink.MatchString(uri):
-			h.addObjectToFolder(w, r, caller)
+			h.addObjectToFolder(ctx, w, r)
 		case h.Routes.Objects.MatchString(uri):
 			h.listObjects(ctx, w, r)
 		case h.Routes.Folder.MatchString(uri):
 			h.createFolder(ctx, w, r)
 		case h.Routes.ObjectCreate.MatchString(uri):
 			h.createObject(ctx, w, r)
+		case h.Routes.ObjectChangeOwner.MatchString(uri):
+			h.changeOwner(ctx, w, r)
+		case h.Routes.ObjectMove.MatchString(uri):
+			h.moveObject(ctx, w, r)
 		case h.Routes.Trash.MatchString(uri):
 			h.listObjectsTrashed(ctx, w, r)
 		case h.Routes.ListObjects.MatchString(uri):
 			h.listObjects(ctx, w, r)
+		case h.Routes.ObjectPermission.MatchString(uri):
+			h.updateObjectPermissions(ctx, w, r)
+		case h.Routes.ObjectProperties.MatchString(uri):
+			h.updateObject(ctx, w, r)
 		case h.Routes.Query.MatchString(uri):
-			h.query(w, r, caller)
+			h.query(ctx, w, r)
 		case h.Routes.ObjectStream.MatchString(uri):
 			h.updateObjectStream(ctx, w, r)
 		default:
@@ -310,16 +321,6 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	case "PUT":
 		switch {
-		case h.Routes.ObjectChangeOwner.MatchString(uri):
-			h.changeOwner(w, r, caller)
-		case h.Routes.ObjectMove.MatchString(uri):
-			h.moveObject(w, r, caller)
-		case h.Routes.ObjectPermission.MatchString(uri):
-			h.updateObjectPermissions(w, r, caller)
-		case h.Routes.ObjectProperties.MatchString(uri):
-			h.updateObject(ctx, w, r)
-		case h.Routes.TrashObject.MatchString(uri):
-			h.removeObjectFromTrash(ctx, w, r)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)
@@ -329,19 +330,19 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "DELETE":
 		switch {
 		case h.Routes.Object.MatchString(uri):
-			h.deleteObject(w, r, caller)
+			h.deleteObject(ctx, w, r)
 		case h.Routes.ObjectExpunge.MatchString(uri):
-			h.deleteObjectForever(w, r, caller)
+			h.deleteObjectForever(ctx, w, r)
 		case h.Routes.ObjectFavorite.MatchString(uri):
-			h.removeObjectFromFavorites(w, r, caller)
+			h.removeObjectFromFavorites(ctx, w, r)
 		case h.Routes.ObjectLink.MatchString(uri):
-			h.removeObjectFromFolder(w, r, caller)
+			h.removeObjectFromFolder(ctx, w, r)
 		case h.Routes.TrashObject.MatchString(uri):
 			h.removeObjectFromTrash(ctx, w, r)
 		case h.Routes.ObjectShareID.MatchString(uri):
 			h.removeObjectShare(ctx, w, r)
 		case h.Routes.ObjectSubscription.MatchString(uri):
-			h.removeObjectSubscription(w, r, caller)
+			h.removeObjectSubscription(ctx, w, r)
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)

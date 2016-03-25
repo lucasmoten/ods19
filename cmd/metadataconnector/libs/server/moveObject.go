@@ -9,15 +9,24 @@ import (
 	"regexp"
 	"strings"
 
+	"golang.org/x/net/context"
+
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
 )
 
-func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Caller) {
+func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
 	var requestObject models.ODObject
 	var err error
+
+	// Get caller value from ctx.
+	caller, ok := CallerFromContext(ctx)
+	if !ok {
+		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		return
+	}
 
 	// Parse Request in sent format
 	if r.Header.Get("Content-Type") != "application/json" {
@@ -122,7 +131,7 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 	}
 	circular, err := h.DAO.IsParentIDADescendent(requestObject.ID, requestObject.ParentID)
 	if err != nil {
-		h.sendErrorResponse(w, 400, err, "Error retrieving ancestor to check for circular references")
+		h.sendErrorResponse(w, 500, err, "Error retrieving ancestor to check for circular references")
 		return
 	}
 	if circular {
@@ -145,8 +154,9 @@ func (h AppServer) moveObject(w http.ResponseWriter, r *http.Request, caller Cal
 		dbObject.ParentID = requestObject.ParentID
 		err := h.DAO.UpdateObject(&dbObject)
 		if err != nil {
-			//TODO: should we not send an error response in this case?
 			log.Printf("Error updating object: %v", err)
+			h.sendErrorResponse(w, 500, nil, "Error saving object in new location")
+			return
 		}
 
 		// After the update, check that key values have changed...

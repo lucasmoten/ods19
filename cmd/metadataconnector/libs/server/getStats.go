@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"golang.org/x/net/context"
+
 	"decipher.com/oduploader/performance"
 )
 
-func (h AppServer) getStats(w http.ResponseWriter, r *http.Request, caller Caller) {
+func (h AppServer) getStats(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "\nErrors:\n")
 	h.renderErrorCounters(w)
 
