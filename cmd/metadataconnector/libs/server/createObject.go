@@ -15,6 +15,71 @@ import (
 	"decipher.com/oduploader/metadata/models/acm"
 )
 
+// createObject is a method handler on AppServer for createObject microservice
+// operation.
+func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
+	r *http.Request) {
+	// Get caller value from ctx.
+	caller, ok := CallerFromContext(ctx)
+	if !ok {
+		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		return
+	}
+
+	var obj models.ODObject
+	var createdObject models.ODObject
+	var acm models.ODACM
+	var grant models.ODObjectPermission
+	var err error
+
+	if r.Method == "POST" {
+		grant.Grantee = caller.DistinguishedName
+		grant.AllowRead = true
+		grant.AllowCreate = true
+		grant.AllowUpdate = true
+		grant.AllowDelete = true
+		grant.AllowShare = true
+
+		obj.CreatedBy = caller.DistinguishedName
+		acm.CreatedBy = caller.DistinguishedName
+
+		rName := utils.CreateRandomName()
+		fileKey := utils.CreateKey()
+		iv := utils.CreateIV()
+		obj.ContentConnector.String = rName
+		obj.EncryptIV = iv
+		grant.EncryptKey = fileKey
+		multipartReader, err := r.MultipartReader()
+		if err != nil {
+			h.sendErrorResponse(w, 400, err, "Unable to get mime multipart")
+			return
+		}
+		herr, err := h.acceptObjectUpload(ctx, multipartReader, &obj, &grant, true)
+		if herr != nil {
+			h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
+			return
+		}
+		obj.Permissions = make([]models.ODObjectPermission, 1)
+		obj.Permissions = append(obj.Permissions, grant)
+
+		createdObject, err = h.DAO.CreateObject(&obj)
+		if err != nil {
+			h.sendErrorResponse(w, 500, err, "error storing object")
+			return
+		}
+	}
+
+	//TODO: json response rendering
+	w.Header().Set("Content-Type", "application/json")
+	protocolObject := mapping.MapODObjectToObject(&createdObject)
+	//Write a link back to the user so that it's possible to do an update on this object
+	data, err := json.MarshalIndent(protocolObject, "", "  ")
+	if err != nil {
+		log.Printf("Error marshalling json data:%v", err)
+	}
+	w.Write(data)
+}
+
 /* This is used by both createObject and createFolder to do common tasks against created objects
    Returns true if the request is now handled - which happens in the case of errors that terminate
    the http request
@@ -126,8 +191,6 @@ func handleCreatePrerequisites(
 		}
 	}
 
-	log.Printf("There are %d permissions being added..", len(requestObject.Permissions))
-
 	// Disallow creating as deleted
 	if requestObject.IsDeleted || requestObject.IsAncestorDeleted || requestObject.IsExpunged {
 		return &AppError{
@@ -162,69 +225,4 @@ func handleCreatePrerequisites(
 	requestObject.ACM.CreatedBy = caller.DistinguishedName
 
 	return nil
-}
-
-// createObject is a method handler on AppServer for createObject microservice
-// operation.
-func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
-	r *http.Request) {
-	// Get caller value from ctx.
-	caller, ok := CallerFromContext(ctx)
-	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
-		return
-	}
-
-	var obj models.ODObject
-	var createdObject models.ODObject
-	var acm models.ODACM
-	var grant models.ODObjectPermission
-	var err error
-
-	if r.Method == "POST" {
-		grant.Grantee = caller.DistinguishedName
-		grant.AllowRead = true
-		grant.AllowCreate = true
-		grant.AllowUpdate = true
-		grant.AllowDelete = true
-		grant.AllowShare = true
-
-		obj.CreatedBy = caller.DistinguishedName
-		acm.CreatedBy = caller.DistinguishedName
-
-		rName := utils.CreateRandomName()
-		fileKey := utils.CreateKey()
-		iv := utils.CreateIV()
-		obj.ContentConnector.String = rName
-		obj.EncryptIV = iv
-		grant.EncryptKey = fileKey
-		multipartReader, err := r.MultipartReader()
-		if err != nil {
-			h.sendErrorResponse(w, 400, err, "Unable to get mime multipart")
-			return
-		}
-		herr, err := h.acceptObjectUpload(ctx, multipartReader, &obj, &grant, true)
-		if herr != nil {
-			h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
-			return
-		}
-		obj.Permissions = make([]models.ODObjectPermission, 1)
-		obj.Permissions = append(obj.Permissions, grant)
-
-		createdObject, err = h.DAO.CreateObject(&obj)
-		if err != nil {
-			h.sendErrorResponse(w, 500, err, "error storing object")
-			return
-		}
-	}
-
-	//TODO: json response rendering
-	w.Header().Set("Content-Type", "application/json")
-	protocolObject := mapping.MapODObjectToObject(&createdObject)
-	//Write a link back to the user so that it's possible to do an update on this object
-	data, err := json.MarshalIndent(protocolObject, "", "  ")
-	if err != nil {
-		log.Printf("Error marshalling json data:%v", err)
-	}
-	w.Write(data)
 }

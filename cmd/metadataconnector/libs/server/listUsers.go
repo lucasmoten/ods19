@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"net/http"
 
+	"golang.org/x/net/context"
+
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
 )
 
-func (h AppServer) listUsers(w http.ResponseWriter, r *http.Request, caller Caller) {
+func (h AppServer) listUsers(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	var users []models.ODUser

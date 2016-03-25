@@ -7,15 +7,24 @@ import (
 	"net/http"
 	"regexp"
 
+	"golang.org/x/net/context"
+
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
 )
 
-func (h AppServer) deleteObject(w http.ResponseWriter, r *http.Request, caller Caller) {
+func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
 	var requestObject models.ODObject
 	var err error
+
+	// Get caller value from ctx.
+	caller, ok := CallerFromContext(ctx)
+	if !ok {
+		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		return
+	}
 
 	// Parse Request in sent format
 	requestObject, err = parseDeleteObjectRequest(r)

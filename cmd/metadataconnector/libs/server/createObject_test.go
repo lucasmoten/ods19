@@ -3,7 +3,6 @@ package server_test
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"testing"
@@ -84,11 +83,11 @@ func TestCreatObjectMalicious(t *testing.T) {
 	err = decoder.Decode(&objResponse)
 	res.Body.Close()
 
-	log.Printf("become POTUS")
+	t.Logf("become POTUS")
 	if objResponse.CreatedBy == "CN=POTUS,C=US" {
 		t.Fail()
 	}
-	log.Printf("set bad id")
+	t.Logf("set bad id")
 	if objResponse.ID == "deadbeef" {
 		t.Fail()
 	}

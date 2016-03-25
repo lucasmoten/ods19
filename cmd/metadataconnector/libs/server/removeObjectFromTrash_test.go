@@ -81,7 +81,7 @@ func TestHTTPUndeleteObject(t *testing.T) {
 	res.Body.Close()
 
 	// This must be passed valid change token
-	undeleteReq, err := testhelpers.NewUndeleteObjectPUTRequest(
+	undeleteReq, err := testhelpers.NewUndeleteObjectDELETERequest(
 		objID, getObjectResponse.ChangeToken, "", host)
 	res, err = httpclients[clientID].Do(undeleteReq)
 	if err != nil {
