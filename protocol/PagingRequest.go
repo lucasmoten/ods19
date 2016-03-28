@@ -20,9 +20,13 @@ type PagingRequest struct {
 	PageSize int `json:"pageSize"`
 	// ObjectID if provided provides a focus for paging, often the ParentID
 	ObjectID string `json:"objectId"`
+	// FilterSettings is an array of fitler settings denoting field and conditional match expression to filter results
+	FilterSettings []FilterSetting `json:"filterSettings"`
+	// SortSettings is an array of sort settings denoting a field to sort on and direction
+	SortSettings []SortSetting `json:"sortSettings"`
 }
 
-// NewPagingRequestFromQueryParams creates a new PagingRequest from the following URL params:
+// NewPagingRequestFromURLValues creates a new PagingRequest from the following URL params:
 // pageNumber, pageSize, and parentId. Params are case-sensitive.
 func NewPagingRequestFromURLValues(vals url.Values) (PagingRequest, error) {
 
@@ -31,6 +35,9 @@ func NewPagingRequestFromURLValues(vals url.Values) (PagingRequest, error) {
 	// Paging provided as querystring arguments
 	pagingRequest.PageNumber = GetQueryParamAsPositiveInt(vals, []string{"PageNumber", "pageNumber"}, 1)
 	pagingRequest.PageSize = GetQueryParamAsPositiveInt(vals, []string{"PageSize", "pageSize"}, 20)
+
+	pagingRequest.FilterSettings = makeFilterSettingsFromQueryParam(vals)
+	pagingRequest.SortSettings = makeSortSettingsFromQueryParam(vals)
 
 	// parentID not required, so setting empty string is OK.
 	parentIDString := vals.Get("parentId")
@@ -52,7 +59,7 @@ func NewPagingRequestFromJSONBody(body io.ReadCloser) (PagingRequest, error) {
 	var pr PagingRequest
 	var err error
 	if body == nil {
-		return pr, errors.New("JSON body was nil.")
+		return pr, errors.New("JSON body was nil")
 	}
 	err = (json.NewDecoder(body)).Decode(&pr)
 	if err != nil {
@@ -77,11 +84,12 @@ func NewPagingRequestWithObjectID(r *http.Request, pathRegex *regexp.Regexp, isO
 	var pagingRequest *PagingRequest
 
 	// Paging information...
-	if r.Method == "GET" {
+	switch r.Method {
+	case "GET":
 		vals := r.URL.Query()
 		pr, _ := NewPagingRequestFromURLValues(vals)
 		pagingRequest = &pr
-	} else if r.Method == "POST" {
+	case "POST":
 		if r.Header.Get("Content-Type") == "application/json" {
 			pr, err := NewPagingRequestFromJSONBody(r.Body)
 			if err != nil {
@@ -91,7 +99,7 @@ func NewPagingRequestWithObjectID(r *http.Request, pathRegex *regexp.Regexp, isO
 		} else {
 			return nil, errors.New("Unsupported content-type to parse paging information")
 		}
-	} else {
+	default:
 		return nil, errors.New("Unsupported HTTP Method")
 	}
 
@@ -118,6 +126,8 @@ func NewPagingRequestWithObjectID(r *http.Request, pathRegex *regexp.Regexp, isO
 	return pagingRequest, nil
 }
 
+// GetQueryParamAsPositiveInt takes a list of names to check and default value and returns
+// the first matching numeric value from the querystring parameters
 func GetQueryParamAsPositiveInt(vals url.Values, names []string, defaultValue int) int {
 	rv := 0
 	found := false
@@ -137,5 +147,64 @@ func GetQueryParamAsPositiveInt(vals url.Values, names []string, defaultValue in
 	if !found {
 		rv = defaultValue
 	}
+	return rv
+}
+
+func makeFilterSettingsFromQueryParam(vals url.Values) []FilterSetting {
+	rv := []FilterSetting{}
+
+	filterFields := vals["filterField"]
+	conditions := vals["condition"]
+	expressions := vals["expression"]
+
+	if len(filterFields) > 0 && len(conditions) > 0 && len(expressions) > 0 {
+		for i, filterField := range filterFields {
+			filterSetting := FilterSetting{}
+			filterSetting.FilterField = filterField
+			if len(conditions) > i {
+				// use condition by ordinal position
+				filterSetting.Condition = conditions[i]
+			} else {
+				// use first/only condition in query
+				filterSetting.Condition = conditions[0]
+			}
+			if len(expressions) > i {
+				// use expression by ordinal position
+				filterSetting.Expression = expressions[i]
+			} else {
+				// use first/only expression in query
+				filterSetting.Expression = expressions[0]
+			}
+			rv = append(rv, filterSetting)
+		}
+	}
+
+	return rv
+}
+
+func makeSortSettingsFromQueryParam(vals url.Values) []SortSetting {
+	rv := []SortSetting{}
+
+	sortFields := vals["sortField"]
+	sortAscendings := vals["sortAscending"]
+
+	if len(sortFields) > 0 {
+		for i, sortField := range sortFields {
+			sortSetting := SortSetting{}
+			sortSetting.SortField = sortField
+			if len(sortAscendings) > i {
+				sortSetting.SortAscending = (sortAscendings[i] == "true")
+			} else {
+				if len(sortAscendings) > 0 {
+					// use first/only sortAscending in query
+					sortSetting.SortAscending = (sortAscendings[0] == "true")
+				} else {
+					// default
+				}
+			}
+			rv = append(rv, sortSetting)
+		}
+	}
+
 	return rv
 }

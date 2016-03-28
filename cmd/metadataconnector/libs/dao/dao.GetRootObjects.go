@@ -39,10 +39,12 @@ func getRootObjectsInTransaction(tx *sqlx.Tx, orderByClause string, pageNumber i
 	err := tx.Select(&response.Objects, query)
 	if err != nil {
 		print(err.Error())
+		return response, err
 	}
 	err = tx.Get(&response.TotalRows, "select found_rows()")
 	if err != nil {
 		print(err.Error())
+		return response, err
 	}
 	response.PageNumber = GetSanitizedPageNumber(pageNumber)
 	response.PageSize = GetSanitizedPageSize(pageSize)

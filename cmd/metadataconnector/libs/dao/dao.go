@@ -2,6 +2,7 @@ package dao
 
 import (
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -52,6 +53,7 @@ type DAO interface {
 	GetUserByDistinguishedName(user models.ODUser) (models.ODUser, error)
 	GetUsers() ([]models.ODUser, error)
 	IsParentIDADescendent(id []byte, parentID []byte) (bool, error)
+	SearchObjectsByNameOrDescription(user string, pagingRequest protocol.PagingRequest, loadProperties bool) (models.ODObjectResultset, error)
 	UndeleteObject(object *models.ODObject) (models.ODObject, error)
 	UpdateObject(object *models.ODObject) error
 	UpdateObjectProperty(objectProperty models.ODObjectPropertyEx) error
