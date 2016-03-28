@@ -78,14 +78,6 @@ type ClientIdentity struct {
 	Index         int
 }
 
-//XXX rob - for unit tests that we all need to run, we need to share the same data set
-// so that the result is reproduceable.  $GOPATH/src/decipher.com/autopilot/cache is where
-// I am putting shared test data right now (moved from autopilot to autopilot/cache).
-// Many of these tests are failing for me, and I don't know
-// if it is related at all to having different test data.
-//
-// The overridden autopilot home exists so that we can use huge files in automation scenarios,
-// particularly against the EC2 instance.
 func getClientIdentity(i int, name string) (*ClientIdentity, error) {
 	ci := &ClientIdentity{
 		TrustPem: os.ExpandEnv("$GOPATH/src/decipher.com/oduploader/defaultcerts/clients/client.trust.pem"),
@@ -206,10 +198,8 @@ func makeFolderViaJSON(folderName string, clientid int) (*protocol.Object, error
 }
 
 func NewFakeServerWithDAOUsers() *server.AppServer {
-	user1 := models.ODUser{DistinguishedName: fakeDN1}
-	user2 := models.ODUser{DistinguishedName: fakeDN2}
-	user1.CreatedBy = fakeDN1
-	user2.CreatedBy = fakeDN2
+
+	user1, user2 := setupFakeUsers()
 
 	guid, err := util.NewGUID()
 	if err != nil {
@@ -242,4 +232,13 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 	// Panics occur if regex routes are not compiled with InitRegex()
 	s.InitRegex()
 	return &s
+}
+
+func setupFakeUsers() (models.ODUser, models.ODUser) {
+	user1 := models.ODUser{DistinguishedName: fakeDN1}
+	user2 := models.ODUser{DistinguishedName: fakeDN2}
+	user1.CreatedBy = fakeDN1
+	user2.CreatedBy = fakeDN2
+
+	return user1, user2
 }

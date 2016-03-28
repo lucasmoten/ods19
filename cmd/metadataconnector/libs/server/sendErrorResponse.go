@@ -23,8 +23,11 @@ func (h AppServer) sendErrorResponse(w http.ResponseWriter, code int, err error,
 	endpoint := endpointParts[len(endpointParts)-1]
 
 	log.Printf("httpCode %d:%s at %s:%d %s:%v", code, endpoint, file, line, msg, err)
-	countersIn <- counterKey{code, endpoint, file, line}
+	if countersIn != nil {
+		countersIn <- counterKey{code, endpoint, file, line}
+	}
 	http.Error(w, msg, code)
+	return
 }
 
 // writeCounters lets us write the counters out to stats
