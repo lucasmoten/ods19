@@ -14,6 +14,21 @@ of memory
 
 Issues are tracked internally in this [Google Doc](https://docs.google.com/spreadsheets/d/1Eiuu8uH6O6_uPtz6icOgLof3JYExhPDo9RelJDFsDeA/edit#gid=538633894)
 
+# Vendoring
+
+We are now moved up to Go1.6, so that vendoring is transparent.  We are using a vendoring tool.
+
+```
+#get the vendoring tool
+go get github.com/kardianos/govendor
+cd $GOPATH/src/github.com/kardianos/govendor
+go install
+
+#now govendor is in $GOPATH/bin, which should be in your path along with $GOROOT/bin
+#sync up all dependencies
+cd $GOPATH/src/decipher.com/oduploader
+govendor sync
+```
 
 # Hosting The Code
 
