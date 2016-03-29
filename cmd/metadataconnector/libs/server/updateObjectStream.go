@@ -26,7 +26,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	var grant *models.ODObjectPermission
 
 	//Get the object from the database, unedited
-	object, herr, err := retrieveObject(h.DAO, h.Routes.ObjectStream, r.URL.Path)
+	object, herr, err := retrieveObject(h.DAO, h.Routes.ObjectStream, r.URL.Path, true)
 	if herr != nil {
 		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
 		return
@@ -103,16 +103,6 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	err = h.DAO.UpdateObject(&object)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "error storing object")
-		return
-	}
-
-	object, herr, err = retrieveObject(h.DAO, h.Routes.ObjectStream, r.URL.Path)
-	if herr != nil {
-		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
-		return
-	}
-	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Could not retrieve object")
 		return
 	}
 

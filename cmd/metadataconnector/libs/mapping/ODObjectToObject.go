@@ -357,17 +357,32 @@ func OverwriteODObjectWithProtocolObject(o *models.ODObject, i *protocol.Object)
 		o.Name = i.Name
 	}
 
-	o.ContentType.String = i.ContentType
-	// Accept ACM if provided. Otherwise error
+	if len(i.Name) > 0 {
+		i.Name = i.Name
+	}
+
+	// Accept ACM if provided. If it's mandatory, then check that it was set on o when this function completes.
 	if len(i.RawAcm) > 0 {
 		o.RawAcm.String = i.RawAcm
 		o.RawAcm.Valid = true
-	} else {
-		return fmt.Errorf("ACM was not provided on protocol object")
 	}
 	if len(i.TypeName) > 0 {
 		o.TypeName.String = i.TypeName
 		o.TypeName.Valid = true
+	}
+
+	if len(i.Description) > 0 {
+		o.Description.String = i.Description
+		o.Description.Valid = true
+	}
+	if len(i.ContentType) > 0 {
+		o.ContentType.String = i.ContentType
+		o.ContentType.Valid = true
+	}
+
+	o.Properties, err = MapPropertiesToODProperties(&i.Properties)
+	if err != nil {
+		return err
 	}
 
 	return nil

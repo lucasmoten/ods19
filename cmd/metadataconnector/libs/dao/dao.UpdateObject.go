@@ -102,7 +102,7 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
 	if strings.Compare(dbObject.RawAcm.String, object.RawAcm.String) != 0 {
 		object.ACM.ID = dbObject.ACM.ID
 		updatedACM, err := updateObjectACMForObjectInTransaction(tx, object)
-		if err != nil {
+		if err != nil { //&& err != sql.ErrNoRows {
 			return fmt.Errorf("Error updating ACM for object: %s", err.Error())
 		}
 		dbObject.ACM = updatedACM
@@ -153,7 +153,7 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
 			}
 			dbProperty, err := addPropertyToObjectInTransaction(tx, *object, &newProperty)
 			if err != nil {
-				return fmt.Errorf("Error saving property %d (%s) when updating object", o, objectProperty.Name)
+				return fmt.Errorf("Error saving property %d (%s) when updating object:%v", o, objectProperty.Name, err)
 			}
 			if dbProperty.ID == nil {
 				return fmt.Errorf("New property does not have an ID")

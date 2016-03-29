@@ -10,7 +10,7 @@ import (
 )
 
 // This is part of functions that need to begin by retrieving an object that was mentioned in uri
-func retrieveObject(d dao.DAO, re *regexp.Regexp, uri string) (models.ODObject, *AppError, error) {
+func retrieveObject(d dao.DAO, re *regexp.Regexp, uri string, loadProperties bool) (models.ODObject, *AppError, error) {
 	var object models.ODObject
 	matchIndexes := re.FindStringSubmatchIndex(uri)
 	var objectID string
@@ -35,7 +35,7 @@ func retrieveObject(d dao.DAO, re *regexp.Regexp, uri string) (models.ODObject, 
 	// Retrieve from database
 	var objectRequested models.ODObject
 	objectRequested.ID = objectIDByte
-	object, err = d.GetObject(objectRequested, false)
+	object, err = d.GetObject(objectRequested, loadProperties)
 	if err != nil {
 		msg := "cannot get object"
 		return object, &AppError{500, err, msg}, err
