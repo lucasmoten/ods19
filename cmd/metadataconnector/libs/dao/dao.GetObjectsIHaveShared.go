@@ -2,19 +2,18 @@ package dao
 
 import (
 	"log"
-	"strconv"
 
 	"github.com/jmoiron/sqlx"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 )
 
 // GetObjectsIHaveShared retrieves a list of Objects that I have explicitly
 // shared to others
-func (dao *DataAccessLayer) GetObjectsIHaveShared(orderByClause string,
-	pageNumber int, pageSize int, user string) (models.ODObjectResultset, error) {
+func (dao *DataAccessLayer) GetObjectsIHaveShared(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
 	tx := dao.MetadataDB.MustBegin()
-	response, err := getObjectsIHaveSharedInTransaction(tx, orderByClause, pageNumber, pageSize, user)
+	response, err := getObjectsIHaveSharedInTransaction(tx, user, pagingRequest)
 	if err != nil {
 		log.Printf("Error in GetObjectsIHaveShared: %v", err)
 		tx.Rollback()
@@ -24,14 +23,10 @@ func (dao *DataAccessLayer) GetObjectsIHaveShared(orderByClause string,
 	return response, err
 }
 
-func getObjectsIHaveSharedInTransaction(tx *sqlx.Tx, orderByClause string,
-	pageNumber int, pageSize int, user string) (models.ODObjectResultset, error) {
+func getObjectsIHaveSharedInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
 
 	response := models.ODObjectResultset{}
-	limit := GetLimit(pageNumber, pageSize)
-	offset := GetOffset(pageNumber, pageSize)
 
-	//Note: not quite right, because we need to also join in allowUpdate, etc.
 	query := `select distinct sql_calc_found_rows o.*, ot.name typeName 
     from object o
         inner join object_type ot on o.typeid = ot.id
@@ -40,25 +35,20 @@ func getObjectsIHaveSharedInTransaction(tx *sqlx.Tx, orderByClause string,
         and op.isdeleted = 0 
         and op.explicitShare = 1
         and op.createdBy = ?
-        and op.grantee <> ?
-  `
-
-	if len(orderByClause) > 0 {
-		query += ` order by o.` + orderByClause
-	} else {
-		query += ` order by o.createddate desc`
-	}
-	query += ` limit ` + strconv.Itoa(limit) + ` offset ` + strconv.Itoa(offset)
-	err := tx.Select(&response.Objects, query, user, user)
+        and op.grantee <> ? `
+	query += buildFilterForUserACM(user)
+	query += buildFilterSortAndLimit(pagingRequest)
+	err := tx.Select(&response.Objects, query, user.DistinguishedName, user.DistinguishedName)
 	if err != nil {
 		return response, err
 	}
+	// Paging stats guidance
 	err = tx.Get(&response.TotalRows, "select found_rows()")
 	if err != nil {
 		return response, err
 	}
-	response.PageNumber = GetSanitizedPageNumber(pageNumber)
-	response.PageSize = GetSanitizedPageSize(pageSize)
+	response.PageNumber = GetSanitizedPageNumber(pagingRequest.PageNumber)
+	response.PageSize = GetSanitizedPageSize(pagingRequest.PageSize)
 	response.PageRows = len(response.Objects)
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	return response, err

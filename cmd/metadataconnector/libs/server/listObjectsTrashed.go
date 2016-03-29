@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
+	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
 
 	"golang.org/x/net/context"
@@ -28,11 +29,8 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 	}
 
 	// Get trash for this user
-	results, err := h.DAO.GetTrashedObjectsByUser(
-		"createdDate desc",
-		pagingRequest.PageNumber,
-		pagingRequest.PageSize,
-		caller.DistinguishedName)
+	user := models.ODUser{DistinguishedName: caller.DistinguishedName}
+	results, err := h.DAO.GetTrashedObjectsByUser(user, *pagingRequest)
 
 	if err != nil {
 		h.sendErrorResponse(w, 500, errors.New("Database call failed: "), err.Error())

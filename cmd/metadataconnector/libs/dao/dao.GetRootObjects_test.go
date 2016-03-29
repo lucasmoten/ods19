@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 	"decipher.com/oduploader/util/testhelpers"
 )
 
@@ -12,8 +13,9 @@ func TestDAOGetRootObjects(t *testing.T) {
 		t.Skip()
 	}
 
+	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: 1}
 	// Get root Objects
-	resultset, err := d.GetRootObjects("", 1, 1)
+	resultset, err := d.GetRootObjects(pagingRequest)
 	if err != nil {
 		t.Error(err)
 	}
@@ -42,7 +44,7 @@ func TestDAOGetRootObjects(t *testing.T) {
 	}
 
 	// Get root Objects
-	resultset, err = d.GetRootObjects("", 1, 1)
+	resultset, err = d.GetRootObjects(pagingRequest)
 	if err != nil {
 		t.Error(err)
 	}
@@ -57,7 +59,7 @@ func TestDAOGetRootObjects(t *testing.T) {
 	}
 
 	// Get root Objects
-	resultset, err = d.GetRootObjects("", 1, 1)
+	resultset, err = d.GetRootObjects(pagingRequest)
 	if err != nil {
 		t.Error(err)
 	}

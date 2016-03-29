@@ -9,6 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 )
 
 // DeleteObject uses the passed in object and makes the appropriate sql calls to
@@ -81,7 +82,8 @@ func deleteObjectInTransaction(tx *sqlx.Tx, object models.ODObject, explicit boo
 	}
 
 	// Process children
-	resultset, err := getChildObjectsInTransaction(tx, "", 1, MaxPageSize, dbObject)
+	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: MaxPageSize}
+	resultset, err := getChildObjectsInTransaction(tx, pagingRequest, dbObject)
 	for i := 0; i < len(resultset.Objects); i++ {
 		if !resultset.Objects[i].IsAncestorDeleted {
 			authorizedToDelete := false
@@ -103,7 +105,8 @@ func deleteObjectInTransaction(tx *sqlx.Tx, object models.ODObject, explicit boo
 	}
 	// TODO: Can this second block replace the first wholesale? Change 2 to 1 for pageNumber
 	for pageNumber := 2; pageNumber < resultset.PageCount; pageNumber++ {
-		pagedResultset, err := getChildObjectsInTransaction(tx, "", pageNumber, MaxPageSize, dbObject)
+		pagingRequest.PageNumber = pageNumber
+		pagedResultset, err := getChildObjectsInTransaction(tx, pagingRequest, dbObject)
 		for i := 0; i < len(pagedResultset.Objects); i++ {
 			if !pagedResultset.Objects[i].IsAncestorDeleted {
 				authorizedToDelete := false

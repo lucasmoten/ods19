@@ -4,16 +4,17 @@ import (
 	"log"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 	"github.com/jmoiron/sqlx"
 )
 
 // GetChildObjectsWithProperties retrieves a list of Objects and their
 // Properties in Object Drive that are nested beneath the parent object.
 func (dao *DataAccessLayer) GetChildObjectsWithProperties(
-	orderByClause string, pageNumber int, pageSize int, object models.ODObject) (models.ODObjectResultset, error) {
+	pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 
 	tx := dao.MetadataDB.MustBegin()
-	response, err := getChildObjectsWithPropertiesInTransaction(tx, orderByClause, pageNumber, pageSize, object)
+	response, err := getChildObjectsWithPropertiesInTransaction(tx, pagingRequest, object)
 	if err != nil {
 		log.Printf("Error in GetChildObjectsWithProperties: %v", err)
 		tx.Rollback()
@@ -23,9 +24,9 @@ func (dao *DataAccessLayer) GetChildObjectsWithProperties(
 	return response, err
 }
 
-func getChildObjectsWithPropertiesInTransaction(tx *sqlx.Tx, orderByClause string, pageNumber int, pageSize int, object models.ODObject) (models.ODObjectResultset, error) {
+func getChildObjectsWithPropertiesInTransaction(tx *sqlx.Tx, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 
-	response, err := getChildObjectsInTransaction(tx, orderByClause, pageNumber, pageSize, object)
+	response, err := getChildObjectsInTransaction(tx, pagingRequest, object)
 	if err != nil {
 		print(err.Error())
 		return response, err

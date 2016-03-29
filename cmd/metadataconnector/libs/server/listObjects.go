@@ -61,14 +61,10 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 
 	// Fetch the matching objects
 	var response models.ODObjectResultset
+	user := models.ODUser{DistinguishedName: caller.DistinguishedName}
 	if parentObject.ID == nil {
 		// Requesting root
-		response, err = h.DAO.GetRootObjectsWithPropertiesByUser(
-			"createddate desc",
-			pagingRequest.PageNumber,
-			pagingRequest.PageSize,
-			caller.DistinguishedName,
-		)
+		response, err = h.DAO.GetRootObjectsWithPropertiesByUser(user, *pagingRequest)
 	} else {
 		// Requesting children of an object. Load parent first.
 		dbObject, err := h.DAO.GetObject(parentObject, false)
@@ -105,13 +101,7 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 		}
 
 		// Get the objects
-		response, err = h.DAO.GetChildObjectsWithPropertiesByUser(
-			"createddate desc",
-			pagingRequest.PageNumber,
-			pagingRequest.PageSize,
-			parentObject,
-			caller.DistinguishedName,
-		)
+		response, err = h.DAO.GetChildObjectsWithPropertiesByUser(user, *pagingRequest, parentObject)
 	}
 	if err != nil {
 		log.Println(err)

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 	"decipher.com/oduploader/util/testhelpers"
 )
 
@@ -175,7 +176,9 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	}
 
 	// Get child objects with properties from a single page of up to 10
-	resultset, err := d.GetChildObjectsWithPropertiesByUser("name asc", 1, 10, dbParent, user1)
+	user := models.ODUser{DistinguishedName: user1}
+	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: 10, SortSettings: []protocol.SortSetting{protocol.SortSetting{SortField: "name", SortAscending: true}}}
+	resultset, err := d.GetChildObjectsWithPropertiesByUser(user, pagingRequest, dbParent)
 	if err != nil {
 		t.Error(err)
 	}
@@ -201,7 +204,8 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	}
 
 	// Get from first page of 1, then second page of 1
-	resultset, err = d.GetChildObjectsWithPropertiesByUser("name asc", 1, 1, dbParent, user1)
+	pagingRequest.PageSize = 1
+	resultset, err = d.GetChildObjectsWithPropertiesByUser(user, pagingRequest, dbParent)
 	if err != nil {
 		t.Error(err)
 	}
@@ -219,7 +223,8 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 			t.Error(fmt.Errorf("Expected first child to have 2 properties, but it had %d", len(resultset.Objects[0].Properties)))
 		}
 	}
-	resultset, err = d.GetChildObjectsWithPropertiesByUser("name asc", 2, 1, dbParent, user1)
+	pagingRequest.PageNumber = 2
+	resultset, err = d.GetChildObjectsWithPropertiesByUser(user, pagingRequest, dbParent)
 	if err != nil {
 		t.Error(err)
 	}
@@ -236,8 +241,10 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 			t.Error(fmt.Errorf("Expected child on page 2 to have 5 properties, but it had %d", len(resultset.Objects[0].Properties)))
 		}
 	}
-
-	resultset, err = d.GetChildObjectsWithPropertiesByUser("name asc", 1, 10, parent, user2)
+	user.DistinguishedName = user2
+	pagingRequest.PageNumber = 1
+	pagingRequest.PageSize = 10
+	resultset, err = d.GetChildObjectsWithPropertiesByUser(user, pagingRequest, parent)
 	if err != nil {
 		t.Error(err)
 	}

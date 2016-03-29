@@ -4,16 +4,16 @@ import (
 	"log"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 	"github.com/jmoiron/sqlx"
 )
 
 // GetRootObjectsWithProperties retrieves a list of Objects and their Properties
 // in Object Drive that are not nested beneath any other objects natively
 // (natural parentId is null)
-func (dao *DataAccessLayer) GetRootObjectsWithProperties(
-	orderByClause string, pageNumber int, pageSize int) (models.ODObjectResultset, error) {
+func (dao *DataAccessLayer) GetRootObjectsWithProperties(pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
 	tx := dao.MetadataDB.MustBegin()
-	response, err := getRootObjectsWithPropertiesInTransaction(tx, orderByClause, pageNumber, pageSize)
+	response, err := getRootObjectsWithPropertiesInTransaction(tx, pagingRequest)
 	if err != nil {
 		log.Printf("Error in GetRootObjectsWithProperties: %v", err)
 		tx.Rollback()
@@ -23,9 +23,9 @@ func (dao *DataAccessLayer) GetRootObjectsWithProperties(
 	return response, err
 }
 
-func getRootObjectsWithPropertiesInTransaction(tx *sqlx.Tx, orderByClause string, pageNumber int, pageSize int) (models.ODObjectResultset, error) {
+func getRootObjectsWithPropertiesInTransaction(tx *sqlx.Tx, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
 
-	response, err := getRootObjectsInTransaction(tx, orderByClause, pageNumber, pageSize)
+	response, err := getRootObjectsInTransaction(tx, pagingRequest)
 	if err != nil {
 		print(err.Error())
 		return response, err

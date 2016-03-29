@@ -8,6 +8,7 @@ import (
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 	"decipher.com/oduploader/util/testhelpers"
 )
 
@@ -78,7 +79,9 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	}
 
 	// Get list of revisions
-	resultset, err := d.GetObjectRevisionsByUser("changecount desc", 1, dao.MaxPageSize, object, usernames[1])
+	user := models.ODUser{DistinguishedName: usernames[1]}
+	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: dao.MaxPageSize, SortSettings: []protocol.SortSetting{protocol.SortSetting{SortField: "changecount", SortAscending: false}}}
+	resultset, err := d.GetObjectRevisionsByUser(user, pagingRequest, object)
 	if err != nil {
 		t.Error("Error getting revisions for object")
 	}

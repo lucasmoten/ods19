@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 	"decipher.com/oduploader/util/testhelpers"
 )
 
@@ -59,8 +60,8 @@ func TestDAOGetChildObjects(t *testing.T) {
 	if !bytes.Equal(child.ParentID, dbParent.ID) {
 		t.Error("expected child parentID to match parent ID")
 	}
-
-	resultset, err := d.GetChildObjects("name asc", 1, 10, dbParent)
+	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: 10, SortSettings: []protocol.SortSetting{protocol.SortSetting{SortField: "name", SortAscending: true}}}
+	resultset, err := d.GetChildObjects(pagingRequest, dbParent)
 	if err != nil {
 		t.Error(err)
 	}

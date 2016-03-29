@@ -15,7 +15,7 @@ import (
 // Permissions and optionally Properties in object drive that are
 // available to the user making the call, matching any specified
 // filter settings on the paging request, and ordered by sort settings
-func (dao *DataAccessLayer) SearchObjectsByNameOrDescription(user string, pagingRequest protocol.PagingRequest, loadProperties bool) (models.ODObjectResultset, error) {
+func (dao *DataAccessLayer) SearchObjectsByNameOrDescription(user models.ODUser, pagingRequest protocol.PagingRequest, loadProperties bool) (models.ODObjectResultset, error) {
 	tx := dao.MetadataDB.MustBegin()
 	response, err := searchObjectsByNameOrDescriptionInTransaction(tx, user, pagingRequest, loadProperties)
 	if err != nil {
@@ -27,29 +27,23 @@ func (dao *DataAccessLayer) SearchObjectsByNameOrDescription(user string, paging
 	return response, err
 }
 
-func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user string, pagingRequest protocol.PagingRequest, loadProperties bool) (models.ODObjectResultset, error) {
+func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest protocol.PagingRequest, loadProperties bool) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
-	limit := GetLimit(pagingRequest.PageNumber, pagingRequest.PageSize)
-	offset := GetOffset(pagingRequest.PageNumber, pagingRequest.PageSize)
 
 	// NOTE: distinct is unfortunately used here because object_permission
 	// allows multiple records per object and grantee.
-	// TODO: Incorporate support for ACM checks. This may need to be passed as
-	// an argument as additional whereByClause to avoid complex coupling
 	query := `select distinct sql_calc_found_rows o.*, ot.name typeName
         from object o
             inner join object_type ot on o.typeid = ot.id
             inner join object_permission op	on o.id = op.objectid and op.isdeleted = 0 and op.allowread = 1
         where 
-            o.isdeleted = 0 
-            and o.isexpunged = 0 
-            and o.isancestordeleted = 0`
-	query += ` and ` + buildFilter(pagingRequest)
-	query += ` and op.grantee = ?`
-	query += buildOrderBy(pagingRequest)
-	query += ` limit ` + strconv.Itoa(limit) + ` offset ` + strconv.Itoa(offset)
+            o.isdeleted = 0 and o.isexpunged = 0 and o.isancestordeleted = 0 
+            and op.grantee = ? `
+	query += buildFilterForUserACM(user)
+	query += buildFilterSortAndLimit(pagingRequest)
+
 	//log.Println(query)
-	err := tx.Select(&response.Objects, query, user)
+	err := tx.Select(&response.Objects, query, user.DistinguishedName)
 	if err != nil {
 		return response, err
 	}
@@ -202,6 +196,28 @@ func buildFilterArchive(pagingRequest protocol.PagingRequest) string {
 	a := buildFilter(pagingRequest)
 	a = strings.Replace(a, " o.", " ao.", -1)
 	return a
+}
+func buildFilterSortAndLimit(pagingRequest protocol.PagingRequest) string {
+	limit := GetLimit(pagingRequest.PageNumber, pagingRequest.PageSize)
+	offset := GetOffset(pagingRequest.PageNumber, pagingRequest.PageSize)
+	sqlStatementSuffix := ``
+	sqlStatementSuffix += ` and ` + buildFilter(pagingRequest)
+	sqlStatementSuffix += buildOrderBy(pagingRequest)
+	sqlStatementSuffix += ` limit ` + strconv.Itoa(limit) + ` offset ` + strconv.Itoa(offset)
+	return sqlStatementSuffix
+}
+func buildFilterSortAndLimitArchive(pagingRequest protocol.PagingRequest) string {
+	a := buildFilterSortAndLimit(pagingRequest)
+	a = strings.Replace(a, " o.", " ao.", -1)
+	return a
+}
+
+func buildFilterForUserACM(user models.ODUser) string {
+	// TODO: Either have the ACM Snippets as part of the ODUser object,
+	// or need to call out to AAC with the user.DistinguishedName to
+	// build it up and then parse and form the appropriate filters against
+	// the ACM table tied to an object.
+	return ""
 }
 
 // MySQLSafeString takes an input string and escapes characters as appropriate

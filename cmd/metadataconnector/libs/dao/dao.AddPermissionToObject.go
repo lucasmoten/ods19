@@ -8,6 +8,7 @@ import (
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 )
 
 // AddPermissionToObject creates a new permission with the provided object id,
@@ -76,8 +77,9 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, per
 	*permission = dbPermission
 
 	// Handle propagation to existing children
+	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: MaxPageSize}
 	if propagateToChildren {
-		children, err := getChildObjectsInTransaction(tx, "", 1, MaxPageSize, object)
+		children, err := getChildObjectsInTransaction(tx, pagingRequest, object)
 		if err != nil {
 			return dbPermission, err
 		}
@@ -106,7 +108,8 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, per
 		}
 		// Additional pages
 		for pageNumber := 2; pageNumber < children.PageCount; pageNumber++ {
-			pagedChildren, err := getChildObjectsInTransaction(tx, "", pageNumber, MaxPageSize, object)
+			pagingRequest.PageNumber = pageNumber
+			pagedChildren, err := getChildObjectsInTransaction(tx, pagingRequest, object)
 			if err != nil {
 				return dbPermission, err
 			}
