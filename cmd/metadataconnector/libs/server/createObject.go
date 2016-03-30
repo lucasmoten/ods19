@@ -54,7 +54,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 			h.sendErrorResponse(w, 400, err, "Unable to get mime multipart")
 			return
 		}
-		herr, err := h.acceptObjectUpload(ctx, multipartReader, &obj, &grant, true)
+		drainFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &obj, &grant, true)
 		if herr != nil {
 			h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
 			return
@@ -67,6 +67,8 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 			h.sendErrorResponse(w, 500, err, "error storing object")
 			return
 		}
+		// Only drain off into S3 once we have a record
+		go drainFunc()
 	}
 
 	//TODO: json response rendering

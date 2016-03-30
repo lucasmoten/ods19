@@ -15,6 +15,7 @@ import (
 Almost all code is similar to that of createObject.go, so reuse much code from there.
 */
 func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	var drainFunc func()
 
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
@@ -91,7 +92,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		h.sendErrorResponse(w, 400, err, "unable to open multipart reader")
 		return
 	}
-	herr, err = h.acceptObjectUpload(ctx, multipartReader, &object, grant, false)
+	drainFunc, herr, err = h.acceptObjectUpload(ctx, multipartReader, &object, grant, false)
 	if herr != nil {
 		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
 		return
@@ -105,6 +106,8 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		h.sendErrorResponse(w, 500, err, "error storing object")
 		return
 	}
+	// Only start to upload into S3 after we have a database record
+	go drainFunc()
 
 	w.Header().Set("Content-Type", "application/json")
 	link := mapping.MapODObjectToObject(&object)
