@@ -58,7 +58,7 @@ func (h AppServer) acceptObjectUpload(
 			//dealing with a retrieved object, so we get fields individually
 			err := json.Unmarshal([]byte(s), &createObjectRequest)
 			if err != nil {
-				return &AppError{400, err, "Could not decode ObjectMetadata."}, err
+				return &AppError{400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", s)}, err
 			}
 
 			// If updating and ACM provided differs from what is currently set, then need to
@@ -104,6 +104,9 @@ func (h AppServer) acceptObjectUpload(
 			if asCreate {
 				if herr := handleCreatePrerequisites(ctx, h, obj); herr != nil {
 					return herr, nil
+				}
+				if len(obj.RawAcm.String) == 0 {
+					return &AppError{400, err, "An ACM must be specified"}, nil
 				}
 			} else {
 				// If the id is specified, it must be the same as from the URI

@@ -23,7 +23,7 @@ type Property struct {
 	// Name is the name, key, field, or label given to a property
 	Name string `json:"name"`
 	// Value is the assigned value for a property.
-	Value string `json:"propertyValue"`
+	Value string `json:"value"`
 	// ClassificationPM is the portion mark classification for the value of this
 	// property
 	ClassificationPM string `json:"classificationPM"`
