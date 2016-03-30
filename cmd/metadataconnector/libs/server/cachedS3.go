@@ -9,11 +9,15 @@ import (
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 
+	"syscall"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+
+	"strconv"
 )
 
 // checkAWSEnvironmentVars prevents the server from starting if appropriate vars
@@ -233,7 +237,52 @@ func CacheMustExist(d DrainProvider) (err error) {
 	return err
 }
 
+//Dont begin purging anything until we are at this fraction of disk for cache
+//TODO: may need to tune on small systems where the OS is counted in the partition,
+// and it is a significant fraction of the disk.
+var lowWatermark = 0.50
+
+//Keep things in cache for a few minutes minimum, then delete based on value
+//TODO: may need to tune on small systems where the OS is counted in the partition,
+// and it is a significant fraction of the disk.
+var ageEligibleForEviction = int64(60 * 5)
+
+//If we get to the high watermark, just start deleting until we get under it.
+//Note that if in the time period ageEligibleForEviction you upload enough
+//to stay at the highWatermark, you won't be able to stay within your cache limits.
+//TODO: may need to tune on small systems where the OS is counted in the partition,
+// and it is a significant fraction of the disk.
+var highWatermark = 0.75
+
 // filePurgeVisit visits every file in the cache to see if we should delete it.
+//
+// The whole point of this is to keep the cache as large as possible without
+// filling up the disk, while maximizing the hit rate.  This means that we must
+// estimate what is going to be a hit (lower age since last touched), and if
+// a file is 10x larger its hit is worth 10x as much because it costs 10x as much to get it.
+// The file size matters in the decision to remove files, but the age since last use
+// matters much more.  We are expecting the getObjectStreamX to timestamp this file
+// every time it's downloaded to ensure that we correctly value the file.
+//
+// Behavior:
+//  disk usage below lowWatermark: ignore this file
+//  disk usage above highWatermark: delete this file if it's old enough for eviction
+//  disk usage in range of watermarks:
+//      if file is too young to evict at all: ignore this file
+//      if int(size/(age*age)) == 0: delete this file
+//
+//  The net effect is that some files remain young because they were recently uploaded or fetched.
+//  Multiplying times filesize recognizes that the penalty for deleting a large file is proportional
+//  to its size.  But because 1/(age*age) drops rapidly, even very large files will quickly become
+//  eligible for deletion if not used.  If there are many files that are accessed often, then the large files
+//  will be selected for deletion.  Large files that keep getting used will stay in cache
+//  as long as they keep getting used.  Because they take N times longer to get stamped due to
+//  the length of the file transfer, it is fair to make it take N times longer to get evicted.
+//
+//  The graph will look like a sawtooth between lowWatermark and highWatermark, where there is
+//  a delay in size drops that is dependent on size and doubly dependent on age since last access.
+//  Size and Age prioritize what is still sitting in cache when we hit lowWatermark.
+//
 func filePurgeVisit(name string, f os.FileInfo, err error) (errReturn error) {
 	if err != nil {
 		log.Printf("Error walking directory for %s: %v", name, err)
@@ -248,37 +297,39 @@ func filePurgeVisit(name string, f os.FileInfo, err error) (errReturn error) {
 		return nil
 	}
 
+	//Size and age determine the value of the file
 	t := f.ModTime().Unix() //In units of second
 	n := time.Now().Unix()  //In unites of second
 	ageInSeconds := n - t
 	size := f.Size()
 	ext := path.Ext(name)
 
+	//Get the current disk space usage
+	sfs := syscall.Statfs_t{}
+	err = syscall.Statfs(name, &sfs)
+	if err != nil {
+		log.Printf("Unable to purge %s, due to statfs fail:%s", name, err)
+	}
+	//Fraction of disk used
+	usage := 1.0 - float64(sfs.Bavail)/float64(sfs.Blocks)
 	switch {
+	//Note that .cached files are securely stored in S3 already
 	case ext == ".cached":
-		/**
-						  Simple purging scheme:
-						    a file must be older than a minute since last use
-						    its (integer) value is its size divided by age squared
-						    when its value is zero, get rid of it.
-
-						    this does NOT take into account the available space,
-						    nor the insert rate.  it is rather agressive though.
-				        Example values:
-				        10GB 1day - 1
-				         6GB 1day - 0
-				       500MB 4hrs - 2
-		             1MB 15mins - 1
-		             1MB 20mins - 0
-		*/
-		if ageInSeconds > 60 {
+		//If we hit usage high watermark, we essentially panic and start deleting from the cache
+		//until we are at low watermark
+		oldEnoughToEvict := (ageInSeconds > ageEligibleForEviction)
+		fullEnoughToEvict := (usage > lowWatermark)
+		mustEvict := (usage > highWatermark && ageInSeconds >= ageEligibleForEviction)
+		// expect usage to sawtooth between lowWatermark and highWatermark
+		// with the value of the file setting priority until we hit highWatermark
+		if (oldEnoughToEvict && fullEnoughToEvict) || mustEvict {
 			value := size / (ageInSeconds * ageInSeconds)
-			if value == 0 {
+			if value == 0 || mustEvict {
 				errReturn := os.Remove(name)
 				if errReturn != nil {
 					log.Printf("Unable to purge %s", name)
 				} else {
-					log.Printf("Purged %s.  Age:%ds Size:%d", name, ageInSeconds, size)
+					log.Printf("Purged %s.  Age:%ds Size:%d DiskUsage:%f", name, ageInSeconds, size, usage)
 				}
 			}
 		}
@@ -292,7 +343,7 @@ func filePurgeVisit(name string, f os.FileInfo, err error) (errReturn error) {
 			if errReturn != nil {
 				log.Printf("Unable to purge %s", name)
 			} else {
-				log.Printf("Purged %s.  Age:%ds Size:%d", name, ageInSeconds, size)
+				log.Printf("Purged for age %s.  Age:%ds Size:%d DiskUsage:%f", name, ageInSeconds, size, usage)
 			}
 		}
 	}
@@ -301,8 +352,41 @@ func filePurgeVisit(name string, f os.FileInfo, err error) (errReturn error) {
 
 // CachePurge will periodically delete files that do not need to be in the cache.
 func (d *S3DrainProviderData) CachePurge() {
+	// read from environment variables:
+	//    lowWatermark (floating point 0..1)
+	//    highWatermark (floating point 0..1)
+	//    ageEligibleForEviction (integer seconds)
+	var err error
+	lowWatermarkSuggested := os.Getenv("lowWatermark")
+	if len(lowWatermarkSuggested) > 0 {
+		lowWatermark, err = strconv.ParseFloat(lowWatermarkSuggested, 32)
+		if err != nil {
+			log.Printf("!! Unable to set lowWatermark to:%s", lowWatermarkSuggested)
+		}
+	}
+	highWatermarkSuggested := os.Getenv("highWatermark")
+	if len(highWatermarkSuggested) > 0 {
+		highWatermark, err = strconv.ParseFloat(highWatermarkSuggested, 32)
+		if err != nil {
+			log.Printf("!! Unable to set highWatermark to:%s", highWatermarkSuggested)
+		}
+	}
+	ageEligibleForEvictionSuggested := os.Getenv("ageEligibleForEviction")
+	if len(ageEligibleForEvictionSuggested) > 0 {
+		ageEligibleForEviction, err = strconv.ParseInt(ageEligibleForEvictionSuggested, 10, 64)
+		if err != nil {
+			log.Printf("!! Unable to set highWatermark to:%s", ageEligibleForEvictionSuggested)
+		}
+	}
+
+	log.Printf(
+		"starting CachePurge: lowWatermark:%f ofDisk, highWatermark:%f ofDisk, ageEligibleForEviction:%d sec",
+		lowWatermark,
+		highWatermark,
+		ageEligibleForEviction,
+	)
 	for {
-		err := filepath.Walk(d.CacheLocationString, filePurgeVisit)
+		err = filepath.Walk(d.CacheLocationString, filePurgeVisit)
 		if err != nil {
 			log.Printf("Unable to walk cache %s: %v", d.CacheLocationString, err)
 		}
