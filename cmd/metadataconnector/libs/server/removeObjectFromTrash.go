@@ -20,14 +20,14 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	var caller Caller
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user."), "Invalid user.")
+		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user")
 		return
 	}
 
 	// Get the change token off the request.
 	changeToken, err := protocol.NewChangeTokenStructFromJSONBody(r.Body)
 	if err != nil {
-		h.sendErrorResponse(w, http.StatusBadRequest, err, "Unexpected change token.")
+		h.sendErrorResponse(w, http.StatusBadRequest, err, "Unexpected change token")
 		return
 	}
 
@@ -41,7 +41,7 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 
 	bytesID, err := hex.DecodeString(captured["objectId"])
 	if err != nil {
-		h.sendErrorResponse(w, http.StatusBadRequest, err, "Invalid objectID in URI.")
+		h.sendErrorResponse(w, http.StatusBadRequest, err, "Invalid objectID in URI")
 		return
 	}
 
@@ -49,7 +49,12 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	obj.ID = bytesID
 	originalObject, err := h.DAO.GetObject(obj, true)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Error retrieving object from database.")
+		h.sendErrorResponse(w, 500, err, "Error retrieving object from database")
+		return
+	}
+
+	if originalObject.IsExpunged {
+		h.sendErrorResponse(w, 410, errors.New("Cannot undelete an expunged object"), "Object was expunged")
 		return
 	}
 
@@ -59,6 +64,7 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 		return
 	}
 
+	// TODO: abstract this into a method on ODObject AuthorizedToDelete(caller)
 	authorizedToDelete := false
 	for _, permission := range originalObject.Permissions {
 		if permission.Grantee == caller.DistinguishedName && permission.AllowDelete {

@@ -1,13 +1,21 @@
 package server_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"log"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
+	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
+	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
+	cfg "decipher.com/oduploader/config"
+	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
+	"decipher.com/oduploader/util"
 	"decipher.com/oduploader/util/testhelpers"
 )
 
@@ -103,6 +111,43 @@ func TestHTTPUndeleteObject(t *testing.T) {
 	if unDeletedObject.Name != expected {
 		t.Errorf("Expected returned object name to be %v. Got: %v\n",
 			expected, unDeletedObject.Name)
+	}
+
+}
+
+func TestUndeleteExpungedObjectFails(t *testing.T) {
+
+	user1, user2 := setupFakeUsers()
+
+	guidBytes, _ := util.NewGUIDBytes()
+	expungedObj := testhelpers.NewTrashedObject(fakeDN1)
+	expungedObj.IsExpunged = true
+	expungedObj.ID = guidBytes
+
+	s := server.AppServer{}
+	s.DAO = &dao.FakeDAO{
+		Object: expungedObj,
+		Users:  []models.ODUser{user1, user2},
+	}
+
+	guid, _ := util.NewGUID()
+	fullURL := cfg.RootURL + "/trash/" + guid
+	r, err := http.NewRequest(
+		"DELETE", fullURL,
+		bytes.NewBuffer([]byte(`{"changeToken": "1234567890"}`)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Add("USER_DN", fakeDN1)
+	r.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	s.InitRegex()
+
+	s.ServeHTTP(w, r)
+
+	if respCode := w.Code; respCode != 410 {
+		t.Errorf("Expected response code 410. Got: %v", respCode)
 	}
 
 }

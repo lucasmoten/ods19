@@ -200,7 +200,7 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 	}
 
 	if httpHandler.AAC == nil {
-		panic("We cannot run without the AAC!")
+		log.Fatal("AAC must be initialized to start server")
 	}
 
 	log.Printf("Using root url:%s", oduconfig.RootURL)
