@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"testing"
+	"time"
 
 	cfg "decipher.com/oduploader/config"
 
@@ -75,7 +76,7 @@ func TestQuery(t *testing.T) {
 	}
 }
 
-func TestQuerySortBySizeDescending(t *testing.T) {
+func TestQuerySortByVersionDescending(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
@@ -86,11 +87,92 @@ func TestQuerySortBySizeDescending(t *testing.T) {
 		t.Logf("(Verbose Mode) Using client id %d", clientid)
 	}
 
-	// Depends on 2 or more objects with name or description containing 'gettysburg' of varying size
-	searchPhrase := "gettysburg"
+	searchPhrase := "QuerySortByVersionDescending"
+
+	// Create 2 folders under root
+	folder1, err := makeFolderViaJSON("Test Folder 1 "+searchPhrase+" "+strconv.FormatInt(time.Now().Unix(), 10), clientid)
+	if err != nil {
+		log.Printf("Error making folder 1: %v", err)
+		t.FailNow()
+	}
+	folder2, err := makeFolderViaJSON("Test Folder 2 "+searchPhrase+" "+strconv.FormatInt(time.Now().Unix(), 10), clientid)
+	if err != nil {
+		log.Printf("Error making folder 2: %v", err)
+		t.FailNow()
+	}
+	// Modify the 1st folder
+	updateuri := host + cfg.RootURL + "/object/" + folder1.ID + "/properties"
+	updateObjectRequest := protocol.UpdateObjectRequest{}
+	updateObjectRequest.Name = folder1.Name
+	updateObjectRequest.Description = "The folder has been changed once"
+	updateObjectRequest.ChangeToken = folder1.ChangeToken
+	jsonBody, err := json.Marshal(updateObjectRequest)
+	if err != nil {
+		log.Printf("Unable to marshal json for request:%v", err)
+		t.FailNow()
+	}
+	req1, err := http.NewRequest("POST", updateuri, bytes.NewBuffer(jsonBody))
+	req1.Header.Set("Content-Type", "application/json")
+	if err != nil {
+		log.Printf("Error setting up HTTP Request: %v", err)
+		t.FailNow()
+	}
+	// do the request
+	res1, err := httpclients[clientid].Do(req1)
+	if err != nil {
+		log.Printf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// process Response
+	if res1.StatusCode != http.StatusOK {
+		log.Printf("bad status modifying folder 1 first time: %s", res1.Status)
+		t.FailNow()
+	}
+	decoder := json.NewDecoder(res1.Body)
+	var updatedFolder protocol.Object
+	err = decoder.Decode(&updatedFolder)
+	if err != nil {
+		log.Printf("Error decoding json to Object: %v", err)
+		log.Println()
+		t.FailNow()
+	}
+	updateObjectRequest.ChangeToken = updatedFolder.ChangeToken
+	updateObjectRequest.Description = "The folder has been changed twice"
+	// Modify the 1st folder again
+	updateuri = host + cfg.RootURL + "/object/" + folder1.ID + "/properties"
+	jsonBody, err = json.Marshal(updateObjectRequest)
+	if err != nil {
+		log.Printf("Unable to marshal json for request:%v", err)
+		t.FailNow()
+	}
+	req2, err := http.NewRequest("POST", updateuri, bytes.NewBuffer(jsonBody))
+	req2.Header.Set("Content-Type", "application/json")
+	if err != nil {
+		log.Printf("Error setting up HTTP Request: %v", err)
+		t.FailNow()
+	}
+	// do the request
+	res2, err := httpclients[clientid].Do(req2)
+	if err != nil {
+		log.Printf("Unable to do request to modify folder again:%v", err)
+		t.FailNow()
+	}
+	// process Response
+	if res2.StatusCode != http.StatusOK {
+		log.Printf("bad status modifying folder 1 second time: %s", res2.Status)
+		t.FailNow()
+	}
+	decoder = json.NewDecoder(res2.Body)
+	err = decoder.Decode(&updatedFolder)
+	if err != nil {
+		log.Printf("Error decoding json to Object: %v", err)
+		log.Println()
+		t.FailNow()
+	}
+	folder1.ChangeToken = updatedFolder.ChangeToken
 
 	// URL
-	uri := host + cfg.RootURL + "/query/" + searchPhrase + "?sortField=contentSize&sortAscending=false&PageSize=2&PageNumber=1"
+	uri := host + cfg.RootURL + "/query/" + searchPhrase + "?sortField=version&sortAscending=false&PageSize=2&PageNumber=1"
 
 	// Request
 	req, err := http.NewRequest("GET", uri, nil)
@@ -106,13 +188,13 @@ func TestQuerySortBySizeDescending(t *testing.T) {
 
 	// Response validation
 	if res.StatusCode != http.StatusOK {
-		t.Logf("bad status: %s", res.Status)
+		t.Logf("bad status searching: %s", res.Status)
 		t.FailNow()
 	}
 	if verboseOutput {
 		t.Logf("Status: %s", res.Status)
 	}
-	decoder := json.NewDecoder(res.Body)
+	decoder = json.NewDecoder(res.Body)
 	var listOfObjects protocol.ObjectResultset
 	err = decoder.Decode(&listOfObjects)
 	if err != nil {
@@ -138,12 +220,12 @@ func TestQuerySortBySizeDescending(t *testing.T) {
 		t.FailNow()
 	}
 
-	// Get size of first and last item in resultset
-	size1 := listOfObjects.Objects[0].ContentSize
-	size2 := listOfObjects.Objects[1].ContentSize
+	// Get changes  of first and last item in resultset
+	changes1 := listOfObjects.Objects[0].ChangeCount
+	changes2 := listOfObjects.Objects[1].ChangeCount
 	// If there are more pages, go fetch the last
 	if listOfObjects.TotalRows > 2 {
-		uri := host + cfg.RootURL + "/query/" + searchPhrase + "?sortField=contentSize&sortAscending=false&PageSize=2&PageNumber=" + strconv.Itoa(listOfObjects.PageCount)
+		uri := host + cfg.RootURL + "/query/" + searchPhrase + "?sortField=version&sortAscending=false&PageSize=2&PageNumber=" + strconv.Itoa(listOfObjects.PageCount)
 		if err != nil {
 			t.Logf("Unable to marshal json for request:%v", err)
 			t.FailNow()
@@ -161,7 +243,7 @@ func TestQuerySortBySizeDescending(t *testing.T) {
 		}
 		// Response validation
 		if res.StatusCode != http.StatusOK {
-			t.Logf("bad status: %s", res.Status)
+			t.Logf("bad status searching page 2: %s", res.Status)
 			t.FailNow()
 		}
 		if verboseOutput {
@@ -180,13 +262,84 @@ func TestQuerySortBySizeDescending(t *testing.T) {
 				log.Printf("- object.name: %s", obj.Name)
 			}
 		}
-		// Get size of last row
-		size2 = listOfObjects.Objects[listOfObjects.PageRows-1].ContentSize
+		// Get changes of last row
+		changes2 = listOfObjects.Objects[listOfObjects.PageRows-1].ChangeCount
 	}
 
-	if size1 <= size2 {
-		t.Logf("The size of the first object returned is smaller than or equal to the size of the last object")
-		t.Logf("First object size: %d  -- Last object size: %d", size1, size2)
+	if changes1 <= changes2 {
+		t.Logf("The change count of the first object returned is smaller than or equal to the change count of the last object")
+		t.Logf("First object change count: %d  -- Last object change count: %d", changes1, changes2)
+		t.FailNow()
+	}
+
+	// Cleanup
+	// Now delete the first folder
+	deleteuri := host + cfg.RootURL + "/object/" + folder1.ID
+	objChangeToken := protocol.ChangeTokenStruct{}
+	objChangeToken.ChangeToken = folder1.ChangeToken
+	jsonBody, err = json.Marshal(objChangeToken)
+	if err != nil {
+		log.Printf("deleting folder Unable to marshal json for request:%v", err)
+		t.FailNow()
+	}
+	req3, err := http.NewRequest("DELETE", deleteuri, bytes.NewBuffer(jsonBody))
+	req3.Header.Set("Content-Type", "application/json")
+	if err != nil {
+		log.Printf("deleting folder Error setting up HTTP Request: %v", err)
+		t.FailNow()
+	}
+	// do the request
+	res3, err := httpclients[clientid].Do(req3)
+	if err != nil {
+		log.Printf("deleting folder Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// process Response
+	if res3.StatusCode != http.StatusOK {
+		log.Printf("deleting folder bad status: %s", res3.Status)
+		t.FailNow()
+	}
+	decoder = json.NewDecoder(res3.Body)
+	var deletedFolder1 protocol.DeletedObjectResponse
+	err = decoder.Decode(&deletedFolder1)
+	if err != nil {
+		log.Printf("deleting folder Error decoding json to Object 1: %v", err)
+		log.Println()
+		t.FailNow()
+	}
+
+	// Now delete the second folder
+	deleteuri = host + cfg.RootURL + "/object/" + folder2.ID
+	objChangeToken = protocol.ChangeTokenStruct{}
+	objChangeToken.ChangeToken = folder2.ChangeToken
+	jsonBody, err = json.Marshal(objChangeToken)
+	if err != nil {
+		log.Printf("deleting folder Unable to marshal json for request:%v", err)
+		t.FailNow()
+	}
+	req4, err := http.NewRequest("DELETE", deleteuri, bytes.NewBuffer(jsonBody))
+	req4.Header.Set("Content-Type", "application/json")
+	if err != nil {
+		log.Printf("deleting folder Error setting up HTTP Request: %v", err)
+		t.FailNow()
+	}
+	// do the request
+	res4, err := httpclients[clientid].Do(req4)
+	if err != nil {
+		log.Printf("deleting folder Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// process Response
+	if res4.StatusCode != http.StatusOK {
+		log.Printf("deleting folder bad status: %s", res4.Status)
+		t.FailNow()
+	}
+	decoder = json.NewDecoder(res4.Body)
+	var deletedFolder2 protocol.DeletedObjectResponse
+	err = decoder.Decode(&deletedFolder2)
+	if err != nil {
+		log.Printf("deleting folder Error decoding json to Object 2: %v", err)
+		log.Println()
 		t.FailNow()
 	}
 }

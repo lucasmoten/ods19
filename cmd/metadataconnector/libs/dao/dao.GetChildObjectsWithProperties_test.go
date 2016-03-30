@@ -149,7 +149,7 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	}
 
 	// Get child objects with properties from a single page of up to 10
-	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: 10}
+	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: 10, SortSettings: []protocol.SortSetting{protocol.SortSetting{SortField: "createddate", SortAscending: true}}}
 	resultset, err := d.GetChildObjectsWithProperties(pagingRequest, dbParent)
 	if err != nil {
 		t.Error(err)
