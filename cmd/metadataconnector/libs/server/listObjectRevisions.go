@@ -92,13 +92,8 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	}
 
 	// Get the revision information for this objects
-	response, err := h.DAO.GetObjectRevisionsWithPropertiesByUser(
-		"createddate desc",
-		pagingRequest.PageNumber,
-		pagingRequest.PageSize,
-		dbObject,
-		caller.DistinguishedName,
-	)
+	user := models.ODUser{DistinguishedName: caller.DistinguishedName}
+	response, err := h.DAO.GetObjectRevisionsWithPropertiesByUser(user, *pagingRequest, dbObject)
 	if err != nil {
 		log.Println(err)
 		h.sendErrorResponse(w, 500, err, "General error")

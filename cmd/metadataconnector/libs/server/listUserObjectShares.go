@@ -9,6 +9,7 @@ import (
 	"golang.org/x/net/context"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
+	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
 )
 
@@ -29,7 +30,8 @@ func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWrit
 	}
 
 	// Fetch objects for requested page
-	result, err := h.DAO.GetObjectsSharedToMe(caller.DistinguishedName, "", pagingRequest.PageNumber, pagingRequest.PageSize)
+	user := models.ODUser{DistinguishedName: caller.DistinguishedName}
+	result, err := h.DAO.GetObjectsSharedToMe(user, *pagingRequest)
 	if err != nil {
 		h.sendErrorResponse(w, 500, err, "GetObjectsSharedToMe query failed")
 	}

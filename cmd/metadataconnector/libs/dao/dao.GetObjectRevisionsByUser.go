@@ -2,18 +2,18 @@ package dao
 
 import (
 	"log"
-	"strconv"
 
 	"github.com/jmoiron/sqlx"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 )
 
 // GetObjectRevisionsByUser retrieves a list of revisions for an object.
 func (dao *DataAccessLayer) GetObjectRevisionsByUser(
-	orderByClause string, pageNumber int, pageSize int, object models.ODObject, user string) (models.ODObjectResultset, error) {
+	user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 	tx := dao.MetadataDB.MustBegin()
-	response, err := getObjectRevisionsByUserInTransaction(tx, orderByClause, pageNumber, pageSize, object, user)
+	response, err := getObjectRevisionsByUserInTransaction(tx, user, pagingRequest, object)
 	if err != nil {
 		log.Printf("Error in GetObjectRevisionsByUser: %v", err)
 		tx.Rollback()
@@ -23,14 +23,10 @@ func (dao *DataAccessLayer) GetObjectRevisionsByUser(
 	return response, err
 }
 
-func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, orderByClause string, pageNumber int, pageSize int, object models.ODObject, user string) (models.ODObjectResultset, error) {
+func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
-	limit := GetLimit(pageNumber, pageSize)
-	offset := GetOffset(pageNumber, pageSize)
 	// NOTE: distinct is unfortunately used here because object_permission
 	// allows multiple records per object and grantee.
-	// TODO: Incorporate support for ACM checks. This may need to be passed as
-	// an argument as additional whereByClause to avoid complex coupling
 	query := `select distinct sql_calc_found_rows 
         ao.id, ao.createdDate, ao.createdBy, ao.modifiedDate, ao.modifiedBy, ao.isDeleted, ao.deletedDate, ao.deletedBy,
         ao.isAncestorDeleted, ao.isExpunged, ao.expungedDate, ao.expungedBy, ao.changeCount, ao.changeToken, 
@@ -47,24 +43,19 @@ func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, orderByClause string, pa
         where ao.isexpunged = 0 
             and ao.id = ? 
             and op.grantee = ?`
-	if len(orderByClause) > 0 {
-		query += ` order by ao.` + orderByClause
-	} else {
-		query += ` order by ao.modifieddate desc`
-	}
-	query += ` limit ` + strconv.Itoa(limit) + ` offset ` + strconv.Itoa(offset)
-	err := tx.Select(&response.Objects, query, object.ID, user)
+	query += buildFilterForUserACM(user)
+	query += buildFilterSortAndLimitArchive(pagingRequest)
+	err := tx.Select(&response.Objects, query, object.ID, user.DistinguishedName)
 	if err != nil {
 		return response, err
 	}
-	// This relies on sql_calc_found_rows in previous call and must be done within
-	// a transaction to maintain context
+	// Paging stats guidance
 	err = tx.Get(&response.TotalRows, "select found_rows()")
 	if err != nil {
 		return response, err
 	}
-	response.PageNumber = GetSanitizedPageNumber(pageNumber)
-	response.PageSize = GetSanitizedPageSize(pageSize)
+	response.PageNumber = GetSanitizedPageNumber(pagingRequest.PageNumber)
+	response.PageSize = GetSanitizedPageSize(pagingRequest.PageSize)
 	response.PageRows = len(response.Objects)
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	// TODO: Permissions based on current state.. this would only be worth doing if

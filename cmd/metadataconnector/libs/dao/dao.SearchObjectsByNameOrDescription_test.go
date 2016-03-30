@@ -48,7 +48,8 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 	pagingRequest.FilterSettings = make([]protocol.FilterSetting, 0)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterNameAsSearch1)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterDescriptionAsSearch1)
-	searchResults1, err := d.SearchObjectsByNameOrDescription(usernames[1], pagingRequest, false)
+	user := models.ODUser{DistinguishedName: usernames[1]}
+	searchResults1, err := d.SearchObjectsByNameOrDescription(user, pagingRequest, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -68,7 +69,7 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 	pagingRequest.FilterSettings = make([]protocol.FilterSetting, 0)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterNameAsSearch2)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterDescriptionAsSearch2)
-	searchResults2, err := d.SearchObjectsByNameOrDescription(usernames[1], pagingRequest, false)
+	searchResults2, err := d.SearchObjectsByNameOrDescription(user, pagingRequest, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -88,7 +89,7 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 	pagingRequest.FilterSettings = make([]protocol.FilterSetting, 0)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterNameAsSearch3)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterDescriptionAsSearch3)
-	searchResults3, err := d.SearchObjectsByNameOrDescription(usernames[1], pagingRequest, false)
+	searchResults3, err := d.SearchObjectsByNameOrDescription(user, pagingRequest, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -108,7 +109,7 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 	pagingRequest.FilterSettings = make([]protocol.FilterSetting, 0)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterNameAsSearch4)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterDescriptionAsSearch4)
-	searchResults4, err := d.SearchObjectsByNameOrDescription(usernames[1], pagingRequest, false)
+	searchResults4, err := d.SearchObjectsByNameOrDescription(user, pagingRequest, false)
 	if err != nil {
 		t.Error(err)
 	}

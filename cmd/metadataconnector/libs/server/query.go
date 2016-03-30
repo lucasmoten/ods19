@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
+	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
 	"decipher.com/oduploader/util"
 
@@ -44,7 +45,8 @@ func (h AppServer) query(ctx context.Context, w http.ResponseWriter, r *http.Req
 	}
 
 	// Perform the basic search
-	results, err := h.DAO.SearchObjectsByNameOrDescription(caller.DistinguishedName, *pagingRequest, false)
+	user := models.ODUser{DistinguishedName: caller.DistinguishedName}
+	results, err := h.DAO.SearchObjectsByNameOrDescription(user, *pagingRequest, false)
 	if err != nil {
 		h.sendErrorResponse(w, 500, errors.New("Database call failed: "), err.Error())
 		return

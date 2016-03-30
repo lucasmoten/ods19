@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 	"decipher.com/oduploader/util/testhelpers"
 )
 
@@ -148,7 +149,8 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	}
 
 	// Get child objects with properties from a single page of up to 10
-	resultset, err := d.GetChildObjectsWithProperties("", 1, 10, dbParent)
+	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: 10}
+	resultset, err := d.GetChildObjectsWithProperties(pagingRequest, dbParent)
 	if err != nil {
 		t.Error(err)
 	}
@@ -173,7 +175,8 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	}
 
 	// Get from first page of 1, then second page of 1
-	resultset, err = d.GetChildObjectsWithProperties("", 1, 1, dbParent)
+	pagingRequest.PageSize = 1
+	resultset, err = d.GetChildObjectsWithProperties(pagingRequest, dbParent)
 	if err != nil {
 		t.Error(err)
 	}
@@ -190,7 +193,8 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 			t.Error("Expected first child to have 2 properties")
 		}
 	}
-	resultset, err = d.GetChildObjectsWithProperties("", 2, 1, dbParent)
+	pagingRequest.PageNumber = 2
+	resultset, err = d.GetChildObjectsWithProperties(pagingRequest, dbParent)
 	if err != nil {
 		t.Error(err)
 	}

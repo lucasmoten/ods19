@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"decipher.com/oduploader/metadata/models"
+	"decipher.com/oduploader/protocol"
 	"decipher.com/oduploader/util/testhelpers"
 )
 
@@ -120,7 +121,9 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 		if !bytes.Equal(dbChild2.ParentID, dbParent.ID) {
 			t.Error("expected child parentID to match parent ID")
 		}
-		resultset, err := d.GetChildObjectsByUser("", 1, 10, dbParent, dbChild2.CreatedBy)
+		user := models.ODUser{DistinguishedName: dbChild2.CreatedBy}
+		pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: 10}
+		resultset, err := d.GetChildObjectsByUser(user, pagingRequest, dbParent)
 		if err != nil {
 			t.Error(err)
 		}
