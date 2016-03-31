@@ -98,9 +98,11 @@ func TestUpdateObjectToHaveNoName(t *testing.T) {
 	}
 
 	// Attempt to rename the folder
+	updateObjectRequest := protocol.UpdateObjectRequest{}
+	updateObjectRequest.Name = ""
+	updateObjectRequest.ChangeToken = folder.ChangeToken
 	updateuri := host + cfg.RootURL + "/object/" + folder.ID + "/properties"
-	folder.Name = ""
-	jsonBody, err := json.Marshal(folder)
+	jsonBody, err := json.Marshal(updateObjectRequest)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
 		t.FailNow()
@@ -130,8 +132,8 @@ func TestUpdateObjectToHaveNoName(t *testing.T) {
 		log.Println()
 		t.FailNow()
 	}
-	if !strings.HasPrefix(updatedFolder.Name, "Unnamed ") {
-		log.Printf("Folder name is %s, expected it to be Unnamed Folder", updatedFolder.Name)
+	if strings.Compare(updatedFolder.Name, folder.Name) != 0 {
+		log.Printf("Folder name is %s, expected it to be %s", updatedFolder.Name, folder.Name)
 		t.FailNow()
 	}
 	if verboseOutput {
@@ -183,9 +185,27 @@ func TestUpdateObjectToChangeOwnedBy(t *testing.T) {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
-	// process Response
-	if res.StatusCode != 428 {
-		log.Printf("bad status: %s", res.Status)
+	// // process Response
+	// if res.StatusCode != 428 {
+	// 	log.Printf("bad status: %s", res.Status)
+	// 	t.FailNow()
+	// }
+
+	// Need to parse the body and verify it didnt change
+	decoder := json.NewDecoder(res.Body)
+	var updatedObject protocol.Object
+	err = decoder.Decode(&updatedObject)
+	if err != nil {
+		log.Printf("Error decoding json to Object: %v", err)
+		log.Println()
+		t.FailNow()
+	}
+	if strings.Compare(updatedObject.OwnedBy, folder.OwnedBy) == 0 {
+		log.Printf("Owner was changed to %s", updatedObject.OwnedBy)
+		t.FailNow()
+	}
+	if strings.Compare(updatedObject.OwnedBy, folder.CreatedBy) != 0 {
+		log.Printf("Owner is not %s", folder.CreatedBy)
 		t.FailNow()
 	}
 

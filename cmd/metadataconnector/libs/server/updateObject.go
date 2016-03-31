@@ -126,6 +126,12 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		return
 	}
 
+	// If there was no ACM provided...
+	if len(requestObject.RawAcm.String) == 0 {
+		// There was no change, retain existing from dbObject
+		requestObject.RawAcm.String = dbObject.RawAcm.String
+	}
+
 	// If ACM provided differs from what is currently set, then need to
 	// Check AAC to compare user clearance to NEW metadata Classifications
 	// to see if allowed for this user
@@ -156,6 +162,17 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		requestObject.ACM.ACMID = dbObject.ACM.ACMID
 		requestObject.ACM.ObjectID = dbObject.ACM.ObjectID
 		requestObject.ACM.ModifiedBy = caller.DistinguishedName
+	}
+
+	// Retain existing values from dbObject where no value was provided for key fields
+	if len(requestObject.Name) == 0 {
+		requestObject.Name = dbObject.Name
+	}
+	if len(requestObject.Description.String) == 0 {
+		requestObject.Description.String = dbObject.Description.String
+	}
+	if len(requestObject.TypeName.String) == 0 {
+		requestObject.TypeName.String = dbObject.TypeName.String
 	}
 
 	// Call metadata connector to update the object in the data store
@@ -196,13 +213,31 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 }
 
 func parseUpdateObjectRequestAsJSON(r *http.Request) (models.ODObject, error) {
-	var jsonObject protocol.Object
-	var requestObject models.ODObject
+	var jsonObject protocol.UpdateObjectRequest
+	requestObject := models.ODObject{}
 	var err error
 
+	// Get portion from body
 	err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
 	if err != nil {
 		return requestObject, err
+	}
+	// Map changes over the requestObject
+	requestObject.ChangeToken = jsonObject.ChangeToken
+	if len(jsonObject.TypeName) > 0 {
+		requestObject.TypeName.String = jsonObject.TypeName
+		requestObject.TypeName.Valid = true
+	}
+	if len(jsonObject.Description) > 0 {
+		requestObject.Description.String = jsonObject.Description
+		requestObject.Description.Valid = true
+	}
+	if len(jsonObject.RawAcm) > 0 {
+		requestObject.RawAcm.String = jsonObject.RawAcm
+		requestObject.RawAcm.Valid = true
+	}
+	if len(jsonObject.Properties) > 0 {
+		requestObject.Properties, err = mapping.MapPropertiesToODProperties(&jsonObject.Properties)
 	}
 
 	// Portions from the request URI itself ...
@@ -211,15 +246,15 @@ func parseUpdateObjectRequestAsJSON(r *http.Request) (models.ODObject, error) {
 	matchIndexes := re.FindStringSubmatchIndex(uri)
 	if len(matchIndexes) != 0 {
 		if len(matchIndexes) > 3 {
-			jsonObject.ID = uri[matchIndexes[2]:matchIndexes[3]]
+			objectID := uri[matchIndexes[2]:matchIndexes[3]]
+			requestObject.ID, err = hex.DecodeString(objectID)
 			if err != nil {
 				return requestObject, errors.New("Object Identifier in Request URI is not a hex string")
 			}
 		}
 	}
 
-	// Map to internal object type
-	requestObject, err = mapping.MapObjectToODObject(&jsonObject)
+	// Return it
 	return requestObject, err
 }
 
