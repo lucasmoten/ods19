@@ -12,6 +12,8 @@ import (
 
 	"golang.org/x/net/context"
 
+	"net/url"
+
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
@@ -198,6 +200,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	w.Header().Set("Content-Type", object.ContentType.String)
 	if object.ContentSize.Valid && object.ContentSize.Int64 > int64(0) {
 		w.Header().Set("Content-Length", strconv.FormatInt(object.ContentSize.Int64, 10))
+		w.Header().Set("Content-Disposition", "inline; filename="+url.QueryEscape(object.Name))
 	}
 	w.Header().Set("Accept-Ranges", "none")
 
