@@ -58,6 +58,11 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 		return
 	}
 
+	if originalObject.IsAncestorDeleted {
+		h.sendErrorResponse(w, 405, errors.New("Cannot undelete an object with a deleted parent"), "Object has deleted ancestor")
+		return
+	}
+
 	if originalObject.ChangeToken != changeToken.ChangeToken {
 		h.sendErrorResponse(w, http.StatusBadRequest,
 			errors.New("Changetoken in database does not match client changeToken"), "Invalid changeToken.")
