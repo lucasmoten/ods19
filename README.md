@@ -1,14 +1,6 @@
 # Large File Uploader
 
-This is a project to make a simple Go uploader that can deal
-with the largest files, by using multipart mime protocol
-correctly (almost nothing does).  This means that buffering
-in memory is bounded.
-
-It is possible to have a hybrid that keeps a reasonable amount of
-data in memory without ever writing it to disk, and flushes
-to disk when a session is going to begin to use unfair amounts
-of memory
+This is an encrypted file storage API with a REST interface.
 
 # Project Management
 
@@ -73,12 +65,6 @@ Metadataconnector Browser:
   * AWS_ACCESS_KEY_ID
   * AWS_SECRET_KEY
 
-Cryptotest Browser (deprecated):
-
-* use a consistent master key to launch it:
-  - masterkey=djklerwjkl23 go run uploader.go
-* https://localhost:6445/upload   (pick some file, like foo.txt)
-
 # Checking out and building
 
 You should be able to build the source like this.
@@ -86,7 +72,6 @@ You should be able to build the source like this.
 ```
 $ git clone ssh://git@gitlab.363-283.io:2252/rob.fielding/oduploader.git $GOPATH/src/decipher.com
 $ cd $GOPATH/src/decipher.com
-$ ./build
 ```
 
 This invokes the Python build script that fetches dependencies, builds binaries,
@@ -109,6 +94,7 @@ generator -go.signedbytes=true AuditService.thrift ../generated
 Run **every** test in the project with a `./...` recursive walk.
 
 ```
+cd $GOPATH/src/decipher.com/oduploader
 go test ./... -v
 ```
 
@@ -120,17 +106,4 @@ go test ./... -short=true -v
 
 Hooray for automated tests!
 
-#Automated Uploading and Downloading
 
-By default, cmd/autopilot will look in $AUTOPILOT_HOME which defaults to ~/autopilot if it is not specified.
-It will then look through uploadCache_testn directories and randomly upload files.
-It does not yet implement randomly downloading files (which means getting directory listings for random users).
-It will also need to specify random clearances on files at some point, using data from rmt.zip that we got from Jon.
-```
-Robs-MacBook-Pro:docker rfielding$ ls ~/autopilot/
-downloadCachetest_0	downloadCachetest_4	downloadCachetest_8	uploadCachetest_2	uploadCachetest_6
-downloadCachetest_1	downloadCachetest_5	downloadCachetest_9	uploadCachetest_3	uploadCachetest_7
-downloadCachetest_2	downloadCachetest_6	uploadCachetest_0	uploadCachetest_4	uploadCachetest_8
-downloadCachetest_3	downloadCachetest_7	uploadCachetest_1	uploadCachetest_5	uploadCachetest_9
-Robs-MacBook-Pro:docker rfielding$
-```

@@ -7,5 +7,5 @@ import (
 )
 
 func (h AppServer) removeObjectFromFolder(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	h.sendErrorResponse(w, 501, nil, "removeObjectFromFolder is not yet implemented")
+	sendErrorResponse(&w, 501, nil, "removeObjectFromFolder is not yet implemented")
 }

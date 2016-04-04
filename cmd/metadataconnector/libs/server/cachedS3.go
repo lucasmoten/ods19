@@ -20,6 +20,21 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
+const (
+	//We purged something that wasn't cleaned up
+	PurgeAnomaly = 1500
+	//We failed to purge something that wasn't cleaned up
+	FailPurgeAnomaly = 1501
+	//We tried to walk cache, and something went wrong
+	FailCacheWalk = 1502
+	//We could not drain to cache
+	FailDrainToCache = 1503
+	//We could not cache to drain
+	FailCacheToDrain = 1504
+	//Failed to download out of S3
+	FailS3Download = 1505
+)
+
 // checkAWSEnvironmentVars prevents the server from starting if appropriate vars
 // are not set.
 func checkAWSEnvironmentVars() {
@@ -177,7 +192,8 @@ func (d *S3DrainProviderData) DrainUploadedFilesToSafety() {
 		// We need to capture d because this interface won't let us pass it
 		func(name string, f os.FileInfo, err error) (errReturn error) {
 			if err != nil {
-				log.Printf("Error walking directory on initial upload for %s: %v", name, err)
+				msg := fmt.Sprintf("Error walking directory on initial upload for %s: %v", name, err)
+				sendAppErrorResponse(nil, NewAppError(FailCacheWalk, err, msg))
 				// I didn't generate this error, so I am assuming that I can just log the problem.
 				// TODO: this error is not being counted
 				return nil
@@ -192,7 +208,8 @@ func (d *S3DrainProviderData) DrainUploadedFilesToSafety() {
 			if ext == ".uploaded" {
 				err := d.CacheToDrain(bucket, name, size)
 				if err != nil {
-					log.Printf("error draining cache:%v", err)
+					msg := fmt.Sprintf("error draining cache:%v", err)
+					sendAppErrorResponse(nil, NewAppError(FailCacheToDrain, err, msg))
 				}
 			}
 			if ext == ".caching" || ext == ".uploading" {
@@ -204,7 +221,7 @@ func (d *S3DrainProviderData) DrainUploadedFilesToSafety() {
 		},
 	)
 	if err != nil {
-		log.Printf("Unable to walk cache %s: %v", d.CacheLocationString, err)
+		sendAppErrorResponse(nil, NewAppError(FailCacheWalk, err, "Unable to walk cache"))
 	}
 	//Only now can we start to purge files
 	go d.CachePurge()
@@ -278,7 +295,8 @@ func (d *S3DrainProviderData) DrainToCache(
 	foutCached := d.CacheLocationString + "/" + theFile + ".cached"
 	fOut, err := os.Create(foutCaching)
 	if err != nil {
-		log.Printf("Unable to write local buffer file %s: %v", theFile, err)
+		msg := fmt.Sprintf("Unable to write local buffer file %s: %v", theFile, err)
+		sendAppErrorResponse(nil, NewAppError(FailDrainToCache, err, msg))
 	}
 	defer fOut.Close()
 
@@ -294,7 +312,7 @@ func (d *S3DrainProviderData) DrainToCache(
 		log.Printf("Unable to download out of S3 bucket %v: %v", *bucket, theFile)
 		//Do not signal that a goroutine is still working on caching this file
 		os.Remove(foutCaching)
-		return &AppError{Code: 500, Msg: fmt.Sprintf("Unable to get %s out of cache", theFile), Err: err}, err
+		return NewAppError(500, err, fmt.Sprintf("Unable to get %s out of cache", theFile)), err
 	}
 	//Signal that we finally cached the file
 	err = os.Rename(foutCaching, foutCached)
@@ -410,9 +428,11 @@ func filePurgeVisit(d *S3DrainProviderData, name string, f os.FileInfo, err erro
 		if ageInSeconds > 60*60*24*7 {
 			errReturn := os.Remove(name)
 			if errReturn != nil {
-				log.Printf("Unable to purge %s", name)
+				msg := fmt.Sprintf("Unable to purge %s", name)
+				sendAppErrorResponse(nil, NewAppError(FailPurgeAnomaly, nil, msg))
 			} else {
-				log.Printf("Purged for age %s.  Age:%ds Size:%d DiskUsage:%f", name, ageInSeconds, size, usage)
+				msg := fmt.Sprintf("Purged for age %s.  Age:%ds Size:%d DiskUsage:%f", name, ageInSeconds, size, usage)
+				sendAppErrorResponse(nil, NewAppError(PurgeAnomaly, nil, msg))
 			}
 		}
 	}

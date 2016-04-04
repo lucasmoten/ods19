@@ -30,30 +30,33 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 
 	object, herr, err := retrieveObject(h.DAO, h.Routes.ObjectStream, r.URL.Path, true)
 	if herr != nil {
-		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
+		sendAppErrorResponse(&w, herr)
 		return
 	}
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "cannot get object")
+		sendErrorResponse(&w, 500, err, "cannot get object")
 		return
 	}
 	if object.ID == nil {
 		log.Printf("did not find an object")
-		h.sendErrorResponse(w, 500, err, "did not get object")
+		sendErrorResponse(&w, 500, err, "did not get object")
 		return
 	}
 
+	//Performance count this operation
 	beganAt := h.Tracker.BeginTime(performance.DownloadCounter)
-
-	if herr := h.getObjectStreamWithObject(ctx, w, r, object); herr != nil {
-		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
-	}
-
+	herr = h.getObjectStreamWithObject(ctx, w, r, object)
 	h.Tracker.EndTime(
 		performance.DownloadCounter,
 		beganAt,
 		performance.SizeJob(object.ContentSize.Int64),
 	)
+	//And then return if something went wrong
+	if herr != nil {
+		sendAppErrorResponse(&w, herr)
+		return
+	}
+	countOKResponse()
 }
 
 // getObjectStreamWithObject is the continuation after we retrieved the object from the database
@@ -64,7 +67,7 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		return &AppError{500, err, "Could not determine user"}
+		return NewAppError(500, err, "Could not determine user")
 	}
 
 	// Get the key from the permission
@@ -72,17 +75,17 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	var fileKey []byte
 
 	if len(object.Permissions) == 0 {
-		return &AppError{403, fmt.Errorf("We cannot decrypt files lacking permissions"), "Unauthorized"}
+		return NewAppError(403, fmt.Errorf("We cannot decrypt files lacking permissions"), "Unauthorized")
 	}
 
 	if object.IsDeleted {
 		switch {
 		case object.IsExpunged:
-			return &AppError{410, err, "The object no longer exists."}
+			return NewAppError(410, err, "The object no longer exists.")
 		case object.IsAncestorDeleted:
-			return &AppError{405, err, "The object cannot be modified because an ancestor is deleted."}
+			return NewAppError(405, err, "The object cannot be modified because an ancestor is deleted.")
 		default:
-			return &AppError{405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it."}
+			return NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
 		}
 	}
 	//XXX watch for very large number of permissions on a file!
@@ -101,15 +104,15 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	// 		Check if Classification is allowed for this User
 	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &object)
 	if err != nil {
-		return &AppError{500, err, "Error communicating with authorization service"}
+		return NewAppError(500, err, "Error communicating with authorization service")
 	}
 	if !hasAACAccess {
-		return &AppError{403, err, "Unauthorized"}
+		return NewAppError(403, err, "Unauthorized")
 	}
 
 	// Fail fast: Don't even look at cache or retrieve if the file size is 0
 	if !object.ContentSize.Valid || object.ContentSize.Int64 <= int64(0) {
-		return &AppError{204, nil, "No content"}
+		return NewAppError(204, nil, "No content")
 	}
 
 	// Database checks and AAC checks take time, particularly AAC.
@@ -221,7 +224,7 @@ func handleCacheMiss(dp DrainProvider, t *performance.JobReporters, object *mode
 	// The file should now exist
 	var cipherFile *os.File
 	if cipherFile, err = os.Open(cipherFilePathCached); err != nil {
-		return nil, &AppError{500, err, "Error opening recently cached file"}
+		return nil, NewAppError(500, err, "Error opening recently cached file")
 	}
 
 	return cipherFile, nil
@@ -245,14 +248,14 @@ func searchForCachedOrUploadedFile(cipherFilePathCached, cipherFilePathUploaded 
 							//leave cipherFile nil, and wait for re-cache
 						} else {
 							//Some other error.
-							return nil, &AppError{500, err, "Error opening file as cached state"}
+							return cipherFile, NewAppError(500, err, "Error opening file as cached state")
 						}
 					} else {
 						//cached file exists
 					}
 				} else {
 					//Some other error.
-					return nil, &AppError{500, err, "Error opening file as uploaded state"}
+					return cipherFile, NewAppError(500, err, "Error opening file as uploaded state")
 				}
 			} else {
 				//uploaded file exists.  use it.
@@ -260,7 +263,7 @@ func searchForCachedOrUploadedFile(cipherFilePathCached, cipherFilePathUploaded 
 			}
 		} else {
 			//Some other error.
-			return nil, &AppError{500, err, "Error opening file as initial cached state"}
+			return cipherFile, NewAppError(500, err, "Error opening file as initial cached state")
 		}
 	} else {
 		//the cached file exists

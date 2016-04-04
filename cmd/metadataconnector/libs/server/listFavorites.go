@@ -7,5 +7,5 @@ import (
 )
 
 func (h AppServer) listFavorites(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	h.sendErrorResponse(w, 501, nil, "listFavorites is not yet implemented")
+	sendErrorResponse(&w, 501, nil, "listFavorites is not yet implemented")
 }

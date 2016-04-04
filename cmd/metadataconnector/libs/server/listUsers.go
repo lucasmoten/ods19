@@ -17,12 +17,15 @@ func (h AppServer) listUsers(ctx context.Context, w http.ResponseWriter, r *http
 	var users []models.ODUser
 	users, err := h.DAO.GetUsers()
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Unable to get user list")
+		sendErrorResponse(&w, 500, err, "Unable to get user list")
+		return
 	}
 	usersSerializable := mapping.MapODUsersToUsers(&users)
 	converted, err := json.MarshalIndent(usersSerializable, "", "  ")
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Unable to get user list")
+		sendErrorResponse(&w, 500, err, "Unable to get user list")
+		return
 	}
 	fmt.Fprintf(w, "%s", converted)
+	countOKResponse()
 }

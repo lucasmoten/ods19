@@ -208,8 +208,6 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 
 	// Compile regexes for Routes
 	httpHandler.InitRegex()
-	// Start up the error responder
-	server.InitializeErrResponder()
 
 	return &http.Server{
 		Addr:           string(httpHandler.Addr),

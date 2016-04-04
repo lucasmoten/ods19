@@ -24,19 +24,19 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
 		return
 	}
 
 	// Parse Request in sent format
 	if r.Header.Get("Content-Type") != "application/json" {
 
-		h.sendErrorResponse(w, http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
+		sendErrorResponse(&w, http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
 		return
 	}
 	requestObject, err = parseMoveObjectRequestAsJSON(r)
 	if err != nil {
-		h.sendErrorResponse(w, 400, err, "Error parsing JSON")
+		sendErrorResponse(&w, 400, err, "Error parsing JSON")
 		return
 	}
 
@@ -45,7 +45,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	// Retrieve existing object from the data store
 	dbObject, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Error retrieving object")
+		sendErrorResponse(&w, 500, err, "Error retrieving object")
 		return
 	}
 
@@ -63,7 +63,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 		}
 	}
 	if !authorizedToUpdate {
-		h.sendErrorResponse(w, 403, nil, "Unauthorized")
+		sendErrorResponse(&w, 403, nil, "Unauthorized")
 		return
 	}
 
@@ -73,7 +73,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	targetParent.ID = requestObject.ParentID
 	dbParent, err := h.DAO.GetObject(targetParent, false)
 	if err != nil {
-		h.sendErrorResponse(w, 400, err, "Error retrieving parent to move object into")
+		sendErrorResponse(&w, 400, err, "Error retrieving parent to move object into")
 		return
 	}
 	authorizedToMoveTo := false
@@ -85,18 +85,19 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 		}
 	}
 	if !authorizedToMoveTo {
-		h.sendErrorResponse(w, 403, nil, "Unauthorized")
+		sendErrorResponse(&w, 403, nil, "Unauthorized")
 		// log this, but done send back to client as it leaks existence
 		log.Printf("User has insufficient permissions to move object into new parent")
+		return
 	}
 
 	// Parent must not be deleted
 	if targetParent.IsDeleted {
 		if targetParent.IsExpunged {
-			h.sendErrorResponse(w, 410, err, "Unable to move object into an object that does not exist")
+			sendErrorResponse(&w, 410, err, "Unable to move object into an object that does not exist")
 			return
 		}
-		h.sendErrorResponse(w, 405, err, "Unable to move object into an object that is deleted")
+		sendErrorResponse(&w, 405, err, "Unable to move object into an object that is deleted")
 		return
 	}
 
@@ -105,13 +106,13 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			h.sendErrorResponse(w, 410, err, "The object no longer exists.")
+			sendErrorResponse(&w, 410, err, "The object no longer exists.")
 			return
 		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-			h.sendErrorResponse(w, 405, err, "The object cannot be modified because an ancestor is deleted.")
+			sendErrorResponse(&w, 405, err, "The object cannot be modified because an ancestor is deleted.")
 			return
 		case dbObject.IsDeleted:
-			h.sendErrorResponse(w, 405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it")
+			sendErrorResponse(&w, 405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it")
 			return
 		}
 	}
@@ -119,23 +120,23 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	// Check that the change token on the object passed in matches the current
 	// state of the object in the data store
 	if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) != 0 {
-		h.sendErrorResponse(w, 428, nil, "ChangeToken does not match expected value. Object may have been changed by another request.")
+		sendErrorResponse(&w, 428, nil, "ChangeToken does not match expected value. Object may have been changed by another request.")
 		return
 	}
 
 	// #60 Check that the parent being assigned for the object passed in does not
 	// result in a circular reference
 	if bytes.Compare(requestObject.ParentID, requestObject.ID) == 0 {
-		h.sendErrorResponse(w, 400, err, "ParentID cannot be set to the ID of the object. Circular references are not allowed.")
+		sendErrorResponse(&w, 400, err, "ParentID cannot be set to the ID of the object. Circular references are not allowed.")
 		return
 	}
 	circular, err := h.DAO.IsParentIDADescendent(requestObject.ID, requestObject.ParentID)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Error retrieving ancestor to check for circular references")
+		sendErrorResponse(&w, 500, err, "Error retrieving ancestor to check for circular references")
 		return
 	}
 	if circular {
-		h.sendErrorResponse(w, 400, err, "ParentID cannot be set to the value specified as would result in a circular reference")
+		sendErrorResponse(&w, 400, err, "ParentID cannot be set to the value specified as would result in a circular reference")
 		return
 	}
 
@@ -155,17 +156,17 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 		err := h.DAO.UpdateObject(&dbObject)
 		if err != nil {
 			log.Printf("Error updating object: %v", err)
-			h.sendErrorResponse(w, 500, nil, "Error saving object in new location")
+			sendErrorResponse(&w, 500, nil, "Error saving object in new location")
 			return
 		}
 
 		// After the update, check that key values have changed...
 		if dbObject.ChangeCount <= requestObject.ChangeCount {
-			h.sendErrorResponse(w, 500, nil, "ChangeCount didn't update when processing move request")
+			sendErrorResponse(&w, 500, nil, "ChangeCount didn't update when processing move request")
 			return
 		}
 		if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) == 0 {
-			h.sendErrorResponse(w, 500, nil, "ChangeToken didn't update when processing move request")
+			sendErrorResponse(&w, 500, nil, "ChangeToken didn't update when processing move request")
 			return
 		}
 	}
@@ -174,6 +175,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	apiResponse := mapping.MapODObjectToObject(&dbObject)
 	moveObjectResponseAsJSON(w, r, caller, &apiResponse)
 
+	countOKResponse()
 }
 
 func parseMoveObjectRequestAsJSON(r *http.Request) (models.ODObject, error) {

@@ -22,14 +22,14 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
 		return
 	}
 
 	// Parse Request in sent format
 	requestObject, err = parseDeleteObjectRequest(r)
 	if err != nil {
-		h.sendErrorResponse(w, 400, err, "Error parsing JSON")
+		sendErrorResponse(&w, 400, err, "Error parsing JSON")
 		return
 	}
 
@@ -38,7 +38,7 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Retrieve existing object from the data store
 	dbObject, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Error retrieving object")
+		sendErrorResponse(&w, 500, err, "Error retrieving object")
 		return
 	}
 
@@ -53,7 +53,7 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 		}
 	}
 	if !authorizedToDelete {
-		h.sendErrorResponse(w, 403, nil, "Unauthorized")
+		sendErrorResponse(&w, 403, nil, "Unauthorized")
 		return
 	}
 
@@ -62,7 +62,7 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 		// Check its state
 		switch {
 		case dbObject.IsExpunged:
-			h.sendErrorResponse(w, 410, err, "The referenced object no longer exists.")
+			sendErrorResponse(&w, 410, err, "The referenced object no longer exists.")
 			return
 		default:
 			// NO change will be applied, but deletedDate will still be exposed in
@@ -75,7 +75,7 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 		dbObject.ChangeToken = requestObject.ChangeToken
 		err = h.DAO.DeleteObject(dbObject, true)
 		if err != nil {
-			h.sendErrorResponse(w, 500, err, "DAO Error deleting object")
+			sendErrorResponse(&w, 500, err, "DAO Error deleting object")
 			return
 		}
 	}
@@ -84,9 +84,10 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 	apiResponse := mapping.MapODObjectToDeletedObjectResponse(&dbObject)
 	herr := deleteObjectResponse(w, r, &apiResponse)
 	if herr != nil {
-		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
+		sendAppErrorResponse(&w, herr)
 		return
 	}
+	countOKResponse()
 }
 
 func parseDeleteObjectRequest(r *http.Request) (models.ODObject, error) {
@@ -131,7 +132,7 @@ func deleteObjectResponse(
 	if err != nil {
 		log.Printf("Error marshalling response as json: %s", err.Error())
 		msg := "Error marshalling response as JSON"
-		return &AppError{500, err, msg}
+		return NewAppError(500, err, msg)
 	}
 	w.Write(jsonData)
 	return nil

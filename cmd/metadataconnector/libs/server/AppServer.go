@@ -81,9 +81,11 @@ type AppServer struct {
 //     }
 //
 type AppError struct {
-	Code int    //the http error code to return with the msg
-	Err  error  //an error that is ONLY for the log.  showing to the user may be sensitive.
-	Msg  string //message to show to the user, and in log
+	Code  int    //the http error code to return with the msg
+	Error error  //an error that is ONLY for the log.  showing to the user may be sensitive.
+	Msg   string //message to show to the user, and in log
+	File  string //origin file
+	Line  int    //origin line
 }
 
 // Caller provides the distinguished names obtained from specific request
@@ -199,7 +201,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		user, err = h.DAO.CreateUser(userRequested)
 		if err != nil {
 			log.Printf("%s does not exist in database. Error creating: %s", caller.DistinguishedName, err.Error())
-			h.sendErrorResponse(w, 500, nil, "Error accessing resource")
+			sendErrorResponse(&w, 500, nil, "Error accessing resource")
 			return
 		}
 	}
@@ -278,7 +280,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)
-			h.sendErrorResponse(w, 404, nil, "Resource not found")
+			sendErrorResponse(&w, 404, nil, "Resource not found")
 			return
 		}
 	case "POST":
@@ -316,7 +318,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)
-			h.sendErrorResponse(w, 404, nil, "Resource not found")
+			sendErrorResponse(&w, 404, nil, "Resource not found")
 			return
 		}
 	case "PUT":
@@ -324,7 +326,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)
-			h.sendErrorResponse(w, 404, nil, "Resource not found")
+			sendErrorResponse(&w, 404, nil, "Resource not found")
 			return
 		}
 	case "DELETE":
@@ -346,7 +348,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		default:
 			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 			log.Println("WARN: " + msg)
-			h.sendErrorResponse(w, 404, nil, "Resource not found")
+			sendErrorResponse(&w, 404, nil, "Resource not found")
 			return
 		}
 	}

@@ -20,7 +20,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
 		return
 	}
 
@@ -29,29 +29,29 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	//Get the object from the database, unedited
 	object, herr, err := retrieveObject(h.DAO, h.Routes.ObjectStream, r.URL.Path, true)
 	if herr != nil {
-		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
+		sendAppErrorResponse(&w, herr)
 		return
 	}
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Could not retrieve object")
+		sendErrorResponse(&w, 500, err, "Could not retrieve object")
 		return
 	}
 
 	if len(object.ID) == 0 {
-		h.sendErrorResponse(w, 400, err, "Object for update doesn't have an id")
+		sendErrorResponse(&w, 400, err, "Object for update doesn't have an id")
 		return
 	}
 
 	if object.IsDeleted {
 		switch {
 		case object.IsExpunged:
-			h.sendErrorResponse(w, 410, err, "The object no longer exists.")
+			sendErrorResponse(&w, 410, err, "The object no longer exists.")
 			return
 		case object.IsAncestorDeleted:
-			h.sendErrorResponse(w, 405, err, "The object cannot be modified because an ancestor is deleted.")
+			sendErrorResponse(&w, 405, err, "The object cannot be modified because an ancestor is deleted.")
 			return
 		default:
-			h.sendErrorResponse(w, 405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
+			sendErrorResponse(&w, 405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
 			return
 		}
 	}
@@ -68,7 +68,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	}
 	// Do we have permission ?
 	if grant == nil {
-		h.sendErrorResponse(w, 403, nil, "Unauthorized")
+		sendErrorResponse(&w, 403, nil, "Unauthorized")
 		return
 	}
 
@@ -76,11 +76,11 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	// from a clearance perspective
 	hasAACAccessToOLDACM, err := h.isUserAllowedForObjectACM(ctx, &object)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Error communicating with authorization service")
+		sendErrorResponse(&w, 500, err, "Error communicating with authorization service")
 		return
 	}
 	if !hasAACAccessToOLDACM {
-		h.sendErrorResponse(w, 403, err, "Unauthorized")
+		sendErrorResponse(&w, 403, err, "Unauthorized")
 		return
 	}
 
@@ -89,12 +89,12 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	//Do an upload that is basically the same as for a new object.
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
-		h.sendErrorResponse(w, 400, err, "unable to open multipart reader")
+		sendErrorResponse(&w, 400, err, "unable to open multipart reader")
 		return
 	}
 	drainFunc, herr, err = h.acceptObjectUpload(ctx, multipartReader, &object, grant, false)
 	if herr != nil {
-		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
+		sendAppErrorResponse(&w, herr)
 		return
 	}
 	//Rescramble key
@@ -103,7 +103,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	object.ModifiedBy = caller.DistinguishedName
 	err = h.DAO.UpdateObject(&object)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "error storing object")
+		sendErrorResponse(&w, 500, err, "error storing object")
 		return
 	}
 	// Only start to upload into S3 after we have a database record
@@ -113,8 +113,10 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	link := mapping.MapODObjectToObject(&object)
 	data, err := json.MarshalIndent(link, "", "  ")
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "could not unmarshal json data")
+		sendErrorResponse(&w, 500, err, "could not unmarshal json data")
 		return
 	}
 	w.Write(data)
+
+	countOKResponse()
 }

@@ -20,28 +20,28 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	var caller Caller
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user")
+		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user")
 		return
 	}
 
 	// Get the change token off the request.
 	changeToken, err := protocol.NewChangeTokenStructFromJSONBody(r.Body)
 	if err != nil {
-		h.sendErrorResponse(w, http.StatusBadRequest, err, "Unexpected change token")
+		sendErrorResponse(&w, http.StatusBadRequest, err, "Unexpected change token")
 		return
 	}
 
 	// Parse the objectID from the request URI.
 	captured := util.GetRegexCaptureGroups(r.URL.Path, h.Routes.TrashObject)
 	if captured["objectId"] == "" {
-		h.sendErrorResponse(w, http.StatusBadRequest,
+		sendErrorResponse(&w, http.StatusBadRequest,
 			errors.New("Could not extract objectID from URI"), "URI: "+r.URL.Path)
 		return
 	}
 
 	bytesID, err := hex.DecodeString(captured["objectId"])
 	if err != nil {
-		h.sendErrorResponse(w, http.StatusBadRequest, err, "Invalid objectID in URI")
+		sendErrorResponse(&w, http.StatusBadRequest, err, "Invalid objectID in URI")
 		return
 	}
 
@@ -49,22 +49,22 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	obj.ID = bytesID
 	originalObject, err := h.DAO.GetObject(obj, true)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Error retrieving object from database")
+		sendErrorResponse(&w, 500, err, "Error retrieving object from database")
 		return
 	}
 
 	if originalObject.IsExpunged {
-		h.sendErrorResponse(w, 410, errors.New("Cannot undelete an expunged object"), "Object was expunged")
+		sendErrorResponse(&w, 410, errors.New("Cannot undelete an expunged object"), "Object was expunged")
 		return
 	}
 
 	if originalObject.IsAncestorDeleted {
-		h.sendErrorResponse(w, 405, errors.New("Cannot undelete an object with a deleted parent"), "Object has deleted ancestor")
+		sendErrorResponse(&w, 405, errors.New("Cannot undelete an object with a deleted parent"), "Object has deleted ancestor")
 		return
 	}
 
 	if originalObject.ChangeToken != changeToken.ChangeToken {
-		h.sendErrorResponse(w, http.StatusBadRequest,
+		sendErrorResponse(&w, http.StatusBadRequest,
 			errors.New("Changetoken in database does not match client changeToken"), "Invalid changeToken.")
 		return
 	}
@@ -77,7 +77,8 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 		}
 	}
 	if !authorizedToDelete {
-		h.sendErrorResponse(w, 403, errors.New("Unauthorized for undelete"), "Unauthorized for undelete.")
+		sendErrorResponse(&w, 403, errors.New("Unauthorized for undelete"), "Unauthorized for undelete.")
+		return
 	}
 
 	originalObject.ModifiedBy = caller.DistinguishedName
@@ -94,10 +95,11 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	w.Header().Set("Content-Type", "application/json")
 	jsonData, err := json.MarshalIndent(resultObj, "", "  ")
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Could not marshal JSON response.")
+		sendErrorResponse(&w, 500, err, "Could not marshal JSON response.")
 		return
 	}
 	log.Println("Returning JSON response.")
 	w.Write(jsonData)
-	return
+
+	countOKResponse()
 }

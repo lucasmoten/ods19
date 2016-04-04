@@ -11,7 +11,7 @@ import (
 
 func (h AppServer) getStats(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "\nErrors:\n")
-	h.renderErrorCounters(w)
+	renderErrorCounters(w)
 
 	fmt.Fprintf(w, "\nUploaders Aggregate:\n")
 	h.Tracker.Reporters[performance.UploadCounter].Q.Dump(w)
@@ -27,4 +27,6 @@ func (h AppServer) getStats(ctx context.Context, w http.ResponseWriter, r *http.
 
 	fmt.Fprintf(w, "\nFrom AAC:\n")
 	h.Tracker.Reporters[performance.AACCounter].Q.Dump(w)
+
+	countOKResponse()
 }
