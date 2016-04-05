@@ -156,7 +156,7 @@ func NewClientTLSConfig(client *ClientIdentity) (*tls.Config, error) {
 }
 
 func makeFolderViaJSON(folderName string, clientid int) (*protocol.Object, error) {
-	folderuri := host + cfg.RootURL + "/folder"
+	folderuri := host + cfg.RootURL + "/objects"
 	folder := protocol.Object{}
 	folder.Name = folderName
 	folder.TypeName = "Folder"

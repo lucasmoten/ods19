@@ -35,7 +35,7 @@ func TestUpdateObject(t *testing.T) {
 	}
 
 	// Attempt to rename the folder
-	updateuri := host + cfg.RootURL + "/object/" + folder.ID + "/properties"
+	updateuri := host + cfg.RootURL + "/objects/" + folder.ID + "/properties"
 	folder.Name = "Test Folder Updated " + strconv.FormatInt(time.Now().Unix(), 10)
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
@@ -101,7 +101,7 @@ func TestUpdateObjectToHaveNoName(t *testing.T) {
 	updateObjectRequest := protocol.UpdateObjectRequest{}
 	updateObjectRequest.Name = ""
 	updateObjectRequest.ChangeToken = folder.ChangeToken
-	updateuri := host + cfg.RootURL + "/object/" + folder.ID + "/properties"
+	updateuri := host + cfg.RootURL + "/objects/" + folder.ID + "/properties"
 	jsonBody, err := json.Marshal(updateObjectRequest)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
@@ -166,7 +166,7 @@ func TestUpdateObjectToChangeOwnedBy(t *testing.T) {
 	}
 
 	// Attempt to change owner
-	updateuri := host + cfg.RootURL + "/object/" + folder.ID + "/properties"
+	updateuri := host + cfg.RootURL + "/objects/" + folder.ID + "/properties"
 	folder.OwnedBy = fakeDN2
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {

@@ -1,11 +1,11 @@
 package server_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"testing"
 
 	cfg "decipher.com/oduploader/config"
@@ -27,19 +27,10 @@ func TestListObjectsRoot(t *testing.T) {
 
 	// URL
 	uri := host + cfg.RootURL + "/objects"
-
-	// Body
-	paging := protocol.PagingRequest{}
-	paging.PageNumber = 1
-	paging.PageSize = 2
-	jsonBody, err := json.Marshal(paging)
-	if err != nil {
-		log.Printf("Unable to marshal json for request:%v", err)
-		t.FailNow()
-	}
+	uri1 := uri + "?PageNumber=1&PageSize=2"
 
 	// Request
-	req, err := http.NewRequest("GET", uri, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("GET", uri1, nil)
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
@@ -90,19 +81,10 @@ func TestListObjectsRootPaging(t *testing.T) {
 
 	// URL
 	uri := host + cfg.RootURL + "/objects"
-
-	// Body
-	paging := protocol.PagingRequest{}
-	paging.PageNumber = 1
-	paging.PageSize = 2
-	jsonBody, err := json.Marshal(paging)
-	if err != nil {
-		log.Printf("Unable to marshal json for request:%v", err)
-		t.FailNow()
-	}
+	uri1 := uri + "?PageNumber=1&PageSize=1"
 
 	// Request
-	req, err := http.NewRequest("GET", uri, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("GET", uri1, nil)
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
@@ -143,14 +125,9 @@ func TestListObjectsRootPaging(t *testing.T) {
 	}
 
 	for pn := 1; pn <= listOfObjects.PageCount; pn++ {
-		paging.PageNumber = pn
-		jsonBody, err := json.Marshal(paging)
-		if err != nil {
-			log.Printf("Unable to marshal json for request:%v", err)
-			t.FailNow()
-		}
+		uriPaged := uri + "?PageNumber=" + strconv.Itoa(pn) + "&PageSize=2"
 		// Request
-		req, err := http.NewRequest("GET", uri, bytes.NewBuffer(jsonBody))
+		req, err := http.NewRequest("GET", uriPaged, nil)
 		if err != nil {
 			log.Printf("Error setting up HTTP Request: %v", err)
 			t.FailNow()
@@ -198,23 +175,17 @@ func TestListObjectsChild(t *testing.T) {
 	}
 
 	// URLs
-	uri := host + cfg.RootURL + "/objects"
-
-	// Body
-	paging := protocol.PagingRequest{}
-	paging.PageNumber = 1
-	paging.PageSize = 1000
+	uri := host + cfg.RootURL + "/objects?PageSize="
 	if testing.Short() {
-		paging.PageSize = 20
+		uri += "20"
+	} else {
+		uri += "1000"
 	}
-	jsonBody, err := json.Marshal(paging)
-	if err != nil {
-		log.Printf("Unable to marshal json for request:%v", err)
-		t.FailNow()
-	}
+	uri += "&PageNumber="
+	uri1 := uri + "1"
 
 	// Request
-	req, err := http.NewRequest("GET", uri, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("GET", uri1, nil)
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
@@ -257,14 +228,9 @@ func TestListObjectsChild(t *testing.T) {
 		if testing.Short() && pn >= 3 {
 			return
 		}
-		paging.PageNumber = pn
-		jsonBody, err := json.Marshal(paging)
-		if err != nil {
-			log.Printf("Unable to marshal json for request:%v", err)
-			t.FailNow()
-		}
+		uriPaged := uri + strconv.Itoa(pn)
 		// Request
-		req, err := http.NewRequest("GET", uri, bytes.NewBuffer(jsonBody))
+		req, err := http.NewRequest("GET", uriPaged, nil)
 		if err != nil {
 			log.Printf("Error setting up HTTP Request: %v", err)
 			t.FailNow()
@@ -304,7 +270,15 @@ func TestListObjectsChild(t *testing.T) {
 
 func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level int, childid string) {
 	// URLs
-	uri := host + cfg.RootURL + "/object/" + childid + "/list"
+	uri := host + cfg.RootURL + "/objects/" + childid + "?PageSize="
+	if testing.Short() {
+		uri += "20"
+	} else {
+		uri += "1000"
+	}
+	uri += "&PageNumber="
+	uri1 := uri + "1"
+
 	depthstring := ""
 	if level > 0 {
 		for l := 0; l < level; l++ {
@@ -312,21 +286,8 @@ func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level 
 		}
 	}
 
-	// Body
-	paging := protocol.PagingRequest{}
-	paging.PageNumber = 1
-	paging.PageSize = 1000
-	if testing.Short() {
-		paging.PageSize = 20
-	}
-	jsonBody, err := json.Marshal(paging)
-	if err != nil {
-		log.Printf("Unable to marshal json for request:%v", err)
-		t.FailNow()
-	}
-
 	// Request
-	req, err := http.NewRequest("GET", uri, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("GET", uri1, nil)
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
@@ -371,14 +332,9 @@ func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level 
 		if testing.Short() && pn >= 3 {
 			return
 		}
-		paging.PageNumber = pn
-		jsonBody, err := json.Marshal(paging)
-		if err != nil {
-			log.Printf("Unable to marshal json for request:%v", err)
-			t.FailNow()
-		}
+		uriPaged := uri + strconv.Itoa(pn)
 		// Request
-		req, err := http.NewRequest("GET", uri, bytes.NewBuffer(jsonBody))
+		req, err := http.NewRequest("GET", uriPaged, nil)
 		if err != nil {
 			log.Printf("Error setting up HTTP Request: %v", err)
 			t.FailNow()

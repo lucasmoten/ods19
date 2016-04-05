@@ -324,7 +324,7 @@ func (ap AutopilotContext) DoUpload(i int, async bool, msg string) (link *protoc
 			req, err = ap.generateUploadRequest(
 				filePickedName,
 				fqName,
-				host+cfg.RootURL+"/object",
+				host+cfg.RootURL+"/objects",
 				async,
 			)
 			if err != nil {
@@ -425,7 +425,7 @@ func (ap AutopilotContext) DoDownloadLink(i int, link *protocol.Object, msg stri
 	var req *http.Request
 	req, err = http.NewRequest(
 		"GET",
-		host+cfg.RootURL+"/object/"+link.ID+"/stream",
+		host+cfg.RootURL+"/objects/"+link.ID+"/stream",
 		nil,
 	)
 	if err != nil {
@@ -508,7 +508,7 @@ func (ap AutopilotContext) DoUpdateLink(i int, link *protocol.Object, msg, toApp
 		link.ChangeToken,
 		link.Name,
 		fqName,
-		host+cfg.RootURL+"/object/"+link.ID+"/stream",
+		host+cfg.RootURL+"/objects/"+link.ID+"/stream",
 		false,
 	)
 	if err != nil {
@@ -645,7 +645,7 @@ func (ap AutopilotContext) DoShare(i int, link *protocol.Object, j int, msg stri
 
 	req, err := http.NewRequest(
 		"POST",
-		host+cfg.RootURL+"/object/"+link.ID+"/share",
+		host+cfg.RootURL+"/shared/"+link.ID,
 		bytes.NewBuffer(jsonStr),
 	)
 	req.Header.Set("Content-Type", "application/json")

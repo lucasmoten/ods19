@@ -35,7 +35,7 @@ func TestDeleteObject(t *testing.T) {
 	}
 
 	// Now delete the first folder
-	deleteuri := host + cfg.RootURL + "/object/" + folder1.ID
+	deleteuri := host + cfg.RootURL + "/objects/" + folder1.ID + "/trash"
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder1.ChangeToken
 	jsonBody, err := json.Marshal(objChangeToken)
@@ -43,7 +43,7 @@ func TestDeleteObject(t *testing.T) {
 		log.Printf("Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
-	req, err := http.NewRequest("DELETE", deleteuri, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("POST", deleteuri, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
@@ -79,7 +79,7 @@ func TestDeleteObject(t *testing.T) {
 	// }
 
 	// now make sure the item is marked as deleted when calling for properties
-	geturi := host + cfg.RootURL + "/object/" + folder1.ID + "/properties"
+	geturi := host + cfg.RootURL + "/objects/" + folder1.ID + "/properties"
 	req, err = http.NewRequest("GET", geturi, nil)
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
@@ -138,7 +138,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 	}
 
 	// Attempt to move folder 2 under folder 1
-	moveuri := host + cfg.RootURL + "/object/" + folder2.ID + "/move/" + folder1.ID
+	moveuri := host + cfg.RootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder2.ChangeToken
 	jsonBody, err := json.Marshal(objChangeToken)
@@ -182,7 +182,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 	// }
 
 	// Now delete the first folder
-	deleteuri := host + cfg.RootURL + "/object/" + folder1.ID
+	deleteuri := host + cfg.RootURL + "/objects/" + folder1.ID + "/trash"
 	objChangeToken = protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder1.ChangeToken
 	jsonBody, err = json.Marshal(objChangeToken)
@@ -190,7 +190,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 		log.Printf("deleting folder Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
-	req, err = http.NewRequest("DELETE", deleteuri, bytes.NewBuffer(jsonBody))
+	req, err = http.NewRequest("POST", deleteuri, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		log.Printf("deleting folder Error setting up HTTP Request: %v", err)
@@ -226,7 +226,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 	// }
 
 	// Make sure we can't get folder2 anymore (because its a child of a deleted item)
-	geturi := host + cfg.RootURL + "/object/" + folder2.ID + "/properties"
+	geturi := host + cfg.RootURL + "/objects/" + folder2.ID + "/properties"
 	req, err = http.NewRequest("GET", geturi, nil)
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {

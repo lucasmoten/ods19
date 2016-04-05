@@ -22,7 +22,7 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 	}
 
 	// Parse paging info
-	pagingRequest, err := protocol.NewPagingRequestWithObjectID(r, nil, false)
+	pagingRequest, err := protocol.NewPagingRequest(r, nil, false)
 	if err != nil {
 		sendErrorResponse(&w, 400, err, "Error parsing request")
 		return

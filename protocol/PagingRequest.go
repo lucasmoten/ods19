@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strconv"
 )
 
@@ -26,9 +25,9 @@ type PagingRequest struct {
 	SortSettings []SortSetting `json:"sortSettings"`
 }
 
-// NewPagingRequestFromURLValues creates a new PagingRequest from the following URL params:
+// newPagingRequestFromURLValues creates a new PagingRequest from the following URL params:
 // pageNumber, pageSize, and parentId. Params are case-sensitive.
-func NewPagingRequestFromURLValues(vals url.Values) (PagingRequest, error) {
+func newPagingRequestFromURLValues(vals url.Values) (PagingRequest, error) {
 
 	pagingRequest := PagingRequest{}
 
@@ -54,8 +53,8 @@ func NewPagingRequestFromURLValues(vals url.Values) (PagingRequest, error) {
 	return pagingRequest, nil
 }
 
-// NewPagingRequestFromJSONBody parses a PagingRequest from a JSON body.
-func NewPagingRequestFromJSONBody(body io.ReadCloser) (PagingRequest, error) {
+// newPagingRequestFromJSONBody parses a PagingRequest from a JSON body.
+func newPagingRequestFromJSONBody(body io.ReadCloser) (PagingRequest, error) {
 	var pr PagingRequest
 	var err error
 	if body == nil {
@@ -76,22 +75,21 @@ func NewPagingRequestFromJSONBody(body io.ReadCloser) (PagingRequest, error) {
 	return pr, nil
 }
 
-// NewPagingRequestWithObjectID parses a paging request provided in either the
+// NewPagingRequest parses a paging request provided in either the
 // query string arguments of a GET, or the application/json body of a POST
-// along with a key object identifier based upon provided regular expression
-// to match on
-func NewPagingRequestWithObjectID(r *http.Request, pathRegex *regexp.Regexp, isObjectIDRequired bool) (*PagingRequest, error) {
+// along with a key object identifier populated from capture groups
+func NewPagingRequest(r *http.Request, captured map[string]string, isObjectIDRequired bool) (*PagingRequest, error) {
 	var pagingRequest *PagingRequest
 
 	// Paging information...
 	switch r.Method {
 	case "GET":
 		vals := r.URL.Query()
-		pr, _ := NewPagingRequestFromURLValues(vals)
+		pr, _ := newPagingRequestFromURLValues(vals)
 		pagingRequest = &pr
 	case "POST":
 		if r.Header.Get("Content-Type") == "application/json" {
-			pr, err := NewPagingRequestFromJSONBody(r.Body)
+			pr, err := newPagingRequestFromJSONBody(r.Body)
 			if err != nil {
 				return nil, errors.New("Error parsing request from message body")
 			}
@@ -103,20 +101,18 @@ func NewPagingRequestWithObjectID(r *http.Request, pathRegex *regexp.Regexp, isO
 		return nil, errors.New("Unsupported HTTP Method")
 	}
 
-	// Object identifier...
-	if pathRegex != nil {
-		uri := r.URL.Path
-		matchIndexes := pathRegex.FindStringSubmatchIndex(uri)
-		if len(matchIndexes) != 0 {
-			if len(matchIndexes) > 3 {
-				pagingRequest.ObjectID = uri[matchIndexes[2]:matchIndexes[3]]
-				_, err := hex.DecodeString(pagingRequest.ObjectID)
-				if err != nil {
-					return pagingRequest, errors.New("Object Identifier in Request URI is not a hex string")
-				}
+	// Look for presence of objectId
+	if captured != nil {
+		if captured["objectId"] != "" {
+			pagingRequest.ObjectID = captured["objectId"]
+			_, err := hex.DecodeString(pagingRequest.ObjectID)
+			if err != nil {
+				return pagingRequest, errors.New("Object Identifier in Request URI is not a hex string")
 			}
+
 		}
 	}
+
 	// Validation check
 	if isObjectIDRequired && len(pagingRequest.ObjectID) != 32 {
 		return nil, errors.New("Object Identifier not found in Request URI")

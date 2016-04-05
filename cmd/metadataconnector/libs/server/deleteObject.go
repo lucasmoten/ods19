@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"regexp"
 
 	"golang.org/x/net/context"
 
@@ -27,7 +26,7 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 	}
 
 	// Parse Request in sent format
-	requestObject, err = parseDeleteObjectRequest(r)
+	requestObject, err = parseDeleteObjectRequest(r, ctx)
 	if err != nil {
 		sendErrorResponse(&w, 400, err, "Error parsing JSON")
 		return
@@ -36,7 +35,7 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Business Logic...
 
 	// Retrieve existing object from the data store
-	dbObject, err := h.DAO.GetObject(requestObject, true)
+	dbObject, err := h.DAO.GetObject(requestObject, false)
 	if err != nil {
 		sendErrorResponse(&w, 500, err, "Error retrieving object")
 		return
@@ -90,11 +89,14 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 	countOKResponse()
 }
 
-func parseDeleteObjectRequest(r *http.Request) (models.ODObject, error) {
+// This same handler is used for both deleting an object (POST as new state), or deleting forever (DELETE)
+func parseDeleteObjectRequest(r *http.Request, ctx context.Context) (models.ODObject, error) {
+	// TODO: Create and Change to DeletedObjectRequest
 	var jsonObject protocol.Object
 	var requestObject models.ODObject
 	var err error
 
+	// Capture changeToken
 	switch {
 	case r.Header.Get("Content-Type") == "application/json":
 		err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
@@ -102,22 +104,20 @@ func parseDeleteObjectRequest(r *http.Request) (models.ODObject, error) {
 			return requestObject, err
 		}
 	}
-
-	// Extract object ID from the URI.
-	uri := r.URL.Path
-	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)")
-	matchIndexes := re.FindStringSubmatchIndex(uri)
-	if len(matchIndexes) != 0 {
-		if len(matchIndexes) > 3 {
-			jsonObject.ID = uri[matchIndexes[2]:matchIndexes[3]]
-			if err != nil {
-				return requestObject, errors.New("Object Identifier in Request URI is not a hex string")
-			}
-		}
-	}
-
 	// Map to internal object type.
 	requestObject, err = mapping.MapObjectToODObject(&jsonObject)
+	if err != nil {
+		return requestObject, err
+	}
+
+	// Extract object ID from the URI and map over the request object being sent back
+	uriObject, err := parseGetObjectRequest(ctx)
+	if err != nil {
+		return requestObject, err
+	}
+	requestObject.ID = uriObject.ID
+
+	// Ready
 	return requestObject, err
 }
 

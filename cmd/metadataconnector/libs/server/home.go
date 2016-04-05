@@ -24,7 +24,7 @@ func (h AppServer) home(ctx context.Context, w http.ResponseWriter, r *http.Requ
 
 	// Anonymous struct syntax is tricky.
 	apiFuncs := []struct{ Name, RelativeLink, Description string }{
-		{"List Objects", cfg.RootURL + "/home/listObjects", "This operation will result in a GET call to list root objects with default paging."},
+		{"List Objects", cfg.RootURL + "/ui/listObjects", "This operation will result in a GET call to list root objects with default paging."},
 		{"Statistics", cfg.RootURL + "/stats", "This operation will result in a GET call to list root objects with default paging."},
 		{"Users", cfg.RootURL + "/users", "This is a list of all users."},
 	}

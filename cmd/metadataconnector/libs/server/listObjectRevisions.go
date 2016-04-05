@@ -6,7 +6,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"regexp"
 
 	"golang.org/x/net/context"
 
@@ -44,7 +43,8 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	}
 
 	// Parse Request
-	pagingRequest, err := parseListObjectRevisions(r)
+	captured, _ := CaptureGroupsFromContext(ctx)
+	pagingRequest, err := protocol.NewPagingRequest(r, captured, true)
 	if err != nil {
 		sendErrorResponse(&w, 400, err, "Error parsing request")
 		return
@@ -104,11 +104,6 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&response)
 	listObjectRevisionsResponseAsJSON(w, r, &apiResponse)
 	countOKResponse()
-}
-
-func parseListObjectRevisions(r *http.Request) (*protocol.PagingRequest, error) {
-	re := regexp.MustCompile("/object/([0-9a-fA-F]*)/history")
-	return protocol.NewPagingRequestWithObjectID(r, re, true)
 }
 
 func listObjectRevisionsResponseAsJSON(

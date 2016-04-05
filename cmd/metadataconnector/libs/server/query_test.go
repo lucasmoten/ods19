@@ -26,7 +26,7 @@ func TestQuery(t *testing.T) {
 	}
 
 	// URL
-	uri := host + cfg.RootURL + "/query/test"
+	uri := host + cfg.RootURL + "/search/test"
 
 	// Body
 	paging := protocol.PagingRequest{}
@@ -101,7 +101,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		t.FailNow()
 	}
 	// Modify the 1st folder
-	updateuri := host + cfg.RootURL + "/object/" + folder1.ID + "/properties"
+	updateuri := host + cfg.RootURL + "/objects/" + folder1.ID + "/properties"
 	updateObjectRequest := protocol.UpdateObjectRequest{}
 	updateObjectRequest.Name = folder1.Name
 	updateObjectRequest.Description = "The folder has been changed once"
@@ -139,7 +139,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 	updateObjectRequest.ChangeToken = updatedFolder.ChangeToken
 	updateObjectRequest.Description = "The folder has been changed twice"
 	// Modify the 1st folder again
-	updateuri = host + cfg.RootURL + "/object/" + folder1.ID + "/properties"
+	updateuri = host + cfg.RootURL + "/objects/" + folder1.ID + "/properties"
 	jsonBody, err = json.Marshal(updateObjectRequest)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
@@ -172,7 +172,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 	folder1.ChangeToken = updatedFolder.ChangeToken
 
 	// URL
-	uri := host + cfg.RootURL + "/query/" + searchPhrase + "?sortField=version&sortAscending=false&PageSize=2&PageNumber=1"
+	uri := host + cfg.RootURL + "/search/" + searchPhrase + "?sortField=version&sortAscending=false&PageSize=2&PageNumber=1"
 
 	// Request
 	req, err := http.NewRequest("GET", uri, nil)
@@ -225,7 +225,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 	changes2 := listOfObjects.Objects[1].ChangeCount
 	// If there are more pages, go fetch the last
 	if listOfObjects.TotalRows > 2 {
-		uri := host + cfg.RootURL + "/query/" + searchPhrase + "?sortField=version&sortAscending=false&PageSize=2&PageNumber=" + strconv.Itoa(listOfObjects.PageCount)
+		uri := host + cfg.RootURL + "/search/" + searchPhrase + "?sortField=version&sortAscending=false&PageSize=2&PageNumber=" + strconv.Itoa(listOfObjects.PageCount)
 		if err != nil {
 			t.Logf("Unable to marshal json for request:%v", err)
 			t.FailNow()
@@ -274,7 +274,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 
 	// Cleanup
 	// Now delete the first folder
-	deleteuri := host + cfg.RootURL + "/object/" + folder1.ID
+	deleteuri := host + cfg.RootURL + "/objects/" + folder1.ID + "/trash"
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder1.ChangeToken
 	jsonBody, err = json.Marshal(objChangeToken)
@@ -282,7 +282,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		log.Printf("deleting folder Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
-	req3, err := http.NewRequest("DELETE", deleteuri, bytes.NewBuffer(jsonBody))
+	req3, err := http.NewRequest("POST", deleteuri, bytes.NewBuffer(jsonBody))
 	req3.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		log.Printf("deleting folder Error setting up HTTP Request: %v", err)
@@ -309,7 +309,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 	}
 
 	// Now delete the second folder
-	deleteuri = host + cfg.RootURL + "/object/" + folder2.ID
+	deleteuri = host + cfg.RootURL + "/objects/" + folder2.ID + "/trash"
 	objChangeToken = protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder2.ChangeToken
 	jsonBody, err = json.Marshal(objChangeToken)
@@ -317,7 +317,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		log.Printf("deleting folder Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
-	req4, err := http.NewRequest("DELETE", deleteuri, bytes.NewBuffer(jsonBody))
+	req4, err := http.NewRequest("POST", deleteuri, bytes.NewBuffer(jsonBody))
 	req4.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		log.Printf("deleting folder Error setting up HTTP Request: %v", err)

@@ -32,7 +32,7 @@ func doMaliciousUpdate(t *testing.T, oid, jsonString string) {
 	jsonBody := []byte(jsonString)
 
 	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
-		fmt.Sprintf("object/%s/stream", oid),
+		fmt.Sprintf("objects/%s/stream", oid),
 		host, "",
 		tmp,
 		tmpName,
@@ -168,7 +168,7 @@ func doPropertyUpdate(t *testing.T, oid, jsonString string) {
 	jsonBody := []byte(jsonString)
 
 	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
-		fmt.Sprintf("object/%s/stream", oid),
+		fmt.Sprintf("objects/%s/stream", oid),
 		host, "",
 		tmp,
 		tmpName,

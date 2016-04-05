@@ -6,7 +6,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"regexp"
 
 	"golang.org/x/net/context"
 
@@ -26,9 +25,9 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	var requestObject models.ODObject
 	var err error
 
-	requestObject, err = parseGetObjectRequest(r)
+	requestObject, err = parseGetObjectRequest(ctx)
 	if err != nil {
-		sendErrorResponse(&w, 400, err, "Error parsing URI")
+		sendErrorResponse(&w, 500, err, "Error parsing URI")
 		return
 	}
 
@@ -87,24 +86,25 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	countOKResponse()
 }
 
-func parseGetObjectRequest(r *http.Request) (models.ODObject, error) {
+func parseGetObjectRequest(ctx context.Context) (models.ODObject, error) {
 	var requestObject models.ODObject
-	var err error
 
-	// Portions from the request URI itself ...
-	uri := r.URL.Path
-	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)/properties")
-	matchIndexes := re.FindStringSubmatchIndex(uri)
-	if len(matchIndexes) != 0 {
-		if len(matchIndexes) > 3 {
-			requestObject.ID, err = hex.DecodeString(uri[matchIndexes[2]:matchIndexes[3]])
-			if err != nil {
-				return requestObject, errors.New("Object Identifier in Request URI is not a hex string")
-			}
-		}
+	// Get capture groups from ctx.
+	captured, ok := CaptureGroupsFromContext(ctx)
+	if !ok {
+		return requestObject, errors.New("Could not get capture groups")
 	}
 
-	return requestObject, err
+	// Initialize requestobject with the objectId being requested
+	if captured["objectId"] == "" {
+		return requestObject, errors.New("Could not extract objectId from URI")
+	}
+	bytesObjectID, err := hex.DecodeString(captured["objectId"])
+	if err != nil {
+		return requestObject, errors.New("Invalid objectid in URI.")
+	}
+	requestObject.ID = bytesObjectID
+	return requestObject, nil
 }
 
 func getObjectResponse(

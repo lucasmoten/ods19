@@ -2,11 +2,11 @@ package server
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
-	"regexp"
 	"strings"
 
 	"golang.org/x/net/context"
@@ -34,7 +34,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 		sendErrorResponse(&w, http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
 		return
 	}
-	requestObject, err = parseMoveObjectRequestAsJSON(r)
+	requestObject, err = parseMoveObjectRequestAsJSON(r, ctx)
 	if err != nil {
 		sendErrorResponse(&w, 400, err, "Error parsing JSON")
 		return
@@ -178,7 +178,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	countOKResponse()
 }
 
-func parseMoveObjectRequestAsJSON(r *http.Request) (models.ODObject, error) {
+func parseMoveObjectRequestAsJSON(r *http.Request, ctx context.Context) (models.ODObject, error) {
 	var jsonObject protocol.Object
 	var requestObject models.ODObject
 	var err error
@@ -189,23 +189,28 @@ func parseMoveObjectRequestAsJSON(r *http.Request) (models.ODObject, error) {
 		return requestObject, err
 	}
 
-	// Portions from the request URI itself ...
-	uri := r.URL.Path
-	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)/move/([0-9a-fA-F]*)")
-	matchIndexes := re.FindStringSubmatchIndex(uri)
-	if len(matchIndexes) != 0 {
-		if len(matchIndexes) > 3 {
-			jsonObject.ID = uri[matchIndexes[2]:matchIndexes[3]]
-			if err != nil {
-				return requestObject, errors.New("Object Identifier in Request URI is not a hex string")
-			}
+	// Get capture groups from ctx.
+	captured, ok := CaptureGroupsFromContext(ctx)
+	if !ok {
+		return requestObject, errors.New("Could not get capture groups")
+	}
+
+	// Initialize requestobject with the objectId being requested
+	if captured["objectId"] == "" {
+		return requestObject, errors.New("Could not extract ObjectID from URI")
+	}
+	_, err = hex.DecodeString(captured["objectId"])
+	if err != nil {
+		return requestObject, errors.New("Invalid ObjectID in URI")
+	}
+	jsonObject.ID = captured["objectId"]
+	// And the new folderId
+	if len(captured["folderId"]) > 0 {
+		_, err = hex.DecodeString(captured["folderId"])
+		if err != nil {
+			return requestObject, errors.New("Invalid flderId in URI")
 		}
-		if len(matchIndexes) > 5 {
-			jsonObject.ParentID = uri[matchIndexes[4]:matchIndexes[5]]
-			if err != nil {
-				return requestObject, errors.New("Parent Identifier in Request URI is not a hex string")
-			}
-		}
+		jsonObject.ParentID = captured["folderId"]
 	}
 
 	// Map to internal object type

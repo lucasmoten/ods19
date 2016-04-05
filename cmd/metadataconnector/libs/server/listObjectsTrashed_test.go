@@ -1,7 +1,6 @@
 package server_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -33,7 +32,7 @@ func TestListObjectsTrashedJSONResponse(t *testing.T) {
 	s := server.AppServer{DAO: &fakeDAO, ServicePrefix: cfg.RootURLRegex}
 	s.InitRegex()
 
-	r, err := http.NewRequest("GET", cfg.RootURL+"/trash?pageNumber=1&pageSize=50", nil)
+	r, err := http.NewRequest("GET", cfg.RootURL+"/trashed?pageNumber=1&pageSize=50", nil)
 	r.Header.Set("USER_DN", user.DistinguishedName)
 
 	if err != nil {
@@ -104,7 +103,7 @@ func TestHTTPListObjectsTrashed(t *testing.T) {
 		t.Errorf("Delete request failed: %v\n", err)
 	}
 
-	trashURI := host + cfg.RootURL + "/trash?pageNumber=1&pageSize=1000"
+	trashURI := host + cfg.RootURL + "/trashed?pageNumber=1&pageSize=1000"
 
 	trashReq, err := http.NewRequest("GET", trashURI, nil)
 	trashResp, err := httpclients[clientID].Do(trashReq)
@@ -132,37 +131,38 @@ func TestHTTPListObjectsTrashed(t *testing.T) {
 		t.Errorf("Expected object to be in trash for user.")
 	}
 
-	// This time use a JSON POST, instead of GET
-	trashPOSTURI := host + cfg.RootURL + "/trash"
-	jsonRequest := `
-     {"pageNumber": 1, "pageSize": 1000} 
-    `
-	buf := bytes.NewBufferString(jsonRequest)
+	// This operation no longer supports POST
+	// // This time use a JSON POST, instead of GET
+	// trashPOSTURI := host + cfg.RootURL + "/trash"
+	// jsonRequest := `
+	//  {"pageNumber": 1, "pageSize": 1000}
+	// `
+	// buf := bytes.NewBufferString(jsonRequest)
 
-	jsonTrashReq, err := http.NewRequest("POST", trashPOSTURI, buf)
-	if err != nil {
-		t.Errorf("Could not create http request: %v\n", err)
-		t.FailNow()
-	}
-	// Must set Content-Type for POST.
-	jsonTrashReq.Header.Set("Content-Type", "application/json")
-	jsonTrashResp, err := httpclients[clientID].Do(jsonTrashReq)
+	// jsonTrashReq, err := http.NewRequest("POST", trashPOSTURI, buf)
+	// if err != nil {
+	// 	t.Errorf("Could not create http request: %v\n", err)
+	// 	t.FailNow()
+	// }
+	// // Must set Content-Type for POST.
+	// jsonTrashReq.Header.Set("Content-Type", "application/json")
+	// jsonTrashResp, err := httpclients[clientID].Do(jsonTrashReq)
 
-	jsonTrashDecoder := json.NewDecoder(jsonTrashResp.Body)
-	var jsonTrashResponse protocol.ObjectResultset
-	err = jsonTrashDecoder.Decode(&jsonTrashResponse)
-	if err != nil {
-		t.Errorf("Could not decode listObjectsTrashed ObjectResultset response.")
-	}
-	objInJSONTrash := false
-	for _, o := range trashResponse.Objects {
-		if o.Name == expected {
-			objInJSONTrash = true
-			break
-		}
-	}
-	if !objInJSONTrash {
-		t.Errorf("Expected object to be in trash for user.")
-	}
+	// jsonTrashDecoder := json.NewDecoder(jsonTrashResp.Body)
+	// var jsonTrashResponse protocol.ObjectResultset
+	// err = jsonTrashDecoder.Decode(&jsonTrashResponse)
+	// if err != nil {
+	// 	t.Errorf("Could not decode listObjectsTrashed ObjectResultset response.")
+	// }
+	// objInJSONTrash := false
+	// for _, o := range trashResponse.Objects {
+	// 	if o.Name == expected {
+	// 		objInJSONTrash = true
+	// 		break
+	// 	}
+	// }
+	// if !objInJSONTrash {
+	// 	t.Errorf("Expected object to be in trash for user.")
+	// }
 
 }

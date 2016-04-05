@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"regexp"
-	"strings"
 
 	"golang.org/x/net/context"
 
@@ -18,11 +17,13 @@ import (
 	aac "decipher.com/oduploader/services/aac"
 	audit "decipher.com/oduploader/services/audit/generated/auditservice_thrift"
 	"decipher.com/oduploader/services/zookeeper"
+	"decipher.com/oduploader/util"
 )
 
 // Constants serve as keys for setting values on a request-scoped Context.
 const (
-	CallerVal = iota
+	CallerVal        = iota
+	CaptureGroupsVal = iota
 )
 
 // AppServer contains definition for the metadata server
@@ -103,80 +104,86 @@ type Caller struct {
 
 // StaticRx is a bunch of static compiled regexes
 type StaticRx struct {
-	Favorites               *regexp.Regexp
-	Folder                  *regexp.Regexp
-	Home                    *regexp.Regexp
-	HomeListObjects         *regexp.Regexp
-	Images                  *regexp.Regexp
-	ObjectCreate            *regexp.Regexp
-	Query                   *regexp.Regexp
-	Shared                  *regexp.Regexp
-	Shares                  *regexp.Regexp
-	Shareto                 *regexp.Regexp
-	Trash                   *regexp.Regexp
-	Users                   *regexp.Regexp
-	Object                  *regexp.Regexp
-	ObjectChangeOwner       *regexp.Regexp
-	ObjectExpunge           *regexp.Regexp
-	ObjectFavorite          *regexp.Regexp
-	ObjectLink              *regexp.Regexp
-	ObjectLinks             *regexp.Regexp
-	ObjectMove              *regexp.Regexp
-	ObjectPermission        *regexp.Regexp
-	ObjectProperties        *regexp.Regexp
-	Objects                 *regexp.Regexp
-	ObjectShare             *regexp.Regexp
-	ObjectShareID           *regexp.Regexp
-	ObjectStream            *regexp.Regexp
-	ObjectStreamRevision    *regexp.Regexp
-	ObjectSubscription      *regexp.Regexp
-	ListObjects             *regexp.Regexp
-	ListObjectRevisions     *regexp.Regexp
-	ListObjectShares        *regexp.Regexp
-	ListObjectSubscriptions *regexp.Regexp
-	ListImages              *regexp.Regexp
-	TrashObject             *regexp.Regexp
-	StatsObject             *regexp.Regexp
-	StaticFiles             *regexp.Regexp
+	Home                   *regexp.Regexp
+	HomeListObjects        *regexp.Regexp
+	Favicon                *regexp.Regexp
+	StatsObject            *regexp.Regexp
+	StaticFiles            *regexp.Regexp
+	Users                  *regexp.Regexp
+	APIDocumentation       *regexp.Regexp
+	Objects                *regexp.Regexp
+	Object                 *regexp.Regexp
+	ObjectProperties       *regexp.Regexp
+	ObjectStream           *regexp.Regexp
+	ObjectChangeOwner      *regexp.Regexp
+	ObjectDelete           *regexp.Regexp
+	ObjectUndelete         *regexp.Regexp
+	ObjectExpunge          *regexp.Regexp
+	ObjectMove             *regexp.Regexp
+	Revisions              *regexp.Regexp
+	RevisionStream         *regexp.Regexp
+	SharedToMe             *regexp.Regexp
+	SharedToOthers         *regexp.Regexp
+	SharedObject           *regexp.Regexp
+	SharedObjectShare      *regexp.Regexp
+	Search                 *regexp.Regexp
+	Trash                  *regexp.Regexp
+	Favorites              *regexp.Regexp
+	FavoriteObject         *regexp.Regexp
+	LinkToObject           *regexp.Regexp
+	ObjectLinks            *regexp.Regexp
+	ObjectSubscribe        *regexp.Regexp
+	Subscribed             *regexp.Regexp
+	SubscribedSubscription *regexp.Regexp
+	ObjectTypes            *regexp.Regexp
+	ObjectType             *regexp.Regexp
 }
 
 // InitRegex compiles static regexes and initializes the AppServer Routes field.
 func (h *AppServer) InitRegex() {
 	h.Routes = &StaticRx{
-		Favorites:               regexp.MustCompile(h.ServicePrefix + "/favorites$"),
-		Folder:                  regexp.MustCompile(h.ServicePrefix + "/folder$"),
-		Home:                    regexp.MustCompile(h.ServicePrefix + "/?$"),
-		HomeListObjects:         regexp.MustCompile(h.ServicePrefix + "/home/listObjects/?$"),
-		Images:                  regexp.MustCompile(h.ServicePrefix + "/images$"),
-		ObjectCreate:            regexp.MustCompile(h.ServicePrefix + "/object$"),
-		Query:                   regexp.MustCompile(h.ServicePrefix + "/query/(?P<searchPhrase>.*)"),
-		Shared:                  regexp.MustCompile(h.ServicePrefix + "/shared$"),
-		Shares:                  regexp.MustCompile(h.ServicePrefix + "/shares$"),
-		Trash:                   regexp.MustCompile(h.ServicePrefix + "/trash$"),
-		Users:                   regexp.MustCompile(h.ServicePrefix + "/users$"),
-		Object:                  regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)$"),
-		ObjectChangeOwner:       regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/changeowner/(?P<newOwner>.*)"),
-		ObjectExpunge:           regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/expunge$"),
-		ObjectFavorite:          regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/favorite$"),
-		ObjectLink:              regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/link/([0-9a-fA-F]*)"),
-		ObjectLinks:             regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/links$"),
-		ObjectMove:              regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/move/(?P<newParentId>[0-9a-fA-F]*)"),
-		ObjectPermission:        regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/permission/(?P<permissionId>[0-9a-fA-F]*)"),
-		ObjectProperties:        regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/properties$"),
-		Objects:                 regexp.MustCompile(h.ServicePrefix + "/objects$"),
-		ObjectShare:             regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/share$"),
-		ObjectShareID:           regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/share/(?P<shareId>[0-9a-fA-F]*)$"),
-		ObjectStream:            regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/stream$"),
-		ObjectStreamRevision:    regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/history/(?P<historyId>.*)/stream$"),
-		ObjectSubscription:      regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/subscribe$"),
-		ListObjects:             regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/list$"),
-		ListObjectRevisions:     regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/history$"),
-		ListObjectShares:        regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/shares$"),
-		ListObjectSubscriptions: regexp.MustCompile(h.ServicePrefix + "/object/(?P<objectId>[0-9a-fA-F]*)/subscriptions$"),
-		ListImages:              regexp.MustCompile(h.ServicePrefix + "/images/(?P<objectId>[0-9a-fA-F]*)/list$"),
-		TrashObject:             regexp.MustCompile(h.ServicePrefix + "/trash/(?P<objectId>[0-9a-fA-F]*)"),
-		StatsObject:             regexp.MustCompile(h.ServicePrefix + "/stats$"),
-		StaticFiles:             regexp.MustCompile(h.ServicePrefix + "/static/(?P<path>.*)"),
+		// UI
+		Home:            regexp.MustCompile(h.ServicePrefix + "/ui/?$"),
+		HomeListObjects: regexp.MustCompile(h.ServicePrefix + "/ui/listObjects/?$"),
+		Favicon:         regexp.MustCompile(h.ServicePrefix + "/favicon.ico$"),
+		StatsObject:     regexp.MustCompile(h.ServicePrefix + "/stats$"),
+		StaticFiles:     regexp.MustCompile(h.ServicePrefix + "/static/(?P<path>.*)"),
+		Users:           regexp.MustCompile(h.ServicePrefix + "/users$"),
+		// Service operations
+		APIDocumentation: regexp.MustCompile(h.ServicePrefix + "/$"),
+		// - objects
+		Objects:          regexp.MustCompile(h.ServicePrefix + "/objects$"),
+		Object:           regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})$"),
+		ObjectProperties: regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/properties$"),
+		ObjectStream:     regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/stream$"),
+		// - actions on objects
+		ObjectChangeOwner: regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/owner/(?P<newOwner>.*)$"),
+		ObjectDelete:      regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/trash$"),
+		ObjectUndelete:    regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/untrash$"),
+		ObjectExpunge:     regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})$"),
+		ObjectMove:        regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/move/(?P<folderId>[0-9a-fA-F]{32})$"),
+		// - revisions
+		Revisions:      regexp.MustCompile(h.ServicePrefix + "/revisions/(?P<objectId>[0-9a-fA-F]{32})$"),
+		RevisionStream: regexp.MustCompile(h.ServicePrefix + "/revisions/(?P<objectId>[0-9a-fA-F]{32})/(?P<revisionId>.*)/stream$"),
+		// - share
+		SharedToMe:        regexp.MustCompile(h.ServicePrefix + "/shares$"),
+		SharedToOthers:    regexp.MustCompile(h.ServicePrefix + "/shared$"),
+		SharedObject:      regexp.MustCompile(h.ServicePrefix + "/shared/(?P<objectId>[0-9a-fA-F]{32})$"),
+		SharedObjectShare: regexp.MustCompile(h.ServicePrefix + "/shared/(?P<objectId>[0-9a-fA-F]{32})/(?P<shareId>[0-9a-fA-F]{32})$"),
+		// - search
+		Search: regexp.MustCompile(h.ServicePrefix + "/search/(?P<searchPhrase>.*)$"),
+		// - trash
+		Trash: regexp.MustCompile(h.ServicePrefix + "/trashed$"),
+		// - not yet implemented. future
+		Favorites:              regexp.MustCompile(h.ServicePrefix + "/favorites$"),
+		FavoriteObject:         regexp.MustCompile(h.ServicePrefix + "/favorites/(?P<objectId>[0-9a-fA-F]{32})$"),
+		LinkToObject:           regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/links/(?P<sourceObjectId>[0-9a-fA-F]{32})$"),
+		ObjectLinks:            regexp.MustCompile(h.ServicePrefix + "/links/(?P<objectId>[0-9a-fA-F]{32})$"),
+		ObjectSubscribe:        regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/subscribe$"),
+		Subscribed:             regexp.MustCompile(h.ServicePrefix + "/subscribed$"),
+		SubscribedSubscription: regexp.MustCompile(h.ServicePrefix + "/subscribed/(?P<subscriptionId>[0-9a-fA-F]{32})$"),
+		ObjectTypes:            regexp.MustCompile(h.ServicePrefix + "/objecttypes$"),
+		ObjectType:             regexp.MustCompile(h.ServicePrefix + "/objecttypes/(?P<objectTypeId>[0-9a-fA-F]{32})$"),
 	}
 }
 
@@ -230,128 +237,176 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		switch {
+		// Development UI
 		case h.Routes.Home.MatchString(uri):
 			h.home(ctx, w, r)
 		case h.Routes.HomeListObjects.MatchString(uri):
 			h.homeListObjects(ctx, w, r)
-		case uri == h.ServicePrefix+"/favicon.ico", uri == h.ServicePrefix+"//favicon.ico", strings.HasSuffix(uri, "/favicon.ico"):
+		case h.Routes.Favicon.MatchString(uri):
 			h.favicon(ctx, w, r)
-			// from longest to shortest...
-		case h.Routes.ObjectStreamRevision.MatchString(uri):
-			h.getObjectStreamForRevision(ctx, w, r)
-		case h.Routes.ObjectStream.MatchString(uri):
-			h.getObjectStream(ctx, w, r)
-		case h.Routes.ObjectProperties.MatchString(uri):
-			h.getObject(ctx, w, r)
-		case h.Routes.ObjectLinks.MatchString(uri):
-			h.getRelationships(ctx, w, r)
-		case h.Routes.Objects.MatchString(uri):
-			h.listObjects(ctx, w, r)
-		case h.Routes.ListObjects.MatchString(uri):
-			h.listObjects(ctx, w, r)
-		case h.Routes.Images.MatchString(uri), h.Routes.ListImages.MatchString(uri):
-			h.listObjectsImages(ctx, w, r)
-		case h.Routes.ListObjectRevisions.MatchString(uri):
-			h.listObjectRevisions(ctx, w, r)
-		case h.Routes.ListObjectShares.MatchString(uri):
-			h.listObjectShares(ctx, w, r)
-		case h.Routes.ListObjectSubscriptions.MatchString(uri):
-			h.listObjectsSubscriptions(ctx, w, r)
-			// single quick matchers
-		case h.Routes.Favorites.MatchString(uri):
-			h.listFavorites(ctx, w, r)
-		case h.Routes.Shared.MatchString(uri):
-			h.listUserObjectsShared(ctx, w, r)
-		case h.Routes.Shares.MatchString(uri):
-			h.listUserObjectShares(ctx, w, r)
-		case h.Routes.Trash.MatchString(uri):
-			h.listObjectsTrashed(ctx, w, r)
-		case h.Routes.Query.MatchString(uri):
-			h.query(ctx, w, r)
 		case h.Routes.StatsObject.MatchString(uri):
 			h.getStats(ctx, w, r)
 		case h.Routes.StaticFiles.MatchString(uri):
 			h.serveStatic(w, r, h.Routes.StaticFiles, uri)
 		case h.Routes.Users.MatchString(uri):
 			h.listUsers(ctx, w, r)
-		default:
-			jurl, _ := json.MarshalIndent(r.URL, "", "  ")
-			fmt.Println(string(jurl))
-
-			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
-			log.Println("WARN: " + msg)
-			sendErrorResponse(&w, 404, nil, "Resource not found")
-			return
-		}
-	case "POST":
-		switch {
-		case h.Routes.ObjectShare.MatchString(uri):
-			h.addObjectShare(ctx, w, r)
-		case h.Routes.ObjectSubscription.MatchString(uri):
-			h.addObjectSubscription(ctx, w, r)
-		case h.Routes.ObjectFavorite.MatchString(uri):
-			h.addObjectToFavorites(ctx, w, r)
-		case h.Routes.ObjectLink.MatchString(uri):
-			h.addObjectToFolder(ctx, w, r)
+		// API
+		// - documentation
+		case h.Routes.APIDocumentation.MatchString(uri):
+			// TODO: route into serveStatic?
+		// - get object properties
+		case h.Routes.ObjectProperties.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectProperties)
+			h.getObject(ctx, w, r)
+		// - get object stream
+		case h.Routes.ObjectStream.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectStream)
+			h.getObjectStream(ctx, w, r)
+		// - list objects at root
 		case h.Routes.Objects.MatchString(uri):
 			h.listObjects(ctx, w, r)
-		case h.Routes.Folder.MatchString(uri):
-			h.createFolder(ctx, w, r)
-		case h.Routes.ObjectCreate.MatchString(uri):
-			h.createObject(ctx, w, r)
-		case h.Routes.ObjectChangeOwner.MatchString(uri):
-			h.changeOwner(ctx, w, r)
-		case h.Routes.ObjectMove.MatchString(uri):
-			h.moveObject(ctx, w, r)
+		// - list objects of object
+		case h.Routes.Object.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Object)
+			h.listObjects(ctx, w, r)
+		// - list trash
 		case h.Routes.Trash.MatchString(uri):
 			h.listObjectsTrashed(ctx, w, r)
-		case h.Routes.ListObjects.MatchString(uri):
-			h.listObjects(ctx, w, r)
-		case h.Routes.ObjectPermission.MatchString(uri):
-			h.updateObjectPermissions(ctx, w, r)
-		case h.Routes.ObjectProperties.MatchString(uri):
-			h.updateObject(ctx, w, r)
-		case h.Routes.Query.MatchString(uri):
+		// - list objects shared to me
+		case h.Routes.SharedToMe.MatchString(uri):
+			h.listUserObjectShares(ctx, w, r)
+		// - list objects i've shared with others
+		case h.Routes.SharedToOthers.MatchString(uri):
+			h.listUserObjectsShared(ctx, w, r)
+		// - list object revisions (array of get object properties)
+		case h.Routes.Revisions.MatchString(uri):
+			h.listObjectRevisions(ctx, w, r)
+		// - get object revision stream
+		case h.Routes.RevisionStream.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.RevisionStream)
+			h.getObjectStreamForRevision(ctx, w, r)
+		// - search
+		case h.Routes.Search.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Search)
 			h.query(ctx, w, r)
-		case h.Routes.ObjectStream.MatchString(uri):
-			h.updateObjectStream(ctx, w, r)
+		// FUTURE API, NOT YET IMPLEMENTED
+		// - get relationships
+		case h.Routes.ObjectLinks.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectLinks)
+			h.getRelationships(ctx, w, r)
+		// - list favorite / starred objects
+		case h.Routes.Favorites.MatchString(uri):
+			h.listFavorites(ctx, w, r)
+		// - list subscribed objects
+		case h.Routes.Subscribed.MatchString(uri):
+			h.listObjectsSubscriptions(ctx, w, r)
+		// - list object types
+		case h.Routes.ObjectTypes.MatchString(uri):
+			// TODO: h.listObjectTypes(ctx, w, r)
 		default:
-			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
-			log.Println("WARN: " + msg)
-			sendErrorResponse(&w, 404, nil, "Resource not found")
-			return
+			do404(ctx, w, r)
 		}
-	case "PUT":
+	case "POST":
+		// API
 		switch {
+		// - create object
+		case h.Routes.Objects.MatchString(uri):
+			h.createObject(ctx, w, r)
+		// - delete object (updates state)
+		case h.Routes.ObjectDelete.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectDelete)
+			h.deleteObject(ctx, w, r)
+		// - undelete object (updates state)
+		case h.Routes.ObjectUndelete.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectUndelete)
+			h.removeObjectFromTrash(ctx, w, r)
+		// - update object properties
+		case h.Routes.ObjectProperties.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectProperties)
+			h.updateObject(ctx, w, r)
+		// - update object stream
+		case h.Routes.ObjectStream.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectStream)
+			h.updateObjectStream(ctx, w, r)
+		// - create object share
+		case h.Routes.SharedObject.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.SharedObject)
+			h.addObjectShare(ctx, w, r)
+		// - move object
+		case h.Routes.ObjectMove.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectMove)
+			h.moveObject(ctx, w, r)
+		// - change owner
+		case h.Routes.ObjectChangeOwner.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectChangeOwner)
+			h.changeOwner(ctx, w, r)
+		// - create favorite
+		case h.Routes.FavoriteObject.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.FavoriteObject)
+			h.addObjectToFavorites(ctx, w, r)
+		// - create symbolic link from object to another folder
+		case h.Routes.LinkToObject.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.LinkToObject)
+			h.addObjectToFolder(ctx, w, r)
+		// - create subscriptionId
+		case h.Routes.ObjectSubscribe.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectSubscribe)
+			h.addObjectSubscription(ctx, w, r)
+		// - create object type
+		case h.Routes.ObjectTypes.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectTypes)
+			// TODO: h.addObjectType(ctx, w, r)
+			// - update object type
+		case h.Routes.ObjectType.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectType)
+			// TODO: h.updateObjectType(ctx, w, r)
 		default:
-			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
-			log.Println("WARN: " + msg)
-			sendErrorResponse(&w, 404, nil, "Resource not found")
-			return
+			do404(ctx, w, r)
 		}
 	case "DELETE":
 		switch {
-		case h.Routes.Object.MatchString(uri):
-			h.deleteObject(ctx, w, r)
+		// - delete object forever
 		case h.Routes.ObjectExpunge.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectExpunge)
 			h.deleteObjectForever(ctx, w, r)
-		case h.Routes.ObjectFavorite.MatchString(uri):
-			h.removeObjectFromFavorites(ctx, w, r)
-		case h.Routes.ObjectLink.MatchString(uri):
-			h.removeObjectFromFolder(ctx, w, r)
-		case h.Routes.TrashObject.MatchString(uri):
-			h.removeObjectFromTrash(ctx, w, r)
-		case h.Routes.ObjectShareID.MatchString(uri):
+			// - remove object share
+		case h.Routes.SharedObjectShare.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.SharedObjectShare)
 			h.removeObjectShare(ctx, w, r)
-		case h.Routes.ObjectSubscription.MatchString(uri):
+		// - remove object favorite
+		case h.Routes.FavoriteObject.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.FavoriteObject)
+			h.removeObjectFromFavorites(ctx, w, r)
+		// - remove symbolic link
+		case h.Routes.LinkToObject.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.LinkToObject)
+			h.removeObjectFromFolder(ctx, w, r)
+		// - remove subscription
+		case h.Routes.SubscribedSubscription.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.SubscribedSubscription)
 			h.removeObjectSubscription(ctx, w, r)
+		// - remove all subscriptions
+		case h.Routes.Subscribed.MatchString(uri):
+			// TODO: h.deleteObjectSubscriptions(ctx, w, r)
+			// - empty trash (expunge all in trash)
+		case h.Routes.Trash.MatchString(uri):
+			// TODO: h.emptyTrash(ctx, w, r)
+		// - remove all shares on an object
+		case h.Routes.SharedObject.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.SharedObject)
+			// TODO: h.removeObjectShares(ctx, w, r)
+		// - remove object type
+		case h.Routes.ObjectType.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectType)
+			// TODO: h.deleteObjectType(ctx, w, r)
+
 		default:
-			msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
-			log.Println("WARN: " + msg)
-			sendErrorResponse(&w, 404, nil, "Resource not found")
-			return
+			do404(ctx, w, r)
 		}
+	default:
+		do404(ctx, w, r)
 	}
+	// TODO: Before returning, finalize any metrics, capturing time/error codes ?
 }
 
 // GetCaller populates a Caller object based upon request headers and peer
@@ -396,4 +451,28 @@ func CallerFromContext(ctx context.Context) (Caller, bool) {
 	// the Caller type assertion returns ok=false for nil.
 	caller, ok := ctx.Value(CallerVal).(Caller)
 	return caller, ok
+}
+
+func parseCaptureGroups(ctx context.Context, path string, regex *regexp.Regexp) context.Context {
+	captured := util.GetRegexCaptureGroups(path, regex)
+	return context.WithValue(ctx, CaptureGroupsVal, captured)
+}
+
+// CaptureGroupsFromContext extracts the capture groups from a context, if set
+func CaptureGroupsFromContext(ctx context.Context) (map[string]string, bool) {
+	captured, ok := ctx.Value(CaptureGroupsVal).(map[string]string)
+	return captured, ok
+}
+
+func do404(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	// Get caller value from ctx.
+	caller, ok := CallerFromContext(ctx)
+	if !ok {
+		caller = Caller{DistinguishedName: "UnknownUser"}
+	}
+	uri := r.URL.Path
+	msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
+	log.Println("WARN: " + msg)
+	sendErrorResponse(&w, 404, nil, "Resource not found")
+	return
 }

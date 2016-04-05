@@ -9,7 +9,6 @@ import (
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
-	"decipher.com/oduploader/util"
 
 	"golang.org/x/net/context"
 )
@@ -25,7 +24,8 @@ func (h AppServer) query(ctx context.Context, w http.ResponseWriter, r *http.Req
 	}
 
 	// Parse paging info
-	pagingRequest, err := protocol.NewPagingRequestWithObjectID(r, nil, false)
+	captured, _ := CaptureGroupsFromContext(ctx)
+	pagingRequest, err := protocol.NewPagingRequest(r, nil, false)
 	if err != nil {
 		sendErrorResponse(&w, 400, err, "Error parsing request")
 		return
@@ -34,7 +34,6 @@ func (h AppServer) query(ctx context.Context, w http.ResponseWriter, r *http.Req
 	// Check if a filter was provided
 	if len(pagingRequest.FilterSettings) == 0 {
 		// Parse search phrase from the request path if there is no filter set
-		captured := util.GetRegexCaptureGroups(r.URL.Path, h.Routes.Query)
 		if captured["searchPhrase"] == "" {
 			sendErrorResponse(&w, http.StatusBadRequest, errors.New("Could not extract searchPhrase from URI"), "URI: "+r.URL.Path)
 			return
