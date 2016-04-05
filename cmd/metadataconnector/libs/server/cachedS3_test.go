@@ -34,7 +34,7 @@ func TestCacheCreate(t *testing.T) {
 		}
 	}()
 
-	fdata := []byte("hell world!")
+	fdata := []byte("hello world!")
 	//put bytes into small file
 	_, err = f.Write(fdata)
 	if err != nil {
@@ -68,5 +68,19 @@ func TestCacheCreate(t *testing.T) {
 	}
 	if _, err = os.Stat(fname + ".cached"); os.IsNotExist(err) {
 		t.Errorf("cached file shoud exist:%v", err)
+	}
+
+	//Read the file back and verify same content
+	f, err = os.Open(fname + ".cached")
+	defer f.Close()
+	buf := make([]byte, 256)
+	lread, err := f.Read(buf)
+	if err != nil {
+		t.Errorf("unable to read file:%v", err)
+	}
+	s1 := string(fdata)
+	s2 := string(buf)[:lread]
+	if s1 != s2 {
+		t.Errorf("content did not come back as same values. %s vs %s", s1, s2)
 	}
 }
