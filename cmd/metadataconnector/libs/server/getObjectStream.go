@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,16 +14,12 @@ import (
 	"net/url"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/performance"
 )
 
-/*
-  We are wrapping around getting object streams to time them.
-	TODO: This is including cache miss time.
-*/
+// getObjectStream gets object data stored in object-drive
 func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	req, err := httputil.DumpRequest(r, true)
 	if err != nil {
@@ -49,18 +44,19 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 	}
 
 	beganAt := h.Tracker.BeginTime(performance.DownloadCounter)
-	defer h.Tracker.EndTime(
-		performance.DownloadCounter,
-		beganAt,
-		performance.SizeJob(object.ContentSize.Int64),
-	)
 
 	if herr := h.getObjectStreamWithObject(ctx, w, r, object); herr != nil {
 		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
 	}
 
+	h.Tracker.EndTime(
+		performance.DownloadCounter,
+		beganAt,
+		performance.SizeJob(object.ContentSize.Int64),
+	)
 }
 
+// getObjectStreamWithObject is the continuation after we retrieved the object from the database
 func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.ResponseWriter, r *http.Request, object models.ODObject) *AppError {
 
 	var err error
@@ -125,17 +121,116 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	return nil
 }
 
-// This func broken out from the getObjectStream. It still needs refactored to
-// be more maintainable and make use of an interface for the content streams
-func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject, w http.ResponseWriter, encryptKey []byte, withMetadata bool) *AppError {
+// drainToCache is the function that retrieves things back out of the drain, and into the cache
+// This is a trivial wrapper around the copy that does performance counting.
+func drainToCache(
+	dp DrainProvider,
+	t *performance.JobReporters,
+	bucket *string,
+	theFile string,
+	length int64,
+) (*AppError, error) {
+	beganAt := t.BeginTime(performance.S3DrainFrom)
+	herr, err := dp.DrainToCache(bucket, theFile)
+	t.EndTime(performance.S3DrainFrom, beganAt, performance.SizeJob(length))
+	if herr != nil {
+		return herr, err
+	}
+	return nil, nil
+}
+
+// handleCacheMiss deals with the case where we go to retrieve a file, and we want to
+// make a better effort than to throw an exception because it is not cached in our local cache.
+// if another routine is caching, then wait for that to finish.
+// if nobody is caching it, then we start that process.
+func handleCacheMiss(dp DrainProvider, t *performance.JobReporters, object *models.ODObject, cipherFilePathCached string) (*os.File, *AppError) {
 	var err error
 
-	//Fall back on the uploaded copy for download if we need to
-	var cipherFile *os.File
-	cipherFileNameBasePath := h.DrainProvider.CacheLocation() + "/" + object.ContentConnector.String
-	cipherFilePathCached := cipherFileNameBasePath + ".cached"
-	cipherFilePathUploaded := cipherFileNameBasePath + ".uploaded"
+	// We have no choice but to recache and wait.  We can wait for:
+	//   - another goroutine that is .caching to finish
+	//   - we ourselves start .caching the file
+	// It's possible the client will get impatient and not wait (particularly in a browser).
 
+	log.Printf("file is not cached.  Caching it now.")
+	bucket := &config.DefaultBucket
+
+	//XXX - the blocking time waiting for this could be very long
+	// - it is not guaranteed that the proxy will allow us to just stall for a long time
+	// - the user may hit the cancel button in the browser or the app instead of
+	//   waiting for it to make it into the cache.
+	// - Proxies may just cut the connection if there is no traffic passing.  They can't tell if we are stuck.
+	// - so, let's bring it to cache such that it continues if the user disconnects
+	// - The user may simply cut the connection and try later.
+	//    - Should we put an ETA into the header and send the ETA now?
+	//      That way, the user can decide whether to wait or come back later.
+	//      But that sends back a 200 OK because we need to commit to OK in order to write
+	//      headers.
+	//If the http connection gets cut off, this continues to run
+	drainingDone := make(chan *AppError, 1)
+	alreadyDone := make(chan int, 1)
+	defer func() { alreadyDone <- 1 }()
+
+	go func() {
+		//If it's caching, then just wait until the file exists.
+		// a .caching file should NOT exist if there is not a goroutine actually caching the file.
+		// This is why we delete .caching files on startup, and when caching files, we delete .caching
+		// file if the goroutine fails.
+		cachingPath := dp.CacheLocation() + "/" + object.ContentConnector.String + ".caching"
+		cachedPath := dp.CacheLocation() + "/" + object.ContentConnector.String + ".cached"
+		var herr *AppError
+		if _, err := os.Stat(cachingPath); os.IsNotExist(err) {
+			//Start caching the file because this is not happening already.
+			herr, err = drainToCache(dp, t, bucket, object.ContentConnector.String, object.ContentSize.Int64)
+			if err != nil {
+				//We are not in the http thread.  log this problem though
+				log.Printf("!!! unable to drain to cache:%v %v", herr, err)
+			}
+		} else {
+			// Just stall until the cached file exists - somebody else is caching it.
+			// Using this simple-minded stalling algorithm, we wait 2x longer or up to 30 seconds longer than necessary.
+			sleepTime := time.Duration(1 * time.Second)
+			waitMax := time.Duration(30 * time.Second)
+			for {
+				if _, err := os.Stat(cachedPath); os.IsNotExist(err) {
+					time.Sleep(sleepTime)
+					if sleepTime < waitMax {
+						sleepTime *= 2
+					}
+				} else {
+					break
+				}
+			}
+		}
+		// send back an error code, if we are not already done
+		select {
+		case _ = <-alreadyDone:
+			close(alreadyDone)
+		default:
+			drainingDone <- herr
+		}
+		log.Printf("done stalling on %s", cipherFilePathCached)
+	}()
+
+	// Wait for the file.  The client might cut off, but we want to keep caching in any case.
+	herr := <-drainingDone
+	if herr != nil {
+		return nil, herr
+	}
+	close(drainingDone)
+
+	// The file should now exist
+	var cipherFile *os.File
+	if cipherFile, err = os.Open(cipherFilePathCached); err != nil {
+		return nil, &AppError{500, err, "Error opening recently cached file"}
+	}
+
+	return cipherFile, nil
+}
+
+// We would like to have a .cached file, but an .uploaded file will do.
+func searchForCachedOrUploadedFile(cipherFilePathCached, cipherFilePathUploaded string) (*os.File, *AppError) {
+	var cipherFile *os.File
+	var err error
 	//Try to find the cached file
 	if cipherFile, err = os.Open(cipherFilePathCached); err != nil {
 		if os.IsNotExist(err) {
@@ -150,14 +245,14 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 							//leave cipherFile nil, and wait for re-cache
 						} else {
 							//Some other error.
-							return &AppError{500, err, "Error opening file as cached state"}
+							return nil, &AppError{500, err, "Error opening file as cached state"}
 						}
 					} else {
 						//cached file exists
 					}
 				} else {
 					//Some other error.
-					return &AppError{500, err, "Error opening file as uploaded state"}
+					return nil, &AppError{500, err, "Error opening file as uploaded state"}
 				}
 			} else {
 				//uploaded file exists.  use it.
@@ -165,27 +260,36 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 			}
 		} else {
 			//Some other error.
-			return &AppError{500, err, "Error opening file as initial cached state"}
+			return nil, &AppError{500, err, "Error opening file as initial cached state"}
 		}
 	} else {
 		//the cached file exists
 	}
+	return cipherFile, nil
+}
+
+// This func broken out from the getObjectStream. It still needs refactored to
+// be more maintainable and make use of an interface for the content streams
+func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject, w http.ResponseWriter, encryptKey []byte, withMetadata bool) *AppError {
+	var err error
+	var herr *AppError
+
+	//Fall back on the uploaded copy for download if we need to
+	var cipherFile *os.File
+	cipherFileNameBasePath := h.DrainProvider.CacheLocation() + "/" + object.ContentConnector.String
+	cipherFilePathCached := cipherFileNameBasePath + ".cached"
+	cipherFilePathUploaded := cipherFileNameBasePath + ".uploaded"
+
+	cipherFile, herr = searchForCachedOrUploadedFile(cipherFilePathCached, cipherFilePathUploaded)
+	if herr != nil {
+		return herr
+	}
 
 	// Check if cipherFile was assigned, denoting whether or not pulling from cache
 	if cipherFile == nil {
-		// We have no choice but to recache and wait
-		log.Printf("file is not cached.  Caching it now.")
-		bucket := &config.DefaultBucket
-		//When this finishes, cipherFilePathCached should exist.  It could take a
-		//very long time though.
-		//XXX blocks for a long time - maybe we should return an error code and
-		// an estimate of WHEN to retry in this case
-		// RECOMMEND: Break files in S3 greater then X size into 2 parts. One that is
-		// of reasonable size to retrieve to get an initial output going, the other
-		// consisting of the remainder. Only necessary for rather large files
-		h.drainToCache(bucket, object.ContentConnector.String, object.ContentSize.Int64)
-		if cipherFile, err = os.Open(cipherFilePathCached); err != nil {
-			return &AppError{500, err, "Error opening recently cached file"}
+		cipherFile, herr = handleCacheMiss(h.DrainProvider, h.Tracker, object, cipherFilePathCached)
+		if herr != nil {
+			return herr
 		}
 	}
 
@@ -197,24 +301,15 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	//We have the file and it's open.  Be sure to close it.
 	defer cipherFile.Close()
 
+	//!!! We have committed to 200 OK at this point of setting the header.
+	// Any errors that happen after this point will not be seen by the user.
+
 	w.Header().Set("Content-Type", object.ContentType.String)
 	if object.ContentSize.Valid && object.ContentSize.Int64 > int64(0) {
 		w.Header().Set("Content-Length", strconv.FormatInt(object.ContentSize.Int64, 10))
 		w.Header().Set("Content-Disposition", "inline; filename="+url.QueryEscape(object.Name))
 	}
 	w.Header().Set("Accept-Ranges", "none")
-
-	//A visibility hack, to reveal metadata about the object in the respone header
-	if withMetadata {
-		protocolObject := mapping.MapODObjectToObject(object)
-		protocolObjectAsJSONBytes, err := json.Marshal(protocolObject)
-		if err != nil {
-			log.Printf("Unable to marshal object metadata:%v", err)
-		} else {
-			jsonStringified := string(protocolObjectAsJSONBytes)
-			w.Header().Set("Object-Data", jsonStringified)
-		}
-	}
 
 	//Actually send back the cipherFile
 	_, _, err = utils.DoCipherByReaderWriter(
@@ -226,18 +321,8 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	)
 
 	if err != nil {
-		// At this point, we've already started sending data to the client,
-		// and so we cant change headers. All we can do is log this error
-		// for reference.
-		// Reportedly a common cause is Firefox ceasing a stream with a
-		// follow up for a range request, which we dont support at this
-		// time.
+		//TODO: this needs to be counted somehow
 		log.Printf("Error sending decrypted cipherFile (%s): %v", cipherFilePathCached, err)
-		// return &AppError{
-		// 	Code: 500,
-		// 	Err:  err,
-		// 	Msg:  fmt.Sprintf("error sending decrypted cipherFile (%s)", cipherFilePathCached),
-		// }
 	}
 
 	//Update the timestamps to note the last time it was used

@@ -1,10 +1,12 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
@@ -16,8 +18,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-
-	"strconv"
 )
 
 // checkAWSEnvironmentVars prevents the server from starting if appropriate vars
@@ -35,25 +35,100 @@ func checkAWSEnvironmentVars() {
 
 // NullDrainProviderData is just a file location that does not talk to S3.
 type NullDrainProviderData struct {
+	//Location of the cache
 	CacheLocationString string
 }
 
 // S3DrainProviderData moves data from cache to the drain... S3 buckets in this case.
 type S3DrainProviderData struct {
+	//Location of the cache
 	CacheLocationString string
-	AWSSession          *session.Session
+	//The connection to S3
+	AWSSession *session.Session
+
+	//Dont begin purging anything until we are at this fraction of disk for cache
+	//TODO: may need to tune on small systems where the OS is counted in the partition,
+	// and it is a significant fraction of the disk.
+	lowWatermark float64
+
+	//Keep things in cache for a few minutes minimum, then delete based on value
+	//TODO: may need to tune on small systems where the OS is counted in the partition,
+	// and it is a significant fraction of the disk.
+	ageEligibleForEviction int64
+
+	//If we get to the high watermark, just start deleting until we get under it.
+	//Note that if in the time period ageEligibleForEviction you upload enough
+	//to stay at the highWatermark, you won't be able to stay within your cache limits.
+	//TODO: may need to tune on small systems where the OS is counted in the partition,
+	// and it is a significant fraction of the disk.
+	highWatermark float64
+
+	//The time to wait to walk the files
+	walkSleep time.Duration
 }
 
-// NewS3DrainProvider set up a new drain provider that gives us members to use the drain and goroutine to clean cache.
+// NewS3DrainProvider sets up a drain with default parameters overridden by environment variables
 func NewS3DrainProvider(name string) DrainProvider {
+	var err error
+	lowWatermark := 0.50
+	lowWatermarkSuggested := os.Getenv("lowWatermark")
+	if len(lowWatermarkSuggested) > 0 {
+		lowWatermark, err = strconv.ParseFloat(lowWatermarkSuggested, 32)
+		if err != nil {
+			log.Printf("!! Unable to set lowWatermark to %s:%v", lowWatermarkSuggested, err)
+		}
+	}
+	highWatermark := 0.75
+	highWatermarkSuggested := os.Getenv("highWatermark")
+	if len(highWatermarkSuggested) > 0 {
+		highWatermark, err = strconv.ParseFloat(highWatermarkSuggested, 32)
+		if err != nil {
+			log.Printf("!! Unable to set highWatermark to %s:%v", highWatermarkSuggested, err)
+		}
+	}
+	ageEligibleForEviction := int64(60 * 5)
+	ageEligibleForEvictionSuggested := os.Getenv("ageEligibleForEviction")
+	if len(ageEligibleForEvictionSuggested) > 0 {
+		ageEligibleForEviction, err = strconv.ParseInt(ageEligibleForEvictionSuggested, 10, 64)
+		if err != nil {
+			log.Printf("!! Unable to set highWatermark to %s:%v", ageEligibleForEvictionSuggested, err)
+		}
+	}
+	walkSleep := time.Duration(30 * time.Second)
+	walkSleepSuggested := os.Getenv("walkSleep")
+	if len(walkSleepSuggested) > 0 {
+		walkSleepInt, err := strconv.ParseInt(walkSleepSuggested, 10, 64)
+		if err != nil {
+			log.Printf("!! Unable to set walkSleep to %s:%v", walkSleepInt, err)
+		}
+		walkSleep = time.Duration(time.Duration(walkSleepInt) * time.Second)
+	}
+	d := NewS3DrainProviderRaw(name, lowWatermark, ageEligibleForEviction, highWatermark, walkSleep)
+	go d.DrainUploadedFilesToSafety()
+	return d
+}
+
+// NewS3DrainProviderRaw set up a new drain provider that gives us members to use the drain and goroutine to clean cache.
+// Call this to build a test cache.
+func NewS3DrainProviderRaw(name string, lowWatermark float64, ageEligibleForEviction int64, highWatermark float64, walkSleep time.Duration) *S3DrainProviderData {
 	checkAWSEnvironmentVars()
 
 	d := &S3DrainProviderData{
-		AWSSession:          awsS3(),
-		CacheLocationString: name,
+		AWSSession:             awsS3(),
+		CacheLocationString:    name,
+		lowWatermark:           lowWatermark,
+		ageEligibleForEviction: ageEligibleForEviction,
+		highWatermark:          highWatermark,
+		walkSleep:              walkSleep,
 	}
 	CacheMustExist(d)
-	go d.DrainUploadedFilesToSafety()
+	log.Printf(
+		"starting CachePurge: lowWatermark:%f ofDisk, highWatermark:%f ofDisk, ageEligibleForEviction:%d sec walkSleep:%d",
+		lowWatermark,
+		highWatermark,
+		ageEligibleForEviction,
+		walkSleep,
+	)
 	return d
 }
 
@@ -119,6 +194,11 @@ func (d *S3DrainProviderData) DrainUploadedFilesToSafety() {
 				if err != nil {
 					log.Printf("error draining cache:%v", err)
 				}
+			}
+			if ext == ".caching" || ext == ".uploading" {
+				//On startup, any .caching files are associated with now-dead goroutines.
+				//On startup, any .uploading files are associated with now-dead uploads.
+				os.Remove(name)
 			}
 			return nil
 		},
@@ -192,6 +272,8 @@ func (d *S3DrainProviderData) DrainToCache(
 	theFile string,
 ) (*AppError, error) {
 	log.Printf("Get from S3 bucket %s: %s", *bucket, theFile)
+	// This file must ONLY exist for the duration of this function.
+	// we must remove it or rename it before we exit.
 	foutCaching := d.CacheLocationString + "/" + theFile + ".caching"
 	foutCached := d.CacheLocationString + "/" + theFile + ".cached"
 	fOut, err := os.Create(foutCaching)
@@ -210,6 +292,9 @@ func (d *S3DrainProviderData) DrainToCache(
 	)
 	if err != nil {
 		log.Printf("Unable to download out of S3 bucket %v: %v", *bucket, theFile)
+		//Do not signal that a goroutine is still working on caching this file
+		os.Remove(foutCaching)
+		return &AppError{Code: 500, Msg: fmt.Sprintf("Unable to get %s out of cache", theFile), Err: err}, err
 	}
 	//Signal that we finally cached the file
 	err = os.Rename(foutCaching, foutCached)
@@ -220,6 +305,7 @@ func (d *S3DrainProviderData) DrainToCache(
 	return nil, nil
 }
 
+// CacheLocation gives the file location locally, and in the buckets
 func (d *S3DrainProviderData) CacheLocation() string {
 	return d.CacheLocationString
 }
@@ -236,23 +322,6 @@ func CacheMustExist(d DrainProvider) (err error) {
 	}
 	return err
 }
-
-//Dont begin purging anything until we are at this fraction of disk for cache
-//TODO: may need to tune on small systems where the OS is counted in the partition,
-// and it is a significant fraction of the disk.
-var lowWatermark = 0.50
-
-//Keep things in cache for a few minutes minimum, then delete based on value
-//TODO: may need to tune on small systems where the OS is counted in the partition,
-// and it is a significant fraction of the disk.
-var ageEligibleForEviction = int64(60 * 5)
-
-//If we get to the high watermark, just start deleting until we get under it.
-//Note that if in the time period ageEligibleForEviction you upload enough
-//to stay at the highWatermark, you won't be able to stay within your cache limits.
-//TODO: may need to tune on small systems where the OS is counted in the partition,
-// and it is a significant fraction of the disk.
-var highWatermark = 0.75
 
 // filePurgeVisit visits every file in the cache to see if we should delete it.
 //
@@ -283,7 +352,7 @@ var highWatermark = 0.75
 //  a delay in size drops that is dependent on size and doubly dependent on age since last access.
 //  Size and Age prioritize what is still sitting in cache when we hit lowWatermark.
 //
-func filePurgeVisit(name string, f os.FileInfo, err error) (errReturn error) {
+func filePurgeVisit(d *S3DrainProviderData, name string, f os.FileInfo, err error) (errReturn error) {
 	if err != nil {
 		log.Printf("Error walking directory for %s: %v", name, err)
 		// I didn't generate this error, so I am assuming that I can just log the problem.
@@ -317,9 +386,9 @@ func filePurgeVisit(name string, f os.FileInfo, err error) (errReturn error) {
 	case ext == ".cached":
 		//If we hit usage high watermark, we essentially panic and start deleting from the cache
 		//until we are at low watermark
-		oldEnoughToEvict := (ageInSeconds > ageEligibleForEviction)
-		fullEnoughToEvict := (usage > lowWatermark)
-		mustEvict := (usage > highWatermark && ageInSeconds >= ageEligibleForEviction)
+		oldEnoughToEvict := (ageInSeconds > d.ageEligibleForEviction)
+		fullEnoughToEvict := (usage > d.lowWatermark)
+		mustEvict := (usage > d.highWatermark && ageInSeconds >= d.ageEligibleForEviction)
 		// expect usage to sawtooth between lowWatermark and highWatermark
 		// with the value of the file setting priority until we hit highWatermark
 		if (oldEnoughToEvict && fullEnoughToEvict) || mustEvict {
@@ -357,39 +426,16 @@ func (d *S3DrainProviderData) CachePurge() {
 	//    highWatermark (floating point 0..1)
 	//    ageEligibleForEviction (integer seconds)
 	var err error
-	lowWatermarkSuggested := os.Getenv("lowWatermark")
-	if len(lowWatermarkSuggested) > 0 {
-		lowWatermark, err = strconv.ParseFloat(lowWatermarkSuggested, 32)
-		if err != nil {
-			log.Printf("!! Unable to set lowWatermark to:%s", lowWatermarkSuggested)
-		}
-	}
-	highWatermarkSuggested := os.Getenv("highWatermark")
-	if len(highWatermarkSuggested) > 0 {
-		highWatermark, err = strconv.ParseFloat(highWatermarkSuggested, 32)
-		if err != nil {
-			log.Printf("!! Unable to set highWatermark to:%s", highWatermarkSuggested)
-		}
-	}
-	ageEligibleForEvictionSuggested := os.Getenv("ageEligibleForEviction")
-	if len(ageEligibleForEvictionSuggested) > 0 {
-		ageEligibleForEviction, err = strconv.ParseInt(ageEligibleForEvictionSuggested, 10, 64)
-		if err != nil {
-			log.Printf("!! Unable to set highWatermark to:%s", ageEligibleForEvictionSuggested)
-		}
-	}
-
-	log.Printf(
-		"starting CachePurge: lowWatermark:%f ofDisk, highWatermark:%f ofDisk, ageEligibleForEviction:%d sec",
-		lowWatermark,
-		highWatermark,
-		ageEligibleForEviction,
-	)
 	for {
-		err = filepath.Walk(d.CacheLocationString, filePurgeVisit)
+		err = filepath.Walk(
+			d.CacheLocationString,
+			func(name string, f os.FileInfo, err error) (errReturn error) {
+				return filePurgeVisit(d, name, f, err)
+			},
+		)
 		if err != nil {
 			log.Printf("Unable to walk cache %s: %v", d.CacheLocationString, err)
 		}
-		time.Sleep(30 * time.Second)
+		time.Sleep(d.walkSleep)
 	}
 }

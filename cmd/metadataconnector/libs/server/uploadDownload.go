@@ -29,11 +29,13 @@ func (h AppServer) acceptObjectUpload(
 	obj *models.ODObject,
 	grant *models.ODObjectPermission,
 	asCreate bool,
-) (*AppError, error) {
+) (func(), *AppError, error) {
+	var drainFunc func()
+	var herr *AppError
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		return &AppError{Code: 400, Err: nil, Msg: "Could not determine user"}, fmt.Errorf("User not provided in context")
+		return nil, &AppError{Code: 400, Err: nil, Msg: "Could not determine user"}, fmt.Errorf("User not provided in context")
 	}
 	parsedMetadata := false
 	var createObjectRequest protocol.Object
@@ -43,7 +45,7 @@ func (h AppServer) acceptObjectUpload(
 			if err == io.EOF {
 				break //just an eof...not an error
 			} else {
-				return &AppError{Code: 400, Err: err, Msg: "error getting a part"}, err
+				return nil, &AppError{Code: 400, Err: err, Msg: "error getting a part"}, err
 			}
 		} // if err != nil
 
@@ -58,7 +60,7 @@ func (h AppServer) acceptObjectUpload(
 			//dealing with a retrieved object, so we get fields individually
 			err := json.Unmarshal([]byte(s), &createObjectRequest)
 			if err != nil {
-				return &AppError{400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", s)}, err
+				return nil, &AppError{400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", s)}, err
 			}
 
 			// If updating and ACM provided differs from what is currently set, then need to
@@ -70,17 +72,17 @@ func (h AppServer) acceptObjectUpload(
 				// Make sure its parseable
 				parsedACM, err := acm.NewACMFromRawACM(rawAcmString)
 				if err != nil {
-					return &AppError{428, nil, "ACM provided could not be parsed"}, err
+					return nil, &AppError{428, nil, "ACM provided could not be parsed"}, err
 				}
 				// Ensure user is allowed this acm
 				updateObjectRequest := models.ODObject{}
 				updateObjectRequest.RawAcm.String = createObjectRequest.RawAcm
 				hasAACAccessToNewACM, err := h.isUserAllowedForObjectACM(ctx, &updateObjectRequest)
 				if err != nil {
-					return &AppError{500, nil, "Error communicating with authorization service"}, err
+					return nil, &AppError{500, nil, "Error communicating with authorization service"}, err
 				}
 				if !hasAACAccessToNewACM {
-					return &AppError{403, nil, "Unauthorized"}, err
+					return nil, &AppError{403, nil, "Unauthorized"}, err
 				}
 				// Capture values before the mapping
 				acmID := obj.ACM.ID
@@ -97,21 +99,21 @@ func (h AppServer) acceptObjectUpload(
 
 			err = mapping.OverwriteODObjectWithProtocolObject(obj, &createObjectRequest)
 			if err != nil {
-				return &AppError{400, err, "Could not extract data from json response"}, err
+				return nil, &AppError{400, err, "Could not extract data from json response"}, err
 			}
 
 			//If this is a new object, check prerequisites
 			if asCreate {
 				if herr := handleCreatePrerequisites(ctx, h, obj); herr != nil {
-					return herr, nil
+					return nil, herr, nil
 				}
 				if len(obj.RawAcm.String) == 0 {
-					return &AppError{400, err, "An ACM must be specified"}, nil
+					return nil, &AppError{400, err, "An ACM must be specified"}, nil
 				}
 			} else {
 				// If the id is specified, it must be the same as from the URI
 				if len(createObjectRequest.ID) > 0 && createObjectRequest.ID != existingID {
-					return &AppError{
+					return nil, &AppError{
 						Code: 400,
 						Err:  err,
 						Msg:  "JSON supplied an object id inconsistent with the one supplied from URI",
@@ -119,7 +121,7 @@ func (h AppServer) acceptObjectUpload(
 				}
 				//Parent id change must not be allowed, as it would let users move the object
 				if len(createObjectRequest.ParentID) > 0 && createObjectRequest.ParentID != existingParentID {
-					return &AppError{
+					return nil, &AppError{
 						Code: 400,
 						Err:  err,
 						Msg:  "JSON supplied an parent id",
@@ -135,7 +137,7 @@ func (h AppServer) acceptObjectUpload(
 				msg = "Metadata must be provided in part named 'ObjectMetadata' to create or update an object"
 			}
 			if !parsedMetadata {
-				return &AppError{
+				return nil, &AppError{
 					Code: 400,
 					Err:  nil,
 					Msg:  msg,
@@ -143,7 +145,7 @@ func (h AppServer) acceptObjectUpload(
 			}
 			if !asCreate {
 				if obj.ChangeToken != createObjectRequest.ChangeToken {
-					return &AppError{
+					return nil, &AppError{
 						Code: 400,
 						Err:  nil,
 						Msg:  "Changetoken must be up to date",
@@ -157,17 +159,16 @@ func (h AppServer) acceptObjectUpload(
 			if obj.Name == "" {
 				obj.Name = part.FileName()
 			}
-			async := true
-			herr, err := h.beginUpload(caller, part, obj, grant, async)
+			drainFunc, herr, err = h.beginUpload(caller, part, obj, grant)
 			if herr != nil {
-				return herr, err
+				return nil, herr, err
 			}
 			if err != nil {
-				return &AppError{500, err, "error caching file"}, err
+				return nil, &AppError{500, err, "error caching file"}, err
 			}
 		} // switch
 	} //for
-	return nil, nil
+	return drainFunc, nil, nil
 }
 
 func (h AppServer) beginUpload(
@@ -175,25 +176,15 @@ func (h AppServer) beginUpload(
 	part *multipart.Part,
 	obj *models.ODObject,
 	grant *models.ODObjectPermission,
-	async bool,
-) (herr *AppError, err error) {
+) (beginDrain func(), herr *AppError, err error) {
 
 	beganAt := h.Tracker.BeginTime(performance.UploadCounter)
-	herr, err = h.beginUploadTimed(caller, part, obj, grant, async)
+	drainFunc, herr, err := h.beginUploadTimed(caller, part, obj, grant)
+	h.Tracker.EndTime(performance.UploadCounter, beganAt, performance.SizeJob(obj.ContentSize.Int64))
 	if herr != nil {
-		h.Tracker.EndTime(
-			performance.UploadCounter,
-			beganAt,
-			performance.SizeJob(obj.ContentSize.Int64),
-		)
-		return herr, err
+		return nil, herr, err
 	}
-	h.Tracker.EndTime(
-		performance.UploadCounter,
-		beganAt,
-		performance.SizeJob(obj.ContentSize.Int64),
-	)
-	return herr, err
+	return drainFunc, herr, err
 }
 
 func (h AppServer) beginUploadTimed(
@@ -201,8 +192,7 @@ func (h AppServer) beginUploadTimed(
 	part *multipart.Part,
 	obj *models.ODObject,
 	grant *models.ODObjectPermission,
-	async bool,
-) (herr *AppError, err error) {
+) (beginDrain func(), herr *AppError, err error) {
 	rName := obj.ContentConnector.String
 	iv := obj.EncryptIV
 	fileKey := grant.EncryptKey
@@ -214,7 +204,7 @@ func (h AppServer) beginUploadTimed(
 	outFile, err := os.Create(outFileUploading)
 	if err != nil {
 		log.Printf("Unable to open ciphertext uploading file %s %v:", outFileUploading, err)
-		return nil, err
+		return nil, nil, err
 	}
 	defer outFile.Close()
 
@@ -222,7 +212,7 @@ func (h AppServer) beginUploadTimed(
 	checksum, length, err := utils.DoCipherByReaderWriter(part, outFile, fileKey, iv, "uploading from browser")
 	if err != nil {
 		log.Printf("Unable to write ciphertext %s %v:", outFileUploading, err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	//Scramble the fileKey with the masterkey - will need it once more on retrieve
@@ -232,7 +222,7 @@ func (h AppServer) beginUploadTimed(
 	err = os.Rename(outFileUploading, outFileUploaded)
 	if err != nil {
 		log.Printf("Unable to rename uploaded file %s %v:", outFileUploading, err)
-		return nil, err
+		return nil, nil, err
 	}
 	log.Printf("rename:%s -> %s", outFileUploading, outFileUploaded)
 
@@ -241,14 +231,8 @@ func (h AppServer) beginUploadTimed(
 	obj.ContentHash = checksum
 	obj.ContentSize.Int64 = length
 
-	//Just return 200 when we run async, because the client tells
-	//us whether it's async or not.
-	if async {
-		go h.cacheToDrain(&config.DefaultBucket, rName, length, 3)
-	} else {
-		h.cacheToDrain(&config.DefaultBucket, rName, length, 3)
-	}
-	return nil, err
+	//At the end of this function, we can mark the file as stored in S3.
+	return func() { h.cacheToDrain(&config.DefaultBucket, rName, length, 3) }, nil, err
 }
 
 //We get penalized on throughput if these fail a lot.
@@ -261,11 +245,7 @@ func (h AppServer) cacheToDrain(
 ) error {
 	beganAt := h.Tracker.BeginTime(performance.S3DrainTo)
 	err := h.cacheToDrainAttempt(bucket, rName, size, tries)
-	h.Tracker.EndTime(
-		performance.S3DrainTo,
-		beganAt,
-		performance.SizeJob(size),
-	)
+	h.Tracker.EndTime(performance.S3DrainTo, beganAt, performance.SizeJob(size))
 	return err
 }
 
@@ -326,22 +306,4 @@ func guessContentType(name string) string {
 	}
 	log.Printf("uploaded %s as %s", name, contentType)
 	return contentType
-}
-
-func (h AppServer) drainToCache(
-	bucket *string,
-	theFile string,
-	length int64,
-) (*AppError, error) {
-	beganAt := h.Tracker.BeginTime(performance.S3DrainFrom)
-	herr, err := h.DrainProvider.DrainToCache(bucket, theFile)
-	if herr != nil {
-		h.Tracker.EndTime(
-			performance.S3DrainFrom,
-			beganAt,
-			performance.SizeJob(length),
-		)
-		return herr, err
-	}
-	return nil, nil
 }
