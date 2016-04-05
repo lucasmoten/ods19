@@ -21,7 +21,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
 		return
 	}
 
@@ -29,7 +29,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	var requestGrant models.ODObjectPermission
 	requestGrant, propagateToChildren, err := parseAddObjectShareRequest(r)
 	if err != nil {
-		h.sendErrorResponse(w, 400, err, "Error parsing request")
+		sendErrorResponse(&w, 400, err, "Error parsing request")
 		return
 	}
 	log.Printf("Granting:%s to %s", hex.EncodeToString(requestGrant.ObjectID), requestGrant.Grantee)
@@ -39,7 +39,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	requestedObject.ID = requestGrant.ObjectID
 	dbObject, err := h.DAO.GetObject(requestedObject, false)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Error retrieving object")
+		sendErrorResponse(&w, 500, err, "Error retrieving object")
 		return
 	}
 
@@ -47,13 +47,13 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			h.sendErrorResponse(w, 410, err, "The object no longer exists.")
+			sendErrorResponse(&w, 410, err, "The object no longer exists.")
 			return
 		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-			h.sendErrorResponse(w, 405, err, "Unallowed to share deleted objects.")
+			sendErrorResponse(&w, 405, err, "Unallowed to share deleted objects.")
 			return
 		case dbObject.IsDeleted:
-			h.sendErrorResponse(w, 405, err, "Use removeObjectFromTrash to restore this object before adding shares.")
+			sendErrorResponse(&w, 405, err, "Use removeObjectFromTrash to restore this object before adding shares.")
 			return
 		}
 	}
@@ -82,7 +82,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	if dbObject.TypeName.String != "Folder" {
 		if len(permittedGrant.EncryptKey) == 0 {
 			log.Printf("Grant was not created")
-			h.sendErrorResponse(w, 500, err, "Did not find suitable grant to transfer. EncryptKey not set on permission of non-folder")
+			sendErrorResponse(&w, 500, err, "Did not find suitable grant to transfer. EncryptKey not set on permission of non-folder")
 			return
 		}
 		// As a non-folder, encrypt key needs to be applied to grantee.
@@ -110,13 +110,14 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	// Add to database
 	createdPermission, err := h.DAO.AddPermissionToObject(dbObject, &newGrant, propagateToChildren, h.MasterKey)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Error updating permission")
+		sendErrorResponse(&w, 500, err, "Error updating permission")
 		return
 	}
 
 	// Response in requested format
 	apiResponse := mapping.MapODPermissionToPermission(&createdPermission)
 	addObjectShareResponseAsJSON(w, r, caller, &apiResponse)
+	countOKResponse()
 }
 
 func parseAddObjectShareRequest(r *http.Request) (models.ODObjectPermission, bool, error) {

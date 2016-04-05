@@ -19,7 +19,7 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
 		return
 	}
 
@@ -29,27 +29,27 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	// Parse the objectId and historyId (changeCount) from the request path
 	captured := util.GetRegexCaptureGroups(r.URL.Path, h.Routes.ObjectStreamRevision)
 	if captured["objectId"] == "" {
-		h.sendErrorResponse(w, http.StatusBadRequest, errors.New("Could not extract objectID from URI"), "URI: "+r.URL.Path)
+		sendErrorResponse(&w, http.StatusBadRequest, errors.New("Could not extract objectID from URI"), "URI: "+r.URL.Path)
 		return
 	}
 	bytesObjectID, err := hex.DecodeString(captured["objectId"])
 	if err != nil {
-		h.sendErrorResponse(w, http.StatusBadRequest, err, "Invalid objectID in URI.")
+		sendErrorResponse(&w, http.StatusBadRequest, err, "Invalid objectID in URI.")
 	}
 	requestObject.ID = bytesObjectID
 	if captured["historyId"] == "" {
-		h.sendErrorResponse(w, http.StatusBadRequest, errors.New("Could not extract historyID from URI"), "URI: "+r.URL.Path)
+		sendErrorResponse(&w, http.StatusBadRequest, errors.New("Could not extract historyID from URI"), "URI: "+r.URL.Path)
 		return
 	}
 	requestObject.ChangeCount, err = strconv.Atoi(captured["historyId"])
 	if err != nil {
-		h.sendErrorResponse(w, http.StatusBadRequest, err, "Invalid historyID in URI.")
+		sendErrorResponse(&w, http.StatusBadRequest, err, "Invalid historyID in URI.")
 	}
 
 	// Retrieve existing object from the data store
 	dbObject, err := h.DAO.GetObjectRevision(requestObject, true)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Error retrieving object")
+		sendErrorResponse(&w, 500, err, "Error retrieving object")
 		return
 	}
 
@@ -67,7 +67,7 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	}
 	if !authorizedToRead {
 		log.Printf("Failed Permission check")
-		h.sendErrorResponse(w, 403, nil, "Unauthorized")
+		sendErrorResponse(&w, 403, nil, "Unauthorized")
 		return
 	}
 
@@ -75,12 +75,12 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	// 		Check if Classification is allowed for this User
 	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Error communicating with authorization service")
+		sendErrorResponse(&w, 500, err, "Error communicating with authorization service")
 		return
 	}
 	if !hasAACAccess {
 		log.Printf("Failed ACM check")
-		h.sendErrorResponse(w, 403, nil, "Unauthorized")
+		sendErrorResponse(&w, 403, nil, "Unauthorized")
 		return
 	}
 
@@ -89,28 +89,28 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			h.sendErrorResponse(w, 410, err, "The object no longer exists.")
+			sendErrorResponse(&w, 410, err, "The object no longer exists.")
 			return
 		case dbObject.IsAncestorDeleted:
-			h.sendErrorResponse(w, 405, err, "The object cannot be retreived because an ancestor is deleted.")
+			sendErrorResponse(&w, 405, err, "The object cannot be retreived because an ancestor is deleted.")
 			return
 		default:
-			h.sendErrorResponse(w, 405, err, "The object is deleted")
+			sendErrorResponse(&w, 405, err, "The object is deleted")
 			return
 		}
 	}
 
 	// Fail fast: Don't even look at cache or retrieve if the file size is 0
 	if !dbObject.ContentSize.Valid || dbObject.ContentSize.Int64 <= int64(0) {
-		h.sendErrorResponse(w, 204, nil, "No content")
+		sendErrorResponse(&w, 204, nil, "No content")
 		return
 	}
 
 	// Fetch the stream for this object, sent to response writer
 	appError := h.getAndStreamFile(ctx, &dbObject, w, userEncryptKey, false)
 	if appError != nil {
-		h.sendErrorResponse(w, appError.Code, appError.Err, appError.Msg)
+		sendErrorResponse(&w, appError.Code, appError.Error, appError.Msg)
 		return
 	}
-
+	countOKResponse()
 }

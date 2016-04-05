@@ -7,5 +7,5 @@ import (
 )
 
 func (h AppServer) changeOwner(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	h.sendErrorResponse(w, 501, nil, "changeOwner is not yet implemented")
+	sendErrorResponse(&w, 501, nil, "changeOwner is not yet implemented")
 }

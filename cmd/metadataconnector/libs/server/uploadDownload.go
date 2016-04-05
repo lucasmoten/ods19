@@ -35,7 +35,7 @@ func (h AppServer) acceptObjectUpload(
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		return nil, &AppError{Code: 400, Err: nil, Msg: "Could not determine user"}, fmt.Errorf("User not provided in context")
+		return drainFunc, NewAppError(400, nil, "Could not determine user"), fmt.Errorf("User not provided in context")
 	}
 	parsedMetadata := false
 	var createObjectRequest protocol.Object
@@ -45,7 +45,7 @@ func (h AppServer) acceptObjectUpload(
 			if err == io.EOF {
 				break //just an eof...not an error
 			} else {
-				return nil, &AppError{Code: 400, Err: err, Msg: "error getting a part"}, err
+				return drainFunc, NewAppError(400, err, "error getting a part"), err
 			}
 		} // if err != nil
 
@@ -60,7 +60,7 @@ func (h AppServer) acceptObjectUpload(
 			//dealing with a retrieved object, so we get fields individually
 			err := json.Unmarshal([]byte(s), &createObjectRequest)
 			if err != nil {
-				return nil, &AppError{400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", s)}, err
+				return drainFunc, NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", s)), err
 			}
 
 			// If updating and ACM provided differs from what is currently set, then need to
@@ -72,17 +72,17 @@ func (h AppServer) acceptObjectUpload(
 				// Make sure its parseable
 				parsedACM, err := acm.NewACMFromRawACM(rawAcmString)
 				if err != nil {
-					return nil, &AppError{428, nil, "ACM provided could not be parsed"}, err
+					return drainFunc, NewAppError(428, nil, "ACM provided could not be parsed"), err
 				}
 				// Ensure user is allowed this acm
 				updateObjectRequest := models.ODObject{}
 				updateObjectRequest.RawAcm.String = createObjectRequest.RawAcm
 				hasAACAccessToNewACM, err := h.isUserAllowedForObjectACM(ctx, &updateObjectRequest)
 				if err != nil {
-					return nil, &AppError{500, nil, "Error communicating with authorization service"}, err
+					return drainFunc, NewAppError(500, nil, "Error communicating with authorization service"), err
 				}
 				if !hasAACAccessToNewACM {
-					return nil, &AppError{403, nil, "Unauthorized"}, err
+					return drainFunc, NewAppError(403, nil, "Unauthorized"), err
 				}
 				// Capture values before the mapping
 				acmID := obj.ACM.ID
@@ -99,7 +99,7 @@ func (h AppServer) acceptObjectUpload(
 
 			err = mapping.OverwriteODObjectWithProtocolObject(obj, &createObjectRequest)
 			if err != nil {
-				return nil, &AppError{400, err, "Could not extract data from json response"}, err
+				return drainFunc, NewAppError(400, err, "Could not extract data from json response"), err
 			}
 
 			//If this is a new object, check prerequisites
@@ -108,24 +108,16 @@ func (h AppServer) acceptObjectUpload(
 					return nil, herr, nil
 				}
 				if len(obj.RawAcm.String) == 0 {
-					return nil, &AppError{400, err, "An ACM must be specified"}, nil
+					return drainFunc, NewAppError(400, err, "An ACM must be specified"), nil
 				}
 			} else {
 				// If the id is specified, it must be the same as from the URI
 				if len(createObjectRequest.ID) > 0 && createObjectRequest.ID != existingID {
-					return nil, &AppError{
-						Code: 400,
-						Err:  err,
-						Msg:  "JSON supplied an object id inconsistent with the one supplied from URI",
-					}, nil
+					return drainFunc, NewAppError(400, err, "JSON supplied an object id consistent with the one supplied from URI"), nil
 				}
 				//Parent id change must not be allowed, as it would let users move the object
 				if len(createObjectRequest.ParentID) > 0 && createObjectRequest.ParentID != existingParentID {
-					return nil, &AppError{
-						Code: 400,
-						Err:  err,
-						Msg:  "JSON supplied an parent id",
-					}, nil
+					return drainFunc, NewAppError(400, err, "JSON supplied a parent id"), nil
 				}
 			}
 			parsedMetadata = true
@@ -137,19 +129,11 @@ func (h AppServer) acceptObjectUpload(
 				msg = "Metadata must be provided in part named 'ObjectMetadata' to create or update an object"
 			}
 			if !parsedMetadata {
-				return nil, &AppError{
-					Code: 400,
-					Err:  nil,
-					Msg:  msg,
-				}, nil
+				return drainFunc, NewAppError(400, nil, msg), nil
 			}
 			if !asCreate {
 				if obj.ChangeToken != createObjectRequest.ChangeToken {
-					return nil, &AppError{
-						Code: 400,
-						Err:  nil,
-						Msg:  "Changetoken must be up to date",
-					}, nil
+					return drainFunc, NewAppError(400, nil, "Changetoken must be up to date"), nil
 				}
 			}
 			//Guess the content type and name if it wasn't supplied
@@ -164,7 +148,7 @@ func (h AppServer) acceptObjectUpload(
 				return nil, herr, err
 			}
 			if err != nil {
-				return nil, &AppError{500, err, "error caching file"}, err
+				return drainFunc, NewAppError(500, err, "error caching file"), err
 			}
 		} // switch
 	} //for

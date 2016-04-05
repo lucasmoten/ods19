@@ -22,14 +22,14 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
 		return
 	}
 
 	// Parse Request in sent format
 	requestObject, err = parseDeleteObjectForeverRequest(r)
 	if err != nil {
-		h.sendErrorResponse(w, 400, err, "Error parsing JSON")
+		sendErrorResponse(&w, 400, err, "Error parsing JSON")
 		return
 	}
 
@@ -38,7 +38,7 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 	// Retrieve existing object from the data store
 	dbObject, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Error retrieving object")
+		sendErrorResponse(&w, 500, err, "Error retrieving object")
 		return
 	}
 
@@ -53,13 +53,13 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 		}
 	}
 	if !authorizedToDelete {
-		h.sendErrorResponse(w, 403, nil, "Unauthorized")
+		sendErrorResponse(&w, 403, nil, "Unauthorized")
 		return
 	}
 
 	// If the object is already expunged,
 	if dbObject.IsExpunged {
-		h.sendErrorResponse(w, 410, err, "The referenced object no longer exists.")
+		sendErrorResponse(&w, 410, err, "The referenced object no longer exists.")
 		return
 	}
 
@@ -69,13 +69,14 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 	dbObject.ChangeToken = requestObject.ChangeToken
 	err = h.DAO.ExpungeObject(dbObject, true)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "DAO Error expunging object")
+		sendErrorResponse(&w, 500, err, "DAO Error expunging object")
 		return
 	}
 
 	// Response in requested format
 	apiResponse := mapping.MapODObjectToExpungedObjectResponse(&dbObject)
 	deleteObjectForeverResponse(w, r, caller, &apiResponse)
+	countOKResponse()
 }
 
 func parseDeleteObjectForeverRequest(r *http.Request) (models.ODObject, error) {

@@ -27,7 +27,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, err, "Could not determine user")
+		sendErrorResponse(&w, 500, err, "Could not determine user")
 		return
 	}
 
@@ -36,11 +36,11 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	case r.Header.Get("Content-Type") == "application/json":
 		requestObject, err = parseUpdateObjectRequestAsJSON(r)
 		if err != nil {
-			h.sendErrorResponse(w, 500, err, "Error parsing JSON")
+			sendErrorResponse(&w, 500, err, "Error parsing JSON")
 			return
 		}
 	default:
-		h.sendErrorResponse(w, 501, nil, "Reading from HTML form post not supported")
+		sendErrorResponse(&w, 501, nil, "Reading from HTML form post not supported")
 	}
 
 	// Business Logic...
@@ -48,7 +48,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Retrieve existing object from the data store
 	dbObject, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Error retrieving object")
+		sendErrorResponse(&w, 500, err, "Error retrieving object")
 		return
 	}
 
@@ -63,7 +63,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		}
 	}
 	if !authorizedToUpdate {
-		h.sendErrorResponse(w, 403, nil, "Unauthorized")
+		sendErrorResponse(&w, 403, nil, "Unauthorized")
 		return
 	}
 
@@ -71,11 +71,11 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// from a clearance perspective
 	hasAACAccessToOLDACM, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Error communicating with authorization service")
+		sendErrorResponse(&w, 500, err, "Error communicating with authorization service")
 		return
 	}
 	if !hasAACAccessToOLDACM {
-		h.sendErrorResponse(w, 403, err, "Unauthorized")
+		sendErrorResponse(&w, 403, err, "Unauthorized")
 		return
 	}
 
@@ -84,34 +84,34 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			h.sendErrorResponse(w, 410, err, "The object no longer exists.")
+			sendErrorResponse(&w, 410, err, "The object no longer exists.")
 			return
 		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-			h.sendErrorResponse(w, 405, err, "The object cannot be modified because an ancestor is deleted.")
+			sendErrorResponse(&w, 405, err, "The object cannot be modified because an ancestor is deleted.")
 			return
 		case dbObject.IsDeleted:
-			h.sendErrorResponse(w, 405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it")
+			sendErrorResponse(&w, 405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it")
 			return
 		}
 	}
 
 	// Check that assignment as deleted isn't occuring here. Should use deleteObject operations
 	if requestObject.IsDeleted || requestObject.IsAncestorDeleted || requestObject.IsExpunged {
-		h.sendErrorResponse(w, 428, nil, "Assigning object as deleted through update operation not allowed. Use deleteObject operation")
+		sendErrorResponse(&w, 428, nil, "Assigning object as deleted through update operation not allowed. Use deleteObject operation")
 		return
 	}
 
 	// Check that the change token on the object passed in matches the current
 	// state of the object in the data store
 	if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) != 0 {
-		h.sendErrorResponse(w, 428, nil, "ChangeToken does not match expected value. Object may have been changed by another request.")
+		sendErrorResponse(&w, 428, nil, "ChangeToken does not match expected value. Object may have been changed by another request.")
 		return
 	}
 
 	// Check that the parent of the object passed in matches the current state
 	// of the object in the data store.
 	if bytes.Compare(requestObject.ParentID, dbObject.ParentID) != 0 {
-		h.sendErrorResponse(w, 428, nil, "ParentID does not match expected value. Use moveObject to change this objects location.")
+		sendErrorResponse(&w, 428, nil, "ParentID does not match expected value. Use moveObject to change this objects location.")
 		return
 	}
 
@@ -122,7 +122,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		requestObject.OwnedBy.Valid = true
 	}
 	if strings.Compare(requestObject.OwnedBy.String, dbObject.OwnedBy.String) != 0 {
-		h.sendErrorResponse(w, 428, nil, "OwnedBy does not match expected value.  Use changeOwner to transfer ownership.")
+		sendErrorResponse(&w, 428, nil, "OwnedBy does not match expected value.  Use changeOwner to transfer ownership.")
 		return
 	}
 
@@ -141,17 +141,17 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		// Make sure its parseable
 		parsedACM, err := acm.NewACMFromRawACM(rawAcmString)
 		if err != nil {
-			h.sendErrorResponse(w, 428, nil, "ACM provided could not be parsed")
+			sendErrorResponse(&w, 428, nil, "ACM provided could not be parsed")
 			return
 		}
 		// Ensure user is allowed this acm
 		hasAACAccessToNewACM, err := h.isUserAllowedForObjectACM(ctx, &requestObject)
 		if err != nil {
-			h.sendErrorResponse(w, 500, err, "Error communicating with authorization service")
+			sendErrorResponse(&w, 500, err, "Error communicating with authorization service")
 			return
 		}
 		if !hasAACAccessToNewACM {
-			h.sendErrorResponse(w, 403, err, "Unauthorized")
+			sendErrorResponse(&w, 403, err, "Unauthorized")
 			return
 		}
 		// Map the parsed acm
@@ -180,7 +180,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	requestObject.ModifiedBy = caller.DistinguishedName
 	err = h.DAO.UpdateObject(&requestObject)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "DAO Error updating object")
+		sendErrorResponse(&w, 500, err, "DAO Error updating object")
 		return
 	}
 
@@ -197,12 +197,12 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 
 		msg := fmt.Sprintf("old changeCount: %d, new changeCount: %d, req id: %s, db id: %s", requestObject.ChangeCount, dbObject.ChangeCount, hex.EncodeToString(requestObject.ID), hex.EncodeToString(dbObject.ID))
 		log.Println(msg)
-		h.sendErrorResponse(w, 500, nil, "ChangeCount didn't update when processing request "+msg)
+		sendErrorResponse(&w, 500, nil, "ChangeCount didn't update when processing request "+msg)
 		return
 	}
 	if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) == 0 {
 		msg := fmt.Sprintf("old token: %s, new token: %s", requestObject.ChangeToken, dbObject.ChangeToken)
-		h.sendErrorResponse(w, 500, nil, "ChangeToken didn't update when processing request "+msg)
+		sendErrorResponse(&w, 500, nil, "ChangeToken didn't update when processing request "+msg)
 		return
 	}
 
@@ -210,6 +210,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	apiResponse := mapping.MapODObjectToObject(&requestObject)
 	updateObjectResponseAsJSON(w, r, caller, &apiResponse)
 
+	countOKResponse()
 }
 
 func parseUpdateObjectRequestAsJSON(r *http.Request) (models.ODObject, error) {

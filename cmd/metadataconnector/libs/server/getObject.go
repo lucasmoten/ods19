@@ -19,7 +19,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
 		return
 	}
 
@@ -28,7 +28,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 
 	requestObject, err = parseGetObjectRequest(r)
 	if err != nil {
-		h.sendErrorResponse(w, 400, err, "Error parsing URI")
+		sendErrorResponse(&w, 400, err, "Error parsing URI")
 		return
 	}
 
@@ -37,7 +37,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	// Retrieve existing object from the data store
 	dbObject, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Error retrieving object")
+		sendErrorResponse(&w, 500, err, "Error retrieving object")
 		return
 	}
 
@@ -50,7 +50,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 		}
 	}
 	if !authorizedToRead {
-		h.sendErrorResponse(w, 403, errors.New("Unauthorized"), "Unauthorized")
+		sendErrorResponse(&w, 403, errors.New("Unauthorized"), "Unauthorized")
 		return
 	}
 
@@ -58,11 +58,11 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	// 		Check if Classification is allowed for this User
 	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Error communicating with authorization service")
+		sendErrorResponse(&w, 500, err, "Error communicating with authorization service")
 		return
 	}
 	if !hasAACAccess {
-		h.sendErrorResponse(w, 403, nil, "Unauthorized")
+		sendErrorResponse(&w, 403, nil, "Unauthorized")
 		return
 	}
 
@@ -71,10 +71,10 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			h.sendErrorResponse(w, 410, err, "The object no longer exists.")
+			sendErrorResponse(&w, 410, err, "The object no longer exists.")
 			return
 		case dbObject.IsAncestorDeleted:
-			h.sendErrorResponse(w, 405, err, "The object cannot be retreived because an ancestor is deleted.")
+			sendErrorResponse(&w, 405, err, "The object cannot be retreived because an ancestor is deleted.")
 			return
 		}
 	}
@@ -82,8 +82,9 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	// Response
 	err = getObjectResponse(w, r, caller, &dbObject)
 	if err != nil {
-
+		sendErrorResponse(&w, 500, err, "Unable to get object")
 	}
+	countOKResponse()
 }
 
 func parseGetObjectRequest(r *http.Request) (models.ODObject, error) {

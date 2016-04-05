@@ -21,7 +21,7 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
 		return
 	}
 	_ = caller
@@ -31,7 +31,7 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 	// Parse Request
 	pagingRequest, err := parseListObjectSharesRequest(r)
 	if err != nil {
-		h.sendErrorResponse(w, 400, err, "Error parsing request")
+		sendErrorResponse(&w, 400, err, "Error parsing request")
 		return
 	}
 
@@ -40,7 +40,7 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 	targetObject.ID, _ = hex.DecodeString(pagingRequest.ObjectID)
 	dbObject, err := h.DAO.GetObject(targetObject, false)
 	if err != nil {
-		h.sendErrorResponse(w, 404, err, "Resource not found")
+		sendErrorResponse(&w, 404, err, "Resource not found")
 		return
 	}
 
@@ -59,33 +59,33 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 	}
 
 	if !canReadObject {
-		h.sendErrorResponse(w, 403, err, "Insufficient permissions to view shares of this object")
+		sendErrorResponse(&w, 403, err, "Insufficient permissions to view shares of this object")
 		return
 	}
 	// Is it deleted?
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			h.sendErrorResponse(w, 410, err, "The object no longer exists.")
+			sendErrorResponse(&w, 410, err, "The object no longer exists.")
 			return
 		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-			h.sendErrorResponse(w, 405, err, "The object cannot be read because an ancestor is deleted.")
+			sendErrorResponse(&w, 405, err, "The object cannot be read because an ancestor is deleted.")
 			return
 		case dbObject.IsDeleted:
-			h.sendErrorResponse(w, 405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it before listing its shares")
+			sendErrorResponse(&w, 405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it before listing its shares")
 			return
 		}
 	}
 
 	if err != nil {
 		log.Println(err)
-		h.sendErrorResponse(w, 500, err, "General error")
+		sendErrorResponse(&w, 500, err, "General error")
 		return
 	}
 
 	// Response in requested format
 	listObjectSharesResponseAsJSON(w, mapping.MapODPermissionsToPermissions(&dbObject.Permissions))
-	return
+	countOKResponse()
 }
 
 func parseListObjectSharesRequest(r *http.Request) (*protocol.PagingRequest, error) {

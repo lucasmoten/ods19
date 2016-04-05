@@ -14,7 +14,7 @@ func (h *AppServer) homeListObjects(ctx context.Context, w http.ResponseWriter, 
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
 		return
 	}
 
@@ -28,4 +28,6 @@ func (h *AppServer) homeListObjects(ctx context.Context, w http.ResponseWriter, 
 	}
 
 	tmpl.Execute(w, data)
+
+	countOKResponse()
 }

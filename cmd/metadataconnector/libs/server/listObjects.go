@@ -35,7 +35,7 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
 		return
 	}
 
@@ -46,7 +46,7 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 	// Parse Request
 	pagingRequest, err = parseListObjectsRequest(r)
 	if err != nil {
-		h.sendErrorResponse(w, 400, err, "Error parsing request")
+		sendErrorResponse(&w, 400, err, "Error parsing request")
 		return
 	}
 	if len(pagingRequest.ObjectID) == 0 {
@@ -54,7 +54,7 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 	} else {
 		parentObject.ID, err = hex.DecodeString(pagingRequest.ObjectID)
 		if err != nil {
-			h.sendErrorResponse(w, 400, err, "Object Identifier in Request URI is not a hex string")
+			sendErrorResponse(&w, 400, err, "Object Identifier in Request URI is not a hex string")
 			return
 		}
 	}
@@ -70,7 +70,7 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 		dbObject, err := h.DAO.GetObject(parentObject, false)
 		if err != nil {
 			log.Println(err)
-			h.sendErrorResponse(w, 500, err, "Error retrieving object")
+			sendErrorResponse(&w, 500, err, "Error retrieving object")
 			return
 		}
 		// Check for permission to read this object
@@ -82,20 +82,20 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 			}
 		}
 		if !canReadObject {
-			h.sendErrorResponse(w, 403, err, "Insufficient permissions to list contents of this object")
+			sendErrorResponse(&w, 403, err, "Insufficient permissions to list contents of this object")
 			return
 		}
 		// Is it deleted?
 		if dbObject.IsDeleted {
 			switch {
 			case dbObject.IsExpunged:
-				h.sendErrorResponse(w, 410, err, "The object no longer exists.")
+				sendErrorResponse(&w, 410, err, "The object no longer exists.")
 				return
 			case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-				h.sendErrorResponse(w, 405, err, "The object cannot be read because an ancestor is deleted.")
+				sendErrorResponse(&w, 405, err, "The object cannot be read because an ancestor is deleted.")
 				return
 			case dbObject.IsDeleted:
-				h.sendErrorResponse(w, 405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it before listing its contents")
+				sendErrorResponse(&w, 405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it before listing its contents")
 				return
 			}
 		}
@@ -105,14 +105,14 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 	}
 	if err != nil {
 		log.Println(err)
-		h.sendErrorResponse(w, 500, err, "General error")
+		sendErrorResponse(&w, 500, err, "General error")
 		return
 	}
 
 	// Response in requested format
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&response)
 	listObjectsResponseAsJSON(w, r, &apiResponse)
-	return
+	countOKResponse()
 }
 
 func parseListObjectsRequest(r *http.Request) (*protocol.PagingRequest, error) {

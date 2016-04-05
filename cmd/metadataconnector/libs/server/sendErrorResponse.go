@@ -6,32 +6,64 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
+	"sync"
 )
 
 var (
 	// The counters for error codes
-	counters      map[counterKey]int64
-	countersIn    chan counterKey
-	writeRequests chan http.ResponseWriter
-	writeDone     chan int
+	counters = make(map[counterKey]int64)
+	// For this case, mutex is simpler than channels
+	mutex = &sync.Mutex{}
 )
 
+// NewAppError constructs an application error
+func NewAppError(code int, err error, msg string) *AppError {
+	_, file, line, _ := runtime.Caller(1)
+	return &AppError{
+		Code:  code,
+		Error: err,
+		Msg:   msg,
+		File:  file,
+		Line:  line,
+	}
+}
+
+func countOKResponse() {
+	sendErrorResponseRaw(nil, nil, 1)
+}
+
+func sendErrorResponse(w *http.ResponseWriter, code int, err error, msg string) {
+	_, file, line, _ := runtime.Caller(1)
+	sendErrorResponseRaw(w, &AppError{code, err, msg, file, line}, 1)
+}
+
+func sendAppErrorResponse(w *http.ResponseWriter, herr *AppError) {
+	sendErrorResponseRaw(w, herr, 1)
+}
+
 // sendErrorResponse is the publicly called function for sending error response from top level handlers
-func (h AppServer) sendErrorResponse(w http.ResponseWriter, code int, err error, msg string) {
-	pc, file, line, _ := runtime.Caller(1)
+func sendErrorResponseRaw(w *http.ResponseWriter, herr *AppError, indirection int) {
+	pc, _, _, _ := runtime.Caller(1 + indirection)
 	endpointParts := strings.Split(runtime.FuncForPC(pc).Name(), ".")
 	endpoint := endpointParts[len(endpointParts)-1]
-
-	log.Printf("httpCode %d:%s at %s:%d %s:%v", code, endpoint, file, line, msg, err)
-	if countersIn != nil {
-		countersIn <- counterKey{code, endpoint, file, line}
+	if herr != nil {
+		log.Printf("httpCode %d:%s at %s:%d %s:%v", herr.Code, endpoint, herr.File, herr.Line, herr.Msg, herr.Error)
+		mutex.Lock()
+		counters[counterKey{herr.Code, endpoint, herr.File, herr.Line}]++
+		mutex.Unlock()
+		if w != nil {
+			http.Error(*w, herr.Msg, herr.Code)
+		}
+	} else {
+		//It's implicitly a 200
+		mutex.Lock()
+		counters[counterKey{200, endpoint, "", 0}]++
+		mutex.Unlock()
 	}
-	http.Error(w, msg, code)
-	return
 }
 
 // writeCounters lets us write the counters out to stats
-func (h AppServer) renderErrorCounters(w http.ResponseWriter) {
+func renderErrorCounters(w http.ResponseWriter) {
 	doWriteCounters(w)
 }
 
@@ -52,28 +84,32 @@ type counterKey struct {
 	Line int
 }
 
-// CounterRoutine is the goroutine that absorbs counts
-func counterRoutine() {
-	log.Printf("Begin counter routine")
-	for {
-		select {
-		case key := <-countersIn:
-			counters[key]++
-		}
-	}
-}
-
 // Write the counters out.  Make sure we are in the thread of the datastructure when we do this
 func doWriteCounters(w http.ResponseWriter) {
-	fmt.Fprintf(w, "count code endpoint file:line\n")
-	for k, v := range counters {
-		fmt.Fprintf(w, "%d %d %s %s:%d\n", v, k.Code, k.Endpoint, k.File, k.Line)
-	}
-}
 
-func InitializeErrResponder() {
-	//initialize the counters
-	counters = make(map[counterKey]int64)
-	countersIn = make(chan counterKey, 64)
-	go counterRoutine()
+	//Count the total number of events per endpoint, and report for each line
+	// This call can stall the whole server while it does its print outs.
+	endpointTotals := make(map[string]int64)
+	var lines = make([]string, 0)
+
+	//We are under the lock, so don't do IO in here yet.
+	mutex.Lock()
+	for k, v := range counters {
+		endpointTotals[k.Endpoint] += v
+	}
+	for k, v := range counters {
+		if k.Code != 200 {
+			lines = append(
+				lines,
+				fmt.Sprintf("%d/%d %d %s %s:%d", v, endpointTotals[k.Endpoint], k.Code, k.Endpoint, k.File, k.Line),
+			)
+		}
+	}
+	mutex.Unlock()
+
+	//Do io outside the mutex!
+	fmt.Fprintf(w, "ratio code endpoint file:line\n")
+	for i := range lines {
+		fmt.Fprintf(w, "%s\n", lines[i])
+	}
 }

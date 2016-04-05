@@ -17,14 +17,14 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
 		return
 	}
 
 	// Parse paging info
 	pagingRequest, err := protocol.NewPagingRequestWithObjectID(r, nil, false)
 	if err != nil {
-		h.sendErrorResponse(w, 400, err, "Error parsing request")
+		sendErrorResponse(&w, 400, err, "Error parsing request")
 		return
 	}
 
@@ -33,7 +33,7 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 	results, err := h.DAO.GetTrashedObjectsByUser(user, *pagingRequest)
 
 	if err != nil {
-		h.sendErrorResponse(w, 500, errors.New("Database call failed: "), err.Error())
+		sendErrorResponse(&w, 500, errors.New("Database call failed: "), err.Error())
 		return
 	}
 
@@ -44,9 +44,10 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 	if err != nil {
 		msg := "Error marshalling response as JSON."
 		log.Printf(msg+" %s", err.Error())
-		h.sendErrorResponse(w, 500, err, msg)
+		sendErrorResponse(&w, 500, err, msg)
 		return
 	}
 	w.Write(jsonData)
 
+	countOKResponse()
 }

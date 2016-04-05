@@ -16,7 +16,7 @@ func (h AppServer) home(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
 		return
 	}
 
@@ -40,7 +40,8 @@ func (h AppServer) home(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	}
 	w.Header().Set("Content-Type", "text/html")
 	if err := tmpl.Execute(w, data); err != nil {
-		h.sendErrorResponse(w, 500, err, err.Error())
+		sendErrorResponse(&w, 500, err, err.Error())
 		return
 	}
+	countOKResponse()
 }

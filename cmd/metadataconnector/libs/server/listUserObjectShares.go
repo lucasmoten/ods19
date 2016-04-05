@@ -18,14 +18,14 @@ func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWrit
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
 		return
 	}
 
 	// Parse Request
 	pagingRequest, err := parseListUserObjectSharesRequest(r)
 	if err != nil {
-		h.sendErrorResponse(w, 400, err, "Error parsing request")
+		sendErrorResponse(&w, 400, err, "Error parsing request")
 		return
 	}
 
@@ -33,13 +33,13 @@ func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWrit
 	user := models.ODUser{DistinguishedName: caller.DistinguishedName}
 	result, err := h.DAO.GetObjectsSharedToMe(user, *pagingRequest)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "GetObjectsSharedToMe query failed")
+		sendErrorResponse(&w, 500, err, "GetObjectsSharedToMe query failed")
 	}
 
 	// Render Response
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&result)
 	listUserObjectSharesResponseAsJSON(w, r, caller, &apiResponse)
-	return
+	countOKResponse()
 }
 
 func parseListUserObjectSharesRequest(r *http.Request) (*protocol.PagingRequest, error) {

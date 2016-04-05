@@ -20,14 +20,14 @@ func (h AppServer) query(ctx context.Context, w http.ResponseWriter, r *http.Req
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
 		return
 	}
 
 	// Parse paging info
 	pagingRequest, err := protocol.NewPagingRequestWithObjectID(r, nil, false)
 	if err != nil {
-		h.sendErrorResponse(w, 400, err, "Error parsing request")
+		sendErrorResponse(&w, 400, err, "Error parsing request")
 		return
 	}
 
@@ -36,7 +36,7 @@ func (h AppServer) query(ctx context.Context, w http.ResponseWriter, r *http.Req
 		// Parse search phrase from the request path if there is no filter set
 		captured := util.GetRegexCaptureGroups(r.URL.Path, h.Routes.Query)
 		if captured["searchPhrase"] == "" {
-			h.sendErrorResponse(w, http.StatusBadRequest, errors.New("Could not extract searchPhrase from URI"), "URI: "+r.URL.Path)
+			sendErrorResponse(&w, http.StatusBadRequest, errors.New("Could not extract searchPhrase from URI"), "URI: "+r.URL.Path)
 			return
 		}
 		searchPhrase := captured["searchPhrase"]
@@ -48,7 +48,7 @@ func (h AppServer) query(ctx context.Context, w http.ResponseWriter, r *http.Req
 	user := models.ODUser{DistinguishedName: caller.DistinguishedName}
 	results, err := h.DAO.SearchObjectsByNameOrDescription(user, *pagingRequest, false)
 	if err != nil {
-		h.sendErrorResponse(w, 500, errors.New("Database call failed: "), err.Error())
+		sendErrorResponse(&w, 500, errors.New("Database call failed: "), err.Error())
 		return
 	}
 
@@ -59,10 +59,12 @@ func (h AppServer) query(ctx context.Context, w http.ResponseWriter, r *http.Req
 	if err != nil {
 		msg := "Error marshalling response as JSON."
 		log.Printf(msg+" %s", err.Error())
-		h.sendErrorResponse(w, 500, err, msg)
+		sendErrorResponse(&w, 500, err, msg)
 		return
 	}
 	w.Write(jsonData)
+
+	countOKResponse()
 }
 
 func newNameAndDescriptionFilter(searchPhrase string) []protocol.FilterSetting {

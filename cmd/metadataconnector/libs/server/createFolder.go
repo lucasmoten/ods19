@@ -19,18 +19,18 @@ func (h AppServer) createFolder(ctx context.Context, w http.ResponseWriter, r *h
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
 		return
 	}
 
 	if r.Header.Get("Content-Type") != "application/json" {
 
-		h.sendErrorResponse(w, http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
+		sendErrorResponse(&w, http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
 		return
 	}
 	requestObject, err := parseCreateFolderRequestAsJSON(r)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "Error parsing JSON")
+		sendErrorResponse(&w, 500, err, "Error parsing JSON")
 		return
 	}
 
@@ -42,21 +42,21 @@ func (h AppServer) createFolder(ctx context.Context, w http.ResponseWriter, r *h
 
 	//Setup creation prerequisites, and return if we are done with the http request due to an error
 	if herr := handleCreatePrerequisites(ctx, h, &requestObject); herr != nil {
-		h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
+		sendAppErrorResponse(&w, herr)
 		return
 	}
 
 	// Add to database
 	createdObject, err := h.DAO.CreateObject(&requestObject)
 	if err != nil {
-		h.sendErrorResponse(w, 500, err, "DAO Error creating object")
+		sendErrorResponse(&w, 500, err, "DAO Error creating object")
 		return
 	}
 
 	// Response in requested format
 	apiResponse := mapping.MapODObjectToObject(&createdObject)
 	createFolderResponseAsJSON(w, r, caller, &apiResponse)
-
+	countOKResponse()
 }
 
 func parseCreateFolderRequestAsJSON(r *http.Request) (models.ODObject, error) {

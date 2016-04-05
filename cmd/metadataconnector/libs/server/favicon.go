@@ -16,7 +16,7 @@ func (h AppServer) favicon(ctx context.Context, w http.ResponseWriter, r *http.R
 	icoFile, err := ioutil.ReadFile("favicon.ico")
 	if err != nil {
 		w.Header().Set("Content-Type", "text/html")
-		h.sendErrorResponse(w, 404, err, "Resource not found")
+		sendErrorResponse(&w, 404, err, "Resource not found")
 		return
 	}
 	w.Header().Set("Content-Type", "image/x-icon")

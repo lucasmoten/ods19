@@ -22,7 +22,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		h.sendErrorResponse(w, 500, errors.New("Could not determine user"), "Invalid user.")
+		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
 		return
 	}
 
@@ -51,12 +51,12 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 		grant.EncryptKey = fileKey
 		multipartReader, err := r.MultipartReader()
 		if err != nil {
-			h.sendErrorResponse(w, 400, err, "Unable to get mime multipart")
+			sendErrorResponse(&w, 400, err, "Unable to get mime multipart")
 			return
 		}
 		drainFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &obj, &grant, true)
 		if herr != nil {
-			h.sendErrorResponse(w, herr.Code, herr.Err, herr.Msg)
+			sendAppErrorResponse(&w, herr)
 			return
 		}
 		obj.Permissions = make([]models.ODObjectPermission, 1)
@@ -64,7 +64,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 
 		createdObject, err = h.DAO.CreateObject(&obj)
 		if err != nil {
-			h.sendErrorResponse(w, 500, err, "error storing object")
+			sendErrorResponse(&w, 500, err, "error storing object")
 			return
 		}
 		// Only drain off into S3 once we have a record
@@ -80,6 +80,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 		log.Printf("Error marshalling json data:%v", err)
 	}
 	w.Write(data)
+	countOKResponse()
 }
 
 /* This is used by both createObject and createFolder to do common tasks against created objects
@@ -95,7 +96,7 @@ func handleCreatePrerequisites(
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		return &AppError{Code: 500, Err: nil, Msg: "Could not determine user"}
+		return NewAppError(500, nil, "Could not determine user")
 	}
 
 	// If JavaScript passes parentId as emptry string, set it to nil to satisfy
@@ -122,11 +123,7 @@ func handleCreatePrerequisites(
 		parentObject.ID = requestObject.ParentID
 		dbParentObject, err := h.DAO.GetObject(parentObject, false)
 		if err != nil {
-			return &AppError{
-				Code: 500,
-				Err:  err,
-				Msg:  "Error retrieving parent object",
-			}
+			return NewAppError(500, err, "Error retrieving parent object")
 		}
 
 		// Check if the user has permissions to create child objects under the
@@ -145,11 +142,7 @@ func handleCreatePrerequisites(
 			log.Println("WARNING: No permissions on the object!")
 		}
 		if !authorizedToCreate {
-			return &AppError{
-				Code: 403,
-				Err:  nil,
-				Msg:  "Unauthorized",
-			}
+			return NewAppError(403, nil, "Unauthorized")
 		}
 
 		// Make sure the object isn't deleted. To remove an object from the trash,
@@ -157,23 +150,13 @@ func handleCreatePrerequisites(
 		if dbParentObject.IsDeleted {
 			switch {
 			case dbParentObject.IsExpunged:
-				return &AppError{
-					Code: 410,
-					Err:  err,
-					Msg:  "The object no longer exists.",
-				}
+				return NewAppError(410, err, "The object no longer exists.")
 			case dbParentObject.IsAncestorDeleted && !dbParentObject.IsDeleted:
-				return &AppError{
-					Code: 405,
-					Err:  err,
-					Msg:  "Unallowed to create child objects under a deleted object.",
-				}
+				return NewAppError(405, err, "Unallowed to create child objects under a deleted object.")
 			case dbParentObject.IsDeleted:
-				return &AppError{
-					Code: 405,
-					Err:  err,
-					Msg:  "The object under which this object is being created is currently in the trash. Use removeObjectFromTrash to restore it first.",
-				}
+				return NewAppError(405, err,
+					"The object under which this object is being created is currently in the trash. Use removeObjectFromTrash to restore it first.",
+				)
 			}
 		}
 
@@ -195,11 +178,7 @@ func handleCreatePrerequisites(
 
 	// Disallow creating as deleted
 	if requestObject.IsDeleted || requestObject.IsAncestorDeleted || requestObject.IsExpunged {
-		return &AppError{
-			Code: 428,
-			Err:  nil,
-			Msg:  "Creating object in a deleted state is not allowed",
-		}
+		return NewAppError(428, nil, "Createing object in a deleted state is not allowed")
 	}
 
 	// Validate ACM
@@ -207,15 +186,15 @@ func handleCreatePrerequisites(
 	// Make sure its parseable
 	parsedACM, err := acm.NewACMFromRawACM(rawAcmString)
 	if err != nil {
-		return &AppError{Code: 428, Err: err, Msg: "ACM provided could not be parsed"}
+		return NewAppError(428, err, "ACM provided could not be parsed")
 	}
 	// Ensure user is allowed this acm
 	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, requestObject)
 	if err != nil {
-		return &AppError{500, err, "Error communicating with authorization service"}
+		return NewAppError(500, err, "Error communicating with authorization service")
 	}
 	if !hasAACAccess {
-		return &AppError{403, err, "Unauthorized"}
+		return NewAppError(403, err, "Unauthorized")
 	}
 	// Map the parsed acm
 	requestObject.ACM = mapping.MapACMToODObjectACM(&parsedACM)

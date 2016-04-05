@@ -7,5 +7,5 @@ import (
 )
 
 func (h AppServer) removeObjectSubscription(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	h.sendErrorResponse(w, 501, nil, "removeObjectSubscription is not yet implemented")
+	sendErrorResponse(&w, 501, nil, "removeObjectSubscription is not yet implemented")
 }
