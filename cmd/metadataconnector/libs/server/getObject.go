@@ -82,6 +82,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	err = getObjectResponse(w, r, caller, &dbObject)
 	if err != nil {
 		sendErrorResponse(&w, 500, err, "Unable to get object")
+		return
 	}
 	countOKResponse()
 }
