@@ -61,6 +61,12 @@ type ServerSettingsConfiguration struct {
 	MinimumVersion    string
 }
 
+type AuditSvcConfiguration struct {
+	Type string
+	Port string
+	Host string
+}
+
 // NewAppConfiguration loads the configuration file and returns the mapped
 // object
 func NewAppConfiguration() AppConfiguration {
@@ -94,6 +100,7 @@ func NewAppConfiguration() AppConfiguration {
 	configuration.DatabaseConnection.ClientKey = os.ExpandEnv(configuration.DatabaseConnection.ClientKey)
 	configuration.ServerSettings.ListenPort = os.ExpandEnv(configuration.ServerSettings.ListenPort)
 	configuration.ServerSettings.ListenBind = os.ExpandEnv(configuration.ServerSettings.ListenBind)
+
 	configuration.ServerSettings.CAPath = os.ExpandEnv(configuration.ServerSettings.CAPath)
 	configuration.ServerSettings.ServerCertChain = os.ExpandEnv(configuration.ServerSettings.ServerCertChain)
 	configuration.ServerSettings.ServerKey = os.ExpandEnv(configuration.ServerSettings.ServerKey)

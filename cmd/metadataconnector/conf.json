@@ -1,4 +1,9 @@
 {
+  "AuditSvc": {
+      "type": "blackhole",
+      "host": "",
+      "port": ""
+  },
   "DatabaseConnection": {
     "Driver": "mysql"
     ,"Username": "$OD_DB_USERNAME"
@@ -10,7 +15,7 @@
     ,"Params": "parseTime=true"
     ,"UseTLS": true
     ,"SkipVerify": true
-    ,"CAPath": "$OD_DB_CA"
+    ,"CAPath": "$OD_DB_CA" 
     ,"ClientCert": "$OD_DB_CERT"
     ,"ClientKey": "$OD_DB_KEY"
   },
@@ -24,8 +29,10 @@
     ,"Schema": "metadatadb"
     ,"Params": "parseTime=true"
     ,"UseTLS": true
-    ,"SkipVerify": true
-    ,"CAPath": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/aws/rds-combined-ca-bundle.pem"
+    ,"SkipVerify": false
+    ,"CAPath": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/trust"
+    ,"ClientCert": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem"
+    ,"ClientKey": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-key.pem"
   },
   "AWSDatabaseConnection": {
     "Driver": "mysql"

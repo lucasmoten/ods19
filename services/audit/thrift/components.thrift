@@ -114,13 +114,13 @@ struct Resource {
 }
 
 struct ModifiedResourcePair {
-	1: optional Resource original,
-	2: optional Resource modified
+    1: optional Resource original,
+    2: optional Resource modified
 }
 
 struct CollaborationFeature {
     1: optional string type,
-	2: optional string value
+    2: optional string value
 }
 struct Result {
     1: optional string type,
@@ -133,17 +133,17 @@ struct Filter {
 }
 
 struct Error {
-	1: optional string type,
-	2: optional string message
+    1: optional string type,
+    2: optional string message
 }
 
 struct Workflow {
-	1: optional bool complete,
-	2: optional list<Error> errors,
-	3: optional string id
+    1: optional bool complete,
+    2: optional list<Error> errors,
+    3: optional string id
 }
 
 struct Device {
-	1: optional string location,
-	2: optional string type
+    1: optional string location,
+    2: optional string type
 }

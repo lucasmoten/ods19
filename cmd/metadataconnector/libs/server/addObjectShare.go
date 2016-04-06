@@ -116,6 +116,8 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 
 	// Response in requested format
 	apiResponse := mapping.MapODPermissionToPermission(&createdPermission)
+
+	// TODO AUDIT Log EventModify
 	addObjectShareResponseAsJSON(w, r, caller, &apiResponse)
 	countOKResponse()
 }

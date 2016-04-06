@@ -94,6 +94,12 @@ Once you have the latest version of the go-thrift library installed, put it's
 **generator** binary on your PATH. Then run the top-level thrift Service IDL
 file through the generator.
 
+Install the Thrift code generator with:
+
+```
+go install github.com/samuel/go-thrift/generator
+```
+
 Example (from within /services/audit/thrift):
 
 ```
@@ -121,5 +127,32 @@ Hooray for automated tests!
 
 Binaries for the main server are built under **/cmd/metadataconnector**. By default,
 the main configuration is read from a **conf.json** from the same directory.
+
+## Environment Variables
+
+* `AWS_REGION`
+* `AWS_ACCESS_KEY_ID`
+* `AWS_SECRET_KEY`
+* `AWS_SECRET_ACCESS_KEY`
+* `OD_STANDALONE`
+* `OD_ENCRYPT_MASTERKEY`
+* `OD_ZK_ROOT`
+* `OD_ZK_URL`
+* `OD_ZK_BASEPATH`
+* `OD_DB_USERNAME`
+* `OD_DB_PASSWORD`
+* `OD_DB_HOST`
+* `OD_DB_PORT`
+* `OD_DB_SCHEMA`
+* `OD_DB_MAXIDLECONNS`
+* `OD_DB_MAXOPENCONNS`
+* `OD_DB_CA`
+* `OD_DB_CERT`
+* `OD_DB_KEY`
+* `OD_CACHE_LOWWATERMARK`
+* `OD_CACHE_HIGHWATERMARK`
+* `OD_CACHE_EVICTAGE`
+* `OD_CACHE_WALKSLEEP`
+* `OD_SERVER_PORT`
 
 

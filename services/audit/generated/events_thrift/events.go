@@ -42,8 +42,7 @@ type AuditEvent struct {
 	CollaborationFeatures          []*components_thrift.CollaborationFeature `thrift:"29" json:"collaboration_features,omitempty"`
 	SessionIds                     []string                                  `thrift:"30" json:"session_ids,omitempty"`
 	Workflow                       *components_thrift.Workflow               `thrift:"31" json:"workflow,omitempty"`
-	Persist                        *bool                                     `thrift:"32" json:"persist,omitempty"`
-	AuthorizationServices          []string                                  `thrift:"33" json:"authorization_services,omitempty"`
-	AuthorizationServiceTimePeriod *string                                   `thrift:"34" json:"authorization_service_time_period,omitempty"`
-	Device                         *components_thrift.Device                 `thrift:"35" json:"device,omitempty"`
+	AuthorizationServices          []string                                  `thrift:"32" json:"authorization_services,omitempty"`
+	AuthorizationServiceTimePeriod *string                                   `thrift:"33" json:"authorization_service_time_period,omitempty"`
+	Device                         *components_thrift.Device                 `thrift:"34" json:"device,omitempty"`
 }
