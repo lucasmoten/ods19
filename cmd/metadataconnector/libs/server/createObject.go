@@ -4,7 +4,9 @@ import (
 	//"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
+	"mime"
 	"net/http"
 
 	"golang.org/x/net/context"
@@ -13,6 +15,7 @@ import (
 	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/metadata/models/acm"
+	"decipher.com/oduploader/protocol"
 )
 
 // createObject is a method handler on AppServer for createObject microservice
@@ -28,50 +31,70 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 
 	var obj models.ODObject
 	var createdObject models.ODObject
-	var acm models.ODACM
 	var grant models.ODObjectPermission
 	var err error
+	var drainFunc func()
 
-	if r.Method == "POST" {
-		grant.Grantee = caller.DistinguishedName
-		grant.AllowRead = true
-		grant.AllowCreate = true
-		grant.AllowUpdate = true
-		grant.AllowDelete = true
-		grant.AllowShare = true
+	grant.Grantee = caller.DistinguishedName
+	grant.AllowRead = true
+	grant.AllowCreate = true
+	grant.AllowUpdate = true
+	grant.AllowDelete = true
+	grant.AllowShare = true
+	grant.EncryptKey = utils.CreateKey()
 
-		obj.CreatedBy = caller.DistinguishedName
-		acm.CreatedBy = caller.DistinguishedName
+	// Determine if this request is being made with a file stream or without.
+	// When a filestream is provided, there is a different handler that parses
+	// the multipart form data
+	isMultipart := isMultipartFormData(r)
+	if isMultipart {
 
 		rName := utils.CreateRandomName()
-		fileKey := utils.CreateKey()
 		iv := utils.CreateIV()
 		obj.ContentConnector.String = rName
 		obj.EncryptIV = iv
-		grant.EncryptKey = fileKey
+
 		multipartReader, err := r.MultipartReader()
 		if err != nil {
 			sendErrorResponse(&w, 400, err, "Unable to get mime multipart")
 			return
 		}
-		drainFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &obj, &grant, true)
+		createdFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &obj, &grant, true)
 		if herr != nil {
 			sendAppErrorResponse(&w, herr)
 			return
 		}
-		obj.Permissions = make([]models.ODObjectPermission, 1)
-		obj.Permissions = append(obj.Permissions, grant)
-
-		createdObject, err = h.DAO.CreateObject(&obj)
-		if err != nil {
-			sendErrorResponse(&w, 500, err, "error storing object")
+		drainFunc = createdFunc
+	} else {
+		// Parse body as json to populate object
+		obj, err = parseCreateObjectRequestAsJSON(r)
+		// Validation
+		if herr := handleCreatePrerequisites(ctx, h, &obj); herr != nil {
+			sendAppErrorResponse(&w, herr)
 			return
 		}
-		// Only drain off into S3 once we have a record
-		go drainFunc()
 	}
+	obj.CreatedBy = caller.DistinguishedName
+	// copy grant.EncryptKey to all existing permissions:
+	for idx, permission := range obj.Permissions {
+		permission.EncryptKey = grant.EncryptKey
+		obj.Permissions[idx].EncryptKey = grant.EncryptKey
+	}
+	// Don't wipe out existing permissions, just add the new one!
+	obj.Permissions = append(obj.Permissions, grant)
 
-	//TODO: json response rendering
+	createdObject, err = h.DAO.CreateObject(&obj)
+	if err != nil {
+		sendErrorResponse(&w, 500, err, "error storing object")
+		return
+	}
+	// For requests where a stream was provided, only drain off into S3 once we have a record
+	if isMultipart {
+		if drainFunc != nil {
+			go drainFunc()
+		}
+	}
+	// Jsonified response
 	w.Header().Set("Content-Type", "application/json")
 	protocolObject := mapping.MapODObjectToObject(&createdObject)
 	//Write a link back to the user so that it's possible to do an update on this object
@@ -178,7 +201,7 @@ func handleCreatePrerequisites(
 
 	// Disallow creating as deleted
 	if requestObject.IsDeleted || requestObject.IsAncestorDeleted || requestObject.IsExpunged {
-		return NewAppError(428, nil, "Createing object in a deleted state is not allowed")
+		return NewAppError(428, nil, "Creating object in a deleted state is not allowed")
 	}
 
 	// Validate ACM
@@ -206,4 +229,41 @@ func handleCreatePrerequisites(
 	requestObject.ACM.CreatedBy = caller.DistinguishedName
 
 	return nil
+}
+
+func isMultipartFormData(r *http.Request) bool {
+	ct := r.Header.Get("Content-Type")
+	if ct == "" {
+		return false
+	}
+	d, _, err := mime.ParseMediaType(ct)
+	if err != nil || d != "multipart/form-data" {
+		return false
+	}
+	return true
+}
+
+func parseCreateObjectRequestAsJSON(r *http.Request) (models.ODObject, error) {
+	var jsonObject protocol.CreateObjectRequest
+	object := models.ODObject{}
+	var err error
+
+	if r.Header.Get("Content-Type") != "application/json" {
+		err = fmt.Errorf("Content-Type is '%s', expected application/json", r.Header.Get("Content-Type"))
+		return object, err
+	}
+
+	// Decode to JSON
+	err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
+	if err != nil {
+		return object, err
+	}
+
+	// Map to internal object type
+	object, err = mapping.MapCreateObjectRequestToODObject(&jsonObject)
+	if err != nil {
+		return object, err
+	}
+
+	return object, nil
 }

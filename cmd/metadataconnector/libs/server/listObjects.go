@@ -6,7 +6,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"regexp"
 
 	"golang.org/x/net/context"
 
@@ -44,7 +43,8 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 	var err error
 
 	// Parse Request
-	pagingRequest, err = parseListObjectsRequest(r)
+	captured, _ := CaptureGroupsFromContext(ctx)
+	pagingRequest, err = protocol.NewPagingRequest(r, captured, false)
 	if err != nil {
 		sendErrorResponse(&w, 400, err, "Error parsing request")
 		return
@@ -113,11 +113,6 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&response)
 	listObjectsResponseAsJSON(w, r, &apiResponse)
 	countOKResponse()
-}
-
-func parseListObjectsRequest(r *http.Request) (*protocol.PagingRequest, error) {
-	re := regexp.MustCompile("/object/([0-9a-fA-F]*)/list")
-	return protocol.NewPagingRequestWithObjectID(r, re, false)
 }
 
 func listObjectsResponseAsJSON(

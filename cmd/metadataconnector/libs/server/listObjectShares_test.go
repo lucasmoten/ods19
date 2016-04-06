@@ -12,7 +12,7 @@ import (
 	"decipher.com/oduploader/protocol"
 )
 
-func TestListObjectShares(t *testing.T) {
+func XTestListObjectShares(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}

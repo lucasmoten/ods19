@@ -25,15 +25,19 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	}
 
 	var grant *models.ODObjectPermission
+	var requestObject models.ODObject
+	var err error
 
-	//Get the object from the database, unedited
-	object, herr, err := retrieveObject(h.DAO, h.Routes.ObjectStream, r.URL.Path, true)
-	if herr != nil {
-		sendAppErrorResponse(&w, herr)
+	requestObject, err = parseGetObjectRequest(ctx)
+	if err != nil {
+		sendErrorResponse(&w, 500, err, "Error parsing URI")
 		return
 	}
+
+	// Retrieve existing object from the data store
+	object, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Could not retrieve object")
+		sendErrorResponse(&w, 500, err, "Error retrieving object")
 		return
 	}
 
@@ -92,7 +96,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		sendErrorResponse(&w, 400, err, "unable to open multipart reader")
 		return
 	}
-	drainFunc, herr, err = h.acceptObjectUpload(ctx, multipartReader, &object, grant, false)
+	drainFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &object, grant, false)
 	if herr != nil {
 		sendAppErrorResponse(&w, herr)
 		return

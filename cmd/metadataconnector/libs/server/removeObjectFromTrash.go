@@ -1,16 +1,13 @@
 package server
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
-	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/protocol"
-	"decipher.com/oduploader/util"
 
 	"golang.org/x/net/context"
 )
@@ -31,23 +28,12 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 		return
 	}
 
-	// Parse the objectID from the request URI.
-	captured := util.GetRegexCaptureGroups(r.URL.Path, h.Routes.TrashObject)
-	if captured["objectId"] == "" {
-		sendErrorResponse(&w, http.StatusBadRequest,
-			errors.New("Could not extract objectID from URI"), "URI: "+r.URL.Path)
-		return
-	}
-
-	bytesID, err := hex.DecodeString(captured["objectId"])
+	requestObject, err := parseGetObjectRequest(ctx)
 	if err != nil {
-		sendErrorResponse(&w, http.StatusBadRequest, err, "Invalid objectID in URI")
+		sendErrorResponse(&w, 500, err, "Error parsing URI")
 		return
 	}
-
-	var obj models.ODObject
-	obj.ID = bytesID
-	originalObject, err := h.DAO.GetObject(obj, true)
+	originalObject, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
 		sendErrorResponse(&w, 500, err, "Error retrieving object from database")
 		return

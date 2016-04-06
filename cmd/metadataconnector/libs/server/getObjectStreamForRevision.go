@@ -11,7 +11,6 @@ import (
 
 	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
 	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/util"
 )
 
 func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.ResponseWriter, r *http.Request) {
@@ -27,7 +26,15 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	var err error
 
 	// Parse the objectId and historyId (changeCount) from the request path
-	captured := util.GetRegexCaptureGroups(r.URL.Path, h.Routes.ObjectStreamRevision)
+
+	// Get capture groups from ctx.
+	captured, ok := CaptureGroupsFromContext(ctx)
+	if !ok {
+		sendErrorResponse(&w, 500, errors.New("Could not get capture groups"), "No capture groups.")
+		return
+	}
+
+	// Initialize requestobject with the objectId being requested
 	if captured["objectId"] == "" {
 		sendErrorResponse(&w, http.StatusBadRequest, errors.New("Could not extract objectID from URI"), "URI: "+r.URL.Path)
 		return
@@ -35,15 +42,17 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	bytesObjectID, err := hex.DecodeString(captured["objectId"])
 	if err != nil {
 		sendErrorResponse(&w, http.StatusBadRequest, err, "Invalid objectID in URI.")
-	}
-	requestObject.ID = bytesObjectID
-	if captured["historyId"] == "" {
-		sendErrorResponse(&w, http.StatusBadRequest, errors.New("Could not extract historyID from URI"), "URI: "+r.URL.Path)
 		return
 	}
-	requestObject.ChangeCount, err = strconv.Atoi(captured["historyId"])
+	requestObject.ID = bytesObjectID
+	if captured["revisionId"] == "" {
+		sendErrorResponse(&w, http.StatusBadRequest, errors.New("Could not extract revisionId from URI"), "URI: "+r.URL.Path)
+		return
+	}
+	requestObject.ChangeCount, err = strconv.Atoi(captured["revisionId"])
 	if err != nil {
-		sendErrorResponse(&w, http.StatusBadRequest, err, "Invalid historyID in URI.")
+		sendErrorResponse(&w, http.StatusBadRequest, err, "Invalid revisionId in URI.")
+		return
 	}
 
 	// Retrieve existing object from the data store

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"regexp"
 	"strings"
 
 	"decipher.com/oduploader/metadata/models"
@@ -31,7 +30,7 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 		sendErrorResponse(&w, http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
 		return
 	}
-	removeObjectShare, err := parseRemoveObjectShareRequest(r)
+	removeObjectShare, err := parseRemoveObjectShareRequest(r, ctx)
 	if err != nil {
 		sendErrorResponse(&w, http.StatusBadRequest, err, "Error parsing JSON")
 		return
@@ -125,7 +124,7 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 	countOKResponse()
 }
 
-func parseRemoveObjectShareRequest(r *http.Request) (protocol.RemoveObjectShareRequest, error) {
+func parseRemoveObjectShareRequest(r *http.Request, ctx context.Context) (protocol.RemoveObjectShareRequest, error) {
 	var jsonObject protocol.RemoveObjectShareRequest
 	var err error
 
@@ -136,29 +135,29 @@ func parseRemoveObjectShareRequest(r *http.Request) (protocol.RemoveObjectShareR
 	}
 
 	// Portions from the request URI itself ...
-	uri := r.URL.Path
-	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)/share/([0-9a-fA-F]*)")
-	matchIndexes := re.FindStringSubmatchIndex(uri)
-	if len(matchIndexes) != 0 {
-		if len(matchIndexes) > 3 {
-			jsonObject.ObjectID = uri[matchIndexes[2]:matchIndexes[3]]
-			if err != nil {
-				return jsonObject, errors.New("Object Identifier in Request URI is not a hex string")
-			}
-			if len(matchIndexes) > 5 {
-				jsonObject.ShareID = uri[matchIndexes[4]:matchIndexes[5]]
-				if err != nil {
-					return jsonObject, errors.New("Share Identifier in Request URI is not a hex string")
-				}
-			} else {
-				return jsonObject, errors.New("Share Identifier was not identified in request path")
-			}
-		} else {
-			return jsonObject, errors.New("Object Identifier was not identified in request path")
-		}
-	} else {
-		return jsonObject, errors.New("Object and Share Identifiers were not identified in request path")
+	// Get capture groups from ctx.
+	captured, ok := CaptureGroupsFromContext(ctx)
+	if !ok {
+		return jsonObject, errors.New("Could not get capture groups")
 	}
+	// Assign jsonObject with the objectId that was shared
+	if captured["objectId"] == "" {
+		return jsonObject, errors.New("Could not extract objectId from URI")
+	}
+	_, err = hex.DecodeString(captured["objectId"])
+	if err != nil {
+		return jsonObject, errors.New("Invalid objectid in URI.")
+	}
+	jsonObject.ObjectID = captured["objectId"]
+	// Assign jsonObject with the shareId being removed
+	if captured["shareId"] == "" {
+		return jsonObject, errors.New("Could not extract shareId from URI")
+	}
+	_, err = hex.DecodeString(captured["shareId"])
+	if err != nil {
+		return jsonObject, errors.New("Invalid shareId in URI.")
+	}
+	jsonObject.ShareID = captured["shareId"]
 
 	return jsonObject, err
 }

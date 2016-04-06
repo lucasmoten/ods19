@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"regexp"
 	"strings"
 
 	"golang.org/x/net/context"
@@ -34,13 +33,14 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Parse Request in sent format
 	switch {
 	case r.Header.Get("Content-Type") == "application/json":
-		requestObject, err = parseUpdateObjectRequestAsJSON(r)
+		requestObject, err = parseUpdateObjectRequestAsJSON(r, ctx)
 		if err != nil {
 			sendErrorResponse(&w, 500, err, "Error parsing JSON")
 			return
 		}
 	default:
 		sendErrorResponse(&w, 501, nil, "Reading from HTML form post not supported")
+		return
 	}
 
 	// Business Logic...
@@ -213,10 +213,16 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	countOKResponse()
 }
 
-func parseUpdateObjectRequestAsJSON(r *http.Request) (models.ODObject, error) {
+func parseUpdateObjectRequestAsJSON(r *http.Request, ctx context.Context) (models.ODObject, error) {
 	var jsonObject protocol.UpdateObjectRequest
 	requestObject := models.ODObject{}
 	var err error
+
+	// Get ID
+	requestObject, err = parseGetObjectRequest(ctx)
+	if err != nil {
+		return requestObject, errors.New("Object Identifier in Request URI is not a hex string")
+	}
 
 	// Get portion from body
 	err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
@@ -239,20 +245,6 @@ func parseUpdateObjectRequestAsJSON(r *http.Request) (models.ODObject, error) {
 	}
 	if len(jsonObject.Properties) > 0 {
 		requestObject.Properties, err = mapping.MapPropertiesToODProperties(&jsonObject.Properties)
-	}
-
-	// Portions from the request URI itself ...
-	uri := r.URL.Path
-	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)/properties")
-	matchIndexes := re.FindStringSubmatchIndex(uri)
-	if len(matchIndexes) != 0 {
-		if len(matchIndexes) > 3 {
-			objectID := uri[matchIndexes[2]:matchIndexes[3]]
-			requestObject.ID, err = hex.DecodeString(objectID)
-			if err != nil {
-				return requestObject, errors.New("Object Identifier in Request URI is not a hex string")
-			}
-		}
 	}
 
 	// Return it

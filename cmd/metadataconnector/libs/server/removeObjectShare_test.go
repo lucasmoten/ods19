@@ -41,7 +41,7 @@ func TestRemoveObjectShare(t *testing.T) {
 	}
 
 	// Attempt to move folder 2 under folder 1
-	moveuri := host + cfg.RootURL + "/object/" + folder2.ID + "/move/" + folder1.ID
+	moveuri := host + cfg.RootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder2.ChangeToken
 	jsonBody, err := json.Marshal(objChangeToken)
@@ -69,7 +69,7 @@ func TestRemoveObjectShare(t *testing.T) {
 	res.Body.Close()
 
 	// Add share as clientid1 for clientid2 to folder1 with propagation
-	shareuri := host + cfg.RootURL + "/object/" + folder1.ID + "/share"
+	shareuri := host + cfg.RootURL + "/shared/" + folder1.ID
 	shareSetting := protocol.ObjectGrant{}
 	shareSetting.Grantee = "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
 	shareSetting.Read = true
@@ -103,7 +103,7 @@ func TestRemoveObjectShare(t *testing.T) {
 	getRes3.Body.Close()
 
 	// Attempt to retrieve folder1 as clientid2
-	geturi := host + cfg.RootURL + "/object/" + folder1.ID + "/properties"
+	geturi := host + cfg.RootURL + "/objects/" + folder1.ID + "/properties"
 	getReq4, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
@@ -121,7 +121,7 @@ func TestRemoveObjectShare(t *testing.T) {
 	getRes4.Body.Close()
 
 	// Attempt to retrieve folder2 as clientid2
-	geturi = host + cfg.RootURL + "/object/" + folder2.ID + "/properties"
+	geturi = host + cfg.RootURL + "/objects/" + folder2.ID + "/properties"
 	getReq5, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
@@ -139,7 +139,7 @@ func TestRemoveObjectShare(t *testing.T) {
 	getRes5.Body.Close()
 
 	// Remove share as clientid1 with propagation
-	removeshareuri := host + cfg.RootURL + "/object/" + folder1.ID + "/share/" + createdShare.ID
+	removeshareuri := host + cfg.RootURL + "/shared/" + folder1.ID + "/" + createdShare.ID
 	removesharebody := protocol.RemoveObjectShareRequest{}
 	removesharebody.ObjectID = folder1.ID
 	removesharebody.ShareID = createdShare.ID
@@ -177,7 +177,7 @@ func TestRemoveObjectShare(t *testing.T) {
 	getRes6.Body.Close()
 
 	// Attempt to retrieve folder1 as clientid2
-	geturi = host + cfg.RootURL + "/object/" + folder1.ID + "/properties"
+	geturi = host + cfg.RootURL + "/objects/" + folder1.ID + "/properties"
 	getReq7, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
@@ -195,7 +195,7 @@ func TestRemoveObjectShare(t *testing.T) {
 	getRes7.Body.Close()
 
 	// Attempt to retrieve folder2 as clientid2
-	geturi = host + cfg.RootURL + "/object/" + folder2.ID + "/properties"
+	geturi = host + cfg.RootURL + "/objects/" + folder2.ID + "/properties"
 	getReq8, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)

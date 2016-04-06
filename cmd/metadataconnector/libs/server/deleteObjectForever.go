@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"regexp"
 
 	"golang.org/x/net/context"
 
@@ -27,7 +26,7 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 	}
 
 	// Parse Request in sent format
-	requestObject, err = parseDeleteObjectForeverRequest(r)
+	requestObject, err = parseDeleteObjectRequest(r, ctx)
 	if err != nil {
 		sendErrorResponse(&w, 400, err, "Error parsing JSON")
 		return
@@ -77,34 +76,6 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 	apiResponse := mapping.MapODObjectToExpungedObjectResponse(&dbObject)
 	deleteObjectForeverResponse(w, r, caller, &apiResponse)
 	countOKResponse()
-}
-
-func parseDeleteObjectForeverRequest(r *http.Request) (models.ODObject, error) {
-	var jsonObject protocol.Object
-	var requestObject models.ODObject
-	var err error
-
-	switch {
-	case r.Header.Get("Content-Type") == "application/json":
-		err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
-	}
-
-	// Portions from the request URI itself ...
-	uri := r.URL.Path
-	re, _ := regexp.Compile("/object/([0-9a-fA-F]*)")
-	matchIndexes := re.FindStringSubmatchIndex(uri)
-	if len(matchIndexes) != 0 {
-		if len(matchIndexes) > 3 {
-			jsonObject.ID = uri[matchIndexes[2]:matchIndexes[3]]
-			if err != nil {
-				return requestObject, errors.New("Object Identifier in Request URI is not a hex string")
-			}
-		}
-	}
-
-	// Map to internal object type
-	requestObject, err = mapping.MapObjectToODObject(&jsonObject)
-	return requestObject, err
 }
 
 func deleteObjectForeverResponse(

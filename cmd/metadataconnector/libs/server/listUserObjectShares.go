@@ -23,7 +23,7 @@ func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWrit
 	}
 
 	// Parse Request
-	pagingRequest, err := parseListUserObjectSharesRequest(r)
+	pagingRequest, err := protocol.NewPagingRequest(r, nil, false)
 	if err != nil {
 		sendErrorResponse(&w, 400, err, "Error parsing request")
 		return
@@ -40,10 +40,6 @@ func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWrit
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&result)
 	listUserObjectSharesResponseAsJSON(w, r, caller, &apiResponse)
 	countOKResponse()
-}
-
-func parseListUserObjectSharesRequest(r *http.Request) (*protocol.PagingRequest, error) {
-	return protocol.NewPagingRequestWithObjectID(r, nil, false)
 }
 
 func listUserObjectSharesResponseAsJSON(

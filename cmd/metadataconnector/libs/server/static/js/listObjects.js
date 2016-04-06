@@ -30,14 +30,16 @@ function refreshListObjects() {
   if (__state.parentId === "") {
     url  = BASE_SERVICE_URL + 'objects';
   } else {
-    url = BASE_SERVICE_URL + 'object/' + __state.parentId + '/list'
+    url = BASE_SERVICE_URL + 'objects/' + __state.parentId
   }
+  // paging - eventually capture in __state?
+  url += '?pageNumber=1&pageSize=20'
   reqwest({
       url: url
-    , method: 'post'
+    , method: 'get'
     , type: 'json'
     , contentType: 'application/json'
-    , data: JSON.stringify({ pageNumber: 1, pageSize: 20, parentId: __state.parentId })
+   // , data: JSON.stringify({ pageNumber: 1, pageSize: 20, parentId: __state.parentId })
     , success: function (resp) {
       $.when(listUsers()).done(function (userdata) {
 
@@ -124,7 +126,7 @@ function doShare(objectId, userId, opts) {
     propogateToChildren: opts.propogateToChildren
   };
   $.ajax({
-    url: BASE_SERVICE_URL + 'object/' + objectId + '/share',
+    url: BASE_SERVICE_URL + 'shared/' + objectId,
     contentType: 'application/json',
     method: 'POST',
     data: JSON.stringify(data),
@@ -144,8 +146,8 @@ function doDelete(objectId, changeToken) {
     changeToken: changeToken
   }
   $.ajax({
-      url: BASE_SERVICE_URL+'object/'+objectId,
-      method: 'DELETE',
+      url: BASE_SERVICE_URL+'objects/'+objectId+'/trash',
+      method: 'POST',
       data: JSON.stringify(data),
       contentType: 'application/json',
       success: function(data){
@@ -197,9 +199,9 @@ function _renderDeleteButton(obj, users, drowId) {
 function _renderObjectLink(item) {
   var link;
   if (item.typeName === "Folder") {
-    link = '<td><a href="'+ BASE_SERVICE_URL + 'home/listObjects?parentId=' + item.id + '">'+item.name+'</a></td>';
+    link = '<td><a href="'+ BASE_SERVICE_URL + 'ui/home/listObjects?parentId=' + item.id + '">'+item.name+'</a></td>';
   } else {
-    link = '<td><a href="'+ BASE_SERVICE_URL + 'object/' + item.id + '/stream">' + item.name + '</a></td>';
+    link = '<td><a href="'+ BASE_SERVICE_URL + 'objects/' + item.id + '/stream">' + item.name + '</a></td>';
   }
   return link;
 }
@@ -232,7 +234,7 @@ function createObject() {
 
       $("#submitCreateObject").prop("disabled", true)
       $.ajax({
-        url: BASE_SERVICE_URL+'object',
+        url: BASE_SERVICE_URL+'objects',
         data: formData,
         cache: false,
         contentType: false,
@@ -262,7 +264,7 @@ function createFolder() {
     acm: rawAcm,
   }
       $.ajax({
-      url: BASE_SERVICE_URL+'folder',
+      url: BASE_SERVICE_URL+'objects',
       data: JSON.stringify(data),
       method: 'POST',
       contentType: 'application/json',

@@ -129,9 +129,9 @@ func TestUndeleteExpungedObjectFails(t *testing.T) {
 	}
 
 	guid, _ := util.NewGUID()
-	fullURL := cfg.RootURL + "/trash/" + guid
+	fullURL := cfg.RootURL + "/objects/" + guid + "/untrash"
 	r, err := http.NewRequest(
-		"DELETE", fullURL,
+		"POST", fullURL,
 		bytes.NewBuffer([]byte(`{"changeToken": "1234567890"}`)))
 	if err != nil {
 		t.Fatal(err)
@@ -164,9 +164,9 @@ func TestUndeleteObjectWithDeletedAncestorFails(t *testing.T) {
 	}
 
 	guid, _ := util.NewGUID()
-	fullURL := cfg.RootURL + "/trash/" + guid
+	fullURL := cfg.RootURL + "/objects/" + guid + "/untrash"
 	r, err := http.NewRequest(
-		"DELETE", fullURL,
+		"POST", fullURL,
 		bytes.NewBuffer([]byte(`{"changeToken": "1234567890"}`)))
 	if err != nil {
 		t.Fatal(err)

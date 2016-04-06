@@ -28,7 +28,7 @@ func TestAppServerGetObject(t *testing.T) {
 	if err != nil {
 		t.Errorf("Could not create GUID.")
 	}
-	objectURL := "/object/" + guid + "/properties"
+	objectURL := "/objects/" + guid + "/properties"
 
 	// Create permissions object, with our User as a Grantee.
 	perms := []models.ODObjectPermission{

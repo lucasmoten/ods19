@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/http/httputil"
 	"os"
 	"strconv"
 	"time"
@@ -21,31 +20,36 @@ import (
 
 // getObjectStream gets object data stored in object-drive
 func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	req, err := httputil.DumpRequest(r, true)
+	// req, err := httputil.DumpRequest(r, true)
+	// if err != nil {
+	// 	log.Printf("unable to dump http request:%v", err)
+	// } else {
+	// 	log.Printf("%s", string(req))
+	// }
+	var requestObject models.ODObject
+	var err error
+
+	requestObject, err = parseGetObjectRequest(ctx)
 	if err != nil {
-		log.Printf("unable to dump http request:%v", err)
-	} else {
-		log.Printf("%s", string(req))
+		sendErrorResponse(&w, 500, err, "Error parsing URI")
+		return
 	}
 
-	object, herr, err := retrieveObject(h.DAO, h.Routes.ObjectStream, r.URL.Path, true)
-	if herr != nil {
-		sendAppErrorResponse(&w, herr)
-		return
-	}
+	// Retrieve existing object from the data store
+	object, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "cannot get object")
+		sendErrorResponse(&w, 500, err, "Error retrieving object")
 		return
 	}
-	if object.ID == nil {
-		log.Printf("did not find an object")
-		sendErrorResponse(&w, 500, err, "did not get object")
+
+	if len(object.ID) == 0 {
+		sendErrorResponse(&w, 400, err, "Object retrieved doesn't have an id")
 		return
 	}
 
 	//Performance count this operation
 	beganAt := h.Tracker.BeginTime(performance.DownloadCounter)
-	herr = h.getObjectStreamWithObject(ctx, w, r, object)
+	herr := h.getObjectStreamWithObject(ctx, w, r, object)
 	h.Tracker.EndTime(
 		performance.DownloadCounter,
 		beganAt,

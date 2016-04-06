@@ -6,7 +6,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"regexp"
 	"strings"
 
 	"golang.org/x/net/context"
@@ -29,7 +28,8 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 	var err error
 
 	// Parse Request
-	pagingRequest, err := parseListObjectSharesRequest(r)
+	captured, _ := CaptureGroupsFromContext(ctx)
+	pagingRequest, err := protocol.NewPagingRequest(r, captured, true)
 	if err != nil {
 		sendErrorResponse(&w, 400, err, "Error parsing request")
 		return
@@ -86,11 +86,6 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 	// Response in requested format
 	listObjectSharesResponseAsJSON(w, mapping.MapODPermissionsToPermissions(&dbObject.Permissions))
 	countOKResponse()
-}
-
-func parseListObjectSharesRequest(r *http.Request) (*protocol.PagingRequest, error) {
-	re := regexp.MustCompile("/object/([0-9a-fA-F]*)/")
-	return protocol.NewPagingRequestWithObjectID(r, re, true)
 }
 
 func listObjectSharesResponseAsJSON(

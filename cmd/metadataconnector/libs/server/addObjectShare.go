@@ -6,7 +6,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"regexp"
 
 	"golang.org/x/net/context"
 
@@ -27,7 +26,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 
 	//Get the json data from the request
 	var requestGrant models.ODObjectPermission
-	requestGrant, propagateToChildren, err := parseAddObjectShareRequest(r)
+	requestGrant, propagateToChildren, err := parseAddObjectShareRequest(r, ctx)
 	if err != nil {
 		sendErrorResponse(&w, 400, err, "Error parsing request")
 		return
@@ -120,7 +119,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	countOKResponse()
 }
 
-func parseAddObjectShareRequest(r *http.Request) (models.ODObjectPermission, bool, error) {
+func parseAddObjectShareRequest(r *http.Request, ctx context.Context) (models.ODObjectPermission, bool, error) {
 	var requestedGrant protocol.ObjectGrant
 	var requestedPermission models.ODObjectPermission
 	var err error
@@ -138,21 +137,22 @@ func parseAddObjectShareRequest(r *http.Request) (models.ODObjectPermission, boo
 	}
 
 	// Portions from the request URI itself ...
-	uri := r.URL.Path
-	re, err := regexp.Compile("/object/([0-9a-fA-F]*)/")
+	// Get capture groups from ctx.
+	captured, ok := CaptureGroupsFromContext(ctx)
+	if !ok {
+		return requestedPermission, false, errors.New("Could not get capture groups")
+	}
+	// Assign requestedPermission with the objectId being shared
+	if captured["objectId"] == "" {
+		return requestedPermission, false, errors.New("Could not extract objectid from URI")
+	}
+	bytesObjectID, err := hex.DecodeString(captured["objectId"])
 	if err != nil {
-		return requestedPermission, false, errors.New("Regular Expression for identifing object identifier did not compile")
+		return requestedPermission, false, errors.New("Invalid objectid in URI.")
 	}
-	matchIndexes := re.FindStringSubmatchIndex(uri)
-	if len(matchIndexes) != 0 {
-		if len(matchIndexes) > 3 {
-			requestedPermission.ObjectID, err = hex.DecodeString(uri[matchIndexes[2]:matchIndexes[3]])
-			if err != nil {
-				return requestedPermission, false, errors.New("Object Identifier in Request URI is not a hex string")
-			}
-		}
-	}
+	requestedPermission.ObjectID = bytesObjectID
 
+	// Return it
 	return requestedPermission, requestedGrant.PropagateToChildren, err
 }
 

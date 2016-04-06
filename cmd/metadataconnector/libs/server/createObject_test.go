@@ -55,7 +55,7 @@ func TestCreatObjectMalicious(t *testing.T) {
 	jsonBody := []byte(jsonString)
 
 	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
-		"object",
+		"objects",
 		host, "",
 		tmp,
 		tmpName,
@@ -133,7 +133,7 @@ func doTestCreateObjectSimple(t *testing.T) (*http.Response, protocol.Object) {
 	}
 
 	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
-		"object",
+		"objects",
 		host, "",
 		tmp,
 		tmpName,
