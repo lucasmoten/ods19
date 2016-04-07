@@ -6,7 +6,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-// home is a method handler on AppServer for displaying a response when the
+// docs is a method handler on AppServer for displaying a response when the
 // root URI is requested without an operation. In this context, a UI is provided
 // listing and linking to some available operations
 func (h AppServer) docs(ctx context.Context, w http.ResponseWriter, r *http.Request) {
