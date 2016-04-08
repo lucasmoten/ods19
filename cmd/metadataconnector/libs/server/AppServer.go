@@ -150,7 +150,7 @@ func (h *AppServer) InitRegex() {
 		StaticFiles:     regexp.MustCompile(h.ServicePrefix + "/static/(?P<path>.*)"),
 		Users:           regexp.MustCompile(h.ServicePrefix + "/users$"),
 		// Service operations
-		APIDocumentation: regexp.MustCompile(h.ServicePrefix + "/$"),
+		APIDocumentation: regexp.MustCompile(h.ServicePrefix + "/?$"),
 		// - objects
 		Objects:          regexp.MustCompile(h.ServicePrefix + "/objects$"),
 		Object:           regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})$"),
@@ -254,6 +254,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// - documentation
 		case h.Routes.APIDocumentation.MatchString(uri):
 			// TODO: route into serveStatic?
+			h.docs(ctx, w, r)
 		// - get object properties
 		case h.Routes.ObjectProperties.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectProperties)
