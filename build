@@ -13,6 +13,15 @@ GOPATH = os.getenv('GOPATH')
 PROJECT_ROOT = os.path.join(GOPATH, 'src', 'decipher.com', 'oduploader')
 
 
+def compile_docs():
+    docs_dir = os.path.join(PROJECT_ROOT, 'docs')
+    os.chdir(docs_dir)
+    try:
+        subprocess.check_call(['./build'])
+    except subprocess.CalledProcessError as e:
+        log.error('Error compiling documentation: {0}')
+
+
 def generate_certs():
     gencerts_dir = os.path.join(PROJECT_ROOT, 'defaultcerts', 'server')
     if os.path.exists(gencerts_dir):
@@ -58,6 +67,7 @@ def build_all_binaries():
 
 
 def main():
+    compile_docs()
     go_get_libs()
     build_all_binaries()
 
