@@ -111,6 +111,7 @@ type StaticRx struct {
 	StaticFiles            *regexp.Regexp
 	Users                  *regexp.Regexp
 	APIDocumentation       *regexp.Regexp
+	UserStats              *regexp.Regexp
 	Objects                *regexp.Regexp
 	Object                 *regexp.Regexp
 	ObjectProperties       *regexp.Regexp
@@ -151,6 +152,7 @@ func (h *AppServer) InitRegex() {
 		Users:           regexp.MustCompile(h.ServicePrefix + "/users$"),
 		// Service operations
 		APIDocumentation: regexp.MustCompile(h.ServicePrefix + "/?$"),
+		UserStats:        regexp.MustCompile(h.ServicePrefix + "/userstats$"),
 		// - objects
 		Objects:          regexp.MustCompile(h.ServicePrefix + "/objects$"),
 		Object:           regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})$"),
@@ -255,6 +257,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.APIDocumentation.MatchString(uri):
 			// TODO: route into serveStatic?
 			h.docs(ctx, w, r)
+		case h.Routes.UserStats.MatchString(uri):
+			h.userStats(ctx, w, r)
 		// - get object properties
 		case h.Routes.ObjectProperties.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectProperties)

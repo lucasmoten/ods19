@@ -70,9 +70,10 @@ func doMaliciousUpdate(t *testing.T, oid, jsonString string) {
 }
 
 func TestUpdateObjectMalicious(t *testing.T) {
-
+	clientID := 5
 	//Create an object ....
-	_, jres := doTestCreateObjectSimple(t)
+	data := "0123456789"
+	_, jres := doTestCreateObjectSimple(t, data, clientID)
 
 	if len(jres.ChangeToken) == 0 {
 		t.Fail()
@@ -206,10 +207,11 @@ func doPropertyUpdate(t *testing.T, oid, jsonString string) {
 }
 
 func TestUpdateObjectWithProperties(t *testing.T) {
-
+	clientID := 5
 	//Create an object ....
 	//Note that this used client id 5, so we must as well.
-	_, jsonResponse := doTestCreateObjectSimple(t)
+	data := "0123456789"
+	_, jsonResponse := doTestCreateObjectSimple(t, data, clientID)
 
 	if len(jsonResponse.ChangeToken) == 0 {
 		t.Fail()

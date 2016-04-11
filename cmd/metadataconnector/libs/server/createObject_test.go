@@ -93,17 +93,17 @@ func TestCreatObjectMalicious(t *testing.T) {
 	}
 }
 
-func xTestCreatObjectSimple(t *testing.T) {
+func TestCreatObjectSimple(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	doTestCreateObjectSimple(t)
+	data := "Initial test data 1"
+	doTestCreateObjectSimple(t, data, 5)
 }
 
 var ValidAcmCreateObjectSimple = `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":["FOUO"],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U//FOUO","banner":"UNCLASSIFIED//FOUO","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`
 
-func doTestCreateObjectSimple(t *testing.T) (*http.Response, protocol.Object) {
-	clientID := 5
+func doTestCreateObjectSimple(t *testing.T, data string, clientID int) (*http.Response, protocol.Object) {
 	client := httpclients[clientID]
 	testName, err := util.NewGUID()
 	if err != nil {
@@ -111,7 +111,6 @@ func doTestCreateObjectSimple(t *testing.T) (*http.Response, protocol.Object) {
 	}
 
 	acm := ValidAcmCreateObjectSimple
-	data := "Initial test data 1"
 	tmpName := "initialTestData1.txt"
 	tmp, tmpCloser, err := testhelpers.GenerateTempFile(data)
 	if err != nil {
