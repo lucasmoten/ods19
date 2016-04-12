@@ -34,6 +34,7 @@ func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWrit
 	result, err := h.DAO.GetObjectsSharedToMe(user, *pagingRequest)
 	if err != nil {
 		sendErrorResponse(&w, 500, err, "GetObjectsSharedToMe query failed")
+		return
 	}
 
 	// Render Response

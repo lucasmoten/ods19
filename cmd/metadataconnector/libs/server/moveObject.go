@@ -30,7 +30,6 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 
 	// Parse Request in sent format
 	if r.Header.Get("Content-Type") != "application/json" {
-
 		sendErrorResponse(&w, http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
 		return
 	}

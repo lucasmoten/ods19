@@ -55,7 +55,11 @@ func (h AppServer) acceptObjectUpload(
 			existingID := hex.EncodeToString(obj.ID)
 			existingParentID := hex.EncodeToString(obj.ParentID)
 
-			s := getFormValueAsString(part)
+			s, herr := getFormValueAsString(part)
+			if herr != nil {
+				return drainFunc, herr, nil
+			}
+
 			//It's the same as the database object, but this function might be
 			//dealing with a retrieved object, so we get fields individually
 			err := json.Unmarshal([]byte(s), &createObjectRequest)
@@ -177,6 +181,13 @@ func (h AppServer) beginUploadTimed(
 	obj *models.ODObject,
 	grant *models.ODObjectPermission,
 ) (beginDrain func(), herr *AppError, err error) {
+	//
+	// Note that since errors here *can* be caused by the client dropping, we will make these 4xx
+	// error codes and blame the client for the moment.  When reading from the client and writing
+	// to disk, sometimes it is ambiguous who is to blame.  This is similar to the case of a failed
+	// lookup when the client may have given us bad information in the lookup.  In these cases,
+	// it may be ok to use 400 error codes until proven otherwise.
+	//
 	rName := obj.ContentConnector.String
 	iv := obj.EncryptIV
 	fileKey := grant.EncryptKey
@@ -187,16 +198,17 @@ func (h AppServer) beginUploadTimed(
 
 	outFile, err := os.Create(outFileUploading)
 	if err != nil {
-		log.Printf("Unable to open ciphertext uploading file %s %v:", outFileUploading, err)
-		return nil, nil, err
+		msg := fmt.Sprintf("Unable to open ciphertext uploading file %s", outFileUploading)
+		return nil, NewAppError(500, err, msg), err
 	}
 	defer outFile.Close()
 
 	//Write the encrypted data to the filesystem
 	checksum, length, err := utils.DoCipherByReaderWriter(part, outFile, fileKey, iv, "uploading from browser")
 	if err != nil {
-		log.Printf("Unable to write ciphertext %s %v:", outFileUploading, err)
-		return nil, nil, err
+		//It could be the client's fault, so we use 400 here.
+		msg := fmt.Sprintf("Unable to write ciphertext %s", outFileUploading)
+		return nil, NewAppError(400, err, msg), err
 	}
 
 	//Scramble the fileKey with the masterkey - will need it once more on retrieve
@@ -205,8 +217,8 @@ func (h AppServer) beginUploadTimed(
 	//Rename it to indicate that it can be moved to S3
 	err = os.Rename(outFileUploading, outFileUploaded)
 	if err != nil {
-		log.Printf("Unable to rename uploaded file %s %v:", outFileUploading, err)
-		return nil, nil, err
+		msg := fmt.Sprintf("Unable to rename uploaded file %s", outFileUploading)
+		return nil, NewAppError(500, err, msg), err
 	}
 	log.Printf("rename:%s -> %s", outFileUploading, outFileUploaded)
 

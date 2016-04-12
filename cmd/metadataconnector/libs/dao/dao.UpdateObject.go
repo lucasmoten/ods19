@@ -10,6 +10,8 @@ import (
 	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
 	"decipher.com/oduploader/metadata/models"
 	"decipher.com/oduploader/metadata/models/acm"
+
+	"decipher.com/oduploader/util"
 )
 
 // UpdateObject uses the passed in object and acm configuration and makes the
@@ -47,7 +49,7 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
 	}
 	// Check if changeToken matches
 	if object.ChangeToken != dbObject.ChangeToken {
-		return fmt.Errorf("Object ChangeToken does not match expected value %s", dbObject.ChangeToken)
+		return util.NewAppErrorInput(nil, fmt.Sprintf("Object ChangeToken does not match expected value %s", dbObject.ChangeToken))
 	}
 	// Check if deleted
 	if dbObject.IsDeleted {

@@ -107,7 +107,17 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	object.ModifiedBy = caller.DistinguishedName
 	err = h.DAO.UpdateObject(&object)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "error storing object")
+		//Note that if the DAO is not going to decide on a specific error code,
+		// we *always* need to know if the error is due to bad user input,
+		// a possible problem not under user control, and something that signifies a bug on our part.
+		//
+		// If we don't just return AppError, then we at least need to pass back a boolean or a constant
+		// that classifies the error appropriately.  Otherwise, we need to return errors with more structure
+		// than we have generically.
+		//
+		//4xx http codes are *good* because they caught bad input; possibly malicious.
+		//5xx http codes signifies something *bad* that we must fix.
+		sendError(&w, err, "error storing object")
 		return
 	}
 	// Only start to upload into S3 after we have a database record

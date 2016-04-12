@@ -12,14 +12,15 @@ import (
 // TODO: This effectively limits the acceptable length of a field to 1KB which
 // is too restrictive for certain values (lengthy descriptions, abstracts, etc)
 // which will need revisited
-func getFormValueAsString(part *multipart.Part) string {
+func getFormValueAsString(part *multipart.Part) (string, *AppError) {
 	valueAsBytes := make([]byte, 10240)
 	n, err := part.Read(valueAsBytes)
 	if err != nil {
-		if err == io.EOF {
-			return ""
+		if err != io.EOF {
+			return "", NewAppError(400, err, "Unable to parse value from part")
+		} else {
+			return "", nil
 		}
-		panic(err)
 	} // if err != nil
-	return string(valueAsBytes[0:n])
+	return string(valueAsBytes[0:n]), nil
 }
