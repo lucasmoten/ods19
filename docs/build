@@ -3,4 +3,3 @@
 staticroot=$GOPATH/src/decipher.com/oduploader/cmd/metadataconnector/libs/server/static/templates
 
 aglio --theme-variables streak -i home.md -o $staticroot/root.html
-
