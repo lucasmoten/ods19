@@ -890,7 +890,7 @@ This microservice operation retrieves a list of objects that the user has shared
 + objectsSize: 249234 (number) - The total size of objects in bytes, which could be a very large number.
 + objectsWithRevisionSize: 23478234 (number) - The total size of versioned objects in bytes, which may be very large.
 
-## OserStats (object)
+## UserStats (object)
 
 + totalObjects: 24 (number) - The number of current objects that are stored.
 + totalObjectsWithRevision: 432 (number) - The number of versioned objects that are stored.
