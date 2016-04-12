@@ -52,6 +52,7 @@ type DAO interface {
 	GetTrashedObjectsByUser(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error)
 	GetUserByDistinguishedName(user models.ODUser) (models.ODUser, error)
 	GetUsers() ([]models.ODUser, error)
+	GetUserStats(dn string) (models.UserStats, error)
 	IsParentIDADescendent(id []byte, parentID []byte) (bool, error)
 	SearchObjectsByNameOrDescription(user models.ODUser, pagingRequest protocol.PagingRequest, loadProperties bool) (models.ODObjectResultset, error)
 	UndeleteObject(object *models.ODObject) (models.ODObject, error)

@@ -715,6 +715,15 @@ This microservice operation retrieves a list of objects that the user has shared
 + Response 500
   Error storing metadata or stream
 
+## User Stats [/userstats]
+
+### User Stats [GET]
+
++ Response 200
+    + Attributes (UserStats)
+    
++ Response 500
+  Internal Server Error
 
 # Group Versioning Operations
 
@@ -873,3 +882,18 @@ This microservice operation retrieves a list of objects that the user has shared
 + pageRows: 10 (number) - Number of items included in this page of the results, which may be less than pagesize, but never greater.
 + objects: (array[ObjectResp])
 
+## ObjectStorageMetric (object)
+
++ typeName: `File` (string) - The type of object, which is usually File or Folder.
++ objects: 24 (number) - The number of current objects that are stored.
++ objectsWithRevision: 432 (number) - The number of versioned objects that are stored.
++ objectsSize: 249234 (number) - The total size of objects in bytes, which could be a very large number.
++ objectsWithRevisionSize: 23478234 (number) - The total size of versioned objects in bytes, which may be very large.
+
+## UserStats (object)
+
++ totalObjects: 24 (number) - The number of current objects that are stored.
++ totalObjectsWithRevision: 432 (number) - The number of versioned objects that are stored.
++ totalObjectsSize: 249234 (number) - The total size of objects in bytes, which could be a very large number.
++ totalObjectsWithRevisionSize: 23478234 (number) - The total size of versioned objects in bytes, which may be very large.
++ objectStorageMetrics: (array[ObjectStorageMetric])

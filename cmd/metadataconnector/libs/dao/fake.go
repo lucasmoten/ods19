@@ -26,6 +26,7 @@ type FakeDAO struct {
 	Property          models.ODProperty
 	User              models.ODUser
 	Users             []models.ODUser
+	UserStatsData     models.UserStats
 	// TODO: More fields required?
 }
 
@@ -214,6 +215,11 @@ func (fake *FakeDAO) GetUserByDistinguishedName(user models.ODUser) (models.ODUs
 // GetUsers for FakeDAO.
 func (fake *FakeDAO) GetUsers() ([]models.ODUser, error) {
 	return fake.Users, fake.Err
+}
+
+// UserStats is per user statistics
+func (fake *FakeDAO) GetUserStats(dn string) (models.UserStats, error) {
+	return fake.UserStatsData, fake.Err
 }
 
 // IsParentIDADescendent for FakeDAO.
