@@ -67,7 +67,11 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 		drainFunc = createdFunc
 	} else {
 		// Parse body as json to populate object
-		obj, err = parseCreateObjectRequestAsJSON(r)
+		obj, herr := parseCreateObjectRequestAsJSON(r)
+		if herr != nil {
+			sendAppErrorResponse(&w, herr)
+			return
+		}
 		// Validation
 		if herr := handleCreatePrerequisites(ctx, h, &obj); herr != nil {
 			sendAppErrorResponse(&w, herr)
@@ -243,26 +247,27 @@ func isMultipartFormData(r *http.Request) bool {
 	return true
 }
 
-func parseCreateObjectRequestAsJSON(r *http.Request) (models.ODObject, error) {
+func parseCreateObjectRequestAsJSON(r *http.Request) (models.ODObject, *AppError) {
 	var jsonObject protocol.CreateObjectRequest
 	object := models.ODObject{}
 	var err error
 
 	if r.Header.Get("Content-Type") != "application/json" {
+		//BUG: return an AppError so that this gets *counted*
 		err = fmt.Errorf("Content-Type is '%s', expected application/json", r.Header.Get("Content-Type"))
-		return object, err
+		return object, NewAppError(400, err, "expected Content-Type application/json")
 	}
 
 	// Decode to JSON
 	err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
 	if err != nil {
-		return object, err
+		return object, NewAppError(400, err, "Could not parse json object as a protocol.CreateObjectRequest")
 	}
 
 	// Map to internal object type
 	object, err = mapping.MapCreateObjectRequestToODObject(&jsonObject)
 	if err != nil {
-		return object, err
+		return object, NewAppError(400, err, "Could not map request to internal database type")
 	}
 
 	return object, nil
