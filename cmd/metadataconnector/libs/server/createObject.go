@@ -33,6 +33,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 	var createdObject models.ODObject
 	var grant models.ODObjectPermission
 	var err error
+	var herr *AppError
 	var drainFunc func()
 
 	grant.Grantee = caller.DistinguishedName
@@ -67,7 +68,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 		drainFunc = createdFunc
 	} else {
 		// Parse body as json to populate object
-		obj, herr := parseCreateObjectRequestAsJSON(r)
+		obj, herr = parseCreateObjectRequestAsJSON(r)
 		if herr != nil {
 			sendAppErrorResponse(&w, herr)
 			return
