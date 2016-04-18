@@ -6,7 +6,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	cfg "decipher.com/oduploader/config"
+	cfg "decipher.com/object-drive-server/config"
 )
 
 func (h *AppServer) homeListObjects(ctx context.Context, w http.ResponseWriter, r *http.Request) {

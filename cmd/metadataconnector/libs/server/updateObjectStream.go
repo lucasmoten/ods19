@@ -5,9 +5,9 @@ import (
 	"errors"
 	"net/http"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
-	"decipher.com/oduploader/metadata/models"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/mapping"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/utils"
+	"decipher.com/object-drive-server/metadata/models"
 	"golang.org/x/net/context"
 )
 

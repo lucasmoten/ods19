@@ -3,9 +3,9 @@ package dao_test
 import (
 	"testing"
 
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/protocol"
-	"decipher.com/oduploader/util/testhelpers"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestDAOGetRootObjects(t *testing.T) {

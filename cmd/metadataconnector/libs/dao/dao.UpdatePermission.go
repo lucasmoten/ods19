@@ -6,7 +6,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"decipher.com/oduploader/metadata/models"
+	"decipher.com/object-drive-server/metadata/models"
 )
 
 // UpdatePermission uses the passed in permission and makes the appropriate

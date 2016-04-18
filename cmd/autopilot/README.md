@@ -8,7 +8,7 @@ an executing local server.
   go run autopilot.go > autopilot.md
 ```
 
-This markdown file should be posted in the oduploader wiki.
+This markdown file should be posted in the object-drive-server wiki.
 Over time, the main path for this function should produce a
 substantial legible document that removes any ambiguities in the
 reference guide.

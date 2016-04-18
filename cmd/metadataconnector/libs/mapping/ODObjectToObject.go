@@ -7,9 +7,9 @@ import (
 	"log"
 	"strings"
 
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/metadata/models/acm"
-	"decipher.com/oduploader/protocol"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/metadata/models/acm"
+	"decipher.com/object-drive-server/protocol"
 )
 
 // MapODObjectToObject converts an internal ODObject model object into an API

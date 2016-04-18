@@ -7,9 +7,9 @@ echo "Creating release dir..."
 mkdir -p release
 
 # variables as defined by "go tool nm"
-OSVAR=decipher.com/oduploader/cryptotest.BuildOS
-ARCHVAR=decipher.com/oduploader/cryptotest.BuildARCH
-ARMVAR=decipher.com/oduploader/cryptotest.BuildARM
+OSVAR=decipher.com/object-drive-server/cryptotest.BuildOS
+ARCHVAR=decipher.com/object-drive-server/cryptotest.BuildARCH
+ARMVAR=decipher.com/object-drive-server/cryptotest.BuildARM
 
 createRelease() {
 	os=$1

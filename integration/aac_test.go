@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"decipher.com/oduploader/config"
-	aac "decipher.com/oduploader/services/aac"
-	"decipher.com/oduploader/util"
+	"decipher.com/object-drive-server/config"
+	aac "decipher.com/object-drive-server/services/aac"
+	"decipher.com/object-drive-server/util"
 	t2 "github.com/samuel/go-thrift/thrift"
 )
 

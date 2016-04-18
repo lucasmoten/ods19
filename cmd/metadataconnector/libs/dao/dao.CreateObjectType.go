@@ -7,7 +7,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"decipher.com/oduploader/metadata/models"
+	"decipher.com/object-drive-server/metadata/models"
 )
 
 // CreateObjectType adds a new object type definition to the database based upon

@@ -7,11 +7,11 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/metadata/models/acm"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/mapping"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/metadata/models/acm"
 
-	"decipher.com/oduploader/util"
+	"decipher.com/object-drive-server/util"
 )
 
 // UpdateObject uses the passed in object and acm configuration and makes the

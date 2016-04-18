@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"log"
 
-	"decipher.com/oduploader/metadata/models"
+	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
 )
 

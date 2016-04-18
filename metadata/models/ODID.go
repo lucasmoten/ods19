@@ -1,6 +1,6 @@
 package models
 
-import "decipher.com/oduploader/util"
+import "decipher.com/object-drive-server/util"
 
 // ODID is a nestable structure defining an ID for Object Drive elements
 type ODID struct {

@@ -19,9 +19,9 @@ import (
 	"strconv"
 	"strings"
 
-	cfg "decipher.com/oduploader/config"
-	"decipher.com/oduploader/protocol"
-	"decipher.com/oduploader/util/testhelpers"
+	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 //
@@ -87,9 +87,9 @@ func (ap AutopilotContext) NewClientTLSConfig(client *ClientIdentity) (*tls.Conf
 
 func (ap AutopilotContext) getClientIdentity(i int, name string) (*ClientIdentity, error) {
 	ci := &ClientIdentity{
-		TrustPem: os.ExpandEnv("$GOPATH/src/decipher.com/oduploader/defaultcerts/clients/client.trust.pem"),
-		CertPem:  os.ExpandEnv("$GOPATH/src/decipher.com/oduploader/defaultcerts/clients/" + name + ".cert.pem"),
-		KeyPem:   os.ExpandEnv("$GOPATH/src/decipher.com/oduploader/defaultcerts/clients/" + name + ".key.pem"),
+		TrustPem: os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/client.trust.pem"),
+		CertPem:  os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/" + name + ".cert.pem"),
+		KeyPem:   os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/" + name + ".key.pem"),
 	}
 	cfg, err := ap.NewClientTLSConfig(ci)
 	if err != nil {
@@ -706,7 +706,7 @@ var Population = 10
 var isQuickTest = true
 var showFileUpload = true
 var host = fmt.Sprintf("https://%s:%s", cfg.DockerVM, cfg.Port)
-var autopilotRoot = "$GOPATH/src/decipher.com/oduploader/autopilot/cache"
+var autopilotRoot = "$GOPATH/src/decipher.com/object-drive-server/autopilot/cache"
 
 //Set this to true to disable output
 var Quietly = false

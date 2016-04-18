@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"decipher.com/oduploader/protocol"
-	"decipher.com/oduploader/util"
-	"decipher.com/oduploader/util/testhelpers"
+	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util"
+	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func jsonEscape(i string) string {

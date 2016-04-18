@@ -4,10 +4,10 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/protocol"
-	"decipher.com/oduploader/util"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/mapping"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util"
 )
 
 func TestOverwriteODObjectWithProtocolObject(t *testing.T) {

@@ -16,11 +16,11 @@ import (
 	"os"
 	"strings"
 
-	cfg "decipher.com/oduploader/config"
+	cfg "decipher.com/object-drive-server/config"
 
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/protocol"
-	"decipher.com/oduploader/util"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util"
 )
 
 // DeferFunc is the function to call with defer

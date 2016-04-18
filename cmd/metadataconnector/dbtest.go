@@ -14,18 +14,18 @@ import (
 	"strings"
 	"time"
 
-	"decipher.com/oduploader/services/zookeeper"
+	"decipher.com/object-drive-server/services/zookeeper"
 	thrift "github.com/samuel/go-thrift/thrift"
 
 	"github.com/jmoiron/sqlx"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/config"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/dao"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/server"
 
-	oduconfig "decipher.com/oduploader/config"
-	"decipher.com/oduploader/performance"
-	aac "decipher.com/oduploader/services/aac"
+	oduconfig "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/performance"
+	aac "decipher.com/object-drive-server/services/aac"
 
 	_ "net/http/pprof"
 )

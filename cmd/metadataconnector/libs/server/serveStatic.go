@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"decipher.com/oduploader/util"
+	"decipher.com/object-drive-server/util"
 )
 
 var (

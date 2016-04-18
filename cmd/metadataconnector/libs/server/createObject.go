@@ -11,11 +11,11 @@ import (
 
 	"golang.org/x/net/context"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/metadata/models/acm"
-	"decipher.com/oduploader/protocol"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/mapping"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/utils"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/metadata/models/acm"
+	"decipher.com/object-drive-server/protocol"
 )
 
 // createObject is a method handler on AppServer for createObject microservice

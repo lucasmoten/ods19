@@ -9,8 +9,8 @@ import (
 
 	"golang.org/x/net/context"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
-	"decipher.com/oduploader/metadata/models"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/mapping"
+	"decipher.com/object-drive-server/metadata/models"
 )
 
 func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http.Request) {

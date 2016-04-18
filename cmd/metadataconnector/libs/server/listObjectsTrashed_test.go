@@ -8,13 +8,13 @@ import (
 	"os"
 	"testing"
 
-	cfg "decipher.com/oduploader/config"
+	cfg "decipher.com/object-drive-server/config"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/protocol"
-	"decipher.com/oduploader/util/testhelpers"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/dao"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/server"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestListObjectsTrashedJSONResponse(t *testing.T) {

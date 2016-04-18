@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"decipher.com/oduploader/config"
-	"decipher.com/oduploader/services/audit"
+	"decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/services/audit"
 )
 
 var auditClient *audit.Client

@@ -1,8 +1,8 @@
 package mapping
 
 import (
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/protocol"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/protocol"
 )
 
 // MapODObjectToExpungedObjectResponse converts an internal ODObject model

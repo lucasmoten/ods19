@@ -10,9 +10,9 @@
     ,"Params": "parseTime=true"
     ,"UseTLS": true
     ,"SkipVerify": false
-    ,"CAPath": "$GOPATH/src/decipher.com/oduploader/defaultcerts/client-mysql/trust"
-    ,"ClientCert": "$GOPATH/src/decipher.com/oduploader/defaultcerts/client-mysql/id/client-cert.pem"
-    ,"ClientKey": "$GOPATH/src/decipher.com/oduploader/defaultcerts/client-mysql/id/client-key.pem"
+    ,"CAPath": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/trust"
+    ,"ClientCert": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem"
+    ,"ClientKey": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-key.pem"
   }
 }
 

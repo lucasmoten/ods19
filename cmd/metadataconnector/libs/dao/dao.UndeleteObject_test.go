@@ -3,7 +3,7 @@ package dao_test
 import (
 	"testing"
 
-	"decipher.com/oduploader/util/testhelpers"
+	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestUndeleteObjectWithChildren(t *testing.T) {

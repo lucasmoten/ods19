@@ -4,12 +4,12 @@ import (
 	"net/http"
 	"testing"
 
-	"decipher.com/oduploader/metadata/models"
+	"decipher.com/object-drive-server/metadata/models"
 
 	"encoding/json"
 	"io/ioutil"
 
-	cfg "decipher.com/oduploader/config"
+	cfg "decipher.com/object-drive-server/config"
 )
 
 func doUserStatsQuery(t *testing.T) models.UserStats {

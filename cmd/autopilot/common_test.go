@@ -1,7 +1,7 @@
 package main
 
 import (
-	"decipher.com/oduploader/autopilot"
+	"decipher.com/object-drive-server/autopilot"
 	"log"
 	"net/http"
 	"testing"

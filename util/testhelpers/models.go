@@ -1,6 +1,6 @@
 package testhelpers
 
-import "decipher.com/oduploader/metadata/models"
+import "decipher.com/object-drive-server/metadata/models"
 
 // NewODCommonMetaWithDN is a convenince constructor for creating an ODCommonMeta.
 func NewODCommonMetaWithDN(dn string) (models.ODCommonMeta, error) {

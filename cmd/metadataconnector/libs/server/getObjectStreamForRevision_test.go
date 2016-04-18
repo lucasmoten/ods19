@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"testing"
 
-	"decipher.com/oduploader/protocol"
-	"decipher.com/oduploader/util/testhelpers"
+	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestGetObjectStreamForRevision_CurrentVersion(t *testing.T) {
