@@ -27,6 +27,10 @@ func (dao *DataAccessLayer) GetObject(object models.ODObject, loadProperties boo
 func getObjectInTransaction(tx *sqlx.Tx, object models.ODObject, loadProperties bool) (models.ODObject, error) {
 	var dbObject models.ODObject
 
+	if len(object.ID) == 0 {
+		return dbObject, ErrMissingID
+	}
+
 	getObjectStatement := `select o.*, ot.name typeName from object o 
     inner join object_type ot on o.typeid = ot.id 
     where o.id = ?`

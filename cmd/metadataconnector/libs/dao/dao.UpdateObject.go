@@ -33,13 +33,13 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
 
 	// Pre-DB Validation
 	if object.ID == nil {
-		return errMissingID
+		return ErrMissingID
 	}
 	if object.ChangeToken == "" {
-		return errMissingChangeToken
+		return ErrMissingChangeToken
 	}
 	if object.ModifiedBy == "" {
-		return errMissingModifiedBy
+		return ErrMissingModifiedBy
 	}
 
 	// Fetch current state of object

@@ -31,10 +31,10 @@ func (dao *DataAccessLayer) DeleteObjectPermission(objectPermission models.ODObj
 func deleteObjectPermissionInTransaction(tx *sqlx.Tx, objectPermission models.ODObjectPermission, propagateToChildren bool) (models.ODObjectPermission, error) {
 	dbObjectPermission := models.ODObjectPermission{}
 	if objectPermission.ID == nil {
-		return dbObjectPermission, errMissingID
+		return dbObjectPermission, ErrMissingID
 	}
 	if objectPermission.ChangeToken == "" {
-		return dbObjectPermission, errMissingChangeToken
+		return dbObjectPermission, ErrMissingChangeToken
 	}
 	// Fetch object permission
 	dbObjectPermission, err := getObjectPermissionInTransaction(tx, objectPermission)
