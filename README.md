@@ -69,7 +69,7 @@ Metadataconnector Browser:
 You should be able to build the source like this.
 
 ```
-$ git clone ssh://git@gitlab.363-283.io:2252/rob.fielding/object-drive-server.git $GOPATH/src/decipher.com
+$ git clone ssh://git@gitlab.363-283.io:2252/cte/object-drive-server.git $GOPATH/src/decipher.com
 $ cd $GOPATH/src/decipher.com
 ```
 
