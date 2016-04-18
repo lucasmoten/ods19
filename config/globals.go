@@ -102,7 +102,7 @@ func locateProjectRoot() string {
 
 	gopath := os.Getenv("GOPATH")
 	if gopath == "" {
-		log.Printf("GOPATH is not set.")
+		log.Printf("GOPATH is not set. Using current directory for project root.")
 		projectRoot, err = os.Getwd()
 		if err != nil {
 			log.Fatal(err)
@@ -118,6 +118,7 @@ func locateProjectRoot() string {
 	if !ok {
 		log.Println("ProjectRoot does not exist")
 	}
+	log.Println("Located project root at", projectRoot)
 	return projectRoot
 }
 
@@ -151,6 +152,11 @@ func init() {
 		theIP := ips[0]
 		DockerVM = theIP.String()
 	}
+
+	if overridden := os.Getenv("dockervm_override"); overridden != "" {
+		DockerVM = overridden
+	}
+
 	//Find our IP that we want gatekeeper to contact us with
 	hostname, err := os.Hostname()
 	if err != nil {

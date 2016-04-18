@@ -4,6 +4,7 @@ This is an encrypted file storage API with a REST interface.
 
 # Project Management
 
+
 Issues are tracked internally in this [Google Doc](https://docs.google.com/spreadsheets/d/1Eiuu8uH6O6_uPtz6icOgLof3JYExhPDo9RelJDFsDeA/edit#gid=538633894)
 
 # Vendoring
@@ -16,7 +17,7 @@ go get github.com/kardianos/govendor
 cd $GOPATH/src/github.com/kardianos/govendor
 go install
 
-#now govendor is in $GOPATH/bin, which should be in your path along with $GOROOT/bin
+# now govendor is in $GOPATH/bin, which should be in your path along with $GOROOT/bin
 #sync up all dependencies
 cd $GOPATH/src/decipher.com/oduploader
 govendor sync
@@ -37,8 +38,6 @@ $GOPATH/
       oduploader/
 ```
 
-
-We use ~/gocode as my $GOPATH.
 Checkouts from gitlab are cloned into decipher.com,
 which allows for cross-references between packages.
 Note that some things will not build until package are retrieved.
@@ -106,4 +105,8 @@ go test ./... -short=true -v
 
 Hooray for automated tests!
 
+# Other Configuration
+
+Binaries for the main server are built under **/cmd/metadataconnector**. By default,
+the main configuration is read from a **conf.json** from the same directory.
 

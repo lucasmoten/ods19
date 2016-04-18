@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/go-sql-driver/mysql"
@@ -14,11 +15,9 @@ var (
 	defaultDBDriver = "mysql"
 	defaultDBHost   = "127.0.0.1"
 	defaultDBPort   = "3306"
-	//DefaultBucket is the AWS S3 bucket name
+	// DefaultBucket is the AWS S3 bucket name
 	DefaultBucket = "decipherers"
-	//DefaultBucketPartition is the directory in the bucket - used to allow multiple users
-	//XXX should be unique per database instance to assist in garbage collection
-	//of the bucket
+	// DefaultBucketPartition is the directory in the bucket - used to allow multiple users
 	DefaultBucketPartition = "cache"
 )
 
@@ -74,12 +73,13 @@ func NewAppConfiguration() AppConfiguration {
 	configuration := AppConfiguration{}
 	err = decoder.Decode(&configuration)
 	if err != nil {
-		fmt.Println("error:", err)
+		log.Fatal("Could not decode configuration file")
 	}
 
 	// Use reflection to iterate over the struct
 	//ExpandEnvironmentVariables(configuration)
 	// reflection issues with structs and pointers for now, so just hardcoding this. As the struct changes, this logic will also need updated
+	// TODO: Is this a problem in environments with no GOPATH set?
 	configuration.DatabaseConnection.CAPath = os.ExpandEnv(configuration.DatabaseConnection.CAPath)
 	configuration.DatabaseConnection.ClientCert = os.ExpandEnv(configuration.DatabaseConnection.ClientCert)
 	configuration.DatabaseConnection.ClientKey = os.ExpandEnv(configuration.DatabaseConnection.ClientKey)
@@ -167,13 +167,9 @@ func (r *ServerSettingsConfiguration) GetTLSConfig() tls.Config {
 	return r.buildTLSConfig()
 }
 
-// =============================================================================
-// Unexported members
-// =============================================================================
-
 // buildDSN prepares a Data Source Name (DNS) suitable for mysql using the
 // driver and documentation found here: https://github.com/go-sql-driver/mysql.
-// This format is similar to the PEAR DB format but may need alteration
+// This format is similar to the PEAR DB format, but may need alteration.
 // http://pear.php.net/manual/en/package.database.db.intro-dsn.php
 func (r *DatabaseConnectionConfiguration) buildDSN() string {
 	var dbDSN = ""
@@ -224,6 +220,7 @@ func (r *DatabaseConnectionConfiguration) buildDSN() string {
 			dbDSN += r.Params
 		}
 	}
+	log.Printf("Using this connection string: %s\n", dbDSN)
 	return dbDSN
 }
 

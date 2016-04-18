@@ -32,6 +32,7 @@ var httpclients []*http.Client
 
 func init() {
 	host = fmt.Sprintf("https://%s:%s", cfg.DockerVM, cfg.Port)
+	log.Println("Using this host addrress for server_test:", host)
 	generatePopulation()
 
 }
@@ -61,7 +62,7 @@ func populateClients(population int) {
 		// user in the database
 		_, err = httpclients[i].Do(faviconReq)
 		if err != nil {
-			log.Println("Error in populateClients")
+			log.Printf("Error in populateClients: %v/n", err)
 		}
 	}
 }
