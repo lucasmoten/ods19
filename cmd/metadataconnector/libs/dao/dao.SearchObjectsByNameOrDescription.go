@@ -8,6 +8,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/protocol"
 )
 
@@ -36,9 +37,10 @@ func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUs
         from object o
             inner join object_type ot on o.typeid = ot.id
             inner join object_permission op	on o.id = op.objectid and op.isdeleted = 0 and op.allowread = 1
+            inner join object_acm acm on o.id = acm.objectid            
         where 
-            o.isdeleted = 0 and o.isexpunged = 0 and o.isancestordeleted = 0 
-            and op.grantee = ? `
+            o.isdeleted = 0 and o.isexpunged = 0 and o.isancestordeleted = 0`
+	query += buildFilterForUserACMShare(user)
 	query += buildFilterForUserACM(user)
 	query += buildFilterSortAndLimit(pagingRequest)
 
@@ -212,12 +214,95 @@ func buildFilterSortAndLimitArchive(pagingRequest protocol.PagingRequest) string
 	return a
 }
 
+func buildFilterForUserACMShare(user models.ODUser) string {
+
+	// Return if user.Snippets not defined, or there were no shares.
+	defaultSQL := " and op.grantee = ? "
+
+	if user.Snippets == nil {
+		return defaultSQL
+	}
+
+	// sql is going to be the returned portion of the where clause built up from the snippets
+	var sql string
+
+	// If the snippet defines f_share, this will be used to capture as we iterate through the fields
+	var shareSnippet acm.RawSnippetFields
+
+	// Now iterate all the fields looking for f_share
+	for _, rawFields := range user.Snippets.Snippets {
+		switch rawFields.FieldName {
+		case "f_share":
+			// This field is handled differently tied into permissions.  Capture it
+			shareSnippet = rawFields
+			break
+		default:
+			// All other snippet fields ignored for this operation
+			continue
+		}
+	}
+
+	// If share settings were defined with additional groups
+	if len(shareSnippet.Values) > 0 {
+		sql = " and (op.grantee = ? "
+		for _, shareValue := range shareSnippet.Values {
+			if !strings.Contains(shareValue, "cusou") && !strings.Contains(shareValue, "governmentcus") {
+				sql += " or op.grantee = '" + MySQLSafeString(shareValue) + "'"
+			}
+		}
+		sql += ") "
+	} else {
+		sql = defaultSQL
+	}
+
+	return sql
+}
+
 func buildFilterForUserACM(user models.ODUser) string {
-	// TODO: Either have the ACM Snippets as part of the ODUser object,
-	// or need to call out to AAC with the user.DistinguishedName to
-	// build it up and then parse and form the appropriate filters against
-	// the ACM table tied to an object.
-	return ""
+
+	if user.Snippets == nil {
+		return " "
+	}
+
+	// The user object passed in has the AAC Snippets on it already.
+
+	// sql is going to be the returned portion of the where clause built up from the snippets
+	var sql string
+	// Now iterate all the fields building up the where clause portion
+	for _, rawFields := range user.Snippets.Snippets {
+		fieldName := "acm."
+		switch rawFields.FieldName {
+		case "f_clearance", "f_oc_org", "f_missions", "f_regions", "f_macs", "f_sci_ctrls", "f_accms", "f_sar_id", "f_atom_energy", "f_dissem_countries":
+			fieldName += rawFields.FieldName
+		case "dissem_countries":
+			fieldName += "f_dissem_countries"
+		default:
+			// All other snippet fields not used here (f_share has its own handler)
+			continue
+		}
+		switch rawFields.Treatment {
+		case "disallow":
+			if len(rawFields.Values) > 0 {
+				sql += " and (" + fieldName + " is null or " + fieldName + " = '' or " + fieldName + " = ',,' or (1=1"
+				for _, value := range rawFields.Values {
+					sql += " and " + fieldName + " not like '%," + MySQLSafeString(value) + ",%'"
+				}
+				sql += ")) "
+			}
+		case "allowed":
+			sql += " and (" + fieldName + " is null or " + fieldName + " = '' or " + fieldName + " = ',,'"
+			for _, value := range rawFields.Values {
+				sql += " or " + fieldName + " like '%," + MySQLSafeString(value) + ",%'"
+			}
+			sql += ") "
+		default:
+			// Treatment type not handled. Log it and continue
+			log.Printf("Unhandled treatment type when assembling ACM filter: %s", rawFields.Treatment)
+			continue
+		}
+	}
+
+	return sql
 }
 
 // MySQLSafeString takes an input string and escapes characters as appropriate

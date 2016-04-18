@@ -1,9 +1,7 @@
 package server
 
 import (
-	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 
 	"golang.org/x/net/context"
@@ -15,11 +13,15 @@ import (
 
 func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	// Get caller value from ctx.
-	caller, ok := CallerFromContext(ctx)
+	// Get user from context
+	user, ok := UserFromContext(ctx)
 	if !ok {
-		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
-		return
+		caller, ok := CallerFromContext(ctx)
+		if !ok {
+			sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
+			return
+		}
+		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
 	}
 
 	// Parse Request
@@ -29,8 +31,14 @@ func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWrit
 		return
 	}
 
+	// Snippets
+	snippetFields, err := h.FetchUserSnippets(ctx)
+	if err != nil {
+		sendErrorResponse(&w, 504, errors.New("Error retrieving user permissions."), err.Error())
+	}
+	user.Snippets = snippetFields
+
 	// Fetch objects for requested page
-	user := models.ODUser{DistinguishedName: caller.DistinguishedName}
 	result, err := h.DAO.GetObjectsSharedToMe(user, *pagingRequest)
 	if err != nil {
 		sendErrorResponse(&w, 500, err, "GetObjectsSharedToMe query failed")
@@ -39,21 +47,6 @@ func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWrit
 
 	// Render Response
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&result)
-	listUserObjectSharesResponseAsJSON(w, r, caller, &apiResponse)
+	writeResultsetAsJSON(w, &apiResponse)
 	countOKResponse()
-}
-
-func listUserObjectSharesResponseAsJSON(
-	w http.ResponseWriter,
-	r *http.Request,
-	caller Caller,
-	response *protocol.ObjectResultset,
-) {
-	w.Header().Set("Content-Type", "application/json")
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		log.Printf("Error marshalling response as json: %s", err.Error())
-		return
-	}
-	w.Write(jsonData)
 }

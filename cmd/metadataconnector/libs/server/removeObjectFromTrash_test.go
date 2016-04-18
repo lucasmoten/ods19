@@ -15,6 +15,7 @@ import (
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/services/aac"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
@@ -117,15 +118,30 @@ func TestHTTPUndeleteObject(t *testing.T) {
 
 func TestUndeleteExpungedObjectFails(t *testing.T) {
 
+	userCache := server.NewUserCache()
+	snippetCache := server.NewSnippetCache()
+
 	user1, user2 := setupFakeUsers()
 
 	expungedObj := testhelpers.NewTrashedObject(fakeDN1)
 	expungedObj.IsExpunged = true
 
-	s := server.AppServer{}
-	s.DAO = &dao.FakeDAO{
+	snippetResp := testhelpers.GetTestSnippetResponse()
+
+	fakeAAC := &aac.FakeAAC{
+		SnippetResp: snippetResp,
+		Err:         nil,
+	}
+
+	fakeDAO := &dao.FakeDAO{
 		Object: expungedObj,
 		Users:  []models.ODUser{user1, user2},
+	}
+	s := server.AppServer{
+		DAO:      fakeDAO,
+		Users:    userCache,
+		Snippets: snippetCache,
+		AAC:      fakeAAC,
 	}
 
 	guid, _ := util.NewGUID()
@@ -157,10 +173,26 @@ func TestUndeleteObjectWithDeletedAncestorFails(t *testing.T) {
 	withAncestorDeleted := testhelpers.NewTrashedObject(fakeDN1)
 	withAncestorDeleted.IsAncestorDeleted = true
 
-	s := server.AppServer{}
-	s.DAO = &dao.FakeDAO{
+	snippetResp := testhelpers.GetTestSnippetResponse()
+
+	fakeAAC := &aac.FakeAAC{
+		SnippetResp: snippetResp,
+		Err:         nil,
+	}
+
+	fakeDAO := &dao.FakeDAO{
 		Object: withAncestorDeleted,
 		Users:  []models.ODUser{user1, user2},
+	}
+
+	userCache := server.NewUserCache()
+	snippetCache := server.NewSnippetCache()
+
+	s := server.AppServer{
+		DAO:      fakeDAO,
+		AAC:      fakeAAC,
+		Users:    userCache,
+		Snippets: snippetCache,
 	}
 
 	guid, _ := util.NewGUID()

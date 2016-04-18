@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -35,11 +34,15 @@ import (
 //		}
 func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	// Get caller value from ctx.
-	caller, ok := CallerFromContext(ctx)
+	// Get user from context
+	user, ok := UserFromContext(ctx)
 	if !ok {
-		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
-		return
+		caller, ok := CallerFromContext(ctx)
+		if !ok {
+			sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
+			return
+		}
+		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
 	}
 
 	// Parse Request
@@ -67,7 +70,7 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	// Check for permission to read this object
 	canReadObject := false
 	for _, perm := range dbObject.Permissions {
-		if perm.AllowRead && perm.Grantee == caller.DistinguishedName {
+		if perm.AllowRead && perm.Grantee == user.DistinguishedName {
 			canReadObject = true
 			break
 		}
@@ -91,8 +94,14 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 		}
 	}
 
+	// Snippets
+	snippetFields, err := h.FetchUserSnippets(ctx)
+	if err != nil {
+		sendErrorResponse(&w, 504, errors.New("Error retrieving user permissions."), err.Error())
+	}
+	user.Snippets = snippetFields
+
 	// Get the revision information for this objects
-	user := models.ODUser{DistinguishedName: caller.DistinguishedName}
 	response, err := h.DAO.GetObjectRevisionsWithPropertiesByUser(user, *pagingRequest, dbObject)
 	if err != nil {
 		log.Println(err)
@@ -102,20 +111,6 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 
 	// Response in requested format
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&response)
-	listObjectRevisionsResponseAsJSON(w, r, &apiResponse)
+	writeResultsetAsJSON(w, &apiResponse)
 	countOKResponse()
-}
-
-func listObjectRevisionsResponseAsJSON(
-	w http.ResponseWriter,
-	r *http.Request,
-	response *protocol.ObjectResultset,
-) {
-	w.Header().Set("Content-Type", "application/json")
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		log.Printf("Error marshalling response as json: %s", err.Error())
-		return
-	}
-	w.Write(jsonData)
 }

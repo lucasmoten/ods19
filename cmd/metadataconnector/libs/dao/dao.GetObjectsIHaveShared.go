@@ -31,6 +31,7 @@ func getObjectsIHaveSharedInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
     from object o
         inner join object_type ot on o.typeid = ot.id
         inner join object_permission op on op.objectId = o.id
+        inner join object_acm acm on o.id = acm.objectid            
     where o.isdeleted = 0 
         and op.isdeleted = 0 
         and op.explicitShare = 1

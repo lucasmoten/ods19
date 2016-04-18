@@ -270,26 +270,26 @@ func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) (models.O
 
 func MapACMToODObjectACM(i *acm.ACM) models.ODObjectACM {
 	o := models.ODObjectACM{}
-	o.FlatACCMS.String = strings.Join(i.FlatACCMs, ",")
+	o.FlatACCMS.String = "," + strings.Join(i.FlatACCMs, ",") + ","
 	o.FlatACCMS.Valid = true
-	o.FlatAtomEnergy.String = strings.Join(i.FlatAtomEnergy, ",")
+	o.FlatAtomEnergy.String = "," + strings.Join(i.FlatAtomEnergy, ",") + ","
 	o.FlatAtomEnergy.Valid = true
-	o.FlatClearance = strings.Join(i.FlatClearance, ",")
-	o.FlatDissemCountries.String = strings.Join(i.DisseminationCountries, ",")
+	o.FlatClearance = "," + strings.Join(i.FlatClearance, ",") + ","
+	o.FlatDissemCountries.String = "," + strings.Join(i.DisseminationCountries, ",") + ","
 	o.FlatDissemCountries.Valid = true
-	o.FlatMAC.String = strings.Join(i.FlatMACs, ",")
+	o.FlatMAC.String = "," + strings.Join(i.FlatMACs, ",") + ","
 	o.FlatMAC.Valid = true
-	o.FlatMissions.String = strings.Join(i.FlatMissions, ",")
+	o.FlatMissions.String = "," + strings.Join(i.FlatMissions, ",") + ","
 	o.FlatMissions.Valid = true
-	o.FlatOCOrgs.String = strings.Join(i.FlatOCOrgs, ",")
+	o.FlatOCOrgs.String = "," + strings.Join(i.FlatOCOrgs, ",") + ","
 	o.FlatOCOrgs.Valid = true
-	o.FlatRegions.String = strings.Join(i.FlatRegions, ",")
+	o.FlatRegions.String = "," + strings.Join(i.FlatRegions, ",") + ","
 	o.FlatRegions.Valid = true
-	o.FlatSAR.String = strings.Join(i.SpecialAccessRequiredID, ",")
+	o.FlatSAR.String = "," + strings.Join(i.SpecialAccessRequiredID, ",") + ","
 	o.FlatSAR.Valid = true
-	o.FlatSCI.String = strings.Join(i.FlatSCIControls, ",")
+	o.FlatSCI.String = "," + strings.Join(i.FlatSCIControls, ",") + ","
 	o.FlatSCI.Valid = true
-	o.FlatShare.String = strings.Join(i.FlatShare, ",")
+	o.FlatShare.String = "," + strings.Join(i.FlatShare, ",") + ","
 	o.FlatShare.Valid = true
 	return o
 }

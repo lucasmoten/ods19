@@ -39,10 +39,12 @@ func getRootObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
             and op.isdeleted = 0
             and op.allowread = 1
             and o.ownedBy = op.grantee
+        inner join object_acm acm on o.id = acm.objectid
     where 
         o.isdeleted = 0 and o.parentid is null and o.ownedby = ? `
 	query += buildFilterForUserACM(user)
 	query += buildFilterSortAndLimit(pagingRequest)
+	//log.Println(query)
 	err := tx.Select(&response.Objects, query, user.DistinguishedName)
 	if err != nil {
 		print(err.Error())

@@ -44,6 +44,9 @@ func TestAppServerGetObject(t *testing.T) {
 		Users:  []models.ODUser{user},
 	}
 
+	userCache := server.NewUserCache()
+	snippetCache := server.NewSnippetCache()
+
 	checkAccessResponse := aac.CheckAccessResponse{
 		Success:   true,
 		HasAccess: true,
@@ -57,6 +60,8 @@ func TestAppServerGetObject(t *testing.T) {
 	fakeServer := server.AppServer{DAO: &fakeDAO,
 		ServicePrefix: cfg.RootURLRegex,
 		AAC:           &fakeAAC,
+		Users:         userCache,
+		Snippets:      snippetCache,
 	}
 	fakeServer.InitRegex()
 

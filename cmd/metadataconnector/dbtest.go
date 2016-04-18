@@ -185,6 +185,9 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		dp = server.NewS3DrainProvider(cacheID)
 	}
 
+	userCache := server.NewUserCache()
+	snippetCache := server.NewSnippetCache()
+
 	httpHandler := server.AppServer{
 		Port:          serverConfig.ListenPort,
 		Bind:          serverConfig.ListenBind,
@@ -197,6 +200,8 @@ func makeServer(serverConfig config.ServerSettingsConfiguration, db *sqlx.DB) (*
 		TemplateCache: templates,
 		StaticDir:     staticPath,
 		ZKState:       zkState,
+		Users:         userCache,
+		Snippets:      snippetCache,
 	}
 
 	if httpHandler.AAC == nil {
@@ -231,30 +236,32 @@ func pingDB(db *sqlx.DB) int {
 			dbPingSuccess = true
 			exitCode = 0
 		} else if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-			fmt.Println("Timeout connecting to database.")
+			log.Println("Timeout connecting to database.")
 			exitCode = 28
 		} else if match, _ := regexp.MatchString(".*lookup.*", err.Error()); match {
-			fmt.Println("Unknown host error connecting to database. Review conf.json configuration. Halting")
+			log.Println("Unknown host error connecting to database. Review conf.json configuration. Halting")
 			exitCode = 6
 			return exitCode
 		} else if match, _ := regexp.MatchString(".*connection refused.*", err.Error()); match {
-			fmt.Println("Connection refused connecting to database. Database may not yet be online.")
+			log.Println("Connection refused connecting to database. Database may not yet be online.")
 			exitCode = 7
 		} else {
-			fmt.Println("Unhandled error while connecting to database.")
-			fmt.Println(err.Error())
-			fmt.Println("Halting")
+			log.Println("Unhandled error while connecting to database.")
+			log.Println(err.Error())
+			log.Println("Halting")
 			exitCode = 1
 			return exitCode
 		}
 		if !dbPingSuccess {
 			if dbPingAttempt < dbPingAttemptMax {
-				fmt.Println("Retrying in 3 seconds")
+				log.Println("Retrying in 3 seconds")
 				time.Sleep(time.Second * 3)
 			} else {
-				fmt.Println("Maximum retries exhausted. Halting")
+				log.Println("Maximum retries exhausted. Halting")
 				return exitCode
 			}
+		} else {
+			log.Println("Database connection succesful!")
 		}
 	}
 	return exitCode

@@ -31,11 +31,15 @@ import (
 //				}
 func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	// Get caller value from ctx.
-	caller, ok := CallerFromContext(ctx)
+	// Get user from context
+	user, ok := UserFromContext(ctx)
 	if !ok {
-		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
-		return
+		caller, ok := CallerFromContext(ctx)
+		if !ok {
+			sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
+			return
+		}
+		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
 	}
 
 	parentObject := models.ODObject{}
@@ -59,9 +63,15 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 		}
 	}
 
+	// Snippets
+	snippetFields, err := h.FetchUserSnippets(ctx)
+	if err != nil {
+		sendErrorResponse(&w, 504, errors.New("Error retrieving user permissions."), err.Error())
+	}
+	user.Snippets = snippetFields
+
 	// Fetch the matching objects
 	var response models.ODObjectResultset
-	user := models.ODUser{DistinguishedName: caller.DistinguishedName}
 	if parentObject.ID == nil {
 		// Requesting root
 		response, err = h.DAO.GetRootObjectsWithPropertiesByUser(user, *pagingRequest)
@@ -76,7 +86,7 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 		// Check for permission to read this object
 		canReadObject := false
 		for _, perm := range dbObject.Permissions {
-			if perm.AllowRead && perm.Grantee == caller.DistinguishedName {
+			if perm.AllowRead && perm.Grantee == user.DistinguishedName {
 				canReadObject = true
 				break
 			}
@@ -111,13 +121,12 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 
 	// Response in requested format
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&response)
-	listObjectsResponseAsJSON(w, r, &apiResponse)
+	writeResultsetAsJSON(w, &apiResponse)
 	countOKResponse()
 }
 
-func listObjectsResponseAsJSON(
+func writeResultsetAsJSON(
 	w http.ResponseWriter,
-	r *http.Request,
 	response *protocol.ObjectResultset,
 ) {
 	w.Header().Set("Content-Type", "application/json")

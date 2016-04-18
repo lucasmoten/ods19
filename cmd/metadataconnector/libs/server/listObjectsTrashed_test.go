@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/services/aac"
 
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/dao"
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/server"
@@ -29,7 +30,24 @@ func TestListObjectsTrashedJSONResponse(t *testing.T) {
 		ObjectResultSet: resultset,
 		Users:           []models.ODUser{user},
 	}
-	s := server.AppServer{DAO: &fakeDAO, ServicePrefix: cfg.RootURLRegex}
+
+	snippetResp := testhelpers.GetTestSnippetResponse()
+
+	fakeAAC := aac.FakeAAC{
+		SnippetResp: snippetResp,
+		Err:         nil,
+	}
+
+	userCache := server.NewUserCache()
+	snippetCache := server.NewSnippetCache()
+
+	s := server.AppServer{
+		DAO:           &fakeDAO,
+		ServicePrefix: cfg.RootURLRegex,
+		Users:         userCache,
+		Snippets:      snippetCache,
+		AAC:           &fakeAAC,
+	}
 	s.InitRegex()
 
 	r, err := http.NewRequest("GET", cfg.RootURL+"/trashed?pageNumber=1&pageSize=50", nil)
@@ -106,6 +124,9 @@ func TestHTTPListObjectsTrashed(t *testing.T) {
 	trashURI := host + cfg.RootURL + "/trashed?pageNumber=1&pageSize=1000"
 
 	trashReq, err := http.NewRequest("GET", trashURI, nil)
+	if err != nil {
+		t.Errorf("Could not create trashReq: %v\n", err)
+	}
 	trashResp, err := httpclients[clientID].Do(trashReq)
 	if err != nil {
 		t.Errorf("Unable to do trash request:%v\n", err)

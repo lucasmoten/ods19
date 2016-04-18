@@ -186,7 +186,7 @@ function _renderUsersDropdown(obj, users, rowId) {
   var sel = $('<select></select>');
    sel.append($("<option>").attr('value', '').text('--'));
   for ( i=0; i < users.length; i ++ ) {
-   sel.append($("<option>").attr('value', users[i].distinguishedName).text(getCN(users[i].distinguishedName)));
+   sel.append($("<option>").attr('value', users[i].distinguishedName).text(users[i].displayName));
   }
   return '<td><select id="' + rowId + '">' + sel.html() + '</select><button class="shareButton">share</button></td>'
 };
