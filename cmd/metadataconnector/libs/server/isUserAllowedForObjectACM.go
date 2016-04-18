@@ -6,9 +6,9 @@ import (
 
 	"golang.org/x/net/context"
 
-	"decipher.com/oduploader/config"
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/performance"
+	"decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/performance"
 )
 
 func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models.ODObject) (bool, error) {

@@ -12,10 +12,10 @@ import (
 
 	"net/url"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/performance"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/config"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/utils"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/performance"
 )
 
 // getObjectStream gets object data stored in object-drive

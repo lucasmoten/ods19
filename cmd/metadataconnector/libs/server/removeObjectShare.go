@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strings"
 
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/protocol"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/protocol"
 
 	"golang.org/x/net/context"
 )

@@ -6,7 +6,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	"decipher.com/oduploader/performance"
+	"decipher.com/object-drive-server/performance"
 )
 
 func (h AppServer) getStats(ctx context.Context, w http.ResponseWriter, r *http.Request) {

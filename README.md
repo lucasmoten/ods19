@@ -19,7 +19,7 @@ go install
 
 # now govendor is in $GOPATH/bin, which should be in your path along with $GOROOT/bin
 #sync up all dependencies
-cd $GOPATH/src/decipher.com/oduploader
+cd $GOPATH/src/decipher.com/object-drive-server
 govendor sync
 ```
 
@@ -35,7 +35,7 @@ $GOPATH/
   bin
   src/
     decipher.com/
-      oduploader/
+      object-drive-server/
 ```
 
 Checkouts from gitlab are cloned into decipher.com,
@@ -69,7 +69,7 @@ Metadataconnector Browser:
 You should be able to build the source like this.
 
 ```
-$ git clone ssh://git@gitlab.363-283.io:2252/rob.fielding/oduploader.git $GOPATH/src/decipher.com
+$ git clone ssh://git@gitlab.363-283.io:2252/rob.fielding/object-drive-server.git $GOPATH/src/decipher.com
 $ cd $GOPATH/src/decipher.com
 ```
 
@@ -93,7 +93,7 @@ generator -go.signedbytes=true AuditService.thrift ../generated
 Run **every** test in the project with a `./...` recursive walk.
 
 ```
-cd $GOPATH/src/decipher.com/oduploader
+cd $GOPATH/src/decipher.com/object-drive-server
 go test ./... -v
 ```
 

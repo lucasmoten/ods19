@@ -13,14 +13,14 @@ import (
 	"os"
 	"strconv"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
-	cfg "decipher.com/oduploader/config"
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/protocol"
-	"decipher.com/oduploader/services/aac"
-	"decipher.com/oduploader/util"
-	"decipher.com/oduploader/util/testhelpers"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/dao"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/server"
+	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/services/aac"
+	"decipher.com/object-drive-server/util"
+	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 var fakeDN1 = `CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US`
@@ -81,9 +81,9 @@ type ClientIdentity struct {
 
 func getClientIdentity(i int, name string) (*ClientIdentity, error) {
 	ci := &ClientIdentity{
-		TrustPem: os.ExpandEnv("$GOPATH/src/decipher.com/oduploader/defaultcerts/clients/client.trust.pem"),
-		CertPem:  os.ExpandEnv("$GOPATH/src/decipher.com/oduploader/defaultcerts/clients/" + name + ".cert.pem"),
-		KeyPem:   os.ExpandEnv("$GOPATH/src/decipher.com/oduploader/defaultcerts/clients/" + name + ".key.pem"),
+		TrustPem: os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/client.trust.pem"),
+		CertPem:  os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/" + name + ".cert.pem"),
+		KeyPem:   os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/" + name + ".key.pem"),
 	}
 	cfg, err := NewClientTLSConfig(ci)
 	if err != nil {

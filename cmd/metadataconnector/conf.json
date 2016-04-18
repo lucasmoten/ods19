@@ -10,17 +10,17 @@
     ,"Params": "parseTime=true"
     ,"UseTLS": true
     ,"SkipVerify": false
-    ,"CAPath": "$GOPATH/src/decipher.com/oduploader/defaultcerts/client-mysql/trust"
-    ,"ClientCert": "$GOPATH/src/decipher.com/oduploader/defaultcerts/client-mysql/id/client-cert.pem"
-    ,"ClientKey": "$GOPATH/src/decipher.com/oduploader/defaultcerts/client-mysql/id/client-key.pem"
+    ,"CAPath": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/trust"
+    ,"ClientCert": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem"
+    ,"ClientKey": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-key.pem"
   },
   "ServerSettings": {
     "ListenPort": 4430
     ,"ListenBind": "0.0.0.0"
     ,"UseTLS": true
-    ,"CAPath": "$GOPATH/src/decipher.com/oduploader/defaultcerts/server/trust.pem"
-    ,"ServerCertChain": "$GOPATH/src/decipher.com/oduploader/defaultcerts/server/server.cert.pem"
-    ,"ServerKey": "$GOPATH/src/decipher.com/oduploader/defaultcerts/server/server.key.pem"
+    ,"CAPath": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/server/trust.pem"
+    ,"ServerCertChain": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/server/server.cert.pem"
+    ,"ServerKey": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/server/server.key.pem"
     ,"RequireClientCert": true
     ,"CipherSuites" : [
       "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"

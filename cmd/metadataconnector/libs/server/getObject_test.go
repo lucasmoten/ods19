@@ -5,13 +5,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	cfg "decipher.com/oduploader/config"
+	cfg "decipher.com/object-drive-server/config"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/services/aac"
-	"decipher.com/oduploader/util"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/dao"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/server"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/services/aac"
+	"decipher.com/object-drive-server/util"
 )
 
 func TestAppServerGetObject(t *testing.T) {

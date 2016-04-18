@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"decipher.com/oduploader/autopilot"
-	"decipher.com/oduploader/protocol"
+	"decipher.com/object-drive-server/autopilot"
+	"decipher.com/object-drive-server/protocol"
 )
 
 /*

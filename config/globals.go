@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"decipher.com/oduploader/util"
+	"decipher.com/object-drive-server/util"
 )
 
 // Environment is all parameters passable into this program
@@ -87,7 +87,7 @@ var ProjectRoot string
 
 // ProjectName is configurable in case the project is migrated to another
 // git repository.
-var ProjectName = "oduploader"
+var ProjectName = "object-drive-server"
 
 // Set up global configs.
 func init() {

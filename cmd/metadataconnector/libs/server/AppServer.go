@@ -10,14 +10,14 @@ import (
 
 	"golang.org/x/net/context"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/performance"
-	aac "decipher.com/oduploader/services/aac"
-	audit "decipher.com/oduploader/services/audit/generated/auditservice_thrift"
-	"decipher.com/oduploader/services/zookeeper"
-	"decipher.com/oduploader/util"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/config"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/dao"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/performance"
+	aac "decipher.com/object-drive-server/services/aac"
+	audit "decipher.com/object-drive-server/services/audit/generated/auditservice_thrift"
+	"decipher.com/object-drive-server/services/zookeeper"
+	"decipher.com/object-drive-server/util"
 )
 
 // Constants serve as keys for setting values on a request-scoped Context.

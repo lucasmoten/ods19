@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	cfg "decipher.com/oduploader/config"
+	cfg "decipher.com/object-drive-server/config"
 	"golang.org/x/net/context"
 )
 

@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	cfg "decipher.com/oduploader/config"
+	cfg "decipher.com/object-drive-server/config"
 
-	"decipher.com/oduploader/protocol"
+	"decipher.com/object-drive-server/protocol"
 )
 
 func TestAddObjectShare(t *testing.T) {

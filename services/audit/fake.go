@@ -1,7 +1,7 @@
 package audit
 
 import (
-	audit "decipher.com/oduploader/services/audit/generated/auditservice_thrift"
+	audit "decipher.com/object-drive-server/services/audit/generated/auditservice_thrift"
 )
 
 // FakeAudit mocks the Audit Service.

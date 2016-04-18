@@ -5,8 +5,8 @@ import (
 
 	"time"
 
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/protocol"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/protocol"
 )
 
 // FakeDAO is suitable for tests. Add fields to this struct to hold fake

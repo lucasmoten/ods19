@@ -10,13 +10,13 @@ import (
 	"os"
 	"testing"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/dao"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
-	cfg "decipher.com/oduploader/config"
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/protocol"
-	"decipher.com/oduploader/util"
-	"decipher.com/oduploader/util/testhelpers"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/dao"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/server"
+	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util"
+	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestHTTPUndeleteObject(t *testing.T) {

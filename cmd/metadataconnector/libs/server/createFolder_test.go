@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	cfg "decipher.com/oduploader/config"
-	"decipher.com/oduploader/util/testhelpers"
+	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/util/testhelpers"
 
-	"decipher.com/oduploader/protocol"
+	"decipher.com/object-drive-server/protocol"
 )
 
 func TestCreateFolderProtocol(t *testing.T) {

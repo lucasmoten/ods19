@@ -9,8 +9,8 @@ import (
 
 	"io/ioutil"
 
-	"decipher.com/oduploader/protocol"
-	"decipher.com/oduploader/util/testhelpers"
+	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func doMaliciousUpdate(t *testing.T, oid, jsonString string) {

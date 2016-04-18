@@ -5,7 +5,7 @@ package events_thrift
 import (
 	"fmt"
 
-	"decipher.com/oduploader/services/audit/generated/components_thrift"
+	"decipher.com/object-drive-server/services/audit/generated/components_thrift"
 )
 
 var _ = fmt.Sprintf

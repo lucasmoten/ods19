@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/metadata/models/acm"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/mapping"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/metadata/models/acm"
 	"github.com/jmoiron/sqlx"
 )
 

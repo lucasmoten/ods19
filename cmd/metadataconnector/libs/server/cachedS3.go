@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/config"
 
 	"syscall"
 

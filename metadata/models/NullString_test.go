@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"decipher.com/oduploader/metadata/models"
+	"decipher.com/object-drive-server/metadata/models"
 )
 
 func TestNullString(t *testing.T) {

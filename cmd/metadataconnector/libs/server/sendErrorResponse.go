@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"decipher.com/oduploader/util"
+	"decipher.com/object-drive-server/util"
 )
 
 var (

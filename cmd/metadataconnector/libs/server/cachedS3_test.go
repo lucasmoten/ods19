@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/server"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/server"
 )
 
 func TestCacheCreate(t *testing.T) {

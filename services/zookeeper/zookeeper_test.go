@@ -3,7 +3,7 @@ package zookeeper
 import (
 	"testing"
 
-	cfg "decipher.com/oduploader/config"
+	cfg "decipher.com/object-drive-server/config"
 )
 
 func TestCreateServiceAnnouncement(t *testing.T) {

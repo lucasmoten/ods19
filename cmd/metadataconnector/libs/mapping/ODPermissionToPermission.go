@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/protocol"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/protocol"
 )
 
 // MapODPermissionToPermission converts an internal ODPermission model to an

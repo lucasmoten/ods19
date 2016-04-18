@@ -3,7 +3,7 @@
 package auditservice_thrift
 
 import (
-	"decipher.com/oduploader/services/audit/generated/events_thrift"
+	"decipher.com/object-drive-server/services/audit/generated/events_thrift"
 	"fmt"
 )
 

@@ -13,14 +13,14 @@ import (
 
 	"golang.org/x/net/context"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/config"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/mapping"
-	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/config"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/mapping"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/utils"
 
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/metadata/models/acm"
-	"decipher.com/oduploader/performance"
-	"decipher.com/oduploader/protocol"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/metadata/models/acm"
+	"decipher.com/object-drive-server/performance"
+	"decipher.com/object-drive-server/protocol"
 )
 
 func (h AppServer) acceptObjectUpload(

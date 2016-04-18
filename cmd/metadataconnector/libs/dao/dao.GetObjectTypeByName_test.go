@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"decipher.com/oduploader/metadata/models"
+	"decipher.com/object-drive-server/metadata/models"
 )
 
 func TestDAOGetObjectTypeByName(t *testing.T) {

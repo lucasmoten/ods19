@@ -6,9 +6,9 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"decipher.com/oduploader/cmd/metadataconnector/libs/utils"
-	"decipher.com/oduploader/metadata/models"
-	"decipher.com/oduploader/protocol"
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/utils"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/protocol"
 )
 
 // AddPermissionToObject creates a new permission with the provided object id,

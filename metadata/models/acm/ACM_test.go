@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"decipher.com/oduploader/metadata/models/acm"
-	"decipher.com/oduploader/util/testhelpers"
+	"decipher.com/object-drive-server/metadata/models/acm"
+	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestUnmarshallKnownACMs(t *testing.T) {

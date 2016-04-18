@@ -1,8 +1,8 @@
 package audit
 
 import (
-	auditservice "decipher.com/oduploader/services/audit/generated/auditservice_thrift"
-	auditevents "decipher.com/oduploader/services/audit/generated/events_thrift"
+	auditservice "decipher.com/object-drive-server/services/audit/generated/auditservice_thrift"
+	auditevents "decipher.com/object-drive-server/services/audit/generated/events_thrift"
 	"github.com/samuel/go-thrift/thrift"
 	"github.com/spacemonkeygo/openssl"
 )
