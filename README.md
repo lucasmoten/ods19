@@ -69,6 +69,14 @@ to reference each other.
 $OD_ROOT/object-drive
 ```
 
+Metadataconnector Browser:
+
+* Make sure that you set these environment variables:
+  * AWS_REGION=us-east-1
+  * AWS_ACCESS_KEY_ID
+  * AWS_SECRET_KEY
+  * ZKURL=zk_1:2181,zk_2:2181,zk_3:2181
+
 # Checking out and building
 
 You should be able to build the source like this.
