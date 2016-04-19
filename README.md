@@ -2,14 +2,19 @@
 
 This is an encrypted file storage API with a REST interface.
 
-# Project Management
+# API documentation
 
+API documentation is hosted on the private Bedrock network here (subject to change):
+
+http://10.2.11.150:8000/
+
+# Project Management
 
 Issues are tracked internally in this [Google Doc](https://docs.google.com/spreadsheets/d/1Eiuu8uH6O6_uPtz6icOgLof3JYExhPDo9RelJDFsDeA/edit#gid=538633894)
 
 # Vendoring
 
-We are now moved up to Go1.6, so that vendoring is transparent.  We are using a vendoring tool.
+We are using a vendoring tool called `govendor` to pin our dependencies to a specific commit.
 
 ```
 #get the vendoring tool
@@ -25,10 +30,17 @@ govendor sync
 
 # Hosting The Code
 
-When you checkout Go code, Go does not like to have a path.
-It uses a consistent directory structure instead.
-If you set $GOPATH to point to a location of your go code,
-go code needs to be hosted in the tree:
+Required environment variables:
+* **OD_ROOT** the directory to check out non-Go source dependencies into, including
+  the `cte/object-drive` repository itself.
+* **GOPATH** the Go source tree. `object-drive-server` will be checked out to
+  a path in this tree.
+* **AWS_REGION=us-east-1**  (or your region)
+* **AWS_ACCESS_KEY_ID**  get credentials from your system administrator
+* **AWS_SECRET_KEY** get credentials from your system administrator
+
+All dependent Go code is relative to the **GOPATH**. If the source tree on your
+disk looks like this:
 
 ```
 $GOPATH/
@@ -36,33 +48,26 @@ $GOPATH/
   src/
     decipher.com/
       object-drive-server/
+        somepackage/
 ```
 
-Checkouts from gitlab are cloned into decipher.com,
-which allows for cross-references between packages.
-Note that some things will not build until package are retrieved.
-AWS packages:  github.com/aws-sdk-go is retrieved with
-go get (rather than a manual clone).
+...Import statements for `somepackage` will look like this in Go:
 
-The other code (Java, etc) should be found at $OD_ROOT, which
-is the directory into which we check out the object-drive project.
-Having these conventions is essential, because we have references
-across repositories to built artifacts and static files.
+```go
+import "decipher.com/object-drive-server/somepackage"
+```
 
-Note that $OD_ROOT is where object-drive is checked out.
+
+The other code (Java, etc) should be found at **OD_ROOT**. Python build scripts
+in the `cte/object-drive` project checkout and compile the code under **OD_ROOT**
+
+Note that $OD_ROOT is where `cte/object-drive` is checked out.
 Both directories ($GOPATH $OD_ROOT) allow compile and build steps
 to reference each other.
 
 ```
 $OD_ROOT/object-drive
 ```
-
-Metadataconnector Browser:
-
-* Make sure that you set these environment variables:
-  * AWS_REGION=us-east-1
-  * AWS_ACCESS_KEY_ID
-  * AWS_SECRET_KEY
 
 # Checking out and building
 
@@ -109,4 +114,5 @@ Hooray for automated tests!
 
 Binaries for the main server are built under **/cmd/metadataconnector**. By default,
 the main configuration is read from a **conf.json** from the same directory.
+
 
