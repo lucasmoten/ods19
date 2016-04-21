@@ -17,13 +17,16 @@ import (
 
 func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	// Get caller value from ctx.
-	caller, ok := CallerFromContext(ctx)
+	// Get user from context
+	user, ok := UserFromContext(ctx)
 	if !ok {
-		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
-		return
+		caller, ok := CallerFromContext(ctx)
+		if !ok {
+			sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
+			return
+		}
+		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
 	}
-	_ = caller
 
 	var err error
 
@@ -47,11 +50,11 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 	// Check for permission to read this object
 	canReadObject := false
 
-	if strings.Compare(dbObject.OwnedBy.String, caller.DistinguishedName) == 0 {
+	if strings.Compare(dbObject.OwnedBy.String, user.DistinguishedName) == 0 {
 		canReadObject = true
 	} else {
 		for _, perm := range dbObject.Permissions {
-			if perm.AllowRead && perm.AllowShare && perm.Grantee == caller.DistinguishedName {
+			if perm.AllowRead && perm.AllowShare && perm.Grantee == user.DistinguishedName {
 				canReadObject = true
 				break
 			}

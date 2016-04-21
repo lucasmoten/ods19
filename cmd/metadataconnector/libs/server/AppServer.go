@@ -1,8 +1,6 @@
 package server
 
 import (
-	"encoding/json"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -13,6 +11,7 @@ import (
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/config"
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/dao"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/performance"
 	aac "decipher.com/object-drive-server/services/aac"
 	audit "decipher.com/object-drive-server/services/audit/generated/auditservice_thrift"
@@ -24,6 +23,8 @@ import (
 const (
 	CallerVal        = iota
 	CaptureGroupsVal = iota
+	UserVal          = iota
+	UserSnippetsVal  = iota
 )
 
 // AppServer contains definition for the metadata server
@@ -57,6 +58,10 @@ type AppServer struct {
 	DrainProvider DrainProvider
 	// ZKState is the current state of zookeeper
 	ZKState zookeeper.ZKState
+	// Users contains a cache of users
+	Users *UserCache
+	// Snippets contains a cache of snippets
+	Snippets *SnippetCache
 }
 
 // AppError encapsulates an error with a desired http status code so that the server
@@ -196,43 +201,53 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Prepare a Context to propagate to request handlers
 	var ctx context.Context
 
-	// Load user from database, adding if they dont exist
-	var user models.ODUser
-	var userRequested models.ODUser
-	userRequested.DistinguishedName = caller.DistinguishedName
-	user, err := h.DAO.GetUserByDistinguishedName(userRequested)
-	if err != nil || user.DistinguishedName != caller.DistinguishedName {
-		log.Printf("Creating user in database: %s", err.Error())
-		userRequested.DistinguishedName = caller.DistinguishedName
-		userRequested.DisplayName.String = caller.CommonName
-		userRequested.DisplayName.Valid = true
-		userRequested.CreatedBy = caller.DistinguishedName
-		user, err = h.DAO.CreateUser(userRequested)
-		if err != nil {
-			log.Printf("%s does not exist in database. Error creating: %s", caller.DistinguishedName, err.Error())
-			sendErrorResponse(&w, 500, nil, "Error accessing resource")
-			return
-		}
-	}
-
-	if len(user.ModifiedBy) == 0 {
-		fmt.Println("User does not have modified by set!")
-		jsonData, err := json.MarshalIndent(user, "", "  ")
-		if err != nil {
-			panic(err)
-		}
-		jsonified := string(jsonData)
-		fmt.Println(jsonified)
-	}
-
 	// Set the caller as a value on the Context. Background() creates a new context.
 	// Subsequent calls should pass the same ctx instead of initiliazing a new context.
 	ctx = ContextWithCaller(context.Background(), caller)
 
+	// For routing, examine just the path portion of the URL
 	var uri = r.URL.Path
 
-	//log.Printf("LOGGING APP SERVER CONFIG:%s URI:%s %s BY USER:%s", h.ServicePrefix, r.Method, uri, user.DistinguishedName)
-	log.Printf("URI:%s %s USER:%s", r.Method, uri, user.DistinguishedName)
+	// Log the request. This is predominately diagnostic, as full logging of the
+	// request with status codes and sizing is done in nginx fronting this service
+	log.Printf("URI:%s %s USER:%s", r.Method, uri, caller.DistinguishedName)
+
+	// The following routes can be handled without calls to the database
+	switch r.Method {
+	case "GET":
+		switch {
+		// Development UI
+		case h.Routes.Home.MatchString(uri):
+			h.home(ctx, w, r)
+			return
+		case h.Routes.HomeListObjects.MatchString(uri):
+			h.homeListObjects(ctx, w, r)
+			return
+		case h.Routes.Favicon.MatchString(uri):
+			h.favicon(ctx, w, r)
+			return
+		case h.Routes.StatsObject.MatchString(uri):
+			h.getStats(ctx, w, r)
+			return
+		case h.Routes.StaticFiles.MatchString(uri):
+			h.serveStatic(w, r, h.Routes.StaticFiles, uri)
+			return
+		// API
+		// - documentation
+		case h.Routes.APIDocumentation.MatchString(uri):
+			h.docs(ctx, w, r)
+			return
+		}
+	}
+
+	// Retrieve user
+	user, err := h.FetchUser(ctx)
+	if err != nil {
+		sendErrorResponse(&w, 500, nil, "Error loading user")
+		return
+	}
+	// And put on context
+	ctx = PutUserOnContext(ctx, *user)
 
 	// TODO: use StripPrefix in handler?
 	// https://golang.org/pkg/net/http/#StripPrefix
@@ -240,23 +255,10 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		switch {
 		// Development UI
-		case h.Routes.Home.MatchString(uri):
-			h.home(ctx, w, r)
-		case h.Routes.HomeListObjects.MatchString(uri):
-			h.homeListObjects(ctx, w, r)
-		case h.Routes.Favicon.MatchString(uri):
-			h.favicon(ctx, w, r)
-		case h.Routes.StatsObject.MatchString(uri):
-			h.getStats(ctx, w, r)
-		case h.Routes.StaticFiles.MatchString(uri):
-			h.serveStatic(w, r, h.Routes.StaticFiles, uri)
 		case h.Routes.Users.MatchString(uri):
 			h.listUsers(ctx, w, r)
-		// API
-		// - documentation
-		case h.Routes.APIDocumentation.MatchString(uri):
-			// TODO: route into serveStatic?
-			h.docs(ctx, w, r)
+			// API
+			// - user profile usage information
 		case h.Routes.UserStats.MatchString(uri):
 			h.userStats(ctx, w, r)
 		// - get object properties
@@ -411,6 +413,10 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		do404(ctx, w, r)
 	}
+	// TODO: Before returning, lets capture changes placed back on the context and push into the cache
+	// TODO: UserSnippetsFromContext
+	// TODO: UserSnippetSQL
+
 	// TODO: Before returning, finalize any metrics, capturing time/error codes ?
 }
 
@@ -467,6 +473,28 @@ func parseCaptureGroups(ctx context.Context, path string, regex *regexp.Regexp) 
 func CaptureGroupsFromContext(ctx context.Context) (map[string]string, bool) {
 	captured, ok := ctx.Value(CaptureGroupsVal).(map[string]string)
 	return captured, ok
+}
+
+// PutUserOnContext puts the user object on the context and returns the modified context
+func PutUserOnContext(ctx context.Context, user models.ODUser) context.Context {
+	return context.WithValue(ctx, UserVal, user)
+}
+
+// UserFromContext extracts the user from a context, if set
+func UserFromContext(ctx context.Context) (models.ODUser, bool) {
+	user, ok := ctx.Value(UserVal).(models.ODUser)
+	return user, ok
+}
+
+// PutUserSnippetsOnContext puts the user snippet object on the context and returns the modified context
+func PutUserSnippetsOnContext(ctx context.Context, snippets acm.ODriveRawSnippetFields) context.Context {
+	return context.WithValue(ctx, UserSnippetsVal, snippets)
+}
+
+// UserSnippetsFromContext extracts the user snippets from a context, if set
+func UserSnippetsFromContext(ctx context.Context) (acm.ODriveRawSnippetFields, bool) {
+	snippets, ok := ctx.Value(UserSnippetsVal).(acm.ODriveRawSnippetFields)
+	return snippets, ok
 }
 
 func do404(ctx context.Context, w http.ResponseWriter, r *http.Request) {

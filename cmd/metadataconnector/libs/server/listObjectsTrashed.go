@@ -1,9 +1,7 @@
 package server
 
 import (
-	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/mapping"
@@ -15,10 +13,15 @@ import (
 
 func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	caller, ok := CallerFromContext(ctx)
+	// Get user from context
+	user, ok := UserFromContext(ctx)
 	if !ok {
-		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
-		return
+		caller, ok := CallerFromContext(ctx)
+		if !ok {
+			sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
+			return
+		}
+		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
 	}
 
 	// Parse paging info
@@ -28,8 +31,14 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 		return
 	}
 
+	// Snippets
+	snippetFields, err := h.FetchUserSnippets(ctx)
+	if err != nil {
+		sendErrorResponse(&w, 504, errors.New("Error retrieving user permissions."), err.Error())
+	}
+	user.Snippets = snippetFields
+
 	// Get trash for this user
-	user := models.ODUser{DistinguishedName: caller.DistinguishedName}
 	results, err := h.DAO.GetTrashedObjectsByUser(user, *pagingRequest)
 
 	if err != nil {
@@ -38,16 +47,7 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 	}
 
 	// Map the response and write it out
-	response := mapping.MapODObjectResultsetToObjectResultset(&results)
-	w.Header().Set("Content-Type", "application/json")
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		msg := "Error marshalling response as JSON."
-		log.Printf(msg+" %s", err.Error())
-		sendErrorResponse(&w, 500, err, msg)
-		return
-	}
-	w.Write(jsonData)
-
+	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&results)
+	writeResultsetAsJSON(w, &apiResponse)
 	countOKResponse()
 }

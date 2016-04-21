@@ -202,6 +202,9 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 
 	user1, user2 := setupFakeUsers()
 
+	userCache := server.NewUserCache()
+	snippetCache := server.NewSnippetCache()
+
 	guid, err := util.NewGUID()
 	if err != nil {
 		log.Printf("Could not create GUID.")
@@ -229,7 +232,10 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 
 	s := server.AppServer{DAO: &fakeDAO,
 		ServicePrefix: cfg.RootURLRegex,
-		AAC:           &fakeAAC}
+		AAC:           &fakeAAC,
+		Users:         userCache,
+		Snippets:      snippetCache,
+	}
 	// Panics occur if regex routes are not compiled with InitRegex()
 	s.InitRegex()
 	return &s

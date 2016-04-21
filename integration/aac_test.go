@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/metadata/models/acm"
 	aac "decipher.com/object-drive-server/services/aac"
 	"decipher.com/object-drive-server/util"
 	t2 "github.com/samuel/go-thrift/thrift"
@@ -35,7 +36,9 @@ func DontRun() bool {
 }
 
 func TestMain(m *testing.M) {
-	if DontRun() == false {
+	if DontRun() {
+		return
+	} else {
 		trustPath := filepath.Join(config.CertsDir, "clients", "client.trust.pem")
 		certPath := filepath.Join(config.CertsDir, "clients", "test_1.cert.pem")
 		keyPath := filepath.Join(config.CertsDir, "clients", "test_1.key.pem")
@@ -50,6 +53,7 @@ func TestMain(m *testing.M) {
 		trns := t2.NewTransport(t2.NewFramedReadWriteCloser(conn, 0), t2.BinaryProtocol)
 		client := t2.NewClient(trns, true)
 		aacClient = aac.AacServiceClient{Client: client}
+		m.Run()
 	}
 }
 
@@ -309,5 +313,96 @@ func TestGetShare(t *testing.T) {
 		t.Logf("Error in GetShare() response. Expected Success: true. Got: %v \n", resp.Success)
 		t.Fail()
 	}
+
+}
+
+func TestGetSnippetsOdriveRaw(t *testing.T) {
+	if DontRun() {
+		t.Skip("Skipping as integration test.")
+	}
+	snippetType := "odrive-raw"
+
+	if DontRun() {
+		t.Skip("Skipping as integration test.")
+	}
+
+	resp, err := aacClient.GetSnippets(userDN1, "pki_dias", snippetType)
+
+	if err != nil {
+		t.Logf("Error from remote call GetSnippets() method: %v \n", err)
+		t.FailNow()
+	}
+
+	if !resp.Success {
+		t.Logf("Error in GetSnippet() response. Expected Success: true. Got: %v \n", resp.Success)
+		t.Fail()
+	}
+
+	if len(resp.Snippets) <= 0 {
+		t.Logf("Error in GetSnippet() response object: Snippet length should not be zero.")
+		t.Fail()
+	}
+}
+
+func TestParseSnippetOdriveRaw(t *testing.T) {
+	if DontRun() {
+		t.Skip("Skipping as integration test.")
+	}
+	snippetType := "odrive-raw"
+
+	if DontRun() {
+		t.Skip("Skipping as integration test.")
+	}
+
+	resp, err := aacClient.GetSnippets(userDN1, "pki_dias", snippetType)
+
+	if err != nil {
+		t.Logf("Error from remote call GetSnippets() method: %v \n", err)
+		t.FailNow()
+	}
+
+	if !resp.Success {
+		t.Logf("Error in GetSnippet() response. Expected Success: true. Got: %v \n", resp.Success)
+		t.Fail()
+	}
+
+	t.Logf("Snippets returned: %s", resp.Snippets)
+
+	odriveRawSnippetFields, err := acm.NewODriveRawSnippetFieldsFromSnippetResponse(resp.Snippets)
+	if err != nil {
+		t.Log(err.Error())
+		t.Logf("There were %d snippets", len(odriveRawSnippetFields.Snippets))
+		t.Fail()
+	}
+	t.Logf("Building sql")
+	var sql string
+	for _, rawFields := range odriveRawSnippetFields.Snippets {
+		fieldName := "acm." + rawFields.FieldName
+		switch rawFields.Treatment {
+		case "disallow":
+			if len(rawFields.Values) > 0 {
+				for _, value := range rawFields.Values {
+					sql += " and " + fieldName + " not like '%," + value + ",%'"
+				}
+			}
+		case "allowed":
+			if len(rawFields.Values) == 0 {
+				sql += " and (" + fieldName + " is null OR " + fieldName + " = '')"
+			} else {
+				sql += " and ("
+				for v, value := range rawFields.Values {
+					if v > 0 {
+						sql += " or "
+					}
+					sql += fieldName + " = '" + value + "'"
+				}
+				sql += ")"
+			}
+		default:
+			t.Logf("Unhandled treatment type: %s", rawFields.Treatment)
+			t.Fail()
+		}
+	}
+	t.Logf("Generated sql: %s", sql)
 
 }

@@ -1,5 +1,7 @@
 package models
 
+import "decipher.com/object-drive-server/metadata/models/acm"
+
 // ODUser is a structure defining the attributes of a user as referenced in
 // Object Drive for caching purposes.  Unique to this element is the fact that
 // its identifier is the DistinguishedName rather then ID.
@@ -17,6 +19,8 @@ type ODUser struct {
 	// Email is the address for sending correspondence to the user via electronic
 	// mail.
 	Email NullString `db:"email"`
+	// Snippets holds a reference to the user snippets received from AAC
+	Snippets *acm.ODriveRawSnippetFields
 }
 
 // ODUserResultset encapsulates the ODUser defined herein as an array with

@@ -40,9 +40,11 @@ func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagi
             on ao.id = op.objectid
             and op.isdeleted = 0
             and op.allowread = 1
+        inner join object_acm acm 
+            on ao.id = acm.objectid           
         where ao.isexpunged = 0 
-            and ao.id = ? 
-            and op.grantee = ?`
+            and ao.id = ?`
+	query += buildFilterForUserACMShare(user)
 	query += buildFilterForUserACM(user)
 	query += buildFilterSortAndLimitArchive(pagingRequest)
 	err := tx.Select(&response.Objects, query, object.ID, user.DistinguishedName)

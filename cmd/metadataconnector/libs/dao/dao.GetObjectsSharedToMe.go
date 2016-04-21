@@ -37,13 +37,12 @@ func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
         from object o
             inner join object_type ot on o.typeid = ot.id
             inner join object_permission op on op.objectId = o.id
+            inner join object_acm acm on o.id = acm.objectid            
         where
-            op.isdeleted = 0 and
-            op.allowread = 1 and
-            op.explicitshare = 1 and
-            op.grantee = ? and
-            o.isdeleted = 0 and
-            o.ownedBy <> ? `
+            op.isdeleted = 0 and op.allowread = 1 and op.explicitshare = 1 
+            and o.isdeleted = 0 
+            and o.ownedBy <> ? `
+	query += buildFilterForUserACMShare(user)
 	query += buildFilterForUserACM(user)
 	query += buildFilterSortAndLimit(pagingRequest)
 	err := tx.Select(&response.Objects, query, user.DistinguishedName, user.DistinguishedName)
