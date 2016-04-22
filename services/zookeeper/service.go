@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -86,13 +87,21 @@ func RegisterApplication(uri, zkAddress string) (ZKState, error) {
 
 	//Get open zookeeper connection, and get a handle on closing it later
 	log.Printf("zk: connect to %s", zkAddress)
-	conn, _, err := zk.Connect([]string{zkAddress}, time.Second*2)
+	addrs := strings.Split(zkAddress, ",")
+	conn, _, err := zk.Connect(addrs, time.Second*2)
 	if err != nil {
 		return ZKState{}, err
 	}
 
+	//This is the mount point for our zookeeper data, and it should
+	//be the same as where AAC mounts
+	zkRoot := os.Getenv("ZKROOT")
+	if len(zkRoot) == 0 {
+		zkRoot = "/cte"
+	}
+
 	//Bundle up zookeeper context into a single object
-	zkURI := "/cte" + uri
+	zkURI := zkRoot + uri
 	zkState := ZKState{
 		ZKAddress: zkAddress,
 		Conn:      conn,

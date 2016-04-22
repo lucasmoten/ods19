@@ -11,7 +11,6 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"decipher.com/object-drive-server/services/zookeeper"
@@ -49,13 +48,11 @@ func getAACClient() (*aac.AacServiceClient, error) {
 }
 
 func getEnvVar(name, defaultValue string) string {
-	for _, e := range os.Environ() {
-		kv := strings.Split(e, "=")
-		if kv[0] == name {
-			return kv[1]
-		}
+	envVal := os.Getenv(name)
+	if len(envVal) == 0 {
+		return defaultValue
 	}
-	return defaultValue
+	return envVal
 }
 
 func main() {
