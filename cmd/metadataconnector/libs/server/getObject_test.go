@@ -16,6 +16,10 @@ import (
 
 func TestAppServerGetObject(t *testing.T) {
 
+}
+
+func TestAppServerGetObjectAgainstFake(t *testing.T) {
+
 	// Set up an ODUser and a test DN.
 	dn := "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 	user := models.ODUser{

@@ -31,10 +31,10 @@ func (dao *DataAccessLayer) DeleteObjectProperty(objectProperty models.ODObjectP
 
 func deleteObjectPropertyInTransaction(tx *sqlx.Tx, objectProperty models.ODObjectPropertyEx) error {
 	if objectProperty.ID == nil {
-		return errMissingID
+		return ErrMissingID
 	}
 	if objectProperty.ChangeToken == "" {
-		return errMissingChangeToken
+		return ErrMissingChangeToken
 	}
 	// Fetch object property
 	dbObjectProperty, err := getObjectPropertyInTransaction(tx, objectProperty)

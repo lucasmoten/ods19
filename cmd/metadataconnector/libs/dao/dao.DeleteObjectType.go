@@ -30,10 +30,10 @@ func (dao *DataAccessLayer) DeleteObjectType(objectType models.ODObjectType) err
 func deleteObjectTypeInTransaction(tx *sqlx.Tx, objectType models.ODObjectType) error {
 	// Pre-DB Validation
 	if objectType.ID == nil {
-		return errMissingID
+		return ErrMissingID
 	}
 	if objectType.ChangeToken == "" {
-		return errMissingChangeToken
+		return ErrMissingChangeToken
 	}
 
 	existingObjectType, err := getObjectTypeInTransaction(tx, objectType)

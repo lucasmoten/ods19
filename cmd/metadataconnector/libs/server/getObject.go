@@ -9,6 +9,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/dao"
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 )
@@ -36,7 +37,13 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	// Retrieve existing object from the data store
 	dbObject, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Error retrieving object")
+		switch err {
+		case dao.ErrMissingID:
+			sendErrorResponse(&w, 400, err, "Must provide ID field")
+		default:
+			log.Println("Default error")
+			sendErrorResponse(&w, 500, err, "Error retrieving object")
+		}
 		return
 	}
 

@@ -33,10 +33,10 @@ func (dao *DataAccessLayer) UpdateObjectProperty(objectProperty models.ODObjectP
 func updateObjectPropertyInTransaction(tx *sqlx.Tx, objectProperty models.ODObjectPropertyEx) error {
 	// Pre-DB Validation
 	if objectProperty.ID == nil {
-		return errMissingID
+		return ErrMissingID
 	}
 	if objectProperty.ChangeToken == "" {
-		return errMissingChangeToken
+		return ErrMissingChangeToken
 	}
 	// Fetch object property
 	dbObjectProperty, err := getObjectPropertyInTransaction(tx, objectProperty)
