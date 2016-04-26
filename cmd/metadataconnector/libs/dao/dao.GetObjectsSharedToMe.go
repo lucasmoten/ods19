@@ -45,6 +45,7 @@ func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
 	query += buildFilterForUserACMShare(user)
 	query += buildFilterForUserACM(user)
 	query += buildFilterSortAndLimit(pagingRequest)
+	//log.Println(query)
 	err := tx.Select(&response.Objects, query, user.DistinguishedName, user.DistinguishedName)
 	if err != nil {
 		print(err.Error())
