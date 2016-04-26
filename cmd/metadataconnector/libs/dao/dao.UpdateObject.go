@@ -75,7 +75,7 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
 	// update object
 	updateObjectStatement, err := tx.Preparex(
 		`update object set modifiedBy = ?, typeId = ?, name = ?,
-    description = ?, parentId = ?, contentConnector = ?,
+    description = ?, parentId = ?, contentConnector = ?, rawAcm = ?,
     contentType = ?, contentSize = ?, contentHash = ?, encryptIV = ?
     where id = ? and changeToken = ?`)
 	if err != nil {
@@ -84,7 +84,7 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
 	// Update it
 	result, err := updateObjectStatement.Exec(object.ModifiedBy, object.TypeID,
 		object.Name, object.Description.String, object.ParentID,
-		object.ContentConnector.String, object.ContentType.String,
+		object.ContentConnector.String, object.RawAcm.String, object.ContentType.String,
 		object.ContentSize, object.ContentHash, object.EncryptIV,
 		object.ID, object.ChangeToken)
 	if err != nil {
