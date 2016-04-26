@@ -157,12 +157,15 @@ func NewClientTLSConfig(client *ClientIdentity) (*tls.Config, error) {
 }
 
 func makeFolderViaJSON(folderName string, clientid int) (*protocol.Object, error) {
+	return makeFolderWithACMViaJSON(folderName, testhelpers.ValidACMUnclassified, clientid)
+}
+func makeFolderWithACMViaJSON(folderName string, rawAcm string, clientid int) (*protocol.Object, error) {
 	folderuri := host + cfg.RootURL + "/objects"
 	folder := protocol.Object{}
 	folder.Name = folderName
 	folder.TypeName = "Folder"
 	folder.ParentID = ""
-	folder.RawAcm = testhelpers.ValidACMUnclassified
+	folder.RawAcm = rawAcm
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
