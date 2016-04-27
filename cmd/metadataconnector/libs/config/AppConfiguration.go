@@ -76,10 +76,10 @@ func NewAppConfiguration() AppConfiguration {
 		log.Fatal("Could not decode configuration file")
 	}
 
-	// Use reflection to iterate over the struct
-	//ExpandEnvironmentVariables(configuration)
-	// reflection issues with structs and pointers for now, so just hardcoding this. As the struct changes, this logic will also need updated
-	// TODO: Is this a problem in environments with no GOPATH set?
+	if os.Getenv("GOPATH") == "" {
+		log.Printf("WARNING: GOPATH not set.\n")
+	}
+
 	configuration.DatabaseConnection.CAPath = os.ExpandEnv(configuration.DatabaseConnection.CAPath)
 	configuration.DatabaseConnection.ClientCert = os.ExpandEnv(configuration.DatabaseConnection.ClientCert)
 	configuration.DatabaseConnection.ClientKey = os.ExpandEnv(configuration.DatabaseConnection.ClientKey)

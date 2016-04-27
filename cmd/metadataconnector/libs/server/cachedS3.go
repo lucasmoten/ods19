@@ -83,6 +83,7 @@ type S3DrainProviderData struct {
 }
 
 // NewS3DrainProvider sets up a drain with default parameters overridden by environment variables
+// TODO this should return an error, as well.
 func NewS3DrainProvider(name string) DrainProvider {
 	var err error
 	lowWatermark := 0.50
