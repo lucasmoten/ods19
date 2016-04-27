@@ -19,13 +19,21 @@ func buildClientTLSConfig(CAPath string, ClientCertPath string, ClientKeyPath st
 	rootCAsCertPool := buildCertPoolFromPath(CAPath, "for client")
 
 	// Client public and private certificate
-	clientCert := buildx509Identity(ClientCertPath, ClientKeyPath)
+	if len(ClientCertPath) == 0 || len(ClientKeyPath) == 0 {
+		return tls.Config{
+			RootCAs:            rootCAsCertPool,
+			ServerName:         ServerName,
+			InsecureSkipVerify: InsecureSkipVerify,
+		}
+	} else {
+		clientCert := buildx509Identity(ClientCertPath, ClientKeyPath)
 
-	return tls.Config{
-		RootCAs:            rootCAsCertPool,
-		Certificates:       clientCert,
-		ServerName:         ServerName,
-		InsecureSkipVerify: InsecureSkipVerify,
+		return tls.Config{
+			RootCAs:            rootCAsCertPool,
+			Certificates:       clientCert,
+			ServerName:         ServerName,
+			InsecureSkipVerify: InsecureSkipVerify,
+		}
 	}
 }
 
