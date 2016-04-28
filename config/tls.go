@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 
 	"github.com/spacemonkeygo/openssl"
 )
@@ -34,21 +33,21 @@ func (opts *OpenSSLDialOptions) SetDisableSNI() {
 	opts.Flags = opts.Flags | 2
 }
 
-func init() {
-	if certPathFromEnv := os.Getenv("ODRIVE_UPLOADER_CERT"); certPathFromEnv != "" {
-		log.Printf("UPLOADER X509 certificate path read from environment: %s", certPathFromEnv)
-		uploaderCertPath = certPathFromEnv
-	} else {
-		uploaderCertPath = "cert.pem" // TODO point to default
-	}
+// func init() {
+// 	if certPathFromEnv := os.Getenv("ODRIVE_UPLOADER_CERT"); certPathFromEnv != "" {
+// 		log.Printf("UPLOADER X509 certificate path read from environment: %s", certPathFromEnv)
+// 		uploaderCertPath = certPathFromEnv
+// 	} else {
+// 		uploaderCertPath = "cert.pem" // TODO point to default
+// 	}
 
-	if certPathFromEnv := os.Getenv("ODRIVE_THRIFT_CLIENT_CERT"); certPathFromEnv != "" {
-		log.Printf("THRIFT CLIENT X509 certificate path read from environment: %s", certPathFromEnv)
-		thriftClientCertPath = certPathFromEnv
-	} else {
-		thriftClientCertPath = "./certs/ling/twlserver.crt"
-	}
-}
+// 	if certPathFromEnv := os.Getenv("ODRIVE_THRIFT_CLIENT_CERT"); certPathFromEnv != "" {
+// 		log.Printf("THRIFT CLIENT X509 certificate path read from environment: %s", certPathFromEnv)
+// 		thriftClientCertPath = certPathFromEnv
+// 	} else {
+// 		thriftClientCertPath = "./certs/ling/twlserver.crt"
+// 	}
+// }
 
 // NewTLSConfigFromPEM ...
 func NewTLSConfigFromPEM(trustPath, certPath string) (*tls.Config, error) {

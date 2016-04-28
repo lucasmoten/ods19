@@ -4,10 +4,13 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"log"
-	"os"
+	"strconv"
 	"strings"
 	"time"
+
+	oduconfig "decipher.com/object-drive-server/config"
 
 	"github.com/samuel/go-zookeeper/zk"
 )
@@ -95,10 +98,7 @@ func RegisterApplication(uri, zkAddress string) (ZKState, error) {
 
 	//This is the mount point for our zookeeper data, and it should
 	//be the same as where AAC mounts
-	zkRoot := os.Getenv("ZKROOT")
-	if len(zkRoot) == 0 {
-		zkRoot = "/cte"
-	}
+	zkRoot := oduconfig.GetEnvOrDefault("OD_ZK_ROOT", "/cte")
 
 	//Bundle up zookeeper context into a single object
 	zkURI := zkRoot + uri
@@ -146,14 +146,19 @@ func RegisterApplication(uri, zkAddress string) (ZKState, error) {
 // Containing the announcement.
 // When our service dies, this node goes away.
 //
-func ServiceAnnouncement(zkState ZKState, protocol string, stat, host string, port int) error {
+func ServiceAnnouncement(zkState ZKState, protocol string, stat, host string, port string) error {
+
+	intPort, err := strconv.Atoi(port)
+	if err != nil {
+		return errors.New("port could not be parsed as int")
+	}
 
 	//Turn this into a raw json announcement
 	aData := AnnounceData{
 		Status: stat,
 		ServiceEndpoint: Address{
 			Host: host,
-			Port: port,
+			Port: intPort,
 		},
 	}
 

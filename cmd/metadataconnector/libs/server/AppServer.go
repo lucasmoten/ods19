@@ -30,7 +30,7 @@ const (
 // AppServer contains definition for the metadata server
 type AppServer struct {
 	// Port is the TCP port that the web server listens on
-	Port int
+	Port string
 	// Bind is the Network Address that the web server will use.
 	Bind string
 	// Addr is the combined network address and port the server listens on
@@ -156,7 +156,7 @@ func (h *AppServer) InitRegex() {
 		StaticFiles:     regexp.MustCompile(h.ServicePrefix + "/static/(?P<path>.*)"),
 		Users:           regexp.MustCompile(h.ServicePrefix + "/users$"),
 		// Service operations
-		APIDocumentation: regexp.MustCompile(h.ServicePrefix + "/?$"),
+		APIDocumentation: regexp.MustCompile(h.ServicePrefix + "/$"),
 		UserStats:        regexp.MustCompile(h.ServicePrefix + "/userstats$"),
 		// - objects
 		Objects:          regexp.MustCompile(h.ServicePrefix + "/objects$"),

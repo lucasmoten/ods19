@@ -49,7 +49,9 @@ func RunShare(t *testing.T, ap *autopilot.AutopilotContext) {
 	//Have both users do an upload and a download so they both exist
 	//Remember the first upload link, because that is what we will share
 	link, res, err = ap.DoUpload(userID0, false, "Uploading a file for User 0")
+	resErrCheck(t, res, err)
 	_, res, err = ap.DoUpload(userID1, false, "Uploading a file for User 1")
+	resErrCheck(t, res, err)
 	//The first user gets a list of all users, and is looking for somebody to share with
 	users, res, err = ap.DoUserList(userID0, "See which users exist as a side-effect of visiting the site with their certificates.")
 	resErrCheck(t, res, err)

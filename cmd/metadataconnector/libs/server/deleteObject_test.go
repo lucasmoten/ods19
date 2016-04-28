@@ -35,7 +35,7 @@ func TestDeleteObject(t *testing.T) {
 	}
 
 	// Now delete the first folder
-	deleteuri := host + cfg.RootURL + "/objects/" + folder1.ID + "/trash"
+	deleteuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/trash"
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder1.ChangeToken
 	jsonBody, err := json.Marshal(objChangeToken)
@@ -79,7 +79,7 @@ func TestDeleteObject(t *testing.T) {
 	// }
 
 	// now make sure the item is marked as deleted when calling for properties
-	geturi := host + cfg.RootURL + "/objects/" + folder1.ID + "/properties"
+	geturi := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
 	req, err = http.NewRequest("GET", geturi, nil)
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
@@ -138,7 +138,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 	}
 
 	// Attempt to move folder 2 under folder 1
-	moveuri := host + cfg.RootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
+	moveuri := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder2.ChangeToken
 	jsonBody, err := json.Marshal(objChangeToken)
@@ -182,7 +182,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 	// }
 
 	// Now delete the first folder
-	deleteuri := host + cfg.RootURL + "/objects/" + folder1.ID + "/trash"
+	deleteuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/trash"
 	objChangeToken = protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder1.ChangeToken
 	jsonBody, err = json.Marshal(objChangeToken)
@@ -226,7 +226,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 	// }
 
 	// Make sure we can't get folder2 anymore (because its a child of a deleted item)
-	geturi := host + cfg.RootURL + "/objects/" + folder2.ID + "/properties"
+	geturi := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/properties"
 	req, err = http.NewRequest("GET", geturi, nil)
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {

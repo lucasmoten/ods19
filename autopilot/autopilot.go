@@ -308,6 +308,18 @@ func (ap AutopilotContext) DoUpload(i int, async bool, msg string) (link *protoc
 
 	//log.Printf("%d upload out of %s", i, clients[i].UploadCache)
 	//Pick a random file
+	if clients == nil {
+		fmt.Fprintf(ap.Log, "clients is nil")
+		return nil, nil, fmt.Errorf("clients is nil")
+	}
+	if len(clients) < i {
+		fmt.Fprintf(ap.Log, "clients not initialized with %d clients", i)
+		return nil, nil, fmt.Errorf("clients not initialized with %d clients", i)
+	}
+	if clients[i] == nil {
+		fmt.Fprintf(ap.Log, "clients[%d] is not initialized", i)
+		return nil, nil, fmt.Errorf("clients[%d] is not initalized", i)
+	}
 	listing, err = ioutil.ReadDir(clients[i].UploadCache)
 	if err != nil {
 		fmt.Fprintf(ap.Log, "Unable to list upload directory %s", clients[i].UploadCache)
@@ -324,7 +336,7 @@ func (ap AutopilotContext) DoUpload(i int, async bool, msg string) (link *protoc
 			req, err = ap.generateUploadRequest(
 				filePickedName,
 				fqName,
-				host+cfg.RootURL+"/objects",
+				host+cfg.NginxRootURL+"/objects",
 				async,
 			)
 			if err != nil {
@@ -362,7 +374,7 @@ func (ap AutopilotContext) GetLinks(i int, olResponse *protocol.ObjectResultset,
 	var req *http.Request
 	req, err = http.NewRequest(
 		"GET",
-		host+cfg.RootURL+"/objects",
+		host+cfg.NginxRootURL+"/objects",
 		nil,
 	)
 	if err != nil {
@@ -425,7 +437,7 @@ func (ap AutopilotContext) DoDownloadLink(i int, link *protocol.Object, msg stri
 	var req *http.Request
 	req, err = http.NewRequest(
 		"GET",
-		host+cfg.RootURL+"/objects/"+link.ID+"/stream",
+		host+cfg.NginxRootURL+"/objects/"+link.ID+"/stream",
 		nil,
 	)
 	if err != nil {
@@ -508,7 +520,7 @@ func (ap AutopilotContext) DoUpdateLink(i int, link *protocol.Object, msg, toApp
 		link.ChangeToken,
 		link.Name,
 		fqName,
-		host+cfg.RootURL+"/objects/"+link.ID+"/stream",
+		host+cfg.NginxRootURL+"/objects/"+link.ID+"/stream",
 		false,
 	)
 	if err != nil {
@@ -575,7 +587,7 @@ func (ap AutopilotContext) FindShares(i int, msg string) (links *protocol.Object
 	var req *http.Request
 	req, err = http.NewRequest(
 		"GET",
-		host+cfg.RootURL+"/shares",
+		host+cfg.NginxRootURL+"/shares",
 		nil,
 	)
 	req.Header.Set("Content-Type", "application/json")
@@ -605,7 +617,7 @@ func (ap AutopilotContext) DoUserList(i int, msg string) (users []*protocol.User
 	var req *http.Request
 	req, err = http.NewRequest(
 		"GET",
-		host+cfg.RootURL+"/users",
+		host+cfg.NginxRootURL+"/users",
 		nil,
 	)
 
@@ -645,7 +657,7 @@ func (ap AutopilotContext) DoShare(i int, link *protocol.Object, j int, msg stri
 
 	req, err := http.NewRequest(
 		"POST",
-		host+cfg.RootURL+"/shared/"+link.ID,
+		host+cfg.NginxRootURL+"/shared/"+link.ID,
 		bytes.NewBuffer(jsonStr),
 	)
 	req.Header.Set("Content-Type", "application/json")
@@ -682,9 +694,20 @@ func (ap AutopilotContext) generatePopulation() {
 
 // Create a new context, in which all output is logged for this trace by file name
 func NewAutopilotContext(logHandle *os.File) (ap *AutopilotContext, err error) {
+
+	// Make sure the root exists.
+	_, err = os.Stat(os.ExpandEnv(autopilotRoot))
+	if os.IsNotExist(err) {
+		err = os.Mkdir(os.ExpandEnv(autopilotRoot), 0700)
+		if err != nil {
+			log.Printf("Unable to make autopilotRoot for %s:%v", autopilotRoot, err)
+			return nil, err
+		}
+	}
+
 	ap = &AutopilotContext{
 		Host: host,
-		Url:  cfg.RootURL,
+		Url:  cfg.NginxRootURL,
 		Root: autopilotRoot,
 		Log:  logHandle,
 	}

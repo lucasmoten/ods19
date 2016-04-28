@@ -14,7 +14,7 @@ import (
 
 func doUserStatsQuery(t *testing.T) models.UserStats {
 	// Get shares as the creator
-	req, err := http.NewRequest("GET", "https://"+cfg.DockerVM+":"+cfg.Port+""+cfg.RootURL+"/userstats", nil)
+	req, err := http.NewRequest("GET", "https://"+cfg.DockerVM+":"+cfg.Port+""+cfg.NginxRootURL+"/userstats", nil)
 	if err != nil {
 		t.Errorf("Unable to generate request:%v", err)
 		t.FailNow()

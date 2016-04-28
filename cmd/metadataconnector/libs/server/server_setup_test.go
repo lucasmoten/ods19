@@ -46,7 +46,7 @@ func generatePopulation() {
 func populateClients(population int) {
 	clients = make([]*ClientIdentity, population)
 	httpclients = make([]*http.Client, population)
-	faviconReq, _ := http.NewRequest("GET", host+cfg.RootURL+"/favicon.ico", nil)
+	faviconReq, _ := http.NewRequest("GET", host+cfg.NginxRootURL+"/favicon.ico", nil)
 	for i := 0; i < len(clients); i++ {
 		client, err := getClientIdentity(i, "test_"+strconv.Itoa(i))
 		clients[i] = client
@@ -160,7 +160,7 @@ func makeFolderViaJSON(folderName string, clientid int) (*protocol.Object, error
 	return makeFolderWithACMViaJSON(folderName, testhelpers.ValidACMUnclassified, clientid)
 }
 func makeFolderWithACMViaJSON(folderName string, rawAcm string, clientid int) (*protocol.Object, error) {
-	folderuri := host + cfg.RootURL + "/objects"
+	folderuri := host + cfg.NginxRootURL + "/objects"
 	folder := protocol.Object{}
 	folder.Name = folderName
 	folder.TypeName = "Folder"
