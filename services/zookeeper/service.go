@@ -33,7 +33,7 @@ type AnnounceData struct {
 // Address models a host + port combination.
 type Address struct {
 	Host string `json:"host"`
-	Port string `json:"port"`
+	Port int    `json:"port"`
 }
 
 func randomID() string {
@@ -146,7 +146,7 @@ func RegisterApplication(uri, zkAddress string) (ZKState, error) {
 // Containing the announcement.
 // When our service dies, this node goes away.
 //
-func ServiceAnnouncement(zkState ZKState, protocol string, stat, host, port string) error {
+func ServiceAnnouncement(zkState ZKState, protocol string, stat, host string, port int) error {
 
 	//Turn this into a raw json announcement
 	aData := AnnounceData{
@@ -184,7 +184,7 @@ func ServiceAnnouncement(zkState ZKState, protocol string, stat, host, port stri
 			zk.FlagEphemeral,
 			asBytes,
 		)
-		log.Printf("zk: find us at: %s:%s", host, port)
+		log.Printf("zk: find us at: %s:%d", host, port)
 	}
 	return err
 }

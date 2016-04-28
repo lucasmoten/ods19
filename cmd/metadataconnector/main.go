@@ -155,7 +155,7 @@ func registerWithZookeeper(app *server.AppServer, zkBasePath, zkAddress, myIP st
 	if err != nil {
 		return err
 	}
-	err = zookeeper.ServiceAnnouncement(zkState, "https", "ALIVE", myIP, "4430")
+	err = zookeeper.ServiceAnnouncement(zkState, "https", "ALIVE", myIP, 4430)
 	if err != nil {
 		return err
 	}
