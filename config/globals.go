@@ -168,7 +168,12 @@ func init() {
 			log.Printf("could not get a set of ips for our hostname")
 		}
 		if len(MyIPs) > 0 {
-			MyIP = MyIPs[0].String()
+			for a := range MyIPs {
+				if MyIPs[a].To4() != nil {
+					MyIP = MyIPs[a].String()
+					break
+				}
+			}
 		} else {
 			log.Printf("We did not find our ip")
 		}
