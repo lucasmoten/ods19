@@ -1,18 +1,16 @@
 {
   "DatabaseConnection": {
     "Driver": "mysql"
-    ,"Username": "dbuser"
-    ,"Password": "dbPassword"
+    ,"Username": "odrivemaster"
+    ,"Password": "S4m976zGuZyH"
     ,"Protocol": "tcp"
-    ,"Host": "metadatadb"
+    ,"Host": "dev-odrive-mariadb.c2bdxmcv8gbh.us-east-1.rds.amazonaws.com"
     ,"Port": "3306"
     ,"Schema": "metadatadb"
     ,"Params": "parseTime=true"
     ,"UseTLS": true
-    ,"SkipVerify": false
-    ,"CAPath": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/trust"
-    ,"ClientCert": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem"
-    ,"ClientKey": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-key.pem"
+    ,"SkipVerify": true
+    ,"CAPath": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/aws/rds-combined-ca-bundle.pem"
   },
   "ServerSettings": {
     "ListenPort": 4430
