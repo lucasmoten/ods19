@@ -59,7 +59,7 @@ func TestCreateFolderAtRoot(t *testing.T) {
 	}
 
 	// URL
-	uri := host + cfg.RootURL + "/objects"
+	uri := host + cfg.NginxRootURL + "/objects"
 	if verboseOutput {
 		fmt.Printf("(Verbose Mode) uri: %s\n", uri)
 	}
@@ -126,7 +126,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 	}
 
 	// URL
-	uri := host + cfg.RootURL + "/objects"
+	uri := host + cfg.NginxRootURL + "/objects"
 	if verboseOutput {
 		fmt.Printf("(Verbose Mode) uri: %s\n", uri)
 	}
@@ -241,7 +241,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 	}
 
 	// URL
-	uri := host + cfg.RootURL + "/objects"
+	uri := host + cfg.NginxRootURL + "/objects"
 	if verboseOutput {
 		fmt.Printf("(Verbose Mode) uri: %s", uri)
 		fmt.Println()
@@ -340,7 +340,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 	}
 
 	// URL
-	uri := host + cfg.RootURL + "/objects"
+	uri := host + cfg.NginxRootURL + "/objects"
 	if verboseOutput {
 		fmt.Printf("(Verbose Mode) uri: %s", uri)
 		fmt.Println()
@@ -442,7 +442,7 @@ func TestCreateFolderWithoutName(t *testing.T) {
 	}
 
 	// URL
-	uri := host + cfg.RootURL + "/objects"
+	uri := host + cfg.NginxRootURL + "/objects"
 	if verboseOutput {
 		fmt.Printf("(Verbose Mode) uri: %s", uri)
 		fmt.Println()

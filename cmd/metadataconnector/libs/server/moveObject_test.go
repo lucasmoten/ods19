@@ -40,7 +40,7 @@ func TestMoveObject(t *testing.T) {
 	}
 
 	// Attempt to move folder 2 under folder 1
-	moveuri := host + cfg.RootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
+	moveuri := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder2.ChangeToken
 	jsonBody, err := json.Marshal(objChangeToken)

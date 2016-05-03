@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/config"
+	oduconfig "decipher.com/object-drive-server/config"
 
 	"syscall"
 
@@ -38,10 +39,10 @@ const (
 // checkAWSEnvironmentVars prevents the server from starting if appropriate vars
 // are not set.
 func checkAWSEnvironmentVars() {
-	region := os.Getenv("AWS_REGION")
-	secretKey := os.Getenv("AWS_SECRET_KEY")
-	secretKeyAlt := os.Getenv("AWS_SECRET_ACCESS_KEY")
-	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
+	region := oduconfig.GetEnvOrDefault("AWS_REGION", "")
+	secretKey := oduconfig.GetEnvOrDefault("AWS_SECRET_KEY", "")
+	secretKeyAlt := oduconfig.GetEnvOrDefault("AWS_SECRET_ACCESS_KEY", "")
+	accessKeyID := oduconfig.GetEnvOrDefault("AWS_ACCESS_KEY_ID", "")
 	if region == "" || (secretKey == "" && secretKeyAlt == "") || accessKeyID == "" {
 		log.Fatal("Fatal Error: Environment variables AWS_REGION, AWS_SECRET_KEY, and AWS_ACCESS_KEY_ID must be set.")
 	}
@@ -87,7 +88,7 @@ type S3DrainProviderData struct {
 func NewS3DrainProvider(name string) DrainProvider {
 	var err error
 	lowWatermark := 0.50
-	lowWatermarkSuggested := os.Getenv("lowWatermark")
+	lowWatermarkSuggested := oduconfig.GetEnvOrDefault("OD_CACHE_LOWWATERMARK", "0.50")
 	if len(lowWatermarkSuggested) > 0 {
 		lowWatermark, err = strconv.ParseFloat(lowWatermarkSuggested, 32)
 		if err != nil {
@@ -95,7 +96,7 @@ func NewS3DrainProvider(name string) DrainProvider {
 		}
 	}
 	highWatermark := 0.75
-	highWatermarkSuggested := os.Getenv("highWatermark")
+	highWatermarkSuggested := oduconfig.GetEnvOrDefault("OD_CACHE_HIGHWATERMARK", "0.75")
 	if len(highWatermarkSuggested) > 0 {
 		highWatermark, err = strconv.ParseFloat(highWatermarkSuggested, 32)
 		if err != nil {
@@ -103,7 +104,7 @@ func NewS3DrainProvider(name string) DrainProvider {
 		}
 	}
 	ageEligibleForEviction := int64(60 * 5)
-	ageEligibleForEvictionSuggested := os.Getenv("ageEligibleForEviction")
+	ageEligibleForEvictionSuggested := oduconfig.GetEnvOrDefault("OD_CACHE_EVICTAGE", "300")
 	if len(ageEligibleForEvictionSuggested) > 0 {
 		ageEligibleForEviction, err = strconv.ParseInt(ageEligibleForEvictionSuggested, 10, 64)
 		if err != nil {
@@ -111,7 +112,7 @@ func NewS3DrainProvider(name string) DrainProvider {
 		}
 	}
 	walkSleep := time.Duration(30 * time.Second)
-	walkSleepSuggested := os.Getenv("walkSleep")
+	walkSleepSuggested := oduconfig.GetEnvOrDefault("OD_CACHE_WALKSLEEP", "30000")
 	if len(walkSleepSuggested) > 0 {
 		walkSleepInt, err := strconv.ParseInt(walkSleepSuggested, 10, 64)
 		if err != nil {

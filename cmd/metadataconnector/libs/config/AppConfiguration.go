@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 
+	oduconfig "decipher.com/object-drive-server/config"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 )
@@ -49,7 +50,7 @@ type DatabaseConnectionConfiguration struct {
 // ServerSettingsConfiguration is a structure defining the attributes needed for
 // setting up the server listener
 type ServerSettingsConfiguration struct {
-	ListenPort        int
+	ListenPort        string
 	ListenBind        string
 	UseTLS            bool
 	CAPath            string
@@ -76,13 +77,23 @@ func NewAppConfiguration() AppConfiguration {
 		log.Fatal("Could not decode configuration file")
 	}
 
-	if os.Getenv("GOPATH") == "" {
+	if len(oduconfig.GetEnvOrDefault("GOPATH", "")) == 0 {
 		log.Printf("WARNING: GOPATH not set.\n")
 	}
 
+	configuration.DatabaseConnection.Driver = os.ExpandEnv(configuration.DatabaseConnection.Driver)
+	configuration.DatabaseConnection.Username = os.ExpandEnv(configuration.DatabaseConnection.Username)
+	configuration.DatabaseConnection.Password = os.ExpandEnv(configuration.DatabaseConnection.Password)
+	configuration.DatabaseConnection.Protocol = os.ExpandEnv(configuration.DatabaseConnection.Protocol)
+	configuration.DatabaseConnection.Host = os.ExpandEnv(configuration.DatabaseConnection.Host)
+	configuration.DatabaseConnection.Port = os.ExpandEnv(configuration.DatabaseConnection.Port)
+	configuration.DatabaseConnection.Schema = os.ExpandEnv(configuration.DatabaseConnection.Schema)
+	configuration.DatabaseConnection.Params = os.ExpandEnv(configuration.DatabaseConnection.Params)
 	configuration.DatabaseConnection.CAPath = os.ExpandEnv(configuration.DatabaseConnection.CAPath)
 	configuration.DatabaseConnection.ClientCert = os.ExpandEnv(configuration.DatabaseConnection.ClientCert)
 	configuration.DatabaseConnection.ClientKey = os.ExpandEnv(configuration.DatabaseConnection.ClientKey)
+	configuration.ServerSettings.ListenPort = os.ExpandEnv(configuration.ServerSettings.ListenPort)
+	configuration.ServerSettings.ListenBind = os.ExpandEnv(configuration.ServerSettings.ListenBind)
 	configuration.ServerSettings.CAPath = os.ExpandEnv(configuration.ServerSettings.CAPath)
 	configuration.ServerSettings.ServerCertChain = os.ExpandEnv(configuration.ServerSettings.ServerCertChain)
 	configuration.ServerSettings.ServerKey = os.ExpandEnv(configuration.ServerSettings.ServerKey)
@@ -156,8 +167,8 @@ func (r *DatabaseConnectionConfiguration) GetDatabaseHandle() (*sqlx.DB, error) 
 	}
 	// Setup handle to the database
 	db, err := sqlx.Open(r.Driver, r.buildDSN())
-	db.SetMaxIdleConns(10)
-	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(oduconfig.GetEnvOrDefaultInt("OD_DB_MAXIDLECONNS", 10))
+	db.SetMaxOpenConns(oduconfig.GetEnvOrDefaultInt("OD_DB_MAXOPENCONNS", 10))
 	return db, err
 }
 

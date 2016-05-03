@@ -13,7 +13,9 @@ func TestCreateServiceAnnouncement(t *testing.T) {
 
 	zkAddress := cfg.DockerVM + ":2181"
 
-	zkState, err := RegisterApplication(cfg.RootURL, zkAddress)
+	zkBasePath := cfg.GetEnvOrDefault("OD_ZK_BASEPATH", "/service/object-drive/1.0")
+
+	zkState, err := RegisterApplication(zkBasePath, zkAddress)
 	if err != nil {
 		t.Errorf("could not create the directory for our app in zk:%v", err)
 	}

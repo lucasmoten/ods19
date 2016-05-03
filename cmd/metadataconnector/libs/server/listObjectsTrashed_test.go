@@ -121,7 +121,7 @@ func TestHTTPListObjectsTrashed(t *testing.T) {
 		t.Errorf("Delete request failed: %v\n", err)
 	}
 
-	trashURI := host + cfg.RootURL + "/trashed?pageNumber=1&pageSize=1000"
+	trashURI := host + cfg.NginxRootURL + "/trashed?pageNumber=1&pageSize=1000"
 
 	trashReq, err := http.NewRequest("GET", trashURI, nil)
 	if err != nil {

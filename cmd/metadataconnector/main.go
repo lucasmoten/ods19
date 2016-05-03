@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"time"
 
 	"decipher.com/object-drive-server/services/zookeeper"
@@ -50,15 +49,16 @@ func main() {
 	cacheID := schemaCheck(app)
 	configureDrainProvider(app, oduconfig.StandaloneMode, cacheID)
 
-	zkAddress := getEnvOrDefault("ZKURL", "zk:2181")
-	err = registerWithZookeeper(app, oduconfig.RootURL, zkAddress, oduconfig.MyIP)
+	zkAddress := oduconfig.GetEnvOrDefault("OD_ZK_URL", "zk:2181")
+	zkBasePath := oduconfig.GetEnvOrDefault("OD_ZK_BASEPATH", "/service/object-drive/1.0")
+	err = registerWithZookeeper(app, zkBasePath, zkAddress, oduconfig.MyIP)
 	if err != nil {
 		log.Fatal("Could not register with Zookeeper")
 	}
 
-	app.MasterKey = getEnvOrDefault("masterkey", "otterpaws")
+	app.MasterKey = oduconfig.GetEnvOrDefault("OD_ENCRYPT_MASTERKEY", "otterpaws")
 	if app.MasterKey == "otterpaws" {
-		log.Printf("You should pass in an environment variable 'masterkey' to encrypt database keys")
+		log.Printf("You should pass in an environment variable 'OD_ENCRYPT_MASTERKEY' to encrypt database keys")
 		log.Printf("Note that if you change masterkey, then the encrypted keys are invalidated")
 	}
 
@@ -106,11 +106,13 @@ func configureAACClient(app *server.AppServer) error {
 
 // TODO: restart uploader if we lose AAC connection.
 func getAACClient() (*aac.AacServiceClient, error) {
-	trustPath := filepath.Join(oduconfig.CertsDir, "clients", "client.trust.pem")
-	certPath := filepath.Join(oduconfig.CertsDir, "clients", "test_1.cert.pem")
-	keyPath := filepath.Join(oduconfig.CertsDir, "clients", "test_1.key.pem")
+	trustPath := filepath.Join(oduconfig.CertsDir, "client-aac", "trust", "client.trust.pem")
+	certPath := filepath.Join(oduconfig.CertsDir, "client-aac", "id", "client.cert.pem")
+	keyPath := filepath.Join(oduconfig.CertsDir, "client-aac", "id", "client.key.pem")
+	aacHost := oduconfig.GetEnvOrDefault("OD_AAC_HOST", "twl-server-generic2")
+	aacPort := oduconfig.GetEnvOrDefault("OD_AAC_PORT", "9093")
 	conn, err := oduconfig.NewOpenSSLTransport(
-		trustPath, certPath, keyPath, "twl-server-generic2", "9093", nil)
+		trustPath, certPath, keyPath, aacHost, aacPort, nil)
 
 	if err != nil {
 		log.Printf("cannot create aac client: %v", err)
@@ -155,7 +157,8 @@ func registerWithZookeeper(app *server.AppServer, zkBasePath, zkAddress, myIP st
 	if err != nil {
 		return err
 	}
-	err = zookeeper.ServiceAnnouncement(zkState, "https", "ALIVE", myIP, 4430)
+	serverPort := oduconfig.GetEnvOrDefault("OD_SERVER_PORT", "4430")
+	err = zookeeper.ServiceAnnouncement(zkState, "https", "ALIVE", myIP, serverPort)
 	if err != nil {
 		return err
 	}
@@ -200,7 +203,7 @@ func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, err
 	httpHandler := server.AppServer{
 		Port:          conf.ListenPort,
 		Bind:          conf.ListenBind,
-		Addr:          conf.ListenBind + ":" + strconv.Itoa(conf.ListenPort),
+		Addr:          conf.ListenBind + ":" + conf.ListenPort,
 		Tracker:       performance.NewJobReporters(1024),
 		ServicePrefix: oduconfig.RootURLRegex,
 		TemplateCache: templates,
@@ -256,12 +259,4 @@ func pingDB(db *sqlx.DB) int {
 		}
 	}
 	return exitCode
-}
-
-func getEnvOrDefault(name, defaultValue string) string {
-	envVal := os.Getenv(name)
-	if len(envVal) == 0 {
-		return defaultValue
-	}
-	return envVal
 }

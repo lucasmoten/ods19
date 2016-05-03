@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"decipher.com/object-drive-server/util"
@@ -37,7 +38,7 @@ type Environment struct {
 // FlagSetup does standard flag setup for this project
 func FlagSetup(env *Environment) error {
 	//masterkey comes from env to keep it from showing up in ps output
-	env.MasterKey = os.Getenv("masterkey")
+	env.MasterKey = GetEnvOrDefault("OD_ENCRYPT_MASTERKEY", "otterpaws")
 	certsDir := filepath.Join(ProjectRoot, "defaultcerts")
 	flag.StringVar(&env.AwsConfig, "awsConfig", "default", "the config entry to connect to aws")
 	flag.BoolVar(&env.HideFileNames, "hideFileNames", true, "use unhashed file and user names")
@@ -100,7 +101,7 @@ func locateProjectRoot() string {
 	var projectRoot string
 	var err error
 
-	gopath := os.Getenv("GOPATH")
+	gopath := GetEnvOrDefault("GOPATH", "")
 	if gopath == "" {
 		log.Printf("GOPATH is not set. Using current directory for project root.")
 		projectRoot, err = os.Getwd()
@@ -153,14 +154,12 @@ func init() {
 		DockerVM = theIP.String()
 	}
 
-	if overridden := os.Getenv("dockervm_override"); overridden != "" {
-		DockerVM = overridden
-	}
+	DockerVM = GetEnvOrDefault("OD_DOCKERVM_OVERRIDE", DockerVM)
 
 	//Find our IP that we want gatekeeper to contact us with
 	hostname, err := os.Hostname()
 	if err != nil {
-		log.Printf("could nost lookup hostname")
+		log.Printf("could not lookup hostname")
 	}
 	if len(hostname) > 0 {
 		MyIPs, err := net.LookupIP(hostname)
@@ -183,13 +182,13 @@ func init() {
 	log.Printf("we are %s", MyIP)
 
 	//Allow us to change the port, to get around nginx
-	p := os.Getenv("dockervmport")
+	p := GetEnvOrDefault("OD_DOCKERVM_PORT", "8080")
 	if p != "" && len(p) > 0 {
 		Port = p
 	}
 
 	//Allow us to work without a network
-	s := os.Getenv("standalone")
+	s := GetEnvOrDefault("OD_STANDALONE", "false")
 	if s == "true" {
 		StandaloneMode = true
 	}
@@ -200,7 +199,35 @@ func RegexEscape(str string) string {
 }
 
 // RootURL is the base url for our app
-var RootURL = `/service/object-drive/1.0`
+var RootURL = "" // `/service/object-drive/1.0`
 
 // RootURLRegex is the routing url regex for our entire app
 var RootURLRegex = RegexEscape(RootURL)
+
+// NginxRootURL should only be refrenced by our generic UI for routing purposes to fill in the base href in templates
+var NginxRootURL = "/services/object-drive/1.0"
+
+// GetEnvOrDefault looks up an environment variable by name.
+// If it exists, its value is returned, otherwise a passed in default value is returned
+func GetEnvOrDefault(name, defaultValue string) string {
+	envVal := os.Getenv(name)
+	if len(envVal) == 0 {
+		return defaultValue
+	}
+	return envVal
+}
+
+// GetEnvOrDefaultInt looks up an environment variable by name, and returns in integer format
+// If it exists, its value is returned in integer format. If not, or an error conversion,
+// then passed in default is used.
+func GetEnvOrDefaultInt(name string, defaultValue int) int {
+	envVal := os.Getenv(name)
+	if len(envVal) == 0 {
+		return defaultValue
+	}
+	i, err := strconv.Atoi(envVal)
+	if err != nil {
+		return defaultValue
+	}
+	return i
+}

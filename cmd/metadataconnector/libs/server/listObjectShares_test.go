@@ -31,7 +31,7 @@ func XTestListObjectShares(t *testing.T) {
 	}
 
 	// URL
-	uri := host + cfg.RootURL + "/object/" + folder1.ID + "/shares"
+	uri := host + cfg.NginxRootURL + "/object/" + folder1.ID + "/shares"
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)

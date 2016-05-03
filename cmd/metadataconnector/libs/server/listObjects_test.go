@@ -26,7 +26,7 @@ func TestListObjectsRoot(t *testing.T) {
 	}
 
 	// URL
-	uri := host + cfg.RootURL + "/objects"
+	uri := host + cfg.NginxRootURL + "/objects"
 	uri1 := uri + "?PageNumber=1&PageSize=2"
 
 	// Request
@@ -80,7 +80,7 @@ func TestListObjectsRootPaging(t *testing.T) {
 	}
 
 	// URL
-	uri := host + cfg.RootURL + "/objects"
+	uri := host + cfg.NginxRootURL + "/objects"
 	uri1 := uri + "?PageNumber=1&PageSize=1"
 
 	// Request
@@ -175,7 +175,7 @@ func TestListObjectsChild(t *testing.T) {
 	}
 
 	// URLs
-	uri := host + cfg.RootURL + "/objects?PageSize="
+	uri := host + cfg.NginxRootURL + "/objects?PageSize="
 	if testing.Short() {
 		uri += "20"
 	} else {
@@ -270,7 +270,7 @@ func TestListObjectsChild(t *testing.T) {
 
 func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level int, childid string) {
 	// URLs
-	uri := host + cfg.RootURL + "/objects/" + childid + "?PageSize="
+	uri := host + cfg.NginxRootURL + "/objects/" + childid + "?PageSize="
 	if testing.Short() {
 		uri += "20"
 	} else {

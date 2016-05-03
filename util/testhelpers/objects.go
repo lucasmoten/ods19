@@ -177,7 +177,7 @@ func NewCreateObjectPOSTRequestRaw(
 	fileName string,
 	jsonBody []byte,
 ) (*http.Request, error) {
-	uri := host + cfg.RootURL + "/" + requestType
+	uri := host + cfg.NginxRootURL + "/" + requestType
 
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
@@ -224,7 +224,7 @@ func NewCreateObjectPOSTRequestRaw(
 // e.g. a docker container or localhost. Several object parameters are hardcoded, and this
 // function should only be used for testing purposes.
 func UpdateObjectStreamPOSTRequest(id string, changeToken string, host string, dn string, f *os.File) (*http.Request, error) {
-	uri := host + cfg.RootURL + "/objects/" + id + "/stream"
+	uri := host + cfg.NginxRootURL + "/objects/" + id + "/stream"
 
 	updateRequest := protocol.UpdateStreamRequest{
 		ChangeToken: changeToken,
@@ -275,7 +275,7 @@ func UpdateObjectStreamPOSTRequest(id string, changeToken string, host string, d
 
 func NewCreateReadPermissionRequest(obj protocol.Object, grantee, dn, host string) (*http.Request, error) {
 
-	uri := host + cfg.RootURL + "/shared/" + obj.ID
+	uri := host + cfg.NginxRootURL + "/shared/" + obj.ID
 	shareSetting := protocol.ObjectGrant{}
 	shareSetting.Grantee = grantee
 	shareSetting.Read = true
@@ -295,7 +295,7 @@ func NewCreateReadPermissionRequest(obj protocol.Object, grantee, dn, host strin
 }
 
 func NewDeletePermissionRequest(obj protocol.Object, share protocol.Permission, dn, host string) (*http.Request, error) {
-	uri := host + cfg.RootURL + "/shared/" + obj.ID + "/" + share.ID
+	uri := host + cfg.NginxRootURL + "/shared/" + obj.ID + "/" + share.ID
 	removeSetting := protocol.RemoveObjectShareRequest{}
 	removeSetting.ObjectID = obj.ID
 	removeSetting.ShareID = share.ID
@@ -321,7 +321,7 @@ func NewDeletePermissionRequest(obj protocol.Object, share protocol.Permission, 
 // localhost.
 func NewDeleteObjectRequest(obj protocol.Object, dn, host string) (*http.Request, error) {
 
-	uri := host + cfg.RootURL + "/objects/" + obj.ID + "/trash"
+	uri := host + cfg.NginxRootURL + "/objects/" + obj.ID + "/trash"
 
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = obj.ChangeToken
@@ -343,7 +343,7 @@ func NewDeleteObjectRequest(obj protocol.Object, dn, host string) (*http.Request
 // NewGetObjectRequest ...
 func NewGetObjectRequest(id, dn, host string) (*http.Request, error) {
 
-	uri := host + cfg.RootURL + "/objects/" + id + "/properties"
+	uri := host + cfg.NginxRootURL + "/objects/" + id + "/properties"
 
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
@@ -356,7 +356,7 @@ func NewGetObjectRequest(id, dn, host string) (*http.Request, error) {
 // New GetObjectStreamRequest ...
 func NewGetObjectStreamRequest(id, dn, host string) (*http.Request, error) {
 
-	uri := host + cfg.RootURL + "/objects/" + id + "/stream"
+	uri := host + cfg.NginxRootURL + "/objects/" + id + "/stream"
 
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
@@ -369,7 +369,7 @@ func NewGetObjectStreamRequest(id, dn, host string) (*http.Request, error) {
 // New GetObjectStreamRevisionRequest ...
 func NewGetObjectStreamRevisionRequest(id string, version string, dn string, host string) (*http.Request, error) {
 
-	uri := host + cfg.RootURL + "/revisions/" + id + "/" + version + "/stream"
+	uri := host + cfg.NginxRootURL + "/revisions/" + id + "/" + version + "/stream"
 
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
@@ -386,7 +386,7 @@ func NewUndeleteObjectDELETERequest(id, changeToken, dn, host string) (*http.Req
 		return nil, errors.New("Test ObjectID cannot be empty string")
 	}
 
-	uri := host + cfg.RootURL + "/objects/" + id + "/untrash"
+	uri := host + cfg.NginxRootURL + "/objects/" + id + "/untrash"
 
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = changeToken
