@@ -16,6 +16,7 @@ import (
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util"
 )
 
 // createObject is a method handler on AppServer for createObject microservice
@@ -260,7 +261,7 @@ func parseCreateObjectRequestAsJSON(r *http.Request) (models.ODObject, *AppError
 	}
 
 	// Decode to JSON
-	err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
+	err = util.FullDecode(r.Body, &jsonObject)
 	if err != nil {
 		return object, NewAppError(400, err, "Could not parse json object as a protocol.CreateObjectRequest")
 	}

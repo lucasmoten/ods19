@@ -78,9 +78,8 @@ func TestCreatObjectMalicious(t *testing.T) {
 		t.Fail()
 	}
 
-	decoder := json.NewDecoder(res.Body)
 	var objResponse protocol.Object
-	err = decoder.Decode(&objResponse)
+	err = util.FullDecode(res.Body, &objResponse)
 	res.Body.Close()
 
 	t.Logf("become POTUS")

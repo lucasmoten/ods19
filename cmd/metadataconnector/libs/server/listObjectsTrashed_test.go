@@ -1,7 +1,6 @@
 package server_test
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +9,7 @@ import (
 
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/services/aac"
+	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/dao"
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/server"
@@ -105,9 +105,8 @@ func TestHTTPListObjectsTrashed(t *testing.T) {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(res.Body)
 	var objResponse protocol.Object
-	err = decoder.Decode(&objResponse)
+	err = util.FullDecode(res.Body, &objResponse)
 	if err != nil {
 		t.Errorf("Could not decode CreateObject response.")
 	}
@@ -133,9 +132,8 @@ func TestHTTPListObjectsTrashed(t *testing.T) {
 		t.FailNow()
 	}
 
-	trashDecoder := json.NewDecoder(trashResp.Body)
 	var trashResponse protocol.ObjectResultset
-	err = trashDecoder.Decode(&trashResponse)
+	err = util.FullDecode(trashResp.Body, &trashResponse)
 	if err != nil {
 		t.Errorf("Could not decode listObjectsTrashed ObjectResultset response.")
 	}

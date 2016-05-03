@@ -11,6 +11,7 @@ import (
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util"
 )
 
 func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *http.Request) {
@@ -99,7 +100,7 @@ func parseDeleteObjectRequest(r *http.Request, ctx context.Context) (models.ODOb
 	// Capture changeToken
 	switch {
 	case r.Header.Get("Content-Type") == "application/json":
-		err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
+		err = util.FullDecode(r.Body, &jsonObject)
 		if err != nil {
 			return requestObject, err
 		}

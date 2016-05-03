@@ -14,6 +14,7 @@ import (
 	"decipher.com/object-drive-server/util/testhelpers"
 
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util"
 )
 
 func TestAddObjectShare(t *testing.T) {
@@ -295,9 +296,8 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.Logf("List retrieval failed. Unexpected status code: %d", shareListResponse.StatusCode)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(shareListResponse.Body)
 	var listOfObjects protocol.ObjectResultset
-	err = decoder.Decode(&listOfObjects)
+	err = util.FullDecode(shareListResponse.Body, &listOfObjects)
 	if err != nil {
 		t.Logf("Error decoding json to ObjectResultset: %v", err)
 		t.FailNow()
@@ -361,9 +361,8 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.Logf("List retrieval failed. Unexpected status code: %d", sharedToMeResponse.StatusCode)
 		t.FailNow()
 	}
-	decoder = json.NewDecoder(sharedToMeResponse.Body)
 	var listOfObjects2 protocol.ObjectResultset
-	err = decoder.Decode(&listOfObjects2)
+	err = util.FullDecode(sharedToMeResponse.Body, &listOfObjects2)
 	if err != nil {
 		t.Logf("Error decoding json to ObjectResultset: %v", err)
 		t.FailNow()

@@ -2,7 +2,6 @@ package server_test
 
 import (
 	"bytes"
-	"encoding/json"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -51,10 +50,9 @@ func TestHTTPUndeleteObject(t *testing.T) {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(res.Body)
 	var objResponse protocol.Object
 
-	err = decoder.Decode(&objResponse)
+	err = util.FullDecode(res.Body, &objResponse)
 	if err != nil {
 		t.Errorf("Could not decode CreateObject response.")
 	}
@@ -80,9 +78,8 @@ func TestHTTPUndeleteObject(t *testing.T) {
 	if err != nil {
 		t.Errorf("GetObject request failed: %v\n", err)
 	}
-	decoder = json.NewDecoder(res.Body)
 	var getObjectResponse protocol.Object
-	err = decoder.Decode(&getObjectResponse)
+	err = util.FullDecode(res.Body, &getObjectResponse)
 	if err != nil {
 		log.Printf("Error decoding json response from getObject to Object: %v", err)
 		t.FailNow()
@@ -98,9 +95,8 @@ func TestHTTPUndeleteObject(t *testing.T) {
 	}
 
 	// Assert object has been undeleted.
-	decoder = json.NewDecoder(res.Body)
 	var unDeletedObject protocol.Object
-	err = decoder.Decode(&unDeletedObject)
+	err = util.FullDecode(res.Body, &unDeletedObject)
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()

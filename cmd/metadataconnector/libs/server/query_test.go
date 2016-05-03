@@ -10,6 +10,7 @@ import (
 	"time"
 
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/protocol"
 )
@@ -56,9 +57,8 @@ func TestQuery(t *testing.T) {
 		t.Logf("bad status: %s", res.Status)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(res.Body)
 	var listOfObjects protocol.ObjectResultset
-	err = decoder.Decode(&listOfObjects)
+	err = util.FullDecode(res.Body, &listOfObjects)
 	if err != nil {
 		t.Logf("Error decoding json to ObjectResultset: %v", err)
 		t.FailNow()
@@ -128,9 +128,8 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		log.Printf("bad status modifying folder 1 first time: %s", res1.Status)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(res1.Body)
 	var updatedFolder protocol.Object
-	err = decoder.Decode(&updatedFolder)
+	err = util.FullDecode(res1.Body, &updatedFolder)
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()
@@ -162,8 +161,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		log.Printf("bad status modifying folder 1 second time: %s", res2.Status)
 		t.FailNow()
 	}
-	decoder = json.NewDecoder(res2.Body)
-	err = decoder.Decode(&updatedFolder)
+	err = util.FullDecode(res2.Body, &updatedFolder)
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()
@@ -194,9 +192,8 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 	if verboseOutput {
 		t.Logf("Status: %s", res.Status)
 	}
-	decoder = json.NewDecoder(res.Body)
 	var listOfObjects protocol.ObjectResultset
-	err = decoder.Decode(&listOfObjects)
+	err = util.FullDecode(res.Body, &listOfObjects)
 	if err != nil {
 		t.Logf("Error decoding json to ObjectResultset: %v", err)
 		t.FailNow()
@@ -249,9 +246,8 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		if verboseOutput {
 			t.Logf("Status: %s", res.Status)
 		}
-		decoder := json.NewDecoder(res.Body)
 		var listOfObjects protocol.ObjectResultset
-		err = decoder.Decode(&listOfObjects)
+		err = util.FullDecode(res.Body, &listOfObjects)
 		if err != nil {
 			t.Logf("Error decoding json to ObjectResultset: %v", err)
 			t.FailNow()
@@ -299,9 +295,8 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		log.Printf("deleting folder bad status: %s", res3.Status)
 		t.FailNow()
 	}
-	decoder = json.NewDecoder(res3.Body)
 	var deletedFolder1 protocol.DeletedObjectResponse
-	err = decoder.Decode(&deletedFolder1)
+	err = util.FullDecode(res3.Body, &deletedFolder1)
 	if err != nil {
 		log.Printf("deleting folder Error decoding json to Object 1: %v", err)
 		log.Println()
@@ -334,9 +329,8 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		log.Printf("deleting folder bad status: %s", res4.Status)
 		t.FailNow()
 	}
-	decoder = json.NewDecoder(res4.Body)
 	var deletedFolder2 protocol.DeletedObjectResponse
-	err = decoder.Decode(&deletedFolder2)
+	err = util.FullDecode(res4.Body, &deletedFolder2)
 	if err != nil {
 		log.Printf("deleting folder Error decoding json to Object 2: %v", err)
 		log.Println()

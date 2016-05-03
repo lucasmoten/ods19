@@ -16,6 +16,7 @@ import (
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util"
 )
 
 func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *http.Request) {
@@ -225,7 +226,7 @@ func parseUpdateObjectRequestAsJSON(r *http.Request, ctx context.Context) (model
 	}
 
 	// Get portion from body
-	err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
+	err = util.FullDecode(r.Body, &jsonObject)
 	if err != nil {
 		return requestObject, err
 	}

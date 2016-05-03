@@ -11,6 +11,7 @@ import (
 	"time"
 
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/protocol"
 )
@@ -65,9 +66,8 @@ func TestMoveObject(t *testing.T) {
 		log.Printf("bad status: %s", res.Status)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(res.Body)
 	var updatedFolder protocol.Object
-	err = decoder.Decode(&updatedFolder)
+	err = util.FullDecode(res.Body, &updatedFolder)
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()

@@ -12,6 +12,7 @@ import (
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util"
 )
 
 func (h AppServer) createFolder(ctx context.Context, w http.ResponseWriter, r *http.Request) {
@@ -70,7 +71,7 @@ func parseCreateFolderRequestAsJSON(r *http.Request) (models.ODObject, error) {
 	}
 
 	// Decode to JSON
-	err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
+	err = util.FullDecode(r.Body, &jsonObject)
 	if err != nil {
 		return object, err
 	}
