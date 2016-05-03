@@ -12,6 +12,7 @@ import (
 	"time"
 
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/protocol"
 )
@@ -59,9 +60,8 @@ func TestUpdateObject(t *testing.T) {
 		log.Printf("bad status: %s", res.Status)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(res.Body)
 	var updatedFolder protocol.Object
-	err = decoder.Decode(&updatedFolder)
+	err = util.FullDecode(res.Body, &updatedFolder)
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()
@@ -124,9 +124,8 @@ func TestUpdateObjectToHaveNoName(t *testing.T) {
 		log.Printf("bad status: %s", res.Status)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(res.Body)
 	var updatedFolder protocol.Object
-	err = decoder.Decode(&updatedFolder)
+	err = util.FullDecode(res.Body, &updatedFolder)
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()
@@ -192,9 +191,8 @@ func TestUpdateObjectToChangeOwnedBy(t *testing.T) {
 	// }
 
 	// Need to parse the body and verify it didnt change
-	decoder := json.NewDecoder(res.Body)
 	var updatedObject protocol.Object
-	err = decoder.Decode(&updatedObject)
+	err = util.FullDecode(res.Body, &updatedObject)
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()

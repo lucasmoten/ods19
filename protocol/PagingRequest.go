@@ -2,13 +2,14 @@ package protocol
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"decipher.com/object-drive-server/util"
 )
 
 // PagingRequest supports a request constrained to a given page number and size
@@ -60,7 +61,7 @@ func newPagingRequestFromJSONBody(body io.ReadCloser) (PagingRequest, error) {
 	if body == nil {
 		return pr, errors.New("JSON body was nil")
 	}
-	err = (json.NewDecoder(body)).Decode(&pr)
+	err = util.FullDecode(body, &pr)
 	if err != nil {
 		if err != io.EOF {
 			log.Printf("Error parsing paging information in json: %v", err)

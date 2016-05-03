@@ -11,6 +11,7 @@ import (
 
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util"
 
 	"golang.org/x/net/context"
 )
@@ -129,7 +130,7 @@ func parseRemoveObjectShareRequest(r *http.Request, ctx context.Context) (protoc
 	var err error
 
 	// Depends on this for the changeToken
-	err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
+	err = util.FullDecode(r.Body, &jsonObject)
 	if err != nil {
 		return jsonObject, err
 	}

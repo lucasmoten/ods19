@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
 
@@ -54,9 +55,8 @@ func doMaliciousUpdate(t *testing.T, oid, jsonString string) {
 		t.Fail()
 	}
 
-	decoder := json.NewDecoder(res.Body)
 	var objResponse protocol.Object
-	err = decoder.Decode(&objResponse)
+	err = util.FullDecode(res.Body, &objResponse)
 	res.Body.Close()
 
 	if objResponse.CreatedBy == "CN=POTUS,C=US" {

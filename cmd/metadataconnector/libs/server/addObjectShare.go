@@ -13,6 +13,7 @@ import (
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/utils"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util"
 )
 
 func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r *http.Request) {
@@ -125,8 +126,7 @@ func parseAddObjectShareRequest(r *http.Request, ctx context.Context) (models.OD
 	var err error
 
 	// Parse the JSON body into the requestedGrant
-	decoder := json.NewDecoder(r.Body)
-	err = decoder.Decode(&requestedGrant)
+	err = util.FullDecode(r.Body, &requestedGrant)
 	if err != nil {
 		return requestedPermission, false, errors.New("Unable to decode grant from JSON body")
 	}

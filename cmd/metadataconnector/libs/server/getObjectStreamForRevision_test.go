@@ -1,7 +1,6 @@
 package server_test
 
 import (
-	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -10,6 +9,7 @@ import (
 	"testing"
 
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
 
@@ -48,9 +48,8 @@ func TestGetObjectStreamForRevision_CurrentVersion(t *testing.T) {
 		t.Errorf("Error creating object, got code %d", createObjectRes.StatusCode)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(createObjectRes.Body)
 	var objResponse protocol.Object
-	err = decoder.Decode(&objResponse)
+	err = util.FullDecode(createObjectRes.Body, &objResponse)
 	if err != nil {
 		t.Errorf("Could not decode CreateObject response.")
 		t.FailNow()
@@ -168,9 +167,8 @@ func TestGetObjectStreamForRevision_OriginalVersion(t *testing.T) {
 		t.Errorf("Error creating object, got code %d", createObjectRes.StatusCode)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(createObjectRes.Body)
 	var objResponse1 protocol.Object
-	err = decoder.Decode(&objResponse1)
+	err = util.FullDecode(createObjectRes.Body, &objResponse1)
 	if err != nil {
 		t.Errorf("Could not decode CreateObject response.")
 		t.FailNow()
@@ -208,9 +206,8 @@ func TestGetObjectStreamForRevision_OriginalVersion(t *testing.T) {
 		t.Errorf("Error creating object, got code %d", updateObjectRes.StatusCode)
 		t.FailNow()
 	}
-	decoder = json.NewDecoder(updateObjectRes.Body)
 	var objResponse2 protocol.Object
-	err = decoder.Decode(&objResponse2)
+	err = util.FullDecode(updateObjectRes.Body, &objResponse2)
 	if err != nil {
 		t.Errorf("Could not decode CreateObject response.")
 		t.FailNow()
@@ -365,9 +362,8 @@ func TestGetObjectStreamForRevision_DeletedVersion(t *testing.T) {
 		t.Errorf("Error creating object, got code %d", createObjectRes.StatusCode)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(createObjectRes.Body)
 	var objResponse1 protocol.Object
-	err = decoder.Decode(&objResponse1)
+	err = util.FullDecode(createObjectRes.Body, &objResponse1)
 	if err != nil {
 		t.Errorf("Could not decode CreateObject response.")
 		t.FailNow()
@@ -405,9 +401,8 @@ func TestGetObjectStreamForRevision_DeletedVersion(t *testing.T) {
 		t.Errorf("Error creating object, got code %d", updateObjectRes.StatusCode)
 		t.FailNow()
 	}
-	decoder = json.NewDecoder(updateObjectRes.Body)
 	var objResponse2 protocol.Object
-	err = decoder.Decode(&objResponse2)
+	err = util.FullDecode(updateObjectRes.Body, &objResponse2)
 	if err != nil {
 		t.Errorf("Could not decode CreateObject response.")
 		t.FailNow()
@@ -502,9 +497,8 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("Error creating object, got code %d", createObjectRes.StatusCode)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(createObjectRes.Body)
 	var objResponse1 protocol.Object
-	err = decoder.Decode(&objResponse1)
+	err = util.FullDecode(createObjectRes.Body, &objResponse1)
 	if err != nil {
 		t.Errorf("Could not decode CreateObject response.")
 		t.FailNow()
@@ -531,9 +525,8 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("Error creating share, got code %d", createShareRes.StatusCode)
 		t.FailNow()
 	}
-	decoder = json.NewDecoder(createShareRes.Body)
 	var objShare protocol.Permission
-	err = decoder.Decode(&objShare)
+	err = util.FullDecode(createShareRes.Body, &objShare)
 	if err != nil {
 		t.Errorf("Could not decode CreateShare response")
 		t.FailNow()
@@ -567,9 +560,8 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("Error creating object, got code %d", updateObjectRes.StatusCode)
 		t.FailNow()
 	}
-	decoder = json.NewDecoder(updateObjectRes.Body)
 	var objResponse2 protocol.Object
-	err = decoder.Decode(&objResponse2)
+	err = util.FullDecode(updateObjectRes.Body, &objResponse2)
 	if err != nil {
 		t.Errorf("Could not decode CreateObject response.")
 		t.FailNow()

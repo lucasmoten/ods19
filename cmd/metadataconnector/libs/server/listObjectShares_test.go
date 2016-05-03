@@ -1,13 +1,13 @@
 package server_test
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"testing"
 	"time"
 
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/protocol"
 )
@@ -61,9 +61,8 @@ func XTestListObjectShares(t *testing.T) {
 	}
 
 	// Parse first response to permissions
-	decoder := json.NewDecoder(res1.Body)
 	var permissions []protocol.Permission
-	err = decoder.Decode(&permissions)
+	err = util.FullDecode(res1.Body, &permissions)
 	if err != nil {
 		t.Logf("Error decoding json to Permission array: %v", err)
 		t.FailNow()

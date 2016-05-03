@@ -10,6 +10,7 @@ import (
 	"time"
 
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/protocol"
 )
@@ -93,9 +94,8 @@ func TestRemoveObjectShare(t *testing.T) {
 		t.Logf("share creation failed")
 		t.FailNow()
 	}
-	decoder3 := json.NewDecoder(getRes3.Body)
 	var createdShare protocol.Permission
-	err = decoder3.Decode(&createdShare)
+	err = util.FullDecode(getRes3.Body, &createdShare)
 	if err != nil {
 		t.Logf("Error decoding json to Permission: %v", err)
 		t.FailNow()
@@ -166,9 +166,8 @@ func TestRemoveObjectShare(t *testing.T) {
 		t.Logf("share removal failed")
 		t.FailNow()
 	}
-	decoder6 := json.NewDecoder(getRes6.Body)
 	var removedShare protocol.RemovedObjectShareResponse
-	err = decoder6.Decode(&removedShare)
+	err = util.FullDecode(getRes6.Body, &removedShare)
 	if err != nil {
 		t.Logf("Error decoding json to Removed share response: %v", err)
 		t.FailNow()

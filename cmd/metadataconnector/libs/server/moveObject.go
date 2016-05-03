@@ -14,6 +14,7 @@ import (
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util"
 )
 
 func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *http.Request) {
@@ -183,7 +184,7 @@ func parseMoveObjectRequestAsJSON(r *http.Request, ctx context.Context) (models.
 	var err error
 
 	// Depends on this for the changeToken
-	err = (json.NewDecoder(r.Body)).Decode(&jsonObject)
+	err = util.FullDecode(r.Body, &jsonObject)
 	if err != nil {
 		return requestObject, err
 	}

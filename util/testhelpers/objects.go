@@ -51,8 +51,7 @@ func DoWithDecodedResult(client *http.Client, req *http.Request) (*http.Response
 	if err != nil {
 		return nil, objResponse, err
 	}
-	decoder := json.NewDecoder(res.Body)
-	err = decoder.Decode(&objResponse)
+	err = util.FullDecode(res.Body, &objResponse)
 	res.Body.Close()
 	return res, objResponse, err
 }

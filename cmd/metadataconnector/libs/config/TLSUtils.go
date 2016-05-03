@@ -136,6 +136,7 @@ func buildx509Identity(certFile string, keyFile string) []tls.Certificate {
 	certs, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		log.Printf("Error loading x509 Key Pair: %s", err.Error())
+		log.Printf("certFile path: %s keyFile path %s\n", certFile, keyFile)
 	} else {
 		theCert = append(theCert, certs)
 	}
@@ -155,6 +156,8 @@ func buildCertPoolFromPath(filePath string, poolName string) *x509.CertPool {
 	pathSpec, err := os.Open(filePath)
 	if err != nil {
 		log.Printf("Error opening filepath: %s", err.Error())
+		log.Printf("filePath path: %s for poolName %s\n", filePath, poolName)
+		// TODO error here?
 		return theCertPool
 
 	}
@@ -276,5 +279,6 @@ func GetCommonName(DistinguishedName string) string {
 			return s[3:len(s)]
 		}
 	}
+
 	return DistinguishedName
 }

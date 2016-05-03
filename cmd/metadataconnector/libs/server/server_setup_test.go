@@ -190,9 +190,8 @@ func makeFolderWithACMViaJSON(folderName string, rawAcm string, clientid int) (*
 		log.Printf("bad status: %s", res.Status)
 		return nil, errors.New("Status was " + res.Status)
 	}
-	decoder := json.NewDecoder(res.Body)
 	var createdFolder protocol.Object
-	err = decoder.Decode(&createdFolder)
+	err = util.FullDecode(res.Body, &createdFolder)
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()

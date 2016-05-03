@@ -11,6 +11,7 @@ import (
 	"time"
 
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/protocol"
 )
@@ -60,9 +61,8 @@ func TestDeleteObject(t *testing.T) {
 		log.Printf("bad status: %s", res.Status)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(res.Body)
 	var deletedFolder protocol.DeletedObjectResponse
-	err = decoder.Decode(&deletedFolder)
+	err = util.FullDecode(res.Body, deletedFolder)
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()
@@ -97,9 +97,8 @@ func TestDeleteObject(t *testing.T) {
 		log.Printf("bad status: %s", res.Status)
 		t.FailNow()
 	}
-	decoder = json.NewDecoder(res.Body)
 	var getResponse protocol.DeletedObject
-	err = decoder.Decode(&getResponse)
+	err = util.FullDecode(res.Body, &getResponse)
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()
@@ -163,9 +162,8 @@ func TestDeleteWithChildObject(t *testing.T) {
 		log.Printf("moving folder bad status: %s", res.Status)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(res.Body)
 	var updatedFolder protocol.Object
-	err = decoder.Decode(&updatedFolder)
+	err = util.FullDecode(res.Body, &updatedFolder)
 	if err != nil {
 		log.Printf("moving folder Error decoding json to Object: %v", err)
 		log.Println()
@@ -207,9 +205,8 @@ func TestDeleteWithChildObject(t *testing.T) {
 		log.Printf("deleting folder bad status: %s", res.Status)
 		t.FailNow()
 	}
-	decoder = json.NewDecoder(res.Body)
 	var deletedFolder protocol.Object
-	err = decoder.Decode(&deletedFolder)
+	err = util.FullDecode(res.Body, &deletedFolder)
 	if err != nil {
 		log.Printf("deleting folder Error decoding json to Object: %v", err)
 		log.Println()

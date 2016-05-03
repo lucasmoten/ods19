@@ -13,6 +13,7 @@ import (
 	"time"
 
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
 
 	"decipher.com/object-drive-server/protocol"
@@ -40,7 +41,8 @@ func TestCreateFolderProtocol(t *testing.T) {
 		t.Errorf("Expected OK, got %v", w.Code)
 	}
 	var resp protocol.Object
-	err = (json.NewDecoder(w.Body)).Decode(&resp)
+	decoder := json.NewDecoder(w.Body)
+	err = decoder.Decode(&resp)
 	if err != nil {
 		t.Errorf("Could not decode createFolder response as protocol.Object: %s", err)
 	}
@@ -95,9 +97,8 @@ func TestCreateFolderAtRoot(t *testing.T) {
 		log.Printf("bad status: %s", res.Status)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(res.Body)
 	var createdFolder protocol.Object
-	err = decoder.Decode(&createdFolder)
+	err = util.FullDecode(res.Body, &createdFolder)
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v\n", err)
 		t.FailNow()
@@ -161,9 +162,8 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 		log.Printf("bad status: %s", res.Status)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(res.Body)
 	var createdFolder protocol.Object
-	err = decoder.Decode(&createdFolder)
+	err = util.FullDecode(res.Body, &createdFolder)
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()
@@ -207,9 +207,8 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 		log.Printf("bad status: %s", res.Status)
 		t.FailNow()
 	}
-	decoder = json.NewDecoder(res.Body)
 	var createdSubFolder protocol.Object
-	err = decoder.Decode(&createdSubFolder)
+	err = util.FullDecode(res.Body, &createdSubFolder)
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()
@@ -277,9 +276,8 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 		log.Printf("bad status: %s", res.Status)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(res.Body)
 	var createdFolder protocol.Object
-	err = decoder.Decode(&createdFolder)
+	err = util.FullDecode(res.Body, &createdFolder)
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()
@@ -381,9 +379,8 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 		log.Printf("req1 bad status: %s", res.Status)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(res.Body)
 	var createdFolder protocol.Object
-	err = decoder.Decode(&createdFolder)
+	err = util.FullDecode(res.Body, &createdFolder)
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()
@@ -476,9 +473,8 @@ func TestCreateFolderWithoutName(t *testing.T) {
 		log.Printf("req1 bad status: %s", res.Status)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(res.Body)
 	var createdFolder protocol.Object
-	err = decoder.Decode(&createdFolder)
+	err = util.FullDecode(res.Body, &createdFolder)
 	if err != nil {
 		log.Printf("Error decoding json to Object: %v", err)
 		log.Println()

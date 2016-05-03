@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/protocol"
 )
@@ -47,9 +48,8 @@ func TestListObjectsRoot(t *testing.T) {
 		log.Printf("bad status: %s", res.Status)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(res.Body)
 	var listOfObjects protocol.ObjectResultset
-	err = decoder.Decode(&listOfObjects)
+	err = util.FullDecode(res.Body, &listOfObjects)
 	if err != nil {
 		log.Printf("Error decoding json to ObjectResultset: %v", err)
 		t.FailNow()
@@ -104,9 +104,8 @@ func TestListObjectsRootPaging(t *testing.T) {
 	if verboseOutput {
 		log.Printf("Status: %s", res.Status)
 	}
-	decoder := json.NewDecoder(res.Body)
 	var listOfObjects protocol.ObjectResultset
-	err = decoder.Decode(&listOfObjects)
+	err = util.FullDecode(res.Body, &listOfObjects)
 	if err != nil {
 		log.Printf("Error decoding json to ObjectResultset: %v", err)
 		t.FailNow()
@@ -146,9 +145,8 @@ func TestListObjectsRootPaging(t *testing.T) {
 		if verboseOutput {
 			log.Printf("Status: %s", res.Status)
 		}
-		decoder := json.NewDecoder(res.Body)
 		var listOfObjects protocol.ObjectResultset
-		err = decoder.Decode(&listOfObjects)
+		err = util.FullDecode(res.Body, &listOfObjects)
 		if err != nil {
 			log.Printf("Error decoding json to ObjectResultset: %v", err)
 			t.FailNow()
@@ -202,9 +200,8 @@ func TestListObjectsChild(t *testing.T) {
 		log.Printf("bad status: %s", res.Status)
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(res.Body)
 	var listOfObjects protocol.ObjectResultset
-	err = decoder.Decode(&listOfObjects)
+	err = util.FullDecode(res.Body, &listOfObjects)
 	if err != nil {
 		log.Printf("Error decoding json to ObjectResultset: %v", err)
 		t.FailNow()
@@ -246,9 +243,8 @@ func TestListObjectsChild(t *testing.T) {
 			log.Printf("bad status: %s", res.Status)
 			t.FailNow()
 		}
-		decoder := json.NewDecoder(res.Body)
 		var listOfObjects protocol.ObjectResultset
-		err = decoder.Decode(&listOfObjects)
+		err = util.FullDecode(res.Body, &listOfObjects)
 		if err != nil {
 			log.Printf("Error decoding json to ObjectResultset: %v", err)
 			t.FailNow()
@@ -307,9 +303,8 @@ func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level 
 		fmt.Println()
 		t.FailNow()
 	}
-	decoder := json.NewDecoder(res.Body)
 	var listOfObjects protocol.ObjectResultset
-	err = decoder.Decode(&listOfObjects)
+	err = util.FullDecode(res.Body, &listOfObjects)
 	if err != nil {
 		log.Printf("Error decoding json to ObjectResultset: %v", err)
 		t.FailNow()
@@ -351,9 +346,8 @@ func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level 
 			t.Fail()
 			return
 		}
-		decoder := json.NewDecoder(res.Body)
 		var listOfObjects protocol.ObjectResultset
-		err = decoder.Decode(&listOfObjects)
+		err = util.FullDecode(res.Body, &listOfObjects)
 		if err != nil {
 			log.Printf("Error decoding json to ObjectResultset: %v", err)
 			t.FailNow()
