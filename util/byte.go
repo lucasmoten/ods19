@@ -3,6 +3,8 @@ package util
 import (
 	"encoding/json"
 	"io"
+	"io/ioutil"
+	"log"
 )
 
 // StringToInt8Slice converts a string to []int8. This conversion is required to
@@ -22,8 +24,10 @@ func FullDecode(r io.ReadCloser, obj interface{}) error {
 	err := d.Decode(obj)
 	//drain the decoder completely. ignore the result.
 	//the point is to read to EOF.
-	var junk *interface{}
-	d.Decode(junk)
+	_, err = ioutil.ReadAll(r)
+	if err != nil {
+		log.Printf("FullDecode: %v", err)
+	}
 	r.Close()
 	return err
 }

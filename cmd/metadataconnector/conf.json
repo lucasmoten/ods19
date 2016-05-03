@@ -10,7 +10,9 @@
     ,"Params": "parseTime=true"
     ,"UseTLS": true
     ,"SkipVerify": true
-    ,"CAPath": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/aws/rds-combined-ca-bundle.pem"
+    ,"CAPath": "$OD_DB_CA"
+    ,"ClientCert": "$OD_DB_CERT"
+    ,"ClientKey": "$OD_DB_KEY"
   },
   "LocalDatabaseConnection": {
     "Driver": "mysql"
