@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"testing"
 
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/dao"
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/server"
@@ -36,9 +37,10 @@ var httpclients []*http.Client
 
 func init() {
 	host = fmt.Sprintf("https://%s:%s", cfg.DockerVM, cfg.Port)
-	log.Println("Using this host address for server_test:", host)
-	generatePopulation()
-
+	log.Println("Using this host addrress for server_test:", host)
+	if !testing.Short() {
+		generatePopulation()
+	}
 }
 
 func generatePopulation() {

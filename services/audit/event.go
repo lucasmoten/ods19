@@ -12,6 +12,10 @@ import (
 func NewModifiedResourcePair() *components_thrift.ModifiedResourcePair {
 	var pair components_thrift.ModifiedResourcePair
 
+	// Set original
+
+	// Set modified
+
 	return &pair
 }
 
@@ -179,9 +183,7 @@ func WithResources(e *events_thrift.AuditEvent, resources ...*components_thrift.
 		e.Resources = make([]*components_thrift.Resource, 0)
 	}
 
-	for _, resource := range resources {
-		e.Resources = append(e.Resources, resource)
-	}
+	e.Resources = append(e.Resources, resources...)
 }
 
 // WithCrossDomain ...
@@ -222,7 +224,7 @@ func WithFilter(e *events_thrift.AuditEvent, filter string) {
 	if e.Filters == nil {
 		e.Filters = make([]*components_thrift.Filter, 0)
 	}
-	f := components_thrift.Filter{stringPtr(filter)}
+	f := components_thrift.Filter{Filter: stringPtr(filter)}
 	e.Filters = append(e.Filters, &f)
 }
 
@@ -233,9 +235,7 @@ func WithModifiedPairList(e *events_thrift.AuditEvent, modifiedPairs ...*compone
 		e.ModifiedPairList = make([]*components_thrift.ModifiedResourcePair, 0)
 	}
 
-	for _, modifiedResourcePair := range modifiedPairs {
-		e.ModifiedPairList = append(e.ModifiedPairList, modifiedResourcePair)
-	}
+	e.ModifiedPairList = append(e.ModifiedPairList, modifiedPairs...)
 }
 
 // WithCollaborationFeature ...
@@ -259,9 +259,7 @@ func WithSessionIds(e *events_thrift.AuditEvent, sessionIds ...string) {
 		e.SessionIds = make([]string, 0)
 	}
 
-	for _, id := range sessionIds {
-		e.SessionIds = append(e.SessionIds, id)
-	}
+	e.SessionIds = append(e.SessionIds, sessionIds...)
 }
 
 // WithWorkflow ...
@@ -275,9 +273,7 @@ func WithAuthorizationServices(e *events_thrift.AuditEvent, auths ...string) {
 		e.AuthorizationServices = make([]string, 0)
 	}
 
-	for _, authService := range auths {
-		e.AuthorizationServices = append(e.AuthorizationServices, authService)
-	}
+	e.AuthorizationServices = append(e.AuthorizationServices, auths...)
 }
 
 // WithAuthorizationServiceTimePeriod ...
@@ -294,5 +290,4 @@ func WithDevice(e *events_thrift.AuditEvent, deviceLocation, deviceType string) 
 
 // Utilities for dealing with pointers to primitive types.
 func stringPtr(s string) *string { return &s }
-func int32Ptr(i int32) *int32    { return &i }
 func boolPtr(b bool) *bool       { return &b }

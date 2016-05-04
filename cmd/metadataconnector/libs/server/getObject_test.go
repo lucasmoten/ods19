@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/util/testhelpers"
 
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/dao"
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/server"
@@ -21,17 +22,12 @@ func TestAppServerGetObject(t *testing.T) {
 func TestAppServerGetObjectAgainstFake(t *testing.T) {
 
 	// Set up an ODUser and a test DN.
-	dn := fakeDN1
-	user := models.ODUser{
-		DistinguishedName: dn,
-	}
-	user.CreatedBy = dn
+	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
+	user := newUserForDN(whitelistedDN)
 
 	// Create a GUID and construct a URL from it.
-	guid, err := util.NewGUID()
-	if err != nil {
-		t.Errorf("Could not create GUID.")
-	}
+	guid := newGUID(t)
+
 	objectURL := "/objects/" + guid + "/properties"
 
 	// Create permissions object, with our User as a Grantee.
@@ -39,43 +35,14 @@ func TestAppServerGetObjectAgainstFake(t *testing.T) {
 		{Grantee: user.DistinguishedName, AllowRead: true}}
 	obj := models.ODObject{Permissions: perms}
 	obj.ID = []byte(guid)
-	obj.RawAcm.String = "Invalid ACM"
-	obj.RawAcm.Valid = true
+	obj.RawAcm.String, obj.RawAcm.Valid = testhelpers.ValidACMUnclassified, true
 
-	// Fake the DAO interface.
-	fakeDAO := dao.FakeDAO{
-		Object: obj,
-		Users:  []models.ODUser{user},
-	}
-
-	userCache := server.NewUserCache()
-	snippetCache := server.NewSnippetCache()
-
-	checkAccessResponse := aac.CheckAccessResponse{
-		Success:   true,
-		HasAccess: true,
-	}
-	// Fake the AAC interface
-	fakeAAC := aac.FakeAAC{
-		CheckAccessResp: &checkAccessResponse,
-	}
-
-	// Fake the AppServer.
-	fakeServer := server.AppServer{DAO: &fakeDAO,
-		ServicePrefix: cfg.RootURLRegex,
-		AAC:           &fakeAAC,
-		Users:         userCache,
-		Snippets:      snippetCache,
-	}
-	fakeServer.InitRegex()
-
-	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
-	fakeServer.AclImpersonationWhitelist = append(fakeServer.AclImpersonationWhitelist, whitelistedDN)
+	fakeServer := setupFakeServerWithObjectForUser(user, obj)
 
 	// Simulate the getObject call.
 	req, err := http.NewRequest(
 		"GET", cfg.RootURL+objectURL, nil)
-	req.Header.Add("USER_DN", dn)
+	req.Header.Add("USER_DN", whitelistedDN)
 	req.Header.Add("SSL_CLIENT_S_DN", whitelistedDN)
 
 	if err != nil {
@@ -88,4 +55,53 @@ func TestAppServerGetObjectAgainstFake(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected OK, got %v", w.Code)
 	}
+
+}
+
+func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *server.AppServer {
+
+	fakeDAO := dao.FakeDAO{
+		Object: obj,
+		Users:  []models.ODUser{user},
+	}
+
+	userCache := server.NewUserCache()
+	snippetCache := server.NewSnippetCache()
+
+	fakeAAC := aac.FakeAAC{
+		CheckAccessResp: &aac.CheckAccessResponse{
+			Success:   true,
+			HasAccess: true,
+		},
+	}
+
+	fakeServer := server.AppServer{DAO: &fakeDAO,
+		ServicePrefix: cfg.RootURLRegex,
+		AAC:           &fakeAAC,
+		Users:         userCache,
+		Snippets:      snippetCache,
+		Auditor:       nil,
+	}
+
+	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
+	fakeServer.AclImpersonationWhitelist = append(fakeServer.AclImpersonationWhitelist, whitelistedDN)
+
+	fakeServer.InitRegex()
+	return &fakeServer
+}
+
+func newUserForDN(dn string) models.ODUser {
+	user := models.ODUser{
+		DistinguishedName: dn,
+	}
+	user.CreatedBy = dn
+	return user
+}
+
+func newGUID(t *testing.T) string {
+	guid, err := util.NewGUID()
+	if err != nil {
+		t.Errorf("Could not create GUID.")
+	}
+	return guid
 }

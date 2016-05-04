@@ -16,3 +16,7 @@ func NewODID() (ODID, error) {
 	}
 	return ODID{ID: g}, nil
 }
+
+func (id ODID) String() string {
+	return string(id.ID)
+}
