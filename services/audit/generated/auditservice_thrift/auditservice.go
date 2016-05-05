@@ -3,8 +3,9 @@
 package auditservice_thrift
 
 import (
-	"decipher.com/object-drive-server/services/audit/generated/events_thrift"
 	"fmt"
+
+	"decipher.com/object-drive-server/services/audit/generated/events_thrift"
 )
 
 var _ = fmt.Sprintf
@@ -12,8 +13,8 @@ var _ = fmt.Sprintf
 type Int int32
 
 type AuditResponse struct {
-	Success  bool     `thrift:"1,required" json:"success"`
-	Messages []string `thrift:"2,required" json:"messages"`
+	Status   string   `thrift:"1,required" json:"status"`
+	Messages []string `thrift:"2,optional" json:"messages"` // NOTE: Modified.
 }
 
 type AuditServiceException struct {
@@ -24,86 +25,438 @@ func (e *AuditServiceException) Error() string {
 	return fmt.Sprintf("AuditServiceException{Message: %+v}", e.Message)
 }
 
-type InvalidInputException struct {
-	Message string `thrift:"1,required" json:"message"`
-}
-
-func (e *InvalidInputException) Error() string {
-	return fmt.Sprintf("InvalidInputException{Message: %+v}", e.Message)
-}
-
 type AuditService interface {
-	Ping() (string, error)
-	SubmitAuditEvent(event *events_thrift.AuditEvent) (*AuditResponse, error)
+	SubmitAuditEvents(events []*events_thrift.AuditEvent) (*AuditResponse, error)
+	SubmitEventAccesses(events []*events_thrift.AuditEvent) (*AuditResponse, error)
+	SubmitEventAuthenticates(events []*events_thrift.AuditEvent) (*AuditResponse, error)
+	SubmitEventCreates(events []*events_thrift.AuditEvent) (*AuditResponse, error)
+	SubmitEventDeletes(events []*events_thrift.AuditEvent) (*AuditResponse, error)
+	SubmitEventExports(events []*events_thrift.AuditEvent) (*AuditResponse, error)
+	SubmitEventImports(events []*events_thrift.AuditEvent) (*AuditResponse, error)
+	SubmitEventModifies(events []*events_thrift.AuditEvent) (*AuditResponse, error)
+	SubmitEventSearchQrys(events []*events_thrift.AuditEvent) (*AuditResponse, error)
+	SubmitEventSystemActions(events []*events_thrift.AuditEvent) (*AuditResponse, error)
+	SubmitEventUnknowns(events []*events_thrift.AuditEvent) (*AuditResponse, error)
 }
 
 type AuditServiceServer struct {
 	Implementation AuditService
 }
 
-func (s *AuditServiceServer) Ping(req *AuditServicePingRequest, res *AuditServicePingResponse) error {
-	val, err := s.Implementation.Ping()
-	res.Value = &val
-	return err
-}
-
-func (s *AuditServiceServer) SubmitAuditEvent(req *AuditServiceSubmitAuditEventRequest, res *AuditServiceSubmitAuditEventResponse) error {
-	val, err := s.Implementation.SubmitAuditEvent(req.Event)
+func (s *AuditServiceServer) SubmitAuditEvents(req *AuditServiceSubmitAuditEventsRequest, res *AuditServiceSubmitAuditEventsResponse) error {
+	val, err := s.Implementation.SubmitAuditEvents(req.Events)
 	switch e := err.(type) {
-	case *InvalidInputException:
-		res.Ex1 = e
-		err = nil
 	case *AuditServiceException:
-		res.Ex2 = e
+		res.Ex1 = e
 		err = nil
 	}
 	res.Value = val
 	return err
 }
 
-type AuditServicePingRequest struct {
+func (s *AuditServiceServer) SubmitEventAccesses(req *AuditServiceSubmitEventAccessesRequest, res *AuditServiceSubmitEventAccessesResponse) error {
+	val, err := s.Implementation.SubmitEventAccesses(req.Events)
+	switch e := err.(type) {
+	case *AuditServiceException:
+		res.Ex1 = e
+		err = nil
+	}
+	res.Value = val
+	return err
 }
 
-type AuditServicePingResponse struct {
-	Value *string `thrift:"0" json:"value,omitempty"`
+func (s *AuditServiceServer) SubmitEventAuthenticates(req *AuditServiceSubmitEventAuthenticatesRequest, res *AuditServiceSubmitEventAuthenticatesResponse) error {
+	val, err := s.Implementation.SubmitEventAuthenticates(req.Events)
+	switch e := err.(type) {
+	case *AuditServiceException:
+		res.Ex1 = e
+		err = nil
+	}
+	res.Value = val
+	return err
 }
 
-type AuditServiceSubmitAuditEventRequest struct {
-	Event *events_thrift.AuditEvent `thrift:"1,required" json:"event"`
+func (s *AuditServiceServer) SubmitEventCreates(req *AuditServiceSubmitEventCreatesRequest, res *AuditServiceSubmitEventCreatesResponse) error {
+	val, err := s.Implementation.SubmitEventCreates(req.Events)
+	switch e := err.(type) {
+	case *AuditServiceException:
+		res.Ex1 = e
+		err = nil
+	}
+	res.Value = val
+	return err
 }
 
-type AuditServiceSubmitAuditEventResponse struct {
+func (s *AuditServiceServer) SubmitEventDeletes(req *AuditServiceSubmitEventDeletesRequest, res *AuditServiceSubmitEventDeletesResponse) error {
+	val, err := s.Implementation.SubmitEventDeletes(req.Events)
+	switch e := err.(type) {
+	case *AuditServiceException:
+		res.Ex1 = e
+		err = nil
+	}
+	res.Value = val
+	return err
+}
+
+func (s *AuditServiceServer) SubmitEventExports(req *AuditServiceSubmitEventExportsRequest, res *AuditServiceSubmitEventExportsResponse) error {
+	val, err := s.Implementation.SubmitEventExports(req.Events)
+	switch e := err.(type) {
+	case *AuditServiceException:
+		res.Ex1 = e
+		err = nil
+	}
+	res.Value = val
+	return err
+}
+
+func (s *AuditServiceServer) SubmitEventImports(req *AuditServiceSubmitEventImportsRequest, res *AuditServiceSubmitEventImportsResponse) error {
+	val, err := s.Implementation.SubmitEventImports(req.Events)
+	switch e := err.(type) {
+	case *AuditServiceException:
+		res.Ex1 = e
+		err = nil
+	}
+	res.Value = val
+	return err
+}
+
+func (s *AuditServiceServer) SubmitEventModifies(req *AuditServiceSubmitEventModifiesRequest, res *AuditServiceSubmitEventModifiesResponse) error {
+	val, err := s.Implementation.SubmitEventModifies(req.Events)
+	switch e := err.(type) {
+	case *AuditServiceException:
+		res.Ex1 = e
+		err = nil
+	}
+	res.Value = val
+	return err
+}
+
+func (s *AuditServiceServer) SubmitEventSearchQrys(req *AuditServiceSubmitEventSearchQrysRequest, res *AuditServiceSubmitEventSearchQrysResponse) error {
+	val, err := s.Implementation.SubmitEventSearchQrys(req.Events)
+	switch e := err.(type) {
+	case *AuditServiceException:
+		res.Ex1 = e
+		err = nil
+	}
+	res.Value = val
+	return err
+}
+
+func (s *AuditServiceServer) SubmitEventSystemActions(req *AuditServiceSubmitEventSystemActionsRequest, res *AuditServiceSubmitEventSystemActionsResponse) error {
+	val, err := s.Implementation.SubmitEventSystemActions(req.Events)
+	switch e := err.(type) {
+	case *AuditServiceException:
+		res.Ex1 = e
+		err = nil
+	}
+	res.Value = val
+	return err
+}
+
+func (s *AuditServiceServer) SubmitEventUnknowns(req *AuditServiceSubmitEventUnknownsRequest, res *AuditServiceSubmitEventUnknownsResponse) error {
+	val, err := s.Implementation.SubmitEventUnknowns(req.Events)
+	switch e := err.(type) {
+	case *AuditServiceException:
+		res.Ex1 = e
+		err = nil
+	}
+	res.Value = val
+	return err
+}
+
+type AuditServiceSubmitAuditEventsRequest struct {
+	Events []*events_thrift.AuditEvent `thrift:"1,required" json:"events"`
+}
+
+type AuditServiceSubmitAuditEventsResponse struct {
 	Value *AuditResponse         `thrift:"0" json:"value,omitempty"`
-	Ex1   *InvalidInputException `thrift:"1" json:"ex1,omitempty"`
-	Ex2   *AuditServiceException `thrift:"2" json:"ex2,omitempty"`
+	Ex1   *AuditServiceException `thrift:"1" json:"ex1,omitempty"`
+}
+
+type AuditServiceSubmitEventAccessesRequest struct {
+	Events []*events_thrift.AuditEvent `thrift:"1,required" json:"events"`
+}
+
+type AuditServiceSubmitEventAccessesResponse struct {
+	Value *AuditResponse         `thrift:"0" json:"value,omitempty"`
+	Ex1   *AuditServiceException `thrift:"1" json:"ex1,omitempty"`
+}
+
+type AuditServiceSubmitEventAuthenticatesRequest struct {
+	Events []*events_thrift.AuditEvent `thrift:"1,required" json:"events"`
+}
+
+type AuditServiceSubmitEventAuthenticatesResponse struct {
+	Value *AuditResponse         `thrift:"0" json:"value,omitempty"`
+	Ex1   *AuditServiceException `thrift:"1" json:"ex1,omitempty"`
+}
+
+type AuditServiceSubmitEventCreatesRequest struct {
+	Events []*events_thrift.AuditEvent `thrift:"1,required" json:"events"`
+}
+
+type AuditServiceSubmitEventCreatesResponse struct {
+	Value *AuditResponse         `thrift:"0" json:"value,omitempty"`
+	Ex1   *AuditServiceException `thrift:"1" json:"ex1,omitempty"`
+}
+
+type AuditServiceSubmitEventDeletesRequest struct {
+	Events []*events_thrift.AuditEvent `thrift:"1,required" json:"events"`
+}
+
+type AuditServiceSubmitEventDeletesResponse struct {
+	Value *AuditResponse         `thrift:"0" json:"value,omitempty"`
+	Ex1   *AuditServiceException `thrift:"1" json:"ex1,omitempty"`
+}
+
+type AuditServiceSubmitEventExportsRequest struct {
+	Events []*events_thrift.AuditEvent `thrift:"1,required" json:"events"`
+}
+
+type AuditServiceSubmitEventExportsResponse struct {
+	Value *AuditResponse         `thrift:"0" json:"value,omitempty"`
+	Ex1   *AuditServiceException `thrift:"1" json:"ex1,omitempty"`
+}
+
+type AuditServiceSubmitEventImportsRequest struct {
+	Events []*events_thrift.AuditEvent `thrift:"1,required" json:"events"`
+}
+
+type AuditServiceSubmitEventImportsResponse struct {
+	Value *AuditResponse         `thrift:"0" json:"value,omitempty"`
+	Ex1   *AuditServiceException `thrift:"1" json:"ex1,omitempty"`
+}
+
+type AuditServiceSubmitEventModifiesRequest struct {
+	Events []*events_thrift.AuditEvent `thrift:"1,required" json:"events"`
+}
+
+type AuditServiceSubmitEventModifiesResponse struct {
+	Value *AuditResponse         `thrift:"0" json:"value,omitempty"`
+	Ex1   *AuditServiceException `thrift:"1" json:"ex1,omitempty"`
+}
+
+type AuditServiceSubmitEventSearchQrysRequest struct {
+	Events []*events_thrift.AuditEvent `thrift:"1,required" json:"events"`
+}
+
+type AuditServiceSubmitEventSearchQrysResponse struct {
+	Value *AuditResponse         `thrift:"0" json:"value,omitempty"`
+	Ex1   *AuditServiceException `thrift:"1" json:"ex1,omitempty"`
+}
+
+type AuditServiceSubmitEventSystemActionsRequest struct {
+	Events []*events_thrift.AuditEvent `thrift:"1,required" json:"events"`
+}
+
+type AuditServiceSubmitEventSystemActionsResponse struct {
+	Value *AuditResponse         `thrift:"0" json:"value,omitempty"`
+	Ex1   *AuditServiceException `thrift:"1" json:"ex1,omitempty"`
+}
+
+type AuditServiceSubmitEventUnknownsRequest struct {
+	Events []*events_thrift.AuditEvent `thrift:"1,required" json:"events"`
+}
+
+type AuditServiceSubmitEventUnknownsResponse struct {
+	Value *AuditResponse         `thrift:"0" json:"value,omitempty"`
+	Ex1   *AuditServiceException `thrift:"1" json:"ex1,omitempty"`
 }
 
 type AuditServiceClient struct {
 	Client RPCClient
 }
 
-func (s *AuditServiceClient) Ping() (ret string, err error) {
-	req := &AuditServicePingRequest{}
-	res := &AuditServicePingResponse{}
-	err = s.Client.Call("ping", req, res)
-	if err == nil && res.Value != nil {
-		ret = *res.Value
+func (s *AuditServiceClient) SubmitAuditEvents(events []*events_thrift.AuditEvent) (ret *AuditResponse, err error) {
+	req := &AuditServiceSubmitAuditEventsRequest{
+		Events: events,
 	}
-	return
-}
-
-func (s *AuditServiceClient) SubmitAuditEvent(event *events_thrift.AuditEvent) (ret *AuditResponse, err error) {
-	req := &AuditServiceSubmitAuditEventRequest{
-		Event: event,
-	}
-	res := &AuditServiceSubmitAuditEventResponse{}
-	err = s.Client.Call("submitAuditEvent", req, res)
+	res := &AuditServiceSubmitAuditEventsResponse{}
+	err = s.Client.Call("submitAuditEvents", req, res)
 	if err == nil {
 		switch {
 		case res.Ex1 != nil:
 			err = res.Ex1
-		case res.Ex2 != nil:
-			err = res.Ex2
+		}
+	}
+	if err == nil {
+		ret = res.Value
+	}
+	return
+}
+
+func (s *AuditServiceClient) SubmitEventAccesses(events []*events_thrift.AuditEvent) (ret *AuditResponse, err error) {
+	req := &AuditServiceSubmitEventAccessesRequest{
+		Events: events,
+	}
+	res := &AuditServiceSubmitEventAccessesResponse{}
+	err = s.Client.Call("submitEventAccesses", req, res)
+	if err == nil {
+		switch {
+		case res.Ex1 != nil:
+			err = res.Ex1
+		}
+	}
+	if err == nil {
+		ret = res.Value
+	}
+	return
+}
+
+func (s *AuditServiceClient) SubmitEventAuthenticates(events []*events_thrift.AuditEvent) (ret *AuditResponse, err error) {
+	req := &AuditServiceSubmitEventAuthenticatesRequest{
+		Events: events,
+	}
+	res := &AuditServiceSubmitEventAuthenticatesResponse{}
+	err = s.Client.Call("submitEventAuthenticates", req, res)
+	if err == nil {
+		switch {
+		case res.Ex1 != nil:
+			err = res.Ex1
+		}
+	}
+	if err == nil {
+		ret = res.Value
+	}
+	return
+}
+
+func (s *AuditServiceClient) SubmitEventCreates(events []*events_thrift.AuditEvent) (ret *AuditResponse, err error) {
+	req := &AuditServiceSubmitEventCreatesRequest{
+		Events: events,
+	}
+	res := &AuditServiceSubmitEventCreatesResponse{}
+	err = s.Client.Call("submitEventCreates", req, res)
+	if err == nil {
+		switch {
+		case res.Ex1 != nil:
+			err = res.Ex1
+		}
+	}
+	if err == nil {
+		ret = res.Value
+	}
+	return
+}
+
+func (s *AuditServiceClient) SubmitEventDeletes(events []*events_thrift.AuditEvent) (ret *AuditResponse, err error) {
+	req := &AuditServiceSubmitEventDeletesRequest{
+		Events: events,
+	}
+	res := &AuditServiceSubmitEventDeletesResponse{}
+	err = s.Client.Call("submitEventDeletes", req, res)
+	if err == nil {
+		switch {
+		case res.Ex1 != nil:
+			err = res.Ex1
+		}
+	}
+	if err == nil {
+		ret = res.Value
+	}
+	return
+}
+
+func (s *AuditServiceClient) SubmitEventExports(events []*events_thrift.AuditEvent) (ret *AuditResponse, err error) {
+	req := &AuditServiceSubmitEventExportsRequest{
+		Events: events,
+	}
+	res := &AuditServiceSubmitEventExportsResponse{}
+	err = s.Client.Call("submitEventExports", req, res)
+	if err == nil {
+		switch {
+		case res.Ex1 != nil:
+			err = res.Ex1
+		}
+	}
+	if err == nil {
+		ret = res.Value
+	}
+	return
+}
+
+func (s *AuditServiceClient) SubmitEventImports(events []*events_thrift.AuditEvent) (ret *AuditResponse, err error) {
+	req := &AuditServiceSubmitEventImportsRequest{
+		Events: events,
+	}
+	res := &AuditServiceSubmitEventImportsResponse{}
+	err = s.Client.Call("submitEventImports", req, res)
+	if err == nil {
+		switch {
+		case res.Ex1 != nil:
+			err = res.Ex1
+		}
+	}
+	if err == nil {
+		ret = res.Value
+	}
+	return
+}
+
+func (s *AuditServiceClient) SubmitEventModifies(events []*events_thrift.AuditEvent) (ret *AuditResponse, err error) {
+	req := &AuditServiceSubmitEventModifiesRequest{
+		Events: events,
+	}
+	res := &AuditServiceSubmitEventModifiesResponse{}
+	err = s.Client.Call("submitEventModifies", req, res)
+	if err == nil {
+		switch {
+		case res.Ex1 != nil:
+			err = res.Ex1
+		}
+	}
+	if err == nil {
+		ret = res.Value
+	}
+	return
+}
+
+func (s *AuditServiceClient) SubmitEventSearchQrys(events []*events_thrift.AuditEvent) (ret *AuditResponse, err error) {
+	req := &AuditServiceSubmitEventSearchQrysRequest{
+		Events: events,
+	}
+	res := &AuditServiceSubmitEventSearchQrysResponse{}
+	err = s.Client.Call("submitEventSearchQrys", req, res)
+	if err == nil {
+		switch {
+		case res.Ex1 != nil:
+			err = res.Ex1
+		}
+	}
+	if err == nil {
+		ret = res.Value
+	}
+	return
+}
+
+func (s *AuditServiceClient) SubmitEventSystemActions(events []*events_thrift.AuditEvent) (ret *AuditResponse, err error) {
+	req := &AuditServiceSubmitEventSystemActionsRequest{
+		Events: events,
+	}
+	res := &AuditServiceSubmitEventSystemActionsResponse{}
+	err = s.Client.Call("submitEventSystemActions", req, res)
+	if err == nil {
+		switch {
+		case res.Ex1 != nil:
+			err = res.Ex1
+		}
+	}
+	if err == nil {
+		ret = res.Value
+	}
+	return
+}
+
+func (s *AuditServiceClient) SubmitEventUnknowns(events []*events_thrift.AuditEvent) (ret *AuditResponse, err error) {
+	req := &AuditServiceSubmitEventUnknownsRequest{
+		Events: events,
+	}
+	res := &AuditServiceSubmitEventUnknownsResponse{}
+	err = s.Client.Call("submitEventUnknowns", req, res)
+	if err == nil {
+		switch {
+		case res.Ex1 != nil:
+			err = res.Ex1
 		}
 	}
 	if err == nil {

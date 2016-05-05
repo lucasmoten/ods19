@@ -13,8 +13,8 @@ import (
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/performance"
-	aac "decipher.com/object-drive-server/services/aac"
-	audit "decipher.com/object-drive-server/services/audit/generated/auditservice_thrift"
+	"decipher.com/object-drive-server/services/aac"
+	"decipher.com/object-drive-server/services/audit"
 	"decipher.com/object-drive-server/services/zookeeper"
 	"decipher.com/object-drive-server/util"
 )
@@ -43,7 +43,7 @@ type AppServer struct {
 	// TODO: This will need to be converted to be pluggable later
 	AAC aac.AacService
 	// Audit Service is for remote logging for compliance.
-	Auditer audit.AuditService
+	Auditor audit.Auditor
 	// MasterKey is the secret passphrase used in scrambling keys
 	MasterKey string
 	// Tracker captures metrics about upload/download begin and end time and transfer bytes
@@ -64,36 +64,6 @@ type AppServer struct {
 	Snippets *SnippetCache
 }
 
-// AppError encapsulates an error with a desired http status code so that the server
-// can issue the error code to the client.
-// At points where a goroutine originating from a ServerHTTP call
-// must stop and issue an error to the client and stop any further information in the
-// connection.  This AppError is *not* recoverable in any way, because the connection
-// is already considered dead at this point.  At best, intermediate handlers may need
-// to handle surrounding cleanup that wasn't already done with a defer.
-//
-//  If we are not in the top level handler, we should always just stop and quietly throw
-//  the error up:
-//
-//    if a,b,herr,err := h.acceptUpload(......); herr != nil {
-//      return herr
-//    }
-//
-//  And the top level ServeHTTP (or as high as possible) needs to handle it for real, and stop.
-//
-//     if herr != nil {
-//         h.sendError(herr.Code, herr.Err, herr.Msg)
-//         return //DO NOT RECOVER.  THE HTTP ERROR CODES HAVE BEEN SENT!
-//     }
-//
-type AppError struct {
-	Code  int    //the http error code to return with the msg
-	Error error  //an error that is ONLY for the log.  showing to the user may be sensitive.
-	Msg   string //message to show to the user, and in log
-	File  string //origin file
-	Line  int    //origin line
-}
-
 // Caller provides the distinguished names obtained from specific request
 // headers and peer certificate if called directly
 type Caller struct {
@@ -105,44 +75,6 @@ type Caller struct {
 	ExternalSystemDistinguishedName string
 	// CommonName is the CN value part of the DistinguishedName
 	CommonName string
-}
-
-// StaticRx is a bunch of static compiled regexes
-type StaticRx struct {
-	Home                   *regexp.Regexp
-	HomeListObjects        *regexp.Regexp
-	Favicon                *regexp.Regexp
-	StatsObject            *regexp.Regexp
-	StaticFiles            *regexp.Regexp
-	Users                  *regexp.Regexp
-	APIDocumentation       *regexp.Regexp
-	UserStats              *regexp.Regexp
-	Objects                *regexp.Regexp
-	Object                 *regexp.Regexp
-	ObjectProperties       *regexp.Regexp
-	ObjectStream           *regexp.Regexp
-	ObjectChangeOwner      *regexp.Regexp
-	ObjectDelete           *regexp.Regexp
-	ObjectUndelete         *regexp.Regexp
-	ObjectExpunge          *regexp.Regexp
-	ObjectMove             *regexp.Regexp
-	Revisions              *regexp.Regexp
-	RevisionStream         *regexp.Regexp
-	SharedToMe             *regexp.Regexp
-	SharedToOthers         *regexp.Regexp
-	SharedObject           *regexp.Regexp
-	SharedObjectShare      *regexp.Regexp
-	Search                 *regexp.Regexp
-	Trash                  *regexp.Regexp
-	Favorites              *regexp.Regexp
-	FavoriteObject         *regexp.Regexp
-	LinkToObject           *regexp.Regexp
-	ObjectLinks            *regexp.Regexp
-	ObjectSubscribe        *regexp.Regexp
-	Subscribed             *regexp.Regexp
-	SubscribedSubscription *regexp.Regexp
-	ObjectTypes            *regexp.Regexp
-	ObjectType             *regexp.Regexp
 }
 
 // InitRegex compiles static regexes and initializes the AppServer Routes field.
@@ -508,4 +440,42 @@ func do404(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	log.Println("WARN: " + msg)
 	sendErrorResponse(&w, 404, nil, "Resource not found")
 	return
+}
+
+// StaticRx statically references compiled regular expressions.
+type StaticRx struct {
+	Home                   *regexp.Regexp
+	HomeListObjects        *regexp.Regexp
+	Favicon                *regexp.Regexp
+	StatsObject            *regexp.Regexp
+	StaticFiles            *regexp.Regexp
+	Users                  *regexp.Regexp
+	APIDocumentation       *regexp.Regexp
+	UserStats              *regexp.Regexp
+	Objects                *regexp.Regexp
+	Object                 *regexp.Regexp
+	ObjectProperties       *regexp.Regexp
+	ObjectStream           *regexp.Regexp
+	ObjectChangeOwner      *regexp.Regexp
+	ObjectDelete           *regexp.Regexp
+	ObjectUndelete         *regexp.Regexp
+	ObjectExpunge          *regexp.Regexp
+	ObjectMove             *regexp.Regexp
+	Revisions              *regexp.Regexp
+	RevisionStream         *regexp.Regexp
+	SharedToMe             *regexp.Regexp
+	SharedToOthers         *regexp.Regexp
+	SharedObject           *regexp.Regexp
+	SharedObjectShare      *regexp.Regexp
+	Search                 *regexp.Regexp
+	Trash                  *regexp.Regexp
+	Favorites              *regexp.Regexp
+	FavoriteObject         *regexp.Regexp
+	LinkToObject           *regexp.Regexp
+	ObjectLinks            *regexp.Regexp
+	ObjectSubscribe        *regexp.Regexp
+	Subscribed             *regexp.Regexp
+	SubscribedSubscription *regexp.Regexp
+	ObjectTypes            *regexp.Regexp
+	ObjectType             *regexp.Regexp
 }

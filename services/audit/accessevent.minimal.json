@@ -1,0 +1,112 @@
+{
+  "type" : "EventAccess",
+  "action" : "ACCESS",
+  "action_initiator" : {
+    "identity_type" : "DISTINGUISHED_NAME",
+    "value" : "CN=User Test, OU=People, OU=Orion, OU=HumanGeo, O=U.S. Government, C=US"
+  },
+  "action_locations" : [ {
+    "identifier" : "IP_ADDRESS",
+    "value" : "192.168.3.4"
+  } ],
+  "action_mode" : "USER_INITIATED",
+  "action_result" : "SUCCESS",
+  "action_target_messages" : [ "Message 1", "Message 2" ],
+  "action_target_versions" : [ "2.4" ],
+  "action_targets" : [ {
+    "identity_type" : "FULLY_QUALIFIED_DOMAIN_NAME",
+    "value" : "https://bedrock.363-283.io/bedrock/",
+    "acm" : {
+      "version" : "2.1.0",
+      "classif" : "TS",
+      "owner_prod" : [ "USA" ],
+      "dissem_ctrls" : [ "NF" ],
+      "ex_from_rollup" : "true",
+      "portion" : "TS",
+      "banner" : "TOP SECRET"
+    }
+  } ],
+  "created_on" : "2016-03-16T19:15:06.831Z",
+  "creator" : {
+    "identity_type" : "APPLICATION",
+    "value" : "Bedrock Shoebox"
+  },
+  "edh" : {
+    "guide" : {
+      "prefix" : "9999"
+    },
+    "responsible_entity" : {
+      "country" : "USA",
+      "organization" : "DIA",
+      "sub_organization" : "DCTC"
+    },
+    "security" : {
+      "owner_producer" : "USA",
+      "classified_by" : "9999",
+      "classification_reason" : "Description to describe the classification goes here",
+      "declass_date" : "2016-03-16",
+      "derived_from" : "Multiple Sources"
+    }
+  },
+  "ntp_info" : {
+    "identity_type" : "IP_ADDRESS",
+    "last_update" : "2016-03-16T19:14:50.164Z",
+    "server" : "1.2.3.4"
+  },
+  "resources" : [ {
+    "object_type" : "Resource",
+    "name" : {
+      "title" : "AaronsDoc.docx",
+      "acm" : {
+        "version" : "2.1.0",
+        "classif" : "TS",
+        "owner_prod" : [ "USA" ],
+        "dissem_ctrls" : [ "NF" ],
+        "ex_from_rollup" : "false",
+        "portion" : "TS",
+        "banner" : "TOP SECRET"
+      }
+    },
+    "location" : "https://bedrock.363-283.io/bedrock/#!/journal/56e1d644e4b00330bbf354e1",
+    "size" : 32,
+    "sub_type" : "shoebox comment",
+    "type" : "OBJECT",
+    "role" : "GENERAL_USER",
+    "malware_check" : true,
+    "malware_check_status" : "SUCCESS",
+    "content" : {
+      "send" : false
+    },
+    "description" : {
+      "description" : "This is a description of the document",
+      "acm" : {
+        "version" : "2.1.0",
+        "classif" : "U",
+        "owner_prod" : [ "USA" ],
+        "ex_from_rollup" : "false"
+      }
+    },
+    "malware_services" : [ {
+      "service" : "Norton"
+    } ],
+    "identifier" : "bedrock::shoebox.document:56e1d644e4b00330bbf354e2",
+    "parent" : {
+      "type" : "DOCUMENT",
+      "sub_type" : "shoebox document",
+      "location" : "https://bedrock.363-283.io/bedrock/#!/journal/56e1d644e4b00330bbf354e1",
+      "identifier" : "bedrock::shoebox.document:56e1d644e4b00330bbf354e1"
+    },
+    "acm" : {
+      "version" : "2.1.0",
+      "classif" : "TS",
+      "owner_prod" : [ "USA" ],
+      "sci_ctrls" : [ "SI-G" ],
+      "dissem_ctrls" : [ "OC" ],
+      "ex_from_rollup" : "true"
+    }
+  } ],
+  "session_ids" : [ "24gfsrg35gfg3g34" ],
+  "workflow" : {
+    "id" : "Stage 3"
+  }
+}

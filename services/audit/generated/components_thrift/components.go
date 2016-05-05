@@ -8,6 +8,44 @@ import (
 	"decipher.com/object-drive-server/services/audit/generated/acm_thrift"
 )
 
+/* From Java:
+public enum _Fields implements TFieldIdEnum {
+  TYPE((short)1, "type"),
+  ACTION((short)2, "action"),
+  ACTION_INITIATOR((short)3, "action_initiator"),
+  ACTION_LOCATIONS((short)4, "action_locations"),
+  ACTION_MODE((short)5, "action_mode"),
+  ACTION_RESULT((short)6, "action_result"),
+  ACTION_TARGET_MESSAGES((short)7, "action_target_messages"),
+  ACTION_TARGET_VERSIONS((short)8, "action_target_versions"),
+  ACTION_TARGETS((short)9, "action_targets"),
+  ADDITIONAL_INFO((short)10, "additional_info"),
+  AGENCY((short)11, "agency"),
+  COUNTRIES_OF_CITIZENSHIP((short)12, "countries_of_citizenship"),
+  CREATED_ON((short)13, "created_on"),
+  CREATOR((short)14, "creator"),
+  EDH((short)15, "edh"),
+  RESPONSIBLE_ENTITY((short)16, "responsible_entity"),
+  HOME_AGENCY((short)17, "home_agency"),
+  ID((short)18, "id"),
+  NETWORK((short)19, "network"),
+  NTP_INFO((short)20, "ntp_info"),
+  RESOURCES((short)21, "resources"),
+  CROSS_DOMAIN((short)22, "cross_domain"),
+  RELEVANCY((short)23, "relevancy"),
+  QUERY_STRING((short)24, "query_string"),
+  QUERY_TYPE((short)25, "query_type"),
+  RESULTS((short)26, "results"),
+  FILTERS((short)27, "filters"),
+  MODIFIED_PAIR_LIST((short)28, "modified_pair_list"),
+  COLLABORATION_FEATURES((short)29, "collaboration_features"),
+  SESSION_IDS((short)30, "session_ids"),
+  WORKFLOW((short)31, "workflow"),
+  AUTHORIZATION_SERVICES((short)32, "authorization_services"),
+  AUTHORIZATION_SERVICE_TIME_PERIOD((short)33, "authorization_service_time_period"),
+  DEVICE((short)34, "device");
+*/
+
 var _ = fmt.Sprintf
 
 type ActionInitiator struct {
@@ -129,8 +167,9 @@ type ResourceParent struct {
 }
 
 type ResponsibleEntity struct {
-	Country      *string `thrift:"1" json:"country,omitempty"`
-	Organization *string `thrift:"2" json:"organization,omitempty"`
+	Country         *string `thrift:"1" json:"country,omitempty"`
+	Organization    *string `thrift:"2" json:"organization,omitempty"`
+	SubOrganization *string `json:"sub_organization,omitempty"`
 }
 
 type Result struct {
