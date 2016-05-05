@@ -189,7 +189,7 @@ func ServiceAnnouncement(zkState ZKState, protocol string, stat, host string, po
 			zk.FlagEphemeral,
 			asBytes,
 		)
-		log.Printf("zk: find us at: %s:%d", host, port)
+		log.Printf("zk: find us at: %s:%s", host, port)
 	}
 	return err
 }
