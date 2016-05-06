@@ -243,6 +243,9 @@ func (d *S3DrainProviderData) DrainUploadedFilesToSafety() {
 
 // CacheToDrain drains to S3.  Note that because this is async with respect to the http session,
 // we cant return AppError.
+//
+// Dont delete the file here if something goes wrong... because the caller tries this multiple times
+//
 func (d *S3DrainProviderData) CacheToDrain(
 	bucket *string,
 	rName string,

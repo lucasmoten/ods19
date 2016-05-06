@@ -208,6 +208,9 @@ func (h AppServer) beginUploadTimed(
 	if err != nil {
 		//It could be the client's fault, so we use 400 here.
 		msg := fmt.Sprintf("Unable to write ciphertext %s", outFileUploading)
+		//If something went wrong, just get rid of this file.  We only have part of it,
+		// so we can't retry anyway.
+		os.Remove(outFileUploading)
 		return nil, NewAppError(400, err, msg), err
 	}
 
@@ -218,6 +221,8 @@ func (h AppServer) beginUploadTimed(
 	err = os.Rename(outFileUploading, outFileUploaded)
 	if err != nil {
 		msg := fmt.Sprintf("Unable to rename uploaded file %s", outFileUploading)
+		// I can't see why this would happen, but this file is toast if this happens.
+		os.Remove(outFileUploading)
 		return nil, NewAppError(500, err, msg), err
 	}
 	log.Printf("rename:%s -> %s", outFileUploading, outFileUploaded)
@@ -258,9 +263,13 @@ func (h AppServer) cacheToDrainAttempt(
 		//after we took custody of the file.  We will need something
 		//more robust than this eventually.  We have the file, while
 		//not being uploaded if all attempts fail.
-		log.Printf("unable to drain file.  Trying again:%v", err)
 		if tries > 0 {
+			log.Printf("unable to drain file.  Trying again:%v", err)
 			err = h.cacheToDrainAttempt(bucket, rName, size, tries)
+		} else {
+			log.Printf("unable to drain file.  Giving up and deleting it:%v", err)
+			//If we give up, we must delete the file
+			os.Remove(h.DrainProvider.CacheLocation() + "/" + rName + ".uploaded")
 		}
 	}
 	return err
