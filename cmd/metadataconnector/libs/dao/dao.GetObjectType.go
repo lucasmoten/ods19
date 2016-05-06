@@ -23,7 +23,26 @@ func (dao *DataAccessLayer) GetObjectType(objectType models.ODObjectType) (*mode
 
 func getObjectTypeInTransaction(tx *sqlx.Tx, objectType models.ODObjectType) (*models.ODObjectType, error) {
 	var dbObjectType models.ODObjectType
-	getObjectTypeStatement := `select * from object_type where id = ?`
+	getObjectTypeStatement := `
+    select
+        id
+        ,createdDate
+        ,createdBy
+        ,modifiedDate
+        ,modifiedBy
+        ,isDeleted
+        ,deletedDate
+        ,deletedBy
+        ,changeCount
+        ,changeToken
+        ,name
+        ,description
+        ,contentConnector
+    from
+        object_type
+    where
+        id = ?    
+    `
 	err := tx.Get(&dbObjectType, getObjectTypeStatement, objectType.ID)
 	if err != nil {
 		return &dbObjectType, err

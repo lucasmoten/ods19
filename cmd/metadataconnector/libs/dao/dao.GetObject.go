@@ -31,8 +31,41 @@ func getObjectInTransaction(tx *sqlx.Tx, object models.ODObject, loadProperties 
 		return dbObject, ErrMissingID
 	}
 
-	getObjectStatement := `select o.*, ot.name typeName from object o 
-    inner join object_type ot on o.typeid = ot.id 
+	getObjectStatement := `
+    select 
+        o.id    
+        ,o.createdDate
+        ,o.createdBy
+        ,o.modifiedDate
+        ,o.modifiedBy
+        ,o.isDeleted
+        ,o.deletedDate
+        ,o.deletedBy
+        ,o.isAncestorDeleted
+        ,o.isExpunged
+        ,o.expungedDate
+        ,o.expungedBy
+        ,o.changeCount
+        ,o.changeToken
+        ,o.ownedBy
+        ,o.typeId
+        ,o.name
+        ,o.description
+        ,o.parentId
+        ,o.contentConnector
+        ,o.rawAcm
+        ,o.contentType
+        ,o.contentSize
+        ,o.contentHash
+        ,o.encryptIV
+        ,o.ownedByNew
+        ,o.isPDFAvailable
+        ,o.isStreamStored
+        ,o.isUSPersonsData
+        ,o.isFOIAExempt
+        ,ot.name typeName     
+    from object o 
+        inner join object_type ot on o.typeid = ot.id 
     where o.id = ?`
 	err := tx.Unsafe().Get(&dbObject, getObjectStatement, object.ID)
 	if err != nil {
@@ -70,7 +103,34 @@ func getObjectInTransaction(tx *sqlx.Tx, object models.ODObject, loadProperties 
 func getObjectACMForObjectInTransaction(tx *sqlx.Tx, object models.ODObject, createIfMissing bool) (models.ODObjectACM, error) {
 	var dbObjectACM models.ODObjectACM
 
-	getStatement := `select oa.* from object_acm oa where oa.isdeleted = 0 and oa.objectId = ? order by oa.createddate desc limit 1`
+	getStatement := `
+    select 
+        oa.id    
+        ,oa.createdDate
+        ,oa.createdBy
+        ,oa.modifiedDate
+        ,oa.modifiedBy
+        ,oa.isDeleted
+        ,oa.deletedDate
+        ,oa.deletedBy
+        ,oa.objectId
+        ,oa.acmId
+        ,oa.f_clearance
+        ,oa.f_share
+        ,oa.f_oc_org
+        ,oa.f_missions
+        ,oa.f_regions
+        ,oa.f_macs
+        ,oa.f_sci_ctrls
+        ,oa.f_accms
+        ,oa.f_sar_id
+        ,oa.f_atom_energy
+        ,oa.f_dissem_countries 
+    from object_acm oa 
+    where 
+        oa.isdeleted = 0 
+        and oa.objectId = ? 
+    order by oa.createddate desc limit 1`
 	err := tx.Unsafe().Get(&dbObjectACM, getStatement, object.ID)
 	if err != nil {
 		switch err {

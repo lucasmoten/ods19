@@ -56,8 +56,11 @@ func updateObjectPropertyInTransaction(tx *sqlx.Tx, objectProperty models.ODObje
 	dbObjectProperty.ModifiedBy = objectProperty.ModifiedBy
 	dbObjectProperty.Value.String = objectProperty.Value.String
 	dbObjectProperty.ClassificationPM.String = objectProperty.ClassificationPM.String
-	updateObjectPropertyStatement, err := tx.Preparex(`
-    update property set modifiedby = ?, value = ?, classificationpm = ? where id = ?`)
+	updateObjectPropertyStatement, err := tx.Preparex(`update property set 
+        modifiedby = ?
+        ,value = ?
+        ,classificationpm = ? 
+    where id = ?`)
 	if err != nil {
 		return err
 	}

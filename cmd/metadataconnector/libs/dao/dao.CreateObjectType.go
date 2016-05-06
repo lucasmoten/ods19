@@ -28,8 +28,12 @@ func (dao *DataAccessLayer) CreateObjectType(objectType *models.ODObjectType) (m
 
 func createObjectTypeInTransaction(tx *sqlx.Tx, objectType *models.ODObjectType) (models.ODObjectType, error) {
 	var dbObjectType models.ODObjectType
-	addObjectTypeStatement, err := tx.Preparex(
-		`insert object_type set createdBy = ?, name = ?, description = ?, contentConnector = ?`)
+	addObjectTypeStatement, err := tx.Preparex(`insert object_type set 
+        createdBy = ?
+        ,name = ?
+        ,description = ?
+        ,contentConnector = ?
+    `)
 	if err != nil {
 		return dbObjectType, fmt.Errorf("CreateObjectType error preparing add object type statement, %s", err.Error())
 	}
@@ -47,8 +51,27 @@ func createObjectTypeInTransaction(tx *sqlx.Tx, objectType *models.ODObjectType)
 		return dbObjectType, fmt.Errorf("CreateObjectType there was less than one row affected")
 	}
 	// Get the ID of the newly created object type and assign to passed in objectType
-	getObjectTypeStatement := `select * from object_type where createdBy = ?
-  and name = ? and isdeleted = 0 order by createdDate desc limit 1`
+	getObjectTypeStatement := `
+    select
+        id
+        ,createdDate
+        ,createdBy
+        ,modifiedDate
+        ,modifiedBy
+        ,isDeleted
+        ,deletedDate
+        ,deletedBy
+        ,changeCount
+        ,changeToken
+        ,name
+        ,description
+        ,contentConnector
+    from object_type 
+    where 
+        createdBy = ?
+        and name = ? 
+        and isdeleted = 0 
+    order by createdDate desc limit 1`
 	err = tx.Get(&dbObjectType, getObjectTypeStatement, objectType.CreatedBy, objectType.Name)
 	if err != nil {
 		if err == sql.ErrNoRows {

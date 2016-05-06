@@ -25,7 +25,15 @@ func (dao *DataAccessLayer) UpdatePermission(permission models.ODObjectPermissio
 
 func updatePermissionInTransaction(tx *sqlx.Tx, permission models.ODObjectPermission) error {
 
-	updatePermissionStatement, err := tx.Preparex(`update object_permission set modifiedBy = ?, grantee = ?, allowCreate = ?, allowRead = ?, allowUpdate = ?, allowDelete = ?, encryptKey = ? where id = ? and changeToken = ?`)
+	updatePermissionStatement, err := tx.Preparex(`update object_permission set 
+        modifiedBy = ?
+        ,grantee = ?
+        ,allowCreate = ?
+        ,allowRead = ?
+        ,allowUpdate = ?
+        ,allowDelete = ?
+        ,encryptKey = ? 
+    where id = ? and changeToken = ?`)
 	if err != nil {
 		return fmt.Errorf("UpdatePermission Preparing update statement, %s", err.Error())
 	}

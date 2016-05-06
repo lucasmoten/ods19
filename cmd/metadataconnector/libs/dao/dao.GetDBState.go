@@ -25,7 +25,7 @@ func (dao *DataAccessLayer) GetDBState() (models.DBState, error) {
 func getDBStateInTransaction(tx *sqlx.Tx) (models.DBState, error) {
 	var dbState models.DBState
 
-	getDBStateStatement := `select * from dbstate`
+	getDBStateStatement := `select createdDate, modifiedDate, schemaVersion, identifier from dbstate`
 	err := tx.Unsafe().Get(&dbState, getDBStateStatement)
 	if err != nil {
 		log.Printf("We need to create a dbstate")
@@ -33,7 +33,7 @@ func getDBStateInTransaction(tx *sqlx.Tx) (models.DBState, error) {
 		dbState.SchemaVersion = SchemaVersion
 		dbState.Identifier = fmt.Sprintf("%16x", time.Now().Unix())
 		addMetaStatement, err := tx.Preparex(
-			`insert dbstate set schemaversion = ?, identifier = ?, createddate = ?, modifieddate = ?`,
+			`insert dbstate set schemaVersion = ?, identifier = ?, createdDate = ?, modifiedDate = ?`,
 		)
 		if err != nil {
 			return dbState, err

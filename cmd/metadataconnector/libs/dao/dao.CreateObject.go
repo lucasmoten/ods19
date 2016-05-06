@@ -55,16 +55,29 @@ func createObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) (models.ODO
 	}
 
 	// Insert object
-	addObjectStatement, err := tx.Preparex(`insert object set createdBy = ?, typeId = ?, name = ?, description = ?, 
-        parentId = ?, contentConnector = ?, rawAcm = ?, contentType = ?, 
-        contentSize = ?, contentHash = ?, encryptIV = ?`)
+	addObjectStatement, err := tx.Preparex(`insert object set 
+        createdBy = ?
+        ,typeId = ?
+        ,name = ?
+        ,description = ?
+        ,parentId = ?
+        ,contentConnector = ?
+        ,rawAcm = ?
+        ,contentType = ?
+        ,contentSize = ?
+        ,contentHash = ?
+        ,encryptIV = ?
+        ,isUSPersonsData = ?
+        ,isFOIAExempt = ?        
+    `)
 	if err != nil {
 		return dbObject, fmt.Errorf("CreateObject Preparing add object statement, %s", err.Error())
 	}
 	result, err := addObjectStatement.Exec(object.CreatedBy, object.TypeID,
 		object.Name, object.Description.String, object.ParentID,
-		object.ContentConnector.String, object.RawAcm.String, object.ContentType.String,
-		object.ContentSize.Int64, object.ContentHash, object.EncryptIV)
+		object.ContentConnector.String, object.RawAcm.String,
+		object.ContentType.String, object.ContentSize.Int64, object.ContentHash,
+		object.EncryptIV, object.IsUSPersonsData, object.IsFOIAExempt)
 	if err != nil {
 		return dbObject, fmt.Errorf("CreateObject Error executing add object statement, %s", err.Error())
 	}
@@ -82,10 +95,47 @@ func createObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) (models.ODO
 
 	// Get the ID of the newly created object and assign to returned object.
 	// This assumes most recent created by the user of the type and name.
-	getObjectStatement := `select o.*, ot.name typeName from object o 
+	getObjectStatement := `
+    select 
+        o.id    
+        ,o.createdDate
+        ,o.createdBy
+        ,o.modifiedDate
+        ,o.modifiedBy
+        ,o.isDeleted
+        ,o.deletedDate
+        ,o.deletedBy
+        ,o.isAncestorDeleted
+        ,o.isExpunged
+        ,o.expungedDate
+        ,o.expungedBy
+        ,o.changeCount
+        ,o.changeToken
+        ,o.ownedBy
+        ,o.typeId
+        ,o.name
+        ,o.description
+        ,o.parentId
+        ,o.contentConnector
+        ,o.rawAcm
+        ,o.contentType
+        ,o.contentSize
+        ,o.contentHash
+        ,o.encryptIV
+        ,o.ownedByNew
+        ,o.isPDFAvailable
+        ,o.isStreamStored
+        ,o.isUSPersonsData
+        ,o.isFOIAExempt
+        ,ot.name typeName   
+    from object o 
         inner join object_type ot on o.typeId = ot.id 
-        where o.createdby = ? and o.typeId = ? and o.name = ? 
-        and o.isdeleted = 0 order by o.createddate desc limit 1`
+    where 
+        o.createdby = ? 
+        and o.typeId = ? 
+        and o.name = ? 
+        and o.isdeleted = 0 
+    order by o.createddate desc limit 1`
 	err = tx.Get(&dbObject, getObjectStatement, object.CreatedBy, object.TypeID, object.Name)
 	if err != nil {
 		return dbObject, fmt.Errorf("CreateObject Error retrieving object, %s", err.Error())

@@ -28,7 +28,28 @@ func getObjectTypeByNameInTransaction(tx *sqlx.Tx, typeName string, addIfMissing
 
 	var objectType models.ODObjectType
 	// Get the ID of the newly created object and assign to passed in object
-	getObjectTypeStatement := `select * from object_type where name = ? order by isdeleted asc, createddate desc limit 1`
+	getObjectTypeStatement := `
+    select 
+        id
+        ,createdDate
+        ,createdBy
+        ,modifiedDate
+        ,modifiedBy
+        ,isDeleted
+        ,deletedDate
+        ,deletedBy
+        ,changeCount
+        ,changeToken
+        ,ownedBy
+        ,name
+        ,description
+        ,contentConnector
+    from
+        object_type
+    where
+        name = ?
+    order by isDeleted asc, createdDate desc limit 1    
+    `
 	err := tx.Get(&objectType, getObjectTypeStatement, typeName)
 	if err != nil {
 		if err == sql.ErrNoRows {

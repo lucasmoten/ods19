@@ -51,8 +51,8 @@ type DeletedObject struct {
 	// ContentSize denotes the length of the content stream for this object, in
 	// bytes
 	ContentSize int64 `json:"contentSize"`
-    // A sha256 hash of the plaintext as hex encoded string
-    ContentHash string `json:"contentHash"`    
+	// A sha256 hash of the plaintext as hex encoded string
+	ContentHash string `json:"contentHash"`
 	// Properties is an array of Object Properties associated with this object
 	// structured as key/value with portion marking.
 	Properties []Property `json:"properties,omitempty"`
@@ -62,4 +62,10 @@ type DeletedObject struct {
 	// This might be null.  It could have a large list of permission objects
 	// relevant to this file (ie: shared with an organization)
 	Permissions []Permission `json:"permissions,omitempty"`
+	// IsPDFAvailable indicates if a PDF rendition is available for this object
+	IsPDFAvailable bool `db:"isPDFAvailable" json:"-"`
+	// IsUSPersonsData indicates if this object contains US Persons data
+	IsUSPersonsData bool `json:"isUSPersonsData,omitempty"`
+	// IsFOIAExempt indicates if this object is exempt from Freedom of Information Act requests
+	IsFOIAExempt bool `json:"isFOIAExempt,omitempty"`
 }

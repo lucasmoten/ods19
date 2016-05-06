@@ -83,7 +83,21 @@ func TestTransactionalUpdate(t *testing.T) {
 		fmt.Println(jsonified)
 	}
 
-	getObjectTypeStatement1 := "select * from object_type where name = ?"
+	getObjectTypeStatement1 := `select
+        id
+        ,createdDate
+        ,createdBy
+        ,modifiedDate
+        ,modifiedBy
+        ,isDeleted
+        ,deletedDate
+        ,deletedBy
+        ,changeCount
+        ,changeToken
+        ,name
+        ,description
+        ,contentConnector    
+    from object_type where name = ?`
 	err = tx.Get(&dbObjectType1, getObjectTypeStatement1, typeName)
 	if err != nil {
 		log.Printf("Error %v", err)
@@ -112,7 +126,21 @@ func TestTransactionalUpdate(t *testing.T) {
 
 	// Select 2nd time
 	var dbObjectType2 models.ODObjectType
-	getObjectTypeStatement2 := "select * from object_type where name = ?"
+	getObjectTypeStatement2 := `select
+        id
+        ,createdDate
+        ,createdBy
+        ,modifiedDate
+        ,modifiedBy
+        ,isDeleted
+        ,deletedDate
+        ,deletedBy
+        ,changeCount
+        ,changeToken
+        ,name
+        ,description
+        ,contentConnector    
+    from object_type where name = ?`
 	err = tx.Get(&dbObjectType2, getObjectTypeStatement2, newTypeName)
 	if err != nil {
 		log.Printf("Error %v", err)

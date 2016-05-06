@@ -30,10 +30,18 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, per
 	var dbPermission models.ODObjectPermission
 
 	// Setup the statement
-	addPermissionStatement, err := tx.Preparex(`
-    insert object_permission set createdby = ?, objectId = ?, grantee = ?, 
-    allowCreate = ?, allowRead = ?, allowUpdate = ?, allowDelete = ?, 
-    allowShare = ?,  explicitShare = ?, encryptKey = ?`)
+	addPermissionStatement, err := tx.Preparex(`insert object_permission set 
+        createdby = ?
+        ,objectId = ?
+        ,grantee = ?
+        ,allowCreate = ?
+        ,allowRead = ?
+        ,allowUpdate = ?
+        ,allowDelete = ?
+        ,allowShare = ?
+        ,explicitShare = ?
+        ,encryptKey = ?
+    `)
 	if err != nil {
 		return dbPermission, err
 	}
@@ -54,10 +62,21 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, per
 	// Get the ID of the newly created permission
 	var newPermissionID []byte
 	getPermissionIDStatement, err := tx.Preparex(`
-    select id from object_permission where createdby = ? and objectId = ? 
-    and grantee = ? and isdeleted = 0 and allowCreate = ? and allowRead = ? 
-    and allowUpdate = ? and allowDelete = ? and allowShare = ? 
-    order by createddate desc limit 1`)
+    select 
+        id 
+    from object_permission 
+    where 
+        createdby = ? 
+        and objectId = ? 
+        and grantee = ? 
+        and isdeleted = 0 
+        and allowCreate = ? 
+        and allowRead = ? 
+        and allowUpdate = ? 
+        and allowDelete = ? 
+        and allowShare = ? 
+    order by createddate desc limit 1
+    `)
 	if err != nil {
 		return dbPermission, err
 	}
@@ -70,7 +89,30 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, per
 	}
 	getPermissionIDStatement.Close()
 	// Retrieve back into permission
-	err = tx.Get(&dbPermission, `select * from object_permission where id = ?`, newPermissionID)
+	err = tx.Get(&dbPermission, `
+    select 
+        id
+        ,createdDate
+        ,createdBy
+        ,modifiedDate
+        ,modifiedBy
+        ,isDeleted
+        ,deletedDate
+        ,deletedBy
+        ,changeCount
+        ,changeToken
+        ,objectId
+        ,grantee
+        ,allowCreate
+        ,allowRead
+        ,allowUpdate
+        ,allowDelete
+        ,allowShare
+        ,explicitShare
+        ,encryptKey    
+    from object_permission 
+    where id = ?
+    `, newPermissionID)
 	if err != nil {
 		return dbPermission, err
 	}

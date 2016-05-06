@@ -23,7 +23,29 @@ func (dao *DataAccessLayer) GetObjectPermission(objectPermission models.ODObject
 
 func getObjectPermissionInTransaction(tx *sqlx.Tx, objectPermission models.ODObjectPermission) (models.ODObjectPermission, error) {
 	var dbObjectPermission models.ODObjectPermission
-	query := `select * from object_permission where id = ?`
+	query := `
+    select 
+        id
+        ,createdDate
+        ,createdBy
+        ,modifiedDate
+        ,modifiedBy
+        ,isDeleted
+        ,deletedDate
+        ,deletedBy
+        ,changeCount
+        ,changeToken
+        ,objectId
+        ,grantee
+        ,allowCreate
+        ,allowRead
+        ,allowUpdate
+        ,allowDelete
+        ,allowShare
+        ,explicitShare
+        ,encryptKey     
+    from object_permission 
+    where id = ?`
 	err := tx.Get(&dbObjectPermission, query, objectPermission.ID)
 	if err != nil {
 		print(err.Error())

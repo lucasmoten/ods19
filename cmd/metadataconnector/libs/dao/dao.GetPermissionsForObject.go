@@ -24,7 +24,32 @@ func (dao *DataAccessLayer) GetPermissionsForObject(object models.ODObject) ([]m
 
 func getPermissionsForObjectInTransaction(tx *sqlx.Tx, object models.ODObject) ([]models.ODObjectPermission, error) {
 	response := []models.ODObjectPermission{}
-	query := `select op.* from object_permission op inner join object o on op.objectid = o.id where op.isdeleted = 0 and op.objectid = ?`
+	query := `
+    select 
+        op.id
+        ,op.createdDate
+        ,op.createdBy
+        ,op.modifiedDate
+        ,op.modifiedBy
+        ,op.isDeleted
+        ,op.deletedDate
+        ,op.deletedBy
+        ,op.changeCount
+        ,op.changeToken
+        ,op.objectId
+        ,op.grantee
+        ,op.allowCreate
+        ,op.allowRead
+        ,op.allowUpdate
+        ,op.allowDelete
+        ,op.allowShare
+        ,op.explicitShare
+        ,op.encryptKey
+    from object_permission op 
+        inner join object o on op.objectid = o.id 
+    where 
+        op.isdeleted = 0 
+        and op.objectid = ?`
 	err := tx.Select(&response, query, object.ID)
 	if err != nil {
 		return response, err
