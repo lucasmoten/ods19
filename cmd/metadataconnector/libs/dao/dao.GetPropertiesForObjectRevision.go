@@ -24,9 +24,21 @@ func (dao *DataAccessLayer) GetPropertiesForObjectRevision(object models.ODObjec
 
 func getPropertiesForObjectRevisionInTransaction(tx *sqlx.Tx, object models.ODObject) ([]models.ODObjectPropertyEx, error) {
 	response := []models.ODObjectPropertyEx{}
-	query := `select ap.id, ap.createdDate, ap.createdBy, ap.modifiedDate, ap.modifiedBy, 
-        ap.isDeleted, ap.deletedDate, ap.deletedBy, ap.changeCount, 
-        ap.changeToken, ap.name, ap.propertyValue, ap.classificationPM    
+	query := `
+    select 
+        ap.id
+        ,ap.createdDate
+        ,ap.createdBy
+        ,ap.modifiedDate
+        ,ap.modifiedBy
+        ,ap.isDeleted
+        ,ap.deletedDate
+        ,ap.deletedBy
+        ,ap.changeCount
+        ,ap.changeToken
+        ,ap.name
+        ,ap.propertyValue
+        ,ap.classificationPM  
     from a_property ap
         inner join object_property op on ap.id = op.propertyid
         inner join a_object ao on op.objectid = ao.id

@@ -76,12 +76,40 @@ func deleteObjectPermissionInTransaction(tx *sqlx.Tx, objectPermission models.OD
 		// Find matching inherited permissions for children of the object for
 		// which the share was just deleted that are not explicit permissions
 		matchingPermission := []models.ODObjectPermission{}
-		query := `select op.* from object_permission op 
+		query := `
+        select 
+            op.id
+            ,op.createdDate
+            ,op.createdBy
+            ,op.modifiedDate
+            ,op.modifiedBy
+            ,op.isDeleted
+            ,op.deletedDate
+            ,op.deletedBy
+            ,op.changeCount
+            ,op.changeToken
+            ,op.objectId
+            ,op.grantee
+            ,op.allowCreate
+            ,op.allowRead
+            ,op.allowUpdate
+            ,op.allowDelete
+            ,op.allowShare
+            ,op.explicitShare
+            ,op.encryptKey                 
+        from object_permission op 
             inner join object o on op.objectid = o.id 
-            where op.isdeleted = 0 and op.explicitshare = 0 and o.isdeleted = 0
-                and o.parentid = ? and op.allowcreate = ? and op.allowread = ? 
-                and op.allowupdate = ? and op.allowdelete = ? and op.allowshare = ?
-                and op.Grantee = ?`
+        where 
+            op.isdeleted = 0 
+            and op.explicitshare = 0 
+            and o.isdeleted = 0
+            and o.parentid = ? 
+            and op.allowcreate = ? 
+            and op.allowread = ? 
+            and op.allowupdate = ? 
+            and op.allowdelete = ? 
+            and op.allowshare = ?
+            and op.Grantee = ?`
 		err := tx.Select(&matchingPermission, query, dbObjectPermission.ObjectID,
 			dbObjectPermission.AllowCreate, dbObjectPermission.AllowRead,
 			dbObjectPermission.AllowUpdate, dbObjectPermission.AllowDelete,

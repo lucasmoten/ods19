@@ -67,10 +67,13 @@ func deleteObjectInTransaction(tx *sqlx.Tx, object models.ODObject, explicit boo
 	dbObject.DeletedBy.String = dbObject.ModifiedBy
 	dbObject.DeletedBy.Valid = true
 	dbObject.IsAncestorDeleted = !explicit
-	updateObjectStatement, err := tx.Preparex(`
-    update object set modifiedby = ?,
-		isdeleted = ?, deleteddate = ?, deletedby = ?,
-		isancestordeleted = ? where id = ?`)
+	updateObjectStatement, err := tx.Preparex(`update object set 
+        modifiedBy = ?
+        ,isDeleted = ?
+        ,deletedDate = ?
+        ,deletedBy = ?
+        ,isAncestorDeleted = ? 
+    where id = ?`)
 	if err != nil {
 		return err
 	}

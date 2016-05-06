@@ -23,7 +23,23 @@ func (dao *DataAccessLayer) GetObjectProperty(objectProperty models.ODObjectProp
 
 func getObjectPropertyInTransaction(tx *sqlx.Tx, objectProperty models.ODObjectPropertyEx) (models.ODObjectPropertyEx, error) {
 	var dbObjectProperty models.ODObjectPropertyEx
-	query := `select * from property where id = ?`
+	query := `
+    select
+        id
+        ,createdDate
+        ,createdBy
+        ,modifiedDate
+        ,modifiedBy
+        ,isDeleted
+        ,deletedDate
+        ,deletedBy
+        ,changeCount
+        ,changeToken
+        ,name
+        ,propertyValue
+        ,classificationPM     
+    from property 
+    where id = ?`
 	err := tx.Get(&dbObjectProperty, query, objectProperty.ID)
 	if err != nil {
 		print(err.Error())

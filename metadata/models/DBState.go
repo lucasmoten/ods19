@@ -4,11 +4,11 @@ import "time"
 
 type DBState struct {
 	//Date of first schema
-	CreateDate time.Time
+	CreateDate time.Time `db:"createdDate"`
 	//Date of last schema
-	ModifedDate time.Time
+	ModifedDate time.Time `db:"modifiedDate"`
 	//Code should be using the same schema version as us
-	SchemaVersion string
+	SchemaVersion string `db:"schemaVersion"`
 	//A unique id for this database instance
-	Identifier string
+	Identifier string `db:"identifier"`
 }

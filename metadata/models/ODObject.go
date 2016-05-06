@@ -20,6 +20,9 @@ type ODObject struct {
 	// OwnedBy indicates the individual user or group that currently owns the
 	// object and has implict full permissions on the object
 	OwnedBy NullString `db:"ownedBy"`
+	// OwnedByNew indicates the individual user or group that the current owner
+	// is transferring ownership to for facilitating changeOwner operations
+	OwnedByNew NullString `db:"ownedByNew" json:"-"`
 	// TypeID references the ODObjectType by its ID indicating the type of this
 	// object
 	TypeID []byte `db:"typeId"`
@@ -59,6 +62,14 @@ type ODObject struct {
 	Permissions []ODObjectPermission `json:"permissions"`
 	// ACM stores the flattened ACM values from the RawAcm
 	ACM ODObjectACM
+	// IsPDFAvailable indicates if a PDF rendition is available for this object
+	IsPDFAvailable bool `db:"isPDFAvailable" json:"-"`
+	// IsStreamStored indicates if the content stream for this object is stored in the cloud and can be retrieved
+	IsStreamStored bool `db:"isStreamStored" json:"-"`
+	// IsUSPersonsData indicates if this object contains US Persons data
+	IsUSPersonsData bool `db:"isUSPersonsData" json:"-"`
+	// IsFOIAExempt indicates if this object is exempt from Freedom of Information Act requests
+	IsFOIAExempt bool `db:"isFOIAExempt" json:"-"`
 }
 
 // ODObjectResultset encapsulates the ODObject defined herein as an array with

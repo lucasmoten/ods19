@@ -27,17 +27,50 @@ func getTrashedObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagin
 	var response models.ODObjectResultset
 	var err error
 
-	query := `select distinct sql_calc_found_rows o.*, ot.name typeName
-        from object o
-        inner join object_type ot
-            on o.typeid = ot.id
-        inner join object_permission op
-            on o.id = op.objectid
+	query := `
+    select 
+        distinct sql_calc_found_rows 
+        o.id    
+        ,o.createdDate
+        ,o.createdBy
+        ,o.modifiedDate
+        ,o.modifiedBy
+        ,o.isDeleted
+        ,o.deletedDate
+        ,o.deletedBy
+        ,o.isAncestorDeleted
+        ,o.isExpunged
+        ,o.expungedDate
+        ,o.expungedBy
+        ,o.changeCount
+        ,o.changeToken
+        ,o.ownedBy
+        ,o.typeId
+        ,o.name
+        ,o.description
+        ,o.parentId
+        ,o.contentConnector
+        ,o.rawAcm
+        ,o.contentType
+        ,o.contentSize
+        ,o.contentHash
+        ,o.encryptIV
+        ,o.ownedByNew
+        ,o.isPDFAvailable
+        ,o.isStreamStored
+        ,o.isUSPersonsData
+        ,o.isFOIAExempt        
+        ,ot.name typeName     
+    from object o
+        inner join object_type ot on o.typeid = ot.id
+        inner join object_permission op on o.id = op.objectid
             and op.isdeleted = 0
             and op.allowread = 1
-        inner join object_acm acm 
-            on o.id = acm.objectid
-        where o.isdeleted = 1 and o.ownedBy = ? and o.isExpunged = 0
+        inner join object_acm acm on o.id = acm.objectid
+    where 
+        o.isdeleted = 1 
+        and o.ownedBy = ? 
+        and o.isExpunged = 0
         and o.isAncestorDeleted = 0 `
 	query += buildFilterForUserACM(user)
 	query += buildFilterSortAndLimit(pagingRequest)

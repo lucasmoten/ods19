@@ -16,4 +16,8 @@ type UpdateObjectRequest struct {
 	RawAcm string `json:"acm"`
 	// Properties is an array of Object Properties associated with this object
 	Properties []Property `json:"properties,omitempty"`
+	// IsUSPersonsData indicates if this object contains US Persons data
+	IsUSPersonsData bool `json:"isUSPersonsData,omitempty"`
+	// IsFOIAExempt indicates if this object is exempt from Freedom of Information Act requests
+	IsFOIAExempt bool `json:"isFOIAExempt,omitempty"`
 }

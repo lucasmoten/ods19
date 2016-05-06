@@ -73,10 +73,20 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
 	}
 
 	// update object
-	updateObjectStatement, err := tx.Preparex(
-		`update object set modifiedBy = ?, typeId = ?, name = ?,
-    description = ?, parentId = ?, contentConnector = ?, rawAcm = ?,
-    contentType = ?, contentSize = ?, contentHash = ?, encryptIV = ?
+	updateObjectStatement, err := tx.Preparex(`update object set 
+        modifiedBy = ?
+        ,typeId = ?
+        ,name = ?
+        ,description = ?
+        ,parentId = ?
+        ,contentConnector = ?
+        ,rawAcm = ?
+        ,contentType = ?
+        ,contentSize = ?
+        ,contentHash = ?
+        ,encryptIV = ?
+        ,isUSPersonsData = ?
+        ,isFOIAExempt = ?
     where id = ? and changeToken = ?`)
 	if err != nil {
 		return fmt.Errorf("UpdateObject Preparing update object statement, %s", err.Error())
@@ -84,9 +94,10 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
 	// Update it
 	result, err := updateObjectStatement.Exec(object.ModifiedBy, object.TypeID,
 		object.Name, object.Description.String, object.ParentID,
-		object.ContentConnector.String, object.RawAcm.String, object.ContentType.String,
-		object.ContentSize, object.ContentHash, object.EncryptIV,
-		object.ID, object.ChangeToken)
+		object.ContentConnector.String, object.RawAcm.String,
+		object.ContentType.String, object.ContentSize, object.ContentHash,
+		object.EncryptIV, object.IsUSPersonsData, object.IsFOIAExempt, object.ID,
+		object.ChangeToken)
 	if err != nil {
 		return fmt.Errorf("UpdateObject Error executing update object statement, %s", err.Error())
 	}
@@ -203,23 +214,31 @@ func updateObjectACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject)
 	object.ACM.ModifiedBy = object.ModifiedBy
 
 	// Update
-	updateStatement, err := tx.Preparex(`update object_acm set modifiedBy = ?, 
-        f_clearance = ?, f_share = ?, f_oc_org = ?, f_missions = ?, f_regions = ?, 
-        f_macs = ?, f_sci_ctrls = ?, f_accms = ?, f_sar_id = ?, f_atom_energy = ?,
-        f_dissem_countries = ?
-        where id = ?
-        `)
+	updateStatement, err := tx.Preparex(`update object_acm set 
+        modifiedBy = ?
+        ,f_clearance = ?
+        ,f_share = ?
+        ,f_oc_org = ?
+        ,f_missions = ?
+        ,f_regions = ?
+        ,f_macs = ?
+        ,f_sci_ctrls = ?
+        ,f_accms = ?
+        ,f_sar_id = ?
+        ,f_atom_energy = ?
+        ,f_dissem_countries = ?
+    where id = ?`)
 
 	if err != nil {
 		return dbObjectACM, fmt.Errorf("UpdateObjectACM Preparing update statement, %s", err.Error())
 	}
 	result, err := updateStatement.Exec(object.ACM.ModifiedBy,
-		object.ACM.FlatClearance, object.ACM.FlatShare.String, object.ACM.FlatOCOrgs.String,
-		object.ACM.FlatMissions.String, object.ACM.FlatRegions.String,
-		object.ACM.FlatMAC.String, object.ACM.FlatSCI.String, object.ACM.FlatACCMS.String,
+		object.ACM.FlatClearance, object.ACM.FlatShare.String,
+		object.ACM.FlatOCOrgs.String, object.ACM.FlatMissions.String,
+		object.ACM.FlatRegions.String, object.ACM.FlatMAC.String,
+		object.ACM.FlatSCI.String, object.ACM.FlatACCMS.String,
 		object.ACM.FlatSAR.String, object.ACM.FlatAtomEnergy.String,
-		object.ACM.FlatDissemCountries.String,
-		object.ACM.ID)
+		object.ACM.FlatDissemCountries.String, object.ACM.ID)
 
 	if err != nil {
 		return dbObjectACM, fmt.Errorf("UpdateObjectACM Error executing update statement, %s", err.Error())

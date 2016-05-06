@@ -27,7 +27,12 @@ func addPropertyToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, prope
 	var dbProperty models.ODProperty
 
 	// Setup the statement
-	addPropertyStatement, err := tx.Preparex(`insert property set createdby = ?, name = ?, propertyvalue = ?, classificationpm = ?`)
+	addPropertyStatement, err := tx.Preparex(`insert property set 
+        createdby = ?
+        ,name = ?
+        ,propertyvalue = ?
+        ,classificationpm = ?
+    `)
 	if err != nil {
 		return dbProperty, err
 	}
@@ -44,7 +49,16 @@ func addPropertyToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, prope
 	addPropertyStatement.Close()
 	// Get the ID of the newly created property
 	var newPropertyID []byte
-	getPropertyIDStatement, err := tx.Preparex(`select id from property where createdby = ? and name = ? and propertyvalue = ? and classificationpm = ? order by createddate desc limit 1`)
+	getPropertyIDStatement, err := tx.Preparex(`
+    select 
+        id 
+    from property 
+    where 
+        createdby = ? 
+        and name = ? 
+        and propertyvalue = ? 
+        and classificationpm = ? 
+    order by createddate desc limit 1`)
 	if err != nil {
 		return dbProperty, err
 	}
@@ -54,13 +68,35 @@ func addPropertyToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, prope
 	}
 	getPropertyIDStatement.Close()
 	// Retrieve back into property
-	err = tx.Get(&dbProperty, `select * from property where id = ?`, newPropertyID)
+	getPropertyStatement := `
+    select
+        id
+        ,createdDate
+        ,createdBy
+        ,modifiedDate
+        ,modifiedBy
+        ,isDeleted
+        ,deletedDate
+        ,deletedBy
+        ,changeCount
+        ,changeToken
+        ,name
+        ,propertyValue
+        ,classificationPM    
+    from property
+    where id = ?
+    `
+	err = tx.Get(&dbProperty, getPropertyStatement, newPropertyID)
 	if err != nil {
 		return dbProperty, err
 	}
 	*property = dbProperty
 	// Add association to the object
-	addObjectPropertyStatement, err := tx.Preparex(`insert object_property set createdby = ?, objectid = ?, propertyid = ?`)
+	addObjectPropertyStatement, err := tx.Preparex(`insert object_property set 
+        createdby = ?
+        ,objectid = ?
+        ,propertyid = ?
+    `)
 	if err != nil {
 		return dbProperty, err
 	}

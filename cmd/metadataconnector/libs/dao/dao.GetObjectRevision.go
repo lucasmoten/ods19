@@ -28,26 +28,46 @@ func getObjectRevisionInTransaction(tx *sqlx.Tx, object models.ODObject, loadPro
 	var dbObject models.ODObject
 
 	query := `
-        select 
-            ao.id, ao.createdDate, ao.createdBy, ao.modifiedDate, ao.modifiedBy, 
-            (ao.isDeleted | o.isDeleted) isDeleted, 
-            ao.deletedDate, ao.deletedBy,
-            (ao.isAncestorDeleted | o.isAncestorDeleted) isAncestorDeleted, 
-            (ao.isExpunged | o.isExpunged) isExpunged, 
-            ao.expungedDate, ao.expungedBy, ao.changeCount, ao.changeToken, 
-            ao.ownedBy, ao.typeId, ao.name, ao.description, ao.parentId, ao.contentConnector, ao.rawAcm, ao.contentType,
-            ao.contentSize, ao.contentHash, ao.encryptIV,
-            ot.name typeName
-        from a_object ao 
-        inner join object o 
-            on ao.id = o.id
-        inner join object_type ot
-            on ao.typeid = ot.id
-        where 
-            o.isexpunged = 0
-            and ao.isexpunged = 0 
-            and ao.id = ? 
-            and ao.changeCount = ?
+    select 
+        ao.id
+        ,ao.createdDate
+        ,ao.createdBy
+        ,ao.modifiedDate
+        ,ao.modifiedBy
+        ,(ao.isDeleted | o.isDeleted) isDeleted
+        ,ao.deletedDate
+        ,ao.deletedBy
+        ,(ao.isAncestorDeleted | o.isAncestorDeleted) isAncestorDeleted
+        ,(ao.isExpunged | o.isExpunged) isExpunged
+        ,ao.expungedDate
+        ,ao.expungedBy
+        ,ao.changeCount
+        ,ao.changeToken
+        ,ao.ownedBy
+        ,ao.typeId
+        ,ao.name
+        ,ao.description
+        ,ao.parentId
+        ,ao.contentConnector
+        ,ao.rawAcm
+        ,ao.contentType
+        ,ao.contentSize
+        ,ao.contentHash
+        ,ao.encryptIV
+        ,ao.ownedByNew
+        ,ao.isPDFAvailable
+        ,ao.isStreamStored
+        ,ao.isUSPersonsData
+        ,ao.isFOIAExempt
+        ,ot.name typeName
+    from a_object ao 
+        inner join object o on ao.id = o.id
+        inner join object_type ot on ao.typeid = ot.id
+    where 
+        o.isexpunged = 0
+        and ao.isexpunged = 0 
+        and ao.id = ? 
+        and ao.changeCount = ?
             `
 	err := tx.Unsafe().Get(&dbObject, query, object.ID, object.ChangeCount)
 	if err == nil {

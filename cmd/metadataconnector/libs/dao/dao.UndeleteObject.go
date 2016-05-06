@@ -59,11 +59,45 @@ func undeleteObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) (models.O
 func undeleteAncestorChildren(tx *sqlx.Tx, object *models.ODObject) error {
 	var results models.ODObjectResultset
 
-	query := `select sql_calc_found_rows o.*, ot.name typeName 
-            from object o 
-            inner join object_type ot on o.typeid = ot.id 
-            where o.isancestordeleted = 1 and o.isexpunged = 0 
-			and o.parentid = ?`
+	query := `select
+        distinct sql_calc_found_rows 
+        o.id    
+        ,o.createdDate
+        ,o.createdBy
+        ,o.modifiedDate
+        ,o.modifiedBy
+        ,o.isDeleted
+        ,o.deletedDate
+        ,o.deletedBy
+        ,o.isAncestorDeleted
+        ,o.isExpunged
+        ,o.expungedDate
+        ,o.expungedBy
+        ,o.changeCount
+        ,o.changeToken
+        ,o.ownedBy
+        ,o.typeId
+        ,o.name
+        ,o.description
+        ,o.parentId
+        ,o.contentConnector
+        ,o.rawAcm
+        ,o.contentType
+        ,o.contentSize
+        ,o.contentHash
+        ,o.encryptIV
+        ,o.ownedByNew
+        ,o.isPDFAvailable
+        ,o.isStreamStored
+        ,o.isUSPersonsData
+        ,o.isFOIAExempt        
+        ,ot.name typeName     
+    from object o 
+        inner join object_type ot on o.typeid = ot.id 
+    where 
+        o.isancestordeleted = 1 
+        and o.isexpunged = 0 
+        and o.parentid = ?`
 
 	err := tx.Select(&results.Objects, query, object.ID)
 	if err != nil {

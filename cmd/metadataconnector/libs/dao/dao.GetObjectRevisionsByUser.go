@@ -27,23 +27,48 @@ func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagi
 	response := models.ODObjectResultset{}
 	// NOTE: distinct is unfortunately used here because object_permission
 	// allows multiple records per object and grantee.
-	query := `select distinct sql_calc_found_rows 
-        ao.id, ao.createdDate, ao.createdBy, ao.modifiedDate, ao.modifiedBy, ao.isDeleted, ao.deletedDate, ao.deletedBy,
-        ao.isAncestorDeleted, ao.isExpunged, ao.expungedDate, ao.expungedBy, ao.changeCount, ao.changeToken, 
-        ao.ownedBy, ao.typeId, ao.name, ao.description, ao.parentId, ao.contentConnector, ao.rawAcm, ao.contentType,
-        ao.contentSize, ao.contentHash, ao.encryptIV,
-            ot.name typeName
-        from a_object ao
-        inner join object_type ot
-            on ao.typeid = ot.id
-        inner join object_permission op
-            on ao.id = op.objectid
-            and op.isdeleted = 0
-            and op.allowread = 1
-        inner join object_acm acm 
-            on ao.id = acm.objectid           
-        where ao.isexpunged = 0 
-            and ao.id = ?`
+	query := `
+    select 
+        distinct sql_calc_found_rows
+        ao.id
+        ,ao.createdDate
+        ,ao.createdBy
+        ,ao.modifiedDate
+        ,ao.modifiedBy
+        ,ao.isDeleted
+        ,ao.deletedDate
+        ,ao.deletedBy
+        ,ao.isAncestorDeleted
+        ,ao.isExpunged
+        ,ao.expungedDate
+        ,ao.expungedBy
+        ,ao.changeCount
+        ,ao.changeToken
+        ,ao.ownedBy
+        ,ao.typeId
+        ,ao.name
+        ,ao.description
+        ,ao.parentId
+        ,ao.contentConnector
+        ,ao.rawAcm
+        ,ao.contentType
+        ,ao.contentSize
+        ,ao.contentHash
+        ,ao.encryptIV
+        ,ao.ownedByNew
+        ,ao.isPDFAvailable
+        ,ao.isStreamStored
+        ,ao.isUSPersonsData
+        ,ao.isFOIAExempt
+        ,ot.name typeName
+    from a_object ao 
+        inner join object_type ot on ao.typeid = ot.id
+        inner join object_permission op on ao.id = op.objectid and op.isdeleted = 0 and op.allowread = 1
+        inner join object_acm acm on ao.id = acm.objectid
+    where 
+        ao.isexpunged = 0
+        and ao.id = ? 
+    `
 	query += buildFilterForUserACMShare(user)
 	query += buildFilterForUserACM(user)
 	query += buildFilterSortAndLimitArchive(pagingRequest)
