@@ -22,29 +22,41 @@ import (
 )
 
 const (
-	//We purged something that wasn't cleaned up
+	// PurgeAnomaly error code given when we purged something that wasn't cleaned up
 	PurgeAnomaly = 1500
-	//We failed to purge something that wasn't cleaned up
+	// FailPurgeAnomaly error code given when we failed to purge something that wasn't cleaned up
 	FailPurgeAnomaly = 1501
-	//We tried to walk cache, and something went wrong
+	// FailCacheWalk error code given when we tried to walk cache, and something went wrong
 	FailCacheWalk = 1502
-	//We could not drain to cache
+	// FailDrainToCache error code given when we could not drain to cache
 	FailDrainToCache = 1503
-	//We could not cache to drain
+	// FailCacheToDrain error code given when we could not cache to drain
 	FailCacheToDrain = 1504
-	//Failed to download out of S3
+	// FailS3Download error code given when we failed to download out of S3
 	FailS3Download = 1505
 )
 
 // checkAWSEnvironmentVars prevents the server from starting if appropriate vars
 // are not set.
 func checkAWSEnvironmentVars() {
-	region := oduconfig.GetEnvOrDefault("AWS_REGION", "")
-	secretKey := oduconfig.GetEnvOrDefault("AWS_SECRET_KEY", "")
-	secretKeyAlt := oduconfig.GetEnvOrDefault("AWS_SECRET_ACCESS_KEY", "")
-	accessKeyID := oduconfig.GetEnvOrDefault("AWS_ACCESS_KEY_ID", "")
-	if region == "" || (secretKey == "" && secretKeyAlt == "") || accessKeyID == "" {
-		log.Fatal("Fatal Error: Environment variables AWS_REGION, AWS_SECRET_KEY, and AWS_ACCESS_KEY_ID must be set.")
+	// Variables for the environment can be provided as either the native AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+	// or be prefixed with the common "OD_" as in OD_AWS_REGION, OD_AWS_ACCESS_KEY_ID, and OD_AWS_SECRET_ACCESS_KEY
+	// Environment variables will be normalized to the AWS_ variants to facilitate internal library calls
+	region := oduconfig.GetEnvOrDefault("OD_AWS_REGION", oduconfig.GetEnvOrDefault("AWS_REGION", ""))
+	if len(region) > 0 {
+		os.Setenv("AWS_REGION", region)
+	}
+	accessKeyID := oduconfig.GetEnvOrDefault("OD_AWS_ACCESS_KEY_ID", oduconfig.GetEnvOrDefault("AWS_ACCESS_KEY_ID", ""))
+	if len(accessKeyID) > 0 {
+		os.Setenv("AWS_ACCESS_KEY_ID", accessKeyID)
+	}
+	secretKey := oduconfig.GetEnvOrDefault("OD_AWS_SECRET_ACCESS_KEY", oduconfig.GetEnvOrDefault("AWS_SECRET_ACCESS_KEY", ""))
+	if len(secretKey) > 0 {
+		os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey)
+	}
+	// If any values are not set, then this is a fatal error
+	if region == "" || accessKeyID == "" || secretKey == "" {
+		log.Fatal("Fatal Error: Environment variables AWS_REGION, AWS_SECRET_ACCESS_KEY, and AWS_ACCESS_KEY_ID must be set.")
 	}
 	return
 }

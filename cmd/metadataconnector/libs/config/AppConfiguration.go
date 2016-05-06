@@ -17,9 +17,7 @@ var (
 	defaultDBHost   = "127.0.0.1"
 	defaultDBPort   = "3306"
 	// DefaultBucket is the AWS S3 bucket name
-	DefaultBucket = "decipherers"
-	// DefaultBucketPartition is the directory in the bucket - used to allow multiple users
-	DefaultBucketPartition = "cache"
+	DefaultBucket = oduconfig.GetEnvOrDefault("OD_AWS_S3_BUCKET", "decipherers")
 )
 
 // AppConfiguration is a structure that defines the known configuration format

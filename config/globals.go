@@ -1,7 +1,6 @@
 package config
 
 import (
-	"flag"
 	"log"
 	"net"
 	"os"
@@ -11,71 +10,6 @@ import (
 
 	"decipher.com/object-drive-server/util"
 )
-
-// Environment is all parameters passable into this program
-// Try to completely eliminate global variables from environment this way
-//
-// If we are to have multiple programs, they should share as much of the interface
-// as possible.
-// TODO: Where is this used? And which fields are used?
-type Environment struct {
-	UsingServerTLS  bool
-	HideFileNames   bool
-	TCPPort         int
-	TCPBind         string
-	MasterKey       string
-	Partition       string
-	BufferSize      int
-	KeyBytes        int
-	ServerCertFile  string
-	ServerKeyFile   string
-	ServerTrustFile string
-	RsaEncryptBits  int
-	AwsConfig       string
-	AwsBucket       string
-}
-
-// FlagSetup does standard flag setup for this project
-func FlagSetup(env *Environment) error {
-	//masterkey comes from env to keep it from showing up in ps output
-	env.MasterKey = GetEnvOrDefault("OD_ENCRYPT_MASTERKEY", "otterpaws")
-	certsDir := filepath.Join(ProjectRoot, "defaultcerts")
-	flag.StringVar(&env.AwsConfig, "awsConfig", "default", "the config entry to connect to aws")
-	flag.BoolVar(&env.HideFileNames, "hideFileNames", true, "use unhashed file and user names")
-	flag.IntVar(&env.TCPPort, "tcpPort", 6443, "set the tcp port")
-	flag.StringVar(&env.TCPBind, "tcpBind", "0.0.0.0", "tcp bind port")
-	flag.StringVar(&env.AwsBucket, "awsBucket", "decipherers", "home bucket to store files in")
-	flag.StringVar(&env.Partition, "partition", "partition", "partition within a bucket, and file cache location")
-	flag.IntVar(&env.BufferSize, "bufferSize", 1024*4, "the size of a buffer between streams in a session")
-	flag.IntVar(&env.KeyBytes, "keyBytes", 32, "AES key size in bytes")
-	flag.StringVar(&env.ServerTrustFile, "serverTrustFile", filepath.Join(certsDir, "server", "server.trust.pem"), "The SSL Trust in PEM format for this server")
-	flag.StringVar(&env.ServerCertFile, "serverCertFile", filepath.Join(certsDir, "server", "server.cert.pem"), "The SSL Cert in PEM format for this server")
-	flag.StringVar(&env.ServerKeyFile, "serverKeyFile", filepath.Join(certsDir, "server", "server.key.pem"), "The private key for the SSL Cert for this server")
-	flag.IntVar(&env.RsaEncryptBits, "rsaEncryptBits", 1024, "The number of bits to encrypt a user file key with")
-	flag.Parse()
-	//Give errors now if the environment is not consistent
-	if env.UsingServerTLS {
-
-		_, err := os.Stat(env.ServerTrustFile)
-		if err != nil {
-			log.Printf("Could not check trust pem %s:%v", env.ServerTrustFile, err)
-			return err
-		}
-
-		_, err = os.Stat(env.ServerCertFile)
-		if err != nil {
-			log.Printf("Could not check cert pem %s:%v", env.ServerCertFile, err)
-			return err
-		}
-
-		_, err = os.Stat(env.ServerKeyFile)
-		if err != nil {
-			log.Printf("Could not check key pem %s:%v", env.ServerKeyFile, err)
-			return err
-		}
-	}
-	return nil
-}
 
 // CertsDir is a base certificate directory that expects /server and /client
 // to exist inside of it. TODO: Consider the total amount of config we need
@@ -136,11 +70,19 @@ func locateCerts(projectRoot string) string {
 	return certsDir
 }
 
-// The default resolve for "dockervm" hostname.  Pass in an IP
-// to get around DNS issues with docker
+// DockerVM is used for development tests only. It is the default resolve for the dockervm hostname.
+// Use an IP address to get around DNS resolution issues with docker in some environments
 var DockerVM = "dockervm"
+
+// MyIP is used for development only. It overrides the reported lookup of IP based upon the hostname.
 var MyIP = "dockervm"
+
+// Port is used for development tests only. It overrides the port used when sending test requests
+// to bypass local NGINX Gatekeeper container for hosts that have issues with docker in some environments
 var Port = "8080"
+
+// StandaloneMode should be used for development only.  When enabled, it bypasses AAC checks for Get,
+// Update based calls, and will not store/retrieve from S3, relying upon a local cache only.
 var StandaloneMode = false
 
 func init() {
@@ -194,12 +136,13 @@ func init() {
 	}
 }
 
+// RegexEscape is a helper method that takes a string and replaces the period metacharacter with backslash escaping.
 func RegexEscape(str string) string {
 	return strings.Replace(str, ".", "\\.", -1)
 }
 
 // RootURL is the base url for our app
-var RootURL = "" // `/service/object-drive/1.0`
+var RootURL = ""
 
 // RootURLRegex is the routing url regex for our entire app
 var RootURLRegex = RegexEscape(RootURL)
