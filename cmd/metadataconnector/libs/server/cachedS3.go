@@ -300,6 +300,21 @@ func (d *NullDrainProviderData) CacheLocation() string {
 	return d.CacheLocationString
 }
 
+//TODO: without a file length to expect, we are only making guesses as to how long we can wait.
+func S3DownloadAttempt(downloader *s3manager.Downloader, fOut *os.File, bucket *string, key *string) (int64, error) {
+	length, err := downloader.Download(
+		fOut,
+		&s3.GetObjectInput{
+			Bucket: bucket,
+			Key:    key,
+		},
+	)
+	if err != nil {
+		log.Printf("Unable to download out of S3 bucket %v: %s", *bucket, *key)
+	}
+	return length, err
+}
+
 // DrainToCache gets a file back out of the drain into the cache.
 func (d *S3DrainProviderData) DrainToCache(
 	bucket *string,
@@ -314,23 +329,37 @@ func (d *S3DrainProviderData) DrainToCache(
 	if err != nil {
 		msg := fmt.Sprintf("Unable to write local buffer file %s: %v", theFile, err)
 		sendAppErrorResponse(nil, NewAppError(FailDrainToCache, err, msg))
+		return nil, err
 	}
+	defer os.Remove(foutCaching)
 	defer fOut.Close()
 
+	//Try to download it a few times, doubling our willingness to wait each time
+	//files move up into S3 at 30MB/s
+	tries := 22
+	waitTime := 1 * time.Second
+	prevWaitTime := 0 * time.Second
+	key := aws.String(d.CacheLocationString + "/" + theFile)
 	downloader := s3manager.NewDownloader(d.AWSSession)
-	_, err = downloader.Download(
-		fOut,
-		&s3.GetObjectInput{
-			Bucket: bucket,
-			Key:    aws.String(d.CacheLocationString + "/" + theFile),
-		},
-	)
-	if err != nil {
-		log.Printf("Unable to download out of S3 bucket %v: %v", *bucket, theFile)
-		//Do not signal that a goroutine is still working on caching this file
-		os.Remove(foutCaching)
-		return NewAppError(500, err, fmt.Sprintf("Unable to get %s out of cache", theFile)), err
+	for tries > 0 {
+		_, err = S3DownloadAttempt(downloader, fOut, bucket, key)
+		tries--
+		if err == nil {
+			break
+		} else {
+			log.Printf("Unable to download out of S3 bucket %v. Trying again in %ds, %d more attempts possible: %s", *bucket, waitTime/(time.Second), tries-1, theFile)
+			//Without a file length, this is our best guess
+			time.Sleep(waitTime)
+			//Fibonacci progression 1 1 2 3 ... ... 22 of them gives a total wait time of about 2 mins, or almost 8GB
+			oldWaitTime := waitTime
+			waitTime = prevWaitTime + waitTime
+			prevWaitTime = oldWaitTime
+		}
 	}
+	if err != nil {
+		return NewAppError(500, err, fmt.Sprintf("Give up to get %s out of cache", theFile)), err
+	}
+
 	//Signal that we finally cached the file
 	err = os.Rename(foutCaching, foutCached)
 	if err != nil {

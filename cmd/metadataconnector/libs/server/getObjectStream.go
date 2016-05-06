@@ -143,6 +143,9 @@ func drainToCache(
 	if herr != nil {
 		return herr, err
 	}
+	if err != nil {
+		return nil, err
+	}
 	return nil, nil
 }
 
@@ -188,7 +191,7 @@ func handleCacheMiss(dp DrainProvider, t *performance.JobReporters, object *mode
 		if _, err := os.Stat(cachingPath); os.IsNotExist(err) {
 			//Start caching the file because this is not happening already.
 			herr, err = drainToCache(dp, t, bucket, object.ContentConnector.String, object.ContentSize.Int64)
-			if err != nil {
+			if err != nil || herr != nil {
 				//We are not in the http thread.  log this problem though
 				log.Printf("!!! unable to drain to cache:%v %v", herr, err)
 			}
