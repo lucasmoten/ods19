@@ -55,7 +55,8 @@ func main() {
 	//These are the IP:port as seen by the outside.  They are not necessarily the same as the internal port that the server knows,
 	//because this is created by the -p $OD_ZK_MYPORT:$OD_SERVER_PORT mapping on docker machine $OD_ZK_MYIP.
 	zkMyIP := oduconfig.GetEnvOrDefault("OD_ZK_MYIP", oduconfig.MyIP)
-	zkMyPort := oduconfig.GetEnvOrDefault("OD_ZK_MYPORT", "4430")
+	serverPort := oduconfig.GetEnvOrDefault("OD_SERVER_PORT", "4430")
+	zkMyPort := oduconfig.GetEnvOrDefault("OD_ZK_MYPORT", serverPort)
 
 	err = registerWithZookeeper(app, zkBasePath, zkAddress, zkMyIP, zkMyPort)
 	if err != nil {
