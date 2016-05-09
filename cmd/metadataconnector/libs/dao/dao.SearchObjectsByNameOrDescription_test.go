@@ -133,7 +133,7 @@ func setupObjectForDAOSearchObjectsTest(name string) models.ODObject {
 	obj.Name = "Test " + name + " Name"
 	obj.Description.String = name + " Description"
 	obj.Description.Valid = true
-	obj.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	obj.CreatedBy = usernames[1]
 	obj.TypeName.String = "File"
 	obj.TypeName.Valid = true
 	permissions := make([]models.ODObjectPermission, 1)

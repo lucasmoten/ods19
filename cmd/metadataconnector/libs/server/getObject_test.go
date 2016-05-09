@@ -21,7 +21,7 @@ func TestAppServerGetObject(t *testing.T) {
 func TestAppServerGetObjectAgainstFake(t *testing.T) {
 
 	// Set up an ODUser and a test DN.
-	dn := "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	dn := fakeDN1
 	user := models.ODUser{
 		DistinguishedName: dn,
 	}
@@ -69,10 +69,15 @@ func TestAppServerGetObjectAgainstFake(t *testing.T) {
 	}
 	fakeServer.InitRegex()
 
+	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
+	fakeServer.AclImpersonationWhitelist = append(fakeServer.AclImpersonationWhitelist, whitelistedDN)
+
 	// Simulate the getObject call.
 	req, err := http.NewRequest(
 		"GET", cfg.RootURL+objectURL, nil)
 	req.Header.Add("USER_DN", dn)
+	req.Header.Add("SSL_CLIENT_S_DN", whitelistedDN)
+
 	if err != nil {
 		t.Errorf("Error construction HTTP request")
 	}

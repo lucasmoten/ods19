@@ -18,7 +18,7 @@ func TestDAOGetChildObjects(t *testing.T) {
 	// Create our parent object
 	var parent models.ODObject
 	parent.Name = "Test GetChildObjects Parent"
-	parent.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	parent.CreatedBy = usernames[1]
 	parent.TypeName.String = "Test Type"
 	parent.TypeName.Valid = true
 	parent.RawAcm.String = testhelpers.ValidACMUnclassified
@@ -39,7 +39,7 @@ func TestDAOGetChildObjects(t *testing.T) {
 	// Create our child object
 	var child models.ODObject
 	child.Name = "Test GetChildObjects Child"
-	child.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	child.CreatedBy = usernames[1]
 	child.ParentID = dbParent.ID
 	child.TypeName.String = "Test Type"
 	child.TypeName.Valid = true

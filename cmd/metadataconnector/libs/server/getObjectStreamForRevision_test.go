@@ -510,7 +510,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 	changeToken := objResponse1.ChangeToken
 
 	// ### Add read permission granted to second user
-	grantee := "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
+	grantee := fakeDN1
 	createShareReq, err := testhelpers.NewCreateReadPermissionRequest(objResponse1, grantee, "", host)
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)

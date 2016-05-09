@@ -15,7 +15,7 @@ func TestDAOAddPermissionToObject(t *testing.T) {
 
 	// Create our parent object
 	object.Name = "Test Object for Permissions"
-	object.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	object.CreatedBy = usernames[1]
 	object.TypeName.String = "Test Type"
 	object.TypeName.Valid = true
 	object.RawAcm.String = testhelpers.ValidACMUnclassified

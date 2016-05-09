@@ -28,11 +28,15 @@ func TestCreateFolderProtocol(t *testing.T) {
 	t.Log(jsonNoParent)
 	s := NewFakeServerWithDAOUsers()
 
+	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
+	s.AclImpersonationWhitelist = append(s.AclImpersonationWhitelist, whitelistedDN)
+
 	r, err := http.NewRequest("POST", cfg.RootURL+"/objects", bytes.NewBuffer([]byte(jsonNoParent)))
 	if err != nil {
 		t.Fatal(err)
 	}
 	r.Header.Add("USER_DN", fakeDN1)
+	r.Header.Add("SSL_CLIENT_S_DN", whitelistedDN)
 	r.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	s.ServeHTTP(w, r)
@@ -351,7 +355,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 	folder.ParentID = ""
 	folder.RawAcm = testhelpers.ValidACMUnclassified
 	grant2client2 := protocol.Permission{}
-	grant2client2.Grantee = "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
+	grant2client2.Grantee = fakeDN1
 	grant2client2.AllowRead = true
 	grant2client2.AllowCreate = true
 	folder.Permissions = append(folder.Permissions, grant2client2)

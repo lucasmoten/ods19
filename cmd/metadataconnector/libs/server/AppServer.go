@@ -8,7 +8,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	"decipher.com/object-drive-server/cmd/metadataconnector/libs/config"
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/dao"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
@@ -62,19 +61,8 @@ type AppServer struct {
 	Users *UserCache
 	// Snippets contains a cache of snippets
 	Snippets *SnippetCache
-}
-
-// Caller provides the distinguished names obtained from specific request
-// headers and peer certificate if called directly
-type Caller struct {
-	// DistinguishedName is the unique identity of a user
-	DistinguishedName string
-	// UserDistinguishedName holds the value passed in header USER_DN
-	UserDistinguishedName string
-	// ExternalSystemDistinguishedName holds the value passed in header EXTERNAL_SYS_DN
-	ExternalSystemDistinguishedName string
-	// CommonName is the CN value part of the DistinguishedName
-	CommonName string
+	// AclWhitelist provides a list of distinguished names allowed to perform impersonation
+	AclImpersonationWhitelist []string
 }
 
 // InitRegex compiles static regexes and initializes the AppServer Routes field.
@@ -129,6 +117,14 @@ func (h *AppServer) InitRegex() {
 // ServeHTTP handles the routing of requests
 func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	caller := GetCaller(r)
+	err := caller.ValidateHeaders(h.AclImpersonationWhitelist, w, r)
+	// Log state consistent with AclRestFilter
+	if err != nil {
+		log.Printf("Transaction: "+caller.TransactionType+" INVALID!"+caller.GetMessage()+" %s", err.Error())
+		sendErrorResponse(&w, 401, err, err.Error())
+		return
+	}
+	log.Printf("Transaction: " + caller.TransactionType + " VALID! UserAuthentication.current: " + caller.UserDistinguishedName + " " + caller.GetMessage())
 
 	// Prepare a Context to propagate to request handlers
 	var ctx context.Context
@@ -350,36 +346,6 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// TODO: UserSnippetSQL
 
 	// TODO: Before returning, finalize any metrics, capturing time/error codes ?
-}
-
-// GetCaller populates a Caller object based upon request headers and peer
-// certificates. Logically this is intended to work with or without NGINX as
-// a front end
-func GetCaller(r *http.Request) Caller {
-	var localDebug = false
-	var caller Caller
-	caller.UserDistinguishedName = r.Header.Get("USER_DN")
-	caller.ExternalSystemDistinguishedName = r.Header.Get("EXTERNAL_SYS_DN")
-	if caller.UserDistinguishedName != "" {
-		if localDebug {
-			log.Println("Assigning distinguished name from USER_DN")
-		}
-		caller.DistinguishedName = caller.UserDistinguishedName
-	} else {
-		if len(r.TLS.PeerCertificates) > 0 {
-			if localDebug {
-				log.Println("Assigning distinguished name from peer certificate")
-			}
-			caller.DistinguishedName = config.GetDistinguishedName(r.TLS.PeerCertificates[0])
-		} else {
-			if localDebug {
-				log.Println("WARNING: No distinguished name set!!!")
-			}
-		}
-	}
-	caller.DistinguishedName = config.GetNormalizedDistinguishedName(caller.DistinguishedName)
-	caller.CommonName = config.GetCommonName(caller.DistinguishedName)
-	return caller
 }
 
 // ContextWithCaller returns a new Context object with a Caller value set. The const CallerVal acts

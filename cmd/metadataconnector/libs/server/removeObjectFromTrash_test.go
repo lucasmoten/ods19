@@ -140,6 +140,9 @@ func TestUndeleteExpungedObjectFails(t *testing.T) {
 		AAC:      fakeAAC,
 	}
 
+	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
+	s.AclImpersonationWhitelist = append(s.AclImpersonationWhitelist, whitelistedDN)
+
 	guid, _ := util.NewGUID()
 	fullURL := cfg.NginxRootURL + "/objects/" + guid + "/untrash"
 	r, err := http.NewRequest(
@@ -149,6 +152,7 @@ func TestUndeleteExpungedObjectFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	r.Header.Add("USER_DN", fakeDN1)
+	r.Header.Add("SSL_CLIENT_S_DN", whitelistedDN)
 	r.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -191,6 +195,9 @@ func TestUndeleteObjectWithDeletedAncestorFails(t *testing.T) {
 		Snippets: snippetCache,
 	}
 
+	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
+	s.AclImpersonationWhitelist = append(s.AclImpersonationWhitelist, whitelistedDN)
+
 	guid, _ := util.NewGUID()
 	fullURL := cfg.NginxRootURL + "/objects/" + guid + "/untrash"
 	r, err := http.NewRequest(
@@ -200,6 +207,7 @@ func TestUndeleteObjectWithDeletedAncestorFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	r.Header.Add("USER_DN", fakeDN1)
+	r.Header.Add("SSL_CLIENT_S_DN", whitelistedDN)
 	r.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
