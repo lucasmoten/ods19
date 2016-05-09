@@ -103,6 +103,9 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 			break
 		}
 	}
+	if len(fileKey) == 0 {
+		return NewAppError(403, nil, "Unauthorized")
+	}
 
 	// Check AAC to compare user clearance to  metadata Classifications
 	// 		Check if Classification is allowed for this User
