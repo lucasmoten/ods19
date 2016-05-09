@@ -14,24 +14,7 @@ import (
 )
 
 // listObjectRevisions is a method handler on AppServer for implementing the
-// listObjectRevisions microservice operation.  The unique identifier of the
-// object for which revisions are saught is presented in the path in the
-// following format:
-//      GET /services/object-drive/object/{objectId}/history HTTP/1.1
-// Paging information can be specified in either JSON body or as querystring
-// arguments:
-//      GET /services/object-drive/object/{objectId}/history?PageNumber=1&PageSize=20 HTTP/1.1
-// If provided in the body as an application/json, the format would look
-// like this:
-//		POST /services/object-drive/object/{objectId}/history HTTP/1.1
-//		Host: fully.qualified.domain.name
-//		Content-Type: application/json;
-//		Content-Length: nnn
-//
-//		{
-//			"pageNumber": 1,
-//			"pageSize": 20
-//		}
+// listObjectRevisions microservice operation.
 func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
 	// Get user from context

@@ -63,13 +63,13 @@ type ODObject struct {
 	// ACM stores the flattened ACM values from the RawAcm
 	ACM ODObjectACM
 	// IsPDFAvailable indicates if a PDF rendition is available for this object
-	IsPDFAvailable bool `db:"isPDFAvailable" json:"-"`
+	IsPDFAvailable bool `db:"isPDFAvailable"`
 	// IsStreamStored indicates if the content stream for this object is stored in the cloud and can be retrieved
-	IsStreamStored bool `db:"isStreamStored" json:"-"`
+	IsStreamStored bool `db:"isStreamStored"`
 	// IsUSPersonsData indicates if this object contains US Persons data
-	IsUSPersonsData bool `db:"isUSPersonsData" json:"-"`
+	IsUSPersonsData bool `db:"isUSPersonsData"`
 	// IsFOIAExempt indicates if this object is exempt from Freedom of Information Act requests
-	IsFOIAExempt bool `db:"isFOIAExempt" json:"-"`
+	IsFOIAExempt bool `db:"isFOIAExempt"`
 }
 
 // ODObjectResultset encapsulates the ODObject defined herein as an array with
