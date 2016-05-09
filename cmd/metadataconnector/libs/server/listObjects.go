@@ -19,16 +19,6 @@ import (
 // used to list the children within it, otherwise, the root for the given user
 // is listed.  For a user, the root is defined as those objects that they own
 // which have no parent identifier set.
-// Request format:
-//				GET /services/object-drive/object/{objectId}/list HTTP/1.1
-//				Host: fully.qualified.domain.name
-//				Content-Type: application/json;
-//				Content-Length: nnn
-//
-//				{
-//					"pageNumber": "{pageNumber}",
-//					"pageSize": {pageSize}
-//				}
 func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
 	// Get user from context
