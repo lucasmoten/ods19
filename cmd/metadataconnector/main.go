@@ -51,7 +51,14 @@ func main() {
 
 	zkAddress := oduconfig.GetEnvOrDefault("OD_ZK_URL", "zk:2181")
 	zkBasePath := oduconfig.GetEnvOrDefault("OD_ZK_BASEPATH", "/service/object-drive/1.0")
-	err = registerWithZookeeper(app, zkBasePath, zkAddress, oduconfig.MyIP)
+
+	//These are the IP:port as seen by the outside.  They are not necessarily the same as the internal port that the server knows,
+	//because this is created by the -p $OD_ZK_MYPORT:$OD_SERVER_PORT mapping on docker machine $OD_ZK_MYIP.
+	zkMyIP := oduconfig.GetEnvOrDefault("OD_ZK_MYIP", oduconfig.MyIP)
+	serverPort := oduconfig.GetEnvOrDefault("OD_SERVER_PORT", "4430")
+	zkMyPort := oduconfig.GetEnvOrDefault("OD_ZK_MYPORT", serverPort)
+
+	err = registerWithZookeeper(app, zkBasePath, zkAddress, zkMyIP, zkMyPort)
 	if err != nil {
 		log.Fatal("Could not register with Zookeeper")
 	}
@@ -151,14 +158,13 @@ func configureDrainProvider(app *server.AppServer, standalone bool, cacheID stri
 	app.DrainProvider = dp
 }
 
-func registerWithZookeeper(app *server.AppServer, zkBasePath, zkAddress, myIP string) error {
+func registerWithZookeeper(app *server.AppServer, zkBasePath, zkAddress, myIP, myPort string) error {
 
 	zkState, err := zookeeper.RegisterApplication(zkBasePath, zkAddress)
 	if err != nil {
 		return err
 	}
-	serverPort := oduconfig.GetEnvOrDefault("OD_SERVER_PORT", "4430")
-	err = zookeeper.ServiceAnnouncement(zkState, "https", "ALIVE", myIP, serverPort)
+	err = zookeeper.ServiceAnnouncement(zkState, "https", "ALIVE", myIP, myPort)
 	if err != nil {
 		return err
 	}
