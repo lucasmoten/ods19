@@ -1,0 +1,2375 @@
+<h1>Global Parameters</h1>
+<pre>
+{
+  "Host": "https://192.168.99.100:8080",
+  "Url": "/services/object-drive/1.0",
+  "Root": "$GOPATH/src/decipher.com/autopilot/cache",
+  "Log": {}
+}
+</pre>
+<h1>TestUpdate</h1>
+<h2>Upload Request
+</h2>
+uploading a file to update.
+<pre>
+POST /services/object-drive/1.0/objects HTTP/1.1
+Host: 192.168.99.100:8080
+User-Agent: Go-http-client/1.1
+Content-Length: 2554
+Content-Type: multipart/form-data; boundary=a2e797c4df3fb01c9d7e99f7499c09b32d5ef78134f0135df8d33704f300
+Accept-Encoding: gzip
+
+--a2e797c4df3fb01c9d7e99f7499c09b32d5ef78134f0135df8d33704f300
+Content-Disposition: form-data; name="ObjectMetadata"
+Content-Type: application/json
+
+{
+  "typeName": "File",
+  "name": "",
+  "description": "",
+  "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}"
+}
+--a2e797c4df3fb01c9d7e99f7499c09b32d5ef78134f0135df8d33704f300
+Content-Disposition: form-data; name="filestream"; filename="gettysburgaddress.txt"
+Content-Type: application/octet-stream
+
+Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.
+
+Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this.
+
+But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not hallow -- this ground. The brave men, living and dead, who struggled here, have consecrated it, far above our poor power to add or detract. The world will little note, nor long remember what we say here, but it can never forget what they did here. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us -- that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion -- that we here highly resolve that these dead shall not have died in vain -- that this nation, under God, shall have a new birth of freedom -- and that government of the people, by the people, for the people, shall not perish from the earth.
+
+Abraham Lincoln
+November 19, 1863
+
+--a2e797c4df3fb01c9d7e99f7499c09b32d5ef78134f0135df8d33704f300--
+
+</pre>
+json of the uploaded object is returned, as soon as EC2 has it. use it to perform further actions on the file.
+
+<pre>
+HTTP/1.1 200 OK
+Content-Length: 1288
+Cache-Control: no-cache
+Connection: keep-alive
+Content-Type: application/json
+Date: Thu, 05 May 2016 22:41:19 GMT
+Expires: Thu, 05 May 2016 22:41:18 GMT
+Server: nginx/1.8.1
+
+{
+  "id": "11e613127c3a6121955d0242ac110002",
+  "createdDate": "2016-05-05T22:41:19Z",
+  "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+  "modifiedDate": "2016-05-05T22:41:19Z",
+  "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+  "changeCount": 0,
+  "changeToken": "ce0c709b5ebc88fd95187c20a80889ff",
+  "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+  "typeId": "11e6131261f05412955d0242ac110002",
+  "typeName": "File",
+  "name": "gettysburgaddress.txt",
+  "description": "",
+  "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+  "contentType": "text",
+  "contentSize": 1511,
+  "contentHash": "3e9407273e9c18215d89a573757a3afbc32a2463bafda8bc0c73d09788900cb2"
+}
+</pre>
+<h2>Listing Request
+</h2>
+get the file we uploaded.
+<pre>
+GET /services/object-drive/1.0/objects HTTP/1.1
+Host: 192.168.99.100:8080
+User-Agent: Go-http-client/1.1
+Content-Type: application/json
+Accept-Encoding: gzip
+
+
+</pre>
+Got a listing of available files
+
+<pre>
+HTTP/1.1 200 OK
+Transfer-Encoding: chunked
+Cache-Control: no-cache
+Connection: keep-alive
+Content-Type: application/json
+Date: Thu, 05 May 2016 22:41:19 GMT
+Expires: Thu, 05 May 2016 22:41:18 GMT
+Server: nginx/1.8.1
+
+8000
+{
+  "totalRows": 14,
+  "pageCount": 1,
+  "pageNumber": 1,
+  "pageSize": 20,
+  "pageRows": 14,
+  "objects": [
+    {
+      "id": "11e613127c3a6121955d0242ac110002",
+      "createdDate": "2016-05-05T22:41:19Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:41:19Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "ce0c709b5ebc88fd95187c20a80889ff",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e6131261f05412955d0242ac110002",
+      "typeName": "File",
+      "name": "gettysburgaddress.txt",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "text",
+      "contentSize": 1511,
+      "contentHash": "3e9407273e9c18215d89a573757a3afbc32a2463bafda8bc0c73d09788900cb2",
+      "permissions": [
+        {
+          "id": "11e613127c3b0c98955d0242ac110002",
+          "createdDate": "2016-05-05T22:41:19Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:41:19Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "e345e9be9f11fe18b4d17f600df6551b",
+          "objectId": "11e613127c3a6121955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613127c3b6e93955d0242ac110002",
+          "createdDate": "2016-05-05T22:41:19Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:41:19Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "ea62dd52897a642a2085ed7b8c734555",
+          "objectId": "11e613127c3a6121955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e613127bcf9e2d955d0242ac110002",
+      "createdDate": "2016-05-05T22:41:18Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:41:18Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "379f56e67e285bf8abd1338e3b089355",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e6131261f05412955d0242ac110002",
+      "typeName": "File",
+      "name": "gettysburgaddress.txt",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "text",
+      "contentSize": 1511,
+      "contentHash": "3e9407273e9c18215d89a573757a3afbc32a2463bafda8bc0c73d09788900cb2",
+      "permissions": [
+        {
+          "id": "11e613127bd04005955d0242ac110002",
+          "createdDate": "2016-05-05T22:41:18Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:41:18Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "90a23c439690def42434dfa06bca4c19",
+          "objectId": "11e613127bcf9e2d955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613127bd0680a955d0242ac110002",
+          "createdDate": "2016-05-05T22:41:18Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:41:18Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "3384d0663fa38f213f8f6b7064ca43c7",
+          "objectId": "11e613127bcf9e2d955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613127c01e6f3955d0242ac110002",
+          "createdDate": "2016-05-05T22:41:19Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:41:19Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "711dfcc066a26959876c841bec4074bd",
+          "objectId": "11e613127bcf9e2d955d0242ac110002",
+          "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": false,
+          "explicitShare": true
+        }
+      ]
+    },
+    {
+      "id": "11e61312696dbcf9955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:48Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:48Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "728df6c5fb8fba91e79ff99969a7248c",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e6131261f05412955d0242ac110002",
+      "typeName": "File",
+      "name": "97df7dec74854e4a8809eb04ae5a1dba",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"FOUO\"],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U//FOUO\",\"banner\":\"UNCLASSIFIED//FOUO\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "text",
+      "contentSize": 10,
+      "contentHash": "84d89877f0d4041efb6bf91a16f0248f2fd573e6af05c19f96bedb9f882f7882",
+      "permissions": [
+        {
+          "id": "11e61312696de4e8955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:48Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:48Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "939a2b64e8e70ca8e0dddf313bfed949",
+          "objectId": "11e61312696dbcf9955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e61312696e6dd4955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:48Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:48Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "9e65b0fc04e4a1ede2dbeb4fc49f10f4",
+          "objectId": "11e61312696dbcf9955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e6131269686581955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:48Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:48Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 1,
+      "changeToken": "41b9e6e9d7392da03c6a063ddaf4cf78",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e61312627abcb4955d0242ac110002",
+      "typeName": "Folder",
+      "name": "Test Folder for Update 1462488048",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "permissions": [
+        {
+          "id": "11e6131269689032955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:48Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:48Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "49d6ccb3c57c2d5fb08d77acb57311b1",
+          "objectId": "11e6131269686581955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613126968b8cb955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:48Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:48Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "26033c00fce7c1667cdca1a89cd0ea4a",
+          "objectId": "11e6131269686581955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e61312695f08e7955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:47Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:48Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 2,
+      "changeToken": "ec2547dfeab31bbe1a2b86abde807fda",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e61312627abcb4955d0242ac110002",
+      "typeName": "Folder",
+      "name": "Test Folder for Update 1462488048",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "permissions": [
+        {
+          "id": "11e61312695f3740955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:47Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:47Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "2de1bc9ab03888f611fee13beec2022b",
+          "objectId": "11e61312695f08e7955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e61312695f636e955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:47Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:47Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "1d6c85897fe22594005205a422410af5",
+          "objectId": "11e61312695f08e7955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131269638173955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:47Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:47Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "d7e1ae84a6c7af4805706574b6acf18d",
+          "objectId": "11e61312695f08e7955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613126963a706955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:47Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:47Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "b685b7e7bd06d6effb3fb67f7500d838",
+          "objectId": "11e61312695f08e7955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e61312693e1b05955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:47Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:47Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "1709e9db7b7490adfd61b4df2b4940de",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e61312627abcb4955d0242ac110002",
+      "typeName": "Folder",
+      "name": "Test Folder 1 1462488047",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "permissions": [
+        {
+          "id": "11e61312693e4253955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:47Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:47Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "82cd09afae882a4b5f7b42f314047d02",
+          "objectId": "11e61312693e1b05955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e61312693e6b2d955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:47Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:47Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "4625ccdc5d64755aaa14a8e65e2f8db6",
+          "objectId": "11e61312693e1b05955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e613126888071a955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:46Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:46Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "9ffd90a7255409f3bf725cebf4760829",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e61312627abcb4955d0242ac110002",
+      "typeName": "Folder",
+      "name": "Test Folder 1 1462488046",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "permissions": [
+        {
+          "id": "11e6131268893f9b955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:46Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:46Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "7a4123adfe22f6b79c69113455018731",
+          "objectId": "11e613126888071a955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613126889a13b955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:46Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:46Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "ce853b140d1a952a34a71948d9fd869e",
+          "objectId": "11e613126888071a955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e613126764130b955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:44Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:44Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 1,
+      "changeToken": "06344d3c23b726b3549505c60d97c755",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e6131261f05412955d0242ac110002",
+      "typeName": "File",
+      "name": "fe428b8501bd4b1ab998515d8174e474",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"FOUO\"],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U//FOUO\",\"banner\":\"UNCLASSIFIED//FOUO\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "text",
+      "contentSize": 76,
+      "contentHash": "1a825efc27272102a11cae3c275ba7b4125fa3f020c1bc2326e5c82df7a04a2a",
+      "permissions": [
+        {
+          "id": "11e6131267643c76955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:44Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:44Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "0c38718ad535f065f5ee42a8596be584",
+          "objectId": "11e613126764130b955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613126764653c955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:44Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:44Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "ad6e8de4487391f411106cda84c2d554",
+          "objectId": "11e613126764130b955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e6131267807bbc955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:44Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:44Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 1,
+      "changeToken": "d68a11b2c181368e32152331546ca3e6",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e6131261f05412955d0242ac110002",
+      "typeName": "File",
+      "name": "9bc89e8908274b5f81393c32bff287d8",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"FOUO\"],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U//FOUO\",\"banner\":\"UNCLASSIFIED//FOUO\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "text",
+      "contentSize": 78,
+      "contentHash": "f9b20184a3bcd87ffd4a5ddbe5ff75dcdb90f0e0f3b38da3d2b86053a7ff4fed",
+      "permissions": [
+        {
+          "id": "11e613126780c8d1955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:44Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:44Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "d999b425c7debe07d0816740012da752",
+          "objectId": "11e6131267807bbc955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131267814d8d955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:44Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:44Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "c226c346759d7d6c41f1bf74d61caf25",
+          "objectId": "11e6131267807bbc955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e6131266a0483d955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:43Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:43Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "e6de5f0e50fab0d3778c932da26c32df",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e6131261f05412955d0242ac110002",
+      "typeName": "File",
+      "name": "090ec77cd89346e8bd3bdc8d40f57d3e",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"FOUO\"],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U//FOUO\",\"banner\":\"UNCLASSIFIED//FOUO\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "text",
+      "contentSize": 63,
+      "contentHash": "53fdc510a8290ddd7b40e7d3cb31ef886808c9f67e1e72c3d9f69c1cd30cc910",
+      "permissions": [
+        {
+          "id": "11e6131266a06f1b955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:43Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:43Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "61a0099ba2715f657b8d7fa0c220e892",
+          "objectId": "11e6131266a0483d955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131266a098cb955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:43Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:43Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "3e18e61948e267efbe5e169e673b10bb",
+          "objectId": "11e6131266a0483d955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e6131265f52603955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:42Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:42Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "fc22722806d8b3523aa8ba1f440ab843",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e61312627abcb4955d0242ac110002",
+      "typeName": "Folder",
+      "name": "Test Folder At Root 1462488042",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_c
+48dc
+trls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "permissions": [
+        {
+          "id": "11e6131265f54e86955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "c8921bc89654ef7310452f9cc2de3e72",
+          "objectId": "11e6131265f52603955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131265f57cc1955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "2bba61debca1924a3d5b2f4f5f68e233",
+          "objectId": "11e6131265f52603955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131265f72a5e955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "029bb207f90441048cb58604a9303031",
+          "objectId": "11e6131265f52603955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131265f76dec955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "8686e18d56cd0f818ba48f556befc50a",
+          "objectId": "11e6131265f52603955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131265fe2fa6955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "d61536457d560ba5f33e11a0e2350329",
+          "objectId": "11e6131265f52603955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131265fe6e10955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "c019875d98447954d54a443273e3323e",
+          "objectId": "11e6131265f52603955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613126601c217955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "7d37db29a90b90c99db8a1936524ff7f",
+          "objectId": "11e6131265f52603955d0242ac110002",
+          "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": false,
+          "allowDelete": false,
+          "allowShare": false,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613126601fc0f955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "6f541d9b27f67afd1bc76dd0c3af9ff2",
+          "objectId": "11e6131265f52603955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e61312660229ab955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "9771b716a03f694123f6d385d49c8898",
+          "objectId": "11e6131265f52603955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e613126609791b955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:42Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:42Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "d7ff107846c5f1de909ca0ffdc83654e",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e61312627abcb4955d0242ac110002",
+      "typeName": "Folder",
+      "name": "New Folder",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "permissions": [
+        {
+          "id": "11e613126609a112955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "ad42805e8fcc34f5ca2ab344f1a474e6",
+          "objectId": "11e613126609791b955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613126609c66b955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "e72bd25933ffa10867a1b34ffc94ead2",
+          "objectId": "11e613126609791b955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e613126572bb4f955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:41Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:41Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 1,
+      "changeToken": "bb5e847a77098c7b22fa1ea0bbb61851",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e61312627abcb4955d0242ac110002",
+      "typeName": "Folder",
+      "name": "TestAddFolderWithTSSITK 1462488041",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "permissions": [
+        {
+          "id": "11e613126572f20f955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:41Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:41Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "17b2c636fc9fb20b4a41db33d1920fd7",
+          "objectId": "11e613126572bb4f955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e61312657318c8955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:41Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:41Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "5dc7d4603a7c971d8095ace0984bc827",
+          "objectId": "11e613126572bb4f955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e61312657b9e16955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:41Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:41Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "c5d3a24e54d872b60a49dcea593fc66b",
+          "objectId": "11e613126572bb4f955d0242ac110002",
+          "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": false,
+          "allowRead": true,
+          "allowUpdate": false,
+          "allowDelete": false,
+          "allowShare": false,
+          "explicitShare": true
+        }
+      ]
+    },
+    {
+      "id": "11e6131264bc0b2f955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:40Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:40Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "cca12d9d66fee045153839a67e8ce2b7",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e61312627abcb4955d0242ac110002",
+      "typeName": "Folder",
+      "name": "Test Folder 1 1462488036",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "permissions": [
+        {
+          "id": "11e6131264bc3ec3955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:40Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:40Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "e24b0a09f08fe79b66c38c950bdfe029",
+          "objectId": "11e6131264bc0b2f955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131264bca304955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:40Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:40Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "9fcfb7fb27ae28ca2fe2f90ab6707d66",
+          "objectId": "11e6131264bc0b2f955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131264d3080c955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:40Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:40Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "39933d252aa14084384a81a7150e91d6",
+          "objectId": "11e6131264bc0b2f955d0242ac110002",
+          "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": false,
+          "allowRead": true,
+          "allowUpdate": false,
+          "allowDelete": false,
+          "allowShare": false,
+          "explicitShare": true
+        },
+        {
+          "id": "11e61312656cc7af955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:41Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:41Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "3a8f25b739f4c02c16504ce0eb78ed8c",
+          "objectId": "11e6131264bc0b2f955d0242ac110002",
+          "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": false,
+          "allowRead": true,
+          "allowUpdate": false,
+          "allowDelete": false,
+          "allowShare": false,
+          "explicitShare": true
+        }
+      ]
+    }
+  ]
+}
+0
+
+
+</pre>
+<h2>GetObject Request
+</h2>
+get the file we uploaded.
+<pre>
+GET /services/object-drive/1.0/objects/11e613127c3a6121955d0242ac110002/stream HTTP/1.1
+Host: 192.168.99.100:8080
+User-Agent: Go-http-client/1.1
+Accept-Encoding: gzip
+
+
+</pre>
+Got the raw file.
+
+<pre>
+HTTP/1.1 200 OK
+Content-Length: 1511
+Accept-Ranges: none
+Cache-Control: no-cache
+Connection: keep-alive
+Content-Disposition: inline; filename=gettysburgaddress.txt
+Content-Type: text
+Date: Thu, 05 May 2016 22:41:19 GMT
+Expires: Thu, 05 May 2016 22:41:18 GMT
+Server: nginx/1.8.1
+
+Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.
+
+Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this.
+
+But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not hallow -- this ground. The brave men, living and dead, who struggled here, have consecrated it, far above our poor power to add or detract. The world will little note, nor long remember what we say here, but it can never forget what they did here. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us -- that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion -- that we here highly resolve that these dead shall not have died in vain -- that this nation, under God, shall have a new birth of freedom -- and that government of the people, by the people, for the people, shall not perish from the earth.
+
+Abraham Lincoln
+November 19, 1863
+
+</pre>
+<h2>GetObject Request
+</h2>
+get the file we uploaded.
+<pre>
+GET /services/object-drive/1.0/objects/11e613127bcf9e2d955d0242ac110002/stream HTTP/1.1
+Host: 192.168.99.100:8080
+User-Agent: Go-http-client/1.1
+Accept-Encoding: gzip
+
+
+</pre>
+Got the raw file.
+
+<pre>
+HTTP/1.1 200 OK
+Content-Length: 1511
+Accept-Ranges: none
+Cache-Control: no-cache
+Connection: keep-alive
+Content-Disposition: inline; filename=gettysburgaddress.txt
+Content-Type: text
+Date: Thu, 05 May 2016 22:41:19 GMT
+Expires: Thu, 05 May 2016 22:41:18 GMT
+Server: nginx/1.8.1
+
+Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.
+
+Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this.
+
+But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not hallow -- this ground. The brave men, living and dead, who struggled here, have consecrated it, far above our poor power to add or detract. The world will little note, nor long remember what we say here, but it can never forget what they did here. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us -- that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion -- that we here highly resolve that these dead shall not have died in vain -- that this nation, under God, shall have a new birth of freedom -- and that government of the people, by the people, for the people, shall not perish from the earth.
+
+Abraham Lincoln
+November 19, 1863
+
+</pre>
+<h2>UpdateObject Request
+</h2>
+updating a file.
+<pre>
+POST /services/object-drive/1.0/objects/11e613127bcf9e2d955d0242ac110002/stream HTTP/1.1
+Host: 192.168.99.100:8080
+User-Agent: Go-http-client/1.1
+Content-Length: 2554
+Content-Type: multipart/form-data; boundary=1b0ba1b0ee331e41a4e4b6453ed92db44f13eee06dbf98a82b3dcfd3fe1b
+Accept-Encoding: gzip
+
+--1b0ba1b0ee331e41a4e4b6453ed92db44f13eee06dbf98a82b3dcfd3fe1b
+Content-Disposition: form-data; name="ObjectMetadata"
+Content-Type: application/json
+
+{
+  "changeToken": "379f56e67e285bf8abd1338e3b089355",
+  "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}"
+}
+--1b0ba1b0ee331e41a4e4b6453ed92db44f13eee06dbf98a82b3dcfd3fe1b
+Content-Disposition: form-data; name="filestream"; filename="gettysburgaddress.txt"
+Content-Type: application/octet-stream
+
+Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.
+
+Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this.
+
+But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not hallow -- this ground. The brave men, living and dead, who struggled here, have consecrated it, far above our poor power to add or detract. The world will little note, nor long remember what we say here, but it can never forget what they did here. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us -- that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion -- that we here highly resolve that these dead shall not have died in vain -- that this nation, under God, shall have a new birth of freedom -- and that government of the people, by the people, for the people, shall not perish from the earth.
+
+Abraham Lincoln
+November 19, 1863
+xxxx
+--1b0ba1b0ee331e41a4e4b6453ed92db44f13eee06dbf98a82b3dcfd3fe1b--
+
+</pre>
+The metadata is different after the update
+
+<pre>
+HTTP/1.1 200 OK
+Transfer-Encoding: chunked
+Cache-Control: no-cache
+Connection: keep-alive
+Content-Type: application/json
+Date: Thu, 05 May 2016 22:41:19 GMT
+Expires: Thu, 05 May 2016 22:41:18 GMT
+Server: nginx/1.8.1
+
+d86
+{
+  "id": "11e613127bcf9e2d955d0242ac110002",
+  "createdDate": "2016-05-05T22:41:18Z",
+  "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+  "modifiedDate": "2016-05-05T22:41:19Z",
+  "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+  "changeCount": 1,
+  "changeToken": "5aa8514e4588135c3da22558a9c6383c",
+  "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+  "typeId": "11e6131261f05412955d0242ac110002",
+  "typeName": "File",
+  "name": "gettysburgaddress.txt",
+  "description": "",
+  "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+  "contentType": "text",
+  "contentSize": 1515,
+  "contentHash": "24ef0d5940e843019fc83dc8e8408a1568deceb8b506d7c6e6e64505e25d26e9",
+  "permissions": [
+    {
+      "id": "11e613127bd04005955d0242ac110002",
+      "createdDate": "2016-05-05T22:41:18Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:41:18Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "90a23c439690def42434dfa06bca4c19",
+      "objectId": "11e613127bcf9e2d955d0242ac110002",
+      "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "allowCreate": true,
+      "allowRead": true,
+      "allowUpdate": true,
+      "allowDelete": true,
+      "allowShare": true,
+      "explicitShare": false
+    },
+    {
+      "id": "11e613127bd0680a955d0242ac110002",
+      "createdDate": "2016-05-05T22:41:18Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:41:18Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "3384d0663fa38f213f8f6b7064ca43c7",
+      "objectId": "11e613127bcf9e2d955d0242ac110002",
+      "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "allowCreate": true,
+      "allowRead": true,
+      "allowUpdate": true,
+      "allowDelete": true,
+      "allowShare": true,
+      "explicitShare": false
+    },
+    {
+      "id": "11e613127c01e6f3955d0242ac110002",
+      "createdDate": "2016-05-05T22:41:19Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:41:19Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "711dfcc066a26959876c841bec4074bd",
+      "objectId": "11e613127bcf9e2d955d0242ac110002",
+      "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "allowCreate": true,
+      "allowRead": true,
+      "allowUpdate": true,
+      "allowDelete": true,
+      "allowShare": false,
+      "explicitShare": true
+    }
+  ]
+}
+0
+
+
+</pre>
+<h2>Listing Request
+</h2>
+get the file we uploaded.
+<pre>
+GET /services/object-drive/1.0/objects HTTP/1.1
+Host: 192.168.99.100:8080
+User-Agent: Go-http-client/1.1
+Content-Type: application/json
+Accept-Encoding: gzip
+
+
+</pre>
+Got a listing of available files
+
+<pre>
+HTTP/1.1 200 OK
+Transfer-Encoding: chunked
+Cache-Control: no-cache
+Connection: keep-alive
+Content-Type: application/json
+Date: Thu, 05 May 2016 22:41:19 GMT
+Expires: Thu, 05 May 2016 22:41:18 GMT
+Server: nginx/1.8.1
+
+8000
+{
+  "totalRows": 14,
+  "pageCount": 1,
+  "pageNumber": 1,
+  "pageSize": 20,
+  "pageRows": 14,
+  "objects": [
+    {
+      "id": "11e613127c3a6121955d0242ac110002",
+      "createdDate": "2016-05-05T22:41:19Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:41:19Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "ce0c709b5ebc88fd95187c20a80889ff",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e6131261f05412955d0242ac110002",
+      "typeName": "File",
+      "name": "gettysburgaddress.txt",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "text",
+      "contentSize": 1511,
+      "contentHash": "3e9407273e9c18215d89a573757a3afbc32a2463bafda8bc0c73d09788900cb2",
+      "permissions": [
+        {
+          "id": "11e613127c3b0c98955d0242ac110002",
+          "createdDate": "2016-05-05T22:41:19Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:41:19Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "e345e9be9f11fe18b4d17f600df6551b",
+          "objectId": "11e613127c3a6121955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613127c3b6e93955d0242ac110002",
+          "createdDate": "2016-05-05T22:41:19Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:41:19Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "ea62dd52897a642a2085ed7b8c734555",
+          "objectId": "11e613127c3a6121955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e613127bcf9e2d955d0242ac110002",
+      "createdDate": "2016-05-05T22:41:18Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:41:19Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 1,
+      "changeToken": "5aa8514e4588135c3da22558a9c6383c",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e6131261f05412955d0242ac110002",
+      "typeName": "File",
+      "name": "gettysburgaddress.txt",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "text",
+      "contentSize": 1515,
+      "contentHash": "24ef0d5940e843019fc83dc8e8408a1568deceb8b506d7c6e6e64505e25d26e9",
+      "permissions": [
+        {
+          "id": "11e613127bd04005955d0242ac110002",
+          "createdDate": "2016-05-05T22:41:18Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:41:18Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "90a23c439690def42434dfa06bca4c19",
+          "objectId": "11e613127bcf9e2d955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613127bd0680a955d0242ac110002",
+          "createdDate": "2016-05-05T22:41:18Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:41:18Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "3384d0663fa38f213f8f6b7064ca43c7",
+          "objectId": "11e613127bcf9e2d955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613127c01e6f3955d0242ac110002",
+          "createdDate": "2016-05-05T22:41:19Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:41:19Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "711dfcc066a26959876c841bec4074bd",
+          "objectId": "11e613127bcf9e2d955d0242ac110002",
+          "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": false,
+          "explicitShare": true
+        }
+      ]
+    },
+    {
+      "id": "11e61312696dbcf9955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:48Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:48Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "728df6c5fb8fba91e79ff99969a7248c",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e6131261f05412955d0242ac110002",
+      "typeName": "File",
+      "name": "97df7dec74854e4a8809eb04ae5a1dba",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"FOUO\"],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U//FOUO\",\"banner\":\"UNCLASSIFIED//FOUO\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "text",
+      "contentSize": 10,
+      "contentHash": "84d89877f0d4041efb6bf91a16f0248f2fd573e6af05c19f96bedb9f882f7882",
+      "permissions": [
+        {
+          "id": "11e61312696de4e8955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:48Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:48Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "939a2b64e8e70ca8e0dddf313bfed949",
+          "objectId": "11e61312696dbcf9955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e61312696e6dd4955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:48Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:48Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "9e65b0fc04e4a1ede2dbeb4fc49f10f4",
+          "objectId": "11e61312696dbcf9955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e6131269686581955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:48Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:48Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 1,
+      "changeToken": "41b9e6e9d7392da03c6a063ddaf4cf78",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e61312627abcb4955d0242ac110002",
+      "typeName": "Folder",
+      "name": "Test Folder for Update 1462488048",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "permissions": [
+        {
+          "id": "11e6131269689032955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:48Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:48Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "49d6ccb3c57c2d5fb08d77acb57311b1",
+          "objectId": "11e6131269686581955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613126968b8cb955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:48Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:48Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "26033c00fce7c1667cdca1a89cd0ea4a",
+          "objectId": "11e6131269686581955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e61312695f08e7955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:47Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:48Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 2,
+      "changeToken": "ec2547dfeab31bbe1a2b86abde807fda",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e61312627abcb4955d0242ac110002",
+      "typeName": "Folder",
+      "name": "Test Folder for Update 1462488048",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "permissions": [
+        {
+          "id": "11e61312695f3740955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:47Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:47Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "2de1bc9ab03888f611fee13beec2022b",
+          "objectId": "11e61312695f08e7955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e61312695f636e955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:47Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:47Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "1d6c85897fe22594005205a422410af5",
+          "objectId": "11e61312695f08e7955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131269638173955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:47Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:47Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "d7e1ae84a6c7af4805706574b6acf18d",
+          "objectId": "11e61312695f08e7955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613126963a706955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:47Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:47Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "b685b7e7bd06d6effb3fb67f7500d838",
+          "objectId": "11e61312695f08e7955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e61312693e1b05955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:47Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:47Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "1709e9db7b7490adfd61b4df2b4940de",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e61312627abcb4955d0242ac110002",
+      "typeName": "Folder",
+      "name": "Test Folder 1 1462488047",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "permissions": [
+        {
+          "id": "11e61312693e4253955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:47Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:47Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "82cd09afae882a4b5f7b42f314047d02",
+          "objectId": "11e61312693e1b05955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e61312693e6b2d955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:47Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:47Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "4625ccdc5d64755aaa14a8e65e2f8db6",
+          "objectId": "11e61312693e1b05955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e613126888071a955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:46Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:46Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "9ffd90a7255409f3bf725cebf4760829",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e61312627abcb4955d0242ac110002",
+      "typeName": "Folder",
+      "name": "Test Folder 1 1462488046",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "permissions": [
+        {
+          "id": "11e6131268893f9b955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:46Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:46Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "7a4123adfe22f6b79c69113455018731",
+          "objectId": "11e613126888071a955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613126889a13b955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:46Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:46Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "ce853b140d1a952a34a71948d9fd869e",
+          "objectId": "11e613126888071a955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e6131267807bbc955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:44Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:44Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 1,
+      "changeToken": "d68a11b2c181368e32152331546ca3e6",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e6131261f05412955d0242ac110002",
+      "typeName": "File",
+      "name": "9bc89e8908274b5f81393c32bff287d8",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"FOUO\"],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U//FOUO\",\"banner\":\"UNCLASSIFIED//FOUO\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "text",
+      "contentSize": 78,
+      "contentHash": "f9b20184a3bcd87ffd4a5ddbe5ff75dcdb90f0e0f3b38da3d2b86053a7ff4fed",
+      "permissions": [
+        {
+          "id": "11e613126780c8d1955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:44Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:44Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "d999b425c7debe07d0816740012da752",
+          "objectId": "11e6131267807bbc955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131267814d8d955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:44Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:44Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "c226c346759d7d6c41f1bf74d61caf25",
+          "objectId": "11e6131267807bbc955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e613126764130b955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:44Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:44Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 1,
+      "changeToken": "06344d3c23b726b3549505c60d97c755",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e6131261f05412955d0242ac110002",
+      "typeName": "File",
+      "name": "fe428b8501bd4b1ab998515d8174e474",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"FOUO\"],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U//FOUO\",\"banner\":\"UNCLASSIFIED//FOUO\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "text",
+      "contentSize": 76,
+      "contentHash": "1a825efc27272102a11cae3c275ba7b4125fa3f020c1bc2326e5c82df7a04a2a",
+      "permissions": [
+        {
+          "id": "11e6131267643c76955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:44Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:44Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "0c38718ad535f065f5ee42a8596be584",
+          "objectId": "11e613126764130b955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613126764653c955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:44Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:44Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "ad6e8de4487391f411106cda84c2d554",
+          "objectId": "11e613126764130b955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e6131266a0483d955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:43Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:43Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "e6de5f0e50fab0d3778c932da26c32df",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e6131261f05412955d0242ac110002",
+      "typeName": "File",
+      "name": "090ec77cd89346e8bd3bdc8d40f57d3e",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"FOUO\"],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U//FOUO\",\"banner\":\"UNCLASSIFIED//FOUO\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "text",
+      "contentSize": 63,
+      "contentHash": "53fdc510a8290ddd7b40e7d3cb31ef886808c9f67e1e72c3d9f69c1cd30cc910",
+      "permissions": [
+        {
+          "id": "11e6131266a06f1b955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:43Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:43Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "61a0099ba2715f657b8d7fa0c220e892",
+          "objectId": "11e6131266a0483d955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131266a098cb955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:43Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:43Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "3e18e61948e267efbe5e169e673b10bb",
+          "objectId": "11e6131266a0483d955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e6131265f52603955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:42Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:42Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "fc22722806d8b3523aa8ba1f440ab843",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e61312627abcb4955d0242ac110002",
+      "typeName": "Folder",
+      "name": "Test Folder At Root 1462488042",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_c
+48dc
+trls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "permissions": [
+        {
+          "id": "11e6131265f54e86955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "c8921bc89654ef7310452f9cc2de3e72",
+          "objectId": "11e6131265f52603955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131265f57cc1955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "2bba61debca1924a3d5b2f4f5f68e233",
+          "objectId": "11e6131265f52603955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131265f72a5e955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "029bb207f90441048cb58604a9303031",
+          "objectId": "11e6131265f52603955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131265f76dec955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "8686e18d56cd0f818ba48f556befc50a",
+          "objectId": "11e6131265f52603955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131265fe2fa6955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "d61536457d560ba5f33e11a0e2350329",
+          "objectId": "11e6131265f52603955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131265fe6e10955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "c019875d98447954d54a443273e3323e",
+          "objectId": "11e6131265f52603955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613126601c217955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "7d37db29a90b90c99db8a1936524ff7f",
+          "objectId": "11e6131265f52603955d0242ac110002",
+          "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": false,
+          "allowDelete": false,
+          "allowShare": false,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613126601fc0f955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "6f541d9b27f67afd1bc76dd0c3af9ff2",
+          "objectId": "11e6131265f52603955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e61312660229ab955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "9771b716a03f694123f6d385d49c8898",
+          "objectId": "11e6131265f52603955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e613126609791b955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:42Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:42Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "d7ff107846c5f1de909ca0ffdc83654e",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e61312627abcb4955d0242ac110002",
+      "typeName": "Folder",
+      "name": "New Folder",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "permissions": [
+        {
+          "id": "11e613126609a112955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "ad42805e8fcc34f5ca2ab344f1a474e6",
+          "objectId": "11e613126609791b955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e613126609c66b955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:42Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:42Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "e72bd25933ffa10867a1b34ffc94ead2",
+          "objectId": "11e613126609791b955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e613126572bb4f955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:41Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:41Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 1,
+      "changeToken": "bb5e847a77098c7b22fa1ea0bbb61851",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e61312627abcb4955d0242ac110002",
+      "typeName": "Folder",
+      "name": "TestAddFolderWithTSSITK 1462488041",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "permissions": [
+        {
+          "id": "11e613126572f20f955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:41Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:41Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "17b2c636fc9fb20b4a41db33d1920fd7",
+          "objectId": "11e613126572bb4f955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e61312657318c8955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:41Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:41Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "5dc7d4603a7c971d8095ace0984bc827",
+          "objectId": "11e613126572bb4f955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e61312657b9e16955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:41Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:41Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "c5d3a24e54d872b60a49dcea593fc66b",
+          "objectId": "11e613126572bb4f955d0242ac110002",
+          "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": false,
+          "allowRead": true,
+          "allowUpdate": false,
+          "allowDelete": false,
+          "allowShare": false,
+          "explicitShare": true
+        }
+      ]
+    },
+    {
+      "id": "11e6131264bc0b2f955d0242ac110002",
+      "createdDate": "2016-05-05T22:40:40Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-05T22:40:40Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "cca12d9d66fee045153839a67e8ce2b7",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e61312627abcb4955d0242ac110002",
+      "typeName": "Folder",
+      "name": "Test Folder 1 1462488036",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "permissions": [
+        {
+          "id": "11e6131264bc3ec3955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:40Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:40Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "e24b0a09f08fe79b66c38c950bdfe029",
+          "objectId": "11e6131264bc0b2f955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131264bca304955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:40Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:40Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "9fcfb7fb27ae28ca2fe2f90ab6707d66",
+          "objectId": "11e6131264bc0b2f955d0242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e6131264d3080c955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:40Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:40Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "39933d252aa14084384a81a7150e91d6",
+          "objectId": "11e6131264bc0b2f955d0242ac110002",
+          "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": false,
+          "allowRead": true,
+          "allowUpdate": false,
+          "allowDelete": false,
+          "allowShare": false,
+          "explicitShare": true
+        },
+        {
+          "id": "11e61312656cc7af955d0242ac110002",
+          "createdDate": "2016-05-05T22:40:41Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-05T22:40:41Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "3a8f25b739f4c02c16504ce0eb78ed8c",
+          "objectId": "11e6131264bc0b2f955d0242ac110002",
+          "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": false,
+          "allowRead": true,
+          "allowUpdate": false,
+          "allowDelete": false,
+          "allowShare": false,
+          "explicitShare": true
+        }
+      ]
+    }
+  ]
+}
+0
+
+
+</pre>
+<h2>GetObject Request
+</h2>
+get the file we uploaded.
+<pre>
+GET /services/object-drive/1.0/objects/11e613127c3a6121955d0242ac110002/stream HTTP/1.1
+Host: 192.168.99.100:8080
+User-Agent: Go-http-client/1.1
+Accept-Encoding: gzip
+
+
+</pre>
+Got the raw file.
+
+<pre>
+HTTP/1.1 200 OK
+Content-Length: 1511
+Accept-Ranges: none
+Cache-Control: no-cache
+Connection: keep-alive
+Content-Disposition: inline; filename=gettysburgaddress.txt
+Content-Type: text
+Date: Thu, 05 May 2016 22:41:19 GMT
+Expires: Thu, 05 May 2016 22:41:18 GMT
+Server: nginx/1.8.1
+
+Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.
+
+Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this.
+
+But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not hallow -- this ground. The brave men, living and dead, who struggled here, have consecrated it, far above our poor power to add or detract. The world will little note, nor long remember what we say here, but it can never forget what they did here. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us -- that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion -- that we here highly resolve that these dead shall not have died in vain -- that this nation, under God, shall have a new birth of freedom -- and that government of the people, by the people, for the people, shall not perish from the earth.
+
+Abraham Lincoln
+November 19, 1863
+
+</pre>
+<h2>GetObject Request
+</h2>
+get the file we uploaded.
+<pre>
+GET /services/object-drive/1.0/objects/11e613127bcf9e2d955d0242ac110002/stream HTTP/1.1
+Host: 192.168.99.100:8080
+User-Agent: Go-http-client/1.1
+Accept-Encoding: gzip
+
+
+</pre>
+Got the raw file.
+
+<pre>
+HTTP/1.1 200 OK
+Content-Length: 1515
+Accept-Ranges: none
+Cache-Control: no-cache
+Connection: keep-alive
+Content-Disposition: inline; filename=gettysburgaddress.txt
+Content-Type: text
+Date: Thu, 05 May 2016 22:41:19 GMT
+Expires: Thu, 05 May 2016 22:41:18 GMT
+Server: nginx/1.8.1
+
+Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.
+
+Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this.
+
+But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not hallow -- this ground. The brave men, living and dead, who struggled here, have consecrated it, far above our poor power to add or detract. The world will little note, nor long remember what we say here, but it can never forget what they did here. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us -- that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion -- that we here highly resolve that these dead shall not have died in vain -- that this nation, under God, shall have a new birth of freedom -- and that government of the people, by the people, for the people, shall not perish from the earth.
+
+Abraham Lincoln
+November 19, 1863
+xxxx
+</pre>
