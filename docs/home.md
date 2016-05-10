@@ -31,9 +31,19 @@ A series of microservice operations are exposed on the API gateway for use of Ob
 
 ##  Reference Examples
 
-[Update (from real traffic)](TestUpdate.html)
+Detailed code examples that use the API:
 
-[Share (from real traffic)](TestShare.html)
+[Java Caller (create an object)](static/templates/ObjectDriveSDK.java)
+
+[Javascript Caller (our simple test user interface)](static/templates/listObjects.js)
+
+The http level result of calling APIs that happens inside of SSL:
+
+[Update (from real traffic)](static/templates/TestUpdate.html)
+
+[Share (from real traffic)](static/templates/TestShare.html)
+
+[Testing interface (for development)](ui)
 
 # Group CRUD Object Operations
 These basic operations provide support for creating, retrieving, updating and deleting objects. 

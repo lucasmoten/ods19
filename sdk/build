@@ -1,0 +1,10 @@
+#!/bin/bash
+
+endpoint=https://bedrock.363-283.io/services/object-drive/1.0
+endpoint=https://dockervm:8080/services/object-drive/1.0
+classpath=.:javax.json-1.0.4.jar
+
+javac -classpath $classpath ObjectDriveSDK.java && java -classpath $classpath ObjectDriveSDK \
+  $endpoint \
+  PKCS12 ../defaultcerts/clients/test_0.p12 password \
+  PKCS12 ../defaultcerts/server/truststore.p12 password  #can use JKS
