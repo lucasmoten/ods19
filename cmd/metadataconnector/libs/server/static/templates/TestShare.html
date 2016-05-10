@@ -16,10 +16,10 @@ POST /services/object-drive/1.0/objects HTTP/1.1
 Host: 192.168.99.100:8080
 User-Agent: Go-http-client/1.1
 Content-Length: 2554
-Content-Type: multipart/form-data; boundary=ea41f1aeab02805fb9301e493493f50979f3b53c19df4037831ebfb89ce3
+Content-Type: multipart/form-data; boundary=5237f2ba47b3da53a21c55b21be1cc77de86b5f6e4a3247abf82d553c07b
 Accept-Encoding: gzip
 
---ea41f1aeab02805fb9301e493493f50979f3b53c19df4037831ebfb89ce3
+--5237f2ba47b3da53a21c55b21be1cc77de86b5f6e4a3247abf82d553c07b
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
@@ -29,7 +29,7 @@ Content-Type: application/json
   "description": "",
   "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}"
 }
---ea41f1aeab02805fb9301e493493f50979f3b53c19df4037831ebfb89ce3
+--5237f2ba47b3da53a21c55b21be1cc77de86b5f6e4a3247abf82d553c07b
 Content-Disposition: form-data; name="filestream"; filename="gettysburgaddress.txt"
 Content-Type: application/octet-stream
 
@@ -42,38 +42,41 @@ But, in a larger sense, we can not dedicate -- we can not consecrate -- we can n
 Abraham Lincoln
 November 19, 1863
 
---ea41f1aeab02805fb9301e493493f50979f3b53c19df4037831ebfb89ce3--
+--5237f2ba47b3da53a21c55b21be1cc77de86b5f6e4a3247abf82d553c07b--
 
 </pre>
 json of the uploaded object is returned, as soon as EC2 has it. use it to perform further actions on the file.
 
 <pre>
 HTTP/1.1 200 OK
-Content-Length: 1288
+Content-Length: 1368
 Cache-Control: no-cache
 Connection: keep-alive
 Content-Type: application/json
-Date: Thu, 05 May 2016 22:41:18 GMT
-Expires: Thu, 05 May 2016 22:41:17 GMT
+Date: Tue, 10 May 2016 17:54:24 GMT
+Expires: Tue, 10 May 2016 17:54:23 GMT
 Server: nginx/1.8.1
 
 {
-  "id": "11e613127bcf9e2d955d0242ac110002",
-  "createdDate": "2016-05-05T22:41:18Z",
+  "id": "11e616d83b1bfce2bd110242ac110002",
+  "createdDate": "2016-05-10T17:54:24Z",
   "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-  "modifiedDate": "2016-05-05T22:41:18Z",
+  "modifiedDate": "2016-05-10T17:54:24Z",
   "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
   "changeCount": 0,
-  "changeToken": "379f56e67e285bf8abd1338e3b089355",
+  "changeToken": "1297e4f91839b8cbac329854ac6c22e6",
   "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-  "typeId": "11e6131261f05412955d0242ac110002",
+  "typeId": "11e616d8383fdbb6bd110242ac110002",
   "typeName": "File",
   "name": "gettysburgaddress.txt",
   "description": "",
   "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
   "contentType": "text",
   "contentSize": 1511,
-  "contentHash": "3e9407273e9c18215d89a573757a3afbc32a2463bafda8bc0c73d09788900cb2"
+  "contentHash": "3e9407273e9c18215d89a573757a3afbc32a2463bafda8bc0c73d09788900cb2",
+  "isPDFAvailable": false,
+  "isUSPersonsData": false,
+  "isFOIAExempt": false
 }
 </pre>
 <h2>Upload Request
@@ -84,10 +87,10 @@ POST /services/object-drive/1.0/objects HTTP/1.1
 Host: 192.168.99.100:8080
 User-Agent: Go-http-client/1.1
 Content-Length: 1611
-Content-Type: multipart/form-data; boundary=9b731098520d935c51d8d8bb5b53464daf8271fbf5130e5ff388313ba768
+Content-Type: multipart/form-data; boundary=24c64fc14c4fe02c86e2b3d35dbaee573eed4d03a905dd359634cfba089c
 Accept-Encoding: gzip
 
---9b731098520d935c51d8d8bb5b53464daf8271fbf5130e5ff388313ba768
+--24c64fc14c4fe02c86e2b3d35dbaee573eed4d03a905dd359634cfba089c
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
@@ -97,7 +100,7 @@ Content-Type: application/json
   "description": "",
   "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}"
 }
---9b731098520d935c51d8d8bb5b53464daf8271fbf5130e5ff388313ba768
+--24c64fc14c4fe02c86e2b3d35dbaee573eed4d03a905dd359634cfba089c
 Content-Disposition: form-data; name="filestream"; filename="gilgamesh.txt"
 Content-Type: application/octet-stream
 
@@ -117,38 +120,41 @@ Pay heed to the little one that holds on to thy hand,
 Let thy spouse delight in thy bosom!
 For this is the task of mankind!'
 
---9b731098520d935c51d8d8bb5b53464daf8271fbf5130e5ff388313ba768--
+--24c64fc14c4fe02c86e2b3d35dbaee573eed4d03a905dd359634cfba089c--
 
 </pre>
 json of the uploaded object is returned, as soon as EC2 has it. use it to perform further actions on the file.
 
 <pre>
 HTTP/1.1 200 OK
-Content-Length: 1279
+Content-Length: 1359
 Cache-Control: no-cache
 Connection: keep-alive
 Content-Type: application/json
-Date: Thu, 05 May 2016 22:41:19 GMT
-Expires: Thu, 05 May 2016 22:41:18 GMT
+Date: Tue, 10 May 2016 17:54:25 GMT
+Expires: Tue, 10 May 2016 17:54:24 GMT
 Server: nginx/1.8.1
 
 {
-  "id": "11e613127bfb8601955d0242ac110002",
-  "createdDate": "2016-05-05T22:41:19Z",
+  "id": "11e616d83ba211e5bd110242ac110002",
+  "createdDate": "2016-05-10T17:54:25Z",
   "createdBy": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-  "modifiedDate": "2016-05-05T22:41:19Z",
+  "modifiedDate": "2016-05-10T17:54:25Z",
   "modifiedBy": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
   "changeCount": 0,
-  "changeToken": "b3b49b445c8bf42a351fc43ca86dad08",
+  "changeToken": "f9faaa38e274c82bb85ae65cc97e4301",
   "ownedBy": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-  "typeId": "11e6131261f05412955d0242ac110002",
+  "typeId": "11e616d8383fdbb6bd110242ac110002",
   "typeName": "File",
   "name": "gilgamesh.txt",
   "description": "",
   "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
   "contentType": "text",
   "contentSize": 576,
-  "contentHash": "43e97dd3be56df46c1454334f2c6de9a8f3548fb9f280710b9c2566abeacd08c"
+  "contentHash": "43e97dd3be56df46c1454334f2c6de9a8f3548fb9f280710b9c2566abeacd08c",
+  "isPDFAvailable": false,
+  "isUSPersonsData": false,
+  "isFOIAExempt": false
 }
 </pre>
 <h2>User Listing Request
@@ -170,11 +176,11 @@ Transfer-Encoding: chunked
 Cache-Control: no-cache
 Connection: keep-alive
 Content-Type: application/json
-Date: Thu, 05 May 2016 22:41:19 GMT
-Expires: Thu, 05 May 2016 22:41:18 GMT
+Date: Tue, 10 May 2016 17:54:25 GMT
+Expires: Tue, 10 May 2016 17:54:24 GMT
 Server: nginx/1.8.1
 
-9c4
+880
 [
   {
     "distinguishedName": "CN=[DAOTEST]test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US",
@@ -232,16 +238,6 @@ Server: nginx/1.8.1
     "email": ""
   },
   {
-    "distinguishedName": "CN=test tester05,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-    "displayName": "User:test tester05",
-    "email": ""
-  },
-  {
-    "distinguishedName": "CN=test tester06,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-    "displayName": "User:test tester06",
-    "email": ""
-  },
-  {
     "distinguishedName": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
     "displayName": "User:test tester10",
     "email": ""
@@ -255,7 +251,7 @@ Server: nginx/1.8.1
 </h2>
 Alice shares file to Bob.
 <pre>
-POST /services/object-drive/1.0/shared/11e613127bcf9e2d955d0242ac110002 HTTP/1.1
+POST /services/object-drive/1.0/shared/11e616d83b1bfce2bd110242ac110002 HTTP/1.1
 Host: 192.168.99.100:8080
 User-Agent: Go-http-client/1.1
 Content-Length: 206
@@ -280,19 +276,19 @@ Content-Length: 647
 Cache-Control: no-cache
 Connection: keep-alive
 Content-Type: application/json
-Date: Thu, 05 May 2016 22:41:19 GMT
-Expires: Thu, 05 May 2016 22:41:18 GMT
+Date: Tue, 10 May 2016 17:54:25 GMT
+Expires: Tue, 10 May 2016 17:54:24 GMT
 Server: nginx/1.8.1
 
 {
-  "id": "11e613127c01e6f3955d0242ac110002",
-  "createdDate": "2016-05-05T22:41:19Z",
+  "id": "11e616d83badf1fdbd110242ac110002",
+  "createdDate": "2016-05-10T17:54:25Z",
   "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-  "modifiedDate": "2016-05-05T22:41:19Z",
+  "modifiedDate": "2016-05-10T17:54:25Z",
   "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
   "changeCount": 0,
-  "changeToken": "711dfcc066a26959876c841bec4074bd",
-  "objectId": "11e613127bcf9e2d955d0242ac110002",
+  "changeToken": "784ce68821999d3185d2f2a3675e1cd0",
+  "objectId": "11e616d83b1bfce2bd110242ac110002",
   "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
   "allowCreate": true,
   "allowRead": true,
@@ -322,71 +318,59 @@ Transfer-Encoding: chunked
 Cache-Control: no-cache
 Connection: keep-alive
 Content-Type: application/json
-Date: Thu, 05 May 2016 22:41:19 GMT
-Expires: Thu, 05 May 2016 22:41:18 GMT
+Date: Tue, 10 May 2016 17:54:25 GMT
+Expires: Tue, 10 May 2016 17:54:24 GMT
 Server: nginx/1.8.1
 
-feb
+b89
 {
-  "totalRows": 3,
+  "totalRows": 2,
   "pageCount": 1,
   "pageNumber": 1,
   "pageSize": 20,
-  "pageRows": 3,
+  "pageRows": 2,
   "objects": [
     {
-      "id": "11e613127bcf9e2d955d0242ac110002",
-      "createdDate": "2016-05-05T22:41:18Z",
+      "id": "11e616d83b1bfce2bd110242ac110002",
+      "createdDate": "2016-05-10T17:54:24Z",
       "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-      "modifiedDate": "2016-05-05T22:41:18Z",
+      "modifiedDate": "2016-05-10T17:54:24Z",
       "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
       "changeCount": 0,
-      "changeToken": "379f56e67e285bf8abd1338e3b089355",
+      "changeToken": "1297e4f91839b8cbac329854ac6c22e6",
       "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-      "typeId": "11e6131261f05412955d0242ac110002",
+      "typeId": "11e616d8383fdbb6bd110242ac110002",
       "typeName": "File",
       "name": "gettysburgaddress.txt",
       "description": "",
       "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
       "contentType": "text",
       "contentSize": 1511,
-      "contentHash": "3e9407273e9c18215d89a573757a3afbc32a2463bafda8bc0c73d09788900cb2"
+      "contentHash": "3e9407273e9c18215d89a573757a3afbc32a2463bafda8bc0c73d09788900cb2",
+      "isPDFAvailable": false,
+      "isUSPersonsData": false,
+      "isFOIAExempt": false
     },
     {
-      "id": "11e613126572bb4f955d0242ac110002",
-      "createdDate": "2016-05-05T22:40:41Z",
+      "id": "11e616d83aed9130bd110242ac110002",
+      "createdDate": "2016-05-10T17:54:23Z",
       "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-      "modifiedDate": "2016-05-05T22:40:41Z",
-      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-      "changeCount": 1,
-      "changeToken": "bb5e847a77098c7b22fa1ea0bbb61851",
-      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-      "typeId": "11e61312627abcb4955d0242ac110002",
-      "typeName": "Folder",
-      "name": "TestAddFolderWithTSSITK 1462488041",
-      "description": "",
-      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
-      "contentType": "",
-      "contentSize": 0,
-      "contentHash": ""
-    },
-    {
-      "id": "11e6131264bc0b2f955d0242ac110002",
-      "createdDate": "2016-05-05T22:40:40Z",
-      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-      "modifiedDate": "2016-05-05T22:40:40Z",
+      "modifiedDate": "2016-05-10T17:54:23Z",
       "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
       "changeCount": 0,
-      "changeToken": "cca12d9d66fee045153839a67e8ce2b7",
+      "changeToken": "d666910bc33c7f760c5e940bacd7feb7",
       "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-      "typeId": "11e61312627abcb4955d0242ac110002",
+      "typeId": "11e616d838f87debbd110242ac110002",
       "typeName": "Folder",
-      "name": "Test Folder 1 1462488036",
+      "name": "Test Folder 1 1462902860",
       "description": "",
       "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
       "contentType": "",
       "contentSize": 0,
-      "contentHash": ""
+      "contentHash": "",
+      "isPDFAvailable": false,
+      "isUSPersonsData": false,
+      "isFOIAExempt": false
     }
   ]
 }
@@ -398,7 +382,7 @@ feb
 </h2>
 1 downloads the file.
 <pre>
-GET /services/object-drive/1.0/objects/11e613127bcf9e2d955d0242ac110002/stream HTTP/1.1
+GET /services/object-drive/1.0/objects/11e616d83b1bfce2bd110242ac110002/stream HTTP/1.1
 Host: 192.168.99.100:8080
 User-Agent: Go-http-client/1.1
 Accept-Encoding: gzip
@@ -415,8 +399,8 @@ Cache-Control: no-cache
 Connection: keep-alive
 Content-Disposition: inline; filename=gettysburgaddress.txt
 Content-Type: text
-Date: Thu, 05 May 2016 22:41:19 GMT
-Expires: Thu, 05 May 2016 22:41:18 GMT
+Date: Tue, 10 May 2016 17:54:25 GMT
+Expires: Tue, 10 May 2016 17:54:24 GMT
 Server: nginx/1.8.1
 
 Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.
