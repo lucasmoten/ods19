@@ -23,6 +23,7 @@ var (
 // AppConfiguration is a structure that defines the known configuration format
 // for this application.
 type AppConfiguration struct {
+	AuditorSettings    AuditSvcConfiguration
 	DatabaseConnection DatabaseConnectionConfiguration
 	ServerSettings     ServerSettingsConfiguration
 }

@@ -23,6 +23,9 @@ func MapODObjectToObject(i *models.ODObject) protocol.Object {
 	o.ModifiedBy = i.ModifiedBy
 	o.ChangeCount = i.ChangeCount
 	o.ChangeToken = i.ChangeToken
+
+	// TODO can we rely on the default values of the String property or Int64
+	// property for Null types? Get rid of the else clauses here, in other words.
 	if i.OwnedBy.Valid {
 		o.OwnedBy = i.OwnedBy.String
 	} else {

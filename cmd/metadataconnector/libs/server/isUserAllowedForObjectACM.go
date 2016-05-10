@@ -15,7 +15,6 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 
 	// In standalone, we are ignoring AAC
 	if config.StandaloneMode {
-		log.Printf("!!! We are in standalone mode! There is no AAC check right now.")
 		return true, nil
 	}
 
@@ -33,7 +32,7 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 		return false, errors.New("Object passed in does not have an ACM set")
 	}
 
-	//We currently lack counters for aac check times, so log in order to get timestamps
+	// Performance instrumentation
 	var beganAt = performance.BeganJob(int64(0))
 	if h.Tracker != nil {
 		beganAt = h.Tracker.BeginTime(performance.AACCounter)

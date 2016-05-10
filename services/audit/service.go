@@ -11,6 +11,7 @@ import (
 
 	"decipher.com/object-drive-server/config"
 	auditservice "decipher.com/object-drive-server/services/audit/generated/auditservice_thrift"
+	// TODO remove this alias
 	auditevents "decipher.com/object-drive-server/services/audit/generated/events_thrift"
 	"github.com/samuel/go-thrift/thrift"
 	"github.com/spacemonkeygo/openssl"
@@ -31,6 +32,7 @@ type Auditor interface {
 type BlackHoleAuditor struct {
 	events       chan *auditevents.AuditEvent
 	PayloadQueue *Payloads
+	Logged       []*auditevents.AuditEvent
 }
 
 // ThriftAuditClient sends AuditEvent messages to the Audit Service via Thrift.
@@ -90,29 +92,31 @@ func NewBlackHoleAuditor() *BlackHoleAuditor {
 
 	eventsChan := make(chan *auditevents.AuditEvent, 100)
 	payloads := NewPayloads(DefaultMaxRequestArraySize)
+	logged := make([]*auditevents.AuditEvent, 0)
 
 	return &BlackHoleAuditor{
 		events:       eventsChan,
 		PayloadQueue: payloads,
+		Logged:       logged,
 	}
 }
 
-// Start ...
+// Start a RESTAuditClient.
 func (c *RESTAuditClient) Start() {
 	go handleAuditEvents(c.events, c.PayloadQueue)
 	go c.handleDoRequest()
 }
 
-// Start ...
+// Start a ThriftAuditClient.
 func (c *ThriftAuditClient) Start() {
 	go handleAuditEvents(c.events, c.PayloadQueue)
 	go c.handleDoRequest()
 }
 
-// Start ...
+// Start a BlackHoleAuditor.
 func (c *BlackHoleAuditor) Start() {
-	go handleAuditEvents(c.events, c.PayloadQueue)
-	go blackHole(c.PayloadQueue)
+	// go handleAuditEvents(c.events, c.PayloadQueue)
+	// go c.blackHole(c.PayloadQueue)
 }
 
 // Log satisfies the Auditor interface.
@@ -127,7 +131,18 @@ func (c *ThriftAuditClient) Log(event interface{}) {
 
 // Log satisfies the Auditor interface.
 func (c *BlackHoleAuditor) Log(event interface{}) {
-	put(event, c.events)
+	// Do not log to channel to keep BlackHoleAuditor non-async.
+	e, ok := event.(*auditevents.AuditEvent)
+	if !ok {
+		log.Println("Invalid event passed to Log")
+		return
+	}
+	if e.Type == nil {
+		log.Println("You must provide an event type")
+		return
+	}
+	c.PayloadQueue.Add(*e.Type, e)
+	c.Logged = append(c.Logged, e)
 }
 
 func put(event interface{}, events chan *auditevents.AuditEvent) {
@@ -187,13 +202,14 @@ func getMaxPayloadsFromQueue(key string, payloads *Payloads) []*auditevents.Audi
 }
 
 // blackHole throws away the payload.
-func blackHole(payloads *Payloads) {
+func (c *BlackHoleAuditor) blackHole(payloads *Payloads) {
 	for {
 		for key := range payloads.M {
 			payload := getMaxPayloadsFromQueue(key, payloads)
-			msg := "BlackHoleAuditor: read payload length %v for type %s\n"
+			msg := "BlackHoleAuditor: logged payload length %v for type %s\n"
 			if len(payload) > 0 {
-				log.Printf(msg, len(payload), key)
+				fmt.Printf(msg, len(payload), key)
+				c.Logged = append(c.Logged, payload...)
 			}
 		}
 		time.Sleep(100 * time.Millisecond)

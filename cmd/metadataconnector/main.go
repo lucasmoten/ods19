@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"time"
 
+	"decipher.com/object-drive-server/services/audit"
 	"decipher.com/object-drive-server/services/zookeeper"
 	thrift "github.com/samuel/go-thrift/thrift"
 
@@ -33,6 +34,10 @@ func main() {
 	app, err := makeServer(conf.ServerSettings)
 	if err != nil {
 		log.Fatalf("Error calling makeServer: %v\n", err)
+	}
+
+	if false {
+		configureAuditor(app, conf.AuditorSettings)
 	}
 
 	err = configureDAO(app, conf.DatabaseConnection)
@@ -128,6 +133,19 @@ func getAACClient() (*aac.AacServiceClient, error) {
 	trns := thrift.NewTransport(thrift.NewFramedReadWriteCloser(conn, 0), thrift.BinaryProtocol)
 	client := thrift.NewClient(trns, true)
 	return &aac.AacServiceClient{Client: client}, nil
+}
+
+func configureAuditor(app *server.AppServer, settings config.AuditSvcConfiguration) {
+
+	switch settings.Type {
+	case "blackhole":
+		app.Auditor = audit.NewBlackHoleAuditor()
+	default:
+		// TODO return error instead?
+		app.Auditor = audit.NewBlackHoleAuditor()
+	}
+
+	app.Auditor.Start()
 }
 
 func configureDAO(app *server.AppServer, conf config.DatabaseConnectionConfiguration) error {

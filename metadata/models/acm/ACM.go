@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 )
 
-/*
-ACM is a structure modeled after the rawACM on an object
-*/
+// ACM is a structure modeled after the rawACM on an object.
 type ACM struct {
 	Version                 string            `json:"version"`
 	Classif                 string            `json:"classif"`

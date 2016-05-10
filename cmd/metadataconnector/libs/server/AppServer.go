@@ -9,21 +9,24 @@ import (
 	"golang.org/x/net/context"
 
 	"decipher.com/object-drive-server/cmd/metadataconnector/libs/dao"
+	globalconfig "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/performance"
 	"decipher.com/object-drive-server/services/aac"
 	"decipher.com/object-drive-server/services/audit"
+	"decipher.com/object-drive-server/services/audit/generated/events_thrift"
 	"decipher.com/object-drive-server/services/zookeeper"
 	"decipher.com/object-drive-server/util"
 )
 
 // Constants serve as keys for setting values on a request-scoped Context.
 const (
-	CallerVal        = iota
-	CaptureGroupsVal = iota
-	UserVal          = iota
-	UserSnippetsVal  = iota
+	CallerVal = iota
+	CaptureGroupsVal
+	UserVal
+	UserSnippetsVal
+	AuditEventVal
 )
 
 // AppServer contains definition for the metadata server
@@ -126,18 +129,10 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("Transaction: " + caller.TransactionType + " VALID! UserAuthentication.current: " + caller.UserDistinguishedName + " " + caller.GetMessage())
 
-	// Prepare a Context to propagate to request handlers
 	var ctx context.Context
-
-	// Set the caller as a value on the Context. Background() creates a new context.
-	// Subsequent calls should pass the same ctx instead of initiliazing a new context.
 	ctx = ContextWithCaller(context.Background(), caller)
-
-	// For routing, examine just the path portion of the URL
 	var uri = r.URL.Path
 
-	// Log the request. This is predominately diagnostic, as full logging of the
-	// request with status codes and sizing is done in nginx fronting this service
 	log.Printf("URI:%s %s USER:%s", r.Method, uri, caller.DistinguishedName)
 
 	// The following routes can be handled without calls to the database
@@ -160,25 +155,33 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.StaticFiles.MatchString(uri):
 			h.serveStatic(w, r, h.Routes.StaticFiles, uri)
 			return
-		// API
-		// - documentation
+		// API documentation
 		case h.Routes.APIDocumentation.MatchString(uri):
 			h.docs(ctx, w, r)
 			return
 		}
 	}
 
-	// Retrieve user
 	user, err := h.FetchUser(ctx)
 	if err != nil {
 		sendErrorResponse(&w, 500, nil, "Error loading user")
 		return
 	}
-	// And put on context
+
 	ctx = PutUserOnContext(ctx, *user)
 
-	// TODO: use StripPrefix in handler?
-	// https://golang.org/pkg/net/http/#StripPrefix
+	// Set up AuditEvent components we know so far.
+	var event events_thrift.AuditEvent
+	audit.WithActionInitiator(&event, "DISTINGUISHED_NAME", user.DistinguishedName)
+	audit.WithNTPInfo(&event, "IP_ADDRESS", "2016-03-16T19:14:50.164Z", "1.2.3.4")
+	audit.WithActionMode(&event, "USER_INITIATED")
+	audit.WithActionLocations(&event, "IP_ADDRESS", globalconfig.MyIP)
+	audit.WithActionTargetVersions(&event, "1.0") // TODO global config?
+	audit.WithSessionIds(&event, newSessionID())
+	audit.WithCreator(&event, "APPLICATION", "Object Drive") // TODO global config?
+
+	ctx = ContextWithAuditEvent(ctx, &event)
+
 	switch r.Method {
 	case "GET":
 		switch {
@@ -348,6 +351,21 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// TODO: Before returning, finalize any metrics, capturing time/error codes ?
 }
 
+func newSessionID() string {
+	id, err := util.NewGUID()
+	if err != nil {
+		return "unknown"
+	}
+	return id
+}
+
+// AuditEventFromContext retrives a pointer to an events_thrift.AuditEvent from
+// the Context.
+func AuditEventFromContext(ctx context.Context) (*events_thrift.AuditEvent, bool) {
+	event, ok := ctx.Value(AuditEventVal).(*events_thrift.AuditEvent)
+	return event, ok
+}
+
 // ContextWithCaller returns a new Context object with a Caller value set. The const CallerVal acts
 // as the key that maps to the caller value.
 func ContextWithCaller(ctx context.Context, caller Caller) context.Context {
@@ -382,6 +400,10 @@ func PutUserOnContext(ctx context.Context, user models.ODUser) context.Context {
 func UserFromContext(ctx context.Context) (models.ODUser, bool) {
 	user, ok := ctx.Value(UserVal).(models.ODUser)
 	return user, ok
+}
+
+func ContextWithAuditEvent(ctx context.Context, event *events_thrift.AuditEvent) context.Context {
+	return context.WithValue(ctx, AuditEventVal, event)
 }
 
 // PutUserSnippetsOnContext puts the user snippet object on the context and returns the modified context

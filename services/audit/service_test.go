@@ -13,12 +13,15 @@ import (
 	"testing"
 	"time"
 
+	"decipher.com/object-drive-server/cmd/metadataconnector/libs/mapping"
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/services/audit"
 	"decipher.com/object-drive-server/services/audit/generated/acm_thrift"
 	auditservice "decipher.com/object-drive-server/services/audit/generated/auditservice_thrift"
 	"decipher.com/object-drive-server/services/audit/generated/components_thrift"
-	auditevents "decipher.com/object-drive-server/services/audit/generated/events_thrift"
+	"decipher.com/object-drive-server/services/audit/generated/events_thrift"
+	"decipher.com/object-drive-server/util"
+	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 var thriftAuditClient *audit.ThriftAuditClient
@@ -79,19 +82,6 @@ func TestRESTEventAccess(t *testing.T) {
 
 	t.Skipf("Trying to avoid REST")
 
-	//trustPath := filepath.Join(config.CertsDir, "server", "server.trust.pem")
-	//certPath := filepath.Join(config.CertsDir, "server", "server.cert.pem")
-	//keyPath := filepath.Join(config.CertsDir, "server", "server.key.pem")
-	//opts := &config.OpenSSLDialOptions{}
-	//opts.SetInsecureSkipHostVerification()
-	//host := "10.2.11.46"
-	//port := "10443"
-	//client, err := audit.NewRESTAuditor(trustPath, certPath, keyPath, host, port, opts)
-	//if err != nil {
-	//	t.Errorf("Could not create RESTAuditClient: %v", err)
-	//}
-
-	//	f, _ := ioutil.ReadFile("minimal.json")
 	e := getMinimalEventAccess()
 
 	marshaled, err := json.MarshalIndent(e, "", "  ")
@@ -135,6 +125,40 @@ func TestRESTEventAccess(t *testing.T) {
 
 }
 
+func TestEventAccesses(t *testing.T) {
+	var event events_thrift.AuditEvent
+	_ = event
+
+	preHandlerEventFields(&event, t)
+}
+func TestEventCreates(t *testing.T) {
+}
+func TestEventDeletes(t *testing.T)   {}
+func TestEventModifies(t *testing.T)  {}
+func TestEventSearchQry(t *testing.T) {}
+
+func preHandlerEventFields(event *events_thrift.AuditEvent, t *testing.T) {
+	myIP := "192.168.11.100"
+
+	rawAcm := testhelpers.ValidACMTopSecretSITK
+
+	convertedAcm, err := mapping.RawAcmToThriftAcm(rawAcm)
+	if err != nil {
+		t.Errorf("preHandlerEventFields failed: could not convert rawAcm: %v\n", err)
+	}
+
+	audit.WithActionInitiator(
+		event, "DISTINGUISHED_NAME", "CN=Holmes Jonathan,OU=People,OU=Bedrock,OU=Six 3 Systems,O=U.S. Government,C=US")
+	audit.WithNTPInfo(event, "IP_ADDRESS", "2016-03-16T19:14:50.164Z", "1.2.3.4")
+	audit.WithActionMode(event, "USER_INITIATED")
+	audit.WithActionLocations(event, "IP_ADDRESS", myIP)
+	audit.WithActionTarget(event, "IP_ADDRESS", myIP, convertedAcm)
+	audit.WithActionTargetVersions(event, "1.0")
+	audit.WithSessionIds(event, newSessionID())
+	audit.WithCreator(event, "APPLICATION", "Object Drive")
+
+}
+
 func TestEventAccess(t *testing.T) {
 
 	if !*useVPN {
@@ -142,7 +166,7 @@ func TestEventAccess(t *testing.T) {
 	}
 
 	e := getMinimalEventAccess()
-	data := []*auditevents.AuditEvent{e}
+	data := []*events_thrift.AuditEvent{e}
 
 	for _, e := range data {
 		thriftAuditClient.Log(e)
@@ -163,8 +187,8 @@ func TestBlackHoleAuditor(t *testing.T) {
 
 }
 
-func getMinimalEventAccess() *auditevents.AuditEvent {
-	e := &auditevents.AuditEvent{}
+func getMinimalEventAccess() *events_thrift.AuditEvent {
+	e := &events_thrift.AuditEvent{}
 	e.Type = stringPtr("EventAccess")
 	e.Action = stringPtr("ACCESS")
 	e.ActionInitiator = &components_thrift.ActionInitiator{
@@ -269,6 +293,16 @@ func getMinimalEventAccess() *auditevents.AuditEvent {
 	return e
 }
 
+// "A little copying is better than the wrong abstraction." - Rob Pike
+
 func stringPtr(s string) *string { return &s }
 func int32Ptr(i int32) *int32    { return &i }
 func boolPtr(b bool) *bool       { return &b }
+
+func newSessionID() string {
+	id, err := util.NewGUID()
+	if err != nil {
+		return "unknown"
+	}
+	return id
+}

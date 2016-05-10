@@ -1,8 +1,8 @@
 {
   "AuditSvc": {
-      "type": "blackhole",
-      "host": "",
-      "port": ""
+      "Type": "blackhole",
+      "Host": "",
+      "Port": ""
   },
   "DatabaseConnection": {
     "Driver": "mysql"
