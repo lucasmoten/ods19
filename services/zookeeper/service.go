@@ -102,18 +102,32 @@ func RegisterApplication(uri, zkAddress string) (ZKState, error) {
 
 	//Bundle up zookeeper context into a single object
 	zkURI := zkRoot + uri
+
+	//Setup the environment for our version of the application
+	parts := strings.Split(zkURI, "/")
+	// defaults (aligned with the defaults for the environment variables)
+	organization := "cte"
+	appType := "service"
+	appName := "object-drive"
+	appVersion := "1.0"
+	// overrides from URI
+	if len(parts) != 5 {
+		log.Printf("WARNING: Zookeeper URI (%s) comprised of OD_ZK_ROOT (%s) and OD_ZK_BASEPATH (%s) may not be set correctly.", zkURI, zkRoot, uri)
+	}
+	organization = assignPart(organization, parts, 1, "organization")
+	appType = assignPart(appType, parts, 2, "app type")
+	appName = assignPart(appName, parts, 3, "app name")
+	appVersion = assignPart(appVersion, parts, 4, "version")
+
+	// Rebuild zkURI
+	zkURI = "/" + organization + "/" + appType + "/" + appName + "/" + appVersion
+	log.Printf("Zookeeper URI set to %s", zkURI)
+
 	zkState := ZKState{
 		ZKAddress: zkAddress,
 		Conn:      conn,
 		Protocols: zkURI,
 	}
-
-	//Setup the environment for our version of the application
-	parts := strings.Split(zkURI, "/")
-	organization := parts[1]
-	appType := parts[2]
-	appName := parts[3]
-	appVersion := parts[4]
 
 	//Create uncreated nodes, and log modifications we made
 	//(it might not be right if we needed to make cte or service)
@@ -135,6 +149,19 @@ func RegisterApplication(uri, zkAddress string) (ZKState, error) {
 
 	//return the closer, and zookeeper is running
 	return zkState, nil
+}
+
+func assignPart(defaultValue string, parts []string, idx int, partName string) string {
+	if len(parts) > idx {
+		ret := strings.TrimSpace(parts[idx])
+		if len(ret) > 0 {
+			return ret
+		}
+		log.Printf("WARNING: Zookeeper URI part for %s is empty. Using default value: %s", partName, defaultValue)
+		return defaultValue
+	}
+	log.Printf("WARNING: Zookeeper URI not long enough to include %s. Expected format is /organization/appType/appName/appVersion. Using default value: %s", partName, defaultValue)
+	return defaultValue
 }
 
 // ServiceAnnouncement ensures that a node for this protocol exists
