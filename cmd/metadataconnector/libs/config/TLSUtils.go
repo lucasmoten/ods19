@@ -217,25 +217,25 @@ func addPEMFileToPool(PEMfile string, certPool *x509.CertPool) {
 func GetDistinguishedName(theCert *x509.Certificate) string {
 	result := ""
 	if len(theCert.Subject.CommonName) > 0 {
-		result += ",CN=" + theCert.Subject.CommonName
+		result += ",cn=" + theCert.Subject.CommonName
 	}
 	for l := len(theCert.Subject.Locality); l > 0; l-- {
-		result += ",L=" + theCert.Subject.Locality[l-1]
+		result += ",l=" + theCert.Subject.Locality[l-1]
 	}
 	for p := len(theCert.Subject.Province); p > 0; p-- {
-		result += ",ST=" + theCert.Subject.Province[p-1]
+		result += ",st=" + theCert.Subject.Province[p-1]
 	}
 	for ou := len(theCert.Subject.OrganizationalUnit); ou > 0; ou-- {
-		result += ",OU=" + theCert.Subject.OrganizationalUnit[ou-1]
+		result += ",ou=" + theCert.Subject.OrganizationalUnit[ou-1]
 	}
 	for o := len(theCert.Subject.Organization); o > 0; o-- {
-		result += ",O=" + theCert.Subject.Organization[o-1]
+		result += ",o=" + theCert.Subject.Organization[o-1]
 	}
 	for c := len(theCert.Subject.Country); c > 0; c-- {
-		result += ",C=" + theCert.Subject.Country[c-1]
+		result += ",c=" + theCert.Subject.Country[c-1]
 	}
 	for street := len(theCert.Subject.StreetAddress); street > 0; street-- {
-		result += ",STREET=" + theCert.Subject.StreetAddress[street-1]
+		result += ",street=" + theCert.Subject.StreetAddress[street-1]
 	}
 	if len(result) > 0 {
 		result = result[1:len(result)]
@@ -246,26 +246,56 @@ func GetDistinguishedName(theCert *x509.Certificate) string {
 
 // GetNormalizedDistinguishedName returns a normalized distinguished name that
 // reverses the apache format and comma delimits.
+// Logic rewritten to be modeled after https://gitlab.363-283.io/cte/cte-service-framework/blob/develop/core/src/main/scala/gov/ic/cte/server/security/DNHelper.scala
 func GetNormalizedDistinguishedName(distinguishedName string) string {
-	if strings.Index(distinguishedName, "/") == -1 {
-		// assume already in appropriate format
+	if len(distinguishedName) == 0 {
 		return distinguishedName
 	}
 
-	// Apache format...
-	//  in:  /C=US/O=U.S. Government/OU=chimera/OU=DAE/OU=People/CN=test tester10
-	// out: CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US
-	dnParts := strings.Split(distinguishedName, "/")
-	result := ""
-	for p := len(dnParts); p > 0; p-- {
-		if len(dnParts[p-1]) > 0 {
-			result += "," + dnParts[p-1]
+	replaced := strings.Replace(distinguishedName, "/", ",", -1)
+	splitOut := strings.Split(replaced, ",")
+	validCount := getCount(splitOut)
+	trimmed := trim(splitOut, validCount)
+
+	if len(trimmed) == 0 {
+		return ""
+	}
+
+	// Don't have to worry about case since 'trim' toLowers as it trims
+	tmp := ""
+	if strings.HasPrefix(trimmed[0], "cn") {
+		tmp = strings.Join(trimmed, ",")
+	} else {
+		var rtmp []string
+		for r := range trimmed {
+			rtmp = append(rtmp, trimmed[len(trimmed)-1-r])
+		}
+		tmp = strings.Join(rtmp, ",")
+	}
+	return tmp
+
+}
+
+func trim(v []string, max int) []string {
+	if max > 0 {
+		var tmp []string
+		for _, t := range v {
+			if len(strings.TrimSpace(t)) > 0 {
+				tmp = append(tmp, strings.ToLower(strings.TrimSpace(t)))
+			}
+		}
+		return tmp
+	}
+	return v
+}
+func getCount(v []string) int {
+	count := 0
+	for _, t := range v {
+		if len(strings.TrimSpace(t)) > 0 {
+			count++
 		}
 	}
-	if len(result) > 0 {
-		result = result[1:len(result)]
-	}
-	return result
+	return count
 }
 
 // GetCommonName returns the CN value part of a passed in distinguished name
@@ -275,7 +305,7 @@ func GetCommonName(DistinguishedName string) string {
 	}
 	dnParts := strings.Split(DistinguishedName, ",")
 	for _, s := range dnParts {
-		if strings.Index(strings.ToUpper(s), "CN=") == 0 {
+		if strings.Index(strings.ToLower(s), "cn=") == 0 {
 			return s[3:len(s)]
 		}
 	}

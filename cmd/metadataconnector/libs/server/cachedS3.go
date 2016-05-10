@@ -124,11 +124,11 @@ func NewS3DrainProvider(name string) DrainProvider {
 		}
 	}
 	walkSleep := time.Duration(30 * time.Second)
-	walkSleepSuggested := oduconfig.GetEnvOrDefault("OD_CACHE_WALKSLEEP", "30000")
+	walkSleepSuggested := oduconfig.GetEnvOrDefault("OD_CACHE_WALKSLEEP", "30")
 	if len(walkSleepSuggested) > 0 {
 		walkSleepInt, err := strconv.ParseInt(walkSleepSuggested, 10, 64)
 		if err != nil {
-			log.Printf("!! Unable to set walkSleep to %s:%v", walkSleepInt, err)
+			log.Printf("!! Unable to set walkSleep to %d:%v", walkSleepInt, err)
 		}
 		walkSleep = time.Duration(time.Duration(walkSleepInt) * time.Second)
 	}

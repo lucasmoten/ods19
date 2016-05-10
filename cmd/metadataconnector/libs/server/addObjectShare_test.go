@@ -107,7 +107,7 @@ func TestAddObjectShare(t *testing.T) {
 	// Add share as clientid1 for clientid2 to folder1 without propagation
 	shareuri := host + cfg.NginxRootURL + "/shared/" + folder1.ID
 	shareSetting := protocol.ObjectGrant{}
-	shareSetting.Grantee = "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
+	shareSetting.Grantee = fakeDN1
 	shareSetting.Read = true
 	jsonBody, err = json.Marshal(shareSetting)
 	if err != nil {
@@ -166,7 +166,7 @@ func TestAddObjectShare(t *testing.T) {
 	// Add share as clientid1 for clientid2 to folder1 with propagation
 	shareuri = host + cfg.NginxRootURL + "/shared/" + folder1.ID
 	shareSetting = protocol.ObjectGrant{}
-	shareSetting.Grantee = "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
+	shareSetting.Grantee = fakeDN1
 	shareSetting.Read = true
 	shareSetting.PropagateToChildren = true
 	jsonBody, err = json.Marshal(shareSetting)
@@ -258,7 +258,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	// Create share granting read access to testperson01
 	shareuri := host + cfg.NginxRootURL + "/shared/" + createdFolder.ID
 	shareSetting := protocol.ObjectGrant{}
-	shareSetting.Grantee = "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
+	shareSetting.Grantee = fakeDN1
 	shareSetting.Read = true
 	jsonBody, err := json.Marshal(shareSetting)
 	if err != nil {

@@ -207,15 +207,16 @@ func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, err
 	snippetCache := server.NewSnippetCache()
 
 	httpHandler := server.AppServer{
-		Port:          conf.ListenPort,
-		Bind:          conf.ListenBind,
-		Addr:          conf.ListenBind + ":" + conf.ListenPort,
-		Tracker:       performance.NewJobReporters(1024),
-		ServicePrefix: oduconfig.RootURLRegex,
-		TemplateCache: templates,
-		StaticDir:     staticPath,
-		Users:         userCache,
-		Snippets:      snippetCache,
+		Port:                      conf.ListenPort,
+		Bind:                      conf.ListenBind,
+		Addr:                      conf.ListenBind + ":" + conf.ListenPort,
+		Tracker:                   performance.NewJobReporters(1024),
+		ServicePrefix:             oduconfig.RootURLRegex,
+		TemplateCache:             templates,
+		StaticDir:                 staticPath,
+		Users:                     userCache,
+		Snippets:                  snippetCache,
+		AclImpersonationWhitelist: conf.AclImpersonationWhitelist,
 	}
 
 	httpHandler.InitRegex()

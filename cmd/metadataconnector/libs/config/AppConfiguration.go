@@ -48,17 +48,19 @@ type DatabaseConnectionConfiguration struct {
 // ServerSettingsConfiguration is a structure defining the attributes needed for
 // setting up the server listener
 type ServerSettingsConfiguration struct {
-	ListenPort        string
-	ListenBind        string
-	UseTLS            bool
-	CAPath            string
-	ServerCertChain   string
-	ServerKey         string
-	RequireClientCert bool
-	CipherSuites      []string
-	MinimumVersion    string
+	ListenPort                string
+	ListenBind                string
+	UseTLS                    bool
+	CAPath                    string
+	ServerCertChain           string
+	ServerKey                 string
+	RequireClientCert         bool
+	CipherSuites              []string
+	MinimumVersion            string
+	AclImpersonationWhitelist []string
 }
 
+// AuditSvcConfiguration defines the attributes needed for connecting to the audit service
 type AuditSvcConfiguration struct {
 	Type string
 	Port string
@@ -110,6 +112,11 @@ func NewAppConfiguration() AppConfiguration {
 func displayFormatForConfigFile() {
 	samplefile := `
 	{
+      "AuditSvc": {
+        "type": "blackhole",
+        "host": "",
+        "port": ""
+      },        
 	  "DatabaseConnection": {
 	    "Driver": "mysql"
 	    ,"Username": "username"
@@ -151,6 +158,9 @@ func displayFormatForConfigFile() {
 	  		,"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
 	    ]
 	    ,"MinimumVersion": "1.2"
+        ,"AclImpersonationWhitelist": [
+            "cn=server allowed to impersonate,ou=org1,ou=org2,o=organization,c=us"
+        ]
 	  }
 	}
 	`

@@ -14,8 +14,8 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 		t.Skip()
 	}
 
-	user1 := models.ODUser{DistinguishedName: usernames[1]} // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
-	user2 := models.ODUser{DistinguishedName: usernames[2]} // "CN=test tester02, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	user1 := models.ODUser{DistinguishedName: usernames[1]}
+	user2 := models.ODUser{DistinguishedName: usernames[2]}
 	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: 1}
 	// Get root Objects
 	resultset, err := d.GetRootObjectsByUser(user1, pagingRequest)

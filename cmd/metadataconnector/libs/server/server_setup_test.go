@@ -23,8 +23,12 @@ import (
 	"decipher.com/object-drive-server/util/testhelpers"
 )
 
-var fakeDN1 = `CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US`
-var fakeDN2 = `CN=test tester02, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US`
+//var fakeDN1 = `CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US`
+//var fakeDN2 = `CN=test tester02, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US`
+//var fakeDN1 = `cn=test tester01,o=u.s. government,ou=chimera,ou=dae,ou=people,c=us`
+//var fakeDN2 = `cn=test tester02,o=u.s. government,ou=chimera,ou=dae,ou=people,c=us`
+var fakeDN1 = `cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us`
+var fakeDN2 = `cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us`
 
 var host string
 var clients []*ClientIdentity
@@ -32,7 +36,7 @@ var httpclients []*http.Client
 
 func init() {
 	host = fmt.Sprintf("https://%s:%s", cfg.DockerVM, cfg.Port)
-	log.Println("Using this host addrress for server_test:", host)
+	log.Println("Using this host address for server_test:", host)
 	generatePopulation()
 
 }
@@ -46,7 +50,7 @@ func generatePopulation() {
 func populateClients(population int) {
 	clients = make([]*ClientIdentity, population)
 	httpclients = make([]*http.Client, population)
-	faviconReq, _ := http.NewRequest("GET", host+cfg.NginxRootURL+"/favicon.ico", nil)
+	usersReq, _ := http.NewRequest("GET", host+cfg.NginxRootURL+"/users", nil)
 	for i := 0; i < len(clients); i++ {
 		client, err := getClientIdentity(i, "test_"+strconv.Itoa(i))
 		clients[i] = client
@@ -58,9 +62,9 @@ func populateClients(population int) {
 
 		transport := &http.Transport{TLSClientConfig: clients[i].Config}
 		httpclients[i] = &http.Client{Transport: transport}
-		// Fire-and-Forget call to favicon.ico which will force creation of the
+		// Fire-and-Forget call to /users which will force creation of the
 		// user in the database
-		_, err = httpclients[i].Do(faviconReq)
+		_, err = httpclients[i].Do(usersReq)
 		if err != nil {
 			log.Printf("Error in populateClients: %v/n", err)
 		}

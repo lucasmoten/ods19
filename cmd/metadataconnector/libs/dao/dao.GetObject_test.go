@@ -14,7 +14,7 @@ func TestDAOGetObject(t *testing.T) {
 	}
 	var obj models.ODObject
 	obj.Name = "Test Object for GetObject"
-	obj.CreatedBy = usernames[1] // "CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
+	obj.CreatedBy = usernames[1]
 	obj.TypeName.String = "File"
 	obj.TypeName.Valid = true
 	permissions := make([]models.ODObjectPermission, 1)
