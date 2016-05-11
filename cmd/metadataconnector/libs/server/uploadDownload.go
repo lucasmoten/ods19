@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"mime/multipart"
-	"os"
 	"path"
 	"strings"
 
@@ -188,15 +187,16 @@ func (h AppServer) beginUploadTimed(
 	// lookup when the client may have given us bad information in the lookup.  In these cases,
 	// it may be ok to use 400 error codes until proven otherwise.
 	//
-	rName := obj.ContentConnector.String
+	rName := FileId(obj.ContentConnector.String)
 	iv := obj.EncryptIV
 	fileKey := grant.EncryptKey
+	d := h.DrainProvider
 
 	//Make up a random name for our file - don't deal with versioning yet
-	outFileUploading := h.DrainProvider.CacheLocation() + "/" + rName + ".uploading"
-	outFileUploaded := h.DrainProvider.CacheLocation() + "/" + rName + ".uploaded"
+	outFileUploading := d.Resolve(NewFileName(rName, ".uploading"))
+	outFileUploaded := d.Resolve(NewFileName(rName, ".uploaded"))
 
-	outFile, err := os.Create(outFileUploading)
+	outFile, err := d.Files().Create(outFileUploading)
 	if err != nil {
 		msg := fmt.Sprintf("Unable to open ciphertext uploading file %s", outFileUploading)
 		return nil, NewAppError(500, err, msg), err
@@ -210,7 +210,7 @@ func (h AppServer) beginUploadTimed(
 		msg := fmt.Sprintf("Unable to write ciphertext %s", outFileUploading)
 		//If something went wrong, just get rid of this file.  We only have part of it,
 		// so we can't retry anyway.
-		os.Remove(outFileUploading)
+		d.Files().Remove(outFileUploading)
 		return nil, NewAppError(400, err, msg), err
 	}
 
@@ -218,11 +218,11 @@ func (h AppServer) beginUploadTimed(
 	utils.ApplyPassphrase(h.MasterKey+caller.DistinguishedName, fileKey)
 
 	//Rename it to indicate that it can be moved to S3
-	err = os.Rename(outFileUploading, outFileUploaded)
+	err = d.Files().Rename(outFileUploading, outFileUploaded)
 	if err != nil {
 		msg := fmt.Sprintf("Unable to rename uploaded file %s", outFileUploading)
 		// I can't see why this would happen, but this file is toast if this happens.
-		os.Remove(outFileUploading)
+		d.Files().Remove(outFileUploading)
 		return nil, NewAppError(500, err, msg), err
 	}
 	log.Printf("rename:%s -> %s", outFileUploading, outFileUploaded)
@@ -240,7 +240,7 @@ func (h AppServer) beginUploadTimed(
 //I think that's reasonable to be measuring "goodput" this way.
 func (h AppServer) cacheToDrain(
 	bucket *string,
-	rName string,
+	rName FileId,
 	size int64,
 	tries int,
 ) error {
@@ -252,11 +252,12 @@ func (h AppServer) cacheToDrain(
 
 func (h AppServer) cacheToDrainAttempt(
 	bucket *string,
-	rName string,
+	rName FileId,
 	size int64,
 	tries int,
 ) error {
-	err := h.DrainProvider.CacheToDrain(bucket, rName, size)
+	d := h.DrainProvider
+	err := d.CacheToDrain(bucket, rName, size)
 	tries = tries - 1
 	if err != nil {
 		//The problem is that we get things like transient DNS errors,
@@ -269,7 +270,8 @@ func (h AppServer) cacheToDrainAttempt(
 		} else {
 			log.Printf("unable to drain file.  Giving up and deleting it:%v", err)
 			//If we give up, we must delete the file
-			os.Remove(h.DrainProvider.CacheLocation() + "/" + rName + ".uploaded")
+			uploadedFile := d.Resolve(NewFileName(rName, ".uploaded"))
+			d.Files().Remove(uploadedFile)
 		}
 	}
 	return err

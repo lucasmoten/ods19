@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"golang.org/x/net/context"
@@ -95,7 +96,7 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	//XXX watch for very large number of permissions on a file!
 	for _, v := range object.Permissions {
 		permission = &v
-		if permission.AllowRead && permission.Grantee == caller.DistinguishedName {
+		if permission.AllowRead && strings.ToLower(permission.Grantee) == caller.DistinguishedName {
 			fileKey = permission.EncryptKey
 			//Unscramble the fileKey with the masterkey - will need it once more on retrieve
 			utils.ApplyPassphrase(h.MasterKey+caller.DistinguishedName, fileKey)
@@ -104,7 +105,7 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 		}
 	}
 	if len(fileKey) == 0 {
-		return NewAppError(403, nil, "Unauthorized")
+		return NewAppError(403, fmt.Errorf("no applicable permission found"), "Unauthorized")
 	}
 
 	// Check AAC to compare user clearance to  metadata Classifications
@@ -137,7 +138,7 @@ func drainToCache(
 	dp DrainProvider,
 	t *performance.JobReporters,
 	bucket *string,
-	theFile string,
+	theFile FileId,
 	length int64,
 ) (*AppError, error) {
 	beganAt := t.BeginTime(performance.S3DrainFrom)
@@ -156,7 +157,7 @@ func drainToCache(
 // make a better effort than to throw an exception because it is not cached in our local cache.
 // if another routine is caching, then wait for that to finish.
 // if nobody is caching it, then we start that process.
-func handleCacheMiss(dp DrainProvider, t *performance.JobReporters, object *models.ODObject, cipherFilePathCached string) (*os.File, *AppError) {
+func handleCacheMiss(dp DrainProvider, t *performance.JobReporters, object *models.ODObject, cipherFilePathCached FileNameCached) (*os.File, *AppError) {
 	var err error
 
 	// We have no choice but to recache and wait.  We can wait for:
@@ -188,12 +189,13 @@ func handleCacheMiss(dp DrainProvider, t *performance.JobReporters, object *mode
 		// a .caching file should NOT exist if there is not a goroutine actually caching the file.
 		// This is why we delete .caching files on startup, and when caching files, we delete .caching
 		// file if the goroutine fails.
-		cachingPath := dp.CacheLocation() + "/" + object.ContentConnector.String + ".caching"
-		cachedPath := dp.CacheLocation() + "/" + object.ContentConnector.String + ".cached"
+		rName := FileId(object.ContentConnector.String)
+		cachingPath := dp.Resolve(NewFileName(rName, ".caching"))
+		cachedPath := dp.Resolve(NewFileName(rName, ".cached"))
 		var herr *AppError
-		if _, err := os.Stat(cachingPath); os.IsNotExist(err) {
+		if _, err := dp.Files().Stat(cachingPath); os.IsNotExist(err) {
 			//Start caching the file because this is not happening already.
-			herr, err = drainToCache(dp, t, bucket, object.ContentConnector.String, object.ContentSize.Int64)
+			herr, err = drainToCache(dp, t, bucket, FileId(rName), object.ContentSize.Int64)
 			if err != nil || herr != nil {
 				//We are not in the http thread.  log this problem though
 				log.Printf("!!! unable to drain to cache:%v %v", herr, err)
@@ -204,7 +206,7 @@ func handleCacheMiss(dp DrainProvider, t *performance.JobReporters, object *mode
 			sleepTime := time.Duration(1 * time.Second)
 			waitMax := time.Duration(30 * time.Second)
 			for {
-				if _, err := os.Stat(cachedPath); os.IsNotExist(err) {
+				if _, err := dp.Files().Stat(cachedPath); os.IsNotExist(err) {
 					time.Sleep(sleepTime)
 					if sleepTime < waitMax {
 						sleepTime *= 2
@@ -233,7 +235,7 @@ func handleCacheMiss(dp DrainProvider, t *performance.JobReporters, object *mode
 
 	// The file should now exist
 	var cipherFile *os.File
-	if cipherFile, err = os.Open(cipherFilePathCached); err != nil {
+	if cipherFile, err = dp.Files().Open(cipherFilePathCached); err != nil {
 		return nil, NewAppError(500, err, "Error opening recently cached file")
 	}
 
@@ -241,17 +243,17 @@ func handleCacheMiss(dp DrainProvider, t *performance.JobReporters, object *mode
 }
 
 // We would like to have a .cached file, but an .uploaded file will do.
-func searchForCachedOrUploadedFile(cipherFilePathCached, cipherFilePathUploaded string) (*os.File, *AppError) {
+func searchForCachedOrUploadedFile(d DrainProvider, cipherFilePathCached, cipherFilePathUploaded FileNameCached) (*os.File, *AppError) {
 	var cipherFile *os.File
 	var err error
 	//Try to find the cached file
-	if cipherFile, err = os.Open(cipherFilePathCached); err != nil {
+	if cipherFile, err = d.Files().Open(cipherFilePathCached); err != nil {
 		if os.IsNotExist(err) {
 			//Try the file being uploaded into S3
-			if cipherFile, err = os.Open(cipherFilePathUploaded); err != nil {
+			if cipherFile, err = d.Files().Open(cipherFilePathUploaded); err != nil {
 				if os.IsNotExist(err) {
 					//Maybe it's cached now?
-					if cipherFile, err = os.Open(cipherFilePathCached); err != nil {
+					if cipherFile, err = d.Files().Open(cipherFilePathCached); err != nil {
 						if os.IsNotExist(err) {
 							//File is really not cached or uploaded.
 							//If it's caching, it's partial anyway
@@ -289,11 +291,12 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 
 	//Fall back on the uploaded copy for download if we need to
 	var cipherFile *os.File
-	cipherFileNameBasePath := h.DrainProvider.CacheLocation() + "/" + object.ContentConnector.String
-	cipherFilePathCached := cipherFileNameBasePath + ".cached"
-	cipherFilePathUploaded := cipherFileNameBasePath + ".uploaded"
+	d := h.DrainProvider
+	rName := FileId(object.ContentConnector.String)
+	cipherFilePathCached := d.Resolve(NewFileName(rName, ".cached"))
+	cipherFilePathUploaded := d.Resolve(NewFileName(rName, ".uploaded"))
 
-	cipherFile, herr = searchForCachedOrUploadedFile(cipherFilePathCached, cipherFilePathUploaded)
+	cipherFile, herr = searchForCachedOrUploadedFile(h.DrainProvider, cipherFilePathCached, cipherFilePathUploaded)
 	if herr != nil {
 		return herr
 	}
@@ -309,7 +312,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	//Update the timestamps to note the last time it was used
 	// This is done here, as well as successful end just in case of failures midstream.
 	tm := time.Now()
-	os.Chtimes(cipherFilePathCached, tm, tm)
+	d.Files().Chtimes(cipherFilePathCached, tm, tm)
 
 	//We have the file and it's open.  Be sure to close it.
 	defer cipherFile.Close()
@@ -340,7 +343,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 
 	//Update the timestamps to note the last time it was used
 	tm = time.Now()
-	os.Chtimes(cipherFilePathCached, tm, tm)
+	d.Files().Chtimes(cipherFilePathCached, tm, tm)
 
 	return nil
 }
