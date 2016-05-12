@@ -125,7 +125,7 @@ Hooray for automated tests!
 
 # Other Configuration
 
-Binaries for the main server are built under **/cmd/metadataconnector**. By default,
+Binaries for the main server are built under **/cmd/odrive**. By default,
 the main configuration is read from a **conf.json** from the same directory.
 
 ## Environment Variables

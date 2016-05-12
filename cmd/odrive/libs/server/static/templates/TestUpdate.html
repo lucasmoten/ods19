@@ -1,0 +1,1015 @@
+<h1>Global Parameters</h1>
+<pre>
+{
+  "Host": "https://192.168.99.100:8080",
+  "Url": "/services/object-drive/1.0",
+  "Root": "$GOPATH/src/decipher.com/autopilot/cache",
+  "Log": {}
+}
+</pre>
+<h1>TestUpdate</h1>
+<h2>Upload Request
+</h2>
+uploading a file to update.
+<pre>
+POST /services/object-drive/1.0/objects HTTP/1.1
+Host: 192.168.99.100:8080
+User-Agent: Go-http-client/1.1
+Content-Length: 2554
+Content-Type: multipart/form-data; boundary=6886b432c4ec18e076f325932c37a0ab65d0c3576cf67025cb718ea7b268
+Accept-Encoding: gzip
+
+--6886b432c4ec18e076f325932c37a0ab65d0c3576cf67025cb718ea7b268
+Content-Disposition: form-data; name="ObjectMetadata"
+Content-Type: application/json
+
+{
+  "typeName": "File",
+  "name": "",
+  "description": "",
+  "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}"
+}
+--6886b432c4ec18e076f325932c37a0ab65d0c3576cf67025cb718ea7b268
+Content-Disposition: form-data; name="filestream"; filename="gettysburgaddress.txt"
+Content-Type: application/octet-stream
+
+Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.
+
+Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this.
+
+But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not hallow -- this ground. The brave men, living and dead, who struggled here, have consecrated it, far above our poor power to add or detract. The world will little note, nor long remember what we say here, but it can never forget what they did here. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us -- that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion -- that we here highly resolve that these dead shall not have died in vain -- that this nation, under God, shall have a new birth of freedom -- and that government of the people, by the people, for the people, shall not perish from the earth.
+
+Abraham Lincoln
+November 19, 1863
+
+--6886b432c4ec18e076f325932c37a0ab65d0c3576cf67025cb718ea7b268--
+
+</pre>
+json of the uploaded object is returned, as soon as EC2 has it. use it to perform further actions on the file.
+
+<pre>
+HTTP/1.1 200 OK
+Content-Length: 1368
+Cache-Control: no-cache
+Connection: keep-alive
+Content-Type: application/json
+Date: Tue, 10 May 2016 17:54:25 GMT
+Expires: Tue, 10 May 2016 17:54:24 GMT
+Server: nginx/1.8.1
+
+{
+  "id": "11e616d83bc67e22bd110242ac110002",
+  "createdDate": "2016-05-10T17:54:25Z",
+  "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+  "modifiedDate": "2016-05-10T17:54:25Z",
+  "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+  "changeCount": 0,
+  "changeToken": "a2b7f8cabc09bc7ce4adbdb1a359511a",
+  "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+  "typeId": "11e616d8383fdbb6bd110242ac110002",
+  "typeName": "File",
+  "name": "gettysburgaddress.txt",
+  "description": "",
+  "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+  "contentType": "text",
+  "contentSize": 1511,
+  "contentHash": "3e9407273e9c18215d89a573757a3afbc32a2463bafda8bc0c73d09788900cb2",
+  "isPDFAvailable": false,
+  "isUSPersonsData": false,
+  "isFOIAExempt": false
+}
+</pre>
+<h2>Listing Request
+</h2>
+get the file we uploaded.
+<pre>
+GET /services/object-drive/1.0/objects HTTP/1.1
+Host: 192.168.99.100:8080
+User-Agent: Go-http-client/1.1
+Content-Type: application/json
+Accept-Encoding: gzip
+
+
+</pre>
+Got a listing of available files
+
+<pre>
+HTTP/1.1 200 OK
+Transfer-Encoding: chunked
+Cache-Control: no-cache
+Connection: keep-alive
+Content-Type: application/json
+Date: Tue, 10 May 2016 17:54:25 GMT
+Expires: Tue, 10 May 2016 17:54:24 GMT
+Server: nginx/1.8.1
+
+3c2b
+{
+  "totalRows": 4,
+  "pageCount": 1,
+  "pageNumber": 1,
+  "pageSize": 20,
+  "pageRows": 4,
+  "objects": [
+    {
+      "id": "11e616d83bc67e22bd110242ac110002",
+      "createdDate": "2016-05-10T17:54:25Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-10T17:54:25Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "a2b7f8cabc09bc7ce4adbdb1a359511a",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e616d8383fdbb6bd110242ac110002",
+      "typeName": "File",
+      "name": "gettysburgaddress.txt",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "text",
+      "contentSize": 1511,
+      "contentHash": "3e9407273e9c18215d89a573757a3afbc32a2463bafda8bc0c73d09788900cb2",
+      "isPDFAvailable": false,
+      "isUSPersonsData": false,
+      "isFOIAExempt": false,
+      "permissions": [
+        {
+          "id": "11e616d83bc6abdfbd110242ac110002",
+          "createdDate": "2016-05-10T17:54:25Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:25Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "feecd35820b3dcc91f414e19c62a17d4",
+          "objectId": "11e616d83bc67e22bd110242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e616d83bc6e26fbd110242ac110002",
+          "createdDate": "2016-05-10T17:54:25Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:25Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "2e09c0eb0be10a80be79aedbd5ca6eca",
+          "objectId": "11e616d83bc67e22bd110242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e616d83bcd74c7bd110242ac110002",
+      "createdDate": "2016-05-10T17:54:25Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-10T17:54:25Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "e0d659ba1d71f82734bb658ce22598fa",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e616d838f87debbd110242ac110002",
+      "typeName": "Folder",
+      "name": "TestAddFolderWithTSSITK 1462902865",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"TS\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[\"si\",\"tk\"],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"\"],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"TS//SI/TK\",\"banner\":\"TOP SECRET//SI/TK\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"ts\"],\"f_sci_ctrls\":[\"si\",\"tk\"],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "isPDFAvailable": false,
+      "isUSPersonsData": false,
+      "isFOIAExempt": false,
+      "permissions": [
+        {
+          "id": "11e616d83bcd9f54bd110242ac110002",
+          "createdDate": "2016-05-10T17:54:25Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:25Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "445f3d69871e6dcba13a30c883ac4cd2",
+          "objectId": "11e616d83bcd74c7bd110242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e616d83bcdc732bd110242ac110002",
+          "createdDate": "2016-05-10T17:54:25Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:25Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "0cc644102cca29f070d2c000cbb07b93",
+          "objectId": "11e616d83bcd74c7bd110242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e616d83bd49bb7bd110242ac110002",
+          "createdDate": "2016-05-10T17:54:25Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:25Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "37eb0f969f658f3570957005a1044abf",
+          "objectId": "11e616d83bcd74c7bd110242ac110002",
+          "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": false,
+          "allowRead": true,
+          "allowUpdate": false,
+          "allowDelete": false,
+          "allowShare": false,
+          "explicitShare": true
+        }
+      ]
+    },
+    {
+      "id": "11e616d83b1bfce2bd110242ac110002",
+      "createdDate": "2016-05-10T17:54:24Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-10T17:54:24Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "1297e4f91839b8cbac329854ac6c22e6",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e616d8383fdbb6bd110242ac110002",
+      "typeName": "File",
+      "name": "gettysburgaddress.txt",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "text",
+      "contentSize": 1511,
+      "contentHash": "3e9407273e9c18215d89a573757a3afbc32a2463bafda8bc0c73d09788900cb2",
+      "isPDFAvailable": false,
+      "isUSPersonsData": false,
+      "isFOIAExempt": false,
+      "permissions": [
+        {
+          "id": "11e616d83b1c3fbbbd110242ac110002",
+          "createdDate": "2016-05-10T17:54:24Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:24Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "713408187643c99509ed225be5e70d2a",
+          "objectId": "11e616d83b1bfce2bd110242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e616d83b1cd892bd110242ac110002",
+          "createdDate": "2016-05-10T17:54:24Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:24Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "c59b7214a1c8aaf53fa1df47cc1ca15a",
+          "objectId": "11e616d83b1bfce2bd110242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e616d83badf1fdbd110242ac110002",
+          "createdDate": "2016-05-10T17:54:25Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:25Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "784ce68821999d3185d2f2a3675e1cd0",
+          "objectId": "11e616d83b1bfce2bd110242ac110002",
+          "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": false,
+          "explicitShare": true
+        }
+      ]
+    },
+    {
+      "id": "11e616d83aed9130bd110242ac110002",
+      "createdDate": "2016-05-10T17:54:23Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-10T17:54:23Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "d666910bc33c7f760c5e940bacd7feb7",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e616d838f87debbd110242ac110002",
+      "typeName": "Folder",
+      "name": "Test Folder 1 1462902860",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "isPDFAvailable": false,
+      "isUSPersonsData": false,
+      "isFOIAExempt": false,
+      "permissions": [
+        {
+          "id": "11e616d83aee67e9bd110242ac110002",
+          "createdDate": "2016-05-10T17:54:23Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:23Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "5aea234344accd7b3812d86eb480cc08",
+          "objectId": "11e616d83aed9130bd110242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e616d83aee95d5bd110242ac110002",
+          "createdDate": "2016-05-10T17:54:23Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:23Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "0f9adb42d954e37621757057ce6294b7",
+          "objectId": "11e616d83aed9130bd110242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e616d83b2de1f0bd110242ac110002",
+          "createdDate": "2016-05-10T17:54:24Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:24Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "22ff5d49560d6cde3186800caf771fa9",
+          "objectId": "11e616d83aed9130bd110242ac110002",
+          "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": false,
+          "allowRead": true,
+          "allowUpdate": false,
+          "allowDelete": false,
+          "allowShare": false,
+          "explicitShare": true
+        },
+        {
+          "id": "11e616d83bbb56acbd110242ac110002",
+          "createdDate": "2016-05-10T17:54:25Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:25Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "490ff47a697573364a76d0a86874a87b",
+          "objectId": "11e616d83aed9130bd110242ac110002",
+          "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": false,
+          "allowRead": true,
+          "allowUpdate": false,
+          "allowDelete": false,
+          "allowShare": false,
+          "explicitShare": true
+        }
+      ]
+    }
+  ]
+}
+0
+
+
+</pre>
+<h2>GetObject Request
+</h2>
+get the file we uploaded.
+<pre>
+GET /services/object-drive/1.0/objects/11e616d83bc67e22bd110242ac110002/stream HTTP/1.1
+Host: 192.168.99.100:8080
+User-Agent: Go-http-client/1.1
+Accept-Encoding: gzip
+
+
+</pre>
+Got the raw file.
+
+<pre>
+HTTP/1.1 200 OK
+Content-Length: 1511
+Accept-Ranges: none
+Cache-Control: no-cache
+Connection: keep-alive
+Content-Disposition: inline; filename=gettysburgaddress.txt
+Content-Type: text
+Date: Tue, 10 May 2016 17:54:25 GMT
+Expires: Tue, 10 May 2016 17:54:24 GMT
+Server: nginx/1.8.1
+
+Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.
+
+Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this.
+
+But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not hallow -- this ground. The brave men, living and dead, who struggled here, have consecrated it, far above our poor power to add or detract. The world will little note, nor long remember what we say here, but it can never forget what they did here. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us -- that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion -- that we here highly resolve that these dead shall not have died in vain -- that this nation, under God, shall have a new birth of freedom -- and that government of the people, by the people, for the people, shall not perish from the earth.
+
+Abraham Lincoln
+November 19, 1863
+
+</pre>
+<h2>GetObject Request
+</h2>
+get the file we uploaded.
+<pre>
+GET /services/object-drive/1.0/objects/11e616d83b1bfce2bd110242ac110002/stream HTTP/1.1
+Host: 192.168.99.100:8080
+User-Agent: Go-http-client/1.1
+Accept-Encoding: gzip
+
+
+</pre>
+Got the raw file.
+
+<pre>
+HTTP/1.1 200 OK
+Content-Length: 1511
+Accept-Ranges: none
+Cache-Control: no-cache
+Connection: keep-alive
+Content-Disposition: inline; filename=gettysburgaddress.txt
+Content-Type: text
+Date: Tue, 10 May 2016 17:54:26 GMT
+Expires: Tue, 10 May 2016 17:54:25 GMT
+Server: nginx/1.8.1
+
+Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.
+
+Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this.
+
+But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not hallow -- this ground. The brave men, living and dead, who struggled here, have consecrated it, far above our poor power to add or detract. The world will little note, nor long remember what we say here, but it can never forget what they did here. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us -- that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion -- that we here highly resolve that these dead shall not have died in vain -- that this nation, under God, shall have a new birth of freedom -- and that government of the people, by the people, for the people, shall not perish from the earth.
+
+Abraham Lincoln
+November 19, 1863
+
+</pre>
+<h2>UpdateObject Request
+</h2>
+updating a file.
+<pre>
+POST /services/object-drive/1.0/objects/11e616d83b1bfce2bd110242ac110002/stream HTTP/1.1
+Host: 192.168.99.100:8080
+User-Agent: Go-http-client/1.1
+Content-Length: 2554
+Content-Type: multipart/form-data; boundary=ff1d8a0a2c49044b9baa14897dba3fcd5d8eb2c5afcf51404bed47e22203
+Accept-Encoding: gzip
+
+--ff1d8a0a2c49044b9baa14897dba3fcd5d8eb2c5afcf51404bed47e22203
+Content-Disposition: form-data; name="ObjectMetadata"
+Content-Type: application/json
+
+{
+  "changeToken": "1297e4f91839b8cbac329854ac6c22e6",
+  "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}"
+}
+--ff1d8a0a2c49044b9baa14897dba3fcd5d8eb2c5afcf51404bed47e22203
+Content-Disposition: form-data; name="filestream"; filename="gettysburgaddress.txt"
+Content-Type: application/octet-stream
+
+Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.
+
+Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this.
+
+But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not hallow -- this ground. The brave men, living and dead, who struggled here, have consecrated it, far above our poor power to add or detract. The world will little note, nor long remember what we say here, but it can never forget what they did here. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us -- that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion -- that we here highly resolve that these dead shall not have died in vain -- that this nation, under God, shall have a new birth of freedom -- and that government of the people, by the people, for the people, shall not perish from the earth.
+
+Abraham Lincoln
+November 19, 1863
+xxxx
+--ff1d8a0a2c49044b9baa14897dba3fcd5d8eb2c5afcf51404bed47e22203--
+
+</pre>
+The metadata is different after the update
+
+<pre>
+HTTP/1.1 200 OK
+Transfer-Encoding: chunked
+Cache-Control: no-cache
+Connection: keep-alive
+Content-Type: application/json
+Date: Tue, 10 May 2016 17:54:26 GMT
+Expires: Tue, 10 May 2016 17:54:25 GMT
+Server: nginx/1.8.1
+
+dd6
+{
+  "id": "11e616d83b1bfce2bd110242ac110002",
+  "createdDate": "2016-05-10T17:54:24Z",
+  "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+  "modifiedDate": "2016-05-10T17:54:26Z",
+  "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+  "changeCount": 1,
+  "changeToken": "8585faf5d0b6b607dd7ef99a1770fc25",
+  "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+  "typeId": "11e616d8383fdbb6bd110242ac110002",
+  "typeName": "File",
+  "name": "gettysburgaddress.txt",
+  "description": "",
+  "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+  "contentType": "text",
+  "contentSize": 1515,
+  "contentHash": "24ef0d5940e843019fc83dc8e8408a1568deceb8b506d7c6e6e64505e25d26e9",
+  "isPDFAvailable": false,
+  "isUSPersonsData": false,
+  "isFOIAExempt": false,
+  "permissions": [
+    {
+      "id": "11e616d83b1c3fbbbd110242ac110002",
+      "createdDate": "2016-05-10T17:54:24Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-10T17:54:24Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "713408187643c99509ed225be5e70d2a",
+      "objectId": "11e616d83b1bfce2bd110242ac110002",
+      "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "allowCreate": true,
+      "allowRead": true,
+      "allowUpdate": true,
+      "allowDelete": true,
+      "allowShare": true,
+      "explicitShare": false
+    },
+    {
+      "id": "11e616d83b1cd892bd110242ac110002",
+      "createdDate": "2016-05-10T17:54:24Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-10T17:54:24Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "c59b7214a1c8aaf53fa1df47cc1ca15a",
+      "objectId": "11e616d83b1bfce2bd110242ac110002",
+      "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "allowCreate": true,
+      "allowRead": true,
+      "allowUpdate": true,
+      "allowDelete": true,
+      "allowShare": true,
+      "explicitShare": false
+    },
+    {
+      "id": "11e616d83badf1fdbd110242ac110002",
+      "createdDate": "2016-05-10T17:54:25Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-10T17:54:25Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "784ce68821999d3185d2f2a3675e1cd0",
+      "objectId": "11e616d83b1bfce2bd110242ac110002",
+      "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "allowCreate": true,
+      "allowRead": true,
+      "allowUpdate": true,
+      "allowDelete": true,
+      "allowShare": false,
+      "explicitShare": true
+    }
+  ]
+}
+0
+
+
+</pre>
+<h2>Listing Request
+</h2>
+get the file we uploaded.
+<pre>
+GET /services/object-drive/1.0/objects HTTP/1.1
+Host: 192.168.99.100:8080
+User-Agent: Go-http-client/1.1
+Content-Type: application/json
+Accept-Encoding: gzip
+
+
+</pre>
+Got a listing of available files
+
+<pre>
+HTTP/1.1 200 OK
+Transfer-Encoding: chunked
+Cache-Control: no-cache
+Connection: keep-alive
+Content-Type: application/json
+Date: Tue, 10 May 2016 17:54:26 GMT
+Expires: Tue, 10 May 2016 17:54:25 GMT
+Server: nginx/1.8.1
+
+3bfe
+{
+  "totalRows": 4,
+  "pageCount": 1,
+  "pageNumber": 1,
+  "pageSize": 20,
+  "pageRows": 4,
+  "objects": [
+    {
+      "id": "11e616d83b1bfce2bd110242ac110002",
+      "createdDate": "2016-05-10T17:54:24Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-10T17:54:26Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 1,
+      "changeToken": "8585faf5d0b6b607dd7ef99a1770fc25",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e616d8383fdbb6bd110242ac110002",
+      "typeName": "File",
+      "name": "gettysburgaddress.txt",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "text",
+      "contentSize": 1515,
+      "contentHash": "24ef0d5940e843019fc83dc8e8408a1568deceb8b506d7c6e6e64505e25d26e9",
+      "isPDFAvailable": false,
+      "isUSPersonsData": false,
+      "isFOIAExempt": false,
+      "permissions": [
+        {
+          "id": "11e616d83b1c3fbbbd110242ac110002",
+          "createdDate": "2016-05-10T17:54:24Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:24Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "713408187643c99509ed225be5e70d2a",
+          "objectId": "11e616d83b1bfce2bd110242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e616d83b1cd892bd110242ac110002",
+          "createdDate": "2016-05-10T17:54:24Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:24Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "c59b7214a1c8aaf53fa1df47cc1ca15a",
+          "objectId": "11e616d83b1bfce2bd110242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e616d83badf1fdbd110242ac110002",
+          "createdDate": "2016-05-10T17:54:25Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:25Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "784ce68821999d3185d2f2a3675e1cd0",
+          "objectId": "11e616d83b1bfce2bd110242ac110002",
+          "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": false,
+          "explicitShare": true
+        }
+      ]
+    },
+    {
+      "id": "11e616d83bc67e22bd110242ac110002",
+      "createdDate": "2016-05-10T17:54:25Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-10T17:54:25Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "a2b7f8cabc09bc7ce4adbdb1a359511a",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e616d8383fdbb6bd110242ac110002",
+      "typeName": "File",
+      "name": "gettysburgaddress.txt",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "text",
+      "contentSize": 1511,
+      "contentHash": "3e9407273e9c18215d89a573757a3afbc32a2463bafda8bc0c73d09788900cb2",
+      "isPDFAvailable": false,
+      "isUSPersonsData": false,
+      "isFOIAExempt": false,
+      "permissions": [
+        {
+          "id": "11e616d83bc6abdfbd110242ac110002",
+          "createdDate": "2016-05-10T17:54:25Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:25Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "feecd35820b3dcc91f414e19c62a17d4",
+          "objectId": "11e616d83bc67e22bd110242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e616d83bc6e26fbd110242ac110002",
+          "createdDate": "2016-05-10T17:54:25Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:25Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "2e09c0eb0be10a80be79aedbd5ca6eca",
+          "objectId": "11e616d83bc67e22bd110242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        }
+      ]
+    },
+    {
+      "id": "11e616d83bcd74c7bd110242ac110002",
+      "createdDate": "2016-05-10T17:54:25Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-10T17:54:25Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 1,
+      "changeToken": "982706fadd2ba1582fed300598fa4fae",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e616d838f87debbd110242ac110002",
+      "typeName": "Folder",
+      "name": "TestAddFolderWithTSSITK 1462902865",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "isPDFAvailable": false,
+      "isUSPersonsData": false,
+      "isFOIAExempt": false,
+      "permissions": [
+        {
+          "id": "11e616d83bcd9f54bd110242ac110002",
+          "createdDate": "2016-05-10T17:54:25Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:25Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "445f3d69871e6dcba13a30c883ac4cd2",
+          "objectId": "11e616d83bcd74c7bd110242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e616d83bcdc732bd110242ac110002",
+          "createdDate": "2016-05-10T17:54:25Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:25Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "0cc644102cca29f070d2c000cbb07b93",
+          "objectId": "11e616d83bcd74c7bd110242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e616d83bd49bb7bd110242ac110002",
+          "createdDate": "2016-05-10T17:54:25Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:25Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "37eb0f969f658f3570957005a1044abf",
+          "objectId": "11e616d83bcd74c7bd110242ac110002",
+          "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": false,
+          "allowRead": true,
+          "allowUpdate": false,
+          "allowDelete": false,
+          "allowShare": false,
+          "explicitShare": true
+        }
+      ]
+    },
+    {
+      "id": "11e616d83aed9130bd110242ac110002",
+      "createdDate": "2016-05-10T17:54:23Z",
+      "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "modifiedDate": "2016-05-10T17:54:23Z",
+      "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "changeCount": 0,
+      "changeToken": "d666910bc33c7f760c5e940bacd7feb7",
+      "ownedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+      "typeId": "11e616d838f87debbd110242ac110002",
+      "typeName": "Folder",
+      "name": "Test Folder 1 1462902860",
+      "description": "",
+      "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "isPDFAvailable": false,
+      "isUSPersonsData": false,
+      "isFOIAExempt": false,
+      "permissions": [
+        {
+          "id": "11e616d83aee67e9bd110242ac110002",
+          "createdDate": "2016-05-10T17:54:23Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:23Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "5aea234344accd7b3812d86eb480cc08",
+          "objectId": "11e616d83aed9130bd110242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e616d83aee95d5bd110242ac110002",
+          "createdDate": "2016-05-10T17:54:23Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:23Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "0f9adb42d954e37621757057ce6294b7",
+          "objectId": "11e616d83aed9130bd110242ac110002",
+          "grantee": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": true,
+          "allowRead": true,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true,
+          "explicitShare": false
+        },
+        {
+          "id": "11e616d83b2de1f0bd110242ac110002",
+          "createdDate": "2016-05-10T17:54:24Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:24Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "22ff5d49560d6cde3186800caf771fa9",
+          "objectId": "11e616d83aed9130bd110242ac110002",
+          "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": false,
+          "allowRead": true,
+          "allowUpdate": false,
+          "allowDelete": false,
+          "allowShare": false,
+          "explicitShare": true
+        },
+        {
+          "id": "11e616d83bbb56acbd110242ac110002",
+          "createdDate": "2016-05-10T17:54:25Z",
+          "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "modifiedDate": "2016-05-10T17:54:25Z",
+          "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "changeCount": 0,
+          "changeToken": "490ff47a697573364a76d0a86874a87b",
+          "objectId": "11e616d83aed9130bd110242ac110002",
+          "grantee": "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+          "allowCreate": false,
+          "allowRead": true,
+          "allowUpdate": false,
+          "allowDelete": false,
+          "allowShare": false,
+          "explicitShare": true
+        }
+      ]
+    }
+  ]
+}
+0
+
+
+</pre>
+<h2>GetObject Request
+</h2>
+get the file we uploaded.
+<pre>
+GET /services/object-drive/1.0/objects/11e616d83b1bfce2bd110242ac110002/stream HTTP/1.1
+Host: 192.168.99.100:8080
+User-Agent: Go-http-client/1.1
+Accept-Encoding: gzip
+
+
+</pre>
+Got the raw file.
+
+<pre>
+HTTP/1.1 200 OK
+Content-Length: 1515
+Accept-Ranges: none
+Cache-Control: no-cache
+Connection: keep-alive
+Content-Disposition: inline; filename=gettysburgaddress.txt
+Content-Type: text
+Date: Tue, 10 May 2016 17:54:26 GMT
+Expires: Tue, 10 May 2016 17:54:25 GMT
+Server: nginx/1.8.1
+
+Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.
+
+Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this.
+
+But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not hallow -- this ground. The brave men, living and dead, who struggled here, have consecrated it, far above our poor power to add or detract. The world will little note, nor long remember what we say here, but it can never forget what they did here. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us -- that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion -- that we here highly resolve that these dead shall not have died in vain -- that this nation, under God, shall have a new birth of freedom -- and that government of the people, by the people, for the people, shall not perish from the earth.
+
+Abraham Lincoln
+November 19, 1863
+xxxx
+</pre>
+<h2>GetObject Request
+</h2>
+get the file we uploaded.
+<pre>
+GET /services/object-drive/1.0/objects/11e616d83bc67e22bd110242ac110002/stream HTTP/1.1
+Host: 192.168.99.100:8080
+User-Agent: Go-http-client/1.1
+Accept-Encoding: gzip
+
+
+</pre>
+Got the raw file.
+
+<pre>
+HTTP/1.1 200 OK
+Content-Length: 1511
+Accept-Ranges: none
+Cache-Control: no-cache
+Connection: keep-alive
+Content-Disposition: inline; filename=gettysburgaddress.txt
+Content-Type: text
+Date: Tue, 10 May 2016 17:54:26 GMT
+Expires: Tue, 10 May 2016 17:54:25 GMT
+Server: nginx/1.8.1
+
+Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.
+
+Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this.
+
+But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not hallow -- this ground. The brave men, living and dead, who struggled here, have consecrated it, far above our poor power to add or detract. The world will little note, nor long remember what we say here, but it can never forget what they did here. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us -- that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion -- that we here highly resolve that these dead shall not have died in vain -- that this nation, under God, shall have a new birth of freedom -- and that government of the people, by the people, for the people, shall not perish from the earth.
+
+Abraham Lincoln
+November 19, 1863
+
+</pre>

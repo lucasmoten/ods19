@@ -4,7 +4,7 @@ FROM ubuntu
 
 RUN mkdir -p /usr/local/bin/Go/src/decipher.com/object-drive-server
 COPY ./ /usr/local/bin/Go/src/decipher.com/object-drive-server
-WORKDIR /usr/local/bin/Go/src/decipher.com/object-drive-server/cmd/metadataconnector
+WORKDIR /usr/local/bin/Go/src/decipher.com/object-drive-server/cmd/odrive
 ENV GOPATH /usr/local/bin/Go
-CMD ["/usr/local/bin/Go/src/decipher.com/object-drive-server/cmd/metadataconnector/metadataconnector"]
+CMD ["/usr/local/bin/Go/src/decipher.com/object-drive-server/cmd/odrive/odrive"]
 

@@ -1,0 +1,38 @@
+{
+  "AuditSvc": {
+      "Type": "blackhole",
+      "Host": "",
+      "Port": ""
+  },
+  "DatabaseConnection": {
+    "Driver": "mysql"
+    ,"Username": "$OD_DB_USERNAME"
+    ,"Password": "$OD_DB_PASSWORD"
+    ,"Protocol": "tcp"
+    ,"Host": "$OD_DB_HOST"
+    ,"Port": "$OD_DB_PORT"
+    ,"Schema": "$OD_DB_SCHEMA"
+    ,"Params": "parseTime=true"
+    ,"UseTLS": true
+    ,"SkipVerify": true
+    ,"CAPath": "$OD_DB_CA" 
+    ,"ClientCert": "$OD_DB_CERT"
+    ,"ClientKey": "$OD_DB_KEY"
+  },
+  "ServerSettings": {
+    "ListenPort": "$OD_SERVER_PORT"
+    ,"ListenBind": "0.0.0.0"
+    ,"UseTLS": true
+    ,"CAPath": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/server/trust.pem"
+    ,"ServerCertChain": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/server/server.cert.pem"
+    ,"ServerKey": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/server/server.key.pem"
+    ,"RequireClientCert": true
+    ,"CipherSuites" : [
+      "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+    ]
+    ,"MinimumVersion": "1.2"
+    ,"AclImpersonationWhitelist": [
+      "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
+    ]
+  }
+}
