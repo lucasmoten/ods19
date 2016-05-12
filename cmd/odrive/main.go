@@ -51,7 +51,10 @@ func main() {
 	}
 
 	cacheRoot := oduconfig.GetEnvOrDefault("OD_CACHE_ROOT", ".")
-	cacheID := schemaCheck(app)
+	cacheID, err := getDBIdentifier(app)
+	if err != nil {
+		log.Printf("ERROR getting DB IDentifier: %v\n", err)
+	}
 	cachePartition := oduconfig.GetEnvOrDefault("OD_CACHE_PARTITION", "cache") + "/" + cacheID
 	configureDrainProvider(app, oduconfig.StandaloneMode, cacheRoot, cachePartition)
 
@@ -193,20 +196,15 @@ func registerWithZookeeper(app *server.AppServer, zkBasePath, zkAddress, myIP, m
 	return nil
 }
 
-func schemaCheck(app *server.AppServer) string {
+func getDBIdentifier(app *server.AppServer) (string, error) {
 
 	dbState, err := app.DAO.GetDBState()
 	if err != nil {
 		log.Printf("Error calling GetDBState(): %v", err)
-	} else {
-		if dbState.SchemaVersion != dao.SchemaVersion {
-			msg := "ERROR: Schema mismatch. '%s' vs '%s'"
-			log.Printf(msg, dbState.SchemaVersion, dao.SchemaVersion)
-			log.Printf("TODO: A data/schema migration should happen right here")
-		}
+		return "UNKNOWN", err
 	}
 	log.Printf("Database version %s instance is %s", dbState.SchemaVersion, dbState.Identifier)
-	return dbState.Identifier
+	return dbState.Identifier, nil
 }
 
 func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, error) {

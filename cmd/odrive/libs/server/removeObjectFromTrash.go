@@ -71,11 +71,11 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 
 	// Call undelete on the DAO with the object.
 	unDeletedObj, err := h.DAO.UndeleteObject(&originalObject)
-	log.Println("UndeletedObject from DAO: ", unDeletedObj)
+	log.Printf("UndeletedObject from DAO: %v\n", unDeletedObj)
 
 	// getproperties and return a protocol object
 	resultObj := mapping.MapODObjectToObject(&unDeletedObj)
-	log.Println("Undelete result: ", resultObj)
+	log.Printf("Undelete result: %v\n", resultObj)
 
 	// Write the response as JSON
 	w.Header().Set("Content-Type", "application/json")

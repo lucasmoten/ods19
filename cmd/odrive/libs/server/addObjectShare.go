@@ -9,6 +9,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"decipher.com/object-drive-server/cmd/odrive/libs/config"
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	"decipher.com/object-drive-server/metadata/models"
@@ -32,6 +33,10 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 		sendErrorResponse(&w, 400, err, "Error parsing request")
 		return
 	}
+
+	// Normalize the Grantee
+	requestGrant.Grantee = config.GetNormalizedDistinguishedName(requestGrant.Grantee)
+
 	log.Printf("Granting:%s to %s", hex.EncodeToString(requestGrant.ObjectID), requestGrant.Grantee)
 
 	// Fetch object to validate
