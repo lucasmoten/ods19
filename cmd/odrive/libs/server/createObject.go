@@ -11,6 +11,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"decipher.com/object-drive-server/cmd/odrive/libs/config"
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	"decipher.com/object-drive-server/metadata/models"
@@ -132,6 +133,11 @@ func handleCreatePrerequisites(
 	// the DAO.
 	if string(requestObject.ParentID) == "" {
 		requestObject.ParentID = nil
+	}
+
+	// Normalize Grantees for Permissions passed in request object
+	for _, permission := range requestObject.Permissions {
+		permission.Grantee = config.GetNormalizedDistinguishedName(permission.Grantee)
 	}
 
 	// Check if parent defined

@@ -49,12 +49,19 @@ func getDBStateInTransaction(tx *sqlx.Tx) (models.DBState, error) {
 			log.Printf("Could not write out dbstate %v:%v", dbState, err)
 			return dbState, err
 		}
-		//Returrn what is actually in dbState (it could override any of our suggestions)
+		//Return what is actually in dbState (it could override any of our suggestions)
 		err = tx.Unsafe().Get(&dbState, getDBStateStatement)
 		if err != nil {
 			log.Printf("Could not get dbstate %v:%v", dbState, err)
 			return dbState, err
 		}
 	}
+
+	// Warn if the version reported by DB doesn't match value set here in DAO
+	if dbState.SchemaVersion != SchemaVersion {
+		msg := "WARNING: Schema mismatch. Database is at version '%s' and DAO expects version '%s'"
+		log.Printf(msg, dbState.SchemaVersion, SchemaVersion)
+	}
+
 	return dbState, nil
 }

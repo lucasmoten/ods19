@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"database/sql"
 	"errors"
 	"log"
 
@@ -29,6 +30,17 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, per
 
 	var dbPermission models.ODObjectPermission
 
+	// Check that grantee specified exists
+	granteeUser := models.ODUser{DistinguishedName: permission.Grantee}
+	granteeUserDB, granteeUserDBErr := getUserByDistinguishedNameInTransaction(tx, granteeUser)
+	if granteeUserDBErr == sql.ErrNoRows {
+		// Doesn't exist yet. Add it now to satisfy foreign key constraints when adding the share
+		granteeUserDB, granteeUserDBErr = createUserInTransaction(tx, granteeUser)
+		if granteeUserDBErr != nil {
+			return dbPermission, granteeUserDBErr
+		}
+	}
+
 	// Setup the statement
 	addPermissionStatement, err := tx.Preparex(`insert object_permission set 
         createdby = ?
@@ -47,7 +59,7 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, per
 	}
 	// Add it
 	result, err := addPermissionStatement.Exec(permission.CreatedBy, object.ID,
-		permission.Grantee, permission.AllowCreate, permission.AllowRead,
+		granteeUserDB.DistinguishedName, permission.AllowCreate, permission.AllowRead,
 		permission.AllowUpdate, permission.AllowDelete, permission.AllowShare,
 		permission.ExplicitShare, permission.EncryptKey)
 	if err != nil {
