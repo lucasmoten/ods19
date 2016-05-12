@@ -5,7 +5,6 @@ This is an encrypted file storage API with a REST interface.
 
 
 
-
 API documentation is hosted on the private Bedrock network here (subject to change):
 
 https://bedrock.363-283.io/services/object-drive/1.0/
