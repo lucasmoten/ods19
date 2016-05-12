@@ -63,12 +63,16 @@ func checkAWSEnvironmentVars() {
 
 // NullDrainProviderData is just a file location that does not talk to S3.
 type NullDrainProviderData struct {
+	//Where the CacheLocation is rooted on disk (ie: a very large drive mounted)
+	CacheObject DrainCache
 	//Location of the cache
 	CacheLocationString string
 }
 
 // S3DrainProviderData moves data from cache to the drain... S3 buckets in this case.
 type S3DrainProviderData struct {
+	//Where the CacheLocation is rooted on disk (ie: a very large drive mounted)
+	CacheObject DrainCache
 	//Location of the cache
 	CacheLocationString string
 	//The connection to S3
@@ -97,7 +101,7 @@ type S3DrainProviderData struct {
 
 // NewS3DrainProvider sets up a drain with default parameters overridden by environment variables
 // TODO this should return an error, as well.
-func NewS3DrainProvider(name string) DrainProvider {
+func NewS3DrainProvider(root, name string) DrainProvider {
 	var err error
 	lowWatermark := 0.50
 	lowWatermarkSuggested := oduconfig.GetEnvOrDefault("OD_CACHE_LOWWATERMARK", "0.50")
@@ -132,18 +136,19 @@ func NewS3DrainProvider(name string) DrainProvider {
 		}
 		walkSleep = time.Duration(time.Duration(walkSleepInt) * time.Second)
 	}
-	d := NewS3DrainProviderRaw(name, lowWatermark, ageEligibleForEviction, highWatermark, walkSleep)
+	d := NewS3DrainProviderRaw(root, name, lowWatermark, ageEligibleForEviction, highWatermark, walkSleep)
 	go d.DrainUploadedFilesToSafety()
 	return d
 }
 
 // NewS3DrainProviderRaw set up a new drain provider that gives us members to use the drain and goroutine to clean cache.
 // Call this to build a test cache.
-func NewS3DrainProviderRaw(name string, lowWatermark float64, ageEligibleForEviction int64, highWatermark float64, walkSleep time.Duration) *S3DrainProviderData {
+func NewS3DrainProviderRaw(root, name string, lowWatermark float64, ageEligibleForEviction int64, highWatermark float64, walkSleep time.Duration) *S3DrainProviderData {
 	checkAWSEnvironmentVars()
 
 	d := &S3DrainProviderData{
 		AWSSession:             awsS3(),
+		CacheObject:            DrainCacheData{root},
 		CacheLocationString:    name,
 		lowWatermark:           lowWatermark,
 		ageEligibleForEviction: ageEligibleForEviction,
@@ -161,6 +166,16 @@ func NewS3DrainProviderRaw(name string, lowWatermark float64, ageEligibleForEvic
 	return d
 }
 
+// Resolve a name to somewhere in the cache, given the rName
+func (d *S3DrainProviderData) Resolve(fName FileName) FileNameCached {
+	return FileNameCached(d.CacheLocationString + "/" + string(fName))
+}
+
+// Resolve a name to somewhere in the cache, given the rName
+func (d *NullDrainProviderData) Resolve(fName FileName) FileNameCached {
+	return FileNameCached(d.CacheLocationString + "/" + string(fName))
+}
+
 // awsS3 just gets us a session.
 //This is account as in the ["default"] entry in ~/.aws/credentials
 func awsS3() *session.Session {
@@ -171,8 +186,9 @@ func awsS3() *session.Session {
 }
 
 // NewNullDrainProvider setup a drain provider that doesnt use S3 backend, just local caching.
-func NewNullDrainProvider(name string) DrainProvider {
+func NewNullDrainProvider(root, name string) DrainProvider {
 	d := &NullDrainProviderData{
+		CacheObject:         DrainCacheData{root},
 		CacheLocationString: name,
 	}
 	CacheMustExist(d)
@@ -180,18 +196,28 @@ func NewNullDrainProvider(name string) DrainProvider {
 	return d
 }
 
+// Files is the mount point of instances
+func (d *S3DrainProviderData) Files() DrainCache {
+	return d.CacheObject
+}
+
+// Files is the mount point of cache instances
+func (d *NullDrainProviderData) Files() DrainCache {
+	return d.CacheObject
+}
+
 // CacheToDrain just renames the file without moving it for the null implementation.
 func (d *NullDrainProviderData) CacheToDrain(
 	bucket *string,
-	rName string,
+	rName FileId,
 	size int64,
 ) error {
 	var err error
-	outFileUploaded := d.CacheLocationString + "/" + rName + ".uploaded"
-	outFileCached := d.CacheLocationString + "/" + rName + ".cached"
-	err = os.Rename(outFileUploaded, outFileCached)
+	outFileUploaded := d.Resolve(NewFileName(rName, ".uploaded"))
+	outFileCached := d.Resolve(NewFileName(rName, ".cached"))
+	err = d.Files().Rename(outFileUploaded, outFileCached)
 	if err != nil {
-		log.Printf("Unable to rename uploaded file %s %v:", outFileUploaded, err)
+		log.Printf("Unable to rename uploaded file %s %v:", d.Files().Resolve(outFileUploaded), err)
 		return err
 	}
 	return nil
@@ -201,12 +227,13 @@ func (d *NullDrainProviderData) CacheToDrain(
 // This can happen if the server reboots.
 func (d *S3DrainProviderData) DrainUploadedFilesToSafety() {
 	//Walk through the cache, and handle .uploaded files
+	fqCache := d.Files().Resolve(d.Resolve(""))
 	err := filepath.Walk(
-		d.CacheLocationString,
+		fqCache,
 		// We need to capture d because this interface won't let us pass it
-		func(name string, f os.FileInfo, err error) (errReturn error) {
+		func(fqName string, f os.FileInfo, err error) (errReturn error) {
 			if err != nil {
-				msg := fmt.Sprintf("Error walking directory on initial upload for %s: %v", name, err)
+				msg := fmt.Sprintf("Error walking directory on initial upload for %s", fqName)
 				sendAppErrorResponse(nil, NewAppError(FailCacheWalk, err, msg))
 				// I didn't generate this error, so I am assuming that I can just log the problem.
 				// TODO: this error is not being counted
@@ -217,19 +244,19 @@ func (d *S3DrainProviderData) DrainUploadedFilesToSafety() {
 				return nil
 			}
 			size := f.Size()
-			ext := path.Ext(name)
+			ext := path.Ext(fqName)
 			bucket := &config.DefaultBucket
 			if ext == ".uploaded" {
-				err := d.CacheToDrain(bucket, name, size)
+				err := d.CacheToDrain(bucket, FileId(path.Base(fqName)), size)
 				if err != nil {
-					msg := fmt.Sprintf("error draining cache:%v", err)
+					msg := fmt.Sprintf("error draining cache")
 					sendAppErrorResponse(nil, NewAppError(FailCacheToDrain, err, msg))
 				}
 			}
 			if ext == ".caching" || ext == ".uploading" {
 				//On startup, any .caching files are associated with now-dead goroutines.
 				//On startup, any .uploading files are associated with now-dead uploads.
-				os.Remove(name)
+				os.Remove(fqName)
 			}
 			return nil
 		},
@@ -248,25 +275,27 @@ func (d *S3DrainProviderData) DrainUploadedFilesToSafety() {
 //
 func (d *S3DrainProviderData) CacheToDrain(
 	bucket *string,
-	rName string,
+	rName FileId,
 	size int64,
 ) error {
 	sess := d.AWSSession
-	outFileUploaded := d.CacheLocationString + "/" + rName + ".uploaded"
+	outFileUploaded := d.Resolve(FileName(rName + ".uploaded"))
 
-	fIn, err := os.Open(outFileUploaded)
+	fIn, err := d.Files().Open(outFileUploaded)
 	if err != nil {
 		log.Printf("Cant drain off file: %v", err)
 		return err
 	}
 	defer fIn.Close()
-	log.Printf("draining to S3 %s: %s", *bucket, rName)
+
+	key := aws.String(string(d.Resolve(NewFileName(rName, ""))))
+	log.Printf("draining to S3 %s: %s", *bucket, *key)
 
 	uploader := s3manager.NewUploader(sess)
 	result, err := uploader.Upload(&s3manager.UploadInput{
 		Body:   fIn,
 		Bucket: bucket,
-		Key:    aws.String(d.CacheLocationString + "/" + rName),
+		Key:    key,
 	})
 	if err != nil {
 		log.Printf("Could not write to S3: %v", err)
@@ -275,8 +304,8 @@ func (d *S3DrainProviderData) CacheToDrain(
 
 	//Rename the file to note that it only lives here as cached for download
 	//It might be deleted at any time
-	outFileCached := d.CacheLocationString + "/" + rName + ".cached"
-	err = os.Rename(outFileUploaded, outFileCached)
+	outFileCached := d.Resolve(NewFileName(rName, ".cached"))
+	err = d.Files().Rename(outFileUploaded, outFileCached)
 	if err != nil {
 		log.Printf("Unable to rename uploaded file %s %v:", outFileUploaded, err)
 		return err
@@ -290,15 +319,17 @@ func (d *S3DrainProviderData) CacheToDrain(
 // DrainToCache does nothing for a null drain which leaves files local.
 func (d *NullDrainProviderData) DrainToCache(
 	bucket *string,
-	theFile string,
+	theFile FileId,
 ) (*AppError, error) {
 	return nil, nil
 }
 
-// CacheLocation is where the local cache lives.
-func (d *NullDrainProviderData) CacheLocation() string {
+/*
+// CacheLocation is where the local cache lives. (S3 within bucket or filesystem path)
+func (d *NullDrainProviderData) Cache() string {
 	return d.CacheLocationString
 }
+*/
 
 //TODO: without a file length to expect, we are only making guesses as to how long we can wait.
 func S3DownloadAttempt(downloader *s3manager.Downloader, fOut *os.File, bucket *string, key *string) (int64, error) {
@@ -318,20 +349,20 @@ func S3DownloadAttempt(downloader *s3manager.Downloader, fOut *os.File, bucket *
 // DrainToCache gets a file back out of the drain into the cache.
 func (d *S3DrainProviderData) DrainToCache(
 	bucket *string,
-	theFile string,
+	rName FileId,
 ) (*AppError, error) {
-	log.Printf("Get from S3 bucket %s: %s", *bucket, theFile)
+	log.Printf("Get from S3 bucket %s: %s", *bucket, rName)
 	// This file must ONLY exist for the duration of this function.
 	// we must remove it or rename it before we exit.
-	foutCaching := d.CacheLocationString + "/" + theFile + ".caching"
-	foutCached := d.CacheLocationString + "/" + theFile + ".cached"
-	fOut, err := os.Create(foutCaching)
+	foutCaching := d.Resolve(NewFileName(rName, ".caching"))
+	foutCached := d.Resolve(NewFileName(rName, ".cached"))
+	fOut, err := d.Files().Create(foutCaching)
 	if err != nil {
-		msg := fmt.Sprintf("Unable to write local buffer file %s: %v", theFile, err)
+		msg := fmt.Sprintf("Unable to write local buffer file %s", foutCaching)
 		sendAppErrorResponse(nil, NewAppError(FailDrainToCache, err, msg))
 		return nil, err
 	}
-	defer os.Remove(foutCaching)
+	defer d.Files().Remove(foutCaching)
 	defer fOut.Close()
 
 	//Try to download it a few times, doubling our willingness to wait each time
@@ -339,7 +370,7 @@ func (d *S3DrainProviderData) DrainToCache(
 	tries := 22
 	waitTime := 1 * time.Second
 	prevWaitTime := 0 * time.Second
-	key := aws.String(d.CacheLocationString + "/" + theFile)
+	key := aws.String(string(d.Resolve(NewFileName(rName, ""))))
 	downloader := s3manager.NewDownloader(d.AWSSession)
 	for tries > 0 {
 		_, err = S3DownloadAttempt(downloader, fOut, bucket, key)
@@ -347,7 +378,7 @@ func (d *S3DrainProviderData) DrainToCache(
 		if err == nil {
 			break
 		} else {
-			log.Printf("Unable to download out of S3 bucket %v. Trying again in %ds, %d more attempts possible: %s", *bucket, waitTime/(time.Second), tries-1, theFile)
+			log.Printf("Unable to download out of S3 bucket %v. Trying again in %ds, %d more attempts possible: %s", *bucket, waitTime/(time.Second), tries-1, rName)
 			//Without a file length, this is our best guess
 			time.Sleep(waitTime)
 			//Fibonacci progression 1 1 2 3 ... ... 22 of them gives a total wait time of about 2 mins, or almost 8GB
@@ -357,11 +388,11 @@ func (d *S3DrainProviderData) DrainToCache(
 		}
 	}
 	if err != nil {
-		return NewAppError(500, err, fmt.Sprintf("Give up to get %s out of cache", theFile)), err
+		return NewAppError(500, err, fmt.Sprintf("Give up to get %s out of cache", rName)), err
 	}
 
 	//Signal that we finally cached the file
-	err = os.Rename(foutCaching, foutCached)
+	err = d.Files().Rename(foutCaching, foutCached)
 	if err != nil {
 		log.Printf("Failed to rename from %s to %s", foutCaching, foutCached)
 	}
@@ -369,16 +400,18 @@ func (d *S3DrainProviderData) DrainToCache(
 	return nil, nil
 }
 
+/*
 // CacheLocation gives the file location locally, and in the buckets
-func (d *S3DrainProviderData) CacheLocation() string {
+func (d *S3DrainProviderData) Cache() string {
 	return d.CacheLocationString
 }
+*/
 
 // CacheMustExist ensures that the cache directory exists.
 func CacheMustExist(d DrainProvider) (err error) {
-	if _, err = os.Stat(d.CacheLocation()); os.IsNotExist(err) {
-		err = os.Mkdir(d.CacheLocation(), 0700)
-		log.Printf("Creating cache directory %s", d.CacheLocation())
+	if _, err = d.Files().Stat(d.Resolve("")); os.IsNotExist(err) {
+		err = d.Files().MkdirAll(d.Resolve(""), 0700)
+		log.Printf("Creating cache directory %s", d.Files().Resolve(d.Resolve("")))
 		if err != nil {
 			log.Printf("Cannot create cache directory: %v", err)
 			return err
@@ -416,9 +449,9 @@ func CacheMustExist(d DrainProvider) (err error) {
 //  a delay in size drops that is dependent on size and doubly dependent on age since last access.
 //  Size and Age prioritize what is still sitting in cache when we hit lowWatermark.
 //
-func filePurgeVisit(d *S3DrainProviderData, name string, f os.FileInfo, err error) (errReturn error) {
+func filePurgeVisit(d *S3DrainProviderData, fqName string, f os.FileInfo, err error) (errReturn error) {
 	if err != nil {
-		log.Printf("Error walking directory for %s: %v", name, err)
+		log.Printf("Error walking directory for %s: %v", fqName, err)
 		// I didn't generate this error, so I am assuming that I can just log the problem.
 		// TODO: this error is not being counted
 		return nil
@@ -435,13 +468,15 @@ func filePurgeVisit(d *S3DrainProviderData, name string, f os.FileInfo, err erro
 	n := time.Now().Unix()  //In unites of second
 	ageInSeconds := n - t
 	size := f.Size()
-	ext := path.Ext(name)
+	ext := path.Ext(string(fqName))
 
 	//Get the current disk space usage
 	sfs := syscall.Statfs_t{}
-	err = syscall.Statfs(name, &sfs)
+	err = syscall.Statfs(fqName, &sfs)
 	if err != nil {
-		log.Printf("Unable to purge %s, due to statfs fail:%s", name, err)
+		msg := fmt.Sprintf("Unable to purge %s, due to statfs fail", fqName)
+		sendAppErrorResponse(nil, NewAppError(FailPurgeAnomaly, nil, msg))
+		return nil
 	}
 	//Fraction of disk used
 	usage := 1.0 - float64(sfs.Bavail)/float64(sfs.Blocks)
@@ -458,11 +493,14 @@ func filePurgeVisit(d *S3DrainProviderData, name string, f os.FileInfo, err erro
 		if (oldEnoughToEvict && fullEnoughToEvict) || mustEvict {
 			value := size / (ageInSeconds * ageInSeconds)
 			if value == 0 || mustEvict {
-				errReturn := os.Remove(name)
+				//Name is fully qualified, so use os call!
+				errReturn := os.Remove(fqName)
 				if errReturn != nil {
-					log.Printf("Unable to purge %s", name)
+					msg := fmt.Sprintf("Unable to purge %s", fqName)
+					sendAppErrorResponse(nil, NewAppError(FailPurgeAnomaly, errReturn, msg))
+					return nil
 				} else {
-					log.Printf("Purged %s.  Age:%ds Size:%d DiskUsage:%f", name, ageInSeconds, size, usage)
+					log.Printf("Purged %s.  Age:%ds Size:%d DiskUsage:%f", fqName, ageInSeconds, size, usage)
 				}
 			}
 		}
@@ -472,13 +510,16 @@ func filePurgeVisit(d *S3DrainProviderData, name string, f os.FileInfo, err erro
 		//might legitimately be awaiting upload.  Other states are certainly
 		//garbage after only a few hours.
 		if ageInSeconds > 60*60*24*7 {
-			errReturn := os.Remove(name)
+			errReturn := os.Remove(fqName)
 			if errReturn != nil {
-				msg := fmt.Sprintf("Unable to purge %s", name)
-				sendAppErrorResponse(nil, NewAppError(FailPurgeAnomaly, nil, msg))
+				msg := fmt.Sprintf("Unable to purge %s", fqName)
+				sendAppErrorResponse(nil, NewAppError(FailPurgeAnomaly, errReturn, msg))
+				return nil
 			} else {
-				msg := fmt.Sprintf("Purged for age %s.  Age:%ds Size:%d DiskUsage:%f", name, ageInSeconds, size, usage)
+				msg := fmt.Sprintf("Purged for age %s.  Age:%ds Size:%d DiskUsage:%f", fqName, ageInSeconds, size, usage)
+				//Count this anomaly
 				sendAppErrorResponse(nil, NewAppError(PurgeAnomaly, nil, msg))
+				return nil
 			}
 		}
 	}
@@ -493,14 +534,15 @@ func (d *S3DrainProviderData) CachePurge() {
 	//    ageEligibleForEviction (integer seconds)
 	var err error
 	for {
+		fqCache := d.Files().Resolve(d.Resolve(""))
 		err = filepath.Walk(
-			d.CacheLocationString,
+			fqCache,
 			func(name string, f os.FileInfo, err error) (errReturn error) {
 				return filePurgeVisit(d, name, f, err)
 			},
 		)
 		if err != nil {
-			log.Printf("Unable to walk cache %s: %v", d.CacheLocationString, err)
+			log.Printf("Unable to walk cache %s: %v", fqCache, err)
 		}
 		time.Sleep(d.walkSleep)
 	}

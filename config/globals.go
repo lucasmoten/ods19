@@ -89,7 +89,7 @@ func init() {
 	//Resolve the dockervm address
 	ips, err := net.LookupIP("dockervm")
 	if err != nil {
-		log.Printf("unable to resolve hostname: dockervm")
+		log.Printf("unable to resolve hostname: dockervm (used by client tests only)")
 	}
 	if len(ips) > 0 {
 		theIP := ips[0]

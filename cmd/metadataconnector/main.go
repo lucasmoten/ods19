@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"html/template"
 	"log"
 	"net"
@@ -51,8 +50,10 @@ func main() {
 		log.Printf("ERROR: could not connect to AAC: %v\n", err)
 	}
 
+	cacheRoot := oduconfig.GetEnvOrDefault("OD_CACHE_ROOT", ".")
 	cacheID := schemaCheck(app)
-	configureDrainProvider(app, oduconfig.StandaloneMode, cacheID)
+	cachePartition := oduconfig.GetEnvOrDefault("OD_CACHE_PARTITION", "cache") + "/" + cacheID
+	configureDrainProvider(app, oduconfig.StandaloneMode, cacheRoot, cachePartition)
 
 	zkAddress := oduconfig.GetEnvOrDefault("OD_ZK_URL", "zk:2181")
 	zkBasePath := oduconfig.GetEnvOrDefault("OD_ZK_BASEPATH", "/service/object-drive/1.0")
@@ -163,14 +164,14 @@ func configureDAO(app *server.AppServer, conf config.DatabaseConnectionConfigura
 	return nil
 }
 
-func configureDrainProvider(app *server.AppServer, standalone bool, cacheID string) {
+func configureDrainProvider(app *server.AppServer, standalone bool, root, cacheID string) {
 	var dp server.DrainProvider
 	if oduconfig.StandaloneMode {
 		log.Printf("Draining cache locally")
-		dp = server.NewNullDrainProvider(cacheID)
+		dp = server.NewNullDrainProvider(root, cacheID)
 	} else {
 		log.Printf("Draining cache to S3")
-		dp = server.NewS3DrainProvider(cacheID)
+		dp = server.NewS3DrainProvider(root, cacheID)
 	}
 
 	app.DrainProvider = dp
@@ -205,7 +206,7 @@ func schemaCheck(app *server.AppServer) string {
 		}
 	}
 	log.Printf("Database version %s instance is %s", dbState.SchemaVersion, dbState.Identifier)
-	return fmt.Sprintf("cache-%s", dbState.Identifier)
+	return dbState.Identifier
 }
 
 func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, error) {
