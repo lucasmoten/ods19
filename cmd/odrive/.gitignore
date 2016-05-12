@@ -1,0 +1,7 @@
+# the resulting binar(y/ies)
+dbtest
+odrive
+
+# object cache directory
+cache
+

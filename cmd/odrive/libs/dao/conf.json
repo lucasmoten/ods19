@@ -1,0 +1,19 @@
+{
+  "DatabaseConnection": {
+    "Driver": "mysql"
+    ,"Username": "dbuser"
+    ,"Password": "dbPassword"
+    ,"Protocol": "tcp"
+    ,"Host": "fqdn.for.metadatadb.local"
+    ,"Port": "3306"
+    ,"Schema": "metadatadb"
+    ,"Params": "parseTime=true"
+    ,"UseTLS": true
+    ,"SkipVerify": false
+    ,"CAPath": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/trust"
+    ,"ClientCert": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem"
+    ,"ClientKey": "$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-key.pem"
+  }
+}
+
+

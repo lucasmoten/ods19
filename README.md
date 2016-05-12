@@ -3,6 +3,8 @@ This is an encrypted file storage API with a REST interface.
 
 # API documentation
 
+
+
 API documentation is hosted on the private Bedrock network here (subject to change):
 
 https://bedrock.363-283.io/services/object-drive/1.0/
@@ -125,7 +127,7 @@ Hooray for automated tests!
 
 # Other Configuration
 
-Binaries for the main server are built under **/cmd/metadataconnector**. By default,
+Binaries for the main server are built under **/cmd/odrive**. By default,
 the main configuration is read from a **conf.json** from the same directory.
 
 ## Environment Variables

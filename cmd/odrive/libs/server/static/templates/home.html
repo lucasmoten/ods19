@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang='en'>
+  <head>
+    <title>Object-Drive</title>
+    <meta charset='utf-8'>
+    <base href="{{ .RootURL }}" />
+  </head>
+	<body>
+    <a href="{{ .RootURL }}/ui/">Return Home</a>
+		{{ .DistinguishedName }}
+		<br />
+		<hr />
+    {{ range .APIFunctions }}
+      {{ template "_function.html" . }}
+    {{ end }}
+  </body>
+</html>
