@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"html/template"
 	"log"
 	"net"
@@ -53,7 +52,8 @@ func main() {
 
 	cacheRoot := oduconfig.GetEnvOrDefault("OD_CACHE_ROOT", ".")
 	cacheID := schemaCheck(app)
-	configureDrainProvider(app, oduconfig.StandaloneMode, cacheRoot, cacheID)
+	cachePartition := oduconfig.GetEnvOrDefault("OD_CACHE_PARTITION", "cache") + "/" + cacheID
+	configureDrainProvider(app, oduconfig.StandaloneMode, cacheRoot, cachePartition)
 
 	zkAddress := oduconfig.GetEnvOrDefault("OD_ZK_URL", "zk:2181")
 	zkBasePath := oduconfig.GetEnvOrDefault("OD_ZK_BASEPATH", "/service/object-drive/1.0")
@@ -206,7 +206,7 @@ func schemaCheck(app *server.AppServer) string {
 		}
 	}
 	log.Printf("Database version %s instance is %s", dbState.SchemaVersion, dbState.Identifier)
-	return fmt.Sprintf("cache-%s", dbState.Identifier)
+	return dbState.Identifier
 }
 
 func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, error) {

@@ -410,7 +410,7 @@ func (d *S3DrainProviderData) Cache() string {
 // CacheMustExist ensures that the cache directory exists.
 func CacheMustExist(d DrainProvider) (err error) {
 	if _, err = d.Files().Stat(d.Resolve("")); os.IsNotExist(err) {
-		err = d.Files().Mkdir(d.Resolve(""), 0700)
+		err = d.Files().MkdirAll(d.Resolve(""), 0700)
 		log.Printf("Creating cache directory %s", d.Files().Resolve(d.Resolve("")))
 		if err != nil {
 			log.Printf("Cannot create cache directory: %v", err)

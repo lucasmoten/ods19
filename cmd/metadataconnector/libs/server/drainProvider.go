@@ -43,7 +43,7 @@ type DrainCache interface {
 	Rename(fNameSrc, fNameDst FileNameCached) error
 	Create(fName FileNameCached) (*os.File, error)
 	Stat(fName FileNameCached) (os.FileInfo, error)
-	Mkdir(fName FileNameCached, perm os.FileMode) error
+	MkdirAll(fName FileNameCached, perm os.FileMode) error
 	RemoveAll(fName FileNameCached) error
 	Chtimes(name FileNameCached, atime time.Time, mtime time.Time) error
 }
@@ -88,9 +88,9 @@ func (c DrainCacheData) Stat(fName FileNameCached) (os.FileInfo, error) {
 	return os.Stat(c.Root + "/" + string(fName))
 }
 
-// Mkdir wraps os.Mkdir for use with the cache
-func (c DrainCacheData) Mkdir(fName FileNameCached, perm os.FileMode) error {
-	return os.Mkdir(c.Root+"/"+string(fName), perm)
+// MkdirAll wraps os.Mkdir for use with the cache
+func (c DrainCacheData) MkdirAll(fName FileNameCached, perm os.FileMode) error {
+	return os.MkdirAll(c.Root+"/"+string(fName), perm)
 }
 
 // RemoveAll wraps os.RemoveAll for use with cache
