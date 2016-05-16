@@ -152,6 +152,7 @@ type ReportsQueue struct {
 	Stat            QStat
 	UserStat        QStat
 	NumeratorUnits  string
+	Name            string
 }
 
 // NewReportsQueue creates a queue for new reports
@@ -161,8 +162,9 @@ type ReportsQueue struct {
 //
 // When reconciled, at every time period, the population and throughput
 // are well defined.
-func NewReportsQueue(capacity int, numeratorUnits string) *ReportsQueue {
+func NewReportsQueue(name string, capacity int, numeratorUnits string) *ReportsQueue {
 	q := &ReportsQueue{
+		Name:           name,
 		Entry:          make([]QEntry, capacity),
 		Head:           0,
 		Tail:           capacity - 1,
@@ -319,7 +321,7 @@ func (r *ReportsQueue) Length() int {
 }
 
 // Dump shows the internal state of the queue
-func (r *ReportsQueue) Dump(w io.Writer) {
+func (r *ReportsQueue) Dump(w io.Writer, verbose bool) {
 	if r.Length() < 1 {
 		return
 	}
@@ -333,7 +335,7 @@ func (r *ReportsQueue) Dump(w io.Writer) {
 		//This is supposedly impossible to be zero....
 		t := (r.Entry[i].TStamp - r.Entry[j].TStamp)
 		b := r.Entry[j].Bytes
-		if t > 0 && b > 0 {
+		if t > 0 && b > 0 && verbose {
 			fmt.Fprintf(
 				w,
 				"%d Q %v %s/s => %v %s in %v ms\n",
@@ -374,16 +376,17 @@ func (r *ReportsQueue) Dump(w io.Writer) {
 		i = (i + r.Capacity - 1) % r.Capacity
 	}
 
-	fmt.Fprintf(w, "\nThroughput By Queue Length:\n")
+	fmt.Fprintf(w, "\n%s Throughput By Queue Length:\n", r.Name)
 	//Show throughput per population
-	for p := int64(0); p <= maxPop; p++ {
+	for p := int64(1); p <= maxPop; p++ {
 		if entryPerPop[p].TotalTime > 0 {
 			fmt.Fprintf(
 				w,
-				"%d Q %v %s/s\n",
+				"%d Q %v %s/s for %d s\n",
 				p,
-				(1000.0*entryPerPop[p].TotalBytes)/entryPerPop[p].TotalTime,
+				(1000*entryPerPop[p].TotalBytes)/entryPerPop[p].TotalTime,
 				units,
+				entryPerPop[p].TotalTime/1000,
 			)
 		}
 	}
@@ -391,9 +394,10 @@ func (r *ReportsQueue) Dump(w io.Writer) {
 	if r.Stat.TotalTime > 0 {
 		fmt.Fprintf(
 			w,
-			"flushed: %v Q %v %s/s => %v %s in %v ms\n",
-			(1.0*r.Stat.PopWeightedByTime)/r.Stat.TotalTime,
-			((1000.0)*r.Stat.TotalBytes)/r.Stat.TotalTime,
+			"%s flushed: %v Q %v %s/s => %v %s in %v ms\n",
+			r.Name,
+			float32(r.Stat.PopWeightedByTime)/float32(r.Stat.TotalTime),
+			(1000*r.Stat.TotalBytes)/r.Stat.TotalTime,
 			units,
 			r.Stat.TotalBytes,
 			units,
@@ -403,9 +407,10 @@ func (r *ReportsQueue) Dump(w io.Writer) {
 	if r.UserStat.TotalTime > 0 {
 		fmt.Fprintf(
 			w,
-			"userExperience: %v Q %v %s/s => %v %s in %v ms\n",
-			(1.0*r.UserStat.PopWeightedByTime)/r.UserStat.TotalTime,
-			((1000.0)*r.UserStat.TotalBytes)/r.UserStat.TotalTime,
+			"%s userExperience: %v Q %v %s/s => %v %s in %v ms\n",
+			r.Name,
+			float32(r.UserStat.PopWeightedByTime)/float32(r.UserStat.TotalTime),
+			(1000*r.UserStat.TotalBytes)/r.UserStat.TotalTime,
 			units,
 			r.UserStat.TotalBytes,
 			units,
@@ -533,7 +538,7 @@ func (jrs *JobReporters) makeReporter(name string, numeratorUnits string) *JobRe
 	capacity := jrs.Capacity
 	reporter := &JobReporter{
 		Name: name,
-		Q:    NewReportsQueue(capacity, numeratorUnits),
+		Q:    NewReportsQueue(name, capacity, numeratorUnits),
 	}
 	return reporter
 }
