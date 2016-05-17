@@ -68,8 +68,8 @@ func TestSimulation(t *testing.T) {
 		remaining--
 		log.Printf("remaining: %d", remaining)
 	}
-	reporters.Reporters[UploadCounter].Q.Dump(os.Stdout)
-	reporters.Reporters[DownloadCounter].Q.Dump(os.Stdout)
+	reporters.Reporters[UploadCounter].Q.Dump(os.Stdout, true)
+	reporters.Reporters[DownloadCounter].Q.Dump(os.Stdout, true)
 }
 
 func init() {

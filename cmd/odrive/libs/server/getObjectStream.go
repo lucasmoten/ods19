@@ -51,10 +51,15 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 	//Performance count this operation
 	beganAt := h.Tracker.BeginTime(performance.DownloadCounter)
 	herr := h.getObjectStreamWithObject(ctx, w, r, object)
+	transferred := object.ContentSize.Int64
+	//Make sure that we count as zero bytes if there was a download error from S3
+	if herr != nil {
+		transferred = 0
+	}
 	h.Tracker.EndTime(
 		performance.DownloadCounter,
 		beganAt,
-		performance.SizeJob(object.ContentSize.Int64),
+		performance.SizeJob(transferred),
 	)
 	//And then return if something went wrong
 	if herr != nil {
@@ -143,7 +148,14 @@ func drainToCache(
 ) (*AppError, error) {
 	beganAt := t.BeginTime(performance.S3DrainFrom)
 	herr, err := dp.DrainToCache(bucket, theFile)
-	t.EndTime(performance.S3DrainFrom, beganAt, performance.SizeJob(length))
+	//Be careful to count failed transfers as zero bytes transferred in performance counter
+	//I'm assuming that all errors result in a failed file transfer, which is good enough
+	//to get close to correct statistics.
+	transferred := length
+	if herr != nil || err != nil {
+		transferred = 0
+	}
+	t.EndTime(performance.S3DrainFrom, beganAt, performance.SizeJob(transferred))
 	if herr != nil {
 		return herr, err
 	}
