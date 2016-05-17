@@ -19,8 +19,10 @@ const (
 	S3DrainTo = ReporterID(3)
 	// S3DrainFrom is time to recache file
 	S3DrainFrom = ReporterID(4)
-	// AACCounter
-	AACCounter = ReporterID(5)
+	// AACCounterCheckAccess tracking for if user has access to an ACM
+	AACCounterCheckAccess = ReporterID(5)
+	// AACCounterGetSnippets tracking for fetching user snippets and formatting
+	AACCounterGetSnippets = ReporterID(6)
 )
 
 /*
@@ -521,7 +523,8 @@ func NewJobReporters(capacity int) *JobReporters {
 	reporters.Reporters[DownloadCounter] = reporters.makeReporter("download", "B")
 	reporters.Reporters[S3DrainTo] = reporters.makeReporter("s3drainto", "B")
 	reporters.Reporters[S3DrainFrom] = reporters.makeReporter("s3drainfrom", "B")
-	reporters.Reporters[AACCounter] = reporters.makeReporter("aaclookup", "Req")
+	reporters.Reporters[AACCounterCheckAccess] = reporters.makeReporter("aaccheckaccess", "Req")
+	reporters.Reporters[AACCounterGetSnippets] = reporters.makeReporter("aacgetsnippets", "Req")
 
 	//Listen in on job reports
 	go jobReportersThread(reporters)

@@ -32,7 +32,10 @@ func (h AppServer) getStats(ctx context.Context, w http.ResponseWriter, r *http.
 	h.Tracker.Reporters[performance.S3DrainFrom].Q.Dump(w, verbose)
 
 	fmt.Fprintf(w, "\nFrom AAC:\n")
-	h.Tracker.Reporters[performance.AACCounter].Q.Dump(w, verbose)
+	fmt.Fprintf(w, "\n- Check Access:\n")
+	h.Tracker.Reporters[performance.AACCounterCheckAccess].Q.Dump(w, verbose)
+	fmt.Fprintf(w, "\n- Get Snippets:\n")
+	h.Tracker.Reporters[performance.AACCounterGetSnippets].Q.Dump(w, verbose)
 
 	countOKResponse()
 }

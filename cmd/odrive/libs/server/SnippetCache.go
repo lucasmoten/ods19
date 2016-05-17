@@ -8,6 +8,7 @@ import (
 
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
+	"decipher.com/object-drive-server/performance"
 	"golang.org/x/net/context"
 )
 
@@ -66,6 +67,8 @@ func (sc *SnippetCache) Clear() {
 // user either from cache, or from the database, creating the record as appropriate
 func (h AppServer) FetchUserSnippets(ctx context.Context) (*acm.ODriveRawSnippetFields, error) {
 
+	var cacheUserSnippets = false
+
 	// Get user from context
 	user, ok := UserFromContext(ctx)
 	if !ok {
@@ -77,8 +80,17 @@ func (h AppServer) FetchUserSnippets(ctx context.Context) (*acm.ODriveRawSnippet
 	}
 
 	// First check if exists in the cache
-	snippets, ok := h.Snippets.Get(user.DistinguishedName)
-	if !ok {
+	var snippets *acm.ODriveRawSnippetFields
+	if cacheUserSnippets {
+		snippets, ok = h.Snippets.Get(user.DistinguishedName)
+	}
+	if !ok || !cacheUserSnippets {
+		// Performance instrumentation
+		var beganAt = performance.BeganJob(int64(0))
+		if h.Tracker != nil {
+			beganAt = h.Tracker.BeginTime(performance.AACCounterGetSnippets)
+		}
+
 		// Not found in cache, look up from aac
 		log.Printf("Looking up snippets for user %s from aac", user.DistinguishedName)
 
@@ -105,8 +117,19 @@ func (h AppServer) FetchUserSnippets(ctx context.Context) (*acm.ODriveRawSnippet
 			return nil, err
 		}
 
+		// Performance tracking
+		if h.Tracker != nil {
+			h.Tracker.EndTime(
+				performance.AACCounterGetSnippets,
+				beganAt,
+				performance.SizeJob(1),
+			)
+		}
+
 		// Add this user snippet to this server's cache
-		h.Snippets.Set(user.DistinguishedName, &odriveRawSnippetFields)
+		if cacheUserSnippets {
+			h.Snippets.Set(user.DistinguishedName, &odriveRawSnippetFields)
+		}
 		snippets = &odriveRawSnippetFields
 	}
 	return snippets, nil

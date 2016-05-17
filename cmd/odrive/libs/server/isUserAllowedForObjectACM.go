@@ -35,7 +35,7 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 	// Performance instrumentation
 	var beganAt = performance.BeganJob(int64(0))
 	if h.Tracker != nil {
-		beganAt = h.Tracker.BeginTime(performance.AACCounter)
+		beganAt = h.Tracker.BeginTime(performance.AACCounterCheckAccess)
 	}
 
 	// Gather inputs
@@ -51,20 +51,20 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 
 	// Process Response
 	if err != nil {
-		return false, errors.New("Error calling ACM")
+		return false, errors.New("Error calling AAC.CheckAccess")
 	}
 	// Log the messages
 	for _, message := range aacResponse.Messages {
 		log.Printf("Message in AAC Response: %s\n", message)
 	}
 	if !aacResponse.Success {
-		return false, errors.New("Response from ACM failed")
+		return false, errors.New("Response from AAC.CheckAccess failed")
 	}
 
 	//We currently lack counters for aac check times, so log in order to get timestamps
 	if h.Tracker != nil {
 		h.Tracker.EndTime(
-			performance.AACCounter,
+			performance.AACCounterCheckAccess,
 			beganAt,
 			performance.SizeJob(1),
 		)
