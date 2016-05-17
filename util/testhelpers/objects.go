@@ -15,6 +15,7 @@ import (
 	"net/textproto"
 	"os"
 	"strings"
+	"testing"
 
 	cfg "decipher.com/object-drive-server/config"
 
@@ -37,6 +38,31 @@ type DeferFunc func()
 func GenerateTempFile(data string) (*os.File, DeferFunc, error) {
 	tmp, err := ioutil.TempFile(".", "__tempfile__")
 	tmp.WriteString(data)
+	return tmp, func() {
+		name := tmp.Name()
+		tmp.Close()
+		err = os.Remove(name)
+	}, err
+}
+
+// GenerateTempFileFromBytes creates a file handle from a byte slice, and returns
+// a cleanup function. Callers should call `defer` on the function that is returned.
+func GenerateTempFileFromBytes(data []byte, t *testing.T) (*os.File, DeferFunc) {
+	tmp, err := ioutil.TempFile(".", "__tempfile__")
+	if err != nil {
+		t.Errorf("GenerateTempFileFromBytes failed. Something is very wrong.")
+	}
+	tmp.Write(data)
+	return tmp, func() {
+		name := tmp.Name()
+		tmp.Close()
+		os.Remove(name)
+	}
+}
+
+// GenerateEmptyTempFile is for writing
+func GenerateEmptyTempFile() (*os.File, DeferFunc, error) {
+	tmp, err := ioutil.TempFile(".", "__tempfile__")
 	return tmp, func() {
 		name := tmp.Name()
 		tmp.Close()

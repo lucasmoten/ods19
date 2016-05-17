@@ -204,7 +204,8 @@ func (h AppServer) beginUploadTimed(
 	defer outFile.Close()
 
 	//Write the encrypted data to the filesystem
-	checksum, length, err := utils.DoCipherByReaderWriter(part, outFile, fileKey, iv, "uploading from browser")
+	byteRange := utils.NewByteRange()
+	checksum, length, err := utils.DoCipherByReaderWriter(part, outFile, fileKey, iv, "uploading from browser", byteRange)
 	if err != nil {
 		//It could be the client's fault, so we use 400 here.
 		msg := fmt.Sprintf("Unable to write ciphertext %s", outFileUploading)

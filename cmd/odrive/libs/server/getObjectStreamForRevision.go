@@ -115,8 +115,7 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 		return
 	}
 
-	// Fetch the stream for this object, sent to response writer
-	appError := h.getAndStreamFile(ctx, &dbObject, w, userEncryptKey, false)
+	appError := h.getAndStreamFile(ctx, &dbObject, w, r, userEncryptKey, false)
 	if appError != nil {
 		sendErrorResponse(&w, appError.Code, appError.Error, appError.Msg)
 		return

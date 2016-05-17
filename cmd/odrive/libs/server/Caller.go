@@ -133,7 +133,7 @@ func canImpersonateUser(whitelist []string, clientID string, user string) bool {
 	normalizedUserToken := config.GetNormalizedDistinguishedName(user)
 
 	if result {
-		log.Printf("Client %s is allowed it impersonate for %s\n", normalizedClient, normalizedUserToken)
+		//log.Printf("Client %s is allowed it impersonate for %s\n", normalizedClient, normalizedUserToken)
 	} else {
 		log.Printf("Client %s is denied! Unable to impersonate %s", normalizedClient, normalizedUserToken)
 	}
