@@ -13,6 +13,7 @@ import (
 	"os"
 	"strconv"
 	"testing"
+	"time"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/dao"
 	"decipher.com/object-drive-server/cmd/odrive/libs/server"
@@ -162,8 +163,16 @@ func NewClientTLSConfig(client *ClientIdentity) (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
-func makeFolderViaJSON(folderName string, clientid int) (*protocol.Object, error) {
-	return makeFolderWithACMViaJSON(folderName, testhelpers.ValidACMUnclassified, clientid)
+func makeFolderViaJSON(folderName string, clientid int, t *testing.T) *protocol.Object {
+
+	nameWithTimestamp := folderName + strconv.FormatInt(time.Now().Unix(), 10)
+
+	obj, err := makeFolderWithACMViaJSON(nameWithTimestamp, testhelpers.ValidACMUnclassified, clientid)
+	if err != nil {
+		t.Errorf("Error creating folder %s: %v\n", folderName, err)
+		t.FailNow()
+	}
+	return obj
 }
 func makeFolderWithACMViaJSON(folderName string, rawAcm string, clientid int) (*protocol.Object, error) {
 	folderuri := host + cfg.NginxRootURL + "/objects"

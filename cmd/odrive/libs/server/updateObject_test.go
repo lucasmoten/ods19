@@ -30,10 +30,7 @@ func TestUpdateObject(t *testing.T) {
 	}
 
 	// Create 1 folders under root
-	folder, err := makeFolderViaJSON("Test Folder for Update "+strconv.FormatInt(time.Now().Unix(), 10), clientid)
-	if err != nil {
-		t.FailNow()
-	}
+	folder := makeFolderViaJSON("Test Folder for Update ", clientid, t)
 
 	// Attempt to rename the folder
 	updateuri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
@@ -92,10 +89,7 @@ func TestUpdateObjectToHaveNoName(t *testing.T) {
 	}
 
 	// Create 1 folders under root
-	folder, err := makeFolderViaJSON("Test Folder for Update "+strconv.FormatInt(time.Now().Unix(), 10), clientid)
-	if err != nil {
-		t.FailNow()
-	}
+	folder := makeFolderViaJSON("Test Folder for Update ", clientid, t)
 
 	// Attempt to rename the folder
 	updateObjectRequest := protocol.UpdateObjectRequest{}
@@ -159,10 +153,7 @@ func TestUpdateObjectToChangeOwnedBy(t *testing.T) {
 	}
 
 	// Create 1 folders under root
-	folder, err := makeFolderViaJSON("Test Folder for Update "+strconv.FormatInt(time.Now().Unix(), 10), clientid)
-	if err != nil {
-		t.FailNow()
-	}
+	folder := makeFolderViaJSON("Test Folder for Update ", clientid, t)
 
 	// Attempt to change owner
 	updateuri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"

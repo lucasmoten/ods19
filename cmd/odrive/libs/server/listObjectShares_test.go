@@ -2,9 +2,7 @@ package server_test
 
 import (
 	"net/http"
-	"strconv"
 	"testing"
-	"time"
 
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/util"
@@ -24,11 +22,7 @@ func XTestListObjectShares(t *testing.T) {
 		t.Logf("(Verbose Mode) Using client id %d", clientid1)
 	}
 
-	folder1, err := makeFolderViaJSON("Test Folder 1 "+strconv.FormatInt(time.Now().Unix(), 10), clientid1)
-	if err != nil {
-		t.Logf("Error making folder 1: %v", err)
-		t.FailNow()
-	}
+	folder1 := makeFolderViaJSON("Test Folder 1 ", clientid1, t)
 
 	// URL
 	uri := host + cfg.NginxRootURL + "/object/" + folder1.ID + "/shares"

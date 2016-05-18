@@ -1,9 +1,6 @@
-# Large File Uploader
-This is an encrypted file storage API with a REST interface.
+# Object Drive Server
 
-# API documentation
-
-
+# API Documentation
 
 API documentation is hosted on the private Bedrock network here (subject to change):
 
@@ -18,14 +15,14 @@ Issues are tracked internally in this [Google Doc](https://docs.google.com/sprea
 We are using a vendoring tool called `govendor` to pin our dependencies to a specific commit.
 
 ```
-#get the vendoring tool
 go get github.com/kardianos/govendor
-cd $GOPATH/src/github.com/kardianos/govendor
-go install
+go install github.com/kardianos/govendor
+```
 
-# now govendor is in $GOPATH/bin, which should be in your path along with $GOROOT/bin
-#sync up all dependencies
-cd $GOPATH/src/decipher.com/object-drive-server
+The **govendor** tool should now be in $GOPATH/bin. Make sure that is on your PATH.
+Sync the dependencies to the local **/vendor** folder like this:
+
+```
 govendor sync
 ```
 

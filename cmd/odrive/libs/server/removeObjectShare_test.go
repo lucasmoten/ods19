@@ -3,11 +3,8 @@ package server_test
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"strconv"
 	"testing"
-	"time"
 
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/util"
@@ -21,25 +18,15 @@ func TestRemoveObjectShare(t *testing.T) {
 		t.Skip()
 	}
 	verboseOutput := testing.Verbose()
-	clientid1 := 0
-	clientid2 := 1
+	clientid1, clientid2 := 0, 1
 
 	if verboseOutput {
-		t.Logf("(Verbose Mode) Using client id %d", clientid1)
-		fmt.Println()
+		t.Logf("(Verbose Mode) Using client id %d\n", clientid1)
 	}
 
 	// Create 2 folders under root
-	folder1, err := makeFolderViaJSON("Test Folder 1 "+strconv.FormatInt(time.Now().Unix(), 10), clientid1)
-	if err != nil {
-		t.Logf("Error making folder 1: %v", err)
-		t.FailNow()
-	}
-	folder2, err := makeFolderViaJSON("Test Folder 2 "+strconv.FormatInt(time.Now().Unix(), 10), clientid1)
-	if err != nil {
-		t.Logf("Error making folder 2: %v", err)
-		t.FailNow()
-	}
+	folder1 := makeFolderViaJSON("Test Folder 1 ", clientid1, t)
+	folder2 := makeFolderViaJSON("Test Folder 2 ", clientid1, t)
 
 	// Attempt to move folder 2 under folder 1
 	moveuri := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
