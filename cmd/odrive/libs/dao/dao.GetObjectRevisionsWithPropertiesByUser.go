@@ -12,7 +12,11 @@ import (
 // object and the properties that were active at the point of that revision
 func (dao *DataAccessLayer) GetObjectRevisionsWithPropertiesByUser(
 	user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.ODObjectResultset{}, err
+	}
 	response, err := getObjectRevisionsWithPropertiesByUserInTransaction(tx, user, pagingRequest, object)
 	if err != nil {
 		log.Printf("Error in GetObjectRevisionsWithPropertiesByUser: %v", err)

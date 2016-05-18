@@ -12,8 +12,11 @@ import (
 // Properties in Object Drive that are nested beneath the parent object.
 func (dao *DataAccessLayer) GetChildObjectsWithProperties(
 	pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
-
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.ODObjectResultset{}, err
+	}
 	response, err := getChildObjectsWithPropertiesInTransaction(tx, pagingRequest, object)
 	if err != nil {
 		log.Printf("Error in GetChildObjectsWithProperties: %v", err)

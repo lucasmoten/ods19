@@ -9,8 +9,11 @@ import (
 
 // GetPropertiesForObject retrieves the properties for a given object.
 func (dao *DataAccessLayer) GetPropertiesForObject(object models.ODObject) ([]models.ODObjectPropertyEx, error) {
-
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return []models.ODObjectPropertyEx{}, err
+	}
 	response, err := getPropertiesForObjectInTransaction(tx, object)
 	if err != nil {
 		log.Printf("Error in GetPropertiesForObject: %v", err)

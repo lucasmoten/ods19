@@ -16,8 +16,12 @@ import (
 //    objectType.ChangeToken must be set to the current value
 //    objectType.ModifiedBy must be set to the user performing the operation
 func (dao *DataAccessLayer) DeleteObjectType(objectType models.ODObjectType) error {
-	tx := dao.MetadataDB.MustBegin()
-	err := deleteObjectTypeInTransaction(tx, objectType)
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return err
+	}
+	err = deleteObjectTypeInTransaction(tx, objectType)
 	if err != nil {
 		log.Printf("Error in DeleteObjectType: %v", err)
 		tx.Rollback()

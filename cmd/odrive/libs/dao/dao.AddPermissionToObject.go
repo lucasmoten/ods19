@@ -15,7 +15,11 @@ import (
 // AddPermissionToObject creates a new permission with the provided object id,
 // grant, and permissions.
 func (dao *DataAccessLayer) AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission, propogateToChildren bool, masterKey string) (models.ODObjectPermission, error) {
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.ODObjectPermission{}, err
+	}
 	response, err := addPermissionToObjectInTransaction(tx, object, permission, propogateToChildren, masterKey)
 	if err != nil {
 		log.Printf("Error in AddPermissionToobject: %v", err)

@@ -13,7 +13,11 @@ import (
 
 // CreateObject ...
 func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObject, error) {
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.ODObject{}, err
+	}
 	dbObject, err := createObjectInTransaction(tx, object)
 	if err != nil {
 		log.Printf("Error in CreateObject: %v", err)

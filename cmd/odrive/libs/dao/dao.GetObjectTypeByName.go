@@ -13,7 +13,11 @@ import (
 // GetObjectTypeByName looks up an object type by its name, and if it doesn't
 // exist, optionally calls CreateObjectType to add it.
 func (dao *DataAccessLayer) GetObjectTypeByName(typeName string, addIfMissing bool, createdBy string) (models.ODObjectType, error) {
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.ODObjectType{}, err
+	}
 	objectType, err := getObjectTypeByNameInTransaction(tx, typeName, addIfMissing, createdBy)
 	if err != nil {
 		log.Printf("Error in GetObjectTypeByName: %v", err)

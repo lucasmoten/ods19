@@ -12,8 +12,12 @@ import (
 // UpdatePermission uses the passed in permission and makes the appropriate
 // sql calls to the database to update the existing grant
 func (dao *DataAccessLayer) UpdatePermission(permission models.ODObjectPermission) error {
-	tx := dao.MetadataDB.MustBegin()
-	err := updatePermissionInTransaction(tx, permission)
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return err
+	}
+	err = updatePermissionInTransaction(tx, permission)
 	if err != nil {
 		log.Printf("Error in UpdateObjectPermission: %v", err)
 		tx.Rollback()

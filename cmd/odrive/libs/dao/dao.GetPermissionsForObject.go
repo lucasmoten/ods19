@@ -9,8 +9,11 @@ import (
 
 // GetPermissionsForObject retrieves the grants for a given object.
 func (dao *DataAccessLayer) GetPermissionsForObject(object models.ODObject) ([]models.ODObjectPermission, error) {
-
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return []models.ODObjectPermission{}, err
+	}
 	response, err := getPermissionsForObjectInTransaction(tx, object)
 	if err != nil {
 		log.Printf("Error in GetPermissionsForObject: %v", err)

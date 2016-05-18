@@ -16,8 +16,11 @@ import (
 //    objectPermission.ChangeToken must be set to the current value
 //    objectPermission.ModifiedBy must be set to the user performing the operation
 func (dao *DataAccessLayer) DeleteObjectPermission(objectPermission models.ODObjectPermission, propagateToChildren bool) (models.ODObjectPermission, error) {
-
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.ODObjectPermission{}, err
+	}
 	dbObjectPermission, err := deleteObjectPermissionInTransaction(tx, objectPermission, propagateToChildren)
 	if err != nil {
 		log.Printf("Error in DeleteObjectPermission: %v", err)

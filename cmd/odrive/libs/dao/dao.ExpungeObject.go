@@ -24,8 +24,12 @@ import (
 //      whose purpose is to mark child items as implicitly deleted due to an
 //      ancestor being deleted.
 func (dao *DataAccessLayer) ExpungeObject(object models.ODObject, explicit bool) error {
-	tx := dao.MetadataDB.MustBegin()
-	err := expungeObjectInTransaction(tx, object, explicit)
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return err
+	}
+	err = expungeObjectInTransaction(tx, object, explicit)
 	if err != nil {
 		log.Printf("Error in ExpungeObject: %v", err)
 		tx.Rollback()

@@ -12,7 +12,11 @@ import (
 // GetUserByDistinguishedName looks up user record from the database using the
 // provided distinguished name
 func (dao *DataAccessLayer) GetUserByDistinguishedName(user models.ODUser) (models.ODUser, error) {
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.ODUser{}, err
+	}
 	dbUser, err := getUserByDistinguishedNameInTransaction(tx, user)
 	if err != nil {
 		if err != sql.ErrNoRows {

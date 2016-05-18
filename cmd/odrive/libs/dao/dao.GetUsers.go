@@ -9,7 +9,11 @@ import (
 
 // GetUsers retrieves all users.
 func (dao *DataAccessLayer) GetUsers() ([]models.ODUser, error) {
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return []models.ODUser{}, err
+	}
 	result, err := getUsersInTransaction(tx)
 	if err != nil {
 		log.Printf("Error in GetUsers: %v", err)

@@ -12,7 +12,11 @@ import (
 // GetChildObjects retrieves a list of Objects in Object Drive that are nested
 // beneath a specified object by parentID
 func (dao *DataAccessLayer) GetChildObjects(pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.ODObjectResultset{}, err
+	}
 	response, err := getChildObjectsInTransaction(tx, pagingRequest, object)
 	if err != nil {
 		log.Printf("Error in GetChildObjects: %v", err)

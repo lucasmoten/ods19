@@ -12,7 +12,11 @@ import (
 // GetRootObjects retrieves a list of Objects that are not nested
 // beneath any other objects natively (natural parentId is null).
 func (dao *DataAccessLayer) GetRootObjects(pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.ODObjectResultset{}, err
+	}
 	response, err := getRootObjectsInTransaction(tx, pagingRequest)
 	if err != nil {
 		log.Printf("Error in GetRootObjects: %v", err)
