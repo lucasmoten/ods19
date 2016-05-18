@@ -18,9 +18,12 @@ import (
 //    objectProperty.ModifiedBy must be set to the user performing the operation
 //    objectProperty.Value.String must be set to the new value.
 func (dao *DataAccessLayer) UpdateObjectProperty(objectProperty models.ODObjectPropertyEx) error {
-
-	tx := dao.MetadataDB.MustBegin()
-	err := updateObjectPropertyInTransaction(tx, objectProperty)
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return err
+	}
+	err = updateObjectPropertyInTransaction(tx, objectProperty)
 	if err != nil {
 		log.Printf("Error in UpdateObjectProperty: %v", err)
 		tx.Rollback()

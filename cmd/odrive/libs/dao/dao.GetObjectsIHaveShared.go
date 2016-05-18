@@ -12,7 +12,11 @@ import (
 // GetObjectsIHaveShared retrieves a list of Objects that I have explicitly
 // shared to others
 func (dao *DataAccessLayer) GetObjectsIHaveShared(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.ODObjectResultset{}, err
+	}
 	response, err := getObjectsIHaveSharedInTransaction(tx, user, pagingRequest)
 	if err != nil {
 		log.Printf("Error in GetObjectsIHaveShared: %v", err)

@@ -13,7 +13,11 @@ import (
 // retrieved and the user passed in by reference is updated with the remaining
 // attributes.
 func (dao *DataAccessLayer) CreateUser(user models.ODUser) (models.ODUser, error) {
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.ODUser{}, err
+	}
 	dbUser, err := createUserInTransaction(tx, user)
 	if err != nil {
 		log.Printf("Error in CreateUser: %v", err)

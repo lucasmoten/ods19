@@ -12,7 +12,11 @@ import (
 // AddPropertyToObject creates a new property with the provided name and value,
 // and then associates that Property object to the Object indicated by ObjectID
 func (dao *DataAccessLayer) AddPropertyToObject(object models.ODObject, property *models.ODProperty) (models.ODProperty, error) {
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.ODProperty{}, err
+	}
 	dbProperty, err := addPropertyToObjectInTransaction(tx, object, property)
 	if err != nil {
 		log.Printf("Error in AddPropertyToObject: %v", err)

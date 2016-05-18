@@ -17,7 +17,11 @@ import (
 // available to the user making the call, matching any specified
 // filter settings on the paging request, and ordered by sort settings
 func (dao *DataAccessLayer) SearchObjectsByNameOrDescription(user models.ODUser, pagingRequest protocol.PagingRequest, loadProperties bool) (models.ODObjectResultset, error) {
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.ODObjectResultset{}, err
+	}
 	response, err := searchObjectsByNameOrDescriptionInTransaction(tx, user, pagingRequest, loadProperties)
 	if err != nil {
 		log.Printf("Error in SearchObjectsByNameOrDescription: %v", err)

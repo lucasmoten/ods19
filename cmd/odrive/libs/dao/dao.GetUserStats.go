@@ -7,9 +7,13 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// GetUserStats returns metrics of object counts and file space used for objects and revisions owned by a user
 func (dao *DataAccessLayer) GetUserStats(dn string) (models.UserStats, error) {
-
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.UserStats{}, err
+	}
 	userStats, err := getUserStatsInTransaction(tx, dn)
 	if err != nil {
 		log.Printf("Error in UserStats: %v\n", err)

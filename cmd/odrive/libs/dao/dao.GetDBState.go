@@ -10,8 +10,11 @@ import (
 )
 
 func (dao *DataAccessLayer) GetDBState() (models.DBState, error) {
-
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.DBState{}, err
+	}
 	dbState, err := getDBStateInTransaction(tx)
 	if err != nil {
 		log.Printf("Error in GetDBState: %v\n", err)

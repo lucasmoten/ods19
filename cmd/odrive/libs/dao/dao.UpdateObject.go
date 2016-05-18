@@ -18,8 +18,12 @@ import (
 // appropriate sql calls to the database to update the existing object and acm
 // changing properties and permissions associated.
 func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
-	tx := dao.MetadataDB.MustBegin()
-	err := updateObjectInTransaction(tx, object)
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return err
+	}
+	err = updateObjectInTransaction(tx, object)
 	if err != nil {
 		log.Printf("Error in UpdateObject: %v", err)
 		tx.Rollback()

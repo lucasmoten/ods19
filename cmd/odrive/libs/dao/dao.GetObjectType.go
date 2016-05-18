@@ -10,7 +10,11 @@ import (
 // GetObjectType uses the passed in objectType and makes the appropriate sql
 // calls to the database to retrieve and return the requested object type by ID.
 func (dao *DataAccessLayer) GetObjectType(objectType models.ODObjectType) (*models.ODObjectType, error) {
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return nil, err
+	}
 	dbObjectType, err := getObjectTypeInTransaction(tx, objectType)
 	if err != nil {
 		log.Printf("Error in GetObjectType: %v", err)

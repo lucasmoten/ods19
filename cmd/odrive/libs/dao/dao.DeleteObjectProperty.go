@@ -17,9 +17,12 @@ import (
 //    objectProperty.ChangeToken must be set to the current value
 //    objectProperty.ModifiedBy must be set to the user performing the operation
 func (dao *DataAccessLayer) DeleteObjectProperty(objectProperty models.ODObjectPropertyEx) error {
-
-	tx := dao.MetadataDB.MustBegin()
-	err := deleteObjectPropertyInTransaction(tx, objectProperty)
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return err
+	}
+	err = deleteObjectPropertyInTransaction(tx, objectProperty)
 	if err != nil {
 		log.Printf("Error in DeleteObjectProperty: %v", err)
 		tx.Rollback()

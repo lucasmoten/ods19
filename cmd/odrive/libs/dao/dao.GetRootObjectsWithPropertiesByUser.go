@@ -13,7 +13,11 @@ import (
 // natively (natural parentId is null) and are owned by the specified user or
 // group.
 func (dao *DataAccessLayer) GetRootObjectsWithPropertiesByUser(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.ODObjectResultset{}, err
+	}
 	response, err := getRootObjectsWithPropertiesByUserInTransaction(tx, user, pagingRequest)
 	if err != nil {
 		log.Printf("Error in GetRootObjectsWithPropertiesByUser: %v", err)

@@ -12,8 +12,11 @@ import (
 // UndeleteObject undeletes an object at the database level, and propagates the
 // undelete action to children that were not explicitly deleted themselves.
 func (dao *DataAccessLayer) UndeleteObject(object *models.ODObject) (models.ODObject, error) {
-
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.ODObject{}, err
+	}
 	dbObject, err := undeleteObjectInTransaction(tx, object)
 	if err != nil {
 		log.Printf("Error in UndeleteObject: %v\n", err)

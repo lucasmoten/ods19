@@ -10,8 +10,11 @@ import (
 // GetPropertiesForObjectRevision retrieves the properties for a specific
 // revision of the given object instead of the current revision.
 func (dao *DataAccessLayer) GetPropertiesForObjectRevision(object models.ODObject) ([]models.ODObjectPropertyEx, error) {
-
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return []models.ODObjectPropertyEx{}, err
+	}
 	response, err := getPropertiesForObjectRevisionInTransaction(tx, object)
 	if err != nil {
 		log.Printf("Error in GetPropertiesForObjectRevision: %v", err)

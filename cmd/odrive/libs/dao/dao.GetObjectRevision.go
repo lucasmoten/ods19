@@ -12,8 +12,11 @@ import (
 // changeCount. Optionally, loadProperties flag pulls in nested properties
 // associated with this revision of the object.
 func (dao *DataAccessLayer) GetObjectRevision(object models.ODObject, loadProperties bool) (models.ODObject, error) {
-
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.ODObject{}, err
+	}
 	dbObject, err := getObjectRevisionInTransaction(tx, object, loadProperties)
 	if err != nil {
 		log.Printf("Error in GetObjectRevision: %v", err)

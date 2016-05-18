@@ -15,7 +15,11 @@ import (
 // the object type must exist.  Once added, the record is retrieved and the
 // object type passed in by reference is updated with the remaining attributes
 func (dao *DataAccessLayer) CreateObjectType(objectType *models.ODObjectType) (models.ODObjectType, error) {
-	tx := dao.MetadataDB.MustBegin()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		log.Printf("Could not begin transaction: %v", err)
+		return models.ODObjectType{}, err
+	}
 	dbObjectType, err := createObjectTypeInTransaction(tx, objectType)
 	if err != nil {
 		log.Printf("Error in CreateObjectType: %v", err)
