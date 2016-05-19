@@ -1,6 +1,7 @@
 package server
 
 import (
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -14,11 +15,10 @@ import (
 	"decipher.com/object-drive-server/protocol"
 )
 
-// listObjects is a method handler on AppServer for implementing the listObjects
-// microservice operation.  If parentID is given in the request URI, then it is
-// used to list the children within it, otherwise, the root for the given user
-// is listed.  For a user, the root is defined as those objects that they own
-// which have no parent identifier set.
+// listObjects reuturns a paged object result set.  If parentID is given in the request URI,
+// then it is used to list the children within it, otherwise, the root for the given user
+// is listed. For a user, the root is defined as those objects that they own
+// which have no parent identifier.
 func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
 	// Get user from context
@@ -43,17 +43,13 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 		sendErrorResponse(&w, 400, err, "Error parsing request")
 		return
 	}
-	if len(pagingRequest.ObjectID) == 0 {
-		parentObject.ID = nil
-	} else {
-		parentObject.ID, err = hex.DecodeString(pagingRequest.ObjectID)
-		if err != nil {
-			sendErrorResponse(&w, 400, err, "Object Identifier in Request URI is not a hex string")
-			return
-		}
+
+	parentObject, err = assignObjectIDFromPagingRequest(pagingRequest, parentObject)
+	if err != nil {
+		sendErrorResponse(&w, 400, err, "Object Identifier in Request URI is not a hex string")
+		return
 	}
 
-	// Snippets
 	snippetFields, err := h.FetchUserSnippets(ctx)
 	if err != nil {
 		sendErrorResponse(&w, 504, errors.New("Error retrieving user permissions."), err.Error())
@@ -70,7 +66,8 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 		dbObject, err := h.DAO.GetObject(parentObject, false)
 		if err != nil {
 			log.Println(err)
-			sendErrorResponse(&w, 500, err, "Error retrieving object")
+			code, msg := listObjectsDAOErr(err)
+			sendErrorResponse(&w, code, err, msg)
 			return
 		}
 		// Check for permission to read this object
@@ -85,27 +82,19 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 			sendErrorResponse(&w, 403, err, "Insufficient permissions to list contents of this object")
 			return
 		}
-		// Is it deleted?
-		if dbObject.IsDeleted {
-			switch {
-			case dbObject.IsExpunged:
-				sendErrorResponse(&w, 410, err, "The object no longer exists.")
-				return
-			case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-				sendErrorResponse(&w, 405, err, "The object cannot be read because an ancestor is deleted.")
-				return
-			case dbObject.IsDeleted:
-				sendErrorResponse(&w, 405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it before listing its contents")
-				return
-			}
+
+		if ok, code, err := isDeletedErr(dbObject); !ok {
+			sendErrorResponse(&w, code, err, "")
+			return
 		}
 
 		// Get the objects
 		response, err = h.DAO.GetChildObjectsWithPropertiesByUser(user, *pagingRequest, parentObject)
+
 	}
 	if err != nil {
-		log.Println(err)
-		sendErrorResponse(&w, 500, err, "General error")
+		code, msg := listObjectsDAOErr(err)
+		sendErrorResponse(&w, code, err, msg)
 		return
 	}
 
@@ -115,15 +104,43 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 	countOKResponse()
 }
 
-func writeResultsetAsJSON(
-	w http.ResponseWriter,
-	response *protocol.ObjectResultset,
-) {
+func assignObjectIDFromPagingRequest(pagingRequest *protocol.PagingRequest, parent models.ODObject) (models.ODObject, error) {
+	var err error
+	if len(pagingRequest.ObjectID) == 0 {
+		parent.ID = nil
+	} else {
+		parent.ID, err = hex.DecodeString(pagingRequest.ObjectID)
+	}
+	return parent, err
+}
+
+func writeResultsetAsJSON(w http.ResponseWriter, resp *protocol.ObjectResultset) {
 	w.Header().Set("Content-Type", "application/json")
-	jsonData, err := json.MarshalIndent(response, "", "  ")
+	jsonData, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
 		log.Printf("Error marshalling response as json: %s", err.Error())
 		return
 	}
 	w.Write(jsonData)
+}
+
+func isDeletedErr(obj models.ODObject) (ok bool, code int, err error) {
+	switch {
+	case obj.IsExpunged:
+		return false, 410, errors.New("object is expunged")
+	case obj.IsAncestorDeleted:
+		return false, 405, errors.New("object ancestor is deleted.")
+	case obj.IsDeleted:
+		return false, 405, errors.New("object is deleted")
+	}
+	return true, 0, nil
+}
+
+func listObjectsDAOErr(err error) (code int, message string) {
+	switch err {
+	case sql.ErrNoRows:
+		return 404, "Object not found"
+	default:
+		return 500, "Error retrieving object"
+	}
 }
