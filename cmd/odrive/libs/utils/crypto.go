@@ -162,31 +162,16 @@ func RangeCopy(dst io.Writer, src io.Reader, byteRange *ByteRange) (int64, error
 		return io.Copy(dst, src)
 	}
 
-	totalLength := int64(0)
-	var length int64
 	var err error
 	if byteRange.Start > int64(0) {
-		//log.Printf("RangeCopy %d-%d: discard %d", byteRange.Start, byteRange.Stop, byteRange.Start)
-		length, err = io.CopyN(ioutil.Discard, src, byteRange.Start)
+		_, err = io.CopyN(ioutil.Discard, src, byteRange.Start)
 		if err != nil {
-			return totalLength, err
+			return 0, err
 		}
 	}
-	totalLength += length
 	if byteRange.Stop == -1 {
-		length, err = io.Copy(dst, src)
-		totalLength += length
-		return totalLength, err
+		return io.Copy(dst, src)
 	}
 	rangeDiff := byteRange.Stop - byteRange.Start + 1
-	//log.Printf("RangeCopy %d-%d: copy %d", byteRange.Start, byteRange.Stop, rangeDiff)
-	length, err = io.CopyN(dst, src, rangeDiff)
-	if err != nil {
-		return totalLength, err
-	}
-	totalLength += length
-	//Discard the remainder unconditionally
-	io.Copy(ioutil.Discard, src)
-	return totalLength, err
-
+	return io.CopyN(dst, src, rangeDiff)
 }

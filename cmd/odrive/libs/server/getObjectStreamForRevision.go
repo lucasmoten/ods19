@@ -115,7 +115,8 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 		return
 	}
 
-	appError := h.getAndStreamFile(ctx, &dbObject, w, r, userEncryptKey, false)
+	//TODO: these are not performance counted as all downloads?
+	_, appError := h.getAndStreamFile(ctx, &dbObject, w, r, userEncryptKey, false)
 	if appError != nil {
 		sendErrorResponse(&w, appError.Code, appError.Error, appError.Msg)
 		return

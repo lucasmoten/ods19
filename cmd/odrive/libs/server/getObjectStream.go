@@ -100,8 +100,7 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 
 	//Performance count this operation
 	beganAt := h.Tracker.BeginTime(performance.DownloadCounter)
-	herr := h.getObjectStreamWithObject(ctx, w, r, object)
-	transferred := object.ContentSize.Int64
+	transferred, herr := h.getObjectStreamWithObject(ctx, w, r, object)
 	//Make sure that we count as zero bytes if there was a download error from S3
 	if herr != nil {
 		transferred = 0
@@ -120,14 +119,15 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 }
 
 // getObjectStreamWithObject is the continuation after we retrieved the object from the database
-func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.ResponseWriter, r *http.Request, object models.ODObject) *AppError {
+// returns the actual bytes transferred due to range requesting
+func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.ResponseWriter, r *http.Request, object models.ODObject) (int64, *AppError) {
 
 	var err error
 
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		return NewAppError(500, err, "Could not determine user")
+		return 0, NewAppError(500, err, "Could not determine user")
 	}
 
 	// Get the key from the permission
@@ -135,17 +135,17 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	var fileKey []byte
 
 	if len(object.Permissions) == 0 {
-		return NewAppError(403, fmt.Errorf("We cannot decrypt files lacking permissions"), "Unauthorized")
+		return 0, NewAppError(403, fmt.Errorf("We cannot decrypt files lacking permissions"), "Unauthorized")
 	}
 
 	if object.IsDeleted {
 		switch {
 		case object.IsExpunged:
-			return NewAppError(410, err, "The object no longer exists.")
+			return 0, NewAppError(410, err, "The object no longer exists.")
 		case object.IsAncestorDeleted:
-			return NewAppError(405, err, "The object cannot be modified because an ancestor is deleted.")
+			return 0, NewAppError(405, err, "The object cannot be modified because an ancestor is deleted.")
 		default:
-			return NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
+			return 0, NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
 		}
 	}
 	//XXX watch for very large number of permissions on a file!
@@ -160,26 +160,26 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 		}
 	}
 	if len(fileKey) == 0 {
-		return NewAppError(403, fmt.Errorf("no applicable permission found"), "Unauthorized")
+		return 0, NewAppError(403, fmt.Errorf("no applicable permission found"), "Unauthorized")
 	}
 
 	// Check AAC to compare user clearance to  metadata Classifications
 	// 		Check if Classification is allowed for this User
 	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &object)
 	if err != nil {
-		return NewAppError(500, err, "Error communicating with authorization service")
+		return 0, NewAppError(500, err, "Error communicating with authorization service")
 	}
 	if !hasAACAccess {
-		return NewAppError(403, err, "Unauthorized")
+		return 0, NewAppError(403, err, "Unauthorized")
 	}
 
 	if !object.ContentSize.Valid || object.ContentSize.Int64 <= int64(0) {
-		return NewAppError(204, fmt.Errorf("content %v", object.ContentSize), "No content")
+		return 0, NewAppError(204, fmt.Errorf("content %v", object.ContentSize), "No content")
 	}
 
-	h.getAndStreamFile(ctx, &object, w, r, fileKey, true)
+	contentLength, herr := h.getAndStreamFile(ctx, &object, w, r, fileKey, true)
 
-	return nil
+	return contentLength, herr
 }
 
 // drainToCache is the function that retrieves things back out of the drain, and into the cache
@@ -343,7 +343,7 @@ func searchForCachedOrUploadedFile(d DrainProvider, cipherFilePathCached, cipher
 
 // This func broken out from the getObjectStream. It still needs refactored to
 // be more maintainable and make use of an interface for the content streams
-func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject, w http.ResponseWriter, r *http.Request, encryptKey []byte, withMetadata bool) *AppError {
+func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject, w http.ResponseWriter, r *http.Request, encryptKey []byte, withMetadata bool) (int64, *AppError) {
 	var err error
 	var herr *AppError
 
@@ -356,18 +356,18 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 
 	byteRange, err := extractByteRange(r)
 	if err != nil {
-		return NewAppError(400, err, "Unable to parse byte range")
+		return 0, NewAppError(400, err, "Unable to parse byte range")
 	}
 	cipherFile, herr = searchForCachedOrUploadedFile(h.DrainProvider, cipherFilePathCached, cipherFilePathUploaded, byteRange)
 	if herr != nil {
-		return herr
+		return 0, herr
 	}
 
 	// Check if cipherFile was assigned, denoting whether or not pulling from cache
 	if cipherFile == nil {
 		cipherFile, herr = handleCacheMiss(h.DrainProvider, h.Tracker, object, cipherFilePathCached)
 		if herr != nil {
-			return herr
+			return 0, herr
 		}
 	}
 
@@ -418,7 +418,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 		//Seek to where we should start reading the cipher
 		_, err := cipherFile.Seek(cipherStartAt, 0)
 		if err != nil {
-			return NewAppError(500, err, "Could not seek file")
+			return 0, NewAppError(500, err, "Could not seek file")
 		}
 
 		//Add blocksToSkip to the iv
@@ -448,7 +448,8 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	}
 
 	//Actually send back the cipherFile
-	_, _, err = utils.DoCipherByReaderWriter(
+	var actualLength int64
+	_, actualLength, err = utils.DoCipherByReaderWriter(
 		cipherFile,
 		w,
 		encryptKey,
@@ -461,8 +462,10 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 		//Error here isn't a constant, but it's indicative of client disconnecting and
 		//not bothering to eat all the bytes we sent back (as promised).  So be quiet
 		//in the case of broken pipe.
-		if strings.Contains(err.Error(), " write: broken pipe") == false ||
-			strings.Contains(err.Error(), " write: connection reset by peer") == false {
+		if strings.Contains(err.Error(), " write: broken pipe") ||
+			strings.Contains(err.Error(), " write: connection reset by peer") {
+			//Clients are allowed to disconnect and not accept all bytes we are sending back
+		} else {
 			log.Printf("client disconnected (%s): %v", cipherFilePathCached, err)
 		}
 	}
@@ -471,5 +474,5 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	tm = time.Now()
 	d.Files().Chtimes(cipherFilePathCached, tm, tm)
 
-	return nil
+	return actualLength, nil
 }
