@@ -81,7 +81,7 @@ func (c *Caller) ValidateHeaders(whitelist []string, w http.ResponseWriter, r *h
 			c.TransactionType = "IMPERSONATION"
 			if !canImpersonateUser(whitelist, sslClientSDn, userDn) ||
 				!canImpersonateUser(whitelist, externalSysDn, userDn) {
-				return fmt.Errorf("Unauthorized: Either or both of the ssl_cleint_s_dn or external_sys_dn are not authorized to impersonate or have access.")
+				return fmt.Errorf("Unauthorized: Either or both of the ssl_client_s_dn or external_sys_dn are not authorized to impersonate or have access.")
 			}
 			return nil
 		} else if have(userDn) && have(sslClientSDn) && !have(externalSysDn) {
