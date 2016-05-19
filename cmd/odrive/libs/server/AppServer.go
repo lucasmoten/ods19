@@ -127,7 +127,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(&w, 401, err, err.Error())
 		return
 	}
-	log.Printf("Transaction: " + caller.TransactionType + " VALID! UserAuthentication.current: " + caller.UserDistinguishedName + " " + caller.GetMessage())
+	//log.Printf("Transaction: " + caller.TransactionType + " VALID! UserAuthentication.current: " + caller.UserDistinguishedName + " " + caller.GetMessage())
 
 	var ctx context.Context
 	ctx = ContextWithCaller(context.Background(), caller)

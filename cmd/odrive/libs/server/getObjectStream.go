@@ -1,9 +1,11 @@
 package server
 
 import (
+	"crypto/aes"
 	"fmt"
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"strconv"
 	"strings"
@@ -19,16 +21,64 @@ import (
 	"decipher.com/object-drive-server/performance"
 )
 
+const (
+	//B is Bytes unit
+	B = int64(1)
+	//kB is KBytes unit
+	kB = 1024 * B
+	//MB is MegaBytes unit
+	MB = 1024 * kB
+	//GB is Gigabytes unit
+	GB = 1024 * MB
+)
+
+func extractByteRange(r *http.Request) (*utils.ByteRange, error) {
+	var err error
+	byteRangeSpec := r.Header.Get("Range")
+	parsedByteRange := utils.NewByteRange()
+	if len(byteRangeSpec) > 0 {
+		log.Printf("!!! Byte Range was requested: %s", byteRangeSpec)
+		typeOfRange := strings.Split(byteRangeSpec, "=")
+		if typeOfRange[0] == "bytes" {
+			startStop := strings.Split(typeOfRange[1], "-")
+			parsedByteRange.Start, err = strconv.ParseInt(startStop[0], 10, 64)
+			if err != nil {
+				log.Printf("Could not parse start int64")
+			} else {
+				if len(startStop[1]) > 0 {
+					parsedByteRange.Stop, err = strconv.ParseInt(startStop[1], 10, 64)
+					if err != nil {
+						log.Printf("Could not parse stop int64")
+					}
+				}
+			}
+		} else {
+			log.Printf("could not understand range type: %s", typeOfRange[0])
+		}
+	} else {
+		//If there is no byte range asked for, then don't return one.  It's important, because
+		// if client is not asking for a byte range, then he's expecting a 200.
+		return nil, nil
+	}
+	return parsedByteRange, err
+}
+
+func debugRequest(r *http.Request) {
+	req, err := httputil.DumpRequest(r, false)
+	if err != nil {
+		log.Printf("unable to dump http request:%v", err)
+	} else {
+		log.Printf("%s", string(req))
+	}
+
+}
+
 // getObjectStream gets object data stored in object-drive
 func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	// req, err := httputil.DumpRequest(r, true)
-	// if err != nil {
-	// 	log.Printf("unable to dump http request:%v", err)
-	// } else {
-	// 	log.Printf("%s", string(req))
-	// }
-	var requestObject models.ODObject
 	var err error
+	var requestObject models.ODObject
+
+	//debugRequest(r)
 
 	requestObject, err = parseGetObjectRequest(ctx)
 	if err != nil {
@@ -50,8 +100,7 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 
 	//Performance count this operation
 	beganAt := h.Tracker.BeginTime(performance.DownloadCounter)
-	herr := h.getObjectStreamWithObject(ctx, w, r, object)
-	transferred := object.ContentSize.Int64
+	transferred, herr := h.getObjectStreamWithObject(ctx, w, r, object)
 	//Make sure that we count as zero bytes if there was a download error from S3
 	if herr != nil {
 		transferred = 0
@@ -70,14 +119,15 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 }
 
 // getObjectStreamWithObject is the continuation after we retrieved the object from the database
-func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.ResponseWriter, r *http.Request, object models.ODObject) *AppError {
+// returns the actual bytes transferred due to range requesting
+func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.ResponseWriter, r *http.Request, object models.ODObject) (int64, *AppError) {
 
 	var err error
 
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		return NewAppError(500, err, "Could not determine user")
+		return 0, NewAppError(500, err, "Could not determine user")
 	}
 
 	// Get the key from the permission
@@ -85,17 +135,17 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	var fileKey []byte
 
 	if len(object.Permissions) == 0 {
-		return NewAppError(403, fmt.Errorf("We cannot decrypt files lacking permissions"), "Unauthorized")
+		return 0, NewAppError(403, fmt.Errorf("We cannot decrypt files lacking permissions"), "Unauthorized")
 	}
 
 	if object.IsDeleted {
 		switch {
 		case object.IsExpunged:
-			return NewAppError(410, err, "The object no longer exists.")
+			return 0, NewAppError(410, err, "The object no longer exists.")
 		case object.IsAncestorDeleted:
-			return NewAppError(405, err, "The object cannot be modified because an ancestor is deleted.")
+			return 0, NewAppError(405, err, "The object cannot be modified because an ancestor is deleted.")
 		default:
-			return NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
+			return 0, NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
 		}
 	}
 	//XXX watch for very large number of permissions on a file!
@@ -110,31 +160,26 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 		}
 	}
 	if len(fileKey) == 0 {
-		return NewAppError(403, fmt.Errorf("no applicable permission found"), "Unauthorized")
+		return 0, NewAppError(403, fmt.Errorf("no applicable permission found"), "Unauthorized")
 	}
 
 	// Check AAC to compare user clearance to  metadata Classifications
 	// 		Check if Classification is allowed for this User
 	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &object)
 	if err != nil {
-		return NewAppError(500, err, "Error communicating with authorization service")
+		return 0, NewAppError(500, err, "Error communicating with authorization service")
 	}
 	if !hasAACAccess {
-		return NewAppError(403, err, "Unauthorized")
+		return 0, NewAppError(403, err, "Unauthorized")
 	}
 
-	// Fail fast: Don't even look at cache or retrieve if the file size is 0
 	if !object.ContentSize.Valid || object.ContentSize.Int64 <= int64(0) {
-		return NewAppError(204, nil, "No content")
+		return 0, NewAppError(204, fmt.Errorf("content %v", object.ContentSize), "No content")
 	}
 
-	// Database checks and AAC checks take time, particularly AAC.
-	// We may have just uploaded this file, with it still draining
-	// to S3 in the background.  So open the file as late as possible
-	// so that we take advantage of that parallelism.
-	h.getAndStreamFile(ctx, &object, w, fileKey, true)
+	contentLength, herr := h.getAndStreamFile(ctx, &object, w, r, fileKey, true)
 
-	return nil
+	return contentLength, herr
 }
 
 // drainToCache is the function that retrieves things back out of the drain, and into the cache
@@ -255,7 +300,7 @@ func handleCacheMiss(dp DrainProvider, t *performance.JobReporters, object *mode
 }
 
 // We would like to have a .cached file, but an .uploaded file will do.
-func searchForCachedOrUploadedFile(d DrainProvider, cipherFilePathCached, cipherFilePathUploaded FileNameCached) (*os.File, *AppError) {
+func searchForCachedOrUploadedFile(d DrainProvider, cipherFilePathCached, cipherFilePathUploaded FileNameCached, byteRange *utils.ByteRange) (*os.File, *AppError) {
 	var cipherFile *os.File
 	var err error
 	//Try to find the cached file
@@ -292,12 +337,13 @@ func searchForCachedOrUploadedFile(d DrainProvider, cipherFilePathCached, cipher
 	} else {
 		//the cached file exists
 	}
+
 	return cipherFile, nil
 }
 
 // This func broken out from the getObjectStream. It still needs refactored to
 // be more maintainable and make use of an interface for the content streams
-func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject, w http.ResponseWriter, encryptKey []byte, withMetadata bool) *AppError {
+func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject, w http.ResponseWriter, r *http.Request, encryptKey []byte, withMetadata bool) (int64, *AppError) {
 	var err error
 	var herr *AppError
 
@@ -308,16 +354,20 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	cipherFilePathCached := d.Resolve(NewFileName(rName, ".cached"))
 	cipherFilePathUploaded := d.Resolve(NewFileName(rName, ".uploaded"))
 
-	cipherFile, herr = searchForCachedOrUploadedFile(h.DrainProvider, cipherFilePathCached, cipherFilePathUploaded)
+	byteRange, err := extractByteRange(r)
+	if err != nil {
+		return 0, NewAppError(400, err, "Unable to parse byte range")
+	}
+	cipherFile, herr = searchForCachedOrUploadedFile(h.DrainProvider, cipherFilePathCached, cipherFilePathUploaded, byteRange)
 	if herr != nil {
-		return herr
+		return 0, herr
 	}
 
 	// Check if cipherFile was assigned, denoting whether or not pulling from cache
 	if cipherFile == nil {
 		cipherFile, herr = handleCacheMiss(h.DrainProvider, h.Tracker, object, cipherFilePathCached)
 		if herr != nil {
-			return herr
+			return 0, herr
 		}
 	}
 
@@ -329,33 +379,100 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	//We have the file and it's open.  Be sure to close it.
 	defer cipherFile.Close()
 
-	//!!! We have committed to 200 OK at this point of setting the header.
-	// Any errors that happen after this point will not be seen by the user.
-
+	//When setting headers, take measures to handle byte range requesting
 	w.Header().Set("Content-Type", object.ContentType.String)
-	if object.ContentSize.Valid && object.ContentSize.Int64 > int64(0) {
-		w.Header().Set("Content-Length", strconv.FormatInt(object.ContentSize.Int64, 10))
+	if object.ContentSize.Valid {
+		var start = int64(0)
+		var stop = object.ContentSize.Int64 - 1
+		var fullLength = object.ContentSize.Int64
+		var reportedContentLength = fullLength
+
+		w.Header().Set("Accept-Ranges", "bytes")
+
+		if byteRange != nil {
+			start = byteRange.Start
+			if byteRange.Stop != -1 {
+				stop = byteRange.Stop
+			}
+			reportedContentLength = stop + 1 - start
+		}
+
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", reportedContentLength))
 		w.Header().Set("Content-Disposition", "inline; filename="+url.QueryEscape(object.Name))
+		if byteRange != nil {
+			rangeResponse := fmt.Sprintf("bytes %d-%d/%d", start, stop, fullLength)
+			log.Printf("Returning a range: %s", rangeResponse)
+			w.Header().Set("Content-Range", rangeResponse)
+			w.WriteHeader(http.StatusPartialContent)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
 	}
-	w.Header().Set("Accept-Ranges", "none")
+
+	//Skip over blocks we won't use
+	iv := object.EncryptIV
+	if byteRange != nil {
+		//Note that we round down by using integer arithmetic
+		blocksSkipped := (byteRange.Start / aes.BlockSize)
+		cipherStartAt := blocksSkipped * aes.BlockSize
+		//Seek to where we should start reading the cipher
+		_, err := cipherFile.Seek(cipherStartAt, 0)
+		if err != nil {
+			return 0, NewAppError(500, err, "Could not seek file")
+		}
+
+		//Add blocksToSkip to the iv
+		//First duplicate the IV
+		blocksToSkip := blocksSkipped
+		iv = make([]byte, aes.BlockSize)
+		for i := 0; i < aes.BlockSize; i++ {
+			iv[i] = object.EncryptIV[i]
+		}
+		//Add blocksToSkip to it (bigEndian)
+		var i = 0
+		for blocksToSkip > 0 {
+			v := uint8(blocksToSkip % 256)
+			newV := uint32(v) + uint32(iv[aes.BlockSize-i-1])
+			//do add
+			iv[aes.BlockSize-i-1] = uint8(newV)
+			//do carry
+			iv[aes.BlockSize-i-2] += uint8(newV >> 8)
+			blocksToSkip >>= 8
+			i++
+		}
+		//Adjust the byte range to match what the file handle skipped already
+		byteRange.Start -= blocksSkipped * aes.BlockSize
+		if byteRange.Stop != -1 {
+			byteRange.Stop -= blocksSkipped * aes.BlockSize
+		}
+	}
 
 	//Actually send back the cipherFile
-	_, _, err = utils.DoCipherByReaderWriter(
+	var actualLength int64
+	_, actualLength, err = utils.DoCipherByReaderWriter(
 		cipherFile,
 		w,
 		encryptKey,
-		object.EncryptIV,
+		iv,
 		"client downloading",
+		byteRange,
 	)
 
 	if err != nil {
-		//TODO: this needs to be counted somehow
-		log.Printf("Error sending decrypted cipherFile (%s): %v", cipherFilePathCached, err)
+		//Error here isn't a constant, but it's indicative of client disconnecting and
+		//not bothering to eat all the bytes we sent back (as promised).  So be quiet
+		//in the case of broken pipe.
+		if strings.Contains(err.Error(), " write: broken pipe") ||
+			strings.Contains(err.Error(), " write: connection reset by peer") {
+			//Clients are allowed to disconnect and not accept all bytes we are sending back
+		} else {
+			log.Printf("client disconnected (%s): %v", cipherFilePathCached, err)
+		}
 	}
 
 	//Update the timestamps to note the last time it was used
 	tm = time.Now()
 	d.Files().Chtimes(cipherFilePathCached, tm, tm)
 
-	return nil
+	return actualLength, nil
 }

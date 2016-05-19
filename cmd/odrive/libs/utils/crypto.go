@@ -8,25 +8,41 @@ import (
 	"encoding/hex"
 	"hash"
 	"io"
+	"io/ioutil"
 	"log"
 	"math/big"
 )
 
+// ByteRange for handling video
+type ByteRange struct {
+	Start int64
+	Stop  int64
+}
+
+//NewByteRange is the implicit default byte range that we have always used
+func NewByteRange() *ByteRange {
+	br := &ByteRange{}
+	br.Stop = -1
+	return br
+}
+
 // CipherStreamReader takes statistics as it writes
 type CipherStreamReader struct {
-	S    cipher.Stream
-	R    io.Reader
-	H    hash.Hash
-	Size int64
+	S       cipher.Stream
+	R       io.Reader
+	H       hash.Hash
+	Size    int64
+	Written int64
 }
 
 // NewCipherStreamReader Create a new ciphered stream with hashing
 func NewCipherStreamReader(w cipher.Stream, r io.Reader) *CipherStreamReader {
 	return &CipherStreamReader{
-		S:    w,
-		R:    r,
-		H:    sha256.New(),
-		Size: int64(0),
+		S:       w,
+		R:       r,
+		H:       sha256.New(),
+		Size:    int64(0),
+		Written: int64(0),
 	}
 }
 
@@ -43,6 +59,7 @@ func (r *CipherStreamReader) Read(dst []byte) (n int, err error) {
 	r.H.Write(dst[:n])
 	r.S.XORKeyStream(dst[:n], dst[:n])
 	r.Size += int64(n)
+	r.Written += int64(n)
 	////XXX not good for performance, but we are getting cut-offs, and this
 	////is insightful to uncomment
 	//log.Printf("transferred:%d to %d", int64(n), r.Size)
@@ -118,6 +135,7 @@ func DoCipherByReaderWriter(
 	key []byte,
 	iv []byte,
 	description string,
+	byteRange *ByteRange,
 ) (checksum []byte, length int64, err error) {
 	writeCipher, err := aes.NewCipher(key)
 	if err != nil {
@@ -131,9 +149,29 @@ func DoCipherByReaderWriter(
 	}
 
 	reader := NewCipherStreamReader(writeCipherStream, inFile)
-	_, err = io.Copy(outFile, reader)
-	if err != nil {
-		log.Printf("unable to copy out to file (%s):%v", description, err)
-	}
+
+	length, err = RangeCopy(outFile, reader, byteRange)
 	return reader.H.Sum(nil), reader.Size, err
+}
+
+// RangeCopy use begin for first byte location, and end is beyond the one we copy,
+// to be more like other APIs
+func RangeCopy(dst io.Writer, src io.Reader, byteRange *ByteRange) (int64, error) {
+
+	if byteRange == nil {
+		return io.Copy(dst, src)
+	}
+
+	var err error
+	if byteRange.Start > int64(0) {
+		_, err = io.CopyN(ioutil.Discard, src, byteRange.Start)
+		if err != nil {
+			return 0, err
+		}
+	}
+	if byteRange.Stop == -1 {
+		return io.Copy(dst, src)
+	}
+	rangeDiff := byteRange.Stop - byteRange.Start + 1
+	return io.CopyN(dst, src, rangeDiff)
 }
