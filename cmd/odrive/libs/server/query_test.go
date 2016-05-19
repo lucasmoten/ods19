@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 	"testing"
-	"time"
 
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/util"
@@ -90,16 +89,9 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 	searchPhrase := "QuerySortByVersionDescending"
 
 	// Create 2 folders under root
-	folder1, err := makeFolderViaJSON("Test Folder 1 "+searchPhrase+" "+strconv.FormatInt(time.Now().Unix(), 10), clientid)
-	if err != nil {
-		log.Printf("Error making folder 1: %v", err)
-		t.FailNow()
-	}
-	folder2, err := makeFolderViaJSON("Test Folder 2 "+searchPhrase+" "+strconv.FormatInt(time.Now().Unix(), 10), clientid)
-	if err != nil {
-		log.Printf("Error making folder 2: %v", err)
-		t.FailNow()
-	}
+	folder1 := makeFolderViaJSON("Test Folder 1 "+searchPhrase, clientid, t)
+	folder2 := makeFolderViaJSON("Test Folder 2 "+searchPhrase, clientid, t)
+
 	// Modify the 1st folder
 	updateuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
 	updateObjectRequest := protocol.UpdateObjectRequest{}

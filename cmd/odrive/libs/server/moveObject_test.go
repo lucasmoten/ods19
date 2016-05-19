@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"testing"
-	"time"
 
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/util"
@@ -29,16 +27,8 @@ func TestMoveObject(t *testing.T) {
 	}
 
 	// Create 2 folders under root
-	folder1, err := makeFolderViaJSON("Test Folder 1 "+strconv.FormatInt(time.Now().Unix(), 10), clientid)
-	if err != nil {
-		log.Printf("Error making folder 1: %v", err)
-		t.FailNow()
-	}
-	folder2, err := makeFolderViaJSON("Test Folder 2 "+strconv.FormatInt(time.Now().Unix(), 10), clientid)
-	if err != nil {
-		log.Printf("Error making folder 2: %v", err)
-		t.FailNow()
-	}
+	folder1 := makeFolderViaJSON("Test Folder 1 ", clientid, t)
+	folder2 := makeFolderViaJSON("Test Folder 2 ", clientid, t)
 
 	// Attempt to move folder 2 under folder 1
 	moveuri := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
