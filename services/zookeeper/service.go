@@ -11,7 +11,6 @@ import (
 	"time"
 
 	oduconfig "decipher.com/object-drive-server/config"
-
 	"github.com/samuel/go-zookeeper/zk"
 )
 
@@ -89,16 +88,16 @@ func RegisterApplication(uri, zkAddress string) (ZKState, error) {
 	var err error
 
 	//Get open zookeeper connection, and get a handle on closing it later
-	log.Printf("zk: connect to %s", zkAddress)
 	addrs := strings.Split(zkAddress, ",")
-	conn, _, err := zk.Connect(addrs, time.Second*2)
-	if err != nil {
-		return ZKState{}, err
-	}
-
 	//This is the mount point for our zookeeper data, and it should
 	//be the same as where AAC mounts
 	zkRoot := oduconfig.GetEnvOrDefault("OD_ZK_ROOT", "/cte")
+	zkTimeout := oduconfig.GetEnvOrDefaultInt("OD_ZK_TIMEOUT", 5)
+	log.Printf("zk: connect to %s timeout=%ds root=%s", zkAddress, zkTimeout, zkRoot)
+	conn, _, err := zk.Connect(addrs, time.Second*time.Duration(zkTimeout))
+	if err != nil {
+		return ZKState{}, err
+	}
 
 	//Bundle up zookeeper context into a single object
 	zkURI := zkRoot + uri
@@ -106,7 +105,7 @@ func RegisterApplication(uri, zkAddress string) (ZKState, error) {
 	//Setup the environment for our version of the application
 	parts := strings.Split(zkURI, "/")
 	// defaults (aligned with the defaults for the environment variables)
-	organization := "cte"
+	organization := zkRoot[1:]
 	appType := "service"
 	appName := "object-drive"
 	appVersion := "1.0"
