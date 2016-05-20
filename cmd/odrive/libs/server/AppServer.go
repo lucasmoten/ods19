@@ -45,7 +45,6 @@ type AppServer struct {
 	// ServicePrefix is the base RootURL for all public operations of web server
 	ServicePrefix string
 	// AAC is a handle to the Authorization and Access Control client
-	// TODO: This will need to be converted to be pluggable later
 	AAC aac.AacService
 	// Audit Service is for remote logging for compliance.
 	Auditor audit.Auditor
@@ -69,6 +68,8 @@ type AppServer struct {
 	Snippets *SnippetCache
 	// AclWhitelist provides a list of distinguished names allowed to perform impersonation
 	AclImpersonationWhitelist []string
+	// ServiceRegistry is a map of services we depend on that reports on their state.
+	ServiceRegistry map[string]ServiceState
 }
 
 // InitRegex compiles static regexes and initializes the AppServer Routes field.
@@ -88,7 +89,7 @@ func (h *AppServer) InitRegex() {
 		Objects:          regexp.MustCompile(h.ServicePrefix + "/objects$"),
 		Object:           regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})$"),
 		ObjectProperties: regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/properties$"),
-		ObjectStream:     regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/stream$"),
+		ObjectStream:     regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/stream(\\.[0-9a-zA-Z]*)?$"),
 		// - actions on objects
 		ObjectChangeOwner: regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/owner/(?P<newOwner>.*)$"),
 		ObjectDelete:      regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/trash$"),
@@ -97,7 +98,7 @@ func (h *AppServer) InitRegex() {
 		ObjectMove:        regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/move/(?P<folderId>[0-9a-fA-F]{32})$"),
 		// - revisions
 		Revisions:      regexp.MustCompile(h.ServicePrefix + "/revisions/(?P<objectId>[0-9a-fA-F]{32})$"),
-		RevisionStream: regexp.MustCompile(h.ServicePrefix + "/revisions/(?P<objectId>[0-9a-fA-F]{32})/(?P<revisionId>.*)/stream$"),
+		RevisionStream: regexp.MustCompile(h.ServicePrefix + "/revisions/(?P<objectId>[0-9a-fA-F]{32})/(?P<revisionId>.*)/stream(\\.[0-9a-zA-Z]*)?$"),
 		// - share
 		SharedToMe:        regexp.MustCompile(h.ServicePrefix + "/shares$"),
 		SharedToOthers:    regexp.MustCompile(h.ServicePrefix + "/shared$"),

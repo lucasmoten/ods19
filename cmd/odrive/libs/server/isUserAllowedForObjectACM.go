@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"log"
+	"strings"
 
 	"golang.org/x/net/context"
 
@@ -12,7 +13,7 @@ import (
 )
 
 func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models.ODObject) (bool, error) {
-
+	var err error
 	// In standalone, we are ignoring AAC
 	if config.StandaloneMode {
 		return true, nil
@@ -43,15 +44,27 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 	dn := caller.DistinguishedName
 	acm := object.RawAcm.String
 
-	// Debug of what is being passed
-	//log.Println(fmt.Printf("Calling AAC.CheckAccess(dn='%s', tokenType='%s', acm='%s')", dn, tokenType, acm))
+	// Verify we have a reference to AAC
+	if h.AAC == nil {
+		return false, errors.New("AAC field is nil.")
+	}
 
 	// Call AAC
 	aacResponse, err := h.AAC.CheckAccess(dn, tokenType, acm)
 
 	// Process Response
 	if err != nil {
-		return false, errors.New("Error calling AAC.CheckAccess")
+		// Check if from dropped connection
+		if strings.Contains(err.Error(), "connection is shut down") {
+			log.Printf("CAUGHT connection is shut down")
+		}
+		if strings.Contains(err.Error(), "unexpected EOF") {
+			log.Printf("CAUGHT unexpected EOF")
+		}
+		if err != nil {
+			log.Printf("Error calling AAC.CheckAccess: %s", err.Error())
+			return false, errors.New("Error calling AAC.CheckAccess")
+		}
 	}
 	// Log the messages
 	for _, message := range aacResponse.Messages {
