@@ -170,6 +170,10 @@ func GetEnvOrDefaultInt(name string, defaultValue int) int {
 	}
 	i, err := strconv.Atoi(envVal)
 	if err != nil {
+		log.Printf(
+			"WARNING: Environment variable %s did not parse as an int, so was given a default value",
+			name,
+		)
 		return defaultValue
 	}
 	return i
