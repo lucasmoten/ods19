@@ -62,7 +62,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 		return
 	}
 
-	if ok, code, err := isDeletedErr(dbObject); !ok {
+	if ok, code, err := isExpungedOrAnscestorDeletedErr(dbObject); !ok {
 		sendErrorResponse(&w, code, err, "")
 		return
 	}
@@ -77,14 +77,15 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	countOKResponse()
 }
 
-func isDeletedErr(obj models.ODObject) (ok bool, code int, err error) {
+func isExpungedOrAnscestorDeletedErr(obj models.ODObject) (ok bool, code int, err error) {
 	switch {
 	case obj.IsExpunged:
 		return false, 410, errors.New("The object no longer exists.")
 	case obj.IsAncestorDeleted:
 		return false, 405, errors.New("The object cannot be retreived because an ancestor is deleted.")
 	}
-	// TODO Handle other deleted cases?
+	// NOTE the obj.IsDeleted case is not an error for getObject. Getting metadata
+	// about a trashed object with IsDeleted = true is still okay.
 	return true, 0, nil
 }
 

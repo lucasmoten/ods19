@@ -67,6 +67,9 @@ func (sc *SnippetCache) Clear() {
 // user either from cache, or from the database, creating the record as appropriate
 func (h AppServer) FetchUserSnippets(ctx context.Context) (*acm.ODriveRawSnippetFields, error) {
 
+	// TODO Should we provide an alternative method that takes a user? This is called from
+	// http handler functions, and the first thing those functions do is grab User or Caller
+	// off the context object.
 	var cacheUserSnippets = false
 
 	// Get user from context
