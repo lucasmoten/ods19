@@ -19,15 +19,14 @@ import (
 // then it is used to list the children within it, otherwise, the root for the given user
 // is listed. For a user, the root is defined as those objects that they own
 // which have no parent identifier.
-func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	// Get user from context
 	user, ok := UserFromContext(ctx)
 	if !ok {
 		caller, ok := CallerFromContext(ctx)
 		if !ok {
-			sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
-			return
+			return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
 		}
 		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
 	}
@@ -40,19 +39,17 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 	captured, _ := CaptureGroupsFromContext(ctx)
 	pagingRequest, err = protocol.NewPagingRequest(r, captured, false)
 	if err != nil {
-		sendErrorResponse(&w, 400, err, "Error parsing request")
-		return
+		return NewAppError(400, err, "Error parsing request")
 	}
 
 	parentObject, err = assignObjectIDFromPagingRequest(pagingRequest, parentObject)
 	if err != nil {
-		sendErrorResponse(&w, 400, err, "Object Identifier in Request URI is not a hex string")
-		return
+		return NewAppError(400, err, "Object Identifier in Request URI is not a hex string")
 	}
 
 	snippetFields, err := h.FetchUserSnippets(ctx)
 	if err != nil {
-		sendErrorResponse(&w, 504, errors.New("Error retrieving user permissions."), err.Error())
+		return NewAppError(504, errors.New("Error retrieving user permissions."), err.Error())
 	}
 	user.Snippets = snippetFields
 
@@ -67,8 +64,7 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 		if err != nil {
 			log.Println(err)
 			code, msg := listObjectsDAOErr(err)
-			sendErrorResponse(&w, code, err, msg)
-			return
+			return NewAppError(code, err, msg)
 		}
 		// Check for permission to read this object
 		canReadObject := false
@@ -79,13 +75,11 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 			}
 		}
 		if !canReadObject {
-			sendErrorResponse(&w, 403, err, "Insufficient permissions to list contents of this object")
-			return
+			return NewAppError(403, err, "Insufficient permissions to list contents of this object")
 		}
 
 		if ok, code, err := isDeletedErr(dbObject); !ok {
-			sendErrorResponse(&w, code, err, "")
-			return
+			return NewAppError(code, err, "deleted object")
 		}
 
 		// Get the objects
@@ -94,14 +88,13 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 	}
 	if err != nil {
 		code, msg := listObjectsDAOErr(err)
-		sendErrorResponse(&w, code, err, msg)
-		return
+		return NewAppError(code, err, msg)
 	}
 
 	// Response in requested format
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&response)
 	writeResultsetAsJSON(w, &apiResponse)
-	countOKResponse()
+	return nil
 }
 
 func assignObjectIDFromPagingRequest(pagingRequest *protocol.PagingRequest, parent models.ODObject) (models.ODObject, error) {

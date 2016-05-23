@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"mime"
 	"net/http"
+
+	"github.com/uber-go/zap"
 
 	"golang.org/x/net/context"
 
@@ -23,12 +24,11 @@ import (
 // createObject is a method handler on AppServer for createObject microservice
 // operation.
 func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
-	r *http.Request) {
+	r *http.Request) *AppError {
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
-		return
+		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
 	}
 
 	var obj models.ODObject
@@ -59,26 +59,22 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 
 		multipartReader, err := r.MultipartReader()
 		if err != nil {
-			sendErrorResponse(&w, 400, err, "Unable to get mime multipart")
-			return
+			return NewAppError(400, err, "Unable to get mime multipart")
 		}
 		createdFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &obj, &grant, true)
 		if herr != nil {
-			sendAppErrorResponse(&w, herr)
-			return
+			return herr
 		}
 		drainFunc = createdFunc
 	} else {
 		// Parse body as json to populate object
 		obj, herr = parseCreateObjectRequestAsJSON(r)
 		if herr != nil {
-			sendAppErrorResponse(&w, herr)
-			return
+			return herr
 		}
 		// Validation
 		if herr := handleCreatePrerequisites(ctx, h, &obj); herr != nil {
-			sendAppErrorResponse(&w, herr)
-			return
+			return herr
 		}
 	}
 	obj.CreatedBy = caller.DistinguishedName
@@ -92,8 +88,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 
 	createdObject, err = h.DAO.CreateObject(&obj)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "error storing object")
-		return
+		return NewAppError(500, err, "error storing object")
 	}
 	// For requests where a stream was provided, only drain off into S3 once we have a record
 	if isMultipart {
@@ -107,10 +102,13 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 	//Write a link back to the user so that it's possible to do an update on this object
 	data, err := json.MarshalIndent(protocolObject, "", "  ")
 	if err != nil {
-		log.Printf("Error marshalling json data:%v", err)
+		LoggerFromContext(ctx).Error(
+			"marshal json",
+			zap.String("err", err.Error()),
+		)
 	}
 	w.Write(data)
-	countOKResponse()
+	return nil
 }
 
 /* This is used by both createObject and createFolder to do common tasks against created objects
@@ -174,7 +172,7 @@ func handleCreatePrerequisites(
 				}
 			}
 		} else {
-			log.Println("WARNING: No permissions on the object!")
+			LoggerFromContext(ctx).Warn("no permissions on object")
 		}
 		if !authorizedToCreate {
 			return NewAppError(403, nil, "Unauthorized")

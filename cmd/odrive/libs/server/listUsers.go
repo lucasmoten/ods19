@@ -13,14 +13,13 @@ import (
 	"decipher.com/object-drive-server/metadata/models"
 )
 
-func (h AppServer) listUsers(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h AppServer) listUsers(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	// Retreive the users
 	var users []models.ODUser
 	users, err := h.DAO.GetUsers()
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Unable to get user list")
-		return
+		return NewAppError(500, err, "Unable to get user list")
 	}
 	// Alter the returned users to
 	//      Remove any that look like groups
@@ -36,7 +35,7 @@ func (h AppServer) listUsers(ctx context.Context, w http.ResponseWriter, r *http
 	// Get snippets for user, which will have group membership
 	snippetFields, err := h.FetchUserSnippets(ctx)
 	if err != nil {
-		sendErrorResponse(&w, 504, errors.New("Error retrieving user permissions."), err.Error())
+		return NewAppError(504, errors.New("Error retrieving user permissions."), err.Error())
 	} else {
 		// Fake the groups from the snippets as additional elements in the users array
 		for _, rawSnippetField := range snippetFields.Snippets {
@@ -72,11 +71,10 @@ func (h AppServer) listUsers(ctx context.Context, w http.ResponseWriter, r *http
 	usersSerializable := mapping.MapODUsersToUsers(&odusers)
 	converted, err := json.MarshalIndent(usersSerializable, "", "  ")
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Unable to get user list")
-		return
+		return NewAppError(500, err, "Unable to get user list")
 	}
 	w.Write(converted)
-	countOKResponse()
+	return nil
 }
 
 type userContainer []models.ODUser

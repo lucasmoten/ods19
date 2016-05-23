@@ -4,9 +4,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"strings"
+
+	"github.com/uber-go/zap"
 
 	"golang.org/x/net/context"
 
@@ -15,15 +16,14 @@ import (
 	"decipher.com/object-drive-server/protocol"
 )
 
-func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	// Get user from context
 	user, ok := UserFromContext(ctx)
 	if !ok {
 		caller, ok := CallerFromContext(ctx)
 		if !ok {
-			sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
-			return
+			return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
 		}
 		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
 	}
@@ -34,8 +34,7 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 	captured, _ := CaptureGroupsFromContext(ctx)
 	pagingRequest, err := protocol.NewPagingRequest(r, captured, true)
 	if err != nil {
-		sendErrorResponse(&w, 400, err, "Error parsing request")
-		return
+		return NewAppError(400, err, "Error parsing request")
 	}
 
 	// Fetch the matching object
@@ -43,8 +42,7 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 	targetObject.ID, _ = hex.DecodeString(pagingRequest.ObjectID)
 	dbObject, err := h.DAO.GetObject(targetObject, false)
 	if err != nil {
-		sendErrorResponse(&w, 404, err, "Resource not found")
-		return
+		return NewAppError(404, err, "Resource not found")
 	}
 
 	// Check for permission to read this object
@@ -62,44 +60,38 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 	}
 
 	if !canReadObject {
-		sendErrorResponse(&w, 403, err, "Insufficient permissions to view shares of this object")
-		return
+		return NewAppError(403, err, "Insufficient permissions to view shares of this object")
 	}
 	// Is it deleted?
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			sendErrorResponse(&w, 410, err, "The object no longer exists.")
-			return
+			return NewAppError(410, err, "The object no longer exists.")
 		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-			sendErrorResponse(&w, 405, err, "The object cannot be read because an ancestor is deleted.")
-			return
+			return NewAppError(405, err, "The object cannot be read because an ancestor is deleted.")
 		case dbObject.IsDeleted:
-			sendErrorResponse(&w, 405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it before listing its shares")
-			return
+			return NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it before listing its shares")
 		}
 	}
 
 	if err != nil {
-		log.Println(err)
-		sendErrorResponse(&w, 500, err, "General error")
-		return
+		return NewAppError(500, err, "General error")
 	}
 
 	// Response in requested format
-	listObjectSharesResponseAsJSON(w, mapping.MapODPermissionsToPermissions(&dbObject.Permissions))
-	countOKResponse()
+	return listObjectSharesResponseAsJSON(LoggerFromContext(ctx), w, mapping.MapODPermissionsToPermissions(&dbObject.Permissions))
 }
 
 func listObjectSharesResponseAsJSON(
+	logger zap.Logger,
 	w http.ResponseWriter,
 	response []protocol.Permission,
-) {
+) *AppError {
 	w.Header().Set("Content-Type", "application/json")
 	jsonData, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
-		log.Printf("Error marshalling response as json: %s", err.Error())
-		return
+		return NewAppError(500, err, "error marshalling json response")
 	}
 	w.Write(jsonData)
+	return nil
 }

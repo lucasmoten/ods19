@@ -9,7 +9,7 @@ import (
 	"decipher.com/object-drive-server/performance"
 )
 
-func (h AppServer) getStats(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h AppServer) getStats(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 	fmt.Fprintf(w, "\nErrors:\n")
 	renderErrorCounters(w)
 
@@ -37,5 +37,5 @@ func (h AppServer) getStats(ctx context.Context, w http.ResponseWriter, r *http.
 	fmt.Fprintf(w, "\n- Get Snippets:\n")
 	h.Tracker.Reporters[performance.AACCounterGetSnippets].Q.Dump(w, verbose)
 
-	countOKResponse()
+	return nil
 }

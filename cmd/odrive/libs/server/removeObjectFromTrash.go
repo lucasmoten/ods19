@@ -12,47 +12,40 @@ import (
 	"golang.org/x/net/context"
 )
 
-func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	var caller Caller
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user")
-		return
+		return NewAppError(500, errors.New("Could not determine user"), "Invalid user")
 	}
 
 	// Get the change token off the request.
 	changeToken, err := protocol.NewChangeTokenStructFromJSONBody(r.Body)
 	if err != nil {
-		sendErrorResponse(&w, http.StatusBadRequest, err, "Unexpected change token")
-		return
+		return NewAppError(http.StatusBadRequest, err, "Unexpected change token")
 	}
 
 	requestObject, err := parseGetObjectRequest(ctx)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Error parsing URI")
-		return
+		return NewAppError(500, err, "Error parsing URI")
 	}
 	originalObject, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Error retrieving object from database")
-		return
+		return NewAppError(500, err, "Error retrieving object from database")
 	}
 
 	if originalObject.IsExpunged {
-		sendErrorResponse(&w, 410, errors.New("Cannot undelete an expunged object"), "Object was expunged")
-		return
+		return NewAppError(410, errors.New("Cannot undelete an expunged object"), "Object was expunged")
 	}
 
 	if originalObject.IsAncestorDeleted {
-		sendErrorResponse(&w, 405, errors.New("Cannot undelete an object with a deleted parent"), "Object has deleted ancestor")
-		return
+		return NewAppError(405, errors.New("Cannot undelete an object with a deleted parent"), "Object has deleted ancestor")
 	}
 
 	if originalObject.ChangeToken != changeToken.ChangeToken {
-		sendErrorResponse(&w, http.StatusBadRequest,
+		return NewAppError(http.StatusBadRequest,
 			errors.New("Changetoken in database does not match client changeToken"), "Invalid changeToken.")
-		return
 	}
 
 	// TODO: abstract this into a method on ODObject AuthorizedToDelete(caller)
@@ -63,8 +56,7 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 		}
 	}
 	if !authorizedToDelete {
-		sendErrorResponse(&w, 403, errors.New("Unauthorized for undelete"), "Unauthorized for undelete.")
-		return
+		return NewAppError(403, errors.New("Unauthorized for undelete"), "Unauthorized for undelete.")
 	}
 
 	originalObject.ModifiedBy = caller.DistinguishedName
@@ -73,8 +65,7 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	unDeletedObj, err := h.DAO.UndeleteObject(&originalObject)
 	//log.Printf("UndeletedObject from DAO: %v\n", unDeletedObj)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Error restoring object")
-		return
+		return NewAppError(500, err, "Error restoring object")
 	}
 
 	// getproperties and return a protocol object
@@ -85,11 +76,10 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	w.Header().Set("Content-Type", "application/json")
 	jsonData, err := json.MarshalIndent(resultObj, "", "  ")
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Could not marshal JSON response.")
-		return
+		return NewAppError(500, err, "Could not marshal JSON response.")
 	}
 	log.Println("Returning JSON response.")
 	w.Write(jsonData)
 
-	countOKResponse()
+	return nil
 }

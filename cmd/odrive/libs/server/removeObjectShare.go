@@ -16,25 +16,22 @@ import (
 	"golang.org/x/net/context"
 )
 
-func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		sendErrorResponse(&w, http.StatusInternalServerError, errors.New("Could not determine user"), "Invalid user.")
-		return
+		return NewAppError(http.StatusInternalServerError, errors.New("Could not determine user"), "Invalid user.")
 	}
 	_ = caller
 
 	// Parse Request in sent format
 	if r.Header.Get("Content-Type") != "application/json" {
-		sendErrorResponse(&w, http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
-		return
+		return NewAppError(http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
 	}
 	removeObjectShare, err := parseRemoveObjectShareRequest(r, ctx)
 	if err != nil {
-		sendErrorResponse(&w, http.StatusBadRequest, err, "Error parsing JSON")
-		return
+		return NewAppError(http.StatusBadRequest, err, "Error parsing JSON")
 	}
 
 	// Business Logic...
@@ -43,34 +40,28 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 	requestObject := models.ODObject{}
 	requestObject.ID, err = hex.DecodeString(removeObjectShare.ObjectID)
 	if err != nil {
-		sendErrorResponse(&w, http.StatusBadRequest, err, "Object ID is not a valid format")
-		return
+		return NewAppError(http.StatusBadRequest, err, "Object ID is not a valid format")
 	}
 	shareID, err := hex.DecodeString(removeObjectShare.ShareID)
 	if err != nil {
-		sendErrorResponse(&w, http.StatusBadRequest, err, "Share ID is not a valid format")
-		return
+		return NewAppError(http.StatusBadRequest, err, "Share ID is not a valid format")
 	}
 
 	// Retrieve existing object from the data store
 	dbObject, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
-		sendErrorResponse(&w, http.StatusInternalServerError, err, "Error retrieving object")
-		return
+		return NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
 	}
 
 	// Make sure the object isn't deleted. If the object is deleted then cannot make share alterations
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			sendErrorResponse(&w, http.StatusGone, err, "The object no longer exists.")
-			return
+			return NewAppError(http.StatusGone, err, "The object no longer exists.")
 		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-			sendErrorResponse(&w, http.StatusMethodNotAllowed, err, "The object cannot be modified because an ancestor is deleted.")
-			return
+			return NewAppError(http.StatusMethodNotAllowed, err, "The object cannot be modified because an ancestor is deleted.")
 		case dbObject.IsDeleted:
-			sendErrorResponse(&w, http.StatusGone, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it")
-			return
+			return NewAppError(http.StatusGone, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it")
 		}
 	}
 
@@ -95,16 +86,13 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 		}
 	}
 	if !authorizedToShare {
-		sendErrorResponse(&w, http.StatusUnauthorized, nil, "Unauthorized")
-		return
+		return NewAppError(http.StatusUnauthorized, nil, "Unauthorized")
 	}
 	if !shareFound {
-		sendErrorResponse(&w, http.StatusGone, nil, "Share referenced does not exist")
-		return
+		return NewAppError(http.StatusGone, nil, "Share referenced does not exist")
 	}
 	if !tokenMatched {
-		sendErrorResponse(&w, http.StatusExpectationFailed, nil, "ChangeToken does not match expected value. Share may have been changed by another request.")
-		return
+		return NewAppError(http.StatusExpectationFailed, nil, "ChangeToken does not match expected value. Share may have been changed by another request.")
 	}
 
 	// Update the permission in the database
@@ -113,8 +101,7 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 	shareToDelete.DeletedBy.String = caller.DistinguishedName
 	dbObjectPermission, err := h.DAO.DeleteObjectPermission(*shareToDelete, removeObjectShare.PropagateToChildren)
 	if err != nil {
-		sendErrorResponse(&w, http.StatusInternalServerError, err, "Error deleting permission")
-		return
+		return NewAppError(http.StatusInternalServerError, err, "Error deleting permission")
 	}
 
 	// Response in requested format
@@ -122,7 +109,7 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 	apiResponse.DeletedDate = dbObjectPermission.DeletedDate.Time
 	removeObjectShareResponse(w, r, caller, &apiResponse)
 
-	countOKResponse()
+	return nil
 }
 
 func parseRemoveObjectShareRequest(r *http.Request, ctx context.Context) (protocol.RemoveObjectShareRequest, error) {

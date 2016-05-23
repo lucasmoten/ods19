@@ -4,8 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"sync"
+
+	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
 	"golang.org/x/net/context"
@@ -76,7 +77,6 @@ func (h AppServer) FetchUser(ctx context.Context) (*models.ODUser, error) {
 	user, ok := h.Users.Get(caller.DistinguishedName)
 	if !ok {
 		// Not found in cache, look up from database
-		log.Printf("Looking up user %s in database", caller.DistinguishedName)
 		var userRequested models.ODUser
 		userRequested.DistinguishedName = caller.DistinguishedName
 		userRetrievedFromDB, err := h.DAO.GetUserByDistinguishedName(userRequested)
@@ -89,28 +89,29 @@ func (h AppServer) FetchUser(ctx context.Context) (*models.ODUser, error) {
 				userRequested.CreatedBy = caller.DistinguishedName
 				userRetrievedFromDB, err = h.DAO.CreateUser(userRequested)
 				if err != nil {
-					log.Printf("%s does not exist in database. Error creating: %s", caller.DistinguishedName, err.Error())
+					LoggerFromContext(ctx).Error(
+						"user does not exist",
+						zap.String("err", err.Error()),
+					)
 					return nil, fmt.Errorf("Error access resource when creating user")
 				}
 			} else {
 				// Some other database error
-				log.Printf("Error getting user from database: %s", err.Error())
+				LoggerFromContext(ctx).Error(
+					"error getting user from database",
+					zap.String("err", err.Error()),
+				)
 				return nil, fmt.Errorf("Error communicating with database to get user.")
 			}
-		} else {
-			log.Printf("User %s retrieved from database", userRetrievedFromDB.DistinguishedName)
 		}
 		// Basic validation on the user object to make sure modifiedBy is set
 		// (when a record created in db, modifiedBy is assigned by a trigger copying createdBy)
 		if len(userRetrievedFromDB.ModifiedBy) == 0 {
-			log.Println("User does not have modified by set!")
 			jsonData, err := json.MarshalIndent(user, "", "  ")
 			if err != nil {
-				log.Println("Error marshalling as JSON!")
 				return nil, fmt.Errorf("Error marshalling user as JSON")
 			}
-			jsonified := string(jsonData)
-			log.Println(jsonified)
+			LoggerFromContext(ctx).Warn("user does not have modified by set", zap.String("json", string(jsonData)))
 			return nil, fmt.Errorf("User created when fetching user is not in expected state")
 		}
 		// Finally, add this user to this server's cache

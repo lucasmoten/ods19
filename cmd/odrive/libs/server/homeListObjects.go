@@ -8,13 +8,12 @@ import (
 	"golang.org/x/net/context"
 )
 
-func (h *AppServer) homeListObjects(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h *AppServer) homeListObjects(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
-		return
+		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
 	}
 
 	parentID := r.URL.Query().Get("parentId")
@@ -27,5 +26,5 @@ func (h *AppServer) homeListObjects(ctx context.Context, w http.ResponseWriter, 
 
 	tmpl.Execute(w, data)
 
-	countOKResponse()
+	return nil
 }

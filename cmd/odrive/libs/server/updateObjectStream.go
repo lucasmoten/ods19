@@ -14,14 +14,13 @@ import (
 /**
 Almost all code is similar to that of createObject.go, so reuse much code from there.
 */
-func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 	var drainFunc func()
 
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
-		return
+		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
 	}
 
 	var grant *models.ODObjectPermission
@@ -30,33 +29,27 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 
 	requestObject, err = parseGetObjectRequest(ctx)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Error parsing URI")
-		return
+		return NewAppError(500, err, "Error parsing URI")
 	}
 
 	// Retrieve existing object from the data store
 	object, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Error retrieving object")
-		return
+		return NewAppError(500, err, "Error retrieving object")
 	}
 
 	if len(object.ID) == 0 {
-		sendErrorResponse(&w, 400, err, "Object for update doesn't have an id")
-		return
+		return NewAppError(400, err, "Object for update doesn't have an id")
 	}
 
 	if object.IsDeleted {
 		switch {
 		case object.IsExpunged:
-			sendErrorResponse(&w, 410, err, "The object no longer exists.")
-			return
+			return NewAppError(410, err, "The object no longer exists.")
 		case object.IsAncestorDeleted:
-			sendErrorResponse(&w, 405, err, "The object cannot be modified because an ancestor is deleted.")
-			return
+			return NewAppError(405, err, "The object cannot be modified because an ancestor is deleted.")
 		default:
-			sendErrorResponse(&w, 405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
-			return
+			return NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
 		}
 	}
 
@@ -72,20 +65,17 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	}
 	// Do we have permission ?
 	if grant == nil {
-		sendErrorResponse(&w, 403, nil, "Unauthorized")
-		return
+		return NewAppError(403, nil, "Unauthorized")
 	}
 
 	// ACM check for whether user has permission to read this object
 	// from a clearance perspective
 	hasAACAccessToOLDACM, err := h.isUserAllowedForObjectACM(ctx, &object)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Error communicating with authorization service")
-		return
+		return NewAppError(500, err, "Error communicating with authorization service")
 	}
 	if !hasAACAccessToOLDACM {
-		sendErrorResponse(&w, 403, err, "Unauthorized")
-		return
+		return NewAppError(403, err, "Unauthorized")
 	}
 
 	//Descramble key (and rescramble when we go to save object back)
@@ -93,13 +83,11 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	//Do an upload that is basically the same as for a new object.
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
-		sendErrorResponse(&w, 400, err, "unable to open multipart reader")
-		return
+		return NewAppError(400, err, "unable to open multipart reader")
 	}
 	drainFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &object, grant, false)
 	if herr != nil {
-		sendAppErrorResponse(&w, herr)
-		return
+		return herr
 	}
 	//Rescramble key
 	utils.ApplyPassphrase(h.MasterKey+caller.DistinguishedName, grant.EncryptKey)
@@ -117,8 +105,8 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		//
 		//4xx http codes are *good* because they caught bad input; possibly malicious.
 		//5xx http codes signifies something *bad* that we must fix.
-		sendError(&w, err, "error storing object")
-		return
+		//XXX get this back to returning a proper code
+		return NewAppError(500, err, "error storing object")
 	}
 	// Only start to upload into S3 after we have a database record
 	go drainFunc()
@@ -127,10 +115,9 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	link := mapping.MapODObjectToObject(&object)
 	data, err := json.MarshalIndent(link, "", "  ")
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "could not unmarshal json data")
-		return
+		return NewAppError(500, err, "could not unmarshal json data")
 	}
 	w.Write(data)
 
-	countOKResponse()
+	return nil
 }

@@ -14,19 +14,17 @@ import (
 	"decipher.com/object-drive-server/metadata/models"
 )
 
-func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user")
-		return
+		return NewAppError(500, errors.New("Could not determine user"), "Invalid user")
 	}
 
 	requestObject, err := parseGetObjectRequest(ctx)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Error parsing URI")
-		return
+		return NewAppError(500, err, "Error parsing URI")
 	}
 
 	// Business Logic...
@@ -35,8 +33,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	dbObject, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
 		code, msg := getObjectDAOError(err)
-		sendErrorResponse(&w, code, err, msg)
-		return
+		return NewAppError(code, err, msg)
 	}
 
 	// Check if the user has permissions to read the ODObject
@@ -48,33 +45,27 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 		}
 	}
 	if !authorizedToRead {
-		sendErrorResponse(&w, 403, errors.New("Unauthorized"), "Unauthorized")
-		return
+		return NewAppError(403, errors.New("Unauthorized"), "Unauthorized")
 	}
 
 	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Error communicating with authorization service")
-		return
+		return NewAppError(500, err, "Error communicating with authorization service")
 	}
 	if !hasAACAccess {
-		sendErrorResponse(&w, 403, nil, "Unauthorized")
-		return
+		return NewAppError(403, nil, "Unauthorized")
 	}
 
 	if ok, code, err := isExpungedOrAnscestorDeletedErr(dbObject); !ok {
-		sendErrorResponse(&w, code, err, "")
-		return
+		return NewAppError(code, err, "expunged or ancesor deleted")
 	}
 
 	// Response
 	err = getObjectResponse(w, r, caller, &dbObject)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Unable to get object")
-		return
+		return NewAppError(500, err, "Unable to get object")
 	}
-
-	countOKResponse()
+	return nil
 }
 
 func isExpungedOrAnscestorDeletedErr(obj models.ODObject) (ok bool, code int, err error) {

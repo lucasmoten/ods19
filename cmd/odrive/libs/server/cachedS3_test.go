@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/server"
+	"github.com/uber-go/zap"
 )
 
 func TestCacheCreate(t *testing.T) {
@@ -12,7 +13,8 @@ func TestCacheCreate(t *testing.T) {
 	bucket := "decipherers"
 	dirname := "t01234"
 	//Create raw cache without starting the purge goroutine
-	d := server.NewS3DrainProviderRaw(".", dirname, float64(0.50), int64(60*5), float64(0.75), 120)
+	logger := zap.NewJSON()
+	d := server.NewS3DrainProviderRaw(".", dirname, float64(0.50), int64(60*5), float64(0.75), 120, logger)
 
 	//create a small file
 	rName := server.FileId("fark")

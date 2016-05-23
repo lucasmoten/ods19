@@ -9,21 +9,19 @@ import (
 )
 
 // userStats gets usage statistics vs a single user
-func (h AppServer) userStats(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h AppServer) userStats(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		sendErrorResponse(&w, 500, nil, "could not get caller")
+		return NewAppError(500, nil, "could not get caller")
 	}
 	userStats, err := h.DAO.GetUserStats(caller.DistinguishedName)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "could not query for stats")
-		return
+		return NewAppError(500, err, "could not query for stats")
 	}
 	retval, err := json.MarshalIndent(userStats, "", "  ")
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "could not encode json")
-		return
+		return NewAppError(500, err, "could not encode json")
 	}
 	w.Write(retval)
-	countOKResponse()
+	return nil
 }

@@ -10,15 +10,14 @@ import (
 	"golang.org/x/net/context"
 )
 
-func (h AppServer) listUserObjectsShared(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h AppServer) listUserObjectsShared(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	// Get user from context
 	user, ok := UserFromContext(ctx)
 	if !ok {
 		caller, ok := CallerFromContext(ctx)
 		if !ok {
-			sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
-			return
+			return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
 		}
 		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
 	}
@@ -26,26 +25,24 @@ func (h AppServer) listUserObjectsShared(ctx context.Context, w http.ResponseWri
 	// Parse Request
 	pagingRequest, err := protocol.NewPagingRequest(r, nil, false)
 	if err != nil {
-		sendErrorResponse(&w, 400, err, "Error parsing request")
-		return
+		return NewAppError(400, err, "Error parsing request")
 	}
 
 	// Snippets
 	snippetFields, err := h.FetchUserSnippets(ctx)
 	if err != nil {
-		sendErrorResponse(&w, 504, errors.New("Error retrieving user permissions."), err.Error())
+		return NewAppError(504, errors.New("Error retrieving user permissions."), err.Error())
 	}
 	user.Snippets = snippetFields
 
 	// Fetch matching objects
 	sharedObjectsResultSet, err := h.DAO.GetObjectsIHaveShared(user, *pagingRequest)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "GetObjectsIHaveShared query failed")
-		return
+		return NewAppError(500, err, "GetObjectsIHaveShared query failed")
 	}
 
 	// Render Response
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&sharedObjectsResultSet)
 	writeResultsetAsJSON(w, &apiResponse)
-	countOKResponse()
+	return nil
 }
