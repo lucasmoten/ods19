@@ -199,7 +199,7 @@ function _renderDeleteButton(obj, users, drowId) {
 function _renderObjectLink(item) {
   var link;
   if (item.typeName === "Folder") {
-    link = '<td><a href="'+ BASE_SERVICE_URL + 'ui/home/listObjects?parentId=' + item.id + '">'+item.name+'</a></td>';
+    link = '<td><a href="'+ BASE_SERVICE_URL + 'ui/listObjects?parentId=' + item.id + '">'+item.name+'</a></td>';
   } else {
     link = '<td><a href="'+ BASE_SERVICE_URL + 'objects/' + item.id + '/stream">' + item.name + '</a></td>';
   }
