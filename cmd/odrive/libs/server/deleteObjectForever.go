@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 
 	"golang.org/x/net/context"
@@ -13,7 +12,7 @@ import (
 	"decipher.com/object-drive-server/protocol"
 )
 
-func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	var requestObject models.ODObject
 	var err error
@@ -21,15 +20,13 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
-		return
+		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
 	}
 
 	// Parse Request in sent format
 	requestObject, err = parseDeleteObjectRequest(r, ctx)
 	if err != nil {
-		sendErrorResponse(&w, 400, err, "Error parsing JSON")
-		return
+		return NewAppError(400, err, "Error parsing JSON")
 	}
 
 	// Business Logic...
@@ -37,8 +34,7 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 	// Retrieve existing object from the data store
 	dbObject, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Error retrieving object")
-		return
+		return NewAppError(500, err, "Error retrieving object")
 	}
 
 	// Check if the user has permissions to delete the ODObject
@@ -52,14 +48,12 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 		}
 	}
 	if !authorizedToDelete {
-		sendErrorResponse(&w, 403, nil, "Unauthorized")
-		return
+		return NewAppError(403, nil, "Unauthorized")
 	}
 
 	// If the object is already expunged,
 	if dbObject.IsExpunged {
-		sendErrorResponse(&w, 410, err, "The referenced object no longer exists.")
-		return
+		return NewAppError(410, err, "The referenced object no longer exists.")
 	}
 
 	// Call metadata connector to update the object to reflect that it is
@@ -68,14 +62,16 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 	dbObject.ChangeToken = requestObject.ChangeToken
 	err = h.DAO.ExpungeObject(dbObject, true)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "DAO Error expunging object")
-		return
+		return NewAppError(500, err, "DAO Error expunging object")
 	}
 
 	// Response in requested format
 	apiResponse := mapping.MapODObjectToExpungedObjectResponse(&dbObject)
-	deleteObjectForeverResponse(w, r, caller, &apiResponse)
-	countOKResponse()
+	herr := deleteObjectForeverResponse(w, r, caller, &apiResponse)
+	if herr != nil {
+		return herr
+	}
+	return nil
 }
 
 func deleteObjectForeverResponse(
@@ -83,13 +79,13 @@ func deleteObjectForeverResponse(
 	r *http.Request,
 	caller Caller,
 	response *protocol.ExpungedObjectResponse,
-) {
+) *AppError {
 	w.Header().Set("Content-Type", "application/json")
 
 	jsonData, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
-		log.Printf("Error marshalling response as json: %s", err.Error())
-		return
+		return NewAppError(500, err, "cant marshal json")
 	}
 	w.Write(jsonData)
+	return nil
 }

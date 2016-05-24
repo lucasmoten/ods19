@@ -201,6 +201,16 @@
 			"revisionTime": "2015-03-20T15:06:48-06:00"
 		},
 		{
+			"checksumSHA1": "XIeR3N0xAesD9hXSvyPxIyRZplU=",
+			"path": "github.com/uber-go/zap",
+			"revision": "fb24a84232415cf2c54c76dbbe3b5dc5f1468639",
+			"revisionTime": "2016-05-23T20:32:51+04:00"
+		},
+		{
+			"path": "github.com/ubper-go/zap",
+			"revision": ""
+		},
+		{
 			"checksumSHA1": "5ARrN3Zq+E9zazFb/N+b08Serys=",
 			"path": "golang.org/x/net/context",
 			"revision": "04b9de9b512f58addf28c9853d50ebef61c3953e",

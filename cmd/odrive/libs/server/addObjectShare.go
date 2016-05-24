@@ -4,8 +4,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
+
+	"github.com/uber-go/zap"
 
 	"golang.org/x/net/context"
 
@@ -17,49 +18,43 @@ import (
 	"decipher.com/object-drive-server/util"
 )
 
-func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
-		return
+		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
 	}
 
 	//Get the json data from the request
 	var requestGrant models.ODObjectPermission
 	requestGrant, propagateToChildren, err := parseAddObjectShareRequest(r, ctx)
 	if err != nil {
-		sendErrorResponse(&w, 400, err, "Error parsing request")
-		return
+		return NewAppError(400, err, "Error parsing request")
 	}
 
 	// Normalize the Grantee
 	requestGrant.Grantee = config.GetNormalizedDistinguishedName(requestGrant.Grantee)
 
-	log.Printf("Granting:%s to %s", hex.EncodeToString(requestGrant.ObjectID), requestGrant.Grantee)
-
+	hexid := hex.EncodeToString(requestGrant.ObjectID)
+	LoggerFromContext(ctx).Info("grant to", zap.String("objectid", hexid), zap.String("grantee", requestGrant.Grantee))
 	// Fetch object to validate
 	requestedObject := models.ODObject{}
 	requestedObject.ID = requestGrant.ObjectID
 	dbObject, err := h.DAO.GetObject(requestedObject, false)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Error retrieving object")
-		return
+		return NewAppError(500, err, "Error retrieving object")
 	}
 
 	// Check if the object is deleted
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			sendErrorResponse(&w, 410, err, "The object no longer exists.")
-			return
+			return NewAppError(410, err, "The object no longer exists.")
 		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-			sendErrorResponse(&w, 405, err, "Unallowed to share deleted objects.")
-			return
+			return NewAppError(405, err, "Unallowed to share deleted objects.")
 		case dbObject.IsDeleted:
-			sendErrorResponse(&w, 405, err, "Use removeObjectFromTrash to restore this object before adding shares.")
-			return
+			return NewAppError(405, err, "Use removeObjectFromTrash to restore this object before adding shares.")
 		}
 	}
 
@@ -86,9 +81,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	}
 	if dbObject.TypeName.String != "Folder" {
 		if len(permittedGrant.EncryptKey) == 0 {
-			log.Printf("Grant was not created")
-			sendErrorResponse(&w, 500, err, "Did not find suitable grant to transfer. EncryptKey not set on permission of non-folder")
-			return
+			return NewAppError(500, err, "Did not find suitable grant to transfer. EncryptKey not set on permission of non-folder")
 		}
 		// As a non-folder, encrypt key needs to be applied to grantee.
 		// First apply on caller to decrypt
@@ -115,16 +108,15 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	// Add to database
 	createdPermission, err := h.DAO.AddPermissionToObject(dbObject, &newGrant, propagateToChildren, h.MasterKey)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Error updating permission")
-		return
+		return NewAppError(500, err, "Error updating permission")
 	}
 
 	// Response in requested format
 	apiResponse := mapping.MapODPermissionToPermission(&createdPermission)
 
 	// TODO AUDIT Log EventModify
-	addObjectShareResponseAsJSON(w, r, caller, &apiResponse)
-	countOKResponse()
+	addObjectShareResponseAsJSON(ctx, w, r, caller, &apiResponse)
+	return nil
 }
 
 func parseAddObjectShareRequest(r *http.Request, ctx context.Context) (models.ODObjectPermission, bool, error) {
@@ -164,6 +156,7 @@ func parseAddObjectShareRequest(r *http.Request, ctx context.Context) (models.OD
 }
 
 func addObjectShareResponseAsJSON(
+	ctx context.Context,
 	w http.ResponseWriter,
 	r *http.Request,
 	caller Caller,
@@ -173,7 +166,7 @@ func addObjectShareResponseAsJSON(
 
 	jsonData, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
-		log.Printf("Error marshalling response as json: %s", err.Error())
+		LoggerFromContext(ctx).Error("unable to marshal json", zap.String("err", err.Error()))
 		return
 	}
 	w.Write(jsonData)

@@ -3,13 +3,13 @@ package server
 import (
 	"crypto/aes"
 	"fmt"
-	"log"
 	"net/http"
-	"net/http/httputil"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/uber-go/zap"
 
 	"golang.org/x/net/context"
 
@@ -37,23 +37,21 @@ func extractByteRange(r *http.Request) (*utils.ByteRange, error) {
 	byteRangeSpec := r.Header.Get("Range")
 	parsedByteRange := utils.NewByteRange()
 	if len(byteRangeSpec) > 0 {
-		log.Printf("!!! Byte Range was requested: %s", byteRangeSpec)
 		typeOfRange := strings.Split(byteRangeSpec, "=")
 		if typeOfRange[0] == "bytes" {
 			startStop := strings.Split(typeOfRange[1], "-")
 			parsedByteRange.Start, err = strconv.ParseInt(startStop[0], 10, 64)
 			if err != nil {
-				log.Printf("Could not parse start int64")
-			} else {
-				if len(startStop[1]) > 0 {
-					parsedByteRange.Stop, err = strconv.ParseInt(startStop[1], 10, 64)
-					if err != nil {
-						log.Printf("Could not parse stop int64")
-					}
+				return nil, err
+			}
+			if len(startStop[1]) > 0 {
+				parsedByteRange.Stop, err = strconv.ParseInt(startStop[1], 10, 64)
+				if err != nil {
+					return nil, err
 				}
 			}
 		} else {
-			log.Printf("could not understand range type: %s", typeOfRange[0])
+			return nil, fmt.Errorf("could not understand range type")
 		}
 	} else {
 		//If there is no byte range asked for, then don't return one.  It's important, because
@@ -63,39 +61,24 @@ func extractByteRange(r *http.Request) (*utils.ByteRange, error) {
 	return parsedByteRange, err
 }
 
-func debugRequest(r *http.Request) {
-	req, err := httputil.DumpRequest(r, false)
-	if err != nil {
-		log.Printf("unable to dump http request:%v", err)
-	} else {
-		log.Printf("%s", string(req))
-	}
-
-}
-
 // getObjectStream gets object data stored in object-drive
-func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 	var err error
 	var requestObject models.ODObject
 
-	//debugRequest(r)
-
 	requestObject, err = parseGetObjectRequest(ctx)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Error parsing URI")
-		return
+		return NewAppError(500, err, "Error parsing URI")
 	}
 
 	// Retrieve existing object from the data store
 	object, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Error retrieving object")
-		return
+		return NewAppError(500, err, "Error retrieving object")
 	}
 
 	if len(object.ID) == 0 {
-		sendErrorResponse(&w, 400, err, "Object retrieved doesn't have an id")
-		return
+		return NewAppError(400, err, "Object retrieved doesn't have an id")
 	}
 
 	//Performance count this operation
@@ -112,10 +95,9 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 	)
 	//And then return if something went wrong
 	if herr != nil {
-		sendAppErrorResponse(&w, herr)
-		return
+		return herr
 	}
-	countOKResponse()
+	return nil
 }
 
 // getObjectStreamWithObject is the continuation after we retrieved the object from the database
@@ -174,7 +156,7 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	}
 
 	if !object.ContentSize.Valid || object.ContentSize.Int64 <= int64(0) {
-		return 0, NewAppError(204, fmt.Errorf("content %v", object.ContentSize), "No content")
+		return 0, NewAppError(204, nil, "No content", zap.Int64("bytes", object.ContentSize.Int64))
 	}
 
 	contentLength, herr := h.getAndStreamFile(ctx, &object, w, r, fileKey, true)
@@ -214,15 +196,17 @@ func drainToCache(
 // make a better effort than to throw an exception because it is not cached in our local cache.
 // if another routine is caching, then wait for that to finish.
 // if nobody is caching it, then we start that process.
-func handleCacheMiss(dp DrainProvider, t *performance.JobReporters, object *models.ODObject, cipherFilePathCached FileNameCached) (*os.File, *AppError) {
+func handleCacheMiss(ctx context.Context, d DrainProvider, t *performance.JobReporters, object *models.ODObject, cipherFilePathCached FileNameCached) (*os.File, *AppError) {
 	var err error
-
+	logger := LoggerFromContext(ctx)
 	// We have no choice but to recache and wait.  We can wait for:
 	//   - another goroutine that is .caching to finish
 	//   - we ourselves start .caching the file
 	// It's possible the client will get impatient and not wait (particularly in a browser).
-
-	log.Printf("file is not cached.  Caching it now.")
+	logger.Info(
+		"caching file",
+		zap.String("filename", d.Files().Resolve(cipherFilePathCached)),
+	)
 	bucket := &config.DefaultBucket
 
 	//XXX - the blocking time waiting for this could be very long
@@ -247,15 +231,26 @@ func handleCacheMiss(dp DrainProvider, t *performance.JobReporters, object *mode
 		// This is why we delete .caching files on startup, and when caching files, we delete .caching
 		// file if the goroutine fails.
 		rName := FileId(object.ContentConnector.String)
-		cachingPath := dp.Resolve(NewFileName(rName, ".caching"))
-		cachedPath := dp.Resolve(NewFileName(rName, ".cached"))
+		cachingPath := d.Resolve(NewFileName(rName, ".caching"))
+		cachedPath := d.Resolve(NewFileName(rName, ".cached"))
 		var herr *AppError
-		if _, err := dp.Files().Stat(cachingPath); os.IsNotExist(err) {
+		if _, err := d.Files().Stat(cachingPath); os.IsNotExist(err) {
 			//Start caching the file because this is not happening already.
-			herr, err = drainToCache(dp, t, bucket, FileId(rName), object.ContentSize.Int64)
+			herr, err = drainToCache(d, t, bucket, FileId(rName), object.ContentSize.Int64)
 			if err != nil || herr != nil {
-				//We are not in the http thread.  log this problem though
-				log.Printf("!!! unable to drain to cache:%v %v", herr, err)
+				var errStr string
+				if err != nil {
+					errStr = err.Error()
+				}
+				var herrStr string
+				if herr != nil {
+					herrStr = herr.Error.Error()
+				}
+				logger.Error(
+					"unable to drain cache",
+					zap.String("err", errStr),
+					zap.String("herr", herrStr),
+				)
 			}
 		} else {
 			// Just stall until the cached file exists - somebody else is caching it.
@@ -263,7 +258,7 @@ func handleCacheMiss(dp DrainProvider, t *performance.JobReporters, object *mode
 			sleepTime := time.Duration(1 * time.Second)
 			waitMax := time.Duration(30 * time.Second)
 			for {
-				if _, err := dp.Files().Stat(cachedPath); os.IsNotExist(err) {
+				if _, err := d.Files().Stat(cachedPath); os.IsNotExist(err) {
 					time.Sleep(sleepTime)
 					if sleepTime < waitMax {
 						sleepTime *= 2
@@ -280,7 +275,10 @@ func handleCacheMiss(dp DrainProvider, t *performance.JobReporters, object *mode
 		default:
 			drainingDone <- herr
 		}
-		log.Printf("done stalling on %s", cipherFilePathCached)
+		logger.Info(
+			"stall done",
+			zap.String("filename", d.Files().Resolve(cipherFilePathCached)),
+		)
 	}()
 
 	// Wait for the file.  The client might cut off, but we want to keep caching in any case.
@@ -292,8 +290,9 @@ func handleCacheMiss(dp DrainProvider, t *performance.JobReporters, object *mode
 
 	// The file should now exist
 	var cipherFile *os.File
-	if cipherFile, err = dp.Files().Open(cipherFilePathCached); err != nil {
-		return nil, NewAppError(500, err, "Error opening recently cached file")
+	if cipherFile, err = d.Files().Open(cipherFilePathCached); err != nil {
+		fName := d.Files().Resolve(cipherFilePathCached)
+		return nil, NewAppError(500, err, "Error opening recently cached file", zap.String("filename", fName))
 	}
 
 	return cipherFile, nil
@@ -327,8 +326,7 @@ func searchForCachedOrUploadedFile(d DrainProvider, cipherFilePathCached, cipher
 					return cipherFile, NewAppError(500, err, "Error opening file as uploaded state")
 				}
 			} else {
-				//uploaded file exists.  use it.
-				log.Printf("using uploaded file")
+				//Use uploaded file
 			}
 		} else {
 			//Some other error.
@@ -365,7 +363,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 
 	// Check if cipherFile was assigned, denoting whether or not pulling from cache
 	if cipherFile == nil {
-		cipherFile, herr = handleCacheMiss(h.DrainProvider, h.Tracker, object, cipherFilePathCached)
+		cipherFile, herr = handleCacheMiss(ctx, h.DrainProvider, h.Tracker, object, cipherFilePathCached)
 		if herr != nil {
 			return 0, herr
 		}
@@ -401,7 +399,6 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 		w.Header().Set("Content-Disposition", "inline; filename="+url.QueryEscape(object.Name))
 		if byteRange != nil {
 			rangeResponse := fmt.Sprintf("bytes %d-%d/%d", start, stop, fullLength)
-			log.Printf("Returning a range: %s", rangeResponse)
 			w.Header().Set("Content-Range", rangeResponse)
 			w.WriteHeader(http.StatusPartialContent)
 		} else {
@@ -418,7 +415,12 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 		//Seek to where we should start reading the cipher
 		_, err := cipherFile.Seek(cipherStartAt, 0)
 		if err != nil {
-			return 0, NewAppError(500, err, "Could not seek file")
+			fName := d.Files().Resolve(cipherFilePathCached)
+			return 0, NewAppError(500, err,
+				"Could not seek file",
+				zap.String("filename", fName),
+				zap.Int64("index", cipherStartAt),
+			)
 		}
 
 		//Add blocksToSkip to the iv
@@ -466,7 +468,11 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 			strings.Contains(err.Error(), " write: connection reset by peer") {
 			//Clients are allowed to disconnect and not accept all bytes we are sending back
 		} else {
-			log.Printf("client disconnected (%s): %v", cipherFilePathCached, err)
+			LoggerFromContext(ctx).Error(
+				"client disconnect",
+				zap.String("filename", d.Files().Resolve(cipherFilePathCached)),
+				zap.String("err", err.Error()),
+			)
 		}
 	}
 

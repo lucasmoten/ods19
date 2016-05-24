@@ -10,6 +10,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/uber-go/zap"
+
 	"golang.org/x/net/context"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/config"
@@ -147,7 +149,7 @@ func (h AppServer) acceptObjectUpload(
 			if obj.Name == "" {
 				obj.Name = part.FileName()
 			}
-			drainFunc, herr, err = h.beginUpload(caller, part, obj, grant)
+			drainFunc, herr, err = h.beginUpload(ctx, caller, part, obj, grant)
 			if herr != nil {
 				return nil, herr, err
 			}
@@ -160,6 +162,7 @@ func (h AppServer) acceptObjectUpload(
 }
 
 func (h AppServer) beginUpload(
+	ctx context.Context,
 	caller Caller,
 	part *multipart.Part,
 	obj *models.ODObject,
@@ -167,7 +170,7 @@ func (h AppServer) beginUpload(
 ) (beginDrain func(), herr *AppError, err error) {
 
 	beganAt := h.Tracker.BeginTime(performance.UploadCounter)
-	drainFunc, herr, err := h.beginUploadTimed(caller, part, obj, grant)
+	drainFunc, herr, err := h.beginUploadTimed(ctx, caller, part, obj, grant)
 	h.Tracker.EndTime(performance.UploadCounter, beganAt, performance.SizeJob(obj.ContentSize.Int64))
 	if herr != nil {
 		return nil, herr, err
@@ -176,6 +179,7 @@ func (h AppServer) beginUpload(
 }
 
 func (h AppServer) beginUploadTimed(
+	ctx context.Context,
 	caller Caller,
 	part *multipart.Part,
 	obj *models.ODObject,
@@ -227,10 +231,9 @@ func (h AppServer) beginUploadTimed(
 		d.Files().Remove(outFileUploading)
 		return nil, NewAppError(500, err, msg), err
 	}
-	log.Printf("rename:%s -> %s", outFileUploading, outFileUploaded)
+	LoggerFromContext(ctx).Info("rename", zap.String("from", string(outFileUploading)), zap.String("to", string(outFileUploaded)))
 
 	//Record metadata
-	log.Printf("checksum:%s", hex.EncodeToString(checksum))
 	obj.ContentHash = checksum
 	obj.ContentSize.Int64 = length
 
@@ -313,6 +316,5 @@ func guessContentType(name string) string {
 			contentType = fmt.Sprintf("application/%s", ext[1:])
 		}
 	}
-	log.Printf("uploaded %s as %s", name, contentType)
 	return contentType
 }

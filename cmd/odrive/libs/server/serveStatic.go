@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
+
+	"golang.org/x/net/context"
 
 	"decipher.com/object-drive-server/util"
 )
@@ -16,30 +17,27 @@ var (
 )
 
 func (h AppServer) serveStatic(
-	w http.ResponseWriter, r *http.Request, re *regexp.Regexp, uri string) {
-
+	ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
+	re := h.Routes.StaticFiles
+	uri := r.URL.Path
 	groups := util.GetRegexCaptureGroups(uri, re)
 	afterStatic, ok := groups["path"]
 	if !ok {
-		sendErrorResponse(&w, 404, nil, errStaticResourceNotFound)
-		return
+		return NewAppError(404, nil, errStaticResourceNotFound)
 	}
 	path := filepath.Join(h.StaticDir, afterStatic)
 	if err := util.SanitizePath(path); err != nil {
-		sendErrorResponse(&w, 404, nil, errStaticResourceNotFound)
-		return
+		NewAppError(404, nil, errStaticResourceNotFound)
 	}
 
 	f, err := os.Open(path)
 	if err != nil {
-		sendErrorResponse(&w, 404, nil, errStaticResourceNotFound)
-		return
+		return NewAppError(404, nil, errStaticResourceNotFound)
 	}
 	_, err = io.Copy(w, f)
 	if err != nil {
-		sendErrorResponse(&w, 500, nil, errServingStatic)
-		return
+		return NewAppError(500, nil, errServingStatic)
 	}
 
-	countOKResponse()
+	return nil
 }

@@ -11,13 +11,12 @@ import (
 // home is a method handler on AppServer for displaying a response when the
 // root URI is requested without an operation. In this context, a UI is provided
 // listing and linking to some available operations
-func (h AppServer) home(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h AppServer) home(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
-		return
+		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
 	}
 
 	tmpl := h.TemplateCache.Lookup("home.html")
@@ -40,8 +39,7 @@ func (h AppServer) home(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	}
 	w.Header().Set("Content-Type", "text/html")
 	if err := tmpl.Execute(w, data); err != nil {
-		sendErrorResponse(&w, 500, err, err.Error())
-		return
+		return NewAppError(500, err, err.Error())
 	}
-	countOKResponse()
+	return nil
 }

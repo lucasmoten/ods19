@@ -17,7 +17,7 @@ import (
 	"decipher.com/object-drive-server/util"
 )
 
-func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	var requestObject models.ODObject
 	var err error
@@ -25,19 +25,16 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		sendErrorResponse(&w, 500, errors.New("Could not determine user"), "Invalid user.")
-		return
+		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
 	}
 
 	// Parse Request in sent format
 	if r.Header.Get("Content-Type") != "application/json" {
-		sendErrorResponse(&w, http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
-		return
+		return NewAppError(http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
 	}
 	requestObject, err = parseMoveObjectRequestAsJSON(r, ctx)
 	if err != nil {
-		sendErrorResponse(&w, 400, err, "Error parsing JSON")
-		return
+		return NewAppError(400, err, "Error parsing JSON")
 	}
 
 	// Business Logic...
@@ -45,8 +42,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	// Retrieve existing object from the data store
 	dbObject, err := h.DAO.GetObject(requestObject, true)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Error retrieving object")
-		return
+		return NewAppError(500, err, "Error retrieving object")
 	}
 
 	// Capture and overwrite here for comparison later after the update
@@ -63,8 +59,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 		}
 	}
 	if !authorizedToUpdate {
-		sendErrorResponse(&w, 403, nil, "Unauthorized")
-		return
+		return NewAppError(403, nil, "Unauthorized")
 	}
 
 	// Check if the user has permission to create children under the target
@@ -73,8 +68,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	targetParent.ID = requestObject.ParentID
 	dbParent, err := h.DAO.GetObject(targetParent, false)
 	if err != nil {
-		sendErrorResponse(&w, 400, err, "Error retrieving parent to move object into")
-		return
+		return NewAppError(400, err, "Error retrieving parent to move object into")
 	}
 	authorizedToMoveTo := false
 	for _, parentPermission := range dbParent.Permissions {
@@ -85,20 +79,16 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 		}
 	}
 	if !authorizedToMoveTo {
-		sendErrorResponse(&w, 403, nil, "Unauthorized")
-		// log this, but done send back to client as it leaks existence
 		log.Printf("User has insufficient permissions to move object into new parent")
-		return
+		return NewAppError(403, nil, "Unauthorized")
 	}
 
 	// Parent must not be deleted
 	if targetParent.IsDeleted {
 		if targetParent.IsExpunged {
-			sendErrorResponse(&w, 410, err, "Unable to move object into an object that does not exist")
-			return
+			return NewAppError(410, err, "Unable to move object into an object that does not exist")
 		}
-		sendErrorResponse(&w, 405, err, "Unable to move object into an object that is deleted")
-		return
+		return NewAppError(405, err, "Unable to move object into an object that is deleted")
 	}
 
 	// Make sure the object isn't deleted. To remove an object from the trash,
@@ -106,38 +96,31 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			sendErrorResponse(&w, 410, err, "The object no longer exists.")
-			return
+			return NewAppError(410, err, "The object no longer exists.")
 		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-			sendErrorResponse(&w, 405, err, "The object cannot be modified because an ancestor is deleted.")
-			return
+			return NewAppError(405, err, "The object cannot be modified because an ancestor is deleted.")
 		case dbObject.IsDeleted:
-			sendErrorResponse(&w, 405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it")
-			return
+			return NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it")
 		}
 	}
 
 	// Check that the change token on the object passed in matches the current
 	// state of the object in the data store
 	if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) != 0 {
-		sendErrorResponse(&w, 428, nil, "ChangeToken does not match expected value. Object may have been changed by another request.")
-		return
+		return NewAppError(428, nil, "ChangeToken does not match expected value. Object may have been changed by another request.")
 	}
 
 	// #60 Check that the parent being assigned for the object passed in does not
 	// result in a circular reference
 	if bytes.Compare(requestObject.ParentID, requestObject.ID) == 0 {
-		sendErrorResponse(&w, 400, err, "ParentID cannot be set to the ID of the object. Circular references are not allowed.")
-		return
+		return NewAppError(400, err, "ParentID cannot be set to the ID of the object. Circular references are not allowed.")
 	}
 	circular, err := h.DAO.IsParentIDADescendent(requestObject.ID, requestObject.ParentID)
 	if err != nil {
-		sendErrorResponse(&w, 500, err, "Error retrieving ancestor to check for circular references")
-		return
+		return NewAppError(500, err, "Error retrieving ancestor to check for circular references")
 	}
 	if circular {
-		sendErrorResponse(&w, 400, err, "ParentID cannot be set to the value specified as would result in a circular reference")
-		return
+		return NewAppError(400, err, "ParentID cannot be set to the value specified as would result in a circular reference")
 	}
 
 	// Check that the parent of the object passed in is different then the current
@@ -156,18 +139,15 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 		err := h.DAO.UpdateObject(&dbObject)
 		if err != nil {
 			log.Printf("Error updating object: %v", err)
-			sendErrorResponse(&w, 500, nil, "Error saving object in new location")
-			return
+			return NewAppError(500, nil, "Error saving object in new location")
 		}
 
 		// After the update, check that key values have changed...
 		if dbObject.ChangeCount <= requestObject.ChangeCount {
-			sendErrorResponse(&w, 500, nil, "ChangeCount didn't update when processing move request")
-			return
+			return NewAppError(500, nil, "ChangeCount didn't update when processing move request")
 		}
 		if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) == 0 {
-			sendErrorResponse(&w, 500, nil, "ChangeToken didn't update when processing move request")
-			return
+			return NewAppError(500, nil, "ChangeToken didn't update when processing move request")
 		}
 	}
 
@@ -175,7 +155,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	apiResponse := mapping.MapODObjectToObject(&dbObject)
 	moveObjectResponseAsJSON(w, r, caller, &apiResponse)
 
-	countOKResponse()
+	return nil
 }
 
 func parseMoveObjectRequestAsJSON(r *http.Request, ctx context.Context) (models.ODObject, error) {

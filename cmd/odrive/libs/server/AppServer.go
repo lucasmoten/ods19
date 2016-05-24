@@ -5,8 +5,9 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"time"
 
-	"golang.org/x/net/context"
+	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/dao"
 	globalconfig "decipher.com/object-drive-server/config"
@@ -18,6 +19,7 @@ import (
 	"decipher.com/object-drive-server/services/audit/generated/events_thrift"
 	"decipher.com/object-drive-server/services/zookeeper"
 	"decipher.com/object-drive-server/util"
+	"golang.org/x/net/context"
 )
 
 // Constants serve as keys for setting values on a request-scoped Context.
@@ -27,6 +29,7 @@ const (
 	UserVal
 	UserSnippetsVal
 	AuditEventVal
+	Logger
 )
 
 // AppServer contains definition for the metadata server
@@ -120,51 +123,81 @@ func (h *AppServer) InitRegex() {
 // ServeHTTP handles the routing of requests
 func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	caller := GetCaller(r)
+	//Wait until we can log to handle the error!
 	err := caller.ValidateHeaders(h.AclImpersonationWhitelist, w, r)
-	// Log state consistent with AclRestFilter
-	if err != nil {
-		log.Printf("Transaction: "+caller.TransactionType+" INVALID!"+caller.GetMessage()+" %s", err.Error())
-		sendErrorResponse(&w, 401, err, err.Error())
-		return
-	}
-	//log.Printf("Transaction: " + caller.TransactionType + " VALID! UserAuthentication.current: " + caller.UserDistinguishedName + " " + caller.GetMessage())
 
 	var ctx context.Context
+	//Set caller first so that logger can log user
 	ctx = ContextWithCaller(context.Background(), caller)
-	var uri = r.URL.Path
+	//Now we can log
+	ctx = ContextWithLogger(ctx, r)
 
-	log.Printf("URI:%s %s USER:%s", r.Method, uri, caller.DistinguishedName)
+	// Log globally relevant things about this transaction, and don't repeat them
+	// all over individual logs - correlate on session field
+	logger := LoggerFromContext(ctx)
+	logger.Info(
+		"transaction start",
+		zap.String("dn", caller.DistinguishedName),
+		zap.String("cn", caller.CommonName),
+		zap.String("xdn", caller.ExternalSystemDistinguishedName),
+		zap.String("sdn", caller.SSLClientSDistinguishedName),
+		zap.String("udn", caller.UserDistinguishedName),
+		zap.String("dtime", time.Now().String()),
+	)
+
+	if err != nil {
+		// We will need to pass in context to places like this, or
+		// re-work to return back to this level where logger already *has* context.
+		// Note that Caddy deviates from standard f(w,f) interface to return an http code and error
+		// for exactly this reason.
+		sendErrorResponse(logger, &w, 401, err, err.Error())
+		return
+	}
+
+	var uri = r.URL.Path
+	var herr *AppError
+
+	//log.Printf("URI:%s %s USER:%s", r.Method, uri, caller.DistinguishedName)
 
 	// The following routes can be handled without calls to the database
+	withoutDatabase := false
 	switch r.Method {
 	case "GET":
 		switch {
 		// Development UI
 		case h.Routes.Home.MatchString(uri):
-			h.home(ctx, w, r)
-			return
+			herr = h.home(ctx, w, r)
+			withoutDatabase = true
 		case h.Routes.HomeListObjects.MatchString(uri):
-			h.homeListObjects(ctx, w, r)
-			return
+			herr = h.homeListObjects(ctx, w, r)
+			withoutDatabase = true
 		case h.Routes.Favicon.MatchString(uri):
-			h.favicon(ctx, w, r)
-			return
+			herr = h.favicon(ctx, w, r)
+			withoutDatabase = true
 		case h.Routes.StatsObject.MatchString(uri):
-			h.getStats(ctx, w, r)
-			return
+			herr = h.getStats(ctx, w, r)
+			withoutDatabase = true
 		case h.Routes.StaticFiles.MatchString(uri):
-			h.serveStatic(w, r, h.Routes.StaticFiles, uri)
-			return
+			herr = h.serveStatic(ctx, w, r)
+			withoutDatabase = true
 		// API documentation
 		case h.Routes.APIDocumentation.MatchString(uri):
-			h.docs(ctx, w, r)
-			return
+			herr = h.docs(ctx, w, r)
+			withoutDatabase = true
 		}
+	}
+	if withoutDatabase {
+		if herr != nil {
+			sendAppErrorResponse(logger, &w, herr)
+		} else {
+			countOKResponse(logger)
+		}
+		return
 	}
 
 	user, err := h.FetchUser(ctx)
 	if err != nil {
-		sendErrorResponse(&w, 500, nil, "Error loading user")
+		sendErrorResponse(logger, &w, 500, nil, "Error loading user")
 		return
 	}
 
@@ -187,168 +220,184 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		switch {
 		// Development UI
 		case h.Routes.Users.MatchString(uri):
-			h.listUsers(ctx, w, r)
+			herr = h.listUsers(ctx, w, r)
 			// API
 			// - user profile usage information
 		case h.Routes.UserStats.MatchString(uri):
-			h.userStats(ctx, w, r)
+			herr = h.userStats(ctx, w, r)
 		// - get object properties
 		case h.Routes.ObjectProperties.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectProperties)
-			h.getObject(ctx, w, r)
+			herr = h.getObject(ctx, w, r)
 		// - get object stream
 		case h.Routes.ObjectStream.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectStream)
-			h.getObjectStream(ctx, w, r)
+			herr = h.getObjectStream(ctx, w, r)
 		// - list objects at root
 		case h.Routes.Objects.MatchString(uri):
-			h.listObjects(ctx, w, r)
+			herr = h.listObjects(ctx, w, r)
 		// - list objects of object
 		case h.Routes.Object.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Object)
-			h.listObjects(ctx, w, r)
+			herr = h.listObjects(ctx, w, r)
 		// - list trash
 		case h.Routes.Trash.MatchString(uri):
-			h.listObjectsTrashed(ctx, w, r)
+			herr = h.listObjectsTrashed(ctx, w, r)
 		// - list objects shared to me
 		case h.Routes.SharedToMe.MatchString(uri):
-			h.listUserObjectShares(ctx, w, r)
+			herr = h.listUserObjectShares(ctx, w, r)
 		// - list objects i've shared with others
 		case h.Routes.SharedToOthers.MatchString(uri):
-			h.listUserObjectsShared(ctx, w, r)
+			herr = h.listUserObjectsShared(ctx, w, r)
 		// - list object revisions (array of get object properties)
 		case h.Routes.Revisions.MatchString(uri):
-			h.listObjectRevisions(ctx, w, r)
+			herr = h.listObjectRevisions(ctx, w, r)
 		// - get object revision stream
 		case h.Routes.RevisionStream.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.RevisionStream)
-			h.getObjectStreamForRevision(ctx, w, r)
+			herr = h.getObjectStreamForRevision(ctx, w, r)
 		// - search
 		case h.Routes.Search.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Search)
-			h.query(ctx, w, r)
+			herr = h.query(ctx, w, r)
 		// FUTURE API, NOT YET IMPLEMENTED
 		// - get relationships
 		case h.Routes.ObjectLinks.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectLinks)
-			h.getRelationships(ctx, w, r)
+			herr = h.getRelationships(ctx, w, r)
 		// - list favorite / starred objects
 		case h.Routes.Favorites.MatchString(uri):
-			h.listFavorites(ctx, w, r)
+			herr = h.listFavorites(ctx, w, r)
 		// - list subscribed objects
 		case h.Routes.Subscribed.MatchString(uri):
-			h.listObjectsSubscriptions(ctx, w, r)
+			herr = h.listObjectsSubscriptions(ctx, w, r)
 		// - list object types
 		case h.Routes.ObjectTypes.MatchString(uri):
 			// TODO: h.listObjectTypes(ctx, w, r)
+			herr = NewAppError(404, nil, "Not matched")
 		default:
-			do404(ctx, w, r)
+			herr = do404(ctx, w, r)
 		}
+
 	case "POST":
 		// API
 		switch {
 		// - create object
 		case h.Routes.Objects.MatchString(uri):
-			h.createObject(ctx, w, r)
+			herr = h.createObject(ctx, w, r)
 		// - delete object (updates state)
 		case h.Routes.ObjectDelete.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectDelete)
-			h.deleteObject(ctx, w, r)
+			herr = h.deleteObject(ctx, w, r)
 		// - undelete object (updates state)
 		case h.Routes.ObjectUndelete.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectUndelete)
-			h.removeObjectFromTrash(ctx, w, r)
+			herr = h.removeObjectFromTrash(ctx, w, r)
 		// - update object properties
 		case h.Routes.ObjectProperties.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectProperties)
-			h.updateObject(ctx, w, r)
+			herr = h.updateObject(ctx, w, r)
 		// - update object stream
 		case h.Routes.ObjectStream.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectStream)
-			h.updateObjectStream(ctx, w, r)
+			herr = h.updateObjectStream(ctx, w, r)
 		// - create object share
 		case h.Routes.SharedObject.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.SharedObject)
-			h.addObjectShare(ctx, w, r)
+			herr = h.addObjectShare(ctx, w, r)
 		// - move object
 		case h.Routes.ObjectMove.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectMove)
-			h.moveObject(ctx, w, r)
+			herr = h.moveObject(ctx, w, r)
 		// - change owner
 		case h.Routes.ObjectChangeOwner.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectChangeOwner)
-			h.changeOwner(ctx, w, r)
+			herr = h.changeOwner(ctx, w, r)
 		// - create favorite
 		case h.Routes.FavoriteObject.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.FavoriteObject)
-			h.addObjectToFavorites(ctx, w, r)
+			herr = h.addObjectToFavorites(ctx, w, r)
 		// - create symbolic link from object to another folder
 		case h.Routes.LinkToObject.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.LinkToObject)
-			h.addObjectToFolder(ctx, w, r)
+			herr = h.addObjectToFolder(ctx, w, r)
 		// - create subscriptionId
 		case h.Routes.ObjectSubscribe.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectSubscribe)
-			h.addObjectSubscription(ctx, w, r)
+			herr = h.addObjectSubscription(ctx, w, r)
 		// - create object type
 		case h.Routes.ObjectTypes.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectTypes)
+			herr = NewAppError(404, nil, "Not implemented")
 			// TODO: h.addObjectType(ctx, w, r)
 			// - update object type
 		case h.Routes.ObjectType.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectType)
 			// TODO: h.updateObjectType(ctx, w, r)
+			herr = NewAppError(404, nil, "Not implemented")
 		default:
-			do404(ctx, w, r)
+			herr = do404(ctx, w, r)
 		}
+
 	case "DELETE":
 		switch {
 		// - delete object forever
 		case h.Routes.ObjectExpunge.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectExpunge)
-			h.deleteObjectForever(ctx, w, r)
+			herr = h.deleteObjectForever(ctx, w, r)
 			// - remove object share
 		case h.Routes.SharedObjectShare.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.SharedObjectShare)
-			h.removeObjectShare(ctx, w, r)
+			herr = h.removeObjectShare(ctx, w, r)
 		// - remove object favorite
 		case h.Routes.FavoriteObject.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.FavoriteObject)
-			h.removeObjectFromFavorites(ctx, w, r)
+			herr = h.removeObjectFromFavorites(ctx, w, r)
 		// - remove symbolic link
 		case h.Routes.LinkToObject.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.LinkToObject)
-			h.removeObjectFromFolder(ctx, w, r)
+			herr = h.removeObjectFromFolder(ctx, w, r)
 		// - remove subscription
 		case h.Routes.SubscribedSubscription.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.SubscribedSubscription)
-			h.removeObjectSubscription(ctx, w, r)
+			herr = h.removeObjectSubscription(ctx, w, r)
 		// - remove all subscriptions
 		case h.Routes.Subscribed.MatchString(uri):
+			herr = NewAppError(404, nil, "Not implemented")
 			// TODO: h.deleteObjectSubscriptions(ctx, w, r)
 			// - empty trash (expunge all in trash)
 		case h.Routes.Trash.MatchString(uri):
+			herr = NewAppError(404, nil, "Not implemented")
 			// TODO: h.emptyTrash(ctx, w, r)
 		// - remove all shares on an object
 		case h.Routes.SharedObject.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.SharedObject)
+			herr = NewAppError(404, nil, "Not implemented")
 			// TODO: h.removeObjectShares(ctx, w, r)
 		// - remove object type
 		case h.Routes.ObjectType.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectType)
+			herr = NewAppError(404, nil, "Not implemented")
 			// TODO: h.deleteObjectType(ctx, w, r)
 
 		default:
-			do404(ctx, w, r)
+			herr = do404(ctx, w, r)
 		}
 	default:
-		do404(ctx, w, r)
+		herr = do404(ctx, w, r)
 	}
+
 	// TODO: Before returning, lets capture changes placed back on the context and push into the cache
 	// TODO: UserSnippetsFromContext
 	// TODO: UserSnippetSQL
 
 	// TODO: Before returning, finalize any metrics, capturing time/error codes ?
+	if herr != nil {
+		sendAppErrorResponse(logger, &w, herr)
+	} else {
+		countOKResponse(logger)
+	}
+
 }
 
 func newSessionID() string {
@@ -378,6 +427,25 @@ func CallerFromContext(ctx context.Context) (Caller, bool) {
 	// the Caller type assertion returns ok=false for nil.
 	caller, ok := ctx.Value(CallerVal).(Caller)
 	return caller, ok
+}
+
+func ContextWithLogger(ctx context.Context, r *http.Request) context.Context {
+	caller, _ := CallerFromContext(ctx)
+	return context.WithValue(ctx, Logger, zap.NewJSON().
+		With(zap.String("session", newSessionID())).
+		With(zap.String("node", zookeeper.RandomID)).
+		With(zap.String("cn", caller.CommonName)).
+		With(zap.String("method", r.Method)).
+		With(zap.String("uri", r.RequestURI)))
+}
+
+// LoggerFromContext gets an uber zap logger from our context
+func LoggerFromContext(ctx context.Context) zap.Logger {
+	logger, ok := ctx.Value(Logger).(zap.Logger)
+	if !ok {
+		log.Print("!!! Any ctx object you get should have a logger set on it")
+	}
+	return logger
 }
 
 func parseCaptureGroups(ctx context.Context, path string, regex *regexp.Regexp) context.Context {
@@ -417,7 +485,7 @@ func UserSnippetsFromContext(ctx context.Context) (acm.ODriveRawSnippetFields, b
 	return snippets, ok
 }
 
-func do404(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func do404(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
@@ -426,8 +494,7 @@ func do404(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	uri := r.URL.Path
 	msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 	log.Println("WARN: " + msg)
-	sendErrorResponse(&w, 404, nil, "Resource not found")
-	return
+	return NewAppError(404, nil, "Resource not found")
 }
 
 // StaticRx statically references compiled regular expressions.

@@ -14,6 +14,10 @@ import (
 	"github.com/samuel/go-zookeeper/zk"
 )
 
+// This node is identifying itself with this in zookeeper.
+// We use it to figure out which odrive in the cluster we are
+var RandomID string
+
 var PermissiveACL = zk.WorldACL(zk.PermAll)
 
 // ZKState is everything about zookeeper that we might need to know
@@ -207,11 +211,12 @@ func ServiceAnnouncement(zkState ZKState, protocol string, stat, host string, po
 	)
 	if err == nil {
 		//Register a member with our data - ephemeral so that data disappears when we die
+		RandomID = randomID()
 		newPath, err = makeNewNode(
 			zkState.Conn,
 			"announcement",
 			newPath,
-			randomID(),
+			RandomID,
 			zk.FlagEphemeral,
 			asBytes,
 		)

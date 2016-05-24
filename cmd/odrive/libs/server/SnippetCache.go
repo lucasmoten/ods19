@@ -3,8 +3,9 @@ package server
 import (
 	"errors"
 	"fmt"
-	"log"
 	"sync"
+
+	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
@@ -94,14 +95,16 @@ func (h AppServer) FetchUserSnippets(ctx context.Context) (*acm.ODriveRawSnippet
 			beganAt = h.Tracker.BeginTime(performance.AACCounterGetSnippets)
 		}
 
-		// Not found in cache, look up from aac
-		log.Printf("Looking up snippets for user %s from aac", user.DistinguishedName)
+		LoggerFromContext(ctx).Info("look up snippets")
 
 		// Call AAC to get Snippets
 		snippetType := "odrive-raw"
 		snippetResponse, err := h.AAC.GetSnippets(user.DistinguishedName, "pki_dias", snippetType)
 		if err != nil {
-			log.Printf("Error calling AAC.GetSnippets: %s", err.Error())
+			LoggerFromContext(ctx).Error(
+				"error calling AAC.GetSnippets",
+				zap.String("err", err.Error()),
+			)
 			return nil, err
 		}
 		if !snippetResponse.Success {
@@ -109,14 +112,20 @@ func (h AppServer) FetchUserSnippets(ctx context.Context) (*acm.ODriveRawSnippet
 			for _, message := range snippetResponse.Messages {
 				messages += message
 			}
-			log.Printf("Calling AAC.GetSnippets was not successful: %s", messages)
+			LoggerFromContext(ctx).Error(
+				"AAC.GetSnippets unsuccessful",
+				zap.String("messages", messages),
+			)
 			return nil, fmt.Errorf(messages)
 		}
 
 		// Convert to Snippet Fields
 		odriveRawSnippetFields, err := acm.NewODriveRawSnippetFieldsFromSnippetResponse(snippetResponse.Snippets)
 		if err != nil {
-			log.Printf("Error converting snippets to snippet fields: %s", err.Error())
+			LoggerFromContext(ctx).Error(
+				"error converting snippets to fields",
+				zap.String("err", err.Error()),
+			)
 			return nil, err
 		}
 
