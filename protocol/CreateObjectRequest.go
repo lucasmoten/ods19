@@ -9,7 +9,7 @@ type CreateObjectRequest struct {
 	Description string `json:"description"`
 	ParentID    string `json:"parentId,omitempty"`
 	// RawACM is the raw ACM string that got supplied to create this object
-	RawAcm string `json:"acm"`
+	RawAcm interface{} `json:"acm"`
 	// ContentType indicates the mime-type, and potentially the character set
 	// encoding for the object contents
 	ContentType string `json:"contentType,omitempty"`

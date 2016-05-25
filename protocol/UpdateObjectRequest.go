@@ -13,7 +13,7 @@ type UpdateObjectRequest struct {
 	// Description is an abstract of the object or its contents
 	Description string `json:"description"`
 	// RawACM is the raw ACM string that got supplied to create this object
-	RawAcm string `json:"acm"`
+	RawAcm interface{} `json:"acm"`
 	// Properties is an array of Object Properties associated with this object
 	Properties []Property `json:"properties,omitempty"`
 	// IsUSPersonsData indicates if this object contains US Persons data

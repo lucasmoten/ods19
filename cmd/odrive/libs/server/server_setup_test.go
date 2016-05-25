@@ -38,7 +38,7 @@ var httpclients []*http.Client
 
 func init() {
 	host = fmt.Sprintf("https://%s:%s", cfg.DockerVM, cfg.Port)
-	log.Println("Using this host addrress for server_test:", host)
+	log.Println("Using this host address for server_test:", host)
 	if !testing.Short() {
 		generatePopulation()
 	}

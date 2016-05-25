@@ -28,7 +28,7 @@
                   <td>Created By</td>
                   <td>Size</td>
                   <td>ChangeToken</td>
-                  <td>ACM</td>
+                  <td>Classification</td>
                   <td>Share To</td>
                   <td>Delete</td>
                </tr>
@@ -49,7 +49,7 @@
                   <td>Created By</td>
                   <td>Size</td>
                   <td>ChangeToken</td>
-                  <td>ACM</td>
+                  <td>Classification</td>
                </tr>
             </thead>
             <tbody>
@@ -68,7 +68,7 @@
                   <td>Created By</td>
                   <td>Size</td>
                   <td>ChangeToken</td>
-                  <td>ACM</td>
+                  <td>Classification</td>
                </tr>
             </thead>
             <tbody>
@@ -79,7 +79,16 @@
       <h1>Create Folder</h1>
       <div>
          <form >
-            <input id="folderNameInput"  type="text"  />
+            <input id="folderNameInput"  type="text"  /><br />
+            <select id="newFolderClassification"  type="select">
+               <option value="{&quot;version&quot;:&quot;2.1.0&quot;,&quot;classif&quot;:&quot;U&quot;,&quot;owner_prod&quot;:[&quot;USA&quot;],&quot;portion&quot;:&quot;U&quot;,&quot;banner&quot;:&quot;UNCLASSIFIED&quot;,&quot;dissem_countries&quot;:[&quot;USA&quot;],&quot;f_clearance&quot;:[&quot;u&quot;]}">UNCLASSIFIED</option>
+               <option value="{&quot;version&quot;:&quot;2.1.0&quot;,&quot;classif&quot;:&quot;U&quot;,&quot;owner_prod&quot;:[&quot;USA&quot;],&quot;portion&quot;:&quot;U//FOUO&quot;,&quot;banner&quot;:&quot;UNCLASSIFIED//FOUO&quot;,&quot;dissem_ctrls&quot;:[&quot;FOUO&quot;],&quot;dissem_countries&quot;:[&quot;USA&quot;],&quot;f_clearance&quot;:[&quot;u&quot;]}">UNCLASSIFIED//FOUO</option>
+               <option value="{&quot;version&quot;:&quot;2.1.0&quot;,&quot;classif&quot;:&quot;S&quot;,&quot;owner_prod&quot;:[&quot;USA&quot;],&quot;portion&quot;:&quot;C//NF&quot;,&quot;banner&quot;:&quot;CONFIDENTIAL//NF&quot;,&quot;dissem_countries&quot;:[&quot;USA&quot;],&quot;dissem_ctrls&quot;:[&quot;nf&quot;],&quot;f_clearance&quot;:[&quot;s&quot;]}
+">CLASSIFIED//NF</option>
+               <option value="{&quot;version&quot;:&quot;2.1.0&quot;,&quot;classif&quot;:&quot;S&quot;,&quot;owner_prod&quot;:[&quot;USA&quot;],&quot;portion&quot;:&quot;S//NF&quot;,&quot;banner&quot;:&quot;SECRET//NF&quot;,&quot;dissem_countries&quot;:[&quot;USA&quot;],&quot;dissem_ctrls&quot;:[&quot;nf&quot;],&quot;f_clearance&quot;:[&quot;s&quot;]}
+">SECRET//NF</option>
+               <option value="{&quot;version&quot;:&quot;2.1.0&quot;,&quot;classif&quot;:&quot;TS&quot;,&quot;owner_prod&quot;:[&quot;USA&quot;],&quot;sci_ctrls&quot;:[&quot;si&quot;,&quot;tk&quot;],&quot;portion&quot;:&quot;TS//SI/TK&quot;,&quot;banner&quot;:&quot;TOP SECRET//SI/TK&quot;,&quot;dissem_countries&quot;:[&quot;USA&quot;],&quot;f_clearance&quot;:[&quot;ts&quot;],&quot;f_sci_ctrls&quot;:[&quot;si&quot;,&quot;tk&quot;]}">TOP SECRET//SI/TK</option>
+            </select>
          </form>
          <button id="submitCreateFolder">Submit</button>
       </div>
@@ -87,12 +96,15 @@
       <h1>Create Object</h1>
       <div>
          <form >
-            <input id="newObjectName"  type="text"  />
-            <select id="classification"  type="select">
-               <option value="U">UNCLASSIFIED</option>
-               <option value="C" disabled=disabled>CLASSIFIED</option>
-               <option value="S" disabled=disabled>SECRET</option>
-               <option value="T" disabled=disabled>TOP SECRET</option>
+            <input id="newObjectName"  type="text"  /><br />
+            <select id="newObjectClassification"  type="select">
+               <option value="{&quot;version&quot;:&quot;2.1.0&quot;,&quot;classif&quot;:&quot;U&quot;,&quot;owner_prod&quot;:[&quot;USA&quot;],&quot;portion&quot;:&quot;U&quot;,&quot;banner&quot;:&quot;UNCLASSIFIED&quot;,&quot;dissem_countries&quot;:[&quot;USA&quot;],&quot;f_clearance&quot;:[&quot;u&quot;]}">UNCLASSIFIED</option>
+               <option value="{&quot;version&quot;:&quot;2.1.0&quot;,&quot;classif&quot;:&quot;U&quot;,&quot;owner_prod&quot;:[&quot;USA&quot;],&quot;portion&quot;:&quot;U//FOUO&quot;,&quot;banner&quot;:&quot;UNCLASSIFIED//FOUO&quot;,&quot;dissem_ctrls&quot;:[&quot;FOUO&quot;],&quot;dissem_countries&quot;:[&quot;USA&quot;],&quot;f_clearance&quot;:[&quot;u&quot;]}">UNCLASSIFIED//FOUO</option>
+               <option value="{&quot;version&quot;:&quot;2.1.0&quot;,&quot;classif&quot;:&quot;S&quot;,&quot;owner_prod&quot;:[&quot;USA&quot;],&quot;portion&quot;:&quot;C//NF&quot;,&quot;banner&quot;:&quot;CONFIDENTIAL//NF&quot;,&quot;dissem_countries&quot;:[&quot;USA&quot;],&quot;dissem_ctrls&quot;:[&quot;nf&quot;],&quot;f_clearance&quot;:[&quot;s&quot;]}
+">CLASSIFIED//NF</option>
+               <option value="{&quot;version&quot;:&quot;2.1.0&quot;,&quot;classif&quot;:&quot;S&quot;,&quot;owner_prod&quot;:[&quot;USA&quot;],&quot;portion&quot;:&quot;S//NF&quot;,&quot;banner&quot;:&quot;SECRET//NF&quot;,&quot;dissem_countries&quot;:[&quot;USA&quot;],&quot;dissem_ctrls&quot;:[&quot;nf&quot;],&quot;f_clearance&quot;:[&quot;s&quot;]}
+">SECRET//NF</option>
+               <option value="{&quot;version&quot;:&quot;2.1.0&quot;,&quot;classif&quot;:&quot;TS&quot;,&quot;owner_prod&quot;:[&quot;USA&quot;],&quot;sci_ctrls&quot;:[&quot;si&quot;,&quot;tk&quot;],&quot;portion&quot;:&quot;TS//SI/TK&quot;,&quot;banner&quot;:&quot;TOP SECRET//SI/TK&quot;,&quot;dissem_countries&quot;:[&quot;USA&quot;],&quot;f_clearance&quot;:[&quot;ts&quot;],&quot;f_sci_ctrls&quot;:[&quot;si&quot;,&quot;tk&quot;]}">TOP SECRET//SI/TK</option>
             </select>
             <input id="fileHandle"  type="file" name="filestream"/>
          </form>

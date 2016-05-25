@@ -58,6 +58,13 @@ func createObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) (models.ODO
 		object.Name = "New " + object.TypeName.String
 	}
 
+	// Normalize ACM
+	newACMNormalized, err := normalizedACM(object.RawAcm.String)
+	if err != nil {
+		return dbObject, fmt.Errorf("Error normalizing ACM on new object: %v (acm: %s)", err.Error(), object.RawAcm.String)
+	}
+	object.RawAcm.String = newACMNormalized
+
 	// Insert object
 	addObjectStatement, err := tx.Preparex(`insert object set 
         createdBy = ?

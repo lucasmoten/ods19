@@ -105,7 +105,7 @@ function _renderSharedWithMeRow(index, item) {
   var createdBy = '<td>' + getCN(item.createdBy) + '</td>';
   var size = '<td align=right>' + item.contentSize + '</td>';
   var changeToken = '<td>' + item.changeToken + '</td>';
-  var acm = '<td>' + item.acm + '</td>';
+  var acm = '<td>' + item.acm.banner + '</td>';
 
   return '<tr>' +
      name + type + createdDate + createdBy + size + changeToken + acm +
@@ -172,7 +172,7 @@ function _renderListObjectRow(index, item, elm) {
   var createdBy = '<td>' + getCN(item.createdBy) + '</td>';
   var size = '<td align=right>' + item.contentSize + '</td>';
   var changeToken = '<td>' + item.changeToken + '</td>';
-  var acm = '<td>' + item.acm + '</td>';
+  var acm = '<td>' + item.acm.banner + '</td>';
   var hash = '<td>' + item.hash + '</td>';
   var shareDropdown = _renderUsersDropdown(item, __state.users, rowId);
   var deleteButton = _renderDeleteButton(item, __state.users, drowId);
@@ -210,13 +210,20 @@ function createObject() {
       console.log("createObject called");
       // get the form data
       var objectName = $("#newObjectName").val();
-      //var classification = $("#classification").val();
+      var classification = $("#newObjectClassification").val();
       var jsFileObject = $("#fileHandle")[0].files[0];
       var contentType = jsFileObject.type || "text/plain";
       var fileName = jsFileObject.name;
       var size = jsFileObject.size;
       //var rawAcm = '{"version":"2.1.0","classif":"'+classification+'"}'
-      var rawAcm = '{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"FOUO\"],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U//FOUO\",\"banner\":\"UNCLASSIFIED//FOUO\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}'
+      //var rawAcm = '{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"FOUO\"],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U//FOUO\",\"banner\":\"UNCLASSIFIED//FOUO\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}'
+      
+      // Simplified with new object support for ACMS! (the above still works though)
+      //var rawAcm = {"version":"2.1.0","classif":"U","owner_prod":["USA"],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"f_clearance":["u"]}
+      
+      // use the dropdown value as a string
+      var rawAcm = classification
+      
       
       var req = {
         acm: rawAcm,
@@ -253,9 +260,12 @@ function createObject() {
 
 function createFolder() {
   var folderName = $("#folderNameInput").val();
+  var classification = $("#newFolderClassification").val();
+  //var rawAcm = '{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[\"USA\"],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}'
   
-  var rawAcm = '{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[\"USA\"],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}'
-  
+  // Simplified with new object support for ACMS! (the above still works though)
+  //var rawAcm = {"version":"2.1.0","classif":"U","owner_prod":["USA"],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"f_clearance":["u"]}
+  var rawAcm = classification
   
   var data = {
     typeName: "Folder",
@@ -328,7 +338,7 @@ function _renderObjectsISharedRow(index, item) {
   var createdBy = '<td>' + getCN(item.createdBy) + '</td>';
   var size = '<td align=right>' + item.contentSize + '</td>';
   var changeToken = '<td>' + item.changeToken + '</td>';
-  var acm = '<td>' + item.acm + '</td>';
+  var acm = '<td>' + item.acm.banner + '</td>';
 
   return '<tr>' +
      name + type + createdDate + createdBy + size + changeToken + acm +

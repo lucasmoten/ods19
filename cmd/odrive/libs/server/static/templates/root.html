@@ -120,7 +120,7 @@ An acm follows guidance given here: <a href="https://confluence.363-283.io/pages
 <p>parentId (string, optional) - Hex encoded identifier of an object, typically a folder, into which this new object is being created as a child object. If no value is specified, then the object will be created in the root location of the user who is creating it.</p>
 </li>
 <li>
-<p>acm (string, optional) - Access Control Model is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies.  This value is expected to be encoded to a string.</p>
+<p>acm (string OR object, required) - Access Control Model is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies.  This value may be provided in either serialized string format, or nested object format.</p>
 </li>
 <li>
 <p>contentType (string, optional) - The suggested mime type for the content stream if given for this object.</p>
@@ -150,7 +150,7 @@ Content-Type: application/json
     <span class="hljs-string">"name"</span>: <span class="hljs-string">"{name}"</span>,
     <span class="hljs-string">"description"</span>: <span class="hljs-string">"{description}"</span>,
     <span class="hljs-string">"parentId"</span>: <span class="hljs-string">"{parentId}"</span>,
-    <span class="hljs-string">"acm"</span>: <span class="hljs-string">"{acm}"</span>,
+    <span class="hljs-string">"acm"</span>: {acm},
     <span class="hljs-string">"contentType"</span>: <span class="hljs-string">"{contentType}"</span>,
     <span class="hljs-string">"contentSize"</span>: {contentSize},
     <span class="hljs-string">"properties"</span>: [{properties}],
@@ -179,7 +179,7 @@ asdfjklasdfjklasdfjklasdf
 <p>parentId (string, optional) - Hex encoded identifier of an object, typically a folder, into which this new object is being created as a child object. If no value is specified, then the object will be created in the root location of the user who is creating it.</p>
 </li>
 <li>
-<p>acm (string, optional) - Access Control Model is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies.  This value is expected to be encoded to a string.</p>
+<p>acm (string OR object, required) - Access Control Model is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies.  This value may be provided in either serialized string format, or nested object format.</p>
 </li>
 <li>
 <p>contentType (string, optional) - The suggested mime type for the content stream if given for this object.</p>
@@ -205,67 +205,14 @@ asdfjklasdfjklasdfjklasdf
     <span class="hljs-string">"name"</span>: <span class="hljs-string">"{name}"</span>,
     <span class="hljs-string">"description"</span>: <span class="hljs-string">"{description}"</span>,
     <span class="hljs-string">"parentId"</span>: <span class="hljs-string">"{parentId}"</span>,
-    <span class="hljs-string">"acm"</span>: <span class="hljs-string">"{acm}"</span>,
+    <span class="hljs-string">"acm"</span>: {acm},
     <span class="hljs-string">"contentType"</span>: <span class="hljs-string">"{contentType}"</span>,
     <span class="hljs-string">"contentSize"</span>: {contentSize},
     <span class="hljs-string">"properties"</span>: [{properties}],
     <span class="hljs-string">"permissions"</span>: [{permissions}]
     <span class="hljs-string">"isUSPersonsData"</span>: {isUSPersonsData},
     <span class="hljs-string">"isFOIAExempt"</span>: {isFOIAExempt}
-}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Body</h5><pre><code>{
-  "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-  "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-  "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-  "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-  "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-  "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">42</span></span>,
-  "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-  "<span class="hljs-attribute">ownedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-  "<span class="hljs-attribute">typeId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e48664f5d8c789020242ac110002"</span></span>,
-  "<span class="hljs-attribute">typeName</span>": <span class="hljs-value"><span class="hljs-string">"File"</span></span>,
-  "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"gettysburgaddress.txt"</span></span>,
-  "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Description here"</span></span>,
-  "<span class="hljs-attribute">parentId</span>": <span class="hljs-value"><span class="hljs-string">""</span></span>,
-  "<span class="hljs-attribute">acm</span>": <span class="hljs-value"><span class="hljs-string">"{\\\"version\\\":\\\"2.1.0\\\",\\\"classif\\\":\\\"S\\\"}"</span></span>,
-  "<span class="hljs-attribute">contentType</span>": <span class="hljs-value"><span class="hljs-string">"text"</span></span>,
-  "<span class="hljs-attribute">contentSize</span>": <span class="hljs-value"><span class="hljs-string">"1511"</span></span>,
-  "<span class="hljs-attribute">properties</span>": <span class="hljs-value">[
-    {
-      "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">1</span></span>,
-      "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-      "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"Some Property"</span></span>,
-      "<span class="hljs-attribute">propertyValue</span>": <span class="hljs-value"><span class="hljs-string">"Some Property Value"</span></span>,
-      "<span class="hljs-attribute">classificationPM</span>": <span class="hljs-value"><span class="hljs-string">"TS"</span>
-    </span>}
-  ]</span>,
-  "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
-    {
-      "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">2</span></span>,
-      "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-      "<span class="hljs-attribute">objectId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
-      "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">explicitShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-    </span>}
-  ]</span>,
-  "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-</span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
+}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
   "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
@@ -322,8 +269,11 @@ asdfjklasdfjklasdfjklasdf
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The unique identifier of the objects parent hex encoded to a string. This may be used to traverse up the tree. For objects stored at the root of a user, this value will be null."</span>
     </span>}</span>,
     "<span class="hljs-attribute">acm</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The raw acm value associated with this object."</span>
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
+      "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
+        "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span>
+      </span>}</span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The acm value associated with this object in object form"</span>
     </span>}</span>,
     "<span class="hljs-attribute">contentType</span>": <span class="hljs-value">{
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
@@ -362,62 +312,7 @@ asdfjklasdfjklasdfjklasdf
 This operation is used to display properties when selecting an object in the system.
 It may be called on objects int the trash which also expose additional fields in the response.</p>
 <h4>Example URI</h4><div class="definition"><span class="method get">GET</span>&nbsp;<span class="uri"><span class="hostname"></span>/objects/<span class="hljs-attribute" title="objectId">objectId</span>/properties</span></div><div class="title"><strong>URI Parameters</strong><div class="collapse-button show"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><dl class="inner"><dt>objectId</dt><dd><code>string</code>&nbsp;<span class="required">(required)</span>&nbsp;<p>string Hex encoded identifier of the object to be retrieved.</p>
-</dd></dl></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Body</h5><pre><code>{
-  "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-  "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-  "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-  "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-  "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-  "<span class="hljs-attribute">deletedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-  "<span class="hljs-attribute">deletedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-  "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">42</span></span>,
-  "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-  "<span class="hljs-attribute">ownedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-  "<span class="hljs-attribute">typeId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e48664f5d8c789020242ac110002"</span></span>,
-  "<span class="hljs-attribute">typeName</span>": <span class="hljs-value"><span class="hljs-string">"File"</span></span>,
-  "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"gettysburgaddress.txt"</span></span>,
-  "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Description here"</span></span>,
-  "<span class="hljs-attribute">parentId</span>": <span class="hljs-value"><span class="hljs-string">""</span></span>,
-  "<span class="hljs-attribute">acm</span>": <span class="hljs-value"><span class="hljs-string">"{\\\"version\\\":\\\"2.1.0\\\",\\\"classif\\\":\\\"S\\\"}"</span></span>,
-  "<span class="hljs-attribute">contentType</span>": <span class="hljs-value"><span class="hljs-string">"text"</span></span>,
-  "<span class="hljs-attribute">contentSize</span>": <span class="hljs-value"><span class="hljs-string">"1511"</span></span>,
-  "<span class="hljs-attribute">properties</span>": <span class="hljs-value">[
-    {
-      "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">1</span></span>,
-      "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-      "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"Some Property"</span></span>,
-      "<span class="hljs-attribute">propertyValue</span>": <span class="hljs-value"><span class="hljs-string">"Some Property Value"</span></span>,
-      "<span class="hljs-attribute">classificationPM</span>": <span class="hljs-value"><span class="hljs-string">"TS"</span>
-    </span>}
-  ]</span>,
-  "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
-    {
-      "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">2</span></span>,
-      "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-      "<span class="hljs-attribute">objectId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
-      "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">explicitShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-    </span>}
-  ]</span>,
-  "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-</span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
+</dd></dl></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
   "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
@@ -482,8 +377,11 @@ It may be called on objects int the trash which also expose additional fields in
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The unique identifier of the objects parent hex encoded to a string. This may be used to traverse up the tree. For objects stored at the root of a user, this value will be null."</span>
     </span>}</span>,
     "<span class="hljs-attribute">acm</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The raw acm value associated with this object."</span>
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
+      "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
+        "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span>
+      </span>}</span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The acm value associated with this object in object form"</span>
     </span>}</span>,
     "<span class="hljs-attribute">contentType</span>": <span class="hljs-value">{
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
@@ -535,7 +433,7 @@ This creates a new revision of the object.</p>
 <p>description (string, optional) - The new description to be given as an abstract of the objects content stream. If no value is provided, or this field is ommitted, then the description will not be changed.</p>
 </li>
 <li>
-<p>acm (string, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. <a href="https://confluence.363-283.io/pages/viewpage.action?pageId=557850">https://confluence.363-283.io/pages/viewpage.action?pageId=557850</a>. If no value is provided, or this field is ommitted, then the acm will not be changed.</p>
+<p>acm (string OR object, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. <a href="https://confluence.363-283.io/pages/viewpage.action?pageId=557850">https://confluence.363-283.io/pages/viewpage.action?pageId=557850</a>. If no value is provided, or this field is ommitted, then the acm will not be changed. This value may be provided in either serialized string format, or nested object format.</p>
 </li>
 <li>
 <p>properties (properties array, optional) -  An array of custom properties to be associated with this object for property changes. For the properties specified, those who do not match existing properties on the object by name will be added. For the properties that do match existing properties by name, if the value specified is blank or empty, then the existing property will be deleted, otherwise, the property will be updated to the new value. If properties are specified in the array, then existing properties on the object are retained. Properties are only removed from an object if they are provided, with their value set to an empty string.</p>
@@ -552,7 +450,7 @@ This creates a new revision of the object.</p>
     <span class="hljs-string">"typeName"</span>: <span class="hljs-string">"{typeName}"</span>,
     <span class="hljs-string">"name"</span>: <span class="hljs-string">"{name}"</span>,
     <span class="hljs-string">"description"</span>: <span class="hljs-string">"{description}"</span>,
-    <span class="hljs-string">"acm"</span>: <span class="hljs-string">"{acm}"</span>,
+    <span class="hljs-string">"acm"</span>: {acm},
     <span class="hljs-string">"properties"</span>: [
         {
             <span class="hljs-string">"Name"</span>: <span class="hljs-string">"{propertyName}"</span>,
@@ -581,7 +479,9 @@ This creates a new revision of the object.</p>
   "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"gettysburgaddress.txt"</span></span>,
   "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Description here"</span></span>,
   "<span class="hljs-attribute">parentId</span>": <span class="hljs-value"><span class="hljs-string">""</span></span>,
-  "<span class="hljs-attribute">acm</span>": <span class="hljs-value"><span class="hljs-string">"{\\\"version\\\":\\\"2.1.0\\\",\\\"classif\\\":\\\"S\\\"}"</span></span>,
+  "<span class="hljs-attribute">acm</span>": <span class="hljs-value">{
+    "<span class="hljs-attribute"></span>": <span class="hljs-value"><span class="hljs-string">"{\"version\":\"2.1.0\",\"classif\":\"U\"}"</span>
+  </span>}</span>,
   "<span class="hljs-attribute">contentType</span>": <span class="hljs-value"><span class="hljs-string">"text"</span></span>,
   "<span class="hljs-attribute">contentSize</span>": <span class="hljs-value"><span class="hljs-string">"1511"</span></span>,
   "<span class="hljs-attribute">properties</span>": <span class="hljs-value">[
@@ -677,8 +577,11 @@ This creates a new revision of the object.</p>
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The unique identifier of the objects parent hex encoded to a string. This may be used to traverse up the tree. For objects stored at the root of a user, this value will be null."</span>
     </span>}</span>,
     "<span class="hljs-attribute">acm</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The raw acm value associated with this object."</span>
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
+      "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
+        "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span>
+      </span>}</span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The acm value associated with this object in object form"</span>
     </span>}</span>,
     "<span class="hljs-attribute">contentType</span>": <span class="hljs-value">{
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
@@ -735,7 +638,7 @@ files that are too large to buffer in memory.</p>
 <p>description (string, optional) - The new description to be given as an abstract of the objects content stream. If no value is provided, or this field is ommitted, then the description will not be changed.</p>
 </li>
 <li>
-<p>acm (string, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. <a href="https://confluence.363-283.io/pages/viewpage.action?pageId=557850">https://confluence.363-283.io/pages/viewpage.action?pageId=557850</a>. If no value is provided, or this field is ommitted, then the acm will not be changed.</p>
+<p>acm (string OR object, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. <a href="https://confluence.363-283.io/pages/viewpage.action?pageId=557850">https://confluence.363-283.io/pages/viewpage.action?pageId=557850</a>. If no value is provided, or this field is ommitted, then the acm will not be changed.  This value may be provided in either serialized string format, or nested object format.</p>
 </li>
 <li>
 <p>contentType (string, optional) - The suggested mime type for the content stream if given for this object.</p>
@@ -762,7 +665,7 @@ Content-Type: application/json
     <span class="hljs-string">"typeName"</span>: <span class="hljs-string">"{typeName}"</span>,
     <span class="hljs-string">"name"</span>: <span class="hljs-string">"{name}"</span>,
     <span class="hljs-string">"description"</span>: <span class="hljs-string">"{description}"</span>,
-    <span class="hljs-string">"acm"</span>: <span class="hljs-string">"{acm}"</span>,
+    <span class="hljs-string">"acm"</span>: {acm},
     <span class="hljs-string">"contentType"</span>: <span class="hljs-string">"{contentType}"</span>,
     <span class="hljs-string">"contentSize"</span>: {contentSize},
     <span class="hljs-string">"properties"</span>: [
@@ -781,60 +684,7 @@ Content-Type: application/octet-stream
 
 asdfjklasdfjklasdfjklasdf
 
---cc288bcda613e3b659a50ced49542b8676d99ce68f964346ff8a700318de--</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Body</h5><pre><code>{
-  "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-  "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-  "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-  "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-  "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-  "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">42</span></span>,
-  "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-  "<span class="hljs-attribute">ownedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-  "<span class="hljs-attribute">typeId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e48664f5d8c789020242ac110002"</span></span>,
-  "<span class="hljs-attribute">typeName</span>": <span class="hljs-value"><span class="hljs-string">"File"</span></span>,
-  "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"gettysburgaddress.txt"</span></span>,
-  "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Description here"</span></span>,
-  "<span class="hljs-attribute">parentId</span>": <span class="hljs-value"><span class="hljs-string">""</span></span>,
-  "<span class="hljs-attribute">acm</span>": <span class="hljs-value"><span class="hljs-string">"{\\\"version\\\":\\\"2.1.0\\\",\\\"classif\\\":\\\"S\\\"}"</span></span>,
-  "<span class="hljs-attribute">contentType</span>": <span class="hljs-value"><span class="hljs-string">"text"</span></span>,
-  "<span class="hljs-attribute">contentSize</span>": <span class="hljs-value"><span class="hljs-string">"1511"</span></span>,
-  "<span class="hljs-attribute">properties</span>": <span class="hljs-value">[
-    {
-      "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">1</span></span>,
-      "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-      "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"Some Property"</span></span>,
-      "<span class="hljs-attribute">propertyValue</span>": <span class="hljs-value"><span class="hljs-string">"Some Property Value"</span></span>,
-      "<span class="hljs-attribute">classificationPM</span>": <span class="hljs-value"><span class="hljs-string">"TS"</span>
-    </span>}
-  ]</span>,
-  "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
-    {
-      "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">2</span></span>,
-      "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-      "<span class="hljs-attribute">objectId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
-      "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">explicitShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-    </span>}
-  ]</span>,
-  "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-</span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
+--cc288bcda613e3b659a50ced49542b8676d99ce68f964346ff8a700318de--</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
   "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
@@ -891,8 +741,11 @@ asdfjklasdfjklasdfjklasdf
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The unique identifier of the objects parent hex encoded to a string. This may be used to traverse up the tree. For objects stored at the root of a user, this value will be null."</span>
     </span>}</span>,
     "<span class="hljs-attribute">acm</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The raw acm value associated with this object."</span>
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
+      "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
+        "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span>
+      </span>}</span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The acm value associated with this object in object form"</span>
     </span>}</span>,
     "<span class="hljs-attribute">contentType</span>": <span class="hljs-value">{
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
@@ -935,69 +788,7 @@ asdfjklasdfjklasdfjklasdf
 If filterField is set, condition and expression must also be set to complete the tupled filter query.</p>
 </dd><dt>condition</dt><dd><code>string</code>&nbsp;<span>(optional)</span>&nbsp;<p>The type of filter to apply.</p>
 <p class="choices"><strong>Choices:&nbsp;</strong><code>equals</code> <code>contains</code> </p></dd><dt>expression</dt><dd><code>string</code>&nbsp;<span>(optional)</span>&nbsp;<p>A phrase that should be used for the match against the field value</p>
-</dd></dl></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Body</h5><pre><code>{
-  "<span class="hljs-attribute">totalRows</span>": <span class="hljs-value"><span class="hljs-number">100</span></span>,
-  "<span class="hljs-attribute">pageCount</span>": <span class="hljs-value"><span class="hljs-number">10</span></span>,
-  "<span class="hljs-attribute">pageNumber</span>": <span class="hljs-value"><span class="hljs-number">1</span></span>,
-  "<span class="hljs-attribute">pageSize</span>": <span class="hljs-value"><span class="hljs-number">10</span></span>,
-  "<span class="hljs-attribute">pageRows</span>": <span class="hljs-value"><span class="hljs-number">10</span></span>,
-  "<span class="hljs-attribute">objects</span>": <span class="hljs-value">[
-    {
-      "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">42</span></span>,
-      "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-      "<span class="hljs-attribute">ownedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">typeId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e48664f5d8c789020242ac110002"</span></span>,
-      "<span class="hljs-attribute">typeName</span>": <span class="hljs-value"><span class="hljs-string">"File"</span></span>,
-      "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"gettysburgaddress.txt"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Description here"</span></span>,
-      "<span class="hljs-attribute">parentId</span>": <span class="hljs-value"><span class="hljs-string">""</span></span>,
-      "<span class="hljs-attribute">acm</span>": <span class="hljs-value"><span class="hljs-string">"{\\\"version\\\":\\\"2.1.0\\\",\\\"classif\\\":\\\"S\\\"}"</span></span>,
-      "<span class="hljs-attribute">contentType</span>": <span class="hljs-value"><span class="hljs-string">"text"</span></span>,
-      "<span class="hljs-attribute">contentSize</span>": <span class="hljs-value"><span class="hljs-string">"1511"</span></span>,
-      "<span class="hljs-attribute">properties</span>": <span class="hljs-value">[
-        {
-          "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-          "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">1</span></span>,
-          "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-          "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"Some Property"</span></span>,
-          "<span class="hljs-attribute">propertyValue</span>": <span class="hljs-value"><span class="hljs-string">"Some Property Value"</span></span>,
-          "<span class="hljs-attribute">classificationPM</span>": <span class="hljs-value"><span class="hljs-string">"TS"</span>
-        </span>}
-      ]</span>,
-      "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
-        {
-          "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-          "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">2</span></span>,
-          "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-          "<span class="hljs-attribute">objectId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
-          "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">explicitShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-        </span>}
-      ]</span>,
-      "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-    </span>}
-  ]
-</span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
+</dd></dl></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
   "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
@@ -1056,7 +847,9 @@ If filterField is set, condition and expression must also be set to complete the
       "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"gettysburgaddress.txt"</span></span>,
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Description here"</span></span>,
       "<span class="hljs-attribute">parentId</span>": <span class="hljs-value"><span class="hljs-string">""</span></span>,
-      "<span class="hljs-attribute">acm</span>": <span class="hljs-value"><span class="hljs-string">"{\\\"version\\\":\\\"2.1.0\\\",\\\"classif\\\":\\\"S\\\"}"</span></span>,
+      "<span class="hljs-attribute">acm</span>": <span class="hljs-value">{
+        "<span class="hljs-attribute"></span>": <span class="hljs-value"><span class="hljs-string">"{\"version\":\"2.1.0\",\"classif\":\"U\"}"</span>
+      </span>}</span>,
       "<span class="hljs-attribute">contentType</span>": <span class="hljs-value"><span class="hljs-string">"text"</span></span>,
       "<span class="hljs-attribute">contentSize</span>": <span class="hljs-value"><span class="hljs-string">"1511"</span></span>,
       "<span class="hljs-attribute">properties</span>": <span class="hljs-value">[
@@ -1286,69 +1079,7 @@ If filterField is set, condition and expression must also be set to complete the
 </dd><dt>pageSize</dt><dd><code>number</code>&nbsp;<span>(optional)</span>&nbsp;<p>The number of results to return per page.</p>
 </dd><dt>sortField</dt><dd><code>string</code>&nbsp;<span>(optional)</span>&nbsp;<p>Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.</p>
 </dd><dt>sortAscending</dt><dd><code>boolean</code>&nbsp;<span>(optional)</span>&nbsp;<p>Indicates whether to sort in ascending or descending order. If not provided, the default is false.</p>
-</dd></dl></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Body</h5><pre><code>{
-  "<span class="hljs-attribute">totalRows</span>": <span class="hljs-value"><span class="hljs-number">100</span></span>,
-  "<span class="hljs-attribute">pageCount</span>": <span class="hljs-value"><span class="hljs-number">10</span></span>,
-  "<span class="hljs-attribute">pageNumber</span>": <span class="hljs-value"><span class="hljs-number">1</span></span>,
-  "<span class="hljs-attribute">pageSize</span>": <span class="hljs-value"><span class="hljs-number">10</span></span>,
-  "<span class="hljs-attribute">pageRows</span>": <span class="hljs-value"><span class="hljs-number">10</span></span>,
-  "<span class="hljs-attribute">objects</span>": <span class="hljs-value">[
-    {
-      "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">42</span></span>,
-      "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-      "<span class="hljs-attribute">ownedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">typeId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e48664f5d8c789020242ac110002"</span></span>,
-      "<span class="hljs-attribute">typeName</span>": <span class="hljs-value"><span class="hljs-string">"File"</span></span>,
-      "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"gettysburgaddress.txt"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Description here"</span></span>,
-      "<span class="hljs-attribute">parentId</span>": <span class="hljs-value"><span class="hljs-string">""</span></span>,
-      "<span class="hljs-attribute">acm</span>": <span class="hljs-value"><span class="hljs-string">"{\\\"version\\\":\\\"2.1.0\\\",\\\"classif\\\":\\\"S\\\"}"</span></span>,
-      "<span class="hljs-attribute">contentType</span>": <span class="hljs-value"><span class="hljs-string">"text"</span></span>,
-      "<span class="hljs-attribute">contentSize</span>": <span class="hljs-value"><span class="hljs-string">"1511"</span></span>,
-      "<span class="hljs-attribute">properties</span>": <span class="hljs-value">[
-        {
-          "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-          "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">1</span></span>,
-          "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-          "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"Some Property"</span></span>,
-          "<span class="hljs-attribute">propertyValue</span>": <span class="hljs-value"><span class="hljs-string">"Some Property Value"</span></span>,
-          "<span class="hljs-attribute">classificationPM</span>": <span class="hljs-value"><span class="hljs-string">"TS"</span>
-        </span>}
-      ]</span>,
-      "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
-        {
-          "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-          "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">2</span></span>,
-          "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-          "<span class="hljs-attribute">objectId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
-          "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">explicitShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-        </span>}
-      ]</span>,
-      "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-    </span>}
-  ]
-</span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
+</dd></dl></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
   "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
@@ -1392,69 +1123,7 @@ If filterField is set, condition and expression must also be set to complete the
 If filterField is set, condition and expression must also be set to complete the tupled filter query.</p>
 </dd><dt>condition</dt><dd><code>string</code>&nbsp;<span>(optional)</span>&nbsp;<p>The type of filter to apply.</p>
 <p class="choices"><strong>Choices:&nbsp;</strong><code>equals</code> <code>contains</code> </p></dd><dt>expression</dt><dd><code>string</code>&nbsp;<span>(optional)</span>&nbsp;<p>A phrase that should be used for the match against the field value</p>
-</dd></dl></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Body</h5><pre><code>{
-  "<span class="hljs-attribute">totalRows</span>": <span class="hljs-value"><span class="hljs-number">100</span></span>,
-  "<span class="hljs-attribute">pageCount</span>": <span class="hljs-value"><span class="hljs-number">10</span></span>,
-  "<span class="hljs-attribute">pageNumber</span>": <span class="hljs-value"><span class="hljs-number">1</span></span>,
-  "<span class="hljs-attribute">pageSize</span>": <span class="hljs-value"><span class="hljs-number">10</span></span>,
-  "<span class="hljs-attribute">pageRows</span>": <span class="hljs-value"><span class="hljs-number">10</span></span>,
-  "<span class="hljs-attribute">objects</span>": <span class="hljs-value">[
-    {
-      "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">42</span></span>,
-      "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-      "<span class="hljs-attribute">ownedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">typeId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e48664f5d8c789020242ac110002"</span></span>,
-      "<span class="hljs-attribute">typeName</span>": <span class="hljs-value"><span class="hljs-string">"File"</span></span>,
-      "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"gettysburgaddress.txt"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Description here"</span></span>,
-      "<span class="hljs-attribute">parentId</span>": <span class="hljs-value"><span class="hljs-string">""</span></span>,
-      "<span class="hljs-attribute">acm</span>": <span class="hljs-value"><span class="hljs-string">"{\\\"version\\\":\\\"2.1.0\\\",\\\"classif\\\":\\\"S\\\"}"</span></span>,
-      "<span class="hljs-attribute">contentType</span>": <span class="hljs-value"><span class="hljs-string">"text"</span></span>,
-      "<span class="hljs-attribute">contentSize</span>": <span class="hljs-value"><span class="hljs-string">"1511"</span></span>,
-      "<span class="hljs-attribute">properties</span>": <span class="hljs-value">[
-        {
-          "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-          "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">1</span></span>,
-          "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-          "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"Some Property"</span></span>,
-          "<span class="hljs-attribute">propertyValue</span>": <span class="hljs-value"><span class="hljs-string">"Some Property Value"</span></span>,
-          "<span class="hljs-attribute">classificationPM</span>": <span class="hljs-value"><span class="hljs-string">"TS"</span>
-        </span>}
-      ]</span>,
-      "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
-        {
-          "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-          "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">2</span></span>,
-          "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-          "<span class="hljs-attribute">objectId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
-          "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">explicitShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-        </span>}
-      ]</span>,
-      "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-    </span>}
-  ]
-</span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
+</dd></dl></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
   "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
@@ -1494,60 +1163,7 @@ If filterField is set, condition and expression must also be set to complete the
 </ul>
 </div><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/json</span><br><span class="hljs-attribute">Content-Length</span>: <span class="hljs-string">nnn</span></code></pre><div style="height: 1px;"></div><h5>Body</h5><pre><code>{
   "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"a32836052f06abb6a5e5c2d91bdcb27ece440512"</span>
-</span>}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Body</h5><pre><code>{
-  "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-  "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-  "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-  "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-  "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-  "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">42</span></span>,
-  "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-  "<span class="hljs-attribute">ownedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-  "<span class="hljs-attribute">typeId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e48664f5d8c789020242ac110002"</span></span>,
-  "<span class="hljs-attribute">typeName</span>": <span class="hljs-value"><span class="hljs-string">"File"</span></span>,
-  "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"gettysburgaddress.txt"</span></span>,
-  "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Description here"</span></span>,
-  "<span class="hljs-attribute">parentId</span>": <span class="hljs-value"><span class="hljs-string">""</span></span>,
-  "<span class="hljs-attribute">acm</span>": <span class="hljs-value"><span class="hljs-string">"{\\\"version\\\":\\\"2.1.0\\\",\\\"classif\\\":\\\"S\\\"}"</span></span>,
-  "<span class="hljs-attribute">contentType</span>": <span class="hljs-value"><span class="hljs-string">"text"</span></span>,
-  "<span class="hljs-attribute">contentSize</span>": <span class="hljs-value"><span class="hljs-string">"1511"</span></span>,
-  "<span class="hljs-attribute">properties</span>": <span class="hljs-value">[
-    {
-      "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">1</span></span>,
-      "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-      "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"Some Property"</span></span>,
-      "<span class="hljs-attribute">propertyValue</span>": <span class="hljs-value"><span class="hljs-string">"Some Property Value"</span></span>,
-      "<span class="hljs-attribute">classificationPM</span>": <span class="hljs-value"><span class="hljs-string">"TS"</span>
-    </span>}
-  ]</span>,
-  "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
-    {
-      "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">2</span></span>,
-      "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-      "<span class="hljs-attribute">objectId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
-      "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">explicitShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-    </span>}
-  ]</span>,
-  "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-</span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
+</span>}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
   "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
@@ -1604,8 +1220,11 @@ If filterField is set, condition and expression must also be set to complete the
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The unique identifier of the objects parent hex encoded to a string. This may be used to traverse up the tree. For objects stored at the root of a user, this value will be null."</span>
     </span>}</span>,
     "<span class="hljs-attribute">acm</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The raw acm value associated with this object."</span>
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
+      "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
+        "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span>
+      </span>}</span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The acm value associated with this object in object form"</span>
     </span>}</span>,
     "<span class="hljs-attribute">contentType</span>": <span class="hljs-value">{
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
@@ -1649,69 +1268,7 @@ If filterField is set, condition and expression must also be set to complete the
 If filterField is set, condition and expression must also be set to complete the tupled filter query.</p>
 </dd><dt>condition</dt><dd><code>string</code>&nbsp;<span>(optional)</span>&nbsp;<p>The type of filter to apply.</p>
 <p class="choices"><strong>Choices:&nbsp;</strong><code>equals</code> <code>contains</code> </p></dd><dt>expression</dt><dd><code>string</code>&nbsp;<span>(optional)</span>&nbsp;<p>A phrase that should be used for the match against the field value</p>
-</dd></dl></div><div class="title"><strong>Request</strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/json</span></code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Body</h5><pre><code>{
-  "<span class="hljs-attribute">totalRows</span>": <span class="hljs-value"><span class="hljs-number">100</span></span>,
-  "<span class="hljs-attribute">pageCount</span>": <span class="hljs-value"><span class="hljs-number">10</span></span>,
-  "<span class="hljs-attribute">pageNumber</span>": <span class="hljs-value"><span class="hljs-number">1</span></span>,
-  "<span class="hljs-attribute">pageSize</span>": <span class="hljs-value"><span class="hljs-number">10</span></span>,
-  "<span class="hljs-attribute">pageRows</span>": <span class="hljs-value"><span class="hljs-number">10</span></span>,
-  "<span class="hljs-attribute">objects</span>": <span class="hljs-value">[
-    {
-      "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">42</span></span>,
-      "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-      "<span class="hljs-attribute">ownedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">typeId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e48664f5d8c789020242ac110002"</span></span>,
-      "<span class="hljs-attribute">typeName</span>": <span class="hljs-value"><span class="hljs-string">"File"</span></span>,
-      "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"gettysburgaddress.txt"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Description here"</span></span>,
-      "<span class="hljs-attribute">parentId</span>": <span class="hljs-value"><span class="hljs-string">""</span></span>,
-      "<span class="hljs-attribute">acm</span>": <span class="hljs-value"><span class="hljs-string">"{\\\"version\\\":\\\"2.1.0\\\",\\\"classif\\\":\\\"S\\\"}"</span></span>,
-      "<span class="hljs-attribute">contentType</span>": <span class="hljs-value"><span class="hljs-string">"text"</span></span>,
-      "<span class="hljs-attribute">contentSize</span>": <span class="hljs-value"><span class="hljs-string">"1511"</span></span>,
-      "<span class="hljs-attribute">properties</span>": <span class="hljs-value">[
-        {
-          "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-          "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">1</span></span>,
-          "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-          "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"Some Property"</span></span>,
-          "<span class="hljs-attribute">propertyValue</span>": <span class="hljs-value"><span class="hljs-string">"Some Property Value"</span></span>,
-          "<span class="hljs-attribute">classificationPM</span>": <span class="hljs-value"><span class="hljs-string">"TS"</span>
-        </span>}
-      ]</span>,
-      "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
-        {
-          "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-          "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">2</span></span>,
-          "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-          "<span class="hljs-attribute">objectId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
-          "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">explicitShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-        </span>}
-      ]</span>,
-      "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-    </span>}
-  ]
-</span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
+</dd></dl></div><div class="title"><strong>Request</strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/json</span></code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
   "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
@@ -1748,69 +1305,7 @@ If filterField is set, condition and expression must also be set to complete the
 If filterField is set, condition and expression must also be set to complete the tupled filter query.</p>
 </dd><dt>condition</dt><dd><code>string</code>&nbsp;<span>(optional)</span>&nbsp;<p>The type of filter to apply.</p>
 <p class="choices"><strong>Choices:&nbsp;</strong><code>equals</code> <code>contains</code> </p></dd><dt>expression</dt><dd><code>string</code>&nbsp;<span>(optional)</span>&nbsp;<p>A phrase that should be used for the match against the field value</p>
-</dd></dl></div><div class="title"><strong>Request</strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/json</span></code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Body</h5><pre><code>{
-  "<span class="hljs-attribute">totalRows</span>": <span class="hljs-value"><span class="hljs-number">100</span></span>,
-  "<span class="hljs-attribute">pageCount</span>": <span class="hljs-value"><span class="hljs-number">10</span></span>,
-  "<span class="hljs-attribute">pageNumber</span>": <span class="hljs-value"><span class="hljs-number">1</span></span>,
-  "<span class="hljs-attribute">pageSize</span>": <span class="hljs-value"><span class="hljs-number">10</span></span>,
-  "<span class="hljs-attribute">pageRows</span>": <span class="hljs-value"><span class="hljs-number">10</span></span>,
-  "<span class="hljs-attribute">objects</span>": <span class="hljs-value">[
-    {
-      "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">42</span></span>,
-      "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-      "<span class="hljs-attribute">ownedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">typeId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e48664f5d8c789020242ac110002"</span></span>,
-      "<span class="hljs-attribute">typeName</span>": <span class="hljs-value"><span class="hljs-string">"File"</span></span>,
-      "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"gettysburgaddress.txt"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Description here"</span></span>,
-      "<span class="hljs-attribute">parentId</span>": <span class="hljs-value"><span class="hljs-string">""</span></span>,
-      "<span class="hljs-attribute">acm</span>": <span class="hljs-value"><span class="hljs-string">"{\\\"version\\\":\\\"2.1.0\\\",\\\"classif\\\":\\\"S\\\"}"</span></span>,
-      "<span class="hljs-attribute">contentType</span>": <span class="hljs-value"><span class="hljs-string">"text"</span></span>,
-      "<span class="hljs-attribute">contentSize</span>": <span class="hljs-value"><span class="hljs-string">"1511"</span></span>,
-      "<span class="hljs-attribute">properties</span>": <span class="hljs-value">[
-        {
-          "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-          "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">1</span></span>,
-          "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-          "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"Some Property"</span></span>,
-          "<span class="hljs-attribute">propertyValue</span>": <span class="hljs-value"><span class="hljs-string">"Some Property Value"</span></span>,
-          "<span class="hljs-attribute">classificationPM</span>": <span class="hljs-value"><span class="hljs-string">"TS"</span>
-        </span>}
-      ]</span>,
-      "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
-        {
-          "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-          "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">2</span></span>,
-          "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-          "<span class="hljs-attribute">objectId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
-          "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">explicitShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-        </span>}
-      ]</span>,
-      "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-    </span>}
-  ]
-</span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
+</dd></dl></div><div class="title"><strong>Request</strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/json</span></code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
   "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
@@ -1846,69 +1341,7 @@ If filterField is set, condition and expression must also be set to complete the
 If filterField is set, condition and expression must also be set to complete the tupled filter query.</p>
 </dd><dt>condition</dt><dd><code>string</code>&nbsp;<span>(optional)</span>&nbsp;<p>The type of filter to apply.</p>
 <p class="choices"><strong>Choices:&nbsp;</strong><code>equals</code> <code>contains</code> </p></dd><dt>expression</dt><dd><code>string</code>&nbsp;<span>(optional)</span>&nbsp;<p>A phrase that should be used for the match against the field value</p>
-</dd></dl></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Body</h5><pre><code>{
-  "<span class="hljs-attribute">totalRows</span>": <span class="hljs-value"><span class="hljs-number">100</span></span>,
-  "<span class="hljs-attribute">pageCount</span>": <span class="hljs-value"><span class="hljs-number">10</span></span>,
-  "<span class="hljs-attribute">pageNumber</span>": <span class="hljs-value"><span class="hljs-number">1</span></span>,
-  "<span class="hljs-attribute">pageSize</span>": <span class="hljs-value"><span class="hljs-number">10</span></span>,
-  "<span class="hljs-attribute">pageRows</span>": <span class="hljs-value"><span class="hljs-number">10</span></span>,
-  "<span class="hljs-attribute">objects</span>": <span class="hljs-value">[
-    {
-      "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">42</span></span>,
-      "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-      "<span class="hljs-attribute">ownedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">typeId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e48664f5d8c789020242ac110002"</span></span>,
-      "<span class="hljs-attribute">typeName</span>": <span class="hljs-value"><span class="hljs-string">"File"</span></span>,
-      "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"gettysburgaddress.txt"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Description here"</span></span>,
-      "<span class="hljs-attribute">parentId</span>": <span class="hljs-value"><span class="hljs-string">""</span></span>,
-      "<span class="hljs-attribute">acm</span>": <span class="hljs-value"><span class="hljs-string">"{\\\"version\\\":\\\"2.1.0\\\",\\\"classif\\\":\\\"S\\\"}"</span></span>,
-      "<span class="hljs-attribute">contentType</span>": <span class="hljs-value"><span class="hljs-string">"text"</span></span>,
-      "<span class="hljs-attribute">contentSize</span>": <span class="hljs-value"><span class="hljs-string">"1511"</span></span>,
-      "<span class="hljs-attribute">properties</span>": <span class="hljs-value">[
-        {
-          "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-          "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">1</span></span>,
-          "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-          "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"Some Property"</span></span>,
-          "<span class="hljs-attribute">propertyValue</span>": <span class="hljs-value"><span class="hljs-string">"Some Property Value"</span></span>,
-          "<span class="hljs-attribute">classificationPM</span>": <span class="hljs-value"><span class="hljs-string">"TS"</span>
-        </span>}
-      ]</span>,
-      "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
-        {
-          "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-          "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-          "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">2</span></span>,
-          "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-          "<span class="hljs-attribute">objectId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-          "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
-          "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-          "<span class="hljs-attribute">explicitShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-        </span>}
-      ]</span>,
-      "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-    </span>}
-  ]
-</span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
+</dd></dl></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
   "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
@@ -1945,60 +1378,7 @@ If filterField is set, condition and expression must also be set to complete the
 </ul>
 </div><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/json</span><br><span class="hljs-attribute">Content-Length</span>: <span class="hljs-string">nnn</span></code></pre><div style="height: 1px;"></div><h5>Body</h5><pre><code>{
   "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"{changeToken}"</span>
-</span>}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Body</h5><pre><code>{
-  "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-  "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-  "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-  "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-  "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-  "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">42</span></span>,
-  "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-  "<span class="hljs-attribute">ownedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-  "<span class="hljs-attribute">typeId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e48664f5d8c789020242ac110002"</span></span>,
-  "<span class="hljs-attribute">typeName</span>": <span class="hljs-value"><span class="hljs-string">"File"</span></span>,
-  "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"gettysburgaddress.txt"</span></span>,
-  "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Description here"</span></span>,
-  "<span class="hljs-attribute">parentId</span>": <span class="hljs-value"><span class="hljs-string">""</span></span>,
-  "<span class="hljs-attribute">acm</span>": <span class="hljs-value"><span class="hljs-string">"{\\\"version\\\":\\\"2.1.0\\\",\\\"classif\\\":\\\"S\\\"}"</span></span>,
-  "<span class="hljs-attribute">contentType</span>": <span class="hljs-value"><span class="hljs-string">"text"</span></span>,
-  "<span class="hljs-attribute">contentSize</span>": <span class="hljs-value"><span class="hljs-string">"1511"</span></span>,
-  "<span class="hljs-attribute">properties</span>": <span class="hljs-value">[
-    {
-      "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">1</span></span>,
-      "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-      "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"Some Property"</span></span>,
-      "<span class="hljs-attribute">propertyValue</span>": <span class="hljs-value"><span class="hljs-string">"Some Property Value"</span></span>,
-      "<span class="hljs-attribute">classificationPM</span>": <span class="hljs-value"><span class="hljs-string">"TS"</span>
-    </span>}
-  ]</span>,
-  "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
-    {
-      "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-      "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">2</span></span>,
-      "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
-      "<span class="hljs-attribute">objectId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
-      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-      "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
-      "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">explicitShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-    </span>}
-  ]</span>,
-  "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
-</span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
+</span>}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
   "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
@@ -2055,8 +1435,11 @@ If filterField is set, condition and expression must also be set to complete the
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The unique identifier of the objects parent hex encoded to a string. This may be used to traverse up the tree. For objects stored at the root of a user, this value will be null."</span>
     </span>}</span>,
     "<span class="hljs-attribute">acm</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The raw acm value associated with this object."</span>
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
+      "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
+        "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span>
+      </span>}</span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The acm value associated with this object in object form"</span>
     </span>}</span>,
     "<span class="hljs-attribute">contentType</span>": <span class="hljs-value">{
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
@@ -2130,7 +1513,7 @@ If filterField is set, condition and expression must also be set to complete the
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"An array of ObjectStorageMetrics denoting the type of object, quantity of base object and revisions, and size used by base object and revision."</span>
     </span>}
   </span>}
-</span>}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>500</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Body</h5><pre><code>Internal Server <span class="hljs-built_in">Error</span></code></pre><div style="height: 1px;"></div></div></div></div></div></section></div></div></div><p style="text-align: center;" class="text-muted">Generated by&nbsp;<a href="https://github.com/danielgtaylor/aglio" class="aglio">aglio</a>&nbsp;on 10 May 2016</p><script>/* eslint-env browser */
+</span>}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>500</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Body</h5><pre><code>Internal Server <span class="hljs-built_in">Error</span></code></pre><div style="height: 1px;"></div></div></div></div></div></section></div></div></div><p style="text-align: center;" class="text-muted">Generated by&nbsp;<a href="https://github.com/danielgtaylor/aglio" class="aglio">aglio</a>&nbsp;on 25 May 2016</p><script>/* eslint-env browser */
 /* eslint quotes: [2, "single"] */
 'use strict';
 
