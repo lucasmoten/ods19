@@ -2,6 +2,8 @@ package main
 
 import (
 	"errors"
+	"flag"
+	"fmt"
 	"html/template"
 	"log"
 	"net"
@@ -28,9 +30,24 @@ import (
 	"decipher.com/object-drive-server/services/aac"
 )
 
+// Flags
+var (
+	confFlag = flag.String("conf", "conf.json", "Path to config file. Default: conf.json")
+)
+
 func main() {
+
+	flag.Parse()
+
+	if flag.Arg(0) == "version" {
+		fmt.Println("1.0")
+		os.Exit(0)
+	}
+
+	globalconfig.SetupGlobalDefaults()
+
 	// Load Configuration from conf.json
-	conf := config.NewAppConfiguration()
+	conf := config.NewAppConfiguration(*confFlag)
 
 	app, err := makeServer(conf.ServerSettings)
 	if err != nil {

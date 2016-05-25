@@ -24,9 +24,9 @@ var ProjectRoot string
 // git repository.
 var ProjectName = "object-drive-server"
 
-// Set up global configs.
-func init() {
-
+// SetupGlobalDefaults initializes global variables required by importers of
+// this package. We define this function to avoid using init().
+func SetupGlobalDefaults() {
 	ProjectRoot = locateProjectRoot()
 	CertsDir = locateCerts(ProjectRoot)
 }
