@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	oduconfig "decipher.com/object-drive-server/config"
+	globalconfig "decipher.com/object-drive-server/config"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 )
@@ -17,7 +17,7 @@ var (
 	defaultDBHost   = "127.0.0.1"
 	defaultDBPort   = "3306"
 	// DefaultBucket is the AWS S3 bucket name
-	DefaultBucket = oduconfig.GetEnvOrDefault("OD_AWS_S3_BUCKET", "decipherers")
+	DefaultBucket = globalconfig.GetEnvOrDefault("OD_AWS_S3_BUCKET", "decipherers")
 )
 
 // AppConfiguration is a structure that defines the known configuration format
@@ -84,7 +84,7 @@ func NewAppConfiguration() AppConfiguration {
 		log.Fatal("Could not decode configuration file")
 	}
 
-	if len(oduconfig.GetEnvOrDefault("GOPATH", "")) == 0 {
+	if len(globalconfig.GetEnvOrDefault("GOPATH", "")) == 0 {
 		log.Printf("WARNING: GOPATH not set.\n")
 	}
 
@@ -183,8 +183,8 @@ func (r *DatabaseConnectionConfiguration) GetDatabaseHandle() (*sqlx.DB, error) 
 	}
 	// Setup handle to the database
 	db, err := sqlx.Open(r.Driver, r.buildDSN())
-	db.SetMaxIdleConns(oduconfig.GetEnvOrDefaultInt("OD_DB_MAXIDLECONNS", 10))
-	db.SetMaxOpenConns(oduconfig.GetEnvOrDefaultInt("OD_DB_MAXOPENCONNS", 10))
+	db.SetMaxIdleConns(globalconfig.GetEnvOrDefaultInt("OD_DB_MAXIDLECONNS", 10))
+	db.SetMaxOpenConns(globalconfig.GetEnvOrDefaultInt("OD_DB_MAXOPENCONNS", 10))
 	return db, err
 }
 
