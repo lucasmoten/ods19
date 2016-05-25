@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	oduconfig "decipher.com/object-drive-server/config"
+	globalconfig "decipher.com/object-drive-server/config"
 	"github.com/samuel/go-zookeeper/zk"
 )
 
@@ -95,8 +95,8 @@ func RegisterApplication(uri, zkAddress string) (ZKState, error) {
 	addrs := strings.Split(zkAddress, ",")
 	//This is the mount point for our zookeeper data, and it should
 	//be the same as where AAC mounts
-	zkRoot := oduconfig.GetEnvOrDefault("OD_ZK_ROOT", "/cte")
-	zkTimeout := oduconfig.GetEnvOrDefaultInt("OD_ZK_TIMEOUT", 5)
+	zkRoot := globalconfig.GetEnvOrDefault("OD_ZK_ROOT", "/cte")
+	zkTimeout := globalconfig.GetEnvOrDefaultInt("OD_ZK_TIMEOUT", 5)
 	log.Printf("zk: connect to %s timeout=%ds root=%s", zkAddress, zkTimeout, zkRoot)
 	conn, _, err := zk.Connect(addrs, time.Second*time.Duration(zkTimeout))
 	if err != nil {
