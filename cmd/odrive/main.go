@@ -9,11 +9,12 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sync"
 	"time"
 
 	"decipher.com/object-drive-server/services/audit"
 	"decipher.com/object-drive-server/services/zookeeper"
-	thrift "github.com/samuel/go-thrift/thrift"
+	"decipher.com/object-drive-server/util/testhelpers"
 
 	"github.com/jmoiron/sqlx"
 
@@ -21,7 +22,8 @@ import (
 	"decipher.com/object-drive-server/cmd/odrive/libs/dao"
 	"decipher.com/object-drive-server/cmd/odrive/libs/server"
 
-	oduconfig "decipher.com/object-drive-server/config"
+	globalconfig "decipher.com/object-drive-server/config"
+
 	"decipher.com/object-drive-server/performance"
 	"decipher.com/object-drive-server/services/aac"
 )
@@ -35,6 +37,9 @@ func main() {
 		log.Fatalf("Error calling makeServer: %v\n", err)
 	}
 
+	// put updates onto updates channel
+	updates := StateMonitor(app, time.Duration(10*time.Second))
+
 	if false {
 		configureAuditor(app, conf.AuditorSettings)
 	}
@@ -45,34 +50,29 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = configureAACClient(app)
-	if err != nil {
-		log.Printf("ERROR: could not connect to AAC: %v\n", err)
-	}
-
-	cacheRoot := oduconfig.GetEnvOrDefault("OD_CACHE_ROOT", ".")
+	cacheRoot := globalconfig.GetEnvOrDefault("OD_CACHE_ROOT", ".")
 	cacheID, err := getDBIdentifier(app)
 	if err != nil {
 		log.Printf("ERROR getting DB IDentifier: %v\n", err)
 	}
-	cachePartition := oduconfig.GetEnvOrDefault("OD_CACHE_PARTITION", "cache") + "/" + cacheID
-	configureDrainProvider(app, oduconfig.StandaloneMode, cacheRoot, cachePartition)
+	cachePartition := globalconfig.GetEnvOrDefault("OD_CACHE_PARTITION", "cache") + "/" + cacheID
+	configureDrainProvider(app, globalconfig.StandaloneMode, cacheRoot, cachePartition)
 
-	zkAddress := oduconfig.GetEnvOrDefault("OD_ZK_URL", "zk:2181")
-	zkBasePath := oduconfig.GetEnvOrDefault("OD_ZK_BASEPATH", "/service/object-drive/1.0")
+	zkAddress := globalconfig.GetEnvOrDefault("OD_ZK_URL", "zk:2181")
+	zkBasePath := globalconfig.GetEnvOrDefault("OD_ZK_BASEPATH", "/service/object-drive/1.0")
 
 	//These are the IP:port as seen by the outside.  They are not necessarily the same as the internal port that the server knows,
 	//because this is created by the -p $OD_ZK_MYPORT:$OD_SERVER_PORT mapping on docker machine $OD_ZK_MYIP.
-	zkMyIP := oduconfig.GetEnvOrDefault("OD_ZK_MYIP", oduconfig.MyIP)
-	serverPort := oduconfig.GetEnvOrDefault("OD_SERVER_PORT", "4430")
-	zkMyPort := oduconfig.GetEnvOrDefault("OD_ZK_MYPORT", serverPort)
+	zkMyIP := globalconfig.GetEnvOrDefault("OD_ZK_MYIP", globalconfig.MyIP)
+	serverPort := globalconfig.GetEnvOrDefault("OD_SERVER_PORT", "4430")
+	zkMyPort := globalconfig.GetEnvOrDefault("OD_ZK_MYPORT", serverPort)
 
 	err = registerWithZookeeper(app, zkBasePath, zkAddress, zkMyIP, zkMyPort)
 	if err != nil {
 		log.Fatal("Could not register with Zookeeper")
 	}
 
-	app.MasterKey = oduconfig.GetEnvOrDefault("OD_ENCRYPT_MASTERKEY", "otterpaws")
+	app.MasterKey = globalconfig.GetEnvOrDefault("OD_ENCRYPT_MASTERKEY", "otterpaws")
 	if app.MasterKey == "otterpaws" {
 		log.Printf("You should pass in an environment variable 'OD_ENCRYPT_MASTERKEY' to encrypt database keys")
 		log.Printf("Note that if you change masterkey, then the encrypted keys are invalidated")
@@ -88,55 +88,12 @@ func main() {
 	stls := conf.ServerSettings.GetTLSConfig()
 	httpServer.TLSConfig = &stls
 
+	pollAll(app, updates, time.Duration(3*time.Second))
+
 	log.Println("Starting server on " + app.Addr)
 	log.Fatalln(
 		httpServer.ListenAndServeTLS(
 			conf.ServerSettings.ServerCertChain, conf.ServerSettings.ServerKey))
-}
-
-func configureAACClient(app *server.AppServer) error {
-
-	var client *aac.AacServiceClient
-	var err error
-	attempts := 120
-	for {
-		log.Printf("Waiting to connect to AAC.")
-		client, err = getAACClient()
-		if err != nil || client == nil {
-			log.Printf("Waiting for AAC:%v", err)
-		} else {
-			log.Printf("We are connected to AAC")
-			break
-		}
-		attempts--
-		if attempts <= 0 {
-			break
-		}
-		time.Sleep(1 * time.Second) //there is a fatal in aac connecting, so must sleep
-	}
-
-	app.AAC = client
-	return nil
-
-}
-
-// TODO: restart uploader if we lose AAC connection.
-func getAACClient() (*aac.AacServiceClient, error) {
-	trustPath := filepath.Join(oduconfig.CertsDir, "client-aac", "trust", "client.trust.pem")
-	certPath := filepath.Join(oduconfig.CertsDir, "client-aac", "id", "client.cert.pem")
-	keyPath := filepath.Join(oduconfig.CertsDir, "client-aac", "id", "client.key.pem")
-	aacHost := oduconfig.GetEnvOrDefault("OD_AAC_HOST", "twl-server-generic2")
-	aacPort := oduconfig.GetEnvOrDefault("OD_AAC_PORT", "9093")
-	conn, err := oduconfig.NewOpenSSLTransport(
-		trustPath, certPath, keyPath, aacHost, aacPort, nil)
-
-	if err != nil {
-		log.Printf("cannot create aac client: %v", err)
-		return nil, err
-	}
-	trns := thrift.NewTransport(thrift.NewFramedReadWriteCloser(conn, 0), thrift.BinaryProtocol)
-	client := thrift.NewClient(trns, true)
-	return &aac.AacServiceClient{Client: client}, nil
 }
 
 func configureAuditor(app *server.AppServer, settings config.AuditSvcConfiguration) {
@@ -169,7 +126,7 @@ func configureDAO(app *server.AppServer, conf config.DatabaseConnectionConfigura
 
 func configureDrainProvider(app *server.AppServer, standalone bool, root, cacheID string) {
 	var dp server.DrainProvider
-	if oduconfig.StandaloneMode {
+	if globalconfig.StandaloneMode {
 		log.Printf("Draining cache locally")
 		dp = server.NewNullDrainProvider(root, cacheID)
 	} else {
@@ -198,6 +155,10 @@ func registerWithZookeeper(app *server.AppServer, zkBasePath, zkAddress, myIP, m
 
 func getDBIdentifier(app *server.AppServer) (string, error) {
 
+	if app.DAO == nil {
+		return "", errors.New("DAO is nil on AppServer")
+	}
+
 	dbState, err := app.DAO.GetDBState()
 	if err != nil {
 		log.Printf("Error calling GetDBState(): %v", err)
@@ -210,7 +171,7 @@ func getDBIdentifier(app *server.AppServer) (string, error) {
 func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, error) {
 
 	templates, err := template.ParseGlob(
-		filepath.Join(oduconfig.ProjectRoot,
+		filepath.Join(globalconfig.ProjectRoot,
 			"cmd", "odrive", "libs", "server",
 			"static", "templates", "*"))
 	if err != nil {
@@ -218,7 +179,7 @@ func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, err
 		return nil, err
 	}
 
-	staticPath := filepath.Join(oduconfig.ProjectRoot, "cmd", "odrive", "libs", "server", "static")
+	staticPath := filepath.Join(globalconfig.ProjectRoot, "cmd", "odrive", "libs", "server", "static")
 
 	userCache := server.NewUserCache()
 	snippetCache := server.NewSnippetCache()
@@ -228,7 +189,7 @@ func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, err
 		Bind:                      conf.ListenBind,
 		Addr:                      conf.ListenBind + ":" + conf.ListenPort,
 		Tracker:                   performance.NewJobReporters(1024),
-		ServicePrefix:             oduconfig.RootURLRegex,
+		ServicePrefix:             globalconfig.RootURLRegex,
 		TemplateCache:             templates,
 		StaticDir:                 staticPath,
 		Users:                     userCache,
@@ -283,4 +244,128 @@ func pingDB(db *sqlx.DB) int {
 		}
 	}
 	return exitCode
+}
+
+// StateMonitor spawns a goroutine to keep the ServiceRegistry updated, and periodically log
+// the contents of ServiceRegistry.
+func StateMonitor(app *server.AppServer, updateInterval time.Duration) chan server.ServiceState {
+	if app.ServiceRegistry == nil {
+		app.ServiceRegistry = make(map[string]server.ServiceState)
+	}
+
+	// TODO: instantiate structured logger here
+	updates := make(chan server.ServiceState)
+	ticker := time.NewTicker(updateInterval)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				reportStates(app.ServiceRegistry)
+			case s := <-updates:
+				app.ServiceRegistry[s.Name] = s
+			}
+		}
+	}()
+	return updates
+}
+
+func reportStates(states map[string]server.ServiceState) {
+	// TODO nicer formatting
+	log.Println("Service states:", states)
+}
+
+func pollAll(app *server.AppServer, updates chan server.ServiceState, updateInterval time.Duration) {
+	ticker := time.NewTicker(updateInterval)
+	go func() {
+		for {
+			numPollers := 1
+			var wg sync.WaitGroup
+			wg.Add(numPollers)
+			select {
+			case <-ticker.C:
+				go pollAAC(app, updates, &wg)
+				// Wait for N pollers to return
+				wg.Wait()
+			}
+		}
+	}()
+}
+
+// pollAAC encapsulates the AAC health check and attempted reconnect.
+func pollAAC(app *server.AppServer, updates chan server.ServiceState, wg *sync.WaitGroup) {
+
+	defer wg.Done()
+
+	if app.ServiceRegistry == nil {
+		return
+	}
+
+	currentState, ok := app.ServiceRegistry["AAC"]
+	if !ok {
+		updates <- server.ServiceState{Name: "AAC", Status: "FAILURE", Updated: time.Now()}
+		return
+	}
+
+	time.Sleep(currentState.Delay(currentState.Retries))
+
+	if currentState.Status == "PERMANENT_FAILURE" {
+		// NO-OP for now to try to reconnect forever?
+	}
+
+	tryReconnect := false
+	if currentState.Status == "FAILURE" {
+		tryReconnect = true
+	}
+	if app.AAC == nil {
+		tryReconnect = true
+	}
+	if app.AAC != nil {
+		// We ALWAYS poll if we have a ref to the AAC.
+		resp, err := app.AAC.ValidateAcm(testhelpers.ValidACMUnclassified)
+		if err != nil {
+			tryReconnect = true
+		}
+		if resp != nil {
+			if !resp.Success {
+				tryReconnect = true
+			}
+		}
+	}
+
+	if tryReconnect {
+		retries := currentState.Retries + 1
+		client, err := aac.GetAACClient()
+		if err != nil {
+			updates <- server.ServiceState{Name: "AAC", Retries: retries, Status: "FAILURE", Updated: time.Now()}
+			return
+		}
+
+		if client == nil {
+			updates <- server.ServiceState{Name: "AAC", Retries: retries, Status: "FAILURE", Updated: time.Now()}
+			return
+		}
+
+		if client != nil {
+			if client.Client != nil {
+				resp, err := client.ValidateAcm(testhelpers.ValidACMUnclassified)
+				if err != nil {
+					updates <- server.ServiceState{Name: "AAC", Retries: retries, Status: "FAILURE", Updated: time.Now()}
+					return
+				}
+				if resp != nil {
+					if !resp.Success {
+						updates <- server.ServiceState{Name: "AAC", Retries: retries, Status: "FAILURE", Updated: time.Now()}
+						return
+					}
+				}
+			}
+		} else {
+			updates <- server.ServiceState{Name: "AAC", Retries: retries, Status: "FAILURE", Updated: time.Now()}
+			return
+		}
+		// if success, set on app
+		app.AAC = client
+		updates <- server.ServiceState{Name: "AAC", Status: "CONNECTED", Updated: time.Now()}
+		return
+	}
 }

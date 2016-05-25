@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+
 	"sync"
 
 	"github.com/uber-go/zap"
@@ -96,6 +97,11 @@ func (h AppServer) FetchUserSnippets(ctx context.Context) (*acm.ODriveRawSnippet
 		}
 
 		LoggerFromContext(ctx).Info("look up snippets")
+
+		// Verify we have a reference to AAC
+		if h.AAC == nil {
+			return nil, errors.New("AAC field is nil.")
+		}
 
 		// Call AAC to get Snippets
 		snippetType := "odrive-raw"
