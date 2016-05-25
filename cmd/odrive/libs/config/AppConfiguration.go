@@ -68,14 +68,12 @@ type AuditSvcConfiguration struct {
 	Host string
 }
 
-// NewAppConfiguration loads the configuration file and returns the mapped
-// object
-func NewAppConfiguration() AppConfiguration {
-	file, err := os.Open("conf.json")
+// NewAppConfiguration loads the configuration file and returns an AppConfiguration.
+func NewAppConfiguration(path string) AppConfiguration {
+
+	file, err := os.Open(path)
 	if err != nil {
-		fmt.Println("error:", err)
-		displayFormatForConfigFile()
-		panic("conf.json must be defined in the working folder")
+		fmt.Println("conf.json not found")
 	}
 	decoder := json.NewDecoder(file)
 	configuration := AppConfiguration{}
@@ -84,9 +82,7 @@ func NewAppConfiguration() AppConfiguration {
 		log.Fatal("Could not decode configuration file")
 	}
 
-	if len(globalconfig.GetEnvOrDefault("GOPATH", "")) == 0 {
-		log.Printf("WARNING: GOPATH not set.\n")
-	}
+	warnIfNotSet("GOPATH")
 
 	configuration.DatabaseConnection.Driver = os.ExpandEnv(configuration.DatabaseConnection.Driver)
 	configuration.DatabaseConnection.Username = os.ExpandEnv(configuration.DatabaseConnection.Username)
@@ -261,4 +257,10 @@ func (r *DatabaseConnectionConfiguration) buildTLSConfig() tls.Config {
 // server identity certificates to listen for connecting clients
 func (r *ServerSettingsConfiguration) buildTLSConfig() tls.Config {
 	return buildServerTLSConfig(r.CAPath, r.ServerCertChain, r.ServerKey, r.RequireClientCert, r.CipherSuites, r.MinimumVersion)
+}
+
+func warnIfNotSet(variable string) {
+	if len(globalconfig.GetEnvOrDefault(variable, "")) == 0 {
+		log.Printf("WARNING: %s not set.\n", variable)
+	}
 }

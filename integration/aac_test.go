@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"decipher.com/object-drive-server/config"
+	globalconfig "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models/acm"
 	aac "decipher.com/object-drive-server/services/aac"
 	"decipher.com/object-drive-server/util"
@@ -32,29 +32,32 @@ var snippetType = "ES"
 var aacClient = aac.AacServiceClient{}
 
 func DontRun() bool {
-	return testing.Short() || config.StandaloneMode
+	return testing.Short()
 }
 
 func TestMain(m *testing.M) {
 	if DontRun() {
 		return
-	} else {
-		trustPath := filepath.Join(config.CertsDir, "clients", "client.trust.pem")
-		certPath := filepath.Join(config.CertsDir, "clients", "test_1.cert.pem")
-		keyPath := filepath.Join(config.CertsDir, "clients", "test_1.key.pem")
-
-		dialOpts := &config.OpenSSLDialOptions{}
-		dialOpts.SetInsecureSkipHostVerification()
-		conn, err := config.NewOpenSSLTransport(
-			trustPath, certPath, keyPath, "twl-server-generic2", "9093", dialOpts)
-		if err != nil {
-			log.Fatal(err)
-		}
-		trns := t2.NewTransport(t2.NewFramedReadWriteCloser(conn, 0), t2.BinaryProtocol)
-		client := t2.NewClient(trns, true)
-		aacClient = aac.AacServiceClient{Client: client}
-		m.Run()
 	}
+
+	globalconfig.SetupGlobalDefaults()
+
+	trustPath := filepath.Join(globalconfig.CertsDir, "clients", "client.trust.pem")
+	certPath := filepath.Join(globalconfig.CertsDir, "clients", "test_1.cert.pem")
+	keyPath := filepath.Join(globalconfig.CertsDir, "clients", "test_1.key.pem")
+
+	dialOpts := &globalconfig.OpenSSLDialOptions{}
+	dialOpts.SetInsecureSkipHostVerification()
+	conn, err := globalconfig.NewOpenSSLTransport(
+		trustPath, certPath, keyPath, "twl-server-generic2", "9093", dialOpts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	trns := t2.NewTransport(t2.NewFramedReadWriteCloser(conn, 0), t2.BinaryProtocol)
+	client := t2.NewClient(trns, true)
+	aacClient = aac.AacServiceClient{Client: client}
+	m.Run()
+
 }
 
 func TestCheckAccess(t *testing.T) {

@@ -20,7 +20,7 @@ var d *dao.DataAccessLayer
 var usernames = make([]string, 10)
 
 func init() {
-	appConfiguration := config.NewAppConfiguration()
+	appConfiguration := config.NewAppConfiguration("conf.json")
 	dbConfig := appConfiguration.DatabaseConnection
 	var err error
 	db, err = dbConfig.GetDatabaseHandle()
