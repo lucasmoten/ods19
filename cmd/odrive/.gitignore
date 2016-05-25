@@ -1,6 +1,8 @@
 # the resulting binar(y/ies)
 dbtest
 odrive
+metadataconnector
+*.debug
 
 # object cache directory
 cache
