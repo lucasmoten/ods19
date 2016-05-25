@@ -432,9 +432,8 @@ func CallerFromContext(ctx context.Context) (Caller, bool) {
 
 func ContextWithLogger(ctx context.Context, r *http.Request) context.Context {
 	caller, _ := CallerFromContext(ctx)
-	return context.WithValue(ctx, Logger, zap.NewJSON().
-		With(zap.String("session", newSessionID())).
-		With(zap.String("node", zookeeper.RandomID)).
+	return context.WithValue(ctx, Logger, globalconfig.RootLogger.
+		With(zap.String("session", globalconfig.RandomID())).
 		With(zap.String("cn", caller.CommonName)).
 		With(zap.String("method", r.Method)).
 		With(zap.String("uri", r.RequestURI)))

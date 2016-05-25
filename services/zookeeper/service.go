@@ -1,22 +1,20 @@
 package zookeeper
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"log"
 	"strconv"
 	"strings"
 	"time"
 
 	globalconfig "decipher.com/object-drive-server/config"
 	"github.com/samuel/go-zookeeper/zk"
+	"github.com/uber-go/zap"
 )
 
-// This node is identifying itself with this in zookeeper.
-// We use it to figure out which odrive in the cluster we are
-var RandomID string
+var (
+	logger = globalconfig.RootLogger
+)
 
 var PermissiveACL = zk.WorldACL(zk.PermAll)
 
@@ -42,12 +40,6 @@ type Address struct {
 	Port int    `json:"port"`
 }
 
-func randomID() string {
-	buf := make([]byte, 4)
-	rand.Read(buf)
-	return hex.EncodeToString(buf)
-}
-
 // Put in a new level in the tree.
 // this really only wraps up Create to handle non-existence cleanly.
 func makeNewNode(conn *zk.Conn, pathType, prevPath, appendPath string, flags int32, data []byte) (string, error) {
@@ -56,14 +48,19 @@ func makeNewNode(conn *zk.Conn, pathType, prevPath, appendPath string, flags int
 	if err != nil {
 		return newPath, err
 	}
+	zlogger := logger.With(
+		zap.String("pathtype", pathType),
+		zap.String("newpath", newPath),
+		zap.String("appendpath", appendPath),
+	)
 	if !exists {
-		log.Printf("zk: %s %s created", pathType, newPath)
+		zlogger.Info("zk create")
 		_, err = conn.Create(newPath, data, flags, PermissiveACL)
 		if err != nil {
 			return newPath, err
 		}
 	} else {
-		log.Printf("zk: %s %s exists", pathType, appendPath)
+		zlogger.Info("zk exists")
 	}
 	return newPath, nil
 }
@@ -97,7 +94,16 @@ func RegisterApplication(uri, zkAddress string) (ZKState, error) {
 	//be the same as where AAC mounts
 	zkRoot := globalconfig.GetEnvOrDefault("OD_ZK_ROOT", "/cte")
 	zkTimeout := globalconfig.GetEnvOrDefaultInt("OD_ZK_TIMEOUT", 5)
-	log.Printf("zk: connect to %s timeout=%ds root=%s", zkAddress, zkTimeout, zkRoot)
+
+	//Because of the args to this function
+	zlogger := logger.With(
+		zap.String("uri", uri),
+		zap.String("address", zkAddress),
+		zap.String("zkroot", zkRoot),
+	)
+
+	zlogger.Info("zk connect", zap.Int("timeout", zkTimeout))
+
 	conn, _, err := zk.Connect(addrs, time.Second*time.Duration(zkTimeout))
 	if err != nil {
 		return ZKState{}, err
@@ -115,7 +121,7 @@ func RegisterApplication(uri, zkAddress string) (ZKState, error) {
 	appVersion := "1.0"
 	// overrides from URI
 	if len(parts) != 5 {
-		log.Printf("WARNING: Zookeeper URI (%s) comprised of OD_ZK_ROOT (%s) and OD_ZK_BASEPATH (%s) may not be set correctly.", zkURI, zkRoot, uri)
+		zlogger.Warn("zk base path may not be set correctly")
 	}
 	organization = assignPart(organization, parts, 1, "organization")
 	appType = assignPart(appType, parts, 2, "app type")
@@ -124,7 +130,7 @@ func RegisterApplication(uri, zkAddress string) (ZKState, error) {
 
 	// Rebuild zkURI
 	zkURI = "/" + organization + "/" + appType + "/" + appName + "/" + appVersion
-	log.Printf("Zookeeper URI set to %s", zkURI)
+	zlogger.Info("zk full URI setting", zap.String("zkuri", zkURI))
 
 	zkState := ZKState{
 		ZKAddress: zkAddress,
@@ -160,10 +166,10 @@ func assignPart(defaultValue string, parts []string, idx int, partName string) s
 		if len(ret) > 0 {
 			return ret
 		}
-		log.Printf("WARNING: Zookeeper URI part for %s is empty. Using default value: %s", partName, defaultValue)
+		logger.Warn("zk uri part empty.  using default.")
 		return defaultValue
 	}
-	log.Printf("WARNING: Zookeeper URI not long enough to include %s. Expected format is /organization/appType/appName/appVersion. Using default value: %s", partName, defaultValue)
+	logger.Warn("Zookeeper URI not long enough")
 	return defaultValue
 }
 
@@ -195,7 +201,7 @@ func ServiceAnnouncement(zkState ZKState, protocol string, stat, host string, po
 	//Marshall the announcement into bytes
 	asBytes, err := json.Marshal(aData)
 	if err != nil {
-		log.Println("ServiceAnnouncement could not marshal AnnounceData to json: ", err)
+		logger.Error("ServiceAnnouncement could not marshal AnnounceData", zap.String("err", err.Error()))
 		return err
 	}
 
@@ -211,16 +217,15 @@ func ServiceAnnouncement(zkState ZKState, protocol string, stat, host string, po
 	)
 	if err == nil {
 		//Register a member with our data - ephemeral so that data disappears when we die
-		RandomID = randomID()
 		newPath, err = makeNewNode(
 			zkState.Conn,
 			"announcement",
 			newPath,
-			RandomID,
+			globalconfig.NodeID,
 			zk.FlagEphemeral,
 			asBytes,
 		)
-		log.Printf("zk: find us at: %s:%s", host, port)
+		logger.Info("zk our address", zap.String("ip", host), zap.Int("port", intPort))
 	}
 	return err
 }
