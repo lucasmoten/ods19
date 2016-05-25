@@ -8,17 +8,20 @@ import (
 	"time"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/config"
-	oduconfig "decipher.com/object-drive-server/config"
+	globalconfig "decipher.com/object-drive-server/config"
 
 	"syscall"
 
-	zk "decipher.com/object-drive-server/services/zookeeper"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/uber-go/zap"
+)
+
+var (
+	logger = globalconfig.RootLogger.With(zap.String("session", "drainprovider"))
 )
 
 const (
@@ -42,15 +45,15 @@ func checkAWSEnvironmentVars(logger zap.Logger) {
 	// Variables for the environment can be provided as either the native AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 	// or be prefixed with the common "OD_" as in OD_AWS_REGION, OD_AWS_ACCESS_KEY_ID, and OD_AWS_SECRET_ACCESS_KEY
 	// Environment variables will be normalized to the AWS_ variants to facilitate internal library calls
-	region := oduconfig.GetEnvOrDefault("OD_AWS_REGION", oduconfig.GetEnvOrDefault("AWS_REGION", ""))
+	region := globalconfig.GetEnvOrDefault("OD_AWS_REGION", globalconfig.GetEnvOrDefault("AWS_REGION", ""))
 	if len(region) > 0 {
 		os.Setenv("AWS_REGION", region)
 	}
-	accessKeyID := oduconfig.GetEnvOrDefault("OD_AWS_ACCESS_KEY_ID", oduconfig.GetEnvOrDefault("AWS_ACCESS_KEY_ID", ""))
+	accessKeyID := globalconfig.GetEnvOrDefault("OD_AWS_ACCESS_KEY_ID", globalconfig.GetEnvOrDefault("AWS_ACCESS_KEY_ID", ""))
 	if len(accessKeyID) > 0 {
 		os.Setenv("AWS_ACCESS_KEY_ID", accessKeyID)
 	}
-	secretKey := oduconfig.GetEnvOrDefault("OD_AWS_SECRET_ACCESS_KEY", oduconfig.GetEnvOrDefault("AWS_SECRET_ACCESS_KEY", ""))
+	secretKey := globalconfig.GetEnvOrDefault("OD_AWS_SECRET_ACCESS_KEY", globalconfig.GetEnvOrDefault("AWS_SECRET_ACCESS_KEY", ""))
 	if len(secretKey) > 0 {
 		os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey)
 	}
@@ -107,14 +110,9 @@ type S3DrainProviderData struct {
 // NewS3DrainProvider sets up a drain with default parameters overridden by environment variables
 // TODO this should return an error, as well.
 func NewS3DrainProvider(root, name string) DrainProvider {
-	logger :=
-		zap.NewJSON().
-			With(zap.String("session", "drainprovider")).
-			With(zap.String("node", zk.RandomID))
-
 	var err error
 	lowWatermark := 0.50
-	lowWatermarkSuggested := oduconfig.GetEnvOrDefault("OD_CACHE_LOWWATERMARK", "0.50")
+	lowWatermarkSuggested := globalconfig.GetEnvOrDefault("OD_CACHE_LOWWATERMARK", "0.50")
 	if len(lowWatermarkSuggested) > 0 {
 		lowWatermark, err = strconv.ParseFloat(lowWatermarkSuggested, 32)
 		if err != nil {
@@ -126,7 +124,7 @@ func NewS3DrainProvider(root, name string) DrainProvider {
 		}
 	}
 	highWatermark := 0.75
-	highWatermarkSuggested := oduconfig.GetEnvOrDefault("OD_CACHE_HIGHWATERMARK", "0.75")
+	highWatermarkSuggested := globalconfig.GetEnvOrDefault("OD_CACHE_HIGHWATERMARK", "0.75")
 	if len(highWatermarkSuggested) > 0 {
 		highWatermark, err = strconv.ParseFloat(highWatermarkSuggested, 32)
 		if err != nil {
@@ -138,7 +136,7 @@ func NewS3DrainProvider(root, name string) DrainProvider {
 		}
 	}
 	ageEligibleForEviction := int64(60 * 5)
-	ageEligibleForEvictionSuggested := oduconfig.GetEnvOrDefault("OD_CACHE_EVICTAGE", "300")
+	ageEligibleForEvictionSuggested := globalconfig.GetEnvOrDefault("OD_CACHE_EVICTAGE", "300")
 	if len(ageEligibleForEvictionSuggested) > 0 {
 		ageEligibleForEviction, err = strconv.ParseInt(ageEligibleForEvictionSuggested, 10, 64)
 		if err != nil {
@@ -150,7 +148,7 @@ func NewS3DrainProvider(root, name string) DrainProvider {
 		}
 	}
 	walkSleep := time.Duration(30 * time.Second)
-	walkSleepSuggested := oduconfig.GetEnvOrDefault("OD_CACHE_WALKSLEEP", "30")
+	walkSleepSuggested := globalconfig.GetEnvOrDefault("OD_CACHE_WALKSLEEP", "30")
 	if len(walkSleepSuggested) > 0 {
 		walkSleepInt, err := strconv.ParseInt(walkSleepSuggested, 10, 64)
 		if err != nil {
@@ -212,10 +210,6 @@ func awsS3() *session.Session {
 
 // NewNullDrainProvider setup a drain provider that doesnt use S3 backend, just local caching.
 func NewNullDrainProvider(root, name string) DrainProvider {
-	logger :=
-		zap.NewJSON().
-			With(zap.String("session", "drainprovider")).
-			With(zap.String("node", zk.RandomID))
 	d := &NullDrainProviderData{
 		CacheObject:         DrainCacheData{root},
 		CacheLocationString: name,

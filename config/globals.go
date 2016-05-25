@@ -1,15 +1,30 @@
 package config
 
 import (
-	"log"
+	"crypto/rand"
+	"encoding/hex"
 	"net"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
+	"github.com/uber-go/zap"
+
 	"decipher.com/object-drive-server/util"
 )
+
+func RandomID() string {
+	buf := make([]byte, 4)
+	rand.Read(buf)
+	return hex.EncodeToString(buf)
+}
+
+// Our randomly assigned (on startup node identifier used in zk, logs, etc)
+var NodeID = RandomID()
+
+// The logger from which all other loggers are defined - because this is where we get NodeID in logs
+var RootLogger = zap.NewJSON().With(zap.String("node", NodeID))
 
 // CertsDir is a base certificate directory that expects /server and /client
 // to exist inside of it. TODO: Consider the total amount of config we need
@@ -37,10 +52,10 @@ func locateProjectRoot() string {
 
 	gopath := GetEnvOrDefault("GOPATH", "")
 	if gopath == "" {
-		log.Printf("GOPATH is not set. Using current directory for project root.")
+		RootLogger.Warn("GOPATH is not set. Using current directory for project root.")
 		projectRoot, err = os.Getwd()
 		if err != nil {
-			log.Fatal(err)
+			RootLogger.Fatal("cannot get project root", zap.String("err", err.Error()))
 		}
 	} else {
 		projectRoot = filepath.Join(gopath, "src", "decipher.com", ProjectName)
@@ -48,12 +63,12 @@ func locateProjectRoot() string {
 
 	ok, err := util.PathExists(projectRoot)
 	if err != nil {
-		log.Fatal(err)
+		RootLogger.Fatal("cannot find project root", zap.String("err", err.Error()))
 	}
 	if !ok {
-		log.Println("ProjectRoot does not exist")
+		RootLogger.Error("project root does not exist", zap.String("err", err.Error()))
 	}
-	log.Println("Located project root at", projectRoot)
+	RootLogger.Info("located project root", zap.String("filename", projectRoot))
 	return projectRoot
 }
 
@@ -62,10 +77,10 @@ func locateCerts(projectRoot string) string {
 	certsDir = filepath.Join(projectRoot, "defaultcerts")
 	ok, err := util.PathExists(certsDir)
 	if err != nil {
-		log.Fatal(err)
+		RootLogger.Fatal("trying to locate cert", zap.String("err", err.Error()), zap.String("filename", certsDir))
 	}
 	if !ok {
-		log.Println("Certificates directory does not exist")
+		RootLogger.Info("Certificate directory does not exist", zap.String("filename", certsDir))
 	}
 	return certsDir
 }
@@ -89,7 +104,8 @@ func init() {
 	//Resolve the dockervm address
 	ips, err := net.LookupIP("dockervm")
 	if err != nil {
-		log.Printf("unable to resolve hostname: dockervm (used by client tests only)")
+		//Not a problem in production
+		RootLogger.Debug("unable to resolve test client hostname dockervm")
 	}
 	if len(ips) > 0 {
 		theIP := ips[0]
@@ -101,12 +117,12 @@ func init() {
 	//Find our IP that we want gatekeeper to contact us with
 	hostname, err := os.Hostname()
 	if err != nil {
-		log.Printf("could not lookup hostname")
+		RootLogger.Error("could not look up our own hostname to find ip for gatekeeper")
 	}
 	if len(hostname) > 0 {
 		MyIPs, err := net.LookupIP(hostname)
 		if err != nil {
-			log.Printf("could not get a set of ips for our hostname")
+			RootLogger.Error("could not get a set of ips for our hostname")
 		}
 		if len(MyIPs) > 0 {
 			for a := range MyIPs {
@@ -116,12 +132,12 @@ func init() {
 				}
 			}
 		} else {
-			log.Printf("We did not find our ip")
+			RootLogger.Error("We did not find our ip")
 		}
 	} else {
-		log.Printf("We could not find our hostname")
+		RootLogger.Error("We could not find our hostname")
 	}
-	log.Printf("we are %s", MyIP)
+	RootLogger.Info("our ip is", zap.String("ip", MyIP))
 
 	//Allow us to change the port, to get around nginx
 	p := GetEnvOrDefault("OD_DOCKERVM_PORT", "8080")
@@ -170,9 +186,9 @@ func GetEnvOrDefaultInt(name string, defaultValue int) int {
 	}
 	i, err := strconv.Atoi(envVal)
 	if err != nil {
-		log.Printf(
-			"WARNING: Environment variable %s did not parse as an int, so was given a default value",
-			name,
+		RootLogger.Warn(
+			"Environment variable did not parse as an int, so was given a default value",
+			zap.String("name", name),
 		)
 		return defaultValue
 	}

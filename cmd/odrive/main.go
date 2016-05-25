@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -19,6 +18,7 @@ import (
 	"decipher.com/object-drive-server/util/testhelpers"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/config"
 	"decipher.com/object-drive-server/cmd/odrive/libs/dao"
@@ -33,6 +33,8 @@ import (
 // Flags
 var (
 	confFlag = flag.String("conf", "conf.json", "Path to config file. Default: conf.json")
+	//All loggers are derived from the global one
+	logger = globalconfig.RootLogger
 )
 
 func main() {
@@ -51,7 +53,8 @@ func main() {
 
 	app, err := makeServer(conf.ServerSettings)
 	if err != nil {
-		log.Fatalf("Error calling makeServer: %v\n", err)
+		//Yet we continue when there is an error?
+		logger.Error("Error calling makeserver", zap.String("err", err.Error()))
 	}
 
 	// put updates onto updates channel
@@ -63,20 +66,29 @@ func main() {
 
 	err = configureDAO(app, conf.DatabaseConnection)
 	if err != nil {
-		log.Printf("Error configuring DAO. %v\nPlease review connection settings in conf.json\n", err)
+		logger.Error("Error configuring DAO.  Check settings in conf.json", zap.String("err", err.Error()))
 		os.Exit(1)
 	}
 
 	cacheRoot := globalconfig.GetEnvOrDefault("OD_CACHE_ROOT", ".")
 	cacheID, err := getDBIdentifier(app)
 	if err != nil {
-		log.Printf("ERROR getting DB IDentifier: %v\n", err)
+		logger.Warn("getting DB identifier", zap.String("err", err.Error()))
 	}
+
 	cachePartition := globalconfig.GetEnvOrDefault("OD_CACHE_PARTITION", "cache") + "/" + cacheID
 	configureDrainProvider(app, globalconfig.StandaloneMode, cacheRoot, cachePartition)
 
 	zkAddress := globalconfig.GetEnvOrDefault("OD_ZK_URL", "zk:2181")
 	zkBasePath := globalconfig.GetEnvOrDefault("OD_ZK_BASEPATH", "/service/object-drive/1.0")
+
+	//Once we know which cluster we are attached to (ie: the database and bucket partition), note it in the logs
+	logger.Info(
+		"join cluster",
+		zap.String("database", cacheID),
+		zap.String("bucket", config.DefaultBucket),
+		zap.String("partition", cachePartition),
+	)
 
 	//These are the IP:port as seen by the outside.  They are not necessarily the same as the internal port that the server knows,
 	//because this is created by the -p $OD_ZK_MYPORT:$OD_SERVER_PORT mapping on docker machine $OD_ZK_MYIP.
@@ -86,13 +98,18 @@ func main() {
 
 	err = registerWithZookeeper(app, zkBasePath, zkAddress, zkMyIP, zkMyPort)
 	if err != nil {
-		log.Fatal("Could not register with Zookeeper")
+		logger.Fatal("Could not register with Zookeeper")
 	}
 
 	app.MasterKey = globalconfig.GetEnvOrDefault("OD_ENCRYPT_MASTERKEY", "otterpaws")
 	if app.MasterKey == "otterpaws" {
-		log.Printf("You should pass in an environment variable 'OD_ENCRYPT_MASTERKEY' to encrypt database keys")
-		log.Printf("Note that if you change masterkey, then the encrypted keys are invalidated")
+		logger.Fatal(
+			"You should pass in an environment variable 'OD_ENCRYPT_MASTERKEY' to encrypt database keys",
+			zap.String("note",
+				"Note that if you change masterkey, then the encrypted keys are invalidated",
+			),
+		)
+
 	}
 
 	httpServer := &http.Server{
@@ -107,10 +124,14 @@ func main() {
 
 	pollAll(app, updates, time.Duration(3*time.Second))
 
-	log.Println("Starting server on " + app.Addr)
-	log.Fatalln(
+	logger.Info("starting server", zap.String("addr", app.Addr))
+	//This blocks until there is an error to stop the server
+	err =
 		httpServer.ListenAndServeTLS(
-			conf.ServerSettings.ServerCertChain, conf.ServerSettings.ServerKey))
+			conf.ServerSettings.ServerCertChain, conf.ServerSettings.ServerKey)
+	if err != nil {
+		logger.Fatal("stopped server", zap.String("err", err.Error()))
+	}
 }
 
 func configureAuditor(app *server.AppServer, settings config.AuditSvcConfiguration) {
@@ -144,10 +165,10 @@ func configureDAO(app *server.AppServer, conf config.DatabaseConnectionConfigura
 func configureDrainProvider(app *server.AppServer, standalone bool, root, cacheID string) {
 	var dp server.DrainProvider
 	if globalconfig.StandaloneMode {
-		log.Printf("Draining cache locally")
+		logger.Info("Draining cache locally")
 		dp = server.NewNullDrainProvider(root, cacheID)
 	} else {
-		log.Printf("Draining cache to S3")
+		logger.Info("Draining cache to S3")
 		dp = server.NewS3DrainProvider(root, cacheID)
 	}
 
@@ -178,10 +199,12 @@ func getDBIdentifier(app *server.AppServer) (string, error) {
 
 	dbState, err := app.DAO.GetDBState()
 	if err != nil {
-		log.Printf("Error calling GetDBState(): %v", err)
 		return "UNKNOWN", err
 	}
-	log.Printf("Database version %s instance is %s", dbState.SchemaVersion, dbState.Identifier)
+	logger.Info("Database version",
+		zap.String("schema", dbState.SchemaVersion),
+		zap.String("identifier", dbState.Identifier),
+	)
 	return dbState.Identifier, nil
 }
 
@@ -192,7 +215,7 @@ func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, err
 			"cmd", "odrive", "libs", "server",
 			"static", "templates", "*"))
 	if err != nil {
-		log.Printf("Cloud not discover templates.")
+		logger.Info("Cloud not discover templates.")
 		return nil, err
 	}
 
@@ -228,36 +251,39 @@ func pingDB(db *sqlx.DB) int {
 	for dbPingAttempt < dbPingAttemptMax && !dbPingSuccess {
 		dbPingAttempt++
 		err := db.Ping()
+
 		if err == nil {
 			dbPingSuccess = true
 			exitCode = 0
-		} else if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-			log.Println("Timeout connecting to database.")
-			exitCode = 28
-		} else if match, _ := regexp.MatchString(".*lookup.*", err.Error()); match {
-			log.Println("Unknown host error connecting to database. Review conf.json configuration. Halting")
-			exitCode = 6
-			return exitCode
-		} else if match, _ := regexp.MatchString(".*connection refused.*", err.Error()); match {
-			log.Println("Connection refused connecting to database. Database may not yet be online.")
-			exitCode = 7
 		} else {
-			log.Println("Unhandled error while connecting to database.")
-			log.Println(err.Error())
-			log.Println("Halting")
-			exitCode = 1
-			return exitCode
+			elogger := logger.With(zap.String("err", err.Error()))
+			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				elogger.Error("Timeout connecting to database.")
+				exitCode = 28
+			} else if match, _ := regexp.MatchString(".*lookup.*", err.Error()); match {
+				elogger.Error("Unknown host error connecting to database. Review conf.json configuration. Halting")
+				exitCode = 6
+				return exitCode
+			} else if match, _ := regexp.MatchString(".*connection refused.*", err.Error()); match {
+				elogger.Error("Connection refused connecting to database. Database may not yet be online.")
+				exitCode = 7
+			} else {
+				elogger.Error("Unhandled error while connecting to database. Halting")
+				exitCode = 1
+				return exitCode
+			}
 		}
+
 		if !dbPingSuccess {
 			if dbPingAttempt < dbPingAttemptMax {
-				log.Println("Retrying in 3 seconds")
+				logger.Warn("Retrying in 3 seconds")
 				time.Sleep(time.Second * 3)
 			} else {
-				log.Println("Maximum retries exhausted. Halting")
+				logger.Error("Maximum retries exhausted. Halting")
 				return exitCode
 			}
 		} else {
-			log.Println("Database connection succesful!")
+			logger.Info("Database connection succesful!")
 		}
 	}
 	return exitCode
@@ -288,7 +314,10 @@ func StateMonitor(app *server.AppServer, updateInterval time.Duration) chan serv
 
 func reportStates(states map[string]server.ServiceState) {
 	// TODO nicer formatting
-	log.Println("Service states:", states)
+	logger.Info(
+		"Service states",
+		zap.String("states", fmt.Sprintf("%v", states)),
+	)
 }
 
 func pollAll(app *server.AppServer, updates chan server.ServiceState, updateInterval time.Duration) {
