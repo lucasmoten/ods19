@@ -312,11 +312,10 @@ func StateMonitor(app *server.AppServer, updateInterval time.Duration) chan serv
 	return updates
 }
 
-func reportStates(states map[string]server.ServiceState) {
-	// TODO nicer formatting
+func reportStates(states server.ServiceStates) {
 	logger.Info(
 		"Service states",
-		zap.String("states", fmt.Sprintf("%v", states)),
+		zap.Marshaler("states", states),
 	)
 }
 
