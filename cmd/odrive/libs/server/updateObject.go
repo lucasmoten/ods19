@@ -220,9 +220,14 @@ func parseUpdateObjectRequestAsJSON(r *http.Request, ctx context.Context) (model
 		requestObject.Description.String = jsonObject.Description
 		requestObject.Description.Valid = true
 	}
-	if len(jsonObject.RawAcm) > 0 {
-		requestObject.RawAcm.String = jsonObject.RawAcm
-		requestObject.RawAcm.Valid = true
+	convertedAcm, err := mapping.ConvertRawACMToString(jsonObject.RawAcm)
+	if err != nil {
+		return requestObject, err
+	} else {
+		if len(convertedAcm) > 0 {
+			requestObject.RawAcm.String = convertedAcm
+			requestObject.RawAcm.Valid = true
+		}
 	}
 	if len(jsonObject.Properties) > 0 {
 		requestObject.Properties, err = mapping.MapPropertiesToODProperties(&jsonObject.Properties)

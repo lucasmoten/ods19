@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -76,6 +77,13 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
 		object.Name = "Unnamed " + object.TypeName.String
 	}
 
+	// Normalize ACM
+	newACMNormalized, err := normalizedACM(object.RawAcm.String)
+	if err != nil {
+		return fmt.Errorf("Error normalizing ACM on new object: %v (acm: %s)", err.Error(), object.RawAcm.String)
+	}
+	object.RawAcm.String = newACMNormalized
+
 	// update object
 	updateObjectStatement, err := tx.Preparex(`update object set 
         modifiedBy = ?
@@ -116,11 +124,16 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
 	updateObjectStatement.Close()
 
 	// Process ACM changes
-	if strings.Compare(dbObject.RawAcm.String, object.RawAcm.String) != 0 {
+	oldACMNormalized, err := normalizedACM(dbObject.RawAcm.String)
+	if err != nil {
+		return fmt.Errorf("Error normalizing ACM on database object: %s {dbObject.RawAcm: %s}", err.Error(), dbObject.RawAcm.String)
+	}
+	if strings.Compare(oldACMNormalized, newACMNormalized) != 0 {
+		object.RawAcm.String = newACMNormalized
 		object.ACM.ID = dbObject.ACM.ID
 		updatedACM, err := updateObjectACMForObjectInTransaction(tx, object)
 		if err != nil { //&& err != sql.ErrNoRows {
-			return fmt.Errorf("Error updating ACM for object: %s", err.Error())
+			return fmt.Errorf("Error updating ACM for object: %s {oldacm: %s} {newacm: %s}", err.Error(), dbObject.RawAcm.String, object.RawAcm.String)
 		}
 		dbObject.ACM = updatedACM
 	}
@@ -190,6 +203,18 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
 	return nil
 }
 
+func normalizedACM(i string) (string, error) {
+	var normalizedInterface interface{}
+	if err := json.Unmarshal([]byte(i), &normalizedInterface); err != nil {
+		return i, err
+	}
+	normalizedBytes, err := json.Marshal(normalizedInterface)
+	if err != nil {
+		return i, err
+	}
+	return string(normalizedBytes[:]), nil
+}
+
 func updateObjectACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) (models.ODObjectACM, error) {
 
 	var dbObjectACM models.ODObjectACM
@@ -247,16 +272,16 @@ func updateObjectACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject)
 	if err != nil {
 		return dbObjectACM, fmt.Errorf("UpdateObjectACM Error executing update statement, %s", err.Error())
 	}
-	err = updateStatement.Close()
-	if err != nil {
-		return dbObjectACM, fmt.Errorf("UpdateObjectACM Error closing update statement, %s", err.Error())
-	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return dbObjectACM, fmt.Errorf("UpdateObjectACM Error checking result for rows affected, %s", err.Error())
 	}
 	if rowsAffected <= 0 {
 		return dbObjectACM, fmt.Errorf("UpdateObjectACM updated but no rows affected!")
+	}
+	err = updateStatement.Close()
+	if err != nil {
+		return dbObjectACM, fmt.Errorf("UpdateObjectACM Error closing update statement, %s", err.Error())
 	}
 
 	// Get the newly created object_acm and return it

@@ -113,8 +113,21 @@ func doPropsCheck(t *testing.T, jsonResponseBytes []byte) {
 		t.Errorf("objResponse was expected to be 'describeit'")
 	}
 
-	if objResponse.RawAcm != testhelpers.ValidACMUnclassifiedFOUO {
-		t.Errorf("acm was not what we passed in")
+	// if objResponse.RawAcm != testhelpers.ValidACMUnclassifiedFOUO {
+	// 	t.Errorf("acm was not what we passed in")
+	// }
+
+	acmRaw := objResponse.RawAcm
+	acmMap, ok := acmRaw.(map[string]interface{})
+	if !ok {
+		t.Errorf("Unable to convert ACM in response to map")
+	}
+	if acmMap["banner"] == nil {
+		t.Errorf("ACM returned does not have a banner")
+	}
+	acmBanner := acmMap["banner"].(string)
+	if acmBanner != "UNCLASSIFIED//FOUO" {
+		t.Errorf("acm did not have expected banner value")
 	}
 
 	if len(objResponse.Properties) == 0 {

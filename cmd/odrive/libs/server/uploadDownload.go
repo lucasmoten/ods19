@@ -71,9 +71,9 @@ func (h AppServer) acceptObjectUpload(
 			// If updating and ACM provided differs from what is currently set, then need to
 			// Check AAC to compare user clearance to NEW metadata Classifications
 			// to see if allowed for this user
-			if !asCreate && strings.Compare(obj.RawAcm.String, createObjectRequest.RawAcm) != 0 {
+			rawAcmString := createObjectRequest.RawAcm.(string)
+			if !asCreate && strings.Compare(obj.RawAcm.String, rawAcmString) != 0 {
 				// Validate ACM
-				rawAcmString := createObjectRequest.RawAcm
 				// Make sure its parseable
 				parsedACM, err := acm.NewACMFromRawACM(rawAcmString)
 				if err != nil {
@@ -81,7 +81,7 @@ func (h AppServer) acceptObjectUpload(
 				}
 				// Ensure user is allowed this acm
 				updateObjectRequest := models.ODObject{}
-				updateObjectRequest.RawAcm.String = createObjectRequest.RawAcm
+				updateObjectRequest.RawAcm.String = rawAcmString
 				updateObjectRequest.RawAcm.Valid = true
 				hasAACAccessToNewACM, err := h.isUserAllowedForObjectACM(ctx, &updateObjectRequest)
 				if err != nil {
