@@ -3,7 +3,6 @@ package server
 import (
 	"errors"
 	"log"
-	"strings"
 
 	"golang.org/x/net/context"
 
@@ -16,6 +15,9 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 	var err error
 	// In standalone, we are ignoring AAC
 	if config.StandaloneMode {
+		// But warn in STDOUT to draw attention
+		log.Printf("WARNING: STANDALONE mode is active. User permission to access objects are not being checked against AAC.")
+		// Return permission granted and no errors
 		return true, nil
 	}
 
@@ -33,12 +35,6 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 		return false, errors.New("Object passed in does not have an ACM set")
 	}
 
-	// Performance instrumentation
-	var beganAt = performance.BeganJob(int64(0))
-	if h.Tracker != nil {
-		beganAt = h.Tracker.BeginTime(performance.AACCounterCheckAccess)
-	}
-
 	// Gather inputs
 	tokenType := "pki_dias"
 	dn := caller.DistinguishedName
@@ -46,35 +42,19 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 
 	// Verify we have a reference to AAC
 	if h.AAC == nil {
-		return false, errors.New("AAC field is nil.")
+		return false, errors.New("AAC field is nil")
+	}
+
+	// Performance instrumentation
+	var beganAt = performance.BeganJob(int64(0))
+	if h.Tracker != nil {
+		beganAt = h.Tracker.BeginTime(performance.AACCounterCheckAccess)
 	}
 
 	// Call AAC
 	aacResponse, err := h.AAC.CheckAccess(dn, tokenType, acm)
 
-	// Process Response
-	if err != nil {
-		// Check if from dropped connection
-		if strings.Contains(err.Error(), "connection is shut down") {
-			log.Printf("CAUGHT connection is shut down")
-		}
-		if strings.Contains(err.Error(), "unexpected EOF") {
-			log.Printf("CAUGHT unexpected EOF")
-		}
-		if err != nil {
-			log.Printf("Error calling AAC.CheckAccess: %s", err.Error())
-			return false, errors.New("Error calling AAC.CheckAccess")
-		}
-	}
-	// Log the messages
-	for _, message := range aacResponse.Messages {
-		log.Printf("Message in AAC Response: %s\n", message)
-	}
-	if !aacResponse.Success {
-		return false, errors.New("Response from AAC.CheckAccess failed")
-	}
-
-	//We currently lack counters for aac check times, so log in order to get timestamps
+	// End performance tracking for the AAC call
 	if h.Tracker != nil {
 		h.Tracker.EndTime(
 			performance.AACCounterCheckAccess,
@@ -83,6 +63,22 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 		)
 	}
 
+	// Check if there was an error calling the service
+	if err != nil {
+		log.Printf("Error calling AAC.CheckAccess: %s", err.Error())
+		return false, errors.New("Error calling AAC.CheckAccess")
+	}
+
+	// Process Response
+	// Log the messages
+	for _, message := range aacResponse.Messages {
+		log.Printf("Message in AAC Response: %s\n", message)
+	}
+	// Check if response was successful
+	// -- This is assumed to be an upstream error, not a user authorization error
+	if !aacResponse.Success {
+		return false, errors.New("Response from AAC.CheckAccess failed")
+	}
 	// AAC Response returned without error, was successful
 	return aacResponse.HasAccess, nil
 }
