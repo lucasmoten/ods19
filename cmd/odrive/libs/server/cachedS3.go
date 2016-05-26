@@ -170,7 +170,7 @@ func NewS3DrainProvider(root, name string) DrainProvider {
 func NewS3DrainProviderRaw(root, name string, lowWatermark float64, ageEligibleForEviction int64, highWatermark float64, walkSleep time.Duration, logger zap.Logger) *S3DrainProviderData {
 	checkAWSEnvironmentVars(logger)
 	d := &S3DrainProviderData{
-		AWSSession:             awsS3(),
+		AWSSession:             NewAWSSession(),
 		CacheObject:            DrainCacheData{root},
 		CacheLocationString:    name,
 		lowWatermark:           lowWatermark,
@@ -199,9 +199,8 @@ func (d *NullDrainProviderData) Resolve(fName FileName) FileNameCached {
 	return FileNameCached(d.CacheLocationString + "/" + string(fName))
 }
 
-// awsS3 just gets us a session.
-//This is account as in the ["default"] entry in ~/.aws/credentials
-func awsS3() *session.Session {
+// NewAWSSession instantiates a connection to AWS.
+func NewAWSSession() *session.Session {
 	sessionConfig := &aws.Config{
 		Credentials: credentials.NewEnvCredentials(),
 	}
@@ -658,3 +657,44 @@ func (d *S3DrainProviderData) CachePurge() {
 		time.Sleep(d.walkSleep)
 	}
 }
+
+// TestS3Connection can be run to inspect the environment for configured S3
+// bucket names, and verify that those buckets are writable with our credentials.
+func TestS3Connection(sess *session.Session) bool {
+	uploader := s3manager.NewUploader(sess)
+	bucketName := globalconfig.GetEnvOrDefault("OD_AWS_S3_BUCKET", "")
+	if bucketName == "" {
+		logger.Error("serviceTestError",
+			zap.String("err", "Missing environment variable OD_AWS_S3_BUCKET"))
+		return false
+	}
+	input := s3.GetBucketAclInput{Bucket: strPtr(bucketName)}
+	output, err := uploader.S3.GetBucketAcl(&input)
+	if err != nil {
+		logger.Error("serviceTestError", zap.String("err", err.Error()))
+		return false
+	}
+	hasRead, hasWrite := false, false
+	for _, grant := range output.Grants {
+		if *grant.Permission == "WRITE" {
+			hasWrite = true
+		}
+		if *grant.Permission == "READ" {
+			hasRead = true
+		}
+	}
+
+	if hasRead && hasWrite {
+		return true
+	}
+
+	logger.Error("serviceTestError",
+		zap.String("err", "Insufficient permissions on bucket"),
+		zap.Object("GetBucketAclOutput", output),
+	)
+	// uploader.S3.GetBucketAcl
+	return false
+
+}
+
+func strPtr(s string) *string { return &s }

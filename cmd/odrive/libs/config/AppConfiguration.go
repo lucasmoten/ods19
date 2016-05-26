@@ -2,7 +2,6 @@ package config
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -13,25 +12,35 @@ import (
 	"github.com/uber-go/zap"
 )
 
+// Globals
 var (
 	defaultDBDriver = "mysql"
 	defaultDBHost   = "127.0.0.1"
 	defaultDBPort   = "3306"
-	// DefaultBucket is the AWS S3 bucket name
-	DefaultBucket = globalconfig.GetEnvOrDefault("OD_AWS_S3_BUCKET", "decipherers")
+	DefaultBucket   = globalconfig.GetEnvOrDefault("OD_AWS_S3_BUCKET", "")
 )
 
 // AppConfiguration is a structure that defines the known configuration format
 // for this application.
 type AppConfiguration struct {
 	AuditorSettings    AuditSvcConfiguration
-	DatabaseConnection DatabaseConnectionConfiguration
+	DatabaseConnection DatabaseConfiguration
 	ServerSettings     ServerSettingsConfiguration
+	AACSettings        AACConfiguration
 }
 
-// DatabaseConnectionConfiguration is a structure that defines the attributes
+// AACConfiguration ...
+type AACConfiguration struct {
+	CAPath     string
+	ClientCert string
+	ClientKey  string
+	HostName   string
+	Port       string
+}
+
+// DatabaseConfiguration is a structure that defines the attributes
 // needed for setting up database connection
-type DatabaseConnectionConfiguration struct {
+type DatabaseConfiguration struct {
 	Driver     string
 	Username   string
 	Password   string
@@ -69,104 +78,84 @@ type AuditSvcConfiguration struct {
 	Host string
 }
 
-// NewAppConfiguration loads the configuration file and returns an AppConfiguration.
-func NewAppConfiguration(path string) AppConfiguration {
+// NewAppConfigurationWithDefaults provides some defaults to the constructor
+// function for AppConfiguration. Normally these parameters are specified
+// on the command line.
+func NewAppConfigurationWithDefaults() AppConfiguration {
+	ciphers := []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"}
+	useTLS := true
+	whitelist := []string{"cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"}
 
-	file, err := os.Open(path)
-	if err != nil {
-		fmt.Println("conf.json not found")
+	return NewAppConfiguration(whitelist, ciphers, useTLS)
+}
+
+// NewAppConfiguration loads the configuration from the environment. Parameters are command
+// line flags.
+func NewAppConfiguration(whitelist, ciphers []string, useTLS bool) AppConfiguration {
+
+	dbConf := NewDatabaseConfigFromEnv()
+	serverSettings := NewServerSettingsFromEnv(whitelist, ciphers, useTLS)
+
+	return AppConfiguration{
+		DatabaseConnection: dbConf,
+		ServerSettings:     serverSettings,
 	}
-	decoder := json.NewDecoder(file)
-	configuration := AppConfiguration{}
-	err = decoder.Decode(&configuration)
-	if err != nil {
-		log.Fatal("Could not decode configuration file")
-	}
+}
 
-	warnIfNotSet("GOPATH")
+// NewDatabaseConfigFromEnv inspects the environment and returns a DatabaseConfiguration.
+func NewDatabaseConfigFromEnv() DatabaseConfiguration {
 
-	configuration.DatabaseConnection.Driver = os.ExpandEnv(configuration.DatabaseConnection.Driver)
-	configuration.DatabaseConnection.Username = os.ExpandEnv(configuration.DatabaseConnection.Username)
-	configuration.DatabaseConnection.Password = os.ExpandEnv(configuration.DatabaseConnection.Password)
-	configuration.DatabaseConnection.Protocol = os.ExpandEnv(configuration.DatabaseConnection.Protocol)
-	configuration.DatabaseConnection.Host = os.ExpandEnv(configuration.DatabaseConnection.Host)
-	configuration.DatabaseConnection.Port = os.ExpandEnv(configuration.DatabaseConnection.Port)
-	configuration.DatabaseConnection.Schema = os.ExpandEnv(configuration.DatabaseConnection.Schema)
-	configuration.DatabaseConnection.Params = os.ExpandEnv(configuration.DatabaseConnection.Params)
-	configuration.DatabaseConnection.CAPath = os.ExpandEnv(configuration.DatabaseConnection.CAPath)
-	configuration.DatabaseConnection.ClientCert = os.ExpandEnv(configuration.DatabaseConnection.ClientCert)
-	configuration.DatabaseConnection.ClientKey = os.ExpandEnv(configuration.DatabaseConnection.ClientKey)
-	configuration.ServerSettings.ListenPort = os.ExpandEnv(configuration.ServerSettings.ListenPort)
-	configuration.ServerSettings.ListenBind = os.ExpandEnv(configuration.ServerSettings.ListenBind)
+	var dbConf DatabaseConfiguration
 
-	configuration.ServerSettings.CAPath = os.ExpandEnv(configuration.ServerSettings.CAPath)
-	configuration.ServerSettings.ServerCertChain = os.ExpandEnv(configuration.ServerSettings.ServerCertChain)
-	configuration.ServerSettings.ServerKey = os.ExpandEnv(configuration.ServerSettings.ServerKey)
+	// From environment
+	dbConf.Username = os.Getenv(OD_DB_USERNAME)
+	dbConf.Password = os.Getenv(OD_DB_PASSWORD)
+	dbConf.Host = os.Getenv(OD_DB_HOST)
+	dbConf.Port = os.Getenv(OD_DB_PORT)
+	dbConf.Schema = os.Getenv(OD_DB_SCHEMA)
+	dbConf.CAPath = os.Getenv(OD_DB_CA)
+	dbConf.ClientCert = os.Getenv(OD_DB_CERT)
+	dbConf.ClientKey = os.Getenv(OD_DB_KEY)
 
-	// Done
-	return configuration
+	// Defaults
+	dbConf.Protocol = "tcp"
+	dbConf.Driver = defaultDBDriver
+	dbConf.Params = "parseTime=true"
+	dbConf.UseTLS = true
+	dbConf.SkipVerify = true // TODO new variable?
+
+	return dbConf
+}
+
+// NewServerSettingsFromEnv inspects the environment and returns a ServerSettingsConfiguration.
+func NewServerSettingsFromEnv(whitelist, ciphers []string, useTLS bool) ServerSettingsConfiguration {
+
+	var settings ServerSettingsConfiguration
+
+	// From env
+	settings.ListenPort = os.Getenv(OD_SERVER_PORT)
+	settings.CAPath = os.Getenv(OD_SERVER_CA)
+	settings.ServerCertChain = os.Getenv(OD_SERVER_CERT)
+	settings.ServerKey = os.Getenv(OD_SERVER_KEY)
+
+	// Defaults
+	settings.ListenBind = "0.0.0.0"
+	settings.UseTLS = useTLS
+	settings.RequireClientCert = true
+	settings.MinimumVersion = "1.2"
+	settings.AclImpersonationWhitelist = whitelist
+	settings.CipherSuites = ciphers
+
+	return settings
 }
 
 func displayFormatForConfigFile() {
-	samplefile := `
-	{
-      "AuditSvc": {
-        "type": "blackhole",
-        "host": "",
-        "port": ""
-      },        
-	  "DatabaseConnection": {
-	    "Driver": "mysql"
-	    ,"Username": "username"
-	    ,"Password": "password"
-	    ,"Protocol": "tcp"
-	    ,"Host": "fully.qualified.domain.name.for.database.host"
-	    ,"Port": "port"
-	    ,"Schema": "databasename"
-	    ,"Params": "additional parameters, if any"
-	    ,"UseTLS": true
-	    ,"SkipVerify": false
-	    ,"CAPath": "/path/to/trust/folder/of/ca/pems"
-	    ,"ClientCert": "/path/to/database/client/cert/pem"
-	    ,"ClientKey": "/path/to/database/client/key/pem"
-	  },
-	  "ServerSettings": {
-	    "ListenPort": port
-	    ,"ListenBind": "0.0.0.0"
-	    ,"UseTLS": true
-	    ,"CAPath": "/path/to/trust/folder/of/ca/pems"
-	    ,"ServerCertChain": "/path/to/web/server/cert/pem"
-	    ,"ServerKey": "/path/to/web/server/key/pem"
-	    ,"RequireClientCert": true
-	    ,"CipherSuites" : [
-	       "TLS_RSA_WITH_RC4_128_SHA"
-	  		,"TLS_RSA_WITH_3DES_EDE_CBC_SHA"
-	  		,"TLS_RSA_WITH_AES_128_CBC_SHA"
-	  		,"TLS_RSA_WITH_AES_256_CBC_SHA"
-	  		,"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA"
-	  		,"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
-	  		,"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA"
-	  		,"TLS_ECDHE_RSA_WITH_RC4_128_SHA"
-	  		,"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA"
-	  		,"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA"
-	  		,"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA"
-	  		,"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
-	  		,"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
-	  		,"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
-	  		,"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
-	    ]
-	    ,"MinimumVersion": "1.2"
-        ,"AclImpersonationWhitelist": [
-            "cn=server allowed to impersonate,ou=org1,ou=org2,o=organization,c=us"
-        ]
-	  }
-	}
-	`
+	samplefile := `defunct!`
 	fmt.Println(samplefile)
 }
 
 // GetDatabaseHandle initializes database connection using the configuration
-func (r *DatabaseConnectionConfiguration) GetDatabaseHandle() (*sqlx.DB, error) {
+func (r *DatabaseConfiguration) GetDatabaseHandle() (*sqlx.DB, error) {
 	// Establish configuration settings for Database Connection using
 	// the TLS settings in config file
 	if r.UseTLS {
@@ -195,7 +184,7 @@ func (r *ServerSettingsConfiguration) GetTLSConfig() tls.Config {
 // driver and documentation found here: https://github.com/go-sql-driver/mysql.
 // This format is similar to the PEAR DB format, but may need alteration.
 // http://pear.php.net/manual/en/package.database.db.intro-dsn.php
-func (r *DatabaseConnectionConfiguration) buildDSN() string {
+func (r *DatabaseConfiguration) buildDSN() string {
 	var dbDSN = ""
 	if len(r.Username) > 0 {
 		dbDSN += r.Username
@@ -250,7 +239,7 @@ func (r *DatabaseConnectionConfiguration) buildDSN() string {
 
 // buildTLSConfig prepares a standard go tls.Config with RootCAs and client
 // Certificates for communicating with the database securely.
-func (r *DatabaseConnectionConfiguration) buildTLSConfig() tls.Config {
+func (r *DatabaseConfiguration) buildTLSConfig() tls.Config {
 	return buildClientTLSConfig(r.CAPath, r.ClientCert, r.ClientKey, r.Host, r.SkipVerify)
 }
 

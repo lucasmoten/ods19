@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"errors"
-	"flag"
 	"fmt"
 	"html/template"
 	"net"
@@ -21,6 +20,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
+	"github.com/urfave/cli"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/config"
 	"decipher.com/object-drive-server/cmd/odrive/libs/dao"
@@ -32,26 +32,120 @@ import (
 	"decipher.com/object-drive-server/services/aac"
 )
 
-// Flags
+// Globals
 var (
-	confFlag = flag.String("conf", "conf.json", "Path to config file. Default: conf.json")
 	//All loggers are derived from the global one
 	logger = globalconfig.RootLogger
 )
 
+// Services that require network
+const (
+	S3Service        = "s3"
+	AACService       = "aac"
+	DatabaseService  = "db"
+	ZookeeperService = "zk"
+)
+
 func main() {
 
-	flag.Parse()
+	cliParser := cli.NewApp()
+	cliParser.Name = "odrive"
+	cliParser.Usage = "object-drive-server binary"
+	cliParser.Version = "1.0"
 
-	if flag.Arg(0) == "version" {
-		fmt.Println("1.0")
-		os.Exit(0)
+	cliParser.Commands = []cli.Command{
+		{
+			Name:  "env",
+			Usage: "Print all environment variables",
+			Action: func(ctx *cli.Context) error {
+				config.PrintODEnvironment()
+				return nil
+			},
+		},
+		{
+			Name:   "testService",
+			Usage:  "Run network diagnostic test against a service dependency. Values: s3, aac, db, zk",
+			Action: runServiceTest,
+		},
 	}
+
+	var defaultCiphers cli.StringSlice
+	defaultCiphers.Set("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
+
+	cliParser.Flags = []cli.Flag{
+		cli.StringSliceFlag{
+			Name:  "addCipher",
+			Usage: "A Go ciphersuite for TLS configuration. Can be specified multiple times. See: https://golang.org/src/crypto/tls/cipher_suites.go",
+			Value: &defaultCiphers,
+		},
+		cli.BoolTFlag{
+			Name:  "useTLS",
+			Usage: "Serve content over TLS. Defaults to true.",
+		},
+		cli.StringSliceFlag{
+			Name:  "whitelist",
+			Usage: "Whitelisted DNs for impersonation",
+		},
+		cli.StringFlag{
+			Name:  "conf",
+			Usage: "Path to yaml configuration file.",
+			Value: "odrive.yml",
+		},
+	}
+
+	cliParser.Action = func(c *cli.Context) error {
+
+		ciphers := c.StringSlice("addCipher")
+		useTLS := c.BoolT("useTLS")
+		// cli lib appends to []string that already contains the "default" value. Must trim
+		// the default cipher if addCipher is passed at command line.
+		if len(ciphers) > 1 {
+			ciphers = ciphers[1:]
+		}
+
+		// Load YAML, with optional filename passed
+		confPath := c.String("conf")
+		confFile, err := config.LoadYAMLConfig(confPath)
+		if err != nil {
+			fmt.Printf("Error loading yaml configuration at path %s: %v\n", confFile, err)
+			os.Exit(1)
+		}
+
+		startApplication(confFile.Whitelisted, ciphers, useTLS)
+		return nil
+	}
+
+	cliParser.Run(os.Args)
+}
+
+func runServiceTest(ctx *cli.Context) error {
+	service := ctx.Args().First()
+	switch service {
+	case S3Service:
+		sess := server.NewAWSSession()
+		if !server.TestS3Connection(sess) {
+			fmt.Println("Cannot access S3 bucket.")
+			os.Exit(1)
+		} else {
+			fmt.Println("Can read and write bucket referenced by OD_AWS_S3_BUCKET")
+			os.Exit(0)
+		}
+	case AACService:
+		fmt.Println("Not implemented for service:", service)
+	case DatabaseService:
+		fmt.Println("Not implemented for service:", service)
+	case ZookeeperService:
+		fmt.Println("Not implemented for service:", service)
+	}
+	return nil
+}
+
+func startApplication(whitelist, ciphers []string, useTLS bool) {
 
 	globalconfig.SetupGlobalDefaults()
 
 	// Load Configuration from conf.json
-	conf := config.NewAppConfiguration(*confFlag)
+	conf := config.NewAppConfiguration(whitelist, ciphers, useTLS)
 
 	app, err := makeServer(conf.ServerSettings)
 	if err != nil {
@@ -150,7 +244,7 @@ func configureAuditor(app *server.AppServer, settings config.AuditSvcConfigurati
 	app.Auditor.Start()
 }
 
-func configureDAO(app *server.AppServer, conf config.DatabaseConnectionConfiguration) error {
+func configureDAO(app *server.AppServer, conf config.DatabaseConfiguration) error {
 	db, err := conf.GetDatabaseHandle()
 	if err != nil {
 		return err
@@ -245,7 +339,7 @@ func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, err
 	return &httpHandler, nil
 }
 
-func pingDB(conf config.DatabaseConnectionConfiguration, db *sqlx.DB) int {
+func pingDB(conf config.DatabaseConfiguration, db *sqlx.DB) int {
 	// But ensure database is up, retrying every 3 seconds for up to 1 minute
 	dbPingAttempt := 0
 	dbPingSuccess := false

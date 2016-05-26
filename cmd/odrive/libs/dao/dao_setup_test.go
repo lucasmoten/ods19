@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -20,8 +21,15 @@ var d *dao.DataAccessLayer
 var usernames = make([]string, 10)
 
 func init() {
-	appConfiguration := config.NewAppConfiguration("conf.json")
+	appConfiguration := config.NewAppConfigurationWithDefaults()
 	dbConfig := appConfiguration.DatabaseConnection
+
+	// DAO tests hit a locally-running database directly.
+	// This is a hack to get correct paths to certs. Depends on GOPATH.
+	dbConfig.CAPath = os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/trust")
+	dbConfig.ClientCert = os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem")
+	dbConfig.ClientKey = os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-key.pem")
+
 	var err error
 	db, err = dbConfig.GetDatabaseHandle()
 	if err != nil {
