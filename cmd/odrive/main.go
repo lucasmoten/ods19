@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"flag"
 	"fmt"
@@ -249,6 +250,7 @@ func pingDB(db *sqlx.DB) int {
 	dbPingSuccess := false
 	dbPingAttemptMax := 20
 	exitCode := 2
+	verifyDBState := false
 	for dbPingAttempt < dbPingAttemptMax && !dbPingSuccess {
 		dbPingAttempt++
 		err := db.Ping()
@@ -262,7 +264,7 @@ func pingDB(db *sqlx.DB) int {
 				elogger.Error("Timeout connecting to database.")
 				exitCode = 28
 			} else if match, _ := regexp.MatchString(".*lookup.*", err.Error()); match {
-				elogger.Error("Unknown host error connecting to database. Review conf.json configuration. Halting")
+				elogger.Error("Unknown host error connecting to database. Review OD_DB_HOST environment variable configuration. Halting")
 				exitCode = 6
 				return exitCode
 			} else if match, _ := regexp.MatchString(".*connection refused.*", err.Error()); match {
@@ -285,6 +287,26 @@ func pingDB(db *sqlx.DB) int {
 			}
 		} else {
 			logger.Info("Database connection succesful!")
+			verifyDBState = true
+		}
+
+		if verifyDBState {
+			tempDAO := dao.DataAccessLayer{MetadataDB: db}
+			_, err := tempDAO.GetDBState()
+			if err != nil {
+				if err == sql.ErrNoRows {
+					dbPingSuccess = false
+					logger.Warn("Database State not yet set. Retrying in 3 seconds")
+					exitCode = 52
+					time.Sleep(time.Second * 3)
+				} else {
+					dbPingSuccess = false
+					elogger := logger.With(zap.String("err", err.Error()))
+					elogger.Error("Error calling for dbstate. Halting")
+					exitCode = 8
+					return exitCode
+				}
+			}
 		}
 	}
 	return exitCode
