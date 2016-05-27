@@ -295,13 +295,13 @@ func pingDB(db *sqlx.DB) int {
 			tempDAO := dao.DataAccessLayer{MetadataDB: db}
 			_, err := tempDAO.GetDBState()
 			if err != nil {
+				dbPingSuccess = false
+				verifyDBState = false
 				if err == sql.ErrNoRows || (strings.Contains(err.Error(), "Table") && strings.Contains(err.Error(), "doesn't exist")) {
-					dbPingSuccess = false
 					logger.Warn("Database State not yet set. Retrying in 3 seconds")
 					exitCode = 52
 					time.Sleep(time.Second * 3)
 				} else {
-					dbPingSuccess = false
 					elogger := logger.With(zap.String("err", err.Error()))
 					elogger.Error("Error calling for dbstate. Halting")
 					exitCode = 8
