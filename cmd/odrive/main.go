@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -294,7 +295,7 @@ func pingDB(db *sqlx.DB) int {
 			tempDAO := dao.DataAccessLayer{MetadataDB: db}
 			_, err := tempDAO.GetDBState()
 			if err != nil {
-				if err == sql.ErrNoRows {
+				if err == sql.ErrNoRows || (strings.Contains(err.Error(), "Table") && strings.Contains(err.Error(), "doesn't exist")) {
 					dbPingSuccess = false
 					logger.Warn("Database State not yet set. Retrying in 3 seconds")
 					exitCode = 52
