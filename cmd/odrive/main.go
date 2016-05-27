@@ -251,7 +251,6 @@ func pingDB(db *sqlx.DB) int {
 	dbPingSuccess := false
 	dbPingAttemptMax := 20
 	exitCode := 2
-	verifyDBState := false
 	for dbPingAttempt < dbPingAttemptMax && !dbPingSuccess {
 		dbPingAttempt++
 		err := db.Ping()
@@ -287,18 +286,12 @@ func pingDB(db *sqlx.DB) int {
 				return exitCode
 			}
 		} else {
-			logger.Info("Database connection succesful!")
-			verifyDBState = true
-		}
-
-		if verifyDBState {
 			tempDAO := dao.DataAccessLayer{MetadataDB: db}
 			_, err := tempDAO.GetDBState()
 			if err != nil {
 				dbPingSuccess = false
-				verifyDBState = false
 				if err == sql.ErrNoRows || (strings.Contains(err.Error(), "Table") && strings.Contains(err.Error(), "doesn't exist")) {
-					logger.Warn("Database State not yet set. Retrying in 3 seconds")
+					logger.Warn("Database connection successful but dbstate not yet set. Retrying in 3 seconds")
 					exitCode = 52
 					time.Sleep(time.Second * 3)
 				} else {
@@ -307,6 +300,8 @@ func pingDB(db *sqlx.DB) int {
 					exitCode = 8
 					return exitCode
 				}
+			} else {
+				logger.Info("Database connection successful")
 			}
 		}
 	}
