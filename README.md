@@ -33,9 +33,44 @@ Required environment variables:
   the `cte/object-drive` repository itself.
 * **GOPATH** the Go source tree. `object-drive-server` will be checked out to
   a path in this tree.
-* **AWS_REGION=us-east-1**  (or your region)
-* **AWS_ACCESS_KEY_ID**  get credentials from your system administrator
-* **AWS_SECRET_KEY** get credentials from your system administrator
+
+Detailed here: https://gitlab.363-283.io/cte/object-drive/wikis/object-drive-environment-variables
+
+* `OD_AAC_CA`
+* `OD_AAC_CERT`
+* `OD_AAC_HOST`
+* `OD_AAC_KEY`
+* `OD_AAC_PORT`
+* `OD_AWS_ACCESS_KEY_ID`
+* `OD_AWS_S3_BUCKET`
+* `OD_AWS_REGION`
+* `OD_AWS_SECRET_ACCESS_KEY`
+* `OD_CACHE_EVICTAGE`
+* `OD_CACHE_HIGHWATERMARK`
+* `OD_CACHE_LOWWATERMARK`
+* `OD_CACHE_PARTITION`
+* `OD_CACHE_ROOT`
+* `OD_CACHE_WALKSLEEP`
+* `OD_ENCRYPT_MASTERKEY`
+* `OD_DB_CA`
+* `OD_DB_CERT`
+* `OD_DB_HOST`
+* `OD_DB_KEY`
+* `OD_DB_MAXIDLECONNS`
+* `OD_DB_MAXOPENCONNS`
+* `OD_DB_PASSWORD`
+* `OD_DB_PORT`
+* `OD_DB_SCHEMA`
+* `OD_DB_USERNAME`
+* `OD_SERVER_CA`
+* `OD_SERVER_CERT`
+* `OD_SERVER_KEY`
+* `OD_SERVER_PORT`
+* `OD_STANDALONE`
+* `OD_ZK_BASEPATH`
+* `OD_ZK_ROOT`
+* `OD_ZK_TIMEOUT`
+* `OD_ZK_URL`
 
 All dependent Go code is relative to the **GOPATH**. If the source tree on your
 disk looks like this:
@@ -70,10 +105,10 @@ $OD_ROOT/object-drive
 Metadataconnector Browser:
 
 * Make sure that you set these environment variables:
-  * AWS_REGION=us-east-1
-  * AWS_ACCESS_KEY_ID
-  * AWS_SECRET_KEY
-  * ZKURL=zk_1:2181,zk_2:2181,zk_3:2181
+  * OD_AWS_REGION=us-east-1
+  * OD_AWS_ACCESS_KEY_ID
+  * OD_AWS_SECRET_KEY
+  * OD_ZK_URL=zk_1:2181,zk_2:2181,zk_3:2181
 
 # Checking out and building
 
@@ -124,45 +159,5 @@ Hooray for automated tests!
 
 # Other Configuration
 
-Binaries for the main server are built under **/cmd/odrive**. By default,
-the main configuration is read from a **conf.json** from the same directory.
+Binaries for the main server are built under **/cmd/odrive**. 
 
-## Environment Variables
-
-Detailed here: https://gitlab.363-283.io/cte/object-drive/wikis/object-drive-environment-variables
-
-* `OD_AAC_CA`
-* `OD_AAC_CERT`
-* `OD_AAC_HOST`
-* `OD_AAC_KEY`
-* `OD_AAC_PORT`
-* `OD_AWS_ACCESS_KEY_ID`
-* `OD_AWS_S3_BUCKET`
-* `OD_AWS_REGION`
-* `OD_AWS_SECRET_ACCESS_KEY`
-* `OD_CACHE_EVICTAGE`
-* `OD_CACHE_HIGHWATERMARK`
-* `OD_CACHE_LOWWATERMARK`
-* `OD_CACHE_PARTITION`
-* `OD_CACHE_ROOT`
-* `OD_CACHE_WALKSLEEP`
-* `OD_ENCRYPT_MASTERKEY`
-* `OD_DB_CA`
-* `OD_DB_CERT`
-* `OD_DB_HOST`
-* `OD_DB_KEY`
-* `OD_DB_MAXIDLECONNS`
-* `OD_DB_MAXOPENCONNS`
-* `OD_DB_PASSWORD`
-* `OD_DB_PORT`
-* `OD_DB_SCHEMA`
-* `OD_DB_USERNAME`
-* `OD_SERVER_CA`
-* `OD_SERVER_CERT`
-* `OD_SERVER_KEY`
-* `OD_SERVER_PORT`
-* `OD_STANDALONE`
-* `OD_ZK_BASEPATH`
-* `OD_ZK_ROOT`
-* `OD_ZK_TIMEOUT`
-* `OD_ZK_URL`
