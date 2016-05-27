@@ -10,6 +10,7 @@ import (
 	globalconfig "decipher.com/object-drive-server/config"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 )
 
 var (
@@ -243,7 +244,7 @@ func (r *DatabaseConnectionConfiguration) buildDSN() string {
 			dbDSN += r.Params
 		}
 	}
-	log.Printf("Using this connection string: %s\n", dbDSN)
+	logger.Info("Using this connection string", zap.String("dbdsn", dbDSN))
 	return dbDSN
 }
 

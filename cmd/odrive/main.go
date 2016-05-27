@@ -152,7 +152,7 @@ func configureDAO(app *server.AppServer, conf config.DatabaseConnectionConfigura
 	if err != nil {
 		return err
 	}
-	pingDBresult := pingDB(db)
+	pingDBresult := pingDB(conf, db)
 	if pingDBresult != 0 {
 		return errors.New("Could not ping database. Please check connection settings.")
 	}
@@ -242,7 +242,7 @@ func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, err
 	return &httpHandler, nil
 }
 
-func pingDB(db *sqlx.DB) int {
+func pingDB(conf config.DatabaseConnectionConfiguration, db *sqlx.DB) int {
 	// But ensure database is up, retrying every 3 seconds for up to 1 minute
 	dbPingAttempt := 0
 	dbPingSuccess := false
@@ -256,7 +256,14 @@ func pingDB(db *sqlx.DB) int {
 			dbPingSuccess = true
 			exitCode = 0
 		} else {
-			elogger := logger.With(zap.String("err", err.Error()))
+			elogger := logger.
+				With(zap.String("err", err.Error())).
+				With(zap.String("host", conf.Host)).
+				With(zap.String("port", conf.Host)).
+				With(zap.String("user", conf.Username)).
+				With(zap.String("schema", conf.Schema)).
+				With(zap.String("CA", conf.CAPath)).
+				With(zap.String("Cert", conf.ClientCert))
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 				elogger.Error("Timeout connecting to database.")
 				exitCode = 28
