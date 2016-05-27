@@ -66,14 +66,15 @@ func main() {
 
 	err = configureDAO(app, conf.DatabaseConnection)
 	if err != nil {
-		logger.Error("Error configuring DAO.  Check settings in conf.json", zap.String("err", err.Error()))
+		logger.Error("Error configuring DAO.  Check envrionment variable settings for OD_DB_*", zap.String("err", err.Error()))
 		os.Exit(1)
 	}
 
 	cacheRoot := globalconfig.GetEnvOrDefault("OD_CACHE_ROOT", ".")
 	cacheID, err := getDBIdentifier(app)
 	if err != nil {
-		logger.Warn("getting DB identifier", zap.String("err", err.Error()))
+		logger.Error("Database is not fully initialized with a dbstate record", zap.String("err", err.Error()))
+		os.Exit(1)
 	}
 
 	cachePartition := globalconfig.GetEnvOrDefault("OD_CACHE_PARTITION", "cache") + "/" + cacheID
