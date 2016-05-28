@@ -28,6 +28,8 @@ type ZKState struct {
 	Protocols string
 }
 
+type AnnounceHandler func(mountPoint string, announcements map[string]AnnounceData)
+
 // AnnounceData models the data written to a Zookeeper ephemeral node.
 type AnnounceData struct {
 	ServiceEndpoint Address `json:"serviceEndpoint"`
@@ -171,6 +173,127 @@ func assignPart(defaultValue string, parts []string, idx int, partName string) s
 	}
 	logger.Warn("Zookeeper URI not long enough")
 	return defaultValue
+}
+
+//TranckAnnouncements will call handler every time there is a membership changes
+// Ex:
+//      aac/2.1/thrift -> [member_00000000 -> {192.168.2.3:9999,...}]
+//      object-drive/1.0/https -> [e928923 -> {192.168.3.5:4430,...}]
+//
+// This will give the *full* membership for that entity, including ourselves.
+//
+func TrackAnnouncement(z ZKState, at string, handler AnnounceHandler) {
+	go trackMountLoop(z, at, handler)
+}
+
+//put a watch on the existence of this node
+func trackMountLoop(z ZKState, at string, handler AnnounceHandler) {
+	zlogger := logger.With(zap.String("zk watch", at))
+	//Whenever we exit back out to here, do another existence check before attempting
+	//to trackAnnouncementsLoop
+	for {
+		zlogger.Info("zk mount check")
+		exists, _, existsEvents, err := z.Conn.ExistsW(at)
+		if err != nil {
+			zlogger.Error(
+				"zk watch exist error",
+				zap.String("err", err.Error()),
+			)
+		} else {
+			if exists {
+				trackAnnouncementsLoop(z, at, handler)
+			} else {
+				zlogger.Info("zk mount check again")
+				//it doesnt exist yet, and no error.  wait until this changes
+				ev := <-existsEvents
+				if ev.Err != nil {
+					zlogger.Error(
+						"zk event error",
+						zap.String("err", ev.Err.Error()),
+					)
+				}
+			}
+		}
+	}
+}
+
+//GetAnnouncements gets the most recent announcement
+func GetAnnouncements(z ZKState, at string) (map[string]AnnounceData, error) {
+	zlogger := logger.With(zap.String("zk watch", at))
+	children, _, err := z.Conn.Children(at)
+	if err != nil {
+		zlogger.Error(
+			"zk watch child error",
+			zap.String("err", err.Error()),
+		)
+		return nil, nil
+	}
+	announcements := make(map[string]AnnounceData)
+	for _, p := range children {
+		thisChild := at + "/" + p
+		data, _, err := z.Conn.Get(thisChild)
+		if err != nil {
+			zlogger.Error(
+				"error getting data on peer",
+				zap.String("peer", p),
+				zap.String("err", err.Error()),
+			)
+			return nil, err
+		}
+		var serviceAnnouncement AnnounceData
+		json.Unmarshal(data, &serviceAnnouncement)
+		announcements[thisChild] = serviceAnnouncement
+	}
+	return announcements, err
+}
+
+//Once the announce point exists, we can track it.
+//When it returns, we still need to make sure that the zk node exists, as the error
+//could be caused by a removed zk node
+func trackAnnouncementsLoop(z ZKState, at string, handler AnnounceHandler) {
+	zlogger := logger.With(zap.String("zk watch", at))
+	ok := true
+	for ok {
+		zlogger.Info("zk announcement check")
+		children, _, childrenEvents, err := z.Conn.ChildrenW(at)
+		if err != nil {
+			zlogger.Error(
+				"zk watch child error",
+				zap.String("err", err.Error()),
+			)
+			ok = false
+		}
+		announcements := make(map[string]AnnounceData)
+		for _, p := range children {
+			thisChild := at + "/" + p
+			data, _, err := z.Conn.Get(thisChild)
+			if err != nil {
+				zlogger.Error(
+					"error getting data on peer",
+					zap.String("peer", p),
+					zap.String("err", err.Error()),
+				)
+				ok = false
+			} else {
+				var serviceAnnouncement AnnounceData
+				json.Unmarshal(data, &serviceAnnouncement)
+				announcements[thisChild] = serviceAnnouncement
+			}
+		}
+		zlogger.Info("zk membership change", zap.Object("announcements", announcements))
+		if handler != nil {
+			handler(at, announcements)
+		}
+		//blocks until it changes
+		ev := <-childrenEvents
+		if ev.Err != nil {
+			zlogger.Error(
+				"zk event error",
+				zap.String("err", ev.Err.Error()),
+			)
+			ok = false
+		}
+	}
 }
 
 // ServiceAnnouncement ensures that a node for this protocol exists

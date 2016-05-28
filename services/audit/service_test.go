@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -55,8 +56,12 @@ func setupConnections() {
 
 	opts := &config.OpenSSLDialOptions{}
 	opts.SetInsecureSkipHostVerification()
+	thriftPortInt, err := strconv.Atoi(thriftPort)
+	if err != nil {
+		log.Fatal("could not parse thrift port")
+	}
 	conn, err := config.NewOpenSSLTransport(
-		trustPath, certPath, keyPath, host, thriftPort, opts)
+		trustPath, certPath, keyPath, host, thriftPortInt, opts)
 	if err != nil {
 		log.Fatal("Could not connect to Audit service in test")
 	}

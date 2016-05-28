@@ -1,32 +1,33 @@
 package aac
 
 import (
-	"log"
 	"path/filepath"
 
-	oduconfig "decipher.com/object-drive-server/config"
+	globalconfig "decipher.com/object-drive-server/config"
 	"github.com/samuel/go-thrift/thrift"
+	"github.com/uber-go/zap"
 )
 
-// TODO: remove the hardcoded filepath dependency in this function
-// Is there some env vars we can rely on here?
-func GetAACClient() (*AacServiceClient, error) {
+var (
+	logger = globalconfig.RootLogger
+)
 
-	trustPath := filepath.Join(oduconfig.CertsDir, "client-aac", "trust", "client.trust.pem")
-	certPath := filepath.Join(oduconfig.CertsDir, "client-aac", "id", "client.cert.pem")
-	keyPath := filepath.Join(oduconfig.CertsDir, "client-aac", "id", "client.key.pem")
-	aacHost := oduconfig.GetEnvOrDefault("OD_AAC_HOST", "twl-server-generic2")
-	aacPort := oduconfig.GetEnvOrDefault("OD_AAC_PORT", "9093")
-	conn, err := oduconfig.NewOpenSSLTransport(
+//GetAACClient is a connection to AAC
+func GetAACClient(aacHost string, aacPort int) (*AacServiceClient, error) {
+	trustPath := filepath.Join(globalconfig.CertsDir, "client-aac", "trust", "client.trust.pem")
+	certPath := filepath.Join(globalconfig.CertsDir, "client-aac", "id", "client.cert.pem")
+	keyPath := filepath.Join(globalconfig.CertsDir, "client-aac", "id", "client.key.pem")
+
+	aacLogger := logger.With(zap.String("host", aacHost), zap.Int("port", aacPort))
+	conn, err := globalconfig.NewOpenSSLTransport(
 		trustPath, certPath, keyPath, aacHost, aacPort, nil)
 
 	if err != nil {
-		log.Printf("cannot create aac client: %v", err)
+		aacLogger.Error("cannot create aac client", zap.String("err", err.Error()))
 		return nil, err
 	}
 	trns := thrift.NewTransport(thrift.NewFramedReadWriteCloser(conn, 0), thrift.BinaryProtocol)
 	client := thrift.NewClient(trns, true)
 
 	return &AacServiceClient{Client: client}, nil
-
 }
