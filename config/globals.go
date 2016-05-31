@@ -23,8 +23,8 @@ func RandomID() string {
 // Our randomly assigned (on startup node identifier used in zk, logs, etc)
 var NodeID = RandomID()
 
-// The logger from which all other loggers are defined - because this is where we get NodeID in logs
-var RootLogger = zap.NewJSON().With(zap.String("node", NodeID))
+// RootLogger is from which all other loggers are defined - because this is where we get NodeID in logs
+var RootLogger zap.Logger
 
 // CertsDir is a base certificate directory that expects /server and /client
 // to exist inside of it. TODO: Consider the total amount of config we need
@@ -44,6 +44,23 @@ var ProjectName = "object-drive-server"
 func SetupGlobalDefaults() {
 	ProjectRoot = locateProjectRoot()
 	CertsDir = locateCerts(ProjectRoot)
+}
+
+//In order to migrate these functions into SetupGlobalDefaults,
+// all tests need to invoke it.
+func init() {
+	initLogger()
+	lookupDocker()
+	lookupOurIP()
+	lookupStandalone()
+}
+
+func initLogger() {
+	//Note that it is possible to pass in options to redirect all logs to stderr if we want
+	logger := zap.NewJSON(zap.Output(os.Stdout), zap.ErrorOutput(os.Stdout)).With(zap.String("node", NodeID))
+	//0 is Info log level, 1 is Warn, etc.
+	logger.SetLevel(zap.Level(GetEnvOrDefaultInt("OD_LOG_LEVEL", 0)))
+	RootLogger = logger
 }
 
 func locateProjectRoot() string {
@@ -100,20 +117,23 @@ var Port = "8080"
 // Update based calls, and will not store/retrieve from S3, relying upon a local cache only.
 var StandaloneMode = false
 
-func init() {
-	//Resolve the dockervm address
-	ips, err := net.LookupIP("dockervm")
-	if err != nil {
-		//Not a problem in production
-		RootLogger.Debug("unable to resolve test client hostname dockervm")
+func lookupDocker() {
+	//This is used by test clients
+	dockerhost := os.Getenv("DOCKER_HOST")
+	if dockerhost != "" {
+		RootLogger.Info("docker host", zap.String("env", dockerhost))
+		DockerVM = strings.Split(dockerhost, ":")[1][2:]
+		RootLogger.Info("docker host", zap.String("ip", DockerVM))
 	}
-	if len(ips) > 0 {
-		theIP := ips[0]
-		DockerVM = theIP.String()
-	}
-
 	DockerVM = GetEnvOrDefault("OD_DOCKERVM_OVERRIDE", DockerVM)
+	//Allow us to change the port, to get around nginx
+	p := GetEnvOrDefault("OD_DOCKERVM_PORT", "8080")
+	if p != "" && len(p) > 0 {
+		Port = p
+	}
+}
 
+func lookupOurIP() {
 	//Find our IP that we want gatekeeper to contact us with
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -138,13 +158,9 @@ func init() {
 		RootLogger.Error("We could not find our hostname")
 	}
 	RootLogger.Info("our ip is", zap.String("ip", MyIP))
+}
 
-	//Allow us to change the port, to get around nginx
-	p := GetEnvOrDefault("OD_DOCKERVM_PORT", "8080")
-	if p != "" && len(p) > 0 {
-		Port = p
-	}
-
+func lookupStandalone() {
 	//Allow us to work without a network
 	s := GetEnvOrDefault("OD_STANDALONE", "false")
 	if s == "true" {
