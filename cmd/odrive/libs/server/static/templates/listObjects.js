@@ -21,6 +21,8 @@ function listUsers() {
   });
 };
 
+var listObjectsPageNumber = 1
+var listObjectsPageSize = 20
 function refreshListObjects() {
   var url;
   var t = $('#listObjectResults');
@@ -33,7 +35,7 @@ function refreshListObjects() {
     url = BASE_SERVICE_URL + 'objects/' + __state.parentId
   }
   // paging - eventually capture in __state?
-  url += '?pageNumber=1&pageSize=20'
+  url += '?pageNumber=' + listObjectsPageNumber + '&pageSize=' + listObjectsPageSize
   reqwest({
       url: url
     , method: 'get'
@@ -152,6 +154,8 @@ function doDelete(objectId, changeToken) {
       contentType: 'application/json',
       success: function(data){
         refreshListObjects();
+        refreshSharedWithMe();
+        refreshObjectsIShared();
       },
       error: function(data) {
         console.log("do delete failed!")  

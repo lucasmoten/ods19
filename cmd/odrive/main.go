@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"flag"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -66,14 +68,15 @@ func main() {
 
 	err = configureDAO(app, conf.DatabaseConnection)
 	if err != nil {
-		logger.Error("Error configuring DAO.  Check settings in conf.json", zap.String("err", err.Error()))
+		logger.Error("Error configuring DAO.  Check envrionment variable settings for OD_DB_*", zap.String("err", err.Error()))
 		os.Exit(1)
 	}
 
 	cacheRoot := globalconfig.GetEnvOrDefault("OD_CACHE_ROOT", ".")
 	cacheID, err := getDBIdentifier(app)
 	if err != nil {
-		logger.Warn("getting DB identifier", zap.String("err", err.Error()))
+		logger.Error("Database is not fully initialized with a dbstate record", zap.String("err", err.Error()))
+		os.Exit(1)
 	}
 
 	cachePartition := globalconfig.GetEnvOrDefault("OD_CACHE_PARTITION", "cache") + "/" + cacheID
@@ -268,7 +271,7 @@ func pingDB(conf config.DatabaseConnectionConfiguration, db *sqlx.DB) int {
 				elogger.Error("Timeout connecting to database.")
 				exitCode = 28
 			} else if match, _ := regexp.MatchString(".*lookup.*", err.Error()); match {
-				elogger.Error("Unknown host error connecting to database. Review conf.json configuration. Halting")
+				elogger.Error("Unknown host error connecting to database. Review OD_DB_HOST environment variable configuration. Halting")
 				exitCode = 6
 				return exitCode
 			} else if match, _ := regexp.MatchString(".*connection refused.*", err.Error()); match {
@@ -290,7 +293,23 @@ func pingDB(conf config.DatabaseConnectionConfiguration, db *sqlx.DB) int {
 				return exitCode
 			}
 		} else {
-			logger.Info("Database connection succesful!")
+			tempDAO := dao.DataAccessLayer{MetadataDB: db}
+			_, err := tempDAO.GetDBState()
+			if err != nil {
+				dbPingSuccess = false
+				if err == sql.ErrNoRows || (strings.Contains(err.Error(), "Table") && strings.Contains(err.Error(), "doesn't exist")) {
+					logger.Warn("Database connection successful but dbstate not yet set. Retrying in 1 second")
+					exitCode = 52
+					time.Sleep(time.Second * 1)
+				} else {
+					elogger := logger.With(zap.String("err", err.Error()))
+					elogger.Error("Error calling for dbstate. Halting")
+					exitCode = 8
+					return exitCode
+				}
+			} else {
+				logger.Info("Database connection successful")
+			}
 		}
 	}
 	return exitCode
