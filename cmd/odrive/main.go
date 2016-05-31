@@ -291,9 +291,9 @@ func pingDB(db *sqlx.DB) int {
 			if err != nil {
 				dbPingSuccess = false
 				if err == sql.ErrNoRows || (strings.Contains(err.Error(), "Table") && strings.Contains(err.Error(), "doesn't exist")) {
-					logger.Warn("Database connection successful but dbstate not yet set. Retrying in 3 seconds")
+					logger.Warn("Database connection successful but dbstate not yet set. Retrying in 1 second")
 					exitCode = 52
-					time.Sleep(time.Second * 3)
+					time.Sleep(time.Second * 1)
 				} else {
 					elogger := logger.With(zap.String("err", err.Error()))
 					elogger.Error("Error calling for dbstate. Halting")
