@@ -60,8 +60,6 @@ type ODObject struct {
 	Properties []ODObjectPropertyEx `json:"properties"`
 	// Permissions is an array of Object Permissions associated with this object
 	Permissions []ODObjectPermission `json:"permissions"`
-	// ACM stores the flattened ACM values from the RawAcm
-	ACM ODObjectACM
 	// IsPDFAvailable indicates if a PDF rendition is available for this object
 	IsPDFAvailable bool `db:"isPDFAvailable"`
 	// IsStreamStored indicates if the content stream for this object is stored in the cloud and can be retrieved

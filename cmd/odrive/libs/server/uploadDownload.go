@@ -19,7 +19,6 @@ import (
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/performance"
 	"decipher.com/object-drive-server/protocol"
 )
@@ -73,12 +72,6 @@ func (h AppServer) acceptObjectUpload(
 			// to see if allowed for this user
 			rawAcmString := createObjectRequest.RawAcm.(string)
 			if !asCreate && strings.Compare(obj.RawAcm.String, rawAcmString) != 0 {
-				// Validate ACM
-				// Make sure its parseable
-				parsedACM, err := acm.NewACMFromRawACM(rawAcmString)
-				if err != nil {
-					return drainFunc, NewAppError(428, nil, "ACM provided could not be parsed"), err
-				}
 				// Ensure user is allowed this acm
 				updateObjectRequest := models.ODObject{}
 				updateObjectRequest.RawAcm.String = rawAcmString
@@ -90,17 +83,6 @@ func (h AppServer) acceptObjectUpload(
 				if !hasAACAccessToNewACM {
 					return drainFunc, NewAppError(403, nil, "Unauthorized"), err
 				}
-				// Capture values before the mapping
-				acmID := obj.ACM.ID
-				acmACMID := obj.ACM.ACMID
-				acmObjectID := obj.ACM.ObjectID
-				// Map the parsed acm
-				obj.ACM = mapping.MapACMToODObjectACM(&parsedACM)
-				// Assign existinng values back over top
-				obj.ACM.ID = acmID
-				obj.ACM.ACMID = acmACMID
-				obj.ACM.ObjectID = acmObjectID
-				obj.ACM.ModifiedBy = caller.DistinguishedName
 			}
 
 			err = mapping.OverwriteODObjectWithProtocolObject(obj, &createObjectRequest)
@@ -119,11 +101,11 @@ func (h AppServer) acceptObjectUpload(
 			} else {
 				// If the id is specified, it must be the same as from the URI
 				if len(createObjectRequest.ID) > 0 && createObjectRequest.ID != existingID {
-					return drainFunc, NewAppError(400, err, "JSON supplied an object id consistent with the one supplied from URI"), nil
+					return drainFunc, NewAppError(400, err, "JSON supplied an object id inconsistent with the one supplied from URI"), nil
 				}
 				//Parent id change must not be allowed, as it would let users move the object
 				if len(createObjectRequest.ParentID) > 0 && createObjectRequest.ParentID != existingParentID {
-					return drainFunc, NewAppError(400, err, "JSON supplied a parent id"), nil
+					return drainFunc, NewAppError(400, err, "JSON supplied a parent id inconsistent with existing parent id"), nil
 				}
 			}
 			parsedMetadata = true

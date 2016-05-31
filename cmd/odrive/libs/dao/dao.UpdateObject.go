@@ -10,7 +10,6 @@ import (
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/metadata/models/acm"
 
 	"decipher.com/object-drive-server/util"
 )
@@ -130,12 +129,11 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
 	}
 	if strings.Compare(oldACMNormalized, newACMNormalized) != 0 {
 		object.RawAcm.String = newACMNormalized
-		object.ACM.ID = dbObject.ACM.ID
-		updatedACM, err := updateObjectACMForObjectInTransaction(tx, object)
+
+		err := setObjectACMForObjectInTransaction(tx, object)
 		if err != nil { //&& err != sql.ErrNoRows {
 			return fmt.Errorf("Error updating ACM for object: %s {oldacm: %s} {newacm: %s}", err.Error(), dbObject.RawAcm.String, object.RawAcm.String)
 		}
-		dbObject.ACM = updatedACM
 	}
 
 	// Compare properties on database object to properties associated with passed
@@ -213,84 +211,4 @@ func normalizedACM(i string) (string, error) {
 		return i, err
 	}
 	return string(normalizedBytes[:]), nil
-}
-
-func updateObjectACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) (models.ODObjectACM, error) {
-
-	var dbObjectACM models.ODObjectACM
-
-	// Check if ACM is already inintialized from object
-	if len(object.ACM.FlatClearance) == 0 {
-		capturedACMID := object.ACM.ID
-		// Clearance is required and not set. Attempt to parse and map from RawACM
-		rawAcmString := object.RawAcm.String
-		// Make sure its parseable
-		parsedACM, err := acm.NewACMFromRawACM(rawAcmString)
-		if err != nil {
-			return dbObjectACM, fmt.Errorf("Cannot parse ACM: %s", err.Error())
-
-		}
-		// Map the parsed acm
-		object.ACM = mapping.MapACMToODObjectACM(&parsedACM)
-		object.ACM.ID = capturedACMID
-	}
-
-	// Assign based upon state of object
-	object.ACM.CreatedBy = object.ModifiedBy
-	object.ACM.ObjectID = object.ID
-
-	// Set modified
-	object.ACM.ModifiedBy = object.ModifiedBy
-
-	// Update
-	updateStatement, err := tx.Preparex(`update object_acm set 
-        modifiedBy = ?
-        ,f_clearance = ?
-        ,f_share = ?
-        ,f_oc_org = ?
-        ,f_missions = ?
-        ,f_regions = ?
-        ,f_macs = ?
-        ,f_sci_ctrls = ?
-        ,f_accms = ?
-        ,f_sar_id = ?
-        ,f_atom_energy = ?
-        ,f_dissem_countries = ?
-    where id = ?`)
-
-	if err != nil {
-		return dbObjectACM, fmt.Errorf("UpdateObjectACM Preparing update statement, %s", err.Error())
-	}
-	result, err := updateStatement.Exec(object.ACM.ModifiedBy,
-		object.ACM.FlatClearance, object.ACM.FlatShare.String,
-		object.ACM.FlatOCOrgs.String, object.ACM.FlatMissions.String,
-		object.ACM.FlatRegions.String, object.ACM.FlatMAC.String,
-		object.ACM.FlatSCI.String, object.ACM.FlatACCMS.String,
-		object.ACM.FlatSAR.String, object.ACM.FlatAtomEnergy.String,
-		object.ACM.FlatDissemCountries.String, object.ACM.ID)
-
-	if err != nil {
-		return dbObjectACM, fmt.Errorf("UpdateObjectACM Error executing update statement, %s", err.Error())
-	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return dbObjectACM, fmt.Errorf("UpdateObjectACM Error checking result for rows affected, %s", err.Error())
-	}
-	if rowsAffected <= 0 {
-		return dbObjectACM, fmt.Errorf("UpdateObjectACM updated but no rows affected!")
-	}
-	err = updateStatement.Close()
-	if err != nil {
-		return dbObjectACM, fmt.Errorf("UpdateObjectACM Error closing update statement, %s", err.Error())
-	}
-
-	// Get the newly created object_acm and return it
-	// This assumes most recent object_acm created for the object that isn't deleted
-	dbObjectACM, err = getObjectACMForObjectInTransaction(tx, *object, false)
-	if err != nil {
-		return dbObjectACM, fmt.Errorf("Error retrieving acm object: %s", err.Error())
-	}
-
-	return dbObjectACM, nil
-
 }

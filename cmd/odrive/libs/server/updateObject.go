@@ -14,7 +14,6 @@ import (
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 )
@@ -123,13 +122,6 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Check AAC to compare user clearance to NEW metadata Classifications
 	// to see if allowed for this user
 	if strings.Compare(dbObject.RawAcm.String, requestObject.RawAcm.String) != 0 {
-		// Validate ACM
-		rawAcmString := requestObject.RawAcm.String
-		// Make sure its parseable
-		parsedACM, err := acm.NewACMFromRawACM(rawAcmString)
-		if err != nil {
-			return NewAppError(428, nil, "ACM provided could not be parsed")
-		}
 		// Ensure user is allowed this acm
 		hasAACAccessToNewACM, err := h.isUserAllowedForObjectACM(ctx, &requestObject)
 		if err != nil {
@@ -138,14 +130,6 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		if !hasAACAccessToNewACM {
 			return NewAppError(403, err, "Unauthorized")
 		}
-		// Map the parsed acm
-		requestObject.ACM = mapping.MapACMToODObjectACM(&parsedACM)
-		// Assign existinng database values over top
-		// Depends on DAO retrieving the ACM when calling getObject
-		requestObject.ACM.ID = dbObject.ACM.ID
-		requestObject.ACM.ACMID = dbObject.ACM.ACMID
-		requestObject.ACM.ObjectID = dbObject.ACM.ObjectID
-		requestObject.ACM.ModifiedBy = caller.DistinguishedName
 	}
 
 	// Retain existing values from dbObject where no value was provided for key fields

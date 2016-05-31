@@ -1,7 +1,6 @@
 package dao
 
 import (
-	"database/sql"
 	"log"
 
 	"decipher.com/object-drive-server/metadata/models"
@@ -82,13 +81,7 @@ func getObjectInTransaction(tx *sqlx.Tx, object models.ODObject, loadProperties 
 		err = dbPermErr
 		return dbObject, err
 	}
-	// Load ACM structure
-	dbACM, dbACMErr := getObjectACMForObjectInTransaction(tx, object, true)
-	dbObject.ACM = dbACM
-	if dbACMErr != nil {
-		err = dbACMErr
-		return dbObject, err
-	}
+
 	// Load properties if requested
 	if loadProperties {
 		dbProperties, dbPropErr := getPropertiesForObjectInTransaction(tx, object)
@@ -101,58 +94,4 @@ func getObjectInTransaction(tx *sqlx.Tx, object models.ODObject, loadProperties 
 
 	// Done
 	return dbObject, nil
-}
-
-func getObjectACMForObjectInTransaction(tx *sqlx.Tx, object models.ODObject, createIfMissing bool) (models.ODObjectACM, error) {
-	var dbObjectACM models.ODObjectACM
-
-	getStatement := `
-    select 
-        oa.id    
-        ,oa.createdDate
-        ,oa.createdBy
-        ,oa.modifiedDate
-        ,oa.modifiedBy
-        ,oa.isDeleted
-        ,oa.deletedDate
-        ,oa.deletedBy
-        ,oa.objectId
-        ,oa.acmId
-        ,oa.f_clearance
-        ,oa.f_share
-        ,oa.f_oc_org
-        ,oa.f_missions
-        ,oa.f_regions
-        ,oa.f_macs
-        ,oa.f_sci_ctrls
-        ,oa.f_accms
-        ,oa.f_sar_id
-        ,oa.f_atom_energy
-        ,oa.f_dissem_countries 
-    from object_acm oa 
-    where 
-        oa.isdeleted = 0 
-        and oa.objectId = ? 
-    order by oa.createddate desc limit 1`
-	err := tx.Unsafe().Get(&dbObjectACM, getStatement, object.ID)
-	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			// No ACM saved in this object yet.
-			if !createIfMissing {
-				return dbObjectACM, err
-			}
-			dbACM, dbACMErr := createObjectACMForObjectInTransaction(tx, &object)
-			dbObjectACM = dbACM
-			if dbACMErr != nil {
-				err = dbACMErr
-				return dbObjectACM, err
-			}
-		default:
-			return dbObjectACM, err
-		}
-	}
-
-	// Done
-	return dbObjectACM, nil
 }
