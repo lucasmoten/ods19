@@ -211,10 +211,28 @@
 			"revision": ""
 		},
 		{
+			"checksumSHA1": "l0h7xesS0Qe3qGWcMf+MnEQnja8=",
+			"path": "github.com/urfave/cli",
+			"revision": "595ba45e735c1e9c1f9ddc9e2ef21997fca893f2",
+			"revisionTime": "2016-05-24T20:27:12Z"
+		},
+		{
+			"checksumSHA1": "4VKdmRQlWDIVrwOyYTx0Rpq2X2A=",
+			"path": "github.com/urfave/cli/altsrc",
+			"revision": "595ba45e735c1e9c1f9ddc9e2ef21997fca893f2",
+			"revisionTime": "2016-05-24T20:27:12Z"
+		},
+		{
 			"checksumSHA1": "5ARrN3Zq+E9zazFb/N+b08Serys=",
 			"path": "golang.org/x/net/context",
 			"revision": "04b9de9b512f58addf28c9853d50ebef61c3953e",
 			"revisionTime": "2016-01-26T21:02:32Z"
+		},
+		{
+			"checksumSHA1": "Ww6wiSKdA8LwxoJz4DNUF+crH4g=",
+			"path": "gopkg.in/yaml.v2",
+			"revision": "f7716cbe52baa25d2e9b0d0da546fcf909fc16b4",
+			"revisionTime": "2015-12-01T16:27:45Z"
 		}
 	],
 	"rootPath": "decipher.com/object-drive-server"
