@@ -38,7 +38,7 @@ var (
 	logger = globalconfig.RootLogger
 	//The location for finding odrive zk nodes
 	zkOdrive = globalconfig.GetEnvOrDefault("OD_ZK_ROOT", "/cte") +
-		globalconfig.GetEnvOrDefault("OD_ZK_BASEPATH", "/service/object-drive/1.0")
+		globalconfig.GetEnvOrDefault("OD_ZK_BASEPATH", "/service/object-drive/1.0") + "/https"
 	//The location for finding aac zk nodes
 	zkAAC = globalconfig.GetEnvOrDefault(
 		"OD_ZK_AAC",
