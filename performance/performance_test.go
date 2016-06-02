@@ -35,7 +35,7 @@ func simulate(i int, done chan int) {
 	//Noise between 1.0 and 1.5
 	var noise = 1.0 + float32(rand.Int()%500)/1000.0
 
-	time.Sleep(time.Duration(rand.Int()%10000) * time.Millisecond)
+	time.Sleep(time.Duration(rand.Int()%2000) * time.Millisecond)
 
 	//and run for some jittery time proportional to file size
 	//100kB/s with some noise
@@ -57,7 +57,7 @@ func TestSimulation(t *testing.T) {
 		t.Skip("Skipping statistics simulation test.")
 	}
 	//Run a random number of jobs
-	total := 100
+	total := 5
 	done := make(chan int)
 	for i := 0; i < total; i++ {
 		go simulate(i, done)
@@ -77,11 +77,11 @@ func init() {
 	reporters = NewJobReporters(32)
 	//A set of files to download and upload
 	files = []fileDescription{
-		fileDescription{"chewbacca.jpg", 10234},
-		fileDescription{"grumptycat.jpg", 8214},
-		fileDescription{"odrive.pdf", 90234},
-		fileDescription{"ConcurrencyIsNotParallelism.mp4", 1300000},
-		fileDescription{"everything.doc", 28385},
+		fileDescription{"chewbacca.jpg", 1034},
+		fileDescription{"grumptycat.jpg", 814},
+		fileDescription{"odrive.pdf", 9024},
+		fileDescription{"ConcurrencyIsNotParallelism.mp4", 130000},
+		fileDescription{"everything.doc", 2885},
 	}
 	jobTypes = []ReporterID{
 		UploadCounter,
