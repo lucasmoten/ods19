@@ -309,35 +309,32 @@ func buildFilterForUserACM(user models.ODUser) string {
 	var sql string
 	// Now iterate all the fields building up the where clause portion
 	for _, rawFields := range user.Snippets.Snippets {
-		fieldName := "acm."
-		switch rawFields.FieldName {
-		case "f_clearance", "f_oc_org", "f_missions", "f_regions", "f_macs", "f_sci_ctrls", "f_accms", "f_sar_id", "f_atom_energy", "f_dissem_countries":
-			fieldName += rawFields.FieldName
-		case "dissem_countries":
-			fieldName += "f_dissem_countries"
-		default:
-			// All other snippet fields not used here (f_share has its own handler)
-			continue
-		}
 		switch rawFields.Treatment {
 		case "disallow":
-			if len(rawFields.Values) > 0 {
-				sql += " and (" + fieldName + " is null or " + fieldName + " = '' or " + fieldName + " = ',,' or (1=1"
-				for _, value := range rawFields.Values {
-					sql += " and " + fieldName + " not like '%," + MySQLSafeString(value) + ",%'"
-				}
-				sql += ")) "
-			}
-		case "allowed":
-			sql += " and (" + fieldName + " is null or " + fieldName + " = '' or " + fieldName + " = ',,'"
+			sql += " and acm.objectid not in ("
+			// where it does have the field
+			sql += "select objectid from object_acm inner join acmkey on object_acm.acmkeyid = acmkey.id inner join acmvalue on object_acm.acmvalueid = acmvalue.id "
+			sql += "where acmkey.name = '" + MySQLSafeString2(rawFields.FieldName) + "' "
+			sql += "and acmvalue.name in (''"
 			for _, value := range rawFields.Values {
-				sql += " or " + fieldName + " like '%," + MySQLSafeString(value) + ",%'"
+				sql += ",'" + MySQLSafeString2(value) + "'"
 			}
-			sql += ") "
+			sql += ") and object_acm.isdeleted = 0 and acmkey.isdeleted = 0 and acmvalue.isdeleted = 0) "
+		case "allowed":
+			sql += " and acm.objectid in ("
+			// where it doesn't have the field
+			sql += "select objectid from object_acm where 0 = (select count(0) from object_acm inner join acmkey on object_acm.acmkeyid = acmkey.id where acmkey.name = '" + MySQLSafeString2(rawFields.FieldName) + "' and object_acm.isdeleted = 0 and acmkey.isdeleted = 0)"
+			// where it does have the field
+			sql += " union "
+			sql += "select objectid from object_acm inner join acmkey on object_acm.acmkeyid = acmkey.id inner join acmvalue on object_acm.acmvalueid = acmvalue.id "
+			sql += "where acmkey.name = '" + MySQLSafeString2(rawFields.FieldName) + "' "
+			sql += "and (acmvalue.name = '' "
+			for _, value := range rawFields.Values {
+				sql += " or acmvalue.name = '" + MySQLSafeString2(value) + "'"
+			}
+			sql += ") and object_acm.isdeleted = 0 and acmkey.isdeleted = 0 and acmvalue.isdeleted = 0)"
 		default:
-			// Treatment type not handled. Log it and continue
-			log.Printf("Unhandled treatment type when assembling ACM filter: %s", rawFields.Treatment)
-			continue
+			log.Printf("Warning: Unhandled treatment type from snippets")
 		}
 	}
 
@@ -374,6 +371,45 @@ func MySQLSafeString(i string) string {
 			o += `\\`
 		case 0x5f: // Underscore
 			o += `\_`
+		default:
+			o += string(v)
+		}
+
+	}
+	return o
+}
+
+// MySQLSafeString2 takes an input string and escapes characters as appropriate
+// to make it safe for usage as a string input when building dynamic sql query
+// Based upon: https://www.owasp.org/index.php/SQL_Injection_Prevention_Cheat_Sheet#MySQL_Escaping
+// With the following EXCEPTION!!!!! -- This does not escape underscores
+func MySQLSafeString2(i string) string {
+	o := ""
+	b := []byte(i)
+	for _, v := range b {
+		switch v {
+		case 0x00: // NULL
+			o += `\0`
+		case 0x08: // Backspace
+			o += `\b`
+		case 0x09: // Tab
+			o += `\t`
+		case 0x0a: // Linefeed
+			o += `\n`
+		case 0x0d: // Carriage Return
+			o += `\r`
+		case 0x1a: // Substitute Character
+			o += `\Z`
+		case 0x22: // Double Quote
+			o += `\"`
+		case 0x25: // Percent Symbol
+			o += `\%`
+		case 0x27: // Single Quote
+			o += `\'`
+		case 0x5c: // Backslash
+			o += `\\`
+		// case 0x5f: // Underscore
+		// 	o += `\_`
 		default:
 			o += string(v)
 		}

@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/metadata/models/acm"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -101,7 +99,7 @@ func createObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) (models.ODO
 		return dbObject, fmt.Errorf("CreateObject Error checking result for rows affected, %s", err.Error())
 	}
 	if rowsAffected <= 0 {
-		return dbObject, fmt.Errorf("CreateObject object inserted but no rows affected!")
+		return dbObject, fmt.Errorf("CreateObject object inserted but no rows affected")
 	}
 
 	// Get the ID of the newly created object and assign to returned object.
@@ -192,77 +190,10 @@ func createObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) (models.ODO
 	}
 
 	// Initialize acm
-	object.ACM.CreatedBy = dbObject.CreatedBy
-	object.ACM.ID = dbObject.ID
-	dbObject.ACM = object.ACM
-	createdACM, err := createObjectACMForObjectInTransaction(tx, &dbObject)
+	err = setObjectACMForObjectInTransaction(tx, &dbObject)
 	if err != nil {
 		return dbObject, fmt.Errorf("Error saving ACM to object: %s", err.Error())
 	}
-	dbObject.ACM = createdACM
 
 	return dbObject, nil
-}
-
-func createObjectACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) (models.ODObjectACM, error) {
-
-	var dbObjectACM models.ODObjectACM
-
-	// Check if ACM is already inintialized from object
-	if len(object.ACM.FlatClearance) == 0 {
-		// Clearance is required and not set. Attempt to parse and map from RawACM
-		rawAcmString := object.RawAcm.String
-		// Make sure its parseable
-		parsedACM, err := acm.NewACMFromRawACM(rawAcmString)
-		if err != nil {
-			return dbObjectACM, fmt.Errorf("Cannot parse ACM: %s", err.Error())
-
-		}
-		// Map the parsed acm
-		object.ACM = mapping.MapACMToODObjectACM(&parsedACM)
-	}
-
-	// Assign based upon state of object
-	object.ACM.CreatedBy = object.ModifiedBy
-	object.ACM.ObjectID = object.ID
-
-	// Insert object
-	addStatement, err := tx.Preparex(`insert object_acm set createdBy = ?, objectId = ?, acmId = null,
-        f_clearance = ?, f_share = ?, f_oc_org = ?, f_missions = ?, f_regions = ?, 
-        f_macs = ?, f_sci_ctrls = ?, f_accms = ?, f_sar_id = ?, f_atom_energy = ?,
-        f_dissem_countries = ?`)
-	if err != nil {
-		return dbObjectACM, fmt.Errorf("CreateObjectACM Preparing add statement, %s", err.Error())
-	}
-	result, err := addStatement.Exec(object.ACM.CreatedBy, object.ACM.ObjectID,
-		object.ACM.FlatClearance, object.ACM.FlatShare.String, object.ACM.FlatOCOrgs.String,
-		object.ACM.FlatMissions.String, object.ACM.FlatRegions.String,
-		object.ACM.FlatMAC.String, object.ACM.FlatSCI.String, object.ACM.FlatACCMS.String,
-		object.ACM.FlatSAR.String, object.ACM.FlatAtomEnergy.String,
-		object.ACM.FlatDissemCountries.String)
-
-	if err != nil {
-		return dbObjectACM, fmt.Errorf("CreateObjectACM Error executing add statement, %s", err.Error())
-	}
-	err = addStatement.Close()
-	if err != nil {
-		return dbObjectACM, fmt.Errorf("CreateObjectACM Error closing add statement, %s", err.Error())
-	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return dbObjectACM, fmt.Errorf("CreateObjectACM Error checking result for rows affected, %s", err.Error())
-	}
-	if rowsAffected <= 0 {
-		return dbObjectACM, fmt.Errorf("CreateObjectACM inserted but no rows affected!")
-	}
-
-	// Get the newly created object_acm and return it
-	// This assumes most recent object_acm created for the object that isn't deleted
-	dbObjectACM, err = getObjectACMForObjectInTransaction(tx, *object, false)
-	if err != nil {
-		return dbObjectACM, fmt.Errorf("Error retrieving acm object: %s", err.Error())
-	}
-
-	return dbObjectACM, nil
-
 }

@@ -16,7 +16,6 @@ import (
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 )
@@ -214,13 +213,6 @@ func handleCreatePrerequisites(
 		return NewAppError(428, nil, "Creating object in a deleted state is not allowed")
 	}
 
-	// Validate ACM
-	rawAcmString := requestObject.RawAcm.String
-	// Make sure its parseable
-	parsedACM, err := acm.NewACMFromRawACM(rawAcmString)
-	if err != nil {
-		return NewAppError(428, err, "ACM provided could not be parsed")
-	}
 	// Ensure user is allowed this acm
 	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, requestObject)
 	if err != nil {
@@ -229,14 +221,11 @@ func handleCreatePrerequisites(
 	if !hasAACAccess {
 		return NewAppError(403, err, "Unauthorized")
 	}
-	// Map the parsed acm
-	requestObject.ACM = mapping.MapACMToODObjectACM(&parsedACM)
 
 	// Setup meta data...
 	requestObject.CreatedBy = caller.DistinguishedName
 	requestObject.OwnedBy.String = caller.DistinguishedName
 	requestObject.OwnedBy.Valid = true
-	requestObject.ACM.CreatedBy = caller.DistinguishedName
 
 	return nil
 }
