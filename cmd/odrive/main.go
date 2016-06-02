@@ -36,6 +36,16 @@ import (
 var (
 	//All loggers are derived from the global one
 	logger = globalconfig.RootLogger
+	//The location for finding odrive zk nodes
+	zkOdrive = globalconfig.GetEnvOrDefault("OD_ZK_ROOT", "/cte") +
+		globalconfig.GetEnvOrDefault("OD_ZK_BASEPATH", "/service/object-drive/1.0") + "/https"
+	//The location for finding aac zk nodes
+	zkAAC = globalconfig.GetEnvOrDefault(
+		"OD_ZK_AAC",
+		globalconfig.GetEnvOrDefault("OD_ZK_ROOT", "/cte")+"/service/aac/2.2/thrift",
+	)
+	//The callback that captures the app pointer for repairing aac
+	aacAnnouncer func(at string, announcements map[string]zookeeper.AnnounceData)
 )
 
 // Services that require network
@@ -154,7 +164,7 @@ func startApplication(whitelist, ciphers []string, useTLS bool) {
 	}
 
 	// put updates onto updates channel
-	updates := StateMonitor(app, time.Duration(10*time.Second))
+	updates := StateMonitor(app, time.Duration(60*time.Second))
 
 	if false {
 		configureAuditor(app, conf.AuditorSettings)
@@ -219,7 +229,9 @@ func startApplication(whitelist, ciphers []string, useTLS bool) {
 	stls := conf.ServerSettings.GetTLSConfig()
 	httpServer.TLSConfig = &stls
 
-	pollAll(app, updates, time.Duration(3*time.Second))
+	pollAll(app, updates, time.Duration(30*time.Second))
+
+	zkTracking(app)
 
 	logger.Info("starting server", zap.String("addr", app.Addr))
 	//This blocks until there is an error to stop the server
@@ -229,6 +241,50 @@ func startApplication(whitelist, ciphers []string, useTLS bool) {
 	if err != nil {
 		logger.Fatal("stopped server", zap.String("err", err.Error()))
 	}
+}
+
+func zkTracking(app *server.AppServer) {
+	zookeeper.TrackAnnouncement(app.ZKState, zkOdrive, nil)
+
+	//I am doing this because I need a reference to app to re-assign the connection.
+	//The polling scheme isn't doing it. (Out of date, reporting CONNECTED or FAILED when it hasn't actually tried since last report, etc)
+	aacAnnouncer = func(at string, announcements map[string]zookeeper.AnnounceData) {
+		if announcements == nil {
+			return
+		}
+		//Something changed.  Smoke test our connection....
+		var err error
+		if app.AAC != nil {
+			_, err = app.AAC.ValidateAcm(testhelpers.ValidACMUnclassified)
+		}
+		if app.AAC == nil || err != nil {
+			//If it's broke, then fix it by picking an arbitrary AAC
+			for _, announcement := range announcements {
+				//One that is alive
+				if announcement.Status == "ALIVE" {
+					//Try a new host,port
+					host := announcement.ServiceEndpoint.Host
+					port := announcement.ServiceEndpoint.Port
+					aacc, err := aac.GetAACClient(host, port)
+					if err == nil {
+						_, err = aacc.ValidateAcm(testhelpers.ValidACMUnclassified)
+						if err != nil {
+							logger.Error("aac reconnect check error", zap.String("err", err.Error()))
+						} else {
+							app.AAC = aacc
+							logger.Info("aac chosen", zap.Object("announcement", announcement))
+							//ok... go with this one!
+							break
+						}
+					} else {
+						logger.Error("aac reconnect error", zap.String("err", err.Error()))
+					}
+				}
+			}
+
+		}
+	}
+	zookeeper.TrackAnnouncement(app.ZKState, zkAAC, aacAnnouncer)
 }
 
 func configureAuditor(app *server.AppServer, settings config.AuditSvcConfiguration) {
@@ -433,7 +489,7 @@ func StateMonitor(app *server.AppServer, updateInterval time.Duration) chan serv
 }
 
 func reportStates(states server.ServiceStates) {
-	logger.Info(
+	logger.Debug(
 		"Service states",
 		zap.Marshaler("states", states),
 	)
@@ -457,80 +513,20 @@ func pollAll(app *server.AppServer, updates chan server.ServiceState, updateInte
 }
 
 // pollAAC encapsulates the AAC health check and attempted reconnect.
+
 func pollAAC(app *server.AppServer, updates chan server.ServiceState, wg *sync.WaitGroup) {
 
 	defer wg.Done()
 
-	if app.ServiceRegistry == nil {
-		return
-	}
-
-	currentState, ok := app.ServiceRegistry["AAC"]
-	if !ok {
-		updates <- server.ServiceState{Name: "AAC", Status: "FAILURE", Updated: time.Now()}
-		return
-	}
-
-	time.Sleep(currentState.Delay(currentState.Retries))
-
-	if currentState.Status == "PERMANENT_FAILURE" {
-		// NO-OP for now to try to reconnect forever?
-	}
-
-	tryReconnect := false
-	if currentState.Status == "FAILURE" {
-		tryReconnect = true
-	}
-	if app.AAC == nil {
-		tryReconnect = true
-	}
-	if app.AAC != nil {
-		// We ALWAYS poll if we have a ref to the AAC.
-		resp, err := app.AAC.ValidateAcm(testhelpers.ValidACMUnclassified)
-		if err != nil {
-			tryReconnect = true
+	announcements, err := zookeeper.GetAnnouncements(app.ZKState, zkAAC)
+	if err != nil {
+		logger.Error(
+			"aac poll error",
+			zap.String("err", err.Error()),
+		)
+	} else {
+		if aacAnnouncer != nil {
+			aacAnnouncer(zkAAC, announcements)
 		}
-		if resp != nil {
-			if !resp.Success {
-				tryReconnect = true
-			}
-		}
-	}
-
-	if tryReconnect {
-		retries := currentState.Retries + 1
-		client, err := aac.GetAACClient()
-		if err != nil {
-			updates <- server.ServiceState{Name: "AAC", Retries: retries, Status: "FAILURE", Updated: time.Now()}
-			return
-		}
-
-		if client == nil {
-			updates <- server.ServiceState{Name: "AAC", Retries: retries, Status: "FAILURE", Updated: time.Now()}
-			return
-		}
-
-		if client != nil {
-			if client.Client != nil {
-				resp, err := client.ValidateAcm(testhelpers.ValidACMUnclassified)
-				if err != nil {
-					updates <- server.ServiceState{Name: "AAC", Retries: retries, Status: "FAILURE", Updated: time.Now()}
-					return
-				}
-				if resp != nil {
-					if !resp.Success {
-						updates <- server.ServiceState{Name: "AAC", Retries: retries, Status: "FAILURE", Updated: time.Now()}
-						return
-					}
-				}
-			}
-		} else {
-			updates <- server.ServiceState{Name: "AAC", Retries: retries, Status: "FAILURE", Updated: time.Now()}
-			return
-		}
-		// if success, set on app
-		app.AAC = client
-		updates <- server.ServiceState{Name: "AAC", Status: "CONNECTED", Updated: time.Now()}
-		return
 	}
 }

@@ -71,12 +71,13 @@ func NewTLSConfigFromPEM(trustPath, certPath string) (*tls.Config, error) {
 }
 
 // NewOpenSSLTransport returns a TCP connection establish with OpenSSL.
-func NewOpenSSLTransport(trustPath, certPath, keyPath, host, port string, dialOpts *OpenSSLDialOptions) (*openssl.Conn, error) {
+func NewOpenSSLTransport(trustPath, certPath, keyPath, host string, port int, dialOpts *OpenSSLDialOptions) (*openssl.Conn, error) {
 
 	// Default to flag 0
 	if dialOpts == nil {
 		dialOpts = &OpenSSLDialOptions{}
 	}
+	dialOpts.SetInsecureSkipHostVerification()
 
 	ctx, err := openssl.NewCtx()
 	if err != nil {
@@ -111,7 +112,7 @@ func NewOpenSSLTransport(trustPath, certPath, keyPath, host, port string, dialOp
 	}
 	ctx.UsePrivateKey(privKey)
 
-	addr := host + ":" + port
+	addr := fmt.Sprintf("%s:%d", host, port)
 	conn, err := openssl.Dial("tcp", addr, ctx, dialOpts.Flags)
 	if err != nil {
 		log.Printf("Error making openssl connection: %s", err.Error())
@@ -243,6 +244,8 @@ func NewOpenSSLHTTPClient(trustPath, certPath, keyPath, host, port string, dialO
 	if dialOpts == nil {
 		dialOpts = &OpenSSLDialOptions{}
 	}
+
+	dialOpts.SetInsecureSkipHostVerification()
 
 	ctx, err := openssl.NewCtx()
 	if err != nil {

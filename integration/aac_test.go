@@ -32,7 +32,9 @@ var snippetType = "ES"
 var aacClient = aac.AacServiceClient{}
 
 func DontRun() bool {
-	return testing.Short()
+	//We need to block direct AAC contact if we want to be able to docker-compose scale it.
+	//Docker-compose won't just warn that only one port will map.  It fails to come up.
+	return true //testing.Short()
 }
 
 func TestMain(m *testing.M) {
@@ -49,7 +51,7 @@ func TestMain(m *testing.M) {
 	dialOpts := &globalconfig.OpenSSLDialOptions{}
 	dialOpts.SetInsecureSkipHostVerification()
 	conn, err := globalconfig.NewOpenSSLTransport(
-		trustPath, certPath, keyPath, "twl-server-generic2", "9093", dialOpts)
+		trustPath, certPath, keyPath, "twl-server-generic2", 9093, dialOpts)
 	if err != nil {
 		log.Fatal(err)
 	}
