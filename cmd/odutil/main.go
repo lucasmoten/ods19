@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
 var (
@@ -18,7 +19,12 @@ func main() {
 
 	flag.Parse()
 	fmt.Printf("Uploading file %s to bucket %s\n", *input, *bucket)
-	MoveToS3(*input, *bucket, *input)
+	// key will become the "filename" you see in the s3 bucket. Passing
+	// an entire filepath as the key will yield nested directory structures
+	// on s3 itself.
+	_, key := filepath.Split(*input)
+	fmt.Printf("Extracted filename from input: %s\n", key)
+	MoveToS3(*input, *bucket, key)
 }
 
 // helper functions
