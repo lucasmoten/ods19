@@ -21,6 +21,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	if !ok {
 		return NewAppError(500, errors.New("Could not determine user"), "Invalid user")
 	}
+	dao := DAOFromContext(ctx)
 
 	requestObject, err := parseGetObjectRequest(ctx)
 	if err != nil {
@@ -30,7 +31,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	// Business Logic...
 
 	// Retrieve existing object from the data store
-	dbObject, err := h.DAO.GetObject(requestObject, true)
+	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
 		code, msg := getObjectDAOError(err)
 		return NewAppError(code, err, msg)

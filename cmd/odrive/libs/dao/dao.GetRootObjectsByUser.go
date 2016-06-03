@@ -1,9 +1,8 @@
 package dao
 
 import (
-	"log"
-
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
@@ -15,12 +14,12 @@ import (
 func (dao *DataAccessLayer) GetRootObjectsByUser(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObjectResultset{}, err
 	}
 	response, err := getRootObjectsByUserInTransaction(tx, user, pagingRequest)
 	if err != nil {
-		log.Printf("Error in GetRootObjectsByUser: %v", err)
+		dao.GetLogger().Error("Error in GetRootObjectsByUser", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()

@@ -17,7 +17,9 @@ func (h AppServer) listUsers(ctx context.Context, w http.ResponseWriter, r *http
 
 	// Retreive the users
 	var users []models.ODUser
-	users, err := h.DAO.GetUsers()
+	dao := DAOFromContext(ctx)
+
+	users, err := dao.GetUsers()
 	if err != nil {
 		return NewAppError(500, err, "Unable to get user list")
 	}

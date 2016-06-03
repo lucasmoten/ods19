@@ -28,6 +28,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	if !ok {
 		return NewAppError(500, err, "Could not determine user")
 	}
+	dao := DAOFromContext(ctx)
 
 	// Parse Request in sent format
 	switch {
@@ -43,7 +44,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Business Logic...
 
 	// Retrieve existing object from the data store
-	dbObject, err := h.DAO.GetObject(requestObject, true)
+	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
 		return NewAppError(500, err, "Error retrieving object")
 	}
@@ -146,7 +147,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Call metadata connector to update the object in the data store
 	// Force the modified by to be that of the caller
 	requestObject.ModifiedBy = caller.DistinguishedName
-	err = h.DAO.UpdateObject(&requestObject)
+	err = dao.UpdateObject(&requestObject)
 	if err != nil {
 		return NewAppError(500, err, "DAO Error updating object")
 	}

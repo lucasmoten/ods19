@@ -1,22 +1,21 @@
 package dao
 
 import (
-	"log"
-
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 )
 
 // GetPropertiesForObject retrieves the properties for a given object.
 func (dao *DataAccessLayer) GetPropertiesForObject(object models.ODObject) ([]models.ODObjectPropertyEx, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return []models.ODObjectPropertyEx{}, err
 	}
 	response, err := getPropertiesForObjectInTransaction(tx, object)
 	if err != nil {
-		log.Printf("Error in GetPropertiesForObject: %v", err)
+		dao.GetLogger().Error("Error in GetPropertiesForObject", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()

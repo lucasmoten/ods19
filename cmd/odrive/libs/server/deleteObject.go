@@ -23,6 +23,7 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 	if !ok {
 		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
 	}
+	dao := DAOFromContext(ctx)
 
 	// Parse Request in sent format
 	requestObject, err = parseDeleteObjectRequest(r, ctx)
@@ -33,7 +34,7 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Business Logic...
 
 	// Retrieve existing object from the data store
-	dbObject, err := h.DAO.GetObject(requestObject, false)
+	dbObject, err := dao.GetObject(requestObject, false)
 	if err != nil {
 		return NewAppError(500, err, "Error retrieving object")
 	}
@@ -67,7 +68,7 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 		// deleted.  The DAO checks the changeToken and handles the child calls
 		dbObject.ModifiedBy = caller.DistinguishedName
 		dbObject.ChangeToken = requestObject.ChangeToken
-		err = h.DAO.DeleteObject(dbObject, true)
+		err = dao.DeleteObject(dbObject, true)
 		if err != nil {
 			return NewAppError(500, err, "DAO Error deleting object")
 		}

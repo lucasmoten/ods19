@@ -3,8 +3,11 @@ package dao
 import (
 	"errors"
 
+	"github.com/uber-go/zap"
+
 	"time"
 
+	globalconfig "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 )
@@ -109,6 +112,11 @@ func (fake *FakeDAO) GetDBState() (models.DBState, error) {
 	fake.DBState.Identifier = "fake"
 	fake.DBState.CreateDate = time.Now()
 	return fake.DBState, fake.Err
+}
+
+// Get a logger for the current session (or any other context - we want correlation across a request)
+func (fake *FakeDAO) GetLogger() zap.Logger {
+	return globalconfig.RootLogger
 }
 
 // GetObject for FakeDAO.

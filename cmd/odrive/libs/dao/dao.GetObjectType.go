@@ -1,10 +1,9 @@
 package dao
 
 import (
-	"log"
-
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 )
 
 // GetObjectType uses the passed in objectType and makes the appropriate sql
@@ -12,12 +11,12 @@ import (
 func (dao *DataAccessLayer) GetObjectType(objectType models.ODObjectType) (*models.ODObjectType, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return nil, err
 	}
 	dbObjectType, err := getObjectTypeInTransaction(tx, objectType)
 	if err != nil {
-		log.Printf("Error in GetObjectType: %v", err)
+		dao.GetLogger().Error("Error in GetObjectType", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()

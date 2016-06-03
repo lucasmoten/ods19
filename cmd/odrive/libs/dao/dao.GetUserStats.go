@@ -1,22 +1,21 @@
 package dao
 
 import (
-	"log"
-
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 )
 
 // GetUserStats returns metrics of object counts and file space used for objects and revisions owned by a user
 func (dao *DataAccessLayer) GetUserStats(dn string) (models.UserStats, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.UserStats{}, err
 	}
-	userStats, err := getUserStatsInTransaction(tx, dn)
+	userStats, err := getUserStatsInTransaction(dao.GetLogger(), tx, dn)
 	if err != nil {
-		log.Printf("Error in UserStats: %v\n", err)
+		dao.GetLogger().Error("Error in GetUserStats", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -24,7 +23,7 @@ func (dao *DataAccessLayer) GetUserStats(dn string) (models.UserStats, error) {
 	return userStats, err
 }
 
-func getUserStatsInTransaction(tx *sqlx.Tx, dn string) (models.UserStats, error) {
+func getUserStatsInTransaction(logger zap.Logger, tx *sqlx.Tx, dn string) (models.UserStats, error) {
 	var objectStorageMetrics []models.UserStatsMetrics
 	var userStats models.UserStats
 	sqlStatement := `
@@ -40,7 +39,7 @@ func getUserStatsInTransaction(tx *sqlx.Tx, dn string) (models.UserStats, error)
     `
 	err := tx.Select(&objectStorageMetrics, sqlStatement, dn, dn, dn, dn)
 	if err != nil {
-		log.Printf("Unable to execute query %s:%v", sqlStatement, err)
+		logger.Error("Unable to execute query", zap.String("sql", sqlStatement), zap.String("err", err.Error()))
 		return userStats, err
 	}
 	userStats.ObjectStorageMetrics = objectStorageMetrics

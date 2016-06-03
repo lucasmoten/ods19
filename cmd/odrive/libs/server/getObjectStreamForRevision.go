@@ -19,6 +19,7 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	if !ok {
 		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
 	}
+	dao := DAOFromContext(ctx)
 
 	var requestObject models.ODObject
 	var err error
@@ -49,7 +50,7 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	}
 
 	// Retrieve existing object from the data store
-	dbObject, err := h.DAO.GetObjectRevision(requestObject, true)
+	dbObject, err := dao.GetObjectRevision(requestObject, true)
 	if err != nil {
 		return NewAppError(500, err, "Error retrieving object")
 	}

@@ -75,7 +75,7 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 		},
 	}
 
-	fakeServer := server.AppServer{DAO: &fakeDAO,
+	fakeServer := server.AppServer{RootDAO: &fakeDAO,
 		ServicePrefix: cfg.RootURLRegex,
 		AAC:           &fakeAAC,
 		Users:         userCache,

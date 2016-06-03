@@ -4,6 +4,7 @@ import (
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 )
 
 // SchemaVersion marks compatibility with previously created databases.
@@ -59,11 +60,34 @@ type DAO interface {
 	UpdateObject(object *models.ODObject) error
 	UpdateObjectProperty(objectProperty models.ODObjectPropertyEx) error
 	UpdatePermission(permission models.ODObjectPermission) error
+	GetLogger() zap.Logger
 }
 
 // DataAccessLayer is a concrete DAO implementation with a true DB connection.
 type DataAccessLayer struct {
+	//This can be shared among structs
 	MetadataDB *sqlx.DB
+	//This can have a different value per http session
+	Logger zap.Logger
+}
+
+// NewDerivedDAO is a dao bound to a new logger
+func NewDerivedDAO(d DAO, logger zap.Logger) DAO {
+	switch d2 := d.(type) {
+	case *DataAccessLayer:
+		return &DataAccessLayer{
+			MetadataDB: d2.MetadataDB,
+			Logger:     logger,
+		}
+	case *FakeDAO:
+		return d
+	}
+	return nil
+}
+
+// GetLogger is a logger, probably for this session
+func (dao *DataAccessLayer) GetLogger() zap.Logger {
+	return dao.Logger
 }
 
 func daoCompileCheck() DAO {

@@ -19,6 +19,7 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	if !ok {
 		return NewAppError(500, errors.New("Could not determine user"), "Invalid user")
 	}
+	dao := DAOFromContext(ctx)
 
 	// Get the change token off the request.
 	changeToken, err := protocol.NewChangeTokenStructFromJSONBody(r.Body)
@@ -30,7 +31,7 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	if err != nil {
 		return NewAppError(500, err, "Error parsing URI")
 	}
-	originalObject, err := h.DAO.GetObject(requestObject, true)
+	originalObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
 		return NewAppError(500, err, "Error retrieving object from database")
 	}
@@ -62,7 +63,7 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	originalObject.ModifiedBy = caller.DistinguishedName
 
 	// Call undelete on the DAO with the object.
-	unDeletedObj, err := h.DAO.UndeleteObject(&originalObject)
+	unDeletedObj, err := dao.UndeleteObject(&originalObject)
 	//log.Printf("UndeletedObject from DAO: %v\n", unDeletedObj)
 	if err != nil {
 		return NewAppError(500, err, "Error restoring object")

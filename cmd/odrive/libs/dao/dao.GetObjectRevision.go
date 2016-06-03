@@ -1,10 +1,9 @@
 package dao
 
 import (
-	"log"
-
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 )
 
 // GetObjectRevision uses the passed in object and makes the appropriate sql
@@ -14,12 +13,12 @@ import (
 func (dao *DataAccessLayer) GetObjectRevision(object models.ODObject, loadProperties bool) (models.ODObject, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObject{}, err
 	}
 	dbObject, err := getObjectRevisionInTransaction(tx, object, loadProperties)
 	if err != nil {
-		log.Printf("Error in GetObjectRevision: %v", err)
+		dao.GetLogger().Error("Error in GetObjectRevision", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()

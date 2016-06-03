@@ -310,7 +310,7 @@ func configureDAO(app *server.AppServer, conf config.DatabaseConfiguration) erro
 		return errors.New("Could not ping database. Please check connection settings.")
 	}
 	concreteDAO := dao.DataAccessLayer{MetadataDB: db}
-	app.DAO = &concreteDAO
+	app.RootDAO = &concreteDAO
 
 	return nil
 }
@@ -361,11 +361,11 @@ func registerWithZookeeper(app *server.AppServer, zkBasePath, zkAddress, myIP, m
 
 func getDBIdentifier(app *server.AppServer) (string, error) {
 
-	if app.DAO == nil {
+	if app.RootDAO == nil {
 		return "", errors.New("DAO is nil on AppServer")
 	}
 
-	dbState, err := app.DAO.GetDBState()
+	dbState, err := app.RootDAO.GetDBState()
 	if err != nil {
 		return "UNKNOWN", err
 	}

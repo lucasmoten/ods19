@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
@@ -19,12 +20,12 @@ import (
 func (dao *DataAccessLayer) SearchObjectsByNameOrDescription(user models.ODUser, pagingRequest protocol.PagingRequest, loadProperties bool) (models.ODObjectResultset, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObjectResultset{}, err
 	}
 	response, err := searchObjectsByNameOrDescriptionInTransaction(tx, user, pagingRequest, loadProperties)
 	if err != nil {
-		log.Printf("Error in SearchObjectsByNameOrDescription: %v", err)
+		dao.GetLogger().Error("Error in SearchObjectsByNameOrDescription", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()

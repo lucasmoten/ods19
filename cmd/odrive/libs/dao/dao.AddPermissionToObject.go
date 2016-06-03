@@ -3,9 +3,9 @@ package dao
 import (
 	"database/sql"
 	"errors"
-	"log"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	"decipher.com/object-drive-server/metadata/models"
@@ -17,12 +17,12 @@ import (
 func (dao *DataAccessLayer) AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission, propogateToChildren bool, masterKey string) (models.ODObjectPermission, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObjectPermission{}, err
 	}
-	response, err := addPermissionToObjectInTransaction(tx, object, permission, propogateToChildren, masterKey)
+	response, err := addPermissionToObjectInTransaction(dao.GetLogger(), tx, object, permission, propogateToChildren, masterKey)
 	if err != nil {
-		log.Printf("Error in AddPermissionToobject: %v", err)
+		dao.GetLogger().Error("Error in AddPermissionToobject", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -30,7 +30,7 @@ func (dao *DataAccessLayer) AddPermissionToObject(object models.ODObject, permis
 	return response, err
 }
 
-func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, permission *models.ODObjectPermission, propagateToChildren bool, masterKey string) (models.ODObjectPermission, error) {
+func addPermissionToObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object models.ODObject, permission *models.ODObjectPermission, propagateToChildren bool, masterKey string) (models.ODObjectPermission, error) {
 
 	var dbPermission models.ODObjectPermission
 
@@ -39,7 +39,7 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, per
 	granteeUserDB, granteeUserDBErr := getUserByDistinguishedNameInTransaction(tx, granteeUser)
 	if granteeUserDBErr == sql.ErrNoRows {
 		// Doesn't exist yet. Add it now to satisfy foreign key constraints when adding the share
-		granteeUserDB, granteeUserDBErr = createUserInTransaction(tx, granteeUser)
+		granteeUserDB, granteeUserDBErr = createUserInTransaction(logger, tx, granteeUser)
 		if granteeUserDBErr != nil {
 			return dbPermission, granteeUserDBErr
 		}
@@ -159,7 +159,7 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, per
 			propagatedPermission.EncryptKey = permission.EncryptKey
 			utils.ApplyPassphrase(masterKey+permission.CreatedBy, propagatedPermission.EncryptKey)
 			utils.ApplyPassphrase(masterKey+propagatedPermission.Grantee, propagatedPermission.EncryptKey)
-			_, err := addPermissionToObjectInTransaction(tx, childObject, &propagatedPermission, propagateToChildren, masterKey)
+			_, err := addPermissionToObjectInTransaction(logger, tx, childObject, &propagatedPermission, propagateToChildren, masterKey)
 			if err != nil {
 				return dbPermission, err
 			}
@@ -189,7 +189,7 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, per
 				propagatedPermission.EncryptKey = permission.EncryptKey
 				utils.ApplyPassphrase(masterKey+permission.CreatedBy, propagatedPermission.EncryptKey)
 				utils.ApplyPassphrase(masterKey+propagatedPermission.Grantee, propagatedPermission.EncryptKey)
-				_, err := addPermissionToObjectInTransaction(tx, childObject, &propagatedPermission, propagateToChildren, masterKey)
+				_, err := addPermissionToObjectInTransaction(logger, tx, childObject, &propagatedPermission, propagateToChildren, masterKey)
 				if err != nil {
 					return dbPermission, err
 				}

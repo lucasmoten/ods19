@@ -22,6 +22,7 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 		}
 		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
 	}
+	dao := DAOFromContext(ctx)
 
 	// Parse paging info
 	pagingRequest, err := protocol.NewPagingRequest(r, nil, false)
@@ -37,7 +38,7 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 	user.Snippets = snippetFields
 
 	// Get trash for this user
-	results, err := h.DAO.GetTrashedObjectsByUser(user, *pagingRequest)
+	results, err := dao.GetTrashedObjectsByUser(user, *pagingRequest)
 
 	if err != nil {
 		return NewAppError(500, errors.New("Database call failed: "), err.Error())

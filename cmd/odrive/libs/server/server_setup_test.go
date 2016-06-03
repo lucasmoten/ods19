@@ -247,7 +247,7 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 		CheckAccessResp: &checkAccessResponse,
 	}
 
-	s := server.AppServer{DAO: &fakeDAO,
+	s := server.AppServer{RootDAO: &fakeDAO,
 		ServicePrefix: cfg.RootURLRegex,
 		AAC:           &fakeAAC,
 		Users:         userCache,

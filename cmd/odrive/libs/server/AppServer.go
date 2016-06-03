@@ -31,6 +31,7 @@ const (
 	AuditEventVal
 	Logger
 	SessionID
+	DAO
 )
 
 // AppServer contains definition for the metadata server
@@ -41,8 +42,8 @@ type AppServer struct {
 	Bind string
 	// Addr is the combined network address and port the server listens on
 	Addr string
-	// DAO is the interface contract with the database.
-	DAO dao.DAO
+	// DAO is the interface contract with the database. ONLY reference this to either get a DAO for the session, or reassign it
+	RootDAO dao.DAO
 	// ServicePrefix is the base RootURL for all public operations of web server
 	ServicePrefix string
 	// AAC is a handle to the Authorization and Access Control client
@@ -135,8 +136,10 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	sessionID := globalconfig.RandomID()
 	w.Header().Add("sessionid", sessionID)
 	ctx = ContextWithSession(ctx, sessionID)
-	//Create a logger for our session
-	ctx, sessionID = ContextWithLogger(ctx, r)
+	//Now we can log
+	ctx = ContextWithLogger(ctx, r)
+	//Bind a DAO that knows what session it's in (its logger)
+	ctx = ContextWithDAO(ctx, h.RootDAO)
 
 	// Log globally relevant things about this transaction, and don't repeat them
 	// all over individual logs - correlate on session field
@@ -432,6 +435,21 @@ func ContextWithCaller(ctx context.Context, caller Caller) context.Context {
 	return context.WithValue(ctx, CallerVal, caller)
 }
 
+// Bind a DAO with our logger, so that SQL can be correlated
+func ContextWithDAO(ctx context.Context, genericDAO dao.DAO) context.Context {
+	logger := LoggerFromContext(ctx)
+	return context.WithValue(ctx, DAO, dao.NewDerivedDAO(genericDAO, logger))
+}
+
+func DAOFromContext(ctx context.Context) dao.DAO {
+	d, ok := ctx.Value(DAO).(dao.DAO)
+	if !ok {
+		//Should be *completely* impossible as setting these up are preconditions setup in an obvious location
+		LoggerFromContext(ctx).Error("cannot get dao from context")
+	}
+	return d
+}
+
 // CallerFromContext extracts a Caller from a context, if set.
 func CallerFromContext(ctx context.Context) (Caller, bool) {
 	// ctx.Value returns nil if ctx has no value for the key
@@ -440,14 +458,14 @@ func CallerFromContext(ctx context.Context) (Caller, bool) {
 	return caller, ok
 }
 
-func ContextWithLogger(ctx context.Context, r *http.Request) (context.Context, string) {
+func ContextWithLogger(ctx context.Context, r *http.Request) context.Context {
 	caller, _ := CallerFromContext(ctx)
 	sessionID := SessionIDFromContext(ctx)
 	return context.WithValue(ctx, Logger, globalconfig.RootLogger.
 		With(zap.String("session", sessionID)).
 		With(zap.String("cn", caller.CommonName)).
 		With(zap.String("method", r.Method)).
-		With(zap.String("uri", r.RequestURI))), sessionID
+		With(zap.String("uri", r.RequestURI)))
 }
 
 func SessionIDFromContext(ctx context.Context) string {

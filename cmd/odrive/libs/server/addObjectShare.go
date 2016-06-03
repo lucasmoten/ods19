@@ -25,6 +25,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	if !ok {
 		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
 	}
+	dao := DAOFromContext(ctx)
 
 	//Get the json data from the request
 	var requestGrant models.ODObjectPermission
@@ -41,7 +42,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	// Fetch object to validate
 	requestedObject := models.ODObject{}
 	requestedObject.ID = requestGrant.ObjectID
-	dbObject, err := h.DAO.GetObject(requestedObject, false)
+	dbObject, err := dao.GetObject(requestedObject, false)
 	if err != nil {
 		return NewAppError(500, err, "Error retrieving object")
 	}
@@ -106,7 +107,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	newGrant.ExplicitShare = true
 
 	// Add to database
-	createdPermission, err := h.DAO.AddPermissionToObject(dbObject, &newGrant, propagateToChildren, h.MasterKey)
+	createdPermission, err := dao.AddPermissionToObject(dbObject, &newGrant, propagateToChildren, h.MasterKey)
 	if err != nil {
 		return NewAppError(500, err, "Error updating permission")
 	}

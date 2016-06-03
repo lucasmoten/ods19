@@ -2,9 +2,9 @@ package dao
 
 import (
 	"errors"
-	"log"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
 )
@@ -14,12 +14,12 @@ import (
 func (dao *DataAccessLayer) AddPropertyToObject(object models.ODObject, property *models.ODProperty) (models.ODProperty, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.ODProperty{}, err
 	}
 	dbProperty, err := addPropertyToObjectInTransaction(tx, object, property)
 	if err != nil {
-		log.Printf("Error in AddPropertyToObject: %v", err)
+		dao.GetLogger().Error("Error in AddPropertyToObject", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()

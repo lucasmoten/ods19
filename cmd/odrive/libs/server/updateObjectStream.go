@@ -22,6 +22,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	if !ok {
 		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
 	}
+	dao := DAOFromContext(ctx)
 
 	var grant *models.ODObjectPermission
 	var requestObject models.ODObject
@@ -33,7 +34,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	}
 
 	// Retrieve existing object from the data store
-	object, err := h.DAO.GetObject(requestObject, true)
+	object, err := dao.GetObject(requestObject, true)
 	if err != nil {
 		return NewAppError(500, err, "Error retrieving object")
 	}
@@ -93,7 +94,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	utils.ApplyPassphrase(h.MasterKey+caller.DistinguishedName, grant.EncryptKey)
 
 	object.ModifiedBy = caller.DistinguishedName
-	err = h.DAO.UpdateObject(&object)
+	err = dao.UpdateObject(&object)
 	if err != nil {
 		//Note that if the DAO is not going to decide on a specific error code,
 		// we *always* need to know if the error is due to bad user input,

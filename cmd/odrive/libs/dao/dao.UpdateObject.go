@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
 	"decipher.com/object-drive-server/metadata/models"
@@ -20,12 +21,12 @@ import (
 func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return err
 	}
 	err = updateObjectInTransaction(tx, object)
 	if err != nil {
-		log.Printf("Error in UpdateObject: %v", err)
+		dao.GetLogger().Error("Error in UpdateObject", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()

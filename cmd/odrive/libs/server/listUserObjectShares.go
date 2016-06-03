@@ -22,6 +22,7 @@ func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWrit
 		}
 		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
 	}
+	dao := DAOFromContext(ctx)
 
 	// Parse Request
 	pagingRequest, err := protocol.NewPagingRequest(r, nil, false)
@@ -37,7 +38,7 @@ func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWrit
 	user.Snippets = snippetFields
 
 	// Fetch objects for requested page
-	result, err := h.DAO.GetObjectsSharedToMe(user, *pagingRequest)
+	result, err := dao.GetObjectsSharedToMe(user, *pagingRequest)
 	if err != nil {
 		return NewAppError(500, err, "GetObjectsSharedToMe query failed")
 	}
