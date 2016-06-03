@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -10,6 +11,31 @@ import (
 )
 
 const mb int64 = 1024
+
+// DownloadFromS3 gets the targeted key from an S3 bucket
+func DownloadFromS3(bucketName, key string) error {
+
+	client := getS3ClientFromEnv()
+	b := client.Bucket(bucketName)
+	r, h, err := b.GetReader(key, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Attempting download for key with these headers:", h)
+
+	// create file handle
+	f, err := os.Create(key)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+	_, err = io.Copy(f, r)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return nil
+}
 
 // MoveToS3 will move to s3 bucket
 func MoveToS3(path, bucketName, key string) error {
@@ -69,4 +95,24 @@ func MoveToS3(path, bucketName, key string) error {
 	log.Printf("Total bytes written: %v \n", n)
 
 	return nil
+}
+
+func getS3ClientFromEnv() *s3.S3 {
+	if os.Getenv("AWS_ACCESS_KEY_ID") == "" {
+		val := os.Getenv("OD_AWS_ACCESS_KEY_ID")
+		os.Setenv("AWS_ACCESS_KEY_ID", val)
+	}
+
+	if os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
+		val := os.Getenv("OD_AWS_SECRET_ACCESS_KEY")
+		os.Setenv("AWS_SECRET_ACCESS_KEY", val)
+	}
+
+	keys, err := s3.EnvKeys()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	client := s3.New("", keys)
+	return client
 }
