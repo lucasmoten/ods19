@@ -43,6 +43,7 @@ const (
 	OD_SERVER_KEY                  = "OD_SERVER_KEY"
 	OD_SERVER_PORT                 = "OD_SERVER_PORT"
 	OD_STANDALONE                  = "OD_STANDALONE"
+	OD_ZK_AAC                      = "OD_ZK_AAC"
 	OD_ZK_BASEPATH                 = "OD_ZK_BASEPATH"
 	OD_ZK_MYIP                     = "OD_ZK_MYIP"
 	OD_ZK_MYPORT                   = "OD_ZK_MYPORT"
@@ -90,6 +91,7 @@ func PrintODEnvironment() {
 		OD_SERVER_KEY,
 		OD_SERVER_PORT,
 		OD_STANDALONE,
+		OD_ZK_AAC,
 		OD_ZK_BASEPATH,
 		OD_ZK_MYIP,
 		OD_ZK_MYPORT,
