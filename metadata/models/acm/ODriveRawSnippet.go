@@ -3,6 +3,15 @@ package acm
 import (
 	"bytes"
 	"encoding/json"
+	"io"
+
+	"github.com/uber-go/zap"
+
+	globalconfig "decipher.com/object-drive-server/config"
+)
+
+var (
+	logger = globalconfig.RootLogger
 )
 
 // ODriveRawSnippet is a structure to hold the snippets returned from an AAC GetSnippets response where snippetType = 'odrive-raw'
@@ -50,8 +59,12 @@ func newODriveRawSnippetFieldFromString(quotedSnippet string) (RawSnippetFields,
 	// jsonIOReader := bytes.NewBufferString(unquotedSnippet)
 
 	err = (json.NewDecoder(jsonIOReader)).Decode(&rawSnippetFields)
-	if err != nil {
-		return rawSnippetFields, nil
+	if err != io.EOF && err != nil {
+		logger.Error("acm snippet unparseable", zap.Object("acm", quotedSnippet), zap.String("err", err.Error()))
+		return rawSnippetFields, err
+	}
+	if err == io.EOF {
+		logger.Warn("acm snippet empty")
 	}
 	return rawSnippetFields, nil
 }
