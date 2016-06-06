@@ -13,6 +13,7 @@ import (
 	"golang.org/x/net/context"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
+	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
@@ -67,7 +68,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// from a clearance perspective
 	hasAACAccessToOLDACM, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
 	if err != nil {
-		return NewAppError(500, err, "Error communicating with authorization service")
+		return NewAppError(502, err, "Error communicating with authorization service")
 	}
 	if !hasAACAccessToOLDACM {
 		return NewAppError(403, err, "Unauthorized")
@@ -126,7 +127,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		// Ensure user is allowed this acm
 		hasAACAccessToNewACM, err := h.isUserAllowedForObjectACM(ctx, &requestObject)
 		if err != nil {
-			return NewAppError(500, err, "Error communicating with authorization service")
+			return NewAppError(502, err, "Error communicating with authorization service")
 		}
 		if !hasAACAccessToNewACM {
 			return NewAppError(403, err, "Unauthorized")
@@ -205,7 +206,7 @@ func parseUpdateObjectRequestAsJSON(r *http.Request, ctx context.Context) (model
 		requestObject.Description.String = jsonObject.Description
 		requestObject.Description.Valid = true
 	}
-	convertedAcm, err := mapping.ConvertRawACMToString(jsonObject.RawAcm)
+	convertedAcm, err := utils.MarshalInterfaceToString(jsonObject.RawAcm)
 	if err != nil {
 		return requestObject, err
 	} else {

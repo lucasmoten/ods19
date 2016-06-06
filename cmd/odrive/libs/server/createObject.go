@@ -218,7 +218,7 @@ func handleCreatePrerequisites(
 	// Ensure user is allowed this acm
 	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, requestObject)
 	if err != nil {
-		return NewAppError(500, err, "Error communicating with authorization service")
+		return NewAppError(502, err, "Error communicating with authorization service")
 	}
 	if !hasAACAccess {
 		return NewAppError(403, err, "Unauthorized")

@@ -37,7 +37,7 @@ func (h AppServer) listUsers(ctx context.Context, w http.ResponseWriter, r *http
 	// Get snippets for user, which will have group membership
 	snippetFields, err := h.FetchUserSnippets(ctx)
 	if err != nil {
-		return NewAppError(504, errors.New("Error retrieving user permissions."), err.Error())
+		return NewAppError(502, errors.New("Error retrieving user permissions."), err.Error())
 	} else {
 		// Fake the groups from the snippets as additional elements in the users array
 		for _, rawSnippetField := range snippetFields.Snippets {

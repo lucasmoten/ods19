@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"reflect"
 
+	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 )
@@ -226,7 +226,7 @@ func MapObjectToODObject(i *protocol.Object) (models.ODObject, error) {
 	}
 
 	o.RawAcm.Valid = true
-	o.RawAcm.String, err = ConvertRawACMToString(i.RawAcm)
+	o.RawAcm.String, err = utils.MarshalInterfaceToString(i.RawAcm)
 	if err != nil {
 		return o, fmt.Errorf("Unable to convert ACM to string %v", err)
 	}
@@ -270,7 +270,7 @@ func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) (models.O
 		o.ParentID = nil
 	}
 	o.RawAcm.Valid = true
-	o.RawAcm.String, err = ConvertRawACMToString(i.RawAcm)
+	o.RawAcm.String, err = utils.MarshalInterfaceToString(i.RawAcm)
 	if err != nil {
 		return o, fmt.Errorf("Unable to convert ACM to string %v", err)
 	}
@@ -360,7 +360,7 @@ func OverwriteODObjectWithProtocolObject(o *models.ODObject, i *protocol.Object)
 	}
 
 	// Accept ACM if provided. If it's mandatory, then check that it was set on o when this function completes.
-	o.RawAcm.String, err = ConvertRawACMToString(i.RawAcm)
+	o.RawAcm.String, err = utils.MarshalInterfaceToString(i.RawAcm)
 	if err != nil {
 		return fmt.Errorf("Unable to convert ACM: %v", err)
 	}
@@ -393,38 +393,10 @@ func OverwriteODObjectWithProtocolObject(o *models.ODObject, i *protocol.Object)
 	return nil
 }
 
-// ConvertRawACMToString accepts an input interface and returns either the raw string
-// or seralized json string representation of the object passed in
-func ConvertRawACMToString(acm interface{}) (string, error) {
-	// If no value provided, return empty
-	if acm == nil {
-		return "", nil
-	}
-	if reflect.TypeOf(acm).Kind().String() == "string" {
-		// The interface is a string, return directly
-		return acm.(string), nil
-	}
-	// The interface is an object, serialize to a string
-	acmBytes, err := json.Marshal(acm)
-	if err != nil {
-		return "", err
-	}
-	return string(acmBytes[:]), nil
-}
-
 // CreateReturnableACM is a wrapper for the return type.
 // The original API worked with ACMs as serialized strings.
 // This allows for switching between the string or object representation on the response
 func CreateReturnableACM(acm string) (interface{}, error) {
 	//return acm, nil
-	return ConvertStringACMToObject(acm)
-}
-
-// ConvertStringACMToObject takes a serialized string version of ACM and unmarshals to a json object
-func ConvertStringACMToObject(acm string) (interface{}, error) {
-	var result interface{}
-	if err := json.Unmarshal([]byte(acm), &result); err != nil {
-		return result, err
-	}
-	return result, nil
+	return utils.UnmarshalStringToInterface(acm)
 }

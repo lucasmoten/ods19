@@ -50,7 +50,7 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 
 	snippetFields, err := h.FetchUserSnippets(ctx)
 	if err != nil {
-		return NewAppError(504, errors.New("Error retrieving user permissions."), err.Error())
+		return NewAppError(502, errors.New("Error retrieving user permissions."), err.Error())
 	}
 	user.Snippets = snippetFields
 

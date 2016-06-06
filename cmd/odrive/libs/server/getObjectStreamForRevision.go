@@ -75,7 +75,7 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	// 		Check if Classification is allowed for this User
 	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
 	if err != nil {
-		return NewAppError(500, err, "Error communicating with authorization service")
+		return NewAppError(502, err, "Error communicating with authorization service")
 	}
 	if !hasAACAccess {
 		return NewAppError(403, nil, "Unauthorized")

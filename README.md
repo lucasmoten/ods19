@@ -159,5 +159,22 @@ Hooray for automated tests!
 
 # Other Configuration
 
-Binaries for the main server are built under **/cmd/odrive**. 
+Binaries for the main server are built under **cmd/odrive**. 
+
+# odutil
+
+Another tool is compiled under **cmd/odutil**. Currently it can upload and 
+download files from S3. AWS credentials are taken from the environment.
+
+Upload 
+
+```
+odutil -cmd upload -input somefile.txt -bucket decipher-tools -key some/path/somefile.txt 
+```
+
+Download
+
+```
+odutil -cmd download -input somefile.txt -bucket decipher-tools -key some/path/somefile.txt 
+```
 

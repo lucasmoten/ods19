@@ -51,7 +51,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 
 	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
 	if err != nil {
-		return NewAppError(500, err, "Error communicating with authorization service")
+		return NewAppError(502, err, "Error communicating with authorization service")
 	}
 	if !hasAACAccess {
 		return NewAppError(403, nil, "Unauthorized")
