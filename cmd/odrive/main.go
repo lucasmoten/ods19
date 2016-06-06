@@ -328,8 +328,7 @@ func configureDrainProvider(app *server.AppServer, standalone bool, root, cacheI
 	app.DrainProvider = dp
 }
 
-func registerWithZookeeper(app *server.AppServer, zkBasePath, zkAddress, myIP, myPort string) error {
-
+func registerWithZookeeperTry(app *server.AppServer, zkBasePath, zkAddress, myIP, myPort string) error {
 	zkState, err := zookeeper.RegisterApplication(zkBasePath, zkAddress)
 	if err != nil {
 		return err
@@ -342,6 +341,22 @@ func registerWithZookeeper(app *server.AppServer, zkBasePath, zkAddress, myIP, m
 	app.ZKState = zkState
 
 	return nil
+}
+
+// recovery when zk is completely lost is automatic once we have successfully connected on startup.
+// every connected party will remember which ephemeral nodes it is maintaining, and nodes it created,
+// so that the zk could not only disappear, but reappear *empty* and everything recovers.
+// however, it insists on being able to connect to zk when we startup to register,
+// so, just stall until we can talk to a zk.
+func registerWithZookeeper(app *server.AppServer, zkBasePath, zkAddress, myIP, myPort string) error {
+	err := registerWithZookeeperTry(app, zkBasePath, zkAddress, myIP, myPort)
+	for err != nil {
+		sleepInSeconds := 10
+		logger.Warn("zk cant register", zap.Int("retry time in seconds", sleepInSeconds))
+		time.Sleep(time.Duration(sleepInSeconds) * time.Second)
+		err = registerWithZookeeperTry(app, zkBasePath, zkAddress, myIP, myPort)
+	}
+	return err
 }
 
 func getDBIdentifier(app *server.AppServer) (string, error) {
