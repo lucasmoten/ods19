@@ -171,6 +171,12 @@
 			"revisionTime": "2016-01-13T22:50:08-05:00"
 		},
 		{
+			"checksumSHA1": "lCS/i5iwmskT8IL8hHEkKy1DlMc=",
+			"path": "github.com/rlmcpherson/s3gof3r",
+			"revision": "b574ee38528c51c2c8652b79e71245817c59bd61",
+			"revisionTime": "2015-12-01T02:33:10Z"
+		},
+		{
 			"checksumSHA1": "yUFE9fmQwBUefkR6wjevaovfZbU=",
 			"path": "github.com/samuel/go-thrift/thrift",
 			"revision": "ca819cf963ab710e7a285044e92f1353fa497b80",
