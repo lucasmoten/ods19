@@ -30,6 +30,7 @@ const (
 	UserSnippetsVal
 	AuditEventVal
 	Logger
+	SessionID
 )
 
 // AppServer contains definition for the metadata server
@@ -130,8 +131,12 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var ctx context.Context
 	//Set caller first so that logger can log user
 	ctx = ContextWithCaller(context.Background(), caller)
-	//Now we can log
-	ctx = ContextWithLogger(ctx, r)
+	//Give the context an identity, and make sure that the user knows its value
+	sessionID := globalconfig.RandomID()
+	w.Header().Add("sessionid", sessionID)
+	ctx = ContextWithSession(ctx, sessionID)
+	//Create a logger for our session
+	ctx, sessionID = ContextWithLogger(ctx, r)
 
 	// Log globally relevant things about this transaction, and don't repeat them
 	// all over individual logs - correlate on session field
@@ -416,6 +421,11 @@ func AuditEventFromContext(ctx context.Context) (*events_thrift.AuditEvent, bool
 	return event, ok
 }
 
+// Before setting the logger, give the context an identity for log correlation
+func ContextWithSession(ctx context.Context, sessionID string) context.Context {
+	return context.WithValue(ctx, SessionID, sessionID)
+}
+
 // ContextWithCaller returns a new Context object with a Caller value set. The const CallerVal acts
 // as the key that maps to the caller value.
 func ContextWithCaller(ctx context.Context, caller Caller) context.Context {
@@ -430,13 +440,22 @@ func CallerFromContext(ctx context.Context) (Caller, bool) {
 	return caller, ok
 }
 
-func ContextWithLogger(ctx context.Context, r *http.Request) context.Context {
+func ContextWithLogger(ctx context.Context, r *http.Request) (context.Context, string) {
 	caller, _ := CallerFromContext(ctx)
+	sessionID := SessionIDFromContext(ctx)
 	return context.WithValue(ctx, Logger, globalconfig.RootLogger.
-		With(zap.String("session", globalconfig.RandomID())).
+		With(zap.String("session", sessionID)).
 		With(zap.String("cn", caller.CommonName)).
 		With(zap.String("method", r.Method)).
-		With(zap.String("uri", r.RequestURI)))
+		With(zap.String("uri", r.RequestURI))), sessionID
+}
+
+func SessionIDFromContext(ctx context.Context) string {
+	sessionID, ok := ctx.Value(SessionID).(string)
+	if !ok {
+		return "unknown"
+	}
+	return sessionID
 }
 
 // LoggerFromContext gets an uber zap logger from our context
