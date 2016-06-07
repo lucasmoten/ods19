@@ -73,7 +73,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	// from a clearance perspective
 	hasAACAccessToOLDACM, err := h.isUserAllowedForObjectACM(ctx, &object)
 	if err != nil {
-		return NewAppError(500, err, "Error communicating with authorization service")
+		return NewAppError(502, err, "Error communicating with authorization service")
 	}
 	if !hasAACAccessToOLDACM {
 		return NewAppError(403, err, "Unauthorized")

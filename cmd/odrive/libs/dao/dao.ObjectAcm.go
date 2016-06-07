@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
+	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
 )
@@ -14,7 +14,7 @@ import (
 func setObjectACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
 
 	// Convert serialized string to interface
-	acmInterface, err := mapping.ConvertStringACMToObject(object.RawAcm.String)
+	acmInterface, err := utils.UnmarshalStringToInterface(object.RawAcm.String)
 	if err != nil {
 		return err
 	}

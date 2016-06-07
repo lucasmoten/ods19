@@ -78,7 +78,7 @@ func (h AppServer) acceptObjectUpload(
 				updateObjectRequest.RawAcm.Valid = true
 				hasAACAccessToNewACM, err := h.isUserAllowedForObjectACM(ctx, &updateObjectRequest)
 				if err != nil {
-					return drainFunc, NewAppError(500, err, "Error communicating with authorization service"), err
+					return drainFunc, NewAppError(502, err, "Error communicating with authorization service"), err
 				}
 				if !hasAACAccessToNewACM {
 					return drainFunc, NewAppError(403, nil, "Unauthorized"), err
