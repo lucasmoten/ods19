@@ -25,6 +25,7 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 		}
 		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
 	}
+	dao := DAOFromContext(ctx)
 
 	// Parse Request
 	captured, _ := CaptureGroupsFromContext(ctx)
@@ -40,7 +41,7 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	if err != nil {
 		return NewAppError(400, err, "Object Identifier in Request URI is not a hex string")
 	}
-	dbObject, err := h.DAO.GetObject(obj, false)
+	dbObject, err := dao.GetObject(obj, false)
 	if err != nil {
 		return NewAppError(500, err, "Error retrieving object")
 	}
@@ -76,7 +77,7 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	user.Snippets = snippetFields
 
 	// Get the revision information for this objects
-	response, err := h.DAO.GetObjectRevisionsWithPropertiesByUser(user, *pagingRequest, dbObject)
+	response, err := dao.GetObjectRevisionsWithPropertiesByUser(user, *pagingRequest, dbObject)
 	if err != nil {
 		return NewAppError(500, err, "General error")
 	}

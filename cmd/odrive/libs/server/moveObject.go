@@ -27,6 +27,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	if !ok {
 		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
 	}
+	dao := DAOFromContext(ctx)
 
 	// Parse Request in sent format
 	if r.Header.Get("Content-Type") != "application/json" {
@@ -40,7 +41,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	// Business Logic...
 
 	// Retrieve existing object from the data store
-	dbObject, err := h.DAO.GetObject(requestObject, true)
+	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
 		return NewAppError(500, err, "Error retrieving object")
 	}
@@ -66,7 +67,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	// object for which they are moving this one to (the parentID)
 	targetParent := models.ODObject{}
 	targetParent.ID = requestObject.ParentID
-	dbParent, err := h.DAO.GetObject(targetParent, false)
+	dbParent, err := dao.GetObject(targetParent, false)
 	if err != nil {
 		return NewAppError(400, err, "Error retrieving parent to move object into")
 	}
@@ -115,7 +116,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	if bytes.Compare(requestObject.ParentID, requestObject.ID) == 0 {
 		return NewAppError(400, err, "ParentID cannot be set to the ID of the object. Circular references are not allowed.")
 	}
-	circular, err := h.DAO.IsParentIDADescendent(requestObject.ID, requestObject.ParentID)
+	circular, err := dao.IsParentIDADescendent(requestObject.ID, requestObject.ParentID)
 	if err != nil {
 		return NewAppError(500, err, "Error retrieving ancestor to check for circular references")
 	}
@@ -136,7 +137,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 		// Force the modified by to be that of the caller
 		dbObject.ModifiedBy = caller.DistinguishedName
 		dbObject.ParentID = requestObject.ParentID
-		err := h.DAO.UpdateObject(&dbObject)
+		err := dao.UpdateObject(&dbObject)
 		if err != nil {
 			log.Printf("Error updating object: %v", err)
 			return NewAppError(500, nil, "Error saving object in new location")

@@ -42,7 +42,7 @@ func TestListObjectsTrashedJSONResponse(t *testing.T) {
 	snippetCache := server.NewSnippetCache()
 
 	s := server.AppServer{
-		DAO:           &fakeDAO,
+		RootDAO:       &fakeDAO,
 		ServicePrefix: cfg.RootURLRegex,
 		Users:         userCache,
 		Snippets:      snippetCache,

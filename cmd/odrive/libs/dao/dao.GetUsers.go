@@ -1,22 +1,21 @@
 package dao
 
 import (
-	"log"
-
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 )
 
 // GetUsers retrieves all users.
 func (dao *DataAccessLayer) GetUsers() ([]models.ODUser, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return []models.ODUser{}, err
 	}
-	result, err := getUsersInTransaction(tx)
+	result, err := getUsersInTransaction(dao.GetLogger(), tx)
 	if err != nil {
-		log.Printf("Error in GetUsers: %v", err)
+		dao.GetLogger().Error("Error in GetUsers", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -24,7 +23,7 @@ func (dao *DataAccessLayer) GetUsers() ([]models.ODUser, error) {
 	return result, err
 }
 
-func getUsersInTransaction(tx *sqlx.Tx) ([]models.ODUser, error) {
+func getUsersInTransaction(logger zap.Logger, tx *sqlx.Tx) ([]models.ODUser, error) {
 
 	var result []models.ODUser
 	getUsersStatement := `
@@ -35,7 +34,7 @@ func getUsersInTransaction(tx *sqlx.Tx) ([]models.ODUser, error) {
     from user`
 	err := tx.Select(&result, getUsersStatement)
 	if err != nil {
-		log.Printf("Unable to execute query %s:%v", getUsersStatement, err)
+		logger.Error("Unable to execute query", zap.String("sql", getUsersStatement), zap.String("err", err.Error()))
 	}
 	return result, err
 }

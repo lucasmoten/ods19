@@ -2,9 +2,9 @@ package dao
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
 )
@@ -14,12 +14,12 @@ import (
 func (dao *DataAccessLayer) UpdatePermission(permission models.ODObjectPermission) error {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return err
 	}
 	err = updatePermissionInTransaction(tx, permission)
 	if err != nil {
-		log.Printf("Error in UpdateObjectPermission: %v", err)
+		dao.GetLogger().Error("Error in UpdatePermission", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()

@@ -310,7 +310,7 @@ func configureDAO(app *server.AppServer, conf config.DatabaseConfiguration) erro
 		return errors.New("Could not ping database. Please check connection settings.")
 	}
 	concreteDAO := dao.DataAccessLayer{MetadataDB: db}
-	app.DAO = &concreteDAO
+	app.RootDAO = &concreteDAO
 
 	return nil
 }
@@ -361,11 +361,11 @@ func registerWithZookeeper(app *server.AppServer, zkBasePath, zkAddress, myIP, m
 
 func getDBIdentifier(app *server.AppServer) (string, error) {
 
-	if app.DAO == nil {
+	if app.RootDAO == nil {
 		return "", errors.New("DAO is nil on AppServer")
 	}
 
-	dbState, err := app.DAO.GetDBState()
+	dbState, err := app.RootDAO.GetDBState()
 	if err != nil {
 		return "UNKNOWN", err
 	}
@@ -413,17 +413,34 @@ func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, err
 func pingDB(conf config.DatabaseConfiguration, db *sqlx.DB) int {
 	// But ensure database is up, retrying every 3 seconds for up to 1 minute
 	dbPingAttempt := 0
-	dbPingSuccess := false
 	dbPingAttemptMax := 20
 	exitCode := 2
-	for dbPingAttempt < dbPingAttemptMax && !dbPingSuccess {
-		dbPingAttempt++
-		err := db.Ping()
+	var err error
+	var schemaErr error
 
+	for dbPingAttempt < dbPingAttemptMax {
+
+		//Prepare for another round
+		dbPingAttempt++
+		schemaErr = nil
+		err = nil
+		exitCode = 0
+		sleepInSeconds := 3
+
+		//Dont consider anything successful unless we actually saw the schema row
+		err = db.Ping()
 		if err == nil {
-			dbPingSuccess = true
-			exitCode = 0
-		} else {
+			tempDAO := dao.DataAccessLayer{MetadataDB: db, Logger: logger}
+			_, schemaErr = tempDAO.GetDBState()
+			if schemaErr == nil {
+				//If we succeed, we are done.  Just return 0
+				logger.Info("db connected")
+				return 0
+			}
+		}
+
+		//We could not connect to the database
+		if err != nil {
 			elogger := logger.
 				With(zap.String("err", err.Error())).
 				With(zap.String("host", conf.Host)).
@@ -438,44 +455,34 @@ func pingDB(conf config.DatabaseConfiguration, db *sqlx.DB) int {
 			} else if match, _ := regexp.MatchString(".*lookup.*", err.Error()); match {
 				elogger.Error("Unknown host error connecting to database. Review OD_DB_HOST environment variable configuration. Halting")
 				exitCode = 6
+				//hard error.  waiting it won't fix it
 				return exitCode
 			} else if match, _ := regexp.MatchString(".*connection refused.*", err.Error()); match {
 				elogger.Error("Connection refused connecting to database. Database may not yet be online.")
 				exitCode = 7
 			} else {
+				//hard error.  waiting won't fix it
 				elogger.Error("Unhandled error while connecting to database. Halting")
 				exitCode = 1
 				return exitCode
 			}
-		}
-
-		if !dbPingSuccess {
-			if dbPingAttempt < dbPingAttemptMax {
-				logger.Warn("Retrying in 3 seconds")
-				time.Sleep(time.Second * 3)
+		} else {
+			// we could connect, but there was an issue with the schema
+			if schemaErr == sql.ErrNoRows || (strings.Contains(schemaErr.Error(), "Table") && strings.Contains(schemaErr.Error(), "doesn't exist")) {
+				logger.Warn("Database connection successful but dbstate not yet set.")
+				exitCode = 52
 			} else {
-				logger.Error("Maximum retries exhausted. Halting")
+				//hard error.  waiting won't fix it
+				elogger := logger.With(zap.String("err", schemaErr.Error()))
+				elogger.Error("Error calling for dbstate. Halting")
+				exitCode = 8
 				return exitCode
 			}
-		} else {
-			tempDAO := dao.DataAccessLayer{MetadataDB: db}
-			_, err := tempDAO.GetDBState()
-			if err != nil {
-				dbPingSuccess = false
-				if err == sql.ErrNoRows || (strings.Contains(err.Error(), "Table") && strings.Contains(err.Error(), "doesn't exist")) {
-					logger.Warn("Database connection successful but dbstate not yet set. Retrying in 1 second")
-					exitCode = 52
-					time.Sleep(time.Second * 1)
-				} else {
-					elogger := logger.With(zap.String("err", err.Error()))
-					elogger.Error("Error calling for dbstate. Halting")
-					exitCode = 8
-					return exitCode
-				}
-			} else {
-				logger.Info("Database connection successful")
-			}
 		}
+
+		//Sleep in one place
+		logger.Info("db sleep for retry", zap.Int64("time in seconds", int64(sleepInSeconds)))
+		time.Sleep(time.Duration(sleepInSeconds) * time.Second)
 	}
 	return exitCode
 }

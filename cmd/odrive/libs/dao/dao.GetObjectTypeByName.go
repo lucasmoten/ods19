@@ -3,9 +3,9 @@ package dao
 import (
 	"database/sql"
 	"fmt"
-	"log"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
 )
@@ -15,12 +15,12 @@ import (
 func (dao *DataAccessLayer) GetObjectTypeByName(typeName string, addIfMissing bool, createdBy string) (models.ODObjectType, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObjectType{}, err
 	}
 	objectType, err := getObjectTypeByNameInTransaction(tx, typeName, addIfMissing, createdBy)
 	if err != nil {
-		log.Printf("Error in GetObjectTypeByName: %v", err)
+		dao.GetLogger().Error("Error in GetObjectTypeByName", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()

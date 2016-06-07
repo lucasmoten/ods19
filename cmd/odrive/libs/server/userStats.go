@@ -14,7 +14,9 @@ func (h AppServer) userStats(ctx context.Context, w http.ResponseWriter, r *http
 	if !ok {
 		return NewAppError(500, nil, "could not get caller")
 	}
-	userStats, err := h.DAO.GetUserStats(caller.DistinguishedName)
+	dao := DAOFromContext(ctx)
+
+	userStats, err := dao.GetUserStats(caller.DistinguishedName)
 	if err != nil {
 		return NewAppError(500, err, "could not query for stats")
 	}

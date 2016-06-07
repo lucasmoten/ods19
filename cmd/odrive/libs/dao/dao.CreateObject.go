@@ -3,22 +3,22 @@ package dao
 import (
 	"errors"
 	"fmt"
-	"log"
 
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 )
 
 // CreateObject ...
 func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObject, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObject{}, err
 	}
-	dbObject, err := createObjectInTransaction(tx, object)
+	dbObject, err := createObjectInTransaction(dao.GetLogger(), tx, object)
 	if err != nil {
-		log.Printf("Error in CreateObject: %v", err)
+		dao.GetLogger().Error("error in createObject", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -26,7 +26,7 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 	return dbObject, err
 }
 
-func createObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) (models.ODObject, error) {
+func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.ODObject) (models.ODObject, error) {
 
 	var dbObject models.ODObject
 
@@ -178,7 +178,7 @@ func createObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) (models.ODO
 	for i, permission := range object.Permissions {
 		if permission.Grantee != "" {
 			permission.CreatedBy = dbObject.CreatedBy
-			dbPermission, err := addPermissionToObjectInTransaction(tx, dbObject, &permission, false, "")
+			dbPermission, err := addPermissionToObjectInTransaction(logger, tx, dbObject, &permission, false, "")
 			if err != nil {
 				return dbObject, fmt.Errorf("Error saving permission # %d {Grantee: \"%s\") when creating object:%v", i, permission.Grantee, err)
 			}

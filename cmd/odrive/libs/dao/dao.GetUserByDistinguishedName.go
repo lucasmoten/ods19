@@ -1,12 +1,11 @@
 package dao
 
 import (
-	"log"
-
 	"database/sql"
 
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 )
 
 // GetUserByDistinguishedName looks up user record from the database using the
@@ -14,13 +13,13 @@ import (
 func (dao *DataAccessLayer) GetUserByDistinguishedName(user models.ODUser) (models.ODUser, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.ODUser{}, err
 	}
 	dbUser, err := getUserByDistinguishedNameInTransaction(tx, user)
 	if err != nil {
 		if err != sql.ErrNoRows {
-			log.Printf("Error in GetUserByDistinguishedName: %v", err)
+			dao.GetLogger().Error("Error in GetUserByDistinguishedName", zap.String("err", err.Error()))
 		}
 		tx.Rollback()
 	} else {

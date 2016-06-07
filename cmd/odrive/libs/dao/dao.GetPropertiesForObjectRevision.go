@@ -1,10 +1,9 @@
 package dao
 
 import (
-	"log"
-
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 )
 
 // GetPropertiesForObjectRevision retrieves the properties for a specific
@@ -12,12 +11,12 @@ import (
 func (dao *DataAccessLayer) GetPropertiesForObjectRevision(object models.ODObject) ([]models.ODObjectPropertyEx, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return []models.ODObjectPropertyEx{}, err
 	}
 	response, err := getPropertiesForObjectRevisionInTransaction(tx, object)
 	if err != nil {
-		log.Printf("Error in GetPropertiesForObjectRevision: %v", err)
+		dao.GetLogger().Error("Error in GetPropertiesForObjectRevision", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()

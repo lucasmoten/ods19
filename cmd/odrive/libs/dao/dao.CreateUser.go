@@ -2,9 +2,9 @@ package dao
 
 import (
 	"database/sql"
-	"log"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
 )
@@ -15,12 +15,12 @@ import (
 func (dao *DataAccessLayer) CreateUser(user models.ODUser) (models.ODUser, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.ODUser{}, err
 	}
-	dbUser, err := createUserInTransaction(tx, user)
+	dbUser, err := createUserInTransaction(dao.GetLogger(), tx, user)
 	if err != nil {
-		log.Printf("Error in CreateUser: %v", err)
+		dao.GetLogger().Error("Error in CreateUser", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -28,7 +28,7 @@ func (dao *DataAccessLayer) CreateUser(user models.ODUser) (models.ODUser, error
 	return dbUser, err
 }
 
-func createUserInTransaction(tx *sqlx.Tx, user models.ODUser) (models.ODUser, error) {
+func createUserInTransaction(logger zap.Logger, tx *sqlx.Tx, user models.ODUser) (models.ODUser, error) {
 	var dbUser models.ODUser
 	addUserStatement, err := tx.Preparex(
 		`insert user set createdBy = ?, distinguishedName = ?, displayName = ?, email = ?`)
@@ -53,15 +53,15 @@ func createUserInTransaction(tx *sqlx.Tx, user models.ODUser) (models.ODUser, er
 		return dbUser, err
 	}
 	if rowCount < 1 {
-		log.Printf("No rows were added when inserting the user!")
+		logger.Warn("No rows were added when inserting the user!")
 	}
 	// Get the newly added user
 	dbUser, err = getUserByDistinguishedNameInTransaction(tx, user)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			log.Printf("User was not found even after just adding: %s", err.Error())
+			logger.Error("User was not found even after just adding", zap.String("err", err.Error()))
 		} else {
-			log.Printf("An error occurred retrieving newly added user: %s", err.Error())
+			logger.Error("An error occurred retrieving newly added user", zap.String("err", err.Error()))
 		}
 		return dbUser, err
 	}

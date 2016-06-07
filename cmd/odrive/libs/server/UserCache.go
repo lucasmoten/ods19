@@ -72,6 +72,7 @@ func (h AppServer) FetchUser(ctx context.Context) (*models.ODUser, error) {
 	if !ok {
 		return nil, fmt.Errorf("Could not get caller when fetching user")
 	}
+	dao := DAOFromContext(ctx)
 
 	// First check if exists in the cache
 	user, ok := h.Users.Get(caller.DistinguishedName)
@@ -79,7 +80,7 @@ func (h AppServer) FetchUser(ctx context.Context) (*models.ODUser, error) {
 		// Not found in cache, look up from database
 		var userRequested models.ODUser
 		userRequested.DistinguishedName = caller.DistinguishedName
-		userRetrievedFromDB, err := h.DAO.GetUserByDistinguishedName(userRequested)
+		userRetrievedFromDB, err := dao.GetUserByDistinguishedName(userRequested)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				// Not yet in database, we need to add them
@@ -87,7 +88,7 @@ func (h AppServer) FetchUser(ctx context.Context) (*models.ODUser, error) {
 				userRequested.DisplayName.String = caller.CommonName
 				userRequested.DisplayName.Valid = true
 				userRequested.CreatedBy = caller.DistinguishedName
-				userRetrievedFromDB, err = h.DAO.CreateUser(userRequested)
+				userRetrievedFromDB, err = dao.CreateUser(userRequested)
 				if err != nil {
 					LoggerFromContext(ctx).Error(
 						"user does not exist",

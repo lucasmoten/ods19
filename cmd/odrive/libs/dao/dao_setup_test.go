@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	globalconfig "decipher.com/object-drive-server/config"
 	"github.com/jmoiron/sqlx"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/config"
@@ -36,7 +37,7 @@ func init() {
 		panic(err)
 	}
 
-	d = &dao.DataAccessLayer{MetadataDB: db}
+	d = &dao.DataAccessLayer{MetadataDB: db, Logger: globalconfig.RootLogger}
 
 	// Create users referenced by these tests
 	user := models.ODUser{}

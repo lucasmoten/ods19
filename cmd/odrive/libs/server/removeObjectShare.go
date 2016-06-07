@@ -24,6 +24,7 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 		return NewAppError(http.StatusInternalServerError, errors.New("Could not determine user"), "Invalid user.")
 	}
 	_ = caller
+	dao := DAOFromContext(ctx)
 
 	// Parse Request in sent format
 	if r.Header.Get("Content-Type") != "application/json" {
@@ -48,7 +49,7 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 	}
 
 	// Retrieve existing object from the data store
-	dbObject, err := h.DAO.GetObject(requestObject, true)
+	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
 		return NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
 	}
@@ -99,7 +100,7 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 	shareToDelete.ModifiedBy = caller.DistinguishedName
 	shareToDelete.IsDeleted = true
 	shareToDelete.DeletedBy.String = caller.DistinguishedName
-	dbObjectPermission, err := h.DAO.DeleteObjectPermission(*shareToDelete, removeObjectShare.PropagateToChildren)
+	dbObjectPermission, err := dao.DeleteObjectPermission(*shareToDelete, removeObjectShare.PropagateToChildren)
 	if err != nil {
 		return NewAppError(http.StatusInternalServerError, err, "Error deleting permission")
 	}

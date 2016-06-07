@@ -70,9 +70,10 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 	if err != nil {
 		return NewAppError(500, err, "Error parsing URI")
 	}
+	dao := DAOFromContext(ctx)
 
 	// Retrieve existing object from the data store
-	object, err := h.DAO.GetObject(requestObject, true)
+	object, err := dao.GetObject(requestObject, true)
 	if err != nil {
 		return NewAppError(500, err, "Error retrieving object")
 	}

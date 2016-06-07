@@ -2,9 +2,9 @@ package dao
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
 )
@@ -18,12 +18,12 @@ import (
 func (dao *DataAccessLayer) DeleteObjectPermission(objectPermission models.ODObjectPermission, propagateToChildren bool) (models.ODObjectPermission, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObjectPermission{}, err
 	}
 	dbObjectPermission, err := deleteObjectPermissionInTransaction(tx, objectPermission, propagateToChildren)
 	if err != nil {
-		log.Printf("Error in DeleteObjectPermission: %v", err)
+		dao.GetLogger().Error("Error in DeleteObjectPermission", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()

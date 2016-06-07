@@ -3,10 +3,10 @@ package dao
 import (
 	"database/sql"
 	"errors"
-	"log"
 
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 )
 
 // UndeleteObject undeletes an object at the database level, and propagates the
@@ -14,12 +14,12 @@ import (
 func (dao *DataAccessLayer) UndeleteObject(object *models.ODObject) (models.ODObject, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObject{}, err
 	}
-	dbObject, err := undeleteObjectInTransaction(tx, object)
+	dbObject, err := undeleteObjectInTransaction(dao.GetLogger(), tx, object)
 	if err != nil {
-		log.Printf("Error in UndeleteObject: %v\n", err)
+		dao.GetLogger().Error("Error in UndeleteObject", zap.String("err", err.Error()))
 		tx.Rollback()
 		return models.ODObject{}, err
 	}
@@ -27,7 +27,7 @@ func (dao *DataAccessLayer) UndeleteObject(object *models.ODObject) (models.ODOb
 	return dbObject, nil
 }
 
-func undeleteObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) (models.ODObject, error) {
+func undeleteObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.ODObject) (models.ODObject, error) {
 	var dbObject models.ODObject
 
 	if object.ID == nil {
@@ -49,7 +49,7 @@ func undeleteObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) (models.O
 		return dbObject, err
 	}
 
-	err = undeleteAncestorChildren(tx, object)
+	err = undeleteAncestorChildren(logger, tx, object)
 	if err != nil {
 		return dbObject, err
 	}
@@ -59,7 +59,7 @@ func undeleteObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) (models.O
 	return dbObject, nil
 }
 
-func undeleteAncestorChildren(tx *sqlx.Tx, object *models.ODObject) error {
+func undeleteAncestorChildren(logger zap.Logger, tx *sqlx.Tx, object *models.ODObject) error {
 	var results models.ODObjectResultset
 
 	query := `select
@@ -104,7 +104,7 @@ func undeleteAncestorChildren(tx *sqlx.Tx, object *models.ODObject) error {
 
 	err := tx.Select(&results.Objects, query, object.ID)
 	if err != nil {
-		log.Println("Error from Select in undeleteAncestorChildren: ", err)
+		logger.Error("Error from Select in undeleteAncestorChildren", zap.String("err", err.Error()))
 		return err
 	}
 
@@ -124,7 +124,7 @@ func undeleteAncestorChildren(tx *sqlx.Tx, object *models.ODObject) error {
 
 	// Then, resursively call this function.
 	for _, child := range results.Objects {
-		err := undeleteAncestorChildren(tx, &child)
+		err := undeleteAncestorChildren(logger, tx, &child)
 		if err != nil && err != sql.ErrNoRows {
 			return err
 		}

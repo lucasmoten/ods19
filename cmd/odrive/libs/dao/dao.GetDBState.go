@@ -5,18 +5,19 @@ import (
 
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
+	"github.com/uber-go/zap"
 )
 
 // GetDBState retrieves the database state including schema version and identifier used for cache location
 func (dao *DataAccessLayer) GetDBState() (models.DBState, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		log.Printf("Could not begin transaction: %v", err)
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.DBState{}, err
 	}
 	dbState, err := getDBStateInTransaction(tx)
 	if err != nil {
-		log.Printf("Error in GetDBState: %v\n", err)
+		dao.GetLogger().Error("Error in GetDBState", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()

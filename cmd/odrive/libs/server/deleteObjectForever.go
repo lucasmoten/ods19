@@ -22,6 +22,7 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 	if !ok {
 		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
 	}
+	dao := DAOFromContext(ctx)
 
 	// Parse Request in sent format
 	requestObject, err = parseDeleteObjectRequest(r, ctx)
@@ -32,7 +33,7 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 	// Business Logic...
 
 	// Retrieve existing object from the data store
-	dbObject, err := h.DAO.GetObject(requestObject, true)
+	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
 		return NewAppError(500, err, "Error retrieving object")
 	}
@@ -60,7 +61,7 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 	// expunged.  The DAO checks the changeToken and handles the child calls
 	dbObject.ModifiedBy = caller.DistinguishedName
 	dbObject.ChangeToken = requestObject.ChangeToken
-	err = h.DAO.ExpungeObject(dbObject, true)
+	err = dao.ExpungeObject(dbObject, true)
 	if err != nil {
 		return NewAppError(500, err, "DAO Error expunging object")
 	}

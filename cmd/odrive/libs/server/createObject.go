@@ -29,6 +29,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 	if !ok {
 		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
 	}
+	dao := DAOFromContext(ctx)
 
 	var obj models.ODObject
 	var createdObject models.ODObject
@@ -85,7 +86,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 	// Don't wipe out existing permissions, just add the new one!
 	obj.Permissions = append(obj.Permissions, grant)
 
-	createdObject, err = h.DAO.CreateObject(&obj)
+	createdObject, err = dao.CreateObject(&obj)
 	if err != nil {
 		return NewAppError(500, err, "error storing object")
 	}
@@ -119,6 +120,7 @@ func handleCreatePrerequisites(
 	h AppServer,
 	requestObject *models.ODObject,
 ) *AppError {
+	dao := DAOFromContext(ctx)
 
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
@@ -153,7 +155,7 @@ func handleCreatePrerequisites(
 
 		parentObject := models.ODObject{}
 		parentObject.ID = requestObject.ParentID
-		dbParentObject, err := h.DAO.GetObject(parentObject, false)
+		dbParentObject, err := dao.GetObject(parentObject, false)
 		if err != nil {
 			return NewAppError(500, err, "Error retrieving parent object")
 		}

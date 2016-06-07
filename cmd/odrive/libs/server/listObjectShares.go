@@ -27,6 +27,7 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 		}
 		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
 	}
+	dao := DAOFromContext(ctx)
 
 	var err error
 
@@ -40,7 +41,7 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 	// Fetch the matching object
 	targetObject := models.ODObject{}
 	targetObject.ID, _ = hex.DecodeString(pagingRequest.ObjectID)
-	dbObject, err := h.DAO.GetObject(targetObject, false)
+	dbObject, err := dao.GetObject(targetObject, false)
 	if err != nil {
 		return NewAppError(404, err, "Resource not found")
 	}

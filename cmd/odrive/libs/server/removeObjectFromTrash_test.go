@@ -134,7 +134,7 @@ func TestUndeleteExpungedObjectFails(t *testing.T) {
 		Users:  []models.ODUser{user1, user2},
 	}
 	s := server.AppServer{
-		DAO:      fakeDAO,
+		RootDAO:  fakeDAO,
 		Users:    userCache,
 		Snippets: snippetCache,
 		AAC:      fakeAAC,
@@ -189,7 +189,7 @@ func TestUndeleteObjectWithDeletedAncestorFails(t *testing.T) {
 	snippetCache := server.NewSnippetCache()
 
 	s := server.AppServer{
-		DAO:      fakeDAO,
+		RootDAO:  fakeDAO,
 		AAC:      fakeAAC,
 		Users:    userCache,
 		Snippets: snippetCache,
