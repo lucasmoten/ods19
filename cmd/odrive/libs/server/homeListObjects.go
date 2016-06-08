@@ -10,6 +10,10 @@ import (
 
 func (h *AppServer) homeListObjects(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
+	if h.TemplateCache == nil {
+		return do404(ctx, w, r)
+	}
+
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {

@@ -162,13 +162,6 @@ func mapACCMsSlice(from []string) []*acm_thrift.Accm {
 func RawAcmToThriftAcm(rawAcm string) (*acm_thrift.Acm, error) {
 	// Lucas says: sorry, I just didn't feel like reimplementing this here since audit isn't used yet.
 	return nil, fmt.Errorf("Not implemented")
-
-	// parsed, err := acm.NewACMFromRawACM(rawAcm)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("Failed ODObject prerequisite: unparseable RawAcm: %v\n", err)
-	// }
-	// converted := ODObjectACMToAuditorACM(parsed)
-	// return converted, nil
 }
 
 func determineObjectType(e *events_thrift.AuditEvent) *string {

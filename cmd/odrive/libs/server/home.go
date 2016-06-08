@@ -13,6 +13,10 @@ import (
 // listing and linking to some available operations
 func (h AppServer) home(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
+	if h.TemplateCache == nil {
+		return do404(ctx, w, r)
+	}
+
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
@@ -25,7 +29,8 @@ func (h AppServer) home(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	apiFuncs := []struct{ Name, RelativeLink, Description string }{
 		{"List Objects", cfg.NginxRootURL + "/ui/listObjects", "This operation will result in a GET call to list root objects with default paging."},
 		{"Statistics", cfg.NginxRootURL + "/stats", "This operation will result in a GET call to list root objects with default paging."},
-		{"Users", cfg.NginxRootURL + "/users", "This is a list of all users."},
+		{"API: Users", cfg.NginxRootURL + "/users", "This is a list of all users via API call."},
+		{"API: Objects", cfg.NginxRootURL + "/objects", "This is a list of objects in users root via API call."},
 	}
 
 	data := struct {

@@ -8,6 +8,7 @@ import (
 	globalconfig "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models/acm"
 	aac "decipher.com/object-drive-server/services/aac"
+	"decipher.com/object-drive-server/services/zookeeper"
 	"decipher.com/object-drive-server/util"
 	t2 "github.com/samuel/go-thrift/thrift"
 )
@@ -32,9 +33,7 @@ var snippetType = "ES"
 var aacClient = aac.AacServiceClient{}
 
 func DontRun() bool {
-	//We need to block direct AAC contact if we want to be able to docker-compose scale it.
-	//Docker-compose won't just warn that only one port will map.  It fails to come up.
-	return true //testing.Short()
+	return testing.Short()
 }
 
 func TestMain(m *testing.M) {
@@ -42,22 +41,53 @@ func TestMain(m *testing.M) {
 		return
 	}
 
-	globalconfig.SetupGlobalDefaults()
+	// These tests are dependent upon zookeeper, which the AAC will announce to.
+	// Find the host + port, given a zookeeper node + zookeeper host + port
+	// depend on a mapped hostname in /etc/hosts to find and connect zookeeper
+	zkURL := "dockervm:2181"
+	zkState, err := zookeeper.RegisterApplication("/cte/service/odrive-testsuite/1.0", zkURL)
+	if err != nil {
+		log.Printf("Got an error registering test-suite in zookeeper %s", err.Error())
+	}
+	zkAAC := globalconfig.GetEnvOrDefault(
+		"OD_ZK_AAC",
+		globalconfig.GetEnvOrDefault("OD_ZK_ROOT", "/cte")+"/service/aac/2.2/thrift",
+	)
+	// setup a channel and callback to hold announcement from zookeeper
+	var done = make(chan map[string]zookeeper.AnnounceData)
+	testAACCallback := func(at string, announcements map[string]zookeeper.AnnounceData) {
+		done <- announcements
+	}
+	zookeeper.TrackAnnouncement(zkState, zkAAC, testAACCallback)
+	announcements := <-done
+	// using the announcements, get the host + port
+	aacHost := ""
+	aacPort := 0
+	for _, zse := range announcements {
+		aacHost = zse.ServiceEndpoint.Host
+		aacPort = zse.ServiceEndpoint.Port
+	}
+	log.Printf("Testing with AAC Host %s and Port %d", aacHost, aacPort)
 
-	trustPath := filepath.Join(globalconfig.CertsDir, "clients", "client.trust.pem")
-	certPath := filepath.Join(globalconfig.CertsDir, "clients", "test_1.cert.pem")
-	keyPath := filepath.Join(globalconfig.CertsDir, "clients", "test_1.key.pem")
+	// AAC trust, client public & private key
+	trustPath := globalconfig.GetEnvOrDefault("OD_AAC_CA", filepath.Join("..", "defaultcerts", "clients", "client.trust.pem"))
+	certPath := globalconfig.GetEnvOrDefault("OD_AAC_CERT", filepath.Join("..", "defaultcerts", "clients", "test_1.cert.pem"))
+	keyPath := globalconfig.GetEnvOrDefault("OD_AAC_KEY", filepath.Join("..", "defaultcerts", "clients", "test_1.key.pem"))
 
+	// Setup connection config with SSL
 	dialOpts := &globalconfig.OpenSSLDialOptions{}
 	dialOpts.SetInsecureSkipHostVerification()
 	conn, err := globalconfig.NewOpenSSLTransport(
-		trustPath, certPath, keyPath, "twl-server-generic2", 9093, dialOpts)
+		trustPath, certPath, keyPath, aacHost, aacPort, dialOpts)
 	if err != nil {
 		log.Fatal(err)
 	}
+	// Setup thrift client with connection config
 	trns := t2.NewTransport(t2.NewFramedReadWriteCloser(conn, 0), t2.BinaryProtocol)
 	client := t2.NewClient(trns, true)
 	aacClient = aac.AacServiceClient{Client: client}
+
+	// Finally ready to run tests with the connected aacClient
 	m.Run()
 
 }

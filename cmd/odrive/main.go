@@ -109,6 +109,16 @@ func main() {
 			Usage: "Path to yaml configuration file.",
 			Value: "odrive.yml",
 		},
+		cli.StringFlag{
+			Name:  "staticRoot",
+			Usage: "Path to static files. Defaults to libs/server/static",
+			Value: filepath.Join("libs", "server", "static"),
+		},
+		cli.StringFlag{
+			Name:  "templateDir",
+			Usage: "Path to template files. Defaults to libs/server/static/templates",
+			Value: filepath.Join("libs", "server", "static", "templates"),
+		},
 	}
 
 	cliParser.Action = func(c *cli.Context) error {
@@ -129,7 +139,26 @@ func main() {
 			os.Exit(1)
 		}
 
-		startApplication(confFile.Whitelisted, ciphers, useTLS)
+		// Static Files Directory (Optional. Has a default, but can be set to empty for no static files)
+		staticRootPath := c.String("staticRoot")
+		if len(staticRootPath) > 0 {
+			if _, err := os.Stat(staticRootPath); os.IsNotExist(err) {
+				fmt.Printf("Static Root Path %s does not exist: %v\n", staticRootPath, err)
+				os.Exit(1)
+			}
+		}
+
+		// Template Directory (Optional. Has a default, but can be set to empty for no templates)
+		templatePath := c.String("templateDir")
+		if len(templatePath) > 0 {
+			if _, err := os.Stat(templatePath); os.IsNotExist(err) {
+				fmt.Printf("Template folder %s does not exist: %v\n", templatePath, err)
+				os.Exit(1)
+			}
+		}
+		logger.Info("configuration-settings", zap.String("confPath", confPath), zap.String("staticRoot", staticRootPath), zap.String("templateDir", templatePath))
+
+		startApplication(confFile.Whitelisted, ciphers, useTLS, staticRootPath, templatePath)
 		return nil
 	}
 
@@ -158,12 +187,10 @@ func runServiceTest(ctx *cli.Context) error {
 	return nil
 }
 
-func startApplication(whitelist, ciphers []string, useTLS bool) {
-
-	globalconfig.SetupGlobalDefaults()
+func startApplication(whitelist, ciphers []string, useTLS bool, staticRootPath string, templatePath string) {
 
 	// Load Configuration from conf.json
-	conf := config.NewAppConfiguration(whitelist, ciphers, useTLS)
+	conf := config.NewAppConfiguration(whitelist, ciphers, useTLS, staticRootPath, templatePath)
 
 	app, err := makeServer(conf.ServerSettings)
 	if err != nil {
@@ -241,7 +268,7 @@ func startApplication(whitelist, ciphers []string, useTLS bool) {
 
 	pollAll(app, updates, time.Duration(30*time.Second))
 
-	zkTracking(app)
+	zkTracking(app, conf.AACSettings)
 
 	logger.Info("starting server", zap.String("addr", app.Addr))
 	//This blocks until there is an error to stop the server
@@ -253,7 +280,7 @@ func startApplication(whitelist, ciphers []string, useTLS bool) {
 	}
 }
 
-func zkTracking(app *server.AppServer) {
+func zkTracking(app *server.AppServer, aacSettings config.AACConfiguration) {
 	zookeeper.TrackAnnouncement(app.ZKState, zkOdrive, nil)
 
 	//I am doing this because I need a reference to app to re-assign the connection.
@@ -275,7 +302,7 @@ func zkTracking(app *server.AppServer) {
 					//Try a new host,port
 					host := announcement.ServiceEndpoint.Host
 					port := announcement.ServiceEndpoint.Port
-					aacc, err := aac.GetAACClient(host, port)
+					aacc, err := aac.GetAACClient(host, port, aacSettings.CAPath, aacSettings.ClientCert, aacSettings.ClientKey)
 					if err == nil {
 						_, err = aacc.ValidateAcm(testhelpers.ValidACMUnclassified)
 						if err != nil {
@@ -388,16 +415,19 @@ func getDBIdentifier(app *server.AppServer) (string, error) {
 
 func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, error) {
 
-	templates, err := template.ParseGlob(
-		filepath.Join(globalconfig.ProjectRoot,
-			"cmd", "odrive", "libs", "server",
-			"static", "templates", "*"))
-	if err != nil {
-		logger.Info("Cloud not discover templates.")
-		return nil, err
-	}
+	var templates *template.Template
+	var err error
 
-	staticPath := filepath.Join(globalconfig.ProjectRoot, "cmd", "odrive", "libs", "server", "static")
+	// If template path specified, ensure templates can be loaded
+	if len(conf.PathToTemplateFiles) > 0 {
+		templates, err = template.ParseGlob(filepath.Join(conf.PathToTemplateFiles, "*"))
+		if err != nil {
+			logger.Info("Could not discover templates.")
+			return nil, err
+		}
+	} else {
+		templates = nil
+	}
 
 	userCache := server.NewUserCache()
 	snippetCache := server.NewSnippetCache()
@@ -409,7 +439,7 @@ func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, err
 		Tracker:                   performance.NewJobReporters(1024),
 		ServicePrefix:             globalconfig.RootURLRegex,
 		TemplateCache:             templates,
-		StaticDir:                 staticPath,
+		StaticDir:                 conf.PathToStaticFiles,
 		Users:                     userCache,
 		Snippets:                  snippetCache,
 		AclImpersonationWhitelist: conf.AclImpersonationWhitelist,

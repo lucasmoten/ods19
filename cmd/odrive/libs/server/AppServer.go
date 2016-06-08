@@ -133,7 +133,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//Set caller first so that logger can log user
 	ctx = ContextWithCaller(context.Background(), caller)
 	//Give the context an identity, and make sure that the user knows its value
-	sessionID := globalconfig.RandomID()
+	sessionID := newSessionID()
 	w.Header().Add("sessionid", sessionID)
 	ctx = ContextWithSession(ctx, sessionID)
 	//Now we can log
@@ -219,7 +219,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	audit.WithActionMode(&event, "USER_INITIATED")
 	audit.WithActionLocations(&event, "IP_ADDRESS", globalconfig.MyIP)
 	audit.WithActionTargetVersions(&event, "1.0") // TODO global config?
-	audit.WithSessionIds(&event, newSessionID())
+	audit.WithSessionIds(&event, sessionID)
 	audit.WithCreator(&event, "APPLICATION", "Object Drive") // TODO global config?
 
 	ctx = ContextWithAuditEvent(ctx, &event)
@@ -410,11 +410,12 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func newSessionID() string {
-	id, err := util.NewGUID()
-	if err != nil {
-		return "unknown"
-	}
-	return id
+	return globalconfig.RandomID()
+	// id, err := util.NewGUID()
+	// if err != nil {
+	// 	return "unknown"
+	// }
+	// return id
 }
 
 // AuditEventFromContext retrives a pointer to an events_thrift.AuditEvent from
