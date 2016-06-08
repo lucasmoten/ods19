@@ -286,6 +286,8 @@ func guessContentType(name string) string {
 		contentType = "image/png"
 	case extIs(name, ".gif"):
 		contentType = "image/gif"
+	case extIs(name, ".bmp"):
+		contentType = "image/bmp"
 	case extIs(name, ".m4v"):
 		contentType = "video/mp4"
 	case extIs(name, ".mp4"):
