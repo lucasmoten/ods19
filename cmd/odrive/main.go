@@ -73,6 +73,14 @@ func main() {
 			},
 		},
 		{
+			Name:  "makeScript",
+			Usage: "Generate a startup script. Pipe output to a file.",
+			Action: func(ctx *cli.Context) error {
+				config.GenerateStartScript()
+				return nil
+			},
+		},
+		{
 			Name:   "testService",
 			Usage:  "Run network diagnostic test against a service dependency. Values: s3, aac, db, zk",
 			Action: runServiceTest,

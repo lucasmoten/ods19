@@ -3,7 +3,7 @@
 # Write files and directories for rpmbuild
 
 if [ -z ${ODRIVE_BINARY_DIR+x}]; then
-    echo "ODRIVE_BINARY must be set"
+    echo "ODRIVE_BINARY_DIR must be set"
     exit 1
 fi
 
