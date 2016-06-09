@@ -197,6 +197,8 @@ func startApplication(whitelist, ciphers []string, useTLS bool) {
 	zkAddress := globalconfig.GetEnvOrDefault("OD_ZK_URL", "zk:2181")
 	zkBasePath := globalconfig.GetEnvOrDefault("OD_ZK_BASEPATH", "/service/object-drive/1.0")
 
+	logger.Info("our ip is", zap.String("ip", globalconfig.MyIP))
+
 	//Once we know which cluster we are attached to (ie: the database and bucket partition), note it in the logs
 	logger.Info(
 		"join cluster",

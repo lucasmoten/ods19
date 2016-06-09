@@ -150,13 +150,19 @@ func (h AppServer) beginUpload(
 	obj *models.ODObject,
 	grant *models.ODObjectPermission,
 ) (beginDrain func(), herr *AppError, err error) {
-
 	beganAt := h.Tracker.BeginTime(performance.UploadCounter)
 	drainFunc, herr, err := h.beginUploadTimed(ctx, caller, part, obj, grant)
-	h.Tracker.EndTime(performance.UploadCounter, beganAt, performance.SizeJob(obj.ContentSize.Int64))
+	bytes := obj.ContentSize.Int64
+	//If this failed, then don't count it in our statistics
+	if herr != nil {
+		bytes = 0
+	}
+	h.Tracker.EndTime(performance.UploadCounter, beganAt, performance.SizeJob(bytes))
 	if herr != nil {
 		return nil, herr, err
 	}
+	//Make sure that we can compute throughput from this (the message name and param name are important)
+	LoggerFromContext(ctx).Info("transaction up", zap.Int64("bytes", bytes))
 	return drainFunc, herr, err
 }
 
