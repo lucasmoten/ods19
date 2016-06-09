@@ -121,9 +121,7 @@ func lookupDocker() {
 	//This is used by test clients
 	dockerhost := os.Getenv("DOCKER_HOST")
 	if dockerhost != "" {
-		RootLogger.Info("docker host", zap.String("env", dockerhost))
 		DockerVM = strings.Split(dockerhost, ":")[1][2:]
-		RootLogger.Info("docker host", zap.String("ip", DockerVM))
 	}
 	DockerVM = GetEnvOrDefault("OD_DOCKERVM_OVERRIDE", DockerVM)
 	//Allow us to change the port, to get around nginx
@@ -157,7 +155,6 @@ func lookupOurIP() {
 	} else {
 		RootLogger.Error("We could not find our hostname")
 	}
-	RootLogger.Info("our ip is", zap.String("ip", MyIP))
 }
 
 func lookupStandalone() {

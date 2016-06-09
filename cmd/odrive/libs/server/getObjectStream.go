@@ -461,6 +461,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 		byteRange,
 	)
 
+	LoggerFromContext(ctx).Info("transaction down", zap.Int64("bytes", actualLength))
 	if err != nil {
 		//Error here isn't a constant, but it's indicative of client disconnecting and
 		//not bothering to eat all the bytes we sent back (as promised).  So be quiet
