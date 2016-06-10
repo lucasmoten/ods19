@@ -114,7 +114,9 @@ func GenerateStartScript() {
 {{ end }}
 
 # odrive must be on your PATH
-odrive &>> /opt/bedrock/odrive/log/object-drive.log 2>&1&
+odrive --conf /etc/odrive/odrive.yml \ 
+       --staticRoot /etc/odrive/libs/server/static \
+	   --templateDir /etc/odrive/libs/server/static/templates &>> /opt/bedrock/odrive/log/object-drive.log 2>&1&
 
 `)
 

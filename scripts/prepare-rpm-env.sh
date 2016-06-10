@@ -20,6 +20,7 @@ if [ ! -f ~/.rpmmacros ]; then
   cat <<EOF >~/.rpmmacros
 %_topdir   %(echo $HOME)/rpmbuild
 %_tmppath  %{_topdir}/tmp
+%define _unpackaged_files_terminate_build 0
 EOF
 fi
 
@@ -29,8 +30,20 @@ cd ~/rpmbuild
 mkdir ${ODRIVE_PACKAGE_NAME}
 mkdir -p ${ODRIVE_PACKAGE_NAME}/usr/bin
 mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive
-install -m 755 ${ODRIVE_BINARY_DIR}/odrive ${ODRIVE_PACKAGE_NAME}/usr/bin
-install -m 644 ${ODRIVE_BINARY_DIR}/odrive.yml ${ODRIVE_PACKAGE_NAME}/etc/odrive/
+mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js
+mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates
+install -m 755 -D ${ODRIVE_BINARY_DIR}/odrive ${ODRIVE_PACKAGE_NAME}/usr/bin
+install -m 644 -D ${ODRIVE_BINARY_DIR}/odrive.yml ${ODRIVE_PACKAGE_NAME}/etc/odrive/
+install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/js/listObjects.js ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/listObjects.js
+install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/_function.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/_function.html
+install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/home.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/home.html
+install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/listObjects.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/listObjects.html
+install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/listObjects.js ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/listObjects.js
+install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/ObjectDriveSDK.java ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/ObjectDriveSDK.java
+install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/root.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/root.html
+install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/TestShare.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/TestShare.html
+install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/TestUpdate.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/TestUpdate.html
+install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/favicon.ico ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/favicon.ico
 
 tar -zcvf ${ODRIVE_PACKAGE_NAME}.tar.gz ${ODRIVE_PACKAGE_NAME}/
 
@@ -45,10 +58,11 @@ cat <<EOF > SPECS/odrive.spec
 %define        __spec_install_post %{nil}
 %define          debug_package %{nil}
 %define        __os_install_post %{_dbpath}/brp-compress
+%define         _unpackaged_files_terminate_build 0
 
 Summary: Binary distribution of object-drive-server
 Name: odrive
-Version: 1.0
+Version: ${ODRIVE_VERSION}
 Release: 1
 License: None
 Group: Development/Tools
@@ -81,6 +95,7 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.yml
+%{_sysconfdir}/%{name}/libs
 %{_bindir}/*
 
 %changelog
