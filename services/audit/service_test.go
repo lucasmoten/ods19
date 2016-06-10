@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
-	"decipher.com/object-drive-server/config"
+	globalconfig "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/services/audit"
 	"decipher.com/object-drive-server/services/audit/generated/acm_thrift"
 	auditservice "decipher.com/object-drive-server/services/audit/generated/auditservice_thrift"
@@ -50,17 +50,17 @@ func setupDefaults() {
 
 func setupConnections() {
 
-	trustPath := filepath.Join(config.CertsDir, "server", "server.trust.pem")
-	certPath := filepath.Join(config.CertsDir, "server", "server.cert.pem")
-	keyPath := filepath.Join(config.CertsDir, "server", "server.key.pem")
+	trustPath := filepath.Join("..", "..", "defaultcerts", "server", "server.trust.pem")
+	certPath := filepath.Join("..", "..", "defaultcerts", "server", "server.cert.pem")
+	keyPath := filepath.Join("..", "..", "defaultcerts", "server", "server.key.pem")
 
-	opts := &config.OpenSSLDialOptions{}
+	opts := &globalconfig.OpenSSLDialOptions{}
 	opts.SetInsecureSkipHostVerification()
 	thriftPortInt, err := strconv.Atoi(thriftPort)
 	if err != nil {
 		log.Fatal("could not parse thrift port")
 	}
-	conn, err := config.NewOpenSSLTransport(
+	conn, err := globalconfig.NewOpenSSLTransport(
 		trustPath, certPath, keyPath, host, thriftPortInt, opts)
 	if err != nil {
 		log.Fatal("Could not connect to Audit service in test")
@@ -134,7 +134,12 @@ func TestEventAccesses(t *testing.T) {
 	var event events_thrift.AuditEvent
 	_ = event
 
-	preHandlerEventFields(&event, t)
+	err := preHandlerEventFields(&event, t)
+	if err != nil {
+		t.Errorf("return from preHandlerEventFields failed. %v\n", err)
+		t.FailNow()
+		t.Fail()
+	}
 }
 func TestEventCreates(t *testing.T) {
 }
@@ -142,7 +147,7 @@ func TestEventDeletes(t *testing.T)   {}
 func TestEventModifies(t *testing.T)  {}
 func TestEventSearchQry(t *testing.T) {}
 
-func preHandlerEventFields(event *events_thrift.AuditEvent, t *testing.T) {
+func preHandlerEventFields(event *events_thrift.AuditEvent, t *testing.T) error {
 	myIP := "192.168.11.100"
 
 	rawAcm := testhelpers.ValidACMTopSecretSITK
@@ -150,6 +155,12 @@ func preHandlerEventFields(event *events_thrift.AuditEvent, t *testing.T) {
 	convertedAcm, err := mapping.RawAcmToThriftAcm(rawAcm)
 	if err != nil {
 		t.Errorf("preHandlerEventFields failed: could not convert rawAcm: %v\n", err)
+		t.FailNow()
+		t.Fail()
+		if !t.Failed() {
+			t.Fatal("This test should fail!!!!")
+		}
+		return err
 	}
 
 	audit.WithActionInitiator(
@@ -162,6 +173,7 @@ func preHandlerEventFields(event *events_thrift.AuditEvent, t *testing.T) {
 	audit.WithSessionIds(event, newSessionID())
 	audit.WithCreator(event, "APPLICATION", "Object Drive")
 
+	return nil
 }
 
 func TestEventAccess(t *testing.T) {

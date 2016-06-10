@@ -31,6 +31,7 @@ func (h AppServer) serveStatic(
 	}
 
 	f, err := os.Open(path)
+	defer f.Close()
 	if err != nil {
 		return NewAppError(404, nil, errStaticResourceNotFound)
 	}

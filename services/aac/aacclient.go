@@ -1,8 +1,6 @@
 package aac
 
 import (
-	"path/filepath"
-
 	globalconfig "decipher.com/object-drive-server/config"
 	"github.com/samuel/go-thrift/thrift"
 	"github.com/uber-go/zap"
@@ -13,10 +11,7 @@ var (
 )
 
 //GetAACClient is a connection to AAC
-func GetAACClient(aacHost string, aacPort int) (*AacServiceClient, error) {
-	trustPath := filepath.Join(globalconfig.CertsDir, "client-aac", "trust", "client.trust.pem")
-	certPath := filepath.Join(globalconfig.CertsDir, "client-aac", "id", "client.cert.pem")
-	keyPath := filepath.Join(globalconfig.CertsDir, "client-aac", "id", "client.key.pem")
+func GetAACClient(aacHost string, aacPort int, trustPath, certPath, keyPath string) (*AacServiceClient, error) {
 
 	aacLogger := logger.With(zap.String("host", aacHost), zap.Int("port", aacPort))
 	conn, err := globalconfig.NewOpenSSLTransport(

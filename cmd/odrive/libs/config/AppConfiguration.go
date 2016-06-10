@@ -2,9 +2,9 @@ package config
 
 import (
 	"crypto/tls"
-	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	globalconfig "decipher.com/object-drive-server/config"
 	"github.com/go-sql-driver/mysql"
@@ -69,6 +69,8 @@ type ServerSettingsConfiguration struct {
 	CipherSuites              []string
 	MinimumVersion            string
 	AclImpersonationWhitelist []string
+	PathToStaticFiles         string
+	PathToTemplateFiles       string
 }
 
 // AuditSvcConfiguration defines the attributes needed for connecting to the audit service
@@ -85,20 +87,23 @@ func NewAppConfigurationWithDefaults() AppConfiguration {
 	ciphers := []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"}
 	useTLS := true
 	whitelist := []string{"cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"}
-
-	return NewAppConfiguration(whitelist, ciphers, useTLS)
+	staticRootPath := filepath.Join("libs", "server", "static")
+	templatePath := filepath.Join("libs", "server", "static", "templates")
+	return NewAppConfiguration(whitelist, ciphers, useTLS, staticRootPath, templatePath)
 }
 
 // NewAppConfiguration loads the configuration from the environment. Parameters are command
 // line flags.
-func NewAppConfiguration(whitelist, ciphers []string, useTLS bool) AppConfiguration {
+func NewAppConfiguration(whitelist, ciphers []string, useTLS bool, staticRootPath string, templatePath string) AppConfiguration {
 
 	dbConf := NewDatabaseConfigFromEnv()
-	serverSettings := NewServerSettingsFromEnv(whitelist, ciphers, useTLS)
+	serverSettings := NewServerSettingsFromEnv(whitelist, ciphers, useTLS, staticRootPath, templatePath)
+	aacSettings := NewAACSettingsFromEnv()
 
 	return AppConfiguration{
 		DatabaseConnection: dbConf,
 		ServerSettings:     serverSettings,
+		AACSettings:        aacSettings,
 	}
 }
 
@@ -128,7 +133,7 @@ func NewDatabaseConfigFromEnv() DatabaseConfiguration {
 }
 
 // NewServerSettingsFromEnv inspects the environment and returns a ServerSettingsConfiguration.
-func NewServerSettingsFromEnv(whitelist, ciphers []string, useTLS bool) ServerSettingsConfiguration {
+func NewServerSettingsFromEnv(whitelist, ciphers []string, useTLS bool, staticRootPath string, templatePath string) ServerSettingsConfiguration {
 
 	var settings ServerSettingsConfiguration
 
@@ -145,13 +150,26 @@ func NewServerSettingsFromEnv(whitelist, ciphers []string, useTLS bool) ServerSe
 	settings.MinimumVersion = "1.2"
 	settings.AclImpersonationWhitelist = whitelist
 	settings.CipherSuites = ciphers
+	settings.PathToStaticFiles = staticRootPath
+	settings.PathToTemplateFiles = templatePath
 
 	return settings
 }
 
-func displayFormatForConfigFile() {
-	samplefile := `defunct!`
-	fmt.Println(samplefile)
+// NewAACSettingsFromEnv inspects the environment and returns a AACConfiguration.
+func NewAACSettingsFromEnv() AACConfiguration {
+
+	var conf AACConfiguration
+
+	conf.CAPath = os.Getenv(OD_AAC_CA)
+	conf.ClientCert = os.Getenv(OD_AAC_CERT)
+	conf.ClientKey = os.Getenv(OD_AAC_KEY)
+
+	// These should get overridden with zookeeper nodes found in OD_ZK_AAC
+	conf.HostName = os.Getenv(OD_AAC_HOST)
+	conf.Port = os.Getenv(OD_AAC_PORT)
+
+	return conf
 }
 
 // GetDatabaseHandle initializes database connection using the configuration

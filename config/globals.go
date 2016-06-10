@@ -5,46 +5,24 @@ import (
 	"encoding/hex"
 	"net"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/uber-go/zap"
-
-	"decipher.com/object-drive-server/util"
 )
 
+// RandomID generates a random string
 func RandomID() string {
 	buf := make([]byte, 4)
 	rand.Read(buf)
 	return hex.EncodeToString(buf)
 }
 
-// Our randomly assigned (on startup node identifier used in zk, logs, etc)
+// NodeID is our randomly assigned identifier(on startup node identifier used in zk, logs, etc)
 var NodeID = RandomID()
 
 // RootLogger is from which all other loggers are defined - because this is where we get NodeID in logs
 var RootLogger zap.Logger
-
-// CertsDir is a base certificate directory that expects /server and /client
-// to exist inside of it. TODO: Consider the total amount of config we need
-// for this project. Is this a sane expectation for all binaries we compile from
-// the /cmd subdirectory?
-var CertsDir string
-
-// ProjectRoot is a global config variable that corresponds to the base directory.
-var ProjectRoot string
-
-// ProjectName is configurable in case the project is migrated to another
-// git repository.
-var ProjectName = "object-drive-server"
-
-// SetupGlobalDefaults initializes global variables required by importers of
-// this package. We define this function to avoid using init().
-func SetupGlobalDefaults() {
-	ProjectRoot = locateProjectRoot()
-	CertsDir = locateCerts(ProjectRoot)
-}
 
 //In order to migrate these functions into SetupGlobalDefaults,
 // all tests need to invoke it.
@@ -61,45 +39,6 @@ func initLogger() {
 	//0 is Info log level, 1 is Warn, etc.
 	logger.SetLevel(zap.Level(GetEnvOrDefaultInt("OD_LOG_LEVEL", 0)))
 	RootLogger = logger
-}
-
-func locateProjectRoot() string {
-	var projectRoot string
-	var err error
-
-	gopath := GetEnvOrDefault("GOPATH", "")
-	if gopath == "" {
-		RootLogger.Warn("GOPATH is not set. Using current directory for project root.")
-		projectRoot, err = os.Getwd()
-		if err != nil {
-			RootLogger.Fatal("cannot get project root", zap.String("err", err.Error()))
-		}
-	} else {
-		projectRoot = filepath.Join(gopath, "src", "decipher.com", ProjectName)
-	}
-
-	ok, err := util.PathExists(projectRoot)
-	if err != nil {
-		RootLogger.Fatal("cannot find project root", zap.String("err", err.Error()))
-	}
-	if !ok {
-		RootLogger.Error("project root does not exist", zap.String("err", err.Error()))
-	}
-	RootLogger.Info("located project root", zap.String("filename", projectRoot))
-	return projectRoot
-}
-
-func locateCerts(projectRoot string) string {
-	var certsDir string
-	certsDir = filepath.Join(projectRoot, "defaultcerts")
-	ok, err := util.PathExists(certsDir)
-	if err != nil {
-		RootLogger.Fatal("trying to locate cert", zap.String("err", err.Error()), zap.String("filename", certsDir))
-	}
-	if !ok {
-		RootLogger.Info("Certificate directory does not exist", zap.String("filename", certsDir))
-	}
-	return certsDir
 }
 
 // DockerVM is used for development tests only. It is the default resolve for the dockervm hostname.
