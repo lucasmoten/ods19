@@ -70,9 +70,9 @@ func TestMain(m *testing.M) {
 	log.Printf("Testing with AAC Host %s and Port %d", aacHost, aacPort)
 
 	// AAC trust, client public & private key
-	trustPath := globalconfig.GetEnvOrDefault("OD_AAC_CA", filepath.Join("..", "defaultcerts", "clients", "client.trust.pem"))
-	certPath := globalconfig.GetEnvOrDefault("OD_AAC_CERT", filepath.Join("..", "defaultcerts", "clients", "test_1.cert.pem"))
-	keyPath := globalconfig.GetEnvOrDefault("OD_AAC_KEY", filepath.Join("..", "defaultcerts", "clients", "test_1.key.pem"))
+	trustPath := filepath.Join("..", "defaultcerts", "clients", "client.trust.pem")
+	certPath := filepath.Join("..", "defaultcerts", "clients", "test_1.cert.pem")
+	keyPath := filepath.Join("..", "defaultcerts", "clients", "test_1.key.pem")
 
 	// Setup connection config with SSL
 	dialOpts := &globalconfig.OpenSSLDialOptions{}
