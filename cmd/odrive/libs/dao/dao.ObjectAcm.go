@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
@@ -11,7 +12,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func setObjectACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
+func setObjectACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, isnew bool) error {
 
 	// Convert serialized string to interface
 	acmInterface, err := utils.UnmarshalStringToInterface(object.RawAcm.String)
@@ -27,6 +28,17 @@ func setObjectACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) er
 	dbAcmKeys, err := getAcmKeysForObjectInTransaction(tx, object)
 	if err != nil {
 		return fmt.Errorf("Unable to retrieve acm keys %s", err.Error())
+	}
+	// Initialize Overall Flattened ACM
+	overallFlattenedACM := getOverallFlattenedACM(acmMap)
+	acm, acmCreated, err := getAcmByNameInTransaction(tx, overallFlattenedACM, true, object.ModifiedBy)
+	if err != nil {
+		return err
+	}
+	// Insert relationship between ACM and Object
+	err = setACMForObjectInTransaction(tx, object, &acm, isnew)
+	if err != nil {
+		return err
 	}
 	// Iterate over keys presented in the map
 	for acmKeyName, mapValue := range acmMap {
@@ -60,7 +72,14 @@ func setObjectACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) er
 				if err != nil {
 					return err
 				}
-				// Insert relationsip of acm key and value to object if not already exist
+				// Insert relationship of acm key and value as an acm part on the acm if just created
+				if acmCreated {
+					err = createAcmPartForACMInTransaction(tx, acm, acmKey, acmValue)
+					if err != nil {
+						return err
+					}
+				}
+				// Insert relationship of acm key and value to object if not already exist
 				err = createObjectACMIfNotExists(tx, object, acmKey, acmValue)
 				if err != nil {
 					return err
@@ -108,8 +127,247 @@ func setObjectACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) er
 			}
 		}
 	}
-
 	return nil
+}
+
+func setACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *models.ODAcm, isnew bool) error {
+	if isnew {
+		// Object was just added, so insert this record
+		addStatement, err := tx.Preparex(`insert objectacm set 
+              createdBy = ?
+            , objectId = ?
+            , acmId = ?
+        `)
+		if err != nil {
+			return fmt.Errorf("setACMForObjectInTransaction error preparing add statement, %s", err.Error())
+		}
+		result, err := addStatement.Exec(object.CreatedBy, object.ID, acm.ID)
+		if err != nil {
+			return fmt.Errorf("setACMForObjectInTransaction error executing add statement, %s", err.Error())
+		}
+		rowCount, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("setACMForObjectInTransaction error checking rows affected, %s", err.Error())
+		}
+		if rowCount < 1 {
+			return fmt.Errorf("setACMForObjectInTransaction there was less than one row affected")
+		}
+	} else {
+		// Object already existed, so updating...
+		updateStatement, err := tx.Preparex(`update objectacm set 
+            modifiedBy = ?,
+            acmId = ?
+            where objectId = ? and isdeleted = 0
+        `)
+		if err != nil {
+			return fmt.Errorf("setACMForObjectInTransaction error preparing update statement, %s", err.Error())
+		}
+		result, err := updateStatement.Exec(object.ModifiedBy, acm.ID, object.ID)
+		if err != nil {
+			return fmt.Errorf("setACMForObjectInTransaction error executing update statement, %s", err.Error())
+		}
+		rowCount, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("setACMForObjectInTransaction error checking rows affected, %s", err.Error())
+		}
+		if rowCount < 1 {
+			return fmt.Errorf("setACMForObjectInTransaction there was less than one row affected")
+		}
+	}
+	return nil
+}
+
+func createAcmPartForACMInTransaction(tx *sqlx.Tx, acm models.ODAcm, acmKey models.ODAcmKey, acmValue models.ODAcmValue) error {
+	addStatement, err := tx.Preparex(`insert acmpart set 
+        createdBy = ?, 
+        acmId = ?,
+        acmKeyId = ?,
+        acmValueId = ?
+    `)
+	if err != nil {
+		return fmt.Errorf("createAcmPartForACMInTransaction error preparing add statement, %s", err.Error())
+	}
+	// Add it
+	result, err := addStatement.Exec(acm.CreatedBy, acm.ID, acmKey.ID, acmValue.ID)
+	if err != nil {
+		return fmt.Errorf("createAcmPartForACMInTransaction error executing add statement, %s", err.Error())
+	}
+	// Cannot use result.LastInsertId() as our identifier is not an autoincremented int
+	rowCount, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("createAcmPartForACMInTransaction error checking rows affected, %s", err.Error())
+	}
+	if rowCount < 1 {
+		return fmt.Errorf("createAcmPartForACMInTransaction there was less than one row affected")
+	}
+	return nil
+}
+
+func getAcmByNameInTransaction(tx *sqlx.Tx, namedValue string, addIfMissing bool, createdBy string) (models.ODAcm, bool, error) {
+	created := false
+	var result models.ODAcm
+	tableName := `acm`
+	// Get the ID of the acm by its name
+	getStatement := `
+    select 
+        id
+        ,createdDate
+        ,createdBy
+        ,modifiedDate
+        ,modifiedBy
+        ,isDeleted
+        ,deletedDate
+        ,deletedBy
+        ,name
+    from ` + tableName + `
+    where
+        name = ?
+    order by isDeleted asc, createdDate desc limit 1    
+    `
+	err := tx.Get(&result, getStatement, namedValue)
+	if err != nil {
+		if err == sql.ErrNoRows && addIfMissing {
+			// Clear the error from no rows
+			err = nil
+			// Prepare new type
+			result.Name = namedValue
+			result.CreatedBy = createdBy
+			// Create it
+			createdResult, err := createAcmInTransaction(tx, &result)
+			// Any errors? return them
+			if err != nil {
+				// Empty return with error from creation
+				return result, false, fmt.Errorf("Error creating "+tableName+" when missing: %s", err.Error())
+			}
+			// Assign created type to the return value
+			result = createdResult
+			created = true
+		} else {
+			// Some other error besides no matching rows...
+			// Empty return type with error retrieving
+			return result, false, fmt.Errorf("getAcmByNameInTransaction error, %s", err.Error())
+		}
+	}
+
+	// Need to make sure the type retrieved isn't deleted.
+	if result.IsDeleted {
+		// Existing type is deleted. Should a new active type be created?
+		if addIfMissing {
+			// Prepare new type
+			result.Name = namedValue
+			result.CreatedBy = createdBy
+			// Create it
+			createdResult, err := createAcmInTransaction(tx, &result)
+			// Any errors? return them
+			if err != nil {
+				// Reinitialize result first since it may be dirty at this
+				// phase and caller may accidentally use if not properly
+				// checking errors
+				result = models.ODAcm{}
+				return result, false, fmt.Errorf("Error recreating "+tableName+" when previous was deleted: %s", err.Error())
+			}
+			// Assign created type to the return value
+			result = createdResult
+			created = true
+		}
+	}
+
+	// Return response
+	return result, created, err
+}
+
+func createAcmInTransaction(tx *sqlx.Tx, theType *models.ODAcm) (models.ODAcm, error) {
+	var dbType models.ODAcm
+	tableName := `acm`
+	addStatement, err := tx.Preparex(`insert ` + tableName + ` set 
+        createdBy = ?
+        ,name = ?
+    `)
+	if err != nil {
+		return dbType, fmt.Errorf("createAcmInTransaction error preparing add statement, %s", err.Error())
+	}
+	// Add it
+	result, err := addStatement.Exec(theType.CreatedBy, theType.Name)
+	if err != nil {
+		return dbType, fmt.Errorf("createAcmInTransaction error executing add statement, %s", err.Error())
+	}
+	// Cannot use result.LastInsertId() as our identifier is not an autoincremented int
+	rowCount, err := result.RowsAffected()
+	if err != nil {
+		return dbType, fmt.Errorf("createAcmInTransaction error checking rows affected, %s", err.Error())
+	}
+	if rowCount < 1 {
+		return dbType, fmt.Errorf("createAcmInTransaction there was less than one row affected")
+	}
+	// Get the ID of the newly created type and assign to passed in objectType
+	getStatement := `
+    select
+        id
+        ,createdDate
+        ,createdBy
+        ,modifiedDate
+        ,modifiedBy
+        ,isDeleted
+        ,deletedDate
+        ,deletedBy
+        ,name
+    from ` + tableName + ` 
+    where 
+        createdBy = ?
+        and name = ? 
+        and isdeleted = 0 
+    order by createdDate desc limit 1`
+	err = tx.Get(&dbType, getStatement, theType.CreatedBy, theType.Name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return dbType, fmt.Errorf("createAcmInTransaction type was not found even after just adding it!, %s", err.Error())
+		}
+		return dbType, fmt.Errorf("createAcmInTransaction error getting newly added type, %s", err.Error())
+	}
+	theType = &dbType
+	return dbType, nil
+}
+
+func getOverallFlattenedACM(acmMap map[string]interface{}) string {
+	var flattenedACM string
+
+	alphaAcmKeys := make([]string, len(acmMap))
+	ak := 0
+	for acmKeyName := range acmMap {
+		alphaAcmKeys[ak] = acmKeyName
+		ak++
+	}
+	sort.Strings(alphaAcmKeys)
+
+	for ak2, acmKeyName := range alphaAcmKeys {
+		if (strings.HasPrefix(acmKeyName, "f_") || strings.HasPrefix(acmKeyName, "dissem_countries")) && (!strings.HasPrefix(acmKeyName, "f_share")) {
+			if ak2 > 0 {
+				flattenedACM += ";"
+			}
+			flattenedACM += acmKeyName + "="
+			mapValue := acmMap[acmKeyName]
+			interfaceValue := mapValue.([]interface{})
+			alphaAcmValues := make([]string, len(interfaceValue))
+			av := 0
+			for _, interfaceElement := range interfaceValue {
+				if strings.Compare(reflect.TypeOf(interfaceElement).Kind().String(), "string") == 0 {
+					alphaAcmValues[av] = interfaceElement.(string)
+					av++
+				}
+			}
+			sort.Strings(alphaAcmValues)
+			for av2, acmValue := range alphaAcmValues {
+				if av2 <= av {
+					if av2 > 0 {
+						flattenedACM += ","
+					}
+					flattenedACM += acmValue
+				}
+			}
+		}
+	}
+
+	return flattenedACM
 }
 
 func removeAcmKeyForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acmKey models.ODAcmKey) error {
@@ -272,6 +530,74 @@ func createObjectACMIfNotExists(tx *sqlx.Tx, object *models.ODObject, acmKey mod
 	return nil
 }
 
+// adds a record in acmpart linking acm to acmkey and acmvalue if an active one does't already exist
+func createACMPartIfNotExists(tx *sqlx.Tx, acm *models.ODAcm, acmKey models.ODAcmKey, acmValue models.ODAcmValue) error {
+	var dbRecord models.ODAcmPart
+	getStatement := `
+    select 
+        ap.id 'id'
+        ,ap.createdDate 'createdDate'
+        ,ap.createdBy 'createdBy'
+        ,ap.modifiedDate 'modifiedDate'
+        ,ap.modifiedBy 'modifiedBy'
+        ,ap.isDeleted 'isDeleted'
+        ,ap.deletedDate 'deletedDate'
+        ,ap.deletedBy 'deletedBy'
+        ,ap.acmId 'acmId'
+        ,ap.acmKeyId 'acmKeyId'
+        ,ak.name 'acmKeyName'
+        ,ap.acmValueId 'acmValueId'
+        ,av.name 'acmValueName'
+    from
+        acmpart ap
+        inner join acmkey ak on ap.acmKeyId = ak.id
+        inner join acmvalue av on ap.acmValueId = av.id
+    where
+        ap.isDeleted = 0
+        and ap.acmId = ?
+        and ap.acmKeyId = ?
+        and ap.acmValueId = ?
+    `
+	err := tx.Get(&dbRecord, getStatement, acm.ID, acmKey.ID, acmValue.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// Clear the error from no rows
+			err = nil
+			// Prepare to add it
+			addStatement, err := tx.Preparex(`insert acmpart set 
+                createdBy = ?
+                ,acmId = ?
+                ,acmKeyId = ?
+                ,acmValueId = ?
+            `)
+			if err != nil {
+				return fmt.Errorf("createACMPartIfNotExists Error preparing add statement, %s", err.Error())
+			}
+			// Add it
+			result, err := addStatement.Exec(acm.ModifiedBy, acm.ID, acmKey.ID, acmValue.ID)
+			if err != nil {
+				return fmt.Errorf("createACMPartIfNotExists Error executing add statement, %s", err.Error())
+			}
+			err = addStatement.Close()
+			if err != nil {
+				return fmt.Errorf("createACMPartIfNotExists Error closing addStatement, %s", err.Error())
+			}
+			// Check that a row was affected
+			rowsAffected, err := result.RowsAffected()
+			if err != nil {
+				return fmt.Errorf("createACMPartIfNotExists Error checking result for rows affected, %s", err.Error())
+			}
+			if rowsAffected <= 0 {
+				return fmt.Errorf("createACMPartIfNotExists inserted but no rows affected")
+			}
+		} else {
+			// Some other error besides no matching rows...
+			return err
+		}
+	}
+	return nil
+}
+
 func getAcmKeyByNameInTransaction(tx *sqlx.Tx, namedValue string, addIfMissing bool, createdBy string) (models.ODAcmKey, error) {
 
 	var result models.ODAcmKey
@@ -295,23 +621,21 @@ func getAcmKeyByNameInTransaction(tx *sqlx.Tx, namedValue string, addIfMissing b
     `
 	err := tx.Get(&result, getStatement, namedValue)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			if addIfMissing {
-				// Clear the error from no rows
-				err = nil
-				// Prepare new type
-				result.Name = namedValue
-				result.CreatedBy = createdBy
-				// Create it
-				createdResult, err := createAcmKeyInTransaction(tx, &result)
-				// Any errors? return them
-				if err != nil {
-					// Empty return with error from creation
-					return result, fmt.Errorf("Error creating "+tableName+" when missing: %s", err.Error())
-				}
-				// Assign created type to the return value
-				result = createdResult
+		if err == sql.ErrNoRows && addIfMissing {
+			// Clear the error from no rows
+			err = nil
+			// Prepare new type
+			result.Name = namedValue
+			result.CreatedBy = createdBy
+			// Create it
+			createdResult, err := createAcmKeyInTransaction(tx, &result)
+			// Any errors? return them
+			if err != nil {
+				// Empty return with error from creation
+				return result, fmt.Errorf("Error creating "+tableName+" when missing: %s", err.Error())
 			}
+			// Assign created type to the return value
+			result = createdResult
 		} else {
 			// Some other error besides no matching rows...
 			// Empty return type with error retrieving
@@ -420,23 +744,21 @@ func getAcmValueByNameInTransaction(tx *sqlx.Tx, namedValue string, addIfMissing
     `
 	err := tx.Get(&result, getStatement, namedValue)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			if addIfMissing {
-				// Clear the error from no rows
-				err = nil
-				// Prepare new type
-				result.Name = namedValue
-				result.CreatedBy = createdBy
-				// Create it
-				createdResult, err := createAcmValueInTransaction(tx, &result)
-				// Any errors? return them
-				if err != nil {
-					// Empty return with error from creation
-					return result, fmt.Errorf("Error creating "+tableName+" when missing: %s", err.Error())
-				}
-				// Assign created type to the return value
-				result = createdResult
+		if err == sql.ErrNoRows && addIfMissing {
+			// Clear the error from no rows
+			err = nil
+			// Prepare new type
+			result.Name = namedValue
+			result.CreatedBy = createdBy
+			// Create it
+			createdResult, err := createAcmValueInTransaction(tx, &result)
+			// Any errors? return them
+			if err != nil {
+				// Empty return with error from creation
+				return result, fmt.Errorf("Error creating "+tableName+" when missing: %s", err.Error())
 			}
+			// Assign created type to the return value
+			result = createdResult
 		} else {
 			// Some other error besides no matching rows...
 			// Empty return type with error retrieving

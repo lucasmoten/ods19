@@ -67,13 +67,19 @@ func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagi
     from a_object ao 
         inner join object_type ot on ao.typeid = ot.id
         inner join object_permission op on ao.id = op.objectid and op.isdeleted = 0 and op.allowread = 1
-        inner join object_acm acm on ao.id = acm.objectid
+        inner join `
+	if FILTER_BY_COMMON_ACM {
+		query += `objectacm`
+	} else {
+		query += `object_acm`
+	}
+	query += ` acm on ao.id = acm.objectid
     where 
         ao.isexpunged = 0
         and ao.id = ? 
     `
 	query += buildFilterForUserACMShare(user)
-	query += buildFilterForUserACM(user)
+	query += buildFilterForUserSnippets(user)
 	query += buildFilterSortAndLimitArchive(pagingRequest)
 	err := tx.Select(&response.Objects, query, object.ID, user.DistinguishedName)
 	if err != nil {
