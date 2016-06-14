@@ -99,7 +99,9 @@ rm -rf %{buildroot}
 %{_bindir}/*
 
 %changelog
-* Mon Jun 24 2016  Coleman McFarland <coleman.mcfarland@deciphernow.com> 1.0-1
+* Tue Jun 14 2016  Coleman McFarland <coleman.mcfarland@deciphernow.com> 1.0-1
+- Static files bundled. 	
+* Mon May 24 2016  Coleman McFarland <coleman.mcfarland@deciphernow.com> 1.0-1
 - RPM packaging completed.
 
 EOF

@@ -130,8 +130,7 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
 	}
 	if strings.Compare(oldACMNormalized, newACMNormalized) != 0 {
 		object.RawAcm.String = newACMNormalized
-
-		err := setObjectACMForObjectInTransaction(tx, object)
+		err := setObjectACMForObjectInTransaction(tx, object, false)
 		if err != nil { //&& err != sql.ErrNoRows {
 			return fmt.Errorf("Error updating ACM for object: %s {oldacm: %s} {newacm: %s}", err.Error(), dbObject.RawAcm.String, object.RawAcm.String)
 		}

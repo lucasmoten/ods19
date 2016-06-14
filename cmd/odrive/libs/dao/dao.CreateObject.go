@@ -190,7 +190,7 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 	}
 
 	// Initialize acm
-	err = setObjectACMForObjectInTransaction(tx, &dbObject)
+	err = setObjectACMForObjectInTransaction(tx, &dbObject, true)
 	if err != nil {
 		return dbObject, fmt.Errorf("Error saving ACM to object: %s", err.Error())
 	}
