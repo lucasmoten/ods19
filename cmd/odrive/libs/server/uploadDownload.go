@@ -173,6 +173,7 @@ func (h AppServer) beginUploadTimed(
 	obj *models.ODObject,
 	grant *models.ODObjectPermission,
 ) (beginDrain func(), herr *AppError, err error) {
+	logger := LoggerFromContext(ctx)
 	//
 	// Note that since errors here *can* be caused by the client dropping, we will make these 4xx
 	// error codes and blame the client for the moment.  When reading from the client and writing
@@ -198,7 +199,7 @@ func (h AppServer) beginUploadTimed(
 
 	//Write the encrypted data to the filesystem
 	byteRange := utils.NewByteRange()
-	checksum, length, err := utils.DoCipherByReaderWriter(part, outFile, fileKey, iv, "uploading from browser", byteRange)
+	checksum, length, err := utils.DoCipherByReaderWriter(logger, part, outFile, fileKey, iv, "uploading from browser", byteRange)
 	if err != nil {
 		//It could be the client's fault, so we use 400 here.
 		msg := fmt.Sprintf("Unable to write ciphertext %s", outFileUploading)
@@ -219,7 +220,7 @@ func (h AppServer) beginUploadTimed(
 		d.Files().Remove(outFileUploading)
 		return nil, NewAppError(500, err, msg), err
 	}
-	LoggerFromContext(ctx).Info("rename", zap.String("from", string(outFileUploading)), zap.String("to", string(outFileUploaded)))
+	logger.Info("s3 enqueued", zap.String("rname", string(rName)))
 
 	//Record metadata
 	obj.ContentHash = checksum

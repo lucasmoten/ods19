@@ -11,6 +11,8 @@ import (
 	"io/ioutil"
 	"log"
 	"math/big"
+
+	"github.com/uber-go/zap"
 )
 
 // ByteRange for handling video
@@ -33,16 +35,18 @@ type CipherStreamReader struct {
 	H       hash.Hash
 	Size    int64
 	Written int64
+	Logger  zap.Logger
 }
 
 // NewCipherStreamReader Create a new ciphered stream with hashing
-func NewCipherStreamReader(w cipher.Stream, r io.Reader) *CipherStreamReader {
+func NewCipherStreamReader(logger zap.Logger, w cipher.Stream, r io.Reader) *CipherStreamReader {
 	return &CipherStreamReader{
 		S:       w,
 		R:       r,
 		H:       sha256.New(),
 		Size:    int64(0),
 		Written: int64(0),
+		Logger:  logger,
 	}
 }
 
@@ -53,7 +57,7 @@ func (r *CipherStreamReader) Read(dst []byte) (n int, err error) {
 		if err == io.EOF {
 			//nothing is wrong
 		} else {
-			log.Printf("error while reading from cipher stream:%v at size %d", err, r.Size)
+			return n, err
 		}
 	}
 	r.H.Write(dst[:n])
@@ -130,6 +134,7 @@ func CreateIV() (iv []byte) {
 //XXX Need a proper read-write pipe that will xor with the key as it writes,
 // need to facilitate efficient encrypted append.
 func DoCipherByReaderWriter(
+	logger zap.Logger,
 	inFile io.Reader,
 	outFile io.Writer,
 	key []byte,
@@ -139,16 +144,16 @@ func DoCipherByReaderWriter(
 ) (checksum []byte, length int64, err error) {
 	writeCipher, err := aes.NewCipher(key)
 	if err != nil {
-		log.Printf("unable to use cipher %s: %v", description, err)
+		logger.Error("unable to use cipher", zap.String("description", description), zap.String("err", err.Error()))
 		return nil, 0, err
 	}
 	writeCipherStream := cipher.NewCTR(writeCipher, iv[:])
 	if err != nil {
-		log.Printf("unable to use block mode (%s):%v", description, err)
+		logger.Error("unable to use block mode", zap.String("description", description), zap.String("err", err.Error()))
 		return nil, 0, err
 	}
 
-	reader := NewCipherStreamReader(writeCipherStream, inFile)
+	reader := NewCipherStreamReader(logger, writeCipherStream, inFile)
 
 	length, err = RangeCopy(outFile, reader, byteRange)
 	return reader.H.Sum(nil), reader.Size, err
