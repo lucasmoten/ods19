@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -e
+
+# This script logs in as admin and performs the repair table mysql.proc command
+# That command used because when we develop and kill/stop a container, its not clean shutdown and sometimes table crash.
+# The table needs repaired before updates are taken
+
+MYSQL_USER="root"
+MYSQL_PASSWORD="dbRootPassword"
+#MYSQL_IP=`docker inspect --format '{{ .NetworkSettings.IPAddress }}' metadatadb`
+MYSQL_IP="fqdn.for.metadatadb.local"
+
+mysql -h ${MYSQL_IP} --protocol=tcp --database=metadatadb --ssl --ssl-ca ../ca.pem --ssl-cert ../client-cert.pem --ssl-key ../client-key.pem -u${MYSQL_USER} -p${MYSQL_PASSWORD} -p "repair table mysql.proc"
