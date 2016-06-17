@@ -3,7 +3,7 @@
 set -e
 
 # This script is used by the docker container to initialize the schema
-# Developers logging in locally should use mysql-local.sh for 127.0.0.1, or mysql-client.sh to connect to the container
+# Developers logging in locally should use mysql-client.sh to connect to the container
 
 # TODO: Route the MYSQL_USER and MYSQL_PASSWORD from the environment variables
 # TODO: Set the host name to match the cert instead of 127.0.0.1 and turn on --ssl-verify-server-cert
