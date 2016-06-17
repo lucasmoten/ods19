@@ -1,8 +1,11 @@
 package server
 
 import (
+	"io"
 	"os"
 	"time"
+
+	"github.com/uber-go/zap"
 )
 
 // FileId is the raw random name with no extension
@@ -28,6 +31,8 @@ type DrainProvider interface {
 	CacheToDrain(bucket *string, rName FileId, size int64) error
 	// DrainToCache gets things back into the cache after they have gone into the drain
 	DrainToCache(bucket *string, rName FileId) (*AppError, error)
+	// NewS3Puller creates a virtual io.ReadCloser that pulls from S3
+	NewS3Puller(logger zap.Logger, chunkSize int64, rName FileId, totalLength, cipherStartAt, cipherStopAt int64) (io.ReadCloser, error)
 }
 
 // DrainCacheData is the mount point for DrainProvider.CacheLocation()

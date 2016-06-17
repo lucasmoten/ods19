@@ -8,10 +8,14 @@ import (
 	"os"
 	"testing"
 
+	"github.com/uber-go/zap"
+
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 )
 
 func TestBasicCipher(t *testing.T) {
+	logger := zap.NewJSON()
+
 	data := []byte(`
     0123456789
     0123456789
@@ -60,7 +64,7 @@ func TestBasicCipher(t *testing.T) {
 	defer fCipher.Close()
 
 	//Run the plaintext to get ciphertext
-	checksum, length, err := utils.DoCipherByReaderWriter(fPlain, fCipher, key, iv, "write", byteRange)
+	checksum, length, err := utils.DoCipherByReaderWriter(logger, fPlain, fCipher, key, iv, "write", byteRange)
 	if err != nil {
 		t.Errorf("Failed to compute full ciphertext:%v", err)
 	}
@@ -98,6 +102,7 @@ func TestBasicCipher(t *testing.T) {
 
 func BasicCipherRaw(t *testing.T, data []byte, ciphertextName string, byteRange *utils.ByteRange, key []byte, iv []byte) {
 	var err error
+	logger := zap.NewJSON()
 
 	//Make a temp file that we can close and re-open later.
 	replaintextName := "crypto_test.replaintext.tmp"
@@ -117,7 +122,7 @@ func BasicCipherRaw(t *testing.T, data []byte, ciphertextName string, byteRange 
 	defer fReplain.Close()
 
 	//Generate plaintext again
-	_, _, err = utils.DoCipherByReaderWriter(fCipher, fReplain, key, iv, "reread", byteRange)
+	_, _, err = utils.DoCipherByReaderWriter(logger, fCipher, fReplain, key, iv, "reread", byteRange)
 	fReplain.Close()
 
 	//Read replain into a variable and compare it with expected result.

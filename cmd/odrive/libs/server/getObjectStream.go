@@ -3,6 +3,7 @@ package server
 import (
 	"crypto/aes"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -15,7 +16,10 @@ import (
 
 	"net/url"
 
+	"encoding/json"
+
 	"decipher.com/object-drive-server/cmd/odrive/libs/config"
+	db "decipher.com/object-drive-server/cmd/odrive/libs/dao"
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/performance"
@@ -75,6 +79,9 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 	// Retrieve existing object from the data store
 	object, err := dao.GetObject(requestObject, true)
 	if err != nil {
+		if err == db.ErrNoRows {
+			return NewAppError(404, err, "Not found")
+		}
 		return NewAppError(500, err, "Error retrieving object")
 	}
 
@@ -193,12 +200,12 @@ func drainToCache(
 	return nil, nil
 }
 
-// handleCacheMiss deals with the case where we go to retrieve a file, and we want to
+// backgroundRecache deals with the case where we go to retrieve a file, and we want to
 // make a better effort than to throw an exception because it is not cached in our local cache.
 // if another routine is caching, then wait for that to finish.
 // if nobody is caching it, then we start that process.
-func handleCacheMiss(ctx context.Context, d DrainProvider, t *performance.JobReporters, object *models.ODObject, cipherFilePathCached FileNameCached) (*os.File, *AppError) {
-	var err error
+func backgroundRecache(ctx context.Context, d DrainProvider, t *performance.JobReporters, object *models.ODObject, cipherFilePathCached FileNameCached) {
+	//var err error
 	logger := LoggerFromContext(ctx)
 	// We have no choice but to recache and wait.  We can wait for:
 	//   - another goroutine that is .caching to finish
@@ -222,10 +229,6 @@ func handleCacheMiss(ctx context.Context, d DrainProvider, t *performance.JobRep
 	//      But that sends back a 200 OK because we need to commit to OK in order to write
 	//      headers.
 	//If the http connection gets cut off, this continues to run
-	drainingDone := make(chan *AppError, 1)
-	alreadyDone := make(chan int, 1)
-	defer func() { alreadyDone <- 1 }()
-
 	go func() {
 		//If it's caching, then just wait until the file exists.
 		// a .caching file should NOT exist if there is not a goroutine actually caching the file.
@@ -269,38 +272,15 @@ func handleCacheMiss(ctx context.Context, d DrainProvider, t *performance.JobRep
 				}
 			}
 		}
-		// send back an error code, if we are not already done
-		select {
-		case _ = <-alreadyDone:
-			close(alreadyDone)
-		default:
-			drainingDone <- herr
-		}
 		logger.Info(
 			"stall done",
 			zap.String("filename", d.Files().Resolve(cipherFilePathCached)),
 		)
 	}()
-
-	// Wait for the file.  The client might cut off, but we want to keep caching in any case.
-	herr := <-drainingDone
-	if herr != nil {
-		return nil, herr
-	}
-	close(drainingDone)
-
-	// The file should now exist
-	var cipherFile *os.File
-	if cipherFile, err = d.Files().Open(cipherFilePathCached); err != nil {
-		fName := d.Files().Resolve(cipherFilePathCached)
-		return nil, NewAppError(500, err, "Error opening recently cached file", zap.String("filename", fName))
-	}
-
-	return cipherFile, nil
 }
 
 // We would like to have a .cached file, but an .uploaded file will do.
-func searchForCachedOrUploadedFile(d DrainProvider, cipherFilePathCached, cipherFilePathUploaded FileNameCached, byteRange *utils.ByteRange) (*os.File, *AppError) {
+func useLocalFile(d DrainProvider, cipherFilePathCached, cipherFilePathUploaded FileNameCached, cipherStartAt int64) (*os.File, *AppError) {
 	var cipherFile *os.File
 	var err error
 	//Try to find the cached file
@@ -337,14 +317,81 @@ func searchForCachedOrUploadedFile(d DrainProvider, cipherFilePathCached, cipher
 		//the cached file exists
 	}
 
+	//Seek to where we should start reading the cipher
+	if cipherFile != nil {
+		_, err = cipherFile.Seek(cipherStartAt, 0)
+		if err != nil {
+			cipherFile.Close()
+			fName := d.Files().Resolve(cipherFilePathCached)
+			return cipherFile, NewAppError(500, err,
+				"Could not seek file",
+				zap.String("filename", fName),
+				zap.Int64("index", cipherStartAt),
+			)
+		}
+		//Update the timestamps to note the last time it was used
+		// This is done here, as well as successful end just in case of failures midstream.
+		tm := time.Now()
+		d.Files().Chtimes(cipherFilePathCached, tm, tm)
+	}
+
 	return cipherFile, nil
 }
 
-// This func broken out from the getObjectStream. It still needs refactored to
-// be more maintainable and make use of an interface for the content streams
+func adjustIV(originalIV []byte, byteRange *utils.ByteRange) []byte {
+	//Skip over blocks we won't use
+	iv := originalIV
+	if byteRange != nil {
+
+		//Add blocksToSkip to the iv
+		//First duplicate the IV
+		blocksSkipped := (byteRange.Start / aes.BlockSize)
+		blocksToSkip := blocksSkipped
+		iv = make([]byte, aes.BlockSize)
+		for i := 0; i < aes.BlockSize; i++ {
+			iv[i] = originalIV[i]
+		}
+		//Add blocksToSkip to it (bigEndian)
+		var i = 0
+		for blocksToSkip > 0 {
+			v := uint8(blocksToSkip % 256)
+			newV := uint32(v) + uint32(iv[aes.BlockSize-i-1])
+			//do add
+			iv[aes.BlockSize-i-1] = uint8(newV)
+			//do carry
+			iv[aes.BlockSize-i-2] += uint8(newV >> 8)
+			blocksToSkip >>= 8
+			i++
+		}
+		//Adjust the byte range to match what the file handle skipped already
+		byteRange.Start -= blocksSkipped * aes.BlockSize
+		if byteRange.Stop != -1 {
+			byteRange.Stop -= blocksSkipped * aes.BlockSize
+		}
+	}
+	return iv
+}
+
+// The interface for these files is now a valid io.ReadCloser.
+// In the case of a cache miss, we no longer wait for the entire file.
+// We have an io.ReadCloser() that will fill the bytes by range requesting
+// out of S3.  It will not write these bytes to disk in an intermediate step.
 func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject, w http.ResponseWriter, r *http.Request, encryptKey []byte, withMetadata bool) (int64, *AppError) {
 	var err error
 	var herr *AppError
+	logger := LoggerFromContext(ctx)
+
+	//Prepare for range requesting
+	byteRange, err := extractByteRange(r)
+	if err != nil {
+		return 0, NewAppError(400, err, "Unable to parse byte range")
+	}
+	var blocksSkipped int64
+	var cipherStartAt int64
+	if byteRange != nil {
+		blocksSkipped = (byteRange.Start / aes.BlockSize)
+		cipherStartAt = blocksSkipped * aes.BlockSize
+	}
 
 	//Fall back on the uploaded copy for download if we need to
 	var cipherFile *os.File
@@ -352,31 +399,58 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	rName := FileId(object.ContentConnector.String)
 	cipherFilePathCached := d.Resolve(NewFileName(rName, ".cached"))
 	cipherFilePathUploaded := d.Resolve(NewFileName(rName, ".uploaded"))
-
-	byteRange, err := extractByteRange(r)
-	if err != nil {
-		return 0, NewAppError(400, err, "Unable to parse byte range")
-	}
-	cipherFile, herr = searchForCachedOrUploadedFile(h.DrainProvider, cipherFilePathCached, cipherFilePathUploaded, byteRange)
+	cipherFile, herr = useLocalFile(h.DrainProvider, cipherFilePathCached, cipherFilePathUploaded, cipherStartAt)
 	if herr != nil {
 		return 0, herr
 	}
 
-	// Check if cipherFile was assigned, denoting whether or not pulling from cache
+	//Was it found already?
+	var cipherReader io.ReadCloser
 	if cipherFile == nil {
-		cipherFile, herr = handleCacheMiss(ctx, h.DrainProvider, h.Tracker, object, cipherFilePathCached)
-		if herr != nil {
-			return 0, herr
+		//Not found, so pull the file to disk from S3 in the background,
+		backgroundRecache(ctx, h.DrainProvider, h.Tracker, object, cipherFilePathCached)
+		//...while also range requesting from S3 in memory in the foreground
+		chunkSize := aes.BlockSize * int64(1024*32)
+		totalLength := object.ContentSize.Int64
+		//...where this looks like a normal io.ReadCloser, but it keeps range requesting to
+		//...keep full with bytes, as requested.  This deals neatly with clients that connect,
+		//...and only pull a small number of bytes.
+		cipherReader, err = d.NewS3Puller(logger, chunkSize, rName, totalLength, cipherStartAt, -1)
+		if err != nil {
+			return 0, NewAppError(500, err, "s3 pull fail", zap.String("err", err.Error()))
 		}
+	} else {
+		cipherReader = cipherFile
 	}
 
-	//Update the timestamps to note the last time it was used
-	// This is done here, as well as successful end just in case of failures midstream.
-	tm := time.Now()
-	d.Files().Chtimes(cipherFilePathCached, tm, tm)
+	defer cipherReader.Close()
 
-	//We have the file and it's open.  Be sure to close it.
-	defer cipherFile.Close()
+	//We should have classification banner with the content, as
+	//the banner is at least as mandatory as the filename.
+	//If you resolve a link, you otherwise would not know the classification
+	//without stopping and downloading the object metadata first.
+	//This may also be useful for the client and proxies with respect to caching
+	//as well.
+	if object.RawAcm.Valid {
+		var acm interface{}
+		acmBytes := []byte(object.RawAcm.String)
+		err := json.Unmarshal(acmBytes, &acm)
+		if err == nil {
+			acmData, acmDataOk := acm.(map[string]interface{})
+			if acmDataOk {
+				banner, bannerOk := acmData["banner"].(string)
+				if bannerOk {
+					w.Header().Set("Classification-Banner", banner)
+				}
+			}
+		} else {
+			logger.Warn(
+				"acm parse",
+				zap.String("err", err.Error()),
+				zap.String("acm", object.RawAcm.String),
+			)
+		}
+	}
 
 	//When setting headers, take measures to handle byte range requesting
 	w.Header().Set("Content-Type", object.ContentType.String)
@@ -407,53 +481,13 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 		}
 	}
 
-	//Skip over blocks we won't use
-	iv := object.EncryptIV
-	if byteRange != nil {
-		//Note that we round down by using integer arithmetic
-		blocksSkipped := (byteRange.Start / aes.BlockSize)
-		cipherStartAt := blocksSkipped * aes.BlockSize
-		//Seek to where we should start reading the cipher
-		_, err := cipherFile.Seek(cipherStartAt, 0)
-		if err != nil {
-			fName := d.Files().Resolve(cipherFilePathCached)
-			return 0, NewAppError(500, err,
-				"Could not seek file",
-				zap.String("filename", fName),
-				zap.Int64("index", cipherStartAt),
-			)
-		}
-
-		//Add blocksToSkip to the iv
-		//First duplicate the IV
-		blocksToSkip := blocksSkipped
-		iv = make([]byte, aes.BlockSize)
-		for i := 0; i < aes.BlockSize; i++ {
-			iv[i] = object.EncryptIV[i]
-		}
-		//Add blocksToSkip to it (bigEndian)
-		var i = 0
-		for blocksToSkip > 0 {
-			v := uint8(blocksToSkip % 256)
-			newV := uint32(v) + uint32(iv[aes.BlockSize-i-1])
-			//do add
-			iv[aes.BlockSize-i-1] = uint8(newV)
-			//do carry
-			iv[aes.BlockSize-i-2] += uint8(newV >> 8)
-			blocksToSkip >>= 8
-			i++
-		}
-		//Adjust the byte range to match what the file handle skipped already
-		byteRange.Start -= blocksSkipped * aes.BlockSize
-		if byteRange.Stop != -1 {
-			byteRange.Stop -= blocksSkipped * aes.BlockSize
-		}
-	}
-
+	//Skip over blocks we won't use, and adjust byteRange to match it
+	iv := adjustIV(object.EncryptIV, byteRange)
 	//Actually send back the cipherFile
 	var actualLength int64
 	_, actualLength, err = utils.DoCipherByReaderWriter(
-		cipherFile,
+		logger,
+		cipherReader,
 		w,
 		encryptKey,
 		iv,
@@ -461,26 +495,22 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 		byteRange,
 	)
 
-	LoggerFromContext(ctx).Info("transaction down", zap.Int64("bytes", actualLength))
+	logger.Info("transaction down", zap.Int64("bytes", actualLength))
 	if err != nil {
 		//Error here isn't a constant, but it's indicative of client disconnecting and
 		//not bothering to eat all the bytes we sent back (as promised).  So be quiet
 		//in the case of broken pipe.
-		if strings.Contains(err.Error(), " write: broken pipe") ||
-			strings.Contains(err.Error(), " write: connection reset by peer") {
+		if strings.Contains(err.Error(), "broken pipe") ||
+			strings.Contains(err.Error(), "connection reset by peer") {
 			//Clients are allowed to disconnect and not accept all bytes we are sending back
 		} else {
-			LoggerFromContext(ctx).Error(
+			logger.Error(
 				"client disconnect",
 				zap.String("filename", d.Files().Resolve(cipherFilePathCached)),
 				zap.String("err", err.Error()),
 			)
 		}
 	}
-
-	//Update the timestamps to note the last time it was used
-	tm = time.Now()
-	d.Files().Chtimes(cipherFilePathCached, tm, tm)
 
 	return actualLength, nil
 }

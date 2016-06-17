@@ -1,6 +1,8 @@
 package server
 
 import (
+	"fmt"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -328,7 +330,7 @@ func (d *S3DrainProviderData) CacheToDrain(
 	)
 
 	uploader := s3manager.NewUploader(sess)
-	result, err := uploader.Upload(&s3manager.UploadInput{
+	_, err = uploader.Upload(&s3manager.UploadInput{
 		Body:   fIn,
 		Bucket: bucket,
 		Key:    key,
@@ -355,16 +357,10 @@ func (d *S3DrainProviderData) CacheToDrain(
 		return err
 	}
 	d.Logger.Info(
-		"rename",
-		zap.String("from", d.Files().Resolve(outFileUploaded)),
-		zap.String("to", d.Files().Resolve(outFileCached)),
+		"s3 stored",
+		zap.String("rname", string(rName)),
 	)
 
-	d.Logger.Info(
-		"uploaded",
-		zap.String("bucket", *bucket),
-		zap.String("key", result.Location),
-	)
 	return err
 }
 
@@ -474,9 +470,8 @@ func (d *S3DrainProviderData) DrainToCache(
 		)
 	}
 	d.Logger.Info(
-		"rename",
-		zap.String("from", d.Files().Resolve(foutCaching)),
-		zap.String("to", d.Files().Resolve(foutCached)),
+		"s3 fetched",
+		zap.String("rname", string(rName)),
 	)
 	return nil, nil
 }
@@ -698,3 +693,128 @@ func TestS3Connection(sess *session.Session) bool {
 }
 
 func strPtr(s string) *string { return &s }
+
+// S3Puller hides the range requesting out of S3, to look like a file handle that just keeps giving back data
+type S3Puller struct {
+	S3Svc       *s3.S3
+	Logger      zap.Logger
+	AWSSession  *session.Session
+	TotalLen    int64
+	CipherStart int64
+	CipherStop  int64
+	Key         *string
+	Bucket      *string
+	StartFrom   int64
+	File        io.ReadCloser
+	Remaining   int64
+	ChunkSize   int64
+	Index       int64
+}
+
+// NewS3Puller prepares to start pulling from S3
+func (d *S3DrainProviderData) NewS3Puller(logger zap.Logger, chunkSize int64, rName FileId, totalLength, cipherStartAt, cipherStopAt int64) (io.ReadCloser, error) {
+	key := aws.String(string(d.Resolve(NewFileName(rName, ""))))
+	bucket := &config.DefaultBucket
+
+	p := &S3Puller{
+		S3Svc:       s3.New(d.AWSSession),
+		Logger:      logger,
+		AWSSession:  d.AWSSession,
+		TotalLen:    totalLength,
+		CipherStart: cipherStartAt,
+		CipherStop:  cipherStopAt,
+		Key:         key,
+		Bucket:      bucket,
+		File:        nil,
+		ChunkSize:   chunkSize,
+		Index:       cipherStartAt,
+	}
+
+	//We want to stall for first contact from S3
+	sleepTime := time.Duration(1) * time.Second
+	attempts := 20
+	var err error
+	for {
+		err = p.More()
+		if err == nil {
+			break
+		}
+		attempts--
+		if attempts == 0 {
+			break
+		}
+		sleepTime = sleepTime + sleepTime
+		p.Logger.Info("s3 pull stall", zap.Int("sleepInSeconds", int(sleepTime/time.Second)))
+		time.Sleep(sleepTime)
+	}
+	return p, err
+}
+
+// More will refresh from S3 for more data
+func (p *S3Puller) More() error {
+	var rangeReq string
+	clen := p.ChunkSize
+	if p.Index == p.TotalLen {
+		return io.EOF
+	}
+	//These numbers should have been snapped to cipher block boundaries if they were not already
+	if p.Index+clen < p.TotalLen {
+		rangeReq = fmt.Sprintf("bytes=%d-%d", p.Index, p.Index+clen-1)
+	} else {
+		clen = p.TotalLen - p.Index
+		rangeReq = fmt.Sprintf("bytes=%d-", p.Index)
+	}
+	//p.Logger.Info("s3 fill", zap.String("range", rangeReq), zap.Int64("total", p.TotalLen))
+	oOut, err := p.S3Svc.GetObject(
+		&s3.GetObjectInput{
+			Bucket: p.Bucket,
+			Key:    p.Key,
+			Range:  &rangeReq,
+		},
+	)
+	//p.Logger.Info("s3 fill end")
+	if err != nil {
+		logger.Info(
+			"unable to download out of s3",
+			zap.String("bucket", *p.Bucket),
+			zap.String("key", *p.Key),
+			zap.String("err", err.Error()),
+		)
+		return err
+	}
+	p.File = oOut.Body
+	p.Remaining = clen
+	return nil
+}
+
+// Keep calling this to read out of S3
+func (p *S3Puller) Read(data []byte) (int, error) {
+	var err error
+	var length int
+	if p.Remaining > 0 {
+		length, err = p.File.Read(data)
+		//p.Logger.Info("read", zap.Int64("idx", p.Index), zap.Int64("remain", p.Remaining), zap.Int("len", length), zap.Object("err", err))
+		p.Remaining -= int64(length)
+		p.Index += int64(length)
+	}
+	if p.Remaining == 0 {
+		err = p.More()
+	}
+	return length, err
+}
+
+// Close this when done pulling from S3
+func (p *S3Puller) Close() error {
+	if p.File != nil {
+		//Close out this chunk from S3
+		return p.File.Close()
+	}
+	return nil
+}
+
+// NewS3Puller isn't really used.  This makes the analogy for the S3 version clear though.
+func (d *NullDrainProviderData) NewS3Puller(logger zap.Logger, chunkSize int64, rName FileId, totalLength, cipherStartAt, cipherStopAt int64) (io.ReadCloser, error) {
+	cipherFile, err := d.Files().Open(d.Resolve(NewFileName(rName, ".cached")))
+	cipherFile.Seek(cipherStartAt, 0)
+	return cipherFile, err
+}
