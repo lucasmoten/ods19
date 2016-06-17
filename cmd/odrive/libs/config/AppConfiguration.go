@@ -125,7 +125,7 @@ func NewDatabaseConfigFromEnv() DatabaseConfiguration {
 	// Defaults
 	dbConf.Protocol = "tcp"
 	dbConf.Driver = defaultDBDriver
-	dbConf.Params = "parseTime=true"
+	dbConf.Params = "parseTime=true&collation=utf8mb4_unicode_ci"
 	dbConf.UseTLS = true
 	dbConf.SkipVerify = true // TODO new variable?
 

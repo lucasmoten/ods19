@@ -1,5 +1,3 @@
-use metadatadb;
-
 # Drop logic objects
 source triggers.drop.sql
 source functions.drop.sql

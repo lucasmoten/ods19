@@ -1,5 +1,3 @@
-use metadatadb;
-
 # Triggers on Delete for Archive Tables
 DROP TRIGGER IF EXISTS td_a_acm;
 DROP TRIGGER IF EXISTS td_a_acm_accm;

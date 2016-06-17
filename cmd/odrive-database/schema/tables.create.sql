@@ -1,5 +1,3 @@
-use metadatadb;
-
 source table.acm.create.sql
 source table.acmkey.create.sql
 source table.acmpart.create.sql
