@@ -178,8 +178,9 @@ func buildOrderBy(pagingRequest protocol.PagingRequest) string {
 		if strings.HasSuffix(out, ",") {
 			out = strings.TrimRight(out, ",")
 		}
-	} else {
-		// By default, sort by the modified date, newest first
+	}
+	if strings.Compare(out, " order by ") == 0 {
+		// None of the sort settings matched. Force to default
 		out += ` o.modifieddate desc`
 	}
 	return out
@@ -235,23 +236,28 @@ func buildFilter(pagingRequest protocol.PagingRequest) string {
 				out += ` = '` + MySQLSafeString(filterSetting.Expression) + `'`
 			}
 		}
-		out += `)`
-		out = strings.Replace(out, " or ", "(", 1)
-	} else {
-		out = "(1=1)"
+		if len(out) > 0 {
+			// Since we have a filter, lets prepend it
+			out = ` and ` + out
+			// Close out the group
+			out += `)`
+			// Replace only the first condition with the group opener
+			out = strings.Replace(out, " or ", "(", 1)
+		}
 	}
 	return out
 }
-func buildFilterArchive(pagingRequest protocol.PagingRequest) string {
-	a := buildFilter(pagingRequest)
-	a = strings.Replace(a, " o.", " ao.", -1)
-	return a
-}
+
+// func buildFilterArchive(pagingRequest protocol.PagingRequest) string {
+// 	a := buildFilter(pagingRequest)
+// 	a = strings.Replace(a, " o.", " ao.", -1)
+// 	return a
+// }
 func buildFilterSortAndLimit(pagingRequest protocol.PagingRequest) string {
 	limit := GetLimit(pagingRequest.PageNumber, pagingRequest.PageSize)
 	offset := GetOffset(pagingRequest.PageNumber, pagingRequest.PageSize)
 	sqlStatementSuffix := ``
-	sqlStatementSuffix += ` and ` + buildFilter(pagingRequest)
+	sqlStatementSuffix += buildFilter(pagingRequest)
 	sqlStatementSuffix += buildOrderBy(pagingRequest)
 	sqlStatementSuffix += ` limit ` + strconv.Itoa(limit) + ` offset ` + strconv.Itoa(offset)
 	return sqlStatementSuffix
