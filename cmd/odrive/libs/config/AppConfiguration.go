@@ -89,15 +89,16 @@ func NewAppConfigurationWithDefaults() AppConfiguration {
 	whitelist := []string{"cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"}
 	staticRootPath := filepath.Join("libs", "server", "static")
 	templatePath := filepath.Join("libs", "server", "static", "templates")
-	return NewAppConfiguration(whitelist, ciphers, useTLS, staticRootPath, templatePath)
+	tlsMinimumVersion := "1.2"
+	return NewAppConfiguration(whitelist, ciphers, useTLS, staticRootPath, templatePath, tlsMinimumVersion)
 }
 
 // NewAppConfiguration loads the configuration from the environment. Parameters are command
 // line flags.
-func NewAppConfiguration(whitelist, ciphers []string, useTLS bool, staticRootPath string, templatePath string) AppConfiguration {
+func NewAppConfiguration(whitelist, ciphers []string, useTLS bool, staticRootPath string, templatePath string, tlsMinimumVersion string) AppConfiguration {
 
 	dbConf := NewDatabaseConfigFromEnv()
-	serverSettings := NewServerSettingsFromEnv(whitelist, ciphers, useTLS, staticRootPath, templatePath)
+	serverSettings := NewServerSettingsFromEnv(whitelist, ciphers, useTLS, staticRootPath, templatePath, tlsMinimumVersion)
 	aacSettings := NewAACSettingsFromEnv()
 
 	return AppConfiguration{
@@ -133,7 +134,7 @@ func NewDatabaseConfigFromEnv() DatabaseConfiguration {
 }
 
 // NewServerSettingsFromEnv inspects the environment and returns a ServerSettingsConfiguration.
-func NewServerSettingsFromEnv(whitelist, ciphers []string, useTLS bool, staticRootPath string, templatePath string) ServerSettingsConfiguration {
+func NewServerSettingsFromEnv(whitelist, ciphers []string, useTLS bool, staticRootPath string, templatePath string, tlsMinimumVersion string) ServerSettingsConfiguration {
 
 	var settings ServerSettingsConfiguration
 
@@ -147,7 +148,7 @@ func NewServerSettingsFromEnv(whitelist, ciphers []string, useTLS bool, staticRo
 	settings.ListenBind = "0.0.0.0"
 	settings.UseTLS = useTLS
 	settings.RequireClientCert = true
-	settings.MinimumVersion = "1.2"
+	settings.MinimumVersion = tlsMinimumVersion
 	settings.AclImpersonationWhitelist = whitelist
 	settings.CipherSuites = ciphers
 	settings.PathToStaticFiles = staticRootPath

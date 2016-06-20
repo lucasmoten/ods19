@@ -65,13 +65,14 @@ func buildServerTLSConfig(CAPath string, ServerCertPath string, ServerKeyPath st
 		preferServerCipherSuites = true
 	}
 
+	// Prefer TLS 1.2. Allow 1.1 or 1.0
 	var minimumVersion uint16
-	minimumVersion = tls.VersionTLS10
+	minimumVersion = tls.VersionTLS12
 	if MinimumVersion == "1.1" {
 		minimumVersion = tls.VersionTLS11
 	}
-	if MinimumVersion == "1.2" {
-		minimumVersion = tls.VersionTLS12
+	if MinimumVersion == "1.0" {
+		minimumVersion = tls.VersionTLS10
 	}
 	switch minimumVersion {
 	case tls.VersionTLS10:
