@@ -7,6 +7,11 @@ if [ -z ${ODRIVE_BINARY_DIR+x}]; then
     exit 1
 fi
 
+if [ -z ${ODRIVE_ROOT+x}]; then
+    echo "ODRIVE_DB_TOOLS_DIR must be set"
+    exit 1
+fi
+
 if [ -z ${ODRIVE_VERSION+x}]; then
     echo "ODRIVE_VERSION must be set"
     exit 1
@@ -44,6 +49,9 @@ install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/root.html ${
 install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/TestShare.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/TestShare.html
 install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/TestUpdate.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/TestUpdate.html
 install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/favicon.ico ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/favicon.ico
+
+# SCHEMA TARBALL
+install -m 644 -D ${ODRIVE_ROOT}/cmd/odrive-database/odrive-schema-${ODRIVE_VERSION}.tar.gz ${ODRIVE_PACKAGE_NAME}/etc/odrive/odrive-schema-${ODRIVE_VERSION}.tar.gz
 
 tar -zcvf ${ODRIVE_PACKAGE_NAME}.tar.gz ${ODRIVE_PACKAGE_NAME}/
 
@@ -95,6 +103,7 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.yml
+%config(noreplace) %{_sysconfdir}/%{name}/odrive-schema-${ODRIVE_VERSION}.tar.gz
 %{_sysconfdir}/%{name}/libs
 %{_bindir}/*
 
