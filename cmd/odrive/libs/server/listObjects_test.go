@@ -366,3 +366,115 @@ func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level 
 		}
 	}
 }
+
+func TestListObjectsWithInvalidSortField(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	verboseOutput := testing.Verbose()
+	clientid := 0
+
+	if verboseOutput {
+		fmt.Printf("(Verbose Mode) Using client id %d", clientid)
+		fmt.Println()
+	}
+
+	// URL
+	uri := host + cfg.NginxRootURL + "/objects"
+	// This URI explicitly tests a sample from cte/hyperdrive -> cte/object-drive-ui which was passing sortField=updated_dt
+	// If this field is ever aliased as the appropriate fieldname modifieddate, then this test should be updated to use
+	// something invalid (or removed since TestListObjectsWithInvalidFilterField will do that).
+	// The querystring variable 'sortDir' is ignored.
+	uri1 := uri + "?PageNumber=1&PageSize=1&sortField=updated_dt&sortDir=1"
+
+	// Request
+	req, err := http.NewRequest("GET", uri1, nil)
+	if err != nil {
+		log.Printf("Error setting up HTTP Request: %v", err)
+		t.FailNow()
+	}
+	req.Header.Set("Content-Type", "application/json")
+	res, err := httpclients[clientid].Do(req)
+	if err != nil {
+		log.Printf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+
+	// Response validation
+	if res.StatusCode != http.StatusOK {
+		log.Printf("bad status: %s", res.Status)
+		t.FailNow()
+	}
+}
+
+func TestListObjectsWithInvalidFilterField(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	verboseOutput := testing.Verbose()
+	clientid := 0
+
+	if verboseOutput {
+		fmt.Printf("(Verbose Mode) Using client id %d", clientid)
+		fmt.Println()
+	}
+
+	// URL
+	uri := host + cfg.NginxRootURL + "/objects"
+	uri1 := uri + "?PageNumber=1&PageSize=1&filterField=NON_EXISTENT_FIELD&condition=equals&expression=x"
+
+	// Request
+	req, err := http.NewRequest("GET", uri1, nil)
+	if err != nil {
+		log.Printf("Error setting up HTTP Request: %v", err)
+		t.FailNow()
+	}
+	req.Header.Set("Content-Type", "application/json")
+	res, err := httpclients[clientid].Do(req)
+	if err != nil {
+		log.Printf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+
+	// Response validation
+	if res.StatusCode != http.StatusOK {
+		log.Printf("bad status: %s", res.Status)
+		t.FailNow()
+	}
+}
+
+func TestListObjectsWithInvalidFilterCondition(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	verboseOutput := testing.Verbose()
+	clientid := 0
+
+	if verboseOutput {
+		fmt.Printf("(Verbose Mode) Using client id %d", clientid)
+		fmt.Println()
+	}
+
+	// URL
+	uri := host + cfg.NginxRootURL + "/objects"
+	uri1 := uri + "?PageNumber=1&PageSize=1&filterField=NON_EXISTENT_FIELD&condition=INVALID_CONDITION&expression=x"
+
+	// Request
+	req, err := http.NewRequest("GET", uri1, nil)
+	if err != nil {
+		log.Printf("Error setting up HTTP Request: %v", err)
+		t.FailNow()
+	}
+	req.Header.Set("Content-Type", "application/json")
+	res, err := httpclients[clientid].Do(req)
+	if err != nil {
+		log.Printf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+
+	// Response validation
+	if res.StatusCode != http.StatusOK {
+		log.Printf("bad status: %s", res.Status)
+		t.FailNow()
+	}
+}
