@@ -119,6 +119,11 @@ func main() {
 			Usage: "Path to template files. Defaults to libs/server/static/templates",
 			Value: filepath.Join("libs", "server", "static", "templates"),
 		},
+		cli.StringFlag{
+			Name:  "tlsMinimumVersion",
+			Usage: "Minimum Version of TLS to support (defaults to 1.2, valid values are 1.0, 1.1)",
+			Value: "1.2",
+		},
 	}
 
 	cliParser.Action = func(c *cli.Context) error {
@@ -156,9 +161,13 @@ func main() {
 				os.Exit(1)
 			}
 		}
-		logger.Info("configuration-settings", zap.String("confPath", confPath), zap.String("staticRoot", staticRootPath), zap.String("templateDir", templatePath))
 
-		startApplication(confFile.Whitelisted, ciphers, useTLS, staticRootPath, templatePath)
+		// TLS Minimum Version (Optional. Has a default, but can be made a lower version)
+		tlsMinimumVersion := c.String("tlsMinimumVersion")
+
+		logger.Info("configuration-settings", zap.String("confPath", confPath), zap.String("staticRoot", staticRootPath), zap.String("templateDir", templatePath), zap.String("tlsMinimumVersion", tlsMinimumVersion))
+
+		startApplication(confFile.Whitelisted, ciphers, useTLS, staticRootPath, templatePath, tlsMinimumVersion)
 		return nil
 	}
 
@@ -187,10 +196,10 @@ func runServiceTest(ctx *cli.Context) error {
 	return nil
 }
 
-func startApplication(whitelist, ciphers []string, useTLS bool, staticRootPath string, templatePath string) {
+func startApplication(whitelist, ciphers []string, useTLS bool, staticRootPath string, templatePath string, tlsMinimumVersion string) {
 
 	// Load Configuration from conf.json
-	conf := config.NewAppConfiguration(whitelist, ciphers, useTLS, staticRootPath, templatePath)
+	conf := config.NewAppConfiguration(whitelist, ciphers, useTLS, staticRootPath, templatePath, tlsMinimumVersion)
 
 	app, err := makeServer(conf.ServerSettings)
 	if err != nil {
