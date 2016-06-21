@@ -1,5 +1,3 @@
-use metadatadb;
-
 source triggers.acm.create.sql
 source triggers.acmkey.create.sql
 source triggers.acmpart.create.sql

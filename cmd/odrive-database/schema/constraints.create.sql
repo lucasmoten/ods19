@@ -1,5 +1,3 @@
-USE metadatadb;
-
 SET @OLD_SQL_MODE=@@SQL_MODE;
 SET SESSION SQL_MODE='ANSI';
 

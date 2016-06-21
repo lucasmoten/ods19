@@ -1,4 +1,3 @@
-USE metadatadb;
 delimiter //
 SELECT 'Creating object_type_property table' as Action
 //

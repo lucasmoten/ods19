@@ -1,5 +1,3 @@
-use metadatadb;
-
 # Drop objects
 # - procedures
 # - triggers

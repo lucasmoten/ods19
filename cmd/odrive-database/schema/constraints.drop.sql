@@ -1,5 +1,3 @@
-USE metadatadb;
-
 DROP PROCEDURE IF EXISTS sp_drop_constraints;
 
 DELIMITER //
@@ -29,18 +27,18 @@ BEGIN
 END//
 DELIMITER ;
 
-CALL sp_drop_constraints('metadatadb', 'acm', 'id');
-CALL sp_drop_constraints('metadatadb', 'acm_accm', 'id');
-CALL sp_drop_constraints('metadatadb', 'acm_coicontrol', 'id');
-CALL sp_drop_constraints('metadatadb', 'acm_mac', 'id');
-CALL sp_drop_constraints('metadatadb', 'acm_project', 'id');
-CALL sp_drop_constraints('metadatadb', 'acm_share', 'id');
-CALL sp_drop_constraints('metadatadb', 'acmkey', 'id');
-CALL sp_drop_constraints('metadatadb', 'acmpart', 'id');
-CALL sp_drop_constraints('metadatadb', 'acmvalue', 'id');
-CALL sp_drop_constraints('metadatadb', 'object', 'id');
-CALL sp_drop_constraints('metadatadb', 'object_type', 'id');
-CALL sp_drop_constraints('metadatadb', 'property', 'id');
-CALL sp_drop_constraints('metadatadb', 'user', 'distinguishedName');
+CALL sp_drop_constraints(database(), 'acm', 'id');
+CALL sp_drop_constraints(database(), 'acm_accm', 'id');
+CALL sp_drop_constraints(database(), 'acm_coicontrol', 'id');
+CALL sp_drop_constraints(database(), 'acm_mac', 'id');
+CALL sp_drop_constraints(database(), 'acm_project', 'id');
+CALL sp_drop_constraints(database(), 'acm_share', 'id');
+CALL sp_drop_constraints(database(), 'acmkey', 'id');
+CALL sp_drop_constraints(database(), 'acmpart', 'id');
+CALL sp_drop_constraints(database(), 'acmvalue', 'id');
+CALL sp_drop_constraints(database(), 'object', 'id');
+CALL sp_drop_constraints(database(), 'object_type', 'id');
+CALL sp_drop_constraints(database(), 'property', 'id');
+CALL sp_drop_constraints(database(), 'user', 'distinguishedName');
 
 DROP PROCEDURE IF EXISTS sp_drop_constraints;
