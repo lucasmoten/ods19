@@ -70,7 +70,10 @@ func (h AppServer) acceptObjectUpload(
 			// If updating and ACM provided differs from what is currently set, then need to
 			// Check AAC to compare user clearance to NEW metadata Classifications
 			// to see if allowed for this user
-			rawAcmString := createObjectRequest.RawAcm.(string)
+			rawAcmString, err := utils.MarshalInterfaceToString(createObjectRequest.RawAcm)
+			if err != nil {
+				return drainFunc, NewAppError(400, err, fmt.Sprintf("Unable to marshal ACM as string: %s", s)), err
+			}
 			if !asCreate && strings.Compare(obj.RawAcm.String, rawAcmString) != 0 {
 				// Ensure user is allowed this acm
 				updateObjectRequest := models.ODObject{}
