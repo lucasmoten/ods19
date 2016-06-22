@@ -278,7 +278,9 @@ func (d *S3DrainProviderData) DrainUploadedFilesToSafety() {
 			ext := path.Ext(fqName)
 			bucket := &config.DefaultBucket
 			if ext == ".uploaded" {
-				err := d.CacheToDrain(bucket, FileId(path.Base(fqName)), size)
+				fBase := path.Base(fqName)
+				rName := FileId(fBase[:len(fBase)-len(ext)])
+				err := d.CacheToDrain(bucket, rName, size)
 				if err != nil {
 					sendAppErrorResponse(d.Logger, nil, NewAppError(FailCacheToDrain, err, "error draining cache"))
 				}

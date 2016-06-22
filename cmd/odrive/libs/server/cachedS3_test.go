@@ -291,6 +291,41 @@ public class ObjectDriveSDK {
 
 `
 
+func TestCacheDrainToSafety(t *testing.T) {
+	//Setup and teardown
+	dirname := "t012345"
+	//Create raw cache without starting the purge goroutine
+	logger := zap.NewJSON()
+	d := server.NewS3DrainProviderRaw(".", dirname, float64(0.50), int64(60*5), float64(0.75), 120, logger)
+
+	//create a small file
+	rName := server.FileId("farkFailedInitially")
+	uploadedName := d.Resolve(server.NewFileName(rName, ".uploaded"))
+	fqUploadedName := d.Files().Resolve(uploadedName)
+	//we create the file in uploaded state
+	f, err := d.Files().Create(uploadedName)
+	if err != nil {
+		t.Errorf("Could not create file %s:%v", fqUploadedName, err)
+	}
+
+	//cleanup
+	defer f.Close()
+	defer func() {
+		err := d.Files().RemoveAll(server.FileNameCached(dirname))
+		if err != nil {
+			t.Errorf("Could not remove directory %s:%v", dirname, err)
+		}
+	}()
+
+	//Will upload into S3, and cache file
+	fqCachedName := d.Files().Resolve(d.Resolve(server.NewFileName(rName, ".cached")))
+	d.DrainUploadedFilesToSafety()
+	//Ensure that the file was deleted by being uploaded into S3
+	if _, err = os.Stat(fqCachedName); err != nil {
+		t.Errorf("should have been cached: %s %v", fqCachedName, err)
+	}
+}
+
 func TestCacheCreate(t *testing.T) {
 	//Setup and teardown
 	bucket := "decipherers"
