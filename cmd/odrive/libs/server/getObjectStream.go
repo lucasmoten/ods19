@@ -409,13 +409,11 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	if cipherFile == nil {
 		//Not found, so pull the file to disk from S3 in the background,
 		backgroundRecache(ctx, h.DrainProvider, h.Tracker, object, cipherFilePathCached)
-		//...while also range requesting from S3 in memory in the foreground
-		chunkSize := aes.BlockSize * int64(1024*32)
 		totalLength := object.ContentSize.Int64
 		//...where this looks like a normal io.ReadCloser, but it keeps range requesting to
 		//...keep full with bytes, as requested.  This deals neatly with clients that connect,
 		//...and only pull a small number of bytes.
-		cipherReader, err = d.NewS3Puller(logger, chunkSize, rName, totalLength, cipherStartAt, -1)
+		cipherReader, err = d.NewS3Puller(logger, rName, totalLength, cipherStartAt, -1)
 		if err != nil {
 			return 0, NewAppError(500, err, "s3 pull fail", zap.String("err", err.Error()))
 		}

@@ -24,6 +24,8 @@ import (
 
 var (
 	logger = globalconfig.RootLogger.With(zap.String("session", "drainprovider"))
+	//chunksInMegs is a default number of megabytes to fetch from S3 when there is a cache miss
+	chunkSize = int64(globalconfig.GetEnvOrDefaultInt("OD_AWS_S3_FETCH_MB", 16)) * int64(1024*1024)
 )
 
 const (
@@ -714,7 +716,7 @@ type S3Puller struct {
 }
 
 // NewS3Puller prepares to start pulling from S3
-func (d *S3DrainProviderData) NewS3Puller(logger zap.Logger, chunkSize int64, rName FileId, totalLength, cipherStartAt, cipherStopAt int64) (io.ReadCloser, error) {
+func (d *S3DrainProviderData) NewS3Puller(logger zap.Logger, rName FileId, totalLength, cipherStartAt, cipherStopAt int64) (io.ReadCloser, error) {
 	key := aws.String(string(d.Resolve(NewFileName(rName, ""))))
 	bucket := &config.DefaultBucket
 
@@ -815,7 +817,7 @@ func (p *S3Puller) Close() error {
 }
 
 // NewS3Puller isn't really used.  This makes the analogy for the S3 version clear though.
-func (d *NullDrainProviderData) NewS3Puller(logger zap.Logger, chunkSize int64, rName FileId, totalLength, cipherStartAt, cipherStopAt int64) (io.ReadCloser, error) {
+func (d *NullDrainProviderData) NewS3Puller(logger zap.Logger, rName FileId, totalLength, cipherStartAt, cipherStopAt int64) (io.ReadCloser, error) {
 	cipherFile, err := d.Files().Open(d.Resolve(NewFileName(rName, ".cached")))
 	cipherFile.Seek(cipherStartAt, 0)
 	return cipherFile, err

@@ -1,7 +1,6 @@
 package server_test
 
 import (
-	"crypto/aes"
 	"io"
 	"os"
 	"testing"
@@ -402,9 +401,8 @@ func TestCacheCreate(t *testing.T) {
 		t.Errorf("content did not come back as same values. %s vs %s", s1, s2)
 	}
 
-	chunkSize := aes.BlockSize * int64(64)
 	totalLength := int64(len(fdata))
-	cipherReader, err := d.NewS3Puller(d.Logger, chunkSize, rName, totalLength, 0, -1)
+	cipherReader, err := d.NewS3Puller(d.Logger, rName, totalLength, 0, -1)
 	if err != nil {
 		t.Errorf("unable to create puller for S3:%v", err)
 	}
