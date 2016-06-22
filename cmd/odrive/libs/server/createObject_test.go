@@ -1,12 +1,15 @@
 package server_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"testing"
 
+	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
@@ -153,4 +156,86 @@ func doTestCreateObjectSimple(t *testing.T, data string, clientID int) (*http.Re
 
 	jres := jresif.(protocol.Object)
 	return res, jres
+}
+
+func TestCreateWithACMInObjectFormat(t *testing.T) {
+
+	// Test originates from a sample request from Rob Olson from email
+	// on 2016-06-22T03:47Z that was failing when an ACM was provided
+	// in object format instead of serialized string.
+
+	if testing.Short() {
+		t.Skip()
+	}
+	verboseOutput := testing.Verbose()
+	clientid := 0
+
+	if verboseOutput {
+		fmt.Printf("(Verbose Mode) Using client id %d", clientid)
+		fmt.Println()
+	}
+
+	// Attempt to post a new object
+	uri := host + cfg.NginxRootURL + "/objects"
+	body := `--651f24479ab34530af50aa607ce7512c
+Content-Disposition: form-data; name="ObjectMetadata"
+Content-Type: application/json
+
+{
+    "contentType": "image/jpeg", 
+    "name": "upload.txt", 
+    "isFOIAExempt": false, 
+    "acm": {
+        "classif": "U", 
+        "atom_energy": [], 
+        "disp_only": "", 
+        "disponly_to": [""], 
+        "dissem_ctrls": [], 
+        "fgi_protect": [], 
+        "f_missions": [], 
+        "dissem_countries": ["USA"], 
+        "sar_id": [], 
+        "sci_ctrls": [], 
+        "version": "2.1.0", 
+        "rel_to": [], 
+        "f_atom_energy": [], 
+        "f_macs": [], 
+        "non_ic": [], 
+        "f_oc_org": [], 
+        "banner": "UNCLASSIFIED", 
+        "f_sci_ctrls": [], 
+        "fgi_open": [], 
+        "f_accms": [], 
+        "f_share": [], 
+        "portion": "U", 
+        "f_regions": [], 
+        "f_clearance": ["u"], 
+        "owner_prod": []
+    }, 
+    "typeName": "File", 
+    "isUSPersonsData": false, 
+    "description": "description"
+}
+--651f24479ab34530af50aa607ce7512c
+Content-Disposition: form-data; name="filestream"; filename="upload.txt"
+Content-Type: application/octet-stream
+
+posting a file
+--651f24479ab34530af50aa607ce7512c--   
+`
+	byteBody := []byte(body)
+	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(byteBody))
+	req.Header.Set("Content-Type", "multipart/form-data; boundary=651f24479ab34530af50aa607ce7512c")
+
+	// do the request
+	res, err := httpclients[clientid].Do(req)
+	if err != nil {
+		log.Printf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// process Response
+	if res.StatusCode != http.StatusOK {
+		log.Printf("bad status: %s", res.Status)
+		t.FailNow()
+	}
 }
