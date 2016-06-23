@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS object_acm
   ,INDEX ix_objectId (objectId)
   ,INDEX ix_acmKeyId (acmKeyId)
   ,INDEX ix_acmValueId (acmValueId)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 SELECT 'Creating a_object_acm table' as Action
 //
@@ -42,6 +42,6 @@ CREATE TABLE IF NOT EXISTS a_object_acm
   ,INDEX ix_objectId (objectId)
   ,INDEX ix_acmKeyId (acmKeyId)
   ,INDEX ix_acmValueId (acmValueId)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 delimiter ;

@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS object_tag
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_objectId (objectId)
   ,INDEX ix_name (name)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 SELECT 'Creating a_object_tag table' as Action
 //
@@ -44,6 +44,6 @@ CREATE TABLE IF NOT EXISTS a_object_tag
   ,INDEX ix_modifiedDate (modifiedDate)
   ,INDEX ix_changeCount (changeCount)
   ,INDEX ix_objectId (objectId)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 delimiter ;

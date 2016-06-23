@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS object
   ,INDEX ix_ownedBy (ownedBy)
   ,INDEX ix_parentId (parentId)
   ,INDEX ix_typeId (typeId)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 SELECT 'Creating a_object table' as Action
 //
@@ -82,6 +82,6 @@ CREATE TABLE IF NOT EXISTS a_object
   ,INDEX ix_modifiedDate (modifiedDate)
   ,INDEX ix_ownedBy (ownedBy)
   ,INDEX ix_changeCount (changeCount)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 delimiter ;

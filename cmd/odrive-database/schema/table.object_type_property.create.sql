@@ -17,6 +17,6 @@ CREATE TABLE IF NOT EXISTS object_type_property
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_typeId (typeId)
   ,INDEX ix_propertyId (propertyId)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 delimiter ;

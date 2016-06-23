@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS user_object_favorite
   ,INDEX ix_createdBy (createdBy)
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_objectId (objectId)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 SELECT 'Creating a_user_object_favorite table' as Action
 //
@@ -38,6 +38,6 @@ CREATE TABLE IF NOT EXISTS a_user_object_favorite
   ,INDEX ix_createdBy (createdBy)
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_objectId (objectId)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 delimiter ;
