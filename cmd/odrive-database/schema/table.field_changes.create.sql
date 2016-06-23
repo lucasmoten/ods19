@@ -15,6 +15,6 @@ CREATE TABLE IF NOT EXISTS field_changes
   ,INDEX ix_tableName (tableName)
   ,INDEX ix_recordId (recordId)
   ,INDEX ix_columnName (columnName)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 delimiter ;

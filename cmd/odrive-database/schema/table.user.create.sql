@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS user
   ,email varchar(255) null
   ,CONSTRAINT pk_user PRIMARY KEY (id)
   ,UNIQUE (distinguishedName)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 SELECT 'Creating a_user table' as Action
 //
@@ -36,6 +36,6 @@ CREATE TABLE IF NOT EXISTS a_user
   ,CONSTRAINT pk_a_user PRIMARY KEY (a_id)
   ,INDEX ix_distinguishedName (distinguishedName)
   ,INDEX ix_modifiedDate (modifiedDate)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 delimiter ;

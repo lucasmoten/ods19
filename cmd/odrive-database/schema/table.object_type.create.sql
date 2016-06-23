@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS object_type
   ,CONSTRAINT pk_object_type PRIMARY KEY (id)
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_name (name)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 SELECT 'Creating a_object_type table' as Action
 //
@@ -47,6 +47,6 @@ CREATE TABLE IF NOT EXISTS a_object_type
   ,INDEX ix_modifiedDate (modifiedDate)
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_changeCount (changeCount)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 delimiter ;

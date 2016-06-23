@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS acmkey
   ,CONSTRAINT pk_acmkey PRIMARY KEY (id)
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_name (name)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 SELECT 'Creating a_acmkey table' as Action
 //
@@ -34,6 +34,6 @@ CREATE TABLE IF NOT EXISTS a_acmkey
   ,CONSTRAINT pk_a_acmkey PRIMARY KEY (a_id)
   ,INDEX ix_id (id)
   ,INDEX ix_name (name)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 delimiter ;

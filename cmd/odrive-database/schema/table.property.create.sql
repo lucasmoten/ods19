@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS property
   ,CONSTRAINT pk_property PRIMARY KEY (id)
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_name (name)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 SELECT 'Creating a_property table' as Action
 //
@@ -46,6 +46,6 @@ CREATE TABLE IF NOT EXISTS a_property
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_changeCount (changeCount)
   ,INDEX ix_name (name)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 delimiter ;

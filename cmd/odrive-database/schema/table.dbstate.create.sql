@@ -7,6 +7,6 @@ CREATE TABLE IF NOT EXISTS dbstate
   modifiedDate timestamp(6) null,
   schemaversion varchar(255) null,
   identifier varchar(200) null
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 delimiter ;

@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS object_permission
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_objectId (objectId)
   ,INDEX ix_grantee (grantee)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 SELECT 'Creating a_object_permission table' as Action
 //
@@ -59,6 +59,6 @@ CREATE TABLE IF NOT EXISTS a_object_permission
   ,INDEX ix_changeCount (changeCount)
   ,INDEX ix_objectId (objectId)
   ,INDEX ix_grantee (grantee)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 delimiter ;

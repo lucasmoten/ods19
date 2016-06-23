@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS relationship
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_sourceId (sourceId)
   ,INDEX ix_targetId (targetId)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 SELECT 'Creating a_relationship table' as Action
 //
@@ -48,6 +48,6 @@ CREATE TABLE IF NOT EXISTS a_relationship
   ,INDEX ix_modifiedDate (modifiedDate)
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_changeCount (changeCount)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 delimiter ;

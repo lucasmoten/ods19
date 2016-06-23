@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS acm
   ,name text null
   ,CONSTRAINT pk_acm PRIMARY KEY (id)
   ,INDEX ix_isDeleted (isDeleted)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 SELECT 'Creating a_acm table' as Action
 //
@@ -32,6 +32,6 @@ CREATE TABLE IF NOT EXISTS a_acm
   ,name text null
   ,CONSTRAINT pk_a_acm PRIMARY KEY (a_id)
   ,INDEX ix_id (id)
-)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 //
 delimiter ;
