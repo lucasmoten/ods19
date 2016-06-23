@@ -61,9 +61,9 @@ func checkAWSEnvironmentVars(logger zap.Logger) {
 	if len(secretKey) > 0 {
 		os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey)
 	}
-	// If any values are not set, then this is a fatal error
-	if region == "" || accessKeyID == "" || secretKey == "" {
-		logger.Fatal("Fatal Error: Environment variables AWS_REGION, AWS_SECRET_ACCESS_KEY, and AWS_ACCESS_KEY_ID must be set.")
+	// If the region is not set, then fail
+	if region == "" {
+		logger.Fatal("Fatal Error: Environment variable AWS_REGION must be set.")
 	}
 	return
 }
