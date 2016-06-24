@@ -33,7 +33,7 @@ function refreshListObjects() {
     url = BASE_SERVICE_URL + 'objects/' + __state.parentId
   }
   // paging - eventually capture in __state?
-  url += '?pageNumber=1&pageSize=20'
+  url += '?pageNumber=1&pageSize=200'
   reqwest({
       url: url
     , method: 'get'
@@ -229,6 +229,7 @@ function createObject() {
         acm: rawAcm,
         title: objectName,
         fileName: fileName,
+        typeName: "File",
         size: size,
         contentType: contentType,
         parentId: __state.parentId

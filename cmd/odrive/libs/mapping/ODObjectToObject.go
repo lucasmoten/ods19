@@ -61,14 +61,9 @@ func MapODObjectToObject(i *models.ODObject) protocol.Object {
 	}
 	if i.ContentSize.Valid {
 		o.ContentSize = i.ContentSize.Int64
+		o.ContentHash = hex.EncodeToString(i.ContentHash)
 	} else {
 		o.ContentSize = 0
-	}
-	//Currently, it should not possible to have an object without a hash, unless it's a file
-	if i.TypeName.String == "Folder" {
-		//folders don't have a content hash
-	} else {
-		o.ContentHash = hex.EncodeToString(i.ContentHash)
 	}
 	o.Properties = MapODPropertiesToProperties(&i.Properties)
 	o.Permissions = MapODPermissionsToPermissions(&i.Permissions)
@@ -127,14 +122,9 @@ func MapODObjectToDeletedObject(i *models.ODObject) protocol.DeletedObject {
 	}
 	if i.ContentSize.Valid {
 		o.ContentSize = i.ContentSize.Int64
+		o.ContentHash = hex.EncodeToString(i.ContentHash)
 	} else {
 		o.ContentSize = 0
-	}
-	//Currently, it should not possible to have an object without a hash, unless it's a file
-	if i.TypeName.String == "File" {
-		//files don't have a content hash
-	} else {
-		o.ContentHash = hex.EncodeToString(i.ContentHash)
 	}
 	o.Properties = MapODPropertiesToProperties(&i.Properties)
 	o.Permissions = MapODPermissionsToPermissions(&i.Permissions)
