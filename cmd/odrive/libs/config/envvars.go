@@ -28,6 +28,7 @@ const (
 	OD_DB_CERT               = "OD_DB_CERT"
 	OD_DB_HOST               = "OD_DB_HOST"
 	OD_DB_KEY                = "OD_DB_KEY"
+	OD_DB_CONN_PARAMS        = "OD_DB_CONN_PARAMS"
 	OD_DB_MAXIDLECONNS       = "OD_DB_MAXIDLECONNS"
 	OD_DB_MAXOPENCONNS       = "OD_DB_MAXOPENCONNS"
 	OD_DB_PASSWORD           = "OD_DB_PASSWORD"
@@ -69,6 +70,7 @@ var vars = []string{OD_AAC_CA,
 	OD_CACHE_WALKSLEEP,
 	OD_DB_CA,
 	OD_DB_CERT,
+	OD_DB_CONN_PARAMS,
 	OD_DB_HOST,
 	OD_DB_KEY,
 	OD_DB_MAXIDLECONNS,
