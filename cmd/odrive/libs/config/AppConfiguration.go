@@ -122,11 +122,16 @@ func NewDatabaseConfigFromEnv() DatabaseConfiguration {
 	dbConf.CAPath = os.Getenv(OD_DB_CA)
 	dbConf.ClientCert = os.Getenv(OD_DB_CERT)
 	dbConf.ClientKey = os.Getenv(OD_DB_KEY)
+	dbConf.Params = os.Getenv(OD_DB_CONN_PARAMS)
+
+	if dbConf.Params == "" {
+		msg := "OD_DB_CONN_PARAMS is blank. Recommended value: parseTime=true&collation=utf8_unicode_ci"
+		logger.Warn("db warning", zap.String("config_warning", msg))
+	}
 
 	// Defaults
 	dbConf.Protocol = "tcp"
 	dbConf.Driver = defaultDBDriver
-	dbConf.Params = "parseTime=true&collation=utf8mb4_unicode_ci"
 	dbConf.UseTLS = true
 	dbConf.SkipVerify = true // TODO new variable?
 

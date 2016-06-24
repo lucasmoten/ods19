@@ -1,5 +1,8 @@
 # Object Drive Server
 
+This is the best server. Never saw one better.
+
+
 # API Documentation
 
 API documentation is hosted on the private Bedrock network here (subject to change):
@@ -28,49 +31,7 @@ govendor sync
 
 # Hosting The Code
 
-Required environment variables:
-* **OD_ROOT** the directory to check out non-Go source dependencies into, including
-  the `cte/object-drive` repository itself.
-* **GOPATH** the Go source tree. `object-drive-server` will be checked out to
-  a path in this tree.
-
 Detailed here: https://gitlab.363-283.io/cte/object-drive/wikis/object-drive-environment-variables
-
-* `OD_AAC_CA`
-* `OD_AAC_CERT`
-* `OD_AAC_HOST`
-* `OD_AAC_KEY`
-* `OD_AAC_PORT`
-* `OD_AWS_ACCESS_KEY_ID`
-* `OD_AWS_S3_BUCKET`
-* `OD_AWS_REGION`
-* `OD_AWS_SECRET_ACCESS_KEY`
-* `OD_CACHE_EVICTAGE`
-* `OD_CACHE_HIGHWATERMARK`
-* `OD_CACHE_LOWWATERMARK`
-* `OD_CACHE_PARTITION`
-* `OD_CACHE_ROOT`
-* `OD_CACHE_WALKSLEEP`
-* `OD_ENCRYPT_MASTERKEY`
-* `OD_DB_CA`
-* `OD_DB_CERT`
-* `OD_DB_HOST`
-* `OD_DB_KEY`
-* `OD_DB_MAXIDLECONNS`
-* `OD_DB_MAXOPENCONNS`
-* `OD_DB_PASSWORD`
-* `OD_DB_PORT`
-* `OD_DB_SCHEMA`
-* `OD_DB_USERNAME`
-* `OD_SERVER_CA`
-* `OD_SERVER_CERT`
-* `OD_SERVER_KEY`
-* `OD_SERVER_PORT`
-* `OD_STANDALONE`
-* `OD_ZK_BASEPATH`
-* `OD_ZK_ROOT`
-* `OD_ZK_TIMEOUT`
-* `OD_ZK_URL`
 
 All dependent Go code is relative to the **GOPATH**. If the source tree on your
 disk looks like this:
@@ -156,6 +117,7 @@ go test ./... -short=true -v
 ```
 
 Hooray for automated tests!
+
 
 # Other Configuration
 
