@@ -346,13 +346,11 @@ func (d *S3DrainProviderData) CacheToDrain(
 }
 
 // DrainToCache does nothing for a null drain which leaves files local.
-func (d *NullDrainProviderData) DrainToCache(
-	bucket *string,
-	theFile FileId,
-) (*AppError, error) {
+func (d *NullDrainProviderData) DrainToCache(bucket *string, theFile FileId) (*AppError, error) {
 	return nil, nil
 }
 
+// S3DownloadAttempt ...
 func S3DownloadAttempt(d *S3DrainProviderData, downloader *s3manager.Downloader, fOut *os.File, bucket *string, key *string) (int64, error) {
 	length, err := downloader.Download(
 		fOut,
@@ -362,11 +360,7 @@ func S3DownloadAttempt(d *S3DrainProviderData, downloader *s3manager.Downloader,
 		},
 	)
 	if err != nil {
-		d.Logger.Info(
-			"unable to download out of s3",
-			zap.String("bucket", *bucket),
-			zap.String("key", *key),
-		)
+		d.Logger.Info("unable to download out of s3", zap.String("bucket", *bucket), zap.String("key", *key))
 	}
 	return length, err
 }
@@ -439,10 +433,7 @@ func (d *S3DrainProviderData) DrainToCache(bucket *string, rName FileId) (*AppEr
 			zap.String("to", d.Files().Resolve(foutCached)),
 		)
 	}
-	d.Logger.Info(
-		"s3 fetched",
-		zap.String("rname", string(rName)),
-	)
+	d.Logger.Info("s3 fetched", zap.String("rname", string(rName)))
 	return nil, nil
 }
 
