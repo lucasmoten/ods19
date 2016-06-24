@@ -55,6 +55,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 		rName := utils.CreateRandomName()
 		iv := utils.CreateIV()
 		obj.ContentConnector.String = rName
+		obj.ContentConnector.Valid = true
 		obj.EncryptIV = iv
 
 		multipartReader, err := r.MultipartReader()
@@ -88,6 +89,15 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
 
 	createdObject, err = dao.CreateObject(&obj)
 	if err != nil {
+		if isMultipart && obj.ContentConnector.Valid {
+			d := h.DrainProvider
+			rName := FileId(obj.ContentConnector.String)
+			uploadedName := NewFileName(rName, "uploaded")
+			removeError := d.Files().Remove(d.Resolve(uploadedName))
+			if removeError != nil {
+				logger.Error("cannot remove orphaned file", zap.String("rname", string(rName)))
+			}
+		}
 		return NewAppError(500, err, "error storing object")
 	}
 	// For requests where a stream was provided, only drain off into S3 once we have a record
