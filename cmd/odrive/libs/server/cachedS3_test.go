@@ -316,12 +316,17 @@ func TestCacheDrainToSafety(t *testing.T) {
 		}
 	}()
 
+	fdata := []byte(testCacheData)
+	_, err = f.Write(fdata)
+
 	//Will upload into S3, and cache file
-	fqCachedName := d.Files().Resolve(d.Resolve(server.NewFileName(rName, ".cached")))
-	d.DrainUploadedFilesToSafety()
-	//Ensure that the file was deleted by being uploaded into S3
-	if _, err = os.Stat(fqCachedName); err != nil {
-		t.Errorf("should have been cached: %s %v", fqCachedName, err)
+	if _, err = os.Stat("./" + dirname); err == nil {
+		fqCachedName := d.Files().Resolve(d.Resolve(server.NewFileName(rName, ".cached")))
+		d.DrainUploadedFilesToSafety()
+		//Ensure that the file was deleted by being uploaded into S3
+		if _, err = os.Stat(fqCachedName); err != nil {
+			t.Errorf("should have been cached: %s %v", fqCachedName, err)
+		}
 	}
 }
 
