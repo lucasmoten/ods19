@@ -81,6 +81,14 @@ func main() {
 			},
 		},
 		{
+			Name:  "makeEnvScript",
+			Usage: "List required env vars in script. Suitable for \"source\". Pipe output to a file.",
+			Action: func(ctx *cli.Context) error {
+				config.GenerateSourceEnvScript()
+				return nil
+			},
+		},
+		{
 			Name:   "testService",
 			Usage:  "Run network diagnostic test against a service dependency. Values: s3, aac, db, zk",
 			Action: runServiceTest,
