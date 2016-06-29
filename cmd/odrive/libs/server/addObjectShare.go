@@ -12,7 +12,6 @@ import (
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/config"
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
-	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
@@ -61,6 +60,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 
 	//Get the existing grant, make one for the grantee
 	permittedGrant := models.ODObjectPermission{}
+	var thePermission *models.ODObjectPermission
 	var newGrant models.ODObjectPermission
 	for _, permission := range dbObject.Permissions {
 		isAllowed :=
@@ -69,34 +69,22 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 
 		// Add all permissions that apply to the caller to derive overall permitted
 		if isAllowed {
+			thePermission = &permission
 			permittedGrant.AllowCreate = permittedGrant.AllowCreate || permission.AllowCreate
 			permittedGrant.AllowRead = permittedGrant.AllowRead || permission.AllowRead
 			permittedGrant.AllowUpdate = permittedGrant.AllowUpdate || permission.AllowUpdate
 			permittedGrant.AllowDelete = permittedGrant.AllowDelete || permission.AllowDelete
 			permittedGrant.AllowShare = permittedGrant.AllowShare || permission.AllowShare
-			// And capture an encryptKey
-			permittedGrant.EncryptKey = make([]byte, 32)
-			permittedGrant.EncryptKey = permission.EncryptKey
 		}
 		// Keep iterating all permissions to build up what is permitted
 	}
-	if dbObject.TypeName.String != "Folder" {
-		if len(permittedGrant.EncryptKey) == 0 {
-			return NewAppError(500, err, "Did not find suitable grant to transfer. EncryptKey not set on permission of non-folder")
-		}
-		// As a non-folder, encrypt key needs to be applied to grantee.
-		// First apply on caller to decrypt
-		utils.ApplyPassphrase(h.MasterKey+caller.DistinguishedName, permittedGrant.EncryptKey)
-		//Encrypt to grantee
-		utils.ApplyPassphrase(h.MasterKey+requestGrant.Grantee, permittedGrant.EncryptKey)
+	if thePermission != nil {
+		models.CopyEncryptKey(h.MasterKey, thePermission, &permittedGrant)
 	}
 
 	// Setup new grant based upon permitted grant permissions
 	newGrant.CreatedBy = caller.DistinguishedName
 	newGrant.Grantee = requestGrant.Grantee
-	// - recalculated encrypt key
-	newGrant.EncryptKey = make([]byte, 32)
-	newGrant.EncryptKey = permittedGrant.EncryptKey
 	// - combined permissions. only allow what is permitted
 	newGrant.AllowCreate = permittedGrant.AllowCreate && requestGrant.AllowCreate
 	newGrant.AllowRead = permittedGrant.AllowRead && requestGrant.AllowRead
@@ -105,6 +93,8 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	newGrant.AllowShare = permittedGrant.AllowShare && requestGrant.AllowShare
 	// - This is an explicit grant
 	newGrant.ExplicitShare = true
+	// - recalculated encrypt key
+	models.CopyEncryptKey(h.MasterKey, &permittedGrant, &newGrant)
 
 	// Add to database
 	createdPermission, err := dao.AddPermissionToObject(dbObject, &newGrant, propagateToChildren, h.MasterKey)

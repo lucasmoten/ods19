@@ -198,7 +198,7 @@ func (h AppServer) beginUploadTimed(
 	//
 	rName := FileId(obj.ContentConnector.String)
 	iv := obj.EncryptIV
-	fileKey := grant.EncryptKey
+	fileKey := utils.ApplyPassphrase(h.MasterKey, grant.PermissionIV, grant.EncryptKey)
 	d := h.DrainProvider
 
 	//Make up a random name for our file - don't deal with versioning yet
@@ -223,9 +223,6 @@ func (h AppServer) beginUploadTimed(
 		d.Files().Remove(outFileUploading)
 		return nil, NewAppError(400, err, msg), err
 	}
-
-	//Scramble the fileKey with the masterkey - will need it once more on retrieve
-	utils.ApplyPassphrase(h.MasterKey+caller.DistinguishedName, fileKey)
 
 	//Rename it to indicate that it can be moved to S3
 	err = d.Files().Rename(outFileUploading, outFileUploaded)

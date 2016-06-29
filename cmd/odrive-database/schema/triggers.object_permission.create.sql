@@ -58,6 +58,8 @@ BEGIN
 		,allowShare
 		,explicitShare
 		,encryptKey
+		,permissionIV
+		,permissionMAC
 	) values (
 		NEW.id
 		,NEW.createdDate
@@ -78,6 +80,8 @@ BEGIN
 		,NEW.allowShare
 		,NEW.explicitShare
 		,NEW.encryptKey
+		,NEW.permissionIV
+		,NEW.permissionMAC
 	);
 
 	# Specific field level changes
@@ -90,6 +94,8 @@ BEGIN
 	INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'allowShare', newValue = NEW.allowShare;
 	INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'explicitShare', newValue = NEW.explicitShare;
 	INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'encryptKey', newValue = hex(NEW.encryptKey);
+	INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'permissionIV', newValue = hex(NEW.permissionIV);
+	INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'permissionMAC', newValue = hex(NEW.permissionMAC);
 
 END
 //
@@ -184,6 +190,8 @@ BEGIN
 		,allowShare
 		,explicitShare
 		,encryptKey
+		,permissionIV
+		,permissionMAC
 	) values (
 		NEW.id
 		,NEW.createdDate
@@ -204,6 +212,8 @@ BEGIN
 		,NEW.allowShare
 		,NEW.explicitShare
 		,NEW.encryptKey
+		,NEW.permissionIV
+		,NEW.permissionMAC
 	);
 
 	# Specific field level changes
@@ -233,6 +243,12 @@ BEGIN
 	END IF;
 	IF NEW.encryptKey <> OLD.encryptKey THEN
 		INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'encryptKey', newValue = hex(NEW.encryptKey);
+	END IF;
+	IF NEW.permissionIV <> OLD.permissionIV THEN
+		INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'permissionIV', newValue = hex(NEW.permissionIV);
+	END IF;
+	IF NEW.permissionMAC <> OLD.permissionMAC THEN
+		INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'permissionMAC', newValue = hex(NEW.permissionMAC);
 	END IF;
 
 END

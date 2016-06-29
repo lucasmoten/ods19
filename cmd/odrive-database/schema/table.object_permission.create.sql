@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS object_permission
   ,allowShare boolean not null
   ,explicitShare boolean not null
   ,encryptKey binary(32) null
+  ,permissionIV binary(32) null
+  ,permissionMAC binary(32) null
   ,CONSTRAINT pk_object_permission PRIMARY KEY (id)
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_objectId (objectId)
@@ -53,6 +55,8 @@ CREATE TABLE IF NOT EXISTS a_object_permission
   ,allowShare boolean not null
   ,explicitShare boolean not null
   ,encryptKey binary(32) null
+  ,permissionIV binary(32) null
+  ,permissionMAC binary(32) null
   ,CONSTRAINT pk_a_object_permission PRIMARY KEY (a_id)
   ,INDEX ix_id (id)
   ,INDEX ix_modifiedDate (modifiedDate)

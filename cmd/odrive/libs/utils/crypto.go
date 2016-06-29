@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"hash"
 	"io"
 	"io/ioutil"
@@ -78,6 +79,7 @@ type RSAComponents struct {
 	E *big.Int
 }
 
+// CreateRandomName gives each file a random name
 func CreateRandomName() string {
 	//Sha256 keys are 256 bits
 	key := make([]byte, 32)
@@ -85,10 +87,28 @@ func CreateRandomName() string {
 	return hex.EncodeToString(key)
 }
 
-// ApplyPassPhrsae takes the passphrase provided and performs a bitwise XOR on
+// DoMAC gives a way to authenticate that we wrote this
+func DoMAC(passphrase string, permissionIV []byte, dn string, c, r, u, d, s bool, encryptedKey []byte) []byte {
+	//TODO: use value types
+	result := make([]byte, 32)
+	//!!! the last item is of a fixed length because we are of the form H(secret||data),
+	// so we don't want to have issues with extension attacks on the hash
+	str := fmt.Sprintf("%s:%s:%t,%t,%t,%t,%t:%s", passphrase, dn, c, r, u, d, s, hex.EncodeToString(encryptedKey))
+	hashBytes := sha256.Sum256([]byte(str))
+	for i := 0; i < 32; i++ {
+		result[i] = hashBytes[i]
+	}
+	return result
+}
+
+// ApplyPassphrase takes the passphrase provided and performs a bitwise XOR on
 // each element of the current contents of the passed in array
-func ApplyPassphrase(passphrase string, fileKey []byte) {
-	hashBytes := sha256.Sum256([]byte(passphrase))
+func ApplyPassphrase(passphrase string, permissionIV, fileKey []byte) []byte {
+	result := make([]byte, 32)
+	//!!! the last item is of a fixed length because we are of the form H(secret||data),
+	// so we don't want to have issues with extension attacks on the hash
+	str := fmt.Sprintf("%s:%s", passphrase, hex.EncodeToString(permissionIV))
+	hashBytes := sha256.Sum256([]byte(str))
 	fklen := len(fileKey)
 	hlen := len(hashBytes)
 	if fklen > hlen {
@@ -97,8 +117,16 @@ func ApplyPassphrase(passphrase string, fileKey []byte) {
 		log.Fatal("Do not applyPassphrase to anything that is longer than a sha256 hash!")
 	}
 	for i := 0; i < fklen; i++ {
-		fileKey[i] = hashBytes[i] ^ fileKey[i]
+		result[i] = hashBytes[i] ^ fileKey[i]
 	}
+	return result
+}
+
+// CreatePermissionIV creates a byte array of length 32 initialized with random data
+func CreatePermissionIV() (key []byte) {
+	//256 bit keys
+	key = make([]byte, 32)
+	rand.Read(key)
 	return
 }
 

@@ -47,6 +47,8 @@ func getObjectPermissionInTransaction(tx *sqlx.Tx, objectPermission models.ODObj
         ,allowShare
         ,explicitShare
         ,encryptKey     
+		,permissionIV
+		,permissionMAC
     from object_permission 
     where id = ?`
 	err := tx.Get(&dbObjectPermission, query, objectPermission.ID)

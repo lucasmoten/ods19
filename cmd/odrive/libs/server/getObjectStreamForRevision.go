@@ -58,13 +58,15 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	// Check if the user has permissions to read the ODObject
 	//		Permission.grantee matches caller, and AllowRead is true
 	authorizedToRead := false
-	var userEncryptKey []byte
+	var fileKey []byte
 	for _, permission := range dbObject.Permissions {
 		if permission.Grantee == caller.DistinguishedName && permission.AllowRead {
+			if models.EqualsPermissionMAC(h.MasterKey, &permission) == false {
+				//Check the integrity of the grant before giving a stream
+				return NewAppError(403, nil, "Unauthorized")
+			}
 			authorizedToRead = true
-			userEncryptKey = permission.EncryptKey
-			//Unscramble the Key with the masterkey
-			utils.ApplyPassphrase(h.MasterKey+caller.DistinguishedName, userEncryptKey)
+			fileKey = utils.ApplyPassphrase(h.MasterKey, permission.PermissionIV, permission.EncryptKey)
 		}
 	}
 	if !authorizedToRead {
@@ -100,7 +102,7 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	}
 
 	//TODO: these are not performance counted as all downloads?
-	_, appError := h.getAndStreamFile(ctx, &dbObject, w, r, userEncryptKey, false)
+	_, appError := h.getAndStreamFile(ctx, &dbObject, w, r, fileKey, false)
 	if appError != nil {
 		return NewAppError(appError.Code, appError.Error, appError.Msg)
 	}

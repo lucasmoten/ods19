@@ -2,8 +2,13 @@
 set -e
 
 # This script will connect to mysql/mariadb in the docker container named metadatadb
-DOCKER_CONTAINER_NAME=`docker ps --format '{{.Names}}' | grep metadatadb`
-DOCKER_CONTAINER_IP=`docker inspect --format '{{ .NetworkSettings.IPAddress }}' ${DOCKER_CONTAINER_NAME}`
+if [ $# -ne 0 ]
+then
+  DOCKER_CONTAINER_IP=$1
+else 
+  DOCKER_CONTAINER_NAME=`docker ps --format '{{.Names}}' | grep metadatadb`
+  DOCKER_CONTAINER_IP=`docker inspect --format '{{ .NetworkSettings.IPAddress }}' ${DOCKER_CONTAINER_NAME}`
+fi
 MYSQL_USER="dbuser"
 MYSQL_PASSWORD="dbPassword"
 MYSQL_DATABASE="metadatadb"

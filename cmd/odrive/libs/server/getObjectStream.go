@@ -142,10 +142,11 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	for _, v := range object.Permissions {
 		permission = &v
 		if permission.AllowRead && strings.ToLower(permission.Grantee) == caller.DistinguishedName {
-			fileKey = permission.EncryptKey
-			//Unscramble the fileKey with the masterkey - will need it once more on retrieve
-			utils.ApplyPassphrase(h.MasterKey+caller.DistinguishedName, fileKey)
-			// Once we have a match, quit looking and avoid reapplying passphrase
+			if models.EqualsPermissionMAC(h.MasterKey, permission) == false {
+				//Check the integrity of the grant before giving a stream
+				return 0, NewAppError(403, nil, "Unauthorized")
+			}
+			fileKey = utils.ApplyPassphrase(h.MasterKey, permission.PermissionIV, permission.EncryptKey)
 			break
 		}
 	}

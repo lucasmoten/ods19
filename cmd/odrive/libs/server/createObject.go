@@ -43,7 +43,8 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	grant.AllowUpdate = true
 	grant.AllowDelete = true
 	grant.AllowShare = true
-	grant.EncryptKey = utils.CreateKey()
+	//Store the key *encrypted* ... not plain!
+	models.SetEncryptKey(h.MasterKey, &grant)
 
 	// Determine if this request is being made with a file stream or without.
 	// When a filestream is provided, there is a different handler that parses
@@ -79,12 +80,11 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	}
 	obj.CreatedBy = caller.DistinguishedName
 	// copy grant.EncryptKey to all existing permissions:
+
 	for idx, permission := range obj.Permissions {
-		permission.EncryptKey = grant.EncryptKey
-		obj.Permissions[idx].EncryptKey = grant.EncryptKey
+		models.CopyEncryptKey(h.MasterKey, &grant, &permission)
+		models.CopyEncryptKey(h.MasterKey, &grant, &obj.Permissions[idx])
 	}
-	// Don't wipe out existing permissions, just add the new one!
-	obj.Permissions = append(obj.Permissions, grant)
 
 	createdObject, err = dao.CreateObject(&obj)
 	if err != nil {
