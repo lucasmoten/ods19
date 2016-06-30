@@ -350,11 +350,12 @@ func OverwriteODObjectWithProtocolObject(o *models.ODObject, i *protocol.Object)
 	}
 
 	// Accept ACM if provided. If it's mandatory, then check that it was set on o when this function completes.
-	o.RawAcm.String, err = utils.MarshalInterfaceToString(i.RawAcm)
+	parsedACM, err := utils.MarshalInterfaceToString(i.RawAcm)
 	if err != nil {
 		return fmt.Errorf("Unable to convert ACM: %v", err)
 	}
-	if len(o.RawAcm.String) > 0 {
+	if len(parsedACM) > 0 {
+		o.RawAcm.String = parsedACM
 		o.RawAcm.Valid = true
 	}
 

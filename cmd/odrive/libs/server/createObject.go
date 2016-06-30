@@ -22,8 +22,7 @@ import (
 
 // createObject is a method handler on AppServer for createObject microservice
 // operation.
-func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter,
-	r *http.Request) *AppError {
+func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {

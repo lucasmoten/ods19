@@ -17,6 +17,7 @@ import (
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
+	"github.com/uber-go/zap"
 )
 
 func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
@@ -71,7 +72,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		return NewAppError(502, err, "Error communicating with authorization service")
 	}
 	if !hasAACAccessToOLDACM {
-		return NewAppError(403, err, "Unauthorized")
+		return NewAppError(403, err, "Unauthorized", zap.String("origination", "No access to read old ACM on Update"), zap.String("acm", dbObject.RawAcm.String))
 	}
 
 	// Make sure the object isn't deleted. To remove an object from the trash,
@@ -130,7 +131,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 			return NewAppError(502, err, "Error communicating with authorization service")
 		}
 		if !hasAACAccessToNewACM {
-			return NewAppError(403, err, "Unauthorized")
+			return NewAppError(403, err, "Unauthorized", zap.String("origination", "No access to new ACM on Update"), zap.String("acm", requestObject.RawAcm.String))
 		}
 	}
 
