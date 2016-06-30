@@ -172,7 +172,6 @@ func NewS3DrainProvider(root, name string) DrainProvider {
 // NewS3DrainProviderRaw set up a new drain provider that gives us members to use the drain and goroutine to clean cache.
 // Call this to build a test cache.
 func NewS3DrainProviderRaw(root, name string, lowWatermark float64, ageEligibleForEviction int64, highWatermark float64, walkSleep time.Duration, logger zap.Logger) *S3DrainProviderData {
-	checkAWSEnvironmentVars(logger)
 	d := &S3DrainProviderData{
 		AWSSession:             NewAWSSession(),
 		CacheObject:            DrainCacheData{root},
@@ -205,10 +204,23 @@ func (d *NullDrainProviderData) Resolve(fName FileName) FileNameCached {
 
 // NewAWSSession instantiates a connection to AWS.
 func NewAWSSession() *session.Session {
-	sessionConfig := &aws.Config{
-		Credentials: credentials.NewEnvCredentials(),
+
+	checkAWSEnvironmentVars(logger)
+
+	// See if AWS creds in environment
+	accessKeyID := globalconfig.GetEnvOrDefault("OD_AWS_ACCESS_KEY_ID", globalconfig.GetEnvOrDefault("AWS_ACCESS_KEY_ID", ""))
+	secretKey := globalconfig.GetEnvOrDefault("OD_AWS_SECRET_ACCESS_KEY", globalconfig.GetEnvOrDefault("AWS_SECRET_ACCESS_KEY", ""))
+	if len(accessKeyID) > 0 && len(secretKey) > 0 {
+		logger.Info("aws.credentials", zap.String("provider", "environment variables"))
+		sessionConfig := &aws.Config{
+			Credentials: credentials.NewEnvCredentials(),
+			Region:      aws.String(os.Getenv("AWS_REGION")),
+		}
+		return session.New(sessionConfig)
 	}
-	return session.New(sessionConfig)
+	// Do as IAM
+	logger.Info("aws.credentials", zap.String("provider", "iam role"))
+	return session.New(&aws.Config{Region: aws.String(os.Getenv("AWS_REGION"))})
 }
 
 // NewNullDrainProvider setup a drain provider that doesnt use S3 backend, just local caching.
