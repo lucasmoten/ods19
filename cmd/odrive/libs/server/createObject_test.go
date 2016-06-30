@@ -134,12 +134,7 @@ func doTestCreateObjectSimple(t *testing.T, data string, clientID int) (*http.Re
 	}
 
 	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
-		"objects",
-		host, "",
-		tmp,
-		tmpName,
-		jsonBody,
-	)
+		"objects", host, "", tmp, tmpName, jsonBody)
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}

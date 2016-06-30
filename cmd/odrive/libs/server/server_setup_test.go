@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -36,12 +37,26 @@ var host string
 var clients []*ClientIdentity
 var httpclients []*http.Client
 
-func init() {
-	host = fmt.Sprintf("https://%s:%s", cfg.DockerVM, cfg.Port)
+func setup(ip string) {
+
+	if ip == "" {
+		host = fmt.Sprintf("https://%s:%s", cfg.DockerVM, cfg.Port)
+	} else {
+		host = fmt.Sprintf("https://%s:%s", ip, cfg.Port)
+	}
+
 	log.Println("Using this host address for server_test:", host)
 	if !testing.Short() {
 		generatePopulation()
 	}
+}
+
+var testIP = flag.String("testIP", "", "The IP address for test API requests. Usually the dockerVM")
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	setup(*testIP)
+	m.Run()
 }
 
 func generatePopulation() {

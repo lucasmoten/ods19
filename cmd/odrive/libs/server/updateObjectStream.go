@@ -8,6 +8,7 @@ import (
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	"decipher.com/object-drive-server/metadata/models"
+	"github.com/uber-go/zap"
 	"golang.org/x/net/context"
 )
 
@@ -76,7 +77,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		return NewAppError(502, err, "Error communicating with authorization service")
 	}
 	if !hasAACAccessToOLDACM {
-		return NewAppError(403, err, "Unauthorized")
+		return NewAppError(403, err, "Unauthorized", zap.String("origination", "No access to old ACM on Update"), zap.String("acm", object.RawAcm.String))
 	}
 
 	//Descramble key (and rescramble when we go to save object back)

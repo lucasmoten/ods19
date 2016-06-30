@@ -163,11 +163,9 @@ func doReCheckProperties(t *testing.T, oid, jsonString string) {
 	doPropsCheck(t, jsonResponseBytes)
 }
 
-func doPropertyUpdate(t *testing.T, oid, jsonString string) {
-	if testing.Short() {
-		t.Skip()
-	}
+func doPropertyUpdate(t *testing.T, oid, updateJSON string) {
 
+	// TODO we should be able to pass this in
 	clientID := 5
 
 	data := "Initial test data 3 asdf"
@@ -179,7 +177,7 @@ func doPropertyUpdate(t *testing.T, oid, jsonString string) {
 	}
 	defer tmpCloser()
 
-	jsonBody := []byte(jsonString)
+	jsonBody := []byte(updateJSON)
 
 	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
 		fmt.Sprintf("objects/%s/stream", oid),
@@ -206,46 +204,43 @@ func doPropertyUpdate(t *testing.T, oid, jsonString string) {
 		t.Errorf("bad status code:%d", res.StatusCode)
 	}
 
-	/*
-		jsonResponse := string(jsonResponseBytes)
-
-		decoder := json.NewDecoder(strings.NewReader(jsonResponse))
-		var objResponse protocol.Object
-		err = decoder.Decode(&objResponse)
-		res.Body.Close()
-
-		doReCheckProperties(t, oid, jsonResponse)
-	*/
 	doPropsCheck(t, jsonResponseBytes)
 }
 
 func TestUpdateObjectWithProperties(t *testing.T) {
 	clientID := 5
-	//Create an object ....
-	//Note that this used client id 5, so we must as well.
 	data := "0123456789"
-	_, jsonResponse := doTestCreateObjectSimple(t, data, clientID)
+	_, created := doTestCreateObjectSimple(t, data, clientID)
 
-	if len(jsonResponse.ChangeToken) == 0 {
+	if len(created.ChangeToken) == 0 {
 		t.Fail()
 	}
 
-	oid := jsonResponse.ID
+	acm := strings.Replace(testhelpers.ValidACMUnclassifiedFOUO, "\"", "\\\"", -1)
+	//Use its changeToken for an update ....
+	log.Printf("id:%s oldChangeToken:%s changeCount:%d", created.ID, created.ChangeToken, created.ChangeCount)
+	doPropertyUpdate(t, created.ID, fmt.Sprintf(updateTemplate, acm, created.ChangeToken))
+	//Do an independent re-retrieve
+	doReCheckProperties(t, created.ID, fmt.Sprintf(updateTemplate, acm, created.ChangeToken))
+}
 
-	jsonString := `
-    {
+func TestUpdateStreamWithoutProvidingACM(t *testing.T) {
+
+	clientID := 5
+	data := "0123456789"
+	_, created := doTestCreateObjectSimple(t, data, clientID)
+	// update object with empty string ACM
+	// This function will fail internally.
+	doPropertyUpdate(t, created.ID, fmt.Sprintf(updateTemplate, "", created.ChangeToken))
+}
+
+var updateTemplate = `
+{
       "description": "describeit"
       ,"acm": "%s"
       ,"changeToken" : "%s"
       ,"properties" : [
           {"name":"dogname", "value":"arf", "classificationPM":"U"}
       ]
-    }
-    `
-	acm := strings.Replace(testhelpers.ValidACMUnclassifiedFOUO, "\"", "\\\"", -1)
-	//Use its changeToken for an update ....
-	log.Printf("id:%s oldChangeToken:%s changeCount:%d", jsonResponse.ID, jsonResponse.ChangeToken, jsonResponse.ChangeCount)
-	doPropertyUpdate(t, oid, fmt.Sprintf(jsonString, acm, jsonResponse.ChangeToken))
-	//Do an independent re-retrieve
-	doReCheckProperties(t, oid, fmt.Sprintf(jsonString, acm, jsonResponse.ChangeToken))
 }
+`

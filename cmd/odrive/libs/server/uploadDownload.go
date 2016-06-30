@@ -74,7 +74,7 @@ func (h AppServer) acceptObjectUpload(
 			if err != nil {
 				return drainFunc, NewAppError(400, err, fmt.Sprintf("Unable to marshal ACM as string: %s", s)), err
 			}
-			if !asCreate && strings.Compare(obj.RawAcm.String, rawAcmString) != 0 {
+			if !asCreate && len(rawAcmString) != 0 && strings.Compare(obj.RawAcm.String, rawAcmString) != 0 {
 				// Ensure user is allowed this acm
 				updateObjectRequest := models.ODObject{}
 				updateObjectRequest.RawAcm.String = rawAcmString
@@ -84,7 +84,7 @@ func (h AppServer) acceptObjectUpload(
 					return drainFunc, NewAppError(502, err, "Error communicating with authorization service"), err
 				}
 				if !hasAACAccessToNewACM {
-					return drainFunc, NewAppError(403, nil, "Unauthorized"), err
+					return drainFunc, NewAppError(403, nil, "Unauthorized", zap.String("origination", "No access to new ACM on Update"), zap.String("acm", rawAcmString)), err
 				}
 			}
 
@@ -98,10 +98,9 @@ func (h AppServer) acceptObjectUpload(
 				if herr := handleCreatePrerequisites(ctx, h, obj); herr != nil {
 					return nil, herr, nil
 				}
-				if len(obj.RawAcm.String) == 0 {
-					return drainFunc, NewAppError(400, err, "An ACM must be specified"), nil
-				}
 			} else {
+				// UPDATE STREAM
+
 				// If the id is specified, it must be the same as from the URI
 				if len(createObjectRequest.ID) > 0 && createObjectRequest.ID != existingID {
 					return drainFunc, NewAppError(400, err, "JSON supplied an object id inconsistent with the one supplied from URI"), nil
@@ -111,6 +110,19 @@ func (h AppServer) acceptObjectUpload(
 					return drainFunc, NewAppError(400, err, "JSON supplied a parent id inconsistent with existing parent id"), nil
 				}
 			}
+			// Whether creating or updating, the ACM must have a value
+			if len(obj.RawAcm.String) == 0 {
+				return drainFunc, NewAppError(400, err, "An ACM must be specified"), nil
+			}
+			// NOTE: Dont need to check access to ACM again here because create has done
+			// it in handleCreatePrerequisites already, and for update it is handled
+			// explicitly a few dozen lines above, and if there was no ACM provided on the
+			// update, then the existing ACM on the object which wont be overwritten
+			// during the call to OverwriteODObjectWithProtocolObject will have already
+			// been checked for this user in updateObjectStream where checking
+			// hasAACAccessToOLDACM
+			// TODO: Refactor this whole create/update to flow more logically and
+			// encapsulate into appropriate go
 			parsedMetadata = true
 		case len(part.FileName()) > 0:
 			var msg string

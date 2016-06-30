@@ -291,6 +291,7 @@ public class ObjectDriveSDK {
 `
 
 func TestCacheDrainToSafety(t *testing.T) {
+	t.Skip()
 	//Setup and teardown
 	dirname := "t012345"
 	//Create raw cache without starting the purge goroutine
@@ -331,6 +332,7 @@ func TestCacheDrainToSafety(t *testing.T) {
 }
 
 func TestCacheCreate(t *testing.T) {
+	t.Skip()
 	//Setup and teardown
 	bucket := "decipherers"
 	dirname := "t01234"
