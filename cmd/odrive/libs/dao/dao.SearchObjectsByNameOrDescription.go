@@ -13,8 +13,6 @@ import (
 	"decipher.com/object-drive-server/protocol"
 )
 
-const FILTER_BY_COMMON_ACM bool = true
-
 // SearchObjectsByNameOrDescription retrieves a list of Objects, their
 // Permissions and optionally Properties in object drive that are
 // available to the user making the call, matching any specified
@@ -77,13 +75,7 @@ func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUs
     from object o
         inner join object_type ot on o.typeid = ot.id
         inner join object_permission op	on o.id = op.objectid and op.isdeleted = 0 and op.allowread = 1
-        inner join `
-	if FILTER_BY_COMMON_ACM {
-		query += `objectacm`
-	} else {
-		query += `object_acm`
-	}
-	query += ` acm on o.id = acm.objectid
+        inner join objectacm acm on o.id = acm.objectid
     where 
         o.isdeleted = 0 
         and o.isexpunged = 0 
@@ -300,9 +292,9 @@ func buildFilterForUserACMShare(user models.ODUser) string {
 	if len(shareSnippet.Values) > 0 {
 		sql = " and (op.grantee = ? "
 		for _, shareValue := range shareSnippet.Values {
-			if !strings.Contains(shareValue, "cusou") && !strings.Contains(shareValue, "governmentcus") {
-				sql += " or op.grantee = '" + MySQLSafeString(shareValue) + "'"
-			}
+			//if !strings.Contains(shareValue, "cusou") && !strings.Contains(shareValue, "governmentcus") {
+			sql += " or op.grantee = '" + MySQLSafeString(shareValue) + "'"
+			//}
 		}
 		sql += ") "
 	} else {
@@ -318,11 +310,7 @@ func buildFilterForUserSnippets(user models.ODUser) string {
 		return " "
 	}
 
-	if FILTER_BY_COMMON_ACM {
-		return buildFilterForUserSnippetsUsingACM(user)
-	}
-
-	return buildFilterForUserSnippetsUsingObject_ACM(user)
+	return buildFilterForUserSnippetsUsingACM(user)
 }
 
 func buildFilterForUserSnippetsUsingACM(user models.ODUser) string {
@@ -369,50 +357,6 @@ func buildFilterForUserSnippetsUsingACM(user models.ODUser) string {
 	}
 
 	sql += ")"
-
-	return sql
-}
-
-func buildFilterForUserSnippetsUsingObject_ACM(user models.ODUser) string {
-	if user.Snippets == nil {
-		return " "
-	}
-
-	// sql is going to be the returned portion of the where clause built up from the snippets
-	var sql string
-
-	// table alias 'acm' refers to 'object_acm', a one to many join between object and its keys and values for acm
-
-	// Now iterate all the fields building up the where clause portion
-	for _, rawFields := range user.Snippets.Snippets {
-		switch rawFields.Treatment {
-		case "disallow":
-			sql += " and acm.objectid not in ("
-			// where it does have the field
-			sql += "select objectid from object_acm inner join acmkey on object_acm.acmkeyid = acmkey.id inner join acmvalue on object_acm.acmvalueid = acmvalue.id "
-			sql += "where acmkey.name = '" + MySQLSafeString2(rawFields.FieldName) + "' "
-			sql += "and acmvalue.name in (''"
-			for _, value := range rawFields.Values {
-				sql += ",'" + MySQLSafeString2(value) + "'"
-			}
-			sql += ") and object_acm.isdeleted = 0 and acmkey.isdeleted = 0 and acmvalue.isdeleted = 0) "
-		case "allowed":
-			sql += " and acm.objectid in ("
-			// where it doesn't have the field
-			sql += "select objectid from object_acm where 0 = (select count(0) from object_acm inner join acmkey on object_acm.acmkeyid = acmkey.id where acmkey.name = '" + MySQLSafeString2(rawFields.FieldName) + "' and object_acm.isdeleted = 0 and acmkey.isdeleted = 0)"
-			// where it does have the field
-			sql += " union "
-			sql += "select objectid from object_acm inner join acmkey on object_acm.acmkeyid = acmkey.id inner join acmvalue on object_acm.acmvalueid = acmvalue.id "
-			sql += "where acmkey.name = '" + MySQLSafeString2(rawFields.FieldName) + "' "
-			sql += "and (acmvalue.name = '' "
-			for _, value := range rawFields.Values {
-				sql += " or acmvalue.name = '" + MySQLSafeString2(value) + "'"
-			}
-			sql += ") and object_acm.isdeleted = 0 and acmkey.isdeleted = 0 and acmvalue.isdeleted = 0)"
-		default:
-			log.Printf("Warning: Unhandled treatment type from snippets")
-		}
-	}
 
 	return sql
 }

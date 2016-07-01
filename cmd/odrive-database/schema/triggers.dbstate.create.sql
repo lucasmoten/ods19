@@ -19,7 +19,7 @@ BEGIN
 	# Modified Date
 	SET NEW.modifiedDate := current_timestamp();
 	# Version should be changed if the schema changes
-	SET NEW.schemaversion := '20160623'; 
+	SET NEW.schemaversion := '20160701'; 
 	# Identifier is randomized as a GUID
 	SET NEW.identifier := concat(@@hostname, '-', left(uuid(),8));
 END

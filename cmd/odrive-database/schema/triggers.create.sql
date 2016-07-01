@@ -6,7 +6,6 @@ source triggers.dbstate.create.sql
 source triggers.field_changes.create.sql
 source triggers.object.create.sql
 source triggers.objectacm.create.sql
-source triggers.object_acm.create.sql
 source triggers.object_permission.create.sql
 source triggers.object_property.create.sql
 source triggers.object_tag.create.sql

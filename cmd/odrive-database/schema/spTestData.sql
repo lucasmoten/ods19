@@ -311,15 +311,15 @@ BEGIN
                 IF ((cur_object mod 2) > 0) THEN
                     INSERT INTO objectacm SET createdBy = createdBy, objectId = new_object_id, acmid = acm1id;
                     # dissem_countries = USA, f_clearance = u
-                    INSERT INTO object_acm SET createdBy = createdBy, objectId = new_object_id, acmkeyid = acmkeyid_dissem_countries, acmvalueid = acmvalueid_USA;
-                    INSERT INTO object_acm SET createdBy = createdBy, objectId = new_object_id, acmkeyid = acmkeyid_f_clearance, acmvalueid = acmvalueid_u;
+                    #INSERT INTO object_acm SET createdBy = createdBy, objectId = new_object_id, acmkeyid = acmkeyid_dissem_countries, acmvalueid = acmvalueid_USA;
+                    #INSERT INTO object_acm SET createdBy = createdBy, objectId = new_object_id, acmkeyid = acmkeyid_f_clearance, acmvalueid = acmvalueid_u;
                 ELSE
                     INSERT INTO objectacm SET createdBy = createdBy, objectId = new_object_id, acmid = acm2id;
                     # dissem_countries = USA, f_clearance = ts, f_sci_ctrls = si, tk
-                    INSERT INTO object_acm SET createdBy = createdBy, objectId = new_object_id, acmkeyid = acmkeyid_dissem_countries, acmvalueid = acmvalueid_USA;
-                    INSERT INTO object_acm SET createdBy = createdBy, objectId = new_object_id, acmkeyid = acmkeyid_f_clearance, acmvalueid = acmvalueid_ts;
-                    INSERT INTO object_acm SET createdBy = createdBy, objectId = new_object_id, acmkeyid = acmkeyid_f_sci_ctrls, acmvalueid = acmvalueid_si;
-                    INSERT INTO object_acm SET createdBy = createdBy, objectId = new_object_id, acmkeyid = acmkeyid_f_sci_ctrls, acmvalueid = acmvalueid_tk;
+                    #INSERT INTO object_acm SET createdBy = createdBy, objectId = new_object_id, acmkeyid = acmkeyid_dissem_countries, acmvalueid = acmvalueid_USA;
+                    #INSERT INTO object_acm SET createdBy = createdBy, objectId = new_object_id, acmkeyid = acmkeyid_f_clearance, acmvalueid = acmvalueid_ts;
+                    #INSERT INTO object_acm SET createdBy = createdBy, objectId = new_object_id, acmkeyid = acmkeyid_f_sci_ctrls, acmvalueid = acmvalueid_si;
+                    #INSERT INTO object_acm SET createdBy = createdBy, objectId = new_object_id, acmkeyid = acmkeyid_f_sci_ctrls, acmvalueid = acmvalueid_tk;
                 END IF;                
                 # Create permission records for access (grant full crud to creator, and explicit share read to other)
                 INSERT INTO object_permission SET createdBy = createdBy, objectId = new_object_id, grantee = createdBy, allowCreate = 1, allowRead = 1, allowUpdate = 1, allowDelete = 1, allowShare = 1, explicitShare = 0;
