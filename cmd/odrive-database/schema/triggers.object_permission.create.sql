@@ -106,7 +106,7 @@ BEFORE UPDATE ON object_permission FOR EACH ROW
 BEGIN
 	DECLARE error_msg varchar(128) default '';
 	DECLARE thisTableName varchar(128) default 'object_permission';
-
+	
 	# Rules
 	# id cannot be changed
 	IF (NEW.id <> OLD.id) AND length(error_msg) < 83 THEN
@@ -139,31 +139,69 @@ BEGIN
 	IF (NEW.grantee <> OLD.grantee) AND length(error_msg) < 78 THEN
 		SET error_msg := concat(error_msg, 'Unable to set grantee ');
 	END IF;
-	# deleted MUST be set
-	IF (NEW.isDeleted = OLD.isDeleted) AND length(error_msg) < 77 THEN
-		SET error_msg := concat(error_msg, 'Permission not marked deleted ');
+	# permission cannot be changed
+	IF (NEW.allowCreate <> OLD.allowCreate) AND length(error_msg) < 78 THEN
+		SET error_msg := concat(error_msg, 'Unable to set allowCreate ');
 	END IF;
-	# deletedBy must be set
-	IF (NEW.deletedBy IS NULL) AND length(error_msg) < 75 THEN
-		SET error_msg := concat(error_msg, 'Field deletedBy required ');
+	# permission cannot be changed
+	IF (NEW.allowRead <> OLD.allowRead) AND length(error_msg) < 78 THEN
+		SET error_msg := concat(error_msg, 'Unable to set allowRead ');
 	END IF;
+	# permission cannot be changed
+	IF (NEW.allowUpdate <> OLD.allowUpdate) AND length(error_msg) < 78 THEN
+		SET error_msg := concat(error_msg, 'Unable to set allowRead ');
+	END IF;
+	# permission cannot be changed
+	IF (NEW.allowDelete <> OLD.allowDelete) AND length(error_msg) < 78 THEN
+		SET error_msg := concat(error_msg, 'Unable to set allowDelete ');
+	END IF;
+	# permission cannot be changed
+	IF (NEW.allowShare <> OLD.allowShare) AND length(error_msg) < 78 THEN
+		SET error_msg := concat(error_msg, 'Unable to set allowShare ');
+	END IF;
+	
+	#every immutable field has been checked for mutation at this point.
+	#all other fields are mutable.
+
+	#note... we need to always allow mutation of the encryptKey,permissionIV,permissionMAC, otherwise we will render things like
+	#deleted fields unrecoverable.
+	
+	# Force values on modify
+	# The only modification allowed is to mark as deleted...
+	SET NEW.modifiedDate := current_timestamp();
+	IF NEW.modifiedBy IS NULL OR NEW.modifiedBy = '' THEN
+		SET NEW.modifiedBy := NEW.deletedBy;
+	END IF;
+
+	#either we are deleting... 		
+	IF (NEW.isDeleted = 1 AND OLD.isDeleted = 0) THEN
+		# deletedBy must be set
+		IF (NEW.deletedBy IS NULL) AND length(error_msg) < 75 THEN
+			SET error_msg := concat(error_msg, 'Field deletedBy required ');
+		END IF;
+		
+		SET NEW.deletedDate := current_timestamp();
+		IF NEW.deletedBy IS NULL OR NEW.deletedBy = '' THEN
+			SET NEW.deletedBy := NEW.modifiedBy;
+		END IF;
+	ELSE
+		#or updating keys
+		IF (NEW.isDeleted <> OLD.isDeleted) THEN
+			SET error_msg := concat(error_msg, 'Undelete is disallowed ');
+		END IF;
+		IF ((NEW.encryptKey = OLD.encryptKey) AND (NEW.permissionIV = OLD.permissionIV) AND (NEW.permissionMAC = OLD.permissionMAC)) THEN
+			SET error_msg := concat(error_msg, 'We should be updating keys ');
+		END IF;
+	END IF; 
+
+		
 	IF length(error_msg) > 0 THEN
 		SET error_msg := concat(error_msg, 'when updating record');
 		signal sqlstate '45000' set message_text = error_msg;
 	END IF;
-
-	# Force values on modify
-    # The only modification allowed is to mark as deleted...
-	SET NEW.modifiedDate := current_timestamp();
-   	IF NEW.modifiedBy IS NULL OR NEW.modifiedBy = '' THEN
-		SET NEW.modifiedBy := NEW.deletedBy;
-	END IF;
-	SET NEW.isDeleted = 1;
-	SET NEW.deletedDate := current_timestamp();
-	IF NEW.deletedBy IS NULL OR NEW.deletedBy = '' THEN
-		SET NEW.deletedBy := NEW.modifiedBy;
-	END IF;    
+	
 	SET NEW.changeCount := OLD.changeCount + 1;
+	
 	# Standard change token formula
 	SET NEW.changeToken := md5(CONCAT(CAST(OLD.id AS CHAR),':',CAST(NEW.changeCount AS CHAR),':',CAST(NEW.modifiedDate AS CHAR)));
 

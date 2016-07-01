@@ -31,11 +31,6 @@ func updatePermissionInTransaction(tx *sqlx.Tx, permission models.ODObjectPermis
 
 	updatePermissionStatement, err := tx.Preparex(`update object_permission set 
         modifiedBy = ?
-        ,grantee = ?
-        ,allowCreate = ?
-        ,allowRead = ?
-        ,allowUpdate = ?
-        ,allowDelete = ?
         ,encryptKey = ? 
 		,permissionIV = ?
 		,permissionMAC = ?
@@ -44,8 +39,7 @@ func updatePermissionInTransaction(tx *sqlx.Tx, permission models.ODObjectPermis
 		return fmt.Errorf("UpdatePermission Preparing update statement, %s", err.Error())
 	}
 	result, err := updatePermissionStatement.Exec(permission.ModifiedBy,
-		permission.Grantee, permission.AllowCreate, permission.AllowRead,
-		permission.AllowUpdate, permission.AllowDelete, permission.EncryptKey, permission.PermissionIV, permission.PermissionMAC,
+		permission.EncryptKey, permission.PermissionIV, permission.PermissionMAC,
 		permission.ID, permission.ChangeToken)
 	if err != nil {
 		return fmt.Errorf("UpdatePermission Error executing update statement, %s", err.Error())

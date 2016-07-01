@@ -19,5 +19,20 @@ DROP TRIGGER IF EXISTS tu_object_acm;
 DROP TABLE IF EXISTS a_object_acm;
 DROP TABLE IF EXISTS object_acm;
 
+DROP TRIGGER IF EXISTS ti_object_permission;
+DROP TRIGGER IF EXISTS tu_object_permission;
+DROP TRIGGER IF EXISTS td_object_permission;
+DROP TRIGGER IF EXISTS td_a_object_permission;
+ALTER TABLE object_permission ADD permissionIV binary(32);
+ALTER TABLE object_permission ADD permissionMAC binary(32);
+ALTER TABLE a_object_permission ADD permissionIV binary(32);
+ALTER TABLE a_object_permission ADD permissionMAC binary(32);
+
+source triggers.object_permission.create.sql;
+source function.bitwise256_xor.sql;
+source function.keys.sql;
+source procedure.migrate_keys.sql;
+source procedure.rotate_keys.sql;
+
 # Update schema version
 UPDATE dbstate SET schemaVersion = '20160701';
