@@ -6,7 +6,6 @@ source table.dbstate.create.sql
 source table.field_changes.create.sql
 source table.object.create.sql
 source table.objectacm.create.sql
-source table.object_acm.create.sql
 source table.object_permission.create.sql
 source table.object_property.create.sql
 source table.object_tag.create.sql

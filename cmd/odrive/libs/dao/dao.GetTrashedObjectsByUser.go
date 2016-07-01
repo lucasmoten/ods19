@@ -67,13 +67,7 @@ func getTrashedObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagin
         inner join object_permission op on o.id = op.objectid
             and op.isdeleted = 0
             and op.allowread = 1
-        inner join `
-	if FILTER_BY_COMMON_ACM {
-		query += `objectacm`
-	} else {
-		query += `object_acm`
-	}
-	query += ` acm on o.id = acm.objectid
+        inner join objectacm acm on o.id = acm.objectid
     where 
         o.isdeleted = 1 
         and o.ownedBy = ? 

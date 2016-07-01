@@ -75,13 +75,7 @@ func getRootObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
             and op.isdeleted = 0
             and op.allowread = 1
             and o.ownedBy = op.grantee
-        inner join `
-	if FILTER_BY_COMMON_ACM {
-		query += `objectacm`
-	} else {
-		query += `object_acm`
-	}
-	query += ` acm on o.id = acm.objectid
+        inner join objectacm acm on o.id = acm.objectid
     where 
         o.isdeleted = 0 
         and o.parentid is null 

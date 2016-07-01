@@ -47,15 +47,6 @@ ALTER TABLE objectacm
 	,ADD CONSTRAINT fk_objectacm_acmId FOREIGN KEY (acmId) REFERENCES acm(id)
 ;
 
-ALTER TABLE object_acm
-	ADD CONSTRAINT fk_object_acm_createdBy FOREIGN KEY (createdBy) REFERENCES user(distinguishedName)
-	,ADD CONSTRAINT fk_object_acm_deletedBy FOREIGN KEY (deletedBy) REFERENCES user(distinguishedName)
-	,ADD CONSTRAINT fk_object_acm_modifiedBy FOREIGN KEY (modifiedBy) REFERENCES user(distinguishedName)
-	,ADD CONSTRAINT fk_object_acm_objectId FOREIGN KEY (objectId) REFERENCES object(id)
-	,ADD CONSTRAINT fk_object_acm_acmKeyId FOREIGN KEY (acmKeyId) REFERENCES acmkey(id)
-	,ADD CONSTRAINT fk_object_acm_acmValueId FOREIGN KEY (acmValueId) REFERENCES acmvalue(id)
-;
-
 ALTER TABLE object_permission
 	ADD CONSTRAINT fk_object_permission_createdBy FOREIGN KEY (createdBy) REFERENCES user(distinguishedName)
 	,ADD CONSTRAINT fk_object_permission_deletedBy FOREIGN KEY (deletedBy) REFERENCES user(distinguishedName)
