@@ -61,7 +61,6 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	//Get the existing grant, make one for the grantee
 	permittedGrant := models.ODObjectPermission{}
 	var thePermission *models.ODObjectPermission
-	var newGrant models.ODObjectPermission
 	for _, permission := range dbObject.Permissions {
 		isAllowed :=
 			permission.Grantee == caller.DistinguishedName &&
@@ -78,11 +77,16 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 		}
 		// Keep iterating all permissions to build up what is permitted
 	}
-	if thePermission != nil {
-		models.CopyEncryptKey(h.MasterKey, thePermission, &permittedGrant)
+	// thePermission will be nil if dbObject.Permissions is len 0, or isAllowed was always false.
+	if thePermission == nil {
+		return NewAppError(403, errors.New("unauthorized to share"), "Unauthorized")
 	}
 
+	// permittedGrant needs a ref to the encrypt key so we can create a new permission
+	models.CopyEncryptKey(h.MasterKey, thePermission, &permittedGrant)
+
 	// Setup new grant based upon permitted grant permissions
+	var newGrant models.ODObjectPermission
 	newGrant.CreatedBy = caller.DistinguishedName
 	newGrant.Grantee = requestGrant.Grantee
 	// - combined permissions. only allow what is permitted
