@@ -7,7 +7,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 
-	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 )
@@ -57,6 +56,8 @@ func addPermissionToObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object m
         ,allowShare = ?
         ,explicitShare = ?
         ,encryptKey = ?
+		,permissionIV = ?
+		,permissionMAC = ?
     `)
 	if err != nil {
 		return dbPermission, err
@@ -65,7 +66,7 @@ func addPermissionToObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object m
 	result, err := addPermissionStatement.Exec(permission.CreatedBy, object.ID,
 		granteeUserDB.DistinguishedName, permission.AllowCreate, permission.AllowRead,
 		permission.AllowUpdate, permission.AllowDelete, permission.AllowShare,
-		permission.ExplicitShare, permission.EncryptKey)
+		permission.ExplicitShare, permission.EncryptKey, permission.PermissionIV, permission.PermissionMAC)
 	if err != nil {
 		return dbPermission, err
 	}
@@ -126,6 +127,8 @@ func addPermissionToObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object m
         ,allowShare
         ,explicitShare
         ,encryptKey    
+		,permissionIV
+		,permissionMAC
     from object_permission 
     where id = ?
     `, newPermissionID)
@@ -155,10 +158,7 @@ func addPermissionToObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object m
 			propagatedPermission.AllowDelete = permission.AllowDelete
 			propagatedPermission.AllowShare = permission.AllowShare
 			// - Encryption
-			propagatedPermission.EncryptKey = make([]byte, 32)
-			propagatedPermission.EncryptKey = permission.EncryptKey
-			utils.ApplyPassphrase(masterKey+permission.CreatedBy, propagatedPermission.EncryptKey)
-			utils.ApplyPassphrase(masterKey+propagatedPermission.Grantee, propagatedPermission.EncryptKey)
+			models.CopyEncryptKey(masterKey, permission, &propagatedPermission)
 			_, err := addPermissionToObjectInTransaction(logger, tx, childObject, &propagatedPermission, propagateToChildren, masterKey)
 			if err != nil {
 				return dbPermission, err
@@ -185,10 +185,7 @@ func addPermissionToObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object m
 				propagatedPermission.AllowDelete = permission.AllowDelete
 				propagatedPermission.AllowShare = permission.AllowShare
 				// - Encryption
-				propagatedPermission.EncryptKey = make([]byte, 32)
-				propagatedPermission.EncryptKey = permission.EncryptKey
-				utils.ApplyPassphrase(masterKey+permission.CreatedBy, propagatedPermission.EncryptKey)
-				utils.ApplyPassphrase(masterKey+propagatedPermission.Grantee, propagatedPermission.EncryptKey)
+				models.CopyEncryptKey(masterKey, permission, &propagatedPermission)
 				_, err := addPermissionToObjectInTransaction(logger, tx, childObject, &propagatedPermission, propagateToChildren, masterKey)
 				if err != nil {
 					return dbPermission, err

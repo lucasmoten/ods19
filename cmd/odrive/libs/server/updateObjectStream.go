@@ -80,8 +80,6 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		return NewAppError(403, err, "Unauthorized", zap.String("origination", "No access to old ACM on Update"), zap.String("acm", object.RawAcm.String))
 	}
 
-	//Descramble key (and rescramble when we go to save object back)
-	utils.ApplyPassphrase(h.MasterKey+caller.DistinguishedName, grant.EncryptKey)
 	//Do an upload that is basically the same as for a new object.
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
@@ -91,8 +89,6 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	if herr != nil {
 		return herr
 	}
-	//Rescramble key
-	utils.ApplyPassphrase(h.MasterKey+caller.DistinguishedName, grant.EncryptKey)
 
 	object.ModifiedBy = caller.DistinguishedName
 	err = dao.UpdateObject(&object)

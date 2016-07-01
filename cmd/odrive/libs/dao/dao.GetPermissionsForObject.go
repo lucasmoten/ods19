@@ -47,6 +47,8 @@ func getPermissionsForObjectInTransaction(tx *sqlx.Tx, object models.ODObject) (
         ,op.allowShare
         ,op.explicitShare
         ,op.encryptKey
+        ,op.permissionIV
+        ,op.permissionMAC
     from object_permission op 
         inner join object o on op.objectid = o.id 
     where 

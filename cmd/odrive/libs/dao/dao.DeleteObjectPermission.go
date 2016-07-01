@@ -99,7 +99,9 @@ func deleteObjectPermissionInTransaction(tx *sqlx.Tx, objectPermission models.OD
             ,op.allowDelete
             ,op.allowShare
             ,op.explicitShare
-            ,op.encryptKey                 
+            ,op.encryptKey   
+			,op.permissionIV
+			,op.permissionMAC              
         from object_permission op 
             inner join object o on op.objectid = o.id 
         where 

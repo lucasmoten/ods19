@@ -37,13 +37,15 @@ func updatePermissionInTransaction(tx *sqlx.Tx, permission models.ODObjectPermis
         ,allowUpdate = ?
         ,allowDelete = ?
         ,encryptKey = ? 
+		,permissionIV = ?
+		,permissionMAC = ?
     where id = ? and changeToken = ?`)
 	if err != nil {
 		return fmt.Errorf("UpdatePermission Preparing update statement, %s", err.Error())
 	}
 	result, err := updatePermissionStatement.Exec(permission.ModifiedBy,
 		permission.Grantee, permission.AllowCreate, permission.AllowRead,
-		permission.AllowUpdate, permission.AllowDelete, permission.EncryptKey,
+		permission.AllowUpdate, permission.AllowDelete, permission.EncryptKey, permission.PermissionIV, permission.PermissionMAC,
 		permission.ID, permission.ChangeToken)
 	if err != nil {
 		return fmt.Errorf("UpdatePermission Error executing update statement, %s", err.Error())
