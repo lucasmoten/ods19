@@ -1,0 +1,147 @@
+#!/usr/bin/python
+# 
+# The init script for object-drive-server. Save to /etc/init.d
+#
+#
+# chkconfig: - 20 70
+# description: odrive server process
+#
+#
+### BEGIN INIT INFO
+# Provides: odrive
+# Description: odrive server process
+### END INIT INFO
+
+import sys, os, subprocess, re, time, signal
+
+# init scripts must write a validly-named lockfile
+service = "odrive"
+lockfile = os.path.join('/var/lock/subsys', service)
+pidfile = "/opt/odrive/pidfile"
+static_root = "/etc/odrive/libs/server/static"
+templates = os.path.join(static_root, "templates")
+logfile = "/opt/bedrock/odrive/log/object-drive.log"
+envfile = "/opt/odrive/env.sh"
+conf = "/etc/odrive/odrive.yml"
+default_ciphers = "--addCipher TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 --addCipher TLS_RSA_WITH_AES_128_CBC_SHA"
+
+
+def get_ciphers():
+    if od.getenv("OD_CIPHERS"):
+        return od.getenv("OD_CIPHERS"):
+    return default_ciphers
+
+
+def lock():
+    open(lockfile, 'w').close()
+
+
+def locked():
+    return os.path.exists(lockfile)
+
+
+def unlock():
+    os.remove(lockfile)
+
+
+def start():
+    create_dir_not_exists(os.path.split(logfile)[0])
+    print "Starting odrive"
+    f = open(logfile, "a")
+    shell_source(envfile)
+    ciphs = get_ciphers()
+    command = ['odrive', '--conf', conf, '--templateDir', templates, "--staticRoot", static_root, ciphs]
+    ps = subprocess.Popen(command, stdout=f, stderr=f)
+    with open(pidfile, "w") as pf:
+        pf.write(str(ps.pid) + '\n')
+
+
+def create_dir_not_exists(path):
+    if not os.path.exists(path):
+        print 'creating %s' % path
+        os.mkdir(path)
+    
+
+def stop():
+    if not os.path.exists(pidfile):
+        print "error: could not find pidfile at %s. odrive may be running under a custom script"
+        sys.exit(1)
+    try:
+        with open(pidfile, 'r') as f:
+            pid = f.readline().split('\n')[0]
+            os.kill(int(pid), signal.SIGTERM)
+    except Exception as e:
+        print e
+        print "could not kill pid %s" % pid
+        sys.exit(1)
+    os.remove(pidfile)
+    print "odrive stopped"
+
+
+def restart():
+    stop()
+    lock()
+    start()
+
+
+def status():
+    # TODO this is a naive implementation
+    if not locked():
+        print "STATUS: odrive not running"
+        return 3
+    else:
+        print "STATUS: odrive is running"
+        return 0
+
+
+def is_process_running(process_id):
+    try:
+        os.kill(process_id, 0)
+        return True
+    except OSError:
+        return False
+
+
+def shell_source(script):
+    """
+    Emulate the behavior of `source foo.sh`
+    """
+    pipe = subprocess.Popen(". %s; env" % script, stdout=subprocess.PIPE, shell=True)
+    output = pipe.communicate()[0]
+    env = dict((line.split("=", 1) for line in output.splitlines()))
+    os.environ.update(env)
+
+
+# Script entry point.
+if __name__ == '__main__':
+    try:
+        if len(sys.argv) == 1:
+            raise ValueError
+        command = str(sys.argv[1]).strip().lower()
+        if command == 'start':
+            lock()
+            start()
+            sys.exit(0)
+        elif command == 'stop':
+            stop()
+            unlock()
+            sys.exit(0)
+        elif command == 'restart' or command == 'force-reload':
+            restart()
+            sys.exit(0)
+        elif command == 'status':
+            ok = status()
+            sys.exit(ok)
+        else:
+            raise ValueError
+    except (SystemExit):
+        pass
+    except (ValueError):
+        print >> sys.stderr, "Usage: %s [start|stop|restart|status]" % service
+        sys.exit(2)
+    except:
+        # Other errors
+        extype, value = sys.exc_info()[:2]
+        print >> sys.stderr, "ERROR: %s (%s)" % (extype, value)
+        sys.exit(1)
+

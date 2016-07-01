@@ -1,8 +1,5 @@
 # Object Drive Server
 
-This is the best server. Never saw one better.
-
-
 # API Documentation
 
 API documentation is hosted on the private Bedrock network here (subject to change):

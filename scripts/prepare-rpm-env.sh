@@ -2,17 +2,17 @@
 
 # Write files and directories for rpmbuild
 
-if [ -z ${ODRIVE_BINARY_DIR+x}]; then
+if [ -z ${ODRIVE_BINARY_DIR+x} ]; then
     echo "ODRIVE_BINARY_DIR must be set"
     exit 1
 fi
 
-if [ -z ${ODRIVE_ROOT+x}]; then
+if [ -z ${ODRIVE_ROOT+x} ]; then
     echo "ODRIVE_DB_TOOLS_DIR must be set"
     exit 1
 fi
 
-if [ -z ${ODRIVE_VERSION+x}]; then
+if [ -z ${ODRIVE_VERSION+x} ]; then
     echo "ODRIVE_VERSION must be set"
     exit 1
 fi
@@ -37,6 +37,8 @@ mkdir -p ${ODRIVE_PACKAGE_NAME}/usr/bin
 mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive
 mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js
 mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates
+mkdir -p ${ODRIVE_PACKAGE_NAME}/opt/odrive
+mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/init.d
 install -m 755 -D ${ODRIVE_BINARY_DIR}/odrive ${ODRIVE_PACKAGE_NAME}/usr/bin
 install -m 644 -D ${ODRIVE_BINARY_DIR}/odrive.yml ${ODRIVE_PACKAGE_NAME}/etc/odrive/
 install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/js/listObjects.js ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/listObjects.js
@@ -52,6 +54,10 @@ install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/favicon.ico ${ODRIVE_P
 
 # SCHEMA TARBALL
 install -m 644 -D ${ODRIVE_ROOT}/cmd/odrive-database/odrive-schema-${ODRIVE_VERSION}.tar.gz ${ODRIVE_PACKAGE_NAME}/etc/odrive/odrive-schema-${ODRIVE_VERSION}.tar.gz
+
+# Install service scripts and dependencies
+install -m 755 ${ODRIVE_ROOT}/scripts/odrive ${ODRIVE_PACKAGE_NAME}/etc/init.d/odrive
+install -m 755 ${ODRIVE_ROOT}/scripts/env.sh ${ODRIVE_PACKAGE_NAME}/opt/odrive/env.sh
 
 tar -zcvf ${ODRIVE_PACKAGE_NAME}.tar.gz ${ODRIVE_PACKAGE_NAME}/
 
@@ -106,6 +112,9 @@ rm -rf %{buildroot}
 %config(noreplace) %{_sysconfdir}/%{name}/odrive-schema-${ODRIVE_VERSION}.tar.gz
 %{_sysconfdir}/%{name}/libs
 %{_bindir}/*
+%{_sysconfdir}/init.d/%{name}
+/opt/odrive/env.sh
+
 
 %changelog
 * Tue Jun 14 2016  Coleman McFarland <coleman.mcfarland@deciphernow.com> 1.0-1

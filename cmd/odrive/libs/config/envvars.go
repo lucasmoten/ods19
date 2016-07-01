@@ -117,12 +117,25 @@ odrive --conf /etc/odrive/odrive.yml \
 	   --templateDir /etc/odrive/libs/server/static/templates &>> /opt/bedrock/odrive/log/object-drive.log 2>&1&
 
 `)
+	exitOnErr(err)
+	data := struct{ Variables []string }{Variables: vars}
+	tmpl.Execute(os.Stdout, data)
+}
+func GenerateSourceEnvScript() {
+	tmpl, err := template.New("script").Parse(`#!/bin/bash
 
+{{ range $i, $v := .Variables }}export {{ $v }}=
+{{ end }}
+
+`)
+	exitOnErr(err)
+	data := struct{ Variables []string }{Variables: vars}
+	tmpl.Execute(os.Stdout, data)
+}
+
+func exitOnErr(err error) {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	_ = tmpl
-	data := struct{ Variables []string }{Variables: vars}
-	tmpl.Execute(os.Stdout, data)
 }
