@@ -54,8 +54,6 @@ type ODObjectPermissionResultset struct {
 	Permissions []ODObjectPermission
 }
 
-/////These cannot be in crypto.go because of import cycles.  But they definitely make sense here
-
 // CopyEncryptKey from one permission to another -- needs to be encapsulated because it's so easy to mess up
 func CopyEncryptKey(passphrase string, src, dst *ODObjectPermission) {
 	d := utils.ApplyPassphrase(passphrase, src.PermissionIV, src.EncryptKey)
