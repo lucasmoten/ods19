@@ -525,13 +525,16 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("Error creating share, got code %d", createShareRes.StatusCode)
 		t.FailNow()
 	}
-	var objShare protocol.Permission
+	var objShare protocol.Object
 	err = util.FullDecode(createShareRes.Body, &objShare)
 	if err != nil {
 		t.Errorf("Could not decode CreateShare response")
 		t.FailNow()
 	}
 	createShareRes.Body.Close()
+
+	// Capture new change token from the object being changed from adding a share
+	changeToken = objShare.ChangeToken
 
 	// ### Update Object Stream with changed stream (stream 2)
 	data2 := data1 + " --- CHANGED"
@@ -640,21 +643,24 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.FailNow()
 	}
 
-	// ### Remove permissions for user 2
-	deleteShareReq, err := testhelpers.NewDeletePermissionRequest(objResponse1, objShare, "", host)
-	if err != nil {
-		t.Errorf("Unable to create HTTP request: %v\n", err)
-		t.FailNow()
-	}
-	deleteShareRes, err := httpclients[clientID].Do(deleteShareReq)
-	if err != nil {
-		t.Errorf("Unable to do request:%v\n", err)
-		t.FailNow()
-	}
-	if deleteShareRes.StatusCode != http.StatusOK {
-		t.Errorf("Error removing share, got code %d", deleteShareRes.StatusCode)
-		t.FailNow()
-	}
+	// --------------------------------------
+	// Cant remove permissions yet as this is not reimplemented yet
+
+	// // ### Remove permissions for user 2
+	// deleteShareReq, err := testhelpers.NewDeletePermissionRequest(objResponse1, objShare, "", host)
+	// if err != nil {
+	// 	t.Errorf("Unable to create HTTP request: %v\n", err)
+	// 	t.FailNow()
+	// }
+	// deleteShareRes, err := httpclients[clientID].Do(deleteShareReq)
+	// if err != nil {
+	// 	t.Errorf("Unable to do request:%v\n", err)
+	// 	t.FailNow()
+	// }
+	// if deleteShareRes.StatusCode != http.StatusGone {
+	// 	t.Errorf("Error removing share, got code %d but expected %d (StatusGone) since it would have been deleted internally when updating the object due to ACM override", deleteShareRes.StatusCode, http.StatusGone)
+	// 	t.FailNow()
+	// }
 
 	// ### Call GetObjectStreamRevision /history/x as second user
 	getObjectStreamRevisionRes3, err := httpclients[clientID1].Do(getObjectStreamRevisionReq1)
@@ -662,9 +668,9 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("GetObjectStreamRevision request 3 failed: %v\n", err)
 		t.FailNow()
 	}
-	// ### Expect unauthorized
-	if getObjectStreamRevisionRes3.StatusCode != http.StatusForbidden {
-		t.Errorf("Error! Was able to retrieve object stream revision on request 3 without permission, status %d", getObjectStreamRevisionRes3.StatusCode)
+	// ### Expect success since the call to update without share restrictions grants to everyone
+	if getObjectStreamRevisionRes3.StatusCode != http.StatusOK {
+		t.Errorf("Error! Was not able to retrieve object stream revision on request 3 despite share to everyone, status %d", getObjectStreamRevisionRes3.StatusCode)
 		t.FailNow()
 	}
 
@@ -674,9 +680,9 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("GetObjectStreamRevision request 4 failed: %v\n", err)
 		t.FailNow()
 	}
-	// ### Expect unauthorized
-	if getObjectStreamRevisionRes4.StatusCode != http.StatusForbidden {
-		t.Errorf("Error! Was able to retrieve object stream revision on request 4 without permission, status %d", getObjectStreamRevisionRes4.StatusCode)
+	// ### Expect success, same as above
+	if getObjectStreamRevisionRes4.StatusCode != http.StatusOK {
+		t.Errorf("Error! Was not able to retrieve object stream revision on request 4 despite share to everyon, status %d", getObjectStreamRevisionRes4.StatusCode)
 		t.FailNow()
 	}
 

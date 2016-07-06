@@ -68,11 +68,25 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 	userCache := server.NewUserCache()
 	snippetCache := server.NewSnippetCache()
 
+	snippetResponse := aac.SnippetResponse{
+		Success:  true,
+		Snippets: testhelpers.SnippetTP10,
+	}
+	acmInfo := aac.AcmInfo{
+		Acm: testhelpers.ValidACMUnclassified,
+	}
+	acmResponse := aac.AcmResponse{
+		Success:  true,
+		AcmValid: true,
+		AcmInfo:  &acmInfo,
+	}
 	fakeAAC := aac.FakeAAC{
+		ACMResp: &acmResponse,
 		CheckAccessResp: &aac.CheckAccessResponse{
 			Success:   true,
 			HasAccess: true,
 		},
+		SnippetResp: &snippetResponse,
 	}
 
 	fakeServer := server.AppServer{RootDAO: &fakeDAO,

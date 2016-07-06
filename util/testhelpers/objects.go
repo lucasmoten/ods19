@@ -152,11 +152,20 @@ func CreateParentChildObjectRelationship(parent, child models.ODObject) (models.
 
 // ValidACMs
 const (
+	// TODO: add "share" and set with users or project/groups
 	ValidACMUnclassified = `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`
+
+	// TODO: Need to figure out what the actual result is and put into f_share
+	ValidACMUnclassifiedWithFShare = `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`
 
 	ValidACMUnclassifiedFOUO = `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":["FOUO"],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U//FOUO","banner":"UNCLASSIFIED//FOUO","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`
 
 	ValidACMTopSecretSITK = `{"version":"2.1.0","classif":"TS","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":["si","tk"],"disponly_to":[""],"dissem_ctrls":[""],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"TS//SI/TK","banner":"TOP SECRET//SI/TK","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["ts"],"f_sci_ctrls":["si","tk"],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`
+)
+
+// Snippets
+const (
+	SnippetTP10 = "{\"f_macs\":\"{\\\"field\\\":\\\"f_macs\\\",\\\"treatment\\\":\\\"disallow\\\",\\\"values\\\":[\\\"tide\\\",\\\"bir\\\",\\\"watchdog\\\"]}\",\"f_oc_org\":\"{\\\"field\\\":\\\"f_oc_org\\\",\\\"treatment\\\":\\\"allowed\\\",\\\"values\\\":[\\\"dia\\\"]}\",\"f_accms\":\"{\\\"field\\\":\\\"f_accms\\\",\\\"treatment\\\":\\\"disallow\\\",\\\"values\\\":[]}\",\"f_sap\":\"{\\\"field\\\":\\\"f_sar_id\\\",\\\"treatment\\\":\\\"allowed\\\",\\\"values\\\":[\\\"\\\"]}\",\"f_clearance\":\"{\\\"field\\\":\\\"f_clearance\\\",\\\"treatment\\\":\\\"allowed\\\",\\\"values\\\":[\\\"ts\\\",\\\"s\\\",\\\"c\\\",\\\"u\\\"]}\",\"f_regions\":\"{\\\"field\\\":\\\"f_regions\\\",\\\"treatment\\\":\\\"allowed\\\",\\\"values\\\":[]}\",\"f_missions\":\"{\\\"field\\\":\\\"f_missions\\\",\\\"treatment\\\":\\\"allowed\\\",\\\"values\\\":[]}\",\"f_share\":\"{\\\"field\\\":\\\"f_share\\\",\\\"treatment\\\":\\\"allowed\\\",\\\"values\\\":[\\\"dctc_up2_dctc_manager\\\",\\\"dctc_up2_dctc_supervisor\\\",\\\"dctc_up2_dctc\\\",\\\"dctc_up2_aprc_supervisor\\\",\\\"dctc_up2_aprc_manager\\\",\\\"dctc_up2_aprc\\\",\\\"dctc_up2_administrator\\\",\\\"dctc_watchdog_fle\\\",\\\"dctc_watchdog_sle\\\",\\\"dctc_watchdog_fdo\\\",\\\"dctc_watchdog_user\\\",\\\"dctc_watchdog_administrator\\\",\\\"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus\\\",\\\"cusou_s_governmentouchimeraoudaeoupeoplecntesttester10\\\"]}\",\"f_aea\":\"{\\\"field\\\":\\\"f_atom_energy\\\",\\\"treatment\\\":\\\"allowed\\\",\\\"values\\\":[\\\"\\\"]}\",\"f_sci_ctrls\":\"{\\\"field\\\":\\\"f_sci_ctrls\\\",\\\"treatment\\\":\\\"disallow\\\",\\\"values\\\":[\\\"hcs_p\\\",\\\"kdk\\\",\\\"rsv\\\"]}\",\"dissem_countries\":\"{\\\"field\\\":\\\"dissem_countries\\\",\\\"treatment\\\":\\\"allowed\\\",\\\"values\\\":[\\\"USA\\\"]}\"}"
 )
 
 // NewCreateObjectPOSTRequest generates a http.Request that will route to the createObject
@@ -301,9 +310,13 @@ func UpdateObjectStreamPOSTRequest(id string, changeToken string, host string, d
 func NewCreateReadPermissionRequest(obj protocol.Object, grantee, dn, host string) (*http.Request, error) {
 
 	uri := host + cfg.NginxRootURL + "/shared/" + obj.ID
-	shareSetting := protocol.ObjectGrant{}
-	shareSetting.Grantee = grantee
-	shareSetting.Read = true
+	shareSetting := protocol.ObjectShare{}
+	shareString := fmt.Sprintf(`{"users":["%s"]}`, grantee)
+	var shareInterface interface{}
+	json.Unmarshal([]byte(shareString), &shareInterface)
+	shareSetting.Share = shareInterface
+	//shareSetting.Grantee = grantee
+	shareSetting.AllowRead = true
 	jsonBody, err := json.Marshal(shareSetting)
 	if err != nil {
 		return nil, err

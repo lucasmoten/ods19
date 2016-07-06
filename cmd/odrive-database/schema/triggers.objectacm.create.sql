@@ -81,25 +81,28 @@ BEGIN
 	IF (NEW.objectId <> OLD.objectId) AND length(error_msg) < 80 THEN
 		SET error_msg := concat(error_msg, 'Unable to set objectId ');
 	END IF;
-	# acmId cannot be changed
-	IF (NEW.acmId <> OLD.acmId) AND length(error_msg) < 74 THEN
-		SET error_msg := concat(error_msg, 'Unable to set acmId ');
-	END IF;
+    # either isDeleted or acmId must be different
+    IF (NEW.isDeleted == OLD.isDeleted) AND (NEW.acmId == OLD.acmId) THEN
+        set error_msg := concat(error_msg, 'Must either change acm or mark as deleted ');
+    END IF;
+    # if error, report
 	IF length(error_msg) > 0 THEN
 		SET error_msg := concat(error_msg, 'when updating record');
+        signal sqlstate '45000' set message_text = error_msg;
 	END IF;
 
 	# Force values on modify
-    # The only modification allowed is to mark as deleted...
 	SET NEW.modifiedDate := current_timestamp();
-   	IF NEW.modifiedBy IS NULL OR NEW.modifiedBy = '' THEN
-		SET NEW.modifiedBy := NEW.deletedBy;
-	END IF;
-	SET NEW.isDeleted = 1;
-	SET NEW.deletedDate := current_timestamp();
-	IF NEW.deletedBy IS NULL OR NEW.deletedBy = '' THEN
-		SET NEW.deletedBy := NEW.modifiedBy;
-	END IF;    
+    IF (NEW.isDeleted <> OLD.isDeleted) THEN
+        IF  (NEW.IsDeleted = 1) THEN
+            SET NEW.deletedDate := current_timestamp();
+            SET NEW.deletedBy := NEW.modifiedBy;
+        ELSE
+            SET NEW.deletedDate := NULL;
+            SET NEW.deletedBy := NULL;
+        END IF;                
+    END IF;    
+    
 
 	# Archive table
 	INSERT INTO a_objectacm

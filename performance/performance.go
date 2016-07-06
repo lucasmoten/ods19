@@ -23,6 +23,10 @@ const (
 	AACCounterCheckAccess = ReporterID(5)
 	// AACCounterGetSnippets tracking for fetching user snippets and formatting
 	AACCounterGetSnippets = ReporterID(6)
+	// AACCounterPopulateAndValidateResponse tracking each call to populate flattened acm response
+	AACCounterPopulateAndValidateResponse = ReporterID(7)
+	// AACCounterCheckAccessAndPopulate tracking each call to check access and populate the flattened fields of acm
+	AACCounterCheckAccessAndPopulate = ReporterID(8)
 )
 
 /*
@@ -525,6 +529,8 @@ func NewJobReporters(capacity int) *JobReporters {
 	reporters.Reporters[S3DrainFrom] = reporters.makeReporter("s3drainfrom", "B")
 	reporters.Reporters[AACCounterCheckAccess] = reporters.makeReporter("aaccheckaccess", "Req")
 	reporters.Reporters[AACCounterGetSnippets] = reporters.makeReporter("aacgetsnippets", "Req")
+	reporters.Reporters[AACCounterPopulateAndValidateResponse] = reporters.makeReporter("aacpopulateandvalidateresponse", "Req")
+	reporters.Reporters[AACCounterCheckAccessAndPopulate] = reporters.makeReporter("aaccheckaccessandpopulate", "Req")
 
 	//Listen in on job reports
 	go jobReportersThread(reporters)

@@ -21,7 +21,6 @@ import (
 
 func TestCreateFolderProtocol(t *testing.T) {
 
-	// Skipping because The ACM here is invalid.... should use testhelpers.ValidACMUnclassified
 	jsonNoParent := fmt.Sprintf(`
     { "typeName": "Folder", "name": "",  "parentId": "", "acm": "%s", "contentType": "", "contentSize": 0 }`, jsonEscape(testhelpers.ValidACMUnclassified))
 

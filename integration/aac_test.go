@@ -2,6 +2,7 @@ package integration
 
 import (
 	"log"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -93,7 +94,8 @@ func TestMain(m *testing.M) {
 	aacClient = aac.AacServiceClient{Client: client}
 
 	// Finally ready to run tests with the connected aacClient
-	m.Run()
+	code := m.Run()
+	os.Exit(code)
 
 }
 

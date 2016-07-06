@@ -32,19 +32,20 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	var obj models.ODObject
 	var createdObject models.ODObject
-	var grant models.ODObjectPermission
 	var err error
 	var herr *AppError
 	var drainFunc func()
 
-	grant.Grantee = caller.DistinguishedName
-	grant.AllowRead = true
-	grant.AllowCreate = true
-	grant.AllowUpdate = true
-	grant.AllowDelete = true
-	grant.AllowShare = true
+	// Owner Permission when created gets full access
+	var ownerPermission models.ODObjectPermission
+	ownerPermission.Grantee = caller.DistinguishedName
+	ownerPermission.AllowRead = true
+	ownerPermission.AllowCreate = true
+	ownerPermission.AllowUpdate = true
+	ownerPermission.AllowDelete = true
+	ownerPermission.AllowShare = true
 	//Store the key *encrypted* ... not plain!
-	models.SetEncryptKey(h.MasterKey, &grant)
+	models.SetEncryptKey(h.MasterKey, &ownerPermission)
 
 	// Determine if this request is being made with a file stream or without.
 	// When a filestream is provided, there is a different handler that parses
@@ -62,7 +63,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		if err != nil {
 			return NewAppError(400, err, "Unable to get mime multipart")
 		}
-		createdFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &obj, &grant, true)
+		createdFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &obj, &ownerPermission, true)
 		if herr != nil {
 			return herr
 		}
@@ -79,11 +80,36 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		}
 	}
 	obj.CreatedBy = caller.DistinguishedName
-	// copy grant.EncryptKey to all existing permissions:
 
+	hasAACAccess := false
+	// Flatten ACM, then Normalize Read Permissions against ACM f_share
+	// hasAACAccess, err = h.flattenACMAndCheckAccess(ctx, &obj)
+	// if err != nil {
+	// 	return NewAppError(400, err, "ACM provided could not be flattened")
+	// }
+	// if !hasAACAccess {
+	// 	return NewAppError(403, err, "Unauthorized")
+	// }
+	err = h.flattenACM(&obj)
+	if err != nil {
+		return NewAppError(400, err, "ACM provided could not be flattened")
+	}
+	if herr := normalizeObjectReadPermissions(ctx, &obj); herr != nil {
+		return herr
+	}
+	// Final access check against altered ACM
+	hasAACAccess, err = h.isUserAllowedForObjectACM(ctx, &obj)
+	if err != nil {
+		return NewAppError(502, err, "Error communicating with authorization service")
+	}
+	if !hasAACAccess {
+		return NewAppError(403, err, "Unauthorized")
+	}
+
+	// copy ownerPermission.EncryptKey to all existing permissions:
 	for idx, permission := range obj.Permissions {
-		models.CopyEncryptKey(h.MasterKey, &grant, &permission)
-		models.CopyEncryptKey(h.MasterKey, &grant, &obj.Permissions[idx])
+		models.CopyEncryptKey(h.MasterKey, &ownerPermission, &permission)
+		models.CopyEncryptKey(h.MasterKey, &ownerPermission, &obj.Permissions[idx])
 	}
 
 	createdObject, err = dao.CreateObject(&obj)
@@ -171,21 +197,8 @@ func handleCreatePrerequisites(
 
 		// Check if the user has permissions to create child objects under the
 		// parent.
-		//		Permission.grantee matches caller, and AllowCreate is true
-		authorizedToCreate := false
-		if len(dbParentObject.Permissions) > 0 {
-			for _, permission := range dbParentObject.Permissions {
-				if permission.Grantee == caller.DistinguishedName &&
-					permission.AllowRead && permission.AllowCreate {
-					authorizedToCreate = true
-					break
-				}
-			}
-		} else {
-			LoggerFromContext(ctx).Warn("no permissions on object")
-		}
-		if !authorizedToCreate {
-			return NewAppError(403, nil, "Unauthorized")
+		if ok, _ := isUserAllowedToCreate(ctx, &dbParentObject); !ok {
+			return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to create children under this object")
 		}
 
 		// Make sure the object isn't deleted. To remove an object from the trash,
@@ -203,9 +216,9 @@ func handleCreatePrerequisites(
 			}
 		}
 
-		// Copy permissions from parent into request Object
+		// Copy permissions from parent into request Object that are other than 'read only' which is tied to ACM f_share
 		for _, permission := range dbParentObject.Permissions {
-			if !permission.IsDeleted {
+			if !permission.IsDeleted && (permission.AllowCreate || permission.AllowUpdate || permission.AllowDelete || permission.AllowShare) {
 				newPermission := models.ODObjectPermission{}
 				newPermission.Grantee = permission.Grantee
 				isCreator := (permission.Grantee == caller.DistinguishedName)
@@ -222,15 +235,6 @@ func handleCreatePrerequisites(
 	// Disallow creating as deleted
 	if requestObject.IsDeleted || requestObject.IsAncestorDeleted || requestObject.IsExpunged {
 		return NewAppError(428, nil, "Creating object in a deleted state is not allowed")
-	}
-
-	// Ensure user is allowed this acm
-	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, requestObject)
-	if err != nil {
-		return NewAppError(502, err, "Error communicating with authorization service")
-	}
-	if !hasAACAccess {
-		return NewAppError(403, err, "Unauthorized")
 	}
 
 	// Setup meta data...

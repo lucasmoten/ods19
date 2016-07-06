@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/uber-go/zap"
 
@@ -18,17 +17,7 @@ import (
 
 func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
-	// Get user from context
-	user, ok := UserFromContext(ctx)
-	if !ok {
-		caller, ok := CallerFromContext(ctx)
-		if !ok {
-			return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
-		}
-		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
-	}
 	dao := DAOFromContext(ctx)
-
 	var err error
 
 	// Parse Request
@@ -47,22 +36,10 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 	}
 
 	// Check for permission to read this object
-	canReadObject := false
-
-	if strings.Compare(dbObject.OwnedBy.String, user.DistinguishedName) == 0 {
-		canReadObject = true
-	} else {
-		for _, perm := range dbObject.Permissions {
-			if perm.AllowRead && perm.AllowShare && perm.Grantee == user.DistinguishedName {
-				canReadObject = true
-				break
-			}
-		}
+	if ok, _ := isUserAllowedToShare(ctx, &dbObject); !ok {
+		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to list shares of this object")
 	}
 
-	if !canReadObject {
-		return NewAppError(403, err, "Insufficient permissions to view shares of this object")
-	}
 	// Is it deleted?
 	if dbObject.IsDeleted {
 		switch {
@@ -73,10 +50,6 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 		case dbObject.IsDeleted:
 			return NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it before listing its shares")
 		}
-	}
-
-	if err != nil {
-		return NewAppError(500, err, "General error")
 	}
 
 	// Response in requested format

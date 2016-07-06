@@ -33,6 +33,11 @@ func addPermissionToObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object m
 
 	var dbPermission models.ODObjectPermission
 
+	// Fail fast if propogating without sending in masterkey
+	if propagateToChildren && len(masterKey) == 0 {
+		return dbPermission, errors.New("Logic error. Master key was not provided when propogating permissions")
+	}
+
 	// Check that grantee specified exists
 	granteeUser := models.ODUser{DistinguishedName: permission.Grantee}
 	granteeUserDB, granteeUserDBErr := getUserByDistinguishedNameInTransaction(tx, granteeUser)

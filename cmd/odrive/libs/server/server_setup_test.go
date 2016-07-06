@@ -56,12 +56,13 @@ var testIP = flag.String("testIP", "", "The IP address for test API requests. Us
 func TestMain(m *testing.M) {
 	flag.Parse()
 	setup(*testIP)
-	m.Run()
+	code := m.Run()
+	os.Exit(code)
 }
 
 func generatePopulation() {
-	//We have 10 test certs (note the test_0 is known as tester10)
-	population := 10
+	//We have 11 test certs (note the test_0 is known as tester10, and the last is twl-server-generic)
+	population := 11
 	populateClients(population)
 }
 
@@ -70,19 +71,32 @@ func populateClients(population int) {
 	httpclients = make([]*http.Client, population)
 	usersReq, _ := http.NewRequest("GET", host+cfg.NginxRootURL+"/users", nil)
 	for i := 0; i < len(clients); i++ {
-		client, err := getClientIdentity(i, "test_"+strconv.Itoa(i))
-		clients[i] = client
-		if err != nil {
-			log.Printf("Could not create client %d: %v", i, err)
+		var clientname string
+		if i < 10 {
+			clientname = fmt.Sprintf("test_%d", i)
+			client, err := getClientIdentity(i, clientname)
+			clients[i] = client
+			if err != nil {
+				log.Printf("Could not create client %d: %v", i, err)
+			} else {
+				//log.Printf("Creating client %d", i)
+			}
 		} else {
-			//log.Printf("Creating client %d", i)
+			switch i {
+			case 10:
+				client, err := getClientIdentityFromDefaultCerts("server", "server")
+				clients[i] = client
+				if err != nil {
+					log.Printf("Could not create client for server/server: %v", err)
+				}
+			}
 		}
 
 		transport := &http.Transport{TLSClientConfig: clients[i].Config}
 		httpclients[i] = &http.Client{Transport: transport}
 		// Fire-and-Forget call to /users which will force creation of the
 		// user in the database
-		_, err = httpclients[i].Do(usersReq)
+		_, err := httpclients[i].Do(usersReq)
 		if err != nil {
 			log.Printf("Error in populateClients: %v/n", err)
 		}
@@ -101,6 +115,22 @@ type ClientIdentity struct {
 	Index         int
 }
 
+func getClientIdentityFromDefaultCerts(component string, certSet string) (*ClientIdentity, error) {
+	ci := &ClientIdentity{
+		TrustPem: os.ExpandEnv(fmt.Sprintf("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/%s/%s.trust.pem", component, certSet)),
+		CertPem:  os.ExpandEnv(fmt.Sprintf("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/%s/%s.cert.pem", component, certSet)),
+		KeyPem:   os.ExpandEnv(fmt.Sprintf("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/%s/%s.key.pem", component, certSet)),
+	}
+	cfg, err := NewClientTLSConfig(ci)
+	if err != nil {
+		log.Printf("Cannot get identity: %v", err)
+		return nil, err
+	}
+	ci.Config = cfg
+	ci.Name = fmt.Sprintf("%s_%s", component, certSet)
+	return ci, nil
+}
+
 func getClientIdentity(i int, name string) (*ClientIdentity, error) {
 	ci := &ClientIdentity{
 		TrustPem: os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/client.trust.pem"),
@@ -115,30 +145,30 @@ func getClientIdentity(i int, name string) (*ClientIdentity, error) {
 	ci.Config = cfg
 	ci.Name = name
 
-	//Keep this huge directory out of $GOPATH
-	if os.ExpandEnv("$AUTOPILOT_HOME") == "" {
-		os.Setenv("$AUTOPILOT_HOME", os.ExpandEnv("$HOME/autopilot"))
-		os.Mkdir("~/autopilot", 0700)
-	}
-	ci.UploadCache = os.ExpandEnv("$HOME/autopilot/uploadCache" + name)
-	ci.DownloadCache = os.ExpandEnv("$HOME/autopilot/downloadCache" + name)
-	ci.Index = i
-	_, err = os.Stat(ci.UploadCache)
-	if os.IsNotExist(err) {
-		err = os.MkdirAll(ci.UploadCache, 0700)
-		if err != nil {
-			log.Printf("Unable to make an upload cache for %s:%v", ci.UploadCache, err)
-			return nil, err
-		}
-	}
-	_, err = os.Stat(ci.DownloadCache)
-	if os.IsNotExist(err) {
-		err = os.MkdirAll(ci.DownloadCache, 0700)
-		if err != nil {
-			log.Printf("Unable to make a download cache for %s:%v", name, err)
-			return nil, err
-		}
-	}
+	// //Keep this huge directory out of $GOPATH
+	// if os.ExpandEnv("$AUTOPILOT_HOME") == "" {
+	// 	os.Setenv("$AUTOPILOT_HOME", os.ExpandEnv("$HOME/autopilot"))
+	// 	os.Mkdir("~/autopilot", 0700)
+	// }
+	// ci.UploadCache = os.ExpandEnv("$HOME/autopilot/uploadCache" + name)
+	// ci.DownloadCache = os.ExpandEnv("$HOME/autopilot/downloadCache" + name)
+	// ci.Index = i
+	// _, err = os.Stat(ci.UploadCache)
+	// if os.IsNotExist(err) {
+	// 	err = os.MkdirAll(ci.UploadCache, 0700)
+	// 	if err != nil {
+	// 		log.Printf("Unable to make an upload cache for %s:%v", ci.UploadCache, err)
+	// 		return nil, err
+	// 	}
+	// }
+	// _, err = os.Stat(ci.DownloadCache)
+	// if os.IsNotExist(err) {
+	// 	err = os.MkdirAll(ci.DownloadCache, 0700)
+	// 	if err != nil {
+	// 		log.Printf("Unable to make a download cache for %s:%v", name, err)
+	// 		return nil, err
+	// 	}
+	// }
 	return ci, nil
 }
 
@@ -253,13 +283,39 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 		Object: obj,
 	}
 
+	snippetResponse := aac.SnippetResponse{
+		Success:  true,
+		Snippets: testhelpers.SnippetTP10,
+	}
+	acmInfoResponse := aac.AcmInfo{
+		Acm:             testhelpers.ValidACMUnclassifiedWithFShare,
+		IncludeInRollup: false,
+	}
+	acmResponse := aac.AcmResponse{
+		Success:   true,
+		Messages:  []string{"FakeAAC AcmResponse"},
+		AcmValid:  true,
+		HasAccess: true,
+		AcmInfo:   &acmInfoResponse,
+	}
 	checkAccessResponse := aac.CheckAccessResponse{
 		Success:   true,
+		Messages:  []string{"FakeAAC CheckAccessResponse"},
 		HasAccess: true,
+	}
+	var acmResponseArray []*aac.AcmResponse
+	acmResponseArray = append(acmResponseArray, &acmResponse)
+	checkAccessAndPopulateResponse := aac.CheckAccessAndPopulateResponse{
+		Success:         true,
+		Messages:        []string{"FakeAAC CheckAccessAndPopulateResponse"},
+		AcmResponseList: acmResponseArray,
 	}
 	// Fake the AAC interface
 	fakeAAC := aac.FakeAAC{
-		CheckAccessResp: &checkAccessResponse,
+		ACMResp:                    &acmResponse,
+		CheckAccessResp:            &checkAccessResponse,
+		CheckAccessAndPopulateResp: &checkAccessAndPopulateResponse,
+		SnippetResp:                &snippetResponse,
 	}
 
 	s := server.AppServer{RootDAO: &fakeDAO,
@@ -280,4 +336,18 @@ func setupFakeUsers() (models.ODUser, models.ODUser) {
 	user2.CreatedBy = fakeDN2
 
 	return user1, user2
+}
+
+func makeUserShare(userDN string) interface{} {
+	shareString := fmt.Sprintf(`{"users":["%s"]}`, userDN)
+	var shareInterface interface{}
+	json.Unmarshal([]byte(shareString), &shareInterface)
+	return shareInterface
+}
+
+func makeGroupShare(project string, displayName string, groupName string) interface{} {
+	shareString := fmt.Sprintf(`{"projects":{"%s":{"disp_nm":"%s","groups":["%s"]}}}`, project, displayName, groupName)
+	var shareInterface interface{}
+	json.Unmarshal([]byte(shareString), &shareInterface)
+	return shareInterface
 }

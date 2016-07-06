@@ -48,9 +48,9 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 		return NewAppError(400, err, "Object Identifier in Request URI is not a hex string")
 	}
 
-	snippetFields, err := h.FetchUserSnippets(ctx)
-	if err != nil {
-		return NewAppError(502, errors.New("Error retrieving user permissions."), err.Error())
+	snippetFields, ok := SnippetsFromContext(ctx)
+	if !ok {
+		return NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
 	}
 	user.Snippets = snippetFields
 
@@ -68,17 +68,11 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 			return NewAppError(code, err, msg)
 		}
 		// Check for permission to read this object
-		canReadObject := false
-		for _, perm := range dbObject.Permissions {
-			if perm.AllowRead && perm.Grantee == user.DistinguishedName {
-				canReadObject = true
-				break
-			}
-		}
-		if !canReadObject {
-			return NewAppError(403, err, "Insufficient permissions to list contents of this object")
+		if ok, _ := isUserAllowedToRead(ctx, &dbObject); !ok {
+			return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to list contents of this object")
 		}
 
+		// Check if deleted
 		if ok, code, err := isDeletedErr(dbObject); !ok {
 			return NewAppError(code, err, "deleted object")
 		}

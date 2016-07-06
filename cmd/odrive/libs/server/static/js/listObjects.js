@@ -116,13 +116,32 @@ function doShare(objectId, userId, opts) {
   if (!opts) {
     opts = { create: true, read: true, update: false, delete: false, share: false, propogateToChildren: true}
   }
+  
+  	// An ACM compliant share may be expressed as an object. Example format:
+	//  "share":{
+	//     "users":[
+	//        "cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+	//       ,"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+	//       ]
+	//    ,"projects":{
+	//        "jifct_twl":{
+	//           "disp_nm":"JIFCT.TWL"
+	//          ,"groups":[
+	//              "SLE"
+	//             ,"USER"
+	//             ]
+	//          }
+	//       }
+	//    }
+  
+  
   var data = {
-    grantee: userId,
-    create: opts.create,
-    read: opts.read,
-    update: opts.update,
-    delete: opts.delete,
-    share: opts.share,
+    share: {users:[userId]},
+    allowCreate: opts.create,
+    allowRead: opts.read,
+    allowUpdate: opts.update,
+    allowDelete: opts.delete,
+    allowShare: opts.share,
     propogateToChildren: opts.propogateToChildren
   };
   $.ajax({
@@ -133,7 +152,8 @@ function doShare(objectId, userId, opts) {
     success: function(resp) {
       refreshSharedWithMe();
     },
-    error: function(resp) {
+    error: function(jqXHR, textStatus, errorThrown) {
+      alert('Add Share Failed\n' + jqXHR.status + '\n' + jqXHR.statusText);
       console.log("do share failed!");
       console.log(resp);  
     }
@@ -153,7 +173,8 @@ function doDelete(objectId, changeToken) {
       success: function(data){
         refreshListObjects();
       },
-      error: function(data) {
+      error: function(jqXHR, textStatus, errorThrown) {
+        alert('Delete Object Failed\n' + jqXHR.status + '\n' + jqXHR.statusText);
         console.log("do delete failed!")  
       }
   });
@@ -252,7 +273,8 @@ function createObject() {
           refreshListObjects();
           $("#submitCreateObject").prop("disabled", false)
         },
-        error: function(data) {
+        error: function(jqXHR, textStatus, errorThrown) {
+          alert('Create Object Failed\n' + jqXHR.status + '\n' + jqXHR.statusText);
           console.log("create object failed!")  
           $("#submitCreateObject").prop("disabled", false)
         }
@@ -284,8 +306,9 @@ function createFolder() {
         console.log(data);
         refreshListObjects();
       },
-      error: function(data) {
-        console.log("createFolder failed!")
+      error: function(jqXHR, textStatus, errorThrown) {
+        alert('Create Folder Failed\n' + jqXHR.status + '\n' + jqXHR.statusText);
+        console.log("createFolder failed!");
       }
   });
 }

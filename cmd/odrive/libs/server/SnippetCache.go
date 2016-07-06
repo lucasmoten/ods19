@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"sync"
 
@@ -124,7 +125,7 @@ func (h AppServer) FetchUserSnippets(ctx context.Context) (*acm.ODriveRawSnippet
 			)
 			return nil, fmt.Errorf(messages)
 		}
-
+		//LoggerFromContext(ctx).Warn("    SNIPPETS    ", zap.String("snippetResponse.Snippets", snippetResponse.Snippets))
 		// Convert to Snippet Fields
 		odriveRawSnippetFields, err := acm.NewODriveRawSnippetFieldsFromSnippetResponse(snippetResponse.Snippets)
 		if err != nil {
@@ -151,4 +152,32 @@ func (h AppServer) FetchUserSnippets(ctx context.Context) (*acm.ODriveRawSnippet
 		snippets = &odriveRawSnippetFields
 	}
 	return snippets, nil
+}
+
+// GetUserGroups builds up an array of groups for the user based upon their snippets
+func (h AppServer) GetUserGroups(ctx context.Context) []string {
+	var groups []string
+
+	snippetFields, ok := SnippetsFromContext(ctx)
+	if !ok {
+		var err error
+		snippetFields, err = h.FetchUserSnippets(ctx)
+		if err != nil {
+			LoggerFromContext(ctx).Error(
+				"error determining user groups",
+				zap.String("err", err.Error()),
+			)
+			// return empty list
+			return groups
+		}
+	}
+	// Values of f_share are those the user gets as groups
+	for _, rawSnippetField := range snippetFields.Snippets {
+		if strings.Compare(rawSnippetField.FieldName, "f_share") == 0 {
+			for _, shareValue := range rawSnippetField.Values {
+				groups = append(groups, shareValue)
+			}
+		}
+	}
+	return groups
 }

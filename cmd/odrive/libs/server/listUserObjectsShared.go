@@ -30,9 +30,9 @@ func (h AppServer) listUserObjectsShared(ctx context.Context, w http.ResponseWri
 	}
 
 	// Snippets
-	snippetFields, err := h.FetchUserSnippets(ctx)
-	if err != nil {
-		return NewAppError(502, errors.New("Error retrieving user permissions."), err.Error())
+	snippetFields, ok := SnippetsFromContext(ctx)
+	if !ok {
+		return NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
 	}
 	user.Snippets = snippetFields
 

@@ -225,7 +225,7 @@ func buildFilter(pagingRequest protocol.PagingRequest) string {
 			case "contains":
 				out += ` like '%` + MySQLSafeString(filterSetting.Expression) + `%'`
 			default: // "equals":
-				out += ` = '` + MySQLSafeString(filterSetting.Expression) + `'`
+				out += ` like '` + MySQLSafeString(filterSetting.Expression) + `'`
 			}
 		}
 		if len(out) > 0 {
@@ -290,17 +290,17 @@ func buildFilterForUserACMShare(user models.ODUser) string {
 
 	// If share settings were defined with additional groups
 	if len(shareSnippet.Values) > 0 {
-		sql = " and (op.grantee = ? "
+		sql = " and (op.grantee = ? or op.grantee like '" + MySQLSafeString(models.EveryoneGroup) + "'"
 		for _, shareValue := range shareSnippet.Values {
 			//if !strings.Contains(shareValue, "cusou") && !strings.Contains(shareValue, "governmentcus") {
-			sql += " or op.grantee = '" + MySQLSafeString(shareValue) + "'"
+			sql += " or op.grantee like '" + MySQLSafeString(shareValue) + "'"
 			//}
 		}
 		sql += ") "
 	} else {
 		sql = defaultSQL
 	}
-
+	log.Printf(sql)
 	return sql
 }
 
@@ -332,7 +332,7 @@ func buildFilterForUserSnippetsUsingACM(user models.ODUser) string {
 			sql += " and acmid not in ("
 			// where it does have the field
 			sql += "select acmid from acmpart inner join acmkey on acmpart.acmkeyid = acmkey.id inner join acmvalue on acmpart.acmvalueid = acmvalue.id "
-			sql += "where acmkey.name = '" + MySQLSafeString2(rawFields.FieldName) + "' "
+			sql += "where acmkey.name like '" + MySQLSafeString(rawFields.FieldName) + "' "
 			sql += "and acmvalue.name in (''"
 			for _, value := range rawFields.Values {
 				sql += ",'" + MySQLSafeString2(value) + "'"
@@ -341,14 +341,14 @@ func buildFilterForUserSnippetsUsingACM(user models.ODUser) string {
 		case "allowed":
 			sql += " and acmid in ("
 			// where it doesn't have the field
-			sql += "select acmid from acmpart where 0 = (select count(0) from acmpart inner join acmkey on acmpart.acmkeyid = acmkey.id where acmkey.name = '" + MySQLSafeString2(rawFields.FieldName) + "' and acmpart.isdeleted = 0 and acmkey.isdeleted = 0)"
+			sql += "select id from acm where isdeleted = 0 and id not in (select acm.id from acm inner join acmpart on acmpart.acmid = acm.id and acmpart.isdeleted = 0 inner join acmkey on acmpart.acmkeyid = acmkey.id and acmkey.name like '" + MySQLSafeString(rawFields.FieldName) + "' and acmkey.isdeleted = 0 where acm.isdeleted = 0)"
 			// where it does have the field
 			sql += " union "
 			sql += "select acmid from acmpart inner join acmkey on acmpart.acmkeyid = acmkey.id inner join acmvalue on acmpart.acmvalueid = acmvalue.id "
-			sql += "where acmkey.name = '" + MySQLSafeString2(rawFields.FieldName) + "' "
+			sql += "where acmkey.name like '" + MySQLSafeString(rawFields.FieldName) + "' "
 			sql += "and (acmvalue.name = '' "
 			for _, value := range rawFields.Values {
-				sql += " or acmvalue.name = '" + MySQLSafeString2(value) + "'"
+				sql += " or acmvalue.name like '" + MySQLSafeString(value) + "'"
 			}
 			sql += ") and acmpart.isdeleted = 0 and acmkey.isdeleted = 0 and acmvalue.isdeleted = 0)"
 		default:
@@ -357,7 +357,7 @@ func buildFilterForUserSnippetsUsingACM(user models.ODUser) string {
 	}
 
 	sql += ")"
-
+	//log.Printf(sql)
 	return sql
 }
 

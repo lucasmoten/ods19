@@ -74,8 +74,8 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
-	if getRes1.StatusCode == http.StatusOK {
-		t.Logf("clientid2 was able to get object when not shared")
+	if getRes1.StatusCode != http.StatusOK {
+		t.Logf("clientid2 was not able to get folder1 object despite being shared to 'Everyone'")
 		t.FailNow()
 	}
 
@@ -91,16 +91,16 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
-	if getRes2.StatusCode == http.StatusOK {
-		t.Logf("clientid2 was able to get object when not shared")
+	if getRes2.StatusCode != http.StatusOK {
+		t.Logf("clientid2 was not able to get folder2 object despite being shared to 'Everyone'")
 		t.FailNow()
 	}
 
 	// Add share as clientid1 for clientid2 to folder1 without propagation
 	shareuri := host + cfg.NginxRootURL + "/shared/" + folder1.ID
-	shareSetting := protocol.ObjectGrant{}
-	shareSetting.Grantee = fakeDN1
-	shareSetting.Read = true
+	shareSetting := protocol.ObjectShare{}
+	shareSetting.Share = makeUserShare(fakeDN1)
+	shareSetting.AllowRead = true
 	jsonBody, err = json.Marshal(shareSetting)
 	if err != nil {
 		t.Logf("Unable to marshal json for request:%v", err)
@@ -150,16 +150,16 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
-	if getRes5.StatusCode == http.StatusOK {
-		t.Logf("clientid2 was able to get object when not shared")
+	if getRes5.StatusCode != http.StatusOK {
+		t.Logf("clientid2 was not able to get shared object that should still be shared to everyone. Got status %d", getRes5.StatusCode)
 		t.FailNow()
 	}
 
 	// Add share as clientid1 for clientid2 to folder1 with propagation
 	shareuri = host + cfg.NginxRootURL + "/shared/" + folder1.ID
-	shareSetting = protocol.ObjectGrant{}
-	shareSetting.Grantee = fakeDN1
-	shareSetting.Read = true
+	shareSetting = protocol.ObjectShare{}
+	shareSetting.Share = makeUserShare(fakeDN1)
+	shareSetting.AllowRead = true
 	shareSetting.PropagateToChildren = true
 	jsonBody, err = json.Marshal(shareSetting)
 	if err != nil {
@@ -242,16 +242,17 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.Logf("Unable to do get request as tp01:%v\n", err)
 		t.FailNow()
 	}
-	if getRes2.StatusCode == http.StatusOK {
+	if getRes2.StatusCode != http.StatusForbidden { // == http.StatusOK {
 		t.Logf("Unexpected status requesting object created by testperson10 as testperson01: %d", getRes2.StatusCode)
 		t.FailNow()
 	}
 
 	// Create share granting read access to testperson01
 	shareuri := host + cfg.NginxRootURL + "/shared/" + createdFolder.ID
-	shareSetting := protocol.ObjectGrant{}
-	shareSetting.Grantee = fakeDN1
-	shareSetting.Read = true
+	shareSetting := protocol.ObjectShare{}
+	shareSetting.Share = makeUserShare(fakeDN1)
+	//shareSetting.Grantee = fakeDN1
+	shareSetting.AllowRead = true
 	jsonBody, err := json.Marshal(shareSetting)
 	if err != nil {
 		t.Logf("Unable to marshal json for request:%v", err)
@@ -269,6 +270,13 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	}
 	if shareResponse.StatusCode != http.StatusOK {
 		t.Logf("share creation failed")
+		t.FailNow()
+	}
+	// Since the share updates the object and returns updated state in response, we need to capture
+	var updatedObject protocol.Object
+	err = util.FullDecode(shareResponse.Body, &updatedObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object:%v", err)
 		t.FailNow()
 	}
 
@@ -311,7 +319,8 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	}
 
 	// Update object as testperson10 to change ACM to be U
-	folderUpdate := createdFolder
+	//folderUpdate := createdFolder -- object changed from adding permission(s) so created object does not have current change token
+	folderUpdate := updatedObject
 	folderUpdate.RawAcm = testhelpers.ValidACMUnclassified
 	updateuri := host + cfg.NginxRootURL + "/objects/" + folderUpdate.ID + "/properties"
 	jsonBody, err = json.Marshal(folderUpdate)

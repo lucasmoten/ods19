@@ -120,7 +120,6 @@ func doTestCreateObjectSimple(t *testing.T, data string, clientID int) (*http.Re
 	}
 	defer tmpCloser()
 
-	// TODO change this to object metadata?
 	createRequest := protocol.CreateObjectRequest{
 		Name:     testName,
 		TypeName: "File",

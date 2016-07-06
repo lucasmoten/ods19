@@ -2,6 +2,7 @@ package dao
 
 import (
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"reflect"
 	"sort"
@@ -26,6 +27,7 @@ func setObjectACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, is
 	}
 	// Initialize Overall Flattened ACM
 	overallFlattenedACM := getOverallFlattenedACM(acmMap)
+	//log.Printf(overallFlattenedACM)
 	acm, acmCreated, err := getAcmByNameInTransaction(tx, overallFlattenedACM, true, object.ModifiedBy)
 	if err != nil {
 		return err
@@ -86,18 +88,18 @@ func setACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *mod
             , acmId = ?
         `)
 		if err != nil {
-			return fmt.Errorf("setACMForObjectInTransaction error preparing add statement, %s", err.Error())
+			return fmt.Errorf("setACMForObjectInTransaction error preparing add statement when new, %s", err.Error())
 		}
 		result, err := addStatement.Exec(object.CreatedBy, object.ID, acm.ID)
 		if err != nil {
-			return fmt.Errorf("setACMForObjectInTransaction error executing add statement, %s", err.Error())
+			return fmt.Errorf("setACMForObjectInTransaction error executing add statement when new, %s", err.Error())
 		}
 		rowCount, err := result.RowsAffected()
 		if err != nil {
-			return fmt.Errorf("setACMForObjectInTransaction error checking rows affected, %s", err.Error())
+			return fmt.Errorf("setACMForObjectInTransaction error checking rows affected when new, %s", err.Error())
 		}
 		if rowCount < 1 {
-			return fmt.Errorf("setACMForObjectInTransaction there was less than one row affected")
+			return fmt.Errorf("setACMForObjectInTransaction there was less than one row affected when new")
 		}
 	} else {
 		// Object already existed, so updating...
@@ -107,18 +109,19 @@ func setACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *mod
             where objectId = ? and isdeleted = 0
         `)
 		if err != nil {
-			return fmt.Errorf("setACMForObjectInTransaction error preparing update statement, %s", err.Error())
+			return fmt.Errorf("setACMForObjectInTransaction error preparing update statement when changing acm, %s", err.Error())
 		}
+		//log.Println("acm.ID = %s", hex.EncodeToString(acm.ID))
 		result, err := updateStatement.Exec(object.ModifiedBy, acm.ID, object.ID)
 		if err != nil {
-			return fmt.Errorf("setACMForObjectInTransaction error executing update statement, %s", err.Error())
+			return fmt.Errorf("setACMForObjectInTransaction error executing update statement when changing acm, %s", err.Error())
 		}
 		rowCount, err := result.RowsAffected()
 		if err != nil {
-			return fmt.Errorf("setACMForObjectInTransaction error checking rows affected, %s", err.Error())
+			return fmt.Errorf("setACMForObjectInTransaction error checking rows affected when changing acm, %s", err.Error())
 		}
 		if rowCount < 1 {
-			return fmt.Errorf("setACMForObjectInTransaction there was less than one row affected")
+			return fmt.Errorf("setACMForObjectInTransaction there was less than one row affected when changing acm to id %s with name %s for object %s", hex.EncodeToString(acm.ID), acm.Name, hex.EncodeToString(object.ID))
 		}
 	}
 	return nil
@@ -278,6 +281,7 @@ func createAcmInTransaction(tx *sqlx.Tx, theType *models.ODAcm) (models.ODAcm, e
 func getOverallFlattenedACM(acmMap map[string]interface{}) string {
 	var flattenedACM string
 
+	// build sorted key list
 	alphaAcmKeys := make([]string, len(acmMap))
 	ak := 0
 	for acmKeyName := range acmMap {
@@ -286,25 +290,40 @@ func getOverallFlattenedACM(acmMap map[string]interface{}) string {
 	}
 	sort.Strings(alphaAcmKeys)
 
-	for ak2, acmKeyName := range alphaAcmKeys {
+	fieldOutputCounter := 0
+	// iterate keys sorted by name
+	for _, acmKeyName := range alphaAcmKeys {
 		if strings.HasPrefix(acmKeyName, "f_") || strings.HasPrefix(acmKeyName, "dissem_countries") {
-			if ak2 > 0 {
+			// dont prefix with semicolon, but do use to divide fields
+			if fieldOutputCounter > 0 {
 				flattenedACM += ";"
 			}
+			fieldOutputCounter++
+			// add the key name for the current field
 			flattenedACM += acmKeyName + "="
+			// get value from the map
 			mapValue := acmMap[acmKeyName]
+			// convert to an interface array
 			interfaceValue := mapValue.([]interface{})
+			// get all values in the array and convert to a string array
 			alphaAcmValues := make([]string, len(interfaceValue))
 			av := 0
 			for _, interfaceElement := range interfaceValue {
 				if strings.Compare(reflect.TypeOf(interfaceElement).Kind().String(), "string") == 0 {
-					alphaAcmValues[av] = interfaceElement.(string)
-					av++
+					interfaceStringValue := interfaceElement.(string)
+					// only add non empty values
+					if len(interfaceStringValue) > 0 {
+						alphaAcmValues[av] = interfaceElement.(string)
+						av++
+					}
 				}
 			}
+			// sort the values
 			sort.Strings(alphaAcmValues)
+			// iterate values to append them to the flattened acm
 			for av2, acmValue := range alphaAcmValues {
 				if av2 <= av {
+					// comma delimit the values
 					if av2 > 0 {
 						flattenedACM += ","
 					}
