@@ -136,46 +136,20 @@ func main() {
 
 	cliParser.Action = func(c *cli.Context) error {
 
-		ciphers := c.StringSlice("addCipher")
-		useTLS := c.BoolT("useTLS")
-		// cli lib appends to []string that already contains the "default" value. Must trim
-		// the default cipher if addCipher is passed at command line.
-		if len(ciphers) > 1 {
-			ciphers = ciphers[1:]
-		}
-
-		// Load YAML, with optional filename passed
-		confPath := c.String("conf")
-		confFile, err := config.LoadYAMLConfig(confPath)
+		opts := config.NewCommandLineOpts(c)
+		// TODO move this to main AppConfiguration constructor
+		confFile, err := config.LoadYAMLConfig(opts.Conf)
 		if err != nil {
 			fmt.Printf("Error loading yaml configuration at path %s: %v\n", confFile, err)
 			os.Exit(1)
 		}
 
-		// Static Files Directory (Optional. Has a default, but can be set to empty for no static files)
-		staticRootPath := c.String("staticRoot")
-		if len(staticRootPath) > 0 {
-			if _, err := os.Stat(staticRootPath); os.IsNotExist(err) {
-				fmt.Printf("Static Root Path %s does not exist: %v\n", staticRootPath, err)
-				os.Exit(1)
-			}
-		}
+		logger.Info("configuration-settings", zap.String("confPath", opts.Conf),
+			zap.String("staticRoot", opts.StaticRootPath),
+			zap.String("templateDir", opts.TemplateDir),
+			zap.String("tlsMinimumVersion", opts.TLSMinimumVersion))
 
-		// Template Directory (Optional. Has a default, but can be set to empty for no templates)
-		templatePath := c.String("templateDir")
-		if len(templatePath) > 0 {
-			if _, err := os.Stat(templatePath); os.IsNotExist(err) {
-				fmt.Printf("Template folder %s does not exist: %v\n", templatePath, err)
-				os.Exit(1)
-			}
-		}
-
-		// TLS Minimum Version (Optional. Has a default, but can be made a lower version)
-		tlsMinimumVersion := c.String("tlsMinimumVersion")
-
-		logger.Info("configuration-settings", zap.String("confPath", confPath), zap.String("staticRoot", staticRootPath), zap.String("templateDir", templatePath), zap.String("tlsMinimumVersion", tlsMinimumVersion))
-
-		startApplication(confFile.Whitelisted, ciphers, useTLS, staticRootPath, templatePath, tlsMinimumVersion)
+		startApplication(confFile.Whitelisted, opts)
 		return nil
 	}
 
@@ -204,14 +178,12 @@ func runServiceTest(ctx *cli.Context) error {
 	return nil
 }
 
-func startApplication(whitelist, ciphers []string, useTLS bool, staticRootPath string, templatePath string, tlsMinimumVersion string) {
+func startApplication(whitelist []string, opts config.CommandLineOpts) {
 
-	// Load Configuration from conf.json
-	conf := config.NewAppConfiguration(whitelist, ciphers, useTLS, staticRootPath, templatePath, tlsMinimumVersion)
+	conf := config.NewAppConfiguration(whitelist, opts)
 
 	app, err := makeServer(conf.ServerSettings)
 	if err != nil {
-		//Yet we continue when there is an error?
 		logger.Error("Error calling makeserver", zap.String("err", err.Error()))
 	}
 
@@ -453,6 +425,7 @@ func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, err
 		Port:                      conf.ListenPort,
 		Bind:                      conf.ListenBind,
 		Addr:                      conf.ListenBind + ":" + conf.ListenPort,
+		Conf:                      conf,
 		Tracker:                   performance.NewJobReporters(1024),
 		ServicePrefix:             globalconfig.RootURLRegex,
 		TemplateCache:             templates,
