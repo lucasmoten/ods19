@@ -26,11 +26,12 @@ func (h AppServer) home(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	tmpl := h.TemplateCache.Lookup("home.html")
 
 	// Anonymous struct syntax is tricky.
+	// TODO get the BaseURL off of the config
 	apiFuncs := []struct{ Name, RelativeLink, Description string }{
-		{"List Objects", cfg.NginxRootURL + "/ui/listObjects", "This operation will result in a GET call to list root objects with default paging."},
-		{"Statistics", cfg.NginxRootURL + "/stats", "This operation will result in a GET call to list root objects with default paging."},
-		{"API: Users", cfg.NginxRootURL + "/users", "This is a list of all users via API call."},
-		{"API: Objects", cfg.NginxRootURL + "/objects", "This is a list of objects in users root via API call."},
+		{"List Objects", h.Conf.BasePath + "/ui/listObjects", "This operation will result in a GET call to list root objects with default paging."},
+		{"Statistics", h.Conf.BasePath + "/stats", "This operation will result in a GET call to list root objects with default paging."},
+		{"API: Users", h.Conf.BasePath + "/users", "This is a list of all users via API call."},
+		{"API: Objects", h.Conf.BasePath + "/objects", "This is a list of objects in users root via API call."},
 	}
 
 	data := struct {

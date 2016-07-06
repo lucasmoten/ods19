@@ -39,6 +39,7 @@ const (
 	OD_DOCKERVM_PORT         = "OD_DOCKERVM_PORT"
 	OD_ENCRYPT_MASTERKEY     = "OD_ENCRYPT_MASTERKEY"
 	OD_SERVER_CA             = "OD_SERVER_CA"
+	OD_SERVER_BASEPATH       = "OD_SERVER_BASEPATH"
 	OD_SERVER_CERT           = "OD_SERVER_CERT"
 	OD_SERVER_KEY            = "OD_SERVER_KEY"
 	OD_SERVER_PORT           = "OD_SERVER_PORT"
@@ -52,6 +53,7 @@ const (
 	OD_ZK_URL                = "OD_ZK_URL"
 )
 
+// Maintain in sync with above consts.
 var vars = []string{OD_AAC_CA,
 	OD_AAC_CERT,
 	OD_AAC_HOST,
@@ -82,6 +84,7 @@ var vars = []string{OD_AAC_CA,
 	OD_DOCKERVM_OVERRIDE,
 	OD_DOCKERVM_PORT,
 	OD_ENCRYPT_MASTERKEY,
+	OD_SERVER_BASEPATH,
 	OD_SERVER_CA,
 	OD_SERVER_CERT,
 	OD_SERVER_KEY,

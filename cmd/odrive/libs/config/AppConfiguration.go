@@ -2,6 +2,7 @@ package config
 
 import (
 	"crypto/tls"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
+	"github.com/urfave/cli"
 )
 
 // Globals
@@ -29,13 +31,23 @@ type AppConfiguration struct {
 	AACSettings        AACConfiguration
 }
 
-// AACConfiguration ...
+// AACConfiguration holds data required for an AAC client.
 type AACConfiguration struct {
 	CAPath     string
 	ClientCert string
 	ClientKey  string
 	HostName   string
 	Port       string
+}
+
+// CommandLineOpts holds command line options so they can be passed as a param.
+type CommandLineOpts struct {
+	Ciphers           []string
+	UseTLS            bool
+	StaticRootPath    string
+	TemplateDir       string
+	TLSMinimumVersion string
+	Conf              string
 }
 
 // DatabaseConfiguration is a structure that defines the attributes
@@ -59,6 +71,7 @@ type DatabaseConfiguration struct {
 // ServerSettingsConfiguration is a structure defining the attributes needed for
 // setting up the server listener
 type ServerSettingsConfiguration struct {
+	BasePath                  string
 	ListenPort                string
 	ListenBind                string
 	UseTLS                    bool
@@ -84,27 +97,74 @@ type AuditSvcConfiguration struct {
 // function for AppConfiguration. Normally these parameters are specified
 // on the command line.
 func NewAppConfigurationWithDefaults() AppConfiguration {
-	ciphers := []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"}
-	useTLS := true
 	whitelist := []string{"cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"}
-	staticRootPath := filepath.Join("libs", "server", "static")
-	templatePath := filepath.Join("libs", "server", "static", "templates")
-	tlsMinimumVersion := "1.2"
-	return NewAppConfiguration(whitelist, ciphers, useTLS, staticRootPath, templatePath, tlsMinimumVersion)
+	opts := CommandLineOpts{
+		Ciphers:           []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"},
+		UseTLS:            true,
+		StaticRootPath:    filepath.Join("libs", "server", "static"),
+		TemplateDir:       filepath.Join("libs", "server", "static", "templates"),
+		TLSMinimumVersion: "1.2",
+	}
+	return NewAppConfiguration(whitelist, opts)
 }
 
 // NewAppConfiguration loads the configuration from the environment. Parameters are command
 // line flags.
-func NewAppConfiguration(whitelist, ciphers []string, useTLS bool, staticRootPath string, templatePath string, tlsMinimumVersion string) AppConfiguration {
+func NewAppConfiguration(whitelist []string, opts CommandLineOpts) AppConfiguration {
 
 	dbConf := NewDatabaseConfigFromEnv()
-	serverSettings := NewServerSettingsFromEnv(whitelist, ciphers, useTLS, staticRootPath, templatePath, tlsMinimumVersion)
+	serverSettings := NewServerSettingsFromEnv(whitelist, opts)
 	aacSettings := NewAACSettingsFromEnv()
 
 	return AppConfiguration{
 		DatabaseConnection: dbConf,
 		ServerSettings:     serverSettings,
 		AACSettings:        aacSettings,
+	}
+}
+
+// NewCommandLineOpts instantiates CommandLineOpts from a pointer to the parsed command line
+// context. The actual parsing is handled by the cli framework.
+func NewCommandLineOpts(clictx *cli.Context) CommandLineOpts {
+	ciphers := clictx.StringSlice("addCipher")
+	useTLS := clictx.BoolT("useTLS")
+	// NOTE: cli lib appends to []string that already contains the "default" value. Must trim
+	// the default cipher if addCipher is passed at command line.
+	if len(ciphers) > 1 {
+		ciphers = ciphers[1:]
+	}
+
+	// Config file YAML is parsed elsewhere. This is just the path.
+	confPath := clictx.String("conf")
+
+	// Static Files Directory (Optional. Has a default, but can be set to empty for no static files)
+	staticRootPath := clictx.String("staticRoot")
+	if len(staticRootPath) > 0 {
+		if _, err := os.Stat(staticRootPath); os.IsNotExist(err) {
+			fmt.Printf("Static Root Path %s does not exist: %v\n", staticRootPath, err)
+			os.Exit(1)
+		}
+	}
+
+	// Template Directory (Optional. Has a default, but can be set to empty for no templates)
+	templateDir := clictx.String("templateDir")
+	if len(templateDir) > 0 {
+		if _, err := os.Stat(templateDir); os.IsNotExist(err) {
+			fmt.Printf("Template folder %s does not exist: %v\n", templateDir, err)
+			os.Exit(1)
+		}
+	}
+
+	// TLS Minimum Version (Optional. Has a default, but can be made a lower version)
+	tlsMinimumVersion := clictx.String("tlsMinimumVersion")
+
+	return CommandLineOpts{
+		Ciphers:           ciphers,
+		UseTLS:            useTLS,
+		Conf:              confPath,
+		StaticRootPath:    staticRootPath,
+		TemplateDir:       templateDir,
+		TLSMinimumVersion: tlsMinimumVersion,
 	}
 }
 
@@ -139,11 +199,12 @@ func NewDatabaseConfigFromEnv() DatabaseConfiguration {
 }
 
 // NewServerSettingsFromEnv inspects the environment and returns a ServerSettingsConfiguration.
-func NewServerSettingsFromEnv(whitelist, ciphers []string, useTLS bool, staticRootPath string, templatePath string, tlsMinimumVersion string) ServerSettingsConfiguration {
+func NewServerSettingsFromEnv(whitelist []string, opts CommandLineOpts) ServerSettingsConfiguration {
 
 	var settings ServerSettingsConfiguration
 
 	// From env
+	settings.BasePath = globalconfig.GetEnvOrDefault(OD_SERVER_BASEPATH, "/services/object-drive/1.0")
 	settings.ListenPort = os.Getenv(OD_SERVER_PORT)
 	settings.CAPath = os.Getenv(OD_SERVER_CA)
 	settings.ServerCertChain = os.Getenv(OD_SERVER_CERT)
@@ -151,13 +212,13 @@ func NewServerSettingsFromEnv(whitelist, ciphers []string, useTLS bool, staticRo
 
 	// Defaults
 	settings.ListenBind = "0.0.0.0"
-	settings.UseTLS = useTLS
+	settings.UseTLS = opts.UseTLS
 	settings.RequireClientCert = true
-	settings.MinimumVersion = tlsMinimumVersion
+	settings.MinimumVersion = opts.TLSMinimumVersion
 	settings.AclImpersonationWhitelist = whitelist
-	settings.CipherSuites = ciphers
-	settings.PathToStaticFiles = staticRootPath
-	settings.PathToTemplateFiles = templatePath
+	settings.CipherSuites = opts.Ciphers
+	settings.PathToStaticFiles = opts.StaticRootPath
+	settings.PathToTemplateFiles = opts.TemplateDir
 
 	return settings
 }
