@@ -122,6 +122,23 @@ func ApplyPassphrase(passphrase string, permissionIV, fileKey []byte) []byte {
 	return result
 }
 
+//ApplyPassphraseOld - generates encryption keys in older format to use in migration testing
+func ApplyPassphraseOld(passphrase string, grantee string, fileKey []byte) []byte {
+	result := make([]byte, 32)
+	hashBytes := sha256.Sum256([]byte(passphrase + grantee))
+	fklen := len(fileKey)
+	hlen := len(hashBytes)
+	if fklen > hlen {
+		//If we conveniently use this to encrypt long data, it's effectively
+		//ECB mode without some changes.  Don't use for more than keys
+		log.Fatal("Do not applyPassphrase to anything that is longer than a sha256 hash!")
+	}
+	for i := 0; i < fklen; i++ {
+		result[i] = hashBytes[i] ^ fileKey[i]
+	}
+	return result
+}
+
 // CreatePermissionIV creates a byte array of length 32 initialized with random data
 func CreatePermissionIV() (key []byte) {
 	//256 bit keys
