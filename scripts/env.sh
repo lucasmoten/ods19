@@ -6,6 +6,7 @@ export OD_AAC_HOST=
 export OD_AAC_KEY=
 export OD_AAC_PORT=
 export OD_AWS_ACCESS_KEY_ID=
+export OD_AWS_ENDPOINT=
 export OD_AWS_REGION=
 export OD_AWS_S3_BUCKET=
 export OD_AWS_S3_FETCH_MB=
