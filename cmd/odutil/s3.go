@@ -12,20 +12,34 @@ import (
 
 const mb int64 = 1024
 
-// DownloadFromS3 gets the targeted key from an S3 bucket
-func DownloadFromS3(bucketName, key string) error {
+// DownloadFromS3 gets the targeted key from an S3 bucket and writes it to the
+// destKey localy. If no destKey is provided, the filename portion of key is used.
+func DownloadFromS3(bucketName, key, destKey string) error {
 
 	client := getS3ClientFromEnv()
 	b := client.Bucket(bucketName)
-	r, h, err := b.GetReader(key, nil)
+	timeout := time.Second * 5
+
+	conf := &s3.Config{
+		Concurrency: 5,
+		PartSize:    10 * mb,
+		NTry:        10,
+		Md5Check:    true,
+		Scheme:      "https",
+		Client:      s3.ClientWithTimeout(timeout),
+		PathStyle:   true,
+	}
+
+	r, _, err := b.GetReader(key, conf)
+	defer r.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Attempting download for key with these headers:", h)
+	fmt.Println("Attempting to write this path locally:", destKey)
 
 	// create file handle
-	f, err := os.Create(key)
+	f, err := os.Create(destKey)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -85,8 +99,6 @@ func MoveToS3(path, bucketName, key string) error {
 	}
 	defer f.Close()
 
-	// copy to writer from file (an io.Reader)
-	// Read about io.Copy and io.Reader and io.Writer
 	n, err := io.Copy(w, f)
 	if err != nil {
 		return err
