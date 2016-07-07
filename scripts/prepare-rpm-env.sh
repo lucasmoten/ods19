@@ -110,6 +110,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.yml
 %config(noreplace) %{_sysconfdir}/%{name}/odrive-schema-${ODRIVE_VERSION}.tar.gz
+%config(noreplace) /opt/odrive/env.sh
 %{_sysconfdir}/%{name}/libs
 %{_bindir}/*
 %{_sysconfdir}/init.d/%{name}
