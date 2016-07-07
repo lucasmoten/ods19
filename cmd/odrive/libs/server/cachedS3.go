@@ -207,6 +207,9 @@ func NewAWSSession() *session.Session {
 
 	checkAWSEnvironmentVars(logger)
 
+	region := os.Getenv("AWS_REGION")
+	endpoint := os.Getenv("OD_AWS_ENDPOINT")
+
 	// See if AWS creds in environment
 	accessKeyID := globalconfig.GetEnvOrDefault("OD_AWS_ACCESS_KEY_ID", globalconfig.GetEnvOrDefault("AWS_ACCESS_KEY_ID", ""))
 	secretKey := globalconfig.GetEnvOrDefault("OD_AWS_SECRET_ACCESS_KEY", globalconfig.GetEnvOrDefault("AWS_SECRET_ACCESS_KEY", ""))
@@ -214,13 +217,17 @@ func NewAWSSession() *session.Session {
 		logger.Info("aws.credentials", zap.String("provider", "environment variables"))
 		sessionConfig := &aws.Config{
 			Credentials: credentials.NewEnvCredentials(),
-			Region:      aws.String(os.Getenv("AWS_REGION")),
+			Region:      aws.String(region),
+			Endpoint:    aws.String(endpoint),
 		}
 		return session.New(sessionConfig)
 	}
 	// Do as IAM
 	logger.Info("aws.credentials", zap.String("provider", "iam role"))
-	return session.New(&aws.Config{Region: aws.String(os.Getenv("AWS_REGION"))})
+	return session.New(&aws.Config{
+		Region:   aws.String(region),
+		Endpoint: aws.String(endpoint),
+	})
 }
 
 // NewNullDrainProvider setup a drain provider that doesnt use S3 backend, just local caching.
