@@ -27,8 +27,8 @@ default_ciphers = "--addCipher TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 --addCipher
 
 
 def get_ciphers():
-    if od.getenv("OD_CIPHERS"):
-        return od.getenv("OD_CIPHERS"):
+    if os.getenv("OD_CIPHERS"):
+        return os.getenv("OD_CIPHERS")
     return default_ciphers
 
 
@@ -50,7 +50,9 @@ def start():
     f = open(logfile, "a")
     shell_source(envfile)
     ciphs = get_ciphers()
-    command = ['odrive', '--conf', conf, '--templateDir', templates, "--staticRoot", static_root, ciphs]
+    splitted = ciphs.split(" ")
+    command = ['odrive', '--conf', conf, '--templateDir', templates, "--staticRoot", static_root]
+    command.extend(splitted)
     ps = subprocess.Popen(command, stdout=f, stderr=f)
     with open(pidfile, "w") as pf:
         pf.write(str(ps.pid) + '\n')
