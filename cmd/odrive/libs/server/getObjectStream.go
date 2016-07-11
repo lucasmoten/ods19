@@ -453,17 +453,18 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 			etag := fmt.Sprintf("\"%s\"", contentHash)
 			w.Header().Set("Etag", etag)
 			if clientEtag == etag {
-				w.WriteHeader(http.StatusNotModified)
-				return 0, nil
+				return 0, NewAppError(http.StatusNotModified, nil, "Not Modified")
 			}
+			//Note that if we return a nil error, the stats collector will think we got a 200
+			//Begin writing a 206... one of the rare codes that still returns content
 			w.WriteHeader(http.StatusPartialContent)
 		} else {
 			etag := fmt.Sprintf("\"%s\"", contentHash)
 			w.Header().Set("Etag", etag)
 			if clientEtag == etag {
-				w.WriteHeader(http.StatusNotModified)
-				return 0, nil
+				return 0, NewAppError(http.StatusNotModified, nil, "Not Modified")
 			}
+			//Begin writing back a normal 200
 			w.WriteHeader(http.StatusOK)
 		}
 	}
@@ -528,6 +529,9 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 			)
 		}
 	}
-
-	return actualLength, nil
+	if object.ContentSize.Valid && byteRange != nil {
+		return actualLength, NewAppError(http.StatusPartialContent, nil, "Partial Content")
+	} else {
+		return actualLength, nil
+	}
 }
