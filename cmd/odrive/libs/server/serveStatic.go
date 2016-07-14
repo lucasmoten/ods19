@@ -29,7 +29,8 @@ func (h AppServer) serveStatic(
 	if err := util.SanitizePath(path); err != nil {
 		NewAppError(404, nil, errStaticResourceNotFound)
 	}
-
+	//This used to be fixed.... We need to set mime types!
+	w.Header().Set("Content-Type", GuessContentType(path))
 	f, err := os.Open(path)
 	defer f.Close()
 	if err != nil {
