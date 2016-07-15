@@ -141,7 +141,7 @@ func (h AppServer) acceptObjectUpload(
 			}
 			//Guess the content type and name if it wasn't supplied
 			if obj.ContentType.Valid == false || len(obj.ContentType.String) == 0 {
-				obj.ContentType.String = guessContentType(part.FileName())
+				obj.ContentType.String = GuessContentType(part.FileName())
 			}
 			if obj.Name == "" {
 				obj.Name = part.FileName()
@@ -287,10 +287,14 @@ func extIs(name string, ext string) bool {
 	return strings.ToLower(path.Ext(name)) == strings.ToLower(ext)
 }
 
-//I'm sure there is a function call somewhere with this database....
-func guessContentType(name string) string {
+//GuessContentType will give a best guess if content type not given otherwise
+func GuessContentType(name string) string {
 	contentType := "text/plain"
 	switch {
+	case extIs(name, ".js"):
+		contentType = "application/javascript"
+	case extIs(name, ".css"):
+		contentType = "text/css"
 	case extIs(name, ".htm"):
 		contentType = "text/html"
 	case extIs(name, ".html"):
