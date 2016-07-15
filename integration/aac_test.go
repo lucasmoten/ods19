@@ -56,7 +56,7 @@ func TestMain(m *testing.M) {
 	}
 	zkAAC := globalconfig.GetEnvOrDefault(
 		"OD_ZK_AAC",
-		globalconfig.GetEnvOrDefault("OD_ZK_ROOT", "/cte")+"/service/aac/2.2/thrift",
+		globalconfig.GetEnvOrDefault("OD_ZK_ROOT", "/cte")+"/service/aac/1.0/thrift",
 	)
 	// setup a channel and callback to hold announcement from zookeeper
 	var done = make(chan map[string]zookeeper.AnnounceData)

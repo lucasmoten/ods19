@@ -42,7 +42,7 @@ var (
 	//The location for finding aac zk nodes
 	zkAAC = globalconfig.GetEnvOrDefault(
 		"OD_ZK_AAC",
-		globalconfig.GetEnvOrDefault("OD_ZK_ROOT", "/cte")+"/service/aac/2.2/thrift",
+		globalconfig.GetEnvOrDefault("OD_ZK_ROOT", "/cte")+"/service/aac/1.0/thrift",
 	)
 	//The callback that captures the app pointer for repairing aac
 	aacAnnouncer func(at string, announcements map[string]zookeeper.AnnounceData)
