@@ -16,6 +16,7 @@ import (
 
 	"net/url"
 
+	"encoding/hex"
 	"encoding/json"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/config"
@@ -394,36 +395,6 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 		cipherStartAt = blocksSkipped * aes.BlockSize
 	}
 
-	//Fall back on the uploaded copy for download if we need to
-	var cipherFile *os.File
-	d := h.DrainProvider
-	rName := FileId(object.ContentConnector.String)
-	cipherFilePathCached := d.Resolve(NewFileName(rName, ".cached"))
-	cipherFilePathUploaded := d.Resolve(NewFileName(rName, ".uploaded"))
-	cipherFile, herr = useLocalFile(h.DrainProvider, cipherFilePathCached, cipherFilePathUploaded, cipherStartAt)
-	if herr != nil {
-		return 0, herr
-	}
-
-	//Was it found already?
-	var cipherReader io.ReadCloser
-	if cipherFile == nil {
-		//Not found, so pull the file to disk from S3 in the background,
-		backgroundRecache(ctx, h.DrainProvider, h.Tracker, object, cipherFilePathCached)
-		totalLength := object.ContentSize.Int64
-		//...where this looks like a normal io.ReadCloser, but it keeps range requesting to
-		//...keep full with bytes, as requested.  This deals neatly with clients that connect,
-		//...and only pull a small number of bytes.
-		cipherReader, err = d.NewS3Puller(logger, rName, totalLength, cipherStartAt, -1)
-		if err != nil {
-			return 0, NewAppError(500, err, "s3 pull fail", zap.String("err", err.Error()))
-		}
-	} else {
-		cipherReader = cipherFile
-	}
-
-	defer cipherReader.Close()
-
 	//We should have classification banner with the content, as
 	//the banner is at least as mandatory as the filename.
 	//If you resolve a link, you otherwise would not know the classification
@@ -453,10 +424,10 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 
 	//When setting headers, take measures to handle byte range requesting
 	w.Header().Set("Content-Type", object.ContentType.String)
+	var start = int64(0)
+	var stop = object.ContentSize.Int64 - 1
+	var fullLength = object.ContentSize.Int64
 	if object.ContentSize.Valid {
-		var start = int64(0)
-		var stop = object.ContentSize.Int64 - 1
-		var fullLength = object.ContentSize.Int64
 		var reportedContentLength = fullLength
 
 		w.Header().Set("Accept-Ranges", "bytes")
@@ -471,14 +442,62 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", reportedContentLength))
 		w.Header().Set("Content-Disposition", "inline; filename="+url.QueryEscape(object.Name))
+	}
+
+	clientEtag := r.Header.Get("If-None-Match")
+	if object.ContentSize.Valid {
+		contentHash := hex.EncodeToString(object.ContentHash)
 		if byteRange != nil {
 			rangeResponse := fmt.Sprintf("bytes %d-%d/%d", start, stop, fullLength)
 			w.Header().Set("Content-Range", rangeResponse)
+			etag := fmt.Sprintf("\"%s\"", contentHash)
+			w.Header().Set("Etag", etag)
+			if clientEtag == etag {
+				return 0, NewAppError(http.StatusNotModified, nil, "Not Modified")
+			}
+			//Note that if we return a nil error, the stats collector will think we got a 200
+			//Begin writing a 206... one of the rare codes that still returns content
 			w.WriteHeader(http.StatusPartialContent)
 		} else {
+			etag := fmt.Sprintf("\"%s\"", contentHash)
+			w.Header().Set("Etag", etag)
+			if clientEtag == etag {
+				return 0, NewAppError(http.StatusNotModified, nil, "Not Modified")
+			}
+			//Begin writing back a normal 200
 			w.WriteHeader(http.StatusOK)
 		}
 	}
+
+	//Fall back on the uploaded copy for download if we need to
+	var cipherFile *os.File
+	d := h.DrainProvider
+	rName := FileId(object.ContentConnector.String)
+	cipherFilePathCached := d.Resolve(NewFileName(rName, ".cached"))
+	cipherFilePathUploaded := d.Resolve(NewFileName(rName, ".uploaded"))
+	cipherFile, herr = useLocalFile(h.DrainProvider, cipherFilePathCached, cipherFilePathUploaded, cipherStartAt)
+	if herr != nil {
+		return 0, herr
+	}
+
+	//Was it found already?
+	var cipherReader io.ReadCloser
+	if cipherFile == nil {
+		//Not found, so pull the file to disk from S3 in the background,
+		backgroundRecache(ctx, h.DrainProvider, h.Tracker, object, cipherFilePathCached)
+		totalLength := object.ContentSize.Int64
+		//...where this looks like a normal io.ReadCloser, but it keeps range requesting to
+		//...keep full with bytes, as requested.  This deals neatly with clients that connect,
+		//...and only pull a small number of bytes.
+		cipherReader, err = d.NewS3Puller(logger, rName, totalLength, cipherStartAt, -1)
+		if err != nil {
+			return 0, NewAppError(500, err, "s3 pull fail", zap.String("err", err.Error()))
+		}
+	} else {
+		cipherReader = cipherFile
+	}
+
+	defer cipherReader.Close()
 
 	//Skip over blocks we won't use, and adjust byteRange to match it
 	iv := adjustIV(object.EncryptIV, byteRange)
@@ -510,6 +529,9 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 			)
 		}
 	}
-
-	return actualLength, nil
+	if object.ContentSize.Valid && byteRange != nil {
+		return actualLength, NewAppError(http.StatusPartialContent, nil, "Partial Content")
+	} else {
+		return actualLength, nil
+	}
 }
