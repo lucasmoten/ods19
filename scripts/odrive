@@ -45,6 +45,8 @@ def unlock():
 
 
 def start():
+    if os.path.exists(pidfile):
+        os.remove(pidfile)
     create_dir_not_exists(os.path.split(logfile)[0])
     print "Starting odrive"
     f = open(logfile, "a")
@@ -61,7 +63,7 @@ def start():
 def create_dir_not_exists(path):
     if not os.path.exists(path):
         print 'creating %s' % path
-        os.mkdir(path)
+        os.makedirs(path)
     
 
 def stop():
@@ -69,9 +71,12 @@ def stop():
         print "error: could not find pidfile at %s. odrive may be running under a custom script"
         sys.exit(1)
     try:
-        with open(pidfile, 'r') as f:
-            pid = f.readline().split('\n')[0]
-            os.kill(int(pid), signal.SIGTERM)
+        pid = get_pid_from_pidfile(pidfile)
+        # remove invalid pidfile
+        if not is_process_running(pid):
+            print "removing stale pidfile"
+            os.remove(pidfile)
+        os.kill(int(pid), signal.SIGTERM)
     except Exception as e:
         print e
         print "could not kill pid %s" % pid
@@ -87,18 +92,35 @@ def restart():
 
 
 def status():
-    # TODO this is a naive implementation
     if not locked():
         print "STATUS: odrive not running"
         return 3
     else:
+        if not os.path.exists(pidfile):
+            print "STATUS: odrive is running"
+            return 0
+        pid = get_pid_from_pidfile(pidfile)
+        if not is_process_running(pid):
+            print "pidfile exists but odrive not running"
+            print "removing stale pidfile"
+            os.remove(pidfile)
+            return 1
         print "STATUS: odrive is running"
         return 0
 
 
+def get_pid_from_pidfile(path):
+    with open(path, 'r') as f:
+        pid = f.readline().split('\n')[0]
+        if len(pid) > 0:  
+            return pid
+        else: 
+            raise ValueError("invalid pid read from file: %s" % pid)
+
+
 def is_process_running(process_id):
     try:
-        os.kill(process_id, 0)
+        os.kill(int(process_id), 0)
         return True
     except OSError:
         return False
@@ -117,6 +139,7 @@ def shell_source(script):
 # Script entry point.
 if __name__ == '__main__':
     try:
+        create_dir_not_exists(os.path.split(logfile)[0])
         if len(sys.argv) == 1:
             raise ValueError
         command = str(sys.argv[1]).strip().lower()
