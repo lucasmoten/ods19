@@ -351,6 +351,18 @@ func (h AppServer) validateAndFlattenShare(ctx context.Context, permission *mode
 	// Flatten
 	h.flattenACM(object)
 
+	// Get the share part back out since its been flattened as AAC alters it
+	herr, newShareInterface := getACMInterfacePart(object, "share")
+	if herr != nil {
+		return herr
+	}
+	// And then assign back on the permission
+	marshalledShare, err := utils.MarshalInterfaceToString(newShareInterface)
+	if err != nil {
+		return NewAppError(500, err, "Unable to marshal share from flattened interface")
+	}
+	permission.AcmShare = marshalledShare
+
 	return nil
 }
 

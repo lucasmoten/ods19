@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 
@@ -32,10 +33,14 @@ func deDupe(sArr []interface{}) []interface{} {
 func CombineInterface(sourceInterface interface{}, interfaceToAdd interface{}) interface{} {
 	sMap, ok := createMapFromInterface(sourceInterface)
 	if !ok {
+		log.Printf("Unable to create map from interface for sourceInterface")
 		return interfaceToAdd
 	}
+	// sMapString, _ := utils.MarshalInterfaceToString(sMap)
+	// log.Printf("sMap before: %s", sMapString)
 	aMap, ok := createMapFromInterface(interfaceToAdd)
 	if !ok {
+		log.Printf("Unable to create map from interface for interfaceToAdd")
 		return sMap
 	}
 	// Look at all keys in A
@@ -149,6 +154,8 @@ func CombineInterface(sourceInterface interface{}, interfaceToAdd interface{}) i
 		}
 	}
 	// Done, all changes in sMap
+	// sMapString, _ = utils.MarshalInterfaceToString(sMap)
+	// log.Printf("sMap after: %s", sMapString)
 	return sMap
 }
 func subtractInterface(sourceInterface interface{}, interfaceToRemove interface{}) interface{} {
