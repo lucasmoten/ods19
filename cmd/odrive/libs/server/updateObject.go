@@ -17,7 +17,6 @@ import (
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
-	"github.com/uber-go/zap"
 )
 
 func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
@@ -52,17 +51,9 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	}
 
 	// Check if the user has permissions to update the ODObject
-	//		Permission.grantee matches caller, and AllowUpdate is true
-	authorizedToUpdate := false
-	for _, permission := range dbObject.Permissions {
-		if permission.Grantee == caller.DistinguishedName &&
-			permission.AllowRead && permission.AllowUpdate {
-			authorizedToUpdate = true
-			break
-		}
-	}
-	if !authorizedToUpdate {
-		return NewAppError(403, nil, "Unauthorized")
+	var grant models.ODObjectPermission
+	if ok, grant = isUserAllowedToUpdate(ctx, &dbObject); !ok {
+		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
 	}
 
 	// ACM check for whether user has permission to read this object
@@ -72,7 +63,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		return NewAppError(502, err, "Error communicating with authorization service")
 	}
 	if !hasAACAccessToOLDACM {
-		return NewAppError(403, err, "Unauthorized", zap.String("origination", "No access to read old ACM on Update"), zap.String("acm", dbObject.RawAcm.String))
+		return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for existing object ACM")
 	}
 
 	// Make sure the object isn't deleted. To remove an object from the trash,
@@ -118,7 +109,33 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// If there was no ACM provided...
 	if len(requestObject.RawAcm.String) == 0 {
 		// There was no change, retain existing from dbObject
+		requestObject.RawAcm.Valid = dbObject.RawAcm.Valid
 		requestObject.RawAcm.String = dbObject.RawAcm.String
+	}
+
+	// Assign existing permissions from the database object to the request object
+	requestObject.Permissions = dbObject.Permissions
+	// Flatten ACM, then Normalize Read Permissions against ACM f_share
+	hasAACAccess := false
+	err = h.flattenACM(&requestObject)
+	if err != nil {
+		return NewAppError(400, err, "ACM provided could not be flattened")
+	}
+	if herr := normalizeObjectReadPermissions(ctx, &requestObject); herr != nil {
+		return herr
+	}
+	// Access check against altered ACM as a whole
+	hasAACAccess, err = h.isUserAllowedForObjectACM(ctx, &requestObject)
+	if err != nil {
+		return NewAppError(502, err, "Error communicating with authorization service")
+	}
+	if !hasAACAccess {
+		return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for updated object ACM")
+	}
+	// copy grant.EncryptKey to all existing permissions:
+	for idx, permission := range requestObject.Permissions {
+		models.CopyEncryptKey(h.MasterKey, &grant, &permission)
+		models.CopyEncryptKey(h.MasterKey, &grant, &requestObject.Permissions[idx])
 	}
 
 	// If ACM provided differs from what is currently set, then need to
@@ -131,8 +148,12 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 			return NewAppError(502, err, "Error communicating with authorization service")
 		}
 		if !hasAACAccessToNewACM {
-			return NewAppError(403, err, "Unauthorized", zap.String("origination", "No access to new ACM on Update"), zap.String("acm", requestObject.RawAcm.String))
+			return NewAppError(403, err, "Forbidden - User does not pass authorization checks for new object ACM")
+			//return NewAppError(403, err, "Unauthorized", zap.String("origination", "No access to new ACM on Update"), zap.String("acm", requestObject.RawAcm.String))
 		}
+		// TODO: If the "share" or "f_share" parts have changed, then check that the
+		// caller also has permission to share.
+
 	}
 
 	// Retain existing values from dbObject where no value was provided for key fields

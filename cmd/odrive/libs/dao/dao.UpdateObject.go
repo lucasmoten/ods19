@@ -24,7 +24,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return err
 	}
-	err = updateObjectInTransaction(tx, object)
+	err = updateObjectInTransaction(dao.GetLogger(), tx, object)
 	if err != nil {
 		dao.GetLogger().Error("Error in UpdateObject", zap.String("err", err.Error()))
 		tx.Rollback()
@@ -34,7 +34,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 	return err
 }
 
-func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
+func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.ODObject) error {
 
 	// Pre-DB Validation
 	if object.ID == nil {
@@ -48,7 +48,7 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
 	}
 
 	// Fetch current state of object
-	dbObject, err := getObjectInTransaction(tx, *object, false)
+	dbObject, err := getObjectInTransaction(tx, *object, true)
 	if err != nil {
 		return fmt.Errorf("UpdateObject Error retrieving object, %s", err.Error())
 	}
@@ -190,6 +190,55 @@ func updateObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
 			// This existing property needs to be updated
 		}
 	} //objectProperty
+
+	// Permissions...
+	// For updates, we delete any readonly permissions that are not being passed in
+	// and then create any new ones that aren't already present
+	// This is to explicitly support changes to those permissions that have come about as a result of
+	// the ACM f_share values (or lack of representing everyone)
+	// Note: No other permissions outside of readonly are manipulated through this routine.
+	// Permissions created explicitly are done via AddObjectPermission by way of shares
+	//
+	// Stage 1: Delete any readonly permissions existing on the object that dont have a corresponding permission being passed
+	for _, dbPermission := range dbObject.Permissions {
+		if dbPermission.IsReadOnly() {
+			dbPermissionStillValid := false
+			for _, objPermission := range object.Permissions {
+				if (objPermission.IsReadOnly()) && (strings.Compare(objPermission.Grantee, dbPermission.Grantee) == 0) {
+					dbPermissionStillValid = true
+					break
+				}
+			}
+			if !dbPermissionStillValid {
+				_, err := deleteObjectPermissionInTransaction(tx, dbPermission, false)
+				if err != nil {
+					return fmt.Errorf("Error deleting obsolete permission: %v", err)
+				}
+			}
+		}
+	}
+	// Stage 2: Add any readonly permissions being passed in that dont yet exist on the database object
+	for _, objPermission := range object.Permissions {
+		if objPermission.IsReadOnly() {
+			objPermissionPresent := false
+			for _, dbPermission := range dbObject.Permissions {
+				if (dbPermission.IsReadOnly()) && (strings.Compare(objPermission.Grantee, dbPermission.Grantee) == 0) {
+					objPermissionPresent = true
+					break
+				}
+			}
+			if !objPermissionPresent {
+				objPermission.CreatedBy = object.ModifiedBy
+				createdPermission, err := addPermissionToObjectInTransaction(logger, tx, *object, &objPermission, false, "")
+				if err != nil {
+					return fmt.Errorf("Error saving readonly permission {Grantee: \"%s\") when updating object:%v", objPermission.Grantee, err)
+				}
+				if createdPermission.ModifiedBy != createdPermission.CreatedBy {
+					return fmt.Errorf("When updating object, readonly permission did not get modifiedby set to createdby")
+				}
+			}
+		}
+	}
 
 	// Refetch object again with properties and permissions
 	dbObject, err = getObjectInTransaction(tx, *object, true)

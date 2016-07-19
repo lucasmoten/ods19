@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"sort"
 	"strings"
@@ -35,27 +34,14 @@ func (h AppServer) listUsers(ctx context.Context, w http.ResponseWriter, r *http
 	}
 
 	// Get snippets for user, which will have group membership
-	snippetFields, err := h.FetchUserSnippets(ctx)
-	if err != nil {
-		return NewAppError(502, errors.New("Error retrieving user permissions."), err.Error())
-	} else {
-		// Fake the groups from the snippets as additional elements in the users array
-		for _, rawSnippetField := range snippetFields.Snippets {
-			if strings.Compare(rawSnippetField.FieldName, "f_share") == 0 {
-				for _, shareValue := range rawSnippetField.Values {
-					// Exclude the share to self which is a collapsed DN format forward and reversed.
-					// Samples are:
-					//      cntesttester10oupeopleoudaeouchimeraou_s_governmentcus
-					//      cusou_s_governmentouchimeraoudaeoupeoplecntesttester10
-					if !strings.Contains(shareValue, "cusou") && !strings.Contains(shareValue, "governmentcus") {
-						var groupName models.ODUser
-						groupName.DistinguishedName = shareValue
-						groupName.DisplayName.String = "Group:" + shareValue
-						groupName.DisplayName.Valid = true
-						usersAndGroups = append(usersAndGroups, groupName)
-					}
-				}
-			}
+	groups := h.GetUserGroups(ctx)
+	for _, group := range groups {
+		if !strings.Contains(group, "cusou") && !strings.Contains(group, "governmentcus") {
+			var groupName models.ODUser
+			groupName.DistinguishedName = group
+			groupName.DisplayName.String = "Group:" + group
+			groupName.DisplayName.Valid = true
+			usersAndGroups = append(usersAndGroups, groupName)
 		}
 	}
 

@@ -1,9 +1,11 @@
 package dao_test
 
 import (
+	"os"
 	"testing"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
 
@@ -33,6 +35,14 @@ func TestDAOAddPermissionToObject(t *testing.T) {
 			t.Error("expected TypeID to be set")
 		}
 
+		masterkey := os.Getenv("OD_ENCRYPT_MASTERKEY")
+		if len(masterkey) == 0 {
+			// this is just a test. use something random.
+			guid, _ := util.NewGUID()
+			masterkey = guid
+			// note that if you rely on these permissions later, it will do you no good.
+		}
+
 		// Now add the permission
 		permission := models.ODObjectPermission{}
 		permission.CreatedBy = usernames[1]
@@ -42,7 +52,7 @@ func TestDAOAddPermissionToObject(t *testing.T) {
 		permission.AllowUpdate = true
 		permission.AllowDelete = true
 		permission.AllowShare = true
-		dbPermission, err := d.AddPermissionToObject(dbObject, &permission, true, "")
+		dbPermission, err := d.AddPermissionToObject(dbObject, &permission, true, masterkey)
 		if err != nil {
 			t.Error(err)
 		}

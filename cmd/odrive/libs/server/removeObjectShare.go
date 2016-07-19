@@ -18,6 +18,12 @@ import (
 
 func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
+	var unimpl bool
+	unimpl = true
+	if unimpl {
+		return NewAppError(501, nil, "removeObjectShare is not yet implemented")
+	}
+
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {

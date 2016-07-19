@@ -47,16 +47,10 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	}
 
 	// Check for permission to read this object
-	canReadObject := false
-	for _, perm := range dbObject.Permissions {
-		if perm.AllowRead && perm.Grantee == user.DistinguishedName {
-			canReadObject = true
-			break
-		}
+	if ok, _ := isUserAllowedToRead(ctx, &dbObject); !ok {
+		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to list revisions of this object")
 	}
-	if !canReadObject {
-		return NewAppError(403, err, "Insufficient permissions to list contents of this object")
-	}
+
 	// Is it deleted?
 	if dbObject.IsDeleted {
 		switch {
@@ -70,9 +64,9 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	}
 
 	// Snippets
-	snippetFields, err := h.FetchUserSnippets(ctx)
-	if err != nil {
-		return NewAppError(502, errors.New("Error retrieving user permissions."), err.Error())
+	snippetFields, ok := SnippetsFromContext(ctx)
+	if !ok {
+		return NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
 	}
 	user.Snippets = snippetFields
 

@@ -32,3 +32,16 @@ func UnmarshalStringToInterface(astring string) (interface{}, error) {
 	}
 	return result, nil
 }
+
+// NormalizeMarshalledInterface leverages json unmarshal and marshal to normalize interface in alpha order
+func NormalizeMarshalledInterface(i string) (string, error) {
+	var normalizedInterface interface{}
+	if err := json.Unmarshal([]byte(i), &normalizedInterface); err != nil {
+		return i, err
+	}
+	normalizedBytes, err := json.Marshal(normalizedInterface)
+	if err != nil {
+		return i, err
+	}
+	return string(normalizedBytes[:]), nil
+}

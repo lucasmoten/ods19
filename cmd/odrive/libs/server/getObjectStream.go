@@ -2,6 +2,7 @@ package server
 
 import (
 	"crypto/aes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -113,60 +114,52 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 // returns the actual bytes transferred due to range requesting
 func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.ResponseWriter, r *http.Request, object models.ODObject) (int64, *AppError) {
 
+	var NoBytesReturned int64
 	var err error
 
-	// Get caller value from ctx.
-	caller, ok := CallerFromContext(ctx)
-	if !ok {
-		return 0, NewAppError(500, err, "Could not determine user")
-	}
-
-	// Get the key from the permission
-	var permission *models.ODObjectPermission
-	var fileKey []byte
-
-	if len(object.Permissions) == 0 {
-		return 0, NewAppError(403, fmt.Errorf("We cannot decrypt files lacking permissions"), "Unauthorized")
-	}
+	// // Get caller value from ctx.
+	// caller, ok := CallerFromContext(ctx)
+	// if !ok {
+	// 	return NoBytesReturned, NewAppError(500, err, "Could not determine user")
+	// }
 
 	if object.IsDeleted {
 		switch {
 		case object.IsExpunged:
-			return 0, NewAppError(410, err, "The object no longer exists.")
+			return NoBytesReturned, NewAppError(410, err, "The object no longer exists.")
 		case object.IsAncestorDeleted:
-			return 0, NewAppError(405, err, "The object cannot be modified because an ancestor is deleted.")
+			return NoBytesReturned, NewAppError(405, err, "The object cannot be modified because an ancestor is deleted.")
 		default:
-			return 0, NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
+			return NoBytesReturned, NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
 		}
 	}
-	//XXX watch for very large number of permissions on a file!
-	for _, v := range object.Permissions {
-		permission = &v
-		if permission.AllowRead && strings.ToLower(permission.Grantee) == caller.DistinguishedName {
-			if models.EqualsPermissionMAC(h.MasterKey, permission) == false {
-				//Check the integrity of the grant before giving a stream
-				return 0, NewAppError(403, nil, "Unauthorized")
-			}
-			fileKey = utils.ApplyPassphrase(h.MasterKey, permission.PermissionIV, permission.EncryptKey)
-			break
-		}
+
+	// Check read permission, and capture permission for the encryptKey
+	// Check if the user has permissions to read the ODObject
+	//		Permission.grantee matches caller, and AllowRead is true
+	ok, userPermission := isUserAllowedToRead(ctx, &object)
+	if !ok {
+		return NoBytesReturned, NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
 	}
+	// Using captured permission, derive filekey
+	var fileKey []byte
+	fileKey = utils.ApplyPassphrase(h.MasterKey, userPermission.PermissionIV, userPermission.EncryptKey)
 	if len(fileKey) == 0 {
-		return 0, NewAppError(403, fmt.Errorf("no applicable permission found"), "Unauthorized")
+		return NoBytesReturned, NewAppError(500, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object")
 	}
 
 	// Check AAC to compare user clearance to  metadata Classifications
 	// 		Check if Classification is allowed for this User
 	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &object)
 	if err != nil {
-		return 0, NewAppError(502, err, "Error communicating with authorization service")
+		return NoBytesReturned, NewAppError(502, err, "Error communicating with authorization service")
 	}
 	if !hasAACAccess {
-		return 0, NewAppError(403, err, "Unauthorized")
+		return NoBytesReturned, NewAppError(403, err, "Forbidden - User does not pass authorization checks for object ACM")
 	}
 
 	if !object.ContentSize.Valid || object.ContentSize.Int64 <= int64(0) {
-		return 0, NewAppError(204, nil, "No content", zap.Int64("bytes", object.ContentSize.Int64))
+		return NoBytesReturned, NewAppError(204, nil, "No content", zap.Int64("bytes", object.ContentSize.Int64))
 	}
 
 	contentLength, herr := h.getAndStreamFile(ctx, &object, w, r, fileKey, true)

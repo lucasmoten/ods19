@@ -33,6 +33,8 @@ const (
 	Logger
 	SessionID
 	DAO
+	Groups
+	Snippets
 )
 
 // AppServer contains definition for the metadata server
@@ -226,6 +228,15 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	audit.WithCreator(&event, "APPLICATION", "Object Drive") // TODO global config?
 
 	ctx = ContextWithAuditEvent(ctx, &event)
+
+	snippets, err := h.FetchUserSnippets(ctx)
+	if err != nil {
+		sendErrorResponse(logger, &w, 500, nil, "Error retrieving user snippets")
+		return
+	}
+	ctx = ContextWithSnippets(ctx, snippets)
+	groups := h.GetUserGroups(ctx)
+	ctx = ContextWithGroups(ctx, groups)
 
 	switch r.Method {
 	case "GET":
@@ -445,6 +456,14 @@ func ContextWithDAO(ctx context.Context, genericDAO dao.DAO) context.Context {
 	return context.WithValue(ctx, DAO, dao.NewDerivedDAO(genericDAO, logger))
 }
 
+func ContextWithGroups(ctx context.Context, groups []string) context.Context {
+	return context.WithValue(ctx, Groups, groups)
+}
+
+func ContextWithSnippets(ctx context.Context, snippets *acm.ODriveRawSnippetFields) context.Context {
+	return context.WithValue(ctx, Snippets, snippets)
+}
+
 func DAOFromContext(ctx context.Context) dao.DAO {
 	d, ok := ctx.Value(DAO).(dao.DAO)
 	if !ok {
@@ -460,6 +479,16 @@ func CallerFromContext(ctx context.Context) (Caller, bool) {
 	// the Caller type assertion returns ok=false for nil.
 	caller, ok := ctx.Value(CallerVal).(Caller)
 	return caller, ok
+}
+
+func GroupsFromContext(ctx context.Context) ([]string, bool) {
+	groups, ok := ctx.Value(Groups).([]string)
+	return groups, ok
+}
+
+func SnippetsFromContext(ctx context.Context) (*acm.ODriveRawSnippetFields, bool) {
+	snippets, ok := ctx.Value(Snippets).(*acm.ODriveRawSnippetFields)
+	return snippets, ok
 }
 
 func ContextWithLogger(ctx context.Context, r *http.Request) context.Context {

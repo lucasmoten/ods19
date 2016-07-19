@@ -31,39 +31,34 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	if err != nil {
 		return NewAppError(500, err, "Error parsing URI")
 	}
-	originalObject, err := dao.GetObject(requestObject, true)
+	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
 		return NewAppError(500, err, "Error retrieving object from database")
 	}
 
-	if originalObject.IsExpunged {
+	if dbObject.IsExpunged {
 		return NewAppError(410, errors.New("Cannot undelete an expunged object"), "Object was expunged")
 	}
 
-	if originalObject.IsAncestorDeleted {
+	if dbObject.IsAncestorDeleted {
 		return NewAppError(405, errors.New("Cannot undelete an object with a deleted parent"), "Object has deleted ancestor")
 	}
 
-	if originalObject.ChangeToken != changeToken.ChangeToken {
+	if dbObject.ChangeToken != changeToken.ChangeToken {
 		return NewAppError(http.StatusBadRequest,
 			errors.New("Changetoken in database does not match client changeToken"), "Invalid changeToken.")
 	}
 
-	// TODO: abstract this into a method on ODObject AuthorizedToDelete(caller)
-	authorizedToDelete := false
-	for _, permission := range originalObject.Permissions {
-		if permission.Grantee == caller.DistinguishedName && permission.AllowDelete {
-			authorizedToDelete = true
-		}
-	}
-	if !authorizedToDelete {
-		return NewAppError(403, errors.New("Unauthorized for undelete"), "Unauthorized for undelete.")
+	// Check if the user has permissions to undelete the ODObject
+	if ok, _ := isUserAllowedToDelete(ctx, &dbObject); !ok {
+		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to undelete this object")
 	}
 
-	originalObject.ModifiedBy = caller.DistinguishedName
+	// Prepare to undelete.
+	dbObject.ModifiedBy = caller.DistinguishedName
 
 	// Call undelete on the DAO with the object.
-	unDeletedObj, err := dao.UndeleteObject(&originalObject)
+	unDeletedObj, err := dao.UndeleteObject(&dbObject)
 	//log.Printf("UndeletedObject from DAO: %v\n", unDeletedObj)
 	if err != nil {
 		return NewAppError(500, err, "Error restoring object")

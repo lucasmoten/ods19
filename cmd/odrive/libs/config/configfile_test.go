@@ -10,7 +10,8 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	m.Run()
+	code := m.Run()
+	os.Exit(code)
 }
 
 func TestParseWhitelistFromConfigFile(t *testing.T) {
@@ -41,4 +42,20 @@ func readAllOrFail(path string, t *testing.T) []byte {
 		t.Fail()
 	}
 	return contents
+}
+
+func TestNormalization(t *testing.T) {
+
+	checklist := make(map[string]string)
+
+	checklist["/C=US/O=U.S. Government/OU=twl-server-generic2/OU=DIA/OU=DAE/CN=twl-server-generic2"] = "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
+	checklist["CN=twl-server-generic2, OU=DAE, OU=DIA, OU=twl-server-generic2, O=U.S. Government, C=US"] = "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
+
+	for startingValue, expected := range checklist {
+		actual := config.GetNormalizedDistinguishedName(startingValue)
+		if actual != expected {
+			t.Logf("Normalized %s to %s. Expected %s", startingValue, actual, expected)
+			t.Fail()
+		}
+	}
 }

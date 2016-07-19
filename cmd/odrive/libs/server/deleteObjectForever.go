@@ -40,16 +40,8 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 
 	// Check if the user has permissions to delete the ODObject
 	//		Permission.grantee matches caller, and AllowDelete is true
-	authorizedToDelete := false
-	for _, permission := range dbObject.Permissions {
-		if permission.Grantee == caller.DistinguishedName &&
-			permission.AllowDelete {
-			authorizedToDelete = true
-			break
-		}
-	}
-	if !authorizedToDelete {
-		return NewAppError(403, nil, "Unauthorized")
+	if ok, _ := isUserAllowedToDelete(ctx, &dbObject); !ok {
+		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to expunge this object")
 	}
 
 	// If the object is already expunged,

@@ -97,7 +97,7 @@ An acm follows guidance given here: https://confluence.363-283.io/pages/viewpage
                 "acm": {acm},
                 "contentType": "{contentType}",
                 "contentSize": {contentSize},
-                "properties": [{properties}],
+                "properties": [{Property}],
                 "permissions": [{permissions}],
                 "isUSPersonsData": {isUSPersonsData},
                 "isFOIAExempt": {isFOIAExempt}
@@ -634,10 +634,12 @@ This microservice operation will remove an object from the trash and delete it f
 
 ---
 
-## Add Object Share [/shared/{objectId}]
+## Object Share [/shared/{objectId}]
+
+Share for an object may be added or removed at the URI designated  
 
 + Parameters
-    + objectId (string, required) - URI Path Parameer. Hex encoded identifier of the object to be shared.
+    + objectId (string, required) - string Hex encoded identifier of the object for which a share will be added or removed.
 
 ### Add Object Share [POST]
 This microservice operation is used to grant the specified permission on the target object to the grantee, as well as record that the share has been established, and optionally perform propagated creation of the same permissions to existing children. Regardless of sharing settings, as with standard object permissions, a user is still required to pass all other checks to be able to access objects.
@@ -645,7 +647,7 @@ This microservice operation is used to grant the specified permission on the tar
 + Request
 
     The JSON object in the request body may contain the following fields:
-    + grantee (string, required) - Unique identifier of a user or group of the system that will be given shared access to the object.
+    + share (object, required) - Nested object representing the targets of the share in the same format as would be presented in an ACM.
     + allowCreate (boolean, optional) - Denotes whether the grantee will have permission to create new objects as children of this object. Defaults to false if not specified.
     + allowRead (boolean, optional) - Denotes whether the grantee will have permission to read the object. Defaults to false if not specified.
     + allowUpdate (boolean, optional) - Denotes whether the grantee will have permission to modify the object, but not delete it or change sharing settings. Defaults to false if not specified.
@@ -664,18 +666,18 @@ This microservice operation is used to grant the specified permission on the tar
     + Body
     
             {
-                "grantee": "{grantee}",
-                "create": {allowCreate},
-                "read": {allowRead},
-                "update": {allowUpdate},
-                "delete": {allowDelete},
-                "share": {allowShare},
+                "share": {share},
+                "allowCreate": {allowCreate},
+                "allowRead": {allowRead},
+                "allowUpdate": {allowUpdate},
+                "allowDelete": {allowDelete},
+                "allowShare": {allowShare},
                 "propagateToChildren": {propagateToChildren}
             }
 
 + Response 200
 
-    + Attributes (Permission)
+    + Attributes (ObjectResp)
 
 + Response 400
 
@@ -697,20 +699,19 @@ This microservice operation is used to grant the specified permission on the tar
 
         Error storing metadata or stream
 
-## Remove Object Share [/shared/{objectId}/{shareId}]
-
-+ Parameters
-    + objectId (string, required) - Hex encoded identifier of the object for which a share is to be deleted.
-    + shareId (string, required) - Hex encoded identifier of the share on the object that is to be deleted.
-
 ### Remove Object Share [DELETE]
 This microservice operation removes a previously defined object share.
 
 + Request
 
     The JSON object in the request body should contain the following fields
-    + changeToken (string, required) - A hash value expected to match the targeted object share's current changeToken value.
-    + propagateToChildren (boolean, required) - Indicates whether matching inherited shares on any child objects of the targeted object should also be removed recursively.
+    + share (object, required) - Nested object representing the targets of the permissions to revoke in the same format as would be presented in an ACM.
+    + revokeCreate (boolean, optional) - Denotes whether to revoke permission to create child objects from those targets in the share. Defaults to false if not specified.
+    + revokeRead (boolean, optional) - Denotes whether to revoke permission to read the object from those targets in the share. Defaults to false if not specified.
+    + revokeUpdate (boolean, optional) - Denotes whether to revoke permission to update the object from those targets in the share. Defaults to false if not specified.
+    + revokeDelete (boolean, optional) - Denotes whether to revoke permission to delete the object from those targets in the share. Defaults to false if not specified.
+    + revokeShare (boolean, optional) - Denotes whether to revoke permission to share the object from those targets in the share. Defaults to false if not specified.
+    + propagateToChildren (boolean, optional) - Denotes whether this revokation will be applied recursively to all existing children of the referenced object. Defaults to false if not specified.
 
     + Headers
     
@@ -720,22 +721,18 @@ This microservice operation removes a previously defined object share.
     + Body
     
             {
-                "changeToken": "{changeToken}",
+                "share": {share},
+                "revokeCreate": {revokeCreate},
+                "revokeRead": {revokeRead},
+                "revokeUpdate": {revokeUpdate},
+                "revokeDelete": {revokeDelete},
+                "revokeShare": {revokeShare},
                 "propagateToChildren": {propagateToChildren}
             }
 
 + Response 200
 
-    + Headers
-    
-            Content-Type: application/json
-            Content-Length: nnn
-
-    + Body
-    
-            {
-                "deletedDate": {deletedDate}
-            }
+    + Attributes (ObjectResp)
 
 + Response 400
 
@@ -1163,7 +1160,7 @@ User Stats provides metrics information for the user's total number of objects a
 + name: `gettysburgaddress.txt` (string) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.
 + description: `Description here` (string) - An abstract of the object's purpose.
 + parentId: ` ` (string, optional) - The unique identifier of the objects parent hex encoded to a string. This may be used to traverse up the tree. For objects stored at the root of a user, this value will be null.
-+ acm: `{"version":"2.1.0","classif":"U"}` (object) - The acm value associated with this object in object form
++ acm: ACM (ACM, required) - The acm value associated with this object in object form
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
 + contentSize: 1511 (string) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
 + properties: Property (array[Property]) - Array of custom properties associated with the object.
@@ -1171,6 +1168,12 @@ User Stats provides metrics information for the user's total number of objects a
 + isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
 + isUSPersonsData: `false` (boolean) - Indicates if this object contains US Persons data.
 + isFOIAExempt: `false` (boolean) - Indicates if this object is exempt from Freedom of Information Act requests.
+
+## ACM (object)
+
++ version: `2.1.0` (string, required) - The version of this acm `{"version":"2.1.0","classif":"U"}` 
++ classif: `U` (string, required) - The portion marked classification for this ACM
++ dissem_countries: `USA` (array[string], required) - The trigraphs of countries for which this ACM can be read
 
 ## ObjectRespDeleted (object)
 
@@ -1189,7 +1192,7 @@ User Stats provides metrics information for the user's total number of objects a
 + name: `gettysburgaddress.txt` (string) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.
 + description: `Description here` (string) - An abstract of the object's purpose.
 + parentId: ` ` (string, optional) - The unique identifier of the objects parent hex encoded to a string. This may be used to traverse up the tree. For objects stored at the root of a user, this value will be null.
-+ acm: `{"version":"2.1.0","classif":"U"}` (object) - The acm value associated with this object in object form
++ acm: ACM (ACM, required) - The acm value associated with this object in object form
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
 + contentSize: 1511 (string) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
 + properties: Property (array[Property]) - Array of custom properties associated with the object.

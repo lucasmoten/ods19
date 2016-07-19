@@ -3,6 +3,8 @@ package mapping
 import (
 	"encoding/hex"
 	"fmt"
+	"reflect"
+	"strings"
 
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
@@ -99,13 +101,137 @@ func MapPermissionsToODPermissions(i *[]protocol.Permission) ([]models.ODObjectP
 	return o, nil
 }
 
-func MapObjectGrantToODPermission(i *protocol.ObjectGrant) (models.ODObjectPermission, error) {
-	o := models.ODObjectPermission{}
-	o.Grantee = i.Grantee
-	o.AllowCreate = i.Create
-	o.AllowRead = i.Read
-	o.AllowUpdate = i.Update
-	o.AllowDelete = i.Delete
-	o.AllowShare = i.Share
+// MapObjectShareToODPermissions takes an protocol ObjectShare request, and
+// converts to an array of ODObjectPermission with the capability flags set
+// and acmShare initialized with a single share to check against AAC to get
+// the unique flattened value
+func MapObjectShareToODPermissions(i *protocol.ObjectShare) ([]models.ODObjectPermission, error) {
+	o := []models.ODObjectPermission{}
+
+	acmShareUser := "{\"users\":[\"%s\"]}"
+	acmShareGroup := "{\"projects\":{\"%s\":{\"disp_nm\":\"%s\",\"groups\":[\"%s\"]}}}"
+
+	// Reference to interface
+	shareInterface := i.Share
+
+	// if no value, return empty
+	if shareInterface == nil {
+		return o, nil
+	}
+
+	// If interface is a string, assume single DN
+	if reflect.TypeOf(shareInterface).Kind().String() == "string" {
+		// Prep permission
+		permission := mapODObjectShareToODPermission(i)
+		// DN assignment to AcmShare
+		userDN := shareInterface.(string)
+		permission.AcmShare = fmt.Sprintf(acmShareUser, userDN)
+		// Append to array
+		o = append(o, permission)
+		// And return it
+		return o, nil
+	}
+
+	// Interface is an object and may contain multiple users and groups
+	shareMap, ok := shareInterface.(map[string]interface{})
+	if !ok {
+		return o, fmt.Errorf("Share does not convert to map")
+	}
+	// Iterate the map
+	for shareKey, shareValue := range shareMap {
+		if strings.Compare(shareKey, "users") == 0 {
+			// Expected format:
+			//    "users":[
+			//       "the distinguished name of a user"
+			//      ,"the distinguished name of another user"
+			//      ]
+			if shareValue != nil {
+				shareValueInterfaceArray := shareValue.([]interface{})
+				for _, shareValueElement := range shareValueInterfaceArray {
+					if strings.Compare(reflect.TypeOf(shareValueElement).Kind().String(), "string") == 0 {
+						// Capture DN
+						userValue := shareValueElement.(string)
+						if len(userValue) > 0 {
+							// Prep permission
+							permission := mapODObjectShareToODPermission(i)
+							// DN assignment to AcmShare
+							permission.AcmShare = fmt.Sprintf(acmShareUser, userValue)
+							// Append to Array
+							o = append(o, permission)
+						}
+					}
+				}
+			}
+		} else if strings.Compare(shareKey, "projects") == 0 {
+			// Expected format:
+			//    "projects":{
+			//      "id of project":{
+			//         "disp_nm":"display name of project"
+			//        ,"groups":[
+			//            "group 1 id"
+			//           ,"group 2 id"
+			//          ]
+			//        }
+			//     }
+			if shareValue != nil {
+				shareValueMap, ok := shareValue.(map[string]interface{})
+				if !ok {
+					return o, fmt.Errorf("Share 'projects' does not convert to map")
+				}
+				for projectKey, projectValue := range shareValueMap {
+					// projectKey = "id of project"
+					if projectValue != nil {
+						projectValueMap, ok := projectValue.(map[string]interface{})
+						if !ok {
+							return o, fmt.Errorf("Share 'projects' for '%s' does not convert to map", projectKey)
+						}
+						projectDisplayName := ""
+						for projectFieldKey, projectFieldValue := range projectValueMap {
+							if projectFieldValue != nil {
+								if strings.Compare(projectFieldKey, "disp_nm") == 0 {
+									if strings.Compare(reflect.TypeOf(projectFieldValue).Kind().String(), "string") == 0 {
+										projectDisplayName = projectFieldValue.(string)
+									}
+								} else if strings.Compare(projectFieldKey, "groups") == 0 {
+									groupValueInterfaceArray := projectFieldValue.([]interface{})
+									for _, groupValueElement := range groupValueInterfaceArray {
+										if groupValueElement != nil {
+											if strings.Compare(reflect.TypeOf(groupValueElement).Kind().String(), "string") == 0 {
+												groupValue := groupValueElement.(string)
+												if len(groupValue) > 0 {
+													// Prep permission
+													permission := mapODObjectShareToODPermission(i)
+													// Group assignment to AcmShare
+													permission.AcmShare = fmt.Sprintf(acmShareGroup, projectKey, projectDisplayName, groupValue)
+													// Append to Array
+													o = append(o, permission)
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+
+					}
+				}
+			}
+		} else {
+			// Unknown structure. Warn? Error?
+		}
+	}
+
+	// Done
 	return o, nil
+
+}
+
+func mapODObjectShareToODPermission(i *protocol.ObjectShare) models.ODObjectPermission {
+	o := models.ODObjectPermission{}
+	o.AllowCreate = i.AllowCreate
+	o.AllowRead = i.AllowRead
+	o.AllowUpdate = i.AllowUpdate
+	o.AllowDelete = i.AllowDelete
+	o.AllowShare = i.AllowShare
+	return o
 }

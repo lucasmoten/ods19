@@ -25,7 +25,6 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	}
 	dao := DAOFromContext(ctx)
 
-	var grant *models.ODObjectPermission
 	var requestObject models.ODObject
 	var err error
 
@@ -35,20 +34,20 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	}
 
 	// Retrieve existing object from the data store
-	object, err := dao.GetObject(requestObject, true)
+	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
 		return NewAppError(500, err, "Error retrieving object")
 	}
 
-	if len(object.ID) == 0 {
+	if len(dbObject.ID) == 0 {
 		return NewAppError(400, err, "Object for update doesn't have an id")
 	}
 
-	if object.IsDeleted {
+	if dbObject.IsDeleted {
 		switch {
-		case object.IsExpunged:
+		case dbObject.IsExpunged:
 			return NewAppError(410, err, "The object no longer exists.")
-		case object.IsAncestorDeleted:
+		case dbObject.IsAncestorDeleted:
 			return NewAppError(405, err, "The object cannot be modified because an ancestor is deleted.")
 		default:
 			return NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
@@ -56,28 +55,22 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	}
 
 	//We need a name for the new text, and a new iv
-	object.ContentConnector.String = utils.CreateRandomName()
-	object.EncryptIV = utils.CreateIV()
-	// Check for update permission and capture a grant in the process
-	for _, permission := range object.Permissions {
-		if permission.Grantee == caller.DistinguishedName && permission.AllowUpdate {
-			grant = &permission
-			break
-		}
-	}
-	// Do we have permission ?
-	if grant == nil {
-		return NewAppError(403, nil, "Unauthorized")
+	dbObject.ContentConnector.String = utils.CreateRandomName()
+	dbObject.EncryptIV = utils.CreateIV()
+	// Check if the user has permissions to update the ODObject
+	var grant models.ODObjectPermission
+	if ok, grant = isUserAllowedToUpdate(ctx, &dbObject); !ok {
+		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
 	}
 
 	// ACM check for whether user has permission to read this object
 	// from a clearance perspective
-	hasAACAccessToOLDACM, err := h.isUserAllowedForObjectACM(ctx, &object)
+	hasAACAccessToOLDACM, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
 	if err != nil {
 		return NewAppError(502, err, "Error communicating with authorization service")
 	}
 	if !hasAACAccessToOLDACM {
-		return NewAppError(403, err, "Unauthorized", zap.String("origination", "No access to old ACM on Update"), zap.String("acm", object.RawAcm.String))
+		return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for existing object ACM")
 	}
 
 	//Do an upload that is basically the same as for a new object.
@@ -85,13 +78,52 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	if err != nil {
 		return NewAppError(400, err, "unable to open multipart reader")
 	}
-	drainFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &object, grant, false)
+	drainFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &dbObject, &grant, false)
 	if herr != nil {
 		return herr
 	}
 
-	object.ModifiedBy = caller.DistinguishedName
-	err = dao.UpdateObject(&object)
+	// TODO: This seems weird. why was everything previously manipulating the dbObject (call to h.acceptObjectUpload) ?
+	// Assign existing permissions from the database object to the request object
+	requestObject.Permissions = dbObject.Permissions
+	requestObject.RawAcm.Valid = dbObject.RawAcm.Valid
+	requestObject.RawAcm.String = dbObject.RawAcm.String
+	LoggerFromContext(ctx).Info("acm", zap.String("requestObject.RawAcm", requestObject.RawAcm.String))
+	hasAACAccess := false
+	// Flatten ACM, then Normalize Read Permissions against ACM f_share
+	// hasAACAccess, err := h.flattenACMAndCheckAccess(ctx, &requestObject)
+	// if err != nil {
+	// 	return NewAppError(400, err, "ACM provided could not be flattened")
+	// }
+	// if !hasAACAccess {
+	// 	return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for updated object ACM")
+	// }
+	err = h.flattenACM(&requestObject)
+	if err != nil {
+		return NewAppError(400, err, "ACM provided could not be flattened")
+	}
+	if herr := normalizeObjectReadPermissions(ctx, &requestObject); herr != nil {
+		return herr
+	}
+	// Final access check against altered ACM
+	hasAACAccess, err = h.isUserAllowedForObjectACM(ctx, &requestObject)
+	if err != nil {
+		return NewAppError(502, err, "Error communicating with authorization service")
+	}
+	if !hasAACAccess {
+		return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for updated object ACM")
+	}
+	// copy grant.EncryptKey to all existing permissions:
+	for idx, permission := range requestObject.Permissions {
+		models.CopyEncryptKey(h.MasterKey, &grant, &permission)
+		models.CopyEncryptKey(h.MasterKey, &grant, &requestObject.Permissions[idx])
+	}
+	// Assign ACM and permissions on request to dbObject
+	dbObject.Permissions = requestObject.Permissions
+	dbObject.RawAcm.String = requestObject.RawAcm.String
+
+	dbObject.ModifiedBy = caller.DistinguishedName
+	err = dao.UpdateObject(&dbObject)
 	if err != nil {
 		//Note that if the DAO is not going to decide on a specific error code,
 		// we *always* need to know if the error is due to bad user input,
@@ -110,7 +142,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	go drainFunc()
 
 	w.Header().Set("Content-Type", "application/json")
-	link := mapping.MapODObjectToObject(&object)
+	link := mapping.MapODObjectToObject(&dbObject)
 	data, err := json.MarshalIndent(link, "", "  ")
 	if err != nil {
 		return NewAppError(500, err, "could not unmarshal json data")

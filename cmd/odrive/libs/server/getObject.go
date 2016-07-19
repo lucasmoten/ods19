@@ -39,14 +39,8 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 
 	// Check if the user has permissions to read the ODObject
 	//		Permission.grantee matches caller, and AllowRead is true
-	authorizedToRead := false
-	for _, permission := range dbObject.Permissions {
-		if permission.Grantee == caller.DistinguishedName && permission.AllowRead {
-			authorizedToRead = true
-		}
-	}
-	if !authorizedToRead {
-		return NewAppError(403, errors.New("Unauthorized"), "Unauthorized")
+	if ok, _ := isUserAllowedToRead(ctx, &dbObject); !ok {
+		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
 	}
 
 	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
@@ -54,7 +48,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 		return NewAppError(502, err, "Error communicating with authorization service")
 	}
 	if !hasAACAccess {
-		return NewAppError(403, nil, "Unauthorized")
+		return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for object ACM")
 	}
 
 	if ok, code, err := isExpungedOrAnscestorDeletedErr(dbObject); !ok {

@@ -13,6 +13,11 @@ type ODObjectPermission struct {
 	// Grantee indicates the user, identified by distinguishedName from the user
 	// table for which this grant applies
 	Grantee string `db:"grantee"`
+	// AcmShare is used for inbound processing only, not stored in the
+	// database, but acts as a placeholder for the share string that will be
+	// checked against AAC and populated into a normalized flattened value
+	// which gets referenced by the Grantee field.
+	AcmShare string
 	// AllowCreate indicates whether the grantee has permission to create child
 	// objects beneath this object
 	AllowCreate bool `db:"allowCreate"`
@@ -98,4 +103,14 @@ func EqualsPermissionMAC(passphrase string, src *ODObjectPermission) bool {
 		}
 	}
 	return true
+}
+
+// IsReadOnly returns whether only the allowRead capability is being granted
+func (permission *ODObjectPermission) IsReadOnly() bool {
+	c := permission.AllowCreate
+	r := permission.AllowRead
+	u := permission.AllowUpdate
+	d := permission.AllowDelete
+	s := permission.AllowShare
+	return !c && r && !u && !d && !s
 }

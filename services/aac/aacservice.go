@@ -9,14 +9,14 @@ import (
 var _ = fmt.Sprintf
 
 type AcmInfo struct {
-	Path            string `thrift:"1,optional" json:"path"` // NOTE: codegen made this field "required"
-	Acm             string `thrift:"2,required" json:"acm"`
-	IncludeInRollup bool   `thrift:"3,required" json:"includeInRollup"`
+	Path            string `thrift:"1,optional" json:"path"`            // NOTE: codegen made this field "required"
+	Acm             string `thrift:"2,optional" json:"acm"`             // NOTE: codegen made this field "required"
+	IncludeInRollup bool   `thrift:"3,optional" json:"includeInRollup"` // NOTE: codegen made this field "required"
 }
 
 type AcmResponse struct {
 	Success   bool     `thrift:"1,required" json:"success"`
-	Messages  []string `thrift:"2,required" json:"messages"`
+	Messages  []string `thrift:"2,optional" json:"messages"` // NOTE: codegen made this field "required"
 	AcmValid  bool     `thrift:"3,required" json:"acmValid"`
 	HasAccess bool     `thrift:"4,required" json:"hasAccess"`
 	AcmInfo   *AcmInfo `thrift:"5,optional" json:"acmInfo"` // NOTE: codegen made this field "required"
@@ -31,12 +31,12 @@ type CheckAccessAndPopulateResponse struct {
 	Success           bool           `thrift:"1,required" json:"success"`
 	Messages          []string       `thrift:"2,optional" json:"messages"` // NOTE: codegen made this field "required"
 	AcmResponseList   []*AcmResponse `thrift:"3,required" json:"AcmResponseList"`
-	RollupAcmResponse *AcmResponse   `thrift:"4,required" json:"rollupAcmResponse"`
+	RollupAcmResponse *AcmResponse   `thrift:"4,optional" json:"rollupAcmResponse"` // NOTE: codegen made this field "required"
 }
 
 type CheckAccessResponse struct {
 	Success   bool     `thrift:"1,required" json:"success"`
-	Messages  []string `thrift:"2,required" json:"messages"`
+	Messages  []string `thrift:"2,optional" json:"messages"` // NOTE: codegen made this field "required"
 	HasAccess bool     `thrift:"3,required" json:"hasAccess"`
 }
 

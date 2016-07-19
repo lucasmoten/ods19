@@ -14,11 +14,11 @@ import (
 
 func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
-	// Get caller value from ctx.
-	caller, ok := CallerFromContext(ctx)
-	if !ok {
-		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
-	}
+	// // Get caller value from ctx.
+	// caller, ok := CallerFromContext(ctx)
+	// if !ok {
+	// 	return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
+	// }
 	dao := DAOFromContext(ctx)
 
 	var requestObject models.ODObject
@@ -55,22 +55,16 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 		return NewAppError(500, err, "Error retrieving object")
 	}
 
-	// Check if the user has permissions to read the ODObject
-	//		Permission.grantee matches caller, and AllowRead is true
-	authorizedToRead := false
-	var fileKey []byte
-	for _, permission := range dbObject.Permissions {
-		if permission.Grantee == caller.DistinguishedName && permission.AllowRead {
-			if models.EqualsPermissionMAC(h.MasterKey, &permission) == false {
-				//Check the integrity of the grant before giving a stream
-				return NewAppError(403, nil, "Unauthorized")
-			}
-			authorizedToRead = true
-			fileKey = utils.ApplyPassphrase(h.MasterKey, permission.PermissionIV, permission.EncryptKey)
-		}
+	// Check read permission, and capture permission for the encryptKey
+	ok, userPermission := isUserAllowedToRead(ctx, &dbObject)
+	if !ok {
+		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
 	}
-	if !authorizedToRead {
-		return NewAppError(403, nil, "Unauthorized")
+	// Using captured permission, derive filekey
+	var fileKey []byte
+	fileKey = utils.ApplyPassphrase(h.MasterKey, userPermission.PermissionIV, userPermission.EncryptKey)
+	if len(fileKey) == 0 {
+		return NewAppError(500, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object")
 	}
 
 	// Check AAC to compare user clearance to  metadata Classifications
@@ -80,7 +74,7 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 		return NewAppError(502, err, "Error communicating with authorization service")
 	}
 	if !hasAACAccess {
-		return NewAppError(403, nil, "Unauthorized")
+		return NewAppError(403, err, "Forbidden - User does not pass authorization checks for object ACM")
 	}
 
 	// Make sure the object isn't deleted. To remove an object from the trash,
