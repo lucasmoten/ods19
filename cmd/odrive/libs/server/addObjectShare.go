@@ -21,6 +21,7 @@ import (
 )
 
 func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
+	logger := LoggerFromContext(ctx)
 
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
@@ -200,7 +201,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	// Update the database object now that its ACM has been altered
 	dbObject.ModifiedBy = caller.DistinguishedName
 	// Reflatten dbObject.RawACM
-	err = h.flattenACM(&dbObject)
+	err = h.flattenACM(logger, &dbObject)
 	if err != nil {
 		return NewAppError(500, err, "Error updating permissions when flattening acm")
 	}

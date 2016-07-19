@@ -488,7 +488,8 @@ func pingDB(conf config.DatabaseConfiguration, db *sqlx.DB) int {
 				//hard error.  waiting it won't fix it
 				return exitCode
 			} else if match, _ := regexp.MatchString(".*connection refused.*", err.Error()); match {
-				elogger.Error("Connection refused connecting to database. Database may not yet be online.")
+				//It's not an error until we time out
+				elogger.Info("Connection refused connecting to database. Database may not yet be online.")
 				exitCode = 7
 			} else {
 				//hard error.  waiting won't fix it

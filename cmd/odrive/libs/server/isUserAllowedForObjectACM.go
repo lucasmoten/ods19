@@ -6,6 +6,8 @@ import (
 	"log"
 	"strings"
 
+	"github.com/uber-go/zap"
+
 	"golang.org/x/net/context"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
@@ -16,14 +18,14 @@ import (
 )
 
 func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models.ODObject) (bool, error) {
-
+	logger := LoggerFromContext(ctx)
 	// TODO: Change this to user    h.AAC.CheckAccessAndPopulate
 
 	var err error
 	// In standalone, we are ignoring AAC
 	if config.StandaloneMode {
 		// But warn in STDOUT to draw attention
-		log.Printf("WARNING: STANDALONE mode is active. User permission to access objects are not being checked against AAC.")
+		logger.Warn("WARNING: STANDALONE mode is active. User permission to access objects are not being checked against AAC.")
 		// Return permission granted and no errors
 		return true, nil
 	}
@@ -72,34 +74,36 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 
 	// Check if there was an error calling the service
 	if err != nil {
-		log.Printf("Error calling AAC.CheckAccess: %s. ACM checked: %s\n", err.Error(), acm)
+		logger.Error("Error calling AAC.CheckAccess", zap.String("err", err.Error()), zap.String("acm", acm), zap.String("dn", dn))
 		return false, errors.New("Error calling AAC.CheckAccess")
 	}
 
 	// Process Response
 	// Log the messages
 	for _, message := range aacResponse.Messages {
-		log.Printf("Message in AAC Response: %s\n", message)
+		logger.Error("Message in AAC Response", zap.String("acm message", message))
 	}
 	// Check if response was successful
 	// -- This is assumed to be an upstream error, not a user authorization error
 	if !aacResponse.Success {
-		log.Printf("aacResponse.Success = false. ACM checked: %s\n", acm)
+		logger.Error("aacResponse.Success == false", zap.String("acm", acm), zap.String("dn", dn))
 		return false, fmt.Errorf("Response from AAC.CheckAccess failed: %s", err.Error())
 	}
 	// AAC Response returned without error, was successful
 	if !aacResponse.HasAccess {
-		log.Printf("aacResponse.HasAccess = false. ACM checked: %s\n", acm)
+		logger.Error("aacResponse.HasAccess == false", zap.String("acm", acm), zap.String("dn", dn))
 	}
 	return aacResponse.HasAccess, nil
 }
 
 func (h AppServer) flattenACMAndCheckAccess(ctx context.Context, object *models.ODObject) (bool, error) {
+	logger := LoggerFromContext(ctx)
+
 	var err error
 	// In standalone, we are ignoring AAC
 	if config.StandaloneMode {
 		// But warn in STDOUT to draw attention
-		log.Printf("WARNING: STANDALONE mode is active.  ACM will not be flattened.")
+		logger.Warn("WARNING: STANDALONE mode is active.  ACM will not be flattened.")
 		// Return permission granted and no errors
 		return true, nil
 	}
@@ -177,7 +181,7 @@ func (h AppServer) flattenACMAndCheckAccess(ctx context.Context, object *models.
 	// Log the messages
 	if aacResponse != nil {
 		for _, message := range aacResponse.Messages {
-			log.Printf("Message in AAC Response: %s\n", message)
+			logger.Error("Message in AAC Response", zap.String("acm message", message))
 		}
 	}
 
@@ -187,33 +191,37 @@ func (h AppServer) flattenACMAndCheckAccess(ctx context.Context, object *models.
 		return false, fmt.Errorf("Error calling AAC.CheckAccessAndPopulate: %s", err.Error())
 	}
 
+	//ACM and dn are *always* logged!!
+	logger = logger.With(zap.String("acm", acm), zap.String("dn", userToken))
+
 	// Process Response
 	// Check if response was successful
 	// -- This is assumed to be an upstream error, not a user authorization error
 	if !aacResponse.Success {
-		log.Printf("ACM checked: %s\n", acm)
+		logger.Error("aacResponse.Success == false")
 		return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate failed: %s", err.Error())
 	}
 	// Iterate response list
 	if len(aacResponse.AcmResponseList) > 0 {
 		for acmResponseIdx, acmResponse := range aacResponse.AcmResponseList {
+			loggerIdx := logger.With(zap.Int("acmResponseIdx", acmResponseIdx))
 			// Messages
 			for acmMessageIdx, acmResponseMsg := range acmResponse.Messages {
-				log.Printf("Message in AAC Response %d, Message #%d: %s\n", acmResponseIdx, acmMessageIdx, acmResponseMsg)
+				loggerIdx.Warn("acm response", zap.Int("acmMessageIdx", acmMessageIdx), zap.String("acmResponseMsg", acmResponseMsg))
 			}
 			// Check if successful
 			if !acmResponse.Success {
-				log.Printf("ACM Response failed in %d. ACM checked: %s\n", acmResponseIdx, acm)
+				loggerIdx.Error("acmResponse.Success == false")
 				return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate failed for #%d: %s", acmResponseIdx, acm)
 			}
 			// Check if valid
 			if !acmResponse.AcmValid {
-				log.Printf("ACM was not valid in %d. ACM checked: %s\n", acmResponseIdx, acm)
+				loggerIdx.Error("acmResponse.AcmValid == false")
 				return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate indicates acm not valid for #%d: %s", acmResponseIdx, acm)
 			}
 			// Check if user has access
 			if !acmResponse.HasAccess {
-				log.Printf("User does not have access to acm in %d. ACM checked: %s\n", acmResponseIdx, acm)
+				loggerIdx.Error("acmResponse.HasAccess == false")
 				return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate indicates user does not have access to #%d: %s", acmResponseIdx, acm)
 			}
 			// Capture revised acm string (last in wins. but should be only 1)
@@ -221,7 +229,7 @@ func (h AppServer) flattenACMAndCheckAccess(ctx context.Context, object *models.
 		}
 	} else {
 		// no acm response
-		log.Printf("ACM checked: %s\n", acm)
+		logger.Warn("acm checked")
 		return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate did not result in an ACM being returned")
 	}
 
@@ -229,21 +237,21 @@ func (h AppServer) flattenACMAndCheckAccess(ctx context.Context, object *models.
 		acmResponse := aacResponse.RollupAcmResponse
 		// Messages
 		for acmMessageIdx, acmResponseMsg := range acmResponse.Messages {
-			log.Printf("Message in AAC RollupAcmResponse, Message #%d: %s\n", acmMessageIdx, acmResponseMsg)
+			logger.Warn("aac rollup RootupAcmResponse message", zap.Int("acmMessageIdx", acmMessageIdx), zap.String("acmResponseMsg", acmResponseMsg))
 		}
 		// Check if successful
 		if !acmResponse.Success {
-			log.Printf("ACM Response failed in RollupAcmResponse. ACM checked: %s\n", acm)
+			logger.Error("aac rollup acmResponse == false")
 			return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate failed for RollupAcmResponse: %s", acm)
 		}
 		// Check if valid
 		if !acmResponse.AcmValid {
-			log.Printf("ACM was not valid in RollupAcmResponse. ACM checked: %s\n", acm)
+			logger.Error("aac rollup acmResponse.AcmValid == false")
 			return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate indicates acm not valid for RollupAcmResponse: %s", acm)
 		}
 		// Check if user has access
 		if !acmResponse.HasAccess {
-			log.Printf("User does not have access to acm in RollupAcmResponse. ACM checked: %s\n", acm)
+			logger.Error("aac rollup acmResponse.HasAccess == false")
 			return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate indicates user does not have access to RollupAcmResponse: %s", acm)
 		}
 		// Capture revised acm string (last in wins. but should be only 1)
@@ -254,13 +262,13 @@ func (h AppServer) flattenACMAndCheckAccess(ctx context.Context, object *models.
 	return true, nil
 }
 
-func (h AppServer) flattenACM(object *models.ODObject) error {
+func (h AppServer) flattenACM(logger zap.Logger, object *models.ODObject) error {
 
 	var err error
 	// In standalone, we are ignoring AAC
 	if config.StandaloneMode {
 		// But warn in STDOUT to draw attention
-		log.Printf("WARNING: STANDALONE mode is active.  ACM will not be flattened.")
+		logger.Warn("WARNING: STANDALONE mode is active.  ACM will not be flattened.")
 		// Return permission granted and no errors
 		return nil
 	}
@@ -275,6 +283,7 @@ func (h AppServer) flattenACM(object *models.ODObject) error {
 
 	// Gather inputs
 	acm := object.RawAcm.String
+	logger = logger.With(zap.String("acm", acm))
 
 	// Verify we have a reference to AAC
 	if h.AAC == nil {
@@ -301,22 +310,24 @@ func (h AppServer) flattenACM(object *models.ODObject) error {
 
 	// Check if there was an error calling the service
 	if err != nil {
-		log.Printf("Error calling AAC.PopulateAndValidateAcm: %s", err.Error())
+		logger.Error("Error calling AAC.PopulateAndValidateAcm", zap.String("err", err.Error()))
 		return errors.New("Error calling AAC.PopulateAndValidateAcm")
 	}
 
 	// Process Response
 	// Log the messages
 	for _, message := range acmResponse.Messages {
-		log.Printf("Message in AAC Response: %s\n", message)
+		logger.Error("Message in AAC Response", zap.String("aac message", message))
 	}
 	// Check if response was successful
 	// -- This is assumed to be an upstream error, not a user authorization error
 	if !acmResponse.Success {
+		logger.Error("acmResponse.Success == false")
 		return errors.New("Response from AAC.PopulateAndValidateAcm failed")
 	}
 	// Check if the acm was valid
 	if !acmResponse.AcmValid {
+		logger.Error("acmResponse.Valid == false")
 		return errors.New("ACM in call to PopulateAndValidateAcm was not valid")
 	}
 
@@ -328,6 +339,8 @@ func (h AppServer) flattenACM(object *models.ODObject) error {
 }
 
 func (h AppServer) validateAndFlattenShare(ctx context.Context, permission *models.ODObjectPermission, object *models.ODObject) *AppError {
+	logger := LoggerFromContext(ctx)
+
 	// Reference to original acm
 	//originalAcm := object.RawAcm.String
 
@@ -340,7 +353,7 @@ func (h AppServer) validateAndFlattenShare(ctx context.Context, permission *mode
 	// Convert the AcmShare on the permission to an interface and assign to ACM
 	shareInterface, err := utils.UnmarshalStringToInterface(permission.AcmShare)
 	if err != nil {
-		log.Printf("Unable to marshal share from permission %s: %v", permission.AcmShare, err)
+		logger.Error("unable to marshal share from permission", zap.String("permission acm share", permission.AcmShare), zap.String("err", err.Error()))
 		return NewAppError(500, err, "Unable to unmarshal share from permission")
 	}
 	herr = setACMPartFromInterface(ctx, object, "share", shareInterface)
@@ -349,7 +362,7 @@ func (h AppServer) validateAndFlattenShare(ctx context.Context, permission *mode
 	}
 
 	// Flatten
-	h.flattenACM(object)
+	h.flattenACM(logger, object)
 
 	// Get the share part back out since its been flattened as AAC alters it
 	herr, newShareInterface := getACMInterfacePart(object, "share")

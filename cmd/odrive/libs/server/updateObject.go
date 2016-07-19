@@ -20,6 +20,7 @@ import (
 )
 
 func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
+	logger := LoggerFromContext(ctx)
 
 	var requestObject models.ODObject
 	var err error
@@ -117,7 +118,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	requestObject.Permissions = dbObject.Permissions
 	// Flatten ACM, then Normalize Read Permissions against ACM f_share
 	hasAACAccess := false
-	err = h.flattenACM(&requestObject)
+	err = h.flattenACM(logger, &requestObject)
 	if err != nil {
 		return NewAppError(400, err, "ACM provided could not be flattened")
 	}

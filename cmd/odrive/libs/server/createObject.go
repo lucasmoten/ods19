@@ -23,6 +23,8 @@ import (
 // createObject is a method handler on AppServer for createObject microservice
 // operation.
 func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
+	logger := LoggerFromContext(ctx)
+
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
@@ -90,7 +92,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	// if !hasAACAccess {
 	// 	return NewAppError(403, err, "Unauthorized")
 	// }
-	err = h.flattenACM(&obj)
+	err = h.flattenACM(logger, &obj)
 	if err != nil {
 		return NewAppError(400, err, "ACM provided could not be flattened")
 	}
