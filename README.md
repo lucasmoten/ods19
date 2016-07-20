@@ -6,10 +6,6 @@ API documentation is hosted on the private Bedrock network here (subject to chan
 
 https://bedrock.363-283.io/services/object-drive/1.0/
 
-# Project Management
-
-Issues are tracked internally in this [Google Doc](https://docs.google.com/spreadsheets/d/1Eiuu8uH6O6_uPtz6icOgLof3JYExhPDo9RelJDFsDeA/edit#gid=538633894)
-
 # Vendoring
 
 We are using a vendoring tool called `govendor` to pin our dependencies to a specific commit.
