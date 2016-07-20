@@ -174,6 +174,8 @@ func runServiceTest(ctx *cli.Context) error {
 		fmt.Println("Not implemented for service:", service)
 	case ZookeeperService:
 		fmt.Println("Not implemented for service:", service)
+	default:
+		fmt.Println("Unknown service. Please run `odrive help`")
 	}
 	return nil
 }
