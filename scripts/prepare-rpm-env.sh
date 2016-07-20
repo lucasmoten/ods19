@@ -36,12 +36,20 @@ mkdir ${ODRIVE_PACKAGE_NAME}
 mkdir -p ${ODRIVE_PACKAGE_NAME}/usr/bin
 mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive
 mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js
+mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/ajax/libs/bootstrap/3.3.6/css
+mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/ajax/libs/jquery/3.0.0-beta1
+mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/ajax/libs/reqwest/2.0.5
+mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/ajax/libs/then-request/2.1.1
 mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates
 mkdir -p ${ODRIVE_PACKAGE_NAME}/opt/odrive
 mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/init.d
 install -m 755 -D ${ODRIVE_BINARY_DIR}/odrive ${ODRIVE_PACKAGE_NAME}/usr/bin
 install -m 644 -D ${ODRIVE_BINARY_DIR}/odrive.yml ${ODRIVE_PACKAGE_NAME}/etc/odrive/
 install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/js/listObjects.js ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/listObjects.js
+install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/js/ajax/libs/bootstrap/3.3.6/css/bootstrap.min.css ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/ajax/libs/bootstrap/3.3.6/css/bootstrap.min.css
+install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/js/ajax/libs/jquery/3.0.0-beta1/jquery.js ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/ajax/libs/jquery/3.0.0-beta1/jquery.js
+install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/js/ajax/libs/reqwest/2.0.5/reqwest.js ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/ajax/libs/reqwest/2.0.5/reqwest.js
+install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/js/ajax/libs/then-request/2.1.1/request.js ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/ajax/libs/then-request/2.1.1/request.js
 install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/_function.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/_function.html
 install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/home.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/home.html
 install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/listObjects.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/listObjects.html
