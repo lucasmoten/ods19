@@ -18,6 +18,8 @@ Almost all code is similar to that of createObject.go, so reuse much code from t
 func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 	var drainFunc func()
 
+	logger := LoggerFromContext(ctx)
+
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
@@ -88,7 +90,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	requestObject.Permissions = dbObject.Permissions
 	requestObject.RawAcm.Valid = dbObject.RawAcm.Valid
 	requestObject.RawAcm.String = dbObject.RawAcm.String
-	LoggerFromContext(ctx).Info("acm", zap.String("requestObject.RawAcm", requestObject.RawAcm.String))
+	logger.Info("acm", zap.String("requestObject.RawAcm", requestObject.RawAcm.String))
 	hasAACAccess := false
 	// Flatten ACM, then Normalize Read Permissions against ACM f_share
 	// hasAACAccess, err := h.flattenACMAndCheckAccess(ctx, &requestObject)
@@ -98,7 +100,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	// if !hasAACAccess {
 	// 	return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for updated object ACM")
 	// }
-	err = h.flattenACM(&requestObject)
+	err = h.flattenACM(logger, &requestObject)
 	if err != nil {
 		return NewAppError(400, err, "ACM provided could not be flattened")
 	}
