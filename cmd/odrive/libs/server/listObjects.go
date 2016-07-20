@@ -68,7 +68,7 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 			return NewAppError(code, err, msg)
 		}
 		// Check for permission to read this object
-		if ok, _ := isUserAllowedToRead(ctx, &dbObject); !ok {
+		if ok := isUserAllowedToRead(ctx, h.MasterKey, &dbObject); !ok {
 			return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to list contents of this object")
 		}
 

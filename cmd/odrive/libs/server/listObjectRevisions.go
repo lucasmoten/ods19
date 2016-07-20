@@ -47,7 +47,7 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	}
 
 	// Check for permission to read this object
-	if ok, _ := isUserAllowedToRead(ctx, &dbObject); !ok {
+	if ok := isUserAllowedToRead(ctx, h.MasterKey, &dbObject); !ok {
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to list revisions of this object")
 	}
 

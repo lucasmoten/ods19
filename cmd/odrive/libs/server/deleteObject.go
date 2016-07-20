@@ -40,7 +40,7 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 	}
 
 	// Check if the user has permissions to delete the ODObject
-	if ok, _ := isUserAllowedToDelete(ctx, &dbObject); !ok {
+	if ok := isUserAllowedToDelete(ctx, h.MasterKey, &dbObject); !ok {
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to delete this object")
 	}
 

@@ -45,7 +45,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	}
 
 	// Check Permissions
-	allowedToShare, rollupPermission := isUserAllowedToShare(ctx, &dbObject)
+	allowedToShare, rollupPermission := isUserAllowedToShareWithPermission(ctx, h.MasterKey, &dbObject)
 	if !allowedToShare {
 		return NewAppError(403, errors.New("unauthorized to share"), "Forbidden - User does not have permission to modify shares for an object")
 	}

@@ -31,11 +31,11 @@ func TestAddObjectShare(t *testing.T) {
 		fmt.Println()
 	}
 
-	// Create 2 folders under root
+	t.Logf("* Creating 2 folders under root")
 	folder1 := makeFolderViaJSON("Test Folder 1 ", clientid1, t)
 	folder2 := makeFolderViaJSON("Test Folder 2 ", clientid1, t)
 
-	// Attempt to move folder 2 under folder 1
+	t.Logf("* Moving folder 2 under folder 1")
 	moveuri := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder2.ChangeToken
@@ -62,7 +62,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.FailNow()
 	}
 
-	// Attempt to retrieve folder1 as clientid2
+	t.Logf("* Retrieve folder 1 as clientid2")
 	geturi := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
 	getReq1, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
@@ -79,7 +79,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.FailNow()
 	}
 
-	// Attempt to retrieve folder2 as clientid2
+	t.Logf("* Retrieve folder 2 as clientid 2")
 	geturi = host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/properties"
 	getReq2, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
@@ -96,7 +96,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.FailNow()
 	}
 
-	// Add share as clientid1 for clientid2 to folder1 without propagation
+	t.Logf("* Add share as clientid1 for clientid2 to folder1 without propagation")
 	shareuri := host + cfg.NginxRootURL + "/shared/" + folder1.ID
 	shareSetting := protocol.ObjectShare{}
 	shareSetting.Share = makeUserShare(fakeDN1)
@@ -121,7 +121,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.FailNow()
 	}
 
-	// Attempt to retrieve folder1 as clientid2
+	t.Logf("* Attempt to retrieve folder1 as clientid2")
 	geturi = host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
 	getReq4, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
@@ -138,7 +138,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.FailNow()
 	}
 
-	// Attempt to retrieve folder2 as clientid2
+	t.Logf("* Attempt to retrieve folder2 as clientid2")
 	geturi = host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/properties"
 	getReq5, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
@@ -155,7 +155,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.FailNow()
 	}
 
-	// Add share as clientid1 for clientid2 to folder1 with propagation
+	t.Logf("* Add share as clientid1 for clientid2 to folder1 with propagation")
 	shareuri = host + cfg.NginxRootURL + "/shared/" + folder1.ID
 	shareSetting = protocol.ObjectShare{}
 	shareSetting.Share = makeUserShare(fakeDN1)
@@ -181,7 +181,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.FailNow()
 	}
 
-	// Attempt to retrieve folder2 as clientid2
+	t.Logf("* Attempt to retrieve folder2 as clientid2")
 	geturi = host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/properties"
 	getReq7, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {

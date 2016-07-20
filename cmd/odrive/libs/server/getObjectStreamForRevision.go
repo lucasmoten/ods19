@@ -56,7 +56,7 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	}
 
 	// Check read permission, and capture permission for the encryptKey
-	ok, userPermission := isUserAllowedToRead(ctx, &dbObject)
+	ok, userPermission := isUserAllowedToReadWithPermission(ctx, h.MasterKey, &dbObject)
 	if !ok {
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
 	}

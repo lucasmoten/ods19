@@ -31,8 +31,9 @@ func TestAppServerGetObjectAgainstFake(t *testing.T) {
 	objectURL := "/objects/" + guid + "/properties"
 
 	// Create permissions object, with our User as a Grantee.
-	perms := []models.ODObjectPermission{
-		{Grantee: user.DistinguishedName, AllowRead: true}}
+	readPermission := models.ODObjectPermission{Grantee: user.DistinguishedName, AllowRead: true}
+	models.SetEncryptKey("", &readPermission)
+	perms := []models.ODObjectPermission{readPermission}
 	obj := models.ODObject{Permissions: perms}
 	obj.ID = []byte(guid)
 	obj.RawAcm.String, obj.RawAcm.Valid = testhelpers.ValidACMUnclassified, true

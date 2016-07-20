@@ -302,7 +302,7 @@ func buildFilterForUserACMShare(user models.ODUser) string {
 	} else {
 		sql = defaultSQL
 	}
-	log.Printf(sql)
+	//log.Printf(sql)
 	return sql
 }
 

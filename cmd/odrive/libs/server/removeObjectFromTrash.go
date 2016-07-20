@@ -50,7 +50,7 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	}
 
 	// Check if the user has permissions to undelete the ODObject
-	if ok, _ := isUserAllowedToDelete(ctx, &dbObject); !ok {
+	if ok := isUserAllowedToDelete(ctx, h.MasterKey, &dbObject); !ok {
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to undelete this object")
 	}
 
