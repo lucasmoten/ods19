@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -99,11 +100,56 @@ func TestCreatObjectSimple(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
+	clientID := 5
 	data := "Initial test data 1"
-	doTestCreateObjectSimple(t, data, 5)
+	_, _ = doTestCreateObjectSimple(t, data, clientID)
 }
 
 var ValidAcmCreateObjectSimple = `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":["FOUO"],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U//FOUO","banner":"UNCLASSIFIED//FOUO","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`
+
+func doCheckFileNowExists(t *testing.T, clientID int, jres protocol.Object) {
+
+	//!!! STOP and verify that this object actually exists in listings!
+	//Because we *just* created this, we expect it to be in first page!
+	uri2 := host + cfg.NginxRootURL + "/objects"
+
+	if jres.ParentID != "" {
+		uri2 = uri2 + "/" + jres.ParentID
+	}
+	uri2 = uri2 + "?pageSize=10000"
+
+	req2, err := http.NewRequest("GET", uri2, nil)
+	if err != nil {
+		t.Log("get create fail")
+		t.FailNow()
+	}
+	res2, err := httpclients[clientID].Do(req2)
+	if err != nil {
+		t.Log("client connect fail")
+		t.FailNow()
+	}
+	var objectResultSet protocol.ObjectResultset
+	bodyBytes, err := ioutil.ReadAll(res2.Body)
+	if err != nil {
+		t.Log("got no body back")
+		t.FailNow()
+	}
+	json.Unmarshal(bodyBytes, &objectResultSet)
+	foundIt := false
+	for _, v := range objectResultSet.Objects {
+		if v.ID == jres.ID {
+			foundIt = true
+		}
+		t.Logf("lookfor: %s id:%s", jres.ID, v.ID)
+	}
+	if len(objectResultSet.Objects) == 0 {
+		t.Logf("no objects in listing for %s", uri2)
+	}
+	if !foundIt {
+		t.Logf("did not find object that we just created as user %d", clientID)
+		t.FailNow()
+	}
+}
 
 func doTestCreateObjectSimple(t *testing.T, data string, clientID int) (*http.Response, protocol.Object) {
 	client := httpclients[clientID]
@@ -149,6 +195,8 @@ func doTestCreateObjectSimple(t *testing.T, data string, clientID int) (*http.Re
 	}
 
 	jres := jresif.(protocol.Object)
+	doCheckFileNowExists(t, clientID, jres)
+
 	return res, jres
 }
 
