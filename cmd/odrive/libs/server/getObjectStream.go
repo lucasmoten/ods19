@@ -81,7 +81,8 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 	// Retrieve existing object from the data store
 	object, err := dao.GetObject(requestObject, true)
 	if err != nil {
-		if err == db.ErrNoRows {
+		//Equality issue on errors?
+		if err.Error() == db.ErrNoRows.Error() {
 			return NewAppError(404, err, "Not found")
 		}
 		return NewAppError(500, err, "Error retrieving object")
