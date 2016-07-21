@@ -74,10 +74,12 @@ func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUs
         ,ot.name typeName     
     from object o
         inner join object_type ot on o.typeid = ot.id
-        inner join object_permission op	on o.id = op.objectid and op.isdeleted = 0 and op.allowread = 1
+        inner join object_permission op	on op.objectid = o.id
         inner join objectacm acm on o.id = acm.objectid
     where 
         o.isdeleted = 0 
+        and op.isdeleted = 0
+        and op.allowread = 1
         and o.isexpunged = 0 
         and o.isancestordeleted = 0`
 	query += buildFilterForUserACMShare(user)
