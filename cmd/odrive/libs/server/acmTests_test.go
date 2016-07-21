@@ -25,7 +25,6 @@ func TestAcmWithoutShare(t *testing.T) {
 	createObjectRequest.TypeName = "Folder"
 	createObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"]}`
 	createObjectRequest.ContentSize = 0
-	// jsonify it
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	// prep http request
 	uriCreate := host + cfg.NginxRootURL + "/objects"
@@ -35,16 +34,9 @@ func TestAcmWithoutShare(t *testing.T) {
 	client := &http.Client{Transport: transport}
 	// exec and get response
 	httpCreateResponse, err := client.Do(httpCreate)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	// check status of response
-	if httpCreateResponse.StatusCode != http.StatusOK {
-		t.Logf("Bad status when creating object: %s", httpCreateResponse.Status)
-		t.FailNow()
-	}
-	// parse back to boject
+	failOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
+
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
 	if err != nil {
@@ -98,16 +90,9 @@ func TestAcmWithShareForODrive(t *testing.T) {
 	client := &http.Client{Transport: transport}
 	// exec and get response
 	httpCreateResponse, err := client.Do(httpCreate)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	// check status of response
-	if httpCreateResponse.StatusCode != http.StatusOK {
-		t.Logf("Bad status when creating object: %s", httpCreateResponse.Status)
-		t.FailNow()
-	}
-	// parse back to boject
+	failOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
+
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
 	if err != nil {
@@ -207,16 +192,9 @@ func TestAcmWithShareForODriveG1Allowed(t *testing.T) {
 	client := &http.Client{Transport: transport}
 	// exec and get response
 	httpCreateResponse, err := client.Do(httpCreate)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	// check status of response
-	if httpCreateResponse.StatusCode != http.StatusOK {
-		t.Logf("Bad status when creating object: %s", httpCreateResponse.Status)
-		t.FailNow()
-	}
-	// parse back to boject
+	failOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
+
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
 	if err != nil {
@@ -278,16 +256,9 @@ func TestAcmWithShareForODriveG2Allowed(t *testing.T) {
 	client := &http.Client{Transport: transport}
 	// exec and get response
 	httpCreateResponse, err := client.Do(httpCreate)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	// check status of response
-	if httpCreateResponse.StatusCode != http.StatusOK {
-		t.Logf("Bad status when creating object: %s", httpCreateResponse.Status)
-		t.FailNow()
-	}
-	// parse back to boject
+	failOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
+
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
 	if err != nil {
@@ -357,9 +328,9 @@ func TestAcmWithShareForODriveG2Disallowed(t *testing.T) {
 	if httpCreateResponse.StatusCode != http.StatusForbidden {
 		t.Logf("Bad status when creating object: %s", httpCreateResponse.Status)
 		t.FailNow()
-	} else {
-		t.Logf("%s is not allowed to create object %s with acm %s", clients[tester10].Name, createObjectRequest.Name, createObjectRequest.RawAcm)
 	}
+	t.Logf("%s is not allowed to create object %s with acm %s", clients[tester10].Name, createObjectRequest.Name, createObjectRequest.RawAcm)
+
 	ioutil.ReadAll(httpCreateResponse.Body)
 	httpCreateResponse.Body.Close()
 }
@@ -387,16 +358,9 @@ func TestAddReadShareForUser(t *testing.T) {
 	client := &http.Client{Transport: transport}
 	// exec and get response
 	httpCreateResponse, err := client.Do(httpCreate)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	// check status of response
-	if httpCreateResponse.StatusCode != http.StatusOK {
-		t.Logf("Bad status when creating object: %s", httpCreateResponse.Status)
-		t.FailNow()
-	}
-	// parse back to boject
+	failOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
+
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
 	if err != nil {
@@ -419,16 +383,9 @@ func TestAddReadShareForUser(t *testing.T) {
 	httpCreateShare.Header.Set("Content-Type", "application/json")
 	// exec and get response
 	httpCreateShareResponse, err := client.Do(httpCreateShare)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	// check status of response
-	if httpCreateShareResponse.StatusCode != http.StatusOK {
-		t.Logf("Bad status when creating share: %s", httpCreateShareResponse.Status)
-		t.FailNow()
-	}
-	// parse back to object
+	failOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, httpCreateShareResponse, "Bad status when creating share")
+
 	var updatedObject protocol.Object
 	err = util.FullDecode(httpCreateShareResponse.Body, &updatedObject)
 	if err != nil {
@@ -494,16 +451,9 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	client := &http.Client{Transport: transport}
 	// exec and get response
 	httpCreateResponse, err := client.Do(httpCreate)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	// check status of response
-	if httpCreateResponse.StatusCode != http.StatusOK {
-		t.Logf("Bad status when creating object: %s", httpCreateResponse.Status)
-		t.FailNow()
-	}
-	// parse back to boject
+	failOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
+
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
 	if err != nil {
@@ -710,4 +660,22 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 // DEPENDS ON SUCCESSFUL RUN OF TestUpdateAcmWithoutSharingToUser or COPY
 func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 
+}
+
+// failOnErr fails immediately with a templated message.
+func failOnErr(t *testing.T, err error, msg string) {
+	if err != nil {
+		t.Logf("%s: %v", msg, err)
+		t.FailNow()
+	}
+}
+
+func statusMustBe(t *testing.T, expected int, resp *http.Response, msg string) {
+	if resp.StatusCode != expected {
+		if msg != "" {
+			t.Logf(msg)
+		}
+		t.Logf("Expected status %v but got %v", expected, resp.StatusCode)
+		t.FailNow()
+	}
 }
