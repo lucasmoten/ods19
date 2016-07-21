@@ -78,7 +78,7 @@ func TestCreatObjectMalicious(t *testing.T) {
 
 	//If it comes back ok, it at least needs to have
 	//stopped us from doing something bad
-	if res == nil || res.StatusCode != 200 {
+	if res == nil {
 		t.Fail()
 	}
 
@@ -86,13 +86,15 @@ func TestCreatObjectMalicious(t *testing.T) {
 	err = util.FullDecode(res.Body, &objResponse)
 	res.Body.Close()
 
-	t.Logf("become POTUS")
-	if objResponse.CreatedBy == "CN=POTUS,C=US" {
-		t.Fail()
-	}
-	t.Logf("set bad id")
-	if objResponse.ID == "deadbeef" {
-		t.Fail()
+	//If invalid overrides are going to be ignored (a completely valid approach!),
+	//ensure that they are in fact being ignored, and not taken as updates.
+	if res.StatusCode == 200 {
+		if objResponse.CreatedBy == "CN=POTUS,C=US" {
+			t.Fail()
+		}
+		if objResponse.ID == "deadbeef" {
+			t.Fail()
+		}
 	}
 }
 
