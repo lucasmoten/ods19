@@ -9,13 +9,13 @@ import (
 
 	"github.com/uber-go/zap"
 
-	"golang.org/x/net/context"
-
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	"decipher.com/object-drive-server/config"
+	globalconfig "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/performance"
 	"decipher.com/object-drive-server/services/aac"
+	"golang.org/x/net/context"
 )
 
 func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models.ODObject) (bool, error) {
@@ -509,4 +509,52 @@ func isUserAllowedTo(ctx context.Context, masterKey string, obj *models.ODObject
 
 	// Return the overall (either combined from one or more granteeMatch, or empty from no match)
 	return authorizedTo, userPermission
+}
+
+func (h AppServer) isObjectACMSharedToUser(ctx context.Context, obj *models.ODObject, user string) bool {
+
+	// Look at the flattened share of the acm
+	herr, fShareInterface := getACMInterfacePart(obj, "f_share")
+	if herr != nil {
+		// log it as the caller ...
+		LoggerFromContext(ctx).Warn("Error retrieving acm interface part f_share")
+		return false
+	}
+
+	// Convert to a string array
+	acmGrants := getStringArrayFromInterface(fShareInterface)
+
+	// If its empty, then its everyone, and ok
+	if len(acmGrants) == 0 {
+		return true
+	}
+
+	// Prep a context for the user and populate snippets and groups
+	userCtx := context.Background()
+	userCaller := Caller{DistinguishedName: user}
+	userCtx = ContextWithCaller(userCtx, userCaller)
+	userCtx = context.WithValue(userCtx, Logger, globalconfig.RootLogger)
+	userSnippets, err := h.FetchUserSnippets(userCtx)
+	if err != nil {
+		// bubble up? not like the calling user can do anything if theres an error with the owner
+		// log it as the caller ...
+		LoggerFromContext(ctx).Warn("Error retrieving user snippets", zap.String("user", user))
+		return false
+	}
+	userCtx = ContextWithSnippets(userCtx, userSnippets)
+	userGroups := h.GetUserGroups(userCtx)
+
+	// Iterate user's groups
+	for _, userGroup := range userGroups {
+		// Iterate acm grants
+		for _, acmGrant := range acmGrants {
+			// Do they match?
+			if strings.Compare(userGroup, acmGrant) == 0 {
+				return true
+			}
+		}
+	}
+
+	// None of the user groups matched the acm. They wont have read access.
+	return false
 }

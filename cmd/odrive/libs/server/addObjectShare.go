@@ -79,6 +79,14 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 		return nil
 	}
 
+	// Check if database object has a read permission for everyone
+	dbHasEveryone := false
+	for _, dbPermission := range dbObject.Permissions {
+		if strings.Compare(dbPermission.Grantee, models.EveryoneGroup) == 0 {
+			dbHasEveryone = true
+		}
+	}
+
 	// Iterate the permissions, normalizing the share to derive grantee
 	tempObject := models.ODObject{}
 	for _, permission := range permissions {
@@ -144,10 +152,19 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 		// deleting, and then whatever is left is what needs to be merged as the
 		// new acm share
 
+		// If this new permission is granting read but the grantee is not everyone then remove everyone
+		if permission.AllowRead && dbHasEveryone {
+			if !isPermissionFor(&permission, models.EveryoneGroup) {
+				removePermissionsFor(&dbObject, models.EveryoneGroup)
+				// since removed everyone, reset the flag so we dont do this check for every permission
+				dbHasEveryone = false
+			}
+		}
+
 		// Iterate existing permissions on object
 		for _, dbPermission := range dbObject.Permissions {
-			granteeMatch := strings.Compare(dbPermission.Grantee, permission.Grantee) == 0
-			everyoneMatch := strings.Compare(dbPermission.Grantee, models.EveryoneGroup) == 0
+			granteeMatch := isPermissionFor(&dbPermission, permission.Grantee)
+			everyoneMatch := isPermissionFor(&dbPermission, models.EveryoneGroup)
 			if granteeMatch || everyoneMatch {
 				// Discern which permissions this user already has
 				if dbPermission.AllowCreate {
@@ -206,6 +223,23 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 		return NewAppError(500, err, "Error updating permissions when flattening acm")
 	}
 
+	// Now that the result is flattened, perform resultant state validation
+	// 1. Make sure owner would still have read access
+	if !isModifiedBySameAsOwner(&dbObject) {
+		if !h.isObjectACMSharedToUser(ctx, &dbObject, dbObject.OwnedBy.String) {
+			errMsg := "Forbidden - Unauthorized to set permissions that would result in owner not being able to read object"
+			return NewAppError(403, errors.New(errMsg), errMsg)
+		}
+	}
+	// 2. User must pass access check against altered ACM as a whole
+	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
+	if err != nil {
+		return NewAppError(502, err, "Error communicating with authorization service")
+	}
+	if !hasAACAccess {
+		return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for updated object ACM")
+	}
+
 	// First update the base object that favors ACM change
 	err = dao.UpdateObject(&dbObject)
 	if err != nil {
@@ -231,6 +265,23 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	apiResponse := mapping.MapODObjectToObject(&updatedObject)
 	updateObjectResponseAsJSON(w, r, caller, &apiResponse)
 	return nil
+}
+
+func isModifiedBySameAsOwner(object *models.ODObject) bool {
+	return (strings.Compare(object.ModifiedBy, object.OwnedBy.String) == 0)
+}
+
+func isPermissionFor(permission *models.ODObjectPermission, grantee string) bool {
+	return (strings.Compare(permission.Grantee, grantee) == 0)
+}
+
+func removePermissionsFor(obj *models.ODObject, grantee string) {
+	for i := len(obj.Permissions) - 1; i >= 0; i-- {
+		permission := obj.Permissions[i]
+		if isPermissionFor(&permission, grantee) {
+			obj.Permissions = append(obj.Permissions[:i], obj.Permissions[i+1:]...)
+		}
+	}
 }
 
 func parseObjectShareRequest(r *http.Request, ctx context.Context) ([]models.ODObjectPermission, bool, error) {

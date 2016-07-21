@@ -1,6 +1,8 @@
 package server_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -8,6 +10,9 @@ import (
 	"strconv"
 	"testing"
 
+	"decipher.com/object-drive-server/cmd/odrive/libs/server"
+	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
@@ -467,10 +472,10 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Skip()
 	}
 
-	clientID := 0  // 10
-	clientID1 := 1 // "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
+	tester10 := 0 // 10
+	tester1 := 1  // "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
 
-	// ### Create object with stream
+	t.Logf("* Create object with stream")
 	data1 := "object stream for TestGetObjectStreamForRevision_WithoutPermission"
 	tmp1, err := ioutil.TempFile(".", "__tempfile__")
 	if err != nil {
@@ -488,7 +493,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	createObjectRes, err := httpclients[clientID].Do(createObjectReq)
+	createObjectRes, err := httpclients[tester10].Do(createObjectReq)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
@@ -504,19 +509,29 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.FailNow()
 	}
 	createObjectRes.Body.Close()
-
 	// Capture ID and ChangeToken for usage in get calls
 	objID := objResponse1.ID
 	changeToken := objResponse1.ChangeToken
 
-	// ### Add read permission granted to second user
-	grantee := fakeDN1
-	createShareReq, err := testhelpers.NewCreateReadPermissionRequest(objResponse1, grantee, "", host)
+	t.Logf("* Add read permission granted to tester1 and tester10")
+	shareuri := host + cfg.NginxRootURL + "/shared/" + objID
+	shareSetting := protocol.ObjectShare{}
+	shareSetting.Share = server.CombineInterface(makeUserShare(fakeDN0), makeUserShare(fakeDN1))
+	shareSetting.AllowRead = true
+	shareSetting.PropagateToChildren = true
+	jsonBody, err := json.Marshal(shareSetting)
+	if err != nil {
+		t.Logf("Unable to marshal json for request:%v", err)
+		t.FailNow()
+	}
+	createShareReq, err := http.NewRequest("POST", shareuri, bytes.NewBuffer(jsonBody))
+	// grantee := fakeDN1
+	// createShareReq, err := testhelpers.NewCreateReadPermissionRequest(objResponse1, grantee, "", host)
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	createShareRes, err := httpclients[clientID].Do(createShareReq)
+	createShareRes, err := httpclients[tester10].Do(createShareReq)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
@@ -530,13 +545,26 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 	if err != nil {
 		t.Errorf("Could not decode CreateShare response")
 		t.FailNow()
+	} else {
+		t.Logf("* Resulting permissions")
+		hasEveryone := false
+		for _, permission := range objShare.Permissions {
+			logPermission(t, permission)
+			if permission.Grantee == models.EveryoneGroup {
+				hasEveryone = true
+			}
+		}
+		if hasEveryone {
+			t.Logf("Expected %s to have been removed", models.EveryoneGroup)
+			t.FailNow()
+		}
 	}
 	createShareRes.Body.Close()
 
 	// Capture new change token from the object being changed from adding a share
 	changeToken = objShare.ChangeToken
 
-	// ### Update Object Stream with changed stream (stream 2)
+	t.Logf("* Update Object Stream with changed stream (stream 2)")
 	data2 := data1 + " --- CHANGED"
 	tmp2, err := ioutil.TempFile(".", "__tempfile__")
 	if err != nil {
@@ -554,7 +582,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	updateObjectRes, err := httpclients[clientID].Do(updateObjectReq)
+	updateObjectRes, err := httpclients[tester10].Do(updateObjectReq)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
@@ -568,16 +596,29 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 	if err != nil {
 		t.Errorf("Could not decode CreateObject response.")
 		t.FailNow()
+	} else {
+		t.Logf("* Resulting permissions")
+		hasEveryone := false
+		for _, permission := range objResponse2.Permissions {
+			logPermission(t, permission)
+			if permission.Grantee == models.EveryoneGroup {
+				hasEveryone = true
+			}
+		}
+		if !hasEveryone {
+			t.Logf("Expected %s", models.EveryoneGroup)
+			t.FailNow()
+		}
 	}
 	updateObjectRes.Body.Close()
 
-	// ### Call GetObjectStreamRevision /history/x as second user
+	t.Logf("* Call GetObjectStreamRevision /history/x as second user")
 	getObjectStreamRevisionReq1, err := testhelpers.NewGetObjectStreamRevisionRequest(objID, strconv.Itoa(objResponse2.ChangeCount), "", host)
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	getObjectStreamRevisionRes1, err := httpclients[clientID1].Do(getObjectStreamRevisionReq1)
+	getObjectStreamRevisionRes1, err := httpclients[tester1].Do(getObjectStreamRevisionReq1)
 	if err != nil {
 		t.Errorf("GetObjectStreamRevision request 1 failed: %v\n", err)
 		t.FailNow()
@@ -607,13 +648,13 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.FailNow()
 	}
 
-	// ### Call GetObjectStreamRevision /history/0 as second user
+	t.Logf("* Call GetObjectStreamRevision /history/0 as tester1")
 	getObjectStreamRevisionReq2, err := testhelpers.NewGetObjectStreamRevisionRequest(objID, "0", "", host)
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	getObjectStreamRevisionRes2, err := httpclients[clientID1].Do(getObjectStreamRevisionReq2)
+	getObjectStreamRevisionRes2, err := httpclients[tester1].Do(getObjectStreamRevisionReq2)
 	if err != nil {
 		t.Errorf("GetObjectStreamRevision request 2 failed: %v\n", err)
 		t.FailNow()
@@ -662,8 +703,8 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 	// 	t.FailNow()
 	// }
 
-	// ### Call GetObjectStreamRevision /history/x as second user
-	getObjectStreamRevisionRes3, err := httpclients[clientID1].Do(getObjectStreamRevisionReq1)
+	t.Logf("* Call GetObjectStreamRevision /history/x as tester1")
+	getObjectStreamRevisionRes3, err := httpclients[tester1].Do(getObjectStreamRevisionReq1)
 	if err != nil {
 		t.Errorf("GetObjectStreamRevision request 3 failed: %v\n", err)
 		t.FailNow()
@@ -674,8 +715,8 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.FailNow()
 	}
 
-	// ### Call GetObjectStreamRevision /history/0 as second user
-	getObjectStreamRevisionRes4, err := httpclients[clientID1].Do(getObjectStreamRevisionReq2)
+	t.Logf("* Call GetObjectStreamRevision /history/0 as tester1")
+	getObjectStreamRevisionRes4, err := httpclients[tester1].Do(getObjectStreamRevisionReq2)
 	if err != nil {
 		t.Errorf("GetObjectStreamRevision request 4 failed: %v\n", err)
 		t.FailNow()
