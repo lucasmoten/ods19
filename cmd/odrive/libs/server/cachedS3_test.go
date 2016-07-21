@@ -3,6 +3,7 @@ package server_test
 import (
 	"io"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/server"
@@ -291,44 +292,53 @@ public class ObjectDriveSDK {
 `
 
 func TestCacheDrainToSafety(t *testing.T) {
-	t.Skip()
-
-	//Setup and teardown
+	t.Log("create raw cache")
 	dirname := "t012345"
-	//Create raw cache without starting the purge goroutine
-	logger := zap.NewJSON()
-	d := server.NewS3DrainProviderRaw(".", dirname, float64(0.50), int64(60*5), float64(0.75), 120, logger)
+	fqCacheRoot, err := filepath.Abs(filepath.Dir("."))
+	if err != nil {
+		t.Errorf("Unable to find cacheRoot: %v", err)
+	}
+	fqDir := fqCacheRoot + "/" + dirname
+	if _, err := os.Stat(fqDir); os.IsNotExist(err) {
+		err = os.Mkdir(fqDir, 0777)
+		if err != nil {
+			t.Errorf("Unable to make fqDir: %v", err)
+		}
+	}
+	defer os.Remove(fqDir)
 
-	//create a small file
+	t.Log("make a temp drain provider")
+	logger := zap.NewJSON()
+	d := server.NewS3DrainProviderRaw(fqCacheRoot, dirname, float64(0.50), int64(60*5), float64(0.75), 120, logger)
+
+	t.Log("create a small file")
 	rName := server.FileId("farkFailedInitially")
 	uploadedName := d.Resolve(server.NewFileName(rName, ".uploaded"))
 	fqUploadedName := d.Files().Resolve(uploadedName)
-	//we create the file in uploaded state
+	fqCachedName := d.Files().Resolve(d.Resolve(server.NewFileName(rName, ".cached")))
+	t.Logf("at location: %s", fqUploadedName)
+
+	t.Log("create a file in the uploaded state - simulating a recent upload")
 	f, err := d.Files().Create(uploadedName)
 	if err != nil {
 		t.Errorf("Could not create file %s:%v", fqUploadedName, err)
 	}
-
-	//cleanup
 	defer f.Close()
-	defer func() {
-		err := d.Files().RemoveAll(server.FileNameCached(dirname))
-		if err != nil {
-			t.Errorf("Could not remove directory %s:%v", dirname, err)
-		}
-	}()
+	defer os.Remove(fqUploadedName)
+	defer os.Remove(fqCachedName)
 
+	t.Log("go ahead and actually write the file - and have it evacuated to S3")
 	fdata := []byte(testCacheData)
 	_, err = f.Write(fdata)
+	d.DrainUploadedFilesToSafetyRaw()
 
-	//Will upload into S3, and cache file
-	if _, err = os.Stat("./" + dirname); err == nil {
-		fqCachedName := d.Files().Resolve(d.Resolve(server.NewFileName(rName, ".cached")))
-		d.DrainUploadedFilesToSafety()
-		//Ensure that the file was deleted by being uploaded into S3
-		if _, err = os.Stat(fqCachedName); err != nil {
-			t.Errorf("should have been cached: %s %v", fqCachedName, err)
-		}
+	t.Log("fail if it's still in uploaded state")
+	if _, err = os.Stat(fqUploadedName); err == nil {
+		t.Errorf("should have been cached - still uploaded: %s %v", fqCachedName, err)
+	}
+	t.Log("ensure that it's in cached state")
+	if _, err = os.Stat(fqCachedName); os.IsNotExist(err) {
+		t.Errorf("should have been cached - missing cached: %s %v", fqCachedName, err)
 	}
 }
 
