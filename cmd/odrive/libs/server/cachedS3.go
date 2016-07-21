@@ -273,9 +273,7 @@ func (d *NullDrainProviderData) CacheToDrain(
 	return nil
 }
 
-// DrainUploadedFilesToSafety moves files that were not completely sent to S3 into S3.
-// This can happen if the server reboots.
-func (d *S3DrainProviderData) DrainUploadedFilesToSafety() {
+func (d *S3DrainProviderData) DrainUploadedFilesToSafetyRaw() {
 	//Walk through the cache, and handle .uploaded files
 	fqCache := d.Files().Resolve(d.Resolve(""))
 	err := filepath.Walk(
@@ -317,6 +315,12 @@ func (d *S3DrainProviderData) DrainUploadedFilesToSafety() {
 	if err != nil {
 		sendAppErrorResponse(d.Logger, nil, NewAppError(FailCacheWalk, err, "Unable to walk cache"))
 	}
+}
+
+// DrainUploadedFilesToSafety moves files that were not completely sent to S3 into S3.
+// This can happen if the server reboots.
+func (d *S3DrainProviderData) DrainUploadedFilesToSafety() {
+	d.DrainUploadedFilesToSafetyRaw()
 	//Only now can we start to purge files
 	go d.CachePurge()
 }
