@@ -476,6 +476,7 @@ func TestAddReadShareForUser(t *testing.T) {
 // Verify that T9 can update it by changing the name
 func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	// ### Create object O8 as tester1
+	t.Logf("Creating object O8 as tester1 with ACM share for G2")
 	tester1 := 1
 	// prep object
 	var createObjectRequest protocol.CreateObjectRequest
@@ -511,6 +512,7 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	}
 
 	// ### Add a share for tester 10 to be able to read the object
+	t.Logf("Adding share for tester 10 for read")
 	// prep share
 	var createShareRequest protocol.ObjectShare
 	createShareRequest.AllowRead = true
@@ -543,6 +545,7 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	}
 
 	// ### Verify tester 1-5 can read it, as well as 10, but not 6-9 or other certs
+	t.Logf("Verify 1-5 can read, as well as 10, but not 6-9")
 	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
 	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
 	for clientIdx, ci := range clients {
@@ -572,8 +575,12 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 		ioutil.ReadAll(httpGetResponse.Body)
 		httpGetResponse.Body.Close()
 	}
+	if t.Failed() {
+		t.FailNow()
+	}
 
 	// ### Add a share for G1 group to allow reading and updating
+	t.Logf("Adding share for G1 for read and update")
 	// prep share
 	var createGroupShareRequest protocol.ObjectShare
 	createGroupShareRequest.AllowRead = true
@@ -605,6 +612,7 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	}
 
 	// ### Verify tester 1-10 can read it, but not others
+	t.Logf("Verify 1-0 can read, but not others")
 	for clientIdx, ci := range clients {
 		transport := &http.Transport{TLSClientConfig: ci.Config}
 		client := &http.Client{Transport: transport}
@@ -632,8 +640,12 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 		ioutil.ReadAll(httpGetResponse.Body)
 		httpGetResponse.Body.Close()
 	}
+	if t.Failed() {
+		t.FailNow()
+	}
 
 	// ### Verify that Tester 9 can now update it
+	t.Logf("Verify tester9 can update")
 	tester9 := 9
 	updatedObject2.Name += " changed by Tester09"
 	uriUpdate := host + cfg.NginxRootURL + "/objects/" + updatedObject2.ID + "/properties"

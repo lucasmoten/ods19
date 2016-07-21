@@ -36,7 +36,7 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 	}
 
 	// Check for permission to read this object
-	if ok, _ := isUserAllowedToShare(ctx, &dbObject); !ok {
+	if ok := isUserAllowedToShare(ctx, h.MasterKey, &dbObject); !ok {
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to list shares of this object")
 	}
 

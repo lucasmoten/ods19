@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -379,75 +380,133 @@ func (h AppServer) validateAndFlattenShare(ctx context.Context, permission *mode
 	return nil
 }
 
-func isUserAllowedToCreate(ctx context.Context, obj *models.ODObject) (bool, models.ODObjectPermission) {
+func isUserAllowedToCreate(ctx context.Context, masterKey string, obj *models.ODObject) bool {
 	requiredPermission := models.ODObjectPermission{AllowCreate: true, AllowRead: true}
-	return isUserAllowedTo(ctx, obj, requiredPermission, false)
+	ok, _ := isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
+	return ok
 }
-func isUserAllowedToRead(ctx context.Context, obj *models.ODObject) (bool, models.ODObjectPermission) {
+func isUserAllowedToRead(ctx context.Context, masterKey string, obj *models.ODObject) bool {
 	requiredPermission := models.ODObjectPermission{AllowRead: true}
-	return isUserAllowedTo(ctx, obj, requiredPermission, false)
+	ok, _ := isUserAllowedTo(ctx, masterKey, obj, requiredPermission, false)
+	return ok
 }
-func isUserAllowedToUpdate(ctx context.Context, obj *models.ODObject) (bool, models.ODObjectPermission) {
+func isUserAllowedToReadWithPermission(ctx context.Context, masterKey string, obj *models.ODObject) (bool, models.ODObjectPermission) {
+	requiredPermission := models.ODObjectPermission{AllowRead: true}
+	return isUserAllowedTo(ctx, masterKey, obj, requiredPermission, false)
+}
+func isUserAllowedToUpdate(ctx context.Context, masterKey string, obj *models.ODObject) bool {
 	requiredPermission := models.ODObjectPermission{AllowRead: true, AllowUpdate: true}
-	return isUserAllowedTo(ctx, obj, requiredPermission, false)
+	ok, _ := isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
+	return ok
 }
-func isUserAllowedToDelete(ctx context.Context, obj *models.ODObject) (bool, models.ODObjectPermission) {
+func isUserAllowedToUpdateWithPermission(ctx context.Context, masterKey string, obj *models.ODObject) (bool, models.ODObjectPermission) {
+	requiredPermission := models.ODObjectPermission{AllowRead: true, AllowUpdate: true}
+	return isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
+}
+func isUserAllowedToDelete(ctx context.Context, masterKey string, obj *models.ODObject) bool {
 	requiredPermission := models.ODObjectPermission{AllowRead: true, AllowDelete: true}
-	return isUserAllowedTo(ctx, obj, requiredPermission, false)
+	ok, _ := isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
+	return ok
 }
-func isUserAllowedToShare(ctx context.Context, obj *models.ODObject) (bool, models.ODObjectPermission) {
+func isUserAllowedToShareWithPermission(ctx context.Context, masterKey string, obj *models.ODObject) (bool, models.ODObjectPermission) {
 	requiredPermission := models.ODObjectPermission{AllowRead: true, AllowShare: true}
-	return isUserAllowedTo(ctx, obj, requiredPermission, true)
+	return isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
+}
+func isUserAllowedToShare(ctx context.Context, masterKey string, obj *models.ODObject) bool {
+	requiredPermission := models.ODObjectPermission{AllowRead: true, AllowShare: true}
+	ok, _ := isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
+	return ok
 }
 
-func isUserAllowedTo(ctx context.Context, obj *models.ODObject, requiredPermission models.ODObjectPermission, rollup bool) (bool, models.ODObjectPermission) {
+func isUserAllowedTo(ctx context.Context, masterKey string, obj *models.ODObject, requiredPermission models.ODObjectPermission, rollup bool) (bool, models.ODObjectPermission) {
 	caller, _ := CallerFromContext(ctx)
 	groups, _ := GroupsFromContext(ctx)
 	authorizedTo := false
 	var userPermission models.ODObjectPermission
 	var granteeMatch bool
 	for _, permission := range obj.Permissions {
-		if (!requiredPermission.AllowCreate || permission.AllowCreate) &&
-			(!requiredPermission.AllowRead || permission.AllowRead) &&
-			(!requiredPermission.AllowUpdate || permission.AllowUpdate) &&
-			(!requiredPermission.AllowDelete || permission.AllowDelete) &&
-			(!requiredPermission.AllowShare || permission.AllowShare) {
-			granteeMatch = false
-			if strings.Compare(strings.ToLower(permission.Grantee), strings.ToLower(caller.DistinguishedName)) == 0 {
-				authorizedTo = true
-				granteeMatch = true
-			} else if strings.Compare(strings.ToLower(permission.Grantee), strings.ToLower(models.EveryoneGroup)) == 0 {
-				authorizedTo = true
-				granteeMatch = true
+		// Skip if permission is deleted
+		if permission.IsDeleted {
+			continue
+		}
+		// Skip if permission does not apply to this user
+		granteeMatch = false
+		if strings.Compare(strings.ToLower(permission.Grantee), strings.ToLower(caller.DistinguishedName)) == 0 {
+			granteeMatch = true
+		} else if strings.Compare(strings.ToLower(permission.Grantee), strings.ToLower(models.EveryoneGroup)) == 0 {
+			granteeMatch = true
+		} else {
+			for _, group := range groups {
+				if strings.Compare(strings.ToLower(permission.Grantee), strings.ToLower(group)) == 0 {
+					granteeMatch = true
+					break
+				}
+			}
+		}
+		if !granteeMatch {
+			continue
+		}
+		// Skip if this this permission has invalid signature
+		if !models.EqualsPermissionMAC(masterKey, &permission) {
+			// Not valid. Log it
+			LoggerFromContext(ctx).Warn("invalid mac on permission, skipping", zap.String("objectId", hex.EncodeToString(obj.ID)), zap.String("permissionId", hex.EncodeToString(permission.ID)), zap.String("grantee", permission.Grantee))
+			continue
+		}
+
+		// Check if this permission matches anything that is required
+		if (requiredPermission.AllowCreate && permission.AllowCreate) ||
+			(requiredPermission.AllowRead && permission.AllowRead) ||
+			(requiredPermission.AllowUpdate && permission.AllowUpdate) ||
+			(requiredPermission.AllowDelete && permission.AllowDelete) ||
+			(requiredPermission.AllowShare && permission.AllowShare) {
+
+			// Build up combined permission
+			if len(userPermission.Grantee) == 0 {
+				// first hit, copy direct
+				userPermission = permission
 			} else {
-				for _, group := range groups {
-					if strings.Compare(strings.ToLower(permission.Grantee), strings.ToLower(group)) == 0 {
-						authorizedTo = true
-						granteeMatch = true
+				// append the grants
+				userPermission.AllowCreate = userPermission.AllowCreate || permission.AllowCreate
+				userPermission.AllowRead = userPermission.AllowRead || permission.AllowRead
+				userPermission.AllowUpdate = userPermission.AllowUpdate || permission.AllowUpdate
+				userPermission.AllowDelete = userPermission.AllowDelete || permission.AllowDelete
+				userPermission.AllowShare = userPermission.AllowShare || permission.AllowShare
+			}
+
+			// Determine if all requirements met yet
+			if !authorizedTo {
+				authorizedTo = (!requiredPermission.AllowCreate || userPermission.AllowCreate) &&
+					(!requiredPermission.AllowRead || userPermission.AllowRead) &&
+					(!requiredPermission.AllowUpdate || userPermission.AllowUpdate) &&
+					(!requiredPermission.AllowDelete || userPermission.AllowDelete) &&
+					(!requiredPermission.AllowShare || userPermission.AllowShare)
+			}
+
+			// If authorized and dont need full rollup...
+			if authorizedTo {
+				// if short circuiting as soon as requirements met without a need for rollup
+				if !rollup {
+					// stop processing, have everything we need
+					break
+				} else {
+					// if overall is everything
+					if userPermission.AllowCreate &&
+						userPermission.AllowRead &&
+						userPermission.AllowUpdate &&
+						userPermission.AllowDelete &&
+						userPermission.AllowShare {
+						// stop processing, no need to combine more permissions
 						break
 					}
 				}
 			}
-			if granteeMatch {
-				if authorizedTo && !rollup {
-					// short circuit, return the first matching permission
-					return authorizedTo, permission
-				}
-				// we will examine all permissions in the set, building the combined
-				if len(userPermission.Grantee) == 0 {
-					// first hit, copy direct
-					userPermission = permission
-				} else {
-					// append the grants
-					userPermission.AllowCreate = userPermission.AllowCreate || permission.AllowCreate
-					userPermission.AllowRead = userPermission.AllowRead || permission.AllowRead
-					userPermission.AllowUpdate = userPermission.AllowUpdate || permission.AllowUpdate
-					userPermission.AllowDelete = userPermission.AllowDelete || permission.AllowDelete
-					userPermission.AllowShare = userPermission.AllowShare || permission.AllowShare
-				}
-			}
-		}
-	}
+		} // if permission matches on something required
+
+	} // Iterate permissions
+
+	// Recalculate the MAC for the derived permission
+	userPermission.PermissionMAC = models.CalculatePermissionMAC(masterKey, &userPermission)
+
 	// Return the overall (either combined from one or more granteeMatch, or empty from no match)
 	return authorizedTo, userPermission
 }

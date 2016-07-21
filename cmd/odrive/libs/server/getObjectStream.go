@@ -138,7 +138,7 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	// Check read permission, and capture permission for the encryptKey
 	// Check if the user has permissions to read the ODObject
 	//		Permission.grantee matches caller, and AllowRead is true
-	ok, userPermission := isUserAllowedToRead(ctx, &object)
+	ok, userPermission := isUserAllowedToReadWithPermission(ctx, h.MasterKey, &object)
 	if !ok {
 		return NoBytesReturned, NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
 	}

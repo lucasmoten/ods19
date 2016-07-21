@@ -50,17 +50,8 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	requestObject.ChangeCount = dbObject.ChangeCount
 
 	// Check if the user has permissions to update the ODObject
-	//		Permission.grantee matches caller, and AllowUpdate is true
-	authorizedToUpdate := false
-	for _, permission := range dbObject.Permissions {
-		if permission.Grantee == caller.DistinguishedName &&
-			permission.AllowRead && permission.AllowUpdate {
-			authorizedToUpdate = true
-			break
-		}
-	}
-	if !authorizedToUpdate {
-		return NewAppError(403, nil, "Unauthorized")
+	if ok := isUserAllowedToUpdate(ctx, h.MasterKey, &dbObject); !ok {
+		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
 	}
 
 	// Check if the user has permission to create children under the target
@@ -71,17 +62,8 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	if err != nil {
 		return NewAppError(400, err, "Error retrieving parent to move object into")
 	}
-	authorizedToMoveTo := false
-	for _, parentPermission := range dbParent.Permissions {
-		if parentPermission.Grantee == caller.DistinguishedName &&
-			parentPermission.AllowRead && parentPermission.AllowCreate {
-			authorizedToMoveTo = true
-			break
-		}
-	}
-	if !authorizedToMoveTo {
-		log.Printf("User has insufficient permissions to move object into new parent")
-		return NewAppError(403, nil, "Unauthorized")
+	if ok := isUserAllowedToCreate(ctx, h.MasterKey, &dbParent); !ok {
+		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to move this object to target")
 	}
 
 	// Parent must not be deleted

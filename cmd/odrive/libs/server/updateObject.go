@@ -53,7 +53,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	// Check if the user has permissions to update the ODObject
 	var grant models.ODObjectPermission
-	if ok, grant = isUserAllowedToUpdate(ctx, &dbObject); !ok {
+	if ok, grant = isUserAllowedToUpdateWithPermission(ctx, h.MasterKey, &dbObject); !ok {
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
 	}
 

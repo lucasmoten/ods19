@@ -108,6 +108,8 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		return NewAppError(403, err, "Unauthorized")
 	}
 
+	// recalculate permission mac for owner permission
+	ownerPermission.PermissionMAC = models.CalculatePermissionMAC(h.MasterKey, &ownerPermission)
 	// copy ownerPermission.EncryptKey to all existing permissions:
 	for idx, permission := range obj.Permissions {
 		models.CopyEncryptKey(h.MasterKey, &ownerPermission, &permission)
@@ -199,7 +201,7 @@ func handleCreatePrerequisites(
 
 		// Check if the user has permissions to create child objects under the
 		// parent.
-		if ok, _ := isUserAllowedToCreate(ctx, &dbParentObject); !ok {
+		if ok := isUserAllowedToCreate(ctx, h.MasterKey, &dbParentObject); !ok {
 			return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to create children under this object")
 		}
 

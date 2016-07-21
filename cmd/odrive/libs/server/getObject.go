@@ -39,7 +39,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 
 	// Check if the user has permissions to read the ODObject
 	//		Permission.grantee matches caller, and AllowRead is true
-	if ok, _ := isUserAllowedToRead(ctx, &dbObject); !ok {
+	if ok := isUserAllowedToRead(ctx, h.MasterKey, &dbObject); !ok {
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
 	}
 

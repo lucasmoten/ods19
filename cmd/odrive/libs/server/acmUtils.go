@@ -295,11 +295,24 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 		// Remove read only permissions that are not everyone
 		for i := len(obj.Permissions) - 1; i >= 0; i-- {
 			permission := obj.Permissions[i]
-			if permission.IsReadOnly() {
+			if permission.AllowRead {
 				if strings.Compare(permission.Grantee, models.EveryoneGroup) != 0 {
-					LoggerFromContext(ctx).Info("removing readonly permission that is not everyone", zap.String("grantee", permission.Grantee))
-					obj.Permissions = append(obj.Permissions[:i], obj.Permissions[i+1:]...)
-					// remove permission.Grantee from readGrants ?
+					if permission.IsReadOnly() {
+						// A read only permission that isn't everyone when everyone is present can simply be removed.
+						LoggerFromContext(ctx).Info("removing readonly permission that is not everyone", zap.String("grantee", permission.Grantee))
+						obj.Permissions = append(obj.Permissions[:i], obj.Permissions[i+1:]...)
+					} else {
+						// Has other permissions, need to update it
+						LoggerFromContext(ctx).Info("removing read from grantee since acm gives read to everyone", zap.String("grantee", obj.Permissions[i].Grantee))
+						obj.Permissions[i] = models.ODObjectPermission{
+							AllowCreate:   obj.Permissions[i].AllowCreate,
+							AllowDelete:   obj.Permissions[i].AllowDelete,
+							AllowRead:     false,
+							AllowUpdate:   obj.Permissions[i].AllowUpdate,
+							AllowShare:    obj.Permissions[i].AllowShare,
+							Grantee:       obj.Permissions[i].Grantee,
+							ExplicitShare: true}
+					}
 				}
 			}
 		}
@@ -323,7 +336,7 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 		// Remove read only permissions that are not found in acmGrants
 		for i := len(obj.Permissions) - 1; i >= 0; i-- {
 			permission := obj.Permissions[i]
-			if permission.IsReadOnly() {
+			if permission.AllowRead {
 				hasAcmGrantee := false
 				for _, acmGrantee := range acmGrants {
 					if strings.Compare(permission.Grantee, acmGrantee) == 0 {
@@ -331,10 +344,38 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 					}
 				}
 				if !hasAcmGrantee {
-					LoggerFromContext(ctx).Info("removing grantee not present in acm", zap.String("grantee", obj.Permissions[i].Grantee))
-					obj.Permissions = append(obj.Permissions[:i], obj.Permissions[i+1:]...)
+					if permission.IsReadOnly() {
+						// A read only permission that isn't one of the acmGrantees can simply be removed.
+						LoggerFromContext(ctx).Info("removing grantee not present in acm", zap.String("grantee", obj.Permissions[i].Grantee))
+						obj.Permissions = append(obj.Permissions[:i], obj.Permissions[i+1:]...)
+					} else {
+						// has other permissions, need to update it
+						LoggerFromContext(ctx).Info("removing read from grantee not present in acm", zap.String("grantee", obj.Permissions[i].Grantee))
+						obj.Permissions[i] = models.ODObjectPermission{
+							AllowCreate:   obj.Permissions[i].AllowCreate,
+							AllowDelete:   obj.Permissions[i].AllowDelete,
+							AllowRead:     false,
+							AllowUpdate:   obj.Permissions[i].AllowUpdate,
+							AllowShare:    obj.Permissions[i].AllowShare,
+							Grantee:       obj.Permissions[i].Grantee,
+							ExplicitShare: true}
+					}
 				}
 			}
+		}
+	}
+
+	// Remove any permissions that grant nothing
+	for i := len(obj.Permissions) - 1; i >= 0; i-- {
+		permission := obj.Permissions[i]
+		if !permission.AllowCreate &&
+			!permission.AllowDelete &&
+			!permission.AllowRead &&
+			!permission.AllowShare &&
+			!permission.AllowUpdate {
+			// nothing granted. remove it
+			LoggerFromContext(ctx).Info("removing permission that does not grant capabilities", zap.String("grantee", permission.Grantee))
+			obj.Permissions = append(obj.Permissions[:i], obj.Permissions[i+1:]...)
 		}
 	}
 
