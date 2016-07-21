@@ -30,6 +30,7 @@ import (
 //var fakeDN2 = `CN=test tester02, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US`
 //var fakeDN1 = `cn=test tester01,o=u.s. government,ou=chimera,ou=dae,ou=people,c=us`
 //var fakeDN2 = `cn=test tester02,o=u.s. government,ou=chimera,ou=dae,ou=people,c=us`
+var fakeDN0 = `cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us`
 var fakeDN1 = `cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us`
 var fakeDN2 = `cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us`
 

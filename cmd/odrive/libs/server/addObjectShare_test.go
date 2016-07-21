@@ -4,13 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
+	"decipher.com/object-drive-server/cmd/odrive/libs/server"
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/util/testhelpers"
 
 	"decipher.com/object-drive-server/protocol"
@@ -23,17 +27,17 @@ func TestAddObjectShare(t *testing.T) {
 		t.Skip()
 	}
 	verboseOutput := testing.Verbose()
-	clientid1 := 0
-	clientid2 := 1
+	tester10 := 0 // was clientid1
+	tester1 := 1  // was clientid0
 
 	if verboseOutput {
-		t.Logf("(Verbose Mode) Using client id %d", clientid1)
+		t.Logf("(Verbose Mode) Using tester10")
 		fmt.Println()
 	}
 
 	t.Logf("* Creating 2 folders under root")
-	folder1 := makeFolderViaJSON("Test Folder 1 ", clientid1, t)
-	folder2 := makeFolderViaJSON("Test Folder 2 ", clientid1, t)
+	folder1 := makeFolderViaJSON("Test Folder 1 ", tester10, t)
+	folder2 := makeFolderViaJSON("Test Folder 2 ", tester10, t)
 
 	t.Logf("* Moving folder 2 under folder 1")
 	moveuri := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
@@ -51,7 +55,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	res, err := httpclients[clientid1].Do(req)
+	res, err := httpclients[tester10].Do(req)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -62,14 +66,14 @@ func TestAddObjectShare(t *testing.T) {
 		t.FailNow()
 	}
 
-	t.Logf("* Retrieve folder 1 as clientid2")
+	t.Logf("* Retrieve folder 1 as tester1")
 	geturi := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
 	getReq1, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes1, err := httpclients[clientid2].Do(getReq1)
+	getRes1, err := httpclients[tester1].Do(getReq1)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -78,28 +82,47 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("clientid2 was not able to get folder1 object despite being shared to 'Everyone'")
 		t.FailNow()
 	}
+	var retrievedObject protocol.Object
+	err = util.FullDecode(getRes1.Body, &retrievedObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	t.Logf("* Resulting permissions")
+	for _, permission := range retrievedObject.Permissions {
+		logPermission(t, permission)
+	}
 
-	t.Logf("* Retrieve folder 2 as clientid 2")
+	t.Logf("* Retrieve folder 2 as tester1")
 	geturi = host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/properties"
 	getReq2, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes2, err := httpclients[clientid2].Do(getReq2)
+	getRes2, err := httpclients[tester1].Do(getReq2)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
 	if getRes2.StatusCode != http.StatusOK {
-		t.Logf("clientid2 was not able to get folder2 object despite being shared to 'Everyone'")
+		t.Logf("tester1 was not able to get folder2 object despite being shared to 'Everyone'")
 		t.FailNow()
 	}
+	err = util.FullDecode(getRes2.Body, &retrievedObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	t.Logf("* Resulting permissions")
+	for _, permission := range retrievedObject.Permissions {
+		logPermission(t, permission)
+	}
 
-	t.Logf("* Add share as clientid1 for clientid2 to folder1 without propagation")
+	t.Logf("* Add read share as tester10 for tester1,tester10 to folder1 without propagation")
 	shareuri := host + cfg.NginxRootURL + "/shared/" + folder1.ID
 	shareSetting := protocol.ObjectShare{}
-	shareSetting.Share = makeUserShare(fakeDN1)
+	shareSetting.Share = server.CombineInterface(makeUserShare(fakeDN0), makeUserShare(fakeDN1))
 	shareSetting.AllowRead = true
 	jsonBody, err = json.Marshal(shareSetting)
 	if err != nil {
@@ -111,7 +134,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes3, err := httpclients[clientid1].Do(getReq3)
+	getRes3, err := httpclients[tester10].Do(getReq3)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -120,15 +143,24 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("share creation failed")
 		t.FailNow()
 	}
+	err = util.FullDecode(getRes3.Body, &retrievedObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	t.Logf("* Resulting permissions")
+	for _, permission := range retrievedObject.Permissions {
+		logPermission(t, permission)
+	}
 
-	t.Logf("* Attempt to retrieve folder1 as clientid2")
+	t.Logf("* Attempt to retrieve folder1 as tester1")
 	geturi = host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
 	getReq4, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes4, err := httpclients[clientid2].Do(getReq4)
+	getRes4, err := httpclients[tester1].Do(getReq4)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -137,15 +169,24 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("clientid2 was not able to get shared object, got status %d", getRes4.StatusCode)
 		t.FailNow()
 	}
+	err = util.FullDecode(getRes4.Body, &retrievedObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	t.Logf("* Resulting permissions")
+	for _, permission := range retrievedObject.Permissions {
+		logPermission(t, permission)
+	}
 
-	t.Logf("* Attempt to retrieve folder2 as clientid2")
+	t.Logf("* Attempt to retrieve folder2 as tester1")
 	geturi = host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/properties"
 	getReq5, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes5, err := httpclients[clientid2].Do(getReq5)
+	getRes5, err := httpclients[tester1].Do(getReq5)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -154,11 +195,28 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("clientid2 was not able to get shared object that should still be shared to everyone. Got status %d", getRes5.StatusCode)
 		t.FailNow()
 	}
+	err = util.FullDecode(getRes5.Body, &retrievedObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	t.Logf("* Resulting permissions")
+	hasEveryone := false
+	for _, permission := range retrievedObject.Permissions {
+		logPermission(t, permission)
+		if permission.Grantee == models.EveryoneGroup {
+			hasEveryone = true
+		}
+	}
+	if !hasEveryone {
+		t.Logf("Missing %s", models.EveryoneGroup)
+		t.FailNow()
+	}
 
-	t.Logf("* Add share as clientid1 for clientid2 to folder1 with propagation")
+	t.Logf("* Add share as tester10 for tester1 to folder1 with propagation (NOOP since read exists, and wont propogate)")
 	shareuri = host + cfg.NginxRootURL + "/shared/" + folder1.ID
 	shareSetting = protocol.ObjectShare{}
-	shareSetting.Share = makeUserShare(fakeDN1)
+	shareSetting.Share = server.CombineInterface(makeUserShare(fakeDN0), makeUserShare(fakeDN1))
 	shareSetting.AllowRead = true
 	shareSetting.PropagateToChildren = true
 	jsonBody, err = json.Marshal(shareSetting)
@@ -171,7 +229,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes6, err := httpclients[clientid1].Do(getReq6)
+	getRes6, err := httpclients[tester10].Do(getReq6)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -180,15 +238,24 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("share creation failed")
 		t.FailNow()
 	}
+	err = util.FullDecode(getRes6.Body, &retrievedObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	t.Logf("* Resulting permissions")
+	for _, permission := range retrievedObject.Permissions {
+		logPermission(t, permission)
+	}
 
-	t.Logf("* Attempt to retrieve folder2 as clientid2")
+	t.Logf("* Attempt to retrieve folder2 as tester1")
 	geturi = host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/properties"
 	getReq7, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes7, err := httpclients[clientid2].Do(getReq7)
+	getRes7, err := httpclients[tester1].Do(getReq7)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -197,6 +264,24 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("clientid2 was not able to get object when shared")
 		t.FailNow()
 	}
+	err = util.FullDecode(getRes7.Body, &retrievedObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	t.Logf("* Resulting permissions")
+	hasEveryone = false
+	for _, permission := range retrievedObject.Permissions {
+		logPermission(t, permission)
+		if permission.Grantee == models.EveryoneGroup {
+			hasEveryone = true
+		}
+	}
+	if !hasEveryone {
+		t.Logf("Missing %s", models.EveryoneGroup)
+		t.FailNow()
+	}
+
 }
 
 func TestAddObjectShareAndVerifyACM(t *testing.T) {
@@ -204,24 +289,22 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.Skip()
 	}
 	verboseOutput := testing.Verbose()
-	clientid1 := 0
-	clientid2 := 1
-	clientTestperson10 := httpclients[clientid1]
-	clientTestperson01 := httpclients[clientid2]
+	clientTestperson10 := httpclients[0]
+	clientTestperson01 := httpclients[1]
 
 	if verboseOutput {
-		t.Logf("(Verbose Mode) Using client id %d", clientid1)
+		t.Logf("(Verbose Mode) Using testperson10")
 		fmt.Println()
 	}
 
-	// Create object as testperson10 with ACM that is TS
-	createdFolder, err := makeFolderWithACMViaJSON("TestAddFolderWithTSSITK "+strconv.FormatInt(time.Now().Unix(), 10), testhelpers.ValidACMTopSecretSITK, clientid1)
+	t.Logf("* Create object as testperson10 with ACM that is TS")
+	createdFolder, err := makeFolderWithACMViaJSON("TestAddFolderWithTSSITK "+strconv.FormatInt(time.Now().Unix(), 10), testhelpers.ValidACMTopSecretSITK, 0)
 	if err != nil {
 		t.Logf("Error making folder 1: %v", err)
 		t.FailNow()
 	}
 
-	// Verify testperson10 can get object
+	t.Logf("* Verify testperson10 can get object")
 	getReq1, err := testhelpers.NewGetObjectRequest(createdFolder.ID, "", host)
 	if err != nil {
 		t.Logf("Unable to generate get re-request:%v", err)
@@ -235,8 +318,26 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.Logf("Unexpected status getting object created by testperson10: %d", getRes1.StatusCode)
 		t.FailNow()
 	}
+	var retrievedObject protocol.Object
+	err = util.FullDecode(getRes1.Body, &retrievedObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	t.Logf("* Resulting permissions")
+	hasEveryone := false
+	for _, permission := range retrievedObject.Permissions {
+		logPermission(t, permission)
+		if permission.Grantee == models.EveryoneGroup {
+			hasEveryone = true
+		}
+	}
+	if !hasEveryone {
+		t.Logf("Expected %s", models.EveryoneGroup)
+		t.FailNow()
+	}
 
-	// Verify testperson01 can not get object
+	t.Logf("* Verify testperson01 can not get object")
 	getRes2, err := clientTestperson01.Do(getReq1)
 	if err != nil {
 		t.Logf("Unable to do get request as tp01:%v\n", err)
@@ -247,10 +348,10 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.FailNow()
 	}
 
-	// Create share granting read access to testperson01
+	t.Logf("* Create share granting read access to odrive") // will replace models.EveryoneGroup
 	shareuri := host + cfg.NginxRootURL + "/shared/" + createdFolder.ID
 	shareSetting := protocol.ObjectShare{}
-	shareSetting.Share = makeUserShare(fakeDN1)
+	shareSetting.Share = makeGroupShare("DCTC", "DCTC", "ODrive")
 	//shareSetting.Grantee = fakeDN1
 	shareSetting.AllowRead = true
 	jsonBody, err := json.Marshal(shareSetting)
@@ -279,8 +380,20 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.Logf("Error decoding json to Object:%v", err)
 		t.FailNow()
 	}
+	t.Logf("* Resulting permissions")
+	hasEveryone = false
+	for _, permission := range updatedObject.Permissions {
+		logPermission(t, permission)
+		if permission.Grantee == models.EveryoneGroup {
+			hasEveryone = true
+		}
+	}
+	if hasEveryone {
+		t.Logf("Expected %s to have been removed", models.EveryoneGroup)
+		t.FailNow()
+	}
 
-	// Verify that the object is listed as shared from testperson10 /shared
+	t.Logf("* Verify that the object is listed as shared from testperson10 /shared")
 	shareListURI := host + cfg.NginxRootURL + "/shared?filterField=name&condition=equals&expression=" + url.QueryEscape(createdFolder.Name)
 	shareListRequest, err := http.NewRequest("GET", shareListURI, nil)
 	if err != nil {
@@ -307,7 +420,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.FailNow()
 	}
 
-	// Verify testperson01 can not get object (they lack ACM)
+	t.Logf("* Verify testperson01 can not get object (they lack ACM)")
 	getRes3, err := clientTestperson01.Do(getReq1)
 	if err != nil {
 		t.Logf("Unable to do get request as tp01:%v\n", err)
@@ -318,7 +431,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.FailNow()
 	}
 
-	// Update object as testperson10 to change ACM to be U
+	t.Logf("* Update object as testperson10 to change ACM to be U")
 	//folderUpdate := createdFolder -- object changed from adding permission(s) so created object does not have current change token
 	folderUpdate := updatedObject
 	folderUpdate.RawAcm = testhelpers.ValidACMUnclassified
@@ -345,8 +458,25 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.Logf("bad status: %s", updateResponse.Status)
 		t.FailNow()
 	}
+	err = util.FullDecode(updateResponse.Body, &retrievedObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	t.Logf("* Resulting permissions")
+	hasEveryone = false
+	for _, permission := range retrievedObject.Permissions {
+		logPermission(t, permission)
+		if permission.Grantee == models.EveryoneGroup {
+			hasEveryone = true
+		}
+	}
+	if !hasEveryone {
+		t.Logf("Expected %s", models.EveryoneGroup)
+		t.FailNow()
+	}
 
-	// Verify testperson01 can list objects in the shared to me /shared
+	t.Logf("* Verify testperson01 can list objects in the shared to me /shared")
 	sharedToMeListURI := host + cfg.NginxRootURL + "/shares?filterField=name&condition=equals&expression=" + url.QueryEscape(createdFolder.Name)
 	sharedToMeListRequest, err := http.NewRequest("GET", sharedToMeListURI, nil)
 	if err != nil {
@@ -373,7 +503,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.FailNow()
 	}
 
-	// Verify testperson01 can get the shared object
+	t.Logf("* Verify testperson01 can get the shared object")
 	getRes4, err := clientTestperson01.Do(getReq1)
 	if err != nil {
 		t.Logf("Unable to do get request as tp01:%v\n", err)
@@ -383,4 +513,255 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.Logf("Unexpected status requesting object created by testperson10 as testperson01 after it was shared and acm changed: %d", getRes4.StatusCode)
 		t.FailNow()
 	}
+	err = util.FullDecode(getRes4.Body, &retrievedObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	t.Logf("* Resulting permissions")
+	hasEveryone = false
+	for _, permission := range retrievedObject.Permissions {
+		logPermission(t, permission)
+		if permission.Grantee == models.EveryoneGroup {
+			hasEveryone = true
+		}
+	}
+	if !hasEveryone {
+		t.Logf("Expected %s", models.EveryoneGroup)
+		t.FailNow()
+	}
+
+}
+
+func TestAddShareThatRevokesOwnerRead(t *testing.T) {
+	t.Logf("* Create an object as tester1")
+	tester1 := 1
+	// prep object
+	var createObjectRequest protocol.CreateObjectRequest
+	createObjectRequest.Name = "TestACM Revoking Owner"
+	createObjectRequest.TypeName = "Folder"
+	createObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"]}`
+	createObjectRequest.ContentSize = 0
+	// jsonify it
+	jsonBody, _ := json.Marshal(createObjectRequest)
+	// prep http request
+	uriCreate := host + cfg.NginxRootURL + "/objects"
+	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
+	httpCreate.Header.Set("Content-Type", "application/json")
+	transport := &http.Transport{TLSClientConfig: clients[tester1].Config}
+	client := &http.Client{Transport: transport}
+	// exec and get response
+	httpCreateResponse, err := client.Do(httpCreate)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// check status of response
+	if httpCreateResponse.StatusCode != http.StatusOK {
+		t.Logf("Bad status when creating object: %s", httpCreateResponse.Status)
+		t.FailNow()
+	}
+	// parse back to object
+	var createdObject protocol.Object
+	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+
+	t.Logf("* Resulting permissions")
+	for _, permission := range createdObject.Permissions {
+		logPermission(t, permission)
+	}
+
+	t.Logf("* Verify all clients can read it")
+	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
+	for clientIdx, ci := range clients {
+		transport := &http.Transport{TLSClientConfig: ci.Config}
+		client := &http.Client{Transport: transport}
+		httpGetResponse, err := client.Do(httpGet)
+		if err != nil {
+			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
+			t.Fail()
+		}
+		if httpGetResponse.StatusCode != http.StatusOK {
+			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
+			t.Fail()
+		} else {
+			t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+		}
+		if clientIdx == len(clients)-1 {
+			var retrievedObject protocol.Object
+			err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
+			if err != nil {
+				t.Logf("Error decoding json to Object: %v", err)
+				t.FailNow()
+			}
+			t.Logf("* Resulting permissions")
+			for _, permission := range retrievedObject.Permissions {
+				logPermission(t, permission)
+			}
+		} else {
+			ioutil.ReadAll(httpGetResponse.Body)
+		}
+		httpGetResponse.Body.Close()
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
+
+	t.Logf("* Add share giving tester10 Update and Share access")
+	// prep share
+	var createShareRequest protocol.ObjectShare
+	createShareRequest.AllowUpdate = true
+	createShareRequest.AllowShare = true
+	createShareRequest.Share = makeUserShare("cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us")
+	createShareRequest.PropagateToChildren = false
+	// jsonify it
+	jsonBody, _ = json.Marshal(createShareRequest)
+	// prep http request
+	uriShare := host + cfg.NginxRootURL + "/shared/" + createdObject.ID
+	// prep http request
+	httpCreateShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
+	httpCreateShare.Header.Set("Content-Type", "application/json")
+	// exec and get response
+	httpCreateShareResponse, err := client.Do(httpCreateShare)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// check status of response
+	if httpCreateShareResponse.StatusCode != http.StatusOK {
+		t.Logf("Bad status when creating share: %s", httpCreateShareResponse.Status)
+		t.FailNow()
+	}
+	// parse back to object
+	var updatedObject protocol.Object
+	err = util.FullDecode(httpCreateShareResponse.Body, &updatedObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+
+	t.Logf("* Verify all clients can read it after tester10 given update/share permission")
+	for clientIdx, ci := range clients {
+		transport := &http.Transport{TLSClientConfig: ci.Config}
+		client := &http.Client{Transport: transport}
+		httpGetResponse, err := client.Do(httpGet)
+		if err != nil {
+			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
+			t.Fail()
+		}
+		if httpGetResponse.StatusCode != http.StatusOK {
+			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
+			t.Fail()
+		} else {
+			t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+		}
+		if clientIdx == len(clients)-1 {
+			var retrievedObject protocol.Object
+			err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
+			if err != nil {
+				t.Logf("Error decoding json to Object: %v", err)
+				t.FailNow()
+			}
+			t.Logf("* Resulting permissions")
+			for _, permission := range retrievedObject.Permissions {
+				logPermission(t, permission)
+			}
+		} else {
+			ioutil.ReadAll(httpGetResponse.Body)
+		}
+		httpGetResponse.Body.Close()
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
+
+	t.Logf("* As tester10, attempt to add read share to odrive g1, which tester1 is not a member of ")
+	tester10 := 0
+	// prep share
+	var createGroupShareRequest protocol.ObjectShare
+	createGroupShareRequest.AllowRead = true
+	createGroupShareRequest.AllowUpdate = true
+	createGroupShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G1")
+	createGroupShareRequest.PropagateToChildren = false
+	// jsonify it
+	jsonBody, _ = json.Marshal(createGroupShareRequest)
+	// prep http request
+	httpCreateGroupShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
+	httpCreateGroupShare.Header.Set("Content-Type", "application/json")
+	// exec and get response
+	transport10 := &http.Transport{TLSClientConfig: clients[tester10].Config}
+	client10 := &http.Client{Transport: transport10}
+	httpCreateGroupShareResponse, err := client10.Do(httpCreateGroupShare)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// check status of response
+	if httpCreateGroupShareResponse.StatusCode != http.StatusForbidden {
+		t.Logf("Bad status when creating share: %s - Expected Forbidden", httpCreateGroupShareResponse.Status)
+		t.FailNow()
+	}
+	t.Logf("%s", httpCreateGroupShareResponse.Status)
+
+	// read body to check that the failure is for an expected type
+	bodyData, err := ioutil.ReadAll(httpCreateGroupShareResponse.Body)
+	bodyString := string(bodyData)
+	t.Logf(bodyString)
+	if !strings.Contains(bodyString, "would result in owner not being able to read") {
+		t.Logf("Message returned is not what was expected for this test")
+		t.Fail()
+	}
+
+	t.Logf("* Verify all clients can still read it after tester10 attempted to change read settings that failed")
+	for clientIdx, ci := range clients {
+		transport := &http.Transport{TLSClientConfig: ci.Config}
+		client := &http.Client{Transport: transport}
+		httpGetResponse, err := client.Do(httpGet)
+		if err != nil {
+			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
+			t.Fail()
+		}
+		if httpGetResponse.StatusCode != http.StatusOK {
+			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
+			t.Fail()
+		} else {
+			t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+		}
+		if clientIdx == len(clients)-1 {
+			var retrievedObject protocol.Object
+			err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
+			if err != nil {
+				t.Logf("Error decoding json to Object: %v", err)
+				t.FailNow()
+			}
+			t.Logf("* Resulting permissions")
+			for _, permission := range retrievedObject.Permissions {
+				logPermission(t, permission)
+			}
+		} else {
+			ioutil.ReadAll(httpGetResponse.Body)
+		}
+		httpGetResponse.Body.Close()
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
+
+}
+
+func iifString(c bool, t string, f string) string {
+	if c {
+		return t
+	}
+	return f
+}
+func logPermission(t *testing.T, permission protocol.Permission) {
+	t.Logf("[%s%s%s%s%s] %s",
+		iifString(permission.AllowCreate, "C", "-"), iifString(permission.AllowRead, "R", "-"),
+		iifString(permission.AllowUpdate, "U", "-"), iifString(permission.AllowDelete, "D", "-"),
+		iifString(permission.AllowShare, "S", "-"), permission.Grantee)
 }
