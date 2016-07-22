@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"testing"
 
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 )
@@ -620,45 +622,1230 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 
 }
 
-// TestAddReadShareForGroupRemovesEveryone - User T1 Adds Share with read
-// permission for group ODrive G2 to O1. The existing share to everyone should
+// TestAddReadShareForGroupRemovesEveryone - User T1 creates object O9 with
+// ACM having no share. Verify T1..T10, and another known DN have access to
+// read the object. User T1 Adds Share with read permission for group
+// ODrive G2 to O9. The existing share to everyone should
 // be revoked. T1..T5 should have read access. T1 retains create, delete,
 // update, and share access. T6..T10 should no longer see the object as its not
 // shared to everyone.
-// DEPENDS ON SUCCESSFUL RUN OF TestAcmWithoutShare or COPY
 func TestAddReadShareForGroupRemovesEveryone(t *testing.T) {
 
+	t.Logf("* Create object O9 as tester1")
+	tester1 := 1
+	// prep object
+	var createObjectRequest protocol.CreateObjectRequest
+	createObjectRequest.Name = "TestACM O9"
+	createObjectRequest.TypeName = "Folder"
+	createObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"]}`
+	createObjectRequest.ContentSize = 0
+	jsonBody, _ := json.Marshal(createObjectRequest)
+	// prep http request
+	uriCreate := host + cfg.NginxRootURL + "/objects"
+	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
+	httpCreate.Header.Set("Content-Type", "application/json")
+	transport := &http.Transport{TLSClientConfig: clients[tester1].Config}
+	client := &http.Client{Transport: transport}
+	// exec and get response
+	httpCreateResponse, err := client.Do(httpCreate)
+	failOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+
+	t.Logf("* Verify all clients can read it")
+	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
+	for clientIdx, ci := range clients {
+		transport := &http.Transport{TLSClientConfig: ci.Config}
+		client := &http.Client{Transport: transport}
+		httpGetResponse, err := client.Do(httpGet)
+		if err != nil {
+			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
+			t.Fail()
+		}
+		if httpGetResponse.StatusCode != http.StatusOK {
+			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
+			t.Fail()
+		} else {
+			t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+		}
+		if clientIdx == len(clients)-1 {
+			var retrievedObject protocol.Object
+			err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
+			if err != nil {
+				t.Logf("Error decoding json to Object: %v", err)
+				t.FailNow()
+			}
+			t.Logf("* Resulting permissions")
+			hasEveryone := false
+			for _, permission := range retrievedObject.Permissions {
+				logPermission(t, permission)
+				if permission.Grantee == models.EveryoneGroup {
+					hasEveryone = true
+				}
+			}
+			if !hasEveryone {
+				t.Logf("Missing %s", models.EveryoneGroup)
+				t.FailNow()
+			}
+		} else {
+			ioutil.ReadAll(httpGetResponse.Body)
+		}
+		httpGetResponse.Body.Close()
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
+
+	t.Logf("* User T1 Adds Share with read permission for group ODrive G2 to O9.")
+	// prep share
+	var createGroupShareRequest protocol.ObjectShare
+	createGroupShareRequest.AllowRead = true
+	createGroupShareRequest.AllowUpdate = true
+	createGroupShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G2")
+	createGroupShareRequest.PropagateToChildren = false
+	// jsonify it
+	jsonBody, _ = json.Marshal(createGroupShareRequest)
+	// prep http request
+	uriShare := host + cfg.NginxRootURL + "/shared/" + createdObject.ID
+	httpCreateGroupShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
+	httpCreateGroupShare.Header.Set("Content-Type", "application/json")
+	// exec and get response
+	httpCreateGroupShareResponse, err := client.Do(httpCreateGroupShare)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// check status of response
+	if httpCreateGroupShareResponse.StatusCode != http.StatusOK {
+		t.Logf("Bad status when creating share: %s", httpCreateGroupShareResponse.Status)
+		t.FailNow()
+	}
+	// parse back to object
+	var updatedObject2 protocol.Object
+	err = util.FullDecode(httpCreateGroupShareResponse.Body, &updatedObject2)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+
+	t.Logf("* Verify 1-5 can read, but not others since Everyone removed")
+	for clientIdx, ci := range clients {
+		transport := &http.Transport{TLSClientConfig: ci.Config}
+		client := &http.Client{Transport: transport}
+		httpGetResponse, err := client.Do(httpGet)
+		if err != nil {
+			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
+			t.Fail()
+		}
+		switch clientIdx {
+		case 1, 2, 3, 4, 5:
+			if httpGetResponse.StatusCode != http.StatusOK {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			}
+		default: // twl-server-generic and any others that may get added later
+			if httpGetResponse.StatusCode != http.StatusForbidden {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is denied access to read %s", ci.Name, createdObject.Name)
+			}
+		}
+		if clientIdx == len(clients)-1 {
+			t.Logf("* Resulting permissions")
+			hasEveryone := false
+			for _, permission := range updatedObject2.Permissions {
+				logPermission(t, permission)
+				if permission.Grantee == models.EveryoneGroup {
+					hasEveryone = true
+				}
+				if strings.Contains(permission.Grantee, "cn=test tester01,") {
+					if !permission.AllowCreate ||
+						!permission.AllowUpdate ||
+						!permission.AllowDelete ||
+						!permission.AllowShare {
+						t.Logf("Expected tester1 to have Create, Update, Delete, and Share")
+						t.Fail()
+					}
+				}
+			}
+			if hasEveryone {
+				t.Logf("Expected %s to have been removed", models.EveryoneGroup)
+				t.Fail()
+			}
+		} else {
+			ioutil.ReadAll(httpGetResponse.Body)
+		}
+		httpGetResponse.Body.Close()
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
+
 }
 
-// TestAddReadShareToUserWithoutEveryone - User T1 Adds Share with read
-// permission for user T10 to O1. T1 retains full CRUDS, T1..T5 retains read
-// access from the share established in 9 and T10 should now get read access.
-// DEPENDS ON SUCCESSFUL RUN OF TestAcmWithoutShare or COPY
-// DEPENDS ON SUCCESSFUL RUN OF TestAddReadShareForGroupRemovesEveryone or COPY
+// TestAddReadShareToUserWithoutEveryone - User T1 creates object O10 with
+// ACM having no share. Verify T1..T10, and another known DN have access to
+// read the object. User T1 Adds Share with read permission for group
+// ODrive G2 to O10. The existing share to everyone should
+// be revoked. T1..T5 should have read access. T1 retains create, delete,
+// update, and share access. T6..T10 should no longer see the object as its not
+// shared to everyone.  User T1 Adds Share with read permission for user T10 to
+// O10. T1 retains full CRUDS, T1..T5 retains read access from the prior share
+// established and T10 should now get read access.
 func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
+	t.Logf("* Create object O10 as tester1")
+	tester1 := 1
+	// prep object
+	var createObjectRequest protocol.CreateObjectRequest
+	createObjectRequest.Name = "TestACM O10"
+	createObjectRequest.TypeName = "Folder"
+	createObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"]}`
+	createObjectRequest.ContentSize = 0
+	jsonBody, _ := json.Marshal(createObjectRequest)
+	// prep http request
+	uriCreate := host + cfg.NginxRootURL + "/objects"
+	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
+	httpCreate.Header.Set("Content-Type", "application/json")
+	transport := &http.Transport{TLSClientConfig: clients[tester1].Config}
+	client := &http.Client{Transport: transport}
+	// exec and get response
+	httpCreateResponse, err := client.Do(httpCreate)
+	failOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+
+	t.Logf("* Verify all clients can read it")
+	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
+	for clientIdx, ci := range clients {
+		transport := &http.Transport{TLSClientConfig: ci.Config}
+		client := &http.Client{Transport: transport}
+		httpGetResponse, err := client.Do(httpGet)
+		if err != nil {
+			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
+			t.Fail()
+		}
+		if httpGetResponse.StatusCode != http.StatusOK {
+			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
+			t.Fail()
+		} else {
+			t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+		}
+		if clientIdx == len(clients)-1 {
+			var retrievedObject protocol.Object
+			err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
+			if err != nil {
+				t.Logf("Error decoding json to Object: %v", err)
+				t.FailNow()
+			}
+			t.Logf("* Resulting permissions")
+			hasEveryone := false
+			for _, permission := range retrievedObject.Permissions {
+				logPermission(t, permission)
+				if permission.Grantee == models.EveryoneGroup {
+					hasEveryone = true
+				}
+			}
+			if !hasEveryone {
+				t.Logf("Missing %s", models.EveryoneGroup)
+				t.FailNow()
+			}
+		} else {
+			ioutil.ReadAll(httpGetResponse.Body)
+		}
+		httpGetResponse.Body.Close()
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
+
+	t.Logf("* User T1 Adds Share with read permission for group ODrive G2 to O10.")
+	// prep share
+	var createGroupShareRequest protocol.ObjectShare
+	createGroupShareRequest.AllowRead = true
+	createGroupShareRequest.AllowUpdate = true
+	createGroupShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G2")
+	createGroupShareRequest.PropagateToChildren = false
+	// jsonify it
+	jsonBody, _ = json.Marshal(createGroupShareRequest)
+	// prep http request
+	uriShare := host + cfg.NginxRootURL + "/shared/" + createdObject.ID
+	httpCreateGroupShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
+	httpCreateGroupShare.Header.Set("Content-Type", "application/json")
+	// exec and get response
+	httpCreateGroupShareResponse, err := client.Do(httpCreateGroupShare)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// check status of response
+	if httpCreateGroupShareResponse.StatusCode != http.StatusOK {
+		t.Logf("Bad status when creating share: %s", httpCreateGroupShareResponse.Status)
+		t.FailNow()
+	}
+	// parse back to object
+	var updatedObject2 protocol.Object
+	err = util.FullDecode(httpCreateGroupShareResponse.Body, &updatedObject2)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+
+	t.Logf("* Verify 1-5 can read, but not others since Everyone removed")
+	for clientIdx, ci := range clients {
+		transport := &http.Transport{TLSClientConfig: ci.Config}
+		client := &http.Client{Transport: transport}
+		httpGetResponse, err := client.Do(httpGet)
+		if err != nil {
+			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
+			t.Fail()
+		}
+		switch clientIdx {
+		case 1, 2, 3, 4, 5:
+			if httpGetResponse.StatusCode != http.StatusOK {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			}
+		default: // twl-server-generic and any others that may get added later
+			if httpGetResponse.StatusCode != http.StatusForbidden {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is denied access to read %s", ci.Name, createdObject.Name)
+			}
+		}
+		if clientIdx == len(clients)-1 {
+			t.Logf("* Resulting permissions")
+			hasEveryone := false
+			for _, permission := range updatedObject2.Permissions {
+				logPermission(t, permission)
+				if permission.Grantee == models.EveryoneGroup {
+					hasEveryone = true
+				}
+				if strings.Contains(permission.Grantee, "cn=test tester01,") {
+					if !permission.AllowCreate ||
+						!permission.AllowUpdate ||
+						!permission.AllowDelete ||
+						!permission.AllowShare {
+						t.Logf("Expected tester1 to have Create, Update, Delete, and Share")
+						t.Fail()
+					}
+				}
+			}
+			if hasEveryone {
+				t.Logf("Expected %s to have been removed", models.EveryoneGroup)
+				t.Fail()
+			}
+		} else {
+			ioutil.ReadAll(httpGetResponse.Body)
+		}
+		httpGetResponse.Body.Close()
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
+
+	t.Logf("* User T1 Adds Share with read permission for user tester10 to O10.")
+	// prep share
+	var createUserShareRequest protocol.ObjectShare
+	createUserShareRequest.AllowRead = true
+	createUserShareRequest.Share = makeUserShare(fakeDN0)
+	createUserShareRequest.PropagateToChildren = false
+	// jsonify it
+	jsonBody, _ = json.Marshal(createUserShareRequest)
+	// prep http request
+	httpCreateUserShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
+	httpCreateUserShare.Header.Set("Content-Type", "application/json")
+	// exec and get response
+	httpCreateUserShareResponse, err := client.Do(httpCreateUserShare)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// check status of response
+	if httpCreateUserShareResponse.StatusCode != http.StatusOK {
+		t.Logf("Bad status when creating share: %s", httpCreateUserShareResponse.Status)
+		t.FailNow()
+	}
+	// parse back to object
+	var updatedObject3 protocol.Object
+	err = util.FullDecode(httpCreateUserShareResponse.Body, &updatedObject3)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+
+	t.Logf("* Verify 1-5, 10 can read, but not others since Everyone removed")
+	for clientIdx, ci := range clients {
+		transport := &http.Transport{TLSClientConfig: ci.Config}
+		client := &http.Client{Transport: transport}
+		httpGetResponse, err := client.Do(httpGet)
+		if err != nil {
+			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
+			t.Fail()
+		}
+		switch clientIdx {
+		case 0, 1, 2, 3, 4, 5:
+			if httpGetResponse.StatusCode != http.StatusOK {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			}
+		default: // twl-server-generic and any others that may get added later
+			if httpGetResponse.StatusCode != http.StatusForbidden {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is denied access to read %s", ci.Name, createdObject.Name)
+			}
+		}
+		if clientIdx == len(clients)-1 {
+			t.Logf("* Resulting permissions")
+			hasEveryone := false
+			for _, permission := range updatedObject3.Permissions {
+				logPermission(t, permission)
+				if permission.Grantee == models.EveryoneGroup {
+					hasEveryone = true
+				}
+				if strings.Contains(permission.Grantee, "cn=test tester01,") {
+					if !permission.AllowCreate ||
+						!permission.AllowUpdate ||
+						!permission.AllowDelete ||
+						!permission.AllowShare {
+						t.Logf("Expected tester1 to have Create, Update, Delete, and Share")
+						t.Fail()
+					}
+				}
+				if strings.Contains(permission.Grantee, "tester10") {
+					if !permission.AllowRead {
+						t.Logf("Expected tester10 to have Read")
+						t.Fail()
+					}
+				}
+			}
+			if hasEveryone {
+				t.Logf("Expected %s to have been removed", models.EveryoneGroup)
+				t.Fail()
+			}
+		} else {
+			ioutil.ReadAll(httpGetResponse.Body)
+		}
+		httpGetResponse.Body.Close()
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
 
 }
 
-// TestUpdateAcmWithoutSharingToUser - User T1 Updates O1 setting an ACM that
-// has a share for O1. T1 retains full CRUDS, T1..T5 retains read access from
-// the share as it remains in place, and T10 should lose access as the read
-// permission should be marked deleted since ACM overrides.
-// DEPENDS ON SUCCESSFUL RUN OF TestAcmWithoutShare or COPY
-// DEPENDS ON SUCCESSFUL RUN OF TestAddReadShareForGroupRemovesEveryone or COPY
-// DEPENDS ON SUCCESSFUL RUN OF TestAddReadShareToUserWithoutEveryone or COPY
+// TestUpdateAcmWithoutSharingToUser - User T1 creates object O10 with
+// ACM having no share. Verify T1..T10, and another known DN have access to
+// read the object. User T1 Adds Share with read permission for group
+// ODrive G2 to O10. The existing share to everyone should
+// be revoked. T1..T5 should have read access. T1 retains create, delete,
+// update, and share access. T6..T10 should no longer see the object as its not
+// shared to everyone.  User T1 Adds Share with read permission for user T10 to
+// O10. T1 retains full CRUDS, T1..T5 retains read access from the prior share
+// established and T10 should now get read access. -> User T1 Updates O1
+// setting an ACM that has a share for G2. T1 retains full CRUDS, T1..T5
+// retains read access from the share as it remains in place, and T10 should
+// lose access as the read permission should be marked deleted since ACM
+// overrides.
 func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
+	t.Logf("* Create object O11 as tester1")
+	tester1 := 1
+	// prep object
+	var createObjectRequest protocol.CreateObjectRequest
+	createObjectRequest.Name = "TestACM O11"
+	createObjectRequest.TypeName = "Folder"
+	createObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"]}`
+	createObjectRequest.ContentSize = 0
+	jsonBody, _ := json.Marshal(createObjectRequest)
+	// prep http request
+	uriCreate := host + cfg.NginxRootURL + "/objects"
+	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
+	httpCreate.Header.Set("Content-Type", "application/json")
+	transport := &http.Transport{TLSClientConfig: clients[tester1].Config}
+	client := &http.Client{Transport: transport}
+	// exec and get response
+	httpCreateResponse, err := client.Do(httpCreate)
+	failOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+
+	t.Logf("* Verify all clients can read it")
+	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
+	for clientIdx, ci := range clients {
+		transport := &http.Transport{TLSClientConfig: ci.Config}
+		client := &http.Client{Transport: transport}
+		httpGetResponse, err := client.Do(httpGet)
+		if err != nil {
+			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
+			t.Fail()
+		}
+		if httpGetResponse.StatusCode != http.StatusOK {
+			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
+			t.Fail()
+		} else {
+			t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+		}
+		if clientIdx == len(clients)-1 {
+			var retrievedObject protocol.Object
+			err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
+			if err != nil {
+				t.Logf("Error decoding json to Object: %v", err)
+				t.FailNow()
+			}
+			t.Logf("* Resulting permissions")
+			hasEveryone := false
+			for _, permission := range retrievedObject.Permissions {
+				logPermission(t, permission)
+				if permission.Grantee == models.EveryoneGroup {
+					hasEveryone = true
+				}
+			}
+			if !hasEveryone {
+				t.Logf("Missing %s", models.EveryoneGroup)
+				t.FailNow()
+			}
+		} else {
+			ioutil.ReadAll(httpGetResponse.Body)
+		}
+		httpGetResponse.Body.Close()
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
+
+	t.Logf("* User T1 Adds Share with read permission for group ODrive G2 to O11.")
+	// prep share
+	var createGroupShareRequest protocol.ObjectShare
+	createGroupShareRequest.AllowRead = true
+	createGroupShareRequest.AllowUpdate = true
+	createGroupShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G2")
+	createGroupShareRequest.PropagateToChildren = false
+	// jsonify it
+	jsonBody, _ = json.Marshal(createGroupShareRequest)
+	// prep http request
+	uriShare := host + cfg.NginxRootURL + "/shared/" + createdObject.ID
+	httpCreateGroupShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
+	httpCreateGroupShare.Header.Set("Content-Type", "application/json")
+	// exec and get response
+	httpCreateGroupShareResponse, err := client.Do(httpCreateGroupShare)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// check status of response
+	if httpCreateGroupShareResponse.StatusCode != http.StatusOK {
+		t.Logf("Bad status when creating share: %s", httpCreateGroupShareResponse.Status)
+		t.FailNow()
+	}
+	// parse back to object
+	var updatedObject2 protocol.Object
+	err = util.FullDecode(httpCreateGroupShareResponse.Body, &updatedObject2)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+
+	t.Logf("* Verify 1-5 can read, but not others since Everyone removed")
+	for clientIdx, ci := range clients {
+		transport := &http.Transport{TLSClientConfig: ci.Config}
+		client := &http.Client{Transport: transport}
+		httpGetResponse, err := client.Do(httpGet)
+		if err != nil {
+			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
+			t.Fail()
+		}
+		switch clientIdx {
+		case 1, 2, 3, 4, 5:
+			if httpGetResponse.StatusCode != http.StatusOK {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			}
+		default: // twl-server-generic and any others that may get added later
+			if httpGetResponse.StatusCode != http.StatusForbidden {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is denied access to read %s", ci.Name, createdObject.Name)
+			}
+		}
+		if clientIdx == len(clients)-1 {
+			t.Logf("* Resulting permissions")
+			hasEveryone := false
+			for _, permission := range updatedObject2.Permissions {
+				logPermission(t, permission)
+				if permission.Grantee == models.EveryoneGroup {
+					hasEveryone = true
+				}
+				if strings.Contains(permission.Grantee, "cn=test tester01,") {
+					if !permission.AllowCreate ||
+						!permission.AllowUpdate ||
+						!permission.AllowDelete ||
+						!permission.AllowShare {
+						t.Logf("Expected tester1 to have Create, Update, Delete, and Share")
+						t.Fail()
+					}
+				}
+			}
+			if hasEveryone {
+				t.Logf("Expected %s to have been removed", models.EveryoneGroup)
+				t.Fail()
+			}
+		} else {
+			ioutil.ReadAll(httpGetResponse.Body)
+		}
+		httpGetResponse.Body.Close()
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
+
+	t.Logf("* User T1 Adds Share with read permission for user tester10 to O11.")
+	// prep share
+	var createUserShareRequest protocol.ObjectShare
+	createUserShareRequest.AllowRead = true
+	createUserShareRequest.Share = makeUserShare(fakeDN0)
+	createUserShareRequest.PropagateToChildren = false
+	// jsonify it
+	jsonBody, _ = json.Marshal(createUserShareRequest)
+	// prep http request
+	httpCreateUserShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
+	httpCreateUserShare.Header.Set("Content-Type", "application/json")
+	// exec and get response
+	httpCreateUserShareResponse, err := client.Do(httpCreateUserShare)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// check status of response
+	if httpCreateUserShareResponse.StatusCode != http.StatusOK {
+		t.Logf("Bad status when creating share: %s", httpCreateUserShareResponse.Status)
+		t.FailNow()
+	}
+	// parse back to object
+	var updatedObject3 protocol.Object
+	err = util.FullDecode(httpCreateUserShareResponse.Body, &updatedObject3)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+
+	t.Logf("* Verify 1-5, 10 can read, but not others since Everyone removed")
+	for clientIdx, ci := range clients {
+		transport := &http.Transport{TLSClientConfig: ci.Config}
+		client := &http.Client{Transport: transport}
+		httpGetResponse, err := client.Do(httpGet)
+		if err != nil {
+			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
+			t.Fail()
+		}
+		switch clientIdx {
+		case 0, 1, 2, 3, 4, 5:
+			if httpGetResponse.StatusCode != http.StatusOK {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			}
+		default: // twl-server-generic and any others that may get added later
+			if httpGetResponse.StatusCode != http.StatusForbidden {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is denied access to read %s", ci.Name, createdObject.Name)
+			}
+		}
+		if clientIdx == len(clients)-1 {
+			t.Logf("* Resulting permissions")
+			hasEveryone := false
+			for _, permission := range updatedObject3.Permissions {
+				logPermission(t, permission)
+				if permission.Grantee == models.EveryoneGroup {
+					hasEveryone = true
+				}
+				if strings.Contains(permission.Grantee, "cn=test tester01,") {
+					if !permission.AllowCreate ||
+						!permission.AllowUpdate ||
+						!permission.AllowDelete ||
+						!permission.AllowShare {
+						t.Logf("Expected tester1 to have Create, Update, Delete, and Share")
+						t.Fail()
+					}
+				}
+				if strings.Contains(permission.Grantee, "tester10") {
+					if !permission.AllowRead {
+						t.Logf("Expected tester10 to have Read")
+						t.Fail()
+					}
+				}
+			}
+			if hasEveryone {
+				t.Logf("Expected %s to have been removed", models.EveryoneGroup)
+				t.Fail()
+			}
+		} else {
+			ioutil.ReadAll(httpGetResponse.Body)
+		}
+		httpGetResponse.Body.Close()
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
+
+	t.Logf("Update O11 setting an ACM sharing to ODrive G2, which will revoke read from T10")
+	acmWithODriveG1 := `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{"projects":{"DCTC":{"disp_nm":"DCTC","groups":["ODrive_G2"]}}}}`
+	updatedObject3.RawAcm = acmWithODriveG1
+	uriUpdate := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	// jsonify it
+	jsonBody, _ = json.Marshal(updatedObject3)
+	// prep http request
+	httpUpdateObject, _ := http.NewRequest("POST", uriUpdate, bytes.NewBuffer(jsonBody))
+	httpUpdateObject.Header.Set("Content-Type", "application/json")
+	// exec and get response
+	httpUpdateObjectResponse, err := client.Do(httpUpdateObject)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// check status of response
+	if httpUpdateObjectResponse.StatusCode != http.StatusOK {
+		t.Logf("Bad status when updating object: %s", httpUpdateObjectResponse.Status)
+		t.FailNow()
+	}
+	// parse back to object
+	var updatedObject4 protocol.Object
+	err = util.FullDecode(httpUpdateObjectResponse.Body, &updatedObject4)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+
+	t.Logf("* Verify 1-5 can read, but nobody else")
+	for clientIdx, ci := range clients {
+		transport := &http.Transport{TLSClientConfig: ci.Config}
+		client := &http.Client{Transport: transport}
+		httpGetResponse, err := client.Do(httpGet)
+		if err != nil {
+			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
+			t.Fail()
+		}
+		switch clientIdx {
+		case 1, 2, 3, 4, 5:
+			if httpGetResponse.StatusCode != http.StatusOK {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			}
+		default: // twl-server-generic and any others that may get added later
+			if httpGetResponse.StatusCode != http.StatusForbidden {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is denied access to read %s", ci.Name, createdObject.Name)
+			}
+		}
+		if clientIdx == len(clients)-1 {
+			t.Logf("* Resulting permissions")
+			hasEveryone := false
+			for _, permission := range updatedObject4.Permissions {
+				logPermission(t, permission)
+				if permission.Grantee == models.EveryoneGroup {
+					hasEveryone = true
+				}
+				if strings.Contains(permission.Grantee, "cn=test tester01,") {
+					if !permission.AllowCreate ||
+						!permission.AllowUpdate ||
+						!permission.AllowDelete ||
+						!permission.AllowShare {
+						t.Logf("Expected tester1 to have Create, Update, Delete, and Share")
+						t.Fail()
+					}
+				}
+				if strings.Contains(permission.Grantee, "tester10") {
+					t.Logf("Expected tester10 permission to have been removed")
+					t.Fail()
+				}
+			}
+			if hasEveryone {
+				t.Logf("Expected %s to have been removed", models.EveryoneGroup)
+				t.Fail()
+			}
+		} else {
+			ioutil.ReadAll(httpGetResponse.Body)
+		}
+		httpGetResponse.Body.Close()
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
 
 }
 
-// TestUpdateAcmWithoutAnyShare - User T1 Updates O1 setting an ACM that has an
-// empty share. T1 retains full CRUDS. Share to Odrive G2 in ACM is removed as
-// is permission. Permission to EveryoneGroup established. T1..T10 have read
-// access. Any other recognized DN also has read access
-// DEPENDS ON SUCCESSFUL RUN OF TestAcmWithoutShare or COPY
-// DEPENDS ON SUCCESSFUL RUN OF TestAddReadShareForGroupRemovesEveryone or COPY
-// DEPENDS ON SUCCESSFUL RUN OF TestAddReadShareToUserWithoutEveryone or COPY
-// DEPENDS ON SUCCESSFUL RUN OF TestUpdateAcmWithoutSharingToUser or COPY
+// TestUpdateAcmWithoutAnyShare - User T1 creates object O10 with
+// ACM having no share. Verify T1..T10, and another known DN have access to
+// read the object. User T1 Adds Share with read permission for group
+// ODrive G2 to O10. The existing share to everyone should
+// be revoked. T1..T5 should have read access. T1 retains create, delete,
+// update, and share access. T6..T10 should no longer see the object as its not
+// shared to everyone.  User T1 Adds Share with read permission for user T10 to
+// O10. T1 retains full CRUDS, T1..T5 retains read access from the prior share
+// established and T10 should now get read access. User T1 Updates O1
+// setting an ACM that has a share for O1. T1 retains full CRUDS, T1..T5
+// retains read access from the share as it remains in place, and T10 should
+// lose access as the read permission should be marked deleted since ACM
+// overrides. -> User T1 Updates O1 setting an ACM that has an empty share. T1
+// retains full CRUDS. Share to Odrive G2 in ACM is removed as is permission.
+// Permission to EveryoneGroup established. T1..T10 have read access. Any other
+// recognized DN also has read access
 func TestUpdateAcmWithoutAnyShare(t *testing.T) {
+	t.Logf("* Create object O12 as tester1")
+	tester1 := 1
+	// prep object
+	var createObjectRequest protocol.CreateObjectRequest
+	createObjectRequest.Name = "TestACM O12"
+	createObjectRequest.TypeName = "Folder"
+	createObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"]}`
+	createObjectRequest.ContentSize = 0
+	jsonBody, _ := json.Marshal(createObjectRequest)
+	// prep http request
+	uriCreate := host + cfg.NginxRootURL + "/objects"
+	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
+	httpCreate.Header.Set("Content-Type", "application/json")
+	transport := &http.Transport{TLSClientConfig: clients[tester1].Config}
+	client := &http.Client{Transport: transport}
+	// exec and get response
+	httpCreateResponse, err := client.Do(httpCreate)
+	failOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+
+	t.Logf("* Verify all clients can read it")
+	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
+	for clientIdx, ci := range clients {
+		transport := &http.Transport{TLSClientConfig: ci.Config}
+		client := &http.Client{Transport: transport}
+		httpGetResponse, err := client.Do(httpGet)
+		if err != nil {
+			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
+			t.Fail()
+		}
+		if httpGetResponse.StatusCode != http.StatusOK {
+			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
+			t.Fail()
+		} else {
+			t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+		}
+		if clientIdx == len(clients)-1 {
+			var retrievedObject protocol.Object
+			err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
+			if err != nil {
+				t.Logf("Error decoding json to Object: %v", err)
+				t.FailNow()
+			}
+			t.Logf("* Resulting permissions")
+			hasEveryone := false
+			for _, permission := range retrievedObject.Permissions {
+				logPermission(t, permission)
+				if permission.Grantee == models.EveryoneGroup {
+					hasEveryone = true
+				}
+			}
+			if !hasEveryone {
+				t.Logf("Missing %s", models.EveryoneGroup)
+				t.FailNow()
+			}
+		} else {
+			ioutil.ReadAll(httpGetResponse.Body)
+		}
+		httpGetResponse.Body.Close()
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
+
+	t.Logf("* User T1 Adds Share with read permission for group ODrive G2 to O12.")
+	// prep share
+	var createGroupShareRequest protocol.ObjectShare
+	createGroupShareRequest.AllowRead = true
+	//createGroupShareRequest.AllowUpdate = true
+	createGroupShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G2")
+	createGroupShareRequest.PropagateToChildren = false
+	// jsonify it
+	jsonBody, _ = json.Marshal(createGroupShareRequest)
+	// prep http request
+	uriShare := host + cfg.NginxRootURL + "/shared/" + createdObject.ID
+	httpCreateGroupShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
+	httpCreateGroupShare.Header.Set("Content-Type", "application/json")
+	// exec and get response
+	httpCreateGroupShareResponse, err := client.Do(httpCreateGroupShare)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// check status of response
+	if httpCreateGroupShareResponse.StatusCode != http.StatusOK {
+		t.Logf("Bad status when creating share: %s", httpCreateGroupShareResponse.Status)
+		t.FailNow()
+	}
+	// parse back to object
+	var updatedObject2 protocol.Object
+	err = util.FullDecode(httpCreateGroupShareResponse.Body, &updatedObject2)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+
+	t.Logf("* Verify 1-5 can read, but not others since Everyone removed")
+	for clientIdx, ci := range clients {
+		transport := &http.Transport{TLSClientConfig: ci.Config}
+		client := &http.Client{Transport: transport}
+		httpGetResponse, err := client.Do(httpGet)
+		if err != nil {
+			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
+			t.Fail()
+		}
+		switch clientIdx {
+		case 1, 2, 3, 4, 5:
+			if httpGetResponse.StatusCode != http.StatusOK {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			}
+		default: // twl-server-generic and any others that may get added later
+			if httpGetResponse.StatusCode != http.StatusForbidden {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is denied access to read %s", ci.Name, createdObject.Name)
+			}
+		}
+		if clientIdx == len(clients)-1 {
+			t.Logf("* Resulting permissions")
+			hasEveryone := false
+			for _, permission := range updatedObject2.Permissions {
+				logPermission(t, permission)
+				if permission.Grantee == models.EveryoneGroup {
+					hasEveryone = true
+				}
+				if strings.Contains(permission.Grantee, "cn=test tester01,") {
+					if !permission.AllowCreate ||
+						!permission.AllowUpdate ||
+						!permission.AllowDelete ||
+						!permission.AllowShare {
+						t.Logf("Expected tester1 to have Create, Update, Delete, and Share")
+						t.Fail()
+					}
+				}
+			}
+			if hasEveryone {
+				t.Logf("Expected %s to have been removed", models.EveryoneGroup)
+				t.Fail()
+			}
+		} else {
+			ioutil.ReadAll(httpGetResponse.Body)
+		}
+		httpGetResponse.Body.Close()
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
+
+	t.Logf("* User T1 Adds Share with read permission for user tester10 to O12.")
+	// prep share
+	var createUserShareRequest protocol.ObjectShare
+	createUserShareRequest.AllowRead = true
+	createUserShareRequest.Share = makeUserShare(fakeDN0)
+	createUserShareRequest.PropagateToChildren = false
+	// jsonify it
+	jsonBody, _ = json.Marshal(createUserShareRequest)
+	// prep http request
+	httpCreateUserShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
+	httpCreateUserShare.Header.Set("Content-Type", "application/json")
+	// exec and get response
+	httpCreateUserShareResponse, err := client.Do(httpCreateUserShare)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// check status of response
+	if httpCreateUserShareResponse.StatusCode != http.StatusOK {
+		t.Logf("Bad status when creating share: %s", httpCreateUserShareResponse.Status)
+		t.FailNow()
+	}
+	// parse back to object
+	var updatedObject3 protocol.Object
+	err = util.FullDecode(httpCreateUserShareResponse.Body, &updatedObject3)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+
+	t.Logf("* Verify 1-5, 10 can read, but not others since Everyone removed")
+	for clientIdx, ci := range clients {
+		transport := &http.Transport{TLSClientConfig: ci.Config}
+		client := &http.Client{Transport: transport}
+		httpGetResponse, err := client.Do(httpGet)
+		if err != nil {
+			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
+			t.Fail()
+		}
+		switch clientIdx {
+		case 0, 1, 2, 3, 4, 5:
+			if httpGetResponse.StatusCode != http.StatusOK {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			}
+		default: // twl-server-generic and any others that may get added later
+			if httpGetResponse.StatusCode != http.StatusForbidden {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is denied access to read %s", ci.Name, createdObject.Name)
+			}
+		}
+		if clientIdx == len(clients)-1 {
+			t.Logf("* Resulting permissions")
+			hasEveryone := false
+			for _, permission := range updatedObject3.Permissions {
+				logPermission(t, permission)
+				if permission.Grantee == models.EveryoneGroup {
+					hasEveryone = true
+				}
+				if strings.Contains(permission.Grantee, "cn=test tester01,") {
+					if !permission.AllowCreate ||
+						!permission.AllowUpdate ||
+						!permission.AllowDelete ||
+						!permission.AllowShare {
+						t.Logf("Expected tester1 to have Create, Update, Delete, and Share")
+						t.Fail()
+					}
+				}
+				if strings.Contains(permission.Grantee, "tester10") {
+					if !permission.AllowRead {
+						t.Logf("Expected tester10 to have Read")
+						t.Fail()
+					}
+				}
+			}
+			if hasEveryone {
+				t.Logf("Expected %s to have been removed", models.EveryoneGroup)
+				t.Fail()
+			}
+		} else {
+			ioutil.ReadAll(httpGetResponse.Body)
+		}
+		httpGetResponse.Body.Close()
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
+
+	t.Logf("Update O12 setting an ACM sharing to ODrive G2, which will revoke read from T10")
+	acmWithODriveG1 := `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{"projects":{"DCTC":{"disp_nm":"DCTC","groups":["ODrive_G2"]}}}}`
+	updatedObject3.RawAcm = acmWithODriveG1
+	uriUpdate := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	// jsonify it
+	jsonBody, _ = json.Marshal(updatedObject3)
+	// prep http request
+	httpUpdateObject, _ := http.NewRequest("POST", uriUpdate, bytes.NewBuffer(jsonBody))
+	httpUpdateObject.Header.Set("Content-Type", "application/json")
+	// exec and get response
+	httpUpdateObjectResponse, err := client.Do(httpUpdateObject)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// check status of response
+	if httpUpdateObjectResponse.StatusCode != http.StatusOK {
+		t.Logf("Bad status when updating object: %s", httpUpdateObjectResponse.Status)
+		t.FailNow()
+	}
+	// parse back to object
+	var updatedObject4 protocol.Object
+	err = util.FullDecode(httpUpdateObjectResponse.Body, &updatedObject4)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+
+	t.Logf("* Verify 1-5 can read, but nobody else")
+	for clientIdx, ci := range clients {
+		transport := &http.Transport{TLSClientConfig: ci.Config}
+		client := &http.Client{Transport: transport}
+		httpGetResponse, err := client.Do(httpGet)
+		if err != nil {
+			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
+			t.Fail()
+		}
+		switch clientIdx {
+		case 1, 2, 3, 4, 5:
+			if httpGetResponse.StatusCode != http.StatusOK {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			}
+		default: // twl-server-generic and any others that may get added later
+			if httpGetResponse.StatusCode != http.StatusForbidden {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is denied access to read %s", ci.Name, createdObject.Name)
+			}
+		}
+		if clientIdx == len(clients)-1 {
+			t.Logf("* Resulting permissions")
+			hasEveryone := false
+			for _, permission := range updatedObject4.Permissions {
+				logPermission(t, permission)
+				if permission.Grantee == models.EveryoneGroup {
+					hasEveryone = true
+				}
+				if strings.Contains(permission.Grantee, "cn=test tester01,") {
+					if !permission.AllowCreate ||
+						!permission.AllowUpdate ||
+						!permission.AllowDelete ||
+						!permission.AllowShare {
+						t.Logf("Expected tester1 to have Create, Update, Delete, and Share")
+						t.Fail()
+					}
+				}
+				if strings.Contains(permission.Grantee, "tester10") {
+					t.Logf("Expected tester10 permission to have been removed")
+					t.Fail()
+				}
+			}
+			if hasEveryone {
+				t.Logf("Expected %s to have been removed", models.EveryoneGroup)
+				t.Fail()
+			}
+		} else {
+			ioutil.ReadAll(httpGetResponse.Body)
+		}
+		httpGetResponse.Body.Close()
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
+
+	t.Logf("Update O12 setting an ACM without a share, which will result in everyone getting access again")
+	acmWithNoShare := `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{}}`
+	updatedObject4.RawAcm = acmWithNoShare
+	// jsonify it
+	jsonBody, _ = json.Marshal(updatedObject4)
+	// prep http request
+	httpUpdateObject, _ = http.NewRequest("POST", uriUpdate, bytes.NewBuffer(jsonBody))
+	httpUpdateObject.Header.Set("Content-Type", "application/json")
+	// exec and get response
+	httpUpdateObjectResponse, err = client.Do(httpUpdateObject)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	// check status of response
+	if httpUpdateObjectResponse.StatusCode != http.StatusOK {
+		t.Logf("Bad status when updating object: %s", httpUpdateObjectResponse.Status)
+		t.FailNow()
+	}
+	// parse back to object
+	var updatedObject5 protocol.Object
+	err = util.FullDecode(httpUpdateObjectResponse.Body, &updatedObject5)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+
+	t.Logf("* Verify everyone can read")
+	for clientIdx, ci := range clients {
+		transport := &http.Transport{TLSClientConfig: ci.Config}
+		client := &http.Client{Transport: transport}
+		httpGetResponse, err := client.Do(httpGet)
+		if err != nil {
+			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
+			t.Fail()
+		}
+		if httpGetResponse.StatusCode != http.StatusOK {
+			t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+			t.Fail()
+		} else {
+			t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+		}
+		if clientIdx == len(clients)-1 {
+			t.Logf("* Resulting permissions")
+			hasEveryone := false
+			for _, permission := range updatedObject5.Permissions {
+				logPermission(t, permission)
+				if permission.Grantee == models.EveryoneGroup {
+					hasEveryone = true
+				}
+				if strings.Contains(permission.Grantee, "cn=test tester01,") {
+					if !permission.AllowCreate ||
+						!permission.AllowUpdate ||
+						!permission.AllowDelete ||
+						!permission.AllowShare {
+						t.Logf("Expected tester1 to have Create, Update, Delete, and Share")
+						t.Fail()
+					}
+				}
+				if strings.Contains(permission.Grantee, "tester10") {
+					t.Logf("Expected tester10 permission to have been removed")
+					t.Fail()
+				}
+				if strings.Contains(permission.Grantee, "odrive_g2") {
+					t.Logf("Expected odrive_g2 permission to have been removed")
+					t.Fail()
+				}
+			}
+			if !hasEveryone {
+				t.Logf("Expected %s to have read", models.EveryoneGroup)
+				t.Fail()
+			}
+		} else {
+			ioutil.ReadAll(httpGetResponse.Body)
+		}
+		httpGetResponse.Body.Close()
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
 
 }
 
