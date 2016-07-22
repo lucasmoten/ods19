@@ -3,12 +3,14 @@ package dao
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/protocol"
 )
 
@@ -22,13 +24,13 @@ import (
 //      IsAncestorDeleted. IsAncestorDeleted is only set if explicit = false
 //      whose purpose is to mark child items as implicitly deleted due to an
 //      ancestor being deleted.
-func (dao *DataAccessLayer) DeleteObject(object models.ODObject, explicit bool) error {
+func (dao *DataAccessLayer) DeleteObject(user models.ODUser, object models.ODObject, explicit bool) error {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return err
 	}
-	err = deleteObjectInTransaction(tx, object, explicit)
+	err = deleteObjectInTransaction(tx, user, object, explicit)
 	if err != nil {
 		dao.GetLogger().Error("Error in DeleteObject", zap.String("err", err.Error()))
 		tx.Rollback()
@@ -38,7 +40,7 @@ func (dao *DataAccessLayer) DeleteObject(object models.ODObject, explicit bool) 
 	return err
 }
 
-func deleteObjectInTransaction(tx *sqlx.Tx, object models.ODObject, explicit bool) error {
+func deleteObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.ODObject, explicit bool) error {
 	// Pre-DB Validation
 	if object.ID == nil {
 		return errors.New("Object ID was not specified for object being deleted")
@@ -95,15 +97,14 @@ func deleteObjectInTransaction(tx *sqlx.Tx, object models.ODObject, explicit boo
 		if !resultset.Objects[i].IsAncestorDeleted {
 			authorizedToDelete := false
 			for _, permission := range resultset.Objects[i].Permissions {
-				if permission.Grantee == object.ModifiedBy &&
-					permission.AllowDelete {
+				if permission.AllowDelete && isUserMemberOf(user, permission.Grantee) {
 					authorizedToDelete = true
 					break
 				}
 			}
 			if authorizedToDelete {
 				resultset.Objects[i].ModifiedBy = object.ModifiedBy
-				err = deleteObjectInTransaction(tx, resultset.Objects[i], false)
+				err = deleteObjectInTransaction(tx, user, resultset.Objects[i], false)
 				if err != nil {
 					return err
 				}
@@ -118,15 +119,14 @@ func deleteObjectInTransaction(tx *sqlx.Tx, object models.ODObject, explicit boo
 			if !pagedResultset.Objects[i].IsAncestorDeleted {
 				authorizedToDelete := false
 				for _, permission := range pagedResultset.Objects[i].Permissions {
-					if permission.Grantee == object.ModifiedBy &&
-						permission.AllowDelete {
+					if permission.AllowDelete && isUserMemberOf(user, permission.Grantee) {
 						authorizedToDelete = true
 						break
 					}
 				}
 				if authorizedToDelete {
 					pagedResultset.Objects[i].ModifiedBy = object.ModifiedBy
-					err = deleteObjectInTransaction(tx, pagedResultset.Objects[i], false)
+					err = deleteObjectInTransaction(tx, user, pagedResultset.Objects[i], false)
 					if err != nil {
 						return err
 					}
@@ -136,4 +136,40 @@ func deleteObjectInTransaction(tx *sqlx.Tx, object models.ODObject, explicit boo
 	}
 
 	return nil
+}
+
+func isUserMemberOf(user models.ODUser, groupName string) bool {
+	// if called without snippets, then user has no access
+	if user.Snippets == nil {
+		return false
+	}
+
+	// find the relevant snippet
+	var shareSnippet acm.RawSnippetFields
+	for _, rawFields := range user.Snippets.Snippets {
+		switch rawFields.FieldName {
+		case "f_share":
+			shareSnippet = rawFields
+			break
+		default:
+			continue
+		}
+	}
+
+	// snippet portion without values implies ZERO membership in any groups, even self!!!
+	if len(shareSnippet.Values) == 0 {
+		return false
+	}
+
+	// iterate the values
+	for _, shareValue := range shareSnippet.Values {
+		// case insensitive check
+		if strings.Compare(strings.ToLower(shareValue), strings.ToLower(groupName)) == 0 {
+			return true
+		}
+	}
+
+	// no matches
+	return false
+
 }

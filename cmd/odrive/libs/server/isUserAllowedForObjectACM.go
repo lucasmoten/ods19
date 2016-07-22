@@ -9,9 +9,9 @@ import (
 
 	"github.com/uber-go/zap"
 
+	globalconfig "decipher.com/object-drive-server/cmd/odrive/libs/config"
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	"decipher.com/object-drive-server/config"
-	globalconfig "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/performance"
 	"decipher.com/object-drive-server/services/aac"
@@ -380,6 +380,54 @@ func (h AppServer) validateAndFlattenShare(ctx context.Context, permission *mode
 	return nil
 }
 
+// flattenGranteeOnPermission supports converting the grantee of a permission
+// to the flattened share equivalent for purposes of normalizing and matching
+// the name of a user or group at a later time.  The permission passed in is
+// assigned a marshalled string equivalent of a share struct as a user,
+// that share part is pushed into a basic acm, and flattened via AAC call.
+// Resultant f_share value is then used as the new grantee
+func (h AppServer) flattenGranteeOnPermission(ctx context.Context, permission *models.ODObjectPermission) *AppError {
+	logger := LoggerFromContext(ctx)
+	acmShareUser := "{\"users\":[\"%s\"]}"
+	isAcmShareEmpty := len(permission.AcmShare) == 0
+	if isAcmShareEmpty {
+		permission.AcmShare = fmt.Sprintf(acmShareUser, permission.Grantee)
+	}
+	shareInterface, err := utils.UnmarshalStringToInterface(permission.AcmShare)
+	if err != nil {
+		logger.Error("Unable to marshal share from permission", zap.String("permission acm share", permission.AcmShare), zap.String("err", err.Error()))
+		return NewAppError(500, err, "Unable to unmarshal share from permission")
+	}
+	acm := `{"classif":"U"}`
+	obj := models.ODObject{}
+	obj.RawAcm.Valid = true
+	obj.RawAcm.String = acm
+	if herr := setACMPartFromInterface(ctx, &obj, "share", shareInterface); herr != nil {
+		return herr
+	}
+	err = h.flattenACM(logger, &obj)
+	if err != nil {
+		return NewAppError(500, err, "Error converting grantee on permission to acceptable value")
+	}
+	herr, fShareInterface := getACMInterfacePart(&obj, "f_share")
+	if herr != nil {
+		return herr
+	}
+	grants := getStringArrayFromInterface(fShareInterface)
+	if len(grants) > 0 {
+		logger.Debug("Setting permission grantee", zap.String("old value", permission.Grantee), zap.String("new value", globalconfig.GetNormalizedDistinguishedName(grants[0])))
+		permission.Grantee = globalconfig.GetNormalizedDistinguishedName(grants[0])
+		// Since altering the grantee, also update the acmShare to reflect the new flattened value
+		if isAcmShareEmpty {
+			permission.AcmShare = fmt.Sprintf(acmShareUser, permission.Grantee)
+		}
+	} else {
+		logger.Warn("Error flattening share permission", zap.String("acm", acm), zap.String("permission acm share", permission.AcmShare), zap.String("permission grantee", permission.Grantee))
+		return NewAppError(500, fmt.Errorf("Didn't receive any grants in f_share for %s from %s", permission.Grantee, permission.AcmShare), "Unable to flatten grantee provided in permission")
+	}
+	return nil
+}
+
 func isUserAllowedToCreate(ctx context.Context, masterKey string, obj *models.ODObject) bool {
 	requiredPermission := models.ODObjectPermission{AllowCreate: true, AllowRead: true}
 	ok, _ := isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
@@ -533,7 +581,7 @@ func (h AppServer) isObjectACMSharedToUser(ctx context.Context, obj *models.ODOb
 	userCtx := context.Background()
 	userCaller := Caller{DistinguishedName: user}
 	userCtx = ContextWithCaller(userCtx, userCaller)
-	userCtx = context.WithValue(userCtx, Logger, globalconfig.RootLogger)
+	userCtx = context.WithValue(userCtx, Logger, config.RootLogger)
 	userSnippets, err := h.FetchUserSnippets(userCtx)
 	if err != nil {
 		// bubble up? not like the calling user can do anything if theres an error with the owner

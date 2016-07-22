@@ -270,10 +270,15 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 		Success:  true,
 		Snippets: testhelpers.SnippetTP10,
 	}
+	// Acm needs to have value in f_share that corresponds to the user
+	// that is creating objects.  For example, the grantee above for fakeDN1
+	// will need cntesttester01oupeopleoudaeouchimeraou_s_governmentcus
+	// so that has been put into the ValidAcmUnclassifiedWithFShare value
 	acmInfoResponse := aac.AcmInfo{
 		Acm:             testhelpers.ValidACMUnclassifiedWithFShare,
 		IncludeInRollup: false,
 	}
+
 	acmResponse := aac.AcmResponse{
 		Success:   true,
 		Messages:  []string{"FakeAAC AcmResponse"},

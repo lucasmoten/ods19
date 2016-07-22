@@ -106,11 +106,11 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 	}
 
 	// Delete the objects
-	err = d.DeleteObject(dbObject1, true)
+	err = d.DeleteObject(user1, dbObject1, true)
 	if err != nil {
 		t.Error(err)
 	}
-	err = d.DeleteObject(dbObject2, true)
+	err = d.DeleteObject(user2, dbObject2, true)
 	if err != nil {
 		t.Error(err)
 	}

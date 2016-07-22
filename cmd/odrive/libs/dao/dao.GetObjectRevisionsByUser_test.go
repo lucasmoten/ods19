@@ -103,7 +103,7 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	}
 
 	// Cleanup
-	err = d.DeleteObject(object, true)
+	err = d.DeleteObject(user, object, true)
 	if err != nil {
 		t.Error(err)
 	}

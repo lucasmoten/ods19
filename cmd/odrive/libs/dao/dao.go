@@ -19,11 +19,11 @@ type DAO interface {
 	CreateObject(object *models.ODObject) (models.ODObject, error)
 	CreateObjectType(objectType *models.ODObjectType) (models.ODObjectType, error)
 	CreateUser(models.ODUser) (models.ODUser, error)
-	DeleteObject(object models.ODObject, explicit bool) error
+	DeleteObject(user models.ODUser, object models.ODObject, explicit bool) error
 	DeleteObjectPermission(objectPermission models.ODObjectPermission, propagateToChildren bool) (models.ODObjectPermission, error)
 	DeleteObjectProperty(objectProperty models.ODObjectPropertyEx) error
 	DeleteObjectType(objectType models.ODObjectType) error
-	ExpungeObject(object models.ODObject, explicit bool) error
+	ExpungeObject(user models.ODUser, object models.ODObject, explicit bool) error
 	GetChildObjects(pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
 	GetChildObjectsByUser(user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
 	GetChildObjectsWithProperties(pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error)

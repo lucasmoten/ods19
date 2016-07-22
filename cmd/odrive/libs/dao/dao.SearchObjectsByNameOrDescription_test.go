@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
@@ -48,7 +49,7 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 	pagingRequest.FilterSettings = make([]protocol.FilterSetting, 0)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterNameAsSearch1)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterDescriptionAsSearch1)
-	user := models.ODUser{DistinguishedName: usernames[1]}
+	user := setupUserWithSnippets(usernames[1])
 	searchResults1, err := d.SearchObjectsByNameOrDescription(user, pagingRequest, false)
 	if err != nil {
 		t.Error(err)
@@ -118,11 +119,12 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 	}
 
 	// cleanup / delete the objects
-	err = d.DeleteObject(dbObject1, true)
+
+	err = d.DeleteObject(user, dbObject1, true)
 	if err != nil {
 		t.Error(err)
 	}
-	err = d.DeleteObject(dbObject2, true)
+	err = d.DeleteObject(user, dbObject2, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -145,4 +147,20 @@ func setupObjectForDAOSearchObjectsTest(name string) models.ODObject {
 	obj.Permissions = permissions
 	obj.RawAcm.String = testhelpers.ValidACMUnclassified
 	return obj
+}
+
+func setupUserWithSnippets(username string) models.ODUser {
+	var user models.ODUser
+	user.DistinguishedName = username
+
+	snippet := acm.RawSnippetFields{}
+	snippet.FieldName = "f_share"
+	snippet.Treatment = "allowed"
+	snippet.Values = make([]string, 1)
+	snippet.Values[0] = username
+	snippets := acm.ODriveRawSnippetFields{}
+	snippets.Snippets = append(snippets.Snippets, snippet)
+	user.Snippets = &snippets
+
+	return user
 }

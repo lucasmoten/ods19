@@ -59,7 +59,7 @@ func (fake *FakeDAO) CreateUser(user models.ODUser) (models.ODUser, error) {
 }
 
 // DeleteObject for FakeDAO.
-func (fake *FakeDAO) DeleteObject(object models.ODObject, explicit bool) error {
+func (fake *FakeDAO) DeleteObject(user models.ODUser, object models.ODObject, explicit bool) error {
 	return fake.Err
 }
 
@@ -79,7 +79,7 @@ func (fake *FakeDAO) DeleteObjectType(objectType models.ODObjectType) error {
 }
 
 // ExpungeObject for FakeDAO.
-func (fake *FakeDAO) ExpungeObject(object models.ODObject, explicit bool) error {
+func (fake *FakeDAO) ExpungeObject(user models.ODUser, object models.ODObject, explicit bool) error {
 	return fake.Err
 }
 
@@ -114,7 +114,7 @@ func (fake *FakeDAO) GetDBState() (models.DBState, error) {
 	return fake.DBState, fake.Err
 }
 
-// Get a logger for the current session (or any other context - we want correlation across a request)
+// GetLogger returns a logger for the current session (or any other context - we want correlation across a request)
 func (fake *FakeDAO) GetLogger() zap.Logger {
 	return globalconfig.RootLogger
 }

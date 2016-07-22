@@ -99,7 +99,8 @@ func TestDAOGetObject(t *testing.T) {
 	}
 
 	// delete the object
-	err = d.DeleteObject(objectWithProperty, true)
+	user := models.ODUser{DistinguishedName: objectWithProperty.CreatedBy}
+	err = d.DeleteObject(user, objectWithProperty, true)
 	if err != nil {
 		t.Error(err)
 	}

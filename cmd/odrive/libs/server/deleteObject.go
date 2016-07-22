@@ -23,6 +23,20 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 	if !ok {
 		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
 	}
+	// Get user from context
+	user, ok := UserFromContext(ctx)
+	if !ok {
+		caller, ok := CallerFromContext(ctx)
+		if !ok {
+			return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
+		}
+		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
+	}
+	snippetFields, ok := SnippetsFromContext(ctx)
+	if !ok {
+		return NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
+	}
+	user.Snippets = snippetFields
 	dao := DAOFromContext(ctx)
 
 	// Parse Request in sent format
@@ -59,7 +73,7 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 		// deleted.  The DAO checks the changeToken and handles the child calls
 		dbObject.ModifiedBy = caller.DistinguishedName
 		dbObject.ChangeToken = requestObject.ChangeToken
-		err = dao.DeleteObject(dbObject, true)
+		err = dao.DeleteObject(user, dbObject, true)
 		if err != nil {
 			return NewAppError(500, err, "DAO Error deleting object")
 		}

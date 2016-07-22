@@ -20,7 +20,7 @@ import (
 // (by virtue of it shared to everyone)
 func TestAcmWithoutShare(t *testing.T) {
 
-	// ### Create object O1 as tester1
+	t.Logf("* Create object O1 as tester1")
 	tester1 := 1
 	// prep object
 	var createObjectRequest protocol.CreateObjectRequest
@@ -1563,7 +1563,7 @@ func shouldHaveEveryonePermission(t *testing.T, objID string, clientIdxs ...int)
 		resp, err := c.Do(getReq)
 		failNowOnErr(t, err, "Unable to do request")
 		defer resp.Body.Close()
-		statusMustBe(t, 200, resp, fmt.Sprintf("client id %d should have read for ID %s", i, objID))
+		statusExpected(t, 200, resp, fmt.Sprintf("client id %d should have read for ID %s", i, objID))
 		var obj protocol.Object
 		err = util.FullDecode(resp.Body, &obj)
 		failNowOnErr(t, err, "unable to decode object from json")
@@ -1592,7 +1592,7 @@ func shouldHaveReadForObjectID(t *testing.T, objID string, clientIdxs ...int) {
 		resp, err := c.Do(getReq)
 		failNowOnErr(t, err, "Unable to do request")
 		defer resp.Body.Close()
-		statusMustBe(t, 200, resp, fmt.Sprintf("client id %d should have read for ID %s", i, objID))
+		statusExpected(t, 200, resp, fmt.Sprintf("client id %d should have read for ID %s", i, objID))
 		ioutil.ReadAll(resp.Body)
 	}
 }
@@ -1606,7 +1606,7 @@ func shouldNotHaveReadForObjectID(t *testing.T, objID string, clientIdxs ...int)
 		resp, err := c.Do(getReq)
 		failNowOnErr(t, err, "Unable to do request")
 		defer resp.Body.Close()
-		statusMustBe(t, 403, resp, fmt.Sprintf("client id %d should not have read for ID %s", i, objID))
+		statusExpected(t, 403, resp, fmt.Sprintf("client id %d should not have read for ID %s", i, objID))
 		ioutil.ReadAll(resp.Body)
 	}
 }
@@ -1620,11 +1620,18 @@ func failNowOnErr(t *testing.T, err error, msg string) {
 }
 
 func statusMustBe(t *testing.T, expected int, resp *http.Response, msg string) {
+	statusExpected(t, expected, resp, msg)
+	if t.Failed() {
+		t.FailNow()
+	}
+}
+
+func statusExpected(t *testing.T, expected int, resp *http.Response, msg string) {
 	if resp.StatusCode != expected {
 		if msg != "" {
 			t.Logf(msg)
 		}
 		t.Logf("Expected status %v but got %v", expected, resp.StatusCode)
-		t.FailNow()
+		t.Fail()
 	}
 }

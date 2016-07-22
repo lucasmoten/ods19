@@ -41,7 +41,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Owner Permission when created gets full access
 	var ownerPermission models.ODObjectPermission
 	ownerPermission.Grantee = caller.DistinguishedName
-	ownerPermission.AllowRead = true
+	ownerPermission.AllowRead = false // Read permission not implicitly granted to owner. Must come through ACM share (empty=everyone gets read, values=owner must be in one of those groups)
 	ownerPermission.AllowCreate = true
 	ownerPermission.AllowUpdate = true
 	ownerPermission.AllowDelete = true
@@ -83,15 +83,20 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	}
 	obj.CreatedBy = caller.DistinguishedName
 
-	hasAACAccess := false
+	// For all permissions, make sure we're using the flatened value
+	for i := len(obj.Permissions) - 1; i >= 0; i-- {
+		permission := obj.Permissions[i]
+		if herr := h.flattenGranteeOnPermission(ctx, &permission); herr != nil {
+			return herr
+		}
+		obj.Permissions[i] = permission
+	}
+
+	// Make sure permissions passed in that are read access are put into the acm
+	if herr := injectReadPermissionsIntoACM(ctx, &obj); herr != nil {
+		return herr
+	}
 	// Flatten ACM, then Normalize Read Permissions against ACM f_share
-	// hasAACAccess, err = h.flattenACMAndCheckAccess(ctx, &obj)
-	// if err != nil {
-	// 	return NewAppError(400, err, "ACM provided could not be flattened")
-	// }
-	// if !hasAACAccess {
-	// 	return NewAppError(403, err, "Unauthorized")
-	// }
 	err = h.flattenACM(logger, &obj)
 	if err != nil {
 		return NewAppError(400, err, "ACM provided could not be flattened")
@@ -100,6 +105,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		return herr
 	}
 	// Final access check against altered ACM
+	hasAACAccess := false
 	hasAACAccess, err = h.isUserAllowedForObjectACM(ctx, &obj)
 	if err != nil {
 		return NewAppError(502, err, "Error communicating with authorization service")
@@ -184,7 +190,7 @@ func handleCreatePrerequisites(
 		newPermission := models.ODObjectPermission{}
 		newPermission.Grantee = caller.DistinguishedName
 		newPermission.AllowCreate = true
-		newPermission.AllowRead = true
+		newPermission.AllowRead = false // Read permission not implicitly granted to owner. Must come through ACM share (empty=everyone gets read, values=owner must be in one of those groups)
 		newPermission.AllowUpdate = true
 		newPermission.AllowDelete = true
 		newPermission.AllowShare = true
@@ -221,17 +227,20 @@ func handleCreatePrerequisites(
 		}
 
 		// Copy permissions from parent into request Object that are other than 'read only' which is tied to ACM f_share
-		for _, permission := range dbParentObject.Permissions {
-			if !permission.IsDeleted && (permission.AllowCreate || permission.AllowUpdate || permission.AllowDelete || permission.AllowShare) {
-				newPermission := models.ODObjectPermission{}
-				newPermission.Grantee = permission.Grantee
-				isCreator := (permission.Grantee == caller.DistinguishedName)
-				newPermission.AllowCreate = permission.AllowCreate || isCreator
-				newPermission.AllowRead = permission.AllowRead || isCreator
-				newPermission.AllowUpdate = permission.AllowUpdate || isCreator
-				newPermission.AllowDelete = permission.AllowDelete || isCreator
-				newPermission.AllowShare = permission.AllowShare || isCreator
-				requestObject.Permissions = append(requestObject.Permissions, newPermission)
+		inheritPermissions := false
+		if inheritPermissions {
+			for _, permission := range dbParentObject.Permissions {
+				if !permission.IsDeleted && (permission.AllowCreate || permission.AllowUpdate || permission.AllowDelete || permission.AllowShare) {
+					newPermission := models.ODObjectPermission{}
+					newPermission.Grantee = permission.Grantee
+					isCreator := (permission.Grantee == caller.DistinguishedName)
+					newPermission.AllowCreate = permission.AllowCreate || isCreator
+					newPermission.AllowRead = permission.AllowRead || isCreator
+					newPermission.AllowUpdate = permission.AllowUpdate || isCreator
+					newPermission.AllowDelete = permission.AllowDelete || isCreator
+					newPermission.AllowShare = permission.AllowShare || isCreator
+					requestObject.Permissions = append(requestObject.Permissions, newPermission)
+				}
 			}
 		}
 	}
@@ -285,4 +294,33 @@ func parseCreateObjectRequestAsJSON(r *http.Request) (models.ODObject, *AppError
 	}
 
 	return object, nil
+}
+
+// injectReadPermissionsIntoACM iterates the permissions on an object, and for
+// those granting read access, the share target equivalent of the grantee that
+// is stored in AcmShare initialized when the permission was mapped, is then
+// combined into the existing ACM. This function is ONLY intended for use when
+// creating an object and passing permissions simultaneously that grant read
+// access, and is used for preprocessing those permissions into the ACM before
+// normalizing the permissions based upon the ACM.
+func injectReadPermissionsIntoACM(ctx context.Context, obj *models.ODObject) *AppError {
+	for i := len(obj.Permissions) - 1; i >= 0; i-- {
+		permission := obj.Permissions[i]
+		if permission.AllowRead && len(permission.AcmShare) > 0 {
+			herr, sourceInterface := getACMInterfacePart(obj, "share")
+			if herr != nil {
+				return herr
+			}
+			interfaceToAdd, err := utils.UnmarshalStringToInterface(permission.AcmShare)
+			if err != nil {
+				return NewAppError(500, err, "Unable to unmarshal share from permission", zap.String("permission acmshare", permission.AcmShare))
+			}
+			combinedInterface := CombineInterface(sourceInterface, interfaceToAdd)
+			herr = setACMPartFromInterface(ctx, obj, "share", combinedInterface)
+			if herr != nil {
+				return herr
+			}
+		}
+	}
+	return nil
 }

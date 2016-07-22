@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -199,9 +200,28 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 	// Note: No other permissions outside of readonly are manipulated through this routine.
 	// Permissions created explicitly are done via AddObjectPermission by way of shares
 	//
-	// Stage 1: Delete any readonly permissions existing on the object that dont have a corresponding permission being passed
+	// Delete any permissions passed in that are marked as deleted on the object
+	for oi := len(object.Permissions) - 1; oi >= 0; oi-- {
+		permission := object.Permissions[oi]
+		if permission.IsDeleted {
+			permission.ModifiedBy = object.ModifiedBy
+			deletedDbPermission, err := deleteObjectPermissionInTransaction(tx, permission, false)
+			if err != nil {
+				return fmt.Errorf("Error deleting removed permission: %v", err)
+			}
+			// remove from object array for processing
+			object.Permissions = append(object.Permissions[:oi], object.Permissions[oi+1:]...)
+			// iterate permissions on db object looking for same
+			for di := len(dbObject.Permissions) - 1; di >= 0; di-- {
+				if bytes.Equal(dbObject.Permissions[di].ID, deletedDbPermission.ID) {
+					dbObject.Permissions[di] = deletedDbPermission
+				}
+			}
+		}
+	}
+	// Delete any readonly permissions existing on the object that dont have a corresponding permission being passed
 	for _, dbPermission := range dbObject.Permissions {
-		if dbPermission.IsReadOnly() {
+		if dbPermission.IsReadOnly() && !dbPermission.IsDeleted {
 			dbPermissionStillValid := false
 			for _, objPermission := range object.Permissions {
 				if (objPermission.IsReadOnly()) && (strings.Compare(objPermission.Grantee, dbPermission.Grantee) == 0) {
@@ -210,6 +230,7 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 				}
 			}
 			if !dbPermissionStillValid {
+				dbPermission.ModifiedBy = object.ModifiedBy
 				_, err := deleteObjectPermissionInTransaction(tx, dbPermission, false)
 				if err != nil {
 					return fmt.Errorf("Error deleting obsolete permission: %v", err)
@@ -217,7 +238,7 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 			}
 		}
 	}
-	// Stage 2: Add any readonly permissions being passed in that dont yet exist on the database object
+	// Add any readonly permissions being passed in that dont yet exist on the database object
 	for _, objPermission := range object.Permissions {
 		if objPermission.IsReadOnly() {
 			objPermissionPresent := false

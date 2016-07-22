@@ -588,13 +588,13 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.FailNow()
 	}
 	if updateObjectRes.StatusCode != http.StatusOK {
-		t.Errorf("Error creating object, got code %d", updateObjectRes.StatusCode)
+		t.Errorf("Error updating object stream, got code %d", updateObjectRes.StatusCode)
 		t.FailNow()
 	}
 	var objResponse2 protocol.Object
 	err = util.FullDecode(updateObjectRes.Body, &objResponse2)
 	if err != nil {
-		t.Errorf("Could not decode CreateObject response.")
+		t.Errorf("Could not decode update object response.")
 		t.FailNow()
 	} else {
 		t.Logf("* Resulting permissions")

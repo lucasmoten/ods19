@@ -335,96 +335,105 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 	clientid2 := 1 // CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US
 
 	if verboseOutput {
-		fmt.Printf("(Verbose Mode) Using client id %d to create folder in root", clientid1)
-		fmt.Printf("(Verbose Mode) Using client id %d to create subfolder", clientid2)
-		fmt.Println()
+		t.Logf("(Verbose Mode) Using client id %d to create folder in root", clientid1)
+		t.Logf("(Verbose Mode) Using client id %d to create subfolder", clientid2)
 	}
 
 	// URL
 	uri := host + cfg.NginxRootURL + "/objects"
 	if verboseOutput {
-		fmt.Printf("(Verbose Mode) uri: %s", uri)
-		fmt.Println()
+		t.Logf("(Verbose Mode) uri: %s", uri)
 	}
 
 	// Body
+	t.Logf("* Creating folder at root")
 	folder := protocol.Object{}
 	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().Unix(), 10)
 	folder.TypeName = "Folder"
 	folder.ParentID = ""
 	folder.RawAcm = testhelpers.ValidACMUnclassified
 	grant2client2 := protocol.Permission{}
-	grant2client2.Grantee = fakeDN1
+	grant2client2.Grantee = fakeDN1 // tester01
 	grant2client2.AllowRead = true
 	grant2client2.AllowCreate = true
 	folder.Permissions = append(folder.Permissions, grant2client2)
+	// grant2self is permission for the owner. This same permission, minus the read access
+	// is implicitly granted by the server for owner when creating an object. Since a
+	// permission for client2 is being established with read access, the object isn't
+	// going to be shared with everyone per the ACM on testhelpers.ValidACMUnclassified
+	// so read access needs to be established
+	grant2self := protocol.Permission{}
+	grant2self.Grantee = fakeDN0 // tester10
+	grant2self.AllowCreate = true
+	grant2self.AllowRead = true
+	grant2self.AllowUpdate = true
+	grant2self.AllowDelete = true
+	grant2self.AllowShare = true
+	folder.Permissions = append(folder.Permissions, grant2self)
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
-		log.Printf("Unable to marshal json for request:%v", err)
+		t.Logf("Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
-
-	// Request
+	t.Logf("posting request")
 	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
+		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
 	res, err := clients[clientid1].Client.Do(req)
 	if err != nil {
-		log.Printf("Unable to do request:%v", err)
+		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
-
-	// Response validation
+	t.Logf("checking response")
 	if res.StatusCode != http.StatusOK {
-		log.Printf("req1 bad status: %s", res.Status)
+		t.Logf("response status %s, expected %d", res.Status, http.StatusOK)
 		t.FailNow()
 	}
+	t.Logf("decoding resposne to protocol object")
 	var createdFolder protocol.Object
 	err = util.FullDecode(res.Body, &createdFolder)
 	if err != nil {
-		log.Printf("Error decoding json to Object: %v", err)
-		log.Println()
+		t.Logf("Error decoding json to Object: %v", err)
 		t.FailNow()
 	}
 	if verboseOutput {
+		t.Logf("marshalling object to json string")
 		jsonData, err := json.MarshalIndent(createdFolder, "", "  ")
 		if err != nil {
-			log.Printf("(Error in Verbose Mode) Error marshalling response back to json: %s", err.Error())
+			t.Logf("(Error in Verbose Mode) Error marshalling response back to json: %s", err.Error())
 			return
 		}
-		fmt.Println("Here is the response body:")
-		fmt.Println(string(jsonData))
+		t.Logf("Here is the response body:")
+		t.Logf(string(jsonData))
 	}
 
-	// - This creates the subfolder
+	t.Logf("* Creating subfolder")
 	folder.ParentID = createdFolder.ID
 	folder.Name = "Test Subfolder " + strconv.FormatInt(time.Now().Unix(), 10)
 	folder.RawAcm = testhelpers.ValidACMUnclassified
 	jsonBody, err = json.Marshal(folder)
 	if err != nil {
-		log.Printf("Unable to marshal json for request:%v", err)
+		t.Logf("Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
-
-	// Request
+	t.Logf("request")
 	req, err = http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
+		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
 	res, err = clients[clientid2].Client.Do(req)
 	if err != nil {
-		log.Printf("Unable to do request:%v", err)
+		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
-
-	// Response validation
+	t.Logf("validate response")
 	if res.StatusCode != http.StatusOK {
-		log.Printf("The second user was not allowed to create a folder but they should have permissions granted")
+		t.Logf("The second user was not allowed to create a folder but they should have permissions granted")
 		t.FailNow()
 	}
 }
