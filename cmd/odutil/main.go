@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/rlmcpherson/s3gof3r"
 )
 
 var (
@@ -20,13 +22,14 @@ const (
 )
 
 func main() {
+	s3gof3r.SetLogger(os.Stdout, "ODUTIL ", 0, true)
 
 	flag.Parse()
 	switch *cmd {
 	case upload:
 		uploadRoutine(*input, *bucket, *key)
 	case download:
-		downloadRoutine(*input, *bucket)
+		downloadRoutine(*input, *bucket, *key)
 	default:
 		fmt.Println("Unrecognized command:", *cmd)
 	}
@@ -34,23 +37,23 @@ func main() {
 }
 
 func uploadRoutine(input, bucket, s3key string) {
-	// key will become the "filename" you see in the s3 bucket. Passing
-	// an entire filepath as the key will yield nested directory structures
-	// on s3 itself.
+	key := formatKey(input, s3key)
+	MoveToS3(input, bucket, key)
+}
+
+func downloadRoutine(input, bucket, s3key string) {
+	key := formatKey(input, s3key)
+	DownloadFromS3(bucket, input, key)
+}
+
+func formatKey(input, s3key string) string {
 	_, key := filepath.Split(input)
 	if s3key != "" {
 		key = s3key
 	}
-	fmt.Printf("Uploading file %s to bucket %s\n", input, bucket)
-	fmt.Printf("Extracted filename from input: %s\n", key)
-	MoveToS3(input, bucket, key)
+	return key
 }
 
-func downloadRoutine(input, bucket string) {
-	DownloadFromS3(bucket, input)
-}
-
-// helper functions
 func exists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
