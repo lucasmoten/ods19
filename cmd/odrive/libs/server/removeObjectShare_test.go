@@ -49,7 +49,7 @@ func TestRemoveObjectShare(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	res, err := httpclients[clientid1].Do(req)
+	res, err := clients[clientid1].Client.Do(req)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -78,7 +78,7 @@ func TestRemoveObjectShare(t *testing.T) {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes3, err := httpclients[clientid1].Do(getReq3)
+	getRes3, err := clients[clientid1].Client.Do(getReq3)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -102,7 +102,7 @@ func TestRemoveObjectShare(t *testing.T) {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes4, err := httpclients[clientid2].Do(getReq4)
+	getRes4, err := clients[clientid2].Client.Do(getReq4)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -120,7 +120,7 @@ func TestRemoveObjectShare(t *testing.T) {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes5, err := httpclients[clientid2].Do(getReq5)
+	getRes5, err := clients[clientid2].Client.Do(getReq5)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -150,7 +150,7 @@ func TestRemoveObjectShare(t *testing.T) {
 		t.FailNow()
 	}
 	getReq6.Header.Set("Content-Type", "application/json")
-	getRes6, err := httpclients[clientid1].Do(getReq6)
+	getRes6, err := clients[clientid1].Client.Do(getReq6)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -175,7 +175,7 @@ func TestRemoveObjectShare(t *testing.T) {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes7, err := httpclients[clientid2].Do(getReq7)
+	getRes7, err := clients[clientid2].Client.Do(getReq7)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -193,7 +193,7 @@ func TestRemoveObjectShare(t *testing.T) {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes8, err := httpclients[clientid2].Do(getReq8)
+	getRes8, err := clients[clientid2].Client.Do(getReq8)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()

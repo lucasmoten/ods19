@@ -104,7 +104,7 @@ func TestHTTPListObjectsTrashed(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
-	res, err := httpclients[clientID].Do(req)
+	res, err := clients[clientID].Client.Do(req)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
@@ -119,7 +119,7 @@ func TestHTTPListObjectsTrashed(t *testing.T) {
 	expected := objResponse.Name
 
 	deleteReq, err := testhelpers.NewDeleteObjectRequest(objResponse, "", host)
-	_, err = httpclients[clientID].Do(deleteReq)
+	_, err = clients[clientID].Client.Do(deleteReq)
 	if err != nil {
 		t.Errorf("Delete request failed: %v\n", err)
 	}
@@ -130,7 +130,7 @@ func TestHTTPListObjectsTrashed(t *testing.T) {
 	if err != nil {
 		t.Errorf("Could not create trashReq: %v\n", err)
 	}
-	trashResp, err := httpclients[clientID].Do(trashReq)
+	trashResp, err := clients[clientID].Client.Do(trashReq)
 	if err != nil {
 		t.Errorf("Unable to do trash request:%v\n", err)
 		t.FailNow()
@@ -153,39 +153,5 @@ func TestHTTPListObjectsTrashed(t *testing.T) {
 	if !objInTrash {
 		t.Errorf("Expected object to be in trash for user.")
 	}
-
-	// This operation no longer supports POST
-	// // This time use a JSON POST, instead of GET
-	// trashPOSTURI := host + cfg.RootURL + "/trash"
-	// jsonRequest := `
-	//  {"pageNumber": 1, "pageSize": 1000}
-	// `
-	// buf := bytes.NewBufferString(jsonRequest)
-
-	// jsonTrashReq, err := http.NewRequest("POST", trashPOSTURI, buf)
-	// if err != nil {
-	// 	t.Errorf("Could not create http request: %v\n", err)
-	// 	t.FailNow()
-	// }
-	// // Must set Content-Type for POST.
-	// jsonTrashReq.Header.Set("Content-Type", "application/json")
-	// jsonTrashResp, err := httpclients[clientID].Do(jsonTrashReq)
-
-	// jsonTrashDecoder := json.NewDecoder(jsonTrashResp.Body)
-	// var jsonTrashResponse protocol.ObjectResultset
-	// err = jsonTrashDecoder.Decode(&jsonTrashResponse)
-	// if err != nil {
-	// 	t.Errorf("Could not decode listObjectsTrashed ObjectResultset response.")
-	// }
-	// objInJSONTrash := false
-	// for _, o := range trashResponse.Objects {
-	// 	if o.Name == expected {
-	// 		objInJSONTrash = true
-	// 		break
-	// 	}
-	// }
-	// if !objInJSONTrash {
-	// 	t.Errorf("Expected object to be in trash for user.")
-	// }
 
 }

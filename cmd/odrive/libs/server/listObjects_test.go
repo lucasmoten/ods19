@@ -37,7 +37,7 @@ func TestListObjectsRoot(t *testing.T) {
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := httpclients[clientid].Do(req)
+	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -90,7 +90,7 @@ func TestListObjectsRootPaging(t *testing.T) {
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := httpclients[clientid].Do(req)
+	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -132,7 +132,7 @@ func TestListObjectsRootPaging(t *testing.T) {
 			t.FailNow()
 		}
 		req.Header.Set("Content-Type", "application/json")
-		res, err := httpclients[clientid].Do(req)
+		res, err := clients[clientid].Client.Do(req)
 		if err != nil {
 			log.Printf("Unable to do request:%v", err)
 			t.FailNow()
@@ -189,7 +189,7 @@ func TestListObjectsChild(t *testing.T) {
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := httpclients[clientid].Do(req)
+	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -216,7 +216,7 @@ func TestListObjectsChild(t *testing.T) {
 			fmt.Println()
 		}
 		childlevel := level + 1
-		showChildTree(t, verboseOutput, httpclients[clientid], childlevel, obj.ID)
+		showChildTree(t, verboseOutput, clients[clientid].Client, childlevel, obj.ID)
 		if t.Failed() {
 			return
 		}
@@ -233,7 +233,7 @@ func TestListObjectsChild(t *testing.T) {
 			t.FailNow()
 		}
 		req.Header.Set("Content-Type", "application/json")
-		res, err := httpclients[clientid].Do(req)
+		res, err := clients[clientid].Client.Do(req)
 		if err != nil {
 			log.Printf("Unable to do request:%v", err)
 			t.FailNow()
@@ -256,7 +256,7 @@ func TestListObjectsChild(t *testing.T) {
 				fmt.Println()
 			}
 			childlevel := level + 1
-			showChildTree(t, verboseOutput, httpclients[clientid], childlevel, obj.ID)
+			showChildTree(t, verboseOutput, clients[clientid].Client, childlevel, obj.ID)
 			if t.Failed() {
 				return
 			}
@@ -394,7 +394,7 @@ func TestListObjectsWithInvalidSortField(t *testing.T) {
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := httpclients[clientid].Do(req)
+	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -430,7 +430,7 @@ func TestListObjectsWithInvalidFilterField(t *testing.T) {
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := httpclients[clientid].Do(req)
+	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -466,7 +466,7 @@ func TestListObjectsWithInvalidFilterCondition(t *testing.T) {
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := httpclients[clientid].Do(req)
+	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()

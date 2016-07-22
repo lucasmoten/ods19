@@ -24,7 +24,7 @@ func TestEtag(t *testing.T) {
 		t.Errorf("Failure from NewCreateObjectPOSTRequest: %v\n", err)
 	}
 
-	client := httpclients[clientID]
+	client := clients[clientID].Client
 	res, err := client.Do(req)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
@@ -41,7 +41,7 @@ func TestEtag(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failure from redo get object stream: %v\n", err)
 	}
-	client2 := httpclients[clientID]
+	client2 := client
 	res2, err := client2.Do(req2)
 	if err != nil {
 		t.Errorf("Unable to do re request:%v\n", err)
@@ -63,7 +63,7 @@ func TestEtag(t *testing.T) {
 		t.Errorf("Failure from redo get object stream: %v\n", err)
 	}
 	req3.Header.Set("If-none-match", eTag)
-	client3 := httpclients[clientID]
+	client3 := client
 	res3, err := client3.Do(req3)
 	if err != nil {
 		t.Errorf("Unable to do re request:%v\n", err)
@@ -88,7 +88,7 @@ func TestUploadAndGetByteRange(t *testing.T) {
 		t.Errorf("Failure from NewCreateObjectPOSTRequest: %v\n", err)
 	}
 
-	client := httpclients[5]
+	client := clients[5].Client
 	res, err := client.Do(req)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)

@@ -46,7 +46,7 @@ func TestMoveObject(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	res, err := httpclients[clientid].Do(req)
+	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()

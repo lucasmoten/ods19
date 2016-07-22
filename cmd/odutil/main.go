@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/rlmcpherson/s3gof3r"
 )
 
 var (
@@ -22,7 +20,7 @@ const (
 )
 
 func main() {
-	s3gof3r.SetLogger(os.Stdout, "ODUTIL ", 0, true)
+	//s3gof3r.SetLogger(os.Stdout, "ODUTIL ", 0, true)
 
 	flag.Parse()
 	switch *cmd {

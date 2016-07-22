@@ -69,7 +69,7 @@ func TestCreatObjectMalicious(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
 
-	client := httpclients[clientID]
+	client := clients[clientID].Client
 	res, err := client.Do(req)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
@@ -125,7 +125,7 @@ func doCheckFileNowExists(t *testing.T, clientID int, jres protocol.Object) {
 		t.Log("get create fail")
 		t.FailNow()
 	}
-	res2, err := httpclients[clientID].Do(req2)
+	res2, err := clients[clientID].Client.Do(req2)
 	if err != nil {
 		t.Log("client connect fail")
 		t.FailNow()
@@ -154,7 +154,7 @@ func doCheckFileNowExists(t *testing.T, clientID int, jres protocol.Object) {
 }
 
 func doTestCreateObjectSimple(t *testing.T, data string, clientID int) (*http.Response, protocol.Object) {
-	client := httpclients[clientID]
+	client := clients[clientID].Client
 	testName, err := util.NewGUID()
 	if err != nil {
 		t.Fail()
@@ -272,7 +272,7 @@ posting a file
 	req.Header.Set("Content-Type", "multipart/form-data; boundary=651f24479ab34530af50aa607ce7512c")
 
 	// do the request
-	res, err := httpclients[clientid].Do(req)
+	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()

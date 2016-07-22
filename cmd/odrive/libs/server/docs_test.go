@@ -25,8 +25,8 @@ func TestAPIDocs(t *testing.T) {
 	apiuri := host + cfg.NginxRootURL + "/"
 
 	// do the request
-	req, err := http.NewRequest("GET", apiuri, nil)
-	res, err := httpclients[clientid].Do(req)
+	req, _ := http.NewRequest("GET", apiuri, nil)
+	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()

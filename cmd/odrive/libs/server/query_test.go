@@ -45,7 +45,7 @@ func TestQuery(t *testing.T) {
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := httpclients[clientid].Do(req)
+	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -110,7 +110,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	res1, err := httpclients[clientid].Do(req1)
+	res1, err := clients[clientid].Client.Do(req1)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -143,7 +143,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	res2, err := httpclients[clientid].Do(req2)
+	res2, err := clients[clientid].Client.Do(req2)
 	if err != nil {
 		log.Printf("Unable to do request to modify folder again:%v", err)
 		t.FailNow()
@@ -170,7 +170,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	res, err := httpclients[clientid].Do(req)
+	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -225,7 +225,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 			t.Logf("Error setting up HTTP Request: %v", err)
 			t.FailNow()
 		}
-		res, err := httpclients[clientid].Do(req)
+		res, err := clients[clientid].Client.Do(req)
 		if err != nil {
 			t.Logf("Unable to do request:%v", err)
 			t.FailNow()
@@ -277,7 +277,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	res3, err := httpclients[clientid].Do(req3)
+	res3, err := clients[clientid].Client.Do(req3)
 	if err != nil {
 		log.Printf("deleting folder Unable to do request:%v", err)
 		t.FailNow()
@@ -311,7 +311,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	res4, err := httpclients[clientid].Do(req4)
+	res4, err := clients[clientid].Client.Do(req4)
 	if err != nil {
 		log.Printf("deleting folder Unable to do request:%v", err)
 		t.FailNow()

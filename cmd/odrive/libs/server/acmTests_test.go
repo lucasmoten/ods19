@@ -3,6 +3,7 @@ package server_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -32,41 +33,20 @@ func TestAcmWithoutShare(t *testing.T) {
 	uriCreate := host + cfg.NginxRootURL + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[tester1].Config}
-	client := &http.Client{Transport: transport}
 	// exec and get response
-	httpCreateResponse, err := client.Do(httpCreate)
-	failOnErr(t, err, "Unable to do request")
+	httpCreateResponse, err := clients[tester1].Client.Do(httpCreate)
+
+	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 
 	var createdObject protocol.Object
+
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
-	if err != nil {
-		t.Logf("Error decoding json to Object: %v", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "Error decoding json to Object: %v")
 
 	// ### Verify all clients can read it
-	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
-	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
-	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
-		if err != nil {
-			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
-			t.Fail()
-		}
-		if httpGetResponse.StatusCode != http.StatusOK {
-			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
-			t.Fail()
-		} else {
-			t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
-		}
-		ioutil.ReadAll(httpGetResponse.Body)
-		httpGetResponse.Body.Close()
-	}
-
+	testers := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	shouldHaveReadForObjectID(t, createdObject.ID, testers...)
 }
 
 // TestAcmWithShareForODrive - User T1 creates object O2 with ACM having share
@@ -92,47 +72,15 @@ func TestAcmWithShareForODrive(t *testing.T) {
 	client := &http.Client{Transport: transport}
 	// exec and get response
 	httpCreateResponse, err := client.Do(httpCreate)
-	failOnErr(t, err, "Unable to do request")
+	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
-	if err != nil {
-		t.Logf("Error decoding json to Object: %v", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "Error decoding json to Object")
 
-	// ### Verify all clients can read it
-	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
-	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
-	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
-		if err != nil {
-			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
-			t.Fail()
-		}
-		if clientIdx < 10 {
-			// Tester 1 - 10 is in the ODrive group, should be allowed
-			if httpGetResponse.StatusCode != http.StatusOK {
-				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
-				t.Fail()
-			} else {
-				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
-			}
-		} else {
-			// Client 11 (the server cert) isn't in the odrive group, and should be forbidden
-			if httpGetResponse.StatusCode != http.StatusForbidden {
-				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
-				t.Fail()
-			} else {
-				t.Logf("%s is denied access to read %s", ci.Name, createdObject.Name)
-			}
-		}
-		ioutil.ReadAll(httpGetResponse.Body)
-		httpGetResponse.Body.Close()
-	}
+	shouldHaveReadForObjectID(t, createdObject.ID, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+	shouldNotHaveReadForObjectID(t, createdObject.ID, 10)
 }
 
 // TestAcmWithShareForODriveG1Disallowed - User T1 creates object O3 with ACM
@@ -157,17 +105,9 @@ func TestAcmWithShareForODriveG1Disallowed(t *testing.T) {
 	client := &http.Client{Transport: transport}
 	// exec and get response
 	httpCreateResponse, err := client.Do(httpCreate)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	// check status of response
-	if httpCreateResponse.StatusCode != http.StatusForbidden {
-		t.Logf("Bad status when creating object: %s", httpCreateResponse.Status)
-		t.FailNow()
-	} else {
-		t.Logf("%s is not allowed to create object %s with acm %s", clients[tester1].Name, createObjectRequest.Name, createObjectRequest.RawAcm)
-	}
+	failNowOnErr(t, err, "unable to do request")
+	statusMustBe(t, 403, httpCreateResponse, "bad status when creating object")
+	t.Logf("%s is not allowed to create object %s with acm %s", clients[tester1].Name, createObjectRequest.Name, createObjectRequest.RawAcm)
 	ioutil.ReadAll(httpCreateResponse.Body)
 	httpCreateResponse.Body.Close()
 }
@@ -194,46 +134,16 @@ func TestAcmWithShareForODriveG1Allowed(t *testing.T) {
 	client := &http.Client{Transport: transport}
 	// exec and get response
 	httpCreateResponse, err := client.Do(httpCreate)
-	failOnErr(t, err, "Unable to do request")
+	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
-	if err != nil {
-		t.Logf("Error decoding json to Object: %v", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "error decoding json to Object")
 
 	// ### Verify tester 6-10 can read it, but not 1-5 or other certs
-	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
-	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
-	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
-		if err != nil {
-			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
-			t.Fail()
-		}
-		switch clientIdx {
-		case 0, 6, 7, 8, 9:
-			if httpGetResponse.StatusCode != http.StatusOK {
-				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
-				t.Fail()
-			} else {
-				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
-			}
-		default: // 1-5 + twl-server-generic
-			if httpGetResponse.StatusCode != http.StatusForbidden {
-				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
-				t.Fail()
-			} else {
-				t.Logf("%s is denied access to read %s", ci.Name, createdObject.Name)
-			}
-		}
-		ioutil.ReadAll(httpGetResponse.Body)
-		httpGetResponse.Body.Close()
-	}
+	shouldHaveReadForObjectID(t, createdObject.ID, 6, 7, 8, 9, 0)
+	shouldNotHaveReadForObjectID(t, createdObject.ID, 1, 2, 3, 4, 5)
 }
 
 // TestAcmWithShareForODriveG2Allowed - User T1 creates object O5 with ACM
@@ -254,50 +164,19 @@ func TestAcmWithShareForODriveG2Allowed(t *testing.T) {
 	uriCreate := host + cfg.NginxRootURL + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[tester1].Config}
-	client := &http.Client{Transport: transport}
 	// exec and get response
-	httpCreateResponse, err := client.Do(httpCreate)
-	failOnErr(t, err, "Unable to do request")
+	httpCreateResponse, err := clients[tester1].Client.Do(httpCreate)
+	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
-	if err != nil {
-		t.Logf("Error decoding json to Object: %v", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "error decoding json to Object")
 
 	// ### Verify tester 1-5 can read it, but not 6-10 or other certs
-	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
-	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
-	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
-		if err != nil {
-			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
-			t.Fail()
-		}
-		switch clientIdx {
-		case 1, 2, 3, 4, 5:
-			if httpGetResponse.StatusCode != http.StatusOK {
-				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
-				t.Fail()
-			} else {
-				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
-			}
-		default: // tester 6-10 + twl-server-generic
-			if httpGetResponse.StatusCode != http.StatusForbidden {
-				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
-				t.Fail()
-			} else {
-				t.Logf("%s is denied access to read %s", ci.Name, createdObject.Name)
-			}
-		}
-		ioutil.ReadAll(httpGetResponse.Body)
-		httpGetResponse.Body.Close()
-	}
+	shouldHaveReadForObjectID(t, createdObject.ID, 1, 2, 3, 4, 5)
+	shouldNotHaveReadForObjectID(t, createdObject.ID, 6, 7, 8, 9, 0)
+
 }
 
 // TestAcmWithShareForODriveG2Disallowed - User T10 creates object O6 with ACM
@@ -318,20 +197,13 @@ func TestAcmWithShareForODriveG2Disallowed(t *testing.T) {
 	uriCreate := host + cfg.NginxRootURL + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[tester10].Config}
-	client := &http.Client{Transport: transport}
-	// exec and get response
-	httpCreateResponse, err := client.Do(httpCreate)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	// check status of response
-	if httpCreateResponse.StatusCode != http.StatusForbidden {
-		t.Logf("Bad status when creating object: %s", httpCreateResponse.Status)
-		t.FailNow()
-	}
-	t.Logf("%s is not allowed to create object %s with acm %s", clients[tester10].Name, createObjectRequest.Name, createObjectRequest.RawAcm)
+
+	httpCreateResponse, err := clients[tester10].Client.Do(httpCreate)
+	failNowOnErr(t, err, "Unable to do request")
+
+	statusMustBe(t, 403, httpCreateResponse, "Bad status when creating object")
+	t.Logf("%s is not allowed to create object %s with acm %s",
+		clients[tester10].Name, createObjectRequest.Name, createObjectRequest.RawAcm)
 
 	ioutil.ReadAll(httpCreateResponse.Body)
 	httpCreateResponse.Body.Close()
@@ -356,19 +228,14 @@ func TestAddReadShareForUser(t *testing.T) {
 	uriCreate := host + cfg.NginxRootURL + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[tester1].Config}
-	client := &http.Client{Transport: transport}
 	// exec and get response
-	httpCreateResponse, err := client.Do(httpCreate)
-	failOnErr(t, err, "Unable to do request")
+	httpCreateResponse, err := clients[tester1].Client.Do(httpCreate)
+	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
-	if err != nil {
-		t.Logf("Error decoding json to Object: %v", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "error decoding json to Object")
 
 	// ### Add a share for tester 10 to be able to read the object
 	// prep share
@@ -384,47 +251,17 @@ func TestAddReadShareForUser(t *testing.T) {
 	httpCreateShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateShare.Header.Set("Content-Type", "application/json")
 	// exec and get response
-	httpCreateShareResponse, err := client.Do(httpCreateShare)
-	failOnErr(t, err, "Unable to do request")
+	httpCreateShareResponse, err := clients[tester1].Client.Do(httpCreateShare)
+	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 200, httpCreateShareResponse, "Bad status when creating share")
 
 	var updatedObject protocol.Object
 	err = util.FullDecode(httpCreateShareResponse.Body, &updatedObject)
-	if err != nil {
-		t.Logf("Error decoding json to Object: %v", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "error decoding json to Object")
 
 	// ### Verify tester 1-5 can read it, as well as 10, but not 6-9 or other certs
-	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
-	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
-	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
-		if err != nil {
-			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
-			t.Fail()
-		}
-		switch clientIdx {
-		case 0, 1, 2, 3, 4, 5:
-			if httpGetResponse.StatusCode != http.StatusOK {
-				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
-				t.Fail()
-			} else {
-				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
-			}
-		default: // 6-9 + twl-server-generic
-			if httpGetResponse.StatusCode != http.StatusForbidden {
-				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
-				t.Fail()
-			} else {
-				t.Logf("%s is denied access to read %s", ci.Name, createdObject.Name)
-			}
-		}
-		ioutil.ReadAll(httpGetResponse.Body)
-		httpGetResponse.Body.Close()
-	}
+	shouldHaveReadForObjectID(t, createdObject.ID, 1, 2, 3, 4, 5, 0)
+	shouldNotHaveReadForObjectID(t, createdObject.ID, 6, 7, 8, 9)
 }
 
 // TestAddReadAndUpdateShareForUser - User T1 creates object O8 with ACM having
@@ -449,19 +286,15 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	uriCreate := host + cfg.NginxRootURL + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[tester1].Config}
-	client := &http.Client{Transport: transport}
+
 	// exec and get response
-	httpCreateResponse, err := client.Do(httpCreate)
-	failOnErr(t, err, "Unable to do request")
+	httpCreateResponse, err := clients[tester1].Client.Do(httpCreate)
+	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
-	if err != nil {
-		t.Logf("Error decoding json to Object: %v", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "error decoding json to Object")
 
 	// ### Add a share for tester 10 to be able to read the object
 	t.Logf("Adding share for tester 10 for read")
@@ -478,58 +311,19 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	httpCreateShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateShare.Header.Set("Content-Type", "application/json")
 	// exec and get response
-	httpCreateShareResponse, err := client.Do(httpCreateShare)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	// check status of response
-	if httpCreateShareResponse.StatusCode != http.StatusOK {
-		t.Logf("Bad status when creating share: %s", httpCreateShareResponse.Status)
-		t.FailNow()
-	}
+	httpCreateShareResponse, err := clients[tester1].Client.Do(httpCreateShare)
+	failNowOnErr(t, err, "unable to do create share request")
+	statusMustBe(t, 200, httpCreateShareResponse, "bad status when creating share")
+
 	// parse back to object
 	var updatedObject protocol.Object
 	err = util.FullDecode(httpCreateShareResponse.Body, &updatedObject)
-	if err != nil {
-		t.Logf("Error decoding json to Object: %v", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "error decoding json to Object")
 
 	// ### Verify tester 1-5 can read it, as well as 10, but not 6-9 or other certs
 	t.Logf("Verify 1-5 can read, as well as 10, but not 6-9")
-	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
-	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
-	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
-		if err != nil {
-			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
-			t.Fail()
-		}
-		switch clientIdx {
-		case 0, 1, 2, 3, 4, 5:
-			if httpGetResponse.StatusCode != http.StatusOK {
-				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
-				t.Fail()
-			} else {
-				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
-			}
-		default: // 6-9 + twl-server-generic
-			if httpGetResponse.StatusCode != http.StatusForbidden {
-				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
-				t.Fail()
-			} else {
-				t.Logf("%s is denied access to read %s", ci.Name, createdObject.Name)
-			}
-		}
-		ioutil.ReadAll(httpGetResponse.Body)
-		httpGetResponse.Body.Close()
-	}
-	if t.Failed() {
-		t.FailNow()
-	}
+	shouldHaveReadForObjectID(t, createdObject.ID, 1, 2, 3, 4, 5, 0)
+	shouldNotHaveReadForObjectID(t, createdObject.ID, 6, 7, 8, 9)
 
 	// ### Add a share for G1 group to allow reading and updating
 	t.Logf("Adding share for G1 for read and update")
@@ -545,56 +339,20 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	httpCreateGroupShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateGroupShare.Header.Set("Content-Type", "application/json")
 	// exec and get response
-	httpCreateGroupShareResponse, err := client.Do(httpCreateGroupShare)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
+	httpCreateGroupShareResponse, err := clients[tester1].Client.Do(httpCreateGroupShare)
+	failNowOnErr(t, err, "unable to do request")
 	// check status of response
-	if httpCreateGroupShareResponse.StatusCode != http.StatusOK {
-		t.Logf("Bad status when creating share: %s", httpCreateGroupShareResponse.Status)
-		t.FailNow()
-	}
+	statusMustBe(t, 200, httpCreateGroupShareResponse, "Bad status when creating share")
+
 	// parse back to object
 	var updatedObject2 protocol.Object
 	err = util.FullDecode(httpCreateGroupShareResponse.Body, &updatedObject2)
-	if err != nil {
-		t.Logf("Error decoding json to Object: %v", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "error decoding json to Object")
 
 	// ### Verify tester 1-10 can read it, but not others
+	shouldHaveReadForObjectID(t, updatedObject2.ID, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0)
+	shouldNotHaveReadForObjectID(t, updatedObject2.ID, 10)
 	t.Logf("Verify 1-0 can read, but not others")
-	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
-		if err != nil {
-			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
-			t.Fail()
-		}
-		switch clientIdx {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9:
-			if httpGetResponse.StatusCode != http.StatusOK {
-				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
-				t.Fail()
-			} else {
-				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
-			}
-		default: // twl-server-generic and any others that may get added later
-			if httpGetResponse.StatusCode != http.StatusForbidden {
-				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
-				t.Fail()
-			} else {
-				t.Logf("%s is denied access to read %s", ci.Name, createdObject.Name)
-			}
-		}
-		ioutil.ReadAll(httpGetResponse.Body)
-		httpGetResponse.Body.Close()
-	}
-	if t.Failed() {
-		t.FailNow()
-	}
 
 	// ### Verify that Tester 9 can now update it
 	t.Logf("Verify tester9 can update")
@@ -607,19 +365,10 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	httpUpdateObject, _ := http.NewRequest("POST", uriUpdate, bytes.NewBuffer(jsonBody))
 	httpUpdateObject.Header.Set("Content-Type", "application/json")
 	// exec and get response
-	transport9 := &http.Transport{TLSClientConfig: clients[tester9].Config}
-	client9 := &http.Client{Transport: transport9}
-	httpUpdateObjectResponse, err := client9.Do(httpUpdateObject)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
+	httpUpdateObjectResponse, err := clients[tester9].Client.Do(httpUpdateObject)
+	failNowOnErr(t, err, "unable to do request")
 	// check status of response
-	if httpUpdateObjectResponse.StatusCode != http.StatusOK {
-		t.Logf("Bad status when updating object: %s", httpUpdateObjectResponse.Status)
-		t.FailNow()
-	}
-
+	statusMustBe(t, 200, httpUpdateObjectResponse, "bad status when updating object")
 }
 
 // TestAddReadShareForGroupRemovesEveryone - User T1 creates object O9 with
@@ -644,63 +393,19 @@ func TestAddReadShareForGroupRemovesEveryone(t *testing.T) {
 	uriCreate := host + cfg.NginxRootURL + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[tester1].Config}
-	client := &http.Client{Transport: transport}
 	// exec and get response
-	httpCreateResponse, err := client.Do(httpCreate)
-	failOnErr(t, err, "Unable to do request")
+	httpCreateResponse, err := clients[tester1].Client.Do(httpCreate)
+	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
-	if err != nil {
-		t.Logf("Error decoding json to Object: %v", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "error decoding json to Object")
 
 	t.Logf("* Verify all clients can read it")
 	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
 	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
-	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
-		if err != nil {
-			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
-			t.Fail()
-		}
-		if httpGetResponse.StatusCode != http.StatusOK {
-			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
-			t.Fail()
-		} else {
-			t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
-		}
-		if clientIdx == len(clients)-1 {
-			var retrievedObject protocol.Object
-			err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
-			if err != nil {
-				t.Logf("Error decoding json to Object: %v", err)
-				t.FailNow()
-			}
-			t.Logf("* Resulting permissions")
-			hasEveryone := false
-			for _, permission := range retrievedObject.Permissions {
-				logPermission(t, permission)
-				if permission.Grantee == models.EveryoneGroup {
-					hasEveryone = true
-				}
-			}
-			if !hasEveryone {
-				t.Logf("Missing %s", models.EveryoneGroup)
-				t.FailNow()
-			}
-		} else {
-			ioutil.ReadAll(httpGetResponse.Body)
-		}
-		httpGetResponse.Body.Close()
-	}
-	if t.Failed() {
-		t.FailNow()
-	}
+	shouldHaveReadForObjectID(t, createdObject.ID, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+	shouldHaveEveryonePermission(t, createdObject.ID, 1)
 
 	t.Logf("* User T1 Adds Share with read permission for group ODrive G2 to O9.")
 	// prep share
@@ -716,7 +421,7 @@ func TestAddReadShareForGroupRemovesEveryone(t *testing.T) {
 	httpCreateGroupShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateGroupShare.Header.Set("Content-Type", "application/json")
 	// exec and get response
-	httpCreateGroupShareResponse, err := client.Do(httpCreateGroupShare)
+	httpCreateGroupShareResponse, err := clients[tester1].Client.Do(httpCreateGroupShare)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -819,7 +524,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 	client := &http.Client{Transport: transport}
 	// exec and get response
 	httpCreateResponse, err := client.Do(httpCreate)
-	failOnErr(t, err, "Unable to do request")
+	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
@@ -1086,7 +791,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 	client := &http.Client{Transport: transport}
 	// exec and get response
 	httpCreateResponse, err := client.Do(httpCreate)
-	failOnErr(t, err, "Unable to do request")
+	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
@@ -1444,7 +1149,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	client := &http.Client{Transport: transport}
 	// exec and get response
 	httpCreateResponse, err := client.Do(httpCreate)
-	failOnErr(t, err, "Unable to do request")
+	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
@@ -1849,8 +1554,65 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 
 }
 
-// failOnErr fails immediately with a templated message.
-func failOnErr(t *testing.T, err error, msg string) {
+func shouldHaveEveryonePermission(t *testing.T, objID string, clientIdxs ...int) {
+	uri := host + cfg.NginxRootURL + "/objects/" + objID + "/properties"
+	getReq, _ := http.NewRequest("GET", uri, nil)
+	for _, i := range clientIdxs {
+		// reaches for package global clients
+		c := clients[i].Client
+		resp, err := c.Do(getReq)
+		failNowOnErr(t, err, "Unable to do request")
+		defer resp.Body.Close()
+		statusMustBe(t, 200, resp, fmt.Sprintf("client id %d should have read for ID %s", i, objID))
+		var obj protocol.Object
+		err = util.FullDecode(resp.Body, &obj)
+		failNowOnErr(t, err, "unable to decode object from json")
+		hasEveryone := false
+		for _, p := range obj.Permissions {
+			logPermission(t, p)
+			if p.Grantee == models.EveryoneGroup {
+				hasEveryone = true
+			}
+		}
+
+		if !hasEveryone {
+			t.Logf("expected -Everyone permission")
+			t.FailNow()
+		}
+	}
+
+}
+
+func shouldHaveReadForObjectID(t *testing.T, objID string, clientIdxs ...int) {
+	uri := host + cfg.NginxRootURL + "/objects/" + objID + "/properties"
+	getReq, _ := http.NewRequest("GET", uri, nil)
+	for _, i := range clientIdxs {
+		// reaches for package global clients
+		c := clients[i].Client
+		resp, err := c.Do(getReq)
+		failNowOnErr(t, err, "Unable to do request")
+		defer resp.Body.Close()
+		statusMustBe(t, 200, resp, fmt.Sprintf("client id %d should have read for ID %s", i, objID))
+		ioutil.ReadAll(resp.Body)
+	}
+}
+
+func shouldNotHaveReadForObjectID(t *testing.T, objID string, clientIdxs ...int) {
+	uri := host + cfg.NginxRootURL + "/objects/" + objID + "/properties"
+	getReq, _ := http.NewRequest("GET", uri, nil)
+	for _, i := range clientIdxs {
+		// reaches for package global clients
+		c := clients[i].Client
+		resp, err := c.Do(getReq)
+		failNowOnErr(t, err, "Unable to do request")
+		defer resp.Body.Close()
+		statusMustBe(t, 403, resp, fmt.Sprintf("client id %d should not have read for ID %s", i, objID))
+		ioutil.ReadAll(resp.Body)
+	}
+}
+
+// failNowOnErr fails immediately with a templated message.
+func failNowOnErr(t *testing.T, err error, msg string) {
 	if err != nil {
 		t.Logf("%s: %v", msg, err)
 		t.FailNow()
