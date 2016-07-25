@@ -20,7 +20,7 @@ func doUserStatsQuery(t *testing.T) models.UserStats {
 		t.FailNow()
 	}
 	clientid := 0
-	res1, err := httpclients[clientid].Do(req)
+	res1, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		t.Errorf("Unable to do request:%v", err)
 		t.FailNow()

@@ -26,17 +26,16 @@ import (
 	"decipher.com/object-drive-server/util/testhelpers"
 )
 
-//var fakeDN1 = `CN=test tester01, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US`
-//var fakeDN2 = `CN=test tester02, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US`
-//var fakeDN1 = `cn=test tester01,o=u.s. government,ou=chimera,ou=dae,ou=people,c=us`
-//var fakeDN2 = `cn=test tester02,o=u.s. government,ou=chimera,ou=dae,ou=people,c=us`
-var fakeDN0 = `cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us`
-var fakeDN1 = `cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us`
-var fakeDN2 = `cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us`
+var (
+	fakeDN0 = `cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us`
+	fakeDN1 = `cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us`
+	fakeDN2 = `cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us`
+)
 
-var host string
-var clients []*ClientIdentity
-var httpclients []*http.Client
+var (
+	host    string
+	clients []*ClientIdentity
+)
 
 func setup(ip string) {
 
@@ -69,37 +68,42 @@ func generatePopulation() {
 
 func populateClients(population int) {
 	clients = make([]*ClientIdentity, population)
-	httpclients = make([]*http.Client, population)
 	usersReq, _ := http.NewRequest("GET", host+cfg.NginxRootURL+"/users", nil)
 	for i := 0; i < len(clients); i++ {
 		var clientname string
-		if i < 10 {
+
+		// Construct clients
+		switch i {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9:
 			clientname = fmt.Sprintf("test_%d", i)
 			client, err := getClientIdentity(i, clientname)
-			clients[i] = client
 			if err != nil {
 				log.Printf("Could not create client %d: %v", i, err)
-			} else {
-				//log.Printf("Creating client %d", i)
 			}
-		} else {
-			switch i {
-			case 10:
-				client, err := getClientIdentityFromDefaultCerts("server", "server")
-				clients[i] = client
-				if err != nil {
-					log.Printf("Could not create client for server/server: %v", err)
-				}
+			clients[i] = client
+		case 10:
+			client, err := getClientIdentityFromDefaultCerts("server", "server")
+			if err != nil {
+				log.Printf("Could not create client for server/server: %v", err)
 			}
+			clients[i] = client
+		default:
+			log.Fatalf("Aborting test setup. Unknown client id: %d", i)
 		}
 
 		transport := &http.Transport{TLSClientConfig: clients[i].Config}
-		httpclients[i] = &http.Client{Transport: transport}
-		// Fire-and-Forget call to /users which will force creation of the
-		// user in the database
-		_, err := httpclients[i].Do(usersReq)
+		clients[i].Client = &http.Client{Transport: transport}
+
+		// force creation of the user in the database
+		resp, err := clients[i].Client.Do(usersReq)
 		if err != nil {
 			log.Printf("Error in populateClients: %v/n", err)
+		}
+		ioutil.ReadAll(resp.Body)
+		defer resp.Body.Close()
+
+		// TODO assign groups in another switch
+		switch i {
 		}
 	}
 }
@@ -114,6 +118,8 @@ type ClientIdentity struct {
 	UploadCache   string
 	DownloadCache string
 	Index         int
+	Client        *http.Client
+	Groups        []string
 }
 
 func getClientIdentityFromDefaultCerts(component string, certSet string) (*ClientIdentity, error) {
@@ -146,30 +152,6 @@ func getClientIdentity(i int, name string) (*ClientIdentity, error) {
 	ci.Config = cfg
 	ci.Name = name
 
-	// //Keep this huge directory out of $GOPATH
-	// if os.ExpandEnv("$AUTOPILOT_HOME") == "" {
-	// 	os.Setenv("$AUTOPILOT_HOME", os.ExpandEnv("$HOME/autopilot"))
-	// 	os.Mkdir("~/autopilot", 0700)
-	// }
-	// ci.UploadCache = os.ExpandEnv("$HOME/autopilot/uploadCache" + name)
-	// ci.DownloadCache = os.ExpandEnv("$HOME/autopilot/downloadCache" + name)
-	// ci.Index = i
-	// _, err = os.Stat(ci.UploadCache)
-	// if os.IsNotExist(err) {
-	// 	err = os.MkdirAll(ci.UploadCache, 0700)
-	// 	if err != nil {
-	// 		log.Printf("Unable to make an upload cache for %s:%v", ci.UploadCache, err)
-	// 		return nil, err
-	// 	}
-	// }
-	// _, err = os.Stat(ci.DownloadCache)
-	// if os.IsNotExist(err) {
-	// 	err = os.MkdirAll(ci.DownloadCache, 0700)
-	// 	if err != nil {
-	// 		log.Printf("Unable to make a download cache for %s:%v", name, err)
-	// 		return nil, err
-	// 	}
-	// }
 	return ci, nil
 }
 

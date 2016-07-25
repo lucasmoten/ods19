@@ -55,7 +55,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	res, err := httpclients[tester10].Do(req)
+	res, err := clients[tester10].Client.Do(req)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -73,7 +73,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes1, err := httpclients[tester1].Do(getReq1)
+	getRes1, err := clients[tester1].Client.Do(getReq1)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -100,7 +100,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes2, err := httpclients[tester1].Do(getReq2)
+	getRes2, err := clients[tester1].Client.Do(getReq2)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -134,7 +134,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes3, err := httpclients[tester10].Do(getReq3)
+	getRes3, err := clients[tester10].Client.Do(getReq3)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -160,7 +160,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes4, err := httpclients[tester1].Do(getReq4)
+	getRes4, err := clients[tester1].Client.Do(getReq4)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -186,7 +186,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes5, err := httpclients[tester1].Do(getReq5)
+	getRes5, err := clients[tester1].Client.Do(getReq5)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -229,7 +229,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes6, err := httpclients[tester10].Do(getReq6)
+	getRes6, err := clients[tester10].Client.Do(getReq6)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -255,7 +255,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	getRes7, err := httpclients[tester1].Do(getReq7)
+	getRes7, err := clients[tester1].Client.Do(getReq7)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -289,8 +289,8 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.Skip()
 	}
 	verboseOutput := testing.Verbose()
-	clientTestperson10 := httpclients[0]
-	clientTestperson01 := httpclients[1]
+	clientTestperson10 := clients[0].Client
+	clientTestperson01 := clients[1].Client
 
 	if verboseOutput {
 		t.Logf("(Verbose Mode) Using testperson10")

@@ -89,7 +89,7 @@ func TestCreateFolderAtRoot(t *testing.T) {
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := httpclients[clientid].Do(req)
+	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -154,7 +154,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := httpclients[clientid].Do(req)
+	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -199,7 +199,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err = httpclients[clientid].Do(req)
+	res, err = clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -268,7 +268,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := httpclients[clientid1].Do(req)
+	res, err := clients[clientid1].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -313,7 +313,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err = httpclients[clientid2].Do(req)
+	res, err = clients[clientid2].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -371,7 +371,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := httpclients[clientid1].Do(req)
+	res, err := clients[clientid1].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -416,7 +416,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err = httpclients[clientid2].Do(req)
+	res, err = clients[clientid2].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -465,7 +465,7 @@ func TestCreateFolderWithoutName(t *testing.T) {
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := httpclients[clientid1].Do(req)
+	res, err := clients[clientid1].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()

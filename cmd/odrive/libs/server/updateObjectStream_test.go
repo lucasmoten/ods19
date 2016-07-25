@@ -43,7 +43,7 @@ func doMaliciousUpdate(t *testing.T, oid, jsonString string) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
 
-	client := httpclients[clientID]
+	client := clients[clientID].Client
 	res, err := client.Do(req)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
@@ -147,7 +147,7 @@ func doReCheckProperties(t *testing.T, oid, jsonString string) {
 	if err != nil {
 		log.Printf("Unable to generate get re-request:%v", err)
 	}
-	client := httpclients[clientID]
+	client := clients[clientID].Client
 	res, err := client.Do(req)
 	if err != nil {
 		t.Errorf("Unable to do re-request:%v\n", err)
@@ -190,7 +190,7 @@ func doPropertyUpdate(t *testing.T, oid, updateJSON string) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
 
-	client := httpclients[clientID]
+	client := clients[clientID].Client
 	res, err := client.Do(req)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)

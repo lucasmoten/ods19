@@ -44,7 +44,7 @@ func TestGetObjectStreamForRevision_CurrentVersion(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	createObjectRes, err := httpclients[clientID].Do(createObjectReq)
+	createObjectRes, err := clients[clientID].Client.Do(createObjectReq)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
@@ -70,7 +70,7 @@ func TestGetObjectStreamForRevision_CurrentVersion(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	getObjectStreamRes, err := httpclients[clientID].Do(getObjectStreamReq)
+	getObjectStreamRes, err := clients[clientID].Client.Do(getObjectStreamReq)
 	if err != nil {
 		t.Errorf("GetObjectStream request failed: %v\n", err)
 		t.FailNow()
@@ -106,7 +106,7 @@ func TestGetObjectStreamForRevision_CurrentVersion(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	getObjectStreamRevisionRes, err := httpclients[clientID].Do(getObjectStreamRevisionReq)
+	getObjectStreamRevisionRes, err := clients[clientID].Client.Do(getObjectStreamRevisionReq)
 	if err != nil {
 		t.Errorf("GetObjectStreamRevision request failed: %v\n", err)
 		t.FailNow()
@@ -163,7 +163,7 @@ func TestGetObjectStreamForRevision_OriginalVersion(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	createObjectRes, err := httpclients[clientID].Do(createObjectReq)
+	createObjectRes, err := clients[clientID].Client.Do(createObjectReq)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
@@ -202,7 +202,7 @@ func TestGetObjectStreamForRevision_OriginalVersion(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	updateObjectRes, err := httpclients[clientID].Do(updateObjectReq)
+	updateObjectRes, err := clients[clientID].Client.Do(updateObjectReq)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
@@ -228,7 +228,7 @@ func TestGetObjectStreamForRevision_OriginalVersion(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	getObjectStreamRes, err := httpclients[clientID].Do(getObjectStreamReq)
+	getObjectStreamRes, err := clients[clientID].Client.Do(getObjectStreamReq)
 	if err != nil {
 		t.Errorf("GetObjectStream request failed: %v\n", err)
 		t.FailNow()
@@ -264,7 +264,7 @@ func TestGetObjectStreamForRevision_OriginalVersion(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	getObjectStreamRevisionRes, err := httpclients[clientID].Do(getObjectStreamRevisionReq)
+	getObjectStreamRevisionRes, err := clients[clientID].Client.Do(getObjectStreamRevisionReq)
 	if err != nil {
 		t.Errorf("GetObjectStreamRevision request failed: %v\n", err)
 		t.FailNow()
@@ -300,7 +300,7 @@ func TestGetObjectStreamForRevision_OriginalVersion(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	getObjectStreamRevisionRes2, err := httpclients[clientID].Do(getObjectStreamRevisionReq2)
+	getObjectStreamRevisionRes2, err := clients[clientID].Client.Do(getObjectStreamRevisionReq2)
 	if err != nil {
 		t.Errorf("GetObjectStreamRevision request 2 failed: %v\n", err)
 		t.FailNow()
@@ -358,7 +358,7 @@ func TestGetObjectStreamForRevision_DeletedVersion(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	createObjectRes, err := httpclients[clientID].Do(createObjectReq)
+	createObjectRes, err := clients[clientID].Client.Do(createObjectReq)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
@@ -397,7 +397,7 @@ func TestGetObjectStreamForRevision_DeletedVersion(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	updateObjectRes, err := httpclients[clientID].Do(updateObjectReq)
+	updateObjectRes, err := clients[clientID].Client.Do(updateObjectReq)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
@@ -420,7 +420,7 @@ func TestGetObjectStreamForRevision_DeletedVersion(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	deleteObjectRes, err := httpclients[clientID].Do(deleteObjectReq)
+	deleteObjectRes, err := clients[clientID].Client.Do(deleteObjectReq)
 	if err != nil {
 		t.Errorf("DeleteObject request failed: %v\n", err)
 		t.FailNow()
@@ -436,7 +436,7 @@ func TestGetObjectStreamForRevision_DeletedVersion(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	getObjectStreamRes, err := httpclients[clientID].Do(getObjectStreamReq)
+	getObjectStreamRes, err := clients[clientID].Client.Do(getObjectStreamReq)
 	if err != nil {
 		t.Errorf("GetObjectStream request failed: %v\n", err)
 		t.FailNow()
@@ -453,7 +453,7 @@ func TestGetObjectStreamForRevision_DeletedVersion(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	getObjectStreamRevisionRes, err := httpclients[clientID].Do(getObjectStreamRevisionReq)
+	getObjectStreamRevisionRes, err := clients[clientID].Client.Do(getObjectStreamRevisionReq)
 	if err != nil {
 		t.Errorf("GetObjectStreamRevision request failed: %v\n", err)
 		t.FailNow()
@@ -493,7 +493,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	createObjectRes, err := httpclients[tester10].Do(createObjectReq)
+	createObjectRes, err := clients[tester10].Client.Do(createObjectReq)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
@@ -531,7 +531,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	createShareRes, err := httpclients[tester10].Do(createShareReq)
+	createShareRes, err := clients[tester10].Client.Do(createShareReq)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
@@ -582,7 +582,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	updateObjectRes, err := httpclients[tester10].Do(updateObjectReq)
+	updateObjectRes, err := clients[tester10].Client.Do(updateObjectReq)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
@@ -618,7 +618,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	getObjectStreamRevisionRes1, err := httpclients[tester1].Do(getObjectStreamRevisionReq1)
+	getObjectStreamRevisionRes1, err := clients[tester1].Client.Do(getObjectStreamRevisionReq1)
 	if err != nil {
 		t.Errorf("GetObjectStreamRevision request 1 failed: %v\n", err)
 		t.FailNow()
@@ -654,7 +654,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 		t.FailNow()
 	}
-	getObjectStreamRevisionRes2, err := httpclients[tester1].Do(getObjectStreamRevisionReq2)
+	getObjectStreamRevisionRes2, err := clients[tester1].Client.Do(getObjectStreamRevisionReq2)
 	if err != nil {
 		t.Errorf("GetObjectStreamRevision request 2 failed: %v\n", err)
 		t.FailNow()
@@ -693,7 +693,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 	// 	t.Errorf("Unable to create HTTP request: %v\n", err)
 	// 	t.FailNow()
 	// }
-	// deleteShareRes, err := httpclients[clientID].Do(deleteShareReq)
+	// deleteShareRes, err := clients[clientID].Client.Do(deleteShareReq)
 	// if err != nil {
 	// 	t.Errorf("Unable to do request:%v\n", err)
 	// 	t.FailNow()
@@ -704,7 +704,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 	// }
 
 	t.Logf("* Call GetObjectStreamRevision /history/x as tester1")
-	getObjectStreamRevisionRes3, err := httpclients[tester1].Do(getObjectStreamRevisionReq1)
+	getObjectStreamRevisionRes3, err := clients[tester1].Client.Do(getObjectStreamRevisionReq1)
 	if err != nil {
 		t.Errorf("GetObjectStreamRevision request 3 failed: %v\n", err)
 		t.FailNow()
@@ -716,7 +716,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 	}
 
 	t.Logf("* Call GetObjectStreamRevision /history/0 as tester1")
-	getObjectStreamRevisionRes4, err := httpclients[tester1].Do(getObjectStreamRevisionReq2)
+	getObjectStreamRevisionRes4, err := clients[tester1].Client.Do(getObjectStreamRevisionReq2)
 	if err != nil {
 		t.Errorf("GetObjectStreamRevision request 4 failed: %v\n", err)
 		t.FailNow()

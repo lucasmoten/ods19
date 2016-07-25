@@ -33,7 +33,7 @@ func XTestListObjectShares(t *testing.T) {
 	}
 
 	// Get shares as the creator
-	res1, err := httpclients[clientid1].Do(req)
+	res1, err := clients[clientid1].Client.Do(req)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -44,7 +44,7 @@ func XTestListObjectShares(t *testing.T) {
 	}
 
 	// Get shares as a different user
-	res2, err := httpclients[clientid2].Do(req)
+	res2, err := clients[clientid2].Client.Do(req)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()

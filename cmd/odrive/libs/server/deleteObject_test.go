@@ -45,7 +45,7 @@ func TestDeleteObject(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	res, err := httpclients[clientid].Do(req)
+	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -81,7 +81,7 @@ func TestDeleteObject(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	res, err = httpclients[clientid].Do(req)
+	res, err = clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
@@ -138,7 +138,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	res, err := httpclients[clientid].Do(req)
+	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("moving folder Unable to do request:%v", err)
 		t.FailNow()
@@ -181,7 +181,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	res, err = httpclients[clientid].Do(req)
+	res, err = clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("deleting folder Unable to do request:%v", err)
 		t.FailNow()
@@ -217,7 +217,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 		t.FailNow()
 	}
 	// do the request
-	res, err = httpclients[clientid].Do(req)
+	res, err = clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()

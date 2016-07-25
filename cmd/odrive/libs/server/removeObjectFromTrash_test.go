@@ -45,7 +45,7 @@ func TestHTTPUndeleteObject(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
-	res, err := httpclients[clientID].Do(req)
+	res, err := clients[clientID].Client.Do(req)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
@@ -63,7 +63,7 @@ func TestHTTPUndeleteObject(t *testing.T) {
 	expected := objResponse.Name
 
 	deleteReq, err := testhelpers.NewDeleteObjectRequest(objResponse, "", host)
-	res, err = httpclients[clientID].Do(deleteReq)
+	res, err = clients[clientID].Client.Do(deleteReq)
 	if err != nil {
 		t.Errorf("Delete request failed: %v\n", err)
 	}
@@ -74,7 +74,7 @@ func TestHTTPUndeleteObject(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error from NewGetObjectRequest: %v\n", err)
 	}
-	res, err = httpclients[clientID].Do(getReq)
+	res, err = clients[clientID].Client.Do(getReq)
 	if err != nil {
 		t.Errorf("GetObject request failed: %v\n", err)
 	}
@@ -89,7 +89,7 @@ func TestHTTPUndeleteObject(t *testing.T) {
 	// This must be passed valid change token
 	undeleteReq, err := testhelpers.NewUndeleteObjectDELETERequest(
 		objID, getObjectResponse.ChangeToken, "", host)
-	res, err = httpclients[clientID].Do(undeleteReq)
+	res, err = clients[clientID].Client.Do(undeleteReq)
 	if err != nil {
 		t.Errorf("Delete request failed: %v\n", err)
 	}
