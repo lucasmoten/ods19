@@ -202,15 +202,14 @@ func startApplication(whitelist []string, opts config.CommandLineOpts) {
 		os.Exit(1)
 	}
 
-	cacheRoot := globalconfig.GetEnvOrDefault("OD_CACHE_ROOT", ".")
 	cacheID, err := getDBIdentifier(app)
 	if err != nil {
 		logger.Error("Database is not fully initialized with a dbstate record", zap.String("err", err.Error()))
 		os.Exit(1)
 	}
 
-	cachePartition := globalconfig.GetEnvOrDefault("OD_CACHE_PARTITION", "cache") + "/" + cacheID
-	configureDrainProvider(app, globalconfig.StandaloneMode, cacheRoot, cachePartition)
+	configureDrainProvider(app, globalconfig.StandaloneMode,
+		conf.ServerSettings.CacheRoot, conf.ServerSettings.CachePartition+"/"+cacheID)
 
 	zkAddress := globalconfig.GetEnvOrDefault("OD_ZK_URL", "zk:2181")
 	zkBasePath := globalconfig.GetEnvOrDefault("OD_ZK_BASEPATH", "/service/object-drive/1.0")
@@ -222,7 +221,7 @@ func startApplication(whitelist []string, opts config.CommandLineOpts) {
 		"join cluster",
 		zap.String("database", cacheID),
 		zap.String("bucket", config.DefaultBucket),
-		zap.String("partition", cachePartition),
+		zap.String("partition", conf.ServerSettings.CachePartition+"/"+cacheID),
 	)
 
 	//These are the IP:port as seen by the outside.  They are not necessarily the same as the internal port that the server knows,
