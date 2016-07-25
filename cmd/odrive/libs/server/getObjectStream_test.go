@@ -41,8 +41,7 @@ func TestEtag(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failure from redo get object stream: %v\n", err)
 	}
-	client2 := client
-	res2, err := client2.Do(req2)
+	res2, err := client.Do(req2)
 	if err != nil {
 		t.Errorf("Unable to do re request:%v\n", err)
 	}
@@ -63,14 +62,35 @@ func TestEtag(t *testing.T) {
 		t.Errorf("Failure from redo get object stream: %v\n", err)
 	}
 	req3.Header.Set("If-none-match", eTag)
-	client3 := client
-	res3, err := client3.Do(req3)
+	res3, err := client.Do(req3)
 	if err != nil {
 		t.Errorf("Unable to do re request:%v\n", err)
 	}
 
 	if res3.StatusCode != http.StatusNotModified {
 		t.Errorf("the data was not modified, and we sent an eTag, yet did not get a 304. %d instead", res3.StatusCode)
+	}
+
+	//Ask with a wrong tag and get 200
+	req4, err := testhelpers.NewGetObjectStreamRequest(responseObject.ID, "", host)
+	if err != nil {
+		t.Errorf("Failure from redo get object stream: %v\n", err)
+	}
+	//Some random tag that does not match
+	eTag2 := "9a29ea29e29eac3457b"
+	req4.Header.Set("If-none-match", eTag2)
+	res4, err := client.Do(req4)
+	if err != nil {
+		t.Errorf("Unable to do re request:%v\n", err)
+	}
+
+	if res4.StatusCode != http.StatusOK {
+		t.Errorf("Expected a 200 because the tag does not match. %d instead", res4.StatusCode)
+	}
+
+	err = util.FullDecode(res4.Body, &responseObject)
+	if err != nil {
+		t.Errorf("Could not decode reponse from createObject: %v\n", err)
 	}
 }
 
