@@ -84,6 +84,8 @@ type ServerSettingsConfiguration struct {
 	AclImpersonationWhitelist []string
 	PathToStaticFiles         string
 	PathToTemplateFiles       string
+	CacheRoot                 string
+	CachePartition            string
 }
 
 // AuditSvcConfiguration defines the attributes needed for connecting to the audit service
@@ -219,6 +221,11 @@ func NewServerSettingsFromEnv(whitelist []string, opts CommandLineOpts) ServerSe
 	settings.CipherSuites = opts.Ciphers
 	settings.PathToStaticFiles = opts.StaticRootPath
 	settings.PathToTemplateFiles = opts.TemplateDir
+
+	settings.CacheRoot = globalconfig.GetEnvOrDefault("OD_CACHE_ROOT", ".")
+	settings.CachePartition = globalconfig.GetEnvOrDefault("OD_CACHE_PARTITION", "cache")
+
+	// TODO fill in unset values with config file values.
 
 	return settings
 }
