@@ -29,7 +29,7 @@ func TestEtag(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
 	}
-
+	defer util.FinishBody(res.Body)
 	var responseObject protocol.Object
 	err = util.FullDecode(res.Body, &responseObject)
 	if err != nil {
@@ -45,6 +45,7 @@ func TestEtag(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unable to do re request:%v\n", err)
 	}
+	defer util.FinishBody(res2.Body)
 	eTag := res2.Header.Get("Etag")
 	t.Logf("we got eTag:%s", eTag)
 	if len(eTag) == 0 {
@@ -66,7 +67,7 @@ func TestEtag(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unable to do re request:%v\n", err)
 	}
-
+	defer util.FinishBody(res3.Body)
 	if res3.StatusCode != http.StatusNotModified {
 		t.Errorf("the data was not modified, and we sent an eTag, yet did not get a 304. %d instead", res3.StatusCode)
 	}
@@ -83,7 +84,7 @@ func TestEtag(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unable to do re request:%v\n", err)
 	}
-
+	defer util.FinishBody(res4.Body)
 	if res4.StatusCode != http.StatusOK {
 		t.Errorf("Expected a 200 because the tag does not match. %d instead", res4.StatusCode)
 	}
@@ -114,7 +115,7 @@ func TestUploadAndGetByteRange(t *testing.T) {
 		t.Errorf("Unable to do request:%v\n", err)
 	}
 	isResponseError(res, t)
-
+	defer util.FinishBody(res.Body)
 	var responseObject protocol.Object
 	err = util.FullDecode(res.Body, &responseObject)
 	if err != nil {
@@ -131,7 +132,7 @@ func TestUploadAndGetByteRange(t *testing.T) {
 	if err != nil {
 		t.Errorf("Could not perform range request: %v\n", err)
 	}
-
+	defer util.FinishBody(rangeRes.Body)
 	returned, err := ioutil.ReadAll(rangeRes.Body)
 	if err != nil {
 		t.Errorf("Could not read response body")

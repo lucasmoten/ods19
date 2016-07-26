@@ -110,7 +110,7 @@ func TestRESTEventAccess(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error making HTTP request: %v", err)
 	}
-
+	defer util.FinishBody(resp.Body)
 	var auditResp auditservice.AuditResponse
 	buf, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(buf, &auditResp)

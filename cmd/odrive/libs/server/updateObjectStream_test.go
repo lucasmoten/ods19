@@ -49,7 +49,7 @@ func doMaliciousUpdate(t *testing.T, oid, jsonString string) {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
 	}
-
+	defer util.FinishBody(res.Body)
 	//We expect to get a bad error code here
 	if res != nil && res.StatusCode == 200 {
 		t.Fail()
@@ -153,7 +153,7 @@ func doReCheckProperties(t *testing.T, oid, jsonString string) {
 		t.Errorf("Unable to do re-request:%v\n", err)
 		t.FailNow()
 	}
-
+	defer util.FinishBody(res.Body)
 	jsonResponseBytes, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("unable to read data:%v", err)
@@ -196,6 +196,7 @@ func doPropertyUpdate(t *testing.T, oid, updateJSON string) {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 	jsonResponseBytes, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("unable to read data:%v", err)

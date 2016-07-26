@@ -76,7 +76,7 @@ func TestCreatObjectMalicious(t *testing.T) {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
 	}
-
+	defer util.FinishBody(res.Body)
 	//If it comes back ok, it at least needs to have
 	//stopped us from doing something bad
 	if res == nil {
@@ -131,6 +131,7 @@ func doCheckFileNowExists(t *testing.T, clientID int, jres protocol.Object) {
 		t.Log("client connect fail")
 		t.FailNow()
 	}
+	defer util.FinishBody(res2.Body)
 	var objectResultSet protocol.ObjectResultset
 	bodyBytes, err := ioutil.ReadAll(res2.Body)
 	if err != nil {
@@ -278,6 +279,7 @@ posting a file
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 	// process Response
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
@@ -310,6 +312,7 @@ func TestCreateWithPermissions(t *testing.T) {
 	httpCreateResponse, err := clients[tester10].Client.Do(httpCreate)
 	t.Logf("check response")
 	failNowOnErr(t, err, "Unable to do request")
+	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
@@ -331,6 +334,7 @@ func TestCreateWithPermissions(t *testing.T) {
 				t.Logf("Error decoding json to Object: %v", err)
 				t.Fail()
 			}
+			defer util.FinishBody(httpGetResponse.Body)
 			t.Logf("* Resulting permissions")
 			hasEveryone := false
 			for _, permission := range retrievedObject.Permissions {
@@ -344,8 +348,6 @@ func TestCreateWithPermissions(t *testing.T) {
 				t.Fail()
 			}
 		}
-		ioutil.ReadAll(httpGetResponse.Body)
-		httpGetResponse.Body.Close()
 
 		switch clientIdx {
 		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9:

@@ -49,6 +49,7 @@ func TestGetObjectStreamForRevision_CurrentVersion(t *testing.T) {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(createObjectRes.Body)
 	if createObjectRes.StatusCode != http.StatusOK {
 		t.Errorf("Error creating object, got code %d", createObjectRes.StatusCode)
 		t.FailNow()
@@ -75,6 +76,7 @@ func TestGetObjectStreamForRevision_CurrentVersion(t *testing.T) {
 		t.Errorf("GetObjectStream request failed: %v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getObjectStreamRes.Body)
 	if getObjectStreamRes.StatusCode != http.StatusOK {
 		t.Errorf("Error retrieving object stream, got code %d", getObjectStreamRes.StatusCode)
 		t.FailNow()
@@ -111,6 +113,7 @@ func TestGetObjectStreamForRevision_CurrentVersion(t *testing.T) {
 		t.Errorf("GetObjectStreamRevision request failed: %v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getObjectStreamRevisionRes.Body)
 	if getObjectStreamRevisionRes.StatusCode != http.StatusOK {
 		t.Errorf("Error retrieving object stream revision, got code %d", getObjectStreamRes.StatusCode)
 		t.FailNow()
@@ -168,6 +171,7 @@ func TestGetObjectStreamForRevision_OriginalVersion(t *testing.T) {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(createObjectRes.Body)
 	if createObjectRes.StatusCode != http.StatusOK {
 		t.Errorf("Error creating object, got code %d", createObjectRes.StatusCode)
 		t.FailNow()
@@ -207,6 +211,7 @@ func TestGetObjectStreamForRevision_OriginalVersion(t *testing.T) {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(updateObjectRes.Body)
 	if updateObjectRes.StatusCode != http.StatusOK {
 		t.Errorf("Error creating object, got code %d", updateObjectRes.StatusCode)
 		t.FailNow()
@@ -233,6 +238,7 @@ func TestGetObjectStreamForRevision_OriginalVersion(t *testing.T) {
 		t.Errorf("GetObjectStream request failed: %v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getObjectStreamRes.Body)
 	if getObjectStreamRes.StatusCode != http.StatusOK {
 		t.Errorf("Error retrieving object stream, got code %d", getObjectStreamRes.StatusCode)
 		t.FailNow()
@@ -269,6 +275,7 @@ func TestGetObjectStreamForRevision_OriginalVersion(t *testing.T) {
 		t.Errorf("GetObjectStreamRevision request failed: %v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getObjectStreamRevisionRes.Body)
 	if getObjectStreamRevisionRes.StatusCode != http.StatusOK {
 		t.Errorf("Error retrieving object stream revision, got code %d", getObjectStreamRevisionRes.StatusCode)
 		t.FailNow()
@@ -305,6 +312,7 @@ func TestGetObjectStreamForRevision_OriginalVersion(t *testing.T) {
 		t.Errorf("GetObjectStreamRevision request 2 failed: %v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getObjectStreamRevisionRes2.Body)
 	if getObjectStreamRevisionRes2.StatusCode != http.StatusOK {
 		t.Errorf("Error retrieving object stream revision, got code %d", getObjectStreamRevisionRes2.StatusCode)
 		t.FailNow()
@@ -363,6 +371,7 @@ func TestGetObjectStreamForRevision_DeletedVersion(t *testing.T) {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(createObjectRes.Body)
 	if createObjectRes.StatusCode != http.StatusOK {
 		t.Errorf("Error creating object, got code %d", createObjectRes.StatusCode)
 		t.FailNow()
@@ -402,6 +411,7 @@ func TestGetObjectStreamForRevision_DeletedVersion(t *testing.T) {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(updateObjectRes.Body)
 	if updateObjectRes.StatusCode != http.StatusOK {
 		t.Errorf("Error creating object, got code %d", updateObjectRes.StatusCode)
 		t.FailNow()
@@ -425,6 +435,7 @@ func TestGetObjectStreamForRevision_DeletedVersion(t *testing.T) {
 		t.Errorf("DeleteObject request failed: %v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(deleteObjectRes.Body)
 	if deleteObjectRes.StatusCode != http.StatusOK {
 		t.Errorf("Error calling delete object, got code %d", deleteObjectRes.StatusCode)
 		t.FailNow()
@@ -441,6 +452,7 @@ func TestGetObjectStreamForRevision_DeletedVersion(t *testing.T) {
 		t.Errorf("GetObjectStream request failed: %v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getObjectStreamRes.Body)
 	// ### Expect failure because current is deleted
 	if getObjectStreamRes.StatusCode == http.StatusOK {
 		t.Errorf("Error! We retrieved stream for deleted object %s", getObjectStreamRes.StatusCode)
@@ -458,6 +470,7 @@ func TestGetObjectStreamForRevision_DeletedVersion(t *testing.T) {
 		t.Errorf("GetObjectStreamRevision request failed: %v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getObjectStreamRevisionRes.Body)
 	// ### Expect failure because current is deleted, even though original is not
 	if getObjectStreamRevisionRes.StatusCode == http.StatusOK {
 		t.Errorf("Error! We retrieved stream of older version when current is deleted %d", getObjectStreamRevisionRes.StatusCode)
@@ -498,6 +511,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(createObjectRes.Body)
 	if createObjectRes.StatusCode != http.StatusOK {
 		t.Errorf("Error creating object, got code %d", createObjectRes.StatusCode)
 		t.FailNow()
@@ -536,6 +550,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(createShareRes.Body)
 	if createShareRes.StatusCode != http.StatusOK {
 		t.Errorf("Error creating share, got code %d", createShareRes.StatusCode)
 		t.FailNow()
@@ -587,6 +602,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(updateObjectRes.Body)
 	if updateObjectRes.StatusCode != http.StatusOK {
 		t.Errorf("Error updating object stream, got code %d", updateObjectRes.StatusCode)
 		t.FailNow()
@@ -623,6 +639,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("GetObjectStreamRevision request 1 failed: %v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getObjectStreamRevisionRes1.Body)
 	if getObjectStreamRevisionRes1.StatusCode != http.StatusOK {
 		t.Errorf("Error retrieving object stream revision, got code %d", getObjectStreamRevisionRes1.StatusCode)
 		t.FailNow()
@@ -659,6 +676,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("GetObjectStreamRevision request 2 failed: %v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getObjectStreamRevisionRes2.Body)
 	if getObjectStreamRevisionRes2.StatusCode != http.StatusOK {
 		t.Errorf("Error retrieving object stream revision, got code %d", getObjectStreamRevisionRes2.StatusCode)
 		t.FailNow()
@@ -709,6 +727,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("GetObjectStreamRevision request 3 failed: %v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getObjectStreamRevisionRes3.Body)
 	// ### Expect success since the call to update without share restrictions grants to everyone
 	if getObjectStreamRevisionRes3.StatusCode != http.StatusOK {
 		t.Errorf("Error! Was not able to retrieve object stream revision on request 3 despite share to everyone, status %d", getObjectStreamRevisionRes3.StatusCode)
@@ -721,6 +740,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Errorf("GetObjectStreamRevision request 4 failed: %v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getObjectStreamRevisionRes4.Body)
 	// ### Expect success, same as above
 	if getObjectStreamRevisionRes4.StatusCode != http.StatusOK {
 		t.Errorf("Error! Was not able to retrieve object stream revision on request 4 despite share to everyon, status %d", getObjectStreamRevisionRes4.StatusCode)

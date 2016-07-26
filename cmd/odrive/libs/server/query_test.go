@@ -50,7 +50,7 @@ func TestQuery(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
-
+	defer util.FinishBody(res.Body)
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		t.Logf("bad status: %s", res.Status)
@@ -115,6 +115,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res1.Body)
 	// process Response
 	if res1.StatusCode != http.StatusOK {
 		log.Printf("bad status modifying folder 1 first time: %s", res1.Status)
@@ -148,6 +149,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		log.Printf("Unable to do request to modify folder again:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res2.Body)
 	// process Response
 	if res2.StatusCode != http.StatusOK {
 		log.Printf("bad status modifying folder 1 second time: %s", res2.Status)
@@ -175,7 +177,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
-
+	defer util.FinishBody(res.Body)
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		t.Logf("bad status searching: %s", res.Status)
@@ -230,6 +232,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 			t.Logf("Unable to do request:%v", err)
 			t.FailNow()
 		}
+		defer util.FinishBody(res.Body)
 		// Response validation
 		if res.StatusCode != http.StatusOK {
 			t.Logf("bad status searching page 2: %s", res.Status)
@@ -282,6 +285,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		log.Printf("deleting folder Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res3.Body)
 	// process Response
 	if res3.StatusCode != http.StatusOK {
 		log.Printf("deleting folder bad status: %s", res3.Status)
@@ -316,6 +320,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		log.Printf("deleting folder Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res4.Body)
 	// process Response
 	if res4.StatusCode != http.StatusOK {
 		log.Printf("deleting folder bad status: %s", res4.Status)

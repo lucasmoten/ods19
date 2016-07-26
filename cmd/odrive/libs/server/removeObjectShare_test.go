@@ -54,6 +54,7 @@ func TestRemoveObjectShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 	// process Response
 	if res.StatusCode != http.StatusOK {
 		t.Logf("bad status: %s", res.Status)
@@ -83,6 +84,7 @@ func TestRemoveObjectShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getRes3.Body)
 	if getRes3.StatusCode != http.StatusOK {
 		t.Logf("share creation failed")
 		t.FailNow()
@@ -107,6 +109,7 @@ func TestRemoveObjectShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getRes4.Body)
 	if getRes4.StatusCode != http.StatusOK {
 		t.Logf("clientid2 was not able to get shared object")
 		t.FailNow()
@@ -125,6 +128,7 @@ func TestRemoveObjectShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getRes5.Body)
 	if getRes5.StatusCode != http.StatusOK {
 		t.Logf("clientid2 was able to get object when not shared")
 		t.FailNow()
@@ -155,6 +159,7 @@ func TestRemoveObjectShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getRes6.Body)
 	if getRes6.StatusCode != http.StatusOK {
 		t.Logf("share removal failed")
 		t.FailNow()
@@ -180,6 +185,7 @@ func TestRemoveObjectShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getRes7.Body)
 	if getRes7.StatusCode != http.StatusOK {
 		t.Logf("clientid2 was not able to get object shared to 'everyone' after personal share was removed")
 		t.FailNow()
@@ -198,6 +204,7 @@ func TestRemoveObjectShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getRes8.Body)
 	if getRes8.StatusCode != http.StatusOK {
 		t.Logf("clientid2 was not able to get object shared to 'everyone' for object 2 after personal share removed")
 		t.FailNow()

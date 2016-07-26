@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 
 	"encoding/json"
 	"io/ioutil"
@@ -25,6 +26,7 @@ func doUserStatsQuery(t *testing.T) models.UserStats {
 		t.Errorf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res1.Body)
 	if res1.StatusCode != http.StatusOK {
 		t.Errorf("Unexpected status %d for creator", res1.Status)
 		t.FailNow()
