@@ -20,7 +20,8 @@ lockfile = os.path.join('/var/lock/subsys', service)
 pidfile = "/opt/odrive/pidfile"
 static_root = "/etc/odrive/libs/server/static"
 templates = os.path.join(static_root, "templates")
-logfile = "/opt/bedrock/odrive/log/object-drive.log"
+# Default logging location. Set OD_LOG_LOCATION in env.sh to override.
+logfile = "/opt/odrive/log/object-drive.log"
 envfile = "/opt/odrive/env.sh"
 conf = "/etc/odrive/odrive.yml"
 default_ciphers = "--addCipher TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 --addCipher TLS_RSA_WITH_AES_128_CBC_SHA"
@@ -45,12 +46,22 @@ def unlock():
 
 
 def start():
+    # bring in shell environment and check for overrides
+    shell_source(envfile)
+    # must indicate we are referencing logfile from global scope
+    global logfile
+    if os.getenv("OD_LOG_LOCATION"):
+        location = os.getenv("OD_LOG_LOCATION")
+        print "Using log location set by $OD_LOG_LOCATION: " + location
+        logfile = location
     if os.path.exists(pidfile):
         os.remove(pidfile)
+    if not is_absolute_path(logfile):
+        print "Logging location must be absolute path"
+        os.exit(1)
     create_dir_not_exists(os.path.split(logfile)[0])
     print "Starting odrive"
     f = open(logfile, "a")
-    shell_source(envfile)
     ciphs = get_ciphers()
     splitted = ciphs.split(" ")
     command = ['odrive', '--conf', conf, '--templateDir', templates, "--staticRoot", static_root]
@@ -97,7 +108,7 @@ def status():
         return 3
     else:
         if not os.path.exists(pidfile):
-            print "STATUS: odrive is running"
+            print "STATUS: odrive is not running"
             return 0
         pid = get_pid_from_pidfile(pidfile)
         if not is_process_running(pid):
@@ -125,6 +136,8 @@ def is_process_running(process_id):
     except OSError:
         return False
 
+def is_absolute_path(path):
+    return os.path.isabs(path)
 
 def shell_source(script):
     """
@@ -139,9 +152,9 @@ def shell_source(script):
 # Script entry point.
 if __name__ == '__main__':
     try:
-        create_dir_not_exists(os.path.split(logfile)[0])
         if len(sys.argv) == 1:
             raise ValueError
+        create_dir_not_exists(os.path.split(logfile)[0])
         command = str(sys.argv[1]).strip().lower()
         if command == 'start':
             lock()
