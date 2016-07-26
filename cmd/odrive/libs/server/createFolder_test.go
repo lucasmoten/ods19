@@ -94,7 +94,7 @@ func TestCreateFolderAtRoot(t *testing.T) {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
-
+	defer util.FinishBody(res.Body)
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
@@ -159,6 +159,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 
 	// Response validation
 	if res.StatusCode != http.StatusOK {
@@ -204,6 +205,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 
 	// Response validation
 	if res.StatusCode != http.StatusOK {
@@ -273,6 +275,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 
 	// Response validation
 	if res.StatusCode != http.StatusOK {
@@ -318,6 +321,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 
 	// Response validation
 	if res.StatusCode == http.StatusOK {
@@ -387,6 +391,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 	t.Logf("checking response")
 	if res.StatusCode != http.StatusOK {
 		t.Logf("response status %s, expected %d", res.Status, http.StatusOK)
@@ -431,6 +436,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 	t.Logf("validate response")
 	if res.StatusCode != http.StatusOK {
 		t.Logf("The second user was not allowed to create a folder but they should have permissions granted")
@@ -479,6 +485,7 @@ func TestCreateFolderWithoutName(t *testing.T) {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 
 	// Response validation
 	if res.StatusCode != http.StatusOK {

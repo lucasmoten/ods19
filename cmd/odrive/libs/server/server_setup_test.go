@@ -12,7 +12,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -53,10 +55,36 @@ func setup(ip string) {
 
 var testIP = flag.String("testIP", "", "The IP address for test API requests. Usually the dockerVM")
 
+func countOpenFiles() int {
+	out, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("lsof -p %v", os.Getpid())).Output()
+	if err != nil {
+
+		log.Fatal(err)
+	}
+	log.Print(string(out))
+	lines := strings.Split(string(out), "\n")
+	return len(lines) - 1
+}
+
+func dumpOpenFiles(at string) {
+	fmt.Printf("filehandles at %s: %d\n", at, countOpenFiles())
+}
+
+func cleanupOpenFiles() {
+	for i := range clients {
+		clients[i].Client.Transport.(*http.Transport).CloseIdleConnections()
+	}
+}
+
 func TestMain(m *testing.M) {
 	flag.Parse()
+	dumpOpenFiles("TestMain before setup")
 	setup(*testIP)
+	dumpOpenFiles("TestMain after setup")
 	code := m.Run()
+	dumpOpenFiles("TestMain after run")
+	cleanupOpenFiles()
+	dumpOpenFiles("TestMain after cleanup")
 	os.Exit(code)
 }
 
@@ -99,8 +127,7 @@ func populateClients(population int) {
 		if err != nil {
 			log.Printf("Error in populateClients: %v/n", err)
 		}
-		ioutil.ReadAll(resp.Body)
-		defer resp.Body.Close()
+		defer util.FinishBody(resp.Body)
 
 		// TODO assign groups in another switch
 		switch i {
@@ -228,6 +255,7 @@ func makeFolderWithACMViaJSON(folderName string, rawAcm string, clientid int) (*
 		log.Printf("Unable to do request:%v", err)
 		return nil, err
 	}
+	defer util.FinishBody(res.Body)
 	// process Response
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)

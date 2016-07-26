@@ -60,6 +60,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 	// process Response
 	if res.StatusCode != http.StatusOK {
 		t.Logf("bad status: %s", res.Status)
@@ -78,6 +79,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getRes1.Body)
 	if getRes1.StatusCode != http.StatusOK {
 		t.Logf("clientid2 was not able to get folder1 object despite being shared to 'Everyone'")
 		t.FailNow()
@@ -105,6 +107,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getRes2.Body)
 	if getRes2.StatusCode != http.StatusOK {
 		t.Logf("tester1 was not able to get folder2 object despite being shared to 'Everyone'")
 		t.FailNow()
@@ -139,6 +142,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getRes3.Body)
 	if getRes3.StatusCode != http.StatusOK {
 		t.Logf("share creation failed")
 		t.FailNow()
@@ -165,6 +169,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getRes4.Body)
 	if getRes4.StatusCode != http.StatusOK {
 		t.Logf("clientid2 was not able to get shared object, got status %d", getRes4.StatusCode)
 		t.FailNow()
@@ -191,6 +196,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getRes5.Body)
 	if getRes5.StatusCode != http.StatusOK {
 		t.Logf("clientid2 was not able to get shared object that should still be shared to everyone. Got status %d", getRes5.StatusCode)
 		t.FailNow()
@@ -234,6 +240,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getRes6.Body)
 	if getRes6.StatusCode != http.StatusOK {
 		t.Logf("share creation failed")
 		t.FailNow()
@@ -260,6 +267,7 @@ func TestAddObjectShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getRes7.Body)
 	if getRes7.StatusCode != http.StatusOK {
 		t.Logf("clientid2 was not able to get object when shared")
 		t.FailNow()
@@ -314,6 +322,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.Logf("Unable to do get request as tp10:%v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getRes1.Body)
 	if getRes1.StatusCode != http.StatusOK {
 		t.Logf("Unexpected status getting object created by testperson10: %d", getRes1.StatusCode)
 		t.FailNow()
@@ -343,6 +352,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.Logf("Unable to do get request as tp01:%v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getRes2.Body)
 	if getRes2.StatusCode != http.StatusForbidden { // == http.StatusOK {
 		t.Logf("Unexpected status requesting object created by testperson10 as testperson01: %d", getRes2.StatusCode)
 		t.FailNow()
@@ -369,6 +379,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.Logf("Unable to create share:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(shareResponse.Body)
 	if shareResponse.StatusCode != http.StatusOK {
 		t.Logf("share creation failed")
 		t.FailNow()
@@ -405,6 +416,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.Logf("Unable to retrieve share list: %v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(shareListResponse.Body)
 	if shareListResponse.StatusCode != http.StatusOK {
 		t.Logf("List retrieval failed. Unexpected status code: %d", shareListResponse.StatusCode)
 		t.FailNow()
@@ -426,6 +438,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.Logf("Unable to do get request as tp01:%v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getRes3.Body)
 	if getRes3.StatusCode == http.StatusOK {
 		t.Logf("Unexpected status requesting object created by testperson10 as testperson01 after it was shared: %d", getRes3.StatusCode)
 		t.FailNow()
@@ -453,6 +466,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(updateResponse.Body)
 	// process Response
 	if updateResponse.StatusCode != http.StatusOK {
 		t.Logf("bad status: %s", updateResponse.Status)
@@ -488,6 +502,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.Logf("Unable to retrieve share list: %v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(sharedToMeResponse.Body)
 	if sharedToMeResponse.StatusCode != http.StatusOK {
 		t.Logf("List retrieval failed. Unexpected status code: %d", sharedToMeResponse.StatusCode)
 		t.FailNow()
@@ -509,6 +524,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.Logf("Unable to do get request as tp01:%v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(getRes4.Body)
 	if getRes4.StatusCode != http.StatusOK {
 		t.Logf("Unexpected status requesting object created by testperson10 as testperson01 after it was shared and acm changed: %d", getRes4.StatusCode)
 		t.FailNow()
@@ -556,6 +572,7 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(httpCreateResponse.Body)
 	// check status of response
 	if httpCreateResponse.StatusCode != http.StatusOK {
 		t.Logf("Bad status when creating object: %s", httpCreateResponse.Status)
@@ -585,6 +602,7 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
 		}
+		defer util.FinishBody(httpGetResponse.Body)
 		if httpGetResponse.StatusCode != http.StatusOK {
 			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
 			t.Fail()
@@ -631,6 +649,7 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(httpCreateShareResponse.Body)
 	// check status of response
 	if httpCreateShareResponse.StatusCode != http.StatusOK {
 		t.Logf("Bad status when creating share: %s", httpCreateShareResponse.Status)
@@ -653,6 +672,7 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
 		}
+		defer util.FinishBody(httpGetResponse.Body)
 		if httpGetResponse.StatusCode != http.StatusOK {
 			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
 			t.Fail()
@@ -700,6 +720,7 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(httpCreateGroupShareResponse.Body)
 	// check status of response
 	if httpCreateGroupShareResponse.StatusCode != http.StatusForbidden {
 		t.Logf("Bad status when creating share: %s - Expected Forbidden", httpCreateGroupShareResponse.Status)
@@ -725,6 +746,7 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
 		}
+		defer util.FinishBody(httpGetResponse.Body)
 		if httpGetResponse.StatusCode != http.StatusOK {
 			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
 			t.Fail()

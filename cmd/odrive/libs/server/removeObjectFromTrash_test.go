@@ -50,6 +50,7 @@ func TestHTTPUndeleteObject(t *testing.T) {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 	var objResponse protocol.Object
 
 	err = util.FullDecode(res.Body, &objResponse)
@@ -66,8 +67,9 @@ func TestHTTPUndeleteObject(t *testing.T) {
 	res, err = clients[clientID].Client.Do(deleteReq)
 	if err != nil {
 		t.Errorf("Delete request failed: %v\n", err)
+		t.FailNow()
 	}
-	res.Body.Close()
+	defer util.FinishBody(res.Body)
 
 	// We must do another GET to get a valid changeToken
 	getReq, err := testhelpers.NewGetObjectRequest(objID, "", host)
@@ -77,7 +79,9 @@ func TestHTTPUndeleteObject(t *testing.T) {
 	res, err = clients[clientID].Client.Do(getReq)
 	if err != nil {
 		t.Errorf("GetObject request failed: %v\n", err)
+		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 	var getObjectResponse protocol.Object
 	err = util.FullDecode(res.Body, &getObjectResponse)
 	if err != nil {
@@ -92,8 +96,9 @@ func TestHTTPUndeleteObject(t *testing.T) {
 	res, err = clients[clientID].Client.Do(undeleteReq)
 	if err != nil {
 		t.Errorf("Delete request failed: %v\n", err)
+		t.FailNow()
 	}
-
+	defer util.FinishBody(res.Body)
 	// Assert object has been undeleted.
 	var unDeletedObject protocol.Object
 	err = util.FullDecode(res.Body, &unDeletedObject)

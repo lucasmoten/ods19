@@ -109,6 +109,7 @@ func TestHTTPListObjectsTrashed(t *testing.T) {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 	var objResponse protocol.Object
 	err = util.FullDecode(res.Body, &objResponse)
 	if err != nil {
@@ -119,11 +120,12 @@ func TestHTTPListObjectsTrashed(t *testing.T) {
 	expected := objResponse.Name
 
 	deleteReq, err := testhelpers.NewDeleteObjectRequest(objResponse, "", host)
-	_, err = clients[clientID].Client.Do(deleteReq)
+	deleteRes, err := clients[clientID].Client.Do(deleteReq)
 	if err != nil {
 		t.Errorf("Delete request failed: %v\n", err)
+		t.FailNow()
 	}
-
+	defer util.FinishBody(deleteRes.Body)
 	trashURI := host + cfg.NginxRootURL + "/trashed?pageNumber=1&pageSize=1000"
 
 	trashReq, err := http.NewRequest("GET", trashURI, nil)
@@ -135,6 +137,7 @@ func TestHTTPListObjectsTrashed(t *testing.T) {
 		t.Errorf("Unable to do trash request:%v\n", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(trashResp.Body)
 
 	var trashResponse protocol.ObjectResultset
 	err = util.FullDecode(trashResp.Body, &trashResponse)

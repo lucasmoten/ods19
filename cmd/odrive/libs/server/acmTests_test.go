@@ -37,6 +37,7 @@ func TestAcmWithoutShare(t *testing.T) {
 	httpCreateResponse, err := clients[tester1].Client.Do(httpCreate)
 
 	failNowOnErr(t, err, "Unable to do request")
+	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 
 	var createdObject protocol.Object
@@ -73,6 +74,7 @@ func TestAcmWithShareForODrive(t *testing.T) {
 	// exec and get response
 	httpCreateResponse, err := client.Do(httpCreate)
 	failNowOnErr(t, err, "Unable to do request")
+	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 
 	var createdObject protocol.Object
@@ -106,6 +108,7 @@ func TestAcmWithShareForODriveG1Disallowed(t *testing.T) {
 	// exec and get response
 	httpCreateResponse, err := client.Do(httpCreate)
 	failNowOnErr(t, err, "unable to do request")
+	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 403, httpCreateResponse, "bad status when creating object")
 	t.Logf("%s is not allowed to create object %s with acm %s", clients[tester1].Name, createObjectRequest.Name, createObjectRequest.RawAcm)
 	ioutil.ReadAll(httpCreateResponse.Body)
@@ -135,6 +138,7 @@ func TestAcmWithShareForODriveG1Allowed(t *testing.T) {
 	// exec and get response
 	httpCreateResponse, err := client.Do(httpCreate)
 	failNowOnErr(t, err, "Unable to do request")
+	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 
 	var createdObject protocol.Object
@@ -167,6 +171,7 @@ func TestAcmWithShareForODriveG2Allowed(t *testing.T) {
 	// exec and get response
 	httpCreateResponse, err := clients[tester1].Client.Do(httpCreate)
 	failNowOnErr(t, err, "Unable to do request")
+	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 
 	var createdObject protocol.Object
@@ -200,7 +205,7 @@ func TestAcmWithShareForODriveG2Disallowed(t *testing.T) {
 
 	httpCreateResponse, err := clients[tester10].Client.Do(httpCreate)
 	failNowOnErr(t, err, "Unable to do request")
-
+	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 403, httpCreateResponse, "Bad status when creating object")
 	t.Logf("%s is not allowed to create object %s with acm %s",
 		clients[tester10].Name, createObjectRequest.Name, createObjectRequest.RawAcm)
@@ -231,6 +236,7 @@ func TestAddReadShareForUser(t *testing.T) {
 	// exec and get response
 	httpCreateResponse, err := clients[tester1].Client.Do(httpCreate)
 	failNowOnErr(t, err, "Unable to do request")
+	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 
 	var createdObject protocol.Object
@@ -253,6 +259,7 @@ func TestAddReadShareForUser(t *testing.T) {
 	// exec and get response
 	httpCreateShareResponse, err := clients[tester1].Client.Do(httpCreateShare)
 	failNowOnErr(t, err, "Unable to do request")
+	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 200, httpCreateShareResponse, "Bad status when creating share")
 
 	var updatedObject protocol.Object
@@ -290,6 +297,7 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	// exec and get response
 	httpCreateResponse, err := clients[tester1].Client.Do(httpCreate)
 	failNowOnErr(t, err, "Unable to do request")
+	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 
 	var createdObject protocol.Object
@@ -313,6 +321,7 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	// exec and get response
 	httpCreateShareResponse, err := clients[tester1].Client.Do(httpCreateShare)
 	failNowOnErr(t, err, "unable to do create share request")
+	defer util.FinishBody(httpCreateShareResponse.Body)
 	statusMustBe(t, 200, httpCreateShareResponse, "bad status when creating share")
 
 	// parse back to object
@@ -341,6 +350,7 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	// exec and get response
 	httpCreateGroupShareResponse, err := clients[tester1].Client.Do(httpCreateGroupShare)
 	failNowOnErr(t, err, "unable to do request")
+	defer util.FinishBody(httpCreateShareResponse.Body)
 	// check status of response
 	statusMustBe(t, 200, httpCreateGroupShareResponse, "Bad status when creating share")
 
@@ -367,6 +377,7 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	// exec and get response
 	httpUpdateObjectResponse, err := clients[tester9].Client.Do(httpUpdateObject)
 	failNowOnErr(t, err, "unable to do request")
+	defer util.FinishBody(httpUpdateObjectResponse.Body)
 	// check status of response
 	statusMustBe(t, 200, httpUpdateObjectResponse, "bad status when updating object")
 }
@@ -396,6 +407,7 @@ func TestAddReadShareForGroupRemovesEveryone(t *testing.T) {
 	// exec and get response
 	httpCreateResponse, err := clients[tester1].Client.Do(httpCreate)
 	failNowOnErr(t, err, "Unable to do request")
+	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
@@ -426,6 +438,7 @@ func TestAddReadShareForGroupRemovesEveryone(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(httpCreateGroupShareResponse.Body)
 	// check status of response
 	if httpCreateGroupShareResponse.StatusCode != http.StatusOK {
 		t.Logf("Bad status when creating share: %s", httpCreateGroupShareResponse.Status)
@@ -448,6 +461,7 @@ func TestAddReadShareForGroupRemovesEveryone(t *testing.T) {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
 		}
+		defer util.FinishBody(httpGetResponse.Body)
 		switch clientIdx {
 		case 1, 2, 3, 4, 5:
 			if httpGetResponse.StatusCode != http.StatusOK {
@@ -525,6 +539,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 	// exec and get response
 	httpCreateResponse, err := client.Do(httpCreate)
 	failNowOnErr(t, err, "Unable to do request")
+	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
@@ -544,6 +559,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
 		}
+		defer util.FinishBody(httpGetResponse.Body)
 		if httpGetResponse.StatusCode != http.StatusOK {
 			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
 			t.Fail()
@@ -597,6 +613,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(httpCreateGroupShareResponse.Body)
 	// check status of response
 	if httpCreateGroupShareResponse.StatusCode != http.StatusOK {
 		t.Logf("Bad status when creating share: %s", httpCreateGroupShareResponse.Status)
@@ -619,6 +636,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
 		}
+		defer util.FinishBody(httpGetResponse.Body)
 		switch clientIdx {
 		case 1, 2, 3, 4, 5:
 			if httpGetResponse.StatusCode != http.StatusOK {
@@ -683,6 +701,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(httpCreateUserShareResponse.Body)
 	// check status of response
 	if httpCreateUserShareResponse.StatusCode != http.StatusOK {
 		t.Logf("Bad status when creating share: %s", httpCreateUserShareResponse.Status)
@@ -705,6 +724,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
 		}
+		defer util.FinishBody(httpGetResponse.Body)
 		switch clientIdx {
 		case 0, 1, 2, 3, 4, 5:
 			if httpGetResponse.StatusCode != http.StatusOK {
@@ -792,6 +812,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 	// exec and get response
 	httpCreateResponse, err := client.Do(httpCreate)
 	failNowOnErr(t, err, "Unable to do request")
+	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
@@ -811,6 +832,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
 		}
+		defer util.FinishBody(httpGetResponse.Body)
 		if httpGetResponse.StatusCode != http.StatusOK {
 			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
 			t.Fail()
@@ -864,6 +886,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(httpCreateGroupShareResponse.Body)
 	// check status of response
 	if httpCreateGroupShareResponse.StatusCode != http.StatusOK {
 		t.Logf("Bad status when creating share: %s", httpCreateGroupShareResponse.Status)
@@ -886,6 +909,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
 		}
+		defer util.FinishBody(httpGetResponse.Body)
 		switch clientIdx {
 		case 1, 2, 3, 4, 5:
 			if httpGetResponse.StatusCode != http.StatusOK {
@@ -950,6 +974,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(httpCreateUserShareResponse.Body)
 	// check status of response
 	if httpCreateUserShareResponse.StatusCode != http.StatusOK {
 		t.Logf("Bad status when creating share: %s", httpCreateUserShareResponse.Status)
@@ -972,6 +997,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
 		}
+		defer util.FinishBody(httpGetResponse.Body)
 		switch clientIdx {
 		case 0, 1, 2, 3, 4, 5:
 			if httpGetResponse.StatusCode != http.StatusOK {
@@ -1040,6 +1066,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(httpUpdateObjectResponse.Body)
 	// check status of response
 	if httpUpdateObjectResponse.StatusCode != http.StatusOK {
 		t.Logf("Bad status when updating object: %s", httpUpdateObjectResponse.Status)
@@ -1062,6 +1089,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
 		}
+		defer util.FinishBody(httpGetResponse.Body)
 		switch clientIdx {
 		case 1, 2, 3, 4, 5:
 			if httpGetResponse.StatusCode != http.StatusOK {
@@ -1150,6 +1178,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	// exec and get response
 	httpCreateResponse, err := client.Do(httpCreate)
 	failNowOnErr(t, err, "Unable to do request")
+	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
@@ -1169,6 +1198,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
 		}
+		defer util.FinishBody(httpGetResponse.Body)
 		if httpGetResponse.StatusCode != http.StatusOK {
 			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
 			t.Fail()
@@ -1222,6 +1252,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(httpCreateGroupShareResponse.Body)
 	// check status of response
 	if httpCreateGroupShareResponse.StatusCode != http.StatusOK {
 		t.Logf("Bad status when creating share: %s", httpCreateGroupShareResponse.Status)
@@ -1244,6 +1275,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
 		}
+		defer util.FinishBody(httpGetResponse.Body)
 		switch clientIdx {
 		case 1, 2, 3, 4, 5:
 			if httpGetResponse.StatusCode != http.StatusOK {
@@ -1308,6 +1340,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(httpCreateUserShareResponse.Body)
 	// check status of response
 	if httpCreateUserShareResponse.StatusCode != http.StatusOK {
 		t.Logf("Bad status when creating share: %s", httpCreateUserShareResponse.Status)
@@ -1330,6 +1363,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
 		}
+		defer util.FinishBody(httpGetResponse.Body)
 		switch clientIdx {
 		case 0, 1, 2, 3, 4, 5:
 			if httpGetResponse.StatusCode != http.StatusOK {
@@ -1398,6 +1432,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(httpUpdateObjectResponse.Body)
 	// check status of response
 	if httpUpdateObjectResponse.StatusCode != http.StatusOK {
 		t.Logf("Bad status when updating object: %s", httpUpdateObjectResponse.Status)
@@ -1420,6 +1455,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
 		}
+		defer util.FinishBody(httpGetResponse.Body)
 		switch clientIdx {
 		case 1, 2, 3, 4, 5:
 			if httpGetResponse.StatusCode != http.StatusOK {
@@ -1485,6 +1521,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(httpUpdateObjectResponse.Body)
 	// check status of response
 	if httpUpdateObjectResponse.StatusCode != http.StatusOK {
 		t.Logf("Bad status when updating object: %s", httpUpdateObjectResponse.Status)
@@ -1507,6 +1544,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
 		}
+		defer util.FinishBody(httpGetResponse.Body)
 		if httpGetResponse.StatusCode != http.StatusOK {
 			t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
 			t.Fail()
@@ -1562,7 +1600,7 @@ func shouldHaveEveryonePermission(t *testing.T, objID string, clientIdxs ...int)
 		c := clients[i].Client
 		resp, err := c.Do(getReq)
 		failNowOnErr(t, err, "Unable to do request")
-		defer resp.Body.Close()
+		defer util.FinishBody(resp.Body)
 		statusExpected(t, 200, resp, fmt.Sprintf("client id %d should have read for ID %s", i, objID))
 		var obj protocol.Object
 		err = util.FullDecode(resp.Body, &obj)
@@ -1591,7 +1629,7 @@ func shouldHaveReadForObjectID(t *testing.T, objID string, clientIdxs ...int) {
 		c := clients[i].Client
 		resp, err := c.Do(getReq)
 		failNowOnErr(t, err, "Unable to do request")
-		defer resp.Body.Close()
+		defer util.FinishBody(resp.Body)
 		statusExpected(t, 200, resp, fmt.Sprintf("client id %d should have read for ID %s", i, objID))
 		ioutil.ReadAll(resp.Body)
 	}
@@ -1605,7 +1643,7 @@ func shouldNotHaveReadForObjectID(t *testing.T, objID string, clientIdxs ...int)
 		c := clients[i].Client
 		resp, err := c.Do(getReq)
 		failNowOnErr(t, err, "Unable to do request")
-		defer resp.Body.Close()
+		defer util.FinishBody(resp.Body)
 		statusExpected(t, 403, resp, fmt.Sprintf("client id %d should not have read for ID %s", i, objID))
 		ioutil.ReadAll(resp.Body)
 	}

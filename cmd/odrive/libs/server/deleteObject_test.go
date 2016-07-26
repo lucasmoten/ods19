@@ -50,6 +50,7 @@ func TestDeleteObject(t *testing.T) {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 	// process Response
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
@@ -86,6 +87,7 @@ func TestDeleteObject(t *testing.T) {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 	// process Response
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
@@ -144,6 +146,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 		t.Logf("moving folder Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 	t.Logf(" processing response")
 	if res.StatusCode != http.StatusOK {
 		t.Logf("moving folder bad status: %s", res.Status)
@@ -178,6 +181,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 		t.Logf("deleting folder Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 	t.Logf(" processing response")
 	if res.StatusCode != http.StatusOK {
 		t.Logf("deleting folder bad status: %s", res.Status)
@@ -205,6 +209,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 	t.Logf(" processing response")
 	if res.StatusCode == http.StatusOK {
 		t.Logf("able to get folder2 when its parent is deleted")

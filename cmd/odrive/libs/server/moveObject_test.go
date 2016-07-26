@@ -51,6 +51,7 @@ func TestMoveObject(t *testing.T) {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	defer util.FinishBody(res.Body)
 	// process Response
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)

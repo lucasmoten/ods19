@@ -42,7 +42,7 @@ func TestListObjectsRoot(t *testing.T) {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
-
+	defer util.FinishBody(res.Body)
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
@@ -95,7 +95,7 @@ func TestListObjectsRootPaging(t *testing.T) {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
-
+	defer util.FinishBody(res.Body)
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
@@ -137,6 +137,7 @@ func TestListObjectsRootPaging(t *testing.T) {
 			log.Printf("Unable to do request:%v", err)
 			t.FailNow()
 		}
+		defer util.FinishBody(res.Body)
 		// Response validation
 		if res.StatusCode != http.StatusOK {
 			log.Printf("bad status: %s", res.Status)
@@ -194,7 +195,7 @@ func TestListObjectsChild(t *testing.T) {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
-
+	defer util.FinishBody(res.Body)
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
@@ -238,6 +239,7 @@ func TestListObjectsChild(t *testing.T) {
 			log.Printf("Unable to do request:%v", err)
 			t.FailNow()
 		}
+		defer util.FinishBody(res.Body)
 		// Response validation
 		if res.StatusCode != http.StatusOK {
 			log.Printf("bad status: %s", res.Status)
@@ -294,7 +296,7 @@ func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level 
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
-
+	defer util.FinishBody(res.Body)
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		//log.Printf("bad status: %s %s", res.Status, hex.EncodeToString(childid))
@@ -340,6 +342,7 @@ func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level 
 			log.Printf("Unable to do request:%v", err)
 			t.FailNow()
 		}
+		defer util.FinishBody(res.Body)
 		// Response validation
 		if res.StatusCode != http.StatusOK {
 			log.Printf("bad status: %s", res.Status)
@@ -399,7 +402,7 @@ func TestListObjectsWithInvalidSortField(t *testing.T) {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
-
+	defer util.FinishBody(res.Body)
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
@@ -435,7 +438,7 @@ func TestListObjectsWithInvalidFilterField(t *testing.T) {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
-
+	defer util.FinishBody(res.Body)
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
@@ -471,7 +474,7 @@ func TestListObjectsWithInvalidFilterCondition(t *testing.T) {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
-
+	defer util.FinishBody(res.Body)
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)

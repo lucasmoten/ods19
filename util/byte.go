@@ -19,15 +19,23 @@ func StringToInt8Slice(input string) ([]int8, error) {
 	return result, nil
 }
 
+// FullDecode gets json body and ensures that we are done dealing with Body
 func FullDecode(r io.ReadCloser, obj interface{}) error {
 	d := json.NewDecoder(r)
-	err := d.Decode(obj)
-	//drain the decoder completely. ignore the result.
-	//the point is to read to EOF.
-	_, err = ioutil.ReadAll(r)
-	if err != nil {
-		log.Printf("FullDecode: %v", err)
+	//Bad parse will be signalled by an unset object
+	d.Decode(obj)
+	return FinishBody(r)
+}
+
+// FinishBody ensures that body is completely consumed - call in a defer
+func FinishBody(r io.ReadCloser) error {
+	if r != nil {
+		_, err := ioutil.ReadAll(r)
+		if err != nil && err != io.EOF && err.Error() != "http: read on closed response body" {
+			log.Printf("FullDecode: %v", err)
+			return err
+		}
+		r.Close()
 	}
-	r.Close()
-	return err
+	return nil
 }
