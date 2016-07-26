@@ -287,6 +287,23 @@ posting a file
 	}
 }
 
+// doCreateObjectRequest gets an http status code and an object, and fails on error
+func doCreateObjectRequest(t *testing.T, clientID int, req *http.Request, expectedCode int) *protocol.Object {
+	res, err := clients[clientID].Client.Do(req)
+	t.Logf("check response")
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, expectedCode, res, "Bad status when creating object")
+	// since we do FullDecode unconditionally, no need to defer a FinishBody in this case.
+	var createdObject protocol.Object
+	err = util.FullDecode(res.Body, &createdObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	//Returning the res rather than StatusCode, because of statusMustBe, statusExpected, etc.
+	return &createdObject
+}
+
 // TestCreateWithPermissions creates an object as Tester10, and includes a
 // permission for create, read, update, and delete granted to ODrive group.
 // All users in the group should be able to retrieve it, and update it.
@@ -309,24 +326,18 @@ func TestCreateWithPermissions(t *testing.T) {
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
 	t.Logf("execute client")
-	httpCreateResponse, err := clients[tester10].Client.Do(httpCreate)
-	t.Logf("check response")
-	failNowOnErr(t, err, "Unable to do request")
-	defer util.FinishBody(httpCreateResponse.Body)
-	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
-	var createdObject protocol.Object
-	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
-	if err != nil {
-		t.Logf("Error decoding json to Object: %v", err)
-		t.FailNow()
-	}
-	httpCreateResponse.Body.Close()
+	createdObject := doCreateObjectRequest(t, tester10, httpCreate, 200)
 
 	t.Logf("* Verify everyone in odrive group can read")
 	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
 	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
 	for clientIdx, ci := range clients {
 		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
+		if err != nil {
+			t.Logf("error making properties request")
+			t.FailNow()
+		}
+		defer util.FinishBody(httpGetResponse.Body)
 		if clientIdx == 0 {
 			var retrievedObject protocol.Object
 			err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
@@ -334,7 +345,6 @@ func TestCreateWithPermissions(t *testing.T) {
 				t.Logf("Error decoding json to Object: %v", err)
 				t.Fail()
 			}
-			defer util.FinishBody(httpGetResponse.Body)
 			t.Logf("* Resulting permissions")
 			hasEveryone := false
 			for _, permission := range retrievedObject.Permissions {

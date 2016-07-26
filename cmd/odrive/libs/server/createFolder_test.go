@@ -270,25 +270,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := clients[clientid1].Client.Do(req)
-	if err != nil {
-		log.Printf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	defer util.FinishBody(res.Body)
-
-	// Response validation
-	if res.StatusCode != http.StatusOK {
-		log.Printf("bad status: %s", res.Status)
-		t.FailNow()
-	}
-	var createdFolder protocol.Object
-	err = util.FullDecode(res.Body, &createdFolder)
-	if err != nil {
-		log.Printf("Error decoding json to Object: %v", err)
-		log.Println()
-		t.FailNow()
-	}
+	createdFolder := doCreateObjectRequest(t, clientid1, req, 200)
 	if verboseOutput {
 		jsonData, err := json.MarshalIndent(createdFolder, "", "  ")
 		if err != nil {
@@ -316,7 +298,8 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err = clients[clientid2].Client.Do(req)
+
+	res, err := clients[clientid2].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
