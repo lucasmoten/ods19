@@ -71,7 +71,8 @@ func TestDAOGetChildObjects(t *testing.T) {
 	}
 
 	// cleanup
-	err = d.DeleteObject(dbParent, true)
+	user := models.ODUser{DistinguishedName: usernames[1]}
+	err = d.DeleteObject(user, dbParent, true)
 	if err != nil {
 		t.Error(err)
 	}

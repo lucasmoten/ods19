@@ -123,8 +123,8 @@ func TestListObjectsRootPaging(t *testing.T) {
 		fmt.Println(string(jsonData))
 	}
 
-	for pn := 1; pn <= listOfObjects.PageCount; pn++ {
-		uriPaged := uri + "?PageNumber=" + strconv.Itoa(pn) + "&PageSize=2"
+	for pn := 1; pn <= (listOfObjects.PageCount / 20); pn++ {
+		uriPaged := uri + "?PageNumber=" + strconv.Itoa(pn) + "&PageSize=20"
 		// Request
 		req, err := http.NewRequest("GET", uriPaged, nil)
 		if err != nil {

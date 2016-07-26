@@ -53,7 +53,8 @@ func TestDAOGetRootObjects(t *testing.T) {
 	}
 
 	// Delete the object
-	err = d.DeleteObject(dbObject1, true)
+	user := models.ODUser{DistinguishedName: dbObject1.CreatedBy}
+	err = d.DeleteObject(user, dbObject1, true)
 	if err != nil {
 		t.Error(err)
 	}

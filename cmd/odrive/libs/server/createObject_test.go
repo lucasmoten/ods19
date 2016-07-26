@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
@@ -282,4 +283,90 @@ posting a file
 		log.Printf("bad status: %s", res.Status)
 		t.FailNow()
 	}
+}
+
+// TestCreateWithPermissions creates an object as Tester10, and includes a
+// permission for create, read, update, and delete granted to ODrive group.
+// All users in the group should be able to retrieve it, and update it.
+// This test originates from cte/object-drive-server#93
+func TestCreateWithPermissions(t *testing.T) {
+
+	tester10 := 0
+
+	t.Logf("* Create object")
+	t.Logf("preparing")
+	var object protocol.Object
+	object.Name = "TestCreateWithPermissions"
+	object.RawAcm = `{"classif":"U"}`
+	permission := protocol.Permission{Grantee: "dctc_odrive", AllowCreate: true, AllowRead: true, AllowUpdate: true, AllowDelete: true}
+	object.Permissions = append(object.Permissions, permission)
+	t.Logf("jsoninfying")
+	jsonBody, _ := json.Marshal(object)
+	uriCreate := host + cfg.NginxRootURL + "/objects"
+	t.Logf("http request and client")
+	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
+	httpCreate.Header.Set("Content-Type", "application/json")
+	t.Logf("execute client")
+	httpCreateResponse, err := clients[tester10].Client.Do(httpCreate)
+	t.Logf("check response")
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	httpCreateResponse.Body.Close()
+
+	t.Logf("* Verify everyone in odrive group can read")
+	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
+	for clientIdx, ci := range clients {
+		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
+		if clientIdx == 0 {
+			var retrievedObject protocol.Object
+			err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
+			if err != nil {
+				t.Logf("Error decoding json to Object: %v", err)
+				t.Fail()
+			}
+			t.Logf("* Resulting permissions")
+			hasEveryone := false
+			for _, permission := range retrievedObject.Permissions {
+				logPermission(t, permission)
+				if permission.Grantee == models.EveryoneGroup {
+					hasEveryone = true
+				}
+			}
+			if hasEveryone {
+				t.Logf("FAIL: Did not expect permission with grantee %s", models.EveryoneGroup)
+				t.Fail()
+			}
+		}
+		ioutil.ReadAll(httpGetResponse.Body)
+		httpGetResponse.Body.Close()
+
+		switch clientIdx {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9:
+			if httpGetResponse.StatusCode != http.StatusOK {
+				t.Logf("FAIL: Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			}
+		default: // twl-server-generic and any others that may get added later
+			if httpGetResponse.StatusCode != http.StatusForbidden {
+				t.Logf("FAIL: Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is denied access to read %s", ci.Name, createdObject.Name)
+			}
+		}
+
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
+
 }

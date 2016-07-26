@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"strings"
 
@@ -29,20 +28,21 @@ func deDupe(sArr []interface{}) []interface{} {
 	return oArr
 }
 
-// combineInterface combines two interfaces that use map[string]interface{}, []interface{} and string for values
+// CombineInterface combines two interfaces that use map[string]interface{}, []interface{} and string for values
 func CombineInterface(sourceInterface interface{}, interfaceToAdd interface{}) interface{} {
 	sMap, ok := createMapFromInterface(sourceInterface)
 	if !ok {
-		log.Printf("Unable to create map from interface for sourceInterface")
+		//log.Printf("Unable to create map from interface for sourceInterface, using intefaceToAdd")
 		return interfaceToAdd
 	}
 	// sMapString, _ := utils.MarshalInterfaceToString(sMap)
 	// log.Printf("sMap before: %s", sMapString)
 	aMap, ok := createMapFromInterface(interfaceToAdd)
 	if !ok {
-		log.Printf("Unable to create map from interface for interfaceToAdd")
+		//log.Printf("Unable to create map from interface for interfaceToAdd, using sourceInterface")
 		return sMap
 	}
+	//log.Printf("Comparing sourceInterface and interfaceToAdd")
 	// Look at all keys in A
 	for aK, aV := range aMap {
 		if aV == nil {
@@ -259,30 +259,49 @@ func getStringArrayFromInterface(i interface{}) []string {
 }
 
 func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *AppError {
-	LoggerFromContext(ctx).Info("acm before", zap.String("obj.RawAcm", obj.RawAcm.String))
+	// Apply changes to obj.Permissions based upon what ACM has
+	LoggerFromContext(ctx).Info("favoring acm")
+
 	hasEveryone := false
 	herr, fShareInterface := getACMInterfacePart(obj, "f_share")
 	if herr != nil {
 		return herr
 	}
+
 	// Convert the interface of values into an array
 	acmGrants := getStringArrayFromInterface(fShareInterface)
-	// Build a simple array of the existing permissions for only read access
+
+	// From ACM, determine if permission for everyone should exist
+	acmSaysEveryone := len(acmGrants) == 0
+
+	// Build a simple array of the existing permissions that grant read access
 	var readGrants []string
 	for _, permission := range obj.Permissions {
-		if permission.IsReadOnly() {
+		if permission.AllowRead {
 			readGrants = append(readGrants, permission.Grantee)
 			// And track if we have everyone or not
-			if strings.Compare(permission.Grantee, models.EveryoneGroup) == 0 {
+			if isPermissionFor(&permission, models.EveryoneGroup) {
+				LoggerFromContext(ctx).Info("permission grantee is everyone")
 				hasEveryone = true
+			} else {
+				if isCreating(obj) {
+					// When creating and permission grants read but isnt everyone, then
+					// thats an indicator that we shouldn't support read for everyone
+					LoggerFromContext(ctx).Info("creating object with permission that grants read but isn't everyone", zap.String("grantee", permission.Grantee))
+					acmSaysEveryone = false
+				}
 			}
 		}
 	}
-	// Add EveryoneGroup if there are no f_share values and no read permission for everyone yet
-	acmSaysEveryone := len(acmGrants) == 0
 
-	// Apply changes to obj.Permissions based upon what ACM has
-	LoggerFromContext(ctx).Info("favoring acm")
+	// ACM is authoritative, so if it claims it shouldnt have everyone but we do...
+	if hasEveryone && !acmSaysEveryone {
+		// Remove everyone
+		LoggerFromContext(ctx).Info("removing permissions indicating everyonegroup as grantee")
+		removePermissionsFor(obj, models.EveryoneGroup)
+		hasEveryone = false
+	}
+
 	// Add everyone if needed
 	if acmSaysEveryone && !hasEveryone {
 		LoggerFromContext(ctx).Info("adding permission for everyone")
@@ -291,6 +310,7 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 		// Now we do have everyone
 		hasEveryone = true
 	}
+
 	if hasEveryone {
 		// Remove read only permissions that are not everyone
 		for i := len(obj.Permissions) - 1; i >= 0; i-- {
@@ -300,11 +320,17 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 					if permission.IsReadOnly() {
 						// A read only permission that isn't everyone when everyone is present can simply be removed.
 						LoggerFromContext(ctx).Info("removing readonly permission that is not everyone", zap.String("grantee", permission.Grantee))
-						obj.Permissions = append(obj.Permissions[:i], obj.Permissions[i+1:]...)
+						if isCreating(obj) {
+							// creating object, remove from list
+							obj.Permissions = append(obj.Permissions[:i], obj.Permissions[i+1:]...)
+						} else {
+							// updating object, mark permission for deletion
+							obj.Permissions[i].IsDeleted = true
+						}
 					} else {
 						// Has other permissions, need to update it
 						LoggerFromContext(ctx).Info("removing read from grantee since acm gives read to everyone", zap.String("grantee", obj.Permissions[i].Grantee))
-						obj.Permissions[i] = models.ODObjectPermission{
+						replacementPermission := models.ODObjectPermission{
 							AllowCreate:   obj.Permissions[i].AllowCreate,
 							AllowDelete:   obj.Permissions[i].AllowDelete,
 							AllowRead:     false,
@@ -312,6 +338,14 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 							AllowShare:    obj.Permissions[i].AllowShare,
 							Grantee:       obj.Permissions[i].Grantee,
 							ExplicitShare: true}
+						if isCreating(obj) {
+							// creating object, can redfine it
+							obj.Permissions[i] = replacementPermission
+						} else {
+							// updating object, have to add new in place, and mark old as deleted
+							obj.Permissions[i].IsDeleted = true
+							obj.Permissions = append(obj.Permissions, replacementPermission)
+						}
 					}
 				}
 			}
@@ -347,11 +381,17 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 					if permission.IsReadOnly() {
 						// A read only permission that isn't one of the acmGrantees can simply be removed.
 						LoggerFromContext(ctx).Info("removing grantee not present in acm", zap.String("grantee", obj.Permissions[i].Grantee))
-						obj.Permissions = append(obj.Permissions[:i], obj.Permissions[i+1:]...)
+						if isCreating(obj) {
+							// creating object, remove from list
+							obj.Permissions = append(obj.Permissions[:i], obj.Permissions[i+1:]...)
+						} else {
+							// updating object, mark permission for deletion
+							obj.Permissions[i].IsDeleted = true
+						}
 					} else {
 						// has other permissions, need to update it
 						LoggerFromContext(ctx).Info("removing read from grantee not present in acm", zap.String("grantee", obj.Permissions[i].Grantee))
-						obj.Permissions[i] = models.ODObjectPermission{
+						replacementPermission := models.ODObjectPermission{
 							AllowCreate:   obj.Permissions[i].AllowCreate,
 							AllowDelete:   obj.Permissions[i].AllowDelete,
 							AllowRead:     false,
@@ -359,6 +399,14 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 							AllowShare:    obj.Permissions[i].AllowShare,
 							Grantee:       obj.Permissions[i].Grantee,
 							ExplicitShare: true}
+						if isCreating(obj) {
+							// creating object, can redfine it
+							obj.Permissions[i] = replacementPermission
+						} else {
+							// updating object, have to add new in place, and mark old as deleted
+							obj.Permissions[i].IsDeleted = true
+							obj.Permissions = append(obj.Permissions, replacementPermission)
+						}
 					}
 				}
 			}
@@ -375,11 +423,20 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 			!permission.AllowUpdate {
 			// nothing granted. remove it
 			LoggerFromContext(ctx).Info("removing permission that does not grant capabilities", zap.String("grantee", permission.Grantee))
-			obj.Permissions = append(obj.Permissions[:i], obj.Permissions[i+1:]...)
+			if isCreating(obj) {
+				// creating object, remove from list
+				obj.Permissions = append(obj.Permissions[:i], obj.Permissions[i+1:]...)
+			} else {
+				// updating object, mark permission for deletion
+				obj.Permissions[i].IsDeleted = true
+			}
 		}
 	}
 
-	LoggerFromContext(ctx).Info("acm after", zap.String("obj.RawAcm", obj.RawAcm.String))
 	// No errors
 	return nil
+}
+
+func isCreating(obj *models.ODObject) bool {
+	return (len(obj.ID) == 0)
 }

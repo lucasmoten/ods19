@@ -23,13 +23,13 @@ import (
 //      IsAncestorDeleted. IsAncestorDeleted is only set if explicit = false
 //      whose purpose is to mark child items as implicitly deleted due to an
 //      ancestor being deleted.
-func (dao *DataAccessLayer) ExpungeObject(object models.ODObject, explicit bool) error {
+func (dao *DataAccessLayer) ExpungeObject(user models.ODUser, object models.ODObject, explicit bool) error {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return err
 	}
-	err = expungeObjectInTransaction(tx, object, explicit)
+	err = expungeObjectInTransaction(tx, user, object, explicit)
 	if err != nil {
 		dao.GetLogger().Error("Error in ExpungeObject", zap.String("err", err.Error()))
 		tx.Rollback()
@@ -39,7 +39,7 @@ func (dao *DataAccessLayer) ExpungeObject(object models.ODObject, explicit bool)
 	return err
 }
 
-func expungeObjectInTransaction(tx *sqlx.Tx, object models.ODObject, explicit bool) error {
+func expungeObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.ODObject, explicit bool) error {
 	// Pre-DB Validation
 	if object.ID == nil {
 		return errors.New("Object ID was not specified for object being expunged")
@@ -103,15 +103,14 @@ func expungeObjectInTransaction(tx *sqlx.Tx, object models.ODObject, explicit bo
 	for i := 0; i < len(resultset.Objects); i++ {
 		authorizedToDelete := false
 		for _, permission := range resultset.Objects[i].Permissions {
-			if permission.Grantee == object.ModifiedBy &&
-				permission.AllowDelete {
+			if permission.AllowDelete && isUserMemberOf(user, permission.Grantee) {
 				authorizedToDelete = true
 				break
 			}
 		}
 		if authorizedToDelete {
 			resultset.Objects[i].ModifiedBy = object.ModifiedBy
-			err = expungeObjectInTransaction(tx, resultset.Objects[i], false)
+			err = expungeObjectInTransaction(tx, user, resultset.Objects[i], false)
 			if err != nil {
 				return err
 			}
@@ -123,15 +122,14 @@ func expungeObjectInTransaction(tx *sqlx.Tx, object models.ODObject, explicit bo
 		for i := 0; i < len(pagedResultset.Objects); i++ {
 			authorizedToDelete := false
 			for _, permission := range pagedResultset.Objects[i].Permissions {
-				if permission.Grantee == object.ModifiedBy &&
-					permission.AllowDelete {
+				if permission.AllowDelete && isUserMemberOf(user, permission.Grantee) {
 					authorizedToDelete = true
 					break
 				}
 			}
 			if authorizedToDelete {
 				pagedResultset.Objects[i].ModifiedBy = object.ModifiedBy
-				err = expungeObjectInTransaction(tx, pagedResultset.Objects[i], false)
+				err = expungeObjectInTransaction(tx, user, pagedResultset.Objects[i], false)
 				if err != nil {
 					return err
 				}

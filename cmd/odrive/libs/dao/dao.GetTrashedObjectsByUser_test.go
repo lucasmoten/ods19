@@ -18,7 +18,7 @@ func TestDAOGetTrashedObjectsByUser(t *testing.T) {
 	// Create an object. Delete the object. Object should
 	// show up in trash.
 
-	user3 := models.ODUser{DistinguishedName: usernames[3]}
+	user3 := setupUserWithSnippets(usernames[3])
 	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: 1000}
 	// Create an object.
 	objA := createTestObjectAllPermissions(user3.DistinguishedName)
@@ -27,7 +27,7 @@ func TestDAOGetTrashedObjectsByUser(t *testing.T) {
 		t.Fatalf("Error creating objA: %v\n", err)
 	}
 	// Delete the object, placing it in the trash.
-	err = d.DeleteObject(createdA, true)
+	err = d.DeleteObject(user3, createdA, true)
 	if err != nil {
 		t.Fatalf("Error deleting object createdA: %v\n", err)
 	}
@@ -53,7 +53,7 @@ func TestDAOGetTrashedObjectsByUser(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating parent-child pair: %v\n", err)
 	}
-	if err = d.DeleteObject(parent1, true); err != nil {
+	if err = d.DeleteObject(user3, parent1, true); err != nil {
 		t.Errorf("Error deleting test parent1: %v\n", err)
 	}
 	results, err = d.GetTrashedObjectsByUser(user3, pagingRequest)
@@ -104,7 +104,7 @@ func TestDAOGetTrashedObjectsByUser(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating parent-child pair: %v\n", err)
 	}
-	if err = d.DeleteObject(child2, true); err != nil {
+	if err = d.DeleteObject(user3, child2, true); err != nil {
 		t.Errorf("Error deleting test parent2: %v\n", err)
 	}
 	// Assert child2 is in trash.

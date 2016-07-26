@@ -72,18 +72,19 @@ func TestUndeleteObjectWithChildren(t *testing.T) {
 	}
 
 	// Explicit delete folder3 and objC
+	user := setupUserWithSnippets(usernames[1])
 	explicitDelete := true
-	err = d.DeleteObject(folder3, explicitDelete)
+	err = d.DeleteObject(user, folder3, explicitDelete)
 	if err != nil {
 		t.Errorf("Error deleting folder3: %v\n", err)
 	}
-	err = d.DeleteObject(objC, explicitDelete)
+	err = d.DeleteObject(user, objC, explicitDelete)
 	if err != nil {
 		t.Errorf("Error deleting objC: %v\n", err)
 	}
 
 	// Explicit delete folder1
-	err = d.DeleteObject(folder1, explicitDelete)
+	err = d.DeleteObject(user, folder1, explicitDelete)
 	if err != nil {
 		t.Errorf("Error deleting folder1: %v\n", err)
 	}

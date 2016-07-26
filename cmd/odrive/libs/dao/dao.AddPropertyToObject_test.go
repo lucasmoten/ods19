@@ -16,6 +16,8 @@ func TestDAOAddPropertyToObject(t *testing.T) {
 		log.Fatal("db is nil")
 	}
 
+	user := models.ODUser{DistinguishedName: usernames[1]}
+
 	// create object
 	var obj models.ODObject
 	obj.Name = "Test Object for Adding Property"
@@ -71,7 +73,7 @@ func TestDAOAddPropertyToObject(t *testing.T) {
 	}
 
 	// delete the object
-	err = d.DeleteObject(objectWithProperty, true)
+	err = d.DeleteObject(user, objectWithProperty, true)
 	if err != nil {
 		t.Error(err)
 	}

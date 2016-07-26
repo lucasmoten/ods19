@@ -44,14 +44,14 @@ func deleteObjectPermissionInTransaction(tx *sqlx.Tx, objectPermission models.OD
 	if err != nil {
 		return dbObjectPermission, err
 	}
-	// Check if changeToken matches
-	if objectPermission.ChangeToken != dbObjectPermission.ChangeToken {
-		return dbObjectPermission, fmt.Errorf("ChangeToken does not match expected value %s", dbObjectPermission.ChangeToken)
-	}
 	// Check if already deleted
 	if dbObjectPermission.IsDeleted {
 		// NOOP
 		return dbObjectPermission, nil
+	}
+	// Check if changeToken matches
+	if objectPermission.ChangeToken != dbObjectPermission.ChangeToken {
+		return dbObjectPermission, fmt.Errorf("ChangeToken does not match expected value %s", dbObjectPermission.ChangeToken)
 	}
 	// Mark property as deleted
 	dbObjectPermission.IsDeleted = true

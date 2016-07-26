@@ -213,12 +213,13 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	}
 
 	// cleanup
+	user := models.ODUser{DistinguishedName: dbParent.CreatedBy}
 	for _, object := range resultset.Objects {
 		for _, property := range object.Properties {
 			d.DeleteObjectProperty(property)
 		}
-		d.DeleteObject(object, true)
+		d.DeleteObject(user, object, true)
 	}
-	d.DeleteObject(dbParent, true)
+	d.DeleteObject(user, dbParent, true)
 
 }

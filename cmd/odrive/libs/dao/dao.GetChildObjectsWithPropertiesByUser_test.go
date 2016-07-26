@@ -253,12 +253,13 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	}
 
 	// cleanup
+	user.DistinguishedName = user1
 	for _, object := range resultset.Objects {
 		for _, property := range object.Properties {
 			d.DeleteObjectProperty(property)
 		}
-		d.DeleteObject(object, true)
+		d.DeleteObject(user, object, true)
 	}
-	d.DeleteObject(dbParent, true)
+	d.DeleteObject(user, dbParent, true)
 
 }
