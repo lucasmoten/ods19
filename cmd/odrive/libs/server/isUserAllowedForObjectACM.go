@@ -428,44 +428,40 @@ func (h AppServer) flattenGranteeOnPermission(ctx context.Context, permission *m
 	return nil
 }
 
+func isUserAllowedToReadWithPermission(ctx context.Context, masterKey string, obj *models.ODObject) (bool, models.ODObjectPermission) {
+	requiredPermission := models.ODObjectPermission{AllowRead: true}
+	return isUserAllowedTo(ctx, masterKey, obj, requiredPermission, false)
+}
+func isUserAllowedToUpdateWithPermission(ctx context.Context, masterKey string, obj *models.ODObject) (bool, models.ODObjectPermission) {
+	requiredPermission := models.ODObjectPermission{AllowRead: true, AllowUpdate: true}
+	return isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
+}
+func isUserAllowedToShareWithPermission(ctx context.Context, masterKey string, obj *models.ODObject) (bool, models.ODObjectPermission) {
+	requiredPermission := models.ODObjectPermission{AllowRead: true, AllowShare: true}
+	return isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
+}
 func isUserAllowedToCreate(ctx context.Context, masterKey string, obj *models.ODObject) bool {
 	requiredPermission := models.ODObjectPermission{AllowCreate: true, AllowRead: true}
 	ok, _ := isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
 	return ok
 }
 func isUserAllowedToRead(ctx context.Context, masterKey string, obj *models.ODObject) bool {
-	requiredPermission := models.ODObjectPermission{AllowRead: true}
-	ok, _ := isUserAllowedTo(ctx, masterKey, obj, requiredPermission, false)
+	ok, _ := isUserAllowedToReadWithPermission(ctx, masterKey, obj)
 	return ok
-}
-func isUserAllowedToReadWithPermission(ctx context.Context, masterKey string, obj *models.ODObject) (bool, models.ODObjectPermission) {
-	requiredPermission := models.ODObjectPermission{AllowRead: true}
-	return isUserAllowedTo(ctx, masterKey, obj, requiredPermission, false)
 }
 func isUserAllowedToUpdate(ctx context.Context, masterKey string, obj *models.ODObject) bool {
-	requiredPermission := models.ODObjectPermission{AllowRead: true, AllowUpdate: true}
-	ok, _ := isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
+	ok, _ := isUserAllowedToUpdateWithPermission(ctx, masterKey, obj)
 	return ok
-}
-func isUserAllowedToUpdateWithPermission(ctx context.Context, masterKey string, obj *models.ODObject) (bool, models.ODObjectPermission) {
-	requiredPermission := models.ODObjectPermission{AllowRead: true, AllowUpdate: true}
-	return isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
 }
 func isUserAllowedToDelete(ctx context.Context, masterKey string, obj *models.ODObject) bool {
 	requiredPermission := models.ODObjectPermission{AllowRead: true, AllowDelete: true}
 	ok, _ := isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
 	return ok
 }
-func isUserAllowedToShareWithPermission(ctx context.Context, masterKey string, obj *models.ODObject) (bool, models.ODObjectPermission) {
-	requiredPermission := models.ODObjectPermission{AllowRead: true, AllowShare: true}
-	return isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
-}
 func isUserAllowedToShare(ctx context.Context, masterKey string, obj *models.ODObject) bool {
-	requiredPermission := models.ODObjectPermission{AllowRead: true, AllowShare: true}
-	ok, _ := isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
+	ok, _ := isUserAllowedToShareWithPermission(ctx, masterKey, obj)
 	return ok
 }
-
 func isUserAllowedTo(ctx context.Context, masterKey string, obj *models.ODObject, requiredPermission models.ODObjectPermission, rollup bool) (bool, models.ODObjectPermission) {
 	caller, _ := CallerFromContext(ctx)
 	groups, _ := GroupsFromContext(ctx)
@@ -473,6 +469,7 @@ func isUserAllowedTo(ctx context.Context, masterKey string, obj *models.ODObject
 	var userPermission models.ODObjectPermission
 	var granteeMatch bool
 	for _, permission := range obj.Permissions {
+		//LoggerFromContext(ctx).Info("Examining permissions ", zap.Object("permission", permission))
 		// Skip if permission is deleted
 		if permission.IsDeleted {
 			continue

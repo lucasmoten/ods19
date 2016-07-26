@@ -152,8 +152,19 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 			return NewAppError(403, err, "Forbidden - User does not pass authorization checks for new object ACM")
 			//return NewAppError(403, err, "Unauthorized", zap.String("origination", "No access to new ACM on Update"), zap.String("acm", requestObject.RawAcm.String))
 		}
-		// TODO: If the "share" or "f_share" parts have changed, then check that the
+		// If the "share" or "f_share" parts have changed, then check that the
 		// caller also has permission to share.
+		if diff, herr := isAcmShareDifferent(dbObject.RawAcm.String, requestObject.RawAcm.String); herr != nil || diff {
+			if herr != nil {
+				return herr
+			}
+			// Need to refetch dbObject as apparently the assignment of its permissions into request object is a reference instead of copy
+			dbPermissions, _ := dao.GetPermissionsForObject(dbObject)
+			dbObject.Permissions = dbPermissions
+			if !isUserAllowedToShare(ctx, h.MasterKey, &dbObject) {
+				return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to change the share for this object")
+			}
+		}
 
 	}
 

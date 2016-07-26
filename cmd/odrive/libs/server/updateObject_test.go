@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/util"
+	"decipher.com/object-drive-server/util/testhelpers"
 
 	"decipher.com/object-drive-server/protocol"
 )
@@ -200,5 +202,70 @@ func TestUpdateObjectToChangeOwnedBy(t *testing.T) {
 		log.Printf("Owner is not %s", folder.CreatedBy)
 		t.FailNow()
 	}
+
+}
+
+func TestUpdateObjectPreventAcmShareChange(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester1 := 1
+	tester2 := 2
+
+	t.Logf("* Create folder as Tester01")
+	folder := makeFolderViaJSON("TestUpdateObjectPreventAcmShareChange", tester1, t)
+
+	t.Logf("* Tester01 Add a share allowing Tester02 to update")
+	shareSetting := protocol.ObjectShare{}
+	shareSetting.Share = makeUserShare(fakeDN2)
+	shareSetting.AllowUpdate = true
+	updatedFolder := doAddObjectShare(t, folder, &shareSetting, tester1)
+
+	updateuri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
+
+	t.Logf("* Tester02 updates name but leave ACM alone")
+	updatedFolder.Name += " changed name"
+	updateReq1 := makeHTTPRequestFromInterface(t, "POST", updateuri, updatedFolder)
+	updateRes1, err := clients[tester2].Client.Do(updateReq1)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, updateRes1, "Bad status when updating object")
+	err = util.FullDecode(updateRes1.Body, &updatedFolder)
+	failNowOnErr(t, err, "Error decoding json to Object")
+
+	t.Logf("* Tester02 update name again, as well as ACM without changing share")
+	updatedFolder.Name += " again"
+	updatedFolder.RawAcm = testhelpers.ValidACMUnclassifiedFOUO
+	updateReq2 := makeHTTPRequestFromInterface(t, "POST", updateuri, updatedFolder)
+	updateRes2, err := clients[tester2].Client.Do(updateReq2)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, updateRes2, "Bad status when updating object")
+	err = util.FullDecode(updateRes2.Body, &updatedFolder)
+	failNowOnErr(t, err, "Error decoding json to Object")
+
+	t.Logf("* Tester02 update name + acm with a different share. Expect error")
+	updatedFolder.Name += " and share"
+	updatedFolder.RawAcm = testhelpers.ValidACMUnclassifiedFOUOSharedToTester01And02
+	updateReq3 := makeHTTPRequestFromInterface(t, "POST", updateuri, updatedFolder)
+	updateRes3, err := clients[tester2].Client.Do(updateReq3)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 403, updateRes3, "Bad status when updating object")
+	ioutil.ReadAll(updateRes3.Body)
+	updateRes3.Body.Close()
+
+	t.Logf("* Tester01 Add a share allowing Tester02 to share")
+	shareSetting2 := protocol.ObjectShare{}
+	shareSetting2.Share = makeUserShare(fakeDN2)
+	shareSetting2.AllowShare = true
+	updatedFolder = doAddObjectShare(t, updatedFolder, &shareSetting2, tester1)
+
+	t.Logf("* Tester02 update name + acm with a different share. Expect success")
+	updatedFolder.Name += " and share"
+	updatedFolder.RawAcm = testhelpers.ValidACMUnclassifiedFOUOSharedToTester01And02
+	updateReq4 := makeHTTPRequestFromInterface(t, "POST", updateuri, updatedFolder)
+	updateRes4, err := clients[tester2].Client.Do(updateReq4)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, updateRes4, "Bad status when updating object")
+	err = util.FullDecode(updateRes4.Body, &updatedFolder)
+	failNowOnErr(t, err, "Error decoding json to Object")
 
 }

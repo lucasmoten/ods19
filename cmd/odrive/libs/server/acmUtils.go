@@ -258,6 +258,39 @@ func getStringArrayFromInterface(i interface{}) []string {
 	return o
 }
 
+func isAcmShareDifferent(acm1 string, acm2 string) (bool, *AppError) {
+
+	different := true
+
+	obj1 := models.ODObject{}
+	obj2 := models.ODObject{}
+	obj1.RawAcm.Valid = true
+	obj1.RawAcm.String = acm1
+	obj2.RawAcm.Valid = true
+	obj2.RawAcm.String = acm2
+
+	herr1, acmShareInterface1 := getACMInterfacePart(&obj1, "share")
+	if herr1 != nil {
+		return different, herr1
+	}
+	herr2, acmShareInterface2 := getACMInterfacePart(&obj2, "share")
+	if herr2 != nil {
+		return different, herr2
+	}
+
+	acmShareString1, err1 := utils.MarshalInterfaceToString(acmShareInterface1)
+	if err1 != nil {
+		return different, NewAppError(500, err1, "Error marshalling share interface to string")
+	}
+	acmShareString2, err2 := utils.MarshalInterfaceToString(acmShareInterface2)
+	if err2 != nil {
+		return different, NewAppError(500, err2, "Error marshalling share interface to string")
+	}
+
+	different = (strings.Compare(acmShareString1, acmShareString2) != 0)
+	return different, nil
+}
+
 func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *AppError {
 	// Apply changes to obj.Permissions based upon what ACM has
 	LoggerFromContext(ctx).Info("favoring acm")
