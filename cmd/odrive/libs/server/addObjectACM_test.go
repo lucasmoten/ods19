@@ -63,22 +63,6 @@ func TestAddObjectACMs(t *testing.T) {
 
 func TestAddObjectACMWithShare(t *testing.T) {
 
-	// "share":{"projects":{"watchdog.dctc.local":{"groups":["Users","SLE","FLE","FDO","Administrators"]}}}
-	// "share":{"projects":{"watchdog.dctc.local":{"groups":["Users","SLE","FLE","FDO","Administrators"]}}}
-	// "share":{"projects":{"watchdog.dctc.local":{"groups":["Users","SLE","FLE","FDO","Administrators"]}}}
-	// "share":{"projects":{"jifct_twl":{"disp_nm":"JIFCT.TWL","groups":["SLE","USER"]}}}
-	// "share":{"users":["cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us","cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"],projects":{"jifct_twl":{"disp_nm":"JIFCT.TWL","groups":["SLE","USER"]}}}
-
-	// dctc_up2_administrator
-	// "share":{"projects":{"dctc_up2":{"disp_nm":"DCTC.UP2","groups":["Administrator"]}}}
-	// "share":{"projects":{"dctc":{"disp_nm":"DCTC","groups":["up2_dctc","up2_aprc","up2_dctc_user","up2_aprc_user"]}}}
-
-	// Project & Groups specifically for ODrive
-	// "share":{"projects":{"DCTC":{"disp_nm":"DCTC","groups":["ODrive","ODrive_G1","ODrive_G2"]}}}
-	// "share":{"projects":{"DCTC":{"disp_nm":"DCTC","groups":["ODrive"]}}}
-	// "share":{"projects":{"DCTC":{"disp_nm":"DCTC","groups":["ODrive_G1"]}}}
-	// "share":{"projects":{"DCTC":{"disp_nm":"DCTC","groups":["ODrive_G2"]}}}
-
 	acm := `{"accms":[],"atom_energy":[],"banner":"UNCLASSIFIED","classif":"U","disp_only":"","disponly_to":[""],"dissem_countries":[],"dissem_ctrls":[],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_regions":[],"f_sci_ctrls":[],"f_share":[],"fgi_open":[],"fgi_protect":[],"macs":[],"non_ic":[],"owner_prod":["USA"],"portion":"U","rel_to":[],"sar_id":[],"sci_ctrls":[],"share":{"projects":{"DCTC":{"disp_nm":"DCTC","groups":["ODrive","ODrive_G1","ODrive_G2"]}}},"version":"2.1.0"}`
 
 	clientid1 := 0

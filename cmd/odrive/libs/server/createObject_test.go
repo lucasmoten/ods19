@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -109,100 +108,6 @@ func TestCreatObjectSimple(t *testing.T) {
 }
 
 var ValidAcmCreateObjectSimple = `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":["FOUO"],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U//FOUO","banner":"UNCLASSIFIED//FOUO","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`
-
-func doCheckFileNowExists(t *testing.T, clientID int, jres protocol.Object) {
-
-	//!!! STOP and verify that this object actually exists in listings!
-	//Because we *just* created this, we expect it to be in first page!
-	uri2 := host + cfg.NginxRootURL + "/objects"
-
-	if jres.ParentID != "" {
-		uri2 = uri2 + "/" + jres.ParentID
-	}
-	uri2 = uri2 + "?pageSize=10000"
-
-	req2, err := http.NewRequest("GET", uri2, nil)
-	if err != nil {
-		t.Log("get create fail")
-		t.FailNow()
-	}
-	res2, err := clients[clientID].Client.Do(req2)
-	if err != nil {
-		t.Log("client connect fail")
-		t.FailNow()
-	}
-	defer util.FinishBody(res2.Body)
-	var objectResultSet protocol.ObjectResultset
-	bodyBytes, err := ioutil.ReadAll(res2.Body)
-	if err != nil {
-		t.Log("got no body back")
-		t.FailNow()
-	}
-	json.Unmarshal(bodyBytes, &objectResultSet)
-	foundIt := false
-	for _, v := range objectResultSet.Objects {
-		if v.ID == jres.ID {
-			foundIt = true
-		}
-		t.Logf("lookfor: %s id:%s", jres.ID, v.ID)
-	}
-	if len(objectResultSet.Objects) == 0 {
-		t.Logf("no objects in listing for %s", uri2)
-	}
-	if !foundIt {
-		t.Logf("did not find object that we just created as user %d", clientID)
-		t.FailNow()
-	}
-}
-
-func doTestCreateObjectSimple(t *testing.T, data string, clientID int) (*http.Response, protocol.Object) {
-	client := clients[clientID].Client
-	testName, err := util.NewGUID()
-	if err != nil {
-		t.Fail()
-	}
-
-	acm := ValidAcmCreateObjectSimple
-	tmpName := "initialTestData1.txt"
-	tmp, tmpCloser, err := testhelpers.GenerateTempFile(data)
-	if err != nil {
-		t.Errorf("Could not open temp file for write: %v\n", err)
-	}
-	defer tmpCloser()
-
-	createRequest := protocol.CreateObjectRequest{
-		Name:     testName,
-		TypeName: "File",
-		RawAcm:   acm,
-	}
-
-	var jsonBody []byte
-	jsonBody, err = json.Marshal(createRequest)
-	if err != nil {
-		t.Fail()
-	}
-
-	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
-		"objects", host, "", tmp, tmpName, jsonBody)
-	if err != nil {
-		t.Errorf("Unable to create HTTP request: %v\n", err)
-	}
-
-	res, jresif, err := testhelpers.DoWithDecodedResult(client, req)
-
-	if err != nil {
-		t.Fail()
-	}
-
-	if res != nil && res.StatusCode != http.StatusOK {
-		t.Fail()
-	}
-
-	jres := jresif.(protocol.Object)
-	doCheckFileNowExists(t, clientID, jres)
-
-	return res, jres
-}
 
 func TestCreateWithACMInObjectFormat(t *testing.T) {
 
