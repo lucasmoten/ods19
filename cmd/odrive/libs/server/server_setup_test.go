@@ -58,8 +58,8 @@ var testIP = flag.String("testIP", "", "The IP address for test API requests. Us
 func countOpenFiles() int {
 	out, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("lsof -p %v", os.Getpid())).Output()
 	if err != nil {
-
-		log.Fatal(err)
+		log.Printf("no lsof on this machine: %v", err)
+		return 0
 	}
 	log.Print(string(out))
 	lines := strings.Split(string(out), "\n")

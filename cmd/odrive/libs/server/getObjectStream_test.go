@@ -7,7 +7,6 @@ import (
 	"net/http/httputil"
 	"testing"
 
-	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
@@ -24,24 +23,15 @@ func TestEtag(t *testing.T) {
 		t.Errorf("Failure from NewCreateObjectPOSTRequest: %v\n", err)
 	}
 
-	client := clients[clientID].Client
-	res, err := client.Do(req)
-	if err != nil {
-		t.Errorf("Unable to do request:%v\n", err)
-	}
-	defer util.FinishBody(res.Body)
-	var responseObject protocol.Object
-	err = util.FullDecode(res.Body, &responseObject)
-	if err != nil {
-		t.Errorf("Could not decode reponse from createObject: %v\n", err)
-	}
+	responseObject := doCreateObjectRequest(t, clientID, req, 200)
 
 	//Ask for it in order to get the eTag and a 200
 	req2, err := testhelpers.NewGetObjectStreamRequest(responseObject.ID, "", host)
 	if err != nil {
 		t.Errorf("Failure from redo get object stream: %v\n", err)
 	}
-	res2, err := client.Do(req2)
+	//We can't use DoCreateObjectRequest because we need to extract the Etag header
+	res2, err := clients[clientID].Client.Do(req2)
 	if err != nil {
 		t.Errorf("Unable to do re request:%v\n", err)
 	}
@@ -63,14 +53,8 @@ func TestEtag(t *testing.T) {
 		t.Errorf("Failure from redo get object stream: %v\n", err)
 	}
 	req3.Header.Set("If-none-match", eTag)
-	res3, err := client.Do(req3)
-	if err != nil {
-		t.Errorf("Unable to do re request:%v\n", err)
-	}
-	defer util.FinishBody(res3.Body)
-	if res3.StatusCode != http.StatusNotModified {
-		t.Errorf("the data was not modified, and we sent an eTag, yet did not get a 304. %d instead", res3.StatusCode)
-	}
+
+	doCreateObjectRequest(t, clientID, req3, 304)
 
 	//Ask with a wrong tag and get 200
 	req4, err := testhelpers.NewGetObjectStreamRequest(responseObject.ID, "", host)
@@ -80,19 +64,9 @@ func TestEtag(t *testing.T) {
 	//Some random tag that does not match
 	eTag2 := "9a29ea29e29eac3457b"
 	req4.Header.Set("If-none-match", eTag2)
-	res4, err := client.Do(req4)
-	if err != nil {
-		t.Errorf("Unable to do re request:%v\n", err)
-	}
-	defer util.FinishBody(res4.Body)
-	if res4.StatusCode != http.StatusOK {
-		t.Errorf("Expected a 200 because the tag does not match. %d instead", res4.StatusCode)
-	}
 
-	err = util.FullDecode(res4.Body, &responseObject)
-	if err != nil {
-		t.Errorf("Could not decode reponse from createObject: %v\n", err)
-	}
+	//We can use DoCreateObjectRequest because we definitely expect a 200 in this case
+	doCreateObjectRequest(t, clientID, req4, 200)
 }
 
 func TestUploadAndGetByteRange(t *testing.T) {
@@ -109,18 +83,8 @@ func TestUploadAndGetByteRange(t *testing.T) {
 		t.Errorf("Failure from NewCreateObjectPOSTRequest: %v\n", err)
 	}
 
-	client := clients[5].Client
-	res, err := client.Do(req)
-	if err != nil {
-		t.Errorf("Unable to do request:%v\n", err)
-	}
-	isResponseError(res, t)
-	defer util.FinishBody(res.Body)
-	var responseObject protocol.Object
-	err = util.FullDecode(res.Body, &responseObject)
-	if err != nil {
-		t.Errorf("Could not decode reponse from createObject: %v\n", err)
-	}
+	clientID := 5
+	responseObject := doCreateObjectRequest(t, clientID, req, 200)
 
 	rangeReq, err := testhelpers.NewGetObjectStreamRequest(responseObject.ID, "", host)
 	if err != nil {
@@ -128,7 +92,9 @@ func TestUploadAndGetByteRange(t *testing.T) {
 	}
 	rangeReq.Header.Set("Range", fmt.Sprintf("bytes=%v-%v", start, end-1))
 
-	rangeRes, err := client.Do(rangeReq)
+	//We can't call DoCreateObjectRequest because we read a byte body and
+	//need the count
+	rangeRes, err := clients[clientID].Client.Do(rangeReq)
 	if err != nil {
 		t.Errorf("Could not perform range request: %v\n", err)
 	}
