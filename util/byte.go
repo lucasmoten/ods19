@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
-	"log"
 )
 
 // StringToInt8Slice converts a string to []int8. This conversion is required to
@@ -30,13 +29,7 @@ func FullDecode(r io.ReadCloser, obj interface{}) error {
 // FinishBody ensures that body is completely consumed - call in a defer
 func FinishBody(r io.ReadCloser) error {
 	if r != nil {
-		//This has the potential to run us out of memory, and I just did
-		//run out of memory.
-		_, err := io.Copy(ioutil.Discard, r)
-		if err != nil && err != io.EOF && err.Error() != "http: read on closed response body" {
-			log.Printf("FullDecode: %v", err)
-			return err
-		}
+		io.Copy(ioutil.Discard, r)
 		r.Close()
 	}
 	return nil
