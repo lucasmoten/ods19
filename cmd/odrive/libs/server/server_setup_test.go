@@ -1,11 +1,8 @@
 package server_test
 
 import (
-	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -13,16 +10,13 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/dao"
 	"decipher.com/object-drive-server/cmd/odrive/libs/server"
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/services/aac"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
@@ -53,7 +47,10 @@ func setup(ip string) {
 	}
 }
 
-var testIP = flag.String("testIP", "", "The IP address for test API requests. Usually the dockerVM")
+var (
+	testIP              = flag.String("testIP", "", "The IP address for test API requests. Usually the dockerVM")
+	dumpFileDescriptors = flag.Bool("dumpFileDescriptors", false, "Set to true to shell out to lsof before, during, and after tests")
+)
 
 func countOpenFiles() int {
 	out, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("lsof -p %v", os.Getpid())).Output()
@@ -66,8 +63,10 @@ func countOpenFiles() int {
 	return len(lines) - 1
 }
 
-func dumpOpenFiles(at string) {
-	fmt.Printf("filehandles at %s: %d\n", at, countOpenFiles())
+func dumpOpenFiles(shouldPrint bool, at string) {
+	if shouldPrint {
+		fmt.Printf("filehandles at %s: %d\n", at, countOpenFiles())
+	}
 }
 
 func cleanupOpenFiles() {
@@ -78,13 +77,13 @@ func cleanupOpenFiles() {
 
 func TestMain(m *testing.M) {
 	flag.Parse()
-	dumpOpenFiles("TestMain before setup")
+	dumpOpenFiles(*dumpFileDescriptors, "TestMain before setup")
 	setup(*testIP)
-	dumpOpenFiles("TestMain after setup")
+	dumpOpenFiles(*dumpFileDescriptors, "TestMain after setup")
 	code := m.Run()
-	dumpOpenFiles("TestMain after run")
+	dumpOpenFiles(*dumpFileDescriptors, "TestMain after run")
 	cleanupOpenFiles()
-	dumpOpenFiles("TestMain after cleanup")
+	dumpOpenFiles(*dumpFileDescriptors, "TestMain after cleanup")
 	os.Exit(code)
 }
 
@@ -155,7 +154,7 @@ func getClientIdentityFromDefaultCerts(component string, certSet string) (*Clien
 		CertPem:  os.ExpandEnv(fmt.Sprintf("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/%s/%s.cert.pem", component, certSet)),
 		KeyPem:   os.ExpandEnv(fmt.Sprintf("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/%s/%s.key.pem", component, certSet)),
 	}
-	cfg, err := NewClientTLSConfig(ci)
+	cfg, err := newClientTLSConfig(ci)
 	if err != nil {
 		log.Printf("Cannot get identity: %v", err)
 		return nil, err
@@ -171,7 +170,7 @@ func getClientIdentity(i int, name string) (*ClientIdentity, error) {
 		CertPem:  os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/" + name + ".cert.pem"),
 		KeyPem:   os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/" + name + ".key.pem"),
 	}
-	cfg, err := NewClientTLSConfig(ci)
+	cfg, err := newClientTLSConfig(ci)
 	if err != nil {
 		log.Printf("Cannot get identity: %v", err)
 		return nil, err
@@ -182,8 +181,8 @@ func getClientIdentity(i int, name string) (*ClientIdentity, error) {
 	return ci, nil
 }
 
-// NewClientTLSConfig creates a per-client tls config
-func NewClientTLSConfig(client *ClientIdentity) (*tls.Config, error) {
+// newClientTLSConfig creates a per-client tls config
+func newClientTLSConfig(client *ClientIdentity) (*tls.Config, error) {
 
 	// Create the trust
 	trustBytes, err := ioutil.ReadFile(client.TrustPem)
@@ -216,59 +215,6 @@ func NewClientTLSConfig(client *ClientIdentity) (*tls.Config, error) {
 	}
 	tlsConfig.BuildNameToCertificate()
 	return tlsConfig, nil
-}
-
-func makeFolderViaJSON(folderName string, clientid int, t *testing.T) *protocol.Object {
-
-	nameWithTimestamp := folderName + strconv.FormatInt(time.Now().Unix(), 10)
-
-	obj, err := makeFolderWithACMViaJSON(nameWithTimestamp, testhelpers.ValidACMUnclassified, clientid)
-	if err != nil {
-		t.Errorf("Error creating folder %s: %v\n", folderName, err)
-		t.FailNow()
-	}
-	return obj
-}
-func makeFolderWithACMViaJSON(folderName string, rawAcm string, clientid int) (*protocol.Object, error) {
-	folderuri := host + cfg.NginxRootURL + "/objects"
-	folder := protocol.Object{}
-	folder.Name = folderName
-	folder.TypeName = "Folder"
-	folder.ParentID = ""
-	folder.RawAcm = rawAcm
-	jsonBody, err := json.Marshal(folder)
-	if err != nil {
-		log.Printf("Unable to marshal json for request:%v", err)
-		return nil, err
-	}
-	req, err := http.NewRequest("POST", folderuri, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
-		return nil, err
-	}
-	// do the request
-	req.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
-	client := &http.Client{Transport: transport}
-	res, err := client.Do(req)
-	if err != nil {
-		log.Printf("Unable to do request:%v", err)
-		return nil, err
-	}
-	defer util.FinishBody(res.Body)
-	// process Response
-	if res.StatusCode != http.StatusOK {
-		log.Printf("bad status: %s", res.Status)
-		return nil, errors.New("Status was " + res.Status)
-	}
-	var createdFolder protocol.Object
-	err = util.FullDecode(res.Body, &createdFolder)
-	if err != nil {
-		log.Printf("Error decoding json to Object: %v", err)
-		log.Println()
-		return nil, err
-	}
-	return &createdFolder, nil
 }
 
 func NewFakeServerWithDAOUsers() *server.AppServer {
@@ -352,46 +298,4 @@ func setupFakeUsers() (models.ODUser, models.ODUser) {
 	user2.CreatedBy = fakeDN2
 
 	return user1, user2
-}
-
-func makeUserShare(userDN string) interface{} {
-	shareString := fmt.Sprintf(`{"users":["%s"]}`, userDN)
-	var shareInterface interface{}
-	json.Unmarshal([]byte(shareString), &shareInterface)
-	return shareInterface
-}
-
-func makeGroupShare(project string, displayName string, groupName string) interface{} {
-	shareString := fmt.Sprintf(`{"projects":{"%s":{"disp_nm":"%s","groups":["%s"]}}}`, project, displayName, groupName)
-	var shareInterface interface{}
-	json.Unmarshal([]byte(shareString), &shareInterface)
-	return shareInterface
-}
-
-func makeHTTPRequestFromInterface(t *testing.T, method string, uri string, obj interface{}) *http.Request {
-	jsonBody, err := json.Marshal(obj)
-	if err != nil {
-		t.Logf("Unable to marshal json for request: %v", err)
-		t.FailNow()
-	}
-	requestBuffer := bytes.NewBuffer(jsonBody)
-	req, err := http.NewRequest(method, uri, requestBuffer)
-	if err != nil {
-		t.Logf("Error setting up HTTP request: %v", err)
-		t.FailNow()
-	}
-	req.Header.Set("Content-Type", "application/json")
-	return req
-}
-
-func doAddObjectShare(t *testing.T, obj *protocol.Object, share *protocol.ObjectShare, clientid int) *protocol.Object {
-	shareuri := host + cfg.NginxRootURL + "/shared/" + obj.ID
-	req := makeHTTPRequestFromInterface(t, "POST", shareuri, share)
-	res, err := clients[clientid].Client.Do(req)
-	failNowOnErr(t, err, "Unable to do request")
-	statusMustBe(t, 200, res, "Bad status when creating share")
-	var updatedObject protocol.Object
-	err = util.FullDecode(res.Body, &updatedObject)
-	failNowOnErr(t, err, "Error decoding json to Object")
-	return &updatedObject
 }

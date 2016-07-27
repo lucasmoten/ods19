@@ -713,8 +713,7 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 	httpCreateGroupShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateGroupShare.Header.Set("Content-Type", "application/json")
 	// exec and get response
-	transport10 := &http.Transport{TLSClientConfig: clients[tester10].Config}
-	client10 := &http.Client{Transport: transport10}
+	client10 := clients[tester10].Client
 	httpCreateGroupShareResponse, err := client10.Do(httpCreateGroupShare)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
@@ -738,37 +737,7 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 	}
 
 	t.Logf("* Verify all clients can still read it after tester10 attempted to change read settings that failed")
-	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
-		if err != nil {
-			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
-			t.Fail()
-		}
-		defer util.FinishBody(httpGetResponse.Body)
-		if httpGetResponse.StatusCode != http.StatusOK {
-			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
-			t.Fail()
-		} else {
-			t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
-		}
-		if clientIdx == len(clients)-1 {
-			var retrievedObject protocol.Object
-			err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
-			if err != nil {
-				t.Logf("Error decoding json to Object: %v", err)
-				t.FailNow()
-			}
-			t.Logf("* Resulting permissions")
-			for _, permission := range retrievedObject.Permissions {
-				logPermission(t, permission)
-			}
-		} else {
-			ioutil.ReadAll(httpGetResponse.Body)
-		}
-		httpGetResponse.Body.Close()
-	}
+	shouldHaveReadForObjectID(t, createdObject.ID, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
 	if t.Failed() {
 		t.FailNow()
 	}
