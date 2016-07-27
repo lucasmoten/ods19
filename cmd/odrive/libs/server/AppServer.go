@@ -130,8 +130,6 @@ func (h *AppServer) InitRegex() {
 
 // ServeHTTP handles the routing of requests
 func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	defer util.FinishBody(r.Body)
-
 	caller := GetCaller(r)
 	//Wait until we can log to handle the error!
 	err := caller.ValidateHeaders(h.AclImpersonationWhitelist, w, r)

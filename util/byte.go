@@ -30,7 +30,9 @@ func FullDecode(r io.ReadCloser, obj interface{}) error {
 // FinishBody ensures that body is completely consumed - call in a defer
 func FinishBody(r io.ReadCloser) error {
 	if r != nil {
-		_, err := ioutil.ReadAll(r)
+		//This has the potential to run us out of memory, and I just did
+		//run out of memory.
+		_, err := io.Copy(ioutil.Discard, r)
 		if err != nil && err != io.EOF && err.Error() != "http: read on closed response body" {
 			log.Printf("FullDecode: %v", err)
 			return err
