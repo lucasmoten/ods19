@@ -447,6 +447,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 			etag := fmt.Sprintf("\"%s\"", contentHash)
 			w.Header().Set("Etag", etag)
 			if clientEtag == etag {
+				w.Header().Del("Content-Length")
 				return 0, NewAppError(http.StatusNotModified, nil, "Not Modified")
 			}
 			//Note that if we return a nil error, the stats collector will think we got a 200
@@ -456,6 +457,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 			etag := fmt.Sprintf("\"%s\"", contentHash)
 			w.Header().Set("Etag", etag)
 			if clientEtag == etag {
+				w.Header().Del("Content-Length")
 				return 0, NewAppError(http.StatusNotModified, nil, "Not Modified")
 			}
 			//Begin writing back a normal 200

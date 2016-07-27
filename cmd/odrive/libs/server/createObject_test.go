@@ -192,6 +192,15 @@ posting a file
 	}
 }
 
+// doGetObjectRequest gets an http status code and an object, and fails on error
+func doGetObjectRequest(t *testing.T, clientID int, req *http.Request, expectedCode int) *http.Response {
+	res, err := clients[clientID].Client.Do(req)
+	t.Logf("check response")
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, expectedCode, res, "Bad status when creating object")
+	return res
+}
+
 // doCreateObjectRequest gets an http status code and an object, and fails on error
 func doCreateObjectRequest(t *testing.T, clientID int, req *http.Request, expectedCode int) *protocol.Object {
 	res, err := clients[clientID].Client.Do(req)

@@ -30,13 +30,9 @@ func TestEtag(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failure from redo get object stream: %v\n", err)
 	}
-	//We can't use DoCreateObjectRequest because we need to extract the Etag header
-	res2, err := clients[clientID].Client.Do(req2)
-	if err != nil {
-		t.Errorf("Unable to do re request:%v\n", err)
-	}
-	defer util.FinishBody(res2.Body)
+	res2 := doGetObjectRequest(t, clientID, req2, 200)
 	eTag := res2.Header.Get("Etag")
+	util.FinishBody(res2.Body)
 	t.Logf("we got eTag:%s", eTag)
 	if len(eTag) == 0 {
 		//We have no situation where a stream does not return an Etag now
@@ -54,7 +50,8 @@ func TestEtag(t *testing.T) {
 	}
 	req3.Header.Set("If-none-match", eTag)
 
-	doCreateObjectRequest(t, clientID, req3, 304)
+	res3 := doGetObjectRequest(t, clientID, req3, 304)
+	util.FinishBody(res3.Body)
 
 	//Ask with a wrong tag and get 200
 	req4, err := testhelpers.NewGetObjectStreamRequest(responseObject.ID, "", host)
@@ -66,7 +63,8 @@ func TestEtag(t *testing.T) {
 	req4.Header.Set("If-none-match", eTag2)
 
 	//We can use DoCreateObjectRequest because we definitely expect a 200 in this case
-	doCreateObjectRequest(t, clientID, req4, 200)
+	res4 := doGetObjectRequest(t, clientID, req4, 200)
+	util.FinishBody(res4.Body)
 }
 
 func TestUploadAndGetByteRange(t *testing.T) {
