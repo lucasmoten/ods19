@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
@@ -21,8 +22,29 @@ var db *sqlx.DB
 var d *dao.DataAccessLayer
 var usernames = make([]string, 10)
 
+// NewAppConfigurationWithDefaults provides some defaults to the constructor
+// function for AppConfiguration. Normally these parameters are specified
+// on the command line.
+func newAppConfigurationWithDefaults() config.AppConfiguration {
+	var conf config.AppConfiguration
+	projectRoot := filepath.Join(os.Getenv("GOPATH"), "src", "decipher.com", "object-drive-server")
+	whitelist := []string{"cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"}
+	opts := config.CommandLineOpts{
+		Ciphers:           []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"},
+		UseTLS:            true,
+		StaticRootPath:    filepath.Join("libs", "server", "static"),
+		TemplateDir:       filepath.Join("libs", "server", "static", "templates"),
+		Conf:              filepath.Join(projectRoot, "cmd", "odrive", "libs", "dao", "testfixtures", "testconf.yml"),
+		TLSMinimumVersion: "1.2",
+	}
+	conf = config.NewAppConfiguration(opts)
+	conf.ServerSettings.AclImpersonationWhitelist = whitelist
+	return conf
+}
+
 func init() {
-	appConfiguration := config.NewAppConfigurationWithDefaults()
+
+	appConfiguration := newAppConfigurationWithDefaults()
 	dbConfig := appConfiguration.DatabaseConnection
 
 	// DAO tests hit a locally-running database directly.
