@@ -1660,6 +1660,8 @@ func failNowOnErr(t *testing.T, err error, msg string) {
 func statusMustBe(t *testing.T, expected int, resp *http.Response, msg string) {
 	statusExpected(t, expected, resp, msg)
 	if t.Failed() {
+		ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
 		t.FailNow()
 	}
 }

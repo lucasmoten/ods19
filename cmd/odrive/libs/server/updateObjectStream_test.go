@@ -107,7 +107,7 @@ func doPropsCheck(t *testing.T, jsonResponseBytes []byte) {
 		t.Errorf("unable to decode response:%s", jsonResponse)
 	}
 
-	log.Printf("id:%s newChangeToken:%s changeCount:%d", objResponse.ID, objResponse.ChangeToken, objResponse.ChangeCount)
+	t.Logf("id:%s newChangeToken:%s changeCount:%d", objResponse.ID, objResponse.ChangeToken, objResponse.ChangeCount)
 
 	if objResponse.Description != "describeit" {
 		t.Errorf("objResponse was expected to be 'describeit'")
@@ -131,10 +131,10 @@ func doPropsCheck(t *testing.T, jsonResponseBytes []byte) {
 	}
 
 	if len(objResponse.Properties) == 0 {
-		log.Printf("We did not get properties coming back in: %s", jsonResponse)
+		t.Logf("We did not get properties coming back in: %s", jsonResponse)
 	}
 	if objResponse.Properties[0].Name != "dogname" && objResponse.Properties[0].Value != "arf" && objResponse.Properties[0].ClassificationPM != "U" {
-		log.Printf("We did not get a match on properties")
+		t.Logf("We did not get a match on properties")
 	}
 }
 
@@ -145,7 +145,7 @@ func doReCheckProperties(t *testing.T, oid, jsonString string) {
 	// so: re-retrieve the request fresh
 	req, err := testhelpers.NewGetObjectRequest(oid, "", host)
 	if err != nil {
-		log.Printf("Unable to generate get re-request:%v", err)
+		t.Logf("Unable to generate get re-request:%v", err)
 	}
 	client := clients[clientID].Client
 	res, err := client.Do(req)
@@ -219,7 +219,7 @@ func TestUpdateObjectWithProperties(t *testing.T) {
 
 	acm := strings.Replace(testhelpers.ValidACMUnclassifiedFOUO, "\"", "\\\"", -1)
 	//Use its changeToken for an update ....
-	log.Printf("id:%s oldChangeToken:%s changeCount:%d", created.ID, created.ChangeToken, created.ChangeCount)
+	t.Logf("id:%s oldChangeToken:%s changeCount:%d", created.ID, created.ChangeToken, created.ChangeCount)
 	doPropertyUpdate(t, created.ID, fmt.Sprintf(updateTemplate, acm, created.ChangeToken))
 	//Do an independent re-retrieve
 	doReCheckProperties(t, created.ID, fmt.Sprintf(updateTemplate, acm, created.ChangeToken))

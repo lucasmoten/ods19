@@ -367,3 +367,31 @@ func makeGroupShare(project string, displayName string, groupName string) interf
 	json.Unmarshal([]byte(shareString), &shareInterface)
 	return shareInterface
 }
+
+func makeHTTPRequestFromInterface(t *testing.T, method string, uri string, obj interface{}) *http.Request {
+	jsonBody, err := json.Marshal(obj)
+	if err != nil {
+		t.Logf("Unable to marshal json for request: %v", err)
+		t.FailNow()
+	}
+	requestBuffer := bytes.NewBuffer(jsonBody)
+	req, err := http.NewRequest(method, uri, requestBuffer)
+	if err != nil {
+		t.Logf("Error setting up HTTP request: %v", err)
+		t.FailNow()
+	}
+	req.Header.Set("Content-Type", "application/json")
+	return req
+}
+
+func doAddObjectShare(t *testing.T, obj *protocol.Object, share *protocol.ObjectShare, clientid int) *protocol.Object {
+	shareuri := host + cfg.NginxRootURL + "/shared/" + obj.ID
+	req := makeHTTPRequestFromInterface(t, "POST", shareuri, share)
+	res, err := clients[clientid].Client.Do(req)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, res, "Bad status when creating share")
+	var updatedObject protocol.Object
+	err = util.FullDecode(res.Body, &updatedObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+	return &updatedObject
+}

@@ -632,6 +632,14 @@ This microservice operation will remove an object from the trash and delete it f
 
 # Group Access Control Operations
 
+These operations permit granting and revoking capabilities on objects beyond read/view access. Capabilities are defined as follows:
+
+* Create - The ability to create child objects beneath the object this grant is given.
+* Read - The ability to read/view an object's properties, it's stream, and list its children.
+* Update - The ability to make alterations to an object, including its ACM, except the share portions of the ACM.
+* Delete - The ability to delete, undelete, and expunge (delete forever) an object this grant is given.
+* Share - The ability to grant/revoke capabilities on objects to users and groups.
+
 ---
 
 ## Object Share [/shared/{objectId}]
@@ -701,6 +709,8 @@ This microservice operation is used to grant the specified permission on the tar
 
 ### Remove Object Share [DELETE]
 This microservice operation removes a previously defined object share.
+
+This service is not implemented at this time and the API noted below may be changing.
 
 + Request
 
