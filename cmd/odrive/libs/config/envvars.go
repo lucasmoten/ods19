@@ -39,6 +39,7 @@ const (
 	OD_DOCKERVM_OVERRIDE     = "OD_DOCKERVM_OVERRIDE"
 	OD_DOCKERVM_PORT         = "OD_DOCKERVM_PORT"
 	OD_ENCRYPT_MASTERKEY     = "OD_ENCRYPT_MASTERKEY"
+	OD_LOG_LOCATION          = "OD_LOG_LOCATION"
 	OD_SERVER_CA             = "OD_SERVER_CA"
 	OD_SERVER_BASEPATH       = "OD_SERVER_BASEPATH"
 	OD_SERVER_CERT           = "OD_SERVER_CERT"
@@ -86,6 +87,7 @@ var vars = []string{OD_AAC_CA,
 	OD_DOCKERVM_OVERRIDE,
 	OD_DOCKERVM_PORT,
 	OD_ENCRYPT_MASTERKEY,
+	OD_LOG_LOCATION,
 	OD_SERVER_BASEPATH,
 	OD_SERVER_CA,
 	OD_SERVER_CERT,
@@ -119,7 +121,7 @@ func GenerateStartScript() {
 # odrive must be on your PATH
 odrive --conf /etc/odrive/odrive.yml \ 
        --staticRoot /etc/odrive/libs/server/static \
-	   --templateDir /etc/odrive/libs/server/static/templates &>> /opt/bedrock/odrive/log/object-drive.log 2>&1&
+	   --templateDir /etc/odrive/libs/server/static/templates &>> /opt/odrive/log/object-drive.log 2>&1&
 
 `)
 	exitOnErr(err)
@@ -128,6 +130,10 @@ odrive --conf /etc/odrive/odrive.yml \
 }
 func GenerateSourceEnvScript() {
 	tmpl, err := template.New("script").Parse(`#!/bin/bash
+
+#
+# Please review /etc/init.d/odrive for default logging location if OD_LOG_LOCATION is not set
+#
 
 {{ range $i, $v := .Variables }}export {{ $v }}=
 {{ end }}
