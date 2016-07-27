@@ -32,6 +32,18 @@ func MapODPermissionToPermission(i *models.ODObjectPermission) protocol.Permissi
 	return o
 }
 
+// MapODCommonPermissionToPermission converts an internal ODCommonPermission model
+// to an API exposable Permission with minimal fields filled
+func MapODCommonPermissionToCallerPermission(i *models.ODCommonPermission) protocol.CallerPermission {
+	o := protocol.CallerPermission{}
+	o.AllowCreate = i.AllowCreate
+	o.AllowRead = i.AllowRead
+	o.AllowUpdate = i.AllowUpdate
+	o.AllowDelete = i.AllowDelete
+	o.AllowShare = i.AllowShare
+	return o
+}
+
 // MapODPermissionsToPermissions converts an array of internal ODPermission
 // models to an array of API exposable Permission
 func MapODPermissionsToPermissions(i *[]models.ODObjectPermission) []protocol.Permission {

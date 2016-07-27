@@ -164,6 +164,11 @@ func (fake *FakeDAO) GetObjectsIHaveShared(user models.ODUser, pagingRequest pro
 	return fake.ObjectResultSet, fake.Err
 }
 
+// GetObjectsSharedToEveryone for FakeDAO
+func (fake *FakeDAO) GetObjectsSharedToEveryone(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
+	return fake.ObjectResultSet, fake.Err
+}
+
 // GetObjectsSharedToMe for FakeDAO
 func (fake *FakeDAO) GetObjectsSharedToMe(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err

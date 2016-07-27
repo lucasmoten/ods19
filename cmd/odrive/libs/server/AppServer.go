@@ -109,6 +109,7 @@ func (h *AppServer) InitRegex() {
 		// - share
 		SharedToMe:        regexp.MustCompile(h.ServicePrefix + "/shares$"),
 		SharedToOthers:    regexp.MustCompile(h.ServicePrefix + "/shared$"),
+		SharedToEveryone:  regexp.MustCompile(h.ServicePrefix + "/sharedpublic$"),
 		SharedObject:      regexp.MustCompile(h.ServicePrefix + "/shared/(?P<objectId>[0-9a-fA-F]{32})$"),
 		SharedObjectShare: regexp.MustCompile(h.ServicePrefix + "/shared/(?P<objectId>[0-9a-fA-F]{32})/(?P<shareId>[0-9a-fA-F]{32})$"),
 		// - search
@@ -272,6 +273,9 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// - list objects i've shared with others
 		case h.Routes.SharedToOthers.MatchString(uri):
 			herr = h.listUserObjectsShared(ctx, w, r)
+		// - list objects shared to everyone
+		case h.Routes.SharedToEveryone.MatchString(uri):
+			herr = h.listUserObjectsSharedToEveryone(ctx, w, r)
 		// - list object revisions (array of get object properties)
 		case h.Routes.Revisions.MatchString(uri):
 			herr = h.listObjectRevisions(ctx, w, r)
@@ -589,6 +593,7 @@ type StaticRx struct {
 	RevisionStream         *regexp.Regexp
 	SharedToMe             *regexp.Regexp
 	SharedToOthers         *regexp.Regexp
+	SharedToEveryone       *regexp.Regexp
 	SharedObject           *regexp.Regexp
 	SharedObjectShare      *regexp.Regexp
 	Search                 *regexp.Regexp

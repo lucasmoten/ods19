@@ -94,5 +94,14 @@ func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
 	response.PageSize = GetSanitizedPageSize(pagingRequest.PageSize)
 	response.PageRows = len(response.Objects)
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
+	// Load permissions
+	for i := 0; i < len(response.Objects); i++ {
+		permissions, err := getPermissionsForObjectInTransaction(tx, response.Objects[i])
+		if err != nil {
+			print(err.Error())
+			return response, err
+		}
+		response.Objects[i].Permissions = permissions
+	}
 	return response, err
 }

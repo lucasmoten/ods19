@@ -31,7 +31,8 @@ func TestAppServerGetObjectAgainstFake(t *testing.T) {
 	objectURL := "/objects/" + guid + "/properties"
 
 	// Create permissions object, with our User as a Grantee.
-	readPermission := models.ODObjectPermission{Grantee: user.DistinguishedName, AllowRead: true}
+	readPermission := models.ODObjectPermission{Grantee: user.DistinguishedName}
+	readPermission.AllowRead = true
 	models.SetEncryptKey("", &readPermission)
 	perms := []models.ODObjectPermission{readPermission}
 	obj := models.ODObject{Permissions: perms}

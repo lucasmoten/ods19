@@ -429,19 +429,26 @@ func (h AppServer) flattenGranteeOnPermission(ctx context.Context, permission *m
 }
 
 func isUserAllowedToReadWithPermission(ctx context.Context, masterKey string, obj *models.ODObject) (bool, models.ODObjectPermission) {
-	requiredPermission := models.ODObjectPermission{AllowRead: true}
+	requiredPermission := models.ODObjectPermission{}
+	requiredPermission.AllowRead = true
 	return isUserAllowedTo(ctx, masterKey, obj, requiredPermission, false)
 }
 func isUserAllowedToUpdateWithPermission(ctx context.Context, masterKey string, obj *models.ODObject) (bool, models.ODObjectPermission) {
-	requiredPermission := models.ODObjectPermission{AllowRead: true, AllowUpdate: true}
+	requiredPermission := models.ODObjectPermission{}
+	requiredPermission.AllowRead = true
+	requiredPermission.AllowUpdate = true
 	return isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
 }
 func isUserAllowedToShareWithPermission(ctx context.Context, masterKey string, obj *models.ODObject) (bool, models.ODObjectPermission) {
-	requiredPermission := models.ODObjectPermission{AllowRead: true, AllowShare: true}
+	requiredPermission := models.ODObjectPermission{}
+	requiredPermission.AllowRead = true
+	requiredPermission.AllowShare = true
 	return isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
 }
 func isUserAllowedToCreate(ctx context.Context, masterKey string, obj *models.ODObject) bool {
-	requiredPermission := models.ODObjectPermission{AllowCreate: true, AllowRead: true}
+	requiredPermission := models.ODObjectPermission{}
+	requiredPermission.AllowRead = true
+	requiredPermission.AllowCreate = true
 	ok, _ := isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
 	return ok
 }
@@ -454,7 +461,9 @@ func isUserAllowedToUpdate(ctx context.Context, masterKey string, obj *models.OD
 	return ok
 }
 func isUserAllowedToDelete(ctx context.Context, masterKey string, obj *models.ODObject) bool {
-	requiredPermission := models.ODObjectPermission{AllowRead: true, AllowDelete: true}
+	requiredPermission := models.ODObjectPermission{}
+	requiredPermission.AllowRead = true
+	requiredPermission.AllowDelete = true
 	ok, _ := isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
 	return ok
 }
@@ -602,4 +611,16 @@ func (h AppServer) isObjectACMSharedToUser(ctx context.Context, obj *models.ODOb
 
 	// None of the user groups matched the acm. They wont have read access.
 	return false
+}
+
+func (h AppServer) buildCompositePermissionForCaller(ctx context.Context, resultset *models.ODObjectResultset) {
+	for idx, object := range resultset.Objects {
+		_, compositePermission := isUserAllowedToShareWithPermission(ctx, h.MasterKey, &object)
+		object.CallerPermissions.AllowCreate = compositePermission.AllowCreate
+		object.CallerPermissions.AllowRead = compositePermission.AllowRead
+		object.CallerPermissions.AllowUpdate = compositePermission.AllowUpdate
+		object.CallerPermissions.AllowDelete = compositePermission.AllowDelete
+		object.CallerPermissions.AllowShare = compositePermission.AllowShare
+		resultset.Objects[idx].CallerPermissions = object.CallerPermissions
+	}
 }

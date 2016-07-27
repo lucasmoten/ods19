@@ -228,8 +228,8 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 	if err != nil {
 		log.Printf("Could not create GUID.")
 	}
-	perms := []models.ODObjectPermission{
-		{Grantee: fakeDN1, AllowRead: true}}
+	perms := []models.ODObjectPermission{{Grantee: fakeDN1}}
+	perms[0].AllowRead = true
 	obj := models.ODObject{Permissions: perms}
 	obj.ID = []byte(guid)
 	obj.RawAcm.String = testhelpers.ValidACMUnclassified

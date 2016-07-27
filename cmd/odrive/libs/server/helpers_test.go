@@ -19,12 +19,20 @@ import (
 )
 
 func makeHTTPRequestFromInterface(t *testing.T, method string, uri string, obj interface{}) *http.Request {
-	jsonBody, err := json.Marshal(obj)
-	if err != nil {
-		t.Logf("Unable to marshal json for request: %v", err)
-		t.FailNow()
+	var requestBuffer *bytes.Buffer
+	requestBuffer = nil
+	if obj != nil {
+		jsonBody, err := json.Marshal(obj)
+		if err != nil {
+			t.Logf("Unable to marshal json for request: %v", err)
+			t.FailNow()
+		}
+		t.Logf("%d", len(jsonBody))
+		requestBuffer = bytes.NewBuffer(jsonBody)
+	} else {
+		requestBuffer = bytes.NewBuffer(nil)
 	}
-	requestBuffer := bytes.NewBuffer(jsonBody)
+
 	req, err := http.NewRequest(method, uri, requestBuffer)
 	if err != nil {
 		t.Logf("Error setting up HTTP request: %v", err)
