@@ -166,12 +166,7 @@ func handleCreatePrerequisites(
 	requestObject *models.ODObject,
 ) *AppError {
 	dao := DAOFromContext(ctx)
-
-	// Get caller value from ctx.
-	caller, ok := CallerFromContext(ctx)
-	if !ok {
-		return NewAppError(500, nil, "Could not determine user")
-	}
+	caller, _ := CallerFromContext(ctx)
 
 	// If JavaScript passes parentId as emptry string, set it to nil to satisfy
 	// the DAO.
@@ -186,15 +181,7 @@ func handleCreatePrerequisites(
 
 	// Check if parent defined
 	if requestObject.ParentID == nil {
-		// No parent set, but need to setup permission for the creator
-		newPermission := models.ODObjectPermission{}
-		newPermission.Grantee = caller.DistinguishedName
-		newPermission.AllowCreate = true
-		newPermission.AllowRead = false // Read permission not implicitly granted to owner. Must come through ACM share (empty=everyone gets read, values=owner must be in one of those groups)
-		newPermission.AllowUpdate = true
-		newPermission.AllowDelete = true
-		newPermission.AllowShare = true
-		requestObject.Permissions = append(requestObject.Permissions, newPermission)
+		addPermissionForCaller(ctx, requestObject)
 	} else {
 		// Parent is defined, retrieve existing parent object from the data store
 
@@ -227,7 +214,7 @@ func handleCreatePrerequisites(
 		}
 
 		// Copy permissions from parent into request Object that are other than 'read only' which is tied to ACM f_share
-		inheritPermissions := false
+		inheritPermissions := false // Disabled as it conflicts with ACM
 		if inheritPermissions {
 			for _, permission := range dbParentObject.Permissions {
 				if !permission.IsDeleted && (permission.AllowCreate || permission.AllowUpdate || permission.AllowDelete || permission.AllowShare) {
@@ -242,6 +229,8 @@ func handleCreatePrerequisites(
 					requestObject.Permissions = append(requestObject.Permissions, newPermission)
 				}
 			}
+		} else {
+			addPermissionForCaller(ctx, requestObject)
 		}
 	}
 
@@ -256,6 +245,20 @@ func handleCreatePrerequisites(
 	requestObject.OwnedBy.Valid = true
 
 	return nil
+}
+
+func addPermissionForCaller(ctx context.Context, obj *models.ODObject) {
+	caller, _ := CallerFromContext(ctx)
+	newPermission := models.ODObjectPermission{}
+	newPermission.Grantee = caller.DistinguishedName
+	newPermission.AllowCreate = true
+	// Read permission not implicitly granted to owner.
+	// Must come through ACM share (empty=everyone gets read, values=owner must be in one of those groups)
+	newPermission.AllowRead = false
+	newPermission.AllowUpdate = true
+	newPermission.AllowDelete = true
+	newPermission.AllowShare = true
+	obj.Permissions = append(obj.Permissions, newPermission)
 }
 
 func isMultipartFormData(r *http.Request) bool {
