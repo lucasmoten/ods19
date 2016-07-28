@@ -138,18 +138,15 @@ func main() {
 
 		opts := config.NewCommandLineOpts(c)
 		// TODO move this to main AppConfiguration constructor
-		confFile, err := config.LoadYAMLConfig(opts.Conf)
-		if err != nil {
-			fmt.Printf("Error loading yaml configuration at path %s: %v\n", confFile, err)
-			os.Exit(1)
-		}
+
+		conf := config.NewAppConfiguration(opts)
 
 		logger.Info("configuration-settings", zap.String("confPath", opts.Conf),
 			zap.String("staticRoot", opts.StaticRootPath),
 			zap.String("templateDir", opts.TemplateDir),
 			zap.String("tlsMinimumVersion", opts.TLSMinimumVersion))
 
-		startApplication(confFile.Whitelisted, opts)
+		startApplication(conf)
 		return nil
 	}
 
@@ -180,9 +177,9 @@ func runServiceTest(ctx *cli.Context) error {
 	return nil
 }
 
-func startApplication(whitelist []string, opts config.CommandLineOpts) {
+func startApplication(conf config.AppConfiguration) {
 
-	conf := config.NewAppConfiguration(whitelist, opts)
+	// conf := config.NewAppConfiguration(whitelist, opts)
 
 	app, err := makeServer(conf.ServerSettings)
 	if err != nil {
@@ -344,7 +341,7 @@ func configureDAO(app *server.AppServer, conf config.DatabaseConfiguration) erro
 
 func configureDrainProvider(app *server.AppServer, standalone bool, root, cacheID string) {
 	var dp server.DrainProvider
-	if globalconfig.StandaloneMode {
+	if standalone {
 		logger.Info("Draining cache locally")
 		dp = server.NewNullDrainProvider(root, cacheID)
 	} else {

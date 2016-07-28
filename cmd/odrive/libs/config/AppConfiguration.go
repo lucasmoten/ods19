@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 
 	globalconfig "decipher.com/object-drive-server/config"
 	"github.com/go-sql-driver/mysql"
@@ -95,28 +94,19 @@ type AuditSvcConfiguration struct {
 	Host string
 }
 
-// NewAppConfigurationWithDefaults provides some defaults to the constructor
-// function for AppConfiguration. Normally these parameters are specified
-// on the command line.
-func NewAppConfigurationWithDefaults() AppConfiguration {
-	whitelist := []string{"cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"}
-	opts := CommandLineOpts{
-		Ciphers:           []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"},
-		UseTLS:            true,
-		StaticRootPath:    filepath.Join("libs", "server", "static"),
-		TemplateDir:       filepath.Join("libs", "server", "static", "templates"),
-		TLSMinimumVersion: "1.2",
-	}
-	return NewAppConfiguration(whitelist, opts)
-}
-
 // NewAppConfiguration loads the configuration from the environment. Parameters are command
 // line flags.
-func NewAppConfiguration(whitelist []string, opts CommandLineOpts) AppConfiguration {
+func NewAppConfiguration(opts CommandLineOpts) AppConfiguration {
 
-	dbConf := NewDatabaseConfigFromEnv()
-	serverSettings := NewServerSettingsFromEnv(whitelist, opts)
-	aacSettings := NewAACSettingsFromEnv()
+	confFile, err := LoadYAMLConfig(opts.Conf)
+	if err != nil {
+		fmt.Printf("Error loading yaml configuration at path %s: %v\n", confFile, err)
+		os.Exit(1)
+	}
+
+	dbConf := NewDatabaseConfigFromEnv(confFile, opts)
+	serverSettings := NewServerSettingsFromEnv(confFile, opts)
+	aacSettings := NewAACSettingsFromEnv(confFile, opts)
 
 	return AppConfiguration{
 		DatabaseConnection: dbConf,
@@ -171,7 +161,7 @@ func NewCommandLineOpts(clictx *cli.Context) CommandLineOpts {
 }
 
 // NewDatabaseConfigFromEnv inspects the environment and returns a DatabaseConfiguration.
-func NewDatabaseConfigFromEnv() DatabaseConfiguration {
+func NewDatabaseConfigFromEnv(confFile ConfigFile, opts CommandLineOpts) DatabaseConfiguration {
 
 	var dbConf DatabaseConfiguration
 
@@ -201,7 +191,7 @@ func NewDatabaseConfigFromEnv() DatabaseConfiguration {
 }
 
 // NewServerSettingsFromEnv inspects the environment and returns a ServerSettingsConfiguration.
-func NewServerSettingsFromEnv(whitelist []string, opts CommandLineOpts) ServerSettingsConfiguration {
+func NewServerSettingsFromEnv(confFile ConfigFile, opts CommandLineOpts) ServerSettingsConfiguration {
 
 	var settings ServerSettingsConfiguration
 
@@ -217,7 +207,7 @@ func NewServerSettingsFromEnv(whitelist []string, opts CommandLineOpts) ServerSe
 	settings.UseTLS = opts.UseTLS
 	settings.RequireClientCert = true
 	settings.MinimumVersion = opts.TLSMinimumVersion
-	settings.AclImpersonationWhitelist = whitelist
+	settings.AclImpersonationWhitelist = confFile.Whitelisted
 	settings.CipherSuites = opts.Ciphers
 	settings.PathToStaticFiles = opts.StaticRootPath
 	settings.PathToTemplateFiles = opts.TemplateDir
@@ -231,7 +221,7 @@ func NewServerSettingsFromEnv(whitelist []string, opts CommandLineOpts) ServerSe
 }
 
 // NewAACSettingsFromEnv inspects the environment and returns a AACConfiguration.
-func NewAACSettingsFromEnv() AACConfiguration {
+func NewAACSettingsFromEnv(confFile ConfigFile, opts CommandLineOpts) AACConfiguration {
 
 	var conf AACConfiguration
 
