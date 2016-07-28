@@ -57,9 +57,9 @@ func TestDeleteObject(t *testing.T) {
 		t.FailNow()
 	}
 	var deletedFolder protocol.DeletedObjectResponse
-	err = util.FullDecode(res.Body, deletedFolder)
+	err = util.FullDecode(res.Body, &deletedFolder)
 	if err != nil {
-		log.Printf("Error decoding json to Object: %v", err)
+		log.Printf("Error decoding json to deletedFolder: %v", err)
 		log.Println()
 		t.FailNow()
 	}
@@ -96,7 +96,7 @@ func TestDeleteObject(t *testing.T) {
 	var getResponse protocol.DeletedObject
 	err = util.FullDecode(res.Body, &getResponse)
 	if err != nil {
-		log.Printf("Error decoding json to Object: %v", err)
+		log.Printf("Error decoding json to getResponse: %v", err)
 		log.Println()
 		t.FailNow()
 	}
