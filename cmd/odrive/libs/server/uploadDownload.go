@@ -9,6 +9,7 @@ import (
 	"mime/multipart"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/uber-go/zap"
 
@@ -274,10 +275,16 @@ func (h AppServer) cacheToDrainAttempt(
 			log.Printf("unable to drain file.  Trying again:%v", err)
 			err = h.cacheToDrainAttempt(bucket, rName, size, tries)
 		} else {
-			log.Printf("unable to drain file.  Giving up and deleting it:%v", err)
-			//If we give up, we must delete the file
-			uploadedFile := d.Resolve(NewFileName(rName, ".uploaded"))
-			d.Files().Remove(uploadedFile)
+			log.Printf("unable to drain file.  Trying it in the background:%v", err)
+			//If we don't want to give up and lose the data, we have to keep trying in another goroutine to avoid blowing up the stack
+			go func() {
+				//If we are having S3 outage, then trying immediately is not going to be useful.
+				//Wait a while
+				log.Printf("s3 log attempt sleep")
+				time.Sleep(30 * time.Second)
+				log.Printf("s3 log attempt")
+				h.cacheToDrain(bucket, rName, size, 3)
+			}()
 		}
 	}
 	return err

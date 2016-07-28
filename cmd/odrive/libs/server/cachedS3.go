@@ -273,6 +273,7 @@ func (d *NullDrainProviderData) CacheToDrain(
 	return nil
 }
 
+// DrainUploadedFilesToSafetyRaw is the drain without the goroutine at the end
 func (d *S3DrainProviderData) DrainUploadedFilesToSafetyRaw() {
 	//Walk through the cache, and handle .uploaded files
 	fqCache := d.Files().Resolve(d.Resolve(""))
@@ -305,6 +306,7 @@ func (d *S3DrainProviderData) DrainUploadedFilesToSafetyRaw() {
 				}
 			}
 			if ext == ".caching" || ext == ".uploading" {
+				d.Logger.Info("removing", zap.String("filename", fqName))
 				//On startup, any .caching files are associated with now-dead goroutines.
 				//On startup, any .uploading files are associated with now-dead uploads.
 				os.Remove(fqName)
@@ -321,6 +323,7 @@ func (d *S3DrainProviderData) DrainUploadedFilesToSafetyRaw() {
 // This can happen if the server reboots.
 func (d *S3DrainProviderData) DrainUploadedFilesToSafety() {
 	d.DrainUploadedFilesToSafetyRaw()
+	d.Logger.Info("cache purge start")
 	//Only now can we start to purge files
 	go d.CachePurge()
 }
