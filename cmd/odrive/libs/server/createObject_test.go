@@ -296,3 +296,30 @@ func TestCreateWithPermissions(t *testing.T) {
 	}
 
 }
+
+func TestCreateFoldersMultiLevelsDeep(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester1 := 1
+	depth := 50
+	createURI := host + cfg.NginxRootURL + "/objects"
+	parentFolder := protocol.Object{}
+	for curDepth := 1; curDepth < depth; curDepth++ {
+		t.Logf("* Creating folder #%d", curDepth)
+		newFolder := protocol.Object{}
+		newFolder.ParentID = parentFolder.ID
+		newFolder.Name = fmt.Sprintf("Folders Multi Levels Deep %d", curDepth)
+		newFolder.RawAcm = testhelpers.ValidACMUnclassified
+		newFolder.TypeName = "Folder"
+		createReq := makeHTTPRequestFromInterface(t, "POST", createURI, newFolder)
+		createRes, err := clients[tester1].Client.Do(createReq)
+		failNowOnErr(t, err, fmt.Sprintf("Unable to create folder #%d", curDepth))
+		statusMustBe(t, 200, createRes, "Bad status when creating folder")
+		createdFolder := protocol.Object{}
+		err = util.FullDecode(createRes.Body, &createdFolder)
+		failNowOnErr(t, err, "Error decoding json to Object")
+		parentFolder = createdFolder
+	}
+
+}
