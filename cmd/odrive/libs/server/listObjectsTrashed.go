@@ -39,10 +39,12 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 
 	// Get trash for this user
 	results, err := dao.GetTrashedObjectsByUser(user, *pagingRequest)
-
 	if err != nil {
 		return NewAppError(500, errors.New("Database call failed: "), err.Error())
 	}
+
+	// Get caller permissions
+	h.buildCompositePermissionForCaller(ctx, &results)
 
 	// Map the response and write it out
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&results)

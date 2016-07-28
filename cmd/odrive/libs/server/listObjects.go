@@ -55,10 +55,10 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 	user.Snippets = snippetFields
 
 	// Fetch the matching objects
-	var response models.ODObjectResultset
+	var results models.ODObjectResultset
 	if parentObject.ID == nil {
 		// Requesting root
-		response, err = dao.GetRootObjectsWithPropertiesByUser(user, *pagingRequest)
+		results, err = dao.GetRootObjectsWithPropertiesByUser(user, *pagingRequest)
 	} else {
 		// Requesting children of an object. Load parent first.
 		dbObject, err := dao.GetObject(parentObject, false)
@@ -78,7 +78,7 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 		}
 
 		// Get the objects
-		response, err = dao.GetChildObjectsWithPropertiesByUser(user, *pagingRequest, parentObject)
+		results, err = dao.GetChildObjectsWithPropertiesByUser(user, *pagingRequest, parentObject)
 
 	}
 	if err != nil {
@@ -86,8 +86,11 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 		return NewAppError(code, err, msg)
 	}
 
+	// Get caller permissions
+	h.buildCompositePermissionForCaller(ctx, &results)
+
 	// Response in requested format
-	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&response)
+	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&results)
 	writeResultsetAsJSON(w, &apiResponse)
 	return nil
 }

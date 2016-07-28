@@ -93,6 +93,7 @@ func getChildObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
 	response.PageSize = GetSanitizedPageSize(pagingRequest.PageSize)
 	response.PageRows = len(response.Objects)
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
+	// Load permissions
 	for i := 0; i < len(response.Objects); i++ {
 		permissions, err := getPermissionsForObjectInTransaction(tx, response.Objects[i])
 		if err != nil {

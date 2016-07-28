@@ -38,6 +38,7 @@ type DAO interface {
 	GetObjectType(objectType models.ODObjectType) (*models.ODObjectType, error)
 	GetObjectTypeByName(typeName string, addIfMissing bool, createdBy string) (models.ODObjectType, error)
 	GetObjectsIHaveShared(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error)
+	GetObjectsSharedToEveryone(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error)
 	GetObjectsSharedToMe(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error)
 	GetPermissionsForObject(object models.ODObject) ([]models.ODObjectPermission, error)
 	GetPropertiesForObject(object models.ODObject) ([]models.ODObjectPropertyEx, error)

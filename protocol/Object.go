@@ -57,8 +57,8 @@ type Object struct {
 	// Properties is an array of Object Properties associated with this object
 	// structured as key/value with portion marking.
 	Properties []Property `json:"properties,omitempty"`
-	// Permission is the permission for this object
-	//Permission Permission `json:"permission,omitempty"`
+	// CallerPermission is the compisite permission the caller has for this object
+	CallerPermission CallerPermission `json:"callerPermission,omitempty"`
 	// Permissions is an array of Object Permissions associated with this object
 	// This might be null.  It could have a large list of permission objects
 	// relevant to this file (ie: shared with an organization)

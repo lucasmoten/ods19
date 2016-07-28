@@ -55,6 +55,9 @@ func (h AppServer) query(ctx context.Context, w http.ResponseWriter, r *http.Req
 		return NewAppError(500, errors.New("Database call failed: "), err.Error())
 	}
 
+	// Get caller permissions
+	h.buildCompositePermissionForCaller(ctx, &results)
+
 	// Map the response and write it out
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&results)
 	writeResultsetAsJSON(w, &apiResponse)

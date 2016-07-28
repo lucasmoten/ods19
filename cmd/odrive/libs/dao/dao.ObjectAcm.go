@@ -102,6 +102,23 @@ func setACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *mod
 			return fmt.Errorf("setACMForObjectInTransaction there was less than one row affected when new")
 		}
 	} else {
+
+		// First check if we really need to update. ACMs can change, but the
+		// value they are flattened to can remain the same. A changed ACM will
+		// bring us down this codepath, but the associated acm in the acm table
+		// (which is flattened/normalized) will NOT be different, and this will
+		// cause a trigger error unless we do this check.
+		checkExisting := `select acmId from objectacm where objectid = ? and isDeleted = 0 limit 1`
+		var acmID []byte
+		row := tx.QueryRow(checkExisting, object.ID)
+		row.Scan(&acmID)
+
+		stringIDOld := hex.EncodeToString(acm.ID)
+		stringIDNew := hex.EncodeToString(acmID)
+		if strings.Compare(stringIDOld, stringIDNew) == 0 {
+			return nil
+		}
+
 		// Object already existed, so updating...
 		updateStatement, err := tx.Preparex(`update objectacm set 
             modifiedBy = ?,

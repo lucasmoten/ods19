@@ -67,6 +67,7 @@ func MapODObjectToObject(i *models.ODObject) protocol.Object {
 	}
 	o.Properties = MapODPropertiesToProperties(&i.Properties)
 	o.Permissions = MapODPermissionsToPermissions(&i.Permissions)
+	o.CallerPermission = MapODCommonPermissionToCallerPermission(&i.CallerPermissions)
 	o.IsPDFAvailable = i.IsPDFAvailable
 	o.IsUSPersonsData = i.IsUSPersonsData
 	o.IsFOIAExempt = i.IsFOIAExempt

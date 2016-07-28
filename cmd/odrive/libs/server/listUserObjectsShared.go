@@ -37,13 +37,16 @@ func (h AppServer) listUserObjectsShared(ctx context.Context, w http.ResponseWri
 	user.Snippets = snippetFields
 
 	// Fetch matching objects
-	sharedObjectsResultSet, err := dao.GetObjectsIHaveShared(user, *pagingRequest)
+	results, err := dao.GetObjectsIHaveShared(user, *pagingRequest)
 	if err != nil {
 		return NewAppError(500, err, "GetObjectsIHaveShared query failed")
 	}
 
+	// Get caller permissions
+	h.buildCompositePermissionForCaller(ctx, &results)
+
 	// Render Response
-	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&sharedObjectsResultSet)
+	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&results)
 	writeResultsetAsJSON(w, &apiResponse)
 	return nil
 }

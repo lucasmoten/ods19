@@ -60,6 +60,8 @@ type ODObject struct {
 	Properties []ODObjectPropertyEx `json:"properties"`
 	// Permissions is an array of Object Permissions associated with this object
 	Permissions []ODObjectPermission `json:"permissions"`
+	// CallerPermissions is a composite permission of what the caller is allowed.
+	CallerPermissions ODCommonPermission `json:"callerPermission"`
 	// IsPDFAvailable indicates if a PDF rendition is available for this object
 	IsPDFAvailable bool `db:"isPDFAvailable"`
 	// IsStreamStored indicates if the content stream for this object is stored in the cloud and can be retrieved

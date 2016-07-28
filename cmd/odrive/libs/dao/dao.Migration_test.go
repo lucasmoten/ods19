@@ -20,14 +20,13 @@ func TestKeyMigrateRotate(t *testing.T) {
 	t.Logf("masterKey: %s", m)
 
 	//The permission
-	p := models.ODObjectPermission{
-		Grantee:     "cn=testing",
-		AllowCreate: true,
-		AllowRead:   true,
-		AllowUpdate: true,
-		AllowDelete: true,
-		AllowShare:  true,
-	}
+	p := models.ODObjectPermission{Grantee: "cn=testing"}
+	p.AllowCreate = true
+	p.AllowRead = true
+	p.AllowUpdate = true
+	p.AllowDelete = true
+	p.AllowShare = true
+
 	//This is the key that the file is encrypted under
 	fileKey := utils.CreateKey()
 	t.Logf("fileKey: %s", hex.EncodeToString(fileKey))

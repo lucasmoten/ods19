@@ -82,7 +82,7 @@ BEGIN
 		SET error_msg := concat(error_msg, 'Unable to set objectId ');
 	END IF;
     # either isDeleted or acmId must be different
-    IF (NEW.isDeleted == OLD.isDeleted) AND (NEW.acmId == OLD.acmId) THEN
+    IF (NEW.isDeleted = OLD.isDeleted) AND (NEW.acmId = OLD.acmId) THEN
         set error_msg := concat(error_msg, 'Must either change acm or mark as deleted ');
     END IF;
     # if error, report
@@ -130,10 +130,7 @@ BEGIN
 		,NEW.acmId
 	);
 
-	# Specific field level changes (should be none. Only change isDeleted is allowed)
-	IF NEW.objectId <> OLD.objectId THEN
-		INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'objectId', newValue = hex(NEW.objectId);
-	END IF;
+	# Specific field level changes (should only be acmId or isDeleted)
 	IF NEW.acmId <> OLD.acmId THEN
 		INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'acmId', newValue = hex(NEW.acmId);
 	END IF;

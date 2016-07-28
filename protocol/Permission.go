@@ -7,26 +7,26 @@ import "time"
 // in Object Drive
 type Permission struct {
 	// ID is the unique identifier for this permission in Object Drive.
-	ID string `json:"id"`
+	ID string `json:"id,omitempty"`
 	// CreatedDate is the timestamp of when a permission was created.
-	CreatedDate time.Time `json:"createdDate"`
+	CreatedDate time.Time `json:"createdDate,omitempty"`
 	// CreatedBy is the user that created this permission.
-	CreatedBy string `json:"createdBy"`
+	CreatedBy string `json:"createdBy,omitempty"`
 	// ModifiedDate is the timestamp of when a permission was modified or created.
-	ModifiedDate time.Time `json:"modifiedDate"`
+	ModifiedDate time.Time `json:"modifiedDate,omitempty"`
 	// ModifiedBy is the user that last modified this permission
-	ModifiedBy string `json:"modifiedBy"`
+	ModifiedBy string `json:"modifiedBy,omitempty"`
 	// ChangeCount indicates the number of times the permission has been modified.
-	ChangeCount int `json:"changeCount"`
+	ChangeCount int `json:"changeCount,omitempty"`
 	// ChangeToken is generated value which is assigned at the database. API calls
 	// performing updates must provide the changeToken to be verified against the
 	// existing value on record to prevent accidental overwrites.
-	ChangeToken string `json:"changeToken"`
+	ChangeToken string `json:"changeToken,omitempty"`
 	// ObjectID identifies the object for which this permission applies.
-	ObjectID string `json:"objectId"`
+	ObjectID string `json:"objectId,omitempty"`
 	// Grantee indicates the user, identified by distinguishedName from the user
 	// table for which this grant applies
-	Grantee string `json:"grantee"`
+	Grantee string `json:"grantee,omitempty"`
 	// AllowCreate indicates whether the grantee has permission to create child
 	// objects beneath this object
 	AllowCreate bool `json:"allowCreate"`
@@ -48,5 +48,5 @@ type Permission struct {
 	// ExplicitShare indicates whether this permission was created explicitly
 	// by a user to a grantee, or if it was implicitly created through the
 	// creation of an object that inherited permissions of its parent
-	ExplicitShare bool `json:"explicitShare"`
+	ExplicitShare bool `json:"explicitShare,omitempty"`
 }
