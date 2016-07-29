@@ -47,6 +47,9 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 	if object.ModifiedBy == "" {
 		return ErrMissingModifiedBy
 	}
+	if len(object.ParentID) == 0 {
+		object.ParentID = nil
+	}
 
 	// Fetch current state of object
 	dbObject, err := getObjectInTransaction(tx, *object, true)

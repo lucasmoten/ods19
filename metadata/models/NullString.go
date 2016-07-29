@@ -25,3 +25,8 @@ func (r NullString) UnmarshalJSON(b []byte) error {
 		return nil
 	}
 }
+
+// ToNullString is a helper
+func ToNullString(s string) NullString {
+	return NullString{sql.NullString{String: s, Valid: s != ""}}
+}

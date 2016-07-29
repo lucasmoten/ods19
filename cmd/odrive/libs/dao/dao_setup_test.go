@@ -72,8 +72,7 @@ func init() {
 			usernames[i] = "CN=[DAOTEST]test tester" + strconv.Itoa(i) + ", O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 		}
 		user.DistinguishedName = usernames[i]
-		user.DisplayName.String = config.GetCommonName(user.DistinguishedName)
-		user.DisplayName.Valid = true
+		user.DisplayName = models.ToNullString(config.GetCommonName(user.DistinguishedName))
 		user.CreatedBy = user.DistinguishedName
 		_, err = d.CreateUser(user)
 	}

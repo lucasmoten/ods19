@@ -18,7 +18,7 @@ BEGIN
 	END IF;
 	# ParentId must be valid if specified
 	IF NEW.parentId IS NOT NULL AND NEW.parentId = '' THEN
-		SET NEW.parentId = NULL;
+		SET NEW.parentId := NULL;
 	END IF;
 	IF NEW.parentId IS NOT NULL THEN
 		SELECT COUNT(*) FROM object WHERE isDeleted = 0 AND id = NEW.parentId INTO count_parent;
@@ -201,12 +201,15 @@ BEGIN
 		SET error_msg := concat(error_msg, 'Field typeId required ');
 	END IF;
 	# ParentId must be valid if specified
-	IF NEW.parentId IS NOT NULL AND NEW.parentId <> '' THEN
-		SELECT COUNT(*) FROM object WHERE ((isDeleted = 0) or (NEW.IsDeleted = 1)) AND id = NEW.parentId INTO count_parent;
-		IF (count_parent = 0) and length(error_msg) < 71 THEN
+	IF NEW.parentId IS NOT NULL AND LENGTH(NEW.parentId) = 0 THEN
+		SET NEW.parentId := NULL;
+	END IF;
+	IF NEW.parentId IS NOT NULL THEN
+		SELECT COUNT(*) FROM object WHERE (isDeleted = 0 or (NEW.IsDeleted <> OLD.IsDeleted)) AND id = NEW.parentId INTO count_parent;
+		IF count_parent = 0 THEN
 			SET error_msg := concat(error_msg, 'Field parentId must be valid ');
 		END IF;
-	END IF;
+	END IF;    
 	IF length(error_msg) > 0 THEN
 		SET error_msg := concat(error_msg, 'when updating record');
 		signal sqlstate '45000' set message_text = error_msg;
