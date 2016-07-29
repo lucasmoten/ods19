@@ -27,7 +27,6 @@ func makeHTTPRequestFromInterface(t *testing.T, method string, uri string, obj i
 			t.Logf("Unable to marshal json for request: %v", err)
 			t.FailNow()
 		}
-		t.Logf("%d", len(jsonBody))
 		requestBuffer = bytes.NewBuffer(jsonBody)
 	} else {
 		requestBuffer = bytes.NewBuffer(nil)
@@ -267,6 +266,7 @@ func statusExpected(t *testing.T, expected int, resp *http.Response, msg string)
 			t.Logf(msg)
 		}
 		t.Logf("Expected status %v but got %v", expected, resp.StatusCode)
+		t.Logf("%s", resp.Status)
 		t.Fail()
 	}
 }

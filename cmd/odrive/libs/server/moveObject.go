@@ -54,26 +54,6 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
 	}
 
-	// Check if the user has permission to create children under the target
-	// object for which they are moving this one to (the parentID)
-	targetParent := models.ODObject{}
-	targetParent.ID = requestObject.ParentID
-	dbParent, err := dao.GetObject(targetParent, false)
-	if err != nil {
-		return NewAppError(400, err, "Error retrieving parent to move object into")
-	}
-	if ok := isUserAllowedToCreate(ctx, h.MasterKey, &dbParent); !ok {
-		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to move this object to target")
-	}
-
-	// Parent must not be deleted
-	if targetParent.IsDeleted {
-		if targetParent.IsExpunged {
-			return NewAppError(410, err, "Unable to move object into an object that does not exist")
-		}
-		return NewAppError(405, err, "Unable to move object into an object that is deleted")
-	}
-
 	// Make sure the object isn't deleted. To remove an object from the trash,
 	// use removeObjectFromTrash call.
 	if dbObject.IsDeleted {
@@ -93,25 +73,51 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 		return NewAppError(428, nil, "ChangeToken does not match expected value. Object may have been changed by another request.")
 	}
 
-	// #60 Check that the parent being assigned for the object passed in does not
-	// result in a circular reference
-	if bytes.Compare(requestObject.ParentID, requestObject.ID) == 0 {
-		return NewAppError(400, err, "ParentID cannot be set to the ID of the object. Circular references are not allowed.")
-	}
-	circular, err := dao.IsParentIDADescendent(requestObject.ID, requestObject.ParentID)
-	if err != nil {
-		return NewAppError(500, err, "Error retrieving ancestor to check for circular references")
-	}
-	if circular {
-		return NewAppError(400, err, "ParentID cannot be set to the value specified as would result in a circular reference")
-	}
-
 	// Check that the parent of the object passed in is different then the current
 	// state of the object in the data store
 	if bytes.Compare(requestObject.ParentID, dbObject.ParentID) == 0 {
 		// NOOP, will return current state
 		requestObject = dbObject
 	} else {
+		// Changing parent...
+		// If making the parent something other then the root...
+		if len(requestObject.ParentID) > 0 {
+			targetParent := models.ODObject{}
+			targetParent.ID = requestObject.ParentID
+			// Look up the parent
+			dbParent, err := dao.GetObject(targetParent, false)
+			if err != nil {
+				return NewAppError(400, err, "Error retrieving parent to move object into")
+			}
+
+			// Check if the user has permission to create children under the target
+			// object for which they are moving this one to (the parentID)
+			if ok := isUserAllowedToCreate(ctx, h.MasterKey, &dbParent); !ok {
+				return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to move this object to target")
+			}
+
+			// Parent must not be deleted
+			if targetParent.IsDeleted {
+				if targetParent.IsExpunged {
+					return NewAppError(410, err, "Unable to move object into an object that does not exist")
+				}
+				return NewAppError(405, err, "Unable to move object into an object that is deleted")
+			}
+
+			// #60 Check that the parent being assigned for the object passed in does not
+			// result in a circular reference
+			if bytes.Compare(requestObject.ParentID, requestObject.ID) == 0 {
+				return NewAppError(400, err, "ParentID cannot be set to the ID of the object. Circular references are not allowed.")
+			}
+			circular, err := dao.IsParentIDADescendent(requestObject.ID, requestObject.ParentID)
+			if err != nil {
+				return NewAppError(500, err, "Error retrieving ancestor to check for circular references")
+			}
+			if circular {
+				return NewAppError(400, err, "ParentID cannot be set to the value specified as would result in a circular reference")
+			}
+
+		}
 
 		// Call metadata connector to update the object in the data store
 		// We reference the dbObject here instead of request to isolate what is

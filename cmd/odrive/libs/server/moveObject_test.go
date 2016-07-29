@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"testing"
 
 	cfg "decipher.com/object-drive-server/config"
@@ -74,4 +75,54 @@ func TestMoveObject(t *testing.T) {
 		fmt.Println(string(jsonData))
 	}
 
+}
+
+func TestMoveObjectToRoot(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+
+	t.Logf("* Create 2 folders under root as tester10")
+	folder1 := makeFolderViaJSON("Test Folder 1 ", tester10, t)
+	t.Logf("  Folder 1 ID: %s", folder1.ID)
+	folder2 := makeFolderViaJSON("Test Folder 2 ", tester10, t)
+	t.Logf("  Folder 2 ID: %s", folder2.ID)
+
+	t.Logf("* Move folder 2 under folder 1")
+	moveuri := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
+	objChangeToken := protocol.ChangeTokenStruct{}
+	objChangeToken.ChangeToken = folder2.ChangeToken
+	moveReq1 := makeHTTPRequestFromInterface(t, "POST", moveuri, objChangeToken)
+	moveRes1, err := clients[tester10].Client.Do(moveReq1)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, moveRes1, "Bad status when moving folder 2 under folder 1")
+	var updatedFolder2a protocol.Object
+	err = util.FullDecode(moveRes1.Body, &updatedFolder2a)
+	failNowOnErr(t, err, "Error decoding json to Object")
+	t.Logf("  Folder 2 Parent ID: %s", updatedFolder2a.ParentID)
+	if strings.Compare(updatedFolder2a.ParentID, folder1.ID) != 0 {
+		t.Logf("  FAIL: Parent of folder 2 is not folder 1")
+		t.FailNow()
+	} else {
+		t.Logf("  Folder2 is now under Folder1")
+	}
+
+	t.Logf("* Move folder 2 back to root")
+	moveuriroot := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/move/"
+	objChangeToken.ChangeToken = updatedFolder2a.ChangeToken
+	moveReq2 := makeHTTPRequestFromInterface(t, "POST", moveuriroot, objChangeToken)
+	moveRes2, err := clients[tester10].Client.Do(moveReq2)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, moveRes2, "Bad status when moving folder 2 back to root")
+	var updatedFolder2b protocol.Object
+	err = util.FullDecode(moveRes2.Body, &updatedFolder2b)
+	failNowOnErr(t, err, "Error decoding json to Object")
+	t.Logf("  Folder 2 Parent ID: %s", updatedFolder2b.ParentID)
+	if len(updatedFolder2b.ParentID) != 0 {
+		t.Logf("  FAIL: Parent of folder 2 is not root")
+		t.FailNow()
+	} else {
+		t.Logf("  Folder2 is back under root")
+	}
 }
