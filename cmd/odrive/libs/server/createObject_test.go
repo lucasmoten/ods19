@@ -323,3 +323,25 @@ func TestCreateFoldersMultiLevelsDeep(t *testing.T) {
 	}
 
 }
+
+func TestCreateObjectWithParentSetInJSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+
+	t.Logf("* Create a folder under root as tester10")
+	folder1 := makeFolderViaJSON("Test Folder 1 ", tester10, t)
+
+	t.Logf("* Create a second folder, under the root, but with JSON properties specifying parent as folder1")
+	folder2Obj := protocol.Object{}
+	folder2Obj.Name = "Test Folder 2"
+	folder2Obj.ParentID = folder1.ID
+	folder2Obj.TypeName = "Folder"
+	folder2Obj.RawAcm = testhelpers.ValidACMUnclassified
+	newobjuri := host + cfg.NginxRootURL + "/objects"
+	createFolderReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, folder2Obj)
+	createFolderRes, err := clients[tester10].Client.Do(createFolderReq)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, createFolderRes, "Bad status when creating folder 2 under root")
+}

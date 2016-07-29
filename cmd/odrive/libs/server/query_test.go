@@ -95,6 +95,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 	// Modify the 1st folder
 	updateuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
 	updateObjectRequest := protocol.UpdateObjectRequest{}
+	updateObjectRequest.ID = folder1.ID
 	updateObjectRequest.Name = folder1.Name
 	updateObjectRequest.Description = "The folder has been changed once"
 	updateObjectRequest.ChangeToken = folder1.ChangeToken

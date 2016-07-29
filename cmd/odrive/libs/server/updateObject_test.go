@@ -96,6 +96,7 @@ func TestUpdateObjectToHaveNoName(t *testing.T) {
 
 	// Attempt to rename the folder
 	updateObjectRequest := protocol.UpdateObjectRequest{}
+	updateObjectRequest.ID = folder.ID
 	updateObjectRequest.Name = ""
 	updateObjectRequest.ChangeToken = folder.ChangeToken
 	updateuri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
@@ -268,4 +269,68 @@ func TestUpdateObjectPreventAcmShareChange(t *testing.T) {
 	err = util.FullDecode(updateRes4.Body, &updatedFolder)
 	failNowOnErr(t, err, "Error decoding json to Object")
 
+}
+
+func TestUpdateObjectWithDifferentIDInJSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+	tester1 := 1
+
+	t.Logf("* Create folder1 under root as tester10")
+	folder1 := makeFolderViaJSON("Test Folder 1 ", tester10, t)
+	t.Logf("* Create two folder2 under root as tester1")
+	folder2 := makeFolderViaJSON("Test Folder 2 ", tester1, t)
+
+	t.Logf("* Attempt to Update folder1, using folder2's id")
+	updateuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
+	folder1.ID = folder2.ID
+	folder1.Name = "Please dont let me save this"
+
+	updateFolderReq := makeHTTPRequestFromInterface(t, "POST", updateuri, folder1)
+	updateFolderRes, err := clients[tester10].Client.Do(updateFolderReq)
+	failNowOnErr(t, err, "Unable to do request")
+	statusExpected(t, 400, updateFolderRes, "Bad status when updating folder 1 using folder2 id")
+	var updatedFolder protocol.Object
+	err = util.FullDecode(updateFolderRes.Body, &updatedFolder)
+	if t.Failed() {
+		t.Logf("  Name of object updated is .. %s", updatedFolder.Name)
+
+		geturi := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/properties"
+		getObjReq := makeHTTPRequestFromInterface(t, "GET", geturi, nil)
+		getObjRes, err := clients[tester10].Client.Do(getObjReq)
+		failNowOnErr(t, err, "Unable to do request")
+		statusExpected(t, 200, getObjRes, "Bad status when getting folder 2")
+		var retrievedFolder protocol.Object
+		err = util.FullDecode(getObjRes.Body, &retrievedFolder)
+		t.Logf(" Folder 2 name is .. %s", retrievedFolder.Name)
+
+	}
+}
+
+func TestRenameObject(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+
+	t.Logf("* Create folder under root as tester10")
+	folder1 := makeFolderViaJSON("Test Folder 1 ", tester10, t)
+
+	t.Logf("* Attempt to rename it")
+	changedName := "Renamed"
+	updateuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
+	folder1.Name = changedName
+
+	updateFolderReq := makeHTTPRequestFromInterface(t, "POST", updateuri, folder1)
+	updateFolderRes, err := clients[tester10].Client.Do(updateFolderReq)
+	failNowOnErr(t, err, "Unable to do request")
+	statusExpected(t, 200, updateFolderRes, "Bad status when renaming folder")
+	var updatedFolder protocol.Object
+	err = util.FullDecode(updateFolderRes.Body, &updatedFolder)
+	if strings.Compare(updatedFolder.Name, changedName) != 0 {
+		t.Logf(" Name is %s expected %s", updatedFolder.Name, changedName)
+		t.FailNow()
+	}
 }

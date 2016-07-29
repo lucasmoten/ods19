@@ -19,19 +19,16 @@ import (
 )
 
 func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models.ODObject) (bool, error) {
+
 	logger := LoggerFromContext(ctx)
-	// TODO: Change this to user    h.AAC.CheckAccessAndPopulate
 
 	var err error
-	// In standalone, we are ignoring AAC
+
 	if config.StandaloneMode {
-		// But warn in STDOUT to draw attention
 		logger.Warn("WARNING: STANDALONE mode is active. User permission to access objects are not being checked against AAC.")
-		// Return permission granted and no errors
 		return true, nil
 	}
 
-	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
 		return false, errors.New("Could not determine user")
@@ -66,11 +63,7 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 
 	// End performance tracking for the AAC call
 	if h.Tracker != nil {
-		h.Tracker.EndTime(
-			performance.AACCounterCheckAccess,
-			beganAt,
-			performance.SizeJob(1),
-		)
+		h.Tracker.EndTime(performance.AACCounterCheckAccess, beganAt, performance.SizeJob(1))
 	}
 
 	// Check if there was an error calling the service
@@ -95,6 +88,16 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 		logger.Error("aacResponse.HasAccess == false", zap.String("acm", acm), zap.String("dn", dn))
 	}
 	return aacResponse.HasAccess, nil
+}
+
+// isUserAllowedForACMSTring wraps isUserAllowedForObjectACM to help with the cases where we simply need to
+// set up a new models.ODObject with a RawAcm and send a request to AAC.
+func (h AppServer) isUserAllowedForACMString(ctx context.Context, acm string) (bool, error) {
+	// Ensure user is allowed this acm
+	updateObjectRequest := models.ODObject{}
+	updateObjectRequest.RawAcm.String = acm
+	updateObjectRequest.RawAcm.Valid = true
+	return h.isUserAllowedForObjectACM(ctx, &updateObjectRequest)
 }
 
 func (h AppServer) flattenACMAndCheckAccess(ctx context.Context, object *models.ODObject) (bool, error) {
@@ -424,6 +427,18 @@ func (h AppServer) flattenGranteeOnPermission(ctx context.Context, permission *m
 	} else {
 		logger.Warn("Error flattening share permission", zap.String("acm", acm), zap.String("permission acm share", permission.AcmShare), zap.String("permission grantee", permission.Grantee))
 		return NewAppError(500, fmt.Errorf("Didn't receive any grants in f_share for %s from %s", permission.Grantee, permission.AcmShare), "Unable to flatten grantee provided in permission")
+	}
+	return nil
+}
+
+func (h AppServer) flattenGranteeOnAllPermissions(ctx context.Context, obj *models.ODObject) *AppError {
+	// For all permissions, make sure we're using the flatened value
+	for i := len(obj.Permissions) - 1; i >= 0; i-- {
+		permission := obj.Permissions[i]
+		if herr := h.flattenGranteeOnPermission(ctx, &permission); herr != nil {
+			return herr
+		}
+		obj.Permissions[i] = permission
 	}
 	return nil
 }

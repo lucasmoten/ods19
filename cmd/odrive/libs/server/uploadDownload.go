@@ -1,8 +1,8 @@
 package server
 
 import (
-	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -24,21 +24,21 @@ import (
 	"decipher.com/object-drive-server/protocol"
 )
 
-func (h AppServer) acceptObjectUpload(
-	ctx context.Context,
-	multipartReader *multipart.Reader,
-	obj *models.ODObject,
-	grant *models.ODObjectPermission,
-	asCreate bool,
-) (func(), *AppError, error) {
+// acceptObjectUpload is called by createObject and updateObjectStream. In the case of createObject, the obj param is a
+// mostly-empty object with EncryptIV and ContentConnector set. In the case of updateObjectStream, the obj param is
+// an object fetched from the database.
+func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *multipart.Reader, obj *models.ODObject,
+	grant *models.ODObjectPermission, asCreate bool) (func(), *AppError, error) {
+
 	var drainFunc func()
 	var herr *AppError
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		return drainFunc, NewAppError(400, nil, "Could not determine user"), fmt.Errorf("User not provided in context")
+		return nil, NewAppError(400, nil, "Could not determine user"), fmt.Errorf("User not provided in context")
 	}
 	parsedMetadata := false
+	// TODO: should we use protocol.CreateObjectRequest?
 	var createObjectRequest protocol.Object
 	for {
 		part, err := multipartReader.NextPart()
@@ -48,24 +48,26 @@ func (h AppServer) acceptObjectUpload(
 			} else {
 				return drainFunc, NewAppError(400, err, "error getting a part"), err
 			}
-		} // if err != nil
+		}
 
 		switch {
 		case part.FormName() == "ObjectMetadata":
-			//This ID we got off of the URI, because we haven't parsed JSON yet
-			existingID := hex.EncodeToString(obj.ID)
-			existingParentID := hex.EncodeToString(obj.ParentID)
 
-			s, herr := getFormValueAsString(part)
+			bytes, herr := getFormValueAsByteSlice(part)
 			if herr != nil {
 				return drainFunc, herr, nil
 			}
 
-			//It's the same as the database object, but this function might be
-			//dealing with a retrieved object, so we get fields individually
-			err := json.Unmarshal([]byte(s), &createObjectRequest)
+			err := json.Unmarshal(bytes, &createObjectRequest)
 			if err != nil {
-				return drainFunc, NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", s)), err
+				return drainFunc, NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", bytes)), err
+			}
+
+			if !asCreate {
+				herr = compareIDFromJSONWithURI(ctx, createObjectRequest)
+				if herr != nil {
+					return nil, herr, errors.New("bad request: mismatched IDs")
+				}
 			}
 
 			// If updating and ACM provided differs from what is currently set, then need to
@@ -73,14 +75,11 @@ func (h AppServer) acceptObjectUpload(
 			// to see if allowed for this user
 			rawAcmString, err := utils.MarshalInterfaceToString(createObjectRequest.RawAcm)
 			if err != nil {
-				return drainFunc, NewAppError(400, err, fmt.Sprintf("Unable to marshal ACM as string: %s", s)), err
+				return drainFunc, NewAppError(400, err, fmt.Sprintf("Unable to marshal ACM as string: %s", createObjectRequest.RawAcm)), err
 			}
 			if !asCreate && len(rawAcmString) != 0 && strings.Compare(obj.RawAcm.String, rawAcmString) != 0 {
-				// Ensure user is allowed this acm
-				updateObjectRequest := models.ODObject{}
-				updateObjectRequest.RawAcm.String = rawAcmString
-				updateObjectRequest.RawAcm.Valid = true
-				hasAACAccessToNewACM, err := h.isUserAllowedForObjectACM(ctx, &updateObjectRequest)
+
+				hasAACAccessToNewACM, err := h.isUserAllowedForACMString(ctx, rawAcmString)
 				if err != nil {
 					return drainFunc, NewAppError(502, err, "Error communicating with authorization service"), err
 				}
@@ -99,22 +98,12 @@ func (h AppServer) acceptObjectUpload(
 				if herr := handleCreatePrerequisites(ctx, h, obj); herr != nil {
 					return nil, herr, nil
 				}
-			} else {
-				// UPDATE STREAM
-
-				// If the id is specified, it must be the same as from the URI
-				if len(createObjectRequest.ID) > 0 && createObjectRequest.ID != existingID {
-					return drainFunc, NewAppError(400, err, "JSON supplied an object id inconsistent with the one supplied from URI"), nil
-				}
-				//Parent id change must not be allowed, as it would let users move the object
-				if len(createObjectRequest.ParentID) > 0 && createObjectRequest.ParentID != existingParentID {
-					return drainFunc, NewAppError(400, err, "JSON supplied a parent id inconsistent with existing parent id"), nil
-				}
 			}
 			// Whether creating or updating, the ACM must have a value
 			if len(obj.RawAcm.String) == 0 {
 				return drainFunc, NewAppError(400, err, "An ACM must be specified"), nil
 			}
+
 			// NOTE: Dont need to check access to ACM again here because create has done
 			// it in handleCreatePrerequisites already, and for update it is handled
 			// explicitly a few dozen lines above, and if there was no ACM provided on the
@@ -142,7 +131,7 @@ func (h AppServer) acceptObjectUpload(
 			}
 			//Guess the content type and name if it wasn't supplied
 			if obj.ContentType.Valid == false || len(obj.ContentType.String) == 0 {
-				obj.ContentType.String = GuessContentType(part.FileName())
+				obj.ContentType.String = guessContentType(part.FileName())
 			}
 			if obj.Name == "" {
 				obj.Name = part.FileName()
@@ -182,21 +171,10 @@ func (h AppServer) beginUpload(
 	return drainFunc, herr, err
 }
 
-func (h AppServer) beginUploadTimed(
-	ctx context.Context,
-	caller Caller,
-	part *multipart.Part,
-	obj *models.ODObject,
-	grant *models.ODObjectPermission,
-) (beginDrain func(), herr *AppError, err error) {
+func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *multipart.Part, obj *models.ODObject,
+	grant *models.ODObjectPermission) (beginDrain func(), herr *AppError, err error) {
 	logger := LoggerFromContext(ctx)
-	//
-	// Note that since errors here *can* be caused by the client dropping, we will make these 4xx
-	// error codes and blame the client for the moment.  When reading from the client and writing
-	// to disk, sometimes it is ambiguous who is to blame.  This is similar to the case of a failed
-	// lookup when the client may have given us bad information in the lookup.  In these cases,
-	// it may be ok to use 400 error codes until proven otherwise.
-	//
+
 	rName := FileId(obj.ContentConnector.String)
 	iv := obj.EncryptIV
 	fileKey := utils.ApplyPassphrase(h.MasterKey, grant.PermissionIV, grant.EncryptKey)
@@ -245,24 +223,14 @@ func (h AppServer) beginUploadTimed(
 
 //We get penalized on throughput if these fail a lot.
 //I think that's reasonable to be measuring "goodput" this way.
-func (h AppServer) cacheToDrain(
-	bucket *string,
-	rName FileId,
-	size int64,
-	tries int,
-) error {
+func (h AppServer) cacheToDrain(bucket *string, rName FileId, size int64, tries int) error {
 	beganAt := h.Tracker.BeginTime(performance.S3DrainTo)
 	err := h.cacheToDrainAttempt(bucket, rName, size, tries)
 	h.Tracker.EndTime(performance.S3DrainTo, beganAt, performance.SizeJob(size))
 	return err
 }
 
-func (h AppServer) cacheToDrainAttempt(
-	bucket *string,
-	rName FileId,
-	size int64,
-	tries int,
-) error {
+func (h AppServer) cacheToDrainAttempt(bucket *string, rName FileId, size int64, tries int) error {
 	d := h.DrainProvider
 	err := d.CacheToDrain(bucket, rName, size)
 	tries = tries - 1
@@ -290,12 +258,25 @@ func (h AppServer) cacheToDrainAttempt(
 	return err
 }
 
+func compareIDFromJSONWithURI(ctx context.Context, obj protocol.Object) *AppError {
+
+	captured, _ := CaptureGroupsFromContext(ctx)
+
+	fromURI := captured["objectId"]
+
+	if strings.Compare(obj.ID, fromURI) != 0 {
+		return NewAppError(400, nil, "ID mismatch: json POST vs. URI")
+	}
+
+	return nil
+}
+
 func extIs(name string, ext string) bool {
 	return strings.ToLower(path.Ext(name)) == strings.ToLower(ext)
 }
 
 //GuessContentType will give a best guess if content type not given otherwise
-func GuessContentType(name string) string {
+func guessContentType(name string) string {
 	contentType := "text/plain"
 	switch {
 	case extIs(name, ".js"):
@@ -331,4 +312,19 @@ func GuessContentType(name string) string {
 		}
 	}
 	return contentType
+}
+
+// getFormValueAsString reads a multipart value into a limited length byte
+// array and returns it.
+func getFormValueAsByteSlice(part *multipart.Part) ([]byte, *AppError) {
+	valueAsBytes := make([]byte, 10240)
+	n, err := part.Read(valueAsBytes)
+	if err != nil {
+		if err != io.EOF {
+			return []byte(""), NewAppError(400, err, "Unable to parse value from part")
+		} else {
+			return []byte(""), nil
+		}
+	}
+	return valueAsBytes[0:n], nil
 }

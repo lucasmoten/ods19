@@ -4,15 +4,62 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 	"testing"
 
 	"io/ioutil"
 
+	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
+
+func TestUpdateObjectStreamWithBadID(t *testing.T) {
+
+	t.Logf("Create new test object with stream")
+	clientID := 6
+	data, _ := util.NewGUID()
+	f, closer, err := testhelpers.GenerateTempFile(data)
+	defer closer()
+	req, err := testhelpers.NewCreateObjectPOSTRequest(host, "", f)
+	failNowOnErr(t, err, "could not create a createObject POST request")
+	res, err := clients[clientID].Client.Do(req)
+	failNowOnErr(t, err, "unable to do createObject request")
+	statusMustBe(t, 200, res, "expected status 200 when creating object")
+	var obj protocol.Object
+	err = util.FullDecode(res.Body, &obj)
+	failNowOnErr(t, err, "could not decode object response")
+	defer res.Body.Close()
+
+	correctID := obj.ID
+
+	t.Logf("Try to update object by changing to a bad URL")
+	wrongID, _ := util.NewGUID()
+	badUpdateURI := host + cfg.NginxRootURL + fmt.Sprintf("/objects/%s/stream", wrongID)
+	buf, boundary := testhelpers.NewMultipartRequestBody(t, obj, f)
+	updateReq, _ := http.NewRequest("POST", badUpdateURI, buf)
+	updateReq.Header.Set("Content-Type", boundary)
+	t.Logf("  boundary is %s", boundary)
+
+	updateResp, err := clients[clientID].Client.Do(updateReq)
+	failNowOnErr(t, err, "could not do stream update request")
+	statusMustBe(t, 404, updateResp, "expected 404 due to invalid id in URI")
+
+	t.Logf("Try to update object by changing to a bad JSON id")
+	obj.ID = wrongID
+	goodUpdateURI := host + cfg.NginxRootURL + fmt.Sprintf("/objects/%s/stream", correctID)
+	buf, boundary = testhelpers.NewMultipartRequestBody(t, obj, f)
+	updateReq, _ = http.NewRequest("POST", goodUpdateURI, buf)
+	updateReq.Header.Set("Content-Type", boundary)
+	t.Logf("  boundary is %s", boundary)
+
+	updateResp, err = clients[clientID].Client.Do(updateReq)
+	failNowOnErr(t, err, "could not do stream update request")
+	statusMustBe(t, 400, updateResp, "expected 400 due to invalid id in update request payload")
+
+}
 
 func doMaliciousUpdate(t *testing.T, oid, jsonString string) {
 	if testing.Short() {
@@ -33,27 +80,16 @@ func doMaliciousUpdate(t *testing.T, oid, jsonString string) {
 	jsonBody := []byte(jsonString)
 
 	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
-		fmt.Sprintf("objects/%s/stream", oid),
-		host, "",
-		tmp,
-		tmpName,
-		jsonBody,
-	)
+		fmt.Sprintf("objects/%s/stream", oid), host, "", tmp, tmpName, jsonBody)
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
 
 	client := clients[clientID].Client
 	res, err := client.Do(req)
-	if err != nil {
-		t.Errorf("Unable to do request:%v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "unable to do request")
 	defer util.FinishBody(res.Body)
-	//We expect to get a bad error code here
-	if res != nil && res.StatusCode == 200 {
-		t.Fail()
-	}
+	statusMustBe(t, 400, res, "expected create object from doMaliciousUpdate to fail")
 
 	var objResponse protocol.Object
 	err = util.FullDecode(res.Body, &objResponse)
@@ -71,15 +107,12 @@ func doMaliciousUpdate(t *testing.T, oid, jsonString string) {
 
 func TestUpdateObjectMalicious(t *testing.T) {
 	clientID := 5
-	//Create an object ....
 	data := "0123456789"
-	_, jres := doTestCreateObjectSimple(t, data, clientID)
+	_, obj := doTestCreateObjectSimple(t, data, clientID)
 
-	if len(jres.ChangeToken) == 0 {
+	if len(obj.ChangeToken) == 0 {
 		t.Fail()
 	}
-
-	oid := jres.ID
 
 	jsonString := `
     {
@@ -94,8 +127,7 @@ func TestUpdateObjectMalicious(t *testing.T) {
     }
     `
 
-	//Use its changeToken for an update ....
-	doMaliciousUpdate(t, oid, fmt.Sprintf(jsonString, jres.ChangeToken))
+	doMaliciousUpdate(t, obj.ID, fmt.Sprintf(jsonString, obj.ChangeToken))
 }
 
 func doPropsCheck(t *testing.T, jsonResponseBytes []byte) {
@@ -112,10 +144,6 @@ func doPropsCheck(t *testing.T, jsonResponseBytes []byte) {
 	if objResponse.Description != "describeit" {
 		t.Errorf("objResponse was expected to be 'describeit'")
 	}
-
-	// if objResponse.RawAcm != testhelpers.ValidACMUnclassifiedFOUO {
-	// 	t.Errorf("acm was not what we passed in")
-	// }
 
 	acmRaw := objResponse.RawAcm
 	acmMap, ok := acmRaw.(map[string]interface{})
@@ -141,8 +169,6 @@ func doPropsCheck(t *testing.T, jsonResponseBytes []byte) {
 func doReCheckProperties(t *testing.T, oid, jsonString string) {
 	clientID := 5
 
-	// XXX - properties not populated in returned value
-	// so: re-retrieve the request fresh
 	req, err := testhelpers.NewGetObjectRequest(oid, "", host)
 	if err != nil {
 		t.Logf("Unable to generate get re-request:%v", err)
@@ -163,13 +189,9 @@ func doReCheckProperties(t *testing.T, oid, jsonString string) {
 	doPropsCheck(t, jsonResponseBytes)
 }
 
-func doPropertyUpdate(t *testing.T, oid, updateJSON string) {
-
-	// TODO we should be able to pass this in
-	clientID := 5
+func doPropertyUpdate(t *testing.T, clientID int, oid, updateJSON string) {
 
 	data := "Initial test data 3 asdf"
-	//An exe name with some backspace chars to make it display as txt
 	tmpName := "initialTestData3.txt"
 	tmp, tmpCloser, err := testhelpers.GenerateTempFile(data)
 	if err != nil {
@@ -220,9 +242,9 @@ func TestUpdateObjectWithProperties(t *testing.T) {
 	acm := strings.Replace(testhelpers.ValidACMUnclassifiedFOUO, "\"", "\\\"", -1)
 	//Use its changeToken for an update ....
 	t.Logf("id:%s oldChangeToken:%s changeCount:%d", created.ID, created.ChangeToken, created.ChangeCount)
-	doPropertyUpdate(t, created.ID, fmt.Sprintf(updateTemplate, acm, created.ChangeToken))
+	doPropertyUpdate(t, clientID, created.ID, fmt.Sprintf(updateTemplate, created.ID, acm, created.ChangeToken))
 	//Do an independent re-retrieve
-	doReCheckProperties(t, created.ID, fmt.Sprintf(updateTemplate, acm, created.ChangeToken))
+	doReCheckProperties(t, created.ID, fmt.Sprintf(updateTemplate, created.ID, acm, created.ChangeToken))
 }
 
 func TestUpdateStreamWithoutProvidingACM(t *testing.T) {
@@ -232,11 +254,12 @@ func TestUpdateStreamWithoutProvidingACM(t *testing.T) {
 	_, created := doTestCreateObjectSimple(t, data, clientID)
 	// update object with empty string ACM
 	// This function will fail internally.
-	doPropertyUpdate(t, created.ID, fmt.Sprintf(updateTemplate, "", created.ChangeToken))
+	doPropertyUpdate(t, clientID, created.ID, fmt.Sprintf(updateTemplate, created.ID, "", created.ChangeToken))
 }
 
 var updateTemplate = `
 {
+	  "id": "%s",
       "description": "describeit"
       ,"acm": "%s"
       ,"changeToken" : "%s"
