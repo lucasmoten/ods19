@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
@@ -31,7 +32,6 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 	var dbObject models.ODObject
 
 	// Validations on object passed in.
-
 	if len(object.TypeID) == 0 {
 		object.TypeID = nil
 	}
@@ -54,6 +54,11 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 	// Assign a generic name if this object wasn't given a name
 	if len(object.Name) == 0 {
 		object.Name = "New " + object.TypeName.String
+	}
+
+	// Assign a random content connector value if this object doesnt have one
+	if len(object.ContentConnector.String) == 0 {
+		object.ContentConnector = models.ToNullString(utils.CreateRandomName())
 	}
 
 	// Normalize ACM
@@ -143,9 +148,10 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
         o.createdby = ? 
         and o.typeId = ? 
         and o.name = ? 
+        and o.contentConnector = ?
         and o.isdeleted = 0 
     order by o.createddate desc limit 1`
-	err = tx.Get(&dbObject, getObjectStatement, object.CreatedBy, object.TypeID, object.Name)
+	err = tx.Get(&dbObject, getObjectStatement, object.CreatedBy, object.TypeID, object.Name, object.ContentConnector)
 	if err != nil {
 		return dbObject, fmt.Errorf("CreateObject Error retrieving object, %s", err.Error())
 	}

@@ -42,17 +42,25 @@ func makeHTTPRequestFromInterface(t *testing.T, method string, uri string, obj i
 }
 
 func makeUserShare(userDN string) interface{} {
-	shareString := fmt.Sprintf(`{"users":["%s"]}`, userDN)
+	shareString := `{` + makeUserShareString(userDN) + `}`
 	var shareInterface interface{}
 	json.Unmarshal([]byte(shareString), &shareInterface)
 	return shareInterface
 }
+func makeUserShareString(userDN string) string {
+	shareString := fmt.Sprintf(`"users":["%s"]`, userDN)
+	return shareString
+}
 
 func makeGroupShare(project string, displayName string, groupName string) interface{} {
-	shareString := fmt.Sprintf(`{"projects":{"%s":{"disp_nm":"%s","groups":["%s"]}}}`, project, displayName, groupName)
+	shareString := `{` + makeGroupShareString(project, displayName, groupName) + `}`
 	var shareInterface interface{}
 	json.Unmarshal([]byte(shareString), &shareInterface)
 	return shareInterface
+}
+func makeGroupShareString(project string, displayName string, groupName string) string {
+	shareString := fmt.Sprintf(`"projects":{"%s":{"disp_nm":"%s","groups":["%s"]}}`, project, displayName, groupName)
+	return shareString
 }
 
 func doAddObjectShare(t *testing.T, obj *protocol.Object, share *protocol.ObjectShare, clientid int) *protocol.Object {

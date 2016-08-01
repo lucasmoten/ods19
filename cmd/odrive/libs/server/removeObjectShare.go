@@ -1,174 +1,245 @@
 package server
 
 import (
-	"bytes"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"strings"
 
+	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
+	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/util"
+	"github.com/uber-go/zap"
 
 	"golang.org/x/net/context"
 )
 
 func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
-	var unimpl bool
-	unimpl = true
-	if unimpl {
-		return NewAppError(501, nil, "removeObjectShare is not yet implemented")
+	rollupPermission, permissions, dbObject, herr := commonObjectSharePrep(ctx, h.MasterKey, r)
+	if herr != nil {
+		return herr
 	}
 
-	// Get caller value from ctx.
-	caller, ok := CallerFromContext(ctx)
-	if !ok {
-		return NewAppError(http.StatusInternalServerError, errors.New("Could not determine user"), "Invalid user.")
-	}
-	_ = caller
+	logger := LoggerFromContext(ctx)
 	dao := DAOFromContext(ctx)
 
-	// Parse Request in sent format
-	if r.Header.Get("Content-Type") != "application/json" {
-		return NewAppError(http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
-	}
-	removeObjectShare, err := parseRemoveObjectShareRequest(r, ctx)
-	if err != nil {
-		return NewAppError(http.StatusBadRequest, err, "Error parsing JSON")
-	}
+	// Only proceed if there were permissions provided
+	if len(permissions) == 0 {
+		logger.Info("No permissions derived from share for removal.")
+	} else {
+		// Get values from ctx.
+		caller, _ := CallerFromContext(ctx)
+		var permissionsToAdd []models.ODObjectPermission
+		permissionsChanged := false
 
-	// Business Logic...
+		// Check if database object has a read permission for everyone
+		dbHasEveryone := hasPermissionsForGrantee(&dbObject, models.EveryoneGroup)
 
-	// Validate identifiers as decodable to byte value
-	requestObject := models.ODObject{}
-	requestObject.ID, err = hex.DecodeString(removeObjectShare.ObjectID)
-	if err != nil {
-		return NewAppError(http.StatusBadRequest, err, "Object ID is not a valid format")
-	}
-	shareID, err := hex.DecodeString(removeObjectShare.ShareID)
-	if err != nil {
-		return NewAppError(http.StatusBadRequest, err, "Share ID is not a valid format")
-	}
+		// Iterate the permissions, normalizing the share to derive grantee
+		for _, permission := range permissions {
 
-	// Retrieve existing object from the data store
-	dbObject, err := dao.GetObject(requestObject, true)
-	if err != nil {
-		return NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
-	}
+			// Flatten the grantee
+			if herr := h.flattenGranteeOnPermission(ctx, &permission); herr != nil {
+				return herr
+			}
+			logger.Info("Flattened.", zap.String("grantee", permission.Grantee), zap.String("acmShare", permission.AcmShare))
 
-	// Make sure the object isn't deleted. If the object is deleted then cannot make share alterations
-	if dbObject.IsDeleted {
-		switch {
-		case dbObject.IsExpunged:
-			return NewAppError(http.StatusGone, err, "The object no longer exists.")
-		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-			return NewAppError(http.StatusMethodNotAllowed, err, "The object cannot be modified because an ancestor is deleted.")
-		case dbObject.IsDeleted:
-			return NewAppError(http.StatusGone, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it")
-		}
-	}
+			// Compare to owner
+			if strings.Compare(permission.Grantee, psuedoFlatten(dbObject.OwnedBy.String)) == 0 {
+				errMsg := "Forbidden - Unauthorized to set permissions that would result in owner losing access"
+				return NewAppError(403, errors.New(errMsg), errMsg)
+			}
 
-	// Check if the user has permissions to update the ODObject permissions
-	//		Permission.grantee matches caller, and AllowShare is true
-	// and look for existance of share and changeToken state
-	authorizedToShare := false
-	shareFound := false
-	tokenMatched := false
-	var shareToDelete *models.ODObjectPermission
-	for _, permission := range dbObject.Permissions {
-		if permission.Grantee == caller.DistinguishedName &&
-			permission.AllowShare {
-			authorizedToShare = true
-		}
-		if bytes.Compare(permission.ID, shareID) == 0 {
-			shareFound = true
-			shareToDelete = &permission
-			if strings.Compare(permission.ChangeToken, removeObjectShare.ChangeToken) == 0 {
-				tokenMatched = true
+			// Restore for everyone group
+			if strings.Compare(permission.Grantee, psuedoFlatten(models.EveryoneGroup)) == 0 {
+				permission.Grantee = models.EveryoneGroup
+			}
+
+			// Iterate database permissions comparing grantee
+			for i, dbPermission := range dbObject.Permissions {
+
+				if dbPermission.IsDeleted {
+					continue
+				}
+
+				if strings.Compare(dbPermission.Grantee, permission.Grantee) == 0 {
+					permissionsChanged = true
+					dbPermission.IsDeleted = true
+
+					// If removing everyone group, then give read access to owner
+					if dbHasEveryone && strings.Compare(models.EveryoneGroup, permission.Grantee) == 0 {
+						// Add read permission for the owner
+						newOwnerPermission := copyPermissionToGrantee(ctx, &dbPermission, dbObject.OwnedBy.String)
+						if herr := h.flattenGranteeOnPermission(ctx, &newOwnerPermission); herr != nil {
+							return herr
+						}
+						// Now we can assign encrypt key, which will set mac based upon permissions being granted
+						models.CopyEncryptKey(h.MasterKey, &rollupPermission, &newOwnerPermission)
+						permissionsToAdd = append(permissionsToAdd, newOwnerPermission)
+						dbHasEveryone = false
+					}
+				}
+
+				if dbPermission.IsDeleted {
+					// permission changed, need to reflect in the array
+					dbObject.Permissions[i] = dbPermission
+				}
+
+			} // iterate db permissions
+		} // iterate permissions representing targets passed in for removal
+
+		// If there were changes
+		if permissionsChanged {
+			// Flatten grantees on db permission to prep for rebuilding the acm
+			for i := 0; i < len(dbObject.Permissions); i++ {
+				permission := dbObject.Permissions[i]
+				if herr := h.flattenGranteeOnPermission(ctx, &permission); herr != nil {
+					return herr
+				}
+				dbObject.Permissions[i] = permission
+			}
+
+			// Rebuild it
+			if herr := rebuildACMShareFromObjectPermissions(ctx, &dbObject, permissionsToAdd); herr != nil {
+				return herr
+			}
+
+			// Reflatten dbObject.RawACM
+			if err := h.flattenACM(logger, &dbObject); err != nil {
+				return NewAppError(500, err, "Error updating permissions when flattening acm")
+			}
+
+			// Assign modifier now that its ACM has been altered
+			dbObject.ModifiedBy = caller.DistinguishedName
+
+			// Verify minimal access is met
+			if !isModifiedBySameAsOwner(&dbObject) {
+				// Using AAC, verify that owner would still have read access
+				if !h.isObjectACMSharedToUser(ctx, &dbObject, dbObject.OwnedBy.String) {
+					errMsg := "Forbidden - Unauthorized to set permissions that would result in owner not being able to read object"
+					return NewAppError(403, errors.New(errMsg), errMsg)
+				}
+			} else {
+				// Using AAC, verify the caller would still have read access
+				hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
+				if err != nil {
+					return NewAppError(502, err, "Error communicating with authorization service")
+				}
+				if !hasAACAccess {
+					return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for updated object ACM")
+				}
+			}
+
+			// Update the base object that favors ACM change
+			if err := dao.UpdateObject(&dbObject); err != nil {
+				return NewAppError(500, err, "Error updating object")
+			}
+
+			// Add any new permissions for owner to the database.
+			for _, permission := range permissionsToAdd {
+				// Add to database
+				_, err := dao.AddPermissionToObject(dbObject, &permission, false, h.MasterKey)
+				if err != nil {
+					return NewAppError(500, err, "Error updating permission on object - add permission")
+				}
 			}
 		}
-	}
-	if !authorizedToShare {
-		return NewAppError(http.StatusUnauthorized, nil, "Unauthorized")
-	}
-	if !shareFound {
-		return NewAppError(http.StatusGone, nil, "Share referenced does not exist")
-	}
-	if !tokenMatched {
-		return NewAppError(http.StatusExpectationFailed, nil, "ChangeToken does not match expected value. Share may have been changed by another request.")
-	}
+	} // permissions provided
 
-	// Update the permission in the database
-	shareToDelete.ModifiedBy = caller.DistinguishedName
-	shareToDelete.IsDeleted = true
-	shareToDelete.DeletedBy.String = caller.DistinguishedName
-	dbObjectPermission, err := dao.DeleteObjectPermission(*shareToDelete, removeObjectShare.PropagateToChildren)
+	// Now fetch updated object
+	updatedObject, err := dao.GetObject(dbObject, false)
 	if err != nil {
-		return NewAppError(http.StatusInternalServerError, err, "Error deleting permission")
+		return NewAppError(500, err, "Error retrieving object")
 	}
-
-	// Response in requested format
-	apiResponse := protocol.RemovedObjectShareResponse{}
-	apiResponse.DeletedDate = dbObjectPermission.DeletedDate.Time
-	removeObjectShareResponse(w, r, caller, &apiResponse)
+	// Map from model to protocol and output it
+	jsonResponse(w, mapping.MapODObjectToObject(&updatedObject))
 
 	return nil
 }
 
-func parseRemoveObjectShareRequest(r *http.Request, ctx context.Context) (protocol.RemoveObjectShareRequest, error) {
-	var jsonObject protocol.RemoveObjectShareRequest
-	var err error
-
-	// Depends on this for the changeToken
-	err = util.FullDecode(r.Body, &jsonObject)
-	if err != nil {
-		return jsonObject, err
+func psuedoFlatten(inVal string) string {
+	emptyList := []string{" ", ",", "=", "'", ":", "(", ")", "$", "[", "]", "{", "}", "|", "\\"}
+	underscoreList := []string{".", "-"}
+	outVal := strings.ToLower(inVal)
+	for _, s := range emptyList {
+		outVal = strings.Replace(outVal, s, "", -1)
 	}
-
-	// Portions from the request URI itself ...
-	// Get capture groups from ctx.
-	captured, ok := CaptureGroupsFromContext(ctx)
-	if !ok {
-		return jsonObject, errors.New("Could not get capture groups")
+	for _, s := range underscoreList {
+		outVal = strings.Replace(outVal, s, "_", -1)
 	}
-	// Assign jsonObject with the objectId that was shared
-	if captured["objectId"] == "" {
-		return jsonObject, errors.New("Could not extract objectId from URI")
-	}
-	_, err = hex.DecodeString(captured["objectId"])
-	if err != nil {
-		return jsonObject, errors.New("Invalid objectid in URI.")
-	}
-	jsonObject.ObjectID = captured["objectId"]
-	// Assign jsonObject with the shareId being removed
-	if captured["shareId"] == "" {
-		return jsonObject, errors.New("Could not extract shareId from URI")
-	}
-	_, err = hex.DecodeString(captured["shareId"])
-	if err != nil {
-		return jsonObject, errors.New("Invalid shareId in URI.")
-	}
-	jsonObject.ShareID = captured["shareId"]
-
-	return jsonObject, err
+	return outVal
 }
 
-func removeObjectShareResponse(
-	w http.ResponseWriter,
-	r *http.Request,
-	caller Caller,
-	response *protocol.RemovedObjectShareResponse,
-) {
-	w.Header().Set("Content-Type", "application/json")
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
+func rebuildACMShareFromObjectPermissions(ctx context.Context, dbObject *models.ODObject, permissionsToAdd []models.ODObjectPermission) *AppError {
+	// dbObject permissions will now reflect a new state. Rebuild it
+	emptyInterface, err := utils.UnmarshalStringToInterface("{}")
 	if err != nil {
-		log.Printf("Error marshalling response as json: %s", err.Error())
-		return
+		return NewAppError(500, err, "Unable to unmarshal empty interface")
 	}
-	w.Write(jsonData)
+	if herr := setACMPartFromInterface(ctx, dbObject, "share", emptyInterface); herr != nil {
+		return herr
+	}
+
+	// Iterate to build new share
+	for _, dbPermission := range dbObject.Permissions {
+		// For permissions granting read, merge permission.AcmShare into dbObject.RawAcm.String{share}
+		if dbPermission.AllowRead &&
+			!dbPermission.IsDeleted &&
+			!isPermissionFor(&dbPermission, models.EveryoneGroup) {
+			herr, sourceInterface := getACMInterfacePart(dbObject, "share")
+			if herr != nil {
+				return herr
+			}
+			interfaceToAdd, err := utils.UnmarshalStringToInterface(dbPermission.AcmShare)
+			if err != nil {
+				return NewAppError(500, err, "Unable to unmarshal share from permission",
+					zap.String("dbPermission.AcmShare", dbPermission.AcmShare),
+					zap.String("dbPermission.Grantee", dbPermission.Grantee))
+			}
+			combinedInterface := CombineInterface(sourceInterface, interfaceToAdd)
+			if herr = setACMPartFromInterface(ctx, dbObject, "share", combinedInterface); herr != nil {
+				return herr
+			}
+		}
+	}
+
+	// Iterate any permissions that will be added, also combinining in
+	for _, permission := range permissionsToAdd {
+		// For permissions granting read, merge permission.AcmShare into dbObject.RawAcm.String{share}
+		if permission.AllowRead &&
+			!permission.IsDeleted &&
+			!isPermissionFor(&permission, models.EveryoneGroup) {
+			herr, sourceInterface := getACMInterfacePart(dbObject, "share")
+			if herr != nil {
+				return herr
+			}
+			interfaceToAdd, err := utils.UnmarshalStringToInterface(permission.AcmShare)
+			if err != nil {
+				return NewAppError(500, err, "Unable to unmarshal share from permission",
+					zap.String("permission.AcmShare", permission.AcmShare),
+					zap.String("permission.Grantee", permission.Grantee))
+			}
+			combinedInterface := CombineInterface(sourceInterface, interfaceToAdd)
+			if herr = setACMPartFromInterface(ctx, dbObject, "share", combinedInterface); herr != nil {
+				return herr
+			}
+		}
+	}
+
+	return nil
+}
+
+func copyPermissionToGrantee(ctx context.Context, originalPermission *models.ODObjectPermission, grantee string) models.ODObjectPermission {
+	caller, _ := CallerFromContext(ctx)
+	bytesObjectID, _ := getObjectIDFromContext(ctx)
+	newPermission := models.ODObjectPermission{}
+	newPermission.CreatedBy = caller.DistinguishedName
+	newPermission.ObjectID = bytesObjectID
+	newPermission.AllowCreate = originalPermission.AllowCreate
+	newPermission.AllowRead = originalPermission.AllowRead
+	newPermission.AllowUpdate = originalPermission.AllowUpdate
+	newPermission.AllowDelete = originalPermission.AllowDelete
+	newPermission.AllowShare = originalPermission.AllowShare
+	newPermission.Grantee = grantee
+	return newPermission
 }

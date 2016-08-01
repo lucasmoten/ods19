@@ -380,7 +380,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 		t.Logf("response status %s, expected %d", res.Status, http.StatusOK)
 		t.FailNow()
 	}
-	t.Logf("decoding resposne to protocol object")
+	t.Logf("decoding response to protocol object")
 	var createdFolder protocol.Object
 	err = util.FullDecode(res.Body, &createdFolder)
 	if err != nil {
