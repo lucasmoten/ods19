@@ -20,12 +20,11 @@ import (
 	"decipher.com/object-drive-server/util"
 )
 
-// createObject is a method handler on AppServer for createObject microservice
-// operation.
+// createObject is a method handler on AppServer for createObject microservice operation.
 func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
+
 	logger := LoggerFromContext(ctx)
 
-	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
 		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
@@ -38,21 +37,11 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	var herr *AppError
 	var drainFunc func()
 
-	// Owner Permission when created gets full access
-	var ownerPermission models.ODObjectPermission
-	ownerPermission.Grantee = caller.DistinguishedName
-	ownerPermission.AllowRead = false // Read permission not implicitly granted to owner. Must come through ACM share (empty=everyone gets read, values=owner must be in one of those groups)
-	ownerPermission.AllowCreate = true
-	ownerPermission.AllowUpdate = true
-	ownerPermission.AllowDelete = true
-	ownerPermission.AllowShare = true
-	//Store the key *encrypted* ... not plain!
+	ownerPermission := permissionWithOwnerDefaults(caller)
 	models.SetEncryptKey(h.MasterKey, &ownerPermission)
 
-	// Determine if this request is being made with a file stream or without.
-	// When a filestream is provided, there is a different handler that parses
-	// the multipart form data
-	isMultipart := isMultipartFormData(r)
+	// NOTE: this bool is used far below to call drainFunc
+	isMultipart := contentTypeIsMultipartFormData(r)
 	if isMultipart {
 
 		rName := utils.CreateRandomName()
@@ -71,6 +60,12 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		}
 		drainFunc = createdFunc
 	} else {
+		// Check headers
+		herr = validateCreateObjectHeaders(r)
+		if herr != nil {
+			return herr
+		}
+
 		// Parse body as json to populate object
 		obj, herr = parseCreateObjectRequestAsJSON(r)
 		if herr != nil {
@@ -84,12 +79,9 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	obj.CreatedBy = caller.DistinguishedName
 
 	// For all permissions, make sure we're using the flatened value
-	for i := len(obj.Permissions) - 1; i >= 0; i-- {
-		permission := obj.Permissions[i]
-		if herr := h.flattenGranteeOnPermission(ctx, &permission); herr != nil {
-			return herr
-		}
-		obj.Permissions[i] = permission
+	herr = h.flattenGranteeOnAllPermissions(ctx, &obj)
+	if herr != nil {
+		return herr
 	}
 
 	// Make sure permissions passed in that are read access are put into the acm
@@ -156,15 +148,25 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	return nil
 }
 
-/* This is used by both createObject and createFolder to do common tasks against created objects
-   Returns true if the request is now handled - which happens in the case of errors that terminate
-   the http request
-*/
-func handleCreatePrerequisites(
-	ctx context.Context,
-	h AppServer,
-	requestObject *models.ODObject,
-) *AppError {
+// newOwnerPermission returns a default permission for the creator of an object.
+func permissionWithOwnerDefaults(caller Caller) models.ODObjectPermission {
+	var ownerPermission models.ODObjectPermission
+	ownerPermission.Grantee = caller.DistinguishedName
+
+	// Read permission not implicitly granted to owner. Must come through ACM share
+	// (empty=everyone gets read, values=owner must be in one of those groups)
+	ownerPermission.AllowRead = false
+	ownerPermission.AllowCreate = true
+	ownerPermission.AllowUpdate = true
+	ownerPermission.AllowDelete = true
+	ownerPermission.AllowShare = true
+	return ownerPermission
+}
+
+// handleCreatePrerequisites used by both createObject and createFolder to do common tasks against created objects
+// Returns true if the request is now handled - which happens in the case of errors that terminate
+// the http request
+func handleCreatePrerequisites(ctx context.Context, h AppServer, requestObject *models.ODObject) *AppError {
 	dao := DAOFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
 
@@ -198,18 +200,15 @@ func handleCreatePrerequisites(
 			return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to create children under this object")
 		}
 
-		// Make sure the object isn't deleted. To remove an object from the trash,
-		// use removeObjectFromTrash call.
+		// Make sure the object isn't deleted.
 		if dbParentObject.IsDeleted {
 			switch {
 			case dbParentObject.IsExpunged:
-				return NewAppError(410, err, "The object no longer exists.")
-			case dbParentObject.IsAncestorDeleted && !dbParentObject.IsDeleted:
-				return NewAppError(405, err, "Unallowed to create child objects under a deleted object.")
-			case dbParentObject.IsDeleted:
-				return NewAppError(405, err,
-					"The object under which this object is being created is currently in the trash. Use removeObjectFromTrash to restore it first.",
-				)
+				return NewAppError(410, err, "object is expunged")
+			case dbParentObject.IsAncestorDeleted:
+				return NewAppError(405, err, "cannot create object under deleted anscestor")
+			default:
+				return NewAppError(405, err, "object is deleted")
 			}
 		}
 
@@ -261,7 +260,7 @@ func addPermissionForCaller(ctx context.Context, obj *models.ODObject) {
 	obj.Permissions = append(obj.Permissions, newPermission)
 }
 
-func isMultipartFormData(r *http.Request) bool {
+func contentTypeIsMultipartFormData(r *http.Request) bool {
 	ct := r.Header.Get("Content-Type")
 	if ct == "" {
 		return false
@@ -278,12 +277,6 @@ func parseCreateObjectRequestAsJSON(r *http.Request) (models.ODObject, *AppError
 	object := models.ODObject{}
 	var err error
 
-	if r.Header.Get("Content-Type") != "application/json" {
-		//BUG: return an AppError so that this gets *counted*
-		err = fmt.Errorf("Content-Type is '%s', expected application/json", r.Header.Get("Content-Type"))
-		return object, NewAppError(400, err, "expected Content-Type application/json")
-	}
-
 	// Decode to JSON
 	err = util.FullDecode(r.Body, &jsonObject)
 	if err != nil {
@@ -297,6 +290,14 @@ func parseCreateObjectRequestAsJSON(r *http.Request) (models.ODObject, *AppError
 	}
 
 	return object, nil
+}
+
+func validateCreateObjectHeaders(r *http.Request) *AppError {
+	if r.Header.Get("Content-Type") != "application/json" {
+		err := fmt.Errorf("Content-Type is '%s', expected application/json", r.Header.Get("Content-Type"))
+		return NewAppError(400, err, "expected Content-Type application/json")
+	}
+	return nil
 }
 
 // injectReadPermissionsIntoACM iterates the permissions on an object, and for

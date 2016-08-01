@@ -32,15 +32,13 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	}
 	dao := DAOFromContext(ctx)
 
-	// Parse Request in sent format
-	switch {
-	case r.Header.Get("Content-Type") == "application/json":
-		requestObject, err = parseUpdateObjectRequestAsJSON(r, ctx)
-		if err != nil {
-			return NewAppError(500, err, "Error parsing JSON")
-		}
-	default:
-		return NewAppError(501, nil, "Reading from HTML form post not supported")
+	if r.Header.Get("Content-Type") != "application/json" {
+		return NewAppError(400, nil, "expected application/json Content-Type")
+	}
+
+	requestObject, err = parseUpdateObjectRequestAsJSON(r, ctx)
+	if err != nil {
+		return NewAppError(400, err, "Error parsing JSON")
 	}
 
 	// Business Logic...
@@ -219,7 +217,7 @@ func parseUpdateObjectRequestAsJSON(r *http.Request, ctx context.Context) (model
 	requestObject := models.ODObject{}
 	var err error
 
-	// Get ID
+	// Get ID from URI
 	requestObject, err = parseGetObjectRequest(ctx)
 	if err != nil {
 		return requestObject, errors.New("Object Identifier in Request URI is not a hex string")
@@ -230,7 +228,15 @@ func parseUpdateObjectRequestAsJSON(r *http.Request, ctx context.Context) (model
 	if err != nil {
 		return requestObject, err
 	}
+
+	if strings.Compare(hex.EncodeToString(requestObject.ID), jsonObject.ID) != 0 {
+		return requestObject, errors.New("bad request: ID mismatch")
+	}
+
 	// Map changes over the requestObject
+	if len(jsonObject.Name) > 0 {
+		requestObject.Name = jsonObject.Name
+	}
 	requestObject.ChangeToken = jsonObject.ChangeToken
 	if len(jsonObject.TypeName) > 0 {
 		requestObject.TypeName.String = jsonObject.TypeName

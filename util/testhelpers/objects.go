@@ -173,8 +173,8 @@ const (
 // NewCreateObjectPOSTRequest generates a http.Request that will route to the createObject
 // controller method, and provide a mutlipart body with the passed-in file object.
 // The dn string is optional. The host string is required to route to the correct server,
-// e.g. a docker container or localhost. Several object parameters are hardcoded, and this
-// function should only be used for testing purposes.
+// e.g. a docker container or localhost. Several object parameters are hardcoded.
+// This function should only be used in tests.
 func NewCreateObjectPOSTRequest(host, dn string, f *os.File) (*http.Request, error) {
 	testName, err := util.NewGUID()
 	if err != nil {
@@ -194,25 +194,14 @@ func NewCreateObjectPOSTRequest(host, dn string, f *os.File) (*http.Request, err
 		return nil, err
 	}
 
-	req, err := NewCreateObjectPOSTRequestRaw(
-		"objects",
-		host, dn,
-		f,
-		"testfilename.txt",
-		jsonBody,
-	)
-	return req, err
+	// TODO: we hardcode the name here but the *os.File has associated metadata.
+	return NewCreateObjectPOSTRequestRaw("objects", host, dn, f, "testfilename.txt", jsonBody)
 }
 
 // NewCreateObjectPOSTRequestRaw generates a raw request, with enough flexibility to make
 // some malformed requests without too much trouble.
-func NewCreateObjectPOSTRequestRaw(
-	requestType,
-	host, dn string,
-	f *os.File,
-	fileName string,
-	jsonBody []byte,
-) (*http.Request, error) {
+func NewCreateObjectPOSTRequestRaw(requestType, host, dn string, f *os.File,
+	fileName string, jsonBody []byte) (*http.Request, error) {
 	uri := host + cfg.NginxRootURL + "/" + requestType
 
 	var b bytes.Buffer
@@ -262,10 +251,11 @@ func NewCreateObjectPOSTRequestRaw(
 func UpdateObjectStreamPOSTRequest(id string, changeToken string, host string, dn string, f *os.File) (*http.Request, error) {
 	uri := host + cfg.NginxRootURL + "/objects/" + id + "/stream"
 
-	updateRequest := protocol.UpdateStreamRequest{
-		ChangeToken: changeToken,
-		RawAcm:      ValidACMUnclassifiedFOUO,
-	}
+	updateRequest := protocol.Object{}
+	updateRequest.ID = id
+	updateRequest.ChangeToken = changeToken
+	updateRequest.RawAcm = ValidACMUnclassifiedFOUO
+
 	jsonBody, err := json.Marshal(updateRequest)
 	if err != nil {
 		return nil, err
@@ -274,6 +264,7 @@ func UpdateObjectStreamPOSTRequest(id string, changeToken string, host string, d
 	w := multipart.NewWriter(&b)
 
 	writePartField(w, "ObjectMetadata", string(jsonBody), "application/json")
+	// TODO why do we hardcode the filename here?
 	fw, err := w.CreateFormFile("filestream", "testfilename.txt")
 	if err != nil {
 		return nil, err
@@ -307,6 +298,49 @@ func UpdateObjectStreamPOSTRequest(id string, changeToken string, host string, d
 	}
 
 	return req, nil
+}
+
+// NewMultipartRequestBody wraps the creation of a correctly formatted stream of bytes suitable for
+// instantiating a http.Request object. The appropriate boundary is also returned, which is required
+// to properly set the Content-Type on request headers.
+func NewMultipartRequestBody(t *testing.T, obj protocol.Object, f *os.File) (*bytes.Buffer, string) {
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+
+	jsonBody, err := json.Marshal(obj)
+	if err != nil {
+		t.Errorf("error creating multipart request body: %v", err)
+		t.FailNow()
+	}
+
+	writePartField(w, "ObjectMetadata", string(jsonBody), "application/json")
+	fw, err := w.CreateFormFile("filestream", f.Name())
+	if err != nil {
+		t.Errorf("error calling CreateFormFile: %v", err)
+		t.FailNow()
+	}
+
+	// Capture current position of src
+	p, err := f.Seek(0, 1)
+	if err != nil {
+		t.Errorf("error seeking into file %s: %v", f.Name(), err)
+		t.FailNow()
+	}
+	defer func() {
+		// Restore position on file when exiting
+		f.Seek(p, 0)
+	}()
+	// Start at beginning for the copy
+	f.Seek(0, 0)
+
+	if _, err = io.Copy(fw, f); err != nil {
+		t.Errorf("error seeking into file %s into multipart writer: %v", f.Name(), err)
+		t.FailNow()
+	}
+	boundary := w.FormDataContentType()
+	w.Close()
+
+	return &b, boundary
 }
 
 func NewCreateReadPermissionRequest(obj protocol.Object, grantee, dn, host string) (*http.Request, error) {

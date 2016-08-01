@@ -29,111 +29,70 @@ func TestGetObjectStreamForRevision_CurrentVersion(t *testing.T) {
 	// ### Create object with stream
 	data := "object stream for TestGetObjectStreamForRevision_CurrentVersion"
 	tmp1, err := ioutil.TempFile(".", "__tempfile__")
-	if err != nil {
-		t.Errorf("Could not open temp file for write: %v\n", err)
-		t.FailNow()
-	}
-	tmp1.WriteString(data)
+	failNowOnErr(t, err, "could not open temp file for write")
 	defer func() {
 		name := tmp1.Name()
 		tmp1.Close()
 		err = os.Remove(name)
 	}()
+	tmp1.WriteString(data)
+
 	createObjectReq, err := testhelpers.NewCreateObjectPOSTRequest(host, "", tmp1)
-	if err != nil {
-		t.Errorf("Unable to create HTTP request: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "unable to create HTTP request")
 	createObjectRes, err := clients[clientID].Client.Do(createObjectReq)
-	if err != nil {
-		t.Errorf("Unable to do request:%v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "unable to do request")
 	defer util.FinishBody(createObjectRes.Body)
-	if createObjectRes.StatusCode != http.StatusOK {
-		t.Errorf("Error creating object, got code %d", createObjectRes.StatusCode)
-		t.FailNow()
-	}
+	statusMustBe(t, 200, createObjectRes, "error creating object")
+
 	var objResponse protocol.Object
 	err = util.FullDecode(createObjectRes.Body, &objResponse)
-	if err != nil {
-		t.Errorf("Could not decode CreateObject response.")
-		t.FailNow()
-	}
-	createObjectRes.Body.Close()
+	failNowOnErr(t, err, "could not decode objResponse")
+	defer createObjectRes.Body.Close()
 
-	// Capture ID for usage in get calls
 	objID := objResponse.ID
 
-	// ### Call GetObjectStream
 	getObjectStreamReq, err := testhelpers.NewGetObjectStreamRequest(objID, "", host)
-	if err != nil {
-		t.Errorf("Unable to create HTTP request: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "unable to create HTTP request")
+
 	getObjectStreamRes, err := clients[clientID].Client.Do(getObjectStreamReq)
-	if err != nil {
-		t.Errorf("GetObjectStream request failed: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "GetObjectStream request failed")
+	statusMustBe(t, 200, getObjectStreamRes, "error retriving object stream")
+	assertBodyNotNil(t, getObjectStreamRes)
 	defer util.FinishBody(getObjectStreamRes.Body)
-	if getObjectStreamRes.StatusCode != http.StatusOK {
-		t.Errorf("Error retrieving object stream, got code %d", getObjectStreamRes.StatusCode)
-		t.FailNow()
-	}
-	if getObjectStreamRes.Body == nil {
-		t.Errorf("Response from GetObjectStream had no body")
-		t.FailNow()
-	}
+
 	tmp2, err := ioutil.TempFile(".", "__tempfile__")
-	if err != nil {
-		t.Errorf("Could not open temp file for write: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "could not open temp file for write")
 	defer func() {
 		name := tmp2.Name()
 		tmp2.Close()
 		err = os.Remove(name)
 	}()
+
 	io.Copy(tmp2, getObjectStreamRes.Body)
-	// ### Compare contents with stream that was saved
 	if !testhelpers.AreFilesTheSame(tmp1, tmp2) {
 		t.Errorf("Retrieved file contents from getObjectStream don't match original")
 		t.FailNow()
 	}
 
-	// ### Call GetObjectStreamRevision /history/0
+	t.Logf("  getting object revision at /history/0")
 	getObjectStreamRevisionReq, err := testhelpers.NewGetObjectStreamRevisionRequest(objID, "0", "", host)
-	if err != nil {
-		t.Errorf("Unable to create HTTP request: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "unable to create HTTP request")
 	getObjectStreamRevisionRes, err := clients[clientID].Client.Do(getObjectStreamRevisionReq)
-	if err != nil {
-		t.Errorf("GetObjectStreamRevision request failed: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "getObjectStreamRevision request failed")
 	defer util.FinishBody(getObjectStreamRevisionRes.Body)
-	if getObjectStreamRevisionRes.StatusCode != http.StatusOK {
-		t.Errorf("Error retrieving object stream revision, got code %d", getObjectStreamRes.StatusCode)
-		t.FailNow()
-	}
-	if getObjectStreamRevisionRes.Body == nil {
-		t.Errorf("Response from GetObjectStreamRevision had no body")
-		t.FailNow()
-	}
+
+	statusMustBe(t, 200, getObjectStreamRevisionRes, "error retrieving object stream revision 0")
+	assertBodyNotNil(t, getObjectStreamRevisionRes)
+
 	tmp3, err := ioutil.TempFile(".", "__tempfile__")
-	if err != nil {
-		t.Errorf("Could not open temp file for write: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "could not open temp file for write")
 	defer func() {
 		name := tmp3.Name()
 		tmp3.Close()
 		err = os.Remove(name)
 	}()
 	io.Copy(tmp3, getObjectStreamRevisionRes.Body)
-	// ### Compare contents with stream that was saved
+
 	if !testhelpers.AreFilesTheSame(tmp1, tmp3) {
 		t.Errorf("Retrieved file contents from getObjectStreamRevision don't match original")
 		t.FailNow()
@@ -151,107 +110,70 @@ func TestGetObjectStreamForRevision_OriginalVersion(t *testing.T) {
 	// ### Create object with stream
 	data1 := "object stream for TestGetObjectStreamForRevision_OriginalVersion"
 	tmp1, err := ioutil.TempFile(".", "__tempfile__")
-	if err != nil {
-		t.Errorf("Could not open temp file for write: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "could not open temp file for write")
 	tmp1.WriteString(data1)
 	defer func() {
 		name := tmp1.Name()
 		tmp1.Close()
 		err = os.Remove(name)
 	}()
+
 	createObjectReq, err := testhelpers.NewCreateObjectPOSTRequest(host, "", tmp1)
-	if err != nil {
-		t.Errorf("Unable to create HTTP request: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "unable to create HTTP request")
+
 	createObjectRes, err := clients[clientID].Client.Do(createObjectReq)
-	if err != nil {
-		t.Errorf("Unable to do request:%v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "unable to do request")
+	statusMustBe(t, 200, createObjectRes, "error creating object")
 	defer util.FinishBody(createObjectRes.Body)
-	if createObjectRes.StatusCode != http.StatusOK {
-		t.Errorf("Error creating object, got code %d", createObjectRes.StatusCode)
-		t.FailNow()
-	}
+
 	var objResponse1 protocol.Object
 	err = util.FullDecode(createObjectRes.Body, &objResponse1)
-	if err != nil {
-		t.Errorf("Could not decode CreateObject response.")
-		t.FailNow()
-	}
-	createObjectRes.Body.Close()
+	failNowOnErr(t, err, "could not decode createObjectRes")
+	defer createObjectRes.Body.Close()
 
-	// Capture ID and ChangeToken for usage in get calls
 	objID := objResponse1.ID
 	changeToken := objResponse1.ChangeToken
 
-	// ### Update Object Stream with changed stream (stream 2)
+	t.Logf("   Update Object Stream with changed stream")
 	data2 := data1 + " --- CHANGED"
 	tmp2, err := ioutil.TempFile(".", "__tempfile__")
-	if err != nil {
-		t.Errorf("Could not open temp file for write: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "could not open temp file for write")
 	tmp2.WriteString(data2)
 	defer func() {
 		name := tmp2.Name()
 		tmp2.Close()
 		err = os.Remove(name)
 	}()
+
 	updateObjectReq, err := testhelpers.UpdateObjectStreamPOSTRequest(objID, changeToken, host, "", tmp2)
-	if err != nil {
-		t.Errorf("Unable to create HTTP request: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "unable to create HTTP request")
+
 	updateObjectRes, err := clients[clientID].Client.Do(updateObjectReq)
-	if err != nil {
-		t.Errorf("Unable to do request:%v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "unable to do updateObjectReq")
 	defer util.FinishBody(updateObjectRes.Body)
-	if updateObjectRes.StatusCode != http.StatusOK {
-		t.Errorf("Error creating object, got code %d", updateObjectRes.StatusCode)
-		t.FailNow()
-	}
+
+	statusMustBe(t, 200, updateObjectRes, "error creating object")
+
 	var objResponse2 protocol.Object
 	err = util.FullDecode(updateObjectRes.Body, &objResponse2)
-	if err != nil {
-		t.Errorf("Could not decode CreateObject response.")
-		t.FailNow()
-	}
-	updateObjectRes.Body.Close()
+	failNowOnErr(t, err, "could not decode objResponse2")
+	defer updateObjectRes.Body.Close()
 
 	// Capture ChangeCount
 	changeCount := objResponse2.ChangeCount
 
 	// ### Call GetObjectStream
 	getObjectStreamReq, err := testhelpers.NewGetObjectStreamRequest(objID, "", host)
-	if err != nil {
-		t.Errorf("Unable to create HTTP request: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "unable to create HTTP	request")
 	getObjectStreamRes, err := clients[clientID].Client.Do(getObjectStreamReq)
-	if err != nil {
-		t.Errorf("GetObjectStream request failed: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "getObjectStreamReq failed")
 	defer util.FinishBody(getObjectStreamRes.Body)
-	if getObjectStreamRes.StatusCode != http.StatusOK {
-		t.Errorf("Error retrieving object stream, got code %d", getObjectStreamRes.StatusCode)
-		t.FailNow()
-	}
-	if getObjectStreamRes.Body == nil {
-		t.Errorf("Response from GetObjectStream had no body")
-		t.FailNow()
-	}
+	statusMustBe(t, 200, getObjectStreamRes, "error retrieving object stream")
+	assertBodyNotNil(t, getObjectStreamRes)
+
 	tmp3, err := ioutil.TempFile(".", "__tempfile__")
-	if err != nil {
-		t.Errorf("Could not open temp file for write: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "could not open temp file for write")
+
 	defer func() {
 		name := tmp3.Name()
 		tmp3.Close()
@@ -271,24 +193,14 @@ func TestGetObjectStreamForRevision_OriginalVersion(t *testing.T) {
 		t.FailNow()
 	}
 	getObjectStreamRevisionRes, err := clients[clientID].Client.Do(getObjectStreamRevisionReq)
-	if err != nil {
-		t.Errorf("GetObjectStreamRevision request failed: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "getObjectStreamRevisionReq failed")
+	statusMustBe(t, 200, getObjectStreamRevisionRes, "error retriving object stream revision")
+	assertBodyNotNil(t, getObjectStreamRes)
 	defer util.FinishBody(getObjectStreamRevisionRes.Body)
-	if getObjectStreamRevisionRes.StatusCode != http.StatusOK {
-		t.Errorf("Error retrieving object stream revision, got code %d", getObjectStreamRevisionRes.StatusCode)
-		t.FailNow()
-	}
-	if getObjectStreamRevisionRes.Body == nil {
-		t.Errorf("Response from GetObjectStreamRevision had no body")
-		t.FailNow()
-	}
+
 	tmp4, err := ioutil.TempFile(".", "__tempfile__")
-	if err != nil {
-		t.Errorf("Could not open temp file for write: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "could not open temp file for write")
+
 	defer func() {
 		name := tmp4.Name()
 		tmp4.Close()
@@ -603,56 +515,41 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.FailNow()
 	}
 	defer util.FinishBody(updateObjectRes.Body)
+
 	if updateObjectRes.StatusCode != http.StatusOK {
 		t.Errorf("Error updating object stream, got code %d", updateObjectRes.StatusCode)
 		t.FailNow()
 	}
 	var objResponse2 protocol.Object
 	err = util.FullDecode(updateObjectRes.Body, &objResponse2)
-	if err != nil {
-		t.Errorf("Could not decode update object response.")
-		t.FailNow()
-	} else {
-		t.Logf("* Resulting permissions")
-		hasEveryone := false
-		for _, permission := range objResponse2.Permissions {
-			logPermission(t, permission)
-			if permission.Grantee == models.EveryoneGroup {
-				hasEveryone = true
-			}
-		}
-		if !hasEveryone {
-			t.Logf("Expected %s", models.EveryoneGroup)
-			t.FailNow()
+	failNowOnErr(t, err, "could not decode object response")
+	t.Logf("* Resulting permissions")
+
+	hasEveryone := false
+	for _, permission := range objResponse2.Permissions {
+		logPermission(t, permission)
+		if permission.Grantee == models.EveryoneGroup {
+			hasEveryone = true
 		}
 	}
+	if !hasEveryone {
+		t.Logf("Expected %s", models.EveryoneGroup)
+		t.FailNow()
+	}
+
 	updateObjectRes.Body.Close()
 
 	t.Logf("* Call GetObjectStreamRevision /history/x as second user")
 	getObjectStreamRevisionReq1, err := testhelpers.NewGetObjectStreamRevisionRequest(objID, strconv.Itoa(objResponse2.ChangeCount), "", host)
-	if err != nil {
-		t.Errorf("Unable to create HTTP request: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "unable to create HTTP request")
 	getObjectStreamRevisionRes1, err := clients[tester1].Client.Do(getObjectStreamRevisionReq1)
-	if err != nil {
-		t.Errorf("GetObjectStreamRevision request 1 failed: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "GetObjectStreamRevision request 1 failed")
 	defer util.FinishBody(getObjectStreamRevisionRes1.Body)
-	if getObjectStreamRevisionRes1.StatusCode != http.StatusOK {
-		t.Errorf("Error retrieving object stream revision, got code %d", getObjectStreamRevisionRes1.StatusCode)
-		t.FailNow()
-	}
-	if getObjectStreamRevisionRes1.Body == nil {
-		t.Errorf("Response from GetObjectStreamRevision 1 had no body")
-		t.FailNow()
-	}
+
+	statusMustBe(t, 200, getObjectStreamRevisionRes1, "error retrieving object stream revision")
+	assertBodyNotNil(t, getObjectStreamRevisionRes1)
 	tmp3, err := ioutil.TempFile(".", "__tempfile__")
-	if err != nil {
-		t.Errorf("Could not open temp file for write: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "could not open temp file for write")
 	defer func() {
 		name := tmp3.Name()
 		tmp3.Close()
@@ -667,29 +564,16 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 
 	t.Logf("* Call GetObjectStreamRevision /history/0 as tester1")
 	getObjectStreamRevisionReq2, err := testhelpers.NewGetObjectStreamRevisionRequest(objID, "0", "", host)
-	if err != nil {
-		t.Errorf("Unable to create HTTP request: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "unable to create http request")
 	getObjectStreamRevisionRes2, err := clients[tester1].Client.Do(getObjectStreamRevisionReq2)
-	if err != nil {
-		t.Errorf("GetObjectStreamRevision request 2 failed: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "GetObjectStreamRevision request 2 failed")
 	defer util.FinishBody(getObjectStreamRevisionRes2.Body)
-	if getObjectStreamRevisionRes2.StatusCode != http.StatusOK {
-		t.Errorf("Error retrieving object stream revision, got code %d", getObjectStreamRevisionRes2.StatusCode)
-		t.FailNow()
-	}
-	if getObjectStreamRevisionRes2.Body == nil {
-		t.Errorf("Response from GetObjectStreamRevision 2 had no body")
-		t.FailNow()
-	}
+	statusMustBe(t, 200, getObjectStreamRevisionRes2,
+		"unable to retrieve object stream on request 2 desipte share to everyone")
+
+	assertBodyNotNil(t, getObjectStreamRevisionRes2)
 	tmp4, err := ioutil.TempFile(".", "__tempfile__")
-	if err != nil {
-		t.Errorf("Could not open temp file for write: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "could not open temp file for write")
 	defer func() {
 		name := tmp4.Name()
 		tmp4.Close()
@@ -702,49 +586,28 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.FailNow()
 	}
 
-	// --------------------------------------
-	// Cant remove permissions yet as this is not reimplemented yet
-
-	// // ### Remove permissions for user 2
-	// deleteShareReq, err := testhelpers.NewDeletePermissionRequest(objResponse1, objShare, "", host)
-	// if err != nil {
-	// 	t.Errorf("Unable to create HTTP request: %v\n", err)
-	// 	t.FailNow()
-	// }
-	// deleteShareRes, err := clients[clientID].Client.Do(deleteShareReq)
-	// if err != nil {
-	// 	t.Errorf("Unable to do request:%v\n", err)
-	// 	t.FailNow()
-	// }
-	// if deleteShareRes.StatusCode != http.StatusGone {
-	// 	t.Errorf("Error removing share, got code %d but expected %d (StatusGone) since it would have been deleted internally when updating the object due to ACM override", deleteShareRes.StatusCode, http.StatusGone)
-	// 	t.FailNow()
-	// }
-
 	t.Logf("* Call GetObjectStreamRevision /history/x as tester1")
 	getObjectStreamRevisionRes3, err := clients[tester1].Client.Do(getObjectStreamRevisionReq1)
-	if err != nil {
-		t.Errorf("GetObjectStreamRevision request 3 failed: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "GetObjectStreamRevision request 3 failed")
 	defer util.FinishBody(getObjectStreamRevisionRes3.Body)
+
 	// ### Expect success since the call to update without share restrictions grants to everyone
-	if getObjectStreamRevisionRes3.StatusCode != http.StatusOK {
-		t.Errorf("Error! Was not able to retrieve object stream revision on request 3 despite share to everyone, status %d", getObjectStreamRevisionRes3.StatusCode)
-		t.FailNow()
-	}
+	statusMustBe(t, 200, getObjectStreamRevisionRes3,
+		"unable to retrieve object stream on request 3 desipte share to everyone")
 
 	t.Logf("* Call GetObjectStreamRevision /history/0 as tester1")
 	getObjectStreamRevisionRes4, err := clients[tester1].Client.Do(getObjectStreamRevisionReq2)
-	if err != nil {
-		t.Errorf("GetObjectStreamRevision request 4 failed: %v\n", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "GetObjectStreamRevision request 4 failed")
 	defer util.FinishBody(getObjectStreamRevisionRes4.Body)
 	// ### Expect success, same as above
-	if getObjectStreamRevisionRes4.StatusCode != http.StatusOK {
-		t.Errorf("Error! Was not able to retrieve object stream revision on request 4 despite share to everyon, status %d", getObjectStreamRevisionRes4.StatusCode)
+	statusMustBe(t, 200, getObjectStreamRevisionRes4,
+		"unable to retrieve object stream on request 4 desipte share to everyone")
+
+}
+
+func assertBodyNotNil(t *testing.T, resp *http.Response) {
+	if resp.Body == nil {
+		t.Errorf("body was nil")
 		t.FailNow()
 	}
-
 }
