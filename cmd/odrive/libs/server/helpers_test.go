@@ -68,11 +68,15 @@ func doAddObjectShare(t *testing.T, obj *protocol.Object, share *protocol.Object
 }
 
 func makeFolderWithACMViaJSON(folderName string, rawAcm string, clientid int) (*protocol.Object, error) {
+	return makeFolderWithACMWithParentViaJSON(folderName, "", rawAcm, clientid)
+}
+
+func makeFolderWithACMWithParentViaJSON(folderName string, parentID string, rawAcm string, clientid int) (*protocol.Object, error) {
 	folderuri := host + cfg.NginxRootURL + "/objects"
 	folder := protocol.Object{}
 	folder.Name = folderName
 	folder.TypeName = "Folder"
-	folder.ParentID = ""
+	folder.ParentID = parentID
 	folder.RawAcm = rawAcm
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
@@ -110,6 +114,10 @@ func makeFolderWithACMViaJSON(folderName string, rawAcm string, clientid int) (*
 }
 
 func makeFolderViaJSON(folderName string, clientid int, t *testing.T) *protocol.Object {
+	return makeFolderWithParentViaJSON(folderName, "", clientid, t)
+}
+
+func makeFolderWithParentViaJSON(folderName string, parentID string, clientid int, t *testing.T) *protocol.Object {
 
 	nameWithTimestamp := folderName + strconv.FormatInt(time.Now().Unix(), 10)
 
