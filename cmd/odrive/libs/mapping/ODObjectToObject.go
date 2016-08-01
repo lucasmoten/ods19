@@ -169,8 +169,7 @@ func MapODObjectToJSON(i *models.ODObject) string {
 	return string(jsonobj)
 }
 
-// MapObjectToODObject converts an API exposable protocol Object into an
-// internally usable model object.
+// MapObjectToODObject converts an external protocol.Object to a models.ODObject.
 func MapObjectToODObject(i *protocol.Object) (models.ODObject, error) {
 
 	var err error

@@ -44,7 +44,7 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 		part, err := multipartReader.NextPart()
 		if err != nil {
 			if err == io.EOF {
-				break //just an eof...not an error
+				break
 			} else {
 				return drainFunc, NewAppError(400, err, "error getting a part"), err
 			}
@@ -104,15 +104,6 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 				return drainFunc, NewAppError(400, err, "An ACM must be specified"), nil
 			}
 
-			// NOTE: Dont need to check access to ACM again here because create has done
-			// it in handleCreatePrerequisites already, and for update it is handled
-			// explicitly a few dozen lines above, and if there was no ACM provided on the
-			// update, then the existing ACM on the object which wont be overwritten
-			// during the call to OverwriteODObjectWithProtocolObject will have already
-			// been checked for this user in updateObjectStream where checking
-			// hasAACAccessToOLDACM
-			// TODO: Refactor this whole create/update to flow more logically and
-			// encapsulate into appropriate go
 			parsedMetadata = true
 		case len(part.FileName()) > 0:
 			var msg string
@@ -148,13 +139,8 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 	return drainFunc, nil, nil
 }
 
-func (h AppServer) beginUpload(
-	ctx context.Context,
-	caller Caller,
-	part *multipart.Part,
-	obj *models.ODObject,
-	grant *models.ODObjectPermission,
-) (beginDrain func(), herr *AppError, err error) {
+func (h AppServer) beginUpload(ctx context.Context, caller Caller, part *multipart.Part,
+	obj *models.ODObject, grant *models.ODObjectPermission) (beginDrain func(), herr *AppError, err error) {
 	beganAt := h.Tracker.BeginTime(performance.UploadCounter)
 	drainFunc, herr, err := h.beginUploadTimed(ctx, caller, part, obj, grant)
 	bytes := obj.ContentSize.Int64

@@ -16,7 +16,7 @@ import (
 	"decipher.com/object-drive-server/util/testhelpers"
 )
 
-func TestUpdateObjectStreamWithBadID(t *testing.T) {
+func TestUpdateObjectStreamWithMismatchedIDs(t *testing.T) {
 
 	t.Logf("Create new test object with stream")
 	clientID := 6
@@ -61,57 +61,13 @@ func TestUpdateObjectStreamWithBadID(t *testing.T) {
 
 }
 
-func doMaliciousUpdate(t *testing.T, oid, jsonString string) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	clientID := 5
-
-	data := "Initial test data 2"
-	//An exe name with some backspace chars to make it display as txt
-	tmpName := "initialTestData2.exe\b\b\btxt"
-	tmp, tmpCloser, err := testhelpers.GenerateTempFile(data)
-	if err != nil {
-		t.Errorf("Could not open temp file for write: %v\n", err)
-	}
-	defer tmpCloser()
-
-	jsonBody := []byte(jsonString)
-
-	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
-		fmt.Sprintf("objects/%s/stream", oid), host, "", tmp, tmpName, jsonBody)
-	if err != nil {
-		t.Errorf("Unable to create HTTP request: %v\n", err)
-	}
-
-	client := clients[clientID].Client
-	res, err := client.Do(req)
-	failNowOnErr(t, err, "unable to do request")
-	defer util.FinishBody(res.Body)
-	statusMustBe(t, 400, res, "expected create object from doMaliciousUpdate to fail")
-
-	var objResponse protocol.Object
-	err = util.FullDecode(res.Body, &objResponse)
-	res.Body.Close()
-
-	if objResponse.CreatedBy == "CN=POTUS,C=US" {
-		log.Printf("checking to see if we are now POTUS")
-		t.Fail()
-	}
-	if objResponse.ID == "deadbeef" {
-		log.Printf("checking to see if we modified the id")
-		t.Fail()
-	}
-}
-
 func TestUpdateObjectMalicious(t *testing.T) {
 	clientID := 5
 	data := "0123456789"
 	_, obj := doTestCreateObjectSimple(t, data, clientID)
 
 	if len(obj.ChangeToken) == 0 {
-		t.Fail()
+		t.FailNow()
 	}
 
 	jsonString := `
@@ -129,6 +85,57 @@ func TestUpdateObjectMalicious(t *testing.T) {
 
 	doMaliciousUpdate(t, obj.ID, fmt.Sprintf(jsonString, obj.ChangeToken))
 }
+
+func TestUpdateObjectWithProperties(t *testing.T) {
+	clientID := 5
+	data := "0123456789"
+	_, created := doTestCreateObjectSimple(t, data, clientID)
+
+	if len(created.ChangeToken) == 0 {
+		t.FailNow()
+	}
+
+	// NOTE: do we need to do string escaping here?
+	acm := strings.Replace(testhelpers.ValidACMUnclassifiedFOUO, "\"", "\\\"", -1)
+	t.Logf("Use changetoken for update. id:%s oldChangeToken:%s changeCount:%d", created.ID, created.ChangeToken, created.ChangeCount)
+	doPropertyUpdate(t, clientID, created.ID, fmt.Sprintf(updateTemplate, created.ID, acm, created.ChangeToken))
+	doReCheckProperties(t, created.ID, fmt.Sprintf(updateTemplate, created.ID, acm, created.ChangeToken))
+}
+
+func TestUpdateStream(t *testing.T) {
+	clientID := 5
+	data, _ := util.NewGUID()
+	newName, _ := util.NewGUID()
+	_, created := doTestCreateObjectSimple(t, data, clientID)
+
+	created.Name = newName
+	updated := doUpdateStreamForObjectID(t, clientID, created.ID, created)
+	if updated.Name != newName {
+		t.Errorf("Expected name to be updated")
+		t.FailNow()
+	}
+
+}
+
+func TestUpdateStreamWithoutProvidingACM(t *testing.T) {
+
+	clientID := 5
+	data := "0123456789"
+	_, created := doTestCreateObjectSimple(t, data, clientID)
+	doPropertyUpdate(t, clientID, created.ID, fmt.Sprintf(updateTemplate, created.ID, "", created.ChangeToken))
+}
+
+var updateTemplate = `
+{
+	  "id": "%s",
+      "description": "describeit",
+	  "acm": "%s",
+	  "changeToken" : "%s",
+	  "properties" : [
+          {"name":"dogname", "value":"arf", "classificationPM":"U"}
+      ]
+}
+`
 
 func doPropsCheck(t *testing.T, jsonResponseBytes []byte) {
 	jsonResponse := string(jsonResponseBytes)
@@ -166,27 +173,45 @@ func doPropsCheck(t *testing.T, jsonResponseBytes []byte) {
 	}
 }
 
-func doReCheckProperties(t *testing.T, oid, jsonString string) {
+func doMaliciousUpdate(t *testing.T, oid, jsonString string) {
+	if testing.Short() {
+		t.Skip()
+	}
+
 	clientID := 5
 
-	req, err := testhelpers.NewGetObjectRequest(oid, "", host)
+	data := "Initial test data 2"
+	// An exe name with some backspace chars to make it display as txt
+	tmpName := "initialTestData2.exe\b\b\btxt"
+	tmp, tmpCloser, err := testhelpers.GenerateTempFile(data)
 	if err != nil {
-		t.Logf("Unable to generate get re-request:%v", err)
+		t.Errorf("Could not open temp file for write: %v\n", err)
 	}
-	client := clients[clientID].Client
-	res, err := client.Do(req)
-	if err != nil {
-		t.Errorf("Unable to do re-request:%v\n", err)
-		t.FailNow()
-	}
+	defer tmpCloser()
+
+	jsonBody := []byte(jsonString)
+
+	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
+		fmt.Sprintf("objects/%s/stream", oid), host, "", tmp, tmpName, jsonBody)
+	failNowOnErr(t, err, "unable to create HTTP request")
+
+	res, err := clients[clientID].Client.Do(req)
+	failNowOnErr(t, err, "unable to do request")
+	statusMustBe(t, 400, res, "expected create object from doMaliciousUpdate to fail")
 	defer util.FinishBody(res.Body)
-	jsonResponseBytes, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		t.Fatalf("unable to read data:%v", err)
-	}
+
+	var objResponse protocol.Object
+	err = util.FullDecode(res.Body, &objResponse)
 	res.Body.Close()
 
-	doPropsCheck(t, jsonResponseBytes)
+	if objResponse.CreatedBy == "CN=POTUS,C=US" {
+		log.Printf("checking to see if we are now POTUS")
+		t.Fail()
+	}
+	if objResponse.ID == "deadbeef" {
+		log.Printf("checking to see if we modified the id")
+		t.Fail()
+	}
 }
 
 func doPropertyUpdate(t *testing.T, clientID int, oid, updateJSON string) {
@@ -200,14 +225,8 @@ func doPropertyUpdate(t *testing.T, clientID int, oid, updateJSON string) {
 	defer tmpCloser()
 
 	jsonBody := []byte(updateJSON)
-
-	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
-		fmt.Sprintf("objects/%s/stream", oid),
-		host, "",
-		tmp,
-		tmpName,
-		jsonBody,
-	)
+	urlPath := fmt.Sprintf("objects/%s/stream", oid)
+	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(urlPath, host, "", tmp, tmpName, jsonBody)
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
@@ -230,41 +249,50 @@ func doPropertyUpdate(t *testing.T, clientID int, oid, updateJSON string) {
 	doPropsCheck(t, jsonResponseBytes)
 }
 
-func TestUpdateObjectWithProperties(t *testing.T) {
-	clientID := 5
-	data := "0123456789"
-	_, created := doTestCreateObjectSimple(t, data, clientID)
+func doUpdateStreamForObjectID(t *testing.T, clientID int, oid string, newObj protocol.Object) protocol.Object {
 
-	if len(created.ChangeToken) == 0 {
-		t.Fail()
+	req := testhelpers.NewUpdateObjectStreamPOSTRequest(t, host, newObj)
+
+	res, err := clients[clientID].Client.Do(req)
+	failNowOnErr(t, err, "could not do update stream request")
+	defer util.FinishBody(res.Body)
+
+	statusMustBe(t, 200, res, "bad status calling updateObjectStream")
+
+	jsonResponseBytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("unable to read data:%v", err)
 	}
 
-	acm := strings.Replace(testhelpers.ValidACMUnclassifiedFOUO, "\"", "\\\"", -1)
-	//Use its changeToken for an update ....
-	t.Logf("id:%s oldChangeToken:%s changeCount:%d", created.ID, created.ChangeToken, created.ChangeCount)
-	doPropertyUpdate(t, clientID, created.ID, fmt.Sprintf(updateTemplate, created.ID, acm, created.ChangeToken))
-	//Do an independent re-retrieve
-	doReCheckProperties(t, created.ID, fmt.Sprintf(updateTemplate, created.ID, acm, created.ChangeToken))
+	var updated protocol.Object
+
+	err = json.Unmarshal(jsonResponseBytes, &updated)
+	failNowOnErr(t, err, "could not unmarshal response from updateObjectStream")
+
+	return updated
 }
 
-func TestUpdateStreamWithoutProvidingACM(t *testing.T) {
-
+func doReCheckProperties(t *testing.T, oid, jsonString string) {
+	// TODO try to remove hardcoding here so we can have stream tests that
+	// use more than one client ID.
 	clientID := 5
-	data := "0123456789"
-	_, created := doTestCreateObjectSimple(t, data, clientID)
-	// update object with empty string ACM
-	// This function will fail internally.
-	doPropertyUpdate(t, clientID, created.ID, fmt.Sprintf(updateTemplate, created.ID, "", created.ChangeToken))
-}
 
-var updateTemplate = `
-{
-	  "id": "%s",
-      "description": "describeit"
-      ,"acm": "%s"
-      ,"changeToken" : "%s"
-      ,"properties" : [
-          {"name":"dogname", "value":"arf", "classificationPM":"U"}
-      ]
+	req, err := testhelpers.NewGetObjectRequest(oid, "", host)
+	if err != nil {
+		t.Logf("Unable to generate get re-request:%v", err)
+	}
+	client := clients[clientID].Client
+	res, err := client.Do(req)
+	if err != nil {
+		t.Errorf("Unable to do re-request:%v\n", err)
+		t.FailNow()
+	}
+	defer util.FinishBody(res.Body)
+	jsonResponseBytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("unable to read data:%v", err)
+	}
+	res.Body.Close()
+
+	doPropsCheck(t, jsonResponseBytes)
 }
-`
