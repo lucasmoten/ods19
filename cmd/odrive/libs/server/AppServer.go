@@ -212,7 +212,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.FetchUser(ctx)
 	if err != nil {
-		sendErrorResponse(logger, &w, 500, nil, "Error loading user")
+		sendErrorResponse(logger, &w, 500, err, "Error loading user")
 		return
 	}
 
@@ -232,7 +232,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	snippets, err := h.FetchUserSnippets(ctx)
 	if err != nil {
-		sendErrorResponse(logger, &w, 500, nil, "Error retrieving user snippets")
+		sendErrorResponse(logger, &w, 500, err, "Error retrieving user snippets")
 		return
 	}
 	ctx = ContextWithSnippets(ctx, snippets)
