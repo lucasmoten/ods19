@@ -1,8 +1,10 @@
 package zookeeper
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -370,25 +372,17 @@ func ServiceReAnnouncement(zkState *ZKState, protocol string, stat, host string,
 
 	//Ensure that a node exists for our protocol - effectively permanent
 	var emptyData []byte
-	newPath, err := makeNewNode(
-		zkState.Conn,
-		"protocols",
-		zkState.Protocols,
-		protocol,
-		0,
-		emptyData,
-	)
+	newPath, err := makeNewNode(zkState.Conn, "protocols", zkState.Protocols, protocol, 0, emptyData)
 	if err == nil {
-		//Register a member with our data - ephemeral so that data disappears when we die
-		newPath, err = makeNewNode(
-			zkState.Conn,
-			"announcement",
-			newPath,
-			globalconfig.NodeID,
-			zk.FlagEphemeral,
-			asBytes,
-		)
+		// Register a member with our data
+		newPath, err = makeNewNode(zkState.Conn, "announcement", newPath, randomID(), zk.FlagEphemeral, asBytes)
 		logger.Info("zk our address", zap.String("ip", host), zap.Int("port", intPort))
 	}
 	return err
+}
+
+func randomID() string {
+	buf := make([]byte, 4)
+	rand.Read(buf)
+	return hex.EncodeToString(buf)
 }

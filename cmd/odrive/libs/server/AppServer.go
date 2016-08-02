@@ -3,7 +3,9 @@ package server
 import (
 	"html/template"
 	"log"
+	"net"
 	"net/http"
+	"os"
 	"regexp"
 	"time"
 
@@ -572,6 +574,27 @@ func do404(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppErro
 	msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 	log.Println("WARN: " + msg)
 	return NewAppError(404, nil, "Resource not found")
+}
+
+func resolveOurIP() string {
+	globalconfig.RootLogger.Info("attempting to resolve our IP")
+	hostname, err := os.Hostname()
+	if err != nil {
+		globalconfig.RootLogger.Error("unable to resolve our own hostname")
+		return ""
+	}
+	myIPs, err := net.LookupIP(hostname)
+	if err != nil {
+		globalconfig.RootLogger.Error("could not lookup IP for hostname")
+		return ""
+	}
+	for _, addr := range myIPs {
+		if addr.To4() != nil {
+			globalconfig.RootLogger.Info("resolved our IP", zap.String("ip", addr.String()))
+			return addr.String()
+		}
+	}
+	return ""
 }
 
 // StaticRx statically references compiled regular expressions.
