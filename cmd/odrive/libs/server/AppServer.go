@@ -116,6 +116,7 @@ func (h *AppServer) InitRegex() {
 		Search: regexp.MustCompile(h.ServicePrefix + "/search/(?P<searchPhrase>.*)$"),
 		// - trash
 		Trash: regexp.MustCompile(h.ServicePrefix + "/trashed$"),
+		Zip:   regexp.MustCompile(h.ServicePrefix + "/documents/zip$"),
 		// - not yet implemented. future
 		Favorites:              regexp.MustCompile(h.ServicePrefix + "/favorites$"),
 		FavoriteObject:         regexp.MustCompile(h.ServicePrefix + "/favorites/(?P<objectId>[0-9a-fA-F]{32})$"),
@@ -287,6 +288,9 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.Search.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Search)
 			herr = h.query(ctx, w, r)
+		// - create zip
+		case h.Routes.Zip.MatchString(uri):
+			herr = h.getZip(ctx, w, r)
 		// FUTURE API, NOT YET IMPLEMENTED
 		// - get relationships
 		case h.Routes.ObjectLinks.MatchString(uri):
@@ -598,6 +602,7 @@ type StaticRx struct {
 	SharedObjectShare      *regexp.Regexp
 	Search                 *regexp.Regexp
 	Trash                  *regexp.Regexp
+	Zip                    *regexp.Regexp
 	Favorites              *regexp.Regexp
 	FavoriteObject         *regexp.Regexp
 	LinkToObject           *regexp.Regexp
