@@ -77,7 +77,6 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for existing object ACM")
 	}
 
-	//Do an upload that is basically the same as for a new object.
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
 		return NewAppError(400, err, "unable to open multipart reader")

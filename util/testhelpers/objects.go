@@ -29,7 +29,7 @@ type DeferFunc func()
 
 // GenerateTempFile gives us a file handle for a string that deletes itself on close:
 //
-//    f,c,err := GenerateTempFile(hugeString)
+//    f, c, err := GenerateTempFile(hugeString)
 //    if err != nil {
 //      return err
 //    }
@@ -198,11 +198,9 @@ func NewCreateObjectPOSTRequest(host, dn string, f *os.File) (*http.Request, err
 	return NewCreateObjectPOSTRequestRaw("objects", host, dn, f, "testfilename.txt", jsonBody)
 }
 
-// NewCreateObjectPOSTRequestRaw generates a raw request, with enough flexibility to make
-// some malformed requests without too much trouble.
-func NewCreateObjectPOSTRequestRaw(requestType, host, dn string, f *os.File,
+func NewCreateObjectPOSTRequestRaw(urlPath, host, dn string, f *os.File,
 	fileName string, jsonBody []byte) (*http.Request, error) {
-	uri := host + cfg.NginxRootURL + "/" + requestType
+	uri := host + cfg.NginxRootURL + "/" + urlPath
 
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
@@ -241,6 +239,31 @@ func NewCreateObjectPOSTRequestRaw(requestType, host, dn string, f *os.File,
 	}
 
 	return req, nil
+}
+
+// NewUpdateObjectStreamPOSTRequest performs an update with the provided protocol.Object as
+// metadata. A new stream is posted by generating a small text file with random contents.
+func NewUpdateObjectStreamPOSTRequest(t *testing.T, host string, obj protocol.Object) *http.Request {
+	uri := host + cfg.NginxRootURL + "/objects/" + obj.ID + "/stream"
+
+	data, _ := util.NewGUID()
+	f, closer, err := GenerateTempFile(data)
+	if err != nil {
+		t.Errorf("could not create tempfile")
+		t.FailNow()
+	}
+	defer closer()
+
+	body, boundary := NewMultipartRequestBody(t, obj, f)
+
+	req, err := http.NewRequest("POST", uri, body)
+	if err != nil {
+		t.Errorf("could not create request")
+		t.FailNow()
+	}
+	req.Header.Set("Content-Type", boundary)
+
+	return req
 }
 
 // UpdateObjectStreamPOSTRequest generates a http.Request that will route to the updateObjectStream

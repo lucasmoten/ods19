@@ -15,7 +15,7 @@ import (
 	"decipher.com/object-drive-server/protocol"
 )
 
-// listObjects reuturns a paged object result set.  If parentID is given in the request URI,
+// listObjects returns a paged object result set. If parentID is given in the request URI,
 // then it is used to list the children within it, otherwise, the root for the given user
 // is listed. For a user, the root is defined as those objects that they own
 // which have no parent identifier.
@@ -48,6 +48,7 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 		return NewAppError(400, err, "Object Identifier in Request URI is not a hex string")
 	}
 
+	// TODO can we remove this? We should expect snippets to be set by now.
 	snippetFields, ok := SnippetsFromContext(ctx)
 	if !ok {
 		return NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
