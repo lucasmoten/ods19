@@ -68,7 +68,7 @@ type AppServer struct {
 	// This encapsulates connectivity to long term storage behind the cache
 	DrainProvider DrainProvider
 	// ZKState is the current state of zookeeper
-	ZKState zookeeper.ZKState
+	ZKState *zookeeper.ZKState
 	// Users contains a cache of users
 	Users *UserCache
 	// Snippets contains a cache of snippets

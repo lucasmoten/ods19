@@ -18,6 +18,14 @@ var (
 
 var PermissiveACL = zk.WorldACL(zk.PermAll)
 
+// AnnouncementRequest is information required to re-invoke announcements
+type AnnouncementRequest struct {
+	protocol string
+	stat     string
+	host     string
+	port     string
+}
+
 // ZKState is everything about zookeeper that we might need to know
 type ZKState struct {
 	// ZKAddress is the set of host:port that zk will try to connect to
@@ -26,8 +34,11 @@ type ZKState struct {
 	Conn *zk.Conn
 	// Protocols live under this path in zk
 	Protocols string
+	// Announcements
+	AnnouncementRequests []AnnouncementRequest
 }
 
+// AnnounceHandler is a callback when zk data changes
 type AnnounceHandler func(mountPoint string, announcements map[string]AnnounceData)
 
 // AnnounceData models the data written to a Zookeeper ephemeral node.
@@ -87,7 +98,7 @@ func makeNewNode(conn *zk.Conn, pathType, prevPath, appendPath string, flags int
 //
 //  The member nodes should be ephemeral so that they clean out when the service dies
 //
-func RegisterApplication(uri, zkAddress string) (ZKState, error) {
+func RegisterApplication(uri, zkAddress string) (*ZKState, error) {
 	var err error
 
 	//Get open zookeeper connection, and get a handle on closing it later
@@ -108,7 +119,7 @@ func RegisterApplication(uri, zkAddress string) (ZKState, error) {
 
 	conn, _, err := zk.Connect(addrs, time.Second*time.Duration(zkTimeout))
 	if err != nil {
-		return ZKState{}, err
+		return &ZKState{}, err
 	}
 
 	//Bundle up zookeeper context into a single object
@@ -135,9 +146,10 @@ func RegisterApplication(uri, zkAddress string) (ZKState, error) {
 	zlogger.Info("zk full URI setting", zap.String("zkuri", zkURI))
 
 	zkState := ZKState{
-		ZKAddress: zkAddress,
-		Conn:      conn,
-		Protocols: zkURI,
+		ZKAddress:            zkAddress,
+		Conn:                 conn,
+		Protocols:            zkURI,
+		AnnouncementRequests: make([]AnnouncementRequest, 0),
 	}
 
 	//Create uncreated nodes, and log modifications we made
@@ -155,11 +167,11 @@ func RegisterApplication(uri, zkAddress string) (ZKState, error) {
 		}
 	}
 	if err != nil {
-		return zkState, err
+		return &zkState, err
 	}
 
 	//return the closer, and zookeeper is running
-	return zkState, nil
+	return &zkState, nil
 }
 
 func assignPart(defaultValue string, parts []string, idx int, partName string) string {
@@ -175,19 +187,19 @@ func assignPart(defaultValue string, parts []string, idx int, partName string) s
 	return defaultValue
 }
 
-//TranckAnnouncements will call handler every time there is a membership changes
+//TrackAnnouncement will call handler every time there is a membership changes
 // Ex:
 //      aac/2.1/thrift -> [member_00000000 -> {192.168.2.3:9999,...}]
 //      object-drive/1.0/https -> [e928923 -> {192.168.3.5:4430,...}]
 //
 // This will give the *full* membership for that entity, including ourselves.
 //
-func TrackAnnouncement(z ZKState, at string, handler AnnounceHandler) {
+func TrackAnnouncement(z *ZKState, at string, handler AnnounceHandler) {
 	go trackMountLoop(z, at, handler)
 }
 
 //put a watch on the existence of this node
-func trackMountLoop(z ZKState, at string, handler AnnounceHandler) {
+func trackMountLoop(z *ZKState, at string, handler AnnounceHandler) {
 	zlogger := logger.With(zap.String("zk watch", at))
 	//Whenever we exit back out to here, do another existence check before attempting
 	//to trackAnnouncementsLoop
@@ -218,7 +230,7 @@ func trackMountLoop(z ZKState, at string, handler AnnounceHandler) {
 }
 
 //GetAnnouncements gets the most recent announcement
-func GetAnnouncements(z ZKState, at string) (map[string]AnnounceData, error) {
+func GetAnnouncements(z *ZKState, at string) (map[string]AnnounceData, error) {
 	zlogger := logger.With(zap.String("zk watch", at))
 	children, _, err := z.Conn.Children(at)
 	if err != nil {
@@ -250,10 +262,10 @@ func GetAnnouncements(z ZKState, at string) (map[string]AnnounceData, error) {
 //Once the announce point exists, we can track it.
 //When it returns, we still need to make sure that the zk node exists, as the error
 //could be caused by a removed zk node
-func trackAnnouncementsLoop(z ZKState, at string, handler AnnounceHandler) {
+func trackAnnouncementsLoop(z *ZKState, at string, handler AnnounceHandler) {
 	zlogger := logger.With(zap.String("zk watch", at))
 	ok := true
-	for ok {
+	for {
 		zlogger.Info("zk announcement check")
 		children, _, childrenEvents, err := z.Conn.ChildrenW(at)
 		if err != nil {
@@ -293,10 +305,39 @@ func trackAnnouncementsLoop(z ZKState, at string, handler AnnounceHandler) {
 			)
 			ok = false
 		}
+		//Something is messed up.  Re-register our announcements to make things ok to try again.
+		if !ok {
+			doReAnnouncements(z, zlogger)
+			ok = true
+		}
 	}
 }
 
-// ServiceAnnouncement ensures that a node for this protocol exists
+// try to fix it.
+func doReAnnouncements(zkState *ZKState, logger zap.Logger) {
+	for _, a := range zkState.AnnouncementRequests {
+		err := ServiceReAnnouncement(zkState, a.protocol, a.stat, a.host, a.port)
+		if err != nil {
+			logger.Error(
+				"zk re announce service", zap.Object("reannouncement", a), zap.String("err", err.Error()),
+			)
+		}
+	}
+}
+
+// ServiceAnnouncement is same as ServiceReAnnouncement with remembering for re-register later
+func ServiceAnnouncement(zkState *ZKState, protocol string, stat, host string, port string) error {
+	aReq := AnnouncementRequest{
+		protocol: protocol,
+		stat:     stat,
+		host:     host,
+		port:     port,
+	}
+	zkState.AnnouncementRequests = append(zkState.AnnouncementRequests, aReq)
+	return ServiceReAnnouncement(zkState, protocol, stat, host, port)
+}
+
+// ServiceReAnnouncement ensures that a node for this protocol exists
 // and this member is represented with an announcement
 //  It creates a node with protocol name and 8 random hex digits
 //
@@ -305,8 +346,7 @@ func trackAnnouncementsLoop(z ZKState, at string, handler AnnounceHandler) {
 // Containing the announcement.
 // When our service dies, this node goes away.
 //
-func ServiceAnnouncement(zkState ZKState, protocol string, stat, host string, port string) error {
-
+func ServiceReAnnouncement(zkState *ZKState, protocol string, stat, host string, port string) error {
 	intPort, err := strconv.Atoi(port)
 	if err != nil {
 		return errors.New("port could not be parsed as int")
