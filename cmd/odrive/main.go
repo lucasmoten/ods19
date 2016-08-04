@@ -179,8 +179,6 @@ func runServiceTest(ctx *cli.Context) error {
 
 func startApplication(conf config.AppConfiguration) {
 
-	// conf := config.NewAppConfiguration(whitelist, opts)
-
 	app, err := makeServer(conf.ServerSettings)
 	if err != nil {
 		logger.Error("Error calling makeserver", zap.String("err", err.Error()))
@@ -205,42 +203,14 @@ func startApplication(conf config.AppConfiguration) {
 		os.Exit(1)
 	}
 
-	configureDrainProvider(app, globalconfig.StandaloneMode,
-		conf.ServerSettings.CacheRoot, conf.ServerSettings.CachePartition+"/"+cacheID)
-
-	zkAddress := globalconfig.GetEnvOrDefault("OD_ZK_URL", "zk:2181")
-	zkBasePath := globalconfig.GetEnvOrDefault("OD_ZK_BASEPATH", "/service/object-drive/1.0")
+	configureDrainProvider(app, conf.CacheSettings, globalconfig.StandaloneMode,
+		conf.CacheSettings.Partition+"/"+cacheID)
 
 	logger.Info("our ip is", zap.String("ip", globalconfig.MyIP))
 
-	//Once we know which cluster we are attached to (ie: the database and bucket partition), note it in the logs
-	logger.Info(
-		"join cluster",
-		zap.String("database", cacheID),
-		zap.String("bucket", config.DefaultBucket),
-		zap.String("partition", conf.ServerSettings.CachePartition+"/"+cacheID),
-	)
-
-	//These are the IP:port as seen by the outside.  They are not necessarily the same as the internal port that the server knows,
-	//because this is created by the -p $OD_ZK_MYPORT:$OD_SERVER_PORT mapping on docker machine $OD_ZK_MYIP.
-	zkMyIP := globalconfig.GetEnvOrDefault("OD_ZK_MYIP", globalconfig.MyIP)
-	serverPort := globalconfig.GetEnvOrDefault("OD_SERVER_PORT", "4430")
-	zkMyPort := globalconfig.GetEnvOrDefault("OD_ZK_MYPORT", serverPort)
-
-	err = registerWithZookeeper(app, zkBasePath, zkAddress, zkMyIP, zkMyPort)
+	err = registerWithZookeeper(app, conf.ZK.Basepath, conf.ZK.Address, globalconfig.MyIP, conf.ZK.Port)
 	if err != nil {
 		logger.Fatal("Could not register with Zookeeper")
-	}
-
-	app.MasterKey = globalconfig.GetEnvOrDefault("OD_ENCRYPT_MASTERKEY", "otterpaws")
-	if app.MasterKey == "otterpaws" {
-		logger.Fatal(
-			"You should pass in an environment variable 'OD_ENCRYPT_MASTERKEY' to encrypt database keys",
-			zap.String("note",
-				"Note that if you change masterkey, then the encrypted keys are invalidated",
-			),
-		)
-
 	}
 
 	httpServer := &http.Server{
@@ -259,9 +229,8 @@ func startApplication(conf config.AppConfiguration) {
 
 	logger.Info("starting server", zap.String("addr", app.Addr))
 	//This blocks until there is an error to stop the server
-	err =
-		httpServer.ListenAndServeTLS(
-			conf.ServerSettings.ServerCertChain, conf.ServerSettings.ServerKey)
+	err = httpServer.ListenAndServeTLS(
+		conf.ServerSettings.ServerCertChain, conf.ServerSettings.ServerKey)
 	if err != nil {
 		logger.Fatal("stopped server", zap.String("err", err.Error()))
 	}
@@ -339,14 +308,16 @@ func configureDAO(app *server.AppServer, conf config.DatabaseConfiguration) erro
 	return nil
 }
 
-func configureDrainProvider(app *server.AppServer, standalone bool, root, cacheID string) {
+func configureDrainProvider(app *server.AppServer, conf config.S3DrainProviderOpts, standalone bool, cacheID string) {
 	var dp server.DrainProvider
 	if standalone {
 		logger.Info("Draining cache locally")
-		dp = server.NewNullDrainProvider(root, cacheID)
+		dp = server.NewNullDrainProvider(conf.Root, cacheID)
 	} else {
 		logger.Info("Draining cache to S3")
-		dp = server.NewS3DrainProvider(root, cacheID)
+		dp = server.NewS3DrainProvider(conf, cacheID)
+		// go dp.DrainUploadedFilesToSafety() can't do this because interface is lacking
+
 	}
 
 	app.DrainProvider = dp
@@ -431,6 +402,7 @@ func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, err
 		Users:                     userCache,
 		Snippets:                  snippetCache,
 		AclImpersonationWhitelist: conf.AclImpersonationWhitelist,
+		MasterKey:                 conf.MasterKey,
 	}
 
 	httpHandler.InitRegex()

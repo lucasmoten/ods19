@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
-	globalconfig "decipher.com/object-drive-server/config"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 	"github.com/urfave/cli"
+
+	globalconfig "decipher.com/object-drive-server/config"
 )
 
 // Globals
@@ -18,7 +20,7 @@ var (
 	defaultDBDriver = "mysql"
 	defaultDBHost   = "127.0.0.1"
 	defaultDBPort   = "3306"
-	DefaultBucket   = globalconfig.GetEnvOrDefault("OD_AWS_S3_BUCKET", "")
+	DefaultBucket   = getEnvOrDefault("OD_AWS_S3_BUCKET", "")
 )
 
 // AppConfiguration is a structure that defines the known configuration format
@@ -28,6 +30,8 @@ type AppConfiguration struct {
 	DatabaseConnection DatabaseConfiguration
 	ServerSettings     ServerSettingsConfiguration
 	AACSettings        AACConfiguration
+	CacheSettings      S3DrainProviderOpts
+	ZK                 ZKSettings
 }
 
 // AACConfiguration holds data required for an AAC client.
@@ -37,6 +41,13 @@ type AACConfiguration struct {
 	ClientKey  string
 	HostName   string
 	Port       string
+}
+
+// AuditSvcConfiguration defines the attributes needed for connecting to the audit service
+type AuditSvcConfiguration struct {
+	Type string
+	Port string
+	Host string
 }
 
 // CommandLineOpts holds command line options so they can be passed as a param.
@@ -67,8 +78,18 @@ type DatabaseConfiguration struct {
 	ClientKey  string
 }
 
-// ServerSettingsConfiguration is a structure defining the attributes needed for
-// setting up the server listener
+// S3DrainProviderOpts describes our current disk cache configuration.
+type S3DrainProviderOpts struct {
+	Root          string
+	Partition     string
+	LowWatermark  float64
+	HighWatermark float64
+	EvictAge      int64
+	WalkSleep     int64
+}
+
+// ServerSettingsConfiguration holds the attributes needed for
+// setting up an AppServer listener.
 type ServerSettingsConfiguration struct {
 	BasePath                  string
 	ListenPort                string
@@ -77,25 +98,26 @@ type ServerSettingsConfiguration struct {
 	CAPath                    string
 	ServerCertChain           string
 	ServerKey                 string
+	MasterKey                 string
 	RequireClientCert         bool
 	CipherSuites              []string
 	MinimumVersion            string
 	AclImpersonationWhitelist []string
 	PathToStaticFiles         string
 	PathToTemplateFiles       string
-	CacheRoot                 string
-	CachePartition            string
 }
 
-// AuditSvcConfiguration defines the attributes needed for connecting to the audit service
-type AuditSvcConfiguration struct {
-	Type string
-	Port string
-	Host string
+// ZKSettings holds the data required to communicate with Zookeeper.
+type ZKSettings struct {
+	IP       string
+	Port     string
+	Address  string
+	Basepath string
 }
 
-// NewAppConfiguration loads the configuration from the environment. Parameters are command
-// line flags.
+// NewAppConfiguration loads the configuration from the different sources in the environment.
+// If multiple configuration sources can be used, the order of precedence is: env var overrides
+// config file.
 func NewAppConfiguration(opts CommandLineOpts) AppConfiguration {
 
 	confFile, err := LoadYAMLConfig(opts.Conf)
@@ -107,12 +129,32 @@ func NewAppConfiguration(opts CommandLineOpts) AppConfiguration {
 	dbConf := NewDatabaseConfigFromEnv(confFile, opts)
 	serverSettings := NewServerSettingsFromEnv(confFile, opts)
 	aacSettings := NewAACSettingsFromEnv(confFile, opts)
+	cacheSettings := NewS3DrainProviderOpts(confFile, opts)
+	zkSettings := NewZKSettingsFromEnv(confFile, opts)
 
 	return AppConfiguration{
+		CacheSettings:      cacheSettings,
 		DatabaseConnection: dbConf,
 		ServerSettings:     serverSettings,
 		AACSettings:        aacSettings,
+		ZK:                 zkSettings,
 	}
+}
+
+// NewAACSettingsFromEnv inspects the environment and returns a AACConfiguration.
+func NewAACSettingsFromEnv(confFile ConfigFile, opts CommandLineOpts) AACConfiguration {
+
+	var conf AACConfiguration
+
+	conf.CAPath = os.Getenv(OD_AAC_CA)
+	conf.ClientCert = os.Getenv(OD_AAC_CERT)
+	conf.ClientKey = os.Getenv(OD_AAC_KEY)
+
+	// These should get overridden with zookeeper nodes found in OD_ZK_AAC
+	conf.HostName = os.Getenv(OD_AAC_HOST)
+	conf.Port = os.Getenv(OD_AAC_PORT)
+
+	return conf
 }
 
 // NewCommandLineOpts instantiates CommandLineOpts from a pointer to the parsed command line
@@ -190,17 +232,36 @@ func NewDatabaseConfigFromEnv(confFile ConfigFile, opts CommandLineOpts) Databas
 	return dbConf
 }
 
+// NewS3DrainProviderOpts reads the environment to provide the configuration options for
+// S3DrainProvider.
+func NewS3DrainProviderOpts(confFile ConfigFile, opts CommandLineOpts) S3DrainProviderOpts {
+	return S3DrainProviderOpts{
+		Root:          getEnvOrDefault(OD_CACHE_ROOT, "."),
+		Partition:     getEnvOrDefault(OD_CACHE_PARTITION, "cache"),
+		LowWatermark:  getEnvOrDefaultFloat(OD_CACHE_LOWWATERMARK, .50),
+		HighWatermark: getEnvOrDefaultFloat(OD_CACHE_HIGHWATERMARK, .75),
+		EvictAge:      getEnvOrDefaultInt(OD_CACHE_EVICTAGE, 300),
+		WalkSleep:     getEnvOrDefaultInt(OD_CACHE_WALKSLEEP, 30),
+	}
+
+}
+
 // NewServerSettingsFromEnv inspects the environment and returns a ServerSettingsConfiguration.
 func NewServerSettingsFromEnv(confFile ConfigFile, opts CommandLineOpts) ServerSettingsConfiguration {
 
 	var settings ServerSettingsConfiguration
 
 	// From env
-	settings.BasePath = globalconfig.GetEnvOrDefault(OD_SERVER_BASEPATH, "/services/object-drive/1.0")
-	settings.ListenPort = os.Getenv(OD_SERVER_PORT)
+	settings.BasePath = getEnvOrDefault(OD_SERVER_BASEPATH, "/services/object-drive/1.0")
+	settings.ListenPort = getEnvOrDefault(OD_SERVER_PORT, "4430")
 	settings.CAPath = os.Getenv(OD_SERVER_CA)
 	settings.ServerCertChain = os.Getenv(OD_SERVER_CERT)
 	settings.ServerKey = os.Getenv(OD_SERVER_KEY)
+	settings.MasterKey = os.Getenv(OD_ENCRYPT_MASTERKEY)
+
+	if os.Getenv(OD_ENCRYPT_MASTERKEY) == "" {
+		log.Fatal("You must set OD_ENCRYPT_MASTERKEY to start odrive")
+	}
 
 	// Defaults
 	settings.ListenBind = "0.0.0.0"
@@ -212,26 +273,21 @@ func NewServerSettingsFromEnv(confFile ConfigFile, opts CommandLineOpts) ServerS
 	settings.PathToStaticFiles = opts.StaticRootPath
 	settings.PathToTemplateFiles = opts.TemplateDir
 
-	settings.CacheRoot = globalconfig.GetEnvOrDefault("OD_CACHE_ROOT", ".")
-	settings.CachePartition = globalconfig.GetEnvOrDefault("OD_CACHE_PARTITION", "cache")
-
 	// TODO fill in unset values with config file values.
 
 	return settings
 }
 
-// NewAACSettingsFromEnv inspects the environment and returns a AACConfiguration.
-func NewAACSettingsFromEnv(confFile ConfigFile, opts CommandLineOpts) AACConfiguration {
+// NewZKSettingsFromEnv inspects the environment and returns a AACConfiguration.
+func NewZKSettingsFromEnv(confFile ConfigFile, opts CommandLineOpts) ZKSettings {
 
-	var conf AACConfiguration
+	var conf ZKSettings
+	conf.Address = getEnvOrDefault(OD_ZK_URL, "zk:2181")
+	conf.Basepath = getEnvOrDefault(OD_ZK_BASEPATH, "/service/object-drive/1.0")
+	conf.IP = getEnvOrDefault(OD_ZK_MYIP, globalconfig.MyIP)
 
-	conf.CAPath = os.Getenv(OD_AAC_CA)
-	conf.ClientCert = os.Getenv(OD_AAC_CERT)
-	conf.ClientKey = os.Getenv(OD_AAC_KEY)
-
-	// These should get overridden with zookeeper nodes found in OD_ZK_AAC
-	conf.HostName = os.Getenv(OD_AAC_HOST)
-	conf.Port = os.Getenv(OD_AAC_PORT)
+	serverPort := getEnvOrDefault(OD_SERVER_PORT, "4430")
+	conf.Port = getEnvOrDefault(OD_ZK_MYPORT, serverPort)
 
 	return conf
 }
@@ -251,8 +307,8 @@ func (r *DatabaseConfiguration) GetDatabaseHandle() (*sqlx.DB, error) {
 	}
 	// Setup handle to the database
 	db, err := sqlx.Open(r.Driver, r.buildDSN())
-	db.SetMaxIdleConns(globalconfig.GetEnvOrDefaultInt("OD_DB_MAXIDLECONNS", 10))
-	db.SetMaxOpenConns(globalconfig.GetEnvOrDefaultInt("OD_DB_MAXOPENCONNS", 10))
+	db.SetMaxIdleConns(int(getEnvOrDefaultInt("OD_DB_MAXIDLECONNS", 10)))
+	db.SetMaxOpenConns(int(getEnvOrDefaultInt("OD_DB_MAXOPENCONNS", 10)))
 	return db, err
 }
 
@@ -332,7 +388,29 @@ func (r *ServerSettingsConfiguration) buildTLSConfig() tls.Config {
 }
 
 func warnIfNotSet(variable string) {
-	if len(globalconfig.GetEnvOrDefault(variable, "")) == 0 {
+	if len(getEnvOrDefault(variable, "")) == 0 {
 		log.Printf("WARNING: %s not set.\n", variable)
 	}
+}
+
+func getEnvOrDefault(name, defaultValue string) string {
+	envVal := os.Getenv(name)
+	if len(envVal) == 0 {
+		return defaultValue
+	}
+	return envVal
+}
+
+func getEnvOrDefaultInt(envVar string, defaultVal int64) int64 {
+	if parsed, err := strconv.ParseInt(os.Getenv(envVar), 10, 64); err == nil {
+		return parsed
+	}
+	return defaultVal
+}
+
+func getEnvOrDefaultFloat(envVar string, defaultVal float64) float64 {
+	if parsed, err := strconv.ParseFloat(os.Getenv(envVar), 64); err == nil {
+		return parsed
+	}
+	return defaultVal
 }

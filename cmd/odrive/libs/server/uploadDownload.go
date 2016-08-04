@@ -139,8 +139,7 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 	return drainFunc, nil, nil
 }
 
-func (h AppServer) beginUpload(ctx context.Context, caller Caller, part *multipart.Part,
-	obj *models.ODObject, grant *models.ODObjectPermission) (beginDrain func(), herr *AppError, err error) {
+func (h AppServer) beginUpload(ctx context.Context, caller Caller, part *multipart.Part, obj *models.ODObject, grant *models.ODObjectPermission) (beginDrain func(), herr *AppError, err error) {
 	beganAt := h.Tracker.BeginTime(performance.UploadCounter)
 	drainFunc, herr, err := h.beginUploadTimed(ctx, caller, part, obj, grant)
 	bytes := obj.ContentSize.Int64
@@ -161,14 +160,15 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 	grant *models.ODObjectPermission) (beginDrain func(), herr *AppError, err error) {
 	logger := LoggerFromContext(ctx)
 
-	rName := FileId(obj.ContentConnector.String)
+	fileID := FileId(obj.ContentConnector.String)
 	iv := obj.EncryptIV
+	// TODO this is where we actually use grant.
 	fileKey := utils.ApplyPassphrase(h.MasterKey, grant.PermissionIV, grant.EncryptKey)
 	d := h.DrainProvider
 
-	//Make up a random name for our file - don't deal with versioning yet
-	outFileUploading := d.Resolve(NewFileName(rName, ".uploading"))
-	outFileUploaded := d.Resolve(NewFileName(rName, ".uploaded"))
+	// DrainCacheData.Resolve(FileName) returns a path.
+	outFileUploading := d.Resolve(NewFileName(fileID, ".uploading"))
+	outFileUploaded := d.Resolve(NewFileName(fileID, ".uploaded"))
 
 	outFile, err := d.Files().Create(outFileUploading)
 	if err != nil {
@@ -197,14 +197,14 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 		d.Files().Remove(outFileUploading)
 		return nil, NewAppError(500, err, msg), err
 	}
-	logger.Info("s3 enqueued", zap.String("rname", string(rName)))
+	logger.Info("s3 enqueued", zap.String("fileID", string(fileID)))
 
 	//Record metadata
 	obj.ContentHash = checksum
 	obj.ContentSize.Int64 = length
 
 	//At the end of this function, we can mark the file as stored in S3.
-	return func() { h.cacheToDrain(&config.DefaultBucket, rName, length, 3) }, nil, err
+	return func() { h.cacheToDrain(&config.DefaultBucket, fileID, length, 3) }, nil, err
 }
 
 //We get penalized on throughput if these fail a lot.
