@@ -9,7 +9,6 @@ import (
 )
 
 // FileId is the raw random name with no extension
-// These files DO NOT EXIST on filesystems
 type FileId string
 
 // FileName is the raw random name with no directory, and extension
@@ -17,8 +16,6 @@ type FileName string
 
 // FileNameCached is the name prefixed with cache location, but not mount location
 type FileNameCached string
-
-// string is reserved for fully qualified paths
 
 // DrainProvider handles the cached transfer of data in and out of permanent storage
 type DrainProvider interface {
@@ -36,6 +33,7 @@ type DrainProvider interface {
 }
 
 // DrainCacheData is the mount point for DrainProvider.CacheLocation()
+// TODO how is this instantiated?
 type DrainCacheData struct {
 	Root string
 }

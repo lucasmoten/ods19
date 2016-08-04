@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
@@ -58,6 +59,12 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		object.Name = "New " + object.TypeName.String
 	}
 
+	// Assign a random content connector value if this object doesnt have one
+	if len(object.ContentConnector.String) == 0 {
+		object.ContentConnector = models.ToNullString(utils.CreateRandomName())
+	}
+
+	// Normalize ACM
 	newACMNormalized, err := normalizedACM(object.RawAcm.String)
 	if err != nil {
 		return dbObject, fmt.Errorf("Error normalizing ACM on new object: %v (acm: %s)", err.Error(), object.RawAcm.String)
@@ -143,9 +150,10 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
         o.createdby = ? 
         and o.typeId = ? 
         and o.name = ? 
+        and o.contentConnector = ?
         and o.isdeleted = 0 
     order by o.createddate desc limit 1`
-	err = tx.Get(&dbObject, getObjectStatement, object.CreatedBy, object.TypeID, object.Name)
+	err = tx.Get(&dbObject, getObjectStatement, object.CreatedBy, object.TypeID, object.Name, object.ContentConnector)
 	if err != nil {
 		return dbObject, fmt.Errorf("CreateObject Error retrieving object, %s", err.Error())
 	}

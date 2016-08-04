@@ -151,7 +151,7 @@ func MapObjectShareToODPermissions(i *protocol.ObjectShare) ([]models.ODObjectPe
 	}
 	// Iterate the map
 	for shareKey, shareValue := range shareMap {
-		if strings.Compare(shareKey, "users") == 0 {
+		if strings.Compare(strings.ToLower(shareKey), "users") == 0 {
 			// Expected format:
 			//    "users":[
 			//       "the distinguished name of a user"
@@ -174,7 +174,7 @@ func MapObjectShareToODPermissions(i *protocol.ObjectShare) ([]models.ODObjectPe
 					}
 				}
 			}
-		} else if strings.Compare(shareKey, "projects") == 0 {
+		} else if strings.Compare(strings.ToLower(shareKey), "projects") == 0 {
 			// Expected format:
 			//    "projects":{
 			//      "id of project":{
@@ -197,14 +197,34 @@ func MapObjectShareToODPermissions(i *protocol.ObjectShare) ([]models.ODObjectPe
 						if !ok {
 							return o, fmt.Errorf("Share 'projects' for '%s' does not convert to map", projectKey)
 						}
+						// Capture display name for the project
 						projectDisplayName := ""
 						for projectFieldKey, projectFieldValue := range projectValueMap {
 							if projectFieldValue != nil {
-								if strings.Compare(projectFieldKey, "disp_nm") == 0 {
+								if strings.Compare(strings.ToLower(projectFieldKey), "disp_nm") == 0 {
+									if strings.Compare(projectFieldKey, "disp_nm") != 0 {
+										return o, fmt.Errorf("Share 'projects' has a field that is not the correct case. %s should be 'disp_nm'", projectFieldKey)
+									}
 									if strings.Compare(reflect.TypeOf(projectFieldValue).Kind().String(), "string") == 0 {
 										projectDisplayName = projectFieldValue.(string)
+									} else {
+										return o, fmt.Errorf("Share 'projects' has an unusable value for 'disp_nm' on key %s. Value is not a string", projectFieldKey)
 									}
-								} else if strings.Compare(projectFieldKey, "groups") == 0 {
+									if len(projectDisplayName) == 0 {
+										return o, fmt.Errorf("Share 'projects' has an empty value for 'disp_nm' on key %s", projectFieldKey)
+									}
+									break
+								}
+							}
+						}
+						// If no display name detected, then error
+						if len(projectDisplayName) == 0 {
+							return o, fmt.Errorf("Share 'projects' for '%s' does not have a disp_nm field", projectKey)
+						}
+						// Now look for groups
+						for projectFieldKey, projectFieldValue := range projectValueMap {
+							if projectFieldValue != nil {
+								if strings.Compare(strings.ToLower(projectFieldKey), "groups") == 0 {
 									groupValueInterfaceArray := projectFieldValue.([]interface{})
 									for _, groupValueElement := range groupValueInterfaceArray {
 										if groupValueElement != nil {
@@ -214,7 +234,7 @@ func MapObjectShareToODPermissions(i *protocol.ObjectShare) ([]models.ODObjectPe
 													// Prep permission
 													permission := mapODObjectShareToODPermission(i)
 													// Group assignment to AcmShare
-													permission.AcmShare = fmt.Sprintf(acmShareGroup, projectKey, projectDisplayName, groupValue)
+													permission.AcmShare = fmt.Sprintf(acmShareGroup, strings.ToLower(projectKey), projectDisplayName, groupValue)
 													// Append to Array
 													o = append(o, permission)
 												}

@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/config"
@@ -112,59 +111,11 @@ type S3DrainProviderData struct {
 }
 
 // NewS3DrainProvider sets up a drain with default parameters overridden by environment variables
-// TODO this should return an error, as well.
-func NewS3DrainProvider(root, name string) DrainProvider {
-	var err error
-	lowWatermark := 0.50
-	lowWatermarkSuggested := globalconfig.GetEnvOrDefault("OD_CACHE_LOWWATERMARK", "0.50")
-	if len(lowWatermarkSuggested) > 0 {
-		lowWatermark, err = strconv.ParseFloat(lowWatermarkSuggested, 32)
-		if err != nil {
-			logger.Error(
-				"env var unset",
-				zap.String("name", "OD_CACHE_LOWWATERMARK"),
-				zap.String("value", lowWatermarkSuggested),
-			)
-		}
-	}
-	highWatermark := 0.75
-	highWatermarkSuggested := globalconfig.GetEnvOrDefault("OD_CACHE_HIGHWATERMARK", "0.75")
-	if len(highWatermarkSuggested) > 0 {
-		highWatermark, err = strconv.ParseFloat(highWatermarkSuggested, 32)
-		if err != nil {
-			logger.Error(
-				"env var unset",
-				zap.String("name", "OD_CACHE_HIGHWATERMARK"),
-				zap.String("value", highWatermarkSuggested),
-			)
-		}
-	}
-	ageEligibleForEviction := int64(60 * 5)
-	ageEligibleForEvictionSuggested := globalconfig.GetEnvOrDefault("OD_CACHE_EVICTAGE", "300")
-	if len(ageEligibleForEvictionSuggested) > 0 {
-		ageEligibleForEviction, err = strconv.ParseInt(ageEligibleForEvictionSuggested, 10, 64)
-		if err != nil {
-			logger.Error(
-				"env var unset",
-				zap.String("name", "OD_CACHE_EVICTAGE"),
-				zap.String("value", ageEligibleForEvictionSuggested),
-			)
-		}
-	}
-	walkSleep := time.Duration(30 * time.Second)
-	walkSleepSuggested := globalconfig.GetEnvOrDefault("OD_CACHE_WALKSLEEP", "30")
-	if len(walkSleepSuggested) > 0 {
-		walkSleepInt, err := strconv.ParseInt(walkSleepSuggested, 10, 64)
-		if err != nil {
-			logger.Error(
-				"env var unset",
-				zap.String("name", "OD_CACHE_WALKSLEEP"),
-				zap.String("value", walkSleepSuggested),
-			)
-		}
-		walkSleep = time.Duration(time.Duration(walkSleepInt) * time.Second)
-	}
-	d := NewS3DrainProviderRaw(root, name, lowWatermark, ageEligibleForEviction, highWatermark, walkSleep, logger)
+func NewS3DrainProvider(conf config.S3DrainProviderOpts, name string) DrainProvider {
+
+	walkSleepDuration := time.Duration(conf.WalkSleep) * time.Second
+
+	d := NewS3DrainProviderRaw(conf.Root, name, conf.LowWatermark, conf.EvictAge, conf.HighWatermark, walkSleepDuration, logger)
 	go d.DrainUploadedFilesToSafety()
 	return d
 }
@@ -402,14 +353,6 @@ func (d *NullDrainProviderData) DrainToCache(
 	return nil, nil
 }
 
-/*
-// CacheLocation is where the local cache lives. (S3 within bucket or filesystem path)
-func (d *NullDrainProviderData) Cache() string {
-	return d.CacheLocationString
-}
-*/
-
-//TODO: without a file length to expect, we are only making guesses as to how long we can wait.
 func S3DownloadAttempt(d *S3DrainProviderData, downloader *s3manager.Downloader, fOut *os.File, bucket *string, key *string) (int64, error) {
 	length, err := downloader.Download(
 		fOut,
@@ -429,10 +372,7 @@ func S3DownloadAttempt(d *S3DrainProviderData, downloader *s3manager.Downloader,
 }
 
 // DrainToCache gets a file back out of the drain into the cache.
-func (d *S3DrainProviderData) DrainToCache(
-	bucket *string,
-	rName FileId,
-) (*AppError, error) {
+func (d *S3DrainProviderData) DrainToCache(bucket *string, rName FileId) (*AppError, error) {
 	d.Logger.Info(
 		"get from S3",
 		zap.String("bucket", *bucket),
@@ -505,13 +445,6 @@ func (d *S3DrainProviderData) DrainToCache(
 	)
 	return nil, nil
 }
-
-/*
-// CacheLocation gives the file location locally, and in the buckets
-func (d *S3DrainProviderData) Cache() string {
-	return d.CacheLocationString
-}
-*/
 
 // CacheMustExist ensures that the cache directory exists.
 func CacheMustExist(d DrainProvider, logger zap.Logger) (err error) {
@@ -717,9 +650,7 @@ func TestS3Connection(sess *session.Session) bool {
 		zap.String("err", "Insufficient permissions on bucket"),
 		zap.Object("GetBucketAclOutput", output),
 	)
-	// uploader.S3.GetBucketAcl
 	return false
-
 }
 
 func strPtr(s string) *string { return &s }

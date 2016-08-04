@@ -1,213 +1,275 @@
 package server_test
 
 import (
-	"bytes"
-	"encoding/json"
-	"net/http"
+	"strings"
 	"testing"
 
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/protocol"
 )
 
-func TestRemoveObjectShare(t *testing.T) {
-	// Skipping this test for now as it needs rewritten after remove object share is re-implemented.
-	// It may be that we dont actually do a remove object share, but rather set object share to flush and recreate
-	// related files that may go are protocol objects for RemoveObjectShareRequest and RemovedObjectShareResponse
+func TestRemoveObjectShareFromCaller(t *testing.T) {
 
-	t.Skip()
+	t.Logf("Create as tester10, RUS to tester01, R to odrive_g2")
+	creator := 0
+	permissions := []protocol.Permission{makePermission(fakeDN0, true, true, true, true, true), makePermission(fakeDN1, false, true, true, false, true)}
+	acmShare := `"share": {` + makeGroupShareString("DCTC", "DCTC", "ODrive_G2") + `}`
+	newObject := createSharedObjectForTestRemoveObjectShare(t, creator, acmShare, permissions)
 
-	if testing.Short() {
-		t.Skip()
-	}
-	verboseOutput := testing.Verbose()
-	clientid1, clientid2 := 0, 1
+	t.Logf("Verify tester 1-5 can read it, as well as 10, but not 6-9 or other certs")
+	shouldHaveReadForObjectID(t, newObject.ID, 1, 2, 3, 4, 5, 0)
+	shouldNotHaveReadForObjectID(t, newObject.ID, 6, 7, 8, 9)
 
-	if verboseOutput {
-		t.Logf("(Verbose Mode) Using client id %d\n", clientid1)
-	}
+	t.Logf("Remove tester01 Shares to as tester01")
+	delegate := 1
+	uriRemoveShare := host + cfg.NginxRootURL + "/shared/" + newObject.ID
+	removeShareRequest := protocol.ObjectShare{}
+	removeShareRequest.Share = makeUserShare(fakeDN1)
+	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
+	removeShareRes, err := clients[delegate].Client.Do(removeShareReq)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, removeShareRes, "Bad status when removing share from object")
+	var updatedObject protocol.Object
+	err = util.FullDecode(removeShareRes.Body, &updatedObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
 
-	// Create 2 folders under root
-	folder1 := makeFolderViaJSON("Test Folder 1 ", clientid1, t)
-	folder2 := makeFolderViaJSON("Test Folder 2 ", clientid1, t)
+	t.Logf("Verify tester 1-5 can read it, as well as 10, but not 6-9 or other certs")
+	t.Logf("tester1 retains read access from ODrive_G2, but will low update + share")
+	shouldHaveReadForObjectID(t, updatedObject.ID, 1, 2, 3, 4, 5, 0)
+	shouldNotHaveReadForObjectID(t, updatedObject.ID, 6, 7, 8, 9)
 
-	// Attempt to move folder 2 under folder 1
-	moveuri := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
-	objChangeToken := protocol.ChangeTokenStruct{}
-	objChangeToken.ChangeToken = folder2.ChangeToken
-	jsonBody, err := json.Marshal(objChangeToken)
-	if err != nil {
-		t.Logf("Unable to marshal json for request:%v", err)
-		t.FailNow()
-	}
-	req, err := http.NewRequest("POST", moveuri, bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-	if err != nil {
-		t.Logf("Error setting up HTTP Request: %v", err)
-		t.FailNow()
-	}
-	// do the request
-	res, err := clients[clientid1].Client.Do(req)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	defer util.FinishBody(res.Body)
-	// process Response
-	if res.StatusCode != http.StatusOK {
-		t.Logf("bad status: %s", res.Status)
-		t.FailNow()
-	}
-	res.Body.Close()
+	t.Logf("Attempt to Remove Shares to tester1 again")
+	removeShareReq = makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
+	removeShareRes, err = clients[delegate].Client.Do(removeShareReq)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 403, removeShareRes, "Bad status when removing share from object")
+	util.FinishBody(removeShareRes.Body)
 
-	// Add share as clientid1 for clientid2 to folder1 with propagation
-	shareuri := host + cfg.NginxRootURL + "/shared/" + folder1.ID
-	shareSetting := protocol.ObjectShare{}
-	shareSetting.Share = makeUserShare(fakeDN1)
-	//shareSetting.Grantee = fakeDN1
-	shareSetting.AllowRead = true
-	shareSetting.PropagateToChildren = true
-	jsonBody, err = json.Marshal(shareSetting)
-	if err != nil {
-		t.Logf("Unable to marshal json for request:%v", err)
-		t.FailNow()
-	}
-	getReq3, err := http.NewRequest("POST", shareuri, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		t.Logf("Error setting up HTTP Request: %v", err)
-		t.FailNow()
-	}
-	getRes3, err := clients[clientid1].Client.Do(getReq3)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	defer util.FinishBody(getRes3.Body)
-	if getRes3.StatusCode != http.StatusOK {
-		t.Logf("share creation failed")
-		t.FailNow()
-	}
-	var createdShare protocol.Permission
-	err = util.FullDecode(getRes3.Body, &createdShare)
-	if err != nil {
-		t.Logf("Error decoding json to Permission: %v", err)
-		t.FailNow()
-	}
-	getRes3.Body.Close()
+}
+func TestRemoveObjectShareFromOtherUser(t *testing.T) {
+	t.Logf("Create as tester10, RUS to tester01, R to odrive_g1")
+	creator := 0
+	permissions := []protocol.Permission{makePermission(fakeDN0, true, true, true, true, true), makePermission(fakeDN1, false, true, true, false, true)}
+	acmShare := `"share": {` + makeGroupShareString("DCTC", "DCTC", "ODrive_G1") + `}`
+	newObject := createSharedObjectForTestRemoveObjectShare(t, creator, acmShare, permissions)
 
-	// Attempt to retrieve folder1 as clientid2
-	geturi := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
-	getReq4, err := http.NewRequest("GET", geturi, nil)
-	if err != nil {
-		t.Logf("Error setting up HTTP Request: %v", err)
-		t.FailNow()
-	}
-	getRes4, err := clients[clientid2].Client.Do(getReq4)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	defer util.FinishBody(getRes4.Body)
-	if getRes4.StatusCode != http.StatusOK {
-		t.Logf("clientid2 was not able to get shared object")
-		t.FailNow()
-	}
-	getRes4.Body.Close()
+	t.Logf("Verify tester 1, 6-10 can read it, but not 2-4 or other certs")
+	shouldHaveReadForObjectID(t, newObject.ID, 1, 6, 7, 8, 9, 0)
+	shouldNotHaveReadForObjectID(t, newObject.ID, 2, 3, 4, 5)
 
-	// Attempt to retrieve folder2 as clientid2
-	geturi = host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/properties"
-	getReq5, err := http.NewRequest("GET", geturi, nil)
-	if err != nil {
-		t.Logf("Error setting up HTTP Request: %v", err)
-		t.FailNow()
-	}
-	getRes5, err := clients[clientid2].Client.Do(getReq5)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	defer util.FinishBody(getRes5.Body)
-	if getRes5.StatusCode != http.StatusOK {
-		t.Logf("clientid2 was able to get object when not shared")
-		t.FailNow()
-	}
-	getRes5.Body.Close()
+	t.Logf("Remove tester01 Shares to as tester10")
+	uriRemoveShare := host + cfg.NginxRootURL + "/shared/" + newObject.ID
+	removeShareRequest := protocol.ObjectShare{}
+	removeShareRequest.Share = makeUserShare(fakeDN1)
+	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
+	removeShareRes, err := clients[creator].Client.Do(removeShareReq)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, removeShareRes, "Bad status when removing share from object")
+	var updatedObject protocol.Object
+	err = util.FullDecode(removeShareRes.Body, &updatedObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
 
-	// Remove share as clientid1 with propagation
-	removeshareuri := host + cfg.NginxRootURL + "/shared/" + folder1.ID + "/" + createdShare.ID
-	removesharebody := protocol.RemoveObjectShareRequest{}
-	removesharebody.ObjectID = folder1.ID
-	removesharebody.ShareID = createdShare.ID
-	removesharebody.ChangeToken = createdShare.ChangeToken
-	t.Logf("Share id: %s, change token: %s", createdShare.ID, createdShare.ChangeToken)
-	removesharebody.PropagateToChildren = true
-	jsonBody, err = json.Marshal(removesharebody)
-	if err != nil {
-		t.Logf("Unable to marshal json for request:%v", err)
-		t.FailNow()
-	}
-	getReq6, err := http.NewRequest("DELETE", removeshareuri, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		t.Logf("Error setting up HTTP Request: %v", err)
-		t.FailNow()
-	}
-	getReq6.Header.Set("Content-Type", "application/json")
-	getRes6, err := clients[clientid1].Client.Do(getReq6)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	defer util.FinishBody(getRes6.Body)
-	if getRes6.StatusCode != http.StatusOK {
-		t.Logf("share removal failed")
-		t.FailNow()
-	}
-	var removedShare protocol.RemovedObjectShareResponse
-	err = util.FullDecode(getRes6.Body, &removedShare)
-	if err != nil {
-		t.Logf("Error decoding json to Removed share response: %v", err)
-		t.FailNow()
-	}
-	t.Logf("share deleted %s", removedShare.DeletedDate)
-	getRes6.Body.Close()
+	t.Logf("Verify tester 6-10 can read it, but not 1-5 or other certs")
+	shouldHaveReadForObjectID(t, updatedObject.ID, 6, 7, 8, 9, 0)
+	shouldNotHaveReadForObjectID(t, updatedObject.ID, 1, 2, 3, 4, 5)
+}
+func TestRemoveObjectShareFromOwner(t *testing.T) {
+	t.Logf("Create as tester10, RUS to tester01, R to odrive_g2")
+	creator := 0
+	permissions := []protocol.Permission{makePermission(fakeDN0, true, true, true, true, true), makePermission(fakeDN1, false, true, true, false, true)}
+	acmShare := `"share": {` + makeGroupShareString("DCTC", "DCTC", "ODrive_G2") + `}`
+	newObject := createSharedObjectForTestRemoveObjectShare(t, creator, acmShare, permissions)
 
-	// Attempt to retrieve folder1 as clientid2
-	geturi = host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
-	getReq7, err := http.NewRequest("GET", geturi, nil)
-	if err != nil {
-		t.Logf("Error setting up HTTP Request: %v", err)
-		t.FailNow()
-	}
-	getRes7, err := clients[clientid2].Client.Do(getReq7)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	defer util.FinishBody(getRes7.Body)
-	if getRes7.StatusCode != http.StatusOK {
-		t.Logf("clientid2 was not able to get object shared to 'everyone' after personal share was removed")
-		t.FailNow()
-	}
-	getRes7.Body.Close()
+	t.Logf("Verify tester 1-5 can read it, as well as 10, but not 6-9 or other certs")
+	shouldHaveReadForObjectID(t, newObject.ID, 1, 2, 3, 4, 5, 0)
+	shouldNotHaveReadForObjectID(t, newObject.ID, 6, 7, 8, 9)
 
-	// Attempt to retrieve folder2 as clientid2
-	geturi = host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/properties"
-	getReq8, err := http.NewRequest("GET", geturi, nil)
-	if err != nil {
-		t.Logf("Error setting up HTTP Request: %v", err)
-		t.FailNow()
+	t.Logf("As Tester01 Remove Shares to tester10")
+	delegate := 1
+	uriRemoveShare := host + cfg.NginxRootURL + "/shared/" + newObject.ID
+	removeShareRequest := protocol.ObjectShare{}
+	removeShareRequest.Share = makeUserShare(fakeDN0)
+	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
+	removeShareRes, err := clients[delegate].Client.Do(removeShareReq)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 403, removeShareRes, "Bad status when removing share from object")
+	util.FinishBody(removeShareRes.Body)
+}
+func TestRemoveObjectShareFromNonExistentUser(t *testing.T) {
+	t.Logf("Create as tester10, RUS to tester01, R to odrive_g2")
+	creator := 0
+	permissions := []protocol.Permission{makePermission(fakeDN0, true, true, true, true, true), makePermission(fakeDN1, false, true, true, false, true)}
+	acmShare := `"share": {` + makeGroupShareString("DCTC", "DCTC", "ODrive_G2") + `}`
+	newObject := createSharedObjectForTestRemoveObjectShare(t, creator, acmShare, permissions)
+
+	t.Logf("Verify tester 1-5 can read it, as well as 10, but not 6-9 or other certs")
+	shouldHaveReadForObjectID(t, newObject.ID, 1, 2, 3, 4, 5, 0)
+	shouldNotHaveReadForObjectID(t, newObject.ID, 6, 7, 8, 9)
+
+	t.Logf("As Tester01 Remove Shares to nonexistentuser")
+	delegate := 1
+	uriRemoveShare := host + cfg.NginxRootURL + "/shared/" + newObject.ID
+	removeShareRequest := protocol.ObjectShare{}
+	removeShareRequest.Share = makeUserShare("nonexistentuser")
+	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
+	removeShareRes, err := clients[delegate].Client.Do(removeShareReq)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, removeShareRes, "Bad status when removing share from object")
+	var updatedObject protocol.Object
+	err = util.FullDecode(removeShareRes.Body, &updatedObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+
+	t.Logf("Verify tester 1-5 can read it, as well as 10, but not 6-9 or other certs")
+	t.Logf("tester1 retains read access from ODrive_G2, but will low update + share")
+	shouldHaveReadForObjectID(t, updatedObject.ID, 1, 2, 3, 4, 5, 0)
+	shouldNotHaveReadForObjectID(t, updatedObject.ID, 6, 7, 8, 9)
+}
+func TestRemoveObjectShareFromCallerGroup(t *testing.T) {
+	t.Logf("Create as tester10, R to odrive_g1, R to odrive_g2, RUS to tester01")
+	creator := 0
+	permissions := []protocol.Permission{makePermission(fakeDN0, true, true, true, true, true), makePermission(fakeDN1, false, true, true, false, true)}
+	acmShare := `"share": {` + makeGroupShareString("DCTC", "DCTC", `ODrive_G1","ODrive_G2`) + `}`
+	newObject := createSharedObjectForTestRemoveObjectShare(t, creator, acmShare, permissions)
+
+	t.Logf("Verify tester 1-0 can read it")
+	shouldHaveReadForObjectID(t, newObject.ID, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0)
+
+	t.Logf("As Tester01 Remove Shares to odrive_g2")
+	delegate := 1
+	uriRemoveShare := host + cfg.NginxRootURL + "/shared/" + newObject.ID
+	removeShareRequest := protocol.ObjectShare{}
+	removeShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G2")
+	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
+	removeShareRes, err := clients[delegate].Client.Do(removeShareReq)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, removeShareRes, "Bad status when removing share from object")
+	var updatedObject protocol.Object
+	err = util.FullDecode(removeShareRes.Body, &updatedObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+
+	t.Logf("Verify tester 1, 6-10 can read it, but not 2-5")
+	shouldHaveReadForObjectID(t, updatedObject.ID, 1, 6, 7, 8, 9, 0)
+	shouldNotHaveReadForObjectID(t, updatedObject.ID, 2, 3, 4, 5)
+}
+func TestRemoveObjectShareFromOtherGroup(t *testing.T) {
+	t.Logf("Create as tester10, R to odrive_g1, R to odrive_g2, RUS to tester01")
+	creator := 0
+	permissions := []protocol.Permission{makePermission(fakeDN0, true, true, true, true, true), makePermission(fakeDN1, false, false, true, false, true)}
+	acmShare := `"share": {` + makeGroupShareString("DCTC", "DCTC", `ODrive_G1","ODrive_G2`) + `}`
+	newObject := createSharedObjectForTestRemoveObjectShare(t, creator, acmShare, permissions)
+
+	t.Logf("Verify tester 1-0 can read it")
+	shouldHaveReadForObjectID(t, newObject.ID, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0)
+
+	t.Logf("As Tester01 Remove Shares to odrive_g1")
+	delegate := 1
+	uriRemoveShare := host + cfg.NginxRootURL + "/shared/" + newObject.ID
+	removeShareRequest := protocol.ObjectShare{}
+	removeShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G1")
+	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
+	removeShareRes, err := clients[delegate].Client.Do(removeShareReq)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, removeShareRes, "Bad status when removing share from object")
+	var updatedObject protocol.Object
+	err = util.FullDecode(removeShareRes.Body, &updatedObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+
+	t.Logf("Verify tester 1-5 and 10 can read it, but not 6-9")
+	shouldHaveReadForObjectID(t, updatedObject.ID, 1, 2, 3, 4, 5, 0)
+	shouldNotHaveReadForObjectID(t, updatedObject.ID, 6, 7, 8, 9)
+}
+func TestRemoveObjectShareFromEveryoneGroup(t *testing.T) {
+	t.Logf("Create as tester10, no special perms")
+	creator := 0
+	permissions := []protocol.Permission{}
+	acmShare := ""
+	newObject := createSharedObjectForTestRemoveObjectShare(t, creator, acmShare, permissions)
+
+	t.Logf("Verify tester 1-0 can read it from everyone group")
+	shouldHaveReadForObjectID(t, newObject.ID, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0)
+
+	t.Logf("As Tester10 Remove Shares to everyone group")
+	uriRemoveShare := host + cfg.NginxRootURL + "/shared/" + newObject.ID
+	removeShareRequest := protocol.ObjectShare{}
+	removeShareRequest.Share = makeUserShare(models.EveryoneGroup)
+	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
+	removeShareRes, err := clients[creator].Client.Do(removeShareReq)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, removeShareRes, "Bad status when removing share from object")
+	var updatedObject protocol.Object
+	err = util.FullDecode(removeShareRes.Body, &updatedObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+
+	t.Logf("Verify tester 10 can read it, but not 1-9")
+	shouldHaveReadForObjectID(t, updatedObject.ID, 0)
+	shouldNotHaveReadForObjectID(t, updatedObject.ID, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+
+}
+func TestRemoveObjectShareWithoutPermission(t *testing.T) {
+	t.Logf("Create as tester10, R to everyone")
+	creator := 0
+	permissions := []protocol.Permission{}
+	acmShare := ""
+	newObject := createSharedObjectForTestRemoveObjectShare(t, creator, acmShare, permissions)
+
+	t.Logf("Verify tester 1-0 can read it")
+	shouldHaveReadForObjectID(t, newObject.ID, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0)
+
+	t.Logf("As Tester01 Remove Shares to Everyone")
+	delegate := 1
+	uriRemoveShare := host + cfg.NginxRootURL + "/shared/" + newObject.ID
+	removeShareRequest := protocol.ObjectShare{}
+	removeShareRequest.Share = makeUserShare(models.EveryoneGroup)
+	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
+	removeShareRes, err := clients[delegate].Client.Do(removeShareReq)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 403, removeShareRes, "Bad status when removing share from object")
+	util.FinishBody(removeShareRes.Body)
+
+	t.Logf("Verify tester 1-0 can still read it")
+	shouldHaveReadForObjectID(t, newObject.ID, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0)
+}
+
+func makePermission(grantee string, allowCreate bool, allowRead bool, allowUpdate bool, allowDelete bool, allowShare bool) protocol.Permission {
+	permission := protocol.Permission{
+		Grantee:     grantee,
+		AllowCreate: allowCreate,
+		AllowRead:   allowRead,
+		AllowUpdate: allowUpdate,
+		AllowDelete: allowDelete,
+		AllowShare:  allowShare}
+	return permission
+}
+
+func createSharedObjectForTestRemoveObjectShare(t *testing.T, clientid int, acmShare string, permissions []protocol.Permission) protocol.Object {
+
+	// ### Create object as the client
+	t.Logf("Creating object with shares for TestRemoveObjectShare as %d", clientid)
+	// prep object
+	var createObjectRequest protocol.CreateObjectRequest
+	createObjectRequest.Name = "TestRemoveObjectShare"
+	createObjectRequest.TypeName = "Folder"
+	createObjectRequest.ContentSize = 0
+	// default share read to everyone
+	acm := `{"version":"2.1.0","classif":"U","share":{}}`
+	if len(acmShare) > 0 {
+		acm = strings.Replace(acm, `"share":{}`, acmShare, -1)
 	}
-	getRes8, err := clients[clientid2].Client.Do(getReq8)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	defer util.FinishBody(getRes8.Body)
-	if getRes8.StatusCode != http.StatusOK {
-		t.Logf("clientid2 was not able to get object shared to 'everyone' for object 2 after personal share removed")
-		t.FailNow()
-	}
-	getRes8.Body.Close()
+	createObjectRequest.RawAcm = models.ToNullString(acm)
+	// permissions if any passed in
+	createObjectRequest.Permissions = permissions
+	// http request
+	uriCreate := host + cfg.NginxRootURL + "/objects"
+	createReq := makeHTTPRequestFromInterface(t, "POST", uriCreate, createObjectRequest)
+	// exec and get response
+	createRes, err := clients[clientid].Client.Do(createReq)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, createRes, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(createRes.Body, &createdObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+	return createdObject
 }

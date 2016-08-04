@@ -24,8 +24,6 @@ var NodeID = RandomID()
 // RootLogger is from which all other loggers are defined - because this is where we get NodeID in logs
 var RootLogger zap.Logger
 
-//In order to migrate these functions into SetupGlobalDefaults,
-// all tests need to invoke it.
 func init() {
 	initLogger()
 	lookupDocker()
@@ -34,9 +32,7 @@ func init() {
 }
 
 func initLogger() {
-	//Note that it is possible to pass in options to redirect all logs to stderr if we want
-	logger := zap.NewJSON(zap.Output(os.Stdout), zap.ErrorOutput(os.Stdout)).With(zap.String("node", NodeID))
-	//0 is Info log level, 1 is Warn, etc.
+	logger := zap.NewJSON(zap.Output(os.Stdout), zap.ErrorOutput(os.Stdout)).With(zap.String("node", RandomID()))
 	logger.SetLevel(zap.Level(GetEnvOrDefaultInt("OD_LOG_LEVEL", 0)))
 	RootLogger = logger
 }
@@ -77,14 +73,14 @@ func lookupOurIP() {
 		RootLogger.Error("could not look up our own hostname to find ip for gatekeeper")
 	}
 	if len(hostname) > 0 {
-		MyIPs, err := net.LookupIP(hostname)
+		myIPs, err := net.LookupIP(hostname)
 		if err != nil {
 			RootLogger.Error("could not get a set of ips for our hostname")
 		}
-		if len(MyIPs) > 0 {
-			for a := range MyIPs {
-				if MyIPs[a].To4() != nil {
-					MyIP = MyIPs[a].String()
+		if len(myIPs) > 0 {
+			for a := range myIPs {
+				if myIPs[a].To4() != nil {
+					MyIP = myIPs[a].String()
 					break
 				}
 			}

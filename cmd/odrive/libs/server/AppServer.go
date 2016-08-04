@@ -1,9 +1,12 @@
 package server
 
 import (
+	"encoding/json"
 	"html/template"
 	"log"
+	"net"
 	"net/http"
+	"os"
 	"regexp"
 	"time"
 
@@ -107,11 +110,10 @@ func (h *AppServer) InitRegex() {
 		Revisions:      regexp.MustCompile(h.ServicePrefix + "/revisions/(?P<objectId>[0-9a-fA-F]{32})$"),
 		RevisionStream: regexp.MustCompile(h.ServicePrefix + "/revisions/(?P<objectId>[0-9a-fA-F]{32})/(?P<revisionId>.*)/stream(\\.[0-9a-zA-Z]*)?$"),
 		// - share
-		SharedToMe:        regexp.MustCompile(h.ServicePrefix + "/shares$"),
-		SharedToOthers:    regexp.MustCompile(h.ServicePrefix + "/shared$"),
-		SharedToEveryone:  regexp.MustCompile(h.ServicePrefix + "/sharedpublic$"),
-		SharedObject:      regexp.MustCompile(h.ServicePrefix + "/shared/(?P<objectId>[0-9a-fA-F]{32})$"),
-		SharedObjectShare: regexp.MustCompile(h.ServicePrefix + "/shared/(?P<objectId>[0-9a-fA-F]{32})/(?P<shareId>[0-9a-fA-F]{32})$"),
+		SharedToMe:       regexp.MustCompile(h.ServicePrefix + "/shares$"),
+		SharedToOthers:   regexp.MustCompile(h.ServicePrefix + "/shared$"),
+		SharedToEveryone: regexp.MustCompile(h.ServicePrefix + "/sharedpublic$"),
+		SharedObject:     regexp.MustCompile(h.ServicePrefix + "/shared/(?P<objectId>[0-9a-fA-F]{32})$"),
 		// - search
 		Search: regexp.MustCompile(h.ServicePrefix + "/search/(?P<searchPhrase>.*)$"),
 		// - trash
@@ -377,8 +379,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectExpunge)
 			herr = h.deleteObjectForever(ctx, w, r)
 			// - remove object share
-		case h.Routes.SharedObjectShare.MatchString(uri):
-			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.SharedObjectShare)
+		case h.Routes.SharedObject.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.SharedObject)
 			herr = h.removeObjectShare(ctx, w, r)
 		// - remove object favorite
 		case h.Routes.FavoriteObject.MatchString(uri):
@@ -400,11 +402,6 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.Trash.MatchString(uri):
 			herr = NewAppError(404, nil, "Not implemented")
 			// TODO: h.emptyTrash(ctx, w, r)
-		// - remove all shares on an object
-		case h.Routes.SharedObject.MatchString(uri):
-			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.SharedObject)
-			herr = NewAppError(404, nil, "Not implemented")
-			// TODO: h.removeObjectShares(ctx, w, r)
 		// - remove object type
 		case h.Routes.ObjectType.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectType)
@@ -574,6 +571,32 @@ func do404(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppErro
 	return NewAppError(404, nil, "Resource not found")
 }
 
+func resolveOurIP() string {
+	globalconfig.RootLogger.Info("attempting to resolve our IP")
+	hostname, err := os.Hostname()
+	if err != nil {
+		globalconfig.RootLogger.Error("unable to resolve our own hostname")
+		return ""
+	}
+	myIPs, err := net.LookupIP(hostname)
+	if err != nil {
+		globalconfig.RootLogger.Error("could not lookup IP for hostname")
+		return ""
+	}
+	for _, addr := range myIPs {
+		if addr.To4() != nil {
+			globalconfig.RootLogger.Info("resolved our IP", zap.String("ip", addr.String()))
+			return addr.String()
+		}
+	}
+	return ""
+}
+func jsonResponse(w http.ResponseWriter, i interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	jsonData, _ := json.MarshalIndent(i, "", "  ")
+	w.Write(jsonData)
+}
+
 // StaticRx statically references compiled regular expressions.
 type StaticRx struct {
 	Home                   *regexp.Regexp
@@ -599,7 +622,6 @@ type StaticRx struct {
 	SharedToOthers         *regexp.Regexp
 	SharedToEveryone       *regexp.Regexp
 	SharedObject           *regexp.Regexp
-	SharedObjectShare      *regexp.Regexp
 	Search                 *regexp.Regexp
 	Trash                  *regexp.Regexp
 	Zip                    *regexp.Regexp
