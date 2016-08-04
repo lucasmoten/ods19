@@ -170,28 +170,19 @@ func doTestCreateObjectSimple(t *testing.T, data string, clientID int) (*http.Re
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
 
-	res, jresif, err := testhelpers.DoWithDecodedResult(client, req)
-
+	res, untyped, err := testhelpers.DoWithDecodedResult(client, req)
 	if err != nil {
 		t.Fail()
 	}
+	statusExpected(t, 200, res, "doTestCreateObjectSimple internal failure")
+	obj := untyped.(protocol.Object)
 
-	if res != nil && res.StatusCode != http.StatusOK {
-		t.Fail()
-	}
-
-	jres := jresif.(protocol.Object)
-	doCheckFileNowExists(t, clientID, jres)
-
-	return res, jres
+	return res, obj
 }
 
 func doCheckFileNowExists(t *testing.T, clientID int, jres protocol.Object) {
 
-	//!!! STOP and verify that this object actually exists in listings!
-	//Because we *just* created this, we expect it to be in first page!
 	uri2 := host + cfg.NginxRootURL + "/objects"
-
 	if jres.ParentID != "" {
 		uri2 = uri2 + "/" + jres.ParentID
 	}

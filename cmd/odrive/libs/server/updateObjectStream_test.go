@@ -65,6 +65,7 @@ func TestUpdateObjectMalicious(t *testing.T) {
 	clientID := 5
 	data := "0123456789"
 	_, obj := doTestCreateObjectSimple(t, data, clientID)
+	doCheckFileNowExists(t, clientID, obj)
 
 	if len(obj.ChangeToken) == 0 {
 		t.FailNow()
@@ -90,6 +91,7 @@ func TestUpdateObjectWithProperties(t *testing.T) {
 	clientID := 5
 	data := "0123456789"
 	_, created := doTestCreateObjectSimple(t, data, clientID)
+	doCheckFileNowExists(t, clientID, created)
 
 	if len(created.ChangeToken) == 0 {
 		t.FailNow()
@@ -107,6 +109,7 @@ func TestUpdateStream(t *testing.T) {
 	data, _ := util.NewGUID()
 	newName, _ := util.NewGUID()
 	_, created := doTestCreateObjectSimple(t, data, clientID)
+	doCheckFileNowExists(t, clientID, created)
 
 	created.Name = newName
 	updated := doUpdateStreamForObjectID(t, clientID, created.ID, created)
@@ -121,7 +124,10 @@ func TestUpdateStreamWithoutProvidingACM(t *testing.T) {
 
 	clientID := 5
 	data := "0123456789"
+
 	_, created := doTestCreateObjectSimple(t, data, clientID)
+	doCheckFileNowExists(t, clientID, created)
+
 	doPropertyUpdate(t, clientID, created.ID, fmt.Sprintf(updateTemplate, created.ID, "", created.ChangeToken))
 }
 
