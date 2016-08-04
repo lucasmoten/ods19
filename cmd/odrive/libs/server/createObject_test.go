@@ -32,17 +32,11 @@ func TestCreatObjectMalicious(t *testing.T) {
 	data := "Initial test data 1"
 	//An exe name with some backspace chars to make it display as txt
 	tmpName := "initialTestData1.exe\b\b\btxt"
-	tmp, tmpCloser, err := testhelpers.GenerateTempFile(data)
+	f, closer, err := testhelpers.GenerateTempFile(data)
 	if err != nil {
 		t.Errorf("Could not open temp file for write: %v\n", err)
 	}
-	defer tmpCloser()
-
-	//TODO: the json parsing should be returning errors with unknown fields so that
-	// we limit the input grammar we accept.  (ie: completely filter out protocol.Object values
-	// without having to carefully track what gets copied into ODObject for every situation).
-	//
-	// this should fail because of an attempt to set the creator
+	defer closer()
 
 	jsonString := fmt.Sprintf(`
     {
@@ -58,13 +52,7 @@ func TestCreatObjectMalicious(t *testing.T) {
 	t.Log(jsonString)
 	jsonBody := []byte(jsonString)
 
-	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
-		"objects",
-		host, "",
-		tmp,
-		tmpName,
-		jsonBody,
-	)
+	req, err := testhelpers.NewCreateObjectPOSTRequestRaw("objects", host, "", f, tmpName, jsonBody)
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
@@ -98,13 +86,23 @@ func TestCreatObjectMalicious(t *testing.T) {
 	}
 }
 
-func TestCreatObjectSimple(t *testing.T) {
+func TestCreateObjectSimple(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
 	clientID := 5
 	data := "Initial test data 1"
-	_, _ = doTestCreateObjectSimple(t, data, clientID)
+	_, obj := doTestCreateObjectSimple(t, data, clientID)
+	doCheckFileNowExists(t, clientID, obj)
+
+	if len(obj.Permissions) == 0 {
+		t.Errorf("Should return object permissions")
+		t.FailNow()
+	}
+
+	for _, p := range obj.Permissions {
+		logPermission(t, p)
+	}
 }
 
 var ValidAcmCreateObjectSimple = `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":["FOUO"],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U//FOUO","banner":"UNCLASSIFIED//FOUO","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`

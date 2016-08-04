@@ -116,27 +116,20 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	createdObject, err = dao.CreateObject(&obj)
 	if err != nil {
-		if isMultipart && obj.ContentConnector.Valid {
-			d := h.DrainProvider
-			rName := FileId(obj.ContentConnector.String)
-			uploadedName := NewFileName(rName, "uploaded")
-			removeError := d.Files().Remove(d.Resolve(uploadedName))
-			if removeError != nil {
-				logger.Error("cannot remove orphaned file", zap.String("rname", string(rName)))
-			}
+		if isMultipart {
+			removeOrphanedFile(logger, h.DrainProvider, obj.ContentConnector.String)
 		}
 		return NewAppError(500, err, "error storing object")
 	}
+
 	// For requests where a stream was provided, only drain off into S3 once we have a record
 	if isMultipart {
 		if drainFunc != nil {
 			go drainFunc()
 		}
 	}
-	// Jsonified response
 	w.Header().Set("Content-Type", "application/json")
 	protocolObject := mapping.MapODObjectToObject(&createdObject)
-	//Write a link back to the user so that it's possible to do an update on this object
 	data, err := json.MarshalIndent(protocolObject, "", "  ")
 	if err != nil {
 		LoggerFromContext(ctx).Error(
@@ -327,4 +320,13 @@ func injectReadPermissionsIntoACM(ctx context.Context, obj *models.ODObject) *Ap
 		}
 	}
 	return nil
+}
+
+func removeOrphanedFile(logger zap.Logger, d DrainProvider, contentConnector string) {
+	fileID := FileId(contentConnector)
+	uploadedName := NewFileName(fileID, "uploaded")
+	err := d.Files().Remove(d.Resolve(uploadedName))
+	if err != nil {
+		logger.Error("cannot remove orphaned file", zap.String("fileID", string(fileID)))
+	}
 }

@@ -11,26 +11,30 @@ import (
 
 // CreateObject ...
 func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObject, error) {
+	logger := dao.GetLogger()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObject{}, err
 	}
-	dbObject, err := createObjectInTransaction(dao.GetLogger(), tx, object)
+	dbObject, err := createObjectInTransaction(logger, tx, object)
 	if err != nil {
-		dao.GetLogger().Error("error in createObject", zap.String("err", err.Error()))
+		logger.Error("error in CreateObject", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()
 	}
-	return dbObject, err
+	obj, err := dao.GetObject(dbObject, true)
+	if err != nil {
+		logger.Error("error in CreateObject subsequent GetObject call]")
+		return models.ODObject{}, err
+	}
+	return obj, err
 }
 
 func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.ODObject) (models.ODObject, error) {
 
 	var dbObject models.ODObject
-
-	// Validations on object passed in.
 
 	if len(object.TypeID) == 0 {
 		object.TypeID = nil
@@ -42,7 +46,6 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		return dbObject, errors.New("Cannot create object. Missing CreatedBy field.")
 	}
 
-	// lookup type, assign its id to the object for reference
 	if object.TypeID == nil {
 		objectType, err := getObjectTypeByNameInTransaction(tx, object.TypeName.String, true, object.CreatedBy)
 		if err != nil {
@@ -51,19 +54,16 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		object.TypeID = objectType.ID
 	}
 
-	// Assign a generic name if this object wasn't given a name
 	if len(object.Name) == 0 {
 		object.Name = "New " + object.TypeName.String
 	}
 
-	// Normalize ACM
 	newACMNormalized, err := normalizedACM(object.RawAcm.String)
 	if err != nil {
 		return dbObject, fmt.Errorf("Error normalizing ACM on new object: %v (acm: %s)", err.Error(), object.RawAcm.String)
 	}
 	object.RawAcm.String = newACMNormalized
 
-	// Insert object
 	addObjectStatement, err := tx.Preparex(`insert object set 
         createdBy = ?
         ,typeId = ?
