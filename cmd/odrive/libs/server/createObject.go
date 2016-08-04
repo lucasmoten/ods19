@@ -44,11 +44,13 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	isMultipart := contentTypeIsMultipartFormData(r)
 	if isMultipart {
 
-		rName := utils.CreateRandomName()
+		// Streamed objects have an IV
 		iv := utils.CreateIV()
-		obj.ContentConnector.String = rName
-		obj.ContentConnector.Valid = true
 		obj.EncryptIV = iv
+
+		// Assign uniquely generated reference
+		rName := utils.CreateRandomName()
+		obj.ContentConnector = models.ToNullString(rName)
 
 		multipartReader, err := r.MultipartReader()
 		if err != nil {
@@ -71,6 +73,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		if herr != nil {
 			return herr
 		}
+
 		// Validation
 		if herr := handleCreatePrerequisites(ctx, h, &obj); herr != nil {
 			return herr
@@ -79,7 +82,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	obj.CreatedBy = caller.DistinguishedName
 
 	// For all permissions, make sure we're using the flatened value
-	herr = h.flattenGranteeOnAllPermissions(ctx, &obj)
+	herr = h.flattenGranteeOnAllObjectPermissions(ctx, &obj)
 	if herr != nil {
 		return herr
 	}

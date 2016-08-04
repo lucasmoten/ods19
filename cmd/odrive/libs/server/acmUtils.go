@@ -331,7 +331,7 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 	if hasEveryone && !acmSaysEveryone {
 		// Remove everyone
 		LoggerFromContext(ctx).Info("removing permissions indicating everyonegroup as grantee")
-		removePermissionsFor(obj, models.EveryoneGroup)
+		removePermissionsForGrantee(obj, models.EveryoneGroup)
 		hasEveryone = false
 	}
 

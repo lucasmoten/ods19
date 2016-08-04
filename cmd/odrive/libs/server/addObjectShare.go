@@ -2,17 +2,13 @@ package server
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/uber-go/zap"
-
 	"golang.org/x/net/context"
 
-	"decipher.com/object-drive-server/cmd/odrive/libs/config"
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	"decipher.com/object-drive-server/metadata/models"
@@ -21,249 +17,254 @@ import (
 )
 
 func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
-	logger := LoggerFromContext(ctx)
 
-	// Get caller value from ctx.
-	caller, ok := CallerFromContext(ctx)
-	if !ok {
-		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
+	rollupPermission, permissions, dbObject, herr := commonObjectSharePrep(ctx, h.MasterKey, r)
+	if herr != nil {
+		return herr
 	}
+
 	dao := DAOFromContext(ctx)
+	// Only proceed if there were permissions provided
+	if len(permissions) > 0 {
+
+		// Get values from ctx.
+		logger := LoggerFromContext(ctx)
+		caller, _ := CallerFromContext(ctx)
+
+		var permissionsToAdd []models.ODObjectPermission
+
+		// Check if database object has a read permission for everyone
+		dbHasEveryone := hasPermissionsForGrantee(&dbObject, models.EveryoneGroup)
+
+		// Iterate the permissions, normalizing the share to derive grantee
+		for _, permission := range permissions {
+
+			// Verify that permission settings are allowed for user's rollupPermission
+			if herr := verifyPermissionToShare(rollupPermission, permission); herr != nil {
+				return herr
+			}
+
+			// Flatten grantee from the acmshare parsed in the request
+			if herr := h.flattenGranteeOnPermission(ctx, &permission); herr != nil {
+				return herr
+			}
+
+			// Metadata for this permission to be created
+			bytesObjectID, _ := getObjectIDFromContext(ctx)
+			permission.ObjectID = bytesObjectID
+			permission.CreatedBy = caller.DistinguishedName
+			permission.ExplicitShare = true
+
+			// If this new permission is granting read but the grantee is not everyone then remove everyone
+			if dbHasEveryone && permission.AllowRead {
+				if !isPermissionFor(&permission, models.EveryoneGroup) {
+					removePermissionsForGrantee(&dbObject, models.EveryoneGroup)
+					// since removed everyone, reset the flag so we dont do this check for every permission
+					dbHasEveryone = false
+				}
+			}
+
+			// If after removing existng grants there are no more permissions, ...
+			if reduceGrantsFromExistingPermissionsLeavesNone(dbObject.Permissions, &permission) {
+				// stop processing this permission
+				continue
+			}
+
+			// Now we can assign encrypt key, which will set mac based upon permissions being granted
+			models.CopyEncryptKey(h.MasterKey, &rollupPermission, &permission)
+
+			// And add it to the list of permissions that will be added
+			permissionsToAdd = append(permissionsToAdd, permission)
+
+			// For permissions granting read, merge permission.AcmShare into dbObject.RawAcm.String{share}
+			if permission.AllowRead {
+				herr, sourceInterface := getACMInterfacePart(&dbObject, "share")
+				if herr != nil {
+					return herr
+				}
+				interfaceToAdd, err := utils.UnmarshalStringToInterface(permission.AcmShare)
+				if err != nil {
+					return NewAppError(500, err, "Unable to unmarshal share from permission")
+				}
+				combinedInterface := CombineInterface(sourceInterface, interfaceToAdd)
+				herr = setACMPartFromInterface(ctx, &dbObject, "share", combinedInterface)
+				if herr != nil {
+					return herr
+				}
+			}
+		}
+
+		// Update the database object now that its ACM has been altered
+		dbObject.ModifiedBy = caller.DistinguishedName
+		// Reflatten dbObject.RawACM
+		err := h.flattenACM(logger, &dbObject)
+		if err != nil {
+			return NewAppError(500, err, "Error updating permissions when flattening acm")
+		}
+
+		// Now that the result is flattened, perform resultant state validation
+		if !isModifiedBySameAsOwner(&dbObject) {
+			// 1. Make sure owner would still have read access
+			if !h.isObjectACMSharedToUser(ctx, &dbObject, dbObject.OwnedBy.String) {
+				errMsg := "Forbidden - Unauthorized to set permissions that would result in owner not being able to read object"
+				return NewAppError(403, errors.New(errMsg), errMsg)
+			}
+		} else {
+			// 2. User must pass access check against altered ACM as a whole
+			hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
+			if err != nil {
+				return NewAppError(502, err, "Error communicating with authorization service")
+			}
+			if !hasAACAccess {
+				return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for updated object ACM")
+			}
+		}
+
+		// First update the base object that favors ACM change
+		err = dao.UpdateObject(&dbObject)
+		if err != nil {
+			return NewAppError(500, err, "Error updating object")
+		}
+
+		// Add these permissions to the database.
+		for _, permission := range permissionsToAdd {
+			// Add to database
+			_, err := dao.AddPermissionToObject(dbObject, &permission, false, h.MasterKey)
+			if err != nil {
+				return NewAppError(500, err, "Error updating permission on object - add permission")
+			}
+		}
+	}
+
+	// Now fetch updated object
+	updatedObject, err := dao.GetObject(dbObject, false)
+	if err != nil {
+		return NewAppError(500, err, "Error retrieving object")
+	}
+	// Map from model to protocol and output it
+	jsonResponse(w, mapping.MapODObjectToObject(&updatedObject))
+
+	return nil
+}
+
+func commonObjectSharePrep(ctx context.Context, masterKey string, r *http.Request) (models.ODObjectPermission, []models.ODObjectPermission, models.ODObject, *AppError) {
+
+	// Get dao value from ctx.
+	dao := DAOFromContext(ctx)
+
+	var rollupPermission models.ODObjectPermission
+	var permissions []models.ODObjectPermission
+	var dbObject models.ODObject
 
 	// Get the object ID from the request
 	bytesObjectID, err := getObjectIDFromContext(ctx)
 	if err != nil {
-		return NewAppError(400, err, err.Error())
+		return rollupPermission, permissions, dbObject, NewAppError(400, err, err.Error())
 	}
 
 	// Load the existing object
 	requestedObject := models.ODObject{}
 	requestedObject.ID = bytesObjectID
-	dbObject, err := dao.GetObject(requestedObject, false)
+	dbObject, err = dao.GetObject(requestedObject, false)
 	if err != nil {
-		return NewAppError(500, err, "Error retrieving object")
+		return rollupPermission, permissions, dbObject, NewAppError(500, err, "Error retrieving object")
 	}
 
 	// Check Permissions
-	allowedToShare, rollupPermission := isUserAllowedToShareWithPermission(ctx, h.MasterKey, &dbObject)
+	allowedToShare := false
+	allowedToShare, rollupPermission = isUserAllowedToShareWithPermission(ctx, masterKey, &dbObject)
 	if !allowedToShare {
-		return NewAppError(403, errors.New("unauthorized to share"), "Forbidden - User does not have permission to modify shares for an object")
+		return rollupPermission, permissions, dbObject, NewAppError(403, errors.New("unauthorized to share"), "Forbidden - User does not have permission to modify shares for an object")
 	}
 
 	// Check if the object is deleted
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			return NewAppError(410, err, "The object no longer exists.")
+			return rollupPermission, permissions, dbObject, NewAppError(410, err, "The object no longer exists.")
 		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-			return NewAppError(405, err, "Unallowed to set shares for deleted objects.")
+			return rollupPermission, permissions, dbObject, NewAppError(405, err, "Unallowed to set shares for deleted objects.")
 		case dbObject.IsDeleted:
-			return NewAppError(405, err, "Unallowed to set shares for deleted objects. Use removeObjectFromTrash to restore this object before setting shares.")
+			return rollupPermission, permissions, dbObject, NewAppError(405, err, "Unallowed to set shares for deleted objects. Use removeObjectFromTrash to restore this object before setting shares.")
 		}
 	}
 
 	//Get the json data from the request and map to an array of permission objects
-	var permissions []models.ODObjectPermission
-	var permissionsToAdd []models.ODObjectPermission
-	permissions, propagateToChildren, err := parseObjectShareRequest(r, ctx)
+	permissions, err = parseObjectShareRequest(r, ctx)
 	if err != nil {
-		return NewAppError(400, err, "Error parsing request")
+		return rollupPermission, permissions, dbObject, NewAppError(400, err, "Error parsing request")
 	}
 
-	// If not granting anything, this is a NOOP and we can return the objects current state
-	if len(permissions) == 0 {
-		// TODO: Determine if no permissions actually targets 'everyone' ?
+	// All good
+	return rollupPermission, permissions, dbObject, nil
+}
 
-		apiResponse := mapping.MapODObjectToObject(&dbObject)
-		updateObjectResponseAsJSON(w, r, caller, &apiResponse)
-		return nil
-	}
+// reduceGrantsFromExistingPermissionsLeavesNone helps prevent creation of overlapping CRUDS (create, read, update, delete, share) permissions
+// by comparing the permission capabilities being granted to that already being granted to the user through existing permissions and
+// returns whether or not there are no capabiltiies left on the modified permission.
+func reduceGrantsFromExistingPermissionsLeavesNone(dbPermissions []models.ODObjectPermission, permission *models.ODObjectPermission) bool {
 
-	// Check if database object has a read permission for everyone
-	dbHasEveryone := false
-	for _, dbPermission := range dbObject.Permissions {
-		if strings.Compare(dbPermission.Grantee, models.EveryoneGroup) == 0 {
-			dbHasEveryone = true
-		}
-	}
-
-	// Iterate the permissions, normalizing the share to derive grantee
-	tempObject := models.ODObject{}
-	for _, permission := range permissions {
-
-		// Verify that permission settings are allowed for user's rollupPermission
-		if !rollupPermission.AllowCreate && permission.AllowCreate {
-			return NewAppError(403, fmt.Errorf("User does not have permission to set share with create"), "Forbidden - Unauthorized to set permissions with create")
-		}
-		if !rollupPermission.AllowRead && permission.AllowRead {
-			return NewAppError(403, fmt.Errorf("User does not have permission to set share with read"), "Forbidden - Unauthorized to set permissions with read")
-		}
-		if !rollupPermission.AllowUpdate && permission.AllowUpdate {
-			return NewAppError(403, fmt.Errorf("User does not have permission to set share with update"), "Forbidden - Unauthorized to set permissions with update")
-		}
-		if !rollupPermission.AllowDelete && permission.AllowDelete {
-			return NewAppError(403, fmt.Errorf("User does not have permission to set share with delete"), "Forbidden - Unauthorized to set permissions with delete")
-		}
-		if !rollupPermission.AllowShare && permission.AllowShare {
-			return NewAppError(403, fmt.Errorf("User does not have permission to set share with delegation"), "Forbidden - Unauthorized to set permissions with delegation")
-		}
-
-		// re-initialize tempObject ACM from database ACM
-		tempObject.RawAcm.Valid = dbObject.RawAcm.Valid
-		tempObject.RawAcm.String = dbObject.RawAcm.String
-
-		// Make flattened share for this permission
-		herr := h.validateAndFlattenShare(ctx, &permission, &tempObject)
-		if herr != nil {
-			return herr
-		}
-
-		// Get the resultant f_share
-		herr, fShareInterface := getACMInterfacePart(&tempObject, "f_share")
-		if herr != nil {
-			return herr
-		}
-
-		// Convert the interface of values into an array
-		acmGrants := getStringArrayFromInterface(fShareInterface)
-		// Expect only 1 result!
-		grantLength := len(acmGrants)
-		if grantLength != 1 {
-			return NewAppError(500, fmt.Errorf("Resultant f_share from permission after flattening has %d f_share values", grantLength), "Error processing permissions")
-		}
-
-		// Assign the f_share value to the grantee
-		permission.Grantee = config.GetNormalizedDistinguishedName(acmGrants[0])
-
-		// Assign object id for which this permission is associated
-		permission.ObjectID = bytesObjectID
-
-		// Creator
-		permission.CreatedBy = caller.DistinguishedName
-
-		// Set as explicit
-		permission.ExplicitShare = true
-
-		// --- This is the point where add and remove differ
-		// For adding, permissions contains a list of permissions that need to be
-		// compared to existing permissions adding records in the database where
-		// they dont exist already as well as merge into the acm share and f_share
-		// For removing, permissions need to be compared against existing for
-		// deleting, and then whatever is left is what needs to be merged as the
-		// new acm share
-
-		// If this new permission is granting read but the grantee is not everyone then remove everyone
-		if permission.AllowRead && dbHasEveryone {
-			if !isPermissionFor(&permission, models.EveryoneGroup) {
-				removePermissionsFor(&dbObject, models.EveryoneGroup)
-				// since removed everyone, reset the flag so we dont do this check for every permission
-				dbHasEveryone = false
+	// Iterate existing permissions on object
+	for _, dbPermission := range dbPermissions {
+		granteeMatch := isPermissionFor(&dbPermission, permission.Grantee)
+		everyoneMatch := isPermissionFor(&dbPermission, models.EveryoneGroup)
+		if granteeMatch || everyoneMatch {
+			// Discern which permissions this user already has,
+			// removing them from the permission passed in
+			if dbPermission.AllowCreate {
+				permission.AllowCreate = false
+			}
+			if dbPermission.AllowRead {
+				permission.AllowRead = false
+			}
+			if dbPermission.AllowUpdate {
+				permission.AllowUpdate = false
+			}
+			if dbPermission.AllowDelete {
+				permission.AllowDelete = false
+			}
+			if dbPermission.AllowShare {
+				permission.AllowShare = false
 			}
 		}
 
-		// Iterate existing permissions on object
-		for _, dbPermission := range dbObject.Permissions {
-			granteeMatch := isPermissionFor(&dbPermission, permission.Grantee)
-			everyoneMatch := isPermissionFor(&dbPermission, models.EveryoneGroup)
-			if granteeMatch || everyoneMatch {
-				// Discern which permissions this user already has
-				if dbPermission.AllowCreate {
-					permission.AllowCreate = false
-				}
-				if dbPermission.AllowRead {
-					permission.AllowRead = false
-				}
-				if dbPermission.AllowUpdate {
-					permission.AllowUpdate = false
-				}
-				if dbPermission.AllowDelete {
-					permission.AllowDelete = false
-				}
-				if dbPermission.AllowShare {
-					permission.AllowShare = false
-				}
-			}
-		}
-
-		// Check what is left of missing permissions
-		if !permission.AllowCreate && !permission.AllowRead && !permission.AllowUpdate && !permission.AllowDelete && !permission.AllowShare {
-			// Nothing left of this permission. so dont add it, continue to next permission
-			continue
-		}
-
-		// Now we can assign encrypt key, which will set mac based upon permissions being granted
-		models.CopyEncryptKey(h.MasterKey, &rollupPermission, &permission)
-
-		// And add it to the list of permissions that will be added
-		permissionsToAdd = append(permissionsToAdd, permission)
-
-		// Merge permission.AcmShare into dbObject.RawAcm.String{share}
-		if permission.AllowRead {
-			herr, sourceInterface := getACMInterfacePart(&dbObject, "share")
-			if herr != nil {
-				return herr
-			}
-			interfaceToAdd, err := utils.UnmarshalStringToInterface(permission.AcmShare)
-			if err != nil {
-				return NewAppError(500, err, "Unable to unmarshal share from permission")
-			}
-			combinedInterface := CombineInterface(sourceInterface, interfaceToAdd)
-			herr = setACMPartFromInterface(ctx, &dbObject, "share", combinedInterface)
-			if herr != nil {
-				return herr
-			}
+		// Stop reducing if we have no permissions left after changes
+		if !grantsAny(permission) {
+			return true
 		}
 	}
 
-	// Update the database object now that its ACM has been altered
-	dbObject.ModifiedBy = caller.DistinguishedName
-	// Reflatten dbObject.RawACM
-	err = h.flattenACM(logger, &dbObject)
-	if err != nil {
-		return NewAppError(500, err, "Error updating permissions when flattening acm")
-	}
+	return grantsAny(permission) == false
+}
 
-	// Now that the result is flattened, perform resultant state validation
-	// 1. Make sure owner would still have read access
-	if !isModifiedBySameAsOwner(&dbObject) {
-		if !h.isObjectACMSharedToUser(ctx, &dbObject, dbObject.OwnedBy.String) {
-			errMsg := "Forbidden - Unauthorized to set permissions that would result in owner not being able to read object"
-			return NewAppError(403, errors.New(errMsg), errMsg)
-		}
-	}
-	// 2. User must pass access check against altered ACM as a whole
-	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
-	if err != nil {
-		return NewAppError(502, err, "Error communicating with authorization service")
-	}
-	if !hasAACAccess {
-		return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for updated object ACM")
-	}
+func grantsAny(permission *models.ODObjectPermission) bool {
+	// Determine if no permissions are remaining
+	hasPermissions := false
+	hasPermissions = hasPermissions || permission.AllowCreate
+	hasPermissions = hasPermissions || permission.AllowRead
+	hasPermissions = hasPermissions || permission.AllowUpdate
+	hasPermissions = hasPermissions || permission.AllowDelete
+	hasPermissions = hasPermissions || permission.AllowShare
 
-	// First update the base object that favors ACM change
-	err = dao.UpdateObject(&dbObject)
-	if err != nil {
-		return NewAppError(500, err, "Error updating object")
-	}
+	return hasPermissions
+}
 
-	// Add these permissions to the database.
-	for _, permission := range permissionsToAdd {
-		// Add to database
-		_, err := dao.AddPermissionToObject(dbObject, &permission, propagateToChildren, h.MasterKey)
-		if err != nil {
-			return NewAppError(500, err, "Error updating permission on object - add permission")
-		}
+func verifyPermissionToShare(rollupPermission models.ODObjectPermission, permission models.ODObjectPermission) *AppError {
+	if !rollupPermission.AllowCreate && permission.AllowCreate {
+		return NewAppError(403, fmt.Errorf("User does not have permission to set share with create"), "Forbidden - Unauthorized to set permissions with create")
 	}
-
-	// Now fetch updated object
-	updatedObject, err := dao.GetObject(requestedObject, false)
-	if err != nil {
-		return NewAppError(500, err, "Error retrieving object")
+	if !rollupPermission.AllowRead && permission.AllowRead {
+		return NewAppError(403, fmt.Errorf("User does not have permission to set share with read"), "Forbidden - Unauthorized to set permissions with read")
 	}
-
-	// Return response
-	apiResponse := mapping.MapODObjectToObject(&updatedObject)
-	updateObjectResponseAsJSON(w, r, caller, &apiResponse)
+	if !rollupPermission.AllowUpdate && permission.AllowUpdate {
+		return NewAppError(403, fmt.Errorf("User does not have permission to set share with update"), "Forbidden - Unauthorized to set permissions with update")
+	}
+	if !rollupPermission.AllowDelete && permission.AllowDelete {
+		return NewAppError(403, fmt.Errorf("User does not have permission to set share with delete"), "Forbidden - Unauthorized to set permissions with delete")
+	}
+	if !rollupPermission.AllowShare && permission.AllowShare {
+		return NewAppError(403, fmt.Errorf("User does not have permission to set share with delegation"), "Forbidden - Unauthorized to set permissions with delegation")
+	}
 	return nil
 }
 
@@ -275,7 +276,7 @@ func isPermissionFor(permission *models.ODObjectPermission, grantee string) bool
 	return (strings.Compare(permission.Grantee, grantee) == 0)
 }
 
-func removePermissionsFor(obj *models.ODObject, grantee string) {
+func removePermissionsForGrantee(obj *models.ODObject, grantee string) {
 	for i := len(obj.Permissions) - 1; i >= 0; i-- {
 		permission := obj.Permissions[i]
 		if isPermissionFor(&permission, grantee) {
@@ -284,7 +285,17 @@ func removePermissionsFor(obj *models.ODObject, grantee string) {
 	}
 }
 
-func parseObjectShareRequest(r *http.Request, ctx context.Context) ([]models.ODObjectPermission, bool, error) {
+func hasPermissionsForGrantee(obj *models.ODObject, grantee string) bool {
+	for i := len(obj.Permissions) - 1; i >= 0; i-- {
+		permission := obj.Permissions[i]
+		if isPermissionFor(&permission, grantee) {
+			return true
+		}
+	}
+	return false
+}
+
+func parseObjectShareRequest(r *http.Request, ctx context.Context) ([]models.ODObjectPermission, error) {
 	var requestedShare protocol.ObjectShare
 	var requestedPermissions []models.ODObjectPermission
 	var err error
@@ -292,16 +303,16 @@ func parseObjectShareRequest(r *http.Request, ctx context.Context) ([]models.ODO
 	// Parse the JSON body into the requestedShare
 	err = util.FullDecode(r.Body, &requestedShare)
 	if err != nil {
-		return requestedPermissions, false, errors.New("Unable to decode share from JSON body")
+		return requestedPermissions, errors.New("Unable to decode share from JSON body")
 	}
 	// Map to internal permission(s)
 	requestedPermissions, err = mapping.MapObjectShareToODPermissions(&requestedShare)
 	if err != nil {
-		return requestedPermissions, false, errors.New("Error mapping share to permissions")
+		return requestedPermissions, errors.New("Error mapping share to permissions")
 	}
 
 	// Return it
-	return requestedPermissions, requestedShare.PropagateToChildren, nil
+	return requestedPermissions, nil
 }
 
 func getObjectIDFromContext(ctx context.Context) ([]byte, error) {
@@ -319,21 +330,4 @@ func getObjectIDFromContext(ctx context.Context) ([]byte, error) {
 		return bytesObjectID, errors.New("Invalid objectid in URI.")
 	}
 	return bytesObjectID, nil
-}
-
-func addObjectShareResponseAsJSON(
-	ctx context.Context,
-	w http.ResponseWriter,
-	r *http.Request,
-	caller Caller,
-	response *protocol.Object,
-) {
-	w.Header().Set("Content-Type", "application/json")
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		LoggerFromContext(ctx).Error("unable to marshal json", zap.String("err", err.Error()))
-		return
-	}
-	w.Write(jsonData)
 }

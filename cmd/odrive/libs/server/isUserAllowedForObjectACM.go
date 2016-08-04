@@ -342,47 +342,6 @@ func (h AppServer) flattenACM(logger zap.Logger, object *models.ODObject) error 
 	return nil
 }
 
-func (h AppServer) validateAndFlattenShare(ctx context.Context, permission *models.ODObjectPermission, object *models.ODObject) *AppError {
-	logger := LoggerFromContext(ctx)
-
-	// Reference to original acm
-	//originalAcm := object.RawAcm.String
-
-	// Remove existing f_share from the ACM
-	herr := removeACMPart(ctx, object, "f_share")
-	if herr != nil {
-		return herr
-	}
-
-	// Convert the AcmShare on the permission to an interface and assign to ACM
-	shareInterface, err := utils.UnmarshalStringToInterface(permission.AcmShare)
-	if err != nil {
-		logger.Error("unable to marshal share from permission", zap.String("permission acm share", permission.AcmShare), zap.String("err", err.Error()))
-		return NewAppError(500, err, "Unable to unmarshal share from permission")
-	}
-	herr = setACMPartFromInterface(ctx, object, "share", shareInterface)
-	if herr != nil {
-		return herr
-	}
-
-	// Flatten
-	h.flattenACM(logger, object)
-
-	// Get the share part back out since its been flattened as AAC alters it
-	herr, newShareInterface := getACMInterfacePart(object, "share")
-	if herr != nil {
-		return herr
-	}
-	// And then assign back on the permission
-	marshalledShare, err := utils.MarshalInterfaceToString(newShareInterface)
-	if err != nil {
-		return NewAppError(500, err, "Unable to marshal share from flattened interface")
-	}
-	permission.AcmShare = marshalledShare
-
-	return nil
-}
-
 // flattenGranteeOnPermission supports converting the grantee of a permission
 // to the flattened share equivalent for purposes of normalizing and matching
 // the name of a user or group at a later time.  The permission passed in is
@@ -403,8 +362,7 @@ func (h AppServer) flattenGranteeOnPermission(ctx context.Context, permission *m
 	}
 	acm := `{"classif":"U"}`
 	obj := models.ODObject{}
-	obj.RawAcm.Valid = true
-	obj.RawAcm.String = acm
+	obj.RawAcm = models.ToNullString(acm)
 	if herr := setACMPartFromInterface(ctx, &obj, "share", shareInterface); herr != nil {
 		return herr
 	}
@@ -431,15 +389,25 @@ func (h AppServer) flattenGranteeOnPermission(ctx context.Context, permission *m
 	return nil
 }
 
-func (h AppServer) flattenGranteeOnAllPermissions(ctx context.Context, obj *models.ODObject) *AppError {
-	// For all permissions, make sure we're using the flatened value
-	for i := len(obj.Permissions) - 1; i >= 0; i-- {
-		permission := obj.Permissions[i]
+func (h AppServer) flattenGranteeOnAllObjectPermissions(ctx context.Context, obj *models.ODObject) *AppError {
+	permissions := obj.Permissions
+	if herr := h.flattenGranteeOnAllPermissions(ctx, &permissions); herr != nil {
+		return herr
+	}
+	obj.Permissions = permissions
+	return nil
+}
+func (h AppServer) flattenGranteeOnAllPermissions(ctx context.Context, permissionsi *[]models.ODObjectPermission) *AppError {
+	permissions := *permissionsi
+	// For all permissions, make sure we're using the flattened value
+	for i := len(permissions) - 1; i >= 0; i-- {
+		permission := permissions[i]
 		if herr := h.flattenGranteeOnPermission(ctx, &permission); herr != nil {
 			return herr
 		}
-		obj.Permissions[i] = permission
+		permissions[i] = permission
 	}
+	permissionsi = &permissions
 	return nil
 }
 
