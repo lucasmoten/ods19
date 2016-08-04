@@ -83,21 +83,19 @@ func zipWriteManifest(aacClient aac.AacService, ctx context.Context, logger zap.
 	}
 	//Write the rollup, and extract its portion
 	var banner string
-	fqAcm := "classification_rollup.acm"
 	var acm interface{}
 	acmBytes := []byte(resp.AcmInfo.Acm)
 	err = json.Unmarshal(acmBytes, &acm)
-	if err == nil {
-		acmData, acmDataOk := acm.(map[string]interface{})
-		if acmDataOk {
-			banner = acmData["banner"].(string)
-		}
-	} else {
+	if err != nil {
 		return NewAppError(500, err, "invalid acm")
+	}
+	acmData, acmDataOk := acm.(map[string]interface{})
+	if acmDataOk {
+		banner = acmData["banner"].(string)
 	}
 
 	//Write this acm file out into the zip
-	header, err := zip.FileInfoHeader(newFileAcmInfo(fqAcm, resp.AcmInfo.Acm, time.Now()))
+	header, err := zip.FileInfoHeader(newFileAcmInfo("classification_rollup.acm", resp.AcmInfo.Acm, time.Now()))
 	if err != nil {
 		return NewAppError(500, err, "Unable to create file acm info header")
 	}
@@ -108,8 +106,7 @@ func zipWriteManifest(aacClient aac.AacService, ctx context.Context, logger zap.
 	w.Write([]byte(resp.AcmInfo.Acm))
 
 	//Begin writing the manifest (associate portion with individual files)
-	fqManifest := "classification_manifest.txt"
-	header, err = zip.FileInfoHeader(newManifestInfo(fqManifest, time.Now()))
+	header, err = zip.FileInfoHeader(newManifestInfo("classification_manifest.txt", time.Now()))
 	if err != nil {
 		return NewAppError(500, err, "Unable to create file acm info header")
 	}
@@ -120,16 +117,13 @@ func zipWriteManifest(aacClient aac.AacService, ctx context.Context, logger zap.
 
 	//Make sure that the first line of the manifest is the rollup portion,
 	//so that it's obvious what the overall classification is.
-	line := fmt.Sprintf("%s\n\n", banner)
 	//And write the portion and name of each individual file
-	w.Write([]byte(line))
+	w.Write([]byte(fmt.Sprintf("%s\n\n", banner)))
 	for _, m := range manifest.Files {
-		line = fmt.Sprintf("(%s) %s\n", m.Portion, path.Clean(m.Name))
-		w.Write([]byte(line))
+		w.Write([]byte(fmt.Sprintf("(%s) %s\n", m.Portion, path.Clean(m.Name))))
 	}
-	line = fmt.Sprintf("\n%s\n", banner)
 	//And write the portion and name of each individual file
-	w.Write([]byte(line))
+	w.Write([]byte(fmt.Sprintf("\n%s\n", banner)))
 	return nil
 }
 
