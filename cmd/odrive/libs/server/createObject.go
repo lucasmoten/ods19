@@ -134,6 +134,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	protocolObject := mapping.MapODObjectToObject(&createdObject)
 	jsonResponse(w, protocolObject)
+	return nil
 }
 
 // newOwnerPermission returns a default permission for the creator of an object.
