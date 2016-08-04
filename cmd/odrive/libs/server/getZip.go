@@ -19,6 +19,7 @@ import (
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/services/aac"
 	"golang.org/x/net/context"
 )
 
@@ -43,14 +44,15 @@ func (z *zipFileInfo) Mode() os.FileMode  { return z.mode }
 
 // This is an item in the manifest
 type zipManifestItem struct {
-	Banner string
-	Name   string
+	Portion string
+	Name    string
 }
 
 // All the state we need to write a manifest
 // Eventually, we will need rollup info.
 type zipManifest struct {
 	Files []zipManifestItem
+	ACMs  map[string]bool
 }
 
 // All the state we need to deconflict names in a directory
@@ -60,20 +62,74 @@ type zipUsedNames struct {
 
 // We need to retain classifications of files, so we need to write something
 // to re-associate them, short of doing file renaming to retain classification
-func zipWriteManifest(logger zap.Logger, zw *zip.Writer, meta *zipManifest) *AppError {
-	fqManifest := ".drive.manifest"
-	header, err := zip.FileInfoHeader(newManifestInfo(fqManifest, time.Now()))
+func zipWriteManifest(aacClient aac.AacService, ctx context.Context, logger zap.Logger, zw *zip.Writer, manifest *zipManifest) *AppError {
+	user, ok := UserFromContext(ctx)
+	if !ok {
+		return NewAppError(500, nil, "unable to get user")
+	}
+	//manifest acms were stored in a list to make them unique
+	//So now we need the list of unique values
+	var acmList []string
+	for a := range manifest.ACMs {
+		acmList = append(acmList, a)
+	}
+	//Compute the rollup
+	resp, err := aacClient.RollupAcms(user.DistinguishedName, acmList, "public", "")
+	if !resp.Success {
+		return NewAppError(500, err, "could not roll up zip file acms")
+	}
+	if !resp.AcmValid {
+		return NewAppError(500, err, "invalid acm")
+	}
+	//Write the rollup, and extract its portion
+	var banner string
+	fqAcm := "classification_rollup.acm"
+	var acm interface{}
+	acmBytes := []byte(resp.AcmInfo.Acm)
+	err = json.Unmarshal(acmBytes, &acm)
+	if err == nil {
+		acmData, acmDataOk := acm.(map[string]interface{})
+		if acmDataOk {
+			banner = acmData["banner"].(string)
+		}
+	} else {
+		return NewAppError(500, err, "invalid acm")
+	}
+
+	//Write this acm file out into the zip
+	header, err := zip.FileInfoHeader(newFileAcmInfo(fqAcm, resp.AcmInfo.Acm, time.Now()))
 	if err != nil {
 		return NewAppError(500, err, "Unable to create file acm info header")
 	}
 	w, err := zw.CreateHeader(header)
 	if err != nil {
+		return NewAppError(500, err, "Unable to write acm")
+	}
+	w.Write([]byte(resp.AcmInfo.Acm))
+
+	//Begin writing the manifest (associate portion with individual files)
+	fqManifest := "classification_manifest.txt"
+	header, err = zip.FileInfoHeader(newManifestInfo(fqManifest, time.Now()))
+	if err != nil {
+		return NewAppError(500, err, "Unable to create file acm info header")
+	}
+	w, err = zw.CreateHeader(header)
+	if err != nil {
 		return NewAppError(500, err, "unable to create manifest")
 	}
-	for _, m := range meta.Files {
-		line := fmt.Sprintf("%s:%s\n", m.Banner, path.Clean(m.Name))
+
+	//Make sure that the first line of the manifest is the rollup portion,
+	//so that it's obvious what the overall classification is.
+	line := fmt.Sprintf("%s\n\n", banner)
+	//And write the portion and name of each individual file
+	w.Write([]byte(line))
+	for _, m := range manifest.Files {
+		line = fmt.Sprintf("(%s) %s\n", m.Portion, path.Clean(m.Name))
 		w.Write([]byte(line))
 	}
+	line = fmt.Sprintf("\n%s\n", banner)
+	//And write the portion and name of each individual file
+	w.Write([]byte(line))
 	return nil
 }
 
@@ -201,8 +257,8 @@ func zipWriteFile(
 	return nil
 }
 
-//Get the security banner for this file
-func zipExtractBanner(obj models.ODObject, logger zap.Logger) string {
+//Get the security portion for this file
+func zipExtractPortion(obj models.ODObject, logger zap.Logger) string {
 	if obj.RawAcm.Valid {
 		var acm interface{}
 		acmBytes := []byte(obj.RawAcm.String)
@@ -210,7 +266,7 @@ func zipExtractBanner(obj models.ODObject, logger zap.Logger) string {
 		if err == nil {
 			acmData, acmDataOk := acm.(map[string]interface{})
 			if acmDataOk {
-				return acmData["banner"].(string)
+				return acmData["portion"].(string)
 			}
 		} else {
 			logger.Warn(
@@ -237,11 +293,12 @@ func zipIncludeFile(
 ) *AppError {
 	hasAccess, userPermission := isUserAllowedToReadWithPermission(ctx, h.MasterKey, &obj)
 	if hasAccess {
-		banner := zipExtractBanner(obj, logger)
+		portion := zipExtractPortion(obj, logger)
+		manifest.ACMs[obj.RawAcm.String] = true
 		fqName := obj.Name
 		thisFile := zipManifestItem{
-			Banner: banner,
-			Name:   fqName,
+			Portion: portion,
+			Name:    fqName,
 		}
 		manifest.Files = append(manifest.Files, thisFile)
 
@@ -277,7 +334,6 @@ func zipIncludeFolder(
 	if err != nil {
 		return NewAppError(400, err, "Object Identifier in Request URI is not a hex string")
 	}
-
 	//Write an acm for this folder
 	if parentObject.RawAcm.Valid {
 		fqAcm := fqPath + ".acm"
@@ -286,6 +342,7 @@ func zipIncludeFolder(
 			return NewAppError(500, err, "Unable to create file acm info header")
 		}
 
+		manifest.ACMs[parentObject.RawAcm.String] = true
 		w, err := zw.CreateHeader(header)
 		if err != nil {
 			return NewAppError(500, err, "Unable to write folder acm")
@@ -317,14 +374,15 @@ func zipIncludeFolder(
 			hasAccess, userPermission := isUserAllowedToReadWithPermission(ctx, h.MasterKey, &obj)
 
 			if hasAccess {
-				banner := zipExtractBanner(obj, logger)
+				portion := zipExtractPortion(obj, logger)
 				//Record access level for all items - file or folder
 				fqName := fmt.Sprintf("%s/%s", fqPath, obj.Name)
 				thisFile := zipManifestItem{
-					Banner: banner,
-					Name:   fqName,
+					Portion: portion,
+					Name:    fqName,
 				}
 				manifest.Files = append(manifest.Files, thisFile)
+				manifest.ACMs[obj.RawAcm.String] = true
 
 				//XXX This is an app-specific idea to have folders, without a way to efficiently
 				// just ask for the children of a node without a full query
@@ -345,6 +403,12 @@ func zipIncludeFolder(
 		pagingRequest.PageNumber++
 	}
 	return nil
+}
+
+func newManifest() *zipManifest {
+	m := zipManifest{}
+	m.ACMs = make(map[string]bool)
+	return &m
 }
 
 //This is a structure where we track the names that
@@ -422,7 +486,7 @@ func (h AppServer) getZip(ctx context.Context, w http.ResponseWriter, r *http.Re
 	logger := LoggerFromContext(ctx)
 
 	//Start writing a zip file now
-	manifest := zipManifest{}
+	manifest := newManifest()
 	zw := zip.NewWriter(w)
 	usedNames := newUsedNames()
 	for k, v := range r.URL.Query() {
@@ -448,9 +512,9 @@ func (h AppServer) getZip(ctx context.Context, w http.ResponseWriter, r *http.Re
 				isFolder := obj.TypeName.Valid && obj.TypeName.String == "Folder"
 				obj.Name = zipSuggestName(usedNames, obj.Name, isFolder)
 				if isFolder {
-					herr = zipIncludeFolder(h, ctx, logger, dp, dao, obj, ".", zw, &manifest)
+					herr = zipIncludeFolder(h, ctx, logger, dp, dao, obj, ".", zw, manifest)
 				} else {
-					herr = zipIncludeFile(h, ctx, logger, dp, dao, obj, ".", zw, &manifest)
+					herr = zipIncludeFile(h, ctx, logger, dp, dao, obj, ".", zw, manifest)
 				}
 				if herr != nil {
 					return herr
@@ -459,7 +523,7 @@ func (h AppServer) getZip(ctx context.Context, w http.ResponseWriter, r *http.Re
 		}
 	}
 	//We accumulated a lot of data in the manifest.  Write it out now.
-	herr := zipWriteManifest(logger, zw, &manifest)
+	herr := zipWriteManifest(h.AAC, ctx, logger, zw, manifest)
 	if herr != nil {
 		return herr
 	}
