@@ -18,6 +18,7 @@ import (
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/services/aac"
+	"decipher.com/object-drive-server/services/finder"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
@@ -280,11 +281,14 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 		SnippetResp:                &snippetResponse,
 	}
 
+	fakeFinder := finder.NewFakeAsyncKafkaProducer(nil)
+
 	s := server.AppServer{RootDAO: &fakeDAO,
 		ServicePrefix: cfg.RootURLRegex,
 		AAC:           &fakeAAC,
 		Users:         userCache,
 		Snippets:      snippetCache,
+		EventQueue:    fakeFinder,
 	}
 	// Panics occur if regex routes are not compiled with InitRegex()
 	s.InitRegex()

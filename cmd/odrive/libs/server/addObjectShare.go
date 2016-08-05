@@ -6,17 +6,23 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"golang.org/x/net/context"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 )
 
 func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
+
+	logger := LoggerFromContext(ctx)
+	caller, _ := CallerFromContext(ctx)
+	session := SessionIDFromContext(ctx)
 
 	rollupPermission, permissions, dbObject, herr := commonObjectSharePrep(ctx, h.MasterKey, r)
 	if herr != nil {
@@ -26,10 +32,6 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	dao := DAOFromContext(ctx)
 	// Only proceed if there were permissions provided
 	if len(permissions) > 0 {
-
-		// Get values from ctx.
-		logger := LoggerFromContext(ctx)
-		caller, _ := CallerFromContext(ctx)
 
 		var permissionsToAdd []models.ODObjectPermission
 
@@ -141,8 +143,18 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	if err != nil {
 		return NewAppError(500, err, "Error retrieving object")
 	}
-	// Map from model to protocol and output it
-	jsonResponse(w, mapping.MapODObjectToObject(&updatedObject))
+
+	apiResponse := mapping.MapODObjectToObject(&updatedObject)
+	h.EventQueue.Publish(events.Index{
+		ObjectID:     apiResponse.ID,
+		Timestamp:    time.Now().Format(time.RFC3339),
+		Action:       "update",
+		ChangeToken:  apiResponse.ChangeToken,
+		UserDN:       caller.DistinguishedName,
+		StreamUpdate: false,
+		SessionID:    session,
+	})
+	jsonResponse(w, apiResponse)
 
 	return nil
 }

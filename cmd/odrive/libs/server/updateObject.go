@@ -3,17 +3,18 @@ package server
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"golang.org/x/net/context"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
@@ -25,11 +26,8 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	var requestObject models.ODObject
 	var err error
 
-	// Get caller value from ctx.
-	caller, ok := CallerFromContext(ctx)
-	if !ok {
-		return NewAppError(500, err, "Could not determine user")
-	}
+	caller, _ := CallerFromContext(ctx)
+	session := SessionIDFromContext(ctx)
 	dao := DAOFromContext(ctx)
 
 	if r.Header.Get("Content-Type") != "application/json" {
@@ -51,6 +49,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	// Check if the user has permissions to update the ODObject
 	var grant models.ODObjectPermission
+	var ok bool
 	if ok, grant = isUserAllowedToUpdateWithPermission(ctx, h.MasterKey, &dbObject); !ok {
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
 	}
@@ -98,9 +97,9 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Check that the owner of the object passed in matches the current state
 	// of the object in the data store.
 	if len(requestObject.OwnedBy.String) == 0 {
-		requestObject.OwnedBy.String = dbObject.OwnedBy.String
-		requestObject.OwnedBy.Valid = true
+		requestObject.OwnedBy = models.ToNullString(dbObject.OwnedBy.String)
 	}
+
 	if strings.Compare(requestObject.OwnedBy.String, dbObject.OwnedBy.String) != 0 {
 		return NewAppError(428, nil, "OwnedBy does not match expected value.  Use changeOwner to transfer ownership.")
 	}
@@ -108,8 +107,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// If there was no ACM provided...
 	if len(requestObject.RawAcm.String) == 0 {
 		// There was no change, retain existing from dbObject
-		requestObject.RawAcm.Valid = dbObject.RawAcm.Valid
-		requestObject.RawAcm.String = dbObject.RawAcm.String
+		requestObject.RawAcm = models.ToNullString(dbObject.RawAcm.String)
 	}
 
 	// Assign existing permissions from the database object to the request object
@@ -205,10 +203,17 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		return NewAppError(500, nil, "ChangeToken didn't update when processing request "+msg)
 	}
 
-	// Response in requested format
 	apiResponse := mapping.MapODObjectToObject(&requestObject)
-	updateObjectResponseAsJSON(w, r, caller, &apiResponse)
-
+	h.EventQueue.Publish(events.Index{
+		ObjectID:     apiResponse.ID,
+		Action:       "update",
+		Timestamp:    time.Now().Format(time.RFC3339),
+		ChangeToken:  apiResponse.ChangeToken,
+		UserDN:       caller.DistinguishedName,
+		StreamUpdate: false,
+		SessionID:    session,
+	})
+	jsonResponse(w, apiResponse)
 	return nil
 }
 
@@ -261,20 +266,4 @@ func parseUpdateObjectRequestAsJSON(r *http.Request, ctx context.Context) (model
 
 	// Return it
 	return requestObject, err
-}
-
-func updateObjectResponseAsJSON(
-	w http.ResponseWriter,
-	r *http.Request,
-	caller Caller,
-	response *protocol.Object,
-) {
-	w.Header().Set("Content-Type", "application/json")
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		log.Printf("Error marshalling response as json: %s", err.Error())
-		return
-	}
-	w.Write(jsonData)
 }

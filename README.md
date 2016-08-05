@@ -44,7 +44,6 @@ $GOPATH/
 import "decipher.com/object-drive-server/somepackage"
 ```
 
-
 The other code (Java, etc) should be found at **OD_ROOT**. Python build scripts
 in the `cte/object-drive` project checkout and compile the code under **OD_ROOT**
 

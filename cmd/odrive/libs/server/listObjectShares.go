@@ -2,11 +2,8 @@ package server
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"net/http"
-
-	"github.com/uber-go/zap"
 
 	"golang.org/x/net/context"
 
@@ -53,19 +50,7 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 	}
 
 	// Response in requested format
-	return listObjectSharesResponseAsJSON(LoggerFromContext(ctx), w, mapping.MapODPermissionsToPermissions(&dbObject.Permissions))
-}
-
-func listObjectSharesResponseAsJSON(
-	logger zap.Logger,
-	w http.ResponseWriter,
-	response []protocol.Permission,
-) *AppError {
-	w.Header().Set("Content-Type", "application/json")
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return NewAppError(500, err, "error marshalling json response")
-	}
-	w.Write(jsonData)
+	apiResponse := mapping.MapODPermissionsToPermissions(&dbObject.Permissions)
+	jsonResponse(w, apiResponse)
 	return nil
 }

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"decipher.com/object-drive-server/services/audit"
+	"decipher.com/object-drive-server/services/finder"
 	"decipher.com/object-drive-server/services/zookeeper"
 	"decipher.com/object-drive-server/util/testhelpers"
 
@@ -197,7 +198,7 @@ func startApplication(conf config.AppConfiguration) {
 
 	configureDrainProvider(app, conf.CacheSettings, conf.CacheSettings.Partition+"/"+cacheID)
 
-	logger.Info("ip address read from interface", zap.String("ip", globalconfig.MyIP))
+	configureEventQueue(app, conf.EventQueue)
 
 	err = registerWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, conf.ZK.IP, conf.ZK.Port)
 	if err != nil {
@@ -305,6 +306,15 @@ func configureDrainProvider(app *server.AppServer, conf config.S3DrainProviderOp
 	logger.Info("Draining cache to S3")
 	dp = server.NewS3DrainProvider(conf, cacheID)
 	app.DrainProvider = dp
+}
+
+func configureEventQueue(app *server.AppServer, conf config.EventQueueConfiguration) {
+	logger.Info("Kafka Config", zap.Object("conf", conf))
+	if len(conf.KafkaAddrs) == 0 {
+		app.EventQueue = finder.NewFakeAsyncKafkaProducer(logger)
+		return
+	}
+	app.EventQueue = finder.NewAsyncKafkaProducer(logger, conf.KafkaAddrs, nil)
 }
 
 func registerWithZookeeperTry(app *server.AppServer, zkBasePath, zkAddress, myIP, myPort string) error {

@@ -128,16 +128,14 @@ func have(s string) bool {
 
 func canImpersonateUser(whitelist []string, clientID string, user string) bool {
 
-	result := whitelistContains(whitelist, clientID)
 	normalizedClient := config.GetNormalizedDistinguishedName(clientID)
 	normalizedUserToken := config.GetNormalizedDistinguishedName(user)
 
-	if result {
-		//log.Printf("Client %s is allowed it impersonate for %s\n", normalizedClient, normalizedUserToken)
-	} else {
+	if contains := whitelistContains(whitelist, clientID); !contains {
 		log.Printf("Client %s is denied! Unable to impersonate %s", normalizedClient, normalizedUserToken)
+		return false
 	}
-	return result
+	return true
 }
 
 func whitelistContains(list []string, clientID string) bool {

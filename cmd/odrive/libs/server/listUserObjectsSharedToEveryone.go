@@ -33,6 +33,6 @@ func (h AppServer) listUserObjectsSharedToEveryone(ctx context.Context, w http.R
 
 	// Render Response
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&results)
-	writeResultsetAsJSON(w, &apiResponse)
+	jsonResponse(w, apiResponse)
 	return nil
 }

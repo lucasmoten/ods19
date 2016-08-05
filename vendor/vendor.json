@@ -3,6 +3,12 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "zEVXyrmEkx8E9mcVILP3tia1HJo=",
+			"path": "github.com/Shopify/sarama",
+			"revision": "8eb9752774926ca15f9828b7bb5202f1a5b9305c",
+			"revisionTime": "2016-08-09T02:25:49Z"
+		},
+		{
 			"checksumSHA1": "n0dgEdibSaDW8FwXMCkm4rsTo2c=",
 			"path": "github.com/aws/aws-sdk-go/aws",
 			"revision": "87b1e60a50b09e4812dee560b33a238f67305804",
@@ -141,6 +147,30 @@
 			"revisionTime": "2016-01-21T14:17:43-08:00"
 		},
 		{
+			"checksumSHA1": "5rPfda8jFccr3A6heL+JAmi9K9g=",
+			"path": "github.com/davecgh/go-spew/spew",
+			"revision": "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d",
+			"revisionTime": "2015-11-05T21:09:06Z"
+		},
+		{
+			"checksumSHA1": "y2Kh4iPlgCPXSGTCcFpzePYdzzg=",
+			"path": "github.com/eapache/go-resiliency/breaker",
+			"revision": "b86b1ec0dd4209a588dc1285cdd471e73525c0b3",
+			"revisionTime": "2016-01-04T19:15:39Z"
+		},
+		{
+			"checksumSHA1": "WHl96RVZlOOdF4Lb1OOadMpw8ls=",
+			"path": "github.com/eapache/go-xerial-snappy",
+			"revision": "bb955e01b9346ac19dc29eb16586c90ded99a98c",
+			"revisionTime": "2016-06-09T14:24:08Z"
+		},
+		{
+			"checksumSHA1": "oCCs6kDanizatplM5e/hX76busE=",
+			"path": "github.com/eapache/queue",
+			"revision": "44cc805cf13205b55f69e14bcb69867d1ae92f98",
+			"revisionTime": "2016-08-05T00:47:13Z"
+		},
+		{
 			"checksumSHA1": "PkPgpx/FYoIJCbihlRZEp7oHG9Q=",
 			"path": "github.com/go-ini/ini",
 			"revision": "afbd495e5aaea13597b5e14fe514ddeaa4d76fc3",
@@ -151,6 +181,12 @@
 			"path": "github.com/go-sql-driver/mysql",
 			"revision": "7c7f556282622f94213bc028b4d0a7b6151ba239",
 			"revisionTime": "2016-01-25T16:18:23+01:00"
+		},
+		{
+			"checksumSHA1": "W+E/2xXcE1GmJ0Qb784ald0Fn6I=",
+			"path": "github.com/golang/snappy",
+			"revision": "d9eb7a3d35ec988b8585d4a0068e462c27d28380",
+			"revisionTime": "2016-05-29T05:00:41Z"
 		},
 		{
 			"checksumSHA1": "3/Bhy+ua/DCv2ElMD5GzOYSGN6g=",
@@ -169,6 +205,12 @@
 			"path": "github.com/jmoiron/sqlx/reflectx",
 			"revision": "5978a4ef08e4ddae6983d82b9166353fe21c6600",
 			"revisionTime": "2016-01-13T22:50:08-05:00"
+		},
+		{
+			"checksumSHA1": "hX+j017F4PEtIUGflAneDtLC6hs=",
+			"path": "github.com/klauspost/crc32",
+			"revision": "19b0b332c9e4516a6370a0456e6182c3b5036720",
+			"revisionTime": "2016-02-19T14:26:09Z"
 		},
 		{
 			"checksumSHA1": "lCS/i5iwmskT8IL8hHEkKy1DlMc=",

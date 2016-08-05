@@ -4,9 +4,11 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/uber-go/zap"
 
@@ -15,20 +17,21 @@ import (
 
 func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
+	caller, _ := CallerFromContext(ctx)
+	logger := LoggerFromContext(ctx)
+	dao := DAOFromContext(ctx)
+	session := SessionIDFromContext(ctx)
+
 	rollupPermission, permissions, dbObject, herr := commonObjectSharePrep(ctx, h.MasterKey, r)
 	if herr != nil {
 		return herr
 	}
-
-	logger := LoggerFromContext(ctx)
-	dao := DAOFromContext(ctx)
 
 	// Only proceed if there were permissions provided
 	if len(permissions) == 0 {
 		logger.Info("No permissions derived from share for removal.")
 	} else {
 		// Get values from ctx.
-		caller, _ := CallerFromContext(ctx)
 		var permissionsToAdd []models.ODObjectPermission
 		permissionsChanged := false
 
@@ -151,9 +154,18 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 	if err != nil {
 		return NewAppError(500, err, "Error retrieving object")
 	}
-	// Map from model to protocol and output it
-	jsonResponse(w, mapping.MapODObjectToObject(&updatedObject))
+	apiResponse := mapping.MapODObjectToObject(&updatedObject)
 
+	h.EventQueue.Publish(events.Index{
+		ObjectID:     apiResponse.ID,
+		Timestamp:    time.Now().Format(time.RFC3339),
+		Action:       "update",
+		ChangeToken:  apiResponse.ChangeToken,
+		UserDN:       caller.DistinguishedName,
+		StreamUpdate: false,
+		SessionID:    session,
+	})
+	jsonResponse(w, apiResponse)
 	return nil
 }
 

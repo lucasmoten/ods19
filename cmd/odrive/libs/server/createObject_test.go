@@ -22,7 +22,7 @@ func jsonEscape(i string) string {
 	return o
 }
 
-func TestCreatObjectMalicious(t *testing.T) {
+func TestCreateObjectMalicious(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}

@@ -284,11 +284,7 @@ func (d *S3DrainProviderData) DrainUploadedFilesToSafety() {
 //
 // Dont delete the file here if something goes wrong... because the caller tries this multiple times
 //
-func (d *S3DrainProviderData) CacheToDrain(
-	bucket *string,
-	rName FileId,
-	size int64,
-) error {
+func (d *S3DrainProviderData) CacheToDrain(bucket *string, rName FileId, size int64) error {
 	sess := d.AWSSession
 	outFileUploaded := d.Resolve(FileName(rName + ".uploaded"))
 
@@ -304,11 +300,7 @@ func (d *S3DrainProviderData) CacheToDrain(
 	defer fIn.Close()
 
 	key := aws.String(string(d.Resolve(NewFileName(rName, ""))))
-	d.Logger.Info(
-		"drain to S3",
-		zap.String("bucket", *bucket),
-		zap.String("key", *key),
-	)
+	d.Logger.Info("drain to S3", zap.String("bucket", *bucket), zap.String("key", *key))
 
 	uploader := s3manager.NewUploader(sess)
 	_, err = uploader.Upload(&s3manager.UploadInput{

@@ -78,6 +78,6 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 
 	// Response in requested format
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&response)
-	writeResultsetAsJSON(w, &apiResponse)
+	jsonResponse(w, apiResponse)
 	return nil
 }

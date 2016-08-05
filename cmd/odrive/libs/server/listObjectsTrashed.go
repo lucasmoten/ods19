@@ -46,8 +46,7 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 	// Get caller permissions
 	h.buildCompositePermissionForCaller(ctx, &results)
 
-	// Map the response and write it out
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&results)
-	writeResultsetAsJSON(w, &apiResponse)
+	jsonResponse(w, &apiResponse)
 	return nil
 }

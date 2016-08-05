@@ -14,25 +14,16 @@ import (
 
 func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
-	// // Get caller value from ctx.
-	// caller, ok := CallerFromContext(ctx)
-	// if !ok {
-	// 	return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
-	// }
 	dao := DAOFromContext(ctx)
 
 	var requestObject models.ODObject
 	var err error
 
-	// Parse the objectId and historyId (changeCount) from the request path
-
-	// Get capture groups from ctx.
 	captured, ok := CaptureGroupsFromContext(ctx)
 	if !ok {
 		return NewAppError(500, errors.New("Could not get capture groups"), "No capture groups.")
 	}
 
-	// Initialize requestobject with the objectId being requested
 	if captured["objectId"] == "" {
 		return NewAppError(http.StatusBadRequest, errors.New("Could not extract objectID from URI"), "URI: "+r.URL.Path)
 	}
@@ -49,7 +40,6 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 		return NewAppError(http.StatusBadRequest, err, "Invalid revisionId in URI.")
 	}
 
-	// Retrieve existing object from the data store
 	dbObject, err := dao.GetObjectRevision(requestObject, true)
 	if err != nil {
 		return NewAppError(500, err, "Error retrieving object")

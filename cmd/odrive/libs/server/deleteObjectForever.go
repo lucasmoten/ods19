@@ -74,10 +74,7 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 
 	// Response in requested format
 	apiResponse := mapping.MapODObjectToExpungedObjectResponse(&dbObject)
-	herr := deleteObjectForeverResponse(w, r, caller, &apiResponse)
-	if herr != nil {
-		return herr
-	}
+	jsonResponse(w, apiResponse)
 	return nil
 }
 
