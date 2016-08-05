@@ -13,7 +13,7 @@ A series of microservice operations are exposed on the API gateway for use of Ob
 | List Objects at Root | Retrieves a resultset of objects at the user's root. |
 | List Objects Under Parent | Retrieves a resultset of objects contained in/under a parent object (ie., folder). |
 | Update Object | Used for updating the metadata of an object. |
-| Update Object Stram | Used for updating the content stream and metadata of an object. |
+| Update Object Stream | Used for updating the content stream and metadata of an object. |
 | Delete Object | Marks an object as deleted an only available from the user's trash. |
 | Delete Object Forever | Expunges an object so that it cannot be restored from the trash. |
 | Add Object Share | Creates a share for an object to another user or group. |
@@ -24,6 +24,7 @@ A series of microservice operations are exposed on the API gateway for use of Ob
 | Move Object | Changes the hierarchial placement of an object |
 | List Object Shares | Retrieves a resultset of objects shared to the user. |
 | List Objects Shared | Retreives a resultset of objects that the user has shared. |
+| List Objects Shared to Everyone | Retrieves a resultset of objects that are shared to everyone. |
 | List Trashed Objects | Retrieves a resultset of objects in the user's trash. |
 | Undelete Object | Restores an object from the user's trash. |
 | User Stats | Retrieve information for user's storage consumtpion. |
@@ -41,9 +42,14 @@ The http level result of calling APIs that happens inside of SSL:
 
 [Update (from real traffic)](static/templates/TestUpdate.html)
 
+<!--
 [Share (from real traffic)](static/templates/TestShare.html)
+-->
+Testing interface: 
 
-[Testing interface (for development)](ui)
+[Development (for development)](ui)
+
+[Drive UI](/apps/drive/home)
 
 # Group CRUD Object Operations
 These basic operations provide support for creating, retrieving, updating and deleting objects. 
@@ -58,16 +64,16 @@ Create a new object in Object Drive.
 The returned json is the metadata that can be used for further operations on the data, such as update,
 delete, etc.  The json representing an object is uniform so that it is a similar representation when
 it comes back from creation, or from getting an object listing, or from an update.
-An acm follows guidance given here: https://confluence.363-283.io/pages/viewpage.action?ageId=557850
+An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage.action?ageId=557850
 
-+ Request With Content Stream
++ Request With Content Stream (multipart/form-data; boundary=7518615725)
     When creating a new object with a content stream, such as a file, this must be presented in multipart/form-data format, with the metadata about the object provided in a field named 'ObjectMetadata' containing a JSON structure of the following fields.
 
     + typeName (string, required) -  The type to be assigned to this object. Common types include 'File', 'Folder'. Custom types may be referenecd here for the purposes of rules or processing constraints and definition of properties.
     + name (string, optional) - The name to be given this object.  If no name is given, then objects are created with the default name pattern of `New <typeName>`.
     + description (string, optional) - An optional abstract of the object's contents.
     + parentId (string, optional) - Hex encoded identifier of an object, typically a folder, into which this new object is being created as a child object. If no value is specified, then the object will be created in the root location of the user who is creating it.
-    + acm (string OR object, required) - Access Control Model is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies.  This value may be provided in either serialized string format, or nested object format.
+    + acm (object, required) - Access Control Model is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies.  This value may be provided in either serialized string format, or nested object format.
     + contentType (string, optional) - The suggested mime type for the content stream if given for this object.
     + contentSize (int, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.
     + properties (properties array, optional) - Array of custom properties to be associated with the newly created object.
@@ -75,49 +81,43 @@ An acm follows guidance given here: https://confluence.363-283.io/pages/viewpage
     + isUSPersonsData (boolean, optional) - Indicates if this object contains US Persons data.
     + isFOIAExempt (boolean, optional) - Indicates if this object is exempt from Freedom of Information Act requests.
 
-    + Headers
-
-            Host: dockervm:8080
-            User-Agent: Go-http-client/1.1
-            Content-Length: 565
-            Content-Type: multipart/form-data; boundary=7518615725aff2855bc2024fe2ca40d3555eafbcc5a59794c866ed2c8eae
-            Accept-Encoding: gzip
-            
     + Body
     
-            --7518615725aff2855bc2024fe2ca40d3555eafbcc5a59794c866ed2c8eae
+            --7518615725
             Content-Disposition: form-data; name="ObjectMetadata"
             Content-Type: application/json
-            
             {
-                "typeName": "{typeName}",
-                "name": "{name}",
-                "description": "{description}",
-                "parentId": "{parentId}",
-                "acm": {acm},
-                "contentType": "{contentType}",
-                "contentSize": {contentSize},
-                "properties": [Property],
-                "permissions": [Permission],
-                "isUSPersonsData": {isUSPersonsData},
-                "isFOIAExempt": {isFOIAExempt}
+                "typeName": "File",
+                "name": "My new file",
+                "description": "This is the description for my file",
+                "parentId": "",
+                "acm": {
+                    "classif": "u",
+                    "version": "2.1.0"
+                },
+                "contentType": "text/plain",
+                "contentSize": 31,
+                "properties": [],
+                "permissions": [],
+                "isUSPersonsData": false,
+                "isFOIAExempt": false
             }
-            --7518615725aff2855bc2024fe2ca40d3555eafbcc5a59794c866ed2c8eae
+            --7518615725
             Content-Disposition: form-data; name="filestream"; filename="test.txt"
             Content-Type: application/octet-stream
             
-            asdfjklasdfjklasdfjklasdf
+            This is the content of the file
             
-            --7518615725aff2855bc2024fe2ca40d3555eafbcc5a59794c866ed2c8eae--
+            --7518615725--        
 
-+ Request Without a Content Stream
++ Request Without a Content Stream (application/json)
     When creating a new object without a content stream, such as a folder, the object definition may be specified directly in the request body as typified below.
 
     + typeName (string, required) -  The type to be assigned to this object. Common types include 'File', 'Folder'. Custom types may be referenecd here for the purposes of rules or processing constraints and definition of properties.
     + name (string, optional) - The name to be given this object.  If no name is given, then objects are created with the default name pattern of `New <typeName>`.
     + description (string, optional) - An optional abstract of the object's contents.
     + parentId (string, optional) - Hex encoded identifier of an object, typically a folder, into which this new object is being created as a child object. If no value is specified, then the object will be created in the root location of the user who is creating it.
-    + acm (string OR object, required) - Access Control Model is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies.  This value may be provided in either serialized string format, or nested object format.
+    + acm (object, required) - Access Control Model is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies.  This value may be provided in either serialized string format, or nested object format.
     + contentType (string, optional) - The suggested mime type for the content stream if given for this object.
     + contentSize (int, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.
     + properties (properties array, optional) - Array of custom properties to be associated with the newly created object.
@@ -125,29 +125,8 @@ An acm follows guidance given here: https://confluence.363-283.io/pages/viewpage
     + isUSPersonsData (boolean, optional) - Indicates if this object contains US Persons data.
     + isFOIAExempt (boolean, optional) - Indicates if this object is exempt from Freedom of Information Act requests.
 
-    + Headers
-    
-            Host: dockervm:8080
-            User-Agent: Go-http-client/1.1
-            Content-Length: 565
-            Content-Type: application/json
-            Accept-Encoding: gzip
-            
-    + Body
+    + Attributes (CreateObjectRequestNoStream)
 
-            {
-                "typeName": "{typeName}",
-                "name": "{name}",
-                "description": "{description}",
-                "parentId": "{parentId}",
-                "acm": {acm},
-                "contentType": "{contentType}",
-                "contentSize": {contentSize},
-                "properties": [Property],
-                "permissions": [Permission]
-                "isUSPersonsData": {isUSPersonsData},
-                "isFOIAExempt": {isFOIAExempt}
-            }
 
 + Response 200 (application/json)
     + Attributes (ObjectResp)
@@ -215,38 +194,16 @@ This creates a new revision of the object.
 
     The JSON object provided in the body can contain the following fields:
 
-    + changeToken (string, required) - A hash value expected to match the targeted object’s current changeToken value. This value is retrieved from get or list operations.
-    + typeName (string, optional) -  The new type to be assigned to this object. Common types include 'File', 'Folder'. If no value is provided or this field is omitted, then the type will not be changed.
-    + name (string, optional) - The new name to be given this object. It does not have to be unique. It may refer to a conventional filename and extension. If no value is provided, or this field is ommitted, then the name will not be changed.
+    + changeToken (string, required) - The current change token on the object
+    + typeName (string, optional) - The display name of the type assigned this object.
+    + name (string, optional) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.
     + description (string, optional) - The new description to be given as an abstract of the objects content stream. If no value is provided, or this field is ommitted, then the description will not be changed.
-    + acm (string OR object, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. https://confluence.363-283.io/pages/viewpage.action?pageId=557850. If no value is provided, or this field is ommitted, then the acm will not be changed. This value may be provided in either serialized string format, or nested object format.
+    + acm (object, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. https://confluence.363-283.io/pages/viewpage.action?pageId=557850. If no value is provided, or this field is ommitted, then the acm will not be changed. This value may be provided in either serialized string format, or nested object format.
     + properties (properties array, optional) -  An array of custom properties to be associated with this object for property changes. For the properties specified, those who do not match existing properties on the object by name will be added. For the properties that do match existing properties by name, if the value specified is blank or empty, then the existing property will be deleted, otherwise, the property will be updated to the new value. If properties are specified in the array, then existing properties on the object are retained. Properties are only removed from an object if they are provided, with their value set to an empty string.
     + isUSPersonsData (boolean, optional) - Indicates if this object contains US Persons data.
     + isFOIAExempt (boolean, optional) - Indicates if this object is exempt from Freedom of Information Act requests.
 
-    + Body
-    
-            {
-                "changeToken": "{changeToken}",
-                "typeName": "{typeName}",
-                "name": "{name}",
-                "description": "{description}",
-                "acm": {acm},
-                "properties": [
-                    {
-                        "Name": "{propertyName}",
-                        "Value": "{propertyValue}",
-                        "ClassificationPM": "{portionMarkedClassificationOfPropertyValue}"
-                    },
-                    {
-                        "Name": "{propertyName}",
-                        "Value": "{propertyValue}",
-                        "ClassificationPM": "{portionMarkedClassificationOfPropertyValue}"
-                    }
-                ],
-                "isUSPersonsData": {isUSPersonsData},
-                "isFOIAExempt": {isFOIAExempt}
-            }
+    + Attributes (UpdateObject)
 
 + Response 200 (application/json)
 
@@ -335,7 +292,7 @@ Updates the actual file bytes associated with an objectId. This must be provided
 
 This creates a new revision of the object.
     
-+ Request
++ Request (multipart/form-data; boundary=b428e6cd1933)
 
     The JSON object provided in the body can contain the following fields:
 
@@ -349,46 +306,34 @@ This creates a new revision of the object.
     + properties (properties array, optional) -  An array of custom properties to be associated with this object for property changes. For the properties specified, those who do not match existing properties on the object by name will be added. For the properties that do match existing properties by name, if the value specified is blank or empty, then the existing property will be deleted, otherwise, the property will be updated to the new value. If properties are specified in the array, then existing properties on the object are retained. Properties are only removed from an object if they are provided, with their value set to an empty string.    
     + isUSPersonsData (boolean, optional) - Indicates if this object contains US Persons data.
     + isFOIAExempt (boolean, optional) - Indicates if this object is exempt from Freedom of Information Act requests.
-
-    + Headers
-    
-            Host: dockervm:8080
-            User-Agent: Go-http-client/1.1
-            Content-Length: 565
-            Content-Type: multipart/form-data; boundary=cc288bcda613e3b659a50ced49542b8676d99ce68f964346ff8a700318de
-            Accept-Encoding: gzip
-            
+           
     + Body
-    
-            --cc288bcda613e3b659a50ced49542b8676d99ce68f964346ff8a700318de
+
+            --b428e6cd1933
             Content-Disposition: form-data; name="ObjectMetadata"
             Content-Type: application/json
-            
             {
-                "changeToken": "{changeToken}",
-                "typeName": "{typeName}",
-                "name": "{name}",
-                "description": "{description}",
-                "acm": {acm},
-                "contentType": "{contentType}",
-                "contentSize": {contentSize},
-                "properties": [
-                    {
-                        "name": "<propertyName>"
-                        ,"value": "<propertyValue>"
-                        ,"classificationPM": "<portionMarkedClassificationOfPropertyValue>"
-                    }
-                ],
-                "isUSPersonsData": {isUSPersonsData},
-                "isFOIAExempt": {isFOIAExempt}
+                "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",
+                "typeName": "File",
+                "name": "My new file",
+                "description": "This is the new description for my file",
+                "acm": {
+                    "classif": "u",
+                    "version": "2.1.0"
+                },
+                "contentType": "text/plain",
+                "contentSize": 36,
+                "properties": [],
+                "isUSPersonsData": false,
+                "isFOIAExempt": false
             }
-            --cc288bcda613e3b659a50ced49542b8676d99ce68f964346ff8a700318de
+            --b428e6cd1933
             Content-Disposition: form-data; name="filestream"; filename="test.txt"
             Content-Type: application/octet-stream
             
-            asdfjklasdfjklasdfjklasdf
+            This is the new contents of the file
             
-            --cc288bcda613e3b659a50ced49542b8676d99ce68f964346ff8a700318de--    
+            --b428e6cd1933--
 
 + Response 200 (application/json)
 
@@ -529,10 +474,6 @@ When an object is deleted, a recursive action is performed on all natural childr
 
     + Attributes (ChangeToken)
             
-+ Request with Stream (multipart/form-data)
-
-    + Attributes (ChangeToken)
-
 + Response 200 (application/json)
 
     + Attributes (ObjectDeleted)
@@ -646,8 +587,6 @@ This microservice operation is used to grant the specified permission on the tar
 ### Remove Object Share [DELETE]
 This microservice operation removes permissions previously granted to users and groups for a given object.
 
-This service is not implemented at this time and the API noted below may be changing.
-
 + Request (application/json)
 
     + Attributes (ACMShare)
@@ -655,6 +594,57 @@ This service is not implemented at this time and the API noted below may be chan
 + Response 200 (application/json)
 
     + Attributes (ObjectResp)
+
++ Response 400
+
+        Unable to decode request
+        
++ Response 403
+
+        Unauthorized
+        
++ Response 405
+
+        Deleted
+        
++ Response 410
+
+        Does Not Exist
+        
++ Response 500
+
+        Error storing metadata or stream
+
+## List Objects Shared to Everyone [/sharedpublic?pageNumber={pageNumber}&pageSize={pageSize}&sortField={sortField}&sortAscending={sortAscending}&filterField={filterField}&condition={condition}&expression={expression}]
+
++ Parameters
+    + pageNumber (number, optional) - The page number of results to be returned to support chunked output.
+    + pageSize (number, optional) - The number of results to return per page.
+    + sortField (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
+    + sortAscending (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
+    + filterField (string, optional) - Denotes a field that the results should be filtered on. Can be specified multiple times.
+        If filterField is set, condition and expression must also be set to complete the tupled filter query.
+    + condition (enum[string], optional) 
+
+        The type of filter to apply.
+
+        + Members
+            + `equals`
+            + `contains`
+            
+    + expression (string, optional) - A phrase that should be used for the match against the field value
+    
+### List Objects Shared to Everyone [GET]
+This microservice operation retrieves a list of objects that are shared to everyone.
+
++ Request
+
+    + Header
+    
+            Content-Type: application/json
+
++ Response 200
+    + Attributes (ObjectResultset)
 
 + Response 400
 
@@ -785,7 +775,7 @@ This service is not implemented at this time and the API noted below may be chan
      
 ### Search [GET]
 
-+ Response 200
++ Response 200 (application/json)
     + Attributes (ObjectResultset)
 
 + Response 204
@@ -814,23 +804,13 @@ This microservice operation supports moving an object such as a file or folder f
 
 This creates a new revision of the object.
 
-+ Request
++ Request (application/json)
 
     The JSON object in the request body should contain a change token:
-    + changeToken (string, required) - A hash value expected to match the targeted object's current changeToken value.  This value should be set with the same value returned from any list operation or the Get Object operation.
 
-    + Headers
-    
-            Content-Type: application/json
-            Content-Length: nnn
+    + Attributes (ChangeToken)
 
-    + Body
-    
-            {
-                "changeToken": "a32836052f06abb6a5e5c2d91bdcb27ece440512"
-            }
-
-+ Response 200
++ Response 200 (application/json)
     + Attributes (ObjectResp)
 
 + Response 400
@@ -887,13 +867,9 @@ This creates a new revision of the object.
 ### List User Object Shares [GET]
 This microservice operation retrieves a list of objects that the user has shared to them, by others.
 
-+ Request    
++ Request (application/json)    
 
-    + Headers
-    
-            Content-Type: application/json
-
-+ Response 200
++ Response 200 (application/json)
     + Attributes (ObjectResultset)
 
 + Response 400
@@ -938,13 +914,9 @@ This microservice operation retrieves a list of objects that the user has shared
 ### List User Objects Shared [GET]
 This microservice operation retrieves a list of objects that the user has shared to others.
 
-+ Request
++ Request (application/json)
 
-    + Header
-    
-            Content-Type: application/json
-
-+ Response 200
++ Response 200 (application/json)
     + Attributes (ObjectResultset)
 
 + Response 400
@@ -989,7 +961,9 @@ This microservice operation retrieves a list of objects that the user has shared
 
 ### List Trashed Objects [GET]
 
-+ Response 200
++ Request (application/json)
+
++ Response 200 (application/json)
     + Attributes (ObjectResultset)
 
 + Response 400
@@ -1011,24 +985,13 @@ This creates a new revision of the object.
 
 ### Undelete Object [POST]
 
-+ Request
++ Request (application/json)
 
     The JSON object in the request body should contain a change token:
-    + changeToken (string, required) - A hash value expected to match the targeted object's current changeToken value.  This value should be set with the same value returned from any list operation or the Get Object operation.
 
-    + Headers
-    
-            Content-Type: application/json
-            Content-Length: nnn
+    + Attributes (ChangeToken)
 
-    + Body
-
-            {
-                "changeToken": "{changeToken}"   
-            }
-
-
-+ Response 200
++ Response 200 (application/json)
     + Attributes (ObjectResp)
 
 + Response 403
@@ -1053,7 +1016,9 @@ User Stats provides metrics information for the user's total number of objects a
 
 ### User Stats [GET]
 
-+ Response 200
++ Request (application/json)
+
++ Response 200 (application/json)
     + Attributes (UserStats)
     
 + Response 500
@@ -1065,24 +1030,50 @@ User Stats provides metrics information for the user's total number of objects a
 
 ## ACM (object)
 
-+ classif: `U` (string, required) - The portion marked classification for this ACM
++ classif: `U` (string, required) - The abbreviated classification for this ACM.
 + dissem_countries: `USA` (array[string], required) - The trigraphs of countries for which this ACM can be read
 + share (ACMShare, optional) - The users and project/groups that will be granted read access to this object. If no share is specified, then the object is public.
 + version: `2.1.0` (string, required) - The version of this acm `{"version":"2.1.0","classif":"U"}` 
 
+## ACMResponse (object)
+
++ banner: `UNCLASSIFIED` (string, required) - The banner marking of the overall classification.
++ classif: `U` (string, required) - The abbreviated classification for this ACM.
++ dissem_countries: `USA` (array[string], required) - The trigraphs of countries for which this ACM can be read.
++ f_accms (array, optional) - The flattened value of the ACCMs.
++ f_atom_energy (array, optional) - The flattened value of the atom energy.
++ f_clearance: `u` (string, required) - The flattened value of the classification.
++ f_macs (array, optional) - The flattened value of the MACs.
++ f_missions (array, optional) - The flattened value of the missions.
++ f_oc_org (array, optional) - The flattened value of the OC Organizations.
++ f_sci_ctrls (array, optional) - The flattened values of the SCI controls.
++ f_regions (array, optional) - The flattened values of the Regions.
++ f_share: `x`, `y`, `z` (array, optional) - The flattened value of the shares.
++ portion: `U` (string, required) - THe portion marked classification for this ACM.
++ share (ACMShare, optional) - The users and project/groups that will be granted read access to this object. If no share is specified, then the object is public.
++ version: `2.1.0` (string, required) - The version of this acm `{"version":"2.1.0","classif":"U"}` 
+
+
+
 ## ACMShare (object)
 
-+ users: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (array[string], optional) - Array of distinguished names for users that are targets of this share.
++ users: `CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US`, `CN=test tester02,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US`, `CN=test tester03,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US`, `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (array[string], optional) - Array of distinguished names for users that are targets of this share.
 + projects (array[ACMShareProjects], optional) - Array of projects with nested groups that are targets of this share.
 
 ## ACMShareProjects (object)
 
-+ projectname (ACMShareProject, required) - projects defined in a share struct use a haphazard structure that has differing field names based upon the project name itself.
++ ukpn (ACMShareProject, required) - A unique keyed project name (ukpn) is specified as the fieldname for the project with display name and groups contained in object value.
++ ukpn2 (ACMShareProject2, required) - A unique keyed project name (ukpn) is specified as the fieldname for the project with display name and groups contained in object value.
 
 ## ACMShareProject (object)
 
 + disp_nm: `Project Name` (string, required) - The display name for the project
-+ groups: `Group Name` (array[string], required) - Array of groups to be targetted by this share within the project.
++ groups: `Group Name`, `Cats`, `Dogs` (array[string], required) - Array of groups to be targetted by this share within the project.
+
+## ACMShareProject2 (object)
+
++ disp_nm: `Project Name 2` (string, required) - The display name for the project. This sample is `Project Name 2` for `uniquekeyprojectname2`
++ groups: `Group 1`, `Group 2`, `Group 3` (array[string], required) - Array of groups to be targetted by this share within the project.
 
 ## CallerPermission (object)
 
@@ -1095,6 +1086,34 @@ User Stats provides metrics information for the user's total number of objects a
 ## ChangeToken (object)
 
 + changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) - A hash of the object's unique identifier and last modification date and time.
+
+## CreateObjectRequest (object)
+
++ typeName: `File` (string) - The display name of the type assigned this object.
++ name: `gettysburgaddress.txt` (string) - The name for this object. 
++ description: `Description here` (string) - An abstract of the object's purpose.
++ parentId: ` ` (string, optional) - The unique identifier of the objects parent hex encoded to a string.  An empty value will result in this object being created in the user's root folder.
++ acm (ACM, required) - The acm value associated with this object in object form
++ contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value should be empty.
++ contentSize: 1511 (string) - The length of the object's content stream, if present. For objects without a content stream, this value should be 0.
++ properties (array[PropertyCreate]) - Array of custom properties to be associated with the object.
++ permissions (array[PermissionCreate]) - Array of permissions to be associated with this object.
++ isUSPersonsData: `false` (boolean) - Indicates if this object contains US Persons data. Defaults to false.
++ isFOIAExempt: `false` (boolean) - Indicates if this object is exempt from Freedom of Information Act requests. Defaults to false.
+
+## CreateObjectRequestNoStream (object)
+
++ typeName: `Folder` (string) - The display name of the type assigned this object.
++ name: `Famous Speeches` (string) - The name for this object. 
++ description: `Description here` (string) - An abstract of the object's purpose.
++ parentId: ` ` (string, optional) - The unique identifier of the objects parent hex encoded to a string.  An empty value will result in this object being created in the user's root folder.
++ acm (ACM, required) - The acm value associated with this object in object form
++ contentType: ` ` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value should be empty.
++ contentSize: 0 (string) - The length of the object's content stream, if present. For objects without a content stream, this value should be 0.
++ properties (array[PropertyCreate]) - Array of custom properties to be associated with the object.
++ permissions (array[PermissionCreate]) - Array of permissions to be associated with this object.
++ isUSPersonsData: `false` (boolean) - Indicates if this object contains US Persons data. Defaults to false.
++ isFOIAExempt: `false` (boolean) - Indicates if this object is exempt from Freedom of Information Act requests. Defaults to false.
 
 ## ObjectDeleted (object)
 
@@ -1119,7 +1138,7 @@ User Stats provides metrics information for the user's total number of objects a
 + name: `gettysburgaddress.txt` (string) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.
 + description: `Description here` (string) - An abstract of the object's purpose.
 + parentId: ` ` (string, optional) - The unique identifier of the objects parent hex encoded to a string. This may be used to traverse up the tree. For objects stored at the root of a user, this value will be null.
-+ acm (ACM, required) - The acm value associated with this object in object form
++ acm (ACMResponse, required) - The acm value associated with this object in object form
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
 + contentSize: 1511 (string) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
 + properties (array[Property]) - Array of custom properties associated with the object.
@@ -1146,11 +1165,11 @@ User Stats provides metrics information for the user's total number of objects a
 + name: `gettysburgaddress.txt` (string) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.
 + description: `Description here` (string) - An abstract of the object's purpose.
 + parentId: ` ` (string, optional) - The unique identifier of the objects parent hex encoded to a string. This may be used to traverse up the tree. For objects stored at the root of a user, this value will be null.
-+ acm (ACM, required) - The acm value associated with this object in object form
++ acm (ACMResponse, required) - The acm value associated with this object in object form
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
 + contentSize: 1511 (string) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
-+ properties: Property (array[Property]) - Array of custom properties associated with the object.
-+ permissions: Permission (array[Permission]) - Array of permissions associated with this object.
++ properties (array[Property]) - Array of custom properties associated with the object.
++ permissions (array[Permission]) - Array of permissions associated with this object.
 + isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
 + isUSPersonsData: `false` (boolean) - Indicates if this object contains US Persons data.
 + isFOIAExempt: `false` (boolean) - Indicates if this object is exempt from Freedom of Information Act requests.
@@ -1162,7 +1181,7 @@ User Stats provides metrics information for the user's total number of objects a
 + pageNumber: 1 (number) - Requested page number for this resultset.
 + pageSize: 10 (number) - Requested page size for this resultset.
 + pageRows: 10 (number) - Number of items included in this page of the results, which may be less than pagesize, but never greater.
-+ objects: ObjectResp (array[ObjectResp])
++ objects (array[ObjectResp]) - Array containing objects for this page of the resultset.
 
 ## ObjectShare (object)
 
@@ -1192,12 +1211,21 @@ User Stats provides metrics information for the user's total number of objects a
 + changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) -  A hash of the permissions's unique identifier and last modification date and time.
 + objectId: `11e5e4867a6e3d8389020242ac110002` (string) -  The unique identifier of the object that this permission is associated with.
 + grantee: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) -  The user for whom this permission is granted to
++ allowCreate: true (boolean) -  Indicates whether the grantee can create child objects under the referenced object of this permission.
++ allowRead: true (boolean) -  Indicates whether the grantee can view the object referenced by this permission.
++ allowUpdate: true (boolean) -  Indicates whether the grantee can modify the object referenced by this permission.
++ allowDelete: true (boolean) -  Indicates whether the grantee can delete the object referenced by this permission.
++ allowShare: true (boolean) -  Indicates whether the grantee can reshare the object referenced by this permission.
++ explicitShare: false (boolean) - Indicates whether this permission was explicitly created by a call to add the grant, or if it was inherited from the parent object for which a child was made or propagated creation on an existing object.
+
+## PermissionCreate (object)
+
++ grantee: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) -  The user for whom this permission is granted to
 + allowCreate: false (boolean) -  Indicates whether the grantee can create child objects under the referenced object of this permission.
 + allowRead: true (boolean) -  Indicates whether the grantee can view the object referenced by this permission.
 + allowUpdate: false (boolean) -  Indicates whether the grantee can modify the object referenced by this permission.
 + allowDelete: false (boolean) -  Indicates whether the grantee can delete the object referenced by this permission.
 + allowShare: false (boolean) -  Indicates whether the grantee can reshare the object referenced by this permission.
-+ explicitShare: false (boolean) - Indicates whether this permission was explicitly created by a call to add the grant, or if it was inherited from the parent object for which a child was made or propagated creation on an existing object.
 
 ## Property (object)
 
@@ -1210,7 +1238,24 @@ User Stats provides metrics information for the user's total number of objects a
 + changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) -  A hash of the property's unique identifier and last modification date and time.
 + name: `Some Property` (string) - The name, key, field or label given to a property for usability
 + propertyValue: `Some Property Value` (string) -  The value assigned for the property
-+ classificationPM: `TS` (string) -  The portion mark classification for the value of this property
++ classificationPM: `U` (string) -  The portion mark classification for the value of this property
+
+## PropertyCreate (object)
+
++ name: `Some Property` (string) - The name, key, field or label given to a property for usability
++ propertyValue: `Some Property Value` (string) -  The value assigned for the property
++ classificationPM: `U//FOUO` (string) -  The portion mark classification for the value of this property
+
+## UpdateObject (object)
+
++ changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) - The current change token on the object
++ typeName: `File` (string) - The display name of the type assigned this object.
++ name: `gettysburgaddress.txt` (string) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.
++ description: `Description here` (string) - An abstract of the object's purpose.
++ acm (ACM, optional) - The acm value associated with this object in object form. If not provided, the current ACM on the object will be retained.
++ properties (array[Property]) - Array of custom properties associated with the object. New properties will be added. Properties that have the same name as existing properties will be replaced. Those with an empty value will be deleted.
++ isUSPersonsData: `false` (boolean) - Indicates if this object contains US Persons data.
++ isFOIAExempt: `false` (boolean) - Indicates if this object is exempt from Freedom of Information Act requests.
 
 ## UserStats (object)
 
