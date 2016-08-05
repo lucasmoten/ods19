@@ -216,6 +216,71 @@ func doCreateObjectRequest(t *testing.T, clientID int, req *http.Request, expect
 	return &createdObject
 }
 
+func failWithoutDCTCOdrive(t *testing.T, createdObject *protocol.Object) {
+	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
+	foundGrantee := false
+	for clientIdx, ci := range clients {
+		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
+		if err != nil {
+			t.Logf("error making properties request")
+			t.FailNow()
+		}
+		defer util.FinishBody(httpGetResponse.Body)
+		if clientIdx == 0 {
+			var retrievedObject protocol.Object
+			err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
+			if err != nil {
+				t.Logf("Error decoding json to Object: %v", err)
+				t.Fail()
+			}
+			t.Logf("* Resulting permissions")
+			hasEveryone := false
+			for _, permission := range retrievedObject.Permissions {
+				logPermission(t, permission)
+				if permission.Grantee == models.EveryoneGroup {
+					hasEveryone = true
+				}
+				if permission.Grantee == "dctc_odrive" {
+					foundGrantee = true
+					t.Logf("* found the permission that we want delete for")
+					if !permission.AllowDelete {
+						t.Logf("but permission for delete is not here")
+					}
+				}
+			}
+			if hasEveryone {
+				t.Logf("FAIL: Did not expect permission with grantee %s", models.EveryoneGroup)
+				t.Fail()
+			}
+		}
+		switch clientIdx {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9:
+			if httpGetResponse.StatusCode != http.StatusOK {
+				t.Logf("FAIL: Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			}
+		default: // twl-server-generic and any others that may get added later
+			if httpGetResponse.StatusCode != http.StatusForbidden {
+				t.Logf("FAIL: Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is denied access to read %s", ci.Name, createdObject.Name)
+			}
+		}
+
+	}
+	if !foundGrantee {
+		t.Logf("We did not find dctc_odrive grantee")
+		t.FailNow()
+	}
+	if t.Failed() {
+		t.FailNow()
+	}
+}
+
 // TestCreateWithPermissions creates an object as Tester10, and includes a
 // permission for create, read, update, and delete granted to ODrive group.
 // All users in the group should be able to retrieve it, and update it.
@@ -241,58 +306,62 @@ func TestCreateWithPermissions(t *testing.T) {
 	createdObject := doCreateObjectRequest(t, tester10, httpCreate, 200)
 
 	t.Logf("* Verify everyone in odrive group can read")
-	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
-	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
-	for clientIdx, ci := range clients {
-		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
-		if err != nil {
-			t.Logf("error making properties request")
-			t.FailNow()
-		}
-		defer util.FinishBody(httpGetResponse.Body)
-		if clientIdx == 0 {
-			var retrievedObject protocol.Object
-			err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
-			if err != nil {
-				t.Logf("Error decoding json to Object: %v", err)
-				t.Fail()
-			}
-			t.Logf("* Resulting permissions")
-			hasEveryone := false
-			for _, permission := range retrievedObject.Permissions {
-				logPermission(t, permission)
-				if permission.Grantee == models.EveryoneGroup {
-					hasEveryone = true
-				}
-			}
-			if hasEveryone {
-				t.Logf("FAIL: Did not expect permission with grantee %s", models.EveryoneGroup)
-				t.Fail()
-			}
-		}
+	shouldHaveReadForObjectID(t, createdObject.ID, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+	failWithoutDCTCOdrive(t, createdObject)
+}
 
-		switch clientIdx {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9:
-			if httpGetResponse.StatusCode != http.StatusOK {
-				t.Logf("FAIL: Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
-				t.Fail()
-			} else {
-				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
-			}
-		default: // twl-server-generic and any others that may get added later
-			if httpGetResponse.StatusCode != http.StatusForbidden {
-				t.Logf("FAIL: Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
-				t.Fail()
-			} else {
-				t.Logf("%s is denied access to read %s", ci.Name, createdObject.Name)
-			}
-		}
+// TestCreateStreamWithPermissions creates an object as Tester10, and includes a
+// permission for create, read, update, and delete granted to ODrive group.
+// All users in the group should be able to retrieve it, and update it.
+// This test originates from cte/object-drive-server#93
+func TestCreateStreamWithPermissions(t *testing.T) {
 
+	tester10 := 0
+
+	t.Logf("* Create object")
+	t.Logf("preparing")
+	var object protocol.Object
+	object.Name = "TestCreateWithPermissions"
+	object.RawAcm = `{"classif":"U"}`
+	permission := protocol.Permission{Grantee: "dctc_odrive", AllowCreate: true, AllowRead: true, AllowUpdate: true, AllowDelete: true}
+	object.Permissions = append(object.Permissions, permission)
+	t.Logf("jsoninfying")
+	jsonBody, _ := json.Marshal(object)
+
+	t.Logf("http request and client")
+
+	data := "Initial test data 2"
+	//An exe name with some backspace chars to make it display as txt
+	tmpName := "initialTestData2.txt"
+	f, closer, err := testhelpers.GenerateTempFile(data)
+	if err != nil {
+		t.Errorf("Could not open temp file for write: %v\n", err)
 	}
-	if t.Failed() {
+	defer closer()
+
+	req, err := testhelpers.NewCreateObjectPOSTRequestRaw("objects", host, "", f, tmpName, jsonBody)
+	if err != nil {
+		t.Errorf("Unable to create HTTP request: %v\n", err)
+	}
+
+	client := clients[tester10].Client
+	res, err := client.Do(req)
+	if err != nil {
+		t.Errorf("Unable to do request:%v\n", err)
+		t.FailNow()
+	}
+	defer util.FinishBody(res.Body)
+	if res.StatusCode != http.StatusOK {
 		t.FailNow()
 	}
 
+	var createdObject protocol.Object
+	err = util.FullDecode(res.Body, &createdObject)
+	res.Body.Close()
+
+	t.Logf("* Verify everyone in odrive group can read")
+	shouldHaveReadForObjectID(t, createdObject.ID, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+	failWithoutDCTCOdrive(t, &createdObject)
 }
 
 func TestCreateFoldersMultiLevelsDeep(t *testing.T) {
