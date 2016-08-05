@@ -281,6 +281,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			herr = h.listUserObjectsSharedToEveryone(ctx, w, r)
 		// - list object revisions (array of get object properties)
 		case h.Routes.Revisions.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Revisions)
 			herr = h.listObjectRevisions(ctx, w, r)
 		// - get object revision stream
 		case h.Routes.RevisionStream.MatchString(uri):
