@@ -51,6 +51,35 @@ func MapODPermissionsToPermissions(i *[]models.ODObjectPermission) []protocol.Pe
 	for p, q := range *i {
 		o[p] = MapODPermissionToPermission(&q)
 	}
+	o = applyEveryonePermissionsIfExists(o)
+	return o
+}
+
+func applyEveryonePermissionsIfExists(i []protocol.Permission) []protocol.Permission {
+	o := make([]protocol.Permission, len(i))
+	hasEveryone := false
+	var everyonePermissions *protocol.Permission
+	for _, q := range i {
+		if strings.Compare(q.Grantee, models.EveryoneGroup) == 0 {
+			everyonePermissions = &q
+			hasEveryone = true
+			break
+		}
+	}
+	if !hasEveryone {
+		return i
+	}
+	for idx, q := range i {
+		var permWithEveryone protocol.Permission
+		permWithEveryone.Grantee = q.Grantee
+		permWithEveryone.AllowCreate = q.AllowCreate || everyonePermissions.AllowCreate
+		permWithEveryone.AllowRead = q.AllowRead || everyonePermissions.AllowRead
+		permWithEveryone.AllowUpdate = q.AllowUpdate || everyonePermissions.AllowUpdate
+		permWithEveryone.AllowDelete = q.AllowDelete || everyonePermissions.AllowDelete
+		permWithEveryone.AllowShare = q.AllowShare || everyonePermissions.AllowShare
+		o[idx] = permWithEveryone
+	}
+
 	return o
 }
 
@@ -59,18 +88,6 @@ func MapODPermissionsToPermissions(i *[]models.ODObjectPermission) []protocol.Pe
 func MapPermissionToODPermission(i *protocol.Permission) (models.ODObjectPermission, error) {
 	var err error
 	o := models.ODObjectPermission{}
-
-	// ID convert string to byte, reassign to nil if empty
-	ID, err := hex.DecodeString(i.ID)
-	if err != nil {
-		return o, fmt.Errorf("Unable to decode id from %s", i.ID)
-	}
-	if len(o.ID) == 0 {
-		o.ID = nil
-	} else {
-		o.ID = ID
-	}
-
 	o.CreatedDate = i.CreatedDate
 	o.CreatedBy = i.CreatedBy
 	o.ModifiedDate = i.ModifiedDate

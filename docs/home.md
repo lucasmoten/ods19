@@ -296,6 +296,7 @@ This creates a new revision of the object.
 
     The JSON object provided in the body can contain the following fields:
 
+    + id (string, required) - The unique identifier of the object hex encoded to a string. This value must match the objectId provided in the URI.
     + changeToken (string, required) - A hash value expected to match the targeted object’s current changeToken value. This value is retrieved from get or list operations.
     + typeName (string, optional) -  The new type to be assigned to this object. Common types include 'File', 'Folder'. If no value is provided or this field is omitted, then the type will not be changed.
     + name (string, optional) - The new name to be given this object. It does not have to be unique. It may refer to a conventional filename and extension. If no value is provided, or this field is ommitted, then the name will not be changed.
@@ -313,6 +314,7 @@ This creates a new revision of the object.
             Content-Disposition: form-data; name="ObjectMetadata"
             Content-Type: application/json
             {
+                "id": "11e5e4867a6e3d8389020242ac110002", 
                 "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",
                 "typeName": "File",
                 "name": "My new file",
@@ -1202,21 +1204,12 @@ User Stats provides metrics information for the user's total number of objects a
 
 ## Permission (object)
 
-+ id: `11e5e4867a6e3d8389020242ac110002` (string) -  The unique identifier of the permission associated to the object hex encoded to a string. This value can be used for deleting the permission.
-+ createdDate: `2016-03-07T17:03:13Z` (string) -  The date and time the permission was created in the system in UTC ISO 8601 format.
-+ createdBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) -  The user that created the permission.
-+ modifiedDate: `2016-03-07T17:03:13Z` (string) -  The date and time the permission was last modified in the system in UTC ISO 8601 format.
-+ modifiedBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) -  The user that last modified this permission.
-+ changeCount: 2 (number) - number The total count of changes that have been made to this permission over its lifespan. Synonymous with version number.
-+ changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) -  A hash of the permissions's unique identifier and last modification date and time.
-+ objectId: `11e5e4867a6e3d8389020242ac110002` (string) -  The unique identifier of the object that this permission is associated with.
 + grantee: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) -  The user for whom this permission is granted to
 + allowCreate: true (boolean) -  Indicates whether the grantee can create child objects under the referenced object of this permission.
 + allowRead: true (boolean) -  Indicates whether the grantee can view the object referenced by this permission.
 + allowUpdate: true (boolean) -  Indicates whether the grantee can modify the object referenced by this permission.
 + allowDelete: true (boolean) -  Indicates whether the grantee can delete the object referenced by this permission.
 + allowShare: true (boolean) -  Indicates whether the grantee can reshare the object referenced by this permission.
-+ explicitShare: false (boolean) - Indicates whether this permission was explicitly created by a call to add the grant, or if it was inherited from the parent object for which a child was made or propagated creation on an existing object.
 
 ## PermissionCreate (object)
 
@@ -1248,6 +1241,7 @@ User Stats provides metrics information for the user's total number of objects a
 
 ## UpdateObject (object)
 
++ id: `11e5e4867a6e3d8389020242ac110002` (string, required) - The unique identifier of the object hex encoded to a string. 
 + changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) - The current change token on the object
 + typeName: `File` (string) - The display name of the type assigned this object.
 + name: `gettysburgaddress.txt` (string) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.

@@ -7,23 +7,23 @@ import "time"
 // in Object Drive
 type Permission struct {
 	// ID is the unique identifier for this permission in Object Drive.
-	ID string `json:"id,omitempty"`
+	ID string `json:"-"`
 	// CreatedDate is the timestamp of when a permission was created.
-	CreatedDate time.Time `json:"createdDate,omitempty"`
+	CreatedDate time.Time `json:"-"`
 	// CreatedBy is the user that created this permission.
-	CreatedBy string `json:"createdBy,omitempty"`
+	CreatedBy string `json:"-"`
 	// ModifiedDate is the timestamp of when a permission was modified or created.
-	ModifiedDate time.Time `json:"modifiedDate,omitempty"`
+	ModifiedDate time.Time `json:"-"`
 	// ModifiedBy is the user that last modified this permission
-	ModifiedBy string `json:"modifiedBy,omitempty"`
+	ModifiedBy string `json:"-"`
 	// ChangeCount indicates the number of times the permission has been modified.
-	ChangeCount int `json:"changeCount,omitempty"`
+	ChangeCount int `json:"-"`
 	// ChangeToken is generated value which is assigned at the database. API calls
 	// performing updates must provide the changeToken to be verified against the
 	// existing value on record to prevent accidental overwrites.
-	ChangeToken string `json:"changeToken,omitempty"`
+	ChangeToken string `json:"-"`
 	// ObjectID identifies the object for which this permission applies.
-	ObjectID string `json:"objectId,omitempty"`
+	ObjectID string `json:"-"`
 	// Grantee indicates the user, identified by distinguishedName from the user
 	// table for which this grant applies
 	Grantee string `json:"grantee,omitempty"`
@@ -48,5 +48,5 @@ type Permission struct {
 	// ExplicitShare indicates whether this permission was created explicitly
 	// by a user to a grantee, or if it was implicitly created through the
 	// creation of an object that inherited permissions of its parent
-	ExplicitShare bool `json:"explicitShare,omitempty"`
+	ExplicitShare bool `json:"-"`
 }
