@@ -36,11 +36,12 @@ type AppConfiguration struct {
 
 // AACConfiguration holds data required for an AAC client.
 type AACConfiguration struct {
-	CAPath     string
-	ClientCert string
-	ClientKey  string
-	HostName   string
-	Port       string
+	CAPath               string
+	ClientCert           string
+	ClientKey            string
+	HostName             string
+	Port                 string
+	AACAnnouncementPoint string
 }
 
 // AuditSvcConfiguration defines the attributes needed for connecting to the audit service
@@ -109,10 +110,10 @@ type ServerSettingsConfiguration struct {
 
 // ZKSettings holds the data required to communicate with Zookeeper.
 type ZKSettings struct {
-	IP       string
-	Port     string
-	Address  string
-	Basepath string
+	IP             string
+	Port           string
+	Address        string
+	BasepathOdrive string
 }
 
 // NewAppConfiguration loads the configuration from the different sources in the environment.
@@ -153,7 +154,8 @@ func NewAACSettingsFromEnv(confFile ConfigFile, opts CommandLineOpts) AACConfigu
 	// These should get overridden with zookeeper nodes found in OD_ZK_AAC
 	conf.HostName = os.Getenv(OD_AAC_HOST)
 	conf.Port = os.Getenv(OD_AAC_PORT)
-
+	//Notice that the protocol (thrift) is in this already
+	conf.AACAnnouncementPoint = globalconfig.GetEnvOrDefault(OD_ZK_AAC, "/cte/service/aac/1.0/thrift")
 	return conf
 }
 
@@ -283,9 +285,9 @@ func NewZKSettingsFromEnv(confFile ConfigFile, opts CommandLineOpts) ZKSettings 
 
 	var conf ZKSettings
 	conf.Address = getEnvOrDefault(OD_ZK_URL, "zk:2181")
-	conf.Basepath = getEnvOrDefault(OD_ZK_BASEPATH, "/service/object-drive/1.0")
+	//Notice that https is not in this yet, as odrive might register more than just https
+	conf.BasepathOdrive = getEnvOrDefault(OD_ZK_ANNOUNCE, "/cte/service/object-drive/1.0")
 	conf.IP = getEnvOrDefault(OD_ZK_MYIP, globalconfig.MyIP)
-
 	serverPort := getEnvOrDefault(OD_SERVER_PORT, "4430")
 	conf.Port = getEnvOrDefault(OD_ZK_MYPORT, serverPort)
 

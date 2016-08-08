@@ -43,10 +43,9 @@ export OD_SERVER_KEY=
 export OD_SERVER_PORT=
 export OD_STANDALONE=
 export OD_ZK_AAC=
-export OD_ZK_BASEPATH=
+export OD_ZK_ANNOUNCE=
 export OD_ZK_MYIP=
 export OD_ZK_MYPORT=
-export OD_ZK_ROOT=
 export OD_ZK_TIMEOUT=
 export OD_ZK_URL=
 
