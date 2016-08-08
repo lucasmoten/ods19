@@ -141,6 +141,12 @@
 			"revisionTime": "2016-01-21T14:17:43-08:00"
 		},
 		{
+			"checksumSHA1": "gypMDYCX5ucAIqfWnmCxgJlIqdk=",
+			"path": "github.com/boltdb/bolt",
+			"revision": "6e1ca38c6a73025366cd8705553b404746ee6e63",
+			"revisionTime": "2015-11-23T03:06:43Z"
+		},
+		{
 			"checksumSHA1": "PkPgpx/FYoIJCbihlRZEp7oHG9Q=",
 			"path": "github.com/go-ini/ini",
 			"revision": "afbd495e5aaea13597b5e14fe514ddeaa4d76fc3",
