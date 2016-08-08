@@ -6,9 +6,8 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/uber-go/zap"
-
 	"decipher.com/object-drive-server/util"
+	"github.com/uber-go/zap"
 )
 
 var (
@@ -124,7 +123,7 @@ func sendErrorResponseRaw(logger zap.Logger, w *http.ResponseWriter, herr *AppEr
 		logger.Info("transaction end",
 			zap.Int("status", 200),
 		)
-		//It's implicitly a 200
+		//It's implicitly a 200 - or some other OK where we sent back a nil error
 		mutex.Lock()
 		counters[counterKey{200, "", 0}]++
 		mutex.Unlock()
@@ -160,6 +159,7 @@ func doWriteCounters(w http.ResponseWriter) {
 	// This call can stall the whole server while it does its print outs.
 	//endpointTotals := make(map[string]int64)
 	totalQueries := int64(0)
+	totalErrors := int64(0)
 	var lines = make([]string, 0)
 
 	//We are under the lock, so don't do IO in here yet.
@@ -168,18 +168,25 @@ func doWriteCounters(w http.ResponseWriter) {
 		totalQueries += v
 	}
 	for k, v := range counters {
-		if k.Code != 200 {
+		//Unless it's 400 or greater, it's not an error.
+		if k.Code >= 400 {
 			lines = append(
 				lines,
-				fmt.Sprintf("%d/%d %d %s:%d", v, totalQueries, k.Code, k.File, k.Line),
+				fmt.Sprintf("%d\t%d\t%s:%d", v, k.Code, k.File, k.Line),
 			)
+			totalErrors += v
 		}
 	}
 	mutex.Unlock()
 
 	//Do io outside the mutex!
-	fmt.Fprintf(w, "ratio code endpoint file:line\n")
-	for i := range lines {
-		fmt.Fprintf(w, "%s\n", lines[i])
+	if len(lines) == 0 {
+		fmt.Fprintf(w, "Errors: none\n")
+	} else {
+		fmt.Fprintf(w, "Errors: %d in %d queries\n", totalErrors, totalQueries)
+		fmt.Fprintf(w, "count\tcode\tfile:line\n")
+		for i := range lines {
+			fmt.Fprintf(w, "%s\n", lines[i])
+		}
 	}
 }

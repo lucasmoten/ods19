@@ -10,7 +10,6 @@ import (
 )
 
 func (h AppServer) getStats(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
-	fmt.Fprintf(w, "\nErrors:\n")
 	renderErrorCounters(w)
 
 	verboseParameter := r.URL.Query().Get("verbose")
