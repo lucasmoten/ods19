@@ -32,7 +32,8 @@ func init() {
 }
 
 func initLogger() {
-	logger := zap.NewJSON(zap.Output(os.Stdout), zap.ErrorOutput(os.Stdout)).With(zap.String("node", RandomID()))
+	//We must use NodeID - the same random number used to register in zk
+	logger := zap.NewJSON(zap.Output(os.Stdout), zap.ErrorOutput(os.Stdout)).With(zap.String("node", NodeID))
 	logger.SetLevel(zap.Level(GetEnvOrDefaultInt("OD_LOG_LEVEL", 0)))
 	RootLogger = logger
 }
