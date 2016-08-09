@@ -377,10 +377,6 @@ func OverwriteODObjectWithProtocolObject(o *models.ODObject, i *protocol.Object)
 	if err != nil {
 		return err
 	}
-	o.Permissions, err = MapPermissionsToODPermissions(&i.Permissions)
-	if err != nil {
-		return err
-	}
 	o.IsUSPersonsData = i.IsUSPersonsData
 	o.IsFOIAExempt = i.IsFOIAExempt
 
