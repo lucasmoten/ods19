@@ -36,14 +36,6 @@ import (
 var (
 	//All loggers are derived from the global one
 	logger = globalconfig.RootLogger
-	//The location for finding odrive zk nodes
-	zkOdrive = globalconfig.GetEnvOrDefault("OD_ZK_ROOT", "/cte") +
-		globalconfig.GetEnvOrDefault("OD_ZK_BASEPATH", "/service/object-drive/1.0") + "/https"
-	//The location for finding aac zk nodes
-	zkAAC = globalconfig.GetEnvOrDefault(
-		"OD_ZK_AAC",
-		globalconfig.GetEnvOrDefault("OD_ZK_ROOT", "/cte")+"/service/aac/1.0/thrift",
-	)
 	//The callback that captures the app pointer for repairing aac
 	aacAnnouncer func(at string, announcements map[string]zookeeper.AnnounceData)
 )
@@ -208,7 +200,7 @@ func startApplication(conf config.AppConfiguration) {
 
 	logger.Info("our ip is", zap.String("ip", globalconfig.MyIP))
 
-	err = registerWithZookeeper(app, conf.ZK.Basepath, conf.ZK.Address, globalconfig.MyIP, conf.ZK.Port)
+	err = registerWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, globalconfig.MyIP, conf.ZK.Port)
 	if err != nil {
 		logger.Fatal("Could not register with Zookeeper")
 	}
@@ -223,9 +215,9 @@ func startApplication(conf config.AppConfiguration) {
 	stls := conf.ServerSettings.GetTLSConfig()
 	httpServer.TLSConfig = &stls
 
-	pollAll(app, updates, time.Duration(30*time.Second))
+	pollAll(app, updates, conf, time.Duration(30*time.Second))
 
-	zkTracking(app, conf.AACSettings)
+	zkTracking(app, conf)
 
 	logger.Info("starting server", zap.String("addr", app.Addr))
 	//This blocks until there is an error to stop the server
@@ -236,11 +228,11 @@ func startApplication(conf config.AppConfiguration) {
 	}
 }
 
-func zkTracking(app *server.AppServer, aacSettings config.AACConfiguration) {
-	zookeeper.TrackAnnouncement(app.ZKState, zkOdrive, nil)
-
-	//I am doing this because I need a reference to app to re-assign the connection.
-	//The polling scheme isn't doing it. (Out of date, reporting CONNECTED or FAILED when it hasn't actually tried since last report, etc)
+func zkTracking(app *server.AppServer, appConf config.AppConfiguration) {
+	aacSettings := appConf.AACSettings
+	//Watch the https odrive announcements
+	zookeeper.TrackAnnouncement(app.ZKState, appConf.ZK.BasepathOdrive+"/https", nil)
+	//I am doing this because I need a reference to app to re-assign the connection in the event of failure.
 	aacAnnouncer = func(at string, announcements map[string]zookeeper.AnnounceData) {
 		if announcements == nil {
 			return
@@ -277,7 +269,8 @@ func zkTracking(app *server.AppServer, aacSettings config.AACConfiguration) {
 
 		}
 	}
-	zookeeper.TrackAnnouncement(app.ZKState, zkAAC, aacAnnouncer)
+	//Watch the AAC thrift announcements
+	zookeeper.TrackAnnouncement(app.ZKState, aacSettings.AACAnnouncementPoint, aacAnnouncer)
 }
 
 func configureAuditor(app *server.AppServer, settings config.AuditSvcConfiguration) {
@@ -518,7 +511,7 @@ func reportStates(states server.ServiceStates) {
 	)
 }
 
-func pollAll(app *server.AppServer, updates chan server.ServiceState, updateInterval time.Duration) {
+func pollAll(app *server.AppServer, updates chan server.ServiceState, appCfg config.AppConfiguration, updateInterval time.Duration) {
 	ticker := time.NewTicker(updateInterval)
 	go func() {
 		for {
@@ -527,7 +520,7 @@ func pollAll(app *server.AppServer, updates chan server.ServiceState, updateInte
 			wg.Add(numPollers)
 			select {
 			case <-ticker.C:
-				go pollAAC(app, updates, &wg)
+				go pollAAC(app, updates, appCfg.AACSettings, &wg)
 				// Wait for N pollers to return
 				wg.Wait()
 			}
@@ -537,11 +530,11 @@ func pollAll(app *server.AppServer, updates chan server.ServiceState, updateInte
 
 // pollAAC encapsulates the AAC health check and attempted reconnect.
 
-func pollAAC(app *server.AppServer, updates chan server.ServiceState, wg *sync.WaitGroup) {
+func pollAAC(app *server.AppServer, updates chan server.ServiceState, aacCfg config.AACConfiguration, wg *sync.WaitGroup) {
 
 	defer wg.Done()
 
-	announcements, err := zookeeper.GetAnnouncements(app.ZKState, zkAAC)
+	announcements, err := zookeeper.GetAnnouncements(app.ZKState, aacCfg.AACAnnouncementPoint)
 	if err != nil {
 		logger.Error(
 			"aac poll error",
@@ -549,7 +542,7 @@ func pollAAC(app *server.AppServer, updates chan server.ServiceState, wg *sync.W
 		)
 	} else {
 		if aacAnnouncer != nil {
-			aacAnnouncer(zkAAC, announcements)
+			aacAnnouncer(aacCfg.AACAnnouncementPoint, announcements)
 		}
 	}
 }

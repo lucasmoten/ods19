@@ -1,9 +1,10 @@
-package zookeeper
+package zookeeper_test
 
 import (
 	"testing"
 
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/services/zookeeper"
 )
 
 func TestCreateServiceAnnouncement(t *testing.T) {
@@ -13,9 +14,9 @@ func TestCreateServiceAnnouncement(t *testing.T) {
 
 	zkAddress := cfg.DockerVM + ":2181"
 
-	zkBasePath := cfg.GetEnvOrDefault("OD_ZK_BASEPATH", "/service/object-drive/1.0")
+	zkBasePath := "/cte/service/object-drive/1.0"
 
-	zkState, err := RegisterApplication(zkBasePath, zkAddress)
+	zkState, err := zookeeper.RegisterApplication(zkBasePath, zkAddress)
 	if err != nil {
 		t.Errorf("could not create the directory for our app in zk:%v", err)
 	}
@@ -24,7 +25,7 @@ func TestCreateServiceAnnouncement(t *testing.T) {
 	state := "ALIVE"
 	host := "objectdrivedca1"
 	port := "4430"
-	err = ServiceAnnouncement(zkState, "https", state, host, port)
+	err = zookeeper.ServiceAnnouncement(zkState, "https", state, host, port)
 	if err != nil {
 		t.Errorf("could not announce https node %s %s:%s: %v", state, host, port, err)
 	}

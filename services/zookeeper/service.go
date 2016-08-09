@@ -98,21 +98,17 @@ func makeNewNode(conn *zk.Conn, pathType, prevPath, appendPath string, flags int
 //
 //  The member nodes should be ephemeral so that they clean out when the service dies
 //
-func RegisterApplication(uri, zkAddress string) (*ZKState, error) {
+func RegisterApplication(zkURI, zkAddress string) (*ZKState, error) {
 	var err error
 
 	//Get open zookeeper connection, and get a handle on closing it later
 	addrs := strings.Split(zkAddress, ",")
-	//This is the mount point for our zookeeper data, and it should
-	//be the same as where AAC mounts
-	zkRoot := globalconfig.GetEnvOrDefault("OD_ZK_ROOT", "/cte")
 	zkTimeout := globalconfig.GetEnvOrDefaultInt("OD_ZK_TIMEOUT", 5)
 
 	//Because of the args to this function
 	zlogger := logger.With(
-		zap.String("uri", uri),
+		zap.String("uri", zkURI),
 		zap.String("address", zkAddress),
-		zap.String("zkroot", zkRoot),
 	)
 
 	zlogger.Info("zk connect", zap.Int("timeout", zkTimeout))
@@ -122,13 +118,10 @@ func RegisterApplication(uri, zkAddress string) (*ZKState, error) {
 		return &ZKState{}, err
 	}
 
-	//Bundle up zookeeper context into a single object
-	zkURI := zkRoot + uri
-
 	//Setup the environment for our version of the application
 	parts := strings.Split(zkURI, "/")
 	// defaults (aligned with the defaults for the environment variables)
-	organization := zkRoot[1:]
+	organization := parts[1]
 	appType := "service"
 	appName := "object-drive"
 	appVersion := "1.0"

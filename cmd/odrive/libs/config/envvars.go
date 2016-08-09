@@ -47,10 +47,9 @@ const (
 	OD_SERVER_PORT           = "OD_SERVER_PORT"
 	OD_STANDALONE            = "OD_STANDALONE"
 	OD_ZK_AAC                = "OD_ZK_AAC"
-	OD_ZK_BASEPATH           = "OD_ZK_BASEPATH"
+	OD_ZK_ANNOUNCE           = "OD_ZK_ANNOUNCE"
 	OD_ZK_MYIP               = "OD_ZK_MYIP"
 	OD_ZK_MYPORT             = "OD_ZK_MYPORT"
-	OD_ZK_ROOT               = "OD_ZK_ROOT"
 	OD_ZK_TIMEOUT            = "OD_ZK_TIMEOUT"
 	OD_ZK_URL                = "OD_ZK_URL"
 )
@@ -95,10 +94,9 @@ var vars = []string{OD_AAC_CA,
 	OD_SERVER_PORT,
 	OD_STANDALONE,
 	OD_ZK_AAC,
-	OD_ZK_BASEPATH,
+	OD_ZK_ANNOUNCE,
 	OD_ZK_MYIP,
 	OD_ZK_MYPORT,
-	OD_ZK_ROOT,
 	OD_ZK_TIMEOUT,
 	OD_ZK_URL,
 }
