@@ -41,7 +41,6 @@ export OD_SERVER_CA=
 export OD_SERVER_CERT=
 export OD_SERVER_KEY=
 export OD_SERVER_PORT=
-export OD_STANDALONE=
 export OD_ZK_AAC=
 export OD_ZK_ANNOUNCE=
 export OD_ZK_MYIP=
