@@ -95,6 +95,11 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 
 			//If this is a new object, check prerequisites
 			if asCreate {
+				// Only map permissions for create
+				obj.Permissions, err = mapping.MapPermissionsToODPermissions(&createObjectRequest.Permissions)
+				if err != nil {
+					return drainFunc, NewAppError(400, err, "Could not assign permissions from request"), err
+				}
 				if herr := handleCreatePrerequisites(ctx, h, obj); herr != nil {
 					return nil, herr, nil
 				}
