@@ -198,9 +198,9 @@ func startApplication(conf config.AppConfiguration) {
 	configureDrainProvider(app, conf.CacheSettings, globalconfig.StandaloneMode,
 		conf.CacheSettings.Partition+"/"+cacheID)
 
-	logger.Info("our ip is", zap.String("ip", globalconfig.MyIP))
+	logger.Info("ip address read from interface", zap.String("ip", globalconfig.MyIP))
 
-	err = registerWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, globalconfig.MyIP, conf.ZK.Port)
+	err = registerWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, conf.ZK.IP, conf.ZK.Port)
 	if err != nil {
 		logger.Fatal("Could not register with Zookeeper")
 	}
@@ -337,6 +337,8 @@ func registerWithZookeeperTry(app *server.AppServer, zkBasePath, zkAddress, myIP
 // however, it insists on being able to connect to zk when we startup to register,
 // so, just stall until we can talk to a zk.
 func registerWithZookeeper(app *server.AppServer, zkBasePath, zkAddress, myIP, myPort string) error {
+	logger.Info("registering odrive AppServer with ZK", zap.String("ip", myIP), zap.String("port", myPort),
+		zap.String("zkBasePath", zkBasePath), zap.String("zkAddress", zkAddress))
 	err := registerWithZookeeperTry(app, zkBasePath, zkAddress, myIP, myPort)
 	for err != nil {
 		sleepInSeconds := 10

@@ -103,6 +103,7 @@ func RegisterApplication(zkURI, zkAddress string) (*ZKState, error) {
 
 	//Get open zookeeper connection, and get a handle on closing it later
 	addrs := strings.Split(zkAddress, ",")
+	// TODO move this to AppConfiguration.go
 	zkTimeout := globalconfig.GetEnvOrDefaultInt("OD_ZK_TIMEOUT", 5)
 
 	//Because of the args to this function
