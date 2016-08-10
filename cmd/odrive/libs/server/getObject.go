@@ -33,7 +33,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	// Retrieve existing object from the data store
 	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
-		code, msg := getObjectDAOError(err)
+		code, err, msg := getObjectDAOError(err)
 		return NewAppError(code, err, msg)
 	}
 
@@ -75,12 +75,18 @@ func isExpungedOrAnscestorDeletedErr(obj models.ODObject) (ok bool, code int, er
 	return true, 0, nil
 }
 
-func getObjectDAOError(err error) (int, string) {
+func getObjectDAOError(err error) (int, error, string) {
+	if err != nil {
+		//We can't use equality checks on the error
+		if err.Error() == dao.ErrNoRows.Error() {
+			return 404, dao.ErrNoRows, "Not found"
+		}
+	}
 	switch err {
 	case dao.ErrMissingID:
-		return 400, "Must provide ID field"
+		return 400, err, "Must provide ID field"
 	default:
-		return 500, "Error retrieving object"
+		return 500, err, "Error retrieving object"
 	}
 }
 

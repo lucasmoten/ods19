@@ -498,7 +498,7 @@ func (h AppServer) getZip(ctx context.Context, w http.ResponseWriter, r *http.Re
 				}
 				obj, err := dao.GetObject(requestObject, true)
 				if err != nil {
-					code, msg := getObjectDAOError(err)
+					code, err, msg := getObjectDAOError(err)
 					return NewAppError(code, err, msg)
 				}
 				//Go ahead and actually include this root object in the archive
