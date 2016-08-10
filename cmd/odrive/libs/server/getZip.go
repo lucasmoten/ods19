@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"time"
@@ -471,7 +472,23 @@ func zipSuggestName(u *zipUsedNames, name string, isFolder bool) string {
 func (h AppServer) getZip(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 	//Just give the zip file a standardized name for now.
 	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", "attachment; filename=drive.zip")
+
+	//The client may need to set a filename for the zip that is coming back
+	fname := "drive.zip"
+	overrideFname := r.URL.Query().Get("fname")
+	//Only allow a *.zip extension.  Extensions like *.jar might be dangerous, and interpreted as executable archives.
+	if len(overrideFname) > 0 && path.Ext(overrideFname) == ".zip" {
+		//Make sure we don't allow directories in overrides
+		fname = path.Base(path.Clean(overrideFname))
+	}
+	//The disposition for zipping up files is typically attachment, but maybe they want it inline.
+	disposition := "inline"
+	overrideDisposition := r.URL.Query().Get("disposition")
+	if len(overrideDisposition) > 0 {
+		disposition = overrideDisposition
+	}
+
+	w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=%s", disposition, url.QueryEscape(fname)))
 
 	//Get started using the existing scheme from ShoeboxAPI
 	//Using actual parameters allows for multi-select

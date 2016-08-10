@@ -163,7 +163,12 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 		return NoBytesReturned, NewAppError(204, nil, "No content", zap.Int64("bytes", object.ContentSize.Int64))
 	}
 
-	contentLength, herr := h.getAndStreamFile(ctx, &object, w, r, fileKey, true)
+	disposition := "inline"
+	overrideDisposition := r.URL.Query().Get("disposition")
+	if len(overrideDisposition) > 0 {
+		disposition = overrideDisposition
+	}
+	contentLength, herr := h.getAndStreamFile(ctx, &object, w, r, fileKey, true, disposition)
 
 	return contentLength, herr
 }
@@ -372,9 +377,10 @@ func adjustIV(originalIV []byte, byteRange *utils.ByteRange) []byte {
 // In the case of a cache miss, we no longer wait for the entire file.
 // We have an io.ReadCloser() that will fill the bytes by range requesting
 // out of S3.  It will not write these bytes to disk in an intermediate step.
-func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject, w http.ResponseWriter, r *http.Request, encryptKey []byte, withMetadata bool) (int64, *AppError) {
+func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject, w http.ResponseWriter, r *http.Request, encryptKey []byte, withMetadata bool, disposition string) (int64, *AppError) {
 	var err error
 	var herr *AppError
+	var finalStatus *AppError
 	logger := LoggerFromContext(ctx)
 
 	//Prepare for range requesting
@@ -421,6 +427,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	var start = int64(0)
 	var stop = object.ContentSize.Int64 - 1
 	var fullLength = object.ContentSize.Int64
+	clientEtag := r.Header.Get("If-None-Match")
 	if object.ContentSize.Valid {
 		var reportedContentLength = fullLength
 
@@ -435,11 +442,13 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 		}
 
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", reportedContentLength))
-		w.Header().Set("Content-Disposition", "inline; filename="+url.QueryEscape(object.Name))
-	}
-
-	clientEtag := r.Header.Get("If-None-Match")
-	if object.ContentSize.Valid {
+		//typical disposition values: inline, attachment - RFC2183.
+		w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=%s", disposition, url.QueryEscape(object.Name)))
+		//RFC2183 talks about Content-Description.  We should set this.
+		if object.Description.Valid && len(object.Description.String) > 0 {
+			w.Header().Set("Content-Description", object.Description.String)
+		}
+		//This contentHash is a sha256 of the full plaintext.
 		contentHash := hex.EncodeToString(object.ContentHash)
 		if byteRange != nil {
 			rangeResponse := fmt.Sprintf("bytes %d-%d/%d", start, stop, fullLength)
@@ -453,6 +462,8 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 			//Note that if we return a nil error, the stats collector will think we got a 200
 			//Begin writing a 206... one of the rare codes that still returns content
 			w.WriteHeader(http.StatusPartialContent)
+			//We cant return yet because we need to send bytes back, but we should return 206 in the end.
+			finalStatus = NewAppError(http.StatusPartialContent, nil, "Partial Content")
 		} else {
 			etag := fmt.Sprintf("\"%s\"", contentHash)
 			w.Header().Set("Etag", etag)
@@ -525,9 +536,6 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 			)
 		}
 	}
-	if object.ContentSize.Valid && byteRange != nil {
-		return actualLength, NewAppError(http.StatusPartialContent, nil, "Partial Content")
-	} else {
-		return actualLength, nil
-	}
+	//the finalStatus is not necessarily an error, but requires a status code, because nil implies 200.
+	return actualLength, finalStatus
 }
