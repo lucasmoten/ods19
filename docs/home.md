@@ -233,13 +233,14 @@ This creates a new revision of the object.
 
         Error storing metadata or stream
 
-## Object Stream [/objects/{objectId}/stream]
+## Get Object Stream [/objects/{objectId}/stream?disposition={disposition}]
 
 The content stream for an object may be retrieved or updated at the URI designated.
 
 + Parameters
     + objectId (string, required) - Hex encoded identifier of the object to be retrieved.
-
+    + disposition (string, optional) - The major content-disposition type, defaults to "inline", exists to set to "attachment"
+  
 ### Get an Object Stream [GET]
 This microservice operation retrieves the content stream of an object as an array of bytes
 
@@ -286,9 +287,14 @@ files that are too large to buffer in memory.
 
         Error storing metadata or stream
 
-### Update Object Stream [POST]
+## Update Object Stream [/objects/{objectId}/stream]
 
 Updates the actual file bytes associated with an objectId. This must be provided in multipart/form-data format, with the metadata about the object provided in a field named 'ObjectMetadata'.
+
++ Parameters
+    + objectId (string, required) - Hex encoded identifier of the object to be retrieved.
+
+### Update an Object Stream [POST]
 
 This creates a new revision of the object.
     
@@ -707,11 +713,12 @@ This microservice operation retrieves a list of objects that are shared to every
         * Error determining user.
 
 
-## Get Object Stream Revision [/revisions/{objectId}/{revisionId}/stream]
+## Get Object Stream Revision [/revisions/{objectId}/{revisionId}/stream?disposition={disposition}]
 
 + Parameters
     + objectId (string, required) - Hex encoded identifier of the object to be retrieved.
     + revisionId (number, required) - The revision number to be retrieved. 
+    + disposition (number, optional) - The main Content-Disposition.  Defaults to "inline", exists to be set to "attachment".
 
 ### Get Object Stream Revision [GET]
 

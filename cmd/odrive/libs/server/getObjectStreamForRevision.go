@@ -95,10 +95,15 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 		return NewAppError(204, nil, "No content")
 	}
 
-	//TODO: these are not performance counted as all downloads?
-	_, appError := h.getAndStreamFile(ctx, &dbObject, w, r, fileKey, false)
+	disposition := "inline"
+	overrideDisposition := r.URL.Query().Get("disposition")
+	if len(overrideDisposition) > 0 {
+		disposition = overrideDisposition
+	}
+
+	_, appError := h.getAndStreamFile(ctx, &dbObject, w, r, fileKey, false, disposition)
 	if appError != nil {
-		return NewAppError(appError.Code, appError.Error, appError.Msg)
+		return appError
 	}
 	return nil
 }
