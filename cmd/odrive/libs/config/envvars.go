@@ -45,7 +45,6 @@ const (
 	OD_SERVER_CERT           = "OD_SERVER_CERT"
 	OD_SERVER_KEY            = "OD_SERVER_KEY"
 	OD_SERVER_PORT           = "OD_SERVER_PORT"
-	OD_STANDALONE            = "OD_STANDALONE"
 	OD_ZK_AAC                = "OD_ZK_AAC"
 	OD_ZK_ANNOUNCE           = "OD_ZK_ANNOUNCE"
 	OD_ZK_MYIP               = "OD_ZK_MYIP"
@@ -92,7 +91,6 @@ var vars = []string{OD_AAC_CA,
 	OD_SERVER_CERT,
 	OD_SERVER_KEY,
 	OD_SERVER_PORT,
-	OD_STANDALONE,
 	OD_ZK_AAC,
 	OD_ZK_ANNOUNCE,
 	OD_ZK_MYIP,

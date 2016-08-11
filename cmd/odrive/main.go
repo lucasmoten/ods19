@@ -195,8 +195,7 @@ func startApplication(conf config.AppConfiguration) {
 		os.Exit(1)
 	}
 
-	configureDrainProvider(app, conf.CacheSettings, globalconfig.StandaloneMode,
-		conf.CacheSettings.Partition+"/"+cacheID)
+	configureDrainProvider(app, conf.CacheSettings, conf.CacheSettings.Partition+"/"+cacheID)
 
 	logger.Info("ip address read from interface", zap.String("ip", globalconfig.MyIP))
 
@@ -301,18 +300,10 @@ func configureDAO(app *server.AppServer, conf config.DatabaseConfiguration) erro
 	return nil
 }
 
-func configureDrainProvider(app *server.AppServer, conf config.S3DrainProviderOpts, standalone bool, cacheID string) {
+func configureDrainProvider(app *server.AppServer, conf config.S3DrainProviderOpts, cacheID string) {
 	var dp server.DrainProvider
-	if standalone {
-		logger.Info("Draining cache locally")
-		dp = server.NewNullDrainProvider(conf.Root, cacheID)
-	} else {
-		logger.Info("Draining cache to S3")
-		dp = server.NewS3DrainProvider(conf, cacheID)
-		// go dp.DrainUploadedFilesToSafety() can't do this because interface is lacking
-
-	}
-
+	logger.Info("Draining cache to S3")
+	dp = server.NewS3DrainProvider(conf, cacheID)
 	app.DrainProvider = dp
 }
 

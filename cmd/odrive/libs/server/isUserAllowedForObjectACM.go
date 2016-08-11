@@ -24,11 +24,6 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 
 	var err error
 
-	if config.StandaloneMode {
-		logger.Warn("WARNING: STANDALONE mode is active. User permission to access objects are not being checked against AAC.")
-		return true, nil
-	}
-
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
 		return false, errors.New("Could not determine user")
@@ -104,13 +99,6 @@ func (h AppServer) flattenACMAndCheckAccess(ctx context.Context, object *models.
 	logger := LoggerFromContext(ctx)
 
 	var err error
-	// In standalone, we are ignoring AAC
-	if config.StandaloneMode {
-		// But warn in STDOUT to draw attention
-		logger.Warn("WARNING: STANDALONE mode is active.  ACM will not be flattened.")
-		// Return permission granted and no errors
-		return true, nil
-	}
 
 	// Validate object
 	if object == nil {
@@ -269,13 +257,6 @@ func (h AppServer) flattenACMAndCheckAccess(ctx context.Context, object *models.
 func (h AppServer) flattenACM(logger zap.Logger, object *models.ODObject) error {
 
 	var err error
-	// In standalone, we are ignoring AAC
-	if config.StandaloneMode {
-		// But warn in STDOUT to draw attention
-		logger.Warn("WARNING: STANDALONE mode is active.  ACM will not be flattened.")
-		// Return permission granted and no errors
-		return nil
-	}
 
 	// Validate object
 	if object == nil {

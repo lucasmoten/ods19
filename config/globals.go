@@ -28,7 +28,6 @@ func init() {
 	initLogger()
 	lookupDocker()
 	lookupOurIP()
-	lookupStandalone()
 }
 
 func initLogger() {
@@ -48,10 +47,6 @@ var MyIP = "dockervm"
 // Port is used for development tests only. It overrides the port used when sending test requests
 // to bypass local NGINX Gatekeeper container for hosts that have issues with docker in some environments
 var Port = "8080"
-
-// StandaloneMode should be used for development only.  When enabled, it bypasses AAC checks for Get,
-// Update based calls, and will not store/retrieve from S3, relying upon a local cache only.
-var StandaloneMode = false
 
 func lookupDocker() {
 	//This is used by test clients
@@ -90,14 +85,6 @@ func lookupOurIP() {
 		}
 	} else {
 		RootLogger.Error("We could not find our hostname")
-	}
-}
-
-func lookupStandalone() {
-	//Allow us to work without a network
-	s := GetEnvOrDefault("OD_STANDALONE", "false")
-	if s == "true" {
-		StandaloneMode = true
 	}
 }
 
