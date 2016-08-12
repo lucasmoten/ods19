@@ -23,25 +23,12 @@ func MapODObjectToObject(i *models.ODObject) protocol.Object {
 	o.ChangeCount = i.ChangeCount
 	o.ChangeToken = i.ChangeToken
 
-	// TODO can we rely on the default values of the String property or Int64
-	// property for Null types? Get rid of the else clauses here, in other words.
-	if i.OwnedBy.Valid {
-		o.OwnedBy = i.OwnedBy.String
-	} else {
-		o.OwnedBy = ""
-	}
+	o.OwnedBy = i.OwnedBy.String
 	o.TypeID = hex.EncodeToString(i.TypeID)
-	if i.TypeName.Valid {
-		o.TypeName = i.TypeName.String
-	} else {
-		o.TypeName = ""
-	}
+	o.TypeName = i.TypeName.String
 	o.Name = i.Name
-	if i.Description.Valid {
-		o.Description = i.Description.String
-	} else {
-		o.Description = ""
-	}
+	o.Description = i.Description.String
+
 	o.ParentID = hex.EncodeToString(i.ParentID)
 	if i.RawAcm.Valid {
 		returnableACM, err := CreateReturnableACM(i.RawAcm.String)
@@ -54,20 +41,16 @@ func MapODObjectToObject(i *models.ODObject) protocol.Object {
 	} else {
 		o.RawAcm = ""
 	}
-	if i.ContentType.Valid {
-		o.ContentType = i.ContentType.String
-	} else {
-		o.ContentType = ""
-	}
+
+	o.ContentType = i.ContentType.String
+
 	if i.ContentSize.Valid {
 		o.ContentSize = i.ContentSize.Int64
 		o.ContentHash = hex.EncodeToString(i.ContentHash)
-	} else {
-		o.ContentSize = 0
 	}
+
 	o.Properties = MapODPropertiesToProperties(&i.Properties)
 	o.Permissions = MapODPermissionsToPermissions(&i.Permissions)
-	o.CallerPermission = MapODCommonPermissionToCallerPermission(&i.CallerPermissions)
 	o.IsPDFAvailable = i.IsPDFAvailable
 	o.IsUSPersonsData = i.IsUSPersonsData
 	o.IsFOIAExempt = i.IsFOIAExempt

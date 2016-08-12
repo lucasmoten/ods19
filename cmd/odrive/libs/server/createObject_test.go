@@ -100,6 +100,11 @@ func TestCreateObjectSimple(t *testing.T) {
 		t.FailNow()
 	}
 
+	if !obj.CallerPermission.AllowRead {
+		t.Errorf("expected CallerPermission.AllowRead to be true for creator")
+		t.FailNow()
+	}
+
 	for _, p := range obj.Permissions {
 		logPermission(t, p)
 	}

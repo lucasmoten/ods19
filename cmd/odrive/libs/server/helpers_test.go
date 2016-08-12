@@ -211,7 +211,9 @@ func doCheckFileNowExists(t *testing.T, clientID int, jres protocol.Object) {
 		if v.ID == jres.ID {
 			foundIt = true
 		}
-		t.Logf("lookfor: %s id:%s", jres.ID, v.ID)
+		if testing.Verbose() {
+			t.Logf("lookfor: %s id:%s", jres.ID, v.ID)
+		}
 	}
 	if len(objectResultSet.Objects) == 0 {
 		t.Logf("no objects in listing for %s", uri2)
