@@ -14,6 +14,7 @@ import (
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/performance"
+	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/services/aac"
 	"golang.org/x/net/context"
 )
@@ -587,4 +588,15 @@ func (h AppServer) buildCompositePermissionForCaller(ctx context.Context, result
 		object.CallerPermissions.AllowShare = compositePermission.AllowShare
 		resultset.Objects[idx].CallerPermissions = object.CallerPermissions
 	}
+}
+
+func (h AppServer) buildCompositePermissionForCallerObject(ctx context.Context, object *models.ODObject) protocol.CallerPermission {
+	var cp protocol.CallerPermission
+	_, compositePermission := isUserAllowedToShareWithPermission(ctx, h.MasterKey, object)
+	cp.AllowCreate = compositePermission.AllowCreate
+	cp.AllowRead = compositePermission.AllowRead
+	cp.AllowUpdate = compositePermission.AllowUpdate
+	cp.AllowDelete = compositePermission.AllowDelete
+	cp.AllowShare = compositePermission.AllowShare
+	return cp
 }
