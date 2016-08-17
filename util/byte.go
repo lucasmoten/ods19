@@ -8,7 +8,8 @@ import (
 )
 
 const (
-	errClosedResponseBody = "http: read on closed response body"
+	errClosedResponseBody      = "http: read on closed response body"
+	errInvalidReadOnClosedBody = "http: invalid read on closed Body"
 )
 
 // StringToInt8Slice converts a string to []int8. This conversion is required to
@@ -41,7 +42,9 @@ func FinishBody(r io.ReadCloser) {
 		//The best we can do is to log these.
 		//All err values I have ever seen are not errors at all.
 		if copyErr != nil {
-			if copyErr != io.EOF && copyErr.Error() != errClosedResponseBody {
+			if copyErr != io.EOF &&
+				copyErr.Error() != errClosedResponseBody &&
+				copyErr.Error() != errInvalidReadOnClosedBody {
 				log.Printf("FinishBody cannot discard bytes: %v", copyErr)
 			}
 		}

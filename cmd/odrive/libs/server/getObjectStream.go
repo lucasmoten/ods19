@@ -373,6 +373,21 @@ func adjustIV(originalIV []byte, byteRange *utils.ByteRange) []byte {
 	return iv
 }
 
+//Get a banner or a portion from here
+func acmExtractItem(item string, rawAcm string) (string, error) {
+	var acm interface{}
+	var err error
+	acmBytes := []byte(rawAcm)
+	err = json.Unmarshal(acmBytes, &acm)
+	if err == nil {
+		acmData, acmDataOk := acm.(map[string]interface{})
+		if acmDataOk {
+			return acmData[item].(string), nil
+		}
+	}
+	return "", err
+}
+
 // The interface for these files is now a valid io.ReadCloser.
 // In the case of a cache miss, we no longer wait for the entire file.
 // We have an io.ReadCloser() that will fill the bytes by range requesting
@@ -402,23 +417,17 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	//This may also be useful for the client and proxies with respect to caching
 	//as well.
 	if object.RawAcm.Valid {
-		var acm interface{}
-		acmBytes := []byte(object.RawAcm.String)
-		err := json.Unmarshal(acmBytes, &acm)
-		if err == nil {
-			acmData, acmDataOk := acm.(map[string]interface{})
-			if acmDataOk {
-				banner, bannerOk := acmData["banner"].(string)
-				if bannerOk {
-					w.Header().Set("Classification-Banner", banner)
-				}
+		if object.RawAcm.Valid {
+			banner, err := acmExtractItem("banner", object.RawAcm.String)
+			if err != nil {
+				logger.Warn(
+					"acm parse",
+					zap.String("err", err.Error()),
+					zap.String("acm", object.RawAcm.String),
+				)
+			} else {
+				w.Header().Set("Classification-Banner", banner)
 			}
-		} else {
-			logger.Warn(
-				"acm parse",
-				zap.String("err", err.Error()),
-				zap.String("acm", object.RawAcm.String),
-			)
 		}
 	}
 
