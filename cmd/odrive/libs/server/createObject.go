@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"mime"
 	"net/http"
+	"time"
 
 	"github.com/uber-go/zap"
 
@@ -15,6 +16,7 @@ import (
 	"decipher.com/object-drive-server/cmd/odrive/libs/config"
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
@@ -24,6 +26,7 @@ import (
 func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	logger := LoggerFromContext(ctx)
+	session := SessionIDFromContext(ctx)
 
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
@@ -49,6 +52,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		obj.EncryptIV = iv
 
 		// Assign uniquely generated reference
+		// NOTE: we could generate a software GUID here, and unify our object IDs.
 		rName := utils.CreateRandomName()
 		obj.ContentConnector = models.ToNullString(rName)
 
@@ -56,6 +60,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		if err != nil {
 			return NewAppError(400, err, "Unable to get mime multipart")
 		}
+
 		createdFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &obj, &ownerPermission, true)
 		if herr != nil {
 			return herr
@@ -132,9 +137,20 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		}
 	}
 
-	protocolObject := mapping.MapODObjectToObject(&createdObject)
-	protocolObject.CallerPermission = h.buildCompositePermissionForCallerObject(ctx, &createdObject)
-	jsonResponse(w, protocolObject)
+	apiResponse := mapping.MapODObjectToObject(&createdObject)
+	apiResponse.CallerPermission = h.buildCompositePermissionForCallerObject(ctx, &createdObject)
+
+	h.EventQueue.Publish(events.Index{
+		ObjectID:     apiResponse.ID,
+		Timestamp:    time.Now().Format(time.RFC3339),
+		Action:       "create",
+		ChangeToken:  apiResponse.ChangeToken,
+		UserDN:       caller.DistinguishedName,
+		StreamUpdate: isMultipart,
+		SessionID:    session,
+	})
+
+	jsonResponse(w, apiResponse)
 	return nil
 }
 

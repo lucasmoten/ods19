@@ -1,12 +1,12 @@
 package server
 
 import (
-	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
+	"time"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/protocol"
 
 	"golang.org/x/net/context"
@@ -14,11 +14,8 @@ import (
 
 func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
-	var caller Caller
-	caller, ok := CallerFromContext(ctx)
-	if !ok {
-		return NewAppError(500, errors.New("Could not determine user"), "Invalid user")
-	}
+	caller, _ := CallerFromContext(ctx)
+	session := SessionIDFromContext(ctx)
 	dao := DAOFromContext(ctx)
 
 	// Get the change token off the request.
@@ -33,7 +30,8 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	}
 	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
-		return NewAppError(500, err, "Error retrieving object from database")
+		code, err, msg := getObjectDAOError(err)
+		return NewAppError(code, err, msg)
 	}
 
 	if dbObject.IsExpunged {
@@ -45,37 +43,34 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	}
 
 	if dbObject.ChangeToken != changeToken.ChangeToken {
-		return NewAppError(http.StatusBadRequest,
-			errors.New("Changetoken in database does not match client changeToken"), "Invalid changeToken.")
+		err := errors.New("Changetoken in database does not match client changeToken")
+		return NewAppError(400, err, "Invalid changeToken.")
 	}
 
-	// Check if the user has permissions to undelete the ODObject
 	if ok := isUserAllowedToDelete(ctx, h.MasterKey, &dbObject); !ok {
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to undelete this object")
 	}
 
-	// Prepare to undelete.
 	dbObject.ModifiedBy = caller.DistinguishedName
 
-	// Call undelete on the DAO with the object.
 	unDeletedObj, err := dao.UndeleteObject(&dbObject)
-	//log.Printf("UndeletedObject from DAO: %v\n", unDeletedObj)
 	if err != nil {
 		return NewAppError(500, err, "Error restoring object")
 	}
 
-	// getproperties and return a protocol object
-	resultObj := mapping.MapODObjectToObject(&unDeletedObj)
-	//log.Printf("Undelete result: %v\n", resultObj)
+	apiResponse := mapping.MapODObjectToObject(&unDeletedObj)
 
-	// Write the response as JSON
-	w.Header().Set("Content-Type", "application/json")
-	jsonData, err := json.MarshalIndent(resultObj, "", "  ")
-	if err != nil {
-		return NewAppError(500, err, "Could not marshal JSON response.")
-	}
-	log.Println("Returning JSON response.")
-	w.Write(jsonData)
+	h.EventQueue.Publish(events.Index{
+		ObjectID:     apiResponse.ID,
+		Timestamp:    time.Now().Format(time.RFC3339),
+		Action:       "undelete",
+		ChangeToken:  apiResponse.ChangeToken,
+		UserDN:       caller.DistinguishedName,
+		StreamUpdate: true,
+		SessionID:    session,
+	})
+
+	jsonResponse(w, apiResponse)
 
 	return nil
 }

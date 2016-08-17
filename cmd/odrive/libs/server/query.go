@@ -60,7 +60,7 @@ func (h AppServer) query(ctx context.Context, w http.ResponseWriter, r *http.Req
 
 	// Map the response and write it out
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&results)
-	writeResultsetAsJSON(w, &apiResponse)
+	jsonResponse(w, apiResponse)
 	return nil
 }
 

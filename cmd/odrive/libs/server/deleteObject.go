@@ -1,13 +1,14 @@
 package server
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"golang.org/x/net/context"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
@@ -18,11 +19,9 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 	var requestObject models.ODObject
 	var err error
 
-	// Get caller value from ctx.
-	caller, ok := CallerFromContext(ctx)
-	if !ok {
-		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
-	}
+	caller, _ := CallerFromContext(ctx)
+	session := SessionIDFromContext(ctx)
+
 	// Get user from context
 	user, ok := UserFromContext(ctx)
 	if !ok {
@@ -81,10 +80,16 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	// Response in requested format
 	apiResponse := mapping.MapODObjectToDeletedObjectResponse(&dbObject)
-	herr := deleteObjectResponse(w, r, &apiResponse)
-	if herr != nil {
-		return herr
-	}
+	h.EventQueue.Publish(events.Index{
+		ObjectID:     apiResponse.ID,
+		Timestamp:    time.Now().Format(time.RFC3339),
+		Action:       "delete",
+		ChangeToken:  dbObject.ChangeToken,
+		UserDN:       caller.DistinguishedName,
+		StreamUpdate: false,
+		SessionID:    session,
+	})
+	jsonResponse(w, apiResponse)
 	return nil
 }
 
@@ -118,20 +123,4 @@ func parseDeleteObjectRequest(r *http.Request, ctx context.Context) (models.ODOb
 
 	// Ready
 	return requestObject, err
-}
-
-func deleteObjectResponse(
-	w http.ResponseWriter,
-	r *http.Request,
-	response *protocol.DeletedObjectResponse,
-) *AppError {
-	w.Header().Set("Content-Type", "application/json")
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		msg := "Error marshalling response as JSON"
-		return NewAppError(500, err, msg)
-	}
-	w.Write(jsonData)
-	return nil
 }

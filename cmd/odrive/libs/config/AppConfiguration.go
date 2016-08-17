@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
@@ -32,6 +33,7 @@ type AppConfiguration struct {
 	AACSettings        AACConfiguration
 	CacheSettings      S3DrainProviderOpts
 	ZK                 ZKSettings
+	EventQueue         EventQueueConfiguration
 }
 
 // AACConfiguration holds data required for an AAC client.
@@ -77,6 +79,11 @@ type DatabaseConfiguration struct {
 	CAPath     string
 	ClientCert string
 	ClientKey  string
+}
+
+// EventQueueConfiguration configures publishing to the Kakfa event queue.
+type EventQueueConfiguration struct {
+	KafkaAddrs []string
 }
 
 // S3DrainProviderOpts describes our current disk cache configuration.
@@ -132,12 +139,14 @@ func NewAppConfiguration(opts CommandLineOpts) AppConfiguration {
 	aacSettings := NewAACSettingsFromEnv(confFile, opts)
 	cacheSettings := NewS3DrainProviderOpts(confFile, opts)
 	zkSettings := NewZKSettingsFromEnv(confFile, opts)
+	eventQueue := NewEventQueueConfiguration(confFile, opts)
 
 	return AppConfiguration{
+		AACSettings:        aacSettings,
 		CacheSettings:      cacheSettings,
 		DatabaseConnection: dbConf,
+		EventQueue:         eventQueue,
 		ServerSettings:     serverSettings,
-		AACSettings:        aacSettings,
 		ZK:                 zkSettings,
 	}
 }
@@ -232,6 +241,14 @@ func NewDatabaseConfigFromEnv(confFile ConfigFile, opts CommandLineOpts) Databas
 	dbConf.SkipVerify = true // TODO new variable?
 
 	return dbConf
+}
+
+// NewFinderQueueConfiguration reades the environment to provide the configuration for the Kafka event queue.
+func NewEventQueueConfiguration(confFile ConfigFile, opts CommandLineOpts) EventQueueConfiguration {
+	var fqc EventQueueConfiguration
+	empty := make([]string, 0)
+	fqc.KafkaAddrs = getEnvOrDefaultSplitStringSlice(OD_EVENT_KAFKA_ADDRS, empty)
+	return fqc
 }
 
 // NewS3DrainProviderOpts reads the environment to provide the configuration options for
@@ -415,4 +432,13 @@ func getEnvOrDefaultFloat(envVar string, defaultVal float64) float64 {
 		return parsed
 	}
 	return defaultVal
+}
+
+func getEnvOrDefaultSplitStringSlice(envVar string, defaultVal []string) []string {
+	fromEnv := os.Getenv(envVar)
+	if fromEnv == "" {
+		return defaultVal
+	}
+	splitted := strings.Split(os.Getenv(envVar), ",")
+	return splitted
 }

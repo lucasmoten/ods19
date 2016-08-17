@@ -3,7 +3,6 @@ package server
 import (
 	"database/sql"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -92,7 +91,7 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 
 	// Response in requested format
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&results)
-	writeResultsetAsJSON(w, &apiResponse)
+	jsonResponse(w, apiResponse)
 	return nil
 }
 
@@ -104,16 +103,6 @@ func assignObjectIDFromPagingRequest(pagingRequest *protocol.PagingRequest, pare
 		parent.ID, err = hex.DecodeString(pagingRequest.ObjectID)
 	}
 	return parent, err
-}
-
-func writeResultsetAsJSON(w http.ResponseWriter, resp *protocol.ObjectResultset) {
-	w.Header().Set("Content-Type", "application/json")
-	jsonData, err := json.MarshalIndent(resp, "", "  ")
-	if err != nil {
-		log.Printf("Error marshalling response as json: %s", err.Error())
-		return
-	}
-	w.Write(jsonData)
 }
 
 func isDeletedErr(obj models.ODObject) (ok bool, code int, err error) {

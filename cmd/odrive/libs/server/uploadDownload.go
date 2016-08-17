@@ -46,7 +46,7 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 			if err == io.EOF {
 				break
 			} else {
-				return drainFunc, NewAppError(400, err, "error getting a part"), err
+				return nil, NewAppError(400, err, "error getting a part"), err
 			}
 		}
 
@@ -212,8 +212,6 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 	return func() { h.cacheToDrain(&config.DefaultBucket, fileID, length, 3) }, nil, err
 }
 
-//We get penalized on throughput if these fail a lot.
-//I think that's reasonable to be measuring "goodput" this way.
 func (h AppServer) cacheToDrain(bucket *string, rName FileId, size int64, tries int) error {
 	beganAt := h.Tracker.BeginTime(performance.S3DrainTo)
 	err := h.cacheToDrainAttempt(bucket, rName, size, tries)

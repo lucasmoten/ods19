@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"net/http"
 	"sort"
 	"strings"
@@ -54,14 +53,8 @@ func (h AppServer) listUsers(ctx context.Context, w http.ResponseWriter, r *http
 		odusers[i] = usersAndGroups[i]
 	}
 
-	// Write output
-	w.Header().Set("Content-Type", "application/json")
-	usersSerializable := mapping.MapODUsersToUsers(&odusers)
-	converted, err := json.MarshalIndent(usersSerializable, "", "  ")
-	if err != nil {
-		return NewAppError(500, err, "Unable to get user list")
-	}
-	w.Write(converted)
+	apiResponse := mapping.MapODUsersToUsers(&odusers)
+	jsonResponse(w, apiResponse)
 	return nil
 }
 

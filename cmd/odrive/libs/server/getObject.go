@@ -2,9 +2,7 @@ package server
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 
 	"golang.org/x/net/context"
@@ -16,11 +14,6 @@ import (
 
 func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
-	// Get caller value from ctx.
-	caller, ok := CallerFromContext(ctx)
-	if !ok {
-		return NewAppError(500, errors.New("Could not determine user"), "Invalid user")
-	}
 	dao := DAOFromContext(ctx)
 
 	requestObject, err := parseGetObjectRequest(ctx)
@@ -55,11 +48,12 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 		return NewAppError(code, err, "expunged or ancesor deleted")
 	}
 
-	// Response
-	err = getObjectResponse(w, r, caller, &dbObject)
-	if err != nil {
-		return NewAppError(500, err, "Unable to get object")
+	if dbObject.IsDeleted {
+		jsonResponse(w, mapping.MapODObjectToDeletedObject(&dbObject))
+	} else {
+		jsonResponse(w, mapping.MapODObjectToObject(&dbObject))
 	}
+
 	return nil
 }
 
@@ -108,24 +102,4 @@ func parseGetObjectRequest(ctx context.Context) (models.ODObject, error) {
 	}
 	requestObject.ID = bytesObjectID
 	return requestObject, nil
-}
-
-func getObjectResponse(w http.ResponseWriter, r *http.Request, caller Caller, response *models.ODObject) error {
-	w.Header().Set("Content-Type", "application/json")
-	var err error
-	var jsonData []byte
-	err = nil
-	if response.IsDeleted {
-		apiResponse := mapping.MapODObjectToDeletedObject(response)
-		jsonData, err = json.MarshalIndent(apiResponse, "", "  ")
-	} else {
-		apiResponse := mapping.MapODObjectToObject(response)
-		jsonData, err = json.MarshalIndent(apiResponse, "", "  ")
-	}
-	if err != nil {
-		log.Printf("Error marshalling response as json: %s", err.Error())
-	} else {
-		w.Write(jsonData)
-	}
-	return err
 }

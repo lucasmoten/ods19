@@ -1,13 +1,14 @@
 package server
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	db "decipher.com/object-drive-server/cmd/odrive/libs/dao"
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/uber-go/zap"
 	"golang.org/x/net/context"
@@ -18,13 +19,9 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	var drainFunc func()
 
 	logger := LoggerFromContext(ctx)
-
-	// Get caller value from ctx.
-	caller, ok := CallerFromContext(ctx)
-	if !ok {
-		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
-	}
+	caller, _ := CallerFromContext(ctx)
 	dao := DAOFromContext(ctx)
+	session := SessionIDFromContext(ctx)
 
 	var requestObjectWithIDFromURI models.ODObject
 	var err error
@@ -63,6 +60,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	dbObject.EncryptIV = utils.CreateIV()
 	// Check if the user has permissions to update the ODObject
 	var grant models.ODObjectPermission
+	var ok bool
 	if ok, grant = isUserAllowedToUpdateWithPermission(ctx, h.MasterKey, &dbObject); !ok {
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
 	}
@@ -126,13 +124,18 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	// Only start to upload into S3 after we have a database record
 	go drainFunc()
 
-	w.Header().Set("Content-Type", "application/json")
-	link := mapping.MapODObjectToObject(&dbObject)
-	data, err := json.MarshalIndent(link, "", "  ")
-	if err != nil {
-		return NewAppError(500, err, "could not unmarshal json data")
-	}
-	w.Write(data)
+	apiResponse := mapping.MapODObjectToObject(&dbObject)
+
+	h.EventQueue.Publish(events.Index{
+		ObjectID:     apiResponse.ID,
+		Action:       "update",
+		Timestamp:    time.Now().Format(time.RFC3339),
+		ChangeToken:  apiResponse.ChangeToken,
+		UserDN:       caller.DistinguishedName,
+		StreamUpdate: true,
+		SessionID:    session,
+	})
+	jsonResponse(w, apiResponse)
 
 	return nil
 }

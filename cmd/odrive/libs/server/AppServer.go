@@ -15,6 +15,7 @@ import (
 	"decipher.com/object-drive-server/cmd/odrive/libs/config"
 	"decipher.com/object-drive-server/cmd/odrive/libs/dao"
 	globalconfig "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/performance"
@@ -58,6 +59,8 @@ type AppServer struct {
 	AAC aac.AacService
 	// Audit Service is for remote logging for compliance.
 	Auditor audit.Auditor
+	// Finder wraps the PLEXUS Finder Kafka queue.
+	EventQueue events.Publisher
 	// MasterKey is the secret passphrase used in scrambling keys
 	MasterKey string
 	// Tracker captures metrics about upload/download begin and end time and transfer bytes
@@ -592,6 +595,8 @@ func resolveOurIP() string {
 	}
 	return ""
 }
+
+// jsonResponse writes a response, and should be called for all HTTP handlers that return JSON.
 func jsonResponse(w http.ResponseWriter, i interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	jsonData, _ := json.MarshalIndent(i, "", "  ")

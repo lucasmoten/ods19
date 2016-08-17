@@ -3,8 +3,6 @@ package server
 import (
 	"net/http"
 
-	"encoding/json"
-
 	"golang.org/x/net/context"
 )
 
@@ -20,10 +18,6 @@ func (h AppServer) userStats(ctx context.Context, w http.ResponseWriter, r *http
 	if err != nil {
 		return NewAppError(500, err, "could not query for stats")
 	}
-	retval, err := json.MarshalIndent(userStats, "", "  ")
-	if err != nil {
-		return NewAppError(500, err, "could not encode json")
-	}
-	w.Write(retval)
+	jsonResponse(w, userStats)
 	return nil
 }

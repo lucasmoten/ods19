@@ -46,8 +46,7 @@ func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWrit
 	// Get caller permissions
 	h.buildCompositePermissionForCaller(ctx, &results)
 
-	// Render Response
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&results)
-	writeResultsetAsJSON(w, &apiResponse)
+	jsonResponse(w, apiResponse)
 	return nil
 }

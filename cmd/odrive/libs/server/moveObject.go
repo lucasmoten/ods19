@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -140,9 +139,8 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 		}
 	}
 
-	// Response in requested format
 	apiResponse := mapping.MapODObjectToObject(&dbObject)
-	moveObjectResponseAsJSON(w, r, caller, &apiResponse)
+	jsonResponse(w, apiResponse)
 
 	return nil
 }
@@ -185,19 +183,4 @@ func parseMoveObjectRequestAsJSON(r *http.Request, ctx context.Context) (models.
 	// Map to internal object type
 	requestObject, err = mapping.MapObjectToODObject(&jsonObject)
 	return requestObject, err
-}
-
-func moveObjectResponseAsJSON(
-	w http.ResponseWriter,
-	r *http.Request,
-	caller Caller,
-	response *protocol.Object,
-) {
-	w.Header().Set("Content-Type", "application/json")
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		log.Printf("Error marshalling response as json: %s", err.Error())
-		return
-	}
-	w.Write(jsonData)
 }

@@ -47,6 +47,6 @@ func (h AppServer) listUserObjectsShared(ctx context.Context, w http.ResponseWri
 
 	// Render Response
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&results)
-	writeResultsetAsJSON(w, &apiResponse)
+	jsonResponse(w, apiResponse)
 	return nil
 }
