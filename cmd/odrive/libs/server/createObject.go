@@ -137,8 +137,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		}
 	}
 
-	apiResponse := mapping.MapODObjectToObject(&createdObject)
-	apiResponse.CallerPermission = h.buildCompositePermissionForCallerObject(ctx, &createdObject)
+	apiResponse := mapping.MapODObjectToObject(&createdObject).WithCallerPermission(protocolCaller(caller))
 
 	h.EventQueue.Publish(events.Index{
 		ObjectID:     apiResponse.ID,

@@ -144,7 +144,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 		return NewAppError(500, err, "Error retrieving object")
 	}
 
-	apiResponse := mapping.MapODObjectToObject(&updatedObject)
+	apiResponse := mapping.MapODObjectToObject(&updatedObject).WithCallerPermission(protocolCaller(caller))
 	h.EventQueue.Publish(events.Index{
 		ObjectID:     apiResponse.ID,
 		Timestamp:    time.Now().Format(time.RFC3339),

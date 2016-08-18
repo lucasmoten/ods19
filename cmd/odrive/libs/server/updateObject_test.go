@@ -334,3 +334,62 @@ func TestRenameObject(t *testing.T) {
 		t.FailNow()
 	}
 }
+
+func TestUpdateObjectCallerPermissions(t *testing.T) {
+	tester9 := 9
+	t.Logf("* Create folder as tester9")
+	folder := makeFolderViaJSON("caller_permissions_test", tester9, t)
+	t.Logf("* Update folder by changing name")
+	uri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
+	folder.Name = "Renamed"
+	req := makeHTTPRequestFromInterface(t, "POST", uri, folder)
+	resp, err := clients[tester9].Client.Do(req)
+	failNowOnErr(t, err, "unable to do request")
+	var updated protocol.Object
+	util.FullDecode(resp.Body, &updated)
+	cperms := updated.CallerPermission
+	if !allTrue(cperms.AllowCreate, cperms.AllowDelete, cperms.AllowRead,
+		cperms.AllowShare, cperms.AllowUpdate) {
+		t.Errorf("Expected creator of object to have all true CallerPermission but got: %v", cperms)
+	}
+
+	t.Logf("* Add UPDATE and SHARE permission for tester10")
+	tester10 := 0
+	var share protocol.ObjectShare
+	share.AllowUpdate = true
+	share.Share = makeUserShare(fakeDN0)
+	share.PropagateToChildren = false
+	jsonBody, _ := json.Marshal(share)
+	shareURI := host + cfg.NginxRootURL + "/shared/" + folder.ID
+	shareReq, _ := http.NewRequest("POST", shareURI, bytes.NewBuffer(jsonBody))
+	shareReq.Header.Set("Content-Type", "application/json")
+	resp, err = clients[tester9].Client.Do(shareReq)
+	failNowOnErr(t, err, "could not do http request to share to tester10")
+	statusMustBe(t, 200, resp, "expected tester9 to be able to share to tester10")
+
+	t.Logf("* do get object with tester10")
+	req, _ = http.NewRequest("GET", uri, nil)
+	resp, err = clients[tester10].Client.Do(req)
+	failNowOnErr(t, err, "could not do get object request with tester10")
+	var folderForTester10 protocol.Object
+	util.FullDecode(resp.Body, &folderForTester10)
+
+	cperms = folderForTester10.CallerPermission
+	if cperms.AllowShare || !cperms.AllowUpdate || !cperms.AllowRead {
+		t.Errorf("Expected AllowShare to be false and AllowUpdate to be true, got: %v", cperms)
+	}
+
+	for _, p := range folderForTester10.Permissions {
+		t.Logf("Permission: %v", p)
+	}
+
+}
+
+func allTrue(vals ...bool) bool {
+	for _, v := range vals {
+		if !v {
+			return false
+		}
+	}
+	return true
+}

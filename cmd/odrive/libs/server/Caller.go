@@ -7,7 +7,22 @@ import (
 	"strings"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/config"
+	"decipher.com/object-drive-server/protocol"
 )
+
+// protocolCaller converts the server.Caller type to a protocol.Caller type. Recommending
+// that server.Caller be deprecated.
+func protocolCaller(caller Caller) protocol.Caller {
+	return protocol.Caller{
+		DistinguishedName:               caller.DistinguishedName,
+		UserDistinguishedName:           caller.UserDistinguishedName,
+		ExternalSystemDistinguishedName: caller.ExternalSystemDistinguishedName,
+		SSLClientSDistinguishedName:     caller.SSLClientSDistinguishedName,
+		CommonName:                      caller.CommonName,
+		TransactionType:                 caller.TransactionType,
+		Groups:                          caller.Groups,
+	}
+}
 
 // Caller provides the distinguished names obtained from specific request
 // headers and peer certificate if called directly
@@ -24,6 +39,9 @@ type Caller struct {
 	CommonName string
 	// TransactionType can be either NORMAL, IMPERSONATION, or UNKNOWN
 	TransactionType string
+	// Groups are extracted from the f_share fields for a Caller. Groups should be flattened
+	// before comparing strings.
+	Groups []string
 }
 
 // GetCaller populates a Caller object based upon request headers and peer
@@ -67,10 +85,6 @@ func (c *Caller) ValidateHeaders(whitelist []string, w http.ResponseWriter, r *h
 	userDn := c.UserDistinguishedName
 	sslClientSDn := c.SSLClientSDistinguishedName
 	externalSysDn := c.ExternalSystemDistinguishedName
-
-	// if r.TLS == nil || !r.TLS.HandshakeComplete {
-	// 	return fmt.Errorf("HTTP requests have been configured to be blocked")
-	// }
 
 	if isHTTPS(r) {
 		if !have(userDn) && have(sslClientSDn) && !have(externalSysDn) {

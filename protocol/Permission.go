@@ -1,6 +1,9 @@
 package protocol
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // Permission is a nestable structure defining the attributes for
 // permissions granted on an object for users who have access to the object
@@ -49,4 +52,11 @@ type Permission struct {
 	// by a user to a grantee, or if it was implicitly created through the
 	// creation of an object that inherited permissions of its parent
 	ExplicitShare bool `json:"-"`
+}
+
+// String satisfies the Stringer interface for Permission.
+func (p Permission) String() string {
+	template := "[create=%v read=%v update=%v delete=%v share=%v grantee=%v]"
+	s := fmt.Sprintf(template, p.AllowCreate, p.AllowRead, p.AllowUpdate, p.AllowDelete, p.AllowShare, p.Grantee)
+	return s
 }

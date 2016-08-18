@@ -553,15 +553,14 @@ func (h AppServer) isObjectACMSharedToUser(ctx context.Context, obj *models.ODOb
 	userCaller := Caller{DistinguishedName: user}
 	userCtx = ContextWithCaller(userCtx, userCaller)
 	userCtx = context.WithValue(userCtx, Logger, config.RootLogger)
-	userSnippets, err := h.FetchUserSnippets(userCtx)
+	userGroups, userSnippets, err := h.GetUserGroupsAndSnippets(userCtx)
 	if err != nil {
-		// bubble up? not like the calling user can do anything if theres an error with the owner
-		// log it as the caller ...
+		// Bubble up? This kind of error returns HTTP error 500 in ServeHTTP
 		LoggerFromContext(ctx).Warn("Error retrieving user snippets", zap.String("user", user))
 		return false
 	}
+
 	userCtx = ContextWithSnippets(userCtx, userSnippets)
-	userGroups := h.GetUserGroups(userCtx)
 
 	// Iterate user's groups
 	for _, userGroup := range userGroups {

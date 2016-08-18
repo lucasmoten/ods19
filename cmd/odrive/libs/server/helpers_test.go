@@ -234,7 +234,14 @@ func shouldHaveReadForObjectID(t *testing.T, objID string, clientIdxs ...int) {
 		failNowOnErr(t, err, "Unable to do request")
 		defer util.FinishBody(resp.Body)
 		statusExpected(t, 200, resp, fmt.Sprintf("client id %d should have read for ID %s", i, objID))
-		ioutil.ReadAll(resp.Body)
+		data, _ := ioutil.ReadAll(resp.Body)
+		var obj protocol.Object
+		err = json.Unmarshal(data, &obj)
+		failNowOnErr(t, err, "could not Unmarshal json response")
+		if !obj.CallerPermission.AllowRead {
+			t.Errorf("expected READ on CallerPermission to be true")
+		}
+
 	}
 }
 
