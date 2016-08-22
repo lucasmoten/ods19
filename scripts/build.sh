@@ -12,12 +12,6 @@ cd ${ODRIVE_ROOT}
 ${ODRIVE_ROOT}/scripts/prepare-rpm-env.sh
 cp ~/rpmbuild/RPMS/x86_64/odrive-${ODRIVE_VERSION}-1.x86_64.rpm $ODRIVE_ROOT
 
-#if [ -f $ODRIVE_ROOT/odrive.x86_64.rpm ]
-#then
-#  rm $ODRIVE_ROOT/odrive.x86_64.rpm
-#fi
-#ln -s $ODRIVE_ROOT/odrive-${ODRIVE_VERSION}-1.x86_64.rpm $ODRIVE_ROOT/odrive.x86_64.rpm
-
 cd $ODRIVE_ROOT
 
 #actually install it
