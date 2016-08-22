@@ -203,7 +203,8 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		return NewAppError(500, nil, "ChangeToken didn't update when processing request "+msg)
 	}
 
-	apiResponse := mapping.MapODObjectToObject(&requestObject)
+	apiResponse := mapping.MapODObjectToObject(&requestObject).WithCallerPermission(protocolCaller(caller))
+
 	h.EventQueue.Publish(events.Index{
 		ObjectID:     apiResponse.ID,
 		Action:       "update",

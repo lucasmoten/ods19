@@ -154,8 +154,8 @@ func (h AppServer) FetchUserSnippets(ctx context.Context) (*acm.ODriveRawSnippet
 	return snippets, nil
 }
 
-// GetUserGroups builds up an array of groups for the user based upon their snippets
-func (h AppServer) GetUserGroups(ctx context.Context) []string {
+// GetUserGroupsAndSnippets fetches snippets and builds an array of groups for the user.
+func (h AppServer) GetUserGroupsAndSnippets(ctx context.Context) ([]string, *acm.ODriveRawSnippetFields, error) {
 	var groups []string
 
 	snippetFields, ok := SnippetsFromContext(ctx)
@@ -164,11 +164,11 @@ func (h AppServer) GetUserGroups(ctx context.Context) []string {
 		snippetFields, err = h.FetchUserSnippets(ctx)
 		if err != nil {
 			LoggerFromContext(ctx).Error(
-				"error determining user groups",
+				"error fetching user snippets",
 				zap.String("err", err.Error()),
 			)
 			// return empty list
-			return groups
+			return groups, snippetFields, err
 		}
 	}
 	// Values of f_share are those the user gets as groups
@@ -179,5 +179,5 @@ func (h AppServer) GetUserGroups(ctx context.Context) []string {
 			}
 		}
 	}
-	return groups
+	return groups, snippetFields, nil
 }

@@ -15,6 +15,7 @@ import (
 func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	dao := DAOFromContext(ctx)
+	caller, _ := CallerFromContext(ctx)
 
 	requestObject, err := parseGetObjectRequest(ctx)
 	if err != nil {
@@ -51,7 +52,8 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	if dbObject.IsDeleted {
 		jsonResponse(w, mapping.MapODObjectToDeletedObject(&dbObject))
 	} else {
-		jsonResponse(w, mapping.MapODObjectToObject(&dbObject))
+		apiResponse := mapping.MapODObjectToObject(&dbObject).WithCallerPermission(protocolCaller(caller))
+		jsonResponse(w, apiResponse)
 	}
 
 	return nil

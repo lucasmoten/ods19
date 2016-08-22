@@ -64,3 +64,13 @@ type Object struct {
 	// relevant to this file (ie: shared with an organization)
 	Permissions []Permission `json:"permissions,omitempty"`
 }
+
+// WithCallerPermission rolls up permissions for a caller, sets them on a copy of
+// the Object, and returns that copy.
+func (obj Object) WithCallerPermission(caller Caller) Object {
+
+	var cp CallerPermission
+	cp = cp.WithRolledUp(caller, obj.Permissions...)
+	obj.CallerPermission = cp
+	return obj
+}

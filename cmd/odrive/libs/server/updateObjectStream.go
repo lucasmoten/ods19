@@ -124,7 +124,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	// Only start to upload into S3 after we have a database record
 	go drainFunc()
 
-	apiResponse := mapping.MapODObjectToObject(&dbObject)
+	apiResponse := mapping.MapODObjectToObject(&dbObject).WithCallerPermission(protocolCaller(caller))
 
 	h.EventQueue.Publish(events.Index{
 		ObjectID:     apiResponse.ID,

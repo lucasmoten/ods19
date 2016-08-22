@@ -167,10 +167,6 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		// We will need to pass in context to places like this, or
-		// re-work to return back to this level where logger already *has* context.
-		// Note that Caddy deviates from standard f(w,f) interface to return an http code and error
-		// for exactly this reason.
 		sendErrorResponse(logger, &w, 401, err, err.Error())
 		return
 	}
@@ -223,26 +219,16 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx = PutUserOnContext(ctx, *user)
-
-	// Set up AuditEvent components we know so far.
-	var event events_thrift.AuditEvent
-	audit.WithActionInitiator(&event, "DISTINGUISHED_NAME", user.DistinguishedName)
-	audit.WithNTPInfo(&event, "IP_ADDRESS", "2016-03-16T19:14:50.164Z", "1.2.3.4")
-	audit.WithActionMode(&event, "USER_INITIATED")
-	audit.WithActionLocations(&event, "IP_ADDRESS", globalconfig.MyIP)
-	audit.WithActionTargetVersions(&event, "1.0") // TODO global config?
-	audit.WithSessionIds(&event, sessionID)
-	audit.WithCreator(&event, "APPLICATION", "Object Drive") // TODO global config?
-
-	ctx = ContextWithAuditEvent(ctx, &event)
-
-	snippets, err := h.FetchUserSnippets(ctx)
+	groups, snippets, err := h.GetUserGroupsAndSnippets(ctx)
 	if err != nil {
 		sendErrorResponse(logger, &w, 500, err, "Error retrieving user snippets")
 		return
 	}
+
+	// NOTE: Adding the groups to Caller
+	caller.Groups = groups
+	ctx = ContextWithCaller(ctx, caller)
 	ctx = ContextWithSnippets(ctx, snippets)
-	groups := h.GetUserGroups(ctx)
 	ctx = ContextWithGroups(ctx, groups)
 
 	switch r.Method {
