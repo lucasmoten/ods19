@@ -78,8 +78,8 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
     + contentSize (int, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.
     + properties (properties array, optional) - Array of custom properties to be associated with the newly created object.
     + permission (permission array, optional) - Array of additional permissions to be associated with this object when created. By default, the owner is granted full access and objects will inherit the permissions assigned to the parent object.
-    + isUSPersonsData (boolean, optional) - Indicates if this object contains US Persons data.
-    + isFOIAExempt (boolean, optional) - Indicates if this object is exempt from Freedom of Information Act requests.
+    + containsUSPersonsData (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
+    + exemptFromFOIA (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 
     + Body
     
@@ -99,8 +99,8 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
                 "contentSize": 31,
                 "properties": [],
                 "permissions": [],
-                "isUSPersonsData": false,
-                "isFOIAExempt": false
+                "containsUSPersonsData": "No",
+                "exemptFromFOIA": "No"
             }
             --7518615725
             Content-Disposition: form-data; name="filestream"; filename="test.txt"
@@ -122,8 +122,8 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
     + contentSize (int, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.
     + properties (properties array, optional) - Array of custom properties to be associated with the newly created object.
     + permission (permission array, optional) - Array of additional permissions to be associated with this object when created. By default, the owner is granted full access and objects will inherit the permissions assigned to the parent object.
-    + isUSPersonsData (boolean, optional) - Indicates if this object contains US Persons data.
-    + isFOIAExempt (boolean, optional) - Indicates if this object is exempt from Freedom of Information Act requests.
+    + containsUSPersonsData (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
+    + exemptFromFOIA (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 
     + Attributes (CreateObjectRequestNoStream)
 
@@ -200,8 +200,8 @@ This creates a new revision of the object.
     + description (string, optional) - The new description to be given as an abstract of the objects content stream. If no value is provided, or this field is ommitted, then the description will not be changed.
     + acm (object, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. https://confluence.363-283.io/pages/viewpage.action?pageId=557850. If no value is provided, or this field is ommitted, then the acm will not be changed. This value may be provided in either serialized string format, or nested object format.
     + properties (properties array, optional) -  An array of custom properties to be associated with this object for property changes. For the properties specified, those who do not match existing properties on the object by name will be added. For the properties that do match existing properties by name, if the value specified is blank or empty, then the existing property will be deleted, otherwise, the property will be updated to the new value. If properties are specified in the array, then existing properties on the object are retained. Properties are only removed from an object if they are provided, with their value set to an empty string.
-    + isUSPersonsData (boolean, optional) - Indicates if this object contains US Persons data.
-    + isFOIAExempt (boolean, optional) - Indicates if this object is exempt from Freedom of Information Act requests.
+    + containsUSPersonsData (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
+    + exemptFromFOIA (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 
     + Attributes (UpdateObject)
 
@@ -311,8 +311,8 @@ This creates a new revision of the object.
     + contentType (string, optional) - The suggested mime type for the content stream if given for this object.
     + contentSize (int, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.
     + properties (properties array, optional) -  An array of custom properties to be associated with this object for property changes. For the properties specified, those who do not match existing properties on the object by name will be added. For the properties that do match existing properties by name, if the value specified is blank or empty, then the existing property will be deleted, otherwise, the property will be updated to the new value. If properties are specified in the array, then existing properties on the object are retained. Properties are only removed from an object if they are provided, with their value set to an empty string.    
-    + isUSPersonsData (boolean, optional) - Indicates if this object contains US Persons data.
-    + isFOIAExempt (boolean, optional) - Indicates if this object is exempt from Freedom of Information Act requests.
+    + containsUSPersonsData (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
+    + exemptFromFOIA (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
            
     + Body
 
@@ -332,8 +332,8 @@ This creates a new revision of the object.
                 "contentType": "text/plain",
                 "contentSize": 36,
                 "properties": [],
-                "isUSPersonsData": false,
-                "isFOIAExempt": false
+                "containsUSPersonsData": "No",
+                "exemptFromFOIA": "No"
             }
             --b428e6cd1933
             Content-Disposition: form-data; name="filestream"; filename="test.txt"
@@ -1107,8 +1107,9 @@ User Stats provides metrics information for the user's total number of objects a
 + contentSize: 1511 (string) - The length of the object's content stream, if present. For objects without a content stream, this value should be 0.
 + properties (array[PropertyCreate]) - Array of custom properties to be associated with the object.
 + permissions (array[PermissionCreate]) - Array of permissions to be associated with this object.
-+ isUSPersonsData: `false` (boolean) - Indicates if this object contains US Persons data. Defaults to false.
-+ isFOIAExempt: `false` (boolean) - Indicates if this object is exempt from Freedom of Information Act requests. Defaults to false.
++ containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
++ exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
+
 
 ## CreateObjectRequestNoStream (object)
 
@@ -1121,8 +1122,8 @@ User Stats provides metrics information for the user's total number of objects a
 + contentSize: 0 (string) - The length of the object's content stream, if present. For objects without a content stream, this value should be 0.
 + properties (array[PropertyCreate]) - Array of custom properties to be associated with the object.
 + permissions (array[PermissionCreate]) - Array of permissions to be associated with this object.
-+ isUSPersonsData: `false` (boolean) - Indicates if this object contains US Persons data. Defaults to false.
-+ isFOIAExempt: `false` (boolean) - Indicates if this object is exempt from Freedom of Information Act requests. Defaults to false.
++ containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
++ exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 
 ## ObjectDeleted (object)
 
@@ -1154,8 +1155,8 @@ User Stats provides metrics information for the user's total number of objects a
 + callerPermissions (CallerPermission) - Permissions granted to the caller that resulted in this object being returned.
 + permissions (array[Permission]) - Array of permissions associated with this object.
 + isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
-+ isUSPersonsData: `false` (boolean) - Indicates if this object contains US Persons data.
-+ isFOIAExempt: `false` (boolean) - Indicates if this object is exempt from Freedom of Information Act requests.
++ containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
++ exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 
 ## ObjectRespDeleted (object)
 
@@ -1180,8 +1181,8 @@ User Stats provides metrics information for the user's total number of objects a
 + properties (array[Property]) - Array of custom properties associated with the object.
 + permissions (array[Permission]) - Array of permissions associated with this object.
 + isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
-+ isUSPersonsData: `false` (boolean) - Indicates if this object contains US Persons data.
-+ isFOIAExempt: `false` (boolean) - Indicates if this object is exempt from Freedom of Information Act requests.
++ containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
++ exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 
 ## ObjectResultset (object)
 
@@ -1255,8 +1256,8 @@ User Stats provides metrics information for the user's total number of objects a
 + description: `Description here` (string) - An abstract of the object's purpose.
 + acm (ACM, optional) - The acm value associated with this object in object form. If not provided, the current ACM on the object will be retained.
 + properties (array[Property]) - Array of custom properties associated with the object. New properties will be added. Properties that have the same name as existing properties will be replaced. Those with an empty value will be deleted.
-+ isUSPersonsData: `false` (boolean) - Indicates if this object contains US Persons data.
-+ isFOIAExempt: `false` (boolean) - Indicates if this object is exempt from Freedom of Information Act requests.
++ containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
++ exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 
 ## UserStats (object)
 

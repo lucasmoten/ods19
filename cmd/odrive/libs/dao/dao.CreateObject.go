@@ -83,8 +83,8 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
         ,contentSize = ?
         ,contentHash = ?
         ,encryptIV = ?
-        ,isUSPersonsData = ?
-        ,isFOIAExempt = ?        
+        ,containsUSPersonsData = ?
+        ,exemptFromFOIA = ?        
     `)
 	if err != nil {
 		return dbObject, fmt.Errorf("CreateObject Preparing add object statement, %s", err.Error())
@@ -93,7 +93,7 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		object.Name, object.Description.String, object.ParentID,
 		object.ContentConnector.String, object.RawAcm.String,
 		object.ContentType.String, object.ContentSize.Int64, object.ContentHash,
-		object.EncryptIV, object.IsUSPersonsData, object.IsFOIAExempt)
+		object.EncryptIV, object.ContainsUSPersonsData, object.ExemptFromFOIA)
 	if err != nil {
 		return dbObject, fmt.Errorf("CreateObject Error executing add object statement, %s", err.Error())
 	}
@@ -141,8 +141,8 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
         ,o.ownedByNew
         ,o.isPDFAvailable
         ,o.isStreamStored
-        ,o.isUSPersonsData
-        ,o.isFOIAExempt
+        ,o.containsUSPersonsData
+        ,o.exemptFromFOIA
         ,ot.name typeName   
     from object o 
         inner join object_type ot on o.typeId = ot.id 

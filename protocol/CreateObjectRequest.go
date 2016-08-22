@@ -19,8 +19,8 @@ type CreateObjectRequest struct {
 	// Properties is an array of Object Properties associated with this object
 	Properties  []Property   `json:"properties,omitempty"`
 	Permissions []Permission `json:"permissions,omitempty"`
-	// IsUSPersonsData indicates if this object contains US Persons data
-	IsUSPersonsData bool `json:"isUSPersonsData,omitempty"`
-	// IsFOIAExempt indicates if this object is exempt from Freedom of Information Act requests
-	IsFOIAExempt bool `json:"isFOIAExempt,omitempty"`
+	// ContainsUSPersonsData indicates if this object contains US Persons data (Yes,No,Unknown)
+	ContainsUSPersonsData string `json:"containsUSPersonsData,omitEmpty"`
+	// ExemptFromFOIA indicates if this object is exempt from Freedom of Information Act requests (Yes,No,Unknown)
+	ExemptFromFOIA string `json:"exemptFromFOIA,omitEmpty"`
 }

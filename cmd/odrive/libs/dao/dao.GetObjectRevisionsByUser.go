@@ -61,8 +61,8 @@ func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagi
         ,ao.ownedByNew
         ,ao.isPDFAvailable
         ,ao.isStreamStored
-        ,ao.isUSPersonsData
-        ,ao.isFOIAExempt
+        ,ao.containsUSPersonsData
+        ,ao.exemptFromFOIA
         ,ot.name typeName
     from a_object ao 
         inner join object_type ot on ao.typeid = ot.id

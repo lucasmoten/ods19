@@ -52,8 +52,8 @@ func MapODObjectToObject(i *models.ODObject) protocol.Object {
 	o.Properties = MapODPropertiesToProperties(&i.Properties)
 	o.Permissions = MapODPermissionsToPermissions(&i.Permissions)
 	o.IsPDFAvailable = i.IsPDFAvailable
-	o.IsUSPersonsData = i.IsUSPersonsData
-	o.IsFOIAExempt = i.IsFOIAExempt
+	o.ContainsUSPersonsData = i.ContainsUSPersonsData
+	o.ExemptFromFOIA = i.ExemptFromFOIA
 	return o
 }
 
@@ -113,8 +113,8 @@ func MapODObjectToDeletedObject(i *models.ODObject) protocol.DeletedObject {
 	o.Properties = MapODPropertiesToProperties(&i.Properties)
 	o.Permissions = MapODPermissionsToPermissions(&i.Permissions)
 	o.IsPDFAvailable = i.IsPDFAvailable
-	o.IsUSPersonsData = i.IsUSPersonsData
-	o.IsFOIAExempt = i.IsFOIAExempt
+	o.ContainsUSPersonsData = i.ContainsUSPersonsData
+	o.ExemptFromFOIA = i.ExemptFromFOIA
 	return o
 }
 
@@ -219,8 +219,8 @@ func MapObjectToODObject(i *protocol.Object) (models.ODObject, error) {
 	if err != nil {
 		return o, err
 	}
-	o.IsUSPersonsData = i.IsUSPersonsData
-	o.IsFOIAExempt = i.IsFOIAExempt
+	o.ContainsUSPersonsData = i.ContainsUSPersonsData
+	o.ExemptFromFOIA = i.ExemptFromFOIA
 	return o, nil
 }
 
@@ -259,8 +259,8 @@ func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) (models.O
 	if err != nil {
 		return o, err
 	}
-	o.IsUSPersonsData = i.IsUSPersonsData
-	o.IsFOIAExempt = i.IsFOIAExempt
+	o.ContainsUSPersonsData = i.ContainsUSPersonsData
+	o.ExemptFromFOIA = i.ExemptFromFOIA
 
 	return o, nil
 }
@@ -360,8 +360,8 @@ func OverwriteODObjectWithProtocolObject(o *models.ODObject, i *protocol.Object)
 	if err != nil {
 		return err
 	}
-	o.IsUSPersonsData = i.IsUSPersonsData
-	o.IsFOIAExempt = i.IsFOIAExempt
+	o.ContainsUSPersonsData = i.ContainsUSPersonsData
+	o.ExemptFromFOIA = i.ExemptFromFOIA
 
 	return nil
 }

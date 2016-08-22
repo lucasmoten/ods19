@@ -174,6 +174,12 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	if len(requestObject.TypeName.String) == 0 {
 		requestObject.TypeName.String = dbObject.TypeName.String
 	}
+	if len(requestObject.ContainsUSPersonsData) == 0 {
+		requestObject.ContainsUSPersonsData = dbObject.ContainsUSPersonsData
+	}
+	if len(requestObject.ExemptFromFOIA) == 0 {
+		requestObject.ExemptFromFOIA = dbObject.ExemptFromFOIA
+	}
 
 	// Call metadata connector to update the object in the data store
 	// Force the modified by to be that of the caller
@@ -245,21 +251,23 @@ func parseUpdateObjectRequestAsJSON(r *http.Request, ctx context.Context) (model
 	}
 	requestObject.ChangeToken = jsonObject.ChangeToken
 	if len(jsonObject.TypeName) > 0 {
-		requestObject.TypeName.String = jsonObject.TypeName
-		requestObject.TypeName.Valid = true
+		requestObject.TypeName = models.ToNullString(jsonObject.TypeName)
 	}
 	if len(jsonObject.Description) > 0 {
-		requestObject.Description.String = jsonObject.Description
-		requestObject.Description.Valid = true
+		requestObject.Description = models.ToNullString(jsonObject.Description)
 	}
 	convertedAcm, err := utils.MarshalInterfaceToString(jsonObject.RawAcm)
 	if err != nil {
 		return requestObject, err
-	} else {
-		if len(convertedAcm) > 0 {
-			requestObject.RawAcm.String = convertedAcm
-			requestObject.RawAcm.Valid = true
-		}
+	}
+	if len(convertedAcm) > 0 {
+		requestObject.RawAcm = models.ToNullString(convertedAcm)
+	}
+	if len(jsonObject.ContainsUSPersonsData) > 0 {
+		requestObject.ContainsUSPersonsData = jsonObject.ContainsUSPersonsData
+	}
+	if len(jsonObject.ExemptFromFOIA) > 0 {
+		requestObject.ExemptFromFOIA = jsonObject.ExemptFromFOIA
 	}
 	if len(jsonObject.Properties) > 0 {
 		requestObject.Properties, err = mapping.MapPropertiesToODProperties(&jsonObject.Properties)

@@ -64,8 +64,8 @@ type DeletedObject struct {
 	Permissions []Permission `json:"permissions,omitempty"`
 	// IsPDFAvailable indicates if a PDF rendition is available for this object
 	IsPDFAvailable bool `db:"isPDFAvailable" json:"-"`
-	// IsUSPersonsData indicates if this object contains US Persons data
-	IsUSPersonsData bool `json:"isUSPersonsData,omitempty"`
-	// IsFOIAExempt indicates if this object is exempt from Freedom of Information Act requests
-	IsFOIAExempt bool `json:"isFOIAExempt,omitempty"`
+	// ContainsUSPersonsData indicates if this object contains US Persons data (Yes,No,Unknown)
+	ContainsUSPersonsData string `json:"containsUSPersonsData"`
+	// ExemptFromFOIA indicates if this object is exempt from Freedom of Information Act requests (Yes,No,Unknown)
+	ExemptFromFOIA string `json:"exemptFromFOIA"`
 }

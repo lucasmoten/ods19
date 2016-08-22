@@ -138,7 +138,7 @@ Content-Type: application/json
 {
     "contentType": "image/jpeg", 
     "name": "upload.txt", 
-    "isFOIAExempt": false, 
+    "exemptFromFOIA": "No", 
     "acm": {
         "classif": "U", 
         "atom_energy": [], 
@@ -167,7 +167,7 @@ Content-Type: application/json
         "owner_prod": []
     }, 
     "typeName": "File", 
-    "isUSPersonsData": false, 
+    "containsUSPersonsData": "No", 
     "description": "description"
 }
 --651f24479ab34530af50aa607ce7512c
@@ -416,4 +416,132 @@ func TestCreateObjectWithParentSetInJSON(t *testing.T) {
 	createFolderRes, err := clients[tester10].Client.Do(createFolderReq)
 	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 200, createFolderRes, "Bad status when creating folder 2 under root")
+}
+
+func TestCreateObjectWithUSPersonsData(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+
+	t.Logf("* Creating object with US Persons Data")
+	myobject := protocol.Object{}
+	myobject.Name = "This has US Persons Data"
+	myobject.TypeName = "Arbitrary Object"
+	myobject.RawAcm = testhelpers.ValidACMUnclassified
+	myobject.ContainsUSPersonsData = "Yes"
+	newobjuri := host + cfg.NginxRootURL + "/objects"
+	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
+	createObjectRes, err := clients[tester10].Client.Do(createObjectReq)
+
+	t.Logf("* Processing Response")
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, createObjectRes, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(createObjectRes.Body, &createdObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+
+	t.Logf("* Checking metadata")
+	if strings.Compare(createdObject.ContainsUSPersonsData, myobject.ContainsUSPersonsData) != 0 {
+		t.Logf("response ContainsUSPersonsData didn't match request")
+		t.FailNow()
+	}
+	if strings.Compare(createdObject.ContainsUSPersonsData, "Yes") != 0 {
+		t.Logf("response ContainsUSPersonsData didn't = 'Yes'")
+		t.FailNow()
+	}
+}
+
+func TestCreateObjectWithUSPersonsDataNotSet(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+
+	t.Logf("* Creating object with US Persons Data")
+	myobject := protocol.Object{}
+	myobject.Name = "This has Unknown US Persons Data"
+	myobject.TypeName = "Arbitrary Object"
+	myobject.RawAcm = testhelpers.ValidACMUnclassified
+	newobjuri := host + cfg.NginxRootURL + "/objects"
+	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
+	createObjectRes, err := clients[tester10].Client.Do(createObjectReq)
+
+	t.Logf("* Processing Response")
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, createObjectRes, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(createObjectRes.Body, &createdObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+
+	t.Logf("* Checking metadata")
+	if strings.Compare(createdObject.ContainsUSPersonsData, "Unknown") != 0 {
+		t.Logf("response ContainsUSPersonsData didn't = 'Unknown'")
+		t.Logf("Value returned was %s", createdObject.ContainsUSPersonsData)
+		t.FailNow()
+	}
+}
+
+func TestCreateObjectWithFOIAExempt(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+
+	t.Logf("* Creating object with FOIA Exempt")
+	myobject := protocol.Object{}
+	myobject.Name = "This has FOIA Exempt"
+	myobject.TypeName = "Arbitrary Object"
+	myobject.RawAcm = testhelpers.ValidACMUnclassified
+	myobject.ExemptFromFOIA = "Yes"
+	newobjuri := host + cfg.NginxRootURL + "/objects"
+	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
+	createObjectRes, err := clients[tester10].Client.Do(createObjectReq)
+
+	t.Logf("* Processing Response")
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, createObjectRes, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(createObjectRes.Body, &createdObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+
+	t.Logf("* Checking metadata")
+	if strings.Compare(createdObject.ExemptFromFOIA, myobject.ExemptFromFOIA) != 0 {
+		t.Logf("response ExemptFromFOIA didn't match request")
+		t.FailNow()
+	}
+	if strings.Compare(createdObject.ExemptFromFOIA, "Yes") != 0 {
+		t.Logf("response ExemptFromFOIA didn't = 'Yes'")
+		t.FailNow()
+	}
+}
+
+func TestCreateObjectWithFOIAExemptNotSet(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+
+	t.Logf("* Creating object with FOIA Exempt")
+	myobject := protocol.Object{}
+	myobject.Name = "This has Unknown FOIA Exemption"
+	myobject.TypeName = "Arbitrary Object"
+	myobject.RawAcm = testhelpers.ValidACMUnclassified
+	newobjuri := host + cfg.NginxRootURL + "/objects"
+	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
+	createObjectRes, err := clients[tester10].Client.Do(createObjectReq)
+
+	t.Logf("* Processing Response")
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, createObjectRes, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(createObjectRes.Body, &createdObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+
+	t.Logf("* Checking metadata")
+	if strings.Compare(createdObject.ExemptFromFOIA, "Unknown") != 0 {
+		t.Logf("response ExemptFromFOIA didn't = 'Unknown'")
+		t.Logf("Value returned was %s", createdObject.ExemptFromFOIA)
+		t.FailNow()
+	}
 }

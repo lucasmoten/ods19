@@ -31,8 +31,8 @@ CREATE TABLE IF NOT EXISTS object
   ,ownedByNew varchar(255) null
   ,isPDFAvailable boolean null
   ,isStreamStored boolean null
-  ,isUSPersonsData boolean null
-  ,isFOIAExempt boolean null
+  ,containsUSPersonsData varchar(255) null
+  ,exemptFromFOIA varchar(255) null
   ,CONSTRAINT pk_object PRIMARY KEY (id)
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_name (name)
@@ -75,8 +75,8 @@ CREATE TABLE IF NOT EXISTS a_object
   ,ownedByNew varchar(255) null
   ,isPDFAvailable boolean null
   ,isStreamStored boolean null
-  ,isUSPersonsData boolean null
-  ,isFOIAExempt boolean null
+  ,containsUSPersonsData varchar(255) null
+  ,exemptFromFOIA varchar(255) null
   ,CONSTRAINT pk_object PRIMARY KEY (a_id)
   ,INDEX ix_id (id)
   ,INDEX ix_modifiedDate (modifiedDate)

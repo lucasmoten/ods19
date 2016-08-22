@@ -64,8 +64,8 @@ func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
         ,o.ownedByNew
         ,o.isPDFAvailable
         ,o.isStreamStored
-        ,o.isUSPersonsData
-        ,o.isFOIAExempt        
+        ,o.containsUSPersonsData
+        ,o.exemptFromFOIA        
         ,ot.name typeName    
     from object o
         inner join object_type ot on o.typeid = ot.id
