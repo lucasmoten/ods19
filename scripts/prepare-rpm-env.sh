@@ -102,6 +102,16 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 %build
 # Empty section.
 
+%pre
+if [ `grep -c '^username:' /etc/passwd` == "1" ]
+then
+  echo odrive user exists
+else
+  useradd odrive
+  mkdir -p /var/odrive/cache
+  chown -R odrive:odrive /var/odrive/cache
+fi
+
 %install
 rm -rf %{buildroot}
 mkdir -p  %{buildroot}

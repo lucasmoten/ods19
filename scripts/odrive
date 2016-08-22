@@ -50,6 +50,8 @@ def start():
     shell_source(envfile)
     # must indicate we are referencing logfile from global scope
     global logfile
+    if not os.getenv("OD_CACHE_ROOT"):
+        os.environ["OD_CACHE_ROOT"] = "/var/odrive/cache"
     if os.getenv("OD_LOG_LOCATION"):
         location = os.getenv("OD_LOG_LOCATION")
         print "Using log location set by $OD_LOG_LOCATION: " + location
@@ -64,7 +66,7 @@ def start():
     f = open(logfile, "a")
     ciphs = get_ciphers()
     splitted = ciphs.split(" ")
-    command = ['odrive', '--conf', conf, '--templateDir', templates, "--staticRoot", static_root]
+    command = ['sudo', '-u', 'odrive', '-E', 'odrive', '--conf', conf, '--templateDir', templates, "--staticRoot", static_root]
     command.extend(splitted)
     ps = subprocess.Popen(command, stdout=f, stderr=f)
     with open(pidfile, "w") as pf:
