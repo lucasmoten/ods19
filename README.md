@@ -21,6 +21,9 @@ Sync the dependencies to the local **/vendor** folder like this:
 ```
 govendor sync
 ```
+Note that when you do this, the vendor/ directory will have a vendor.json file, and a bunch of directories for repos.
+Sometimes it is necessary to delete all of the directories under vendor/ and re-run `govendor sync` to get `go build ./...`
+to build with a consistent source tree.
 
 # Hosting The Code
 
