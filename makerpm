@@ -10,6 +10,4 @@ else
   docker build -t deciphernow/odriverpm:latest scripts
 fi
 
-#docker run -ti -e ODRIVE_PACKAGE_NAME="odrive-$1" -e ODRIVE_VERSION=$1 -v `pwd`:/go/src/decipher.com/object-drive-server deciphernow/odriverpm:latest bash
-
-docker run -ti -e ODRIVE_PACKAGE_NAME="odrive-$1" -e ODRIVE_VERSION=$1 -v `pwd`:/go/src/decipher.com/object-drive-server deciphernow/odriverpm:latest scripts/build.sh
+docker run -i -e ODRIVE_PACKAGE_NAME="odrive-$1" -e ODRIVE_VERSION=$1 -v `pwd`:/go/src/decipher.com/object-drive-server deciphernow/odriverpm:latest scripts/build.sh
