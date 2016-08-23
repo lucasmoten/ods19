@@ -16,6 +16,14 @@ BEGIN
 	IF count_type = 0 THEN
 		SET error_msg := concat(error_msg, 'Field typeId required ');
 	END IF;
+    # US Persons Data is NULLed if empty (will change to Unknown)
+    IF NEW.containsUSPersonsData IS NOT NULL AND NEW.containsUSPersonsData = '' THEN
+        SET NEW.containsUSPersonsData := NULL;
+    END IF;
+    # FOIA Exempt is NULLed if empty (will change to Unknown)
+    IF NEW.exemptFromFOIA IS NOT NULL AND NEW.exemptFromFOIA = '' THEN
+        SET NEW.exemptFromFOIA := NULL;
+    END IF;    
 	# ParentId must be valid if specified
 	IF NEW.parentId IS NOT NULL AND NEW.parentId = '' THEN
 		SET NEW.parentId := NULL;
@@ -54,23 +62,23 @@ BEGIN
 	# Assign contentConnector if not set
 	IF NEW.contentConnector IS NULL OR NEW.contentConnector = '' THEN
 		SELECT contentConnector FROM object_type WHERE isDeleted = 0 AND id = NEW.typeId INTO type_contentConnector;
-		SET NEW.contentConnector = type_contentConnector;
+		SET NEW.contentConnector := type_contentConnector;
 	END IF;
 	# Assign PDF availability if not set
 	IF NEW.isPDFAvailable IS NULL THEN
-		SET NEW.isPDFAvailable = 0;
+		SET NEW.isPDFAvailable := 0;
 	END IF;
 	# Assign US Persons Data if not set
-	IF NEW.isUSPersonsData IS NULL THEN
-		SET NEW.isUSPersonsData = 0;
-	END IF;
+    IF NEW.containsUSPersonsData IS NULL THEN
+        SET NEW.containsUSPersonsData := 'Unknown';
+    END IF;
 	# Assign FOIA Exempt status if not set
-	IF NEW.isFOIAExempt IS NULL THEN
-		SET NEW.isFOIAExempt = 0;
-	END IF;
+    IF NEW.exemptFromFOIA IS NULL THEN
+        SET NEW.exemptFromFOIA := 'Unknown';
+    END IF;
 	# Assign stream storage state if not set
 	IF NEW.isStreamStored IS NULL THEN
-		SET NEW.isStreamStored = 0;
+		SET NEW.isStreamStored := 0;
 	END IF;
 
 	# Archive table
@@ -105,8 +113,8 @@ BEGIN
 		,ownedByNew
 		,isPDFAvailable
 		,isStreamStored
-		,isUSPersonsData
-		,isFOIAExempt
+		,containsUSPersonsData
+		,exemptFromFOIA
 	) values (
 		NEW.id
 		,NEW.createdDate
@@ -136,8 +144,8 @@ BEGIN
 		,NEW.ownedByNew
 		,NEW.isPDFAvailable
 		,NEW.isStreamStored
-		,NEW.isUSPersonsData
-		,NEW.isFOIAExempt
+		,NEW.containsUSPersonsData
+		,NEW.exemptFromFOIA
 	);
 
 	# Specific field level changes
@@ -155,8 +163,8 @@ BEGIN
 	INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'ownedByNew', newValue = NEW.ownedByNew;
 	INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'isPDFAvailable', newValue = NEW.isPDFAvailable;
 	INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'isStreamStored', newValue = NEW.isStreamStored;
-	INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'isUSPersonsData', newValue = NEW.isUSPersonsData;
-	INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'isFOIAExempt', newValue = NEW.isFOIAExempt;
+	INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'containsUSPersonsData', newValue = NEW.containsUSPersonsData;
+	INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'exemptFromFOIA', newValue = NEW.exemptFromFOIA;
 
 END
 //
@@ -200,6 +208,14 @@ BEGIN
 	IF (count_type = 0) and length(error_msg) < 78 THEN
 		SET error_msg := concat(error_msg, 'Field typeId required ');
 	END IF;
+    # US Persons Data is set to old value if null/empty
+    IF NEW.containsUSPersonsData IS NULL OR NEW.containsUSPersonsData = '' THEN
+        SET NEW.containsUSPersonsData := OLD.containsUSPersonsData;
+    END IF;
+    # FOIA Exempt is set to old value if null/empty
+    IF NEW.exemptFromFOIA IS NULL OR NEW.exemptFromFOIA = '' THEN
+        SET NEW.exemptFromFOIA := OLD.exemptFromFOIA;
+    END IF;    
 	# ParentId must be valid if specified
 	IF NEW.parentId IS NOT NULL AND LENGTH(NEW.parentId) = 0 THEN
 		SET NEW.parentId := NULL;
@@ -239,13 +255,13 @@ BEGIN
 		SET NEW.isPDFAvailable = OLD.isPDFAvailable;
 	END IF;
 	# Assign US Persons Data if not set
-	IF NEW.isUSPersonsData IS NULL THEN
-		SET NEW.isUSPersonsData = OLD.isUSPersonsData;
-	END IF;
+    IF NEW.containsUSPersonsData IS NULL THEN
+        SET NEW.containsUSPersonsData = 'Unknown';
+    END IF;
 	# Assign FOIA Exempt status if not set
-	IF NEW.isFOIAExempt IS NULL THEN
-		SET NEW.isFOIAExempt = OLD.isFOIAExempt;
-	END IF;
+    IF NEW.exemptFromFOIA IS NULL THEN
+        SET NEW.exemptFromFOIA = 'Unknown';
+    END IF;
 	# Assign stream storage state if not set
 	IF NEW.isStreamStored IS NULL THEN
 		SET NEW.isStreamStored = OLD.isStreamStored;
@@ -283,8 +299,8 @@ BEGIN
 		,ownedByNew
 		,isPDFAvailable
 		,isStreamStored
-		,isUSPersonsData
-		,isFOIAExempt
+		,containsUSPersonsData
+		,exemptFromFOIA
 	) values (
 		NEW.id
 		,NEW.createdDate
@@ -314,8 +330,8 @@ BEGIN
 		,NEW.ownedByNew
 		,NEW.isPDFAvailable
 		,NEW.isStreamStored
-		,NEW.isUSPersonsData
-		,NEW.isFOIAExempt
+		,NEW.containsUSPersonsData
+		,NEW.exemptFromFOIA
 	);
 
 	# Specific field level changes
@@ -361,11 +377,11 @@ BEGIN
 	IF NEW.isStreamStored <> OLD.isStreamStored THEN
 		INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'isStreamStored', newValue = NEW.isStreamStored;
 	END IF;
-	IF NEW.isUSPersonsData <> OLD.isUSPersonsData THEN
-		INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'isUSPersonsData', newValue = NEW.isUSPersonsData;
+	IF NEW.containsUSPersonsData <> OLD.containsUSPersonsData THEN
+		INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'containsUSPersonsData', newValue = NEW.containsUSPersonsData;
 	END IF;
-	IF NEW.isFOIAExempt <> OLD.isFOIAExempt THEN
-		INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'isFOIAExempt', newValue = NEW.isFOIAExempt;
+	IF NEW.exemptFromFOIA <> OLD.exemptFromFOIA THEN
+		INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'exemptFromFOIA', newValue = NEW.exemptFromFOIA;
 	END IF;
 
 END

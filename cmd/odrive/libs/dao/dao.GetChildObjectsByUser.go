@@ -64,8 +64,8 @@ func getChildObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
         ,o.ownedByNew
         ,o.isPDFAvailable
         ,o.isStreamStored
-        ,o.isUSPersonsData
-        ,o.isFOIAExempt        
+        ,o.containsUSPersonsData
+        ,o.exemptFromFOIA        
         ,ot.name typeName    
 	from object o
         inner join object_type ot on o.typeid = ot.id

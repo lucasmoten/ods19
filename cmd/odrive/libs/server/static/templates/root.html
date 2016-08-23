@@ -143,10 +143,10 @@ An ACM follows guidance given here: <a href="https://confluence.363-283.io/pages
 <p>permission (permission array, optional) - Array of additional permissions to be associated with this object when created. By default, the owner is granted full access and objects will inherit the permissions assigned to the parent object.</p>
 </li>
 <li>
-<p>isUSPersonsData (boolean, optional) - Indicates if this object contains US Persons data.</p>
+<p>containsUSPersonsData (string, optional) - Indicates if this object contains US Persons data.  Allowed values are <code>Yes</code>, <code>No</code>, and <code>Unknown</code>.</p>
 </li>
 <li>
-<p>isFOIAExempt (boolean, optional) - Indicates if this object is exempt from Freedom of Information Act requests.</p>
+<p>exemptFromFOIA (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are <code>Yes</code>, <code>No</code>, and <code>Unknown</code>.</p>
 </li>
 </ul>
 </div><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">multipart/form-data; boundary=7518615725</span></code></pre><div style="height: 1px;"></div><h5>Body</h5><pre><code>--<span class="hljs-number">7518615725</span>
@@ -165,8 +165,8 @@ Content-Type: application/json
     <span class="hljs-string">"contentSize"</span>: <span class="hljs-number">31</span>,
     <span class="hljs-string">"properties"</span>: [],
     <span class="hljs-string">"permissions"</span>: [],
-    <span class="hljs-string">"isUSPersonsData"</span>: <span class="hljs-literal">false</span>,
-    <span class="hljs-string">"isFOIAExempt"</span>: <span class="hljs-literal">false</span>
+    <span class="hljs-string">"containsUSPersonsData"</span>: <span class="hljs-string">"No"</span>,
+    <span class="hljs-string">"exemptFromFOIA"</span>: <span class="hljs-string">"No"</span>
 }
 --<span class="hljs-number">7518615725</span>
 Content-Disposition: form-data; name=<span class="hljs-string">"filestream"</span>; filename=<span class="hljs-string">"test.txt"</span>
@@ -204,10 +204,10 @@ This is the content <span class="hljs-keyword">of</span> the file
 <p>permission (permission array, optional) - Array of additional permissions to be associated with this object when created. By default, the owner is granted full access and objects will inherit the permissions assigned to the parent object.</p>
 </li>
 <li>
-<p>isUSPersonsData (boolean, optional) - Indicates if this object contains US Persons data.</p>
+<p>containsUSPersonsData (string, optional) - Indicates if this object contains US Persons data.  Allowed values are <code>Yes</code>, <code>No</code>, and <code>Unknown</code>.</p>
 </li>
 <li>
-<p>isFOIAExempt (boolean, optional) - Indicates if this object is exempt from Freedom of Information Act requests.</p>
+<p>exemptFromFOIA (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are <code>Yes</code>, <code>No</code>, and <code>Unknown</code>.</p>
 </li>
 </ul>
 </div><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/json</span></code></pre><div style="height: 1px;"></div><h5>Body</h5><pre><code>{
@@ -269,8 +269,8 @@ This is the content <span class="hljs-keyword">of</span> the file
       "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
     </span>}
   ]</span>,
-  "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
+  "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value"><span class="hljs-string">"No"</span></span>,
+  "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value"><span class="hljs-string">"No"</span>
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
@@ -344,13 +344,13 @@ This is the content <span class="hljs-keyword">of</span> the file
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"array"</span></span>,
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Array of permissions to be associated with this object."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data. Defaults to false."</span>
+    "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests. Defaults to false."</span>
+    "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}
   </span>}</span>,
   "<span class="hljs-attribute">required</span>": <span class="hljs-value">[
@@ -454,8 +454,8 @@ This is the content <span class="hljs-keyword">of</span> the file
     </span>}
   ]</span>,
   "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
+  "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value"><span class="hljs-string">"No"</span></span>,
+  "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value"><span class="hljs-string">"No"</span>
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
@@ -635,13 +635,13 @@ This is the content <span class="hljs-keyword">of</span> the file
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if a PDF rendition is available for this object."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data."</span>
+    "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests."</span>
+    "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}
   </span>}</span>,
   "<span class="hljs-attribute">required</span>": <span class="hljs-value">[
@@ -746,8 +746,8 @@ It may be called on objects int the trash which also expose additional fields in
     </span>}
   ]</span>,
   "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
+  "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value"><span class="hljs-string">"No"</span></span>,
+  "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value"><span class="hljs-string">"No"</span>
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
@@ -909,13 +909,13 @@ It may be called on objects int the trash which also expose additional fields in
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if a PDF rendition is available for this object."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data."</span>
+    "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests."</span>
+    "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}
   </span>}</span>,
   "<span class="hljs-attribute">required</span>": <span class="hljs-value">[
@@ -946,10 +946,10 @@ This creates a new revision of the object.</p>
 <p>properties (properties array, optional) -  An array of custom properties to be associated with this object for property changes. For the properties specified, those who do not match existing properties on the object by name will be added. For the properties that do match existing properties by name, if the value specified is blank or empty, then the existing property will be deleted, otherwise, the property will be updated to the new value. If properties are specified in the array, then existing properties on the object are retained. Properties are only removed from an object if they are provided, with their value set to an empty string.</p>
 </li>
 <li>
-<p>isUSPersonsData (boolean, optional) - Indicates if this object contains US Persons data.</p>
+<p>containsUSPersonsData (string, optional) - Indicates if this object contains US Persons data.  Allowed values are <code>Yes</code>, <code>No</code>, and <code>Unknown</code>.</p>
 </li>
 <li>
-<p>isFOIAExempt (boolean, optional) - Indicates if this object is exempt from Freedom of Information Act requests.</p>
+<p>exemptFromFOIA (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are <code>Yes</code>, <code>No</code>, and <code>Unknown</code>.</p>
 </li>
 </ul>
 </div><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/json</span></code></pre><div style="height: 1px;"></div><h5>Body</h5><pre><code>{
@@ -1007,8 +1007,8 @@ This creates a new revision of the object.</p>
       "<span class="hljs-attribute">classificationPM</span>": <span class="hljs-value"><span class="hljs-string">"U"</span>
     </span>}
   ]</span>,
-  "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
+  "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value"><span class="hljs-string">"No"</span></span>,
+  "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value"><span class="hljs-string">"No"</span>
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
@@ -1074,13 +1074,13 @@ This creates a new revision of the object.</p>
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"array"</span></span>,
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Array of custom properties associated with the object. New properties will be added. Properties that have the same name as existing properties will be replaced. Those with an empty value will be deleted."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data."</span>
+    "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests."</span>
+    "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}
   </span>}</span>,
   "<span class="hljs-attribute">required</span>": <span class="hljs-value">[
@@ -1184,8 +1184,8 @@ This creates a new revision of the object.</p>
     </span>}
   ]</span>,
   "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
+  "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value"><span class="hljs-string">"No"</span></span>,
+  "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value"><span class="hljs-string">"No"</span>
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
@@ -1365,13 +1365,13 @@ This creates a new revision of the object.</p>
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if a PDF rendition is available for this object."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data."</span>
+    "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests."</span>
+    "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}
   </span>}</span>,
   "<span class="hljs-attribute">required</span>": <span class="hljs-value">[
@@ -1417,10 +1417,10 @@ files that are too large to buffer in memory.</p>
 <p>properties (properties array, optional) -  An array of custom properties to be associated with this object for property changes. For the properties specified, those who do not match existing properties on the object by name will be added. For the properties that do match existing properties by name, if the value specified is blank or empty, then the existing property will be deleted, otherwise, the property will be updated to the new value. If properties are specified in the array, then existing properties on the object are retained. Properties are only removed from an object if they are provided, with their value set to an empty string.</p>
 </li>
 <li>
-<p>isUSPersonsData (boolean, optional) - Indicates if this object contains US Persons data.</p>
+<p>containsUSPersonsData (string, optional) - Indicates if this object contains US Persons data.  Allowed values are <code>Yes</code>, <code>No</code>, and <code>Unknown</code>.</p>
 </li>
 <li>
-<p>isFOIAExempt (boolean, optional) - Indicates if this object is exempt from Freedom of Information Act requests.</p>
+<p>exemptFromFOIA (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are <code>Yes</code>, <code>No</code>, and <code>Unknown</code>.</p>
 </li>
 </ul>
 </div><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">multipart/form-data; boundary=b428e6cd1933</span></code></pre><div style="height: 1px;"></div><h5>Body</h5><pre><code>--b428e6cd1933
@@ -1439,8 +1439,8 @@ Content-Type: application/json
     <span class="hljs-string">"contentType"</span>: <span class="hljs-string">"text/plain"</span>,
     <span class="hljs-string">"contentSize"</span>: <span class="hljs-number">36</span>,
     <span class="hljs-string">"properties"</span>: [],
-    <span class="hljs-string">"isUSPersonsData"</span>: <span class="hljs-literal">false</span>,
-    <span class="hljs-string">"isFOIAExempt"</span>: <span class="hljs-literal">false</span>
+    <span class="hljs-string">"containsUSPersonsData"</span>: <span class="hljs-string">"No"</span>,
+    <span class="hljs-string">"exemptFromFOIA"</span>: <span class="hljs-string">"No"</span>
 }
 --b428e6cd1933
 Content-Disposition: form-data; name=<span class="hljs-string">"filestream"</span>; filename=<span class="hljs-string">"test.txt"</span>
@@ -1546,8 +1546,8 @@ This is the <span class="hljs-keyword">new</span> contents <span class="hljs-key
     </span>}
   ]</span>,
   "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
+  "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value"><span class="hljs-string">"No"</span></span>,
+  "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value"><span class="hljs-string">"No"</span>
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
@@ -1727,13 +1727,13 @@ This is the <span class="hljs-keyword">new</span> contents <span class="hljs-key
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if a PDF rendition is available for this object."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data."</span>
+    "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests."</span>
+    "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}
   </span>}</span>,
   "<span class="hljs-attribute">required</span>": <span class="hljs-value">[
@@ -1854,8 +1854,8 @@ If filterField is set, condition and expression must also be set to complete the
         </span>}
       ]</span>,
       "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
+      "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value"><span class="hljs-string">"No"</span></span>,
+      "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value"><span class="hljs-string">"No"</span>
     </span>}
   ]
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
@@ -2002,8 +2002,8 @@ If filterField is set, condition and expression must also be set to complete the
         </span>}
       ]</span>,
       "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
+      "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value"><span class="hljs-string">"No"</span></span>,
+      "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value"><span class="hljs-string">"No"</span>
     </span>}
   ]
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
@@ -2278,8 +2278,8 @@ If filterField is set, condition and expression must also be set to complete the
     </span>}
   ]</span>,
   "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
+  "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value"><span class="hljs-string">"No"</span></span>,
+  "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value"><span class="hljs-string">"No"</span>
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
@@ -2459,13 +2459,13 @@ If filterField is set, condition and expression must also be set to complete the
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if a PDF rendition is available for this object."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data."</span>
+    "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests."</span>
+    "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}
   </span>}</span>,
   "<span class="hljs-attribute">required</span>": <span class="hljs-value">[
@@ -2612,8 +2612,8 @@ If filterField is set, condition and expression must also be set to complete the
     </span>}
   ]</span>,
   "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
+  "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value"><span class="hljs-string">"No"</span></span>,
+  "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value"><span class="hljs-string">"No"</span>
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
@@ -2793,13 +2793,13 @@ If filterField is set, condition and expression must also be set to complete the
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if a PDF rendition is available for this object."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data."</span>
+    "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests."</span>
+    "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}
   </span>}</span>,
   "<span class="hljs-attribute">required</span>": <span class="hljs-value">[
@@ -2920,8 +2920,8 @@ If filterField is set, condition and expression must also be set to complete the
         </span>}
       ]</span>,
       "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
+      "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value"><span class="hljs-string">"No"</span></span>,
+      "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value"><span class="hljs-string">"No"</span>
     </span>}
   ]
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
@@ -3064,8 +3064,8 @@ If filterField is set, condition and expression must also be set to complete the
         </span>}
       ]</span>,
       "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
+      "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value"><span class="hljs-string">"No"</span></span>,
+      "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value"><span class="hljs-string">"No"</span>
     </span>}
   ]
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
@@ -3219,8 +3219,8 @@ If filterField is set, condition and expression must also be set to complete the
         </span>}
       ]</span>,
       "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
+      "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value"><span class="hljs-string">"No"</span></span>,
+      "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value"><span class="hljs-string">"No"</span>
     </span>}
   ]
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
@@ -3368,8 +3368,8 @@ If filterField is set, condition and expression must also be set to complete the
     </span>}
   ]</span>,
   "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
+  "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value"><span class="hljs-string">"No"</span></span>,
+  "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value"><span class="hljs-string">"No"</span>
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
@@ -3549,13 +3549,13 @@ If filterField is set, condition and expression must also be set to complete the
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if a PDF rendition is available for this object."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data."</span>
+    "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests."</span>
+    "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}
   </span>}</span>,
   "<span class="hljs-attribute">required</span>": <span class="hljs-value">[
@@ -3677,8 +3677,8 @@ If filterField is set, condition and expression must also be set to complete the
         </span>}
       ]</span>,
       "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
+      "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value"><span class="hljs-string">"No"</span></span>,
+      "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value"><span class="hljs-string">"No"</span>
     </span>}
   ]
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
@@ -3824,8 +3824,8 @@ If filterField is set, condition and expression must also be set to complete the
         </span>}
       ]</span>,
       "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
+      "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value"><span class="hljs-string">"No"</span></span>,
+      "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value"><span class="hljs-string">"No"</span>
     </span>}
   ]
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
@@ -3970,8 +3970,8 @@ If filterField is set, condition and expression must also be set to complete the
         </span>}
       ]</span>,
       "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-      "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
+      "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value"><span class="hljs-string">"No"</span></span>,
+      "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value"><span class="hljs-string">"No"</span>
     </span>}
   ]
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
@@ -4116,8 +4116,8 @@ If filterField is set, condition and expression must also be set to complete the
     </span>}
   ]</span>,
   "<span class="hljs-attribute">isPDFAvailable</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
-  "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
+  "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value"><span class="hljs-string">"No"</span></span>,
+  "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value"><span class="hljs-string">"No"</span>
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
   "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"object"</span></span>,
@@ -4297,13 +4297,13 @@ If filterField is set, condition and expression must also be set to complete the
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if a PDF rendition is available for this object."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isUSPersonsData</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data."</span>
+    "<span class="hljs-attribute">containsUSPersonsData</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}</span>,
-    "<span class="hljs-attribute">isFOIAExempt</span>": <span class="hljs-value">{
-      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"boolean"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests."</span>
+    "<span class="hljs-attribute">exemptFromFOIA</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`."</span>
     </span>}
   </span>}</span>,
   "<span class="hljs-attribute">required</span>": <span class="hljs-value">[
@@ -4350,7 +4350,7 @@ If filterField is set, condition and expression must also be set to complete the
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"An array of ObjectStorageMetrics denoting the type of object, quantity of base object and revisions, and size used by base object and revision."</span>
     </span>}
   </span>}
-</span>}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>500</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Body</h5><pre><code>Internal Server <span class="hljs-built_in">Error</span></code></pre><div style="height: 1px;"></div></div></div></div></div></section></div></div></div><p style="text-align: center;" class="text-muted">Generated by&nbsp;<a href="https://github.com/danielgtaylor/aglio" class="aglio">aglio</a>&nbsp;on 10 Aug 2016</p><script>/* eslint-env browser */
+</span>}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>500</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Body</h5><pre><code>Internal Server <span class="hljs-built_in">Error</span></code></pre><div style="height: 1px;"></div></div></div></div></div></section></div></div></div><p style="text-align: center;" class="text-muted">Generated by&nbsp;<a href="https://github.com/danielgtaylor/aglio" class="aglio">aglio</a>&nbsp;on 22 Aug 2016</p><script>/* eslint-env browser */
 /* eslint quotes: [2, "single"] */
 'use strict';
 

@@ -66,10 +66,10 @@ type ODObject struct {
 	IsPDFAvailable bool `db:"isPDFAvailable"`
 	// IsStreamStored indicates if the content stream for this object is stored in the cloud and can be retrieved
 	IsStreamStored bool `db:"isStreamStored"`
-	// IsUSPersonsData indicates if this object contains US Persons data
-	IsUSPersonsData bool `db:"isUSPersonsData"`
-	// IsFOIAExempt indicates if this object is exempt from Freedom of Information Act requests
-	IsFOIAExempt bool `db:"isFOIAExempt"`
+	// ContainsUSPersonsData indicates if this object contains US Persons data (Yes,No,Unknown)
+	ContainsUSPersonsData string `db:"containsUSPersonsData"`
+	// ExemptFromFOIA indicates if this object is exempt from Freedom of Information Act requests (Yes,No,Unknown)
+	ExemptFromFOIA string `db:"exemptFromFOIA"`
 }
 
 // ODObjectResultset encapsulates the ODObject defined herein as an array with

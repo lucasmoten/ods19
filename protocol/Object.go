@@ -50,10 +50,10 @@ type Object struct {
 	ContentHash string `json:"contentHash"`
 	// IsPDFAvailable indicates if a PDF rendition is available for this object
 	IsPDFAvailable bool `json:"isPDFAvailable"`
-	// IsUSPersonsData indicates if this object contains US Persons data
-	IsUSPersonsData bool `json:"isUSPersonsData"`
-	// IsFOIAExempt indicates if this object is exempt from Freedom of Information Act requests
-	IsFOIAExempt bool `json:"isFOIAExempt"`
+	// ContainsUSPersonsData indicates if this object contains US Persons data (Yes,No,Unknown)
+	ContainsUSPersonsData string `json:"containsUSPersonsData"`
+	// ExemptFromFOIA indicates if this object is exempt from Freedom of Information Act requests (Yes,No,Unknown)
+	ExemptFromFOIA string `json:"exemptFromFOIA"`
 	// Properties is an array of Object Properties associated with this object
 	// structured as key/value with portion marking.
 	Properties []Property `json:"properties,omitempty"`

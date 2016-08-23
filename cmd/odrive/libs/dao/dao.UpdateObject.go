@@ -101,8 +101,8 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
         ,contentSize = ?
         ,contentHash = ?
         ,encryptIV = ?
-        ,isUSPersonsData = ?
-        ,isFOIAExempt = ?
+        ,containsUSPersonsData = ?
+        ,exemptFromFOIA = ?        
     where id = ? and changeToken = ?`)
 	if err != nil {
 		return fmt.Errorf("UpdateObject Preparing update object statement, %s", err.Error())
@@ -112,7 +112,7 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		object.Name, object.Description.String, object.ParentID,
 		object.ContentConnector.String, object.RawAcm.String,
 		object.ContentType.String, object.ContentSize, object.ContentHash,
-		object.EncryptIV, object.IsUSPersonsData, object.IsFOIAExempt, object.ID,
+		object.EncryptIV, object.ContainsUSPersonsData, object.ExemptFromFOIA, object.ID,
 		object.ChangeToken)
 	if err != nil {
 		return fmt.Errorf("UpdateObject Error executing update object statement, %s", err.Error())

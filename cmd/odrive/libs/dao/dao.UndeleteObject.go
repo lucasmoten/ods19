@@ -92,8 +92,8 @@ func undeleteAncestorChildren(logger zap.Logger, tx *sqlx.Tx, object *models.ODO
         ,o.ownedByNew
         ,o.isPDFAvailable
         ,o.isStreamStored
-        ,o.isUSPersonsData
-        ,o.isFOIAExempt        
+        ,o.containsUSPersonsData
+        ,o.exemptFromFOIA        
         ,ot.name typeName     
     from object o 
         inner join object_type ot on o.typeid = ot.id 
