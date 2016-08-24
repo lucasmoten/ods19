@@ -38,8 +38,8 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 		return nil, NewAppError(400, nil, "Could not determine user"), fmt.Errorf("User not provided in context")
 	}
 	parsedMetadata := false
-	// TODO: should we use protocol.CreateObjectRequest?
-	var createObjectRequest protocol.Object
+	var createObjectRequest protocol.CreateObjectRequest
+	var updateObjectRequest protocol.UpdateObjectAndStreamRequest
 	for {
 		part, err := multipartReader.NextPart()
 		if err != nil {
@@ -52,58 +52,68 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 
 		switch {
 		case part.FormName() == "ObjectMetadata":
-
+			// Capture the value from form
 			bytes, herr := getFormValueAsByteSlice(part)
 			if herr != nil {
 				return drainFunc, herr, nil
 			}
-
-			err := json.Unmarshal(bytes, &createObjectRequest)
+			var err error
+			// Parse into a useable struct
+			if asCreate {
+				err = json.Unmarshal(bytes, &createObjectRequest)
+			} else {
+				err = json.Unmarshal(bytes, &updateObjectRequest)
+			}
 			if err != nil {
 				return drainFunc, NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", bytes)), err
 			}
 
-			if !asCreate {
-				herr = compareIDFromJSONWithURI(ctx, createObjectRequest)
-				if herr != nil {
-					return nil, herr, errors.New("bad request: mismatched IDs")
-				}
-			}
-
-			// If updating and ACM provided differs from what is currently set, then need to
-			// Check AAC to compare user clearance to NEW metadata Classifications
-			// to see if allowed for this user
-			rawAcmString, err := utils.MarshalInterfaceToString(createObjectRequest.RawAcm)
-			if err != nil {
-				return drainFunc, NewAppError(400, err, fmt.Sprintf("Unable to marshal ACM as string: %s", createObjectRequest.RawAcm)), err
-			}
-			if !asCreate && len(rawAcmString) != 0 && strings.Compare(obj.RawAcm.String, rawAcmString) != 0 {
-
-				hasAACAccessToNewACM, err := h.isUserAllowedForACMString(ctx, rawAcmString)
-				if err != nil {
-					return drainFunc, NewAppError(502, err, "Error communicating with authorization service"), err
-				}
-				if !hasAACAccessToNewACM {
-					return drainFunc, NewAppError(403, nil, "Unauthorized", zap.String("origination", "No access to new ACM on Update"), zap.String("acm", rawAcmString)), err
-				}
-			}
-
-			err = mapping.OverwriteODObjectWithProtocolObject(obj, &createObjectRequest)
-			if err != nil {
-				return drainFunc, NewAppError(400, err, "Could not extract data from json response"), err
-			}
-
-			//If this is a new object, check prerequisites
+			// Validation & Mapping for Create
 			if asCreate {
-				// Only map permissions for create
-				obj.Permissions, err = mapping.MapPermissionsToODPermissions(&createObjectRequest.Permissions)
+				// Mapping to object
+				err = mapping.OverwriteODObjectWithCreateObjectRequest(obj, &createObjectRequest)
 				if err != nil {
-					return drainFunc, NewAppError(400, err, "Could not assign permissions from request"), err
+					return drainFunc, NewAppError(400, err, "Could not extract data from json response"), err
 				}
+				// Post mapping rules applied for create (not deleted, enforce owner cruds, assign meta)
 				if herr := handleCreatePrerequisites(ctx, h, obj); herr != nil {
 					return nil, herr, nil
 				}
 			}
+
+			// Validation & Mapping for Update
+			if !asCreate {
+				// ID in json must match that on the URI
+				herr = compareIDFromJSONWithURI(ctx, updateObjectRequest)
+				if herr != nil {
+					return nil, herr, errors.New("bad request: mismatched IDs")
+				}
+				// ACM check for user able to access new if different then old
+				rawAcmString, err := utils.MarshalInterfaceToString(updateObjectRequest.RawAcm)
+				if err != nil {
+					return drainFunc, NewAppError(400, err, fmt.Sprintf("Unable to marshal ACM as string: %s", updateObjectRequest.RawAcm)), err
+				}
+				if len(rawAcmString) != 0 && strings.Compare(obj.RawAcm.String, rawAcmString) != 0 {
+					hasAACAccessToNewACM, err := h.isUserAllowedForACMString(ctx, rawAcmString)
+					if err != nil {
+						return drainFunc, NewAppError(502, err, "Error communicating with authorization service"), err
+					}
+					if !hasAACAccessToNewACM {
+						return drainFunc, NewAppError(403, nil, "Unauthorized", zap.String("origination", "No access to new ACM on Update"), zap.String("acm", rawAcmString)), err
+					}
+				}
+				// ChangeToken must be provided and match the object
+				if obj.ChangeToken != updateObjectRequest.ChangeToken {
+					return drainFunc, NewAppError(400, nil, "Changetoken must be up to date"), nil
+				}
+				// Mapping to object
+				err = mapping.OverwriteODObjectWithUpdateObjectAndStreamRequest(obj, &updateObjectRequest)
+				if err != nil {
+					return drainFunc, NewAppError(400, err, "Could not extract data from json response"), err
+				}
+
+			}
+
 			// Whether creating or updating, the ACM must have a value
 			if len(obj.RawAcm.String) == 0 {
 				return drainFunc, NewAppError(400, err, "An ACM must be specified"), nil
@@ -115,15 +125,10 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 			if asCreate {
 				msg = "ObjectMetadata is required during create"
 			} else {
-				msg = "Metadata must be provided in part named 'ObjectMetadata' to create or update an object"
+				msg = "Metadata must be provided in part named 'ObjectMetadata' to create or update an object and must appear before the file contents"
 			}
 			if !parsedMetadata {
 				return drainFunc, NewAppError(400, nil, msg), nil
-			}
-			if !asCreate {
-				if obj.ChangeToken != createObjectRequest.ChangeToken {
-					return drainFunc, NewAppError(400, nil, "Changetoken must be up to date"), nil
-				}
 			}
 			//Guess the content type and name if it wasn't supplied
 			if obj.ContentType.Valid == false || len(obj.ContentType.String) == 0 {
@@ -247,7 +252,7 @@ func (h AppServer) cacheToDrainAttempt(bucket *string, rName FileId, size int64,
 	return err
 }
 
-func compareIDFromJSONWithURI(ctx context.Context, obj protocol.Object) *AppError {
+func compareIDFromJSONWithURI(ctx context.Context, obj protocol.UpdateObjectAndStreamRequest) *AppError {
 
 	captured, _ := CaptureGroupsFromContext(ctx)
 

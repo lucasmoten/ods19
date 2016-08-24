@@ -26,6 +26,10 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	permissions := make([]models.ODObjectPermission, 1)
 	permissions[0].CreatedBy = user1
 	permissions[0].Grantee = user1
+	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, user1)
+	permissions[0].AcmGrantee.Grantee = permissions[0].Grantee
+	permissions[0].AcmGrantee.UserDistinguishedName.String = permissions[0].Grantee
+	permissions[0].AcmGrantee.UserDistinguishedName.Valid = true
 	permissions[0].AllowCreate = true
 	permissions[0].AllowRead = true
 	permissions[0].AllowUpdate = true
@@ -53,6 +57,10 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	permissions1 := make([]models.ODObjectPermission, 1)
 	permissions1[0].CreatedBy = user1
 	permissions1[0].Grantee = user1
+	permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, user1)
+	permissions1[0].AcmGrantee.Grantee = permissions1[0].Grantee
+	permissions1[0].AcmGrantee.UserDistinguishedName.String = permissions1[0].Grantee
+	permissions1[0].AcmGrantee.UserDistinguishedName.Valid = true
 	permissions1[0].AllowCreate = true
 	permissions1[0].AllowRead = true
 	permissions1[0].AllowUpdate = true
@@ -103,6 +111,10 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	permissions2 := make([]models.ODObjectPermission, 1)
 	permissions2[0].CreatedBy = user1
 	permissions2[0].Grantee = user1
+	permissions2[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, user1)
+	permissions2[0].AcmGrantee.Grantee = permissions2[0].Grantee
+	permissions2[0].AcmGrantee.UserDistinguishedName.String = permissions2[0].Grantee
+	permissions2[0].AcmGrantee.UserDistinguishedName.Valid = true
 	permissions2[0].AllowCreate = true
 	permissions2[0].AllowRead = true
 	permissions2[0].AllowUpdate = true

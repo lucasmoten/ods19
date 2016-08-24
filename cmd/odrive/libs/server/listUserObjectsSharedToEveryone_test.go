@@ -45,7 +45,7 @@ func TestListObjectsSharedToEveryone(t *testing.T) {
 		}
 	}
 	if !found1 {
-		t.Logf("Object shared to everyone was not found in call to %s", uriEveryone)
+		t.Logf("Object shared to everyone (%s) was not found in call to %s", folder1.ID, uriEveryone)
 		t.Fail()
 	}
 	if found2 {

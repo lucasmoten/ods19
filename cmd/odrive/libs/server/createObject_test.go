@@ -110,7 +110,7 @@ func TestCreateObjectSimple(t *testing.T) {
 	}
 }
 
-var ValidAcmCreateObjectSimple = `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":["FOUO"],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U//FOUO","banner":"UNCLASSIFIED//FOUO","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`
+var ValidAcmCreateObjectSimple = `{"version":"2.1.0","classif":"U","dissem_ctrls":["FOUO"],"portion":"U//FOUO","banner":"UNCLASSIFIED//FOUO","dissem_countries":["USA"],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"]}`
 
 func TestCreateWithACMInObjectFormat(t *testing.T) {
 
@@ -243,7 +243,7 @@ func failWithoutDCTCOdrive(t *testing.T, createdObject *protocol.Object) {
 			hasEveryone := false
 			for _, permission := range retrievedObject.Permissions {
 				logPermission(t, permission)
-				if permission.Grantee == models.EveryoneGroup {
+				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
 				if permission.Grantee == "dctc_odrive" {
@@ -296,10 +296,10 @@ func TestCreateWithPermissions(t *testing.T) {
 
 	t.Logf("* Create object")
 	t.Logf("preparing")
-	var object protocol.Object
+	var object protocol.CreateObjectRequest
 	object.Name = "TestCreateWithPermissions"
 	object.RawAcm = `{"classif":"U"}`
-	permission := protocol.Permission{Grantee: "dctc_odrive", AllowCreate: true, AllowRead: true, AllowUpdate: true, AllowDelete: true}
+	permission := protocol.ObjectShare{Share: makeGroupShare("dctc", "DCTC", "ODrive"), AllowCreate: true, AllowRead: true, AllowUpdate: true, AllowDelete: true}
 	object.Permissions = append(object.Permissions, permission)
 	t.Logf("jsoninfying")
 	jsonBody, _ := json.Marshal(object)
@@ -325,10 +325,10 @@ func TestCreateStreamWithPermissions(t *testing.T) {
 
 	t.Logf("* Create object")
 	t.Logf("preparing")
-	var object protocol.Object
+	var object protocol.CreateObjectRequest
 	object.Name = "TestCreateWithPermissions"
 	object.RawAcm = `{"classif":"U"}`
-	permission := protocol.Permission{Grantee: "dctc_odrive", AllowCreate: true, AllowRead: true, AllowUpdate: true, AllowDelete: true}
+	permission := protocol.ObjectShare{Share: makeGroupShare("dctc", "DCTC", "ODrive"), AllowCreate: true, AllowRead: true, AllowUpdate: true, AllowDelete: true}
 	object.Permissions = append(object.Permissions, permission)
 	t.Logf("jsoninfying")
 	jsonBody, _ := json.Marshal(object)
@@ -379,7 +379,7 @@ func TestCreateFoldersMultiLevelsDeep(t *testing.T) {
 	parentFolder := protocol.Object{}
 	for curDepth := 1; curDepth < depth; curDepth++ {
 		t.Logf("* Creating folder #%d", curDepth)
-		newFolder := protocol.Object{}
+		newFolder := protocol.CreateObjectRequest{}
 		newFolder.ParentID = parentFolder.ID
 		newFolder.Name = fmt.Sprintf("Folders Multi Levels Deep %d", curDepth)
 		newFolder.RawAcm = testhelpers.ValidACMUnclassified
@@ -406,7 +406,7 @@ func TestCreateObjectWithParentSetInJSON(t *testing.T) {
 	folder1 := makeFolderViaJSON("Test Folder 1 ", tester10, t)
 
 	t.Logf("* Create a second folder, under the root, but with JSON properties specifying parent as folder1")
-	folder2Obj := protocol.Object{}
+	folder2Obj := protocol.CreateObjectRequest{}
 	folder2Obj.Name = "Test Folder 2"
 	folder2Obj.ParentID = folder1.ID
 	folder2Obj.TypeName = "Folder"
@@ -425,7 +425,7 @@ func TestCreateObjectWithUSPersonsData(t *testing.T) {
 	tester10 := 0
 
 	t.Logf("* Creating object with US Persons Data")
-	myobject := protocol.Object{}
+	myobject := protocol.CreateObjectRequest{}
 	myobject.Name = "This has US Persons Data"
 	myobject.TypeName = "Arbitrary Object"
 	myobject.RawAcm = testhelpers.ValidACMUnclassified
@@ -459,7 +459,7 @@ func TestCreateObjectWithUSPersonsDataNotSet(t *testing.T) {
 	tester10 := 0
 
 	t.Logf("* Creating object with US Persons Data")
-	myobject := protocol.Object{}
+	myobject := protocol.CreateObjectRequest{}
 	myobject.Name = "This has Unknown US Persons Data"
 	myobject.TypeName = "Arbitrary Object"
 	myobject.RawAcm = testhelpers.ValidACMUnclassified
@@ -489,7 +489,7 @@ func TestCreateObjectWithFOIAExempt(t *testing.T) {
 	tester10 := 0
 
 	t.Logf("* Creating object with FOIA Exempt")
-	myobject := protocol.Object{}
+	myobject := protocol.CreateObjectRequest{}
 	myobject.Name = "This has FOIA Exempt"
 	myobject.TypeName = "Arbitrary Object"
 	myobject.RawAcm = testhelpers.ValidACMUnclassified
@@ -523,7 +523,7 @@ func TestCreateObjectWithFOIAExemptNotSet(t *testing.T) {
 	tester10 := 0
 
 	t.Logf("* Creating object with FOIA Exempt")
-	myobject := protocol.Object{}
+	myobject := protocol.CreateObjectRequest{}
 	myobject.Name = "This has Unknown FOIA Exemption"
 	myobject.TypeName = "Arbitrary Object"
 	myobject.RawAcm = testhelpers.ValidACMUnclassified

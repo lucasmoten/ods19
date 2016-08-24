@@ -7,6 +7,10 @@ ALTER TABLE acm
 	,ADD CONSTRAINT fk_acm_modifiedBy FOREIGN KEY (modifiedBy) REFERENCES user(distinguishedName)
 ;
 
+ALTER TABLE acmgrantee
+    ADD CONSTRAINT fk_acmgrantee_userDistinguishedName FOREIGN KEY (userDistinguishedName) REFERENCES user(distinguishedName)
+;
+
 ALTER TABLE acmkey
 	ADD CONSTRAINT fk_acmkey_createdBy FOREIGN KEY (createdBy) REFERENCES user(distinguishedName)
 	,ADD CONSTRAINT fk_acmkey_deletedBy FOREIGN KEY (deletedBy) REFERENCES user(distinguishedName)
@@ -50,7 +54,7 @@ ALTER TABLE objectacm
 ALTER TABLE object_permission
 	ADD CONSTRAINT fk_object_permission_createdBy FOREIGN KEY (createdBy) REFERENCES user(distinguishedName)
 	,ADD CONSTRAINT fk_object_permission_deletedBy FOREIGN KEY (deletedBy) REFERENCES user(distinguishedName)
-	,ADD CONSTRAINT fk_object_permission_grantee FOREIGN KEY (grantee) REFERENCES user(distinguishedName)
+	,ADD CONSTRAINT fk_object_permission_grantee FOREIGN KEY (grantee) REFERENCES acmgrantee(grantee)
 	,ADD CONSTRAINT fk_object_permission_modifiedBy FOREIGN KEY (modifiedBy) REFERENCES user(distinguishedName)
 	,ADD CONSTRAINT fk_object_permission_objectId FOREIGN KEY (objectId) REFERENCES object(id)
 ;

@@ -248,7 +248,6 @@ func TestAddReadShareForUser(t *testing.T) {
 	var createShareRequest protocol.ObjectShare
 	createShareRequest.AllowRead = true
 	createShareRequest.Share = makeUserShare("cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us")
-	createShareRequest.PropagateToChildren = false
 	// jsonify it
 	jsonBody, _ = json.Marshal(createShareRequest)
 	// prep http request
@@ -310,7 +309,6 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	var createShareRequest protocol.ObjectShare
 	createShareRequest.AllowRead = true
 	createShareRequest.Share = makeUserShare("cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us")
-	createShareRequest.PropagateToChildren = false
 	// jsonify it
 	jsonBody, _ = json.Marshal(createShareRequest)
 	// prep http request
@@ -341,7 +339,6 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	createGroupShareRequest.AllowRead = true
 	createGroupShareRequest.AllowUpdate = true
 	createGroupShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G1")
-	createGroupShareRequest.PropagateToChildren = false
 	// jsonify it
 	jsonBody, _ = json.Marshal(createGroupShareRequest)
 	// prep http request
@@ -425,7 +422,6 @@ func TestAddReadShareForGroupRemovesEveryone(t *testing.T) {
 	createGroupShareRequest.AllowRead = true
 	createGroupShareRequest.AllowUpdate = true
 	createGroupShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G2")
-	createGroupShareRequest.PropagateToChildren = false
 	// jsonify it
 	jsonBody, _ = json.Marshal(createGroupShareRequest)
 	// prep http request
@@ -483,7 +479,7 @@ func TestAddReadShareForGroupRemovesEveryone(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject2.Permissions {
 				logPermission(t, permission)
-				if permission.Grantee == models.EveryoneGroup {
+				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -577,7 +573,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range retrievedObject.Permissions {
 				logPermission(t, permission)
-				if permission.Grantee == models.EveryoneGroup {
+				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
 			}
@@ -600,7 +596,6 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 	createGroupShareRequest.AllowRead = true
 	createGroupShareRequest.AllowUpdate = true
 	createGroupShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G2")
-	createGroupShareRequest.PropagateToChildren = false
 	// jsonify it
 	jsonBody, _ = json.Marshal(createGroupShareRequest)
 	// prep http request
@@ -658,7 +653,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject2.Permissions {
 				logPermission(t, permission)
-				if permission.Grantee == models.EveryoneGroup {
+				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -689,7 +684,6 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 	var createUserShareRequest protocol.ObjectShare
 	createUserShareRequest.AllowRead = true
 	createUserShareRequest.Share = makeUserShare(fakeDN0)
-	createUserShareRequest.PropagateToChildren = false
 	// jsonify it
 	jsonBody, _ = json.Marshal(createUserShareRequest)
 	// prep http request
@@ -746,7 +740,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject3.Permissions {
 				logPermission(t, permission)
-				if permission.Grantee == models.EveryoneGroup {
+				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -850,7 +844,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range retrievedObject.Permissions {
 				logPermission(t, permission)
-				if permission.Grantee == models.EveryoneGroup {
+				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
 			}
@@ -873,7 +867,6 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 	createGroupShareRequest.AllowRead = true
 	createGroupShareRequest.AllowUpdate = true
 	createGroupShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G2")
-	createGroupShareRequest.PropagateToChildren = false
 	// jsonify it
 	jsonBody, _ = json.Marshal(createGroupShareRequest)
 	// prep http request
@@ -931,7 +924,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject2.Permissions {
 				logPermission(t, permission)
-				if permission.Grantee == models.EveryoneGroup {
+				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -962,7 +955,6 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 	var createUserShareRequest protocol.ObjectShare
 	createUserShareRequest.AllowRead = true
 	createUserShareRequest.Share = makeUserShare(fakeDN0)
-	createUserShareRequest.PropagateToChildren = false
 	// jsonify it
 	jsonBody, _ = json.Marshal(createUserShareRequest)
 	// prep http request
@@ -1019,7 +1011,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject3.Permissions {
 				logPermission(t, permission)
-				if permission.Grantee == models.EveryoneGroup {
+				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -1111,7 +1103,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject4.Permissions {
 				logPermission(t, permission)
-				if permission.Grantee == models.EveryoneGroup {
+				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -1216,7 +1208,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range retrievedObject.Permissions {
 				logPermission(t, permission)
-				if permission.Grantee == models.EveryoneGroup {
+				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
 			}
@@ -1239,7 +1231,6 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	createGroupShareRequest.AllowRead = true
 	//createGroupShareRequest.AllowUpdate = true
 	createGroupShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G2")
-	createGroupShareRequest.PropagateToChildren = false
 	// jsonify it
 	jsonBody, _ = json.Marshal(createGroupShareRequest)
 	// prep http request
@@ -1297,7 +1288,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject2.Permissions {
 				logPermission(t, permission)
-				if permission.Grantee == models.EveryoneGroup {
+				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -1328,7 +1319,6 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	var createUserShareRequest protocol.ObjectShare
 	createUserShareRequest.AllowRead = true
 	createUserShareRequest.Share = makeUserShare(fakeDN0)
-	createUserShareRequest.PropagateToChildren = false
 	// jsonify it
 	jsonBody, _ = json.Marshal(createUserShareRequest)
 	// prep http request
@@ -1385,7 +1375,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject3.Permissions {
 				logPermission(t, permission)
-				if permission.Grantee == models.EveryoneGroup {
+				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -1477,7 +1467,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject4.Permissions {
 				logPermission(t, permission)
-				if permission.Grantee == models.EveryoneGroup {
+				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -1556,7 +1546,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject5.Permissions {
 				logPermission(t, permission)
-				if permission.Grantee == models.EveryoneGroup {
+				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -1608,7 +1598,7 @@ func shouldHaveEveryonePermission(t *testing.T, objID string, clientIdxs ...int)
 		hasEveryone := false
 		for _, p := range obj.Permissions {
 			logPermission(t, p)
-			if p.Grantee == models.EveryoneGroup {
+			if p.GroupName == models.EveryoneGroup {
 				hasEveryone = true
 			}
 		}

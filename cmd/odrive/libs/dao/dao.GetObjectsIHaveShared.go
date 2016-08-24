@@ -71,7 +71,6 @@ func getObjectsIHaveSharedInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
     where 
         o.isdeleted = 0 
         and op.isdeleted = 0 
-        and op.explicitShare = 1
         and op.createdBy = ?
         and op.grantee <> ? `
 	query += buildFilterForUserSnippets(user)

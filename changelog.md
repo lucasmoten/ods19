@@ -18,4 +18,5 @@ Release v0.1.0
 * !208 – Enhancement: RPMs generated will now create odrive user when installed
 * !209 – Enhancement: All API responses returning object now populate callerPermissions
 * !210 – Enhancement: US Persons Data and FOIA Exemption state fields now track Yes/No/Unknown instead of True/False
-
+* !216 - Enhancement: Connection to Zookeeper recovery improvements when timed out
+* !218 - Enhancement: Capture full ACM share information for individual permission grants

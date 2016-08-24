@@ -53,10 +53,4 @@ type ObjectShare struct {
 	// granted permission to share the object to others when adding permissions
 	// or revoking such capability when removing permissions
 	AllowShare bool `json:"allowShare"`
-
-	// PropagateToChildren indicates whether the characteristics of this
-	// share will be recursively applied to existing children of the
-	// target of this grant.  New children created always inherit the same
-	// permissions of their parent that are not 'Read-Only'
-	PropagateToChildren bool `json:"propagateToChildren"`
 }

@@ -1,6 +1,7 @@
 package dao_test
 
 import (
+	"fmt"
 	"testing"
 
 	"decipher.com/object-drive-server/metadata/models"
@@ -41,6 +42,10 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 	permissions1 := make([]models.ODObjectPermission, 1)
 	permissions1[0].CreatedBy = user1.DistinguishedName
 	permissions1[0].Grantee = user1.DistinguishedName
+	permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, permissions1[0].Grantee)
+	permissions1[0].AcmGrantee.Grantee = permissions1[0].Grantee
+	permissions1[0].AcmGrantee.UserDistinguishedName.String = permissions1[0].Grantee
+	permissions1[0].AcmGrantee.UserDistinguishedName.Valid = true
 	permissions1[0].AllowCreate = true
 	permissions1[0].AllowRead = true
 	permissions1[0].AllowUpdate = true
@@ -70,6 +75,10 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 	permissions2 := make([]models.ODObjectPermission, 1)
 	permissions2[0].CreatedBy = user2.DistinguishedName
 	permissions2[0].Grantee = user2.DistinguishedName
+	permissions2[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, permissions2[0].Grantee)
+	permissions2[0].AcmGrantee.Grantee = permissions2[0].Grantee
+	permissions2[0].AcmGrantee.UserDistinguishedName.String = permissions2[0].Grantee
+	permissions2[0].AcmGrantee.UserDistinguishedName.Valid = true
 	permissions2[0].AllowCreate = true
 	permissions2[0].AllowRead = true
 	permissions2[0].AllowUpdate = true

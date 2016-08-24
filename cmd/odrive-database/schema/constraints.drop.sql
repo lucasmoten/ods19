@@ -38,6 +38,7 @@ CALL sp_drop_constraints(@SchemaName, 'acm_coicontrol', 'id');
 CALL sp_drop_constraints(@SchemaName, 'acm_mac', 'id');
 CALL sp_drop_constraints(@SchemaName, 'acm_project', 'id');
 CALL sp_drop_constraints(@SchemaName, 'acm_share', 'id');
+CALL sp_drop_constraints(@SchemaName, 'acmgrantee', 'grantee');
 CALL sp_drop_constraints(@SchemaName, 'acmkey', 'id');
 CALL sp_drop_constraints(@SchemaName, 'acmpart', 'id');
 CALL sp_drop_constraints(@SchemaName, 'acmvalue', 'id');

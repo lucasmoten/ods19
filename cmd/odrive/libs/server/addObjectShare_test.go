@@ -122,7 +122,7 @@ func TestAddObjectShare(t *testing.T) {
 		logPermission(t, permission)
 	}
 
-	t.Logf("* Add read share as tester10 for tester1,tester10 to folder1 without propagation")
+	t.Logf("* Add read share as tester10 for tester1,tester10 to folder1")
 	shareuri := host + cfg.NginxRootURL + "/shared/" + folder1.ID
 	shareSetting := protocol.ObjectShare{}
 	shareSetting.Share = server.CombineInterface(makeUserShare(fakeDN0), makeUserShare(fakeDN1))
@@ -210,7 +210,7 @@ func TestAddObjectShare(t *testing.T) {
 	hasEveryone := false
 	for _, permission := range retrievedObject.Permissions {
 		logPermission(t, permission)
-		if permission.Grantee == models.EveryoneGroup {
+		if permission.GroupName == models.EveryoneGroup {
 			hasEveryone = true
 		}
 	}
@@ -219,12 +219,11 @@ func TestAddObjectShare(t *testing.T) {
 		t.FailNow()
 	}
 
-	t.Logf("* Add share as tester10 for tester1 to folder1 with propagation (NOOP since read exists, and wont propogate)")
+	t.Logf("* Add share as tester10 for tester1 to folder1 (NOOP since read exists)")
 	shareuri = host + cfg.NginxRootURL + "/shared/" + folder1.ID
 	shareSetting = protocol.ObjectShare{}
 	shareSetting.Share = server.CombineInterface(makeUserShare(fakeDN0), makeUserShare(fakeDN1))
 	shareSetting.AllowRead = true
-	shareSetting.PropagateToChildren = true
 	jsonBody, err = json.Marshal(shareSetting)
 	if err != nil {
 		t.Logf("Unable to marshal json for request:%v", err)
@@ -281,7 +280,7 @@ func TestAddObjectShare(t *testing.T) {
 	hasEveryone = false
 	for _, permission := range retrievedObject.Permissions {
 		logPermission(t, permission)
-		if permission.Grantee == models.EveryoneGroup {
+		if permission.GroupName == models.EveryoneGroup {
 			hasEveryone = true
 		}
 	}
@@ -337,7 +336,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	hasEveryone := false
 	for _, permission := range retrievedObject.Permissions {
 		logPermission(t, permission)
-		if permission.Grantee == models.EveryoneGroup {
+		if permission.GroupName == models.EveryoneGroup {
 			hasEveryone = true
 		}
 	}
@@ -395,7 +394,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	hasEveryone = false
 	for _, permission := range updatedObject.Permissions {
 		logPermission(t, permission)
-		if permission.Grantee == models.EveryoneGroup {
+		if permission.GroupName == models.EveryoneGroup {
 			hasEveryone = true
 		}
 	}
@@ -481,7 +480,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	hasEveryone = false
 	for _, permission := range retrievedObject.Permissions {
 		logPermission(t, permission)
-		if permission.Grantee == models.EveryoneGroup {
+		if permission.GroupName == models.EveryoneGroup {
 			hasEveryone = true
 		}
 	}
@@ -538,7 +537,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	hasEveryone = false
 	for _, permission := range retrievedObject.Permissions {
 		logPermission(t, permission)
-		if permission.Grantee == models.EveryoneGroup {
+		if permission.GroupName == models.EveryoneGroup {
 			hasEveryone = true
 		}
 	}
@@ -635,7 +634,6 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 	createShareRequest.AllowUpdate = true
 	createShareRequest.AllowShare = true
 	createShareRequest.Share = makeUserShare("cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us")
-	createShareRequest.PropagateToChildren = false
 	// jsonify it
 	jsonBody, _ = json.Marshal(createShareRequest)
 	// prep http request
@@ -706,7 +704,6 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 	createGroupShareRequest.AllowRead = true
 	createGroupShareRequest.AllowUpdate = true
 	createGroupShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G1")
-	createGroupShareRequest.PropagateToChildren = false
 	// jsonify it
 	jsonBody, _ = json.Marshal(createGroupShareRequest)
 	// prep http request
@@ -751,8 +748,9 @@ func iifString(c bool, t string, f string) string {
 	return f
 }
 func logPermission(t *testing.T, permission protocol.Permission) {
-	t.Logf("[%s%s%s%s%s] %s",
+	t.Logf("[%s%s%s%s%s] %s (%s %s %s %s)",
 		iifString(permission.AllowCreate, "C", "-"), iifString(permission.AllowRead, "R", "-"),
 		iifString(permission.AllowUpdate, "U", "-"), iifString(permission.AllowDelete, "D", "-"),
-		iifString(permission.AllowShare, "S", "-"), permission.Grantee)
+		iifString(permission.AllowShare, "S", "-"), permission.Grantee,
+		permission.ProjectName, permission.ProjectDisplayName, permission.GroupName, permission.UserDistinguishedName)
 }

@@ -40,6 +40,7 @@ func getPermissionsForObjectInTransaction(tx *sqlx.Tx, object models.ODObject) (
         ,op.changeToken
         ,op.objectId
         ,op.grantee
+        ,op.acmShare
         ,op.allowCreate
         ,op.allowRead
         ,op.allowUpdate
@@ -57,6 +58,12 @@ func getPermissionsForObjectInTransaction(tx *sqlx.Tx, object models.ODObject) (
 	err := tx.Select(&response, query, object.ID)
 	if err != nil {
 		return response, err
+	}
+	for i, p := range response {
+		response[i].AcmGrantee, err = getAcmGranteeInTransaction(tx, p.Grantee)
+		if err != nil {
+			return response, err
+		}
 	}
 	return response, err
 }

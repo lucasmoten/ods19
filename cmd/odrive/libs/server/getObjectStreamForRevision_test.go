@@ -444,7 +444,6 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 	shareSetting := protocol.ObjectShare{}
 	shareSetting.Share = server.CombineInterface(makeUserShare(fakeDN0), makeUserShare(fakeDN1))
 	shareSetting.AllowRead = true
-	shareSetting.PropagateToChildren = true
 	jsonBody, err := json.Marshal(shareSetting)
 	if err != nil {
 		t.Logf("Unable to marshal json for request:%v", err)
@@ -477,7 +476,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		hasEveryone := false
 		for _, permission := range objShare.Permissions {
 			logPermission(t, permission)
-			if permission.Grantee == models.EveryoneGroup {
+			if permission.GroupName == models.EveryoneGroup {
 				hasEveryone = true
 			}
 		}
@@ -528,7 +527,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 	hasEveryone := false
 	for _, permission := range objResponse2.Permissions {
 		logPermission(t, permission)
-		if permission.Grantee == models.EveryoneGroup {
+		if permission.GroupName == models.EveryoneGroup {
 			hasEveryone = true
 		}
 	}

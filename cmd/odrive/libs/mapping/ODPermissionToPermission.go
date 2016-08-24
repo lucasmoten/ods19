@@ -23,6 +23,11 @@ func MapODPermissionToPermission(i *models.ODObjectPermission) protocol.Permissi
 	o.ChangeToken = i.ChangeToken
 	o.ObjectID = hex.EncodeToString(i.ObjectID)
 	o.Grantee = i.Grantee
+	o.ProjectName = i.AcmGrantee.ProjectName.String
+	o.ProjectDisplayName = i.AcmGrantee.ProjectDisplayName.String
+	o.GroupName = i.AcmGrantee.GroupName.String
+	o.UserDistinguishedName = i.AcmGrantee.UserDistinguishedName.String
+	o.DisplayName = i.AcmGrantee.DisplayName.String
 	o.AllowCreate = i.AllowCreate
 	o.AllowRead = i.AllowRead
 	o.AllowUpdate = i.AllowUpdate
@@ -32,8 +37,8 @@ func MapODPermissionToPermission(i *models.ODObjectPermission) protocol.Permissi
 	return o
 }
 
-// MapODCommonPermissionToPermission converts an internal ODCommonPermission model
-// to an API exposable Permission with minimal fields filled
+// MapODCommonPermissionToCallerPermission converts an internal ODCommonPermission model
+// to an API exposable Caller Permission with minimal fields filled
 func MapODCommonPermissionToCallerPermission(i *models.ODCommonPermission) protocol.CallerPermission {
 	o := protocol.CallerPermission{}
 	o.AllowCreate = i.AllowCreate
@@ -60,7 +65,7 @@ func applyEveryonePermissionsIfExists(i []protocol.Permission) []protocol.Permis
 	hasEveryone := false
 	var everyonePermissions *protocol.Permission
 	for _, q := range i {
-		if strings.Compare(q.Grantee, models.EveryoneGroup) == 0 {
+		if strings.Compare(q.GroupName, models.EveryoneGroup) == 0 {
 			everyonePermissions = &q
 			hasEveryone = true
 			break
@@ -72,6 +77,11 @@ func applyEveryonePermissionsIfExists(i []protocol.Permission) []protocol.Permis
 	for idx, q := range i {
 		var permWithEveryone protocol.Permission
 		permWithEveryone.Grantee = q.Grantee
+		permWithEveryone.ProjectName = q.ProjectName
+		permWithEveryone.ProjectDisplayName = q.ProjectDisplayName
+		permWithEveryone.GroupName = q.GroupName
+		permWithEveryone.UserDistinguishedName = q.UserDistinguishedName
+		permWithEveryone.DisplayName = q.DisplayName
 		permWithEveryone.AllowCreate = q.AllowCreate || everyonePermissions.AllowCreate
 		permWithEveryone.AllowRead = q.AllowRead || everyonePermissions.AllowRead
 		permWithEveryone.AllowUpdate = q.AllowUpdate || everyonePermissions.AllowUpdate
@@ -130,15 +140,28 @@ func MapPermissionsToODPermissions(i *[]protocol.Permission) ([]models.ODObjectP
 	return o, nil
 }
 
+// MapObjectSharesToODPermissions takes an array of ObjectShare request, and
+// converts to an array of ODObjectPermission with capability flags set and
+// acmShare initialized with a single chare to check against AAC to get the
+// unique flattened value
+func MapObjectSharesToODPermissions(i *[]protocol.ObjectShare) ([]models.ODObjectPermission, error) {
+	o := []models.ODObjectPermission{}
+	for _, q := range *i {
+		mappedPermissions, err := MapObjectShareToODPermissions(&q)
+		if err != nil {
+			return o, err
+		}
+		o = append(o, mappedPermissions...)
+	}
+	return o, nil
+}
+
 // MapObjectShareToODPermissions takes an protocol ObjectShare request, and
 // converts to an array of ODObjectPermission with the capability flags set
 // and acmShare initialized with a single share to check against AAC to get
 // the unique flattened value
 func MapObjectShareToODPermissions(i *protocol.ObjectShare) ([]models.ODObjectPermission, error) {
 	o := []models.ODObjectPermission{}
-
-	acmShareUser := "{\"users\":[\"%s\"]}"
-	acmShareGroup := "{\"projects\":{\"%s\":{\"disp_nm\":\"%s\",\"groups\":[\"%s\"]}}}"
 
 	// Reference to interface
 	shareInterface := i.Share
@@ -150,13 +173,12 @@ func MapObjectShareToODPermissions(i *protocol.ObjectShare) ([]models.ODObjectPe
 
 	// If interface is a string, assume single DN
 	if reflect.TypeOf(shareInterface).Kind().String() == "string" {
-		// Prep permission
-		permission := mapODObjectShareToODPermission(i)
-		// DN assignment to AcmShare
-		userDN := shareInterface.(string)
-		permission.AcmShare = fmt.Sprintf(acmShareUser, userDN)
-		// Append to array
-		o = append(o, permission)
+		// Capture DN
+		userValue := shareInterface.(string)
+		if len(userValue) > 0 {
+			permission := models.PermissionForUser(userValue, i.AllowCreate, i.AllowRead, i.AllowUpdate, i.AllowDelete, i.AllowShare)
+			o = append(o, permission)
+		}
 		// And return it
 		return o, nil
 	}
@@ -181,11 +203,7 @@ func MapObjectShareToODPermissions(i *protocol.ObjectShare) ([]models.ODObjectPe
 						// Capture DN
 						userValue := shareValueElement.(string)
 						if len(userValue) > 0 {
-							// Prep permission
-							permission := mapODObjectShareToODPermission(i)
-							// DN assignment to AcmShare
-							permission.AcmShare = fmt.Sprintf(acmShareUser, userValue)
-							// Append to Array
+							permission := models.PermissionForUser(userValue, i.AllowCreate, i.AllowRead, i.AllowUpdate, i.AllowDelete, i.AllowShare)
 							o = append(o, permission)
 						}
 					}
@@ -227,16 +245,9 @@ func MapObjectShareToODPermissions(i *protocol.ObjectShare) ([]models.ODObjectPe
 									} else {
 										return o, fmt.Errorf("Share 'projects' has an unusable value for 'disp_nm' on key %s. Value is not a string", projectFieldKey)
 									}
-									if len(projectDisplayName) == 0 {
-										return o, fmt.Errorf("Share 'projects' has an empty value for 'disp_nm' on key %s", projectFieldKey)
-									}
 									break
 								}
 							}
-						}
-						// If no display name detected, then error
-						if len(projectDisplayName) == 0 {
-							return o, fmt.Errorf("Share 'projects' for '%s' does not have a disp_nm field", projectKey)
 						}
 						// Now look for groups
 						for projectFieldKey, projectFieldValue := range projectValueMap {
@@ -248,11 +259,7 @@ func MapObjectShareToODPermissions(i *protocol.ObjectShare) ([]models.ODObjectPe
 											if strings.Compare(reflect.TypeOf(groupValueElement).Kind().String(), "string") == 0 {
 												groupValue := groupValueElement.(string)
 												if len(groupValue) > 0 {
-													// Prep permission
-													permission := mapODObjectShareToODPermission(i)
-													// Group assignment to AcmShare
-													permission.AcmShare = fmt.Sprintf(acmShareGroup, strings.ToLower(projectKey), projectDisplayName, groupValue)
-													// Append to Array
+													permission := models.PermissionForGroup(projectKey, projectDisplayName, groupValue, i.AllowCreate, i.AllowRead, i.AllowUpdate, i.AllowDelete, i.AllowShare)
 													o = append(o, permission)
 												}
 											}
@@ -273,14 +280,4 @@ func MapObjectShareToODPermissions(i *protocol.ObjectShare) ([]models.ODObjectPe
 	// Done
 	return o, nil
 
-}
-
-func mapODObjectShareToODPermission(i *protocol.ObjectShare) models.ODObjectPermission {
-	o := models.ODObjectPermission{}
-	o.AllowCreate = i.AllowCreate
-	o.AllowRead = i.AllowRead
-	o.AllowUpdate = i.AllowUpdate
-	o.AllowDelete = i.AllowDelete
-	o.AllowShare = i.AllowShare
-	return o
 }

@@ -48,14 +48,9 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 			logger.Info("Flattened.", zap.String("grantee", permission.Grantee), zap.String("acmShare", permission.AcmShare))
 
 			// Compare to owner
-			if strings.Compare(permission.Grantee, psuedoFlatten(dbObject.OwnedBy.String)) == 0 {
+			if strings.Compare(permission.Grantee, models.AACFlatten(dbObject.OwnedBy.String)) == 0 {
 				errMsg := "Forbidden - Unauthorized to set permissions that would result in owner losing access"
 				return NewAppError(403, errors.New(errMsg), errMsg)
-			}
-
-			// Restore for everyone group
-			if strings.Compare(permission.Grantee, psuedoFlatten(models.EveryoneGroup)) == 0 {
-				permission.Grantee = models.EveryoneGroup
 			}
 
 			// Iterate database permissions comparing grantee
@@ -70,9 +65,9 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 					dbPermission.IsDeleted = true
 
 					// If removing everyone group, then give read access to owner
-					if dbHasEveryone && strings.Compare(models.EveryoneGroup, permission.Grantee) == 0 {
+					if dbHasEveryone && strings.Compare(models.EveryoneGroup, permission.AcmGrantee.GroupName.String) == 0 {
 						// Add read permission for the owner
-						newOwnerPermission := copyPermissionToGrantee(ctx, &dbPermission, dbObject.OwnedBy.String)
+						newOwnerPermission := copyPermissionToGrantee(&dbPermission, dbObject.OwnedBy.String)
 						if herr := h.flattenGranteeOnPermission(ctx, &newOwnerPermission); herr != nil {
 							return herr
 						}
@@ -141,6 +136,8 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 			// Add any new permissions for owner to the database.
 			for _, permission := range permissionsToAdd {
 				// Add to database
+				permission.CreatedBy = caller.DistinguishedName
+				permission.ObjectID = dbObject.ID
 				_, err := dao.AddPermissionToObject(dbObject, &permission, false, h.MasterKey)
 				if err != nil {
 					return NewAppError(500, err, "Error updating permission on object - add permission")
@@ -167,19 +164,6 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 	})
 	jsonResponse(w, apiResponse)
 	return nil
-}
-
-func psuedoFlatten(inVal string) string {
-	emptyList := []string{" ", ",", "=", "'", ":", "(", ")", "$", "[", "]", "{", "}", "|", "\\"}
-	underscoreList := []string{".", "-"}
-	outVal := strings.ToLower(inVal)
-	for _, s := range emptyList {
-		outVal = strings.Replace(outVal, s, "", -1)
-	}
-	for _, s := range underscoreList {
-		outVal = strings.Replace(outVal, s, "_", -1)
-	}
-	return outVal
 }
 
 func rebuildACMShareFromObjectPermissions(ctx context.Context, dbObject *models.ODObject, permissionsToAdd []models.ODObjectPermission) *AppError {
@@ -241,17 +225,10 @@ func rebuildACMShareFromObjectPermissions(ctx context.Context, dbObject *models.
 	return nil
 }
 
-func copyPermissionToGrantee(ctx context.Context, originalPermission *models.ODObjectPermission, grantee string) models.ODObjectPermission {
-	caller, _ := CallerFromContext(ctx)
-	bytesObjectID, _ := getObjectIDFromContext(ctx)
-	newPermission := models.ODObjectPermission{}
-	newPermission.CreatedBy = caller.DistinguishedName
-	newPermission.ObjectID = bytesObjectID
-	newPermission.AllowCreate = originalPermission.AllowCreate
-	newPermission.AllowRead = originalPermission.AllowRead
-	newPermission.AllowUpdate = originalPermission.AllowUpdate
-	newPermission.AllowDelete = originalPermission.AllowDelete
-	newPermission.AllowShare = originalPermission.AllowShare
-	newPermission.Grantee = grantee
-	return newPermission
+func copyPermissionToGrantee(originalPermission *models.ODObjectPermission, grantee string) models.ODObjectPermission {
+	// NOTE: This will be an area that gets complicate when changeowner implemented and ability to assign ownership to groups since
+	// need to maintain project name, displayname and group name
+
+	// This call assumes grantee is a user in the form of a distinguished name (not flattened)
+	return models.PermissionForUser(grantee, originalPermission.AllowCreate, originalPermission.AllowRead, originalPermission.AllowUpdate, originalPermission.AllowDelete, originalPermission.AllowShare)
 }

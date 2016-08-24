@@ -1,6 +1,7 @@
 package dao_test
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -46,6 +47,10 @@ func TestDAOAddPermissionToObject(t *testing.T) {
 		permission := models.ODObjectPermission{}
 		permission.CreatedBy = usernames[1]
 		permission.Grantee = usernames[1]
+		permission.AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
+		permission.AcmGrantee.Grantee = permission.Grantee
+		permission.AcmGrantee.UserDistinguishedName.String = permission.Grantee
+		permission.AcmGrantee.UserDistinguishedName.Valid = true
 		permission.AllowCreate = true
 		permission.AllowRead = true
 		permission.AllowUpdate = true

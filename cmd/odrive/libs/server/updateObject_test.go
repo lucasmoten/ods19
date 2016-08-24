@@ -358,7 +358,6 @@ func TestUpdateObjectCallerPermissions(t *testing.T) {
 	var share protocol.ObjectShare
 	share.AllowUpdate = true
 	share.Share = makeUserShare(fakeDN0)
-	share.PropagateToChildren = false
 	jsonBody, _ := json.Marshal(share)
 	shareURI := host + cfg.NginxRootURL + "/shared/" + folder.ID
 	shareReq, _ := http.NewRequest("POST", shareURI, bytes.NewBuffer(jsonBody))

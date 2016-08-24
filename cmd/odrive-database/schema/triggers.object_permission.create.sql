@@ -18,6 +18,10 @@ BEGIN
 	IF NEW.grantee IS NULL OR NEW.grantee = '' THEN
 		SET error_msg := concat(error_msg, 'Field grantee required ');
 	END IF;
+    # ACM Share must be specified
+    IF NEW.acmShare IS NULL OR NEW.acmShare = '' THEN
+        SET error_msg := concat(error_msg, 'Field acmShare required ');
+    END IF;
 	IF error_msg <> '' THEN
 		SET error_msg := concat(error_msg, 'when inserting record into ', thisTableName);
 		signal sqlstate '45000' set message_text = error_msg;
@@ -51,6 +55,7 @@ BEGIN
 		,changeToken
 		,objectId
 		,grantee
+        ,acmShare
 		,allowCreate
 		,allowRead
 		,allowUpdate
@@ -73,6 +78,7 @@ BEGIN
 		,NEW.changeToken
 		,NEW.objectId
 		,NEW.grantee
+        ,NEW.acmShare
 		,NEW.allowCreate
 		,NEW.allowRead
 		,NEW.allowUpdate
@@ -87,6 +93,7 @@ BEGIN
 	# Specific field level changes
 	INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'objectId', newValue = hex(NEW.objectId);
 	INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'grantee', newValue = NEW.grantee;
+    INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'acmShare', newTextValue = NEW.acmShare;
 	INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'allowCreate', newValue = NEW.allowCreate;
 	INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'allowRead', newValue = NEW.allowRead;
 	INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'allowUpdate', newValue = NEW.allowUpdate;
@@ -138,6 +145,10 @@ BEGIN
 	# grantee cannot be changed
 	IF (NEW.grantee <> OLD.grantee) AND length(error_msg) < 78 THEN
 		SET error_msg := concat(error_msg, 'Unable to set grantee ');
+	END IF;
+	# acmShare cannot be changed
+	IF (NEW.acmShare <> OLD.acmShare) AND length(error_msg) < 78 THEN
+		SET error_msg := concat(error_msg, 'Unable to set acmShare ');
 	END IF;
 	# permission cannot be changed
 	IF (NEW.allowCreate <> OLD.allowCreate) AND length(error_msg) < 78 THEN
@@ -221,6 +232,7 @@ BEGIN
 		,changeToken
 		,objectId
 		,grantee
+        ,acmShare
 		,allowCreate
 		,allowRead
 		,allowUpdate
@@ -243,6 +255,7 @@ BEGIN
 		,NEW.changeToken
 		,NEW.objectId
 		,NEW.grantee
+        ,NEW.acmShare
 		,NEW.allowCreate
 		,NEW.allowRead
 		,NEW.allowUpdate
@@ -260,6 +273,9 @@ BEGIN
 	END IF;
 	IF NEW.grantee <> OLD.grantee THEN
 		INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'grantee', newValue = NEW.grantee;
+	END IF;
+	IF NEW.acmShare <> OLD.acmShare THEN
+		INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'acmShare', newTextValue = NEW.acmShare;
 	END IF;
 	IF NEW.allowCreate <> OLD.allowCreate THEN
 		INSERT field_changes SET modifiedDate = NEW.modifiedDate, modifiedBy = NEW.modifiedBy, recordId = NEW.id, tableName = thisTableName, columnName = 'allowCreate', newValue = NEW.allowCreate;
