@@ -1,8 +1,13 @@
-Change Log
-==========
+Changelog
+=========
 
-Sprint 1 Features and Changes
------------------------------
+Release vNEXT
+-------------
+
+* TODO collect here
+
+Release v0.1.0
+--------------
 
 * !192 – Refactor: Remove broken STANDALONE flag
 * !197 – FIX: Return 404 instead of 500 when retrieving an object properties and given ID is invalid.

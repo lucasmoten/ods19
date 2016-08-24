@@ -48,4 +48,23 @@ Sprints map to two-week periods of time. At the beginning of a sprint, we discus
 work we want to do and make sure all of it is documented in issues. Bugs and hot
 fixes can be added to the middle of the sprint, but not without discussion.
 
+## Releases and Tagging
+
+To create a release, do the following:
+
+1. Pick a version number for the release. Our example below is **0.1.0**
+2. Add that version number as a header in CHANGELOG.md and write a description
+   of what's changed there. MR that update to CHANGELOG.md to **develop** branch. 
+3. When the MR of changes is accepted, **one team member** does the following
+   from the command line:
+
+```
+git fetch origin
+git checkout master
+git reset --hard origin/develop
+git tag -a v0.1.0 -m 'version 0.1.0'
+git push origin --tags
+```
+
+
 
