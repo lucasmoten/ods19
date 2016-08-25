@@ -121,7 +121,7 @@ func (h *AppServer) InitRegex() {
 		Search: regexp.MustCompile(h.ServicePrefix + "/search/(?P<searchPhrase>.*)$"),
 		// - trash
 		Trash: regexp.MustCompile(h.ServicePrefix + "/trashed$"),
-		Zip:   regexp.MustCompile(h.ServicePrefix + "/documents/zip$"),
+		Zip:   regexp.MustCompile(h.ServicePrefix + "/zip$"),
 		// - not yet implemented. future
 		Favorites:              regexp.MustCompile(h.ServicePrefix + "/favorites$"),
 		FavoriteObject:         regexp.MustCompile(h.ServicePrefix + "/favorites/(?P<objectId>[0-9a-fA-F]{32})$"),
@@ -280,9 +280,6 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.Search.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Search)
 			herr = h.query(ctx, w, r)
-		// - create zip
-		case h.Routes.Zip.MatchString(uri):
-			herr = h.getZip(ctx, w, r)
 		// FUTURE API, NOT YET IMPLEMENTED
 		// - get relationships
 		case h.Routes.ObjectLinks.MatchString(uri):
@@ -348,12 +345,10 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.ObjectSubscribe.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectSubscribe)
 			herr = h.addObjectSubscription(ctx, w, r)
+		// - create zippost
+		case h.Routes.Zip.MatchString(uri):
+			herr = h.postZip(ctx, w, r)
 		// - create object type
-		case h.Routes.ObjectTypes.MatchString(uri):
-			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectTypes)
-			herr = NewAppError(404, nil, "Not implemented")
-			// TODO: h.addObjectType(ctx, w, r)
-			// - update object type
 		case h.Routes.ObjectType.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectType)
 			// TODO: h.updateObjectType(ctx, w, r)

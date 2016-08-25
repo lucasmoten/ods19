@@ -28,6 +28,7 @@ A series of microservice operations are exposed on the API gateway for use of Ob
 | List Trashed Objects | Retrieves a resultset of objects in the user's trash. |
 | Undelete Object | Restores an object from the user's trash. |
 | User Stats | Retrieve information for user's storage consumtpion. |
+| Zip Files | Get a zip of some files. |
 
 
 ##  Reference Examples
@@ -1266,3 +1267,46 @@ User Stats provides metrics information for the user's total number of objects a
 + totalObjectsSize: 249234 (number) - The total size of objects in bytes, which could be a very large number.
 + totalObjectsWithRevisionSize: 23478234 (number) - The total size of versioned objects in bytes, which may be very large.
 + objectStorageMetrics: ObjectStorageMetric (array[ObjectStorageMetric]) - An array of ObjectStorageMetrics denoting the type of object, quantity of base object and revisions, and size used by base object and revision.
+
+
+# Auxillary Operations
+
+## Create Zip of objects [/zip]
+
++ objectIds (string array, required) - An array of object identifiers of files to be zipped.  
++ fileName (string, optional) - The name to give to the zip file.  Default to "drive.zip".
++ disposition (string, optional) - Either "inline" or "attachment", which is a hint to the browser for handling the result
+
+### Create Zip of objects [POST]
+
+Create a zip of objects from a shopping cart
+The UI will accumulate a list of file ID values to include in a zip file.
+
+
++ Request (application/json)
+
+    + Body
+
+            {
+                "objectIds": [
+                        "11e65d7234b1e0668de612754e85c439",
+                        "11e65d7234b1d292349612754e85c439",
+                        "11e65d7234b1e0a28de612754e85c439",
+                        "11e65d7234b2f0668de612754e85c439",
+                        "11e65d7234b1ea9c9d9e12754e85c439",
+                ],
+                "fileName": "drive.zip",
+                "disposition": "inline"
+            }
+
++ Response 200
+
+    + Headers
+
+            Content-Type: application/zip
+            Content-Disposition: {disposition}; filename={filename}
+
++ Response 400              
+
++ Response 500
+
