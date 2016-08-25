@@ -14,9 +14,8 @@
 out
 release
 
-# ignore build directories
-out
-release
+# Ignore build artifacts
+*.rpm
 
 # Delve debugger compiled binaries
 debug.*

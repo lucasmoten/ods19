@@ -15,6 +15,7 @@ go get github.com/kardianos/govendor
 go install github.com/kardianos/govendor
 ```
 
+
 The **govendor** tool should now be in $GOPATH/bin. Make sure that is on your PATH.
 Sync the dependencies to the local **/vendor** folder like this:
 
@@ -142,3 +143,4 @@ cd $GOPATH/src/decipher.com/object-drive-server
 #make an rpm and call it build number 450.  It will be in current directory when done
 ./makerpm 450
 ```
+

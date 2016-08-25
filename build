@@ -53,25 +53,24 @@ def build_all_binaries():
     # Binaries are identified as a sub-directory of PROJECT_ROOT/cmd
     binary_dirs = os.listdir(binary_root)
     # Ignore these directories
-    bad_directories = ['.DS_Store']
-    binary_dirs = filter(lambda x: x not in bad_directories, binary_dirs)
+    bad_dirs = ['.DS_Store']
+    binary_dirs = filter(lambda x: x not in bad_dirs, binary_dirs)
     for bin in binary_dirs:
         try:
             os.chdir(os.path.join(binary_root, bin))
             subprocess.check_call(['go', 'build'])
         except subprocess.CalledProcessError as e:
             log.error('Could not build {0}. Error: {1}'.format(bin, str(e)))
-            log.error('Build failed. Exiting...   :( ')
-            sys.exit(1)
+            log.error('Build failed. Continuing...   :( ')
 
 
 def main():
     compile_docs()
-    go_get_libs()
     build_all_binaries()
 
 
 if __name__ == '__main__':
+
     try:
         log.info("Starting build.")
         main()
