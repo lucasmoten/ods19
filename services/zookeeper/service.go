@@ -3,6 +3,7 @@ package zookeeper
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -36,6 +37,8 @@ type ZKState struct {
 	Protocols string
 	// Announcements
 	AnnouncementRequests []AnnouncementRequest
+	// The original URI
+	URI string
 }
 
 // AnnounceHandler is a callback when zk data changes
@@ -98,9 +101,8 @@ func makeNewNode(conn *zk.Conn, pathType, prevPath, appendPath string, flags int
 //
 //  The member nodes should be ephemeral so that they clean out when the service dies
 //
-func RegisterApplication(zkURI, zkAddress string) (*ZKState, error) {
+func RegisterApplication(zkURIOriginal, zkAddress string) (*ZKState, error) {
 	var err error
-
 	//Get open zookeeper connection, and get a handle on closing it later
 	addrs := strings.Split(zkAddress, ",")
 	// TODO move this to AppConfiguration.go
@@ -108,7 +110,7 @@ func RegisterApplication(zkURI, zkAddress string) (*ZKState, error) {
 
 	//Because of the args to this function
 	zlogger := logger.With(
-		zap.String("uri", zkURI),
+		zap.String("uri", zkURIOriginal),
 		zap.String("address", zkAddress),
 	)
 
@@ -120,7 +122,7 @@ func RegisterApplication(zkURI, zkAddress string) (*ZKState, error) {
 	}
 
 	//Setup the environment for our version of the application
-	parts := strings.Split(zkURI, "/")
+	parts := strings.Split(zkURIOriginal, "/")
 	// defaults (aligned with the defaults for the environment variables)
 	organization := parts[1]
 	appType := "service"
@@ -136,7 +138,7 @@ func RegisterApplication(zkURI, zkAddress string) (*ZKState, error) {
 	appVersion = assignPart(appVersion, parts, 4, "version")
 
 	// Rebuild zkURI
-	zkURI = "/" + organization + "/" + appType + "/" + appName + "/" + appVersion
+	zkURI := "/" + organization + "/" + appType + "/" + appName + "/" + appVersion
 	zlogger.Info("zk full URI setting", zap.String("zkuri", zkURI))
 
 	zkState := ZKState{
@@ -144,6 +146,7 @@ func RegisterApplication(zkURI, zkAddress string) (*ZKState, error) {
 		Conn:                 conn,
 		Protocols:            zkURI,
 		AnnouncementRequests: make([]AnnouncementRequest, 0),
+		URI:                  zkURIOriginal, //We need this to re-invoke the constructor when there is a disaster in zk
 	}
 
 	//Create uncreated nodes, and log modifications we made
@@ -151,11 +154,11 @@ func RegisterApplication(zkURI, zkAddress string) (*ZKState, error) {
 	var emptyData []byte
 	var newPath string
 	newPath, err = makeNewNode(conn, "organization", newPath, organization, 0, emptyData)
-	if err == nil {
+	if isZKOk(err) {
 		newPath, err = makeNewNode(conn, "app type", newPath, appType, 0, emptyData)
-		if err == nil {
+		if isZKOk(err) {
 			newPath, err = makeNewNode(conn, "app name", newPath, appName, 0, emptyData)
-			if err == nil {
+			if isZKOk(err) {
 				newPath, err = makeNewNode(conn, "version", newPath, appVersion, 0, emptyData)
 			}
 		}
@@ -205,6 +208,8 @@ func trackMountLoop(z *ZKState, at string, handler AnnounceHandler) {
 				"zk watch exist error",
 				zap.String("err", err.Error()),
 			)
+			//recover after all errors
+			doZkRecovery(z, zlogger)
 		} else {
 			if exists {
 				trackAnnouncementsLoop(z, at, handler)
@@ -217,6 +222,8 @@ func trackMountLoop(z *ZKState, at string, handler AnnounceHandler) {
 						"zk event error",
 						zap.String("err", ev.Err.Error()),
 					)
+					//recover after all errors
+					doZkRecovery(z, zlogger)
 				}
 			}
 		}
@@ -258,65 +265,142 @@ func GetAnnouncements(z *ZKState, at string) (map[string]AnnounceData, error) {
 //could be caused by a removed zk node
 func trackAnnouncementsLoop(z *ZKState, at string, handler AnnounceHandler) {
 	zlogger := logger.With(zap.String("zk watch", at))
+	//if not ok, then we signal that we need recovery
 	ok := true
 	for {
-		zlogger.Info("zk announcement check")
-		children, _, childrenEvents, err := z.Conn.ChildrenW(at)
-		if err != nil {
-			zlogger.Error(
-				"zk watch child error",
-				zap.String("err", err.Error()),
-			)
-			ok = false
-		}
-		announcements := make(map[string]AnnounceData)
-		for _, p := range children {
-			thisChild := at + "/" + p
-			data, _, err := z.Conn.Get(thisChild)
+		if ok {
+			zlogger.Info("zk announcement check")
+			children, _, childrenEvents, err := z.Conn.ChildrenW(at)
 			if err != nil {
 				zlogger.Error(
-					"error getting data on peer",
-					zap.String("peer", p),
+					"zk watch child error",
 					zap.String("err", err.Error()),
 				)
 				ok = false
 			} else {
-				var serviceAnnouncement AnnounceData
-				json.Unmarshal(data, &serviceAnnouncement)
-				announcements[thisChild] = serviceAnnouncement
+				announcements := make(map[string]AnnounceData)
+				for _, p := range children {
+					thisChild := at + "/" + p
+					data, _, err := z.Conn.Get(thisChild)
+					if err != nil {
+						zlogger.Error(
+							"zk error getting data on peer",
+							zap.String("peer", p),
+							zap.String("err", err.Error()),
+						)
+						ok = false
+					} else {
+						var serviceAnnouncement AnnounceData
+						json.Unmarshal(data, &serviceAnnouncement)
+						announcements[thisChild] = serviceAnnouncement
+						zlogger.Info("zk receive announcement", zap.String("child", thisChild))
+					}
+				}
+				//If there are no children for odrive, then we may end up stuck in this state!
+				if len(announcements) == 0 && strings.Contains(at, "object-drive") {
+					zlogger.Info(
+						"zk object-drive announcements are empty",
+					)
+				}
+				if ok {
+					zlogger.Info("zk membership change", zap.Object("announcements", announcements))
+					if handler != nil {
+						handler(at, announcements)
+					}
+					//blocks until it changes
+					ev := <-childrenEvents
+					if ev.Err != nil {
+						zlogger.Error(
+							"zk event error",
+							zap.String("err", ev.Err.Error()),
+						)
+						ok = false
+					}
+				}
 			}
 		}
-		zlogger.Info("zk membership change", zap.Object("announcements", announcements))
-		if handler != nil {
-			handler(at, announcements)
-		}
-		//blocks until it changes
-		ev := <-childrenEvents
-		if ev.Err != nil {
-			zlogger.Error(
-				"zk event error",
-				zap.String("err", ev.Err.Error()),
-			)
-			ok = false
-		}
-		//Something is messed up.  Re-register our announcements to make things ok to try again.
+		//Something is messed up.  If this is our ephemeral node that is messed up, then we should re-register
 		if !ok {
-			doReAnnouncements(z, zlogger)
-			ok = true
+			ok = doZkRecovery(z, zlogger)
 		}
 	}
 }
 
-// try to fix it.
-func doReAnnouncements(zkState *ZKState, logger zap.Logger) {
+func doZkCleanup(oldConnection *zk.Conn) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Print("double close recover", r)
+		}
+	}()
+	oldConnection.Close()
+}
+
+func doZkRecovery(z *ZKState, zlogger zap.Logger) bool {
+	ok := false
+	// Just try to re-announce - this almost always works (pauses and restarts of zk)
+	zlogger.Error("zk recover")
+	err := doReAnnouncements(z, zlogger)
+	if err != nil {
+		zlogger.Error(
+			"zk re register error",
+			zap.String("err", err.Error()),
+		)
+		oldConnection := z.Conn
+		//Redoing zk is dire, and it will disturb aac connections in progress, but at least we will recover
+		////Possibility: change the nodeid so that we look like a new instance, like this:
+		//globalconfig.NodeID = globalconfig.RandomID()
+		zNew, err := RegisterApplication(z.URI, z.ZKAddress)
+		if err != nil {
+			zlogger.Error(
+				"zk re register error cant create connection",
+				zap.String("err", err.Error()),
+			)
+		} else {
+			//Use the new connection
+			*z = *zNew
+			//Try to re-announce again.  If this fails, we still note that we are not ok, so it can be done again later.
+			err := doReAnnouncements(z, zlogger)
+			if err != nil {
+				zlogger.Error(
+					"zk re register error after create connection",
+					zap.String("err", err.Error()),
+				)
+			}
+			//Get rid of the old connection
+			doZkCleanup(oldConnection)
+			ok = true
+		}
+	} else {
+		ok = true
+	}
+	return ok
+}
+
+//Node already exists is a sentinel value, not an error
+//(We have same issue for deleting stuff that doesn't exist, and closing things that are closed)
+func isZKOk(err error) bool {
+	if err == nil {
+		return true
+	}
+	if err.Error() == "zk: node already exists" {
+		return true
+	}
+	return false
+}
+
+// try to fix it. if anything goes wrong, we try again.
+func doReAnnouncements(zkState *ZKState, logger zap.Logger) error {
+	var returnErr error
 	for _, a := range zkState.AnnouncementRequests {
 		err := ServiceReAnnouncement(zkState, a.protocol, a.stat, a.host, a.port)
-		if err != nil {
+		if isZKOk(err) == false {
 			logger.Error(
 				"zk re announce service", zap.Object("reannouncement", a), zap.String("err", err.Error()),
 			)
+			returnErr = err
 		}
 	}
+	return returnErr
 }
 
 // ServiceAnnouncement is same as ServiceReAnnouncement with remembering for re-register later
@@ -365,9 +449,12 @@ func ServiceReAnnouncement(zkState *ZKState, protocol string, stat, host string,
 	//Ensure that a node exists for our protocol - effectively permanent
 	var emptyData []byte
 	newPath, err := makeNewNode(zkState.Conn, "protocols", zkState.Protocols, protocol, 0, emptyData)
-	if err == nil {
+	if isZKOk(err) {
 		// Register a member with our data - we must use the randomID that was assigned on startup for odrive
 		newPath, err = makeNewNode(zkState.Conn, "announcement", newPath, globalconfig.NodeID, zk.FlagEphemeral, asBytes)
+		if isZKOk(err) {
+			err = nil
+		}
 		logger.Info("zk our address", zap.String("ip", host), zap.Int("port", intPort))
 	}
 	return err
