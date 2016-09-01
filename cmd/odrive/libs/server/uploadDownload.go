@@ -146,6 +146,10 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 			}
 		} // switch
 	} //for
+	//catch the nil,nil,nil return case
+	if drainFunc == nil {
+		return nil, NewAppError(400, nil, "file must be supplied as multipart mime part"), nil
+	}
 	return drainFunc, nil, nil
 }
 
