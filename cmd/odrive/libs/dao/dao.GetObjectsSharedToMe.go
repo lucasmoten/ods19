@@ -74,7 +74,6 @@ func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
     where
         op.isdeleted = 0 
         and op.allowread = 1 
-        and op.explicitshare = 1 
         and o.isdeleted = 0 
         and o.ownedBy <> ? `
 	query += buildFilterForUserACMShare(user)

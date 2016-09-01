@@ -72,10 +72,9 @@ func getObjectsSharedToEveryoneInTransaction(tx *sqlx.Tx, user models.ODUser, pa
     where
         op.isdeleted = 0 
         and op.allowread = 1 
-        and op.explicitshare = 1 
         and o.isdeleted = 0 
         `
-	query += ` and op.grantee like '` + MySQLSafeString(models.EveryoneGroup) + `'`
+	query += ` and op.grantee like '` + MySQLSafeString(models.AACFlatten(models.EveryoneGroup)) + `'`
 	query += buildFilterForUserSnippets(user)
 	query += buildFilterSortAndLimit(pagingRequest)
 	//log.Println(query)

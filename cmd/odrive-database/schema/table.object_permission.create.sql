@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS object_permission
   ,changeToken varchar(60) null
   ,objectId binary(16) null
   ,grantee varchar(255) not null
+  ,acmShare text not null
   ,allowCreate boolean not null
   ,allowRead boolean not null
   ,allowUpdate boolean not null
@@ -48,6 +49,7 @@ CREATE TABLE IF NOT EXISTS a_object_permission
   ,changeToken varchar(60) null
   ,objectId binary(16) null
   ,grantee varchar(255) not null
+  ,acmShare text not null
   ,allowCreate boolean not null
   ,allowRead boolean not null
   ,allowUpdate boolean not null

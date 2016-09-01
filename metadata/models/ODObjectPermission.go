@@ -1,6 +1,12 @@
 package models
 
-import "decipher.com/object-drive-server/cmd/odrive/libs/utils"
+import (
+	"fmt"
+	"strings"
+
+	"decipher.com/object-drive-server/cmd/odrive/libs/config"
+	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
+)
 
 // ODObjectPermission is a nestable structure defining the attributes for
 // permissions granted on an object for users who have access to the object
@@ -10,14 +16,17 @@ type ODObjectPermission struct {
 	ODChangeTracking
 	// ObjectID identifies the object for which this permission applies.
 	ObjectID []byte `db:"objectId"`
-	// Grantee indicates the user, identified by distinguishedName from the user
-	// table for which this grant applies
+	// Grantee indicates the flattened representation of a user or group
+	// referenced by a permission
 	Grantee string `db:"grantee"`
-	// AcmShare is used for inbound processing only, not stored in the
-	// database, but acts as a placeholder for the share string that will be
-	// checked against AAC and populated into a normalized flattened value
-	// which gets referenced by the Grantee field.
-	AcmShare string
+	// AcmShare is used for inbound processing only composed of the share
+	// for this grantee as either a user distinguished name value, or as a
+	// project name, display name and group value defined in a json struct.
+	// This value is built and captured for potential usage later to
+	// reassemble a complete acm share structure composed of multiple
+	// grantees.
+	AcmShare   string `db:"acmShare"`
+	AcmGrantee ODAcmGrantee
 	ODCommonPermission
 	// ExplicitShare indicates whether this permission was created explicitly
 	// by a user to a grantee, or if it was implicitly created through the
@@ -96,4 +105,66 @@ func (permission *ODObjectPermission) IsReadOnly() bool {
 	d := permission.AllowDelete
 	s := permission.AllowShare
 	return !c && r && !u && !d && !s
+}
+
+// PermissionForUser is a helper function to create a new internal object permission object with a user distinguished name as the grantee
+func PermissionForUser(user string, allowCreate bool, allowRead bool, allowUpdate bool, allowDelete bool, allowShare bool) ODObjectPermission {
+	newPermission := ODObjectPermission{}
+	newPermission.Grantee = AACFlatten(user)
+	newPermission.AcmShare = fmt.Sprintf(`{"users":["%s"]}`, user)
+	newPermission.AcmGrantee.Grantee = newPermission.Grantee
+	newPermission.AcmGrantee.UserDistinguishedName = ToNullString(user)
+	newPermission.AcmGrantee.DisplayName = ToNullString(config.GetCommonName(user))
+	newPermission.AllowCreate = allowCreate
+	newPermission.AllowRead = allowRead
+	newPermission.AllowUpdate = allowUpdate
+	newPermission.AllowDelete = allowDelete
+	newPermission.AllowShare = allowShare
+	return newPermission
+}
+
+// PermissionForGroup is a helper function to create a new internal object permission object with a project name, display name and group name as the grantee
+func PermissionForGroup(projectName string, projectDisplayName string, groupName string, allowCreate bool, allowRead bool, allowUpdate bool, allowDelete bool, allowShare bool) ODObjectPermission {
+	newPermission := ODObjectPermission{}
+	if len(strings.TrimSpace(projectDisplayName)) > 0 {
+		newPermission.Grantee = AACFlatten(strings.TrimSpace(projectDisplayName + "_" + groupName))
+	} else {
+		newPermission.Grantee = AACFlatten(strings.TrimSpace(groupName))
+	}
+	// AAC seems to expect only one instance of case-insensitive key that projectName represents
+	newPermission.AcmShare = fmt.Sprintf(`{"projects":{"%s":{"disp_nm":"%s","groups":["%s"]}}}`, strings.ToLower(projectName), projectDisplayName, groupName)
+	newPermission.AcmGrantee.Grantee = newPermission.Grantee
+	newPermission.AcmGrantee.ProjectName = ToNullString(strings.ToLower(projectName))
+	newPermission.AcmGrantee.ProjectDisplayName = ToNullString(projectDisplayName)
+	newPermission.AcmGrantee.GroupName = ToNullString(groupName)
+	newPermission.AcmGrantee.DisplayName = ToNullString(strings.TrimSpace(projectDisplayName + " " + groupName))
+	newPermission.AllowCreate = allowCreate
+	newPermission.AllowRead = allowRead
+	newPermission.AllowUpdate = allowUpdate
+	newPermission.AllowDelete = allowDelete
+	newPermission.AllowShare = allowShare
+	return newPermission
+}
+
+// PermissionWithoutRead is a helper function that creates a new permission with the same settings as the permission passed in, without allowRead set.
+func PermissionWithoutRead(i ODObjectPermission) ODObjectPermission {
+	g := i.AcmGrantee
+	if g.UserDistinguishedName.Valid {
+		return PermissionForUser(g.UserDistinguishedName.String, i.AllowCreate, false, i.AllowUpdate, i.AllowDelete, i.AllowShare)
+	}
+	return PermissionForGroup(g.ProjectName.String, g.ProjectDisplayName.String, g.GroupName.String, i.AllowCreate, false, i.AllowUpdate, i.AllowDelete, i.AllowShare)
+}
+
+// copypasta from protocol
+func AACFlatten(inVal string) string {
+	emptyList := []string{" ", ",", "=", "'", ":", "(", ")", "$", "[", "]", "{", "}", "|", "\\"}
+	underscoreList := []string{".", "-"}
+	outVal := strings.ToLower(inVal)
+	for _, s := range emptyList {
+		outVal = strings.Replace(outVal, s, "", -1)
+	}
+	for _, s := range underscoreList {
+		outVal = strings.Replace(outVal, s, "_", -1)
+	}
+	return outVal
 }

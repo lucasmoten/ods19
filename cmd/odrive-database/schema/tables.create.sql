@@ -1,4 +1,5 @@
 source table.acm.create.sql
+source table.acmgrantee.create.sql
 source table.acmkey.create.sql
 source table.acmpart.create.sql
 source table.acmvalue.create.sql

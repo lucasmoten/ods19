@@ -36,6 +36,7 @@ DROP TABLE IF EXISTS acm_project;
 DROP TABLE IF EXISTS acm_project_group;
 DROP TABLE IF EXISTS acm_share;
 DROP TABLE IF EXISTS acm_share_user;
+DROP TABLE IF EXISTS acmgrantee;
 DROP TABLE IF EXISTS acmkey;
 DROP TABLE IF EXISTS acmpart;
 DROP TABLE IF EXISTS acmvalue;

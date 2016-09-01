@@ -1,6 +1,7 @@
 package dao_test
 
 import (
+	"fmt"
 	"testing"
 
 	"decipher.com/object-drive-server/metadata/models"
@@ -164,6 +165,10 @@ func createTestObjectAllPermissions(username string) models.ODObject {
 	var perms models.ODObjectPermission
 	perms.CreatedBy = username
 	perms.Grantee = username
+	perms.AcmShare = fmt.Sprintf(`{"users":[%s]}`, perms.Grantee)
+	perms.AcmGrantee.Grantee = perms.Grantee
+	perms.AcmGrantee.UserDistinguishedName.String = perms.Grantee
+	perms.AcmGrantee.UserDistinguishedName.Valid = true
 	perms.AllowCreate, perms.AllowDelete, perms.AllowRead, perms.AllowUpdate = true, true, true, true
 
 	obj.Permissions = append(obj.Permissions, perms)

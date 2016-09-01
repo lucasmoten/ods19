@@ -1,6 +1,7 @@
 package dao_test
 
 import (
+	"fmt"
 	"testing"
 
 	"decipher.com/object-drive-server/metadata/models"
@@ -19,6 +20,10 @@ func TestDAOGetObject(t *testing.T) {
 	obj.TypeName.Valid = true
 	permissions := make([]models.ODObjectPermission, 1)
 	permissions[0].Grantee = obj.CreatedBy
+	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, permissions[0].Grantee)
+	permissions[0].AcmGrantee.Grantee = permissions[0].Grantee
+	permissions[0].AcmGrantee.UserDistinguishedName.String = permissions[0].Grantee
+	permissions[0].AcmGrantee.UserDistinguishedName.Valid = true
 	permissions[0].AllowCreate = true
 	permissions[0].AllowRead = true
 	permissions[0].AllowUpdate = true

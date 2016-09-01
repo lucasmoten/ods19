@@ -144,7 +144,7 @@ An ACM follows guidance given here: <a href="https://confluence.363-283.io/pages
 <p>properties (properties array, optional) - Array of custom properties to be associated with the newly created object.</p>
 </li>
 <li>
-<p>permission (permission array, optional) - Array of additional permissions to be associated with this object when created. By default, the owner is granted full access and objects will inherit the permissions assigned to the parent object.</p>
+<p>permission (ObjectShare array, optional) - Array of additional permissions to be associated with this object when created. By default, the owner is granted full access. This structure is used when permissions need to be granted beyond read access, since read access is most easily conveyed in the ACM share itself.  For convenience, the structure of the share within a permission is the same as that used for ACMs.  The sample below would grant the creator (as owner) full CRUDS, everyone would get read, and then the user <code>cn=user,ou=org,c=us</code> would get full CRUDS, while members of the groups ODrive_G1 and ODrive_G2 would get create, read and update.</p>
 </li>
 <li>
 <p>containsUSPersonsData (string, optional) - Indicates if this object contains US Persons data.  Allowed values are <code>Yes</code>, <code>No</code>, and <code>Unknown</code>.</p>
@@ -168,7 +168,38 @@ Content-Type: application/json
     <span class="hljs-string">"contentType"</span>: <span class="hljs-string">"text/plain"</span>,
     <span class="hljs-string">"contentSize"</span>: <span class="hljs-number">31</span>,
     <span class="hljs-string">"properties"</span>: [],
-    <span class="hljs-string">"permissions"</span>: [],
+    <span class="hljs-string">"permissions"</span>: [
+        {
+            <span class="hljs-string">"share"</span>: {
+                <span class="hljs-string">"users"</span>: [
+                    <span class="hljs-string">"cn=user,ou=org,c=us"</span>
+                ]
+            },
+            <span class="hljs-string">"allowCreate"</span>: <span class="hljs-literal">true</span>,
+            <span class="hljs-string">"allowRead"</span>: <span class="hljs-literal">true</span>,
+            <span class="hljs-string">"allowUpdate"</span>: <span class="hljs-literal">true</span>,
+            <span class="hljs-string">"allowDelete"</span>: <span class="hljs-literal">true</span>,
+            <span class="hljs-string">"allowShare"</span>: <span class="hljs-literal">true</span>
+        },
+        {
+            <span class="hljs-string">"share"</span>: {
+                <span class="hljs-string">"projects"</span>: {
+                    <span class="hljs-string">"dctc"</span> : {
+                        <span class="hljs-string">"disp_nm"</span>: <span class="hljs-string">"DCTC"</span>,
+                        <span class="hljs-string">"groups"</span>: [
+                            <span class="hljs-string">"ODrive_G1"</span>,
+                            <span class="hljs-string">"ODrive_G2"</span>
+                        ]
+                   }
+                }
+            },
+            <span class="hljs-string">"allowCreate"</span>: <span class="hljs-literal">true</span>,
+            <span class="hljs-string">"allowRead"</span>: <span class="hljs-literal">true</span>,
+            <span class="hljs-string">"allowUpdate"</span>: <span class="hljs-literal">true</span>,
+            <span class="hljs-string">"allowDelete"</span>: <span class="hljs-literal">false</span>,
+            <span class="hljs-string">"allowShare"</span>: <span class="hljs-literal">false</span>
+        }
+    ],
     <span class="hljs-string">"containsUSPersonsData"</span>: <span class="hljs-string">"No"</span>,
     <span class="hljs-string">"exemptFromFOIA"</span>: <span class="hljs-string">"No"</span>
 }
@@ -205,7 +236,7 @@ This is the content <span class="hljs-keyword">of</span> the file
 <p>properties (properties array, optional) - Array of custom properties to be associated with the newly created object.</p>
 </li>
 <li>
-<p>permission (permission array, optional) - Array of additional permissions to be associated with this object when created. By default, the owner is granted full access and objects will inherit the permissions assigned to the parent object.</p>
+<p>permission (ObjectShare array, optional) - Array of additional permissions to be associated with this object when created. By default, the owner is granted full access. This structure is used when permissions need to be granted beyond read access, since read access is most easily conveyed in the ACM share itself.  For convenience, the structure of the share within a permission is the same as that used for ACMs.</p>
 </li>
 <li>
 <p>containsUSPersonsData (string, optional) - Indicates if this object contains US Persons data.  Allowed values are <code>Yes</code>, <code>No</code>, and <code>Unknown</code>.</p>
@@ -265,10 +296,24 @@ This is the content <span class="hljs-keyword">of</span> the file
   ]</span>,
   "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
     {
-      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+      "<span class="hljs-attribute">share</span>": <span class="hljs-value">{
+        "<span class="hljs-attribute">users</span>": <span class="hljs-value">[
+          <span class="hljs-string">"CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span>
+        ]</span>,
+        "<span class="hljs-attribute">projects</span>": <span class="hljs-value">[
+          {
+            "<span class="hljs-attribute">dctc</span>": <span class="hljs-value">{
+              "<span class="hljs-attribute">disp_nm</span>": <span class="hljs-value"><span class="hljs-string">"DCTC"</span></span>,
+              "<span class="hljs-attribute">groups</span>": <span class="hljs-value">[
+                <span class="hljs-string">"ODrive_G1"</span>
+              ]
+            </span>}
+          </span>}
+        ]
+      </span>}</span>,
       "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
       "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
-      "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
+      "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
       "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">false</span></span>,
       "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">false</span>
     </span>}
@@ -449,7 +494,21 @@ This is the content <span class="hljs-keyword">of</span> the file
   </span>}</span>,
   "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
     {
-      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"</span></span>,
+      "<span class="hljs-attribute">userDistinguishedName</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+      "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"test tester10"</span></span>,
+      "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">true</span>
+    </span>},
+    {
+      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"dctc_odrive_g1"</span></span>,
+      "<span class="hljs-attribute">projectName</span>": <span class="hljs-value"><span class="hljs-string">"dctc"</span></span>,
+      "<span class="hljs-attribute">projectDisplayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC"</span></span>,
+      "<span class="hljs-attribute">groupName</span>": <span class="hljs-value"><span class="hljs-string">"ODrive_G1"</span></span>,
+      "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC ODrive_G1"</span></span>,
       "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
       "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
       "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
@@ -741,7 +800,21 @@ It may be called on objects int the trash which also expose additional fields in
   ]</span>,
   "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
     {
-      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"</span></span>,
+      "<span class="hljs-attribute">userDistinguishedName</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+      "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"test tester10"</span></span>,
+      "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">true</span>
+    </span>},
+    {
+      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"dctc_odrive_g1"</span></span>,
+      "<span class="hljs-attribute">projectName</span>": <span class="hljs-value"><span class="hljs-string">"dctc"</span></span>,
+      "<span class="hljs-attribute">projectDisplayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC"</span></span>,
+      "<span class="hljs-attribute">groupName</span>": <span class="hljs-value"><span class="hljs-string">"ODrive_G1"</span></span>,
+      "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC ODrive_G1"</span></span>,
       "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
       "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
       "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
@@ -1179,7 +1252,21 @@ This creates a new revision of the object.</p>
   </span>}</span>,
   "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
     {
-      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"</span></span>,
+      "<span class="hljs-attribute">userDistinguishedName</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+      "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"test tester10"</span></span>,
+      "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">true</span>
+    </span>},
+    {
+      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"dctc_odrive_g1"</span></span>,
+      "<span class="hljs-attribute">projectName</span>": <span class="hljs-value"><span class="hljs-string">"dctc"</span></span>,
+      "<span class="hljs-attribute">projectDisplayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC"</span></span>,
+      "<span class="hljs-attribute">groupName</span>": <span class="hljs-value"><span class="hljs-string">"ODrive_G1"</span></span>,
+      "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC ODrive_G1"</span></span>,
       "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
       "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
       "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
@@ -1541,7 +1628,21 @@ This is the <span class="hljs-keyword">new</span> contents <span class="hljs-key
   </span>}</span>,
   "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
     {
-      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"</span></span>,
+      "<span class="hljs-attribute">userDistinguishedName</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+      "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"test tester10"</span></span>,
+      "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">true</span>
+    </span>},
+    {
+      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"dctc_odrive_g1"</span></span>,
+      "<span class="hljs-attribute">projectName</span>": <span class="hljs-value"><span class="hljs-string">"dctc"</span></span>,
+      "<span class="hljs-attribute">projectDisplayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC"</span></span>,
+      "<span class="hljs-attribute">groupName</span>": <span class="hljs-value"><span class="hljs-string">"ODrive_G1"</span></span>,
+      "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC ODrive_G1"</span></span>,
       "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
       "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
       "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
@@ -1849,7 +1950,21 @@ If filterField is set, condition and expression must also be set to complete the
       </span>}</span>,
       "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
         {
-          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"</span></span>,
+          "<span class="hljs-attribute">userDistinguishedName</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+          "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"test tester10"</span></span>,
+          "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">true</span>
+        </span>},
+        {
+          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"dctc_odrive_g1"</span></span>,
+          "<span class="hljs-attribute">projectName</span>": <span class="hljs-value"><span class="hljs-string">"dctc"</span></span>,
+          "<span class="hljs-attribute">projectDisplayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC"</span></span>,
+          "<span class="hljs-attribute">groupName</span>": <span class="hljs-value"><span class="hljs-string">"ODrive_G1"</span></span>,
+          "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC ODrive_G1"</span></span>,
           "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
           "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
           "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
@@ -1997,7 +2112,21 @@ If filterField is set, condition and expression must also be set to complete the
       </span>}</span>,
       "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
         {
-          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"</span></span>,
+          "<span class="hljs-attribute">userDistinguishedName</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+          "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"test tester10"</span></span>,
+          "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">true</span>
+        </span>},
+        {
+          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"dctc_odrive_g1"</span></span>,
+          "<span class="hljs-attribute">projectName</span>": <span class="hljs-value"><span class="hljs-string">"dctc"</span></span>,
+          "<span class="hljs-attribute">projectDisplayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC"</span></span>,
+          "<span class="hljs-attribute">groupName</span>": <span class="hljs-value"><span class="hljs-string">"ODrive_G1"</span></span>,
+          "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC ODrive_G1"</span></span>,
           "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
           "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
           "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
@@ -2273,7 +2402,21 @@ If filterField is set, condition and expression must also be set to complete the
   </span>}</span>,
   "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
     {
-      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"</span></span>,
+      "<span class="hljs-attribute">userDistinguishedName</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+      "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"test tester10"</span></span>,
+      "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">true</span>
+    </span>},
+    {
+      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"dctc_odrive_g1"</span></span>,
+      "<span class="hljs-attribute">projectName</span>": <span class="hljs-value"><span class="hljs-string">"dctc"</span></span>,
+      "<span class="hljs-attribute">projectDisplayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC"</span></span>,
+      "<span class="hljs-attribute">groupName</span>": <span class="hljs-value"><span class="hljs-string">"ODrive_G1"</span></span>,
+      "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC ODrive_G1"</span></span>,
       "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
       "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
       "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
@@ -2607,7 +2750,21 @@ If filterField is set, condition and expression must also be set to complete the
   </span>}</span>,
   "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
     {
-      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"</span></span>,
+      "<span class="hljs-attribute">userDistinguishedName</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+      "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"test tester10"</span></span>,
+      "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">true</span>
+    </span>},
+    {
+      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"dctc_odrive_g1"</span></span>,
+      "<span class="hljs-attribute">projectName</span>": <span class="hljs-value"><span class="hljs-string">"dctc"</span></span>,
+      "<span class="hljs-attribute">projectDisplayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC"</span></span>,
+      "<span class="hljs-attribute">groupName</span>": <span class="hljs-value"><span class="hljs-string">"ODrive_G1"</span></span>,
+      "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC ODrive_G1"</span></span>,
       "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
       "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
       "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
@@ -2915,7 +3072,21 @@ If filterField is set, condition and expression must also be set to complete the
       </span>}</span>,
       "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
         {
-          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"</span></span>,
+          "<span class="hljs-attribute">userDistinguishedName</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+          "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"test tester10"</span></span>,
+          "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">true</span>
+        </span>},
+        {
+          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"dctc_odrive_g1"</span></span>,
+          "<span class="hljs-attribute">projectName</span>": <span class="hljs-value"><span class="hljs-string">"dctc"</span></span>,
+          "<span class="hljs-attribute">projectDisplayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC"</span></span>,
+          "<span class="hljs-attribute">groupName</span>": <span class="hljs-value"><span class="hljs-string">"ODrive_G1"</span></span>,
+          "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC ODrive_G1"</span></span>,
           "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
           "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
           "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
@@ -3059,7 +3230,21 @@ If filterField is set, condition and expression must also be set to complete the
       </span>}</span>,
       "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
         {
-          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"</span></span>,
+          "<span class="hljs-attribute">userDistinguishedName</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+          "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"test tester10"</span></span>,
+          "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">true</span>
+        </span>},
+        {
+          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"dctc_odrive_g1"</span></span>,
+          "<span class="hljs-attribute">projectName</span>": <span class="hljs-value"><span class="hljs-string">"dctc"</span></span>,
+          "<span class="hljs-attribute">projectDisplayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC"</span></span>,
+          "<span class="hljs-attribute">groupName</span>": <span class="hljs-value"><span class="hljs-string">"ODrive_G1"</span></span>,
+          "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC ODrive_G1"</span></span>,
           "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
           "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
           "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
@@ -3214,7 +3399,21 @@ If filterField is set, condition and expression must also be set to complete the
       </span>}</span>,
       "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
         {
-          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"</span></span>,
+          "<span class="hljs-attribute">userDistinguishedName</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+          "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"test tester10"</span></span>,
+          "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">true</span>
+        </span>},
+        {
+          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"dctc_odrive_g1"</span></span>,
+          "<span class="hljs-attribute">projectName</span>": <span class="hljs-value"><span class="hljs-string">"dctc"</span></span>,
+          "<span class="hljs-attribute">projectDisplayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC"</span></span>,
+          "<span class="hljs-attribute">groupName</span>": <span class="hljs-value"><span class="hljs-string">"ODrive_G1"</span></span>,
+          "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC ODrive_G1"</span></span>,
           "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
           "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
           "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
@@ -3363,7 +3562,21 @@ If filterField is set, condition and expression must also be set to complete the
   </span>}</span>,
   "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
     {
-      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"</span></span>,
+      "<span class="hljs-attribute">userDistinguishedName</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+      "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"test tester10"</span></span>,
+      "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">true</span>
+    </span>},
+    {
+      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"dctc_odrive_g1"</span></span>,
+      "<span class="hljs-attribute">projectName</span>": <span class="hljs-value"><span class="hljs-string">"dctc"</span></span>,
+      "<span class="hljs-attribute">projectDisplayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC"</span></span>,
+      "<span class="hljs-attribute">groupName</span>": <span class="hljs-value"><span class="hljs-string">"ODrive_G1"</span></span>,
+      "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC ODrive_G1"</span></span>,
       "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
       "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
       "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
@@ -3672,7 +3885,21 @@ If filterField is set, condition and expression must also be set to complete the
       </span>}</span>,
       "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
         {
-          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"</span></span>,
+          "<span class="hljs-attribute">userDistinguishedName</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+          "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"test tester10"</span></span>,
+          "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">true</span>
+        </span>},
+        {
+          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"dctc_odrive_g1"</span></span>,
+          "<span class="hljs-attribute">projectName</span>": <span class="hljs-value"><span class="hljs-string">"dctc"</span></span>,
+          "<span class="hljs-attribute">projectDisplayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC"</span></span>,
+          "<span class="hljs-attribute">groupName</span>": <span class="hljs-value"><span class="hljs-string">"ODrive_G1"</span></span>,
+          "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC ODrive_G1"</span></span>,
           "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
           "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
           "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
@@ -3819,7 +4046,21 @@ If filterField is set, condition and expression must also be set to complete the
       </span>}</span>,
       "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
         {
-          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"</span></span>,
+          "<span class="hljs-attribute">userDistinguishedName</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+          "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"test tester10"</span></span>,
+          "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">true</span>
+        </span>},
+        {
+          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"dctc_odrive_g1"</span></span>,
+          "<span class="hljs-attribute">projectName</span>": <span class="hljs-value"><span class="hljs-string">"dctc"</span></span>,
+          "<span class="hljs-attribute">projectDisplayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC"</span></span>,
+          "<span class="hljs-attribute">groupName</span>": <span class="hljs-value"><span class="hljs-string">"ODrive_G1"</span></span>,
+          "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC ODrive_G1"</span></span>,
           "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
           "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
           "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
@@ -3965,7 +4206,21 @@ If filterField is set, condition and expression must also be set to complete the
       </span>}</span>,
       "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
         {
-          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"</span></span>,
+          "<span class="hljs-attribute">userDistinguishedName</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+          "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"test tester10"</span></span>,
+          "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+          "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">true</span>
+        </span>},
+        {
+          "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"dctc_odrive_g1"</span></span>,
+          "<span class="hljs-attribute">projectName</span>": <span class="hljs-value"><span class="hljs-string">"dctc"</span></span>,
+          "<span class="hljs-attribute">projectDisplayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC"</span></span>,
+          "<span class="hljs-attribute">groupName</span>": <span class="hljs-value"><span class="hljs-string">"ODrive_G1"</span></span>,
+          "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC ODrive_G1"</span></span>,
           "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
           "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
           "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
@@ -4111,7 +4366,21 @@ If filterField is set, condition and expression must also be set to complete the
   </span>}</span>,
   "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">[
     {
-      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"</span></span>,
+      "<span class="hljs-attribute">userDistinguishedName</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+      "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"test tester10"</span></span>,
+      "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
+      "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">true</span>
+    </span>},
+    {
+      "<span class="hljs-attribute">grantee</span>": <span class="hljs-value"><span class="hljs-string">"dctc_odrive_g1"</span></span>,
+      "<span class="hljs-attribute">projectName</span>": <span class="hljs-value"><span class="hljs-string">"dctc"</span></span>,
+      "<span class="hljs-attribute">projectDisplayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC"</span></span>,
+      "<span class="hljs-attribute">groupName</span>": <span class="hljs-value"><span class="hljs-string">"ODrive_G1"</span></span>,
+      "<span class="hljs-attribute">displayName</span>": <span class="hljs-value"><span class="hljs-string">"DCTC ODrive_G1"</span></span>,
       "<span class="hljs-attribute">allowCreate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
       "<span class="hljs-attribute">allowRead</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
       "<span class="hljs-attribute">allowUpdate</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
@@ -4377,7 +4646,7 @@ The UI will accumulate a list of file ID values to include in a zip file.</p>
     ]</span>,
     "<span class="hljs-attribute">fileName</span>": <span class="hljs-value"><span class="hljs-string">"drive.zip"</span></span>,
     "<span class="hljs-attribute">disposition</span>": <span class="hljs-value"><span class="hljs-string">"inline"</span>
-</span>}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/zip</span><br><span class="hljs-attribute">Content-Disposition</span>: <span class="hljs-string">{disposition}; filename={filename}</span></code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>400</code></strong></div><div class="title"><strong>Response&nbsp;&nbsp;<code>500</code></strong></div></div></div></section></div></div></div><p style="text-align: center;" class="text-muted">Generated by&nbsp;<a href="https://github.com/danielgtaylor/aglio" class="aglio">aglio</a>&nbsp;on 23 Aug 2016</p><script>/* eslint-env browser */
+</span>}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/zip</span><br><span class="hljs-attribute">Content-Disposition</span>: <span class="hljs-string">{disposition}; filename={filename}</span></code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>400</code></strong></div><div class="title"><strong>Response&nbsp;&nbsp;<code>500</code></strong></div></div></div></section></div></div></div><p style="text-align: center;" class="text-muted">Generated by&nbsp;<a href="https://github.com/danielgtaylor/aglio" class="aglio">aglio</a>&nbsp;on 26 Aug 2016</p><script>/* eslint-env browser */
 /* eslint quotes: [2, "single"] */
 'use strict';
 

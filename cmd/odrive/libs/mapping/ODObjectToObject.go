@@ -230,11 +230,9 @@ func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) (models.O
 
 	var err error
 	o := models.ODObject{}
-	o.TypeName.Valid = true
-	o.TypeName.String = i.TypeName
+	o.TypeName = models.ToNullString(i.TypeName)
 	o.Name = i.Name
-	o.Description.Valid = true
-	o.Description.String = i.Description
+	o.Description = models.ToNullString(i.Description)
 	o.ParentID, err = hex.DecodeString(i.ParentID)
 	if err != nil {
 		return o, fmt.Errorf("Unable to decode parent id from %s", i.ParentID)
@@ -247,15 +245,14 @@ func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) (models.O
 	if err != nil {
 		return o, fmt.Errorf("Unable to convert ACM to string %v", err)
 	}
-	o.ContentType.Valid = true
-	o.ContentType.String = i.ContentType
+	o.ContentType = models.ToNullString(i.ContentType)
 	o.ContentSize.Valid = true
 	o.ContentSize.Int64 = i.ContentSize
 	o.Properties, err = MapPropertiesToODProperties(&i.Properties)
 	if err != nil {
 		return o, err
 	}
-	o.Permissions, err = MapPermissionsToODPermissions(&i.Permissions)
+	o.Permissions, err = MapObjectSharesToODPermissions(&i.Permissions)
 	if err != nil {
 		return o, err
 	}
@@ -279,10 +276,58 @@ func MapObjectsToODObjects(i *[]protocol.Object) ([]models.ODObject, error) {
 	return o, nil
 }
 
-// OverwriteODObjectWithProtocolObject ...
-// When we get a decoded json object, for uploads, we have specific items that
-// we should extract and write over the object that we have
-func OverwriteODObjectWithProtocolObject(o *models.ODObject, i *protocol.Object) error {
+// OverwriteODObjectWithCreateObjectRequest takes a CreateObjectRequest as input
+// and maps its fields values over an existing ODObject. Only fields defined in
+// the CreateObjectRequest are valid for mapping during creating objects
+func OverwriteODObjectWithCreateObjectRequest(o *models.ODObject, i *protocol.CreateObjectRequest) error {
+	o.TypeName = models.ToNullString(i.TypeName)
+	o.Name = i.Name
+	o.Description = models.ToNullString(i.Description)
+
+	// Parent ID convert string to byte, reassign to nil if empty
+	parentID, err := hex.DecodeString(i.ParentID)
+	switch {
+	case err != nil:
+		if len(i.ParentID) > 0 {
+			log.Printf("Unable to decode parent id")
+			return err
+		}
+	case len(parentID) == 0:
+		////If the i.id being sent in is blank, that's a signal to NOT use it
+	default:
+		o.ParentID = parentID
+	}
+
+	parsedACM, err := utils.MarshalInterfaceToString(i.RawAcm)
+	if err != nil {
+		return fmt.Errorf("Unable to convert ACM: %v", err)
+	}
+	o.RawAcm = models.ToNullString(parsedACM)
+
+	o.ContentType = models.ToNullString(i.ContentType)
+	o.ContentSize.Int64 = i.ContentSize
+
+	o.Properties, err = MapPropertiesToODProperties(&i.Properties)
+	if err != nil {
+		return err
+	}
+
+	o.Permissions, err = MapObjectSharesToODPermissions(&i.Permissions)
+	if err != nil {
+		return err
+	}
+
+	o.ContainsUSPersonsData = i.ContainsUSPersonsData
+	o.ExemptFromFOIA = i.ExemptFromFOIA
+	return nil
+}
+
+// OverwriteODObjectWithUpdateObjectAndStreamRequest takes a
+// UpdateObjectAndStreamRequest as input and maps its fields values over an
+// existing ODObject. Only fields defined in the UpdateObjectAndStreamRequest
+// are valid for mapping during updating objects
+func OverwriteODObjectWithUpdateObjectAndStreamRequest(o *models.ODObject, i *protocol.UpdateObjectAndStreamRequest) error {
+
 	// ID convert string to byte, reassign to nil if empty
 	id, err := hex.DecodeString(i.ID)
 	switch {
@@ -309,57 +354,37 @@ func OverwriteODObjectWithProtocolObject(o *models.ODObject, i *protocol.Object)
 		o.TypeID = typeID
 	}
 
-	// Parent ID convert string to byte, reassign to nil if empty
-	parentID, err := hex.DecodeString(i.ParentID)
-	switch {
-	case err != nil:
-		if len(i.ParentID) > 0 {
-			log.Printf("Unable to decode parent id")
-			return err
-		}
-	case len(parentID) == 0:
-		////If the i.id being sent in is blank, that's a signal to NOT use it
-	default:
-		o.ParentID = parentID
-	}
-
-	o.ContentSize.Int64 = i.ContentSize
-	if i.Name != "" {
-		o.Name = i.Name
+	if len(i.TypeName) > 0 {
+		o.TypeName = models.ToNullString(i.TypeName)
 	}
 
 	if len(i.Name) > 0 {
 		o.Name = i.Name
 	}
 
-	// Accept ACM if provided. If it's mandatory, then check that it was set on o when this function completes.
+	if len(i.Description) > 0 {
+		o.Description = models.ToNullString(i.Description)
+	}
+
 	parsedACM, err := utils.MarshalInterfaceToString(i.RawAcm)
 	if err != nil {
 		return fmt.Errorf("Unable to convert ACM: %v", err)
 	}
 	if len(parsedACM) > 0 {
-		o.RawAcm.String = parsedACM
-		o.RawAcm.Valid = true
+		o.RawAcm = models.ToNullString(parsedACM)
 	}
 
-	if len(i.TypeName) > 0 {
-		o.TypeName.String = i.TypeName
-		o.TypeName.Valid = true
-	}
-
-	if len(i.Description) > 0 {
-		o.Description.String = i.Description
-		o.Description.Valid = true
-	}
 	if len(i.ContentType) > 0 {
-		o.ContentType.String = i.ContentType
-		o.ContentType.Valid = true
+		o.ContentType = models.ToNullString(i.ContentType)
 	}
+
+	o.ContentSize.Int64 = i.ContentSize
 
 	o.Properties, err = MapPropertiesToODProperties(&i.Properties)
 	if err != nil {
 		return err
 	}
+
 	o.ContainsUSPersonsData = i.ContainsUSPersonsData
 	o.ExemptFromFOIA = i.ExemptFromFOIA
 

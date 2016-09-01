@@ -27,6 +27,10 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	permissions := make([]models.ODObjectPermission, 2)
 	permissions[0].CreatedBy = object.CreatedBy
 	permissions[0].Grantee = usernames[1]
+	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
+	permissions[0].AcmGrantee.Grantee = permissions[0].Grantee
+	permissions[0].AcmGrantee.UserDistinguishedName.String = permissions[0].Grantee
+	permissions[0].AcmGrantee.UserDistinguishedName.Valid = true
 	permissions[0].AllowCreate = true
 	permissions[0].AllowRead = true
 	permissions[0].AllowUpdate = true
@@ -34,6 +38,10 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	permissions[0].AllowShare = true
 	permissions[1].CreatedBy = object.CreatedBy
 	permissions[1].Grantee = usernames[2]
+	permissions[1].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[2])
+	permissions[1].AcmGrantee.Grantee = permissions[1].Grantee
+	permissions[1].AcmGrantee.UserDistinguishedName.String = permissions[1].Grantee
+	permissions[1].AcmGrantee.UserDistinguishedName.Valid = true
 	permissions[1].AllowCreate = true
 	permissions[1].AllowRead = true
 	permissions[1].AllowUpdate = true

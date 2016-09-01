@@ -78,7 +78,7 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
     + contentType (string, optional) - The suggested mime type for the content stream if given for this object.
     + contentSize (int, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.
     + properties (properties array, optional) - Array of custom properties to be associated with the newly created object.
-    + permission (permission array, optional) - Array of additional permissions to be associated with this object when created. By default, the owner is granted full access and objects will inherit the permissions assigned to the parent object.
+    + permission (ObjectShare array, optional) - Array of additional permissions to be associated with this object when created. By default, the owner is granted full access. This structure is used when permissions need to be granted beyond read access, since read access is most easily conveyed in the ACM share itself.  For convenience, the structure of the share within a permission is the same as that used for ACMs.  The sample below would grant the creator (as owner) full CRUDS, everyone would get read, and then the user `cn=user,ou=org,c=us` would get full CRUDS, while members of the groups ODrive_G1 and ODrive_G2 would get create, read and update. 
     + containsUSPersonsData (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
     + exemptFromFOIA (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 
@@ -99,7 +99,38 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
                 "contentType": "text/plain",
                 "contentSize": 31,
                 "properties": [],
-                "permissions": [],
+                "permissions": [
+                    {
+                        "share": {
+                            "users": [
+                                "cn=user,ou=org,c=us"
+                            ]
+                        },
+                        "allowCreate": true,
+                        "allowRead": true,
+                        "allowUpdate": true,
+                        "allowDelete": true,
+                        "allowShare": true
+                    },
+                    {
+                        "share": {
+                            "projects": {
+                                "dctc" : {
+                                    "disp_nm": "DCTC",
+                                    "groups": [
+                                        "ODrive_G1",
+                                        "ODrive_G2"
+                                    ]
+                               }
+                            }
+                        },
+                        "allowCreate": true,
+                        "allowRead": true,
+                        "allowUpdate": true,
+                        "allowDelete": false,
+                        "allowShare": false
+                    }
+                ],
                 "containsUSPersonsData": "No",
                 "exemptFromFOIA": "No"
             }
@@ -122,7 +153,7 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
     + contentType (string, optional) - The suggested mime type for the content stream if given for this object.
     + contentSize (int, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.
     + properties (properties array, optional) - Array of custom properties to be associated with the newly created object.
-    + permission (permission array, optional) - Array of additional permissions to be associated with this object when created. By default, the owner is granted full access and objects will inherit the permissions assigned to the parent object.
+    + permission (ObjectShare array, optional) - Array of additional permissions to be associated with this object when created. By default, the owner is granted full access. This structure is used when permissions need to be granted beyond read access, since read access is most easily conveyed in the ACM share itself.  For convenience, the structure of the share within a permission is the same as that used for ACMs.
     + containsUSPersonsData (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
     + exemptFromFOIA (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 
@@ -1085,6 +1116,21 @@ User Stats provides metrics information for the user's total number of objects a
 + disp_nm: `Project Name 2` (string, required) - The display name for the project. This sample is `Project Name 2` for `uniquekeyprojectname2`
 + groups: `Group 1`, `Group 2`, `Group 3` (array[string], required) - Array of groups to be targetted by this share within the project.
 
+## ACMShareCreateSample (object)
+
++ users: `CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (array[string], optional) - Array of distinguished names for users that are targets of this share.
++ projects (array[ACMShareCreateSampleProjectsDCTC], optional) - Array of projects with nested groups that are targets of this share.
+
+## ACMShareCreateSampleProjectsDCTC (object)
+
++ dctc (ACMShareCreateSampleProjectDCTCODriveG1, required) - A unique keyed project name (dctc) is specified as the fieldname for the project with display name and groups contained in object value.
+
+## ACMShareCreateSampleProjectDCTCODriveG1 (object)
+
++ disp_nm: `DCTC` (string, required) - The display name for the project
++ groups: `ODrive_G1` (array[string], required) - Array of groups to be targetted by this share within the project.
+
+
 ## CallerPermission (object)
 
 + allowCreate: false (boolean) -  Indicates whether the caller can create child objects under this object.
@@ -1154,7 +1200,7 @@ User Stats provides metrics information for the user's total number of objects a
 + contentSize: 1511 (string) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
 + properties (array[Property]) - Array of custom properties associated with the object.
 + callerPermissions (CallerPermission) - Permissions granted to the caller that resulted in this object being returned.
-+ permissions (array[Permission]) - Array of permissions associated with this object.
++ permissions (array[PermissionUser,PermissionGroup]) - Array of permissions associated with this object.
 + isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
@@ -1180,7 +1226,7 @@ User Stats provides metrics information for the user's total number of objects a
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
 + contentSize: 1511 (string) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
 + properties (array[Property]) - Array of custom properties associated with the object.
-+ permissions (array[Permission]) - Array of permissions associated with this object.
++ permissions (array[PermissionUser,PermissionGroup]) - Array of permissions associated with this object.
 + isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
@@ -1211,9 +1257,24 @@ User Stats provides metrics information for the user's total number of objects a
 + objectsSize: 249234 (number) - The total size of objects in bytes, which could be a very large number.
 + objectsWithRevisionSize: 23478234 (number) - The total size of versioned objects in bytes, which may be very large.
 
-## Permission (object)
+## PermissionUser (object)
 
-+ grantee: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) -  The user for whom this permission is granted to
++ grantee: `cntesttester10oupeopleoudaeouchimeraou_s_governmentcus` (string) -  The flattened form of the user or group this permission targets
++ userDistinguishedName: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) - The user for whom this permission is granted to
++ displayName: `test tester10` (string) - A representation of the grantee suitable for display in user interfaces
++ allowCreate: true (boolean) -  Indicates whether the grantee can create child objects under the referenced object of this permission.
++ allowRead: true (boolean) -  Indicates whether the grantee can view the object referenced by this permission.
++ allowUpdate: true (boolean) -  Indicates whether the grantee can modify the object referenced by this permission.
++ allowDelete: true (boolean) -  Indicates whether the grantee can delete the object referenced by this permission.
++ allowShare: true (boolean) -  Indicates whether the grantee can reshare the object referenced by this permission.
+
+## PermissionGroup (object)
+
++ grantee: `dctc_odrive_g1` (string) -  The flattened form of the user or group this permission targets
++ projectName: `dctc` (string) - The project name which is also the key of a project object provided in a share.
++ projectDisplayName: `DCTC` (string) - The project display name for a project group share.
++ groupName: `ODrive_G1` (string) - The group name for a project group share.
++ displayName: `DCTC ODrive_G1` (string) - A representation of the grantee suitable for display in user interfaces
 + allowCreate: true (boolean) -  Indicates whether the grantee can create child objects under the referenced object of this permission.
 + allowRead: true (boolean) -  Indicates whether the grantee can view the object referenced by this permission.
 + allowUpdate: true (boolean) -  Indicates whether the grantee can modify the object referenced by this permission.
@@ -1222,10 +1283,10 @@ User Stats provides metrics information for the user's total number of objects a
 
 ## PermissionCreate (object)
 
-+ grantee: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) -  The user for whom this permission is granted to
++ share (ACMShareCreateSample) - The share structure for this permission representing one or more targets to be granted the permissions
 + allowCreate: false (boolean) -  Indicates whether the grantee can create child objects under the referenced object of this permission.
 + allowRead: true (boolean) -  Indicates whether the grantee can view the object referenced by this permission.
-+ allowUpdate: false (boolean) -  Indicates whether the grantee can modify the object referenced by this permission.
++ allowUpdate: true (boolean) -  Indicates whether the grantee can modify the object referenced by this permission.
 + allowDelete: false (boolean) -  Indicates whether the grantee can delete the object referenced by this permission.
 + allowShare: false (boolean) -  Indicates whether the grantee can reshare the object referenced by this permission.
 

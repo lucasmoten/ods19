@@ -5,10 +5,13 @@ import (
 	"reflect"
 	"strings"
 
-	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
-	"decipher.com/object-drive-server/metadata/models"
 	"github.com/uber-go/zap"
 	"golang.org/x/net/context"
+
+	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
+	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
+	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/protocol"
 )
 
 func deDupe(sArr []interface{}) []interface{} {
@@ -295,17 +298,22 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 	// Apply changes to obj.Permissions based upon what ACM has
 	LoggerFromContext(ctx).Info("favoring acm")
 
-	hasEveryone := false
-	herr, fShareInterface := getACMInterfacePart(obj, "f_share")
+	// Parse ACM Share as Permissions
+	herr, shareInterface := getACMInterfacePart(obj, "share")
 	if herr != nil {
 		return herr
 	}
-
-	// Convert the interface of values into an array
-	acmGrants := getStringArrayFromInterface(fShareInterface)
+	acmObjectShare := protocol.ObjectShare{}
+	acmObjectShare.AllowRead = true
+	acmObjectShare.Share = shareInterface
+	acmPermissions, err := mapping.MapObjectShareToODPermissions(&acmObjectShare)
+	if err != nil {
+		return NewAppError(500, fmt.Errorf("ACM share does not convert to permissions"), "ACM share unparseable")
+	}
 
 	// From ACM, determine if permission for everyone should exist
-	acmSaysEveryone := len(acmGrants) == 0
+	hasEveryone := false
+	acmSaysEveryone := len(acmPermissions) == 0
 
 	// Build a simple array of the existing permissions that grant read access
 	var readGrants []string
@@ -338,10 +346,7 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 	// Add everyone if needed
 	if acmSaysEveryone && !hasEveryone {
 		LoggerFromContext(ctx).Info("adding permission for everyone")
-		everyonePermission := models.ODObjectPermission{}
-		everyonePermission.AllowRead = true
-		everyonePermission.Grantee = models.EveryoneGroup
-		everyonePermission.ExplicitShare = true
+		everyonePermission := models.PermissionForGroup("", "", models.EveryoneGroup, false, true, false, false, false)
 		obj.Permissions = append(obj.Permissions, everyonePermission)
 		// Now we do have everyone
 		hasEveryone = true
@@ -352,7 +357,7 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 		for i := len(obj.Permissions) - 1; i >= 0; i-- {
 			permission := obj.Permissions[i]
 			if permission.AllowRead {
-				if strings.Compare(permission.Grantee, models.EveryoneGroup) != 0 {
+				if strings.Compare(permission.AcmGrantee.GroupName.String, models.EveryoneGroup) != 0 {
 					if permission.IsReadOnly() {
 						// A read only permission that isn't everyone when everyone is present can simply be removed.
 						LoggerFromContext(ctx).Info("removing readonly permission that is not everyone", zap.String("grantee", permission.Grantee))
@@ -366,13 +371,7 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 					} else {
 						// Has other permissions, need to update it
 						LoggerFromContext(ctx).Info("removing read from grantee since acm gives read to everyone", zap.String("grantee", obj.Permissions[i].Grantee))
-						replacementPermission := models.ODObjectPermission{}
-						replacementPermission.AllowCreate = obj.Permissions[i].AllowCreate
-						replacementPermission.AllowDelete = obj.Permissions[i].AllowDelete
-						replacementPermission.AllowRead = false
-						replacementPermission.AllowUpdate = obj.Permissions[i].AllowUpdate
-						replacementPermission.AllowShare = obj.Permissions[i].AllowShare
-						replacementPermission.Grantee = obj.Permissions[i].Grantee
+						replacementPermission := models.PermissionWithoutRead(obj.Permissions[i])
 						replacementPermission.ExplicitShare = true
 						if isCreating(obj) {
 							// creating object, can redfine it
@@ -387,23 +386,19 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 			}
 		}
 	} else {
-		// Add any missing grantees for read access from acmGrants if not found in readGrants
-		for _, acmGrantee := range acmGrants {
+		// Add any missing grantees for read access from acm derived permissions not found in readGrants collected otherwise
+		for _, acmPermission := range acmPermissions {
 			hasAcmGrantee := false
 			for _, readGrantee := range readGrants {
-				if strings.Compare(acmGrantee, readGrantee) == 0 {
+				if strings.Compare(acmPermission.Grantee, readGrantee) == 0 {
 					hasAcmGrantee = true
 					break
 				}
 			}
 			if !hasAcmGrantee {
-				LoggerFromContext(ctx).Info("adding grantee from acm", zap.String("grantee", acmGrantee))
-				newAcmPermission := models.ODObjectPermission{}
-				newAcmPermission.AllowRead = true
-				newAcmPermission.Grantee = acmGrantee
-				newAcmPermission.ExplicitShare = true
-				obj.Permissions = append(obj.Permissions, newAcmPermission)
-				readGrants = append(readGrants, acmGrantee)
+				LoggerFromContext(ctx).Info("adding grantee from acm", zap.String("grantee", acmPermission.Grantee))
+				obj.Permissions = append(obj.Permissions, acmPermission)
+				readGrants = append(readGrants, acmPermission.Grantee)
 			}
 		}
 		// Remove read only permissions that are not found in acmGrants
@@ -411,9 +406,10 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 			permission := obj.Permissions[i]
 			if permission.AllowRead {
 				hasAcmGrantee := false
-				for _, acmGrantee := range acmGrants {
-					if strings.Compare(permission.Grantee, acmGrantee) == 0 {
+				for _, acmPermission := range acmPermissions {
+					if isPermissionFor(&permission, acmPermission.Grantee) {
 						hasAcmGrantee = true
+						break
 					}
 				}
 				if !hasAcmGrantee {
@@ -430,13 +426,7 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 					} else {
 						// has other permissions, need to update it
 						LoggerFromContext(ctx).Info("removing read from grantee not present in acm", zap.String("grantee", obj.Permissions[i].Grantee))
-						replacementPermission := models.ODObjectPermission{}
-						replacementPermission.AllowCreate = obj.Permissions[i].AllowCreate
-						replacementPermission.AllowDelete = obj.Permissions[i].AllowDelete
-						replacementPermission.AllowRead = false
-						replacementPermission.AllowUpdate = obj.Permissions[i].AllowUpdate
-						replacementPermission.AllowShare = obj.Permissions[i].AllowShare
-						replacementPermission.Grantee = obj.Permissions[i].Grantee
+						replacementPermission := models.PermissionWithoutRead(obj.Permissions[i])
 						replacementPermission.ExplicitShare = true
 						if isCreating(obj) {
 							// creating object, can redfine it

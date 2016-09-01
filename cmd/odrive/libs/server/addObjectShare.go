@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/uber-go/zap"
+
 	"golang.org/x/net/context"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
@@ -66,8 +68,11 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 				}
 			}
 
-			// If after removing existng grants there are no more permissions, ...
-			if reduceGrantsFromExistingPermissionsLeavesNone(dbObject.Permissions, &permission) {
+			// If after removing existing grants there are no more permissions, ...
+			plannedPermissions := []models.ODObjectPermission{}
+			plannedPermissions = append(plannedPermissions, dbObject.Permissions...)
+			plannedPermissions = append(plannedPermissions, permissionsToAdd...)
+			if reduceGrantsFromExistingPermissionsLeavesNone(plannedPermissions, &permission) {
 				// stop processing this permission
 				continue
 			}
@@ -89,6 +94,8 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 					return NewAppError(500, err, "Unable to unmarshal share from permission")
 				}
 				combinedInterface := CombineInterface(sourceInterface, interfaceToAdd)
+				acmstring, _ := utils.MarshalInterfaceToString(combinedInterface)
+				logger.Info("after combining", zap.String("new acm", acmstring))
 				herr = setACMPartFromInterface(ctx, &dbObject, "share", combinedInterface)
 				if herr != nil {
 					return herr
@@ -214,28 +221,28 @@ func commonObjectSharePrep(ctx context.Context, masterKey string, r *http.Reques
 // reduceGrantsFromExistingPermissionsLeavesNone helps prevent creation of overlapping CRUDS (create, read, update, delete, share) permissions
 // by comparing the permission capabilities being granted to that already being granted to the user through existing permissions and
 // returns whether or not there are no capabiltiies left on the modified permission.
-func reduceGrantsFromExistingPermissionsLeavesNone(dbPermissions []models.ODObjectPermission, permission *models.ODObjectPermission) bool {
+func reduceGrantsFromExistingPermissionsLeavesNone(existingPermissions []models.ODObjectPermission, permission *models.ODObjectPermission) bool {
 
 	// Iterate existing permissions on object
-	for _, dbPermission := range dbPermissions {
-		granteeMatch := isPermissionFor(&dbPermission, permission.Grantee)
-		everyoneMatch := isPermissionFor(&dbPermission, models.EveryoneGroup)
-		if granteeMatch || everyoneMatch {
+	for _, existingPermission := range existingPermissions {
+		granteeMatch := isPermissionFor(&existingPermission, permission.Grantee)
+		everyoneMatch := isPermissionFor(&existingPermission, models.EveryoneGroup)
+		if !existingPermission.IsDeleted && (granteeMatch || everyoneMatch) {
 			// Discern which permissions this user already has,
 			// removing them from the permission passed in
-			if dbPermission.AllowCreate {
+			if existingPermission.AllowCreate {
 				permission.AllowCreate = false
 			}
-			if dbPermission.AllowRead {
+			if existingPermission.AllowRead {
 				permission.AllowRead = false
 			}
-			if dbPermission.AllowUpdate {
+			if existingPermission.AllowUpdate {
 				permission.AllowUpdate = false
 			}
-			if dbPermission.AllowDelete {
+			if existingPermission.AllowDelete {
 				permission.AllowDelete = false
 			}
-			if dbPermission.AllowShare {
+			if existingPermission.AllowShare {
 				permission.AllowShare = false
 			}
 		}
@@ -285,7 +292,7 @@ func isModifiedBySameAsOwner(object *models.ODObject) bool {
 }
 
 func isPermissionFor(permission *models.ODObjectPermission, grantee string) bool {
-	return (strings.Compare(permission.Grantee, grantee) == 0)
+	return (strings.Compare(models.AACFlatten(permission.Grantee), models.AACFlatten(grantee)) == 0)
 }
 
 func removePermissionsForGrantee(obj *models.ODObject, grantee string) {

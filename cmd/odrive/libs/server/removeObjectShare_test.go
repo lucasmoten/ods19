@@ -15,7 +15,7 @@ func TestRemoveObjectShareFromCaller(t *testing.T) {
 
 	t.Logf("Create as tester10, RUS to tester01, R to odrive_g2")
 	creator := 0
-	permissions := []protocol.Permission{makePermission(fakeDN0, true, true, true, true, true), makePermission(fakeDN1, false, true, true, false, true)}
+	permissions := []protocol.ObjectShare{makeObjectShareForUser(fakeDN0, true, true, true, true, true), makeObjectShareForUser(fakeDN1, false, true, true, false, true)}
 	acmShare := `"share": {` + makeGroupShareString("DCTC", "DCTC", "ODrive_G2") + `}`
 	newObject := createSharedObjectForTestRemoveObjectShare(t, creator, acmShare, permissions)
 
@@ -52,7 +52,7 @@ func TestRemoveObjectShareFromCaller(t *testing.T) {
 func TestRemoveObjectShareFromOtherUser(t *testing.T) {
 	t.Logf("Create as tester10, RUS to tester01, R to odrive_g1")
 	creator := 0
-	permissions := []protocol.Permission{makePermission(fakeDN0, true, true, true, true, true), makePermission(fakeDN1, false, true, true, false, true)}
+	permissions := []protocol.ObjectShare{makeObjectShareForUser(fakeDN0, true, true, true, true, true), makeObjectShareForUser(fakeDN1, false, true, true, false, true)}
 	acmShare := `"share": {` + makeGroupShareString("DCTC", "DCTC", "ODrive_G1") + `}`
 	newObject := createSharedObjectForTestRemoveObjectShare(t, creator, acmShare, permissions)
 
@@ -79,7 +79,7 @@ func TestRemoveObjectShareFromOtherUser(t *testing.T) {
 func TestRemoveObjectShareFromOwner(t *testing.T) {
 	t.Logf("Create as tester10, RUS to tester01, R to odrive_g2")
 	creator := 0
-	permissions := []protocol.Permission{makePermission(fakeDN0, true, true, true, true, true), makePermission(fakeDN1, false, true, true, false, true)}
+	permissions := []protocol.ObjectShare{makeObjectShareForUser(fakeDN0, true, true, true, true, true), makeObjectShareForUser(fakeDN1, false, true, true, false, true)}
 	acmShare := `"share": {` + makeGroupShareString("DCTC", "DCTC", "ODrive_G2") + `}`
 	newObject := createSharedObjectForTestRemoveObjectShare(t, creator, acmShare, permissions)
 
@@ -101,7 +101,7 @@ func TestRemoveObjectShareFromOwner(t *testing.T) {
 func TestRemoveObjectShareFromNonExistentUser(t *testing.T) {
 	t.Logf("Create as tester10, RUS to tester01, R to odrive_g2")
 	creator := 0
-	permissions := []protocol.Permission{makePermission(fakeDN0, true, true, true, true, true), makePermission(fakeDN1, false, true, true, false, true)}
+	permissions := []protocol.ObjectShare{makeObjectShareForUser(fakeDN0, true, true, true, true, true), makeObjectShareForUser(fakeDN1, false, true, true, false, true)}
 	acmShare := `"share": {` + makeGroupShareString("DCTC", "DCTC", "ODrive_G2") + `}`
 	newObject := createSharedObjectForTestRemoveObjectShare(t, creator, acmShare, permissions)
 
@@ -130,7 +130,7 @@ func TestRemoveObjectShareFromNonExistentUser(t *testing.T) {
 func TestRemoveObjectShareFromCallerGroup(t *testing.T) {
 	t.Logf("Create as tester10, R to odrive_g1, R to odrive_g2, RUS to tester01")
 	creator := 0
-	permissions := []protocol.Permission{makePermission(fakeDN0, true, true, true, true, true), makePermission(fakeDN1, false, true, true, false, true)}
+	permissions := []protocol.ObjectShare{makeObjectShareForUser(fakeDN0, true, true, true, true, true), makeObjectShareForUser(fakeDN1, false, true, true, false, true)}
 	acmShare := `"share": {` + makeGroupShareString("DCTC", "DCTC", `ODrive_G1","ODrive_G2`) + `}`
 	newObject := createSharedObjectForTestRemoveObjectShare(t, creator, acmShare, permissions)
 
@@ -157,7 +157,7 @@ func TestRemoveObjectShareFromCallerGroup(t *testing.T) {
 func TestRemoveObjectShareFromOtherGroup(t *testing.T) {
 	t.Logf("Create as tester10, R to odrive_g1, R to odrive_g2, RUS to tester01")
 	creator := 0
-	permissions := []protocol.Permission{makePermission(fakeDN0, true, true, true, true, true), makePermission(fakeDN1, false, false, true, false, true)}
+	permissions := []protocol.ObjectShare{makeObjectShareForUser(fakeDN0, true, true, true, true, true), makeObjectShareForUser(fakeDN1, false, false, true, false, true)}
 	acmShare := `"share": {` + makeGroupShareString("DCTC", "DCTC", `ODrive_G1","ODrive_G2`) + `}`
 	newObject := createSharedObjectForTestRemoveObjectShare(t, creator, acmShare, permissions)
 
@@ -184,7 +184,7 @@ func TestRemoveObjectShareFromOtherGroup(t *testing.T) {
 func TestRemoveObjectShareFromEveryoneGroup(t *testing.T) {
 	t.Logf("Create as tester10, no special perms")
 	creator := 0
-	permissions := []protocol.Permission{}
+	permissions := []protocol.ObjectShare{}
 	acmShare := ""
 	newObject := createSharedObjectForTestRemoveObjectShare(t, creator, acmShare, permissions)
 
@@ -194,7 +194,7 @@ func TestRemoveObjectShareFromEveryoneGroup(t *testing.T) {
 	t.Logf("As Tester10 Remove Shares to everyone group")
 	uriRemoveShare := host + cfg.NginxRootURL + "/shared/" + newObject.ID
 	removeShareRequest := protocol.ObjectShare{}
-	removeShareRequest.Share = makeUserShare(models.EveryoneGroup)
+	removeShareRequest.Share = makeGroupShare("", "", models.EveryoneGroup)
 	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
 	removeShareRes, err := clients[creator].Client.Do(removeShareReq)
 	failNowOnErr(t, err, "Unable to do request")
@@ -211,7 +211,7 @@ func TestRemoveObjectShareFromEveryoneGroup(t *testing.T) {
 func TestRemoveObjectShareWithoutPermission(t *testing.T) {
 	t.Logf("Create as tester10, R to everyone")
 	creator := 0
-	permissions := []protocol.Permission{}
+	permissions := []protocol.ObjectShare{}
 	acmShare := ""
 	newObject := createSharedObjectForTestRemoveObjectShare(t, creator, acmShare, permissions)
 
@@ -222,7 +222,7 @@ func TestRemoveObjectShareWithoutPermission(t *testing.T) {
 	delegate := 1
 	uriRemoveShare := host + cfg.NginxRootURL + "/shared/" + newObject.ID
 	removeShareRequest := protocol.ObjectShare{}
-	removeShareRequest.Share = makeUserShare(models.EveryoneGroup)
+	removeShareRequest.Share = makeGroupShare("", "", models.EveryoneGroup)
 	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
 	removeShareRes, err := clients[delegate].Client.Do(removeShareReq)
 	failNowOnErr(t, err, "Unable to do request")
@@ -233,18 +233,28 @@ func TestRemoveObjectShareWithoutPermission(t *testing.T) {
 	shouldHaveReadForObjectID(t, newObject.ID, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0)
 }
 
-func makePermission(grantee string, allowCreate bool, allowRead bool, allowUpdate bool, allowDelete bool, allowShare bool) protocol.Permission {
-	permission := protocol.Permission{
-		Grantee:     grantee,
+func makeObjectShareForUser(user string, allowCreate bool, allowRead bool, allowUpdate bool, allowDelete bool, allowShare bool) protocol.ObjectShare {
+	share := protocol.ObjectShare{
+		Share:       makeUserShare(user),
 		AllowCreate: allowCreate,
 		AllowRead:   allowRead,
 		AllowUpdate: allowUpdate,
 		AllowDelete: allowDelete,
 		AllowShare:  allowShare}
-	return permission
+	return share
+}
+func makeObjectShareForGroup(projectName string, projectDisplayName string, groupName string, allowCreate bool, allowRead bool, allowUpdate bool, allowDelete bool, allowShare bool) protocol.ObjectShare {
+	share := protocol.ObjectShare{
+		Share:       makeGroupShare(projectName, projectDisplayName, groupName),
+		AllowCreate: allowCreate,
+		AllowRead:   allowRead,
+		AllowUpdate: allowUpdate,
+		AllowDelete: allowDelete,
+		AllowShare:  allowShare}
+	return share
 }
 
-func createSharedObjectForTestRemoveObjectShare(t *testing.T, clientid int, acmShare string, permissions []protocol.Permission) protocol.Object {
+func createSharedObjectForTestRemoveObjectShare(t *testing.T, clientid int, acmShare string, permissions []protocol.ObjectShare) protocol.Object {
 
 	// ### Create object as the client
 	t.Logf("Creating object with shares for TestRemoveObjectShare as %d", clientid)

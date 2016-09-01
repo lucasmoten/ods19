@@ -332,10 +332,18 @@ func (h AppServer) flattenACM(logger zap.Logger, object *models.ODObject) error 
 // Resultant f_share value is then used as the new grantee
 func (h AppServer) flattenGranteeOnPermission(ctx context.Context, permission *models.ODObjectPermission) *AppError {
 	logger := LoggerFromContext(ctx)
-	acmShareUser := "{\"users\":[\"%s\"]}"
 	isAcmShareEmpty := len(permission.AcmShare) == 0
 	if isAcmShareEmpty {
-		permission.AcmShare = fmt.Sprintf(acmShareUser, permission.Grantee)
+		logger.Error("ACMShare on permission was empty for grantee coming into flattenGranteeOnPermission", zap.String("grantee", permission.Grantee), zap.String("acmgrantee", permission.AcmGrantee.Grantee), zap.String("acmgrantee.projectname", permission.AcmGrantee.ProjectName.String), zap.String("acmgrantee.projectdisplayname", permission.AcmGrantee.ProjectDisplayName.String), zap.String("acmgrantee.groupname", permission.AcmGrantee.GroupName.String), zap.String("acmgrantee.userdistinguishedname", permission.AcmGrantee.UserDistinguishedName.String))
+		return NewAppError(500, nil, "AcmShare on permission is not set")
+	}
+	// Check if this is a special internalized odrive group that does not need AAC flattening
+	if len(permission.AcmGrantee.GroupName.String) > 0 && len(permission.AcmGrantee.ProjectName.String) == 0 {
+		// EveryoneGroup ?
+		everyonePermission := models.PermissionForGroup("", "", models.EveryoneGroup, false, true, false, false, false)
+		if strings.Compare(permission.AcmShare, everyonePermission.AcmShare) == 0 {
+			return nil
+		}
 	}
 	shareInterface, err := utils.UnmarshalStringToInterface(permission.AcmShare)
 	if err != nil {
@@ -360,10 +368,7 @@ func (h AppServer) flattenGranteeOnPermission(ctx context.Context, permission *m
 	if len(grants) > 0 {
 		logger.Debug("Setting permission grantee", zap.String("old value", permission.Grantee), zap.String("new value", globalconfig.GetNormalizedDistinguishedName(grants[0])))
 		permission.Grantee = globalconfig.GetNormalizedDistinguishedName(grants[0])
-		// Since altering the grantee, also update the acmShare to reflect the new flattened value
-		if isAcmShareEmpty {
-			permission.AcmShare = fmt.Sprintf(acmShareUser, permission.Grantee)
-		}
+		permission.AcmGrantee.Grantee = permission.Grantee
 	} else {
 		logger.Warn("Error flattening share permission", zap.String("acm", acm), zap.String("permission acm share", permission.AcmShare), zap.String("permission grantee", permission.Grantee))
 		return NewAppError(500, fmt.Errorf("Didn't receive any grants in f_share for %s from %s", permission.Grantee, permission.AcmShare), "Unable to flatten grantee provided in permission")
@@ -452,7 +457,7 @@ func isUserAllowedTo(ctx context.Context, masterKey string, obj *models.ODObject
 		granteeMatch = false
 		if strings.Compare(strings.ToLower(permission.Grantee), strings.ToLower(caller.DistinguishedName)) == 0 {
 			granteeMatch = true
-		} else if strings.Compare(strings.ToLower(permission.Grantee), strings.ToLower(models.EveryoneGroup)) == 0 {
+		} else if strings.Compare(strings.ToLower(permission.AcmGrantee.GroupName.String), strings.ToLower(models.EveryoneGroup)) == 0 {
 			granteeMatch = true
 		} else {
 			for _, group := range groups {

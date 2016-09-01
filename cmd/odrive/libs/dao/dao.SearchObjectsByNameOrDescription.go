@@ -292,7 +292,7 @@ func buildFilterForUserACMShare(user models.ODUser) string {
 
 	// If share settings were defined with additional groups
 	if len(shareSnippet.Values) > 0 {
-		sql = " and (op.grantee = ? or op.grantee like '" + MySQLSafeString(models.EveryoneGroup) + "'"
+		sql = " and (op.grantee = ? or op.grantee like '" + MySQLSafeString(models.AACFlatten(models.EveryoneGroup)) + "'"
 		for _, shareValue := range shareSnippet.Values {
 			//if !strings.Contains(shareValue, "cusou") && !strings.Contains(shareValue, "governmentcus") {
 			sql += " or op.grantee like '" + MySQLSafeString(shareValue) + "'"

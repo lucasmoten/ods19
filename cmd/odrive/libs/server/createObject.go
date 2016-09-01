@@ -187,9 +187,7 @@ func handleCreatePrerequisites(ctx context.Context, h AppServer, requestObject *
 	}
 
 	// Check if parent defined
-	if requestObject.ParentID == nil {
-		addPermissionForCaller(ctx, requestObject)
-	} else {
+	if requestObject.ParentID != nil {
 		// Parent is defined, retrieve existing parent object from the data store
 
 		parentObject := models.ODObject{}
@@ -216,26 +214,6 @@ func handleCreatePrerequisites(ctx context.Context, h AppServer, requestObject *
 				return NewAppError(405, err, "object is deleted")
 			}
 		}
-
-		// Copy permissions from parent into request Object that are other than 'read only' which is tied to ACM f_share
-		inheritPermissions := false // Disabled as it conflicts with ACM
-		if inheritPermissions {
-			for _, permission := range dbParentObject.Permissions {
-				if !permission.IsDeleted && (permission.AllowCreate || permission.AllowUpdate || permission.AllowDelete || permission.AllowShare) {
-					newPermission := models.ODObjectPermission{}
-					newPermission.Grantee = permission.Grantee
-					isCreator := (permission.Grantee == caller.DistinguishedName)
-					newPermission.AllowCreate = permission.AllowCreate || isCreator
-					newPermission.AllowRead = permission.AllowRead || isCreator
-					newPermission.AllowUpdate = permission.AllowUpdate || isCreator
-					newPermission.AllowDelete = permission.AllowDelete || isCreator
-					newPermission.AllowShare = permission.AllowShare || isCreator
-					requestObject.Permissions = append(requestObject.Permissions, newPermission)
-				}
-			}
-		} else {
-			addPermissionForCaller(ctx, requestObject)
-		}
 	}
 
 	// Disallow creating as deleted
@@ -245,24 +223,12 @@ func handleCreatePrerequisites(ctx context.Context, h AppServer, requestObject *
 
 	// Setup meta data...
 	requestObject.CreatedBy = caller.DistinguishedName
-	requestObject.OwnedBy.String = caller.DistinguishedName
-	requestObject.OwnedBy.Valid = true
+	requestObject.OwnedBy = models.ToNullString(caller.DistinguishedName)
+
+	// Give owner full CRUDS (read given by acm share)
+	requestObject.Permissions = append(requestObject.Permissions, models.PermissionForUser(requestObject.OwnedBy.String, true, false, true, true, true))
 
 	return nil
-}
-
-func addPermissionForCaller(ctx context.Context, obj *models.ODObject) {
-	caller, _ := CallerFromContext(ctx)
-	newPermission := models.ODObjectPermission{}
-	newPermission.Grantee = caller.DistinguishedName
-	newPermission.AllowCreate = true
-	// Read permission not implicitly granted to owner.
-	// Must come through ACM share (empty=everyone gets read, values=owner must be in one of those groups)
-	newPermission.AllowRead = false
-	newPermission.AllowUpdate = true
-	newPermission.AllowDelete = true
-	newPermission.AllowShare = true
-	obj.Permissions = append(obj.Permissions, newPermission)
 }
 
 func contentTypeIsMultipartFormData(r *http.Request) bool {
@@ -291,7 +257,7 @@ func parseCreateObjectRequestAsJSON(r *http.Request) (models.ODObject, *AppError
 	// Map to internal object type
 	object, err = mapping.MapCreateObjectRequestToODObject(&jsonObject)
 	if err != nil {
-		return object, NewAppError(400, err, "Could not map request to internal database type")
+		return object, NewAppError(400, err, "Could not map request to internal struct type")
 	}
 
 	return object, nil

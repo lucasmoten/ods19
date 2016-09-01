@@ -334,13 +334,13 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 
 	// Body
 	t.Logf("* Creating folder at root")
-	folder := protocol.Object{}
+	folder := protocol.CreateObjectRequest{}
 	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().Unix(), 10)
 	folder.TypeName = "Folder"
 	folder.ParentID = ""
 	folder.RawAcm = testhelpers.ValidACMUnclassified
-	grant2client2 := protocol.Permission{}
-	grant2client2.Grantee = fakeDN1 // tester01
+	grant2client2 := protocol.ObjectShare{}
+	grant2client2.Share = makeUserShare(fakeDN1)
 	grant2client2.AllowRead = true
 	grant2client2.AllowCreate = true
 	folder.Permissions = append(folder.Permissions, grant2client2)
@@ -349,8 +349,8 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 	// permission for client2 is being established with read access, the object isn't
 	// going to be shared with everyone per the ACM on testhelpers.ValidACMUnclassified
 	// so read access needs to be established
-	grant2self := protocol.Permission{}
-	grant2self.Grantee = fakeDN0 // tester10
+	grant2self := protocol.ObjectShare{}
+	grant2self.Share = makeUserShare(fakeDN0)
 	grant2self.AllowCreate = true
 	grant2self.AllowRead = true
 	grant2self.AllowUpdate = true

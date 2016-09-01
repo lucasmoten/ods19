@@ -98,6 +98,10 @@ func NewObjectWithPermissionsAndProperties(username, objectType string) models.O
 	obj.RawAcm.String = ValidACMUnclassified
 	permissions := make([]models.ODObjectPermission, 1)
 	permissions[0].Grantee = obj.CreatedBy
+	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, permissions[0].Grantee)
+	permissions[0].AcmGrantee.Grantee = permissions[0].Grantee
+	permissions[0].AcmGrantee.UserDistinguishedName.String = permissions[0].Grantee
+	permissions[0].AcmGrantee.UserDistinguishedName.Valid = true
 	permissions[0].AllowCreate = true
 	permissions[0].AllowRead = true
 	permissions[0].AllowUpdate = true
@@ -381,27 +385,6 @@ func NewCreateReadPermissionRequest(obj protocol.Object, grantee, dn, host strin
 		return nil, err
 	}
 	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	if dn != "" {
-		req.Header.Set("USER_DN", dn)
-	}
-	return req, nil
-}
-
-func NewDeletePermissionRequest(obj protocol.Object, share protocol.Permission, dn, host string) (*http.Request, error) {
-	uri := host + cfg.NginxRootURL + "/shared/" + obj.ID + "/" + share.ID
-	removeSetting := protocol.RemoveObjectShareRequest{}
-	removeSetting.ObjectID = obj.ID
-	removeSetting.ShareID = share.ID
-	removeSetting.ChangeToken = share.ChangeToken
-	jsonBody, err := json.Marshal(removeSetting)
-	if err != nil {
-		return nil, err
-	}
-	req, err := http.NewRequest("DELETE", uri, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return nil, err
 	}

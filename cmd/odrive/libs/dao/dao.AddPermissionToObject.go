@@ -8,7 +8,6 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 )
 
 // AddPermissionToObject creates a new permission with the provided object id,
@@ -21,7 +20,7 @@ func (dao *DataAccessLayer) AddPermissionToObject(object models.ODObject, permis
 	}
 	response, err := addPermissionToObjectInTransaction(dao.GetLogger(), tx, object, permission, propogateToChildren, masterKey)
 	if err != nil {
-		dao.GetLogger().Error("Error in AddPermissionToobject", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in AddPermissionToObject", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -39,13 +38,12 @@ func addPermissionToObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object m
 	}
 
 	// Check that grantee specified exists
-	granteeUser := models.ODUser{DistinguishedName: permission.Grantee}
-	granteeUserDB, granteeUserDBErr := getUserByDistinguishedNameInTransaction(tx, granteeUser)
-	if granteeUserDBErr == sql.ErrNoRows {
-		// Doesn't exist yet. Add it now to satisfy foreign key constraints when adding the share
-		granteeUserDB, granteeUserDBErr = createUserInTransaction(logger, tx, granteeUser)
-		if granteeUserDBErr != nil {
-			return dbPermission, granteeUserDBErr
+	dbAcmGrantee, dbAcmGranteeErr := getAcmGranteeInTransaction(tx, permission.Grantee)
+	if dbAcmGranteeErr == sql.ErrNoRows {
+		// Add if it didnt
+		dbAcmGrantee, dbAcmGranteeErr = createAcmGranteeInTransaction(logger, tx, permission.AcmGrantee)
+		if dbAcmGranteeErr != nil {
+			return dbPermission, dbAcmGranteeErr
 		}
 	}
 
@@ -54,6 +52,7 @@ func addPermissionToObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object m
         createdby = ?
         ,objectId = ?
         ,grantee = ?
+        ,acmShare = ?
         ,allowCreate = ?
         ,allowRead = ?
         ,allowUpdate = ?
@@ -69,9 +68,10 @@ func addPermissionToObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object m
 	}
 	// Add it
 	result, err := addPermissionStatement.Exec(permission.CreatedBy, object.ID,
-		granteeUserDB.DistinguishedName, permission.AllowCreate, permission.AllowRead,
-		permission.AllowUpdate, permission.AllowDelete, permission.AllowShare,
-		permission.ExplicitShare, permission.EncryptKey, permission.PermissionIV, permission.PermissionMAC)
+		dbAcmGrantee.Grantee, permission.AcmShare, permission.AllowCreate,
+		permission.AllowRead, permission.AllowUpdate, permission.AllowDelete,
+		permission.AllowShare, permission.ExplicitShare, permission.EncryptKey,
+		permission.PermissionIV, permission.PermissionMAC)
 	if err != nil {
 		return dbPermission, err
 	}
@@ -91,6 +91,7 @@ func addPermissionToObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object m
         createdby = ? 
         and objectId = ? 
         and grantee = ? 
+        and acmShare = ?
         and isdeleted = 0 
         and allowCreate = ? 
         and allowRead = ? 
@@ -103,7 +104,7 @@ func addPermissionToObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object m
 		return dbPermission, err
 	}
 	err = getPermissionIDStatement.QueryRowx(permission.CreatedBy, object.ID,
-		permission.Grantee, permission.AllowCreate, permission.AllowRead,
+		permission.Grantee, permission.AcmShare, permission.AllowCreate, permission.AllowRead,
 		permission.AllowUpdate, permission.AllowDelete,
 		permission.AllowShare).Scan(&newPermissionID)
 	if err != nil {
@@ -125,6 +126,7 @@ func addPermissionToObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object m
         ,changeToken
         ,objectId
         ,grantee
+        ,acmShare
         ,allowCreate
         ,allowRead
         ,allowUpdate
@@ -141,63 +143,6 @@ func addPermissionToObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object m
 		return dbPermission, err
 	}
 	*permission = dbPermission
-
-	// Handle propagation to existing children
-	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: MaxPageSize}
-	if propagateToChildren {
-		children, err := getChildObjectsInTransaction(tx, pagingRequest, object)
-		if err != nil {
-			return dbPermission, err
-		}
-		for _, childObject := range children.Objects {
-			propagatedPermission := models.ODObjectPermission{}
-			propagatedPermission.CreatedBy = permission.CreatedBy
-			// - Same Grantee
-			propagatedPermission.Grantee = permission.Grantee
-			// - Propogated permissions are not explicit
-			propagatedPermission.ExplicitShare = false
-			// - Same permissions
-			propagatedPermission.AllowCreate = permission.AllowCreate
-			propagatedPermission.AllowRead = permission.AllowRead
-			propagatedPermission.AllowUpdate = permission.AllowUpdate
-			propagatedPermission.AllowDelete = permission.AllowDelete
-			propagatedPermission.AllowShare = permission.AllowShare
-			// - Encryption
-			models.CopyEncryptKey(masterKey, permission, &propagatedPermission)
-			_, err := addPermissionToObjectInTransaction(logger, tx, childObject, &propagatedPermission, propagateToChildren, masterKey)
-			if err != nil {
-				return dbPermission, err
-			}
-		}
-		// Additional pages
-		for pageNumber := 2; pageNumber < children.PageCount; pageNumber++ {
-			pagingRequest.PageNumber = pageNumber
-			pagedChildren, err := getChildObjectsInTransaction(tx, pagingRequest, object)
-			if err != nil {
-				return dbPermission, err
-			}
-			for _, childObject := range pagedChildren.Objects {
-				propagatedPermission := models.ODObjectPermission{}
-				propagatedPermission.CreatedBy = permission.CreatedBy
-				// - Same Grantee
-				propagatedPermission.Grantee = permission.Grantee
-				// - Propogated permissions are not explicit
-				propagatedPermission.ExplicitShare = false
-				// - Same permissions
-				propagatedPermission.AllowCreate = permission.AllowCreate
-				propagatedPermission.AllowRead = permission.AllowRead
-				propagatedPermission.AllowUpdate = permission.AllowUpdate
-				propagatedPermission.AllowDelete = permission.AllowDelete
-				propagatedPermission.AllowShare = permission.AllowShare
-				// - Encryption
-				models.CopyEncryptKey(masterKey, permission, &propagatedPermission)
-				_, err := addPermissionToObjectInTransaction(logger, tx, childObject, &propagatedPermission, propagateToChildren, masterKey)
-				if err != nil {
-					return dbPermission, err
-				}
-			}
-		}
-	}
 
 	return dbPermission, nil
 }
