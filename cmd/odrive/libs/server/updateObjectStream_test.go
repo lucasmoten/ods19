@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/http/httputil"
 	"strings"
 	"testing"
 
@@ -60,19 +59,45 @@ func TestUpdateObjectStreamWithMismatchedIDs(t *testing.T) {
 	failNowOnErr(t, err, "could not do stream update request")
 	statusMustBe(t, 400, updateResp, "expected 400 due to invalid id in update request payload")
 
-	//The whitespace in this string matters for the attack!
-	buf2Bytes := []byte(`
+	//The whitespace in this string matters for the attack that previously crashed the server
+	t.Logf("Send a form-data form on a multipart/form-data without boundaries")
+	buf2 := `
 
 Content-Disposition: form-data; name="ObjectMetadata"
+
 {"id":"%s","changeToken":"%s","name":"My New Name"}
-`)
+`
 	t.Logf("Try to update the object with a malformed request")
-	req, _ = http.NewRequest("POST", goodUpdateURI, bytes.NewBuffer(buf2Bytes))
-	httputil.DumpRequest(req, true)
+	req, _ = http.NewRequest(
+		"POST",
+		goodUpdateURI,
+		bytes.NewBuffer([]byte(fmt.Sprintf(buf2, correctID, obj.ChangeToken))),
+	)
 	req.Header.Add("Content-Type", "multipart/form-data")
 	res, err = clients[clientID].Client.Do(req)
-	httputil.DumpResponse(res, true)
 	statusMustBe(t, 400, res, "expected to catch a bad multipart encode")
+
+	//The whitespace in this string matters for the attack that previously crashed the server
+	//Send a form-data form on a multipart/form-data without boundaries
+	t.Logf("Send a form-data form on a multipart/form-data without no file part")
+	buf3 := `
+
+--XXXX
+Content-Disposition: form-data; name="ObjectMetadata"
+
+{"id":"%s","changeToken":"%s","name":"My New Name"}
+
+--XXXX--
+`
+	t.Logf("Try to update the object with a malformed request")
+	req, _ = http.NewRequest("POST",
+		goodUpdateURI,
+		bytes.NewBuffer([]byte(fmt.Sprintf(buf3, correctID, obj.ChangeToken))),
+	)
+	req.Header.Add("Content-Type", "multipart/form-data; boundary=XXXX")
+	res, err = clients[clientID].Client.Do(req)
+	statusMustBe(t, 400, res, "expected to catch a bad multipart encode")
+
 }
 
 func TestUpdateObjectMalicious(t *testing.T) {
