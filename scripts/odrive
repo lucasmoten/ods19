@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# 
+#
 # The init script for object-drive-server. Save to /etc/init.d
 #
 #
@@ -13,6 +13,7 @@
 ### END INIT INFO
 
 import sys, os, subprocess, re, time, signal
+from pwd import getpwnam
 
 # init scripts must write a validly-named lockfile
 service = "odrive"
@@ -25,6 +26,21 @@ logfile = "/opt/odrive/log/object-drive.log"
 envfile = "/opt/odrive/env.sh"
 conf = "/etc/odrive/odrive.yml"
 default_ciphers = "--addCipher TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 --addCipher TLS_RSA_WITH_AES_128_CBC_SHA"
+
+
+def change_owner(path, uid, perms):
+    """
+    Set permissions on file or dir. uid and perms must be int type, eg. 0o755.
+    Group is ignored with -1.
+    """
+    os.chown(path, uid, -1)
+    os.chmod(path, perms)
+
+
+def create_dir_not_exists(path):
+    if not os.path.exists(path):
+        print 'creating %s' % path
+        os.makedirs(path)
 
 
 def get_ciphers():
@@ -41,14 +57,20 @@ def locked():
     return os.path.exists(lockfile)
 
 
+def touch_file(path):
+    if not os.path.exists(path):
+        f = open(path, "w")
+        f.close()
+
+
 def unlock():
     os.remove(lockfile)
 
 
 def start():
-    # bring in shell environment and check for overrides
+    # Source our shell environment from env.sh file.
     shell_source(envfile)
-    # must indicate we are referencing logfile from global scope
+    # Declaring global required for mutation.
     global logfile
     if not os.getenv("OD_CACHE_ROOT"):
         os.environ["OD_CACHE_ROOT"] = "/var/odrive/cache"
@@ -61,23 +83,52 @@ def start():
     if not is_absolute_path(logfile):
         print "Logging location must be absolute path"
         os.exit(1)
-    create_dir_not_exists(os.path.split(logfile)[0])
+
+    # Get uid of odrive.
+    userid = getpwnam("odrive").pw_uid
+
+    # Capture root's environment in dictionary. Pass to Popen.
+    env_for_proc = dict()
+    for k in os.environ.keys():
+        env_for_proc[k] = os.getenv(k, "")
+
+    # Change permissions on configuration file.
+    os.chown(conf, userid, -1)
+
+    # Change ownership of logging directory and file, if the file exists.
+    logging_dir = os.path.split(logfile)[0]
+    create_dir_not_exists(logging_dir)
+    change_owner(logging_dir, userid, 0o755)
+    if os.path.exists(logfile):
+        change_owner(logfile, userid, 0o755)
+
+    # Change ownership of cache dir and its contents.
+    cache_dir = os.path.split(os.getenv("OD_CACHE_ROOT"))[0]
+    os.chown(cache_dir, userid, -1)
+    for root, dirs, files in os.walk(cache_dir):
+        for d in dirs:
+            change_owner(os.path.join(root, d), userid, 0o755)
+            for n in files:
+                change_owner(os.path.join(root, n), userid, 0o755)
+
+    # Change ownership of pidfile. 
+    touch_file(pidfile)
+    change_owner(pidfile, userid, 0o755)
+
+    # Change the user for the currently executing script, e.g. "su down". 
+    os.setuid(userid)
+
     print "Starting odrive"
     f = open(logfile, "a")
+
     ciphs = get_ciphers()
     splitted = ciphs.split(" ")
-    command = ['sudo', '-u', 'odrive', '-E', 'odrive', '--conf', conf, '--templateDir', templates, "--staticRoot", static_root]
+    command = ['odrive', '--conf', conf, '--templateDir', templates, "--staticRoot", static_root]
     command.extend(splitted)
-    ps = subprocess.Popen(command, stdout=f, stderr=f)
+    ps = subprocess.Popen(command, stdout=f, stderr=f, env=env_for_proc)
     with open(pidfile, "w") as pf:
         pf.write(str(ps.pid) + '\n')
 
-
-def create_dir_not_exists(path):
-    if not os.path.exists(path):
-        print 'creating %s' % path
-        os.makedirs(path)
-    
 
 def stop():
     if not os.path.exists(pidfile):
@@ -85,7 +136,7 @@ def stop():
         sys.exit(1)
     try:
         pid = get_pid_from_pidfile(pidfile)
-        # remove invalid pidfile
+        # Remove invalid pidfile.
         if not is_process_running(pid):
             print "removing stale pidfile"
             os.remove(pidfile)
@@ -125,9 +176,9 @@ def status():
 def get_pid_from_pidfile(path):
     with open(path, 'r') as f:
         pid = f.readline().split('\n')[0]
-        if len(pid) > 0:  
+        if len(pid) > 0:
             return pid
-        else: 
+        else:
             raise ValueError("invalid pid read from file: %s" % pid)
 
 
@@ -138,8 +189,10 @@ def is_process_running(process_id):
     except OSError:
         return False
 
+
 def is_absolute_path(path):
     return os.path.isabs(path)
+
 
 def shell_source(script):
     """
@@ -184,4 +237,5 @@ if __name__ == '__main__':
         extype, value = sys.exc_info()[:2]
         print >> sys.stderr, "ERROR: %s (%s)" % (extype, value)
         sys.exit(1)
+
 

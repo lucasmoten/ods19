@@ -1,5 +1,7 @@
 FROM centos:6.7
 
+# For RPM build
+
 RUN yum -y update; \
     yum -y install wget; \
     yum -y install tar; \

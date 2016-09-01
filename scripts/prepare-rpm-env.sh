@@ -8,7 +8,7 @@ if [ -z ${ODRIVE_BINARY_DIR+x} ]; then
 fi
 
 if [ -z ${ODRIVE_ROOT+x} ]; then
-    echo "ODRIVE_DB_TOOLS_DIR must be set"
+    echo "ODRIVE_ROOT must be set"
     exit 1
 fi
 
@@ -134,12 +134,6 @@ rm -rf %{buildroot}
 %{_sysconfdir}/init.d/%{name}
 /opt/odrive/env.sh
 
-
-%changelog
-* Tue Jun 14 2016  Coleman McFarland <coleman.mcfarland@deciphernow.com> 1.0-1
-- Static files bundled. 	
-* Mon May 24 2016  Coleman McFarland <coleman.mcfarland@deciphernow.com> 1.0-1
-- RPM packaging completed.
 
 EOF
 

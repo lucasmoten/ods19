@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# invoked inside container
+
 rm -rf ~/rpmbuild
 cd ${ODRIVE_ROOT}/cmd/odrive-database
 tar cvfz odrive-schema-${ODRIVE_VERSION}.tar.gz schema
@@ -16,4 +18,6 @@ cd $ODRIVE_ROOT
 
 #actually install it
 rpm -i odrive-${ODRIVE_VERSION}-1.x86_64.rpm
+
+
 
