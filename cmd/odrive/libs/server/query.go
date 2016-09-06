@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
-	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 
 	"golang.org/x/net/context"
@@ -14,14 +13,8 @@ import (
 func (h AppServer) query(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	// Get user from context
-	user, ok := UserFromContext(ctx)
-	if !ok {
-		caller, ok := CallerFromContext(ctx)
-		if !ok {
-			return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
-		}
-		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
-	}
+	caller, _ := CallerFromContext(ctx)
+	user, _ := UserFromContext(ctx)
 	dao := DAOFromContext(ctx)
 
 	// Parse paging info
@@ -55,11 +48,15 @@ func (h AppServer) query(ctx context.Context, w http.ResponseWriter, r *http.Req
 		return NewAppError(500, errors.New("Database call failed: "), err.Error())
 	}
 
-	// Get caller permissions
-	h.buildCompositePermissionForCaller(ctx, &results)
-
-	// Map the response and write it out
+	// Response in requested format
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&results)
+
+	// Caller permissions
+	for objectIndex, object := range apiResponse.Objects {
+		apiResponse.Objects[objectIndex] = object.WithCallerPermission(protocolCaller(caller))
+	}
+
+	// Output as JSON
 	jsonResponse(w, apiResponse)
 	return nil
 }

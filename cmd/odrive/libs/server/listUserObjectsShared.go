@@ -5,22 +5,15 @@ import (
 	"net/http"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
-	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"golang.org/x/net/context"
 )
 
 func (h AppServer) listUserObjectsShared(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
-	// Get user from context
-	user, ok := UserFromContext(ctx)
-	if !ok {
-		caller, ok := CallerFromContext(ctx)
-		if !ok {
-			return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
-		}
-		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
-	}
+	// Get user from
+	caller, _ := CallerFromContext(ctx)
+	user, _ := UserFromContext(ctx)
 	dao := DAOFromContext(ctx)
 
 	// Parse Request
@@ -42,11 +35,15 @@ func (h AppServer) listUserObjectsShared(ctx context.Context, w http.ResponseWri
 		return NewAppError(500, err, "GetObjectsIHaveShared query failed")
 	}
 
-	// Get caller permissions
-	h.buildCompositePermissionForCaller(ctx, &results)
-
-	// Render Response
+	// Response in requested format
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&results)
+
+	// Caller permissions
+	for objectIndex, object := range apiResponse.Objects {
+		apiResponse.Objects[objectIndex] = object.WithCallerPermission(protocolCaller(caller))
+	}
+
+	// Output as JSON
 	jsonResponse(w, apiResponse)
 	return nil
 }

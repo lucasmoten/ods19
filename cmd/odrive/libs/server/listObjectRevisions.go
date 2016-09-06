@@ -17,14 +17,8 @@ import (
 func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	// Get user from context
-	user, ok := UserFromContext(ctx)
-	if !ok {
-		caller, ok := CallerFromContext(ctx)
-		if !ok {
-			return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
-		}
-		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
-	}
+	caller, _ := CallerFromContext(ctx)
+	user, _ := UserFromContext(ctx)
 	dao := DAOFromContext(ctx)
 
 	// Parse Request
@@ -78,6 +72,14 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 
 	// Response in requested format
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&response)
+
+	// Caller permissions
+	for objectIndex, object := range apiResponse.Objects {
+		apiResponse.Objects[objectIndex] = object.WithCallerPermission(protocolCaller(caller))
+	}
+
+	// Output as JSON
 	jsonResponse(w, apiResponse)
+
 	return nil
 }

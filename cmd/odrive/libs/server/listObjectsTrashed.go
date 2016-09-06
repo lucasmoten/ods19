@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
-	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 
 	"golang.org/x/net/context"
@@ -14,14 +13,8 @@ import (
 func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	// Get user from context
-	user, ok := UserFromContext(ctx)
-	if !ok {
-		caller, ok := CallerFromContext(ctx)
-		if !ok {
-			return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
-		}
-		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
-	}
+	caller, _ := CallerFromContext(ctx)
+	user, _ := UserFromContext(ctx)
 	dao := DAOFromContext(ctx)
 
 	// Parse paging info
@@ -43,10 +36,21 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 		return NewAppError(500, errors.New("Database call failed: "), err.Error())
 	}
 
-	// Get caller permissions
-	h.buildCompositePermissionForCaller(ctx, &results)
-
+	// Response in requested format
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&results)
-	jsonResponse(w, &apiResponse)
+
+	// Caller permissions
+	for objectIndex, object := range apiResponse.Objects {
+		apiResponse.Objects[objectIndex] = object.WithCallerPermission(protocolCaller(caller))
+		// Since trashed, override to denote inability to create, update or share.
+		// Read allowed to see it in the trash. Delete allowed to undelete/delete permanent.
+		apiResponse.Objects[objectIndex].CallerPermission.AllowCreate = false
+		apiResponse.Objects[objectIndex].CallerPermission.AllowUpdate = false
+		apiResponse.Objects[objectIndex].CallerPermission.AllowShare = false
+	}
+
+	// Output as JSON
+	jsonResponse(w, apiResponse)
+
 	return nil
 }

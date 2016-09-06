@@ -11,6 +11,7 @@ import (
 func (h AppServer) listUserObjectsSharedToEveryone(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	// Get info from context
+	caller, _ := CallerFromContext(ctx)
 	user, _ := UserFromContext(ctx)
 	dao := DAOFromContext(ctx)
 	snippetFields, _ := SnippetsFromContext(ctx)
@@ -28,11 +29,15 @@ func (h AppServer) listUserObjectsSharedToEveryone(ctx context.Context, w http.R
 		return NewAppError(500, err, "GetObjectsSharedToEveryone query failed")
 	}
 
-	// Get caller permissions
-	h.buildCompositePermissionForCaller(ctx, &results)
-
-	// Render Response
+	// Response in requested format
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&results)
+
+	// Caller permissions
+	for objectIndex, object := range apiResponse.Objects {
+		apiResponse.Objects[objectIndex] = object.WithCallerPermission(protocolCaller(caller))
+	}
+
+	// Output as JSON
 	jsonResponse(w, apiResponse)
 	return nil
 }
