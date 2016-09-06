@@ -21,14 +21,8 @@ import (
 func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	// Get user from context
-	user, ok := UserFromContext(ctx)
-	if !ok {
-		caller, ok := CallerFromContext(ctx)
-		if !ok {
-			return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
-		}
-		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
-	}
+	caller, _ := CallerFromContext(ctx)
+	user, _ := UserFromContext(ctx)
 	dao := DAOFromContext(ctx)
 
 	parentObject := models.ODObject{}
@@ -86,11 +80,15 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 		return NewAppError(code, err, msg)
 	}
 
-	// Get caller permissions
-	h.buildCompositePermissionForCaller(ctx, &results)
-
 	// Response in requested format
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&results)
+
+	// Caller permissions
+	for objectIndex, object := range apiResponse.Objects {
+		apiResponse.Objects[objectIndex] = object.WithCallerPermission(protocolCaller(caller))
+	}
+
+	// Output as JSON
 	jsonResponse(w, apiResponse)
 	return nil
 }
