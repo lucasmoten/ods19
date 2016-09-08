@@ -150,4 +150,3 @@ cd $GOPATH/src/decipher.com/object-drive-server
 ./makerpm 450
 ```
 
-

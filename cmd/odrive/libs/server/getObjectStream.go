@@ -20,9 +20,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	"decipher.com/object-drive-server/cmd/odrive/libs/config"
 	db "decipher.com/object-drive-server/cmd/odrive/libs/dao"
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
+	configx "decipher.com/object-drive-server/configx"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/performance"
 )
@@ -216,7 +216,7 @@ func backgroundRecache(ctx context.Context, d DrainProvider, t *performance.JobR
 		"caching file",
 		zap.String("filename", d.Files().Resolve(cipherFilePathCached)),
 	)
-	bucket := &config.DefaultBucket
+	bucket := &configx.DefaultBucket
 
 	//XXX - the blocking time waiting for this could be very long
 	// - it is not guaranteed that the proxy will allow us to just stall for a long time
