@@ -15,6 +15,10 @@ type Object struct {
 	ModifiedDate time.Time `json:"modifiedDate"`
 	// ModifiedBy is the user that last modified this item
 	ModifiedBy string `json:"modifiedBy"`
+	// DeletedDate is the timestamp of when an item was deleted
+	DeletedDate time.Time `json:"deletedDate"`
+	// DeletedBy is the user that last modified this item
+	DeletedBy string `json:"deletedBy"`
 	// ChangeCount indicates the number of times the item has been modified.
 	ChangeCount int `json:"changeCount"`
 	// ChangeToken is generated value which is assigned at the database. API calls
@@ -57,7 +61,7 @@ type Object struct {
 	// Properties is an array of Object Properties associated with this object
 	// structured as key/value with portion marking.
 	Properties []Property `json:"properties,omitempty"`
-	// CallerPermission is the compisite permission the caller has for this object
+	// CallerPermission is the composite permission the caller has for this object
 	CallerPermission CallerPermission `json:"callerPermission,omitempty"`
 	// Permissions is an array of Object Permissions associated with this object
 	// This might be null.  It could have a large list of permission objects
@@ -71,6 +75,11 @@ func (obj Object) WithCallerPermission(caller Caller) Object {
 
 	var cp CallerPermission
 	cp = cp.WithRolledUp(caller, obj.Permissions...)
+	if len(obj.DeletedBy) > 0 {
+		cp.AllowCreate = false
+		cp.AllowUpdate = false
+		cp.AllowShare = false
+	}
 	obj.CallerPermission = cp
 	return obj
 }

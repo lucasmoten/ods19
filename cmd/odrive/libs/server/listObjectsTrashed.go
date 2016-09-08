@@ -42,11 +42,6 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 	// Caller permissions
 	for objectIndex, object := range apiResponse.Objects {
 		apiResponse.Objects[objectIndex] = object.WithCallerPermission(protocolCaller(caller))
-		// Since trashed, override to denote inability to create, update or share.
-		// Read allowed to see it in the trash. Delete allowed to undelete/delete permanent.
-		apiResponse.Objects[objectIndex].CallerPermission.AllowCreate = false
-		apiResponse.Objects[objectIndex].CallerPermission.AllowUpdate = false
-		apiResponse.Objects[objectIndex].CallerPermission.AllowShare = false
 	}
 
 	// Output as JSON

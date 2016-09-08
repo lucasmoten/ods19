@@ -20,6 +20,8 @@ func MapODObjectToObject(i *models.ODObject) protocol.Object {
 	o.CreatedBy = i.CreatedBy
 	o.ModifiedDate = i.ModifiedDate
 	o.ModifiedBy = i.ModifiedBy
+	o.DeletedDate = i.DeletedDate.Time
+	o.DeletedBy = i.DeletedBy.String
 	o.ChangeCount = i.ChangeCount
 	o.ChangeToken = i.ChangeToken
 
