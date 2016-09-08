@@ -41,7 +41,7 @@ Detailed code examples that use the API:
 
 The http level result of calling APIs that happens inside of SSL:
 
-[Update (from real traffic)](static/templates/TestUpdate.html)
+[Actual Traffic - Basic Operations](static/templates/APISample.html)
 
 <!--
 [Share (from real traffic)](static/templates/TestShare.html)

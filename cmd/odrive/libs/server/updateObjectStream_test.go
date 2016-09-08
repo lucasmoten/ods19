@@ -17,15 +17,17 @@ import (
 )
 
 func TestUpdateObjectStreamWithMismatchedIDs(t *testing.T) {
-
 	t.Logf("Create new test object with stream")
 	clientID := 6
 	data, _ := util.NewGUID()
 	f, closer, err := testhelpers.GenerateTempFile(data)
 	defer closer()
+
 	req, err := testhelpers.NewCreateObjectPOSTRequest(host, "", f)
 	failNowOnErr(t, err, "could not create a createObject POST request")
+
 	res, err := clients[clientID].Client.Do(req)
+
 	failNowOnErr(t, err, "unable to do createObject request")
 	statusMustBe(t, 200, res, "expected status 200 when creating object")
 	var obj protocol.Object
@@ -103,7 +105,7 @@ Content-Disposition: form-data; name="ObjectMetadata"
 func TestUpdateObjectMalicious(t *testing.T) {
 	clientID := 5
 	data := "0123456789"
-	_, obj := doTestCreateObjectSimple(t, data, clientID)
+	_, obj := doTestCreateObjectSimple(t, data, clientID, nil, nil)
 	doCheckFileNowExists(t, clientID, obj)
 
 	if len(obj.ChangeToken) == 0 {
@@ -129,7 +131,7 @@ func TestUpdateObjectMalicious(t *testing.T) {
 func TestUpdateObjectWithProperties(t *testing.T) {
 	clientID := 5
 	data := "0123456789"
-	_, created := doTestCreateObjectSimple(t, data, clientID)
+	_, created := doTestCreateObjectSimple(t, data, clientID, nil, nil)
 	doCheckFileNowExists(t, clientID, created)
 
 	if len(created.ChangeToken) == 0 {
@@ -139,7 +141,18 @@ func TestUpdateObjectWithProperties(t *testing.T) {
 	// NOTE: do we need to do string escaping here?
 	acm := strings.Replace(testhelpers.ValidACMUnclassifiedFOUO, "\"", "\\\"", -1)
 	t.Logf("Use changetoken for update. id:%s oldChangeToken:%s changeCount:%d", created.ID, created.ChangeToken, created.ChangeCount)
-	doPropertyUpdate(t, clientID, created.ID, fmt.Sprintf(updateTemplate, created.ID, acm, created.ChangeToken))
+	doPropertyUpdate(t, clientID, created.ID, fmt.Sprintf(updateTemplate, created.ID, acm, created.ChangeToken),
+		trafficLogs[APISampleFile],
+		&TrafficLogDescription{
+			OperationName: "Update a property",
+			RequestDescription: `
+				Update a property.  It is required to pass in changeToken as proof that we have seen the latest version.
+				`,
+			ResponseDescription: `
+				We get back an object with updated properties,
+				with changeToken and changeCount being important changed values.`,
+		},
+	)
 	doReCheckProperties(t, created.ID, fmt.Sprintf(updateTemplate, created.ID, acm, created.ChangeToken))
 }
 
@@ -147,7 +160,23 @@ func TestUpdateStream(t *testing.T) {
 	clientID := 5
 	data, _ := util.NewGUID()
 	newName, _ := util.NewGUID()
-	_, created := doTestCreateObjectSimple(t, data, clientID)
+	_, created := doTestCreateObjectSimple(t, data, clientID,
+		trafficLogs[APISampleFile],
+		&TrafficLogDescription{
+			OperationName: "Update the stream of an existing object",
+			RequestDescription: `<p>
+				A POST request into the server requires a json part followed by a multi-part body.
+				The json part content-type must be application/json, and the body part is specified
+				by the caller, unless the caller is ok with the server making a guess based on
+				the file extension specified in the name part of the json part.
+				The identifier in the URI should have come back from a prior create request.
+				It is critical to use a multipart/form-data mime type with a boundary, and to
+				send the json first and call it ObjectMetadata.  The next part must be the bytes for
+				the file.  This part must come second because it could be very large.
+				</p>`,
+			ResponseDescription: `We get back an object with updated json changeToken and version`,
+		},
+	)
 	doCheckFileNowExists(t, clientID, created)
 
 	created.Name = newName
@@ -164,10 +193,10 @@ func TestUpdateStreamWithoutProvidingACM(t *testing.T) {
 	clientID := 5
 	data := "0123456789"
 
-	_, created := doTestCreateObjectSimple(t, data, clientID)
+	_, created := doTestCreateObjectSimple(t, data, clientID, nil, nil)
 	doCheckFileNowExists(t, clientID, created)
 
-	doPropertyUpdate(t, clientID, created.ID, fmt.Sprintf(updateTemplate, created.ID, "", created.ChangeToken))
+	doPropertyUpdate(t, clientID, created.ID, fmt.Sprintf(updateTemplate, created.ID, "", created.ChangeToken), nil, nil)
 }
 
 var updateTemplate = `
@@ -259,7 +288,14 @@ func doMaliciousUpdate(t *testing.T, oid, jsonString string) {
 	}
 }
 
-func doPropertyUpdate(t *testing.T, clientID int, oid, updateJSON string) {
+func doPropertyUpdate(
+	t *testing.T,
+	clientID int,
+	oid string,
+	updateJSON string,
+	trafficLog *TrafficLog,
+	description *TrafficLogDescription,
+) {
 
 	data := "Initial test data 3 asdf"
 	tmpName := "initialTestData3.txt"
@@ -275,12 +311,18 @@ func doPropertyUpdate(t *testing.T, clientID int, oid, updateJSON string) {
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
+	if trafficLog != nil {
+		trafficLog.Request(t, req, description)
+	}
 
 	client := clients[clientID].Client
 	res, err := client.Do(req)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
+	}
+	if trafficLog != nil {
+		trafficLog.Response(t, res)
 	}
 	defer util.FinishBody(res.Body)
 	jsonResponseBytes, err := ioutil.ReadAll(res.Body)

@@ -29,9 +29,14 @@ var (
 	fakeDN2 = `cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us`
 )
 
+const (
+	APISampleFile = "APISample"
+)
+
 var (
-	host    string
-	clients []*ClientIdentity
+	host        string
+	clients     []*ClientIdentity
+	trafficLogs map[string]*TrafficLog
 )
 
 func setup(ip string) {
@@ -78,10 +83,14 @@ func cleanupOpenFiles() {
 
 func TestMain(m *testing.M) {
 	flag.Parse()
+	//These are the possible test output files that will generate into the docs
+	trafficLogs = make(map[string]*TrafficLog)
+	trafficLogs[APISampleFile] = NewTrafficLog(APISampleFile)
 	dumpOpenFiles(*dumpFileDescriptors, "TestMain before setup")
 	setup(*testIP)
 	dumpOpenFiles(*dumpFileDescriptors, "TestMain after setup")
 	code := m.Run()
+	trafficLogs[APISampleFile].Close()
 	dumpOpenFiles(*dumpFileDescriptors, "TestMain after run")
 	cleanupOpenFiles()
 	dumpOpenFiles(*dumpFileDescriptors, "TestMain after cleanup")

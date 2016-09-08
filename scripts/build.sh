@@ -6,6 +6,7 @@ rm -rf ~/rpmbuild
 cd ${ODRIVE_ROOT}/cmd/odrive-database
 tar cvfz odrive-schema-${ODRIVE_VERSION}.tar.gz schema
 cd ${ODRIVE_ROOT}
+( cd docs && ./build )
 ( cd cmd/odrive && go build )
 ( cd cmd/odrive && go build -o main )
 ( cd cmd/odutil && go build )

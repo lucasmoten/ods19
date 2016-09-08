@@ -20,6 +20,5 @@ release
 # Delve debugger compiled binaries
 debug.*
 
-cmd/autopilot/Test*.md
-cmd/odrive/libs/server/Test*.md
-autopilot/cache/downloadCachetest_*/*
+cmd/odrive/libs/server/static/templates/root.html
+cmd/odrive/libs/server/static/templates/APISample.html
