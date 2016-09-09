@@ -1,5 +1,9 @@
 package protocol
 
+import (
+	"decipher.com/object-drive-server/metadata/models"
+)
+
 // Caller provides the distinguished names obtained from specific request
 // headers and peer certificate if called directly. Note that this type
 // mirrors the type in package server, and we should aim to unify them.
