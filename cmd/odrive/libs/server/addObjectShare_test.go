@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -718,39 +717,29 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 	}
 	defer util.FinishBody(httpCreateGroupShareResponse.Body)
 	// check status of response
-	if httpCreateGroupShareResponse.StatusCode != http.StatusForbidden {
-		t.Logf("Bad status when creating share: %s - Expected Forbidden", httpCreateGroupShareResponse.Status)
+	if httpCreateGroupShareResponse.StatusCode != http.StatusOK {
+		t.Logf("Bad status when creating share: %s - Expected OK", httpCreateGroupShareResponse.Status)
 		t.FailNow()
 	}
-	t.Logf("%s", httpCreateGroupShareResponse.Status)
-
-	// read body to check that the failure is for an expected type
-	bodyData, err := ioutil.ReadAll(httpCreateGroupShareResponse.Body)
-	bodyString := string(bodyData)
-	t.Logf(bodyString)
-	if !strings.Contains(bodyString, "would result in owner not being able to read") {
-		t.Logf("Message returned is not what was expected for this test")
-		t.Fail()
+	// parse back to object
+	var updatedObject2 protocol.Object
+	err = util.FullDecode(httpCreateGroupShareResponse.Body, &updatedObject2)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
 	}
 
-	t.Logf("* Verify all clients can still read it after tester10 attempted to change read settings that failed")
-	shouldHaveReadForObjectID(t, createdObject.ID, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+	t.Logf("* Verify only tester1 and members of odrive g1 can read it after odrive g1 given read/update permission")
+	shouldHaveReadForObjectID(t, createdObject.ID, 0, 1, 6, 7, 8, 9)
 	if t.Failed() {
 		t.FailNow()
 	}
-
-}
-
-func iifString(c bool, t string, f string) string {
-	if c {
-		return t
+	t.Logf("* Resulting permissions")
+	for _, permission := range updatedObject2.Permissions {
+		logPermission(t, permission)
 	}
-	return f
 }
+
 func logPermission(t *testing.T, permission protocol.Permission) {
-	t.Logf("[%s%s%s%s%s] %s (%s %s %s %s)",
-		iifString(permission.AllowCreate, "C", "-"), iifString(permission.AllowRead, "R", "-"),
-		iifString(permission.AllowUpdate, "U", "-"), iifString(permission.AllowDelete, "D", "-"),
-		iifString(permission.AllowShare, "S", "-"), permission.Grantee,
-		permission.ProjectName, permission.ProjectDisplayName, permission.GroupName, permission.UserDistinguishedName)
+	t.Logf("%s", permission)
 }

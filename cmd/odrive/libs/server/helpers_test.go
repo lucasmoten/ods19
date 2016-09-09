@@ -3,7 +3,6 @@ package server_test
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -109,7 +108,8 @@ func makeFolderWithACMWithParentViaJSON(folderName string, parentID string, rawA
 	// process Response
 	if res.StatusCode != http.StatusOK {
 		log.Printf("bad status: %s", res.Status)
-		return nil, errors.New("Status was " + res.Status)
+		htmlData, _ := ioutil.ReadAll(res.Body)
+		return nil, fmt.Errorf("Status was %s. Body: %s", res.Status, string(htmlData))
 	}
 	var createdFolder protocol.Object
 	err = util.FullDecode(res.Body, &createdFolder)

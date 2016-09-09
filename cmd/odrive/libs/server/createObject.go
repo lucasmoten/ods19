@@ -40,6 +40,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	var herr *AppError
 	var drainFunc func()
 
+	// Only used for the encryptkey and assignment later. Actual owner permission set in handleCreatePrerequisites
 	ownerPermission := permissionWithOwnerDefaults(caller)
 	models.SetEncryptKey(h.MasterKey, &ownerPermission)
 
@@ -108,10 +109,12 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	hasAACAccess := false
 	hasAACAccess, err = h.isUserAllowedForObjectACM(ctx, &obj)
 	if err != nil {
-		return NewAppError(502, err, "Error communicating with authorization service")
+		// TODO: Isolate different error types
+		//return NewAppError(502, err, "Error communicating with authorization service")
+		return NewAppError(403, err, err.Error())
 	}
 	if !hasAACAccess {
-		return NewAppError(403, err, "Unauthorized")
+		return NewAppError(403, err, err.Error())
 	}
 
 	// recalculate permission mac for owner permission

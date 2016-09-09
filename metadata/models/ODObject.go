@@ -79,3 +79,8 @@ type ODObjectResultset struct {
 	Resultset
 	Objects []ODObject
 }
+
+// IsCreating is a helper method to indicate if this object is being created
+func (object *ODObject) IsCreating() bool {
+	return (len(object.ID) == 0)
+}

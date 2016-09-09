@@ -69,7 +69,9 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	// from a clearance perspective
 	hasAACAccessToOLDACM, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
 	if err != nil {
-		return NewAppError(502, err, "Error communicating with authorization service")
+		// TODO: Isolate different error types
+		//return NewAppError(502, err, "Error communicating with authorization service")
+		return NewAppError(403, err, err.Error())
 	}
 	if !hasAACAccessToOLDACM {
 		return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for existing object ACM")
@@ -102,7 +104,9 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	// Final access check against altered ACM
 	hasAACAccess, err = h.isUserAllowedForObjectACM(ctx, &requestObjectWithIDFromURI)
 	if err != nil {
-		return NewAppError(502, err, "Error communicating with authorization service")
+		// TODO: Isolate different error types
+		//return NewAppError(502, err, "Error communicating with authorization service")
+		return NewAppError(403, err, err.Error())
 	}
 	if !hasAACAccess {
 		return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for updated object ACM")

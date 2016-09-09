@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
@@ -577,4 +578,79 @@ func TestCreateObjectWithFOIAExemptNotSet(t *testing.T) {
 		t.Logf("Value returned was %s", createdObject.ExemptFromFOIA)
 		t.FailNow()
 	}
+}
+
+func TestCreateObjectWithPermissionsThatDontGrantToOwner(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+
+	issue221 := `{
+    "permissions": [
+        {
+            "allowShare": false,
+            "allowRead": true,
+            "share": {
+                "users": [
+                    "cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+                ]
+            },
+            "allowUpdate": true,
+            "allowDelete": true,
+            "allowCreate": true
+        }
+    ],
+    "acm": {
+        "fgi_open": [],
+        "rel_to": [],
+        "sci_ctrls": [],
+        "owner_prod": [],
+        "portion": "S",
+        "disp_only": "",
+        "disponly_to": [],
+        "banner": "SECRET",
+        "non_ic": [],
+        "classif": "S",
+        "atom_energy": [],
+        "dissem_ctrls": [],
+        "sar_id": [],
+        "version": "2.1.0",
+        "fgi_protect": [],
+        "share": {
+            "users": [
+                "cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+            ],
+            "projects": {}
+        }
+    },
+    "progress": {
+        "percentage": 1,
+        "loading": true
+    },
+    "isShared": true,
+    "content": {
+        "ext": "png"
+    },
+    "type": "image/png",
+    "file": {},
+    "user_dn": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+    "name": "Screen Shot 2016-08-26 at 4.01.54 PM.png"
+}`
+	newobjuri := host + cfg.NginxRootURL + "/objects"
+	myobject, err := utils.UnmarshalStringToInterface(issue221)
+	if err != nil {
+		t.Logf("Error converting to interface: %s", err.Error())
+		t.FailNow()
+	}
+	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
+	createObjectRes, err := clients[tester10].Client.Do(createObjectReq)
+
+	t.Logf("* Processing Response")
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, createObjectRes, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(createObjectRes.Body, &createdObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+
 }

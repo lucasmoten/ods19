@@ -106,7 +106,21 @@ type CreatePermission struct {
 
 // String satisfies the Stringer interface for Permission.
 func (p Permission) String() string {
-	template := "[create=%v read=%v update=%v delete=%v share=%v grantee=%v]"
-	s := fmt.Sprintf(template, p.AllowCreate, p.AllowRead, p.AllowUpdate, p.AllowDelete, p.AllowShare, p.Grantee)
+	// template := "[create=%v read=%v update=%v delete=%v share=%v grantee=%v]"
+	// s := fmt.Sprintf(template, p.AllowCreate, p.AllowRead, p.AllowUpdate, p.AllowDelete, p.AllowShare, p.Grantee)
+	template := "[%s%s%s%s%s] %s"
+	s := fmt.Sprintf(template,
+		iifString(p.AllowCreate, "C", "-"),
+		iifString(p.AllowRead, "R", "-"),
+		iifString(p.AllowUpdate, "U", "-"),
+		iifString(p.AllowDelete, "D", "-"),
+		iifString(p.AllowShare, "S", "-"),
+		p.DisplayName)
 	return s
+}
+func iifString(c bool, t string, f string) string {
+	if c {
+		return t
+	}
+	return f
 }

@@ -3,13 +3,14 @@ package server_test
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 
 	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestAddObjectACMs(t *testing.T) {
-	t.Skipf("Skipping this test temporarily")
+
 	if testing.Short() {
 		t.Skip()
 	}
@@ -22,6 +23,11 @@ func TestAddObjectACMs(t *testing.T) {
 	}
 
 	//acms := [...]string{"{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[\"USA\"],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"NF\",\"FISA\"],\"non_ic\":[],\"rel_to\":[],\"declass_ex\":\"14X1-HUM\",\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U//NF/FISA\",\"banner\":\"UNCLASSIFIED//NOFORN/FISA\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[{\"coi\":\"DEA\",\"disp_nm\":\"DEA\"}],\"oc_attribs\":[{}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[\"dea\"],\"disp_only\":\"\"}", testhelpers.ValidACMTopSecretSITK, testhelpers.ValidACMUnclassified}
+
+	acmSkipReasons := make(map[int]string)
+	acmSkipReasons[0] = "User does not have proper MAC access"
+	acmSkipReasons[12] = "User does not belong to the correct Organization"
+	acmSkipReasons[13] = "User does not belong to the correct Organization"
 
 	var acms []string
 
@@ -50,14 +56,25 @@ func TestAddObjectACMs(t *testing.T) {
 
 	// Create object as testperson10 with ACM that is TS
 	for idx, acm := range acms {
+		acmSkipReason := acmSkipReasons[idx]
 		createdFolder, err := makeFolderWithACMViaJSON("TestACM "+strconv.Itoa(idx), acm, clientid1)
-		if err != nil {
-			t.Logf("Error making folder %d: %v", idx, err)
-			t.FailNow()
-		}
-		if len(createdFolder.ID) == 0 {
-			t.Logf("Object created has no ID")
-			t.FailNow()
+		if len(acmSkipReason) > 0 {
+			if err == nil {
+				t.Logf("Skipped test for %d is no longer reporting error.", idx)
+			} else {
+				if !strings.Contains(err.Error(), acmSkipReason) {
+					t.Logf("Skipped test %d didnt fail for expected reason. Actual error was %s", idx, err.Error())
+					t.Fail()
+				}
+			}
+		} else {
+			if err != nil {
+				t.Logf("Error making folder for test %d: %v", idx, err.Error())
+				t.Fail()
+			} else if len(createdFolder.ID) == 0 {
+				t.Logf("Object created for test %d has no ID", idx)
+				t.Fail()
+			}
 		}
 	}
 }
