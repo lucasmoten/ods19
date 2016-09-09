@@ -186,14 +186,16 @@ func NewCreateObjectPOSTRequest(host, dn string, f *os.File) (*http.Request, err
 	}
 
 	// TODO change this to object metadata? rjf - that would serialize unwanted zero fields
+	var rawAcm interface{}
+	json.Unmarshal([]byte(ValidACMUnclassifiedFOUO), &rawAcm)
 	createRequest := protocol.CreateObjectRequest{
 		Name:     testName,
 		TypeName: "File",
-		RawAcm:   ValidACMUnclassifiedFOUO,
+		RawAcm:   rawAcm,
 	}
 
 	var jsonBody []byte
-	jsonBody, err = json.Marshal(createRequest)
+	jsonBody, err = json.MarshalIndent(createRequest, "", "  ")
 	if err != nil {
 		return nil, err
 	}

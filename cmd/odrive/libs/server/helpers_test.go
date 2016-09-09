@@ -137,14 +137,52 @@ func makeFolderWithParentViaJSON(folderName string, parentID string, clientid in
 	return obj
 }
 
-func doTestCreateObjectSimple(t *testing.T, data string, clientID int) (*http.Response, protocol.Object) {
+// DoWithDecodedResult is the common case of getting back a json response that is ok
+// Need to have one that isn't closed yet so we can dump out to traffic log
+// The _test package structure is preventing just moving this into the testhelpers
+func DoWithDecodedResult(
+	t *testing.T,
+	client *http.Client,
+	req *http.Request,
+	trafficLog *TrafficLog,
+	description *TrafficLogDescription,
+) (*http.Response, interface{}, error) {
+	if trafficLog != nil {
+		trafficLog.Request(t, req, description)
+	}
+	var objResponse protocol.Object
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, objResponse, err
+	}
+	if trafficLog != nil {
+		trafficLog.Response(t, res)
+	}
+	d := json.NewDecoder(res.Body)
+	err = d.Decode(&objResponse)
+	if err != nil {
+		log.Printf("error decoding response: %v", err)
+	}
+	util.FinishBody(res.Body)
+	res.Body.Close()
+	return res, objResponse, err
+}
+
+func doTestCreateObjectSimple(
+	t *testing.T,
+	data string,
+	clientID int,
+	trafficLog *TrafficLog,
+	description *TrafficLogDescription,
+) (*http.Response, protocol.Object) {
 	client := clients[clientID].Client
 	testName, err := util.NewGUID()
 	if err != nil {
 		t.Fail()
 	}
 
-	acm := ValidAcmCreateObjectSimple
+	var acm interface{}
+	json.Unmarshal([]byte(ValidAcmCreateObjectSimple), &acm)
 	tmpName := "initialTestData1.txt"
 	tmp, tmpCloser, err := testhelpers.GenerateTempFile(data)
 	if err != nil {
@@ -159,7 +197,7 @@ func doTestCreateObjectSimple(t *testing.T, data string, clientID int) (*http.Re
 	}
 
 	var jsonBody []byte
-	jsonBody, err = json.Marshal(createRequest)
+	jsonBody, err = json.MarshalIndent(createRequest, "", "  ")
 	if err != nil {
 		t.Fail()
 	}
@@ -170,10 +208,11 @@ func doTestCreateObjectSimple(t *testing.T, data string, clientID int) (*http.Re
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
 
-	res, untyped, err := testhelpers.DoWithDecodedResult(client, req)
+	res, untyped, err := DoWithDecodedResult(t, client, req, trafficLog, description)
 	if err != nil {
 		t.Fail()
 	}
+
 	statusExpected(t, 200, res, "doTestCreateObjectSimple internal failure")
 	obj := untyped.(protocol.Object)
 

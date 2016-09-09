@@ -30,7 +30,7 @@ func TestEtag(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failure from redo get object stream: %v\n", err)
 	}
-	res2 := doGetObjectRequest(t, clientID, req2, 200)
+	res2 := doGetObjectRequest(t, clientID, req2, 200, nil, nil)
 	eTag := res2.Header.Get("Etag")
 	util.FinishBody(res2.Body)
 	t.Logf("we got eTag:%s", eTag)
@@ -50,7 +50,20 @@ func TestEtag(t *testing.T) {
 	}
 	req3.Header.Set("If-none-match", eTag)
 
-	res3 := doGetObjectRequest(t, clientID, req3, 304)
+	res3 := doGetObjectRequest(t, clientID, req3, 304,
+		trafficLogs[APISampleFile],
+		&TrafficLogDescription{
+			OperationName:      "Client Caching",
+			RequestDescription: "Use the Etag header sent back as If-none-match to get a 304 indicating that the content has not changed",
+			ResponseDescription: `
+				We get back the code rather than wastefully sending back the whole file when it has not changed.  
+				304 means Not-Modified.  
+				Modern web browsers do this internally to avoid re-fetching unchanged content, 
+				especially with images and javascript.
+				When we get an object, we get an Etag back regardless of whether it was a 200 or 304.
+				`,
+		},
+	)
 	util.FinishBody(res3.Body)
 
 	//Ask with a wrong tag and get 200
@@ -63,7 +76,7 @@ func TestEtag(t *testing.T) {
 	req4.Header.Set("If-none-match", eTag2)
 
 	//We can use DoCreateObjectRequest because we definitely expect a 200 in this case
-	res4 := doGetObjectRequest(t, clientID, req4, 200)
+	res4 := doGetObjectRequest(t, clientID, req4, 200, nil, nil)
 	util.FinishBody(res4.Body)
 }
 
@@ -89,13 +102,28 @@ func TestUploadAndGetByteRange(t *testing.T) {
 		t.Errorf("Could not create GetObjectStreamRequest: %v\n", err)
 	}
 	rangeReq.Header.Set("Range", fmt.Sprintf("bytes=%v-%v", start, end-1))
-
+	trafficLogs[APISampleFile].Request(t, rangeReq,
+		&TrafficLogDescription{
+			OperationName: "Range Request a file",
+			RequestDescription: `
+			Get a byte range out of a file, rather than the whole file.
+			This is a critical feature for using media such as video over http.
+			This allows for multi-gigabyte video files to be handled very easily by
+			both the web server and the browser while using a small amount of memory.
+			`,
+			ResponseDescription: `
+			The response that comes back is truncated within the requested byte range.
+			Note that the Etag applies to the whole file, and not the parts.
+			`,
+		},
+	)
 	//We can't call DoCreateObjectRequest because we read a byte body and
 	//need the count
 	rangeRes, err := clients[clientID].Client.Do(rangeReq)
 	if err != nil {
 		t.Errorf("Could not perform range request: %v\n", err)
 	}
+	trafficLogs[APISampleFile].Response(t, rangeRes)
 	defer util.FinishBody(rangeRes.Body)
 	returned, err := ioutil.ReadAll(rangeRes.Body)
 	if err != nil {

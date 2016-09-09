@@ -56,8 +56,7 @@ install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/listObjects.
 install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/listObjects.js ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/listObjects.js
 install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/ObjectDriveSDK.java ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/ObjectDriveSDK.java
 install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/root.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/root.html
-install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/TestShare.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/TestShare.html
-install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/TestUpdate.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/TestUpdate.html
+install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/templates/APISample.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/APISample.html
 install -m 644 -D ${ODRIVE_BINARY_DIR}/libs/server/static/favicon.ico ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/favicon.ico
 
 # SCHEMA TARBALL

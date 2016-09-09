@@ -92,7 +92,7 @@ func TestCreateObjectSimple(t *testing.T) {
 	}
 	clientID := 5
 	data := "Initial test data 1"
-	_, obj := doTestCreateObjectSimple(t, data, clientID)
+	_, obj := doTestCreateObjectSimple(t, data, clientID, nil, nil)
 	doCheckFileNowExists(t, clientID, obj)
 
 	if len(obj.Permissions) == 0 {
@@ -196,8 +196,24 @@ posting a file
 }
 
 // doGetObjectRequest gets an http status code and an object, and fails on error
-func doGetObjectRequest(t *testing.T, clientID int, req *http.Request, expectedCode int) *http.Response {
+func doGetObjectRequest(
+	t *testing.T,
+	clientID int,
+	req *http.Request,
+	expectedCode int,
+	trafficLog *TrafficLog,
+	description *TrafficLogDescription,
+) *http.Response {
+	if trafficLog != nil {
+		trafficLog.Request(t, req, description)
+	}
 	res, err := clients[clientID].Client.Do(req)
+	if err != nil && trafficLog != nil {
+		trafficLog.Response(t, res)
+	}
+	if trafficLog != nil {
+		trafficLog.Response(t, res)
+	}
 	t.Logf("check response")
 	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, expectedCode, res, "Bad status when creating object")
@@ -331,7 +347,7 @@ func TestCreateStreamWithPermissions(t *testing.T) {
 	permission := protocol.ObjectShare{Share: makeGroupShare("dctc", "DCTC", "ODrive"), AllowCreate: true, AllowRead: true, AllowUpdate: true, AllowDelete: true}
 	object.Permissions = append(object.Permissions, permission)
 	t.Logf("jsoninfying")
-	jsonBody, _ := json.Marshal(object)
+	jsonBody, _ := json.MarshalIndent(object, "", "  ")
 
 	t.Logf("http request and client")
 
@@ -349,12 +365,29 @@ func TestCreateStreamWithPermissions(t *testing.T) {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
 
+	trafficLogs[APISampleFile].Request(t, req,
+		&TrafficLogDescription{
+			OperationName: "Create an object stream with explicit permissions set",
+			RequestDescription: `
+			This object is created with a user explicitly put into the DCTC group ODrive
+			`,
+			ResponseDescription: `
+			The object should have have permissions put in according to what we explicitly set,
+			rather than solely based on the ACM contents.
+			Note that the original DN of the user is converted to lower case ("normalized").
+			References to users and groups from permissions have a "flattened" DN which strips non alphanumeric
+			(or underscore) characters.
+			`,
+		},
+	)
+
 	client := clients[tester10].Client
 	res, err := client.Do(req)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
 	}
+	trafficLogs[APISampleFile].Response(t, res)
 	defer util.FinishBody(res.Body)
 	if res.StatusCode != http.StatusOK {
 		t.FailNow()

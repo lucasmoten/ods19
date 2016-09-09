@@ -45,11 +45,19 @@ func TestHTTPUndeleteObject(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
+	trafficLogs[APISampleFile].Request(t, req,
+		&TrafficLogDescription{
+			OperationName:       "Undelete a file",
+			RequestDescription:  "We can use the id of a file to rescue it from the trash.",
+			ResponseDescription: "This is the restored object.",
+		},
+	)
 	res, err := clients[clientID].Client.Do(req)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
 	}
+	trafficLogs[APISampleFile].Response(t, res)
 	defer util.FinishBody(res.Body)
 	var objResponse protocol.Object
 

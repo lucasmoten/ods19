@@ -136,11 +136,18 @@ Download
 odutil -cmd download -input somefile.txt -bucket decipher-tools -key some/path/somefile.txt 
 ```
 
-Making an rpm:
+Generating current docs (no longer checked in):
+
+```
+./makedocs
+```
+
+Making an rpm (will build docs as well):
 
 ```
 cd $GOPATH/src/decipher.com/object-drive-server
 #make an rpm and call it build number 450.  It will be in current directory when done
 ./makerpm 450
 ```
+
 

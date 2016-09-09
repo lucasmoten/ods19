@@ -96,7 +96,14 @@ func TestZip(t *testing.T) {
 		objs = append(objs, objs[5])
 		duplicates++
 	}
-	doTestZip(t, objs, someDataString, duplicates, http.StatusOK)
+	doTestZip(t, objs, someDataString, duplicates, http.StatusOK, trafficLogs[APISampleFile],
+		&TrafficLogDescription{
+			OperationName:       "Zip up some files",
+			RequestDescription:  "Select a set of individual files (not directories) and send their identifiers in the request",
+			ResponseDescription: "We get back a binary zip file as a response",
+			ResponseBodyHide:    true,
+		},
+	)
 }
 
 //Get a 400 when we submit a trivial object list
@@ -112,7 +119,7 @@ func TestZipEmpty(t *testing.T) {
 		t.Fail()
 	}
 	objs = append(objs, *mapsFolder)
-	doTestZip(t, objs, someDataString, duplicates, 400)
+	doTestZip(t, objs, someDataString, duplicates, 400, nil, nil)
 }
 
 //Get a 404 when we submit a wrong object id
@@ -129,7 +136,7 @@ func TestZipWrong(t *testing.T) {
 	}
 	mapsFolder.ID = "e234e234e234e234e234e234e234e234"
 	objs = append(objs, *mapsFolder)
-	doTestZip(t, objs, someDataString, duplicates, 404)
+	doTestZip(t, objs, someDataString, duplicates, 404, nil, nil)
 }
 
 //Get a 400 when we submit a wrong object list
@@ -142,10 +149,10 @@ func TestZipBad(t *testing.T) {
 	acm := testhelpers.ValidACMUnclassifiedFOUOSharedToTester01And02
 	objs = append(objs, testZipMakeFileWithACM(t, tester01, "", fmt.Sprintf("tester01private.txt"), someDataString, acm))
 	//test tester10 will perform the zip.  test tester01 owns the file.
-	doTestZip(t, objs, someDataString, duplicates, 400)
+	doTestZip(t, objs, someDataString, duplicates, 400, nil, nil)
 }
 
-func doTestZip(t *testing.T, objs []protocol.Object, someDataString string, duplicates int, expected int) {
+func doTestZip(t *testing.T, objs []protocol.Object, someDataString string, duplicates int, expected int, trafficLog *TrafficLog, description *TrafficLogDescription) {
 	tester10 := 0
 	client := clients[tester10].Client
 
@@ -175,6 +182,9 @@ func doTestZip(t *testing.T, objs []protocol.Object, someDataString string, dupl
 		t.Logf("unable to make request for zip: %v", err)
 		t.FailNow()
 	}
+	if trafficLog != nil && description != nil {
+		trafficLog.Request(t, req, description)
+	}
 
 	t.Logf("Starting zip: %v", time.Now())
 	res, err := client.Do(req)
@@ -182,6 +192,9 @@ func doTestZip(t *testing.T, objs []protocol.Object, someDataString string, dupl
 	if err != nil {
 		t.Logf("cannot get zip: %v", err)
 		t.FailNow()
+	}
+	if trafficLog != nil && description != nil {
+		trafficLog.Response(t, res)
 	}
 	defer util.FinishBody(res.Body)
 

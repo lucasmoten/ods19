@@ -39,17 +39,27 @@ func TestDeleteObject(t *testing.T) {
 		t.FailNow()
 	}
 	req, err := http.NewRequest("POST", deleteuri, bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		log.Printf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
+	req.Header.Set("Content-Type", "application/json")
+	trafficLogs[APISampleFile].Request(t, req,
+		&TrafficLogDescription{
+			OperationName:      "Delete a folder",
+			RequestDescription: "Use a reference to the object to put it into the trash.",
+			ResponseDescription: `
+				The trashed object is still in the system, 
+				so that it may be removed from trash if necessary.`,
+		},
+	)
 	// do the request
 	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		t.FailNow()
 	}
+	trafficLogs[APISampleFile].Response(t, res)
 	defer util.FinishBody(res.Body)
 	// process Response
 	if res.StatusCode != http.StatusOK {
