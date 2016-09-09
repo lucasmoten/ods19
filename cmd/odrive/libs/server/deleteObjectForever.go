@@ -73,7 +73,7 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 	}
 
 	// Response in requested format
-	apiResponse := mapping.MapODObjectToExpungedObjectResponse(&dbObject)
+	apiResponse := mapping.MapODObjectToExpungedObjectResponse(&dbObject).WithCallerPermission(protocolCaller(caller))
 	jsonResponse(w, apiResponse)
 	return nil
 }

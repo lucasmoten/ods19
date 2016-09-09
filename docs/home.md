@@ -1187,6 +1187,8 @@ User Stats provides metrics information for the user's total number of objects a
 + createdBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) - The user that created the object.
 + modifiedDate: `2016-03-07T17:03:13Z` (string) -  The date and time the object was last modified in the system in UTC ISO 8601 format. For unchanged objects, this will reflect the same value as the createdDate field.
 + modifiedBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) - The user that last modified this object. For unchanged objects, this will reflect the same value as the createdBy field.
++ deletedDate: `0001-01-01T00:00:00Z` (string, optional) -  The date and time the object was deleted in the system in UTC ISO 8601 format. This field is only populated if the object is in the trash.
++ deletedBy: `` (string) - The user that deleted the object. This field is only populated if the object is in the trash.
 + changeCount: 42 (number) - The total count of changes that have been made to this object over its lifespan. Synonymous with version number. For unchanged objects, this will always be 0.
 + changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) - A hash of the object's unique identifier and last modification date and time.
 + ownedBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) - The user that owns the object.
@@ -1198,12 +1200,12 @@ User Stats provides metrics information for the user's total number of objects a
 + acm (ACMResponse, required) - The acm value associated with this object in object form
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
 + contentSize: 1511 (string) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
-+ properties (array[Property]) - Array of custom properties associated with the object.
-+ callerPermissions (CallerPermission) - Permissions granted to the caller that resulted in this object being returned.
-+ permissions (array[PermissionUser,PermissionGroup]) - Array of permissions associated with this object.
 + isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
++ properties (array[Property]) - Array of custom properties associated with the object.
++ callerPermissions (CallerPermission) - Permissions granted to the caller that resulted in this object being returned.
++ permissions (array[PermissionUser,PermissionGroup]) - Array of permissions associated with this object.
 
 ## ObjectRespDeleted (object)
 
@@ -1225,11 +1227,12 @@ User Stats provides metrics information for the user's total number of objects a
 + acm (ACMResponse, required) - The acm value associated with this object in object form
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
 + contentSize: 1511 (string) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
-+ properties (array[Property]) - Array of custom properties associated with the object.
-+ permissions (array[PermissionUser,PermissionGroup]) - Array of permissions associated with this object.
 + isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
++ properties (array[Property]) - Array of custom properties associated with the object.
++ callerPermissions (CallerPermission) - Permissions granted to the caller that resulted in this object being returned.
++ permissions (array[PermissionUser,PermissionGroup]) - Array of permissions associated with this object.
 
 ## ObjectResultset (object)
 

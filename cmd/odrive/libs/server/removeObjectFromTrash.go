@@ -58,7 +58,7 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 		return NewAppError(500, err, "Error restoring object")
 	}
 
-	apiResponse := mapping.MapODObjectToObject(&unDeletedObj)
+	apiResponse := mapping.MapODObjectToObject(&unDeletedObj).WithCallerPermission(protocolCaller(caller))
 
 	h.EventQueue.Publish(events.Index{
 		ObjectID:     apiResponse.ID,

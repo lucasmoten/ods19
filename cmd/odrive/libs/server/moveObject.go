@@ -139,7 +139,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 		}
 	}
 
-	apiResponse := mapping.MapODObjectToObject(&dbObject)
+	apiResponse := mapping.MapODObjectToObject(&dbObject).WithCallerPermission(protocolCaller(caller))
 	jsonResponse(w, apiResponse)
 
 	return nil

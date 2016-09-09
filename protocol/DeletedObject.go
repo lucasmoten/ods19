@@ -53,19 +53,33 @@ type DeletedObject struct {
 	ContentSize int64 `json:"contentSize"`
 	// A sha256 hash of the plaintext as hex encoded string
 	ContentHash string `json:"contentHash"`
+	// IsPDFAvailable indicates if a PDF rendition is available for this object
+	IsPDFAvailable bool `json:"isPDFAvailable"`
+	// ContainsUSPersonsData indicates if this object contains US Persons data (Yes,No,Unknown)
+	ContainsUSPersonsData string `json:"containsUSPersonsData"`
+	// ExemptFromFOIA indicates if this object is exempt from Freedom of Information Act requests (Yes,No,Unknown)
+	ExemptFromFOIA string `json:"exemptFromFOIA"`
 	// Properties is an array of Object Properties associated with this object
 	// structured as key/value with portion marking.
 	Properties []Property `json:"properties,omitempty"`
-	// Permission is the permission for this object
+	// CallerPermission is the composite permission the caller has for this object
+	CallerPermission CallerPermission `json:"callerPermission,omitempty"`
 	//Permission Permission `json:"permission,omitempty"`
 	// Permissions is an array of Object Permissions associated with this object
 	// This might be null.  It could have a large list of permission objects
 	// relevant to this file (ie: shared with an organization)
 	Permissions []Permission `json:"permissions,omitempty"`
-	// IsPDFAvailable indicates if a PDF rendition is available for this object
-	IsPDFAvailable bool `db:"isPDFAvailable" json:"-"`
-	// ContainsUSPersonsData indicates if this object contains US Persons data (Yes,No,Unknown)
-	ContainsUSPersonsData string `json:"containsUSPersonsData"`
-	// ExemptFromFOIA indicates if this object is exempt from Freedom of Information Act requests (Yes,No,Unknown)
-	ExemptFromFOIA string `json:"exemptFromFOIA"`
+}
+
+// WithCallerPermission rolls up permissions for a caller, sets them on a copy of
+// the DeletedObject, and returns that copy.
+func (obj DeletedObject) WithCallerPermission(caller Caller) DeletedObject {
+
+	var cp CallerPermission
+	cp = cp.WithRolledUp(caller, obj.Permissions...)
+	cp.AllowCreate = false
+	cp.AllowUpdate = false
+	cp.AllowShare = false
+	obj.CallerPermission = cp
+	return obj
 }

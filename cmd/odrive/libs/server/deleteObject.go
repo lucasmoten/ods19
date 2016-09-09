@@ -79,7 +79,7 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 	}
 
 	// Response in requested format
-	apiResponse := mapping.MapODObjectToDeletedObjectResponse(&dbObject)
+	apiResponse := mapping.MapODObjectToDeletedObjectResponse(&dbObject).WithCallerPermission(protocolCaller(caller))
 	h.EventQueue.Publish(events.Index{
 		ObjectID:     apiResponse.ID,
 		Timestamp:    time.Now().Format(time.RFC3339),

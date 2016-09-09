@@ -50,7 +50,8 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	}
 
 	if dbObject.IsDeleted {
-		jsonResponse(w, mapping.MapODObjectToDeletedObject(&dbObject))
+		apiResponse := mapping.MapODObjectToDeletedObject(&dbObject).WithCallerPermission(protocolCaller(caller))
+		jsonResponse(w, apiResponse)
 	} else {
 		apiResponse := mapping.MapODObjectToObject(&dbObject).WithCallerPermission(protocolCaller(caller))
 		jsonResponse(w, apiResponse)
