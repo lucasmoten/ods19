@@ -1,15 +1,9 @@
 #!/bin/bash
 
 cd `dirname $0`
-odriverpmbuilt=`docker images | grep odriverpm | wc -l`
 
-if [ "$odriverpmbuilt" == "       1" ]
-then
-  echo docker image already built
-else
-  docker build -t deciphernow/odriverpm:latest scripts
-fi
-
-docker run -i -w /go/src/decipher.com/object-drive-server/docs -e ODRIVE_PACKAGE_NAME="odrive-$1" -e ODRIVE_VERSION=$1 -v `pwd`:/go/src/decipher.com/object-drive-server deciphernow/odriverpm:latest ./build
+#Use humangeo's aglio container and copy artifact to where it needs to be
+docker run --rm -ti -v `pwd`:/docs humangeo/aglio -i docs/home.md --theme-variables streak -o root.html
+mv root.html cmd/odrive/libs/server/static/templates/root.html
 
 

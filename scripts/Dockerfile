@@ -1,4 +1,4 @@
-FROM centos:7
+FROM centos:6.7
 
 # For RPM build
 
@@ -10,11 +10,8 @@ RUN yum -y update; \
     yum -y install rpm-build; \
     yum -y install git; \
     yum -y install epel-release; \
-    yum -y install npm nodejs; \  
     yum -y install make; \
     yum -y install gcc;
-
-RUN npm install -g promise acorn node-gyp fstream argparse mkdirp aglio
 
 RUN wget https://storage.googleapis.com/golang/go1.6.linux-amd64.tar.gz
 RUN tar -C /usr/local -xzf go1.6.linux-amd64.tar.gz
