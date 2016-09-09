@@ -1,5 +1,0 @@
-#!/bin/bash
-
-staticroot=$GOPATH/src/decipher.com/object-drive-server/cmd/odrive/libs/server/static/templates
-
-aglio --theme-variables streak -i home.md -o $staticroot/root.html
