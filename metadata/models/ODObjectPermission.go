@@ -168,3 +168,8 @@ func AACFlatten(inVal string) string {
 	}
 	return outVal
 }
+
+// IsCreating is a helper method to indicate if this permission is being created
+func (permission *ODObjectPermission) IsCreating() bool {
+	return (len(permission.ID) == 0)
+}

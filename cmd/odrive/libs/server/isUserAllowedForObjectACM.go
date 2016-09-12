@@ -81,6 +81,7 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 	// AAC Response returned without error, was successful
 	if !aacResponse.HasAccess {
 		logger.Error("aacResponse.HasAccess == false", zap.String("acm", acm), zap.String("dn", dn))
+		return false, fmt.Errorf("Access Denied for ACM: %s", strings.Join(aacResponse.Messages, "/"))
 	}
 	return aacResponse.HasAccess, nil
 }
@@ -136,16 +137,6 @@ func (h AppServer) flattenACMAndCheckAccess(ctx context.Context, object *models.
 	if err != nil {
 		return false, fmt.Errorf("Unable to marshal share from acm to string format: %v", err)
 	}
-
-	// // Remove the share part from acm to be checked and populated if it has content
-	// if len(share) > 0 {
-	// 	tempObject := models.ODObject{}
-	// 	tempObject.RawAcm.String = object.RawAcm.String
-	// 	tempObject.RawAcm.Valid = true
-	// 	setACMPartFromInterface(ctx, &tempObject, "share", nil)
-	// 	acm = tempObject.RawAcm.String
-	// 	log.Printf("Changing ACM being checked to: %s", acm)
-	// }
 
 	acmInfo := aac.AcmInfo{Path: "X", Acm: acm, IncludeInRollup: false}
 	acmInfoList := []*aac.AcmInfo{&acmInfo}

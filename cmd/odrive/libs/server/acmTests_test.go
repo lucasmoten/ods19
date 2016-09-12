@@ -85,10 +85,12 @@ func TestAcmWithShareForODrive(t *testing.T) {
 	shouldNotHaveReadForObjectID(t, createdObject.ID, 10)
 }
 
-// TestAcmWithShareForODriveG1Disallowed - User T1 creates object O3 with ACM
-// having share for group ODrive G1. Verify that this is rejected since T1 is
-// not in that group.
-func TestAcmWithShareForODriveG1Disallowed(t *testing.T) {
+// TestAcmWithShareCreatorIsNotInWillForceThemIntoShare - User T1 creates
+// object O3 with ACM having share for group ODrive G1. T1 is not in this
+// group and AAC would reject it on its own. Verify that the object is still
+// created and T1 can read it, and that the resultant share includes
+// group ODrive G1 as well as user T1
+func TestAcmWithShareCreatorIsNotInWillForceThemIntoShare(t *testing.T) {
 	// ### Create object O3 as tester1
 	tester1 := 1
 	// prep object
@@ -109,10 +111,19 @@ func TestAcmWithShareForODriveG1Disallowed(t *testing.T) {
 	httpCreateResponse, err := client.Do(httpCreate)
 	failNowOnErr(t, err, "unable to do request")
 	defer util.FinishBody(httpCreateResponse.Body)
-	statusMustBe(t, 403, httpCreateResponse, "bad status when creating object")
-	t.Logf("%s is not allowed to create object %s with acm %s", clients[tester1].Name, createObjectRequest.Name, createObjectRequest.RawAcm)
-	ioutil.ReadAll(httpCreateResponse.Body)
-	httpCreateResponse.Body.Close()
+	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
+
+	var createdObject protocol.Object
+	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+
+	for _, p := range createdObject.Permissions {
+		logPermission(t, p)
+	}
+
+	shouldHaveReadForObjectID(t, createdObject.ID, 1, 6, 7, 8, 9, 0)
+	shouldNotHaveReadForObjectID(t, createdObject.ID, 2, 3, 4, 5, 10)
+
 }
 
 // TestAcmWithShareForODriveG1Allowed - User T10 creates object O4 with ACM
@@ -182,36 +193,6 @@ func TestAcmWithShareForODriveG2Allowed(t *testing.T) {
 	shouldHaveReadForObjectID(t, createdObject.ID, 1, 2, 3, 4, 5)
 	shouldNotHaveReadForObjectID(t, createdObject.ID, 6, 7, 8, 9, 0)
 
-}
-
-// TestAcmWithShareForODriveG2Disallowed - User T10 creates object O6 with ACM
-// having share for group ODrive G2. Verify that this is rejected since T10 is
-// not in that group.
-func TestAcmWithShareForODriveG2Disallowed(t *testing.T) {
-	// ### Create object O6 as tester1
-	tester10 := 0
-	// prep object
-	var createObjectRequest protocol.CreateObjectRequest
-	createObjectRequest.Name = "TestACM O6"
-	createObjectRequest.TypeName = "Folder"
-	createObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{"projects":{"DCTC":{"disp_nm":"DCTC","groups":["ODrive_G2"]}}}}`
-	createObjectRequest.ContentSize = 0
-	// jsonify it
-	jsonBody, _ := json.Marshal(createObjectRequest)
-	// prep http request
-	uriCreate := host + cfg.NginxRootURL + "/objects"
-	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
-	httpCreate.Header.Set("Content-Type", "application/json")
-
-	httpCreateResponse, err := clients[tester10].Client.Do(httpCreate)
-	failNowOnErr(t, err, "Unable to do request")
-	defer util.FinishBody(httpCreateResponse.Body)
-	statusMustBe(t, 403, httpCreateResponse, "Bad status when creating object")
-	t.Logf("%s is not allowed to create object %s with acm %s",
-		clients[tester10].Name, createObjectRequest.Name, createObjectRequest.RawAcm)
-
-	ioutil.ReadAll(httpCreateResponse.Body)
-	httpCreateResponse.Body.Close()
 }
 
 // TestAddReadShareForUser - User T1 creates object O7 with ACM having share

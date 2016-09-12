@@ -161,9 +161,6 @@ func CombineInterface(sourceInterface interface{}, interfaceToAdd interface{}) i
 	// log.Printf("sMap after: %s", sMapString)
 	return sMap
 }
-func subtractInterface(sourceInterface interface{}, interfaceToRemove interface{}) interface{} {
-	return nil
-}
 func createMapFromInterface(sourceInterface interface{}) (map[string]interface{}, bool) {
 	m, ok := sourceInterface.(map[string]interface{})
 	return m, ok
@@ -325,12 +322,52 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 				LoggerFromContext(ctx).Info("permission grantee is everyone")
 				hasEveryone = true
 			} else {
-				if isCreating(obj) {
+				if obj.IsCreating() {
 					// When creating and permission grants read but isnt everyone, then
 					// thats an indicator that we shouldn't support read for everyone
 					LoggerFromContext(ctx).Info("creating object with permission that grants read but isn't everyone", zap.String("grantee", permission.Grantee))
 					acmSaysEveryone = false
 				}
+			}
+		}
+	}
+
+	// Force Owner CRUDS
+	if !acmSaysEveryone {
+		// prep permission
+		ownerCRUDS := models.PermissionForUser(obj.OwnedBy.String, true, true, true, true, true)
+		obj.Permissions = append(obj.Permissions, ownerCRUDS)
+		// check if in the ACM grants already
+		hasAcmGrantee := false
+		for _, readGrantee := range readGrants {
+			if strings.Compare(ownerCRUDS.Grantee, readGrantee) == 0 {
+				hasAcmGrantee = true
+				break
+			}
+		}
+		if !hasAcmGrantee {
+			// add to allowed grant
+			readGrants = append(readGrants, ownerCRUDS.Grantee)
+			// add to acmPermissions for later checks
+			acmPermissions = append(acmPermissions, ownerCRUDS)
+			// inject into ACM share
+			interfaceToAdd, err := utils.UnmarshalStringToInterface(ownerCRUDS.AcmShare)
+			if err != nil {
+				return NewAppError(500, fmt.Errorf("ACM share for owner CRUDS does not convert to interface"), "ACM share for owner unparseable")
+			}
+			combinedInterface := CombineInterface(shareInterface, interfaceToAdd)
+			if herr := setACMPartFromInterface(ctx, obj, "share", combinedInterface); herr != nil {
+				return herr
+			}
+			// inject into ACM f_share
+			herr, fShareInterface := getACMInterfacePart(obj, "f_share")
+			if herr != nil {
+				return herr
+			}
+			fShareValues := getStringArrayFromInterface(fShareInterface)
+			fShareValues = append(fShareValues, ownerCRUDS.Grantee)
+			if herr := setACMPartFromInterface(ctx, obj, "f_share", fShareValues); herr != nil {
+				return herr
 			}
 		}
 	}
@@ -361,7 +398,7 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 					if permission.IsReadOnly() {
 						// A read only permission that isn't everyone when everyone is present can simply be removed.
 						LoggerFromContext(ctx).Info("removing readonly permission that is not everyone", zap.String("grantee", permission.Grantee))
-						if isCreating(obj) {
+						if obj.IsCreating() || permission.IsCreating() {
 							// creating object, remove from list
 							obj.Permissions = append(obj.Permissions[:i], obj.Permissions[i+1:]...)
 						} else {
@@ -373,12 +410,16 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 						LoggerFromContext(ctx).Info("removing read from grantee since acm gives read to everyone", zap.String("grantee", obj.Permissions[i].Grantee))
 						replacementPermission := models.PermissionWithoutRead(obj.Permissions[i])
 						replacementPermission.ExplicitShare = true
-						if isCreating(obj) {
+						if obj.IsCreating() {
 							// creating object, can redfine it
 							obj.Permissions[i] = replacementPermission
 						} else {
 							// updating object, have to add new in place, and mark old as deleted
-							obj.Permissions[i].IsDeleted = true
+							if !obj.Permissions[i].IsCreating() {
+								obj.Permissions[i].IsDeleted = true
+							} else {
+								obj.Permissions = append(obj.Permissions[:i], obj.Permissions[+1:]...)
+							}
 							obj.Permissions = append(obj.Permissions, replacementPermission)
 						}
 					}
@@ -416,7 +457,7 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 					if permission.IsReadOnly() {
 						// A read only permission that isn't one of the acmGrantees can simply be removed.
 						LoggerFromContext(ctx).Info("removing grantee not present in acm", zap.String("grantee", obj.Permissions[i].Grantee))
-						if isCreating(obj) {
+						if obj.IsCreating() || permission.IsCreating() {
 							// creating object, remove from list
 							obj.Permissions = append(obj.Permissions[:i], obj.Permissions[i+1:]...)
 						} else {
@@ -428,12 +469,16 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 						LoggerFromContext(ctx).Info("removing read from grantee not present in acm", zap.String("grantee", obj.Permissions[i].Grantee))
 						replacementPermission := models.PermissionWithoutRead(obj.Permissions[i])
 						replacementPermission.ExplicitShare = true
-						if isCreating(obj) {
+						if obj.IsCreating() {
 							// creating object, can redfine it
 							obj.Permissions[i] = replacementPermission
 						} else {
 							// updating object, have to add new in place, and mark old as deleted
-							obj.Permissions[i].IsDeleted = true
+							if !obj.Permissions[i].IsCreating() {
+								obj.Permissions[i].IsDeleted = true
+							} else {
+								obj.Permissions = append(obj.Permissions[:i], obj.Permissions[+1:]...)
+							}
 							obj.Permissions = append(obj.Permissions, replacementPermission)
 						}
 					}
@@ -452,7 +497,7 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 			!permission.AllowUpdate {
 			// nothing granted. remove it
 			LoggerFromContext(ctx).Info("removing permission that does not grant capabilities", zap.String("grantee", permission.Grantee))
-			if isCreating(obj) {
+			if obj.IsCreating() || permission.IsCreating() {
 				// creating object, remove from list
 				obj.Permissions = append(obj.Permissions[:i], obj.Permissions[i+1:]...)
 			} else {
@@ -464,8 +509,4 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 
 	// No errors
 	return nil
-}
-
-func isCreating(obj *models.ODObject) bool {
-	return (len(obj.ID) == 0)
 }

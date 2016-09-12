@@ -153,7 +153,9 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	// 		Check if Classification is allowed for this User
 	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &object)
 	if err != nil {
-		return NoBytesReturned, NewAppError(502, err, "Error communicating with authorization service")
+		// TODO: Isolate different error types
+		// return NoBytesReturned, NewAppError(502, err, "Error communicating with authorization service")
+		return NoBytesReturned, NewAppError(403, err, err.Error())
 	}
 	if !hasAACAccess {
 		return NoBytesReturned, NewAppError(403, err, "Forbidden - User does not pass authorization checks for object ACM")

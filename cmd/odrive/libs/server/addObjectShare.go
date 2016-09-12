@@ -40,6 +40,25 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 		// Check if database object has a read permission for everyone
 		dbHasEveryone := hasPermissionsForGrantee(&dbObject, models.EveryoneGroup)
 
+		// Check if removing everyone
+		removingEveryone := false
+		if dbHasEveryone {
+			for _, permission := range permissions {
+				if permission.AllowRead && !isPermissionFor(&permission, models.EveryoneGroup) {
+					removePermissionsForGrantee(&dbObject, models.EveryoneGroup)
+					// since removed everyone, reset the flag so we dont do this check for every permission
+					dbHasEveryone = false
+					removingEveryone = true
+				}
+			}
+		}
+
+		// Force Owner CRUDS
+		if removingEveryone {
+			ownerCRUDS := models.PermissionForUser(dbObject.OwnedBy.String, false, true, false, false, false)
+			permissions = append(permissions, ownerCRUDS)
+		}
+
 		// Iterate the permissions, normalizing the share to derive grantee
 		for _, permission := range permissions {
 
@@ -58,15 +77,6 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 			permission.ObjectID = bytesObjectID
 			permission.CreatedBy = caller.DistinguishedName
 			permission.ExplicitShare = true
-
-			// If this new permission is granting read but the grantee is not everyone then remove everyone
-			if dbHasEveryone && permission.AllowRead {
-				if !isPermissionFor(&permission, models.EveryoneGroup) {
-					removePermissionsForGrantee(&dbObject, models.EveryoneGroup)
-					// since removed everyone, reset the flag so we dont do this check for every permission
-					dbHasEveryone = false
-				}
-			}
 
 			// If after removing existing grants there are no more permissions, ...
 			plannedPermissions := []models.ODObjectPermission{}
@@ -122,7 +132,9 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 			// 2. User must pass access check against altered ACM as a whole
 			hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
 			if err != nil {
-				return NewAppError(502, err, "Error communicating with authorization service")
+				// TODO: Isolate different error types
+				//return NewAppError(502, err, "Error communicating with authorization service")
+				return NewAppError(403, err, err.Error())
 			}
 			if !hasAACAccess {
 				return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for updated object ACM")

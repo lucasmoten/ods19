@@ -88,6 +88,16 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 
 		// If there were changes
 		if permissionsChanged {
+
+			// Force Owner CRUDS
+			ownerCRUDS := models.PermissionForUser(dbObject.OwnedBy.String, true, !dbHasEveryone, true, true, true)
+			plannedPermissions := []models.ODObjectPermission{}
+			plannedPermissions = append(plannedPermissions, dbObject.Permissions...)
+			plannedPermissions = append(plannedPermissions, permissionsToAdd...)
+			if !reduceGrantsFromExistingPermissionsLeavesNone(plannedPermissions, &ownerCRUDS) {
+				permissionsToAdd = append(permissionsToAdd, ownerCRUDS)
+			}
+
 			// Flatten grantees on db permission to prep for rebuilding the acm
 			for i := 0; i < len(dbObject.Permissions); i++ {
 				permission := dbObject.Permissions[i]
@@ -121,7 +131,9 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 				// Using AAC, verify the caller would still have read access
 				hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
 				if err != nil {
-					return NewAppError(502, err, "Error communicating with authorization service")
+					// TODO: Isolate different error types
+					//return NewAppError(502, err, "Error communicating with authorization service")
+					return NewAppError(403, err, err.Error())
 				}
 				if !hasAACAccess {
 					return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for updated object ACM")
