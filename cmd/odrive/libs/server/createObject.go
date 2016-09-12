@@ -13,9 +13,9 @@ import (
 
 	"golang.org/x/net/context"
 
-	"decipher.com/object-drive-server/cmd/odrive/libs/config"
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
+	configx "decipher.com/object-drive-server/configx"
 	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
@@ -183,7 +183,7 @@ func handleCreatePrerequisites(ctx context.Context, h AppServer, requestObject *
 
 	// Normalize Grantees for Permissions passed in request object
 	for _, permission := range requestObject.Permissions {
-		permission.Grantee = config.GetNormalizedDistinguishedName(permission.Grantee)
+		permission.Grantee = configx.GetNormalizedDistinguishedName(permission.Grantee)
 	}
 
 	// Check if parent defined

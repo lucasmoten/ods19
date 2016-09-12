@@ -12,9 +12,9 @@ import (
 
 	"github.com/uber-go/zap"
 
-	"decipher.com/object-drive-server/cmd/odrive/libs/config"
 	"decipher.com/object-drive-server/cmd/odrive/libs/dao"
 	globalconfig "decipher.com/object-drive-server/config"
+	configx "decipher.com/object-drive-server/configx"
 	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
@@ -52,7 +52,7 @@ type AppServer struct {
 	// DAO is the interface contract with the database.
 	RootDAO dao.DAO
 	// Conf is the configuration passed to the application
-	Conf config.ServerSettingsConfiguration
+	Conf configx.ServerSettingsConfiguration
 	// ServicePrefix is the base RootURL for all public operations of web server
 	ServicePrefix string
 	// AAC is a handle to the Authorization and Access Control client

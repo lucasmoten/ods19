@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"decipher.com/object-drive-server/cmd/odrive/libs/config"
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
+	configx "decipher.com/object-drive-server/configx"
 )
 
 // ODObjectPermission is a nestable structure defining the attributes for
@@ -114,7 +114,7 @@ func PermissionForUser(user string, allowCreate bool, allowRead bool, allowUpdat
 	newPermission.AcmShare = fmt.Sprintf(`{"users":["%s"]}`, user)
 	newPermission.AcmGrantee.Grantee = newPermission.Grantee
 	newPermission.AcmGrantee.UserDistinguishedName = ToNullString(user)
-	newPermission.AcmGrantee.DisplayName = ToNullString(config.GetCommonName(user))
+	newPermission.AcmGrantee.DisplayName = ToNullString(configx.GetCommonName(user))
 	newPermission.AllowCreate = allowCreate
 	newPermission.AllowRead = allowRead
 	newPermission.AllowUpdate = allowUpdate

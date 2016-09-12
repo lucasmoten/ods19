@@ -15,9 +15,9 @@ import (
 
 	"golang.org/x/net/context"
 
-	"decipher.com/object-drive-server/cmd/odrive/libs/config"
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
+	configx "decipher.com/object-drive-server/configx"
 
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/performance"
@@ -218,7 +218,7 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 	obj.ContentSize.Int64 = length
 
 	//At the end of this function, we can mark the file as stored in S3.
-	return func() { h.cacheToDrain(&config.DefaultBucket, fileID, length, 3) }, nil, err
+	return func() { h.cacheToDrain(&configx.DefaultBucket, fileID, length, 3) }, nil, err
 }
 
 func (h AppServer) cacheToDrain(bucket *string, rName FileId, size int64, tries int) error {

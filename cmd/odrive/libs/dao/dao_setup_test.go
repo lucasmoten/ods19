@@ -13,8 +13,8 @@ import (
 	globalconfig "decipher.com/object-drive-server/config"
 	"github.com/jmoiron/sqlx"
 
-	"decipher.com/object-drive-server/cmd/odrive/libs/config"
 	"decipher.com/object-drive-server/cmd/odrive/libs/dao"
+	configx "decipher.com/object-drive-server/configx"
 	"decipher.com/object-drive-server/metadata/models"
 )
 
@@ -25,11 +25,11 @@ var usernames = make([]string, 10)
 // NewAppConfigurationWithDefaults provides some defaults to the constructor
 // function for AppConfiguration. Normally these parameters are specified
 // on the command line.
-func newAppConfigurationWithDefaults() config.AppConfiguration {
-	var conf config.AppConfiguration
+func newAppConfigurationWithDefaults() configx.AppConfiguration {
+	var conf configx.AppConfiguration
 	projectRoot := filepath.Join(os.Getenv("GOPATH"), "src", "decipher.com", "object-drive-server")
 	whitelist := []string{"cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"}
-	opts := config.CommandLineOpts{
+	opts := configx.CommandLineOpts{
 		Ciphers:           []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"},
 		UseTLS:            true,
 		StaticRootPath:    filepath.Join("libs", "server", "static"),
@@ -37,7 +37,7 @@ func newAppConfigurationWithDefaults() config.AppConfiguration {
 		Conf:              filepath.Join(projectRoot, "cmd", "odrive", "libs", "dao", "testfixtures", "testconf.yml"),
 		TLSMinimumVersion: "1.2",
 	}
-	conf = config.NewAppConfiguration(opts)
+	conf = configx.NewAppConfiguration(opts)
 	conf.ServerSettings.AclImpersonationWhitelist = whitelist
 	return conf
 }
@@ -72,7 +72,7 @@ func init() {
 			usernames[i] = "CN=[DAOTEST]test tester" + strconv.Itoa(i) + ", O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 		}
 		user.DistinguishedName = usernames[i]
-		user.DisplayName = models.ToNullString(config.GetCommonName(user.DistinguishedName))
+		user.DisplayName = models.ToNullString(configx.GetCommonName(user.DistinguishedName))
 		user.CreatedBy = user.DistinguishedName
 		_, err = d.CreateUser(user)
 	}

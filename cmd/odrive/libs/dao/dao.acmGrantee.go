@@ -3,7 +3,7 @@ package dao
 import (
 	"database/sql"
 
-	"decipher.com/object-drive-server/cmd/odrive/libs/config"
+	configx "decipher.com/object-drive-server/configx"
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
@@ -40,7 +40,7 @@ func createAcmGranteeInTransaction(logger zap.Logger, tx *sqlx.Tx, acmGrantee mo
 		if err != nil && err == sql.ErrNoRows {
 			// Not yet in database, we need to add them
 			userRequested.DistinguishedName = userDN
-			userRequested.DisplayName = models.ToNullString(config.GetCommonName(userDN))
+			userRequested.DisplayName = models.ToNullString(configx.GetCommonName(userDN))
 			userRequested.CreatedBy = userDN
 			_, err = createUserInTransaction(logger, tx, userRequested)
 		}

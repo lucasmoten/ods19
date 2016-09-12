@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"decipher.com/object-drive-server/cmd/odrive/libs/config"
-	globalconfig "decipher.com/object-drive-server/config"
-
 	"syscall"
+
+	globalconfig "decipher.com/object-drive-server/config"
+	configx "decipher.com/object-drive-server/configx"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -111,7 +111,7 @@ type S3DrainProviderData struct {
 }
 
 // NewS3DrainProvider sets up a drain with default parameters overridden by environment variables
-func NewS3DrainProvider(conf config.S3DrainProviderOpts, name string) DrainProvider {
+func NewS3DrainProvider(conf configx.S3DrainProviderOpts, name string) DrainProvider {
 
 	walkSleepDuration := time.Duration(conf.WalkSleep) * time.Second
 
@@ -247,7 +247,7 @@ func (d *S3DrainProviderData) DrainUploadedFilesToSafetyRaw() {
 			}
 			size := f.Size()
 			ext := path.Ext(fqName)
-			bucket := &config.DefaultBucket
+			bucket := &configx.DefaultBucket
 			if ext == ".uploaded" {
 				fBase := path.Base(fqName)
 				rName := FileId(fBase[:len(fBase)-len(ext)])
@@ -658,7 +658,7 @@ type S3Puller struct {
 // NewS3Puller prepares to start pulling from S3
 func (d *S3DrainProviderData) NewS3Puller(logger zap.Logger, rName FileId, totalLength, cipherStartAt, cipherStopAt int64) (io.ReadCloser, error) {
 	key := aws.String(string(d.Resolve(NewFileName(rName, ""))))
-	bucket := &config.DefaultBucket
+	bucket := &configx.DefaultBucket
 
 	p := &S3Puller{
 		S3Svc:       s3.New(d.AWSSession),

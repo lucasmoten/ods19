@@ -23,11 +23,10 @@ import (
 	"github.com/uber-go/zap"
 	"github.com/urfave/cli"
 
-	"decipher.com/object-drive-server/cmd/odrive/libs/config"
 	"decipher.com/object-drive-server/cmd/odrive/libs/dao"
 	"decipher.com/object-drive-server/cmd/odrive/libs/server"
-
 	globalconfig "decipher.com/object-drive-server/config"
+	configx "decipher.com/object-drive-server/configx"
 
 	"decipher.com/object-drive-server/performance"
 	"decipher.com/object-drive-server/services/aac"
@@ -61,7 +60,7 @@ func main() {
 			Name:  "env",
 			Usage: "Print all environment variables",
 			Action: func(ctx *cli.Context) error {
-				config.PrintODEnvironment()
+				configx.PrintODEnvironment()
 				return nil
 			},
 		},
@@ -69,7 +68,7 @@ func main() {
 			Name:  "makeScript",
 			Usage: "Generate a startup script. Pipe output to a file.",
 			Action: func(ctx *cli.Context) error {
-				config.GenerateStartScript()
+				configx.GenerateStartScript()
 				return nil
 			},
 		},
@@ -77,7 +76,7 @@ func main() {
 			Name:  "makeEnvScript",
 			Usage: "List required env vars in script. Suitable for \"source\". Pipe output to a file.",
 			Action: func(ctx *cli.Context) error {
-				config.GenerateSourceEnvScript()
+				configx.GenerateSourceEnvScript()
 				return nil
 			},
 		},
@@ -129,10 +128,10 @@ func main() {
 
 	cliParser.Action = func(c *cli.Context) error {
 
-		opts := config.NewCommandLineOpts(c)
+		opts := configx.NewCommandLineOpts(c)
 		// TODO move this to main AppConfiguration constructor
 
-		conf := config.NewAppConfiguration(opts)
+		conf := configx.NewAppConfiguration(opts)
 
 		logger.Info("configuration-settings", zap.String("confPath", opts.Conf),
 			zap.String("staticRoot", opts.StaticRootPath),
@@ -170,7 +169,7 @@ func runServiceTest(ctx *cli.Context) error {
 	return nil
 }
 
-func startApplication(conf config.AppConfiguration) {
+func startApplication(conf configx.AppConfiguration) {
 
 	app, err := makeServer(conf.ServerSettings)
 	if err != nil {
@@ -228,7 +227,7 @@ func startApplication(conf config.AppConfiguration) {
 	}
 }
 
-func zkTracking(app *server.AppServer, appConf config.AppConfiguration) {
+func zkTracking(app *server.AppServer, appConf configx.AppConfiguration) {
 	aacSettings := appConf.AACSettings
 	//Watch the https odrive announcements
 	zookeeper.TrackAnnouncement(app.ZKState, appConf.ZK.BasepathOdrive+"/https", nil)
@@ -273,7 +272,7 @@ func zkTracking(app *server.AppServer, appConf config.AppConfiguration) {
 	zookeeper.TrackAnnouncement(app.ZKState, aacSettings.AACAnnouncementPoint, aacAnnouncer)
 }
 
-func configureAuditor(app *server.AppServer, settings config.AuditSvcConfiguration) {
+func configureAuditor(app *server.AppServer, settings configx.AuditSvcConfiguration) {
 
 	switch settings.Type {
 	case "blackhole":
@@ -286,7 +285,7 @@ func configureAuditor(app *server.AppServer, settings config.AuditSvcConfigurati
 	app.Auditor.Start()
 }
 
-func configureDAO(app *server.AppServer, conf config.DatabaseConfiguration) error {
+func configureDAO(app *server.AppServer, conf configx.DatabaseConfiguration) error {
 	db, err := conf.GetDatabaseHandle()
 	if err != nil {
 		return err
@@ -301,14 +300,14 @@ func configureDAO(app *server.AppServer, conf config.DatabaseConfiguration) erro
 	return nil
 }
 
-func configureDrainProvider(app *server.AppServer, conf config.S3DrainProviderOpts, cacheID string) {
+func configureDrainProvider(app *server.AppServer, conf configx.S3DrainProviderOpts, cacheID string) {
 	var dp server.DrainProvider
 	logger.Info("Draining cache to S3")
 	dp = server.NewS3DrainProvider(conf, cacheID)
 	app.DrainProvider = dp
 }
 
-func configureEventQueue(app *server.AppServer, conf config.EventQueueConfiguration) {
+func configureEventQueue(app *server.AppServer, conf configx.EventQueueConfiguration) {
 	logger.Info("Kafka Config", zap.Object("conf", conf))
 	if len(conf.KafkaAddrs) == 0 {
 		app.EventQueue = finder.NewFakeAsyncKafkaProducer(logger)
@@ -367,7 +366,7 @@ func getDBIdentifier(app *server.AppServer) (string, error) {
 	return dbState.Identifier, nil
 }
 
-func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, error) {
+func makeServer(conf configx.ServerSettingsConfiguration) (*server.AppServer, error) {
 
 	var templates *template.Template
 	var err error
@@ -406,7 +405,7 @@ func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, err
 	return &httpHandler, nil
 }
 
-func pingDB(conf config.DatabaseConfiguration, db *sqlx.DB) int {
+func pingDB(conf configx.DatabaseConfiguration, db *sqlx.DB) int {
 	// But ensure database is up, retrying every 3 seconds for up to 1 minute
 	dbPingAttempt := 0
 	dbPingAttemptMax := 20
@@ -514,7 +513,7 @@ func reportStates(states server.ServiceStates) {
 	)
 }
 
-func pollAll(app *server.AppServer, updates chan server.ServiceState, appCfg config.AppConfiguration, updateInterval time.Duration) {
+func pollAll(app *server.AppServer, updates chan server.ServiceState, appCfg configx.AppConfiguration, updateInterval time.Duration) {
 	ticker := time.NewTicker(updateInterval)
 	go func() {
 		for {
@@ -533,7 +532,7 @@ func pollAll(app *server.AppServer, updates chan server.ServiceState, appCfg con
 
 // pollAAC encapsulates the AAC health check and attempted reconnect.
 
-func pollAAC(app *server.AppServer, updates chan server.ServiceState, aacCfg config.AACConfiguration, wg *sync.WaitGroup) {
+func pollAAC(app *server.AppServer, updates chan server.ServiceState, aacCfg configx.AACConfiguration, wg *sync.WaitGroup) {
 
 	defer wg.Done()
 

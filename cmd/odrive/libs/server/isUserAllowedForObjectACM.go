@@ -9,9 +9,9 @@ import (
 
 	"github.com/uber-go/zap"
 
-	globalconfig "decipher.com/object-drive-server/cmd/odrive/libs/config"
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
-	"decipher.com/object-drive-server/config"
+	globalconfig "decipher.com/object-drive-server/config"
+	configx "decipher.com/object-drive-server/configx"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/performance"
 	"decipher.com/object-drive-server/services/aac"
@@ -365,8 +365,8 @@ func (h AppServer) flattenGranteeOnPermission(ctx context.Context, permission *m
 	}
 	grants := getStringArrayFromInterface(fShareInterface)
 	if len(grants) > 0 {
-		logger.Debug("Setting permission grantee", zap.String("old value", permission.Grantee), zap.String("new value", globalconfig.GetNormalizedDistinguishedName(grants[0])))
-		permission.Grantee = globalconfig.GetNormalizedDistinguishedName(grants[0])
+		logger.Debug("Setting permission grantee", zap.String("old value", permission.Grantee), zap.String("new value", configx.GetNormalizedDistinguishedName(grants[0])))
+		permission.Grantee = configx.GetNormalizedDistinguishedName(grants[0])
 		permission.AcmGrantee.Grantee = permission.Grantee
 	} else {
 		logger.Warn("Error flattening share permission", zap.String("acm", acm), zap.String("permission acm share", permission.AcmShare), zap.String("permission grantee", permission.Grantee))
@@ -556,7 +556,7 @@ func (h AppServer) isObjectACMSharedToUser(ctx context.Context, obj *models.ODOb
 	userCtx := context.Background()
 	userCaller := Caller{DistinguishedName: user}
 	userCtx = ContextWithCaller(userCtx, userCaller)
-	userCtx = context.WithValue(userCtx, Logger, config.RootLogger)
+	userCtx = context.WithValue(userCtx, Logger, globalconfig.RootLogger)
 	userGroups, userSnippets, err := h.GetUserGroupsAndSnippets(userCtx)
 	if err != nil {
 		// Bubble up? This kind of error returns HTTP error 500 in ServeHTTP
