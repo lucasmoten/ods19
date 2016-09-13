@@ -3,7 +3,6 @@ package server
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	db "decipher.com/object-drive-server/cmd/odrive/libs/dao"
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
@@ -22,6 +21,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	caller, _ := CallerFromContext(ctx)
 	dao := DAOFromContext(ctx)
 	session := SessionIDFromContext(ctx)
+	gem, _ := GEMFromContext(ctx)
 
 	var requestObjectWithIDFromURI models.ODObject
 	var err error
@@ -130,15 +130,16 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 
 	apiResponse := mapping.MapODObjectToObject(&dbObject).WithCallerPermission(protocolCaller(caller))
 
-	h.EventQueue.Publish(events.Index{
+	gem.Action = "update"
+	gem.Payload = events.ObjectDriveEvent{
 		ObjectID:     apiResponse.ID,
-		Action:       "update",
-		Timestamp:    time.Now().Format(time.RFC3339),
 		ChangeToken:  apiResponse.ChangeToken,
 		UserDN:       caller.DistinguishedName,
 		StreamUpdate: true,
 		SessionID:    session,
-	})
+	}
+	h.EventQueue.Publish(gem)
+
 	jsonResponse(w, apiResponse)
 
 	return nil

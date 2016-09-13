@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"mime"
 	"net/http"
-	"time"
 
 	"github.com/uber-go/zap"
 
@@ -27,11 +26,9 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	logger := LoggerFromContext(ctx)
 	session := SessionIDFromContext(ctx)
+	gem, _ := GEMFromContext(ctx)
+	caller, _ := CallerFromContext(ctx)
 
-	caller, ok := CallerFromContext(ctx)
-	if !ok {
-		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
-	}
 	dao := DAOFromContext(ctx)
 
 	var obj models.ODObject
@@ -142,15 +139,15 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	apiResponse := mapping.MapODObjectToObject(&createdObject).WithCallerPermission(protocolCaller(caller))
 
-	h.EventQueue.Publish(events.Index{
+	gem.Action = "create"
+	gem.Payload = events.ObjectDriveEvent{
 		ObjectID:     apiResponse.ID,
-		Timestamp:    time.Now().Format(time.RFC3339),
-		Action:       "create",
 		ChangeToken:  apiResponse.ChangeToken,
 		UserDN:       caller.DistinguishedName,
 		StreamUpdate: isMultipart,
 		SessionID:    session,
-	})
+	}
+	h.EventQueue.Publish(gem)
 
 	jsonResponse(w, apiResponse)
 	return nil

@@ -1,8 +1,15 @@
 Changelog
 =========
 
+Release vNEXT
+------------
+
+* All events now wrapped with global event model (GEM), with odrive-specific
+  payload field
+
+
 Release v1.0.1
--------------
+--------------
 
 * !216 - Enhancement: Connection to Zookeeper recovery improvements when timed out
 * !218 - Enhancement: Capture full ACM share information for individual permission grants

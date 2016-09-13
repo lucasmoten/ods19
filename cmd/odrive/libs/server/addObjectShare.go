@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/uber-go/zap"
 
@@ -25,6 +24,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	logger := LoggerFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
 	session := SessionIDFromContext(ctx)
+	gem, _ := GEMFromContext(ctx)
 
 	rollupPermission, permissions, dbObject, herr := commonObjectSharePrep(ctx, h.MasterKey, r)
 	if herr != nil {
@@ -164,17 +164,18 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	}
 
 	apiResponse := mapping.MapODObjectToObject(&updatedObject).WithCallerPermission(protocolCaller(caller))
-	h.EventQueue.Publish(events.Index{
+
+	gem.Action = "update"
+	gem.Payload = events.ObjectDriveEvent{
 		ObjectID:     apiResponse.ID,
-		Timestamp:    time.Now().Format(time.RFC3339),
-		Action:       "update",
 		ChangeToken:  apiResponse.ChangeToken,
 		UserDN:       caller.DistinguishedName,
 		StreamUpdate: false,
 		SessionID:    session,
-	})
-	jsonResponse(w, apiResponse)
+	}
+	h.EventQueue.Publish(gem)
 
+	jsonResponse(w, apiResponse)
 	return nil
 }
 

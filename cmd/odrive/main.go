@@ -14,7 +14,6 @@ import (
 	"sync"
 	"time"
 
-	"decipher.com/object-drive-server/services/audit"
 	"decipher.com/object-drive-server/services/finder"
 	"decipher.com/object-drive-server/services/zookeeper"
 	"decipher.com/object-drive-server/util/testhelpers"
@@ -179,10 +178,6 @@ func startApplication(conf configx.AppConfiguration) {
 	// put updates onto updates channel
 	updates := StateMonitor(app, time.Duration(60*time.Second))
 
-	if false {
-		configureAuditor(app, conf.AuditorSettings)
-	}
-
 	err = configureDAO(app, conf.DatabaseConnection)
 	if err != nil {
 		logger.Error("Error configuring DAO.  Check envrionment variable settings for OD_DB_*", zap.String("err", err.Error()))
@@ -270,19 +265,6 @@ func zkTracking(app *server.AppServer, appConf configx.AppConfiguration) {
 	}
 	//Watch the AAC thrift announcements
 	zookeeper.TrackAnnouncement(app.ZKState, aacSettings.AACAnnouncementPoint, aacAnnouncer)
-}
-
-func configureAuditor(app *server.AppServer, settings configx.AuditSvcConfiguration) {
-
-	switch settings.Type {
-	case "blackhole":
-		app.Auditor = audit.NewBlackHoleAuditor()
-	default:
-		// TODO return error instead?
-		app.Auditor = audit.NewBlackHoleAuditor()
-	}
-
-	app.Auditor.Start()
 }
 
 func configureDAO(app *server.AppServer, conf configx.DatabaseConfiguration) error {
