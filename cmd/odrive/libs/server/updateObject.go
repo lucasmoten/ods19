@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"golang.org/x/net/context"
 
@@ -21,14 +20,15 @@ import (
 )
 
 func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
-	logger := LoggerFromContext(ctx)
 
 	var requestObject models.ODObject
 	var err error
 
+	logger := LoggerFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
 	session := SessionIDFromContext(ctx)
 	dao := DAOFromContext(ctx)
+	gem, _ := GEMFromContext(ctx)
 
 	if r.Header.Get("Content-Type") != "application/json" {
 		return NewAppError(400, nil, "expected application/json Content-Type")
@@ -217,15 +217,16 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	apiResponse := mapping.MapODObjectToObject(&requestObject).WithCallerPermission(protocolCaller(caller))
 
-	h.EventQueue.Publish(events.Index{
+	gem.Action = "update"
+	gem.Payload = events.ObjectDriveEvent{
 		ObjectID:     apiResponse.ID,
-		Action:       "update",
-		Timestamp:    time.Now().Format(time.RFC3339),
 		ChangeToken:  apiResponse.ChangeToken,
 		UserDN:       caller.DistinguishedName,
 		StreamUpdate: false,
 		SessionID:    session,
-	})
+	}
+	h.EventQueue.Publish(gem)
+
 	jsonResponse(w, apiResponse)
 	return nil
 }

@@ -44,10 +44,10 @@ type Caller struct {
 	Groups []string
 }
 
-// GetCaller populates a Caller object based upon request headers and peer
+// CallerFromRequest populates a Caller object based upon request headers and peer
 // certificates. Logically this is intended to work with or without NGINX as
 // a front end
-func GetCaller(r *http.Request) Caller {
+func CallerFromRequest(r *http.Request) Caller {
 	var caller Caller
 	caller.UserDistinguishedName = configx.GetNormalizedDistinguishedName(r.Header.Get("USER_DN"))
 	caller.ExternalSystemDistinguishedName = r.Header.Get("EXTERNAL_SYS_DN")

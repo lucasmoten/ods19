@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"strings"
-	"time"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
 	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
@@ -21,6 +20,7 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 	logger := LoggerFromContext(ctx)
 	dao := DAOFromContext(ctx)
 	session := SessionIDFromContext(ctx)
+	gem, _ := GEMFromContext(ctx)
 
 	rollupPermission, permissions, dbObject, herr := commonObjectSharePrep(ctx, h.MasterKey, r)
 	if herr != nil {
@@ -165,15 +165,16 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 	}
 	apiResponse := mapping.MapODObjectToObject(&updatedObject).WithCallerPermission(protocolCaller(caller))
 
-	h.EventQueue.Publish(events.Index{
+	gem.Action = "update"
+	gem.Payload = events.ObjectDriveEvent{
 		ObjectID:     apiResponse.ID,
-		Timestamp:    time.Now().Format(time.RFC3339),
-		Action:       "update",
 		ChangeToken:  apiResponse.ChangeToken,
 		UserDN:       caller.DistinguishedName,
 		StreamUpdate: false,
 		SessionID:    session,
-	})
+	}
+	h.EventQueue.Publish(gem)
+
 	jsonResponse(w, apiResponse)
 	return nil
 }

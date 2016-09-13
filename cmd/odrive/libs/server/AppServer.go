@@ -31,6 +31,7 @@ import (
 const (
 	CallerVal = iota
 	CaptureGroupsVal
+	GEMVal
 	UserVal
 	UserSnippetsVal
 	AuditEventVal
@@ -135,27 +136,37 @@ func (h *AppServer) InitRegex() {
 	}
 }
 
+// newLogger instantiates a logger for our object service with basic fields pre-populated.
+func newLogger(logger zap.Logger, sessionID, cn string, r *http.Request) zap.Logger {
+	return logger.
+		With(zap.String("session", sessionID)).
+		With(zap.String("cn", cn)).
+		With(zap.String("method", r.Method)).
+		With(zap.String("uri", r.RequestURI))
+}
+
 // ServeHTTP handles the routing of requests
 func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	caller := GetCaller(r)
-	//Wait until we can log to handle the error!
-	err := caller.ValidateHeaders(h.AclImpersonationWhitelist, w, r)
 
-	var ctx context.Context
-	//Set caller first so that logger can log user
-	ctx = ContextWithCaller(context.Background(), caller)
-	//Give the context an identity, and make sure that the user knows its value
 	sessionID := newSessionID()
 	w.Header().Add("sessionid", sessionID)
-	ctx = ContextWithSession(ctx, sessionID)
-	//Now we can log
-	ctx = ContextWithLogger(ctx, r)
-	//Bind a DAO that knows what session it's in (its logger)
-	ctx = ContextWithDAO(ctx, h.RootDAO)
 
-	// Log globally relevant things about this transaction, and don't repeat them
-	// all over individual logs - correlate on session field
-	logger := LoggerFromContext(ctx)
+	caller := CallerFromRequest(r)
+	logger := newLogger(globalconfig.RootLogger, sessionID, caller.CommonName, r)
+	gem := globalEventFromRequest(r)
+
+	if err := caller.ValidateHeaders(h.AclImpersonationWhitelist, w, r); err != nil {
+		sendErrorResponse(logger, &w, 401, err, err.Error())
+		return
+	}
+
+	ctx := context.Background()
+	ctx = ContextWithLogger(ctx, logger)
+	ctx = ContextWithCaller(ctx, caller)
+	ctx = ContextWithSession(ctx, sessionID)
+	ctx = ContextWithDAO(ctx, h.RootDAO)
+	ctx = ContextWithGEM(ctx, gem)
+
 	logger.Info(
 		"transaction start",
 		zap.String("dn", caller.DistinguishedName),
@@ -166,15 +177,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		zap.String("dtime", time.Now().String()),
 	)
 
-	if err != nil {
-		sendErrorResponse(logger, &w, 401, err, err.Error())
-		return
-	}
-
 	var uri = r.URL.Path
 	var herr *AppError
-
-	//log.Printf("URI:%s %s USER:%s", r.Method, uri, caller.DistinguishedName)
 
 	// The following routes can be handled without calls to the database
 	withoutDatabase := false
@@ -439,6 +443,11 @@ func ContextWithCaller(ctx context.Context, caller Caller) context.Context {
 	return context.WithValue(ctx, CallerVal, caller)
 }
 
+// ContextWithGEM attaches a GEM to the context object.
+func ContextWithGEM(ctx context.Context, gem events.GEM) context.Context {
+	return context.WithValue(ctx, GEMVal, gem)
+}
+
 // Bind a DAO with our logger, so that SQL can be correlated
 func ContextWithDAO(ctx context.Context, genericDAO dao.DAO) context.Context {
 	logger := LoggerFromContext(ctx)
@@ -470,6 +479,13 @@ func CallerFromContext(ctx context.Context) (Caller, bool) {
 	return caller, ok
 }
 
+// GEMFromContext extracts a GEM from a context, if set.
+func GEMFromContext(ctx context.Context) (events.GEM, bool) {
+	gem, ok := ctx.Value(GEMVal).(events.GEM)
+	return gem, ok
+}
+
+// GroupsFromContext extracts a list of groups as strings from a context, if set.
 func GroupsFromContext(ctx context.Context) ([]string, bool) {
 	groups, ok := ctx.Value(Groups).([]string)
 	return groups, ok
@@ -480,14 +496,8 @@ func SnippetsFromContext(ctx context.Context) (*acm.ODriveRawSnippetFields, bool
 	return snippets, ok
 }
 
-func ContextWithLogger(ctx context.Context, r *http.Request) context.Context {
-	caller, _ := CallerFromContext(ctx)
-	sessionID := SessionIDFromContext(ctx)
-	return context.WithValue(ctx, Logger, globalconfig.RootLogger.
-		With(zap.String("session", sessionID)).
-		With(zap.String("cn", caller.CommonName)).
-		With(zap.String("method", r.Method)).
-		With(zap.String("uri", r.RequestURI)))
+func ContextWithLogger(ctx context.Context, logger zap.Logger) context.Context {
+	return context.WithValue(ctx, Logger, logger)
 }
 
 func SessionIDFromContext(ctx context.Context) string {
@@ -557,7 +567,6 @@ func do404(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppErro
 }
 
 func resolveOurIP() string {
-	globalconfig.RootLogger.Info("attempting to resolve our IP")
 	hostname, err := os.Hostname()
 	if err != nil {
 		globalconfig.RootLogger.Error("unable to resolve our own hostname")
@@ -582,6 +591,16 @@ func jsonResponse(w http.ResponseWriter, i interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	jsonData, _ := json.MarshalIndent(i, "", "  ")
 	w.Write(jsonData)
+}
+
+// newGUID is a helper that ignores the error from util.NewGUID. If that function ever returns
+// an error, something is seriously wrong with underlying hardware.
+func newGUID() string {
+	guid, err := util.NewGUID()
+	if err != nil {
+		log.Printf("could not create GUID: %s", err.Error())
+	}
+	return guid
 }
 
 // StaticRx statically references compiled regular expressions.

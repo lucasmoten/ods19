@@ -3,7 +3,6 @@ package server
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	"golang.org/x/net/context"
 
@@ -21,6 +20,7 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	caller, _ := CallerFromContext(ctx)
 	session := SessionIDFromContext(ctx)
+	gem, _ := GEMFromContext(ctx)
 
 	// Get user from context
 	user, ok := UserFromContext(ctx)
@@ -80,15 +80,17 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	// Response in requested format
 	apiResponse := mapping.MapODObjectToDeletedObjectResponse(&dbObject).WithCallerPermission(protocolCaller(caller))
-	h.EventQueue.Publish(events.Index{
+
+	gem.Action = "delete"
+	gem.Payload = events.ObjectDriveEvent{
 		ObjectID:     apiResponse.ID,
-		Timestamp:    time.Now().Format(time.RFC3339),
-		Action:       "delete",
-		ChangeToken:  dbObject.ChangeToken,
+		ChangeToken:  requestObject.ChangeToken,
 		UserDN:       caller.DistinguishedName,
 		StreamUpdate: false,
 		SessionID:    session,
-	})
+	}
+	h.EventQueue.Publish(gem)
+
 	jsonResponse(w, apiResponse)
 	return nil
 }

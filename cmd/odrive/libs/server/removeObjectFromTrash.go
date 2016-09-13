@@ -3,7 +3,6 @@ package server
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
 	"decipher.com/object-drive-server/events"
@@ -17,6 +16,7 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	caller, _ := CallerFromContext(ctx)
 	session := SessionIDFromContext(ctx)
 	dao := DAOFromContext(ctx)
+	gem, _ := GEMFromContext(ctx)
 
 	// Get the change token off the request.
 	changeToken, err := protocol.NewChangeTokenStructFromJSONBody(r.Body)
@@ -60,17 +60,16 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 
 	apiResponse := mapping.MapODObjectToObject(&unDeletedObj).WithCallerPermission(protocolCaller(caller))
 
-	h.EventQueue.Publish(events.Index{
+	gem.Action = "undelete"
+	gem.Payload = events.ObjectDriveEvent{
 		ObjectID:     apiResponse.ID,
-		Timestamp:    time.Now().Format(time.RFC3339),
-		Action:       "undelete",
 		ChangeToken:  apiResponse.ChangeToken,
 		UserDN:       caller.DistinguishedName,
 		StreamUpdate: true,
 		SessionID:    session,
-	})
+	}
+	h.EventQueue.Publish(gem)
 
 	jsonResponse(w, apiResponse)
-
 	return nil
 }
