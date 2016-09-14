@@ -184,7 +184,7 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 
 	// Add permissions
 	for i, permission := range object.Permissions {
-		if permission.Grantee != "" {
+		if !permission.IsDeleted && permission.Grantee != "" {
 			permission.CreatedBy = dbObject.CreatedBy
 			dbPermission, err := addPermissionToObjectInTransaction(logger, tx, dbObject, &permission, false, "")
 			if err != nil {
@@ -193,7 +193,7 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 			if dbPermission.ModifiedBy != permission.CreatedBy {
 				return dbObject, fmt.Errorf("When creating object, permission did not get modifiedby set to createdby")
 			}
-
+			object.Permissions[i] = dbPermission
 		}
 	}
 
