@@ -40,6 +40,9 @@ func (cp CallerPermission) String() string {
 // WithRolledUp takes a slice of Permission and returns a new composite CallerPermission.
 func (cp CallerPermission) WithRolledUp(caller Caller, perms ...Permission) CallerPermission {
 	for _, perm := range perms {
+		if cp.AllowCreate && cp.AllowRead && cp.AllowUpdate && cp.AllowDelete && cp.AllowShare {
+			break
+		}
 		if perm.Grantee == models.AACFlatten(caller.DistinguishedName) || perm.Grantee == models.AACFlatten("-Everyone") || caller.InGroup(perm.Grantee) {
 			cp.AllowCreate = cp.AllowCreate || perm.AllowCreate
 			cp.AllowRead = cp.AllowRead || perm.AllowRead
