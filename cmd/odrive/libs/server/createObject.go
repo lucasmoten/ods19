@@ -111,7 +111,8 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		return NewAppError(403, err, err.Error())
 	}
 	if !hasAACAccess {
-		return NewAppError(403, err, err.Error())
+		//It is guaranteed that err==nil at this point. Dereferencing will crash.
+		return NewAppError(403, nil, "Forbidden")
 	}
 
 	// recalculate permission mac for owner permission
