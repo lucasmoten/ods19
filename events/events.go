@@ -32,7 +32,7 @@ type GEM struct {
 	// update, delete, undelete.
 	Action string `json:"action"`
 	// Payload is the app-specific event we must provide.
-	Payload ObjectDriveEvent `json:"action"`
+	Payload ObjectDriveEvent `json:"payload"`
 }
 
 // Yield satisfies the Event interface.
