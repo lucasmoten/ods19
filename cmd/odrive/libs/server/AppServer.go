@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"runtime/debug"
 	"time"
 
 	"github.com/uber-go/zap"
@@ -145,14 +146,25 @@ func newLogger(logger zap.Logger, sessionID, cn string, r *http.Request) zap.Log
 		With(zap.String("uri", r.RequestURI))
 }
 
+//When there is a panic, all deferred functions get executed.
+func logCrashInServeHTTP(logger zap.Logger, w http.ResponseWriter) {
+	if r := recover(); r != nil {
+		logger.Error("odrive crash", zap.Object("context", r), zap.String("stack", string(debug.Stack())))
+		w.WriteHeader(http.StatusInternalServerError)
+		//Note: even if follow "let it crash" and explicitly return an error code,
+		//we should log this and return a 500 if we plan on doing a system exit on internal 5xx errors.
+	}
+}
+
 // ServeHTTP handles the routing of requests
 func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
 	sessionID := newSessionID()
 	w.Header().Add("sessionid", sessionID)
 
 	caller := CallerFromRequest(r)
 	logger := newLogger(globalconfig.RootLogger, sessionID, caller.CommonName, r)
+	defer logCrashInServeHTTP(logger, w)
+
 	gem := globalEventFromRequest(r)
 
 	if err := caller.ValidateHeaders(h.AclImpersonationWhitelist, w, r); err != nil {

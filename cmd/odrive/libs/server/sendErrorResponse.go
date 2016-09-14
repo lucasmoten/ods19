@@ -87,6 +87,17 @@ func sendAppErrorResponse(logger zap.Logger, w *http.ResponseWriter, herr *AppEr
 	sendErrorResponseRaw(logger, w, herr)
 }
 
+//Some codes have already had to have been set because an http body follows
+//It's mostly just 200 and 206 that have http bodies
+func alreadySent(code int) bool {
+	switch code {
+	case http.StatusPartialContent, http.StatusOK:
+		return true
+	default:
+		return false
+	}
+}
+
 // sendErrorResponse is the publicly called function for sending error response from top level handlers
 func sendErrorResponseRaw(logger zap.Logger, w *http.ResponseWriter, herr *AppError) {
 	if herr != nil {
@@ -116,7 +127,7 @@ func sendErrorResponseRaw(logger zap.Logger, w *http.ResponseWriter, herr *AppEr
 		mutex.Lock()
 		counters[counterKey{herr.Code, herr.File, herr.Line}]++
 		mutex.Unlock()
-		if w != nil {
+		if w != nil && !alreadySent(herr.Code) {
 			http.Error(*w, herr.Msg, herr.Code)
 		}
 	} else {
