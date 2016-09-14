@@ -51,9 +51,15 @@ import "decipher.com/object-drive-server/somepackage"
 The other code (Java, etc) should be found at **OD_ROOT**. Python build scripts
 in the `cte/object-drive` project checkout and compile the code under **OD_ROOT**
 
+Due to internal openssl use, `pkg-config` must be setup for the go code to compile. See our Dockerfiles show exactly how this is done on the different Linux distributions.  On OSX (ElCapitan specifically) more can go wrong, in addition to installing `pkg-config` for openssl, you may need to help the system to find the proper packages with this set in your .bash_profile (when you get an inability to find "bios.h" during `go build ./...`) 
+
+    export PKG_CONFIG_PATH="$(brew --prefix openssl)/lib/pkgconfig"
+
 Note that $OD_ROOT is where `cte/object-drive` is checked out.
 Both directories ($GOPATH $OD_ROOT) allow compile and build steps
 to reference each other.
+
+> The cte/object-drive project pulls together the environment that cte/object-drive-server executes in.  Refer to that project to get all of the dependencies setup to actually execute odrive (npm, gulp, proper hub.docker.com login, archiva setup, and so on).   
 
 ```
 $OD_ROOT/object-drive
