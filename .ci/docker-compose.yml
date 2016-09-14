@@ -1,0 +1,94 @@
+
+aac:
+    image: "deciphernow/aac:latest"
+    command: "/root/entry"
+    hostname: "twl-server-generic2"
+    links:
+        - "zk"
+        - "dias"
+    ports:
+        - 9093:9093
+        - 7071:7071
+        - 7444:7444
+
+gatekeeper:
+    image: "deciphernow/gatekeeper:latest"
+    command: "/root/entry"
+    links:
+        - "aac"
+        - "zk"
+        - "odrive"
+    ports:
+        - 8888:443
+
+odrive:
+    image: "deciphernow/odrive:latest"
+    environment:
+        - OD_AAC_CA=/usr/local/bin/Go/src/decipher.com/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
+        - OD_AAC_CERT=/usr/local/bin/Go/src/decipher.com/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
+        - OD_AAC_KEY=/usr/local/bin/Go/src/decipher.com/object-drive-server/defaultcerts/client-aac/id/client.key.pem
+        - OD_AWS_REGION=us-east-1
+        - OD_AWS_ACCESS_KEY_ID
+        - OD_AWS_SECRET_KEY
+        - OD_AWS_SECRET_ACCESS_KEY
+        - OD_AWS_S3_BUCKET=decipherers
+        - OD_ENCRYPT_MASTERKEY=qheucir912h343u91i23hiu
+        - OD_ZK_ROOT
+        - OD_ZK_URL
+        - OD_ZK_BASEPATH
+        - OD_ZK_TIMEOUT
+        - OD_DB_USERNAME=dbuser
+        - OD_DB_PASSWORD=dbPassword
+        - OD_DB_HOST=metadatadb
+        - OD_DB_PORT=3306
+        - OD_DB_SCHEMA=metadatadb
+        - OD_DB_CA=/usr/local/bin/Go/src/decipher.com/object-drive-server/defaultcerts/client-mysql/trust/ca.pem
+        - OD_DB_CERT=/usr/local/bin/Go/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
+        - OD_DB_KEY=/usr/local/bin/Go/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
+        - OD_DB_CONN_PARAMS=parseTime=true&collation=utf8_unicode_ci
+        - OD_DOCKERVM_OVERRIDE=localhost
+        - OD_DOCKERVM_PORT=8888
+        - OD_SERVER_CA=/usr/local/bin/Go/src/decipher.com/object-drive-server/defaultcerts/server/trust.pem
+        - OD_SERVER_CERT=/usr/local/bin/Go/src/decipher.com/object-drive-server/defaultcerts/server/server.cert.pem
+        - OD_SERVER_KEY=/usr/local/bin/Go/src/decipher.com/object-drive-server/defaultcerts/server/server.key.pem
+        - OD_CACHE_PARTITION=circleci/build
+        - OD_SERVER_PORT=4430
+    links:
+        - "metadatadb"
+        - "aac"
+        - "zk"
+        - "kafka"
+
+metadatadb:
+    image: "deciphernow/metadatadb:latest"
+    hostname: "fqdn.for.metadatadb.local"
+    environment:
+        - MYSQL_CONTAINER_NAME=metadatadb
+        - MYSQL_USER=dbuser
+        - MYSQL_DATABASE=metadatadb
+        - MYSQL_ROOT_PASSWORD=dbRootPassword
+        - MYSQL_PASSWORD=dbPassword
+    command: "./docker-entrypoint.sh mysqld_safe"
+    ports:
+        - "3309:3306"
+
+zk:
+    image: "deciphernow/zk:latest"
+    ports:
+        - 2181:2181
+
+kafka:
+    image: "wurstmeister/kafka"
+    ports:
+        - "9092:9092"
+    environment:
+        - KAFKA_ADVERTISED_HOST_NAME=localhost
+        - KAFKA_CREATE_TOPICS=FIRST_TOPIC:1:2,SECOND_TOPIC:2:3
+        - KAFKA_ZOOKEEPER_CONNECT=zk:2181
+    volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+    links:
+        - "zk"
+
+dias:
+    image: "deciphernow/dias"

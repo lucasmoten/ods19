@@ -3,7 +3,6 @@ package finder
 import (
 	"crypto/tls"
 	"log"
-	"time"
 
 	"decipher.com/object-drive-server/events"
 
@@ -39,16 +38,7 @@ func (akp *AsyncKafkaProducer) Errors() []error {
 // NewAsyncKafkaProducer constructs an AsyncKafkaProducer with internal defaults.
 func NewAsyncKafkaProducer(logger zap.Logger, brokerList []string, tlsConfig *tls.Config) *AsyncKafkaProducer {
 
-	config := sarama.NewConfig()
-	if tlsConfig != nil {
-		config.Net.TLS.Enable = true
-		config.Net.TLS.Config = tlsConfig
-	}
-	config.Producer.RequiredAcks = sarama.WaitForLocal
-	config.Producer.Compression = sarama.CompressionSnappy
-	config.Producer.Flush.Frequency = 500 * time.Millisecond
-
-	producer, err := sarama.NewAsyncProducer(brokerList, config)
+	producer, err := sarama.NewAsyncProducer(brokerList, nil)
 	if err != nil {
 		log.Fatalln("Failed to start Sarama producer:", err)
 	}

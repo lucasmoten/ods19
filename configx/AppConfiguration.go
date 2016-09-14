@@ -223,16 +223,11 @@ func NewDatabaseConfigFromEnv(confFile ConfigFile, opts CommandLineOpts) Databas
 	dbConf.Password = os.Getenv(OD_DB_PASSWORD)
 	dbConf.Host = os.Getenv(OD_DB_HOST)
 	dbConf.Port = os.Getenv(OD_DB_PORT)
-	dbConf.Schema = os.Getenv(OD_DB_SCHEMA)
+	dbConf.Schema = getEnvOrDefault(OD_DB_SCHEMA, "metadatadb")
 	dbConf.CAPath = os.Getenv(OD_DB_CA)
 	dbConf.ClientCert = os.Getenv(OD_DB_CERT)
 	dbConf.ClientKey = os.Getenv(OD_DB_KEY)
-	dbConf.Params = os.Getenv(OD_DB_CONN_PARAMS)
-
-	if dbConf.Params == "" {
-		msg := "OD_DB_CONN_PARAMS is blank. Recommended value: parseTime=true&collation=utf8_unicode_ci"
-		logger.Warn("db warning", zap.String("config_warning", msg))
-	}
+	dbConf.Params = getEnvOrDefault(OD_DB_CONN_PARAMS, "parseTime=true&collation=utf8_unicode_ci")
 
 	// Defaults
 	dbConf.Protocol = "tcp"
@@ -243,10 +238,10 @@ func NewDatabaseConfigFromEnv(confFile ConfigFile, opts CommandLineOpts) Databas
 	return dbConf
 }
 
-// NewFinderQueueConfiguration reades the environment to provide the configuration for the Kafka event queue.
+// NewEventQueueConfiguration reades the environment to provide the configuration for the Kafka event queue.
 func NewEventQueueConfiguration(confFile ConfigFile, opts CommandLineOpts) EventQueueConfiguration {
 	var fqc EventQueueConfiguration
-	empty := make([]string, 0)
+	var empty []string
 	fqc.KafkaAddrs = getEnvOrDefaultSplitStringSlice(OD_EVENT_KAFKA_ADDRS, empty)
 	return fqc
 }

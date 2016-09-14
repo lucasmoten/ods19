@@ -6,6 +6,7 @@ Release vNEXT
 
 * All events now wrapped with global event model (GEM), with odrive-specific
   payload field
+* Bugfix with bad default Kafka configuration
 
 
 Release v1.0.1
