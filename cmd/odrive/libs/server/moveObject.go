@@ -11,6 +11,7 @@ import (
 	"golang.org/x/net/context"
 
 	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
@@ -21,12 +22,10 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	var requestObject models.ODObject
 	var err error
 
-	// Get caller value from ctx.
-	caller, ok := CallerFromContext(ctx)
-	if !ok {
-		return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
-	}
+	caller, _ := CallerFromContext(ctx)
 	dao := DAOFromContext(ctx)
+	gem, _ := GEMFromContext(ctx)
+	session := SessionIDFromContext(ctx)
 
 	// Parse Request in sent format
 	if r.Header.Get("Content-Type") != "application/json" {
@@ -140,8 +139,18 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	}
 
 	apiResponse := mapping.MapODObjectToObject(&dbObject).WithCallerPermission(protocolCaller(caller))
-	jsonResponse(w, apiResponse)
 
+	gem.Action = "update"
+	gem.Payload = events.ObjectDriveEvent{
+		ObjectID:     apiResponse.ID,
+		ChangeToken:  apiResponse.ChangeToken,
+		UserDN:       caller.DistinguishedName,
+		StreamUpdate: false,
+		SessionID:    session,
+	}
+	h.EventQueue.Publish(gem)
+
+	jsonResponse(w, apiResponse)
 	return nil
 }
 
