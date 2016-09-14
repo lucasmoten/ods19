@@ -1,6 +1,9 @@
 package protocol
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // Object is a nestable structure defining the base attributes for an Object
 // in Object Drive
@@ -72,7 +75,7 @@ type Object struct {
 // WithCallerPermission rolls up permissions for a caller, sets them on a copy of
 // the Object, and returns that copy.
 func (obj Object) WithCallerPermission(caller Caller) Object {
-
+	obj = obj.WithConsolidatedPermissions()
 	var cp CallerPermission
 	cp = cp.WithRolledUp(caller, obj.Permissions...)
 	if len(obj.DeletedBy) > 0 {
@@ -81,5 +84,31 @@ func (obj Object) WithCallerPermission(caller Caller) Object {
 		cp.AllowShare = false
 	}
 	obj.CallerPermission = cp
+	return obj
+}
+
+// WithConsolidatedPermissions iterates permissions on the object and combines
+// capabilities allowed for multiple permissions having the same grantee and then
+// removes the duplicates
+func (obj Object) WithConsolidatedPermissions() Object {
+	var consolidated []Permission
+	for _, perm := range obj.Permissions {
+		found := false
+		for cidx, cPerm := range consolidated {
+			if strings.Compare(cPerm.Grantee, perm.Grantee) == 0 {
+				found = true
+				cPerm.AllowCreate = cPerm.AllowCreate || perm.AllowCreate
+				cPerm.AllowRead = cPerm.AllowRead || perm.AllowRead
+				cPerm.AllowUpdate = cPerm.AllowUpdate || perm.AllowUpdate
+				cPerm.AllowDelete = cPerm.AllowDelete || perm.AllowDelete
+				cPerm.AllowShare = cPerm.AllowShare || perm.AllowShare
+				consolidated[cidx] = cPerm
+			}
+		}
+		if !found {
+			consolidated = append(consolidated, perm)
+		}
+	}
+	obj.Permissions = consolidated
 	return obj
 }
