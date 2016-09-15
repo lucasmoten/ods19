@@ -1,0 +1,31 @@
+machine:
+    environment:
+        IMPORT_PATH: "decipher.com/object-drive-server"
+        REPO_NAME: "object-drive-server"
+    pre:
+        - curl -sSL https://s3.amazonaws.com/circle-downloads/install-circleci-docker.sh | bash -s -- 1.10.0
+    services:
+        - docker
+
+
+dependencies:
+    pre:
+        - sudo pip install docker-compose
+        - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+        - go get -u github.com/kardianos/govendor
+        - sudo killall mysqld
+        - sudo apt-get --purge autoremove -y mysql-server-5.6
+    override:
+        - mkdir -p ~/.go_workspace/src/$IMPORT_PATH
+        - rm -rf ~/.go_workspace/src/$IMPORT_PATH
+        - cp -rf ~/$REPO_NAME ~/.go_workspace/src/$IMPORT_PATH
+        - cd ~/.go_workspace/src/$IMPORT_PATH && govendor sync
+        - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive && go build
+        - cd ~/.go_workspace/src/$IMPORT_PATH && docker build -t deciphernow/odrive:latest .
+        - cd ~/.go_workspace/src/$IMPORT_PATH/.ci && docker-compose pull zk kafka aac metadatadb gatekeeper dias
+        - cd ~/.go_workspace/src/$IMPORT_PATH/.ci && docker-compose up -d
+
+test:
+    override:
+        -  cd ~/.go_workspace/src/$IMPORT_PATH && GOPATH=~/.go_workspace go test ./...
+

@@ -421,7 +421,7 @@ func pingDB(conf configx.DatabaseConfiguration, db *sqlx.DB) int {
 			elogger := logger.
 				With(zap.String("err", err.Error())).
 				With(zap.String("host", conf.Host)).
-				With(zap.String("port", conf.Host)).
+				With(zap.String("port", conf.Port)).
 				With(zap.String("user", conf.Username)).
 				With(zap.String("schema", conf.Schema)).
 				With(zap.String("CA", conf.CAPath)).

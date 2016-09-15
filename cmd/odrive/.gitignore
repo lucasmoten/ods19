@@ -3,6 +3,7 @@ dbtest
 odrive
 metadataconnector
 *.debug
+main
 
 # object cache directory
 cache
