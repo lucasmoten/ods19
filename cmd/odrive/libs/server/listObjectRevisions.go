@@ -64,8 +64,13 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	}
 	user.Snippets = snippetFields
 
+	checkACM := func(o *models.ODObject) bool {
+		_, err = h.isUserAllowedForObjectACM(ctx, o)
+		return err == nil
+	}
+
 	// Get the revision information for this objects
-	response, err := dao.GetObjectRevisionsWithPropertiesByUser(user, *pagingRequest, dbObject)
+	response, err := dao.GetObjectRevisionsWithPropertiesByUser(user, *pagingRequest, dbObject, checkACM)
 	if err != nil {
 		return NewAppError(500, err, "General error")
 	}

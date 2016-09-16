@@ -105,7 +105,7 @@ Content-Disposition: form-data; name="ObjectMetadata"
 func TestUpdateObjectMalicious(t *testing.T) {
 	clientID := 5
 	data := "0123456789"
-	_, obj := doTestCreateObjectSimple(t, data, clientID, nil, nil)
+	_, obj := doTestCreateObjectSimple(t, data, clientID, nil, nil, ValidAcmCreateObjectSimple)
 	doCheckFileNowExists(t, clientID, obj)
 
 	if len(obj.ChangeToken) == 0 {
@@ -131,7 +131,7 @@ func TestUpdateObjectMalicious(t *testing.T) {
 func TestUpdateObjectWithProperties(t *testing.T) {
 	clientID := 5
 	data := "0123456789"
-	_, created := doTestCreateObjectSimple(t, data, clientID, nil, nil)
+	_, created := doTestCreateObjectSimple(t, data, clientID, nil, nil, ValidAcmCreateObjectSimple)
 	doCheckFileNowExists(t, clientID, created)
 
 	if len(created.ChangeToken) == 0 {
@@ -176,6 +176,7 @@ func TestUpdateStream(t *testing.T) {
 				</p>`,
 			ResponseDescription: `We get back an object with updated json changeToken and version`,
 		},
+		ValidAcmCreateObjectSimple,
 	)
 	doCheckFileNowExists(t, clientID, created)
 
@@ -193,7 +194,7 @@ func TestUpdateStreamWithoutProvidingACM(t *testing.T) {
 	clientID := 5
 	data := "0123456789"
 
-	_, created := doTestCreateObjectSimple(t, data, clientID, nil, nil)
+	_, created := doTestCreateObjectSimple(t, data, clientID, nil, nil, ValidAcmCreateObjectSimple)
 	doCheckFileNowExists(t, clientID, created)
 
 	doPropertyUpdate(t, clientID, created.ID, fmt.Sprintf(updateTemplate, created.ID, "", created.ChangeToken), nil, nil)

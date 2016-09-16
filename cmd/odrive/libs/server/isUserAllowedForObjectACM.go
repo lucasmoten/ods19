@@ -18,6 +18,10 @@ import (
 	"golang.org/x/net/context"
 )
 
+func IsDeniedAccess(err error) bool {
+	return strings.HasPrefix(err.Error(), "Access Denied")
+}
+
 func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models.ODObject) (bool, error) {
 
 	logger := LoggerFromContext(ctx)

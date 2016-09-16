@@ -93,7 +93,7 @@ func TestCreateObjectSimple(t *testing.T) {
 	}
 	clientID := 5
 	data := "Initial test data 1"
-	_, obj := doTestCreateObjectSimple(t, data, clientID, nil, nil)
+	_, obj := doTestCreateObjectSimple(t, data, clientID, nil, nil, ValidAcmCreateObjectSimple)
 	doCheckFileNowExists(t, clientID, obj)
 
 	if len(obj.Permissions) == 0 {

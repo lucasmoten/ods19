@@ -174,6 +174,7 @@ func doTestCreateObjectSimple(
 	clientID int,
 	trafficLog *TrafficLog,
 	description *TrafficLogDescription,
+	acmString string,
 ) (*http.Response, protocol.Object) {
 	client := clients[clientID].Client
 	testName, err := util.NewGUID()
@@ -182,7 +183,7 @@ func doTestCreateObjectSimple(
 	}
 
 	var acm interface{}
-	json.Unmarshal([]byte(ValidAcmCreateObjectSimple), &acm)
+	json.Unmarshal([]byte(acmString), &acm)
 	tmpName := "initialTestData1.txt"
 	tmp, tmpCloser, err := testhelpers.GenerateTempFile(data)
 	if err != nil {
@@ -214,6 +215,61 @@ func doTestCreateObjectSimple(
 	}
 
 	statusExpected(t, 200, res, "doTestCreateObjectSimple internal failure")
+	obj := untyped.(protocol.Object)
+
+	return res, obj
+}
+
+func doTestUpdateObjectSimple(
+	t *testing.T,
+	data string,
+	clientID int,
+	oldObject protocol.Object,
+	trafficLog *TrafficLog,
+	description *TrafficLogDescription,
+	acmString string,
+) (*http.Response, protocol.Object) {
+	client := clients[clientID].Client
+	testName, err := util.NewGUID()
+	if err != nil {
+		t.Fail()
+	}
+
+	var acm interface{}
+	json.Unmarshal([]byte(acmString), &acm)
+	tmpName := "initialTestData1.txt"
+	tmp, tmpCloser, err := testhelpers.GenerateTempFile(data)
+	if err != nil {
+		t.Errorf("Could not open temp file for write: %v\n", err)
+	}
+	defer tmpCloser()
+
+	createRequest := protocol.UpdateObjectRequest{
+		ID:          oldObject.ID,
+		ChangeToken: oldObject.ChangeToken,
+		Name:        testName,
+		TypeName:    "File",
+		RawAcm:      acm,
+	}
+
+	var jsonBody []byte
+	jsonBody, err = json.MarshalIndent(createRequest, "", "  ")
+	if err != nil {
+		t.Fail()
+	}
+
+	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
+		"objects/"+oldObject.ID+"/stream", host, "", tmp, tmpName, jsonBody)
+	if err != nil {
+		t.Errorf("Unable to create HTTP request: %v\n", err)
+	}
+
+	res, untyped, err := DoWithDecodedResult(t, client, req, trafficLog, description)
+	if err != nil {
+		t.Fail()
+	}
+
+	statusExpected(t, 200, res, "doTestUpdateObjectSimple internal failure")
 	obj := untyped.(protocol.Object)
 
 	return res, obj
@@ -294,6 +350,20 @@ func shouldNotHaveReadForObjectID(t *testing.T, objID string, clientIdxs ...int)
 		failNowOnErr(t, err, "Unable to do request")
 		defer util.FinishBody(resp.Body)
 		statusExpected(t, 403, resp, fmt.Sprintf("client id %d should not have read for ID %s", i, objID))
+		ioutil.ReadAll(resp.Body)
+	}
+}
+
+func expectingReadForObjectIDVersion(t *testing.T, code int, version int, objID string, clientIdxs ...int) {
+	uri := host + cfg.NginxRootURL + "/revisions/" + objID + "/" + strconv.Itoa(version) + "/stream"
+	getReq, _ := http.NewRequest("GET", uri, nil)
+	for _, i := range clientIdxs {
+		// reaches for package global clients
+		c := clients[i].Client
+		resp, err := c.Do(getReq)
+		failNowOnErr(t, err, "Unable to do request")
+		defer util.FinishBody(resp.Body)
+		statusExpected(t, code, resp, fmt.Sprintf("client id %d should get http %d ID %s version %d using %s", i, code, objID, version, uri))
 		ioutil.ReadAll(resp.Body)
 	}
 }

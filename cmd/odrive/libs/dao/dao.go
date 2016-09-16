@@ -33,8 +33,8 @@ type DAO interface {
 	GetObjectPermission(objectPermission models.ODObjectPermission) (models.ODObjectPermission, error)
 	GetObjectProperty(objectProperty models.ODObjectPropertyEx) (models.ODObjectPropertyEx, error)
 	GetObjectRevision(object models.ODObject, loadProperties bool) (models.ODObject, error)
-	GetObjectRevisionsByUser(user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
-	GetObjectRevisionsWithPropertiesByUser(user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
+	GetObjectRevisionsByUser(user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error)
+	GetObjectRevisionsWithPropertiesByUser(user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error)
 	GetObjectType(objectType models.ODObjectType) (*models.ODObjectType, error)
 	GetObjectTypeByName(typeName string, addIfMissing bool, createdBy string) (models.ODObjectType, error)
 	GetObjectsIHaveShared(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error)
@@ -59,6 +59,8 @@ type DAO interface {
 	UpdatePermission(permission models.ODObjectPermission) error
 	GetLogger() zap.Logger
 }
+
+type CheckACM func(*models.ODObject) bool
 
 // DataAccessLayer is a concrete DAO implementation with a true DB connection.
 type DataAccessLayer struct {
