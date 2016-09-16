@@ -62,7 +62,7 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	_, err = h.isUserAllowedForObjectACM(ctx, &dbObject)
 	if err != nil {
 		if IsDeniedAccess(err) {
-			return NewAppError(403, err, "Forbidden - User does not pass authorization checks for object ACM")
+			return NewAppError(403, err, err.Error())
 		} else {
 			return NewAppError(502, err, "Error communicating with authorization service")
 		}
