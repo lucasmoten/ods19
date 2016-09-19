@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"decipher.com/object-drive-server/cmd/odrive/libs/mapping"
+	"decipher.com/object-drive-server/mapping"
 	globalconfig "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/services/audit"
 	"decipher.com/object-drive-server/services/audit/generated/acm_thrift"

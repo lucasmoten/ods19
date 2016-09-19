@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
+	"decipher.com/object-drive-server/utils"
 	configx "decipher.com/object-drive-server/configx"
 )
 
