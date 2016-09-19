@@ -10,13 +10,13 @@ import (
 
 // GetObjectRevisionsByUser retrieves a list of revisions for an object.
 func (dao *DataAccessLayer) GetObjectRevisionsByUser(
-	user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
+	user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getObjectRevisionsByUserInTransaction(tx, user, pagingRequest, object)
+	response, err := getObjectRevisionsByUserInTransaction(tx, user, pagingRequest, object, checkACM)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetObjectRevisionsByUser", zap.String("err", err.Error()))
 		tx.Rollback()
@@ -26,7 +26,7 @@ func (dao *DataAccessLayer) GetObjectRevisionsByUser(
 	return response, err
 }
 
-func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
+func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	// NOTE: distinct is unfortunately used here because object_permission
 	// allows multiple records per object and grantee.
@@ -100,5 +100,16 @@ func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagi
 	// 	}
 	// 	response.Objects[i].Permissions = permissions
 	// }
+	for i, o := range response.Objects {
+		ok := checkACM(&o)
+		if !ok {
+			//Preserve the id field and list the changeCount field
+			id := response.Objects[i].ID
+			response.Objects[i] = models.ODObject{}
+			response.Objects[i].ID = id
+			response.Objects[i].ChangeCount = -1
+		}
+	}
+
 	return response, err
 }

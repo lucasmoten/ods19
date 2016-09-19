@@ -23,7 +23,7 @@ func TestUserStats(t *testing.T) {
 
 	//Create an object of known size, for its side-effects
 	data := "0123456789"
-	res, _ := doTestCreateObjectSimple(t, data, clientID, nil, nil)
+	res, _ := doTestCreateObjectSimple(t, data, clientID, nil, nil, ValidAcmCreateObjectSimple)
 	if res == nil {
 		t.Errorf("Unable to run query")
 	}

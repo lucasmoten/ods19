@@ -86,10 +86,14 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 		t.Error("Change token did not change on second update")
 	}
 
+	checkACM := func(*models.ODObject) bool {
+		return true
+	}
+
 	// Get list of revisions
 	user := models.ODUser{DistinguishedName: usernames[1]}
 	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: dao.MaxPageSize, SortSettings: []protocol.SortSetting{protocol.SortSetting{SortField: "changecount", SortAscending: false}}}
-	resultset, err := d.GetObjectRevisionsByUser(user, pagingRequest, object)
+	resultset, err := d.GetObjectRevisionsByUser(user, pagingRequest, object, checkACM)
 	if err != nil {
 		t.Error("Error getting revisions for object")
 	}
