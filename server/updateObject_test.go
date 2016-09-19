@@ -15,6 +15,7 @@ import (
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
+	"decipher.com/object-drive-server/utils"
 
 	"decipher.com/object-drive-server/protocol"
 )
@@ -381,6 +382,112 @@ func TestUpdateObjectCallerPermissions(t *testing.T) {
 	for _, p := range folderForTester10.Permissions {
 		t.Logf("Permission: %v", p)
 	}
+
+}
+
+func TestUpdateObjectShareInAFolder(t *testing.T) {
+	tester10 := 0
+	t.Logf("* Create parent folder as tester10")
+	folderParent := makeFolderViaJSON("TestUpdateObjectShareInAFolderParent", tester10, t)
+	t.Logf("* Create child folder as tester10")
+	folderChild := makeFolderWithParentViaJSON("TestUpdateObjectShareInAFolderChild", folderParent.ID, tester10, t)
+	t.Logf("* Change ACM Share settings")
+
+	objStringTemplate := `{
+    "id": "%s",
+    "parentId": "%s",
+    "acm": {
+        "f_missions": [],
+        "fgi_open": [],
+        "rel_to": [],
+        "dissem_countries": [
+            "USA"
+        ],
+        "sci_ctrls": [],
+        "f_clearance": [
+            "u"
+        ],
+        "owner_prod": [],
+        "f_regions": [],
+        "f_share": [
+            "cnaldeaamandadcnaldadoupeopleoudiaoudodou_s_governmentcus",
+            "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+            "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"
+        ],
+        "portion": "U",
+        "disp_only": "",
+        "f_sci_ctrls": [],
+        "disponly_to": [
+            ""
+        ],
+        "banner": "UNCLASSIFIED",
+        "non_ic": [],
+        "f_accms": [],
+        "f_sar_id": [],
+        "f_oc_org": [],
+        "classif": "U",
+        "atom_energy": [],
+        "dissem_ctrls": [],
+        "sar_id": [],
+        "version": "2.1.0",
+        "fgi_protect": [],
+        "f_macs": [],
+        "f_atom_energy": [],
+        "share": {
+            "users": [
+                "cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us",
+                "cn=alleyne shennah cnalles,ou=people,ou=dia,ou=dod,o=u.s. government,c=us",
+                "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+            ],
+            "projects": {}
+        }
+    },
+    "permissions": [
+        {
+            "grantee": "cnaldeaamandadcnaldadoupeopleoudiaoudodou_s_governmentcus",
+            "userDistinguishedName": "cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us",
+            "displayName": "aldea amanda d cnaldad",
+            "allowCreate": false,
+            "allowRead": true,
+            "allowUpdate": false,
+            "allowDelete": false,
+            "allowShare": false,
+            "share": {
+                "users": [
+                    "cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+                ]
+            }
+        },
+        {
+            "allowRead": true,
+            "share": {
+                "users": [
+                    "cn=alleyne shennah cnalles,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+                ]
+            }
+        },
+        {
+            "allowCreate": true,
+            "allowRead": true,
+            "allowUpdate": true,
+            "allowDelete": true,
+            "allowShare": true,
+            "users": [
+                "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+            ]
+        }
+    ],
+    "changeToken": "%s"
+}`
+	objString := fmt.Sprintf(objStringTemplate, folderChild.ID, folderParent.ID, folderChild.ChangeToken)
+	objInt, _ := utils.UnmarshalStringToInterface(objString)
+	uri := host + cfg.NginxRootURL + "/objects/" + folderChild.ID + "/properties"
+	req := makeHTTPRequestFromInterface(t, "POST", uri, objInt)
+	resp, err := clients[tester10].Client.Do(req)
+	failNowOnErr(t, err, "unable to do request")
+	statusMustBe(t, 200, resp, "expected tester10 to be able to change share")
+	var updated protocol.Object
+	util.FullDecode(resp.Body, &updated)
 
 }
 
