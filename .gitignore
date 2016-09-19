@@ -20,5 +20,5 @@ release
 # Delve debugger compiled binaries
 debug.*
 
-cmd/odrive/libs/server/static/templates/root.html
-cmd/odrive/libs/server/static/templates/APISample.html
+root.html
+APISample.html

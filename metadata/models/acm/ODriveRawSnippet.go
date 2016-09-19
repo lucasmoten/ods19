@@ -10,7 +10,7 @@ import (
 
 	"github.com/uber-go/zap"
 
-	"decipher.com/object-drive-server/cmd/odrive/libs/utils"
+	"decipher.com/object-drive-server/utils"
 	globalconfig "decipher.com/object-drive-server/config"
 )
 

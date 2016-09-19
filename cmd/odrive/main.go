@@ -22,10 +22,10 @@ import (
 	"github.com/uber-go/zap"
 	"github.com/urfave/cli"
 
-	"decipher.com/object-drive-server/cmd/odrive/libs/dao"
-	"decipher.com/object-drive-server/cmd/odrive/libs/server"
 	globalconfig "decipher.com/object-drive-server/config"
 	configx "decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/dao"
+	"decipher.com/object-drive-server/server"
 
 	"decipher.com/object-drive-server/performance"
 	"decipher.com/object-drive-server/services/aac"
@@ -111,12 +111,12 @@ func main() {
 		cli.StringFlag{
 			Name:  "staticRoot",
 			Usage: "Path to static files. Defaults to libs/server/static",
-			Value: filepath.Join("libs", "server", "static"),
+			Value: filepath.Join("..", "..", "server", "static"),
 		},
 		cli.StringFlag{
 			Name:  "templateDir",
 			Usage: "Path to template files. Defaults to libs/server/static/templates",
-			Value: filepath.Join("libs", "server", "static", "templates"),
+			Value: filepath.Join("..", "..", "server", "static", "templates"),
 		},
 		cli.StringFlag{
 			Name:  "tlsMinimumVersion",
