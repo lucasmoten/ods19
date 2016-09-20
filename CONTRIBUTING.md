@@ -78,4 +78,11 @@ git tag -a v0.1.0 -m 'version 0.1.0'
 git push origin --tags
 ```
 
+If you ever need to delete a tag, you can do this:
+
+```
+git tag -d v1.0.4
+git push origin :refs/tags/v1.0.4
+```
+
 
