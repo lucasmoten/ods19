@@ -437,3 +437,28 @@ func getEnvOrDefaultSplitStringSlice(envVar string, defaultVal []string) []strin
 	splitted := strings.Split(os.Getenv(envVar), ",")
 	return splitted
 }
+
+// checkAWSEnvironmentVars prevents the server from starting if appropriate vars
+// are not set.
+func CheckAWSEnvironmentVars(logger zap.Logger) {
+	// Variables for the environment can be provided as either the native AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+	// or be prefixed with the common "OD_" as in OD_AWS_REGION, OD_AWS_ACCESS_KEY_ID, and OD_AWS_SECRET_ACCESS_KEY
+	// Environment variables will be normalized to the AWS_ variants to facilitate internal library calls
+	region := globalconfig.GetEnvOrDefault(OD_AWS_REGION, globalconfig.GetEnvOrDefault("AWS_REGION", ""))
+	if len(region) > 0 {
+		os.Setenv("AWS_REGION", region)
+	}
+	accessKeyID := globalconfig.GetEnvOrDefault(OD_AWS_ACCESS_KEY_ID, globalconfig.GetEnvOrDefault("AWS_ACCESS_KEY_ID", ""))
+	if len(accessKeyID) > 0 {
+		os.Setenv("AWS_ACCESS_KEY_ID", accessKeyID)
+	}
+	secretKey := globalconfig.GetEnvOrDefault(OD_AWS_SECRET_ACCESS_KEY, globalconfig.GetEnvOrDefault("AWS_SECRET_ACCESS_KEY", ""))
+	if len(secretKey) > 0 {
+		os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey)
+	}
+	// If the region is not set, then fail
+	if region == "" {
+		logger.Fatal("Fatal Error: Environment variable AWS_REGION must be set.")
+	}
+	return
+}

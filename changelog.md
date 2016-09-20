@@ -11,6 +11,7 @@ Release vNEXT
 * FIX: Update Object with ACM Share now ensures owner retains read access.
 * FIX: Existing objects have full CRUDS permissions assigned to owners.
 * FIX: List of objects /shared to others will exclude those that are private to the user. 
+* NEW: CloudWatch metrics that enable the setting of alarms by admins (an auto-scaling prerequisite)
 
 Release v1.0.1
 --------------

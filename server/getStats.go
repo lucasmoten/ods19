@@ -18,6 +18,9 @@ func (h AppServer) getStats(ctx context.Context, w http.ResponseWriter, r *http.
 		verbose = true
 	}
 
+	fmt.Fprintf(w, "\nLast Cloudwatch report\n")
+	CloudWatchDump(w)
+
 	fmt.Fprintf(w, "\nUploaders Aggregate:\n")
 	h.Tracker.Reporters[performance.UploadCounter].Q.Dump(w, verbose)
 

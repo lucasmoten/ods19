@@ -148,7 +148,7 @@ func runServiceTest(ctx *cli.Context) error {
 	service := ctx.Args().First()
 	switch service {
 	case S3Service:
-		sess := server.NewAWSSession()
+		sess := server.NewAWSSessionForS3(logger)
 		if !server.TestS3Connection(sess) {
 			fmt.Println("Cannot access S3 bucket.")
 			os.Exit(1)
@@ -212,6 +212,9 @@ func startApplication(conf configx.AppConfiguration) {
 	pollAll(app, updates, conf, time.Duration(30*time.Second))
 
 	zkTracking(app, conf)
+
+	//Begin cloudwatch stats
+	server.CloudWatchReportingStart(app.Tracker)
 
 	logger.Info("starting server", zap.String("addr", app.Addr))
 	//This blocks until there is an error to stop the server

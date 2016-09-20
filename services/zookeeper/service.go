@@ -301,6 +301,14 @@ func trackAnnouncementsLoop(z *ZKState, at string, handler AnnounceHandler) {
 					zlogger.Info(
 						"zk object-drive announcements are empty",
 					)
+					//I occasionally reach this state under load,
+					//and gatekeeper can't reach us although no errors actually occurred.
+					//
+					//So this remedies the problem.
+					//
+					//ie: look for this happening by grepping logs for "zk object-drive announcements are empty", and it now recovers.
+					//This is not easy to reproduce!
+					doReAnnouncements(z, logger)
 				}
 				if ok {
 					zlogger.Info("zk membership change", zap.Object("announcements", announcements))
