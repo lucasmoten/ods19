@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -11,12 +10,12 @@ import (
 
 	"golang.org/x/net/context"
 
-	"decipher.com/object-drive-server/mapping"
-	"decipher.com/object-drive-server/utils"
 	"decipher.com/object-drive-server/events"
+	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
+	"decipher.com/object-drive-server/utils"
 )
 
 func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
@@ -90,11 +89,8 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		return NewAppError(428, nil, "ChangeToken does not match expected value. Object may have been changed by another request.")
 	}
 
-	// Check that the parent of the object passed in matches the current state
-	// of the object in the data store.
-	if bytes.Compare(requestObject.ParentID, dbObject.ParentID) != 0 {
-		return NewAppError(428, nil, "ParentID does not match expected value. Use moveObject to change this objects location.")
-	}
+	// Retain existing value for parent.
+	requestObject.ParentID = dbObject.ParentID
 
 	// Check that the owner of the object passed in matches the current state
 	// of the object in the data store.

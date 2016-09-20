@@ -128,8 +128,8 @@ func makeFolderViaJSON(folderName string, clientid int, t *testing.T) *protocol.
 func makeFolderWithParentViaJSON(folderName string, parentID string, clientid int, t *testing.T) *protocol.Object {
 
 	nameWithTimestamp := folderName + strconv.FormatInt(time.Now().Unix(), 10)
+	obj, err := makeFolderWithACMWithParentViaJSON(nameWithTimestamp, parentID, testhelpers.ValidACMUnclassified, clientid)
 
-	obj, err := makeFolderWithACMViaJSON(nameWithTimestamp, testhelpers.ValidACMUnclassified, clientid)
 	if err != nil {
 		t.Errorf("Error creating folder %s: %v\n", folderName, err)
 		t.FailNow()
