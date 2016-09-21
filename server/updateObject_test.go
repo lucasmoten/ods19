@@ -491,6 +491,53 @@ func TestUpdateObjectShareInAFolder(t *testing.T) {
 
 }
 
+func TestUpdateObjectWithoutACM(t *testing.T) {
+	tester10 := 0
+	t.Logf("* Create object as tester10")
+	folder := makeFolderViaJSON("TestUpdateObjectWithoutACM", tester10, t)
+	t.Logf("* Update object, but dont provide an ACM")
+	updateObj := protocol.UpdateObjectRequest{}
+	updateObj.ChangeToken = folder.ChangeToken
+	updateObj.ContainsUSPersonsData = folder.ContainsUSPersonsData
+	updateObj.Description = folder.Description
+	updateObj.ExemptFromFOIA = folder.ExemptFromFOIA
+	updateObj.ID = folder.ID
+	updateObj.Name = folder.Name + " updated"
+	updateObj.TypeID = folder.TypeID
+	updateObj.TypeName = folder.TypeName
+	uri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
+	req := makeHTTPRequestFromInterface(t, "POST", uri, updateObj)
+	resp, err := clients[tester10].Client.Do(req)
+	failNowOnErr(t, err, "unable to do request")
+	statusMustBe(t, 200, resp, "expected tester10 to be able to update object")
+	var updated protocol.Object
+	util.FullDecode(resp.Body, &updated)
+}
+
+func TestUpdateObjectWithACMHavingEmptyValueInPart(t *testing.T) {
+	tester10 := 0
+	t.Logf("* Create object as tester10")
+	folder, _ := makeFolderWithACMViaJSON("TestUpdateObjectWithACMHavingEmptyValueInPart", testhelpers.ValidACMUnclassifiedEmptyDissemCountries, tester10)
+	t.Logf("* Update object, with an ACM that has an empty dissem countries in the part")
+	updateObj := protocol.UpdateObjectRequest{}
+	updateObj.ChangeToken = folder.ChangeToken
+	updateObj.ContainsUSPersonsData = folder.ContainsUSPersonsData
+	updateObj.Description = folder.Description
+	updateObj.ExemptFromFOIA = folder.ExemptFromFOIA
+	updateObj.ID = folder.ID
+	updateObj.Name = folder.Name + " updated"
+	updateObj.RawAcm, _ = utils.UnmarshalStringToInterface(testhelpers.ValidACMUnclassifiedEmptyDissemCountriesEmptyFShare)
+	updateObj.TypeID = folder.TypeID
+	updateObj.TypeName = folder.TypeName
+	uri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
+	req := makeHTTPRequestFromInterface(t, "POST", uri, updateObj)
+	resp, err := clients[tester10].Client.Do(req)
+	failNowOnErr(t, err, "unable to do request")
+	statusMustBe(t, 200, resp, "expected tester10 to be able to update object")
+	var updated protocol.Object
+	util.FullDecode(resp.Body, &updated)
+}
+
 func allTrue(vals ...bool) bool {
 	for _, v := range vals {
 		if !v {
