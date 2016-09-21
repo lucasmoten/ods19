@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"decipher.com/object-drive-server/utils"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/utils"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -55,12 +55,29 @@ func setObjectACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, is
 					interfaceValue := mapValue.([]interface{})
 					for _, interfaceElement := range interfaceValue {
 						if strings.Compare(reflect.TypeOf(interfaceElement).Kind().String(), "string") == 0 {
-							acmValues = append(acmValues, interfaceElement.(string))
+							newValue := interfaceElement.(string)
+							if len(strings.TrimSpace(newValue)) == 0 {
+								continue
+							}
+							found := false
+							for _, existingValue := range acmValues {
+								if strings.Compare(existingValue, newValue) == 0 {
+									found = true
+									break
+								}
+							}
+							if !found {
+								acmValues = append(acmValues, interfaceElement.(string))
+							}
 						}
 					}
 				}
 				// Iterate over values presented in map
 				for _, acmValueName := range acmValues {
+					// Skip this entry if its empty
+					if len(strings.TrimSpace(acmValueName)) == 0 {
+						continue
+					}
 					// Get Id for this Value, adding if Necessary
 					acmValue, err := getAcmValueByNameInTransaction(tx, acmValueName, true, object.ModifiedBy)
 					if err != nil {
