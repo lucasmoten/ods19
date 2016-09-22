@@ -92,6 +92,13 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Retain existing value for parent.
 	requestObject.ParentID = dbObject.ParentID
 
+	// Retain existing values for content stream info
+	requestObject.ContentConnector = dbObject.ContentConnector
+	requestObject.ContentType = dbObject.ContentType
+	requestObject.ContentSize = dbObject.ContentSize
+	requestObject.ContentHash = dbObject.ContentHash
+	requestObject.EncryptIV = dbObject.EncryptIV
+
 	// Check that the owner of the object passed in matches the current state
 	// of the object in the data store.
 	if len(requestObject.OwnedBy.String) == 0 {

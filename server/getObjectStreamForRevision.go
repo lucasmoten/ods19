@@ -8,8 +8,8 @@ import (
 
 	"golang.org/x/net/context"
 
-	"decipher.com/object-drive-server/utils"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/utils"
 )
 
 func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
@@ -39,51 +39,27 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	if err != nil {
 		return NewAppError(http.StatusBadRequest, err, "Invalid revisionId in URI.")
 	}
-
-	dbObject, err := dao.GetObjectRevision(requestObject, true)
+	var fileKey []byte
+	var herr *AppError
+	// Current version authorization checks
+	dbObjectCurrent, err := dao.GetObject(requestObject, false)
 	if err != nil {
 		return NewAppError(500, err, "Error retrieving object")
 	}
-
-	// Check read permission, and capture permission for the encryptKey
-	ok, userPermission := isUserAllowedToReadWithPermission(ctx, h.MasterKey, &dbObject)
-	if !ok {
-		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
+	if herr, fileKey = getFileKeyAndCheckAuthAndObjectState(ctx, h, &dbObjectCurrent); herr != nil {
+		return herr
 	}
-	// Using captured permission, derive filekey
-	var fileKey []byte
-	fileKey = utils.ApplyPassphrase(h.MasterKey, userPermission.PermissionIV, userPermission.EncryptKey)
-	if len(fileKey) == 0 {
-		return NewAppError(500, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object")
-	}
-
-	// Check AAC to compare user clearance to  metadata Classifications
-	// 		Check if Classification is allowed for this User
-	_, err = h.isUserAllowedForObjectACM(ctx, &dbObject)
+	// Requested revision
+	dbObjectRevision, err := dao.GetObjectRevision(requestObject, true)
 	if err != nil {
-		if IsDeniedAccess(err) {
-			return NewAppError(403, err, err.Error())
-		} else {
-			return NewAppError(502, err, "Error communicating with authorization service")
-		}
-
+		return NewAppError(500, err, "Error retrieving object")
 	}
-
-	// Make sure the object isn't deleted. To remove an object from the trash,
-	// use removeObjectFromTrash call.
-	if dbObject.IsDeleted {
-		switch {
-		case dbObject.IsExpunged:
-			return NewAppError(410, err, "The object no longer exists.")
-		case dbObject.IsAncestorDeleted:
-			return NewAppError(405, err, "The object cannot be retreived because an ancestor is deleted.")
-		default:
-			return NewAppError(405, err, "The object is deleted")
-		}
+	if herr, fileKey = getFileKeyAndCheckAuthAndObjectState(ctx, h, &dbObjectRevision); herr != nil {
+		return herr
 	}
 
 	// Fail fast: Don't even look at cache or retrieve if the file size is 0
-	if !dbObject.ContentSize.Valid || dbObject.ContentSize.Int64 <= int64(0) {
+	if !dbObjectRevision.ContentSize.Valid || dbObjectRevision.ContentSize.Int64 <= int64(0) {
 		return NewAppError(204, nil, "No content")
 	}
 
@@ -93,9 +69,43 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 		disposition = overrideDisposition
 	}
 
-	_, appError := h.getAndStreamFile(ctx, &dbObject, w, r, fileKey, false, disposition)
+	_, appError := h.getAndStreamFile(ctx, &dbObjectRevision, w, r, fileKey, false, disposition)
 	if appError != nil {
 		return appError
 	}
 	return nil
+}
+
+func getFileKeyAndCheckAuthAndObjectState(ctx context.Context, h AppServer, obj *models.ODObject) (*AppError, []byte) {
+	var fileKey []byte
+
+	ok, userPermission := isUserAllowedToReadWithPermission(ctx, h.MasterKey, obj)
+	if !ok {
+		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object"), fileKey
+	}
+	fileKey = utils.ApplyPassphrase(h.MasterKey, userPermission.PermissionIV, userPermission.EncryptKey)
+	if len(fileKey) == 0 {
+		return NewAppError(500, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object"), fileKey
+	}
+
+	_, err := h.isUserAllowedForObjectACM(ctx, obj)
+	if err != nil {
+		if IsDeniedAccess(err) {
+			return NewAppError(403, err, err.Error()), fileKey
+		}
+		return NewAppError(502, err, "Error communicating with authorization service"), fileKey
+	}
+
+	if obj.IsDeleted {
+		switch {
+		case obj.IsExpunged:
+			return NewAppError(410, err, "The object no longer exists."), fileKey
+		case obj.IsAncestorDeleted:
+			return NewAppError(405, err, "The object cannot be retreived because an ancestor is deleted."), fileKey
+		default:
+			return NewAppError(405, err, "The object is deleted"), fileKey
+		}
+	}
+
+	return nil, fileKey
 }
