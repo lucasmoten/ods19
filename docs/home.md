@@ -196,7 +196,7 @@ This operation is used to display properties when selecting an object in the sys
 It may be called on objects int the trash which also expose additional fields in the response.
 
 + Response 200 (application/json)
-    + Attributes (ObjectRespDeleted)
+    + Attributes (GetObjectResponse)
 
 + Response 400
 
@@ -1130,6 +1130,17 @@ User Stats provides metrics information for the user's total number of objects a
 + disp_nm: `DCTC` (string, required) - The display name for the project
 + groups: `ODrive_G1` (array[string], required) - Array of groups to be targetted by this share within the project.
 
+## Breadcrumb (object)
+
++ id: `11e5e4867a6e3d8389020242ac110002` (string) - The object ID of an object's breadcrumb. Should never be empty.
++ parentId: `11e5e4867a6e3d8389020242ac110002` (string) - The parent ID of an object's breadcrumb. Will be empty if a breadcrumb is a root object.
++ name: `folderA` (string) - The object name for an object's breadcrumb. Useful for displaying folder hierarchies.
+
+## BreadcrumbParent (object)
+
++ id: `11e5e4867a6e3d8389020242ac110002` (string) - The object ID of an object's breadcrumb. Should never be empty.
++ parentId: ` ` (string) - The parent ID of an object's breadcrumb. Will be empty if a breadcrumb is a root object.
++ name: `parentFolderA` (string) - The object name for an object's breadcrumb. Useful for displaying folder hierarchies.
 
 ## CallerPermission (object)
 
@@ -1171,6 +1182,34 @@ User Stats provides metrics information for the user's total number of objects a
 + permissions (array[PermissionCreate]) - Array of permissions to be associated with this object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
+
+## GetObjectResponse (object)
+
++ id: `11e5e4867a6e3d8389020242ac110002`  (string, required) - The unique identifier of the object hex encoded to a string. This value can be used for alterations and listing on other RESTful methods.
++ createdDate: `2016-03-07T17:03:13Z`  (string) - The date and time the object was created in the system in UTC ISO 8601 format.
++ createdBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) - The user that created the object.
++ modifiedDate: `2016-03-07T17:03:13Z` (string) -  The date and time the object was last modified in the system in UTC ISO 8601 format. For unchanged objects, this will reflect the same value as the createdDate field.
++ modifiedBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) - The user that last modified this object. For unchanged objects, this will reflect the same value as the createdBy field.
++ deletedDate: `0001-01-01T00:00:00Z` (string, optional) -  The date and time the object was deleted in the system in UTC ISO 8601 format. This field is only populated if the object is in the trash.
++ deletedBy: `` (string) - The user that deleted the object. This field is only populated if the object is in the trash.
++ changeCount: 42 (number) - The total count of changes that have been made to this object over its lifespan. Synonymous with version number. For unchanged objects, this will always be 0.
++ changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) - A hash of the object's unique identifier and last modification date and time.
++ ownedBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) - The user that owns the object.
++ typeId: `11e5e48664f5d8c789020242ac110002` (string) - The unique identifier of the type assigned this object hex encoded to a string.
++ typeName: `File` (string) - The display name of the type assigned this object.
++ name: `gettysburgaddress.txt` (string) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.
++ description: `Description here` (string) - An abstract of the object's purpose.
++ parentId: ` ` (string, optional) - The unique identifier of the objects parent hex encoded to a string. This may be used to traverse up the tree. For objects stored at the root of a user, this value will be null.
++ acm (ACMResponse, required) - The acm value associated with this object in object form
++ contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
++ contentSize: 1511 (string) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
++ isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
++ containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
++ exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
++ properties (array[Property]) - Array of custom properties associated with the object.
++ callerPermissions (CallerPermission) - Permissions granted to the caller that resulted in this object being returned.
++ permissions (array[PermissionUser,PermissionGroup]) - Array of permissions associated with this object.
++ breadcrumbs (array[BreadcrumbParent,Breadcrumb]) - Array of IDs representing the parent chain for the object returned buy the API call. Will be empty for objects located at the root.
 
 ## ObjectDeleted (object)
 

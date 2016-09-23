@@ -70,6 +70,20 @@ type Object struct {
 	// This might be null.  It could have a large list of permission objects
 	// relevant to this file (ie: shared with an organization)
 	Permissions []Permission `json:"permissions,omitempty"`
+	// Breadcrumbs is an array of Breadcrumb that may be returned on some API calls.
+	// Clients can use breadcrumbs to display a list of parents. The top-level
+	// parent should be the first item in the slice.
+	Breadcrumbs []Breadcrumb `json:"breadcrumbs,omitempty"`
+}
+
+// WithBreadcrumbs extends the object's Breadcrumbs slice, if it exists. If it does
+// not exist, a slice is created.
+func (obj Object) WithBreadcrumbs(crumbs []Breadcrumb) Object {
+	if obj.Breadcrumbs == nil {
+		obj.Breadcrumbs = make([]Breadcrumb, 0)
+	}
+	obj.Breadcrumbs = append(obj.Breadcrumbs, crumbs...)
+	return obj
 }
 
 // WithCallerPermission rolls up permissions for a caller, sets them on a copy of

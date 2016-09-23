@@ -26,11 +26,11 @@ type FakeDAO struct {
 	ObjectPropertyEx  models.ODObjectPropertyEx
 	ObjectType        models.ODObjectType
 	ObjectResultSet   models.ODObjectResultset
+	Parents           []models.ODObject
 	Property          models.ODProperty
 	User              models.ODUser
 	Users             []models.ODUser
 	UserStatsData     models.UserStats
-	// TODO: More fields required?
 }
 
 // AddPermissionToObject for FakeDAO.
@@ -174,6 +174,11 @@ func (fake *FakeDAO) GetObjectsSharedToMe(user models.ODUser, pagingRequest prot
 	return fake.ObjectResultSet, fake.Err
 }
 
+// GetParents for FakeDAO
+func (fake *FakeDAO) GetParents(child models.ODObject) ([]models.ODObject, error) {
+	return fake.Parents, fake.Err
+}
+
 // GetPermissionsForObject for FakeDAO.
 func (fake *FakeDAO) GetPermissionsForObject(object models.ODObject) ([]models.ODObjectPermission, error) {
 	return fake.ObjectPermissions, fake.Err
@@ -269,6 +274,7 @@ func (fake *FakeDAO) clearError() {
 	fake.Err = nil
 }
 
+// fakeCompileCheck ensures that FakeDAO implements DAO.
 func fakeCompileCheck() DAO {
 	return &FakeDAO{}
 }

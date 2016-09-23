@@ -5,11 +5,14 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/uber-go/zap"
+
 	"golang.org/x/net/context"
 
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/protocol"
 )
 
 func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
@@ -54,11 +57,24 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	if dbObject.IsDeleted {
 		apiResponse := mapping.MapODObjectToDeletedObject(&dbObject).WithCallerPermission(protocolCaller(caller))
 		jsonResponse(w, apiResponse)
-	} else {
-		apiResponse := mapping.MapODObjectToObject(&dbObject).WithCallerPermission(protocolCaller(caller))
-		jsonResponse(w, apiResponse)
+		return nil
 	}
 
+	parents, err := dao.GetParents(dbObject)
+	if err != nil {
+		return NewAppError(500, err, "error retrieving object parents")
+	}
+
+	parents = redactParents(ctx, h, parents)
+	if err := errOnDeletedParents(parents); err != nil {
+		return err
+	}
+	crumbs := breadcrumbsFromParents(parents)
+
+	apiResponse := mapping.MapODObjectToObject(&dbObject).
+		WithCallerPermission(protocolCaller(caller)).
+		WithBreadcrumbs(crumbs)
+	jsonResponse(w, apiResponse)
 	return nil
 }
 
@@ -87,6 +103,47 @@ func getObjectDAOError(err error) (int, error, string) {
 	default:
 		return 500, err, "Error retrieving object"
 	}
+}
+
+func redactParents(ctx context.Context, h AppServer, parents []models.ODObject) []models.ODObject {
+	logger := LoggerFromContext(ctx)
+	// for each parent, check authorization to read and AAC call
+	for i, parent := range parents {
+		if ok := isUserAllowedToRead(ctx, h.MasterKey, &parent); !ok {
+			parents[i].Name = "Not Authorized"
+		}
+		if _, err := h.isUserAllowedForObjectACM(ctx, &parent); err != nil {
+			parents[i].Name = "Not Authorized"
+			if !IsDeniedAccess(err) {
+				// already redacted, log possible 502 and continue
+				logger.Error("AAC error checking parent", zap.Object("err", err))
+			}
+		}
+	}
+	return parents
+}
+
+func errOnDeletedParents(parents []models.ODObject) *AppError {
+	for _, parent := range parents {
+		if parent.IsDeleted {
+			return NewAppError(500, errors.New("cannot get properties on object with deleted ancestor"), "")
+		}
+	}
+	return nil
+}
+
+func breadcrumbsFromParents(parents []models.ODObject) []protocol.Breadcrumb {
+	var crumbs []protocol.Breadcrumb
+
+	for _, p := range parents {
+		b := protocol.Breadcrumb{
+			ID:       hex.EncodeToString(p.ID),
+			ParentID: hex.EncodeToString(p.ParentID),
+			Name:     p.Name,
+		}
+		crumbs = append(crumbs, b)
+	}
+	return crumbs
 }
 
 func parseGetObjectRequest(ctx context.Context) (models.ODObject, error) {

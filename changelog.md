@@ -5,6 +5,7 @@ Release vNEXT
 ------------
 
 * NEW: All events now wrapped with global event model (GEM), with odrive-specific payload field
+* NEW: An array of breadcrumb objects is returned with an object's properties
 * FIX: Default Kafka configuration resolved
 * FIX: Update Object Properties will now carry over stream based fields to new revision
 * FIX: ACM part processing will now skip empty values instead of failing to store update.
