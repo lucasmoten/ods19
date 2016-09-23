@@ -21,26 +21,26 @@ number of old branches low on the server.
 
 Code should be submitted as a single squashed commit via a merge/pull request.
 Only open a request with fully designed and tested solution that you would be
-comfortable merging. MRs are not for designing solutions, that's what issues
+comfortable merging. PRs are not for designing solutions, that's what issues
 are for.  
 
-If code requires special local testing, provide a test plan in an MR comment (not 
+If code requires special local testing, provide a test plan in an PR comment (not 
 the commit message or merge request description). Step by step instructions or
 a script are ideal.
 
-Overall, you should do what you can to make reviewing efficient and effective
-for your colleagues.
+Overall, you should strive to make reviewing efficient for your colleagues.
 
-## Change Log
+## Changelog
 
-A change log is maintained in changelog.md.  When submitting a merge/pull request,
-a single statement should be added to this file to help facilitate preparation of
-formal change documents. This statement should describe the overall purpose of the
-MR prefixed by one of the following prefixes:
+The changelog is a valuable resource. It is maintained in **changelog.md**. Most
+PRs should include edits to the changelog to describe bug fixes, API changes,
+or new features added.
+
+Use these prefixes when editing the changelog.
 
 * FIX - If this change contains a bugfix or security fix to an existing feature.
 * NEW - Implementation of a new feature or API operation.
-* Enhancement - An existing feature is altered with new functionality or significantly changed but is otherwise not a bugfix
+* Enhancement - Existing feature is altered with new functionality or significantly changed.
 * Refactor - No material changes to interfaces or business logic. General code cleanup. 
 
 ## Style Guide
