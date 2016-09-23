@@ -10,7 +10,7 @@ BEGIN
 
 	# Rules
 	# ObjectId must be specified
-	SELECT COUNT(*) FROM object WHERE isDeleted = 0 AND id = NEW.objectId INTO count_object;
+	SELECT COUNT(*) FROM object WHERE id = NEW.objectId INTO count_object;
 	IF count_object = 0 THEN
 		SET error_msg := concat(error_msg, 'Field objectId required ');
 	END IF;

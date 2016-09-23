@@ -218,7 +218,12 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		return NewAppError(500, nil, "ChangeToken didn't update when processing request "+msg)
 	}
 
-	apiResponse := mapping.MapODObjectToObject(&requestObject).WithCallerPermission(protocolCaller(caller))
+	dbObject, err = dao.GetObject(requestObject, true)
+	if err != nil {
+		return NewAppError(500, err, "Error retrieving object")
+	}
+
+	apiResponse := mapping.MapODObjectToObject(&dbObject).WithCallerPermission(protocolCaller(caller))
 
 	gem.Action = "update"
 	gem.Payload = events.ObjectDriveEvent{

@@ -8,7 +8,8 @@ Release vNEXT
 * FIX: Default Kafka configuration resolved
 * FIX: Update Object Properties will now carry over stream based fields to new revision
 * FIX: ACM part processing will now skip empty values instead of failing to store update.
-
+* FIX: Update Object with ACM Share now ensures owner retains read access.
+* FIX: Existing objects have full CRUDS permissions assigned to owners.
 
 Release v1.0.1
 --------------
