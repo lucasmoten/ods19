@@ -2,6 +2,8 @@ machine:
     environment:
         IMPORT_PATH: "decipher.com/object-drive-server"
         REPO_NAME: "object-drive-server"
+    hosts:
+        kafka: 127.0.0.1
     pre:
         - curl -sSL https://s3.amazonaws.com/circle-downloads/install-circleci-docker.sh | bash -s -- 1.10.0
     services:
@@ -13,8 +15,6 @@ dependencies:
         - sudo pip install docker-compose
         - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
         - go get -u github.com/kardianos/govendor
-        - sudo killall mysqld
-        - sudo apt-get --purge autoremove -y mysql-server-5.6
     override:
         - mkdir -p ~/.go_workspace/src/$IMPORT_PATH
         - rm -rf ~/.go_workspace/src/$IMPORT_PATH
