@@ -13,10 +13,10 @@ import (
 	"strings"
 	"testing"
 
-	"decipher.com/object-drive-server/dao"
-	"decipher.com/object-drive-server/server"
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/services/aac"
 	"decipher.com/object-drive-server/services/finder"
 	"decipher.com/object-drive-server/util"
@@ -47,7 +47,6 @@ func setup(ip string) {
 		host = fmt.Sprintf("https://%s:%s", ip, cfg.Port)
 	}
 
-	log.Println("Using this host address for server_test:", host)
 	if !testing.Short() {
 		generatePopulation()
 	}

@@ -333,9 +333,10 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 	}
 
 	// Force Owner CRUDS
+	ownerCRUDS := models.PermissionForUser(obj.OwnedBy.String, true, true, true, true, true)
+	ownerR := models.PermissionForUser(obj.OwnedBy.String, false, true, false, false, false)
 	if !acmSaysEveryone {
 		// prep permission
-		ownerCRUDS := models.PermissionForUser(obj.OwnedBy.String, true, true, true, true, true)
 		obj.Permissions = append(obj.Permissions, ownerCRUDS)
 		// check if in the ACM grants already
 		hasAcmGrantee := false
@@ -350,6 +351,9 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 			readGrants = append(readGrants, ownerCRUDS.Grantee)
 			// add to acmPermissions for later checks
 			acmPermissions = append(acmPermissions, ownerCRUDS)
+			obj.Permissions = append(obj.Permissions, ownerCRUDS)
+			acmPermissions = append(acmPermissions, ownerR)
+			obj.Permissions = append(obj.Permissions, ownerR)
 			// inject into ACM share
 			interfaceToAdd, err := utils.UnmarshalStringToInterface(ownerCRUDS.AcmShare)
 			if err != nil {
@@ -365,9 +369,17 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 				return herr
 			}
 			fShareValues := getStringArrayFromInterface(fShareInterface)
-			fShareValues = append(fShareValues, ownerCRUDS.Grantee)
-			if herr := setACMPartFromInterface(ctx, obj, "f_share", fShareValues); herr != nil {
-				return herr
+			fShareFound := false
+			for _, fShareValue := range fShareValues {
+				if strings.Compare(fShareValue, ownerCRUDS.Grantee) == 0 {
+					fShareFound = true
+				}
+			}
+			if !fShareFound {
+				fShareValues = append(fShareValues, ownerCRUDS.Grantee)
+				if herr := setACMPartFromInterface(ctx, obj, "f_share", fShareValues); herr != nil {
+					return herr
+				}
 			}
 		}
 	}

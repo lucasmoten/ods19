@@ -3,7 +3,6 @@ package server_test
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 	"testing"
@@ -101,32 +100,31 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 	updateObjectRequest.ChangeToken = folder1.ChangeToken
 	jsonBody, err := json.Marshal(updateObjectRequest)
 	if err != nil {
-		log.Printf("Unable to marshal json for request:%v", err)
+		t.Logf("Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
 	req1, err := http.NewRequest("POST", updateuri, bytes.NewBuffer(jsonBody))
 	req1.Header.Set("Content-Type", "application/json")
 	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
+		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
 	// do the request
 	res1, err := clients[clientid].Client.Do(req1)
 	if err != nil {
-		log.Printf("Unable to do request:%v", err)
+		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
 	defer util.FinishBody(res1.Body)
 	// process Response
 	if res1.StatusCode != http.StatusOK {
-		log.Printf("bad status modifying folder 1 first time: %s", res1.Status)
+		t.Logf("bad status modifying folder 1 first time: %s", res1.Status)
 		t.FailNow()
 	}
 	var updatedFolder protocol.Object
 	err = util.FullDecode(res1.Body, &updatedFolder)
 	if err != nil {
-		log.Printf("Error decoding json to Object: %v", err)
-		log.Println()
+		t.Logf("Error decoding json to Object: %v", err)
 		t.FailNow()
 	}
 	updateObjectRequest.ChangeToken = updatedFolder.ChangeToken
@@ -135,31 +133,30 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 	updateuri = host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
 	jsonBody, err = json.Marshal(updateObjectRequest)
 	if err != nil {
-		log.Printf("Unable to marshal json for request:%v", err)
+		t.Logf("Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
 	req2, err := http.NewRequest("POST", updateuri, bytes.NewBuffer(jsonBody))
 	req2.Header.Set("Content-Type", "application/json")
 	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
+		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
 	// do the request
 	res2, err := clients[clientid].Client.Do(req2)
 	if err != nil {
-		log.Printf("Unable to do request to modify folder again:%v", err)
+		t.Logf("Unable to do request to modify folder again:%v", err)
 		t.FailNow()
 	}
 	defer util.FinishBody(res2.Body)
 	// process Response
 	if res2.StatusCode != http.StatusOK {
-		log.Printf("bad status modifying folder 1 second time: %s", res2.Status)
+		t.Logf("bad status modifying folder 1 second time: %s", res2.Status)
 		t.FailNow()
 	}
 	err = util.FullDecode(res2.Body, &updatedFolder)
 	if err != nil {
-		log.Printf("Error decoding json to Object: %v", err)
-		log.Println()
+		t.Logf("Error decoding json to Object: %v", err)
 		t.FailNow()
 	}
 	folder1.ChangeToken = updatedFolder.ChangeToken
@@ -251,7 +248,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 		if verboseOutput {
 			t.Logf("Page %d: size %d, rows %d", listOfObjects.PageNumber, listOfObjects.PageSize, listOfObjects.PageRows)
 			for _, obj := range listOfObjects.Objects {
-				log.Printf("- object.name: %s", obj.Name)
+				t.Logf("- object.name: %s", obj.Name)
 			}
 		}
 		// Get changes of last row
@@ -271,32 +268,31 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 	objChangeToken.ChangeToken = folder1.ChangeToken
 	jsonBody, err = json.Marshal(objChangeToken)
 	if err != nil {
-		log.Printf("deleting folder Unable to marshal json for request:%v", err)
+		t.Logf("deleting folder Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
 	req3, err := http.NewRequest("POST", deleteuri, bytes.NewBuffer(jsonBody))
 	req3.Header.Set("Content-Type", "application/json")
 	if err != nil {
-		log.Printf("deleting folder Error setting up HTTP Request: %v", err)
+		t.Logf("deleting folder Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
 	// do the request
 	res3, err := clients[clientid].Client.Do(req3)
 	if err != nil {
-		log.Printf("deleting folder Unable to do request:%v", err)
+		t.Logf("deleting folder Unable to do request:%v", err)
 		t.FailNow()
 	}
 	defer util.FinishBody(res3.Body)
 	// process Response
 	if res3.StatusCode != http.StatusOK {
-		log.Printf("deleting folder bad status: %s", res3.Status)
+		t.Logf("deleting folder bad status: %s", res3.Status)
 		t.FailNow()
 	}
 	var deletedFolder1 protocol.DeletedObjectResponse
 	err = util.FullDecode(res3.Body, &deletedFolder1)
 	if err != nil {
-		log.Printf("deleting folder Error decoding json to Object 1: %v", err)
-		log.Println()
+		t.Logf("deleting folder Error decoding json to Object 1: %v", err)
 		t.FailNow()
 	}
 
@@ -306,32 +302,31 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 	objChangeToken.ChangeToken = folder2.ChangeToken
 	jsonBody, err = json.Marshal(objChangeToken)
 	if err != nil {
-		log.Printf("deleting folder Unable to marshal json for request:%v", err)
+		t.Logf("deleting folder Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
 	req4, err := http.NewRequest("POST", deleteuri, bytes.NewBuffer(jsonBody))
 	req4.Header.Set("Content-Type", "application/json")
 	if err != nil {
-		log.Printf("deleting folder Error setting up HTTP Request: %v", err)
+		t.Logf("deleting folder Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
 	// do the request
 	res4, err := clients[clientid].Client.Do(req4)
 	if err != nil {
-		log.Printf("deleting folder Unable to do request:%v", err)
+		t.Logf("deleting folder Unable to do request:%v", err)
 		t.FailNow()
 	}
 	defer util.FinishBody(res4.Body)
 	// process Response
 	if res4.StatusCode != http.StatusOK {
-		log.Printf("deleting folder bad status: %s", res4.Status)
+		t.Logf("deleting folder bad status: %s", res4.Status)
 		t.FailNow()
 	}
 	var deletedFolder2 protocol.DeletedObjectResponse
 	err = util.FullDecode(res4.Body, &deletedFolder2)
 	if err != nil {
-		log.Printf("deleting folder Error decoding json to Object 2: %v", err)
-		log.Println()
+		t.Logf("deleting folder Error decoding json to Object 2: %v", err)
 		t.FailNow()
 	}
 }

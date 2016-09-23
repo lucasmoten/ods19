@@ -5,3 +5,4 @@ drop function if exists new_keydecrypt;
 drop function if exists new_keymac;
 drop function if exists new_keymacdata;
 drop function if exists pseudorandom256;
+drop function if exists aacflatten;

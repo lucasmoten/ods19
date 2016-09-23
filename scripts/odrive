@@ -104,6 +104,7 @@ def start():
 
     # Change ownership of cache dir and its contents.
     cache_dir = os.path.split(os.getenv("OD_CACHE_ROOT"))[0]
+    create_dir_not_exists(cache_dir)
     os.chown(cache_dir, userid, -1)
     for root, dirs, files in os.walk(cache_dir):
         for d in dirs:
