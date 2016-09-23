@@ -312,7 +312,11 @@ func removePermissionsForGrantee(obj *models.ODObject, grantee string) {
 	for i := len(obj.Permissions) - 1; i >= 0; i-- {
 		permission := obj.Permissions[i]
 		if isPermissionFor(&permission, grantee) {
-			obj.Permissions = append(obj.Permissions[:i], obj.Permissions[i+1:]...)
+			permission.IsDeleted = true
+			obj.Permissions[i] = permission
+			if permission.IsCreating() {
+				obj.Permissions = append(obj.Permissions[:i], obj.Permissions[i+1:]...)
+			}
 		}
 	}
 }

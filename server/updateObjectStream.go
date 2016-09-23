@@ -5,10 +5,10 @@ import (
 	"net/http"
 
 	db "decipher.com/object-drive-server/dao"
-	"decipher.com/object-drive-server/mapping"
-	"decipher.com/object-drive-server/utils"
 	"decipher.com/object-drive-server/events"
+	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/utils"
 	"github.com/uber-go/zap"
 	"golang.org/x/net/context"
 )
@@ -111,6 +111,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	if !hasAACAccess {
 		return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for updated object ACM")
 	}
+	consolidateChangingPermissions(&requestObjectWithIDFromURI)
 	// copy grant.EncryptKey to all existing permissions:
 	for idx, permission := range requestObjectWithIDFromURI.Permissions {
 		models.CopyEncryptKey(h.MasterKey, &grant, &permission)
