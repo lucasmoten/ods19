@@ -10,6 +10,7 @@ Release vNEXT
 * FIX: ACM part processing will now skip empty values instead of failing to store update.
 * FIX: Update Object with ACM Share now ensures owner retains read access.
 * FIX: Existing objects have full CRUDS permissions assigned to owners.
+* FIX: List of objects /shared to others will exclude those that are private to the user. 
 
 Release v1.0.1
 --------------
