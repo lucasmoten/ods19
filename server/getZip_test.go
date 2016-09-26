@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"decipher.com/object-drive-server/server"
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/protocol"
@@ -237,7 +237,6 @@ func doTestZip(t *testing.T, objs []protocol.Object, someDataString string, dupl
 					t.FailNow()
 				}
 				t.Logf("Zip looks valid")
-				io.Copy(os.Stdout, cf)
 			} else {
 				if f.FileInfo().Size() != int64(len(someDataString)) {
 					t.Log("data doesn't appear to be original length as we zipped")

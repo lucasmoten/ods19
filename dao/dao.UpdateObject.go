@@ -1,7 +1,6 @@
 package dao
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -196,70 +195,28 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 	} //objectProperty
 
 	// Permissions...
-	// For updates, we delete any readonly permissions that are not being passed in
-	// and then create any new ones that aren't already present
-	// This is to explicitly support changes to those permissions that have come about as a result of
-	// the ACM f_share values (or lack of representing everyone)
-	// Note: No other permissions outside of readonly are manipulated through this routine.
-	// Permissions created explicitly are done via AddObjectPermission by way of shares
-	//
-	// Delete any permissions passed in that are marked as deleted on the object
-	for oi := len(object.Permissions) - 1; oi >= 0; oi-- {
-		permission := object.Permissions[oi]
-		if permission.IsDeleted {
+	// For updates, permissions are either deleted or created. It is assumed that the caller has
+	// already adjusted the necessary permissions accordingly and we're simply processing the array
+	// of permissions passed in without
+	for permIdx, permission := range object.Permissions {
+		if permission.IsDeleted && !permission.IsCreating() {
 			permission.ModifiedBy = object.ModifiedBy
-			deletedDbPermission, err := deleteObjectPermissionInTransaction(tx, permission, false)
+			deletedPermission, err := deleteObjectPermissionInTransaction(tx, permission, false)
 			if err != nil {
-				return fmt.Errorf("Error deleting removed permission: %v", err)
+				return fmt.Errorf("Error deleting removed permission #%d: %v", permIdx, err)
 			}
-			// remove from object array for processing
-			object.Permissions = append(object.Permissions[:oi], object.Permissions[oi+1:]...)
-			// iterate permissions on db object looking for same
-			for di := len(dbObject.Permissions) - 1; di >= 0; di-- {
-				if bytes.Equal(dbObject.Permissions[di].ID, deletedDbPermission.ID) {
-					dbObject.Permissions[di] = deletedDbPermission
-				}
+			if deletedPermission.DeletedBy.String != deletedPermission.ModifiedBy {
+				return fmt.Errorf("When deleting permission #%d, it did not get deletedBy set to modifiedBy", permIdx)
 			}
 		}
-	}
-	// Delete any readonly permissions existing on the object that dont have a corresponding permission being passed
-	for _, dbPermission := range dbObject.Permissions {
-		if dbPermission.IsReadOnly() && !dbPermission.IsDeleted {
-			dbPermissionStillValid := false
-			for _, objPermission := range object.Permissions {
-				if (objPermission.IsReadOnly()) && (strings.Compare(objPermission.Grantee, dbPermission.Grantee) == 0) {
-					dbPermissionStillValid = true
-					break
-				}
+		if permission.IsCreating() && !permission.IsDeleted {
+			permission.CreatedBy = object.ModifiedBy
+			createdPermission, err := addPermissionToObjectInTransaction(logger, tx, *object, &permission, false, "")
+			if err != nil {
+				return fmt.Errorf("Error saving permission #%d {%s) when updating object:%v", permIdx, permission, err)
 			}
-			if !dbPermissionStillValid {
-				dbPermission.ModifiedBy = object.ModifiedBy
-				_, err := deleteObjectPermissionInTransaction(tx, dbPermission, false)
-				if err != nil {
-					return fmt.Errorf("Error deleting obsolete permission: %v", err)
-				}
-			}
-		}
-	}
-	// Add any readonly permissions being passed in that dont yet exist on the database object
-	for _, objPermission := range object.Permissions {
-		if objPermission.IsReadOnly() {
-			objPermissionPresent := false
-			for _, dbPermission := range dbObject.Permissions {
-				if (dbPermission.IsReadOnly()) && (strings.Compare(objPermission.Grantee, dbPermission.Grantee) == 0) {
-					objPermissionPresent = true
-					break
-				}
-			}
-			if !objPermissionPresent {
-				objPermission.CreatedBy = object.ModifiedBy
-				createdPermission, err := addPermissionToObjectInTransaction(logger, tx, *object, &objPermission, false, "")
-				if err != nil {
-					return fmt.Errorf("Error saving readonly permission {Grantee: \"%s\") when updating object:%v", objPermission.Grantee, err)
-				}
-				if createdPermission.ModifiedBy != createdPermission.CreatedBy {
-					return fmt.Errorf("When updating object, readonly permission did not get modifiedby set to createdby")
-				}
+			if createdPermission.ModifiedBy != createdPermission.CreatedBy {
+				return fmt.Errorf("When creating permission #%d, it did not get modifiedby set to createdby", permIdx)
 			}
 		}
 	}

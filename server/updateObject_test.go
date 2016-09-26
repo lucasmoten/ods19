@@ -665,6 +665,50 @@ func TestUpdateObjectHasPermissions(t *testing.T) {
 	}
 }
 
+func TestUpdateObjectToEveryoneReturnsOwnerCRUDS(t *testing.T) {
+	tester10 := 0
+	t.Logf("* Create object shared to just me (#98 steps 1-3)")
+	folder, _ := makeFolderWithACMViaJSON("TestUpdateObjectToEveryoneReturnsOwnerCRUDS", testhelpers.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
+
+	t.Logf("* Update object with share to everone (#98 steps 4-6)")
+	objStringTemplate := `{
+    "id": "%s",
+    "acm": {"dissem_countries": ["USA"], "f_clearance": ["u"], "portion": "U", "banner": "UNCLASSIFIED", "classif": "U", "version": "2.1.0", "share": {}},
+    "changeToken": "%s"
+	}`
+	objString := fmt.Sprintf(objStringTemplate, folder.ID, folder.ChangeToken)
+	objInt, _ := utils.UnmarshalStringToInterface(objString)
+	uri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
+	req := makeHTTPRequestFromInterface(t, "POST", uri, objInt)
+	resp, err := clients[tester10].Client.Do(req)
+	failNowOnErr(t, err, "unable to do request")
+	statusMustBe(t, 200, resp, "expected tester10 to be able to change share")
+	var updated protocol.Object
+	util.FullDecode(resp.Body, &updated)
+
+	t.Logf("* Checking caller permissions (#98 step 7)")
+	if !updated.CallerPermission.AllowCreate {
+		t.Logf("  missing allowCreate")
+		t.Fail()
+	}
+	if !updated.CallerPermission.AllowRead {
+		t.Logf("  missing allowRead")
+		t.Fail()
+	}
+	if !updated.CallerPermission.AllowUpdate {
+		t.Logf("  missing allowUpdate")
+		t.Fail()
+	}
+	if !updated.CallerPermission.AllowDelete {
+		t.Logf("  missing allowDelete")
+		t.Fail()
+	}
+	if !updated.CallerPermission.AllowShare {
+		t.Logf("  missing allowShare")
+		t.Fail()
+	}
+}
+
 func allTrue(vals ...bool) bool {
 	for _, v := range vals {
 		if !v {

@@ -136,6 +136,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	if !hasAACAccess {
 		return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for updated object ACM")
 	}
+	consolidateChangingPermissions(&requestObject)
 	// copy grant.EncryptKey to all existing permissions:
 	for idx, permission := range requestObject.Permissions {
 		models.CopyEncryptKey(h.MasterKey, &grant, &permission)

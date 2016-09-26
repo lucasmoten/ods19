@@ -118,7 +118,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	// recalculate permission mac for owner permission
 	ownerPermission.PermissionMAC = models.CalculatePermissionMAC(h.MasterKey, &ownerPermission)
-	consolidatePermissions(&obj)
+	consolidateChangingPermissions(&obj)
 	// copy ownerPermission.EncryptKey to all existing permissions:
 	for idx, permission := range obj.Permissions {
 		models.CopyEncryptKey(h.MasterKey, &ownerPermission, &permission)
@@ -312,13 +312,13 @@ func removeOrphanedFile(logger zap.Logger, d DrainProvider, contentConnector str
 	}
 }
 
-func consolidatePermissions(obj *models.ODObject) {
+func consolidateChangingPermissions(obj *models.ODObject) {
 	var consolidated []models.ODObjectPermission
 	for _, perm := range obj.Permissions {
 		found := false
 		if !perm.IsDeleted {
 			for cidx, cPerm := range consolidated {
-				if !cPerm.IsDeleted && (strings.Compare(cPerm.Grantee, perm.Grantee) == 0) {
+				if !cPerm.IsDeleted && cPerm.IsCreating() && perm.IsCreating() && (strings.Compare(cPerm.Grantee, perm.Grantee) == 0) {
 					found = true
 					cPerm.AllowCreate = cPerm.AllowCreate || perm.AllowCreate
 					cPerm.AllowRead = cPerm.AllowRead || perm.AllowRead
