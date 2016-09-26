@@ -75,7 +75,7 @@ func getObjectsIHaveSharedInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
         and op.grantee <> ? `
 	query += buildFilterForUserSnippets(user)
 	query += buildFilterSortAndLimit(pagingRequest)
-	err := tx.Select(&response.Objects, query, user.DistinguishedName, user.DistinguishedName)
+	err := tx.Select(&response.Objects, query, user.DistinguishedName, models.AACFlatten(user.DistinguishedName))
 	if err != nil {
 		return response, err
 	}
