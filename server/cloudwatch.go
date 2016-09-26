@@ -263,8 +263,8 @@ func ComputeOverallPerformance(
 func CloudWatchReportingStart(tracker *performance.JobReporters) {
 	//Get a session in which to work in a goroutine
 	logger := globalconfig.RootLogger.With(zap.String("session", "cloudwatch"))
-	session := NewAWSSessionForCW(logger)
-	cwSession := cloudwatch.New(session)
+	cwConfig := configx.NewAWSSessionForCW(logger)
+	cwSession := cloudwatch.New(cwConfig.CWSession)
 	if cwSession == nil {
 		logger.Error("cloudwatch txn fail on null session")
 		return
@@ -279,16 +279,13 @@ func CloudWatchReportingStart(tracker *performance.JobReporters) {
 	serviceName := globalconfig.GetEnvOrDefault(configx.OD_AWS_CLOUDWATCH_SERVICENAME, "odrive")
 	dims = append(dims, &cloudwatch.Dimension{Name: aws.String("Service Name"), Value: aws.String(serviceName)})
 
-	//AWS charges for intervals shorter than 300s, so this is the default (5mins)
-	sleepTime := globalconfig.GetEnvOrDefaultInt(configx.OD_AWS_CLOUDWATCH_INTERVAL, 300)
-
 	//Just run in the background sending stats as we have them
 	go func() {
 		prevStat := GetProcStat(logger)
 		for {
 			CloudWatchStartInterval(tracker, NowMS())
-			logger.Debug("cloudwatch wait", zap.Int("timeInSeconds", sleepTime))
-			time.Sleep(time.Duration(sleepTime) * time.Second)
+			logger.Debug("cloudwatch wait", zap.Int("timeInSeconds", cwConfig.SleepTimeInSeconds))
+			time.Sleep(time.Duration(cwConfig.SleepTimeInSeconds) * time.Second)
 			logger.Debug("cloudwatch to report")
 
 			//Get all the fields that we want to report from here

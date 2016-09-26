@@ -148,8 +148,7 @@ func runServiceTest(ctx *cli.Context) error {
 	service := ctx.Args().First()
 	switch service {
 	case S3Service:
-		sess := server.NewAWSSessionForS3(logger)
-		if !server.TestS3Connection(sess) {
+		if !server.TestS3Connection(configx.NewAWSSessionForS3(logger).S3Session) {
 			fmt.Println("Cannot access S3 bucket.")
 			os.Exit(1)
 		} else {

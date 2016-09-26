@@ -98,7 +98,7 @@ func NewS3DrainProvider(conf configx.S3DrainProviderOpts, name string) DrainProv
 // Call this to build a test cache.
 func NewS3DrainProviderRaw(root, name string, lowWatermark float64, ageEligibleForEviction int64, highWatermark float64, walkSleep time.Duration, logger zap.Logger) *S3DrainProviderData {
 	d := &S3DrainProviderData{
-		AWSSession:             NewAWSSessionForS3(logger),
+		AWSSession:             configx.NewAWSSessionForS3(logger).S3Session,
 		CacheObject:            DrainCacheData{root},
 		CacheLocationString:    name,
 		lowWatermark:           lowWatermark,
