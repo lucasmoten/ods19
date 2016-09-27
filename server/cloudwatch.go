@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"runtime"
 	"strconv"
@@ -231,16 +230,12 @@ func ComputeOverallPerformance(
 
 	if millis > 0 {
 		cwStats.Throughput = aws.Float64(float64(bytes) / float64(millis))
-	} else {
-		log.Printf("cloudwatch: no millis to report: %v %v", cwAccumulator, now)
 	}
 
 	//There needs to be at least one request to have a latency value to report.
 	//In this case, total ms of the observation interval divided by total number of requests is sufficient.
 	if requests > 0 {
 		cwStats.Latency = aws.Float64(float64(millis) / float64(requests))
-	} else {
-		log.Printf("cloudwatch: no requests to report: %v", cwAccumulator)
 	}
 
 	cwStats.MemKB = aws.Float64(float64(mem.Alloc) / 1024)
@@ -272,12 +267,12 @@ func CloudWatchReportingStart(tracker *performance.JobReporters) {
 
 	//We use an immutable dimension that marks this as the odrive service, where we actually report to CloudWatch
 	//for the IP (presuming they are unique, which is generally true outside of docker deployments)
-	//This design presumes that there might be other services reporting to host-{ip}
+	//This design presumes that there might be other services reporting to {name}-{ip} (name is "host" by default)
 	node := aws.String(globalconfig.MyIP)
-	namespace := aws.String("host-" + (*node))
+	namespace := aws.String(cwConfig.Name + "-" + (*node))
+	logger.Info("cloudwatch monitoring started", zap.String("namespace", *namespace))
 	var dims []*cloudwatch.Dimension
-	serviceName := globalconfig.GetEnvOrDefault(configx.OD_AWS_CLOUDWATCH_SERVICENAME, "odrive")
-	dims = append(dims, &cloudwatch.Dimension{Name: aws.String("Service Name"), Value: aws.String(serviceName)})
+	dims = append(dims, &cloudwatch.Dimension{Name: aws.String("Service Name"), Value: aws.String("odrive")})
 
 	//Just run in the background sending stats as we have them
 	go func() {

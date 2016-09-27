@@ -475,6 +475,7 @@ type S3Config struct {
 type CWConfig struct {
 	CWSession          *session.Session
 	SleepTimeInSeconds int
+	Name               string
 }
 
 // NewAWSSessionForS3 is the s3 session
@@ -489,6 +490,7 @@ func NewAWSSessionForCW(logger zap.Logger) *CWConfig {
 	ret := &CWConfig{}
 	ret.CWSession = newAWSSession(OD_AWS_CLOUDWATCH_ENDPOINT, logger)
 	ret.SleepTimeInSeconds = globalconfig.GetEnvOrDefaultInt(OD_AWS_CLOUDWATCH_INTERVAL, 300)
+	ret.Name = globalconfig.GetEnvOrDefault(OD_AWS_CLOUDWATCH_NAME, "host")
 	return ret
 }
 

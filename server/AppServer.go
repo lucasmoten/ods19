@@ -10,7 +10,6 @@ import (
 	"os"
 	"regexp"
 	"runtime/debug"
-	"strconv"
 	"time"
 
 	"github.com/uber-go/zap"
@@ -157,17 +156,6 @@ func logCrashInServeHTTP(logger zap.Logger, w http.ResponseWriter) {
 		//Note: even if follow "let it crash" and explicitly return an error code,
 		//we should log this and return a 500 if we plan on doing a system exit on internal 5xx errors.
 	}
-}
-
-func getInt64Str(s string, logger zap.Logger) int64 {
-	if len(s) == 0 {
-		return 0
-	}
-	v, err := strconv.ParseUint(s, 10, 64)
-	if err != nil {
-		logger.Error("Coud not parse content-length", zap.String("err", err.Error()), zap.String("raw", s))
-	}
-	return int64(v)
 }
 
 // ServeHTTP handles the routing of requests
