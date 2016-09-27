@@ -2,6 +2,7 @@ package dao
 
 import "errors"
 
+// Database errors
 var (
 	ErrMissingID          = errors.New("Missing ID field.")
 	ErrMissingChangeToken = errors.New("Missing ChangeToken.")

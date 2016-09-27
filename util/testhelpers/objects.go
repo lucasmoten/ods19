@@ -172,6 +172,10 @@ const (
 
 	ValidACMUnclassifiedFOUOSharedToTester01 = `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_clearance":["u"],"f_share":["cntesttester01oupeopleoudaeouchimeraou_s_governmentcus"],"portion":"U//FOUO","share":{"users":["cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`
 
+	ValidACMUnclassifiedFOUOSharedToTester10 = `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_clearance":["u"],"f_share":["cntesttester01oupeopleoudaeouchimeraou_s_governmentcus"],"portion":"U//FOUO","share":{"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`
+
+	ValidACMTopSecretSharedToTester01 = `{"fgi_open":[],"rel_to":[],"sci_ctrls":[],"owner_prod":[],"portion":"TS","disp_only":"","disponly_to":[],"banner":"TOP SECRET","non_ic":[],"classif":"TS","atom_energy":[],"dissem_ctrls":[],"sar_id":[],"version":"2.1.0","fgi_protect":[],"share":{"users":["cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"f_clearance":[],"dissem_countries":["USA"],"isShared":true}
+`
 	ValidACMUnclassifiedFOUOSharedToTester01And02 = `{"accms":[],"atom_energy":[],"banner":"UNCLASSIFIED//FOUO","classif":"U","disp_only":"","disponly_to":[""],"dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":["cntesttester01oupeopleoudaeouchimeraou_s_governmentcus","cntesttester02oupeopleoudaeouchimeraou_s_governmentcus"],"fgi_open":[],"fgi_protect":[],"macs":[],"non_ic":[],"oc_attribs":[{"missions":[],"orgs":[],"regions":[]}],"owner_prod":[],"portion":"U//FOUO","rel_to":[],"sar_id":[],"sci_ctrls":[],"share":{"users":["cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`
 )
 

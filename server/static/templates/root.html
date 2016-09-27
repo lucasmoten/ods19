@@ -732,8 +732,8 @@ It may be called on objects int the trash which also expose additional fields in
   "<span class="hljs-attribute">createdBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
   "<span class="hljs-attribute">modifiedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
   "<span class="hljs-attribute">modifiedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
-  "<span class="hljs-attribute">deletedDate</span>": <span class="hljs-value"><span class="hljs-string">"2016-03-07T17:03:13Z"</span></span>,
-  "<span class="hljs-attribute">deletedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
+  "<span class="hljs-attribute">deletedDate</span>": <span class="hljs-value"><span class="hljs-string">"0001-01-01T00:00:00Z"</span></span>,
+  "<span class="hljs-attribute">deletedBy</span>": <span class="hljs-value"><span class="hljs-string">"``"</span></span>,
   "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value"><span class="hljs-number">42</span></span>,
   "<span class="hljs-attribute">changeToken</span>": <span class="hljs-value"><span class="hljs-string">"65eea405306ed436d18b8b1c0b0b2cd3"</span></span>,
   "<span class="hljs-attribute">ownedBy</span>": <span class="hljs-value"><span class="hljs-string">"CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"</span></span>,
@@ -841,6 +841,18 @@ It may be called on objects int the trash which also expose additional fields in
       "<span class="hljs-attribute">allowDelete</span>": <span class="hljs-value"><span class="hljs-literal">true</span></span>,
       "<span class="hljs-attribute">allowShare</span>": <span class="hljs-value"><span class="hljs-literal">true</span>
     </span>}
+  ]</span>,
+  "<span class="hljs-attribute">breadcrumbs</span>": <span class="hljs-value">[
+    {
+      "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
+      "<span class="hljs-attribute">parentId</span>": <span class="hljs-value"><span class="hljs-string">""</span></span>,
+      "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"folderA"</span>
+    </span>},
+    {
+      "<span class="hljs-attribute">id</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
+      "<span class="hljs-attribute">parentId</span>": <span class="hljs-value"><span class="hljs-string">"11e5e4867a6e3d8389020242ac110002"</span></span>,
+      "<span class="hljs-attribute">name</span>": <span class="hljs-value"><span class="hljs-string">"folderA"</span>
+    </span>}
   ]
 </span>}</code></pre><div style="height: 1px;"></div><h5>Schema</h5><pre><code>{
   "<span class="hljs-attribute">$schema</span>": <span class="hljs-value"><span class="hljs-string">"http://json-schema.org/draft-04/schema#"</span></span>,
@@ -848,7 +860,7 @@ It may be called on objects int the trash which also expose additional fields in
   "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
     "<span class="hljs-attribute">id</span>": <span class="hljs-value">{
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"string The unique identifier of the object hex encoded to a string. This value can be used for alterations and listing on other RESTful methods."</span>
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The unique identifier of the object hex encoded to a string. This value can be used for alterations and listing on other RESTful methods."</span>
     </span>}</span>,
     "<span class="hljs-attribute">createdDate</span>": <span class="hljs-value">{
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
@@ -868,11 +880,11 @@ It may be called on objects int the trash which also expose additional fields in
     </span>}</span>,
     "<span class="hljs-attribute">deletedDate</span>": <span class="hljs-value">{
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The date and time the object was deleted in the system in UTC ISO 8601 format. This field is only present if the object is in the trash."</span>
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The date and time the object was deleted in the system in UTC ISO 8601 format. This field is only populated if the object is in the trash."</span>
     </span>}</span>,
     "<span class="hljs-attribute">deletedBy</span>": <span class="hljs-value">{
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"string"</span></span>,
-      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The user that deleted the object. This field is only present if the object is in the trash."</span>
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"The user that deleted the object. This field is only populated if the object is in the trash."</span>
     </span>}</span>,
     "<span class="hljs-attribute">changeCount</span>": <span class="hljs-value">{
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"number"</span></span>,
@@ -1036,6 +1048,10 @@ It may be called on objects int the trash which also expose additional fields in
     "<span class="hljs-attribute">permissions</span>": <span class="hljs-value">{
       "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"array"</span></span>,
       "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Array of permissions associated with this object."</span>
+    </span>}</span>,
+    "<span class="hljs-attribute">breadcrumbs</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">type</span>": <span class="hljs-value"><span class="hljs-string">"array"</span></span>,
+      "<span class="hljs-attribute">description</span>": <span class="hljs-value"><span class="hljs-string">"Array of IDs representing the parent chain for the object returned buy the API call. Will be empty for objects located at the root."</span>
     </span>}
   </span>}</span>,
   "<span class="hljs-attribute">required</span>": <span class="hljs-value">[
@@ -5561,7 +5577,7 @@ The UI will accumulate a list of file ID values to include in a zip file.</p>
     ]</span>,
     "<span class="hljs-attribute">fileName</span>": <span class="hljs-value"><span class="hljs-string">"drive.zip"</span></span>,
     "<span class="hljs-attribute">disposition</span>": <span class="hljs-value"><span class="hljs-string">"inline"</span>
-</span>}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/zip</span><br><span class="hljs-attribute">Content-Disposition</span>: <span class="hljs-string">{disposition}; filename={filename}</span></code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>400</code></strong></div><div class="title"><strong>Response&nbsp;&nbsp;<code>500</code></strong></div></div></div></section></div></div></div><p style="text-align: center;" class="text-muted">Generated by&nbsp;<a href="https://github.com/danielgtaylor/aglio" class="aglio">aglio</a>&nbsp;on 14 Sep 2016</p><script>/* eslint-env browser */
+</span>}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/zip</span><br><span class="hljs-attribute">Content-Disposition</span>: <span class="hljs-string">{disposition}; filename={filename}</span></code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>400</code></strong></div><div class="title"><strong>Response&nbsp;&nbsp;<code>500</code></strong></div></div></div></section></div></div></div><p style="text-align: center;" class="text-muted">Generated by&nbsp;<a href="https://github.com/danielgtaylor/aglio" class="aglio">aglio</a>&nbsp;on 27 Sep 2016</p><script>/* eslint-env browser */
 /* eslint quotes: [2, "single"] */
 'use strict';
 
