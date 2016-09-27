@@ -299,8 +299,9 @@ func trackAnnouncementsLoop(z *ZKState, at string, handler AnnounceHandler) {
 				//If there are no children for odrive, then we may end up stuck in this state!
 				if len(announcements) == 0 && strings.Contains(at, "object-drive") {
 					zlogger.Info(
-						"zk object-drive announcements are empty",
+						"zk object-drive announcements are empty.  re-announcing.",
 					)
+					doReAnnouncements(z, logger)
 				}
 				if ok {
 					zlogger.Info("zk membership change", zap.Object("announcements", announcements))

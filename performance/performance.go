@@ -107,6 +107,16 @@ type JobReporters struct {
 	RequestingReport chan RequestingReport
 	RequestedReport  chan RequestedReport
 	Quit             chan int
+
+	RecentRequestCount int64
+	RecentByteCount    int64
+	RecentBegin        int64
+}
+
+func (j *JobReporters) NewInterval() {
+	j.RecentRequestCount = 0
+	j.RecentByteCount = 0
+	j.RecentBegin = getTStampMS()
 }
 
 // BeginningJob is a request to the goroutine to generate a

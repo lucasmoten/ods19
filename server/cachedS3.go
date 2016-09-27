@@ -14,7 +14,6 @@ import (
 	configx "decipher.com/object-drive-server/configx"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -22,7 +21,6 @@ import (
 )
 
 var (
-	logger = globalconfig.RootLogger.With(zap.String("session", "drainprovider"))
 	//chunksInMegs is a default number of megabytes to fetch from S3 when there is a cache miss
 	chunkSize = int64(globalconfig.GetEnvOrDefaultInt("OD_AWS_S3_FETCH_MB", 16)) * int64(1024*1024)
 )
@@ -41,31 +39,6 @@ const (
 	// FailS3Download error code given when we failed to download out of S3
 	FailS3Download = 1505
 )
-
-// checkAWSEnvironmentVars prevents the server from starting if appropriate vars
-// are not set.
-func checkAWSEnvironmentVars(logger zap.Logger) {
-	// Variables for the environment can be provided as either the native AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
-	// or be prefixed with the common "OD_" as in OD_AWS_REGION, OD_AWS_ACCESS_KEY_ID, and OD_AWS_SECRET_ACCESS_KEY
-	// Environment variables will be normalized to the AWS_ variants to facilitate internal library calls
-	region := globalconfig.GetEnvOrDefault("OD_AWS_REGION", globalconfig.GetEnvOrDefault("AWS_REGION", ""))
-	if len(region) > 0 {
-		os.Setenv("AWS_REGION", region)
-	}
-	accessKeyID := globalconfig.GetEnvOrDefault("OD_AWS_ACCESS_KEY_ID", globalconfig.GetEnvOrDefault("AWS_ACCESS_KEY_ID", ""))
-	if len(accessKeyID) > 0 {
-		os.Setenv("AWS_ACCESS_KEY_ID", accessKeyID)
-	}
-	secretKey := globalconfig.GetEnvOrDefault("OD_AWS_SECRET_ACCESS_KEY", globalconfig.GetEnvOrDefault("AWS_SECRET_ACCESS_KEY", ""))
-	if len(secretKey) > 0 {
-		os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey)
-	}
-	// If the region is not set, then fail
-	if region == "" {
-		logger.Fatal("Fatal Error: Environment variable AWS_REGION must be set.")
-	}
-	return
-}
 
 // NullDrainProviderData is just a file location that does not talk to S3.
 type NullDrainProviderData struct {
@@ -112,6 +85,7 @@ type S3DrainProviderData struct {
 
 // NewS3DrainProvider sets up a drain with default parameters overridden by environment variables
 func NewS3DrainProvider(conf configx.S3DrainProviderOpts, name string) DrainProvider {
+	logger := globalconfig.RootLogger.With(zap.String("session", "drainprovider"))
 
 	walkSleepDuration := time.Duration(conf.WalkSleep) * time.Second
 
@@ -124,7 +98,7 @@ func NewS3DrainProvider(conf configx.S3DrainProviderOpts, name string) DrainProv
 // Call this to build a test cache.
 func NewS3DrainProviderRaw(root, name string, lowWatermark float64, ageEligibleForEviction int64, highWatermark float64, walkSleep time.Duration, logger zap.Logger) *S3DrainProviderData {
 	d := &S3DrainProviderData{
-		AWSSession:             NewAWSSession(),
+		AWSSession:             configx.NewAWSSessionForS3(logger).S3Session,
 		CacheObject:            DrainCacheData{root},
 		CacheLocationString:    name,
 		lowWatermark:           lowWatermark,
@@ -153,36 +127,10 @@ func (d *NullDrainProviderData) Resolve(fName FileName) FileNameCached {
 	return FileNameCached(d.CacheLocationString + "/" + string(fName))
 }
 
-// NewAWSSession instantiates a connection to AWS.
-func NewAWSSession() *session.Session {
-
-	checkAWSEnvironmentVars(logger)
-
-	region := os.Getenv("AWS_REGION")
-	endpoint := os.Getenv("OD_AWS_ENDPOINT")
-
-	// See if AWS creds in environment
-	accessKeyID := globalconfig.GetEnvOrDefault("OD_AWS_ACCESS_KEY_ID", globalconfig.GetEnvOrDefault("AWS_ACCESS_KEY_ID", ""))
-	secretKey := globalconfig.GetEnvOrDefault("OD_AWS_SECRET_ACCESS_KEY", globalconfig.GetEnvOrDefault("AWS_SECRET_ACCESS_KEY", ""))
-	if len(accessKeyID) > 0 && len(secretKey) > 0 {
-		logger.Info("aws.credentials", zap.String("provider", "environment variables"))
-		sessionConfig := &aws.Config{
-			Credentials: credentials.NewEnvCredentials(),
-			Region:      aws.String(region),
-			Endpoint:    aws.String(endpoint),
-		}
-		return session.New(sessionConfig)
-	}
-	// Do as IAM
-	logger.Info("aws.credentials", zap.String("provider", "iam role"))
-	return session.New(&aws.Config{
-		Region:   aws.String(region),
-		Endpoint: aws.String(endpoint),
-	})
-}
-
 // NewNullDrainProvider setup a drain provider that doesnt use S3 backend, just local caching.
 func NewNullDrainProvider(root, name string) DrainProvider {
+	logger := globalconfig.RootLogger.With(zap.String("session", "drainprovider"))
+
 	d := &NullDrainProviderData{
 		CacheObject:         DrainCacheData{root},
 		CacheLocationString: name,
@@ -602,6 +550,8 @@ func (d *S3DrainProviderData) CachePurge() {
 // TestS3Connection can be run to inspect the environment for configured S3
 // bucket names, and verify that those buckets are writable with our credentials.
 func TestS3Connection(sess *session.Session) bool {
+	logger := globalconfig.RootLogger.With(zap.String("session", "drainprovider"))
+
 	uploader := s3manager.NewUploader(sess)
 	bucketName := globalconfig.GetEnvOrDefault("OD_AWS_S3_BUCKET", "")
 	if bucketName == "" {
@@ -718,7 +668,7 @@ func (p *S3Puller) More() error {
 	)
 	//p.Logger.Info("s3 fill end")
 	if err != nil {
-		logger.Info(
+		p.Logger.Info(
 			"unable to download out of s3",
 			zap.String("bucket", *p.Bucket),
 			zap.String("key", *p.Key),

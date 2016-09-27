@@ -8,6 +8,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
@@ -436,4 +439,96 @@ func getEnvOrDefaultSplitStringSlice(envVar string, defaultVal []string) []strin
 	}
 	splitted := strings.Split(os.Getenv(envVar), ",")
 	return splitted
+}
+
+// CheckAWSEnvironmentVars prevents the server from starting if appropriate vars
+// are not set.
+func CheckAWSEnvironmentVars(logger zap.Logger) {
+	// Variables for the environment can be provided as either the native AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+	// or be prefixed with the common "OD_" as in OD_AWS_REGION, OD_AWS_ACCESS_KEY_ID, and OD_AWS_SECRET_ACCESS_KEY
+	// Environment variables will be normalized to the AWS_ variants to facilitate internal library calls
+	region := globalconfig.GetEnvOrDefault(OD_AWS_REGION, globalconfig.GetEnvOrDefault("AWS_REGION", ""))
+	if len(region) > 0 {
+		os.Setenv("AWS_REGION", region)
+	}
+	accessKeyID := globalconfig.GetEnvOrDefault(OD_AWS_ACCESS_KEY_ID, globalconfig.GetEnvOrDefault("AWS_ACCESS_KEY_ID", ""))
+	if len(accessKeyID) > 0 {
+		os.Setenv("AWS_ACCESS_KEY_ID", accessKeyID)
+	}
+	secretKey := globalconfig.GetEnvOrDefault(OD_AWS_SECRET_ACCESS_KEY, globalconfig.GetEnvOrDefault("AWS_SECRET_ACCESS_KEY", ""))
+	if len(secretKey) > 0 {
+		os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey)
+	}
+	// If the region is not set, then fail
+	if region == "" {
+		logger.Fatal("Fatal Error: Environment variable AWS_REGION must be set.")
+	}
+	return
+}
+
+// S3Config stores created config for S3
+type S3Config struct {
+	S3Session *session.Session
+}
+
+// CWConfig config stores config for cloudwatch
+type CWConfig struct {
+	CWSession          *session.Session
+	SleepTimeInSeconds int
+	Name               string
+}
+
+// NewAWSSessionForS3 is the s3 session
+func NewAWSSessionForS3(logger zap.Logger) *S3Config {
+	ret := &S3Config{}
+	ret.S3Session = newAWSSession(OD_AWS_ENDPOINT, logger)
+	return ret
+}
+
+// NewAWSSessionForCW is the cw session
+func NewAWSSessionForCW(logger zap.Logger) *CWConfig {
+	ret := &CWConfig{}
+	ret.CWSession = newAWSSession(OD_AWS_CLOUDWATCH_ENDPOINT, logger)
+	ret.SleepTimeInSeconds = globalconfig.GetEnvOrDefaultInt(OD_AWS_CLOUDWATCH_INTERVAL, 300)
+	ret.Name = globalconfig.GetEnvOrDefault(OD_AWS_CLOUDWATCH_NAME, "host")
+	return ret
+}
+
+// NewAWSSession instantiates a connection to AWS.
+func newAWSSession(service string, logger zap.Logger) *session.Session {
+
+	CheckAWSEnvironmentVars(logger)
+
+	region := os.Getenv("AWS_REGION")
+	endpoint := os.Getenv(service)
+
+	// See if AWS creds in environment
+	accessKeyID := globalconfig.GetEnvOrDefault(OD_AWS_ACCESS_KEY_ID, globalconfig.GetEnvOrDefault("AWS_ACCESS_KEY_ID", ""))
+	secretKey := globalconfig.GetEnvOrDefault(OD_AWS_SECRET_ACCESS_KEY, globalconfig.GetEnvOrDefault("AWS_SECRET_ACCESS_KEY", ""))
+	if len(accessKeyID) > 0 && len(secretKey) > 0 {
+		logger.Info("aws.credentials", zap.String("provider", "environment variables"))
+		var sessionConfig *aws.Config
+		if len(endpoint) == 0 {
+			sessionConfig = &aws.Config{
+				Credentials: credentials.NewEnvCredentials(),
+				Region:      aws.String(region),
+			}
+		} else {
+			sessionConfig = &aws.Config{
+				Credentials: credentials.NewEnvCredentials(),
+				Region:      aws.String(region),
+				Endpoint:    aws.String(endpoint),
+			}
+		}
+		//sessionConfig = sessionConfig.WithLogLevel(aws.LogDebugWithHTTPBody).WithDisableComputeChecksums(false)
+		return session.New(sessionConfig)
+	}
+	// Do as IAM
+	logger.Info("aws.credentials", zap.String("provider", "iam role"))
+	sessionConfig := &aws.Config{
+		Region:   aws.String(region),
+		Endpoint: aws.String(endpoint),
+	}
+	//sessionConfig = sessionConfig.WithLogLevel(aws.LogDebugWithHTTPBody).WithDisableComputeChecksums(false)
+	return session.New(sessionConfig)
 }

@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"net"
@@ -143,7 +144,8 @@ func newLogger(logger zap.Logger, sessionID, cn string, r *http.Request) zap.Log
 		With(zap.String("session", sessionID)).
 		With(zap.String("cn", cn)).
 		With(zap.String("method", r.Method)).
-		With(zap.String("uri", r.RequestURI))
+		With(zap.String("uri", r.RequestURI)).
+		With(zap.String("date", fmt.Sprintf("%v", time.Now())))
 }
 
 //When there is a panic, all deferred functions get executed.
@@ -158,6 +160,8 @@ func logCrashInServeHTTP(logger zap.Logger, w http.ResponseWriter) {
 
 // ServeHTTP handles the routing of requests
 func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	beginTSInMS := NowMS()
+
 	sessionID := newSessionID()
 	w.Header().Add("sessionid", sessionID)
 
@@ -426,15 +430,14 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		countOKResponse(logger)
 	}
+
+	if h.Tracker != nil {
+		CloudWatchTransaction(beginTSInMS, NowMS(), h.Tracker)
+	}
 }
 
 func newSessionID() string {
 	return globalconfig.RandomID()
-	// id, err := util.NewGUID()
-	// if err != nil {
-	// 	return "unknown"
-	// }
-	// return id
 }
 
 // AuditEventFromContext retrives a pointer to an events_thrift.AuditEvent from
@@ -578,7 +581,15 @@ func do404(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppErro
 	return NewAppError(404, nil, "Resource not found")
 }
 
+// resolve the ip address once only
+var ipString string
+
 func resolveOurIP() string {
+	//If our IP changes, a lot more than this breaks (zk for one thing, then nobody can reach us, and cloudwatch reboots us).
+	//So, it's a constant from startup of odrive.
+	if ipString != "" {
+		return ipString
+	}
 	hostname, err := os.Hostname()
 	if err != nil {
 		globalconfig.RootLogger.Error("unable to resolve our own hostname")
@@ -591,7 +602,8 @@ func resolveOurIP() string {
 	}
 	for _, addr := range myIPs {
 		if addr.To4() != nil {
-			globalconfig.RootLogger.Info("resolved our IP", zap.String("ip", addr.String()))
+			ipString = addr.String()
+			globalconfig.RootLogger.Info("resolved our IP", zap.String("ip", ipString))
 			return addr.String()
 		}
 	}
