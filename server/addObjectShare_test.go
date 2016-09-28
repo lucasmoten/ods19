@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -731,6 +732,7 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 
 	t.Logf("* Verify only tester1 and members of odrive g1 can read it after odrive g1 given read/update permission")
 	shouldHaveReadForObjectID(t, createdObject.ID, 0, 1, 6, 7, 8, 9)
+	shouldNotHaveReadForObjectID(t, createdObject.ID, 2, 3, 4, 5, 10)
 	if t.Failed() {
 		t.FailNow()
 	}
@@ -738,6 +740,190 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 	for _, permission := range updatedObject2.Permissions {
 		logPermission(t, permission)
 	}
+}
+
+func TestAddShareForCRDoesNotGiveCRUDS(t *testing.T) {
+	tester10 := 0
+	user_dn_ling_chen := "cn=ling chen,ou=people,ou=jitfct.twl,ou=six 3 systems,o=u.s. government,c=us"
+
+	t.Logf("* Create an object as tester10")
+	var createObjectRequest protocol.CreateObjectRequest
+	createObjectRequest.Name = "Test Adding Share with Create & Read does not give CRUDS"
+	createObjectRequest.TypeName = "Folder"
+	createObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"]}`
+	createObjectRequest.ContentSize = 0
+	uriCreate := host + cfg.NginxRootURL + "/objects"
+	httpCreate := makeHTTPRequestFromInterface(t, "POST", uriCreate, createObjectRequest)
+	httpCreateResponse, err := clients[tester10].Client.Do(httpCreate)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	defer util.FinishBody(httpCreateResponse.Body)
+	statusMustBe(t, http.StatusOK, httpCreateResponse, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	t.Logf("* Resulting permissions")
+	for _, permission := range createdObject.Permissions {
+		logPermission(t, permission)
+	}
+
+	t.Logf("* Make it private")
+	var updateObjectRequest protocol.UpdateObjectRequest
+	updateObjectRequest.Name = createdObject.Name + " (now private)"
+	updateObjectRequest.ChangeToken = createdObject.ChangeToken
+	updateObjectRequest.ID = createdObject.ID
+	updateObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}}`
+	uriUpdateProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	httpUpdate := makeHTTPRequestFromInterface(t, "POST", uriUpdateProperties, updateObjectRequest)
+	httpUpdateResponse, err := clients[tester10].Client.Do(httpUpdate)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	defer util.FinishBody(httpUpdateResponse.Body)
+	statusMustBe(t, http.StatusOK, httpUpdateResponse, "Bad status when updating object")
+	var updatedObject protocol.Object
+	err = util.FullDecode(httpUpdateResponse.Body, &updatedObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	t.Logf("* Resulting permissions")
+	for _, permission := range updatedObject.Permissions {
+		logPermission(t, permission)
+	}
+
+	t.Logf("* Share it to another user")
+	var createShareRequest protocol.ObjectShare
+	createShareRequest.AllowCreate = true
+	createShareRequest.AllowRead = true
+	createShareRequest.AllowUpdate = false
+	createShareRequest.AllowDelete = false
+	createShareRequest.AllowShare = false
+	createShareRequest.Share = makeUserShare(user_dn_ling_chen)
+	uriShare := host + cfg.NginxRootURL + "/shared/" + createdObject.ID
+	httpShare := makeHTTPRequestFromInterface(t, "POST", uriShare, createShareRequest)
+	httpShareResponse, err := clients[tester10].Client.Do(httpShare)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	defer util.FinishBody(httpShareResponse.Body)
+	statusMustBe(t, http.StatusOK, httpShareResponse, "Bad status when sharing object")
+	var updatedObject2 protocol.Object
+	err = util.FullDecode(httpShareResponse.Body, &updatedObject2)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	t.Logf("* Resulting permissions")
+	for _, permission := range updatedObject2.Permissions {
+		logPermission(t, permission)
+		if strings.Compare(permission.UserDistinguishedName, user_dn_ling_chen) == 0 {
+			if permission.AllowUpdate || permission.AllowDelete || permission.AllowShare {
+				t.Logf("ling chen has more permissions then granted!")
+				t.FailNow()
+			}
+		}
+	}
+
+}
+
+func TestAddShareForRDoesNotGiveCRUDS(t *testing.T) {
+	tester10 := 0
+	user_dn_ling_chen := "cn=ling chen,ou=people,ou=jitfct.twl,ou=six 3 systems,o=u.s. government,c=us"
+
+	t.Logf("* Create an object as tester10")
+	var createObjectRequest protocol.CreateObjectRequest
+	createObjectRequest.Name = "Test Adding Share with Read does not give CRUDS"
+	createObjectRequest.TypeName = "Folder"
+	createObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"]}`
+	createObjectRequest.ContentSize = 0
+	uriCreate := host + cfg.NginxRootURL + "/objects"
+	httpCreate := makeHTTPRequestFromInterface(t, "POST", uriCreate, createObjectRequest)
+	httpCreateResponse, err := clients[tester10].Client.Do(httpCreate)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	defer util.FinishBody(httpCreateResponse.Body)
+	statusMustBe(t, http.StatusOK, httpCreateResponse, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	t.Logf("* Resulting permissions")
+	for _, permission := range createdObject.Permissions {
+		logPermission(t, permission)
+	}
+
+	t.Logf("* Make it private")
+	var updateObjectRequest protocol.UpdateObjectRequest
+	updateObjectRequest.Name = createdObject.Name + " (now private)"
+	updateObjectRequest.ChangeToken = createdObject.ChangeToken
+	updateObjectRequest.ID = createdObject.ID
+	updateObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}}`
+	uriUpdateProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	httpUpdate := makeHTTPRequestFromInterface(t, "POST", uriUpdateProperties, updateObjectRequest)
+	httpUpdateResponse, err := clients[tester10].Client.Do(httpUpdate)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	defer util.FinishBody(httpUpdateResponse.Body)
+	statusMustBe(t, http.StatusOK, httpUpdateResponse, "Bad status when updating object")
+	var updatedObject protocol.Object
+	err = util.FullDecode(httpUpdateResponse.Body, &updatedObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	t.Logf("* Resulting permissions")
+	for _, permission := range updatedObject.Permissions {
+		logPermission(t, permission)
+	}
+
+	t.Logf("* Share it to another user")
+	var createShareRequest protocol.ObjectShare
+	createShareRequest.AllowCreate = false
+	createShareRequest.AllowRead = true
+	createShareRequest.AllowUpdate = false
+	createShareRequest.AllowDelete = false
+	createShareRequest.AllowShare = false
+	createShareRequest.Share = makeUserShare(user_dn_ling_chen)
+	uriShare := host + cfg.NginxRootURL + "/shared/" + createdObject.ID
+	httpShare := makeHTTPRequestFromInterface(t, "POST", uriShare, createShareRequest)
+	httpShareResponse, err := clients[tester10].Client.Do(httpShare)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	defer util.FinishBody(httpShareResponse.Body)
+	statusMustBe(t, http.StatusOK, httpShareResponse, "Bad status when sharing object")
+	var updatedObject2 protocol.Object
+	err = util.FullDecode(httpShareResponse.Body, &updatedObject2)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	t.Logf("* Resulting permissions")
+	for _, permission := range updatedObject2.Permissions {
+		logPermission(t, permission)
+		if strings.Compare(permission.UserDistinguishedName, user_dn_ling_chen) == 0 {
+			if permission.AllowCreate || permission.AllowUpdate || permission.AllowDelete || permission.AllowShare {
+				t.Logf("ling chen has more permissions then granted!")
+				t.FailNow()
+			}
+		}
+	}
+
 }
 
 func logPermission(t *testing.T, permission protocol.Permission) {
