@@ -4,6 +4,7 @@ Changelog
 Release vNEXT
 ------------
 
+* DOC: Endpoints to add and remove object shares are deprecated, as is ability to provide permissions when creating object.
 * NEW: All events now wrapped with global event model (GEM), with odrive-specific payload field
 * NEW: An array of breadcrumb objects is returned with an object's properties
 * FIX: Default Kafka configuration resolved
