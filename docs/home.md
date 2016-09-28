@@ -78,7 +78,6 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
     + contentType (string, optional) - The suggested mime type for the content stream if given for this object.
     + contentSize (int, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.
     + properties (properties array, optional) - Array of custom properties to be associated with the newly created object.
-    + permission (ObjectShare array, optional) - Array of additional permissions to be associated with this object when created. By default, the owner is granted full access. This structure is used when permissions need to be granted beyond read access, since read access is most easily conveyed in the ACM share itself.  For convenience, the structure of the share within a permission is the same as that used for ACMs.  The sample below would grant the creator (as owner) full CRUDS, everyone would get read, and then the user `cn=user,ou=org,c=us` would get full CRUDS, while members of the groups ODrive_G1 and ODrive_G2 would get create, read and update. 
     + containsUSPersonsData (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
     + exemptFromFOIA (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 
@@ -99,38 +98,6 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
                 "contentType": "text/plain",
                 "contentSize": 31,
                 "properties": [],
-                "permissions": [
-                    {
-                        "share": {
-                            "users": [
-                                "cn=user,ou=org,c=us"
-                            ]
-                        },
-                        "allowCreate": true,
-                        "allowRead": true,
-                        "allowUpdate": true,
-                        "allowDelete": true,
-                        "allowShare": true
-                    },
-                    {
-                        "share": {
-                            "projects": {
-                                "dctc" : {
-                                    "disp_nm": "DCTC",
-                                    "groups": [
-                                        "ODrive_G1",
-                                        "ODrive_G2"
-                                    ]
-                               }
-                            }
-                        },
-                        "allowCreate": true,
-                        "allowRead": true,
-                        "allowUpdate": true,
-                        "allowDelete": false,
-                        "allowShare": false
-                    }
-                ],
                 "containsUSPersonsData": "No",
                 "exemptFromFOIA": "No"
             }
@@ -153,7 +120,6 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
     + contentType (string, optional) - The suggested mime type for the content stream if given for this object.
     + contentSize (int, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.
     + properties (properties array, optional) - Array of custom properties to be associated with the newly created object.
-    + permission (ObjectShare array, optional) - Array of additional permissions to be associated with this object when created. By default, the owner is granted full access. This structure is used when permissions need to be granted beyond read access, since read access is most easily conveyed in the ACM share itself.  For convenience, the structure of the share within a permission is the same as that used for ACMs.
     + containsUSPersonsData (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
     + exemptFromFOIA (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 
@@ -410,9 +376,9 @@ This creates a new revision of the object.
     + pageSize (number, optional) - The number of results to return per page.
     + sortField (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
     + sortAscending (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-    + filterField (string, optional) - Denotes a field that the results should be filtered on. Can be specified multiple times.
+    + filterField (string, optional) - **experimental** Denotes a field that the results should be filtered on. Can be specified multiple times.
         If filterField is set, condition and expression must also be set to complete the tupled filter query.
-    + condition (enum[string], optional) 
+    + condition (enum[string], optional) - **experimental**
 
         The type of filter to apply.
 
@@ -420,7 +386,7 @@ This creates a new revision of the object.
             + `equals`
             + `contains`
             
-    + expression (string, optional) - A phrase that should be used for the match against the field value
+    + expression (string, optional) - **experimental** A phrase that should be used for the match against the field value
 
 ### List Objects At Root [GET]
 
@@ -458,9 +424,9 @@ This microservice operation retrieves a list of objects contained within the spe
     + pageSize (number, optional) - The number of results to return per page.
     + sortField (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
     + sortAscending (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-    + filterField (string, optional) - Denotes a field that the results should be filtered on. Can be specified multiple times.
+    + filterField (string, optional) - **experimental** Denotes a field that the results should be filtered on. Can be specified multiple times.
         If filterField is set, condition and expression must also be set to complete the tupled filter query.
-    + condition (enum[string], optional) 
+    + condition (enum[string], optional) - **experimental**
 
         The type of filter to apply.
 
@@ -468,7 +434,7 @@ This microservice operation retrieves a list of objects contained within the spe
             + `equals`
             + `contains`
             
-    + expression (string, optional) - A phrase that should be used for the match against the field value
+    + expression (string, optional) - **experimental** A phrase that should be used for the match against the field value
 
 
 ### List Object Under Parent [GET]
@@ -588,12 +554,17 @@ These operations permit granting and revoking capabilities on objects beyond rea
 
 ## Object Share [/shared/{objectId}]
 
+**DEPRECATED** This endpoint is deprecated and will be replaced in a later version.
+
 Share for an object may be added or removed at the URI designated  
 
 + Parameters
     + objectId (string, required) - string Hex encoded identifier of the object for which a share will be added or removed.
 
 ### Add Object Share [POST]
+
+**DEPRECATED** This operation is deprecated and will be replaced in a later version.
+
 This microservice operation is used to grant the specified permission on the target object to the grantee, as well as record that the share has been established. Regardless of sharing settings, as with standard object permissions, a user is still required to pass all other checks to be able to access objects.
 
 + Request (application/json)
@@ -625,6 +596,9 @@ This microservice operation is used to grant the specified permission on the tar
         Error storing metadata or stream
 
 ### Remove Object Share [DELETE]
+
+**DEPRECATED** This operation is deprecated and will be replaced in a later version.
+
 This microservice operation removes permissions previously granted to users and groups for a given object.
 
 + Request (application/json)
@@ -662,9 +636,9 @@ This microservice operation removes permissions previously granted to users and 
     + pageSize (number, optional) - The number of results to return per page.
     + sortField (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
     + sortAscending (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-    + filterField (string, optional) - Denotes a field that the results should be filtered on. Can be specified multiple times.
+    + filterField (string, optional) - **experimental**Denotes a field that the results should be filtered on. Can be specified multiple times.
         If filterField is set, condition and expression must also be set to complete the tupled filter query.
-    + condition (enum[string], optional) 
+    + condition (enum[string], optional) - **experimental** 
 
         The type of filter to apply.
 
@@ -672,7 +646,7 @@ This microservice operation removes permissions previously granted to users and 
             + `equals`
             + `contains`
             
-    + expression (string, optional) - A phrase that should be used for the match against the field value
+    + expression (string, optional) - **experimental** A phrase that should be used for the match against the field value
     
 ### List Objects Shared to Everyone [GET]
 This microservice operation retrieves a list of objects that are shared to everyone.
@@ -792,6 +766,8 @@ This microservice operation retrieves a list of objects that are shared to every
 
 # Group Search Operations
 
+**EXPERIMENTAL** - Search operations are an experimental feature
+
 ---
 
 ## Search [/search/{searchPhrase}?pageNumber={pageNumber}&pageSize={pageSize}&sortField={sortField}&sortAscending={sortAscending}&filterField={filterField}&condition={condition}&expression={expression}]
@@ -802,9 +778,9 @@ This microservice operation retrieves a list of objects that are shared to every
     + pageSize (number, optional) - The number of results to return per page.
     + sortField (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
     + sortAscending (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-    + filterField (string, optional) - Denotes a field that the results should be filtered on. Can be specified multiple times.
+    + filterField (string, optional) - **experimental** Denotes a field that the results should be filtered on. Can be specified multiple times.
         If filterField is set, condition and expression must also be set to complete the tupled filter query.
-    + condition (enum[string], optional) 
+    + condition (enum[string], optional) - **experimental**
 
         The type of filter to apply.
 
@@ -812,7 +788,7 @@ This microservice operation retrieves a list of objects that are shared to every
             + `equals`
             + `contains`
             
-    + expression (string, optional) - A phrase that should be used for the match against the field value    
+    + expression (string, optional) - **experimental** A phrase that should be used for the match against the field value    
      
 ### Search [GET]
 
@@ -893,9 +869,9 @@ This creates a new revision of the object.
     + pageSize (number, optional) - The number of results to return per page.
     + sortField (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
     + sortAscending (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-    + filterField (string, optional) - Denotes a field that the results should be filtered on. Can be specified multiple times.
+    + filterField (string, optional) - **experimental** Denotes a field that the results should be filtered on. Can be specified multiple times.
         If filterField is set, condition and expression must also be set to complete the tupled filter query.
-    + condition (enum[string], optional) 
+    + condition (enum[string], optional) - **experimental**
 
         The type of filter to apply.
 
@@ -903,7 +879,7 @@ This creates a new revision of the object.
             + `equals`
             + `contains`
             
-    + expression (string, optional) - A phrase that should be used for the match against the field value
+    + expression (string, optional) - **experimental** A phrase that should be used for the match against the field value
 
 ### List User Object Shares [GET]
 This microservice operation retrieves a list of objects that the user has shared to them, by others.
@@ -940,9 +916,9 @@ This microservice operation retrieves a list of objects that the user has shared
     + pageSize (number, optional) - The number of results to return per page.
     + sortField (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
     + sortAscending (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-    + filterField (string, optional) - Denotes a field that the results should be filtered on. Can be specified multiple times.
+    + filterField (string, optional) - **experimental** Denotes a field that the results should be filtered on. Can be specified multiple times.
         If filterField is set, condition and expression must also be set to complete the tupled filter query.
-    + condition (enum[string], optional) 
+    + condition (enum[string], optional) - **experimental**
 
         The type of filter to apply.
 
@@ -950,7 +926,7 @@ This microservice operation retrieves a list of objects that the user has shared
             + `equals`
             + `contains`
             
-    + expression (string, optional) - A phrase that should be used for the match against the field value
+    + expression (string, optional) - **experimental** A phrase that should be used for the match against the field value
 
 ### List User Objects Shared [GET]
 This microservice operation retrieves a list of objects that the user has shared to others.
@@ -988,9 +964,9 @@ This microservice operation retrieves a list of objects that the user has shared
     + pageSize (number, optional) - The number of results to return per page.
     + sortField (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
     + sortAscending (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-    + filterField (string, optional) - Denotes a field that the results should be filtered on. Can be specified multiple times.
+    + filterField (string, optional) - **experimental** Denotes a field that the results should be filtered on. Can be specified multiple times.
         If filterField is set, condition and expression must also be set to complete the tupled filter query.
-    + condition (enum[string], optional) 
+    + condition (enum[string], optional) - **experimental**
 
         The type of filter to apply.
 
@@ -998,7 +974,7 @@ This microservice operation retrieves a list of objects that the user has shared
             + `equals`
             + `contains`
             
-    + expression (string, optional) - A phrase that should be used for the match against the field value
+    + expression (string, optional) - **experimental** A phrase that should be used for the match against the field value
 
 ### List Trashed Objects [GET]
 
@@ -1164,7 +1140,6 @@ User Stats provides metrics information for the user's total number of objects a
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value should be empty.
 + contentSize: 1511 (string) - The length of the object's content stream, if present. For objects without a content stream, this value should be 0.
 + properties (array[PropertyCreate]) - Array of custom properties to be associated with the object.
-+ permissions (array[PermissionCreate]) - Array of permissions to be associated with this object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 
@@ -1179,7 +1154,6 @@ User Stats provides metrics information for the user's total number of objects a
 + contentType: ` ` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value should be empty.
 + contentSize: 0 (string) - The length of the object's content stream, if present. For objects without a content stream, this value should be 0.
 + properties (array[PropertyCreate]) - Array of custom properties to be associated with the object.
-+ permissions (array[PermissionCreate]) - Array of permissions to be associated with this object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 
