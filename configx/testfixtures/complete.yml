@@ -1,0 +1,70 @@
+
+
+database:
+    driver: "mysql"
+    username: ""
+    password: ""
+    protocol: ""
+    host: ""
+    port: "9999"
+    schema: ""
+    params: ""
+    use_tls: true
+    insecure_skip_verify: true
+    trust: ""
+    cert: ""
+    key: ""
+
+server:
+    base_path: "blah/blah"
+    port: ""
+    bind: ""
+    use_tls: true
+    trust: ""
+    cert: ""
+    key: ""
+    masterkey: ""
+    ciphers:
+        - "foo"
+        - "baz"
+    min_version: ""
+    acl_whitelist:
+        - ""  # duplicated in legacy field below
+    static_root: ""
+    template_root: ""
+
+
+disk_cache:
+    root_dir: ""
+    partitiion: ""
+    low_watermark: 0
+    high_watermark: 0
+    evict_age: 0
+    walk_sleep: 0
+
+aac:
+    trust: "foo"
+    cert: ""
+    key: ""
+    hostname: ""
+    port: ""
+    zk_path: ""
+
+event_queue:
+    kafka_addrs:
+        - ""
+    zk_addrs:
+        - "foo"
+        - "baz"
+
+zk:
+    ip: ""
+    port: ""
+    address: ""
+    register_odrive_as: ""
+
+
+# legacy
+whitelist:
+    - "foo"
+    - "baz"

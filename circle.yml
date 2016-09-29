@@ -16,6 +16,7 @@ dependencies:
         - sudo pip install docker-compose
         - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
         - go get -u github.com/kardianos/govendor
+        - go get -u github.com/jteeuwen/go-bindata/...
     override:
         - mkdir -p ~/.go_workspace/src/$IMPORT_PATH
         - rm -rf ~/.go_workspace/src/$IMPORT_PATH

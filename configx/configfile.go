@@ -12,20 +12,28 @@ import (
 // options make sense for environment variables, particularly lists.
 type ConfigFile struct {
 	Whitelisted []string `yaml:"whitelist"`
+	AppConfiguration
 }
 
-// LoadYAMLConfig constructs a ConfigFile struct from a YAML file.
-func LoadYAMLConfig(path string) (ConfigFile, error) {
-	var conf ConfigFile
-
+// LoadYAMLConfig constructs a (legacy) ConfigFile struct as well as an
+// AppConfiguration from a YAML file.
+func LoadYAMLConfig(path string) (AppConfiguration, error) {
+	var conf AppConfiguration
 	f, err := os.Open(path)
 	if err != nil {
 		return conf, err
 	}
+	defer f.Close()
+
 	contents, err := ioutil.ReadAll(f)
 	if err != nil {
 		return conf, err
 	}
+
 	err = yaml.Unmarshal(contents, &conf)
+	if err != nil {
+		return conf, err
+	}
+
 	return conf, nil
 }
