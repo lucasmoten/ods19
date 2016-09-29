@@ -200,6 +200,66 @@ func TestUpdateStreamWithoutProvidingACM(t *testing.T) {
 	doPropertyUpdate(t, clientID, created.ID, fmt.Sprintf(updateTemplate, created.ID, "", created.ChangeToken), nil, nil)
 }
 
+func TestUpdateStreamWithoutProvidingACMButHasStream(t *testing.T) {
+
+	clientID := 0
+	var created protocol.Object
+	var err error
+
+	createAsFile := false
+	acm := `{"banner":"UNCLASSIFIED","classif":"U","dissem_countries":["USA"],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":["cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"],"portion":"U","share":{"projects":null,"users":["CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US","cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`
+
+	if createAsFile {
+		data := "0123456789"
+		_, created = doTestCreateObjectSimple(t, data, clientID, nil, nil, acm)
+		doCheckFileNowExists(t, clientID, created)
+	} else {
+		var topFolder *protocol.Object
+		topFolder, err = makeFolderWithACMViaJSON("UpdateStreamNoACM-Top Folder", acm, clientID)
+		var childFolder *protocol.Object
+		childFolder, err = makeFolderWithACMWithParentViaJSON("UpdateStreamNoACM-Object In Top Folder", topFolder.ID, acm, clientID)
+		created = *childFolder
+	}
+
+	// note that parentid and permissions fields will be ignored
+	updateTemplate := `{"id":"%s","changeToken":"%s","name":"%s","parentId":"%s","permissions":[]}`
+	updateMeta := fmt.Sprintf(updateTemplate, created.ID, created.ChangeToken, created.Name, created.ParentID)
+	var jsonBody []byte
+	jsonBody = []byte(updateMeta)
+	updateURISuffix := "objects/" + created.ID + "/stream"
+	data2 := `{"x":"123"}`
+	tmpName := "_capco_favorites.json"
+	f, closer, err := testhelpers.GenerateTempFile(data2)
+	defer closer()
+	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(updateURISuffix, host, "", f, tmpName, jsonBody)
+
+	if err != nil {
+		t.Errorf("Unable to create HTTP request: %v\n", err)
+	}
+
+	client := clients[clientID].Client
+	res, err := client.Do(req)
+	if err != nil {
+		t.Errorf("Unable to do request:%v\n", err)
+		t.FailNow()
+	}
+	defer util.FinishBody(res.Body)
+	if res == nil {
+		t.Fail()
+	}
+
+	if res.StatusCode != 200 {
+		t.Logf("Status was %d", res.StatusCode)
+		t.Logf("Message was %s", res.Status)
+		t.FailNow()
+	}
+
+	var objResponse protocol.Object
+	err = util.FullDecode(res.Body, &objResponse)
+	res.Body.Close()
+
+}
+
 var updateTemplate = `
 {
 	  "id": "%s",
