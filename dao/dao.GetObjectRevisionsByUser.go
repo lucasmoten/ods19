@@ -88,18 +88,9 @@ func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagi
 	response.PageSize = GetSanitizedPageSize(pagingRequest.PageSize)
 	response.PageRows = len(response.Objects)
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
-	// TODO: Permissions based on current state.. this would only be worth doing if
-	// it could get permissions based on revision and also restrict the list which hits
-	// the same but may be confusing as it could leave some revisions hidden from users
-	//
-	// for i := 0; i < len(response.Objects); i++ {
-	// 	permissions, err := getPermissionsForObjectRevisionInTransaction(tx, response.Objects[i])
-	// 	if err != nil {
-	// 		print(err.Error())
-	// 		return response, err
-	// 	}
-	// 	response.Objects[i].Permissions = permissions
-	// }
+
+	// Redact by ACM access and set permissions
+	permissions := []models.ODObjectPermission{}
 	for i, o := range response.Objects {
 		ok := checkACM(&o)
 		if !ok {
@@ -109,6 +100,13 @@ func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagi
 			response.Objects[i].ID = id
 			response.Objects[i].ChangeCount = -1
 		}
+		if len(permissions) == 0 {
+			permissions, err = getPermissionsForObjectInTransaction(tx, object)
+			if err != nil {
+				return response, err
+			}
+		}
+		response.Objects[i].Permissions = permissions
 	}
 
 	return response, err
