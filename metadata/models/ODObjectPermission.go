@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"decipher.com/object-drive-server/utils"
 	configx "decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/utils"
 )
 
 // ODObjectPermission is a nestable structure defining the attributes for
@@ -149,13 +149,13 @@ func PermissionForGroup(projectName string, projectDisplayName string, groupName
 // PermissionWithoutRead is a helper function that creates a new permission with the same settings as the permission passed in, without allowRead set.
 func PermissionWithoutRead(i ODObjectPermission) ODObjectPermission {
 	g := i.AcmGrantee
-	if g.UserDistinguishedName.Valid {
+	if g.UserDistinguishedName.Valid && len(g.UserDistinguishedName.String) > 0 {
 		return PermissionForUser(g.UserDistinguishedName.String, i.AllowCreate, false, i.AllowUpdate, i.AllowDelete, i.AllowShare)
 	}
 	return PermissionForGroup(g.ProjectName.String, g.ProjectDisplayName.String, g.GroupName.String, i.AllowCreate, false, i.AllowUpdate, i.AllowDelete, i.AllowShare)
 }
 
-// copypasta from protocol
+// AACFlatten is a copypasta from protocol
 func AACFlatten(inVal string) string {
 	emptyList := []string{" ", ",", "=", "'", ":", "(", ")", "$", "[", "]", "{", "}", "|", "\\"}
 	underscoreList := []string{".", "-"}
@@ -172,4 +172,24 @@ func AACFlatten(inVal string) string {
 // IsCreating is a helper method to indicate if this permission is being created
 func (permission *ODObjectPermission) IsCreating() bool {
 	return (len(permission.ID) == 0)
+}
+
+func (permission ODObjectPermission) String() string {
+	template := "[%s%s%s%s%s] %s %s"
+	s := fmt.Sprintf(template,
+		iifString(permission.AllowCreate, "C", "-"),
+		iifString(permission.AllowRead, "R", "-"),
+		iifString(permission.AllowUpdate, "U", "-"),
+		iifString(permission.AllowDelete, "D", "-"),
+		iifString(permission.AllowShare, "S", "-"),
+		permission.Grantee,
+		permission.AcmShare)
+	return s
+}
+
+func iifString(c bool, t string, f string) string {
+	if c {
+		return t
+	}
+	return f
 }

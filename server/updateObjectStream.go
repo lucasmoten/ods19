@@ -89,8 +89,8 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	// TODO: This seems weird. why was everything previously manipulating the dbObject (call to h.acceptObjectUpload) ?
 	// Assign existing permissions from the database object to the request object
 	requestObjectWithIDFromURI.Permissions = dbObject.Permissions
-	requestObjectWithIDFromURI.RawAcm.Valid = dbObject.RawAcm.Valid
-	requestObjectWithIDFromURI.RawAcm.String = dbObject.RawAcm.String
+	requestObjectWithIDFromURI.OwnedBy = models.ToNullString(dbObject.OwnedBy.String)
+	requestObjectWithIDFromURI.RawAcm = models.ToNullString(dbObject.RawAcm.String)
 	logger.Info("acm", zap.String("requestObjectWithIDFromURI.RawAcm", requestObjectWithIDFromURI.RawAcm.String))
 	hasAACAccess := false
 
