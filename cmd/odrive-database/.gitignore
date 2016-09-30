@@ -1,2 +1,8 @@
 # Ignore schema archives
 *.tar.gz
+
+# ignore binaries
+odrive-database
+
+# ignore bindata, instead generate with `go-bindata schema`
+bindata.go

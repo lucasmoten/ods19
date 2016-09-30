@@ -30,30 +30,23 @@ var (
 // AppConfiguration is a structure that defines the known configuration format
 // for this application.
 type AppConfiguration struct {
-	AuditorSettings    AuditSvcConfiguration
-	DatabaseConnection DatabaseConfiguration
-	ServerSettings     ServerSettingsConfiguration
-	AACSettings        AACConfiguration
-	CacheSettings      S3DrainProviderOpts
-	ZK                 ZKSettings
-	EventQueue         EventQueueConfiguration
+	DatabaseConnection DatabaseConfiguration       `yaml:"database"`
+	ServerSettings     ServerSettingsConfiguration `yaml:"server"`
+	AACSettings        AACConfiguration            `yaml:"aac"`
+	CacheSettings      S3DrainProviderOpts         `yaml:"disk_cache"`
+	ZK                 ZKSettings                  `yaml:"zk"`
+	EventQueue         EventQueueConfiguration     `yaml:"event_queue"`
+	Whitelist          []string                    `yaml:"whitelist"`
 }
 
 // AACConfiguration holds data required for an AAC client.
 type AACConfiguration struct {
-	CAPath               string
-	ClientCert           string
-	ClientKey            string
-	HostName             string
-	Port                 string
-	AACAnnouncementPoint string
-}
-
-// AuditSvcConfiguration defines the attributes needed for connecting to the audit service
-type AuditSvcConfiguration struct {
-	Type string
-	Port string
-	Host string
+	CAPath               string `yaml:"trust"`
+	ClientCert           string `yaml:"cert"`
+	ClientKey            string `yaml:"key"`
+	HostName             string `yaml:"hostname"`
+	Port                 string `yaml:"port"`
+	AACAnnouncementPoint string `yaml:"zk_path"`
 }
 
 // CommandLineOpts holds command line options so they can be passed as a param.
@@ -64,66 +57,68 @@ type CommandLineOpts struct {
 	TemplateDir       string
 	TLSMinimumVersion string
 	Conf              string
+	Whitelist         []string
 }
 
 // DatabaseConfiguration is a structure that defines the attributes
 // needed for setting up database connection
 type DatabaseConfiguration struct {
-	Driver     string
-	Username   string
-	Password   string
-	Protocol   string
-	Host       string
-	Port       string
-	Schema     string
-	Params     string
-	UseTLS     bool
-	SkipVerify bool
-	CAPath     string
-	ClientCert string
-	ClientKey  string
+	Driver     string `yaml:"driver"`
+	Username   string `yaml:"username"`
+	Password   string `yaml:"password"`
+	Protocol   string `yaml:"protocol"`
+	Host       string `yaml:"host"`
+	Port       string `yaml:"port"`
+	Schema     string `yaml:"schema"`
+	Params     string `yaml:"conn_params"`
+	UseTLS     bool   `yaml:"use_tls"`
+	SkipVerify bool   `yaml:"insecure_skip_veriry"`
+	CAPath     string `yaml:"trust"`
+	ClientCert string `yaml:"cert"`
+	ClientKey  string `yaml:"key"`
 }
 
 // EventQueueConfiguration configures publishing to the Kakfa event queue.
 type EventQueueConfiguration struct {
-	KafkaAddrs []string
+	KafkaAddrs []string `yaml:"kafka_addrs"`
+	ZKAddrs    []string `yaml:"zk_addrs"`
 }
 
 // S3DrainProviderOpts describes our current disk cache configuration.
 type S3DrainProviderOpts struct {
-	Root          string
-	Partition     string
-	LowWatermark  float64
-	HighWatermark float64
-	EvictAge      int64
-	WalkSleep     int64
+	Root          string  `yaml:"root_dir"`
+	Partition     string  `yaml:"partition"`
+	LowWatermark  float64 `yaml:"low_watermark"`
+	HighWatermark float64 `yaml:"high_waterwark"`
+	EvictAge      int64   `yaml:"evict_age"`
+	WalkSleep     int64   `yaml:"walk_sleep"`
 }
 
 // ServerSettingsConfiguration holds the attributes needed for
 // setting up an AppServer listener.
 type ServerSettingsConfiguration struct {
-	BasePath                  string
-	ListenPort                string
-	ListenBind                string
-	UseTLS                    bool
-	CAPath                    string
-	ServerCertChain           string
-	ServerKey                 string
-	MasterKey                 string
-	RequireClientCert         bool
-	CipherSuites              []string
-	MinimumVersion            string
-	AclImpersonationWhitelist []string
-	PathToStaticFiles         string
-	PathToTemplateFiles       string
+	BasePath                  string   `yaml:"base_path"`
+	ListenPort                string   `yaml:"port"`
+	ListenBind                string   `yaml:"bind"`
+	UseTLS                    bool     `yaml:"use_tls"`
+	CAPath                    string   `yaml:"trust"`
+	ServerCertChain           string   `yaml:"cert"`
+	ServerKey                 string   `yaml:"key"`
+	MasterKey                 string   `yaml:"masterkey"`
+	RequireClientCert         bool     `yaml:"require_client_cert"`
+	CipherSuites              []string `yaml:"ciphers"`
+	MinimumVersion            string   `yaml:"min_version"`
+	AclImpersonationWhitelist []string `yaml:"acl_whitelist"`
+	PathToStaticFiles         string   `yaml:"static_root"`
+	PathToTemplateFiles       string   `yaml:"template_root"`
 }
 
 // ZKSettings holds the data required to communicate with Zookeeper.
 type ZKSettings struct {
-	IP             string
-	Port           string
-	Address        string
-	BasepathOdrive string
+	IP             string `yaml:"ip"`
+	Port           string `yaml:"port"`
+	Address        string `yaml:"address"`
+	BasepathOdrive string `yaml:"register_odrive_as"`
 }
 
 // NewAppConfiguration loads the configuration from the different sources in the environment.
@@ -155,19 +150,18 @@ func NewAppConfiguration(opts CommandLineOpts) AppConfiguration {
 }
 
 // NewAACSettingsFromEnv inspects the environment and returns a AACConfiguration.
-func NewAACSettingsFromEnv(confFile ConfigFile, opts CommandLineOpts) AACConfiguration {
+func NewAACSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) AACConfiguration {
 
 	var conf AACConfiguration
 
-	conf.CAPath = os.Getenv(OD_AAC_CA)
-	conf.ClientCert = os.Getenv(OD_AAC_CERT)
-	conf.ClientKey = os.Getenv(OD_AAC_KEY)
+	conf.CAPath = cascade(OD_AAC_CA, confFile.AACSettings.CAPath, "")
+	conf.ClientCert = cascade(OD_AAC_CERT, confFile.AACSettings.ClientCert, "")
+	conf.ClientKey = cascade(OD_AAC_KEY, confFile.AACSettings.ClientKey, "")
 
 	// These should get overridden with zookeeper nodes found in OD_ZK_AAC
-	conf.HostName = os.Getenv(OD_AAC_HOST)
-	conf.Port = os.Getenv(OD_AAC_PORT)
-	//Notice that the protocol (thrift) is in this already
-	conf.AACAnnouncementPoint = globalconfig.GetEnvOrDefault(OD_ZK_AAC, "/cte/service/aac/1.0/thrift")
+	conf.HostName = cascade(OD_AAC_HOST, confFile.AACSettings.HostName, "")
+	conf.Port = cascade(OD_AAC_PORT, confFile.AACSettings.Port, "")
+	conf.AACAnnouncementPoint = cascade(OD_ZK_AAC, confFile.AACSettings.AACAnnouncementPoint, "/cte/service/aac/1.0/thrift")
 	return conf
 }
 
@@ -206,6 +200,9 @@ func NewCommandLineOpts(clictx *cli.Context) CommandLineOpts {
 	// TLS Minimum Version (Optional. Has a default, but can be made a lower version)
 	tlsMinimumVersion := clictx.String("tlsMinimumVersion")
 
+	// Whitelist (Optional. Usually provided via yaml configuration.)
+	whitelist := clictx.StringSlice("whitelist")
+
 	return CommandLineOpts{
 		Ciphers:           ciphers,
 		UseTLS:            useTLS,
@@ -213,71 +210,76 @@ func NewCommandLineOpts(clictx *cli.Context) CommandLineOpts {
 		StaticRootPath:    staticRootPath,
 		TemplateDir:       templateDir,
 		TLSMinimumVersion: tlsMinimumVersion,
+		Whitelist:         whitelist,
 	}
 }
 
 // NewDatabaseConfigFromEnv inspects the environment and returns a DatabaseConfiguration.
-func NewDatabaseConfigFromEnv(confFile ConfigFile, opts CommandLineOpts) DatabaseConfiguration {
+func NewDatabaseConfigFromEnv(confFile AppConfiguration, opts CommandLineOpts) DatabaseConfiguration {
 
 	var dbConf DatabaseConfiguration
 
 	// From environment
-	dbConf.Username = os.Getenv(OD_DB_USERNAME)
-	dbConf.Password = os.Getenv(OD_DB_PASSWORD)
-	dbConf.Host = os.Getenv(OD_DB_HOST)
-	dbConf.Port = os.Getenv(OD_DB_PORT)
-	dbConf.Schema = getEnvOrDefault(OD_DB_SCHEMA, "metadatadb")
-	dbConf.CAPath = os.Getenv(OD_DB_CA)
-	dbConf.ClientCert = os.Getenv(OD_DB_CERT)
-	dbConf.ClientKey = os.Getenv(OD_DB_KEY)
-	dbConf.Params = getEnvOrDefault(OD_DB_CONN_PARAMS, "parseTime=true&collation=utf8_unicode_ci")
+	dbConf.Username = cascade(OD_DB_USERNAME, confFile.DatabaseConnection.Username, "")
+	dbConf.Password = cascade(OD_DB_PASSWORD, confFile.DatabaseConnection.Password, "")
+	dbConf.Host = cascade(OD_DB_HOST, confFile.DatabaseConnection.Host, "")
+	dbConf.Port = cascade(OD_DB_PORT, confFile.DatabaseConnection.Port, "3306")
+	dbConf.Schema = cascade(OD_DB_SCHEMA, confFile.DatabaseConnection.Schema, "metadatadb")
+	dbConf.CAPath = cascade(OD_DB_CA, confFile.DatabaseConnection.CAPath, "")
+	dbConf.ClientCert = cascade(OD_DB_CERT, confFile.DatabaseConnection.ClientCert, "")
+	dbConf.ClientKey = cascade(OD_DB_KEY, confFile.DatabaseConnection.ClientKey, "")
+	dbConf.Params = cascade(OD_DB_CONN_PARAMS, confFile.DatabaseConnection.Params, "parseTime=true&collation=utf8_unicode_ci")
 
 	// Defaults
 	dbConf.Protocol = "tcp"
 	dbConf.Driver = defaultDBDriver
 	dbConf.UseTLS = true
-	dbConf.SkipVerify = true // TODO new variable?
+	dbConf.SkipVerify = true
 
 	return dbConf
 }
 
 // NewEventQueueConfiguration reades the environment to provide the configuration for the Kafka event queue.
-func NewEventQueueConfiguration(confFile ConfigFile, opts CommandLineOpts) EventQueueConfiguration {
-	var fqc EventQueueConfiguration
+func NewEventQueueConfiguration(confFile AppConfiguration, opts CommandLineOpts) EventQueueConfiguration {
+	var eqc EventQueueConfiguration
 	var empty []string
-	fqc.KafkaAddrs = getEnvOrDefaultSplitStringSlice(OD_EVENT_KAFKA_ADDRS, empty)
-	return fqc
+	eqc.KafkaAddrs = cascadeStringSlice(OD_EVENT_KAFKA_ADDRS, confFile.EventQueue.KafkaAddrs, empty)
+	eqc.ZKAddrs = cascadeStringSlice(OD_EVENT_ZK_ADDRS, confFile.EventQueue.ZKAddrs, empty)
+	return eqc
 }
 
 // NewS3DrainProviderOpts reads the environment to provide the configuration options for
 // S3DrainProvider.
-func NewS3DrainProviderOpts(confFile ConfigFile, opts CommandLineOpts) S3DrainProviderOpts {
+func NewS3DrainProviderOpts(confFile AppConfiguration, opts CommandLineOpts) S3DrainProviderOpts {
 	return S3DrainProviderOpts{
-		Root:          getEnvOrDefault(OD_CACHE_ROOT, "."),
-		Partition:     getEnvOrDefault(OD_CACHE_PARTITION, "cache"),
-		LowWatermark:  getEnvOrDefaultFloat(OD_CACHE_LOWWATERMARK, .50),
-		HighWatermark: getEnvOrDefaultFloat(OD_CACHE_HIGHWATERMARK, .75),
-		EvictAge:      getEnvOrDefaultInt(OD_CACHE_EVICTAGE, 300),
-		WalkSleep:     getEnvOrDefaultInt(OD_CACHE_WALKSLEEP, 30),
+		Root:          cascade(OD_CACHE_ROOT, confFile.CacheSettings.Root, "."),
+		Partition:     cascade(OD_CACHE_PARTITION, confFile.CacheSettings.Partition, "cache"),
+		LowWatermark:  cascadeFloat(OD_CACHE_LOWWATERMARK, confFile.CacheSettings.LowWatermark, .50),
+		HighWatermark: cascadeFloat(OD_CACHE_HIGHWATERMARK, confFile.CacheSettings.HighWatermark, .75),
+		EvictAge:      cascadeInt(OD_CACHE_EVICTAGE, confFile.CacheSettings.EvictAge, 300),
+		WalkSleep:     cascadeInt(OD_CACHE_WALKSLEEP, confFile.CacheSettings.WalkSleep, 30),
 	}
 
 }
 
 // NewServerSettingsFromEnv inspects the environment and returns a ServerSettingsConfiguration.
-func NewServerSettingsFromEnv(confFile ConfigFile, opts CommandLineOpts) ServerSettingsConfiguration {
+func NewServerSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) ServerSettingsConfiguration {
 
 	var settings ServerSettingsConfiguration
 
 	// From env
-	settings.BasePath = getEnvOrDefault(OD_SERVER_BASEPATH, "/services/object-drive/1.0")
-	settings.ListenPort = getEnvOrDefault(OD_SERVER_PORT, "4430")
-	settings.CAPath = os.Getenv(OD_SERVER_CA)
-	settings.ServerCertChain = os.Getenv(OD_SERVER_CERT)
-	settings.ServerKey = os.Getenv(OD_SERVER_KEY)
-	settings.MasterKey = os.Getenv(OD_ENCRYPT_MASTERKEY)
+	settings.BasePath = cascade(OD_SERVER_BASEPATH, confFile.ServerSettings.BasePath, "/services/object-drive/1.0")
+	settings.ListenPort = cascade(OD_SERVER_PORT, confFile.ServerSettings.ListenPort, "4430")
+	settings.CAPath = cascade(OD_SERVER_CA, confFile.ServerSettings.CAPath, "")
+	settings.ServerCertChain = cascade(OD_SERVER_CERT, confFile.ServerSettings.ServerCertChain, "")
+	settings.ServerKey = cascade(OD_SERVER_KEY, confFile.ServerSettings.ServerKey, "")
+	settings.MasterKey = cascade(OD_ENCRYPT_MASTERKEY, confFile.ServerSettings.MasterKey, "")
 
-	if os.Getenv(OD_ENCRYPT_MASTERKEY) == "" {
-		log.Fatal("You must set OD_ENCRYPT_MASTERKEY to start odrive")
+	// We only use conf.yml and cli opts for the ACL whitelist
+	settings.AclImpersonationWhitelist = selectNonEmptyStringSlice(opts.Whitelist, confFile.ServerSettings.AclImpersonationWhitelist, confFile.Whitelist)
+
+	if settings.MasterKey == "" {
+		log.Fatal("You must set master encryption key with OD_ENCRYPT_MASTERKEY to start odrive")
 	}
 
 	// Defaults
@@ -285,26 +287,21 @@ func NewServerSettingsFromEnv(confFile ConfigFile, opts CommandLineOpts) ServerS
 	settings.UseTLS = opts.UseTLS
 	settings.RequireClientCert = true
 	settings.MinimumVersion = opts.TLSMinimumVersion
-	settings.AclImpersonationWhitelist = confFile.Whitelisted
 	settings.CipherSuites = opts.Ciphers
 	settings.PathToStaticFiles = opts.StaticRootPath
 	settings.PathToTemplateFiles = opts.TemplateDir
-
-	// TODO fill in unset values with config file values.
 
 	return settings
 }
 
 // NewZKSettingsFromEnv inspects the environment and returns a AACConfiguration.
-func NewZKSettingsFromEnv(confFile ConfigFile, opts CommandLineOpts) ZKSettings {
+func NewZKSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) ZKSettings {
 
 	var conf ZKSettings
-	conf.Address = getEnvOrDefault(OD_ZK_URL, "zk:2181")
-	//Notice that https is not in this yet, as odrive might register more than just https
-	conf.BasepathOdrive = getEnvOrDefault(OD_ZK_ANNOUNCE, "/cte/service/object-drive/1.0")
-	conf.IP = getEnvOrDefault(OD_ZK_MYIP, globalconfig.MyIP)
-	serverPort := getEnvOrDefault(OD_SERVER_PORT, "4430")
-	conf.Port = getEnvOrDefault(OD_ZK_MYPORT, serverPort)
+	conf.Address = cascade(OD_ZK_URL, confFile.ZK.Address, "zk:2181")
+	conf.BasepathOdrive = cascade(OD_ZK_ANNOUNCE, confFile.ZK.BasepathOdrive, "/cte/service/object-drive/1.0")
+	conf.IP = cascade(OD_ZK_MYIP, confFile.ZK.IP, globalconfig.MyIP)
+	conf.Port = cascade(OD_ZK_MYPORT, confFile.ZK.Port, "4430")
 
 	return conf
 }
@@ -404,10 +401,54 @@ func (r *ServerSettingsConfiguration) buildTLSConfig() tls.Config {
 	return buildServerTLSConfig(r.CAPath, r.ServerCertChain, r.ServerKey, r.RequireClientCert, r.CipherSuites, r.MinimumVersion)
 }
 
-func warnIfNotSet(variable string) {
-	if len(getEnvOrDefault(variable, "")) == 0 {
-		log.Printf("WARNING: %s not set.\n", variable)
+func cascade(fromEnv, fromFile, defaultVal string) string {
+	if envVal := os.Getenv(fromEnv); envVal != "" {
+		return envVal
 	}
+	if fromFile != "" {
+		return fromFile
+	}
+	return defaultVal
+}
+
+func cascadeFloat(fromEnv string, fromFile, defaultVal float64) float64 {
+	if parsed, err := strconv.ParseFloat(os.Getenv(fromEnv), 64); err == nil {
+		return parsed
+	}
+	if fromFile != 0.0 {
+		return fromFile
+	}
+	return defaultVal
+}
+
+func cascadeInt(fromEnv string, fromFile, defaultVal int64) int64 {
+	if parsed, err := strconv.ParseInt(os.Getenv(fromEnv), 10, 64); err == nil {
+		return parsed
+	}
+	if fromFile != 0 {
+		return fromFile
+	}
+	return defaultVal
+}
+
+func cascadeStringSlice(fromEnv string, fromFile, defaultVal []string) []string {
+	if splitted := strings.Split(os.Getenv(fromEnv), ","); len(splitted) > 0 {
+		return splitted
+	}
+	if len(fromFile) > 0 {
+		return fromFile
+	}
+	return defaultVal
+}
+
+func selectNonEmptyStringSlice(slices ...[]string) []string {
+	for _, sl := range slices {
+		if len(sl) > 0 {
+			return sl
+		}
+	}
+	sl := make([]string, 0)
+	return sl
 }
 
 func getEnvOrDefault(name, defaultValue string) string {
