@@ -58,8 +58,9 @@ const (
 	OD_ZK_URL                  = "OD_ZK_URL"
 )
 
-// Maintain in sync with above consts.
-var vars = []string{OD_AAC_CA,
+// Vars must contain every const. We should be able to use the values in this slice
+// to inspect all the config in the current environment provided by env vars.
+var Vars = []string{OD_AAC_CA,
 	OD_AAC_CERT,
 	OD_AAC_HOST,
 	OD_AAC_KEY,
@@ -112,8 +113,8 @@ var vars = []string{OD_AAC_CA,
 // PrintODEnvironment prints the content of all environment variables required
 // by odrive.
 func PrintODEnvironment() {
-	fmt.Println("odrive environment variables. Number of vars:", len(vars))
-	for _, variable := range vars {
+	fmt.Println("odrive environment variables. Number of vars:", len(Vars))
+	for _, variable := range Vars {
 		fmt.Printf("%s=%s\n", variable, os.Getenv(variable))
 	}
 }
@@ -131,7 +132,7 @@ odrive --conf /etc/odrive/odrive.yml \
 
 `)
 	exitOnErr(err)
-	data := struct{ Variables []string }{Variables: vars}
+	data := struct{ Variables []string }{Variables: Vars}
 	tmpl.Execute(os.Stdout, data)
 }
 func GenerateSourceEnvScript() {
@@ -146,7 +147,7 @@ func GenerateSourceEnvScript() {
 
 `)
 	exitOnErr(err)
-	data := struct{ Variables []string }{Variables: vars}
+	data := struct{ Variables []string }{Variables: Vars}
 	tmpl.Execute(os.Stdout, data)
 }
 
