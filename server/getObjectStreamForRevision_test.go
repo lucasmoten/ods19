@@ -476,7 +476,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		t.Logf("* Resulting permissions")
 		hasEveryone := false
 		for _, permission := range objShare.Permissions {
-			logPermission(t, permission)
+			t.Logf("%s", permission)
 			if permission.GroupName == models.EveryoneGroup {
 				hasEveryone = true
 			}
@@ -527,7 +527,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 
 	hasEveryone := false
 	for _, permission := range objResponse2.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 		if permission.GroupName == models.EveryoneGroup {
 			hasEveryone = true
 		}

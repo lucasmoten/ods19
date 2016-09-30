@@ -92,7 +92,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 	t.Logf("* Resulting permissions")
 	for _, permission := range retrievedObject.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 	}
 
 	t.Logf("* Retrieve folder 2 as tester1")
@@ -119,7 +119,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 	t.Logf("* Resulting permissions")
 	for _, permission := range retrievedObject.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 	}
 
 	t.Logf("* Add read share as tester10 for tester1,tester10 to folder1")
@@ -154,7 +154,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 	t.Logf("* Resulting permissions")
 	for _, permission := range retrievedObject.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 	}
 
 	t.Logf("* Attempt to retrieve folder1 as tester1")
@@ -181,7 +181,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 	t.Logf("* Resulting permissions")
 	for _, permission := range retrievedObject.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 	}
 
 	t.Logf("* Attempt to retrieve folder2 as tester1")
@@ -209,7 +209,7 @@ func TestAddObjectShare(t *testing.T) {
 	t.Logf("* Resulting permissions")
 	hasEveryone := false
 	for _, permission := range retrievedObject.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 		if permission.GroupName == models.EveryoneGroup {
 			hasEveryone = true
 		}
@@ -251,7 +251,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 	t.Logf("* Resulting permissions")
 	for _, permission := range retrievedObject.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 	}
 
 	t.Logf("* Attempt to retrieve folder2 as tester1")
@@ -279,7 +279,7 @@ func TestAddObjectShare(t *testing.T) {
 	t.Logf("* Resulting permissions")
 	hasEveryone = false
 	for _, permission := range retrievedObject.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 		if permission.GroupName == models.EveryoneGroup {
 			hasEveryone = true
 		}
@@ -335,7 +335,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	t.Logf("* Resulting permissions")
 	hasEveryone := false
 	for _, permission := range retrievedObject.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 		if permission.GroupName == models.EveryoneGroup {
 			hasEveryone = true
 		}
@@ -393,7 +393,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	t.Logf("* Resulting permissions")
 	hasEveryone = false
 	for _, permission := range updatedObject.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 		if permission.GroupName == models.EveryoneGroup {
 			hasEveryone = true
 		}
@@ -479,7 +479,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	t.Logf("* Resulting permissions")
 	hasEveryone = false
 	for _, permission := range retrievedObject.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 		if permission.GroupName == models.EveryoneGroup {
 			hasEveryone = true
 		}
@@ -536,7 +536,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	t.Logf("* Resulting permissions")
 	hasEveryone = false
 	for _, permission := range retrievedObject.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 		if permission.GroupName == models.EveryoneGroup {
 			hasEveryone = true
 		}
@@ -587,7 +587,7 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 
 	t.Logf("* Resulting permissions")
 	for _, permission := range createdObject.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 	}
 
 	t.Logf("* Verify all clients can read it")
@@ -617,7 +617,7 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 			}
 			t.Logf("* Resulting permissions")
 			for _, permission := range retrievedObject.Permissions {
-				logPermission(t, permission)
+				t.Logf("%s", permission)
 			}
 		} else {
 			ioutil.ReadAll(httpGetResponse.Body)
@@ -686,7 +686,7 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 			}
 			t.Logf("* Resulting permissions")
 			for _, permission := range retrievedObject.Permissions {
-				logPermission(t, permission)
+				t.Logf("%s", permission)
 			}
 		} else {
 			ioutil.ReadAll(httpGetResponse.Body)
@@ -738,7 +738,7 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 	}
 	t.Logf("* Resulting permissions")
 	for _, permission := range updatedObject2.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 	}
 }
 
@@ -769,7 +769,7 @@ func TestAddShareForCRDoesNotGiveCRUDS(t *testing.T) {
 	}
 	t.Logf("* Resulting permissions")
 	for _, permission := range createdObject.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 	}
 
 	t.Logf("* Make it private")
@@ -795,7 +795,7 @@ func TestAddShareForCRDoesNotGiveCRUDS(t *testing.T) {
 	}
 	t.Logf("* Resulting permissions")
 	for _, permission := range updatedObject.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 	}
 
 	t.Logf("* Share it to another user")
@@ -823,7 +823,7 @@ func TestAddShareForCRDoesNotGiveCRUDS(t *testing.T) {
 	}
 	t.Logf("* Resulting permissions")
 	for _, permission := range updatedObject2.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 		if strings.Compare(permission.UserDistinguishedName, user_dn_ling_chen) == 0 {
 			if permission.AllowUpdate || permission.AllowDelete || permission.AllowShare {
 				t.Logf("ling chen has more permissions then granted!")
@@ -861,7 +861,7 @@ func TestAddShareForRDoesNotGiveCRUDS(t *testing.T) {
 	}
 	t.Logf("* Resulting permissions")
 	for _, permission := range createdObject.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 	}
 
 	t.Logf("* Make it private")
@@ -887,7 +887,7 @@ func TestAddShareForRDoesNotGiveCRUDS(t *testing.T) {
 	}
 	t.Logf("* Resulting permissions")
 	for _, permission := range updatedObject.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 	}
 
 	t.Logf("* Share it to another user")
@@ -915,7 +915,7 @@ func TestAddShareForRDoesNotGiveCRUDS(t *testing.T) {
 	}
 	t.Logf("* Resulting permissions")
 	for _, permission := range updatedObject2.Permissions {
-		logPermission(t, permission)
+		t.Logf("%s", permission)
 		if strings.Compare(permission.UserDistinguishedName, user_dn_ling_chen) == 0 {
 			if permission.AllowCreate || permission.AllowUpdate || permission.AllowDelete || permission.AllowShare {
 				t.Logf("ling chen has more permissions then granted!")
@@ -924,8 +924,4 @@ func TestAddShareForRDoesNotGiveCRUDS(t *testing.T) {
 		}
 	}
 
-}
-
-func logPermission(t *testing.T, permission protocol.Permission) {
-	t.Logf("%s", permission)
 }
