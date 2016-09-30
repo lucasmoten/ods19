@@ -75,6 +75,7 @@ func TestGetObject_DeletedAncestorReturns405(t *testing.T) {
 
 	req, _ = testhelpers.NewGetObjectRequest(folderD.ID, "", host)
 	resp, _ := clients[clientID].Client.Do(req)
+	defer util.FinishBody(resp.Body)
 
 	if resp.StatusCode != 405 {
 		t.Errorf("bad status: expected 405, but got %v", resp.StatusCode)

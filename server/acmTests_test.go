@@ -118,7 +118,7 @@ func TestAcmWithShareCreatorIsNotInWillForceThemIntoShare(t *testing.T) {
 	failNowOnErr(t, err, "Error decoding json to Object")
 
 	for _, p := range createdObject.Permissions {
-		logPermission(t, p)
+		t.Logf("%s", p)
 	}
 
 	shouldHaveReadForObjectID(t, createdObject.ID, 1, 6, 7, 8, 9, 0)
@@ -459,7 +459,7 @@ func TestAddReadShareForGroupRemovesEveryone(t *testing.T) {
 			t.Logf("* Resulting permissions")
 			hasEveryone := false
 			for _, permission := range updatedObject2.Permissions {
-				logPermission(t, permission)
+				t.Logf("%s", permission)
 				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
@@ -553,7 +553,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 			t.Logf("* Resulting permissions")
 			hasEveryone := false
 			for _, permission := range retrievedObject.Permissions {
-				logPermission(t, permission)
+				t.Logf("%s", permission)
 				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
@@ -633,7 +633,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 			t.Logf("* Resulting permissions")
 			hasEveryone := false
 			for _, permission := range updatedObject2.Permissions {
-				logPermission(t, permission)
+				t.Logf("%s", permission)
 				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
@@ -720,7 +720,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 			t.Logf("* Resulting permissions")
 			hasEveryone := false
 			for _, permission := range updatedObject3.Permissions {
-				logPermission(t, permission)
+				t.Logf("%s", permission)
 				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
@@ -824,7 +824,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 			t.Logf("* Resulting permissions")
 			hasEveryone := false
 			for _, permission := range retrievedObject.Permissions {
-				logPermission(t, permission)
+				t.Logf("%s", permission)
 				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
@@ -904,7 +904,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 			t.Logf("* Resulting permissions")
 			hasEveryone := false
 			for _, permission := range updatedObject2.Permissions {
-				logPermission(t, permission)
+				t.Logf("%s", permission)
 				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
@@ -991,7 +991,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 			t.Logf("* Resulting permissions")
 			hasEveryone := false
 			for _, permission := range updatedObject3.Permissions {
-				logPermission(t, permission)
+				t.Logf("%s", permission)
 				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
@@ -1083,7 +1083,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 			t.Logf("* Resulting permissions")
 			hasEveryone := false
 			for _, permission := range updatedObject4.Permissions {
-				logPermission(t, permission)
+				t.Logf("%s", permission)
 				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
@@ -1188,7 +1188,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			t.Logf("* Resulting permissions")
 			hasEveryone := false
 			for _, permission := range retrievedObject.Permissions {
-				logPermission(t, permission)
+				t.Logf("%s", permission)
 				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
@@ -1268,7 +1268,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			t.Logf("* Resulting permissions")
 			hasEveryone := false
 			for _, permission := range updatedObject2.Permissions {
-				logPermission(t, permission)
+				t.Logf("%s", permission)
 				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
@@ -1355,7 +1355,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			t.Logf("* Resulting permissions")
 			hasEveryone := false
 			for _, permission := range updatedObject3.Permissions {
-				logPermission(t, permission)
+				t.Logf("%s", permission)
 				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
@@ -1447,7 +1447,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			t.Logf("* Resulting permissions")
 			hasEveryone := false
 			for _, permission := range updatedObject4.Permissions {
-				logPermission(t, permission)
+				t.Logf("%s", permission)
 				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
@@ -1526,7 +1526,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			t.Logf("* Resulting permissions")
 			hasEveryone := false
 			for _, permission := range updatedObject5.Permissions {
-				logPermission(t, permission)
+				t.Logf("%s", permission)
 				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
@@ -1578,7 +1578,7 @@ func shouldHaveEveryonePermission(t *testing.T, objID string, clientIdxs ...int)
 		failNowOnErr(t, err, "unable to decode object from json")
 		hasEveryone := false
 		for _, p := range obj.Permissions {
-			logPermission(t, p)
+			t.Logf("%s", p)
 			if p.GroupName == models.EveryoneGroup {
 				hasEveryone = true
 			}

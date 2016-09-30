@@ -9,12 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	"decipher.com/object-drive-server/utils"
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
+	"decipher.com/object-drive-server/utils"
 )
 
 func jsonEscape(i string) string {
@@ -107,7 +107,7 @@ func TestCreateObjectSimple(t *testing.T) {
 	}
 
 	for _, p := range obj.Permissions {
-		logPermission(t, p)
+		t.Logf("%", p)
 	}
 }
 
@@ -259,7 +259,7 @@ func failWithoutDCTCOdrive(t *testing.T, createdObject *protocol.Object) {
 			t.Logf("* Resulting permissions")
 			hasEveryone := false
 			for _, permission := range retrievedObject.Permissions {
-				logPermission(t, permission)
+				t.Logf("%s", permission)
 				if permission.GroupName == models.EveryoneGroup {
 					hasEveryone = true
 				}
