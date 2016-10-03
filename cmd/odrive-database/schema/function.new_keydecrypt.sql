@@ -1,0 +1,4 @@
+CREATE FUNCTION new_keydecrypt(master VARCHAR(255), iv CHAR(64)) RETURNS CHAR(64)
+BEGIN
+  RETURN sha2(CONCAT(master,':',LCASE(iv)),256);
+END;

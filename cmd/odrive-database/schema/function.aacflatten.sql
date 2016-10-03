@@ -1,4 +1,3 @@
-DELIMITER //
 CREATE FUNCTION aacflatten(dn varchar(255)) RETURNS varchar(255) DETERMINISTIC
 BEGIN
     DECLARE o varchar(255);
@@ -25,5 +24,4 @@ BEGIN
 
     RETURN o;
 
-END//
-DELIMITER ;
+END;

@@ -1,6 +1,3 @@
-delimiter //
-SELECT 'Creating user table' as Action
-//
 CREATE TABLE IF NOT EXISTS user
 (
   id binary(16) not null default 0
@@ -16,9 +13,7 @@ CREATE TABLE IF NOT EXISTS user
   ,CONSTRAINT pk_user PRIMARY KEY (id)
   ,UNIQUE (distinguishedName)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-SELECT 'Creating a_user table' as Action
-//
+;
 # Archive table takes the same format, but does not specify defaults
 CREATE TABLE IF NOT EXISTS a_user
 (
@@ -37,5 +32,4 @@ CREATE TABLE IF NOT EXISTS a_user
   ,INDEX ix_distinguishedName (distinguishedName)
   ,INDEX ix_modifiedDate (modifiedDate)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-delimiter ;
+;

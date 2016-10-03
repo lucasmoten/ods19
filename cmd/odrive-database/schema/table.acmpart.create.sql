@@ -1,6 +1,3 @@
-delimiter //
-SELECT 'Creating acmpart table' as Action
-//
 CREATE TABLE IF NOT EXISTS acmpart
 (
   id binary(16) not null default 0
@@ -20,9 +17,8 @@ CREATE TABLE IF NOT EXISTS acmpart
   ,INDEX ix_acmKeyId (acmKeyId)
   ,INDEX ix_acmValueId (acmValueId)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-SELECT 'Creating a_acmpart table' as Action
-//
+;
+
 CREATE TABLE IF NOT EXISTS a_acmpart
 (
   a_id int not null auto_increment
@@ -43,5 +39,4 @@ CREATE TABLE IF NOT EXISTS a_acmpart
   ,INDEX ix_acmKeyId (acmKeyId)
   ,INDEX ix_acmValueId (acmValueId)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-delimiter ;
+;

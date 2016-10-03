@@ -1,6 +1,3 @@
-delimiter //
-SELECT 'Creating objectacm table' as Action
-//
 CREATE TABLE IF NOT EXISTS objectacm
 (
   id binary(16) not null default 0
@@ -18,9 +15,8 @@ CREATE TABLE IF NOT EXISTS objectacm
   ,INDEX ix_objectId (objectId)
   ,INDEX ix_acmId (acmId)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-SELECT 'Creating a_objectacm table' as Action
-//
+;
+
 CREATE TABLE IF NOT EXISTS a_objectacm
 (
   a_id int not null auto_increment
@@ -39,5 +35,4 @@ CREATE TABLE IF NOT EXISTS a_objectacm
   ,INDEX ix_objectId (objectId)
   ,INDEX ix_acmId (acmId)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-delimiter ;
+;

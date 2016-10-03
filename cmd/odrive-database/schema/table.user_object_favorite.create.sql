@@ -1,6 +1,3 @@
-delimiter //
-SELECT 'Creating user_object_favorite table' as Action
-//
 CREATE TABLE IF NOT EXISTS user_object_favorite
 (
   id binary(16) not null default 0
@@ -17,9 +14,8 @@ CREATE TABLE IF NOT EXISTS user_object_favorite
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_objectId (objectId)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-SELECT 'Creating a_user_object_favorite table' as Action
-//
+;
+
 # Archive table takes the same format, but does not specify defaults
 CREATE TABLE IF NOT EXISTS a_user_object_favorite
 (
@@ -39,5 +35,4 @@ CREATE TABLE IF NOT EXISTS a_user_object_favorite
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_objectId (objectId)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-delimiter ;
+;

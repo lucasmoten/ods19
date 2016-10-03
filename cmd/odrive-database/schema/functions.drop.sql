@@ -6,3 +6,7 @@ drop function if exists new_keymac;
 drop function if exists new_keymacdata;
 drop function if exists pseudorandom256;
 drop function if exists aacflatten;
+drop function if exists int2boolStr;
+drop function if exists pseudorand256;
+drop procedure if exists migrate_keys;
+drop procedure if exists rotate_keys;

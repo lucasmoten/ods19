@@ -7,12 +7,11 @@ import (
 	"os"
 	"strings"
 
-	globalconfig "decipher.com/object-drive-server/config"
 	"github.com/uber-go/zap"
 )
 
 var (
-	logger = globalconfig.RootLogger
+	logger = zap.NewJSON(zap.Output(os.Stdout), zap.ErrorOutput(os.Stdout))
 )
 
 // buildClientTLSConfig prepares a tls.Config object for this application to use

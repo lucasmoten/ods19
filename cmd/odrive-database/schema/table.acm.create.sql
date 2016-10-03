@@ -1,6 +1,3 @@
-delimiter //
-SELECT 'Creating acm table' as Action
-//
 CREATE TABLE IF NOT EXISTS acm
 (
   id binary(16) not null default 0
@@ -15,9 +12,8 @@ CREATE TABLE IF NOT EXISTS acm
   ,CONSTRAINT pk_acm PRIMARY KEY (id)
   ,INDEX ix_isDeleted (isDeleted)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-SELECT 'Creating a_acm table' as Action
-//
+;
+
 CREATE TABLE IF NOT EXISTS a_acm
 (
   a_id int not null auto_increment
@@ -33,5 +29,4 @@ CREATE TABLE IF NOT EXISTS a_acm
   ,CONSTRAINT pk_a_acm PRIMARY KEY (a_id)
   ,INDEX ix_id (id)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-delimiter ;
+;

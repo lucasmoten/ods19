@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -15,8 +16,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 	"github.com/urfave/cli"
-
-	globalconfig "decipher.com/object-drive-server/config"
 )
 
 // Globals
@@ -300,7 +299,7 @@ func NewZKSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) ZKSet
 	var conf ZKSettings
 	conf.Address = cascade(OD_ZK_URL, confFile.ZK.Address, "zk:2181")
 	conf.BasepathOdrive = cascade(OD_ZK_ANNOUNCE, confFile.ZK.BasepathOdrive, "/cte/service/object-drive/1.0")
-	conf.IP = cascade(OD_ZK_MYIP, confFile.ZK.IP, globalconfig.MyIP)
+	conf.IP = cascade(OD_ZK_MYIP, confFile.ZK.IP, resolveIP())
 	conf.Port = cascade(OD_ZK_MYPORT, confFile.ZK.Port, "4430")
 
 	return conf
@@ -391,8 +390,31 @@ func (r *DatabaseConfiguration) buildDSN() string {
 
 // buildTLSConfig prepares a standard go tls.Config with RootCAs and client
 // Certificates for communicating with the database securely.
-func (r *DatabaseConfiguration) buildTLSConfig() tls.Config {
-	return buildClientTLSConfig(r.CAPath, r.ClientCert, r.ClientKey, r.Host, r.SkipVerify)
+func (conf *DatabaseConfiguration) buildTLSConfig() tls.Config {
+
+	// Root Certificate pool
+	// The set of root certificate authorities that this client will use when
+	// verifying the server certificate indicated as the identity of the
+	// server this config will be used to connect to.
+	rootCAsCertPool := buildCertPoolFromPath(conf.CAPath, "for client")
+
+	// Client public and private certificate
+	if len(conf.ClientCert) == 0 || len(conf.ClientKey) == 0 {
+		return tls.Config{
+			RootCAs:            rootCAsCertPool,
+			ServerName:         conf.Host,
+			InsecureSkipVerify: conf.SkipVerify,
+		}
+	}
+	clientCert := buildx509Identity(conf.ClientCert, conf.ClientKey)
+
+	return tls.Config{
+		RootCAs:            rootCAsCertPool,
+		Certificates:       clientCert,
+		ServerName:         conf.Host,
+		InsecureSkipVerify: conf.SkipVerify,
+	}
+
 }
 
 // buildTLSConfig prepares a standard go tls.Config with trusted CAs and
@@ -495,15 +517,15 @@ func CheckAWSEnvironmentVars(logger zap.Logger) {
 	// Variables for the environment can be provided as either the native AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 	// or be prefixed with the common "OD_" as in OD_AWS_REGION, OD_AWS_ACCESS_KEY_ID, and OD_AWS_SECRET_ACCESS_KEY
 	// Environment variables will be normalized to the AWS_ variants to facilitate internal library calls
-	region := globalconfig.GetEnvOrDefault(OD_AWS_REGION, globalconfig.GetEnvOrDefault("AWS_REGION", ""))
+	region := getEnvOrDefault(OD_AWS_REGION, getEnvOrDefault("AWS_REGION", ""))
 	if len(region) > 0 {
 		os.Setenv("AWS_REGION", region)
 	}
-	accessKeyID := globalconfig.GetEnvOrDefault(OD_AWS_ACCESS_KEY_ID, globalconfig.GetEnvOrDefault("AWS_ACCESS_KEY_ID", ""))
+	accessKeyID := getEnvOrDefault(OD_AWS_ACCESS_KEY_ID, getEnvOrDefault("AWS_ACCESS_KEY_ID", ""))
 	if len(accessKeyID) > 0 {
 		os.Setenv("AWS_ACCESS_KEY_ID", accessKeyID)
 	}
-	secretKey := globalconfig.GetEnvOrDefault(OD_AWS_SECRET_ACCESS_KEY, globalconfig.GetEnvOrDefault("AWS_SECRET_ACCESS_KEY", ""))
+	secretKey := getEnvOrDefault(OD_AWS_SECRET_ACCESS_KEY, getEnvOrDefault("AWS_SECRET_ACCESS_KEY", ""))
 	if len(secretKey) > 0 {
 		os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey)
 	}
@@ -537,8 +559,8 @@ func NewAWSSessionForS3(logger zap.Logger) *S3Config {
 func NewAWSSessionForCW(logger zap.Logger) *CWConfig {
 	ret := &CWConfig{}
 	ret.CWSession = newAWSSession(OD_AWS_CLOUDWATCH_ENDPOINT, logger)
-	ret.SleepTimeInSeconds = globalconfig.GetEnvOrDefaultInt(OD_AWS_CLOUDWATCH_INTERVAL, 300)
-	ret.Name = globalconfig.GetEnvOrDefault(OD_AWS_CLOUDWATCH_NAME, "host")
+	ret.SleepTimeInSeconds = int(getEnvOrDefaultInt(OD_AWS_CLOUDWATCH_INTERVAL, 300))
+	ret.Name = getEnvOrDefault(OD_AWS_CLOUDWATCH_NAME, "host")
 	return ret
 }
 
@@ -551,8 +573,8 @@ func newAWSSession(service string, logger zap.Logger) *session.Session {
 	endpoint := os.Getenv(service)
 
 	// See if AWS creds in environment
-	accessKeyID := globalconfig.GetEnvOrDefault(OD_AWS_ACCESS_KEY_ID, globalconfig.GetEnvOrDefault("AWS_ACCESS_KEY_ID", ""))
-	secretKey := globalconfig.GetEnvOrDefault(OD_AWS_SECRET_ACCESS_KEY, globalconfig.GetEnvOrDefault("AWS_SECRET_ACCESS_KEY", ""))
+	accessKeyID := getEnvOrDefault(OD_AWS_ACCESS_KEY_ID, getEnvOrDefault("AWS_ACCESS_KEY_ID", ""))
+	secretKey := getEnvOrDefault(OD_AWS_SECRET_ACCESS_KEY, getEnvOrDefault("AWS_SECRET_ACCESS_KEY", ""))
 	if len(accessKeyID) > 0 && len(secretKey) > 0 {
 		logger.Info("aws.credentials", zap.String("provider", "environment variables"))
 		var sessionConfig *aws.Config
@@ -579,4 +601,32 @@ func newAWSSession(service string, logger zap.Logger) *session.Session {
 	}
 	//sessionConfig = sessionConfig.WithLogLevel(aws.LogDebugWithHTTPBody).WithDisableComputeChecksums(false)
 	return session.New(sessionConfig)
+}
+
+func resolveIP() string {
+	hostname, err := os.Hostname()
+	if err != nil {
+		logger.Error("error looking up hostname")
+		return ""
+	}
+	if len(hostname) > 0 {
+		myIPs, err := net.LookupIP(hostname)
+		if err != nil {
+			logger.Error("could not get a set of ips for our hostname")
+			return ""
+		}
+		if len(myIPs) > 0 {
+			for a := range myIPs {
+				if myIPs[a].To4() != nil {
+					return myIPs[a].String()
+
+				}
+			}
+		} else {
+			logger.Error("We did not find our ip")
+		}
+	} else {
+		logger.Error("We could not find our hostname")
+	}
+	return ""
 }

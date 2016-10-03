@@ -1,6 +1,3 @@
-delimiter //
-SELECT 'Creating object_property table' as Action
-//
 CREATE TABLE IF NOT EXISTS object_property
 (
   id binary(16) not null default 0
@@ -17,5 +14,4 @@ CREATE TABLE IF NOT EXISTS object_property
   ,INDEX ix_objectId (objectId)
   ,INDEX ix_propertyId (propertyId)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-delimiter ;
+;

@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Write files and directories for rpmbuild
+# Write files and directories for rpmbuild. This script expects cmd/odrive
+# and cmd/odrive-database binaries to be already built.
 
 if [ -z ${ODRIVE_BINARY_DIR+x} ]; then
     echo "ODRIVE_BINARY_DIR must be set"
@@ -18,6 +19,8 @@ if [ -z ${ODRIVE_VERSION+x} ]; then
 fi
 
 ODRIVE_PACKAGE_NAME="odrive-${ODRIVE_VERSION}"
+
+ODRIVE_DATABASE_DIR="$ODRIVE_ROOT/cmd/odrive-database"
 
 mkdir -p ~/rpmbuild/{RPMS,SRPMS,BUILD,SOURCES,SPECS,tmp}
 
@@ -59,8 +62,11 @@ install -m 644 -D ${ODRIVE_ROOT}/server/static/templates/root.html ${ODRIVE_PACK
 install -m 644 -D ${ODRIVE_ROOT}/server/static/templates/APISample.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/APISample.html
 install -m 644 -D ${ODRIVE_ROOT}/server/static/favicon.ico ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/favicon.ico
 
-# SCHEMA TARBALL
+# schema tarball
 install -m 644 -D ${ODRIVE_ROOT}/cmd/odrive-database/odrive-schema-${ODRIVE_VERSION}.tar.gz ${ODRIVE_PACKAGE_NAME}/etc/odrive/odrive-schema-${ODRIVE_VERSION}.tar.gz
+
+# odrive-database binary
+install -m 755 -D ${ODRIVE_DATABASE_DIR}/odrive-database ${ODRIVE_PACKAGE_NAME}/usr/bin
 
 # Install service scripts and dependencies
 install -m 755 ${ODRIVE_ROOT}/scripts/odrive ${ODRIVE_PACKAGE_NAME}/etc/init.d/odrive
@@ -132,6 +138,7 @@ rm -rf %{buildroot}
 %{_bindir}/*
 %{_sysconfdir}/init.d/%{name}
 /opt/odrive/env.sh
+
 
 
 EOF

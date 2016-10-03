@@ -1,6 +1,3 @@
-delimiter //
-SELECT 'Creating relationship table' as Action
-//
 CREATE TABLE IF NOT EXISTS relationship
 (
   id binary(16) not null default 0
@@ -22,9 +19,8 @@ CREATE TABLE IF NOT EXISTS relationship
   ,INDEX ix_sourceId (sourceId)
   ,INDEX ix_targetId (targetId)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-SELECT 'Creating a_relationship table' as Action
-//
+;
+
 # Archive table takes the same format, but does not specify defaults
 CREATE TABLE IF NOT EXISTS a_relationship
 (
@@ -49,5 +45,4 @@ CREATE TABLE IF NOT EXISTS a_relationship
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_changeCount (changeCount)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-delimiter ;
+;
