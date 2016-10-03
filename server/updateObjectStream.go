@@ -67,14 +67,8 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 
 	// ACM check for whether user has permission to read this object
 	// from a clearance perspective
-	hasAACAccessToOLDACM, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
-	if err != nil {
-		// TODO: Isolate different error types
-		//return NewAppError(502, err, "Error communicating with authorization service")
-		return NewAppError(403, err, err.Error())
-	}
-	if !hasAACAccessToOLDACM {
-		return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for existing object ACM")
+	if err = h.isUserAllowedForObjectACM(ctx, &dbObject); err != nil {
+		return ClassifyObjectACMError(err)
 	}
 
 	multipartReader, err := r.MultipartReader()
@@ -92,24 +86,16 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	requestObjectWithIDFromURI.OwnedBy = models.ToNullString(dbObject.OwnedBy.String)
 	requestObjectWithIDFromURI.RawAcm = models.ToNullString(dbObject.RawAcm.String)
 	logger.Info("acm", zap.String("requestObjectWithIDFromURI.RawAcm", requestObjectWithIDFromURI.RawAcm.String))
-	hasAACAccess := false
 
-	err = h.flattenACM(logger, &requestObjectWithIDFromURI)
-	if err != nil {
-		return NewAppError(400, err, "ACM provided could not be flattened")
+	if err = h.flattenACM(logger, &requestObjectWithIDFromURI); err != nil {
+		return ClassifyFlattenError(err)
 	}
 	if herr := normalizeObjectReadPermissions(ctx, &requestObjectWithIDFromURI); herr != nil {
 		return herr
 	}
 	// Final access check against altered ACM
-	hasAACAccess, err = h.isUserAllowedForObjectACM(ctx, &requestObjectWithIDFromURI)
-	if err != nil {
-		// TODO: Isolate different error types
-		//return NewAppError(502, err, "Error communicating with authorization service")
-		return NewAppError(403, err, err.Error())
-	}
-	if !hasAACAccess {
-		return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for updated object ACM")
+	if err = h.isUserAllowedForObjectACM(ctx, &requestObjectWithIDFromURI); err != nil {
+		return ClassifyObjectACMError(err)
 	}
 	consolidateChangingPermissions(&requestObjectWithIDFromURI)
 	// copy grant.EncryptKey to all existing permissions:

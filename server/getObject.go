@@ -40,14 +40,8 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
 	}
 
-	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
-	if err != nil {
-		// TODO: Isolate different error types
-		//return NewAppError(502, err, "Error communicating with authorization service")
-		return NewAppError(403, err, err.Error())
-	}
-	if !hasAACAccess {
-		return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for object ACM")
+	if err = h.isUserAllowedForObjectACM(ctx, &dbObject); err != nil {
+		return ClassifyObjectACMError(err)
 	}
 
 	if ok, code, err := isExpungedOrAnscestorDeletedErr(dbObject); !ok {
@@ -112,7 +106,7 @@ func redactParents(ctx context.Context, h AppServer, parents []models.ODObject) 
 		if ok := isUserAllowedToRead(ctx, h.MasterKey, &parent); !ok {
 			parents[i].Name = "Not Authorized"
 		}
-		if _, err := h.isUserAllowedForObjectACM(ctx, &parent); err != nil {
+		if err := h.isUserAllowedForObjectACM(ctx, &parent); err != nil {
 			parents[i].Name = "Not Authorized"
 			if !IsDeniedAccess(err) {
 				// already redacted, log possible 502 and continue

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util/testhelpers"
@@ -33,7 +34,7 @@ func TestPublishEvents(t *testing.T) {
 	published[obj.ID] = append(published[obj.ID], "delete")
 
 	// Read events asynchronously
-	pc := partitionConsumerForTopic(t, []string{"localhost:9092"}, "odrive-event")
+	pc := partitionConsumerForTopic(t, []string{cfg.DockerVM + ":9092"}, "odrive-event")
 	defer pc.Close()
 	ch := pc.Messages()
 

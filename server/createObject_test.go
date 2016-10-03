@@ -303,6 +303,33 @@ func failWithoutDCTCOdrive(t *testing.T, createdObject *protocol.Object) {
 	}
 }
 
+// TestCreateWithCantFlattenACM - can't flatten gives 400 - issue 18
+func TestCreateWithCantFlattenACM(t *testing.T) {
+
+	tester10 := 0
+
+	t.Logf("* Create object")
+	t.Logf("preparing")
+	var object protocol.CreateObjectRequest
+	object.Name = "TestCreateWithCantFlattenACM"
+	object.RawAcm = `{"size":20}`
+	permission := protocol.ObjectShare{Share: makeGroupShare("dctc", "DCTC", "ODrive"), AllowCreate: true, AllowRead: true, AllowUpdate: true, AllowDelete: true}
+	object.Permissions = append(object.Permissions, permission)
+
+	t.Logf("jsoninfying")
+	jsonBody, _ := json.Marshal(object)
+	uriCreate := host + cfg.NginxRootURL + "/objects"
+	t.Logf("http request and client")
+	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
+	httpCreate.Header.Set("Content-Type", "application/json")
+
+	t.Logf("execute client")
+	res, err := clients[tester10].Client.Do(httpCreate)
+	t.Logf("check response")
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 400, res, "Bad status when creating object")
+}
+
 // TestCreateWithPermissions creates an object as Tester10, and includes a
 // permission for create, read, update, and delete granted to ODrive group.
 // All users in the group should be able to retrieve it, and update it.

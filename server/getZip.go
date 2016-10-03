@@ -15,10 +15,10 @@ import (
 
 	"encoding/hex"
 
-	"decipher.com/object-drive-server/utils"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/services/aac"
 	"decipher.com/object-drive-server/util"
+	"decipher.com/object-drive-server/utils"
 	"golang.org/x/net/context"
 )
 
@@ -225,13 +225,13 @@ func zipHasAccess(h AppServer, ctx context.Context, obj *models.ODObject) (bool,
 		return false, models.ODObjectPermission{}
 	}
 	//See if we are allowed access
-	acmAllowsIt, err := h.isUserAllowedForObjectACM(ctx, obj)
-	if err != nil {
+
+	if err := h.isUserAllowedForObjectACM(ctx, obj); err != nil {
+		if IsDeniedAccess(err) {
+			logger.Error("zip does not give access", zap.String("err", err.Error()))
+			return false, models.ODObjectPermission{}
+		}
 		logger.Error("zip unable to check acm for access", zap.String("err", err.Error()))
-		return false, models.ODObjectPermission{}
-	}
-	if !acmAllowsIt {
-		logger.Error("zip does not give access")
 		return false, models.ODObjectPermission{}
 	}
 	// Get a decrypt key

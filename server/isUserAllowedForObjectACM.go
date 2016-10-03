@@ -4,41 +4,66 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/uber-go/zap"
 
-	"decipher.com/object-drive-server/utils"
 	globalconfig "decipher.com/object-drive-server/config"
 	configx "decipher.com/object-drive-server/configx"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/performance"
 	"decipher.com/object-drive-server/services/aac"
+	"decipher.com/object-drive-server/utils"
 	"golang.org/x/net/context"
 )
 
-func IsDeniedAccess(err error) bool {
-	return strings.HasPrefix(err.Error(), "Access Denied")
+// ClassifyObjectACMError is the default pattern for classifying errors
+func ClassifyObjectACMError(err error) *AppError {
+	if IsDeniedAccess(err) {
+		return NewAppError(403, err, err.Error())
+	}
+	if IsUserAllowedForObjectInternalError(err) {
+		return NewAppError(502, err, err.Error())
+	}
+	return NewAppError(400, err, err.Error())
 }
 
-func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models.ODObject) (bool, error) {
+// IsDeniedAccess is for access denials that have nothing to do with internal or input errors
+func IsDeniedAccess(err error) bool {
+	if err == nil {
+		return false
+	}
+	if strings.HasPrefix(err.Error(), "Access Denied") {
+		return true
+	}
+	return false
+}
 
-	logger := LoggerFromContext(ctx)
+// IsUserAllowedForObjectInternalError is for failures to even make the call
+func IsUserAllowedForObjectInternalError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if strings.HasPrefix(err.Error(), "Error calling AAC.CheckAccess") {
+		return true
+	}
+	return false
+}
 
+func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models.ODObject) error {
 	var err error
 
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		return false, errors.New("Could not determine user")
+		return errors.New("Could not determine user")
 	}
 
 	// Validate object
 	if object == nil {
-		return false, errors.New("Object passed in is not initialized")
+		return errors.New("Object passed in is not initialized")
 	}
 	if !object.RawAcm.Valid {
-		return false, errors.New("Object passed in does not have an ACM set")
+		return errors.New("Object passed in does not have an ACM set")
 	}
 
 	// Gather inputs
@@ -46,9 +71,11 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 	dn := caller.DistinguishedName
 	acm := object.RawAcm.String
 
+	logger := LoggerFromContext(ctx).With(zap.String("dn", dn), zap.String("acm", acm))
+
 	// Verify we have a reference to AAC
 	if h.AAC == nil {
-		return false, errors.New("AAC field is nil")
+		return errors.New("AAC field is nil")
 	}
 
 	// Performance instrumentation
@@ -67,8 +94,15 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 
 	// Check if there was an error calling the service
 	if err != nil {
-		logger.Error("Error calling AAC.CheckAccess", zap.String("err", err.Error()), zap.String("acm", acm), zap.String("dn", dn))
-		return false, errors.New("Error calling AAC.CheckAccess")
+		logger.Error("Error calling AAC.CheckAccess", zap.String("err", err.Error()))
+		return errors.New("Error calling AAC.CheckAccess")
+	}
+	//Note: err == nil after this point, making err.Error() a guaranteed crash
+
+	// This is some kind of internal error if it happens
+	if aacResponse == nil {
+		logger.Error("Error calling AAC.CheckAccess")
+		return errors.New("Error calling AAC.CheckAccess")
 	}
 
 	// Process Response
@@ -76,23 +110,26 @@ func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models
 	for _, message := range aacResponse.Messages {
 		logger.Error("Message in AAC Response", zap.String("acm message", message))
 	}
+	msgsString := strings.Join(aacResponse.Messages, "/")
+	logger = logger.With(zap.String("messages", msgsString))
+
 	// Check if response was successful
 	// -- This is assumed to be an upstream error, not a user authorization error
 	if !aacResponse.Success {
-		logger.Error("aacResponse.Success == false", zap.String("acm", acm), zap.String("dn", dn))
-		return false, fmt.Errorf("Response from AAC.CheckAccess failed: %s", err.Error())
+		logger.Error("aacResponse.Success == false")
+		return fmt.Errorf("Response from AAC.CheckAccess failed: %s", msgsString)
 	}
 	// AAC Response returned without error, was successful
 	if !aacResponse.HasAccess {
-		logger.Error("aacResponse.HasAccess == false", zap.String("acm", acm), zap.String("dn", dn))
-		return false, fmt.Errorf("Access Denied for ACM: %s", strings.Join(aacResponse.Messages, "/"))
+		logger.Error("aacResponse.HasAccess == false")
+		return fmt.Errorf("Access Denied for ACM: %s", msgsString)
 	}
-	return aacResponse.HasAccess, nil
+	return nil
 }
 
 // isUserAllowedForACMSTring wraps isUserAllowedForObjectACM to help with the cases where we simply need to
 // set up a new models.ODObject with a RawAcm and send a request to AAC.
-func (h AppServer) isUserAllowedForACMString(ctx context.Context, acm string) (bool, error) {
+func (h AppServer) isUserAllowedForACMString(ctx context.Context, acm string) error {
 	// Ensure user is allowed this acm
 	updateObjectRequest := models.ODObject{}
 	updateObjectRequest.RawAcm.String = acm
@@ -165,29 +202,32 @@ func (h AppServer) flattenACMAndCheckAccess(ctx context.Context, object *models.
 		)
 	}
 
+	//ACM and dn are *always* logged!!
+	logger = logger.With(zap.String("acm", acm), zap.String("dn", userToken))
+
 	// Log the messages
+	var msgsString string
 	if aacResponse != nil {
 		for _, message := range aacResponse.Messages {
 			logger.Error("Message in AAC Response", zap.String("acm message", message))
 		}
+		msgsString = strings.Join(aacResponse.Messages, "/")
 	}
 
 	// Check if there was an error calling the service
 	if err != nil {
-		log.Printf("ACM checked: %s\n", acm)
-		return false, fmt.Errorf("Error calling AAC.CheckAccessAndPopulate: %s", err.Error())
+		logger.Error("CheckAccessAndPopulate error")
+		return false, fmt.Errorf("Error calling AAC.CheckAccessAndPopulate: %s, %s", err.Error(), msgsString)
 	}
-
-	//ACM and dn are *always* logged!!
-	logger = logger.With(zap.String("acm", acm), zap.String("dn", userToken))
 
 	// Process Response
 	// Check if response was successful
 	// -- This is assumed to be an upstream error, not a user authorization error
-	if !aacResponse.Success {
+	if aacResponse == nil || !aacResponse.Success {
 		logger.Error("aacResponse.Success == false")
-		return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate failed: %s", err.Error())
+		return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate failed: %s", msgsString)
 	}
+
 	// Iterate response list
 	if len(aacResponse.AcmResponseList) > 0 {
 		for acmResponseIdx, acmResponse := range aacResponse.AcmResponseList {
@@ -199,17 +239,17 @@ func (h AppServer) flattenACMAndCheckAccess(ctx context.Context, object *models.
 			// Check if successful
 			if !acmResponse.Success {
 				loggerIdx.Error("acmResponse.Success == false")
-				return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate failed for #%d: %s", acmResponseIdx, acm)
+				return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate failed for #%d: %s, %s", acmResponseIdx, acm, msgsString)
 			}
 			// Check if valid
 			if !acmResponse.AcmValid {
 				loggerIdx.Error("acmResponse.AcmValid == false")
-				return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate indicates acm not valid for #%d: %s", acmResponseIdx, acm)
+				return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate indicates acm not valid for #%d: %s, %s", acmResponseIdx, acm, msgsString)
 			}
 			// Check if user has access
 			if !acmResponse.HasAccess {
 				loggerIdx.Error("acmResponse.HasAccess == false")
-				return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate indicates user does not have access to #%d: %s", acmResponseIdx, acm)
+				return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate indicates user does not have access to #%d: %s, %s", acmResponseIdx, acm, msgsString)
 			}
 			// Capture revised acm string (last in wins. but should be only 1)
 			object.RawAcm.String = acmResponse.AcmInfo.Acm
@@ -217,7 +257,7 @@ func (h AppServer) flattenACMAndCheckAccess(ctx context.Context, object *models.
 	} else {
 		// no acm response
 		logger.Warn("acm checked")
-		return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate did not result in an ACM being returned")
+		return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate did not result in an ACM being returned: %s", msgsString)
 	}
 
 	if aacResponse.RollupAcmResponse != nil {
@@ -229,17 +269,17 @@ func (h AppServer) flattenACMAndCheckAccess(ctx context.Context, object *models.
 		// Check if successful
 		if !acmResponse.Success {
 			logger.Error("aac rollup acmResponse == false")
-			return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate failed for RollupAcmResponse: %s", acm)
+			return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate failed for RollupAcmResponse: %s, %s", acm, msgsString)
 		}
 		// Check if valid
 		if !acmResponse.AcmValid {
 			logger.Error("aac rollup acmResponse.AcmValid == false")
-			return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate indicates acm not valid for RollupAcmResponse: %s", acm)
+			return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate indicates acm not valid for RollupAcmResponse: %s, %s", acm, msgsString)
 		}
 		// Check if user has access
 		if !acmResponse.HasAccess {
 			logger.Error("aac rollup acmResponse.HasAccess == false")
-			return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate indicates user does not have access to RollupAcmResponse: %s", acm)
+			return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate indicates user does not have access to RollupAcmResponse: %s, %s", acm, msgsString)
 		}
 		// Capture revised acm string (last in wins. but should be only 1)
 		object.RawAcm.String = acmResponse.AcmInfo.Acm
@@ -247,6 +287,28 @@ func (h AppServer) flattenACMAndCheckAccess(ctx context.Context, object *models.
 
 	// Done, implicitly true
 	return true, nil
+}
+
+// ClassifyFlattenError is the default pattern for classifying errors
+func ClassifyFlattenError(err error) *AppError {
+	if IsFlattenInternalError(err) {
+		return NewAppError(500, err, err.Error())
+	}
+	return NewAppError(400, err, err.Error())
+}
+
+// IsFlattenInternalError indicates an internal error during flattening, not bad user input
+func IsFlattenInternalError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if strings.HasPrefix(err.Error(), "Error calling AAC.PopulateAndValidateAcm") {
+		return true
+	}
+	if strings.HasPrefix(err.Error(), "Response from AAC.PopulateAndValidateAcm failed") {
+		return true
+	}
+	return false
 }
 
 func (h AppServer) flattenACM(logger zap.Logger, object *models.ODObject) error {
@@ -291,24 +353,33 @@ func (h AppServer) flattenACM(logger zap.Logger, object *models.ODObject) error 
 	// Check if there was an error calling the service
 	if err != nil {
 		logger.Error("Error calling AAC.PopulateAndValidateAcm", zap.String("err", err.Error()))
-		return errors.New("Error calling AAC.PopulateAndValidateAcm")
+		return fmt.Errorf("Error calling AAC.PopulateAndValidateAcm: %s", err.Error())
+	}
+
+	// Prevent potential nil ptr in next block
+	if acmResponse == nil {
+		logger.Error("Error calling AAC.PopulateAndValidateAcm")
+		return fmt.Errorf("Error calling AAC.PopulateAndValidateAcm")
 	}
 
 	// Process Response
 	// Log the messages
+	var msgsString string
 	for _, message := range acmResponse.Messages {
 		logger.Error("Message in AAC Response", zap.String("aac message", message))
 	}
+	msgsString = strings.Join(acmResponse.Messages, "/")
+
 	// Check if response was successful
 	// -- This is assumed to be an upstream error, not a user authorization error
 	if !acmResponse.Success {
 		logger.Error("acmResponse.Success == false")
-		return errors.New("Response from AAC.PopulateAndValidateAcm failed")
+		return fmt.Errorf("Response from AAC.PopulateAndValidateAcm failed: %s", msgsString)
 	}
 	// Check if the acm was valid
 	if !acmResponse.AcmValid {
 		logger.Error("acmResponse.Valid == false")
-		return errors.New("ACM in call to PopulateAndValidateAcm was not valid")
+		return fmt.Errorf("ACM in call to PopulateAndValidateAcm was not valid: %s", msgsString)
 	}
 
 	// Get revised acm string
@@ -350,9 +421,9 @@ func (h AppServer) flattenGranteeOnPermission(ctx context.Context, permission *m
 	if herr := setACMPartFromInterface(ctx, &obj, "share", shareInterface); herr != nil {
 		return herr
 	}
-	err = h.flattenACM(logger, &obj)
-	if err != nil {
-		return NewAppError(500, err, "Error converting grantee on permission to acceptable value")
+
+	if err = h.flattenACM(logger, &obj); err != nil {
+		return ClassifyFlattenError(err)
 	}
 	herr, fShareInterface := getACMInterfacePart(&obj, "f_share")
 	if herr != nil {

@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"strings"
 
-	"decipher.com/object-drive-server/mapping"
-	"decipher.com/object-drive-server/utils"
 	"decipher.com/object-drive-server/events"
+	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/utils"
 	"github.com/uber-go/zap"
 
 	"golang.org/x/net/context"
@@ -114,7 +114,7 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 
 			// Reflatten dbObject.RawACM
 			if err := h.flattenACM(logger, &dbObject); err != nil {
-				return NewAppError(500, err, "Error updating permissions when flattening acm")
+				return ClassifyFlattenError(err)
 			}
 
 			// Assign modifier now that its ACM has been altered
@@ -129,14 +129,8 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 				}
 			} else {
 				// Using AAC, verify the caller would still have read access
-				hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
-				if err != nil {
-					// TODO: Isolate different error types
-					//return NewAppError(502, err, "Error communicating with authorization service")
-					return NewAppError(403, err, err.Error())
-				}
-				if !hasAACAccess {
-					return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for updated object ACM")
+				if err := h.isUserAllowedForObjectACM(ctx, &dbObject); err != nil {
+					return ClassifyObjectACMError(err)
 				}
 			}
 

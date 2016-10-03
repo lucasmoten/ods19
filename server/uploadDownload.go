@@ -15,9 +15,9 @@ import (
 
 	"golang.org/x/net/context"
 
+	configx "decipher.com/object-drive-server/configx"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/utils"
-	configx "decipher.com/object-drive-server/configx"
 
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/performance"
@@ -29,7 +29,6 @@ import (
 // an object fetched from the database.
 func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *multipart.Reader, obj *models.ODObject,
 	grant *models.ODObjectPermission, asCreate bool) (func(), *AppError, error) {
-
 	var drainFunc func()
 	var herr *AppError
 	// Get caller value from ctx.
@@ -94,12 +93,9 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 					return drainFunc, NewAppError(400, err, fmt.Sprintf("Unable to marshal ACM as string: %s", updateObjectRequest.RawAcm)), err
 				}
 				if len(rawAcmString) != 0 && strings.Compare(obj.RawAcm.String, rawAcmString) != 0 {
-					hasAACAccessToNewACM, err := h.isUserAllowedForACMString(ctx, rawAcmString)
-					if err != nil {
-						return drainFunc, NewAppError(502, err, "Error communicating with authorization service"), err
-					}
-					if !hasAACAccessToNewACM {
-						return drainFunc, NewAppError(403, nil, "Unauthorized", zap.String("origination", "No access to new ACM on Update"), zap.String("acm", rawAcmString)), err
+					if err := h.isUserAllowedForACMString(ctx, rawAcmString); err != nil {
+						LoggerFromContext(ctx).Info("acm no access", zap.String("origination", "No access to new ACM on Update"), zap.String("acm", rawAcmString))
+						return drainFunc, ClassifyObjectACMError(err), err
 					}
 				}
 				// ChangeToken must be provided and match the object
