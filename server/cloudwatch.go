@@ -239,7 +239,7 @@ func ComputeOverallPerformance(
 	}
 
 	cwStats.MemKB = aws.Float64(float64(mem.Alloc) / 1024)
-	cwStats.MemPct = aws.Float64(float64(mem.Alloc) / float64(mem.TotalAlloc))
+	cwStats.MemPct = aws.Float64(100.0 * float64(mem.Alloc) / float64(mem.TotalAlloc))
 
 	//Just take the 5min value from proc (note that we *also* have a 5min polling interval by default)
 	cwStats.Load = aws.Float64(loadStat.CPU5Min)
