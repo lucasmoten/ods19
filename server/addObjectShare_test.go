@@ -489,7 +489,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.FailNow()
 	}
 
-	t.Logf("* Verify testperson01 can list objects in the shared to me /shared")
+	t.Logf("* Verify testperson01 can list objects in the shared to me /shares")
 	sharedToMeListURI := host + cfg.NginxRootURL + "/shares?filterField=name&condition=equals&expression=" + url.QueryEscape(createdFolder.Name)
 	sharedToMeListRequest, err := http.NewRequest("GET", sharedToMeListURI, nil)
 	if err != nil {
@@ -512,8 +512,8 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.Logf("Error decoding json to ObjectResultset: %v", err)
 		t.FailNow()
 	}
-	if listOfObjects2.TotalRows == 0 {
-		t.Logf("No matching shares")
+	if listOfObjects2.TotalRows != 0 {
+		t.Logf("Object was unexpectedly listed in tester1 shared to me when it is shared to everyone")
 		t.FailNow()
 	}
 

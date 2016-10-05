@@ -363,6 +363,16 @@ func buildFilterForUserSnippetsUsingACM(user models.ODUser) string {
 	return sql
 }
 
+func buildFilterExcludeEveryone() string {
+	var sql string
+	sql += " and o.id not in ("
+	sql += "select objectid from object_permission "
+	sql += "where isdeleted = 0 and grantee like '"
+	sql += MySQLSafeString(models.AACFlatten(models.EveryoneGroup))
+	sql += "') "
+	return sql
+}
+
 // MySQLSafeString takes an input string and escapes characters as appropriate
 // to make it safe for usage as a string input when building dynamic sql query
 // Based upon: https://www.owasp.org/index.php/SQL_Injection_Prevention_Cheat_Sheet#MySQL_Escaping
