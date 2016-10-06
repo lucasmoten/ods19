@@ -13,6 +13,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/karlseguin/ccache"
+
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
@@ -230,7 +232,6 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 
 	user1, user2 := setupFakeUsers()
 
-	userCache := server.NewUserCache()
 	snippetCache := server.NewSnippetCache()
 
 	guid, err := util.NewGUID()
@@ -294,7 +295,7 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 	s := server.AppServer{RootDAO: &fakeDAO,
 		ServicePrefix: cfg.RootURLRegex,
 		AAC:           &fakeAAC,
-		Users:         userCache,
+		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
 		Snippets:      snippetCache,
 		EventQueue:    fakeFinder,
 	}

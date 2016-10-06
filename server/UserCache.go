@@ -4,64 +4,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"sync"
+	"time"
 
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
 	"golang.org/x/net/context"
 )
-
-// UserCache is a simple in memory cache to hold user info looked up from
-// database to reduce database calls on nearly every request
-type UserCache struct {
-	lock *sync.RWMutex
-	data map[string]*models.ODUser
-}
-
-// NewUserCache instantiates a pointer to a UserCache.
-func NewUserCache() *UserCache {
-	l := &sync.RWMutex{}
-	data := make(map[string]*models.ODUser)
-	return &UserCache{lock: l, data: data}
-}
-
-// Get retrieves a user from the cache
-func (uc *UserCache) Get(key string) (*models.ODUser, bool) {
-	uc.lock.RLock()
-	defer uc.lock.RUnlock()
-	if uc.data == nil {
-		uc.data = make(map[string]*models.ODUser)
-	}
-	d, ok := uc.data[key]
-	return d, ok
-}
-
-// Set assigns a user to the cache
-func (uc *UserCache) Set(key string, d *models.ODUser) {
-	uc.lock.Lock()
-	defer uc.lock.Unlock()
-	if uc.data == nil {
-		uc.data = make(map[string]*models.ODUser)
-	}
-	uc.data[key] = d
-}
-
-// Delete removes an entry from the cache
-func (uc *UserCache) Delete(key string) {
-	uc.lock.Lock()
-	defer uc.lock.Unlock()
-	if uc.data != nil {
-		delete(uc.data, key)
-	}
-}
-
-// Clear removes all entries from the cache
-func (uc *UserCache) Clear() {
-	uc.lock.Lock()
-	defer uc.lock.Unlock()
-	uc.data = make(map[string]*models.ODUser)
-}
 
 // FetchUser examines the context on the request, and retrieves the matching
 // user either from cache, or from the database, creating the record as appropriate
@@ -74,9 +23,14 @@ func (h AppServer) FetchUser(ctx context.Context) (*models.ODUser, error) {
 	}
 	dao := DAOFromContext(ctx)
 
+	var user *models.ODUser
+
 	// First check if exists in the cache
-	user, ok := h.Users.Get(caller.DistinguishedName)
-	if !ok {
+	cacheItem := h.UsersLruCache.Get(caller.DistinguishedName)
+	if cacheItem != nil {
+		userObject := cacheItem.Value().(models.ODUser)
+		user = &userObject
+	} else {
 		// Not found in cache, look up from database
 		var userRequested models.ODUser
 		userRequested.DistinguishedName = caller.DistinguishedName
@@ -116,7 +70,7 @@ func (h AppServer) FetchUser(ctx context.Context) (*models.ODUser, error) {
 			return nil, fmt.Errorf("User created when fetching user is not in expected state")
 		}
 		// Finally, add this user to this server's cache
-		h.Users.Set(caller.DistinguishedName, &userRetrievedFromDB)
+		h.UsersLruCache.Set(caller.DistinguishedName, userRetrievedFromDB, time.Minute*10)
 		user = &userRetrievedFromDB
 	}
 	return user, nil

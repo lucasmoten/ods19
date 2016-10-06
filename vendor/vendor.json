@@ -265,6 +265,12 @@
 			"revisionTime": "2016-01-13T22:50:08-05:00"
 		},
 		{
+			"checksumSHA1": "M5++r9PHYjaFHR1aVxmsqr2yVcQ=",
+			"path": "github.com/karlseguin/ccache",
+			"revision": "2f6b517f7bea4b102d00df8ddbf338f7645545b5",
+			"revisionTime": "2016-07-08T03:03:45Z"
+		},
+		{
 			"checksumSHA1": "hX+j017F4PEtIUGflAneDtLC6hs=",
 			"path": "github.com/klauspost/crc32",
 			"revision": "19b0b332c9e4516a6370a0456e6182c3b5036720",

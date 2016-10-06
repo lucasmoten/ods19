@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/karlseguin/ccache"
+
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util/testhelpers"
@@ -215,7 +217,6 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 		Users:  []models.ODUser{user},
 	}
 
-	userCache := server.NewUserCache()
 	snippetCache := server.NewSnippetCache()
 
 	snippetResponse := aac.SnippetResponse{
@@ -242,7 +243,7 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 	fakeServer := server.AppServer{RootDAO: &fakeDAO,
 		ServicePrefix: config.RootURLRegex,
 		AAC:           &fakeAAC,
-		Users:         userCache,
+		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
 		Snippets:      snippetCache,
 		Auditor:       nil,
 	}
