@@ -12,6 +12,7 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/karlseguin/ccache"
 	"github.com/uber-go/zap"
 
 	globalconfig "decipher.com/object-drive-server/config"
@@ -78,8 +79,8 @@ type AppServer struct {
 	DrainProvider DrainProvider
 	// ZKState is the current state of zookeeper
 	ZKState *zookeeper.ZKState
-	// Users contains a cache of users
-	Users *UserCache
+	// UsersLruCache contains a cache of users with support to purge those least recently used when filling. Up to 1000 users will be retained in memory
+	UsersLruCache *ccache.Cache
 	// Snippets contains a cache of snippets
 	Snippets *SnippetCache
 	// AclWhitelist provides a list of distinguished names allowed to perform impersonation

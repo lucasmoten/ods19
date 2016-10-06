@@ -19,6 +19,7 @@ import (
 	"decipher.com/object-drive-server/util/testhelpers"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/karlseguin/ccache"
 	"github.com/uber-go/zap"
 	"github.com/urfave/cli"
 
@@ -366,7 +367,7 @@ func makeServer(conf configx.ServerSettingsConfiguration) (*server.AppServer, er
 		templates = nil
 	}
 
-	userCache := server.NewUserCache()
+	usersLruCache := ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50))
 	snippetCache := server.NewSnippetCache()
 
 	httpHandler := server.AppServer{
@@ -378,7 +379,7 @@ func makeServer(conf configx.ServerSettingsConfiguration) (*server.AppServer, er
 		ServicePrefix:             globalconfig.RootURLRegex,
 		TemplateCache:             templates,
 		StaticDir:                 conf.PathToStaticFiles,
-		Users:                     userCache,
+		UsersLruCache:             usersLruCache,
 		Snippets:                  snippetCache,
 		AclImpersonationWhitelist: conf.AclImpersonationWhitelist,
 		MasterKey:                 conf.MasterKey,

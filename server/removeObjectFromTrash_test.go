@@ -9,11 +9,13 @@ import (
 	"os"
 	"testing"
 
-	"decipher.com/object-drive-server/dao"
-	"decipher.com/object-drive-server/server"
+	"github.com/karlseguin/ccache"
+
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/services/aac"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
@@ -127,7 +129,6 @@ func TestHTTPUndeleteObject(t *testing.T) {
 
 func TestUndeleteExpungedObjectFails(t *testing.T) {
 
-	userCache := server.NewUserCache()
 	snippetCache := server.NewSnippetCache()
 
 	user1, user2 := setupFakeUsers()
@@ -147,10 +148,10 @@ func TestUndeleteExpungedObjectFails(t *testing.T) {
 		Users:  []models.ODUser{user1, user2},
 	}
 	s := server.AppServer{
-		RootDAO:  fakeDAO,
-		Users:    userCache,
-		Snippets: snippetCache,
-		AAC:      fakeAAC,
+		RootDAO:       fakeDAO,
+		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
+		Snippets:      snippetCache,
+		AAC:           fakeAAC,
 	}
 
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
@@ -198,14 +199,13 @@ func TestUndeleteObjectWithDeletedAncestorFails(t *testing.T) {
 		Users:  []models.ODUser{user1, user2},
 	}
 
-	userCache := server.NewUserCache()
 	snippetCache := server.NewSnippetCache()
 
 	s := server.AppServer{
-		RootDAO:  fakeDAO,
-		AAC:      fakeAAC,
-		Users:    userCache,
-		Snippets: snippetCache,
+		RootDAO:       fakeDAO,
+		AAC:           fakeAAC,
+		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
+		Snippets:      snippetCache,
 	}
 
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"

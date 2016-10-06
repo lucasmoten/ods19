@@ -7,14 +7,16 @@ import (
 	"os"
 	"testing"
 
+	"github.com/karlseguin/ccache"
+
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/services/aac"
 	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/dao"
-	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
 
@@ -38,13 +40,12 @@ func TestListObjectsTrashedJSONResponse(t *testing.T) {
 		Err:         nil,
 	}
 
-	userCache := server.NewUserCache()
 	snippetCache := server.NewSnippetCache()
 
 	s := server.AppServer{
 		RootDAO:       &fakeDAO,
 		ServicePrefix: cfg.RootURLRegex,
-		Users:         userCache,
+		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
 		Snippets:      snippetCache,
 		AAC:           &fakeAAC,
 	}
