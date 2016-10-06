@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	configx "decipher.com/object-drive-server/configx"
 	"decipher.com/object-drive-server/utils"
@@ -12,8 +13,39 @@ import (
 // permissions granted on an object for users who have access to the object
 // in Object Drive
 type ODObjectPermission struct {
-	ODCommonMeta
-	ODChangeTracking
+	// ID is the unique identifier for an item in Object Drive.
+	ID []byte `db:"id"`
+	// CreatedDate is the timestamp of when an item was created.
+	CreatedDate time.Time `db:"createdDate"`
+	// CreatedBy is the user, identified by distinguished name, that created this
+	// item.
+	CreatedBy string `db:"createdBy"`
+	// ModifiedDate is the timestamp of when an item was modified. If an item
+	// has only been created and not subsequently modified, its ModifiedDate
+	// shall equate to the CreatedDate once stored in the repository.
+	ModifiedDate time.Time `db:"modifiedDate"`
+	// ModifiedBy is the user, identified by distinguished name, that last
+	// modified this item
+	ModifiedBy string `db:"modifiedBy"`
+	// IsDeleted indicates whether the item is currently marked as deleted and
+	// subsequently filtered from certain API results
+	IsDeleted bool `db:"isDeleted" json:"-"`
+	// DeletedDate is the timestamp of when an item was deleted, or null if it
+	// currently is not deleted.
+	DeletedDate NullTime `db:"deletedDate" json:"-"`
+	// DeletedBy is the user, identified by distinguished name, that marked the
+	// item as deleted, or null if the item is currently not deleted.
+	DeletedBy NullString `db:"deletedBy" json:"-"`
+	// ChangeCount indicates the number of times the item has been modified. For
+	// newly created items, this value will reflect 0
+	ChangeCount int `db:"changeCount"`
+	// ChangeToken is generated value which is assigned at the database as a md5
+	// hash of the concatencation of the id, changeCount, and most recent
+	// modifiedDate as a string delimited by colons. For API calls performing
+	// updates, the changeToken must be passed which will be compared against the
+	// current value on the record. If properly implemented by callers, this will
+	// prevent accidental overwrites.
+	ChangeToken string `db:"changeToken"`
 	// ObjectID identifies the object for which this permission applies.
 	ObjectID []byte `db:"objectId"`
 	// Grantee indicates the flattened representation of a user or group
@@ -27,7 +59,24 @@ type ODObjectPermission struct {
 	// grantees.
 	AcmShare   string `db:"acmShare"`
 	AcmGrantee ODAcmGrantee
-	ODCommonPermission
+	// AllowCreate indicates whether the grantee has permission to create child
+	// objects beneath this object
+	AllowCreate bool `db:"allowCreate"`
+	// AllowRead indicates whether the grantee has permission to read this
+	// object. This is the most fundamental permission granted, and should always
+	// be true as only records need to exist where permissions are granted as
+	// the system denies access by default. Read access to an object is necessary
+	// to perform any other action on the object.
+	AllowRead bool `db:"allowRead"`
+	// AllowUpdate indicates whether the grantee has permission to update this
+	// object
+	AllowUpdate bool `db:"allowUpdate"`
+	// AllowDelete indicates whether the grantee has permission to delete this
+	// object
+	AllowDelete bool `db:"allowDelete"`
+	// AllowShare indicates whether the grantee has permission to view and
+	// alter permissions on this object
+	AllowShare bool `db:"allowShare"`
 	// ExplicitShare indicates whether this permission was created explicitly
 	// by a user to a grantee, or if it was implicitly created through the
 	// creation of an object that inherited permissions of its parent

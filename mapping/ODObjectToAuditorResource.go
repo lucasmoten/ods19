@@ -34,7 +34,7 @@ func ODObjectToAuditorResource(
 	}
 
 	// This might need to be a URL. Using ID here.
-	res.Location = stringPtr(o.ODID.String())
+	res.Location = stringPtr(string(o.ID))
 	res.Size = nullInt64ToInt32Ptr(o.ContentSize)
 	res.SubType = nil // no equivalent field
 	res.Type = determineType(o.Name)
@@ -49,7 +49,7 @@ func ODObjectToAuditorResource(
 		Acm:         converted,
 	}
 	// Using ID again.
-	res.Identifier = stringPtr(o.ODID.String())
+	res.Identifier = stringPtr(string(o.ID))
 	res.MalwareServices = nil
 	res.Parent = nil
 	res.Acm = converted
