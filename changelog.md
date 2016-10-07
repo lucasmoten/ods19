@@ -4,6 +4,7 @@ Changelog
 Release vNEXT
 ------------
 
+* FIX: Shared with Me now excludes objects shared to Everyone
 * NEW: Allow many more config values to be specified in odrive.yml
 * DOC: Endpoints to add and remove object shares are deprecated, as is ability to provide permissions when creating object.
 * NEW: All events now wrapped with global event model (GEM), with odrive-specific payload field
