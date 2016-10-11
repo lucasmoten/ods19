@@ -20,11 +20,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	db "decipher.com/object-drive-server/dao"
-	"decipher.com/object-drive-server/utils"
 	configx "decipher.com/object-drive-server/configx"
+	db "decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/performance"
+	"decipher.com/object-drive-server/utils"
 )
 
 const (
@@ -151,14 +151,8 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 
 	// Check AAC to compare user clearance to  metadata Classifications
 	// 		Check if Classification is allowed for this User
-	hasAACAccess, err := h.isUserAllowedForObjectACM(ctx, &object)
-	if err != nil {
-		// TODO: Isolate different error types
-		// return NoBytesReturned, NewAppError(502, err, "Error communicating with authorization service")
-		return NoBytesReturned, NewAppError(403, err, err.Error())
-	}
-	if !hasAACAccess {
-		return NoBytesReturned, NewAppError(403, err, "Forbidden - User does not pass authorization checks for object ACM")
+	if err = h.isUserAllowedForObjectACM(ctx, &object); err != nil {
+		return NoBytesReturned, ClassifyObjectACMError(err)
 	}
 
 	if !object.ContentSize.Valid || object.ContentSize.Int64 <= int64(0) {

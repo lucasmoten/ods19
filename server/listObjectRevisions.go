@@ -65,8 +65,7 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	user.Snippets = snippetFields
 
 	checkACM := func(o *models.ODObject) bool {
-		_, err = h.isUserAllowedForObjectACM(ctx, o)
-		return err == nil
+		return h.isUserAllowedForObjectACM(ctx, o) == nil
 	}
 
 	// Get the revision information for this objects

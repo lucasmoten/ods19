@@ -96,24 +96,17 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		return herr
 	}
 	// Flatten ACM, then Normalize Read Permissions against ACM f_share
-	err = h.flattenACM(logger, &obj)
-	if err != nil {
-		return NewAppError(400, err, "ACM provided could not be flattened")
+
+	if err = h.flattenACM(logger, &obj); err != nil {
+		return ClassifyFlattenError(err)
 	}
 	if herr := normalizeObjectReadPermissions(ctx, &obj); herr != nil {
 		return herr
 	}
 	// Final access check against altered ACM
-	hasAACAccess := false
-	hasAACAccess, err = h.isUserAllowedForObjectACM(ctx, &obj)
-	if err != nil {
-		// TODO: Isolate different error types
-		//return NewAppError(502, err, "Error communicating with authorization service")
-		return NewAppError(403, err, err.Error())
-	}
-	if !hasAACAccess {
-		//It is guaranteed that err==nil at this point. Dereferencing will crash.
-		return NewAppError(403, nil, "Forbidden")
+
+	if err := h.isUserAllowedForObjectACM(ctx, &obj); err != nil {
+		return ClassifyObjectACMError(err)
 	}
 
 	// recalculate permission mac for owner permission

@@ -88,22 +88,18 @@ func getFileKeyAndCheckAuthAndObjectState(ctx context.Context, h AppServer, obj 
 		return NewAppError(500, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object"), fileKey
 	}
 
-	_, err := h.isUserAllowedForObjectACM(ctx, obj)
-	if err != nil {
-		if IsDeniedAccess(err) {
-			return NewAppError(403, err, err.Error()), fileKey
-		}
-		return NewAppError(502, err, "Error communicating with authorization service"), fileKey
+	if err := h.isUserAllowedForObjectACM(ctx, obj); err != nil {
+		return ClassifyObjectACMError(err), fileKey
 	}
 
 	if obj.IsDeleted {
 		switch {
 		case obj.IsExpunged:
-			return NewAppError(410, err, "The object no longer exists."), fileKey
+			return NewAppError(410, nil, "The object no longer exists."), fileKey
 		case obj.IsAncestorDeleted:
-			return NewAppError(405, err, "The object cannot be retreived because an ancestor is deleted."), fileKey
+			return NewAppError(405, nil, "The object cannot be retreived because an ancestor is deleted."), fileKey
 		default:
-			return NewAppError(405, err, "The object is deleted"), fileKey
+			return NewAppError(405, nil, "The object is deleted"), fileKey
 		}
 	}
 

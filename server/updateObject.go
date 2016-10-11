@@ -55,14 +55,8 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	// ACM check for whether user has permission to read this object
 	// from a clearance perspective
-	hasAACAccessToOLDACM, err := h.isUserAllowedForObjectACM(ctx, &dbObject)
-	if err != nil {
-		// TODO: Isolate different error types
-		//return NewAppError(502, err, "Error communicating with authorization service")
-		return NewAppError(403, err, err.Error())
-	}
-	if !hasAACAccessToOLDACM {
-		return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for existing object ACM")
+	if err = h.isUserAllowedForObjectACM(ctx, &dbObject); err != nil {
+		return ClassifyObjectACMError(err)
 	}
 
 	// Make sure the object isn't deleted. To remove an object from the trash,
@@ -70,11 +64,11 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			return NewAppError(410, err, "The object no longer exists.")
+			return NewAppError(410, nil, "The object no longer exists.")
 		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-			return NewAppError(405, err, "The object cannot be modified because an ancestor is deleted.")
+			return NewAppError(405, nil, "The object cannot be modified because an ancestor is deleted.")
 		case dbObject.IsDeleted:
-			return NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it")
+			return NewAppError(405, nil, "The object is currently in the trash. Use removeObjectFromTrash to restore it")
 		}
 	}
 
@@ -118,23 +112,16 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Assign existing permissions from the database object to the request object
 	requestObject.Permissions = dbObject.Permissions
 	// Flatten ACM, then Normalize Read Permissions against ACM f_share
-	hasAACAccess := false
-	err = h.flattenACM(logger, &requestObject)
-	if err != nil {
-		return NewAppError(400, err, "ACM provided could not be flattened")
+
+	if err = h.flattenACM(logger, &requestObject); err != nil {
+		return ClassifyFlattenError(err)
 	}
 	if herr := normalizeObjectReadPermissions(ctx, &requestObject); herr != nil {
 		return herr
 	}
 	// Access check against altered ACM as a whole
-	hasAACAccess, err = h.isUserAllowedForObjectACM(ctx, &requestObject)
-	if err != nil {
-		// TODO: Isolate different error types
-		//return NewAppError(502, err, "Error communicating with authorization service")
-		return NewAppError(403, err, err.Error())
-	}
-	if !hasAACAccess {
-		return NewAppError(403, nil, "Forbidden - User does not pass authorization checks for updated object ACM")
+	if err = h.isUserAllowedForObjectACM(ctx, &requestObject); err != nil {
+		return ClassifyObjectACMError(err)
 	}
 	consolidateChangingPermissions(&requestObject)
 	// copy grant.EncryptKey to all existing permissions:
@@ -148,15 +135,8 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// to see if allowed for this user
 	if strings.Compare(dbObject.RawAcm.String, requestObject.RawAcm.String) != 0 {
 		// Ensure user is allowed this acm
-		hasAACAccessToNewACM, err := h.isUserAllowedForObjectACM(ctx, &requestObject)
-		if err != nil {
-			// TODO: Isolate different error types
-			//return NewAppError(502, err, "Error communicating with authorization service")
-			return NewAppError(403, err, err.Error())
-		}
-		if !hasAACAccessToNewACM {
-			return NewAppError(403, err, "Forbidden - User does not pass authorization checks for new object ACM")
-			//return NewAppError(403, err, "Unauthorized", zap.String("origination", "No access to new ACM on Update"), zap.String("acm", requestObject.RawAcm.String))
+		if err = h.isUserAllowedForObjectACM(ctx, &requestObject); err != nil {
+			return ClassifyObjectACMError(err)
 		}
 		// If the "share" or "f_share" parts have changed, then check that the
 		// caller also has permission to share.
