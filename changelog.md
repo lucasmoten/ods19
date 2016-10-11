@@ -1,7 +1,7 @@
 Changelog
 =========
 
-Release vNEXT
+Release v1.0.1.4
 ------------
 
 * FIX: Shared with Me now excludes objects shared to Everyone
