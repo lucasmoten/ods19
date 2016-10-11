@@ -373,6 +373,37 @@ func buildFilterExcludeEveryone() string {
 	return sql
 }
 
+func buildFilterExcludeNonRootedShares(user models.ODUser) string {
+	var sql string
+	sql += " and (o.parentId is null or o.parentId not in ("
+	sql += "select objectId from object_permission where isdeleted = 0 and allowRead = 1 and grantee in ("
+	fShares := false
+	if user.Snippets != nil {
+		for _, rawFields := range user.Snippets.Snippets {
+			switch rawFields.FieldName {
+			case "f_share":
+				for _, shareValue := range rawFields.Values {
+					if len(strings.TrimSpace(shareValue)) > 0 {
+						if fShares {
+							sql += ", "
+						}
+						sql += "'" + MySQLSafeString2(shareValue) + "'"
+						fShares = true
+					}
+				}
+				break
+			default:
+				continue
+			}
+		}
+	}
+	if !fShares {
+		sql += "'" + MySQLSafeString(models.AACFlatten(user.DistinguishedName)) + "'"
+	}
+	sql += ")))"
+	return sql
+}
+
 // MySQLSafeString takes an input string and escapes characters as appropriate
 // to make it safe for usage as a string input when building dynamic sql query
 // Based upon: https://www.owasp.org/index.php/SQL_Injection_Prevention_Cheat_Sheet#MySQL_Escaping

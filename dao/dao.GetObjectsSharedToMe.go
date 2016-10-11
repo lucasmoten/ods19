@@ -78,6 +78,7 @@ func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
         and o.ownedBy <> ? `
 
 	query += buildFilterExcludeEveryone()
+	query += buildFilterExcludeNonRootedShares(user)
 	query += buildFilterForUserACMShare(user)
 	query += buildFilterForUserSnippets(user)
 	query += buildFilterSortAndLimit(pagingRequest)
