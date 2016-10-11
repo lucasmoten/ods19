@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -20,11 +21,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	db "decipher.com/object-drive-server/dao"
-	"decipher.com/object-drive-server/utils"
 	configx "decipher.com/object-drive-server/configx"
+	db "decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/performance"
+	"decipher.com/object-drive-server/utils"
 )
 
 const (
@@ -242,6 +243,7 @@ func backgroundRecache(ctx context.Context, d DrainProvider, t *performance.JobR
 		cachedPath := d.Resolve(NewFileName(rName, ".cached"))
 		var herr *AppError
 		if _, err := d.Files().Stat(cachingPath); os.IsNotExist(err) {
+			logger.Info("cache miss", zap.String("cachingPath", string(cachingPath)), zap.String("resolvedPath", d.Files().Resolve(cachingPath)))
 			//Start caching the file because this is not happening already.
 			herr, err = drainToCache(d, t, bucket, FileId(rName), object.ContentSize.Int64)
 			if err != nil || herr != nil {
@@ -310,7 +312,7 @@ func useLocalFile(d DrainProvider, cipherFilePathCached, cipherFilePathUploaded 
 					return cipherFile, NewAppError(500, err, "Error opening file as uploaded state")
 				}
 			} else {
-				//Use uploaded file
+				log.Printf("cache is serving file being uploaded")
 			}
 		} else {
 			//Some other error.
@@ -501,7 +503,8 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	//Was it found already?
 	var cipherReader io.ReadCloser
 	if cipherFile == nil {
-		//Not found, so pull the file to disk from S3 in the background,
+		//Not found, so pull the file to disk from S3 in the backgroundRecache
+		logger.Info("s3 cache miss")
 		backgroundRecache(ctx, h.DrainProvider, h.Tracker, object, cipherFilePathCached)
 		totalLength := object.ContentSize.Int64
 		//...where this looks like a normal io.ReadCloser, but it keeps range requesting to

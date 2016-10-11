@@ -217,6 +217,10 @@ func startApplication(conf configx.AppConfiguration) {
 	server.CloudWatchReportingStart(app.Tracker)
 
 	logger.Info("starting server", zap.String("addr", app.Addr))
+
+	//When this gets a shutdown signal, it will terminate when all files are uploaded
+	server.TrapSignalsPosix(app.ZKState, logger, app.DrainProvider)
+
 	//This blocks until there is an error to stop the server
 	err = httpServer.ListenAndServeTLS(
 		conf.ServerSettings.ServerCertChain, conf.ServerSettings.ServerKey)

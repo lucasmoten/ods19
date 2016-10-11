@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"syscall"
@@ -519,6 +520,42 @@ func filePurgeVisit(d *S3DrainProviderData, fqName string, f os.FileInfo, err er
 		}
 	}
 	return
+}
+
+// CacheInventory writes an inventory of what's in the cache to a writer for the stats page
+func (d *S3DrainProviderData) CacheInventory(w io.Writer, verbose bool) {
+	fqCache := d.Files().Resolve(d.Resolve(""))
+	fmt.Fprintf(w, "\n\ncache at %s on %s\n", fqCache, globalconfig.NodeID)
+	filepath.Walk(
+		fqCache,
+		func(name string, f os.FileInfo, err error) error {
+			if err == nil && strings.Compare(name, fqCache) != 0 {
+				if verbose || strings.HasSuffix(name, ".uploaded") {
+					fmt.Fprintf(w, "%s\n", name)
+				}
+			}
+			return nil
+		},
+	)
+}
+
+// CountUploaded tells us how many files still need to be uploaded, which we use
+// to determine if this is a good time to shut down
+func (d *S3DrainProviderData) CountUploaded() int {
+	uploaded := 0
+	fqCache := d.Files().Resolve(d.Resolve(""))
+	filepath.Walk(
+		fqCache,
+		func(name string, f os.FileInfo, err error) error {
+			if err == nil && strings.Compare(name, fqCache) != 0 {
+				if strings.HasSuffix(name, ".uploaded") {
+					uploaded++
+				}
+			}
+			return nil
+		},
+	)
+	return uploaded
 }
 
 // CachePurge will periodically delete files that do not need to be in the cache.

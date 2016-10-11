@@ -39,6 +39,10 @@ type ZKState struct {
 	AnnouncementRequests []AnnouncementRequest
 	// The original URI
 	URI string
+	//Whether we are terminated
+	IsTerminated bool
+	// The timeout on connections in seconds
+	Timeout int
 }
 
 // AnnounceHandler is a callback when zk data changes
@@ -147,6 +151,7 @@ func RegisterApplication(zkURIOriginal, zkAddress string) (*ZKState, error) {
 		Protocols:            zkURI,
 		AnnouncementRequests: make([]AnnouncementRequest, 0),
 		URI:                  zkURIOriginal, //We need this to re-invoke the constructor when there is a disaster in zk
+		Timeout:              zkTimeout,
 	}
 
 	//Create uncreated nodes, and log modifications we made
@@ -389,8 +394,20 @@ func isZKOk(err error) bool {
 	return false
 }
 
+// Shut down our zookeeper connections, so that we don't get new work.
+// Note that this means that we can't speak to aac or any other zk resource at this time.
+func ServiceStop(zkState *ZKState, logger zap.Logger) {
+	logger.Info("zk terminating")
+	zkState.IsTerminated = true
+	doZkCleanup(zkState.Conn)
+}
+
 // try to fix it. if anything goes wrong, we try again.
 func doReAnnouncements(zkState *ZKState, logger zap.Logger) error {
+	if zkState.IsTerminated {
+		return nil
+	}
+
 	var returnErr error
 	for _, a := range zkState.AnnouncementRequests {
 		err := ServiceReAnnouncement(zkState, a.protocol, a.stat, a.host, a.port)
