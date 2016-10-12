@@ -214,7 +214,7 @@ func handleCreatePrerequisites(ctx context.Context, h AppServer, requestObject *
 
 	// Disallow creating as deleted
 	if requestObject.IsDeleted || requestObject.IsAncestorDeleted || requestObject.IsExpunged {
-		return NewAppError(428, nil, "Creating object in a deleted state is not allowed")
+		return NewAppError(428, errors.New("Precondition required: ChangeToken does not match expected value"), "Creating object in a deleted state is not allowed")
 	}
 
 	// Setup meta data...

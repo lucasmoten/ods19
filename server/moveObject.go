@@ -10,8 +10,8 @@ import (
 
 	"golang.org/x/net/context"
 
-	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/events"
+	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
@@ -68,7 +68,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	// Check that the change token on the object passed in matches the current
 	// state of the object in the data store
 	if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) != 0 {
-		return NewAppError(428, nil, "ChangeToken does not match expected value. Object may have been changed by another request.")
+		return NewAppError(428, errors.New("Precondition required: ChangeToken does not match expected value"), "ChangeToken does not match expected value. Object may have been changed by another request.")
 	}
 
 	// Check that the parent of the object passed in is different then the current

@@ -74,13 +74,13 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	// Check that assignment as deleted isn't occuring here. Should use deleteObject operations
 	if requestObject.IsDeleted || requestObject.IsAncestorDeleted || requestObject.IsExpunged {
-		return NewAppError(428, nil, "Assigning object as deleted through update operation not allowed. Use deleteObject operation")
+		return NewAppError(428, errors.New("Precondition required: Updating object as deleted not allowed. Send to trash or DELETE instead."), "Assigning object as deleted through update operation not allowed. Use deleteObject operation")
 	}
 
 	// Check that the change token on the object passed in matches the current
 	// state of the object in the data store
 	if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) != 0 {
-		return NewAppError(428, nil, "ChangeToken does not match expected value. Object may have been changed by another request.")
+		return NewAppError(428, errors.New("Precondition required: ChangeToken does not match expected value"), "ChangeToken does not match expected value. Object may have been changed by another request.")
 	}
 
 	// Retain existing value for parent.
@@ -100,7 +100,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	}
 
 	if strings.Compare(requestObject.OwnedBy.String, dbObject.OwnedBy.String) != 0 {
-		return NewAppError(428, nil, "OwnedBy does not match expected value.  Use changeOwner to transfer ownership.")
+		return NewAppError(428, errors.New("Precondition required: OwnedBy does not match expected value"), "OwnedBy does not match expected value.  Use changeOwner to transfer ownership.")
 	}
 
 	// If there was no ACM provided...
