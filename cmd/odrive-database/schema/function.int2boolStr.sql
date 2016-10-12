@@ -1,0 +1,9 @@
+CREATE FUNCTION int2boolStr(b INT) RETURNS VARCHAR(5)
+BEGIN
+  IF b = 0
+  THEN
+    RETURN 'false';
+  ELSE
+    RETURN 'true';
+  END IF;
+END;

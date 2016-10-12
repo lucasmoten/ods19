@@ -1,6 +1,3 @@
-delimiter //
-SELECT 'Creating object table' as Action
-//
 CREATE TABLE IF NOT EXISTS object
 (
   id binary(16) not null default 0
@@ -40,9 +37,8 @@ CREATE TABLE IF NOT EXISTS object
   ,INDEX ix_parentId (parentId)
   ,INDEX ix_typeId (typeId)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-SELECT 'Creating a_object table' as Action
-//
+;
+
 # Archive table takes the same format, but does not specify defaults
 CREATE TABLE IF NOT EXISTS a_object
 (
@@ -83,5 +79,4 @@ CREATE TABLE IF NOT EXISTS a_object
   ,INDEX ix_ownedBy (ownedBy)
   ,INDEX ix_changeCount (changeCount)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-delimiter ;
+;

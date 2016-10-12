@@ -1,6 +1,3 @@
-delimiter //
-SELECT 'Creating field_changes table' as Action
-//
 CREATE TABLE IF NOT EXISTS field_changes
 (
   id int not null auto_increment
@@ -16,5 +13,4 @@ CREATE TABLE IF NOT EXISTS field_changes
   ,INDEX ix_recordId (recordId)
   ,INDEX ix_columnName (columnName)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-delimiter ;
+;

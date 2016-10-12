@@ -1,6 +1,3 @@
-delimiter //
-SELECT 'Creating object_tag table' as Action
-//
 CREATE TABLE IF NOT EXISTS object_tag
 (
   id binary(16) not null default 0
@@ -20,9 +17,8 @@ CREATE TABLE IF NOT EXISTS object_tag
   ,INDEX ix_objectId (objectId)
   ,INDEX ix_name (name)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-SELECT 'Creating a_object_tag table' as Action
-//
+;
+
 # Archive table takes the same format, but does not specify defaults
 CREATE TABLE IF NOT EXISTS a_object_tag
 (
@@ -45,5 +41,4 @@ CREATE TABLE IF NOT EXISTS a_object_tag
   ,INDEX ix_changeCount (changeCount)
   ,INDEX ix_objectId (objectId)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-delimiter ;
+;

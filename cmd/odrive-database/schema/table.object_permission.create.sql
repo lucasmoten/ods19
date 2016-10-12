@@ -1,6 +1,3 @@
-delimiter //
-SELECT 'Creating object_permission table' as Action
-//
 CREATE TABLE IF NOT EXISTS object_permission
 (
   id binary(16) not null default 0
@@ -30,9 +27,8 @@ CREATE TABLE IF NOT EXISTS object_permission
   ,INDEX ix_objectId (objectId)
   ,INDEX ix_grantee (grantee)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-SELECT 'Creating a_object_permission table' as Action
-//
+;
+
 # Archive table takes the same format, but does not specify defaults
 CREATE TABLE IF NOT EXISTS a_object_permission
 (
@@ -66,5 +62,4 @@ CREATE TABLE IF NOT EXISTS a_object_permission
   ,INDEX ix_objectId (objectId)
   ,INDEX ix_grantee (grantee)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-delimiter ;
+;

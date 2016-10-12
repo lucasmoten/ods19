@@ -1,50 +1,78 @@
-DROP PROCEDURE IF EXISTS sp_drop_constraints;
 
-DELIMITER //
-CREATE PROCEDURE sp_drop_constraints(
-   IN refschema VARCHAR(64) CHARSET utf8 COLLATE utf8_unicode_ci, 
-   IN reftable VARCHAR(64) CHARSET utf8 COLLATE utf8_unicode_ci, 
-   IN refcolumn VARCHAR(64) CHARSET utf8 COLLATE utf8_unicode_ci
-)
-BEGIN
-    WHILE EXISTS(
-        SELECT * FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-        WHERE 1
-        AND REFERENCED_TABLE_SCHEMA COLLATE utf8_unicode_ci = refschema
-        AND REFERENCED_TABLE_NAME COLLATE utf8_unicode_ci = reftable
-        AND REFERENCED_COLUMN_NAME COLLATE utf8_unicode_ci = refcolumn
-    ) DO
-        BEGIN
-            SET @sqlstmt = (
-                SELECT CONCAT('ALTER TABLE ',TABLE_SCHEMA,'.',TABLE_NAME,' DROP FOREIGN KEY ',CONSTRAINT_NAME)
-                FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-                WHERE 1
-                AND REFERENCED_TABLE_SCHEMA COLLATE utf8_unicode_ci = refschema
-                AND REFERENCED_TABLE_NAME COLLATE utf8_unicode_ci = reftable
-                AND REFERENCED_COLUMN_NAME COLLATE utf8_unicode_ci = refcolumn
-                LIMIT 1
-            );
-            PREPARE stmt1 FROM @sqlstmt;
-            EXECUTE stmt1;
-        END;
-    END WHILE;
-END//
-DELIMITER ;
+ALTER TABLE acm	DROP FOREIGN KEY fk_acm_createdBy; 
+ALTER TABLE acm	DROP FOREIGN KEY fk_acm_deletedBy;
+ALTER TABLE acm	DROP FOREIGN KEY fk_acm_modifiedBy;
 
-SET @SchemaName = database();
-CALL sp_drop_constraints(@SchemaName, 'acm', 'id');
-CALL sp_drop_constraints(@SchemaName, 'acm_accm', 'id');
-CALL sp_drop_constraints(@SchemaName, 'acm_coicontrol', 'id');
-CALL sp_drop_constraints(@SchemaName, 'acm_mac', 'id');
-CALL sp_drop_constraints(@SchemaName, 'acm_project', 'id');
-CALL sp_drop_constraints(@SchemaName, 'acm_share', 'id');
-CALL sp_drop_constraints(@SchemaName, 'acmgrantee', 'grantee');
-CALL sp_drop_constraints(@SchemaName, 'acmkey', 'id');
-CALL sp_drop_constraints(@SchemaName, 'acmpart', 'id');
-CALL sp_drop_constraints(@SchemaName, 'acmvalue', 'id');
-CALL sp_drop_constraints(@SchemaName, 'object', 'id');
-CALL sp_drop_constraints(@SchemaName, 'object_type', 'id');
-CALL sp_drop_constraints(@SchemaName, 'property', 'id');
-CALL sp_drop_constraints(@SchemaName, 'user', 'distinguishedName');
+ALTER TABLE acmgrantee DROP FOREIGN KEY fk_acmgrantee_userDistinguishedName;
 
-DROP PROCEDURE IF EXISTS sp_drop_constraints;
+ALTER TABLE acmkey DROP FOREIGN KEY fk_acmkey_createdBy;
+ALTER TABLE acmkey DROP FOREIGN KEY fk_acmkey_deletedBy;
+ALTER TABLE acmkey DROP FOREIGN KEY fk_acmkey_modifiedBy;
+
+ALTER TABLE acmpart DROP FOREIGN KEY fk_acmpart_createdBy; 
+ALTER TABLE acmpart DROP FOREIGN KEY fk_acmpart_deletedBy;
+ALTER TABLE acmpart DROP FOREIGN KEY fk_acmpart_modifiedBy;
+ALTER TABLE acmpart DROP FOREIGN KEY fk_acmpart_acmId;
+ALTER TABLE acmpart DROP FOREIGN KEY fk_acmpart_acmKeyId;
+ALTER TABLE acmpart DROP FOREIGN KEY fk_acmpart_acmValueId;
+
+ALTER TABLE acmvalue DROP FOREIGN KEY fk_acmvalue_createdBy;
+ALTER TABLE acmvalue DROP FOREIGN KEY fk_acmvalue_deletedBy;
+ALTER TABLE acmvalue DROP FOREIGN KEY fk_acmvalue_modifiedBy;
+
+ALTER TABLE object DROP FOREIGN KEY fk_object_createdBy;
+ALTER TABLE object DROP FOREIGN KEY fk_object_deletedBy;
+ALTER TABLE object DROP FOREIGN KEY fk_object_expungedBy;
+ALTER TABLE object DROP FOREIGN KEY fk_object_modifiedBy;
+ALTER TABLE object DROP FOREIGN KEY fk_object_ownedBy;
+ALTER TABLE object DROP FOREIGN KEY fk_object_ownedByNew;
+ALTER TABLE object DROP FOREIGN KEY fk_object_parentId;
+ALTER TABLE object DROP FOREIGN KEY fk_object_typeId;
+
+ALTER TABLE objectacm DROP FOREIGN KEY fk_objectacm_createdBy;
+ALTER TABLE objectacm DROP FOREIGN KEY fk_objectacm_deletedBy;
+ALTER TABLE objectacm DROP FOREIGN KEY fk_objectacm_modifiedBy;
+ALTER TABLE objectacm DROP FOREIGN KEY fk_objectacm_objectId;
+ALTER TABLE objectacm DROP FOREIGN KEY fk_objectacm_acmId;
+
+ALTER TABLE object_permission DROP FOREIGN KEY fk_object_permission_createdBy;
+ALTER TABLE object_permission DROP FOREIGN KEY fk_object_permission_deletedBy;
+ALTER TABLE object_permission DROP FOREIGN KEY fk_object_permission_grantee;
+ALTER TABLE object_permission DROP FOREIGN KEY fk_object_permission_modifiedBy;
+ALTER TABLE object_permission DROP FOREIGN KEY fk_object_permission_objectId;
+
+ALTER TABLE object_property DROP FOREIGN KEY fk_object_property_objectId;
+ALTER TABLE object_property DROP FOREIGN KEY fk_object_property_propertyId;
+
+ALTER TABLE object_tag DROP FOREIGN KEY fk_object_tag_createdBy;
+ALTER TABLE object_tag DROP FOREIGN KEY fk_object_tag_deletedBy;
+ALTER TABLE object_tag DROP FOREIGN KEY fk_object_tag_modifiedBy;
+ALTER TABLE object_tag DROP FOREIGN KEY fk_object_tag_objectId;
+
+ALTER TABLE object_type DROP FOREIGN KEY fk_object_type_createdBy;
+ALTER TABLE object_type DROP FOREIGN KEY fk_object_type_deletedBy;
+ALTER TABLE object_type DROP FOREIGN KEY fk_object_type_modifiedBy;
+ALTER TABLE object_type DROP FOREIGN KEY fk_object_type_ownedBy;
+
+ALTER TABLE object_type_property DROP FOREIGN KEY fk_object_type_property_propertyId;
+ALTER TABLE object_type_property DROP FOREIGN KEY fk_object_type_property_typeId;
+
+ALTER TABLE property DROP FOREIGN KEY fk_property_createdBy;
+ALTER TABLE property DROP FOREIGN KEY fk_property_deletedBy;
+ALTER TABLE property DROP FOREIGN KEY fk_property_modifiedBy;
+
+ALTER TABLE relationship DROP FOREIGN KEY fk_relationship_createdBy;
+ALTER TABLE relationship DROP FOREIGN KEY fk_relationship_deletedBy;
+ALTER TABLE relationship DROP FOREIGN KEY fk_relationship_modifiedBy;
+ALTER TABLE relationship DROP FOREIGN KEY fk_relationship_sourceId;
+ALTER TABLE relationship DROP FOREIGN KEY fk_relationship_targetId;
+
+ALTER TABLE user_object_favorite DROP FOREIGN KEY fk_user_object_favorite_createdBy;
+ALTER TABLE user_object_favorite DROP FOREIGN KEY fk_user_object_favorite_deletedBy;
+ALTER TABLE user_object_favorite DROP FOREIGN KEY fk_user_object_favorite_objectId;
+
+ALTER TABLE user_object_subscription DROP FOREIGN KEY fk_user_object_subscription_createdBy;
+ALTER TABLE user_object_subscription DROP FOREIGN KEY fk_user_object_subscription_deletedBy;
+ALTER TABLE user_object_subscription DROP FOREIGN KEY fk_user_object_subscription_objectId;
+
+

@@ -1,0 +1,4 @@
+CREATE FUNCTION old_keydecrypt(master VARCHAR(255), dn VARCHAR(255)) RETURNS CHAR(64)
+BEGIN
+  RETURN sha2(CONCAT(master, dn),256);
+END;

@@ -1,6 +1,3 @@
-delimiter //
-SELECT 'Creating property table' as Action
-//
 CREATE TABLE IF NOT EXISTS property
 (
   id binary(16) not null default 0
@@ -20,9 +17,8 @@ CREATE TABLE IF NOT EXISTS property
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_name (name)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-SELECT 'Creating a_property table' as Action
-//
+;
+
 # Archive table takes the same format, but does not specify defaults
 CREATE TABLE IF NOT EXISTS a_property
 (
@@ -47,5 +43,4 @@ CREATE TABLE IF NOT EXISTS a_property
   ,INDEX ix_changeCount (changeCount)
   ,INDEX ix_name (name)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-delimiter ;
+;

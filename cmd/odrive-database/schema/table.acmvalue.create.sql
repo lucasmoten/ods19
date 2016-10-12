@@ -1,6 +1,3 @@
-delimiter //
-SELECT 'Creating acmvalue table' as Action
-//
 CREATE TABLE IF NOT EXISTS acmvalue
 (
   id binary(16) not null default 0
@@ -16,9 +13,8 @@ CREATE TABLE IF NOT EXISTS acmvalue
   ,INDEX ix_isDeleted (isDeleted)
   ,INDEX ix_name (name)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-SELECT 'Creating a_acmvalue table' as Action
-//
+;
+
 CREATE TABLE IF NOT EXISTS a_acmvalue
 (
   a_id int not null auto_increment
@@ -35,5 +31,4 @@ CREATE TABLE IF NOT EXISTS a_acmvalue
   ,INDEX ix_id (id)
   ,INDEX ix_name (name)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
-//
-delimiter ;
+;

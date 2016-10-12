@@ -2,13 +2,22 @@
 
 # invoked inside container
 
+if yum list installed odrive >/dev/null 2>&1; then
+  yum -f remove odrive -y
+fi
+
 rm -rf ~/rpmbuild
 cd ${ODRIVE_ROOT}/cmd/odrive-database
 tar cvfz odrive-schema-${ODRIVE_VERSION}.tar.gz schema
 cd ${ODRIVE_ROOT}
 ( cd cmd/odrive && go build )
-( cd cmd/odrive && go build -o main )
 ( cd cmd/odutil && go build )
+( 
+  cd cmd/odrive-database
+  go get -u github.com/jteeuwen/go-bindata/...
+  # TODO(cm) add migrations directory to this list
+  go-bindata schema ../../defaultcerts/client-mysql/id ../../defaultcerts/client-mysql/trust
+)
 
 #build it
 ${ODRIVE_ROOT}/scripts/prepare-rpm-env.sh
