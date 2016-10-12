@@ -134,3 +134,26 @@ func TestMoveObjectToRoot(t *testing.T) {
 		t.Logf("  Folder2 is back under root")
 	}
 }
+
+func TestMoveObjectWrongChangeToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+
+	t.Logf("* Create 2 folders under root as tester10")
+	folder1 := makeFolderViaJSON("Test Folder 1 ", tester10, t)
+	t.Logf("  Folder 1 ID: %s", folder1.ID)
+	folder2 := makeFolderViaJSON("Test Folder 2 ", tester10, t)
+	t.Logf("  Folder 2 ID: %s", folder2.ID)
+
+	t.Logf("* Move folder 2 under folder 1 with wrong changetoken")
+	moveuri := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
+	objChangeToken := protocol.ChangeTokenStruct{}
+	objChangeToken.ChangeToken = folder1.ChangeToken
+	moveReq1 := makeHTTPRequestFromInterface(t, "POST", moveuri, objChangeToken)
+	moveRes1, err := clients[tester10].Client.Do(moveReq1)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, http.StatusPreconditionRequired, moveRes1, "Bad status when moving folder 2 under folder 1")
+	util.FinishBody(moveRes1.Body)
+}
