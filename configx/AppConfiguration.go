@@ -243,8 +243,8 @@ func NewDatabaseConfigFromEnv(confFile AppConfiguration, opts CommandLineOpts) D
 func NewEventQueueConfiguration(confFile AppConfiguration, opts CommandLineOpts) EventQueueConfiguration {
 	var eqc EventQueueConfiguration
 	var empty []string
-	eqc.KafkaAddrs = cascadeStringSlice(OD_EVENT_KAFKA_ADDRS, confFile.EventQueue.KafkaAddrs, empty)
-	eqc.ZKAddrs = cascadeStringSlice(OD_EVENT_ZK_ADDRS, confFile.EventQueue.ZKAddrs, empty)
+	eqc.KafkaAddrs = CascadeStringSlice(OD_EVENT_KAFKA_ADDRS, confFile.EventQueue.KafkaAddrs, empty)
+	eqc.ZKAddrs = CascadeStringSlice(OD_EVENT_ZK_ADDRS, confFile.EventQueue.ZKAddrs, empty)
 	return eqc
 }
 
@@ -431,12 +431,19 @@ func cascadeInt(fromEnv string, fromFile, defaultVal int64) int64 {
 	return defaultVal
 }
 
-func cascadeStringSlice(fromEnv string, fromFile, defaultVal []string) []string {
+// CascadeStringSlice will select a configuration slice from a splitted env var,
+// the config file, or a default slice.
+func CascadeStringSlice(fromEnv string, fromFile, defaultVal []string) []string {
+
 	if splitted := strings.Split(os.Getenv(fromEnv), ","); len(splitted) > 0 {
-		return splitted
+		if splitted[0] != "" {
+			return splitted
+		}
 	}
 	if len(fromFile) > 0 {
-		return fromFile
+		if fromFile[0] != "" {
+			return fromFile
+		}
 	}
 	return defaultVal
 }
