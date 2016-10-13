@@ -22,6 +22,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	dao := DAOFromContext(ctx)
 	session := SessionIDFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
+	dp := h.DrainProvider
 
 	var requestObjectWithIDFromURI models.ODObject
 	var err error
@@ -77,7 +78,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	}
 	drainFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &dbObject, &grant, false)
 	if herr != nil {
-		return herr
+		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
 
 	// TODO: This seems weird. why was everything previously manipulating the dbObject (call to h.acceptObjectUpload) ?
@@ -88,14 +89,16 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	logger.Info("acm", zap.String("requestObjectWithIDFromURI.RawAcm", requestObjectWithIDFromURI.RawAcm.String))
 
 	if err = h.flattenACM(logger, &requestObjectWithIDFromURI); err != nil {
-		return ClassifyFlattenError(err)
+		herr = ClassifyFlattenError(err)
+		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
 	if herr := normalizeObjectReadPermissions(ctx, &requestObjectWithIDFromURI); herr != nil {
-		return herr
+		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
 	// Final access check against altered ACM
 	if err = h.isUserAllowedForObjectACM(ctx, &requestObjectWithIDFromURI); err != nil {
-		return ClassifyObjectACMError(err)
+		herr = ClassifyObjectACMError(err)
+		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
 	consolidateChangingPermissions(&requestObjectWithIDFromURI)
 	// copy grant.EncryptKey to all existing permissions:
@@ -110,7 +113,8 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	dbObject.ModifiedBy = caller.DistinguishedName
 	err = dao.UpdateObject(&dbObject)
 	if err != nil {
-		return NewAppError(500, err, "error storing object")
+		herr = NewAppError(500, err, "error storing object")
+		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
 	// Only start to upload into S3 after we have a database record
 	go drainFunc()

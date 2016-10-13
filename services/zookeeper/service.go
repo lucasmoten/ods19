@@ -394,12 +394,22 @@ func isZKOk(err error) bool {
 	return false
 }
 
-// Shut down our zookeeper connections, so that we don't get new work.
-// Note that this means that we can't speak to aac or any other zk resource at this time.
-func ServiceStop(zkState *ZKState, logger zap.Logger) {
+// ServiceStop will shut down our zookeeper connections, so that we don't get new work.
+func ServiceStop(zkState *ZKState, protocol string, logger zap.Logger) {
 	logger.Info("zk terminating")
 	zkState.IsTerminated = true
-	doZkCleanup(zkState.Conn)
+	path := zkState.URI + "/" + protocol + "/" + globalconfig.NodeID
+	_, _, err := zkState.Conn.Exists(path)
+	if err != nil {
+		logger.Error("zk exists node fail", zap.String("err", err.Error()))
+	}
+	logger.Info("zk must remove its ephemeral node", zap.String("path", path))
+	err = zkState.Conn.Delete(path, -1)
+	if err != nil {
+		logger.Error("zk delete node fail", zap.String("err", err.Error()))
+	} else {
+		logger.Info("zk terminated our ephemeral node")
+	}
 }
 
 // try to fix it. if anything goes wrong, we try again.
