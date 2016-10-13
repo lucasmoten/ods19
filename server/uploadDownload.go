@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"path"
@@ -51,20 +52,21 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 
 		switch {
 		case part.FormName() == "ObjectMetadata":
-			// Capture the value from form
-			bytes, herr := getFormValueAsByteSlice(part)
-			if herr != nil {
+
+			limit := 5 << (10 * 2)
+			metadata, err := ioutil.ReadAll(io.LimitReader(part, int64(limit)))
+			if err != nil {
+				herr := NewAppError(400, err, "could not read json metadata")
 				return drainFunc, herr, nil
 			}
-			var err error
 			// Parse into a useable struct
 			if asCreate {
-				err = json.Unmarshal(bytes, &createObjectRequest)
+				err = json.Unmarshal(metadata, &createObjectRequest)
 			} else {
-				err = json.Unmarshal(bytes, &updateObjectRequest)
+				err = json.Unmarshal(metadata, &updateObjectRequest)
 			}
 			if err != nil {
-				return drainFunc, NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", bytes)), err
+				return drainFunc, NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", metadata)), err
 			}
 
 			// Validation & Mapping for Create
@@ -116,6 +118,7 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 			}
 
 			parsedMetadata = true
+
 		case len(part.FileName()) > 0:
 			var msg string
 			if asCreate {
@@ -306,19 +309,4 @@ func guessContentType(name string) string {
 		}
 	}
 	return contentType
-}
-
-// getFormValueAsString reads a multipart value into a limited length byte
-// array and returns it.
-func getFormValueAsByteSlice(part *multipart.Part) ([]byte, *AppError) {
-	valueAsBytes := make([]byte, 10240)
-	n, err := part.Read(valueAsBytes)
-	if err != nil {
-		if err != io.EOF {
-			return []byte(""), NewAppError(400, err, "Unable to parse value from part")
-		} else {
-			return []byte(""), nil
-		}
-	}
-	return valueAsBytes[0:n], nil
 }
