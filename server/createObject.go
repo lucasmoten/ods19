@@ -24,8 +24,9 @@ import (
 
 // createObject is a method handler on AppServer for createObject microservice operation.
 func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
+	//Note: when we can configure for multiple drain providers, we probably set with API token here
+	var dp CiphertextCache
 
-	dp := h.DrainProvider
 	logger := LoggerFromContext(ctx)
 	session := SessionIDFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
@@ -61,7 +62,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 			return NewAppError(400, err, "Unable to get mime multipart")
 		}
 
-		createdFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &obj, &ownerPermission, true)
+		dp, createdFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &obj, &ownerPermission, true)
 		if herr != nil {
 			return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 		}
@@ -299,10 +300,13 @@ func injectReadPermissionsIntoACM(ctx context.Context, obj *models.ODObject) *Ap
 	return nil
 }
 
-func removeOrphanedFile(logger zap.Logger, d DrainProvider, contentConnector string) {
+func removeOrphanedFile(logger zap.Logger, d CiphertextCache, contentConnector string) {
 	fileID := FileId(contentConnector)
 	uploadedName := NewFileName(fileID, "uploaded")
-	err := d.Files().Remove(d.Resolve(uploadedName))
+	var err error
+	if d != nil {
+		err = d.Files().Remove(d.Resolve(uploadedName))
+	}
 	if err != nil {
 		logger.Error("cannot remove orphaned file", zap.String("fileID", string(fileID)))
 	}

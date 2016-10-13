@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"decipher.com/object-drive-server/configx"
 	"decipher.com/object-drive-server/server"
 	"github.com/uber-go/zap"
 )
@@ -292,6 +293,10 @@ public class ObjectDriveSDK {
 `
 
 func TestCacheDrainToSafety(t *testing.T) {
+	if config.DefaultBucket == "" {
+		t.Skip()
+	}
+
 	t.Log("create raw cache")
 	dirname := "t012345"
 	fqCacheRoot, err := filepath.Abs(filepath.Dir("."))
@@ -309,7 +314,12 @@ func TestCacheDrainToSafety(t *testing.T) {
 
 	t.Log("make a temp drain provider")
 	logger := zap.New(zap.NewJSONEncoder())
-	d := server.NewS3DrainProviderRaw(fqCacheRoot, dirname, float64(0.50), int64(60*5), float64(0.75), 120, logger)
+
+	//We need to use S3 here because we delete files and expect download to restore them
+	s3Config := config.NewS3Config()
+	sess := server.NewAWSSession(s3Config.AWSConfig, logger)
+	permanentStorage := server.NewPermanentStorageData(sess, &config.DefaultBucket)
+	d := server.NewCiphertextCacheRaw(fqCacheRoot, dirname, float64(0.50), int64(60*5), float64(0.75), 120, logger, permanentStorage)
 
 	t.Log("create a small file")
 	rName := server.FileId("farkFailedInitially")
@@ -343,13 +353,20 @@ func TestCacheDrainToSafety(t *testing.T) {
 }
 
 func TestCacheCreate(t *testing.T) {
+	if config.DefaultBucket == "" {
+		t.Skip()
+	}
+
 	t.Skip()
 	//Setup and teardown
-	bucket := "decipherers"
 	dirname := "t01234"
 	//Create raw cache without starting the purge goroutine
 	logger := zap.New(zap.NewJSONEncoder())
-	d := server.NewS3DrainProviderRaw(".", dirname, float64(0.50), int64(60*5), float64(0.75), 120, logger)
+
+	s3Config := config.NewS3Config()
+	sess := server.NewAWSSession(s3Config.AWSConfig, logger)
+	permanentStorage := server.NewPermanentStorageData(sess, &config.DefaultBucket)
+	d := server.NewCiphertextCacheRaw(".", dirname, float64(0.50), int64(60*5), float64(0.75), 120, logger, permanentStorage)
 
 	//create a small file
 	rName := server.FileId("fark")
@@ -378,7 +395,7 @@ func TestCacheCreate(t *testing.T) {
 	}
 
 	//Write it to S3
-	err = d.CacheToDrain(&bucket, rName, int64(len(fdata)))
+	err = d.Writeback(rName, int64(len(fdata)))
 	if err != nil {
 		t.Errorf("Could not cache to drain:%v", err)
 	}
@@ -390,12 +407,9 @@ func TestCacheCreate(t *testing.T) {
 	}
 
 	//See if it is pulled from S3 properly
-	herr, err := d.DrainToCache(&bucket, rName)
+	err = d.Recache(rName)
 	if err != nil {
 		t.Errorf("Could not drain to cache:%v", err)
-	}
-	if herr != nil {
-		t.Errorf("Could not drain to cache:%v", herr)
 	}
 	cachingName := d.Resolve(server.NewFileName(rName, ".caching"))
 	if _, err = d.Files().Stat(cachingName); os.IsNotExist(err) == false {
@@ -420,9 +434,9 @@ func TestCacheCreate(t *testing.T) {
 	}
 
 	totalLength := int64(len(fdata))
-	cipherReader, err := d.NewS3Puller(d.Logger, rName, totalLength, 0, -1)
+	cipherReader, _, err := d.NewPuller(d.Logger, rName, totalLength, 0, -1)
 	if err != nil {
-		t.Errorf("unable to create puller for S3:%v", err)
+		t.Errorf("unable to create puller for PermanentStorage:%v", err)
 	}
 	for {
 		_, err := cipherReader.Read(buf)
@@ -430,7 +444,7 @@ func TestCacheCreate(t *testing.T) {
 			break
 		}
 		if err != nil {
-			t.Errorf("unable to read puller for S3:%v", err)
+			t.Errorf("unable to read puller for PermanentStorage:%v", err)
 		}
 	}
 	cipherReader.Close()

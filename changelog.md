@@ -14,6 +14,8 @@ Release v1.0.1.6
 Release v1.0.1.5
 ----------------
 
+* NEW: disableS3 with an empty S3 Bucket variable.  it works with load balancing due to p2p caching.
+* FIX: large stalls as load balanced clients wait for S3 ciphertext is taken care of with p2p caching. it created instability when viewing large videos.
 * NEW: odrive-database utility supports migrations.
 * NEW: List of objects shared to the user (/shares) will exclude those whose parent is also shared to them.
 * NEW: List of objects shared to others (/shared) will exclude those whose parent is also shared to others.

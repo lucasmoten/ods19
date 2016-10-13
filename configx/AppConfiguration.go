@@ -29,7 +29,7 @@ type AppConfiguration struct {
 	DatabaseConnection DatabaseConfiguration       `yaml:"database"`
 	ServerSettings     ServerSettingsConfiguration `yaml:"server"`
 	AACSettings        AACConfiguration            `yaml:"aac"`
-	CacheSettings      S3DrainProviderOpts         `yaml:"disk_cache"`
+	CacheSettings      S3CiphertextCacheOpts       `yaml:"disk_cache"`
 	ZK                 ZKSettings                  `yaml:"zk"`
 	EventQueue         EventQueueConfiguration     `yaml:"event_queue"`
 	Whitelist          []string                    `yaml:"whitelist"`
@@ -80,8 +80,8 @@ type EventQueueConfiguration struct {
 	ZKAddrs    []string `yaml:"zk_addrs"`
 }
 
-// S3DrainProviderOpts describes our current disk cache configuration.
-type S3DrainProviderOpts struct {
+// S3CiphertextCacheOpts describes our current disk cache configuration.
+type S3CiphertextCacheOpts struct {
 	Root          string  `yaml:"root_dir"`
 	Partition     string  `yaml:"partition"`
 	LowWatermark  float64 `yaml:"low_watermark"`
@@ -131,7 +131,7 @@ func NewAppConfiguration(opts CommandLineOpts) AppConfiguration {
 	dbConf := NewDatabaseConfigFromEnv(confFile, opts)
 	serverSettings := NewServerSettingsFromEnv(confFile, opts)
 	aacSettings := NewAACSettingsFromEnv(confFile, opts)
-	cacheSettings := NewS3DrainProviderOpts(confFile, opts)
+	cacheSettings := NewS3CiphertextCacheOpts(confFile, opts)
 	zkSettings := NewZKSettingsFromEnv(confFile, opts)
 	eventQueue := NewEventQueueConfiguration(confFile, opts)
 
@@ -244,10 +244,10 @@ func NewEventQueueConfiguration(confFile AppConfiguration, opts CommandLineOpts)
 	return eqc
 }
 
-// NewS3DrainProviderOpts reads the environment to provide the configuration options for
-// S3DrainProvider.
-func NewS3DrainProviderOpts(confFile AppConfiguration, opts CommandLineOpts) S3DrainProviderOpts {
-	return S3DrainProviderOpts{
+// NewS3CiphertextCacheOpts reads the environment to provide the configuration options for
+// S3CiphertextCache.
+func NewS3CiphertextCacheOpts(confFile AppConfiguration, opts CommandLineOpts) S3CiphertextCacheOpts {
+	return S3CiphertextCacheOpts{
 		Root:          cascade(OD_CACHE_ROOT, confFile.CacheSettings.Root, "."),
 		Partition:     cascade(OD_CACHE_PARTITION, confFile.CacheSettings.Partition, "cache"),
 		LowWatermark:  cascadeFloat(OD_CACHE_LOWWATERMARK, confFile.CacheSettings.LowWatermark, .50),

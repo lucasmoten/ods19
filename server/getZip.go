@@ -127,15 +127,10 @@ func zipWriteManifest(aacClient aac.AacService, ctx context.Context, logger zap.
 }
 
 //Get a reader on the ciphertext - locally if it exists, or range requested out of S3 otherwise
-func zipReadCloser(dp DrainProvider, logger zap.Logger, rName FileId, totalLength int64) (io.ReadCloser, error) {
+func zipReadCloser(dp CiphertextCache, logger zap.Logger, rName FileId, totalLength int64) (io.ReadCloser, error) {
 	//Range request it if we don't have it
-	cachedFileName := dp.Resolve(NewFileName(rName, ".cached"))
-	fqFileName := dp.Files().Resolve(cachedFileName)
-	if _, err := os.Stat(fqFileName); os.IsNotExist(err) {
-		return dp.NewS3Puller(logger, rName, totalLength, 0, -1)
-	}
-	//We have it locally
-	return dp.Files().Open(cachedFileName)
+	f, _, err := dp.NewPuller(logger, rName, totalLength, 0, -1)
+	return f, err
 }
 
 //newFileInfo is everything that a zip needs to know about the file
@@ -171,7 +166,7 @@ func zipWriteFile(
 	manifest *zipManifest,
 ) *AppError {
 	logger := LoggerFromContext(ctx)
-	dp := h.DrainProvider
+	dp := FindCiphertextCacheByObject(&obj)
 	// Using captured permission, derive filekey
 	var fileKey []byte
 	fileKey = utils.ApplyPassphrase(h.MasterKey, userPermission.PermissionIV, userPermission.EncryptKey)
@@ -184,10 +179,10 @@ func zipWriteFile(
 	totalLength := obj.ContentSize.Int64
 	cipherReader, err := zipReadCloser(dp, logger, rName, totalLength)
 	if err != nil {
-		logger.Error("unable to create puller for S3", zap.String("err", err.Error()))
+		logger.Error("unable to create puller for PermanentStorage", zap.String("err", err.Error()))
 	}
 	defer cipherReader.Close()
-	logger.Debug("s3 pull for zip begin", zap.String("fname", obj.Name), zap.Int64("bytes", totalLength))
+	logger.Debug("PermanentStorage pull for zip begin", zap.String("fname", obj.Name), zap.Int64("bytes", totalLength))
 
 	// Write the file header out, to properly set timestamps and permissions
 	header, err := zip.FileInfoHeader(newFileInfo(obj, obj.Name))

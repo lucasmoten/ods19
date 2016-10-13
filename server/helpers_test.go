@@ -200,6 +200,7 @@ func doTestCreateObjectSimple(
 	var jsonBody []byte
 	jsonBody, err = json.MarshalIndent(createRequest, "", "  ")
 	if err != nil {
+		t.Logf("failed request: %v", err)
 		t.Fail()
 	}
 

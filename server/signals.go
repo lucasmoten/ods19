@@ -29,8 +29,6 @@ type AutoScaler struct {
 	Logger zap.Logger
 	//ZKState lets us signal to stop sending us work
 	ZKState *zookeeper.ZKState
-	//DrainProvider lets us poll until we are ready to lose the disk
-	DrainProvider DrainProvider
 	//Config is our environment variables
 	Config *config.AutoScalingConfig
 	//SQS subset of the queue API we use
@@ -136,7 +134,7 @@ func (as *AutoScaler) prepareForTermination(lifecycleMessage *LifecycleMessage) 
 			zap.String("LifecycleHookName", lifecycleMessage.LifecycleHookName),
 		)
 	}
-	d, isChecking := as.DrainProvider.(*S3DrainProviderData)
+	isChecking := true
 	//Keep testing from going into an infinite loop.
 	//It's unreasonable to wait forever in a real situation.
 	tries := 10000
@@ -147,7 +145,10 @@ func (as *AutoScaler) prepareForTermination(lifecycleMessage *LifecycleMessage) 
 			return 1
 		}
 		//Wait for existing uploads to finish
-		remainingFiles := d.CountUploaded()
+		remainingFiles := 0
+		for _, dp := range CiphertextCaches {
+			remainingFiles += dp.CountUploaded()
+		}
 		if remainingFiles == 0 {
 			//
 			// No more checking required, as we have evacuated files safely
@@ -266,6 +267,7 @@ func (as *AutoScaler) WatchForShutdownByMessage() {
 
 	logger.Info("sqs queried for messages")
 	for {
+		messagesForUs := 0
 		//check the messages
 		if sqsRcv != nil && err == nil {
 			for _, m := range sqsRcv.Messages {
@@ -278,6 +280,7 @@ func (as *AutoScaler) WatchForShutdownByMessage() {
 								ReceiptHandle: m.ReceiptHandle,
 							},
 						)
+						messagesForUs++
 						logger.Info("sqs deleted our message")
 						if ourMessage.LifecycleTransition == ASGTransitionTerminating {
 							as.ExitChannel <- as.prepareForTermination(ourMessage)
@@ -287,8 +290,11 @@ func (as *AutoScaler) WatchForShutdownByMessage() {
 				}
 			}
 		}
-		//Wait before getting more messages from the queue
-		as.Sleep(time.Duration(as.Config.PollingInterval) * time.Second)
+
+		//Wait before getting more messages from the queue if we got zero messages for us
+		if messagesForUs == 0 {
+			as.Sleep(time.Duration(as.Config.PollingInterval) * time.Second)
+		}
 
 		//Get more messages
 		sqsRcv, err = as.SQS.ReceiveMessage(
@@ -303,7 +309,7 @@ func (as *AutoScaler) WatchForShutdownByMessage() {
 }
 
 // WatchForShutdown looks for requests to shut down, either through signals or messages
-func WatchForShutdown(z *zookeeper.ZKState, logger zap.Logger, dp DrainProvider) {
+func WatchForShutdown(z *zookeeper.ZKState, logger zap.Logger, dp CiphertextCache) {
 
 	//Get an SQS session
 	sqsConfig := config.NewAutoScalingConfig()
@@ -314,14 +320,13 @@ func WatchForShutdown(z *zookeeper.ZKState, logger zap.Logger, dp DrainProvider)
 	var asgSession AutoScalerASG = asg.New(NewAWSSession(sqsConfig.AWSConfigASG, logger))
 
 	as := &AutoScaler{
-		Logger:        logger,
-		ZKState:       z,
-		DrainProvider: dp,
-		Config:        sqsConfig,
-		SQS:           sqsSession,
-		ASG:           asgSession,
-		Sleep:         time.Sleep,
-		ExitChannel:   make(chan int, 1),
+		Logger:      logger,
+		ZKState:     z,
+		Config:      sqsConfig,
+		SQS:         sqsSession,
+		ASG:         asgSession,
+		Sleep:       time.Sleep,
+		ExitChannel: make(chan int, 1),
 	}
 
 	//The normal signal path - it just exits without a signal so that we don't need another exit channel

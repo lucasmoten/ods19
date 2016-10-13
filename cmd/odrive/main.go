@@ -191,7 +191,11 @@ func startApplication(conf configx.AppConfiguration) {
 		os.Exit(1)
 	}
 
-	configureDrainProvider(app, conf.CacheSettings, conf.CacheSettings.Partition+"/"+cacheID)
+	//For now, we have one drain provider, just use the default
+	server.SetCiphertextCache(
+		"",
+		server.NewS3CiphertextCache(conf.CacheSettings, conf.CacheSettings.Partition+"/"+cacheID),
+	)
 
 	configureEventQueue(app, conf.EventQueue)
 
@@ -220,7 +224,8 @@ func startApplication(conf configx.AppConfiguration) {
 	logger.Info("starting server", zap.String("addr", app.Addr))
 
 	//When this gets a shutdown signal, it will terminate when all files are uploaded
-	server.WatchForShutdown(app.ZKState, logger, app.DrainProvider)
+	//TODO: we will need to watch all existing drain providers to be sure we can safely shut down
+	server.WatchForShutdown(app.ZKState, logger, server.FindCiphertextCache(""))
 
 	//This blocks until there is an error to stop the server
 	err = httpServer.ListenAndServeTLS(
@@ -231,9 +236,26 @@ func startApplication(conf configx.AppConfiguration) {
 }
 
 func zkTracking(app *server.AppServer, appConf configx.AppConfiguration) {
+	srvConf := appConf.ServerSettings
 	aacSettings := appConf.AACSettings
-	//Watch the https odrive announcements
-	zookeeper.TrackAnnouncement(app.ZKState, appConf.ZK.BasepathOdrive+"/https", nil)
+
+	//Tell whoever needs to know about the peers - it uses the server cert
+	odriveAnnouncer := func(at string, announcements map[string]zookeeper.AnnounceData) {
+		//Give the information required for the other side to make its own p2p connections
+		for announcementKey, announcement := range announcements {
+			peer := server.PeerMap[announcementKey]
+			if peer == nil {
+				server.PeerMap[announcementKey] = &server.PeerMapData{
+					Host:    announcement.ServiceEndpoint.Host,
+					Port:    announcement.ServiceEndpoint.Port,
+					CA:      srvConf.CAPath,
+					Cert:    srvConf.ServerCertChain,
+					CertKey: srvConf.ServerKey,
+				}
+			}
+		}
+	}
+	zookeeper.TrackAnnouncement(app.ZKState, appConf.ZK.BasepathOdrive+"/https", odriveAnnouncer)
 	//I am doing this because I need a reference to app to re-assign the connection in the event of failure.
 	aacAnnouncer = func(at string, announcements map[string]zookeeper.AnnounceData) {
 		if announcements == nil {
@@ -288,13 +310,6 @@ func configureDAO(app *server.AppServer, conf configx.DatabaseConfiguration) err
 	app.RootDAO = &concreteDAO
 
 	return nil
-}
-
-func configureDrainProvider(app *server.AppServer, conf configx.S3DrainProviderOpts, cacheID string) {
-	var dp server.DrainProvider
-	logger.Info("Draining cache to S3")
-	dp = server.NewS3DrainProvider(conf, cacheID)
-	app.DrainProvider = dp
 }
 
 func configureEventQueue(app *server.AppServer, conf configx.EventQueueConfiguration) {

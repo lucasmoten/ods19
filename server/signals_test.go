@@ -189,6 +189,8 @@ func TestAutoScale(t *testing.T) {
 	//If we did not finish, then something is wrong
 	if exitCode != 0 {
 		t.Logf("not finished")
-		t.Fail()
+		t.FailNow()
+	} else {
+		t.Logf("autoscale test finished correctly")
 	}
 }

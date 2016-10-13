@@ -16,7 +16,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	configx "decipher.com/object-drive-server/configx"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/utils"
 
@@ -29,7 +28,7 @@ import (
 //then there is a time-span where abort must cleanup after itself
 func abortUploadObject(
 	logger zap.Logger,
-	dp DrainProvider,
+	dp CiphertextCache,
 	obj *models.ODObject,
 	isMultipart bool,
 	herr *AppError) *AppError {
@@ -43,13 +42,16 @@ func abortUploadObject(
 // mostly-empty object with EncryptIV and ContentConnector set. In the case of updateObjectStream, the obj param is
 // an object fetched from the database.
 func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *multipart.Reader, obj *models.ODObject,
-	grant *models.ODObjectPermission, asCreate bool) (func(), *AppError, error) {
+	grant *models.ODObjectPermission, asCreate bool) (CiphertextCache, func(), *AppError, error) {
 	var drainFunc func()
 	var herr *AppError
+
+	dp := FindCiphertextCacheByObject(obj)
+
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		return nil, NewAppError(400, nil, "Could not determine user"), fmt.Errorf("User not provided in context")
+		return dp, nil, NewAppError(400, nil, "Could not determine user"), fmt.Errorf("User not provided in context")
 	}
 	parsedMetadata := false
 	var createObjectRequest protocol.CreateObjectRequest
@@ -60,7 +62,7 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 			if err == io.EOF {
 				break
 			} else {
-				return nil, NewAppError(400, err, "error getting a part"), err
+				return dp, nil, NewAppError(400, err, "error getting a part"), err
 			}
 		}
 
@@ -71,7 +73,7 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 			metadata, err := ioutil.ReadAll(io.LimitReader(part, int64(limit)))
 			if err != nil {
 				herr := NewAppError(400, err, "could not read json metadata")
-				return drainFunc, herr, nil
+				return dp, drainFunc, herr, nil
 			}
 			// Parse into a useable struct
 			if asCreate {
@@ -80,19 +82,23 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 				err = json.Unmarshal(metadata, &updateObjectRequest)
 			}
 			if err != nil {
-				return drainFunc, NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", metadata)), err
+				return dp, drainFunc, NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", metadata)), err
 			}
+
+			//Decide on where this object actually is going to live based on metadata of the object.
+			//It can CHANGE on update!
+			dp = FindCiphertextCacheByObject(obj)
 
 			// Validation & Mapping for Create
 			if asCreate {
 				// Mapping to object
 				err = mapping.OverwriteODObjectWithCreateObjectRequest(obj, &createObjectRequest)
 				if err != nil {
-					return drainFunc, NewAppError(400, err, "Could not extract data from json response"), err
+					return dp, drainFunc, NewAppError(400, err, "Could not extract data from json response"), err
 				}
 				// Post mapping rules applied for create (not deleted, enforce owner cruds, assign meta)
 				if herr := handleCreatePrerequisites(ctx, h, obj); herr != nil {
-					return nil, herr, nil
+					return dp, nil, herr, nil
 				}
 			}
 
@@ -101,34 +107,34 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 				// ID in json must match that on the URI
 				herr = compareIDFromJSONWithURI(ctx, updateObjectRequest)
 				if herr != nil {
-					return nil, herr, errors.New("bad request: mismatched IDs")
+					return dp, nil, herr, errors.New("bad request: mismatched IDs")
 				}
 				// ACM check for user able to access new if different then old
 				rawAcmString, err := utils.MarshalInterfaceToString(updateObjectRequest.RawAcm)
 				if err != nil {
-					return drainFunc, NewAppError(400, err, fmt.Sprintf("Unable to marshal ACM as string: %s", updateObjectRequest.RawAcm)), err
+					return dp, drainFunc, NewAppError(400, err, fmt.Sprintf("Unable to marshal ACM as string: %s", updateObjectRequest.RawAcm)), err
 				}
 				if len(rawAcmString) != 0 && strings.Compare(obj.RawAcm.String, rawAcmString) != 0 {
 					if err := h.isUserAllowedForACMString(ctx, rawAcmString); err != nil {
 						LoggerFromContext(ctx).Info("acm no access", zap.String("origination", "No access to new ACM on Update"), zap.String("acm", rawAcmString))
-						return drainFunc, ClassifyObjectACMError(err), err
+						return dp, drainFunc, ClassifyObjectACMError(err), err
 					}
 				}
 				// ChangeToken must be provided and match the object
 				if obj.ChangeToken != updateObjectRequest.ChangeToken {
-					return drainFunc, NewAppError(400, nil, "Changetoken must be up to date"), nil
+					return dp, drainFunc, NewAppError(400, nil, "Changetoken must be up to date"), nil
 				}
 				// Mapping to object
 				err = mapping.OverwriteODObjectWithUpdateObjectAndStreamRequest(obj, &updateObjectRequest)
 				if err != nil {
-					return drainFunc, NewAppError(400, err, "Could not extract data from json response"), err
+					return dp, drainFunc, NewAppError(400, err, "Could not extract data from json response"), err
 				}
 
 			}
 
 			// Whether creating or updating, the ACM must have a value
 			if len(obj.RawAcm.String) == 0 {
-				return drainFunc, NewAppError(400, err, "An ACM must be specified"), nil
+				return dp, drainFunc, NewAppError(400, err, "An ACM must be specified"), nil
 			}
 
 			parsedMetadata = true
@@ -141,7 +147,7 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 				msg = "Metadata must be provided in part named 'ObjectMetadata' to create or update an object and must appear before the file contents"
 			}
 			if !parsedMetadata {
-				return drainFunc, NewAppError(400, nil, msg), nil
+				return dp, drainFunc, NewAppError(400, nil, msg), nil
 			}
 			//Guess the content type and name if it wasn't supplied
 			if obj.ContentType.Valid == false || len(obj.ContentType.String) == 0 {
@@ -152,18 +158,18 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 			}
 			drainFunc, herr, err = h.beginUpload(ctx, caller, part, obj, grant)
 			if herr != nil {
-				return nil, herr, err
+				return dp, nil, herr, err
 			}
 			if err != nil {
-				return drainFunc, NewAppError(500, err, "error caching file"), err
+				return dp, drainFunc, NewAppError(500, err, "error caching file"), err
 			}
 		} // switch
 	} //for
 	//catch the nil,nil,nil return case
 	if drainFunc == nil {
-		return nil, NewAppError(400, nil, "file must be supplied as multipart mime part"), nil
+		return dp, nil, NewAppError(400, nil, "file must be supplied as multipart mime part"), nil
 	}
-	return drainFunc, nil, nil
+	return dp, drainFunc, nil, nil
 }
 
 func (h AppServer) beginUpload(ctx context.Context, caller Caller, part *multipart.Part, obj *models.ODObject, grant *models.ODObjectPermission) (beginDrain func(), herr *AppError, err error) {
@@ -191,7 +197,7 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 	iv := obj.EncryptIV
 	// TODO this is where we actually use grant.
 	fileKey := utils.ApplyPassphrase(h.MasterKey, grant.PermissionIV, grant.EncryptKey)
-	d := h.DrainProvider
+	d := FindCiphertextCacheByObject(obj)
 
 	// DrainCacheData.Resolve(FileName) returns a path.
 	outFileUploading := d.Resolve(NewFileName(fileID, ".uploading"))
@@ -231,19 +237,19 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 	obj.ContentSize.Int64 = length
 
 	//At the end of this function, we can mark the file as stored in S3.
-	return func() { h.cacheToDrain(&configx.DefaultBucket, fileID, length, 3) }, nil, err
+	return func() { h.Writeback(obj, fileID, length, 3) }, nil, err
 }
 
-func (h AppServer) cacheToDrain(bucket *string, rName FileId, size int64, tries int) error {
+func (h AppServer) Writeback(obj *models.ODObject, rName FileId, size int64, tries int) error {
 	beganAt := h.Tracker.BeginTime(performance.S3DrainTo)
-	err := h.cacheToDrainAttempt(bucket, rName, size, tries)
+	err := h.WritebackAttempt(obj, rName, size, tries)
 	h.Tracker.EndTime(performance.S3DrainTo, beganAt, performance.SizeJob(size))
 	return err
 }
 
-func (h AppServer) cacheToDrainAttempt(bucket *string, rName FileId, size int64, tries int) error {
-	d := h.DrainProvider
-	err := d.CacheToDrain(bucket, rName, size)
+func (h AppServer) WritebackAttempt(obj *models.ODObject, rName FileId, size int64, tries int) error {
+	d := FindCiphertextCacheByObject(obj)
+	err := d.Writeback(rName, size)
 	tries = tries - 1
 	if err != nil {
 		//The problem is that we get things like transient DNS errors,
@@ -252,7 +258,7 @@ func (h AppServer) cacheToDrainAttempt(bucket *string, rName FileId, size int64,
 		//not being uploaded if all attempts fail.
 		if tries > 0 {
 			log.Printf("unable to drain file.  Trying again:%v", err)
-			err = h.cacheToDrainAttempt(bucket, rName, size, tries)
+			err = h.WritebackAttempt(obj, rName, size, tries)
 		} else {
 			log.Printf("unable to drain file.  Trying it in the background:%v", err)
 			//If we don't want to give up and lose the data, we have to keep trying in another goroutine to avoid blowing up the stack
@@ -262,7 +268,7 @@ func (h AppServer) cacheToDrainAttempt(bucket *string, rName FileId, size int64,
 				log.Printf("s3 log attempt sleep")
 				time.Sleep(30 * time.Second)
 				log.Printf("s3 log attempt")
-				h.cacheToDrain(bucket, rName, size, 3)
+				h.Writeback(obj, rName, size, 3)
 			}()
 		}
 	}

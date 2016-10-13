@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -21,7 +20,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	configx "decipher.com/object-drive-server/configx"
 	db "decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/performance"
@@ -170,171 +168,49 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	return contentLength, herr
 }
 
-// drainToCache is the function that retrieves things back out of the drain, and into the cache
-// This is a trivial wrapper around the copy that does performance counting.
-func drainToCache(
-	dp DrainProvider,
-	t *performance.JobReporters,
-	bucket *string,
-	theFile FileId,
-	length int64,
-) (*AppError, error) {
-	beganAt := t.BeginTime(performance.S3DrainFrom)
-	herr, err := dp.DrainToCache(bucket, theFile)
-	//Be careful to count failed transfers as zero bytes transferred in performance counter
-	//I'm assuming that all errors result in a failed file transfer, which is good enough
-	//to get close to correct statistics.
-	transferred := length
-	if herr != nil || err != nil {
-		transferred = 0
-	}
-	t.EndTime(performance.S3DrainFrom, beganAt, performance.SizeJob(transferred))
-	if herr != nil {
-		return herr, err
-	}
-	if err != nil {
-		return nil, err
-	}
-	return nil, nil
-}
-
-// backgroundRecache deals with the case where we go to retrieve a file, and we want to
-// make a better effort than to throw an exception because it is not cached in our local cache.
-// if another routine is caching, then wait for that to finish.
-// if nobody is caching it, then we start that process.
-func backgroundRecache(ctx context.Context, d DrainProvider, t *performance.JobReporters, object *models.ODObject, cipherFilePathCached FileNameCached) {
-	//var err error
-	logger := LoggerFromContext(ctx)
-	// We have no choice but to recache and wait.  We can wait for:
-	//   - another goroutine that is .caching to finish
-	//   - we ourselves start .caching the file
-	// It's possible the client will get impatient and not wait (particularly in a browser).
-	logger.Info(
-		"caching file",
-		zap.String("filename", d.Files().Resolve(cipherFilePathCached)),
-	)
-	bucket := &configx.DefaultBucket
-
-	//XXX - the blocking time waiting for this could be very long
-	// - it is not guaranteed that the proxy will allow us to just stall for a long time
-	// - the user may hit the cancel button in the browser or the app instead of
-	//   waiting for it to make it into the cache.
-	// - Proxies may just cut the connection if there is no traffic passing.  They can't tell if we are stuck.
-	// - so, let's bring it to cache such that it continues if the user disconnects
-	// - The user may simply cut the connection and try later.
-	//    - Should we put an ETA into the header and send the ETA now?
-	//      That way, the user can decide whether to wait or come back later.
-	//      But that sends back a 200 OK because we need to commit to OK in order to write
-	//      headers.
-	//If the http connection gets cut off, this continues to run
-	go func() {
-		//If it's caching, then just wait until the file exists.
-		// a .caching file should NOT exist if there is not a goroutine actually caching the file.
-		// This is why we delete .caching files on startup, and when caching files, we delete .caching
-		// file if the goroutine fails.
-		rName := FileId(object.ContentConnector.String)
-		cachingPath := d.Resolve(NewFileName(rName, ".caching"))
-		cachedPath := d.Resolve(NewFileName(rName, ".cached"))
-		var herr *AppError
-		if _, err := d.Files().Stat(cachingPath); os.IsNotExist(err) {
-			logger.Info("cache miss", zap.String("cachingPath", string(cachingPath)), zap.String("resolvedPath", d.Files().Resolve(cachingPath)))
-			//Start caching the file because this is not happening already.
-			herr, err = drainToCache(d, t, bucket, FileId(rName), object.ContentSize.Int64)
-			if err != nil || herr != nil {
-				var errStr string
-				if err != nil {
-					errStr = err.Error()
-				}
-				var herrStr string
-				if herr != nil {
-					herrStr = herr.Error.Error()
-				}
-				logger.Error(
-					"unable to drain cache",
-					zap.String("err", errStr),
-					zap.String("herr", herrStr),
-				)
-			}
-		} else {
-			// Just stall until the cached file exists - somebody else is caching it.
-			// Using this simple-minded stalling algorithm, we wait 2x longer or up to 30 seconds longer than necessary.
-			sleepTime := time.Duration(1 * time.Second)
-			waitMax := time.Duration(30 * time.Second)
-			for {
-				if _, err := d.Files().Stat(cachedPath); os.IsNotExist(err) {
-					time.Sleep(sleepTime)
-					if sleepTime < waitMax {
-						sleepTime *= 2
-					}
-				} else {
-					break
-				}
-			}
-		}
-		logger.Info(
-			"stall done",
-			zap.String("filename", d.Files().Resolve(cipherFilePathCached)),
-		)
-	}()
-}
-
 // We would like to have a .cached file, but an .uploaded file will do.
-func useLocalFile(d DrainProvider, cipherFilePathCached, cipherFilePathUploaded FileNameCached, cipherStartAt int64) (*os.File, *AppError) {
+//  It is the caller's responsibility to close the file handle
+func useLocalFile(logger zap.Logger, d CiphertextCache, rName FileId, cipherStartAt int64) (*os.File, int64, error) {
 	var cipherFile *os.File
 	var err error
-	//Try to find the cached file
-	if cipherFile, err = d.Files().Open(cipherFilePathCached); err != nil {
-		if os.IsNotExist(err) {
-			//Try the file being uploaded into S3
-			if cipherFile, err = d.Files().Open(cipherFilePathUploaded); err != nil {
-				if os.IsNotExist(err) {
-					//Maybe it's cached now?
-					if cipherFile, err = d.Files().Open(cipherFilePathCached); err != nil {
-						if os.IsNotExist(err) {
-							//File is really not cached or uploaded.
-							//If it's caching, it's partial anyway
-							//leave cipherFile nil, and wait for re-cache
-						} else {
-							//Some other error.
-							return cipherFile, NewAppError(500, err, "Error opening file as cached state")
-						}
-					} else {
-						//cached file exists
-					}
-				} else {
-					//Some other error.
-					return cipherFile, NewAppError(500, err, "Error opening file as uploaded state")
-				}
-			} else {
-				log.Printf("cache is serving file being uploaded")
-			}
-		} else {
-			//Some other error.
-			return cipherFile, NewAppError(500, err, "Error opening file as initial cached state")
-		}
-	} else {
-		//the cached file exists
-	}
+	var length int64
 
-	//Seek to where we should start reading the cipher
-	if cipherFile != nil {
-		_, err = cipherFile.Seek(cipherStartAt, 0)
+	cipherFilePathUploaded := d.Resolve(NewFileName(rName, ".uploaded"))
+	cipherFilePathCached := d.Resolve(NewFileName(rName, ".cached"))
+
+	//Try the uploaded file
+	info, ierr := d.Files().Stat(cipherFilePathUploaded)
+	if ierr == nil {
+		length = info.Size() - cipherStartAt
+	}
+	cipherFile, err = d.Files().Open(cipherFilePathUploaded)
+	if err != nil {
+		//Try the cached file
+		info, ierr := d.Files().Stat(cipherFilePathCached)
+		if ierr == nil {
+			length = info.Size() - cipherStartAt
+		}
+		cipherFile, err = d.Files().Open(cipherFilePathCached)
 		if err != nil {
-			cipherFile.Close()
-			fName := d.Files().Resolve(cipherFilePathCached)
-			return cipherFile, NewAppError(500, err,
-				"Could not seek file",
-				zap.String("filename", fName),
-				zap.Int64("index", cipherStartAt),
-			)
+			if os.IsNotExist(err) {
+				return nil, -1, nil
+			}
+			return nil, -1, err
 		}
-		//Update the timestamps to note the last time it was used
-		// This is done here, as well as successful end just in case of failures midstream.
-		tm := time.Now()
-		d.Files().Chtimes(cipherFilePathCached, tm, tm)
 	}
+	//We have a file handle.  Seek to where we should start reading the cipher.
+	_, err = cipherFile.Seek(cipherStartAt, 0)
+	if err != nil {
+		logger.Error("useLocalFile failed to seek", zap.Int64("cipherStartAt", cipherStartAt))
+		cipherFile.Close()
+		return nil, -1, err
+	}
+	//Update the timestamps to note the last time it was used
+	// This is done here, as well as successful end just in case of failures midstream.
+	tm := time.Now()
+	d.Files().Chtimes(cipherFilePathCached, tm, tm)
 
-	return cipherFile, nil
+	return cipherFile, length, nil
 }
 
 func adjustIV(originalIV []byte, byteRange *utils.ByteRange) []byte {
@@ -380,7 +256,10 @@ func acmExtractItem(item string, rawAcm string) (string, error) {
 	if err == nil {
 		acmData, acmDataOk := acm.(map[string]interface{})
 		if acmDataOk {
-			return acmData[item].(string), nil
+			val, ok := acmData[item].(string)
+			if ok {
+				return val, nil
+			}
 		}
 	}
 	return "", err
@@ -392,7 +271,6 @@ func acmExtractItem(item string, rawAcm string) (string, error) {
 // out of S3.  It will not write these bytes to disk in an intermediate step.
 func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject, w http.ResponseWriter, r *http.Request, encryptKey []byte, withMetadata bool, disposition string) (int64, *AppError) {
 	var err error
-	var herr *AppError
 	var finalStatus *AppError
 	logger := LoggerFromContext(ctx)
 
@@ -483,36 +361,28 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 		}
 	}
 
-	//Fall back on the uploaded copy for download if we need to
-	var cipherFile *os.File
-	d := h.DrainProvider
+	d := FindCiphertextCacheByObject(object)
 	rName := FileId(object.ContentConnector.String)
 	cipherFilePathCached := d.Resolve(NewFileName(rName, ".cached"))
-	cipherFilePathUploaded := d.Resolve(NewFileName(rName, ".uploaded"))
-	cipherFile, herr = useLocalFile(h.DrainProvider, cipherFilePathCached, cipherFilePathUploaded, cipherStartAt)
-	if herr != nil {
-		return 0, herr
-	}
-
-	//Was it found already?
+	totalLength := object.ContentSize.Int64
+	isLocalPuller := false
 	var cipherReader io.ReadCloser
-	if cipherFile == nil {
-		//Not found, so pull the file to disk from S3 in the backgroundRecache
-		logger.Info("s3 cache miss")
-		backgroundRecache(ctx, h.DrainProvider, h.Tracker, object, cipherFilePathCached)
-		totalLength := object.ContentSize.Int64
-		//...where this looks like a normal io.ReadCloser, but it keeps range requesting to
-		//...keep full with bytes, as requested.  This deals neatly with clients that connect,
-		//...and only pull a small number of bytes.
-		cipherReader, err = d.NewS3Puller(logger, rName, totalLength, cipherStartAt, -1)
-		if err != nil {
-			return 0, NewAppError(500, err, "s3 pull fail", zap.String("err", err.Error()))
-		}
-	} else {
-		cipherReader = cipherFile
-	}
 
+	//Pull the file from the cache
+	cipherReader, isLocalPuller, err = d.NewPuller(logger, rName, totalLength, cipherStartAt, -1)
+	if err != nil {
+		return 0, NewAppError(500, err, err.Error())
+	}
 	defer cipherReader.Close()
+	//If it didn't come from the files in the cache, then make sure we ReCache it for future use
+	//TODO: it might be desirable to only do this probabilistically
+	if !isLocalPuller {
+		go func() {
+			beganAt := h.Tracker.BeginTime(performance.S3DrainFrom)
+			d.BackgroundRecache(rName, object.ContentSize.Int64)
+			h.Tracker.EndTime(performance.S3DrainFrom, beganAt, performance.SizeJob(fullLength))
+		}()
+	}
 
 	//Skip over blocks we won't use, and adjust byteRange to match it
 	iv := adjustIV(object.EncryptIV, byteRange)

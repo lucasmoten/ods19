@@ -12,18 +12,14 @@ import (
 	"syscall"
 
 	globalconfig "decipher.com/object-drive-server/config"
-	configx "decipher.com/object-drive-server/configx"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/uber-go/zap"
 )
 
 var (
-	//chunksInMegs is a default number of megabytes to fetch from S3 when there is a cache miss
-	chunkSize = int64(globalconfig.GetEnvOrDefaultInt("OD_AWS_S3_FETCH_MB", 16)) * int64(1024*1024)
+	//chunksInMegs is a default number of megabytes to fetch from PermanentStorage when there is a cache miss
+	chunkSize = int64(globalconfig.GetEnvOrDefaultInt("OD_AWS_S3_FETCH_MB", 32)) * int64(1024*1024)
 )
 
 const (
@@ -33,32 +29,26 @@ const (
 	FailPurgeAnomaly = 1501
 	// FailCacheWalk error code given when we tried to walk cache, and something went wrong
 	FailCacheWalk = 1502
-	// FailDrainToCache error code given when we could not drain to cache
-	FailDrainToCache = 1503
-	// FailCacheToDrain error code given when we could not cache to drain
-	FailCacheToDrain = 1504
+	// FailRecache error code given when we could not drain to cache
+	FailRecache = 1503
+	// FailWriteback error code given when we could not cache to drain
+	FailWriteback = 1504
 	// FailS3Download error code given when we failed to download out of S3
 	FailS3Download = 1505
 )
 
-// NullDrainProviderData is just a file location that does not talk to S3.
-type NullDrainProviderData struct {
+// CiphertextCacheData moves data from cache to the drain... S3 buckets in this case.
+type CiphertextCacheData struct {
+	//The key that this CiphertextCache is stored under
+	CiphertextCacheSelector string
 	//Where the CacheLocation is rooted on disk (ie: a very large drive mounted)
 	CacheObject DrainCache
-	//Location of the cache
-	CacheLocationString string
-	//Logger for logging
-	Logger zap.Logger
-}
 
-// S3DrainProviderData moves data from cache to the drain... S3 buckets in this case.
-type S3DrainProviderData struct {
-	//Where the CacheLocation is rooted on disk (ie: a very large drive mounted)
-	CacheObject DrainCache
+	//This is the place to write back persistence
+	PermanentStorage PermanentStorage
+
 	//Location of the cache
 	CacheLocationString string
-	//The connection to S3
-	AWSSession *session.Session
 
 	//Dont begin purging anything until we are at this fraction of disk for cache
 	//TODO: may need to tune on small systems where the OS is counted in the partition,
@@ -84,37 +74,36 @@ type S3DrainProviderData struct {
 	Logger zap.Logger
 }
 
-// NewS3DrainProvider sets up a drain with default parameters overridden by environment variables
-func NewS3DrainProvider(conf configx.S3DrainProviderOpts, name string) DrainProvider {
-	logger := globalconfig.RootLogger.With(zap.String("session", "drainprovider"))
-
-	walkSleepDuration := time.Duration(conf.WalkSleep) * time.Second
-
-	d := NewS3DrainProviderRaw(conf.Root, name, conf.LowWatermark, conf.EvictAge, conf.HighWatermark, walkSleepDuration, logger)
-	go d.DrainUploadedFilesToSafety()
-	return d
-}
-
-// NewS3DrainProviderRaw set up a new drain provider that gives us members to use the drain and goroutine to clean cache.
-// Call this to build a test cache.
-func NewS3DrainProviderRaw(
-	root, name string,
-	lowWatermark float64,
-	ageEligibleForEviction int64,
-	highWatermark float64,
-	walkSleep time.Duration,
-	logger zap.Logger,
-) *S3DrainProviderData {
-	s3Config := configx.NewS3Config()
-	d := &S3DrainProviderData{
-		AWSSession:             NewAWSSession(s3Config.AWSConfig, logger),
-		CacheObject:            DrainCacheData{root},
-		CacheLocationString:    name,
-		lowWatermark:           lowWatermark,
-		ageEligibleForEviction: ageEligibleForEviction,
-		highWatermark:          highWatermark,
-		walkSleep:              walkSleep,
-		Logger:                 logger,
+// NewCiphertextCacheRaw is a cache that goes off to PermanentStorage.
+// It is now unrelated to S3 in particular.
+// Strategy:
+//  * for uploads, *.uploaded files must make it to permanent storage eventually.
+//  * for downloads, try disk first, then try permanent storage once.
+//    if it is not in permanent storage, then it must be in one of our peers - who
+//    is still trying to get it into permanent storage, so try
+//    the peers once before resorting to re-checking permanent storage with sleep time in between.
+//
+//  When using this download rule, we should *never* be stalling for ciphertext
+//  unless something is wrong.  Whether from S3 or a peer, the whole file
+//  should be available once the database object exists.  In other words, it's basically a bug to ever see:
+//
+//    "unable to download out of PermanentStorage"
+//
+//  in the logs
+//
+//
+//
+func NewCiphertextCacheRaw(root, name string, lowWatermark float64, ageEligibleForEviction int64, highWatermark float64, walkSleep time.Duration, logger zap.Logger, permanentStorage PermanentStorage) *CiphertextCacheData {
+	d := &CiphertextCacheData{
+		CiphertextCacheSelector: defaultCiphertextCacheKey,
+		PermanentStorage:        permanentStorage,
+		CacheObject:             DrainCacheData{root},
+		CacheLocationString:     name,
+		lowWatermark:            lowWatermark,
+		ageEligibleForEviction:  ageEligibleForEviction,
+		highWatermark:           highWatermark,
+		walkSleep:               walkSleep,
+		Logger:                  logger,
 	}
 	CacheMustExist(d, logger)
 	logger.Info("cache purge",
@@ -127,62 +116,21 @@ func NewS3DrainProviderRaw(
 }
 
 // Resolve a name to somewhere in the cache, given the rName
-func (d *S3DrainProviderData) Resolve(fName FileName) FileNameCached {
+func (d *CiphertextCacheData) Resolve(fName FileName) FileNameCached {
 	return FileNameCached(d.CacheLocationString + "/" + string(fName))
-}
-
-// Resolve a name to somewhere in the cache, given the rName
-func (d *NullDrainProviderData) Resolve(fName FileName) FileNameCached {
-	return FileNameCached(d.CacheLocationString + "/" + string(fName))
-}
-
-// NewNullDrainProvider setup a drain provider that doesnt use S3 backend, just local caching.
-func NewNullDrainProvider(root, name string) DrainProvider {
-	logger := globalconfig.RootLogger.With(zap.String("session", "drainprovider"))
-
-	d := &NullDrainProviderData{
-		CacheObject:         DrainCacheData{root},
-		CacheLocationString: name,
-		Logger:              logger,
-	}
-	CacheMustExist(d, logger)
-	//there is no goroutine to purge, because there was no place to drain off to
-	return d
 }
 
 // Files is the mount point of instances
-func (d *S3DrainProviderData) Files() DrainCache {
+func (d *CiphertextCacheData) Files() DrainCache {
 	return d.CacheObject
-}
-
-// Files is the mount point of cache instances
-func (d *NullDrainProviderData) Files() DrainCache {
-	return d.CacheObject
-}
-
-// CacheToDrain just renames the file without moving it for the null implementation.
-func (d *NullDrainProviderData) CacheToDrain(
-	bucket *string,
-	rName FileId,
-	size int64,
-) error {
-	var err error
-	outFileUploaded := d.Resolve(NewFileName(rName, ".uploaded"))
-	outFileCached := d.Resolve(NewFileName(rName, ".cached"))
-	err = d.Files().Rename(outFileUploaded, outFileCached)
-	if err != nil {
-		d.Logger.Error(
-			"unable to rename uploaded file",
-			zap.String("filename", d.Files().Resolve(outFileUploaded)),
-			zap.String("err", err.Error()),
-		)
-		return err
-	}
-	return nil
 }
 
 // DrainUploadedFilesToSafetyRaw is the drain without the goroutine at the end
-func (d *S3DrainProviderData) DrainUploadedFilesToSafetyRaw() {
+func (d *CiphertextCacheData) DrainUploadedFilesToSafetyRaw() {
+	if d.PermanentStorage == nil {
+		d.Logger.Info("PersistentStorage not used")
+		return
+	}
 	//Walk through the cache, and handle .uploaded files
 	fqCache := d.Files().Resolve(d.Resolve(""))
 	err := filepath.Walk(
@@ -204,13 +152,12 @@ func (d *S3DrainProviderData) DrainUploadedFilesToSafetyRaw() {
 			}
 			size := f.Size()
 			ext := path.Ext(fqName)
-			bucket := &configx.DefaultBucket
 			if ext == ".uploaded" {
 				fBase := path.Base(fqName)
 				rName := FileId(fBase[:len(fBase)-len(ext)])
-				err := d.CacheToDrain(bucket, rName, size)
+				err := d.Writeback(rName, size)
 				if err != nil {
-					sendAppErrorResponse(d.Logger, nil, NewAppError(FailCacheToDrain, err, "error draining cache"))
+					sendAppErrorResponse(d.Logger, nil, NewAppError(FailWriteback, err, "error draining cache"))
 				}
 			}
 			if ext == ".caching" || ext == ".uploading" {
@@ -229,26 +176,27 @@ func (d *S3DrainProviderData) DrainUploadedFilesToSafetyRaw() {
 
 // DrainUploadedFilesToSafety moves files that were not completely sent to S3 into S3.
 // This can happen if the server reboots.
-func (d *S3DrainProviderData) DrainUploadedFilesToSafety() {
+func (d *CiphertextCacheData) DrainUploadedFilesToSafety() {
 	d.DrainUploadedFilesToSafetyRaw()
 	d.Logger.Info("cache purge start")
 	//Only now can we start to purge files
 	go d.CachePurge()
 }
 
-// CacheToDrain drains to S3.  Note that because this is async with respect to the http session,
+// Writeback drains to PermanentStorage.  Note that because this is async with respect to the http session,
 // we cant return AppError.
 //
 // Dont delete the file here if something goes wrong... because the caller tries this multiple times
 //
-func (d *S3DrainProviderData) CacheToDrain(bucket *string, rName FileId, size int64) error {
-	sess := d.AWSSession
+func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 	outFileUploaded := d.Resolve(FileName(rName + ".uploaded"))
+	key := aws.String(string(d.Resolve(NewFileName(rName, ""))))
 
+	//Get a filehandle to read the file to write back to permanent storage
 	fIn, err := d.Files().Open(outFileUploaded)
 	if err != nil {
 		d.Logger.Error(
-			"Cant drain off file",
+			"Cant writeback file",
 			zap.String("filename", d.Files().Resolve(outFileUploaded)),
 			zap.String("err", err.Error()),
 		)
@@ -256,25 +204,24 @@ func (d *S3DrainProviderData) CacheToDrain(bucket *string, rName FileId, size in
 	}
 	defer fIn.Close()
 
-	key := aws.String(string(d.Resolve(NewFileName(rName, ""))))
-	d.Logger.Info("drain to S3", zap.String("bucket", *bucket), zap.String("key", *key))
-
-	uploader := s3manager.NewUploader(sess)
-	_, err = uploader.Upload(&s3manager.UploadInput{
-		Body:   fIn,
-		Bucket: bucket,
-		Key:    key,
-	})
-	if err != nil {
-		d.Logger.Error(
-			"Could not write to S3",
-			zap.String("err", err.Error()),
+	if d.PermanentStorage != nil {
+		d.Logger.Info(
+			"writeback to PermanentStorage",
+			zap.String("bucket", *d.PermanentStorage.GetBucket()),
+			zap.String("key", *key),
 		)
-		return err
+
+		err = d.PermanentStorage.Upload(fIn, key)
+		if err != nil {
+			d.Logger.Error(
+				"Could not write to PermanentStorage",
+				zap.String("err", err.Error()),
+			)
+			return err
+		}
 	}
 
-	//Rename the file to note that it only lives here as cached for download
-	//It might be deleted at any time
+	//Rename the file to note success
 	outFileCached := d.Resolve(NewFileName(rName, ".cached"))
 	err = d.Files().Rename(outFileUploaded, outFileCached)
 	if err != nil {
@@ -286,47 +233,25 @@ func (d *S3DrainProviderData) CacheToDrain(bucket *string, rName FileId, size in
 		)
 		return err
 	}
-	d.Logger.Info(
-		"s3 stored",
-		zap.String("rname", string(rName)),
-	)
+	if d.PermanentStorage != nil {
+		d.Logger.Info(
+			"PermanentStorage stored",
+			zap.String("rname", string(rName)),
+		)
+	}
 
 	return err
 }
 
-// DrainToCache does nothing for a null drain which leaves files local.
-func (d *NullDrainProviderData) DrainToCache(bucket *string, theFile FileId) (*AppError, error) {
-	return nil, nil
-}
+func (d *CiphertextCacheData) doDownloadFromPermanentStorage(foutCaching FileNameCached, key *string) error {
 
-// S3DownloadAttempt ...
-func S3DownloadAttempt(d *S3DrainProviderData, downloader *s3manager.Downloader, fOut *os.File, bucket *string, key *string) (int64, error) {
-	length, err := downloader.Download(
-		fOut,
-		&s3.GetObjectInput{
-			Bucket: bucket,
-			Key:    key,
-		},
-	)
-	if err != nil {
-		d.Logger.Info("unable to download out of s3", zap.String("bucket", *bucket), zap.String("key", *key))
+	if d.GetPermanentStorage() == nil {
+		return fmt.Errorf("without permanent storage, we can only p2p download")
 	}
-	return length, err
-}
 
-// DrainToCache gets a file back out of the drain into the cache.
-func (d *S3DrainProviderData) DrainToCache(bucket *string, rName FileId) (*AppError, error) {
-	d.Logger.Info(
-		"get from S3",
-		zap.String("bucket", *bucket),
-		zap.String("key", string(rName)),
-	)
-
-	// This file must ONLY exist for the duration of this function.
-	// we must remove it or rename it before we exit.
-	foutCaching := d.Resolve(NewFileName(rName, ".caching"))
-	foutCached := d.Resolve(NewFileName(rName, ".cached"))
+	//Do a whole file download from PermanentStorage
 	fOut, err := d.Files().Create(foutCaching)
+	defer fOut.Close()
 	if err != nil {
 		msg := "unable to write local buffer"
 		d.Logger.Error(
@@ -334,28 +259,139 @@ func (d *S3DrainProviderData) DrainToCache(bucket *string, rName FileId) (*AppEr
 			zap.String("filename", d.Files().Resolve(foutCaching)),
 			zap.String("err", err.Error()),
 		)
-		sendAppErrorResponse(d.Logger, nil, NewAppError(FailDrainToCache, err, msg))
-		return nil, err
 	}
-	defer d.Files().Remove(foutCaching)
-	defer fOut.Close()
+	if fOut != nil {
+		_, err = d.PermanentStorage.Download(fOut, key)
+		return err
+	}
+	return err
+}
 
+// BackgroundRecache deals with the case where we go to retrieve a file, and we want to
+// make a better effort than to throw an exception because it is not cached in our local cache.
+// if another routine is caching, then wait for that to finish.
+// if nobody is caching it, then we start that process.
+func (d *CiphertextCacheData) BackgroundRecache(rName FileId, totalLength int64) {
+
+	logger := d.Logger
+	cachingPath := d.Resolve(NewFileName(rName, ".caching"))
+	cachedPath := d.Resolve(NewFileName(rName, ".cached"))
+
+	logger.Info(
+		"caching file",
+		zap.String("filename", string(cachedPath)),
+	)
+
+	if _, err := d.Files().Stat(cachingPath); os.IsNotExist(err) {
+		//Start caching the file because this is not happening already.
+		err = d.Recache(rName)
+		if err != nil {
+			logger.Error(
+				"background recache failed",
+				zap.String("err", err.Error()),
+			)
+		}
+	} else {
+		// Just stall until the cached file exists - somebody else is caching it.
+		// Using this simple-minded stalling algorithm, we wait 2x longer or up to 30 seconds longer than necessary.
+		sleepTime := time.Duration(1 * time.Second)
+		waitMax := time.Duration(30 * time.Second)
+		for {
+			if _, err := d.Files().Stat(cachedPath); os.IsNotExist(err) {
+				time.Sleep(sleepTime)
+				if sleepTime < waitMax {
+					sleepTime *= 2
+				}
+			} else {
+				break
+			}
+		}
+	}
+	logger.Info(
+		"background recache done",
+		zap.String("filename", string(cachedPath)),
+	)
+}
+
+// Recache gets a WHOLE file back out of the drain into the cache.
+func (d *CiphertextCacheData) Recache(rName FileId) error {
+
+	//If it's already cached, then we have no work to do
+	foutCached := d.Resolve(NewFileName(rName, ".cached"))
+	if _, err := d.Files().Stat(foutCached); os.IsExist(err) {
+		d.Logger.Info("already recached")
+		return nil
+	}
+
+	//We are not supposed to be trying to get multiple copies of the same ciphertext into cache at same time
+	foutCaching := d.Resolve(NewFileName(rName, ".caching"))
+	if _, err := d.Files().Stat(foutCaching); os.IsExist(err) {
+		d.Logger.Error("Recache error.  Simultaneous caching of same file")
+		return err
+	}
+
+	if d.PermanentStorage != nil {
+		d.Logger.Info(
+			"recache from PermanentStorage",
+			zap.String("bucket", *d.PermanentStorage.GetBucket()),
+			zap.String("key", string(rName)),
+		)
+	}
+
+	key := aws.String(string(d.Resolve(NewFileName(rName, ""))))
+
+	// This file must ONLY exist for the duration of this function.
+	// we must remove it or rename it before we exit.
+	// It is used to lock downloads of this file.
+	//
+	// This is also why we must delete all caching files on startup.
+	defer d.Files().Remove(foutCaching)
+
+	var err error
+
+	err = d.doDownloadFromPermanentStorage(foutCaching, key)
+	if err != nil {
+		d.Logger.Warn("cache p2p PermanentStorage error", zap.String("err", err.Error()))
+		//Check p2p.... it has to be there...
+		var filep2p io.ReadCloser
+		filep2p, err = useP2PFile(d.Logger, d.CiphertextCacheSelector, rName, 0)
+		if err != nil {
+			d.Logger.Error("p2p PermanentStorage cannot find", zap.String("err", err.Error()))
+		}
+		if filep2p != nil {
+			defer filep2p.Close()
+			fOut, err := d.Files().Create(foutCaching)
+			if err == nil {
+				//We need to copy the *whole* file in this case.
+				_, err = io.Copy(fOut, filep2p)
+				fOut.Close()
+				if err != nil {
+					d.Logger.Error("p2p recache failed", zap.String("err", err.Error()))
+				} else {
+					d.Logger.Info("p2p recache success")
+				}
+				//leave err where it is.
+			}
+		}
+	}
+
+	//This only exists for exotic corner cases.  Without network errors,
+	//this block should be unreachable.
+	//So, we can only stall for it now
 	//Try to download it a few times, doubling our willingness to wait each time
 	//files move up into S3 at 30MB/s
 	tries := 22
 	waitTime := 1 * time.Second
 	prevWaitTime := 0 * time.Second
-	key := aws.String(string(d.Resolve(NewFileName(rName, ""))))
-	downloader := s3manager.NewDownloader(d.AWSSession)
-	for tries > 0 {
-		_, err = S3DownloadAttempt(d, downloader, fOut, bucket, key)
+	for tries > 0 && err != nil && d.GetPermanentStorage() != nil {
+		err = d.doDownloadFromPermanentStorage(foutCaching, key)
 		tries--
 		if err == nil {
 			break
 		} else {
 			d.Logger.Error(
-				"unable to download out of S3",
-				zap.String("bucket", *bucket),
+				"unable to download out of PermanentStorage or p2p",
+				zap.String("bucket", *d.PermanentStorage.GetBucket()),
 				zap.Duration("seconds", waitTime/(time.Second)),
 				zap.Int("more tries", tries-1),
 				zap.String("key", string(rName)),
@@ -368,9 +404,10 @@ func (d *S3DrainProviderData) DrainToCache(bucket *string, rName FileId) (*AppEr
 			prevWaitTime = oldWaitTime
 		}
 	}
+
 	if err != nil {
-		fqName := d.Files().Resolve(foutCached)
-		return NewAppError(500, err, "giving up on s3 cache", zap.String("key", fqName)), err
+		d.Logger.Error("giving up on recaching file", zap.String("err", err.Error()))
+		return err
 	}
 
 	//Signal that we finally cached the file
@@ -381,13 +418,14 @@ func (d *S3DrainProviderData) DrainToCache(bucket *string, rName FileId) (*AppEr
 			zap.String("from", d.Files().Resolve(foutCaching)),
 			zap.String("to", d.Files().Resolve(foutCached)),
 		)
+		return err
 	}
-	d.Logger.Info("s3 fetched", zap.String("rname", string(rName)))
-	return nil, nil
+	d.Logger.Info("fetched ciphertext", zap.String("rname", string(rName)))
+	return nil
 }
 
 // CacheMustExist ensures that the cache directory exists.
-func CacheMustExist(d DrainProvider, logger zap.Logger) (err error) {
+func CacheMustExist(d CiphertextCache, logger zap.Logger) (err error) {
 	if _, err = d.Files().Stat(d.Resolve("")); os.IsNotExist(err) {
 		err = d.Files().MkdirAll(d.Resolve(""), 0700)
 		cacheResolved := d.Files().Resolve(d.Resolve(""))
@@ -431,7 +469,7 @@ func CacheMustExist(d DrainProvider, logger zap.Logger) (err error) {
 //  a delay in size drops that is dependent on size and doubly dependent on age since last access.
 //  Size and Age prioritize what is still sitting in cache when we hit lowWatermark.
 //
-func filePurgeVisit(d *S3DrainProviderData, fqName string, f os.FileInfo, err error) (errReturn error) {
+func filePurgeVisit(d *CiphertextCacheData, fqName string, f os.FileInfo, err error) (errReturn error) {
 	if err != nil {
 		sendAppErrorResponse(d.Logger, nil, NewAppError(FailPurgeAnomaly, nil,
 			"error walking directory",
@@ -490,15 +528,14 @@ func filePurgeVisit(d *S3DrainProviderData, fqName string, f os.FileInfo, err er
 						zap.String("err", errReturn.Error()),
 					))
 					return nil
-				} else {
-					d.Logger.Info(
-						"purge",
-						zap.String("filename", fqName),
-						zap.Int64("ageinseconds", ageInSeconds),
-						zap.Int64("size", size),
-						zap.Float64("usage", usage),
-					)
 				}
+				d.Logger.Info(
+					"purge",
+					zap.String("filename", fqName),
+					zap.Int64("ageinseconds", ageInSeconds),
+					zap.Int64("size", size),
+					zap.Float64("usage", usage),
+				)
 			}
 		}
 	default:
@@ -515,23 +552,22 @@ func filePurgeVisit(d *S3DrainProviderData, fqName string, f os.FileInfo, err er
 					zap.String("err", errReturn.Error()),
 				))
 				return nil
-			} else {
-				//Count this anomaly
-				sendAppErrorResponse(d.Logger, nil, NewAppError(PurgeAnomaly, nil,
-					"purged for age",
-					zap.String("filename", fqName),
-					zap.Int64("age", ageInSeconds),
-					zap.Float64("usage", usage),
-				))
-				return nil
 			}
+			//Count this anomaly
+			sendAppErrorResponse(d.Logger, nil, NewAppError(PurgeAnomaly, nil,
+				"purged for age",
+				zap.String("filename", fqName),
+				zap.Int64("age", ageInSeconds),
+				zap.Float64("usage", usage),
+			))
+			return nil
 		}
 	}
 	return
 }
 
 // CacheInventory writes an inventory of what's in the cache to a writer for the stats page
-func (d *S3DrainProviderData) CacheInventory(w io.Writer, verbose bool) {
+func (d *CiphertextCacheData) CacheInventory(w io.Writer, verbose bool) {
 	fqCache := d.Files().Resolve(d.Resolve(""))
 	fmt.Fprintf(w, "\n\ncache at %s on %s\n", fqCache, globalconfig.NodeID)
 	filepath.Walk(
@@ -549,7 +585,7 @@ func (d *S3DrainProviderData) CacheInventory(w io.Writer, verbose bool) {
 
 // CountUploaded tells us how many files still need to be uploaded, which we use
 // to determine if this is a good time to shut down
-func (d *S3DrainProviderData) CountUploaded() int {
+func (d *CiphertextCacheData) CountUploaded() int {
 	uploaded := 0
 	fqCache := d.Files().Resolve(d.Resolve(""))
 	filepath.Walk(
@@ -567,7 +603,11 @@ func (d *S3DrainProviderData) CountUploaded() int {
 }
 
 // CachePurge will periodically delete files that do not need to be in the cache.
-func (d *S3DrainProviderData) CachePurge() {
+func (d *CiphertextCacheData) CachePurge() {
+	if d.PermanentStorage == nil {
+		d.Logger.Info("PersistentStorage is nil.  purge is disabled.")
+		return
+	}
 	// read from environment variables:
 	//    lowWatermark (floating point 0..1)
 	//    highWatermark (floating point 0..1)
@@ -592,89 +632,67 @@ func (d *S3DrainProviderData) CachePurge() {
 	}
 }
 
-// TestS3Connection can be run to inspect the environment for configured S3
-// bucket names, and verify that those buckets are writable with our credentials.
-func TestS3Connection(sess *session.Session) bool {
-	logger := globalconfig.RootLogger.With(zap.String("session", "drainprovider"))
-
-	uploader := s3manager.NewUploader(sess)
-	bucketName := globalconfig.GetEnvOrDefault("OD_AWS_S3_BUCKET", "")
-	if bucketName == "" {
-		logger.Error("serviceTestError",
-			zap.String("err", "Missing environment variable OD_AWS_S3_BUCKET"))
-		return false
-	}
-	input := s3.GetBucketAclInput{Bucket: strPtr(bucketName)}
-	output, err := uploader.S3.GetBucketAcl(&input)
-	if err != nil {
-		logger.Error("serviceTestError", zap.String("err", err.Error()))
-		return false
-	}
-	hasRead, hasWrite := false, false
-	for _, grant := range output.Grants {
-		if *grant.Permission == "WRITE" {
-			hasWrite = true
-		}
-		if *grant.Permission == "READ" {
-			hasRead = true
-		}
-	}
-
-	if hasRead && hasWrite {
-		return true
-	}
-
-	logger.Error("serviceTestError",
-		zap.String("err", "Insufficient permissions on bucket"),
-		zap.Object("GetBucketAclOutput", output),
-	)
-	return false
+// GetPermanentStorage gets the permanent storage provider plugged into this cache
+func (d *CiphertextCacheData) GetPermanentStorage() PermanentStorage {
+	return d.PermanentStorage
 }
 
-func strPtr(s string) *string { return &s }
-
-// S3Puller hides the range requesting out of S3, to look like a file handle that just keeps giving back data
-type S3Puller struct {
-	S3Svc       *s3.S3
-	Logger      zap.Logger
-	AWSSession  *session.Session
-	TotalLen    int64
-	CipherStart int64
-	CipherStop  int64
-	Key         *string
-	Bucket      *string
-	StartFrom   int64
-	File        io.ReadCloser
-	Remaining   int64
-	ChunkSize   int64
-	Index       int64
+// GetCiphertextCacheSelector is the key that this is stored under
+func (d *CiphertextCacheData) GetCiphertextCacheSelector() string {
+	return d.CiphertextCacheSelector
 }
 
-// NewS3Puller prepares to start pulling from S3
-func (d *S3DrainProviderData) NewS3Puller(logger zap.Logger, rName FileId, totalLength, cipherStartAt, cipherStopAt int64) (io.ReadCloser, error) {
+// SetCiphertextCacheSelector sets the key by which we actually do the lookup
+func (d *CiphertextCacheData) SetCiphertextCacheSelector(CiphertextCacheSelector string) {
+	d.CiphertextCacheSelector = CiphertextCacheSelector
+}
+
+// Puller is a virtual io.ReadCloser that gets range-requested chunks out of S3 to look like one contiguous file.
+// It hides the range requesting out of PermanentStorage, to look like a file handle that just keeps giving back data.
+type Puller struct {
+	CiphertextCache *CiphertextCacheData `json:"-"`
+	Logger          zap.Logger           `json:"-"`
+	TotalLen        int64
+	CipherStart     int64
+	CipherStop      int64
+	Key             *string `json:"-"`
+	RName           FileId
+	File            io.ReadCloser `json:"-"`
+	Remaining       int64
+	ChunkSize       int64
+	Index           int64
+	IsLocal         bool
+	IsP2P           bool
+}
+
+// NewPuller prepares to start pulling ciphertexts.  This should now be the ONLY way to get them.
+func (d *CiphertextCacheData) NewPuller(logger zap.Logger, rName FileId, totalLength, cipherStartAt, cipherStopAt int64) (io.ReadCloser, bool, error) {
 	key := aws.String(string(d.Resolve(NewFileName(rName, ""))))
-	bucket := &configx.DefaultBucket
-
-	p := &S3Puller{
-		S3Svc:       s3.New(d.AWSSession),
-		Logger:      logger,
-		AWSSession:  d.AWSSession,
-		TotalLen:    totalLength,
-		CipherStart: cipherStartAt,
-		CipherStop:  cipherStopAt,
-		Key:         key,
-		Bucket:      bucket,
-		File:        nil,
-		ChunkSize:   chunkSize,
-		Index:       cipherStartAt,
+	p := &Puller{
+		CiphertextCache: d,
+		Logger:          logger,
+		TotalLen:        totalLength,
+		CipherStart:     cipherStartAt,
+		CipherStop:      cipherStopAt,
+		Key:             key,
+		RName:           rName,
+		File:            nil,
+		ChunkSize:       chunkSize,
+		Index:           cipherStartAt,
 	}
 
-	//We want to stall for first contact from S3
+	//look in permanent storage first
+	err := p.More(false)
+	if err != nil {
+		//This will find it in a peer if it wasn't already found
+		err = p.More(true)
+	}
 	sleepTime := time.Duration(1) * time.Second
 	attempts := 20
-	var err error
-	for {
-		err = p.More()
+	for attempts > 0 && err != nil && d.GetPermanentStorage() != nil {
+		//Keep trying PermanentStorage
+		//In general, we should never get here, because it's a barely bounded stall.
+		err = p.More(false)
 		if err == nil {
 			break
 		}
@@ -683,77 +701,99 @@ func (d *S3DrainProviderData) NewS3Puller(logger zap.Logger, rName FileId, total
 			break
 		}
 		sleepTime = sleepTime + sleepTime
-		p.Logger.Info("s3 pull stall", zap.Int("sleepInSeconds", int(sleepTime/time.Second)))
+		p.Logger.Info(
+			"PermanentStorage pull stall",
+			zap.Int("sleepInSeconds", int(sleepTime/time.Second)),
+		)
 		time.Sleep(sleepTime)
 	}
-	return p, err
+	if err != nil {
+		return nil, false, err
+	}
+	return p, p.IsLocal, nil
 }
 
-// More will refresh from S3 for more data
-func (p *S3Puller) More() error {
-	var rangeReq string
+// getFileHandle will try to get a file handle from the best location.
+// end is only used for GetObject pulls, which have high latency because we cannot stream until we have the file.
+func (p *Puller) getFileHandle(begin, end int64, p2p bool) (io.ReadCloser, error) {
+	////Always check disk first - this lets us switch to disk when background cache finishes.
+	file, _, err := useLocalFile(p.CiphertextCache.Logger, p.CiphertextCache, p.RName, begin)
+	if file != nil {
+		p.IsLocal = true
+		return file, nil
+	}
+	//try p2p if asked, or if no PermanentStorage even exists
+	p.IsLocal = false
+	var filep2p io.ReadCloser
+	//Having no permanent storage is like an implicit p2p flag
+	if p2p || p.IsP2P || p.CiphertextCache.GetPermanentStorage() == nil {
+		filep2p, err = useP2PFile(p.Logger, p.CiphertextCache.CiphertextCacheSelector, p.RName, begin)
+	}
+	if err != nil {
+		p.Logger.Info("puller cant use p2p", zap.String("err", err.Error()))
+	}
+	if filep2p != nil {
+		//If we got a chunk p2p, then we need to be allowed to continue to run p2p for the remainder of this pull
+		p.IsP2P = true
+		return filep2p, nil
+	}
+	//Range request it out of PermanentStorage if we can
+	f, err := p.CiphertextCache.GetPermanentStorage().GetObject(p.Key, begin, end)
+	return f, err
+}
+
+// More will refresh from PermanentStorage for more data
+func (p *Puller) More(useP2P bool) error {
+	//Compute the indices that we need for getting this range
 	clen := p.ChunkSize
 	if p.Index == p.TotalLen {
 		return io.EOF
 	}
+	begin := p.Index
+	end := int64(-1)
 	//These numbers should have been snapped to cipher block boundaries if they were not already
 	if p.Index+clen < p.TotalLen {
-		rangeReq = fmt.Sprintf("bytes=%d-%d", p.Index, p.Index+clen-1)
+		end = p.Index + clen - 1
 	} else {
 		clen = p.TotalLen - p.Index
-		rangeReq = fmt.Sprintf("bytes=%d-", p.Index)
 	}
-	//p.Logger.Info("s3 fill", zap.String("range", rangeReq), zap.Int64("total", p.TotalLen))
-	oOut, err := p.S3Svc.GetObject(
-		&s3.GetObjectInput{
-			Bucket: p.Bucket,
-			Key:    p.Key,
-			Range:  &rangeReq,
-		},
-	)
-	//p.Logger.Info("s3 fill end")
+	f, err := p.getFileHandle(begin, end, useP2P)
 	if err != nil {
-		p.Logger.Info(
-			"unable to download out of s3",
-			zap.String("bucket", *p.Bucket),
+		p.Logger.Error(
+			"unable to get a puller filehandle",
 			zap.String("key", *p.Key),
 			zap.String("err", err.Error()),
 		)
 		return err
 	}
-	p.File = oOut.Body
+	if f == nil {
+		p.Logger.Error("puller cannot get filehandle")
+	}
+	p.File = f
 	p.Remaining = clen
 	return nil
 }
 
-// Keep calling this to read out of S3
-func (p *S3Puller) Read(data []byte) (int, error) {
+// Keep calling this to read out of PermanentStorage
+func (p *Puller) Read(data []byte) (int, error) {
 	var err error
 	var length int
 	if p.Remaining > 0 {
 		length, err = p.File.Read(data)
-		//p.Logger.Info("read", zap.Int64("idx", p.Index), zap.Int64("remain", p.Remaining), zap.Int("len", length), zap.Object("err", err))
 		p.Remaining -= int64(length)
 		p.Index += int64(length)
 	}
 	if p.Remaining == 0 {
-		err = p.More()
+		err = p.More(false)
 	}
 	return length, err
 }
 
-// Close this when done pulling from S3
-func (p *S3Puller) Close() error {
+// Close this when done pulling from PermanentStorage
+func (p *Puller) Close() error {
 	if p.File != nil {
-		//Close out this chunk from S3
+		//Close out this chunk from PermanentStorage
 		return p.File.Close()
 	}
 	return nil
-}
-
-// NewS3Puller isn't really used.  This makes the analogy for the S3 version clear though.
-func (d *NullDrainProviderData) NewS3Puller(logger zap.Logger, rName FileId, totalLength, cipherStartAt, cipherStopAt int64) (io.ReadCloser, error) {
-	cipherFile, err := d.Files().Open(d.Resolve(NewFileName(rName, ".cached")))
-	cipherFile.Seek(cipherStartAt, 0)
-	return cipherFile, err
 }
