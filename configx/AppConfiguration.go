@@ -9,9 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
@@ -514,96 +511,77 @@ func getEnvOrDefaultSplitStringSlice(envVar string, defaultVal []string) []strin
 	return splitted
 }
 
-// CheckAWSEnvironmentVars prevents the server from starting if appropriate vars
-// are not set.
-func CheckAWSEnvironmentVars(logger zap.Logger) {
-	// Variables for the environment can be provided as either the native AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
-	// or be prefixed with the common "OD_" as in OD_AWS_REGION, OD_AWS_ACCESS_KEY_ID, and OD_AWS_SECRET_ACCESS_KEY
-	// Environment variables will be normalized to the AWS_ variants to facilitate internal library calls
-	region := getEnvOrDefault(OD_AWS_REGION, getEnvOrDefault("AWS_REGION", ""))
-	if len(region) > 0 {
-		os.Setenv("AWS_REGION", region)
-	}
-	accessKeyID := getEnvOrDefault(OD_AWS_ACCESS_KEY_ID, getEnvOrDefault("AWS_ACCESS_KEY_ID", ""))
-	if len(accessKeyID) > 0 {
-		os.Setenv("AWS_ACCESS_KEY_ID", accessKeyID)
-	}
-	secretKey := getEnvOrDefault(OD_AWS_SECRET_ACCESS_KEY, getEnvOrDefault("AWS_SECRET_ACCESS_KEY", ""))
-	if len(secretKey) > 0 {
-		os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey)
-	}
-	// If the region is not set, then fail
-	if region == "" {
-		logger.Fatal("Fatal Error: Environment variable AWS_REGION must be set.")
-	}
-	return
+// AWSConfig for getting a session
+type AWSConfig struct {
+	Endpoint        string
+	Region          string
+	AccessKeyID     string
+	SecretAccessKey string
 }
 
 // S3Config stores created config for S3
 type S3Config struct {
-	S3Session *session.Session
+	AWSConfig *AWSConfig
 }
 
 // CWConfig config stores config for cloudwatch
 type CWConfig struct {
-	CWSession          *session.Session
+	AWSConfig          *AWSConfig
 	SleepTimeInSeconds int
 	Name               string
 }
 
-// NewAWSSessionForS3 is the s3 session
-func NewAWSSessionForS3(logger zap.Logger) *S3Config {
+// AutoScalingConfig session for the queueing service
+type AutoScalingConfig struct {
+	AWSConfigSQS         *AWSConfig
+	AWSConfigASG         *AWSConfig
+	QueueName            string
+	AutoScalingGroupName string
+	EC2InstanceID        string
+	PollingInterval      int64
+}
+
+// NewAWSConfig is default values for AWS config
+func NewAWSConfig(endpoint string) *AWSConfig {
+	ret := &AWSConfig{}
+	//Per service
+	ret.Endpoint = os.Getenv(endpoint)
+	//Same for all
+	ret.Region = getEnvOrDefault(OD_AWS_REGION, getEnvOrDefault("AWS_REGION", ""))
+	ret.AccessKeyID = getEnvOrDefault(OD_AWS_ACCESS_KEY_ID, getEnvOrDefault("AWS_ACCESS_KEY_ID", ""))
+	ret.SecretAccessKey = getEnvOrDefault(OD_AWS_SECRET_ACCESS_KEY, getEnvOrDefault("AWS_SECRET_ACCESS_KEY", ""))
+	return ret
+}
+
+// NewS3Config is the s3 session
+func NewS3Config() *S3Config {
 	ret := &S3Config{}
-	ret.S3Session = newAWSSession(OD_AWS_ENDPOINT, logger)
+	ret.AWSConfig = NewAWSConfig(OD_AWS_ENDPOINT)
 	return ret
 }
 
-// NewAWSSessionForCW is the cw session
-func NewAWSSessionForCW(logger zap.Logger) *CWConfig {
+// NewCWConfig is the cw session
+func NewCWConfig() *CWConfig {
 	ret := &CWConfig{}
-	ret.CWSession = newAWSSession(OD_AWS_CLOUDWATCH_ENDPOINT, logger)
+	ret.AWSConfig = NewAWSConfig(OD_AWS_CLOUDWATCH_ENDPOINT)
 	ret.SleepTimeInSeconds = int(getEnvOrDefaultInt(OD_AWS_CLOUDWATCH_INTERVAL, 300))
-	ret.Name = getEnvOrDefault(OD_AWS_CLOUDWATCH_NAME, "host")
+	ret.Name = getEnvOrDefault(OD_AWS_CLOUDWATCH_NAME, "")
+	if ret.Name == "" {
+		return nil
+	}
 	return ret
 }
 
-// NewAWSSession instantiates a connection to AWS.
-func newAWSSession(service string, logger zap.Logger) *session.Session {
-
-	CheckAWSEnvironmentVars(logger)
-
-	region := os.Getenv("AWS_REGION")
-	endpoint := os.Getenv(service)
-
-	// See if AWS creds in environment
-	accessKeyID := getEnvOrDefault(OD_AWS_ACCESS_KEY_ID, getEnvOrDefault("AWS_ACCESS_KEY_ID", ""))
-	secretKey := getEnvOrDefault(OD_AWS_SECRET_ACCESS_KEY, getEnvOrDefault("AWS_SECRET_ACCESS_KEY", ""))
-	if len(accessKeyID) > 0 && len(secretKey) > 0 {
-		logger.Info("aws.credentials", zap.String("provider", "environment variables"))
-		var sessionConfig *aws.Config
-		if len(endpoint) == 0 {
-			sessionConfig = &aws.Config{
-				Credentials: credentials.NewEnvCredentials(),
-				Region:      aws.String(region),
-			}
-		} else {
-			sessionConfig = &aws.Config{
-				Credentials: credentials.NewEnvCredentials(),
-				Region:      aws.String(region),
-				Endpoint:    aws.String(endpoint),
-			}
-		}
-		//sessionConfig = sessionConfig.WithLogLevel(aws.LogDebugWithHTTPBody).WithDisableComputeChecksums(false)
-		return session.New(sessionConfig)
-	}
-	// Do as IAM
-	logger.Info("aws.credentials", zap.String("provider", "iam role"))
-	sessionConfig := &aws.Config{
-		Region:   aws.String(region),
-		Endpoint: aws.String(endpoint),
-	}
-	//sessionConfig = sessionConfig.WithLogLevel(aws.LogDebugWithHTTPBody).WithDisableComputeChecksums(false)
-	return session.New(sessionConfig)
+// NewAutoScalingConfig is the sqs session
+func NewAutoScalingConfig() *AutoScalingConfig {
+	ret := &AutoScalingConfig{}
+	ret.AWSConfigSQS = NewAWSConfig(OD_AWS_SQS_ENDPOINT)
+	ret.AWSConfigASG = NewAWSConfig(OD_AWS_ASG_ENDPOINT)
+	ret.EC2InstanceID = getEnvOrDefault(OD_AWS_ASG_EC2, "")
+	ret.AutoScalingGroupName = getEnvOrDefault(OD_AWS_ASG_NAME, "")
+	ret.QueueName = getEnvOrDefault(OD_AWS_SQS_NAME, "")
+	ret.PollingInterval = getEnvOrDefaultInt(OD_AWS_SQS_INTERVAL, 60)
+	return ret
 }
 
 func resolveIP() string {

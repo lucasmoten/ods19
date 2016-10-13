@@ -93,6 +93,10 @@
 			"revisionTime": "2016-08-19T10:24:57-07:00"
 		},
 		{
+			"path": "github.com/aws/aws-sdk-go/aws/service/sqs",
+			"revision": ""
+		},
+		{
 			"checksumSHA1": "tBdFneml1Vn7uvezcktsa+hUsGg=",
 			"path": "github.com/aws/aws-sdk-go/aws/session",
 			"revision": "1f24fa1f3e1eabad0d613513d2adf3c4ec58e667",
@@ -163,6 +167,12 @@
 			"revisionTime": "2016-08-19T10:24:57-07:00"
 		},
 		{
+			"checksumSHA1": "RrzC2aXy/ZNSW+DjkswSkozfHQg=",
+			"path": "github.com/aws/aws-sdk-go/service/autoscaling",
+			"revision": "1b2abe886743dc2bcc78472bfd30a15dc0a61fb8",
+			"revisionTime": "2016-10-13T13:17:12-07:00"
+		},
+		{
 			"checksumSHA1": "G9CmCfw00Bjz0TtJsEnxGE6mv/0=",
 			"path": "github.com/aws/aws-sdk-go/service/cloudwatch",
 			"revision": "1f24fa1f3e1eabad0d613513d2adf3c4ec58e667",
@@ -185,6 +195,12 @@
 			"path": "github.com/aws/aws-sdk-go/service/s3/s3manager",
 			"revision": "1f24fa1f3e1eabad0d613513d2adf3c4ec58e667",
 			"revisionTime": "2016-08-19T10:24:57-07:00"
+		},
+		{
+			"checksumSHA1": "vrUzE3iEOby/GrRfX1sMPaMdEcU=",
+			"path": "github.com/aws/aws-sdk-go/service/sqs",
+			"revision": "0b845ba7de522ffba566579f3baebcb7741d43b0",
+			"revisionTime": "2016-10-11T10:46:16-07:00"
 		},
 		{
 			"checksumSHA1": "nH/itbdeFHpl4ysegdtgww9bFSA=",
@@ -325,10 +341,16 @@
 			"revisionTime": "2015-03-20T15:06:48-06:00"
 		},
 		{
-			"checksumSHA1": "XIeR3N0xAesD9hXSvyPxIyRZplU=",
+			"checksumSHA1": "Qb0eMcC9P6tYLT4KNLvNNmvhPr4=",
+			"path": "github.com/uber-go/atomic",
+			"revision": "0c9e689d64f004564b79d9a663634756df322902",
+			"revisionTime": "2016-07-18T13:38:59-07:00"
+		},
+		{
+			"checksumSHA1": "j+wWJzvcoh8tITqZSTW/9iXUHBg=",
 			"path": "github.com/uber-go/zap",
-			"revision": "fb24a84232415cf2c54c76dbbe3b5dc5f1468639",
-			"revisionTime": "2016-05-23T20:32:51+04:00"
+			"revision": "c4939d1166b2220bb45338e21506623b4bbdec50",
+			"revisionTime": "2016-09-29T16:02:16-07:00"
 		},
 		{
 			"checksumSHA1": "l0h7xesS0Qe3qGWcMf+MnEQnja8=",

@@ -149,7 +149,8 @@ func runServiceTest(ctx *cli.Context) error {
 	service := ctx.Args().First()
 	switch service {
 	case S3Service:
-		if !server.TestS3Connection(configx.NewAWSSessionForS3(logger).S3Session) {
+		s3Config := configx.NewS3Config()
+		if !server.TestS3Connection(server.NewAWSSession(s3Config.AWSConfig, logger)) {
 			fmt.Println("Cannot access S3 bucket.")
 			os.Exit(1)
 		} else {
@@ -219,7 +220,7 @@ func startApplication(conf configx.AppConfiguration) {
 	logger.Info("starting server", zap.String("addr", app.Addr))
 
 	//When this gets a shutdown signal, it will terminate when all files are uploaded
-	server.TrapSignalsPosix(app.ZKState, logger, app.DrainProvider)
+	server.WatchForShutdown(app.ZKState, logger, app.DrainProvider)
 
 	//This blocks until there is an error to stop the server
 	err = httpServer.ListenAndServeTLS(

@@ -1,8 +1,8 @@
 Changelog
-=========
+================
 
-vNEXT
------
+Release vNEXT
+----------------
 
 * NEW: odrive-database utility supports migrations.
 * NEW: List of objects shared to the user (/shares) will exclude those whose parent is also shared to them.
@@ -10,6 +10,7 @@ vNEXT
 * NEW: List of objects shared to everyone (/sharedpublic) will exclude those whose parent is also shared to everyone.
 * FIX: Breadcrumbs will be limited to the first parents accessible to a user. No
   longer returning the complete list with redacted folder names
+* NEW: Autoscaling report gets messages triggered by a CloudWatch alarm writes to SQS so we shut down and tell Autoscale 
 
 Release v1.0.1.4
 ----------------
