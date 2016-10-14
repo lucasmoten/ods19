@@ -2,7 +2,6 @@ package dao
 
 import (
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 )
@@ -10,7 +9,7 @@ import (
 // GetObjectRevisionsWithPropertiesByUser retrieves a list of revisions for an
 // object and the properties that were active at the point of that revision
 func (dao *DataAccessLayer) GetObjectRevisionsWithPropertiesByUser(
-	user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error) {
+	user models.ODUser, pagingRequest PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
@@ -26,7 +25,7 @@ func (dao *DataAccessLayer) GetObjectRevisionsWithPropertiesByUser(
 	return response, err
 }
 
-func getObjectRevisionsWithPropertiesByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error) {
+func getObjectRevisionsWithPropertiesByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error) {
 
 	response, err := getObjectRevisionsByUserInTransaction(tx, user, pagingRequest, object, checkACM)
 	if err != nil {

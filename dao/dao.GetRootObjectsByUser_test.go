@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
 
@@ -17,7 +17,7 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 
 	user1 := models.ODUser{DistinguishedName: usernames[1]}
 	user2 := models.ODUser{DistinguishedName: usernames[2]}
-	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: 1}
+	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: 1}
 	// Get root Objects
 	resultset, err := d.GetRootObjectsByUser(user1, pagingRequest)
 	if err != nil {

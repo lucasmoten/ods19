@@ -43,7 +43,7 @@ func (h AppServer) query(ctx context.Context, w http.ResponseWriter, r *http.Req
 	user.Snippets = snippetFields
 
 	// Perform the basic search
-	results, err := dao.SearchObjectsByNameOrDescription(user, *pagingRequest, false)
+	results, err := dao.SearchObjectsByNameOrDescription(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest), false)
 	if err != nil {
 		return NewAppError(500, errors.New("Database call failed: "), err.Error())
 	}

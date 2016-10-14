@@ -2,7 +2,6 @@ package dao
 
 import (
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 )
@@ -11,7 +10,7 @@ import (
 // Properties in Object Drive that are nested beneath the specified object by
 // parentID and are owned by the specified user or group.
 func (dao *DataAccessLayer) GetChildObjectsWithPropertiesByUser(
-	user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
+	user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
@@ -27,7 +26,7 @@ func (dao *DataAccessLayer) GetChildObjectsWithPropertiesByUser(
 	return response, err
 }
 
-func getChildObjectsWithPropertiesByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
+func getChildObjectsWithPropertiesByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 
 	response, err := getChildObjectsByUserInTransaction(tx, user, pagingRequest, object)
 	if err != nil {

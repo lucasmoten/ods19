@@ -5,11 +5,10 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 )
 
 // GetObjectsSharedToEveryone retrieves a list of Objects that have a permission that is sharing to everyone
-func (dao *DataAccessLayer) GetObjectsSharedToEveryone(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
+func (dao *DataAccessLayer) GetObjectsSharedToEveryone(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
@@ -25,7 +24,7 @@ func (dao *DataAccessLayer) GetObjectsSharedToEveryone(user models.ODUser, pagin
 	return response, err
 }
 
-func getObjectsSharedToEveryoneInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
+func getObjectsSharedToEveryoneInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 
 	response := models.ODObjectResultset{}
 

@@ -3,8 +3,8 @@ package dao_test
 import (
 	"testing"
 
+	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
 
@@ -13,7 +13,7 @@ func TestDAOGetRootObjects(t *testing.T) {
 		t.Skip()
 	}
 
-	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: 1}
+	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: 1}
 	// Get root Objects
 	resultset, err := d.GetRootObjects(pagingRequest)
 	if err != nil {

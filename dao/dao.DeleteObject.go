@@ -11,7 +11,6 @@ import (
 
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
-	"decipher.com/object-drive-server/protocol"
 )
 
 // DeleteObject uses the passed in object and makes the appropriate sql calls to
@@ -91,7 +90,7 @@ func deleteObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.OD
 	}
 
 	// Process children
-	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: MaxPageSize}
+	pagingRequest := PagingRequest{PageNumber: 1, PageSize: MaxPageSize}
 	resultset, err := getChildObjectsInTransaction(tx, pagingRequest, dbObject)
 	for i := 0; i < len(resultset.Objects); i++ {
 		if !resultset.Objects[i].IsAncestorDeleted {

@@ -52,7 +52,7 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 	var results models.ODObjectResultset
 	if parentObject.ID == nil {
 		// Requesting root
-		results, err = dao.GetRootObjectsWithPropertiesByUser(user, *pagingRequest)
+		results, err = dao.GetRootObjectsWithPropertiesByUser(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest))
 	} else {
 		// Requesting children of an object. Load parent first.
 		dbObject, err := dao.GetObject(parentObject, false)
@@ -72,7 +72,7 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 		}
 
 		// Get the objects
-		results, err = dao.GetChildObjectsWithPropertiesByUser(user, *pagingRequest, parentObject)
+		results, err = dao.GetChildObjectsWithPropertiesByUser(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest), parentObject)
 
 	}
 	if err != nil {

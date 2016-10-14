@@ -24,7 +24,7 @@ func (h AppServer) listUserObjectsSharedToEveryone(ctx context.Context, w http.R
 	}
 
 	// Fetch matching objects
-	results, err := dao.GetObjectsSharedToEveryone(user, *pagingRequest)
+	results, err := dao.GetObjectsSharedToEveryone(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest))
 	if err != nil {
 		return NewAppError(500, err, "GetObjectsSharedToEveryone query failed")
 	}

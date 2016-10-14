@@ -9,7 +9,6 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 )
 
 // ExpungeObject uses the passed in object and makes the appropriate sql calls
@@ -98,7 +97,7 @@ func expungeObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.O
 	}
 
 	// Process children
-	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: MaxPageSize}
+	pagingRequest := PagingRequest{PageNumber: 1, PageSize: MaxPageSize}
 	resultset, err := getChildObjectsInTransaction(tx, pagingRequest, dbObject)
 	for i := 0; i < len(resultset.Objects); i++ {
 		authorizedToDelete := false

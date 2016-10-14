@@ -2,7 +2,6 @@ package dao
 
 import (
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 )
@@ -10,7 +9,7 @@ import (
 // GetChildObjectsWithProperties retrieves a list of Objects and their
 // Properties in Object Drive that are nested beneath the parent object.
 func (dao *DataAccessLayer) GetChildObjectsWithProperties(
-	pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
+	pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
@@ -26,7 +25,7 @@ func (dao *DataAccessLayer) GetChildObjectsWithProperties(
 	return response, err
 }
 
-func getChildObjectsWithPropertiesInTransaction(tx *sqlx.Tx, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
+func getChildObjectsWithPropertiesInTransaction(tx *sqlx.Tx, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 
 	response, err := getChildObjectsInTransaction(tx, pagingRequest, object)
 	if err != nil {

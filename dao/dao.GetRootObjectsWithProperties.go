@@ -2,7 +2,6 @@ package dao
 
 import (
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 )
@@ -10,7 +9,7 @@ import (
 // GetRootObjectsWithProperties retrieves a list of Objects and their Properties
 // in Object Drive that are not nested beneath any other objects natively
 // (natural parentId is null)
-func (dao *DataAccessLayer) GetRootObjectsWithProperties(pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
+func (dao *DataAccessLayer) GetRootObjectsWithProperties(pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
@@ -26,7 +25,7 @@ func (dao *DataAccessLayer) GetRootObjectsWithProperties(pagingRequest protocol.
 	return response, err
 }
 
-func getRootObjectsWithPropertiesInTransaction(tx *sqlx.Tx, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
+func getRootObjectsWithPropertiesInTransaction(tx *sqlx.Tx, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 
 	response, err := getRootObjectsInTransaction(tx, pagingRequest)
 	if err != nil {

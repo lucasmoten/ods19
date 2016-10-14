@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
+	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
-	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
@@ -93,11 +93,11 @@ func TestDAOGetObjectsSharedToMe(t *testing.T) {
 	}
 	object2 = createdObject2
 
-	paging := protocol.PagingRequest{}
+	paging := dao.PagingRequest{}
 	paging.PageNumber = 1
 	paging.PageSize = 1000
-	filter := []protocol.FilterSetting{}
-	filter1 := protocol.FilterSetting{}
+	filter := []dao.FilterSetting{}
+	filter1 := dao.FilterSetting{}
 	filter1.FilterField = "name"
 	filter1.Condition = "contains"
 	filter1.Expression = searchPrefix

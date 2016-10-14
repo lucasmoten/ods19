@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
 
@@ -60,7 +60,7 @@ func TestDAOGetChildObjects(t *testing.T) {
 	if !bytes.Equal(child.ParentID, dbParent.ID) {
 		t.Error("expected child parentID to match parent ID")
 	}
-	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: 10, SortSettings: []protocol.SortSetting{protocol.SortSetting{SortField: "name", SortAscending: true}}}
+	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: 10, SortSettings: []dao.SortSetting{dao.SortSetting{SortField: "name", SortAscending: true}}}
 	resultset, err := d.GetChildObjects(pagingRequest, dbParent)
 	if err != nil {
 		t.Error(err)

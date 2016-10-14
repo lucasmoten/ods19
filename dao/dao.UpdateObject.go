@@ -9,7 +9,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 
-	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 
 	"decipher.com/object-drive-server/util"
@@ -121,8 +120,7 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		return fmt.Errorf("UpdateObject Error checking result for rows affected, %s", err.Error())
 	}
 	if rowsAffected <= 0 {
-		jobject := mapping.MapODObjectToJSON(object)
-		log.Printf("WARNING:UpdateObject did not affect any rows (Possible bad ID or changeToken)!:%s", jobject)
+		log.Printf("WARNING:UpdateObject did not affect any rows (Possible bad ID or changeToken)!")
 	}
 	updateObjectStatement.Close()
 

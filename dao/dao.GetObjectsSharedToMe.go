@@ -5,12 +5,11 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 )
 
 // GetObjectsSharedToMe retrieves a list of Objects that are not nested
 // beneath any other objects natively (natural parentId is null).
-func (dao *DataAccessLayer) GetObjectsSharedToMe(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
+func (dao *DataAccessLayer) GetObjectsSharedToMe(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
@@ -26,7 +25,7 @@ func (dao *DataAccessLayer) GetObjectsSharedToMe(user models.ODUser, pagingReque
 	return response, err
 }
 
-func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
+func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 
 	response := models.ODObjectResultset{}
 

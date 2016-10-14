@@ -5,12 +5,11 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 )
 
 // GetChildObjects retrieves a list of Objects in Object Drive that are nested
 // beneath a specified object by parentID
-func (dao *DataAccessLayer) GetChildObjects(pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
+func (dao *DataAccessLayer) GetChildObjects(pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
@@ -26,7 +25,7 @@ func (dao *DataAccessLayer) GetChildObjects(pagingRequest protocol.PagingRequest
 	return response, err
 }
 
-func getChildObjectsInTransaction(tx *sqlx.Tx, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
+func getChildObjectsInTransaction(tx *sqlx.Tx, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	query := `
     select 
