@@ -19,18 +19,15 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 	var requestObject models.ODObject
 	var err error
 
-	caller, _ := CallerFromContext(ctx)
+	caller, ok := CallerFromContext(ctx)
+	if !ok {
+		return NewAppError(http.StatusInternalServerError, errors.New("Could not get caller from context"), "Invalid caller.")
+	}
 	session := SessionIDFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
-
-	// Get user from context
 	user, ok := UserFromContext(ctx)
 	if !ok {
-		caller, ok := CallerFromContext(ctx)
-		if !ok {
-			return NewAppError(http.StatusInternalServerError, errors.New("Could not determine user"), "Invalid user.")
-		}
-		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
+		return NewAppError(http.StatusInternalServerError, errors.New("Could not determine user"), "Invalid user.")
 	}
 	snippetFields, ok := SnippetsFromContext(ctx)
 	if !ok {
