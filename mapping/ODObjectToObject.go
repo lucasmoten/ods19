@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"log"
 
-	"decipher.com/object-drive-server/utils"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/utils"
 )
 
 // MapODObjectToObject converts an internal ODObject model object into an API
@@ -154,78 +154,6 @@ func MapODObjectToJSON(i *models.ODObject) string {
 	return string(jsonobj)
 }
 
-// MapObjectToODObject converts an external protocol.Object to a models.ODObject.
-func MapObjectToODObject(i *protocol.Object) (models.ODObject, error) {
-
-	var err error
-	o := models.ODObject{}
-	o.ID, err = hex.DecodeString(i.ID)
-	if err != nil {
-		return o, fmt.Errorf("Unable to decode id from %s", i.ID)
-	}
-	if len(o.ID) == 0 {
-		o.ID = nil
-	}
-	o.CreatedDate = i.CreatedDate
-	o.CreatedBy = i.CreatedBy
-	o.ModifiedDate = i.ModifiedDate
-	o.ModifiedBy = i.ModifiedBy
-	o.ChangeCount = i.ChangeCount
-	o.ChangeToken = i.ChangeToken
-	o.OwnedBy.Valid = true
-	o.OwnedBy.String = i.OwnedBy
-	o.TypeID, err = hex.DecodeString(i.TypeID)
-
-	if err != nil {
-		return o, fmt.Errorf("Unable to decode type id from %s", i.TypeID)
-	}
-	if len(o.TypeID) == 0 {
-		o.TypeID = nil
-	}
-	o.TypeName.Valid = true
-	o.TypeName.String = i.TypeName
-	o.Name = i.Name
-	o.Description.Valid = true
-	o.Description.String = i.Description
-
-	if len(i.ParentID) > 0 {
-		o.ParentID, err = hex.DecodeString(i.ParentID)
-		if err != nil {
-			return o, fmt.Errorf("Unable to decode parent id from %s", i.ParentID)
-		}
-		if len(o.ParentID) == 0 {
-			o.ParentID = nil
-		}
-	} else {
-		o.ParentID = nil
-	}
-
-	o.RawAcm.Valid = true
-	o.RawAcm.String, err = utils.MarshalInterfaceToString(i.RawAcm)
-	if err != nil {
-		return o, fmt.Errorf("Unable to convert ACM to string %v", err)
-	}
-	o.ContentType.Valid = true
-	o.ContentType.String = i.ContentType
-	o.ContentSize.Valid = true
-	o.ContentSize.Int64 = i.ContentSize
-	// TODO: Is this really needed to be either exposed to user or received from user via Protocol?
-	if len(i.ContentHash) > 0 {
-		o.ContentHash, err = hex.DecodeString(i.ContentHash)
-	}
-	o.Properties, err = MapPropertiesToODProperties(&i.Properties)
-	if err != nil {
-		return o, err
-	}
-	o.Permissions, err = MapPermissionsToODPermissions(&i.Permissions)
-	if err != nil {
-		return o, err
-	}
-	o.ContainsUSPersonsData = i.ContainsUSPersonsData
-	o.ExemptFromFOIA = i.ExemptFromFOIA
-	return o, nil
-}
-
 // MapCreateObjectRequestToODObject converts an API exposable protocol object used for
 // create requests into an internally usable model object
 func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) (models.ODObject, error) {
@@ -264,17 +192,44 @@ func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) (models.O
 	return o, nil
 }
 
-// MapObjectsToODObjects converts an array of API exposable protocol Objects
-// into an array of internally usable model Objects
-func MapObjectsToODObjects(i *[]protocol.Object) ([]models.ODObject, error) {
-	o := make([]models.ODObject, len(*i))
-	for p, q := range *i {
-		mappedObject, err := MapObjectToODObject(&q)
-		if err != nil {
-			return o, err
-		}
-		o[p] = mappedObject
+// MapMoveObjectRequestToODObject converts an API exposable protocol object
+// used for move requests into an internally usable model object
+func MapMoveObjectRequestToODObject(i *protocol.MoveObjectRequest) (models.ODObject, error) {
+	var err error
+	o := models.ODObject{}
+	id, err := hex.DecodeString(i.ID)
+	switch {
+	case err != nil, len(id) == 0:
+		log.Printf("Unable to decode id")
+		return o, err
+	default:
+		o.ID = id
 	}
+	o.ChangeToken = i.ChangeToken
+	o.ParentID, err = hex.DecodeString(i.ParentID)
+	if err != nil {
+		return o, fmt.Errorf("Unable to decode parent id from %s", i.ParentID)
+	}
+	if len(o.ParentID) == 0 {
+		o.ParentID = nil
+	}
+	return o, nil
+}
+
+// MapDeleteObjectRequestToODObject converts an API exposable protocol object
+// used for delete requests into an internally usable model object
+func MapDeleteObjectRequestToODObject(i *protocol.DeleteObjectRequest) (models.ODObject, error) {
+	var err error
+	o := models.ODObject{}
+	id, err := hex.DecodeString(i.ID)
+	switch {
+	case err != nil, len(id) == 0:
+		log.Printf("Unable to decode id")
+		return o, err
+	default:
+		o.ID = id
+	}
+	o.ChangeToken = i.ChangeToken
 	return o, nil
 }
 

@@ -1,13 +1,14 @@
 package server
 
 import (
+	"encoding/hex"
 	"errors"
 	"net/http"
 
 	"golang.org/x/net/context"
 
-	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/events"
+	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
@@ -27,54 +28,47 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 	if !ok {
 		caller, ok := CallerFromContext(ctx)
 		if !ok {
-			return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
+			return NewAppError(http.StatusInternalServerError, errors.New("Could not determine user"), "Invalid user.")
 		}
 		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
 	}
 	snippetFields, ok := SnippetsFromContext(ctx)
 	if !ok {
-		return NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
+		return NewAppError(http.StatusBadGateway, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
 	}
 	user.Snippets = snippetFields
 	dao := DAOFromContext(ctx)
 
-	// Parse Request in sent format
+	// Get object
 	requestObject, err = parseDeleteObjectRequest(r, ctx)
 	if err != nil {
-		return NewAppError(400, err, "Error parsing JSON")
+		return NewAppError(http.StatusBadRequest, err, "Error parsing JSON")
 	}
-
-	// Business Logic...
-
-	// Retrieve existing object from the data store
 	dbObject, err := dao.GetObject(requestObject, false)
 	if err != nil {
-		return NewAppError(500, err, "Error retrieving object")
+		return NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
 	}
 
-	// Check if the user has permissions to delete the ODObject
+	// Auth check
 	if ok := isUserAllowedToDelete(ctx, h.MasterKey, &dbObject); !ok {
-		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to delete this object")
+		return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to delete this object")
 	}
 
-	// If the object is already deleted,
+	// State check
 	if dbObject.IsDeleted {
-		// Check its state
+		// Deleted already
 		switch {
 		case dbObject.IsExpunged:
-			return NewAppError(410, err, "The referenced object no longer exists.")
+			return NewAppError(http.StatusGone, err, "The referenced object no longer exists.")
 		default:
-			// NO change will be applied, but deletedDate will still be exposed in
-			// the output
 		}
 	} else {
-		// Call DAO to update the object to reflect that it is
-		// deleted.  The DAO checks the changeToken and handles the child calls
+		// ok to change
 		dbObject.ModifiedBy = caller.DistinguishedName
 		dbObject.ChangeToken = requestObject.ChangeToken
 		err = dao.DeleteObject(user, dbObject, true)
 		if err != nil {
-			return NewAppError(500, err, "DAO Error deleting object")
+			return NewAppError(http.StatusInternalServerError, err, "DAO Error deleting object")
 		}
 	}
 
@@ -97,32 +91,33 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 
 // This same handler is used for both deleting an object (POST as new state), or deleting forever (DELETE)
 func parseDeleteObjectRequest(r *http.Request, ctx context.Context) (models.ODObject, error) {
-	// TODO: Create and Change to DeletedObjectRequest
-	var jsonObject protocol.Object
+	var jsonObject protocol.DeleteObjectRequest
 	var requestObject models.ODObject
 	var err error
 
-	// Capture changeToken
-	switch {
-	case r.Header.Get("Content-Type") == "application/json":
-		err = util.FullDecode(r.Body, &jsonObject)
-		if err != nil {
-			return requestObject, err
-		}
-	}
-	// Map to internal object type.
-	requestObject, err = mapping.MapObjectToODObject(&jsonObject)
+	// Depends on this for the changeToken
+	err = util.FullDecode(r.Body, &jsonObject)
 	if err != nil {
 		return requestObject, err
 	}
 
-	// Extract object ID from the URI and map over the request object being sent back
-	uriObject, err := parseGetObjectRequest(ctx)
-	if err != nil {
-		return requestObject, err
+	// Get capture groups from ctx.
+	captured, ok := CaptureGroupsFromContext(ctx)
+	if !ok {
+		return requestObject, errors.New("Could not get capture groups")
 	}
-	requestObject.ID = uriObject.ID
 
-	// Ready
+	// Initialize requestobject with the objectId being requested
+	if captured["objectId"] == "" {
+		return requestObject, errors.New("Could not extract ObjectID from URI")
+	}
+	_, err = hex.DecodeString(captured["objectId"])
+	if err != nil {
+		return requestObject, errors.New("Invalid ObjectID in URI")
+	}
+	jsonObject.ID = captured["objectId"]
+
+	// Map to internal object type
+	requestObject, err = mapping.MapDeleteObjectRequestToODObject(&jsonObject)
 	return requestObject, err
 }
