@@ -7,8 +7,8 @@ import (
 
 	"golang.org/x/net/context"
 
-	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/events"
+	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 )
 
@@ -18,20 +18,18 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 	var err error
 
 	caller, ok := CallerFromContext(ctx)
+	if !ok {
+		return NewAppError(http.StatusInternalServerError, errors.New("Could not get caller from context"), "Invalid caller.")
+	}
 	gem, _ := GEMFromContext(ctx)
 	session := SessionIDFromContext(ctx)
-
 	user, ok := UserFromContext(ctx)
 	if !ok {
-		caller, ok := CallerFromContext(ctx)
-		if !ok {
-			return NewAppError(500, errors.New("Could not determine user"), "Invalid user.")
-		}
-		user = models.ODUser{DistinguishedName: caller.DistinguishedName}
+		return NewAppError(http.StatusInternalServerError, errors.New("Could not determine user"), "Invalid user.")
 	}
 	snippetFields, ok := SnippetsFromContext(ctx)
 	if !ok {
-		return NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
+		return NewAppError(http.StatusBadGateway, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
 	}
 	user.Snippets = snippetFields
 	dao := DAOFromContext(ctx)
@@ -39,30 +37,30 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 	// Parse Request in sent format
 	requestObject, err = parseDeleteObjectRequest(r, ctx)
 	if err != nil {
-		return NewAppError(400, err, "Error parsing JSON")
+		return NewAppError(http.StatusBadRequest, err, "Error parsing JSON")
 	}
-
-	// Business Logic...
 
 	// Retrieve existing object from the data store
 	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
-		return NewAppError(500, err, "Error retrieving object")
+		return NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
 	}
 
+	// Auth check
 	if ok := isUserAllowedToDelete(ctx, h.MasterKey, &dbObject); !ok {
-		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to expunge this object")
+		return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to expunge this object")
 	}
 
+	// Check state
 	if dbObject.IsExpunged {
-		return NewAppError(410, err, "The referenced object no longer exists.")
+		return NewAppError(http.StatusGone, err, "The referenced object no longer exists.")
 	}
 
 	dbObject.ModifiedBy = caller.DistinguishedName
 	dbObject.ChangeToken = requestObject.ChangeToken
 	err = dao.ExpungeObject(user, dbObject, true)
 	if err != nil {
-		return NewAppError(500, err, "DAO Error expunging object")
+		return NewAppError(http.StatusInternalServerError, err, "DAO Error expunging object")
 	}
 
 	apiResponse := mapping.MapODObjectToExpungedObjectResponse(&dbObject).WithCallerPermission(protocolCaller(caller))
