@@ -1,34 +1,11 @@
 package protocol
 
-import (
-	"fmt"
-	"time"
-)
+import "fmt"
 
 // Permission is a nestable structure defining the attributes for
 // permissions granted on an object for users who have access to the object
 // in Object Drive
 type Permission struct {
-	// ID is the unique identifier for this permission in Object Drive.
-	ID string `json:"-"`
-	// CreatedDate is the timestamp of when a permission was created.
-	CreatedDate time.Time `json:"-"`
-	// CreatedBy is the user that created this permission.
-	CreatedBy string `json:"-"`
-	// ModifiedDate is the timestamp of when a permission was modified or created.
-	ModifiedDate time.Time `json:"-"`
-	// ModifiedBy is the user that last modified this permission
-	ModifiedBy string `json:"-"`
-	// ChangeCount indicates the number of times the permission has been modified.
-	ChangeCount int `json:"-"`
-	// ChangeToken is generated value which is assigned at the database. API calls
-	// performing updates must provide the changeToken to be verified against the
-	// existing value on record to prevent accidental overwrites.
-	ChangeToken string `json:"-"`
-	// ObjectID identifies the object for which this permission applies.
-	ObjectID string `json:"-"`
-	// Grantee indicates the flattened representation of a user or group
-	// referenced by a permission
 	Grantee string `json:"grantee,omitempty"`
 	// ProjectName contains the project key portion of an AcmShare if this
 	// grantee represents a group
@@ -63,10 +40,6 @@ type Permission struct {
 	// AllowShare indicates whether the grantee has permission to view and
 	// alter permissions on this object
 	AllowShare bool `json:"allowShare"`
-	// ExplicitShare indicates whether this permission was created explicitly
-	// by a user to a grantee, or if it was implicitly created through the
-	// creation of an object that inherited permissions of its parent
-	ExplicitShare bool `json:"-"`
 }
 
 // CreatePermission is a nestable structure defining the attributes for
