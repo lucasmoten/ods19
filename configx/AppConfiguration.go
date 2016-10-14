@@ -384,7 +384,10 @@ func (r *DatabaseConfiguration) buildDSN() string {
 			dbDSN += r.Params
 		}
 	}
-	logger.Info("Using this connection string", zap.String("dbdsn", dbDSN))
+	logDSN := dbDSN
+	logDSN = strings.Replace(logDSN, r.Password, "{password}", -1)
+	logDSN = strings.Replace(logDSN, r.Username, "{username}", -1)
+	logger.Info("Using this connection string", zap.String("dbdsn", logDSN))
 	return dbDSN
 }
 
