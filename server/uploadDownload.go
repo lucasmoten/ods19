@@ -25,6 +25,20 @@ import (
 	"decipher.com/object-drive-server/protocol"
 )
 
+//If we are returning potentially after the object has been uploaded to disk,
+//then there is a time-span where abort must cleanup after itself
+func abortUploadObject(
+	logger zap.Logger,
+	dp DrainProvider,
+	obj *models.ODObject,
+	isMultipart bool,
+	herr *AppError) *AppError {
+	if isMultipart {
+		removeOrphanedFile(logger, dp, obj.ContentConnector.String)
+	}
+	return herr
+}
+
 // acceptObjectUpload is called by createObject and updateObjectStream. In the case of createObject, the obj param is a
 // mostly-empty object with EncryptIV and ContentConnector set. In the case of updateObjectStream, the obj param is
 // an object fetched from the database.
@@ -289,6 +303,8 @@ func guessContentType(name string) string {
 	case extIs(name, ".mp3"):
 		contentType = "audio/mp3"
 	case extIs(name, ".jpg"):
+		contentType = "image/jpeg"
+	case extIs(name, ".jpeg"):
 		contentType = "image/jpeg"
 	case extIs(name, ".png"):
 		contentType = "image/png"

@@ -25,6 +25,7 @@ import (
 // createObject is a method handler on AppServer for createObject microservice operation.
 func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
+	dp := h.DrainProvider
 	logger := LoggerFromContext(ctx)
 	session := SessionIDFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
@@ -62,7 +63,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 
 		createdFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &obj, &ownerPermission, true)
 		if herr != nil {
-			return herr
+			return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 		}
 		drainFunc = createdFunc
 	} else {
@@ -88,25 +89,27 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	// For all permissions, make sure we're using the flatened value
 	herr = h.flattenGranteeOnAllObjectPermissions(ctx, &obj)
 	if herr != nil {
-		return herr
+		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
 
 	// Make sure permissions passed in that are read access are put into the acm
 	if herr := injectReadPermissionsIntoACM(ctx, &obj); herr != nil {
-		return herr
+		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
 	// Flatten ACM, then Normalize Read Permissions against ACM f_share
 
 	if err = h.flattenACM(logger, &obj); err != nil {
-		return ClassifyFlattenError(err)
+		herr = ClassifyFlattenError(err)
+		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
 	if herr := normalizeObjectReadPermissions(ctx, &obj); herr != nil {
-		return herr
+		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
 	// Final access check against altered ACM
 
 	if err := h.isUserAllowedForObjectACM(ctx, &obj); err != nil {
-		return ClassifyObjectACMError(err)
+		herr = ClassifyObjectACMError(err)
+		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
 
 	// recalculate permission mac for owner permission
@@ -120,13 +123,13 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	createdObject, err = dao.CreateObject(&obj)
 	if err != nil {
-		if isMultipart {
-			removeOrphanedFile(logger, h.DrainProvider, obj.ContentConnector.String)
-		}
-		return NewAppError(500, err, "error storing object")
+		herr = NewAppError(500, err, "error storing object")
+		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
 
-	// For requests where a stream was provided, only drain off into S3 once we have a record
+	// For requests where a stream was provided, only drain off into S3 once we have a record,
+	// and we pass all security checks.  Note that in between acceptObjectUpload and here,
+	// we must call abortUploadObject to return early, so that we don't leave trash in the cache.
 	if isMultipart {
 		if drainFunc != nil {
 			go drainFunc()

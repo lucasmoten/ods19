@@ -22,7 +22,7 @@ func TrapSignalsPosix(z *zookeeper.ZKState, logger zap.Logger, dp DrainProvider)
 			case syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2:
 				logger.Info("prepare to die")
 				//Stop our zk connection to ensure that we have no more work left
-				zookeeper.ServiceStop(z, logger)
+				zookeeper.ServiceStop(z, "https", logger)
 				//Wait for our uploaded items to drop to zero
 				for {
 					//Wait a bit so that we stop getting new work in wait long enough that we are no longer getting new work
