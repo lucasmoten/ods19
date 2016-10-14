@@ -15,6 +15,7 @@ import (
 	configx "decipher.com/object-drive-server/configx"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	"github.com/rubenv/sql-migrate"
 	"github.com/urfave/cli"
 )
 
@@ -75,6 +76,49 @@ func main() {
 			},
 		},
 		{
+			Name:  "migrate",
+			Usage: "Migration support",
+			Flags: []cli.Flag{confFlag, rootPassword, rootUser},
+			Subcommands: []cli.Command{
+				{
+					Name:  "down",
+					Usage: "unapply one migration",
+					Flags: []cli.Flag{confFlag, rootPassword, rootUser},
+					Action: func(clictx *cli.Context) error {
+						err := migrateDown(clictx)
+						if err != nil {
+							log.Fatal(err)
+						}
+						return nil
+					},
+				},
+				{
+					Name:  "list",
+					Usage: "list all pending migrations",
+					Flags: []cli.Flag{confFlag, rootPassword, rootUser},
+					Action: func(clictx *cli.Context) error {
+						err := listMigrations(clictx)
+						if err != nil {
+							log.Fatal(err)
+						}
+						return nil
+					},
+				},
+				{
+					Name:  "up",
+					Usage: "apply all pending migrations",
+					Flags: []cli.Flag{confFlag, rootPassword, rootUser},
+					Action: func(clictx *cli.Context) error {
+						err := migrateUp(clictx)
+						if err != nil {
+							log.Fatal(err)
+						}
+						return nil
+					},
+				},
+			},
+		},
+		{
 			Name:  "status",
 			Usage: "Print status for configured database",
 			Flags: []cli.Flag{confFlag},
@@ -101,6 +145,45 @@ func main() {
 	}
 
 	app.Run(os.Args)
+}
+
+// connect wraps the creation of a new sqlx.DB connection
+func connect(clictx *cli.Context) (*sqlx.DB, error) {
+	var conf configx.AppConfiguration
+
+	path := clictx.String("conf")
+	if path != "" {
+		var err error
+		conf, err = loadConfig(path)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		conf = defaultConfig
+	}
+
+	conf.DatabaseConnection.Username = clictx.String("rootUser")
+	conf.DatabaseConnection.Password = clictx.String("rootPassword")
+
+	fmt.Println("connecting to db")
+	db, err := newDBConn(conf.DatabaseConnection)
+	if err != nil {
+		return nil, fmt.Errorf("could not connect to db: %v\n", err)
+	}
+	tries := 10
+	for i := 0; i < tries; i++ {
+		if err := db.Ping(); err != nil {
+			fmt.Printf("could not ping db: %v\n", err)
+			time.Sleep(2 * time.Second)
+		} else {
+			fmt.Println("database connection established")
+			break
+		}
+	}
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("could not ping db: %v", err)
+	}
+	return db, nil
 }
 
 // initialize creates a new database from scratch. Root creds are required.
@@ -153,7 +236,20 @@ func initialize(clictx *cli.Context) error {
 	if err := createSchema(db); err != nil {
 		return err
 	}
-	fmt.Println("schema created")
+	fmt.Println("inital schema created")
+	fmt.Println("applying migrations")
+	m := &migrate.AssetMigrationSource{
+		Asset:    Asset,
+		AssetDir: AssetDir,
+		Dir:      "migrations",
+	}
+
+	n, err := migrate.Exec(db.DB, "mysql", m, migrate.Up)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("applied %v migrations up\n", n)
+
 	return nil
 }
 

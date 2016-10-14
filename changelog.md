@@ -1,8 +1,14 @@
 Changelog
 =========
 
+vNEXT
+-----
+
+* NEW: odrive-database utility supports migrations.
+
+
 Release v1.0.1.4
-------------
+----------------
 
 * FIX: Shared with Me now excludes objects shared to Everyone
 * NEW: Allow many more config values to be specified in odrive.yml

@@ -283,6 +283,12 @@
 			"revisionTime": "2015-12-01T02:33:10Z"
 		},
 		{
+			"checksumSHA1": "Y1gIGoR8z/lDf2j+vcH1eKZGDSk=",
+			"path": "github.com/rubenv/sql-migrate",
+			"revision": "6f4757563362064790a6687a6b60f182062c8634",
+			"revisionTime": "2016-06-20T08:32:29Z"
+		},
+		{
 			"checksumSHA1": "yUFE9fmQwBUefkR6wjevaovfZbU=",
 			"path": "github.com/samuel/go-thrift/thrift",
 			"revision": "ca819cf963ab710e7a285044e92f1353fa497b80",
