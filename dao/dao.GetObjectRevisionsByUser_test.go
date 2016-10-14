@@ -8,7 +8,6 @@ import (
 
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
 
@@ -92,7 +91,7 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 
 	// Get list of revisions
 	user := models.ODUser{DistinguishedName: usernames[1]}
-	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: dao.MaxPageSize, SortSettings: []protocol.SortSetting{protocol.SortSetting{SortField: "changecount", SortAscending: false}}}
+	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: dao.MaxPageSize, SortSettings: []dao.SortSetting{dao.SortSetting{SortField: "changecount", SortAscending: false}}}
 	resultset, err := d.GetObjectRevisionsByUser(user, pagingRequest, object, checkACM)
 	if err != nil {
 		t.Error("Error getting revisions for object")

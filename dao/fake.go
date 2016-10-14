@@ -9,7 +9,6 @@ import (
 
 	globalconfig "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 )
 
 // FakeDAO is suitable for tests. Add fields to this struct to hold fake
@@ -84,25 +83,25 @@ func (fake *FakeDAO) ExpungeObject(user models.ODUser, object models.ODObject, e
 }
 
 // GetChildObjects for FakeDAO.
-func (fake *FakeDAO) GetChildObjects(pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
+func (fake *FakeDAO) GetChildObjects(pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
 // GetChildObjectsByUser for FakeDAO.
 func (fake *FakeDAO) GetChildObjectsByUser(
-	user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
+	user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
 // GetChildObjectsWithProperties for FakeDAO.
 func (fake *FakeDAO) GetChildObjectsWithProperties(
-	pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
+	pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
 // GetChildObjectsWithPropertiesByUser for FakeDAO.
 func (fake *FakeDAO) GetChildObjectsWithPropertiesByUser(
-	user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
+	user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
@@ -140,12 +139,12 @@ func (fake *FakeDAO) GetObjectRevision(object models.ODObject, loadProperties bo
 }
 
 // GetObjectRevisionsByUser for FakeDAO
-func (fake *FakeDAO) GetObjectRevisionsByUser(user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error) {
+func (fake *FakeDAO) GetObjectRevisionsByUser(user models.ODUser, pagingRequest PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
 // GetObjectRevisionsWithPropertiesByUser for FakeDAO
-func (fake *FakeDAO) GetObjectRevisionsWithPropertiesByUser(user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error) {
+func (fake *FakeDAO) GetObjectRevisionsWithPropertiesByUser(user models.ODUser, pagingRequest PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
@@ -160,17 +159,17 @@ func (fake *FakeDAO) GetObjectTypeByName(typeName string, addIfMissing bool, cre
 }
 
 // GetObjectsIHaveShared for FakeDAO
-func (fake *FakeDAO) GetObjectsIHaveShared(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
+func (fake *FakeDAO) GetObjectsIHaveShared(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
 // GetObjectsSharedToEveryone for FakeDAO
-func (fake *FakeDAO) GetObjectsSharedToEveryone(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
+func (fake *FakeDAO) GetObjectsSharedToEveryone(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
 // GetObjectsSharedToMe for FakeDAO
-func (fake *FakeDAO) GetObjectsSharedToMe(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
+func (fake *FakeDAO) GetObjectsSharedToMe(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
@@ -195,27 +194,27 @@ func (fake *FakeDAO) GetPropertiesForObjectRevision(object models.ODObject) ([]m
 }
 
 // GetRootObjects for FakeDAO.
-func (fake *FakeDAO) GetRootObjects(pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
+func (fake *FakeDAO) GetRootObjects(pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
 // GetRootObjectsByUser for FakeDAO.
-func (fake *FakeDAO) GetRootObjectsByUser(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
+func (fake *FakeDAO) GetRootObjectsByUser(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
 // GetRootObjectsWithProperties for FakeDAO.
-func (fake *FakeDAO) GetRootObjectsWithProperties(pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
+func (fake *FakeDAO) GetRootObjectsWithProperties(pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
 // GetRootObjectsWithPropertiesByUser for FakeDAO.
-func (fake *FakeDAO) GetRootObjectsWithPropertiesByUser(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
+func (fake *FakeDAO) GetRootObjectsWithPropertiesByUser(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
 // GetTrashedObjectsByUser for FakeDAO.
-func (fake *FakeDAO) GetTrashedObjectsByUser(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
+func (fake *FakeDAO) GetTrashedObjectsByUser(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
@@ -246,7 +245,7 @@ func (fake *FakeDAO) IsParentIDADescendent(id []byte, parentID []byte) (bool, er
 }
 
 // SearchObjectsByNameOrDescription for FakeDAO
-func (fake *FakeDAO) SearchObjectsByNameOrDescription(user models.ODUser, pagingRequest protocol.PagingRequest, loadProperties bool) (models.ODObjectResultset, error) {
+func (fake *FakeDAO) SearchObjectsByNameOrDescription(user models.ODUser, pagingRequest PagingRequest, loadProperties bool) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 

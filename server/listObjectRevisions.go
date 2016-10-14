@@ -69,7 +69,7 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	}
 
 	// Get the revision information for this objects
-	response, err := dao.GetObjectRevisionsWithPropertiesByUser(user, *pagingRequest, dbObject, checkACM)
+	response, err := dao.GetObjectRevisionsWithPropertiesByUser(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest), dbObject, checkACM)
 	if err != nil {
 		return NewAppError(500, err, "General error")
 	}

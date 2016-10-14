@@ -5,14 +5,13 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 )
 
 // GetChildObjectsByUser retrieves a list of Objects in Object Drive that are
 // nested beneath a specified object by parentID and are owned by the specified
 // user or group.
 func (dao *DataAccessLayer) GetChildObjectsByUser(
-	user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
+	user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
@@ -28,7 +27,7 @@ func (dao *DataAccessLayer) GetChildObjectsByUser(
 	return response, err
 }
 
-func getChildObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
+func getChildObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 
 	// NOTE: distinct is unfortunately used here because object_permission

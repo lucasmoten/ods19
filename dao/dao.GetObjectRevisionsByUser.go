@@ -5,12 +5,11 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 )
 
 // GetObjectRevisionsByUser retrieves a list of revisions for an object.
 func (dao *DataAccessLayer) GetObjectRevisionsByUser(
-	user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error) {
+	user models.ODUser, pagingRequest PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
@@ -26,7 +25,7 @@ func (dao *DataAccessLayer) GetObjectRevisionsByUser(
 	return response, err
 }
 
-func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error) {
+func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	// NOTE: distinct is unfortunately used here because object_permission
 	// allows multiple records per object and grantee.

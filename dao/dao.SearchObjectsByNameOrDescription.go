@@ -10,14 +10,13 @@ import (
 
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
-	"decipher.com/object-drive-server/protocol"
 )
 
 // SearchObjectsByNameOrDescription retrieves a list of Objects, their
 // Permissions and optionally Properties in object drive that are
 // available to the user making the call, matching any specified
 // filter settings on the paging request, and ordered by sort settings
-func (dao *DataAccessLayer) SearchObjectsByNameOrDescription(user models.ODUser, pagingRequest protocol.PagingRequest, loadProperties bool) (models.ODObjectResultset, error) {
+func (dao *DataAccessLayer) SearchObjectsByNameOrDescription(user models.ODUser, pagingRequest PagingRequest, loadProperties bool) (models.ODObjectResultset, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
@@ -33,7 +32,7 @@ func (dao *DataAccessLayer) SearchObjectsByNameOrDescription(user models.ODUser,
 	return response, err
 }
 
-func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest protocol.PagingRequest, loadProperties bool) (models.ODObjectResultset, error) {
+func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, loadProperties bool) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 
 	// NOTE: distinct is unfortunately used here because object_permission
@@ -130,7 +129,7 @@ func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUs
 // all list type operations with sanity checks on the fieldnames past in so that we dont
 // just take values straight from the caller/client.  To apply the order by to the
 // archive table, call buildOrderByArchive
-func buildOrderBy(pagingRequest protocol.PagingRequest) string {
+func buildOrderBy(pagingRequest PagingRequest) string {
 	out := ` order by `
 	if len(pagingRequest.SortSettings) > 0 {
 		for _, sortSetting := range pagingRequest.SortSettings {
@@ -182,13 +181,13 @@ func buildOrderBy(pagingRequest protocol.PagingRequest) string {
 
 // buildOrderByArchive first builds up the order by clause from paging request,
 // and then converts to reference the archive table
-func buildOrderByArchive(pagingRequest protocol.PagingRequest) string {
+func buildOrderByArchive(pagingRequest PagingRequest) string {
 	a := buildOrderBy(pagingRequest)
 	a = strings.Replace(a, " o.", " ao.", -1)
 	return a
 }
 
-func buildFilter(pagingRequest protocol.PagingRequest) string {
+func buildFilter(pagingRequest PagingRequest) string {
 	out := ``
 	if len(pagingRequest.FilterSettings) > 0 {
 		for _, filterSetting := range pagingRequest.FilterSettings {
@@ -242,12 +241,7 @@ func buildFilter(pagingRequest protocol.PagingRequest) string {
 	return out
 }
 
-// func buildFilterArchive(pagingRequest protocol.PagingRequest) string {
-// 	a := buildFilter(pagingRequest)
-// 	a = strings.Replace(a, " o.", " ao.", -1)
-// 	return a
-// }
-func buildFilterSortAndLimit(pagingRequest protocol.PagingRequest) string {
+func buildFilterSortAndLimit(pagingRequest PagingRequest) string {
 	limit := GetLimit(pagingRequest.PageNumber, pagingRequest.PageSize)
 	offset := GetOffset(pagingRequest.PageNumber, pagingRequest.PageSize)
 	sqlStatementSuffix := ``
@@ -256,7 +250,7 @@ func buildFilterSortAndLimit(pagingRequest protocol.PagingRequest) string {
 	sqlStatementSuffix += ` limit ` + strconv.Itoa(limit) + ` offset ` + strconv.Itoa(offset)
 	return sqlStatementSuffix
 }
-func buildFilterSortAndLimitArchive(pagingRequest protocol.PagingRequest) string {
+func buildFilterSortAndLimitArchive(pagingRequest PagingRequest) string {
 	a := buildFilterSortAndLimit(pagingRequest)
 	a = strings.Replace(a, " o.", " ao.", -1)
 	return a

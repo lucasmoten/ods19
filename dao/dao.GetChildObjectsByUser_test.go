@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
 
@@ -142,7 +142,7 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 			t.Error("expected child parentID to match parent ID")
 		}
 		user := models.ODUser{DistinguishedName: dbChild2.CreatedBy}
-		pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: 10}
+		pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: 10}
 		resultset, err := d.GetChildObjectsByUser(user, pagingRequest, dbParent)
 		if err != nil {
 			t.Error(err)

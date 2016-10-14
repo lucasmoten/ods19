@@ -2,7 +2,6 @@ package dao
 
 import (
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 )
@@ -24,36 +23,36 @@ type DAO interface {
 	DeleteObjectProperty(objectProperty models.ODObjectPropertyEx) error
 	DeleteObjectType(objectType models.ODObjectType) error
 	ExpungeObject(user models.ODUser, object models.ODObject, explicit bool) error
-	GetChildObjects(pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
-	GetChildObjectsByUser(user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
-	GetChildObjectsWithProperties(pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
-	GetChildObjectsWithPropertiesByUser(user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
+	GetChildObjects(pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
+	GetChildObjectsByUser(user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
+	GetChildObjectsWithProperties(pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
+	GetChildObjectsWithPropertiesByUser(user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
 	GetDBState() (models.DBState, error)
 	GetObject(object models.ODObject, loadProperties bool) (models.ODObject, error)
 	GetObjectPermission(objectPermission models.ODObjectPermission) (models.ODObjectPermission, error)
 	GetObjectProperty(objectProperty models.ODObjectPropertyEx) (models.ODObjectPropertyEx, error)
 	GetObjectRevision(object models.ODObject, loadProperties bool) (models.ODObject, error)
-	GetObjectRevisionsByUser(user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error)
-	GetObjectRevisionsWithPropertiesByUser(user models.ODUser, pagingRequest protocol.PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error)
+	GetObjectRevisionsByUser(user models.ODUser, pagingRequest PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error)
+	GetObjectRevisionsWithPropertiesByUser(user models.ODUser, pagingRequest PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error)
 	GetObjectType(objectType models.ODObjectType) (*models.ODObjectType, error)
 	GetObjectTypeByName(typeName string, addIfMissing bool, createdBy string) (models.ODObjectType, error)
-	GetObjectsIHaveShared(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error)
-	GetObjectsSharedToEveryone(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error)
-	GetObjectsSharedToMe(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error)
+	GetObjectsIHaveShared(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error)
+	GetObjectsSharedToEveryone(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error)
+	GetObjectsSharedToMe(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error)
 	GetParents(child models.ODObject) ([]models.ODObject, error)
 	GetPermissionsForObject(object models.ODObject) ([]models.ODObjectPermission, error)
 	GetPropertiesForObject(object models.ODObject) ([]models.ODObjectPropertyEx, error)
 	GetPropertiesForObjectRevision(object models.ODObject) ([]models.ODObjectPropertyEx, error)
-	GetRootObjects(pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error)
-	GetRootObjectsByUser(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error)
-	GetRootObjectsWithProperties(pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error)
-	GetRootObjectsWithPropertiesByUser(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error)
-	GetTrashedObjectsByUser(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error)
+	GetRootObjects(pagingRequest PagingRequest) (models.ODObjectResultset, error)
+	GetRootObjectsByUser(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error)
+	GetRootObjectsWithProperties(pagingRequest PagingRequest) (models.ODObjectResultset, error)
+	GetRootObjectsWithPropertiesByUser(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error)
+	GetTrashedObjectsByUser(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error)
 	GetUserByDistinguishedName(user models.ODUser) (models.ODUser, error)
 	GetUsers() ([]models.ODUser, error)
 	GetUserStats(dn string) (models.UserStats, error)
 	IsParentIDADescendent(id []byte, parentID []byte) (bool, error)
-	SearchObjectsByNameOrDescription(user models.ODUser, pagingRequest protocol.PagingRequest, loadProperties bool) (models.ODObjectResultset, error)
+	SearchObjectsByNameOrDescription(user models.ODUser, pagingRequest PagingRequest, loadProperties bool) (models.ODObjectResultset, error)
 	UndeleteObject(object *models.ODObject) (models.ODObject, error)
 	UpdateObject(object *models.ODObject) error
 	UpdateObjectProperty(objectProperty models.ODObjectPropertyEx) error

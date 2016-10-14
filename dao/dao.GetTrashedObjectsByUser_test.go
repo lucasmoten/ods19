@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
@@ -20,7 +20,7 @@ func TestDAOGetTrashedObjectsByUser(t *testing.T) {
 	// show up in trash.
 
 	user3 := setupUserWithSnippets(usernames[3])
-	pagingRequest := protocol.PagingRequest{PageNumber: 1, PageSize: 1000}
+	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: 1000}
 	// Create an object.
 	objA := createTestObjectAllPermissions(user3.DistinguishedName)
 	createdA, err := d.CreateObject(&objA)

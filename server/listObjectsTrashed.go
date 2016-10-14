@@ -31,7 +31,7 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 	user.Snippets = snippetFields
 
 	// Get trash for this user
-	results, err := dao.GetTrashedObjectsByUser(user, *pagingRequest)
+	results, err := dao.GetTrashedObjectsByUser(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest))
 	if err != nil {
 		return NewAppError(500, errors.New("Database call failed: "), err.Error())
 	}

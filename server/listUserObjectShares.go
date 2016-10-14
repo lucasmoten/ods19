@@ -31,7 +31,7 @@ func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWrit
 	user.Snippets = snippetFields
 
 	// Fetch objects for requested page
-	results, err := dao.GetObjectsSharedToMe(user, *pagingRequest)
+	results, err := dao.GetObjectsSharedToMe(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest))
 	if err != nil {
 		return NewAppError(500, err, "GetObjectsSharedToMe query failed")
 	}

@@ -5,13 +5,12 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
 )
 
 // GetRootObjectsByUser retrieves a list of Objects in Object Drive that are
 // not nested beneath any other objects natively (natural parentId is null) and
 // are owned by the specified user or group.
-func (dao *DataAccessLayer) GetRootObjectsByUser(user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
+func (dao *DataAccessLayer) GetRootObjectsByUser(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
@@ -27,7 +26,7 @@ func (dao *DataAccessLayer) GetRootObjectsByUser(user models.ODUser, pagingReque
 	return response, err
 }
 
-func getRootObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest protocol.PagingRequest) (models.ODObjectResultset, error) {
+func getRootObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 
 	response := models.ODObjectResultset{}
 	// NOTE: distinct is unfortunately used here because object_permission
