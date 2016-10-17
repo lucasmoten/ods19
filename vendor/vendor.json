@@ -349,6 +349,12 @@
 			"revisionTime": "2016-01-26T21:02:32Z"
 		},
 		{
+			"checksumSHA1": "xunNOgG8P6Xh4SM+LPQ1zMDXa8Q=",
+			"path": "gopkg.in/gorp.v1",
+			"revision": "c87af80f3cc5036b55b83d77171e156791085e2e",
+			"revisionTime": "2015-02-04T08:55:30Z"
+		},
+		{
 			"checksumSHA1": "Ww6wiSKdA8LwxoJz4DNUF+crH4g=",
 			"path": "gopkg.in/yaml.v2",
 			"revision": "f7716cbe52baa25d2e9b0d0da546fcf909fc16b4",
