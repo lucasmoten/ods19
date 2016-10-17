@@ -13,7 +13,7 @@ func TestExpectedCountOfDatabaseObjects(t *testing.T) {
 		{
 			name:     "tables",
 			sql:      `select count(*) from information_schema.tables where table_schema = database();`,
-			expected: 33,
+			expected: 34,
 		},
 		{
 			name:     "triggers",

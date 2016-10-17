@@ -283,6 +283,18 @@
 			"revisionTime": "2015-12-01T02:33:10Z"
 		},
 		{
+			"checksumSHA1": "Y1gIGoR8z/lDf2j+vcH1eKZGDSk=",
+			"path": "github.com/rubenv/sql-migrate",
+			"revision": "6f4757563362064790a6687a6b60f182062c8634",
+			"revisionTime": "2016-06-20T08:32:29Z"
+		},
+		{
+			"checksumSHA1": "aoSLe79p1m0Lznfed0X0SoYofNg=",
+			"path": "github.com/rubenv/sql-migrate/sqlparse",
+			"revision": "6f4757563362064790a6687a6b60f182062c8634",
+			"revisionTime": "2016-06-20T08:32:29Z"
+		},
+		{
 			"checksumSHA1": "yUFE9fmQwBUefkR6wjevaovfZbU=",
 			"path": "github.com/samuel/go-thrift/thrift",
 			"revision": "ca819cf963ab710e7a285044e92f1353fa497b80",
@@ -335,6 +347,12 @@
 			"path": "golang.org/x/net/context",
 			"revision": "04b9de9b512f58addf28c9853d50ebef61c3953e",
 			"revisionTime": "2016-01-26T21:02:32Z"
+		},
+		{
+			"checksumSHA1": "xunNOgG8P6Xh4SM+LPQ1zMDXa8Q=",
+			"path": "gopkg.in/gorp.v1",
+			"revision": "c87af80f3cc5036b55b83d77171e156791085e2e",
+			"revisionTime": "2015-02-04T08:55:30Z"
 		},
 		{
 			"checksumSHA1": "Ww6wiSKdA8LwxoJz4DNUF+crH4g=",
