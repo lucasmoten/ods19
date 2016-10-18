@@ -2,6 +2,7 @@ package server_test
 
 import (
 	"encoding/json"
+	"os"
 	"testing"
 	"time"
 
@@ -14,6 +15,11 @@ import (
 )
 
 func TestPublishEvents(t *testing.T) {
+
+	//This test is going to fail if we turn off kafka
+	if os.Getenv("OD_EVENT_KAFKA_ADDRS") == "" {
+		t.Skip()
+	}
 
 	published := make(map[string][]string)
 	clientID := 0
