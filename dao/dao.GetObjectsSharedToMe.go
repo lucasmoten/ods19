@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"strings"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 
@@ -77,7 +79,7 @@ func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
         and o.ownedBy <> ? `
 
 	query += buildFilterExcludeEveryone()
-	query += buildFilterExcludeNonRootedShares(user)
+	query += buildFilterExcludeNonRootedSharedToMe(user)
 	query += buildFilterForUserACMShare(user)
 	query += buildFilterForUserSnippets(user)
 	query += buildFilterSortAndLimit(pagingRequest)
@@ -104,4 +106,39 @@ func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
 		response.Objects[i].Permissions = permissions
 	}
 	return response, err
+}
+
+// buildFilterExcludeNonRootedSharedToMe builds a where clause portion for a
+// sql statement suitable for filtering returned objects to not include those
+// those whose parent is also shared to the user as determined by the snippets
+// associated with them as their f_share values containing groups and userdn
+func buildFilterExcludeNonRootedSharedToMe(user models.ODUser) string {
+	var sql string
+	sql += " and (o.parentId is null or o.parentId not in ("
+	sql += "select objectId from object_permission where isdeleted = 0 and allowRead = 1 and grantee in ("
+	fShares := false
+	if user.Snippets != nil {
+		for _, rawFields := range user.Snippets.Snippets {
+			switch rawFields.FieldName {
+			case "f_share":
+				for _, shareValue := range rawFields.Values {
+					if len(strings.TrimSpace(shareValue)) > 0 {
+						if fShares {
+							sql += ", "
+						}
+						sql += "'" + MySQLSafeString2(shareValue) + "'"
+						fShares = true
+					}
+				}
+				break
+			default:
+				continue
+			}
+		}
+	}
+	if !fShares {
+		sql += "'" + MySQLSafeString(models.AACFlatten(user.DistinguishedName)) + "'"
+	}
+	sql += ")))"
+	return sql
 }

@@ -5,7 +5,9 @@ vNEXT
 -----
 
 * NEW: odrive-database utility supports migrations.
-
+* NEW: List of objects shared to the user (/shares) will exclude those whose parent is also shared to them.
+* NEW: List of objects shared to others (/shared) will exclude those whose parent is also shared to others.
+* NEW: List of objects shared to everyone (/sharedpublic) will exclude those whose parent is also shared to everyone.
 
 Release v1.0.1.4
 ----------------

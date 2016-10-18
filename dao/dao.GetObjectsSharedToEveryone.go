@@ -74,6 +74,7 @@ func getObjectsSharedToEveryoneInTransaction(tx *sqlx.Tx, user models.ODUser, pa
         and o.isdeleted = 0 
         `
 	query += ` and op.grantee like '` + MySQLSafeString(models.AACFlatten(models.EveryoneGroup)) + `'`
+	query += buildFilterExcludeNonRootedSharedToEveryone()
 	query += buildFilterForUserSnippets(user)
 	query += buildFilterSortAndLimit(pagingRequest)
 	//log.Println(query)
@@ -100,4 +101,24 @@ func getObjectsSharedToEveryoneInTransaction(tx *sqlx.Tx, user models.ODUser, pa
 		response.Objects[i].Permissions = permissions
 	}
 	return response, err
+}
+
+// buildFilterExcludeNonRootedSharedToEveryone builds a where clause portion
+// for a sql statement suitable for filtering returned objects to not include
+// those whose parent is also shared to everyone.
+func buildFilterExcludeNonRootedSharedToEveryone() string {
+	return `
+	 and (
+		o.parentId is null or o.parentId not in (
+			select 
+				objectId 
+			from 
+				object_permission
+			where 
+				isdeleted = 0 
+				and allowRead = 1
+				and grantee like '` + MySQLSafeString(models.AACFlatten(models.EveryoneGroup)) + `'
+		)
+	)
+	`
 }

@@ -72,6 +72,7 @@ func getObjectsIHaveSharedInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
         and op.isdeleted = 0 
         and op.createdBy = ?
         and op.grantee <> ? `
+	query += buildFilterExcludeNonRootedIHaveShared(user)
 	query += buildFilterForUserSnippets(user)
 	query += buildFilterSortAndLimit(pagingRequest)
 	err := tx.Select(&response.Objects, query, user.DistinguishedName, models.AACFlatten(user.DistinguishedName))
@@ -97,4 +98,25 @@ func getObjectsIHaveSharedInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
 		response.Objects[i].Permissions = permissions
 	}
 	return response, err
+}
+
+// buildFilterExcludeNonRootedIHaveShared builds a where clause portion for a
+// sql statement suitable for filtering returned objects to not include those
+// whose parent is also shared by the user
+func buildFilterExcludeNonRootedIHaveShared(user models.ODUser) string {
+	return `
+	 and (
+		o.parentId is null or o.parentId not in (
+			select 
+				objectId 
+			from 
+				object_permission
+			where 
+				isdeleted = 0 
+				and allowRead = 1
+				and createdBy = '` + MySQLSafeString(user.DistinguishedName) + `' 
+				and grantee not like '` + MySQLSafeString(models.AACFlatten(user.DistinguishedName)) + `'
+		)
+	)
+	`
 }
