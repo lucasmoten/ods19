@@ -8,6 +8,8 @@ vNEXT
 * NEW: List of objects shared to the user (/shares) will exclude those whose parent is also shared to them.
 * NEW: List of objects shared to others (/shared) will exclude those whose parent is also shared to others.
 * NEW: List of objects shared to everyone (/sharedpublic) will exclude those whose parent is also shared to everyone.
+* FIX: Breadcrumbs will be limited to the first parents accessible to a user. No
+  longer returning the complete list with redacted folder names
 
 Release v1.0.1.4
 ----------------
