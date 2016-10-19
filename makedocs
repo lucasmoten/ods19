@@ -4,6 +4,6 @@ cd `dirname $0`
 
 #Use humangeo's aglio container and copy artifact to where it needs to be
 docker run --rm -ti -v `pwd`:/docs humangeo/aglio -i docs/home.md --theme-variables streak -o root.html
-mv root.html server/static/templates/root.html
+mv -f root.html server/static/templates/root.html
 
 

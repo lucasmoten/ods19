@@ -681,3 +681,254 @@ func TestCreateObjectWithPermissionsThatDontGrantToOwner(t *testing.T) {
 	failNowOnErr(t, err, "Error decoding json to Object")
 
 }
+
+func TestCreateObjectWithPermissions11ThatDontGrantToOwner(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+
+	ghodsissue217 := `{
+    "permission": { 
+		"create": { 
+			"allow": [
+				"user/cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+	 		]
+		},
+		"read": {
+			"allow": [
+				"user/cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+	 		]			
+		},
+		"update": {
+			"allow": [
+				"user/cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+	 		]			
+		},
+		"delete": {
+			"allow": [
+				"user/cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+	 		]			
+		}
+	},	
+    "acm": {
+        "fgi_open": [],
+        "rel_to": [],
+        "sci_ctrls": [],
+        "owner_prod": [],
+        "portion": "S",
+        "disp_only": "",
+        "disponly_to": [],
+        "banner": "SECRET",
+        "non_ic": [],
+        "classif": "S",
+        "atom_energy": [],
+        "dissem_ctrls": [],
+        "sar_id": [],
+        "version": "2.1.0",
+        "fgi_protect": [],
+        "share": {
+            "users": [
+                "cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+            ],
+            "projects": {}
+        }
+    },
+    "progress": {
+        "percentage": 1,
+        "loading": true
+    },
+    "isShared": true,
+    "content": {
+        "ext": "png"
+    },
+    "type": "image/png",
+    "file": {},
+    "user_dn": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+    "name": "Screen Shot 2016-08-26 at 4.01.54 PM.png"
+}`
+	newobjuri := host + cfg.NginxRootURL + "/objects"
+	myobject, err := utils.UnmarshalStringToInterface(ghodsissue217)
+	if err != nil {
+		t.Logf("Error converting to interface: %s", err.Error())
+		t.FailNow()
+	}
+	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
+	createObjectRes, err := clients[tester10].Client.Do(createObjectReq)
+
+	t.Logf("* Processing Response")
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, createObjectRes, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(createObjectRes.Body, &createdObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+
+}
+
+func TestCreateObjectWithPermissionFavoredOverOlderPermissions(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+
+	ghodsissue217 := `{
+    "permissions": [
+        {
+            "allowRead": true,
+            "share": {
+                "users": [
+					"cn=test tester09,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+                ],
+				"projects": {
+					"dctc": {
+						"disp_nm": "DCTC",
+						"groups": ["ODrive"] 
+					}
+				}
+            }
+        }
+    ],
+	"permission": { 
+		"create": { 
+			"allow": [
+				"user/cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+	 		]
+		},
+		"read": {
+			"allow": [
+				"user/cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us",
+				"user/cn=test tester06,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+				"user/cn=test tester04,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+	 		],
+			"deny": [
+				"user/cn=test tester04,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+			]
+		},
+		"update": {
+			"allow": [
+				"user/cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+	 		]			
+		},
+		"delete": {
+			"allow": [
+				"user/cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+	 		]			
+		}
+	},
+    "acm": {
+        "fgi_open": [],
+        "rel_to": [],
+        "sci_ctrls": [],
+        "owner_prod": [],
+        "portion": "S",
+        "disp_only": "",
+        "disponly_to": [],
+        "banner": "SECRET",
+        "non_ic": [],
+        "classif": "S",
+        "atom_energy": [],
+        "dissem_ctrls": [],
+        "sar_id": [],
+        "version": "2.1.0",
+        "fgi_protect": [],
+        "share": {
+            "users": [
+                "cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+            ],
+            "projects": {}
+        }
+    },
+    "type": "image/png",
+    "file": {},
+    "user_dn": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+    "name": "Screen Shot 2016-08-26 at 4.01.54 PM.png"
+}`
+	newobjuri := host + cfg.NginxRootURL + "/objects"
+	myobject, err := utils.UnmarshalStringToInterface(ghodsissue217)
+	if err != nil {
+		t.Logf("Error converting to interface: %s", err.Error())
+		t.FailNow()
+	}
+	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
+	createObjectRes, err := clients[tester10].Client.Do(createObjectReq)
+
+	t.Logf("* Processing Response")
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, createObjectRes, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(createObjectRes.Body, &createdObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+
+	t.Logf("* Verify the right users can read")
+	shouldHaveReadForObjectID(t, createdObject.ID, 0, 6)
+	shouldNotHaveReadForObjectID(t, createdObject.ID, 1, 2, 3, 4, 5, 7, 8, 9)
+}
+
+// TestCreateStreamWithNewPermissions creates an object as Tester10, and includes a
+// permission for create, read, update, and delete granted to ODrive group.
+// All users in the group should be able to retrieve it, and update it.
+// This test originates from cte/object-drive-server#93, and is an extnsion for
+// DecipherNow/object-drive-server#217
+func TestCreateStreamWithNewPermissions(t *testing.T) {
+
+	tester10 := 0
+
+	t.Logf("* Create object")
+	t.Logf("preparing")
+	var object protocol.CreateObjectRequest
+	object.Name = "TestCreateWithNewPermissions"
+	object.RawAcm = `{"classif":"U"}`
+	object.Permission = protocol.Permission{Create: protocol.PermissionCapability{AllowedResources: []string{"group/dctc/DCTC/ODrive/DCTC ODrive"}}, Read: protocol.PermissionCapability{AllowedResources: []string{"group/dctc/DCTC/ODrive/DCTC ODrive"}}, Update: protocol.PermissionCapability{AllowedResources: []string{"group/dctc/DCTC/ODrive/DCTC ODrive"}}, Delete: protocol.PermissionCapability{AllowedResources: []string{"group/dctc/DCTC/ODrive/DCTC ODrive"}}}
+	t.Logf("jsoninfying")
+	jsonBody, _ := json.MarshalIndent(object, "", "  ")
+
+	t.Logf("http request and client")
+
+	data := "Initial test data 2"
+	//An exe name with some backspace chars to make it display as txt
+	tmpName := "initialTestData2.txt"
+	f, closer, err := testhelpers.GenerateTempFile(data)
+	if err != nil {
+		t.Errorf("Could not open temp file for write: %v\n", err)
+	}
+	defer closer()
+
+	req, err := testhelpers.NewCreateObjectPOSTRequestRaw("objects", host, "", f, tmpName, jsonBody)
+	if err != nil {
+		t.Errorf("Unable to create HTTP request: %v\n", err)
+	}
+
+	trafficLogs[APISampleFile].Request(t, req,
+		&TrafficLogDescription{
+			OperationName: "Create an object stream with explicit permissions set using API 1.1",
+			RequestDescription: `
+			This object is created with full CRUDS given to the owner, but explicit CRUD given to
+			members of the DCTC ODrive group.
+			`,
+			ResponseDescription: `
+			The object should have have permissions put in according to what we explicitly set,
+			rather than solely based on the ACM contents.
+			`,
+		},
+	)
+
+	client := clients[tester10].Client
+	res, err := client.Do(req)
+	if err != nil {
+		t.Errorf("Unable to do request:%v\n", err)
+		t.FailNow()
+	}
+	trafficLogs[APISampleFile].Response(t, res)
+	defer util.FinishBody(res.Body)
+	if res.StatusCode != http.StatusOK {
+		t.FailNow()
+	}
+
+	var createdObject protocol.Object
+	err = util.FullDecode(res.Body, &createdObject)
+	res.Body.Close()
+
+	t.Logf("* Verify everyone in odrive group can read")
+	shouldHaveReadForObjectID(t, createdObject.ID, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+	failWithoutDCTCOdrive(t, &createdObject)
+}

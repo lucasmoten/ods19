@@ -69,7 +69,9 @@ type Object struct {
 	// Permissions is an array of Object Permissions associated with this object
 	// This might be null.  It could have a large list of permission objects
 	// relevant to this file (ie: shared with an organization)
-	Permissions []Permission `json:"permissions,omitempty"`
+	Permissions []Permission_1_0 `json:"permissions,omitempty"`
+	// Permission is the API 1.1+ version for providing permissions for users and groups with a resource and capability driven approach
+	Permission Permission `json:"permission,omitempty"`
 	// Breadcrumbs is an array of Breadcrumb that may be returned on some API calls.
 	// Clients can use breadcrumbs to display a list of parents. The top-level
 	// parent should be the first item in the slice.
@@ -91,7 +93,7 @@ func (obj Object) WithBreadcrumbs(crumbs []Breadcrumb) Object {
 func (obj Object) WithCallerPermission(caller Caller) Object {
 	obj = obj.WithConsolidatedPermissions()
 	var cp CallerPermission
-	cp = cp.WithRolledUp(caller, obj.Permissions...)
+	cp = cp.WithRolledUp(caller, obj.Permission)
 	if len(obj.DeletedBy) > 0 {
 		cp.AllowCreate = false
 		cp.AllowUpdate = false
@@ -102,10 +104,15 @@ func (obj Object) WithCallerPermission(caller Caller) Object {
 }
 
 // WithConsolidatedPermissions iterates permissions on the object and combines
-// capabilities allowed for multiple permissions having the same grantee and then
-// removes the duplicates
+// capabilities allowed for multiple resources removing duplicates
 func (obj Object) WithConsolidatedPermissions() Object {
-	var consolidated []Permission
+	obj = consolidatePermissions_1_0(obj)
+	obj.Permission = obj.Permission.Consolidated()
+	return obj
+}
+
+func consolidatePermissions_1_0(obj Object) Object {
+	var consolidated []Permission_1_0
 	for _, perm := range obj.Permissions {
 		found := false
 		for cidx, cPerm := range consolidated {

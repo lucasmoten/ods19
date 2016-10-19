@@ -236,6 +236,85 @@ func (permission ODObjectPermission) String() string {
 	return s
 }
 
+func getResourceNameFromAcmGrantee(acmGrantee ODAcmGrantee) string {
+	if len(acmGrantee.DisplayName.String) > 0 {
+		o := []string{}
+		if len(acmGrantee.UserDistinguishedName.String) > 0 {
+			o = append(o, "user")
+			o = append(o, acmGrantee.UserDistinguishedName.String)
+		} else if len(acmGrantee.GroupName.String) > 0 {
+			o = append(o, "group")
+			if len(acmGrantee.ProjectName.String) > 0 {
+				o = append(o, acmGrantee.ProjectName.String)
+				if len(acmGrantee.ProjectDisplayName.String) > 0 {
+					o = append(o, acmGrantee.ProjectDisplayName.String)
+				} else {
+					o = append(o, acmGrantee.ProjectName.String)
+				}
+			}
+			o = append(o, acmGrantee.GroupName.String)
+		} else {
+			o = append(o, "unknown")
+		}
+		o = append(o, acmGrantee.DisplayName.String)
+		if len(o) > 0 {
+			return strings.Join(o, "/")
+		}
+	}
+	return ""
+}
+
+func getResourceNameFromAcmShare(acmShare string) string {
+	if len(acmShare) > 0 {
+		o := []string{}
+		if strings.HasPrefix(acmShare, `{"users"`) {
+			u := acmShare
+			u = strings.Replace(u, `{"users":["`, "", 0)
+			u = strings.Replace(u, `"]}`, "", 0)
+			if len(u) > 0 {
+				o = append(o, "user")
+				o = append(o, u)
+			}
+		} else if strings.HasPrefix(acmShare, `{"projects"`) {
+			groupName := acmShare
+			groupName = strings.Replace(groupName, `{"projects":{"`, "", 0)
+			projectName := groupName[0:strings.Index(groupName, `"`)]
+			groupName = strings.Replace(groupName, projectName, "", 0)
+			groupName = strings.Replace(groupName, `":{"disp_nm":"`, "", 0)
+			projectDisplayName := groupName[0:strings.Index(groupName, `"`)]
+			groupName = strings.Replace(groupName, projectDisplayName, "", 0)
+			groupName = strings.Replace(groupName, `","groups":["`, "", 0)
+			groupName = strings.Replace(groupName, `"]}}}`, "", 0)
+			if len(projectName) > 0 && len(projectDisplayName) > 0 && len(groupName) > 0 {
+				o = append(o, "group")
+				o = append(o, projectName)
+				o = append(o, projectDisplayName)
+				o = append(o, groupName)
+			} else if len(groupName) > 0 {
+				o = append(o, "group")
+				o = append(o, groupName)
+			}
+		}
+		if len(o) > 0 {
+			return strings.Join(o, "/")
+		}
+	}
+	return ""
+}
+
+// GetResourceName returns a serialized resource name prefixed by type based upon
+// the permissions acmGrantee or acmShare values.
+func (permission ODObjectPermission) GetResourceName() string {
+	if len(permission.AcmGrantee.DisplayName.String) > 0 {
+		return getResourceNameFromAcmGrantee(permission.AcmGrantee)
+	}
+	if len(permission.AcmShare) > 0 {
+		return getResourceNameFromAcmShare(permission.AcmShare)
+	}
+	return ""
+
+}
+
 func iifString(c bool, t string, f string) string {
 	if c {
 		return t

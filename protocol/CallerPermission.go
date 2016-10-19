@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"fmt"
+	"strings"
 
 	"decipher.com/object-drive-server/metadata/models"
 )
@@ -32,24 +33,79 @@ type CallerPermission struct {
 
 // String satisfies the Stringer interface for CallerPermission.
 func (cp CallerPermission) String() string {
-	template := "[create=%v read=%v update=%v delete=%v share=%v]"
-	s := fmt.Sprintf(template, cp.AllowCreate, cp.AllowRead, cp.AllowUpdate, cp.AllowDelete, cp.AllowShare)
+	template := "[%s%s%s%s%s]"
+	s := fmt.Sprintf(template, iifString(cp.AllowCreate, "C", "-"), iifString(cp.AllowRead, "R", "-"), iifString(cp.AllowUpdate, "U", "-"), iifString(cp.AllowDelete, "D", "-"), iifString(cp.AllowShare, "S", "-"))
 	return s
 }
 
-// WithRolledUp takes a slice of Permission and returns a new composite CallerPermission.
-func (cp CallerPermission) WithRolledUp(caller Caller, perms ...Permission) CallerPermission {
-	for _, perm := range perms {
-		if cp.AllowCreate && cp.AllowRead && cp.AllowUpdate && cp.AllowDelete && cp.AllowShare {
-			break
-		}
-		if perm.Grantee == models.AACFlatten(caller.DistinguishedName) || perm.Grantee == models.AACFlatten("-Everyone") || caller.InGroup(perm.Grantee) {
-			cp.AllowCreate = cp.AllowCreate || perm.AllowCreate
-			cp.AllowRead = cp.AllowRead || perm.AllowRead
-			cp.AllowUpdate = cp.AllowUpdate || perm.AllowUpdate
-			cp.AllowDelete = cp.AllowDelete || perm.AllowDelete
-			cp.AllowShare = cp.AllowShare || perm.AllowShare
+// WithRolledUp takes a permission declaration of allowed and denied resources, and determines whether the caller has permission for each capability
+func (cp CallerPermission) WithRolledUp(caller Caller, permission Permission) CallerPermission {
+	cp.AllowCreate = IsInResources(caller, permission.Create.AllowedResources) && !IsInResources(caller, permission.Create.DeniedResources)
+	cp.AllowRead = IsInResources(caller, permission.Read.AllowedResources) && !IsInResources(caller, permission.Read.DeniedResources)
+	cp.AllowUpdate = IsInResources(caller, permission.Update.AllowedResources) && !IsInResources(caller, permission.Update.DeniedResources)
+	cp.AllowDelete = IsInResources(caller, permission.Delete.AllowedResources) && !IsInResources(caller, permission.Delete.DeniedResources)
+	cp.AllowShare = IsInResources(caller, permission.Share.AllowedResources) && !IsInResources(caller, permission.Share.DeniedResources)
+	return cp
+}
+
+// IsInResources examines if the caller distinguished name, or the everyone group is contained within a passed in list of resources
+func IsInResources(caller Caller, resources []string) bool {
+	for _, resource := range resources {
+		flattened := GetFlattenedNameFromResource(resource)
+		if flattened == models.AACFlatten(caller.DistinguishedName) || flattened == models.AACFlatten(models.EveryoneGroup) || caller.InGroup(flattened) {
+			return true
 		}
 	}
-	return cp
+	return false
+}
+
+// GetFlattenedNameFromResource returns the equivalent of AAC flattened share/f_share from a resource
+func GetFlattenedNameFromResource(resource string) (flattened string) {
+	if len(resource) == 0 {
+		return ""
+	}
+	if strings.HasPrefix(resource, "user/") {
+		return GetFlattenedUserFromResource(resource)
+	}
+	if strings.HasPrefix(resource, "group/") {
+		return GetFlattenedGroupFromResource(resource)
+	}
+	if strings.HasPrefix(resource, "unknown/") {
+		return GetFlattenedUnknownFromResource(resource)
+	}
+	return models.AACFlatten(resource)
+}
+
+// GetFlattenedUserFromResource returns the equivalent of AAC flattened share/f_share from a user/ resource
+func GetFlattenedUserFromResource(resource string) (flattened string) {
+	o := strings.Split(strings.Replace(resource, "user/", "", 1), "/")
+	if len(o) > 0 {
+		return models.AACFlatten(o[0])
+	}
+	return ""
+}
+
+// GetFlattenedGroupFromResource returns the equivalent of AAC flattened share/f_share from a group/ resource
+func GetFlattenedGroupFromResource(resource string) (flattened string) {
+	o := strings.Split(strings.Replace(resource, "group/", "", 1), "/")
+	switch len(o) {
+	case 1: // groupName
+		fallthrough
+	case 2: // groupName/groupDisplayName
+		return models.AACFlatten(o[0])
+	case 3: // projectName/projectDisplayName/groupName
+		fallthrough
+	case 4: // projectName/projectDisplayName/groupName/groupDisplayName
+		return models.AACFlatten(o[0] + "_" + o[2])
+	}
+	return ""
+}
+
+// GetFlattenedUnknownFromResource returns the equivalent of AAC flattened share/f_share from a unknown/ resource
+func GetFlattenedUnknownFromResource(resource string) (flattened string) {
+	o := strings.Split(strings.Replace(resource, "unknown/", "", 1), "/")
+	if len(o) > 0 {
+		return models.AACFlatten(o[0])
+	}
+	return ""
 }
