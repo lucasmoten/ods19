@@ -59,11 +59,11 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 		return NewAppError(500, err, "error retrieving object parents")
 	}
 
-	parents = redactParents(ctx, h, parents)
+	filtered := redactParents(ctx, h, parents)
 	if err := errOnDeletedParents(parents); err != nil {
 		return err
 	}
-	crumbs := breadcrumbsFromParents(parents)
+	crumbs := breadcrumbsFromParents(filtered)
 
 	apiResponse := mapping.MapODObjectToObject(&dbObject).
 		WithCallerPermission(protocolCaller(caller)).
@@ -99,22 +99,30 @@ func getObjectDAOError(err error) (int, error, string) {
 	}
 }
 
+// redactParents checks authorization to read and AAC call; if caller is authorized, add to
+// filtered slice for return.
 func redactParents(ctx context.Context, h AppServer, parents []models.ODObject) []models.ODObject {
+
 	logger := LoggerFromContext(ctx)
-	// for each parent, check authorization to read and AAC call
-	for i, parent := range parents {
-		if ok := isUserAllowedToRead(ctx, h.MasterKey, &parent); !ok {
-			parents[i].Name = "Not Authorized"
+	var filtered []models.ODObject
+
+	// iterate parents backwards and prepend to filtered
+	for i := len(parents) - 1; i >= 0; i-- {
+		if ok := isUserAllowedToRead(ctx, h.MasterKey, &parents[i]); !ok {
+			break
 		}
-		if err := h.isUserAllowedForObjectACM(ctx, &parent); err != nil {
-			parents[i].Name = "Not Authorized"
+		if err := h.isUserAllowedForObjectACM(ctx, &parents[i]); err != nil {
 			if !IsDeniedAccess(err) {
-				// already redacted, log possible 502 and continue
+				// log possible 502 and continue
 				logger.Error("AAC error checking parent", zap.Object("err", err))
 			}
+			break
 		}
+		// prepend, because filtering required backwards-iteration, but we need to
+		// maintain root-first sorting of breadcrumbs
+		filtered = append([]models.ODObject{parents[i]}, filtered...)
 	}
-	return parents
+	return filtered
 }
 
 func errOnDeletedParents(parents []models.ODObject) *AppError {

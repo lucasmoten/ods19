@@ -8,6 +8,8 @@ import (
 
 // GetParents iteratively queries up the chain of parents until root is reached, and returns
 // a slice of the child's parents. If a root-level object is passed, an empty slice is returned.
+// The slice of parents is sorted with the root-level parent first, and the object's immediate
+// parent last.
 func (dao *DataAccessLayer) GetParents(child models.ODObject) ([]models.ODObject, error) {
 
 	parents := make([]models.ODObject, 0)

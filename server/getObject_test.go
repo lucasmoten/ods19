@@ -45,10 +45,6 @@ func TestGetObjectBreadcrumbs(t *testing.T) {
 		t.Errorf("expected Breadcrumbs length 1, got %v\n", len(obj.Breadcrumbs))
 	}
 
-	if obj.Breadcrumbs[0].ParentID != "" {
-		t.Errorf("first breadcrumb must have blank parentID")
-	}
-
 	t.Log("All names in folderD's breadcrumbs are visible")
 	for i, _ := range obj.Breadcrumbs {
 		if obj.Breadcrumbs[i].ID != expected[i].ID {
@@ -92,12 +88,6 @@ func TestGetObject_TSClassificationIsRedactedInBreadcrumbs(t *testing.T) {
 	folderC, _ := makeFolderWithACMWithParentViaJSON("folderC", folderB.ID, testhelpers.ValidACMTopSecretSharedToTester01, tester10)
 	folderD, _ := makeFolderWithACMWithParentViaJSON("folderD", folderC.ID, testhelpers.ValidACMUnclassified, tester10)
 
-	redacted := []protocol.Breadcrumb{
-		protocol.Breadcrumb{ID: folderA.ID, ParentID: folderA.ParentID, Name: folderA.Name},
-		protocol.Breadcrumb{ID: folderB.ID, ParentID: folderB.ParentID, Name: folderB.Name},
-		protocol.Breadcrumb{ID: folderC.ID, ParentID: folderC.ParentID, Name: folderC.Name},
-	}
-
 	tester01 := 1
 	req, _ := testhelpers.NewGetObjectRequest(folderD.ID, "", host)
 	resp, _ := clients[tester01].Client.Do(req)
@@ -105,17 +95,9 @@ func TestGetObject_TSClassificationIsRedactedInBreadcrumbs(t *testing.T) {
 	var obj protocol.Object
 	json.Unmarshal(data, &obj)
 
-	t.Log("Every name in folderD's breadcrumbs should be redacted based on classification")
-	for i, _ := range obj.Breadcrumbs {
-		if obj.Breadcrumbs[i].ID != redacted[i].ID {
-			t.Errorf("breadcrumb ID mismatch; expected: %s\tgot %s", redacted[i].ID, obj.Breadcrumbs[i].ID)
-		}
-		if obj.Breadcrumbs[i].ParentID != redacted[i].ParentID {
-			t.Errorf("breadcrumb ParentID mismatch; expected: %s\tgot %s", redacted[i].ParentID, obj.Breadcrumbs[i].ParentID)
-		}
-		if obj.Breadcrumbs[i].Name == redacted[i].Name {
-			t.Errorf("name should have been redacted: %s", redacted[i].Name)
-		}
+	t.Log("all parent breadcrumbs redacted for folderD")
+	if len(obj.Breadcrumbs) != 0 {
+		t.Errorf("expected Breadcrumbs length 1, got %v\n", len(obj.Breadcrumbs))
 	}
 
 }
@@ -127,10 +109,8 @@ func TestGetObject_PrivateObjectsRedactedInBreadcrumbs(t *testing.T) {
 	folderC, _ := makeFolderWithACMWithParentViaJSON("folderC", folderB.ID, testhelpers.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
 	folderD, _ := makeFolderWithACMWithParentViaJSON("folderD", folderC.ID, testhelpers.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
 
-	t.Log("Only the first two folders, A and B, should be redacted based on sharing permissions")
+	t.Log("Only folderC is not redacted in our breadcrumbs for folderD")
 	crumbs := []protocol.Breadcrumb{
-		protocol.Breadcrumb{ID: folderA.ID, ParentID: folderA.ParentID, Name: folderA.Name},
-		protocol.Breadcrumb{ID: folderB.ID, ParentID: folderB.ParentID, Name: folderB.Name},
 		protocol.Breadcrumb{ID: folderC.ID, ParentID: folderC.ParentID, Name: folderC.Name},
 	}
 
@@ -141,35 +121,24 @@ func TestGetObject_PrivateObjectsRedactedInBreadcrumbs(t *testing.T) {
 	var obj protocol.Object
 	json.Unmarshal(data, &obj)
 
-	for i, _ := range obj.Breadcrumbs {
+	if len(obj.Breadcrumbs) != 1 {
+		t.Errorf("expected Breadcrumbs length 1, got %v\n", len(obj.Breadcrumbs))
+	}
 
-		t.Logf("folderC is not redacted, so we see the name we defined above in breadcrumbs for folderD")
-		if i > 1 {
-			if obj.Breadcrumbs[i].ID != crumbs[i].ID {
-				t.Errorf("breadcrumb ID mismatch; expected: %s\tgot %s", crumbs[i].ID, obj.Breadcrumbs[i].ID)
-			}
-			if obj.Breadcrumbs[i].ParentID != crumbs[i].ParentID {
-				t.Errorf("breadcrumb ParentID mismatch; expected: %s\tgot %s", crumbs[i].ParentID, obj.Breadcrumbs[i].ParentID)
-			}
-			if obj.Breadcrumbs[i].Name != crumbs[i].Name {
-				t.Errorf("name should not have been redacted: %s", crumbs[i].Name)
-			}
-			continue
-		}
-
-		t.Logf("folders A and B should be redacted in breadcrumbs for folderD")
-		if obj.Breadcrumbs[i].ID != crumbs[i].ID {
-			t.Errorf("breadcrumb ID mismatch; expected: %s\tgot %s", crumbs[i].ID, obj.Breadcrumbs[i].ID)
-		}
-		if obj.Breadcrumbs[i].ParentID != crumbs[i].ParentID {
-			t.Errorf("breadcrumb ParentID mismatch; expected: %s\tgot %s", crumbs[i].ParentID, obj.Breadcrumbs[i].ParentID)
-		}
-		if obj.Breadcrumbs[i].Name == crumbs[i].Name {
-			t.Errorf("name should have been redacted: %s", crumbs[i].Name)
-		}
+	i := 0
+	t.Logf("folderC is not redacted, so we see the name we defined above in breadcrumbs for folderD")
+	if obj.Breadcrumbs[i].ID != crumbs[i].ID {
+		t.Errorf("breadcrumb ID mismatch; expected: %s\tgot %s", crumbs[i].ID, obj.Breadcrumbs[i].ID)
+	}
+	if obj.Breadcrumbs[i].ParentID != crumbs[i].ParentID {
+		t.Errorf("breadcrumb ParentID mismatch; expected: %s\tgot %s", crumbs[i].ParentID, obj.Breadcrumbs[i].ParentID)
+	}
+	if obj.Breadcrumbs[i].Name != crumbs[i].Name {
+		t.Errorf("name should not have been redacted: %s", crumbs[i].Name)
 	}
 
 }
+
 func TestAppServerGetObjectAgainstFake(t *testing.T) {
 
 	// Set up an ODUser and a test DN.
