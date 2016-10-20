@@ -93,10 +93,6 @@
 			"revisionTime": "2016-08-19T10:24:57-07:00"
 		},
 		{
-			"path": "github.com/aws/aws-sdk-go/aws/service/sqs",
-			"revision": ""
-		},
-		{
 			"checksumSHA1": "tBdFneml1Vn7uvezcktsa+hUsGg=",
 			"path": "github.com/aws/aws-sdk-go/aws/session",
 			"revision": "1f24fa1f3e1eabad0d613513d2adf3c4ec58e667",
@@ -107,10 +103,6 @@
 			"path": "github.com/aws/aws-sdk-go/aws/signer/v4",
 			"revision": "1f24fa1f3e1eabad0d613513d2adf3c4ec58e667",
 			"revisionTime": "2016-08-19T10:24:57-07:00"
-		},
-		{
-			"path": "github.com/aws/aws-sdk-go/credentials",
-			"revision": ""
 		},
 		{
 			"checksumSHA1": "Bm6UrYb2QCzpYseLwwgw6aetgRc=",
