@@ -97,9 +97,17 @@ func NewS3DrainProvider(conf configx.S3DrainProviderOpts, name string) DrainProv
 
 // NewS3DrainProviderRaw set up a new drain provider that gives us members to use the drain and goroutine to clean cache.
 // Call this to build a test cache.
-func NewS3DrainProviderRaw(root, name string, lowWatermark float64, ageEligibleForEviction int64, highWatermark float64, walkSleep time.Duration, logger zap.Logger) *S3DrainProviderData {
+func NewS3DrainProviderRaw(
+	root, name string,
+	lowWatermark float64,
+	ageEligibleForEviction int64,
+	highWatermark float64,
+	walkSleep time.Duration,
+	logger zap.Logger,
+) *S3DrainProviderData {
+	s3Config := configx.NewS3Config()
 	d := &S3DrainProviderData{
-		AWSSession:             configx.NewAWSSessionForS3(logger).S3Session,
+		AWSSession:             NewAWSSession(s3Config.AWSConfig, logger),
 		CacheObject:            DrainCacheData{root},
 		CacheLocationString:    name,
 		lowWatermark:           lowWatermark,

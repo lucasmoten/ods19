@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	logger = zap.NewJSON(zap.Output(os.Stdout), zap.ErrorOutput(os.Stdout))
+	logger = zap.New(zap.NewJSONEncoder(), zap.Output(os.Stdout), zap.ErrorOutput(os.Stdout))
 )
 
 // buildClientTLSConfig prepares a tls.Config object for this application to use

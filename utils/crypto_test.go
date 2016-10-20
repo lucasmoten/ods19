@@ -14,7 +14,7 @@ import (
 )
 
 func TestBasicCipher(t *testing.T) {
-	logger := zap.NewJSON()
+	logger := zap.New(zap.NewJSONEncoder())
 
 	data := []byte(`
     0123456789
@@ -102,7 +102,7 @@ func TestBasicCipher(t *testing.T) {
 
 func BasicCipherRaw(t *testing.T, data []byte, ciphertextName string, byteRange *utils.ByteRange, key []byte, iv []byte) {
 	var err error
-	logger := zap.NewJSON()
+	logger := zap.New(zap.NewJSONEncoder())
 
 	//Make a temp file that we can close and re-open later.
 	replaintextName := "crypto_test.replaintext.tmp"

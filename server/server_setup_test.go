@@ -78,7 +78,9 @@ func dumpOpenFiles(shouldPrint bool, at string) {
 
 func cleanupOpenFiles() {
 	for i := range clients {
-		clients[i].Client.Transport.(*http.Transport).CloseIdleConnections()
+		if clients[i] != nil {
+			clients[i].Client.Transport.(*http.Transport).CloseIdleConnections()
+		}
 	}
 }
 
@@ -136,6 +138,10 @@ func populateClients(population int) {
 		resp, err := clients[i].Client.Do(usersReq)
 		if err != nil {
 			log.Printf("Error in populateClients: %v/n", err)
+		}
+		if resp == nil {
+			log.Printf("the server is not running!!!")
+			return
 		}
 		defer util.FinishBody(resp.Body)
 

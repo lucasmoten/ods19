@@ -308,7 +308,7 @@ func TestCacheDrainToSafety(t *testing.T) {
 	defer os.Remove(fqDir)
 
 	t.Log("make a temp drain provider")
-	logger := zap.NewJSON()
+	logger := zap.New(zap.NewJSONEncoder())
 	d := server.NewS3DrainProviderRaw(fqCacheRoot, dirname, float64(0.50), int64(60*5), float64(0.75), 120, logger)
 
 	t.Log("create a small file")
@@ -348,7 +348,7 @@ func TestCacheCreate(t *testing.T) {
 	bucket := "decipherers"
 	dirname := "t01234"
 	//Create raw cache without starting the purge goroutine
-	logger := zap.NewJSON()
+	logger := zap.New(zap.NewJSONEncoder())
 	d := server.NewS3DrainProviderRaw(".", dirname, float64(0.50), int64(60*5), float64(0.75), 120, logger)
 
 	//create a small file

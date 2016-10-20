@@ -60,7 +60,7 @@ type FakeAsyncKafkaProducer struct {
 // NewFakeAsyncKafkaProducer returns a null Kafka Publisher implementation and logs
 func NewFakeAsyncKafkaProducer(logger zap.Logger) *FakeAsyncKafkaProducer {
 	if logger == nil {
-		logger = zap.NewJSON(zap.Output(zap.Discard), zap.ErrorOutput(zap.Discard))
+		logger = zap.New(zap.NewJSONEncoder(), zap.Output(zap.Discard), zap.ErrorOutput(zap.Discard))
 	}
 	logger.Info("Using FakeAsyncKafkaProducer")
 	return &FakeAsyncKafkaProducer{logger}

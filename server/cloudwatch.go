@@ -258,18 +258,28 @@ func ComputeOverallPerformance(
 func CloudWatchReportingStart(tracker *performance.JobReporters) {
 	//Get a session in which to work in a goroutine
 	logger := globalconfig.RootLogger.With(zap.String("session", "cloudwatch"))
-	cwConfig := configx.NewAWSSessionForCW(logger)
-	cwSession := cloudwatch.New(cwConfig.CWSession)
-	if cwSession == nil {
-		logger.Error("cloudwatch txn fail on null session")
-		return
+
+	//Try to get a real cloudwatch session.  If not, just log this data locally.
+	cwConfig := configx.NewCWConfig()
+	var cwSession *cloudwatch.CloudWatch
+	var namespace *string
+	var sleepTime int
+
+	if cwConfig == nil {
+		logger.Warn("cloudwatch not configured", zap.String("required", "OD_AWS_CLOUDWATCH_NAME"))
+		namespace = aws.String("nullCloudwatch")
+		sleepTime = 60
+	} else {
+		//We use an immutable dimension that marks this as the odrive service, where we actually report to CloudWatch
+		//for the IP (presuming they are unique, which is generally true outside of docker deployments)
+		namespace = aws.String(cwConfig.Name)
+		cwSession = cloudwatch.New(NewAWSSession(cwConfig.AWSConfig, logger))
+		if cwSession == nil {
+			logger.Error("cloudwatch txn fail on null session")
+		}
+		sleepTime = cwConfig.SleepTimeInSeconds
 	}
 
-	//We use an immutable dimension that marks this as the odrive service, where we actually report to CloudWatch
-	//for the IP (presuming they are unique, which is generally true outside of docker deployments)
-	//This design presumes that there might be other services reporting to {name}-{ip} (name is "host" by default)
-	node := aws.String(globalconfig.MyIP)
-	namespace := aws.String(cwConfig.Name + "-" + (*node))
 	logger.Info("cloudwatch monitoring started", zap.String("namespace", *namespace))
 	var dims []*cloudwatch.Dimension
 	dims = append(dims, &cloudwatch.Dimension{Name: aws.String("Service Name"), Value: aws.String("odrive")})
@@ -279,8 +289,8 @@ func CloudWatchReportingStart(tracker *performance.JobReporters) {
 		prevStat := GetProcStat(logger)
 		for {
 			CloudWatchStartInterval(tracker, NowMS())
-			logger.Debug("cloudwatch wait", zap.Int("timeInSeconds", cwConfig.SleepTimeInSeconds))
-			time.Sleep(time.Duration(cwConfig.SleepTimeInSeconds) * time.Second)
+			logger.Debug("cloudwatch wait", zap.Int("timeInSeconds", sleepTime))
+			time.Sleep(time.Duration(sleepTime) * time.Second)
 			logger.Debug("cloudwatch to report")
 
 			//Get all the fields that we want to report from here
@@ -398,11 +408,18 @@ func CloudWatchReportingStart(tracker *performance.JobReporters) {
 			}
 
 			if len(metricDatum) > 0 {
-				_, err := cwSession.PutMetricData(params)
-				if err != nil {
-					logger.Error("cloudwatch put metric data fail", zap.String("err", err.Error()))
+				cwLogger := logger.With(zap.String("namespace", *namespace))
+				if cwSession == nil {
+					for _, p := range params.MetricData {
+						logMetricDatum(cwLogger, p)
+					}
 				} else {
-					logger.Debug("cloudwatch success")
+					_, err := cwSession.PutMetricData(params)
+					if err != nil {
+						logger.Error("cloudwatch put metric data fail", zap.String("err", err.Error()))
+					} else {
+						logger.Debug("cloudwatch success")
+					}
 				}
 			}
 		}
