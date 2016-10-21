@@ -25,6 +25,7 @@ dependencies:
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive && go build
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && go-bindata schema ../../defaultcerts/client-mysql/id ../../defaultcerts/client-mysql/trust
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && go build
+        - cd ~/.go_workspace/src/$IMPORT_PATH && ./makedocs
         - cd ~/.go_workspace/src/$IMPORT_PATH && docker build -t deciphernow/odrive:latest .
         - cd ~/.go_workspace/src/$IMPORT_PATH/.ci && docker-compose pull zk kafka aac metadatadb gatekeeper dias
         - cd ~/.go_workspace/src/$IMPORT_PATH/.ci && docker-compose up -d
