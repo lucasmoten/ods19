@@ -315,7 +315,7 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 	// Build a simple array of the existing permissions that grant read access
 	var readGrants []string
 	for _, permission := range obj.Permissions {
-		if permission.AllowRead {
+		if !permission.IsDeleted && permission.AllowRead {
 			readGrants = append(readGrants, permission.Grantee)
 			// And track if we have everyone or not
 			if isPermissionFor(&permission, models.EveryoneGroup) {
@@ -405,7 +405,7 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 		// Remove read only permissions that are not everyone
 		for i := len(obj.Permissions) - 1; i >= 0; i-- {
 			permission := obj.Permissions[i]
-			if permission.AllowRead {
+			if !permission.IsDeleted && permission.AllowRead {
 				if strings.Compare(permission.AcmGrantee.GroupName.String, models.EveryoneGroup) != 0 {
 					if permission.IsReadOnly() {
 						// A read only permission that isn't everyone when everyone is present can simply be removed.
@@ -457,7 +457,7 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 		// Remove read only permissions that are not found in acmGrants
 		for i := len(obj.Permissions) - 1; i >= 0; i-- {
 			permission := obj.Permissions[i]
-			if permission.AllowRead {
+			if !permission.IsDeleted && permission.AllowRead {
 				hasAcmGrantee := false
 				for _, acmPermission := range acmPermissions {
 					if isPermissionFor(&permission, acmPermission.Grantee) {

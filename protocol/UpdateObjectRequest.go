@@ -17,12 +17,14 @@ type UpdateObjectRequest struct {
 	Name string `json:"name"`
 	// Description is an abstract of the object or its contents
 	Description string `json:"description"`
-	// RawACM is the raw ACM string that got supplied to create this object
+	// RawACM is the raw ACM string that got supplied to modify this object
 	RawAcm interface{} `json:"acm"`
-	// Properties is an array of Object Properties associated with this object
-	Properties []Property `json:"properties,omitempty"`
+	// Permission is the API 1.1+ version for providing permissions for users and groups with a resource and capability driven approach
+	Permission Permission `json:"permission,omitempty"`
 	// ContainsUSPersonsData indicates if this object contains US Persons data (Yes,No,Unknown)
 	ContainsUSPersonsData string `json:"containsUSPersonsData,omitEmpty"`
 	// ExemptFromFOIA indicates if this object is exempt from Freedom of Information Act requests (Yes,No,Unknown)
 	ExemptFromFOIA string `json:"exemptFromFOIA,omitEmpty"`
+	// Properties is an array of Object Properties associated with this object
+	Properties []Property `json:"properties,omitempty"`
 }

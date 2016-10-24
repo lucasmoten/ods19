@@ -93,15 +93,8 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	requestObject.ContentHash = dbObject.ContentHash
 	requestObject.EncryptIV = dbObject.EncryptIV
 
-	// Check that the owner of the object passed in matches the current state
-	// of the object in the data store.
-	if len(requestObject.OwnedBy.String) == 0 {
-		requestObject.OwnedBy = models.ToNullString(dbObject.OwnedBy.String)
-	}
-
-	if strings.Compare(requestObject.OwnedBy.String, dbObject.OwnedBy.String) != 0 {
-		return NewAppError(428, errors.New("Precondition required: OwnedBy does not match expected value"), "OwnedBy does not match expected value.  Use changeOwner to transfer ownership.")
-	}
+	// Retain existing ownership
+	requestObject.OwnedBy = models.ToNullString(dbObject.OwnedBy.String)
 
 	// If there was no ACM provided...
 	if len(requestObject.RawAcm.String) == 0 {
@@ -110,9 +103,24 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	}
 
 	// Assign existing permissions from the database object to the request object
-	requestObject.Permissions = dbObject.Permissions
+	if len(requestObject.Permissions) == 0 {
+		requestObject.Permissions = dbObject.Permissions
+	} else {
+		combinedPermissions := make([]models.ODObjectPermission, len(requestObject.Permissions)+len(dbObject.Permissions))
+		// Any existing permissions will be marked as deleted, since past in overrides.
+		idx := 0
+		for _, d := range dbObject.Permissions {
+			d.IsDeleted = true
+			combinedPermissions[idx] = d
+			idx = idx + 1
+		}
+		for _, r := range requestObject.Permissions {
+			combinedPermissions[idx] = r
+			idx = idx + 1
+		}
+		requestObject.Permissions = combinedPermissions
+	}
 	// Flatten ACM, then Normalize Read Permissions against ACM f_share
-
 	if err = h.flattenACM(logger, &requestObject); err != nil {
 		return ClassifyFlattenError(err)
 	}
@@ -259,6 +267,7 @@ func parseUpdateObjectRequestAsJSON(r *http.Request, ctx context.Context) (model
 	if len(convertedAcm) > 0 {
 		requestObject.RawAcm = models.ToNullString(convertedAcm)
 	}
+	requestObject.Permissions = mapping.MapPermissionToODPermissions(&jsonObject.Permission)
 	if len(jsonObject.ContainsUSPersonsData) > 0 {
 		requestObject.ContainsUSPersonsData = jsonObject.ContainsUSPersonsData
 	}

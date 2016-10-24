@@ -1027,6 +1027,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 	t.Logf("Update O11 setting an ACM sharing to ODrive G2, which will revoke read from T10")
 	acmWithODriveG1 := `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{"projects":{"DCTC":{"disp_nm":"DCTC","groups":["ODrive_G2"]}}}}`
 	updatedObject3.RawAcm = acmWithODriveG1
+	updatedObject3.Permission = protocol.Permission{}
 	uriUpdate := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
 	// jsonify it
 	jsonBody, _ = json.Marshal(updatedObject3)
@@ -1391,6 +1392,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	t.Logf("Update O12 setting an ACM sharing to ODrive G2, which will revoke read from T10")
 	acmWithODriveG1 := `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{"projects":{"DCTC":{"disp_nm":"DCTC","groups":["ODrive_G2"]}}}}`
 	updatedObject3.RawAcm = acmWithODriveG1
+	updatedObject3.Permission = protocol.Permission{}
 	uriUpdate := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
 	// jsonify it
 	jsonBody, _ = json.Marshal(updatedObject3)

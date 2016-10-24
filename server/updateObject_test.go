@@ -709,6 +709,76 @@ func TestUpdateObjectToEveryoneReturnsOwnerCRUDS(t *testing.T) {
 	}
 }
 
+func TestUpdateObjectWithPermissions(t *testing.T) {
+	tester10 := 0
+	t.Logf("* Create object shared to just tester10")
+	folder, _ := makeFolderWithACMViaJSON("TestUpdateObjectWithPermissions", testhelpers.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
+
+	t.Logf("* Update object with RU for ODrive, and leave CRUDS for owner as implicit")
+	objStringTemplate := `{
+    "id": "%s",
+    "acm": {"dissem_countries": ["USA"], "f_clearance": ["u"], "portion": "U", "banner": "UNCLASSIFIED", "classif": "U", "version": "2.1.0", "share": {"projects":{"dctc":{"disp_nm":"DCTC","groups":["ODrive"]}}}},
+	"permission": {"read": {"allow":["group/dctc/DCTC/ODrive/DCTC ODrive"]}, "update":{"allow":["group/dctc/DCTC/ODrive/DCTC ODrive"]}},
+    "changeToken": "%s"
+	}`
+	objString := fmt.Sprintf(objStringTemplate, folder.ID, folder.ChangeToken)
+	objInt, _ := utils.UnmarshalStringToInterface(objString)
+	uri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
+	req := makeHTTPRequestFromInterface(t, "POST", uri, objInt)
+	resp, err := clients[tester10].Client.Do(req)
+	failNowOnErr(t, err, "unable to do request")
+	statusMustBe(t, 200, resp, "expected tester10 to be able to change share")
+	var updated protocol.Object
+	util.FullDecode(resp.Body, &updated)
+
+	t.Logf("* Checking caller permissions (Ensure owner CRUDS!)")
+	if !updated.CallerPermission.AllowCreate {
+		t.Logf("  missing allowCreate")
+		t.Fail()
+	}
+	if !updated.CallerPermission.AllowRead {
+		t.Logf("  missing allowRead")
+		t.Fail()
+	}
+	if !updated.CallerPermission.AllowUpdate {
+		t.Logf("  missing allowUpdate")
+		t.Fail()
+	}
+	if !updated.CallerPermission.AllowDelete {
+		t.Logf("  missing allowDelete")
+		t.Fail()
+	}
+	if !updated.CallerPermission.AllowShare {
+		t.Logf("  missing allowShare")
+		t.Fail()
+	}
+
+	t.Logf("* Checking that ODrive group has read and update")
+	groupName := "group/dctc/DCTC/ODrive/DCTC ODrive"
+	foundReader := false
+	for _, allowedReader := range updated.Permission.Read.AllowedResources {
+		if allowedReader == groupName {
+			foundReader = true
+			break
+		}
+	}
+	if !foundReader {
+		t.Logf(" Group %s was not found as a reader", groupName)
+		t.Fail()
+	}
+	foundUpdater := false
+	for _, allowedUpdater := range updated.Permission.Update.AllowedResources {
+		if allowedUpdater == groupName {
+			foundUpdater = true
+			break
+		}
+	}
+	if !foundUpdater {
+		t.Logf(" Group %s was not found as an updater", groupName)
+		t.Fail()
+	}
+}
+
 func allTrue(vals ...bool) bool {
 	for _, v := range vals {
 		if !v {

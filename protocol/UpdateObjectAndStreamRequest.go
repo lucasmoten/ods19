@@ -17,18 +17,20 @@ type UpdateObjectAndStreamRequest struct {
 	Name string `json:"name"`
 	// Description is an abstract of the object or its contents
 	Description string `json:"description"`
-	// RawACM is the raw ACM string that got supplied to create this object
+	// RawACM is the raw ACM string that got supplied to modify this object
 	RawAcm interface{} `json:"acm"`
+	// Permission is the API 1.1+ version for providing permissions for users and groups with a resource and capability driven approach
+	Permission Permission `json:"permission,omitempty"`
 	// ContentType indicates the mime-type, and potentially the character set
 	// encoding for the object contents
 	ContentType string `json:"contentType,omitempty"`
 	// ContentSize denotes the length of the content stream for this object, in
 	// bytes
 	ContentSize int64 `json:"contentSize,omitempty"`
-	// Properties is an array of Object Properties associated with this object
-	Properties []Property `json:"properties,omitempty"`
 	// ContainsUSPersonsData indicates if this object contains US Persons data (Yes,No,Unknown)
 	ContainsUSPersonsData string `json:"containsUSPersonsData,omitEmpty"`
 	// ExemptFromFOIA indicates if this object is exempt from Freedom of Information Act requests (Yes,No,Unknown)
 	ExemptFromFOIA string `json:"exemptFromFOIA,omitEmpty"`
+	// Properties is an array of Object Properties associated with this object
+	Properties []Property `json:"properties,omitempty"`
 }
