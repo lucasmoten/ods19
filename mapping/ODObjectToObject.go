@@ -52,7 +52,8 @@ func MapODObjectToObject(i *models.ODObject) protocol.Object {
 	}
 
 	o.Properties = MapODPropertiesToProperties(&i.Properties)
-	o.Permissions = MapODPermissionsToPermissions(&i.Permissions)
+	o.Permissions = MapODPermissionsToPermissions_1_0(&i.Permissions)
+	o.Permission = MapODPermissionsToPermission(&i.Permissions)
 	o.IsPDFAvailable = i.IsPDFAvailable
 	o.ContainsUSPersonsData = i.ContainsUSPersonsData
 	o.ExemptFromFOIA = i.ExemptFromFOIA
@@ -113,7 +114,8 @@ func MapODObjectToDeletedObject(i *models.ODObject) protocol.DeletedObject {
 		o.ContentSize = 0
 	}
 	o.Properties = MapODPropertiesToProperties(&i.Properties)
-	o.Permissions = MapODPermissionsToPermissions(&i.Permissions)
+	o.Permissions = MapODPermissionsToPermissions_1_0(&i.Permissions)
+	o.Permission = MapODPermissionsToPermission(&i.Permissions)
 	o.IsPDFAvailable = i.IsPDFAvailable
 	o.ContainsUSPersonsData = i.ContainsUSPersonsData
 	o.ExemptFromFOIA = i.ExemptFromFOIA
@@ -182,9 +184,14 @@ func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) (models.O
 	if err != nil {
 		return o, err
 	}
-	o.Permissions, err = MapObjectSharesToODPermissions(&i.Permissions)
-	if err != nil {
-		return o, err
+	// Prefer newer permission format
+	o.Permissions = MapPermissionToODPermissions(&i.Permission)
+	// But fallback to permissions if none populated
+	if len(o.Permissions) == 0 {
+		o.Permissions, err = MapObjectSharesToODPermissions(&i.Permissions)
+		if err != nil {
+			return o, err
+		}
 	}
 	o.ContainsUSPersonsData = i.ContainsUSPersonsData
 	o.ExemptFromFOIA = i.ExemptFromFOIA
@@ -269,9 +276,14 @@ func OverwriteODObjectWithCreateObjectRequest(o *models.ODObject, i *protocol.Cr
 		return err
 	}
 
-	o.Permissions, err = MapObjectSharesToODPermissions(&i.Permissions)
-	if err != nil {
-		return err
+	// Prefer newer permission format
+	o.Permissions = MapPermissionToODPermissions(&i.Permission)
+	// But fallback to permissions if none populated
+	if len(o.Permissions) == 0 {
+		o.Permissions, err = MapObjectSharesToODPermissions(&i.Permissions)
+		if err != nil {
+			return err
+		}
 	}
 
 	o.ContainsUSPersonsData = i.ContainsUSPersonsData

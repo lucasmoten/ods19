@@ -17,8 +17,11 @@ type CreateObjectRequest struct {
 	// bytes
 	ContentSize int64 `json:"contentSize,omitempty"`
 	// Properties is an array of Object Properties associated with this object
-	Properties  []Property    `json:"properties,omitempty"`
+	Properties []Property `json:"properties,omitempty"`
+	// Permissions is the API 1.0 version for providing permissions for users and groups with a share model
 	Permissions []ObjectShare `json:"permissions,omitempty"`
+	// Permission is the API 1.1+ version for providing permissions for users and groups with a resource and capability driven approach
+	Permission Permission `json:"permission,omitempty"`
 	// ContainsUSPersonsData indicates if this object contains US Persons data (Yes,No,Unknown)
 	ContainsUSPersonsData string `json:"containsUSPersonsData,omitEmpty"`
 	// ExemptFromFOIA indicates if this object is exempt from Freedom of Information Act requests (Yes,No,Unknown)

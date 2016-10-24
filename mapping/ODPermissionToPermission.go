@@ -9,10 +9,10 @@ import (
 	"decipher.com/object-drive-server/protocol"
 )
 
-// MapODPermissionToPermission converts an internal ODPermission model to an
-// API exposable Permission
-func MapODPermissionToPermission(i *models.ODObjectPermission) protocol.Permission {
-	o := protocol.Permission{}
+// MapODPermissionToPermission_1_0 converts an internal ODPermission model to an
+// API exposable Permission_1_0
+func MapODPermissionToPermission_1_0(i *models.ODObjectPermission) protocol.Permission_1_0 {
+	o := protocol.Permission_1_0{}
 	o.Grantee = i.Grantee
 	o.ProjectName = i.AcmGrantee.ProjectName.String
 	o.ProjectDisplayName = i.AcmGrantee.ProjectDisplayName.String
@@ -39,21 +39,21 @@ func MapODCommonPermissionToCallerPermission(i *models.ODCommonPermission) proto
 	return o
 }
 
-// MapODPermissionsToPermissions converts an array of internal ODPermission
+// MapODPermissionsToPermissions_1_0 converts an array of internal ODPermission
 // models to an array of API exposable Permission
-func MapODPermissionsToPermissions(i *[]models.ODObjectPermission) []protocol.Permission {
-	o := make([]protocol.Permission, len(*i))
+func MapODPermissionsToPermissions_1_0(i *[]models.ODObjectPermission) []protocol.Permission_1_0 {
+	o := make([]protocol.Permission_1_0, len(*i))
 	for p, q := range *i {
-		o[p] = MapODPermissionToPermission(&q)
+		o[p] = MapODPermissionToPermission_1_0(&q)
 	}
 	o = applyEveryonePermissionsIfExists(o)
 	return o
 }
 
-func applyEveryonePermissionsIfExists(i []protocol.Permission) []protocol.Permission {
-	o := make([]protocol.Permission, len(i))
+func applyEveryonePermissionsIfExists(i []protocol.Permission_1_0) []protocol.Permission_1_0 {
+	o := make([]protocol.Permission_1_0, len(i))
 	hasEveryone := false
-	var everyonePermissions *protocol.Permission
+	var everyonePermissions *protocol.Permission_1_0
 	for _, q := range i {
 		if strings.Compare(q.GroupName, models.EveryoneGroup) == 0 {
 			everyonePermissions = &q
@@ -65,7 +65,7 @@ func applyEveryonePermissionsIfExists(i []protocol.Permission) []protocol.Permis
 		return i
 	}
 	for idx, q := range i {
-		var permWithEveryone protocol.Permission
+		var permWithEveryone protocol.Permission_1_0
 		permWithEveryone.Grantee = q.Grantee
 		permWithEveryone.ProjectName = q.ProjectName
 		permWithEveryone.ProjectDisplayName = q.ProjectDisplayName
@@ -80,6 +80,60 @@ func applyEveryonePermissionsIfExists(i []protocol.Permission) []protocol.Permis
 		o[idx] = permWithEveryone
 	}
 
+	return o
+}
+
+// MapODPermissionsToPermission converts an array of internal ODPermission
+// models to an array of API exposable Permission and applies everyone permissions
+func MapODPermissionsToPermission(i *[]models.ODObjectPermission) protocol.Permission {
+	o := protocol.Permission{}
+	create := make(map[string]bool)
+	read := make(map[string]bool)
+	update := make(map[string]bool)
+	delete := make(map[string]bool)
+	share := make(map[string]bool)
+	hasEveryone := false
+	var everyonePermissions *models.ODObjectPermission
+	for _, q := range *i {
+		if strings.Compare(q.Grantee, models.AACFlatten(models.EveryoneGroup)) == 0 {
+			everyonePermissions = &q
+			hasEveryone = true
+			break
+		}
+	}
+	for _, q := range *i {
+		resourceName := q.GetResourceName()
+		if q.AllowCreate || (hasEveryone && everyonePermissions.AllowCreate) {
+			create[resourceName] = true
+		}
+		if q.AllowRead || (hasEveryone && everyonePermissions.AllowRead) {
+			read[resourceName] = true
+		}
+		if q.AllowUpdate || (hasEveryone && everyonePermissions.AllowUpdate) {
+			update[resourceName] = true
+		}
+		if q.AllowDelete || (hasEveryone && everyonePermissions.AllowDelete) {
+			delete[resourceName] = true
+		}
+		if q.AllowShare || (hasEveryone && everyonePermissions.AllowShare) {
+			share[resourceName] = true
+		}
+	}
+	for k := range create {
+		o.Create.AllowedResources = append(o.Create.AllowedResources, k)
+	}
+	for k := range read {
+		o.Read.AllowedResources = append(o.Read.AllowedResources, k)
+	}
+	for k := range update {
+		o.Update.AllowedResources = append(o.Update.AllowedResources, k)
+	}
+	for k := range delete {
+		o.Delete.AllowedResources = append(o.Delete.AllowedResources, k)
+	}
+	for k := range share {
+		o.Share.AllowedResources = append(o.Share.AllowedResources, k)
+	}
 	return o
 }
 
@@ -223,4 +277,77 @@ func MapObjectShareToODPermissions(i *protocol.ObjectShare) ([]models.ODObjectPe
 	// Done
 	return o, nil
 
+}
+
+// MapPermissionToODPermissions converts a protocol permission object into an array of model permissions
+func MapPermissionToODPermissions(i *protocol.Permission) []models.ODObjectPermission {
+	*i = i.Consolidated()
+	permissions := make(map[string]models.ODObjectPermission)
+	for _, resource := range i.Create.AllowedResources {
+		permissions = MergeODPermissions(permissions, resource, models.ODObjectPermission{AllowCreate: true})
+	}
+	for _, resource := range i.Read.AllowedResources {
+		permissions = MergeODPermissions(permissions, resource, models.ODObjectPermission{AllowRead: true})
+	}
+	for _, resource := range i.Update.AllowedResources {
+		permissions = MergeODPermissions(permissions, resource, models.ODObjectPermission{AllowUpdate: true})
+	}
+	for _, resource := range i.Delete.AllowedResources {
+		permissions = MergeODPermissions(permissions, resource, models.ODObjectPermission{AllowDelete: true})
+	}
+	for _, resource := range i.Share.AllowedResources {
+		permissions = MergeODPermissions(permissions, resource, models.ODObjectPermission{AllowShare: true})
+	}
+	o := []models.ODObjectPermission{}
+	for k, v := range permissions {
+		if v.Grantee == k {
+			o = append(o, v)
+		}
+	}
+	return o
+}
+
+// MergeODPermissions adds permission passed in to the permission currently assigned the resource, creating a new one as needed
+func MergeODPermissions(permissions map[string]models.ODObjectPermission, resource string, permission models.ODObjectPermission) map[string]models.ODObjectPermission {
+	flattened := protocol.GetFlattenedNameFromResource(resource)
+	if len(flattened) > 0 {
+		mappedPermission, ok := permissions[flattened]
+		if !ok {
+			mappedPermission = createODPermissionFromResource(resource)
+		}
+		mappedPermission.AllowCreate = mappedPermission.AllowCreate || permission.AllowCreate
+		mappedPermission.AllowRead = mappedPermission.AllowRead || permission.AllowRead
+		mappedPermission.AllowUpdate = mappedPermission.AllowUpdate || permission.AllowUpdate
+		mappedPermission.AllowDelete = mappedPermission.AllowDelete || permission.AllowDelete
+		mappedPermission.AllowShare = mappedPermission.AllowShare || permission.AllowShare
+		permissions[flattened] = mappedPermission
+	}
+	return permissions
+}
+
+func createODPermissionFromResource(resource string) models.ODObjectPermission {
+	if strings.HasPrefix(resource, "user/") {
+		return createODPermissionFromUserResource(resource)
+	}
+	if strings.HasPrefix(resource, "group/") {
+		return createODPermissionFromGroupResource(resource)
+	}
+	return models.ODObjectPermission{}
+}
+
+func createODPermissionFromUserResource(resource string) models.ODObjectPermission {
+	parts := strings.Split(strings.Replace(resource, "user/", "", 1), "/")
+	return models.PermissionForUser(parts[0], false, false, false, false, false)
+}
+
+func createODPermissionFromGroupResource(resource string) models.ODObjectPermission {
+	parts := strings.Split(strings.Replace(resource, "group/", "", 1), "/")
+	switch len(parts) {
+	case 1:
+		return models.PermissionForGroup("", "", parts[0], false, false, false, false, false)
+	case 2:
+		return models.PermissionForGroup("", "", parts[1], false, false, false, false, false)
+	default:
+		return models.PermissionForGroup(parts[0], parts[1], parts[2], false, false, false, false, false)
+	}
 }

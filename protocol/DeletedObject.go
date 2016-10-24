@@ -68,7 +68,9 @@ type DeletedObject struct {
 	// Permissions is an array of Object Permissions associated with this object
 	// This might be null.  It could have a large list of permission objects
 	// relevant to this file (ie: shared with an organization)
-	Permissions []Permission `json:"permissions,omitempty"`
+	Permissions []Permission_1_0 `json:"permissions,omitempty"`
+	// Permission is the API 1.1+ version for providing permissions for users and groups with a resource and capability driven approach
+	Permission Permission `json:"permission,omitempty"`
 }
 
 // WithCallerPermission rolls up permissions for a caller, sets them on a copy of
@@ -76,7 +78,7 @@ type DeletedObject struct {
 func (obj DeletedObject) WithCallerPermission(caller Caller) DeletedObject {
 
 	var cp CallerPermission
-	cp = cp.WithRolledUp(caller, obj.Permissions...)
+	cp = cp.WithRolledUp(caller, obj.Permission)
 	cp.AllowCreate = false
 	cp.AllowUpdate = false
 	cp.AllowShare = false

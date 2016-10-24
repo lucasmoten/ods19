@@ -274,8 +274,10 @@ func createSharedObjectForTestRemoveObjectShare(t *testing.T, clientid int, acmS
 	// http request
 	uriCreate := host + cfg.NginxRootURL + "/objects"
 	createReq := makeHTTPRequestFromInterface(t, "POST", uriCreate, createObjectRequest)
+	trafficLogs[APISampleFile].Request(t, createReq, &TrafficLogDescription{OperationName: "create shared object for test remove object share", RequestDescription: "req", ResponseDescription: "res"})
 	// exec and get response
 	createRes, err := clients[clientid].Client.Do(createReq)
+	trafficLogs[APISampleFile].Response(t, createRes)
 	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 200, createRes, "Bad status when creating object")
 	var createdObject protocol.Object

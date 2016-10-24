@@ -2,6 +2,7 @@ package dao
 
 import (
 	"database/sql"
+	"strings"
 
 	configx "decipher.com/object-drive-server/configx"
 	"decipher.com/object-drive-server/metadata/models"
@@ -43,6 +44,15 @@ func createAcmGranteeInTransaction(logger zap.Logger, tx *sqlx.Tx, acmGrantee mo
 			userRequested.DisplayName = models.ToNullString(configx.GetCommonName(userDN))
 			userRequested.CreatedBy = userDN
 			_, err = createUserInTransaction(logger, tx, userRequested)
+		}
+		if !acmGrantee.DisplayName.Valid || acmGrantee.DisplayName.String == "" {
+			acmGrantee.DisplayName = models.ToNullString(configx.GetCommonName(userDN))
+		}
+	} else if acmGrantee.GroupName.Valid {
+		projectDisplayName := acmGrantee.ProjectDisplayName.String
+		groupName := acmGrantee.GroupName.String
+		if !acmGrantee.DisplayName.Valid || acmGrantee.DisplayName.String == "" {
+			acmGrantee.DisplayName = models.ToNullString(strings.TrimSpace(projectDisplayName + " " + groupName))
 		}
 	}
 
