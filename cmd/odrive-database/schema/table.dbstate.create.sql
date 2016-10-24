@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS dbstate;
+
 CREATE TABLE IF NOT EXISTS dbstate
 (
   createdDate timestamp(6) null,

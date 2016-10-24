@@ -315,7 +315,6 @@ func registerWithZookeeperTry(app *server.AppServer, zkBasePath, zkAddress, myIP
 	if err != nil {
 		return err
 	}
-
 	app.ZKState = zkState
 
 	return nil

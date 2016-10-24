@@ -49,23 +49,29 @@ func main() {
 		Usage: "ignore safety checks and initialize drop/recreate of schema",
 	}
 
-	rootUser := cli.StringFlag{
-		Name:  "rootUser",
-		Usage: "user required for schema modification; has default for test ",
-		Value: "root",
-	}
-
-	rootPassword := cli.StringFlag{
-		Name:  "rootPassword",
-		Usage: "password required for schema modification; has default for test ",
-		Value: "dbRootPassword",
+	useEmbedded := cli.BoolFlag{
+		Name:  "useEmbedded",
+		Usage: "use embedded configuration instead of config from environment; use during local development",
 	}
 
 	app.Commands = []cli.Command{
 		{
+			Name:  "debug",
+			Usage: "print connection information gathered from environment as yaml; can be piped to file",
+			Flags: []cli.Flag{confFlag, useEmbedded},
+			Action: func(clictx *cli.Context) error {
+				conf, err := buildConfig(clictx)
+				if err != nil {
+					log.Fatal(err)
+				}
+				printConf(conf)
+				return nil
+			},
+		},
+		{
 			Name:  "init",
-			Usage: "Connect and initialize mysql database",
-			Flags: []cli.Flag{confFlag, force, rootPassword, rootUser},
+			Usage: "connect and initialize mysql database",
+			Flags: []cli.Flag{confFlag, force, useEmbedded},
 			Action: func(clictx *cli.Context) error {
 				fmt.Println("Initializing database.")
 				err := initialize(clictx)
@@ -78,12 +84,12 @@ func main() {
 		{
 			Name:  "migrate",
 			Usage: "Migration support",
-			Flags: []cli.Flag{confFlag, rootPassword, rootUser},
+			Flags: []cli.Flag{confFlag, useEmbedded},
 			Subcommands: []cli.Command{
 				{
 					Name:  "down",
 					Usage: "unapply one migration",
-					Flags: []cli.Flag{confFlag, rootPassword, rootUser},
+					Flags: []cli.Flag{confFlag, useEmbedded},
 					Action: func(clictx *cli.Context) error {
 						err := migrateDown(clictx)
 						if err != nil {
@@ -95,7 +101,7 @@ func main() {
 				{
 					Name:  "list",
 					Usage: "list all pending migrations",
-					Flags: []cli.Flag{confFlag, rootPassword, rootUser},
+					Flags: []cli.Flag{confFlag, useEmbedded},
 					Action: func(clictx *cli.Context) error {
 						err := listMigrations(clictx)
 						if err != nil {
@@ -107,7 +113,7 @@ func main() {
 				{
 					Name:  "up",
 					Usage: "apply all pending migrations",
-					Flags: []cli.Flag{confFlag, rootPassword, rootUser},
+					Flags: []cli.Flag{confFlag, useEmbedded},
 					Action: func(clictx *cli.Context) error {
 						err := migrateUp(clictx)
 						if err != nil {
@@ -120,14 +126,24 @@ func main() {
 		},
 		{
 			Name:  "status",
-			Usage: "Print status for configured database",
-			Flags: []cli.Flag{confFlag},
+			Usage: "print status for configured database",
+			Flags: []cli.Flag{confFlag, useEmbedded},
 			Action: func(clictx *cli.Context) error {
 				fmt.Println("Checking DB status.")
 				err := status(clictx)
 				if err != nil {
 					log.Fatal(err)
 				}
+				return nil
+			},
+		},
+		{
+			Name:  "template",
+			Usage: "echo a template configuration file for odrive-database; can be piped to file",
+			Flags: []cli.Flag{},
+			Action: func(clictx *cli.Context) error {
+
+				exampleConfig()
 				return nil
 			},
 		},
@@ -147,75 +163,97 @@ func main() {
 	app.Run(os.Args)
 }
 
-// connect wraps the creation of a new sqlx.DB connection
+// connect wraps the creation of a new sqlx.DB connection. A test ping is peformed on the connection before returning.
 func connect(clictx *cli.Context) (*sqlx.DB, error) {
 	var conf configx.AppConfiguration
 
-	path := clictx.String("conf")
-	if path != "" {
-		var err error
-		conf, err = loadConfig(path)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		conf = defaultConfig
+	conf, err := buildConfig(clictx)
+	if err != nil {
+		return nil, err
 	}
 
-	conf.DatabaseConnection.Username = clictx.String("rootUser")
-	conf.DatabaseConnection.Password = clictx.String("rootPassword")
-
-	fmt.Println("connecting to db")
+	log.Println("connecting to db")
 	db, err := newDBConn(conf.DatabaseConnection)
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to db: %v\n", err)
 	}
-	tries := 10
-	for i := 0; i < tries; i++ {
-		if err := db.Ping(); err != nil {
-			fmt.Printf("could not ping db: %v\n", err)
-			time.Sleep(2 * time.Second)
-		} else {
-			fmt.Println("database connection established")
-			break
-		}
-	}
-	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("could not ping db: %v", err)
+	// try pinging the DB 10 times
+	if err := tryPing(db, 10); err != nil {
+		return nil, err
 	}
 	return db, nil
 }
 
-// initialize creates a new database from scratch. Root creds are required.
-func initialize(clictx *cli.Context) error {
+// buildConfig gathers configuration options from the environment. If useEmbedded is true, defaultConfig
+// will be used. Otherwise, a yaml config can be provided with the conf param. If a conf file is
+// provided, those values will override environment variable settings.
+func buildConfig(clictx *cli.Context) (configx.AppConfiguration, error) {
 
 	var conf configx.AppConfiguration
-
-	path := clictx.String("conf")
-	if path != "" {
-		var err error
-		conf, err = loadConfig(path)
-		if err != nil {
-			return err
+	useEmbedded := clictx.Bool("useEmbedded")
+	if !useEmbedded {
+		var fileConf configx.AppConfiguration
+		path := clictx.String("conf")
+		if path != "" {
+			var err error
+			fileConf, err = loadConfig(path)
+			if err != nil {
+				return conf, err
+			}
+			err = setEnvFromFile(fileConf.DatabaseConnection)
+			if err != nil {
+				return conf, err
+			}
 		}
+		dbConf := configx.NewDatabaseConfigFromEnv(fileConf, configx.CommandLineOpts{})
+		conf.DatabaseConnection = dbConf
 	} else {
 		conf = defaultConfig
 	}
 
-	// TODO(cm): overwriting conf is ugly, set RootX creds on new conf struct field instead?
-	// This would mean adding OD_DB_ROOT_X environment variables, too.
-	conf.DatabaseConnection.Username = clictx.String("rootUser")
-	conf.DatabaseConnection.Password = clictx.String("rootPassword")
+	return conf, nil
+}
 
-	fmt.Println("connecting to db")
-	db, err := newDBConn(conf.DatabaseConnection)
-	if err != nil {
-		return fmt.Errorf("could not connect to db: %v\n", err)
+// setEnvFromFile sets database environment variables in-process from a provided config struct. This
+// enables config files to override env vars, which is not supported in the default constructors for
+// AppConfiguration and it's nested sub-types.
+func setEnvFromFile(conf configx.DatabaseConfiguration) error {
+	if err := os.Setenv(configx.OD_DB_USERNAME, conf.Username); err != nil {
+		return err
 	}
-	tries := 10
+	if err := os.Setenv(configx.OD_DB_PASSWORD, conf.Password); err != nil {
+		return err
+	}
+	if err := os.Setenv(configx.OD_DB_HOST, conf.Host); err != nil {
+		return err
+	}
+	if err := os.Setenv(configx.OD_DB_PORT, conf.Port); err != nil {
+		return err
+	}
+	if err := os.Setenv(configx.OD_DB_SCHEMA, conf.Schema); err != nil {
+		return err
+	}
+	if err := os.Setenv(configx.OD_DB_CONN_PARAMS, conf.Params); err != nil {
+		return err
+	}
+	if err := os.Setenv(configx.OD_DB_CA, conf.CAPath); err != nil {
+		return err
+	}
+	if err := os.Setenv(configx.OD_DB_CERT, conf.ClientCert); err != nil {
+		return err
+	}
+	if err := os.Setenv(configx.OD_DB_KEY, conf.ClientKey); err != nil {
+		return err
+	}
+	return nil
+}
+
+// tryPing calls Ping on a DB connection until is succeeds or until tries is exceeded.
+func tryPing(db *sqlx.DB, tries int) error {
+
 	for i := 0; i < tries; i++ {
 		if err := db.Ping(); err != nil {
-			fmt.Printf("could not ping db: %v\n", err)
+			fmt.Printf("could not ping db: %v retrying...\n", err)
 			time.Sleep(2 * time.Second)
 		} else {
 			fmt.Println("database connection established")
@@ -225,11 +263,21 @@ func initialize(clictx *cli.Context) error {
 	if err := db.Ping(); err != nil {
 		return fmt.Errorf("could not ping db: %v", err)
 	}
+	return nil
+}
+
+// initialize creates a new database from scratch. Root creds are required.
+func initialize(clictx *cli.Context) error {
+
+	db, err := connect(clictx)
+	if err != nil {
+		return err
+	}
 	defer db.Close()
 	force := clictx.Bool("force")
 	fmt.Println("force schema creation:", force)
 
-	if !isDBEmpty(db) || !force {
+	if !isDBEmpty(db) && !force {
 		return errors.New("Database is not empty. Please review which DB you're connecting to or run with --force=true.")
 	}
 	fmt.Println("DB is ready to receive schema")
@@ -256,30 +304,17 @@ func initialize(clictx *cli.Context) error {
 // status reports on the status of the DB given the credentials provided.
 func status(clictx *cli.Context) error {
 
-	var conf configx.AppConfiguration
-
-	path := clictx.String("conf")
-	if path != "" {
-		var err error
-		conf, err = loadConfig(path)
-		if err != nil {
-			return err
-		}
-	} else {
-		conf = defaultConfig
-	}
-
-	db, err := newDBConn(conf.DatabaseConnection)
+	db, err := connect(clictx)
 	if err != nil {
 		return fmt.Errorf("could not create db connection: %v\n", err)
 	}
 
 	// TODO(cm): we can, potentially, add many summary stats here, e.g. object count
 	if !isDBEmpty(db) {
-		fmt.Println("database is not empty")
+		fmt.Println("STATUS: database is not empty")
 		return nil
 	}
-	fmt.Println("database is empty")
+	fmt.Println("STATUS: database is empty")
 	return nil
 }
 
@@ -352,40 +387,40 @@ func embeddedTLSConfig() (*tls.Config, error) {
 }
 
 // newTLSConfig returns a tls.Config object. If all 3 paths are empty, default
-// embedded certificates are used.
+// embedded certificates are used. The tls.Config Certificates field will only be
+// populated if valid paths to cert and key are provided.
 func newTLSConfig(trustPath, certPath, keyPath string) (*tls.Config, error) {
 
 	// TODO(cm): refactor this so getting tls.Config with assets on path vs.
 	// embedded looks nicer.
 
 	if trustPath == "" && certPath == "" && keyPath == "" {
-		fmt.Println("Using embedded client certificates")
+		log.Println("using embedded client certificates because paths to ssl trust, cert, and key were empty")
 		return embeddedTLSConfig()
 	}
 
 	trustBytes, err := ioutil.ReadFile(trustPath)
 	if err != nil {
-		return nil, fmt.Errorf("Error parsing CA trust %s: %v", trustPath, err)
+		return nil, fmt.Errorf("error parsing CA trust %s: %v", trustPath, err)
 	}
 	trustCertPool := x509.NewCertPool()
 	if !trustCertPool.AppendCertsFromPEM(trustBytes) {
-		return nil, fmt.Errorf("Error adding CA trust to pool: %v", err)
-	}
-	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
-	if err != nil {
-		return nil, fmt.Errorf("Error parsing cert: %v", err)
+		return nil, fmt.Errorf("error adding CA trust to pool: %v", err)
 	}
 	cfg := tls.Config{
-		Certificates:             []tls.Certificate{cert},
 		ClientCAs:                trustCertPool,
 		InsecureSkipVerify:       true,
-		ServerName:               "twl-server-generic2",
 		PreferServerCipherSuites: true,
 	}
+
+	if cert, err := tls.LoadX509KeyPair(certPath, keyPath); err == nil {
+		cfg.Certificates = []tls.Certificate{cert}
+	} else {
+		log.Printf("no valid client-side ssl certifcates provided\n")
+	}
+
 	cfg.BuildNameToCertificate()
-
 	return &cfg, nil
-
 }
 
 // isDBEmpty tries to find table "object". If it exists, the schema is already initialized.
@@ -489,4 +524,36 @@ func declareProc(db *sqlx.DB, path string) error {
 	}
 
 	return nil
+}
+
+func exampleConfig() {
+
+	contents := `
+database:
+    username: 
+    password: 
+    host: 
+    port: 
+    schema: 
+    trust: 
+    cert: 
+    key: 
+
+`
+
+	fmt.Println(contents)
+}
+
+func printConf(conf configx.AppConfiguration) {
+	db := conf.DatabaseConnection
+	fmt.Println("# rendering provided configuration")
+	fmt.Println("database:")
+	fmt.Printf("    %s: %s\n", "host", db.Host)
+	fmt.Printf("    %s: %s\n", "port", db.Port)
+	fmt.Printf("    %s: %s\n", "username", db.Username)
+	fmt.Printf("    %s: %s\n", "password", db.Password)
+	fmt.Printf("    %s: %s\n", "schema", db.Schema)
+	fmt.Printf("    %s: %s\n", "trust", db.CAPath)
+	fmt.Printf("    %s: %s\n", "cert", db.ClientCert)
+	fmt.Printf("    %s: %s\n", "key", db.ClientKey)
 }

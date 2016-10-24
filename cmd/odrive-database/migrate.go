@@ -44,7 +44,8 @@ func migrateDown(clictx *cli.Context) error {
 		Dir:      "migrations",
 	}
 
-	n, err := migrate.Exec(db.DB, "mysql", m, migrate.Down)
+	// Apply exactly one migration down.
+	n, err := migrate.ExecMax(db.DB, "mysql", m, migrate.Down, 1)
 	if err != nil {
 		return err
 	}
