@@ -343,6 +343,24 @@ func OverwriteODObjectWithUpdateObjectAndStreamRequest(o *models.ODObject, i *pr
 		o.RawAcm = models.ToNullString(parsedACM)
 	}
 
+	providedPermissions := MapPermissionToODPermissions(&i.Permission)
+	if len(providedPermissions) > 0 {
+		// Mark existing as Deleted
+		combinedPermissions := make([]models.ODObjectPermission, len(providedPermissions)+len(o.Permissions))
+		// Any existing permissions will be marked as deleted, since past in overrides.
+		idx := 0
+		for _, d := range o.Permissions {
+			d.IsDeleted = true
+			combinedPermissions[idx] = d
+			idx = idx + 1
+		}
+		for _, r := range providedPermissions {
+			combinedPermissions[idx] = r
+			idx = idx + 1
+		}
+		o.Permissions = combinedPermissions
+	}
+
 	if len(i.ContentType) > 0 {
 		o.ContentType = models.ToNullString(i.ContentType)
 	}

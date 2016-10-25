@@ -9,7 +9,6 @@ import (
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/utils"
-	"github.com/uber-go/zap"
 	"golang.org/x/net/context"
 )
 
@@ -24,16 +23,16 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	gem, _ := GEMFromContext(ctx)
 	dp := h.DrainProvider
 
-	var requestObjectWithIDFromURI models.ODObject
+	var requestObject models.ODObject
 	var err error
 
-	requestObjectWithIDFromURI, err = parseGetObjectRequest(ctx)
+	requestObject, err = parseGetObjectRequest(ctx)
 	if err != nil {
 		return NewAppError(500, err, "Error parsing URI")
 	}
 
 	// Retrieve existing object from the data store
-	dbObject, err := dao.GetObject(requestObjectWithIDFromURI, true)
+	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
 		if err.Error() == db.ErrNoRows.Error() {
 			return NewAppError(404, err, "Not found")
@@ -81,34 +80,24 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
 
-	// TODO: This seems weird. why was everything previously manipulating the dbObject (call to h.acceptObjectUpload) ?
-	// Assign existing permissions from the database object to the request object
-	requestObjectWithIDFromURI.Permissions = dbObject.Permissions
-	requestObjectWithIDFromURI.OwnedBy = models.ToNullString(dbObject.OwnedBy.String)
-	requestObjectWithIDFromURI.RawAcm = models.ToNullString(dbObject.RawAcm.String)
-	logger.Info("acm", zap.String("requestObjectWithIDFromURI.RawAcm", requestObjectWithIDFromURI.RawAcm.String))
-
-	if err = h.flattenACM(logger, &requestObjectWithIDFromURI); err != nil {
+	if err = h.flattenACM(logger, &dbObject); err != nil {
 		herr = ClassifyFlattenError(err)
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
-	if herr := normalizeObjectReadPermissions(ctx, &requestObjectWithIDFromURI); herr != nil {
+	if herr := normalizeObjectReadPermissions(ctx, &dbObject); herr != nil {
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
 	// Final access check against altered ACM
-	if err = h.isUserAllowedForObjectACM(ctx, &requestObjectWithIDFromURI); err != nil {
+	if err = h.isUserAllowedForObjectACM(ctx, &dbObject); err != nil {
 		herr = ClassifyObjectACMError(err)
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
-	consolidateChangingPermissions(&requestObjectWithIDFromURI)
+	consolidateChangingPermissions(&requestObject)
 	// copy grant.EncryptKey to all existing permissions:
-	for idx, permission := range requestObjectWithIDFromURI.Permissions {
+	for idx, permission := range dbObject.Permissions {
 		models.CopyEncryptKey(h.MasterKey, &grant, &permission)
-		models.CopyEncryptKey(h.MasterKey, &grant, &requestObjectWithIDFromURI.Permissions[idx])
+		models.CopyEncryptKey(h.MasterKey, &grant, &dbObject.Permissions[idx])
 	}
-	// Assign ACM and permissions on request to dbObject
-	dbObject.Permissions = requestObjectWithIDFromURI.Permissions
-	dbObject.RawAcm.String = requestObjectWithIDFromURI.RawAcm.String
 
 	dbObject.ModifiedBy = caller.DistinguishedName
 	err = dao.UpdateObject(&dbObject)
