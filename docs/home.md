@@ -286,7 +286,7 @@ This creates a new revision of the object.
 
         Error storing metadata or stream
 
-## Get Object Stream [/objects/{objectId}/stream?disposition={disposition}]
+## Get Object Stream [/objects/{objectId}/stream{?disposition}]
 
 The content stream for an object may be retrieved or updated at the URI designated.
 
@@ -526,7 +526,7 @@ This microservice operation will remove an object from the trash and delete it f
 
 ---
 
-## List Object Revisions [/revisions/{objectId}?{pageNumber}{&pageSize,sortField,sortAscending}]
+## List Object Revisions [/revisions/{objectId}{?pageNumber,pageSize,sortField,sortAscending}]
 
 + Parameters
     + objectId: `11e5e4867a6e3d8389020242ac110002` (string, required) - Hex encoded identifier of the object for which revisions are being requested.
@@ -541,12 +541,14 @@ This microservice operation will remove an object from the trash and delete it f
             + `contentsize`
             + `contenttype`
             + `description`
+            + `foiaexempt`
             + `id`
             + `modifiedby`
             + `modifieddate`
             + `name`
             + `ownedby`
             + `typename`
+            + `uspersons`
     + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
         + Default: true
 
@@ -578,7 +580,7 @@ This microservice operation will remove an object from the trash and delete it f
         * Error determining user.
 
 
-## Get Object Stream Revision [/revisions/{objectId}/{revisionId}/stream?disposition={disposition}]
+## Get Object Stream Revision [/revisions/{objectId}/{revisionId}/stream{?disposition}]
 
 + Parameters
     + objectId: `11e5e4867a6e3d8389020242ac110002` (string, required) - Hex encoded identifier of the object to be retrieved.
@@ -631,7 +633,7 @@ This microservice operation will remove an object from the trash and delete it f
 
 ---
 
-## Search [/search/{searchPhrase}{?pageNumber,pageSize,sortField,sortAscending,filterField,condition,expression}]
+## Search [/search/{searchPhrase}{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 **EXPERIMENTAL** - Search operations are an experimental feature
 
@@ -648,14 +650,23 @@ This microservice operation will remove an object from the trash and delete it f
             + `contentsize`
             + `contenttype`
             + `description`
+            + `foiaexempt`
             + `id`
             + `modifiedby`
             + `modifieddate`
             + `name`
             + `ownedby`
             + `typename`
+            + `uspersons`
     + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
         + Default: true
+    + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
+        + Default: `or`
+        + Members
+            + `all`
+            + `and`
+            + `any`
+            + `or`
     + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
         + Members
             + `changecount`
@@ -664,12 +675,14 @@ This microservice operation will remove an object from the trash and delete it f
             + `contentsize`
             + `contenttype`
             + `description`
+            + `foiaexempt`
             + `id`
             + `modifiedby`
             + `modifieddate`
             + `name`
             + `ownedby`
             + `typename`
+            + `uspersons`
     + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
         + Members
             + `equals`
@@ -692,7 +705,7 @@ This microservice operation will remove an object from the trash and delete it f
         * Error retrieving object
         * Error determining user.
 
-## List Objects At Root [/objects?{pageNumber}{&pageSize,sortField,sortAscending,filterField,condition,expression}]
+## List Objects At Root [/objects{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
 
@@ -707,14 +720,23 @@ This microservice operation will remove an object from the trash and delete it f
             + `contentsize`
             + `contenttype`
             + `description`
+            + `foiaexempt`
             + `id`
             + `modifiedby`
             + `modifieddate`
             + `name`
             + `ownedby`
             + `typename`
+            + `uspersons`
     + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
         + Default: true
+    + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
+        + Default: `or`
+        + Members
+            + `all`
+            + `and`
+            + `any`
+            + `or`
     + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
         + Members
             + `changecount`
@@ -723,12 +745,14 @@ This microservice operation will remove an object from the trash and delete it f
             + `contentsize`
             + `contenttype`
             + `description`
+            + `foiaexempt`
             + `id`
             + `modifiedby`
             + `modifieddate`
             + `name`
             + `ownedby`
             + `typename`
+            + `uspersons`
     + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
         + Members
             + `equals`
@@ -763,7 +787,7 @@ This microservice operation retrieves a list of objects contained within the spe
 
         Error storing metadata or stream
 
-## List Objects Under Parent [/objects/{objectId}?{pageNumber}{&pageSize,sortField,sortAscending,filterField,condition,expression}]
+## List Objects Under Parent [/objects/{objectId}{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
     + objectId: `11e5e4867a6e3d8389020242ac110002` (string, required) - Hex encoded unique identifier of the folder or other object for which to return a list of child objects. 
@@ -778,14 +802,23 @@ This microservice operation retrieves a list of objects contained within the spe
             + `contentsize`
             + `contenttype`
             + `description`
+            + `foiaexempt`
             + `id`
             + `modifiedby`
             + `modifieddate`
             + `name`
             + `ownedby`
             + `typename`
+            + `uspersons`
     + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
         + Default: true
+    + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
+        + Default: `or`
+        + Members
+            + `all`
+            + `and`
+            + `any`
+            + `or`
     + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
         + Members
             + `changecount`
@@ -794,12 +827,14 @@ This microservice operation retrieves a list of objects contained within the spe
             + `contentsize`
             + `contenttype`
             + `description`
+            + `foiaexempt`
             + `id`
             + `modifiedby`
             + `modifieddate`
             + `name`
             + `ownedby`
             + `typename`
+            + `uspersons`
     + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
         + Members
             + `equals`
@@ -833,7 +868,7 @@ Purpose: This microservice operation retrieves a list of objects contained withi
 
         Error retrieving object represented as the parent to retrieve children, or some other error.
 
-## List Objects Shared to Everyone [/sharedpublic{?pageNumber}{&pageSize,sortField,sortAscending,filterField,condition,expression}]
+## List Objects Shared to Everyone [/sharedpublic{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
     + pageNumber: 1 (number, optional) - The page number of results to be returned to support chunked output.
@@ -847,14 +882,23 @@ Purpose: This microservice operation retrieves a list of objects contained withi
             + `contentsize`
             + `contenttype`
             + `description`
+            + `foiaexempt`
             + `id`
             + `modifiedby`
             + `modifieddate`
             + `name`
             + `ownedby`
             + `typename`
+            + `uspersons`
     + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
         + Default: true
+    + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
+        + Default: `or`
+        + Members
+            + `all`
+            + `and`
+            + `any`
+            + `or`
     + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
         + Members
             + `changecount`
@@ -863,12 +907,14 @@ Purpose: This microservice operation retrieves a list of objects contained withi
             + `contentsize`
             + `contenttype`
             + `description`
+            + `foiaexempt`
             + `id`
             + `modifiedby`
             + `modifieddate`
             + `name`
             + `ownedby`
             + `typename`
+            + `uspersons`
     + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
         + Members
             + `equals`
@@ -965,7 +1011,7 @@ This creates a new revision of the object.
 
 ---
 
-## List User Object Shares [/shares?{pageNumber}{&pageSize,sortField,sortAscending,filterField,condition,expression}]
+## List User Object Shares [/shares{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
     + pageNumber: 1 (number, optional) - The page number of results to be returned to support chunked output.
@@ -979,14 +1025,23 @@ This creates a new revision of the object.
             + `contentsize`
             + `contenttype`
             + `description`
+            + `foiaexempt`
             + `id`
             + `modifiedby`
             + `modifieddate`
             + `name`
             + `ownedby`
             + `typename`
+            + `uspersons`
     + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
         + Default: true
+    + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
+        + Default: `or`
+        + Members
+            + `all`
+            + `and`
+            + `any`
+            + `or`
     + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
         + Members
             + `changecount`
@@ -995,12 +1050,14 @@ This creates a new revision of the object.
             + `contentsize`
             + `contenttype`
             + `description`
+            + `foiaexempt`
             + `id`
             + `modifiedby`
             + `modifieddate`
             + `name`
             + `ownedby`
             + `typename`
+            + `uspersons`
     + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
         + Members
             + `equals`
@@ -1035,7 +1092,7 @@ This microservice operation retrieves a list of objects that the user has shared
 
         Error storing metadata or stream
 
-## List User Objects Shared [/shared{?pageNumber}{&pageSize,sortField,sortAscending,filterField,condition,expression}]
+## List User Objects Shared [/shared{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
     + pageNumber: 1 (number, optional) - The page number of results to be returned to support chunked output.
@@ -1049,14 +1106,23 @@ This microservice operation retrieves a list of objects that the user has shared
             + `contentsize`
             + `contenttype`
             + `description`
+            + `foiaexempt`
             + `id`
             + `modifiedby`
             + `modifieddate`
             + `name`
             + `ownedby`
             + `typename`
+            + `uspersons`
     + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
         + Default: true
+    + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
+        + Default: `or`
+        + Members
+            + `all`
+            + `and`
+            + `any`
+            + `or`
     + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
         + Members
             + `changecount`
@@ -1065,12 +1131,14 @@ This microservice operation retrieves a list of objects that the user has shared
             + `contentsize`
             + `contenttype`
             + `description`
+            + `foiaexempt`
             + `id`
             + `modifiedby`
             + `modifieddate`
             + `name`
             + `ownedby`
             + `typename`
+            + `uspersons`
     + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
         + Members
             + `equals`
@@ -1106,7 +1174,7 @@ This microservice operation retrieves a list of objects that the user has shared
         Error storing metadata or stream
         
 
-## List Trashed Objects [/trashed{?pageNumber}{&pageSize,sortField,sortAscending,filterField,condition,expression}]
+## List Trashed Objects [/trashed{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
     + pageNumber: 1 (number, optional) - The page number of results to be returned to support chunked output.
@@ -1120,14 +1188,23 @@ This microservice operation retrieves a list of objects that the user has shared
             + `contentsize`
             + `contenttype`
             + `description`
+            + `foiaexempt`
             + `id`
             + `modifiedby`
             + `modifieddate`
             + `name`
             + `ownedby`
             + `typename`
+            + `uspersons`
     + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
         + Default: true
+    + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
+        + Default: `or`
+        + Members
+            + `all`
+            + `and`
+            + `any`
+            + `or`
     + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
         + Members
             + `changecount`
@@ -1136,12 +1213,14 @@ This microservice operation retrieves a list of objects that the user has shared
             + `contentsize`
             + `contenttype`
             + `description`
+            + `foiaexempt`
             + `id`
             + `modifiedby`
             + `modifieddate`
             + `name`
             + `ownedby`
             + `typename`
+            + `uspersons`
     + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
         + Members
             + `equals`

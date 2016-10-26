@@ -2,7 +2,9 @@ package dao_test
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
+	"time"
 
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
@@ -96,7 +98,7 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 		t.Error(err)
 	}
 	if searchResults3.TotalRows != 2 {
-		t.Error("expected 3 results from searching")
+		t.Error("expected 2 results from searching")
 	}
 
 	// Attempt some sql injection
@@ -129,6 +131,59 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+}
+
+func TestDAOSearchObjectsAndOrFilter(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	baseName := "AndOrFilter" + strconv.FormatInt(time.Now().Unix(), 10)
+	obj1Name := baseName + " Object 1"
+	obj2Name := baseName + " Object 2"
+
+	// Create object 1 and maintain reference to delete later
+	obj1 := setupObjectForDAOSearchObjectsTest(obj1Name)
+	dbObject1, _ := d.CreateObject(&obj1)
+
+	// Create object 2 and maintain reference to delete later
+	obj2 := setupObjectForDAOSearchObjectsTest(obj2Name)
+	dbObject2, _ := d.CreateObject(&obj2)
+
+	// User
+	user := setupUserWithSnippets(usernames[1])
+
+	// OR test (default filter match type)
+	pagingRequestOR := dao.PagingRequest{FilterSettings: []dao.FilterSetting{
+		dao.FilterSetting{FilterField: "name", Condition: "contains", Expression: obj1Name},
+		dao.FilterSetting{FilterField: "name", Condition: "contains", Expression: obj2Name}}}
+	searchResultsOR, err := d.SearchObjectsByNameOrDescription(user, pagingRequestOR, false)
+	if err != nil {
+		t.Error(err)
+	}
+	if searchResultsOR.TotalRows != 2 {
+		t.Logf("expected 2 results from searching, got %d", searchResultsOR.TotalRows)
+		t.Fail()
+	}
+
+	// AND test (match type set)
+	pagingRequestAND := dao.PagingRequest{FilterSettings: []dao.FilterSetting{
+		dao.FilterSetting{FilterField: "name", Condition: "contains", Expression: obj1Name},
+		dao.FilterSetting{FilterField: "owner", Condition: "contains", Expression: usernames[1]}},
+		FilterMatchType: "and"}
+	searchResultsAND, err := d.SearchObjectsByNameOrDescription(user, pagingRequestAND, false)
+	if err != nil {
+		t.Error(err)
+	}
+	if searchResultsAND.TotalRows != 1 {
+		t.Logf("expected 1 results from searching, got %d", searchResultsAND.TotalRows)
+		t.Fail()
+	}
+
+	// cleanup / delete the objects
+	d.DeleteObject(user, dbObject1, true)
+	d.DeleteObject(user, dbObject2, true)
 }
 
 func setupObjectForDAOSearchObjectsTest(name string) models.ODObject {

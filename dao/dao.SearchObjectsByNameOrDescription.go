@@ -133,35 +133,13 @@ func buildOrderBy(pagingRequest PagingRequest) string {
 	out := ` order by `
 	if len(pagingRequest.SortSettings) > 0 {
 		for _, sortSetting := range pagingRequest.SortSettings {
-			switch strings.ToLower(sortSetting.SortField) {
-			case "changecount", "version":
-				out += ` o.changecount`
-			case "createdby", "creator":
-				out += ` o.createdby`
-			case "createddate":
-				out += ` o.createddate`
-			case "contentsize", "size":
-				out += ` o.contentSize`
-			case "contenttype", "mimetype":
-				out += ` o.contenttype`
-			case "description", "abstract":
-				out += ` o.description`
-			case "id":
-				out += ` o.id`
-			case "modifiedby", "modifier":
-				out += ` o.modifiedby`
-			case "modifieddate", "date":
-				out += ` o.modifieddate`
-			case "name", "title":
-				out += ` o.name`
-			case "ownedby", "owner":
-				out += ` o.ownedby`
-			case "typename", "type", "kind":
-				out += ` ot.name`
-			default:
+
+			dbField := getDBFieldFromPagingRequestField(sortSetting.SortField)
+			if len(dbField) == 0 {
 				// unrecognized/unhandled field
 				continue
 			}
+			out += ` ` + dbField
 			if sortSetting.SortAscending {
 				out += ` asc,`
 			} else {
@@ -187,41 +165,51 @@ func buildOrderByArchive(pagingRequest PagingRequest) string {
 	return a
 }
 
+func getDBFieldFromPagingRequestField(fieldName string) string {
+
+	dbFields := map[string][]string{}
+	dbFields["o.changecount"] = []string{"changecount", "version"}
+	dbFields["o.createdby"] = []string{"createdby", "creator"}
+	dbFields["o.createddate"] = []string{"createddate", "created_dt"}
+	dbFields["o.containsuspersonsdata"] = []string{"containsuspersonsdata", "uspersons", "isusperson"}
+	dbFields["o.contentsize"] = []string{"contentsize", "size"}
+	dbFields["o.contenttype"] = []string{"contenttype", "mimetype"}
+	dbFields["o.description"] = []string{"description", "abstract"}
+	dbFields["o.exemptfromfoia"] = []string{"exemptfromfoia", "foiaexempt", "isfoiaexempt"}
+	dbFields["o.id"] = []string{"id"}
+	dbFields["o.modifiedby"] = []string{"modifiedby", "modifier"}
+	dbFields["o.modifieddate"] = []string{"modifieddate", "date", "updated_dt"}
+	dbFields["o.name"] = []string{"name", "title"}
+	dbFields["o.ownedby"] = []string{"ownedby", "owner"}
+	dbFields["ot.name"] = []string{"typename", "type", "kind"}
+
+	field := strings.ToLower(strings.TrimSpace(fieldName))
+
+	for dbField, aliases := range dbFields {
+		for _, alias := range aliases {
+			if field == alias {
+				return dbField
+			}
+		}
+	}
+
+	return ""
+}
+
 func buildFilter(pagingRequest PagingRequest) string {
 	out := ``
 	if len(pagingRequest.FilterSettings) > 0 {
+		matchType := " or "
+		if pagingRequest.FilterMatchType == "and" {
+			matchType = " and "
+		}
 		for _, filterSetting := range pagingRequest.FilterSettings {
-			switch strings.ToLower(filterSetting.FilterField) {
-			case "changecount", "version":
-				out += ` or o.changecount`
-			case "createdby", "creator":
-				out += ` or o.createdby`
-			case "createddate":
-				out += ` or o.createddate`
-			case "contentsize", "size":
-				out += ` or o.contentSize`
-			case "contenttype", "mimetype":
-				out += ` or o.contenttype`
-			case "description", "abstract":
-				out += ` or o.description`
-			case "id":
-				out += ` or o.id`
-			case "modifiedby", "modifier":
-				out += ` or o.modifiedby`
-			case "modifieddate", "date":
-				out += ` or o.modifieddate`
-			case "name", "title":
-				out += ` or o.name`
-			case "ownedby", "owner":
-				out += ` or o.ownedby`
-			case "typename", "type", "kind":
-				out += ` or ot.name`
-			default:
+			dbField := getDBFieldFromPagingRequestField(filterSetting.FilterField)
+			if len(dbField) == 0 {
 				// unrecognized/unhandled field
 				continue
 			}
-
-			// TODO: Security cleanse this tightly.
+			out += matchType + dbField
 			switch strings.ToLower(filterSetting.Condition) {
 			case "contains":
 				out += ` like '%` + MySQLSafeString(filterSetting.Expression) + `%'`
@@ -230,12 +218,8 @@ func buildFilter(pagingRequest PagingRequest) string {
 			}
 		}
 		if len(out) > 0 {
-			// Since we have a filter, lets prepend it
-			out = ` and ` + out
-			// Close out the group
-			out += `)`
-			// Replace only the first condition with the group opener
-			out = strings.Replace(out, " or ", "(", 1)
+			// Replace only the first condition with the group opener and close out the group
+			out = strings.Replace(out, matchType, ` and (`, 1) + `)`
 		}
 	}
 	return out
