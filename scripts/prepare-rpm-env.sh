@@ -37,40 +37,40 @@ cd ~/rpmbuild
 
 mkdir ${ODRIVE_PACKAGE_NAME}
 mkdir -p ${ODRIVE_PACKAGE_NAME}/usr/bin
-mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive
-mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js
-mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/ajax/libs/bootstrap/3.3.6/css
-mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/ajax/libs/jquery/3.0.0-beta1
-mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/ajax/libs/reqwest/2.0.5
-mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/ajax/libs/then-request/2.1.1
-mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates
-mkdir -p ${ODRIVE_PACKAGE_NAME}/opt/odrive
 mkdir -p ${ODRIVE_PACKAGE_NAME}/etc/init.d
+mkdir -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive
+mkdir -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/js
+mkdir -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/js/ajax/libs/bootstrap/3.3.6/css
+mkdir -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/js/ajax/libs/jquery/3.0.0-beta1
+mkdir -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/js/ajax/libs/reqwest/2.0.5
+mkdir -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/js/ajax/libs/then-request/2.1.1
+mkdir -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/templates
+
 install -m 755 -D ${ODRIVE_BINARY_DIR}/odrive ${ODRIVE_PACKAGE_NAME}/usr/bin
-install -m 644 -D ${ODRIVE_BINARY_DIR}/odrive.yml ${ODRIVE_PACKAGE_NAME}/etc/odrive/
-install -m 644 -D ${ODRIVE_ROOT}/server/static/js/listObjects.js ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/listObjects.js
-install -m 644 -D ${ODRIVE_ROOT}/server/static/js/ajax/libs/bootstrap/3.3.6/css/bootstrap.min.css ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/ajax/libs/bootstrap/3.3.6/css/bootstrap.min.css
-install -m 644 -D ${ODRIVE_ROOT}/server/static/js/ajax/libs/jquery/3.0.0-beta1/jquery.js ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/ajax/libs/jquery/3.0.0-beta1/jquery.js
-install -m 644 -D ${ODRIVE_ROOT}/server/static/js/ajax/libs/reqwest/2.0.5/reqwest.js ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/ajax/libs/reqwest/2.0.5/reqwest.js
-install -m 644 -D ${ODRIVE_ROOT}/server/static/js/ajax/libs/then-request/2.1.1/request.js ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/js/ajax/libs/then-request/2.1.1/request.js
-install -m 644 -D ${ODRIVE_ROOT}/server/static/templates/_function.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/_function.html
-install -m 644 -D ${ODRIVE_ROOT}/server/static/templates/home.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/home.html
-install -m 644 -D ${ODRIVE_ROOT}/server/static/templates/listObjects.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/listObjects.html
-install -m 644 -D ${ODRIVE_ROOT}/server/static/templates/listObjects.js ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/listObjects.js
-install -m 644 -D ${ODRIVE_ROOT}/server/static/templates/ObjectDriveSDK.java ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/ObjectDriveSDK.java
-install -m 644 -D ${ODRIVE_ROOT}/server/static/templates/root.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/root.html
-install -m 644 -D ${ODRIVE_ROOT}/server/static/templates/APISample.html ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/templates/APISample.html
-install -m 644 -D ${ODRIVE_ROOT}/server/static/favicon.ico ${ODRIVE_PACKAGE_NAME}/etc/odrive/libs/server/static/favicon.ico
+install -m 644 -D ${ODRIVE_BINARY_DIR}/odrive.yml ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/
+install -m 644 -D ${ODRIVE_ROOT}/server/static/js/listObjects.js ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/js/listObjects.js
+install -m 644 -D ${ODRIVE_ROOT}/server/static/js/ajax/libs/bootstrap/3.3.6/css/bootstrap.min.css ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/js/ajax/libs/bootstrap/3.3.6/css/bootstrap.min.css
+install -m 644 -D ${ODRIVE_ROOT}/server/static/js/ajax/libs/jquery/3.0.0-beta1/jquery.js ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/js/ajax/libs/jquery/3.0.0-beta1/jquery.js
+install -m 644 -D ${ODRIVE_ROOT}/server/static/js/ajax/libs/reqwest/2.0.5/reqwest.js ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/js/ajax/libs/reqwest/2.0.5/reqwest.js
+install -m 644 -D ${ODRIVE_ROOT}/server/static/js/ajax/libs/then-request/2.1.1/request.js ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/js/ajax/libs/then-request/2.1.1/request.js
+install -m 644 -D ${ODRIVE_ROOT}/server/static/templates/_function.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/templates/_function.html
+install -m 644 -D ${ODRIVE_ROOT}/server/static/templates/home.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/templates/home.html
+install -m 644 -D ${ODRIVE_ROOT}/server/static/templates/listObjects.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/templates/listObjects.html
+install -m 644 -D ${ODRIVE_ROOT}/server/static/templates/listObjects.js ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/templates/listObjects.js
+install -m 644 -D ${ODRIVE_ROOT}/server/static/templates/ObjectDriveSDK.java ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/templates/ObjectDriveSDK.java
+install -m 644 -D ${ODRIVE_ROOT}/server/static/templates/root.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/templates/root.html
+install -m 644 -D ${ODRIVE_ROOT}/server/static/templates/APISample.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/templates/APISample.html
+install -m 644 -D ${ODRIVE_ROOT}/server/static/favicon.ico ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/libs/server/static/favicon.ico
 
 # schema tarball
-install -m 644 -D ${ODRIVE_ROOT}/cmd/odrive-database/odrive-schema-${ODRIVE_VERSION}.tar.gz ${ODRIVE_PACKAGE_NAME}/etc/odrive/odrive-schema-${ODRIVE_VERSION}.tar.gz
+install -m 644 -D ${ODRIVE_ROOT}/cmd/odrive-database/odrive-schema-${ODRIVE_VERSION}.tar.gz ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/odrive-schema-${ODRIVE_VERSION}.tar.gz
 
 # odrive-database binary
 install -m 755 -D ${ODRIVE_DATABASE_DIR}/odrive-database ${ODRIVE_PACKAGE_NAME}/usr/bin
 
 # Install service scripts and dependencies
 install -m 755 ${ODRIVE_ROOT}/scripts/odrive ${ODRIVE_PACKAGE_NAME}/etc/init.d/odrive
-install -m 755 ${ODRIVE_ROOT}/scripts/env.sh ${ODRIVE_PACKAGE_NAME}/opt/odrive/env.sh
+install -m 755 ${ODRIVE_ROOT}/scripts/env.sh ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive/env.sh
 
 tar -zcvf ${ODRIVE_PACKAGE_NAME}.tar.gz ${ODRIVE_PACKAGE_NAME}/
 
@@ -98,24 +98,34 @@ URL: https://gitlab.363-283.io/cte/object-drive-server
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 
+
 %description
 %{summary}
+
 
 %prep
 %setup -q
 
+
 %build
 # Empty section.
 
+
 %pre
-if [ `grep -c '^username:' /etc/passwd` == "1" ]
-then
+if [ `grep -c '^odrive:' /etc/passwd` = 1 ] ; then
   echo odrive user exists
 else
   useradd odrive
-  mkdir -p /var/odrive/cache
-  chown -R odrive:odrive /var/odrive/cache
+  exit 0
 fi
+
+
+%postun
+userdel -r odrive
+rm -rf /var/spool/mail/odrive
+rm -rf /home/odrive
+rm -rf /opt/services/object-drive/cache
+
 
 %install
 rm -rf %{buildroot}
@@ -131,18 +141,13 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-%config(noreplace) %{_sysconfdir}/%{name}/%{name}.yml
-%config(noreplace) %{_sysconfdir}/%{name}/odrive-schema-${ODRIVE_VERSION}.tar.gz
-%config(noreplace) /opt/odrive/env.sh
-%{_sysconfdir}/%{name}/libs
+%config(noreplace) /opt/services/object-drive/odrive.yml
+%config(noreplace) /opt/services/object-drive/odrive-schema-${ODRIVE_VERSION}.tar.gz
+%config(noreplace) /opt/services/object-drive/env.sh
+/opt/services/object-drive/libs
 %{_bindir}/*
 %{_sysconfdir}/init.d/%{name}
-/opt/odrive/env.sh
-
-
 
 EOF
 
-
 rpmbuild -ba SPECS/odrive.spec
-

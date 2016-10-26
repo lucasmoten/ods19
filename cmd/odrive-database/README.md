@@ -27,7 +27,7 @@ To connect to another database you must use valid object-drive-server configs.
 
 ```
 sudo su
-source /opt/odrive/env.sh
+source /opt/services/object-drive/env.sh
 odrive-database status
 ```
 

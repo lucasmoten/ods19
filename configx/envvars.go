@@ -137,6 +137,9 @@ func PrintODEnvironment() {
 	}
 }
 
+// GenerateStartScript creates a bash script that can be used
+// as a template with all the variables exported and then running
+// the odrive binary with redirected output for logging
 func GenerateStartScript() {
 	tmpl, err := template.New("script").Parse(`#!/bin/bash
 
@@ -144,15 +147,18 @@ func GenerateStartScript() {
 {{ end }}
 
 # odrive must be on your PATH
-odrive --conf /etc/odrive/odrive.yml \ 
-       --staticRoot /etc/odrive/libs/server/static \
-	   --templateDir /etc/odrive/libs/server/static/templates &>> /opt/odrive/log/object-drive.log 2>&1&
+odrive --conf /opt/services/object-drive/odrive.yml \ 
+       --staticRoot /opt/services/object-drive/libs/server/static \
+	   --templateDir /opt/services/object-drive/libs/server/static/templates &>> /opt/services/object-drive/log/object-drive.log 2>&1&
 
 `)
 	exitOnErr(err)
 	data := struct{ Variables []string }{Variables: Vars}
 	tmpl.Execute(os.Stdout, data)
 }
+
+// GenerateSourceEnvScript creates a bash script that can be used
+// as a template ith all the variables exported.
 func GenerateSourceEnvScript() {
 	tmpl, err := template.New("script").Parse(`#!/bin/bash
 
