@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"decipher.com/object-drive-server/util"
 )
@@ -15,15 +16,17 @@ import (
 // PagingRequest supports a request constrained to a given page number and size
 type PagingRequest struct {
 	// PageNumber is the requested page number for this request
-	PageNumber int `json:"pageNumber"`
+	PageNumber int `json:"pageNumber,omitempty"`
 	// PageSize is the requested page size for this request
-	PageSize int `json:"pageSize"`
+	PageSize int `json:"pageSize,omitempty"`
 	// ObjectID if provided provides a focus for paging, often the ParentID
-	ObjectID string `json:"objectId"`
+	ObjectID string `json:"objectId,omitempty"`
 	// FilterSettings is an array of fitler settings denoting field and conditional match expression to filter results
-	FilterSettings []FilterSetting `json:"filterSettings"`
+	FilterSettings []FilterSetting `json:"filterSettings,omitempty"`
 	// SortSettings is an array of sort settings denoting a field to sort on and direction
-	SortSettings []SortSetting `json:"sortSettings"`
+	SortSettings []SortSetting `json:"sortSettings,omitempty"`
+	// FilterMatchType indicates the kind of matching performed when multiple filters are provided.
+	FilterMatchType string `json:"filterMatchType,omitempty"`
 }
 
 // newPagingRequestFromURLValues creates a new PagingRequest from the following URL params:
@@ -38,6 +41,13 @@ func newPagingRequestFromURLValues(vals url.Values) (PagingRequest, error) {
 
 	pagingRequest.FilterSettings = makeFilterSettingsFromQueryParam(vals)
 	pagingRequest.SortSettings = makeSortSettingsFromQueryParam(vals)
+
+	switch strings.ToLower(strings.TrimSpace(vals.Get("filterMatchType"))) {
+	case "all", "and":
+		pagingRequest.FilterMatchType = "and"
+	default:
+		pagingRequest.FilterMatchType = "or"
+	}
 
 	// parentID not required, so setting empty string is OK.
 	parentIDString := vals.Get("parentId")

@@ -56,6 +56,8 @@ type PagingRequest struct {
 	FilterSettings []FilterSetting
 	// SortSettings is an array of sort settings denoting a field to sort on and direction
 	SortSettings []SortSetting
+	// FilterMatchType indicates the kind of matching performed when multiple filters are provided.
+	FilterMatchType string
 }
 
 // FilterSetting denotes a field and a condition to match an expression on which to filter results

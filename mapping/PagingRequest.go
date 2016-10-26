@@ -11,6 +11,7 @@ func MapPagingRequestToDAOPagingRequest(i *protocol.PagingRequest) dao.PagingReq
 	o := dao.PagingRequest{PageNumber: i.PageNumber, PageSize: i.PageSize}
 	o.FilterSettings = mapFilterSettingsToDAOFilterSettings(&i.FilterSettings)
 	o.SortSettings = mapSortSettingsToDAOSortSettings(&i.SortSettings)
+	o.FilterMatchType = i.FilterMatchType
 	return o
 }
 
