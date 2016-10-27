@@ -1,7 +1,17 @@
 Changelog
 ================
 
-Release vNEXT
+Release v1.0.1.6
+----------------
+
+* FIX: odrive-database utility now allows cascade override from config file
+* FIX: odrive-database migration script 2-down fixed
+* DOC: API Documentation updated to reflect changes to Create/Update object, responses, improved URI examples, and search filtering.
+* NEW: Search and List operations support AND filters in addition to default OR
+* NEW: Update Object request supports passing updated permissions in new 1.1 format
+* NEW: Create Object request supports providing permissions in new 1.1 format
+
+Release v1.0.1.5
 ----------------
 
 * NEW: odrive-database utility supports migrations.
