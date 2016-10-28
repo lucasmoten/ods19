@@ -15,12 +15,23 @@ import (
 
 	"github.com/uber-go/zap"
 
+	"sync"
+
 	"golang.org/x/net/context"
 )
 
 var (
-	// PeerMap is repopulated by a callback that knows when the odrive membership group changes
-	PeerMap = make(map[string]*PeerMapData)
+	// Leave this alone!  We are blocking direct access to this endpoing by setting it to something that can't be a DN.
+	// It has to be the same for all peers.  If we needed it, real identifier is the cert DN which is set on
+	// the user context for other values.  It CANNOT be associated with a particular user, because background processes will
+	// do this on behalf of nobody in particular.
+	peerSignifier = config.GetEnvOrDefault("OD_P2P_SIGNIFIER", "P2P")
+	// When we connect p2p, we may need to set the CN being expected
+	peerCN = config.GetEnvOrDefault("OD_PEER_CN", "twl-server-generic2")
+	// peerMap is repopulated by a callback that knows when the odrive membership group changes
+	peerMap            = make(map[string]*PeerMapData) //Atomically updated
+	connectionMap      = make(map[string]*http.Client) //Locked for add and remove - no IO under these locks!
+	connectionMapMutex = &sync.RWMutex{}
 )
 
 // PeerMapData is the information we need to create a connection to a peer
@@ -31,7 +42,33 @@ type PeerMapData struct {
 	CA      string
 	Cert    string
 	CertKey string
-	Client  *http.Client
+}
+
+// ScheduleSetPeers sets a new peer set - there is only one thread that calls this
+func ScheduleSetPeers(newPeerMap map[string]*PeerMapData) {
+	setPeers(newPeerMap, peerMap)
+}
+
+// setPeers calculates which connections can be deleted an sets the new peermap
+func setPeers(newPeerMap map[string]*PeerMapData, oldPeerMap map[string]*PeerMapData) {
+
+	//Compute deleted items by the diff
+	var deletedPeerKeys []string
+	for oldPeerKey := range oldPeerMap {
+		peer := newPeerMap[oldPeerKey]
+		if peer == nil {
+			deletedPeerKeys = append(deletedPeerKeys, oldPeerKey)
+		}
+	}
+
+	//Delete old items from the connection map - this just needs to be done eventually
+	connectionMapMutex.Lock()
+	//These are never mutated, so no problem
+	peerMap = newPeerMap
+	for _, k := range deletedPeerKeys {
+		delete(connectionMap, k)
+	}
+	connectionMapMutex.Unlock()
 }
 
 //
@@ -43,7 +80,7 @@ type PeerMapData struct {
 // without p2p requesting.
 //
 func (h AppServer) getCiphertext(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
-	if r.Header.Get("USER_DN") != "P2P" {
+	if r.Header.Get("USER_DN") != peerSignifier {
 		return NewAppError(403, fmt.Errorf("p2p required to get ciphertext"), "forbidden")
 	}
 	//We are getting a p2p ciphertext request, so that we can handle getting range requests
@@ -56,9 +93,9 @@ func (h AppServer) getCiphertext(ctx context.Context, w http.ResponseWriter, r *
 	}
 
 	//Specify which ciphertext out of which drain provider we are looking for
-	CiphertextCacheSelector := captureGroups["selector"]
+	selector := CiphertextCacheName(captureGroups["selector"])
 	rName := FileId(captureGroups["rname"])
-	dp := FindCiphertextCache(CiphertextCacheSelector)
+	dp := FindCiphertextCache(selector)
 
 	//If there is a byte range, then use it.
 	startAt := int64(0)
@@ -114,7 +151,7 @@ func newTLSConfig(trustPath, certPath, keyPath string) (*tls.Config, error) {
 		Certificates:             []tls.Certificate{cert},
 		ClientCAs:                trustCertPool,
 		InsecureSkipVerify:       true,
-		ServerName:               "twl-server-generic2",
+		ServerName:               peerCN,
 		PreferServerCipherSuites: true,
 	}
 	cfg.BuildNameToCertificate()
@@ -126,39 +163,54 @@ func newTLSConfig(trustPath, certPath, keyPath string) (*tls.Config, error) {
 // It is better to do this than it is to stall while the file moves to S3.
 //
 // It is the CALLER's responsibility to close io.ReadCloser !!
-func useP2PFile(logger zap.Logger, CiphertextCacheSelector string, rName FileId, begin int64) (io.ReadCloser, error) {
+func useP2PFile(logger zap.Logger, selector CiphertextCacheName, rName FileId, begin int64) (io.ReadCloser, error) {
 	cfgPort, _ := strconv.Atoi(config.Port)
-	for _, peer := range PeerMap {
+	//Iterate over the current value of peerMap.  Do NOT lock this loop, as there is long IO in here.
+	thisMap := peerMap
+	for peerKey, peer := range thisMap {
 		//If this is NOT our own entry
 		if peer != nil && (peer.Host != config.MyIP || peer.Port != cfgPort) {
 			//Ensure that we have a connection to the peer
-			url := fmt.Sprintf("https://%s:%d/ciphertext/%s/%s", peer.Host, peer.Port, CiphertextCacheSelector, string(rName))
+			url := fmt.Sprintf("https://%s:%d/ciphertext/%s/%s", peer.Host, peer.Port, string(selector), string(rName))
 
 			//Set up a transport to connect to peer if there isn't one
 			var conf *tls.Config
 			var err error
-			if peer.Client == nil {
+			var conn *http.Client
+
+			//Get the existing connection - this is the one we are hitting all the time, so it's important that it's a read-lock
+			//(because we are almost never writing, except for a brief flash when zk nodes change, which is exceedingly rare)
+			connectionMapMutex.RLock()
+			conn = connectionMap[peerKey]
+			connectionMapMutex.RUnlock()
+
+			if conn == nil {
 				conf, err = newTLSConfig(peer.CA, peer.Cert, peer.CertKey)
 				if err != nil {
 					logger.Warn("p2p cannot connect", zap.String("url", url), zap.String("err", err.Error()))
 				}
-				peer.Client = &http.Client{
+				conn = &http.Client{
 					Transport: &http.Transport{
 						DialTLS: func(network, address string) (net.Conn, error) {
 							return tls.Dial("tcp", fmt.Sprintf("%s:%d", peer.Host, peer.Port), conf)
 						},
 					},
 				}
+
+				//Set the new connection if we got one
+				connectionMapMutex.Lock()
+				connectionMap[peerKey] = conn
+				connectionMapMutex.Unlock()
 			}
-			if peer.Client != nil {
+			if conn != nil {
 				req, err := http.NewRequest("GET", url, nil)
 				if err == nil {
 					rangeResponse := fmt.Sprintf("bytes=%d-", begin)
 					req.Header.Set("Range", rangeResponse)
 					//P2P does not pass through nginx, so only this value can happen P2P, and we use
 					//2 way SSL to enforce only peers connecting to us.
-					req.Header.Set("USER_DN", "P2P")
-					res, err := peer.Client.Do(req)
+					req.Header.Set("USER_DN", peerSignifier)
+					res, err := connectionMap[peerKey].Do(req)
 					if err == nil && res != nil && res.StatusCode == http.StatusOK {
 						return res.Body, nil
 					}

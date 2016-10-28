@@ -199,7 +199,7 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 	fileKey := utils.ApplyPassphrase(h.MasterKey, grant.PermissionIV, grant.EncryptKey)
 	d := FindCiphertextCacheByObject(obj)
 
-	// DrainCacheData.Resolve(FileName) returns a path.
+	// CiphertextCacheFilesystemMountPoint.Resolve(FileName) returns a path.
 	outFileUploading := d.Resolve(NewFileName(fileID, ".uploading"))
 	outFileUploaded := d.Resolve(NewFileName(fileID, ".uploaded"))
 

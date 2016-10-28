@@ -15,6 +15,11 @@ import (
 	"github.com/uber-go/zap"
 )
 
+var (
+	//S3ChunkSize chunksInMegs is a default number of megabytes to fetch from PermanentStorage when there is a cache miss
+	S3ChunkSize = int64(globalconfig.GetEnvOrDefaultInt("OD_AWS_S3_FETCH_MB", 32)) * int64(1024*1024)
+)
+
 // PermanentStorageData is where we write back permanently
 type PermanentStorageData struct {
 	//The bucket setting
@@ -34,8 +39,8 @@ func NewPermanentStorageData(sess *session.Session, bucket *string) PermanentSto
 	}
 }
 
-// GetBucket returns a name that the permanent storage uses to identify its collection
-func (s *PermanentStorageData) GetBucket() *string {
+// GetName returns a name that the permanent storage uses to identify its collection
+func (s *PermanentStorageData) GetName() *string {
 	return s.Bucket
 }
 
@@ -57,7 +62,7 @@ func (s *PermanentStorageData) Download(fOut io.WriterAt, key *string) (int64, e
 }
 
 // GetObject from S3
-func (s *PermanentStorageData) GetObject(key *string, begin, end int64) (io.ReadCloser, error) {
+func (s *PermanentStorageData) GetStream(key *string, begin, end int64) (io.ReadCloser, error) {
 	var rangeReq string
 	//These numbers should have been snapped to cipher block boundaries if they were not already
 	if begin <= end {
@@ -93,7 +98,7 @@ func NewS3CiphertextCache(conf configx.S3CiphertextCacheOpts, name string) Ciphe
 		logger.Info("PermanentStorage is empty because there is no bucket name")
 	}
 
-	d := NewCiphertextCacheRaw(conf.Root, name, conf.LowWatermark, conf.EvictAge, conf.HighWatermark, walkSleepDuration, logger, permanentStorage)
+	d := NewCiphertextCacheRaw(conf.Root, name, conf.LowWatermark, conf.HighWatermark, conf.EvictAge, walkSleepDuration, S3ChunkSize, logger, permanentStorage)
 	go d.DrainUploadedFilesToSafety()
 	return d
 }

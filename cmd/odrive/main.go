@@ -193,7 +193,7 @@ func startApplication(conf configx.AppConfiguration) {
 
 	//For now, we have one drain provider, just use the default
 	server.SetCiphertextCache(
-		"",
+		server.S3_DEFAULT_CIPHERTEXT_CACHE,
 		server.NewS3CiphertextCache(conf.CacheSettings, conf.CacheSettings.Partition+"/"+cacheID),
 	)
 
@@ -225,7 +225,7 @@ func startApplication(conf configx.AppConfiguration) {
 
 	//When this gets a shutdown signal, it will terminate when all files are uploaded
 	//TODO: we will need to watch all existing drain providers to be sure we can safely shut down
-	server.WatchForShutdown(app.ZKState, logger, server.FindCiphertextCache(""))
+	server.WatchForShutdown(app.ZKState, logger)
 
 	//This blocks until there is an error to stop the server
 	err = httpServer.ListenAndServeTLS(
@@ -241,19 +241,18 @@ func zkTracking(app *server.AppServer, appConf configx.AppConfiguration) {
 
 	//Tell whoever needs to know about the peers - it uses the server cert
 	odriveAnnouncer := func(at string, announcements map[string]zookeeper.AnnounceData) {
-		//Give the information required for the other side to make its own p2p connections
+		//Create a peer list
+		peerMap := make(map[string]*server.PeerMapData)
 		for announcementKey, announcement := range announcements {
-			peer := server.PeerMap[announcementKey]
-			if peer == nil {
-				server.PeerMap[announcementKey] = &server.PeerMapData{
-					Host:    announcement.ServiceEndpoint.Host,
-					Port:    announcement.ServiceEndpoint.Port,
-					CA:      srvConf.CAPath,
-					Cert:    srvConf.ServerCertChain,
-					CertKey: srvConf.ServerKey,
-				}
+			peerMap[announcementKey] = &server.PeerMapData{
+				Host:    announcement.ServiceEndpoint.Host,
+				Port:    announcement.ServiceEndpoint.Port,
+				CA:      srvConf.CAPath,
+				Cert:    srvConf.ServerCertChain,
+				CertKey: srvConf.ServerKey,
 			}
 		}
+		server.ScheduleSetPeers(peerMap)
 	}
 	zookeeper.TrackAnnouncement(app.ZKState, appConf.ZK.BasepathOdrive+"/https", odriveAnnouncer)
 	//I am doing this because I need a reference to app to re-assign the connection in the event of failure.

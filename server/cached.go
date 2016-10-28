@@ -13,13 +13,7 @@ import (
 
 	globalconfig "decipher.com/object-drive-server/config"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/uber-go/zap"
-)
-
-var (
-	//chunksInMegs is a default number of megabytes to fetch from PermanentStorage when there is a cache miss
-	chunkSize = int64(globalconfig.GetEnvOrDefaultInt("OD_AWS_S3_FETCH_MB", 32)) * int64(1024*1024)
 )
 
 const (
@@ -33,16 +27,16 @@ const (
 	FailRecache = 1503
 	// FailWriteback error code given when we could not cache to drain
 	FailWriteback = 1504
-	// FailS3Download error code given when we failed to download out of S3
-	FailS3Download = 1505
 )
 
-// CiphertextCacheData moves data from cache to the drain... S3 buckets in this case.
+// CiphertextCacheData moves data from cache to the drain...
 type CiphertextCacheData struct {
+	//ChunkSize is the size of blocks to pull from PermanentStorage
+	ChunkSize int64
 	//The key that this CiphertextCache is stored under
-	CiphertextCacheSelector string
+	CiphertextCacheSelector CiphertextCacheName
 	//Where the CacheLocation is rooted on disk (ie: a very large drive mounted)
-	CacheObject DrainCache
+	files FileSystem
 
 	//This is the place to write back persistence
 	PermanentStorage PermanentStorage
@@ -75,7 +69,6 @@ type CiphertextCacheData struct {
 }
 
 // NewCiphertextCacheRaw is a cache that goes off to PermanentStorage.
-// It is now unrelated to S3 in particular.
 // Strategy:
 //  * for uploads, *.uploaded files must make it to permanent storage eventually.
 //  * for downloads, try disk first, then try permanent storage once.
@@ -84,7 +77,7 @@ type CiphertextCacheData struct {
 //    the peers once before resorting to re-checking permanent storage with sleep time in between.
 //
 //  When using this download rule, we should *never* be stalling for ciphertext
-//  unless something is wrong.  Whether from S3 or a peer, the whole file
+//  unless something is wrong.  Whether from PermanentStorage or a peer, the whole file
 //  should be available once the database object exists.  In other words, it's basically a bug to ever see:
 //
 //    "unable to download out of PermanentStorage"
@@ -93,16 +86,26 @@ type CiphertextCacheData struct {
 //
 //
 //
-func NewCiphertextCacheRaw(root, name string, lowWatermark float64, ageEligibleForEviction int64, highWatermark float64, walkSleep time.Duration, logger zap.Logger, permanentStorage PermanentStorage) *CiphertextCacheData {
+func NewCiphertextCacheRaw(
+	root string,
+	name string,
+	lowWatermark float64,
+	highWatermark float64,
+	ageEligibleForEviction int64,
+	walkSleep time.Duration,
+	chunkSize int64,
+	logger zap.Logger,
+	permanentStorage PermanentStorage) *CiphertextCacheData {
 	d := &CiphertextCacheData{
-		CiphertextCacheSelector: defaultCiphertextCacheKey,
+		CiphertextCacheSelector: S3_DEFAULT_CIPHERTEXT_CACHE, //This will be overwritten when it is put into a map of caches
 		PermanentStorage:        permanentStorage,
-		CacheObject:             DrainCacheData{root},
+		files:                   CiphertextCacheFilesystemMountPoint{root},
 		CacheLocationString:     name,
 		lowWatermark:            lowWatermark,
 		ageEligibleForEviction:  ageEligibleForEviction,
 		highWatermark:           highWatermark,
 		walkSleep:               walkSleep,
+		ChunkSize:               chunkSize,
 		Logger:                  logger,
 	}
 	CacheMustExist(d, logger)
@@ -121,8 +124,8 @@ func (d *CiphertextCacheData) Resolve(fName FileName) FileNameCached {
 }
 
 // Files is the mount point of instances
-func (d *CiphertextCacheData) Files() DrainCache {
-	return d.CacheObject
+func (d *CiphertextCacheData) Files() FileSystem {
+	return d.files
 }
 
 // DrainUploadedFilesToSafetyRaw is the drain without the goroutine at the end
@@ -174,13 +177,17 @@ func (d *CiphertextCacheData) DrainUploadedFilesToSafetyRaw() {
 	}
 }
 
-// DrainUploadedFilesToSafety moves files that were not completely sent to S3 into S3.
+// DrainUploadedFilesToSafety moves files that were not completely sent to PermanentStorage yet, so that the instance is disposable.
 // This can happen if the server reboots.
 func (d *CiphertextCacheData) DrainUploadedFilesToSafety() {
 	d.DrainUploadedFilesToSafetyRaw()
 	d.Logger.Info("cache purge start")
 	//Only now can we start to purge files
 	go d.CachePurge()
+}
+
+func toKey(s string) *string {
+	return &s
 }
 
 // Writeback drains to PermanentStorage.  Note that because this is async with respect to the http session,
@@ -190,7 +197,7 @@ func (d *CiphertextCacheData) DrainUploadedFilesToSafety() {
 //
 func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 	outFileUploaded := d.Resolve(FileName(rName + ".uploaded"))
-	key := aws.String(string(d.Resolve(NewFileName(rName, ""))))
+	key := toKey(string(d.Resolve(NewFileName(rName, ""))))
 
 	//Get a filehandle to read the file to write back to permanent storage
 	fIn, err := d.Files().Open(outFileUploaded)
@@ -207,7 +214,7 @@ func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 	if d.PermanentStorage != nil {
 		d.Logger.Info(
 			"writeback to PermanentStorage",
-			zap.String("bucket", *d.PermanentStorage.GetBucket()),
+			zap.String("bucket", *d.PermanentStorage.GetName()),
 			zap.String("key", *key),
 		)
 
@@ -290,21 +297,7 @@ func (d *CiphertextCacheData) BackgroundRecache(rName FileId, totalLength int64)
 				"background recache failed",
 				zap.String("err", err.Error()),
 			)
-		}
-	} else {
-		// Just stall until the cached file exists - somebody else is caching it.
-		// Using this simple-minded stalling algorithm, we wait 2x longer or up to 30 seconds longer than necessary.
-		sleepTime := time.Duration(1 * time.Second)
-		waitMax := time.Duration(30 * time.Second)
-		for {
-			if _, err := d.Files().Stat(cachedPath); os.IsNotExist(err) {
-				time.Sleep(sleepTime)
-				if sleepTime < waitMax {
-					sleepTime *= 2
-				}
-			} else {
-				break
-			}
+			return
 		}
 	}
 	logger.Info(
@@ -319,26 +312,23 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 	//If it's already cached, then we have no work to do
 	foutCached := d.Resolve(NewFileName(rName, ".cached"))
 	if _, err := d.Files().Stat(foutCached); os.IsExist(err) {
-		d.Logger.Info("already recached")
 		return nil
 	}
 
 	//We are not supposed to be trying to get multiple copies of the same ciphertext into cache at same time
 	foutCaching := d.Resolve(NewFileName(rName, ".caching"))
 	if _, err := d.Files().Stat(foutCaching); os.IsExist(err) {
-		d.Logger.Error("Recache error.  Simultaneous caching of same file")
 		return err
 	}
 
 	if d.PermanentStorage != nil {
 		d.Logger.Info(
 			"recache from PermanentStorage",
-			zap.String("bucket", *d.PermanentStorage.GetBucket()),
 			zap.String("key", string(rName)),
 		)
 	}
 
-	key := aws.String(string(d.Resolve(NewFileName(rName, ""))))
+	key := toKey(string(d.Resolve(NewFileName(rName, ""))))
 
 	// This file must ONLY exist for the duration of this function.
 	// we must remove it or rename it before we exit.
@@ -351,12 +341,12 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 
 	err = d.doDownloadFromPermanentStorage(foutCaching, key)
 	if err != nil {
-		d.Logger.Warn("cache p2p PermanentStorage error", zap.String("err", err.Error()))
+		d.Logger.Warn("download from PermanentStorage error", zap.String("err", err.Error()))
 		//Check p2p.... it has to be there...
 		var filep2p io.ReadCloser
 		filep2p, err = useP2PFile(d.Logger, d.CiphertextCacheSelector, rName, 0)
 		if err != nil {
-			d.Logger.Error("p2p PermanentStorage cannot find", zap.String("err", err.Error()))
+			d.Logger.Error("p2p cannot find", zap.String("err", err.Error()))
 		}
 		if filep2p != nil {
 			defer filep2p.Close()
@@ -375,11 +365,8 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 		}
 	}
 
-	//This only exists for exotic corner cases.  Without network errors,
-	//this block should be unreachable.
-	//So, we can only stall for it now
-	//Try to download it a few times, doubling our willingness to wait each time
-	//files move up into S3 at 30MB/s
+	// This only exists for exotic corner cases.  Without network errors,
+	// this block should be unreachable.
 	tries := 22
 	waitTime := 1 * time.Second
 	prevWaitTime := 0 * time.Second
@@ -391,14 +378,13 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 		} else {
 			d.Logger.Error(
 				"unable to download out of PermanentStorage or p2p",
-				zap.String("bucket", *d.PermanentStorage.GetBucket()),
 				zap.Duration("seconds", waitTime/(time.Second)),
 				zap.Int("more tries", tries-1),
 				zap.String("key", string(rName)),
 			)
-			//Without a file length, this is our best guess
+			// Without a file length, this is our best guess
 			time.Sleep(waitTime)
-			//Fibonacci progression 1 1 2 3 ... ... 22 of them gives a total wait time of about 2 mins, or almost 8GB
+			// Fibonacci progression 1 1 2 3 ... ... 22 of them gives a total wait time of about 2 mins, or almost 8GB
 			oldWaitTime := waitTime
 			waitTime = prevWaitTime + waitTime
 			prevWaitTime = oldWaitTime
@@ -638,13 +624,13 @@ func (d *CiphertextCacheData) GetPermanentStorage() PermanentStorage {
 }
 
 // GetCiphertextCacheSelector is the key that this is stored under
-func (d *CiphertextCacheData) GetCiphertextCacheSelector() string {
+func (d *CiphertextCacheData) GetCiphertextCacheSelector() CiphertextCacheName {
 	return d.CiphertextCacheSelector
 }
 
 // SetCiphertextCacheSelector sets the key by which we actually do the lookup
-func (d *CiphertextCacheData) SetCiphertextCacheSelector(CiphertextCacheSelector string) {
-	d.CiphertextCacheSelector = CiphertextCacheSelector
+func (d *CiphertextCacheData) SetCiphertextCacheSelector(selector CiphertextCacheName) {
+	d.CiphertextCacheSelector = selector
 }
 
 // Puller is a virtual io.ReadCloser that gets range-requested chunks out of S3 to look like one contiguous file.
@@ -667,7 +653,7 @@ type Puller struct {
 
 // NewPuller prepares to start pulling ciphertexts.  This should now be the ONLY way to get them.
 func (d *CiphertextCacheData) NewPuller(logger zap.Logger, rName FileId, totalLength, cipherStartAt, cipherStopAt int64) (io.ReadCloser, bool, error) {
-	key := aws.String(string(d.Resolve(NewFileName(rName, ""))))
+	key := toKey(string(d.Resolve(NewFileName(rName, ""))))
 	p := &Puller{
 		CiphertextCache: d,
 		Logger:          logger,
@@ -677,7 +663,7 @@ func (d *CiphertextCacheData) NewPuller(logger zap.Logger, rName FileId, totalLe
 		Key:             key,
 		RName:           rName,
 		File:            nil,
-		ChunkSize:       chunkSize,
+		ChunkSize:       d.ChunkSize,
 		Index:           cipherStartAt,
 	}
 
@@ -714,7 +700,7 @@ func (d *CiphertextCacheData) NewPuller(logger zap.Logger, rName FileId, totalLe
 }
 
 // getFileHandle will try to get a file handle from the best location.
-// end is only used for GetObject pulls, which have high latency because we cannot stream until we have the file.
+// end is only used for GetStream pulls, which have high latency because we cannot stream until we have the file.
 func (p *Puller) getFileHandle(begin, end int64, p2p bool) (io.ReadCloser, error) {
 	////Always check disk first - this lets us switch to disk when background cache finishes.
 	file, _, err := useLocalFile(p.CiphertextCache.Logger, p.CiphertextCache, p.RName, begin)
@@ -737,8 +723,11 @@ func (p *Puller) getFileHandle(begin, end int64, p2p bool) (io.ReadCloser, error
 		p.IsP2P = true
 		return filep2p, nil
 	}
+	if p.CiphertextCache.GetPermanentStorage() == nil {
+		return nil, fmt.Errorf("puller did not use p2p and we have no PermanentStorage")
+	}
 	//Range request it out of PermanentStorage if we can
-	f, err := p.CiphertextCache.GetPermanentStorage().GetObject(p.Key, begin, end)
+	f, err := p.CiphertextCache.GetPermanentStorage().GetStream(p.Key, begin, end)
 	return f, err
 }
 

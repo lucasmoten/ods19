@@ -105,7 +105,7 @@ func (h *AppServer) InitRegex() {
 		Object:           regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})$"),
 		ObjectProperties: regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/properties$"),
 		ObjectStream:     regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/stream(\\.[0-9a-zA-Z]*)?$"),
-		Ciphertext:       regexp.MustCompile(h.ServicePrefix + "/ciphertext/(?P<selector>[0-9a-zA-Z]*)?/(?P<rname>[0-9a-fA-F]{64})$"),
+		Ciphertext:       regexp.MustCompile(h.ServicePrefix + "/ciphertext/(?P<selector>[0-9a-zA-Z_]*)?/(?P<rname>[0-9a-fA-F]{64})$"),
 		// - actions on objects
 		ObjectChangeOwner: regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/owner/(?P<newOwner>.*)$"),
 		ObjectDelete:      regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/trash$"),

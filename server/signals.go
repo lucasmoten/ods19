@@ -146,7 +146,8 @@ func (as *AutoScaler) prepareForTermination(lifecycleMessage *LifecycleMessage) 
 		}
 		//Wait for existing uploads to finish
 		remainingFiles := 0
-		for _, dp := range CiphertextCaches {
+		caches := FindCiphertextCacheList()
+		for _, dp := range caches {
 			remainingFiles += dp.CountUploaded()
 		}
 		if remainingFiles == 0 {
@@ -309,7 +310,7 @@ func (as *AutoScaler) WatchForShutdownByMessage() {
 }
 
 // WatchForShutdown looks for requests to shut down, either through signals or messages
-func WatchForShutdown(z *zookeeper.ZKState, logger zap.Logger, dp CiphertextCache) {
+func WatchForShutdown(z *zookeeper.ZKState, logger zap.Logger) {
 
 	//Get an SQS session
 	sqsConfig := config.NewAutoScalingConfig()

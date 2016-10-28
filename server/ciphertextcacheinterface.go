@@ -10,6 +10,14 @@ import (
 	"github.com/uber-go/zap"
 )
 
+const (
+	//S3_DEFAULT_CIPHERTEXT_CACHE is the main ciphertext cache in use
+	S3_DEFAULT_CIPHERTEXT_CACHE = CiphertextCacheName("S3_DEFAULT")
+)
+
+// CiphertextCacheName looks up ciphertext caches
+type CiphertextCacheName string
+
 // FileId is the raw random name with no extension
 type FileId string
 
@@ -21,7 +29,7 @@ type FileNameCached string
 
 // CiphertextCache handles the cached transfer of data in and out of permanent storage
 type CiphertextCache interface {
-	Files() DrainCache
+	Files() FileSystem
 	// This is the location where files get cached, and is used to organize things in the drain.  It's either an S3 or filesystem path off of CacheRoot()
 	//Cache() string
 	// Resolve these to locations in the drain provider, which doesn't say anything about where it is on filesystem - not fully qualified yet
@@ -37,70 +45,69 @@ type CiphertextCache interface {
 	// CountUploaded is a count of work items that need to complete before we can safely terminate
 	CountUploaded() int
 	// GetCiphertextCacheSelector is the key that this provider is stored under
-	GetCiphertextCacheSelector() string
+	GetCiphertextCacheSelector() CiphertextCacheName
 	// SetCiphertextCacheSelector is the key that we are going to store this under
-	SetCiphertextCacheSelector(CiphertextCacheSelector string)
+	SetCiphertextCacheSelector(CiphertextCacheSelector CiphertextCacheName)
 	// ReCache an object in the background
 	BackgroundRecache(rName FileId, totalLength int64)
 }
 
-// CiphertextCaches is the named set of local caches that are bound to a remote bucket (S3 or possibly something else)
-var CiphertextCaches = make(map[string]CiphertextCache)
-
-// this is the one mapped to "" and its real key
-var defaultCiphertextCacheKey = "default"
+// ciphertextCaches is the named set of local caches that are bound to a remote bucket (S3 or possibly something else)
+// This map is mutated in main on setup, and never edited after that
+var ciphertextCaches = make(map[CiphertextCacheName]CiphertextCache)
 
 // FindCiphertextCacheByObject gets us a drain provider that corresponds with the object
 //
-//  This implementation ASSUMES that main.go is setting us up with a propvider per key
+//  This implementation ASSUMES that main.go is setting us up with a propvider per selector
 func FindCiphertextCacheByObject(obj *models.ODObject) CiphertextCache {
 	//When we have an API token, and a way to configure multiple providers, we simply pick a provider as a functino object's properties (already tested to work)
-	return FindCiphertextCache(defaultCiphertextCacheKey)
+	//For now, every object is getting default, but we can't change this without getting unique configs per CiphertextCache
+	return FindCiphertextCache(S3_DEFAULT_CIPHERTEXT_CACHE)
 }
 
-// FindCiphertextCache gets us a drain provider by key.  We ONLY use this to construct drain providers.  Ask for it by object otherwise.
-func FindCiphertextCache(key string) CiphertextCache {
-	if key == "" {
-		key = defaultCiphertextCacheKey
-	}
-	dp := CiphertextCaches[key]
+// FindCiphertextCache gets us a drain provider by selector.  We ONLY use this to construct drain providers.  Ask for it by object otherwise.
+func FindCiphertextCache(selector CiphertextCacheName) CiphertextCache {
+	dp := ciphertextCaches[selector]
 	if dp == nil {
-		key = defaultCiphertextCacheKey
-		dp = CiphertextCaches[key]
+		dp = ciphertextCaches[selector]
 	}
 	return dp
 }
 
-// SetCiphertextCache sets an OD_CACHE_PARTITION (assuming multiple in the future) to a drain provider
-func SetCiphertextCache(key string, dp CiphertextCache) {
-	if key == "" {
-		key = defaultCiphertextCacheKey
+// FindCiphertextCacheList gets a list of known ciphertext caches
+func FindCiphertextCacheList() []CiphertextCache {
+	var answer []CiphertextCache
+	for _, v := range ciphertextCaches {
+		answer = append(answer, v)
 	}
-	CiphertextCaches[key] = dp
-	dp.SetCiphertextCacheSelector(key)
+	return answer
 }
 
-// SetDefaultCiphertextCache makes sure that if we don't specify which drain provider, we get the default
-func SetDefaultCiphertextCache(key string) {
-	defaultCiphertextCacheKey = key
+// SetCiphertextCache sets an OD_CACHE_PARTITION (assuming multiple in the future) to a drain provider
+// ONLY do this in single-threaded main setup, not while the system runs - so that we don't need to put RWMutexes around these
+func SetCiphertextCache(selector CiphertextCacheName, dp CiphertextCache) {
+	//Note that we use read locks everywhere else, and this should actually never be contended,
+	//because setup of the set of ciphertext caches happens single-threaded in main on startup.
+	ciphertextCaches[selector] = dp
+	dp.SetCiphertextCacheSelector(selector)
 }
 
 // PermanentStorage is a generic type for mocking out or replacing S3
 type PermanentStorage interface {
 	Upload(fIn io.ReadSeeker, key *string) error
 	Download(fOut io.WriterAt, key *string) (int64, error)
-	GetObject(key *string, begin, end int64) (io.ReadCloser, error)
-	GetBucket() *string
+	GetStream(key *string, begin, end int64) (io.ReadCloser, error)
+	GetName() *string
 }
 
-// DrainCacheData is the mount point for CiphertextCache.CacheLocation()
+// CiphertextCacheFilesystemMountPoint is the mount point for CiphertextCache.CacheLocation()
 // TODO how is this instantiated?
-type DrainCacheData struct {
+type CiphertextCacheFilesystemMountPoint struct {
 	Root string
 }
 
-// DrainCache is an instance of "os" wrapped up to hide the implementation and location of the cache
-type DrainCache interface {
+// FileSystem is an instance of "os" wrapped up to hide the implementation and location of the cache
+type FileSystem interface {
 	Resolve(fName FileNameCached) string
 	Open(fName FileNameCached) (*os.File, error)
 	Remove(fName FileNameCached) error
@@ -110,7 +117,6 @@ type DrainCache interface {
 	MkdirAll(fName FileNameCached, perm os.FileMode) error
 	RemoveAll(fName FileNameCached) error
 	Chtimes(name FileNameCached, atime time.Time, mtime time.Time) error
-	GetRoot() string
 }
 
 // NewFileName turns an abstract id into a filename with an extension
@@ -119,51 +125,46 @@ func NewFileName(rName FileId, ext string) FileName {
 }
 
 // Chtimes touches the timestamp
-func (c DrainCacheData) Chtimes(name FileNameCached, atime time.Time, mtime time.Time) error {
+func (c CiphertextCacheFilesystemMountPoint) Chtimes(name FileNameCached, atime time.Time, mtime time.Time) error {
 	return os.Chtimes(c.Root+"/"+string(name), atime, mtime)
 }
 
 // Resolve the location relative to the mount point, which is required for debugging
-func (c DrainCacheData) Resolve(fName FileNameCached) string {
+func (c CiphertextCacheFilesystemMountPoint) Resolve(fName FileNameCached) string {
 	return c.Root + "/" + string(fName)
 }
 
 // Open wraps os.Open for use with the cache
-func (c DrainCacheData) Open(fName FileNameCached) (*os.File, error) {
+func (c CiphertextCacheFilesystemMountPoint) Open(fName FileNameCached) (*os.File, error) {
 	return os.Open(c.Root + "/" + string(fName))
 }
 
 // Remove wraps os.Remove for use with the cache
-func (c DrainCacheData) Remove(fName FileNameCached) error {
+func (c CiphertextCacheFilesystemMountPoint) Remove(fName FileNameCached) error {
 	return os.Remove(c.Root + "/" + string(fName))
 }
 
 // Rename wraps os.Rename for use with the cache
-func (c DrainCacheData) Rename(fNameSrc, fNameDst FileNameCached) error {
+func (c CiphertextCacheFilesystemMountPoint) Rename(fNameSrc, fNameDst FileNameCached) error {
 	return os.Rename(c.Root+"/"+string(fNameSrc), c.Root+"/"+string(fNameDst))
 }
 
 // Create wraps os.Create for use with the cache
-func (c DrainCacheData) Create(fName FileNameCached) (*os.File, error) {
+func (c CiphertextCacheFilesystemMountPoint) Create(fName FileNameCached) (*os.File, error) {
 	return os.Create(c.Root + "/" + string(fName))
 }
 
 // Stat wraps os.Stat for use with the cache
-func (c DrainCacheData) Stat(fName FileNameCached) (os.FileInfo, error) {
+func (c CiphertextCacheFilesystemMountPoint) Stat(fName FileNameCached) (os.FileInfo, error) {
 	return os.Stat(c.Root + "/" + string(fName))
 }
 
 // MkdirAll wraps os.Mkdir for use with the cache
-func (c DrainCacheData) MkdirAll(fName FileNameCached, perm os.FileMode) error {
+func (c CiphertextCacheFilesystemMountPoint) MkdirAll(fName FileNameCached, perm os.FileMode) error {
 	return os.MkdirAll(c.Root+"/"+string(fName), perm)
 }
 
 // RemoveAll wraps os.RemoveAll for use with cache
-func (c DrainCacheData) RemoveAll(fName FileNameCached) error {
+func (c CiphertextCacheFilesystemMountPoint) RemoveAll(fName FileNameCached) error {
 	return os.RemoveAll(c.Root + "/" + string(fName))
-}
-
-// GetRoot gives us the location where the cache is mounted in the filesystem
-func (c DrainCacheData) GetRoot() string {
-	return c.Root
 }

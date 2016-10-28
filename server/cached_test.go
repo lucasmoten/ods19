@@ -319,7 +319,7 @@ func TestCacheDrainToSafety(t *testing.T) {
 	s3Config := config.NewS3Config()
 	sess := server.NewAWSSession(s3Config.AWSConfig, logger)
 	permanentStorage := server.NewPermanentStorageData(sess, &config.DefaultBucket)
-	d := server.NewCiphertextCacheRaw(fqCacheRoot, dirname, float64(0.50), int64(60*5), float64(0.75), 120, logger, permanentStorage)
+	d := server.NewCiphertextCacheRaw(fqCacheRoot, dirname, float64(0.50), float64(0.75), int64(60*5), 120, server.S3ChunkSize, logger, permanentStorage)
 
 	t.Log("create a small file")
 	rName := server.FileId("farkFailedInitially")
@@ -366,7 +366,7 @@ func TestCacheCreate(t *testing.T) {
 	s3Config := config.NewS3Config()
 	sess := server.NewAWSSession(s3Config.AWSConfig, logger)
 	permanentStorage := server.NewPermanentStorageData(sess, &config.DefaultBucket)
-	d := server.NewCiphertextCacheRaw(".", dirname, float64(0.50), int64(60*5), float64(0.75), 120, logger, permanentStorage)
+	d := server.NewCiphertextCacheRaw(".", dirname, float64(0.50), float64(0.75), int64(60*5), 120, server.S3ChunkSize, logger, permanentStorage)
 
 	//create a small file
 	rName := server.FileId("fark")

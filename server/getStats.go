@@ -39,7 +39,8 @@ func (h AppServer) getStats(ctx context.Context, w http.ResponseWriter, r *http.
 	fmt.Fprintf(w, "\n- Get Snippets:\n")
 	h.Tracker.Reporters[performance.AACCounterGetSnippets].Q.Dump(w, verbose)
 
-	for dpName, dp := range CiphertextCaches {
+	caches := FindCiphertextCacheList()
+	for dpName, dp := range caches {
 		fmt.Fprintf(w, "\nCiphertextCache %s:\n", dpName)
 		dp.CacheInventory(w, verbose)
 	}
