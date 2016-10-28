@@ -69,7 +69,7 @@ func testZipMakeFileWithACM(t *testing.T, clientID int, parentID string, name st
 	return obj.(protocol.Object)
 }
 
-func TestZip(t *testing.T) {
+func TestZipCorrect(t *testing.T) {
 	tester10 := 0
 	duplicates := 0
 	mapsFolder, err := makeFolderWithACMWithParentViaJSON("maps", "", ValidAcmCreateObjectSimple, tester10)
@@ -239,7 +239,11 @@ func doTestZip(t *testing.T, objs []protocol.Object, someDataString string, dupl
 				t.Logf("Zip looks valid")
 			} else {
 				if f.FileInfo().Size() != int64(len(someDataString)) {
-					t.Log("data doesn't appear to be original length as we zipped")
+					t.Logf(
+						"data doesn't appear to be original length as we zipped: %d vs %d",
+						f.FileInfo().Size(),
+						int64(len(someDataString)),
+					)
 					t.FailNow()
 				}
 			}

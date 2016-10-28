@@ -75,8 +75,6 @@ type AppServer struct {
 	StaticDir string
 	// Routes holds the routes.
 	Routes *StaticRx
-	// This encapsulates connectivity to long term storage behind the cache
-	DrainProvider DrainProvider
 	// ZKState is the current state of zookeeper
 	ZKState *zookeeper.ZKState
 	// UsersLruCache contains a cache of users with support to purge those least recently used when filling. Up to 1000 users will be retained in memory
@@ -107,6 +105,7 @@ func (h *AppServer) InitRegex() {
 		Object:           regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})$"),
 		ObjectProperties: regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/properties$"),
 		ObjectStream:     regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/stream(\\.[0-9a-zA-Z]*)?$"),
+		Ciphertext:       regexp.MustCompile(h.ServicePrefix + "/ciphertext/(?P<selector>[0-9a-zA-Z_]*)?/(?P<rname>[0-9a-fA-F]{64})$"),
 		// - actions on objects
 		ObjectChangeOwner: regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/owner/(?P<newOwner>.*)$"),
 		ObjectDelete:      regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/trash$"),
@@ -270,6 +269,10 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.ObjectStream.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectStream)
 			herr = h.getObjectStream(ctx, w, r)
+		// - get ciphertext
+		case h.Routes.Ciphertext.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Ciphertext)
+			herr = h.getCiphertext(ctx, w, r)
 		// - list objects at root
 		case h.Routes.Objects.MatchString(uri):
 			herr = h.listObjects(ctx, w, r)
@@ -642,6 +645,7 @@ type StaticRx struct {
 	Object                 *regexp.Regexp
 	ObjectProperties       *regexp.Regexp
 	ObjectStream           *regexp.Regexp
+	Ciphertext             *regexp.Regexp
 	ObjectChangeOwner      *regexp.Regexp
 	ObjectDelete           *regexp.Regexp
 	ObjectUndelete         *regexp.Regexp

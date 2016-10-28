@@ -21,7 +21,6 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	dao := DAOFromContext(ctx)
 	session := SessionIDFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
-	dp := h.DrainProvider
 
 	var requestObject models.ODObject
 	var err error
@@ -75,7 +74,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	if err != nil {
 		return NewAppError(400, err, "unable to open multipart reader")
 	}
-	drainFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &dbObject, &grant, false)
+	dp, drainFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &dbObject, &grant, false)
 	if herr != nil {
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
