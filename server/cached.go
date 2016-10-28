@@ -333,6 +333,7 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 	defer d.Files().Remove(foutCaching)
 
 	var err error
+	var fOut io.WriteCloser
 
 	err = d.doDownloadFromPermanentStorage(foutCaching, key)
 	if err != nil {
@@ -345,7 +346,7 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 		}
 		if filep2p != nil {
 			defer filep2p.Close()
-			fOut, err := d.Files().Create(foutCaching)
+			fOut, err = d.Files().Create(foutCaching)
 			if err == nil {
 				// We need to copy the *whole* file in this case.
 				_, err = io.Copy(fOut, filep2p)
