@@ -23,8 +23,6 @@ const (
 	FailPurgeAnomaly = 1501
 	// FailCacheWalk error code given when we tried to walk cache, and something went wrong
 	FailCacheWalk = 1502
-	// FailRecache error code given when we could not drain to cache
-	FailRecache = 1503
 	// FailWriteback error code given when we could not cache to drain
 	FailWriteback = 1504
 )
@@ -251,9 +249,8 @@ func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 }
 
 func (d *CiphertextCacheData) doDownloadFromPermanentStorage(foutCaching FileNameCached, key *string) error {
-
-	if d.GetPermanentStorage() == nil {
-		return fmt.Errorf("without permanent storage, we can only p2p download")
+	if d.PermanentStorage == nil {
+		return fmt.Errorf("there is no PermanentStorage set")
 	}
 
 	//Do a whole file download from PermanentStorage
@@ -266,11 +263,9 @@ func (d *CiphertextCacheData) doDownloadFromPermanentStorage(foutCaching FileNam
 			zap.String("filename", d.Files().Resolve(foutCaching)),
 			zap.String("err", err.Error()),
 		)
-	}
-	if fOut != nil {
-		_, err = d.PermanentStorage.Download(fOut, key)
 		return err
 	}
+	_, err = d.PermanentStorage.Download(fOut, key)
 	return err
 }
 
@@ -290,7 +285,7 @@ func (d *CiphertextCacheData) BackgroundRecache(rName FileId, totalLength int64)
 	)
 
 	if _, err := d.Files().Stat(cachingPath); os.IsNotExist(err) {
-		//Start caching the file because this is not happening already.
+		// Start caching the file because this is not happening already.
 		err = d.Recache(rName)
 		if err != nil {
 			logger.Error(
@@ -309,13 +304,13 @@ func (d *CiphertextCacheData) BackgroundRecache(rName FileId, totalLength int64)
 // Recache gets a WHOLE file back out of the drain into the cache.
 func (d *CiphertextCacheData) Recache(rName FileId) error {
 
-	//If it's already cached, then we have no work to do
+	// If it's already cached, then we have no work to do
 	foutCached := d.Resolve(NewFileName(rName, ".cached"))
 	if _, err := d.Files().Stat(foutCached); os.IsExist(err) {
 		return nil
 	}
 
-	//We are not supposed to be trying to get multiple copies of the same ciphertext into cache at same time
+	// We are not supposed to be trying to get multiple copies of the same ciphertext into cache at same time
 	foutCaching := d.Resolve(NewFileName(rName, ".caching"))
 	if _, err := d.Files().Stat(foutCaching); os.IsExist(err) {
 		return err
@@ -342,7 +337,7 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 	err = d.doDownloadFromPermanentStorage(foutCaching, key)
 	if err != nil {
 		d.Logger.Warn("download from PermanentStorage error", zap.String("err", err.Error()))
-		//Check p2p.... it has to be there...
+		// Check p2p.... it has to be there...
 		var filep2p io.ReadCloser
 		filep2p, err = useP2PFile(d.Logger, d.CiphertextCacheSelector, rName, 0)
 		if err != nil {
@@ -352,7 +347,7 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 			defer filep2p.Close()
 			fOut, err := d.Files().Create(foutCaching)
 			if err == nil {
-				//We need to copy the *whole* file in this case.
+				// We need to copy the *whole* file in this case.
 				_, err = io.Copy(fOut, filep2p)
 				fOut.Close()
 				if err != nil {
@@ -360,7 +355,7 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 				} else {
 					d.Logger.Info("p2p recache success")
 				}
-				//leave err where it is.
+				// leave err where it is.
 			}
 		}
 	}
@@ -370,7 +365,7 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 	tries := 22
 	waitTime := 1 * time.Second
 	prevWaitTime := 0 * time.Second
-	for tries > 0 && err != nil && d.GetPermanentStorage() != nil {
+	for tries > 0 && err != nil && d.PermanentStorage != nil {
 		err = d.doDownloadFromPermanentStorage(foutCaching, key)
 		tries--
 		if err == nil {
@@ -396,7 +391,7 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 		return err
 	}
 
-	//Signal that we finally cached the file
+	// Signal that we finally cached the file
 	err = d.Files().Rename(foutCaching, foutCached)
 	if err != nil {
 		d.Logger.Error(
@@ -675,7 +670,7 @@ func (d *CiphertextCacheData) NewPuller(logger zap.Logger, rName FileId, totalLe
 	}
 	sleepTime := time.Duration(1) * time.Second
 	attempts := 20
-	for attempts > 0 && err != nil && d.GetPermanentStorage() != nil {
+	for attempts > 0 && err != nil && d.PermanentStorage != nil {
 		//Keep trying PermanentStorage
 		//In general, we should never get here, because it's a barely bounded stall.
 		err = p.More(false)
