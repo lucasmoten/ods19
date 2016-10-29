@@ -14,10 +14,9 @@ import (
 )
 
 var (
-	logger = globalconfig.RootLogger
+	logger     = globalconfig.RootLogger
+	defaultACL = zk.WorldACL(zk.PermAll)
 )
-
-var PermissiveACL = zk.WorldACL(zk.PermAll)
 
 // AnnouncementRequest is information required to re-invoke announcements
 type AnnouncementRequest struct {
@@ -27,7 +26,7 @@ type AnnouncementRequest struct {
 	port     string
 }
 
-// ZKState is everything about zookeeper that we might need to know
+// ZKState holds a ZK connection and other stateful attributes.
 type ZKState struct {
 	// ZKAddress is the set of host:port that zk will try to connect to
 	ZKAddress string
@@ -35,11 +34,12 @@ type ZKState struct {
 	Conn *zk.Conn
 	// Protocols live under this path in zk
 	Protocols string
+	// TODO(cm): document this field.
 	// Announcements
 	AnnouncementRequests []AnnouncementRequest
-	// The original URI
-	URI string
-	//Whether we are terminated
+	// registeredPath is the original path we register in zookeeper
+	registeredPath string
+	// Whether we are terminated
 	IsTerminated bool
 	// The timeout on connections in seconds
 	Timeout int
@@ -75,7 +75,7 @@ func makeNewNode(conn *zk.Conn, pathType, prevPath, appendPath string, flags int
 	)
 	if !exists {
 		zlogger.Info("zk create")
-		_, err = conn.Create(newPath, data, flags, PermissiveACL)
+		_, err = conn.Create(newPath, data, flags, defaultACL)
 		if err != nil {
 			return newPath, err
 		}
@@ -85,36 +85,27 @@ func makeNewNode(conn *zk.Conn, pathType, prevPath, appendPath string, flags int
 	return newPath, nil
 }
 
-// RegisterApplication registers object-drive directory heirarchy in zookeeper
-// in parallel with the aac.
-// Paths are structured:
-//
-//  /cte - where zk specific stuff to organization is for cte
-//    /service - a type of thing being managed, service in this case
-//      /object-drive - an application name
-//        /1.0   - a version for the application
-//
-//  Under this mount point we should have service announcements (json data)
-//  for each port that this version of the service exposes:
-//
-//    /https
-//        /member_00000000  - includes some json that includes port and ip of member
-//        /member_00000001  ...
-//
-//    {"host":"192.168.99.100", "port":"4430"}
-//
-//  The member nodes should be ephemeral so that they clean out when the service dies
-//
-func RegisterApplication(zkURIOriginal, zkAddress string) (*ZKState, error) {
+// NewZKState connects to a ZK cluster and returns an object that wraps a connection
+// and other state about that cluster.
+func NewZKState(addrs []string, timeout int) (*ZKState, error) {
+	conn, _, err := zk.Connect(addrs, time.Second*time.Duration(timeout))
+	if err != nil {
+		return &ZKState{}, err
+	}
+	zkState := ZKState{Conn: conn, Timeout: timeout}
+	return &zkState, nil
+}
+
+// RegisterApplication registers object-drive in Zookeeper.
+func RegisterApplication(originalPath, zkAddress string) (*ZKState, error) {
 	var err error
-	//Get open zookeeper connection, and get a handle on closing it later
 	addrs := strings.Split(zkAddress, ",")
 	// TODO move this to AppConfiguration.go
 	zkTimeout := globalconfig.GetEnvOrDefaultInt("OD_ZK_TIMEOUT", 5)
 
 	//Because of the args to this function
 	zlogger := logger.With(
-		zap.String("uri", zkURIOriginal),
+		zap.String("uri", originalPath),
 		zap.String("address", zkAddress),
 	)
 
@@ -125,8 +116,8 @@ func RegisterApplication(zkURIOriginal, zkAddress string) (*ZKState, error) {
 		return &ZKState{}, err
 	}
 
-	//Setup the environment for our version of the application
-	parts := strings.Split(zkURIOriginal, "/")
+	// Setup the environment for our version of the application
+	parts := strings.Split(originalPath, "/")
 	// defaults (aligned with the defaults for the environment variables)
 	organization := parts[1]
 	appType := "service"
@@ -150,7 +141,7 @@ func RegisterApplication(zkURIOriginal, zkAddress string) (*ZKState, error) {
 		Conn:                 conn,
 		Protocols:            zkURI,
 		AnnouncementRequests: make([]AnnouncementRequest, 0),
-		URI:                  zkURIOriginal, //We need this to re-invoke the constructor when there is a disaster in zk
+		registeredPath:       originalPath,
 		Timeout:              zkTimeout,
 	}
 
@@ -355,7 +346,7 @@ func doZkRecovery(z *ZKState, zlogger zap.Logger) bool {
 		//Redoing zk is dire, and it will disturb aac connections in progress, but at least we will recover
 		////Possibility: change the nodeid so that we look like a new instance, like this:
 		//globalconfig.NodeID = globalconfig.RandomID()
-		zNew, err := RegisterApplication(z.URI, z.ZKAddress)
+		zNew, err := RegisterApplication(z.registeredPath, z.ZKAddress)
 		if err != nil {
 			zlogger.Error(
 				"zk re register error cant create connection",
@@ -398,7 +389,7 @@ func isZKOk(err error) bool {
 func ServiceStop(zkState *ZKState, protocol string, logger zap.Logger) {
 	logger.Info("zk terminating")
 	zkState.IsTerminated = true
-	path := zkState.URI + "/" + protocol + "/" + globalconfig.NodeID
+	path := zkState.registeredPath + "/" + protocol + "/" + globalconfig.NodeID
 	_, _, err := zkState.Conn.Exists(path)
 	if err != nil {
 		logger.Error("zk exists node fail", zap.String("err", err.Error()))

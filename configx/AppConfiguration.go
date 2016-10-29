@@ -43,6 +43,8 @@ type AACConfiguration struct {
 	HostName             string `yaml:"hostname"`
 	Port                 string `yaml:"port"`
 	AACAnnouncementPoint string `yaml:"zk_path"`
+	// ZKAddrs can be set to discover AAC from a non-default Zookeeper cluster.
+	ZKAddrs []string `yaml:"zk_addrs"`
 }
 
 // CommandLineOpts holds command line options so they can be passed as a param.
@@ -154,10 +156,16 @@ func NewAACSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) AACC
 	conf.ClientCert = cascade(OD_AAC_CERT, confFile.AACSettings.ClientCert, "")
 	conf.ClientKey = cascade(OD_AAC_KEY, confFile.AACSettings.ClientKey, "")
 
-	// These should get overridden with zookeeper nodes found in OD_ZK_AAC
+	// HostName and Port should only be set if we want to directly connect to AAC and not use service discovery.
 	conf.HostName = cascade(OD_AAC_HOST, confFile.AACSettings.HostName, "")
 	conf.Port = cascade(OD_AAC_PORT, confFile.AACSettings.Port, "")
+
 	conf.AACAnnouncementPoint = cascade(OD_ZK_AAC, confFile.AACSettings.AACAnnouncementPoint, "/cte/service/aac/1.0/thrift")
+
+	// If ZKAddrs is set, we attempt to discover AAC from a non-default Zookeeper cluster.
+	var empty []string
+	conf.ZKAddrs = CascadeStringSlice(OD_AAC_ZK_ADDRS, confFile.AACSettings.ZKAddrs, empty)
+
 	return conf
 }
 

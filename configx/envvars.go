@@ -13,6 +13,7 @@ const (
 	OD_AAC_HOST                = "OD_AAC_HOST"
 	OD_AAC_KEY                 = "OD_AAC_KEY"
 	OD_AAC_PORT                = "OD_AAC_PORT"
+	OD_AAC_ZK_ADDRS            = "OD_AAC_ZK_ADDRS"
 	OD_AWS_ACCESS_KEY_ID       = "OD_AWS_ACCESS_KEY_ID"
 	OD_AWS_ASG_ENDPOINT        = "OD_AWS_ASG_ENDPOINT"
 	OD_AWS_ASG_NAME            = "OD_AWS_ASG_NAME"
@@ -73,6 +74,7 @@ var Vars = []string{OD_AAC_CA,
 	OD_AAC_HOST,
 	OD_AAC_KEY,
 	OD_AAC_PORT,
+	OD_AAC_ZK_ADDRS,
 	OD_AWS_ACCESS_KEY_ID,
 	OD_AWS_ASG_ENDPOINT,
 	OD_AWS_ASG_NAME,

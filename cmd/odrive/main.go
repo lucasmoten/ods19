@@ -229,7 +229,7 @@ func startApplication(conf configx.AppConfiguration) {
 
 	//When this gets a shutdown signal, it will terminate when all files are uploaded
 	//TODO: we will need to watch all existing drain providers to be sure we can safely shut down
-	autoscale.WatchForShutdown(app.ZKState, logger)
+	autoscale.WatchForShutdown(app.DefaultZK, logger)
 
 	//This blocks until there is an error to stop the server
 	err = httpServer.ListenAndServeTLS(
@@ -258,7 +258,7 @@ func zkTracking(app *server.AppServer, appConf configx.AppConfiguration) {
 		}
 		ciphertext.ScheduleSetPeers(peerMap)
 	}
-	zookeeper.TrackAnnouncement(app.ZKState, appConf.ZK.BasepathOdrive+"/https", odriveAnnouncer)
+	zookeeper.TrackAnnouncement(app.DefaultZK, appConf.ZK.BasepathOdrive+"/https", odriveAnnouncer)
 	//I am doing this because I need a reference to app to re-assign the connection in the event of failure.
 	aacAnnouncer = func(at string, announcements map[string]zookeeper.AnnounceData) {
 		if announcements == nil {
@@ -297,7 +297,7 @@ func zkTracking(app *server.AppServer, appConf configx.AppConfiguration) {
 		}
 	}
 	//Watch the AAC thrift announcements
-	zookeeper.TrackAnnouncement(app.ZKState, aacSettings.AACAnnouncementPoint, aacAnnouncer)
+	zookeeper.TrackAnnouncement(app.DefaultZK, aacSettings.AACAnnouncementPoint, aacAnnouncer)
 }
 
 func configureDAO(app *server.AppServer, conf configx.DatabaseConfiguration) error {
@@ -333,16 +333,15 @@ func registerWithZookeeperTry(app *server.AppServer, zkBasePath, zkAddress, myIP
 	if err != nil {
 		return err
 	}
-	app.ZKState = zkState
-
+	app.DefaultZK = zkState
+	// NOTE(cm): We re-assign pointers here to allow all discoverable dependencies to
+	// share the same Zookeeper if no custom ZKAddrs are set by other configuration funcs.
+	// These pointer assignments will be overwritten if OD_EVENT_ZK_ADDRS or OD_AAC_ZK_ADDRS is set.
+	app.EventQueueZK = zkState
+	app.AACZK = zkState
 	return nil
 }
 
-// recovery when zk is completely lost is automatic once we have successfully connected on startup.
-// every connected party will remember which ephemeral nodes it is maintaining, and nodes it created,
-// so that the zk could not only disappear, but reappear *empty* and everything recovers.
-// however, it insists on being able to connect to zk when we startup to register,
-// so, just stall until we can talk to a zk.
 func registerWithZookeeper(app *server.AppServer, zkBasePath, zkAddress, myIP, myPort string) error {
 	logger.Info("registering odrive AppServer with ZK", zap.String("ip", myIP), zap.String("port", myPort),
 		zap.String("zkBasePath", zkBasePath), zap.String("zkAddress", zkAddress))
@@ -457,14 +456,14 @@ func pingDB(conf configx.DatabaseConfiguration, db *sqlx.DB) int {
 			} else if match, _ := regexp.MatchString(".*lookup.*", err.Error()); match {
 				elogger.Error("Unknown host error connecting to database. Review OD_DB_HOST environment variable configuration. Halting")
 				exitCode = 6
-				//hard error.  waiting it won't fix it
+				// hard error.  waiting it won't fix it
 				return exitCode
 			} else if match, _ := regexp.MatchString(".*connection refused.*", err.Error()); match {
-				//It's not an error until we time out
+				// It's not an error until we time out
 				elogger.Info("Connection refused connecting to database. Database may not yet be online.")
 				exitCode = 7
 			} else {
-				//hard error.  waiting won't fix it
+				// hard error.  waiting won't fix it
 				elogger.Error("Unhandled error while connecting to database. Halting")
 				exitCode = 1
 				return exitCode
@@ -475,7 +474,7 @@ func pingDB(conf configx.DatabaseConfiguration, db *sqlx.DB) int {
 				logger.Warn("Database connection successful but dbstate not yet set.")
 				exitCode = 52
 			} else {
-				//hard error.  waiting won't fix it
+				// hard error.  waiting won't fix it
 				elogger := logger.With(zap.String("err", schemaErr.Error()))
 				elogger.Error("Error calling for dbstate. Halting")
 				exitCode = 8
@@ -483,7 +482,7 @@ func pingDB(conf configx.DatabaseConfiguration, db *sqlx.DB) int {
 			}
 		}
 
-		//Sleep in one place
+		// Sleep in one place
 		logger.Info("db sleep for retry", zap.Int64("time in seconds", int64(sleepInSeconds)))
 		time.Sleep(time.Duration(sleepInSeconds) * time.Second)
 	}
@@ -543,7 +542,7 @@ func pollAAC(app *server.AppServer, updates chan server.ServiceState, aacCfg con
 
 	defer wg.Done()
 
-	announcements, err := zookeeper.GetAnnouncements(app.ZKState, aacCfg.AACAnnouncementPoint)
+	announcements, err := zookeeper.GetAnnouncements(app.DefaultZK, aacCfg.AACAnnouncementPoint)
 	if err != nil {
 		logger.Error(
 			"aac poll error",
