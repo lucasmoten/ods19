@@ -214,7 +214,6 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 		AAC:           &fakeAAC,
 		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
 		Snippets:      snippetCache,
-		Auditor:       nil,
 	}
 
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"

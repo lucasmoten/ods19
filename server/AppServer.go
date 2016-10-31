@@ -24,7 +24,6 @@ import (
 	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/performance"
 	"decipher.com/object-drive-server/services/aac"
-	"decipher.com/object-drive-server/services/audit"
 	"decipher.com/object-drive-server/services/zookeeper"
 	"decipher.com/object-drive-server/util"
 	"golang.org/x/net/context"
@@ -37,7 +36,6 @@ const (
 	GEMVal
 	UserVal
 	UserSnippetsVal
-	AuditEventVal
 	Logger
 	SessionID
 	DAO
@@ -63,8 +61,6 @@ type AppServer struct {
 	AAC aac.AacService
 	// AACZK is a pointer to the cluster where we discover AAC. May be set to DefaultZK.
 	AACZK *zookeeper.ZKState
-	// Audit Service is for remote logging for compliance.
-	Auditor audit.Auditor
 	// EventQueue is a Publisher interface we use to publish our main event stream.
 	EventQueue events.Publisher
 	// EventQueueZK is a pointer to the cluster where we discover Kafka. May be set to DefaultZK.
