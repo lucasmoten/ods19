@@ -20,10 +20,9 @@ func (r NullString) UnmarshalJSON(b []byte) error {
 	if len(b) == 0 {
 		r.Valid = false
 		return nil
-	} else {
-		r.String = string(b)
-		return nil
 	}
+	r.String = string(b)
+	return nil
 }
 
 // ToNullString is a helper

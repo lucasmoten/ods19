@@ -10,6 +10,23 @@ import (
 	"github.com/uber-go/zap"
 )
 
+// GetAcmGrantee retrieves an exsiting AcmGrantee record by the grantee name.
+func (dao *DataAccessLayer) GetAcmGrantee(grantee string) (models.ODAcmGrantee, error) {
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		return models.ODAcmGrantee{}, err
+	}
+	response, err := getAcmGranteeInTransaction(tx, grantee)
+	if err != nil {
+		dao.GetLogger().Error("Error in GetAcmGrantee", zap.String("err", err.Error()))
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return response, err
+}
+
 func getAcmGranteeInTransaction(tx *sqlx.Tx, grantee string) (models.ODAcmGrantee, error) {
 	var response models.ODAcmGrantee
 	query := `

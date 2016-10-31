@@ -123,7 +123,7 @@ func NewObjectWithPermissionsAndProperties(username, objectType string) models.O
 func NewTrashedObject(username string) models.ODObject {
 	var obj models.ODObject
 	obj.IsDeleted = true
-	obj.OwnedBy.String, obj.OwnedBy.Valid = username, true
+	obj.OwnedBy = models.ToNullString(username)
 
 	permissions := make([]models.ODObjectPermission, 1)
 	permissions[0].Grantee = username

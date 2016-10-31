@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/events"
+	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/protocol"
 
 	"golang.org/x/net/context"
@@ -30,7 +30,7 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	}
 	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
-		code, err, msg := getObjectDAOError(err)
+		code, msg, err := getObjectDAOError(err)
 		return NewAppError(code, err, msg)
 	}
 

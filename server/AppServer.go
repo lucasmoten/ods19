@@ -35,7 +35,6 @@ const (
 	CaptureGroupsVal
 	GEMVal
 	UserVal
-	UserSnippetsVal
 	Logger
 	SessionID
 	DAO
@@ -236,7 +235,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx = PutUserOnContext(ctx, *user)
+	ctx = ContextWithUser(ctx, *user)
 	groups, snippets, err := h.GetUserGroupsAndSnippets(ctx)
 	if err != nil {
 		sendErrorResponse(logger, &w, 500, err, "Error retrieving user snippets")
@@ -442,7 +441,7 @@ func newSessionID() string {
 	return globalconfig.RandomID()
 }
 
-// Before setting the logger, give the context an identity for log correlation
+// ContextWithSession puts the sessionID on the context, used for log correlation
 func ContextWithSession(ctx context.Context, sessionID string) context.Context {
 	return context.WithValue(ctx, SessionID, sessionID)
 }
@@ -458,20 +457,23 @@ func ContextWithGEM(ctx context.Context, gem events.GEM) context.Context {
 	return context.WithValue(ctx, GEMVal, gem)
 }
 
-// Bind a DAO with our logger, so that SQL can be correlated
+// ContextWithDAO puts the DAO on the context bound with a logger, so that SQL can be correlated
 func ContextWithDAO(ctx context.Context, genericDAO dao.DAO) context.Context {
 	logger := LoggerFromContext(ctx)
 	return context.WithValue(ctx, DAO, dao.NewDerivedDAO(genericDAO, logger))
 }
 
+// ContextWithGroups puts the user's groups on the context object
 func ContextWithGroups(ctx context.Context, groups []string) context.Context {
 	return context.WithValue(ctx, Groups, groups)
 }
 
+// ContextWithSnippets puts the user's snippets from AAC on the context object
 func ContextWithSnippets(ctx context.Context, snippets *acm.ODriveRawSnippetFields) context.Context {
 	return context.WithValue(ctx, Snippets, snippets)
 }
 
+// DAOFromContext returns the DAO associated with the context
 func DAOFromContext(ctx context.Context) dao.DAO {
 	d, ok := ctx.Value(DAO).(dao.DAO)
 	if !ok {
@@ -501,15 +503,18 @@ func GroupsFromContext(ctx context.Context) ([]string, bool) {
 	return groups, ok
 }
 
+// SnippetsFromContext extracts the user's snippets from the context
 func SnippetsFromContext(ctx context.Context) (*acm.ODriveRawSnippetFields, bool) {
 	snippets, ok := ctx.Value(Snippets).(*acm.ODriveRawSnippetFields)
 	return snippets, ok
 }
 
+// ContextWithLogger puts the logger on the context
 func ContextWithLogger(ctx context.Context, logger zap.Logger) context.Context {
 	return context.WithValue(ctx, Logger, logger)
 }
 
+// SessionIDFromContext extracts the session id from the context
 func SessionIDFromContext(ctx context.Context) string {
 	sessionID, ok := ctx.Value(SessionID).(string)
 	if !ok {
@@ -538,8 +543,8 @@ func CaptureGroupsFromContext(ctx context.Context) (map[string]string, bool) {
 	return captured, ok
 }
 
-// PutUserOnContext puts the user object on the context and returns the modified context
-func PutUserOnContext(ctx context.Context, user models.ODUser) context.Context {
+// ContextWithUser puts the user object on the context and returns the modified context
+func ContextWithUser(ctx context.Context, user models.ODUser) context.Context {
 	return context.WithValue(ctx, UserVal, user)
 }
 
@@ -547,17 +552,6 @@ func PutUserOnContext(ctx context.Context, user models.ODUser) context.Context {
 func UserFromContext(ctx context.Context) (models.ODUser, bool) {
 	user, ok := ctx.Value(UserVal).(models.ODUser)
 	return user, ok
-}
-
-// PutUserSnippetsOnContext puts the user snippet object on the context and returns the modified context
-func PutUserSnippetsOnContext(ctx context.Context, snippets acm.ODriveRawSnippetFields) context.Context {
-	return context.WithValue(ctx, UserSnippetsVal, snippets)
-}
-
-// UserSnippetsFromContext extracts the user snippets from a context, if set
-func UserSnippetsFromContext(ctx context.Context) (acm.ODriveRawSnippetFields, bool) {
-	snippets, ok := ctx.Value(UserSnippetsVal).(acm.ODriveRawSnippetFields)
-	return snippets, ok
 }
 
 func do404(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {

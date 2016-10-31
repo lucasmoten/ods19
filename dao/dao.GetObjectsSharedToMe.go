@@ -75,15 +75,14 @@ func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
     where
         op.isdeleted = 0 
         and op.allowread = 1 
-        and o.isdeleted = 0 
-        and o.ownedBy <> ? `
-
+        and o.isdeleted = 0 `
+	query += buildFilterExcludeObjectsIOrMyGroupsOwn(tx, user)
 	query += buildFilterExcludeEveryone()
 	query += buildFilterExcludeNonRootedSharedToMe(user)
 	query += buildFilterForUserACMShare(user)
 	query += buildFilterForUserSnippets(user)
 	query += buildFilterSortAndLimit(pagingRequest)
-	err := tx.Select(&response.Objects, query, user.DistinguishedName, user.DistinguishedName)
+	err := tx.Select(&response.Objects, query)
 	if err != nil {
 		print(err.Error())
 	}

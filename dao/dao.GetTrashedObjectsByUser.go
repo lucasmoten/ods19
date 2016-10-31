@@ -69,13 +69,13 @@ func getTrashedObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagin
         o.isdeleted = 1 
         and op.isdeleted = 0
         and op.allowread = 1
-        and o.ownedBy = ? 
         and o.isExpunged = 0
         and o.isAncestorDeleted = 0 `
+	query += buildFilterRequireObjectsIOrMyGroupsOwn(tx, user)
 	query += buildFilterForUserACMShare(user)
 	query += buildFilterForUserSnippets(user)
 	query += buildFilterSortAndLimit(pagingRequest)
-	err = tx.Select(&response.Objects, query, user.DistinguishedName, user.DistinguishedName)
+	err = tx.Select(&response.Objects, query)
 	if err != nil {
 		print(err.Error())
 	}

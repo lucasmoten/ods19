@@ -366,7 +366,7 @@ func (h AppServer) postZip(ctx context.Context, w http.ResponseWriter, r *http.R
 		}
 		obj, err := dao.GetObject(requestObject, true)
 		if err != nil {
-			code, err, msg := getObjectDAOError(err)
+			code, msg, err := getObjectDAOError(err)
 			return NewAppError(code, err, msg)
 		}
 		// Make sure that we don't have name collisions

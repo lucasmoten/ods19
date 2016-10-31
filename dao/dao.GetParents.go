@@ -12,7 +12,7 @@ import (
 // parent last.
 func (dao *DataAccessLayer) GetParents(child models.ODObject) ([]models.ODObject, error) {
 
-	parents := make([]models.ODObject, 0)
+	var parents []models.ODObject
 
 	if child.ParentID == nil || len(child.ParentID) == 0 {
 		return parents, nil
@@ -37,7 +37,7 @@ func (dao *DataAccessLayer) GetParents(child models.ODObject) ([]models.ODObject
 }
 
 func getParentsInTransaction(tx *sqlx.Tx, child models.ODObject) ([]models.ODObject, error) {
-	parents := make([]models.ODObject, 0)
+	var parents []models.ODObject
 
 	var queryObj models.ODObject
 	queryObj.ID = child.ParentID

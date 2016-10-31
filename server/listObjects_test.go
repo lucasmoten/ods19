@@ -178,8 +178,7 @@ func TestListObjectsChild(t *testing.T) {
 	clientid := 0
 
 	if verboseOutput {
-		fmt.Printf("(Verbose Mode) Using client id %d", clientid)
-		fmt.Println()
+		t.Logf("(Verbose Mode) Using client id %d", clientid)
 	}
 
 	// URLs
@@ -192,38 +191,37 @@ func TestListObjectsChild(t *testing.T) {
 	uri += "&PageNumber="
 	uri1 := uri + "1"
 
-	// Request
+	t.Logf("Request")
 	req, err := http.NewRequest("GET", uri1, nil)
 	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
+		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
 	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
-		log.Printf("Unable to do request:%v", err)
+		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
 	defer util.FinishBody(res.Body)
-	// Response validation
+	t.Logf("Response validation")
 	if res.StatusCode != http.StatusOK {
-		log.Printf("bad status: %s", res.Status)
+		t.Logf("bad status: %s", res.Status)
 		t.FailNow()
 	}
+	t.Logf("Decoding body to resultset")
 	var listOfObjects protocol.ObjectResultset
 	err = util.FullDecode(res.Body, &listOfObjects)
 	if err != nil {
-		log.Printf("Error decoding json to ObjectResultset: %v", err)
+		t.Logf("Error decoding json to ObjectResultset: %v", err)
 		t.FailNow()
 	}
-
+	t.Logf("Depth display in child tree")
 	level := 0
 	depthstring := "+-"
 	for _, obj := range listOfObjects.Objects {
 		if verboseOutput {
-			fmt.Printf(depthstring)
-			fmt.Printf(obj.Name)
-			fmt.Println()
+			t.Logf("%s%s", depthstring, obj.Name)
 		}
 		childlevel := level + 1
 		showChildTree(t, verboseOutput, clients[clientid].Client, childlevel, obj.ID)
@@ -231,6 +229,7 @@ func TestListObjectsChild(t *testing.T) {
 			return
 		}
 	}
+	t.Logf("Paging")
 	for pn := 2; pn <= listOfObjects.PageCount; pn++ {
 		if testing.Short() && pn >= 3 {
 			return
@@ -239,32 +238,30 @@ func TestListObjectsChild(t *testing.T) {
 		// Request
 		req, err := http.NewRequest("GET", uriPaged, nil)
 		if err != nil {
-			log.Printf("Error setting up HTTP Request: %v", err)
+			t.Logf("Error setting up HTTP Request: %v", err)
 			t.FailNow()
 		}
 		req.Header.Set("Content-Type", "application/json")
 		res, err := clients[clientid].Client.Do(req)
 		if err != nil {
-			log.Printf("Unable to do request:%v", err)
+			t.Logf("Unable to do request:%v", err)
 			t.FailNow()
 		}
 		defer util.FinishBody(res.Body)
 		// Response validation
 		if res.StatusCode != http.StatusOK {
-			log.Printf("bad status: %s", res.Status)
+			t.Logf("bad status: %s", res.Status)
 			t.FailNow()
 		}
 		var listOfObjects protocol.ObjectResultset
 		err = util.FullDecode(res.Body, &listOfObjects)
 		if err != nil {
-			log.Printf("Error decoding json to ObjectResultset: %v", err)
+			t.Logf("Error decoding json to ObjectResultset: %v", err)
 			t.FailNow()
 		}
 		for _, obj := range listOfObjects.Objects {
 			if verboseOutput {
-				fmt.Printf(depthstring)
-				fmt.Printf(obj.Name)
-				fmt.Println()
+				t.Logf("%s%s", depthstring, obj.Name)
 			}
 			childlevel := level + 1
 			showChildTree(t, verboseOutput, clients[clientid].Client, childlevel, obj.ID)
@@ -296,37 +293,34 @@ func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level 
 	// Request
 	req, err := http.NewRequest("GET", uri1, nil)
 	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
+		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
 	res, err := client.Do(req)
 	if err != nil {
-		log.Printf("Unable to do request:%v", err)
+		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
 	defer util.FinishBody(res.Body)
 	// Response validation
 	if res.StatusCode != http.StatusOK {
 		//log.Printf("bad status: %s %s", res.Status, hex.EncodeToString(childid))
-		fmt.Printf(depthstring)
-		fmt.Printf(" >>> 403 Unauthorized to read this object, so cannot list children")
-		fmt.Println()
+		t.Logf(depthstring)
+		t.Logf(" >>> 403 Unauthorized to read this object, so cannot list children")
 		t.FailNow()
 	}
 	var listOfObjects protocol.ObjectResultset
 	err = util.FullDecode(res.Body, &listOfObjects)
 	if err != nil {
-		log.Printf("Error decoding json to ObjectResultset: %v", err)
+		t.Logf("Error decoding json to ObjectResultset: %v", err)
 		t.FailNow()
 	}
 
 	depthstring += "+-"
 	for _, obj := range listOfObjects.Objects {
 		if verboseOutput {
-			fmt.Printf(depthstring)
-			fmt.Printf(obj.Name)
-			fmt.Println()
+			t.Logf("%s%s", depthstring, obj.Name)
 		}
 		childlevel := level + 1
 		showChildTree(t, verboseOutput, client, childlevel, obj.ID)
@@ -342,33 +336,31 @@ func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level 
 		// Request
 		req, err := http.NewRequest("GET", uriPaged, nil)
 		if err != nil {
-			log.Printf("Error setting up HTTP Request: %v", err)
+			t.Logf("Error setting up HTTP Request: %v", err)
 			t.FailNow()
 		}
 		req.Header.Set("Content-Type", "application/json")
 		res, err := client.Do(req)
 		if err != nil {
-			log.Printf("Unable to do request:%v", err)
+			t.Logf("Unable to do request:%v", err)
 			t.FailNow()
 		}
 		defer util.FinishBody(res.Body)
 		// Response validation
 		if res.StatusCode != http.StatusOK {
-			log.Printf("bad status: %s", res.Status)
+			t.Logf("bad status: %s", res.Status)
 			t.Fail()
 			return
 		}
 		var listOfObjects protocol.ObjectResultset
 		err = util.FullDecode(res.Body, &listOfObjects)
 		if err != nil {
-			log.Printf("Error decoding json to ObjectResultset: %v", err)
+			t.Logf("Error decoding json to ObjectResultset: %v", err)
 			t.FailNow()
 		}
 		for _, obj := range listOfObjects.Objects {
 			if verboseOutput {
-				fmt.Printf(depthstring)
-				fmt.Printf(obj.Name)
-				fmt.Println()
+				t.Logf("%s,%s", depthstring, obj.Name)
 			}
 			childlevel := level + 1
 			showChildTree(t, verboseOutput, client, childlevel, obj.ID)
@@ -376,46 +368,6 @@ func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level 
 				return
 			}
 		}
-	}
-}
-
-func TestListObjectsWithInvalidSortField(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-	verboseOutput := testing.Verbose()
-	clientid := 0
-
-	if verboseOutput {
-		fmt.Printf("(Verbose Mode) Using client id %d", clientid)
-		fmt.Println()
-	}
-
-	// URL
-	uri := host + cfg.NginxRootURL + "/objects"
-	// This URI explicitly tests a sample from cte/hyperdrive -> cte/object-drive-ui which was passing sortField=updated_dt
-	// If this field is ever aliased as the appropriate fieldname modifieddate, then this test should be updated to use
-	// something invalid (or removed since TestListObjectsWithInvalidFilterField will do that).
-	// The querystring variable 'sortDir' is ignored.
-	uri1 := uri + "?PageNumber=1&PageSize=1&sortField=updated_dt&sortDir=1"
-
-	// Request
-	req, err := http.NewRequest("GET", uri1, nil)
-	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
-		t.FailNow()
-	}
-	req.Header.Set("Content-Type", "application/json")
-	res, err := clients[clientid].Client.Do(req)
-	if err != nil {
-		log.Printf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	defer util.FinishBody(res.Body)
-	// Response validation
-	if res.StatusCode != http.StatusOK {
-		log.Printf("bad status: %s", res.Status)
-		t.FailNow()
 	}
 }
 

@@ -86,7 +86,7 @@ func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUs
 	query += buildFilterSortAndLimit(pagingRequest)
 
 	//log.Println(query)
-	err := tx.Select(&response.Objects, query, user.DistinguishedName)
+	err := tx.Select(&response.Objects, query)
 	if err != nil {
 		return response, err
 	}
@@ -161,8 +161,12 @@ func buildOrderBy(pagingRequest PagingRequest) string {
 // and then converts to reference the archive table
 func buildOrderByArchive(pagingRequest PagingRequest) string {
 	a := buildOrderBy(pagingRequest)
-	a = strings.Replace(a, " o.", " ao.", -1)
+	a = asArchive(a)
 	return a
+}
+
+func asArchive(in string) string {
+	return strings.Replace(in, " o.", " ao.", -1)
 }
 
 func getDBFieldFromPagingRequestField(fieldName string) string {
@@ -243,7 +247,7 @@ func buildFilterSortAndLimitArchive(pagingRequest PagingRequest) string {
 func buildFilterForUserACMShare(user models.ODUser) string {
 
 	// Return if user.Snippets not defined, or there were no shares.
-	defaultSQL := " and op.grantee = ? "
+	defaultSQL := " and op.grantee = '" + MySQLSafeString(user.DistinguishedName) + "' "
 
 	if user.Snippets == nil {
 		return defaultSQL
@@ -270,7 +274,7 @@ func buildFilterForUserACMShare(user models.ODUser) string {
 
 	// If share settings were defined with additional groups
 	if len(shareSnippet.Values) > 0 {
-		sql = " and (op.grantee = ? or op.grantee like '" + MySQLSafeString(models.AACFlatten(models.EveryoneGroup)) + "'"
+		sql = " and (op.grantee = '" + MySQLSafeString(user.DistinguishedName) + "' or op.grantee like '" + MySQLSafeString(models.AACFlatten(models.EveryoneGroup)) + "'"
 		for _, shareValue := range shareSnippet.Values {
 			//if !strings.Contains(shareValue, "cusou") && !strings.Contains(shareValue, "governmentcus") {
 			sql += " or op.grantee like '" + MySQLSafeString(shareValue) + "'"
@@ -426,4 +430,58 @@ func MySQLSafeString2(i string) string {
 
 	}
 	return o
+}
+
+func buildFilterRequireObjectsIOwn(user models.ODUser) string {
+	return " and o.ownedby in (" + strings.Join(buildListObjectsIOwn(user), ",") + ")"
+}
+
+func buildFilterExcludeObjectsIOrMyGroupsOwn(tx *sqlx.Tx, user models.ODUser) string {
+	return " and o.ownedby not in (" + strings.Join(buildListObjectsIOrMyGroupsOwn(tx, user), ",") + ")"
+}
+
+func buildFilterRequireObjectsIOrMyGroupsOwn(tx *sqlx.Tx, user models.ODUser) string {
+	return " and o.ownedby in (" + strings.Join(buildListObjectsIOrMyGroupsOwn(tx, user), ",") + ")"
+}
+
+func buildListObjectsIOrMyGroupsOwn(tx *sqlx.Tx, user models.ODUser) []string {
+	ownedby := []string{}
+	ownedby = append(ownedby, buildListObjectsIOwn(user)...)
+	ownedby = append(ownedby, buildListObjectsMyGroupOwns(tx, user)...)
+	return ownedby
+}
+
+func buildListObjectsIOwn(user models.ODUser) []string {
+	ownedby := []string{}
+	// original ownership format as just the dn
+	ownedby = append(ownedby, "'"+MySQLSafeString2(user.DistinguishedName)+"'")
+	// revised resource format prefixed by type
+	ownedby = append(ownedby, "'user/"+MySQLSafeString2(user.DistinguishedName)+"'")
+	return ownedby
+}
+func buildListObjectsMyGroupOwns(tx *sqlx.Tx, user models.ODUser) []string {
+	ownedby := []string{}
+	if user.Snippets != nil {
+		for _, rawFields := range user.Snippets.Snippets {
+			switch rawFields.FieldName {
+			case "f_share":
+				for _, shareValue := range rawFields.Values {
+					trimmedShareValue := strings.TrimSpace(shareValue)
+					if len(trimmedShareValue) > 0 {
+						acmGrantee, err := getAcmGranteeInTransaction(tx, trimmedShareValue)
+						if err == nil {
+							ownedby = append(ownedby, "'"+acmGrantee.ResourceName()+"'")
+						} else {
+							// Assume its a group
+							ownedby = append(ownedby, "'group/"+MySQLSafeString2(trimmedShareValue)+"'")
+						}
+					}
+				}
+				break
+			default:
+				continue
+			}
+		}
+	}
+	return ownedby
 }

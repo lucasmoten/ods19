@@ -242,6 +242,7 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 	return func() { h.Writeback(obj, fileID, length, 3) }, nil, err
 }
 
+// Writeback wraps a WritebackAttempt with performance tracking
 func (h AppServer) Writeback(obj *models.ODObject, rName ciphertext.FileId, size int64, tries int) error {
 	beganAt := h.Tracker.BeginTime(performance.S3DrainTo)
 	err := h.WritebackAttempt(obj, rName, size, tries)
@@ -249,6 +250,7 @@ func (h AppServer) Writeback(obj *models.ODObject, rName ciphertext.FileId, size
 	return err
 }
 
+// WritebackAttempt usues the ciphertextcache associated by an object and writes the content stream to the drain
 func (h AppServer) WritebackAttempt(obj *models.ODObject, rName ciphertext.FileId, size int64, tries int) error {
 	d := ciphertext.FindCiphertextCacheByObject(obj)
 	err := d.Writeback(rName, size)
@@ -265,11 +267,11 @@ func (h AppServer) WritebackAttempt(obj *models.ODObject, rName ciphertext.FileI
 			log.Printf("unable to drain file.  Trying it in the background:%v", err)
 			//If we don't want to give up and lose the data, we have to keep trying in another goroutine to avoid blowing up the stack
 			go func() {
-				//If we are having S3 outage, then trying immediately is not going to be useful.
+				//If we are having a drain outage, then trying immediately is not going to be useful.
 				//Wait a while
-				log.Printf("s3 log attempt sleep")
+				log.Printf("waiting 30 seconds before attempting to drain again")
 				time.Sleep(30 * time.Second)
-				log.Printf("s3 log attempt")
+				log.Printf("drain attempt beginning")
 				h.Writeback(obj, rName, size, 3)
 			}()
 		}

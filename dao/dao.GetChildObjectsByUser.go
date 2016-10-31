@@ -78,7 +78,7 @@ func getChildObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
 	query += buildFilterForUserACMShare(user)
 	query += buildFilterForUserSnippets(user)
 	query += buildFilterSortAndLimit(pagingRequest)
-	err := tx.Select(&response.Objects, query, object.ID, user.DistinguishedName)
+	err := tx.Select(&response.Objects, query, object.ID)
 	if err != nil {
 		print(err.Error())
 		return response, err

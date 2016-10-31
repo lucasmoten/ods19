@@ -26,18 +26,19 @@ func (dao *DataAccessLayer) GetUserStats(dn string) (models.UserStats, error) {
 func getUserStatsInTransaction(logger zap.Logger, tx *sqlx.Tx, dn string) (models.UserStats, error) {
 	var objectStorageMetrics []models.UserStatsMetrics
 	var userStats models.UserStats
+	objectsIOwn := buildFilterRequireObjectsIOwn(models.ODUser{DistinguishedName: dn})
 	sqlStatement := `
     select 
         t.name as TypeName,
-        (select count(o.id) from object as o where o.typeid=t.id and o.ownedby=? ) as Objects,
-        ifnull((select sum(o.contentSize) from object as o where o.typeid=t.id and o.ownedby=? ),0) as ObjectsSize,
-        (select count(ao.id) from a_object as ao where ao.typeid=t.id and ao.ownedby=? ) as ObjectsAndRevisions,
-        ifnull((select sum(ao.contentSize) from a_object as ao where ao.typeid=t.id and ao.ownedby=? ),0) as ObjectsAndRevisionsSize
+        (select count(o.id) from object as o where o.typeid=t.id ` + objectsIOwn + `) as Objects, 
+        ifnull((select sum(o.contentSize) from object as o where o.typeid=t.id ` + objectsIOwn + `),0) as ObjectsSize,
+        (select count(ao.id) from a_object as ao where ao.typeid=t.id ` + asArchive(objectsIOwn) + `) as ObjectsAndRevisions,
+        ifnull((select sum(ao.contentSize) from a_object as ao where ao.typeid=t.id ` + asArchive(objectsIOwn) + `),0) as ObjectsAndRevisionsSize
     from 
         object_type as t
     group by t.name
     `
-	err := tx.Select(&objectStorageMetrics, sqlStatement, dn, dn, dn, dn)
+	err := tx.Select(&objectStorageMetrics, sqlStatement)
 	if err != nil {
 		logger.Error("Unable to execute query", zap.String("sql", sqlStatement), zap.String("err", err.Error()))
 		return userStats, err

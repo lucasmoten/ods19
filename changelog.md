@@ -1,6 +1,10 @@
 Changelog
 ================
 
+Release vNEXT
+-------------
+* DOC: API Documentation now reflects chagnes where OwnedBy field is now stored and returned in serialized resource format.
+
 Release v1.0.1.7
 ----------------
 * NEW: AAC is discoverable from its own ZK cluster, not just default ZK.

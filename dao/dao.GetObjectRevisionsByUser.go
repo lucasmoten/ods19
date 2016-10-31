@@ -74,7 +74,7 @@ func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagi
 	query += buildFilterForUserACMShare(user)
 	query += buildFilterForUserSnippets(user)
 	query += buildFilterSortAndLimitArchive(pagingRequest)
-	err := tx.Select(&response.Objects, query, object.ID, user.DistinguishedName)
+	err := tx.Select(&response.Objects, query, object.ID)
 	if err != nil {
 		return response, err
 	}
