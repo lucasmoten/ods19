@@ -25,7 +25,6 @@ import (
 	"decipher.com/object-drive-server/performance"
 	"decipher.com/object-drive-server/services/aac"
 	"decipher.com/object-drive-server/services/audit"
-	"decipher.com/object-drive-server/services/audit/generated/events_thrift"
 	"decipher.com/object-drive-server/services/zookeeper"
 	"decipher.com/object-drive-server/util"
 	"golang.org/x/net/context"
@@ -62,10 +61,14 @@ type AppServer struct {
 	ServicePrefix string
 	// AAC is a handle to the Authorization and Access Control client
 	AAC aac.AacService
+	// AACZK is a pointer to the cluster where we discover AAC. May be set to DefaultZK.
+	AACZK *zookeeper.ZKState
 	// Audit Service is for remote logging for compliance.
 	Auditor audit.Auditor
-	// Finder wraps the PLEXUS Finder Kafka queue.
+	// EventQueue is a Publisher interface we use to publish our main event stream.
 	EventQueue events.Publisher
+	// EventQueueZK is a pointer to the cluster where we discover Kafka. May be set to DefaultZK.
+	EventQueueZK *zookeeper.ZKState
 	// MasterKey is the secret passphrase used in scrambling keys
 	MasterKey string
 	// Tracker captures metrics about upload/download begin and end time and transfer bytes
@@ -76,8 +79,8 @@ type AppServer struct {
 	StaticDir string
 	// Routes holds the routes.
 	Routes *StaticRx
-	// ZKState is the current state of zookeeper
-	ZKState *zookeeper.ZKState
+	// DefaultZK wraps a connection to the ZK cluster we announce to, and holds state for odrive's registration.
+	DefaultZK *zookeeper.ZKState
 	// UsersLruCache contains a cache of users with support to purge those least recently used when filling. Up to 1000 users will be retained in memory
 	UsersLruCache *ccache.Cache
 	// Snippets contains a cache of snippets
@@ -445,13 +448,6 @@ func newSessionID() string {
 	return globalconfig.RandomID()
 }
 
-// AuditEventFromContext retrives a pointer to an events_thrift.AuditEvent from
-// the Context.
-func AuditEventFromContext(ctx context.Context) (*events_thrift.AuditEvent, bool) {
-	event, ok := ctx.Value(AuditEventVal).(*events_thrift.AuditEvent)
-	return event, ok
-}
-
 // Before setting the logger, give the context an identity for log correlation
 func ContextWithSession(ctx context.Context, sessionID string) context.Context {
 	return context.WithValue(ctx, SessionID, sessionID)
@@ -557,10 +553,6 @@ func PutUserOnContext(ctx context.Context, user models.ODUser) context.Context {
 func UserFromContext(ctx context.Context) (models.ODUser, bool) {
 	user, ok := ctx.Value(UserVal).(models.ODUser)
 	return user, ok
-}
-
-func ContextWithAuditEvent(ctx context.Context, event *events_thrift.AuditEvent) context.Context {
-	return context.WithValue(ctx, AuditEventVal, event)
 }
 
 // PutUserSnippetsOnContext puts the user snippet object on the context and returns the modified context
