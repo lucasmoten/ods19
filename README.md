@@ -98,10 +98,10 @@ Install the Thrift code generator with:
 go install github.com/samuel/go-thrift/generator
 ```
 
-Example (from within /services/audit/thrift):
+Example (from within /services/foo/thrift):
 
 ```
-generator -go.signedbytes=true AuditService.thrift ../generated
+generator -go.signedbytes=true Foo.thrift ../generated
 ```
 
 # Running Tests
