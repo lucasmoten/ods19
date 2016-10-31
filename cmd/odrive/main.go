@@ -14,6 +14,10 @@ import (
 	"sync"
 	"time"
 
+	"decipher.com/object-drive-server/ciphertext"
+
+	"decipher.com/object-drive-server/amazon"
+	"decipher.com/object-drive-server/autoscale"
 	"decipher.com/object-drive-server/services/finder"
 	"decipher.com/object-drive-server/services/zookeeper"
 	"decipher.com/object-drive-server/util/testhelpers"
@@ -150,7 +154,7 @@ func runServiceTest(ctx *cli.Context) error {
 	switch service {
 	case S3Service:
 		s3Config := configx.NewS3Config()
-		if !server.TestS3Connection(server.NewAWSSession(s3Config.AWSConfig, logger)) {
+		if !ciphertext.TestS3Connection(amazon.NewAWSSession(s3Config.AWSConfig, logger)) {
 			fmt.Println("Cannot access S3 bucket.")
 			os.Exit(1)
 		} else {
@@ -192,9 +196,9 @@ func startApplication(conf configx.AppConfiguration) {
 	}
 
 	//For now, we have one drain provider, just use the default
-	server.SetCiphertextCache(
-		server.S3_DEFAULT_CIPHERTEXT_CACHE,
-		server.NewS3CiphertextCache(conf.CacheSettings, conf.CacheSettings.Partition+"/"+cacheID),
+	ciphertext.SetCiphertextCache(
+		ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE,
+		ciphertext.NewS3CiphertextCache(conf.CacheSettings, conf.CacheSettings.Partition+"/"+cacheID),
 	)
 
 	configureEventQueue(app, conf.EventQueue)
@@ -219,13 +223,13 @@ func startApplication(conf configx.AppConfiguration) {
 	zkTracking(app, conf)
 
 	//Begin cloudwatch stats
-	server.CloudWatchReportingStart(app.Tracker)
+	autoscale.CloudWatchReportingStart(app.Tracker)
 
 	logger.Info("starting server", zap.String("addr", app.Addr))
 
 	//When this gets a shutdown signal, it will terminate when all files are uploaded
 	//TODO: we will need to watch all existing drain providers to be sure we can safely shut down
-	server.WatchForShutdown(app.ZKState, logger)
+	autoscale.WatchForShutdown(app.ZKState, logger)
 
 	//This blocks until there is an error to stop the server
 	err = httpServer.ListenAndServeTLS(
@@ -242,9 +246,9 @@ func zkTracking(app *server.AppServer, appConf configx.AppConfiguration) {
 	//Tell whoever needs to know about the peers - it uses the server cert
 	odriveAnnouncer := func(at string, announcements map[string]zookeeper.AnnounceData) {
 		//Create a peer list
-		peerMap := make(map[string]*server.PeerMapData)
+		peerMap := make(map[string]*ciphertext.PeerMapData)
 		for announcementKey, announcement := range announcements {
-			peerMap[announcementKey] = &server.PeerMapData{
+			peerMap[announcementKey] = &ciphertext.PeerMapData{
 				Host:    announcement.ServiceEndpoint.Host,
 				Port:    announcement.ServiceEndpoint.Port,
 				CA:      srvConf.CAPath,
@@ -252,7 +256,7 @@ func zkTracking(app *server.AppServer, appConf configx.AppConfiguration) {
 				CertKey: srvConf.ServerKey,
 			}
 		}
-		server.ScheduleSetPeers(peerMap)
+		ciphertext.ScheduleSetPeers(peerMap)
 	}
 	zookeeper.TrackAnnouncement(app.ZKState, appConf.ZK.BasepathOdrive+"/https", odriveAnnouncer)
 	//I am doing this because I need a reference to app to re-assign the connection in the event of failure.

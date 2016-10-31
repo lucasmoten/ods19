@@ -15,6 +15,7 @@ import (
 	"github.com/karlseguin/ccache"
 	"github.com/uber-go/zap"
 
+	"decipher.com/object-drive-server/autoscale"
 	globalconfig "decipher.com/object-drive-server/config"
 	configx "decipher.com/object-drive-server/configx"
 	"decipher.com/object-drive-server/dao"
@@ -160,7 +161,7 @@ func logCrashInServeHTTP(logger zap.Logger, w http.ResponseWriter) {
 
 // ServeHTTP handles the routing of requests
 func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	beginTSInMS := NowMS()
+	beginTSInMS := util.NowMS()
 
 	sessionID := newSessionID()
 	w.Header().Add("sessionid", sessionID)
@@ -436,7 +437,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.Tracker != nil {
-		CloudWatchTransaction(beginTSInMS, NowMS(), h.Tracker)
+		autoscale.CloudWatchTransaction(beginTSInMS, util.NowMS(), h.Tracker)
 	}
 }
 

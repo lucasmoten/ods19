@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"decipher.com/object-drive-server/utils"
+	"decipher.com/object-drive-server/crypto"
 	"decipher.com/object-drive-server/metadata/models"
 )
 
@@ -28,23 +28,23 @@ func TestKeyMigrateRotate(t *testing.T) {
 	p.AllowShare = true
 
 	//This is the key that the file is encrypted under
-	fileKey := utils.CreateKey()
+	fileKey := crypto.CreateKey()
 	t.Logf("fileKey: %s", hex.EncodeToString(fileKey))
 
 	//Old style encrypted keys look like this
-	oldEncryptedKey := utils.ApplyPassphraseOld(m, p.Grantee, fileKey)
+	oldEncryptedKey := crypto.ApplyPassphraseOld(m, p.Grantee, fileKey)
 	t.Logf("oldEncryptedKey: %s", hex.EncodeToString(oldEncryptedKey))
 
 	//The IV for a new style permission
-	newPermissionIV := utils.CreatePermissionIV()
+	newPermissionIV := crypto.CreatePermissionIV()
 	t.Logf("newPermissionIV: %s", hex.EncodeToString(newPermissionIV))
 
 	//New style encrypted keys look like this
-	newEncryptedKey := utils.ApplyPassphrase(m, newPermissionIV, fileKey)
+	newEncryptedKey := crypto.ApplyPassphrase(m, newPermissionIV, fileKey)
 	t.Logf("newEncryptedKey: %s", hex.EncodeToString(newEncryptedKey))
 
 	//The signature over an object_permission is like this:
-	newPermissionMAC := utils.DoMAC(
+	newPermissionMAC := crypto.DoMAC(
 		m,
 		newPermissionIV,
 		p.Grantee,
@@ -142,11 +142,11 @@ func TestKeyMigrateRotate(t *testing.T) {
 	//We are expecting the original key encrypted under m2
 	//NOTE: we didn't change the IV, but we did change (m,IV),
 	// so that is safe, particularly because fileKey never changes.
-	rotatedEncryptedKey := utils.ApplyPassphrase(m2, newPermissionIV, fileKey)
+	rotatedEncryptedKey := crypto.ApplyPassphrase(m2, newPermissionIV, fileKey)
 	t.Logf("rotatedEncryptedKey: %s", hex.EncodeToString(rotatedEncryptedKey))
 
 	//The signature over an object_permission is like this:
-	rotatedPermissionMAC := utils.DoMAC(
+	rotatedPermissionMAC := crypto.DoMAC(
 		m2,
 		newPermissionIV,
 		p.Grantee,

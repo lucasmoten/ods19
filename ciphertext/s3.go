@@ -1,10 +1,11 @@
-package server
+package ciphertext
 
 import (
 	"fmt"
 	"io"
 	"time"
 
+	"decipher.com/object-drive-server/amazon"
 	globalconfig "decipher.com/object-drive-server/config"
 	configx "decipher.com/object-drive-server/configx"
 
@@ -88,7 +89,7 @@ func NewS3CiphertextCache(conf configx.S3CiphertextCacheOpts, name string) Ciphe
 	walkSleepDuration := time.Duration(conf.WalkSleep) * time.Second
 
 	s3Config := configx.NewS3Config()
-	sess := NewAWSSession(s3Config.AWSConfig, logger)
+	sess := amazon.NewAWSSession(s3Config.AWSConfig, logger)
 
 	//Assign permanent storage if we have a bucket name
 	var permanentStorage PermanentStorage

@@ -8,8 +8,8 @@ import (
 
 	"golang.org/x/net/context"
 
+	"decipher.com/object-drive-server/crypto"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/utils"
 )
 
 func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
@@ -83,7 +83,7 @@ func getFileKeyAndCheckAuthAndObjectState(ctx context.Context, h AppServer, obj 
 	if !ok {
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object"), fileKey
 	}
-	fileKey = utils.ApplyPassphrase(h.MasterKey, userPermission.PermissionIV, userPermission.EncryptKey)
+	fileKey = crypto.ApplyPassphrase(h.MasterKey, userPermission.PermissionIV, userPermission.EncryptKey)
 	if len(fileKey) == 0 {
 		return NewAppError(500, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object"), fileKey
 	}

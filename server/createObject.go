@@ -11,6 +11,8 @@ import (
 
 	"github.com/uber-go/zap"
 
+	"decipher.com/object-drive-server/ciphertext"
+	"decipher.com/object-drive-server/crypto"
 	"golang.org/x/net/context"
 
 	configx "decipher.com/object-drive-server/configx"
@@ -25,7 +27,7 @@ import (
 // createObject is a method handler on AppServer for createObject microservice operation.
 func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 	//Note: when we can configure for multiple drain providers, we probably set with API token here
-	var dp CiphertextCache
+	var dp ciphertext.CiphertextCache
 
 	logger := LoggerFromContext(ctx)
 	session := SessionIDFromContext(ctx)
@@ -49,12 +51,12 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	if isMultipart {
 
 		// Streamed objects have an IV
-		iv := utils.CreateIV()
+		iv := crypto.CreateIV()
 		obj.EncryptIV = iv
 
 		// Assign uniquely generated reference
 		// NOTE: we could generate a software GUID here, and unify our object IDs.
-		rName := utils.CreateRandomName()
+		rName := crypto.CreateRandomName()
 		obj.ContentConnector = models.ToNullString(rName)
 
 		multipartReader, err := r.MultipartReader()
@@ -300,9 +302,9 @@ func injectReadPermissionsIntoACM(ctx context.Context, obj *models.ODObject) *Ap
 	return nil
 }
 
-func removeOrphanedFile(logger zap.Logger, d CiphertextCache, contentConnector string) {
-	fileID := FileId(contentConnector)
-	uploadedName := NewFileName(fileID, "uploaded")
+func removeOrphanedFile(logger zap.Logger, d ciphertext.CiphertextCache, contentConnector string) {
+	fileID := ciphertext.FileId(contentConnector)
+	uploadedName := ciphertext.NewFileName(fileID, "uploaded")
 	var err error
 	if d != nil {
 		err = d.Files().Remove(d.Resolve(uploadedName))

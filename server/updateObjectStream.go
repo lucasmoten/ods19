@@ -4,11 +4,11 @@ import (
 	"errors"
 	"net/http"
 
+	"decipher.com/object-drive-server/crypto"
 	db "decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/utils"
 	"golang.org/x/net/context"
 )
 
@@ -55,8 +55,8 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	}
 
 	//We need a name for the new text, and a new iv
-	dbObject.ContentConnector.String = utils.CreateRandomName()
-	dbObject.EncryptIV = utils.CreateIV()
+	dbObject.ContentConnector.String = crypto.CreateRandomName()
+	dbObject.EncryptIV = crypto.CreateIV()
 	// Check if the user has permissions to update the ODObject
 	var grant models.ODObjectPermission
 	var ok bool

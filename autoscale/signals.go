@@ -1,4 +1,4 @@
-package server
+package autoscale
 
 import (
 	"encoding/json"
@@ -8,6 +8,8 @@ import (
 	"syscall"
 	"time"
 
+	"decipher.com/object-drive-server/amazon"
+	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/configx"
 	"decipher.com/object-drive-server/services/zookeeper"
 	"github.com/aws/aws-sdk-go/aws"
@@ -146,7 +148,7 @@ func (as *AutoScaler) prepareForTermination(lifecycleMessage *LifecycleMessage) 
 		}
 		//Wait for existing uploads to finish
 		remainingFiles := 0
-		caches := FindCiphertextCacheList()
+		caches := ciphertext.FindCiphertextCacheList()
 		for _, dp := range caches {
 			remainingFiles += dp.CountUploaded()
 		}
@@ -316,9 +318,9 @@ func WatchForShutdown(z *zookeeper.ZKState, logger zap.Logger) {
 	sqsConfig := config.NewAutoScalingConfig()
 
 	//We use this to get remote messages to shut down
-	var sqsSession AutoScalerSQS = sqs.New(NewAWSSession(sqsConfig.AWSConfigSQS, logger))
+	var sqsSession AutoScalerSQS = sqs.New(amazon.NewAWSSession(sqsConfig.AWSConfigSQS, logger))
 	//We need this if we want to stay alive after getting a termination message.
-	var asgSession AutoScalerASG = asg.New(NewAWSSession(sqsConfig.AWSConfigASG, logger))
+	var asgSession AutoScalerASG = asg.New(amazon.NewAWSSession(sqsConfig.AWSConfigASG, logger))
 
 	as := &AutoScaler{
 		Logger:      logger,
