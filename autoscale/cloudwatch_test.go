@@ -1,11 +1,12 @@
-package server_test
+package autoscale_test
 
 import (
 	"testing"
 
+	"decipher.com/object-drive-server/autoscale"
 	performance "decipher.com/object-drive-server/performance"
+	"decipher.com/object-drive-server/util"
 
-	server "decipher.com/object-drive-server/server"
 	linuxproc "github.com/c9s/goprocinfo/linux"
 )
 
@@ -13,7 +14,7 @@ import (
 //and testing this way allows us to not actually use Linux or real-time for the tests
 //
 //Note: this bypasses the *parsing* of actual values from /proc!
-func generateStats() (prevStat *linuxproc.Stat, nextStat *linuxproc.Stat, loadAvg *server.LoadAvgStat) {
+func generateStats() (prevStat *linuxproc.Stat, nextStat *linuxproc.Stat, loadAvg *autoscale.LoadAvgStat) {
 	return &linuxproc.Stat{
 			CPUStats: []linuxproc.CPUStat{
 				linuxproc.CPUStat{
@@ -44,7 +45,7 @@ func generateStats() (prevStat *linuxproc.Stat, nextStat *linuxproc.Stat, loadAv
 					GuestNice: 0,
 				},
 			},
-		}, &server.LoadAvgStat{
+		}, &autoscale.LoadAvgStat{
 			CPU1Min:          0.51,
 			CPU5Min:          0.40,
 			CPU10Min:         0.36,
@@ -59,12 +60,12 @@ func TestProcStat(t *testing.T) {
 
 	//Simulate a pair of measurements over a virtual interval
 	tracker := performance.NewJobReporters(64)
-	now := server.NowMS()
-	server.CloudWatchStartInterval(tracker, now)
+	now := util.NowMS()
+	autoscale.CloudWatchStartInterval(tracker, now)
 	prevStat, nextStat, loadStat := generateStats()
 	//Simulate having latency and throughput data to report: 1500 bytes in 500ms
-	server.CloudWatchTransactionRaw(now, now+500, 1500)
-	s, _ := server.ComputeOverallPerformance(prevStat, nextStat, loadStat, now+500)
+	autoscale.CloudWatchTransactionRaw(now, now+500, 1500)
+	s, _ := autoscale.ComputeOverallPerformance(prevStat, nextStat, loadStat, now+500)
 
 	//Note: latency and throughput could still be nil due to tracker info
 	//being absorbed via a channel in a goroutine

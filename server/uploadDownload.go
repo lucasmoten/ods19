@@ -14,6 +14,8 @@ import (
 
 	"github.com/uber-go/zap"
 
+	"decipher.com/object-drive-server/ciphertext"
+	"decipher.com/object-drive-server/crypto"
 	"golang.org/x/net/context"
 
 	"decipher.com/object-drive-server/mapping"
@@ -28,7 +30,7 @@ import (
 //then there is a time-span where abort must cleanup after itself
 func abortUploadObject(
 	logger zap.Logger,
-	dp CiphertextCache,
+	dp ciphertext.CiphertextCache,
 	obj *models.ODObject,
 	isMultipart bool,
 	herr *AppError) *AppError {
@@ -42,11 +44,11 @@ func abortUploadObject(
 // mostly-empty object with EncryptIV and ContentConnector set. In the case of updateObjectStream, the obj param is
 // an object fetched from the database.
 func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *multipart.Reader, obj *models.ODObject,
-	grant *models.ODObjectPermission, asCreate bool) (CiphertextCache, func(), *AppError, error) {
+	grant *models.ODObjectPermission, asCreate bool) (ciphertext.CiphertextCache, func(), *AppError, error) {
 	var drainFunc func()
 	var herr *AppError
 
-	dp := FindCiphertextCacheByObject(obj)
+	dp := ciphertext.FindCiphertextCacheByObject(obj)
 
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
@@ -87,7 +89,7 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 
 			//Decide on where this object actually is going to live based on metadata of the object.
 			//It can CHANGE on update!
-			dp = FindCiphertextCacheByObject(obj)
+			dp = ciphertext.FindCiphertextCacheByObject(obj)
 
 			// Validation & Mapping for Create
 			if asCreate {
@@ -193,15 +195,15 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 	grant *models.ODObjectPermission) (beginDrain func(), herr *AppError, err error) {
 	logger := LoggerFromContext(ctx)
 
-	fileID := FileId(obj.ContentConnector.String)
+	fileID := ciphertext.FileId(obj.ContentConnector.String)
 	iv := obj.EncryptIV
 	// TODO this is where we actually use grant.
-	fileKey := utils.ApplyPassphrase(h.MasterKey, grant.PermissionIV, grant.EncryptKey)
-	d := FindCiphertextCacheByObject(obj)
+	fileKey := crypto.ApplyPassphrase(h.MasterKey, grant.PermissionIV, grant.EncryptKey)
+	d := ciphertext.FindCiphertextCacheByObject(obj)
 
 	// CiphertextCacheFilesystemMountPoint.Resolve(FileName) returns a path.
-	outFileUploading := d.Resolve(NewFileName(fileID, ".uploading"))
-	outFileUploaded := d.Resolve(NewFileName(fileID, ".uploaded"))
+	outFileUploading := d.Resolve(ciphertext.NewFileName(fileID, ".uploading"))
+	outFileUploaded := d.Resolve(ciphertext.NewFileName(fileID, ".uploaded"))
 
 	outFile, err := d.Files().Create(outFileUploading)
 	if err != nil {
@@ -211,8 +213,8 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 	defer outFile.Close()
 
 	//Write the encrypted data to the filesystem
-	byteRange := utils.NewByteRange()
-	checksum, length, err := utils.DoCipherByReaderWriter(logger, part, outFile, fileKey, iv, "uploading from browser", byteRange)
+	byteRange := crypto.NewByteRange()
+	checksum, length, err := crypto.DoCipherByReaderWriter(logger, part, outFile, fileKey, iv, "uploading from browser", byteRange)
 	if err != nil {
 		//It could be the client's fault, so we use 400 here.
 		msg := fmt.Sprintf("Unable to write ciphertext %s", outFileUploading)
@@ -240,15 +242,15 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 	return func() { h.Writeback(obj, fileID, length, 3) }, nil, err
 }
 
-func (h AppServer) Writeback(obj *models.ODObject, rName FileId, size int64, tries int) error {
+func (h AppServer) Writeback(obj *models.ODObject, rName ciphertext.FileId, size int64, tries int) error {
 	beganAt := h.Tracker.BeginTime(performance.S3DrainTo)
 	err := h.WritebackAttempt(obj, rName, size, tries)
 	h.Tracker.EndTime(performance.S3DrainTo, beganAt, performance.SizeJob(size))
 	return err
 }
 
-func (h AppServer) WritebackAttempt(obj *models.ODObject, rName FileId, size int64, tries int) error {
-	d := FindCiphertextCacheByObject(obj)
+func (h AppServer) WritebackAttempt(obj *models.ODObject, rName ciphertext.FileId, size int64, tries int) error {
+	d := ciphertext.FindCiphertextCacheByObject(obj)
 	err := d.Writeback(rName, size)
 	tries = tries - 1
 	if err != nil {

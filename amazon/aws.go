@@ -1,4 +1,4 @@
-package server
+package amazon
 
 import (
 	"decipher.com/object-drive-server/configx"

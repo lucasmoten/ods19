@@ -15,10 +15,12 @@ import (
 
 	"encoding/hex"
 
+	"decipher.com/object-drive-server/ciphertext"
+	"decipher.com/object-drive-server/crypto"
+
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/services/aac"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/utils"
 	"golang.org/x/net/context"
 )
 
@@ -127,7 +129,7 @@ func zipWriteManifest(aacClient aac.AacService, ctx context.Context, logger zap.
 }
 
 //Get a reader on the ciphertext - locally if it exists, or range requested out of S3 otherwise
-func zipReadCloser(dp CiphertextCache, logger zap.Logger, rName FileId, totalLength int64) (io.ReadCloser, error) {
+func zipReadCloser(dp ciphertext.CiphertextCache, logger zap.Logger, rName ciphertext.FileId, totalLength int64) (io.ReadCloser, error) {
 	//Range request it if we don't have it
 	f, _, err := dp.NewPuller(logger, rName, totalLength, 0, -1)
 	return f, err
@@ -166,16 +168,16 @@ func zipWriteFile(
 	manifest *zipManifest,
 ) *AppError {
 	logger := LoggerFromContext(ctx)
-	dp := FindCiphertextCacheByObject(&obj)
+	dp := ciphertext.FindCiphertextCacheByObject(&obj)
 	// Using captured permission, derive filekey
 	var fileKey []byte
-	fileKey = utils.ApplyPassphrase(h.MasterKey, userPermission.PermissionIV, userPermission.EncryptKey)
+	fileKey = crypto.ApplyPassphrase(h.MasterKey, userPermission.PermissionIV, userPermission.EncryptKey)
 	if len(fileKey) == 0 {
 		return NewAppError(500, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object")
 	}
 
 	// Get the ciphertext for this file
-	rName := FileId(obj.ContentConnector.String)
+	rName := ciphertext.FileId(obj.ContentConnector.String)
 	totalLength := obj.ContentSize.Int64
 	cipherReader, err := zipReadCloser(dp, logger, rName, totalLength)
 	if err != nil {
@@ -195,9 +197,9 @@ func zipWriteFile(
 	}
 
 	//Actually send back the cipherFile to zip stream - decrypted
-	byteRange := &utils.ByteRange{Start: 0, Stop: -1}
+	byteRange := &crypto.ByteRange{Start: 0, Stop: -1}
 	var actualLength int64
-	_, actualLength, err = utils.DoCipherByReaderWriter(
+	_, actualLength, err = crypto.DoCipherByReaderWriter(
 		logger,
 		cipherReader,
 		w,

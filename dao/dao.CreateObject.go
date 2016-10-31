@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"decipher.com/object-drive-server/utils"
+	"decipher.com/object-drive-server/crypto"
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
@@ -61,7 +61,7 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 
 	// Assign a random content connector value if this object doesnt have one
 	if len(object.ContentConnector.String) == 0 {
-		object.ContentConnector = models.ToNullString(utils.CreateRandomName())
+		object.ContentConnector = models.ToNullString(crypto.CreateRandomName())
 	}
 
 	// Normalize ACM

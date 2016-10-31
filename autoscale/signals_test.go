@@ -1,4 +1,4 @@
-package server_test
+package autoscale_test
 
 import (
 	"fmt"
@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"decipher.com/object-drive-server/autoscale"
 	"decipher.com/object-drive-server/configx"
-	"decipher.com/object-drive-server/server"
 	"github.com/aws/aws-sdk-go/aws"
 	asg "github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -78,7 +78,7 @@ func newTestAutoScalerSQS(t *testing.T) *testAutoScalerSQS {
           "LifecycleActionToken":"some-token",
           "EC2InstanceId":"defaultec2",
           "LifecycleHookName":"graceful_shutdown_asg"
-        }`, server.ASGTransitionTerminating},
+        }`, autoscale.ASGTransitionTerminating},
 	}
 	as := testAutoScalerSQS{}
 	as.rawMessages = rawMessages
@@ -149,7 +149,7 @@ func TestAutoScale(t *testing.T) {
 	logger := zap.New(zap.NewJSONEncoder())
 	//Simulate a queue of messages, and make sure that we parse what we need to see, and ignore what we do not
 	sqs := newTestAutoScalerSQS(t)
-	as := &server.AutoScaler{
+	as := &autoscale.AutoScaler{
 		Logger:      logger,
 		Config:      config.NewAutoScalingConfig(),
 		SQS:         sqs,

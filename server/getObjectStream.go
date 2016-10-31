@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/uber-go/zap"
 
@@ -20,10 +18,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
+	"decipher.com/object-drive-server/ciphertext"
+	"decipher.com/object-drive-server/crypto"
+
 	db "decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/performance"
-	"decipher.com/object-drive-server/utils"
 )
 
 const (
@@ -37,10 +37,10 @@ const (
 	GB = 1024 * MB
 )
 
-func extractByteRange(r *http.Request) (*utils.ByteRange, error) {
+func extractByteRange(r *http.Request) (*crypto.ByteRange, error) {
 	var err error
 	byteRangeSpec := r.Header.Get("Range")
-	parsedByteRange := utils.NewByteRange()
+	parsedByteRange := crypto.NewByteRange()
 	if len(byteRangeSpec) > 0 {
 		typeOfRange := strings.Split(byteRangeSpec, "=")
 		if typeOfRange[0] == "bytes" {
@@ -143,7 +143,7 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	}
 	// Using captured permission, derive filekey
 	var fileKey []byte
-	fileKey = utils.ApplyPassphrase(h.MasterKey, userPermission.PermissionIV, userPermission.EncryptKey)
+	fileKey = crypto.ApplyPassphrase(h.MasterKey, userPermission.PermissionIV, userPermission.EncryptKey)
 	if len(fileKey) == 0 {
 		return NoBytesReturned, NewAppError(500, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object")
 	}
@@ -168,52 +168,7 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	return contentLength, herr
 }
 
-// We would like to have a .cached file, but an .uploaded file will do.
-//  It is the caller's responsibility to close the file handle
-func useLocalFile(logger zap.Logger, d CiphertextCache, rName FileId, cipherStartAt int64) (*os.File, int64, error) {
-	var cipherFile *os.File
-	var err error
-	var length int64
-
-	cipherFilePathUploaded := d.Resolve(NewFileName(rName, ".uploaded"))
-	cipherFilePathCached := d.Resolve(NewFileName(rName, ".cached"))
-
-	//Try the uploaded file
-	info, ierr := d.Files().Stat(cipherFilePathUploaded)
-	if ierr == nil {
-		length = info.Size() - cipherStartAt
-	}
-	cipherFile, err = d.Files().Open(cipherFilePathUploaded)
-	if err != nil {
-		//Try the cached file
-		info, ierr := d.Files().Stat(cipherFilePathCached)
-		if ierr == nil {
-			length = info.Size() - cipherStartAt
-		}
-		cipherFile, err = d.Files().Open(cipherFilePathCached)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return nil, -1, nil
-			}
-			return nil, -1, err
-		}
-	}
-	//We have a file handle.  Seek to where we should start reading the cipher.
-	_, err = cipherFile.Seek(cipherStartAt, 0)
-	if err != nil {
-		logger.Error("useLocalFile failed to seek", zap.Int64("cipherStartAt", cipherStartAt))
-		cipherFile.Close()
-		return nil, -1, err
-	}
-	//Update the timestamps to note the last time it was used
-	// This is done here, as well as successful end just in case of failures midstream.
-	tm := time.Now()
-	d.Files().Chtimes(cipherFilePathCached, tm, tm)
-
-	return cipherFile, length, nil
-}
-
-func adjustIV(originalIV []byte, byteRange *utils.ByteRange) []byte {
+func adjustIV(originalIV []byte, byteRange *crypto.ByteRange) []byte {
 	//Skip over blocks we won't use
 	iv := originalIV
 	if byteRange != nil {
@@ -361,9 +316,9 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 		}
 	}
 
-	d := FindCiphertextCacheByObject(object)
-	rName := FileId(object.ContentConnector.String)
-	cipherFilePathCached := d.Resolve(NewFileName(rName, ".cached"))
+	d := ciphertext.FindCiphertextCacheByObject(object)
+	rName := ciphertext.FileId(object.ContentConnector.String)
+	cipherFilePathCached := d.Resolve(ciphertext.NewFileName(rName, ".cached"))
 	totalLength := object.ContentSize.Int64
 	isLocalPuller := false
 	var cipherReader io.ReadCloser
@@ -388,7 +343,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	iv := adjustIV(object.EncryptIV, byteRange)
 	//Actually send back the cipherFile
 	var actualLength int64
-	_, actualLength, err = utils.DoCipherByReaderWriter(
+	_, actualLength, err = crypto.DoCipherByReaderWriter(
 		logger,
 		cipherReader,
 		w,

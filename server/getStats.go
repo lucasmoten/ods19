@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"decipher.com/object-drive-server/ciphertext"
 	"golang.org/x/net/context"
 
+	"decipher.com/object-drive-server/autoscale"
 	"decipher.com/object-drive-server/performance"
 )
 
@@ -19,7 +21,7 @@ func (h AppServer) getStats(ctx context.Context, w http.ResponseWriter, r *http.
 	}
 
 	fmt.Fprintf(w, "\nLast Cloudwatch report\n")
-	CloudWatchDump(w)
+	autoscale.CloudWatchDump(w)
 
 	fmt.Fprintf(w, "\nUploaders Aggregate:\n")
 	h.Tracker.Reporters[performance.UploadCounter].Q.Dump(w, verbose)
@@ -39,7 +41,7 @@ func (h AppServer) getStats(ctx context.Context, w http.ResponseWriter, r *http.
 	fmt.Fprintf(w, "\n- Get Snippets:\n")
 	h.Tracker.Reporters[performance.AACCounterGetSnippets].Q.Dump(w, verbose)
 
-	caches := FindCiphertextCacheList()
+	caches := ciphertext.FindCiphertextCacheList()
 	for dpName, dp := range caches {
 		fmt.Fprintf(w, "\nCiphertextCache %s:\n", dpName)
 		dp.CacheInventory(w, verbose)

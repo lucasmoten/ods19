@@ -1,4 +1,4 @@
-package server_test
+package ciphertext_test
 
 import (
 	"io"
@@ -6,8 +6,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"decipher.com/object-drive-server/ciphertext"
+
+	"decipher.com/object-drive-server/amazon"
 	"decipher.com/object-drive-server/configx"
-	"decipher.com/object-drive-server/server"
 	"github.com/uber-go/zap"
 )
 
@@ -317,15 +319,15 @@ func TestCacheDrainToSafety(t *testing.T) {
 
 	//We need to use S3 here because we delete files and expect download to restore them
 	s3Config := config.NewS3Config()
-	sess := server.NewAWSSession(s3Config.AWSConfig, logger)
-	permanentStorage := server.NewPermanentStorageData(sess, &config.DefaultBucket)
-	d := server.NewCiphertextCacheRaw(fqCacheRoot, dirname, float64(0.50), float64(0.75), int64(60*5), 120, server.S3ChunkSize, logger, permanentStorage)
+	sess := amazon.NewAWSSession(s3Config.AWSConfig, logger)
+	permanentStorage := ciphertext.NewPermanentStorageData(sess, &config.DefaultBucket)
+	d := ciphertext.NewCiphertextCacheRaw(fqCacheRoot, dirname, float64(0.50), float64(0.75), int64(60*5), 120, ciphertext.S3ChunkSize, logger, permanentStorage)
 
 	t.Log("create a small file")
-	rName := server.FileId("farkFailedInitially")
-	uploadedName := d.Resolve(server.NewFileName(rName, ".uploaded"))
+	rName := ciphertext.FileId("farkFailedInitially")
+	uploadedName := d.Resolve(ciphertext.NewFileName(rName, ".uploaded"))
 	fqUploadedName := d.Files().Resolve(uploadedName)
-	fqCachedName := d.Files().Resolve(d.Resolve(server.NewFileName(rName, ".cached")))
+	fqCachedName := d.Files().Resolve(d.Resolve(ciphertext.NewFileName(rName, ".cached")))
 	t.Logf("at location: %s", fqUploadedName)
 
 	t.Log("create a file in the uploaded state - simulating a recent upload")
@@ -364,13 +366,13 @@ func TestCacheCreate(t *testing.T) {
 	logger := zap.New(zap.NewJSONEncoder())
 
 	s3Config := config.NewS3Config()
-	sess := server.NewAWSSession(s3Config.AWSConfig, logger)
-	permanentStorage := server.NewPermanentStorageData(sess, &config.DefaultBucket)
-	d := server.NewCiphertextCacheRaw(".", dirname, float64(0.50), float64(0.75), int64(60*5), 120, server.S3ChunkSize, logger, permanentStorage)
+	sess := amazon.NewAWSSession(s3Config.AWSConfig, logger)
+	permanentStorage := ciphertext.NewPermanentStorageData(sess, &config.DefaultBucket)
+	d := ciphertext.NewCiphertextCacheRaw(".", dirname, float64(0.50), float64(0.75), int64(60*5), 120, ciphertext.S3ChunkSize, logger, permanentStorage)
 
 	//create a small file
-	rName := server.FileId("fark")
-	uploadedName := d.Resolve(server.NewFileName(rName, ".uploaded"))
+	rName := ciphertext.FileId("fark")
+	uploadedName := d.Resolve(ciphertext.NewFileName(rName, ".uploaded"))
 	fqUploadedName := d.Files().Resolve(uploadedName)
 	//we create the file in uploaded state
 	f, err := d.Files().Create(uploadedName)
@@ -381,7 +383,7 @@ func TestCacheCreate(t *testing.T) {
 	//cleanup
 	defer f.Close()
 	defer func() {
-		err := d.Files().RemoveAll(server.FileNameCached(dirname))
+		err := d.Files().RemoveAll(ciphertext.FileNameCached(dirname))
 		if err != nil {
 			t.Errorf("Could not remove directory %s:%v", dirname, err)
 		}
@@ -400,7 +402,7 @@ func TestCacheCreate(t *testing.T) {
 		t.Errorf("Could not cache to drain:%v", err)
 	}
 	//Delete it from cache manually
-	cachedName := d.Resolve(server.NewFileName(rName, ".cached"))
+	cachedName := d.Resolve(ciphertext.NewFileName(rName, ".cached"))
 	err = d.Files().Remove(cachedName)
 	if err != nil {
 		t.Errorf("Could not remove cached file:%v", err)
@@ -411,7 +413,7 @@ func TestCacheCreate(t *testing.T) {
 	if err != nil {
 		t.Errorf("Could not drain to cache:%v", err)
 	}
-	cachingName := d.Resolve(server.NewFileName(rName, ".caching"))
+	cachingName := d.Resolve(ciphertext.NewFileName(rName, ".caching"))
 	if _, err = d.Files().Stat(cachingName); os.IsNotExist(err) == false {
 		t.Errorf("caching file should be removed:%v", err)
 	}

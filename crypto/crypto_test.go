@@ -1,4 +1,4 @@
-package utils_test
+package crypto_test
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 
 	"github.com/uber-go/zap"
 
-	"decipher.com/object-drive-server/utils"
+	"decipher.com/object-drive-server/crypto"
 )
 
 func TestBasicCipher(t *testing.T) {
@@ -29,12 +29,12 @@ func TestBasicCipher(t *testing.T) {
     0123456789
     0123456789
     `)
-	byteRange := &utils.ByteRange{
+	byteRange := &crypto.ByteRange{
 		Start: 0,
 		Stop:  int64(len(data) - 1),
 	}
-	key := utils.CreateKey()
-	iv := utils.CreateIV()
+	key := crypto.CreateKey()
+	iv := crypto.CreateIV()
 
 	plaintextName := "crypto_test.plain.tmp"
 	ciphertextName := "crypto_test.cipher.tmp"
@@ -64,7 +64,7 @@ func TestBasicCipher(t *testing.T) {
 	defer fCipher.Close()
 
 	//Run the plaintext to get ciphertext
-	checksum, length, err := utils.DoCipherByReaderWriter(logger, fPlain, fCipher, key, iv, "write", byteRange)
+	checksum, length, err := crypto.DoCipherByReaderWriter(logger, fPlain, fCipher, key, iv, "write", byteRange)
 	if err != nil {
 		t.Errorf("Failed to compute full ciphertext:%v", err)
 	}
@@ -100,7 +100,7 @@ func TestBasicCipher(t *testing.T) {
 
 }
 
-func BasicCipherRaw(t *testing.T, data []byte, ciphertextName string, byteRange *utils.ByteRange, key []byte, iv []byte) {
+func BasicCipherRaw(t *testing.T, data []byte, ciphertextName string, byteRange *crypto.ByteRange, key []byte, iv []byte) {
 	var err error
 	logger := zap.New(zap.NewJSONEncoder())
 
@@ -122,7 +122,7 @@ func BasicCipherRaw(t *testing.T, data []byte, ciphertextName string, byteRange 
 	defer fReplain.Close()
 
 	//Generate plaintext again
-	_, _, err = utils.DoCipherByReaderWriter(logger, fCipher, fReplain, key, iv, "reread", byteRange)
+	_, _, err = crypto.DoCipherByReaderWriter(logger, fCipher, fReplain, key, iv, "reread", byteRange)
 	fReplain.Close()
 
 	//Read replain into a variable and compare it with expected result.

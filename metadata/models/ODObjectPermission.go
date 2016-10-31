@@ -6,7 +6,7 @@ import (
 	"time"
 
 	configx "decipher.com/object-drive-server/configx"
-	"decipher.com/object-drive-server/utils"
+	"decipher.com/object-drive-server/crypto"
 )
 
 // ODObjectPermission is a nestable structure defining the attributes for
@@ -102,25 +102,25 @@ type ODObjectPermissionResultset struct {
 
 // CopyEncryptKey from one permission to another -- needs to be encapsulated because it's so easy to mess up
 func CopyEncryptKey(passphrase string, src, dst *ODObjectPermission) {
-	d := utils.ApplyPassphrase(passphrase, src.PermissionIV, src.EncryptKey)
+	d := crypto.ApplyPassphrase(passphrase, src.PermissionIV, src.EncryptKey)
 	//Just reset the IV on every copy of a permission, to ensure that key and IV are consistent
-	dst.PermissionIV = utils.CreatePermissionIV()
-	dst.EncryptKey = utils.ApplyPassphrase(passphrase, dst.PermissionIV, d)
+	dst.PermissionIV = crypto.CreatePermissionIV()
+	dst.EncryptKey = crypto.ApplyPassphrase(passphrase, dst.PermissionIV, d)
 	dst.PermissionMAC = CalculatePermissionMAC(passphrase, dst)
 }
 
 // SetEncryptKey to create a permission that is not a copy of anything yet existing.
 func SetEncryptKey(passphrase string, dst *ODObjectPermission) {
-	k := utils.CreateKey()
-	dst.PermissionIV = utils.CreatePermissionIV()
-	dst.EncryptKey = utils.ApplyPassphrase(passphrase, dst.PermissionIV, k)
+	k := crypto.CreateKey()
+	dst.PermissionIV = crypto.CreatePermissionIV()
+	dst.EncryptKey = crypto.ApplyPassphrase(passphrase, dst.PermissionIV, k)
 	dst.PermissionMAC = CalculatePermissionMAC(passphrase, dst)
 }
 
 // CalculatePermissionMAC - validate that odrive wrote this grant
 func CalculatePermissionMAC(passphrase string, src *ODObjectPermission) []byte {
 	//Sign our permission
-	return utils.DoMAC(passphrase, src.PermissionIV, src.Grantee,
+	return crypto.DoMAC(passphrase, src.PermissionIV, src.Grantee,
 		src.AllowCreate,
 		src.AllowRead,
 		src.AllowUpdate,

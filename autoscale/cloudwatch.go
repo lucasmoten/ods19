@@ -1,4 +1,4 @@
-package server
+package autoscale
 
 import (
 	"fmt"
@@ -10,9 +10,11 @@ import (
 	"sync"
 	"time"
 
+	"decipher.com/object-drive-server/amazon"
 	globalconfig "decipher.com/object-drive-server/config"
 	configx "decipher.com/object-drive-server/configx"
 	"decipher.com/object-drive-server/performance"
+	"decipher.com/object-drive-server/util"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	linuxproc "github.com/c9s/goprocinfo/linux"
@@ -41,11 +43,6 @@ type CloudWatchGeneralStats struct {
 	MemKB          *float64
 	MemPct         *float64
 	Load           *float64
-}
-
-// NowMS is in units of milliseconds
-func NowMS() int64 {
-	return (time.Now().UnixNano() / (1000 * 1000))
 }
 
 //CloudWatchDump shows the latest thing sent to CloudWatch
@@ -273,7 +270,7 @@ func CloudWatchReportingStart(tracker *performance.JobReporters) {
 		//We use an immutable dimension that marks this as the odrive service, where we actually report to CloudWatch
 		//for the IP (presuming they are unique, which is generally true outside of docker deployments)
 		namespace = aws.String(cwConfig.Name)
-		cwSession = cloudwatch.New(NewAWSSession(cwConfig.AWSConfig, logger))
+		cwSession = cloudwatch.New(amazon.NewAWSSession(cwConfig.AWSConfig, logger))
 		if cwSession == nil {
 			logger.Error("cloudwatch txn fail on null session")
 		}
@@ -288,13 +285,13 @@ func CloudWatchReportingStart(tracker *performance.JobReporters) {
 	go func() {
 		prevStat := GetProcStat(logger)
 		for {
-			CloudWatchStartInterval(tracker, NowMS())
+			CloudWatchStartInterval(tracker, util.NowMS())
 			logger.Debug("cloudwatch wait", zap.Int("timeInSeconds", sleepTime))
 			time.Sleep(time.Duration(sleepTime) * time.Second)
 			logger.Debug("cloudwatch to report")
 
 			//Get all the fields that we want to report from here
-			_, prevStat = ComputeOverallPerformance(prevStat, GetProcStat(logger), GetLoadAvgStat(logger), NowMS())
+			_, prevStat = ComputeOverallPerformance(prevStat, GetProcStat(logger), GetLoadAvgStat(logger), util.NowMS())
 
 			//Report metrics in the format that our cloudwatch setup is expecting
 
