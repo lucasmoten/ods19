@@ -14,8 +14,9 @@ import (
 )
 
 var (
-	logger     = globalconfig.RootLogger
-	defaultACL = zk.WorldACL(zk.PermAll)
+	logger         = globalconfig.RootLogger
+	defaultACL     = zk.WorldACL(zk.PermAll)
+	DefaultTimeout = 5
 )
 
 // AnnouncementRequest is information required to re-invoke announcements
@@ -90,7 +91,7 @@ func makeNewNode(conn *zk.Conn, pathType, prevPath, appendPath string, flags int
 func NewZKState(addrs []string, timeout int) (*ZKState, error) {
 	conn, _, err := zk.Connect(addrs, time.Second*time.Duration(timeout))
 	if err != nil {
-		return &ZKState{}, err
+		return nil, err
 	}
 	zkState := ZKState{Conn: conn, Timeout: timeout}
 	return &zkState, nil
