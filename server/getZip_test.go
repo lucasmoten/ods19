@@ -13,61 +13,11 @@ import (
 	"time"
 
 	cfg "decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
-
-// Add a file into the zip file
-func testZipMakeFile(t *testing.T, clientID int, parentID string, name string, data string) protocol.Object {
-	return testZipMakeFileWithACM(t, clientID, parentID, name, data, ValidAcmCreateObjectSimple)
-}
-
-// Add a file into the zip file
-func testZipMakeFileWithACM(t *testing.T, clientID int, parentID string, name string, data string, acm string) protocol.Object {
-	client := clients[clientID].Client
-
-	createRequest := protocol.CreateObjectRequest{
-		Name:     name,
-		TypeName: "File",
-		RawAcm:   acm,
-		ParentID: parentID,
-	}
-
-	var jsonBody []byte
-	var err error
-	jsonBody, err = json.Marshal(createRequest)
-	if err != nil {
-		t.Fail()
-	}
-
-	tmpName := name
-	tmp, tmpCloser, err := testhelpers.GenerateTempFile(data)
-	if err != nil {
-		t.Errorf("Could not open temp file for write: %v\n", err)
-	}
-	defer tmpCloser()
-
-	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
-		"objects", host, "", tmp, tmpName, jsonBody)
-	if err != nil {
-		t.Errorf("Unable to create HTTP request: %v\n", err)
-	}
-
-	res, obj, err := testhelpers.DoWithDecodedResult(client, req)
-
-	if err != nil {
-		t.Fail()
-	}
-
-	if res != nil && res.StatusCode != http.StatusOK {
-		t.Fail()
-	}
-
-	return obj.(protocol.Object)
-}
 
 func TestZipCorrect(t *testing.T) {
 	tester10 := 0
@@ -160,7 +110,7 @@ func doTestZip(t *testing.T, objs []protocol.Object, someDataString string, dupl
 	t.Logf("Generate test files that will be included in the zip")
 
 	t.Logf("Include the individual files in the zip")
-	var zipSpec server.ZipSpecification
+	var zipSpec protocol.Zip
 	zipSpec.Disposition = "inline"
 	zipSpec.FileName = "drive.zip"
 	zipSpec.ObjectIDs = make([]string, 0)
@@ -254,4 +204,53 @@ func doTestZip(t *testing.T, objs []protocol.Object, someDataString string, dupl
 		}
 		t.Logf("got %d files back", returnedFileCount)
 	}
+}
+
+// Add a file into the zip file
+func testZipMakeFile(t *testing.T, clientID int, parentID string, name string, data string) protocol.Object {
+	return testZipMakeFileWithACM(t, clientID, parentID, name, data, ValidAcmCreateObjectSimple)
+}
+
+// Add a file into the zip file
+func testZipMakeFileWithACM(t *testing.T, clientID int, parentID string, name string, data string, acm string) protocol.Object {
+	client := clients[clientID].Client
+
+	createRequest := protocol.CreateObjectRequest{
+		Name:     name,
+		TypeName: "File",
+		RawAcm:   acm,
+		ParentID: parentID,
+	}
+
+	var jsonBody []byte
+	var err error
+	jsonBody, err = json.Marshal(createRequest)
+	if err != nil {
+		t.Fail()
+	}
+
+	tmpName := name
+	tmp, tmpCloser, err := testhelpers.GenerateTempFile(data)
+	if err != nil {
+		t.Errorf("Could not open temp file for write: %v\n", err)
+	}
+	defer tmpCloser()
+
+	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
+		"objects", host, "", tmp, tmpName, jsonBody)
+	if err != nil {
+		t.Errorf("Unable to create HTTP request: %v\n", err)
+	}
+
+	res, obj, err := testhelpers.DoWithDecodedResult(client, req)
+
+	if err != nil {
+		t.Fail()
+	}
+
+	if res != nil && res.StatusCode != http.StatusOK {
+		t.Fail()
+	}
+
+	return obj.(protocol.Object)
 }
