@@ -111,12 +111,13 @@ type ServerSettingsConfiguration struct {
 	PathToTemplateFiles       string   `yaml:"template_root"`
 }
 
-// ZKSettings holds the data required to communicate with Zookeeper.
+// ZKSettings holds the data required to communicate with default Zookeeper.
 type ZKSettings struct {
 	IP             string `yaml:"ip"`
 	Port           string `yaml:"port"`
 	Address        string `yaml:"address"`
 	BasepathOdrive string `yaml:"register_odrive_as"`
+	Timeout        int64  `yaml:"timeout"`
 }
 
 // NewAppConfiguration loads the configuration from the different sources in the environment.
@@ -306,6 +307,7 @@ func NewZKSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) ZKSet
 	conf.BasepathOdrive = cascade(OD_ZK_ANNOUNCE, confFile.ZK.BasepathOdrive, "/cte/service/object-drive/1.0")
 	conf.IP = cascade(OD_ZK_MYIP, confFile.ZK.IP, resolveIP())
 	conf.Port = cascade(OD_ZK_MYPORT, confFile.ZK.Port, "4430")
+	conf.Timeout = cascadeInt(OD_ZK_TIMEOUT, confFile.ZK.Timeout, 5)
 
 	return conf
 }

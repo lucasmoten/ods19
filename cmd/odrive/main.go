@@ -290,7 +290,7 @@ func zkTracking(app *server.AppServer, conf configx.AppConfiguration) {
 	if len(aacConf.ZKAddrs) > 0 {
 		logger.Info("connection to custom aac zk", zap.Object("addrs", aacConf.ZKAddrs))
 		var err error
-		aacZK, err = zookeeper.NewZKState(aacConf.ZKAddrs, zookeeper.DefaultTimeout)
+		aacZK, err = zookeeper.NewZKState(aacConf.ZKAddrs, int(zkConf.Timeout))
 		if err != nil {
 			logger.Error("error connecting to custom aac zk", zap.String("err", err.Error()))
 		}
@@ -309,7 +309,7 @@ func zkTracking(app *server.AppServer, conf configx.AppConfiguration) {
 		queueZK := app.EventQueueZK
 		if len(queueConf.ZKAddrs) > 0 {
 			var err error
-			queueZK, err = zookeeper.NewZKState(queueConf.ZKAddrs, zookeeper.DefaultTimeout)
+			queueZK, err = zookeeper.NewZKState(queueConf.ZKAddrs, int(zkConf.Timeout))
 			if err != nil {
 				logger.Error("error connecting to custom aac zk", zap.String("err", err.Error()))
 			}

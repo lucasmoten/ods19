@@ -14,9 +14,8 @@ import (
 )
 
 var (
-	logger         = globalconfig.RootLogger
-	defaultACL     = zk.WorldACL(zk.PermAll)
-	DefaultTimeout = 5
+	logger     = globalconfig.RootLogger
+	defaultACL = zk.WorldACL(zk.PermAll)
 )
 
 // AnnouncementRequest is information required to re-invoke announcements
