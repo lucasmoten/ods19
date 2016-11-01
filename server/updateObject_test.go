@@ -251,6 +251,7 @@ func TestUpdateObjectPreventAcmShareChange(t *testing.T) {
 	updateRes3, err := clients[tester2].Client.Do(updateReq3)
 	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 403, updateRes3, "Bad status when updating object")
+	messageMustContain(t, updateRes3, "User does not have permission to change the share for this object")
 	ioutil.ReadAll(updateRes3.Body)
 	updateRes3.Body.Close()
 
