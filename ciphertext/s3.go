@@ -17,8 +17,12 @@ import (
 )
 
 var (
-	//S3ChunkSize chunksInMegs is a default number of megabytes to fetch from PermanentStorage when there is a cache miss
-	S3ChunkSize = int64(globalconfig.GetEnvOrDefaultInt("OD_AWS_S3_FETCH_MB", 32)) * int64(1024*1024)
+	// S3ChunkSize chunksInMegs is a default number of megabytes to fetch from PermanentStorage when there is a cache miss
+	// For now, I am going to leave this at its default value, because for P2P and LocalStorage, it will pick a huge
+	// value anyway (1GB).  This value must be small enough that when a Puller runs out of data, that whole chunk can be
+	// fetched and served back in an http request before the video stream misses its deadline.  So, for video performance,
+	// smaller is better.  But the smaller it is, the more S3 requests it makes (which has overhead as well).
+	S3ChunkSize = int64(globalconfig.GetEnvOrDefaultInt("OD_AWS_S3_FETCH_MB", 16)) * int64(1024*1024)
 )
 
 // PermanentStorageData is where we write back permanently
