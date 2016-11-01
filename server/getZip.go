@@ -17,6 +17,7 @@ import (
 
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/crypto"
+	"decipher.com/object-drive-server/protocol"
 
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/services/aac"
@@ -34,8 +35,7 @@ type zipFileInfo struct {
 	sys     interface{}
 }
 
-// these are all the methods required to satisfy the FileInfo interface
-// otherwise, the zip archive will have wrong dates and permissions when unpacked
+// Implment FileInfo interface for zipFileInfo.
 func (z *zipFileInfo) Size() int64        { return z.size }
 func (z *zipFileInfo) Name() string       { return z.name }
 func (z *zipFileInfo) ModTime() time.Time { return z.modTime }
@@ -43,7 +43,7 @@ func (z *zipFileInfo) IsDir() bool        { return z.isDir }
 func (z *zipFileInfo) Sys() interface{}   { return z.sys }
 func (z *zipFileInfo) Mode() os.FileMode  { return z.mode }
 
-//newFileAcmInfo is everything that a zip needs to know about the file
+// newFileAcmInfo is everything that a zip needs to know about the file
 func newFileAcmInfo(fqPath string, rawAcm string, dt time.Time) *zipFileInfo {
 	return &zipFileInfo{
 		size:    int64(len(rawAcm)),
@@ -63,9 +63,8 @@ type zipManifestItem struct {
 // All the state we need to write a manifest
 // Eventually, we will need rollup info.
 type zipManifest struct {
-	Files   []zipManifestItem
-	ACMs    map[string]bool
-	ZipSpec *ZipSpecification
+	Files []zipManifestItem
+	ACMs  map[string]bool
 }
 
 // All the state we need to deconflict names in a directory
@@ -80,8 +79,8 @@ func zipWriteManifest(aacClient aac.AacService, ctx context.Context, logger zap.
 	if !ok {
 		return NewAppError(500, nil, "unable to get user")
 	}
-	//manifest acms were stored in a list to make them unique
-	//So now we need the list of unique values
+	// manifest acms were stored in a list to make them unique
+	// So now we need the list of unique values
 	var acmList []string
 	for a := range manifest.ACMs {
 		acmList = append(acmList, a)
@@ -91,7 +90,7 @@ func zipWriteManifest(aacClient aac.AacService, ctx context.Context, logger zap.
 		return NewAppError(400, nil, "No data to zip")
 	}
 
-	//Compute the rollup
+	// Compute the rollup
 	resp, err := aacClient.RollupAcms(user.DistinguishedName, acmList, "public", "")
 	if !resp.Success {
 		return NewAppError(500, err, "could not roll up zip file acms")
@@ -99,13 +98,13 @@ func zipWriteManifest(aacClient aac.AacService, ctx context.Context, logger zap.
 	if !resp.AcmValid {
 		return NewAppError(500, err, "invalid acm")
 	}
-	//Write the rollup, and extract its banner
+	// Write the rollup, and extract its banner
 	banner, err := acmExtractItem("banner", resp.AcmInfo.Acm)
 	if err != nil {
 		return NewAppError(500, err, "invalid acm")
 	}
 
-	//Begin writing the manifest (associate portion with individual files)
+	// Begin writing the manifest (associate portion with individual files)
 	header, err := zip.FileInfoHeader(newManifestInfo("classification_manifest.txt", time.Now()))
 	if err != nil {
 		return NewAppError(500, err, "Unable to create file acm info header")
@@ -115,27 +114,27 @@ func zipWriteManifest(aacClient aac.AacService, ctx context.Context, logger zap.
 		return NewAppError(500, err, "unable to create manifest")
 	}
 
-	//Make sure that the first line of the manifest is the rollup portion,
-	//so that it's obvious what the overall classification is.
-	//And write the portion and name of each individual file
+	// Make sure that the first line of the manifest is the rollup portion,
+	// so that it's obvious what the overall classification is.
+	// And write the portion and name of each individual file
 	w.Write([]byte(fmt.Sprintf("%s\n\n", banner)))
 	for _, m := range manifest.Files {
 		w.Write([]byte(fmt.Sprintf("(%s) %s\n", m.Portion, path.Clean(m.Name))))
 	}
-	//And write the portion and name of each individual file
+	// And write the portion and name of each individual file
 	w.Write([]byte(fmt.Sprintf("\n%s\n", banner)))
 
 	return nil
 }
 
-//Get a reader on the ciphertext - locally if it exists, or range requested out of S3 otherwise
+// Get a reader on the ciphertext - locally if it exists, or range requested out of S3 otherwise
 func zipReadCloser(dp ciphertext.CiphertextCache, logger zap.Logger, rName ciphertext.FileId, totalLength int64) (io.ReadCloser, error) {
-	//Range request it if we don't have it
+	// Range request it if we don't have it
 	f, _, err := dp.NewPuller(logger, rName, totalLength, 0, -1)
 	return f, err
 }
 
-//newFileInfo is everything that a zip needs to know about the file
+// newFileInfo is everything that a zip needs to know about the file
 func newFileInfo(obj models.ODObject, fqPath string) *zipFileInfo {
 	return &zipFileInfo{
 		size:    obj.ContentSize.Int64,
@@ -146,7 +145,7 @@ func newFileInfo(obj models.ODObject, fqPath string) *zipFileInfo {
 	}
 }
 
-//newManifestInfo is everything that a zip needs to know about the file
+// newManifestInfo is everything that a zip needs to know about the file
 func newManifestInfo(fqPath string, dt time.Time) *zipFileInfo {
 	return &zipFileInfo{
 		name:    path.Clean(fqPath),
@@ -156,9 +155,9 @@ func newManifestInfo(fqPath string, dt time.Time) *zipFileInfo {
 	}
 }
 
-//Stream write to the archive.
-//We should have already security checked this file before writing
-//Note that we do NOT support file paths now.  We only produce flat zips of individual files, with no original directory indications.
+// zipWriteFile writes filestreams to the archive. Security checks should already have taken place.
+// Note that we do NOT support file paths now.  We only produce flat zips of individual files, with
+// no original directory hierarchy.
 func zipWriteFile(
 	h AppServer,
 	ctx context.Context,
@@ -196,7 +195,7 @@ func zipWriteFile(
 		return NewAppError(500, err, "Unable to write zip file")
 	}
 
-	//Actually send back the cipherFile to zip stream - decrypted
+	// Actually send back the cipherFile to zip stream - decrypted
 	byteRange := &crypto.ByteRange{Start: 0, Stop: -1}
 	var actualLength int64
 	_, actualLength, err = crypto.DoCipherByReaderWriter(
@@ -215,14 +214,11 @@ func zipWriteFile(
 
 func zipHasAccess(h AppServer, ctx context.Context, obj *models.ODObject) (bool, models.ODObjectPermission) {
 	logger := LoggerFromContext(ctx)
-	//See if it even exists
 	stillExists := obj.IsDeleted == false && obj.IsExpunged == false && obj.IsAncestorDeleted == false
 	if !stillExists {
 		logger.Error("object no longer exists for zip")
 		return false, models.ODObjectPermission{}
 	}
-	//See if we are allowed access
-
 	if err := h.isUserAllowedForObjectACM(ctx, obj); err != nil {
 		if IsDeniedAccess(err) {
 			logger.Error("zip does not give access", zap.String("err", err.Error()))
@@ -231,11 +227,10 @@ func zipHasAccess(h AppServer, ctx context.Context, obj *models.ODObject) (bool,
 		logger.Error("zip unable to check acm for access", zap.String("err", err.Error()))
 		return false, models.ODObjectPermission{}
 	}
-	// Get a decrypt key
 	return isUserAllowedToReadWithPermission(ctx, h.MasterKey, obj)
 }
 
-// Put a single file into the zipArchive
+// zipIncludeFile puts a single file into the zipArchive.
 func zipIncludeFile(
 	h AppServer,
 	ctx context.Context,
@@ -269,33 +264,30 @@ func zipIncludeFile(
 	return nil
 }
 
-func newManifest(zipSpec *ZipSpecification) *zipManifest {
+func newManifest(zipSpec *protocol.Zip) *zipManifest {
 	m := zipManifest{}
-	m.ZipSpec = zipSpec
 	m.ACMs = make(map[string]bool)
 	return &m
 }
 
-//This is a structure where we track the names that
-//are already in use for this directory
 func newUsedNames() *zipUsedNames {
 	u := zipUsedNames{}
 	u.UsedNames = make(map[string]bool)
 	return &u
 }
 
-//If a name is going to conflict, then suggest one that doesn't.
-//Notice that we can't just pass around a map[string]bool due to being modified during
-//recursive searching.  So we opt to just have a pointer to a struct to modify, that might have
-//more state later.
+// If a name is going to conflict, then suggest one that doesn't.
+// Notice that we can't just pass around a map[string]bool due to being modified during
+// recursive searching.  So we opt to just have a pointer to a struct to modify, that might have
+// more state later.
 func zipSuggestName(u *zipUsedNames, name string) string {
-	//No more directories, so use the base unconditionally
+	// No more directories, so use the base unconditionally
 	name = path.Base(name)
 	if u.UsedNames[name] {
-		//Break up the file name to prepare for re-name
+		// Break up the file name to prepare for re-name
 		ext := path.Ext(name)
 		fname := name[0 : len(name)-len(ext)]
-		//Search for a non-conflicting file name
+		// Search for a non-conflicting file name
 		i := 1
 		for {
 			suggestedName := fmt.Sprintf("%s(%d)%s", fname, i, ext)
@@ -312,74 +304,60 @@ func zipSuggestName(u *zipUsedNames, name string) string {
 	}
 }
 
-//ZipSpecification says how you want the zip to happen
+// ZipSpecification says how you want the zip to happen
 type ZipSpecification struct {
 	ObjectIDs   []string `json:"objectIds"`
 	FileName    string   `json:"fileName"`
 	Disposition string   `json:"disposition"`
 }
 
-func zipSpecificationCleanup(zipSpec *ZipSpecification) {
-	//Only allow one of two possible dispositions
-	// (though an open-ended list of different ones are generally defined)
+// zipRequestValidation applies validatin rules and sets fields on protocol.Zip request.
+func zipRequestValidation(zipSpec *protocol.Zip) {
 	if zipSpec.Disposition != "attachment" {
 		zipSpec.Disposition = "inline"
 	}
-	//Make sure that the file is a proper file name without a path specifier, and .zip extension
+	// Make sure that the file is a proper file name without a path specifier, and .zip extension
 	if len(zipSpec.FileName) > 0 && path.Ext(zipSpec.FileName) == ".zip" {
-		//Make sure that we have a valid file base name, without being too opinionated about what it can be
+		// Make sure that we have a valid file base name, without being too opinionated about what it can be
 		zipSpec.FileName = path.Clean(path.Base(zipSpec.FileName))
 	} else {
-		//Otherwise, just give it a default name
+		// Otherwise, just give it a default name
 		zipSpec.FileName = "drive.zip"
 	}
 }
 
-//
-//
-//  {
-//    //pick specific files from shopping cart - basic functionality
-//	  objectIds: [
-//	    "d203890a89489d0b995","0a0c0b5200b9c3d93c92e9f9ff"
-//    ],
-//    //We may want to place generic sanity constraints to prevent accidents with file size
-//    "fileName" : "drive.zip",
-//    "disposition" : "inline",
-//  }
-//
 func (h AppServer) postZip(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
-	//Just give the zip file a standardized name for now.
+	// Just give the zip file a standardized name for now.
 	w.Header().Set("Content-Type", "application/zip")
 	defer util.FinishBody(r.Body)
-	var zipSpec ZipSpecification
+	var zipSpec protocol.Zip
 
 	err := util.FullDecode(r.Body, &zipSpec)
 	if err != nil {
 		return NewAppError(500, err, "unable to perform zip due to malformed request")
 	}
-	//This cleans up to make the input safe to go into the headers and sets defaults
-	zipSpecificationCleanup(&zipSpec)
+	// This cleans up to make the input safe to go into the headers and sets defaults
+	zipRequestValidation(&zipSpec)
 	w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=%s", zipSpec.Disposition, url.QueryEscape(zipSpec.FileName)))
 
-	//Get started using the existing scheme from ShoeboxAPI
-	//Using actual parameters allows for multi-select
+	// Get started using the existing scheme from ShoeboxAPI
+	// Using actual parameters allows for multi-select
 	dao := DAOFromContext(ctx)
 	logger := LoggerFromContext(ctx)
 
-	//Start writing a zip file now
+	// Start writing a zip file now
 	manifest := newManifest(&zipSpec)
 	zw := zip.NewWriter(w)
 	usedNames := newUsedNames()
-	//Pre-insert the classification_manifest.txt that we calculate at the end, to handle
-	//the case where a user tries to include his own classification_manifest.txt
 	zipSuggestName(usedNames, "classification_manifest.txt")
-	//Remove duplicated object ids.
+
+	// Remove duplicated object ids.
 	uniqueIDs := make(map[string]bool)
 	for _, v := range zipSpec.ObjectIDs {
 		uniqueIDs[v] = true
 	}
 	for id := range uniqueIDs {
-		//Get the root objects we need to zip into our file
+		// Get the root objects we need to zip into our file
 		var err error
 		var requestObject models.ODObject
 		requestObject.ID, err = hex.DecodeString(id)
@@ -391,10 +369,10 @@ func (h AppServer) postZip(ctx context.Context, w http.ResponseWriter, r *http.R
 			code, err, msg := getObjectDAOError(err)
 			return NewAppError(code, err, msg)
 		}
-		//Make sure that we don't have name collisions
+		// Make sure that we don't have name collisions
 		obj.Name = zipSuggestName(usedNames, obj.Name)
 		if obj.ContentSize.Valid && obj.ContentSize.Int64 > 0 {
-			//Go ahead and actually include this root object in the archive
+			// Go ahead and actually include this root object in the archive
 			var herr *AppError
 			herr = zipIncludeFile(h, ctx, obj, ".", zw, manifest, usedNames)
 			if herr != nil {
@@ -404,7 +382,7 @@ func (h AppServer) postZip(ctx context.Context, w http.ResponseWriter, r *http.R
 			logger.Info("zip not including file", zap.String("id", id))
 		}
 	}
-	//We accumulated a lot of data in the manifest.  Write it out now.
+	// We accumulated a lot of data in the manifest.  Write it out now.
 	herr := zipWriteManifest(h.AAC, ctx, logger, zw, manifest)
 	if herr != nil {
 		return herr
