@@ -83,8 +83,6 @@ type AppServer struct {
 	Snippets *SnippetCache
 	// AclWhitelist provides a list of distinguished names allowed to perform impersonation
 	AclImpersonationWhitelist []string
-	// ServiceRegistry is a map of services we depend on that reports on their state.
-	ServiceRegistry ServiceStates
 }
 
 // InitRegex compiles static regexes and initializes the AppServer Routes field.

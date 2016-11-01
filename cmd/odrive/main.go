@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"decipher.com/object-drive-server/ciphertext"
@@ -38,10 +37,7 @@ import (
 
 // Globals
 var (
-	//All loggers are derived from the global one
 	logger = globalconfig.RootLogger
-	//The callback that captures the app pointer for repairing aac
-	aacAnnouncer func(at string, announcements map[string]zookeeper.AnnounceData)
 )
 
 // Services that require network
@@ -180,9 +176,6 @@ func startApplication(conf configx.AppConfiguration) {
 		logger.Error("Error calling makeserver", zap.String("err", err.Error()))
 	}
 
-	// put updates onto updates channel
-	updates := StateMonitor(app, time.Duration(60*time.Second))
-
 	err = configureDAO(app, conf.DatabaseConnection)
 	if err != nil {
 		logger.Error("Error configuring DAO.  Check envrionment variable settings for OD_DB_*", zap.String("err", err.Error()))
@@ -208,17 +201,16 @@ func startApplication(conf configx.AppConfiguration) {
 		logger.Fatal("Could not register with Zookeeper")
 	}
 
+	stls := conf.ServerSettings.GetTLSConfig()
+
 	httpServer := &http.Server{
 		Addr:           string(app.Addr),
 		Handler:        app,
-		ReadTimeout:    100000 * time.Second, //This breaks big downloads
+		ReadTimeout:    100000 * time.Second,
 		WriteTimeout:   100000 * time.Second,
-		MaxHeaderBytes: 1 << 20, //This prevents clients from DOS'ing us
+		MaxHeaderBytes: 1 << 20,
+		TLSConfig:      &stls,
 	}
-	stls := conf.ServerSettings.GetTLSConfig()
-	httpServer.TLSConfig = &stls
-
-	pollAll(app, updates, conf, time.Duration(30*time.Second))
 
 	zkTracking(app, conf)
 
@@ -239,13 +231,10 @@ func startApplication(conf configx.AppConfiguration) {
 	}
 }
 
-func zkTracking(app *server.AppServer, appConf configx.AppConfiguration) {
-	srvConf := appConf.ServerSettings
-	aacSettings := appConf.AACSettings
+func zkTracking(app *server.AppServer, conf configx.AppConfiguration) {
+	srvConf, aacConf, queueConf, zkConf := conf.ServerSettings, conf.AACSettings, conf.EventQueue, conf.ZK
 
-	//Tell whoever needs to know about the peers - it uses the server cert
 	odriveAnnouncer := func(at string, announcements map[string]zookeeper.AnnounceData) {
-		//Create a peer list
 		peerMap := make(map[string]*ciphertext.PeerMapData)
 		for announcementKey, announcement := range announcements {
 			peerMap[announcementKey] = &ciphertext.PeerMapData{
@@ -258,26 +247,26 @@ func zkTracking(app *server.AppServer, appConf configx.AppConfiguration) {
 		}
 		ciphertext.ScheduleSetPeers(peerMap)
 	}
-	zookeeper.TrackAnnouncement(app.DefaultZK, appConf.ZK.BasepathOdrive+"/https", odriveAnnouncer)
-	//I am doing this because I need a reference to app to re-assign the connection in the event of failure.
-	aacAnnouncer = func(at string, announcements map[string]zookeeper.AnnounceData) {
+	zookeeper.TrackAnnouncement(app.DefaultZK, zkConf.BasepathOdrive+"/https", odriveAnnouncer)
+
+	aacAnnouncer := func(_ string, announcements map[string]zookeeper.AnnounceData) {
 		if announcements == nil {
 			return
 		}
-		//Something changed.  Smoke test our connection....
+		// Test our connection after an event hits our queue.
 		var err error
 		if app.AAC != nil {
 			_, err = app.AAC.ValidateAcm(testhelpers.ValidACMUnclassified)
 		}
 		if app.AAC == nil || err != nil {
-			//If it's broke, then fix it by picking an arbitrary AAC
+			// If it's broke, then fix it by picking an arbitrary AAC
 			for _, announcement := range announcements {
-				//One that is alive
+				// One that is alive
 				if announcement.Status == "ALIVE" {
-					//Try a new host,port
+					// Try a new host,port
 					host := announcement.ServiceEndpoint.Host
 					port := announcement.ServiceEndpoint.Port
-					aacc, err := aac.GetAACClient(host, port, aacSettings.CAPath, aacSettings.ClientCert, aacSettings.ClientKey)
+					aacc, err := aac.GetAACClient(host, port, aacConf.CAPath, aacConf.ClientCert, aacConf.ClientKey)
 					if err == nil {
 						_, err = aacc.ValidateAcm(testhelpers.ValidACMUnclassified)
 						if err != nil {
@@ -285,7 +274,7 @@ func zkTracking(app *server.AppServer, appConf configx.AppConfiguration) {
 						} else {
 							app.AAC = aacc
 							logger.Info("aac chosen", zap.Object("announcement", announcement))
-							//ok... go with this one!
+							// ok... go with this one!
 							break
 						}
 					} else {
@@ -296,8 +285,37 @@ func zkTracking(app *server.AppServer, appConf configx.AppConfiguration) {
 
 		}
 	}
-	//Watch the AAC thrift announcements
-	zookeeper.TrackAnnouncement(app.DefaultZK, aacSettings.AACAnnouncementPoint, aacAnnouncer)
+	// check our AACZK configuration here, and select the correct implementation based on aacConf
+	aacZK := app.DefaultZK
+	if len(aacConf.ZKAddrs) > 0 {
+		logger.Info("connection to custom aac zk", zap.Object("addrs", aacConf.ZKAddrs))
+		var err error
+		aacZK, err = zookeeper.NewZKState(aacConf.ZKAddrs, int(zkConf.Timeout))
+		if err != nil {
+			logger.Error("error connecting to custom aac zk", zap.String("err", err.Error()))
+		}
+	}
+	zookeeper.TrackAnnouncement(aacZK, aacConf.AACAnnouncementPoint, aacAnnouncer)
+
+	// Hiding Kafka impl behind a feature flag, because we need to either refactor TrackAnnouncement
+	// or write a whole new function.
+	if false {
+		queueAnnouncer := func(at string, announcements map[string]zookeeper.AnnounceData) {
+			if announcements == nil {
+				return
+			}
+			app.EventQueue.Errors() // need to inspect this field
+		}
+		queueZK := app.EventQueueZK
+		if len(queueConf.ZKAddrs) > 0 {
+			var err error
+			queueZK, err = zookeeper.NewZKState(queueConf.ZKAddrs, int(zkConf.Timeout))
+			if err != nil {
+				logger.Error("error connecting to custom aac zk", zap.String("err", err.Error()))
+			}
+		}
+		zookeeper.TrackAnnouncement(queueZK, "/brokers", queueAnnouncer)
+	}
 }
 
 func configureDAO(app *server.AppServer, conf configx.DatabaseConfiguration) error {
@@ -487,70 +505,4 @@ func pingDB(conf configx.DatabaseConfiguration, db *sqlx.DB) int {
 		time.Sleep(time.Duration(sleepInSeconds) * time.Second)
 	}
 	return exitCode
-}
-
-// StateMonitor spawns a goroutine to keep the ServiceRegistry updated, and periodically log
-// the contents of ServiceRegistry.
-func StateMonitor(app *server.AppServer, updateInterval time.Duration) chan server.ServiceState {
-	if app.ServiceRegistry == nil {
-		app.ServiceRegistry = make(map[string]server.ServiceState)
-	}
-
-	// TODO: instantiate structured logger here
-	updates := make(chan server.ServiceState)
-	ticker := time.NewTicker(updateInterval)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				reportStates(app.ServiceRegistry)
-			case s := <-updates:
-				app.ServiceRegistry[s.Name] = s
-			}
-		}
-	}()
-	return updates
-}
-
-func reportStates(states server.ServiceStates) {
-	logger.Debug(
-		"Service states",
-		zap.Marshaler("states", states),
-	)
-}
-
-func pollAll(app *server.AppServer, updates chan server.ServiceState, appCfg configx.AppConfiguration, updateInterval time.Duration) {
-	ticker := time.NewTicker(updateInterval)
-	go func() {
-		for {
-			numPollers := 1
-			var wg sync.WaitGroup
-			wg.Add(numPollers)
-			select {
-			case <-ticker.C:
-				go pollAAC(app, updates, appCfg.AACSettings, &wg)
-				// Wait for N pollers to return
-				wg.Wait()
-			}
-		}
-	}()
-}
-
-// pollAAC encapsulates the AAC health check and attempted reconnect.
-
-func pollAAC(app *server.AppServer, updates chan server.ServiceState, aacCfg configx.AACConfiguration, wg *sync.WaitGroup) {
-
-	defer wg.Done()
-
-	announcements, err := zookeeper.GetAnnouncements(app.DefaultZK, aacCfg.AACAnnouncementPoint)
-	if err != nil {
-		logger.Error(
-			"aac poll error",
-			zap.String("err", err.Error()),
-		)
-	} else {
-		if aacAnnouncer != nil {
-			aacAnnouncer(aacCfg.AACAnnouncementPoint, announcements)
-		}
-	}
 }

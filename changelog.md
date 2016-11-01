@@ -1,6 +1,10 @@
 Changelog
 ================
 
+Release vNEXT
+----------------
+* NEW: AAC is discoverable from its own ZK cluster, not just default ZK.
+
 Release v1.0.1.6
 ----------------
 
