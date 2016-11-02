@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"log"
 
+	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/events"
 
 	"github.com/Shopify/sarama"
@@ -60,7 +61,7 @@ type FakeAsyncKafkaProducer struct {
 // NewFakeAsyncKafkaProducer returns a null Kafka Publisher implementation and logs
 func NewFakeAsyncKafkaProducer(logger zap.Logger) *FakeAsyncKafkaProducer {
 	if logger == nil {
-		logger = zap.New(zap.NewJSONEncoder(), zap.Output(zap.Discard), zap.ErrorOutput(zap.Discard))
+		logger = cfg.RootLogger
 	}
 	logger.Info("Using FakeAsyncKafkaProducer")
 	return &FakeAsyncKafkaProducer{logger}

@@ -9,8 +9,8 @@ import (
 	"decipher.com/object-drive-server/ciphertext"
 
 	"decipher.com/object-drive-server/amazon"
+	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/configx"
-	"github.com/uber-go/zap"
 )
 
 var testCacheData = `
@@ -315,7 +315,7 @@ func TestCacheDrainToSafety(t *testing.T) {
 	defer os.Remove(fqDir)
 
 	t.Log("make a temp drain provider")
-	logger := zap.New(zap.NewJSONEncoder())
+	logger := cfg.RootLogger
 
 	//We need to use S3 here because we delete files and expect download to restore them
 	s3Config := config.NewS3Config()
@@ -363,7 +363,7 @@ func TestCacheCreate(t *testing.T) {
 	//Setup and teardown
 	dirname := "t01234"
 	//Create raw cache without starting the purge goroutine
-	logger := zap.New(zap.NewJSONEncoder())
+	logger := cfg.RootLogger
 
 	s3Config := config.NewS3Config()
 	sess := amazon.NewAWSSession(s3Config.AWSConfig, logger)

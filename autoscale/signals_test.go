@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"decipher.com/object-drive-server/autoscale"
+	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/configx"
 	"github.com/aws/aws-sdk-go/aws"
 	asg "github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/uber-go/zap"
 )
 
 const (
@@ -146,7 +146,7 @@ func (s *testAutoScalerASG) CompleteLifecycleAction(req *asg.CompleteLifecycleAc
 }
 
 func TestAutoScale(t *testing.T) {
-	logger := zap.New(zap.NewJSONEncoder())
+	logger := cfg.RootLogger
 	//Simulate a queue of messages, and make sure that we parse what we need to see, and ignore what we do not
 	sqs := newTestAutoScalerSQS(t)
 	as := &autoscale.AutoScaler{
