@@ -46,6 +46,7 @@ func TestRemoveObjectShareFromCaller(t *testing.T) {
 	removeShareRes, err = clients[delegate].Client.Do(removeShareReq)
 	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 403, removeShareRes, "Bad status when removing share from object")
+	messageMustContain(t, removeShareRes, "User does not have permission to modify shares for an object")
 	util.FinishBody(removeShareRes.Body)
 
 }
@@ -96,6 +97,7 @@ func TestRemoveObjectShareFromOwner(t *testing.T) {
 	removeShareRes, err := clients[delegate].Client.Do(removeShareReq)
 	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 403, removeShareRes, "Bad status when removing share from object")
+	messageMustContain(t, removeShareRes, "Unauthorized to set permissions that would result in owner losing access")
 	util.FinishBody(removeShareRes.Body)
 }
 func TestRemoveObjectShareFromNonExistentUser(t *testing.T) {
@@ -227,6 +229,7 @@ func TestRemoveObjectShareWithoutPermission(t *testing.T) {
 	removeShareRes, err := clients[delegate].Client.Do(removeShareReq)
 	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 403, removeShareRes, "Bad status when removing share from object")
+	messageMustContain(t, removeShareRes, "User does not have permission to modify shares for an object")
 	util.FinishBody(removeShareRes.Body)
 
 	t.Logf("Verify tester 1-0 can still read it")

@@ -689,6 +689,7 @@ func TestGetObjectStreamForRevision_WithoutPermissionToCurrent(t *testing.T) {
 	}
 	getObjectStreamRevisionRes2, err := clients[tester1].Client.Do(getObjectStreamRevisionReq2)
 	statusMustBe(t, 403, getObjectStreamRevisionRes2, "expected forbidden when retrieving revision as tester1")
+	messageMustContain(t, getObjectStreamRevisionRes2, "User does not have sufficient Clearance")
 	defer util.FinishBody(getObjectStreamRevisionRes2.Body)
 
 	t.Logf("* Verify tester1 can no longer read original version")
@@ -699,6 +700,7 @@ func TestGetObjectStreamForRevision_WithoutPermissionToCurrent(t *testing.T) {
 	}
 	getObjectStreamRevisionRes3, err := clients[tester1].Client.Do(getObjectStreamRevisionReq3)
 	statusMustBe(t, 403, getObjectStreamRevisionRes3, "expected forbidden when retrieving revision as tester1")
+	messageMustContain(t, getObjectStreamRevisionRes3, "User does not have sufficient Clearance")
 	defer util.FinishBody(getObjectStreamRevisionRes3.Body)
 
 	t.Logf("* Verify tester10 can read current version")

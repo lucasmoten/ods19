@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -394,5 +395,15 @@ func statusExpected(t *testing.T, expected int, resp *http.Response, msg string)
 		t.Logf("Expected status %v but got %v", expected, resp.StatusCode)
 		t.Logf("%s", resp.Status)
 		t.Fail()
+	}
+}
+
+func messageMustContain(t *testing.T, res *http.Response, lookFor string) {
+	msg, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Errorf("fail to read body: %s", err.Error())
+	}
+	if !strings.Contains(string(msg), lookFor) {
+		t.Errorf("was looking for '%s', but found '%s'", lookFor, string(msg))
 	}
 }
