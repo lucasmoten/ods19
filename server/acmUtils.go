@@ -32,20 +32,23 @@ func deDupe(sArr []interface{}) []interface{} {
 }
 
 // CombineInterface combines two interfaces that use map[string]interface{}, []interface{} and string for values
-func CombineInterface(sourceInterface interface{}, interfaceToAdd interface{}) interface{} {
+func CombineInterface(ctx context.Context, sourceInterface interface{}, interfaceToAdd interface{}) interface{} {
+	debugthis := false
 	sMap, ok := createMapFromInterface(sourceInterface)
 	if !ok {
 		//log.Printf("Unable to create map from interface for sourceInterface, using intefaceToAdd")
 		return interfaceToAdd
 	}
-	// sMapString, _ := utils.MarshalInterfaceToString(sMap)
-	// log.Printf("sMap before: %s", sMapString)
+	if debugthis && ctx != nil {
+		sMapString, _ := utils.MarshalInterfaceToString(sMap)
+		sourceInterfaceString, _ := utils.MarshalInterfaceToString(sourceInterface)
+		interfaceToAddString, _ := utils.MarshalInterfaceToString(interfaceToAdd)
+		LoggerFromContext(ctx).Debug("combine interface before", zap.String("sMap", sMapString), zap.String("sourceInterface", sourceInterfaceString), zap.String("interfaceToAdd", interfaceToAddString))
+	}
 	aMap, ok := createMapFromInterface(interfaceToAdd)
 	if !ok {
-		//log.Printf("Unable to create map from interface for interfaceToAdd, using sourceInterface")
 		return sMap
 	}
-	//log.Printf("Comparing sourceInterface and interfaceToAdd")
 	// Look at all keys in A
 	for aK, aV := range aMap {
 		if aV == nil {
@@ -146,7 +149,7 @@ func CombineInterface(sourceInterface interface{}, interfaceToAdd interface{}) i
 					}
 				case "map":
 					// recurse
-					sMap[sK] = CombineInterface(sV, aV)
+					sMap[sK] = CombineInterface(ctx, sV, aV)
 				} // switch avType
 			} // if the keys for source and adding maps iteration is matched
 		}
@@ -157,8 +160,10 @@ func CombineInterface(sourceInterface interface{}, interfaceToAdd interface{}) i
 		}
 	}
 	// Done, all changes in sMap
-	// sMapString, _ = utils.MarshalInterfaceToString(sMap)
-	// log.Printf("sMap after: %s", sMapString)
+	if debugthis && ctx != nil {
+		sMapString, _ := utils.MarshalInterfaceToString(sMap)
+		LoggerFromContext(ctx).Debug("combine interface after", zap.String("sMap", sMapString))
+	}
 	return sMap
 }
 func createMapFromInterface(sourceInterface interface{}) (map[string]interface{}, bool) {
@@ -319,15 +324,8 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 			readGrants = append(readGrants, permission.Grantee)
 			// And track if we have everyone or not
 			if isPermissionFor(&permission, models.EveryoneGroup) {
-				LoggerFromContext(ctx).Info("permission grantee is everyone")
+				LoggerFromContext(ctx).Debug("permission grantee is everyone")
 				hasEveryone = true
-			} else {
-				if obj.IsCreating() {
-					// When creating and permission grants read but isnt everyone, then
-					// thats an indicator that we shouldn't support read for everyone
-					LoggerFromContext(ctx).Info("creating object with permission that grants read but isn't everyone", zap.String("grantee", permission.Grantee))
-					acmSaysEveryone = false
-				}
 			}
 		}
 	}
@@ -359,7 +357,7 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 			if err != nil {
 				return NewAppError(500, fmt.Errorf("ACM share for owner CRUDS does not convert to interface"), "ACM share for owner unparseable")
 			}
-			combinedInterface := CombineInterface(shareInterface, interfaceToAdd)
+			combinedInterface := CombineInterface(ctx, shareInterface, interfaceToAdd)
 			if herr := setACMPartFromInterface(ctx, obj, "share", combinedInterface); herr != nil {
 				return herr
 			}

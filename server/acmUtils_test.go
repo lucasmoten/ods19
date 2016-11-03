@@ -73,7 +73,7 @@ func TestCombineInterfaces(t *testing.T) {
 			t.FailNow()
 		}
 
-		resultObj := server.CombineInterface(startObj, addObj)
+		resultObj := server.CombineInterface(nil, startObj, addObj)
 		resultStr, err := utils.MarshalInterfaceToString(resultObj)
 		resultNorm, err := utils.NormalizeMarshalledInterface(resultStr)
 		t.Logf(resultNorm)

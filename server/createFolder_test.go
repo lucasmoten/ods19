@@ -15,6 +15,7 @@ import (
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
+	"decipher.com/object-drive-server/utils"
 
 	"decipher.com/object-drive-server/protocol"
 )
@@ -490,4 +491,118 @@ func TestCreateFolderWithoutName(t *testing.T) {
 		t.Fail()
 	}
 
+}
+
+func TestCreateFolderWithPermissionForEveryone264(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+
+	ghodsissue264 := `{
+		"acm":"{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_sar_id\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}"
+		,"permission":{
+			"create":{
+				"allow":[
+					"user/cn=twl-server-generic2,ou=dae,ou=dia,o=u.s. government,c=us/twl-server-generic2"
+					]
+				}
+			,"read":{
+				"allow":[
+					"user/cn=twl-server-generic2,ou=dae,ou=dia,o=u.s. government,c=us/twl-server-generic2"
+					,"group/-Everyone/-Everyone"
+					]
+				}
+			,"update":{
+				"allow":[
+					"user/cn=twl-server-generic2,ou=dae,ou=dia,o=u.s. government,c=us/twl-server-generic2"
+					]
+				}
+			,"delete":{
+				"allow":[
+					"user/cn=twl-server-generic2,ou=dae,ou=dia,o=u.s. government,c=us/twl-server-generic2"
+					]
+				}
+			,"share":{
+				"allow":[
+					"user/cn=twl-server-generic2,ou=dae,ou=dia,o=u.s. government,c=us/twl-server-generic2"
+					]
+				}
+			}
+		,"typeName":"Folder"
+		,"name":"TEST1"
+		,"description":"TEST1"
+	}`
+	newobjuri := host + cfg.NginxRootURL + "/objects"
+	myobject, err := utils.UnmarshalStringToInterface(ghodsissue264)
+	if err != nil {
+		t.Logf("Error converting to interface: %s", err.Error())
+		t.FailNow()
+	}
+	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
+	createObjectRes, err := clients[tester10].Client.Do(createObjectReq)
+	if err != nil {
+		log.Printf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	defer util.FinishBody(createObjectRes.Body)
+
+	// Response validation
+	if createObjectRes.StatusCode != http.StatusOK {
+		log.Printf("req1 bad status: %s", createObjectRes.Status)
+		t.FailNow()
+	}
+	var createdFolder protocol.Object
+	err = util.FullDecode(createObjectRes.Body, &createdFolder)
+	if err != nil {
+		log.Printf("Error decoding json to Object: %v", err)
+		log.Println()
+		t.FailNow()
+	}
+
+	if createdFolder.Name != "TEST1" {
+		t.Fail()
+	}
+
+	// Validating permissions against expectations
+	theCreator := "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+	explicitUser := "user/cn=twl-server-generic2,ou=dae,ou=dia,o=u.s. government,c=us/twl-server-generic2"
+	everyone := "group/-Everyone/-Everyone"
+	if !hasExpectedValues([]string{theCreator, explicitUser}, createdFolder.Permission.Create.AllowedResources) {
+		log.Printf("Missing values expected in create")
+		t.Fail()
+	}
+	if !hasExpectedValues([]string{theCreator, explicitUser, everyone}, createdFolder.Permission.Read.AllowedResources) {
+		log.Printf("Missing values expected in read")
+		t.Fail()
+	}
+	if !hasExpectedValues([]string{theCreator, explicitUser}, createdFolder.Permission.Update.AllowedResources) {
+		log.Printf("Missing values expected in update")
+		t.Fail()
+	}
+	if !hasExpectedValues([]string{theCreator, explicitUser}, createdFolder.Permission.Delete.AllowedResources) {
+		log.Printf("Missing values expected in delete")
+		t.Fail()
+	}
+	if !hasExpectedValues([]string{theCreator, explicitUser}, createdFolder.Permission.Share.AllowedResources) {
+		log.Printf("Missing values expected in share")
+		t.Fail()
+	}
+
+}
+
+func hasExpectedValues(expected []string, actual []string) bool {
+	for _, e := range expected {
+		efound := false
+		for _, a := range actual {
+			if e == a {
+				efound = true
+				break
+			}
+		}
+		if !efound {
+			return false
+		}
+	}
+	return true
 }

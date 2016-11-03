@@ -23,7 +23,6 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	var requestObject models.ODObject
 	var err error
 
-	logger := LoggerFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
 	session := SessionIDFromContext(ctx)
 	dao := DAOFromContext(ctx)
@@ -121,7 +120,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		requestObject.Permissions = combinedPermissions
 	}
 	// Flatten ACM, then Normalize Read Permissions against ACM f_share
-	if err = h.flattenACM(logger, &requestObject); err != nil {
+	if err = h.flattenACM(ctx, &requestObject); err != nil {
 		return ClassifyFlattenError(err)
 	}
 	if herr := normalizeObjectReadPermissions(ctx, &requestObject); herr != nil {

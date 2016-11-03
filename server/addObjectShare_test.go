@@ -125,7 +125,7 @@ func TestAddObjectShare(t *testing.T) {
 	t.Logf("* Add read share as tester10 for tester1,tester10 to folder1")
 	shareuri := host + cfg.NginxRootURL + "/shared/" + folder1.ID
 	shareSetting := protocol.ObjectShare{}
-	shareSetting.Share = server.CombineInterface(makeUserShare(fakeDN0), makeUserShare(fakeDN1))
+	shareSetting.Share = server.CombineInterface(nil, makeUserShare(fakeDN0), makeUserShare(fakeDN1))
 	shareSetting.AllowRead = true
 	jsonBody, err = json.Marshal(shareSetting)
 	if err != nil {
@@ -222,7 +222,7 @@ func TestAddObjectShare(t *testing.T) {
 	t.Logf("* Add share as tester10 for tester1 to folder1 (NOOP since read exists)")
 	shareuri = host + cfg.NginxRootURL + "/shared/" + folder1.ID
 	shareSetting = protocol.ObjectShare{}
-	shareSetting.Share = server.CombineInterface(makeUserShare(fakeDN0), makeUserShare(fakeDN1))
+	shareSetting.Share = server.CombineInterface(nil, makeUserShare(fakeDN0), makeUserShare(fakeDN1))
 	shareSetting.AllowRead = true
 	jsonBody, err = json.Marshal(shareSetting)
 	if err != nil {

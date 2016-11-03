@@ -1483,6 +1483,8 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	t.Logf("Update O12 setting an ACM without a share, which will result in everyone getting access again")
 	acmWithNoShare := `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{}}`
 	updatedObject4.RawAcm = acmWithNoShare
+	updatedObject4.Permissions = []protocol.Permission_1_0{}
+	updatedObject4.Permission = protocol.Permission{}
 	// jsonify it
 	jsonBody, _ = json.Marshal(updatedObject4)
 	// prep http request

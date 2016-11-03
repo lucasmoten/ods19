@@ -443,7 +443,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 	t.Logf("* Add read permission granted to tester1 and tester10")
 	shareuri := host + cfg.NginxRootURL + "/shared/" + objID
 	shareSetting := protocol.ObjectShare{}
-	shareSetting.Share = server.CombineInterface(makeUserShare(fakeDN0), makeUserShare(fakeDN1))
+	shareSetting.Share = server.CombineInterface(nil, makeUserShare(fakeDN0), makeUserShare(fakeDN1))
 	shareSetting.AllowRead = true
 	jsonBody, err := json.Marshal(shareSetting)
 	if err != nil {
