@@ -8,13 +8,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/uber-go/zap"
-
+	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/crypto"
 )
 
 func TestBasicCipher(t *testing.T) {
-	logger := zap.New(zap.NewJSONEncoder())
+	logger := cfg.RootLogger
 
 	data := []byte(`
     0123456789
@@ -102,7 +101,7 @@ func TestBasicCipher(t *testing.T) {
 
 func BasicCipherRaw(t *testing.T, data []byte, ciphertextName string, byteRange *crypto.ByteRange, key []byte, iv []byte) {
 	var err error
-	logger := zap.New(zap.NewJSONEncoder())
+	logger := cfg.RootLogger
 
 	//Make a temp file that we can close and re-open later.
 	replaintextName := "crypto_test.replaintext.tmp"
