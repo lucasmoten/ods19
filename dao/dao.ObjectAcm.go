@@ -125,7 +125,7 @@ func setACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *mod
 		// bring us down this codepath, but the associated acm in the acm table
 		// (which is flattened/normalized) will NOT be different, and this will
 		// cause a trigger error unless we do this check.
-		checkExisting := `select acmId from objectacm where objectid = ? and isDeleted = 0 limit 1`
+		checkExisting := `select acmId from objectacm where objectid = ? and isDeleted = 0 order by createddate desc limit 1`
 		var acmID []byte
 		row := tx.QueryRow(checkExisting, object.ID)
 		row.Scan(&acmID)
