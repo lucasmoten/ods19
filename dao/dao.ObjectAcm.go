@@ -3,7 +3,9 @@ package dao
 import (
 	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"sort"
 	"strings"
@@ -128,11 +130,18 @@ func setACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *mod
 		checkExisting := `select acmId from objectacm where objectid = ? and isDeleted = 0 limit 1`
 		var acmID []byte
 		row := tx.QueryRow(checkExisting, object.ID)
-		row.Scan(&acmID)
+		err := row.Scan(&acmID)
+		if err != nil {
+			return fmt.Errorf("error scanning existing acmID: %v\n", err)
+		}
+		if len(acmID) == 0 {
+			return errors.New("acmID is len zero")
+		}
 
 		stringIDOld := hex.EncodeToString(acm.ID)
 		stringIDNew := hex.EncodeToString(acmID)
 		if strings.Compare(stringIDOld, stringIDNew) == 0 {
+			log.Printf("old and new acms are the same: \n\t%s\n\t%s", stringIDOld, stringIDNew)
 			return nil
 		}
 
@@ -145,7 +154,6 @@ func setACMForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject, acm *mod
 		if err != nil {
 			return fmt.Errorf("setACMForObjectInTransaction error preparing update statement when changing acm, %s", err.Error())
 		}
-		//log.Println("acm.ID = %s", hex.EncodeToString(acm.ID))
 		result, err := updateStatement.Exec(object.ModifiedBy, acm.ID, object.ID)
 		if err != nil {
 			return fmt.Errorf("setACMForObjectInTransaction error executing update statement when changing acm, %s", err.Error())
