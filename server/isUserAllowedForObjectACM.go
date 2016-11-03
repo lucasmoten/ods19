@@ -9,7 +9,6 @@ import (
 	"github.com/uber-go/zap"
 
 	globalconfig "decipher.com/object-drive-server/config"
-	configx "decipher.com/object-drive-server/configx"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/performance"
 	"decipher.com/object-drive-server/services/aac"
@@ -311,9 +310,10 @@ func IsFlattenInternalError(err error) bool {
 	return false
 }
 
-func (h AppServer) flattenACM(logger zap.Logger, object *models.ODObject) error {
+func (h AppServer) flattenACM(ctx context.Context, object *models.ODObject) error {
 
 	var err error
+	logger := LoggerFromContext(ctx)
 
 	// Validate object
 	if object == nil {
@@ -384,82 +384,7 @@ func (h AppServer) flattenACM(logger zap.Logger, object *models.ODObject) error 
 
 	// Get revised acm string
 	object.RawAcm.String = acmResponse.AcmInfo.Acm
-
 	// Done
-	return nil
-}
-
-// flattenGranteeOnPermission supports converting the grantee of a permission
-// to the flattened share equivalent for purposes of normalizing and matching
-// the name of a user or group at a later time.  The permission passed in is
-// assigned a marshalled string equivalent of a share struct as a user,
-// that share part is pushed into a basic acm, and flattened via AAC call.
-// Resultant f_share value is then used as the new grantee
-func (h AppServer) flattenGranteeOnPermission(ctx context.Context, permission *models.ODObjectPermission) *AppError {
-	logger := LoggerFromContext(ctx)
-	isAcmShareEmpty := len(permission.AcmShare) == 0
-	if isAcmShareEmpty {
-		logger.Error("ACMShare on permission was empty for grantee coming into flattenGranteeOnPermission", zap.String("grantee", permission.Grantee), zap.String("acmgrantee", permission.AcmGrantee.Grantee), zap.String("acmgrantee.projectname", permission.AcmGrantee.ProjectName.String), zap.String("acmgrantee.projectdisplayname", permission.AcmGrantee.ProjectDisplayName.String), zap.String("acmgrantee.groupname", permission.AcmGrantee.GroupName.String), zap.String("acmgrantee.userdistinguishedname", permission.AcmGrantee.UserDistinguishedName.String))
-		return NewAppError(500, nil, "AcmShare on permission is not set")
-	}
-	// Check if this is a special internalized odrive group that does not need AAC flattening
-	if len(permission.AcmGrantee.GroupName.String) > 0 && len(permission.AcmGrantee.ProjectName.String) == 0 {
-		// EveryoneGroup ?
-		everyonePermission := models.PermissionForGroup("", "", models.EveryoneGroup, false, true, false, false, false)
-		if strings.Compare(permission.AcmShare, everyonePermission.AcmShare) == 0 {
-			return nil
-		}
-	}
-	shareInterface, err := utils.UnmarshalStringToInterface(permission.AcmShare)
-	if err != nil {
-		logger.Error("Unable to marshal share from permission", zap.String("permission acm share", permission.AcmShare), zap.String("err", err.Error()))
-		return NewAppError(500, err, "Unable to unmarshal share from permission")
-	}
-	acm := `{"classif":"U"}`
-	obj := models.ODObject{}
-	obj.RawAcm = models.ToNullString(acm)
-	if herr := setACMPartFromInterface(ctx, &obj, "share", shareInterface); herr != nil {
-		return herr
-	}
-
-	if err = h.flattenACM(logger, &obj); err != nil {
-		return ClassifyFlattenError(err)
-	}
-	herr, fShareInterface := getACMInterfacePart(&obj, "f_share")
-	if herr != nil {
-		return herr
-	}
-	grants := getStringArrayFromInterface(fShareInterface)
-	if len(grants) > 0 {
-		logger.Debug("Setting permission grantee", zap.String("old value", permission.Grantee), zap.String("new value", configx.GetNormalizedDistinguishedName(grants[0])))
-		permission.Grantee = configx.GetNormalizedDistinguishedName(grants[0])
-		permission.AcmGrantee.Grantee = permission.Grantee
-	} else {
-		logger.Warn("Error flattening share permission", zap.String("acm", acm), zap.String("permission acm share", permission.AcmShare), zap.String("permission grantee", permission.Grantee))
-		return NewAppError(500, fmt.Errorf("Didn't receive any grants in f_share for %s from %s", permission.Grantee, permission.AcmShare), "Unable to flatten grantee provided in permission")
-	}
-	return nil
-}
-
-func (h AppServer) flattenGranteeOnAllObjectPermissions(ctx context.Context, obj *models.ODObject) *AppError {
-	permissions := obj.Permissions
-	if herr := h.flattenGranteeOnAllPermissions(ctx, &permissions); herr != nil {
-		return herr
-	}
-	obj.Permissions = permissions
-	return nil
-}
-func (h AppServer) flattenGranteeOnAllPermissions(ctx context.Context, permissionsi *[]models.ODObjectPermission) *AppError {
-	permissions := *permissionsi
-	// For all permissions, make sure we're using the flattened value
-	for i := len(permissions) - 1; i >= 0; i-- {
-		permission := permissions[i]
-		if herr := h.flattenGranteeOnPermission(ctx, &permission); herr != nil {
-			return herr
-		}
-		permissions[i] = permission
-	}
-	permissionsi = &permissions
 	return nil
 }
 
@@ -645,4 +570,74 @@ func (h AppServer) isObjectACMSharedToUser(ctx context.Context, obj *models.ODOb
 
 	// None of the user groups matched the acm. They wont have read access.
 	return false
+}
+
+// rebuildACMShareFromObjectPermissions will clear the ACM share and reconstruct it from the current permissions on the object, and optional
+// ones passed in that grant read access and are not marked as deleted.
+func rebuildACMShareFromObjectPermissions(ctx context.Context, dbObject *models.ODObject, permissionsToAdd []models.ODObjectPermission) *AppError {
+	var emptyInterface interface{}
+	if herr := setACMPartFromInterface(ctx, dbObject, "share", emptyInterface); herr != nil {
+		return herr
+	}
+
+	// Iterate to build new share
+	for _, dbPermission := range dbObject.Permissions {
+		// For permissions granting read, merge permission.AcmShare into dbObject.RawAcm.String{share}
+		if dbPermission.AllowRead &&
+			!dbPermission.IsDeleted &&
+			!isPermissionFor(&dbPermission, models.EveryoneGroup) {
+			herr, sourceInterface := getACMInterfacePart(dbObject, "share")
+			if herr != nil {
+				return herr
+			}
+			interfaceToAdd, err := utils.UnmarshalStringToInterface(dbPermission.AcmShare)
+			if err != nil {
+				return NewAppError(500, err, "Unable to unmarshal share from permission",
+					zap.String("dbPermission.AcmShare", dbPermission.AcmShare),
+					zap.String("dbPermission.Grantee", dbPermission.Grantee))
+			}
+			combinedInterface := CombineInterface(ctx, sourceInterface, interfaceToAdd)
+			if herr = setACMPartFromInterface(ctx, dbObject, "share", combinedInterface); herr != nil {
+				return herr
+			}
+		} else {
+			LoggerFromContext(ctx).Debug("DB Permission not combined into share as it does not allow read or is deleted or is for everyone", zap.Bool("allowRead", dbPermission.AllowRead), zap.Bool("isDeleted", dbPermission.IsDeleted), zap.Bool("everyone", !isPermissionFor(&dbPermission, models.EveryoneGroup)))
+		}
+	}
+
+	// Iterate any permissions that will be added, also combinining in
+	for _, permission := range permissionsToAdd {
+		// For permissions granting read, merge permission.AcmShare into dbObject.RawAcm.String{share}
+		if permission.AllowRead &&
+			!permission.IsDeleted &&
+			!isPermissionFor(&permission, models.EveryoneGroup) {
+			herr, sourceInterface := getACMInterfacePart(dbObject, "share")
+			if herr != nil {
+				return herr
+			}
+			interfaceToAdd, err := utils.UnmarshalStringToInterface(permission.AcmShare)
+			if err != nil {
+				return NewAppError(500, err, "Unable to unmarshal share from permission",
+					zap.String("permission.AcmShare", permission.AcmShare),
+					zap.String("permission.Grantee", permission.Grantee))
+			}
+			combinedInterface := CombineInterface(ctx, sourceInterface, interfaceToAdd)
+			if herr = setACMPartFromInterface(ctx, dbObject, "share", combinedInterface); herr != nil {
+				return herr
+			}
+		} else {
+			LoggerFromContext(ctx).Debug("New Permission not combined into share as it does not allow read or is deleted or is for everyone", zap.Bool("allowRead", permission.AllowRead), zap.Bool("isDeleted", permission.IsDeleted), zap.Bool("everyone", !isPermissionFor(&permission, models.EveryoneGroup)))
+		}
+
+	}
+
+	return nil
+}
+
+func copyPermissionToGrantee(originalPermission *models.ODObjectPermission, grantee string) models.ODObjectPermission {
+	// NOTE: This will be an area that gets complicate when changeowner implemented and ability to assign ownership to groups since
+	// need to maintain project name, displayname and group name
+
+	// This call assumes grantee is a user in the form of a distinguished name (not flattened)
+	return models.PermissionForUser(grantee, originalPermission.AllowCreate, originalPermission.AllowRead, originalPermission.AllowUpdate, originalPermission.AllowDelete, originalPermission.AllowShare)
 }

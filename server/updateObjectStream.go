@@ -79,7 +79,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
 
-	if err = h.flattenACM(logger, &dbObject); err != nil {
+	if err = h.flattenACM(ctx, &dbObject); err != nil {
 		herr = ClassifyFlattenError(err)
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}

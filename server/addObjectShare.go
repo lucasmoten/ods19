@@ -67,11 +67,6 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 				return herr
 			}
 
-			// Flatten grantee from the acmshare parsed in the request
-			if herr := h.flattenGranteeOnPermission(ctx, &permission); herr != nil {
-				return herr
-			}
-
 			// Metadata for this permission to be created
 			bytesObjectID, _ := getObjectIDFromContext(ctx)
 			permission.ObjectID = bytesObjectID
@@ -103,7 +98,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 				if err != nil {
 					return NewAppError(500, err, "Unable to unmarshal share from permission")
 				}
-				combinedInterface := CombineInterface(sourceInterface, interfaceToAdd)
+				combinedInterface := CombineInterface(ctx, sourceInterface, interfaceToAdd)
 				acmstring, _ := utils.MarshalInterfaceToString(combinedInterface)
 				logger.Info("after combining", zap.String("new acm", acmstring))
 				herr = setACMPartFromInterface(ctx, &dbObject, "share", combinedInterface)
@@ -117,7 +112,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 		dbObject.ModifiedBy = caller.DistinguishedName
 		// Reflatten dbObject.RawACM
 
-		if err := h.flattenACM(logger, &dbObject); err != nil {
+		if err := h.flattenACM(ctx, &dbObject); err != nil {
 			return ClassifyFlattenError(err)
 		}
 
@@ -318,6 +313,9 @@ func removePermissionsForGrantee(obj *models.ODObject, grantee string) {
 func hasPermissionsForGrantee(obj *models.ODObject, grantee string) bool {
 	for i := len(obj.Permissions) - 1; i >= 0; i-- {
 		permission := obj.Permissions[i]
+		if permission.IsDeleted {
+			continue
+		}
 		if isPermissionFor(&permission, grantee) {
 			return true
 		}

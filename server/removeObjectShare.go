@@ -8,8 +8,6 @@ import (
 	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/utils"
-	"github.com/uber-go/zap"
 
 	"golang.org/x/net/context"
 )
@@ -41,12 +39,6 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 		// Iterate the permissions, normalizing the share to derive grantee
 		for _, permission := range permissions {
 
-			// Flatten the grantee
-			if herr := h.flattenGranteeOnPermission(ctx, &permission); herr != nil {
-				return herr
-			}
-			logger.Info("Flattened.", zap.String("grantee", permission.Grantee), zap.String("acmShare", permission.AcmShare))
-
 			// Compare to owner
 			if strings.Compare(permission.Grantee, models.AACFlatten(dbObject.OwnedBy.String)) == 0 {
 				errMsg := "Forbidden - Unauthorized to set permissions that would result in owner losing access"
@@ -68,9 +60,6 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 					if dbHasEveryone && strings.Compare(models.EveryoneGroup, permission.AcmGrantee.GroupName.String) == 0 {
 						// Add read permission for the owner
 						newOwnerPermission := copyPermissionToGrantee(&dbPermission, dbObject.OwnedBy.String)
-						if herr := h.flattenGranteeOnPermission(ctx, &newOwnerPermission); herr != nil {
-							return herr
-						}
 						// Now we can assign encrypt key, which will set mac based upon permissions being granted
 						models.CopyEncryptKey(h.MasterKey, &rollupPermission, &newOwnerPermission)
 						permissionsToAdd = append(permissionsToAdd, newOwnerPermission)
@@ -98,22 +87,13 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 				permissionsToAdd = append(permissionsToAdd, ownerCRUDS)
 			}
 
-			// Flatten grantees on db permission to prep for rebuilding the acm
-			for i := 0; i < len(dbObject.Permissions); i++ {
-				permission := dbObject.Permissions[i]
-				if herr := h.flattenGranteeOnPermission(ctx, &permission); herr != nil {
-					return herr
-				}
-				dbObject.Permissions[i] = permission
-			}
-
 			// Rebuild it
 			if herr := rebuildACMShareFromObjectPermissions(ctx, &dbObject, permissionsToAdd); herr != nil {
 				return herr
 			}
 
 			// Reflatten dbObject.RawACM
-			if err := h.flattenACM(logger, &dbObject); err != nil {
+			if err := h.flattenACM(ctx, &dbObject); err != nil {
 				return ClassifyFlattenError(err)
 			}
 
@@ -171,71 +151,4 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 
 	jsonResponse(w, apiResponse)
 	return nil
-}
-
-func rebuildACMShareFromObjectPermissions(ctx context.Context, dbObject *models.ODObject, permissionsToAdd []models.ODObjectPermission) *AppError {
-	// dbObject permissions will now reflect a new state. Rebuild it
-	emptyInterface, err := utils.UnmarshalStringToInterface("{}")
-	if err != nil {
-		return NewAppError(500, err, "Unable to unmarshal empty interface")
-	}
-	if herr := setACMPartFromInterface(ctx, dbObject, "share", emptyInterface); herr != nil {
-		return herr
-	}
-
-	// Iterate to build new share
-	for _, dbPermission := range dbObject.Permissions {
-		// For permissions granting read, merge permission.AcmShare into dbObject.RawAcm.String{share}
-		if dbPermission.AllowRead &&
-			!dbPermission.IsDeleted &&
-			!isPermissionFor(&dbPermission, models.EveryoneGroup) {
-			herr, sourceInterface := getACMInterfacePart(dbObject, "share")
-			if herr != nil {
-				return herr
-			}
-			interfaceToAdd, err := utils.UnmarshalStringToInterface(dbPermission.AcmShare)
-			if err != nil {
-				return NewAppError(500, err, "Unable to unmarshal share from permission",
-					zap.String("dbPermission.AcmShare", dbPermission.AcmShare),
-					zap.String("dbPermission.Grantee", dbPermission.Grantee))
-			}
-			combinedInterface := CombineInterface(sourceInterface, interfaceToAdd)
-			if herr = setACMPartFromInterface(ctx, dbObject, "share", combinedInterface); herr != nil {
-				return herr
-			}
-		}
-	}
-
-	// Iterate any permissions that will be added, also combinining in
-	for _, permission := range permissionsToAdd {
-		// For permissions granting read, merge permission.AcmShare into dbObject.RawAcm.String{share}
-		if permission.AllowRead &&
-			!permission.IsDeleted &&
-			!isPermissionFor(&permission, models.EveryoneGroup) {
-			herr, sourceInterface := getACMInterfacePart(dbObject, "share")
-			if herr != nil {
-				return herr
-			}
-			interfaceToAdd, err := utils.UnmarshalStringToInterface(permission.AcmShare)
-			if err != nil {
-				return NewAppError(500, err, "Unable to unmarshal share from permission",
-					zap.String("permission.AcmShare", permission.AcmShare),
-					zap.String("permission.Grantee", permission.Grantee))
-			}
-			combinedInterface := CombineInterface(sourceInterface, interfaceToAdd)
-			if herr = setACMPartFromInterface(ctx, dbObject, "share", combinedInterface); herr != nil {
-				return herr
-			}
-		}
-	}
-
-	return nil
-}
-
-func copyPermissionToGrantee(originalPermission *models.ODObjectPermission, grantee string) models.ODObjectPermission {
-	// NOTE: This will be an area that gets complicate when changeowner implemented and ability to assign ownership to groups since
-	// need to maintain project name, displayname and group name
-
-	// This call assumes grantee is a user in the form of a distinguished name (not flattened)
-	return models.PermissionForUser(grantee, originalPermission.AllowCreate, originalPermission.AllowRead, originalPermission.AllowUpdate, originalPermission.AllowDelete, originalPermission.AllowShare)
 }
