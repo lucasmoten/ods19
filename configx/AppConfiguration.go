@@ -566,7 +566,17 @@ func NewAWSConfig(endpoint string) *AWSConfig {
 // NewS3Config is the s3 session
 func NewS3Config() *S3Config {
 	ret := &S3Config{}
-	ret.AWSConfig = NewAWSConfig(OD_AWS_ENDPOINT)
+	name := OD_AWS_S3_ENDPOINT
+	s3Endpoint := getEnvOrDefault(OD_AWS_S3_ENDPOINT, "")
+	if s3Endpoint == "" {
+		s3EndpointOld := getEnvOrDefault("OD_AWS_ENDPOINT", "")
+		if s3EndpointOld != "" {
+			s3Endpoint = s3EndpointOld
+			name = "OD_AWS_ENDPOINT"
+			logger.Error("OD_AWS_ENDPOINT must be renamed to OD_AWS_S3_ENDPOINT in your env.sh")
+		}
+	}
+	ret.AWSConfig = NewAWSConfig(name)
 	return ret
 }
 
