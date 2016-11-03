@@ -5,6 +5,9 @@ Release vNEXT
 ----------------
 * NEW: AAC is discoverable from its own ZK cluster, not just default ZK.
 * NEW: Additional debug logging around database code for updating ACMs on objects.
+* FIX: Can specify everyone (group/-Everyone/-Everyone) for read permission when creating object 
+* NEW: Configuration for environment variable OD_AWS_ENDPOINT is now read from OD_AWS_S3_ENDPOINT
+* NEW: Support for Peer2Peer retrieval of content streams when running multiple instances of ODrive
 
 Release v1.0.1.6
 ----------------
