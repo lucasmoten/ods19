@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -40,138 +39,156 @@ func abortUploadObject(
 	return herr
 }
 
-// acceptObjectUpload is called by createObject and updateObjectStream. In the case of createObject, the obj param is a
-// mostly-empty object with EncryptIV and ContentConnector set. In the case of updateObjectStream, the obj param is
-// an object fetched from the database.
+// This is split because we are going to need to be able to do things in between getting metadata and accepting the bytes
+// when we have a masterkey per cache
 func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *multipart.Reader, obj *models.ODObject,
-	grant *models.ODObjectPermission, asCreate bool) (ciphertext.CiphertextCache, func(), *AppError, error) {
-	var drainFunc func()
+	grant *models.ODObjectPermission, asCreate bool) (func(), *AppError) {
+
+	// Get the first part
+	part, err := multipartReader.NextPart()
+	if err != nil {
+		return nil, NewAppError(400, err, "error getting metadata part")
+	}
+
+	parsedMetadata, herr := h.acceptObjectUploadMeta(ctx, part, obj, grant, asCreate)
+	if herr != nil {
+		return nil, herr
+	}
+
+	// Get the second part if the first was consumed.
+	if parsedMetadata {
+		part, err = multipartReader.NextPart()
+		if err == io.EOF {
+			return nil, NewAppError(400, err, "error getting stream part")
+		}
+	}
+
+	// Process the stream
+	return h.acceptObjectUploadStream(ctx, part, obj, grant, asCreate, parsedMetadata)
+}
+
+// Get an update obj from the caller - we are not persisting anything yet
+func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.Part, obj *models.ODObject,
+	grant *models.ODObjectPermission, asCreate bool) (bool, *AppError) {
 	var herr *AppError
 
-	dp := ciphertext.FindCiphertextCacheByObject(obj)
+	parsedMetadata := false
+	var createObjectRequest protocol.CreateObjectRequest
+	var updateObjectRequest protocol.UpdateObjectAndStreamRequest
+
+	if part.FormName() == "ObjectMetadata" {
+		parsedMetadata = true
+
+		limit := 5 << (10 * 2)
+		metadata, err := ioutil.ReadAll(io.LimitReader(part, int64(limit)))
+		if err != nil {
+			return parsedMetadata, NewAppError(400, err, "could not read json metadata")
+		}
+		// Parse into a useable struct
+		if asCreate {
+			err = json.Unmarshal(metadata, &createObjectRequest)
+		} else {
+			err = json.Unmarshal(metadata, &updateObjectRequest)
+		}
+		if err != nil {
+			return parsedMetadata, NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", metadata))
+		}
+
+		// Validation & Mapping for Create
+		if asCreate {
+			// Mapping to object
+			err = mapping.OverwriteODObjectWithCreateObjectRequest(obj, &createObjectRequest)
+			if err != nil {
+				return parsedMetadata, NewAppError(400, err, "Could not extract data from json response")
+			}
+			// Post mapping rules applied for create (not deleted, enforce owner cruds, assign meta)
+			if herr := handleCreatePrerequisites(ctx, h, obj); herr != nil {
+				return parsedMetadata, herr
+			}
+		}
+
+		// Validation & Mapping for Update
+		if !asCreate {
+			// ID in json must match that on the URI
+			herr = compareIDFromJSONWithURI(ctx, updateObjectRequest)
+			if herr != nil {
+				return parsedMetadata, herr
+			}
+			// ACM check for user able to access new if different then old
+			rawAcmString, err := utils.MarshalInterfaceToString(updateObjectRequest.RawAcm)
+			if err != nil {
+				return parsedMetadata, NewAppError(400, err, fmt.Sprintf("Unable to marshal ACM as string: %s", updateObjectRequest.RawAcm))
+			}
+			if len(rawAcmString) != 0 && strings.Compare(obj.RawAcm.String, rawAcmString) != 0 {
+				if err := h.isUserAllowedForACMString(ctx, rawAcmString); err != nil {
+					LoggerFromContext(ctx).Info("acm no access", zap.String("origination", "No access to new ACM on Update"), zap.String("acm", rawAcmString))
+					return parsedMetadata, ClassifyObjectACMError(err)
+				}
+			}
+			// ChangeToken must be provided and match the object
+			if obj.ChangeToken != updateObjectRequest.ChangeToken {
+				return parsedMetadata, NewAppError(400, nil, "Changetoken must be up to date")
+			}
+			// Mapping to object
+			err = mapping.OverwriteODObjectWithUpdateObjectAndStreamRequest(obj, &updateObjectRequest)
+			if err != nil {
+				return parsedMetadata, NewAppError(400, err, "Could not extract data from json response")
+			}
+		}
+
+		// Whether creating or updating, the ACM must have a value
+		if len(obj.RawAcm.String) == 0 {
+			return parsedMetadata, NewAppError(400, err, "An ACM must be specified")
+		}
+	}
+	return parsedMetadata, nil
+}
+
+// Get the bytes from the caller.
+func (h AppServer) acceptObjectUploadStream(ctx context.Context, part *multipart.Part, obj *models.ODObject,
+	grant *models.ODObjectPermission, asCreate bool, parsedMetadata bool) (func(), *AppError) {
+
+	var herr *AppError
+	var err error
+	var drainFunc func()
 
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		return dp, nil, NewAppError(400, nil, "Could not determine user"), fmt.Errorf("User not provided in context")
+		return nil, NewAppError(400, fmt.Errorf("User not provided in context"), "Could not determine user")
 	}
-	parsedMetadata := false
-	var createObjectRequest protocol.CreateObjectRequest
-	var updateObjectRequest protocol.UpdateObjectAndStreamRequest
-	for {
-		part, err := multipartReader.NextPart()
-		if err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				return dp, nil, NewAppError(400, err, "error getting a part"), err
-			}
+
+	if part != nil && len(part.FileName()) > 0 {
+		var msg string
+		if asCreate {
+			msg = "ObjectMetadata is required during create"
+		} else {
+			msg = "Metadata must be provided in part named 'ObjectMetadata' to create or update an object and must appear before the file contents"
 		}
-
-		switch {
-		case part.FormName() == "ObjectMetadata":
-
-			limit := 5 << (10 * 2)
-			metadata, err := ioutil.ReadAll(io.LimitReader(part, int64(limit)))
-			if err != nil {
-				herr := NewAppError(400, err, "could not read json metadata")
-				return dp, drainFunc, herr, nil
-			}
-			// Parse into a useable struct
-			if asCreate {
-				err = json.Unmarshal(metadata, &createObjectRequest)
-			} else {
-				err = json.Unmarshal(metadata, &updateObjectRequest)
-			}
-			if err != nil {
-				return dp, drainFunc, NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", metadata)), err
-			}
-
-			//Decide on where this object actually is going to live based on metadata of the object.
-			//It can CHANGE on update!
-			dp = ciphertext.FindCiphertextCacheByObject(obj)
-
-			// Validation & Mapping for Create
-			if asCreate {
-				// Mapping to object
-				err = mapping.OverwriteODObjectWithCreateObjectRequest(obj, &createObjectRequest)
-				if err != nil {
-					return dp, drainFunc, NewAppError(400, err, "Could not extract data from json response"), err
-				}
-				// Post mapping rules applied for create (not deleted, enforce owner cruds, assign meta)
-				if herr := handleCreatePrerequisites(ctx, h, obj); herr != nil {
-					return dp, nil, herr, nil
-				}
-			}
-
-			// Validation & Mapping for Update
-			if !asCreate {
-				// ID in json must match that on the URI
-				herr = compareIDFromJSONWithURI(ctx, updateObjectRequest)
-				if herr != nil {
-					return dp, nil, herr, errors.New("bad request: mismatched IDs")
-				}
-				// ACM check for user able to access new if different then old
-				rawAcmString, err := utils.MarshalInterfaceToString(updateObjectRequest.RawAcm)
-				if err != nil {
-					return dp, drainFunc, NewAppError(400, err, fmt.Sprintf("Unable to marshal ACM as string: %s", updateObjectRequest.RawAcm)), err
-				}
-				if len(rawAcmString) != 0 && strings.Compare(obj.RawAcm.String, rawAcmString) != 0 {
-					if err := h.isUserAllowedForACMString(ctx, rawAcmString); err != nil {
-						LoggerFromContext(ctx).Info("acm no access", zap.String("origination", "No access to new ACM on Update"), zap.String("acm", rawAcmString))
-						return dp, drainFunc, ClassifyObjectACMError(err), err
-					}
-				}
-				// ChangeToken must be provided and match the object
-				if obj.ChangeToken != updateObjectRequest.ChangeToken {
-					return dp, drainFunc, NewAppError(400, nil, "Changetoken must be up to date"), nil
-				}
-				// Mapping to object
-				err = mapping.OverwriteODObjectWithUpdateObjectAndStreamRequest(obj, &updateObjectRequest)
-				if err != nil {
-					return dp, drainFunc, NewAppError(400, err, "Could not extract data from json response"), err
-				}
-
-			}
-
-			// Whether creating or updating, the ACM must have a value
-			if len(obj.RawAcm.String) == 0 {
-				return dp, drainFunc, NewAppError(400, err, "An ACM must be specified"), nil
-			}
-
-			parsedMetadata = true
-
-		case len(part.FileName()) > 0:
-			var msg string
-			if asCreate {
-				msg = "ObjectMetadata is required during create"
-			} else {
-				msg = "Metadata must be provided in part named 'ObjectMetadata' to create or update an object and must appear before the file contents"
-			}
-			if !parsedMetadata {
-				return dp, drainFunc, NewAppError(400, nil, msg), nil
-			}
-			//Guess the content type and name if it wasn't supplied
-			if obj.ContentType.Valid == false || len(obj.ContentType.String) == 0 {
-				obj.ContentType.String = guessContentType(part.FileName())
-			}
-			if obj.Name == "" {
-				obj.Name = part.FileName()
-			}
-			drainFunc, herr, err = h.beginUpload(ctx, caller, part, obj, grant)
-			if herr != nil {
-				return dp, nil, herr, err
-			}
-			if err != nil {
-				return dp, drainFunc, NewAppError(500, err, "error caching file"), err
-			}
-		} // switch
-	} //for
-	//catch the nil,nil,nil return case
-	if drainFunc == nil {
-		return dp, nil, NewAppError(400, nil, "file must be supplied as multipart mime part"), nil
+		if !parsedMetadata {
+			return drainFunc, NewAppError(400, nil, msg)
+		}
+		// Guess the content type and name if it wasn't supplied
+		if obj.ContentType.Valid == false || len(obj.ContentType.String) == 0 {
+			obj.ContentType.String = guessContentType(part.FileName())
+		}
+		if obj.Name == "" {
+			obj.Name = part.FileName()
+		}
+		drainFunc, herr, err = h.beginUpload(ctx, caller, part, obj, grant)
+		if herr != nil {
+			return nil, herr
+		}
+		if err != nil {
+			return nil, NewAppError(500, err, "error caching file")
+		}
 	}
-	return dp, drainFunc, nil, nil
+
+	// catch the nil,nil,nil return case
+	if drainFunc == nil {
+		return nil, NewAppError(400, nil, "file must be supplied as multipart mime part")
+	}
+	return drainFunc, nil
 }
 
 func (h AppServer) beginUpload(ctx context.Context, caller Caller, part *multipart.Part, obj *models.ODObject, grant *models.ODObjectPermission) (beginDrain func(), herr *AppError, err error) {

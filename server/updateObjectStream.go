@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/crypto"
 	db "decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/events"
@@ -74,7 +75,8 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	if err != nil {
 		return NewAppError(400, err, "unable to open multipart reader")
 	}
-	dp, drainFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &dbObject, &grant, false)
+	drainFunc, herr := h.acceptObjectUpload(ctx, multipartReader, &dbObject, &grant, false)
+	dp := ciphertext.FindCiphertextCacheByObject(&dbObject)
 	if herr != nil {
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}

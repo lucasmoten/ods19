@@ -64,11 +64,11 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 			return NewAppError(400, err, "Unable to get mime multipart")
 		}
 
-		dp, createdFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &obj, &ownerPermission, true)
+		drainFunc, herr = h.acceptObjectUpload(ctx, multipartReader, &obj, &ownerPermission, true)
+		dp := ciphertext.FindCiphertextCacheByObject(&obj)
 		if herr != nil {
 			return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 		}
-		drainFunc = createdFunc
 	} else {
 		// Check headers
 		herr = validateCreateObjectHeaders(r)
