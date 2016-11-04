@@ -1,7 +1,7 @@
 Changelog
 ================
 
-Release vNEXT
+Release v1.0.1.7
 ----------------
 * NEW: AAC is discoverable from its own ZK cluster, not just default ZK.
 * NEW: Additional debug logging around database code for updating ACMs on objects.
