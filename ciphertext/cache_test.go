@@ -298,6 +298,7 @@ func TestCacheDrainToSafety(t *testing.T) {
 	if config.DefaultBucket == "" {
 		t.Skip()
 	}
+	masterKey := os.Getenv("OD_ENCRYPT_MASTERKEY")
 
 	t.Log("create raw cache")
 	dirname := "t012345"
@@ -321,7 +322,7 @@ func TestCacheDrainToSafety(t *testing.T) {
 	s3Config := config.NewS3Config()
 	sess := amazon.NewAWSSession(s3Config.AWSConfig, logger)
 	permanentStorage := ciphertext.NewPermanentStorageData(sess, &config.DefaultBucket)
-	d := ciphertext.NewCiphertextCacheRaw(fqCacheRoot, dirname, float64(0.50), float64(0.75), int64(60*5), 120, ciphertext.S3ChunkSize, logger, permanentStorage)
+	d := ciphertext.NewCiphertextCacheRaw(fqCacheRoot, dirname, float64(0.50), float64(0.75), int64(60*5), 120, ciphertext.S3ChunkSize, logger, permanentStorage, masterKey)
 
 	t.Log("create a small file")
 	rName := ciphertext.FileId("farkFailedInitially")
@@ -358,7 +359,7 @@ func TestCacheCreate(t *testing.T) {
 	if config.DefaultBucket == "" {
 		t.Skip()
 	}
-
+	masterKey := os.Getenv("OD_ENCRYPT_MASTERKEY")
 	t.Skip()
 	//Setup and teardown
 	dirname := "t01234"
@@ -368,7 +369,7 @@ func TestCacheCreate(t *testing.T) {
 	s3Config := config.NewS3Config()
 	sess := amazon.NewAWSSession(s3Config.AWSConfig, logger)
 	permanentStorage := ciphertext.NewPermanentStorageData(sess, &config.DefaultBucket)
-	d := ciphertext.NewCiphertextCacheRaw(".", dirname, float64(0.50), float64(0.75), int64(60*5), 120, ciphertext.S3ChunkSize, logger, permanentStorage)
+	d := ciphertext.NewCiphertextCacheRaw(".", dirname, float64(0.50), float64(0.75), int64(60*5), 120, ciphertext.S3ChunkSize, logger, permanentStorage, masterKey)
 
 	//create a small file
 	rName := ciphertext.FileId("fark")

@@ -421,7 +421,6 @@ func makeServer(conf configx.ServerSettingsConfiguration) (*server.AppServer, er
 		UsersLruCache:             usersLruCache,
 		Snippets:                  snippetCache,
 		AclImpersonationWhitelist: conf.AclImpersonationWhitelist,
-		MasterKey:                 conf.MasterKey,
 	}
 
 	httpHandler.InitRegex()

@@ -64,8 +64,6 @@ type AppServer struct {
 	EventQueue events.Publisher
 	// EventQueueZK is a pointer to the cluster where we discover Kafka. May be set to DefaultZK.
 	EventQueueZK *zookeeper.ZKState
-	// MasterKey is the secret passphrase used in scrambling keys
-	MasterKey string
 	// Tracker captures metrics about upload/download begin and end time and transfer bytes
 	Tracker *performance.JobReporters
 	// TemplateCache is location of HTML templates used by server

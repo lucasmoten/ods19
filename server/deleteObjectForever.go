@@ -47,7 +47,7 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 	}
 
 	// Auth check
-	if ok := isUserAllowedToDelete(ctx, h.MasterKey, &dbObject); !ok {
+	if ok := isUserAllowedToDelete(ctx, &dbObject); !ok {
 		return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to expunge this object")
 	}
 

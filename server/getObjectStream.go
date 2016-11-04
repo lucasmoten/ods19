@@ -137,13 +137,17 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	// Check read permission, and capture permission for the encryptKey
 	// Check if the user has permissions to read the ODObject
 	//		Permission.grantee matches caller, and AllowRead is true
-	ok, userPermission := isUserAllowedToReadWithPermission(ctx, h.MasterKey, &object)
+	ok, userPermission := isUserAllowedToReadWithPermission(ctx, &object)
 	if !ok {
 		return NoBytesReturned, NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
 	}
+
+	dp := ciphertext.FindCiphertextCacheByObject(&object)
+	masterKey := dp.GetMasterKey()
+
 	// Using captured permission, derive filekey
 	var fileKey []byte
-	fileKey = crypto.ApplyPassphrase(h.MasterKey, userPermission.PermissionIV, userPermission.EncryptKey)
+	fileKey = crypto.ApplyPassphrase(masterKey, userPermission.PermissionIV, userPermission.EncryptKey)
 	if len(fileKey) == 0 {
 		return NoBytesReturned, NewAppError(500, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object")
 	}

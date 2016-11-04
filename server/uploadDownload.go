@@ -42,7 +42,7 @@ func abortUploadObject(
 // This is split because we are going to need to be able to do things in between getting metadata and accepting the bytes
 // when we have a masterkey per cache
 func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *multipart.Reader, obj *models.ODObject,
-	grant *models.ODObjectPermission, asCreate bool) (func(), *AppError) {
+	grant *models.ODObjectPermission, asCreate bool, afterMeta func(*models.ODObject)) (func(), *AppError) {
 
 	// Get the first part
 	part, err := multipartReader.NextPart()
@@ -61,6 +61,11 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 		if err == io.EOF {
 			return nil, NewAppError(400, err, "error getting stream part")
 		}
+	}
+
+	//This is code inserted in between metadata parse and accepting the stream
+	if afterMeta != nil {
+		afterMeta(obj)
 	}
 
 	// Process the stream
@@ -211,11 +216,12 @@ func (h AppServer) beginUpload(ctx context.Context, caller Caller, part *multipa
 func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *multipart.Part, obj *models.ODObject,
 	grant *models.ODObjectPermission) (beginDrain func(), herr *AppError, err error) {
 	logger := LoggerFromContext(ctx)
-
+	dp := ciphertext.FindCiphertextCacheByObject(obj)
+	masterKey := dp.GetMasterKey()
 	fileID := ciphertext.FileId(obj.ContentConnector.String)
 	iv := obj.EncryptIV
 	// TODO this is where we actually use grant.
-	fileKey := crypto.ApplyPassphrase(h.MasterKey, grant.PermissionIV, grant.EncryptKey)
+	fileKey := crypto.ApplyPassphrase(masterKey, grant.PermissionIV, grant.EncryptKey)
 	d := ciphertext.FindCiphertextCacheByObject(obj)
 
 	// CiphertextCacheFilesystemMountPoint.Resolve(FileName) returns a path.

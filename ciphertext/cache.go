@@ -64,6 +64,9 @@ type CiphertextCacheData struct {
 
 	//Logger for logging
 	Logger zap.Logger
+
+	// MasterKey is the secret passphrase used in scrambling keys
+	MasterKey string
 }
 
 // NewCiphertextCacheRaw is a cache that goes off to PermanentStorage.
@@ -93,7 +96,8 @@ func NewCiphertextCacheRaw(
 	walkSleep time.Duration,
 	chunkSize int64,
 	logger zap.Logger,
-	permanentStorage PermanentStorage) *CiphertextCacheData {
+	permanentStorage PermanentStorage,
+	masterKey string) *CiphertextCacheData {
 	d := &CiphertextCacheData{
 		CiphertextCacheSelector: S3_DEFAULT_CIPHERTEXT_CACHE, //This will be overwritten when it is put into a map of caches
 		PermanentStorage:        permanentStorage,
@@ -105,6 +109,7 @@ func NewCiphertextCacheRaw(
 		walkSleep:               walkSleep,
 		ChunkSize:               chunkSize,
 		Logger:                  logger,
+		MasterKey:               masterKey,
 	}
 	CacheMustExist(d, logger)
 	logger.Info("cache purge",
@@ -114,6 +119,12 @@ func NewCiphertextCacheRaw(
 		zap.Duration("walksleep", walkSleep),
 	)
 	return d
+}
+
+// GetMasterKey is the key for this cache - no more system global masterkey
+// This means that in order to have a key, you need to have an object that it refers to
+func (d *CiphertextCacheData) GetMasterKey() string {
+	return d.MasterKey
 }
 
 // Resolve a name to somewhere in the cache, given the rName

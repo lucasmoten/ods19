@@ -11,6 +11,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
@@ -26,10 +27,13 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	session := SessionIDFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
 
-	rollupPermission, permissions, dbObject, herr := commonObjectSharePrep(ctx, h.MasterKey, r)
+	rollupPermission, permissions, dbObject, herr := commonObjectSharePrep(ctx, r)
 	if herr != nil {
 		return herr
 	}
+
+	dp := ciphertext.FindCiphertextCacheByObject(&dbObject)
+	masterKey := dp.GetMasterKey()
 
 	dao := DAOFromContext(ctx)
 	// Only proceed if there were permissions provided
@@ -83,7 +87,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 			}
 
 			// Now we can assign encrypt key, which will set mac based upon permissions being granted
-			models.CopyEncryptKey(h.MasterKey, &rollupPermission, &permission)
+			models.CopyEncryptKey(masterKey, &rollupPermission, &permission)
 
 			// And add it to the list of permissions that will be added
 			permissionsToAdd = append(permissionsToAdd, permission)
@@ -129,7 +133,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 		// Add these permissions to the database.
 		for _, permission := range permissionsToAdd {
 			// Add to database
-			_, err := dao.AddPermissionToObject(dbObject, &permission, false, h.MasterKey)
+			_, err := dao.AddPermissionToObject(dbObject, &permission, false, masterKey)
 			if err != nil {
 				return NewAppError(500, err, "Error updating permission on object - add permission")
 			}
@@ -158,7 +162,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	return nil
 }
 
-func commonObjectSharePrep(ctx context.Context, masterKey string, r *http.Request) (models.ODObjectPermission, []models.ODObjectPermission, models.ODObject, *AppError) {
+func commonObjectSharePrep(ctx context.Context, r *http.Request) (models.ODObjectPermission, []models.ODObjectPermission, models.ODObject, *AppError) {
 
 	// Get dao value from ctx.
 	dao := DAOFromContext(ctx)
@@ -183,7 +187,7 @@ func commonObjectSharePrep(ctx context.Context, masterKey string, r *http.Reques
 
 	// Check Permissions
 	allowedToShare := false
-	allowedToShare, rollupPermission = isUserAllowedToShareWithPermission(ctx, masterKey, &dbObject)
+	allowedToShare, rollupPermission = isUserAllowedToShareWithPermission(ctx, &dbObject)
 	if !allowedToShare {
 		return rollupPermission, permissions, dbObject, NewAppError(403, errors.New("unauthorized to share"), "Forbidden - User does not have permission to modify shares for an object")
 	}

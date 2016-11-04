@@ -9,6 +9,7 @@ import (
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 
+	"decipher.com/object-drive-server/ciphertext"
 	"golang.org/x/net/context"
 )
 
@@ -20,10 +21,13 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 	session := SessionIDFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
 
-	rollupPermission, permissions, dbObject, herr := commonObjectSharePrep(ctx, h.MasterKey, r)
+	rollupPermission, permissions, dbObject, herr := commonObjectSharePrep(ctx, r)
 	if herr != nil {
 		return herr
 	}
+
+	dp := ciphertext.FindCiphertextCacheByObject(&dbObject)
+	masterKey := dp.GetMasterKey()
 
 	// Only proceed if there were permissions provided
 	if len(permissions) == 0 {
@@ -62,7 +66,7 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 						// Add read permission for the owner
 						newOwnerPermission := copyPermissionToGrantee(&dbPermission, odACMGrantee)
 						// Now we can assign encrypt key, which will set mac based upon permissions being granted
-						models.CopyEncryptKey(h.MasterKey, &rollupPermission, &newOwnerPermission)
+						models.CopyEncryptKey(masterKey, &rollupPermission, &newOwnerPermission)
 						permissionsToAdd = append(permissionsToAdd, newOwnerPermission)
 						dbHasEveryone = false
 					}
@@ -117,7 +121,7 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 				// Add to database
 				permission.CreatedBy = caller.DistinguishedName
 				permission.ObjectID = dbObject.ID
-				_, err := dao.AddPermissionToObject(dbObject, &permission, false, h.MasterKey)
+				_, err := dao.AddPermissionToObject(dbObject, &permission, false, masterKey)
 				if err != nil {
 					return NewAppError(500, err, "Error updating permission on object - add permission")
 				}

@@ -103,7 +103,7 @@ func NewS3CiphertextCache(conf configx.S3CiphertextCacheOpts, name string) Ciphe
 		logger.Info("PermanentStorage is empty because there is no bucket name")
 	}
 
-	d := NewCiphertextCacheRaw(conf.Root, name, conf.LowWatermark, conf.HighWatermark, conf.EvictAge, walkSleepDuration, S3ChunkSize, logger, permanentStorage)
+	d := NewCiphertextCacheRaw(conf.Root, name, conf.LowWatermark, conf.HighWatermark, conf.EvictAge, walkSleepDuration, S3ChunkSize, logger, permanentStorage, conf.MasterKey)
 	go d.DrainUploadedFilesToSafety()
 	return d
 }

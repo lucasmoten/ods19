@@ -50,6 +50,8 @@ type CiphertextCache interface {
 	SetCiphertextCacheSelector(CiphertextCacheSelector CiphertextCacheName)
 	// ReCache an object in the background
 	BackgroundRecache(rName FileId, totalLength int64)
+	// GetMasterKey is the key for this cache
+	GetMasterKey() string
 }
 
 // ciphertextCaches is the named set of local caches that are bound to a remote bucket (S3 or possibly something else)
