@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"decipher.com/object-drive-server/ciphertext"
+	"decipher.com/object-drive-server/configx"
 
 	"decipher.com/object-drive-server/amazon"
 	cfg "decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/configx"
 )
 
 var testCacheData = `
@@ -318,11 +318,23 @@ func TestCacheDrainToSafety(t *testing.T) {
 	t.Log("make a temp drain provider")
 	logger := cfg.RootLogger
 
-	//We need to use S3 here because we delete files and expect download to restore them
 	s3Config := config.NewS3Config()
 	sess := amazon.NewAWSSession(s3Config.AWSConfig, logger)
 	permanentStorage := ciphertext.NewPermanentStorageData(sess, &config.DefaultBucket)
-	d := ciphertext.NewCiphertextCacheRaw(fqCacheRoot, dirname, float64(0.50), float64(0.75), int64(60*5), 120, ciphertext.S3ChunkSize, logger, permanentStorage, masterKey)
+	chunkSize16MB := int64(16 * 1024 * 1024)
+	conf := &config.S3CiphertextCacheOpts{
+		Root:          ".",
+		Partition:     dirname,
+		LowWatermark:  float64(0.50),
+		HighWatermark: float64(0.75),
+		EvictAge:      int64(60 * 5),
+		WalkSleep:     120,
+		ChunkSize:     chunkSize16MB,
+		MasterKey:     masterKey,
+	}
+	dbID := "dbtest"
+	selector := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
+	d := ciphertext.NewCiphertextCacheRaw(selector, conf, dbID, logger, permanentStorage)
 
 	t.Log("create a small file")
 	rName := ciphertext.FileId("farkFailedInitially")
@@ -369,7 +381,20 @@ func TestCacheCreate(t *testing.T) {
 	s3Config := config.NewS3Config()
 	sess := amazon.NewAWSSession(s3Config.AWSConfig, logger)
 	permanentStorage := ciphertext.NewPermanentStorageData(sess, &config.DefaultBucket)
-	d := ciphertext.NewCiphertextCacheRaw(".", dirname, float64(0.50), float64(0.75), int64(60*5), 120, ciphertext.S3ChunkSize, logger, permanentStorage, masterKey)
+	chunkSize16MB := int64(16 * 1024 * 1024)
+	conf := &config.S3CiphertextCacheOpts{
+		Root:          ".",
+		Partition:     dirname,
+		LowWatermark:  float64(0.50),
+		HighWatermark: float64(0.75),
+		EvictAge:      int64(60 * 5),
+		WalkSleep:     120,
+		ChunkSize:     chunkSize16MB,
+		MasterKey:     masterKey,
+	}
+	dbID := "dbtest"
+	selector := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
+	d := ciphertext.NewCiphertextCacheRaw(selector, conf, dbID, logger, permanentStorage)
 
 	//create a small file
 	rName := ciphertext.FileId("fark")

@@ -3,7 +3,6 @@ package ciphertext
 import (
 	"fmt"
 	"io"
-	"time"
 
 	"decipher.com/object-drive-server/amazon"
 	globalconfig "decipher.com/object-drive-server/config"
@@ -14,15 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/uber-go/zap"
-)
-
-var (
-	// S3ChunkSize chunksInMegs is a default number of megabytes to fetch from PermanentStorage when there is a cache miss
-	// For now, I am going to leave this at its default value, because for P2P and LocalStorage, it will pick a huge
-	// value anyway (1GB).  This value must be small enough that when a Puller runs out of data, that whole chunk can be
-	// fetched and served back in an http request before the video stream misses its deadline.  So, for video performance,
-	// smaller is better.  But the smaller it is, the more S3 requests it makes (which has overhead as well).
-	S3ChunkSize = int64(globalconfig.GetEnvOrDefaultInt("OD_AWS_S3_FETCH_MB", 16)) * int64(1024*1024)
 )
 
 // PermanentStorageData is where we write back permanently
@@ -87,10 +77,8 @@ func (s *PermanentStorageData) GetStream(key *string, begin, end int64) (io.Read
 }
 
 // NewS3CiphertextCache sets up a drain with default parameters overridden by environment variables
-func NewS3CiphertextCache(conf configx.S3CiphertextCacheOpts, name string) CiphertextCache {
+func NewS3CiphertextCache(selector CiphertextCacheName, conf *configx.S3CiphertextCacheOpts, dbID string) CiphertextCache {
 	logger := globalconfig.RootLogger.With(zap.String("session", "CiphertextCache"))
-
-	walkSleepDuration := time.Duration(conf.WalkSleep) * time.Second
 
 	s3Config := configx.NewS3Config()
 	sess := amazon.NewAWSSession(s3Config.AWSConfig, logger)
@@ -103,7 +91,7 @@ func NewS3CiphertextCache(conf configx.S3CiphertextCacheOpts, name string) Ciphe
 		logger.Info("PermanentStorage is empty because there is no bucket name")
 	}
 
-	d := NewCiphertextCacheRaw(conf.Root, name, conf.LowWatermark, conf.HighWatermark, conf.EvictAge, walkSleepDuration, S3ChunkSize, logger, permanentStorage, conf.MasterKey)
+	d := NewCiphertextCacheRaw(selector, conf, dbID, logger, permanentStorage)
 	go d.DrainUploadedFilesToSafety()
 	return d
 }

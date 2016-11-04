@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	globalconfig "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/configx"
 
 	"github.com/uber-go/zap"
 )
@@ -88,35 +89,30 @@ type CiphertextCacheData struct {
 //
 //
 func NewCiphertextCacheRaw(
-	root string,
-	name string,
-	lowWatermark float64,
-	highWatermark float64,
-	ageEligibleForEviction int64,
-	walkSleep time.Duration,
-	chunkSize int64,
+	selector CiphertextCacheName,
+	conf *config.S3CiphertextCacheOpts,
+	dbID string,
 	logger zap.Logger,
 	permanentStorage PermanentStorage,
-	masterKey string) *CiphertextCacheData {
+) *CiphertextCacheData {
+	//Do the unit conversions HERE
 	d := &CiphertextCacheData{
-		CiphertextCacheSelector: S3_DEFAULT_CIPHERTEXT_CACHE, //This will be overwritten when it is put into a map of caches
+		CiphertextCacheSelector: selector,
 		PermanentStorage:        permanentStorage,
-		files:                   CiphertextCacheFilesystemMountPoint{root},
-		CacheLocationString:     name,
-		lowWatermark:            lowWatermark,
-		ageEligibleForEviction:  ageEligibleForEviction,
-		highWatermark:           highWatermark,
-		walkSleep:               walkSleep,
-		ChunkSize:               chunkSize,
+		files:                   CiphertextCacheFilesystemMountPoint{conf.Root},
+		CacheLocationString:     conf.Partition + "/" + dbID,
+		lowWatermark:            conf.LowWatermark,
+		ageEligibleForEviction:  conf.EvictAge,
+		highWatermark:           conf.HighWatermark,
+		walkSleep:               time.Duration(conf.WalkSleep) * time.Second,
+		ChunkSize:               conf.ChunkSize * 1024 * 1024,
 		Logger:                  logger,
-		MasterKey:               masterKey,
+		MasterKey:               conf.MasterKey,
 	}
 	CacheMustExist(d, logger)
-	logger.Info("cache purge",
-		zap.Float64("lowwatermark", lowWatermark),
-		zap.Float64("highwatermark", highWatermark),
-		zap.Int64("ageeligibleforeviction", ageEligibleForEviction),
-		zap.Duration("walksleep", walkSleep),
+	logger.Info("ciphertextcache created",
+		zap.String("mount", conf.Root),
+		zap.String("location", d.CacheLocationString),
 	)
 	return d
 }

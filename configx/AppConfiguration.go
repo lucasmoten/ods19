@@ -90,7 +90,8 @@ type S3CiphertextCacheOpts struct {
 	HighWatermark float64 `yaml:"high_waterwark"`
 	EvictAge      int64   `yaml:"evict_age"`
 	WalkSleep     int64   `yaml:"walk_sleep"`
-	MasterKey     string  `yaml:"master_key"`
+	MasterKey     string  `yaml:"masterkey"`
+	ChunkSize     int64   `yaml:"chunk_size"`
 }
 
 // ServerSettingsConfiguration holds the attributes needed for
@@ -256,6 +257,7 @@ func NewEventQueueConfiguration(confFile AppConfiguration, opts CommandLineOpts)
 // NewS3CiphertextCacheOpts reads the environment to provide the configuration options for
 // S3CiphertextCache.
 func NewS3CiphertextCacheOpts(confFile AppConfiguration, opts CommandLineOpts) S3CiphertextCacheOpts {
+	//TODO: masterkey and chunksize are cache specific settings now
 	settings := S3CiphertextCacheOpts{
 		Root:          cascade(OD_CACHE_ROOT, confFile.CacheSettings.Root, "."),
 		Partition:     cascade(OD_CACHE_PARTITION, confFile.CacheSettings.Partition, "cache"),
@@ -264,6 +266,7 @@ func NewS3CiphertextCacheOpts(confFile AppConfiguration, opts CommandLineOpts) S
 		EvictAge:      cascadeInt(OD_CACHE_EVICTAGE, confFile.CacheSettings.EvictAge, 300),
 		WalkSleep:     cascadeInt(OD_CACHE_WALKSLEEP, confFile.CacheSettings.WalkSleep, 30),
 		MasterKey:     cascade(OD_ENCRYPT_MASTERKEY, confFile.CacheSettings.MasterKey, ""),
+		ChunkSize:     cascadeInt(OD_AWS_S3_FETCH_MB, confFile.CacheSettings.ChunkSize, 16),
 	}
 	//Note: masterKey is a singleton value now.  But there will need to be one per OD_CACHE_PARTITION now
 	if settings.MasterKey == "" {

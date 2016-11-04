@@ -91,7 +91,6 @@ func SetCiphertextCache(selector CiphertextCacheName, dp CiphertextCache) {
 	//Note that we use read locks everywhere else, and this should actually never be contended,
 	//because setup of the set of ciphertext caches happens single-threaded in main on startup.
 	ciphertextCaches[selector] = dp
-	dp.SetCiphertextCacheSelector(selector)
 }
 
 // PermanentStorage is a generic type for mocking out or replacing S3

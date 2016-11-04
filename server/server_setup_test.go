@@ -89,7 +89,7 @@ func cleanupOpenFiles() {
 // We need to do some of the same setup that main does, because of fakes.
 func testSettings() {
 	// Make sure that we find the ciphertext cache when we look for it
-	settings := config.S3CiphertextCacheOpts{
+	settings := &config.S3CiphertextCacheOpts{
 		Root:          cfg.GetEnvOrDefault(config.OD_CACHE_ROOT, "."),
 		Partition:     cfg.GetEnvOrDefault(config.OD_CACHE_PARTITION, "cache"),
 		LowWatermark:  .50,
@@ -98,9 +98,10 @@ func testSettings() {
 		WalkSleep:     30,
 		MasterKey:     cfg.GetEnvOrDefault(config.OD_ENCRYPT_MASTERKEY, ""),
 	}
+	selector := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
 	ciphertext.SetCiphertextCache(
-		ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE,
-		ciphertext.NewS3CiphertextCache(settings, settings.Partition+"/testing"),
+		selector,
+		ciphertext.NewS3CiphertextCache(selector, settings, "testDB"),
 	)
 }
 
