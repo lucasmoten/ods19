@@ -13,7 +13,7 @@ var SchemaVersion = "20160824"
 
 // DAO defines the contract our app has with the database.
 type DAO interface {
-	AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission, propagateToChildren bool, masterKey string) (models.ODObjectPermission, error)
+	AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission, propagateToChildren bool) (models.ODObjectPermission, error)
 	AddPropertyToObject(object models.ODObject, property *models.ODProperty) (models.ODProperty, error)
 	CreateObject(object *models.ODObject) (models.ODObject, error)
 	CreateObjectType(objectType *models.ODObjectType) (models.ODObjectType, error)

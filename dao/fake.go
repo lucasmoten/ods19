@@ -34,7 +34,7 @@ type FakeDAO struct {
 }
 
 // AddPermissionToObject for FakeDAO.
-func (fake *FakeDAO) AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission, propagateToChildren bool, masterKey string) (models.ODObjectPermission, error) {
+func (fake *FakeDAO) AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission, propagateToChildren bool) (models.ODObjectPermission, error) {
 	return fake.ObjectPermission, fake.Err
 }
 

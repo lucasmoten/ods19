@@ -209,7 +209,7 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		}
 		if permission.IsCreating() && !permission.IsDeleted {
 			permission.CreatedBy = object.ModifiedBy
-			createdPermission, err := addPermissionToObjectInTransaction(logger, tx, *object, &permission, false, "")
+			createdPermission, err := addPermissionToObjectInTransaction(logger, tx, *object, &permission, false)
 			if err != nil {
 				return fmt.Errorf("Error saving permission #%d {%s) when updating object:%v", permIdx, permission, err)
 			}

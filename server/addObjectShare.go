@@ -133,7 +133,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 		// Add these permissions to the database.
 		for _, permission := range permissionsToAdd {
 			// Add to database
-			_, err := dao.AddPermissionToObject(dbObject, &permission, false, masterKey)
+			_, err := dao.AddPermissionToObject(dbObject, &permission, false)
 			if err != nil {
 				return NewAppError(500, err, "Error updating permission on object - add permission")
 			}
