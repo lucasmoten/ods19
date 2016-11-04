@@ -33,7 +33,7 @@ type CiphertextCacheData struct {
 	//ChunkSize is the size of blocks to pull from PermanentStorage
 	ChunkSize int64
 	//The key that this CiphertextCache is stored under
-	CiphertextCacheSelector CiphertextCacheName
+	CiphertextCacheZone CiphertextCacheZone
 	//Where the CacheLocation is rooted on disk (ie: a very large drive mounted)
 	files FileSystem
 
@@ -89,7 +89,7 @@ type CiphertextCacheData struct {
 //
 //
 func NewCiphertextCacheRaw(
-	selector CiphertextCacheName,
+	zone CiphertextCacheZone,
 	conf *config.S3CiphertextCacheOpts,
 	dbID string,
 	logger zap.Logger,
@@ -97,17 +97,17 @@ func NewCiphertextCacheRaw(
 ) *CiphertextCacheData {
 	//Do the unit conversions HERE
 	d := &CiphertextCacheData{
-		CiphertextCacheSelector: selector,
-		PermanentStorage:        permanentStorage,
-		files:                   CiphertextCacheFilesystemMountPoint{conf.Root},
-		CacheLocationString:     conf.Partition + "/" + dbID,
-		lowWatermark:            conf.LowWatermark,
-		ageEligibleForEviction:  conf.EvictAge,
-		highWatermark:           conf.HighWatermark,
-		walkSleep:               time.Duration(conf.WalkSleep) * time.Second,
-		ChunkSize:               conf.ChunkSize * 1024 * 1024,
-		Logger:                  logger,
-		MasterKey:               conf.MasterKey,
+		CiphertextCacheZone:    zone,
+		PermanentStorage:       permanentStorage,
+		files:                  CiphertextCacheFilesystemMountPoint{conf.Root},
+		CacheLocationString:    conf.Partition + "/" + dbID,
+		lowWatermark:           conf.LowWatermark,
+		ageEligibleForEviction: conf.EvictAge,
+		highWatermark:          conf.HighWatermark,
+		walkSleep:              time.Duration(conf.WalkSleep) * time.Second,
+		ChunkSize:              conf.ChunkSize * 1024 * 1024,
+		Logger:                 logger,
+		MasterKey:              conf.MasterKey,
 	}
 	CacheMustExist(d, logger)
 	logger.Info("ciphertextcache created",
@@ -348,7 +348,7 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 		d.Logger.Warn("download from PermanentStorage error", zap.String("err", err.Error()))
 		// Check p2p.... it has to be there...
 		var filep2p io.ReadCloser
-		filep2p, err = useP2PFile(d.Logger, d.CiphertextCacheSelector, rName, 0)
+		filep2p, err = useP2PFile(d.Logger, d.CiphertextCacheZone, rName, 0)
 		if err != nil {
 			d.Logger.Error("p2p cannot find", zap.String("err", err.Error()))
 		}
@@ -628,12 +628,12 @@ func (d *CiphertextCacheData) GetPermanentStorage() PermanentStorage {
 	return d.PermanentStorage
 }
 
-// GetCiphertextCacheSelector is the key that this is stored under
-func (d *CiphertextCacheData) GetCiphertextCacheSelector() CiphertextCacheName {
-	return d.CiphertextCacheSelector
+// GetCiphertextCacheZone is the key that this is stored under
+func (d *CiphertextCacheData) GetCiphertextCacheZone() CiphertextCacheZone {
+	return d.CiphertextCacheZone
 }
 
-// SetCiphertextCacheSelector sets the key by which we actually do the lookup
-func (d *CiphertextCacheData) SetCiphertextCacheSelector(selector CiphertextCacheName) {
-	d.CiphertextCacheSelector = selector
+// SetCiphertextCacheZone sets the key by which we actually do the lookup
+func (d *CiphertextCacheData) SetCiphertextCacheZone(zone CiphertextCacheZone) {
+	d.CiphertextCacheZone = zone
 }

@@ -333,8 +333,8 @@ func TestCacheDrainToSafety(t *testing.T) {
 		MasterKey:     masterKey,
 	}
 	dbID := "dbtest"
-	selector := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
-	d := ciphertext.NewCiphertextCacheRaw(selector, conf, dbID, logger, permanentStorage)
+	zone := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
+	d := ciphertext.NewCiphertextCacheRaw(zone, conf, dbID, logger, permanentStorage)
 
 	t.Log("create a small file")
 	rName := ciphertext.FileId("farkFailedInitially")
@@ -393,8 +393,8 @@ func TestCacheCreate(t *testing.T) {
 		MasterKey:     masterKey,
 	}
 	dbID := "dbtest"
-	selector := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
-	d := ciphertext.NewCiphertextCacheRaw(selector, conf, dbID, logger, permanentStorage)
+	zone := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
+	d := ciphertext.NewCiphertextCacheRaw(zone, conf, dbID, logger, permanentStorage)
 
 	//create a small file
 	rName := ciphertext.FileId("fark")

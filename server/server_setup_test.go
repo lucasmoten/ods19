@@ -98,10 +98,10 @@ func testSettings() {
 		WalkSleep:     30,
 		MasterKey:     cfg.GetEnvOrDefault(config.OD_ENCRYPT_MASTERKEY, ""),
 	}
-	selector := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
+	zone := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
 	ciphertext.SetCiphertextCache(
-		selector,
-		ciphertext.NewS3CiphertextCache(selector, settings, "testDB"),
+		zone,
+		ciphertext.NewS3CiphertextCache(zone, settings, "testDB"),
 	)
 }
 

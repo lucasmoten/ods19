@@ -119,7 +119,7 @@ func (p *Puller) getFileHandle(begin, end int64, p2p bool) (io.ReadCloser, error
 	var filep2p io.ReadCloser
 	// Having no permanent storage is like an implicit p2p flag
 	if p2p || p.IsP2P || p.CiphertextCache.GetPermanentStorage() == nil {
-		filep2p, err = useP2PFile(p.Logger, p.CiphertextCache.CiphertextCacheSelector, p.RName, begin)
+		filep2p, err = useP2PFile(p.Logger, p.CiphertextCache.CiphertextCacheZone, p.RName, begin)
 		if err != nil {
 			p.Logger.Info("puller cant use p2p", zap.String("err", err.Error()))
 		}

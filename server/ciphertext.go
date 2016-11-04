@@ -33,9 +33,9 @@ func (h AppServer) getCiphertext(ctx context.Context, w http.ResponseWriter, r *
 	}
 
 	//Specify which ciphertext out of which drain provider we are looking for
-	selector := ciphertext.CiphertextCacheName(captureGroups["selector"])
+	zone := ciphertext.CiphertextCacheZone(captureGroups["zone"])
 	rName := ciphertext.FileId(captureGroups["rname"])
-	dp := ciphertext.FindCiphertextCache(selector)
+	dp := ciphertext.FindCiphertextCache(zone)
 
 	//If there is a byte range, then use it.
 	startAt := int64(0)

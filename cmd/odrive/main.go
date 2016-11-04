@@ -189,10 +189,10 @@ func startApplication(conf configx.AppConfiguration) {
 	}
 
 	//For now, we have one drain provider, just use the default
-	selector := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
+	zone := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
 	ciphertext.SetCiphertextCache(
-		selector,
-		ciphertext.NewS3CiphertextCache(selector, &conf.CacheSettings, dbID),
+		zone,
+		ciphertext.NewS3CiphertextCache(zone, &conf.CacheSettings, dbID),
 	)
 
 	configureEventQueue(app, conf.EventQueue)
