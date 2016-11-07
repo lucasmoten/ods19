@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	//S3_DEFAULT_CIPHERTEXT_CACHE is the main ciphertext cache in use
+	// S3_DEFAULT_CIPHERTEXT_CACHE is the main ciphertext cache in use
 	S3_DEFAULT_CIPHERTEXT_CACHE = CiphertextCacheZone("S3_DEFAULT")
 )
 
