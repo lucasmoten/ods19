@@ -237,31 +237,7 @@ func (permission ODObjectPermission) String() string {
 }
 
 func getResourceNameFromAcmGrantee(acmGrantee ODAcmGrantee) string {
-	if len(acmGrantee.DisplayName.String) > 0 {
-		o := []string{}
-		if len(acmGrantee.UserDistinguishedName.String) > 0 {
-			o = append(o, "user")
-			o = append(o, acmGrantee.UserDistinguishedName.String)
-		} else if len(acmGrantee.GroupName.String) > 0 {
-			o = append(o, "group")
-			if len(acmGrantee.ProjectName.String) > 0 {
-				o = append(o, acmGrantee.ProjectName.String)
-				if len(acmGrantee.ProjectDisplayName.String) > 0 {
-					o = append(o, acmGrantee.ProjectDisplayName.String)
-				} else {
-					o = append(o, acmGrantee.ProjectName.String)
-				}
-			}
-			o = append(o, acmGrantee.GroupName.String)
-		} else {
-			o = append(o, "unknown")
-		}
-		o = append(o, acmGrantee.DisplayName.String)
-		if len(o) > 0 {
-			return strings.Join(o, "/")
-		}
-	}
-	return ""
+	return acmGrantee.ResourceName()
 }
 
 func getResourceNameFromAcmShare(acmShare string) string {

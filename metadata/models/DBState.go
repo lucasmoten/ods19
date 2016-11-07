@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// DBState structures basic metadata about the database installation, update and schema version
 type DBState struct {
 	//Date of first schema
 	CreateDate time.Time `db:"createdDate"`

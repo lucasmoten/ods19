@@ -40,7 +40,8 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 		for _, permission := range permissions {
 
 			// Compare to owner
-			if strings.Compare(permission.Grantee, models.AACFlatten(dbObject.OwnedBy.String)) == 0 {
+			odACMGrantee := models.NewODAcmGranteeFromResourceName(dbObject.OwnedBy.String)
+			if models.AACFlatten(permission.Grantee) == models.AACFlatten(odACMGrantee.Grantee) {
 				errMsg := "Forbidden - Unauthorized to set permissions that would result in owner losing access"
 				return NewAppError(403, errors.New(errMsg), errMsg)
 			}
@@ -59,7 +60,7 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 					// If removing everyone group, then give read access to owner
 					if dbHasEveryone && strings.Compare(models.EveryoneGroup, permission.AcmGrantee.GroupName.String) == 0 {
 						// Add read permission for the owner
-						newOwnerPermission := copyPermissionToGrantee(&dbPermission, dbObject.OwnedBy.String)
+						newOwnerPermission := copyPermissionToGrantee(&dbPermission, odACMGrantee)
 						// Now we can assign encrypt key, which will set mac based upon permissions being granted
 						models.CopyEncryptKey(h.MasterKey, &rollupPermission, &newOwnerPermission)
 						permissionsToAdd = append(permissionsToAdd, newOwnerPermission)
@@ -79,7 +80,8 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 		if permissionsChanged {
 
 			// Force Owner CRUDS
-			ownerCRUDS := models.PermissionForUser(dbObject.OwnedBy.String, true, !dbHasEveryone, true, true, true)
+			ownerCRUDS, _ := makeOwnerCRUDS(dbObject.OwnedBy.String)
+			ownerCRUDS.AllowRead = !dbHasEveryone
 			plannedPermissions := []models.ODObjectPermission{}
 			plannedPermissions = append(plannedPermissions, dbObject.Permissions...)
 			plannedPermissions = append(plannedPermissions, permissionsToAdd...)
@@ -100,18 +102,9 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 			// Assign modifier now that its ACM has been altered
 			dbObject.ModifiedBy = caller.DistinguishedName
 
-			// Verify minimal access is met
-			if !isModifiedBySameAsOwner(&dbObject) {
-				// Using AAC, verify that owner would still have read access
-				if !h.isObjectACMSharedToUser(ctx, &dbObject, dbObject.OwnedBy.String) {
-					errMsg := "Forbidden - Unauthorized to set permissions that would result in owner not being able to read object"
-					return NewAppError(403, errors.New(errMsg), errMsg)
-				}
-			} else {
-				// Using AAC, verify the caller would still have read access
-				if err := h.isUserAllowedForObjectACM(ctx, &dbObject); err != nil {
-					return ClassifyObjectACMError(err)
-				}
+			// Now that the result is flattened, perform resultant state validation
+			if herr := checkReadAccessAfterFlattened(ctx, &dbObject, h); herr != nil {
+				return herr
 			}
 
 			// Update the base object that favors ACM change

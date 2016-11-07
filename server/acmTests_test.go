@@ -91,7 +91,7 @@ func TestAcmWithShareForODrive(t *testing.T) {
 // created and T1 can read it, and that the resultant share includes
 // group ODrive G1 as well as user T1
 func TestAcmWithShareCreatorIsNotInWillForceThemIntoShare(t *testing.T) {
-	// ### Create object O3 as tester1
+	t.Logf("### Create object O3 as tester1")
 	tester1 := 1
 	// prep object
 	var createObjectRequest protocol.CreateObjectRequest
@@ -101,13 +101,13 @@ func TestAcmWithShareCreatorIsNotInWillForceThemIntoShare(t *testing.T) {
 	createObjectRequest.ContentSize = 0
 	// jsonify it
 	jsonBody, _ := json.Marshal(createObjectRequest)
-	// prep http request
+	t.Logf("prep http request")
 	uriCreate := host + cfg.NginxRootURL + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
 	transport := &http.Transport{TLSClientConfig: clients[tester1].Config}
 	client := &http.Client{Transport: transport}
-	// exec and get response
+	t.Logf("exec and get response")
 	httpCreateResponse, err := client.Do(httpCreate)
 	failNowOnErr(t, err, "unable to do request")
 	defer util.FinishBody(httpCreateResponse.Body)
@@ -116,7 +116,7 @@ func TestAcmWithShareCreatorIsNotInWillForceThemIntoShare(t *testing.T) {
 	var createdObject protocol.Object
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
 	failNowOnErr(t, err, "Error decoding json to Object")
-
+	t.Logf("check permissions")
 	for _, p := range createdObject.Permissions {
 		t.Logf("%s", p)
 	}
@@ -200,9 +200,9 @@ func TestAcmWithShareForODriveG2Allowed(t *testing.T) {
 // T6..T10 or other users not in the group. Then add share to T10 allowRead
 // and verify that T10 is then able to read it.
 func TestAddReadShareForUser(t *testing.T) {
-	// ### Create object O7 as tester1
+	t.Logf("TestAddReadShareForUser - ### Create object O7 as tester1")
 	tester1 := 1
-	// prep object
+	t.Logf("TestAddReadShareForUser - prep object")
 	var createObjectRequest protocol.CreateObjectRequest
 	createObjectRequest.Name = "TestACM O7"
 	createObjectRequest.TypeName = "Folder"
@@ -214,7 +214,7 @@ func TestAddReadShareForUser(t *testing.T) {
 	uriCreate := host + cfg.NginxRootURL + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
-	// exec and get response
+	t.Logf("TestAddReadShareForUser - exec and get response")
 	httpCreateResponse, err := clients[tester1].Client.Do(httpCreate)
 	failNowOnErr(t, err, "Unable to do request")
 	defer util.FinishBody(httpCreateResponse.Body)
@@ -224,19 +224,18 @@ func TestAddReadShareForUser(t *testing.T) {
 	err = util.FullDecode(httpCreateResponse.Body, &createdObject)
 	failNowOnErr(t, err, "error decoding json to Object")
 
-	// ### Add a share for tester 10 to be able to read the object
+	t.Logf("TestAddReadShareForUser - ### Add a share for tester 10 to be able to read the object")
 	// prep share
 	var createShareRequest protocol.ObjectShare
 	createShareRequest.AllowRead = true
 	createShareRequest.Share = makeUserShare("cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us")
 	// jsonify it
 	jsonBody, _ = json.Marshal(createShareRequest)
-	// prep http request
+	t.Logf("TestAddReadShareForUser - prep http request")
 	uriShare := host + cfg.NginxRootURL + "/shared/" + createdObject.ID
-	// prep http request
 	httpCreateShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateShare.Header.Set("Content-Type", "application/json")
-	// exec and get response
+	t.Logf("TestAddReadShareForUser - exec and get response")
 	httpCreateShareResponse, err := clients[tester1].Client.Do(httpCreateShare)
 	failNowOnErr(t, err, "Unable to do request")
 	defer util.FinishBody(httpCreateResponse.Body)
@@ -246,7 +245,7 @@ func TestAddReadShareForUser(t *testing.T) {
 	err = util.FullDecode(httpCreateShareResponse.Body, &updatedObject)
 	failNowOnErr(t, err, "error decoding json to Object")
 
-	// ### Verify tester 1-5 can read it, as well as 10, but not 6-9 or other certs
+	t.Logf("TestAddReadShareForUser - ### Verify tester 1-5 can read it, as well as 10, but not 6-9 or other certs")
 	shouldHaveReadForObjectID(t, createdObject.ID, 1, 2, 3, 4, 5, 0)
 	shouldNotHaveReadForObjectID(t, createdObject.ID, 6, 7, 8, 9)
 }

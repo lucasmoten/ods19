@@ -24,13 +24,7 @@ func TestUpdateObject(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	verboseOutput := testing.Verbose()
 	clientid := 0
-
-	if verboseOutput {
-		fmt.Printf("(Verbose Mode) Using client id %d", clientid)
-		fmt.Println()
-	}
 
 	// Create 1 folders under root
 	folder := makeFolderViaJSON("Test Folder for Update ", clientid, t)
@@ -40,42 +34,41 @@ func TestUpdateObject(t *testing.T) {
 	folder.Name = "Test Folder Updated " + strconv.FormatInt(time.Now().Unix(), 10)
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
-		log.Printf("Unable to marshal json for request:%v", err)
+		t.Logf("Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
 	req, err := http.NewRequest("POST", updateuri, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
+		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
 	// do the request
 	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
-		log.Printf("Unable to do request:%v", err)
+		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
 	defer util.FinishBody(res.Body)
 	// process Response
 	if res.StatusCode != http.StatusOK {
-		log.Printf("bad status: %s", res.Status)
+		t.Logf("bad status: %s", res.Status)
 		t.FailNow()
 	}
 	var updatedFolder protocol.Object
 	err = util.FullDecode(res.Body, &updatedFolder)
 	if err != nil {
-		log.Printf("Error decoding json to Object: %v", err)
-		log.Println()
+		t.Logf("Error decoding json to Object: %v", err)
 		t.FailNow()
 	}
-	if verboseOutput {
+	if testing.Verbose() {
 		jsonData, err := json.MarshalIndent(updatedFolder, "", "  ")
 		if err != nil {
-			log.Printf("(Error in Verbose Mode) Error marshalling response back to json: %s", err.Error())
+			t.Logf("(Error in Verbose Mode) Error marshalling response back to json: %s", err.Error())
 			return
 		}
-		fmt.Println("Here is the response body:")
-		fmt.Println(string(jsonData))
+		t.Logf("Here is the response body:")
+		t.Logf(string(jsonData))
 	}
 
 }
@@ -84,13 +77,7 @@ func TestUpdateObjectToHaveNoName(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	verboseOutput := testing.Verbose()
 	clientid := 0
-
-	if verboseOutput {
-		fmt.Printf("(Verbose Mode) Using client id %d", clientid)
-		fmt.Println()
-	}
 
 	// Create 1 folders under root
 	folder := makeFolderViaJSON("Test Folder for Update ", clientid, t)
@@ -103,46 +90,46 @@ func TestUpdateObjectToHaveNoName(t *testing.T) {
 	updateuri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
 	jsonBody, err := json.Marshal(updateObjectRequest)
 	if err != nil {
-		log.Printf("Unable to marshal json for request:%v", err)
+		t.Logf("Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
 	req, err := http.NewRequest("POST", updateuri, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
+		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
 	// do the request
 	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
-		log.Printf("Unable to do request:%v", err)
+		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
 	defer util.FinishBody(res.Body)
 	// process Response
 	if res.StatusCode != http.StatusOK {
-		log.Printf("bad status: %s", res.Status)
+		t.Logf("bad status: %s", res.Status)
 		t.FailNow()
 	}
 	var updatedFolder protocol.Object
 	err = util.FullDecode(res.Body, &updatedFolder)
 	if err != nil {
-		log.Printf("Error decoding json to Object: %v", err)
+		t.Logf("Error decoding json to Object: %v", err)
 		log.Println()
 		t.FailNow()
 	}
 	if strings.Compare(updatedFolder.Name, folder.Name) != 0 {
-		log.Printf("Folder name is %s, expected it to be %s", updatedFolder.Name, folder.Name)
+		t.Logf("Folder name is %s, expected it to be %s", updatedFolder.Name, folder.Name)
 		t.FailNow()
 	}
-	if verboseOutput {
+	if testing.Verbose() {
 		jsonData, err := json.MarshalIndent(updatedFolder, "", "  ")
 		if err != nil {
-			log.Printf("(Error in Verbose Mode) Error marshalling response back to json: %s", err.Error())
+			t.Logf("(Error in Verbose Mode) Error marshalling response back to json: %s", err.Error())
 			return
 		}
-		fmt.Println("Here is the response body:")
-		fmt.Println(string(jsonData))
+		t.Logf("Here is the response body:")
+		t.Logf(string(jsonData))
 	}
 }
 
@@ -150,58 +137,52 @@ func TestUpdateObjectToChangeOwnedBy(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	verboseOutput := testing.Verbose()
 	clientid := 0
 
-	if verboseOutput {
-		fmt.Printf("(Verbose Mode) Using client id %d", clientid)
-		fmt.Println()
-	}
-
-	// Create 1 folders under root
+	t.Logf("Create 1 folders under root")
 	folder := makeFolderViaJSON("Test Folder for Update ", clientid, t)
+	expectedOwner := folder.OwnedBy
 
-	// Attempt to change owner
+	t.Logf("Attempt to change owner")
 	updateuri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
 	folder.OwnedBy = fakeDN2
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
-		log.Printf("Unable to marshal json for request:%v", err)
+		t.Logf("Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
 	req, err := http.NewRequest("POST", updateuri, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
+		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
-	// do the request
+	t.Logf("do the request")
 	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
-		log.Printf("Unable to do request:%v", err)
+		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
 	defer util.FinishBody(res.Body)
 	// // process Response
 	// if res.StatusCode != 428 {
-	// 	log.Printf("bad status: %s", res.Status)
+	// 	t.Logf("bad status: %s", res.Status)
 	// 	t.FailNow()
 	// }
 
-	// Need to parse the body and verify it didnt change
+	t.Logf("Need to parse the body and verify it didnt change")
 	var updatedObject protocol.Object
 	err = util.FullDecode(res.Body, &updatedObject)
 	if err != nil {
-		log.Printf("Error decoding json to Object: %v", err)
-		log.Println()
+		t.Logf("Error decoding json to Object: %v", err)
 		t.FailNow()
 	}
 	if strings.Compare(updatedObject.OwnedBy, folder.OwnedBy) == 0 {
-		log.Printf("Owner was changed to %s", updatedObject.OwnedBy)
+		t.Logf("Owner was changed to %s", updatedObject.OwnedBy)
 		t.FailNow()
 	}
-	if strings.Compare(updatedObject.OwnedBy, folder.CreatedBy) != 0 {
-		log.Printf("Owner is not %s", folder.CreatedBy)
+	if strings.Compare(updatedObject.OwnedBy, expectedOwner) != 0 {
+		t.Logf("Owner is not %s. It is %s", expectedOwner, updatedObject.OwnedBy)
 		t.FailNow()
 	}
 

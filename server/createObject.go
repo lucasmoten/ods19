@@ -217,10 +217,12 @@ func handleCreatePrerequisites(ctx context.Context, h AppServer, requestObject *
 
 	// Setup meta data...
 	requestObject.CreatedBy = caller.DistinguishedName
-	requestObject.OwnedBy = models.ToNullString(caller.DistinguishedName)
+	requestObject.OwnedBy = models.ToNullString("user/" + caller.DistinguishedName)
 
 	// Give owner full CRUDS (read given by acm share)
-	requestObject.Permissions = append(requestObject.Permissions, models.PermissionForUser(requestObject.OwnedBy.String, true, false, true, true, true))
+	ownerCRUDS, _ := makeOwnerCRUDS(requestObject.OwnedBy.String)
+	ownerCUDS := models.PermissionWithoutRead(ownerCRUDS)
+	requestObject.Permissions = append(requestObject.Permissions, ownerCUDS)
 
 	return nil
 }

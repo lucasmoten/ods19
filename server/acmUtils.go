@@ -296,6 +296,18 @@ func isAcmShareDifferent(acm1 string, acm2 string) (bool, *AppError) {
 	return different, nil
 }
 
+func makeOwnerCRUDS(ownerResourceName string) (models.ODObjectPermission, models.ODObjectPermission) {
+	odACMGrantee := models.NewODAcmGranteeFromResourceName(ownerResourceName)
+	dn := odACMGrantee.UserDistinguishedName.String
+	pn := odACMGrantee.ProjectName.String
+	pdn := odACMGrantee.ProjectDisplayName.String
+	gn := odACMGrantee.GroupName.String
+	if len(odACMGrantee.UserDistinguishedName.String) > 0 {
+		return models.PermissionForUser(dn, true, true, true, true, true), models.PermissionForUser(dn, false, true, false, false, false)
+	}
+	return models.PermissionForGroup(pn, pdn, gn, true, true, true, true, true), models.PermissionForGroup(pn, pdn, gn, false, true, false, false, false)
+}
+
 func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *AppError {
 	// Apply changes to obj.Permissions based upon what ACM has
 	LoggerFromContext(ctx).Info("favoring acm")
@@ -331,8 +343,7 @@ func normalizeObjectReadPermissions(ctx context.Context, obj *models.ODObject) *
 	}
 
 	// Force Owner CRUDS
-	ownerCRUDS := models.PermissionForUser(obj.OwnedBy.String, true, true, true, true, true)
-	ownerR := models.PermissionForUser(obj.OwnedBy.String, false, true, false, false, false)
+	ownerCRUDS, ownerR := makeOwnerCRUDS(obj.OwnedBy.String)
 	if !acmSaysEveryone {
 		// prep permission
 		obj.Permissions = append(obj.Permissions, ownerCRUDS)

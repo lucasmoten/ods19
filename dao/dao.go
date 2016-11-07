@@ -23,6 +23,7 @@ type DAO interface {
 	DeleteObjectProperty(objectProperty models.ODObjectPropertyEx) error
 	DeleteObjectType(objectType models.ODObjectType) error
 	ExpungeObject(user models.ODUser, object models.ODObject, explicit bool) error
+	GetAcmGrantee(grantee string) (models.ODAcmGrantee, error)
 	GetChildObjects(pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
 	GetChildObjectsByUser(user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
 	GetChildObjectsWithProperties(pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error)

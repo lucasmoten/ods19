@@ -445,12 +445,20 @@ func isUserAllowedTo(ctx context.Context, masterKey string, obj *models.ODObject
 		}
 		// Skip if permission does not apply to this user
 		granteeMatch = false
-		if strings.Compare(strings.ToLower(permission.Grantee), strings.ToLower(caller.DistinguishedName)) == 0 {
+		if models.AACFlatten(permission.Grantee) == models.AACFlatten(caller.DistinguishedName) {
+			granteeMatch = true
+		} else if models.AACFlatten(permission.Grantee) == models.AACFlatten(models.EveryoneGroup) {
+			granteeMatch = true
+		} else if strings.Compare(strings.ToLower(permission.Grantee), strings.ToLower(caller.DistinguishedName)) == 0 {
 			granteeMatch = true
 		} else if strings.Compare(strings.ToLower(permission.AcmGrantee.GroupName.String), strings.ToLower(models.EveryoneGroup)) == 0 {
 			granteeMatch = true
 		} else {
 			for _, group := range groups {
+				if models.AACFlatten(permission.Grantee) == models.AACFlatten(group) {
+					granteeMatch = true
+					break
+				}
 				if strings.Compare(strings.ToLower(permission.Grantee), strings.ToLower(group)) == 0 {
 					granteeMatch = true
 					break
@@ -458,12 +466,14 @@ func isUserAllowedTo(ctx context.Context, masterKey string, obj *models.ODObject
 			}
 		}
 		if !granteeMatch {
+			// LoggerFromContext(ctx).Info("Grantee is not a match", zap.String("grantee", permission.Grantee))
 			continue
 		}
+		// LoggerFromContext(ctx).Info("Grantee matches", zap.String("grantee", permission.Grantee))
 		// Skip if this this permission has invalid signature
 		if !models.EqualsPermissionMAC(masterKey, &permission) {
 			// Not valid. Log it
-			LoggerFromContext(ctx).Warn("invalid mac on permission, skipping", zap.String("objectId", hex.EncodeToString(obj.ID)), zap.String("permissionId", hex.EncodeToString(permission.ID)), zap.String("grantee", permission.Grantee))
+			LoggerFromContext(ctx).Warn("Invalid mac on permission, skipping", zap.String("objectId", hex.EncodeToString(obj.ID)), zap.String("permissionId", hex.EncodeToString(permission.ID)), zap.String("grantee", permission.Grantee))
 			continue
 		}
 
@@ -525,37 +535,48 @@ func isUserAllowedTo(ctx context.Context, masterKey string, obj *models.ODObject
 	return authorizedTo, userPermission
 }
 
-func (h AppServer) isObjectACMSharedToUser(ctx context.Context, obj *models.ODObject, user string) bool {
-
-	// Look at the flattened share of the acm
-	herr, fShareInterface := getACMInterfacePart(obj, "f_share")
-	if herr != nil {
-		// log it as the caller ...
-		LoggerFromContext(ctx).Warn("Error retrieving acm interface part f_share")
-		return false
-	}
-
-	// Convert to a string array
-	acmGrants := getStringArrayFromInterface(fShareInterface)
-
-	// If its empty, then its everyone, and ok
-	if len(acmGrants) == 0 {
-		return true
-	}
-
-	// Prep a context for the user and populate snippets and groups
+func (h AppServer) newContextWithGroupsAndSnippetsFromUser(distinguishedName string) context.Context {
 	userCtx := context.Background()
-	userCaller := Caller{DistinguishedName: user}
+	userCaller := Caller{DistinguishedName: distinguishedName}
 	userCtx = ContextWithCaller(userCtx, userCaller)
 	userCtx = context.WithValue(userCtx, Logger, globalconfig.RootLogger)
 	userGroups, userSnippets, err := h.GetUserGroupsAndSnippets(userCtx)
 	if err != nil {
-		// Bubble up? This kind of error returns HTTP error 500 in ServeHTTP
-		LoggerFromContext(ctx).Warn("Error retrieving user snippets", zap.String("user", user))
+		userGroups = []string{models.AACFlatten(distinguishedName)}
+	}
+	userCtx = ContextWithGroups(userCtx, userGroups)
+	userCtx = ContextWithSnippets(userCtx, userSnippets)
+	return userCtx
+}
+
+func (h AppServer) isObjectACMSharedToUser(ctx context.Context, obj *models.ODObject, user string) bool {
+
+	// Look at the flattened share of the acm
+
+	var acmGrants []string
+	herr, fShareInterface := getACMInterfacePart(obj, "f_share")
+	if herr != nil {
+		LoggerFromContext(ctx).Warn("Error retrieving acm interface part f_share")
 		return false
 	}
+	acmGrants = getStringArrayFromInterface(fShareInterface)
 
-	userCtx = ContextWithSnippets(userCtx, userSnippets)
+	//  If no values, its shared to everyone
+	if len(acmGrants) == 0 {
+		return true
+	}
+
+	// Since there are values, we need to check user groups
+
+	// Default to groups from context
+	userGroups, _ := GroupsFromContext(ctx)
+	// If caller is not the same as user we are checking ..
+	caller, _ := CallerFromContext(ctx)
+	if strings.Compare(caller.DistinguishedName, user) != 0 {
+		// Populate for user and get their groups
+		userCtx := h.newContextWithGroupsAndSnippetsFromUser(user)
+		userGroups, _ = GroupsFromContext(userCtx)
+	}
 
 	// Iterate user's groups
 	for _, userGroup := range userGroups {
@@ -634,10 +655,13 @@ func rebuildACMShareFromObjectPermissions(ctx context.Context, dbObject *models.
 	return nil
 }
 
-func copyPermissionToGrantee(originalPermission *models.ODObjectPermission, grantee string) models.ODObjectPermission {
-	// NOTE: This will be an area that gets complicate when changeowner implemented and ability to assign ownership to groups since
-	// need to maintain project name, displayname and group name
-
-	// This call assumes grantee is a user in the form of a distinguished name (not flattened)
-	return models.PermissionForUser(grantee, originalPermission.AllowCreate, originalPermission.AllowRead, originalPermission.AllowUpdate, originalPermission.AllowDelete, originalPermission.AllowShare)
+func copyPermissionToGrantee(originalPermission *models.ODObjectPermission, grantee models.ODAcmGrantee) models.ODObjectPermission {
+	dn := grantee.UserDistinguishedName.String
+	pn := grantee.ProjectName.String
+	pdn := grantee.ProjectDisplayName.String
+	gn := grantee.GroupName.String
+	if len(grantee.UserDistinguishedName.String) > 0 {
+		return models.PermissionForUser(dn, originalPermission.AllowCreate, originalPermission.AllowRead, originalPermission.AllowUpdate, originalPermission.AllowDelete, originalPermission.AllowShare)
+	}
+	return models.PermissionForGroup(pn, pdn, gn, originalPermission.AllowCreate, originalPermission.AllowRead, originalPermission.AllowUpdate, originalPermission.AllowDelete, originalPermission.AllowShare)
 }

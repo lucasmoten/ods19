@@ -55,8 +55,8 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 
 		// Force Owner CRUDS
 		if removingEveryone {
-			ownerCRUDS := models.PermissionForUser(dbObject.OwnedBy.String, false, true, false, false, false)
-			permissions = append(permissions, ownerCRUDS)
+			_, ownerR := makeOwnerCRUDS(dbObject.OwnedBy.String)
+			permissions = append(permissions, ownerR)
 		}
 
 		// Iterate the permissions, normalizing the share to derive grantee
@@ -117,21 +117,11 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 		}
 
 		// Now that the result is flattened, perform resultant state validation
-		if !isModifiedBySameAsOwner(&dbObject) {
-			// 1. Make sure owner would still have read access
-			if !h.isObjectACMSharedToUser(ctx, &dbObject, dbObject.OwnedBy.String) {
-				errMsg := "Forbidden - Unauthorized to set permissions that would result in owner not being able to read object"
-				return NewAppError(403, errors.New(errMsg), errMsg)
-			}
-		} else {
-			// 2. User must pass access check against altered ACM as a whole
-			if err := h.isUserAllowedForObjectACM(ctx, &dbObject); err != nil {
-				return ClassifyObjectACMError(err)
-			}
+		if herr := checkReadAccessAfterFlattened(ctx, &dbObject, h); herr != nil {
+			return herr
 		}
 
 		// First update the base object that favors ACM change
-
 		if err := dao.UpdateObject(&dbObject); err != nil {
 			return NewAppError(500, err, "Error updating object")
 		}
@@ -289,8 +279,37 @@ func verifyPermissionToShare(rollupPermission models.ODObjectPermission, permiss
 	return nil
 }
 
-func isModifiedBySameAsOwner(object *models.ODObject) bool {
-	return (strings.Compare(object.ModifiedBy, object.OwnedBy.String) == 0)
+func isModifiedBySameAsOwner(ctx context.Context, object *models.ODObject) bool {
+	dao := DAOFromContext(ctx)
+	ownedBy := object.OwnedBy.String
+	snippets, ok := SnippetsFromContext(ctx)
+	if !ok {
+		// Fallback mode comparing only to the
+		modifiedByResourceName := "user/" + object.ModifiedBy
+		if modifiedByResourceName == ownedBy {
+			return true
+		}
+		return false
+	}
+	for _, rawFields := range snippets.Snippets {
+		if rawFields.FieldName == "f_share" {
+			for _, shareValue := range rawFields.Values {
+				trimmedShareValue := strings.TrimSpace(shareValue)
+				if len(trimmedShareValue) > 0 {
+					if ownedBy == "group/"+trimmedShareValue {
+						return true
+					}
+					if acmGrantee, err := dao.GetAcmGrantee(trimmedShareValue); err != nil {
+						if ownedBy == acmGrantee.ResourceName() {
+							return true
+						}
+					}
+				}
+			}
+
+		}
+	}
+	return false
 }
 
 func isPermissionFor(permission *models.ODObjectPermission, grantee string) bool {
@@ -358,4 +377,28 @@ func getObjectIDFromContext(ctx context.Context) ([]byte, error) {
 		return bytesObjectID, errors.New("Invalid objectid in URI.")
 	}
 	return bytesObjectID, nil
+}
+
+func checkReadAccessAfterFlattened(ctx context.Context, dbObject *models.ODObject, h AppServer) *AppError {
+	if !isModifiedBySameAsOwner(ctx, dbObject) {
+		ownerGrantee := models.NewODAcmGranteeFromResourceName(dbObject.OwnedBy.String)
+		if len(ownerGrantee.UserDistinguishedName.String) > 0 {
+			// Explicitly check via AAC which will compare to that target user's snippets
+			ownerCtx := h.newContextWithGroupsAndSnippetsFromUser(ownerGrantee.UserDistinguishedName.String)
+			if err := h.isUserAllowedForObjectACM(ownerCtx, dbObject); err != nil {
+				errMsg := "Forbidden - Unauthorized to set permissions that would result in owner not being able to read object"
+				return NewAppError(403, errors.New(errMsg), errMsg)
+			}
+		} else {
+			// TODO: its a group. convert resource string to get parts, derive flattened and compare to acm f_share values
+
+		}
+	} else {
+		// User must pass access check against altered ACM as a whole
+		if err := h.isUserAllowedForObjectACM(ctx, dbObject); err != nil {
+			errMsg := "Forbidden - Unauthorized to set permissions that would result in caller not being able to read object"
+			return NewAppError(403, errors.New(errMsg), errMsg)
+		}
+	}
+	return nil
 }

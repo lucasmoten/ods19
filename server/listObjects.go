@@ -108,7 +108,7 @@ func isDeletedErr(obj models.ODObject) (ok bool, code int, err error) {
 	case obj.IsExpunged:
 		return false, 410, errors.New("object is expunged")
 	case obj.IsAncestorDeleted:
-		return false, 405, errors.New("object ancestor is deleted.")
+		return false, 405, errors.New("object ancestor is deleted")
 	case obj.IsDeleted:
 		return false, 405, errors.New("object is deleted")
 	}

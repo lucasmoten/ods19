@@ -15,7 +15,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-// SnippetCachce is a simple in memory cache to hold user snippet info obtained
+// SnippetCache is a simple in memory cache to hold user snippet info obtained
 // from AAC to reduce outbound calls to dependent service on list type requests
 type SnippetCache struct {
 	lock *sync.RWMutex
@@ -101,7 +101,7 @@ func (h AppServer) FetchUserSnippets(ctx context.Context) (*acm.ODriveRawSnippet
 
 		// Verify we have a reference to AAC
 		if h.AAC == nil {
-			return nil, errors.New("AAC field is nil.")
+			return nil, errors.New("AAC field is nil")
 		}
 
 		// Call AAC to get Snippets

@@ -15,6 +15,7 @@ import (
 // reponses for each of the methods that FakeDAO will implement. These fake
 // response fields can be explicitly set, or setup functions can be defined.
 type FakeDAO struct {
+	AcmGrantee        models.ODAcmGrantee
 	DBState           models.DBState
 	Err               error
 	IsDescendent      bool
@@ -80,6 +81,11 @@ func (fake *FakeDAO) DeleteObjectType(objectType models.ODObjectType) error {
 // ExpungeObject for FakeDAO.
 func (fake *FakeDAO) ExpungeObject(user models.ODUser, object models.ODObject, explicit bool) error {
 	return fake.Err
+}
+
+// GetAcmGrantee for FakeDAO
+func (fake *FakeDAO) GetAcmGrantee(grantee string) (models.ODAcmGrantee, error) {
+	return fake.AcmGrantee, fake.Err
 }
 
 // GetChildObjects for FakeDAO.
@@ -234,7 +240,7 @@ func (fake *FakeDAO) GetUsers() ([]models.ODUser, error) {
 	return fake.Users, fake.Err
 }
 
-// UserStats is per user statistics
+// GetUserStats is per user statistics
 func (fake *FakeDAO) GetUserStats(dn string) (models.UserStats, error) {
 	return fake.UserStatsData, fake.Err
 }
