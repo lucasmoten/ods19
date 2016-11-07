@@ -257,7 +257,6 @@ func NewEventQueueConfiguration(confFile AppConfiguration, opts CommandLineOpts)
 // NewS3CiphertextCacheOpts reads the environment to provide the configuration options for
 // S3CiphertextCache.
 func NewS3CiphertextCacheOpts(confFile AppConfiguration, opts CommandLineOpts) S3CiphertextCacheOpts {
-	//TODO: masterkey and chunksize are cache specific settings now
 	settings := S3CiphertextCacheOpts{
 		Root:          cascade(OD_CACHE_ROOT, confFile.CacheSettings.Root, "."),
 		Partition:     cascade(OD_CACHE_PARTITION, confFile.CacheSettings.Partition, "cache"),
