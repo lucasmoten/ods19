@@ -7,6 +7,7 @@ Release vNEXT
 
 Release v1.0.1.7
 ----------------
+* FIX: Internal refactoring to support masterKey per cache
 * NEW: AAC is discoverable from its own ZK cluster, not just default ZK.
 * NEW: Additional debug logging around database code for updating ACMs on objects.
 * FIX: Can specify everyone (group/-Everyone/-Everyone) for read permission when creating object 
