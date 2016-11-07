@@ -15,13 +15,14 @@ import (
 	"github.com/urfave/cli"
 )
 
-// Globals
 var (
 	defaultDBDriver = "mysql"
 	defaultDBHost   = "127.0.0.1"
 	defaultDBPort   = "3306"
 	DefaultBucket   = getEnvOrDefault("OD_AWS_S3_BUCKET", "")
 )
+
+var empty []string
 
 // AppConfiguration is a structure that defines the known configuration format
 // for this application.
@@ -164,7 +165,6 @@ func NewAACSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) AACC
 	conf.AACAnnouncementPoint = cascade(OD_ZK_AAC, confFile.AACSettings.AACAnnouncementPoint, "/cte/service/aac/1.0/thrift")
 
 	// If ZKAddrs is set, we attempt to discover AAC from a non-default Zookeeper cluster.
-	var empty []string
 	conf.ZKAddrs = CascadeStringSlice(OD_AAC_ZK_ADDRS, confFile.AACSettings.ZKAddrs, empty)
 
 	return conf
@@ -247,7 +247,6 @@ func NewDatabaseConfigFromEnv(confFile AppConfiguration, opts CommandLineOpts) D
 // NewEventQueueConfiguration reades the environment to provide the configuration for the Kafka event queue.
 func NewEventQueueConfiguration(confFile AppConfiguration, opts CommandLineOpts) EventQueueConfiguration {
 	var eqc EventQueueConfiguration
-	var empty []string
 	eqc.KafkaAddrs = CascadeStringSlice(OD_EVENT_KAFKA_ADDRS, confFile.EventQueue.KafkaAddrs, empty)
 	eqc.ZKAddrs = CascadeStringSlice(OD_EVENT_ZK_ADDRS, confFile.EventQueue.ZKAddrs, empty)
 	return eqc

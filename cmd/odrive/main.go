@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -17,12 +18,13 @@ import (
 
 	"decipher.com/object-drive-server/amazon"
 	"decipher.com/object-drive-server/autoscale"
-	"decipher.com/object-drive-server/services/finder"
+	"decipher.com/object-drive-server/services/kafka"
 	"decipher.com/object-drive-server/services/zookeeper"
 	"decipher.com/object-drive-server/util/testhelpers"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/karlseguin/ccache"
+	"github.com/samuel/go-zookeeper/zk"
 	"github.com/uber-go/zap"
 	"github.com/urfave/cli"
 
@@ -194,7 +196,7 @@ func startApplication(conf configx.AppConfiguration) {
 		ciphertext.NewS3CiphertextCache(conf.CacheSettings, conf.CacheSettings.Partition+"/"+cacheID),
 	)
 
-	configureEventQueue(app, conf.EventQueue)
+	configureEventQueue(app, conf.EventQueue, conf.ZK.Timeout)
 
 	err = registerWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, conf.ZK.IP, conf.ZK.Port)
 	if err != nil {
@@ -232,7 +234,7 @@ func startApplication(conf configx.AppConfiguration) {
 }
 
 func zkTracking(app *server.AppServer, conf configx.AppConfiguration) {
-	srvConf, aacConf, queueConf, zkConf := conf.ServerSettings, conf.AACSettings, conf.EventQueue, conf.ZK
+	srvConf, aacConf, zkConf := conf.ServerSettings, conf.AACSettings, conf.ZK
 
 	odriveAnnouncer := func(at string, announcements map[string]zookeeper.AnnounceData) {
 		peerMap := make(map[string]*ciphertext.PeerMapData)
@@ -297,25 +299,6 @@ func zkTracking(app *server.AppServer, conf configx.AppConfiguration) {
 	}
 	zookeeper.TrackAnnouncement(aacZK, aacConf.AACAnnouncementPoint, aacAnnouncer)
 
-	// Hiding Kafka impl behind a feature flag, because we need to either refactor TrackAnnouncement
-	// or write a whole new function.
-	if false {
-		queueAnnouncer := func(at string, announcements map[string]zookeeper.AnnounceData) {
-			if announcements == nil {
-				return
-			}
-			app.EventQueue.Errors() // need to inspect this field
-		}
-		queueZK := app.EventQueueZK
-		if len(queueConf.ZKAddrs) > 0 {
-			var err error
-			queueZK, err = zookeeper.NewZKState(queueConf.ZKAddrs, int(zkConf.Timeout))
-			if err != nil {
-				logger.Error("error connecting to custom aac zk", zap.String("err", err.Error()))
-			}
-		}
-		zookeeper.TrackAnnouncement(queueZK, "/brokers", queueAnnouncer)
-	}
 }
 
 func configureDAO(app *server.AppServer, conf configx.DatabaseConfiguration) error {
@@ -333,13 +316,47 @@ func configureDAO(app *server.AppServer, conf configx.DatabaseConfiguration) err
 	return nil
 }
 
-func configureEventQueue(app *server.AppServer, conf configx.EventQueueConfiguration) {
+// configureEventQueue will set a directly-configured Kafka queue on AppServer, or discover one from ZK.
+func configureEventQueue(app *server.AppServer, conf configx.EventQueueConfiguration, zkTimeout int64) {
 	logger.Info("Kafka Config", zap.Object("conf", conf))
-	if len(conf.KafkaAddrs) == 0 {
-		app.EventQueue = finder.NewFakeAsyncKafkaProducer(logger)
+
+	if len(conf.KafkaAddrs) == 0 && len(conf.ZKAddrs) == 0 {
+		// no configuration still provides null implementation
+		app.EventQueue = kafka.NewFakeAsyncProducer(logger)
 		return
 	}
-	app.EventQueue = finder.NewAsyncKafkaProducer(logger, conf.KafkaAddrs, nil)
+
+	if len(conf.KafkaAddrs) > 0 {
+		logger.Info("using direct connect for Kafka queue")
+		var err error
+		app.EventQueue, err = kafka.NewAsyncProducer(conf.KafkaAddrs, kafka.WithLogger(logger))
+		if err != nil {
+			logger.Fatal("cannot direct connect to Kakfa queue", zap.Object("err", err))
+		}
+		return
+	}
+
+	if len(conf.ZKAddrs) > 0 {
+		logger.Info("attempting to discover Kafka queue from zookeeper")
+		conn, _, err := zk.Connect(conf.ZKAddrs, time.Duration(zkTimeout)*time.Second)
+		if err != nil {
+			msg := "review OD_EVENT_ZK_ADDRS and/or OD_EVENT_KAFKA_ADDRS"
+			log.Fatalf("err from zk.Connect: %v; %s", err, msg)
+		}
+		setter := func(ap *kafka.AsyncProducer) {
+			// Don't just reset the conn because a zk event told you to, do an explicit check.
+			if app.EventQueue.Reconnect() {
+				app.EventQueue = ap
+			}
+		}
+		ap, err := kafka.DiscoverKafka(conn, "/brokers/ids", setter, kafka.WithLogger(logger))
+		if err != nil {
+			logger.Fatal("error discovering kafka from zk", zap.Object("err", err))
+		}
+		app.EventQueue = ap
+		return
+	}
+	logger.Error("no Kafka queue configured")
 }
 
 func registerWithZookeeperTry(app *server.AppServer, zkBasePath, zkAddress, myIP, myPort string) error {
