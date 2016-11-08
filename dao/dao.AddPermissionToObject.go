@@ -12,13 +12,13 @@ import (
 
 // AddPermissionToObject creates a new permission with the provided object id,
 // grant, and permissions.
-func (dao *DataAccessLayer) AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission, propogateToChildren bool, masterKey string) (models.ODObjectPermission, error) {
+func (dao *DataAccessLayer) AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission, propogateToChildren bool) (models.ODObjectPermission, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObjectPermission{}, err
 	}
-	response, err := addPermissionToObjectInTransaction(dao.GetLogger(), tx, object, permission, propogateToChildren, masterKey)
+	response, err := addPermissionToObjectInTransaction(dao.GetLogger(), tx, object, permission, propogateToChildren)
 	if err != nil {
 		dao.GetLogger().Error("Error in AddPermissionToObject", zap.String("err", err.Error()))
 		tx.Rollback()
@@ -28,14 +28,9 @@ func (dao *DataAccessLayer) AddPermissionToObject(object models.ODObject, permis
 	return response, err
 }
 
-func addPermissionToObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object models.ODObject, permission *models.ODObjectPermission, propagateToChildren bool, masterKey string) (models.ODObjectPermission, error) {
+func addPermissionToObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object models.ODObject, permission *models.ODObjectPermission, propagateToChildren bool) (models.ODObjectPermission, error) {
 
 	var dbPermission models.ODObjectPermission
-
-	// Fail fast if propogating without sending in masterkey
-	if propagateToChildren && len(masterKey) == 0 {
-		return dbPermission, errors.New("Logic error. Master key was not provided when propogating permissions")
-	}
 
 	// Check that grantee specified exists
 	dbAcmGrantee, dbAcmGranteeErr := getAcmGranteeInTransaction(tx, permission.Grantee)

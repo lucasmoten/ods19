@@ -64,8 +64,6 @@ type AppServer struct {
 	EventQueue events.Publisher
 	// EventQueueZK is a pointer to the cluster where we discover Kafka. May be set to DefaultZK.
 	EventQueueZK *zookeeper.ZKState
-	// MasterKey is the secret passphrase used in scrambling keys
-	MasterKey string
 	// Tracker captures metrics about upload/download begin and end time and transfer bytes
 	Tracker *performance.JobReporters
 	// TemplateCache is location of HTML templates used by server
@@ -102,7 +100,7 @@ func (h *AppServer) InitRegex() {
 		Object:           regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})$"),
 		ObjectProperties: regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/properties$"),
 		ObjectStream:     regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/stream(\\.[0-9a-zA-Z]*)?$"),
-		Ciphertext:       regexp.MustCompile(h.ServicePrefix + "/ciphertext/(?P<selector>[0-9a-zA-Z_]*)?/(?P<rname>[0-9a-fA-F]{64})$"),
+		Ciphertext:       regexp.MustCompile(h.ServicePrefix + "/ciphertext/(?P<zone>[0-9a-zA-Z_]*)?/(?P<rname>[0-9a-fA-F]{64})$"),
 		// - actions on objects
 		ObjectChangeOwner: regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/owner/(?P<newOwner>.*)$"),
 		ObjectDelete:      regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/trash$"),

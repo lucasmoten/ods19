@@ -183,16 +183,17 @@ func startApplication(conf configx.AppConfiguration) {
 		os.Exit(1)
 	}
 
-	cacheID, err := getDBIdentifier(app)
+	dbID, err := getDBIdentifier(app)
 	if err != nil {
 		logger.Error("Database is not fully initialized with a dbstate record", zap.String("err", err.Error()))
 		os.Exit(1)
 	}
 
 	//For now, we have one drain provider, just use the default
+	zone := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
 	ciphertext.SetCiphertextCache(
-		ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE,
-		ciphertext.NewS3CiphertextCache(conf.CacheSettings, conf.CacheSettings.Partition+"/"+cacheID),
+		zone,
+		ciphertext.NewS3CiphertextCache(zone, &conf.CacheSettings, dbID),
 	)
 
 	configureEventQueue(app, conf.EventQueue, conf.ZK.Timeout)
@@ -438,7 +439,6 @@ func makeServer(conf configx.ServerSettingsConfiguration) (*server.AppServer, er
 		UsersLruCache:             usersLruCache,
 		Snippets:                  snippetCache,
 		AclImpersonationWhitelist: conf.AclImpersonationWhitelist,
-		MasterKey:                 conf.MasterKey,
 	}
 
 	httpHandler.InitRegex()

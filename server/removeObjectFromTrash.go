@@ -47,7 +47,7 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 		return NewAppError(400, err, "Invalid changeToken.")
 	}
 
-	if ok := isUserAllowedToDelete(ctx, h.MasterKey, &dbObject); !ok {
+	if ok := isUserAllowedToDelete(ctx, &dbObject); !ok {
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to undelete this object")
 	}
 

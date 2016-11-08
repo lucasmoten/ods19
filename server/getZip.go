@@ -170,7 +170,7 @@ func zipWriteFile(
 	dp := ciphertext.FindCiphertextCacheByObject(&obj)
 	// Using captured permission, derive filekey
 	var fileKey []byte
-	fileKey = crypto.ApplyPassphrase(h.MasterKey, userPermission.PermissionIV, userPermission.EncryptKey)
+	fileKey = crypto.ApplyPassphrase(dp.GetMasterKey(), userPermission.PermissionIV, userPermission.EncryptKey)
 	if len(fileKey) == 0 {
 		return NewAppError(500, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object")
 	}
@@ -227,7 +227,7 @@ func zipHasAccess(h AppServer, ctx context.Context, obj *models.ODObject) (bool,
 		logger.Error("zip unable to check acm for access", zap.String("err", err.Error()))
 		return false, models.ODObjectPermission{}
 	}
-	return isUserAllowedToReadWithPermission(ctx, h.MasterKey, obj)
+	return isUserAllowedToReadWithPermission(ctx, obj)
 }
 
 // zipIncludeFile puts a single file into the zipArchive.

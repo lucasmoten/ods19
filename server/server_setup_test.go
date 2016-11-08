@@ -15,7 +15,9 @@ import (
 
 	"github.com/karlseguin/ccache"
 
+	"decipher.com/object-drive-server/ciphertext"
 	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/configx"
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/server"
@@ -84,8 +86,28 @@ func cleanupOpenFiles() {
 	}
 }
 
+// We need to do some of the same setup that main does, because of fakes.
+func testSettings() {
+	// Make sure that we find the ciphertext cache when we look for it
+	settings := &config.S3CiphertextCacheOpts{
+		Root:          cfg.GetEnvOrDefault(config.OD_CACHE_ROOT, "."),
+		Partition:     cfg.GetEnvOrDefault(config.OD_CACHE_PARTITION, "cache"),
+		LowWatermark:  .50,
+		HighWatermark: .75,
+		EvictAge:      300,
+		WalkSleep:     30,
+		MasterKey:     cfg.GetEnvOrDefault(config.OD_ENCRYPT_MASTERKEY, ""),
+	}
+	zone := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
+	ciphertext.SetCiphertextCache(
+		zone,
+		ciphertext.NewS3CiphertextCache(zone, settings, "testDB"),
+	)
+}
+
 func TestMain(m *testing.M) {
 	flag.Parse()
+	testSettings()
 	//These are the possible test output files that will generate into the docs
 	trafficLogs = make(map[string]*TrafficLog)
 	trafficLogs[APISampleFile] = NewTrafficLog(APISampleFile)

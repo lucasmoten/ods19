@@ -8,6 +8,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/crypto"
 	"decipher.com/object-drive-server/metadata/models"
 )
@@ -79,11 +80,15 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 func getFileKeyAndCheckAuthAndObjectState(ctx context.Context, h AppServer, obj *models.ODObject) (*AppError, []byte) {
 	var fileKey []byte
 
-	ok, userPermission := isUserAllowedToReadWithPermission(ctx, h.MasterKey, obj)
+	ok, userPermission := isUserAllowedToReadWithPermission(ctx, obj)
 	if !ok {
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object"), fileKey
 	}
-	fileKey = crypto.ApplyPassphrase(h.MasterKey, userPermission.PermissionIV, userPermission.EncryptKey)
+
+	dp := ciphertext.FindCiphertextCacheByObject(obj)
+	masterKey := dp.GetMasterKey()
+
+	fileKey = crypto.ApplyPassphrase(masterKey, userPermission.PermissionIV, userPermission.EncryptKey)
 	if len(fileKey) == 0 {
 		return NewAppError(500, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object"), fileKey
 	}

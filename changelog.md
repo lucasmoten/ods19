@@ -4,6 +4,7 @@ Changelog
 Release vNEXT
 -------------
 * DOC: API Documentation now reflects chagnes where OwnedBy field is now stored and returned in serialized resource format.
+* FIX: Internal refactoring to support masterKey per cache
 
 Release v1.0.1.7
 ----------------

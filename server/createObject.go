@@ -26,8 +26,6 @@ import (
 
 // createObject is a method handler on AppServer for createObject microservice operation.
 func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
-	//Note: when we can configure for multiple drain providers, we probably set with API token here
-	var dp ciphertext.CiphertextCache
 
 	logger := LoggerFromContext(ctx)
 	session := SessionIDFromContext(ctx)
@@ -44,7 +42,12 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	// Only used for the encryptkey and assignment later. Actual owner permission set in handleCreatePrerequisites
 	ownerPermission := permissionWithOwnerDefaults(caller)
-	models.SetEncryptKey(h.MasterKey, &ownerPermission)
+
+	//After we parse the metadata, we need to set the encrypt key on the permission object
+	afterMeta := func(obj *models.ODObject) {
+		dp := ciphertext.FindCiphertextCacheByObject(obj)
+		models.SetEncryptKey(dp.GetMasterKey(), &ownerPermission)
+	}
 
 	// NOTE: this bool is used far below to call drainFunc
 	isMultipart := contentTypeIsMultipartFormData(r)
@@ -64,11 +67,11 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 			return NewAppError(400, err, "Unable to get mime multipart")
 		}
 
-		dp, createdFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &obj, &ownerPermission, true)
+		drainFunc, herr = h.acceptObjectUpload(ctx, multipartReader, &obj, &ownerPermission, true, afterMeta)
 		if herr != nil {
+			dp := ciphertext.FindCiphertextCacheByObject(&obj)
 			return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 		}
-		drainFunc = createdFunc
 	} else {
 		// Check headers
 		herr = validateCreateObjectHeaders(r)
@@ -89,6 +92,9 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	}
 	obj.CreatedBy = caller.DistinguishedName
 
+	dp := ciphertext.FindCiphertextCacheByObject(&obj)
+	masterKey := dp.GetMasterKey()
+
 	// Make sure permissions passed in that are read access are put into the acm
 	if herr := injectReadPermissionsIntoACM(ctx, &obj); herr != nil {
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
@@ -108,12 +114,12 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	}
 
 	// recalculate permission mac for owner permission
-	ownerPermission.PermissionMAC = models.CalculatePermissionMAC(h.MasterKey, &ownerPermission)
+	ownerPermission.PermissionMAC = models.CalculatePermissionMAC(masterKey, &ownerPermission)
 	consolidateChangingPermissions(&obj)
 	// copy ownerPermission.EncryptKey to all existing permissions:
 	for idx, permission := range obj.Permissions {
-		models.CopyEncryptKey(h.MasterKey, &ownerPermission, &permission)
-		models.CopyEncryptKey(h.MasterKey, &ownerPermission, &obj.Permissions[idx])
+		models.CopyEncryptKey(masterKey, &ownerPermission, &permission)
+		models.CopyEncryptKey(masterKey, &ownerPermission, &obj.Permissions[idx])
 	}
 
 	createdObject, err = dao.CreateObject(&obj)
@@ -193,7 +199,7 @@ func handleCreatePrerequisites(ctx context.Context, h AppServer, requestObject *
 
 		// Check if the user has permissions to create child objects under the
 		// parent.
-		if ok := isUserAllowedToCreate(ctx, h.MasterKey, &dbParentObject); !ok {
+		if ok := isUserAllowedToCreate(ctx, &dbParentObject); !ok {
 			return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to create children under this object")
 		}
 

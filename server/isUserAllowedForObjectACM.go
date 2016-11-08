@@ -8,6 +8,7 @@ import (
 
 	"github.com/uber-go/zap"
 
+	"decipher.com/object-drive-server/ciphertext"
 	globalconfig "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/performance"
@@ -388,55 +389,59 @@ func (h AppServer) flattenACM(ctx context.Context, object *models.ODObject) erro
 	return nil
 }
 
-func isUserAllowedToReadWithPermission(ctx context.Context, masterKey string, obj *models.ODObject) (bool, models.ODObjectPermission) {
+func isUserAllowedToReadWithPermission(ctx context.Context, obj *models.ODObject) (bool, models.ODObjectPermission) {
 	requiredPermission := models.ODObjectPermission{}
 	requiredPermission.AllowRead = true
-	return isUserAllowedTo(ctx, masterKey, obj, requiredPermission, false)
+	return isUserAllowedTo(ctx, obj, requiredPermission, false)
 }
-func isUserAllowedToUpdateWithPermission(ctx context.Context, masterKey string, obj *models.ODObject) (bool, models.ODObjectPermission) {
+func isUserAllowedToUpdateWithPermission(ctx context.Context, obj *models.ODObject) (bool, models.ODObjectPermission) {
 	requiredPermission := models.ODObjectPermission{}
 	requiredPermission.AllowRead = true
 	requiredPermission.AllowUpdate = true
-	return isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
+	return isUserAllowedTo(ctx, obj, requiredPermission, true)
 }
-func isUserAllowedToShareWithPermission(ctx context.Context, masterKey string, obj *models.ODObject) (bool, models.ODObjectPermission) {
+func isUserAllowedToShareWithPermission(ctx context.Context, obj *models.ODObject) (bool, models.ODObjectPermission) {
 	requiredPermission := models.ODObjectPermission{}
 	requiredPermission.AllowRead = true
 	requiredPermission.AllowShare = true
-	return isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
+	return isUserAllowedTo(ctx, obj, requiredPermission, true)
 }
-func isUserAllowedToCreate(ctx context.Context, masterKey string, obj *models.ODObject) bool {
+func isUserAllowedToCreate(ctx context.Context, obj *models.ODObject) bool {
 	requiredPermission := models.ODObjectPermission{}
 	requiredPermission.AllowRead = true
 	requiredPermission.AllowCreate = true
-	ok, _ := isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
+	ok, _ := isUserAllowedTo(ctx, obj, requiredPermission, true)
 	return ok
 }
-func isUserAllowedToRead(ctx context.Context, masterKey string, obj *models.ODObject) bool {
-	ok, _ := isUserAllowedToReadWithPermission(ctx, masterKey, obj)
+func isUserAllowedToRead(ctx context.Context, obj *models.ODObject) bool {
+	ok, _ := isUserAllowedToReadWithPermission(ctx, obj)
 	return ok
 }
-func isUserAllowedToUpdate(ctx context.Context, masterKey string, obj *models.ODObject) bool {
-	ok, _ := isUserAllowedToUpdateWithPermission(ctx, masterKey, obj)
+func isUserAllowedToUpdate(ctx context.Context, obj *models.ODObject) bool {
+	ok, _ := isUserAllowedToUpdateWithPermission(ctx, obj)
 	return ok
 }
-func isUserAllowedToDelete(ctx context.Context, masterKey string, obj *models.ODObject) bool {
+func isUserAllowedToDelete(ctx context.Context, obj *models.ODObject) bool {
 	requiredPermission := models.ODObjectPermission{}
 	requiredPermission.AllowRead = true
 	requiredPermission.AllowDelete = true
-	ok, _ := isUserAllowedTo(ctx, masterKey, obj, requiredPermission, true)
+	ok, _ := isUserAllowedTo(ctx, obj, requiredPermission, true)
 	return ok
 }
-func isUserAllowedToShare(ctx context.Context, masterKey string, obj *models.ODObject) bool {
-	ok, _ := isUserAllowedToShareWithPermission(ctx, masterKey, obj)
+func isUserAllowedToShare(ctx context.Context, obj *models.ODObject) bool {
+	ok, _ := isUserAllowedToShareWithPermission(ctx, obj)
 	return ok
 }
-func isUserAllowedTo(ctx context.Context, masterKey string, obj *models.ODObject, requiredPermission models.ODObjectPermission, rollup bool) (bool, models.ODObjectPermission) {
+func isUserAllowedTo(ctx context.Context, obj *models.ODObject, requiredPermission models.ODObjectPermission, rollup bool) (bool, models.ODObjectPermission) {
 	caller, _ := CallerFromContext(ctx)
 	groups, _ := GroupsFromContext(ctx)
 	authorizedTo := false
 	var userPermission models.ODObjectPermission
 	var granteeMatch bool
+
+	dp := ciphertext.FindCiphertextCacheByObject(obj)
+	masterKey := dp.GetMasterKey()
+
 	for _, permission := range obj.Permissions {
 		//LoggerFromContext(ctx).Info("Examining permissions ", zap.Object("permission", permission))
 		// Skip if permission is deleted

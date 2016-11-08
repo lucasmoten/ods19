@@ -10,6 +10,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
@@ -45,10 +46,13 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		return NewAppError(500, err, "Error retrieving object")
 	}
 
+	dp := ciphertext.FindCiphertextCacheByObject(&dbObject)
+	masterKey := dp.GetMasterKey()
+
 	// Check if the user has permissions to update the ODObject
 	var grant models.ODObjectPermission
 	var ok bool
-	if ok, grant = isUserAllowedToUpdateWithPermission(ctx, h.MasterKey, &dbObject); !ok {
+	if ok, grant = isUserAllowedToUpdateWithPermission(ctx, &dbObject); !ok {
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
 	}
 
@@ -133,8 +137,8 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	consolidateChangingPermissions(&requestObject)
 	// copy grant.EncryptKey to all existing permissions:
 	for idx, permission := range requestObject.Permissions {
-		models.CopyEncryptKey(h.MasterKey, &grant, &permission)
-		models.CopyEncryptKey(h.MasterKey, &grant, &requestObject.Permissions[idx])
+		models.CopyEncryptKey(masterKey, &grant, &permission)
+		models.CopyEncryptKey(masterKey, &grant, &requestObject.Permissions[idx])
 	}
 
 	// If ACM provided differs from what is currently set, then need to
@@ -154,7 +158,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 			// Need to refetch dbObject as apparently the assignment of its permissions into request object is a reference instead of copy
 			dbPermissions, _ := dao.GetPermissionsForObject(dbObject)
 			dbObject.Permissions = dbPermissions
-			if !isUserAllowedToShare(ctx, h.MasterKey, &dbObject) {
+			if !isUserAllowedToShare(ctx, &dbObject) {
 				return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to change the share for this object")
 			}
 		}

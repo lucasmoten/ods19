@@ -144,7 +144,7 @@ func UseLocalFile(logger zap.Logger, d CiphertextCache, rName FileId, cipherStar
 // It is better to do this than it is to stall while the file moves to S3.
 //
 // It is the CALLER's responsibility to close io.ReadCloser !!
-func useP2PFile(logger zap.Logger, selector CiphertextCacheName, rName FileId, begin int64) (io.ReadCloser, error) {
+func useP2PFile(logger zap.Logger, zone CiphertextCacheZone, rName FileId, begin int64) (io.ReadCloser, error) {
 	cfgPort, _ := strconv.Atoi(config.Port)
 	//Iterate over the current value of peerMap.  Do NOT lock this loop, as there is long IO in here.
 	thisMap := peerMap
@@ -152,7 +152,7 @@ func useP2PFile(logger zap.Logger, selector CiphertextCacheName, rName FileId, b
 		//If this is NOT our own entry
 		if peer != nil && (peer.Host != config.MyIP || peer.Port != cfgPort) {
 			//Ensure that we have a connection to the peer
-			url := fmt.Sprintf("https://%s:%d/ciphertext/%s/%s", peer.Host, peer.Port, string(selector), string(rName))
+			url := fmt.Sprintf("https://%s:%d/ciphertext/%s/%s", peer.Host, peer.Port, string(zone), string(rName))
 
 			//Set up a transport to connect to peer if there isn't one
 			var conf *tls.Config

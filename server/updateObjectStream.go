@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/crypto"
 	db "decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/events"
@@ -60,7 +61,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	// Check if the user has permissions to update the ODObject
 	var grant models.ODObjectPermission
 	var ok bool
-	if ok, grant = isUserAllowedToUpdateWithPermission(ctx, h.MasterKey, &dbObject); !ok {
+	if ok, grant = isUserAllowedToUpdateWithPermission(ctx, &dbObject); !ok {
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
 	}
 
@@ -74,10 +75,12 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	if err != nil {
 		return NewAppError(400, err, "unable to open multipart reader")
 	}
-	dp, drainFunc, herr, err := h.acceptObjectUpload(ctx, multipartReader, &dbObject, &grant, false)
+	drainFunc, herr := h.acceptObjectUpload(ctx, multipartReader, &dbObject, &grant, false, nil)
+	dp := ciphertext.FindCiphertextCacheByObject(&dbObject)
 	if herr != nil {
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
+	masterKey := dp.GetMasterKey()
 
 	if err = h.flattenACM(ctx, &dbObject); err != nil {
 		herr = ClassifyFlattenError(err)
@@ -94,8 +97,8 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	consolidateChangingPermissions(&requestObject)
 	// copy grant.EncryptKey to all existing permissions:
 	for idx, permission := range dbObject.Permissions {
-		models.CopyEncryptKey(h.MasterKey, &grant, &permission)
-		models.CopyEncryptKey(h.MasterKey, &grant, &dbObject.Permissions[idx])
+		models.CopyEncryptKey(masterKey, &grant, &permission)
+		models.CopyEncryptKey(masterKey, &grant, &dbObject.Permissions[idx])
 	}
 
 	dbObject.ModifiedBy = caller.DistinguishedName

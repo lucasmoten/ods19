@@ -11,12 +11,12 @@ import (
 )
 
 const (
-	//S3_DEFAULT_CIPHERTEXT_CACHE is the main ciphertext cache in use
-	S3_DEFAULT_CIPHERTEXT_CACHE = CiphertextCacheName("S3_DEFAULT")
+	// S3_DEFAULT_CIPHERTEXT_CACHE is the main ciphertext cache in use
+	S3_DEFAULT_CIPHERTEXT_CACHE = CiphertextCacheZone("S3_DEFAULT")
 )
 
-// CiphertextCacheName looks up ciphertext caches
-type CiphertextCacheName string
+// CiphertextCacheZone looks up ciphertext caches
+type CiphertextCacheZone string
 
 // FileId is the raw random name with no extension
 type FileId string
@@ -44,32 +44,34 @@ type CiphertextCache interface {
 	CacheInventory(w io.Writer, verbose bool)
 	// CountUploaded is a count of work items that need to complete before we can safely terminate
 	CountUploaded() int
-	// GetCiphertextCacheSelector is the key that this provider is stored under
-	GetCiphertextCacheSelector() CiphertextCacheName
-	// SetCiphertextCacheSelector is the key that we are going to store this under
-	SetCiphertextCacheSelector(CiphertextCacheSelector CiphertextCacheName)
+	// GetCiphertextCacheZone is the key that this provider is stored under
+	GetCiphertextCacheZone() CiphertextCacheZone
+	// SetCiphertextCacheZone is the key that we are going to store this under
+	SetCiphertextCacheZone(zone CiphertextCacheZone)
 	// ReCache an object in the background
 	BackgroundRecache(rName FileId, totalLength int64)
+	// GetMasterKey is the key for this cache
+	GetMasterKey() string
 }
 
 // ciphertextCaches is the named set of local caches that are bound to a remote bucket (S3 or possibly something else)
 // This map is mutated in main on setup, and never edited after that
-var ciphertextCaches = make(map[CiphertextCacheName]CiphertextCache)
+var ciphertextCaches = make(map[CiphertextCacheZone]CiphertextCache)
 
 // FindCiphertextCacheByObject gets us a drain provider that corresponds with the object
 //
-//  This implementation ASSUMES that main.go is setting us up with a propvider per selector
+//  This implementation ASSUMES that main.go is setting us up with a propvider per zone
 func FindCiphertextCacheByObject(obj *models.ODObject) CiphertextCache {
 	//When we have an API token, and a way to configure multiple providers, we simply pick a provider as a functino object's properties (already tested to work)
 	//For now, every object is getting default, but we can't change this without getting unique configs per CiphertextCache
 	return FindCiphertextCache(S3_DEFAULT_CIPHERTEXT_CACHE)
 }
 
-// FindCiphertextCache gets us a drain provider by selector.  We ONLY use this to construct drain providers.  Ask for it by object otherwise.
-func FindCiphertextCache(selector CiphertextCacheName) CiphertextCache {
-	dp := ciphertextCaches[selector]
+// FindCiphertextCache gets us a drain provider by zone.  We ONLY use this to construct drain providers.  Ask for it by object otherwise.
+func FindCiphertextCache(zone CiphertextCacheZone) CiphertextCache {
+	dp := ciphertextCaches[zone]
 	if dp == nil {
-		dp = ciphertextCaches[selector]
+		dp = ciphertextCaches[zone]
 	}
 	return dp
 }
@@ -85,11 +87,10 @@ func FindCiphertextCacheList() []CiphertextCache {
 
 // SetCiphertextCache sets an OD_CACHE_PARTITION (assuming multiple in the future) to a drain provider
 // ONLY do this in single-threaded main setup, not while the system runs - so that we don't need to put RWMutexes around these
-func SetCiphertextCache(selector CiphertextCacheName, dp CiphertextCache) {
+func SetCiphertextCache(zone CiphertextCacheZone, dp CiphertextCache) {
 	//Note that we use read locks everywhere else, and this should actually never be contended,
 	//because setup of the set of ciphertext caches happens single-threaded in main on startup.
-	ciphertextCaches[selector] = dp
-	dp.SetCiphertextCacheSelector(selector)
+	ciphertextCaches[zone] = dp
 }
 
 // PermanentStorage is a generic type for mocking out or replacing S3

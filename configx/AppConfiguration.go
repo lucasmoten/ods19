@@ -91,6 +91,8 @@ type S3CiphertextCacheOpts struct {
 	HighWatermark float64 `yaml:"high_waterwark"`
 	EvictAge      int64   `yaml:"evict_age"`
 	WalkSleep     int64   `yaml:"walk_sleep"`
+	MasterKey     string  `yaml:"masterkey"`
+	ChunkSize     int64   `yaml:"chunk_size"`
 }
 
 // ServerSettingsConfiguration holds the attributes needed for
@@ -103,7 +105,6 @@ type ServerSettingsConfiguration struct {
 	CAPath                    string   `yaml:"trust"`
 	ServerCertChain           string   `yaml:"cert"`
 	ServerKey                 string   `yaml:"key"`
-	MasterKey                 string   `yaml:"masterkey"`
 	RequireClientCert         bool     `yaml:"require_client_cert"`
 	CipherSuites              []string `yaml:"ciphers"`
 	MinimumVersion            string   `yaml:"min_version"`
@@ -255,15 +256,21 @@ func NewEventQueueConfiguration(confFile AppConfiguration, opts CommandLineOpts)
 // NewS3CiphertextCacheOpts reads the environment to provide the configuration options for
 // S3CiphertextCache.
 func NewS3CiphertextCacheOpts(confFile AppConfiguration, opts CommandLineOpts) S3CiphertextCacheOpts {
-	return S3CiphertextCacheOpts{
+	settings := S3CiphertextCacheOpts{
 		Root:          cascade(OD_CACHE_ROOT, confFile.CacheSettings.Root, "."),
 		Partition:     cascade(OD_CACHE_PARTITION, confFile.CacheSettings.Partition, "cache"),
 		LowWatermark:  cascadeFloat(OD_CACHE_LOWWATERMARK, confFile.CacheSettings.LowWatermark, .50),
 		HighWatermark: cascadeFloat(OD_CACHE_HIGHWATERMARK, confFile.CacheSettings.HighWatermark, .75),
 		EvictAge:      cascadeInt(OD_CACHE_EVICTAGE, confFile.CacheSettings.EvictAge, 300),
 		WalkSleep:     cascadeInt(OD_CACHE_WALKSLEEP, confFile.CacheSettings.WalkSleep, 30),
+		MasterKey:     cascade(OD_ENCRYPT_MASTERKEY, confFile.CacheSettings.MasterKey, ""),
+		ChunkSize:     cascadeInt(OD_AWS_S3_FETCH_MB, confFile.CacheSettings.ChunkSize, 16),
 	}
-
+	//Note: masterKey is a singleton value now.  But there will need to be one per OD_CACHE_PARTITION now
+	if settings.MasterKey == "" {
+		log.Fatal("You must set master encryption key with OD_ENCRYPT_MASTERKEY to start odrive")
+	}
+	return settings
 }
 
 // NewServerSettingsFromEnv inspects the environment and returns a ServerSettingsConfiguration.
@@ -277,14 +284,9 @@ func NewServerSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) S
 	settings.CAPath = cascade(OD_SERVER_CA, confFile.ServerSettings.CAPath, "")
 	settings.ServerCertChain = cascade(OD_SERVER_CERT, confFile.ServerSettings.ServerCertChain, "")
 	settings.ServerKey = cascade(OD_SERVER_KEY, confFile.ServerSettings.ServerKey, "")
-	settings.MasterKey = cascade(OD_ENCRYPT_MASTERKEY, confFile.ServerSettings.MasterKey, "")
 
 	// We only use conf.yml and cli opts for the ACL whitelist
 	settings.AclImpersonationWhitelist = selectNonEmptyStringSlice(opts.Whitelist, confFile.ServerSettings.AclImpersonationWhitelist, confFile.Whitelist)
-
-	if settings.MasterKey == "" {
-		log.Fatal("You must set master encryption key with OD_ENCRYPT_MASTERKEY to start odrive")
-	}
 
 	// Defaults
 	settings.ListenBind = "0.0.0.0"

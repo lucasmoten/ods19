@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	globalconfig "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/configx"
 
 	"github.com/uber-go/zap"
 )
@@ -32,7 +33,7 @@ type CiphertextCacheData struct {
 	//ChunkSize is the size of blocks to pull from PermanentStorage
 	ChunkSize int64
 	//The key that this CiphertextCache is stored under
-	CiphertextCacheSelector CiphertextCacheName
+	CiphertextCacheZone CiphertextCacheZone
 	//Where the CacheLocation is rooted on disk (ie: a very large drive mounted)
 	files FileSystem
 
@@ -64,6 +65,9 @@ type CiphertextCacheData struct {
 
 	//Logger for logging
 	Logger zap.Logger
+
+	// MasterKey is the secret passphrase used in scrambling keys
+	MasterKey string
 }
 
 // NewCiphertextCacheRaw is a cache that goes off to PermanentStorage.
@@ -85,35 +89,38 @@ type CiphertextCacheData struct {
 //
 //
 func NewCiphertextCacheRaw(
-	root string,
-	name string,
-	lowWatermark float64,
-	highWatermark float64,
-	ageEligibleForEviction int64,
-	walkSleep time.Duration,
-	chunkSize int64,
+	zone CiphertextCacheZone,
+	conf *config.S3CiphertextCacheOpts,
+	dbID string,
 	logger zap.Logger,
-	permanentStorage PermanentStorage) *CiphertextCacheData {
+	permanentStorage PermanentStorage,
+) *CiphertextCacheData {
+	//Do the unit conversions HERE
 	d := &CiphertextCacheData{
-		CiphertextCacheSelector: S3_DEFAULT_CIPHERTEXT_CACHE, //This will be overwritten when it is put into a map of caches
-		PermanentStorage:        permanentStorage,
-		files:                   CiphertextCacheFilesystemMountPoint{root},
-		CacheLocationString:     name,
-		lowWatermark:            lowWatermark,
-		ageEligibleForEviction:  ageEligibleForEviction,
-		highWatermark:           highWatermark,
-		walkSleep:               walkSleep,
-		ChunkSize:               chunkSize,
-		Logger:                  logger,
+		CiphertextCacheZone:    zone,
+		PermanentStorage:       permanentStorage,
+		files:                  CiphertextCacheFilesystemMountPoint{conf.Root},
+		CacheLocationString:    conf.Partition + "/" + dbID,
+		lowWatermark:           conf.LowWatermark,
+		ageEligibleForEviction: conf.EvictAge,
+		highWatermark:          conf.HighWatermark,
+		walkSleep:              time.Duration(conf.WalkSleep) * time.Second,
+		ChunkSize:              conf.ChunkSize * 1024 * 1024,
+		Logger:                 logger,
+		MasterKey:              conf.MasterKey,
 	}
 	CacheMustExist(d, logger)
-	logger.Info("cache purge",
-		zap.Float64("lowwatermark", lowWatermark),
-		zap.Float64("highwatermark", highWatermark),
-		zap.Int64("ageeligibleforeviction", ageEligibleForEviction),
-		zap.Duration("walksleep", walkSleep),
+	logger.Info("ciphertextcache created",
+		zap.String("mount", conf.Root),
+		zap.String("location", d.CacheLocationString),
 	)
 	return d
+}
+
+// GetMasterKey is the key for this cache - no more system global masterkey
+// This means that in order to have a key, you need to have an object that it refers to
+func (d *CiphertextCacheData) GetMasterKey() string {
+	return d.MasterKey
 }
 
 // Resolve a name to somewhere in the cache, given the rName
@@ -341,7 +348,7 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 		d.Logger.Warn("download from PermanentStorage error", zap.String("err", err.Error()))
 		// Check p2p.... it has to be there...
 		var filep2p io.ReadCloser
-		filep2p, err = useP2PFile(d.Logger, d.CiphertextCacheSelector, rName, 0)
+		filep2p, err = useP2PFile(d.Logger, d.CiphertextCacheZone, rName, 0)
 		if err != nil {
 			d.Logger.Error("p2p cannot find", zap.String("err", err.Error()))
 		}
@@ -621,12 +628,12 @@ func (d *CiphertextCacheData) GetPermanentStorage() PermanentStorage {
 	return d.PermanentStorage
 }
 
-// GetCiphertextCacheSelector is the key that this is stored under
-func (d *CiphertextCacheData) GetCiphertextCacheSelector() CiphertextCacheName {
-	return d.CiphertextCacheSelector
+// GetCiphertextCacheZone is the key that this is stored under
+func (d *CiphertextCacheData) GetCiphertextCacheZone() CiphertextCacheZone {
+	return d.CiphertextCacheZone
 }
 
-// SetCiphertextCacheSelector sets the key by which we actually do the lookup
-func (d *CiphertextCacheData) SetCiphertextCacheSelector(selector CiphertextCacheName) {
-	d.CiphertextCacheSelector = selector
+// SetCiphertextCacheZone sets the key by which we actually do the lookup
+func (d *CiphertextCacheData) SetCiphertextCacheZone(zone CiphertextCacheZone) {
+	d.CiphertextCacheZone = zone
 }

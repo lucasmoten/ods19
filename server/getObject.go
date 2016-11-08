@@ -36,7 +36,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 
 	// Check if the user has permissions to read the ODObject
 	//		Permission.grantee matches caller, and AllowRead is true
-	if ok := isUserAllowedToRead(ctx, h.MasterKey, &dbObject); !ok {
+	if ok := isUserAllowedToRead(ctx, &dbObject); !ok {
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
 	}
 
@@ -108,10 +108,11 @@ func redactParents(ctx context.Context, h AppServer, parents []models.ODObject) 
 
 	// iterate parents backwards and prepend to filtered
 	for i := len(parents) - 1; i >= 0; i-- {
-		if ok := isUserAllowedToRead(ctx, h.MasterKey, &parents[i]); !ok {
+		p := &parents[i]
+		if ok := isUserAllowedToRead(ctx, p); !ok {
 			break
 		}
-		if err := h.isUserAllowedForObjectACM(ctx, &parents[i]); err != nil {
+		if err := h.isUserAllowedForObjectACM(ctx, p); err != nil {
 			if !IsDeniedAccess(err) {
 				// log possible 502 and continue
 				logger.Error("AAC error checking parent", zap.Object("err", err))
@@ -120,7 +121,7 @@ func redactParents(ctx context.Context, h AppServer, parents []models.ODObject) 
 		}
 		// prepend, because filtering required backwards-iteration, but we need to
 		// maintain root-first sorting of breadcrumbs
-		filtered = append([]models.ODObject{parents[i]}, filtered...)
+		filtered = append([]models.ODObject{*p}, filtered...)
 	}
 	return filtered
 }

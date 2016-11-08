@@ -44,7 +44,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	requestObject.ChangeCount = dbObject.ChangeCount
 
 	// Auth check
-	if ok := isUserAllowedToUpdate(ctx, h.MasterKey, &dbObject); !ok {
+	if ok := isUserAllowedToUpdate(ctx, &dbObject); !ok {
 		return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
 	}
 
@@ -85,7 +85,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 
 			// Check if the user has permission to create children under the target
 			// object for which they are moving this one to (the parentID)
-			if ok := isUserAllowedToCreate(ctx, h.MasterKey, &dbParent); !ok {
+			if ok := isUserAllowedToCreate(ctx, &dbParent); !ok {
 				return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to move this object to target")
 			}
 
