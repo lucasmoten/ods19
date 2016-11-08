@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -326,12 +325,14 @@ func configureEventQueue(app *server.AppServer, conf configx.EventQueueConfigura
 		return
 	}
 
+	help := "review OD_EVENT_ZK_ADDRS or OD_EVENT_KAFKA_ADDRS"
+
 	if len(conf.KafkaAddrs) > 0 {
 		logger.Info("using direct connect for Kafka queue")
 		var err error
 		app.EventQueue, err = kafka.NewAsyncProducer(conf.KafkaAddrs, kafka.WithLogger(logger))
 		if err != nil {
-			logger.Fatal("cannot direct connect to Kakfa queue", zap.Object("err", err))
+			logger.Fatal("cannot direct connect to Kakfa queue", zap.Object("err", err), zap.String("help", help))
 		}
 		return
 	}
@@ -340,8 +341,7 @@ func configureEventQueue(app *server.AppServer, conf configx.EventQueueConfigura
 		logger.Info("attempting to discover Kafka queue from zookeeper")
 		conn, _, err := zk.Connect(conf.ZKAddrs, time.Duration(zkTimeout)*time.Second)
 		if err != nil {
-			msg := "review OD_EVENT_ZK_ADDRS and/or OD_EVENT_KAFKA_ADDRS"
-			log.Fatalf("err from zk.Connect: %v; %s", err, msg)
+			logger.Fatal("err from zk.Connect", zap.Object("err", err), zap.String("help", help))
 		}
 		setter := func(ap *kafka.AsyncProducer) {
 			// Don't just reset the conn because a zk event told you to, do an explicit check.
@@ -351,7 +351,7 @@ func configureEventQueue(app *server.AppServer, conf configx.EventQueueConfigura
 		}
 		ap, err := kafka.DiscoverKafka(conn, "/brokers/ids", setter, kafka.WithLogger(logger))
 		if err != nil {
-			logger.Fatal("error discovering kafka from zk", zap.Object("err", err))
+			logger.Fatal("error discovering kafka from zk", zap.Object("err", err), zap.String("help", help))
 		}
 		app.EventQueue = ap
 		return

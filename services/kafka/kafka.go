@@ -48,11 +48,6 @@ func WithLogger(logger zap.Logger) Opt {
 // NewAsyncProducer constructs an AsyncProducer with internal defaults and supplied options.
 func NewAsyncProducer(brokerList []string, opts ...Opt) (*AsyncProducer, error) {
 
-	// TODO(cm) if we need to set non-default connection parameters, we
-	// will need to new up a producer inside of a wrapper method like connect().
-	// This allows us to pass these custom parameters as opts, apply the opts
-	// in a loop, and _then_ make use of them. An example might be TLS
-	// for the Kafka conn.
 	producer, err := sarama.NewAsyncProducer(brokerList, nil)
 	if err != nil {
 		return nil, err
@@ -105,6 +100,7 @@ func DiscoverKafka(conn *zk.Conn, path string, setter func(*AsyncProducer), opts
 						l.Error("error re-creating Kafka connection", zap.Object("err", err))
 						continue
 					}
+					l.Info("found kafka brokers", zap.Object("brokers", brokers))
 					// invoke the callback with a new instance
 					setter(p)
 				}
