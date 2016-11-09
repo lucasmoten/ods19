@@ -177,6 +177,15 @@ const (
 	ValidACMTopSecretSharedToTester01 = `{"fgi_open":[],"rel_to":[],"sci_ctrls":[],"owner_prod":[],"portion":"TS","disp_only":"","disponly_to":[],"banner":"TOP SECRET","non_ic":[],"classif":"TS","atom_energy":[],"dissem_ctrls":[],"sar_id":[],"version":"2.1.0","fgi_protect":[],"share":{"users":["cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"f_clearance":[],"dissem_countries":["USA"],"isShared":true}
 `
 	ValidACMUnclassifiedFOUOSharedToTester01And02 = `{"accms":[],"atom_energy":[],"banner":"UNCLASSIFIED//FOUO","classif":"U","disp_only":"","disponly_to":[""],"dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":["cntesttester01oupeopleoudaeouchimeraou_s_governmentcus","cntesttester02oupeopleoudaeouchimeraou_s_governmentcus"],"fgi_open":[],"fgi_protect":[],"macs":[],"non_ic":[],"oc_attribs":[{"missions":[],"orgs":[],"regions":[]}],"owner_prod":[],"portion":"U//FOUO","rel_to":[],"sar_id":[],"sci_ctrls":[],"share":{"users":["cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`
+
+	//This is a plausible user that hasn't yet had a visit to odrive yet
+	ValidACMUnclassifiedFOUOSharedToTester11 = `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"portion":"U//FOUO","share":{"users":["cn=test tester11,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`
+	ValidACMUnclassifiedFOUOSharedToTester12 = `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"portion":"U//FOUO","share":{"users":["cn=test tester12,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`
+	ValidACMUnclassifiedFOUOSharedToTester13 = `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"portion":"U//FOUO","share":{"users":["cn=test tester13,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`
+	Tester10DN                               = "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+	Tester11DN                               = "cn=test tester11,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+	Tester12DN                               = "cn=test tester12,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+	Tester13DN                               = "cn=test tester13,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
 )
 
 // Snippets

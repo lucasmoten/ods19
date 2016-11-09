@@ -222,8 +222,14 @@ func doGetObjectRequest(
 }
 
 // doCreateObjectRequest gets an http status code and an object, and fails on error
-func doCreateObjectRequest(t *testing.T, clientID int, req *http.Request, expectedCode int) *protocol.Object {
+func doCreateObjectRequestWithTrafficLog(t *testing.T, clientID int, req *http.Request, expectedCode int, trafficLogDescription *TrafficLogDescription) *protocol.Object {
+	if trafficLogDescription != nil {
+		trafficLogs[APISampleFile].Request(t, req, trafficLogDescription)
+	}
 	res, err := clients[clientID].Client.Do(req)
+	if trafficLogDescription != nil {
+		trafficLogs[APISampleFile].Response(t, res)
+	}
 	t.Logf("check response")
 	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, expectedCode, res, "Bad status when creating object")
@@ -236,6 +242,11 @@ func doCreateObjectRequest(t *testing.T, clientID int, req *http.Request, expect
 	}
 	//Returning the res rather than StatusCode, because of statusMustBe, statusExpected, etc.
 	return &createdObject
+}
+
+// doCreateObjectRequest gets an http status code and an object, and fails on error
+func doCreateObjectRequest(t *testing.T, clientID int, req *http.Request, expectedCode int) *protocol.Object {
+	return doCreateObjectRequestWithTrafficLog(t, clientID, req, expectedCode, nil)
 }
 
 func failWithoutDCTCOdrive(t *testing.T, createdObject *protocol.Object) {
@@ -358,6 +369,131 @@ func TestCreateWithPermissions(t *testing.T) {
 	t.Logf("* Verify everyone in odrive group can read")
 	shouldHaveReadForObjectID(t, createdObject.ID, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
 	failWithoutDCTCOdrive(t, createdObject)
+}
+
+// TestCreateWithPermissionsNewUser has tester10 create an object shared to tester11 (who will does not yet exist)
+func TestCreateWithPermissionsNewUser(t *testing.T) {
+
+	tester10 := 0
+
+	t.Logf("* Create object")
+	t.Logf("preparing")
+	var object protocol.CreateObjectRequest
+	object.Name = "TestCreateWithPermissionsNewUser"
+	object.RawAcm = testhelpers.ValidACMUnclassifiedFOUOSharedToTester11
+	permission := protocol.ObjectShare{
+		Share: makeUserShare(testhelpers.Tester11DN), AllowCreate: true, AllowRead: true, AllowUpdate: true, AllowDelete: true,
+	}
+	object.Permissions = append(object.Permissions, permission)
+
+	t.Logf("jsoninfying")
+	jsonBody, _ := json.Marshal(object)
+	uriCreate := host + cfg.NginxRootURL + "/objects"
+	t.Logf("http request and client")
+	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
+	httpCreate.Header.Set("Content-Type", "application/json")
+	t.Logf("execute client")
+	_ = doCreateObjectRequest(t, tester10, httpCreate, 200)
+}
+
+// TestCreateWithPermissionsNewUser2 has tester02 create an object shared with tester10 on create
+// then tester10 shares it to tester12, who does not yet exist.
+// We document the share from tester10 to tester12 in the traffic log.
+func TestCreateWithPermissionsNewUser2(t *testing.T) {
+
+	tester02 := 2
+	tester10 := 0
+
+	//
+	// tester02 creates an object initially shared to tester10
+	//
+	t.Logf("* Create object")
+	t.Logf("preparing")
+	var object protocol.CreateObjectRequest
+	object.Name = "TestCreateWithPermissionsNewUser2"
+	object.RawAcm = testhelpers.ValidACMUnclassifiedFOUOSharedToTester10
+	permission := protocol.ObjectShare{
+		Share:      makeUserShare(testhelpers.Tester10DN),
+		AllowRead:  true,
+		AllowShare: true,
+	}
+	object.Permissions = append(object.Permissions, permission)
+	t.Logf("jsoninfying")
+	jsonBody, _ := json.Marshal(object)
+	uriCreate := host + cfg.NginxRootURL + "/objects"
+	t.Logf("http request and client")
+	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
+	httpCreate.Header.Set("Content-Type", "application/json")
+	t.Logf("execute client")
+	responseObj := doCreateObjectRequest(t, tester02, httpCreate, 200)
+
+	//
+	// tester10 shares to tester11 (who will never visit odrive)
+	//
+	t.Logf("* Create share granting read access to odrive") // will replace models.EveryoneGroup
+	shareuri := host + cfg.NginxRootURL + "/shared/" + responseObj.ID
+	shareSetting := protocol.ObjectShare{}
+	shareSetting.Share = makeUserShare(testhelpers.Tester12DN)
+	shareSetting.AllowRead = true
+	jsonBody, err := json.MarshalIndent(shareSetting, "", "  ")
+	if err != nil {
+		t.Logf("Unable to marshal json for request:%v", err)
+		t.FailNow()
+	}
+	shareRequest, err := http.NewRequest("POST", shareuri, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		t.Logf("Error setting up HTTP Request: %v", err)
+		t.FailNow()
+	}
+
+	trafficLogs[APISampleFile].Request(t, shareRequest, &TrafficLogDescription{
+		OperationName:       "Share to new user that may use odrive in the future",
+		RequestDescription:  "Share file owned by tester 2 from tester 10 to tester 11",
+		ResponseDescription: "New user has the share",
+	})
+
+	shareResponse, err := clients[tester10].Client.Do(shareRequest)
+	if err != nil {
+		t.Logf("Unable to create share:%v", err)
+		t.FailNow()
+	}
+
+	trafficLogs[APISampleFile].Response(t, shareResponse)
+
+	defer util.FinishBody(shareResponse.Body)
+	if shareResponse.StatusCode != http.StatusOK {
+		t.Logf("share creation failed")
+		t.FailNow()
+	}
+
+}
+
+// TestCreateWithPermissionsNewUser3 has tester10 share an object to tester13 using resource string format,
+// which we document in the traffic log.
+func TestCreateWithPermissionsNewUser3(t *testing.T) {
+
+	tester10 := 0
+
+	t.Logf("* Create object")
+	t.Logf("preparing")
+	var object protocol.CreateObjectRequest
+	object.Name = "TestCreateWithPermissionsNewUser3"
+	object.RawAcm = testhelpers.ValidACMUnclassifiedFOUOSharedToTester13
+	object.Permission.Read.AllowedResources = append(object.Permission.Read.AllowedResources, "user/"+testhelpers.Tester13DN)
+
+	t.Logf("jsoninfying")
+	jsonBody, _ := json.MarshalIndent(object, "", "  ")
+	uriCreate := host + cfg.NginxRootURL + "/objects"
+	t.Logf("http request and client")
+	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
+	httpCreate.Header.Set("Content-Type", "application/json")
+	t.Logf("execute client")
+	trafficLogsDescription := &TrafficLogDescription{
+		OperationName:       "Create object shared to new user on create with resource string format",
+		RequestDescription:  "Create file using resource string format",
+		ResponseDescription: "New user has the share",
+	}
+	_ = doCreateObjectRequestWithTrafficLog(t, tester10, httpCreate, 200, trafficLogsDescription)
 }
 
 // TestCreateStreamWithPermissions creates an object as Tester10, and includes a

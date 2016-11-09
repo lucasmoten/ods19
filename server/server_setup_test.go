@@ -130,7 +130,6 @@ func generatePopulation() {
 
 func populateClients(population int) {
 	clients = make([]*ClientIdentity, population)
-	usersReq, _ := http.NewRequest("GET", host+cfg.NginxRootURL+"/users", nil)
 	for i := 0; i < len(clients); i++ {
 		var clientname string
 
@@ -155,21 +154,6 @@ func populateClients(population int) {
 
 		transport := &http.Transport{TLSClientConfig: clients[i].Config}
 		clients[i].Client = &http.Client{Transport: transport}
-
-		// force creation of the user in the database
-		resp, err := clients[i].Client.Do(usersReq)
-		if err != nil {
-			log.Printf("Error in populateClients: %v/n", err)
-		}
-		if resp == nil {
-			log.Printf("the server is not running!!!")
-			return
-		}
-		defer util.FinishBody(resp.Body)
-
-		// TODO assign groups in another switch
-		switch i {
-		}
 	}
 }
 
