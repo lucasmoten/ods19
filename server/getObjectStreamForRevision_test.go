@@ -13,7 +13,6 @@ import (
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
 	"decipher.com/object-drive-server/utils"
@@ -443,7 +442,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 	t.Logf("* Add read permission granted to tester1 and tester10")
 	shareuri := host + cfg.NginxRootURL + "/shared/" + objID
 	shareSetting := protocol.ObjectShare{}
-	shareSetting.Share = server.CombineInterface(nil, makeUserShare(fakeDN0), makeUserShare(fakeDN1))
+	shareSetting.Share = utils.CombineInterface(makeUserShare(fakeDN0), makeUserShare(fakeDN1))
 	shareSetting.AllowRead = true
 	jsonBody, err := json.Marshal(shareSetting)
 	if err != nil {

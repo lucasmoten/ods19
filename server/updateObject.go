@@ -3,13 +3,14 @@ package server
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
+	"github.com/uber-go/zap"
+
 	"golang.org/x/net/context"
 
+	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
@@ -25,10 +26,11 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	var err error
 
 	caller, _ := CallerFromContext(ctx)
+	logger := LoggerFromContext(ctx)
 	session := SessionIDFromContext(ctx)
 	dao := DAOFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
-
+	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	if r.Header.Get("Content-Type") != "application/json" {
 		return NewAppError(400, nil, "expected application/json Content-Type")
 	}
@@ -58,7 +60,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	// ACM check for whether user has permission to read this object
 	// from a clearance perspective
-	if err = h.isUserAllowedForObjectACM(ctx, &dbObject); err != nil {
+	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
 		return ClassifyObjectACMError(err)
 	}
 
@@ -123,15 +125,20 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		}
 		requestObject.Permissions = combinedPermissions
 	}
-	// Flatten ACM, then Normalize Read Permissions against ACM f_share
-	if err = h.flattenACM(ctx, &requestObject); err != nil {
+
+	flattenedACM, err := aacAuth.GetFlattenedACM(requestObject.RawAcm.String)
+	if err != nil {
 		return ClassifyFlattenError(err)
 	}
-	if herr := normalizeObjectReadPermissions(ctx, &requestObject); herr != nil {
-		return herr
+	requestObject.RawAcm = models.ToNullString(flattenedACM)
+	modifiedPermissions, modifiedACM, err := aacAuth.NormalizePermissionsFromACM(requestObject.OwnedBy.String, requestObject.Permissions, requestObject.RawAcm.String, requestObject.IsCreating())
+	if err != nil {
+		return NewAppError(500, err, err.Error())
 	}
+	requestObject.RawAcm = models.ToNullString(modifiedACM)
+	requestObject.Permissions = modifiedPermissions
 	// Access check against altered ACM as a whole
-	if err = h.isUserAllowedForObjectACM(ctx, &requestObject); err != nil {
+	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, requestObject.RawAcm.String); err != nil {
 		return ClassifyObjectACMError(err)
 	}
 	consolidateChangingPermissions(&requestObject)
@@ -146,7 +153,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// to see if allowed for this user
 	if strings.Compare(dbObject.RawAcm.String, requestObject.RawAcm.String) != 0 {
 		// Ensure user is allowed this acm
-		if err = h.isUserAllowedForObjectACM(ctx, &requestObject); err != nil {
+		if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, requestObject.RawAcm.String); err != nil {
 			return ClassifyObjectACMError(err)
 		}
 		// If the "share" or "f_share" parts have changed, then check that the
@@ -162,7 +169,6 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 				return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to change the share for this object")
 			}
 		}
-
 	}
 
 	// Retain existing values from dbObject where no value was provided for key fields
@@ -192,22 +198,15 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	// After the update, check that key values have changed...
 	if requestObject.ChangeCount <= dbObject.ChangeCount {
-		if requestObject.ID == nil {
-			log.Println("requestObject.ID = nil")
-		}
-		if dbObject.ID == nil {
-			log.Println("dbObject.ID = nil")
-		}
-		log.Println(hex.EncodeToString(requestObject.ID))
-		log.Println(hex.EncodeToString(dbObject.ID))
-
-		msg := fmt.Sprintf("old changeCount: %d, new changeCount: %d, req id: %s, db id: %s", requestObject.ChangeCount, dbObject.ChangeCount, hex.EncodeToString(requestObject.ID), hex.EncodeToString(dbObject.ID))
-		log.Println(msg)
-		return NewAppError(500, nil, "ChangeCount didn't update when processing request "+msg)
+		logger.Error("ChangeCount didn't update when processing request",
+			zap.Int("old", requestObject.ChangeCount), zap.Int("new", dbObject.ChangeCount),
+			zap.String("requestObject.ID", hex.EncodeToString(requestObject.ID)), zap.String("dbObject.ID", hex.EncodeToString(dbObject.ID)))
+		return NewAppError(500, nil, "ChangeCount didn't update when processing request")
 	}
 	if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) == 0 {
-		msg := fmt.Sprintf("old token: %s, new token: %s", requestObject.ChangeToken, dbObject.ChangeToken)
-		return NewAppError(500, nil, "ChangeToken didn't update when processing request "+msg)
+		logger.Error("ChangeToken didn't update when procesing request",
+			zap.String("old token", requestObject.ChangeToken), zap.String("new token", dbObject.ChangeToken))
+		return NewAppError(500, nil, "ChangeToken didn't update when processing request")
 	}
 
 	dbObject, err = dao.GetObject(requestObject, true)

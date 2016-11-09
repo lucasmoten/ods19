@@ -85,6 +85,7 @@ func Start(conf config.AppConfiguration) error {
 				"aac connect is taking too long",
 				zap.Int("waitTime in Seconds", waitTime),
 			)
+			break
 		}
 		time.Sleep(time.Duration(waitTime) * time.Second)
 		waitTime = waitTime + prevWaitTime
@@ -142,10 +143,29 @@ func configureEventQueue(app *AppServer, conf config.EventQueueConfiguration, zk
 				app.EventQueue = ap
 			}
 		}
+		// Allow time for kafka to be available in zookeeper
+		waitTime := 1
+		prevWaitTime := 0
 		ap, err := kafka.DiscoverKafka(conn, "/brokers/ids", setter, kafka.WithLogger(logger))
+		for ap == nil || err != nil {
+			logger.Warn("kafka was not discovered in zookeeper.", zap.Int("waitTime in seconds", waitTime))
+			if waitTime > 10 {
+				logger.Error(
+					"kafka discovery is taking too long",
+					zap.Int("waitTime in Seconds", waitTime),
+				)
+				break
+			}
+			time.Sleep(time.Duration(waitTime) * time.Second)
+			waitTime = waitTime + prevWaitTime
+			prevWaitTime = waitTime
+			err = nil
+			ap, err = kafka.DiscoverKafka(conn, "/brokers/ids", setter, kafka.WithLogger(logger))
+		}
 		if err != nil {
 			logger.Fatal("error discovering kafka from zk", zap.Object("err", err), zap.String("help", help))
 		}
+		logger.Info("kafka discovery successful")
 		app.EventQueue = ap
 		return
 	}

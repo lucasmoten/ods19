@@ -106,6 +106,7 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
             --7518615725
             Content-Disposition: form-data; name="ObjectMetadata"
             Content-Type: application/json
+            
             {
                 "typeName": "File",
                 "name": "My new file",
@@ -401,6 +402,7 @@ This creates a new revision of the object.
             --b428e6cd1933
             Content-Disposition: form-data; name="ObjectMetadata"
             Content-Type: application/json
+            
             {
                 "id": "11e5e4867a6e3d8389020242ac110002", 
                 "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",

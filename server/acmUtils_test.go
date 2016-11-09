@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/utils"
 )
 
@@ -73,7 +72,7 @@ func TestCombineInterfaces(t *testing.T) {
 			t.FailNow()
 		}
 
-		resultObj := server.CombineInterface(nil, startObj, addObj)
+		resultObj := utils.CombineInterface(startObj, addObj)
 		resultStr, err := utils.MarshalInterfaceToString(resultObj)
 		resultNorm, err := utils.NormalizeMarshalledInterface(resultStr)
 		t.Logf(resultNorm)

@@ -2,18 +2,12 @@ package server
 
 import (
 	"encoding/hex"
-	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/ciphertext"
-	globalconfig "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/performance"
-	"decipher.com/object-drive-server/services/aac"
-	"decipher.com/object-drive-server/utils"
 	"golang.org/x/net/context"
 )
 
@@ -33,10 +27,7 @@ func IsDeniedAccess(err error) bool {
 	if err == nil {
 		return false
 	}
-	if strings.HasPrefix(err.Error(), "Access Denied") {
-		return true
-	}
-	return false
+	return strings.HasPrefix(err.Error(), "auth: user not authorized")
 }
 
 // IsUserAllowedForObjectInternalError is for failures to even make the call
@@ -44,249 +35,13 @@ func IsUserAllowedForObjectInternalError(err error) bool {
 	if err == nil {
 		return false
 	}
-	if strings.HasPrefix(err.Error(), "Error calling AAC.CheckAccess") {
+	if strings.HasPrefix(err.Error(), "auth: unable") {
+		return true
+	}
+	if strings.HasPrefix(err.Error(), "auth: service") {
 		return true
 	}
 	return false
-}
-
-func (h AppServer) isUserAllowedForObjectACM(ctx context.Context, object *models.ODObject) error {
-	var err error
-
-	caller, ok := CallerFromContext(ctx)
-	if !ok {
-		return errors.New("Could not determine user")
-	}
-
-	// Validate object
-	if object == nil {
-		return errors.New("Object passed in is not initialized")
-	}
-	if !object.RawAcm.Valid {
-		return errors.New("Object passed in does not have an ACM set")
-	}
-
-	// Gather inputs
-	tokenType := "pki_dias"
-	dn := caller.DistinguishedName
-	acm := object.RawAcm.String
-
-	logger := LoggerFromContext(ctx).With(zap.String("dn", dn), zap.String("acm", acm))
-
-	// Verify we have a reference to AAC
-	if h.AAC == nil {
-		return errors.New("AAC field is nil")
-	}
-
-	// Performance instrumentation
-	var beganAt = performance.BeganJob(int64(0))
-	if h.Tracker != nil {
-		beganAt = h.Tracker.BeginTime(performance.AACCounterCheckAccess)
-	}
-
-	// Call AAC
-	aacResponse, err := h.AAC.CheckAccess(dn, tokenType, acm)
-
-	// End performance tracking for the AAC call
-	if h.Tracker != nil {
-		h.Tracker.EndTime(performance.AACCounterCheckAccess, beganAt, performance.SizeJob(1))
-	}
-
-	// Check if there was an error calling the service
-	if err != nil {
-		logger.Error("Error calling AAC.CheckAccess", zap.String("err", err.Error()))
-		return errors.New("Error calling AAC.CheckAccess")
-	}
-	//Note: err == nil after this point, making err.Error() a guaranteed crash
-
-	// This is some kind of internal error if it happens
-	if aacResponse == nil {
-		logger.Error("Error calling AAC.CheckAccess")
-		return errors.New("Error calling AAC.CheckAccess")
-	}
-
-	// Process Response
-	// Log the messages
-	for _, message := range aacResponse.Messages {
-		logger.Error("Message in AAC Response", zap.String("acm message", message))
-	}
-	msgsString := strings.Join(aacResponse.Messages, "/")
-	logger = logger.With(zap.String("messages", msgsString))
-
-	// Check if response was successful
-	// -- This is assumed to be an upstream error, not a user authorization error
-	if !aacResponse.Success {
-		logger.Error("aacResponse.Success == false")
-		return fmt.Errorf("Response from AAC.CheckAccess failed: %s", msgsString)
-	}
-	// AAC Response returned without error, was successful
-	if !aacResponse.HasAccess {
-		logger.Error("aacResponse.HasAccess == false")
-		return fmt.Errorf("Access Denied for ACM: %s", msgsString)
-	}
-	return nil
-}
-
-// isUserAllowedForACMSTring wraps isUserAllowedForObjectACM to help with the cases where we simply need to
-// set up a new models.ODObject with a RawAcm and send a request to AAC.
-func (h AppServer) isUserAllowedForACMString(ctx context.Context, acm string) error {
-	// Ensure user is allowed this acm
-	updateObjectRequest := models.ODObject{}
-	updateObjectRequest.RawAcm.String = acm
-	updateObjectRequest.RawAcm.Valid = true
-	return h.isUserAllowedForObjectACM(ctx, &updateObjectRequest)
-}
-
-func (h AppServer) flattenACMAndCheckAccess(ctx context.Context, object *models.ODObject) (bool, error) {
-	logger := LoggerFromContext(ctx)
-
-	var err error
-
-	// Validate object
-	if object == nil {
-		return false, errors.New("Object passed in is not initialized")
-	}
-	if !object.RawAcm.Valid {
-		return false, errors.New("Object passed in does not have an ACM set")
-	}
-
-	// Gather inputs
-	acm := object.RawAcm.String
-	if len(acm) == 0 {
-		return false, errors.New("Ther was no ACM value on the object")
-	}
-
-	// Verify we have a reference to AAC
-	if h.AAC == nil {
-		return false, errors.New("AAC field is nil")
-	}
-
-	// Get caller value from ctx.
-	caller, ok := CallerFromContext(ctx)
-	if !ok {
-		return false, errors.New("Could not determine user")
-	}
-
-	// Prep to call AAC
-	userToken := caller.DistinguishedName
-	tokenType := "pki_dias"
-	herr, acmPartShare := getACMInterfacePart(object, "share")
-	if herr != nil {
-		return false, herr.Error
-	}
-	share, err := utils.MarshalInterfaceToString(acmPartShare)
-	if err != nil {
-		return false, fmt.Errorf("Unable to marshal share from acm to string format: %v", err)
-	}
-
-	acmInfo := aac.AcmInfo{Path: "X", Acm: acm, IncludeInRollup: false}
-	acmInfoList := []*aac.AcmInfo{&acmInfo}
-	calculateRollup := false
-	shareType := "other"
-
-	// Performance instrumentation
-	var beganAt = performance.BeganJob(int64(0))
-	if h.Tracker != nil {
-		beganAt = h.Tracker.BeginTime(performance.AACCounterCheckAccessAndPopulate)
-	}
-
-	// TODO: This is the call..
-	aacResponse, err := h.AAC.CheckAccessAndPopulate(userToken, tokenType, acmInfoList, calculateRollup, shareType, share)
-
-	// End performance tracking for the AAC call
-	if h.Tracker != nil {
-		h.Tracker.EndTime(
-			performance.AACCounterPopulateAndValidateResponse,
-			beganAt,
-			performance.SizeJob(1),
-		)
-	}
-
-	//ACM and dn are *always* logged!!
-	logger = logger.With(zap.String("acm", acm), zap.String("dn", userToken))
-
-	// Log the messages
-	var msgsString string
-	if aacResponse != nil {
-		for _, message := range aacResponse.Messages {
-			logger.Error("Message in AAC Response", zap.String("acm message", message))
-		}
-		msgsString = strings.Join(aacResponse.Messages, "/")
-	}
-
-	// Check if there was an error calling the service
-	if err != nil {
-		logger.Error("CheckAccessAndPopulate error")
-		return false, fmt.Errorf("Error calling AAC.CheckAccessAndPopulate: %s, %s", err.Error(), msgsString)
-	}
-
-	// Process Response
-	// Check if response was successful
-	// -- This is assumed to be an upstream error, not a user authorization error
-	if aacResponse == nil || !aacResponse.Success {
-		logger.Error("aacResponse.Success == false")
-		return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate failed: %s", msgsString)
-	}
-
-	// Iterate response list
-	if len(aacResponse.AcmResponseList) > 0 {
-		for acmResponseIdx, acmResponse := range aacResponse.AcmResponseList {
-			loggerIdx := logger.With(zap.Int("acmResponseIdx", acmResponseIdx))
-			// Messages
-			for acmMessageIdx, acmResponseMsg := range acmResponse.Messages {
-				loggerIdx.Warn("acm response", zap.Int("acmMessageIdx", acmMessageIdx), zap.String("acmResponseMsg", acmResponseMsg))
-			}
-			// Check if successful
-			if !acmResponse.Success {
-				loggerIdx.Error("acmResponse.Success == false")
-				return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate failed for #%d: %s, %s", acmResponseIdx, acm, msgsString)
-			}
-			// Check if valid
-			if !acmResponse.AcmValid {
-				loggerIdx.Error("acmResponse.AcmValid == false")
-				return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate indicates acm not valid for #%d: %s, %s", acmResponseIdx, acm, msgsString)
-			}
-			// Check if user has access
-			if !acmResponse.HasAccess {
-				loggerIdx.Error("acmResponse.HasAccess == false")
-				return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate indicates user does not have access to #%d: %s, %s", acmResponseIdx, acm, msgsString)
-			}
-			// Capture revised acm string (last in wins. but should be only 1)
-			object.RawAcm.String = acmResponse.AcmInfo.Acm
-		}
-	} else {
-		// no acm response
-		logger.Warn("acm checked")
-		return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate did not result in an ACM being returned: %s", msgsString)
-	}
-
-	if aacResponse.RollupAcmResponse != nil {
-		acmResponse := aacResponse.RollupAcmResponse
-		// Messages
-		for acmMessageIdx, acmResponseMsg := range acmResponse.Messages {
-			logger.Warn("aac rollup RootupAcmResponse message", zap.Int("acmMessageIdx", acmMessageIdx), zap.String("acmResponseMsg", acmResponseMsg))
-		}
-		// Check if successful
-		if !acmResponse.Success {
-			logger.Error("aac rollup acmResponse == false")
-			return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate failed for RollupAcmResponse: %s, %s", acm, msgsString)
-		}
-		// Check if valid
-		if !acmResponse.AcmValid {
-			logger.Error("aac rollup acmResponse.AcmValid == false")
-			return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate indicates acm not valid for RollupAcmResponse: %s, %s", acm, msgsString)
-		}
-		// Check if user has access
-		if !acmResponse.HasAccess {
-			logger.Error("aac rollup acmResponse.HasAccess == false")
-			return false, fmt.Errorf("Response from AAC.CheckAccessAndPopulate indicates user does not have access to RollupAcmResponse: %s, %s", acm, msgsString)
-		}
-		// Capture revised acm string (last in wins. but should be only 1)
-		object.RawAcm.String = acmResponse.AcmInfo.Acm
-	}
-
-	// Done, implicitly true
-	return true, nil
 }
 
 // ClassifyFlattenError is the default pattern for classifying errors
@@ -302,125 +57,15 @@ func IsFlattenInternalError(err error) bool {
 	if err == nil {
 		return false
 	}
-	if strings.HasPrefix(err.Error(), "Error calling AAC.PopulateAndValidateAcm") {
+	if strings.HasPrefix(err.Error(), "auth: unable") {
 		return true
 	}
-	if strings.HasPrefix(err.Error(), "Response from AAC.PopulateAndValidateAcm failed") {
+	if strings.HasPrefix(err.Error(), "auth: service") {
 		return true
 	}
 	return false
 }
 
-func (h AppServer) flattenACM(ctx context.Context, object *models.ODObject) error {
-
-	var err error
-	logger := LoggerFromContext(ctx)
-
-	// Validate object
-	if object == nil {
-		return errors.New("Object passed in is not initialized")
-	}
-	if !object.RawAcm.Valid {
-		return errors.New("Object passed in does not have an ACM set")
-	}
-
-	// Gather inputs
-	acm := object.RawAcm.String
-	logger = logger.With(zap.String("acm", acm))
-
-	// Verify we have a reference to AAC
-	if h.AAC == nil {
-		return errors.New("AAC field is nil")
-	}
-
-	// Performance instrumentation
-	var beganAt = performance.BeganJob(int64(0))
-	if h.Tracker != nil {
-		beganAt = h.Tracker.BeginTime(performance.AACCounterPopulateAndValidateResponse)
-	}
-
-	// Call AAC
-	acmResponse, err := h.AAC.PopulateAndValidateAcm(acm)
-
-	// End performance tracking for the AAC call
-	if h.Tracker != nil {
-		h.Tracker.EndTime(
-			performance.AACCounterPopulateAndValidateResponse,
-			beganAt,
-			performance.SizeJob(1),
-		)
-	}
-
-	// Check if there was an error calling the service
-	if err != nil {
-		logger.Error("Error calling AAC.PopulateAndValidateAcm", zap.String("err", err.Error()))
-		return fmt.Errorf("Error calling AAC.PopulateAndValidateAcm: %s", err.Error())
-	}
-
-	// Prevent potential nil ptr in next block
-	if acmResponse == nil {
-		logger.Error("Error calling AAC.PopulateAndValidateAcm")
-		return fmt.Errorf("Error calling AAC.PopulateAndValidateAcm")
-	}
-
-	// Process Response
-	// Log the messages
-	var msgsString string
-	for _, message := range acmResponse.Messages {
-		logger.Error("Message in AAC Response", zap.String("aac message", message))
-	}
-	msgsString = strings.Join(acmResponse.Messages, "/")
-
-	// Check if response was successful
-	// -- This is assumed to be an upstream error, not a user authorization error
-	if !acmResponse.Success {
-		logger.Error("acmResponse.Success == false")
-		return fmt.Errorf("Response from AAC.PopulateAndValidateAcm failed: %s", msgsString)
-	}
-	// Check if the acm was valid
-	if !acmResponse.AcmValid {
-		logger.Error("acmResponse.Valid == false")
-		return fmt.Errorf("ACM in call to PopulateAndValidateAcm was not valid: %s", msgsString)
-	}
-
-	// Get revised acm string
-	object.RawAcm.String = acmResponse.AcmInfo.Acm
-	// Done
-	return nil
-}
-func isUserOwner(ctx context.Context, object *models.ODObject) bool {
-	ownedBy := object.OwnedBy.String
-	caller, _ := CallerFromContext(ctx)
-	// Simple user ownership
-	if ("user/" + caller.DistinguishedName) == ownedBy {
-		return true
-	}
-	// Group check from user snippets
-	dao := DAOFromContext(ctx)
-	snippets, ok := SnippetsFromContext(ctx)
-	if !ok {
-		return false
-	}
-	for _, rawFields := range snippets.Snippets {
-		if rawFields.FieldName == "f_share" {
-			for _, shareValue := range rawFields.Values {
-				trimmedShareValue := strings.TrimSpace(shareValue)
-				if len(trimmedShareValue) > 0 {
-					if ownedBy == "group/"+trimmedShareValue {
-						return true
-					}
-					if acmGrantee, err := dao.GetAcmGrantee(trimmedShareValue); err != nil {
-						if ownedBy == acmGrantee.ResourceName() {
-							return true
-						}
-					}
-				}
-			}
-
-		}
-	}
-	return false
-}
 func isUserAllowedToReadWithPermission(ctx context.Context, obj *models.ODObject) (bool, models.ODObjectPermission) {
 	requiredPermission := models.ODObjectPermission{}
 	requiredPermission.AllowRead = true
@@ -570,126 +215,6 @@ func isUserAllowedTo(ctx context.Context, obj *models.ODObject, requiredPermissi
 
 	// Return the overall (either combined from one or more granteeMatch, or empty from no match)
 	return authorizedTo, userPermission
-}
-
-func (h AppServer) newContextWithGroupsAndSnippetsFromUser(distinguishedName string) context.Context {
-	userCtx := context.Background()
-	userCaller := Caller{DistinguishedName: distinguishedName}
-	userCtx = ContextWithCaller(userCtx, userCaller)
-	userCtx = context.WithValue(userCtx, Logger, globalconfig.RootLogger)
-	userGroups, userSnippets, err := h.GetUserGroupsAndSnippets(userCtx)
-	if err != nil {
-		userGroups = []string{models.AACFlatten(distinguishedName)}
-	}
-	userCtx = ContextWithGroups(userCtx, userGroups)
-	userCtx = ContextWithSnippets(userCtx, userSnippets)
-	return userCtx
-}
-
-func (h AppServer) isObjectACMSharedToUser(ctx context.Context, obj *models.ODObject, user string) bool {
-
-	// Look at the flattened share of the acm
-
-	var acmGrants []string
-	herr, fShareInterface := getACMInterfacePart(obj, "f_share")
-	if herr != nil {
-		LoggerFromContext(ctx).Warn("Error retrieving acm interface part f_share")
-		return false
-	}
-	acmGrants = getStringArrayFromInterface(fShareInterface)
-
-	//  If no values, its shared to everyone
-	if len(acmGrants) == 0 {
-		return true
-	}
-
-	// Since there are values, we need to check user groups
-
-	// Default to groups from context
-	userGroups, _ := GroupsFromContext(ctx)
-	// If caller is not the same as user we are checking ..
-	caller, _ := CallerFromContext(ctx)
-	if strings.Compare(caller.DistinguishedName, user) != 0 {
-		// Populate for user and get their groups
-		userCtx := h.newContextWithGroupsAndSnippetsFromUser(user)
-		userGroups, _ = GroupsFromContext(userCtx)
-	}
-
-	// Iterate user's groups
-	for _, userGroup := range userGroups {
-		// Iterate acm grants
-		for _, acmGrant := range acmGrants {
-			// Do they match?
-			if strings.Compare(userGroup, acmGrant) == 0 {
-				return true
-			}
-		}
-	}
-
-	// None of the user groups matched the acm. They wont have read access.
-	return false
-}
-
-// rebuildACMShareFromObjectPermissions will clear the ACM share and reconstruct it from the current permissions on the object, and optional
-// ones passed in that grant read access and are not marked as deleted.
-func rebuildACMShareFromObjectPermissions(ctx context.Context, dbObject *models.ODObject, permissionsToAdd []models.ODObjectPermission) *AppError {
-	var emptyInterface interface{}
-	if herr := setACMPartFromInterface(ctx, dbObject, "share", emptyInterface); herr != nil {
-		return herr
-	}
-
-	// Iterate to build new share
-	for _, dbPermission := range dbObject.Permissions {
-		// For permissions granting read, merge permission.AcmShare into dbObject.RawAcm.String{share}
-		if dbPermission.AllowRead &&
-			!dbPermission.IsDeleted &&
-			!isPermissionFor(&dbPermission, models.EveryoneGroup) {
-			herr, sourceInterface := getACMInterfacePart(dbObject, "share")
-			if herr != nil {
-				return herr
-			}
-			interfaceToAdd, err := utils.UnmarshalStringToInterface(dbPermission.AcmShare)
-			if err != nil {
-				return NewAppError(500, err, "Unable to unmarshal share from permission",
-					zap.String("dbPermission.AcmShare", dbPermission.AcmShare),
-					zap.String("dbPermission.Grantee", dbPermission.Grantee))
-			}
-			combinedInterface := CombineInterface(ctx, sourceInterface, interfaceToAdd)
-			if herr = setACMPartFromInterface(ctx, dbObject, "share", combinedInterface); herr != nil {
-				return herr
-			}
-		} else {
-			LoggerFromContext(ctx).Debug("DB Permission not combined into share as it does not allow read or is deleted or is for everyone", zap.Bool("allowRead", dbPermission.AllowRead), zap.Bool("isDeleted", dbPermission.IsDeleted), zap.Bool("everyone", !isPermissionFor(&dbPermission, models.EveryoneGroup)))
-		}
-	}
-
-	// Iterate any permissions that will be added, also combinining in
-	for _, permission := range permissionsToAdd {
-		// For permissions granting read, merge permission.AcmShare into dbObject.RawAcm.String{share}
-		if permission.AllowRead &&
-			!permission.IsDeleted &&
-			!isPermissionFor(&permission, models.EveryoneGroup) {
-			herr, sourceInterface := getACMInterfacePart(dbObject, "share")
-			if herr != nil {
-				return herr
-			}
-			interfaceToAdd, err := utils.UnmarshalStringToInterface(permission.AcmShare)
-			if err != nil {
-				return NewAppError(500, err, "Unable to unmarshal share from permission",
-					zap.String("permission.AcmShare", permission.AcmShare),
-					zap.String("permission.Grantee", permission.Grantee))
-			}
-			combinedInterface := CombineInterface(ctx, sourceInterface, interfaceToAdd)
-			if herr = setACMPartFromInterface(ctx, dbObject, "share", combinedInterface); herr != nil {
-				return herr
-			}
-		} else {
-			LoggerFromContext(ctx).Debug("New Permission not combined into share as it does not allow read or is deleted or is for everyone", zap.Bool("allowRead", permission.AllowRead), zap.Bool("isDeleted", permission.IsDeleted), zap.Bool("everyone", !isPermissionFor(&permission, models.EveryoneGroup)))
-		}
-
-	}
-
-	return nil
 }
 
 func copyPermissionToGrantee(originalPermission *models.ODObjectPermission, grantee models.ODAcmGrantee) models.ODObjectPermission {

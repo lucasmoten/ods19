@@ -90,30 +90,11 @@ func deleteObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.OD
 	}
 
 	// Process children
+	hasUndeletedChildren := true
 	pagingRequest := PagingRequest{PageNumber: 1, PageSize: MaxPageSize}
-	resultset, err := getChildObjectsInTransaction(tx, pagingRequest, dbObject)
-	for i := 0; i < len(resultset.Objects); i++ {
-		if !resultset.Objects[i].IsAncestorDeleted {
-			authorizedToDelete := false
-			for _, permission := range resultset.Objects[i].Permissions {
-				if permission.AllowDelete && isUserMemberOf(user, permission.Grantee) {
-					authorizedToDelete = true
-					break
-				}
-			}
-			if authorizedToDelete {
-				resultset.Objects[i].ModifiedBy = object.ModifiedBy
-				err = deleteObjectInTransaction(tx, user, resultset.Objects[i], false)
-				if err != nil {
-					return err
-				}
-			}
-		}
-	}
-	// TODO: Can this second block replace the first wholesale? Change 2 to 1 for pageNumber
-	for pageNumber := 2; pageNumber < resultset.PageCount; pageNumber++ {
-		pagingRequest.PageNumber = pageNumber
+	for hasUndeletedChildren {
 		pagedResultset, err := getChildObjectsInTransaction(tx, pagingRequest, dbObject)
+		hasUndeletedChildren = pagedResultset.PageCount > pagingRequest.PageNumber
 		for i := 0; i < len(pagedResultset.Objects); i++ {
 			if !pagedResultset.Objects[i].IsAncestorDeleted {
 				authorizedToDelete := false
@@ -133,7 +114,6 @@ func deleteObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.OD
 			}
 		}
 	}
-
 	return nil
 }
 

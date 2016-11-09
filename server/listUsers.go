@@ -33,17 +33,15 @@ func (h AppServer) listUsers(ctx context.Context, w http.ResponseWriter, r *http
 	}
 
 	// Get snippets for user, which will have group membership
-	groups, _, err := h.GetUserGroupsAndSnippets(ctx)
-	if err != nil {
-		return NewAppError(500, err, "could not determine groups and snippets for user")
-	}
-	for _, group := range groups {
-		if !strings.Contains(group, "cusou") && !strings.Contains(group, "governmentcus") {
-			var groupName models.ODUser
-			groupName.DistinguishedName = group
-			groupName.DisplayName.String = "Group:" + group
-			groupName.DisplayName.Valid = true
-			usersAndGroups = append(usersAndGroups, groupName)
+	if groups, ok := GroupsFromContext(ctx); ok {
+		for _, group := range groups {
+			if !strings.Contains(group, "cusou") && !strings.Contains(group, "governmentcus") {
+				var groupName models.ODUser
+				groupName.DistinguishedName = group
+				groupName.DisplayName.String = "Group:" + group
+				groupName.DisplayName.Valid = true
+				usersAndGroups = append(usersAndGroups, groupName)
+			}
 		}
 	}
 

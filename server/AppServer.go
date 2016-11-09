@@ -76,8 +76,6 @@ type AppServer struct {
 	DefaultZK *zookeeper.ZKState
 	// UsersLruCache contains a cache of users with support to purge those least recently used when filling. Up to 1000 users will be retained in memory
 	UsersLruCache *ccache.Cache
-	// Snippets contains a cache of snippets
-	Snippets *SnippetCache
 	// AclWhitelist provides a list of distinguished names allowed to perform impersonation
 	AclImpersonationWhitelist []string
 }
@@ -99,7 +97,6 @@ func NewAppServer(conf config.ServerSettingsConfiguration) (*AppServer, error) {
 	}
 
 	usersLruCache := ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50))
-	snippetCache := NewSnippetCache() // TODO(cm) this should be private. Other refs are all tests.
 
 	httpHandler := AppServer{
 		Port:                      conf.ListenPort,
@@ -111,7 +108,6 @@ func NewAppServer(conf config.ServerSettingsConfiguration) (*AppServer, error) {
 		TemplateCache:             templates,
 		StaticDir:                 conf.PathToStaticFiles,
 		UsersLruCache:             usersLruCache,
-		Snippets:                  snippetCache,
 		AclImpersonationWhitelist: conf.AclImpersonationWhitelist,
 	}
 

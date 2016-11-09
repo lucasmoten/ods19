@@ -11,6 +11,7 @@ import (
 
 	"github.com/uber-go/zap"
 
+	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/crypto"
 	"golang.org/x/net/context"
@@ -21,7 +22,6 @@ import (
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/utils"
 )
 
 // createObject is a method handler on AppServer for createObject microservice operation.
@@ -96,19 +96,26 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	masterKey := dp.GetMasterKey()
 
 	// Make sure permissions passed in that are read access are put into the acm
-	if herr := injectReadPermissionsIntoACM(ctx, &obj); herr != nil {
+	aacAuth := auth.NewAACAuth(logger, h.AAC)
+	modifiedACM, err := aacAuth.InjectPermissionsIntoACM(obj.Permissions, obj.RawAcm.String)
+	if err != nil {
+		herr := NewAppError(500, err, "Error injecting provided permissions")
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
-	// Flatten ACM, then Normalize Read Permissions against ACM f_share
-	if err = h.flattenACM(ctx, &obj); err != nil {
+	modifiedACM, err = aacAuth.GetFlattenedACM(modifiedACM)
+	if err != nil {
 		herr = ClassifyFlattenError(err)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
-	if herr := normalizeObjectReadPermissions(ctx, &obj); herr != nil {
+	obj.RawAcm = models.ToNullString(modifiedACM)
+	modifiedPermissions, modifiedACM, err := aacAuth.NormalizePermissionsFromACM(obj.OwnedBy.String, obj.Permissions, modifiedACM, obj.IsCreating())
+	if err != nil {
+		herr = NewAppError(500, err, err.Error())
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
-	// Final access check against altered ACM
-	if err := h.isUserAllowedForObjectACM(ctx, &obj); err != nil {
+	obj.RawAcm = models.ToNullString(modifiedACM)
+	obj.Permissions = modifiedPermissions
+	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, obj.RawAcm.String); err != nil {
 		herr = ClassifyObjectACMError(err)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
@@ -226,7 +233,7 @@ func handleCreatePrerequisites(ctx context.Context, h AppServer, requestObject *
 	requestObject.OwnedBy = models.ToNullString("user/" + caller.DistinguishedName)
 
 	// Give owner full CRUDS (read given by acm share)
-	ownerCRUDS, _ := makeOwnerCRUDS(requestObject.OwnedBy.String)
+	ownerCRUDS, _ := models.PermissionForOwner(requestObject.OwnedBy.String)
 	ownerCUDS := models.PermissionWithoutRead(ownerCRUDS)
 	requestObject.Permissions = append(requestObject.Permissions, ownerCUDS)
 
@@ -270,44 +277,6 @@ func validateCreateObjectHeaders(r *http.Request) *AppError {
 		err := fmt.Errorf("Content-Type is '%s', expected application/json", r.Header.Get("Content-Type"))
 		return NewAppError(400, err, "expected Content-Type application/json")
 	}
-	return nil
-}
-
-// injectReadPermissionsIntoACM iterates the permissions on an object, and for
-// those granting read access, the share target equivalent of the grantee that
-// is stored in AcmShare initialized when the permission was mapped, is then
-// combined into the existing ACM. This function is ONLY intended for use when
-// creating an object and passing permissions simultaneously that grant read
-// access, and is used for preprocessing those permissions into the ACM before
-// normalizing the permissions based upon the ACM.
-func injectReadPermissionsIntoACM(ctx context.Context, obj *models.ODObject) *AppError {
-	// If read access for everyone
-	if hasPermissionsForGrantee(obj, models.AACFlatten(models.EveryoneGroup)) {
-		var emptyInterface interface{}
-		if herr := setACMPartFromInterface(ctx, obj, "share", emptyInterface); herr != nil {
-			return herr
-		}
-		return nil
-	}
-	// Otherwise, build as we always did by combining the acmshare interfaces
-	for i := len(obj.Permissions) - 1; i >= 0; i-- {
-		permission := obj.Permissions[i]
-		if permission.AllowRead && !permission.IsDeleted && len(permission.AcmShare) > 0 {
-			herr, sourceInterface := getACMInterfacePart(obj, "share")
-			if herr != nil {
-				return herr
-			}
-			interfaceToAdd, err := utils.UnmarshalStringToInterface(permission.AcmShare)
-			if err != nil {
-				return NewAppError(500, err, "Unable to unmarshal share from permission", zap.String("permission acmshare", permission.AcmShare))
-			}
-			combinedInterface := CombineInterface(ctx, sourceInterface, interfaceToAdd)
-			if herr := setACMPartFromInterface(ctx, obj, "share", combinedInterface); herr != nil {
-				return herr
-			}
-		}
-	}
-
 	return nil
 }
 

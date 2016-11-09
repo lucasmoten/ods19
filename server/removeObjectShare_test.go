@@ -96,9 +96,11 @@ func TestRemoveObjectShareFromOwner(t *testing.T) {
 	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
 	removeShareRes, err := clients[delegate].Client.Do(removeShareReq)
 	failNowOnErr(t, err, "Unable to do request")
-	statusMustBe(t, 403, removeShareRes, "Bad status when removing share from object")
-	messageMustContain(t, removeShareRes, "Unauthorized to set permissions that would result in owner losing access")
+	statusMustBe(t, 200, removeShareRes, "Bad status when removing share from object")
 	util.FinishBody(removeShareRes.Body)
+
+	t.Logf("As Tester10 verify still have access")
+	shouldHaveReadForObjectID(t, newObject.ID, 0)
 }
 func TestRemoveObjectShareFromNonExistentUser(t *testing.T) {
 	t.Logf("Create as tester10, RUS to tester01, R to odrive_g2")
