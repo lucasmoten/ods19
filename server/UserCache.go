@@ -8,6 +8,7 @@ import (
 
 	"github.com/uber-go/zap"
 
+	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
 	"golang.org/x/net/context"
 )
@@ -16,62 +17,74 @@ import (
 // user either from cache, or from the database, creating the record as appropriate
 func (h AppServer) FetchUser(ctx context.Context) (*models.ODUser, error) {
 
-	// Caller info from context
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		return nil, fmt.Errorf("Could not get caller when fetching user")
+		return nil, fmt.Errorf("caller was not set on context")
 	}
 	dao := DAOFromContext(ctx)
 
-	var user *models.ODUser
-
-	// First check if exists in the cache
-	cacheItem := h.UsersLruCache.Get(caller.DistinguishedName)
-	if cacheItem != nil {
-		userObject := cacheItem.Value().(models.ODUser)
-		user = &userObject
-	} else {
-		// Not found in cache, look up from database
-		var userRequested models.ODUser
-		userRequested.DistinguishedName = caller.DistinguishedName
-		userRetrievedFromDB, err := dao.GetUserByDistinguishedName(userRequested)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				// Not yet in database, we need to add them
-				userRequested.DistinguishedName = caller.DistinguishedName
-				userRequested.DisplayName.String = caller.CommonName
-				userRequested.DisplayName.Valid = true
-				userRequested.CreatedBy = caller.DistinguishedName
-				userRetrievedFromDB, err = dao.CreateUser(userRequested)
-				if err != nil {
-					LoggerFromContext(ctx).Error(
-						"user does not exist",
-						zap.String("err", err.Error()),
-					)
-					return nil, fmt.Errorf("Error access resource when creating user")
-				}
-			} else {
-				// Some other database error
-				LoggerFromContext(ctx).Error(
-					"error getting user from database",
-					zap.String("err", err.Error()),
-				)
-				return nil, fmt.Errorf("Error communicating with database to get user.")
-			}
-		}
-		// Basic validation on the user object to make sure modifiedBy is set
-		// (when a record created in db, modifiedBy is assigned by a trigger copying createdBy)
-		if len(userRetrievedFromDB.ModifiedBy) == 0 {
-			jsonData, err := json.MarshalIndent(user, "", "  ")
-			if err != nil {
-				return nil, fmt.Errorf("Error marshalling user as JSON")
-			}
-			LoggerFromContext(ctx).Warn("user does not have modified by set", zap.String("json", string(jsonData)))
-			return nil, fmt.Errorf("User created when fetching user is not in expected state")
-		}
-		// Finally, add this user to this server's cache
-		h.UsersLruCache.Set(caller.DistinguishedName, userRetrievedFromDB, time.Minute*10)
-		user = &userRetrievedFromDB
+	if cacheItem := h.UsersLruCache.Get(caller.DistinguishedName); cacheItem != nil {
+		user := cacheItem.Value().(models.ODUser)
+		return &user, nil
 	}
+
+	// Not found in cache, look up from database
+	user, err := getOrCreateUser(dao, caller)
+	if err != nil {
+		return nil, err
+	}
+
+	// Basic validation on the user object to make sure modifiedBy is set by trigger
+	if len(user.ModifiedBy) == 0 {
+		jsonData, err := json.MarshalIndent(user, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("Error marshalling user as JSON")
+		}
+		LoggerFromContext(ctx).Warn("user does not have modified by set", zap.String("json", string(jsonData)))
+		return nil, fmt.Errorf("User created when fetching user is not in expected state")
+	}
+	// Finally, add this user to this server's cache
+	h.UsersLruCache.Set(caller.DistinguishedName, *user, time.Minute*10)
+
 	return user, nil
+}
+
+// getOrCreateUser attempts to retrieve an existing user by their DN. If no user is found, exactly
+// two attempts are made to create the user. We retry because it is possible two goroutines are
+func getOrCreateUser(dao dao.DAO, caller Caller) (*models.ODUser, error) {
+
+	query := models.ODUser{DistinguishedName: caller.DistinguishedName}
+	existing, err := dao.GetUserByDistinguishedName(query)
+	if err == nil {
+		return &existing, nil
+	}
+
+	if err == sql.ErrNoRows {
+
+		simpleRetry := func(data models.ODUser) (*models.ODUser, error) {
+			time.Sleep(500 * time.Millisecond)
+			if existing2, err := dao.GetUserByDistinguishedName(data); err == nil {
+				return &existing2, nil
+			}
+			created, err := dao.CreateUser(data)
+			if err != nil {
+				return nil, err
+			}
+			return &created, nil
+		}
+
+		// Not yet in database, we need to add them
+		var newUser = models.ODUser{
+			DistinguishedName: caller.DistinguishedName,
+			DisplayName:       models.ToNullString(caller.CommonName),
+			CreatedBy:         caller.DistinguishedName,
+		}
+		created, err := dao.CreateUser(newUser)
+		if err != nil {
+			return simpleRetry(newUser)
+		}
+		return &created, nil
+	}
+
+	return nil, fmt.Errorf("Error communicating with database to get user.")
 }
