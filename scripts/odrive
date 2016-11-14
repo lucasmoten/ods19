@@ -18,13 +18,13 @@ from pwd import getpwnam
 # init scripts must write a validly-named lockfile
 service = "odrive"
 lockfile = os.path.join('/var/lock/subsys', service)
-pidfile = "/opt/odrive/pidfile"
-static_root = "/etc/odrive/libs/server/static"
+pidfile = "/opt/services/object-drive/pidfile"
+static_root = "/opt/services/object-drive/libs/server/static"
 templates = os.path.join(static_root, "templates")
 # Default logging location. Set OD_LOG_LOCATION in env.sh to override.
-logfile = "/opt/odrive/log/object-drive.log"
-envfile = "/opt/odrive/env.sh"
-conf = "/etc/odrive/odrive.yml"
+logfile = "/opt/services/object-drive/log/object-drive.log"
+envfile = "/opt/services/object-drive/env.sh"
+conf = "/opt/services/object-drive/odrive.yml"
 default_ciphers = "--addCipher TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 --addCipher TLS_RSA_WITH_AES_128_CBC_SHA"
 
 
@@ -73,7 +73,7 @@ def start():
     # Declaring global required for mutation.
     global logfile
     if not os.getenv("OD_CACHE_ROOT"):
-        os.environ["OD_CACHE_ROOT"] = "/var/odrive/cache"
+        os.environ["OD_CACHE_ROOT"] = "/opt/services/object-drive/cache"
     if os.getenv("OD_LOG_LOCATION"):
         location = os.getenv("OD_LOG_LOCATION")
         print "Using log location set by $OD_LOG_LOCATION: " + location
@@ -141,6 +141,7 @@ def stop():
         if not is_process_running(pid):
             print "removing stale pidfile"
             os.remove(pidfile)
+            sys.exit(1)
         os.kill(int(pid), signal.SIGTERM)
     except Exception as e:
         print e
