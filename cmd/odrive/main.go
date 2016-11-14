@@ -233,8 +233,18 @@ func startApplication(conf configx.AppConfiguration) {
 	autoscale.WatchForShutdown(app.DefaultZK, logger)
 
 	// Do not announce ephemeral nodes in zk until we have an aac, so that we can service requests immediately
+	waitTime := 1
+	prevWaitTime := 0
 	for app.AAC == nil {
-		time.Sleep(1 * time.Second)
+		if waitTime > 10 {
+			logger.Error(
+				"aac connect is taking too long",
+				zap.Int("waitTime in Seconds", waitTime),
+			)
+		}
+		time.Sleep(time.Duration(waitTime) * time.Second)
+		waitTime = waitTime + prevWaitTime
+		prevWaitTime = waitTime
 	}
 	// Write our ephemeral node in zk.
 	err = zookeeper.ServiceAnnouncement(app.DefaultZK, "https", "ALIVE", conf.ZK.IP, conf.ZK.Port)
@@ -246,7 +256,7 @@ func startApplication(conf configx.AppConfiguration) {
 			zap.String("ip", conf.ZK.IP),
 			zap.String("port", conf.ZK.Port),
 			zap.String("zkBasePath", conf.ZK.BasepathOdrive),
-			zap.String("zkAddress", conf.ZK.BasepathOdrive),
+			zap.String("zkAddress", conf.ZK.Address),
 		)
 	}
 
