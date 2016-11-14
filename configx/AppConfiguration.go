@@ -138,6 +138,9 @@ func NewAppConfiguration(opts CommandLineOpts) AppConfiguration {
 	aacSettings := NewAACSettingsFromEnv(confFile, opts)
 	cacheSettings := NewS3CiphertextCacheOpts(confFile, opts)
 	zkSettings := NewZKSettingsFromEnv(confFile, opts)
+	if zkSettings.Port == "" {
+		zkSettings.Port = serverSettings.ListenPort
+	}
 	eventQueue := NewEventQueueConfiguration(confFile, opts)
 
 	return AppConfiguration{
@@ -307,7 +310,7 @@ func NewZKSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) ZKSet
 	conf.Address = cascade(OD_ZK_URL, confFile.ZK.Address, "zk:2181")
 	conf.BasepathOdrive = cascade(OD_ZK_ANNOUNCE, confFile.ZK.BasepathOdrive, "/cte/service/object-drive/1.0")
 	conf.IP = cascade(OD_ZK_MYIP, confFile.ZK.IP, resolveIP())
-	conf.Port = cascade(OD_ZK_MYPORT, confFile.ZK.Port, "4430")
+	conf.Port = cascade(OD_ZK_MYPORT, confFile.ZK.Port, "")
 	conf.Timeout = cascadeInt(OD_ZK_TIMEOUT, confFile.ZK.Timeout, 5)
 
 	return conf
