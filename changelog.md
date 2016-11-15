@@ -3,9 +3,12 @@ Changelog
 
 Release vNEXT
 -------------
-* DOC: API Documentation now reflects chagnes where OwnedBy field is now stored and returned in serialized resource format.
-* FIX: Internal refactoring to support masterKey per cache
-* FIX: Try to recover if two goroutines try to create a user simultaneously
+* DOC: API Documentation now reflects chagnes where OwnedBy field is now stored and returned in serialized resource format
+* NEW: Masterkey refactored down into cache layer
+* FIX: Recover under race condition for user creation
+* NEW: Kafka is discoverable from its own ZK cluster, not just default ZK
+* NEW: RPM updated to use /opt/services/object-drive installation path
+* FIX: Port announced for service in ZK is based upon actual server port selected
 
 Release v1.0.1.7
 ----------------
