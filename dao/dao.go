@@ -1,6 +1,12 @@
 package dao
 
 import (
+	"fmt"
+	"os"
+	"time"
+
+	globals "decipher.com/object-drive-server/config"
+	configx "decipher.com/object-drive-server/configx"
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
@@ -65,32 +71,90 @@ type CheckACM func(*models.ODObject) bool
 
 // DataAccessLayer is a concrete DAO implementation with a true DB connection.
 type DataAccessLayer struct {
-	//This can be shared among structs
+	// MetadataDB is the connection.
 	MetadataDB *sqlx.DB
-	//This can have a different value per http session
+	// Logger has a default, but can be updated by passing options to contstructor.
 	Logger zap.Logger
 }
 
-// NewDerivedDAO is a dao bound to a new logger
-func NewDerivedDAO(d DAO, logger zap.Logger) DAO {
-	switch d2 := d.(type) {
-	case *DataAccessLayer:
-		return &DataAccessLayer{
-			MetadataDB: d2.MetadataDB,
-			Logger:     logger,
-		}
-	case *FakeDAO:
-		return d
+// Opt sets an option on DataAccessLayer.
+type Opt func(*DataAccessLayer)
+
+// WithLogger sets a custom logger on DataAccessLayer.
+func WithLogger(logger zap.Logger) Opt {
+	return func(d *DataAccessLayer) {
+		d.Logger = logger
 	}
-	return nil
+}
+
+// NewDataAccessLayer constructs a new DataAccessLayer with defaults and options. A string database
+// identifier is also returned.
+func NewDataAccessLayer(conf configx.DatabaseConfiguration, opts ...Opt) (*DataAccessLayer, string, error) {
+
+	db, err := conf.GetDatabaseHandle()
+	if err != nil {
+		return nil, "", err
+	}
+	d := DataAccessLayer{MetadataDB: db}
+
+	defaults(&d)
+	for _, opt := range opts {
+		opt(&d)
+	}
+
+	err = pingDB(&d)
+	if err != nil {
+		return nil, "", fmt.Errorf("could not ping database: %v", err)
+	}
+
+	state, err := d.GetDBState()
+	if err != nil {
+		return nil, "", fmt.Errorf("getting db state failed", err)
+	}
+
+	return &d, state.Identifier, nil
+}
+
+func defaults(d *DataAccessLayer) {
+	d.Logger = zap.New(zap.NewJSONEncoder(), zap.Output(os.Stdout), zap.ErrorOutput(os.Stdout)).With(zap.String("node", globals.NodeID))
 }
 
 // GetLogger is a logger, probably for this session
-func (dao *DataAccessLayer) GetLogger() zap.Logger {
-	return dao.Logger
+func (d *DataAccessLayer) GetLogger() zap.Logger {
+	return d.Logger
 }
 
 func daoCompileCheck() DAO {
 	// function exists to make compiler complain when interface changes.
 	return &DataAccessLayer{}
+}
+
+func pingDB(d *DataAccessLayer) error {
+
+	logger := d.GetLogger()
+
+	attempts := 0
+	max := 20
+	sleep := 3
+
+	var err error
+
+	for attempts < max {
+
+		attempts++
+
+		err = d.MetadataDB.Ping()
+		if err != nil {
+			logger.Info("db sleep for retry")
+			time.Sleep(time.Duration(sleep) * time.Second)
+		} else {
+			_, err = d.GetDBState()
+			if err != nil {
+				logger.Info("db available but schema not populated")
+				time.Sleep(time.Duration(sleep) * time.Second)
+			}
+		}
+
+	}
+	return err
 }

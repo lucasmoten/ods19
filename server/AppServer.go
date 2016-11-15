@@ -456,9 +456,8 @@ func ContextWithGEM(ctx context.Context, gem events.GEM) context.Context {
 }
 
 // ContextWithDAO puts the DAO on the context bound with a logger, so that SQL can be correlated
-func ContextWithDAO(ctx context.Context, genericDAO dao.DAO) context.Context {
-	logger := LoggerFromContext(ctx)
-	return context.WithValue(ctx, DAO, dao.NewDerivedDAO(genericDAO, logger))
+func ContextWithDAO(ctx context.Context, d dao.DAO) context.Context {
+	return context.WithValue(ctx, DAO, d)
 }
 
 // ContextWithGroups puts the user's groups on the context object
