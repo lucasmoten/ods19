@@ -198,7 +198,7 @@ func startApplication(conf configx.AppConfiguration) {
 
 	configureEventQueue(app, conf.EventQueue, conf.ZK.Timeout)
 
-	err = registerWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, conf.ZK.IP, conf.ZK.Port)
+	err = connectWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address)
 	if err != nil {
 		logger.Fatal("Could not register with Zookeeper")
 	}
@@ -213,6 +213,13 @@ func startApplication(conf configx.AppConfiguration) {
 		MaxHeaderBytes: 1 << 20,
 		TLSConfig:      &stls,
 	}
+	// We go ahead and start the server now, so that when we announce in zk, we are ready.
+	exitChan := make(chan error)
+	go func() {
+		//This blocks until there is an error to stop the server
+		exitChan <- httpServer.ListenAndServeTLS(
+			conf.ServerSettings.ServerCertChain, conf.ServerSettings.ServerKey)
+	}()
 
 	zkTracking(app, conf)
 
@@ -225,9 +232,36 @@ func startApplication(conf configx.AppConfiguration) {
 	//TODO: we will need to watch all existing drain providers to be sure we can safely shut down
 	autoscale.WatchForShutdown(app.DefaultZK, logger)
 
-	//This blocks until there is an error to stop the server
-	err = httpServer.ListenAndServeTLS(
-		conf.ServerSettings.ServerCertChain, conf.ServerSettings.ServerKey)
+	// Do not announce ephemeral nodes in zk until we have an aac, so that we can service requests immediately
+	waitTime := 1
+	prevWaitTime := 0
+	for app.AAC == nil {
+		if waitTime > 10 {
+			logger.Error(
+				"aac connect is taking too long",
+				zap.Int("waitTime in Seconds", waitTime),
+			)
+		}
+		time.Sleep(time.Duration(waitTime) * time.Second)
+		waitTime = waitTime + prevWaitTime
+		prevWaitTime = waitTime
+	}
+	// Write our ephemeral node in zk.
+	err = zookeeper.ServiceAnnouncement(app.DefaultZK, "https", "ALIVE", conf.ZK.IP, conf.ZK.Port)
+	if err != nil {
+		logger.Fatal("Could not announce self in zk")
+	} else {
+		logger.Info(
+			"registering odrive AppServer with ZK",
+			zap.String("ip", conf.ZK.IP),
+			zap.String("port", conf.ZK.Port),
+			zap.String("zkBasePath", conf.ZK.BasepathOdrive),
+			zap.String("zkAddress", conf.ZK.Address),
+		)
+	}
+
+	// Hang on and don't exit until the listener exits
+	err = <-exitChan
 	if err != nil {
 		logger.Fatal("stopped server", zap.String("err", err.Error()))
 	}
@@ -360,12 +394,9 @@ func configureEventQueue(app *server.AppServer, conf configx.EventQueueConfigura
 	logger.Error("no Kafka queue configured")
 }
 
-func registerWithZookeeperTry(app *server.AppServer, zkBasePath, zkAddress, myIP, myPort string) error {
+func connectWithZookeeperTry(app *server.AppServer, zkBasePath, zkAddress string) error {
+	// We need the path to our announcements to exist, but not the ephemeral nodes yet
 	zkState, err := zookeeper.RegisterApplication(zkBasePath, zkAddress)
-	if err != nil {
-		return err
-	}
-	err = zookeeper.ServiceAnnouncement(zkState, "https", "ALIVE", myIP, myPort)
 	if err != nil {
 		return err
 	}
@@ -378,15 +409,13 @@ func registerWithZookeeperTry(app *server.AppServer, zkBasePath, zkAddress, myIP
 	return nil
 }
 
-func registerWithZookeeper(app *server.AppServer, zkBasePath, zkAddress, myIP, myPort string) error {
-	logger.Info("registering odrive AppServer with ZK", zap.String("ip", myIP), zap.String("port", myPort),
-		zap.String("zkBasePath", zkBasePath), zap.String("zkAddress", zkAddress))
-	err := registerWithZookeeperTry(app, zkBasePath, zkAddress, myIP, myPort)
+func connectWithZookeeper(app *server.AppServer, zkBasePath, zkAddress string) error {
+	err := connectWithZookeeperTry(app, zkBasePath, zkAddress)
 	for err != nil {
 		sleepInSeconds := 10
 		logger.Warn("zk cant register", zap.Int("retry time in seconds", sleepInSeconds))
 		time.Sleep(time.Duration(sleepInSeconds) * time.Second)
-		err = registerWithZookeeperTry(app, zkBasePath, zkAddress, myIP, myPort)
+		err = connectWithZookeeperTry(app, zkBasePath, zkAddress)
 	}
 	return err
 }
