@@ -1,16 +1,11 @@
 package main
 
 import (
-	"database/sql"
-	"errors"
 	"fmt"
 	"html/template"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
 	"time"
 
 	"decipher.com/object-drive-server/ciphertext"
@@ -21,7 +16,6 @@ import (
 	"decipher.com/object-drive-server/services/zookeeper"
 	"decipher.com/object-drive-server/util/testhelpers"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/karlseguin/ccache"
 	"github.com/samuel/go-zookeeper/zk"
 	"github.com/uber-go/zap"
@@ -177,24 +171,17 @@ func startApplication(conf configx.AppConfiguration) {
 		logger.Error("Error calling makeserver", zap.String("err", err.Error()))
 	}
 
-	err = configureDAO(app, conf.DatabaseConnection)
+	d, dbID, err := dao.NewDataAccessLayer(conf.DatabaseConnection, dao.WithLogger(logger))
 	if err != nil {
 		logger.Error("Error configuring DAO.  Check envrionment variable settings for OD_DB_*", zap.String("err", err.Error()))
 		os.Exit(1)
 	}
-
-	dbID, err := getDBIdentifier(app)
-	if err != nil {
-		logger.Error("Database is not fully initialized with a dbstate record", zap.String("err", err.Error()))
-		os.Exit(1)
-	}
+	app.RootDAO = d
 
 	//For now, we have one drain provider, just use the default
 	zone := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
-	ciphertext.SetCiphertextCache(
-		zone,
-		ciphertext.NewS3CiphertextCache(zone, &conf.CacheSettings, dbID),
-	)
+	ciphertext.SetCiphertextCache(zone,
+		ciphertext.NewS3CiphertextCache(zone, &conf.CacheSettings, dbID))
 
 	configureEventQueue(app, conf.EventQueue, conf.ZK.Timeout)
 
@@ -335,21 +322,6 @@ func zkTracking(app *server.AppServer, conf configx.AppConfiguration) {
 
 }
 
-func configureDAO(app *server.AppServer, conf configx.DatabaseConfiguration) error {
-	db, err := conf.GetDatabaseHandle()
-	if err != nil {
-		return err
-	}
-	pingDBresult := pingDB(conf, db)
-	if pingDBresult != 0 {
-		return errors.New("Could not ping database. Please check connection settings.")
-	}
-	concreteDAO := dao.DataAccessLayer{MetadataDB: db}
-	app.RootDAO = &concreteDAO
-
-	return nil
-}
-
 // configureEventQueue will set a directly-configured Kafka queue on AppServer, or discover one from ZK.
 func configureEventQueue(app *server.AppServer, conf configx.EventQueueConfiguration, zkTimeout int64) {
 	logger.Info("Kafka Config", zap.Object("conf", conf))
@@ -420,23 +392,6 @@ func connectWithZookeeper(app *server.AppServer, zkBasePath, zkAddress string) e
 	return err
 }
 
-func getDBIdentifier(app *server.AppServer) (string, error) {
-
-	if app.RootDAO == nil {
-		return "", errors.New("DAO is nil on AppServer")
-	}
-
-	dbState, err := app.RootDAO.GetDBState()
-	if err != nil {
-		return "UNKNOWN", err
-	}
-	logger.Info("Database version",
-		zap.String("schema", dbState.SchemaVersion),
-		zap.String("identifier", dbState.Identifier),
-	)
-	return dbState.Identifier, nil
-}
-
 func makeServer(conf configx.ServerSettingsConfiguration) (*server.AppServer, error) {
 
 	var templates *template.Template
@@ -473,82 +428,4 @@ func makeServer(conf configx.ServerSettingsConfiguration) (*server.AppServer, er
 	httpHandler.InitRegex()
 
 	return &httpHandler, nil
-}
-
-func pingDB(conf configx.DatabaseConfiguration, db *sqlx.DB) int {
-	// But ensure database is up, retrying every 3 seconds for up to 1 minute
-	dbPingAttempt := 0
-	dbPingAttemptMax := 20
-	exitCode := 2
-	var err error
-	var schemaErr error
-
-	for dbPingAttempt < dbPingAttemptMax {
-
-		//Prepare for another round
-		dbPingAttempt++
-		schemaErr = nil
-		err = nil
-		exitCode = 0
-		sleepInSeconds := 3
-
-		//Dont consider anything successful unless we actually saw the schema row
-		err = db.Ping()
-		if err == nil {
-			tempDAO := dao.DataAccessLayer{MetadataDB: db, Logger: logger}
-			_, schemaErr = tempDAO.GetDBState()
-			if schemaErr == nil {
-				//If we succeed, we are done.  Just return 0
-				logger.Info("db connected")
-				return 0
-			}
-		}
-
-		//We could not connect to the database
-		if err != nil {
-			elogger := logger.
-				With(zap.String("err", err.Error())).
-				With(zap.String("host", conf.Host)).
-				With(zap.String("port", conf.Port)).
-				With(zap.String("user", conf.Username)).
-				With(zap.String("schema", conf.Schema)).
-				With(zap.String("CA", conf.CAPath)).
-				With(zap.String("Cert", conf.ClientCert))
-			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-				elogger.Error("Timeout connecting to database.")
-				exitCode = 28
-			} else if match, _ := regexp.MatchString(".*lookup.*", err.Error()); match {
-				elogger.Error("Unknown host error connecting to database. Review OD_DB_HOST environment variable configuration. Halting")
-				exitCode = 6
-				// hard error.  waiting it won't fix it
-				return exitCode
-			} else if match, _ := regexp.MatchString(".*connection refused.*", err.Error()); match {
-				// It's not an error until we time out
-				elogger.Info("Connection refused connecting to database. Database may not yet be online.")
-				exitCode = 7
-			} else {
-				// hard error.  waiting won't fix it
-				elogger.Error("Unhandled error while connecting to database. Halting")
-				exitCode = 1
-				return exitCode
-			}
-		} else {
-			// we could connect, but there was an issue with the schema
-			if schemaErr == sql.ErrNoRows || (strings.Contains(schemaErr.Error(), "Table") && strings.Contains(schemaErr.Error(), "doesn't exist")) {
-				logger.Warn("Database connection successful but dbstate not yet set.")
-				exitCode = 52
-			} else {
-				// hard error.  waiting won't fix it
-				elogger := logger.With(zap.String("err", schemaErr.Error()))
-				elogger.Error("Error calling for dbstate. Halting")
-				exitCode = 8
-				return exitCode
-			}
-		}
-
-		// Sleep in one place
-		logger.Info("db sleep for retry", zap.Int64("time in seconds", int64(sleepInSeconds)))
-		time.Sleep(time.Duration(sleepInSeconds) * time.Second)
-	}
-	return exitCode
 }
