@@ -20,6 +20,144 @@ import (
 	"decipher.com/object-drive-server/protocol"
 )
 
+var input298 = `
+{
+    "id": "%s",
+    "acm": {
+        "f_missions": [],
+        "fgi_open": [],
+        "rel_to": [],
+        "dissem_countries": [
+            "USA"
+        ],
+        "sci_ctrls": [],
+        "f_clearance": [
+            "u"
+        ],
+        "owner_prod": [],
+        "f_regions": [],
+        "f_share": [
+            "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+            "cnlingchenoupeopleoujitfct_twlousix3systemsou_s_governmentcus"
+        ],
+        "portion": "U",
+        "disp_only": "",
+        "f_sci_ctrls": [],
+        "disponly_to": [
+            ""
+        ],
+        "banner": "UNCLASSIFIED",
+        "non_ic": [],
+        "f_accms": [],
+        "f_sar_id": [],
+        "f_oc_org": [],
+        "classif": "U",
+        "atom_energy": [],
+        "dissem_ctrls": [],
+        "sar_id": [],
+        "version": "2.1.0",
+        "fgi_protect": [],
+        "f_macs": [],
+        "f_atom_energy": [],
+        "share": {
+            "users": [
+                "cn=ling chen,ou=people,ou=jitfct.twl,ou=six 3 systems,o=u.s. government,c=us",
+                "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+                "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+            ],
+            "projects": {}
+        }
+    },
+    "permission": {
+        "create": {
+            "allow": [
+                "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+            ]
+        },
+        "read": {
+            "allow": [
+                "user/cn=ling chen,ou=people,ou=jitfct.twl,ou=six 3 systems,o=u.s. government,c=us",
+                "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+            ]
+        },
+        "update": {
+            "allow": [
+                "user/cn=ling chen,ou=people,ou=jitfct.twl,ou=six 3 systems,o=u.s. government,c=us",
+                "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+            ]
+        },
+        "delete": {
+            "allow": [
+                "user/cn=ling chen,ou=people,ou=jitfct.twl,ou=six 3 systems,o=u.s. government,c=us",
+                "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+            ]
+        },
+        "share": {
+            "allow": [
+                "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+            ]
+        }
+    },
+    "changeToken": "%s"
+}
+`
+
+func TestUpdateObject298(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	clientid := 0
+
+	// Create 1 folders under root
+	folder := makeFolderViaJSON("Test Folder for Update ", clientid, t)
+
+	// Attempt to rename the folder
+	updateuri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
+	jsonBody := []byte(fmt.Sprintf(input298, folder.ID, folder.ChangeToken))
+
+	req, err := http.NewRequest("POST", updateuri, bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	if err != nil {
+		t.Logf("Error setting up HTTP Request: %v", err)
+		t.FailNow()
+	}
+	// do the request
+	trafficLogs[APISampleFile].Request(t, req,
+		&TrafficLogDescription{
+			OperationName:       "Properties update",
+			RequestDescription:  "Ask for updated properties",
+			ResponseDescription: "Get response",
+		},
+	)
+	res, err := clients[clientid].Client.Do(req)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	trafficLogs[APISampleFile].Response(t, res)
+	defer util.FinishBody(res.Body)
+	// process Response
+	if res.StatusCode != http.StatusOK {
+		t.Logf("bad status: %s", res.Status)
+		t.FailNow()
+	}
+	var updatedFolder protocol.Object
+	err = util.FullDecode(res.Body, &updatedFolder)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	if testing.Verbose() {
+		jsonData, err := json.MarshalIndent(updatedFolder, "", "  ")
+		if err != nil {
+			t.Logf("(Error in Verbose Mode) Error marshalling response back to json: %s", err.Error())
+			return
+		}
+		t.Logf("Here is the response body:")
+		t.Logf(string(jsonData))
+	}
+}
+
 func TestUpdateObject(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
