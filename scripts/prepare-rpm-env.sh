@@ -112,12 +112,28 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 
 
 %pre
+if [ -f /etc/odrive/odrive.yml ]; then
+    cp -f /etc/odrive/odrive.yml /tmp
+fi
+
 if [ `grep -c '^odrive:' /etc/passwd` = 1 ] ; then
   echo odrive user exists
 else
   useradd odrive
   exit 0
 fi
+
+
+%post
+if [ -f /tmp/odrive.yml ]; then
+    echo "copying old odrive.yml"
+    cp -f /tmp/odrive.yml /opt/services/object-drive
+fi
+if [ -f /opt/odrive/env.sh.rpmsave ]; then
+    echo "copying old env.sh.rpmsave"
+    cp -f /opt/odrive/env.sh.rpmsave /opt/services/object-drive/env.sh
+fi
+
 
 
 %postun
