@@ -19,13 +19,13 @@ var SchemaVersion = "20160824"
 
 // DAO defines the contract our app has with the database.
 type DAO interface {
-	AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission, propagateToChildren bool) (models.ODObjectPermission, error)
+	AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission) (models.ODObjectPermission, error)
 	AddPropertyToObject(object models.ODObject, property *models.ODProperty) (models.ODProperty, error)
 	CreateObject(object *models.ODObject) (models.ODObject, error)
 	CreateObjectType(objectType *models.ODObjectType) (models.ODObjectType, error)
 	CreateUser(models.ODUser) (models.ODUser, error)
 	DeleteObject(user models.ODUser, object models.ODObject, explicit bool) error
-	DeleteObjectPermission(objectPermission models.ODObjectPermission, propagateToChildren bool) (models.ODObjectPermission, error)
+	DeleteObjectPermission(objectPermission models.ODObjectPermission) (models.ODObjectPermission, error)
 	DeleteObjectProperty(objectProperty models.ODObjectPropertyEx) error
 	DeleteObjectType(objectType models.ODObjectType) error
 	ExpungeObject(user models.ODUser, object models.ODObject, explicit bool) error
@@ -67,6 +67,7 @@ type DAO interface {
 	GetLogger() zap.Logger
 }
 
+// CheckACM is a function passed in for checking authorization to read an object
 type CheckACM func(*models.ODObject) bool
 
 // DataAccessLayer is a concrete DAO implementation with a true DB connection.

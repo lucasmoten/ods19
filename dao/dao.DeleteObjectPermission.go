@@ -15,13 +15,13 @@ import (
 //    objectPermission.ID must be set to the permission to be marked as deleted
 //    objectPermission.ChangeToken must be set to the current value
 //    objectPermission.ModifiedBy must be set to the user performing the operation
-func (dao *DataAccessLayer) DeleteObjectPermission(objectPermission models.ODObjectPermission, propagateToChildren bool) (models.ODObjectPermission, error) {
+func (dao *DataAccessLayer) DeleteObjectPermission(objectPermission models.ODObjectPermission) (models.ODObjectPermission, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObjectPermission{}, err
 	}
-	dbObjectPermission, err := deleteObjectPermissionInTransaction(tx, objectPermission, propagateToChildren)
+	dbObjectPermission, err := deleteObjectPermissionInTransaction(tx, objectPermission)
 	if err != nil {
 		dao.GetLogger().Error("Error in DeleteObjectPermission", zap.String("err", err.Error()))
 		tx.Rollback()
@@ -31,7 +31,7 @@ func (dao *DataAccessLayer) DeleteObjectPermission(objectPermission models.ODObj
 	return dbObjectPermission, err
 }
 
-func deleteObjectPermissionInTransaction(tx *sqlx.Tx, objectPermission models.ODObjectPermission, propagateToChildren bool) (models.ODObjectPermission, error) {
+func deleteObjectPermissionInTransaction(tx *sqlx.Tx, objectPermission models.ODObjectPermission) (models.ODObjectPermission, error) {
 	dbObjectPermission := models.ODObjectPermission{}
 	if objectPermission.ID == nil {
 		return dbObjectPermission, ErrMissingID

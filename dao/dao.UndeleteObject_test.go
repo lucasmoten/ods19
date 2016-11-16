@@ -99,7 +99,6 @@ func TestUndeleteObjectWithChildren(t *testing.T) {
 			objE.IsAncestorDeleted)
 	}
 
-	// Undelete folder1. Undelete should propagate to children without explicit
 	// deletes.
 	folder1, err = d.UndeleteObject(&folder1)
 	if err != nil {

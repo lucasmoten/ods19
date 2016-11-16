@@ -186,7 +186,7 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 	for i, permission := range object.Permissions {
 		if !permission.IsDeleted && permission.Grantee != "" {
 			permission.CreatedBy = dbObject.CreatedBy
-			dbPermission, err := addPermissionToObjectInTransaction(logger, tx, dbObject, &permission, false)
+			dbPermission, err := addPermissionToObjectInTransaction(logger, tx, dbObject, &permission)
 			if err != nil {
 				return dbObject, fmt.Errorf("Error saving permission # %d {Grantee: \"%s\") when creating object:%v", i, permission.Grantee, err)
 			}

@@ -114,7 +114,7 @@ function _renderSharedWithMeRow(index, item) {
 
 function doShare(objectId, userId, opts) {
   if (!opts) {
-    opts = { create: true, read: true, update: false, delete: false, share: false, propogateToChildren: true}
+    opts = { create: true, read: true, update: false, delete: false, share: false}
   }
   
   	// An ACM compliant share may be expressed as an object. Example format:
@@ -141,8 +141,7 @@ function doShare(objectId, userId, opts) {
     allowRead: opts.read,
     allowUpdate: opts.update,
     allowDelete: opts.delete,
-    allowShare: opts.share,
-    propogateToChildren: opts.propogateToChildren
+    allowShare: opts.share
   };
   $.ajax({
     url: BASE_SERVICE_URL + 'shared/' + objectId,
