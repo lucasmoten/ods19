@@ -9,8 +9,7 @@ import (
 	"github.com/uber-go/zap"
 )
 
-// UndeleteObject undeletes an object at the database level, and propagates the
-// undelete action to children that were not explicitly deleted themselves.
+// UndeleteObject undeletes an object at the database level
 func (dao *DataAccessLayer) UndeleteObject(object *models.ODObject) (models.ODObject, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {

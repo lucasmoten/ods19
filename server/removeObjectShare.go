@@ -121,7 +121,7 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 				// Add to database
 				permission.CreatedBy = caller.DistinguishedName
 				permission.ObjectID = dbObject.ID
-				_, err := dao.AddPermissionToObject(dbObject, &permission, false)
+				_, err := dao.AddPermissionToObject(dbObject, &permission)
 				if err != nil {
 					return NewAppError(500, err, "Error updating permission on object - add permission")
 				}
