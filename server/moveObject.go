@@ -47,6 +47,9 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	if ok := isUserAllowedToUpdate(ctx, &dbObject); !ok {
 		return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
 	}
+	if !isUserOwner(ctx, &dbObject) {
+		return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User must be an object owner to move the object")
+	}
 
 	// Object state check
 	if dbObject.IsDeleted {

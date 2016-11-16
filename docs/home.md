@@ -978,6 +978,8 @@ This microservice operation supports moving an object such as a file or folder f
 
 This creates a new revision of the object.
 
+Only the owner of an object is allowed to move it.
+
 + Request (application/json)
 
     The JSON object in the request body should contain a change token:
