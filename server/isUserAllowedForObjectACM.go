@@ -388,7 +388,39 @@ func (h AppServer) flattenACM(ctx context.Context, object *models.ODObject) erro
 	// Done
 	return nil
 }
+func isUserOwner(ctx context.Context, object *models.ODObject) bool {
+	ownedBy := object.OwnedBy.String
+	caller, _ := CallerFromContext(ctx)
+	// Simple user ownership
+	if ("user/" + caller.DistinguishedName) == ownedBy {
+		return true
+	}
+	// Group check from user snippets
+	dao := DAOFromContext(ctx)
+	snippets, ok := SnippetsFromContext(ctx)
+	if !ok {
+		return false
+	}
+	for _, rawFields := range snippets.Snippets {
+		if rawFields.FieldName == "f_share" {
+			for _, shareValue := range rawFields.Values {
+				trimmedShareValue := strings.TrimSpace(shareValue)
+				if len(trimmedShareValue) > 0 {
+					if ownedBy == "group/"+trimmedShareValue {
+						return true
+					}
+					if acmGrantee, err := dao.GetAcmGrantee(trimmedShareValue); err != nil {
+						if ownedBy == acmGrantee.ResourceName() {
+							return true
+						}
+					}
+				}
+			}
 
+		}
+	}
+	return false
+}
 func isUserAllowedToReadWithPermission(ctx context.Context, obj *models.ODObject) (bool, models.ODObjectPermission) {
 	requiredPermission := models.ODObjectPermission{}
 	requiredPermission.AllowRead = true

@@ -11,6 +11,7 @@ import (
 
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/util"
+	"decipher.com/object-drive-server/utils"
 
 	"decipher.com/object-drive-server/protocol"
 )
@@ -156,4 +157,71 @@ func TestMoveObjectWrongChangeToken(t *testing.T) {
 	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, http.StatusPreconditionRequired, moveRes1, "Bad status when moving folder 2 under folder 1")
 	util.FinishBody(moveRes1.Body)
+}
+
+func TestMoveObjectFailsForNonOwnerWithUpdate(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+	tester01 := 1
+	t.Logf("* Create 2 folders under root as tester10, shared to tester1 and group ODrive with update")
+	newobjuri := host + cfg.NginxRootURL + "/objects"
+	newFolderSharedToODrive := `{
+		"name": "TestMoveObjectFailsForNonOwnerWithUpdate %d",
+		"type": "Folder",
+		"acm": {"version":"2.1.0","portion":"U","banner":"UNCLASSIFIED","classif":"U","share":{"users":["%s"],"projects":{"dctc":{"disp_nm":"DCTC","groups":["ODrive"]}}}},
+        "permission": { 
+			"create": {"allow":["user/%s"]},
+			"read": {"allow":["user/%s", "user/%s", "group/dctc/DCTC/ODrive/DCTC ODrive"]},
+			"update": {"allow":["user/%s", "user/%s", "group/dctc/DCTC/ODrive/DCTC ODrive"]},
+			"delete": {"allow":["user/%s"]},
+			"share": {"allow":["user/%s"]}
+		}
+	}`
+	t.Logf("- folder1 from template")
+	folder1Body := fmt.Sprintf(newFolderSharedToODrive, 1, fakeDN0, fakeDN0, fakeDN0, fakeDN1, fakeDN0, fakeDN1, fakeDN0, fakeDN0)
+	folder1Object, err := utils.UnmarshalStringToInterface(folder1Body)
+	if err != nil {
+		t.Logf("Error converting folder1Body to interface: %s", err.Error())
+		t.FailNow()
+	}
+	folder1Req := makeHTTPRequestFromInterface(t, "POST", newobjuri, folder1Object)
+	folder1Res, err := clients[tester10].Client.Do(folder1Req)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, folder1Res, "Bad status when creating object")
+	var folder1 protocol.Object
+	err = util.FullDecode(folder1Res.Body, &folder1)
+	failNowOnErr(t, err, "Error decoding json to Object")
+	t.Logf("- folder2 from template")
+	folder2Body := fmt.Sprintf(newFolderSharedToODrive, 2, fakeDN0, fakeDN0, fakeDN0, fakeDN1, fakeDN0, fakeDN1, fakeDN0, fakeDN0)
+	folder2Object, err := utils.UnmarshalStringToInterface(folder2Body)
+	if err != nil {
+		t.Logf("Error converting folder2Body to interface: %s", err.Error())
+		t.FailNow()
+	}
+	folder2Req := makeHTTPRequestFromInterface(t, "POST", newobjuri, folder2Object)
+	folder2Res, err := clients[tester10].Client.Do(folder2Req)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, folder2Res, "Bad status when creating object")
+	var folder2 protocol.Object
+	err = util.FullDecode(folder2Res.Body, &folder2)
+	failNowOnErr(t, err, "Error decoding json to Object")
+
+	t.Logf("* Attempt to move folder 2 under folder 1 as Tester1. Expect failure")
+	moveuri := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
+	objChangeToken := protocol.ChangeTokenStruct{}
+	objChangeToken.ChangeToken = folder2.ChangeToken
+	moveReq1 := makeHTTPRequestFromInterface(t, "POST", moveuri, objChangeToken)
+	moveRes1, err := clients[tester01].Client.Do(moveReq1)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, http.StatusForbidden, moveRes1, "Bad status when moving folder 2 under folder 1 as tester1")
+	util.FinishBody(moveRes1.Body)
+
+	t.Logf("* Attempt to move folder 2 under folder 1 as Tester10. Expect success")
+	moveReq2 := makeHTTPRequestFromInterface(t, "POST", moveuri, objChangeToken)
+	moveRes2, err := clients[tester10].Client.Do(moveReq2)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, http.StatusOK, moveRes2, "Bad status when moving folder 2 under folder 1 as tester10")
+	util.FinishBody(moveRes2.Body)
 }

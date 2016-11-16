@@ -9,6 +9,7 @@ Release vNEXT
 * NEW: Kafka is discoverable from its own ZK cluster, not just default ZK
 * NEW: RPM updated to use /opt/services/object-drive installation path
 * FIX: Port announced for service in ZK is based upon actual server port selected
+* FIX: Prevent non-owners from moving objects
 
 Release v1.0.1.7
 ----------------
