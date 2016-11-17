@@ -1,8 +1,11 @@
 
 var __state = {};
 
-var BASE_SERVICE_URL = '/services/object-drive/1.0/'
+// This is for the cross-site version where the odrive service is being hosted
+// in a different server from the UI (ui - this file - is somewhere else, like https://localhost:4440/services/object-drive/1.0)
+//var BASE_SERVICE_URL = 'https://dockervm:8080/services/object-drive/1.0/'
 
+var BASE_SERVICE_URL = '/services/object-drive/1.0/'
 
 function getCN(dn) {
   return dn.substring(dn.indexOf('=')+1, dn.indexOf(','))
@@ -13,11 +16,17 @@ function newParent(id) {
   refreshListObjects();
 };
 
+function fixCreds(xmlHttpRequest) {
+  // fetch library does this under the hood
+  xmlHttpRequest.withCredentials = true;
+}
+
 function listUsers() {
   return $.ajax({
     url: BASE_SERVICE_URL+'users',
     contentType: 'application/json',
-    method: 'GET'
+    method: 'GET',
+    beforeSend: fixCreds
   });
 };
 
@@ -86,7 +95,8 @@ function refreshSharedWithMe() {
     },
     error: function(resp) {
       console.log("refresh shared with me failed!")
-    }
+    },
+    beforeSend: fixCreds
   });
 };
 
@@ -155,7 +165,8 @@ function doShare(objectId, userId, opts) {
       alert('Add Share Failed\n' + jqXHR.status + '\n' + jqXHR.statusText);
       console.log("do share failed!");
       console.log(resp);  
-    }
+    },
+    beforeSend: fixCreds
   });
 };
 
@@ -175,7 +186,8 @@ function doDelete(objectId, changeToken) {
       error: function(jqXHR, textStatus, errorThrown) {
         alert('Delete Object Failed\n' + jqXHR.status + '\n' + jqXHR.statusText);
         console.log("do delete failed!")  
-      }
+      },
+      beforeSend: fixCreds
   });
 }
 
@@ -276,7 +288,8 @@ function createObject() {
           alert('Create Object Failed\n' + jqXHR.status + '\n' + jqXHR.statusText);
           console.log("create object failed!")  
           $("#submitCreateObject").prop("disabled", false)
-        }
+        },
+        beforeSend: fixCreds
       });
 }
 
@@ -308,7 +321,8 @@ function createFolder() {
       error: function(jqXHR, textStatus, errorThrown) {
         alert('Create Folder Failed\n' + jqXHR.status + '\n' + jqXHR.statusText);
         console.log("createFolder failed!");
-      }
+      },
+      beforeSend: fixCreds
   });
 }
 
@@ -342,7 +356,8 @@ function refreshObjectsIShared() {
     },
     error: function(resp) {
       console.log("refresh objects i shared failed!")
-    }
+    },
+    beforeSend: fixCreds
   });
 };
 

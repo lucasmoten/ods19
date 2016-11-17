@@ -191,9 +191,21 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var uri = r.URL.Path
 	var herr *AppError
 
+	// CORS support - if it specifies an origin, then reflect back an access control origin
+	reqOrigin := r.Header.Get("Origin")
+	if reqOrigin != "" {
+		w.Header().Set("Access-Control-Allow-Origin", reqOrigin)
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+	}
+	w.Header().Set("Vary", "Origin")
+
 	// The following routes can be handled without calls to the database
 	withoutDatabase := false
 	switch r.Method {
+	case "OPTIONS":
+		// Handle the pre-flight request here
+		herr = h.cors(ctx, w, r)
+		withoutDatabase = true
 	case "GET":
 		switch {
 		// Development UI
