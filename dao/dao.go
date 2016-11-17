@@ -74,7 +74,7 @@ type CheckACM func(*models.ODObject) bool
 type DataAccessLayer struct {
 	// MetadataDB is the connection.
 	MetadataDB *sqlx.DB
-	// Logger has a default, but can be updated by passing options to contstructor.
+	// Logger has a default, but can be updated by passing options to constructor.
 	Logger zap.Logger
 }
 
