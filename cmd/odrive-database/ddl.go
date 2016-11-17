@@ -16,9 +16,14 @@ func createSchema(db *sqlx.DB) error {
 	if err := execFile(db, "schema/functions.drop.sql"); err != nil {
 		return err
 	}
-	if err := execFile(db, "schema/constraints.drop.sql"); err != nil {
+	if err := dropConstraints(db); err != nil {
 		// TODO(cm) find a nicer way to do this on first run
-		fmt.Println("ignoring constraint failure")
+		fmt.Println("ignoring constraint drop failure")
+		fmt.Printf("err: %v", err)
+	}
+	if err := dropTables(db); err != nil {
+		fmt.Println("ignoring table drop failure")
+		fmt.Printf("err: %v", err)
 	}
 
 	// Set collation
@@ -68,6 +73,13 @@ func createConstraints(db *sqlx.DB) error {
 		return err
 	}
 
+	return nil
+}
+
+func dropConstraints(db *sqlx.DB) error {
+	if err := execFileIgnoreError(db, "schema/constraints.drop.sql"); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -171,6 +183,18 @@ func createTables(db *sqlx.DB) error {
 	if err := execFile(db, "schema/table.user_object_subscription.create.sql"); err != nil {
 		return err
 	}
+	return nil
+}
+
+func dropTables(db *sqlx.DB) error {
+	if err := execFileIgnoreError(db, "schema/tables.drop.sql"); err != nil {
+		return err
+	}
+
+	if err := execStmt(db, "drop table if exists gorp_migrations;"); err != nil {
+		return err
+	}
+
 	return nil
 }
 

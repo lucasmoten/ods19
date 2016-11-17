@@ -462,7 +462,12 @@ func execStmt(db *sqlx.DB, stmt string) error {
 // execFile splits a SQL file on semicolon (";"), and iteratively executes the commands.
 // Splitting is necessary because our DB driver does not support multiple statement execution.
 func execFile(db *sqlx.DB, path string) error {
-
+	return execFileHandler(db, path, true)
+}
+func execFileIgnoreError(db *sqlx.DB, path string) error {
+	return execFileHandler(db, path, false)
+}
+func execFileHandler(db *sqlx.DB, path string, failOnStatementError bool) error {
 	fmt.Println("executing SQL:", path)
 	data, err := Asset(path)
 	if err != nil {
@@ -478,13 +483,22 @@ func execFile(db *sqlx.DB, path string) error {
 		}
 		results, err := db.Exec(cleaned)
 		if err != nil {
-			return err
+			if failOnStatementError {
+				return err
+			}
+			fmt.Printf("error executing statement:\n  command: %s\n  error: %v\n", cleaned, err)
+			err = nil
+		} else {
+			n, err := results.RowsAffected()
+			if err != nil {
+				if failOnStatementError {
+					return err
+				}
+				fmt.Printf("error checking rows affected: %v\n", err)
+				err = nil
+			}
+			total += n
 		}
-		n, err := results.RowsAffected()
-		if err != nil {
-			return err
-		}
-		total += n
 	}
 	fmt.Println("total rows affected:", total)
 
