@@ -16,8 +16,7 @@ import (
 	"github.com/karlseguin/ccache"
 
 	"decipher.com/object-drive-server/ciphertext"
-	cfg "decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/server"
@@ -46,9 +45,9 @@ var (
 func setup(ip string) {
 
 	if ip == "" {
-		host = fmt.Sprintf("https://%s:%s", cfg.DockerVM, cfg.Port)
+		host = fmt.Sprintf("https://%s:%s", config.DockerVM, config.Port)
 	} else {
-		host = fmt.Sprintf("https://%s:%s", ip, cfg.Port)
+		host = fmt.Sprintf("https://%s:%s", ip, config.Port)
 	}
 
 	if !testing.Short() {
@@ -90,13 +89,13 @@ func cleanupOpenFiles() {
 func testSettings() {
 	// Make sure that we find the ciphertext cache when we look for it
 	settings := &config.S3CiphertextCacheOpts{
-		Root:          cfg.GetEnvOrDefault(config.OD_CACHE_ROOT, "."),
-		Partition:     cfg.GetEnvOrDefault(config.OD_CACHE_PARTITION, "cache"),
+		Root:          config.GetEnvOrDefault(config.OD_CACHE_ROOT, "."),
+		Partition:     config.GetEnvOrDefault(config.OD_CACHE_PARTITION, "cache"),
 		LowWatermark:  .50,
 		HighWatermark: .75,
 		EvictAge:      300,
 		WalkSleep:     30,
-		MasterKey:     cfg.GetEnvOrDefault(config.OD_ENCRYPT_MASTERKEY, ""),
+		MasterKey:     config.GetEnvOrDefault(config.OD_ENCRYPT_MASTERKEY, ""),
 	}
 	zone := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
 	ciphertext.SetCiphertextCache(
@@ -177,12 +176,12 @@ func getClientIdentityFromDefaultCerts(component string, certSet string) (*Clien
 		CertPem:  os.ExpandEnv(fmt.Sprintf("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/%s/%s.cert.pem", component, certSet)),
 		KeyPem:   os.ExpandEnv(fmt.Sprintf("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/%s/%s.key.pem", component, certSet)),
 	}
-	cfg, err := newClientTLSConfig(ci)
+	config, err := newClientTLSConfig(ci)
 	if err != nil {
 		log.Printf("Cannot get identity: %v", err)
 		return nil, err
 	}
-	ci.Config = cfg
+	ci.Config = config
 	ci.Name = fmt.Sprintf("%s_%s", component, certSet)
 	return ci, nil
 }
@@ -193,12 +192,12 @@ func getClientIdentity(i int, name string) (*ClientIdentity, error) {
 		CertPem:  os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/" + name + ".cert.pem"),
 		KeyPem:   os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/" + name + ".key.pem"),
 	}
-	cfg, err := newClientTLSConfig(ci)
+	config, err := newClientTLSConfig(ci)
 	if err != nil {
 		log.Printf("Cannot get identity: %v", err)
 		return nil, err
 	}
-	ci.Config = cfg
+	ci.Config = config
 	ci.Name = name
 
 	return ci, nil
@@ -305,7 +304,7 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 	fakeQueue := kafka.NewFakeAsyncProducer(nil)
 
 	s := server.AppServer{RootDAO: &fakeDAO,
-		ServicePrefix: cfg.RootURLRegex,
+		ServicePrefix: config.RootURLRegex,
 		AAC:           &fakeAAC,
 		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
 		Snippets:      snippetCache,

@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	configx "decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/config"
 
 	"gopkg.in/yaml.v2"
 )
@@ -18,7 +18,7 @@ func TestMain(m *testing.M) {
 func TestParseWhitelistFromConfigFile(t *testing.T) {
 
 	contents := readAllOrFail(t, "testfixtures/testconf.yml")
-	var conf configx.AppConfiguration
+	var conf config.AppConfiguration
 	err := yaml.Unmarshal(contents, &conf)
 	if err != nil {
 		t.Errorf("Could not unmarshal yaml config file: %v\n", err)
@@ -41,7 +41,7 @@ func TestParseAppConfigurationFromConfigFile(t *testing.T) {
 	defer reset2()
 
 	contents := readAllOrFail(t, "testfixtures/complete.yml")
-	var conf configx.AppConfiguration
+	var conf config.AppConfiguration
 	err := yaml.Unmarshal(contents, &conf)
 	if err != nil {
 		t.Errorf("Could not unmarshal yaml config file: %v\n", err)
@@ -88,7 +88,7 @@ func TestNormalization(t *testing.T) {
 	checklist["CN=twl-server-generic2, OU=DAE, OU=DIA, OU=twl-server-generic2, O=U.S. Government, C=US"] = "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
 
 	for startingValue, expected := range checklist {
-		actual := configx.GetNormalizedDistinguishedName(startingValue)
+		actual := config.GetNormalizedDistinguishedName(startingValue)
 		if actual != expected {
 			t.Logf("Normalized %s to %s. Expected %s", startingValue, actual, expected)
 			t.Fail()

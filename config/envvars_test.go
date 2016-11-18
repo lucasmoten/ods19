@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	configx "decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/config"
 )
 
 func TestEnvVars(t *testing.T) {
@@ -39,9 +39,9 @@ func TestEnvVars(t *testing.T) {
 	})
 
 	// Compare to the length of the exported slice.
-	if len(constants) != len(configx.Vars) {
+	if len(constants) != len(config.Vars) {
 
-		t.Errorf("Go AST parser found %v const declarations, but Vars array contains %v. You may need to add a declared const to the Vars array", len(constants), len(configx.Vars))
+		t.Errorf("Go AST parser found %v const declarations, but Vars array contains %v. You may need to add a declared const to the Vars array", len(constants), len(config.Vars))
 	}
 
 }

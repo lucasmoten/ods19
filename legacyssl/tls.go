@@ -1,4 +1,4 @@
-package config
+package legacyssl
 
 import (
 	"crypto/tls"

@@ -16,8 +16,7 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/autoscale"
-	globalconfig "decipher.com/object-drive-server/config"
-	configx "decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/metadata/models"
@@ -53,7 +52,7 @@ type AppServer struct {
 	// DAO is the interface contract with the database.
 	RootDAO dao.DAO
 	// Conf is the configuration passed to the application
-	Conf configx.ServerSettingsConfiguration
+	Conf config.ServerSettingsConfiguration
 	// ServicePrefix is the base RootURL for all public operations of web server
 	ServicePrefix string
 	// AAC is a handle to the Authorization and Access Control client
@@ -161,7 +160,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("sessionid", sessionID)
 
 	caller := CallerFromRequest(r)
-	logger := newLogger(globalconfig.RootLogger, sessionID, caller.CommonName, r)
+	logger := newLogger(config.RootLogger, sessionID, caller.CommonName, r)
 	defer logCrashInServeHTTP(logger, w)
 
 	gem := globalEventFromRequest(r)
@@ -448,7 +447,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func newSessionID() string {
-	return globalconfig.RandomID()
+	return config.RandomID()
 }
 
 // ContextWithSession puts the sessionID on the context, used for log correlation
@@ -586,18 +585,18 @@ func resolveOurIP() string {
 	}
 	hostname, err := os.Hostname()
 	if err != nil {
-		globalconfig.RootLogger.Error("unable to resolve our own hostname")
+		config.RootLogger.Error("unable to resolve our own hostname")
 		return ""
 	}
 	myIPs, err := net.LookupIP(hostname)
 	if err != nil {
-		globalconfig.RootLogger.Error("could not lookup IP for hostname")
+		config.RootLogger.Error("could not lookup IP for hostname")
 		return ""
 	}
 	for _, addr := range myIPs {
 		if addr.To4() != nil {
 			ipString = addr.String()
-			globalconfig.RootLogger.Info("resolved our IP", zap.String("ip", ipString))
+			config.RootLogger.Info("resolved our IP", zap.String("ip", ipString))
 			return addr.String()
 		}
 	}

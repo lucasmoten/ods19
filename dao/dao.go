@@ -5,8 +5,7 @@ import (
 	"os"
 	"time"
 
-	globals "decipher.com/object-drive-server/config"
-	configx "decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
@@ -90,7 +89,7 @@ func WithLogger(logger zap.Logger) Opt {
 
 // NewDataAccessLayer constructs a new DataAccessLayer with defaults and options. A string database
 // identifier is also returned.
-func NewDataAccessLayer(conf configx.DatabaseConfiguration, opts ...Opt) (*DataAccessLayer, string, error) {
+func NewDataAccessLayer(conf config.DatabaseConfiguration, opts ...Opt) (*DataAccessLayer, string, error) {
 
 	db, err := conf.GetDatabaseHandle()
 	if err != nil {
@@ -117,7 +116,7 @@ func NewDataAccessLayer(conf configx.DatabaseConfiguration, opts ...Opt) (*DataA
 }
 
 func defaults(d *DataAccessLayer) {
-	d.Logger = zap.New(zap.NewJSONEncoder(), zap.Output(os.Stdout), zap.ErrorOutput(os.Stdout)).With(zap.String("node", globals.NodeID))
+	d.Logger = zap.New(zap.NewJSONEncoder(), zap.Output(os.Stdout), zap.ErrorOutput(os.Stdout)).With(zap.String("node", config.NodeID))
 }
 
 // GetLogger is a logger, probably for this session

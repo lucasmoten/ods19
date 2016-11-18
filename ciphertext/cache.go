@@ -12,7 +12,7 @@ import (
 	"syscall"
 
 	globalconfig "decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/config"
 
 	"github.com/uber-go/zap"
 )

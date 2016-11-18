@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	configx "decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/crypto"
 )
 
@@ -163,7 +163,7 @@ func PermissionForUser(user string, allowCreate bool, allowRead bool, allowUpdat
 	newPermission.AcmShare = fmt.Sprintf(`{"users":["%s"]}`, user)
 	newPermission.AcmGrantee.Grantee = newPermission.Grantee
 	newPermission.AcmGrantee.UserDistinguishedName = ToNullString(user)
-	newPermission.AcmGrantee.DisplayName = ToNullString(configx.GetCommonName(user))
+	newPermission.AcmGrantee.DisplayName = ToNullString(config.GetCommonName(user))
 	newPermission.AllowCreate = allowCreate
 	newPermission.AllowRead = allowRead
 	newPermission.AllowUpdate = allowUpdate

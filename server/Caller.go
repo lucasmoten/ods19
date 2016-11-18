@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	configx "decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
 )
 
@@ -49,14 +49,14 @@ type Caller struct {
 // a front end
 func CallerFromRequest(r *http.Request) Caller {
 	var caller Caller
-	caller.UserDistinguishedName = configx.GetNormalizedDistinguishedName(r.Header.Get("USER_DN"))
+	caller.UserDistinguishedName = config.GetNormalizedDistinguishedName(r.Header.Get("USER_DN"))
 	caller.ExternalSystemDistinguishedName = r.Header.Get("EXTERNAL_SYS_DN")
 	caller.SSLClientSDistinguishedName = r.Header.Get("SSL_CLIENT_S_DN")
 
 	if isHTTPS(r) {
 		// DO NOT NORMALIZE THE user because it comes from a certificate used directly
 		if len(r.TLS.PeerCertificates) > 0 {
-			caller.SSLClientSDistinguishedName = configx.GetDistinguishedName(r.TLS.PeerCertificates[0])
+			caller.SSLClientSDistinguishedName = config.GetDistinguishedName(r.TLS.PeerCertificates[0])
 		} else {
 			caller.SSLClientSDistinguishedName = ""
 		}
@@ -67,8 +67,8 @@ func CallerFromRequest(r *http.Request) Caller {
 	} else {
 		caller.DistinguishedName = caller.SSLClientSDistinguishedName
 	}
-	caller.DistinguishedName = configx.GetNormalizedDistinguishedName(caller.DistinguishedName)
-	caller.CommonName = configx.GetCommonName(caller.DistinguishedName)
+	caller.DistinguishedName = config.GetNormalizedDistinguishedName(caller.DistinguishedName)
+	caller.CommonName = config.GetCommonName(caller.DistinguishedName)
 	return caller
 }
 
@@ -142,8 +142,8 @@ func have(s string) bool {
 
 func canImpersonateUser(whitelist []string, clientID string, user string) bool {
 
-	normalizedClient := configx.GetNormalizedDistinguishedName(clientID)
-	normalizedUserToken := configx.GetNormalizedDistinguishedName(user)
+	normalizedClient := config.GetNormalizedDistinguishedName(clientID)
+	normalizedUserToken := config.GetNormalizedDistinguishedName(user)
 
 	if contains := whitelistContains(whitelist, clientID); !contains {
 		log.Printf("Client %s is denied! Unable to impersonate %s", normalizedClient, normalizedUserToken)
@@ -154,7 +154,7 @@ func canImpersonateUser(whitelist []string, clientID string, user string) bool {
 
 func whitelistContains(list []string, clientID string) bool {
 	for _, v := range list {
-		if strings.ToLower(configx.GetNormalizedDistinguishedName(v)) == strings.ToLower(configx.GetNormalizedDistinguishedName(clientID)) {
+		if strings.ToLower(config.GetNormalizedDistinguishedName(v)) == strings.ToLower(config.GetNormalizedDistinguishedName(clientID)) {
 			return true
 		}
 	}
