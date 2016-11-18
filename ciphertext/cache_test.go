@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"decipher.com/object-drive-server/ciphertext"
-	"decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/config"
 
 	"decipher.com/object-drive-server/amazon"
 	cfg "decipher.com/object-drive-server/config"

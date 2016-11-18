@@ -5,8 +5,7 @@ import (
 	"io"
 
 	"decipher.com/object-drive-server/amazon"
-	globalconfig "decipher.com/object-drive-server/config"
-	configx "decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/config"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -77,16 +76,16 @@ func (s *PermanentStorageData) GetStream(key *string, begin, end int64) (io.Read
 }
 
 // NewS3CiphertextCache sets up a drain with default parameters overridden by environment variables
-func NewS3CiphertextCache(zone CiphertextCacheZone, conf *configx.S3CiphertextCacheOpts, dbID string) CiphertextCache {
-	logger := globalconfig.RootLogger.With(zap.String("session", "CiphertextCache"))
+func NewS3CiphertextCache(zone CiphertextCacheZone, conf *config.S3CiphertextCacheOpts, dbID string) CiphertextCache {
+	logger := config.RootLogger.With(zap.String("session", "CiphertextCache"))
 
-	s3Config := configx.NewS3Config()
+	s3Config := config.NewS3Config()
 	sess := amazon.NewAWSSession(s3Config.AWSConfig, logger)
 
 	//Assign permanent storage if we have a bucket name
 	var permanentStorage PermanentStorage
-	if configx.DefaultBucket != "" {
-		permanentStorage = NewPermanentStorageData(sess, &configx.DefaultBucket)
+	if config.DefaultBucket != "" {
+		permanentStorage = NewPermanentStorageData(sess, &config.DefaultBucket)
 	} else {
 		logger.Info("PermanentStorage is empty because there is no bucket name")
 	}
@@ -99,10 +98,10 @@ func NewS3CiphertextCache(zone CiphertextCacheZone, conf *configx.S3CiphertextCa
 // TestS3Connection can be run to inspect the environment for configured S3
 // bucket names, and verify that those buckets are writable with our credentials.
 func TestS3Connection(sess *session.Session) bool {
-	logger := globalconfig.RootLogger.With(zap.String("session", "CiphertextCache"))
+	logger := config.RootLogger.With(zap.String("session", "CiphertextCache"))
 
 	uploader := s3manager.NewUploader(sess)
-	bucketName := globalconfig.GetEnvOrDefault("OD_AWS_S3_BUCKET", "")
+	bucketName := config.GetEnvOrDefault("OD_AWS_S3_BUCKET", "")
 	if bucketName == "" {
 		logger.Error("serviceTestError",
 			zap.String("err", "Missing environment variable OD_AWS_S3_BUCKET"))

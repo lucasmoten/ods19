@@ -10,10 +10,9 @@ import (
 	"testing"
 	"time"
 
-	globalconfig "decipher.com/object-drive-server/config"
 	"github.com/jmoiron/sqlx"
 
-	configx "decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
 )
@@ -30,17 +29,17 @@ var usernames = make([]string, 10)
 // NewAppConfigurationWithDefaults provides some defaults to the constructor
 // function for AppConfiguration. Normally these parameters are specified
 // on the command line.
-func newAppConfigurationWithDefaults() configx.AppConfiguration {
-	var conf configx.AppConfiguration
+func newAppConfigurationWithDefaults() config.AppConfiguration {
+	var conf config.AppConfiguration
 	projectRoot := filepath.Join(os.Getenv("GOPATH"), "src", "decipher.com", "object-drive-server")
 	whitelist := []string{"cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"}
-	opts := configx.CommandLineOpts{
+	opts := config.CommandLineOpts{
 		Ciphers:           []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"},
 		UseTLS:            true,
 		Conf:              filepath.Join(projectRoot, "dao", "testfixtures", "testconf.yml"),
 		TLSMinimumVersion: "1.2",
 	}
-	conf = configx.NewAppConfiguration(opts)
+	conf = config.NewAppConfiguration(opts)
 	conf.ServerSettings.AclImpersonationWhitelist = whitelist
 	return conf
 }
@@ -62,7 +61,7 @@ func init() {
 		panic(err)
 	}
 
-	d = &dao.DataAccessLayer{MetadataDB: db, Logger: globalconfig.RootLogger}
+	d = &dao.DataAccessLayer{MetadataDB: db, Logger: config.RootLogger}
 
 	// Create users referenced by these tests
 	user := models.ODUser{}
@@ -75,7 +74,7 @@ func init() {
 			usernames[i] = "CN=[DAOTEST]test tester" + strconv.Itoa(i) + ", O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
 		}
 		user.DistinguishedName = usernames[i]
-		user.DisplayName = models.ToNullString(configx.GetCommonName(user.DistinguishedName))
+		user.DisplayName = models.ToNullString(config.GetCommonName(user.DistinguishedName))
 		user.CreatedBy = user.DistinguishedName
 		_, err = d.CreateUser(user)
 	}

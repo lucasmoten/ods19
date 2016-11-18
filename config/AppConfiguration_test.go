@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	configx "decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/config"
 )
 
 func TestCascadeStringSlice_EmptyVarYieldsZeroLenSlice(t *testing.T) {
@@ -14,7 +14,7 @@ func TestCascadeStringSlice_EmptyVarYieldsZeroLenSlice(t *testing.T) {
 
 	var empty []string
 
-	result := configx.CascadeStringSlice("TEST_VAR", empty, empty)
+	result := config.CascadeStringSlice("TEST_VAR", empty, empty)
 
 	if len(result) != 0 {
 		t.Errorf("Expected len 0 for string slice, got %v", len(result))

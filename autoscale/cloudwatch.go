@@ -11,8 +11,7 @@ import (
 	"time"
 
 	"decipher.com/object-drive-server/amazon"
-	globalconfig "decipher.com/object-drive-server/config"
-	configx "decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/performance"
 	"decipher.com/object-drive-server/util"
 	"github.com/aws/aws-sdk-go/aws"
@@ -254,10 +253,10 @@ func ComputeOverallPerformance(
 // CloudWatchReportingStart begins the goroutine that publishes into CloudWatch
 func CloudWatchReportingStart(tracker *performance.JobReporters) {
 	//Get a session in which to work in a goroutine
-	logger := globalconfig.RootLogger.With(zap.String("session", "cloudwatch"))
+	logger := config.RootLogger.With(zap.String("session", "cloudwatch"))
 
 	//Try to get a real cloudwatch session.  If not, just log this data locally.
-	cwConfig := configx.NewCWConfig()
+	cwConfig := config.NewCWConfig()
 	var cwSession *cloudwatch.CloudWatch
 	var namespace *string
 	var sleepTime int

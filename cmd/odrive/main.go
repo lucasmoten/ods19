@@ -21,8 +21,7 @@ import (
 	"github.com/uber-go/zap"
 	"github.com/urfave/cli"
 
-	globalconfig "decipher.com/object-drive-server/config"
-	configx "decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/server"
 
@@ -32,7 +31,7 @@ import (
 
 // Globals
 var (
-	logger = globalconfig.RootLogger
+	logger = config.RootLogger
 )
 
 // Services that require network
@@ -55,7 +54,7 @@ func main() {
 			Name:  "env",
 			Usage: "Print all environment variables",
 			Action: func(ctx *cli.Context) error {
-				configx.PrintODEnvironment()
+				config.PrintODEnvironment()
 				return nil
 			},
 		},
@@ -63,7 +62,7 @@ func main() {
 			Name:  "makeScript",
 			Usage: "Generate a startup script. Pipe output to a file.",
 			Action: func(ctx *cli.Context) error {
-				configx.GenerateStartScript()
+				config.GenerateStartScript()
 				return nil
 			},
 		},
@@ -71,7 +70,7 @@ func main() {
 			Name:  "makeEnvScript",
 			Usage: "List required env vars in script. Suitable for \"source\". Pipe output to a file.",
 			Action: func(ctx *cli.Context) error {
-				configx.GenerateSourceEnvScript()
+				config.GenerateSourceEnvScript()
 				return nil
 			},
 		},
@@ -123,10 +122,10 @@ func main() {
 
 	cliParser.Action = func(c *cli.Context) error {
 
-		opts := configx.NewCommandLineOpts(c)
+		opts := config.NewCommandLineOpts(c)
 		// TODO move this to main AppConfiguration constructor
 
-		conf := configx.NewAppConfiguration(opts)
+		conf := config.NewAppConfiguration(opts)
 
 		logger.Info("configuration-settings", zap.String("confPath", opts.Conf),
 			zap.String("staticRoot", opts.StaticRootPath),
@@ -144,7 +143,7 @@ func runServiceTest(ctx *cli.Context) error {
 	service := ctx.Args().First()
 	switch service {
 	case S3Service:
-		s3Config := configx.NewS3Config()
+		s3Config := config.NewS3Config()
 		if !ciphertext.TestS3Connection(amazon.NewAWSSession(s3Config.AWSConfig, logger)) {
 			fmt.Println("Cannot access S3 bucket.")
 			os.Exit(1)
@@ -164,7 +163,7 @@ func runServiceTest(ctx *cli.Context) error {
 	return nil
 }
 
-func startApplication(conf configx.AppConfiguration) {
+func startApplication(conf config.AppConfiguration) {
 
 	app, err := makeServer(conf.ServerSettings)
 	if err != nil {
@@ -254,7 +253,7 @@ func startApplication(conf configx.AppConfiguration) {
 	}
 }
 
-func zkTracking(app *server.AppServer, conf configx.AppConfiguration) {
+func zkTracking(app *server.AppServer, conf config.AppConfiguration) {
 	srvConf, aacConf, zkConf := conf.ServerSettings, conf.AACSettings, conf.ZK
 
 	odriveAnnouncer := func(at string, announcements map[string]zookeeper.AnnounceData) {
@@ -323,7 +322,7 @@ func zkTracking(app *server.AppServer, conf configx.AppConfiguration) {
 }
 
 // configureEventQueue will set a directly-configured Kafka queue on AppServer, or discover one from ZK.
-func configureEventQueue(app *server.AppServer, conf configx.EventQueueConfiguration, zkTimeout int64) {
+func configureEventQueue(app *server.AppServer, conf config.EventQueueConfiguration, zkTimeout int64) {
 	logger.Info("Kafka Config", zap.Object("conf", conf))
 
 	if len(conf.KafkaAddrs) == 0 && len(conf.ZKAddrs) == 0 {
@@ -392,7 +391,7 @@ func connectWithZookeeper(app *server.AppServer, zkBasePath, zkAddress string) e
 	return err
 }
 
-func makeServer(conf configx.ServerSettingsConfiguration) (*server.AppServer, error) {
+func makeServer(conf config.ServerSettingsConfiguration) (*server.AppServer, error) {
 
 	var templates *template.Template
 	var err error
@@ -417,7 +416,7 @@ func makeServer(conf configx.ServerSettingsConfiguration) (*server.AppServer, er
 		Addr:                      conf.ListenBind + ":" + conf.ListenPort,
 		Conf:                      conf,
 		Tracker:                   performance.NewJobReporters(1024),
-		ServicePrefix:             globalconfig.RootURLRegex,
+		ServicePrefix:             config.RootURLRegex,
 		TemplateCache:             templates,
 		StaticDir:                 conf.PathToStaticFiles,
 		UsersLruCache:             usersLruCache,

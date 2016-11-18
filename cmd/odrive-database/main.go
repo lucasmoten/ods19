@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	configx "decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/config"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/rubenv/sql-migrate"
@@ -20,8 +20,8 @@ import (
 )
 
 // defaultConfig holds values suitable for a containerized test db.
-var defaultConfig = configx.AppConfiguration{
-	DatabaseConnection: configx.DatabaseConfiguration{
+var defaultConfig = config.AppConfiguration{
+	DatabaseConnection: config.DatabaseConfiguration{
 		Driver:   "mysql",
 		Host:     "127.0.0.1",
 		Port:     "3306",
@@ -165,7 +165,7 @@ func main() {
 
 // connect wraps the creation of a new sqlx.DB connection. A test ping is peformed on the connection before returning.
 func connect(clictx *cli.Context) (*sqlx.DB, error) {
-	var conf configx.AppConfiguration
+	var conf config.AppConfiguration
 
 	conf, err := buildConfig(clictx)
 	if err != nil {
@@ -187,12 +187,12 @@ func connect(clictx *cli.Context) (*sqlx.DB, error) {
 // buildConfig gathers configuration options from the environment. If useEmbedded is true, defaultConfig
 // will be used. Otherwise, a yaml config can be provided with the conf param. If a conf file is
 // provided, those values will override environment variable settings.
-func buildConfig(clictx *cli.Context) (configx.AppConfiguration, error) {
+func buildConfig(clictx *cli.Context) (config.AppConfiguration, error) {
 
-	var conf configx.AppConfiguration
+	var conf config.AppConfiguration
 	useEmbedded := clictx.Bool("useEmbedded")
 	if !useEmbedded {
-		var fileConf configx.AppConfiguration
+		var fileConf config.AppConfiguration
 		path := clictx.String("conf")
 		if path != "" {
 			var err error
@@ -205,7 +205,7 @@ func buildConfig(clictx *cli.Context) (configx.AppConfiguration, error) {
 				return conf, err
 			}
 		}
-		dbConf := configx.NewDatabaseConfigFromEnv(fileConf, configx.CommandLineOpts{})
+		dbConf := config.NewDatabaseConfigFromEnv(fileConf, config.CommandLineOpts{})
 		conf.DatabaseConnection = dbConf
 	} else {
 		conf = defaultConfig
@@ -217,32 +217,32 @@ func buildConfig(clictx *cli.Context) (configx.AppConfiguration, error) {
 // setEnvFromFile sets database environment variables in-process from a provided config struct. This
 // enables config files to override env vars, which is not supported in the default constructors for
 // AppConfiguration and it's nested sub-types.
-func setEnvFromFile(conf configx.DatabaseConfiguration) error {
-	if err := os.Setenv(configx.OD_DB_USERNAME, conf.Username); err != nil {
+func setEnvFromFile(conf config.DatabaseConfiguration) error {
+	if err := os.Setenv(config.OD_DB_USERNAME, conf.Username); err != nil {
 		return err
 	}
-	if err := os.Setenv(configx.OD_DB_PASSWORD, conf.Password); err != nil {
+	if err := os.Setenv(config.OD_DB_PASSWORD, conf.Password); err != nil {
 		return err
 	}
-	if err := os.Setenv(configx.OD_DB_HOST, conf.Host); err != nil {
+	if err := os.Setenv(config.OD_DB_HOST, conf.Host); err != nil {
 		return err
 	}
-	if err := os.Setenv(configx.OD_DB_PORT, conf.Port); err != nil {
+	if err := os.Setenv(config.OD_DB_PORT, conf.Port); err != nil {
 		return err
 	}
-	if err := os.Setenv(configx.OD_DB_SCHEMA, conf.Schema); err != nil {
+	if err := os.Setenv(config.OD_DB_SCHEMA, conf.Schema); err != nil {
 		return err
 	}
-	if err := os.Setenv(configx.OD_DB_CONN_PARAMS, conf.Params); err != nil {
+	if err := os.Setenv(config.OD_DB_CONN_PARAMS, conf.Params); err != nil {
 		return err
 	}
-	if err := os.Setenv(configx.OD_DB_CA, conf.CAPath); err != nil {
+	if err := os.Setenv(config.OD_DB_CA, conf.CAPath); err != nil {
 		return err
 	}
-	if err := os.Setenv(configx.OD_DB_CERT, conf.ClientCert); err != nil {
+	if err := os.Setenv(config.OD_DB_CERT, conf.ClientCert); err != nil {
 		return err
 	}
-	if err := os.Setenv(configx.OD_DB_KEY, conf.ClientKey); err != nil {
+	if err := os.Setenv(config.OD_DB_KEY, conf.ClientKey); err != nil {
 		return err
 	}
 	return nil
@@ -319,18 +319,18 @@ func status(clictx *cli.Context) error {
 }
 
 // loadConfig wraps the conversion of the cli conf parameter to an absolute path.
-func loadConfig(path string) (configx.AppConfiguration, error) {
+func loadConfig(path string) (config.AppConfiguration, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
-		return configx.AppConfiguration{}, fmt.Errorf("path error: %v\n", err)
+		return config.AppConfiguration{}, fmt.Errorf("path error: %v\n", err)
 	}
-	return configx.LoadYAMLConfig(absPath)
+	return config.LoadYAMLConfig(absPath)
 
 }
 
 // newDBConn provides a database connection with the given config. For a root connection,
 // set Username and Password directly on the conf.
-func newDBConn(conf configx.DatabaseConfiguration) (*sqlx.DB, error) {
+func newDBConn(conf config.DatabaseConfiguration) (*sqlx.DB, error) {
 
 	tlsConf, err := newTLSConfig(conf.CAPath, conf.ClientCert, conf.ClientKey)
 	if err != nil {
@@ -558,7 +558,7 @@ database:
 	fmt.Println(contents)
 }
 
-func printConf(conf configx.AppConfiguration) {
+func printConf(conf config.AppConfiguration) {
 	db := conf.DatabaseConnection
 	fmt.Println("# rendering provided configuration")
 	fmt.Println("database:")

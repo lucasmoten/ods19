@@ -1,7 +1,7 @@
 package amazon
 
 import (
-	"decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/config"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"

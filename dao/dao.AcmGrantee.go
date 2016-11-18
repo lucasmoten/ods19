@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"strings"
 
-	configx "decipher.com/object-drive-server/configx"
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
@@ -58,12 +58,12 @@ func createAcmGranteeInTransaction(logger zap.Logger, tx *sqlx.Tx, acmGrantee mo
 		if err != nil && err == sql.ErrNoRows {
 			// Not yet in database, we need to add them
 			userRequested.DistinguishedName = userDN
-			userRequested.DisplayName = models.ToNullString(configx.GetCommonName(userDN))
+			userRequested.DisplayName = models.ToNullString(config.GetCommonName(userDN))
 			userRequested.CreatedBy = userDN
 			_, err = createUserInTransaction(logger, tx, userRequested)
 		}
 		if !acmGrantee.DisplayName.Valid || acmGrantee.DisplayName.String == "" {
-			acmGrantee.DisplayName = models.ToNullString(configx.GetCommonName(userDN))
+			acmGrantee.DisplayName = models.ToNullString(config.GetCommonName(userDN))
 		}
 	} else if acmGrantee.GroupName.Valid {
 		projectDisplayName := acmGrantee.ProjectDisplayName.String
