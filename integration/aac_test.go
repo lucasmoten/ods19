@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	globalconfig "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/legacyssl"
 	"decipher.com/object-drive-server/metadata/models/acm"
 	aac "decipher.com/object-drive-server/services/aac"
 	"decipher.com/object-drive-server/services/zookeeper"
@@ -55,9 +55,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Printf("Got an error registering test-suite in zookeeper %s", err.Error())
 	}
-	zkAAC := globalconfig.GetEnvOrDefault(
-		"OD_ZK_AAC", "/cte/service/aac/1.0/thrift",
-	)
+	zkAAC := getEnvOrDefault("OD_ZK_AAC", "/cte/service/aac/1.0/thrift")
 	// setup a channel and callback to hold announcement from zookeeper
 	var done = make(chan map[string]zookeeper.AnnounceData)
 	testAACCallback := func(at string, announcements map[string]zookeeper.AnnounceData) {
@@ -80,9 +78,9 @@ func TestMain(m *testing.M) {
 	keyPath := filepath.Join("..", "defaultcerts", "clients", "test_1.key.pem")
 
 	// Setup connection config with SSL
-	dialOpts := &globalconfig.OpenSSLDialOptions{}
+	dialOpts := &legacyssl.OpenSSLDialOptions{}
 	dialOpts.SetInsecureSkipHostVerification()
-	conn, err := globalconfig.NewOpenSSLTransport(
+	conn, err := legacyssl.NewOpenSSLTransport(
 		trustPath, certPath, keyPath, aacHost, aacPort, dialOpts)
 	if err != nil {
 		log.Fatal(err)
@@ -446,4 +444,12 @@ func TestParseSnippetOdriveRaw(t *testing.T) {
 	}
 	t.Logf("Generated sql: %s", sql)
 
+}
+
+func getEnvOrDefault(name, defaultValue string) string {
+	envVal := os.Getenv(name)
+	if len(envVal) == 0 {
+		return defaultValue
+	}
+	return envVal
 }
