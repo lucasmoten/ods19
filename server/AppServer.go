@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime/debug"
 	"time"
@@ -63,7 +64,7 @@ type AppServer struct {
 	EventQueue events.Publisher
 	// EventQueueZK is a pointer to the cluster where we discover Kafka. May be set to DefaultZK.
 	EventQueueZK *zookeeper.ZKState
-	// Tracker captures metrics about upload/download begin and end time and transfer bytes
+	// Tracker captures metrics about upload/download throughput.
 	Tracker *performance.JobReporters
 	// TemplateCache is location of HTML templates used by server
 	TemplateCache *template.Template
@@ -81,54 +82,95 @@ type AppServer struct {
 	AclImpersonationWhitelist []string
 }
 
+// NewAppServer creates an AppServer.
+func NewAppServer(conf config.ServerSettingsConfiguration) (*AppServer, error) {
+
+	var templates *template.Template
+	var err error
+
+	// If template path specified, ensure templates can be loaded
+	if len(conf.PathToTemplateFiles) > 0 {
+		templates, err = template.ParseGlob(filepath.Join(conf.PathToTemplateFiles, "*"))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		templates = nil
+	}
+
+	usersLruCache := ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50))
+	snippetCache := NewSnippetCache() // TODO(cm) this should be private. Other refs are all tests.
+
+	httpHandler := AppServer{
+		Port:                      conf.ListenPort,
+		Bind:                      conf.ListenBind,
+		Addr:                      conf.ListenBind + ":" + conf.ListenPort,
+		Conf:                      conf,
+		Tracker:                   performance.NewJobReporters(1024),
+		ServicePrefix:             config.RootURLRegex,
+		TemplateCache:             templates,
+		StaticDir:                 conf.PathToStaticFiles,
+		UsersLruCache:             usersLruCache,
+		Snippets:                  snippetCache,
+		AclImpersonationWhitelist: conf.AclImpersonationWhitelist,
+	}
+
+	httpHandler.InitRegex()
+
+	return &httpHandler, nil
+}
+
 // InitRegex compiles static regexes and initializes the AppServer Routes field.
 func (h *AppServer) InitRegex() {
+	route := func(path string) *regexp.Regexp {
+		return regexp.MustCompile(h.ServicePrefix + path)
+	}
 	h.Routes = &StaticRx{
 		// UI
-		Home:            regexp.MustCompile(h.ServicePrefix + "/ui/?$"),
-		HomeListObjects: regexp.MustCompile(h.ServicePrefix + "/ui/listObjects/?$"),
-		Favicon:         regexp.MustCompile(h.ServicePrefix + "/favicon.ico$"),
-		StatsObject:     regexp.MustCompile(h.ServicePrefix + "/stats$"),
-		StaticFiles:     regexp.MustCompile(h.ServicePrefix + "/static/(?P<path>.*)"),
-		Users:           regexp.MustCompile(h.ServicePrefix + "/users$"),
+		Home:            route("/ui/?$"),
+		HomeListObjects: route("/ui/listObjects/?$"),
+		Favicon:         route("/favicon.ico$"),
+		StatsObject:     route("/stats$"),
+		StaticFiles:     route("/static/(?P<path>.*)"),
+		Users:           route("/users$"),
 		// Service operations
-		APIDocumentation: regexp.MustCompile(h.ServicePrefix + "/$"),
-		UserStats:        regexp.MustCompile(h.ServicePrefix + "/userstats$"),
+		APIDocumentation: route("/$"),
+		UserStats:        route("/userstats$"),
 		// - objects
-		Objects:          regexp.MustCompile(h.ServicePrefix + "/objects$"),
-		Object:           regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})$"),
-		ObjectProperties: regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/properties$"),
-		ObjectStream:     regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/stream(\\.[0-9a-zA-Z]*)?$"),
-		Ciphertext:       regexp.MustCompile(h.ServicePrefix + "/ciphertext/(?P<zone>[0-9a-zA-Z_]*)?/(?P<rname>[0-9a-fA-F]{64})$"),
+		Objects:          route("/objects$"),
+		Object:           route("/objects/(?P<objectId>[0-9a-fA-F]{32})$"),
+		ObjectProperties: route("/objects/(?P<objectId>[0-9a-fA-F]{32})/properties$"),
+		ObjectStream:     route("/objects/(?P<objectId>[0-9a-fA-F]{32})/stream(\\.[0-9a-zA-Z]*)?$"),
+		Ciphertext:       route("/ciphertext/(?P<zone>[0-9a-zA-Z_]*)?/(?P<rname>[0-9a-fA-F]{64})$"),
 		// - actions on objects
-		ObjectChangeOwner: regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/owner/(?P<newOwner>.*)$"),
-		ObjectDelete:      regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/trash$"),
-		ObjectUndelete:    regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/untrash$"),
-		ObjectExpunge:     regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})$"),
-		ObjectMove:        regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/move/(?P<folderId>[0-9a-fA-F]{32})?$"),
+		ObjectChangeOwner: route("/objects/(?P<objectId>[0-9a-fA-F]{32})/owner/(?P<newOwner>.*)$"),
+		ObjectDelete:      route("/objects/(?P<objectId>[0-9a-fA-F]{32})/trash$"),
+		ObjectUndelete:    route("/objects/(?P<objectId>[0-9a-fA-F]{32})/untrash$"),
+		ObjectExpunge:     route("/objects/(?P<objectId>[0-9a-fA-F]{32})$"),
+		ObjectMove:        route("/objects/(?P<objectId>[0-9a-fA-F]{32})/move/(?P<folderId>[0-9a-fA-F]{32})?$"),
 		// - revisions
-		Revisions:      regexp.MustCompile(h.ServicePrefix + "/revisions/(?P<objectId>[0-9a-fA-F]{32})$"),
-		RevisionStream: regexp.MustCompile(h.ServicePrefix + "/revisions/(?P<objectId>[0-9a-fA-F]{32})/(?P<revisionId>.*)/stream(\\.[0-9a-zA-Z]*)?$"),
+		Revisions:      route("/revisions/(?P<objectId>[0-9a-fA-F]{32})$"),
+		RevisionStream: route("/revisions/(?P<objectId>[0-9a-fA-F]{32})/(?P<revisionId>.*)/stream(\\.[0-9a-zA-Z]*)?$"),
 		// - share
-		SharedToMe:       regexp.MustCompile(h.ServicePrefix + "/shares$"),
-		SharedToOthers:   regexp.MustCompile(h.ServicePrefix + "/shared$"),
-		SharedToEveryone: regexp.MustCompile(h.ServicePrefix + "/sharedpublic$"),
-		SharedObject:     regexp.MustCompile(h.ServicePrefix + "/shared/(?P<objectId>[0-9a-fA-F]{32})$"),
+		SharedToMe:       route("/shares$"),
+		SharedToOthers:   route("/shared$"),
+		SharedToEveryone: route("/sharedpublic$"),
+		SharedObject:     route("/shared/(?P<objectId>[0-9a-fA-F]{32})$"),
 		// - search
-		Search: regexp.MustCompile(h.ServicePrefix + "/search/(?P<searchPhrase>.*)$"),
+		Search: route("/search/(?P<searchPhrase>.*)$"),
 		// - trash
-		Trash: regexp.MustCompile(h.ServicePrefix + "/trashed$"),
-		Zip:   regexp.MustCompile(h.ServicePrefix + "/zip$"),
+		Trash: route("/trashed$"),
+		Zip:   route("/zip$"),
 		// - not yet implemented. future
-		Favorites:              regexp.MustCompile(h.ServicePrefix + "/favorites$"),
-		FavoriteObject:         regexp.MustCompile(h.ServicePrefix + "/favorites/(?P<objectId>[0-9a-fA-F]{32})$"),
-		LinkToObject:           regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/links/(?P<sourceObjectId>[0-9a-fA-F]{32})$"),
-		ObjectLinks:            regexp.MustCompile(h.ServicePrefix + "/links/(?P<objectId>[0-9a-fA-F]{32})$"),
-		ObjectSubscribe:        regexp.MustCompile(h.ServicePrefix + "/objects/(?P<objectId>[0-9a-fA-F]{32})/subscribe$"),
-		Subscribed:             regexp.MustCompile(h.ServicePrefix + "/subscribed$"),
-		SubscribedSubscription: regexp.MustCompile(h.ServicePrefix + "/subscribed/(?P<subscriptionId>[0-9a-fA-F]{32})$"),
-		ObjectTypes:            regexp.MustCompile(h.ServicePrefix + "/objecttypes$"),
-		ObjectType:             regexp.MustCompile(h.ServicePrefix + "/objecttypes/(?P<objectTypeId>[0-9a-fA-F]{32})$"),
+		Favorites:              route("/favorites$"),
+		FavoriteObject:         route("/favorites/(?P<objectId>[0-9a-fA-F]{32})$"),
+		LinkToObject:           route("/objects/(?P<objectId>[0-9a-fA-F]{32})/links/(?P<sourceObjectId>[0-9a-fA-F]{32})$"),
+		ObjectLinks:            route("/links/(?P<objectId>[0-9a-fA-F]{32})$"),
+		ObjectSubscribe:        route("/objects/(?P<objectId>[0-9a-fA-F]{32})/subscribe$"),
+		Subscribed:             route("/subscribed$"),
+		SubscribedSubscription: route("/subscribed/(?P<subscriptionId>[0-9a-fA-F]{32})$"),
+		ObjectTypes:            route("/objecttypes$"),
+		ObjectType:             route("/objecttypes/(?P<objectTypeId>[0-9a-fA-F]{32})$"),
 	}
 }
 

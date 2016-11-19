@@ -3,6 +3,10 @@ Changelog
 
 Release vNEXT
 -------------
+* NEW: Command `serviceTest` renamed to `test`
+
+Release v1.0.1.8
+-------------
 * NEW: CORS support in the server
 * DOC: API Documentation now reflects chagnes where OwnedBy field is now stored and returned in serialized resource format
 * NEW: Masterkey refactored down into cache layer

@@ -76,7 +76,7 @@ func (s *PermanentStorageData) GetStream(key *string, begin, end int64) (io.Read
 }
 
 // NewS3CiphertextCache sets up a drain with default parameters overridden by environment variables
-func NewS3CiphertextCache(zone CiphertextCacheZone, conf *config.S3CiphertextCacheOpts, dbID string) CiphertextCache {
+func NewS3CiphertextCache(zone CiphertextCacheZone, conf config.S3CiphertextCacheOpts, dbID string) *CiphertextCacheData {
 	logger := config.RootLogger.With(zap.String("session", "CiphertextCache"))
 
 	s3Config := config.NewS3Config()
@@ -90,7 +90,7 @@ func NewS3CiphertextCache(zone CiphertextCacheZone, conf *config.S3CiphertextCac
 		logger.Info("PermanentStorage is empty because there is no bucket name")
 	}
 
-	d := NewCiphertextCacheRaw(zone, conf, dbID, logger, permanentStorage)
+	d := NewCiphertextCacheRaw(zone, &conf, dbID, logger, permanentStorage)
 	go d.DrainUploadedFilesToSafety()
 	return d
 }
