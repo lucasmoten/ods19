@@ -11,7 +11,6 @@ import (
 
 	"syscall"
 
-	globalconfig "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/config"
 
 	"github.com/uber-go/zap"
@@ -28,42 +27,36 @@ const (
 	FailWriteback = 1504
 )
 
-// CiphertextCacheData moves data from cache to the drain...
+// CiphertextCacheData moves data from cache to the drain.
 type CiphertextCacheData struct {
-	//ChunkSize is the size of blocks to pull from PermanentStorage
+	// ChunkSize is the size of blocks to pull from PermanentStorage
 	ChunkSize int64
-	//The key that this CiphertextCache is stored under
+	// The key that this CiphertextCache is stored under
 	CiphertextCacheZone CiphertextCacheZone
-	//Where the CacheLocation is rooted on disk (ie: a very large drive mounted)
+	// Where the CacheLocation is rooted on disk (ie: a very large drive mounted)
 	files FileSystem
 
-	//This is the place to write back persistence
+	// This is the place to write back persistence
 	PermanentStorage PermanentStorage
 
-	//Location of the cache
+	// Location of the cache
 	CacheLocationString string
 
-	//Dont begin purging anything until we are at this fraction of disk for cache
-	//TODO: may need to tune on small systems where the OS is counted in the partition,
-	// and it is a significant fraction of the disk.
+	// Dont begin purging anything until we are at this fraction of disk for cache
 	lowWatermark float64
 
-	//Keep things in cache for a few minutes minimum, then delete based on value
-	//TODO: may need to tune on small systems where the OS is counted in the partition,
-	// and it is a significant fraction of the disk.
+	// Keep things in cache for a few minutes minimum, then delete based on value
 	ageEligibleForEviction int64
 
-	//If we get to the high watermark, just start deleting until we get under it.
-	//Note that if in the time period ageEligibleForEviction you upload enough
-	//to stay at the highWatermark, you won't be able to stay within your cache limits.
-	//TODO: may need to tune on small systems where the OS is counted in the partition,
-	// and it is a significant fraction of the disk.
+	// If we get to the high watermark, just start deleting until we get under it.
+	// Note that if in the time period ageEligibleForEviction you upload enough
+	// to stay at the highWatermark, you won't be able to stay within your cache limits.
 	highWatermark float64
 
-	//The time to wait to walk the files
+	// The time to wait to walk the files
 	walkSleep time.Duration
 
-	//Logger for logging
+	// Logger for logging
 	Logger zap.Logger
 
 	// MasterKey is the secret passphrase used in scrambling keys
@@ -85,8 +78,6 @@ type CiphertextCacheData struct {
 //    "unable to download out of PermanentStorage"
 //
 //  in the logs
-//
-//
 //
 func NewCiphertextCacheRaw(
 	zone CiphertextCacheZone,
@@ -560,7 +551,7 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, f os.FileInfo, err er
 // CacheInventory writes an inventory of what's in the cache to a writer for the stats page
 func (d *CiphertextCacheData) CacheInventory(w io.Writer, verbose bool) {
 	fqCache := d.Files().Resolve(d.Resolve(""))
-	fmt.Fprintf(w, "\n\ncache at %s on %s\n", fqCache, globalconfig.NodeID)
+	fmt.Fprintf(w, "\n\ncache at %s on %s\n", fqCache, config.NodeID)
 	filepath.Walk(
 		fqCache,
 		func(name string, f os.FileInfo, err error) error {
