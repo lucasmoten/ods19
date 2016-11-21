@@ -85,26 +85,40 @@ func cleanupOpenFiles() {
 	}
 }
 
-func testSettings() {
+func testSettings() func() {
+	root := "./testTemp"
+	os.Mkdir(root, 0700)
 	settings := config.S3CiphertextCacheOpts{
-		Root:          config.GetEnvOrDefault(config.OD_CACHE_ROOT, "."),
-		Partition:     config.GetEnvOrDefault(config.OD_CACHE_PARTITION, "cache"),
+		Root:          root,
+		Partition:     "partition0",
 		LowWatermark:  .50,
 		HighWatermark: .75,
 		EvictAge:      300,
 		WalkSleep:     30,
 		MasterKey:     config.GetEnvOrDefault(config.OD_ENCRYPT_MASTERKEY, ""),
 	}
+	at := settings.Root + "/" + settings.Partition
 	zone := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
+	cache, err := ciphertext.NewLocalCiphertextCache(config.RootLogger, zone, settings, "dbID0")
+	if err != nil {
+		log.Printf("unable to setup ciphertextcache: %v", err.Error())
+	}
 	ciphertext.SetCiphertextCache(
 		zone,
-		ciphertext.NewS3CiphertextCache(zone, settings, "testDB"),
+		cache,
 	)
+
+	return func() {
+		os.RemoveAll(at)
+	}
 }
 
-func TestMain(m *testing.M) {
+func testMainBody(m *testing.M) int {
 	flag.Parse()
-	testSettings()
+
+	testSettingsCleanup := testSettings()
+	defer testSettingsCleanup()
+
 	trafficLogs = make(map[string]*TrafficLog)
 	trafficLogs[APISampleFile] = NewTrafficLog(APISampleFile)
 	dumpOpenFiles(*dumpFileDescriptors, "TestMain before setup")
@@ -115,7 +129,11 @@ func TestMain(m *testing.M) {
 	dumpOpenFiles(*dumpFileDescriptors, "TestMain after run")
 	cleanupOpenFiles()
 	dumpOpenFiles(*dumpFileDescriptors, "TestMain after cleanup")
-	os.Exit(code)
+	return code
+}
+
+func TestMain(m *testing.M) {
+	os.Exit(testMainBody(m))
 }
 
 func generatePopulation() {

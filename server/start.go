@@ -36,8 +36,12 @@ func Start(conf config.AppConfiguration) error {
 	}
 	app.RootDAO = d
 
+	// Since we only have one cache, if there was a problem getting it, treat it as fatal.
 	zone := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
-	cache := ciphertext.NewS3CiphertextCache(zone, conf.CacheSettings, dbID)
+	cache, loggableErr := ciphertext.NewS3CiphertextCache(zone, conf.CacheSettings, dbID)
+	if loggableErr != nil {
+		loggableErr.ToFatal(logger)
+	}
 	ciphertext.SetCiphertextCache(zone, cache)
 
 	configureEventQueue(app, conf.EventQueue, conf.ZK.Timeout)

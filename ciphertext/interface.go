@@ -13,6 +13,8 @@ import (
 const (
 	// S3_DEFAULT_CIPHERTEXT_CACHE is the main ciphertext cache in use
 	S3_DEFAULT_CIPHERTEXT_CACHE = CiphertextCacheZone("S3_DEFAULT")
+
+	PermanentStorageNotFoundErrorString = "not found in permanent storage"
 )
 
 // CiphertextCacheZone looks up ciphertext caches
@@ -52,6 +54,8 @@ type CiphertextCache interface {
 	BackgroundRecache(rName FileId, totalLength int64)
 	// GetMasterKey is the key for this cache
 	GetMasterKey() string
+	// Delete the local cache
+	Delete() error
 }
 
 // ciphertextCaches is the named set of local caches that are bound to a remote bucket (S3 or possibly something else)
@@ -96,7 +100,9 @@ func SetCiphertextCache(zone CiphertextCacheZone, dp CiphertextCache) {
 // PermanentStorage is a generic type for mocking out or replacing S3
 type PermanentStorage interface {
 	Upload(fIn io.ReadSeeker, key *string) error
+	//Download returns a sentinel error PermanentStorageNotFoundErrorString when key not found - maybe not a real error
 	Download(fOut io.WriterAt, key *string) (int64, error)
+	//GetStream returns a sentinel error PermanentStorageNotFoundErrorString when key not found - maybe not a real error
 	GetStream(key *string, begin, end int64) (io.ReadCloser, error)
 	GetName() *string
 }

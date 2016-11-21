@@ -12,6 +12,13 @@ import (
 	"syscall"
 
 	"decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/util"
+
+	"crypto/sha256"
+
+	"encoding/hex"
+
+	"io/ioutil"
 
 	"github.com/uber-go/zap"
 )
@@ -79,13 +86,16 @@ type CiphertextCacheData struct {
 //
 //  in the logs
 //
+// The *util.Loggable is a valid error type.  If it isn't nil, the server should NOT write to this cache.
+// Generally, this means that the server should panic.
+//
 func NewCiphertextCacheRaw(
 	zone CiphertextCacheZone,
 	conf *config.S3CiphertextCacheOpts,
 	dbID string,
 	logger zap.Logger,
 	permanentStorage PermanentStorage,
-) *CiphertextCacheData {
+) (*CiphertextCacheData, *util.Loggable) {
 	//Do the unit conversions HERE
 	d := &CiphertextCacheData{
 		CiphertextCacheZone:    zone,
@@ -101,11 +111,110 @@ func NewCiphertextCacheRaw(
 		MasterKey:              conf.MasterKey,
 	}
 	CacheMustExist(d, logger)
+
 	logger.Info("ciphertextcache created",
 		zap.String("mount", conf.Root),
 		zap.String("location", d.CacheLocationString),
 	)
-	return d
+	return d, d.masterKeyCheck()
+}
+
+// Delete the local cache
+func (d *CiphertextCacheData) Delete() error {
+	return d.Files().RemoveAll(FileNameCached(d.CacheLocationString))
+}
+
+// haveCanary looks for the canary - we might not have one.  that is no cause for panic.
+func (d *CiphertextCacheData) haveCanary(rName FileId) (string, *util.Loggable) {
+	err := d.Recache(rName)
+	if err != nil {
+		// If it's just a key not found sentinel value, then just return that
+		if err.Error() == PermanentStorageNotFoundErrorString {
+			return "", err.(*util.Loggable)
+		}
+		return "", util.NewLoggable("ciphertextcache expected check fail", err)
+	}
+	rNameCached := NewFileName(rName, ".cached")
+	nameCached := d.Files().Resolve(d.Resolve(rNameCached))
+	_, err = os.Stat(nameCached)
+
+	if err != nil {
+		return "", util.NewLoggable("ciphertextcache stat error", err)
+	}
+
+	// Check the value to see if it matches expected
+	f, err := os.Open(nameCached)
+	if err != nil {
+		return "", util.NewLoggable("ciphertextcache expected open fail", err)
+	}
+	defer f.Close()
+	haveBytes, err := ioutil.ReadAll(f)
+	if err != nil {
+		return "", util.NewLoggable("ciphertextcache expected read fail", err)
+	}
+	return string(haveBytes), nil
+}
+
+// expectCanary specifies which canary we expect, and writes it back so that it makes it to PermanentStorage
+func (d *CiphertextCacheData) expectCanary(rName FileId, expected string) *util.Loggable {
+	nameUploaded := d.Files().Resolve(d.Resolve(NewFileName(rName, ".uploaded")))
+	defer os.Remove(nameUploaded)
+	// Create the expected canary to write back.
+	f, err := os.Create(nameUploaded)
+	if err != nil {
+		return util.NewLoggable("ciphertextcache expected write", err)
+	}
+	f.Write([]byte(expected))
+	f.Close()
+	// After writeback, it should get renamed to .cached
+	err = d.Writeback(rName, int64(len(expected)))
+	if err != nil {
+		return util.NewLoggable("ciphertextcache expected writeback fail", err)
+	}
+	return nil
+}
+
+// masterKeyCheck will advise the caller to panic if the masterKey being used is definitely wrong
+func (d *CiphertextCacheData) masterKeyCheck() *util.Loggable {
+	// The expected value is a hex hash of our key stored in a canary file
+	hashedKeyBytes := sha256.Sum256([]byte(d.MasterKey))
+	expected := hex.EncodeToString(hashedKeyBytes[:])
+	// The canary file
+	rName := FileId("canary")
+	have, err := d.haveCanary(rName)
+
+	if have == "" {
+		return d.expectCanary(rName, expected)
+	}
+
+	// If we were unable to get a canary (we could be the first one to try), then log it and say what canary we expect
+	if err != nil {
+		if err.Msg == PermanentStorageNotFoundErrorString {
+			// This is a sentinel value that says that it's not set - not found is not an error
+			d.Logger.Info("ciphertextcache canary is being set", zap.String("expectCanary", expected))
+			return d.expectCanary(rName, expected)
+		}
+		return err
+	}
+
+	// Fail if we don't have what we expected and we have something specific
+	if have != expected {
+		// If we are going to fail to come up, delete the cached key, as it's invalid.
+		rNameCached := NewFileName(rName, ".cached")
+		nameCached := d.Files().Resolve(d.Resolve(rNameCached))
+		os.Remove(nameCached)
+		return util.NewLoggable("ciphertextcache canary mismatch", nil,
+			zap.String("detail",
+				"OD_ENCRYPT_MASTERKEY value was used to encrypt files.  Other cluster members are using a different key.  Check your key.",
+			),
+			zap.String("haveCanary", have),
+			zap.String("expectCanary", expected),
+		)
+	}
+
+	// Let the logs know that we got a positive match on the canary
+	d.Logger.Info("ciphertextcache canary is a positive match")
+	return nil
 }
 
 // GetMasterKey is the key for this cache - no more system global masterkey
@@ -160,12 +269,8 @@ func (d *CiphertextCacheData) DrainUploadedFilesToSafetyRaw() {
 					d.Logger.Error("error draining cache", zap.String("err", err.Error()))
 				}
 			}
-			if ext == ".caching" || ext == ".uploading" {
-				d.Logger.Info("removing", zap.String("filename", fqName))
-				//On startup, any .caching files are associated with now-dead goroutines.
-				//On startup, any .uploading files are associated with now-dead uploads.
-				os.Remove(fqName)
-			}
+			//Note: dont remove .uploading or .caching files as there may be another odrive using this cache
+			// purge routine will handle it if it gets old.
 			return nil
 		},
 	)
@@ -249,7 +354,7 @@ func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 
 func (d *CiphertextCacheData) doDownloadFromPermanentStorage(foutCaching FileNameCached, key *string) error {
 	if d.PermanentStorage == nil {
-		return fmt.Errorf("there is no PermanentStorage set")
+		return util.NewLoggable("there is no PermanentStorage set", nil)
 	}
 
 	//Do a whole file download from PermanentStorage
@@ -336,7 +441,9 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 
 	err = d.doDownloadFromPermanentStorage(foutCaching, key)
 	if err != nil {
-		d.Logger.Warn("download from PermanentStorage error", zap.String("err", err.Error()))
+		if err.Error() != PermanentStorageNotFoundErrorString {
+			d.Logger.Warn("download from PermanentStorage error", zap.String("err", err.Error()))
+		}
 		// Check p2p.... it has to be there...
 		var filep2p io.ReadCloser
 		filep2p, err = useP2PFile(d.Logger, d.CiphertextCacheZone, rName, 0)
@@ -519,6 +626,14 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, f os.FileInfo, err er
 					zap.Float64("usage", usage),
 				)
 			}
+		}
+	case ext == ".uploaded":
+		if ageInSeconds > 60*60*24*7 {
+			// There is something clearly wrong here.  Log it
+			d.Logger.Error(
+				"ciphertextcache file not uploaded after a long time",
+			)
+			return nil
 		}
 	default:
 		//If something has been here for a week, and it's not cached, then it's

@@ -1,93 +1,46 @@
 package util
 
-import (
-	"runtime"
-)
+import "github.com/uber-go/zap"
 
-// AppError allows us to retain file:line information and to classify
-// errors, and to set (a superset of) http status codes if necessary.
-type AppError struct {
-	//A file where this error is constructed
-	File string
-	//The line of code where this error is constructed
-	Line int
-	//The message to show the user
-	Msg string
-	//An error that caused this to be constructed
-	// Don't show this to the user, as it may contain sensitive information.
-	Err error
-	//If this is the result of bad input
-	BlameInput bool
-	//If this is the result of a bug
-	BlameBug bool
-	//If this is the result of a bad dependency that we have no control over
-	BlameDependency bool
-	//Status code, a superset of http codes.  Ignore code zero.
-	//If this is set, then the intention is to make this bubble all the way to the top of the endpoint.
-	Code int
+//
+// Loggable gives us simple errors that are comparable by message - keep named args separate
+// Use in place of error type:
+//
+//      err := someFunc()
+//      err.ToInfo(logger)
+//
+//      // Optional named args, and supply an err to avoid err != nil before log checks everywhere
+//      return NewLoggable("ciphertextcache cannot stat", err)
+//
+type Loggable struct {
+	Msg  string
+	Args []zap.Field
 }
 
 // Satisfy the error interface
-func (e AppError) Error() string {
+func (e Loggable) Error() string {
 	return e.Msg
 }
 
-// NewAppError constructs an app error at this location
-// Use Sprintf yourself if you need a variable string constructor
-func NewAppError(code int, err error, msg string) *AppError {
-	e := &AppError{
-		Code: code,
-		Msg:  msg,
-		Err:  err,
-	}
-	//If we want to assign implicit blame, then use these ranges
-	if 500 <= code && code <= 599 {
-		e.BlameBug = true
-	}
-	if 400 <= code && code <= 499 {
-		e.BlameInput = true
-	}
-	_, file, line, _ := runtime.Caller(1)
-	e.File = file
-	e.Line = line
-	return e
+// ToInfo writes to zap Info
+func (e Loggable) ToInfo(logger zap.Logger) {
+	logger.Info(e.Msg, e.Args...)
 }
 
-// NewAppErrorBug constructs an app error at this location
-func NewAppErrorBug(err error, msg string) *AppError {
-	e := &AppError{
-		Msg:      msg,
-		Err:      err,
-		BlameBug: true,
-	}
-	_, file, line, _ := runtime.Caller(1)
-	e.File = file
-	e.Line = line
-	return e
+// ToError writes to zap Error
+func (e Loggable) ToError(logger zap.Logger) {
+	logger.Error(e.Msg, e.Args...)
 }
 
-// NewAppErrorInput constructs an app error at this location
-func NewAppErrorInput(err error, msg string) *AppError {
-	e := &AppError{
-		Msg:        msg,
-		Err:        err,
-		BlameInput: true,
-	}
-	_, file, line, _ := runtime.Caller(1)
-	e.File = file
-	e.Line = line
-	return e
+// ToFatal writes to zap Fatal
+func (e Loggable) ToFatal(logger zap.Logger) {
+	logger.Fatal(e.Msg, e.Args...)
 }
 
-// NewAppErrorDependency constructs an app error at this location
-func NewAppErrorDependency(err error, msg string) *AppError {
-	e := &AppError{
-		Msg:             msg,
-		Err:             err,
-		BlameDependency: true,
+// NewLoggable with vararg parameters
+func NewLoggable(msg string, cause error, args ...zap.Field) *Loggable {
+	if cause != nil {
+		args = append(args, zap.String("err", cause.Error()))
 	}
-	_, file, line, _ := runtime.Caller(1)
-	e.File = file
-	e.Line = line
-	return e
+	return &Loggable{msg, args}
 }
