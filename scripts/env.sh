@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Please review /etc/init.d/odrive for default logging location if OD_LOG_LOCATION is not set
+# Please review /etc/init.d/object-drive-1.0 for default logging location if OD_LOG_LOCATION is not set
 #
 
 export OD_AAC_CA=

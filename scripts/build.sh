@@ -2,8 +2,8 @@
 
 # invoked inside container
 
-if yum list installed odrive >/dev/null 2>&1; then
-  yum remove odrive -y
+if yum list installed object-drive-1.0 >/dev/null 2>&1; then
+  yum remove object-drive-1.0 -y
 fi
 
 rm -rf ~/rpmbuild
@@ -20,12 +20,12 @@ cd ${ODRIVE_ROOT}
 
 #build it
 ${ODRIVE_ROOT}/scripts/prepare-rpm-env.sh
-cp ~/rpmbuild/RPMS/x86_64/odrive-${ODRIVE_VERSION}-1.x86_64.rpm $ODRIVE_ROOT
+cp ~/rpmbuild/RPMS/x86_64/object-drive-${ODRIVE_VERSION}-SNAPSHOT.x86_64.rpm $ODRIVE_ROOT
 
 cd $ODRIVE_ROOT
 
 #actually install it
-rpm -i odrive-${ODRIVE_VERSION}-1.x86_64.rpm
+rpm -i object-drive-${ODRIVE_VERSION}-SNAPSHOT.x86_64.rpm
 
 
 

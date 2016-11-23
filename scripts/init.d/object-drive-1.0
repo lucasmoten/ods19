@@ -4,27 +4,27 @@
 #
 #
 # chkconfig: - 20 70
-# description: odrive server process
+# description: object-drive-1.0 server process
 #
 #
 ### BEGIN INIT INFO
-# Provides: odrive
-# Description: odrive server process
+# Provides: object-drive-1.0
+# Description: object-drive-1.0 server process
 ### END INIT INFO
 
 import sys, os, subprocess, re, time, signal
 from pwd import getpwnam
 
 # init scripts must write a validly-named lockfile
-service = "odrive"
+service = "object-drive-1.0"
 lockfile = os.path.join('/var/lock/subsys', service)
-pidfile = "/opt/services/object-drive/pidfile"
-static_root = "/opt/services/object-drive/libs/server/static"
+pidfile = "/opt/services/object-drive-1.0/pidfile"
+static_root = "/opt/services/object-drive-1.0/libs/server/static"
 templates = os.path.join(static_root, "templates")
 # Default logging location. Set OD_LOG_LOCATION in env.sh to override.
-logfile = "/opt/services/object-drive/log/object-drive.log"
-envfile = "/opt/services/object-drive/env.sh"
-conf = "/opt/services/object-drive/odrive.yml"
+logfile = "/opt/services/object-drive-1.0/log/object-drive.log"
+envfile = "/opt/services/object-drive-1.0/env.sh"
+conf = "/opt/services/object-drive-1.0/object-drive.yml"
 default_ciphers = "--addCipher TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 --addCipher TLS_RSA_WITH_AES_128_CBC_SHA"
 
 
@@ -73,7 +73,7 @@ def start():
     # Declaring global required for mutation.
     global logfile
     if not os.getenv("OD_CACHE_ROOT"):
-        os.environ["OD_CACHE_ROOT"] = "/opt/services/object-drive/cache"
+        os.environ["OD_CACHE_ROOT"] = "/opt/services/object-drive-1.0/cache"
     if os.getenv("OD_LOG_LOCATION"):
         location = os.getenv("OD_LOG_LOCATION")
         print "Using log location set by $OD_LOG_LOCATION: " + location
@@ -85,7 +85,7 @@ def start():
         os.exit(1)
 
     # Get uid of odrive.
-    userid = getpwnam("odrive").pw_uid
+    userid = getpwnam("object-drive").pw_uid
 
     # Capture root's environment in dictionary. Pass to Popen.
     env_for_proc = dict()
@@ -119,12 +119,12 @@ def start():
     # Change the user for the currently executing script, e.g. "su down". 
     os.setuid(userid)
 
-    print "Starting odrive"
+    print "Starting object-drive-1.0"
     f = open(logfile, "a")
 
     ciphs = get_ciphers()
     splitted = ciphs.split(" ")
-    command = ['odrive', '--conf', conf, '--templateDir', templates, "--staticRoot", static_root]
+    command = ['/opt/services/object-drive-1.0/object-drive-1.0', '--conf', conf, '--templateDir', templates, "--staticRoot", static_root]
     command.extend(splitted)
     ps = subprocess.Popen(command, stdout=f, stderr=f, env=env_for_proc)
     with open(pidfile, "w") as pf:
@@ -133,7 +133,7 @@ def start():
 
 def stop():
     if not os.path.exists(pidfile):
-        print "error: could not find pidfile at %s. odrive may be running under a custom script"
+        print "error: could not find pidfile at %s. object-drive-1.0 may be running under a custom script"
         sys.exit(1)
     try:
         pid = get_pid_from_pidfile(pidfile)
@@ -159,19 +159,19 @@ def restart():
 
 def status():
     if not locked():
-        print "STATUS: odrive not running"
+        print "STATUS: object-drive-1.0 not running"
         return 3
     else:
         if not os.path.exists(pidfile):
-            print "STATUS: odrive is not running"
+            print "STATUS: object-drive-1.0 is not running"
             return 0
         pid = get_pid_from_pidfile(pidfile)
         if not is_process_running(pid):
-            print "pidfile exists but odrive not running"
+            print "pidfile exists but object-drive-1.0 not running"
             print "removing stale pidfile"
             os.remove(pidfile)
             return 1
-        print "STATUS: odrive is running"
+        print "STATUS: object-drive-1.0 is running"
         return 0
 
 
