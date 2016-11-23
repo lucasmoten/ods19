@@ -2,10 +2,8 @@
 
 # API Documentation
 
-
-API documentation is hosted on the private Bedrock network here (subject to change):
-
-https://bedrock.363-283.io/services/object-drive/1.0/
+API documentation may be reviewed at the root of an instantiated object-drive server,
+previewed [here](./docs/home.md), or accessed from this [live instance on Bedrock](https://bedrock.363-283.io/services/object-drive/1.0/)
 
 # Vendoring
 
@@ -150,8 +148,8 @@ Making an rpm (will build docs as well):
 
 ```
 cd $GOPATH/src/decipher.com/object-drive-server
-#make an rpm and call it build number 450.  It will be in current directory when done
-./makerpm 450
+#make an rpm and call it build number 2600.  It will be in current directory when done
+./makerpm 2600
 ```
 
 

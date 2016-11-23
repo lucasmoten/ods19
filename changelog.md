@@ -4,6 +4,7 @@ Changelog
 Release vNEXT
 -------------
 * NEW: Command `serviceTest` renamed to `test`
+* NEW: RPM updated to use /opt/services/object-drive-1.0 installation path, object-drive-1.0 for servicename, object-drive for username
 
 Release v1.0.1.8
 -------------

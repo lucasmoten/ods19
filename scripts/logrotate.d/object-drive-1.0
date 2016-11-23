@@ -1,0 +1,9 @@
+/opt/services/object-drive-1.0/log/object-drive.log
+{
+    daily
+    copytruncate
+    missingok
+    rotate 5
+    compress
+    notifempty
+}
