@@ -6,7 +6,6 @@ import (
 	"runtime"
 	"sync"
 
-	"decipher.com/object-drive-server/util"
 	"github.com/uber-go/zap"
 )
 
@@ -36,46 +35,9 @@ func countOKResponse(logger zap.Logger) {
 
 // sendError lets us send the new AppError type before getting rid of server.AppError
 func sendError(logger zap.Logger, w *http.ResponseWriter, err error, msg string, fields ...zap.Field) {
-	herr := &AppError{}
-	switch e := err.(type) {
-	case *util.AppError:
-		//Copy over similar structure
-		herr.File = e.File
-		herr.Line = e.Line
-		herr.Msg = msg
-		// We guess the code based on the kind of uerr here
-		//For now, treat a dependency like it's out bug.  It's not the user's bug
-		if e.BlameBug || e.BlameDependency {
-			herr.Code = 500
-		}
-		if e.BlameInput {
-			herr.Code = 400
-		}
-		// util.AppError is really of type error so .Error() conflicts with .Error
-		herr.Error = e.Err
-		sendErrorResponseRaw(logger, w, herr)
-	case util.AppError:
-		//Copy over similar structure
-		herr.File = e.File
-		herr.Line = e.Line
-		herr.Msg = msg
-		// We guess the code based on the kind of uerr here
-		if e.BlameBug {
-			herr.Code = 500
-		}
-		// We guess the code based on the kind of uerr here
-		//For now, treat a dependency like it's out bug.  It's not the user's bug
-		if e.BlameBug || e.BlameDependency {
-			herr.Code = 500
-		}
-		// util.AppError is really of type error so .Error() conflicts with .Error
-		herr.Error = e.Err
-		sendErrorResponseRaw(logger, w, herr)
-	default:
-		//If we are given no diagnostic information, then assume that 500 is the code
-		_, file, line, _ := runtime.Caller(1)
-		sendErrorResponseRaw(logger, w, &AppError{500, err, msg, file, line, fields})
-	}
+	//If we are given no diagnostic information, then assume that 500 is the code
+	_, file, line, _ := runtime.Caller(1)
+	sendErrorResponseRaw(logger, w, &AppError{500, err, msg, file, line, fields})
 }
 
 func sendErrorResponse(logger zap.Logger, w *http.ResponseWriter, code int, err error, msg string, fields ...zap.Field) {

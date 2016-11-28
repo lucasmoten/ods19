@@ -3,9 +3,11 @@ package ciphertext
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"decipher.com/object-drive-server/amazon"
 	"decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/util"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -52,10 +54,15 @@ func (s *PermanentStorageData) Upload(fIn io.ReadSeeker, key *string) error {
 // Download from S3
 func (s *PermanentStorageData) Download(fOut io.WriterAt, key *string) (int64, error) {
 	downloader := s3manager.NewDownloader(s.AWSSession)
-	return downloader.Download(fOut, &s3.GetObjectInput{Bucket: s.Bucket, Key: key})
+	bytes, err := downloader.Download(fOut, &s3.GetObjectInput{Bucket: s.Bucket, Key: key})
+	// Normalizing the error so we can check it.  This is really a sentinel value with a loggable parameter.
+	if err != nil && strings.Contains(err.Error(), "NoSuchKey") {
+		err = util.NewLoggable(PermanentStorageNotFoundErrorString, err, zap.String("key", *key))
+	}
+	return bytes, err
 }
 
-// GetObject from S3
+// GetStream from S3
 func (s *PermanentStorageData) GetStream(key *string, begin, end int64) (io.ReadCloser, error) {
 	var rangeReq string
 	//These numbers should have been snapped to cipher block boundaries if they were not already
@@ -67,6 +74,9 @@ func (s *PermanentStorageData) GetStream(key *string, begin, end int64) (io.Read
 
 	out, err := s.S3.GetObject(&s3.GetObjectInput{Bucket: s.Bucket, Key: key, Range: &rangeReq})
 	if err != nil {
+		if strings.Contains(err.Error(), "NoSuchKey") {
+			err = util.NewLoggable(PermanentStorageNotFoundErrorString, err, zap.String("key", *key))
+		}
 		return nil, err
 	}
 	if out == nil {
@@ -76,7 +86,7 @@ func (s *PermanentStorageData) GetStream(key *string, begin, end int64) (io.Read
 }
 
 // NewS3CiphertextCache sets up a drain with default parameters overridden by environment variables
-func NewS3CiphertextCache(zone CiphertextCacheZone, conf config.S3CiphertextCacheOpts, dbID string) *CiphertextCacheData {
+func NewS3CiphertextCache(zone CiphertextCacheZone, conf config.S3CiphertextCacheOpts, dbID string) (*CiphertextCacheData, *util.Loggable) {
 	logger := config.RootLogger.With(zap.String("session", "CiphertextCache"))
 
 	s3Config := config.NewS3Config()
@@ -90,9 +100,10 @@ func NewS3CiphertextCache(zone CiphertextCacheZone, conf config.S3CiphertextCach
 		logger.Info("PermanentStorage is empty because there is no bucket name")
 	}
 
-	d := NewCiphertextCacheRaw(zone, &conf, dbID, logger, permanentStorage)
+	d, err := NewCiphertextCacheRaw(zone, &conf, dbID, logger, permanentStorage)
+
 	go d.DrainUploadedFilesToSafety()
-	return d
+	return d, err
 }
 
 // TestS3Connection can be run to inspect the environment for configured S3

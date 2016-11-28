@@ -56,7 +56,7 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 	}
 	// Check if changeToken matches
 	if object.ChangeToken != dbObject.ChangeToken {
-		return util.NewAppErrorInput(nil, fmt.Sprintf("Object ChangeToken does not match expected value %s", dbObject.ChangeToken))
+		return util.NewLoggable("changetoken does not match expected value", nil, zap.String("changeToken", dbObject.ChangeToken))
 	}
 	// Check if deleted
 	if dbObject.IsDeleted {
