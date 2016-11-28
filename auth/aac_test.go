@@ -1,18 +1,14 @@
 package auth_test
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/samuel/go-zookeeper/zk"
 
 	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/services/aac"
-	"decipher.com/object-drive-server/services/zookeeper"
 )
 
 func newAACAuth(t *testing.T) auth.AACAuth {
@@ -24,37 +20,8 @@ func newAACAuth(t *testing.T) auth.AACAuth {
 	// that zk is assumed to announce to in our test environment is hardcoded
 	// here as 'zk'
 	t.Logf("Discovering Zookeeper")
-	zkHost := "zk"
-	zkContainerID := getDockerContainerIDFromName(t, zkHost)
-	zkHost = getIPAddressForContainer(t, zkContainerID) // dockervm
-	zkURL := fmt.Sprintf("%s:2181", zkHost)
-	t.Logf("ZK @ %s", zkURL)
-	zkState, err := zookeeper.RegisterApplication("/cte/service/odrive-testsuite/1.0", zkURL)
-	if err != nil {
-		if err == zk.ErrNoServer {
-			t.SkipNow()
-		}
-		t.Logf("Got an error registering test-suite in zookeeper %s", err.Error())
-		t.FailNow()
-	}
-	zkAAC := config.GetEnvOrDefault("OD_ZK_AAC", "/cte/service/aac/1.0/thrift")
-	t.Logf("Discovering AAC (ZK node %s)", zkAAC)
-	// setup a channel and callback to hold announcement from zookeeper
-	var done = make(chan map[string]zookeeper.AnnounceData)
-	testAACCallback := func(at string, announcements map[string]zookeeper.AnnounceData) {
-		done <- announcements
-	}
-	zookeeper.TrackAnnouncement(zkState, zkAAC, testAACCallback)
-	announcements := <-done
-	// using the announcements, get the host + port
-	aacHostInZK := ""
-	aacPort := 0
-	for _, zse := range announcements {
-		aacHostInZK = zse.ServiceEndpoint.Host
-		aacPort = zse.ServiceEndpoint.Port
-	}
-	aacHost := getAddrFromDockerHost(t, aacHostInZK)
-	t.Logf("AAC @ %s:%d (reported as %s in zk)", aacHost, aacPort, aacHostInZK)
+	aacHost := "aac"
+	aacPort := 9093
 
 	// AAC trust, client public & private key
 	trustPath := filepath.Join("..", "defaultcerts", "clients", "client.trust.pem")

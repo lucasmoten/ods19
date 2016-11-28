@@ -74,7 +74,7 @@ func lookupDockerVMPort() string {
 }
 
 func lookupOurIP() string {
-	answer := "dockervm"
+	answer := lookupDockerHost()
 	//Find our IP that we want gatekeeper to contact us with
 	hostname, err := os.Hostname()
 	if err != nil {

@@ -26,6 +26,13 @@ import (
 // lucasmoten@lucas-ubuntu:~/workspace/cte/object-drive/docker$ docker inspect -f '{{.NetworkSettings.Networks.docker_default.IPAddress }}' eb6dde1947ce
 // 172.18.0.2
 
+// XXX When ports get exposed to the gateway, they may not be reachable by machine IP
+// because they get bound to the gateway (gatekeeper does this).  So in that case, you get lies where you are told of an IP, yet
+// you can't connect to the port of the IP of the machine that actually runs it.  In this case,
+// the port is effectively bound to a different machine (the gateway) from the one that executes the process.
+//
+// Also, forcing routable addresses is a problem inside a container because even if docker is installed, it won't find the daemon.
+
 func getNetworkModeForContainer(t *testing.T, containerID string) string {
 
 	goTemplate := "'{{ .HostConfig.NetworkMode }}'"
