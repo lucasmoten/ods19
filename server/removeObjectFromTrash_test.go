@@ -129,8 +129,6 @@ func TestHTTPUndeleteObject(t *testing.T) {
 
 func TestUndeleteExpungedObjectFails(t *testing.T) {
 
-	snippetCache := server.NewSnippetCache()
-
 	user1, user2 := setupFakeUsers()
 
 	expungedObj := testhelpers.NewTrashedObject(fakeDN1)
@@ -150,7 +148,6 @@ func TestUndeleteExpungedObjectFails(t *testing.T) {
 	s := server.AppServer{
 		RootDAO:       fakeDAO,
 		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
-		Snippets:      snippetCache,
 		AAC:           fakeAAC,
 	}
 
@@ -199,13 +196,10 @@ func TestUndeleteObjectWithDeletedAncestorFails(t *testing.T) {
 		Users:  []models.ODUser{user1, user2},
 	}
 
-	snippetCache := server.NewSnippetCache()
-
 	s := server.AppServer{
 		RootDAO:       fakeDAO,
 		AAC:           fakeAAC,
 		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
-		Snippets:      snippetCache,
 	}
 
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"

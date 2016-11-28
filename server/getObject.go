@@ -9,6 +9,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
@@ -39,8 +40,8 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	if ok := isUserAllowedToRead(ctx, &dbObject); !ok {
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
 	}
-
-	if err = h.isUserAllowedForObjectACM(ctx, &dbObject); err != nil {
+	aacAuth := auth.NewAACAuth(logger, h.AAC)
+	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
 		return ClassifyObjectACMError(err)
 	}
 
@@ -59,7 +60,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 		return NewAppError(500, err, "error retrieving object parents")
 	}
 
-	filtered := redactParents(ctx, h, parents)
+	filtered := redactParents(ctx, aacAuth, parents)
 	if err := errOnDeletedParents(parents); err != nil {
 		return err
 	}
@@ -101,10 +102,11 @@ func getObjectDAOError(err error) (int, string, error) {
 
 // redactParents checks authorization to read and AAC call; if caller is authorized, add to
 // filtered slice for return.
-func redactParents(ctx context.Context, h AppServer, parents []models.ODObject) []models.ODObject {
+func redactParents(ctx context.Context, auth auth.Authorization, parents []models.ODObject) []models.ODObject {
 
 	logger := LoggerFromContext(ctx)
 	var filtered []models.ODObject
+	caller, _ := CallerFromContext(ctx)
 
 	// iterate parents backwards and prepend to filtered
 	for i := len(parents) - 1; i >= 0; i-- {
@@ -112,7 +114,7 @@ func redactParents(ctx context.Context, h AppServer, parents []models.ODObject) 
 		if ok := isUserAllowedToRead(ctx, p); !ok {
 			break
 		}
-		if err := h.isUserAllowedForObjectACM(ctx, p); err != nil {
+		if _, err := auth.IsUserAuthorizedForACM(caller.DistinguishedName, p.RawAcm.String); err != nil {
 			if !IsDeniedAccess(err) {
 				// log possible 502 and continue
 				logger.Error("AAC error checking parent", zap.Object("err", err))

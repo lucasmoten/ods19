@@ -8,6 +8,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/crypto"
 	"decipher.com/object-drive-server/metadata/models"
@@ -77,15 +78,15 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	return nil
 }
 
-func getFileKeyAndCheckAuthAndObjectState(ctx context.Context, h AppServer, obj *models.ODObject) (*AppError, []byte) {
+func getFileKeyAndCheckAuthAndObjectState(ctx context.Context, h AppServer, dbObject *models.ODObject) (*AppError, []byte) {
 	var fileKey []byte
 
-	ok, userPermission := isUserAllowedToReadWithPermission(ctx, obj)
+	ok, userPermission := isUserAllowedToReadWithPermission(ctx, dbObject)
 	if !ok {
 		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object"), fileKey
 	}
 
-	dp := ciphertext.FindCiphertextCacheByObject(obj)
+	dp := ciphertext.FindCiphertextCacheByObject(dbObject)
 	masterKey := dp.GetMasterKey()
 
 	fileKey = crypto.ApplyPassphrase(masterKey, userPermission.PermissionIV, userPermission.EncryptKey)
@@ -93,15 +94,17 @@ func getFileKeyAndCheckAuthAndObjectState(ctx context.Context, h AppServer, obj 
 		return NewAppError(500, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object"), fileKey
 	}
 
-	if err := h.isUserAllowedForObjectACM(ctx, obj); err != nil {
+	caller, _ := CallerFromContext(ctx)
+	aacAuth := auth.NewAACAuth(logger, h.AAC)
+	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
 		return ClassifyObjectACMError(err), fileKey
 	}
 
-	if obj.IsDeleted {
+	if dbObject.IsDeleted {
 		switch {
-		case obj.IsExpunged:
+		case dbObject.IsExpunged:
 			return NewAppError(410, nil, "The object no longer exists."), fileKey
-		case obj.IsAncestorDeleted:
+		case dbObject.IsAncestorDeleted:
 			return NewAppError(405, nil, "The object cannot be retreived because an ancestor is deleted."), fileKey
 		default:
 			return NewAppError(405, nil, "The object is deleted"), fileKey

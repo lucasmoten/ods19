@@ -18,7 +18,6 @@ import (
 	"golang.org/x/net/context"
 
 	"decipher.com/object-drive-server/mapping"
-	"decipher.com/object-drive-server/utils"
 
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/performance"
@@ -118,17 +117,6 @@ func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.P
 			herr = compareIDFromJSONWithURI(ctx, updateObjectRequest)
 			if herr != nil {
 				return parsedMetadata, herr
-			}
-			// ACM check for user able to access new if different then old
-			rawAcmString, err := utils.MarshalInterfaceToString(updateObjectRequest.RawAcm)
-			if err != nil {
-				return parsedMetadata, NewAppError(400, err, fmt.Sprintf("Unable to marshal ACM as string: %s", updateObjectRequest.RawAcm))
-			}
-			if len(rawAcmString) != 0 && strings.Compare(obj.RawAcm.String, rawAcmString) != 0 {
-				if err := h.isUserAllowedForACMString(ctx, rawAcmString); err != nil {
-					LoggerFromContext(ctx).Info("acm no access", zap.String("origination", "No access to new ACM on Update"), zap.String("acm", rawAcmString))
-					return parsedMetadata, ClassifyObjectACMError(err)
-				}
 			}
 			// ChangeToken must be provided and match the object
 			if obj.ChangeToken != updateObjectRequest.ChangeToken {

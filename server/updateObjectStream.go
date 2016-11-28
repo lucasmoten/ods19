@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/crypto"
 	db "decipher.com/object-drive-server/dao"
@@ -67,7 +68,8 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 
 	// ACM check for whether user has permission to read this object
 	// from a clearance perspective
-	if err = h.isUserAllowedForObjectACM(ctx, &dbObject); err != nil {
+	aacAuth := auth.NewAACAuth(logger, h.AAC)
+	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
 		return ClassifyObjectACMError(err)
 	}
 
@@ -82,19 +84,44 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	}
 	masterKey := dp.GetMasterKey()
 
-	if err = h.flattenACM(ctx, &dbObject); err != nil {
+	modifiedACM := dbObject.RawAcm.String
+	modifiedACM, err = aacAuth.GetFlattenedACM(modifiedACM)
+	if err != nil {
 		herr = ClassifyFlattenError(err)
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
-	if herr := normalizeObjectReadPermissions(ctx, &dbObject); herr != nil {
+	dbObject.RawAcm = models.ToNullString(modifiedACM)
+	modifiedPermissions, modifiedACM, err := aacAuth.NormalizePermissionsFromACM(dbObject.OwnedBy.String, dbObject.Permissions, dbObject.RawAcm.String, dbObject.IsCreating())
+	if err != nil {
+		herr = NewAppError(500, err, err.Error())
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
+	dbObject.RawAcm = models.ToNullString(modifiedACM)
+	dbObject.Permissions = modifiedPermissions
 	// Final access check against altered ACM
-	if err = h.isUserAllowedForObjectACM(ctx, &dbObject); err != nil {
+	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
 		herr = ClassifyObjectACMError(err)
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
-	consolidateChangingPermissions(&requestObject)
+
+	// Verify user has access to change the share if the ACMs are different
+	unchangedDbObject, err := dao.GetObject(requestObject, true)
+	if err != nil {
+		herr = NewAppError(500, err, err.Error())
+	}
+	// If the "share" or "f_share" parts have changed, then check that the
+	// caller also has permission to share.
+	if diff, herr := isAcmShareDifferent(dbObject.RawAcm.String, unchangedDbObject.RawAcm.String); herr != nil || diff {
+		if herr != nil {
+			return abortUploadObject(logger, dp, &dbObject, true, herr)
+		}
+		if !isUserAllowedToShare(ctx, &unchangedDbObject) {
+			herr = NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to change the share for this object")
+			return abortUploadObject(logger, dp, &dbObject, true, herr)
+		}
+	}
+
+	consolidateChangingPermissions(&dbObject)
 	// copy grant.EncryptKey to all existing permissions:
 	for idx, permission := range dbObject.Permissions {
 		models.CopyEncryptKey(masterKey, &grant, &permission)

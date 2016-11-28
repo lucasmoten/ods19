@@ -10,6 +10,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
@@ -26,7 +27,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	dao := DAOFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
 	session := SessionIDFromContext(ctx)
-
+	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	// Get object
 	if r.Header.Get("Content-Type") != "application/json" {
 		return NewAppError(http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
@@ -47,7 +48,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	if ok := isUserAllowedToUpdate(ctx, &dbObject); !ok {
 		return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
 	}
-	if !isUserOwner(ctx, &dbObject) {
+	if !aacAuth.IsUserOwner(caller.DistinguishedName, getUserGroupResourceStrings(ctx), dbObject.OwnedBy.String) {
 		return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User must be an object owner to move the object")
 	}
 
@@ -190,4 +191,20 @@ func parseMoveObjectRequestAsJSON(r *http.Request, ctx context.Context) (models.
 	// Map to internal object type
 	requestObject, err = mapping.MapMoveObjectRequestToODObject(&jsonObject)
 	return requestObject, err
+}
+
+func getUserGroupResourceStrings(ctx context.Context) (resourceStrings []string) {
+	groups, ok := GroupsFromContext(ctx)
+	if !ok {
+		return resourceStrings
+	}
+	dao := DAOFromContext(ctx)
+	for _, group := range groups {
+		acmGrantee, err := dao.GetAcmGrantee(group)
+		if err != nil {
+			continue
+		}
+		resourceStrings = append(resourceStrings, acmGrantee.ResourceName())
+	}
+	return resourceStrings
 }

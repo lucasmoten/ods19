@@ -7,6 +7,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
@@ -63,9 +64,13 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 		return NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
 	}
 	user.Snippets = snippetFields
-
+	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	checkACM := func(o *models.ODObject) bool {
-		return h.isUserAllowedForObjectACM(ctx, o) == nil
+		isAllowed, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, o.RawAcm.String)
+		if err != nil {
+			return false
+		}
+		return isAllowed
 	}
 
 	// Get the revision information for this objects

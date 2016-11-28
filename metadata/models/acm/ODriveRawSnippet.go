@@ -5,17 +5,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/uber-go/zap"
 
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/utils"
-	globalconfig "decipher.com/object-drive-server/config"
 )
 
 var (
-	logger = globalconfig.RootLogger
+	logger = config.RootLogger
 )
 
 // ODriveRawSnippet is a structure to hold the snippets returned from an AAC GetSnippets response where snippetType = 'odrive-raw'
@@ -40,9 +41,22 @@ type RawSnippetFields struct {
 	Values    []string `json:"values"`
 }
 
+func (fields *RawSnippetFields) String() string {
+	return fmt.Sprintf("%s %s (%s)", fields.FieldName, fields.Treatment, strings.Join(fields.Values, ","))
+}
+
 // ODriveRawSnippetFields is a struct holding an array of snippet fields
 type ODriveRawSnippetFields struct {
 	Snippets []RawSnippetFields
+}
+
+func (snippets *ODriveRawSnippetFields) String() string {
+	o := []string{}
+	for _, s := range snippets.Snippets {
+		o = append(o, s.String())
+	}
+	sort.Strings(o)
+	return strings.Join(o, " AND ")
 }
 
 // NewODriveRawSnippetFieldFromString takes an individual fields snippet in escaped format and returns the structured object for the snippet

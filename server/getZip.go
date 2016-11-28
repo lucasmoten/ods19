@@ -15,6 +15,7 @@ import (
 
 	"encoding/hex"
 
+	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/crypto"
 	"decipher.com/object-drive-server/protocol"
@@ -212,14 +213,16 @@ func zipWriteFile(
 	return nil
 }
 
-func zipHasAccess(h AppServer, ctx context.Context, obj *models.ODObject) (bool, models.ODObjectPermission) {
+func zipHasAccess(h AppServer, ctx context.Context, dbObject *models.ODObject) (bool, models.ODObjectPermission) {
 	logger := LoggerFromContext(ctx)
-	stillExists := obj.IsDeleted == false && obj.IsExpunged == false && obj.IsAncestorDeleted == false
+	stillExists := dbObject.IsDeleted == false && dbObject.IsExpunged == false && dbObject.IsAncestorDeleted == false
 	if !stillExists {
 		logger.Error("object no longer exists for zip")
 		return false, models.ODObjectPermission{}
 	}
-	if err := h.isUserAllowedForObjectACM(ctx, obj); err != nil {
+	caller, _ := CallerFromContext(ctx)
+	aacAuth := auth.NewAACAuth(logger, h.AAC)
+	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
 		if IsDeniedAccess(err) {
 			logger.Error("zip does not give access", zap.String("err", err.Error()))
 			return false, models.ODObjectPermission{}
@@ -227,7 +230,7 @@ func zipHasAccess(h AppServer, ctx context.Context, obj *models.ODObject) (bool,
 		logger.Error("zip unable to check acm for access", zap.String("err", err.Error()))
 		return false, models.ODObjectPermission{}
 	}
-	return isUserAllowedToReadWithPermission(ctx, obj)
+	return isUserAllowedToReadWithPermission(ctx, dbObject)
 }
 
 // zipIncludeFile puts a single file into the zipArchive.

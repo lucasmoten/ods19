@@ -188,8 +188,6 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 		Users:  []models.ODUser{user},
 	}
 
-	snippetCache := server.NewSnippetCache()
-
 	snippetResponse := aac.SnippetResponse{
 		Success:  true,
 		Snippets: testhelpers.SnippetTP10,
@@ -215,7 +213,6 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 		ServicePrefix: config.RootURLRegex,
 		AAC:           &fakeAAC,
 		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
-		Snippets:      snippetCache,
 	}
 
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"

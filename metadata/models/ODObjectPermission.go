@@ -204,6 +204,19 @@ func PermissionWithoutRead(i ODObjectPermission) ODObjectPermission {
 	return PermissionForGroup(g.ProjectName.String, g.ProjectDisplayName.String, g.GroupName.String, i.AllowCreate, false, i.AllowUpdate, i.AllowDelete, i.AllowShare)
 }
 
+// PermissionForOwner creates permssion objects granting full CRUDS and read only access to designated owner as user or group
+func PermissionForOwner(ownerResourceName string) (ownerCRUDS ODObjectPermission, ownerR ODObjectPermission) {
+	odACMGrantee := NewODAcmGranteeFromResourceName(ownerResourceName)
+	dn := odACMGrantee.UserDistinguishedName.String
+	pn := odACMGrantee.ProjectName.String
+	pdn := odACMGrantee.ProjectDisplayName.String
+	gn := odACMGrantee.GroupName.String
+	if len(odACMGrantee.UserDistinguishedName.String) > 0 {
+		return PermissionForUser(dn, true, true, true, true, true), PermissionForUser(dn, false, true, false, false, false)
+	}
+	return PermissionForGroup(pn, pdn, gn, true, true, true, true, true), PermissionForGroup(pn, pdn, gn, false, true, false, false, false)
+}
+
 // AACFlatten is a copypasta from protocol
 func AACFlatten(inVal string) string {
 	emptyList := []string{" ", ",", "=", "'", ":", "(", ")", "$", "[", "]", "{", "}", "|", "\\"}

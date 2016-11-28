@@ -40,13 +40,10 @@ func TestListObjectsTrashedJSONResponse(t *testing.T) {
 		Err:         nil,
 	}
 
-	snippetCache := server.NewSnippetCache()
-
 	s := server.AppServer{
 		RootDAO:       &fakeDAO,
 		ServicePrefix: cfg.RootURLRegex,
 		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
-		Snippets:      snippetCache,
 		AAC:           &fakeAAC,
 	}
 	s.InitRegex()

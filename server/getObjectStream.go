@@ -18,6 +18,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
+	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/crypto"
 
@@ -26,42 +27,29 @@ import (
 	"decipher.com/object-drive-server/performance"
 )
 
-const (
-	//B is Bytes unit
-	B = int64(1)
-	//kB is KBytes unit
-	kB = 1024 * B
-	//MB is MegaBytes unit
-	MB = 1024 * kB
-	//GB is Gigabytes unit
-	GB = 1024 * MB
-)
-
 func extractByteRange(r *http.Request) (*crypto.ByteRange, error) {
 	var err error
 	byteRangeSpec := r.Header.Get("Range")
+	if len(byteRangeSpec) == 0 {
+		// If there is no byte range requested, then don't return one.
+		return nil, nil
+	}
 	parsedByteRange := crypto.NewByteRange()
-	if len(byteRangeSpec) > 0 {
-		typeOfRange := strings.Split(byteRangeSpec, "=")
-		if typeOfRange[0] == "bytes" {
-			startStop := strings.Split(typeOfRange[1], "-")
-			parsedByteRange.Start, err = strconv.ParseInt(startStop[0], 10, 64)
+	typeOfRange := strings.Split(byteRangeSpec, "=")
+	if typeOfRange[0] == "bytes" {
+		startStop := strings.Split(typeOfRange[1], "-")
+		parsedByteRange.Start, err = strconv.ParseInt(startStop[0], 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		if len(startStop[1]) > 0 {
+			parsedByteRange.Stop, err = strconv.ParseInt(startStop[1], 10, 64)
 			if err != nil {
 				return nil, err
 			}
-			if len(startStop[1]) > 0 {
-				parsedByteRange.Stop, err = strconv.ParseInt(startStop[1], 10, 64)
-				if err != nil {
-					return nil, err
-				}
-			}
-		} else {
-			return nil, fmt.Errorf("could not understand range type")
 		}
 	} else {
-		//If there is no byte range asked for, then don't return one.  It's important, because
-		// if client is not asking for a byte range, then he's expecting a 200.
-		return nil, nil
+		return nil, fmt.Errorf("could not understand range type")
 	}
 	return parsedByteRange, err
 }
@@ -78,7 +66,7 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 	dao := DAOFromContext(ctx)
 
 	// Retrieve existing object from the data store
-	object, err := dao.GetObject(requestObject, true)
+	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
 		//Equality issue on errors?
 		if err.Error() == db.ErrNoRows.Error() {
@@ -87,13 +75,13 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 		return NewAppError(500, err, "Error retrieving object")
 	}
 
-	if len(object.ID) == 0 {
+	if len(dbObject.ID) == 0 {
 		return NewAppError(400, err, "Object retrieved doesn't have an id")
 	}
 
 	//Performance count this operation
 	beganAt := h.Tracker.BeginTime(performance.DownloadCounter)
-	transferred, herr := h.getObjectStreamWithObject(ctx, w, r, object)
+	transferred, herr := h.getObjectStreamWithObject(ctx, w, r, dbObject)
 	//Make sure that we count as zero bytes if there was a download error from S3
 	if herr != nil {
 		transferred = 0
@@ -112,8 +100,8 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 
 // getObjectStreamWithObject is the continuation after we retrieved the object from the database
 // returns the actual bytes transferred due to range requesting
-func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.ResponseWriter, r *http.Request, object models.ODObject) (int64, *AppError) {
-
+func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.ResponseWriter, r *http.Request, dbObject models.ODObject) (int64, *AppError) {
+	caller, _ := CallerFromContext(ctx)
 	var NoBytesReturned int64
 	var err error
 
@@ -123,11 +111,11 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	// 	return NoBytesReturned, NewAppError(500, err, "Could not determine user")
 	// }
 
-	if object.IsDeleted {
+	if dbObject.IsDeleted {
 		switch {
-		case object.IsExpunged:
+		case dbObject.IsExpunged:
 			return NoBytesReturned, NewAppError(410, err, "The object no longer exists.")
-		case object.IsAncestorDeleted:
+		case dbObject.IsAncestorDeleted:
 			return NoBytesReturned, NewAppError(405, err, "The object cannot be modified because an ancestor is deleted.")
 		default:
 			return NoBytesReturned, NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
@@ -137,12 +125,12 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	// Check read permission, and capture permission for the encryptKey
 	// Check if the user has permissions to read the ODObject
 	//		Permission.grantee matches caller, and AllowRead is true
-	ok, userPermission := isUserAllowedToReadWithPermission(ctx, &object)
+	ok, userPermission := isUserAllowedToReadWithPermission(ctx, &dbObject)
 	if !ok {
 		return NoBytesReturned, NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
 	}
 
-	dp := ciphertext.FindCiphertextCacheByObject(&object)
+	dp := ciphertext.FindCiphertextCacheByObject(&dbObject)
 	masterKey := dp.GetMasterKey()
 
 	// Using captured permission, derive filekey
@@ -154,12 +142,13 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 
 	// Check AAC to compare user clearance to  metadata Classifications
 	// 		Check if Classification is allowed for this User
-	if err = h.isUserAllowedForObjectACM(ctx, &object); err != nil {
+	aacAuth := auth.NewAACAuth(logger, h.AAC)
+	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
 		return NoBytesReturned, ClassifyObjectACMError(err)
 	}
 
-	if !object.ContentSize.Valid || object.ContentSize.Int64 <= int64(0) {
-		return NoBytesReturned, NewAppError(204, nil, "No content", zap.Int64("bytes", object.ContentSize.Int64))
+	if !dbObject.ContentSize.Valid || dbObject.ContentSize.Int64 <= int64(0) {
+		return NoBytesReturned, NewAppError(204, nil, "No content", zap.Int64("bytes", dbObject.ContentSize.Int64))
 	}
 
 	disposition := "inline"
@@ -167,7 +156,7 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	if len(overrideDisposition) > 0 {
 		disposition = overrideDisposition
 	}
-	contentLength, herr := h.getAndStreamFile(ctx, &object, w, r, fileKey, true, disposition)
+	contentLength, herr := h.getAndStreamFile(ctx, &dbObject, w, r, fileKey, true, disposition)
 
 	return contentLength, herr
 }

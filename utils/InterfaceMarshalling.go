@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 )
 
@@ -44,4 +45,17 @@ func NormalizeMarshalledInterface(i string) (string, error) {
 		return i, err
 	}
 	return string(normalizedBytes[:]), nil
+}
+
+// UnmarshalStringToMap takes a serialized string and unmarshals to a json object and then converts to a map
+func UnmarshalStringToMap(astring string) (map[string]interface{}, error) {
+	i, err := UnmarshalStringToInterface(astring)
+	if err != nil {
+		return nil, err
+	}
+	oMap, ok := i.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("could not convert interface to map")
+	}
+	return oMap, nil
 }
