@@ -89,6 +89,7 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 	// update object
 	updateObjectStatement, err := tx.Preparex(`update object set 
         modifiedBy = ?
+		,ownedBy = ?
         ,typeId = ?
         ,name = ?
         ,description = ?
@@ -106,7 +107,8 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		return fmt.Errorf("UpdateObject Preparing update object statement, %s", err.Error())
 	}
 	// Update it
-	result, err := updateObjectStatement.Exec(object.ModifiedBy, object.TypeID,
+	result, err := updateObjectStatement.Exec(object.ModifiedBy, object.OwnedBy.String,
+		object.TypeID,
 		object.Name, object.Description.String, object.ParentID,
 		object.ContentConnector.String, object.RawAcm.String,
 		object.ContentType.String, object.ContentSize, object.ContentHash,

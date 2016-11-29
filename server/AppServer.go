@@ -468,10 +468,6 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		herr = do404(ctx, w, r)
 	}
 
-	// TODO: Before returning, lets capture changes placed back on the context and push into the cache
-	// TODO: UserSnippetsFromContext
-	// TODO: UserSnippetSQL
-
 	// TODO: Before returning, finalize any metrics, capturing time/error codes ?
 	if herr != nil {
 		sendAppErrorResponse(logger, &w, herr)

@@ -5,11 +5,12 @@ Release vNEXT
 * NEW: Command `serviceTest` renamed to `test`
 * NEW: RPM updated to use /opt/services/object-drive-1.0 installation path, object-drive-1.0 for servicename, object-drive for username
 * NEW: Abstract AAC authorization calls from server handlers to new interface
+* NEW: Implemented API operation to change owner
 
 Release v1.0.1.8
 -------------
 * NEW: CORS support in the server
-* DOC: API Documentation now reflects chagnes where OwnedBy field is now stored and returned in serialized resource format
+* DOC: API Documentation now reflects changes where OwnedBy field is now stored and returned in serialized resource format
 * NEW: Masterkey refactored down into cache layer
 * FIX: Recover under race condition for user creation
 * NEW: Kafka is discoverable from its own ZK cluster, not just default ZK

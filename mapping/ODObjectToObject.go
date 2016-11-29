@@ -185,7 +185,10 @@ func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) (models.O
 		return o, err
 	}
 	// Prefer newer permission format
-	o.Permissions = MapPermissionToODPermissions(&i.Permission)
+	o.Permissions, err = MapPermissionToODPermissions(&i.Permission)
+	if err != nil {
+		return o, err
+	}
 	// But fallback to permissions if none populated
 	if len(o.Permissions) == 0 {
 		o.Permissions, err = MapObjectSharesToODPermissions(&i.Permissions)
@@ -220,6 +223,24 @@ func MapMoveObjectRequestToODObject(i *protocol.MoveObjectRequest) (models.ODObj
 	if len(o.ParentID) == 0 {
 		o.ParentID = nil
 	}
+	return o, nil
+}
+
+// MapChangeOwnerRequestToODObject converts an API exposable protocol object
+// used for change owner requests into an internally usable model object
+func MapChangeOwnerRequestToODObject(i *protocol.ChangeOwnerRequest) (models.ODObject, error) {
+	var err error
+	o := models.ODObject{}
+	id, err := hex.DecodeString(i.ID)
+	switch {
+	case err != nil, len(id) == 0:
+		log.Printf("Unable to decode id")
+		return o, err
+	default:
+		o.ID = id
+	}
+	o.ChangeToken = i.ChangeToken
+	o.OwnedBy = models.ToNullString(i.NewOwner)
 	return o, nil
 }
 
@@ -277,7 +298,10 @@ func OverwriteODObjectWithCreateObjectRequest(o *models.ODObject, i *protocol.Cr
 	}
 
 	// Prefer newer permission format
-	o.Permissions = MapPermissionToODPermissions(&i.Permission)
+	o.Permissions, err = MapPermissionToODPermissions(&i.Permission)
+	if err != nil {
+		return err
+	}
 	// But fallback to permissions if none populated
 	if len(o.Permissions) == 0 {
 		o.Permissions, err = MapObjectSharesToODPermissions(&i.Permissions)
@@ -342,8 +366,10 @@ func OverwriteODObjectWithUpdateObjectAndStreamRequest(o *models.ODObject, i *pr
 	if len(parsedACM) > 0 {
 		o.RawAcm = models.ToNullString(parsedACM)
 	}
-
-	providedPermissions := MapPermissionToODPermissions(&i.Permission)
+	providedPermissions, err := MapPermissionToODPermissions(&i.Permission)
+	if err != nil {
+		return err
+	}
 	if len(providedPermissions) > 0 {
 		// Mark existing as Deleted
 		combinedPermissions := make([]models.ODObjectPermission, len(providedPermissions)+len(o.Permissions))

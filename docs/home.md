@@ -17,10 +17,11 @@ A series of microservice operations are exposed on the API gateway for use of Ob
 | List Object Revisions | Retrieves a resultset of revisions for an object. |
 | Get Object Revision Stream | Retrieves the content stream of a specific revision of an object. |
 | Search | Retrieves a resultset of objects matching search parameters against the name and description. |
-| List Objects at Root | Retrieves a resultset of objects at the user's root. |
 | List Objects Under Parent | Retrieves a resultset of objects contained in/under a parent object (ie., folder). |
 | List Objects Shared to Everyone | Retrieves a resultset of objects that are shared to everyone. |
-| Move Object | Changes the hierarchial placement of an object |
+| Move Object | Changes the hierarchial placement of an object. |
+| Change Owner | Change the owner of an object. |
+| List Objects at Root | Retrieves a resultset of objects at the user's root. |
 | List Object Shares | Retrieves a resultset of objects shared to the user. |
 | List Objects Shared | Retreives a resultset of objects that the user has shared. |
 | List Trashed Objects | Retrieves a resultset of objects in the user's trash. |
@@ -213,7 +214,7 @@ It may be called on objects int the trash which also expose additional fields in
 
 + Response 403
 
-        Unauthorized
+        Forbidden
 
 + Response 404
 
@@ -275,7 +276,7 @@ This creates a new revision of the object.
     
 + Response 403
 
-        Unauthorized
+        Forbidden
         
 + Response 404
 
@@ -337,7 +338,7 @@ files that are too large to buffer in memory.
         
 + Response 403
 
-        Unauthorized
+        Forbidden
         
 + Response 405
 
@@ -437,7 +438,7 @@ This creates a new revision of the object.
         
 + Response 403
 
-        Unauthorized
+        Forbidden
         
 + Response 404
 
@@ -481,7 +482,7 @@ When an object is deleted, a recursive action is performed on all natural childr
         
 + Response 403
 
-        Unauthorized
+        Forbidden
         
 + Response 405
 
@@ -517,7 +518,7 @@ This microservice operation will remove an object from the trash and delete it f
         
 + Response 403
 
-        Unauthorized
+        Forbidden
         
 + Response 405
 
@@ -623,7 +624,7 @@ This microservice operation will remove an object from the trash and delete it f
 
 + Response 403
 
-        If the user is unauthorized to perform the request because they lack permissions to view the object.
+        If the user is forbidden to perform the request because they lack permissions to view the object.
         
 + Response 405
 
@@ -715,88 +716,6 @@ This microservice operation will remove an object from the trash and delete it f
         * Error retrieving object
         * Error determining user.
 
-## List Objects At Root [/objects{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
-
-+ Parameters
-
-    + pageNumber: 1 (number, optional) - The page number of results to be returned to support chunked output.
-    + pageSize: 20 (number, optional) - The number of results to return per page.
-    + sortField: `contentsize` (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
-        + Default: `createddate`
-        + Members
-            + `changecount`
-            + `createdby`
-            + `createddate`
-            + `contentsize`
-            + `contenttype`
-            + `description`
-            + `foiaexempt`
-            + `id`
-            + `modifiedby`
-            + `modifieddate`
-            + `name`
-            + `ownedby`
-            + `typename`
-            + `uspersons`
-    + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-        + Default: true
-    + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
-        + Default: `or`
-        + Members
-            + `all`
-            + `and`
-            + `any`
-            + `or`
-    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
-        + Members
-            + `changecount`
-            + `createdby`
-            + `createddate`
-            + `contentsize`
-            + `contenttype`
-            + `description`
-            + `foiaexempt`
-            + `id`
-            + `modifiedby`
-            + `modifieddate`
-            + `name`
-            + `ownedby`
-            + `typename`
-            + `uspersons`
-    + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
-        + Members
-            + `equals`
-            + `contains`
-    + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
-
-### List Objects At Root [GET]
-
-This microservice operation retrieves a list of objects contained within the specified parent, with optional settings for pagination, sorting, and filtering.
-
-+ Response 200 (application/json)
-
-    + Attributes (ObjectResultset)
-
-+ Response 400
-
-        Unable to decode request
-        
-+ Response 403
-
-        Unauthorized
-
-+ Response 405
-
-        Deleted
-        
-+ Response 410
-
-        Does Not Exist
-        
-+ Response 500
-
-        Error storing metadata or stream
-
 ## List Objects Under Parent [/objects/{objectId}{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
@@ -864,7 +783,7 @@ Purpose: This microservice operation retrieves a list of objects contained withi
         
 + Response 403
 
-        Unauthorized
+        If the user is forbidden from listing children of an object because they don't have read access to it
         
 + Response 405
 
@@ -948,18 +867,6 @@ This microservice operation retrieves a list of objects that are shared to every
 
         Unable to decode request
         
-+ Response 403
-
-        Unauthorized
-        
-+ Response 405
-
-        Deleted
-        
-+ Response 410
-
-        Does Not Exist
-        
 + Response 500
 
         Error storing metadata or stream
@@ -1019,9 +926,157 @@ Only the owner of an object is allowed to move it.
 
         Error storing metadata or stream
 
+## Change Owner [/objects/{objectId}/owner/{newOwner}]
+
++ Parameters
+    + objectId: `11e5e4867a6e3d8389020242ac110002` (string, required) - Hex encoded identifier of the object to be moved.
+    + newOwner: `group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1` (string, required) - A resource string compliant value representing the new owner. Resources take the following form:
+       * {resourceType}/{serialized-representation}/{optional-display-name}
+       * Examples for Users
+         * user/{distinguishedName}/{displayName}
+         * user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10
+       * Examples for groups
+         * group/{projectName}/{projectDisplayName}/{groupName}/{displayName}
+         * group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1
+         * group/-Everyone
+
+### Change Owner [POST]
+This microservice operation supports tranferring ownership to a new user or group identified by common resource string format.
+
+This creates a new revision of the object.
+
+The object hierarchy will be reset to the root of the new owner.
+
+Only the current owner of an object is allowed to change ownership.  If the object is owned by a group, then any member of that group may change its owner.
+
+The transferee will be granted full (CRUDS) permissions. The transferor will retain existing permissions. 
+
+Although it is not permitted to assign ownership to Everyone, ownership may be assigned to unverified users or groups for which the user is not a member.
+
++ Request (application/json)
+
+    The JSON object in the request body should contain a change token:
+
+    + Attributes (ChangeToken)
+
++ Response 200 (application/json)
+    + Attributes (ObjectResp)
+
++ Response 400
+
+        Unable to decode request
+        A new owner is required when changing owner
+        Value provided for new owner could not be parsed
+        
++ Response 403
+
+        Forbidden
+        
++ Response 404
+
+        The requested object is not found
+        
++ Response 405
+
+        Deleted
+        
++ Response 410
+
+        Does Not Exist
+        
++ Response 428
+
+        If the changeToken does not match expected value.
+        
++ Response 500
+
+        Error storing metadata or stream
+
 # Group User Centric Operations
 
 ---
+
+## List Objects At Root [/objects{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
+
++ Parameters
+
+    + pageNumber: 1 (number, optional) - The page number of results to be returned to support chunked output.
+    + pageSize: 20 (number, optional) - The number of results to return per page.
+    + sortField: `contentsize` (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
+        + Default: `createddate`
+        + Members
+            + `changecount`
+            + `createdby`
+            + `createddate`
+            + `contentsize`
+            + `contenttype`
+            + `description`
+            + `foiaexempt`
+            + `id`
+            + `modifiedby`
+            + `modifieddate`
+            + `name`
+            + `ownedby`
+            + `typename`
+            + `uspersons`
+    + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
+        + Default: true
+    + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
+        + Default: `or`
+        + Members
+            + `all`
+            + `and`
+            + `any`
+            + `or`
+    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
+        + Members
+            + `changecount`
+            + `createdby`
+            + `createddate`
+            + `contentsize`
+            + `contenttype`
+            + `description`
+            + `foiaexempt`
+            + `id`
+            + `modifiedby`
+            + `modifieddate`
+            + `name`
+            + `ownedby`
+            + `typename`
+            + `uspersons`
+    + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
+        + Members
+            + `equals`
+            + `contains`
+    + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
+
+### List Objects At Root [GET]
+
+This microservice operation retrieves a list of objects contained within the specified parent, with optional settings for pagination, sorting, and filtering.
+
++ Response 200 (application/json)
+
+    + Attributes (ObjectResultset)
+
++ Response 400
+
+        Unable to decode request
+        
++ Response 403
+
+        Unauthorized
+
++ Response 405
+
+        Deleted
+        
++ Response 410
+
+        Does Not Exist
+        
++ Response 500
+
+        Error storing metadata or stream
 
 ## List User Object Shares [/shares{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 

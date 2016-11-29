@@ -16,6 +16,7 @@ import (
 // response fields can be explicitly set, or setup functions can be defined.
 type FakeDAO struct {
 	AcmGrantee        models.ODAcmGrantee
+	AcmGrantees       []models.ODAcmGrantee
 	DBState           models.DBState
 	Err               error
 	IsDescendent      bool
@@ -86,6 +87,11 @@ func (fake *FakeDAO) ExpungeObject(user models.ODUser, object models.ODObject, e
 // GetAcmGrantee for FakeDAO
 func (fake *FakeDAO) GetAcmGrantee(grantee string) (models.ODAcmGrantee, error) {
 	return fake.AcmGrantee, fake.Err
+}
+
+// GetAcmGrantees for FakeDAO
+func (fake *FakeDAO) GetAcmGrantees(grantees []string) ([]models.ODAcmGrantee, error) {
+	return fake.AcmGrantees, fake.Err
 }
 
 // GetChildObjects for FakeDAO.
