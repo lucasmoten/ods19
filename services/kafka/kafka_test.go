@@ -1,17 +1,18 @@
 package kafka
 
 import (
-	"fmt"
+	"os"
 	"testing"
 	"time"
 
-	"decipher.com/object-drive-server/config"
 	"github.com/samuel/go-zookeeper/zk"
 )
 
 func TestDiscoverKafka(t *testing.T) {
-
-	conn, _, err := zk.Connect([]string{fmt.Sprintf("%s:2181", config.DockerVM)}, 5*time.Second)
+	if os.Getenv("OD_EVENT_KAFKA_ADDRS") == "" {
+		t.Skip()
+	}
+	conn, _, err := zk.Connect([]string{"zk:2181"}, 5*time.Second)
 	if err != nil {
 		t.Errorf("connection error: %v", err)
 	}

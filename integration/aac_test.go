@@ -9,7 +9,6 @@ import (
 	"decipher.com/object-drive-server/legacyssl"
 	"decipher.com/object-drive-server/metadata/models/acm"
 	aac "decipher.com/object-drive-server/services/aac"
-	"decipher.com/object-drive-server/services/zookeeper"
 	"decipher.com/object-drive-server/util"
 	t2 "github.com/samuel/go-thrift/thrift"
 )
@@ -47,30 +46,9 @@ func TestMain(m *testing.M) {
 		return
 	}
 
-	// These tests are dependent upon zookeeper, which the AAC will announce to.
-	// Find the host + port, given a zookeeper node + zookeeper host + port
-	// depend on a mapped hostname in /etc/hosts to find and connect zookeeper
-	zkURL := "dockervm:2181"
-	zkState, err := zookeeper.RegisterApplication("/cte/service/odrive-testsuite/1.0", zkURL)
-	if err != nil {
-		log.Printf("Got an error registering test-suite in zookeeper %s", err.Error())
-	}
-	zkAAC := getEnvOrDefault("OD_ZK_AAC", "/cte/service/aac/1.0/thrift")
-	// setup a channel and callback to hold announcement from zookeeper
-	var done = make(chan map[string]zookeeper.AnnounceData)
-	testAACCallback := func(at string, announcements map[string]zookeeper.AnnounceData) {
-		done <- announcements
-	}
-	zookeeper.TrackAnnouncement(zkState, zkAAC, testAACCallback)
-	announcements := <-done
 	// using the announcements, get the host + port
-	aacHost := ""
-	aacPort := 0
-	for _, zse := range announcements {
-		aacHost = zse.ServiceEndpoint.Host
-		aacPort = zse.ServiceEndpoint.Port
-	}
-	log.Printf("Testing with AAC Host %s and Port %d", aacHost, aacPort)
+	aacHost := "aac"
+	aacPort := 9093
 
 	// AAC trust, client public & private key
 	trustPath := filepath.Join("..", "defaultcerts", "clients", "client.trust.pem")

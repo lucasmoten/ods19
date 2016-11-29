@@ -152,4 +152,16 @@ cd $GOPATH/src/decipher.com/object-drive-server
 ./makerpm 2600
 ```
 
+Hostnames:
 
+Every service that we connect to from the location of the docker command must be routable and have a hostname lookup.  If your docker-machine maps to 127.0.0.1, or 192.168.99.100 (remote docker machine):
+
+```
+# Host Database.  Whatever dockervm (the docker machine is).  Lookup by $(docker-machine ip default), or localhost, etc.
+....
+127.0.0.1       localhost
+192.168.99.100 dockervm fqdn.for.metadatadb.local gatekeeper metadatadb aac metadataconnector zk pk ui builder kafka twl-server-generic2 gateway metadatadb
+....
+```
+```
+```

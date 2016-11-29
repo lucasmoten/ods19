@@ -17,7 +17,7 @@ import (
 
 var (
 	defaultDBDriver = "mysql"
-	defaultDBHost   = "127.0.0.1"
+	defaultDBHost   = "metadatadb"
 	defaultDBPort   = "3306"
 	DefaultBucket   = getEnvOrDefault("OD_AWS_S3_BUCKET", "")
 )
