@@ -29,6 +29,7 @@ type DAO interface {
 	DeleteObjectType(objectType models.ODObjectType) error
 	ExpungeObject(user models.ODUser, object models.ODObject, explicit bool) error
 	GetAcmGrantee(grantee string) (models.ODAcmGrantee, error)
+	GetAcmGrantees(grantees []string) ([]models.ODAcmGrantee, error)
 	GetChildObjects(pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
 	GetChildObjectsByUser(user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
 	GetChildObjectsWithProperties(pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
@@ -109,7 +110,7 @@ func NewDataAccessLayer(conf config.DatabaseConfiguration, opts ...Opt) (*DataAc
 
 	state, err := d.GetDBState()
 	if err != nil {
-		return nil, "", fmt.Errorf("getting db state failed", err)
+		return nil, "", fmt.Errorf("getting db state failed: %v", err)
 	}
 
 	return &d, state.Identifier, nil

@@ -27,6 +27,31 @@ func (dao *DataAccessLayer) GetAcmGrantee(grantee string) (models.ODAcmGrantee, 
 	return response, err
 }
 
+// GetAcmGrantees retrieves a list of acm grantee records from a provided list of grantee names
+func (dao *DataAccessLayer) GetAcmGrantees(grantees []string) ([]models.ODAcmGrantee, error) {
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		return []models.ODAcmGrantee{}, err
+	}
+	acmgrantees := []models.ODAcmGrantee{}
+	var acmgrantee models.ODAcmGrantee
+	for _, grantee := range grantees {
+		acmgrantee, err = getAcmGranteeInTransaction(tx, grantee)
+		if err == nil {
+			acmgrantees = append(acmgrantees, acmgrantee)
+			tx.Commit()
+		} else {
+			if err != sql.ErrNoRows {
+				dao.GetLogger().Error("Error in GetAcmGrantees", zap.String("err", err.Error()))
+				tx.Rollback()
+				break
+			}
+		}
+	}
+	return acmgrantees, err
+}
+
 func getAcmGranteeInTransaction(tx *sqlx.Tx, grantee string) (models.ODAcmGrantee, error) {
 	var response models.ODAcmGrantee
 	query := `

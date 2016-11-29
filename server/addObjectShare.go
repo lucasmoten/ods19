@@ -271,39 +271,6 @@ func verifyPermissionToShare(rollupPermission models.ODObjectPermission, permiss
 	return nil
 }
 
-func isModifiedBySameAsOwner(ctx context.Context, object *models.ODObject) bool {
-	dao := DAOFromContext(ctx)
-	ownedBy := object.OwnedBy.String
-	snippets, ok := SnippetsFromContext(ctx)
-	if !ok {
-		// Fallback mode comparing only to the
-		modifiedByResourceName := "user/" + object.ModifiedBy
-		if modifiedByResourceName == ownedBy {
-			return true
-		}
-		return false
-	}
-	for _, rawFields := range snippets.Snippets {
-		if rawFields.FieldName == "f_share" {
-			for _, shareValue := range rawFields.Values {
-				trimmedShareValue := strings.TrimSpace(shareValue)
-				if len(trimmedShareValue) > 0 {
-					if ownedBy == "group/"+trimmedShareValue {
-						return true
-					}
-					if acmGrantee, err := dao.GetAcmGrantee(trimmedShareValue); err != nil {
-						if ownedBy == acmGrantee.ResourceName() {
-							return true
-						}
-					}
-				}
-			}
-
-		}
-	}
-	return false
-}
-
 func isPermissionFor(permission *models.ODObjectPermission, grantee string) bool {
 	return (strings.Compare(models.AACFlatten(permission.Grantee), models.AACFlatten(grantee)) == 0)
 }

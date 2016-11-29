@@ -280,40 +280,60 @@ func MapObjectShareToODPermissions(i *protocol.ObjectShare) ([]models.ODObjectPe
 }
 
 // MapPermissionToODPermissions converts a protocol permission object into an array of model permissions
-func MapPermissionToODPermissions(i *protocol.Permission) []models.ODObjectPermission {
+func MapPermissionToODPermissions(i *protocol.Permission) ([]models.ODObjectPermission, error) {
 	*i = i.Consolidated()
+	o := []models.ODObjectPermission{}
+	var err error
 	permissions := make(map[string]models.ODObjectPermission)
 	for _, resource := range i.Create.AllowedResources {
-		permissions = MergeODPermissions(permissions, resource, models.ODObjectPermission{AllowCreate: true})
+		permissions, err = mergeODPermissions(permissions, resource, models.ODObjectPermission{AllowCreate: true})
+		if err != nil {
+			return o, err
+		}
 	}
 	for _, resource := range i.Read.AllowedResources {
-		permissions = MergeODPermissions(permissions, resource, models.ODObjectPermission{AllowRead: true})
+		permissions, err = mergeODPermissions(permissions, resource, models.ODObjectPermission{AllowRead: true})
+		if err != nil {
+			return o, err
+		}
 	}
 	for _, resource := range i.Update.AllowedResources {
-		permissions = MergeODPermissions(permissions, resource, models.ODObjectPermission{AllowUpdate: true})
+		permissions, err = mergeODPermissions(permissions, resource, models.ODObjectPermission{AllowUpdate: true})
+		if err != nil {
+			return o, err
+		}
 	}
 	for _, resource := range i.Delete.AllowedResources {
-		permissions = MergeODPermissions(permissions, resource, models.ODObjectPermission{AllowDelete: true})
+		permissions, err = mergeODPermissions(permissions, resource, models.ODObjectPermission{AllowDelete: true})
+		if err != nil {
+			return o, err
+		}
 	}
 	for _, resource := range i.Share.AllowedResources {
-		permissions = MergeODPermissions(permissions, resource, models.ODObjectPermission{AllowShare: true})
+		permissions, err = mergeODPermissions(permissions, resource, models.ODObjectPermission{AllowShare: true})
+		if err != nil {
+			return o, err
+		}
 	}
-	o := []models.ODObjectPermission{}
 	for k, v := range permissions {
 		if v.Grantee == k {
 			o = append(o, v)
 		}
 	}
-	return o
+	return o, nil
 }
 
-// MergeODPermissions adds permission passed in to the permission currently assigned the resource, creating a new one as needed
-func MergeODPermissions(permissions map[string]models.ODObjectPermission, resource string, permission models.ODObjectPermission) map[string]models.ODObjectPermission {
+// mergeODPermissions adds permission passed in to the permission currently assigned the resource, creating a new one as needed
+func mergeODPermissions(permissions map[string]models.ODObjectPermission, resource string, permission models.ODObjectPermission) (map[string]models.ODObjectPermission, error) {
 	flattened := protocol.GetFlattenedNameFromResource(resource)
+	var err error
 	if len(flattened) > 0 {
 		mappedPermission, ok := permissions[flattened]
 		if !ok {
-			mappedPermission = createODPermissionFromResource(resource)
+			mappedPermission, err = models.CreateODPermissionFromResource(resource)
+			if err != nil {
+				return permissions, err
+			}
 		}
 		mappedPermission.AllowCreate = mappedPermission.AllowCreate || permission.AllowCreate
 		mappedPermission.AllowRead = mappedPermission.AllowRead || permission.AllowRead
@@ -322,32 +342,5 @@ func MergeODPermissions(permissions map[string]models.ODObjectPermission, resour
 		mappedPermission.AllowShare = mappedPermission.AllowShare || permission.AllowShare
 		permissions[flattened] = mappedPermission
 	}
-	return permissions
-}
-
-func createODPermissionFromResource(resource string) models.ODObjectPermission {
-	if strings.HasPrefix(resource, "user/") {
-		return createODPermissionFromUserResource(resource)
-	}
-	if strings.HasPrefix(resource, "group/") {
-		return createODPermissionFromGroupResource(resource)
-	}
-	return models.ODObjectPermission{}
-}
-
-func createODPermissionFromUserResource(resource string) models.ODObjectPermission {
-	parts := strings.Split(strings.Replace(resource, "user/", "", 1), "/")
-	return models.PermissionForUser(parts[0], false, false, false, false, false)
-}
-
-func createODPermissionFromGroupResource(resource string) models.ODObjectPermission {
-	parts := strings.Split(strings.Replace(resource, "group/", "", 1), "/")
-	switch len(parts) {
-	case 1:
-		return models.PermissionForGroup("", "", parts[0], false, false, false, false, false)
-	case 2:
-		return models.PermissionForGroup("", "", parts[1], false, false, false, false, false)
-	default:
-		return models.PermissionForGroup(parts[0], parts[1], parts[2], false, false, false, false, false)
-	}
+	return permissions, nil
 }

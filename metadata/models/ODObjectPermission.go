@@ -310,3 +310,31 @@ func iifString(c bool, t string, f string) string {
 	}
 	return f
 }
+
+// CreateODPermissionFromResource examines a resource string and prepares the basis of a permission from parsed values.
+func CreateODPermissionFromResource(resource string) (ODObjectPermission, error) {
+	if strings.HasPrefix(resource, "user/") {
+		return createODPermissionFromUserResource(resource), nil
+	}
+	if strings.HasPrefix(resource, "group/") {
+		return createODPermissionFromGroupResource(resource), nil
+	}
+	return ODObjectPermission{}, fmt.Errorf("Unhandled format for resource string")
+}
+
+func createODPermissionFromUserResource(resource string) ODObjectPermission {
+	parts := strings.Split(strings.Replace(resource, "user/", "", 1), "/")
+	return PermissionForUser(parts[0], false, false, false, false, false)
+}
+
+func createODPermissionFromGroupResource(resource string) ODObjectPermission {
+	parts := strings.Split(strings.Replace(resource, "group/", "", 1), "/")
+	switch len(parts) {
+	case 1:
+		return PermissionForGroup("", "", parts[0], false, false, false, false, false)
+	case 2:
+		return PermissionForGroup("", "", parts[1], false, false, false, false, false)
+	default:
+		return PermissionForGroup(parts[0], parts[1], parts[2], false, false, false, false, false)
+	}
+}

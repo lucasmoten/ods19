@@ -48,7 +48,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	if ok := isUserAllowedToUpdate(ctx, &dbObject); !ok {
 		return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
 	}
-	if !aacAuth.IsUserOwner(caller.DistinguishedName, getUserGroupResourceStrings(ctx), dbObject.OwnedBy.String) {
+	if !aacAuth.IsUserOwner(caller.DistinguishedName, getKnownResourceStringsFromUserGroups(ctx), dbObject.OwnedBy.String) {
 		return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User must be an object owner to move the object")
 	}
 
@@ -183,7 +183,7 @@ func parseMoveObjectRequestAsJSON(r *http.Request, ctx context.Context) (models.
 	if len(captured["folderId"]) > 0 {
 		_, err = hex.DecodeString(captured["folderId"])
 		if err != nil {
-			return requestObject, errors.New("Invalid flderId in URI")
+			return requestObject, errors.New("Invalid folderId in URI")
 		}
 		jsonObject.ParentID = captured["folderId"]
 	}
@@ -193,18 +193,19 @@ func parseMoveObjectRequestAsJSON(r *http.Request, ctx context.Context) (models.
 	return requestObject, err
 }
 
-func getUserGroupResourceStrings(ctx context.Context) (resourceStrings []string) {
+func getKnownResourceStringsFromUserGroups(ctx context.Context) (resourceStrings []string) {
 	groups, ok := GroupsFromContext(ctx)
 	if !ok {
 		return resourceStrings
 	}
 	dao := DAOFromContext(ctx)
-	for _, group := range groups {
-		acmGrantee, err := dao.GetAcmGrantee(group)
-		if err != nil {
-			continue
-		}
+	acmGrantees, err := dao.GetAcmGrantees(groups)
+	if err != nil {
+		return resourceStrings
+	}
+	for _, acmGrantee := range acmGrantees {
 		resourceStrings = append(resourceStrings, acmGrantee.ResourceName())
 	}
+
 	return resourceStrings
 }

@@ -269,7 +269,10 @@ func parseUpdateObjectRequestAsJSON(r *http.Request, ctx context.Context) (model
 	if len(convertedAcm) > 0 {
 		requestObject.RawAcm = models.ToNullString(convertedAcm)
 	}
-	requestObject.Permissions = mapping.MapPermissionToODPermissions(&jsonObject.Permission)
+	requestObject.Permissions, err = mapping.MapPermissionToODPermissions(&jsonObject.Permission)
+	if err != nil {
+		return requestObject, err
+	}
 	if len(jsonObject.ContainsUSPersonsData) > 0 {
 		requestObject.ContainsUSPersonsData = jsonObject.ContainsUSPersonsData
 	}
