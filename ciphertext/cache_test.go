@@ -36,7 +36,7 @@ func cacheParams(root, partition string) (string, ciphertext.CiphertextCacheZone
 //
 func TestCacheSimple(t *testing.T) {
 	logger := cfg.RootLogger
-	testRoot := "./testCacheSimple"
+	testRoot := os.TempDir()
 	testPartition := "partition0"
 	_, zone, conf, dbID := cacheParams(testRoot, testPartition)
 	var loggableErr *util.Loggable
@@ -91,7 +91,6 @@ func TestCacheSimple(t *testing.T) {
 		t.FailNow()
 	}
 	t.Logf("recached file")
-	os.RemoveAll(testRoot)
 }
 
 //
@@ -100,11 +99,10 @@ func TestCacheSimple(t *testing.T) {
 //
 func TestCacheCreateWrongKey(t *testing.T) {
 	logger := cfg.RootLogger
-	testRoot := "./testCacheCreateWrongKey"
+	testRoot := os.TempDir()
 	testPartition := "partition0"
 	_, zone, conf, dbID := cacheParams(testRoot, testPartition)
 	var loggableErr *util.Loggable
-	defer os.RemoveAll(testRoot)
 
 	// Create the cache successfully
 	d, loggableErr := ciphertext.NewLocalCiphertextCache(logger, zone, conf, dbID)
