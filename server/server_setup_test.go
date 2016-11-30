@@ -85,8 +85,8 @@ func cleanupOpenFiles() {
 	}
 }
 
-func testSettings() func() {
-	root := "./testTemp"
+func testSettings() {
+	root := os.TempDir()
 	os.Mkdir(root, 0700)
 	settings := config.S3CiphertextCacheOpts{
 		Root:          root,
@@ -97,7 +97,6 @@ func testSettings() func() {
 		WalkSleep:     30,
 		MasterKey:     config.GetEnvOrDefault(config.OD_ENCRYPT_MASTERKEY, ""),
 	}
-	at := settings.Root + "/" + settings.Partition
 	zone := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
 	cache, err := ciphertext.NewLocalCiphertextCache(config.RootLogger, zone, settings, "dbID0")
 	if err != nil {
@@ -107,18 +106,12 @@ func testSettings() func() {
 		zone,
 		cache,
 	)
-
-	return func() {
-		os.RemoveAll(at)
-	}
 }
 
 func testMainBody(m *testing.M) int {
 	flag.Parse()
 
-	testSettingsCleanup := testSettings()
-	defer testSettingsCleanup()
-
+	testSettings()
 	trafficLogs = make(map[string]*TrafficLog)
 	trafficLogs[APISampleFile] = NewTrafficLog(APISampleFile)
 	dumpOpenFiles(*dumpFileDescriptors, "TestMain before setup")
