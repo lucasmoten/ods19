@@ -139,9 +139,7 @@ func TestGetObject_PrivateObjectsRedactedInBreadcrumbs(t *testing.T) {
 
 }
 
-// This is the only test I can't get to pass, because I get a 403 due to the MAC coming out different.
-// But it's a fake, so it is some issue with the incompleteness of the fake, rather than an issue in the server.
-func xxxTestAppServerGetObjectAgainstFake(t *testing.T) {
+func TestAppServerGetObjectAgainstFake(t *testing.T) {
 
 	// Set up an ODUser and a test DN.
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
@@ -155,7 +153,7 @@ func xxxTestAppServerGetObjectAgainstFake(t *testing.T) {
 	// Create permissions object, with our User as a Grantee.
 	readPermission := models.ODObjectPermission{Grantee: user.DistinguishedName}
 	readPermission.AllowRead = true
-	models.SetEncryptKey("", &readPermission)
+	models.SetEncryptKey(config.GetEnvOrDefault("OD_ENCRYPT_MASTERKEY", ""), &readPermission)
 	perms := []models.ODObjectPermission{readPermission}
 	obj := models.ODObject{Permissions: perms}
 	obj.ID = []byte(guid)
