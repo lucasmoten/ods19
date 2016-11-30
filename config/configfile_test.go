@@ -24,10 +24,10 @@ func TestParseWhitelistFromConfigFile(t *testing.T) {
 		t.Errorf("Could not unmarshal yaml config file: %v\n", err)
 	}
 
-	if len(conf.Whitelist) != 3 {
+	if len(conf.ServerSettings.AclImpersonationWhitelist) != 3 {
 		t.Fail()
 	}
-	if conf.Whitelist[0] != "first" {
+	if conf.ServerSettings.AclImpersonationWhitelist[0] != "first" {
 		t.Fail()
 	}
 
@@ -61,9 +61,9 @@ func TestParseAppConfigurationFromConfigFile(t *testing.T) {
 	if len(conf.EventQueue.ZKAddrs) != 2 {
 		t.Errorf("expected zk_addrs string slice of len 2, got: %v", conf.EventQueue.ZKAddrs)
 	}
+	if conf.ServerSettings.AclImpersonationWhitelist[0] != "foo" {
 
-	if conf.Whitelist[0] != "foo" {
-		t.Errorf("expected whitelist entry foo but got: %s", conf.Whitelist[0])
+		t.Errorf("expected whitelist entry foo but got: %s", conf.ServerSettings.AclImpersonationWhitelist[0])
 	}
 
 }

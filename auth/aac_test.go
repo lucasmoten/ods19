@@ -12,17 +12,9 @@ import (
 )
 
 func newAACAuth(t *testing.T) auth.AACAuth {
-	// These tests are dependent upon zookeeper, which the AAC will announce to.
-	// Find the host + port, given a zookeeper node + zookeeper host + port
-	// depend on a mapped hostname in /etc/hosts to find and connect zookeeper
-
-	// The docker node name for zookeeper that denotes the zookeeper cluster
-	// that zk is assumed to announce to in our test environment is hardcoded
-	// here as 'zk'
-	t.Logf("Discovering Zookeeper")
+	// AAC server and port hardcoded
 	aacHost := "aac"
 	aacPort := 9093
-
 	// AAC trust, client public & private key
 	trustPath := filepath.Join("..", "defaultcerts", "clients", "client.trust.pem")
 	certPath := filepath.Join("..", "defaultcerts", "clients", "test_1.cert.pem")
