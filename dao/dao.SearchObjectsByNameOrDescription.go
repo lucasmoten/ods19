@@ -432,6 +432,31 @@ func MySQLSafeString2(i string) string {
 	return o
 }
 
+func buildFilterRequireObjectsGroupOwns(tx *sqlx.Tx, groupName string) string {
+	acmGrantee, err := getAcmGranteeInTransaction(tx, groupName)
+	where := " and "
+	if err != nil {
+		// If there are no grantees matching this group, then no objects owned by it. Exclude everything
+		where += "1 = 0"
+	} else {
+		resourceName := acmGrantee.ResourceName()
+		resourceNameNoDisplayName := removeDisplayNameFromResourceString(resourceName)
+		where += "o.ownedby in ('" + MySQLSafeString2(resourceName) + "'"
+		if resourceName != resourceNameNoDisplayName {
+			where += ", '" + MySQLSafeString2(resourceNameNoDisplayName) + "'"
+		}
+		where += ")"
+	}
+	return where
+}
+
+func removeDisplayNameFromResourceString(resourceString string) string {
+	if len(strings.Split(resourceString, "/")) < 3 {
+		return resourceString
+	}
+	return resourceString[0:strings.LastIndex(resourceString, "/")]
+}
+
 func buildFilterRequireObjectsIOwn(user models.ODUser) string {
 	return " and o.ownedby in (" + strings.Join(buildListObjectsIOwn(user), ",") + ")"
 }

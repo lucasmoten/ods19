@@ -17,11 +17,12 @@ A series of microservice operations are exposed on the API gateway for use of Ob
 | List Object Revisions | Retrieves a resultset of revisions for an object. |
 | Get Object Revision Stream | Retrieves the content stream of a specific revision of an object. |
 | Search | Retrieves a resultset of objects matching search parameters against the name and description. |
+| List Objects at Root For Group | Retrieves a resultset of objects at a group's root. |
 | List Objects Under Parent | Retrieves a resultset of objects contained in/under a parent object (ie., folder). |
 | List Objects Shared to Everyone | Retrieves a resultset of objects that are shared to everyone. |
 | Move Object | Changes the hierarchial placement of an object. |
 | Change Owner | Change the owner of an object. |
-| List Objects at Root | Retrieves a resultset of objects at the user's root. |
+| List Objects at Root For User | Retrieves a resultset of objects at the user's root. |
 | List Object Shares | Retrieves a resultset of objects shared to the user. |
 | List Objects Shared | Retreives a resultset of objects that the user has shared. |
 | List Trashed Objects | Retrieves a resultset of objects in the user's trash. |
@@ -716,6 +717,84 @@ This microservice operation will remove an object from the trash and delete it f
         * Error retrieving object
         * Error determining user.
 
+## List Objects At Root For Group [/groupobjects/{groupName}{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
+
++ Parameters
+
+    + groupName: dctc_odrive_g1 (string, required) - The flattened name of a group for which the user is a member and objects owned by the group should be returned.
+        * The flattened values for user identity are also acceptable
+        * Psuedogroups, such as `_everyone` are not acceptable for this request, but are forbidden from owning objects anyway.
+    + pageNumber: 1 (number, optional) - The page number of results to be returned to support chunked output.
+    + pageSize: 20 (number, optional) - The number of results to return per page.
+    + sortField: `contentsize` (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
+        + Default: `createddate`
+        + Members
+            + `changecount`
+            + `createdby`
+            + `createddate`
+            + `contentsize`
+            + `contenttype`
+            + `description`
+            + `foiaexempt`
+            + `id`
+            + `modifiedby`
+            + `modifieddate`
+            + `name`
+            + `ownedby`
+            + `typename`
+            + `uspersons`
+    + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
+        + Default: true
+    + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
+        + Default: `or`
+        + Members
+            + `all`
+            + `and`
+            + `any`
+            + `or`
+    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
+        + Members
+            + `changecount`
+            + `createdby`
+            + `createddate`
+            + `contentsize`
+            + `contenttype`
+            + `description`
+            + `foiaexempt`
+            + `id`
+            + `modifiedby`
+            + `modifieddate`
+            + `name`
+            + `ownedby`
+            + `typename`
+            + `uspersons`
+    + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
+        + Members
+            + `equals`
+            + `contains`
+    + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
+
+### List Objects At Root For Group [GET]
+
+This microservice operation retrieves a list of objects with no parent owned by the specified group, with optional settings for pagination, sorting, and filtering.
+
++ Response 200 (application/json)
+
+    + Attributes (ObjectResultset)
+
++ Response 400
+
+        Unable to decode request.
+        No groupName was provided
+        
++ Response 403
+
+        Forbidden if the user is not a member of the provided group name.
+       
++ Response 500
+
+        Error retrieving objects
+
 ## List Objects Under Parent [/objects/{objectId}{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
@@ -996,7 +1075,7 @@ Although it is not permitted to assign ownership to Everyone, ownership may be a
 
 ---
 
-## List Objects At Root [/objects{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
+## List Objects At Root For User [/objects{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
 
@@ -1050,9 +1129,9 @@ Although it is not permitted to assign ownership to Everyone, ownership may be a
             + `contains`
     + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
 
-### List Objects At Root [GET]
+### List Objects At Root For User [GET]
 
-This microservice operation retrieves a list of objects contained within the specified parent, with optional settings for pagination, sorting, and filtering.
+This microservice operation retrieves a list of objects at the root owned by the caller, with optional settings for pagination, sorting, and filtering.
 
 + Response 200 (application/json)
 
@@ -1064,7 +1143,7 @@ This microservice operation retrieves a list of objects contained within the spe
         
 + Response 403
 
-        Unauthorized
+        Forbidden
 
 + Response 405
 
@@ -1073,10 +1152,6 @@ This microservice operation retrieves a list of objects contained within the spe
 + Response 410
 
         Does Not Exist
-        
-+ Response 500
-
-        Error storing metadata or stream
 
 ## List User Object Shares [/shares{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 

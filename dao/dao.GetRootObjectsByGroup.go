@@ -7,16 +7,16 @@ import (
 	"decipher.com/object-drive-server/metadata/models"
 )
 
-// GetRootObjectsByUser retrieves a list of Objects in Object Drive that are
+// GetRootObjectsByGroup retrieves a list of Objects in Object Drive that are
 // not nested beneath any other objects natively (natural parentId is null) and
-// are owned by the specified user.
-func (dao *DataAccessLayer) GetRootObjectsByUser(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
+// are owned by the specified group.
+func (dao *DataAccessLayer) GetRootObjectsByGroup(groupName string, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getRootObjectsByUserInTransaction(tx, user, pagingRequest)
+	response, err := getRootObjectsByGroupInTransaction(tx, groupName, user, pagingRequest)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetRootObjectsByUser", zap.String("err", err.Error()))
 		tx.Rollback()
@@ -26,7 +26,7 @@ func (dao *DataAccessLayer) GetRootObjectsByUser(user models.ODUser, pagingReque
 	return response, err
 }
 
-func getRootObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
+func getRootObjectsByGroupInTransaction(tx *sqlx.Tx, groupName string, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 
 	response := models.ODObjectResultset{}
 	// NOTE: distinct is unfortunately used here because object_permission
@@ -77,7 +77,7 @@ func getRootObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
         and op.isdeleted = 0
         and op.allowread = 1
         and o.parentid is null `
-	query += buildFilterRequireObjectsIOwn(user)
+	query += buildFilterRequireObjectsGroupOwns(tx, groupName)
 	query += buildFilterForUserACMShare(user)
 	query += buildFilterForUserSnippets(user)
 	query += buildFilterSortAndLimit(pagingRequest)

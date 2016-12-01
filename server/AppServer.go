@@ -152,6 +152,7 @@ func (h *AppServer) InitRegex() {
 		SharedToOthers:   route("/shared$"),
 		SharedToEveryone: route("/sharedpublic$"),
 		SharedObject:     route("/shared/(?P<objectId>[0-9a-fA-F]{32})$"),
+		GroupObjects:     route("/groupobjects/(?P<groupName>.*)$"),
 		// - search
 		Search: route("/search/(?P<searchPhrase>.*)$"),
 		// - trash
@@ -317,9 +318,13 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.Ciphertext.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Ciphertext)
 			herr = h.getCiphertext(ctx, w, r)
-		// - list objects at root
+		// - list objects at root owned by the caller
 		case h.Routes.Objects.MatchString(uri):
 			herr = h.listObjects(ctx, w, r)
+		// - list objects at root owned by a group
+		case h.Routes.GroupObjects.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.GroupObjects)
+			herr = h.listGroupObjects(ctx, w, r)
 		// - list objects of object
 		case h.Routes.Object.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Object)
@@ -680,6 +685,7 @@ type StaticRx struct {
 	SharedToOthers         *regexp.Regexp
 	SharedToEveryone       *regexp.Regexp
 	SharedObject           *regexp.Regexp
+	GroupObjects           *regexp.Regexp
 	Search                 *regexp.Regexp
 	Trash                  *regexp.Regexp
 	Zip                    *regexp.Regexp
