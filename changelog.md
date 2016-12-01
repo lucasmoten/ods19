@@ -6,6 +6,7 @@ Release vNEXT
 * NEW: RPM updated to use /opt/services/object-drive-1.0 installation path, object-drive-1.0 for servicename, object-drive for username
 * NEW: Abstract AAC authorization calls from server handlers to new interface
 * NEW: Implemented API operation to change owner
+* NEW: Implemented API to list root objects owned by a group
 
 Release v1.0.1.8
 -------------

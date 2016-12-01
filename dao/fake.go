@@ -210,6 +210,11 @@ func (fake *FakeDAO) GetRootObjects(pagingRequest PagingRequest) (models.ODObjec
 	return fake.ObjectResultSet, fake.Err
 }
 
+// GetRootObjectsByGroup for FakeDAO
+func (fake *FakeDAO) GetRootObjectsByGroup(groupName string, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
+	return fake.ObjectResultSet, fake.Err
+}
+
 // GetRootObjectsByUser for FakeDAO.
 func (fake *FakeDAO) GetRootObjectsByUser(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
@@ -217,6 +222,11 @@ func (fake *FakeDAO) GetRootObjectsByUser(user models.ODUser, pagingRequest Pagi
 
 // GetRootObjectsWithProperties for FakeDAO.
 func (fake *FakeDAO) GetRootObjectsWithProperties(pagingRequest PagingRequest) (models.ODObjectResultset, error) {
+	return fake.ObjectResultSet, fake.Err
+}
+
+// GetRootObjectsWithPropertiesByGroup for FakeDAO.
+func (fake *FakeDAO) GetRootObjectsWithPropertiesByGroup(groupName string, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 
