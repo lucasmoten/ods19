@@ -2,14 +2,16 @@ Changelog
 
 Release vNEXT
 -------------
-* NEW: Command `serviceTest` renamed to `test`
-* NEW: RPM updated to use /opt/services/object-drive-1.0 installation path, object-drive-1.0 for servicename, object-drive for username
-* NEW: Abstract AAC authorization calls from server handlers to new interface
+* ENH: Command `serviceTest` renamed to `test`
+* FIX: RPM updated to use /opt/services/object-drive-1.0 installation path, object-drive-1.0 for servicename, object-drive for username
+* REF: Abstract AAC authorization calls from server handlers to new interface
 * NEW: Implemented API operation to change owner
 * NEW: Implemented API to list root objects owned by a group
+* DOC: API Documentation updated with Change Owner and List Objects at Root For Group
+* ENH: ACL Impersonation Whitelist read from different location in object-drive.yml 
 
 Release v1.0.1.8
--------------
+----------------
 * NEW: CORS support in the server
 * DOC: API Documentation now reflects changes where OwnedBy field is now stored and returned in serialized resource format
 * NEW: Masterkey refactored down into cache layer
@@ -69,23 +71,23 @@ Release v1.0.1.4
 Release v1.0.1
 --------------
 
-* !216 - Enhancement: Connection to Zookeeper recovery improvements when timed out
-* !218 - Enhancement: Capture full ACM share information for individual permission grants
-* Old schema patch files deleted. Database will need to be dropped due to ACM share model
-* Documentation updated with detailed permissions struct
-* Updated zipfile endpoint internals
-* odrive binary will run as user `odrive` when installed with yum package
-* Major release number bump at customer request
+* ENH: Connection to Zookeeper recovery improvements when timed out
+* ENH: Full ACM share information captured for individual permission grants
+* FIX: Old schema patch files deleted. Database will need to be dropped due to ACM share model
+* DOC: API Documentation updated with detailed permissions structure
+* REF: Updated zipfile endpoint internals
+* FIX: odrive binary will run as user `odrive` when installed with yum package
+* FIX: Major Release number bump at customer request
 
 Release v0.1.0
 --------------
 
-* !192 – Refactor: Remove broken STANDALONE flag
-* !197 – FIX: Return 404 instead of 500 when retrieving an object properties and given ID is invalid.
-* !200 – NEW: Allow caller to specify returned content-disposition format when requesting streams and zipped content
-* !201 – NEW: Response to create object will now populate callerPermisison
-* !203 - NEW: Publish Events to Kafka
-* !205 – Refactor: Docstrings on Index event fields
-* !208 – Enhancement: RPMs generated will now create odrive user when installed
-* !209 – Enhancement: All API responses returning object now populate callerPermissions
-* !210 – Enhancement: US Persons Data and FOIA Exemption state fields now track Yes/No/Unknown instead of True/False
+* REF: Remove broken STANDALONE flag
+* FIX: Return 404 instead of 500 when retrieving an object properties and given ID is invalid.
+* NEW: Allow caller to specify returned content-disposition format when requesting streams and zipped content
+* NEW: Response to create object will now populate callerPermisison
+* NEW: Publish Events to Kafka
+* REF: Index structure used by Finder now includes docstrings
+* ENH: RPMs generated will now create odrive user when installed
+* ENH: All API responses returning object now populate callerPermissions
+* ENH: US Persons Data and FOIA Exemption state fields now track Yes/No/Unknown instead of True/False
