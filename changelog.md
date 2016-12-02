@@ -1,7 +1,7 @@
 Changelog
 
-Release vNEXT
--------------
+Release v1.0.1.9
+----------------
 * ENH: Command `serviceTest` renamed to `test`
 * FIX: RPM updated to use /opt/services/object-drive-1.0 installation path, object-drive-1.0 for servicename, object-drive for username
 * REF: Abstract AAC authorization calls from server handlers to new interface
