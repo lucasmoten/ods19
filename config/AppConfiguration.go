@@ -33,7 +33,6 @@ type AppConfiguration struct {
 	CacheSettings      S3CiphertextCacheOpts       `yaml:"disk_cache"`
 	ZK                 ZKSettings                  `yaml:"zk"`
 	EventQueue         EventQueueConfiguration     `yaml:"event_queue"`
-	Whitelist          []string                    `yaml:"whitelist"`
 }
 
 // AACConfiguration holds data required for an AAC client.
@@ -289,7 +288,7 @@ func NewServerSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) S
 	settings.ServerKey = cascade(OD_SERVER_KEY, confFile.ServerSettings.ServerKey, "")
 
 	// We only use conf.yml and cli opts for the ACL whitelist
-	settings.AclImpersonationWhitelist = selectNonEmptyStringSlice(opts.Whitelist, confFile.ServerSettings.AclImpersonationWhitelist, confFile.Whitelist)
+	settings.AclImpersonationWhitelist = selectNonEmptyStringSlice(opts.Whitelist, confFile.ServerSettings.AclImpersonationWhitelist)
 
 	// Defaults
 	settings.ListenBind = "0.0.0.0"

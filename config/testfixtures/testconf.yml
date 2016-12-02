@@ -1,4 +1,5 @@
-whitelist:
-    - first
-    - second
-    - third
+server:
+    acl_whitelist:
+        - first
+        - second
+        - third

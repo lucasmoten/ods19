@@ -29,7 +29,8 @@ server:
         - "baz"
     min_version: ""
     acl_whitelist:
-        - ""  # duplicated in legacy field below
+        - "foo"
+        - "baz"
     static_root: ""
     template_root: ""
 
@@ -62,9 +63,3 @@ zk:
     port: ""
     address: ""
     register_odrive_as: ""
-
-
-# legacy
-whitelist:
-    - "foo"
-    - "baz"
