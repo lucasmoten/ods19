@@ -2,8 +2,8 @@ package zookeeper_test
 
 import (
 	"testing"
+	"time"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/services/zookeeper"
 )
 
@@ -12,13 +12,19 @@ func TestCreateServiceAnnouncement(t *testing.T) {
 		t.Skip("Skipping integration test.")
 	}
 
-	zkAddress := cfg.DockerVM + ":2181"
+	zkAddress := "zk:2181"
 
 	zkBasePath := "/cte/service/object-drive/1.0"
 
 	zkState, err := zookeeper.RegisterApplication(zkBasePath, zkAddress)
 	if err != nil {
-		t.Errorf("could not create the directory for our app in zk:%v", err)
+		// zk was spawned before this test, so just try once more later
+		t.Logf("sleeping a few seconds waiting for zk to settle")
+		time.Sleep(10 * time.Second)
+		zkState, err = zookeeper.RegisterApplication(zkBasePath, zkAddress)
+		if err != nil {
+			t.Errorf("could not create the directory for our app in zk:%v", err)
+		}
 	}
 	defer zkState.Conn.Close()
 
