@@ -14,8 +14,11 @@
 
 import sys, os, subprocess, re, time, signal
 from pwd import getpwnam
+from grp import getgrnam
 
 # init scripts must write a validly-named lockfile
+username = "object-drive"
+groupname = "services"
 service = "object-drive-1.0"
 lockfile = os.path.join('/var/lock/subsys', service)
 pidfile = "/opt/services/object-drive-1.0/pidfile"
@@ -28,12 +31,12 @@ conf = "/opt/services/object-drive-1.0/object-drive.yml"
 default_ciphers = "--addCipher TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 --addCipher TLS_RSA_WITH_AES_128_CBC_SHA"
 
 
-def change_owner(path, uid, perms):
+def change_owner(path, uid, gid, perms):
     """
     Set permissions on file or dir. uid and perms must be int type, eg. 0o755.
     Group is ignored with -1.
     """
-    os.chown(path, uid, -1)
+    os.chown(path, uid, gid)
     os.chmod(path, perms)
 
 
@@ -84,8 +87,10 @@ def start():
         print "Logging location must be absolute path"
         os.exit(1)
 
-    # Get uid of odrive.
-    userid = getpwnam("object-drive").pw_uid
+    # Get uid of user account.
+    uid = getpwnam(username).pw_uid
+    # Get gid of group account.
+    gid = getgrnam(groupname).gr_gid
 
     # Capture root's environment in dictionary. Pass to Popen.
     env_for_proc = dict()
@@ -93,31 +98,39 @@ def start():
         env_for_proc[k] = os.getenv(k, "")
 
     # Change permissions on configuration file.
-    os.chown(conf, userid, -1)
+    os.chown(conf, uid, -1)
 
     # Change ownership of logging directory and file, if the file exists.
     logging_dir = os.path.split(logfile)[0]
     create_dir_not_exists(logging_dir)
-    change_owner(logging_dir, userid, 0o755)
+    change_owner(logging_dir, uid, gid, 0o755)
     if os.path.exists(logfile):
-        change_owner(logfile, userid, 0o755)
+        change_owner(logfile, uid, gid, 0o755)
 
     # Change ownership of cache dir and its contents.
     cache_dir = os.path.split(os.getenv("OD_CACHE_ROOT"))[0]
     create_dir_not_exists(cache_dir)
-    os.chown(cache_dir, userid, -1)
+    os.chown(cache_dir, uid, -1)
     for root, dirs, files in os.walk(cache_dir):
         for d in dirs:
-            change_owner(os.path.join(root, d), userid, 0o755)
+            change_owner(os.path.join(root, d), uid, gid, 0o755)
             for n in files:
-                change_owner(os.path.join(root, n), userid, 0o755)
+                change_owner(os.path.join(root, n), uid, gid, 0o755)
+    
+    # Change ownership of certificates if exists
+    if os.getenv("OD_CERTPATH"):
+        certpath = os.getenv("OD_CERTPATH")
+        if os.path.exists(certpath):
+            change_owner(certpath, uid, gid, 0o755)
+    
 
     # Change ownership of pidfile. 
     touch_file(pidfile)
-    change_owner(pidfile, userid, 0o755)
+    change_owner(pidfile, uid, gid, 0o755)
 
     # Change the user for the currently executing script, e.g. "su down". 
-    os.setuid(userid)
+    os.setuid(uid)
+    os.setgid(gid)
 
     print "Starting object-drive-1.0"
     f = open(logfile, "a")
