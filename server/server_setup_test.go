@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/karlseguin/ccache"
 
@@ -56,8 +57,7 @@ func setup(ip string) {
 }
 
 var (
-	testIP              = flag.String("testIP", "", "The IP address for test API requests. Usually the dockerVM")
-	dumpFileDescriptors = flag.Bool("dumpFileDescriptors", false, "Set to true to shell out to lsof before, during, and after tests")
+	testIP = flag.String("testIP", "", "The IP address for test API requests. Usually the dockerVM")
 )
 
 func countOpenFiles() int {
@@ -108,20 +108,76 @@ func testSettings() {
 	)
 }
 
+func stallForAvailability() int {
+	// Don't stall on short tests
+	if testing.Short() {
+		return 0
+	}
+
+	url := "https://" + config.DockerVM + ":" + config.Port + config.NginxRootURL + "/ping"
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Printf("bad request create: %v", err)
+		return -11
+	}
+
+	// Do this on every try to check the server
+	retryFunc := func() int {
+		log.Printf("try url: %s", url)
+		res, err := clients[0].Client.Do(req)
+		if res == nil {
+			log.Printf("proxy not ready")
+			return -10
+		}
+		if err != nil {
+			log.Printf("bad request: %v", err)
+			return -11
+		}
+		if res.StatusCode != 200 {
+			log.Printf("odrive not ready to serve: %d", res.StatusCode)
+			return res.StatusCode
+		}
+		return 0
+	}
+
+	// Try every few seconds
+	tck := time.NewTicker(10 * time.Second)
+	defer tck.Stop()
+
+	// Give up after a while.  We need enough time to cover from when containers are brought up to when they should pass
+	timeout := time.After(5 * time.Minute)
+
+	// Attempt to check the server.  Quit if we pass timeout
+	for {
+		select {
+		case <-tck.C:
+			code := retryFunc()
+			if code == 0 {
+				return 0
+			}
+		case <-timeout:
+			return -12
+		}
+	}
+}
+
 func testMainBody(m *testing.M) int {
 	flag.Parse()
 
 	testSettings()
 	trafficLogs = make(map[string]*TrafficLog)
 	trafficLogs[APISampleFile] = NewTrafficLog(APISampleFile)
-	dumpOpenFiles(*dumpFileDescriptors, "TestMain before setup")
 	setup(*testIP)
-	dumpOpenFiles(*dumpFileDescriptors, "TestMain after setup")
-	code := m.Run()
+	// flunk the whole test suite if we are not running short tests, and server is down.
+	// it's ok for server to be down on short tests (we will need to do more short/skip in tests though)
+	code := stallForAvailability()
+	if code != 0 {
+		return code
+	}
+	code = m.Run()
 	trafficLogs[APISampleFile].Close()
-	dumpOpenFiles(*dumpFileDescriptors, "TestMain after run")
 	cleanupOpenFiles()
-	dumpOpenFiles(*dumpFileDescriptors, "TestMain after cleanup")
 	return code
 }
 

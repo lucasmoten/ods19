@@ -35,7 +35,6 @@ dependencies:
 
 test:
     override:
-        - sleep 3
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && ./odrive-database debug > db.yml
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && CONTAINERIP=$(docker inspect -f '{{.NetworkSettings.IPAddress }}' $(docker ps -a | grep metadatadb | awk '{print $1}')) sed -i "s/127.0.0.1/$CONTAINERIP/g" db.yml
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && ./odrive-database init --conf db.yml --force=true

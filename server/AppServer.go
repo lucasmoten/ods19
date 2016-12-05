@@ -132,6 +132,7 @@ func (h *AppServer) InitRegex() {
 		// Service operations
 		APIDocumentation: route("/$"),
 		UserStats:        route("/userstats$"),
+		Ping:             route("/ping$"),
 		// - objects
 		Objects:          route("/objects$"),
 		Object:           route("/objects/(?P<objectId>[0-9a-fA-F]{32})$"),
@@ -364,6 +365,9 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// - list subscribed objects
 		case h.Routes.Subscribed.MatchString(uri):
 			herr = h.listObjectsSubscriptions(ctx, w, r)
+		// - exists to give a simple 200 so we have an url to test whether at least one odrive is registered in gatekeeper
+		case h.Routes.Ping.MatchString(uri):
+			herr = h.ping(ctx, w, r)
 		// - list object types
 		case h.Routes.ObjectTypes.MatchString(uri):
 			// TODO: h.listObjectTypes(ctx, w, r)
@@ -679,6 +683,7 @@ type StaticRx struct {
 	ObjectUndelete         *regexp.Regexp
 	ObjectExpunge          *regexp.Regexp
 	ObjectMove             *regexp.Regexp
+	Ping                   *regexp.Regexp
 	Revisions              *regexp.Regexp
 	RevisionStream         *regexp.Regexp
 	SharedToMe             *regexp.Regexp
