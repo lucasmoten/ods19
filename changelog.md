@@ -1,5 +1,9 @@
 Changelog
 
+Release vNEXT
+-------------
+* FIX: RPM updated to create services group, and change ownership to object-drive:services
+
 Release v1.0.1.9
 ----------------
 * ENH: Command `serviceTest` renamed to `test`

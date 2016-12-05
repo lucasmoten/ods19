@@ -120,13 +120,19 @@ if [ -f /opt/services/object-drive/odrive.yml ]; then
     cp -f /opt/services/object-drive/odrive.yml /tmp
 fi
 
-if [ `grep -c '^object-drive:' /etc/passwd` = 1 ] ; then
-  echo object-drive user exists
+if [ `grep -c '^services:' /etc/group` = 1 ] ; then
+  echo services group exists
 else
-  useradd object-drive
+  groupadd -f services
   exit 0
 fi
 
+if [ `grep -c '^object-drive:' /etc/passwd` = 1 ] ; then
+  echo object-drive user exists
+else
+  useradd --no-create-home --no-user-group --gid services object-drive
+  exit 0
+fi
 
 %post
 if [ -f /tmp/odrive.yml ]; then
