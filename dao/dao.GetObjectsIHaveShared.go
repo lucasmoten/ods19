@@ -32,50 +32,18 @@ func getObjectsIHaveSharedInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
 	query := `
     select 
         distinct sql_calc_found_rows 
-        o.id    
-        ,o.createdDate
-        ,o.createdBy
-        ,o.modifiedDate
-        ,o.modifiedBy
-        ,o.isDeleted
-        ,o.deletedDate
-        ,o.deletedBy
-        ,o.isAncestorDeleted
-        ,o.isExpunged
-        ,o.expungedDate
-        ,o.expungedBy
-        ,o.changeCount
-        ,o.changeToken
-        ,o.ownedBy
-        ,o.typeId
-        ,o.name
-        ,o.description
-        ,o.parentId
-        ,o.contentConnector
-        ,o.rawAcm
-        ,o.contentType
-        ,o.contentSize
-        ,o.contentHash
-        ,o.encryptIV
-        ,o.ownedByNew
-        ,o.isPDFAvailable
-        ,o.isStreamStored
-        ,o.containsUSPersonsData
-        ,o.exemptFromFOIA        
-        ,ot.name typeName    
+        o.id 
     from object o
         inner join object_type ot on o.typeid = ot.id
-        inner join object_permission op on op.objectId = o.id
+        inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1
         inner join objectacm acm on o.id = acm.objectid            
-    where 
-        o.isdeleted = 0 
-        and op.isdeleted = 0 
-        and op.createdBy = ?
-        and op.grantee <> ? `
+    where o.isdeleted = 0 
+        and op.createdby = '` + MySQLSafeString2(user.DistinguishedName) + `' 
+		and op.grantee <> '` + MySQLSafeString2(models.AACFlatten(user.DistinguishedName)) + `'`
 	query += buildFilterExcludeNonRootedIHaveShared(user)
 	query += buildFilterForUserSnippets(user)
 	query += buildFilterSortAndLimit(pagingRequest)
-	err := tx.Select(&response.Objects, query, user.DistinguishedName, models.AACFlatten(user.DistinguishedName))
+	err := tx.Select(&response.Objects, query)
 	if err != nil {
 		return response, err
 	}
@@ -88,14 +56,13 @@ func getObjectsIHaveSharedInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
 	response.PageSize = GetSanitizedPageSize(pagingRequest.PageSize)
 	response.PageRows = len(response.Objects)
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
-	// Load permissions
+	// Load full meta, properties, and permissions
 	for i := 0; i < len(response.Objects); i++ {
-		permissions, err := getPermissionsForObjectInTransaction(tx, response.Objects[i])
+		obj, err := getObjectInTransaction(tx, response.Objects[i], true)
 		if err != nil {
-			print(err.Error())
 			return response, err
 		}
-		response.Objects[i].Permissions = permissions
+		response.Objects[i] = obj
 	}
 	return response, err
 }
@@ -114,8 +81,7 @@ func buildFilterExcludeNonRootedIHaveShared(user models.ODUser) string {
 			where 
 				isdeleted = 0 
 				and allowRead = 1
-				and createdBy = '` + MySQLSafeString(user.DistinguishedName) + `' 
-				and grantee not like '` + MySQLSafeString(models.AACFlatten(user.DistinguishedName)) + `'
+				and grantee <> '` + MySQLSafeString2(models.AACFlatten(user.DistinguishedName)) + `'
 		)
 	)
 	`

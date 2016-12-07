@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"strings"
+
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
@@ -24,26 +26,49 @@ func (dao *DataAccessLayer) GetUserStats(dn string) (models.UserStats, error) {
 }
 
 func getUserStatsInTransaction(logger zap.Logger, tx *sqlx.Tx, dn string) (models.UserStats, error) {
-	var objectStorageMetrics []models.UserStatsMetrics
 	var userStats models.UserStats
-	objectsIOwn := buildFilterRequireObjectsIOwn(models.ODUser{DistinguishedName: dn})
-	sqlStatement := `
-    select 
-        t.name as TypeName,
-        (select count(o.id) from object as o where o.typeid=t.id ` + objectsIOwn + `) as Objects, 
-        ifnull((select sum(o.contentSize) from object as o where o.typeid=t.id ` + objectsIOwn + `),0) as ObjectsSize,
-        (select count(ao.id) from a_object as ao where ao.typeid=t.id ` + asArchive(objectsIOwn) + `) as ObjectsAndRevisions,
-        ifnull((select sum(ao.contentSize) from a_object as ao where ao.typeid=t.id ` + asArchive(objectsIOwn) + `),0) as ObjectsAndRevisionsSize
-    from 
-        object_type as t
-    group by t.name
-    `
-	err := tx.Select(&objectStorageMetrics, sqlStatement)
+	var err error
+	// Get base objects
+	var objectMetrics []models.UserStatsMetrics
+	sql := `
+		select 
+			t.name as TypeName, 
+			count(o.id) as Objects, 
+			sum(ifnull(o.contentsize,0)) as ObjectsSize
+		from
+			object_type t 
+			inner join object o on t.id = o.typeid ` + buildFilterRequireObjectsIOwn(models.ODUser{DistinguishedName: dn}) + `
+		group by 
+			t.name`
+	err = tx.Select(&objectMetrics, sql)
 	if err != nil {
-		logger.Error("Unable to execute query", zap.String("sql", sqlStatement), zap.String("err", err.Error()))
+		logger.Error("Unable to execute query", zap.String("sql", sql), zap.String("err", err.Error()))
 		return userStats, err
 	}
-	userStats.ObjectStorageMetrics = objectStorageMetrics
+	userStats.ObjectStorageMetrics = objectMetrics
+	// Get archive
+	var archiveMetrics []models.UserStatsMetrics
+	sql = strings.Replace(sql, " object ", " a_object ", -1)
+	err = tx.Select(&archiveMetrics, sql)
+	if err != nil {
+		logger.Error("Unable to execute query", zap.String("sql", sql), zap.String("err", err.Error()))
+		return userStats, err
+	}
+	// Merge archive into base objects
+	for _, archive := range archiveMetrics {
+		archiveTypeFound := false
+		for i, metric := range userStats.ObjectStorageMetrics {
+			if archive.TypeName == metric.TypeName {
+				userStats.ObjectStorageMetrics[i].ObjectsAndRevisions = archive.Objects
+				userStats.ObjectStorageMetrics[i].ObjectsAndRevisionsSize = archive.ObjectsSize
+				archiveTypeFound = true
+			}
+		}
+		if !archiveTypeFound {
+			userStats.ObjectStorageMetrics = append(userStats.ObjectStorageMetrics, models.UserStatsMetrics{TypeName: archive.TypeName, Objects: 0, ObjectsSize: 0, ObjectsAndRevisions: archive.Objects, ObjectsAndRevisionsSize: archive.ObjectsSize})
+		}
+	}
+	// Get overall totals
 	for i := range userStats.ObjectStorageMetrics {
 		userStats.TotalObjects += userStats.ObjectStorageMetrics[i].Objects
 		userStats.TotalObjectsAndRevisions += userStats.ObjectStorageMetrics[i].ObjectsAndRevisions

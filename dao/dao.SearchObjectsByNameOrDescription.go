@@ -9,7 +9,6 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/metadata/models/acm"
 )
 
 // SearchObjectsByNameOrDescription retrieves a list of Objects, their
@@ -41,44 +40,11 @@ func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUs
     select 
         distinct sql_calc_found_rows 
         o.id    
-        ,o.createdDate
-        ,o.createdBy
-        ,o.modifiedDate
-        ,o.modifiedBy
-        ,o.isDeleted
-        ,o.deletedDate
-        ,o.deletedBy
-        ,o.isAncestorDeleted
-        ,o.isExpunged
-        ,o.expungedDate
-        ,o.expungedBy
-        ,o.changeCount
-        ,o.changeToken
-        ,o.ownedBy
-        ,o.typeId
-        ,o.name
-        ,o.description
-        ,o.parentId
-        ,o.contentConnector
-        ,o.rawAcm
-        ,o.contentType
-        ,o.contentSize
-        ,o.contentHash
-        ,o.encryptIV
-        ,o.ownedByNew
-        ,o.isPDFAvailable
-        ,o.isStreamStored
-        ,o.containsUSPersonsData
-        ,o.exemptFromFOIA        
-        ,ot.name typeName     
     from object o
         inner join object_type ot on o.typeid = ot.id
-        inner join object_permission op	on op.objectid = o.id
+		inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1 
         inner join objectacm acm on o.id = acm.objectid
-    where 
-        o.isdeleted = 0 
-        and op.isdeleted = 0
-        and op.allowread = 1
+    where o.isdeleted = 0 
         and o.isexpunged = 0 
         and o.isancestordeleted = 0`
 	query += buildFilterForUserACMShare(user)
@@ -100,25 +66,13 @@ func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUs
 	response.PageSize = GetSanitizedPageSize(pagingRequest.PageSize)
 	response.PageRows = len(response.Objects)
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
-
-	// Each record in this page of results....
+	// Load full meta, properties, and permissions
 	for i := 0; i < len(response.Objects); i++ {
-		// Permissions
-		permissions, err := getPermissionsForObjectInTransaction(tx, response.Objects[i])
+		obj, err := getObjectInTransaction(tx, response.Objects[i], loadProperties)
 		if err != nil {
-			print(err.Error())
 			return response, err
 		}
-		response.Objects[i].Permissions = permissions
-		// Properties
-		if loadProperties {
-			properties, err := getPropertiesForObjectInTransaction(tx, response.Objects[i])
-			if err != nil {
-				print(err.Error())
-				return response, err
-			}
-			response.Objects[i].Properties = properties
-		}
+		response.Objects[i] = obj
 	}
 
 	// Done
@@ -130,31 +84,31 @@ func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUs
 // just take values straight from the caller/client.  To apply the order by to the
 // archive table, call buildOrderByArchive
 func buildOrderBy(pagingRequest PagingRequest) string {
-	out := ` order by `
+	sql := ` order by`
+	useDefaultSort := true
 	if len(pagingRequest.SortSettings) > 0 {
 		for _, sortSetting := range pagingRequest.SortSettings {
-
 			dbField := getDBFieldFromPagingRequestField(sortSetting.SortField)
 			if len(dbField) == 0 {
-				// unrecognized/unhandled field
+				// skip this unrecognized/unhandled field
 				continue
 			}
-			out += ` ` + dbField
+			if !useDefaultSort {
+				sql += ","
+			}
+			useDefaultSort = false
+			sql += ` ` + dbField
 			if sortSetting.SortAscending {
-				out += ` asc,`
+				sql += ` asc`
 			} else {
-				out += ` desc,`
+				sql += ` desc`
 			}
 		}
-		if strings.HasSuffix(out, ",") {
-			out = strings.TrimRight(out, ",")
-		}
 	}
-	if strings.Compare(out, " order by ") == 0 {
-		// None of the sort settings matched. Force to default
-		out += ` o.modifieddate desc`
+	if useDefaultSort {
+		sql += ` o.modifieddate desc`
 	}
-	return out
+	return sql
 }
 
 // buildOrderByArchive first builds up the order by clause from paging request,
@@ -245,47 +199,13 @@ func buildFilterSortAndLimitArchive(pagingRequest PagingRequest) string {
 }
 
 func buildFilterForUserACMShare(user models.ODUser) string {
-
-	// Return if user.Snippets not defined, or there were no shares.
-	defaultSQL := " and op.grantee = '" + MySQLSafeString(user.DistinguishedName) + "' "
-
-	if user.Snippets == nil {
-		return defaultSQL
+	var allowedGrantees []string
+	allowedGrantees = append(allowedGrantees, "'"+MySQLSafeString2(models.AACFlatten(models.EveryoneGroup))+"'")
+	groups := getGroupsFromSnippets(user)
+	for _, group := range groups {
+		allowedGrantees = append(allowedGrantees, "'"+MySQLSafeString2(models.AACFlatten(group))+"'")
 	}
-
-	// sql is going to be the returned portion of the where clause built up from the snippets
-	var sql string
-
-	// If the snippet defines f_share, this will be used to capture as we iterate through the fields
-	var shareSnippet acm.RawSnippetFields
-
-	// Now iterate all the fields looking for f_share
-	for _, rawFields := range user.Snippets.Snippets {
-		switch rawFields.FieldName {
-		case "f_share":
-			// This field is handled differently tied into permissions.  Capture it
-			shareSnippet = rawFields
-			break
-		default:
-			// All other snippet fields ignored for this operation
-			continue
-		}
-	}
-
-	// If share settings were defined with additional groups
-	if len(shareSnippet.Values) > 0 {
-		sql = " and (op.grantee = '" + MySQLSafeString(user.DistinguishedName) + "' or op.grantee like '" + MySQLSafeString(models.AACFlatten(models.EveryoneGroup)) + "'"
-		for _, shareValue := range shareSnippet.Values {
-			//if !strings.Contains(shareValue, "cusou") && !strings.Contains(shareValue, "governmentcus") {
-			sql += " or op.grantee like '" + MySQLSafeString(shareValue) + "'"
-			//}
-		}
-		sql += ") "
-	} else {
-		sql = defaultSQL
-	}
-	//log.Printf(sql)
-	return sql
+	return " and op.grantee in (" + strings.Join(allowedGrantees, ",") + ") "
 }
 
 func buildFilterForUserSnippets(user models.ODUser) string {
@@ -316,7 +236,7 @@ func buildFilterForUserSnippetsUsingACM(user models.ODUser) string {
 			sql += " and acmid not in ("
 			// where it does have the field
 			sql += "select acmid from acmpart inner join acmkey on acmpart.acmkeyid = acmkey.id inner join acmvalue on acmpart.acmvalueid = acmvalue.id "
-			sql += "where acmkey.name like '" + MySQLSafeString(rawFields.FieldName) + "' "
+			sql += "where acmkey.name = '" + MySQLSafeString2(rawFields.FieldName) + "' "
 			sql += "and acmvalue.name in (''"
 			for _, value := range rawFields.Values {
 				sql += ",'" + MySQLSafeString2(value) + "'"
@@ -329,10 +249,10 @@ func buildFilterForUserSnippetsUsingACM(user models.ODUser) string {
 			// where it does have the field
 			sql += " union "
 			sql += "select acmid from acmpart inner join acmkey on acmpart.acmkeyid = acmkey.id inner join acmvalue on acmpart.acmvalueid = acmvalue.id "
-			sql += "where acmkey.name like '" + MySQLSafeString(rawFields.FieldName) + "' "
+			sql += "where acmkey.name = '" + MySQLSafeString2(rawFields.FieldName) + "' "
 			sql += "and (acmvalue.name = '' "
 			for _, value := range rawFields.Values {
-				sql += " or acmvalue.name like '" + MySQLSafeString(value) + "'"
+				sql += " or acmvalue.name = '" + MySQLSafeString2(value) + "'"
 			}
 			sql += ") and acmpart.isdeleted = 0 and acmkey.isdeleted = 0 and acmvalue.isdeleted = 0)"
 		default:
@@ -349,8 +269,8 @@ func buildFilterExcludeEveryone() string {
 	var sql string
 	sql += " and o.id not in ("
 	sql += "select objectid from object_permission "
-	sql += "where isdeleted = 0 and grantee like '"
-	sql += MySQLSafeString(models.AACFlatten(models.EveryoneGroup))
+	sql += "where isdeleted = 0 and grantee = '"
+	sql += MySQLSafeString2(models.AACFlatten(models.EveryoneGroup))
 	sql += "') "
 	return sql
 }
@@ -458,7 +378,7 @@ func removeDisplayNameFromResourceString(resourceString string) string {
 }
 
 func buildFilterRequireObjectsIOwn(user models.ODUser) string {
-	return " and o.ownedby in (" + strings.Join(buildListObjectsIOwn(user), ",") + ")"
+	return " and o.ownedby = 'user/" + MySQLSafeString2(user.DistinguishedName) + "'"
 }
 
 func buildFilterExcludeObjectsIOrMyGroupsOwn(tx *sqlx.Tx, user models.ODUser) string {
@@ -471,42 +391,38 @@ func buildFilterRequireObjectsIOrMyGroupsOwn(tx *sqlx.Tx, user models.ODUser) st
 
 func buildListObjectsIOrMyGroupsOwn(tx *sqlx.Tx, user models.ODUser) []string {
 	ownedby := []string{}
-	ownedby = append(ownedby, buildListObjectsIOwn(user)...)
+	ownedby = append(ownedby, "'user/"+MySQLSafeString2(user.DistinguishedName)+"'")
 	ownedby = append(ownedby, buildListObjectsMyGroupOwns(tx, user)...)
 	return ownedby
 }
 
-func buildListObjectsIOwn(user models.ODUser) []string {
-	ownedby := []string{}
-	// original ownership format as just the dn
-	ownedby = append(ownedby, "'"+MySQLSafeString2(user.DistinguishedName)+"'")
-	// revised resource format prefixed by type
-	ownedby = append(ownedby, "'user/"+MySQLSafeString2(user.DistinguishedName)+"'")
-	return ownedby
-}
 func buildListObjectsMyGroupOwns(tx *sqlx.Tx, user models.ODUser) []string {
 	ownedby := []string{}
+	groups := getGroupsFromSnippets(user)
+	for _, group := range groups {
+		if len(group) > 0 {
+			if acmGrantee, err := getAcmGranteeInTransaction(tx, group); err == nil {
+				resourceName := acmGrantee.ResourceName()
+				ownedby = append(ownedby, "'"+resourceName+"'")
+				resourceNameNoDisplayName := removeDisplayNameFromResourceString(resourceName)
+				if resourceName != resourceNameNoDisplayName {
+					ownedby = append(ownedby, "'"+resourceNameNoDisplayName+"'")
+				}
+			}
+		}
+	}
+	return ownedby
+}
+func getGroupsFromSnippets(user models.ODUser) []string {
 	if user.Snippets != nil {
 		for _, rawFields := range user.Snippets.Snippets {
 			switch rawFields.FieldName {
 			case "f_share":
-				for _, shareValue := range rawFields.Values {
-					trimmedShareValue := strings.TrimSpace(shareValue)
-					if len(trimmedShareValue) > 0 {
-						acmGrantee, err := getAcmGranteeInTransaction(tx, trimmedShareValue)
-						if err == nil {
-							ownedby = append(ownedby, "'"+acmGrantee.ResourceName()+"'")
-						} else {
-							// Assume its a group
-							ownedby = append(ownedby, "'group/"+MySQLSafeString2(trimmedShareValue)+"'")
-						}
-					}
-				}
-				break
+				return rawFields.Values
 			default:
 				continue
 			}
 		}
 	}
-	return ownedby
+	return []string{models.AACFlatten(user.DistinguishedName)}
 }

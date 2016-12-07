@@ -1,6 +1,7 @@
 package dao_test
 
 import (
+	"encoding/hex"
 	"fmt"
 	"testing"
 
@@ -37,15 +38,29 @@ func TestDAOGetTrashedObjectsByUser(t *testing.T) {
 	results, err := d.GetTrashedObjectsByUser(user3, pagingRequest)
 
 	// Ensure that the delete objects in trash.
-	success := false
+	intrash := false
 	for _, o := range results.Objects {
 		if o.Name == objA.Name {
-			success = true
+			intrash = true
 		}
 	}
-	if !success {
+	if !intrash {
 		t.Fail()
 	}
+	if t.Failed() {
+		t.Log("Errors finding objA in trash")
+		t.FailNow()
+	}
+}
+
+func TestDAOGetTrashedObjectsDeleteParent(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	user3 := setupUserWithSnippets(usernames[3])
+	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: 1000}
 
 	// Create parent-child relationship, then delete the parent.
 	// Parent should show up in trash. Child should not show up
@@ -57,81 +72,117 @@ func TestDAOGetTrashedObjectsByUser(t *testing.T) {
 	if err = d.DeleteObject(user3, parent1, true); err != nil {
 		t.Errorf("Error deleting test parent1: %v\n", err)
 	}
-	results, err = d.GetTrashedObjectsByUser(user3, pagingRequest)
+	results, err := d.GetTrashedObjectsByUser(user3, pagingRequest)
 	if err != nil {
 		t.Errorf("Error calling GetTrashedObjectsByUser: %v\n", err)
 	}
-	success = false
+	intrash := false
 	// Assert parent is in trash.
 	for _, o := range results.Objects {
 		if o.Name == parent1.Name {
-			success = true
+			intrash = true
 		}
 	}
-	if !success {
-		t.Error("Object parent1 is deleted but does not appear in trash")
+	if !intrash {
+		t.Logf("Object parent1 is deleted but does not appear in trash")
+		t.Fail()
 	}
 	// Assert child is not in trash.
+	intrash = false
 	for _, o := range results.Objects {
 		if o.Name == child1.Name {
-			success = false
-			t.Error("Object child1 should not be in user3 trash.")
+			intrash = true
+			t.Logf("Object child1 should not be in user3 trash.")
+			t.Fail()
+		}
+	}
+	// Assert neither show up in root
+	results, err = d.GetRootObjectsByUser(user3, pagingRequest)
+	for _, o := range results.Objects {
+		if o.Name == child1.Name {
+			t.Logf("Object child1 has a deleted parent, should not show in GetRootObjectsByUser. ID of child is %s", hex.EncodeToString(o.ID))
+			t.Fail()
+		}
+		if o.Name == parent1.Name {
+			t.Logf("Object parent1 is deleted, should not show in GetRootObjectsByUser. ID of parent is %s", hex.EncodeToString(o.ID))
+			t.Fail()
 		}
 	}
 	// Assert neither show up in listObjects.
 	results, err = d.GetChildObjectsByUser(user3, pagingRequest, parent1)
-
 	for _, o := range results.Objects {
 		if o.Name == child1.Name {
-			success = false
-			t.Error("Object child1 has a deleted parent, should not show in GetChildObjectsByUser.")
+			t.Logf("Object child1 has a deleted parent, should not show in GetChildObjectsByUser. ID of child is %s", hex.EncodeToString(o.ID))
+			t.Fail()
 		}
 		if o.Name == parent1.Name {
-			success = false
-			t.Error("Object parent1 is deleted, should not show in GetChildObjectsByUser.")
+			t.Logf("Object parent1 is deleted, should not show in GetChildObjectsByUser. ID of parent is %s", hex.EncodeToString(o.ID))
+			t.Fail()
 		}
 	}
 
-	if !success {
+	if t.Failed() {
 		t.Log("Errors in test cases for parent1, child1 object pair.")
-		t.Fail()
+		t.FailNow()
+	}
+}
+func TestDAOGetTrashedObjectsDeleteChild(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip()
 	}
 
+	user3 := setupUserWithSnippets(usernames[3])
+	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: 1000}
 	// Create parent-child relationship, then delete the child.
 	// Child should show up in trash. Parent should show up in
 	// listObjects.
-	success = false
 	parent2, child2, err := createParentChildObjectPair(user3.DistinguishedName)
 	if err != nil {
-		t.Errorf("Error creating parent-child pair: %v\n", err)
+		t.Logf("Error creating parent-child pair: %v\n", err)
+		t.Fail()
 	}
 	if err = d.DeleteObject(user3, child2, true); err != nil {
-		t.Errorf("Error deleting test parent2: %v\n", err)
+		t.Logf("Error deleting test parent2: %v\n", err)
+		t.Fail()
 	}
 	// Assert child2 is in trash.
-	results, err = d.GetTrashedObjectsByUser(user3, pagingRequest)
+	intrash := false
+	results, err := d.GetTrashedObjectsByUser(user3, pagingRequest)
 	for _, o := range results.Objects {
 		if o.Name == child2.Name {
-			success = true
+			intrash = true
 		}
+	}
+	if !intrash {
+		t.Logf("child2 was not found in the trash after deleted!")
+		t.Fail()
 	}
 	// Assert parent2 is in listObjects.
-	results, err = d.GetChildObjectsByUser(user3, pagingRequest, parent1)
+	results, err = d.GetRootObjectsByUser(user3, pagingRequest)
+	inlist := false
 	for _, o := range results.Objects {
 		if o.Name == parent2.Name {
-			success = true
+			inlist = true
 		}
 	}
-	if !success {
-		t.Error("Object parent2 should show up in GetChildObjectsByUser.")
+	if !inlist {
+		t.Logf("Object parent2 should show up in GetRootObjectsByUser.")
+		t.Fail()
 	}
 	// Assert child2 is not in listObjects.
+	results, err = d.GetChildObjectsByUser(user3, pagingRequest, parent2)
+	intrash = false
 	for _, o := range results.Objects {
 		if o.Name == child2.Name {
-			t.Error("Object child2 is deleted, should not show up in GetChildObjectsByUser.")
+			intrash = true
+			t.Logf("Object child2 is deleted, should not show up in GetChildObjectsByUser.")
+			t.Fail()
 		}
 	}
-
+	if t.Failed() {
+		t.FailNow()
+	}
 }
 
 // createParentChildObjectPair creates a parent object at root and a child of that parent.
@@ -164,10 +215,10 @@ func createTestObjectAllPermissions(username string) models.ODObject {
 
 	var perms models.ODObjectPermission
 	perms.CreatedBy = username
-	perms.Grantee = username
-	perms.AcmShare = fmt.Sprintf(`{"users":[%s]}`, perms.Grantee)
+	perms.Grantee = models.AACFlatten(username)
+	perms.AcmShare = fmt.Sprintf(`{"users":[%s]}`, perms.CreatedBy)
 	perms.AcmGrantee.Grantee = perms.Grantee
-	perms.AcmGrantee.UserDistinguishedName.String = perms.Grantee
+	perms.AcmGrantee.UserDistinguishedName.String = perms.CreatedBy
 	perms.AcmGrantee.UserDistinguishedName.Valid = true
 	perms.AllowCreate, perms.AllowDelete, perms.AllowRead, perms.AllowUpdate = true, true, true, true
 

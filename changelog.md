@@ -3,6 +3,7 @@ Changelog
 Release vNEXT
 -------------
 * FIX: RPM updated to create services group, and change ownership to object-drive:services
+* ENH: Performance improvements to database list/search operations, and additional indexing on key columns
 
 Release v1.0.1.9
 ----------------

@@ -132,7 +132,10 @@ func TestListObjectsRootPaging(t *testing.T) {
 		fmt.Println(string(jsonData))
 	}
 
-	for pn := 1; pn <= (listOfObjects.PageCount / 20); pn++ {
+	for pn := 1; pn <= listOfObjects.PageCount; pn++ {
+		if pn >= 3 {
+			return
+		}
 		uriPaged := uri + "?PageNumber=" + strconv.Itoa(pn) + "&PageSize=20"
 		// Request
 		req, err := http.NewRequest("GET", uriPaged, nil)
@@ -231,7 +234,7 @@ func TestListObjectsChild(t *testing.T) {
 	}
 	t.Logf("Paging")
 	for pn := 2; pn <= listOfObjects.PageCount; pn++ {
-		if testing.Short() && pn >= 3 {
+		if pn >= 3 {
 			return
 		}
 		uriPaged := uri + strconv.Itoa(pn)
@@ -289,6 +292,9 @@ func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level 
 			depthstring += "| "
 		}
 	}
+	if level > 3 {
+		return
+	}
 
 	// Request
 	req, err := http.NewRequest("GET", uri1, nil)
@@ -308,7 +314,7 @@ func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level 
 		//log.Printf("bad status: %s %s", res.Status, hex.EncodeToString(childid))
 		t.Logf(depthstring)
 		t.Logf(" >>> 403 Unauthorized to read this object, so cannot list children")
-		t.FailNow()
+		return
 	}
 	var listOfObjects protocol.ObjectResultset
 	err = util.FullDecode(res.Body, &listOfObjects)
@@ -329,7 +335,7 @@ func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level 
 		}
 	}
 	for pn := 2; pn <= listOfObjects.PageCount; pn++ {
-		if testing.Short() && pn >= 3 {
+		if pn >= 3 {
 			return
 		}
 		uriPaged := uri + strconv.Itoa(pn)

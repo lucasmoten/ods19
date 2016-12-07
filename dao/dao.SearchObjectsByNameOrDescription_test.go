@@ -9,6 +9,7 @@ import (
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
+	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
 
@@ -18,8 +19,11 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 		t.Skip()
 	}
 
+	guid, _ := util.NewGUID()
+	timeSuffix := strconv.FormatInt(time.Now().Unix(), 10) + guid
+
 	// Create object 1 and maintain reference to delete later
-	obj1 := setupObjectForDAOSearchObjectsTest("Search Object 1")
+	obj1 := setupObjectForDAOSearchObjectsTest("Search Object 1" + timeSuffix)
 	dbObject1, err := d.CreateObject(&obj1)
 	if err != nil {
 		t.Error(err)
@@ -29,7 +33,7 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 	}
 
 	// Create object 2 and maintain reference to delete later
-	obj2 := setupObjectForDAOSearchObjectsTest("Search Object 2")
+	obj2 := setupObjectForDAOSearchObjectsTest("Search Object 2" + timeSuffix)
 	dbObject2, err := d.CreateObject(&obj2)
 	if err != nil {
 		t.Error(err)
@@ -44,11 +48,11 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 	filterNameAsSearch1 := dao.FilterSetting{}
 	filterNameAsSearch1.FilterField = "name"
 	filterNameAsSearch1.Condition = "contains"
-	filterNameAsSearch1.Expression = "Search Object 1"
+	filterNameAsSearch1.Expression = "Search Object 1" + timeSuffix
 	filterDescriptionAsSearch1 := dao.FilterSetting{}
 	filterDescriptionAsSearch1.FilterField = "description"
 	filterDescriptionAsSearch1.Condition = "contains"
-	filterDescriptionAsSearch1.Expression = "Search Object 1"
+	filterDescriptionAsSearch1.Expression = "Search Object 1" + timeSuffix
 	pagingRequest.FilterSettings = make([]dao.FilterSetting, 0)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterNameAsSearch1)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterDescriptionAsSearch1)
@@ -56,49 +60,55 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 	searchResults1, err := d.SearchObjectsByNameOrDescription(user, pagingRequest, false)
 	if err != nil {
 		t.Error(err)
+		t.FailNow()
 	}
 	if searchResults1.TotalRows != 1 {
-		t.Error("expected 1 result searching for Search Object 1")
+		t.Logf("expected 1 result searching for Search Object 1, got %d for %s", searchResults1.TotalRows, timeSuffix)
+		t.Fail()
 	}
 
 	// Search for objects that have name or description with phrase 'Search Object 2'
 	filterNameAsSearch2 := dao.FilterSetting{}
 	filterNameAsSearch2.FilterField = "name"
 	filterNameAsSearch2.Condition = "contains"
-	filterNameAsSearch2.Expression = "Search Object 2"
+	filterNameAsSearch2.Expression = "Search Object 2" + timeSuffix
 	filterDescriptionAsSearch2 := dao.FilterSetting{}
 	filterDescriptionAsSearch2.FilterField = "description"
 	filterDescriptionAsSearch2.Condition = "contains"
-	filterDescriptionAsSearch2.Expression = "Search Object 2"
+	filterDescriptionAsSearch2.Expression = "Search Object 2" + timeSuffix
 	pagingRequest.FilterSettings = make([]dao.FilterSetting, 0)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterNameAsSearch2)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterDescriptionAsSearch2)
 	searchResults2, err := d.SearchObjectsByNameOrDescription(user, pagingRequest, false)
 	if err != nil {
 		t.Error(err)
+		t.FailNow()
 	}
 	if searchResults2.TotalRows != 1 {
-		t.Error("expected 1 result searching for Search Object 2")
+		t.Logf("expected 1 result searching for Search Object 2, got %d for %s", searchResults2.TotalRows, timeSuffix)
+		t.Fail()
 	}
 
 	// Search for objects that have name or description with phrase 'Search'
 	filterNameAsSearch3 := dao.FilterSetting{}
 	filterNameAsSearch3.FilterField = "name"
 	filterNameAsSearch3.Condition = "contains"
-	filterNameAsSearch3.Expression = "Search"
+	filterNameAsSearch3.Expression = timeSuffix
 	filterDescriptionAsSearch3 := dao.FilterSetting{}
 	filterDescriptionAsSearch3.FilterField = "description"
 	filterDescriptionAsSearch3.Condition = "contains"
-	filterDescriptionAsSearch3.Expression = "Search"
+	filterDescriptionAsSearch3.Expression = timeSuffix
 	pagingRequest.FilterSettings = make([]dao.FilterSetting, 0)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterNameAsSearch3)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterDescriptionAsSearch3)
 	searchResults3, err := d.SearchObjectsByNameOrDescription(user, pagingRequest, false)
 	if err != nil {
 		t.Error(err)
+		t.FailNow()
 	}
 	if searchResults3.TotalRows != 2 {
-		t.Error("expected 2 results from searching")
+		t.Logf("expected 2 results from searching, got %d for %s", searchResults3.TotalRows, timeSuffix)
+		t.Fail()
 	}
 
 	// Attempt some sql injection
@@ -120,17 +130,6 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 	if searchResults4.TotalRows != 0 {
 		t.Error("expected 0 results from searching")
 	}
-
-	// cleanup / delete the objects
-
-	err = d.DeleteObject(user, dbObject1, true)
-	if err != nil {
-		t.Error(err)
-	}
-	err = d.DeleteObject(user, dbObject2, true)
-	if err != nil {
-		t.Error(err)
-	}
 }
 
 func TestDAOSearchObjectsAndOrFilter(t *testing.T) {
@@ -139,17 +138,19 @@ func TestDAOSearchObjectsAndOrFilter(t *testing.T) {
 		t.Skip()
 	}
 
-	baseName := "AndOrFilter" + strconv.FormatInt(time.Now().Unix(), 10)
+	guid, _ := util.NewGUID()
+	timeSuffix := strconv.FormatInt(time.Now().Unix(), 10) + guid
+	baseName := "AndOrFilter" + timeSuffix
 	obj1Name := baseName + " Object 1"
 	obj2Name := baseName + " Object 2"
 
 	// Create object 1 and maintain reference to delete later
 	obj1 := setupObjectForDAOSearchObjectsTest(obj1Name)
-	dbObject1, _ := d.CreateObject(&obj1)
+	d.CreateObject(&obj1)
 
 	// Create object 2 and maintain reference to delete later
 	obj2 := setupObjectForDAOSearchObjectsTest(obj2Name)
-	dbObject2, _ := d.CreateObject(&obj2)
+	d.CreateObject(&obj2)
 
 	// User
 	user := setupUserWithSnippets(usernames[1])
@@ -181,9 +182,6 @@ func TestDAOSearchObjectsAndOrFilter(t *testing.T) {
 		t.Fail()
 	}
 
-	// cleanup / delete the objects
-	d.DeleteObject(user, dbObject1, true)
-	d.DeleteObject(user, dbObject2, true)
 }
 
 func setupObjectForDAOSearchObjectsTest(name string) models.ODObject {
@@ -195,10 +193,10 @@ func setupObjectForDAOSearchObjectsTest(name string) models.ODObject {
 	obj.TypeName.String = "File"
 	obj.TypeName.Valid = true
 	permissions := make([]models.ODObjectPermission, 1)
-	permissions[0].Grantee = obj.CreatedBy
-	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, permissions[0].Grantee)
+	permissions[0].Grantee = models.AACFlatten(obj.CreatedBy)
+	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, permissions[0].CreatedBy)
 	permissions[0].AcmGrantee.Grantee = permissions[0].Grantee
-	permissions[0].AcmGrantee.UserDistinguishedName.String = permissions[0].Grantee
+	permissions[0].AcmGrantee.UserDistinguishedName.String = permissions[0].CreatedBy
 	permissions[0].AcmGrantee.UserDistinguishedName.Valid = true
 	permissions[0].AllowCreate = true
 	permissions[0].AllowRead = true
@@ -217,7 +215,7 @@ func setupUserWithSnippets(username string) models.ODUser {
 	snippet.FieldName = "f_share"
 	snippet.Treatment = "allowed"
 	snippet.Values = make([]string, 1)
-	snippet.Values[0] = username
+	snippet.Values[0] = models.AACFlatten(username)
 	snippets := acm.ODriveRawSnippetFields{}
 	snippets.Snippets = append(snippets.Snippets, snippet)
 	user.Snippets = &snippets
