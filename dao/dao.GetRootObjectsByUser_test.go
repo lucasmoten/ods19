@@ -41,10 +41,10 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 	object1.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions1 := make([]models.ODObjectPermission, 1)
 	permissions1[0].CreatedBy = user1.DistinguishedName
-	permissions1[0].Grantee = user1.DistinguishedName
-	permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, permissions1[0].Grantee)
+	permissions1[0].Grantee = models.AACFlatten(user1.DistinguishedName)
+	permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, permissions1[0].CreatedBy)
 	permissions1[0].AcmGrantee.Grantee = permissions1[0].Grantee
-	permissions1[0].AcmGrantee.UserDistinguishedName.String = permissions1[0].Grantee
+	permissions1[0].AcmGrantee.UserDistinguishedName.String = permissions1[0].CreatedBy
 	permissions1[0].AcmGrantee.UserDistinguishedName.Valid = true
 	permissions1[0].AllowCreate = true
 	permissions1[0].AllowRead = true
@@ -74,10 +74,10 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 	object2.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions2 := make([]models.ODObjectPermission, 1)
 	permissions2[0].CreatedBy = user2.DistinguishedName
-	permissions2[0].Grantee = user2.DistinguishedName
-	permissions2[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, permissions2[0].Grantee)
+	permissions2[0].Grantee = models.AACFlatten(user2.DistinguishedName)
+	permissions2[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, permissions2[0].CreatedBy)
 	permissions2[0].AcmGrantee.Grantee = permissions2[0].Grantee
-	permissions2[0].AcmGrantee.UserDistinguishedName.String = permissions2[0].Grantee
+	permissions2[0].AcmGrantee.UserDistinguishedName.String = permissions2[0].CreatedBy
 	permissions2[0].AcmGrantee.UserDistinguishedName.Valid = true
 	permissions2[0].AllowCreate = true
 	permissions2[0].AllowRead = true
@@ -103,40 +103,14 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if resultset.TotalRows != (originalTotalRows1 + 1) {
+	if resultset.TotalRows <= originalTotalRows1 {
 		t.Error("expected an increase in objects at root")
 	}
 	resultset, err = d.GetRootObjectsByUser(user2, pagingRequest)
 	if err != nil {
 		t.Error(err)
 	}
-	if resultset.TotalRows != (originalTotalRows2 + 1) {
+	if resultset.TotalRows <= originalTotalRows2 {
 		t.Error("expected an increase in objects at root")
-	}
-
-	// Delete the objects
-	err = d.DeleteObject(user1, dbObject1, true)
-	if err != nil {
-		t.Error(err)
-	}
-	err = d.DeleteObject(user2, dbObject2, true)
-	if err != nil {
-		t.Error(err)
-	}
-
-	// Get root Objects again
-	resultset, err = d.GetRootObjectsByUser(user1, pagingRequest)
-	if err != nil {
-		t.Error(err)
-	}
-	if resultset.TotalRows != originalTotalRows1 {
-		t.Error("expected same number of objects as before the test")
-	}
-	resultset, err = d.GetRootObjectsByUser(user2, pagingRequest)
-	if err != nil {
-		t.Error(err)
-	}
-	if resultset.TotalRows != originalTotalRows2 {
-		t.Error("expected same number of objects as before the test")
 	}
 }

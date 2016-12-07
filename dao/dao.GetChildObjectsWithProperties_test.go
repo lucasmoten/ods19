@@ -2,10 +2,13 @@ package dao_test
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
+	"time"
 
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
 
@@ -13,9 +16,13 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	// create parent object
+
+	guid, _ := util.NewGUID()
+	timeSuffix := strconv.FormatInt(time.Now().Unix(), 10) + guid
+
+	t.Logf("Create parent object")
 	var parent models.ODObject
-	parent.Name = "Test Parent Object for GetChildObjectsWithProperties"
+	parent.Name = "Test Parent Object for GetChildObjectsWithProperties" + timeSuffix
 	parent.CreatedBy = usernames[1]
 	parent.TypeName.String = "File"
 	parent.TypeName.Valid = true
@@ -31,9 +38,9 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 		t.Error("expected TypeID to be set")
 	}
 
-	// create child 1
+	t.Logf("Create child 1")
 	var child1 models.ODObject
-	child1.Name = "Test Child Object 1 for GetChildObjectsWithProperties"
+	child1.Name = "Test Child Object 1 for GetChildObjectsWithProperties" + timeSuffix
 	child1.CreatedBy = usernames[1]
 	child1.TypeName.String = "File"
 	child1.TypeName.Valid = true
@@ -73,9 +80,10 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 		t.Error(err)
 	}
 
-	// create child 2
+	time.Sleep(1 * time.Second)
+	t.Logf("Create child 2")
 	var child2 models.ODObject
-	child2.Name = "Test Child Object 2 for GetChildObjectsWithProperties"
+	child2.Name = "Test Child Object 2 for GetChildObjectsWithProperties" + timeSuffix
 	child2.CreatedBy = usernames[1]
 	child2.TypeName.String = "File"
 	child2.TypeName.Valid = true
@@ -148,7 +156,7 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 		t.Error(err)
 	}
 
-	// Get child objects with properties from a single page of up to 10
+	t.Logf("Get child objects with properties from a single page of up to 10")
 	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: 10, SortSettings: []dao.SortSetting{dao.SortSetting{SortField: "createddate", SortAscending: true}}}
 	resultset, err := d.GetChildObjectsWithProperties(pagingRequest, dbParent)
 	if err != nil {
@@ -174,7 +182,7 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 		}
 	}
 
-	// Get from first page of 1, then second page of 1
+	t.Logf("Get from first page of 1, ...")
 	pagingRequest.PageSize = 1
 	resultset, err = d.GetChildObjectsWithProperties(pagingRequest, dbParent)
 	if err != nil {
@@ -193,6 +201,7 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 			t.Error("Expected first child to have 2 properties")
 		}
 	}
+	t.Logf("...then second page of 1")
 	pagingRequest.PageNumber = 2
 	resultset, err = d.GetChildObjectsWithProperties(pagingRequest, dbParent)
 	if err != nil {
@@ -211,15 +220,4 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 			t.Error("Expected child on page 2 to have 5 properties")
 		}
 	}
-
-	// cleanup
-	user := models.ODUser{DistinguishedName: dbParent.CreatedBy}
-	for _, object := range resultset.Objects {
-		for _, property := range object.Properties {
-			d.DeleteObjectProperty(property)
-		}
-		d.DeleteObject(user, object, true)
-	}
-	d.DeleteObject(user, dbParent, true)
-
 }

@@ -91,11 +91,13 @@ func deleteObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.OD
 
 	// Process children
 	hasUndeletedChildren := true
+	deletedAtLeastOne := true
 	pagingRequest := PagingRequest{PageNumber: 1, PageSize: MaxPageSize}
 	for hasUndeletedChildren {
-		pagedResultset, err := getChildObjectsInTransaction(tx, pagingRequest, dbObject)
-		hasUndeletedChildren = pagedResultset.PageCount > pagingRequest.PageNumber
+		pagedResultset, err := getChildObjectsInTransaction(tx, pagingRequest, dbObject, false)
+		hasUndeletedChildren = (pagedResultset.PageCount > pagingRequest.PageNumber) && deletedAtLeastOne
 		for i := 0; i < len(pagedResultset.Objects); i++ {
+			deletedAtLeastOne = false
 			if !pagedResultset.Objects[i].IsAncestorDeleted {
 				authorizedToDelete := false
 				for _, permission := range pagedResultset.Objects[i].Permissions {
@@ -110,8 +112,12 @@ func deleteObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.OD
 					if err != nil {
 						return err
 					}
+					deletedAtLeastOne = true
 				}
 			}
+		}
+		if !deletedAtLeastOne {
+			pagingRequest.PageNumber++
 		}
 	}
 	return nil

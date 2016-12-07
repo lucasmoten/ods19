@@ -97,10 +97,10 @@ func NewObjectWithPermissionsAndProperties(username, objectType string) models.O
 	obj.TypeName.String, obj.TypeName.Valid = objectType, true
 	obj.RawAcm.String = ValidACMUnclassified
 	permissions := make([]models.ODObjectPermission, 1)
-	permissions[0].Grantee = obj.CreatedBy
-	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, permissions[0].Grantee)
+	permissions[0].Grantee = models.AACFlatten(obj.CreatedBy)
+	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, obj.CreatedBy)
 	permissions[0].AcmGrantee.Grantee = permissions[0].Grantee
-	permissions[0].AcmGrantee.UserDistinguishedName.String = permissions[0].Grantee
+	permissions[0].AcmGrantee.UserDistinguishedName.String = obj.CreatedBy
 	permissions[0].AcmGrantee.UserDistinguishedName.Valid = true
 	permissions[0].AllowCreate = true
 	permissions[0].AllowRead = true

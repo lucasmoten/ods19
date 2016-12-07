@@ -97,42 +97,34 @@ func expungeObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.O
 	}
 
 	// Process children
+	hasUndeletedChildren := true
+	deletedAtLeastOne := true
 	pagingRequest := PagingRequest{PageNumber: 1, PageSize: MaxPageSize}
-	resultset, err := getChildObjectsInTransaction(tx, pagingRequest, dbObject)
-	for i := 0; i < len(resultset.Objects); i++ {
-		authorizedToDelete := false
-		for _, permission := range resultset.Objects[i].Permissions {
-			if permission.AllowDelete && isUserMemberOf(user, permission.Grantee) {
-				authorizedToDelete = true
-				break
-			}
-		}
-		if authorizedToDelete {
-			resultset.Objects[i].ModifiedBy = object.ModifiedBy
-			err = expungeObjectInTransaction(tx, user, resultset.Objects[i], false)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	for pageNumber := 2; pageNumber < resultset.PageCount; pageNumber++ {
-		pagingRequest.PageNumber = pageNumber
-		pagedResultset, err := getChildObjectsInTransaction(tx, pagingRequest, dbObject)
+	for hasUndeletedChildren {
+		pagedResultset, err := getChildObjectsInTransaction(tx, pagingRequest, dbObject, false)
+		hasUndeletedChildren = (pagedResultset.PageCount > pagingRequest.PageNumber) && deletedAtLeastOne
 		for i := 0; i < len(pagedResultset.Objects); i++ {
-			authorizedToDelete := false
-			for _, permission := range pagedResultset.Objects[i].Permissions {
-				if permission.AllowDelete && isUserMemberOf(user, permission.Grantee) {
-					authorizedToDelete = true
-					break
+			deletedAtLeastOne = false
+			if !pagedResultset.Objects[i].IsAncestorDeleted {
+				authorizedToDelete := false
+				for _, permission := range pagedResultset.Objects[i].Permissions {
+					if permission.AllowDelete && isUserMemberOf(user, permission.Grantee) {
+						authorizedToDelete = true
+						break
+					}
+				}
+				if authorizedToDelete {
+					pagedResultset.Objects[i].ModifiedBy = object.ModifiedBy
+					err = expungeObjectInTransaction(tx, user, pagedResultset.Objects[i], false)
+					if err != nil {
+						return err
+					}
+					deletedAtLeastOne = true
 				}
 			}
-			if authorizedToDelete {
-				pagedResultset.Objects[i].ModifiedBy = object.ModifiedBy
-				err = expungeObjectInTransaction(tx, user, pagedResultset.Objects[i], false)
-				if err != nil {
-					return err
-				}
-			}
+		}
+		if !deletedAtLeastOne {
+			pagingRequest.PageNumber++
 		}
 	}
 

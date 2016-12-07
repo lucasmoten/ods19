@@ -15,7 +15,7 @@ func (dao *DataAccessLayer) GetChildObjects(pagingRequest PagingRequest, object 
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getChildObjectsInTransaction(tx, pagingRequest, object)
+	response, err := getChildObjectsInTransaction(tx, pagingRequest, object, false)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetChildObjects", zap.String("err", err.Error()))
 		tx.Rollback()
@@ -25,49 +25,16 @@ func (dao *DataAccessLayer) GetChildObjects(pagingRequest PagingRequest, object 
 	return response, err
 }
 
-func getChildObjectsInTransaction(tx *sqlx.Tx, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
+func getChildObjectsInTransaction(tx *sqlx.Tx, pagingRequest PagingRequest, object models.ODObject, loadProperties bool) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	query := `
     select 
         distinct sql_calc_found_rows 
         o.id    
-        ,o.createdDate
-        ,o.createdBy
-        ,o.modifiedDate
-        ,o.modifiedBy
-        ,o.isDeleted
-        ,o.deletedDate
-        ,o.deletedBy
-        ,o.isAncestorDeleted
-        ,o.isExpunged
-        ,o.expungedDate
-        ,o.expungedBy
-        ,o.changeCount
-        ,o.changeToken
-        ,o.ownedBy
-        ,o.typeId
-        ,o.name
-        ,o.description
-        ,o.parentId
-        ,o.contentConnector
-        ,o.rawAcm
-        ,o.contentType
-        ,o.contentSize
-        ,o.contentHash
-        ,o.encryptIV
-        ,o.ownedByNew
-        ,o.isPDFAvailable
-        ,o.isStreamStored
-        ,o.containsUSPersonsData
-        ,o.exemptFromFOIA        
-        ,ot.name typeName 
     from object o 
         inner join object_type ot on o.typeid = ot.id 
-    where 
-        o.isdeleted = 0 
-        and o.parentid = ?`
+    where o.isdeleted = 0 and o.parentid = ?`
 	query += buildFilterSortAndLimit(pagingRequest)
-
 	err := tx.Select(&response.Objects, query, object.ID)
 	if err != nil {
 		return response, err
@@ -81,14 +48,13 @@ func getChildObjectsInTransaction(tx *sqlx.Tx, pagingRequest PagingRequest, obje
 	response.PageSize = GetSanitizedPageSize(pagingRequest.PageSize)
 	response.PageRows = len(response.Objects)
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
+	// Load full meta, properties, and permissions
 	for i := 0; i < len(response.Objects); i++ {
-		permissions, err := getPermissionsForObjectInTransaction(tx, response.Objects[i])
+		obj, err := getObjectInTransaction(tx, response.Objects[i], loadProperties)
 		if err != nil {
-			print(err.Error())
 			return response, err
 		}
-		response.Objects[i].Permissions = permissions
+		response.Objects[i] = obj
 	}
 	return response, err
-
 }

@@ -29,16 +29,7 @@ func getRootObjectsWithPropertiesByGroupInTransaction(tx *sqlx.Tx, groupName str
 
 	response, err := getRootObjectsByGroupInTransaction(tx, groupName, user, pagingRequest)
 	if err != nil {
-		print(err.Error())
 		return response, err
-	}
-	for i := 0; i < len(response.Objects); i++ {
-		properties, err := getPropertiesForObjectInTransaction(tx, response.Objects[i])
-		if err != nil {
-			print(err.Error())
-			return response, err
-		}
-		response.Objects[i].Properties = properties
 	}
 	return response, err
 }

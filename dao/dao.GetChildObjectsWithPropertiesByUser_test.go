@@ -25,7 +25,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	parent.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions := make([]models.ODObjectPermission, 1)
 	permissions[0].CreatedBy = user1
-	permissions[0].Grantee = user1
+	permissions[0].Grantee = models.AACFlatten(user1)
 	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, user1)
 	permissions[0].AcmGrantee.Grantee = permissions[0].Grantee
 	permissions[0].AcmGrantee.UserDistinguishedName.String = permissions[0].Grantee
@@ -56,7 +56,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	child1.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions1 := make([]models.ODObjectPermission, 1)
 	permissions1[0].CreatedBy = user1
-	permissions1[0].Grantee = user1
+	permissions1[0].Grantee = models.AACFlatten(user1)
 	permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, user1)
 	permissions1[0].AcmGrantee.Grantee = permissions1[0].Grantee
 	permissions1[0].AcmGrantee.UserDistinguishedName.String = permissions1[0].Grantee
@@ -110,7 +110,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	child2.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions2 := make([]models.ODObjectPermission, 1)
 	permissions2[0].CreatedBy = user1
-	permissions2[0].Grantee = user1
+	permissions2[0].Grantee = models.AACFlatten(user1)
 	permissions2[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, user1)
 	permissions2[0].AcmGrantee.Grantee = permissions2[0].Grantee
 	permissions2[0].AcmGrantee.UserDistinguishedName.String = permissions2[0].Grantee

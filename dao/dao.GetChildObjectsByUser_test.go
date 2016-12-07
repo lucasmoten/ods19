@@ -28,7 +28,7 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 	// NEW! Add permissions...
 	permissions := make([]models.ODObjectPermission, 2)
 	permissions[0].CreatedBy = parent.CreatedBy
-	permissions[0].Grantee = usernames[1]
+	permissions[0].Grantee = models.AACFlatten(usernames[1])
 	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
 	permissions[0].AcmGrantee.Grantee = permissions[0].Grantee
 	permissions[0].AcmGrantee.UserDistinguishedName.String = permissions[0].Grantee
@@ -38,7 +38,7 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 	permissions[0].AllowUpdate = true
 	permissions[0].AllowDelete = true
 	permissions[1].CreatedBy = parent.CreatedBy
-	permissions[1].Grantee = usernames[2]
+	permissions[1].Grantee = models.AACFlatten(usernames[2])
 	permissions[1].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[2])
 	permissions[1].AcmGrantee.Grantee = permissions[1].Grantee
 	permissions[1].AcmGrantee.UserDistinguishedName.String = permissions[1].Grantee
@@ -70,7 +70,7 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 		// NEW! Add permissions...
 		permissions1 := make([]models.ODObjectPermission, 1)
 		permissions1[0].CreatedBy = child1.CreatedBy
-		permissions1[0].Grantee = usernames[1]
+		permissions1[0].Grantee = models.AACFlatten(usernames[1])
 		permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
 		permissions1[0].AcmGrantee.Grantee = permissions1[0].Grantee
 		permissions1[0].AcmGrantee.UserDistinguishedName.String = permissions1[0].Grantee
@@ -107,7 +107,7 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 		// NEW! Add permissions...
 		permissions2 := make([]models.ODObjectPermission, 2)
 		permissions2[0].CreatedBy = child2.CreatedBy
-		permissions2[0].Grantee = usernames[1]
+		permissions2[0].Grantee = models.AACFlatten(usernames[1])
 		permissions2[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
 		permissions2[0].AcmGrantee.Grantee = permissions2[0].Grantee
 		permissions2[0].AcmGrantee.UserDistinguishedName.String = permissions2[0].Grantee
@@ -117,7 +117,7 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 		permissions2[0].AllowUpdate = true
 		permissions2[0].AllowDelete = true
 		permissions2[1].CreatedBy = child2.CreatedBy
-		permissions2[1].Grantee = usernames[2]
+		permissions2[1].Grantee = models.AACFlatten(usernames[2])
 		permissions2[1].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[2])
 		permissions2[1].AcmGrantee.Grantee = permissions2[1].Grantee
 		permissions2[1].AcmGrantee.UserDistinguishedName.String = permissions2[1].Grantee

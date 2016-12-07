@@ -48,23 +48,7 @@ func TestDAOGetRootObjects(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if resultset.TotalRows < (originalTotalRows + 1) {
+	if resultset.TotalRows <= originalTotalRows {
 		t.Error("expected an increase in objects at root")
-	}
-
-	// Delete the object
-	user := models.ODUser{DistinguishedName: dbObject1.CreatedBy}
-	err = d.DeleteObject(user, dbObject1, true)
-	if err != nil {
-		t.Error(err)
-	}
-
-	// Get root Objects
-	resultset, err = d.GetRootObjects(pagingRequest)
-	if err != nil {
-		t.Error(err)
-	}
-	if resultset.TotalRows != originalTotalRows {
-		t.Error("expected same number of objects as before the test")
 	}
 }

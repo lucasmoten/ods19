@@ -25,7 +25,7 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	object.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions := make([]models.ODObjectPermission, 2)
 	permissions[0].CreatedBy = object.CreatedBy
-	permissions[0].Grantee = usernames[1]
+	permissions[0].Grantee = models.AACFlatten(usernames[1])
 	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
 	permissions[0].AcmGrantee.Grantee = permissions[0].Grantee
 	permissions[0].AcmGrantee.UserDistinguishedName.String = permissions[0].Grantee
@@ -36,7 +36,7 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	permissions[0].AllowDelete = true
 	permissions[0].AllowShare = true
 	permissions[1].CreatedBy = object.CreatedBy
-	permissions[1].Grantee = usernames[2]
+	permissions[1].Grantee = models.AACFlatten(usernames[2])
 	permissions[1].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[2])
 	permissions[1].AcmGrantee.Grantee = permissions[1].Grantee
 	permissions[1].AcmGrantee.UserDistinguishedName.String = permissions[1].Grantee
