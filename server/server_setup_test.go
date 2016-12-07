@@ -86,8 +86,18 @@ func cleanupOpenFiles() {
 }
 
 func testSettings() {
+	// Ensure that uses of decryptor will succeed
+	os.Setenv(config.OD_TOKENJAR_LOCATION, "../defaultcerts/token.jar")
+
 	root := os.TempDir()
 	os.Mkdir(root, 0700)
+
+	key, err := config.MaybeDecrypt(config.GetEnvOrDefault(config.OD_ENCRYPT_MASTERKEY, ""))
+	if err != nil {
+		fmt.Printf("unable to get encrypt key: %v", err)
+		os.Exit(1)
+	}
+
 	settings := config.S3CiphertextCacheOpts{
 		Root:          root,
 		Partition:     "partition0",
@@ -95,12 +105,12 @@ func testSettings() {
 		HighWatermark: .75,
 		EvictAge:      300,
 		WalkSleep:     30,
-		MasterKey:     config.GetEnvOrDefault(config.OD_ENCRYPT_MASTERKEY, ""),
+		MasterKey:     key,
 	}
 	zone := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
-	cache, err := ciphertext.NewLocalCiphertextCache(config.RootLogger, zone, settings, "dbID0")
+	cache, err2 := ciphertext.NewLocalCiphertextCache(config.RootLogger, zone, settings, "dbID0")
 	if err != nil {
-		log.Printf("unable to setup ciphertextcache: %v", err.Error())
+		log.Printf("unable to setup ciphertextcache: %v", err2.Error())
 	}
 	ciphertext.SetCiphertextCache(
 		zone,
@@ -159,6 +169,19 @@ func stallForAvailability() int {
 		case <-timeout:
 			return -12
 		}
+	}
+}
+
+func TestTokenJar(t *testing.T) {
+	encryptedTest := "ENC{2f2b2f667a7741514944424155474277674a4367734f394465397a49474741466b67793253656b327a66303d}"
+	result, err := config.MaybeDecrypt(encryptedTest)
+	if err != nil {
+		t.Logf("Failed to decrypt value encrypted with token.jar: %v", err)
+		t.FailNow()
+	}
+	if result != "test" {
+		t.Logf("Value did not encrypt to the word 'test': %v", err)
+		t.FailNow()
 	}
 }
 

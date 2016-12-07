@@ -10,6 +10,8 @@ rm -rf ~/rpmbuild
 cd ${ODRIVE_ROOT}/cmd/odrive-database
 tar cvfz odrive-schema-${ODRIVE_VERSION}.tar.gz schema
 cd ${ODRIVE_ROOT}
+mkdir -p $GOPATH/bin
+PATH=$PATH:$GOPATH/bin
 ( cd cmd/odrive && go build )
 ( cd cmd/odutil && go build )
 ( 
@@ -17,6 +19,7 @@ cd ${ODRIVE_ROOT}
   go get -u github.com/jteeuwen/go-bindata/...
   go-bindata schema migrations ../../defaultcerts/client-mysql/id ../../defaultcerts/client-mysql/trust
 )
+( cd cmd/obfuscate && go build )
 
 #build it
 ${ODRIVE_ROOT}/scripts/prepare-rpm-env.sh

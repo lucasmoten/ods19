@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
@@ -35,7 +36,12 @@ func TestDAOAddPermissionToObject(t *testing.T) {
 			t.Error("expected TypeID to be set")
 		}
 
-		masterkey := os.Getenv("OD_ENCRYPT_MASTERKEY")
+		masterkey, err := config.MaybeDecrypt(os.Getenv("OD_ENCRYPT_MASTERKEY"))
+		if err != nil {
+			t.Logf("unable to get encrypt key: %v", err)
+			t.FailNow()
+		}
+
 		if len(masterkey) == 0 {
 			// this is just a test. use something random.
 			guid, _ := util.NewGUID()
