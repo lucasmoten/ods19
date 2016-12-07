@@ -1,9 +1,11 @@
 package dao
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/crypto"
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
@@ -45,6 +47,18 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 	}
 	if object.CreatedBy == "" {
 		return dbObject, errors.New("Cannot create object. Missing CreatedBy field.")
+	}
+
+	// Add creator if not yet present. (From direct DAO calls)
+	userRequested := models.ODUser{}
+	userRequested.DistinguishedName = object.CreatedBy
+	_, err := getUserByDistinguishedNameInTransaction(tx, userRequested)
+	if err != nil && err == sql.ErrNoRows {
+		// Not yet in database, we need to add them
+		userRequested.DistinguishedName = object.CreatedBy
+		userRequested.DisplayName = models.ToNullString(config.GetCommonName(object.CreatedBy))
+		userRequested.CreatedBy = object.CreatedBy
+		_, err = createUserInTransaction(logger, tx, userRequested)
 	}
 
 	if object.TypeID == nil {
