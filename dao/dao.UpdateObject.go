@@ -1,9 +1,9 @@
 package dao
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
@@ -60,16 +60,14 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 	}
 	// Check if deleted
 	if dbObject.IsDeleted {
-		// NOOP
-		// TODO Do we need to return more information here?
-		return nil
+		return fmt.Errorf("unable to modify object if deleted. Call UndeletObject first")
 	}
 
 	// lookup type, assign its id to the object for reference
 	if object.TypeID == nil {
 		objectType, err := getObjectTypeByNameInTransaction(tx, object.TypeName.String, true, object.ModifiedBy)
 		if err != nil {
-			return fmt.Errorf("CreateObject Error calling GetObjectTypeByName, %s", err.Error())
+			return fmt.Errorf("UpdateObject Error calling GetObjectTypeByName, %s", err.Error())
 		}
 		object.TypeID = objectType.ID
 	}
@@ -106,6 +104,7 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 	if err != nil {
 		return fmt.Errorf("UpdateObject Preparing update object statement, %s", err.Error())
 	}
+	defer updateObjectStatement.Close()
 	// Update it
 	result, err := updateObjectStatement.Exec(object.ModifiedBy, object.OwnedBy.String,
 		object.TypeID,
@@ -122,9 +121,8 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		return fmt.Errorf("UpdateObject Error checking result for rows affected, %s", err.Error())
 	}
 	if rowsAffected <= 0 {
-		log.Printf("WARNING:UpdateObject did not affect any rows (Possible bad ID or changeToken)!")
+		return util.NewLoggable("UpdateObject did not affect any rows", nil, zap.String("id", hex.EncodeToString(object.ID)), zap.String("changetoken", object.ChangeToken))
 	}
-	updateObjectStatement.Close()
 
 	// Process ACM changes
 	oldACMNormalized, err := normalizedACM(dbObject.RawAcm.String)
@@ -141,7 +139,7 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 
 	// Compare properties on database object to properties associated with passed
 	// in object
-	for o, objectProperty := range object.Properties {
+	for _, objectProperty := range object.Properties {
 		existingProperty := false
 		for _, dbProperty := range dbObject.Properties {
 			if objectProperty.Name == dbProperty.Name && objectProperty.Value.Valid {
@@ -151,18 +149,24 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 					// Deleting matching properties by name. The id and changeToken are
 					// implicit from dbObject for each one that matches.
 					dbProperty.ModifiedBy = object.ModifiedBy
-					deleteObjectPropertyInTransaction(tx, dbProperty)
+					err = deleteObjectPropertyInTransaction(tx, dbProperty)
+					if err != nil {
+						return util.NewLoggable("error deleting property during update", err, zap.String("property.name", dbProperty.Name))
+					}
 					// don't break for loop here because we want to clean out all of the
 					// existing properties with the same name in this case.
 				} else {
 					// The name matched, but value isn't empty. Is it different?
 					if (objectProperty.Value.String != dbProperty.Value.String) ||
-						(objectProperty.ClassificationPM.String != dbProperty.Value.String) {
+						(objectProperty.ClassificationPM.String != dbProperty.ClassificationPM.String) {
 						// Existing property, but with a new value... need to update
 						dbProperty.ModifiedBy = object.ModifiedBy
 						dbProperty.Value.String = objectProperty.Value.String
 						dbProperty.ClassificationPM.String = objectProperty.ClassificationPM.String
-						updateObjectPropertyInTransaction(tx, dbProperty)
+						err = updateObjectPropertyInTransaction(tx, dbProperty)
+						if err != nil {
+							return util.NewLoggable("error updating property during update", err, zap.String("property.name", dbProperty.Name))
+						}
 					}
 					// break out of the for loop on database objects
 					break
@@ -175,16 +179,14 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 			newProperty.CreatedBy = object.ModifiedBy
 			newProperty.Name = objectProperty.Name
 			if objectProperty.Value.Valid {
-				newProperty.Value.Valid = true
-				newProperty.Value.String = objectProperty.Value.String
+				newProperty.Value = models.ToNullString(objectProperty.Value.String)
 			}
 			if objectProperty.ClassificationPM.Valid {
-				newProperty.ClassificationPM.Valid = true
-				newProperty.ClassificationPM.String = objectProperty.ClassificationPM.String
+				newProperty.ClassificationPM = models.ToNullString(objectProperty.ClassificationPM.String)
 			}
 			dbProperty, err := addPropertyToObjectInTransaction(tx, *object, &newProperty)
 			if err != nil {
-				return fmt.Errorf("Error saving property %d (%s) when updating object:%v", o, objectProperty.Name, err)
+				return util.NewLoggable("error saving property for object", err, zap.String("property.name", objectProperty.Name))
 			}
 			if dbProperty.ID == nil {
 				return fmt.Errorf("New property does not have an ID")
