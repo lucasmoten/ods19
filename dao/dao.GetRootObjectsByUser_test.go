@@ -114,3 +114,64 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 		t.Error("expected an increase in objects at root")
 	}
 }
+
+func TestDAOGetRootObjectsForBobbyTables(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	bobbyTablesDN := "cn=bobby 'tables,o=theorg,ou=organizational unit,ou=people,c=us"
+	user1 := models.ODUser{DistinguishedName: bobbyTablesDN}
+	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: 1}
+	// Get root Objects
+	resultset, err := d.GetRootObjectsByUser(user1, pagingRequest)
+	if err != nil {
+		t.Error(err)
+	}
+	// capture how many objects are rooted before changes
+	originalTotalRows1 := resultset.TotalRows
+
+	// Create an object with no parent for bobby 'tables
+	var object1 models.ODObject
+	object1.Name = "Test GetRootObjectsByUser for bobby 'tables"
+	object1.CreatedBy = user1.DistinguishedName
+	object1.TypeName.String = "Test Type"
+	object1.TypeName.Valid = true
+	object1.RawAcm.String = testhelpers.ValidACMUnclassified
+	permissions1 := make([]models.ODObjectPermission, 1)
+	permissions1[0].CreatedBy = user1.DistinguishedName
+	permissions1[0].Grantee = models.AACFlatten(user1.DistinguishedName)
+	permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, permissions1[0].CreatedBy)
+	permissions1[0].AcmGrantee.Grantee = permissions1[0].Grantee
+	permissions1[0].AcmGrantee.UserDistinguishedName.String = permissions1[0].CreatedBy
+	permissions1[0].AcmGrantee.UserDistinguishedName.Valid = true
+	permissions1[0].AllowCreate = true
+	permissions1[0].AllowRead = true
+	permissions1[0].AllowUpdate = true
+	permissions1[0].AllowDelete = true
+	object1.Permissions = permissions1
+	dbObject1, err := d.CreateObject(&object1)
+	if err != nil {
+		t.Error(err)
+	}
+	if dbObject1.ID == nil {
+		t.Error("expected ID to be set")
+	}
+	if dbObject1.ModifiedBy != object1.CreatedBy {
+		t.Error("expected ModifiedBy to match CreatedBy")
+	}
+	if dbObject1.TypeID == nil {
+		t.Error("expected TypeID to be set")
+	}
+
+	// Get root Objects again
+	resultset, err = d.GetRootObjectsByUser(user1, pagingRequest)
+	if err != nil {
+		t.Error(err)
+	}
+	if resultset.TotalRows <= originalTotalRows1 {
+		t.Error("expected an increase in objects at root")
+	}
+
+}
