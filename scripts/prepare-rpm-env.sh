@@ -138,35 +138,27 @@ if [ -f /opt/services/object-drive-1.0/env.sh.rpmsave ]; then
     cp -f /opt/services/object-drive-1.0/env.sh.rpmsave /tmp/env.sh
 fi
 
-if [ `grep -c '^services:' /etc/group` = 1 ] ; then
-  echo services group exists
-else
-  groupadd -f services
-fi
+/usr/bin/getent group services || /usr/sbin/groupadd -f -r services
+/usr/bin/getent passwd object-drive || /usr/sbin/useradd --no-create-home --no-user-group --gid services object-drive 
 
-if [ `grep -c '^object-drive:' /etc/passwd` = 1 ] ; then
-  echo object-drive user exists
-else
-  useradd --no-create-home --no-user-group --gid services object-drive
-fi
 
 %post
 if [ -f /tmp/odrive.yml ]; then
     echo "moving old odrive.yml into object-drive.yml"
     mv -f /tmp/odrive.yml /opt/services/object-drive-1.0/object-drive.yml
 fi
-if [ -f /opt/odrive/env.sh.rpmsave ]; then
+if [ -f /tmp/env.sh ]; then
     echo "moving old env.sh"
     mv -f /tmp/env.sh /opt/services/object-drive-1.0/env.sh
 fi
 
 
 %postun
-userdel -r object-drive
-rm -rf /var/spool/mail/object-odrive
-rm -rf /home/object-drive
-rm -rf /opt/services/object-drive-1.0/cache
-
+if [ "$1" = "1" ]; then
+    /usr/sbin/userdel -r object-drive
+    rm -rf /var/spool/mail/object-odrive
+    rm -rf /opt/services/object-drive-1.0/cache
+fi
 
 %install
 rm -rf %{buildroot}
