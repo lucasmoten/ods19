@@ -119,31 +119,46 @@ fi
 if [ -f /opt/services/object-drive/odrive.yml ]; then
     cp -f /opt/services/object-drive/odrive.yml /tmp
 fi
+if [ -f /opt/services/object-drive-1.0/object-drive.yml ]; then
+    cp -f /opt/services/object-drive-1.0/object-drive.yml /tmp/odrive.yml
+fi
+if [ -f /etc/odrive/env.sh ]; then
+    cp -f /etc/odrive/env.sh /tmp
+fi
+if [ -f /opt/odrive/env.sh ]; then
+    cp -f /opt/odrive/env.sh /tmp
+fi
+if [ -f /opt/odrive/env.sh.rpmsave ]; then
+    cp -f /opt/odrive/env.sh.rpmsave /tmp/env.sh
+fi
+if [ -f /opt/services/object-drive-1.0/env.sh ]; then
+    cp -f /opt/services/object-drive-1.0/env.sh /tmp
+fi
+if [ -f /opt/services/object-drive-1.0/env.sh.rpmsave ]; then
+    cp -f /opt/services/object-drive-1.0/env.sh.rpmsave /tmp/env.sh
+fi
 
 if [ `grep -c '^services:' /etc/group` = 1 ] ; then
   echo services group exists
 else
   groupadd -f services
-  exit 0
 fi
 
 if [ `grep -c '^object-drive:' /etc/passwd` = 1 ] ; then
   echo object-drive user exists
 else
   useradd --no-create-home --no-user-group --gid services object-drive
-  exit 0
 fi
 
 %post
 if [ -f /tmp/odrive.yml ]; then
-    echo "copying old odrive.yml into object-drive.yml"
-    cp -f /tmp/odrive.yml /opt/services/object-drive-1.0/object-drive.yml
+    echo "moving old odrive.yml into object-drive.yml"
+    mv -f /tmp/odrive.yml /opt/services/object-drive-1.0/object-drive.yml
 fi
 if [ -f /opt/odrive/env.sh.rpmsave ]; then
-    echo "copying old env.sh.rpmsave"
-    cp -f /opt/odrive/env.sh.rpmsave /opt/services/object-drive/env.sh
+    echo "moving old env.sh"
+    mv -f /tmp/env.sh /opt/services/object-drive-1.0/env.sh
 fi
-
 
 
 %postun

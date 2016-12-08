@@ -126,7 +126,7 @@ func (as *AutoScaler) prepareForTermination(lifecycleMessage *LifecycleMessage) 
 		zookeeper.ServiceStop(as.ZKState, "https", logger)
 	}
 	//Wait long enough that we are no longer getting new work
-	as.Sleep(time.Duration(as.Config.PollingInterval) * time.Second)
+	as.Sleep(time.Duration(5 * time.Second))
 
 	//Wait for our uploaded items to drop to zero
 	if lifecycleMessage != nil {
