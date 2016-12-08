@@ -1,7 +1,9 @@
 package server
 
 import (
+	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"decipher.com/object-drive-server/autoscale"
@@ -196,7 +198,104 @@ func connectWithZookeeper(app *AppServer, zkBasePath, zkAddress string) error {
 	return err
 }
 
+var shutdown = make(chan bool)
+
+func aacKeepalive(app *AppServer, conf config.AppConfiguration) {
+
+	// first run, sleep immediately. Let original ZK code try first.
+	time.Sleep(time.Second * 20)
+
+	t := time.NewTicker(time.Duration(30 * time.Second))
+
+	for {
+		select {
+		case <-t.C:
+			if app.AAC != nil {
+				logger.Debug("aacKeepalive: checking health")
+				_, err := app.AAC.ValidateAcm(testhelpers.ValidACMUnclassified)
+				if err != nil {
+					logger.Error("aacKeepalive health check failure", zap.Object("err", err))
+					aacReconnect(app, conf)
+				} else {
+					logger.Info("aacKeepalive health check success")
+				}
+			} else {
+				logger.Error("aacKeepalive saw nil pointer to AAC")
+				aacReconnect(app, conf)
+			}
+		case <-shutdown:
+			t.Stop()
+			return
+		}
+	}
+}
+
+func aacReconnect(app *AppServer, conf config.AppConfiguration) {
+
+	var addrs []string
+
+	if len(conf.AACSettings.ZKAddrs) > 0 {
+		addrs = conf.AACSettings.ZKAddrs
+	} else {
+		addrs = strings.Split(conf.ZK.Address, ",")
+	}
+	zkState, err := zookeeper.NewZKState(addrs, 10)
+	if err != nil {
+		logger.Error("aacReconnect: could not connect to zk addrs", zap.Object("addrs", addrs))
+		return
+	}
+
+	conn := zkState.Conn
+	path := conf.AACSettings.AACAnnouncementPoint
+	members, _, err := conn.Children(path)
+	if err != nil {
+		logger.Error("aacReconnect: error reading zk path", zap.String("path", path))
+		return
+	}
+	if len(members) < 1 {
+		logger.Error("aacReconnect: no members of path", zap.String("path", path))
+		return
+	}
+	for _, item := range members {
+		memberPath := path + "/" + item
+		ad, _, err := conn.Get(memberPath)
+		if err != nil {
+			logger.Error("aacReconnect: error getting member", zap.String("path", memberPath))
+		}
+		var info zookeeper.AnnounceData
+		err = json.Unmarshal([]byte(ad), &info)
+		if err != nil {
+			logger.Error("aacReconnect: could not unmarshal aac announcement", zap.String("data", item))
+			continue
+		}
+		host := info.ServiceEndpoint.Host
+		port := info.ServiceEndpoint.Port
+		trust := conf.AACSettings.CAPath
+		cert := conf.AACSettings.ClientCert
+		key := conf.AACSettings.ClientKey
+		client, err := aac.GetAACClient(host, port, trust, cert, key)
+		if err != nil {
+			logger.Error("aacReconnect: error creating aac client with announce data", zap.Object("announcData", info))
+			continue
+		}
+		// we have a client. let's run a test before we set the pointer.
+		_, err = client.ValidateAcm(testhelpers.ValidACMUnclassified)
+		if err != nil {
+			logger.Error("aacReconnect: call to ValidateAcm failed", zap.Object("announcData", info))
+			continue
+		}
+		logger.Info("successfully reconnected to aac")
+		app.AAC = client
+		return
+	}
+	// Something is wrong. We will exit, and the polling routine will call us until shutdown.
+	logger.Error("aacReconnect: iterated all members of path but found no aac", zap.String("path", path))
+}
+
 func zkTracking(app *AppServer, conf config.AppConfiguration) {
+
+	go aacKeepalive(app, conf)
+
 	srvConf, aacConf, zkConf := conf.ServerSettings, conf.AACSettings, conf.ZK
 
 	odriveAnnouncer := func(at string, announcements map[string]zookeeper.AnnounceData) {
@@ -216,6 +315,7 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 
 	aacAnnouncer := func(_ string, announcements map[string]zookeeper.AnnounceData) {
 		if announcements == nil {
+			logger.Info("aac announcements are empty. skipping")
 			return
 		}
 		// Test our connection after an event hits our queue.
@@ -224,8 +324,15 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 			_, err = app.AAC.ValidateAcm(testhelpers.ValidACMUnclassified)
 		}
 		if app.AAC == nil || err != nil {
+			if app.AAC == nil {
+				logger.Info("aac thrift client is nil and wont be able to service requests. attempting to reconnect")
+			}
+			if err != nil {
+				logger.Info("aac thrift client returned error validating a known good acm. attempting to reconnect", zap.String("err", err.Error()))
+			}
 			// If it's broke, then fix it by picking an arbitrary AAC
 			for _, announcement := range announcements {
+
 				// One that is alive
 				if announcement.Status == "ALIVE" {
 					// Try a new host,port
@@ -243,8 +350,10 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 							break
 						}
 					} else {
-						logger.Error("aac reconnect error", zap.String("err", err.Error()))
+						logger.Error("aac reconnect error", zap.String("err", err.Error()), zap.Object("announcement", announcement))
 					}
+				} else {
+					logger.Warn("aac announcement skipped as status is not alive", zap.Object("announcement", announcement))
 				}
 			}
 
@@ -252,6 +361,7 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 	}
 	// check our AACZK configuration here, and select the correct implementation based on aacConf
 	aacZK := app.DefaultZK
+
 	if len(aacConf.ZKAddrs) > 0 {
 		logger.Info("connection to custom aac zk", zap.Object("addrs", aacConf.ZKAddrs))
 		var err error
@@ -261,5 +371,4 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 		}
 	}
 	zookeeper.TrackAnnouncement(aacZK, aacConf.AACAnnouncementPoint, aacAnnouncer)
-
 }
