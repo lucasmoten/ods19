@@ -130,7 +130,7 @@ def start():
 
     # Change the user for the currently executing script, e.g. "su down". 
     os.setuid(uid)
-    os.setgid(gid)
+    #os.setgid(gid)
 
     print "Starting object-drive-1.0"
     f = open(logfile, "a")

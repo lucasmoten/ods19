@@ -1,9 +1,10 @@
 Changelog
 
-Release vNEXT
--------------
+Release v1.0.1.10
+-----------------
 * FIX: RPM updated to create services group, and change ownership to object-drive:services
 * ENH: Performance improvements to database list/search operations, and additional indexing on key columns
+* FIX: Object-Drive Service Init script no longer assigns group to process to prevent failure.
 
 Release v1.0.1.9
 ----------------
