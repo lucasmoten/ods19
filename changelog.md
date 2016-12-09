@@ -1,8 +1,9 @@
 Changelog
 
-Release vNEXT
--------------
+Release v1.0.1.11
+-----------------
 * ENH: Added more logging for AAC Client connection when receiving announce data
+* FIX: RPM adds user and group if not present. Now deletes only on uninstall, not upgrades.
 
 Release v1.0.1.10
 -----------------
