@@ -1,5 +1,9 @@
 Changelog
 
+Release vNEXT
+-------------
+* ENH: Added more logging for AAC Client connection when receiving announce data
+
 Release v1.0.1.10
 -----------------
 * FIX: RPM updated to create services group, and change ownership to object-drive:services
