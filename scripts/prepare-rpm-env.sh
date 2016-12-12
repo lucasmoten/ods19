@@ -22,6 +22,8 @@ ODRIVE_PACKAGE_NAME="object-drive-1.0-${ODRIVE_VERSION}"
 
 ODRIVE_DATABASE_DIR="$ODRIVE_ROOT/cmd/odrive-database"
 
+ODRIVE_OBFUSCATE_DIR="$ODRIVE_ROOT/cmd/obfuscate"
+
 mkdir -p ~/rpmbuild/{RPMS,SRPMS,BUILD,SOURCES,SPECS,tmp}
 
 if [ ! -f ~/.rpmmacros ]; then
@@ -67,6 +69,9 @@ install -m 644 -D ${ODRIVE_ROOT}/cmd/odrive-database/odrive-schema-${ODRIVE_VERS
 
 # odrive-database binary
 install -m 755 -D ${ODRIVE_DATABASE_DIR}/odrive-database ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/database
+
+# password obfuscation mechanism
+install -m 755 -D ${ODRIVE_OBFUSCATE_DIR}/obfuscate ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/obfuscate
 
 # Install service scripts and dependencies
 install -m 755 ${ODRIVE_ROOT}/scripts/init.d/object-drive-1.0 ${ODRIVE_PACKAGE_NAME}/etc/init.d/object-drive-1.0
@@ -142,6 +147,8 @@ fi
 /usr/bin/getent passwd object-drive || /usr/sbin/useradd --no-create-home --no-user-group --gid services object-drive 
 
 
+exit 0
+
 %post
 if [ -f /tmp/odrive.yml ]; then
     echo "moving old odrive.yml into object-drive.yml"
@@ -178,6 +185,7 @@ rm -rf %{buildroot}
 %config(noreplace) /opt/services/object-drive-1.0/odrive-schema-${ODRIVE_VERSION}.tar.gz
 %config(noreplace) /opt/services/object-drive-1.0/env.sh
 /opt/services/object-drive-1.0/libs
+/opt/services/object-drive-1.0/obfuscate
 /opt/services/object-drive-1.0/database
 /opt/services/object-drive-1.0/object-drive-1.0
 %{_sysconfdir}/init.d/object-drive-1.0

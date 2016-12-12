@@ -13,6 +13,9 @@ import (
 )
 
 func cacheParams(root, partition string) (string, ciphertext.CiphertextCacheZone, config.S3CiphertextCacheOpts, string) {
+	// Ensure that uses of decryptor will succeed
+	os.Setenv(config.OD_TOKENJAR_LOCATION, "../defaultcerts/token.jar")
+
 	masterKey := "testkey"
 	chunkSize16MB := int64(16 * 1024 * 1024)
 	conf := config.S3CiphertextCacheOpts{

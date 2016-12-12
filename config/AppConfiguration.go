@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/deciphernow/commons/gov/encryptor"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
@@ -229,7 +230,12 @@ func NewDatabaseConfigFromEnv(confFile AppConfiguration, opts CommandLineOpts) D
 
 	// From environment
 	dbConf.Username = cascade(OD_DB_USERNAME, confFile.DatabaseConnection.Username, "")
-	dbConf.Password = cascade(OD_DB_PASSWORD, confFile.DatabaseConnection.Password, "")
+	pwd, err := MaybeDecrypt(cascade(OD_DB_PASSWORD, confFile.DatabaseConnection.Password, ""))
+	if err != nil {
+		log.Printf("Unable to decrypt database password: %v", err)
+		os.Exit(1)
+	}
+	dbConf.Password = pwd
 	dbConf.Host = cascade(OD_DB_HOST, confFile.DatabaseConnection.Host, "")
 	dbConf.Port = cascade(OD_DB_PORT, confFile.DatabaseConnection.Port, "3306")
 	dbConf.Schema = cascade(OD_DB_SCHEMA, confFile.DatabaseConnection.Schema, "metadatadb")
@@ -255,9 +261,54 @@ func NewEventQueueConfiguration(confFile AppConfiguration, opts CommandLineOpts)
 	return eqc
 }
 
+// GetTokenJarKey is ONLY used for startup config, it's ok to be Fatal
+// when this fails.  Either supply a plaintext value, or supply a correctly encrypted value
+func GetTokenJarKey() ([]byte, error) {
+	rootPassword := os.Getenv(OD_TOKENJAR_PASSWORD)
+	if rootPassword == "" {
+		rootPassword = "BeDr0cK-Ro0t-K3y"
+	}
+	tokenJar := os.Getenv(OD_TOKENJAR_LOCATION)
+	if tokenJar == "" {
+		tokenJar = "/opt/services/object-drive-1.0/token.jar"
+	}
+	key, err := encryptor.KeyFromTokenJar(tokenJar, rootPassword)
+	if err != nil {
+		return nil, fmt.Errorf("GetTokenJarKey failed (missing or malformed token.jar): %v", err)
+	}
+	return key, nil
+}
+
+// MaybeDecrypt is ONLY used for startup config.  It is fatal when this fails.
+func MaybeDecrypt(val string) (string, error) {
+	if strings.HasPrefix(val, "ENC{") && strings.HasSuffix(val, "}") {
+		key, err := GetTokenJarKey()
+		if err != nil {
+			return "", err
+		}
+		val, err = encryptor.ReplaceAll(val, key)
+		if err != nil {
+			return "", fmt.Errorf("MaybeDecrypt failed. Malformed encrypt?: %v", err)
+		}
+	}
+	return val, nil
+}
+
 // NewS3CiphertextCacheOpts reads the environment to provide the configuration options for
 // S3CiphertextCache.
 func NewS3CiphertextCacheOpts(confFile AppConfiguration, opts CommandLineOpts) S3CiphertextCacheOpts {
+	masterKey, err := MaybeDecrypt(cascade(OD_ENCRYPT_MASTERKEY, confFile.CacheSettings.MasterKey, ""))
+	if err != nil {
+		// If we get an error parsing the masterKey here we CANNOT continue, because we may begin writing
+		// data committed to a gibberish key of "".  This must be an exit.  Nothing should work until the key
+		// is supplied corrected, or just as plaintext.
+		log.Printf(`
+		The master encryption key was encoded with ENC{...}, but it will not decode properly.  
+		Make sure that it was generated with the current token.jar: %v", err)`,
+			err,
+		)
+		os.Exit(1)
+	}
 	settings := S3CiphertextCacheOpts{
 		Root:          cascade(OD_CACHE_ROOT, confFile.CacheSettings.Root, "."),
 		Partition:     cascade(OD_CACHE_PARTITION, confFile.CacheSettings.Partition, "cache"),
@@ -265,7 +316,7 @@ func NewS3CiphertextCacheOpts(confFile AppConfiguration, opts CommandLineOpts) S
 		HighWatermark: cascadeFloat(OD_CACHE_HIGHWATERMARK, confFile.CacheSettings.HighWatermark, .75),
 		EvictAge:      cascadeInt(OD_CACHE_EVICTAGE, confFile.CacheSettings.EvictAge, 300),
 		WalkSleep:     cascadeInt(OD_CACHE_WALKSLEEP, confFile.CacheSettings.WalkSleep, 30),
-		MasterKey:     cascade(OD_ENCRYPT_MASTERKEY, confFile.CacheSettings.MasterKey, ""),
+		MasterKey:     masterKey,
 		ChunkSize:     cascadeInt(OD_AWS_S3_FETCH_MB, confFile.CacheSettings.ChunkSize, 16),
 	}
 	//Note: masterKey is a singleton value now.  But there will need to be one per OD_CACHE_PARTITION now
@@ -562,7 +613,12 @@ func NewAWSConfig(endpoint string) *AWSConfig {
 	//Same for all
 	ret.Region = getEnvOrDefault(OD_AWS_REGION, getEnvOrDefault("AWS_REGION", ""))
 	ret.AccessKeyID = getEnvOrDefault(OD_AWS_ACCESS_KEY_ID, getEnvOrDefault("AWS_ACCESS_KEY_ID", ""))
-	ret.SecretAccessKey = getEnvOrDefault(OD_AWS_SECRET_ACCESS_KEY, getEnvOrDefault("AWS_SECRET_ACCESS_KEY", ""))
+	var err error
+	ret.SecretAccessKey, err = MaybeDecrypt(getEnvOrDefault(OD_AWS_SECRET_ACCESS_KEY, getEnvOrDefault("AWS_SECRET_ACCESS_KEY", "")))
+	if err != nil {
+		log.Printf("The AWS_SECRET_ACCESS_KEY was supplied encrypted with the ENC{...} scheme, but it's not valid.  Supply this key unencrypted, or re-encrypt it so that it's valid and matches token.jar: %v", err)
+		os.Exit(1)
+	}
 	return ret
 }
 

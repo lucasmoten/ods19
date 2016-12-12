@@ -153,7 +153,12 @@ func TestAppServerGetObjectAgainstFake(t *testing.T) {
 	// Create permissions object, with our User as a Grantee.
 	readPermission := models.ODObjectPermission{Grantee: user.DistinguishedName}
 	readPermission.AllowRead = true
-	models.SetEncryptKey(config.GetEnvOrDefault("OD_ENCRYPT_MASTERKEY", ""), &readPermission)
+	key, err := config.MaybeDecrypt(config.GetEnvOrDefault("OD_ENCRYPT_MASTERKEY", ""))
+	if err != nil {
+		t.Logf("unable to decrypt masterkey: %v", err)
+		t.FailNow()
+	}
+	models.SetEncryptKey(key, &readPermission)
 	perms := []models.ODObjectPermission{readPermission}
 	obj := models.ODObject{Permissions: perms}
 	obj.ID = []byte(guid)

@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"decipher.com/object-drive-server/config"
+
 	s3 "github.com/rlmcpherson/s3gof3r"
 )
 
@@ -60,7 +62,11 @@ func MoveToS3(path, bucketName, key string) error {
 	}
 
 	if os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
-		val := os.Getenv("OD_AWS_SECRET_ACCESS_KEY")
+		val, err := config.MaybeDecrypt(os.Getenv("OD_AWS_SECRET_ACCESS_KEY"))
+		if err != nil {
+			log.Printf("We cannot decrypt OD_AWS_SECRET_ACCESS_KEY encoded with the ENC{...} scheme.  Validate that it was encoded with the current token.jar: %v", err)
+			os.Exit(1)
+		}
 		os.Setenv("AWS_SECRET_ACCESS_KEY", val)
 	}
 
@@ -116,7 +122,11 @@ func getS3ClientFromEnv() *s3.S3 {
 	}
 
 	if os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
-		val := os.Getenv("OD_AWS_SECRET_ACCESS_KEY")
+		val, err := config.MaybeDecrypt(os.Getenv("OD_AWS_SECRET_ACCESS_KEY"))
+		if err != nil {
+			log.Printf("We cannot decrypt OD_AWS_SECRET_ACCESS_KEY encoded with the ENC{...} scheme.  Validate that it was encoded with the current token.jar: %v", err)
+			os.Exit(1)
+		}
 		os.Setenv("AWS_SECRET_ACCESS_KEY", val)
 	}
 

@@ -45,6 +45,7 @@ func newAppConfigurationWithDefaults() config.AppConfiguration {
 }
 
 func init() {
+	os.Setenv(config.OD_TOKENJAR_LOCATION, "../defaultcerts/token.jar")
 
 	appConfiguration := newAppConfigurationWithDefaults()
 	dbConfig := appConfiguration.DatabaseConnection
