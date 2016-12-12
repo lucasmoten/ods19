@@ -230,7 +230,12 @@ func NewDatabaseConfigFromEnv(confFile AppConfiguration, opts CommandLineOpts) D
 
 	// From environment
 	dbConf.Username = cascade(OD_DB_USERNAME, confFile.DatabaseConnection.Username, "")
-	dbConf.Password = cascade(OD_DB_PASSWORD, confFile.DatabaseConnection.Password, "")
+	pwd, err := MaybeDecrypt(cascade(OD_DB_PASSWORD, confFile.DatabaseConnection.Password, ""))
+	if err != nil {
+		log.Printf("Unable to decrypt database password: %v", err)
+		os.Exit(1)
+	}
+	dbConf.Password = pwd
 	dbConf.Host = cascade(OD_DB_HOST, confFile.DatabaseConnection.Host, "")
 	dbConf.Port = cascade(OD_DB_PORT, confFile.DatabaseConnection.Port, "3306")
 	dbConf.Schema = cascade(OD_DB_SCHEMA, confFile.DatabaseConnection.Schema, "metadatadb")
@@ -297,7 +302,11 @@ func NewS3CiphertextCacheOpts(confFile AppConfiguration, opts CommandLineOpts) S
 		// If we get an error parsing the masterKey here we CANNOT continue, because we may begin writing
 		// data committed to a gibberish key of "".  This must be an exit.  Nothing should work until the key
 		// is supplied corrected, or just as plaintext.
-		log.Printf("The master encryption key was encoded with ENC{...}, but it will not decode properly.  Make sure that it was generated with the current token.jar: %v", err)
+		log.Printf(`
+		The master encryption key was encoded with ENC{...}, but it will not decode properly.  
+		Make sure that it was generated with the current token.jar: %v", err)`,
+			err,
+		)
 		os.Exit(1)
 	}
 	settings := S3CiphertextCacheOpts{
