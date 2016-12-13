@@ -4,6 +4,7 @@ Release vNEXT
 -------------
 * ENH: Determination of content type from file extension on upload expanded to larger list
 * ENH: Autoscale shutdown from lifecycle messages now processes 10 messages, configured via OD_AWS_SQS_BATCHSIZE
+* ENH: Empty trash operation DELETE /trashed
 * FIX: OD_ZK_ANNOUNCE no longer must be 4 parts, and default changed to /services/object-drive/1.0
 
 Release v1.0.1.11
