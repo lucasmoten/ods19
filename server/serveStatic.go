@@ -29,7 +29,7 @@ func (h AppServer) serveStatic(
 	if err := util.SanitizePath(path); err != nil {
 		NewAppError(404, nil, errStaticResourceNotFound)
 	}
-	w.Header().Set("Content-Type", guessContentType(path))
+	w.Header().Set("Content-Type", GetContentTypeFromFilename(path))
 	f, err := os.Open(path)
 	defer f.Close()
 	if err != nil {
