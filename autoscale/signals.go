@@ -256,7 +256,8 @@ func (as *AutoScaler) WatchForShutdownByMessage() {
 	//Get the first batch
 	sqsRcv, err = as.SQS.ReceiveMessage(
 		&sqs.ReceiveMessageInput{
-			QueueUrl: queueURLOutput.QueueUrl,
+			QueueUrl:            queueURLOutput.QueueUrl,
+			MaxNumberOfMessages: &(as.Config.QueueBatchSize),
 		},
 	)
 	if err != nil {
@@ -302,7 +303,8 @@ func (as *AutoScaler) WatchForShutdownByMessage() {
 		//Get more messages
 		sqsRcv, err = as.SQS.ReceiveMessage(
 			&sqs.ReceiveMessageInput{
-				QueueUrl: queueURLOutput.QueueUrl,
+				QueueUrl:            queueURLOutput.QueueUrl,
+				MaxNumberOfMessages: &(as.Config.QueueBatchSize),
 			},
 		)
 		if err != nil {

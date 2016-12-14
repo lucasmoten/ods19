@@ -26,6 +26,7 @@ const (
 	OD_AWS_S3_BUCKET           = "OD_AWS_S3_BUCKET"
 	OD_AWS_S3_FETCH_MB         = "OD_AWS_S3_FETCH_MB"
 	OD_AWS_SECRET_ACCESS_KEY   = "OD_AWS_SECRET_ACCESS_KEY"
+	OD_AWS_SQS_BATCHSIZE       = "OD_AWS_SQS_BATCHSIZE"
 	OD_AWS_SQS_ENDPOINT        = "OD_AWS_SQS_ENDPOINT"
 	OD_AWS_SQS_INTERVAL        = "OD_AWS_SQS_INTERVAL"
 	OD_AWS_SQS_NAME            = "OD_AWS_SQS_NAME"
@@ -89,6 +90,7 @@ var Vars = []string{OD_AAC_CA,
 	OD_AWS_S3_BUCKET,
 	OD_AWS_S3_FETCH_MB,
 	OD_AWS_SECRET_ACCESS_KEY,
+	OD_AWS_SQS_BATCHSIZE,
 	OD_AWS_SQS_ENDPOINT,
 	OD_AWS_SQS_INTERVAL,
 	OD_AWS_SQS_NAME,
@@ -135,7 +137,7 @@ var Vars = []string{OD_AAC_CA,
 // PrintODEnvironment prints the content of all environment variables required
 // by odrive.
 func PrintODEnvironment() {
-	fmt.Println("odrive environment variables. Number of vars:", len(Vars))
+	fmt.Println("object-drive environment variables. Number of vars:", len(Vars))
 	for _, variable := range Vars {
 		fmt.Printf("%s=%s\n", variable, os.Getenv(variable))
 	}
@@ -167,7 +169,7 @@ func GenerateSourceEnvScript() {
 	tmpl, err := template.New("script").Parse(`#!/bin/bash
 
 #
-# Please review /etc/init.d/odrive for default logging location if OD_LOG_LOCATION is not set
+# Please review /etc/init.d/object-drive-1.0 for default logging location if OD_LOG_LOCATION is not set
 #
 
 {{ range $i, $v := .Variables }}export {{ $v }}=

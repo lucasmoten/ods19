@@ -603,6 +603,10 @@ type AutoScalingConfig struct {
 	AutoScalingGroupName string
 	EC2InstanceID        string
 	PollingInterval      int64
+	// QueueBatchSize denotes the number of messages to retrieve from SQS per
+	// each fetch to determine if message is intended to be processed by this
+	// instance
+	QueueBatchSize int64
 }
 
 // NewAWSConfig is default values for AWS config
@@ -660,6 +664,16 @@ func NewAutoScalingConfig() *AutoScalingConfig {
 	ret.AutoScalingGroupName = getEnvOrDefault(OD_AWS_ASG_NAME, "")
 	ret.QueueName = getEnvOrDefault(OD_AWS_SQS_NAME, "")
 	ret.PollingInterval = getEnvOrDefaultInt(OD_AWS_SQS_INTERVAL, 60)
+	if ret.PollingInterval < 5 {
+		ret.PollingInterval = 5
+	}
+	ret.QueueBatchSize = getEnvOrDefaultInt(OD_AWS_SQS_BATCHSIZE, 10)
+	if ret.QueueBatchSize > 10 {
+		ret.QueueBatchSize = 10
+	}
+	if ret.QueueBatchSize < 1 {
+		ret.QueueBatchSize = 1
+	}
 	return ret
 }
 

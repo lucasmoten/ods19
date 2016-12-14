@@ -1,5 +1,10 @@
 Changelog
 
+Release vNEXT
+-------------
+* ENH: Determination of content type from file extension on upload expanded to larger list
+* ENH: Autoscale shutdown from lifecycle messages now processes 10 messages, configured via OD_AWS_SQS_BATCHSIZE
+
 Release v1.0.1.11
 -----------------
 * ENH: Added more logging for AAC Client connection when receiving announce data
