@@ -8,6 +8,8 @@ type ODAcmGrantee struct {
 	// Grantee indicates the flattened representation of a user or group
 	// referenced by a permission
 	Grantee string `db:"grantee"`
+	// ResourceString is the built up resource name as stored in the database
+	ResourceString NullString `db:"resourceString"`
 	// ProjectName contains the project key portion of an AcmShare if this
 	// grantee represents a group
 	ProjectName NullString `db:"projectName"`

@@ -17,12 +17,6 @@ import (
 	"decipher.com/object-drive-server/utils"
 )
 
-func jsonEscape(i string) string {
-	o := i
-	o = strings.Replace(o, "\"", "\\\"", -1)
-	return o
-}
-
 func TestCreateObjectMalicious(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
@@ -1068,4 +1062,88 @@ func TestCreateStreamWithNewPermissions(t *testing.T) {
 	t.Logf("* Verify everyone in odrive group can read")
 	shouldHaveReadForObjectID(t, createdObject.ID, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
 	failWithoutDCTCOdrive(t, &createdObject)
+}
+
+func TestCreateObjectWithPathing(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+
+	t.Logf("* Create a folder under root as tester10")
+	folder1 := makeFolderViaJSON("TestCreateObjectWithPathing", tester10, t)
+
+	t.Logf("* Create a folder under that named this/is/an/object which the handler will expand hierarchially")
+	folder2 := makeFolderWithParentViaJSON("this/is/an/object", folder1.ID, tester10, t)
+
+	t.Logf("* Verify that folder2 parent is not null/empty, and not ID of folder1")
+	if folder2.ParentID == folder1.ID {
+		t.Errorf("Parent of folder2 was folder1")
+		t.FailNow()
+	}
+	if folder2.ParentID == "" {
+		t.Errorf("folder2 did not have a parent")
+		t.FailNow()
+	}
+
+	t.Logf("* Traverse descendents of folder1, looking for expected object names")
+	children := listChildren(folder1.ID, tester10, t)
+	if children.TotalRows != 1 {
+		t.Errorf("Expected folder1 to have 1 child")
+		t.FailNow()
+	}
+	if children.Objects[0].Name != "this" {
+		t.Errorf("Expected first child of folder1 to be `this`, but got %s", children.Objects[0].Name)
+		t.FailNow()
+	}
+	children = listChildren(children.Objects[0].ID, tester10, t)
+	if children.TotalRows != 1 {
+		t.Errorf("Expected folder1 to have 1 child")
+		t.FailNow()
+	}
+	if children.Objects[0].Name != "is" {
+		t.Errorf("Expected child of `this` to be `is`, but got %s", children.Objects[0].Name)
+		t.FailNow()
+	}
+	children = listChildren(children.Objects[0].ID, tester10, t)
+	if children.TotalRows != 1 {
+		t.Errorf("Expected folder1 to have 1 child")
+		t.FailNow()
+	}
+	if children.Objects[0].Name != "an" {
+		t.Errorf("Expected child of `is` to be `an`, but got %s", children.Objects[0].Name)
+		t.FailNow()
+	}
+	children = listChildren(children.Objects[0].ID, tester10, t)
+	if children.TotalRows != 1 {
+		t.Errorf("Expected folder1 to have 1 child")
+		t.FailNow()
+	}
+	if !strings.HasPrefix(children.Objects[0].Name, "object") {
+		t.Errorf("Expected child of `an` to start with `object`, but got %s", children.Objects[0].Name)
+		t.FailNow()
+	}
+
+	t.Logf("* Create a folder under the original folder also named this/is/an/object which the handler will expand hierarchially")
+	folder3 := makeFolderWithParentViaJSON("this/is/an/object", folder1.ID, tester10, t)
+
+	t.Logf("* Verify that folder3 parent is not null/empty, and not ID of folder1  and is not folder2, but has same parent as folder2")
+	if folder3.ParentID == folder1.ID {
+		t.Errorf("Parent of folder3 was folder1")
+		t.FailNow()
+	}
+	if folder3.ParentID == "" {
+		t.Errorf("folder3 did not have a parent")
+		t.FailNow()
+	}
+	if folder3.ID == folder2.ID {
+		t.Errorf("Folder3 is the same as folder2")
+		t.FailNow()
+	}
+	if folder3.ParentID != folder2.ParentID {
+		t.Errorf("Folder3 parent is not the same as folder2")
+		t.FailNow()
+	}
+
+	t.Logf("* Create object with pathing is successful")
 }

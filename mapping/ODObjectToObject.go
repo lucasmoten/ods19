@@ -3,8 +3,10 @@ package mapping
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"strings"
 
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
@@ -352,6 +354,9 @@ func OverwriteODObjectWithUpdateObjectAndStreamRequest(o *models.ODObject, i *pr
 	}
 
 	if len(i.Name) > 0 {
+		if strings.IndexAny(i.Name, "/\\") > -1 {
+			return errors.New("bad request: name cannot include reserved characters {\\,/}")
+		}
 		o.Name = i.Name
 	}
 

@@ -127,7 +127,7 @@ func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.P
 			// Mapping to object
 			err = mapping.OverwriteODObjectWithUpdateObjectAndStreamRequest(obj, &updateObjectRequest)
 			if err != nil {
-				return parsedMetadata, NewAppError(400, err, "Could not extract data from json response")
+				return parsedMetadata, NewAppError(400, err, fmt.Sprintf("Could not extract data from json response: %s", err.Error()))
 			}
 		}
 

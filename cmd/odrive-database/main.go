@@ -205,6 +205,7 @@ func buildConfig(clictx *cli.Context) (config.AppConfiguration, error) {
 				return conf, err
 			}
 		}
+		decryptEnvironmentVariables()
 		dbConf := config.NewDatabaseConfigFromEnv(fileConf, config.CommandLineOpts{})
 		conf.DatabaseConnection = dbConf
 	} else {
@@ -266,6 +267,40 @@ func tryPing(db *sqlx.DB, tries int) error {
 	return nil
 }
 
+// AssetWithEnv wraps the bindata Asset to inject environment variables
+func AssetWithEnv(path string) ([]byte, error) {
+	originalBytes, err := Asset(path)
+	if err != nil {
+		return nil, err
+	}
+	originalString := string(originalBytes[:])
+	modifiedString := os.ExpandEnv(originalString)
+	if originalString == modifiedString {
+		return originalBytes, nil
+	}
+	return []byte(modifiedString), nil
+}
+
+func decryptEnvironmentVariables() {
+	kvs := os.Environ()
+	for _, kv := range kvs {
+		s := strings.Split(kv, "=")
+		k := s[0]
+		v := s[1]
+		if strings.HasPrefix(k, "OD_") {
+			dv, err := config.MaybeDecrypt(v)
+			if err != nil {
+				continue
+			}
+			// if decrypted value differs
+			if v != dv {
+				// assign back to environment for later use
+				os.Setenv(k, dv)
+			}
+		}
+	}
+}
+
 // initialize creates a new database from scratch. Root creds are required.
 func initialize(clictx *cli.Context) error {
 
@@ -287,7 +322,7 @@ func initialize(clictx *cli.Context) error {
 	fmt.Println("inital schema created")
 	fmt.Println("applying migrations")
 	m := &migrate.AssetMigrationSource{
-		Asset:    Asset,
+		Asset:    AssetWithEnv,
 		AssetDir: AssetDir,
 		Dir:      "migrations",
 	}

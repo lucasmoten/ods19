@@ -10,6 +10,8 @@ import (
 
 	"golang.org/x/net/context"
 
+	"fmt"
+
 	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/events"
@@ -37,7 +39,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	requestObject, err = parseUpdateObjectRequestAsJSON(r, ctx)
 	if err != nil {
-		return NewAppError(400, err, "Error parsing JSON")
+		return NewAppError(400, err, fmt.Sprintf("Error parsing JSON %s", err.Error()))
 	}
 
 	// Business Logic...
@@ -253,6 +255,9 @@ func parseUpdateObjectRequestAsJSON(r *http.Request, ctx context.Context) (model
 
 	// Map changes over the requestObject
 	if len(jsonObject.Name) > 0 {
+		if strings.IndexAny(jsonObject.Name, "/\\") > -1 {
+			return requestObject, errors.New("bad request: name cannot include reserved characters {\\,/}")
+		}
 		requestObject.Name = jsonObject.Name
 	}
 	requestObject.ChangeToken = jsonObject.ChangeToken

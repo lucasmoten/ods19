@@ -138,6 +138,32 @@ func makeFolderWithParentViaJSON(folderName string, parentID string, clientid in
 	return obj
 }
 
+func listChildren(parentID string, clientid int, t *testing.T) *protocol.ObjectResultset {
+	uri := host + cfg.NginxRootURL + "/objects/" + parentID
+	req, _ := http.NewRequest("GET", uri, nil)
+	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
+	client := &http.Client{Transport: transport}
+	res, err := client.Do(req)
+	if err != nil {
+		t.Errorf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	defer util.FinishBody(res.Body)
+	// process Response
+	if res.StatusCode != http.StatusOK {
+		t.Errorf("bad status: %s", res.Status)
+		htmlData, _ := ioutil.ReadAll(res.Body)
+		t.Errorf("Status was %s. Body: %s", res.Status, string(htmlData))
+	}
+	var resultset protocol.ObjectResultset
+	err = util.FullDecode(res.Body, &resultset)
+	if err != nil {
+		t.Errorf("Error decoding json to ObjectResultset: %v", err)
+		t.FailNow()
+	}
+	return &resultset
+}
+
 // DoWithDecodedResult is the common case of getting back a json response that is ok
 // Need to have one that isn't closed yet so we can dump out to traffic log
 // The _test package structure is preventing just moving this into the testhelpers
@@ -406,4 +432,18 @@ func messageMustContain(t *testing.T, res *http.Response, lookFor string) {
 	if !strings.Contains(string(msg), lookFor) {
 		t.Errorf("was looking for '%s', but found '%s'", lookFor, string(msg))
 	}
+}
+func allTrue(vals ...bool) bool {
+	for _, v := range vals {
+		if !v {
+			return false
+		}
+	}
+	return true
+}
+
+func jsonEscape(i string) string {
+	o := i
+	o = strings.Replace(o, "\"", "\\\"", -1)
+	return o
 }

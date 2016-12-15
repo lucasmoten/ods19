@@ -87,13 +87,13 @@ func CreateRandomName() string {
 	return hex.EncodeToString(key)
 }
 
-// DoMAC gives a way to authenticate that we wrote this
-func DoMAC(passphrase string, permissionIV []byte, dn string, c, r, u, d, s bool, encryptedKey []byte) []byte {
+// DoMAC generates a repeatable hash value from the concatenation of key components of the permission, to be used as a message authentication code
+func DoMAC(passphrase string, permissionIV []byte, grantee string, c, r, u, d, s bool, encryptedKey []byte) []byte {
 	//TODO: use value types
 	result := make([]byte, 32)
 	//!!! the last item is of a fixed length because we are of the form H(secret||data),
 	// so we don't want to have issues with extension attacks on the hash
-	str := fmt.Sprintf("%s:%s:%t,%t,%t,%t,%t:%s", passphrase, dn, c, r, u, d, s, hex.EncodeToString(encryptedKey))
+	str := fmt.Sprintf("%s:%s:%t,%t,%t,%t,%t:%s", passphrase, grantee, c, r, u, d, s, hex.EncodeToString(encryptedKey))
 	hashBytes := sha256.Sum256([]byte(str))
 	for i := 0; i < 32; i++ {
 		result[i] = hashBytes[i]
