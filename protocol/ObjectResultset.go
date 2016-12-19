@@ -14,6 +14,8 @@ type ObjectResultset struct {
 	Resultset
 	// Objects contains the list of objects in this (page of) results.
 	Objects []Object `json:"objects,omitempty"`
+	// ObjectErrors is a list of errors per objectid
+	ObjectErrors []ObjectError `json:"objectErrors,omitempty"`
 }
 
 // NewObjectResultsetFromJSONBody parses an ObjectResultset from a JSON body.

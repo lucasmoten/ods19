@@ -139,6 +139,7 @@ func (h *AppServer) InitRegex() {
 		ObjectProperties: route("/objects/(?P<objectId>[0-9a-fA-F]{32})/properties$"),
 		ObjectStream:     route("/objects/(?P<objectId>[0-9a-fA-F]{32})/stream(\\.[0-9a-zA-Z]*)?$"),
 		Ciphertext:       route("/ciphertext/(?P<zone>[0-9a-zA-Z_]*)?/(?P<rname>[0-9a-fA-F]{64})$"),
+		BulkProperties:   route("/objects/properties$"),
 		// - actions on objects
 		ObjectChangeOwner: route("/objects/(?P<objectId>[0-9a-fA-F]{32})/owner/(?P<newOwner>.*)$"),
 		ObjectDelete:      route("/objects/(?P<objectId>[0-9a-fA-F]{32})/trash$"),
@@ -430,6 +431,9 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectType)
 			// TODO: h.updateObjectType(ctx, w, r)
 			herr = NewAppError(404, nil, "Not implemented")
+			// - bulk properties
+		case h.Routes.BulkProperties.MatchString(uri):
+			herr = h.getBulkProperties(ctx, w, r)
 		default:
 			herr = do404(ctx, w, r)
 		}
@@ -681,6 +685,7 @@ type StaticRx struct {
 	ObjectUndelete         *regexp.Regexp
 	ObjectExpunge          *regexp.Regexp
 	ObjectMove             *regexp.Regexp
+	BulkProperties         *regexp.Regexp
 	Ping                   *regexp.Regexp
 	Revisions              *regexp.Regexp
 	RevisionStream         *regexp.Regexp
