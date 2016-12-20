@@ -367,7 +367,7 @@ func TestGetObjectStreamForRevision_DeletedVersion(t *testing.T) {
 	defer util.FinishBody(getObjectStreamRes.Body)
 	// ### Expect failure because current is deleted
 	if getObjectStreamRes.StatusCode == http.StatusOK {
-		t.Errorf("Error! We retrieved stream for deleted object %s", getObjectStreamRes.StatusCode)
+		t.Errorf("Error! We retrieved stream for deleted object %d", getObjectStreamRes.StatusCode)
 		t.FailNow()
 	}
 

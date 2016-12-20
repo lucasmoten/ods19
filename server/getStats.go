@@ -43,7 +43,7 @@ func (h AppServer) getStats(ctx context.Context, w http.ResponseWriter, r *http.
 
 	caches := ciphertext.FindCiphertextCacheList()
 	for dpName, dp := range caches {
-		fmt.Fprintf(w, "\nCiphertextCache %s:\n", dpName)
+		fmt.Fprintf(w, "\nCiphertextCache %d:\n", dpName)
 		dp.CacheInventory(w, verbose)
 	}
 

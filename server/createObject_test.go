@@ -107,7 +107,7 @@ func TestCreateObjectSimple(t *testing.T) {
 	}
 
 	for _, p := range obj.Permissions {
-		t.Logf("%", p)
+		t.Logf("%v", p)
 	}
 }
 

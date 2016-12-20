@@ -42,7 +42,7 @@ func TestCors(t *testing.T) {
 	trafficLogs[APISampleFile].Response(t, res1)
 	defer util.FinishBody(res1.Body)
 	if res1.StatusCode != 204 {
-		t.Errorf("Unexpected status %d for creator", res1.Status)
+		t.Errorf("Unexpected status %s for creator", res1.Status)
 		t.FailNow()
 	}
 	// We are expecting simple reflection right now:
@@ -74,7 +74,7 @@ func TestCors(t *testing.T) {
 	}
 	defer util.FinishBody(res1.Body)
 	if res1.StatusCode != http.StatusOK {
-		t.Errorf("Unexpected status %d for creator", res1.Status)
+		t.Errorf("Unexpected status %s for creator", res1.Status)
 		t.FailNow()
 	}
 	// We are expecting simple reflection right now:
