@@ -40,7 +40,7 @@ func XTestListObjectShares(t *testing.T) {
 	}
 	defer util.FinishBody(res1.Body)
 	if res1.StatusCode != http.StatusOK {
-		t.Logf("Unexpected status %d for creator", res1.Status)
+		t.Logf("Unexpected status %s for creator", res1.Status)
 		t.FailNow()
 	}
 
@@ -52,7 +52,7 @@ func XTestListObjectShares(t *testing.T) {
 	}
 	defer util.FinishBody(res2.Body)
 	if res2.StatusCode == http.StatusOK {
-		t.Logf("Unexpected status %d for second user", res2.Status)
+		t.Logf("Unexpected status %s for second user", res2.Status)
 		t.FailNow()
 	}
 

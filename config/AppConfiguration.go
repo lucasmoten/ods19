@@ -129,7 +129,7 @@ func NewAppConfiguration(opts CommandLineOpts) AppConfiguration {
 
 	confFile, err := LoadYAMLConfig(opts.Conf)
 	if err != nil {
-		fmt.Printf("Error loading yaml configuration at path %s: %v\n", confFile, err)
+		fmt.Printf("Error loading yaml configuration at path %v: %v\n", confFile, err)
 		os.Exit(1)
 	}
 

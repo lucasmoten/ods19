@@ -61,7 +61,7 @@ func doUserStatsQuery(t *testing.T) models.UserStats {
 	}
 	defer util.FinishBody(res1.Body)
 	if res1.StatusCode != http.StatusOK {
-		t.Errorf("Unexpected status %d for creator", res1.Status)
+		t.Errorf("Unexpected status %s for creator", res1.Status)
 		t.FailNow()
 	}
 	var userStats models.UserStats
