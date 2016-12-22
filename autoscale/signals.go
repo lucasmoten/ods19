@@ -219,6 +219,11 @@ func (as *AutoScaler) watchForShutdownBySignals() {
 func (as *AutoScaler) WatchForShutdownByMessage() {
 	logger := as.Logger
 
+	if len(as.Config.QueueName) == 0 {
+		logger.Info("sqs queue is configured to be turned off")
+		return
+	}
+
 	//Log setup parameters as sanity check
 	logger.Info(
 		"sqs queue",
