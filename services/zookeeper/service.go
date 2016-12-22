@@ -42,7 +42,7 @@ type ZKState struct {
 	// Whether we are terminated
 	IsTerminated bool
 	// The timeout on connections in seconds
-	Timeout int
+	Timeout int64
 }
 
 // AnnounceHandler is a callback when zk data changes
@@ -87,7 +87,7 @@ func makeNewNode(conn *zk.Conn, pathType, prevPath, appendPath string, flags int
 
 // NewZKState connects to a ZK cluster and returns an object that wraps a connection
 // and other state about that cluster.
-func NewZKState(addrs []string, timeout int) (*ZKState, error) {
+func NewZKState(addrs []string, timeout int64) (*ZKState, error) {
 	conn, _, err := zk.Connect(addrs, time.Second*time.Duration(timeout))
 	if err != nil {
 		return nil, err
@@ -97,43 +97,31 @@ func NewZKState(addrs []string, timeout int) (*ZKState, error) {
 }
 
 // RegisterApplication registers object-drive in Zookeeper.
-func RegisterApplication(originalPath, zkAddress string) (*ZKState, error) {
+func RegisterApplication(originalPath string, zkAddress string, zkTimeout int64) (*ZKState, error) {
 	var err error
 	addrs := strings.Split(zkAddress, ",")
-	// TODO move this to AppConfiguration.go
-	zkTimeout := globalconfig.GetEnvOrDefaultInt("OD_ZK_TIMEOUT", 5)
 
 	//Because of the args to this function
 	zlogger := logger.With(
 		zap.String("uri", originalPath),
 		zap.String("address", zkAddress),
+		zap.Int64("timeout", zkTimeout),
 	)
 
-	zlogger.Info("zk connect", zap.Int("timeout", zkTimeout))
+	zlogger.Info("zk connect")
 
 	conn, _, err := zk.Connect(addrs, time.Second*time.Duration(zkTimeout))
 	if err != nil {
 		return &ZKState{}, err
 	}
 
-	// Setup the environment for our version of the application
-	parts := strings.Split(originalPath, "/")
-	// defaults (aligned with the defaults for the environment variables)
-	organization := parts[1]
-	appType := "service"
-	appName := "object-drive"
-	appVersion := "1.0"
-	// overrides from URI
-	if len(parts) != 5 {
-		zlogger.Warn("zk base path may not be set correctly")
+	// Ensure the announcement path is in the correct format
+	zkURI := originalPath
+	if !strings.HasPrefix(zkURI, "/") {
+		zkURI = "/" + zkURI
 	}
-	organization = assignPart(organization, parts, 1, "organization")
-	appType = assignPart(appType, parts, 2, "app type")
-	appName = assignPart(appName, parts, 3, "app name")
-	appVersion = assignPart(appVersion, parts, 4, "version")
+	zkURI = strings.TrimRight(zkURI, "/")
 
-	// Rebuild zkURI
-	zkURI := "/" + organization + "/" + appType + "/" + appName + "/" + appVersion
 	zlogger.Info("zk full URI setting", zap.String("zkuri", zkURI))
 
 	zkState := ZKState{
@@ -141,21 +129,22 @@ func RegisterApplication(originalPath, zkAddress string) (*ZKState, error) {
 		Conn:                 conn,
 		Protocols:            zkURI,
 		AnnouncementRequests: make([]AnnouncementRequest, 0),
-		registeredPath:       originalPath,
+		registeredPath:       zkURI,
 		Timeout:              zkTimeout,
 	}
 
-	//Create uncreated nodes, and log modifications we made
-	//(it might not be right if we needed to make cte or service)
+	// Create any uncreated nodes, logging modifications made
 	var emptyData []byte
 	var newPath string
-	newPath, err = makeNewNode(conn, "organization", newPath, organization, 0, emptyData)
-	if isZKOk(err) {
-		newPath, err = makeNewNode(conn, "app type", newPath, appType, 0, emptyData)
-		if isZKOk(err) {
-			newPath, err = makeNewNode(conn, "app name", newPath, appName, 0, emptyData)
-			if isZKOk(err) {
-				newPath, err = makeNewNode(conn, "version", newPath, appVersion, 0, emptyData)
+	parts := strings.Split(zkURI, "/")
+	for partnum, part := range parts {
+		if partnum == 0 {
+			continue
+		}
+		if part != "" {
+			newPath, err = makeNewNode(conn, "part "+strconv.Itoa(partnum), newPath, part, 0, emptyData)
+			if !isZKOk(err) {
+				break
 			}
 		}
 	}
@@ -165,19 +154,6 @@ func RegisterApplication(originalPath, zkAddress string) (*ZKState, error) {
 
 	//return the closer, and zookeeper is running
 	return &zkState, nil
-}
-
-func assignPart(defaultValue string, parts []string, idx int, partName string) string {
-	if len(parts) > idx {
-		ret := strings.TrimSpace(parts[idx])
-		if len(ret) > 0 {
-			return ret
-		}
-		logger.Warn("zk uri part empty.  using default.")
-		return defaultValue
-	}
-	logger.Warn("Zookeeper URI not long enough")
-	return defaultValue
 }
 
 //TrackAnnouncement will call handler every time there is a membership changes
@@ -346,7 +322,7 @@ func doZkRecovery(z *ZKState, zlogger zap.Logger) bool {
 		//Redoing zk is dire, and it will disturb aac connections in progress, but at least we will recover
 		////Possibility: change the nodeid so that we look like a new instance, like this:
 		//globalconfig.NodeID = globalconfig.RandomID()
-		zNew, err := RegisterApplication(z.registeredPath, z.ZKAddress)
+		zNew, err := RegisterApplication(z.registeredPath, z.ZKAddress, z.Timeout)
 		if err != nil {
 			zlogger.Error(
 				"zk re register error cant create connection",
