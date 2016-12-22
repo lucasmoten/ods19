@@ -13,15 +13,15 @@ func TestCreateServiceAnnouncement(t *testing.T) {
 	}
 
 	zkAddress := "zk:2181"
+	zkBasePath := "/services/object-drive/1.0"
+	zkTimeout := int64(5)
 
-	zkBasePath := "/cte/service/object-drive/1.0"
-
-	zkState, err := zookeeper.RegisterApplication(zkBasePath, zkAddress)
+	zkState, err := zookeeper.RegisterApplication(zkBasePath, zkAddress, zkTimeout)
 	if err != nil {
 		// zk was spawned before this test, so just try once more later
 		t.Logf("sleeping a few seconds waiting for zk to settle")
 		time.Sleep(10 * time.Second)
-		zkState, err = zookeeper.RegisterApplication(zkBasePath, zkAddress)
+		zkState, err = zookeeper.RegisterApplication(zkBasePath, zkAddress, zkTimeout)
 		if err != nil {
 			t.Errorf("could not create the directory for our app in zk:%v", err)
 		}

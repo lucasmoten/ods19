@@ -48,7 +48,7 @@ func Start(conf config.AppConfiguration) error {
 
 	configureEventQueue(app, conf.EventQueue, conf.ZK.Timeout)
 
-	err = connectWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address)
+	err = connectWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, conf.ZK.Timeout)
 	if err != nil {
 		logger.Fatal("Could not register with Zookeeper")
 	}
@@ -174,9 +174,9 @@ func configureEventQueue(app *AppServer, conf config.EventQueueConfiguration, zk
 	logger.Error("no Kafka queue configured")
 }
 
-func connectWithZookeeperTry(app *AppServer, zkBasePath, zkAddress string) error {
+func connectWithZookeeperTry(app *AppServer, zkBasePath string, zkAddress string, zkTimeout int64) error {
 	// We need the path to our announcements to exist, but not the ephemeral nodes yet
-	zkState, err := zookeeper.RegisterApplication(zkBasePath, zkAddress)
+	zkState, err := zookeeper.RegisterApplication(zkBasePath, zkAddress, zkTimeout)
 	if err != nil {
 		return err
 	}
@@ -187,13 +187,13 @@ func connectWithZookeeperTry(app *AppServer, zkBasePath, zkAddress string) error
 	return nil
 }
 
-func connectWithZookeeper(app *AppServer, zkBasePath, zkAddress string) error {
-	err := connectWithZookeeperTry(app, zkBasePath, zkAddress)
+func connectWithZookeeper(app *AppServer, zkBasePath string, zkAddress string, zkTimeout int64) error {
+	err := connectWithZookeeperTry(app, zkBasePath, zkAddress, zkTimeout)
 	for err != nil {
 		sleepInSeconds := 10
 		logger.Warn("zk cant register", zap.Int("retry time in seconds", sleepInSeconds))
 		time.Sleep(time.Duration(sleepInSeconds) * time.Second)
-		err = connectWithZookeeperTry(app, zkBasePath, zkAddress)
+		err = connectWithZookeeperTry(app, zkBasePath, zkAddress, zkTimeout)
 	}
 	return err
 }
@@ -365,7 +365,7 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 	if len(aacConf.ZKAddrs) > 0 {
 		logger.Info("connection to custom aac zk", zap.Object("addrs", aacConf.ZKAddrs))
 		var err error
-		aacZK, err = zookeeper.NewZKState(aacConf.ZKAddrs, int(zkConf.Timeout))
+		aacZK, err = zookeeper.NewZKState(aacConf.ZKAddrs, zkConf.Timeout)
 		if err != nil {
 			logger.Error("error connecting to custom aac zk", zap.String("err", err.Error()))
 		}
