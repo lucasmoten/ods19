@@ -1,12 +1,14 @@
 Changelog
 
-Release vNEXT
--------------
+Release v1.0.1.12
+-----------------
 * ENH: Determination of content type from file extension on upload expanded to larger list
-* ENH: Autoscale shutdown from lifecycle messages now processes 10 messages, configured via OD_AWS_SQS_BATCHSIZE
-* ENH: Empty trash operation DELETE /trashed
+* ENH: Autoscale shutdown from lifecycle messages now handle 10 messages at a time, configured via OD_AWS_SQS_BATCHSIZE
+* NEW: Empty Trash: DELETE /trashed
+* NEW: Bulk Get Properties: GET /objects/properties 
 * FIX: OD_ZK_ANNOUNCE no longer must be 4 parts, and default changed to /services/object-drive/1.0
-* ENH: New endpoint /objects/properties added for getting object properties in bulk
+* FIX: Service init script only changes ownership of certificates if they are found under OD_BASEPATH
+* DOC: API Documentation updated with sectiosn for empty trash and retrieving bulk objects
 
 Release v1.0.1.11
 -----------------
