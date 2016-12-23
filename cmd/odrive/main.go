@@ -14,6 +14,8 @@ import (
 
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/server"
+
+	samuelzk "github.com/samuel/go-zookeeper/zk"
 )
 
 // Services that require network
@@ -24,7 +26,14 @@ const (
 	ZookeeperService = "zk"
 )
 
+type emptyLogger struct{}
+
+func (emptyLogger) Printf(format string, a ...interface{}) {
+	//log.Printf(format, a...)
+}
+
 func main() {
+	samuelzk.DefaultLogger = emptyLogger{}
 
 	cliParser := cli.NewApp()
 	cliParser.Name = "odrive"
