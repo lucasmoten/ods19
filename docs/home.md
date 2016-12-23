@@ -9,6 +9,7 @@ A series of microservice operations are exposed on the API gateway for use of Ob
 | --- | --- |
 | Create an Object | Main operation to add a new object to the system. |
 | Get an Object | Retrieves the metadata, properties and permissions of an object. |
+| Get bulk objects | Retrieves the metadata for multiple, explicitly enumerated, objects. |
 | Get an Object Stream | Retrieves the content stream of an object. |
 | Update Object | Used for updating the metadata of an object. |
 | Update Object Stream | Used for updating the content stream and metadata of an object. |
@@ -193,6 +194,402 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
 + Response 500
 
         Error storing metadata or stream
+
+
+## Bulk object properties [/objects/properties]
+
+### Get bulk object properties [GET]
+Get multiple objects at once
+
+This returns an object result set.  Note that because this gets
+objects in bulk, it is 
+possible a list of Errors coming back with the objects that came back successfully.
+
++ Request (application/json)
+
+    + Body
+
+            {
+                "objectIds" : [
+                        "11e5e4867a6e3d8389020242ac110002",
+                        "11e5e4867a6e3d8389020242ac189124",
+                        "11e5e4867a6e3f8389020242ac110002"
+                ]
+            }
+
++ Response 200
+
+    + Body
+    
+            {
+            totalRows: 2,
+            pageNumber: 1,
+            pageRows: 1,
+            pageNumber: 1,
+            objects:[    
+                {
+                "id": "11e5e4867a6e3d8389020242ac110002",
+                "createdDate": "2016-03-07T17:03:13Z",
+                "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+                "modifiedDate": "2016-03-07T17:03:13Z",
+                "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+                "deletedDate": "0001-01-01T00:00:00Z",
+                "deletedBy": "``",
+                "changeCount": 42,
+                "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",
+                "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+                "typeId": "11e5e48664f5d8c789020242ac110002",
+                "typeName": "File",
+                "name": "gettysburgaddress.txt",
+                "description": "Description here",
+                "parentId": "",
+                "acm": {
+                    "banner": "UNCLASSIFIED",
+                    "classif": "U",
+                    "dissem_countries": [
+                    "USA"
+                    ],
+                    "f_accms": [],
+                    "f_atom_energy": [],
+                    "f_clearance": "u",
+                    "f_macs": [],
+                    "f_missions": [],
+                    "f_oc_org": [],
+                    "f_sci_ctrls": [],
+                    "f_regions": [],
+                    "f_share": [
+                    "x",
+                    "y",
+                    "z"
+                    ],
+                    "portion": "U",
+                    "share": {
+                    "users": [
+                        "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                        "CN=test tester02,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                        "CN=test tester03,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                        "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
+                    ],
+                    "projects": [
+                        {
+                        "ukpn": {
+                            "disp_nm": "Project Name",
+                            "groups": [
+                            "Group Name",
+                            "Cats",
+                            "Dogs"
+                            ]
+                        },
+                        "ukpn2": {
+                            "disp_nm": "Project Name 2",
+                            "groups": [
+                            "Group 1",
+                            "Group 2",
+                            "Group 3"
+                            ]
+                        }
+                        }
+                    ]
+                    },
+                    "version": "2.1.0"
+                },
+                "permission": {
+                    "create": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    },
+                    "read": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10",
+                        "group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    },
+                    "update": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    },
+                    "delete": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    },
+                    "share": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    }
+                },
+                "contentType": "text",
+                "contentSize": "1511",
+                "isPDFAvailable": false,
+                "containsUSPersonsData": "No",
+                "exemptFromFOIA": "No",
+                "properties": [
+                    {
+                    "id": "11e5e4867a6e3d8389020242ac110002",
+                    "createdDate": "2016-03-07T17:03:13Z",
+                    "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                    "modifiedDate": "2016-03-07T17:03:13Z",
+                    "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                    "changeCount": 1,
+                    "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",
+                    "name": "Some Property",
+                    "propertyValue": "Some Property Value",
+                    "classificationPM": "U"
+                    }
+                ],
+                "callerPermissions": {
+                    "allowCreate": false,
+                    "allowRead": true,
+                    "allowUpdate": false,
+                    "allowDelete": false,
+                    "allowShare": false
+                },
+                "permissions": [
+                    {
+                    "grantee": "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+                    "userDistinguishedName": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                    "displayName": "test tester10",
+                    "allowCreate": true,
+                    "allowRead": true,
+                    "allowUpdate": true,
+                    "allowDelete": true,
+                    "allowShare": true
+                    },
+                    {
+                    "grantee": "dctc_odrive_g1",
+                    "projectName": "dctc",
+                    "projectDisplayName": "DCTC",
+                    "groupName": "ODrive_G1",
+                    "displayName": "DCTC ODrive_G1",
+                    "allowCreate": true,
+                    "allowRead": true,
+                    "allowUpdate": true,
+                    "allowDelete": true,
+                    "allowShare": true
+                    }
+                ],
+                "breadcrumbs": [
+                    {
+                    "id": "11e5e4867a6e3d8389020242ac110002",
+                    "parentId": "",
+                    "name": "parentFolderA"
+                    },
+                    {
+                    "id": "11e5e4867a6e3d8389020242ac110002",
+                    "parentId": "11e5e4867a6e3d8389020242ac110002",
+                    "name": "folderA"
+                    }
+                ]
+                },{
+                "id": "11e5e4867a6e3d8389020242ac189124",
+                "createdDate": "2016-03-07T17:03:13Z",
+                "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+                "modifiedDate": "2016-03-07T17:03:13Z",
+                "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+                "deletedDate": "0001-01-01T00:00:00Z",
+                "deletedBy": "``",
+                "changeCount": 42,
+                "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",
+                "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+                "typeId": "11e5e48664f5d8c789020242ac110002",
+                "typeName": "File",
+                "name": "gettysburgaddress.txt",
+                "description": "Description here",
+                "parentId": "",
+                "acm": {
+                    "banner": "UNCLASSIFIED",
+                    "classif": "U",
+                    "dissem_countries": [
+                    "USA"
+                    ],
+                    "f_accms": [],
+                    "f_atom_energy": [],
+                    "f_clearance": "u",
+                    "f_macs": [],
+                    "f_missions": [],
+                    "f_oc_org": [],
+                    "f_sci_ctrls": [],
+                    "f_regions": [],
+                    "f_share": [
+                    "x",
+                    "y",
+                    "z"
+                    ],
+                    "portion": "U",
+                    "share": {
+                    "users": [
+                        "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                        "CN=test tester02,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                        "CN=test tester03,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                        "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
+                    ],
+                    "projects": [
+                        {
+                        "ukpn": {
+                            "disp_nm": "Project Name",
+                            "groups": [
+                            "Group Name",
+                            "Cats",
+                            "Dogs"
+                            ]
+                        },
+                        "ukpn2": {
+                            "disp_nm": "Project Name 2",
+                            "groups": [
+                            "Group 1",
+                            "Group 2",
+                            "Group 3"
+                            ]
+                        }
+                        }
+                    ]
+                    },
+                    "version": "2.1.0"
+                },
+                "permission": {
+                    "create": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    },
+                    "read": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10",
+                        "group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    },
+                    "update": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    },
+                    "delete": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    },
+                    "share": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    }
+                },
+                "contentType": "text",
+                "contentSize": "1511",
+                "isPDFAvailable": false,
+                "containsUSPersonsData": "No",
+                "exemptFromFOIA": "No",
+                "properties": [
+                    {
+                    "id": "11e5e4867a6e3d8389020242ac189124",
+                    "createdDate": "2016-03-07T17:03:13Z",
+                    "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                    "modifiedDate": "2016-03-07T17:03:13Z",
+                    "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                    "changeCount": 1,
+                    "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",
+                    "name": "Some Property",
+                    "propertyValue": "Some Property Value",
+                    "classificationPM": "U"
+                    }
+                ],
+                "callerPermissions": {
+                    "allowCreate": false,
+                    "allowRead": true,
+                    "allowUpdate": false,
+                    "allowDelete": false,
+                    "allowShare": false
+                },
+                "permissions": [
+                    {
+                    "grantee": "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+                    "userDistinguishedName": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                    "displayName": "test tester10",
+                    "allowCreate": true,
+                    "allowRead": true,
+                    "allowUpdate": true,
+                    "allowDelete": true,
+                    "allowShare": true
+                    },
+                    {
+                    "grantee": "dctc_odrive_g1",
+                    "projectName": "dctc",
+                    "projectDisplayName": "DCTC",
+                    "groupName": "ODrive_G1",
+                    "displayName": "DCTC ODrive_G1",
+                    "allowCreate": true,
+                    "allowRead": true,
+                    "allowUpdate": true,
+                    "allowDelete": true,
+                    "allowShare": true
+                    }
+                ],
+                "breadcrumbs": [
+                    {
+                    "id": "11e5e4867a6e3d8389020242ac189124",
+                    "parentId": "",
+                    "name": "parentFolderA"
+                    },
+                    {
+                    "id": "11e5e4867a6e3d8389020242ac110002",
+                    "parentId": "11e5e4867a6e3d8389020242ac110002",
+                    "name": "folderA"
+                    }
+                ]
+                }
+            ],
+            objectErrors: [
+                "objectId": "11e5e4867a6e3f8389020242ac110002",
+                "code": 400,
+                "error": "error in query",
+                "msg": "not found",
+            ]
+            }
+
++ Response 400
+
+        Unable to decode request
+        
++ Response 403
+
+        Forbidden
+
++ Response 500
+
+        Error retrieving data
 
 ## Object Metadata [/objects/{objectId}/properties]
 
