@@ -459,11 +459,9 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// - remove all subscriptions
 		case h.Routes.Subscribed.MatchString(uri):
 			herr = NewAppError(404, nil, "Not implemented")
-			// TODO: h.deleteObjectSubscriptions(ctx, w, r)
-			// - empty trash (expunge all in trash)
+		// - Empty this user's trash
 		case h.Routes.Trash.MatchString(uri):
-			herr = NewAppError(404, nil, "Not implemented")
-			// TODO: h.emptyTrash(ctx, w, r)
+			herr = h.expungeDeleted(ctx, w, r)
 		// - remove object type
 		case h.Routes.ObjectType.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectType)

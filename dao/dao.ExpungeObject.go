@@ -28,7 +28,12 @@ func (dao *DataAccessLayer) ExpungeObject(user models.ODUser, object models.ODOb
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return err
 	}
-	err = expungeObjectInTransaction(tx, user, object, explicit)
+	object.ModifiedBy = user.DistinguishedName
+
+	updateObjectStatement, err := expungeObjectInTransactionPrepare(tx)
+	defer updateObjectStatement.Close()
+
+	err = expungeObjectInTransaction(tx, user, object, explicit, updateObjectStatement)
 	if err != nil {
 		dao.GetLogger().Error("Error in ExpungeObject", zap.String("err", err.Error()))
 		tx.Rollback()
@@ -38,7 +43,16 @@ func (dao *DataAccessLayer) ExpungeObject(user models.ODUser, object models.ODOb
 	return err
 }
 
-func expungeObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.ODObject, explicit bool) error {
+func expungeObjectInTransactionPrepare(tx *sqlx.Tx) (*sqlx.Stmt, error) {
+	return tx.Preparex(`
+    update object set modifiedby = ?,
+    isdeleted = ?, deleteddate = ?, deletedby = ?,
+    isancestordeleted = ?,
+    isexpunged = ?, expungeddate = ?, expungedby = ?
+    where id = ?`)
+}
+
+func expungeObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.ODObject, explicit bool, updateObjectStatement *sqlx.Stmt) error {
 	// Pre-DB Validation
 	if object.ID == nil {
 		return errors.New("Object ID was not specified for object being expunged")
@@ -78,15 +92,7 @@ func expungeObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.O
 	dbObject.ExpungedDate.Valid = true
 	dbObject.ExpungedBy.String = dbObject.ModifiedBy
 	dbObject.ExpungedBy.Valid = true
-	updateObjectStatement, err := tx.Preparex(`
-    update object set modifiedby = ?,
-    isdeleted = ?, deleteddate = ?, deletedby = ?,
-    isancestordeleted = ?,
-    isexpunged = ?, expungeddate = ?, expungedby = ?
-    where id = ?`)
-	if err != nil {
-		return err
-	}
+
 	_, err = updateObjectStatement.Exec(dbObject.ModifiedBy,
 		dbObject.IsDeleted, dbObject.DeletedDate, dbObject.DeletedBy,
 		dbObject.IsAncestorDeleted,
@@ -115,7 +121,7 @@ func expungeObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.O
 				}
 				if authorizedToDelete {
 					pagedResultset.Objects[i].ModifiedBy = object.ModifiedBy
-					err = expungeObjectInTransaction(tx, user, pagedResultset.Objects[i], false)
+					err = expungeObjectInTransaction(tx, user, pagedResultset.Objects[i], false, updateObjectStatement)
 					if err != nil {
 						return err
 					}

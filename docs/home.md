@@ -1420,6 +1420,26 @@ This creates a new revision of the object.
 
         Error storing metadata or stream
 
+
+
+## Expunge deleted objects [/trashed{?pageSize}]
+
+Objects that have been put into the trash can be undeleted until the trash is emptied.
+This is effectively the same as calling the operation Delete Object Forever for everything that has been trashed.
+
++ Parameters
+    + pageSize: 10000 (number, optional) - The batch size to expunge objects in
+
+### Empty Trash [DELETE]
+
++ Response 200 (application/json)
+
+    + Body
+
+            {
+                "expunged_count": 20
+            }	        
+
 ## User Stats [/userstats]
 
 User Stats provides metrics information for the user's total number of objects and revisions and the amount of size consumed in the system.

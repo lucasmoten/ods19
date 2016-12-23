@@ -27,6 +27,7 @@ type DAO interface {
 	DeleteObjectPermission(objectPermission models.ODObjectPermission) (models.ODObjectPermission, error)
 	DeleteObjectProperty(objectProperty models.ODObjectPropertyEx) error
 	DeleteObjectType(objectType models.ODObjectType) error
+	ExpungeDeletedByUser(user models.ODUser, pageSize int) (int64, error)
 	ExpungeObject(user models.ODUser, object models.ODObject, explicit bool) error
 	GetAcmGrantee(grantee string) (models.ODAcmGrantee, error)
 	GetAcmGrantees(grantees []string) ([]models.ODAcmGrantee, error)
