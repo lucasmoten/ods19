@@ -103,9 +103,9 @@ def start():
     # Change ownership of logging directory and file, if the file exists.
     logging_dir = os.path.split(logfile)[0]
     create_dir_not_exists(logging_dir)
-    change_owner(logging_dir, uid, gid, 0o755)
+    change_owner(logging_dir, uid, gid, 0o750)
     if os.path.exists(logfile):
-        change_owner(logfile, uid, gid, 0o755)
+        change_owner(logfile, uid, gid, 0o750)
 
     # Change ownership of cache dir and its contents.
     cache_dir = os.path.split(os.getenv("OD_CACHE_ROOT"))[0]
@@ -113,20 +113,27 @@ def start():
     os.chown(cache_dir, uid, -1)
     for root, dirs, files in os.walk(cache_dir):
         for d in dirs:
-            change_owner(os.path.join(root, d), uid, gid, 0o755)
+            change_owner(os.path.join(root, d), uid, gid, 0o750)
             for n in files:
-                change_owner(os.path.join(root, n), uid, gid, 0o755)
+                change_owner(os.path.join(root, n), uid, gid, 0o750)
     
-    # Change ownership of certificates if exists
+    # Change ownership of certificates if exists, and beneath the base path
     if os.getenv("OD_CERTPATH"):
         certpath = os.getenv("OD_CERTPATH")
         if os.path.exists(certpath):
-            change_owner(certpath, uid, gid, 0o755)
-    
+            if os.getenv("OD_BASEPATH"):
+                basepath = os.getenv("OD_BASEPATH")
+                if os.path.exists(basepath):
+                    if certpath.startswith(basepath):
+                        for root, dirs, files in os.walk(certpath):
+                            for d in dirs:
+                                change_owner(os.path.join(root, d), uid, gid, 0o750)
+                                for n in files:
+                                    change_owner(os.path.join(root, n), uid, gid, 0o750)
 
     # Change ownership of pidfile. 
     touch_file(pidfile)
-    change_owner(pidfile, uid, gid, 0o755)
+    change_owner(pidfile, uid, gid, 0o750)
 
     # Change the user for the currently executing script, e.g. "su down". 
     os.setuid(uid)
