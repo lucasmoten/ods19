@@ -14,7 +14,7 @@ import (
 // SchemaVersion marks compatibility with previously created databases.
 // On startup, we should be checking the schema, and raise some alarm if
 // the schema is out of date, or trigger a migration, etc.
-var SchemaVersion = "20160824"
+var SchemaVersion = "20161223"
 
 // DAO defines the contract our app has with the database.
 type DAO interface {
