@@ -3,6 +3,8 @@ Changelog
 Release vNEXT
 -------------
 * ENH: Calculated full path and unique names for objects. Slashes are now restricted characters from updates.
+* ENH: Bulk Delete objects: DELETE /objects
+* ENH: Bulk Move objects: POST /objects/move
 
 Release v1.0.1.12
 -----------------

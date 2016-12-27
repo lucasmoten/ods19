@@ -40,15 +40,16 @@ func (dao *DataAccessLayer) GetAcmGrantees(grantees []string) ([]models.ODAcmGra
 		acmgrantee, err = getAcmGranteeInTransaction(tx, grantee)
 		if err == nil {
 			acmgrantees = append(acmgrantees, acmgrantee)
-			tx.Commit()
+			// we can't commit yet, because we are in a loop
 		} else {
 			if err != sql.ErrNoRows {
 				dao.GetLogger().Error("Error in GetAcmGrantees", zap.String("err", err.Error()))
 				tx.Rollback()
-				break
+				return acmgrantees, err
 			}
 		}
 	}
+	tx.Commit()
 	return acmgrantees, err
 }
 

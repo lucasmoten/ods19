@@ -414,6 +414,10 @@ func statusMustBe(t *testing.T, expected int, resp *http.Response, msg string) {
 }
 
 func statusExpected(t *testing.T, expected int, resp *http.Response, msg string) {
+	if resp == nil {
+		t.Logf("Expected status %v but got no response", expected)
+		t.Fail()
+	}
 	if resp.StatusCode != expected {
 		if msg != "" {
 			t.Logf(msg)

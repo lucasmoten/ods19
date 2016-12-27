@@ -146,6 +146,7 @@ func (h *AppServer) InitRegex() {
 		ObjectUndelete:    route("/objects/(?P<objectId>[0-9a-fA-F]{32})/untrash$"),
 		ObjectExpunge:     route("/objects/(?P<objectId>[0-9a-fA-F]{32})$"),
 		ObjectMove:        route("/objects/(?P<objectId>[0-9a-fA-F]{32})/move/(?P<folderId>[0-9a-fA-F]{32})?$"),
+		ObjectsMove:       route("/objects/move$"),
 		// - revisions
 		Revisions:      route("/revisions/(?P<objectId>[0-9a-fA-F]{32})$"),
 		RevisionStream: route("/revisions/(?P<objectId>[0-9a-fA-F]{32})/(?P<revisionId>.*)/stream(\\.[0-9a-zA-Z]*)?$"),
@@ -429,11 +430,11 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// - create object type
 		case h.Routes.ObjectType.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectType)
-			// TODO: h.updateObjectType(ctx, w, r)
 			herr = NewAppError(404, nil, "Not implemented")
-			// - bulk properties
 		case h.Routes.BulkProperties.MatchString(uri):
 			herr = h.getBulkProperties(ctx, w, r)
+		case h.Routes.ObjectsMove.MatchString(uri):
+			herr = h.doBulkMove(ctx, w, r)
 		default:
 			herr = do404(ctx, w, r)
 		}
@@ -471,7 +472,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectType)
 			herr = NewAppError(404, nil, "Not implemented")
 			// TODO: h.deleteObjectType(ctx, w, r)
-
+		case h.Routes.Objects.MatchString(uri):
+			herr = h.doBulkDelete(ctx, w, r)
 		default:
 			herr = do404(ctx, w, r)
 		}
@@ -706,4 +708,5 @@ type StaticRx struct {
 	SubscribedSubscription *regexp.Regexp
 	ObjectTypes            *regexp.Regexp
 	ObjectType             *regexp.Regexp
+	ObjectsMove            *regexp.Regexp
 }
