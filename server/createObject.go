@@ -14,6 +14,7 @@ import (
 	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/crypto"
+	"decipher.com/object-drive-server/dao"
 	"golang.org/x/net/context"
 
 	"decipher.com/object-drive-server/config"
@@ -129,6 +130,14 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		models.CopyEncryptKey(masterKey, &ownerPermission, &obj.Permissions[idx])
 	}
 
+	user, _ := UserFromContext(ctx)
+	snippetFields, _ := SnippetsFromContext(ctx)
+	user.Snippets = snippetFields
+	if err = handleIntermediateFoldersDuringCreation(dao, user, dp.GetMasterKey(), &obj); err != nil {
+		herr = NewAppError(500, err, "error processing intermediate folders")
+		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
+	}
+
 	createdObject, err = dao.CreateObject(&obj)
 	if err != nil {
 		herr = NewAppError(500, err, "error storing object")
@@ -160,7 +169,121 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	return nil
 }
 
-// newOwnerPermission returns a default permission for the creator of an object.
+// handleIntermediateFoldersDuringCreation parses the object name and as necessary creates folder
+// hierarchy leading up to the object name delimited by / and \ reserved characters. Note that this
+// should not be applied for object updates since it can change the location of an object which is
+// restricted as a separate operation, only permitted to owners.
+func handleIntermediateFoldersDuringCreation(mdb dao.DAO, user models.ODUser, masterKey string, obj *models.ODObject) error {
+
+	partName := trimPathDelimitersFromNameReturnAnyPart(obj)
+	if partName != "" {
+		// Get existing objects whose name matches this part
+		matchedObjects, err := getObjectsWithName(mdb, user, obj.OwnedBy.String, partName, obj.ParentID)
+		if err != nil {
+			return err
+		}
+
+		// If an object already exists for this part ...
+		var matchedObject models.ODObject
+		if matchedObjects.TotalRows > 0 {
+			matchedObject = matchedObjects.Objects[0]
+		} else {
+			// There is no object with this part name yet.  need to create it. Use same
+			// settings for the acm and permissions
+			folderObj := newFolderBasedOnObject(obj)
+			folderObj.Name = partName
+			// permissions need to be copied as new objects as they'll get ids assigned
+			// during the create call
+			for _, permission := range obj.Permissions {
+				newPermission := newCopyOfPermission(permission, folderObj.CreatedBy)
+				models.SetEncryptKey(masterKey, &newPermission)
+				folderObj.Permissions = append(folderObj.Permissions, newPermission)
+			}
+			matchedObject, err = mdb.CreateObject(&folderObj)
+			if err != nil {
+				return err
+			}
+		}
+		// Shift the parent id for the object being created
+		obj.ParentID = matchedObject.ID
+
+		return handleIntermediateFoldersDuringCreation(mdb, user, masterKey, obj)
+	}
+	return nil
+}
+
+func trimPathDelimitersFromNameReturnAnyPart(obj *models.ODObject) string {
+	// trim leading and trailing slashes
+	for strings.HasPrefix(obj.Name, "/") || strings.HasPrefix(obj.Name, "\\") {
+		obj.Name = obj.Name[1:]
+	}
+	for strings.HasSuffix(obj.Name, "/") || strings.HasSuffix(obj.Name, "\\") {
+		obj.Name = obj.Name[:len(obj.Name)-1]
+	}
+
+	// if there are slashes in the name, we need to change to location
+	dpos := strings.IndexAny(obj.Name, "/\\")
+	if dpos > -1 {
+		partName := obj.Name[:dpos]
+		obj.Name = obj.Name[dpos+1:]
+		return partName
+	}
+	return ""
+}
+
+func getObjectsWithName(mdb dao.DAO, user models.ODUser, ownedBy string, name string, parentID []byte) (models.ODObjectResultset, error) {
+	// Get existing objects whose name matches this part
+	pagingRequest := dao.PagingRequest{FilterSettings: []dao.FilterSetting{dao.FilterSetting{FilterField: "name", Condition: "equals", Expression: name}}}
+	var matchedObjects models.ODObjectResultset
+	var err error
+	if strings.HasPrefix(ownedBy, "user/") {
+		if parentID == nil {
+			matchedObjects, err = mdb.GetRootObjectsByUser(user, pagingRequest)
+		} else {
+			matchedObjects, err = mdb.GetChildObjectsByUser(user, pagingRequest, models.ODObject{ID: parentID})
+		}
+	} else {
+		// TODO: when possible to create objects with group as owner, similar funcs will be called to match
+	}
+	return matchedObjects, err
+}
+
+func newFolderBasedOnObject(obj *models.ODObject) models.ODObject {
+	theFolder := models.ODObject{
+		CreatedBy:   obj.CreatedBy,
+		OwnedBy:     obj.OwnedBy,
+		TypeName:    models.ToNullString("Folder"),
+		ParentID:    obj.ParentID,
+		RawAcm:      obj.RawAcm,
+		Permissions: []models.ODObjectPermission{},
+	}
+	return theFolder
+}
+
+func newCopyOfPermission(permission models.ODObjectPermission, createdBy string) models.ODObjectPermission {
+	theCopy := models.ODObjectPermission{
+		AcmGrantee: models.ODAcmGrantee{
+			DisplayName:           permission.AcmGrantee.DisplayName,
+			Grantee:               permission.AcmGrantee.Grantee,
+			GroupName:             permission.AcmGrantee.GroupName,
+			ProjectDisplayName:    permission.AcmGrantee.ProjectDisplayName,
+			ProjectName:           permission.AcmGrantee.ProjectName,
+			UserDistinguishedName: permission.AcmGrantee.UserDistinguishedName,
+			ResourceString:        permission.AcmGrantee.ResourceString,
+		},
+		AcmShare:    permission.AcmShare,
+		AllowCreate: permission.AllowCreate,
+		AllowDelete: permission.AllowDelete,
+		AllowRead:   permission.AllowRead,
+		AllowShare:  permission.AllowShare,
+		AllowUpdate: permission.AllowUpdate,
+		CreatedBy:   createdBy,
+		Grantee:     permission.Grantee,
+	}
+	return theCopy
+}
+
+// permissionWithOwnerDefaults returns a default permission for the creator of an object.
 func permissionWithOwnerDefaults(caller Caller) models.ODObjectPermission {
 	var ownerPermission models.ODObjectPermission
 	ownerPermission.Grantee = caller.DistinguishedName

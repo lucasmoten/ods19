@@ -371,10 +371,18 @@ func buildFilterRequireObjectsGroupOwns(tx *sqlx.Tx, groupName string) string {
 }
 
 func removeDisplayNameFromResourceString(resourceString string) string {
-	if len(strings.Split(resourceString, "/")) < 3 {
-		return resourceString
+	partCount := len(strings.Split(resourceString, "/"))
+	if partCount == 3 || partCount == 5 {
+		// includes display name
+		// 5 group/dctc/DCTC/ODrive/DCTC ODrive
+		// 3 group/_everyone/-Everyone
+		// 3 user/cn=bob/bob
+		return resourceString[0:strings.LastIndex(resourceString, "/")]
 	}
-	return resourceString[0:strings.LastIndex(resourceString, "/")]
+	// 4 group/dctc/DCTC/ODrive
+	// 2 group/_everyone
+	// 2 user/cn=bob
+	return resourceString
 }
 
 func buildFilterRequireObjectsIOwn(user models.ODUser) string {

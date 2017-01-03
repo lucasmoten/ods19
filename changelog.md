@@ -1,5 +1,9 @@
 Changelog
 
+Release vNEXT
+-------------
+* ENH: Calculated full path and unique names for objects. Slashes are now restricted characters from updates.
+
 Release v1.0.1.12
 -----------------
 * ENH: Determination of content type from file extension on upload expanded to larger list

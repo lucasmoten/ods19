@@ -57,6 +57,7 @@ func getAcmGranteeInTransaction(tx *sqlx.Tx, grantee string) (models.ODAcmGrante
 	query := `
     select 
         grantee
+		,resourceString
         ,projectName
         ,projectDisplayName
         ,groupName
@@ -97,16 +98,20 @@ func createAcmGranteeInTransaction(logger zap.Logger, tx *sqlx.Tx, acmGrantee mo
 			acmGrantee.DisplayName = models.ToNullString(strings.TrimSpace(projectDisplayName + " " + groupName))
 		}
 	}
+	if !acmGrantee.ResourceString.Valid || acmGrantee.ResourceString.String == "" {
+		acmGrantee.ResourceString = models.ToNullString(acmGrantee.ResourceName())
+	}
+	acmGrantee.ResourceString = models.ToNullString(removeDisplayNameFromResourceString(acmGrantee.ResourceString.String))
 
 	var dbAcmGrantee models.ODAcmGrantee
 	addAcmGranteeStatement, err := tx.Preparex(
 		`insert acmgrantee 
-         set grantee = ?, projectName = ?, projectDisplayName = ?, groupName = ?, userDistinguishedName = ?, displayName = ?`)
+         set grantee = ?, resourceString = ?, projectName = ?, projectDisplayName = ?, groupName = ?, userDistinguishedName = ?, displayName = ?`)
 	if err != nil {
 		return dbAcmGrantee, err
 	}
 
-	result, err := addAcmGranteeStatement.Exec(acmGrantee.Grantee,
+	result, err := addAcmGranteeStatement.Exec(acmGrantee.Grantee, acmGrantee.ResourceString,
 		acmGrantee.ProjectName, acmGrantee.ProjectDisplayName, acmGrantee.GroupName,
 		acmGrantee.UserDistinguishedName, acmGrantee.DisplayName)
 	if err != nil {

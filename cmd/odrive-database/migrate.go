@@ -50,7 +50,7 @@ func migrateUp(clictx *cli.Context) error {
 		return err
 	}
 	m := &migrate.AssetMigrationSource{
-		Asset:    Asset,
+		Asset:    AssetWithEnv,
 		AssetDir: AssetDir,
 		Dir:      "migrations",
 	}
@@ -70,7 +70,7 @@ func migrateDown(clictx *cli.Context) error {
 		return err
 	}
 	m := &migrate.AssetMigrationSource{
-		Asset:    Asset,
+		Asset:    AssetWithEnv,
 		AssetDir: AssetDir,
 		Dir:      "migrations",
 	}

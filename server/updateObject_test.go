@@ -899,11 +899,23 @@ func TestUpdateObjectWithPermissions(t *testing.T) {
 	}
 }
 
-func allTrue(vals ...bool) bool {
-	for _, v := range vals {
-		if !v {
-			return false
-		}
+func TestUpdateObjectWithPathing(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
 	}
-	return true
+	tester10 := 0
+
+	t.Logf("* Create folder under root as tester10")
+	folder1 := makeFolderViaJSON("Test Folder 1 ", tester10, t)
+
+	t.Logf("* Attempt to rename it")
+	changedName := "Renamed/with/pathing"
+	updateuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
+	folder1.Name = changedName
+
+	updateFolderReq := makeHTTPRequestFromInterface(t, "POST", updateuri, folder1)
+	updateFolderRes, err := clients[tester10].Client.Do(updateFolderReq)
+	defer util.FinishBody(updateFolderRes.Body)
+	failNowOnErr(t, err, "Unable to do request")
+	statusExpected(t, 400, updateFolderRes, "Bad status when renaming folder with pathing")
 }
