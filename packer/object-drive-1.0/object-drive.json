@@ -1,0 +1,57 @@
+{
+  "variables": {
+    "aws_access_key": "",
+    "aws_secret_key": "",
+    "rpm": "object-drive-1.0.1.719.x86_64.rpm",
+    "svc_path": "/opt/services/object-drive-1.0",
+    "base_ami": "ami-6d1c2007"
+  },
+  "builders": [{
+    "type": "amazon-ebs",
+    "communicator": "ssh",
+    "ssh_pty": true,
+    "access_key": "{{user `aws_access_key`}}",
+    "secret_key": "{{user `aws_secret_key`}}",
+    "region": "us-east-1",
+    "source_ami": "{{user `base_ami`}}",
+    "instance_type": "t2.micro",
+    "ssh_username": "centos",
+    "ami_name": "object-drive-1.0 {{timestamp}}"
+  }],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": ["sleep 30", "mkdir -p /home/centos/assets"]
+    },
+    {
+      "type": "file",
+      "source": "{{user `rpm`}}",
+      "destination": "/home/centos/{{user `rpm`}}"
+    },
+    {
+      "type": "file",
+      "source": "assets",
+      "destination": "/home/centos"
+    },
+    {
+      "type": "shell",
+      "execute_command": "echo {{user `ssh_username`}} | {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+      "inline": [
+          "yum -y install {{user `rpm`}}",
+          "mv -f /home/centos/assets/env.sh {{user `svc_path`}}/env.sh",
+          "mkdir -p {{user `svc_path`}}/certs/trust",
+          "mv -f /home/centos/assets/aac.client.trust.pem {{user `svc_path`}}/certs/aac.client.trust.pem",
+          "mv -f /home/centos/assets/aac.client.cert.pem {{user `svc_path`}}/certs/aac.client.cert.pem",
+          "mv -f /home/centos/assets/aac.client.key.pem {{user `svc_path`}}/certs/aac.client.key.pem",
+          "mv -f /home/centos/assets/rds-combined-ca-bundle.pem {{user `svc_path`}}/certs/rds-combined-ca-bundle.pem",
+          "mv -f /home/centos/assets/server.key.pem {{user `svc_path`}}/certs/server.key.pem",
+          "mv -f /home/centos/assets/server.cert.pem {{user `svc_path`}}/certs/server.cert.pem",
+          "mv -f /home/centos/assets/server.DIASRootCA.pem {{user `svc_path`}}/certs/trust/server.DIASRootCA.pem",
+          "mv -f /home/centos/assets/server.DIASSUBCA2.pem {{user `svc_path`}}/certs/trust/server.DIASSUBCA2.pem",
+          "chkconfig --add object-drive-1.0",
+          "chkconfig --level 3 object-drive-1.0 on",
+          "chkconfig --level 5 object-drive-1.0 on"
+      ]
+    }
+  ]
+}

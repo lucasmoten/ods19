@@ -44,33 +44,33 @@ func buildClientTLSConfig(CAPath string, ClientCertPath string, ClientKeyPath st
 
 // buildServerTLSConfig prepares a tls.Config object for this application to
 // listen for connecting clients.
-func buildServerTLSConfig(CAPath string, ServerCertPath string, ServerKeyPath string, RequireClientCert bool, CipherSuites []string, MinimumVersion string) tls.Config {
+func buildServerTLSConfig(caPath, certPath, keyPath string, clientCert bool, ciphers []string, minVersion string) tls.Config {
 	// Client Certificate pool
 	// The set of root certificate authorities that the sever will use to verify
 	// client certificates
-	clientCAsCertPool := buildCertPoolFromPath(CAPath, "for server")
+	clientCAsCertPool := buildCertPoolFromPath(caPath, "for server")
 
 	// Server public and private certificate
-	serverCert := buildx509Identity(ServerCertPath, ServerKeyPath)
+	serverCert := buildx509Identity(certPath, keyPath)
 
 	clientAuthType := tls.NoClientCert
-	if RequireClientCert {
+	if clientCert {
 		clientAuthType = tls.RequireAndVerifyClientCert
 	}
 
-	preferServerCipherSuites := false
-	cipherSuites := buildCipherSuites(CipherSuites)
+	preferServerCiphers := false
+	cipherSuites := buildCipherSuites(ciphers)
 	if len(cipherSuites) > 0 {
-		preferServerCipherSuites = true
+		preferServerCiphers = true
 	}
 
 	// Prefer TLS 1.2. Allow 1.1 or 1.0
 	var minimumVersion uint16
 	minimumVersion = tls.VersionTLS12
-	if MinimumVersion == "1.1" {
+	if minVersion == "1.1" {
 		minimumVersion = tls.VersionTLS11
 	}
-	if MinimumVersion == "1.0" {
+	if minVersion == "1.0" {
 		minimumVersion = tls.VersionTLS10
 	}
 	switch minimumVersion {
@@ -87,7 +87,7 @@ func buildServerTLSConfig(CAPath string, ServerCertPath string, ServerKeyPath st
 		ClientAuth:               clientAuthType,
 		ClientCAs:                clientCAsCertPool,
 		CipherSuites:             cipherSuites,
-		PreferServerCipherSuites: preferServerCipherSuites,
+		PreferServerCipherSuites: preferServerCiphers,
 		MinVersion:               minimumVersion,
 	}
 }
@@ -126,8 +126,6 @@ func buildCipherSuites(CipherSuiteNames []string) []uint16 {
 			}
 		}
 	} else {
-		logger.Warn("CipherSuites not declared in configuration. Adding all known cipher suites.")
-		logger.Warn("This is inherently less secure as it may be overly permissive by enabling weaker ciphers")
 		for key, value := range cipherValueConstLookup {
 			logger.Warn("Enabling cipher suite", zap.String("suite", key))
 			cipherSuites = append(cipherSuites, value)
@@ -156,8 +154,7 @@ func buildx509Identity(certFile string, keyFile string) []tls.Certificate {
 
 // buildCertPoolFromPath prepares a certificate pool from the passed in file
 // path. If the file path is an indivdual file, then a single PEM is placed
-// in the pool. If it is a folder, then all files in the folder are read to See
-// if they are PEM files, and if so, added to the pool.
+// in the pool. If it is a folder, then all files in the folder are added to the pool.
 func buildCertPoolFromPath(filePath string, poolName string) *x509.CertPool {
 	flogger := logger.With(zap.String("filepath", filePath)).With(zap.String("pool", poolName))
 	flogger.Info("Preparing certificate pool")
