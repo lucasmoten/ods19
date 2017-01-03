@@ -74,9 +74,9 @@ func (as *AutoScaler) autoScalerTerminating(lifecycleMessage *LifecycleMessage) 
 	actionResult := "CONTINUE"
 	logger := as.Logger
 	asgSession := as.ASG
-	logger.Info("autoscale terminating")
 	//Notify autoscaling that we are ready to be terminated
 	if asgSession != nil && lifecycleMessage != nil {
+		logger.Info("autoscale terminating")
 		actionInput := &asg.CompleteLifecycleActionInput{
 			AutoScalingGroupName:  aws.String(as.Config.AutoScalingGroupName),
 			LifecycleActionResult: aws.String(actionResult),
@@ -206,6 +206,7 @@ func (as *AutoScaler) watchForShutdownBySignals() {
 	for sig := range sigchan {
 		switch sig {
 		case syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2:
+			as.Logger.Info("shutdown signal received")
 			as.ExitChannel <- as.prepareForTermination(nil)
 		default:
 			as.Logger.Info("signal hard shutdown")
