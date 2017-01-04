@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"sync"
 	"time"
 )
 
@@ -111,6 +112,8 @@ type JobReporters struct {
 	RecentRequestCount int64
 	RecentByteCount    int64
 	RecentBegin        int64
+
+	TotalMutex sync.RWMutex
 }
 
 func (j *JobReporters) NewInterval() {
@@ -481,7 +484,9 @@ func jobReportersJobReport(r *JobReporters, j EndingJob) {
 	//Increment the counters
 	reporter := r.Reporters[j.ReporterID]
 	reporter.TotalTime += duration
+	r.TotalMutex.Lock()
 	reporter.TotalBytes += int64(j.JobReport.SizeJob)
+	r.TotalMutex.Unlock()
 
 	reporter.Q.InsertStat(j.JobReport)
 }
@@ -591,4 +596,12 @@ func (jrs *JobReporters) Report(reporterID ReporterID) RequestedReport {
 		ReporterID: reporterID,
 	}
 	return <-jrs.RequestedReport
+}
+
+func (jrs *JobReporters) GetUploadDownloadByteTotal() int64 {
+	jrs.TotalMutex.RLock()
+	b := jrs.Reporters[UploadCounter].TotalBytes +
+		jrs.Reporters[DownloadCounter].TotalBytes
+	jrs.TotalMutex.RUnlock()
+	return b
 }
