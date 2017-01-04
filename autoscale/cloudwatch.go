@@ -74,9 +74,7 @@ func CloudWatchDump(w io.Writer) {
 }
 
 func CloudWatchTransaction(start, stop int64, tracker *performance.JobReporters) {
-	bytes :=
-		tracker.Reporters[performance.UploadCounter].TotalBytes +
-			tracker.Reporters[performance.DownloadCounter].TotalBytes
+	bytes := tracker.GetUploadDownloadByteTotal()
 	CloudWatchTransactionRaw(start, stop, bytes)
 }
 
