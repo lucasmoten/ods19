@@ -20,7 +20,8 @@ import (
 
 // Globals
 var (
-	logger = config.RootLogger
+	logger     = config.RootLogger
+	aacCreated = make(chan *aac.AacServiceClient)
 )
 
 // Start starts the server and wires together dependencies.
@@ -78,21 +79,22 @@ func Start(conf config.AppConfiguration) error {
 	// When this gets a shutdown signal, it will terminate when all files are uploaded
 	autoscale.WatchForShutdown(app.DefaultZK, logger)
 
-	// Do not announce ephemeral nodes in zk until we have an aac, so that we can service requests immediately
-	waitTime := 1
-	prevWaitTime := 0
-	for app.AAC == nil {
-		if waitTime > 10 {
-			logger.Error(
-				"aac connect is taking too long",
-				zap.Int("waitTime in Seconds", waitTime),
-			)
-			break
+	// unconditionall stall until aacCreated
+	logger.Info(
+		"waiting for aac to be created",
+	)
+	// Stall until we get the first one
+	app.AAC = <-aacCreated
+	// We MUST drain the channel from somewhere, or else a recreate of AAC will stall forever
+	go func() {
+		for {
+			select {
+			case newAAC := <-aacCreated:
+				app.AAC = newAAC
+			}
 		}
-		time.Sleep(time.Duration(waitTime) * time.Second)
-		waitTime = waitTime + prevWaitTime
-		prevWaitTime = waitTime
-	}
+	}()
+
 	// Write our ephemeral node in zk.
 	err = zookeeper.ServiceAnnouncement(app.DefaultZK, "https", "ALIVE", conf.ZK.IP, conf.ZK.Port)
 	if err != nil {
@@ -285,7 +287,7 @@ func aacReconnect(app *AppServer, conf config.AppConfiguration) {
 			continue
 		}
 		logger.Info("successfully reconnected to aac")
-		app.AAC = client
+		aacCreated <- client
 		return
 	}
 	// Something is wrong. We will exit, and the polling routine will call us until shutdown.
@@ -344,7 +346,7 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 						if err != nil {
 							logger.Error("aac reconnect check error", zap.String("err", err.Error()))
 						} else {
-							app.AAC = aacc
+							aacCreated <- aacc
 							logger.Info("aac chosen", zap.Object("announcement", announcement))
 							// ok... go with this one!
 							break
