@@ -13,6 +13,7 @@ A series of microservice operations are exposed on the API gateway for use of Ob
 | Get an Object Stream | Retrieves the content stream of an object. |
 | Update Object | Used for updating the metadata of an object. |
 | Update Object Stream | Used for updating the content stream and metadata of an object. |
+| Delete Objects | Delete objects in bulk. |
 | Delete Object | Marks an object as deleted an only available from the user's trash. |
 | Delete Object Forever | Expunges an object so that it cannot be restored from the trash. |
 | List Object Revisions | Retrieves a resultset of revisions for an object. |
@@ -21,6 +22,7 @@ A series of microservice operations are exposed on the API gateway for use of Ob
 | List Objects at Root For Group | Retrieves a resultset of objects at a group's root. |
 | List Objects Under Parent | Retrieves a resultset of objects contained in/under a parent object (ie., folder). |
 | List Objects Shared to Everyone | Retrieves a resultset of objects that are shared to everyone. |
+| Move Objects | Move objects in bulk. |
 | Move Object | Changes the hierarchial placement of an object. |
 | Change Owner | Change the owner of an object. |
 | List Objects at Root For User | Retrieves a resultset of objects at the user's root. |
@@ -194,6 +196,28 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
 + Response 500
 
         Error storing metadata or stream
+
+### Delete Objects [DELETE]
+
+Delete a set of objects.  It requires the id and the change token for each one.
+
++ Request (application/json)
+
+    + Body
+
+            [
+                {"ObjectId":"11e5e4867a6e3d8389020242ac110002", "ChangeToken":"e18919"},
+                {"ObjectId":"11e5e4867a6f3d8389020242ac110002", "ChangeToken":"a38919"}
+            ]
+
++ Response 200
+
+    + Body
+
+            [
+                {"objectId":"11e5e4867a6e3d8389020242ac110002","code":200, "error":"", "msg":""},
+                {"objectId":"11e5e4867a6f3d8389020242ac110002","code":400, "error":"unable to find object", "msg":"cannot delete object"}
+            ]
 
 
 ## Bulk object properties [/objects/properties]
@@ -853,6 +877,30 @@ This creates a new revision of the object.
 + Response 500
 
         Error storing metadata or stream
+
+## Move Objects [/objects/move]
+
+### Move Objects [POST]
+
+Move a set of objects.  It requires the id and the change token for each one.
+
++ Request (application/json)
+
+    + Body
+
+            [
+                {"id":"11e5e4867a6e3d8389020242ac110002", "changeToken":"e18919", "parentId":"11e5e4867aaa3d8389020242ac110002"},
+                {"id":"11e5e4867a6f3d8389020242ac110002", "changeToken":"a38919", "parentId":"11e5e4867aaa3d8389020242ac110002"}
+            ]
+
++ Response 200
+
+    + Body
+
+            [
+                {"objectId":"11e5e4867a6e3d8389020242ac110002", "code":200, "error":"", "msg":""},
+                {"objectId":"11e5e4867a6f3d8389020242ac110002", "code":400, "error":"unable to find object", "msg":"cannot move object"}
+            ]
 
 ## Delete Object [/objects/{objectId}/trash]
 
