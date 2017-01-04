@@ -51,6 +51,9 @@ func ScheduleSetPeers(newPeerMap map[string]*PeerMapData) {
 // setPeers calculates which connections can be deleted an sets the new peermap
 func setPeers(newPeerMap map[string]*PeerMapData, oldPeerMap map[string]*PeerMapData) {
 
+	//Delete old items from the connection map - this just needs to be done eventually
+	connectionMapMutex.Lock()
+
 	//Compute deleted items by the diff
 	var deletedPeerKeys []string
 	for oldPeerKey := range oldPeerMap {
@@ -60,8 +63,6 @@ func setPeers(newPeerMap map[string]*PeerMapData, oldPeerMap map[string]*PeerMap
 		}
 	}
 
-	//Delete old items from the connection map - this just needs to be done eventually
-	connectionMapMutex.Lock()
 	//These are never mutated, so no problem
 	peerMap = newPeerMap
 	for _, k := range deletedPeerKeys {
@@ -147,7 +148,9 @@ func UseLocalFile(logger zap.Logger, d CiphertextCache, rName FileId, cipherStar
 func useP2PFile(logger zap.Logger, zone CiphertextCacheZone, rName FileId, begin int64) (io.ReadCloser, error) {
 	cfgPort, _ := strconv.Atoi(config.Port)
 	//Iterate over the current value of peerMap.  Do NOT lock this loop, as there is long IO in here.
+	connectionMapMutex.RLock()
 	thisMap := peerMap
+	connectionMapMutex.RUnlock()
 	for peerKey, peer := range thisMap {
 		//If this is NOT our own entry
 		if peer != nil && (peer.Host != config.MyIP || peer.Port != cfgPort) {
