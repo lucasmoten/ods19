@@ -804,6 +804,33 @@ BEGIN
 END;
 -- +migrate StatementEnd
 
+DROP TRIGGER IF EXISTS ti_dbstate;
+-- +migrate StatementBegin
+CREATE TRIGGER ti_dbstate
+BEFORE INSERT ON dbstate FOR EACH ROW
+BEGIN
+	DECLARE count_rows int default 0;
+
+	# Rules
+	# Can only be one record
+	SELECT count(0) FROM dbstate INTO count_rows;
+	IF count_rows > 0 THEN
+		signal sqlstate '45000' set message_text = 'Only one record is allowed in dbstate table.';
+	END IF;
+
+	# Force values on create
+	# Created Date
+	SET NEW.createdDate := current_timestamp(6);
+	# Modified Date
+	SET NEW.modifiedDate := current_timestamp(6);
+	# Version should be changed if the schema changes
+	SET NEW.schemaversion := '20161230'; 
+	# Identifier is randomized as a GUID
+	SET NEW.identifier := concat(@@hostname, '-', left(uuid(),8));
+END;
+-- +migrate StatementEnd
+update dbstate set schemaVersion = '20161230';
+
 -- +migrate Down
 DROP INDEX ix_resourceString ON acmgrantee;
 ALTER TABLE acmgrantee DROP COLUMN resourceString;
@@ -1202,3 +1229,31 @@ BEGIN
 
 END;
 -- +migrate StatementEnd
+
+DROP TRIGGER IF EXISTS ti_dbstate;
+
+-- +migrate StatementBegin
+CREATE TRIGGER ti_dbstate
+BEFORE INSERT ON dbstate FOR EACH ROW
+BEGIN
+	DECLARE count_rows int default 0;
+
+	# Rules
+	# Can only be one record
+	SELECT count(0) FROM dbstate INTO count_rows;
+	IF count_rows > 0 THEN
+		signal sqlstate '45000' set message_text = 'Only one record is allowed in dbstate table.';
+	END IF;
+
+	# Force values on create
+	# Created Date
+	SET NEW.createdDate := current_timestamp(6);
+	# Modified Date
+	SET NEW.modifiedDate := current_timestamp(6);
+	# Version should be changed if the schema changes
+	SET NEW.schemaversion := '20161223'; 
+	# Identifier is randomized as a GUID
+	SET NEW.identifier := concat(@@hostname, '-', left(uuid(),8));
+END;
+-- +migrate StatementEnd
+update dbstate set schemaVersion = '20161223';
