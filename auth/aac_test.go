@@ -1,12 +1,9 @@
 package auth_test
 
 import (
-	"log"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/config"
@@ -14,58 +11,24 @@ import (
 	"decipher.com/object-drive-server/services/aac"
 )
 
-var (
-	aacHost = "aac"
-	aacPort = 9093
-)
+func newAACAuth(t *testing.T) auth.AACAuth {
+	// AAC server and port hardcoded
+	aacHost := "aac"
+	aacPort := 9093
+	// AAC trust, client public & private key
+	trustPath := filepath.Join("..", "defaultcerts", "clients", "client.trust.pem")
+	certPath := filepath.Join("..", "defaultcerts", "clients", "test_1.cert.pem")
+	keyPath := filepath.Join("..", "defaultcerts", "clients", "test_1.key.pem")
 
-func stallForAvailability() int {
-	// Don't stall on short tests
-	if testing.Short() {
-		return 0
+	t.Logf("AAC client initializing with trust: %s, cert: %s, key: %s", trustPath, certPath, keyPath)
+	aacClient, err := aac.GetAACClient(aacHost, aacPort, trustPath, certPath, keyPath)
+	if err != nil {
+		t.Logf("Error getting AAC Client %s", err.Error())
+		t.FailNow()
 	}
-
-	// Do this on every try to check the server
-	retryFunc := func() int {
-		log.Printf("try connection: %s:%d", aacHost, aacPort)
-		aacAuth, err := newAACAuthRaw()
-		if err != nil {
-			log.Printf("aac not ready: %v", err)
-			return -11
-		}
-		// Just check that Jon comes back without blowing up, as a test that aac is ready.  Simply getting back aac isn't enough to ensure that we stop getting errors.
-		_, err = aacAuth.GetSnippetsForUser("CN=Holmes Jonathan,OU=People,OU=Bedrock,OU=Six 3 Systems,O=U.S. Government,C=US")
-		if err != nil {
-			log.Printf("aac failing to get snippets for user, probably not ready: %v", err)
-			return -10
-		}
-		return 0
-	}
-
-	// Try every few seconds
-	tck := time.NewTicker(10 * time.Second)
-	defer tck.Stop()
-
-	// Give up after a while.  We need enough time to cover from when containers are brought up to when they should pass
-	timeout := time.After(5 * time.Minute)
-
-	// Attempt to check the server.  Quit if we pass timeout
-	for {
-		select {
-		case <-tck.C:
-			code := retryFunc()
-			if code == 0 {
-				return 0
-			}
-		case <-timeout:
-			return -12
-		}
-	}
-}
-
-func TestMain(m *testing.M) {
-	stallForAvailability()
-	os.Exit(m.Run())
+	aacAuth := auth.AACAuth{Logger: config.RootLogger, Service: aacClient}
+	t.Logf("AAC client ready")
+	return aacAuth
 }
 
 type testAACAuth struct {
@@ -183,31 +146,6 @@ func TestAACAuthGetSnippetsForUser(t *testing.T) {
 		}
 		t.Logf("OK  All checks passed")
 	}
-}
-
-func newAACAuthRaw() (*auth.AACAuth, error) {
-	// AAC trust, client public & private key
-	trustPath := filepath.Join("..", "defaultcerts", "clients", "client.trust.pem")
-	certPath := filepath.Join("..", "defaultcerts", "clients", "test_1.cert.pem")
-	keyPath := filepath.Join("..", "defaultcerts", "clients", "test_1.key.pem")
-
-	aacClient, err := aac.GetAACClient(aacHost, aacPort, trustPath, certPath, keyPath)
-	if err != nil {
-		return nil, err
-	}
-	aacAuth := auth.AACAuth{Logger: config.RootLogger, Service: aacClient}
-	return &aacAuth, err
-}
-
-func newAACAuth(t *testing.T) *auth.AACAuth {
-	client, err := newAACAuthRaw()
-
-	if err != nil {
-		t.Logf("Error getting AAC Client %s", err.Error())
-		t.FailNow()
-	}
-
-	return client
 }
 
 func TestAACAuthInjectPermissionsIntoACM(t *testing.T) {
