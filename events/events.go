@@ -1,6 +1,10 @@
 package events
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	auditevent "github.com/deciphernow/gm-fabric-go/audit/events_thrift"
+)
 
 // Event defines a type that can yield itself as JSON bytes.
 type Event interface {
@@ -46,6 +50,8 @@ func (e GEM) Yield() []byte {
 // as single event stream that supports auditing, indexing, and more. Note that
 // this type is to be embedded in the Global Event Model (GEM).
 type ObjectDriveEvent struct {
+	// Audit embeds the ICS 500-27 schema
+	Audit auditevent.AuditEvent
 	// ObjectID is a 32 character hex encoded string corresponding to the database ID.
 	ObjectID string `json:"object_id"`
 	// ChangeToken is a random string regenerated with each update to an object.
