@@ -243,6 +243,24 @@
 			"revisionTime": "2016-11-10T19:49:42-05:00"
 		},
 		{
+			"checksumSHA1": "rui9NtF/7fl5nr+wopgv8AfLBCg=",
+			"path": "github.com/deciphernow/gm-fabric-go/audit/acm_thrift",
+			"revision": "16992bd346da7d80c668687eb967294f5a87e59c",
+			"revisionTime": "2017-01-05T19:12:27Z"
+		},
+		{
+			"checksumSHA1": "KalyafoRgazZ5s9O1Lfly1aH8ls=",
+			"path": "github.com/deciphernow/gm-fabric-go/audit/components_thrift",
+			"revision": "16992bd346da7d80c668687eb967294f5a87e59c",
+			"revisionTime": "2017-01-05T19:12:27Z"
+		},
+		{
+			"checksumSHA1": "gaK1Y1fCFVozodaioBU4OvEjIuE=",
+			"path": "github.com/deciphernow/gm-fabric-go/audit/events_thrift",
+			"revision": "16992bd346da7d80c668687eb967294f5a87e59c",
+			"revisionTime": "2017-01-05T19:12:27Z"
+		},
+		{
 			"checksumSHA1": "y2Kh4iPlgCPXSGTCcFpzePYdzzg=",
 			"path": "github.com/eapache/go-resiliency/breaker",
 			"revision": "b86b1ec0dd4209a588dc1285cdd471e73525c0b3",
