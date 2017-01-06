@@ -206,8 +206,9 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer logCrashInServeHTTP(logger, w)
 
 	gem := globalEventFromRequest(r)
+	gem.Payload.Audit = defaultAudit(r)
 
-	if err := caller.ValidateHeaders(h.AclImpersonationWhitelist, w, r); err != nil {
+	if err := caller.ValidateHeaders(h.AclImpersonationWhitelist, r); err != nil {
 		sendErrorResponse(logger, &w, 401, err, err.Error())
 		return
 	}
@@ -367,9 +368,9 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// - list subscribed objects
 		case h.Routes.Subscribed.MatchString(uri):
 			herr = h.listObjectsSubscriptions(ctx, w, r)
-		// - exists to give a simple 200 so we have an url to test whether at least one odrive is registered in gatekeeper
+		// - basic HTTP 200 health check
 		case h.Routes.Ping.MatchString(uri):
-			herr = h.ping(ctx, w, r)
+			herr = nil
 		// - list object types
 		case h.Routes.ObjectTypes.MatchString(uri):
 			// TODO: h.listObjectTypes(ctx, w, r)
@@ -617,8 +618,7 @@ func do404(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppErro
 	}
 	uri := r.URL.Path
 	msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
-	log.Println("WARN: " + msg)
-	return NewAppError(404, nil, "Resource not found")
+	return NewAppError(404, nil, fmt.Sprintf("Resource not found %s", msg))
 }
 
 // resolve the ip address once only

@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/deciphernow/gm-fabric-go/audit/events_thrift"
+
 	"decipher.com/object-drive-server/events"
 )
 
@@ -22,5 +24,17 @@ func globalEventFromRequest(r *http.Request) events.GEM {
 		XForwardedForIP: r.Header.Get("X-Forwarded-For"),
 		Timestamp:       time.Now().Unix(),
 	}
+	return e
+}
+
+// TODO put audit default here?
+func defaultAudit(r *http.Request) events_thrift.AuditEvent {
+
+	stringPtr := func(s string) *string { return &s }
+	_ = stringPtr
+	// Set a string pointer field on Audit like this
+	// e.CreatedOn = stringPtr(fmt.Sprintf("%s", time.Now().Format(time.RFC3339)))
+
+	var e events_thrift.AuditEvent
 	return e
 }

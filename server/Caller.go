@@ -80,7 +80,7 @@ func isHTTPS(r *http.Request) bool {
 }
 
 // ValidateHeaders examines the values picked up from the headers and determines if they are valid
-func (c *Caller) ValidateHeaders(whitelist []string, w http.ResponseWriter, r *http.Request) error {
+func (c *Caller) ValidateHeaders(whitelist []string, r *http.Request) error {
 	c.TransactionType = "IMPERSONATION"
 	userDn := c.UserDistinguishedName
 	sslClientSDn := c.SSLClientSDistinguishedName
