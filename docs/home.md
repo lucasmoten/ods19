@@ -25,6 +25,7 @@ A series of microservice operations are exposed on the API gateway for use of Ob
 | Move Objects | Move objects in bulk. |
 | Move Object | Changes the hierarchial placement of an object. |
 | Change Owner | Change the owner of an object. |
+| Change Owner Bulk | Change the owner of objects. |
 | List Objects at Root For User | Retrieves a resultset of objects at the user's root. |
 | List Object Shares | Retrieves a resultset of objects shared to the user. |
 | List Objects Shared | Retreives a resultset of objects that the user has shared. |
@@ -1515,6 +1516,37 @@ Although it is not permitted to assign ownership to Everyone, ownership may be a
 + Response 500
 
         Error storing metadata or stream
+
+## Change Owner [/objects/owner/{newOwner}]
+
++ Parameters
+    + newOwner: `user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us`
+
+### Change Owner [POST]
+
+This changes ownership of files in bulk.  It behaves like multiple changeOwner requests.
+
++ Request (application/json)
+
+    We will supply a list of object ids and their change tokens.  We will get back an individual http code for each one.
+
+    + Body
+
+            {
+                {"objectId":"22de09d2e0a09cbc0d90e", "changeToken":"ad90e90c9e245"}, 
+                {"objectId":"42de09d2e0a09cbc0d90e", "changeToken":"cd90e90c9e245"} 
+            }
+
++ Response 200
+
+    The request itself is generally valid.  We will get a list of response codes and messages per ID from the original request.
+
+    + Body
+
+            {
+                {"objectId":"22de09d2e0a09cbc0d90e","error":"","msg":"","code",200},
+                {"objectId":"42de09d2e0a09cbc0d90e","error":"","msg":"","code",200}
+            }  
 
 # Group User Centric Operations
 
