@@ -61,13 +61,13 @@ func updateObjectPropertyInTransaction(tx *sqlx.Tx, objectProperty models.ODObje
 	dbObjectProperty.ClassificationPM.String = objectProperty.ClassificationPM.String
 	updateObjectPropertyStatement, err := tx.Preparex(`update property set 
         modifiedby = ?
-        ,value = ?
+        ,propertyvalue = ?
         ,classificationpm = ? 
     where id = ?`)
 	if err != nil {
 		return err
 	}
-	_, err = updateObjectPropertyStatement.Exec(dbObjectProperty.ModifiedBy, dbObjectProperty.Value.String, dbObjectProperty.ClassificationPM.String, dbObjectProperty.IsDeleted, dbObjectProperty.ID)
+	_, err = updateObjectPropertyStatement.Exec(dbObjectProperty.ModifiedBy, dbObjectProperty.Value.String, dbObjectProperty.ClassificationPM.String, dbObjectProperty.ID)
 	if err != nil {
 		return err
 	}
