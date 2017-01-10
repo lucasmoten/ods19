@@ -161,8 +161,8 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 						(objectProperty.ClassificationPM.String != dbProperty.ClassificationPM.String) {
 						// Existing property, but with a new value... need to update
 						dbProperty.ModifiedBy = object.ModifiedBy
-						dbProperty.Value.String = objectProperty.Value.String
-						dbProperty.ClassificationPM.String = objectProperty.ClassificationPM.String
+						dbProperty.Value = models.ToNullString(objectProperty.Value.String)
+						dbProperty.ClassificationPM = models.ToNullString(objectProperty.ClassificationPM.String)
 						err = updateObjectPropertyInTransaction(tx, dbProperty)
 						if err != nil {
 							return util.NewLoggable("error updating property during update", err, zap.String("property.name", dbProperty.Name))

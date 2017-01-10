@@ -375,7 +375,7 @@ possible a list of Errors coming back with the objects that came back successful
                     "changeCount": 1,
                     "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",
                     "name": "Some Property",
-                    "propertyValue": "Some Property Value",
+                    "value": "Some Property Value",
                     "classificationPM": "U"
                     }
                 ],
@@ -546,7 +546,7 @@ possible a list of Errors coming back with the objects that came back successful
                     "changeCount": 1,
                     "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",
                     "name": "Some Property",
-                    "propertyValue": "Some Property Value",
+                    "value": "Some Property Value",
                     "classificationPM": "U"
                     }
                 ],
@@ -2372,13 +2372,13 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + changeCount: 1 (number) - The total count of changes that have been made to this property over its lifespan. Synonymous with version number.
 + changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) -  A hash of the property's unique identifier and last modification date and time.
 + name: `Some Property` (string) - The name, key, field or label given to a property for usability
-+ propertyValue: `Some Property Value` (string) -  The value assigned for the property
++ value: `Some Property Value` (string) -  The value assigned for the property
 + classificationPM: `U` (string) -  The portion mark classification for the value of this property
 
 ## PropertyCreate (object)
 
 + name: `Some Property` (string) - The name, key, field or label given to a property for usability
-+ propertyValue: `Some Property Value` (string) -  The value assigned for the property
++ value: `Some Property Value` (string) -  The value assigned for the property
 + classificationPM: `U//FOUO` (string) -  The portion mark classification for the value of this property
 
 ## UpdateObject (object)

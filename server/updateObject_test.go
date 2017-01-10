@@ -919,3 +919,67 @@ func TestUpdateObjectWithPathing(t *testing.T) {
 	failNowOnErr(t, err, "Unable to do request")
 	statusExpected(t, 400, updateFolderRes, "Bad status when renaming folder with pathing")
 }
+
+func TestUpdateObjectProperty(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+
+	t.Logf("* Create folder under root as tester10")
+	folder1 := makeFolderViaJSON("TestUpdateObjectProperty ", tester10, t)
+
+	t.Logf("* Add a property to the object")
+	folder1.Properties = append(folder1.Properties, protocol.Property{Name: "custom-property", Value: "property value 1"})
+
+	t.Logf("* Update the object")
+	updateuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
+	req := makeHTTPRequestFromInterface(t, "POST", updateuri, folder1)
+	res, err := clients[tester10].Client.Do(req)
+	defer util.FinishBody(res.Body)
+	failNowOnErr(t, err, "Unable to do request")
+	statusExpected(t, 200, res, "Bad status when updating object with property")
+	var updated protocol.Object
+	util.FullDecode(res.Body, &updated)
+
+	t.Logf("* Verify updated has the property")
+	if len(updated.Properties) != 1 {
+		t.Logf("Expected 1 property, but got %d", len(updated.Properties))
+		t.FailNow()
+	}
+	if updated.Properties[0].Name != "custom-property" {
+		t.Logf("Expected property name to be 'custom-property' but got %s", updated.Properties[0].Name)
+		t.FailNow()
+	}
+	if updated.Properties[0].Value != "property value 1" {
+		t.Logf("Expected property value to be 'property value 1' but got %s", updated.Properties[0].Value)
+		t.FailNow()
+	}
+
+	t.Logf("* Change value of property")
+	updated.Properties[0].Value = "new property value"
+
+	t.Logf("* Update the object")
+	req2 := makeHTTPRequestFromInterface(t, "POST", updateuri, updated)
+	res2, err := clients[tester10].Client.Do(req2)
+	defer util.FinishBody(res2.Body)
+	failNowOnErr(t, err, "Unable to do request")
+	statusExpected(t, 200, res2, "Bad status when updating object with new property value")
+	var updated2 protocol.Object
+	util.FullDecode(res2.Body, &updated2)
+
+	t.Logf("* Verify updated has the property")
+	if len(updated2.Properties) != 1 {
+		t.Logf("Expected 1 property, but got %d", len(updated2.Properties))
+		t.FailNow()
+	}
+	if updated2.Properties[0].Name != "custom-property" {
+		t.Logf("Expected property name to be 'custom-property' but got %s", updated2.Properties[0].Name)
+		t.FailNow()
+	}
+	if updated2.Properties[0].Value != "new property value" {
+		t.Logf("Expected property value to be 'new property value' but got %s", updated2.Properties[0].Value)
+		t.FailNow()
+	}
+
+}
