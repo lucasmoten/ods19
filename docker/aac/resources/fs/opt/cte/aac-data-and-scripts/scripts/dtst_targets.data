@@ -1,0 +1,5 @@
+HMSET DTST-TARGETS-1 id "1001" name "US Diplomatic Interests"
+HMSET DTST-TARGETS-2 id "1002" name "Military"
+HMSET DTST-TARGETS-3 id "1003" name "Civilian Interests"
+HMSET DTST-TARGETS-4 id "1004" name "Ambassadors"
+HMSET DTST-TARGETS-5 id "1005" name "Other" specify "true"

@@ -1,0 +1,142 @@
+#!/usr/bin/env python
+import os
+import sys
+import argparse
+import shutil
+import subprocess
+import imp
+
+from glob import glob
+
+PROJECT_ROOT = os.path.join(os.getenv("GOPATH"), "src", "decipher.com", "object-drive-server")
+source_file = os.path.join(PROJECT_ROOT, "odb")
+#driver = imp.load_source('module.name', source_file)
+
+
+def check_args(args):
+    if args:
+        if args[0] == 'assets':
+            return True
+    else:
+        return False
+
+
+def do_npm_build(sketch_dir, gatekeeper_dir):
+    # Bundle the object-drive-sketch assets
+    try:
+        os.chdir(sketch_dir)
+        subprocess.check_call(['npm', 'run', 'build'], stdin=sys.stdin, stdout=sys.stdout)
+        os.chdir(gatekeeper_dir)
+    except:
+        raise
+
+def copy(src, dest, remove_existing=False):
+
+    if remove_existing and os.path.isdir(dest):
+        shutil.rmtree(dest)
+    if remove_existing and os.path.isfile(dest):
+        os.remove(dest)
+    try:
+        shutil.copytree(src, dest)
+    except OSError as e:
+        # If the error was caused because the source wasn't a directory
+        if e.errno == errno.ENOTDIR:
+            shutil.copy(src, dest)
+        else:
+            print('Directory not copied. Error: %s' % e)
+
+
+def run_dockerfile(dockerfile, image, tag="latest"):
+    """
+    Runs the docker build.
+    Args:
+        dockerfile: absolute path to Dockerfile
+        image: Image name
+        tag: Image tag. Defaults to "latest".
+    """
+    name_with_tag = image + ":" + tag
+    try:
+        build_dir = os.path.split(dockerfile)[0]
+        subprocess.check_call(
+                ['docker', 'build', '-t', name_with_tag, build_dir],
+                stdout=sys.stdout, stderr=sys.stderr)
+    except subprocess.CalledProcessError:
+        raise
+
+
+def tar_directory(input, output_dir="build", output_archive=None):
+    """
+    Creates a .tar of the directory given as input. Input must be absolute path.
+    Existing .tar files will be overwritten.
+    Args:
+        input: Absolute path to a directory, which will become the tar file.
+        output_dir: Destination directory
+        output_archive: The name of the tarball output. Defaults to the directory
+        name passed as input.
+    Returns: None
+    """
+    if not os.path.exists(input):
+        raise ValueError("Argument to tar_directory must be absolute path to existing directory.")
+
+    if output_archive is None:
+        output_archive = os.path.split(input)[1] + '.tgz'
+
+    def filter_osx_metadata(filename):
+        return False if filename == ".DS_Store" else True
+
+    import tarfile
+    from contextlib import closing
+    with closing(tarfile.open(output_archive, 'w:gz')) as t:
+        for item in os.listdir(input):
+            t.add(os.path.join(input, item), arcname=item)
+    print "Created archive: {0}".format(output_archive)
+
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--tag', nargs='?', const='latest', default='latest', type=str)
+    opts = parser.parse_args()
+
+    #b = Builder()
+    #b.configure()
+    gatekeeper_dir = os.path.join(PROJECT_ROOT, 'docker', 'gatekeeper')
+    build_dir = os.path.join(gatekeeper_dir, 'build')
+
+    if os.path.exists(build_dir):
+        print 'Build directory exists. Removing...'
+        shutil.rmtree(build_dir)
+
+    try:
+        os.makedirs(build_dir)
+    except OSError as e:
+        if e.errno == 17:
+            print 'Build directory exists. Removing...'
+            shutil.rmtree(build_dir)
+        else:
+            raise
+
+    # Move checked-in resources/fs to build directory
+    checked_in_resources = os.path.join(gatekeeper_dir, 'resources', 'fs')
+    build_fs = os.path.join(build_dir, 'fs')
+    copy(checked_in_resources, build_fs)
+
+    # If an rpm was built, then bake it into the gatekeeper build
+    rpm_path = os.path.join(os.getenv("OD_ROOT"), "object-drive-ui", "rpm")
+    rpm_location = glob(rpm_path + "/*.rpm")
+    if len( rpm_location ) > 0:
+        rpm_src = rpm_location[0]
+        rpm_name = rpm_location[0].split(os.sep)[-1]
+        rpm_dst = os.path.join(build_fs, rpm_name)
+        shutil.copyfile(rpm_src, rpm_dst)
+    else:
+        print ("skipping rpm, as it is not found at %s" % rpm_location)
+
+    # tar up the fake filesystem
+    tar_path = os.path.abspath(os.path.join(build_dir, 'fs'))
+    tar_directory(tar_path, output_archive=os.path.join(gatekeeper_dir, 'fs.tgz'))
+
+    # Run Docker Build
+    dockerfile = os.path.join(PROJECT_ROOT, 'docker', 'gatekeeper', 'Dockerfile')
+    run_dockerfile(dockerfile, 'deciphernow/gatekeeper', tag=opts.tag)
+

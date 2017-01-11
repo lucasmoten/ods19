@@ -1,0 +1,87 @@
+#!/usr/bin/env python
+import os
+import sys
+import shutil
+import subprocess
+import imp
+
+this_script = os.path.abspath(os.path.split(__file__)[1])
+# Split absolute path; address `object-drive` w/ negative index.
+PROJECT_ROOT = os.sep.join(this_script.split(os.sep)[:-3])
+source_file = os.path.join(PROJECT_ROOT, "odb")
+
+
+def run_dockerfile(dockerfile, image, tag="latest"):
+    """
+    Runs the docker build.
+    Args:
+        dockerfile: absolute path to Dockerfile
+        image: Image name
+        tag: Image tag. Defaults to "latest".
+    """
+    name_with_tag = image + ":" + tag
+    try:
+        build_dir = os.path.split(dockerfile)[0]
+        subprocess.check_call(
+                ['docker', 'build', '-t', name_with_tag, build_dir],
+                stdout=sys.stdout, stderr=sys.stderr)
+    except subprocess.CalledProcessError:
+        raise
+
+
+if __name__ == '__main__':
+
+    # Check if GOPATH is set.
+    gopath = os.getenv("GOPATH")
+    if gopath is None:
+        print 'GOPATH is not set.'
+        sys.exit(1)
+
+    # Locate object-drive-server project
+    object_drive_server = os.path.join(gopath, 'src', 'decipher.com', 'object-drive-server')
+    defaultcerts = os.path.join(object_drive_server, 'defaultcerts')
+    odrive_database = os.path.join(object_drive_server, 'cmd', 'odrive-database')
+    metadatadb_dir = os.path.join(PROJECT_ROOT, 'docker', 'metadatadb')
+
+    dockerfile = os.path.abspath("./Dockerfile")
+
+
+    # CROSS COMPILATION WOO HOO!
+    os.chdir(odrive_database)
+    os.putenv('GOOS', 'linux')
+    os.putenv('GOARCH', 'amd64')
+    try:
+        subprocess.check_call(["go-bindata", "schema", "migrations", "../../defaultcerts/client-mysql/id", "../../defaultcerts/client-mysql/trust"]) 
+        subprocess.check_call(["go", "build"]) 
+    except Exception as e:
+        print e
+        raise
+
+    binary = os.path.join(odrive_database, 'odrive-database')
+    os.chdir(metadatadb_dir)
+    shutil.copyfile(binary, './odrive-database')
+
+
+    # ca.pem
+    ca_pem = os.path.join(defaultcerts, 'client-mysql', 'trust', 'ca.pem')
+    shutil.copyfile(ca_pem, './ca.pem')
+    # client-cert.pem
+    client_cert_pem = os.path.join(defaultcerts, 'client-mysql', 'id', 'client-cert.pem')
+    shutil.copyfile(client_cert_pem, './client-cert.pem')
+    # client-key.pem
+    client_key_pem = os.path.join(defaultcerts, 'client-mysql', 'id', 'client-key.pem')
+    shutil.copyfile(client_key_pem, './client-key.pem')
+    # server-cert.pem
+    server_cert_pem = os.path.join(defaultcerts, 'metadatadb', 'id', 'server-cert.pem')
+    shutil.copyfile(server_cert_pem, './server-cert.pem')
+    # server-key.pem
+    server_key_pem = os.path.join(defaultcerts, 'metadatadb', 'id', 'server-key.pem')
+    shutil.copyfile(server_key_pem, './server-key.pem')
+
+    # invoke docker build, and always try to clean up directory
+    try:
+        run_dockerfile(dockerfile, "deciphernow/metadatadb")
+    except:
+        raise
+    os.remove("odrive-database")
+ 

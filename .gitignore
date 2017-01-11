@@ -1,4 +1,4 @@
-# Do commit certificates
+# Cert signing requests
 *.csr
 *.srl
 
@@ -15,9 +15,11 @@ release
 
 # Ignore build artifacts
 *.rpm
+*.pyc
 
 # Delve debugger compiled binaries
 debug.*
 
+# Compiled documentation
 root.html
 APISample.html

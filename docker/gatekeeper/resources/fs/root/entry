@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# restart nginx
+service nginx restart
+
+# TODO Use gatekeeper for service discovery and container keep-alive
+cd /root
+touch /root/nohup.out
+nohup java -jar /etc/nginx/gatekeeper/cte-gatekeeper-agent-1.1.0-SNAPSHOT.jar -c /etc/nginx/gatekeeper/gatekeeper.properties &
+sleep 1
+
+if [ "x$NO_BUILDER" == "xtrue" ]
+then
+  mv /etc/nginx/gatekeeper.conf /etc/nginx/gatekeeper.conf.old
+  cat /etc/nginx/gatekeeper.conf.old | grep -v http://builder > /etc/nginx/gatekeeper.conf
+  mv /etc/nginx/gatekeeper/nginx.conf.mustache /etc/nginx/gatekeeper/nginx.conf.mustache.old
+  cat /etc/nginx/gatekeeper/nginx.conf.mustache.old | grep -v http://builder > /etc/nginx/gatekeeper/nginx.conf.mustache
+  service nginx restart
+fi
+echo "Running a tail on /var/log/nginx/access.log"
+tail -f /var/log/nginx/access.log /root/nohup.out | grep -v browser-sync
+

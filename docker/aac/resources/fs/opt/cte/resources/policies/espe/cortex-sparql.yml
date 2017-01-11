@@ -1,0 +1,44 @@
+snippets:
+  f_clearance:
+    cortex_query:
+      value: { property : "f_clearance", filter : "IN", values : [ /f_clearance/as_is ] }
+
+  f_share:
+    cortex_query:
+      value: { property : "f_share", filter : "OPTIONAL_IN", values : [ /f_share/as_is ] }
+
+  f_oc_org:
+    cortex_query:
+      value: { property : "f_oc_org", filter : "OPTIONAL_IN", values : [ /f_oc_org/as_is ] }
+
+  f_missions:
+    cortex_query:
+      value: { property : "f_missions", filter : "OPTIONAL_IN", values : [ /f_missions/as_is ] }
+
+  f_regions:
+    cortex_query:
+      value: { property : "f_regions", filter : "OPTIONAL_IN", values : [ /f_regions/as_is ] }
+
+  f_sap:
+    cortex_query:
+      value: { property : "f_sap", filter : "OPTIONAL_IN", values : [ /f_sap/as_is ] }
+
+  f_aea:
+    cortex_query:
+      value: { property : "f_aea", filter : "OPTIONAL_IN", values : [ /f_aea/as_is ] }
+
+  dissem_countries:
+    cortex_query:
+      value: { property : "dissem_countries", filter : "OPTIONAL_IN", values : [ /dissem_countries/as_is ] }
+
+  f_macs:
+    cortex_query:
+      value: { property : "f_macs", filter : "NOT_IN", values : [ /f_macs/negate ] }
+
+  f_sci_ctrls:
+    cortex_query:
+      value: { property : "f_sci_ctrls", filter : "NOT_IN", values : [ /f_sci_ctrls/negate ] }
+
+  f_accms:
+    cortex_query:
+      value: { property : "f_accms", filter : "NOT_IN", values : [ /f_accms/negate ] }

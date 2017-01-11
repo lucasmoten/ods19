@@ -1,0 +1,554 @@
+#!/usr/bin/env python
+import os
+import sys
+import logging
+import subprocess
+import tarfile
+import errno
+import shutil
+import commands
+import re
+
+from contextlib import closing
+from glob import glob
+
+PROJECT_ROOT = os.path.join(os.getenv("GOPATH"), "src", "decipher.com", "object-drive-server")
+
+#logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+#log = logging.getLogger('ODRIVE_BUILD')
+
+"""
+Map of repo names to their valid git remotes, and the branch to checkout.
+"""
+GIT_DEPENDENCIES = {
+    'cte-security-service':
+        ('ssh://git@gitlab.363-283.io:2252/cte/cte-security-service.git', 'chimera-release-1.0.0'),
+    'object-drive-ui':
+        ('ssh://git@gitlab.363-283.io:2252/cte/object-drive-ui.git', 'develop'),
+    'dias-simulator':
+        ('ssh://git@gitlab.363-283.io:2252/bedrock/dias-simulator.git', 'master'),
+}
+
+"""
+These programs must be available for build in a dev environment.
+The format of the tuples in this list is
+('command name', 'version command', 'help text',)
+but any no-op argument to the command will do. The call to subprocess.Popen()
+using the commands listed here simply checks if they exist in the environment.
+"""
+COMMANDS_REQUIRED = [
+    ('npm', 'version', ''),
+    ('gulp', 'version', 'gulp must be installed globally\n\tTry `npm install gulp -g`'),
+    ('docker', 'version', ''),
+    ('docker-compose', 'ps', ''),
+    ('go-bindata', '-version', 'go-bindata not installed\n\tTry `go get -u github.com/jteeuwen/go-bindata/...`')
+]
+
+
+def build(builder):
+    try:
+        builder.configure()
+        builder.inspect_toolchain()
+        builder.clone_tag('cte-security-service', GIT_DEPENDENCIES['cte-security-service'][0],
+                          GIT_DEPENDENCIES['cte-security-service'][1])
+        builder.clone_branch('object-drive-ui', GIT_DEPENDENCIES['object-drive-ui'][0],
+                             GIT_DEPENDENCIES['object-drive-ui'][1], build=False)
+        builder.clone_branch('dias-simulator', GIT_DEPENDENCIES['dias-simulator'][0],
+                             GIT_DEPENDENCIES['dias-simulator'][1], build=False)
+        # Don't check out repo, because you're in the repo.
+        # builder.prerequisite_go_repo('decipher.com/object-drive-server', 'develop')
+       
+        builder.docker('aac')
+        odrive_build()
+        metadatadb_build()
+        gatekeeper_build()
+        packaging_build()
+        dias_build()
+
+    except Exception as e:
+        builder.logger.error('Build failure. Exception: {0}'.format(e))
+
+    # Success!
+    builder.log('Build finished.')
+
+def odrive_build():
+    odrive_dir = os.path.join(PROJECT_ROOT, 'docker', 'odrive')
+    build_dir = os.path.join(odrive_dir, 'build')
+    if os.path.exists(build_dir):
+        shutil.rmtree(build_dir)
+
+    # Run `govendor sync` and copy source tree locally.
+    os.chdir(PROJECT_ROOT)
+    subprocess.check_call(['./makedocs'])
+    subprocess.check_call(['govendor', 'sync'])
+    # NOTE: we copy odrive source to a build dir, but exclude docker folder
+    # list contents of dir
+    go_packages = [pkg for pkg in filter(os.path.isdir, glob("*"))]
+    # get list of dirs with 'docker' ignored    
+    to_copy = []
+    for pkg in go_packages:
+        if pkg not in ['docker']:
+            to_copy.append(pkg)
+    # loop through that list and copy to build directory
+    for pkg in to_copy:
+        shutil.copytree(pkg, os.path.join(build_dir, pkg))
+    
+    os.chdir(odrive_dir)
+    dockerfile = os.path.abspath("./Dockerfile")
+    # Invoke the Dockerfile.
+    run_dockerfile(dockerfile, "deciphernow/odrive")
+    # Clean up build directory.
+    shutil.rmtree(build_dir)
+
+
+def metadatadb_build():
+
+    #object_drive_server = PROJECT_ROOT
+    defaultcerts = os.path.join(PROJECT_ROOT, 'defaultcerts')
+    odrive_database = os.path.join(PROJECT_ROOT, 'cmd', 'odrive-database')
+    metadatadb_dir = os.path.join(PROJECT_ROOT, 'docker', 'metadatadb')
+    dockerfile = os.path.join(metadatadb_dir, "Dockerfile")
+
+    # CROSS COMPILATION WOO HOO!
+    os.chdir(odrive_database)
+    os.putenv('GOOS', 'linux')
+    os.putenv('GOARCH', 'amd64')
+    try:
+        subprocess.check_call(["go-bindata", "schema", "migrations", "../../defaultcerts/client-mysql/id", "../../defaultcerts/client-mysql/trust"]) 
+        subprocess.check_call(["go", "build"]) 
+    except Exception as e:
+        print e
+        raise
+
+    binary = os.path.join(odrive_database, "odrive-database")
+    os.chdir(metadatadb_dir)
+    shutil.copyfile(binary, "./odrive-database")
+
+    # ca.pem
+    ca_pem = os.path.join(defaultcerts, 'client-mysql', 'trust', 'ca.pem')
+    shutil.copyfile(ca_pem, './ca.pem')
+    # client-cert.pem
+    client_cert_pem = os.path.join(defaultcerts, 'client-mysql', 'id', 'client-cert.pem')
+    shutil.copyfile(client_cert_pem, './client-cert.pem')
+    # client-key.pem
+    client_key_pem = os.path.join(defaultcerts, 'client-mysql', 'id', 'client-key.pem')
+    shutil.copyfile(client_key_pem, './client-key.pem')
+    # server-cert.pem
+    server_cert_pem = os.path.join(defaultcerts, 'metadatadb', 'id', 'server-cert.pem')
+    shutil.copyfile(server_cert_pem, './server-cert.pem')
+    # server-key.pem
+    server_key_pem = os.path.join(defaultcerts, 'metadatadb', 'id', 'server-key.pem')
+    shutil.copyfile(server_key_pem, './server-key.pem')
+
+    # invoke docker build, and always try to clean up directory
+    run_dockerfile(dockerfile, "deciphernow/metadatadb")
+    os.remove("odrive-database")
+
+
+def gatekeeper_build():
+    gatekeeper_dir = os.path.join(PROJECT_ROOT, 'docker', 'gatekeeper')
+    build_dir = os.path.join(gatekeeper_dir, 'build')
+
+    if os.path.exists(build_dir):
+        print 'Build directory exists. Removing...'
+        shutil.rmtree(build_dir)
+
+    # Move checked-in resources/fs to build directory
+    checked_in_resources = os.path.join(gatekeeper_dir, 'resources', 'fs')
+    build_fs = os.path.join(build_dir, 'fs')
+    shutil.copytree(checked_in_resources, build_fs)
+
+    # If an rpm was built, then bake it into the gatekeeper build
+    rpm_path = os.path.join(os.getenv("OD_ROOT"), "object-drive-ui", "rpm")
+    rpm_location = glob(rpm_path + "/*.rpm")
+    if len( rpm_location ) > 0:
+        rpm_src = rpm_location[0]
+        rpm_name = rpm_location[0].split(os.sep)[-1]
+        rpm_dst = os.path.join(build_fs, rpm_name)
+        shutil.copyfile(rpm_src, rpm_dst)
+    else:
+        print ("skipping rpm, as it is not found at %s" % rpm_location)
+
+    # tar up the fake filesystem
+    tar_path = os.path.abspath(os.path.join(build_dir, 'fs'))
+    tar_directory(tar_path, output_archive=os.path.join(gatekeeper_dir, 'fs.tgz'))
+
+    # Run Docker Build
+    dockerfile = os.path.join(PROJECT_ROOT, 'docker', 'gatekeeper', 'Dockerfile')
+    run_dockerfile(dockerfile, 'deciphernow/gatekeeper')    
+
+
+def packaging_build():
+    packaging_dir = os.path.join(PROJECT_ROOT, 'docker', 'packaging')
+    build_dir = os.path.join(packaging_dir, 'build')
+    if os.path.exists(build_dir):
+        shutil.rmtree(build_dir)
+
+    os.chdir(PROJECT_ROOT)
+    #subprocess.check_call(['./makedocs'])
+    #subprocess.check_call(['govendor', 'sync'])
+    go_packages = [pkg for pkg in filter(os.path.isdir, glob("*"))]
+    # get list of dirs with 'docker' ignored    
+    to_copy = []
+    for pkg in go_packages:
+        if pkg not in ['docker']:
+            to_copy.append(pkg)
+    # loop through that list and copy to build directory
+    for pkg in to_copy:
+        shutil.copytree(pkg, os.path.join(build_dir, pkg))
+
+    os.chdir(packaging_dir)
+    # Copy in custom RPM-building script for container
+    #driver.copy("build_package_install.py", build_dir)
+    build_script = "build_package_install.py"
+    shutil.copyfile(build_script, os.path.join(build_dir, build_script))
+    # Copy in custom env.sh-replacing and service wrapper
+    #driver.copy("service_wrapper.py", build_dir)
+    wrapper = "service_wrapper.py"
+    shutil.copyfile(wrapper, os.path.join(build_dir, wrapper))
+    
+    # Use our Dockerfile from this directory
+    dockerfile = os.path.join(packaging_dir, "Dockerfile")
+    run_dockerfile(dockerfile, "deciphernow/odriverpm")
+    shutil.rmtree(build_dir)
+
+
+def dias_build():
+    od_root = os.getenv("OD_ROOT")
+    os.chdir(os.path.join(od_root, 'dias-simulator'))
+    dockerfile = os.path.abspath('./Dockerfile')
+    run_dockerfile(dockerfile, "deciphernow/dias")
+
+
+class Parser:
+    COMMANDS = ['build', 'clean']
+
+    def __init__(self, args):
+        self.args = args
+
+    def parse(self):
+        opts = BuildOptions()
+
+        for arg in self.args:
+            if arg in Parser.COMMANDS:
+                if arg == 'build':
+                    opts.build = True
+                if arg == 'clean':
+                    opts.clean = True
+                    opts.clean_args = self._scan_command_args(self.args.index(arg))
+                if arg == 'toolcheck':
+                    opts.toolcheck = True
+        return opts
+
+    def _scan_command_args(self, i):
+        args = []
+        for arg in self.args[i + 1:]:
+            if arg not in Parser.COMMANDS:
+                args.append(arg)
+            else:
+                return args
+        return args
+
+
+class BuildOptions:
+    def __init__(self):
+        self.build = False
+        self.clean = False
+        self.clean_args = []
+        self.toolcheck = False
+
+
+def run_dockerfile(dockerfile, image, tag="latest"):
+    """
+    Runs the docker build.
+    Args:
+        dockerfile: absolute path to Dockerfile
+        image: Image name
+        tag: Image tag. Defaults to "latest".
+    """
+    name_with_tag = image + ":" + tag
+    try:
+        build_dir = os.path.split(dockerfile)[0]
+        subprocess.check_call(
+                ['docker', 'build', '-t', name_with_tag, build_dir],
+                stdout=sys.stdout, stderr=sys.stderr)
+    except subprocess.CalledProcessError:
+        raise
+
+
+def clean_images(services):
+    # TODO fix this
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+    log = logging.getLogger('ODRIVE_BUILD')
+
+    to_clean = []
+    output = commands.getoutput('docker images')
+    # Output index 1 is one long string. Split on newlines.
+    lines = output.split('\n')
+    # Skip the header row
+    for line in lines[1:]:
+        splitted = re.split('\s{2,}', line)
+        repository, tag, image_id = splitted[0], splitted[1], splitted[2]
+        if repository in services or repository == '<none>':
+
+            log.debug(' Cleaning images:\t{0}\t{1}\t{2}'.format(repository, tag, image_id))
+            to_clean.append(image_id)
+
+    if not to_clean:
+        return
+
+    try:
+        # Stop and remove containers.
+        # TODO refactor to require a proper python install to allow proper pathing.
+        os.chdir('docker')
+        stop_cmd = ['docker-compose', 'stop']
+        log.debug('Stopping containers...')
+        subprocess.check_call(stop_cmd)
+        log.debug('Removing stopped containers...')
+        # get stopped image ids
+        stopped = commands.getoutput('docker ps -f "status=exited" -q').split('\n')
+        for container_id in stopped:
+            rm_stopped_cmd = ['docker', 'rm', '-f', container_id]
+            if container_id:
+                subprocess.check_call(rm_stopped_cmd)
+        rm_cmd = ['docker-compose', 'rm', '-f']
+        subprocess.check_call(rm_cmd)
+        cmd = ['docker', 'rmi', '-f']
+        # Extend the argument list if a specific service was pass on the command line.
+        cmd.extend(to_clean)
+        subprocess.check_call(cmd, stdout=sys.stdout, stderr=sys.stderr)
+        os.chdir('..')
+    except subprocess.CalledProcessError:
+        raise
+
+
+def tar_directory(input, output_dir="build", output_archive=None):
+    """
+    Creates a .tar of the directory given as input. Input must be absolute path.
+    Existing .tar files will be overwritten.
+    Args:
+        input: Absolute path to a directory, which will become the tar file.
+        output_dir: Destination directory
+        output_archive: The name of the tarball output. Defaults to the directory
+        name passed as input.
+    Returns: None
+    """
+    if not os.path.exists(input):
+        raise ValueError("Argument to tar_directory must be absolute path to existing directory.")
+
+    if output_archive is None:
+        output_archive = os.path.split(input)[1] + '.tgz'
+
+    def filter_osx_metadata(filename):
+        return False if filename == ".DS_Store" else True
+
+    import tarfile
+    with closing(tarfile.open(output_archive, 'w:gz')) as t:
+        for item in os.listdir(input):
+            t.add(os.path.join(input, item), arcname=item)
+    print "Created archive: {0}".format(output_archive)
+
+
+def copy(src, dest, remove_existing=False):
+
+    if remove_existing and os.path.isdir(dest):
+        shutil.rmtree(dest)
+    if remove_existing and os.path.isfile(dest):
+        os.remove(dest)
+    try:
+        shutil.copytree(src, dest)
+    except OSError as e:
+        # If the error was caused because the source wasn't a directory
+        if e.errno == errno.ENOTDIR:
+            shutil.copy(src, dest)
+        else:
+            print('Directory not copied. Error: %s' % e)
+
+
+class Builder(object):
+    """
+    Master class that coordinates the build. Create an instance, and invoke from a top-level script.
+    """
+
+    def __init__(self, required_commands=[]):
+        if not isinstance(required_commands, list):
+            raise TypeError("require_commands parameter must be a list of tuple.")
+        self.env_commands = required_commands
+        self.build_dir = None
+        self.checkout_dir = None
+        self.devnull = open(os.devnull)
+        logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+        self.logger = logging.getLogger('ODRIVE_BUILD')
+
+    def configure(self):
+        """
+        Set build_dir instance variable to current working directory. Set checkout_dir instance variable to the
+        directory one level up.
+        """
+        self.checkout_dir = os.getenv("OD_ROOT")        
+        self.build_dir = os.getcwd()  # TODO look this up by GOPATH?
+        self.logger.info("Build directory: {0}".format(self.build_dir))
+        self.logger.info("Setting checkout directory. Used if git clone is invoked: {0}".format(self.checkout_dir))
+
+    def docker(self, service, service_type="script"):
+        """
+        Build docker images by calling out to their makeimage scripts.
+
+        Args:
+            service: A buildable image. The name should match a subdirectory of /docker as well
+            as a service definition in /docker/docker-compose.yml
+        """
+
+        # script execution, ideally this is just for bash
+        if service_type == "script":
+            docker_service_dir = os.path.join(self.build_dir, 'docker', service)
+            os.chdir(docker_service_dir)
+            if not os.path.exists(os.path.join(docker_service_dir, 'makeimage')):
+                self.logger.error("No makeimage script defined for {0}".format(service))
+                sys.exit(1)
+            try:
+                subprocess.check_call(['./makeimage'])
+            except subprocess.CalledProcessError as e:
+                self.logger.error("Error from makeimage script for {0}: {1}".format(service, e))
+                sys.exit(1)
+            self.logger.info("Built docker image for service: {0}".format(service))
+
+    def inspect_toolchain(self):
+        """
+        Make sure we have all the right commands installed and configured.
+        """
+        for command in self.env_commands:
+            try:
+                # Run a test command for the utility, but silence the output
+                subprocess.Popen([command[0], command[1]], stdout=self.devnull, stderr=self.devnull)
+            except OSError as e:
+                if e.errno == os.errno.ENOENT:
+                    self.logger.error("You are missing this command: {0}".format(command[0]))
+                    self.logger.error("Please install or activate {0}. {1}"
+                                      .format(command[0], command[2]))
+                sys.exit(1)
+            self.logger.debug("Toolchain check passed for: {0}".format(command[0]))
+
+        # docker-compose is installed, but we need to make sure our env is activated
+        try:
+            docker_dir = os.path.join(self.build_dir, 'docker')
+            if os.path.exists(docker_dir):
+                os.chdir(docker_dir)
+                subprocess.Popen(['docker-compose', 'ps'], stdout=self.devnull, stderr=self.devnull)
+                self.log("Toolchain check passed for docker")
+        except subprocess.CalledProcessError as e:
+            self.logger.error(
+                    "docker-compose configuration error. Have you started your machine? \n" +
+                    "Have you run `eval \"$(docker-machine env decipher-dev)\"`")
+            sys.exit(1)
+
+    def log(self, msg, log_level="INFO"):
+        """
+        Delegate to internal logger instance. Logging level is configurable, but defaults to INFO.
+        """
+        log_funcs = {'INFO': self.logger.info, 'DEBUG': self.logger.debug}
+        fn = log_funcs.get(log_level, log_funcs['INFO'])
+        fn(msg)
+
+    def clone_branch(self, repo, repo_url, branch, build=True):
+        """
+        Checkout our git dependencies into our target directory, one level up from OD_ROOT. The target directory
+                is held as an instance variable `self.checkout_dir` on a Builder
+
+        """
+
+        checked_out_repo = os.path.join(self.checkout_dir, repo)
+        if os.path.exists(checked_out_repo):
+            self.logger.info("git repository {0} already checked out. Skipping clone...".format(repo))
+            return
+        try:
+            # Checkout the repo to our checkout directory
+            subprocess.check_call(
+                    ['git', 'clone', '-b', branch, repo_url, checked_out_repo],
+                    stdout=sys.stdout, stderr=sys.stderr)
+        except subprocess.CalledProcessError as e:
+            self.logger.error("Error from git clone: {0}".format(e))
+            sys.exit(1)
+
+        if build:
+            self.build_project(checked_out_repo, repo)
+
+    def build_project(self, checked_out_repo, repo):
+        # cd into directory
+        os.chdir(checked_out_repo)
+        try:
+            # Run `mvn package` if pom.xml exists.
+            if os.path.exists(os.path.join(checked_out_repo, 'pom.xml')):
+                subprocess.check_call(
+                        ['mvn', 'clean', 'generate-sources', '-DskipTests'],
+                        stdout=sys.stdout, stderr=sys.stderr)
+                subprocess.check_call(
+                        ['mvn', 'clean', 'package', '-DskipTests'],
+                        stdout=sys.stdout, stderr=sys.stderr)
+        except subprocess.CalledProcessError:
+            self.logger.error("Build error for repository {0}".format(repo))
+            sys.exit(1)
+
+    def prerequisite_go_repo(self, go_import_path, branch):
+        gopath = os.getenv('GOPATH')
+        repository_directory = os.path.join(gopath, 'src', go_import_path)
+
+        # Only clone the directory if it does not exist
+        if os.path.exists(repository_directory):
+            self.logger.info("git repository {0} already checked out. Skipping clone...".format(go_import_path))
+        else:
+            try:
+                subprocess.check_call(
+                        ['git', 'clone', '-b', branch, 'git@github.com:DecipherNow/object-drive-server.git',
+                         repository_directory],
+                        stdout=sys.stdout, stderr=sys.stderr)
+            except subprocess.CalledProcessError as e:
+                self.logger.error("Error from git clone: {0}".format(e))
+                sys.exit(1)
+
+        # Run `go get` to fetch Go depedencies and `go-bindata` to package static assets into Go source code
+        try:
+            database_directory = os.path.join(repository_directory, "cmd", "odrive-database")
+            os.chdir(database_directory)
+            self.log("Running go-bindata from this location: {0}".format(database_directory))
+            subprocess.check_call(['go-bindata', 'schema', '../../defaultcerts/client-mysql/id', '../../defaultcerts/client-mysql/trust'])
+            os.chdir(repository_directory)
+            self.log("Running go get from this location: {0}".format(repository_directory))
+            subprocess.check_call(['go', 'get', './...', ], stdout=sys.stdout, stderr=sys.stderr)
+        except subprocess.CalledProcessError as e:
+            self.logger.error("Error from go get: {0}".format(e))
+
+    def clone_tag(self, repo, repo_url, tag):
+        checked_out_repo = os.path.join(self.checkout_dir, repo)
+        if os.path.exists(checked_out_repo):
+            self.logger.info("git repository {0} already checked out. Skipping clone...".format(repo))
+            return
+        try:
+            # Checkout the repo to our checkout directory
+            subprocess.check_call(
+                    ['git', 'clone', '--branch', tag, repo_url, checked_out_repo],
+                    stdout=sys.stdout, stderr=sys.stderr)
+        except subprocess.CalledProcessError as e:
+            self.logger.error("Error from git clone: {0}".format(e))
+            sys.exit(1)
+
+        self.build_project(checked_out_repo, repo)
+
+
+if __name__ == '__main__':
+    # Let's begin.
+    parser = Parser(sys.argv[1:])
+    opts = parser.parse()
+    
+    builder = Builder(COMMANDS_REQUIRED)
+
+    if opts.toolcheck:
+        builder.inspect_toolchain()
+
+    if opts.clean:
+        clean_images(opts.clean_args)
+
+    if opts.build:
+        build(builder)
+
+

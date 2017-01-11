@@ -1,0 +1,6 @@
+rpush "AORS" "AFRICOM"
+rpush "AORS" "CENTCOM"
+rpush "AORS" "EUCOM"
+rpush "AORS" "NORTHCOM"
+rpush "AORS" "PACOM"
+rpush "AORS" "SOUTHCOM"

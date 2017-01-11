@@ -1,0 +1,111 @@
+#!/bin/bash
+
+source installtools.sh
+
+ifNotRootQuit
+
+selinuxMustBe disabled
+
+backupIptables
+
+getProperty "XXX_PR" "What is the redis project name" "bedrock" n
+
+REDIS_USER=${XXX_PR}_redis
+REDIS_HOME=/opt/${XXX_PR}_redis
+
+mkdir -p ${REDIS_HOME}
+
+gunzip redis.tar.gz
+tar xf redis.tar  -C ${REDIS_HOME}
+
+mkdir -p ${REDIS_HOME}/db
+
+cp ${REDIS_HOME}/redis-cli /usr/bin
+cp ${REDIS_HOME}/redis-server /usr/sbin
+
+getProperty "XXX_PORT" "What port should be used?" "6379" n
+
+sed -i "s~export REDIS_HOME=where~export REDIS_HOME=${REDIS_HOME}~" redis-initd
+sed -i "s~export REDIS_PROJ=who~export REDIS_PROJ=${XXX_PR}~" redis-initd
+sed -i "s~export REDIS_PORT=port~export REDIS_PORT=${XXX_PORT}~" redis-initd
+
+#Adjust IP tables
+/etc/init.d/iptables status > /dev/null
+if [ $? != 0 ]; then
+   /etc/init.d/iptables start
+fi
+
+ISTHERECNT=$(/etc/init.d/iptables status  | grep "tcp dpt:${XXX_PORT}" | wc -l)
+
+if [ $ISTHERECNT -eq 0 ]; then
+   iptables -I RH-Firewall-1-INPUT -m state --state NEW -p tcp --dport ${XXX_PORT} -j ACCEPT
+   /etc/init.d/iptables save
+fi
+
+echo vm.overcommit_memory= 1 >> /etc/sysctl.conf
+
+getProperty "XXX_KP" "What is the redis db password" "password" y
+echo ""
+
+sed -i "/127/d" ${REDIS_HOME}/redis.conf
+sed -i "s~^dir .*~dir ${REDIS_HOME}/db~" ${REDIS_HOME}/redis.conf
+if [ "$XXX_KP" != "" ]; then
+  sed -i "s~# requirepass foobared~requirepass ${XXX_KP}~" ${REDIS_HOME}/redis.conf
+  sed -i "s~export REDIS_PASSWORD=password~export REDIS_PASSWORD=${XXX_KP}~" redis-initd
+else
+  sed -i "s~export REDIS_PASSWORD=password~export REDIS_PASSWORD=~" redis-initd
+fi
+
+cp redis-initd /etc/init.d/redis_${XXX_PR}
+
+sed -i "s~^port .*~port ${XXX_PORT}~" ${REDIS_HOME}/redis.conf
+sed -i "s~^logfile .*~logfile /var/log/redis_${XXX_PR}/redis.log~" ${REDIS_HOME}/redis.conf
+sed -i "s~^pidfile .*~pidfile /var/run/redis_${XXX_PR}/redis.pid~" ${REDIS_HOME}/redis.conf
+
+getProperty "XXX_SL" "Is this the slave?" "n" n
+
+if [ "${XXX_SL}" = "y" ]; then
+  getProperty "XXX_MA" "What is the address of the master server?" "" n
+  sed -i "s~# slaveof <masterip> <masterport>~slaveof ${XXX_MA} ${XXX_PORT}~" ${REDIS_HOME}/redis.conf
+  if [ "$XXX_KP" != "" ]; then
+    sed -i "s~# masterauth <master-password>~masterauth ${XXX_KP}~" ${REDIS_HOME}/redis.conf
+  fi
+fi
+
+GRPCNT=`grep ${REDIS_USER} /etc/group | wc -l`
+if [ $GRPCNT -eq 0 ]; then
+ groupadd ${REDIS_USER}
+fi
+
+id ${REDIS_USER} > /dev/null 2>&1
+RETVAL=$?
+if [ $RETVAL -eq 1 ]; then 
+  useradd -g ${REDIS_USER} ${REDIS_USER}
+  echo "Enter password for ${REDIS_USER} user" 
+  passwd ${REDIS_USER}
+fi
+
+chown -R ${REDIS_USER}:${REDIS_USER} ${REDIS_HOME}
+
+chgrp ${REDIS_USER} /usr/sbin/redis-server 
+chgrp ${REDIS_USER} /usr/bin/redis-cli
+chmod go+rx /usr/sbin/redis-server
+chmod go+rx /usr/bin/redis-cli
+chmod g+r ${REDIS_HOME}/redis.conf
+
+mkdir -p /var/log/redis_${XXX_PR}
+mkdir -p /var/run/redis_${XXX_PR}
+chown root:${REDIS_USER} /var/log/redis_${XXX_PR}
+chown root:${REDIS_USER} /var/run/redis_${XXX_PR}
+chmod g+wxr /var/log/redis_${XXX_PR}
+chmod g+wxr /var/run/redis_${XXX_PR}
+
+chkconfig --add redis_${XXX_PR}
+service redis_${XXX_PR} start
+
+if [ "${XXX_SL}" != "y" ]; then
+  # poor man's wait for startup.  It works for non sleep...but an extra two seconds is a bit better
+  sleep 2
+  chmod ug+x ./loadRefDataIntoRedis.sh
+  ./loadRefDataIntoRedis.sh localhost ${XXX_PORT} ${XXX_KP}
+fi 

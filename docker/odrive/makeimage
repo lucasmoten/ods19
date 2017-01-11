@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+import os
+import sys
+import shutil
+import subprocess
+import imp
+
+from glob import glob
+
+# Split absolute path; address `object-drive` w/ negative index.
+PROJECT_ROOT = os.path.join(os.getenv("GOPATH"), "src", "decipher.com", "object-drive-server")
+source_file = os.path.join(PROJECT_ROOT, "odb")
+
+def odrive_build():
+    odrive_dir = os.path.join(PROJECT_ROOT, 'docker', 'odrive')
+    build_dir = os.path.join(odrive_dir, 'build')
+    if os.path.exists(build_dir):
+        shutil.rmtree(build_dir)
+    dockerfile = os.path.join(odrive_dir, "Dockerfile")
+
+    # Run `govendor sync` and copy source tree locally.
+    os.chdir(PROJECT_ROOT)
+    subprocess.check_call(['./makedocs'])
+    subprocess.check_call(['govendor', 'sync'])
+    go_packages = [pkg for pkg in filter(os.path.isdir, glob("*"))]
+
+    # get list of dirs with 'docker' ignored    
+    to_copy = []
+    for pkg in go_packages:
+        if pkg not in ['docker']:
+            to_copy.append(pkg)
+    # loop through that list and copy to build directory
+    for pkg in to_copy:
+        shutil.copytree(pkg, os.path.join(build_dir, pkg))
+    
+    dockerfile = os.path.join(odrive_dir, "Dockerfile")
+    os.chdir(odrive_dir)
+
+    # Invoke the Dockerfile.
+    #run_dockerfile(dockerfile, "deciphernow/odrive")
+    # Clean up build directory.
+    subprocess.check_call(
+                ['docker', 'build', '-t', 'deciphernow/odrive', odrive_dir],
+                stdout=sys.stdout, stderr=sys.stderr)
+    shutil.rmtree(build_dir)
+
+if __name__ == '__main__':
+    odrive_build()
+
+
+

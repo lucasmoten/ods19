@@ -1,0 +1,6 @@
+rpush "IICT-TYPES" "Advisory"
+rpush "IICT-TYPES" "Alert"
+rpush "IICT-TYPES" "Assessment"
+rpush "IICT-TYPES" "Memorandum"
+rpush "IICT-TYPES" "Special Advisory"
+rpush "IICT-TYPES" "Standing Advisory"

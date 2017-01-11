@@ -1,0 +1,5 @@
+#!/bin/bash
+
+for im in `docker images | grep '<none>' | awk '{print $3}'`; do docker rmi --force $im; done
+rm -rf build
+

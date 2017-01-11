@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+import os
+import sys
+import shutil
+import subprocess
+import imp
+
+this_script = os.path.abspath(os.path.split(__file__)[1])
+# Split absolute path; address `object-drive` w/ negative index.
+PROJECT_ROOT = os.sep.join(this_script.split(os.sep)[:-3])
+source_file = os.path.join(PROJECT_ROOT, "odb")
+
+driver = imp.load_source('module.name', source_file)
+
+if __name__ == '__main__':
+
+    od_root = os.getenv("OD_ROOT")
+    if od_root is None:
+        print 'OD_ROOT not set'
+        sys.exit(1)
+
+    os.chdir(os.path.join(od_root, 'dias-simulator'))
+    dockerfile = os.path.abspath('./Dockerfile')
+    driver.run_dockerfile(dockerfile, "deciphernow/dias")
+
