@@ -1,9 +1,9 @@
 #!/bin/bash
 
 cd `dirname $0`
-odriverpmbuilt=`docker images | grep odriverpm | wc -l`
+odriverpmbuilt=`docker images | grep odriverpm -c`
 
-if [ "$odriverpmbuilt" == "       1" ]
+if [ "$odriverpmbuilt" == "1" ]
 then
   echo docker image already built
 else
