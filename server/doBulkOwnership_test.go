@@ -38,19 +38,15 @@ func testBulkOwnershipCall(t *testing.T, clientid int, inObjects []protocol.Obje
 	failNowOnErr(t, err, "Could not read all bytes")
 	err = json.Unmarshal(objectErrorsBytes, &objectErrors)
 	failNowOnErr(t, err, "update failed")
-	for i := 0; i < len(objectErrors); i++ {
-		if objectErrors[i].Code != 200 {
+	for _, oe := range objectErrors {
+		if oe.Code != 200 {
 			t.Logf("some objects were not updated: %s", string(objectErrorsBytes))
 			t.FailNow()
 		}
 	}
 }
 
-func TestBulkOwnership(t *testing.T) {
-	clientid := 0
-
-	nextUser := "user/cn=test tester09,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
-
+func bulkOwnershipTo(t *testing.T, clientid int, nextUser string) {
 	//  Create a few objects
 	var inObjects []protocol.ObjectVersioned
 	for i := 0; i < 5; i++ {
@@ -69,4 +65,21 @@ func TestBulkOwnership(t *testing.T) {
 		inObjects,
 		nextUser,
 	)
+}
+
+func TestBulkOwnership(t *testing.T) {
+	nextUser := ""
+
+	// transfer to self
+	nextUser = "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+	bulkOwnershipTo(t, 0, nextUser)
+
+	// transfer to other user
+	nextUser = "user/cn=test tester09,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+	bulkOwnershipTo(t, 0, nextUser)
+
+	// transfer to group
+	nextUser = "group/dctc_odrive"
+	bulkOwnershipTo(t, 0, nextUser)
+
 }

@@ -3,8 +3,11 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/events"
@@ -30,13 +33,16 @@ func (h AppServer) doBulkOwnership(ctx context.Context, w http.ResponseWriter, r
 	newOwner := captured["newOwner"]
 
 	var objects []protocol.ObjectVersioned
-	bytes, err := ioutil.ReadAll(r.Body)
+	var bytes []byte
+	limit := 5 * 1024 * 1024
+	bytes, err := ioutil.ReadAll(io.LimitReader(r.Body, int64(limit)))
+
 	if err != nil {
-		return NewAppError(400, err, "Cannot unmarshal list of IDs")
+		return NewAppError(400, err, "Cannot unmarshal list of IDs", zap.String("baddata", string(bytes)))
 	}
 	err = json.Unmarshal(bytes, &objects)
 	if err != nil {
-		return NewAppError(400, err, "Cannot parse list of IDs")
+		return NewAppError(400, err, "Cannot parse list of IDs", zap.String("baddata", string(bytes)))
 	}
 
 	bulkResponse := make([]protocol.ObjectError, 0)
