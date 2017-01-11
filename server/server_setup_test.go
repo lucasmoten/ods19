@@ -191,6 +191,7 @@ func testMainBody(m *testing.M) int {
 	testSettings()
 	trafficLogs = make(map[string]*TrafficLog)
 	trafficLogs[APISampleFile] = NewTrafficLog(APISampleFile)
+	defer trafficLogs[APISampleFile].Close()
 	setup(*testIP)
 	// flunk the whole test suite if we are not running short tests, and server is down.
 	// it's ok for server to be down on short tests (we will need to do more short/skip in tests though)
@@ -199,7 +200,6 @@ func testMainBody(m *testing.M) int {
 		return code
 	}
 	code = m.Run()
-	trafficLogs[APISampleFile].Close()
 	cleanupOpenFiles()
 	return code
 }
