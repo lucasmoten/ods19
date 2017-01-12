@@ -935,10 +935,16 @@ func TestUpdateObjectProperty(t *testing.T) {
 	t.Logf("* Update the object")
 	updateuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
 	req := makeHTTPRequestFromInterface(t, "POST", updateuri, folder1)
+	trafficLogs[APISampleFile].Request(t, req, &TrafficLogDescription{
+		OperationName:       "Update Object With New Property",
+		RequestDescription:  "While updating the metadata for an object, include a dynamic property to be set",
+		ResponseDescription: "Resulting object includes property",
+	})
 	res, err := clients[tester10].Client.Do(req)
 	defer util.FinishBody(res.Body)
 	failNowOnErr(t, err, "Unable to do request")
 	statusExpected(t, 200, res, "Bad status when updating object with property")
+	trafficLogs[APISampleFile].Response(t, res)
 	var updated protocol.Object
 	util.FullDecode(res.Body, &updated)
 
@@ -961,10 +967,16 @@ func TestUpdateObjectProperty(t *testing.T) {
 
 	t.Logf("* Update the object")
 	req2 := makeHTTPRequestFromInterface(t, "POST", updateuri, updated)
+	trafficLogs[APISampleFile].Request(t, req2, &TrafficLogDescription{
+		OperationName:       "Update Object Change Property Value",
+		RequestDescription:  "While updating the metadata for an object, change value of already existing dynamic property",
+		ResponseDescription: "Resulting object shows property with new value",
+	})
 	res2, err := clients[tester10].Client.Do(req2)
 	defer util.FinishBody(res2.Body)
 	failNowOnErr(t, err, "Unable to do request")
 	statusExpected(t, 200, res2, "Bad status when updating object with new property value")
+	trafficLogs[APISampleFile].Response(t, res2)
 	var updated2 protocol.Object
 	util.FullDecode(res2.Body, &updated2)
 

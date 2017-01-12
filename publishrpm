@@ -1,0 +1,4 @@
+export AWS_ACCESS_KEY_ID=$MEME_AWS_ACCESS_KEY_ID
+export AWS_SECRET_ACCESS_KEY=$MEME_AWS_SECRET_ACCESS_KEY
+
+aws s3 cp object-drive-1.0-test-SNAPSHOT.x86_64.rpm s3://builds.363-283.io/object-drive-1.0.1.SNAPSHOT.rpm
