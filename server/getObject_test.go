@@ -17,6 +17,7 @@ import (
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/services/aac"
+	"decipher.com/object-drive-server/services/kafka"
 	"decipher.com/object-drive-server/util"
 )
 
@@ -211,11 +212,12 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 		},
 		SnippetResp: &snippetResponse,
 	}
-
+	fakeQueue := kafka.NewFakeAsyncProducer(nil)
 	fakeServer := server.AppServer{RootDAO: &fakeDAO,
 		ServicePrefix: config.RootURLRegex,
 		AAC:           &fakeAAC,
 		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
+		EventQueue:    fakeQueue,
 	}
 
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"

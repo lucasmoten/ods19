@@ -11,6 +11,7 @@ import (
 
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/services/aac"
+	"decipher.com/object-drive-server/services/kafka"
 	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/dao"
@@ -39,12 +40,13 @@ func TestListObjectsTrashedJSONResponse(t *testing.T) {
 		SnippetResp: snippetResp,
 		Err:         nil,
 	}
-
+	fakeQueue := kafka.NewFakeAsyncProducer(nil)
 	s := server.AppServer{
 		RootDAO:       &fakeDAO,
 		ServicePrefix: cfg.RootURLRegex,
 		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
 		AAC:           &fakeAAC,
+		EventQueue:    fakeQueue,
 	}
 	s.InitRegex()
 

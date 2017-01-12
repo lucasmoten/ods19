@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime/debug"
+	"strconv"
 	"time"
 
 	"github.com/karlseguin/ccache"
@@ -24,6 +25,7 @@ import (
 	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/performance"
 	"decipher.com/object-drive-server/services/aac"
+	"decipher.com/object-drive-server/services/audit"
 	"decipher.com/object-drive-server/services/zookeeper"
 	"decipher.com/object-drive-server/util"
 	"golang.org/x/net/context"
@@ -207,8 +209,16 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	gem := globalEventFromRequest(r)
 	gem.Payload.Audit = defaultAudit(r)
+	gem.Payload.UserDN = caller.DistinguishedName
+	gem.Payload.SessionID = sessionID
+	gem.Payload.StreamUpdate = false
 
 	if err := caller.ValidateHeaders(h.AclImpersonationWhitelist, r); err != nil {
+		gem.Action = "authenticate"
+		gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventAuthenticate")
+		gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "AUTHENTICATE")
+		herr := NewAppError(401, err, err.Error())
+		h.publishError(gem, herr)
 		sendErrorResponse(logger, &w, 401, err, err.Error())
 		return
 	}
@@ -492,6 +502,26 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h.Tracker != nil {
 		autoscale.CloudWatchTransaction(beginTSInMS, util.NowMS(), h.Tracker)
 	}
+}
+
+func (h *AppServer) publishError(gem events.GEM, herr *AppError) {
+	gem.Payload.Audit = audit.WithActionResult(gem.Payload.Audit, "FAILURE")
+	gem.Payload.Audit = audit.WithActionTargetMessages(gem.Payload.Audit, strconv.Itoa(herr.Code))
+	if herr.Error != nil {
+		errMsg := herr.Error.Error()
+		if len(errMsg) > 0 {
+			gem.Payload.Audit = audit.WithActionTargetMessages(gem.Payload.Audit, errMsg)
+		}
+	}
+	if len(herr.Msg) > 0 {
+		gem.Payload.Audit = audit.WithActionTargetMessages(gem.Payload.Audit, herr.Msg)
+	}
+	h.EventQueue.Publish(gem)
+}
+func (h *AppServer) publishSuccess(gem events.GEM, r *http.Request) {
+	gem.Payload.Audit = audit.WithActionResult(gem.Payload.Audit, "SUCCESS")
+	gem.Payload.Audit = audit.WithActionTargetMessages(gem.Payload.Audit, r.Header.Get("Status"))
+	h.EventQueue.Publish(gem)
 }
 
 func newSessionID() string {

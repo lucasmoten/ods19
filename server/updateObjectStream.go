@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/hex"
 	"errors"
 	"net/http"
 
@@ -8,9 +9,9 @@ import (
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/crypto"
 	db "decipher.com/object-drive-server/dao"
-	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/services/audit"
 	"golang.org/x/net/context"
 )
 
@@ -21,38 +22,59 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	logger := LoggerFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
 	dao := DAOFromContext(ctx)
-	session := SessionIDFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
+	gem.Action = "update"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventModify")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "MODIFY")
 
 	var requestObject models.ODObject
 	var err error
 
 	requestObject, err = parseGetObjectRequest(ctx)
 	if err != nil {
-		return NewAppError(500, err, "Error parsing URI")
+		herr := NewAppError(500, err, "Error parsing URI")
+		h.publishError(gem, herr)
+		return herr
 	}
+	gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
+	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, "", "", 0, "", "", hex.EncodeToString(requestObject.ID))
 
 	// Retrieve existing object from the data store
 	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
 		if err.Error() == db.ErrNoRows.Error() {
-			return NewAppError(404, err, "Not found")
+			herr := NewAppError(404, err, "Not found")
+			h.publishError(gem, herr)
+			return herr
 		}
-		return NewAppError(500, err, "Error retrieving object")
+		herr := NewAppError(500, err, "Error retrieving object")
+		h.publishError(gem, herr)
+		return herr
 	}
+	gem.Payload.Audit.Resources = gem.Payload.Audit.Resources[:len(gem.Payload.Audit.Resources)-1]
+	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, dbObject.Name, "", dbObject.ContentSize.Int64, "OBJECT", dbObject.TypeName.String, hex.EncodeToString(requestObject.ID))
+	gem.Payload.ChangeToken = dbObject.ChangeToken
 
 	if len(dbObject.ID) == 0 {
-		return NewAppError(400, err, "Object for update doesn't have an id")
+		herr := NewAppError(400, err, "Object for update doesn't have an id")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			return NewAppError(410, err, "The object no longer exists.")
+			herr := NewAppError(410, err, "The object no longer exists.")
+			h.publishError(gem, herr)
+			return herr
 		case dbObject.IsAncestorDeleted:
-			return NewAppError(405, err, "The object cannot be modified because an ancestor is deleted.")
+			herr := NewAppError(405, err, "The object cannot be modified because an ancestor is deleted.")
+			h.publishError(gem, herr)
+			return herr
 		default:
-			return NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
+			herr := NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
+			h.publishError(gem, herr)
+			return herr
 		}
 	}
 
@@ -63,24 +85,32 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	var grant models.ODObjectPermission
 	var ok bool
 	if ok, grant = isUserAllowedToUpdateWithPermission(ctx, &dbObject); !ok {
-		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
+		herr := NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	// ACM check for whether user has permission to read this object
 	// from a clearance perspective
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
-		return ClassifyObjectACMError(err)
+		herr := ClassifyObjectACMError(err)
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
-		return NewAppError(400, err, "unable to open multipart reader")
+		herr := NewAppError(400, err, "unable to open multipart reader")
+		h.publishError(gem, herr)
+		return herr
 	}
 	drainFunc, herr := h.acceptObjectUpload(ctx, multipartReader, &dbObject, &grant, false, nil)
 	dp := ciphertext.FindCiphertextCacheByObject(&dbObject)
 	if herr != nil {
-		return abortUploadObject(logger, dp, &dbObject, true, herr)
+		herr := abortUploadObject(logger, dp, &dbObject, true, herr)
+		h.publishError(gem, herr)
+		return herr
 	}
 	masterKey := dp.GetMasterKey()
 
@@ -88,12 +118,14 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	modifiedACM, err = aacAuth.GetFlattenedACM(modifiedACM)
 	if err != nil {
 		herr = ClassifyFlattenError(err)
+		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
 	dbObject.RawAcm = models.ToNullString(modifiedACM)
 	modifiedPermissions, modifiedACM, err := aacAuth.NormalizePermissionsFromACM(dbObject.OwnedBy.String, dbObject.Permissions, dbObject.RawAcm.String, dbObject.IsCreating())
 	if err != nil {
 		herr = NewAppError(500, err, err.Error())
+		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
 	dbObject.RawAcm = models.ToNullString(modifiedACM)
@@ -101,6 +133,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	// Final access check against altered ACM
 	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
 		herr = ClassifyObjectACMError(err)
+		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
 
@@ -108,15 +141,19 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	unchangedDbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
 		herr = NewAppError(500, err, err.Error())
+		h.publishError(gem, herr)
+		return herr
 	}
 	// If the "share" or "f_share" parts have changed, then check that the
 	// caller also has permission to share.
 	if diff, herr := isAcmShareDifferent(dbObject.RawAcm.String, unchangedDbObject.RawAcm.String); herr != nil || diff {
 		if herr != nil {
+			h.publishError(gem, herr)
 			return abortUploadObject(logger, dp, &dbObject, true, herr)
 		}
 		if !isUserAllowedToShare(ctx, &unchangedDbObject) {
 			herr = NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to change the share for this object")
+			h.publishError(gem, herr)
 			return abortUploadObject(logger, dp, &dbObject, true, herr)
 		}
 	}
@@ -132,6 +169,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	err = dao.UpdateObject(&dbObject)
 	if err != nil {
 		herr = NewAppError(500, err, "error storing object")
+		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
 	// Only start to upload into S3 after we have a database record
@@ -139,15 +177,13 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 
 	apiResponse := mapping.MapODObjectToObject(&dbObject).WithCallerPermission(protocolCaller(caller))
 
-	gem.Action = "update"
-	gem.Payload = events.ObjectDriveEvent{
-		ObjectID:     apiResponse.ID,
-		ChangeToken:  apiResponse.ChangeToken,
-		UserDN:       caller.DistinguishedName,
-		StreamUpdate: true,
-		SessionID:    session,
-	}
-	h.EventQueue.Publish(gem)
+	gem.Payload.ChangeToken = apiResponse.ChangeToken
+	gem.Payload.StreamUpdate = false
+	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(
+		*gem.Payload.Audit.Resources[0],
+		audit.NewResource(apiResponse.Name, "", apiResponse.ContentSize, "OBJECT", apiResponse.TypeName, apiResponse.ID),
+	))
+	h.publishSuccess(gem, r)
 
 	jsonResponse(w, apiResponse)
 

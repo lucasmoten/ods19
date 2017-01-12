@@ -48,14 +48,33 @@ import (
 */
 
 // NewModifiedResourcePair ...
-func NewModifiedResourcePair() *components_thrift.ModifiedResourcePair {
+func NewModifiedResourcePair(original components_thrift.Resource, modified components_thrift.Resource) components_thrift.ModifiedResourcePair {
 	var pair components_thrift.ModifiedResourcePair
 
 	// Set original
+	pair.Original = &original
 
 	// Set modified
+	pair.Modified = &modified
 
-	return &pair
+	return pair
+}
+
+// NewResource creates a resource
+func NewResource(Name string, Location string, Size int64, Type string, SubType string, Identifier string) components_thrift.Resource {
+	resourceName := components_thrift.ResourceName{
+		Title: stringPtr(Name),
+	}
+	resource := components_thrift.Resource{
+		Name:     &resourceName,
+		Location: stringPtr(Location),
+		// TODO: Convert this later
+		Size:       int32PtrOrZero(Size),
+		SubType:    stringPtr(SubType),
+		Type:       stringPtr(Type),
+		Identifier: stringPtr(Identifier),
+	}
+	return resource
 }
 
 // WithCreator ...
@@ -142,6 +161,19 @@ func WithActionTarget(e events_thrift.AuditEvent, identityType, value string, ac
 		IdentityType: stringPtr(identityType),
 		Value:        stringPtr(value),
 		Acm:          &acm,
+	}
+	e.ActionTargets = append(e.ActionTargets, &at)
+	return e
+}
+
+// WithActionTargetWithoutAcm ...
+func WithActionTargetWithoutAcm(e events_thrift.AuditEvent, identityType, value string) events_thrift.AuditEvent {
+	if e.ActionTargets == nil {
+		e.ActionTargets = make([]*components_thrift.ActionTarget, 0)
+	}
+	at := components_thrift.ActionTarget{
+		IdentityType: stringPtr(identityType),
+		Value:        stringPtr(value),
 	}
 	e.ActionTargets = append(e.ActionTargets, &at)
 	return e
@@ -245,6 +277,12 @@ func WithResources(e events_thrift.AuditEvent, resources ...components_thrift.Re
 		e.Resources = append(e.Resources, &r)
 	}
 	return e
+}
+
+// WithResource adds a resource
+func WithResource(e events_thrift.AuditEvent, Name string, Location string, Size int64, Type string, SubType string, Identifier string) events_thrift.AuditEvent {
+	resource := NewResource(Name, Location, Size, Type, SubType, Identifier)
+	return WithResources(e, resource)
 }
 
 // WithCrossDomain ...
@@ -360,3 +398,13 @@ func WithDevice(e events_thrift.AuditEvent, deviceLocation, deviceType string) e
 // Utilities for dealing with pointers to primitive types.
 func stringPtr(s string) *string { return &s }
 func boolPtr(b bool) *bool       { return &b }
+func int32Ptr(i int32) *int32    { return &i }
+func int64Ptr(i int64) *int64    { return &i }
+func int32PtrOrZero(i int64) *int32 {
+	var zero int32
+	var x = int32(i)
+	if zero > x {
+		return &zero
+	}
+	return &x
+}

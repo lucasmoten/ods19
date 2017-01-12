@@ -7,6 +7,7 @@ import (
 	"github.com/deciphernow/gm-fabric-go/audit/events_thrift"
 
 	"decipher.com/object-drive-server/events"
+	"decipher.com/object-drive-server/services/audit"
 )
 
 // globalEventFromRequest sets up a standard set of fields on the global event model.
@@ -23,7 +24,9 @@ func globalEventFromRequest(r *http.Request) events.GEM {
 		SystemIP:        resolveOurIP(),
 		XForwardedForIP: r.Header.Get("X-Forwarded-For"),
 		Timestamp:       time.Now().Unix(),
+		Action:          "unknown",
 	}
+
 	return e
 }
 
@@ -36,5 +39,17 @@ func defaultAudit(r *http.Request) events_thrift.AuditEvent {
 	// e.CreatedOn = stringPtr(fmt.Sprintf("%s", time.Now().Format(time.RFC3339)))
 
 	var e events_thrift.AuditEvent
+	fqdn := r.URL.Host
+	if len(fqdn) == 0 {
+		fqdn = r.URL.RequestURI()
+	}
+	e = audit.WithActionTargetWithoutAcm(e, "FULLY_QUALIFIED_DOMAIN_NAME", fqdn)
+	e = audit.WithActionTargetVersions(e, "1.0")
+	e = audit.WithQueryString(e, r.URL.RawQuery)
+	e = audit.WithType(e, "EventUnknown")
+	e = audit.WithAction(e, "ACCESS")
+	e = audit.WithActionResult(e, "FAILURE")
+	e = audit.WithActionInitiator(e, "DISTINGUISHED_NAME", r.Header.Get("USER_DN"))
+
 	return e
 }

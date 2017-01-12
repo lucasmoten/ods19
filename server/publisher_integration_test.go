@@ -84,6 +84,10 @@ func partitionConsumerForTopic(t *testing.T, addrs []string, topic string) saram
 		t.Errorf("could not get partitions: %v", err)
 		t.FailNow()
 	}
+	if len(partitions) == 0 {
+		t.Errorf("no partitions found for %s", topic)
+		t.FailNow()
+	}
 	pc, err := c.ConsumePartition(topic, partitions[0], 0)
 	if err != nil {
 		t.Errorf("could not consume partition(s): %v", err)
