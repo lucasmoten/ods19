@@ -7,10 +7,10 @@ import (
 
 	"golang.org/x/net/context"
 
-	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/services/audit"
 	"decipher.com/object-drive-server/util"
 )
 
@@ -23,15 +23,22 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 	if !ok {
 		return NewAppError(http.StatusInternalServerError, errors.New("Could not get caller from context"), "Invalid caller.")
 	}
-	session := SessionIDFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
+	gem.Action = "delete"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventDelete")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "REMOVE")
+
 	user, ok := UserFromContext(ctx)
 	if !ok {
-		return NewAppError(http.StatusInternalServerError, errors.New("Could not determine user"), "Invalid user.")
+		herr := NewAppError(http.StatusInternalServerError, errors.New("Could not determine user"), "Invalid user.")
+		h.publishError(gem, herr)
+		return herr
 	}
 	snippetFields, ok := SnippetsFromContext(ctx)
 	if !ok {
-		return NewAppError(http.StatusBadGateway, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
+		herr := NewAppError(http.StatusBadGateway, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
+		h.publishError(gem, herr)
+		return herr
 	}
 	user.Snippets = snippetFields
 	dao := DAOFromContext(ctx)
@@ -39,16 +46,28 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Get object
 	requestObject, err = parseDeleteObjectRequest(r, ctx)
 	if err != nil {
-		return NewAppError(http.StatusBadRequest, err, "Error parsing JSON")
+		herr := NewAppError(http.StatusBadRequest, err, "Error parsing JSON")
+		h.publishError(gem, herr)
+		return herr
 	}
+	gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
+	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, "", "", 0, "", "", hex.EncodeToString(requestObject.ID))
+
 	dbObject, err := dao.GetObject(requestObject, false)
 	if err != nil {
-		return NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
+		herr := NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
+		h.publishError(gem, herr)
+		return herr
 	}
+	gem.Payload.Audit.Resources = gem.Payload.Audit.Resources[:len(gem.Payload.Audit.Resources)-1]
+	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, dbObject.Name, "", dbObject.ContentSize.Int64, "OBJECT", dbObject.TypeName.String, hex.EncodeToString(requestObject.ID))
+	gem.Payload.ChangeToken = dbObject.ChangeToken
 
 	// Auth check
 	if ok := isUserAllowedToDelete(ctx, &dbObject); !ok {
-		return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to delete this object")
+		herr := NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to delete this object")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	// State check
@@ -56,7 +75,9 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 		// Deleted already
 		switch {
 		case dbObject.IsExpunged:
-			return NewAppError(http.StatusGone, err, "The referenced object no longer exists.")
+			herr := NewAppError(http.StatusGone, err, "The referenced object no longer exists.")
+			h.publishError(gem, herr)
+			return herr
 		default:
 		}
 	} else {
@@ -65,22 +86,21 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 		dbObject.ChangeToken = requestObject.ChangeToken
 		err = dao.DeleteObject(user, dbObject, true)
 		if err != nil {
-			return NewAppError(http.StatusInternalServerError, err, "DAO Error deleting object")
+			herr := NewAppError(http.StatusInternalServerError, err, "DAO Error deleting object")
+			h.publishError(gem, herr)
+			return herr
 		}
 	}
 
 	// Response in requested format
 	apiResponse := mapping.MapODObjectToDeletedObjectResponse(&dbObject).WithCallerPermission(protocolCaller(caller))
 
-	gem.Action = "delete"
-	gem.Payload = events.ObjectDriveEvent{
-		ObjectID:     apiResponse.ID,
-		ChangeToken:  requestObject.ChangeToken,
-		UserDN:       caller.DistinguishedName,
-		StreamUpdate: false,
-		SessionID:    session,
-	}
-	h.EventQueue.Publish(gem)
+	gem.Payload.StreamUpdate = false
+	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(
+		*gem.Payload.Audit.Resources[0],
+		*gem.Payload.Audit.Resources[0],
+	))
+	h.publishSuccess(gem, r)
 
 	jsonResponse(w, apiResponse)
 	return nil

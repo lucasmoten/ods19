@@ -14,17 +14,25 @@ import (
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/services/audit"
 )
 
 func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	dao := DAOFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
+	gem, _ := GEMFromContext(ctx)
+	gem.Action = "access"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventAccess")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "ACCESS")
 
 	requestObject, err := parseGetObjectRequest(ctx)
 	if err != nil {
+		ctx = ContextWithGEM(ctx, gem)
 		return NewAppError(500, err, "Error parsing URI")
 	}
+	gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
+	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, "", "", 0, "", "", hex.EncodeToString(requestObject.ID))
 
 	// Business Logic...
 
@@ -32,37 +40,52 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
 		code, msg, err := getObjectDAOError(err)
-		return NewAppError(code, err, msg)
+		herr := NewAppError(code, err, msg)
+		h.publishError(gem, herr)
+		return herr
 	}
+	gem.Payload.Audit.Resources = gem.Payload.Audit.Resources[:len(gem.Payload.Audit.Resources)-1]
+	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, dbObject.Name, "", dbObject.ContentSize.Int64, "OBJECT", dbObject.TypeName.String, hex.EncodeToString(requestObject.ID))
+	gem.Payload.ChangeToken = dbObject.ChangeToken
 
 	// Check if the user has permissions to read the ODObject
 	//		Permission.grantee matches caller, and AllowRead is true
 	if ok := isUserAllowedToRead(ctx, &dbObject); !ok {
-		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
+		herr := NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
+		h.publishError(gem, herr)
+		return herr
 	}
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
-		return ClassifyObjectACMError(err)
+		herr := ClassifyObjectACMError(err)
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	if ok, code, err := isExpungedOrAnscestorDeletedErr(dbObject); !ok {
-		return NewAppError(code, err, "expunged or ancesor deleted")
+		herr := NewAppError(code, err, "expunged or ancesor deleted")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	if dbObject.IsDeleted {
 		apiResponse := mapping.MapODObjectToDeletedObject(&dbObject).WithCallerPermission(protocolCaller(caller))
 		jsonResponse(w, apiResponse)
+		h.publishSuccess(gem, r)
 		return nil
 	}
 
 	parents, err := dao.GetParents(dbObject)
 	if err != nil {
-		return NewAppError(500, err, "error retrieving object parents")
+		herr := NewAppError(500, err, "error retrieving object parents")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	filtered := redactParents(ctx, aacAuth, parents)
-	if err := errOnDeletedParents(parents); err != nil {
-		return err
+	if appError := errOnDeletedParents(parents); appError != nil {
+		h.publishError(gem, appError)
+		return appError
 	}
 	crumbs := breadcrumbsFromParents(filtered)
 
@@ -70,6 +93,9 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 		WithCallerPermission(protocolCaller(caller)).
 		WithBreadcrumbs(crumbs)
 	jsonResponse(w, apiResponse)
+
+	h.publishSuccess(gem, r)
+
 	return nil
 }
 

@@ -15,10 +15,10 @@ import (
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/crypto"
 	"decipher.com/object-drive-server/dao"
+	"decipher.com/object-drive-server/services/audit"
 	"golang.org/x/net/context"
 
 	"decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
@@ -29,9 +29,11 @@ import (
 func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	logger := LoggerFromContext(ctx)
-	session := SessionIDFromContext(ctx)
-	gem, _ := GEMFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
+	gem, _ := GEMFromContext(ctx)
+	gem.Action = "create"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventCreate")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "CREATE")
 
 	dao := DAOFromContext(ctx)
 
@@ -65,29 +67,35 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 
 		multipartReader, err := r.MultipartReader()
 		if err != nil {
-			return NewAppError(400, err, "Unable to get mime multipart")
+			herr := NewAppError(400, err, "Unable to get mime multipart")
+			h.publishError(gem, herr)
+			return herr
 		}
 
 		drainFunc, herr = h.acceptObjectUpload(ctx, multipartReader, &obj, &ownerPermission, true, afterMeta)
 		if herr != nil {
 			dp := ciphertext.FindCiphertextCacheByObject(&obj)
+			h.publishError(gem, herr)
 			return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 		}
 	} else {
 		// Check headers
 		herr = validateCreateObjectHeaders(r)
 		if herr != nil {
+			h.publishError(gem, herr)
 			return herr
 		}
 
 		// Parse body as json to populate object
 		obj, herr = parseCreateObjectRequestAsJSON(r)
 		if herr != nil {
+			h.publishError(gem, herr)
 			return herr
 		}
 
 		// Validation
 		if herr := handleCreatePrerequisites(ctx, h, &obj); herr != nil {
+			h.publishError(gem, herr)
 			return herr
 		}
 	}
@@ -101,23 +109,27 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	modifiedACM, err := aacAuth.InjectPermissionsIntoACM(obj.Permissions, obj.RawAcm.String)
 	if err != nil {
 		herr := NewAppError(500, err, "Error injecting provided permissions")
+		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
 	modifiedACM, err = aacAuth.GetFlattenedACM(modifiedACM)
 	if err != nil {
 		herr = ClassifyFlattenError(err)
+		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
 	obj.RawAcm = models.ToNullString(modifiedACM)
 	modifiedPermissions, modifiedACM, err := aacAuth.NormalizePermissionsFromACM(obj.OwnedBy.String, obj.Permissions, modifiedACM, obj.IsCreating())
 	if err != nil {
 		herr = NewAppError(500, err, err.Error())
+		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
 	obj.RawAcm = models.ToNullString(modifiedACM)
 	obj.Permissions = modifiedPermissions
 	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, obj.RawAcm.String); err != nil {
 		herr = ClassifyObjectACMError(err)
+		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
 
@@ -135,12 +147,14 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	user.Snippets = snippetFields
 	if err = handleIntermediateFoldersDuringCreation(dao, user, dp.GetMasterKey(), &obj); err != nil {
 		herr = NewAppError(500, err, "error processing intermediate folders")
+		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
 
 	createdObject, err = dao.CreateObject(&obj)
 	if err != nil {
 		herr = NewAppError(500, err, "error storing object")
+		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
 
@@ -155,17 +169,14 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	apiResponse := mapping.MapODObjectToObject(&createdObject).WithCallerPermission(protocolCaller(caller))
 
-	gem.Action = "create"
-	gem.Payload = events.ObjectDriveEvent{
-		ObjectID:     apiResponse.ID,
-		ChangeToken:  apiResponse.ChangeToken,
-		UserDN:       caller.DistinguishedName,
-		StreamUpdate: isMultipart,
-		SessionID:    session,
-	}
-	h.EventQueue.Publish(gem)
+	gem.Payload.ObjectID = apiResponse.ID
+	gem.Payload.ChangeToken = apiResponse.ChangeToken
+	gem.Payload.StreamUpdate = isMultipart
+	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, apiResponse.Name, "", apiResponse.ContentSize, "OBJECT", apiResponse.TypeName, apiResponse.ID)
+	h.publishSuccess(gem, r)
 
 	jsonResponse(w, apiResponse)
+
 	return nil
 }
 

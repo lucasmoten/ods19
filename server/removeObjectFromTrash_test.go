@@ -17,6 +17,7 @@ import (
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/services/aac"
+	"decipher.com/object-drive-server/services/kafka"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
@@ -145,10 +146,12 @@ func TestUndeleteExpungedObjectFails(t *testing.T) {
 		Object: expungedObj,
 		Users:  []models.ODUser{user1, user2},
 	}
+	fakeQueue := kafka.NewFakeAsyncProducer(nil)
 	s := server.AppServer{
 		RootDAO:       fakeDAO,
 		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
 		AAC:           fakeAAC,
+		EventQueue:    fakeQueue,
 	}
 
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
@@ -195,11 +198,12 @@ func TestUndeleteObjectWithDeletedAncestorFails(t *testing.T) {
 		Object: withAncestorDeleted,
 		Users:  []models.ODUser{user1, user2},
 	}
-
+	fakeQueue := kafka.NewFakeAsyncProducer(nil)
 	s := server.AppServer{
 		RootDAO:       fakeDAO,
 		AAC:           fakeAAC,
 		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
+		EventQueue:    fakeQueue,
 	}
 
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
