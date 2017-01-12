@@ -12,7 +12,7 @@ fi
 MYSQL_USER="dbuser"
 MYSQL_PASSWORD="dbPassword"
 MYSQL_DATABASE="metadatadb"
-CERT_PATH=$OD_ROOT/object-drive/docker/metadatadb
+CERT_PATH=$GOPATH/src/decipher.com/object-drive-server/docker/metadatadb
 
 # Uncomment the following to require server cert verification, but this wont work unless the certs include the IP address
 #SSL_VERIFY=--ssl-verify-server-cert
