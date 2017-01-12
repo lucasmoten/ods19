@@ -143,12 +143,13 @@ func (h *AppServer) InitRegex() {
 		Ciphertext:       route("/ciphertext/(?P<zone>[0-9a-zA-Z_]*)?/(?P<rname>[0-9a-fA-F]{64})$"),
 		BulkProperties:   route("/objects/properties$"),
 		// - actions on objects
-		ObjectChangeOwner: route("/objects/(?P<objectId>[0-9a-fA-F]{32})/owner/(?P<newOwner>.*)$"),
-		ObjectDelete:      route("/objects/(?P<objectId>[0-9a-fA-F]{32})/trash$"),
-		ObjectUndelete:    route("/objects/(?P<objectId>[0-9a-fA-F]{32})/untrash$"),
-		ObjectExpunge:     route("/objects/(?P<objectId>[0-9a-fA-F]{32})$"),
-		ObjectMove:        route("/objects/(?P<objectId>[0-9a-fA-F]{32})/move/(?P<folderId>[0-9a-fA-F]{32})?$"),
-		ObjectsMove:       route("/objects/move$"),
+		ObjectChangeOwner:  route("/objects/(?P<objectId>[0-9a-fA-F]{32})/owner/(?P<newOwner>.*)$"),
+		ObjectDelete:       route("/objects/(?P<objectId>[0-9a-fA-F]{32})/trash$"),
+		ObjectUndelete:     route("/objects/(?P<objectId>[0-9a-fA-F]{32})/untrash$"),
+		ObjectExpunge:      route("/objects/(?P<objectId>[0-9a-fA-F]{32})$"),
+		ObjectMove:         route("/objects/(?P<objectId>[0-9a-fA-F]{32})/move/(?P<folderId>[0-9a-fA-F]{32})?$"),
+		ObjectsMove:        route("/objects/move$"),
+		ObjectsChangeOwner: route("/objects/owner/(?P<newOwner>.*)$"),
 		// - revisions
 		Revisions:      route("/revisions/(?P<objectId>[0-9a-fA-F]{32})$"),
 		RevisionStream: route("/revisions/(?P<objectId>[0-9a-fA-F]{32})/(?P<revisionId>.*)/stream(\\.[0-9a-zA-Z]*)?$"),
@@ -446,6 +447,10 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			herr = h.getBulkProperties(ctx, w, r)
 		case h.Routes.ObjectsMove.MatchString(uri):
 			herr = h.doBulkMove(ctx, w, r)
+		// - change owner
+		case h.Routes.ObjectsChangeOwner.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectsChangeOwner)
+			herr = h.doBulkOwnership(ctx, w, r)
 		default:
 			herr = do404(ctx, w, r)
 		}
@@ -717,6 +722,7 @@ type StaticRx struct {
 	ObjectUndelete         *regexp.Regexp
 	ObjectExpunge          *regexp.Regexp
 	ObjectMove             *regexp.Regexp
+	ObjectsChangeOwner     *regexp.Regexp
 	BulkProperties         *regexp.Regexp
 	Ping                   *regexp.Regexp
 	Revisions              *regexp.Regexp

@@ -6,6 +6,7 @@ Release vNEXT
 * ENH: Bulk Delete objects: DELETE /objects
 * ENH: Bulk Move objects: POST /objects/move
 * FIX: Restore ability to update properties on objects
+* ENH: Bulk Change owner objects: POST /objects/owner/{resourceString}
 
 Release v1.0.1.12
 -----------------
