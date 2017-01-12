@@ -1,0 +1,35 @@
+snippets:
+  f_clearance:
+    odrive-raw:
+      value: { "field": "f_clearance", "treatment": "allowed", "values": [ /f_clearance/as_is ] }
+  f_share:
+    odrive-raw:
+      value: { "field": "f_share", "treatment": "allowed", "values": [ /f_share/as_is ] }
+  f_oc_org:
+    odrive-raw:
+      value: { "field": "f_oc_org", "treatment": "allowed", "values": [ /f_oc_org/as_is ] }
+  f_missions:
+    odrive-raw:
+      value: { "field": "f_missions", "treatment": "allowed", "values": [ /f_missions/as_is ] }
+  f_regions:
+    odrive-raw:
+      value: { "field": "f_regions", "treatment": "allowed", "values": [ /f_regions/as_is ] }
+  f_macs:
+    odrive-raw:
+      value: { "field": "f_macs", "treatment": "disallow", "values": [ /f_macs/negate ] }
+  f_sci_ctrls:
+    odrive-raw:
+      value: { "field": "f_sci_ctrls", "treatment": "disallow", "values": [ /f_sci_ctrls/negate ] }
+  f_accms:
+    odrive-raw:
+      value: { "field": "f_accms", "treatment": "disallow","values": [ /f_accms/negate ] }
+  f_sap:
+    odrive-raw:
+      value: { "field": "f_sar_id", "treatment": "allowed","values": [ "" ] }
+  f_aea:
+    odrive-raw:
+      value: { "field": "f_atom_energy", "treatment": "allowed", "values": [ "" ] }
+  dissem_countries:
+    odrive-raw:
+      value: { "field": "dissem_countries", "treatment": "allowed","values": [ "USA" ] }
+

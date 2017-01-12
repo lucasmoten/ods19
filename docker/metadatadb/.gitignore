@@ -1,0 +1,5 @@
+# OBJECT DRIVE
+# MariaDB Docker build .gitignore file
+
+# Ignore private keys and certs
+*.pem

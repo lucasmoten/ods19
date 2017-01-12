@@ -1,0 +1,3 @@
+#!/bin/bash
+
+docker build -t deciphernow/centos-openssl-go:1.7 .

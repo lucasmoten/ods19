@@ -1,0 +1,36 @@
+lineage:
+  ao:
+    sci:
+      - def:
+          class: gov.ic.dodiis.enterprise.security.policy.mapper.resolve.lineage.ResolveLineageSci
+          source:
+            path: /tmp_nFormalAccess
+          reference:
+            path: /data/sci
+    accm:
+      - def:
+          class: gov.ic.dodiis.enterprise.security.policy.mapper.resolve.lineage.ResolveLineageCoiAndCtrl
+          source:
+            path: /tmp_accms
+          reference:
+            path: /data/accm
+    mac:
+      - def:
+          class: gov.ic.dodiis.enterprise.security.policy.mapper.resolve.lineage.ResolveLineageCoiAndCtrl
+          source:
+            path: /tmp_macs
+          reference:
+            path: /data/mac
+
+
+
+
+
+
+
+
+
+
+
+
+

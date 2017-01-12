@@ -1,0 +1,184 @@
+{{#clusters}}
+  {{#hasServers}}
+    upstream {{clusterName}} {
+      {{#servers}}
+        server {{host}}:{{port}};
+      {{/servers}}
+    }
+  {{/hasServers}}
+{{/clusters}}
+
+#upstream builder {
+#    server builder:9000;
+#}
+
+
+    map $http_user_agent $outdated {
+        default                                 0;
+        "~MSIE [0-9]*\."                        1;
+        "~Mozilla.*Firefox/[1-9]\."             1;
+        "~Mozilla.*Firefox/[0-1][0-9]\."        1;
+        "~Mozilla.*Firefox/2[0-5]\."            1;
+        "~Opera.*Version/[0-9]*\."              1;
+        "~Chrome/[0-9]\."                       1;
+        "~Chrome/[0-2][0-9]\."                  1;
+    }
+
+    server {
+        listen 443 ssl default_server;
+        ssl on;
+
+        keepalive_timeout   70;
+
+        server_name gatekeeper;
+
+        # SSL configs for connection to nginx
+        ssl_certificate /etc/nginx/server.public;
+        ssl_certificate_key /etc/nginx/server.private;
+        ssl_client_certificate /etc/nginx/dias.ca.pem;
+        ssl_trusted_certificate /etc/nginx/dias.ca.pem;
+        ssl_verify_depth 10;
+        ssl_verify_client on;
+        ssl_prefer_server_ciphers on;
+        ssl_protocols       TLSv1 TLSv1.1 TLSv1.2;
+        ssl_ciphers         HIGH:!aNULL:!MD5;
+
+        # allow underscores in headers
+        underscores_in_headers on;
+
+        # other headers for service
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $http_host;
+        proxy_pass_request_headers on;
+
+        # SSL configs for connection to client, based on NGINX certificates
+        # note: this sets SSL_CLIENT_S_DN header automatically
+        proxy_ssl_name twl-server-generic2;
+        proxy_ssl_certificate         /etc/nginx/server.public;
+        proxy_ssl_certificate_key     /etc/nginx/machine.key;
+        proxy_ssl_trusted_certificate /etc/nginx/dias.ca.pem;
+        proxy_ssl_verify_depth  10;
+        proxy_ssl_verify        on;
+        proxy_ssl_session_reuse on;
+        proxy_ssl_protocols           TLSv1 TLSv1.1 TLSv1.2;
+        proxy_ssl_ciphers 'ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!CAMELLIA:!DES:!MD5:!PSK:!RC4';
+
+        ######
+        #MSF Proxy
+        ######
+
+
+         set $ssl_client_s_dn_value $ssl_client_s_dn;
+
+        ######
+        #DCTC Service Routes
+        #This is in anticipation of HyperDrive and other integration efforts
+        #
+        #All DCTC service support single tier impersonation.  Must set USER_DN to $ssl_client_s_dn_value
+        #####
+
+
+        ######
+        #Service Routes from Gatekeeper
+        ######
+        
+        {{#locations}}
+            location {{context}} {
+            expires -1;
+
+            # determine USER_DN and EXTERNAL_SYS_DN (if USER_DN exists, impersonation is true)
+            set $user_dn_value $ssl_client_s_dn;
+            set $external_sys_dn_value '';
+            if ($http_user_dn) {
+                set $user_dn_value $http_user_dn;
+                set $external_sys_dn_value $ssl_client_s_dn_value;
+            }
+
+            proxy_set_header EXTERNAL_SYS_DN $external_sys_dn_value;
+            proxy_set_header USER_DN $user_dn_value;
+
+            {{#upstream}}
+                {{#hasServers}}
+                proxy_pass              {{protocol}}://{{clusterName}}/{{localDirectory}};
+                {{#directives}}
+                {{key}} {{value}};
+                {{/directives}}
+                {{/hasServers}}
+                {{^hasServers}}
+                ### API Gatekeeper Notification ###
+                ### The service is offline.  Please check to make sure the service is started, announcement point is correct, etc.
+                ### Unable to write upstream for {{clusterName}}
+                {{/hasServers}}
+            {{/upstream}}
+            {{#attributes}}
+                {{key}}                 {{value}}
+            {{/attributes}}
+            }
+        {{/locations}}        
+
+        ######
+        # Hard coded locations
+        ######
+
+        location /service/apps/1.0 {
+            expires -1;
+            proxy_pass            https://chm.363-283.io/service/apps/1.0;
+            proxy_set_header      user_dn         $ssl_client_s_dn_value;
+        }
+
+        location /service/userservice/1.0 {
+                expires -1;
+                proxy_pass            https://chm.363-283.io/service/userservice/1.0;
+                proxy_set_header      user_dn         $ssl_client_s_dn_value;
+        }
+
+      location /acm {
+          expires -1;
+          proxy_pass            https://chm.363-283.io/service/aac/1.0/acm;
+          proxy_set_header      user_dn         $ssl_client_s_dn_value;
+      }
+      location /service/aac/1.0/capco {
+          expires -1;
+          proxy_pass            https://chm.363-283.io/service/aac/1.0/capco;
+          proxy_set_header      user_dn         $ssl_client_s_dn_value;
+      }
+
+        location / {
+             expires -1;
+             proxy_pass              http://builder:9000;
+        }
+
+
+        ######
+        #Error Pages
+        ######
+
+        # outdated or unsupported browser? (IE, Opera, Firefox before v26, Chrome before v30)
+        if ($outdated = 1) {
+           return 412;
+        }
+        error_page 412 = @bad_browser;
+        location @bad_browser {
+                expires -1;
+                internal;
+                try_files $uri /error/outdatedBrowser.html /;
+        }
+
+        # No SSL? Display an error page
+        error_page 495 496 497 = @no_ssl;
+        location @no_ssl {
+                expires -1;
+                internal;
+                try_files $uri /error/pkiNotFound.html /;
+        }
+
+
+        # Send all other service requests to Chimera APIs page
+        location /service {
+                expires -1;
+                try_files /service/chimeraAPIs.html /;
+        }
+
+
+    }

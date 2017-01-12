@@ -1,0 +1,3 @@
+HMSET TOC-TARGETS-1 id "2001" name "DoD"
+HMSET TOC-TARGETS-2 id "2002" name "U.S."
+HMSET TOC-TARGETS-3 id "2003" name "Western"

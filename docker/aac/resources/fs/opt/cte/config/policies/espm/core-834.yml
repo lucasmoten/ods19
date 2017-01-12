@@ -1,0 +1,64 @@
+#
+# The container names will have to be changed to higher values based on the higest
+# value in production.
+#
+# This also means that all of the paths have to be updated.
+#
+data:
+  mac:
+    c15:
+      value: "BIR"
+      disp_name: "BIR"
+    c16:
+      value: "TIDE"
+      disp_name: "TIDE"
+    c17:
+      value: "WATCHDOG"
+      disp_name: "WATCHDOG"
+mapping:
+  ao:
+    mac:
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='I2_Data_Repo.dctc.local' and /diasUserGroups/projects/@groupNames='BIR')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c15/value, disp_name: /data/mac/c15/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='I2_Data_Repo.dctc.local' and /diasUserGroups/projects/@groupNames='TIDE')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c16/value, disp_name: /data/mac/c16/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='I2_Data_Repo.dctc.local' and /diasUserGroups/projects/@groupNames='WATCHDOG')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c17/value, disp_name: /data/mac/c17/disp_name } ]
+  acm:
+    mac:
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='BIR')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c15/value, disp_name: /data/mac/c15/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='TIDE')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c16/value, disp_name: /data/mac/c16/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='WATCHDOG')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c17/value, disp_name: /data/mac/c17/disp_name } ]

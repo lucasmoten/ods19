@@ -1,0 +1,5 @@
+MYSQL_CONTAINER_NAME=metadatadb
+MYSQL_USER=dbuser
+MYSQL_DATABASE=metadatadb
+MYSQL_ROOT_PASSWORD=dbRootPassword
+MYSQL_PASSWORD=dbPassword

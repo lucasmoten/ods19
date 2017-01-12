@@ -1,0 +1,1908 @@
+#
+# Special conditions added here.
+rules:
+  ao:
+    orgs:
+      - def:
+          source:
+            expression: ((@gimmeeAttributes/organization='dod_dia') or (@gimmeeAttributes/organization='DoD_DIA') or (@gimmeeAttributes/organization='DOD_DIA'))
+          destination:
+            normalized:
+              - value:
+                  tmp_orgs: [ "dia" ]
+    sci:
+#
+# HCS-P Instructions 1/2
+# If NOT supporting HCS-P comment out the following 2 definitions.
+####
+      - def:
+          source:
+            expression: ((@nFormalAccess='HCS' or @nFormalAccess='hcs') and (not(/gimmeeAttributes/@organization='CIA' or /gimmeeAttributes/@organization='cia')))
+          destination:
+            normalized:
+              - value:
+                  tmp_nFormalAccess: [ "HCS-P" ]
+      - def:
+          source:
+            expression: ((@nFormalAccess='HCS' or @nFormalAccess='hcs') and (not(/gimmeeAttributes/@organization='CIA' or /gimmeeAttributes/@organization='cia')))
+          destination:
+            normalized:
+              - value:
+                  nFormalAccess: [ "HCS-P" ]
+      - def:
+          source:
+            expression: ((@nFormalAccess='HCS-P') or (@nFormalAccess='hcs-p'))
+          destination:
+            normalized:
+              - value:
+                  tmp_nFormalAccess: [ "HCS" ]
+      - def:
+          source:
+            expression: ((@nFormalAccess='si' and @nFormalAccess='g') or (@nFormalAccess='si' and @nFormalAccess='-g') or (@nFormalAccess='si' and @nFormalAccess='_g') or (@nFormalAccess='SI' and @nFormalAccess='G') or (@nFormalAccess='SI' and @nFormalAccess='-G') or (@nFormalAccess='SI' and @nFormalAccess='_G'))
+          destination:
+            normalized:
+              - value:
+                  tmp_nFormalAccess: [ "SI-G" ]
+      - def:
+          source:
+            expression: (@nFormalAccess='g' or @nFormalAccess='-g' or @nFormalAccess='G' or @nFormalAccess='-G')
+          destination:
+            normalized:
+              - value:
+                  tmp_nFormalAccess: [ "-G", "G" ]
+    clearance:
+      - def:
+          source:
+            expression: (/userClearance/@clearance='ts' or /userClearance/@clearance='top secret' or /userClearance/@clearance='TS' or /userClearance/@clearance='TOP SECRET')
+          destination:
+            normalized:
+              - value:
+                  tmp_clearance: [ "ts","s","c","u" ]
+#                  tmp_clearance: [ "ts","s","c","r","u" ]  // RESTRICTED - if uncomment this line - remove this 'comment'
+      - def:
+          source:
+            expression: (/userClearance/@clearance='s' or /userClearance/@clearance='secret' or /userClearance/@clearance='S' or /userClearance/@clearance='SECRET')
+          destination:
+            normalized:
+              - value:
+                  tmp_clearance: [ "s","c","u" ]
+#                  tmp_clearance: [ "s","c","r","u" ]    // RESTRICTED - if uncomment this line - remove this 'comment'
+
+      - def:
+          source:
+            expression: (/userClearance/@clearance='c' or /userClearance/@clearance='confidential' or /userClearance/@clearance='C' or /userClearance/@clearance='CONFIDENTIAL' )
+          destination:
+            normalized:
+              - value:
+                  tmp_clearance: [ "c","u" ]
+#                  tmp_clearance: [ "c","r","u" ]   // RESTRICTED - if uncomment this line - remove this 'comment'
+# RESTRICTED:
+#      - def:
+#          source:
+#            expression: (/userClearance/@clearance='r' or /userClearance/@clearance='restricted' or /userClearance/@clearance='R' or /userClearance/@clearance='RESTRICTED')
+#          destination:
+#            normalized:
+#              - value:
+#                  tmp_clearance: [ "r", "u" ]
+      - def:
+          source:
+            expression: (/userClearance/@clearance='u' or /userClearance/@clearance='unclassified' or /userClearance/@clearance='U' or /userClearance/@clearance='UNCLASSIFIED')
+          destination:
+            normalized:
+              - value:
+                  tmp_clearance: [ "u" ]
+  acm:
+    clearance:
+      - def:
+          source:
+            expression: (/@classif='ts' or /@classif='top secret' or /@classif='TS' or /@classif='TOP SECRET')
+          destination:
+            normalized:
+              - value:
+                  tmp_clearance:  [ "ts" ]
+      - def:
+          source:
+            expression: (/@classif='s' or /@classif='secret' or /@classif='S' or /@classif='SECRET' or /@classif='ns' or /@classif='NS')
+          destination:
+            normalized:
+              - value:
+                  tmp_clearance:  [ "s" ]
+      - def:
+          source:
+            expression: (/@classif='c' or /@classif='confidential' or /@classif='C' or /@classif='CONFIDENTIAL' or /@classif='nc' or /@classif='NC' or /@classif='nr' or /@classif='NR')
+          destination:
+            normalized:
+              - value:
+                  tmp_clearance:  [ "c" ]
+# RESTRICTED:
+#      - def:
+#          source:
+#            expression: (/@classif='c' or /@classif='confidential' or /@classif='C' or /@classif='CONFIDENTIAL' or /@classif='r' or /@classif='R' or /@classif='nc' or /@classif='NC' or /@classif='nr' or /@classif='NR')
+#          destination:
+#            normalized:
+#              - value:
+#                  tmp_clearance:  [ "c" ]
+      - def:
+          source:
+            expression: (/@classif='u' or /@classif='unclassified' or /@classif='U' or /@classif='UNCLASSIFIED' or /@classif='nu' or /@classif='NU')
+          destination:
+            normalized:
+              - value:
+                  tmp_clearance:  [ "u" ]
+    orgs:
+      - def:
+          source:
+            expression: ( @dissem_ctrls='oc' or @dissem_ctrls='OC' or @dissem_ctrls='orcon' or @dissem_ctrls='ORCON' or
+                          @dissem_ctrls='DISSEM_ORCON' or @dissem_ctrls='ORIGINATOR CONTROLLED' or
+                          @dissem_ctrls='DISSEM_ORCON_USGOV' or @dissem_ctrls='ORIGINATOR CONTROLLED-USGOV' or
+                          @dissem_ctrls='ORCON-USGOV' or @dissem_ctrls='OC-USGOV')
+          destination:
+            normalized:
+              - value:
+                  tmp_orgs: [ "dni" ]
+
+data_lineage_allowed:
+  attributes: [ orcon ]
+
+#
+# All data that is to be validated against goes here.
+data:
+  orcon:
+    c1:
+      value: "DNI"
+      disp_name: "Director of National Intelligence"
+      lineage:
+    c2:
+      value: "CIA"
+      disp_name: "Central Intelligence Agency"
+      lineage:
+    c3:
+      value: "DIA"
+      disp_name: "Defense Intelligence Agency"
+      lineage:
+    c4:
+      value: "DON"
+      disp_name: "Department of the Navy"
+      lineage:
+    c5:
+      value: "DOA"
+      disp_name: "Department of the Army"
+      lineage:
+    c6:
+      value: "DOAF"
+      disp_name: "Department of the Air Force"
+      lineage:
+    c7:
+      value: "NSA"
+      disp_name: "National Security Agency"
+      lineage:
+    c8:
+      value: "NGA"
+      disp_name: "National Geospatial-Intelligence Agency"
+      lineage:
+    c9:
+      value: "NRO"
+      disp_name: "National Reconnaissance Office"
+      lineage:
+    c10:
+      value: "DOE"
+      disp_name: "Department of Energy"
+      lineage:
+    c11:
+      value: "DHS"
+      disp_name: "Department of Homeland Security"
+      lineage:
+    c12:
+      value: "DOJ"
+      disp_name: "Department of Justice"
+      lineage:
+    c13:
+      value: "DOS"
+      disp_name: "Department of State"
+      lineage:
+    c14:
+      value: "DOT"
+      disp_name: "Department of Treasury"
+      lineage:
+    c15:
+      value: "FBI"
+      disp_name: "Federal Bureau of Investigation"
+      lineage:
+    c16:
+      value: "USCG"
+      disp_name: "United States Coast Guard"
+      lineage:
+  ignore:
+    c1:
+      value: "OC"
+      sc1:
+        value: "OC_DIA"
+      sc2:
+        value: "OC_DEA"
+      sc3:
+        value: "OC_CIA"
+      sc4:
+        value: "OC_FBI"
+      sc5:
+        value: "OC_FOREIGN"
+      sc6:
+        value: "OC_MILITARY"
+      sc7:
+        value: "OC_NCTC"
+      sc8:
+        value: "OC_DHS"
+      sc9:
+        value: "OC_NSA"
+      sc10:
+        value: "OC_OGA"
+      sc11:
+        value: "OC_DODIR"
+    c2:
+      value: "ORCON"
+      sc1:
+        value: "OC_DIA"
+      sc2:
+        value: "OC_DEA"
+      sc3:
+        value: "OC_CIA"
+      sc4:
+        value: "OC_FBI"
+      sc5:
+        value: "OC_FOREIGN"
+      sc6:
+        value: "OC_MILITARY"
+      sc7:
+        value: "OC_NCTC"
+      sc8:
+        value: "OC_DHS"
+      sc9:
+        value: "OC_NSA"
+      sc10:
+        value: "OC_OGA"
+      sc11:
+        value: "OC_DODIR"
+    c3:
+      value: "M01"
+    c4:
+      value: "M02"
+    c5:
+      value: "M03"
+    c6:
+      value: "M04"
+    c7:
+      value: "M05"
+    c8:
+      value: "M06"
+    c9:
+      value: "M07"
+    c10:
+      value: "SC"
+    c11:
+      value: "M00"
+    c12:
+      value: "M08"
+    c13:
+      value: "M09"
+  accm:
+    c0:
+      value: "ACCM_UNKNOWN"
+      disp_name: "ACCM UNKNOWN"
+      lineage:
+    c1:
+      value: "BLACK_ASH"
+      disp_name: "BLACK ASH"
+      lineage:
+    c2:
+      value: "WHITE_ASH"
+      disp_name: "WHITE ASH"
+      lineage:
+    c3:
+      value: "BIGTOOTH_ASPEN"
+      disp_name: "BIGTOOTH ASPEN"
+      lineage: [ "SPIDER_MAN" ]
+    c4:
+      value: "QUAKING_ASPEN"
+      disp_name: "QUAKING ASPEN"
+      lineage:
+    c5:
+      value: "AMERICAN_BEECH"
+      disp_name: "AMERICAN BEECH"
+      lineage:
+    c6:
+      value: "PAPER_BIRCH"
+      disp_name: "PAPER BIRCH"
+      lineage:
+    c7:
+      value: "YELLOW_BIRCH"
+      disp_name: "YELLOW BIRCH"
+      lineage:
+    c8:
+      value: "BLACK_CHERRY"
+      disp_name: "BLACK CHERRY"
+      lineage:
+    c9:
+      value: "AMERICAN_CHESTNUT"
+      disp_name: "AMERICAN CHESTNUT"
+      lineage:
+    c10:
+      value: "CUCUMBER_TREE"
+      disp_name: "CUCUMBER TREE"
+      lineage:
+    c11:
+      value: "SLIPPERY_ELM"
+      disp_name: "SLIPPERY ELM"
+      lineage:
+    c12:
+      value: "BALSAM_FIR"
+      disp_name: "BALSAM FIR"
+      lineage:
+    c13:
+      value: "EASTERN_HEMLOCK"
+      disp_name: "EASTERN HEMLOCK"
+      lineage:
+    c14:
+      value: "BITTERNUT_HICKORY"
+      disp_name: "BITTERNUT HICKORY"
+      lineage:
+    c15:
+      value: "BLACK_LOCUST"
+      disp_name: "BLACK LOCUST"
+      lineage:
+    c16:
+      value: "SILVER_MAPLE"
+      disp_name: "SILVER MAPLE"
+      lineage:
+    c17:
+      value: "BLACK_OAK"
+      disp_name: "BLACK OAK"
+      lineage:
+    c18:
+      value: "CHESTNUT_OAK"
+      disp_name: "CHESTNUT OAK"
+      lineage:
+    c19:
+      value: "SCARLET_OAK"
+      disp_name: "SCARLET OAK"
+      lineage:
+    c20:
+      value: "RED_SPRUCE"
+      disp_name: "RED SPRUCE"
+      lineage:
+    c21:
+      value: "TULIP_TREE"
+      disp_name: "TULIP TREE"
+      lineage:
+    c22:
+      value: "SPIDER_MAN"
+      disp_name: "Spider Man"
+      lineage:
+  mac:
+    c1:
+      value: "MAC_UNKNOWN"
+      disp_name : "MAC UNKNOWN"
+      lineage:
+    c2:
+      value: "USP_II"
+      disp_name: "USP II"
+      lineage:
+    c4:
+      value: "DEA"
+      disp_name: "DEA"
+      lineage:
+    c5:
+      value: "CIR_A1"
+      disp_name: "CIR A1"
+      lineage:
+    c6:
+      value: "CIR_A2"
+      disp_name: "CIR A2"
+      lineage:
+    c7:
+      value: "CIR_A3"
+      disp_name: "CIR A3"
+      lineage:
+    c8:
+      value: "DR_A1"
+      disp_name: "DR A1"
+      lineage:
+    c9:
+      value: "TELCOM"
+      disp_name: "TELCOM"
+      lineage:
+    c10:
+      value: "LIGHTSPEED"
+      disp_name: "LIGHTSPEED"
+      lineage:
+    c11:
+      value: "WIRES"
+      disp_name: "WIRES"
+      lineage:
+    c12:
+      value: "AUTOBOTS"
+      disp_name: "AUTOBOTS"
+      lineage:
+      sc1:
+        value: "OPTIMUS_PRIME"
+        disp_name: "OPTIMUS PRIME"
+        lineage:
+      sc2:
+        value: "BUMBLEBEE"
+        disp_name: "BUMBLEBEE"
+        lineage:
+      sc3: # OLD UT was HOT_ROD
+        value: "HOTROD"
+        disp_name: "HOTROD"
+        lineage:
+      sc4:
+        value: "JAZZ"
+        disp_name: "JAZZ"
+        lineage:
+      sc5:
+        value: "WHEELJACK"
+        disp_name: "WHEELJACK"
+        lineage:
+      sc6:
+        value: "IRONHIDE"
+        disp_name: "IRONHIDE"
+        lineage:
+      sc7:
+        value: "RED_ALERT"
+        disp_name: "RED ALERT"
+        lineage:
+    c13:
+      value: "LAMPSHADE"
+      disp_name: "LAMPSHADE"
+      lineage:
+      sc1:
+        value: "BROWN"
+        disp_name: "BROWN"
+        lineage:
+      sc2:
+        value: "BLUE"
+        disp_name: "BLUE"
+        lineage:
+      sc3:
+        value: "PURPLE"
+        disp_name: "PURPLE"
+        lineage:
+    c14:
+      value: "DISCEPTICON"
+      disp_name: "DISCEPTICON"
+      lineage:
+      sc1:
+        value: "MEGATON"
+        disp_name: "MEGATON"
+        lineage:
+      sc2:
+        value: "STARSCREAM"
+        disp_name: "STARSCREAM"
+        lineage:
+      sc3:
+        value: "SHOCKWAVE"
+        disp_name: "SHOCKWAVE"
+        lineage:
+      sc4:
+        value: "FULL_TILT"
+        disp_name: "FULL TILT"
+        lineage:
+    c15:
+      value: "BIR"
+      disp_name: "BIR"
+    c16:
+      value: "TIDE"
+      disp_name: "TIDE"
+    c17:
+      value: "WATCHDOG"
+      disp_name: "WATCHDOG"
+    c18:
+      value: "DF_01"
+      disp_name: "DF 01"
+    c19:
+      value: "DF_02"
+      disp_name: "DF 02"
+    c20:
+      value: "DF_03"
+      disp_name: "DF 03"
+  sci:
+#
+# HCS-P Instructions 2/2
+# If NOT supporting HCS-P uncomment 'values' w/o HCS-P and comment-out 'values' with HCS-P.
+####
+#    values: [ "SI", "TK", "HCS", "G", "-G", "KDK", "RSV", "SI-G" ]
+    values: [ "SI", "TK", "HCS", "G", "-G", "KDK", "RSV", "SI-G", "HCS-P" ]
+    lineage: 
+      tk: [ "BYE", "BYEMAN", "OSB", "OPERATIONAL-SIGINT-BYEMAN", "Z", "ZARF" ]
+      TK: [ "BYE", "BYEMAN", "OSB", "OPERATIONAL-SIGINT-BYEMAN", "Z", "ZARF" ]
+      si: [ "UMBRA", "MORAY","SPOKE" ]
+      SI: [ "UMBRA", "MORAY","SPOKE" ]
+
+#
+# This mapping uses a special processor that
+# has been written explicitly to handle generating
+# the DN in two different directions.
+#
+mapping_user_dn:
+  ao:
+    share:
+      - def:
+          source:
+            expression: (/userDN!='')
+          destination:
+            normalized:
+              - value:
+                  tmp_user_dn_share: [ /userDN ]
+#
+# Here is where we define ....
+#
+mapping:
+  ao:
+    organization:
+      - def:
+          source:
+            expression: (/gimmeeAttributes/organization!='')
+          destination:
+            normalized:
+              - value:
+                  tmp_orgs: [ /gimmeeAttributes/organization ]
+    missions:
+      - def:
+          source:
+            expression: (/gimmeeAttributes/topic[1]!='')
+          destination:
+            normalized:
+              - value:
+                  tmp_missions: [ /gimmeeAttributes/topic ]
+    region:
+      - def:
+          source:
+            expression: (/gimmeeAttributes/region[1]!='')
+          destination:
+            normalized:
+              - value:
+                  tmp_regions: [ /gimmeeAttributes/region ]
+    sci:
+      - def:
+          source:
+            expression: (/userClearance/formalAccess[1]!='')
+          destination:
+            normalized:
+              - value:
+                  nFormalAccess: [ /userClearance/formalAccess ]
+              - value:
+                  tmp_nFormalAccess: [ /userClearance/formalAccess ]
+    accm:
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='ACCM_UNKNOWN')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c0/value, disp_nm: /data/accm/c0/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='BLACK_ASH')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c1/value, disp_nm: /data/accm/c1/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='WHITE_ASH')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c2/value, disp_nm: /data/accm/c2/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='BIGTOOTH_ASPEN')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c3/value, disp_nm: /data/accm/c3/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='QUAKING_ASPEN')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c4/value, disp_nm: /data/accm/c4/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='AMERICAN_BEECH')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c5/value, disp_nm: /data/accm/c5/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='PAPER_BIRCH')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c6/value, disp_nm: /data/accm/c6/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='YELLOW_BIRCH')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c7/value, disp_nm: /data/accm/c7/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='BLACK_CHERRY')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c8/value, disp_nm: /data/accm/c8/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='AMERICAN_CHESTNUT')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c9/value, disp_nm: /data/accm/c9/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='CUCUMBER_TREE')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c10/value, disp_nm: /data/accm/c10/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='SLIPPERY_ELM')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c11/value, disp_nm: /data/accm/c11/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='BALSAM_FIR')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c12/value, disp_nm: /data/accm/c12/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='EASTERN_HEMLOCK')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c13/value, disp_nm: /data/accm/c13/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='BITTERNUT_HICKORY')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c14/value, disp_nm: /data/accm/c14/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='BLACK_LOCUST')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c15/value, disp_nm: /data/accm/c15/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='SILVER_MAPLE')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c16/value, disp_nm: /data/accm/c16/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='BLACK_OAK')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c17/value, disp_nm: /data/accm/c17/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='CHESTNUT_OAK')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c18/value, disp_nm: /data/accm/c18/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='SCARLET_OAK')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c19/value, disp_nm: /data/accm/c19/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='RED_SPRUCE')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c20/value, disp_nm: /data/accm/c20/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Focal Point' and /diasUserGroups/projects/@groupNames='TULIP_TREE')
+          destination:
+            normalized:
+              - value:
+                  nAccms: [ { coi: /data/accm/c21/value, disp_nm: /data/accm/c21/disp_name } ]
+    mac:
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='MAC_UNKNOWN')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c1/value, disp_nm: /data/mac/c1/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='USP_II')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c2/value, disp_nm: /data/mac/c2/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='DEA')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c4/value, disp_nm: /data/mac/c4/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='CIR_A1')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c5/value, disp_nm: /data/mac/c5/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='CIR_A2')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c6/value, disp_nm: /data/mac/c6/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='CIR_A3')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c7/value, disp_nm: /data/mac/c7/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='DR_A1')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c8/value, disp_nm: /data/mac/c8/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='TELCOM')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c9/value, disp_nm: /data/mac/c9/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='LIGHTSPEED')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c10/value, disp_nm: /data/mac/c10/disp_name } ]
+      - def:
+           source:
+             expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='WIRES')
+           destination:
+             normalized:
+               - value:
+                   nMacs: [ { coi: /data/mac/c11/value, disp_nm: /data/mac/c11/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='AUTOBOTS')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c12/value, disp_nm: /data/mac/c12/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='OPTIMUS_PRIME' and /diasUserGroups/projects/@groupNames='AUTOBOTS')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [
+                    { 
+                      coi: /data/mac/c12/value, disp_nm: /data/mac/c12/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c12/sc1/value, disp_nm: /data/mac/c12/sc1/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='BUMBLEBEE' and /diasUserGroups/projects/@groupNames='AUTOBOTS')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [
+                    { 
+                      coi: /data/mac/c12/value, disp_nm: /data/mac/c12/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c12/sc2/value, disp_nm: /data/mac/c12/sc2/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='HOTROD' and /diasUserGroups/projects/@groupNames='AUTOBOTS')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [
+                    { 
+                      coi: /data/mac/c12/value, disp_nm: /data/mac/c12/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c12/sc3/value, disp_nm: /data/mac/c12/sc3/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='JAZZ' and /diasUserGroups/projects/@groupNames='AUTOBOTS')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [
+                    { 
+                      coi: /data/mac/c12/value, disp_nm: /data/mac/c12/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c12/sc4/value, disp_nm: /data/mac/c12/sc4/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='WHEELJACK' and /diasUserGroups/projects/@groupNames='AUTOBOTS')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [
+                    { 
+                      coi: /data/mac/c12/value, disp_nm: /data/mac/c12/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c12/sc5/value, disp_nm: /data/mac/c12/sc5/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='IRONHIDE' and /diasUserGroups/projects/@groupNames='AUTOBOTS')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [
+                    { 
+                      coi: /data/mac/c12/value, disp_nm: /data/mac/c12/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c12/sc6/value, disp_nm: /data/mac/c12/sc6/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='RED_ALERT' and /diasUserGroups/projects/@groupNames='AUTOBOTS')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [
+                    { 
+                      coi: /data/mac/c12/value, disp_nm: /data/mac/c12/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c12/sc7/value, disp_nm: /data/mac/c12/sc7/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='LAMPSHADE')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c13/value, disp_nm: /data/mac/c13/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='LAMPSHADE' and /diasUserGroups/projects/@groupNames='BROWN')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [
+                    { 
+                      coi: /data/mac/c13/value, disp_nm: /data/mac/c13/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c13/sc1/value, disp_nm: /data/mac/c13/sc1/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='LAMPSHADE' and /diasUserGroups/projects/@groupNames='BLUE')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [
+                    { 
+                      coi: /data/mac/c13/value, disp_nm: /data/mac/c13/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c13/sc2/value, disp_nm: /data/mac/c13/sc2/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='LAMPSHADE' and /diasUserGroups/projects/@groupNames='PURPLE')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [
+                    { 
+                      coi: /data/mac/c13/value, disp_nm: /data/mac/c13/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c13/sc3/value, disp_nm: /data/mac/c13/sc3/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='DISCEPTICON')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c14/value, disp_nm: /data/mac/c14/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='DISCEPTICON' and /diasUserGroups/projects/@groupNames='MEGATON')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [
+                    { 
+                      coi: /data/mac/c14/value, disp_nm: /data/mac/c14/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c14/sc1/value, disp_nm: /data/mac/c14/sc1/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='DISCEPTICON' and /diasUserGroups/projects/@groupNames='STARSCREAM')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [
+                    { 
+                      coi: /data/mac/c14/value, disp_nm: /data/mac/c14/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c14/sc2/value, disp_nm: /data/mac/c14/sc2/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='DISCEPTICON' and /diasUserGroups/projects/@groupNames='SHOCKWAVE')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [
+                    { 
+                      coi: /data/mac/c14/value, disp_nm: /data/mac/c14/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c14/sc3/value, disp_nm: /data/mac/c14/sc3/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='RMT' and /diasUserGroups/projects/@groupNames='DISCEPTICON' and /diasUserGroups/projects/@groupNames='FULL_TILT')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [
+                    { 
+                      coi: /data/mac/c14/value, disp_nm: /data/mac/c14/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c14/sc4/value, disp_nm: /data/mac/c14/sc4/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='I2_Data_Repo.dctc.local' and /diasUserGroups/projects/@groupNames='BIR')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c15/value, disp_name: /data/mac/c15/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='I2_Data_Repo.dctc.local' and /diasUserGroups/projects/@groupNames='TIDE')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c16/value, disp_name: /data/mac/c16/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='I2_Data_Repo.dctc.local' and /diasUserGroups/projects/@groupNames='WATCHDOG')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c17/value, disp_name: /data/mac/c17/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Chimera' and /diasUserGroups/projects/@groupNames='df_01')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c18/value, disp_nm: /data/mac/c18/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Chimera' and /diasUserGroups/projects/@groupNames='df_02')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c19/value, disp_nm: /data/mac/c19/disp_name } ]
+      - def:
+          source:
+            expression: (/diasUserGroups/projects/@projectName='Chimera' and /diasUserGroups/projects/@groupNames='df_03')
+          destination:
+            normalized:
+              - value:
+                  nMacs: [ { coi: /data/mac/c20/value, disp_nm: /data/mac/c20/disp_name } ]
+  acm:
+    organization:
+      - def:
+          source:
+            expression: (/oc_attribs/orgs[1]!='')
+          destination:
+            normalized:
+              - value:
+                  tmp_orgs: [ /oc_attribs/orgs ]
+    missions:
+      - def:
+          source:
+            expression: (/oc_attribs/missions[1]!='')
+          destination:
+            normalized:
+              - value:
+                  tmp_missions: [ /oc_attribs/missions ]
+    regions:
+      - def:
+          source:
+            expression: (/oc_attribs/regions[1]!='')
+          destination:
+            normalized:
+              - value:
+                  tmp_regions: [ /oc_attribs/regions ]
+    sar:
+      - def:
+          source:
+            expression: (/sar_id[1]!='')
+          destination:
+            normalized:
+              - value:
+                  tmp_sar: [ /sar_id ]
+    aea:
+      - def:
+          source:
+            expression: (/atom_energy[1]!='')
+          destination:
+            normalized:
+              - value:
+                  tmp_atom_energy: [ /atom_energy ]
+    sci:
+      - def:
+          source:
+            expression: (/sci_ctrls[1]!='')
+          destination:
+            normalized:
+              - value:
+                  tmp_sci_ctrls: [ /sci_ctrls ]
+    ignore:
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='SC')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c10/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='OC')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c1/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='OC' and /assigned_controls/@coi_ctrls='OC_DIA')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c1/value, /data/ignore/c1/sc1/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='OC' and /assigned_controls/@coi_ctrls='OC_DEA')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c1/value, /data/ignore/c1/sc2/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='OC' and /assigned_controls/@coi_ctrls='OC_CIA')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c1/value, /data/ignore/c1/sc3/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='OC' and /assigned_controls/@coi_ctrls='OC_FBI')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c1/value, /data/ignore/c1/sc4/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='OC' and /assigned_controls/@coi_ctrls='OC_FOREIGN')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c1/value, /data/ignore/c1/sc5/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='OC' and /assigned_controls/@coi_ctrls='OC_MILITARY')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c1/value, /data/ignore/c1/sc6/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='OC' and /assigned_controls/@coi_ctrls='OC_NCTC')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c1/value, /data/ignore/c1/sc7/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='OC' and /assigned_controls/@coi_ctrls='OC_DHS')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c1/value, /data/ignore/c1/sc8/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='OC' and /assigned_controls/@coi_ctrls='OC_NSA')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c1/value, /data/ignore/c1/sc9/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='OC' and /assigned_controls/@coi_ctrls='OC_OGA')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c1/value, /data/ignore/c1/sc10/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='OC' and /assigned_controls/@coi_ctrls='OC_DODIR')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c1/value, /data/ignore/c1/sc11/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='ORCON' and /assigned_controls/@coi_ctrls='OC_DIA')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c2/value, /data/ignore/c2/sc1/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='ORCON' and /assigned_controls/@coi_ctrls='OC_DEA')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c2/value, /data/ignore/c2/sc2/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='ORCON' and /assigned_controls/@coi_ctrls='OC_CIA')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c2/value, /data/ignore/c2/sc3/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='ORCON' and /assigned_controls/@coi_ctrls='OC_FBI')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c2/value, /data/ignore/c2/sc4/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='ORCON' and /assigned_controls/@coi_ctrls='OC_FOREIGN')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c2/value, /data/ignore/c2/sc5/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='ORCON' and /assigned_controls/@coi_ctrls='OC_MILITARY')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c2/value, /data/ignore/c2/sc6/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='ORCON' and /assigned_controls/@coi_ctrls='OC_NCTC')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c2/value, /data/ignore/c2/sc7/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='ORCON' and /assigned_controls/@coi_ctrls='OC_DHS')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c2/value, /data/ignore/c2/sc8/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='ORCON' and /assigned_controls/@coi_ctrls='OC_NSA')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c2/value, /data/ignore/c2/sc9/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='ORCON' and /assigned_controls/@coi_ctrls='OC_OGA')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c2/value, /data/ignore/c2/sc10/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='ORCON' and /assigned_controls/@coi_ctrls='OC_DODIR')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c2/value, /data/ignore/c2/sc11/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi_ctrls='M01')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c3/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi_ctrls='M02')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c4/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi_ctrls='M03')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c5/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi_ctrls='M04')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c6/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi_ctrls='M05')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c7/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi_ctrls='M06')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c8/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi_ctrls='M07')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c9/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi_ctrls='M00')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c10/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi_ctrls='M08')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c11/value ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi_ctrls='M09')
+          destination:
+            normalized:
+              - value:
+                  tmp_ignore: [ /data/ignore/c12/value ]
+    accm:
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='ACCM_UNKNOWN')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c0/value, disp_nm: /data/accm/c0/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='BLACK_ASH')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c1/value, disp_nm: /data/accm/c1/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='WHITE_ASH')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c2/value, disp_nm: /data/accm/c2/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='BIGTOOTH_ASPEN')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c3/value, disp_nm: /data/accm/c3/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='QUAKING_ASPEN')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c4/value, disp_nm: /data/accm/c4/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='AMERICAN_BEECH')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c5/value, disp_nm: /data/accm/c5/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='PAPER_BIRCH')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c6/value, disp_nm: /data/accm/c6/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='YELLOW_BIRCH')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c7/value, disp_nm: /data/accm/c7/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='BLACK_CHERRY')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c8/value, disp_nm: /data/accm/c8/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='AMERICAN_CHESTNUT')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c9/value, disp_nm: /data/accm/c9/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='CUCUMBER_TREE')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c10/value, disp_nm: /data/accm/c10/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='SLIPPERY_ELM')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c11/value, disp_nm: /data/accm/c11/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='BALSAM_FIR')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c12/value, disp_nm: /data/accm/c12/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='EASTERN_HEMLOCK')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c13/value, disp_nm: /data/accm/c13/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='BITTERNUT_HICKORY')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c14/value, disp_nm: /data/accm/c14/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='BLACK_LOCUST')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c15/value, disp_nm: /data/accm/c15/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='SILVER_MAPLE')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c16/value, disp_nm: /data/accm/c16/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='BLACK_OAK')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c17/value, disp_nm: /data/accm/c17/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='CHESTNUT_OAK')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c18/value, disp_nm: /data/accm/c18/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='SCARLET_OAK')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c19/value, disp_nm: /data/accm/c19/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='RED_SPRUCE')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c20/value, disp_nm: /data/accm/c20/disp_name }]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='TULIP_TREE')
+          destination:
+            normalized:
+              - value:
+                  accms: [ { coi: /data/accm/c21/value, disp_nm: /data/accm/c21/disp_name }]
+    mac:
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='MAC_UNKNOWN')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c1/value, disp_nm: /data/mac/c1/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='USP_II')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c2/value, disp_nm: /data/mac/c2/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='DEA')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c4/value, disp_nm: /data/mac/c4/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='CIR_A1')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c5/value, disp_nm: /data/mac/c5/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='CIR_A2')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c6/value, disp_nm: /data/mac/c6/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='CIR_A3')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c7/value, disp_nm: /data/mac/c7/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='DR_A1')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c8/value, disp_nm: /data/mac/c8/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='TELCOM')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c9/value, disp_nm: /data/mac/c9/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='LIGHTSPEED')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c10/value, disp_nm: /data/mac/c10/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='WIRES')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c11/value, disp_nm: /data/mac/c11/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='AUTOBOTS')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c12/value, disp_nm: /data/mac/c12/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='AUTOBOTS' and /assigned_controls/@coi_ctrls='OPTIMUS_PRIME')
+          destination:
+            normalized:
+              - value:
+                  macs: [
+                    { 
+                      coi: /data/mac/c12/value, disp_nm: /data/mac/c12/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c12/sc1/value, disp_nm: /data/mac/c12/sc1/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='AUTOBOTS' and /assigned_controls/@coi_ctrls='BUMBLEBEE')
+          destination:
+            normalized:
+              - value:
+                  macs: [
+                    { 
+                      coi: /data/mac/c12/value, disp_nm: /data/mac/c12/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c12/sc2/value, disp_nm: /data/mac/c12/sc2/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='AUTOBOTS' and /assigned_controls/@coi_ctrls='HOTROD')
+          destination:
+            normalized:
+              - value:
+                  macs: [
+                    { 
+                      coi: /data/mac/c12/value, disp_nm: /data/mac/c12/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c12/sc3/value, disp_nm: /data/mac/c12/sc3/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='AUTOBOTS' and /assigned_controls/@coi_ctrls='JAZZ')
+          destination:
+            normalized:
+              - value:
+                  macs: [
+                    { 
+                      coi: /data/mac/c12/value, disp_nm: /data/mac/c12/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c12/sc4/value, disp_nm: /data/mac/c12/sc4/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='AUTOBOTS' and /assigned_controls/@coi_ctrls='WHEELJACK')
+          destination:
+            normalized:
+              - value:
+                  macs: [
+                    { 
+                      coi: /data/mac/c12/value, disp_nm: /data/mac/c12/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c12/sc5/value, disp_nm: /data/mac/c12/sc5/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='AUTOBOTS' and /assigned_controls/@coi_ctrls='IRONHIDE')
+          destination:
+            normalized:
+              - value:
+                  macs: [
+                    { 
+                      coi: /data/mac/c12/value, disp_nm: /data/mac/c12/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c12/sc6/value, disp_nm: /data/mac/c12/sc6/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='AUTOBOTS' and /assigned_controls/@coi_ctrls='RED_ALERT')
+          destination:
+            normalized:
+              - value:
+                  macs: [
+                    { 
+                      coi: /data/mac/c12/value, disp_nm: /data/mac/c12/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c12/sc7/value, disp_nm: /data/mac/c12/sc7/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='LAMPSHADE')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c13/value, disp_nm: /data/mac/c13/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='LAMPSHADE' and /assigned_controls/@coi_ctrls='BROWN')
+          destination:
+            normalized:
+              - value:
+                  macs: [
+                    { 
+                      coi: /data/mac/c13/value, disp_nm: /data/mac/c13/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c13/sc1/value, disp_nm: /data/mac/c13/sc1/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='LAMPSHADE' and /assigned_controls/@coi_ctrls='BLUE')
+          destination:
+            normalized:
+              - value:
+                  macs: [
+                    { 
+                      coi: /data/mac/c13/value, disp_nm: /data/mac/c13/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c13/sc2/value, disp_nm: /data/mac/c13/sc2/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='LAMPSHADE' and /assigned_controls/@coi_ctrls='PURPLE')
+          destination:
+            normalized:
+              - value:
+                  macs: [
+                    { 
+                      coi: /data/mac/c13/value, disp_nm: /data/mac/c13/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c13/sc3/value, disp_nm: /data/mac/c13/sc3/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='DISCEPTICON')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c14/value, disp_nm: /data/mac/c14/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='DISCEPTICON' and /assigned_controls/@coi_ctrls='MEGATON')
+          destination:
+            normalized:
+              - value:
+                  macs: [
+                    { 
+                      coi: /data/mac/c14/value, disp_nm: /data/mac/c14/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c14/sc1/value, disp_nm: /data/mac/c14/sc1/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='DISCEPTICON' and /assigned_controls/@coi_ctrls='STARSCREAM')
+          destination:
+            normalized:
+              - value:
+                  macs: [
+                    { 
+                      coi: /data/mac/c14/value, disp_nm: /data/mac/c14/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c14/sc2/value, disp_nm: /data/mac/c14/sc2/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='DISCEPTICON' and /assigned_controls/@coi_ctrls='SHOCKWAVE')
+          destination:
+            normalized:
+              - value:
+                  macs: [
+                    { 
+                      coi: /data/mac/c14/value, disp_nm: /data/mac/c14/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c14/sc3/value, disp_nm: /data/mac/c14/sc3/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='DISCEPTICON' and /assigned_controls/@coi_ctrls='FULL_TILT')
+          destination:
+            normalized:
+              - value:
+                  macs: [
+                    { 
+                      coi: /data/mac/c14/value, disp_nm: /data/mac/c14/disp_name,
+                      coi_ctrls: [ { coi_ctrl: /data/mac/c14/sc4/value, disp_nm: /data/mac/c14/sc4/disp_name } ]
+                    } 
+                 ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='BIR')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c15/value, disp_name: /data/mac/c15/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='TIDE')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c16/value, disp_name: /data/mac/c16/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='WATCHDOG')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c17/value, disp_name: /data/mac/c17/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='df_01')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c18/value, disp_name: /data/mac/c18/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='df_02')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c19/value, disp_name: /data/mac/c19/disp_name } ]
+      - def:
+          source:
+            expression: (/assigned_controls/@coi='df_03')
+          destination:
+            normalized:
+              - value:
+                  macs: [ { coi: /data/mac/c20/value, disp_name: /data/mac/c20/disp_name } ]
+flatten:
+  ao:
+    organization:
+      - def:
+          resolve_against:
+          destination:
+            normalized:
+              value:
+                f_oc_org: { "as_is" : [ /tmp_orgs ] }
+    missions:
+      - def:
+          resolve_against:
+          destination:
+            normalized:
+              value:
+                f_missions: { "as_is" : [ /tmp_missions ] }
+    regions:
+      - def:
+          resolve_against:
+          destination:
+            normalized:
+              value:
+                f_regions: { "as_is" : [ /tmp_regions ] }
+    share: # CERMT-252
+      - def:
+          resolve_against:
+          destination:
+            normalized:
+              value:
+                f_share : { "as_is" : [ /tmp_share, /tmp_user_dn_share ] }
+    clearance:
+      - def:
+          resolve_against:
+          destination:
+            normalized:
+              value:
+                f_clearance : { "as_is" : [ /tmp_clearance ] }
+    sci:
+      - def:
+          resolve_against: /resolved_values/sci
+          destination:
+            normalized:
+              value:
+                f_sci_ctrls : { "negate" : [ /tmp_nFormalAccess ] }
+    mac:
+      - def:
+          resolve_against:  /resolved_values/mac
+          destination:
+            normalized:
+              value:
+                f_macs : { "negate" : [ /tmp_macs ] }
+    accm:
+      - def:
+          resolve_against:  /resolved_values/accm
+          destination:
+            normalized:
+              value:
+                f_accms : { "negate" : [ /tmp_accms ] }
+  acm:
+    clearance:
+      - def:
+          resolve_against:
+          destination:
+            normalized:
+              value:
+                f_clearance : [ /tmp_clearance ]
+    accm:
+      - def:
+          resolve_against:
+          destination:
+            normalized:
+              value:
+                f_accms : [ /tmp_accms ]
+    mac:
+      - def:
+          resolve_against:
+          destination:
+            normalized:
+              value:
+                f_macs : [ /tmp_macs ]
+    share:
+      - def:
+          resolve_against:
+          destination:
+            normalized:
+              value:
+                f_share : [ /tmp_share ]
+    orgs:
+      - def:
+          resolve_against:
+          destination:
+            normalized:
+              value:
+                f_oc_org: [ /tmp_orgs ]
+    regions:
+      - def:
+          resolve_against:
+          destination:
+            normalized:
+              value:
+                f_regions: [ /tmp_regions ]
+    missions:
+      - def:
+          resolve_against:
+          destination:
+            normalized:
+              value:
+                f_missions: [ /tmp_missions ]
+    sci:
+      - def:
+          resolve_against: 
+          destination:
+            normalized:
+              value:
+                f_sci_ctrls: [ /tmp_sci_ctrls ]
+    sar:
+      - def:
+          resolve_against: 
+          destination:
+            normalized:
+              value:
+                f_sar_id: [ /tmp_sar ]
+    atom_energy:
+      - def:
+          resolve_against: 
+          destination:
+            normalized:
+              value:
+                f_atom_energy: [ /tmp_atom_energy ]
+
+
+
+
+

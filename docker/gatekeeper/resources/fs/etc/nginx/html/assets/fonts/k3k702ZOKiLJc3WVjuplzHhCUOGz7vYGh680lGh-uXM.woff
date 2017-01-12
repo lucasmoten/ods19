@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8'>
+<meta content='IE=edge' http-equiv='X-UA-Compatible'>
+<meta content='GitLab Enterprise Edition' name='description'>
+<title>frontend/client/assets/fonts/k3k702ZOKiLJc3WVjuplzHhCUOGz7vYGh680lGh-uXM.woff | develop | chimera / chimera-application-framework | GitLab</title>
+<link href="/assets/favicon-68611b5ca232579b591e0b6a832fd568.ico" rel="shortcut icon" type="image/vnd.microsoft.icon" />
+<link href="/assets/application-71f4e2ce6049ccefdb37827445af9246.css" media="all" rel="stylesheet" />
+<link href="/assets/print-e6cd245751e4e7e8bdfd97cdf2e8cf36.css" media="print" rel="stylesheet" />
+<script src="/assets/application-65cdac2fcb6434f5c2cf3f3b01f8a75e.js"></script>
+<meta content="authenticity_token" name="csrf-param" />
+<meta content="O7373zjd0o/MZOKJ7mLUL1mOUHzIt8ncXAAL4PF1yv0=" name="csrf-token" />
+<script type="text/javascript">
+//<![CDATA[
+window.gon={};gon.default_issues_tracker="gitlab";gon.api_version="v3";gon.relative_url_root="";gon.default_avatar_url="https://gitlab.363-283.io/assets/no_avatar-b04e3c91a2586395b6e7e9df2672fb64.png";gon.max_file_size=10;gon.current_user_id=28;gon.api_token="6eZsP6s4aXtCjex2eKAV";
+//]]>
+</script>
+<meta content='width=device-width, initial-scale=1, maximum-scale=1' name='viewport'>
+<meta content='#474D57' name='theme-color'>
+
+
+
+
+</head>
+
+<body class='ui_mars' data-page='projects:blob:show'>
+<!-- Ideally this would be inside the head, but turbolinks only evaluates page-specific JS in the body. -->
+<script>
+  window.project_uploads_path = "/chimera/chimera-application-framework/uploads";
+  window.markdown_preview_path = "/chimera/chimera-application-framework/markdown_preview";
+</script>
+
+<header class='header-expanded navbar navbar-fixed-top navbar-gitlab'>
+<div class='container'>
+<div class='header-logo'>
+<a class="home" data-placement="bottom" data-toggle="tooltip" href="/" id="js-shortcuts-home" title="Dashboard"><img alt="Logo white" src="/assets/logo-white-8741ca66242e138fc2e3efead1e2d7c3.png" />
+<h3>GitLab</h3>
+</a></div>
+<div class='header-content'>
+<h1 class='title'>
+<span><a href="/groups/chimera">chimera</a> / <a href="/chimera/chimera-application-framework">chimera-application-framework</a></span>
+</h1>
+<button class='navbar-toggle'>
+<span class='sr-only'>Toggle navigation</span>
+<i class="fa fa-bars"></i>
+</button>
+<div class='navbar-collapse collapse'>
+<ul class='nav navbar-nav pull-right'>
+<li class='hidden-sm hidden-xs'>
+<div class='search'>
+<form accept-charset="UTF-8" action="/search" class="navbar-form pull-left" method="get"><div style="display:none"><input name="utf8" type="hidden" value="&#x2713;" /></div>
+<input class="search-input form-control" id="search" name="search" placeholder="Search in this project" type="search" />
+<input id="group_id" name="group_id" type="hidden" />
+<input id="project_id" name="project_id" type="hidden" value="314" />
+<input id="search_code" name="search_code" type="hidden" value="true" />
+<input id="repository_ref" name="repository_ref" type="hidden" value="develop" />
+
+<div class='search-autocomplete-opts hide' data-autocomplete-path='/search/autocomplete' data-autocomplete-project-id='314' data-autocomplete-project-ref='develop'></div>
+</form>
+
+</div>
+<script>
+  $('.search-input').on('keyup', function(e) {
+    if (e.keyCode == 27) {
+      $('.search-input').blur()
+    }
+  })
+</script>
+
+</li>
+<li class='visible-sm visible-xs'>
+<a data-placement="bottom" data-toggle="tooltip" href="/search" title="Search"><i class="fa fa-search"></i>
+</a></li>
+<li class='hidden-xs'>
+<a data-placement="bottom" data-toggle="tooltip" href="/help" title="Help"><i class="fa fa-question-circle fa-fw"></i>
+</a></li>
+<li>
+<a data-placement="bottom" data-toggle="tooltip" href="/explore" title="Explore"><i class="fa fa-globe fa-fw"></i>
+</a></li>
+<li>
+<a data-placement="bottom" data-toggle="tooltip" href="/s/michael.gottlieb" title="Your snippets"><i class="fa fa-clipboard fa-fw"></i>
+</a></li>
+<li class='hidden-xs'>
+<a data-placement="bottom" data-toggle="tooltip" href="/projects/new" title="New project"><i class="fa fa-plus fa-fw"></i>
+</a></li>
+<li>
+<a data-placement="bottom" data-toggle="tooltip" href="/profile" title="Profile settings"><i class="fa fa-cog fa-fw"></i>
+</a></li>
+<li>
+<a class="logout" data-method="delete" data-placement="bottom" data-toggle="tooltip" href="/users/sign_out" rel="nofollow" title="Sign out"><i class="fa fa-sign-out"></i>
+</a></li>
+</ul>
+</div>
+</div>
+</div>
+</header>
+
+
+<div class='page-sidebar-expanded page-with-sidebar'>
+
+<div class='sidebar-wrapper'>
+<ul class='project-navigation nav nav-sidebar'>
+<li class="home"><a class="shortcuts-project" data-placement="right" href="/chimera/chimera-application-framework" title="Project"><i class="fa fa-dashboard fa-fw"></i>
+<span>
+Project
+</span>
+</a></li><li class="active"><a class="shortcuts-tree" data-placement="right" href="/chimera/chimera-application-framework/tree/develop" title="Files"><i class="fa fa-files-o fa-fw"></i>
+<span>
+Files
+</span>
+</a></li><li class=""><a class="shortcuts-commits" data-placement="right" href="/chimera/chimera-application-framework/commits/develop" title="Commits"><i class="fa fa-history fa-fw"></i>
+<span>
+Commits
+</span>
+</a></li><li class=""><a class="shortcuts-network" data-placement="right" href="/chimera/chimera-application-framework/network/develop" title="Network"><i class="fa fa-code-fork fa-fw"></i>
+<span>
+Network
+</span>
+</a></li><li class=""><a class="shortcuts-graphs" data-placement="right" href="/chimera/chimera-application-framework/graphs/develop" title="Graphs"><i class="fa fa-area-chart fa-fw"></i>
+<span>
+Graphs
+</span>
+</a></li><li class=""><a data-placement="right" href="/chimera/chimera-application-framework/milestones" title="Milestones"><i class="fa fa-clock-o fa-fw"></i>
+<span>
+Milestones
+</span>
+</a></li><li class=""><a class="shortcuts-issues" data-placement="right" href="/chimera/chimera-application-framework/issues" title="Issues"><i class="fa fa-exclamation-circle fa-fw"></i>
+<span>
+Issues
+<span class='count issue_counter'>0</span>
+</span>
+</a></li><li class=""><a class="shortcuts-merge_requests" data-placement="right" href="/chimera/chimera-application-framework/merge_requests" title="Merge Requests"><i class="fa fa-tasks fa-fw"></i>
+<span>
+Merge Requests
+<span class='count merge_counter'>0</span>
+</span>
+</a></li><li class=""><a data-placement="right" href="/chimera/chimera-application-framework/labels" title="Labels"><i class="fa fa-tags fa-fw"></i>
+<span>
+Labels
+</span>
+</a></li><li class=""><a class="shortcuts-wiki" data-placement="right" href="/chimera/chimera-application-framework/wikis/home" title="Wiki"><i class="fa fa-book fa-fw"></i>
+<span>
+Wiki
+</span>
+</a></li></ul>
+
+<div class='collapse-nav'>
+<a class="toggle-nav-collapse" href="#" title="Open/Close"><i class="fa fa-angle-left"></i></a>
+
+</div>
+<a class="sidebar-user" href="/u/michael.gottlieb"><img alt="User activity" class="avatar avatar s32" src="https://secure.gravatar.com/avatar/91df35d1cde0a3e9ca5d2b756265ffd9?s=60&amp;d=identicon" />
+<div class='username'>
+michael.gottlieb
+</div>
+</a></div>
+<div class='content-wrapper'>
+<div class='container-fluid'>
+<div class='content'>
+<div class='flash-container'>
+</div>
+
+<div class='clearfix'>
+<div class='tree-ref-holder'>
+<form accept-charset="UTF-8" action="/chimera/chimera-application-framework/refs/switch" class="project-refs-form" method="get"><div style="display:none"><input name="utf8" type="hidden" value="&#x2713;" /></div>
+<select class="project-refs-select select2 select2-sm" id="ref" name="ref"><optgroup label="Branches"><option selected="selected" value="develop">develop</option>
+<option value="develop-dan">develop-dan</option>
+<option value="feature/CHIM-1414_activity_page">feature/CHIM-1414_activity_page</option>
+<option value="feature/CHIM-1703_rearrange-entity-tab">feature/CHIM-1703_rearrange-entity-tab</option>
+<option value="feature/CHMIQ-3">feature/CHMIQ-3</option>
+<option value="feature/CHMIQ-39">feature/CHMIQ-39</option>
+<option value="feature/CHMOGPTS-12_smi-autocomplete-with-source">feature/CHMOGPTS-12_smi-autocomplete-with-source</option>
+<option value="feature/CHMOGPTS-152_activity-editable">feature/CHMOGPTS-152_activity-editable</option>
+<option value="feature/CHMOGPTS-18_username-display">feature/CHMOGPTS-18_username-display</option>
+<option value="feature/CHMOGPTS-27_validate-all-acms">feature/CHMOGPTS-27_validate-all-acms</option>
+<option value="feature/CHMOGPTS-28_grunt-css-watch-fix">feature/CHMOGPTS-28_grunt-css-watch-fix</option>
+<option value="feature/CHMOGPTS-46_originator-fiel">feature/CHMOGPTS-46_originator-fiel</option>
+<option value="feature/CHMOGPTS-47_role-plus-up">feature/CHMOGPTS-47_role-plus-up</option>
+<option value="feature/CHMOGPTS-49_CAO-field">feature/CHMOGPTS-49_CAO-field</option>
+<option value="feature/CHMOGPTS-50">feature/CHMOGPTS-50</option>
+<option value="feature/CHMOGPTS-57_retitle-packet-as-network">feature/CHMOGPTS-57_retitle-packet-as-network</option>
+<option value="feature/CHMOGPTS-59_task-spinny-icon">feature/CHMOGPTS-59_task-spinny-icon</option>
+<option value="feature/CHMOGPTS-63_ssl-config-new-chm-aac">feature/CHMOGPTS-63_ssl-config-new-chm-aac</option>
+<option value="feature/CHMOGPTS-64+42_classification-and-validation">feature/CHMOGPTS-64+42_classification-and-validation</option>
+<option value="feature/CHMOGPTS-8_map-array-merge">feature/CHMOGPTS-8_map-array-merge</option>
+<option value="feature/CHMOPGTS-22_app-security">feature/CHMOPGTS-22_app-security</option>
+<option value="feature/about-pages">feature/about-pages</option>
+<option value="feature/activity">feature/activity</option>
+<option value="feature/ao-user-security">feature/ao-user-security</option>
+<option value="feature/associations">feature/associations</option>
+<option value="feature/capco-widget">feature/capco-widget</option>
+<option value="feature/expose-photo-flags">feature/expose-photo-flags</option>
+<option value="feature/link-association-duo">feature/link-association-duo</option>
+<option value="feature/places-autocomplete">feature/places-autocomplete</option>
+<option value="feature/printable-entity-view">feature/printable-entity-view</option>
+<option value="feature/quick-places">feature/quick-places</option>
+<option value="feature/smi">feature/smi</option>
+<option value="feature/soft-delete-associations">feature/soft-delete-associations</option>
+<option value="feature/task-style">feature/task-style</option>
+<option value="fix/CHMOGPTS-17_entity-activity-page-issues">fix/CHMOGPTS-17_entity-activity-page-issues</option>
+<option value="master">master</option>
+<option value="release/OGPTS">release/OGPTS</option>
+<option value="release/transients">release/transients</option>
+<option value="throwaway">throwaway</option></optgroup><optgroup label="Tags"></optgroup></select>
+<input id="destination" name="destination" type="hidden" value="blob" />
+<input id="path" name="path" type="hidden" value="frontend/client/assets/fonts/k3k702ZOKiLJc3WVjuplzHhCUOGz7vYGh680lGh-uXM.woff" />
+</form>
+
+
+</div>
+<div class='tree-holder' id='tree-holder'>
+<ul class='breadcrumb repo-breadcrumb'>
+<li>
+<i class='fa fa-angle-right'></i>
+<a href="/chimera/chimera-application-framework/tree/develop">chimera-application-framework
+</a></li>
+<li>
+<a href="/chimera/chimera-application-framework/tree/develop/frontend">frontend</a>
+</li>
+<li>
+<a href="/chimera/chimera-application-framework/tree/develop/frontend/client">client</a>
+</li>
+<li>
+<a href="/chimera/chimera-application-framework/tree/develop/frontend/client/assets">assets</a>
+</li>
+<li>
+<a href="/chimera/chimera-application-framework/tree/develop/frontend/client/assets/fonts">fonts</a>
+</li>
+<li>
+<a href="/chimera/chimera-application-framework/blob/develop/frontend/client/assets/fonts/k3k702ZOKiLJc3WVjuplzHhCUOGz7vYGh680lGh-uXM.woff"><strong>
+k3k702ZOKiLJc3WVjuplzHhCUOGz7vYGh680l...
+</strong>
+</a></li>
+</ul>
+<ul class='blob-commit-info well hidden-xs'>
+<li class='commit js-toggle-container'>
+<div class='commit-row-title'>
+<strong class='str-truncated'>
+<a class="commit-row-message" href="/chimera/chimera-application-framework/commit/0d37330c30e4edcef25d2849bab617b69a84fc06">merged with develop; started on mappings!</a>
+</strong>
+<div class='pull-right'>
+<a class="commit_short_id" href="/chimera/chimera-application-framework/commit/0d37330c30e4edcef25d2849bab617b69a84fc06">0d37330c</a>
+</div>
+<div class='notes_count'>
+</div>
+</div>
+<div class='commit-row-info'>
+<a class="commit-author-link has_tooltip" data-original-title="rob@thehumangeo.com" href="/u/rob.olson"><img alt="" class="avatar s24" src="https://secure.gravatar.com/avatar/44cdd5820dbcaa4fdf4f800a9ad7db10?s=24&amp;d=identicon" width="24" /> <span class="commit-author-name">rob.olson</span></a>
+authored
+<div class='committed_ago'>
+<time class='time_ago' data-placement='top' data-toggle='tooltip' datetime='2015-05-15T20:41:39Z' title='May 15, 2015 8:41pm'>2015-05-15 16:41:39 -0400</time>
+<script>$('.time_ago').timeago().tooltip()</script>
+ &nbsp;
+</div>
+<a class="pull-right" href="/chimera/chimera-application-framework/tree/0d37330c30e4edcef25d2849bab617b69a84fc06">Browse Code »</a>
+</div>
+</li>
+
+</ul>
+<div class='tree-content-holder' id='tree-content-holder'>
+<article class='file-holder'>
+<div class='file-title'>
+<i class="fa fa-file-text-o fa-fw"></i>
+<strong>
+k3k702ZOKiLJc3WVjuplzHhCUOGz7vYGh680lGh-uXM.woff
+</strong>
+<small>
+20.5 KB
+</small>
+<div class='file-actions hidden-xs'>
+<div class='btn-group tree-btn-group'>
+
+<a class="btn btn-sm" href="/chimera/chimera-application-framework/raw/develop/frontend/client/assets/fonts/k3k702ZOKiLJc3WVjuplzHhCUOGz7vYGh680lGh-uXM.woff" target="_blank">Raw</a>
+<a class="btn btn-sm" href="/chimera/chimera-application-framework/commits/develop/frontend/client/assets/fonts/k3k702ZOKiLJc3WVjuplzHhCUOGz7vYGh680lGh-uXM.woff">History</a>
+<a class="btn btn-sm" href="/chimera/chimera-application-framework/blob/a85c7e3bc886670e15063f7260f2ebf07af25f5b/frontend/client/assets/fonts/k3k702ZOKiLJc3WVjuplzHhCUOGz7vYGh680lGh-uXM.woff">Permalink</a>
+</div>
+<button class="remove-blob btn btn-sm btn-remove" data-target="#modal-remove-blob" data-toggle="modal" name="button" type="submit">Remove
+</button>
+</div>
+</div>
+<div class='file-content blob_file blob-no-preview'>
+<div class='center'>
+<a href="/chimera/chimera-application-framework/raw/develop/frontend/client/assets/fonts/k3k702ZOKiLJc3WVjuplzHhCUOGz7vYGh680lGh-uXM.woff"><h1 class='light'>
+<i class='fa fa-download'></i>
+</h1>
+<h4>
+Download (20.5 KB)
+</h4>
+</a></div>
+</div>
+
+</article>
+</div>
+
+</div>
+<div class='modal hide' id='modal-remove-blob'>
+<div class='modal-dialog'>
+<div class='modal-content'>
+<div class='modal-header'>
+<a class='close' data-dismiss='modal' href='#'>×</a>
+<h3 class='page-title'>Remove k3k702ZOKiLJc3WVjuplzHhCUOGz7vYGh680lGh-uXM.woff</h3>
+<p class='light'>
+From branch
+<strong>develop</strong>
+</p>
+</div>
+<div class='modal-body'>
+<form accept-charset="UTF-8" action="/chimera/chimera-application-framework/blob/develop/frontend/client/assets/fonts/k3k702ZOKiLJc3WVjuplzHhCUOGz7vYGh680lGh-uXM.woff" class="form-horizontal" method="post"><div style="display:none"><input name="utf8" type="hidden" value="&#x2713;" /><input name="_method" type="hidden" value="delete" /><input name="authenticity_token" type="hidden" value="O7373zjd0o/MZOKJ7mLUL1mOUHzIt8ncXAAL4PF1yv0=" /></div>
+<div class='form-group commit_message-group'>
+<label class="control-label" for="commit_message">Commit message
+</label><div class='col-sm-10'>
+<div class='commit-message-container'>
+<div class='max-width-marker'></div>
+<textarea class="form-control" id="commit_message" name="commit_message" placeholder="Removed this file because..." required="required" rows="3">
+</textarea>
+</div>
+</div>
+</div>
+
+<div class='form-group'>
+<div class='col-sm-2'></div>
+<div class='col-sm-10'>
+<button class="btn btn-remove btn-remove-file" name="button" type="submit">Remove file</button>
+<a class="btn btn-cancel" data-dismiss="modal" href="#">Cancel</a>
+</div>
+</div>
+</form>
+
+</div>
+</div>
+</div>
+</div>
+<script>
+  disableButtonIfEmptyField('#commit_message', '.btn-remove-file')
+</script>
+
+
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+  GitLab.GfmAutoComplete.dataSource = "/chimera/chimera-application-framework/autocomplete_sources?type=NilClass&type_id=develop%2Ffrontend%2Fclient%2Fassets%2Ffonts%2Fk3k702ZOKiLJc3WVjuplzHhCUOGz7vYGh680lGh-uXM.woff"
+  GitLab.GfmAutoComplete.setup();
+</script>
+
+
+</body>
+</html>
+

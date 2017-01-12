@@ -1,0 +1,50 @@
+[mariadb-10.1]
+# Encrypt data in transit
+ssl-ca=/ca.pem
+ssl-cert=/server-cert.pem
+ssl-key=/server-key.pem
+
+# Encrypt data at rest
+# /usr/lib64/mysql/plugin
+plugin_dir=/usr/lib64/mysql/plugin
+plugin-load-add=file_key_management.so
+#file-key-management
+#file-key-management-encryption-algorithm=aes_ctr
+file-key-management_encryption_algorithm = aes_cbc
+file-key-management_filename = /mariakeys.txt
+#file-key-management-filekey = secret
+#file_key_management_encryption_algorithm = aes_cbc
+#file_key_management_filename = /mariakeys.txt
+#file_key_management_filekey = secret
+#file-key-management-filekey=someuberpassword
+innodb-encrypt-tables
+innodb-encrypt-log
+innodb-encryption-threads=4
+#encrypt-tmp-files
+#encrypt-binlog
+
+# Timezone
+default_time_zone='+00:00'
+
+# Data directory
+datadir=/var/lib/mysql
+socket=/var/lib/mysql/mysql.sock
+
+# Disabling symbolic-links is recommended to prevent assorted security risks
+symbolic-links=0
+
+# Settings user and group are ignored when systemd is used.
+# If you need to run mysqld under a different user or group,
+# customize your systemd unit file for mariadb according to the
+# instructions in http://fedoraproject.org/wiki/Systemd
+# Set strict mode
+sql_mode="STRICT_ALL_TABLES"
+ 
+[mysqld_safe]
+log-error=/var/log/mariadb/mariadb.log
+pid-file=/var/run/mariadb/mariadb.pid
+
+#
+# include all files from the config directory
+#
+!includedir /etc/my.cnf.d

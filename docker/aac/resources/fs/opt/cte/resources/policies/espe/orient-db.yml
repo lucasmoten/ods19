@@ -1,0 +1,34 @@
+snippets:
+  f_clearance:
+    orient_db:
+      value: { sql: "acm.f_clearance IN ", value: [ /f_clearance/as_is ] }
+  f_share:
+    orient_db:
+      value : { or: [ { sql: "acm.f_share IN ", value: [ /f_share/as_is, "" ] },{ sql: "acm.f_share IS NULL" }, { sql: "acm.f_share.length() = 2"} ]}
+  f_oc_org:
+    orient_db:
+      value: { or: [ { sql: "acm.f_oc_org IN ", value: [ /f_oc_org/as_is ] },{ sql: "acm.f_oc_org IS NULL" },{ sql: "acm.f_oc_org.length() = 2" } ] }
+  f_missions:
+    orient_db:
+      value: { or: [ { sql: "acm.f_missions IN ", value: [ /f_missions/as_is ] },{ sql: "acm.f_missions IS NULL" },{ sql: "acm.f_missions.length() = 2"} ] }
+  f_regions:
+    orient_db:
+      value: { or: [ { sql: "acm.f_regions IN ", value: [ /f_regions/as_is ] },{ sql: "acm.f_regions IS NULL" },{ sql: "acm.f_regions.length() = 2"} ] }
+  f_macs:
+    orient_db:
+      value: { sql: "acm.f_macs NOT IN ", value: [ /f_macs/negate ] }
+  f_sci_ctrls:
+    orient_db:
+      value: { sql: "acm.f_sci_ctrls NOT IN ", value: [ /f_sci_ctrls/negate ] }
+  f_accms:
+    orient_db:
+      value: { sql: "acm.f_accms NOT IN ", value: [ /f_accms/negate ] }
+  f_sap:
+    orient_db:
+      value: { or : [ { sql: "acm.f_sar_id.length() = 2"},{ sql: "acm.f_sar_id IN ", value: [ "" ]},{ sql: "acm.f_sar_id IS NULL" } ] }
+  f_aea:
+    orient_db:
+      value: { or  : [ { sql: "acm.f_atom_energy.length() = 2"},{ sql: "acm.f_atom_energy IN ", value: [ "" ]},{ sql: "acm.f_atom_energy IS NULL" } ] }
+  dissem_countries:
+    orient_db:
+      value: { or : [ { sql: "acm.dissem_countries.length() = 2" },{ sql: "acm.dissem_countries IN ", value: [ "usa", "USA" ] },{ sql: "acm.dissem_countries IS NULL" } ] }

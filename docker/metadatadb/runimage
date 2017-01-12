@@ -1,0 +1,16 @@
+MYSQL_CONTAINER_NAME="metadatadb"
+MYSQL_USER="dbuser"
+MYSQL_DATABASE="metadatadb"
+MYSQL_ROOT_PASSWORD="dbRootPassword"
+MYSQL_PASSWORD="dbPassword"
+
+docker \
+  run \
+  --detach=true \
+  --env MYSQL_DATABASE=${MYSQL_DATABASE} \
+  --env MYSQL_PASSWORD=${MYSQL_PASSWORD} \
+  --env MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD} \
+  --env MYSQL_USER=${MYSQL_USER} \
+  --name ${MYSQL_CONTAINER_NAME} \
+  -p 3306:3306 \
+  metadatadb:latest 

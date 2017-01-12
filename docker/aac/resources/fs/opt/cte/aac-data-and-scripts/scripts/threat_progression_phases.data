@@ -1,0 +1,5 @@
+HMSET THREAT-PROGRESSION-PHASES-1 id "1" name "On Our Radar"
+HMSET THREAT-PROGRESSION-PHASES-2 id "2" name "Aspirational"
+HMSET THREAT-PROGRESSION-PHASES-3 id "3" name "Initial Planning/Acquisition"
+HMSET THREAT-PROGRESSION-PHASES-4 id "4" name "Pre-Execution"
+HMSET THREAT-PROGRESSION-PHASES-5 id "5" name "Execution"
