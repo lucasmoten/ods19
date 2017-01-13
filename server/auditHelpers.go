@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/services/audit"
 	"github.com/deciphernow/gm-fabric-go/audit/acm_thrift"
 	"github.com/deciphernow/gm-fabric-go/audit/components_thrift"
+	"github.com/deciphernow/gm-fabric-go/audit/events_thrift"
 )
 
 // Utilities for dealing with pointers to primitive types.
@@ -21,6 +23,14 @@ func int32PtrOrZero(i int64) *int32 {
 		return &zero
 	}
 	return &x
+}
+
+// WithResourcesFromResultset writes lists of objects
+func WithResourcesFromResultset(e events_thrift.AuditEvent, results models.ODObjectResultset) events_thrift.AuditEvent {
+	for _, r := range results.Objects {
+		e = audit.WithResources(e, NewResourceFromObject(r))
+	}
+	return e
 }
 
 // NewResourceFromObject creates an audit resource from a object drive object suitable as targetted resource, original or modified
