@@ -36,7 +36,7 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 		return herr
 	}
 	gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
-	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, "", "", 0, "", "", hex.EncodeToString(requestObject.ID))
+	gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))
 
 	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
@@ -45,6 +45,7 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 		h.publishError(gem, herr)
 		return herr
 	}
+	auditOriginal := NewResourceFromObject(dbObject)
 
 	if dbObject.IsExpunged {
 		herr := NewAppError(410, errors.New("Cannot undelete an expunged object"), "Object was expunged")
@@ -70,9 +71,6 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 		h.publishError(gem, herr)
 		return herr
 	}
-	gem.Payload.Audit.Resources = gem.Payload.Audit.Resources[:len(gem.Payload.Audit.Resources)-1]
-	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, dbObject.Name, "", dbObject.ContentSize.Int64, "OBJECT", dbObject.TypeName.String, hex.EncodeToString(requestObject.ID))
-	gem.Payload.ChangeToken = dbObject.ChangeToken
 
 	dbObject.ModifiedBy = caller.DistinguishedName
 
@@ -84,13 +82,11 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	}
 
 	apiResponse := mapping.MapODObjectToObject(&unDeletedObj).WithCallerPermission(protocolCaller(caller))
+	auditModified := NewResourceFromObject(unDeletedObj)
 
 	gem.Payload.ChangeToken = unDeletedObj.ChangeToken
-	gem.Payload.StreamUpdate = true
-	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(
-		*gem.Payload.Audit.Resources[0],
-		*gem.Payload.Audit.Resources[0],
-	))
+	gem.Payload.StreamUpdate = unDeletedObj.ContentSize.Int64 > 0
+	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
 	h.publishSuccess(gem, r)
 
 	jsonResponse(w, apiResponse)

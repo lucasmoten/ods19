@@ -157,7 +157,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
-
+	auditResource := NewResourceFromObject(createdObject)
 	// For requests where a stream was provided, only drain off into S3 once we have a record,
 	// and we pass all security checks.  Note that in between acceptObjectUpload and here,
 	// we must call abortUploadObject to return early, so that we don't leave trash in the cache.
@@ -168,11 +168,11 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	}
 
 	apiResponse := mapping.MapODObjectToObject(&createdObject).WithCallerPermission(protocolCaller(caller))
-
+	gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(createdObject.ID))
 	gem.Payload.ObjectID = apiResponse.ID
 	gem.Payload.ChangeToken = apiResponse.ChangeToken
 	gem.Payload.StreamUpdate = isMultipart
-	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, apiResponse.Name, "", apiResponse.ContentSize, "OBJECT", apiResponse.TypeName, apiResponse.ID)
+	gem.Payload.Audit = audit.WithResources(gem.Payload.Audit, auditResource)
 	h.publishSuccess(gem, r)
 
 	jsonResponse(w, apiResponse)

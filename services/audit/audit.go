@@ -153,30 +153,31 @@ func WithActionTargetVersions(e events_thrift.AuditEvent, versions ...string) ev
 }
 
 // WithActionTarget ...
-func WithActionTarget(e events_thrift.AuditEvent, identityType, value string, acm acm_thrift.Acm) events_thrift.AuditEvent {
+func WithActionTarget(e events_thrift.AuditEvent, at components_thrift.ActionTarget) events_thrift.AuditEvent {
 	if e.ActionTargets == nil {
 		e.ActionTargets = make([]*components_thrift.ActionTarget, 0)
-	}
-	at := components_thrift.ActionTarget{
-		IdentityType: stringPtr(identityType),
-		Value:        stringPtr(value),
-		Acm:          &acm,
 	}
 	e.ActionTargets = append(e.ActionTargets, &at)
 	return e
 }
 
+// WithActionTargetWithAcm ...
+func WithActionTargetWithAcm(e events_thrift.AuditEvent, identityType, value string, acm acm_thrift.Acm) events_thrift.AuditEvent {
+	at := components_thrift.ActionTarget{
+		IdentityType: stringPtr(identityType),
+		Value:        stringPtr(value),
+		Acm:          &acm,
+	}
+	return WithActionTarget(e, at)
+}
+
 // WithActionTargetWithoutAcm ...
 func WithActionTargetWithoutAcm(e events_thrift.AuditEvent, identityType, value string) events_thrift.AuditEvent {
-	if e.ActionTargets == nil {
-		e.ActionTargets = make([]*components_thrift.ActionTarget, 0)
-	}
 	at := components_thrift.ActionTarget{
 		IdentityType: stringPtr(identityType),
 		Value:        stringPtr(value),
 	}
-	e.ActionTargets = append(e.ActionTargets, &at)
-	return e
+	return WithActionTarget(e, at)
 }
 
 // WithAdditionalInfo ...

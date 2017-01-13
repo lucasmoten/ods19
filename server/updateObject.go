@@ -50,7 +50,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		return herr
 	}
 	gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
-	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, "", "", 0, "", "", hex.EncodeToString(requestObject.ID))
+	gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))
 
 	// Business Logic...
 
@@ -61,9 +61,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		h.publishError(gem, herr)
 		return herr
 	}
-	gem.Payload.Audit.Resources = gem.Payload.Audit.Resources[:len(gem.Payload.Audit.Resources)-1]
-	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, dbObject.Name, "", dbObject.ContentSize.Int64, "OBJECT", dbObject.TypeName.String, hex.EncodeToString(requestObject.ID))
-	gem.Payload.ChangeToken = dbObject.ChangeToken
+	auditOriginal := NewResourceFromObject(dbObject)
 
 	dp := ciphertext.FindCiphertextCacheByObject(&dbObject)
 	masterKey := dp.GetMasterKey()
@@ -268,15 +266,12 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		h.publishError(gem, herr)
 		return herr
 	}
-
+	auditModified := NewResourceFromObject(dbObject)
 	apiResponse := mapping.MapODObjectToObject(&dbObject).WithCallerPermission(protocolCaller(caller))
 
 	gem.Payload.ChangeToken = apiResponse.ChangeToken
+	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
 	gem.Payload.StreamUpdate = false
-	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(
-		*gem.Payload.Audit.Resources[0],
-		audit.NewResource(apiResponse.Name, "", apiResponse.ContentSize, "OBJECT", apiResponse.TypeName, apiResponse.ID),
-	))
 	h.publishSuccess(gem, r)
 
 	jsonResponse(w, apiResponse)

@@ -37,7 +37,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		return herr
 	}
 	gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
-	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, "", "", 0, "", "", hex.EncodeToString(requestObject.ID))
+	gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))
 
 	// Retrieve existing object from the data store
 	dbObject, err := dao.GetObject(requestObject, true)
@@ -51,9 +51,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		h.publishError(gem, herr)
 		return herr
 	}
-	gem.Payload.Audit.Resources = gem.Payload.Audit.Resources[:len(gem.Payload.Audit.Resources)-1]
-	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, dbObject.Name, "", dbObject.ContentSize.Int64, "OBJECT", dbObject.TypeName.String, hex.EncodeToString(requestObject.ID))
-	gem.Payload.ChangeToken = dbObject.ChangeToken
+	auditOriginal := NewResourceFromObject(dbObject)
 
 	if len(dbObject.ID) == 0 {
 		herr := NewAppError(400, err, "Object for update doesn't have an id")
@@ -172,6 +170,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
+	auditModified := NewResourceFromObject(dbObject)
 	// Only start to upload into S3 after we have a database record
 	go drainFunc()
 
@@ -179,10 +178,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 
 	gem.Payload.ChangeToken = apiResponse.ChangeToken
 	gem.Payload.StreamUpdate = false
-	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(
-		*gem.Payload.Audit.Resources[0],
-		audit.NewResource(apiResponse.Name, "", apiResponse.ContentSize, "OBJECT", apiResponse.TypeName, apiResponse.ID),
-	))
+	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
 	h.publishSuccess(gem, r)
 
 	jsonResponse(w, apiResponse)

@@ -143,7 +143,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 		return herr
 	}
 	gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
-	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, "", "", 0, "", "", hex.EncodeToString(requestObject.ID))
+	gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))
 
 	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
@@ -151,9 +151,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 		h.publishError(gem, herr)
 		return herr
 	}
-	gem.Payload.Audit.Resources = gem.Payload.Audit.Resources[:len(gem.Payload.Audit.Resources)-1]
-	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, dbObject.Name, "", dbObject.ContentSize.Int64, "OBJECT", dbObject.TypeName.String, hex.EncodeToString(requestObject.ID))
-	gem.Payload.ChangeToken = dbObject.ChangeToken
+	auditOriginal := NewResourceFromObject(dbObject)
 
 	code, errCause, msg := moveObjectRaw(
 		dao,
@@ -171,14 +169,12 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 		return herr
 	}
 
+	auditModified := NewResourceFromObject(dbObject)
+
 	apiResponse := mapping.MapODObjectToObject(&dbObject).WithCallerPermission(protocolCaller(caller))
 
 	gem.Payload.ChangeToken = apiResponse.ChangeToken
-	gem.Payload.StreamUpdate = false
-	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(
-		*gem.Payload.Audit.Resources[0],
-		audit.NewResource(apiResponse.Name, "", apiResponse.ContentSize, "OBJECT", apiResponse.TypeName, apiResponse.ID),
-	))
+	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
 	h.publishSuccess(gem, r)
 
 	jsonResponse(w, apiResponse)

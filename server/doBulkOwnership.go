@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -10,9 +11,9 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/auth"
-	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/services/audit"
 	"golang.org/x/net/context"
 )
 
@@ -22,12 +23,16 @@ func (h AppServer) doBulkOwnership(ctx context.Context, w http.ResponseWriter, r
 	caller, _ := CallerFromContext(ctx)
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	gem, _ := GEMFromContext(ctx)
-	session := SessionIDFromContext(ctx)
+	gem.Action = "update"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventModify")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "OWNERSHIP_MODIFY")
 	captured, _ := CaptureGroupsFromContext(ctx)
 
 	// Get object
 	if r.Header.Get("Content-Type") != "application/json" {
-		return NewAppError(http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
+		herr := NewAppError(http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	newOwner := captured["newOwner"]
@@ -38,15 +43,24 @@ func (h AppServer) doBulkOwnership(ctx context.Context, w http.ResponseWriter, r
 	bytes, err := ioutil.ReadAll(io.LimitReader(r.Body, int64(limit)))
 
 	if err != nil {
-		return NewAppError(400, err, "Cannot unmarshal list of IDs", zap.String("baddata", string(bytes)))
+		herr := NewAppError(400, err, "Cannot unmarshal list of IDs", zap.String("baddata", string(bytes)))
+		h.publishError(gem, herr)
+		return herr
 	}
 	err = json.Unmarshal(bytes, &objects)
 	if err != nil {
-		return NewAppError(400, err, "Cannot parse list of IDs", zap.String("baddata", string(bytes)))
+		herr := NewAppError(400, err, "Cannot parse list of IDs", zap.String("baddata", string(bytes)))
+		h.publishError(gem, herr)
+		return herr
 	}
 
-	bulkResponse := make([]protocol.ObjectError, 0)
+	var bulkResponse []protocol.ObjectError
 	for _, o := range objects {
+		gem.ID = newGUID()
+		gem.Payload.Audit = audit.WithID(gem.Payload.Audit, "guid", gem.ID)
+		gem.Payload.Audit.Resources = nil
+		gem.Payload.Audit.ModifiedPairList = nil
+
 		changeRequest := protocol.ChangeOwnerRequest{
 			ID:          o.ObjectID,
 			ChangeToken: o.ChangeToken,
@@ -55,29 +69,65 @@ func (h AppServer) doBulkOwnership(ctx context.Context, w http.ResponseWriter, r
 		requestObject, err := mapping.MapChangeOwnerRequestToODObject(&changeRequest)
 
 		if err != nil {
-			return NewAppError(http.StatusBadRequest, err, "Error parsing JSON")
-		}
-		requestObject.ChangeToken = o.ChangeToken
-		dbObject, err := dao.GetObject(requestObject, true)
-		if err != nil {
+			herr := NewAppError(http.StatusBadRequest, err, "Error parsing JSON")
+			h.publishError(gem, herr)
 			bulkResponse = append(bulkResponse,
 				protocol.ObjectError{
 					ObjectID: o.ObjectID,
-					Error:    err.Error(),
-					Msg:      "Error retrieving object",
-					Code:     400,
+					Error:    herr.Error.Error(),
+					Msg:      herr.Msg,
+					Code:     herr.Code,
 				},
 			)
 			continue
 		}
+		gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
+		gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))
+
+		requestObject.ChangeToken = o.ChangeToken
+		dbObject, err := dao.GetObject(requestObject, true)
+		if err != nil {
+			herr := NewAppError(400, err, "Error retrieving object")
+			h.publishError(gem, herr)
+			bulkResponse = append(bulkResponse,
+				protocol.ObjectError{
+					ObjectID: o.ObjectID,
+					Error:    herr.Error.Error(),
+					Msg:      herr.Msg,
+					Code:     herr.Code,
+				},
+			)
+			continue
+		}
+		auditOriginal := NewResourceFromObject(dbObject)
 
 		// Auth check
 		okToUpdate, updatePermission := isUserAllowedToUpdateWithPermission(ctx, &dbObject)
 		if !okToUpdate {
-			return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
+			herr := NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
+			h.publishError(gem, herr)
+			bulkResponse = append(bulkResponse,
+				protocol.ObjectError{
+					ObjectID: o.ObjectID,
+					Error:    herr.Error.Error(),
+					Msg:      herr.Msg,
+					Code:     herr.Code,
+				},
+			)
+			continue
 		}
 		if !aacAuth.IsUserOwner(caller.DistinguishedName, getKnownResourceStringsFromUserGroups(ctx), dbObject.OwnedBy.String) {
-			return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User must be an object owner to transfer ownership of the object")
+			herr := NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User must be an object owner to transfer ownership of the object")
+			h.publishError(gem, herr)
+			bulkResponse = append(bulkResponse,
+				protocol.ObjectError{
+					ObjectID: o.ObjectID,
+					Error:    herr.Error.Error(),
+					Msg:      herr.Msg,
+					Code:     herr.Code,
+				},
+			)
+			continue
 		}
 
 		var code int
@@ -95,10 +145,8 @@ func (h AppServer) doBulkOwnership(ctx context.Context, w http.ResponseWriter, r
 			errCause = herr.Error
 			code = herr.Code
 			msg = herr.Msg
-		}
-
-		if herr != nil {
 			errMsg := errCause.Error()
+			h.publishError(gem, herr)
 			bulkResponse = append(bulkResponse,
 				protocol.ObjectError{
 					ObjectID: o.ObjectID,
@@ -109,6 +157,7 @@ func (h AppServer) doBulkOwnership(ctx context.Context, w http.ResponseWriter, r
 			)
 			continue
 		}
+		auditModified := NewResourceFromObject(dbObject)
 
 		bulkResponse = append(
 			bulkResponse,
@@ -122,15 +171,9 @@ func (h AppServer) doBulkOwnership(ctx context.Context, w http.ResponseWriter, r
 
 		apiResponse := mapping.MapODObjectToObject(&dbObject).WithCallerPermission(protocolCaller(caller))
 
-		gem.Action = "update"
-		gem.Payload = events.ObjectDriveEvent{
-			ObjectID:     apiResponse.ID,
-			ChangeToken:  apiResponse.ChangeToken,
-			UserDN:       caller.DistinguishedName,
-			StreamUpdate: false,
-			SessionID:    session,
-		}
-		h.EventQueue.Publish(gem)
+		gem.Payload.ChangeToken = apiResponse.ChangeToken
+		gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
+		h.publishSuccess(gem, r)
 	}
 	jsonResponse(w, bulkResponse)
 	return nil
