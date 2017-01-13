@@ -32,7 +32,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 		return NewAppError(500, err, "Error parsing URI")
 	}
 	gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
-	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, "", "", 0, "", "", hex.EncodeToString(requestObject.ID))
+	gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))
 
 	// Business Logic...
 
@@ -44,8 +44,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 		h.publishError(gem, herr)
 		return herr
 	}
-	gem.Payload.Audit.Resources = gem.Payload.Audit.Resources[:len(gem.Payload.Audit.Resources)-1]
-	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, dbObject.Name, "", dbObject.ContentSize.Int64, "OBJECT", dbObject.TypeName.String, hex.EncodeToString(requestObject.ID))
+	gem.Payload.Audit = audit.WithResources(gem.Payload.Audit, NewResourceFromObject(dbObject))
 	gem.Payload.ChangeToken = dbObject.ChangeToken
 
 	// Check if the user has permissions to read the ODObject

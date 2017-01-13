@@ -65,7 +65,7 @@ func (h AppServer) doBulkMove(ctx context.Context, w http.ResponseWriter, r *htt
 			ChangeToken: o.ChangeToken,
 		}
 		gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
-		gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, "", "", 0, "", "", hex.EncodeToString(requestObject.ID))
+		gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))
 		dbObject, err := dao.GetObject(requestObject, true)
 		if err != nil {
 			herr := NewAppError(400, err, "Error retrieving object")
@@ -80,9 +80,7 @@ func (h AppServer) doBulkMove(ctx context.Context, w http.ResponseWriter, r *htt
 			)
 			continue
 		}
-		gem.Payload.Audit.Resources = gem.Payload.Audit.Resources[:len(gem.Payload.Audit.Resources)-1]
-		gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, dbObject.Name, "", dbObject.ContentSize.Int64, "OBJECT", dbObject.TypeName.String, hex.EncodeToString(requestObject.ID))
-		gem.Payload.ChangeToken = dbObject.ChangeToken
+		auditOriginal := NewResourceFromObject(dbObject)
 
 		code, errCause, msg := moveObjectRaw(
 			dao,
@@ -108,6 +106,8 @@ func (h AppServer) doBulkMove(ctx context.Context, w http.ResponseWriter, r *htt
 			continue
 		}
 
+		auditModified := NewResourceFromObject(dbObject)
+
 		bulkResponse = append(
 			bulkResponse,
 			protocol.ObjectError{
@@ -121,11 +121,7 @@ func (h AppServer) doBulkMove(ctx context.Context, w http.ResponseWriter, r *htt
 		apiResponse := mapping.MapODObjectToObject(&dbObject).WithCallerPermission(protocolCaller(caller))
 
 		gem.Payload.ChangeToken = apiResponse.ChangeToken
-		gem.Payload.StreamUpdate = false
-		gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(
-			*gem.Payload.Audit.Resources[0],
-			audit.NewResource(apiResponse.Name, "", apiResponse.ContentSize, "OBJECT", apiResponse.TypeName, apiResponse.ID),
-		))
+		gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
 		h.publishSuccess(gem, r)
 
 	}

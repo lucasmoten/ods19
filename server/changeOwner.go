@@ -11,10 +11,10 @@ import (
 	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/dao"
-	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/services/audit"
 	"decipher.com/object-drive-server/util"
 
 	"golang.org/x/net/context"
@@ -28,28 +28,44 @@ func (h AppServer) changeOwner(ctx context.Context, w http.ResponseWriter, r *ht
 	caller, _ := CallerFromContext(ctx)
 	dao := DAOFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
-	session := SessionIDFromContext(ctx)
+	gem.Action = "update"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventModify")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "OWNERSHIP_MODIFY")
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	captured, _ := CaptureGroupsFromContext(ctx)
 	// Get object
 	if r.Header.Get("Content-Type") != "application/json" {
-		return NewAppError(http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
+		herr := NewAppError(http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
+		h.publishError(gem, herr)
+		return herr
 	}
 	requestObject, err = parseChangeOwnerRequestAsJSON(r, captured["objectId"], captured["newOwner"])
 	if err != nil {
-		return NewAppError(http.StatusBadRequest, err, "Error parsing JSON")
+		herr := NewAppError(http.StatusBadRequest, err, "Error parsing JSON")
+		h.publishError(gem, herr)
+		return herr
 	}
+	gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
+	gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))
 	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
-		return NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
+		herr := NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
+		h.publishError(gem, herr)
+		return herr
 	}
+	auditOriginal := NewResourceFromObject(dbObject)
+
 	// Auth check
 	okToUpdate, updatePermission := isUserAllowedToUpdateWithPermission(ctx, &dbObject)
 	if !okToUpdate {
-		return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
+		herr := NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
+		h.publishError(gem, herr)
+		return herr
 	}
 	if !aacAuth.IsUserOwner(caller.DistinguishedName, getKnownResourceStringsFromUserGroups(ctx), dbObject.OwnedBy.String) {
-		return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User must be an object owner to transfer ownership of the object")
+		herr := NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User must be an object owner to transfer ownership of the object")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	// Capture and overwrite here for comparison later after the update
@@ -63,19 +79,15 @@ func (h AppServer) changeOwner(ctx context.Context, w http.ResponseWriter, r *ht
 		dao,
 	)
 	if herr != nil {
+		h.publishError(gem, herr)
 		return herr
 	}
+	auditModified := NewResourceFromObject(dbObject)
 
 	// Event broadcast
-	gem.Action = "update"
-	gem.Payload = events.ObjectDriveEvent{
-		ObjectID:     apiResponse.ID,
-		ChangeToken:  apiResponse.ChangeToken,
-		UserDN:       caller.DistinguishedName,
-		StreamUpdate: false,
-		SessionID:    session,
-	}
-	h.EventQueue.Publish(gem)
+	gem.Payload.ChangeToken = apiResponse.ChangeToken
+	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
+	h.publishSuccess(gem, r)
 
 	jsonResponse(w, *apiResponse)
 	return nil

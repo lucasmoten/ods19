@@ -49,7 +49,7 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 		return herr
 	}
 	gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
-	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, "", "", 0, "", "", hex.EncodeToString(requestObject.ID))
+	gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))
 
 	// Retrieve existing object from the data store
 	dbObject, err := dao.GetObject(requestObject, true)
@@ -58,8 +58,7 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 		h.publishError(gem, herr)
 		return herr
 	}
-	gem.Payload.Audit.Resources = gem.Payload.Audit.Resources[:len(gem.Payload.Audit.Resources)-1]
-	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, dbObject.Name, "", dbObject.ContentSize.Int64, "OBJECT", dbObject.TypeName.String, hex.EncodeToString(requestObject.ID))
+	gem.Payload.Audit = audit.WithResources(gem.Payload.Audit, NewResourceFromObject(dbObject))
 	gem.Payload.ChangeToken = dbObject.ChangeToken
 
 	// Auth check
@@ -87,10 +86,6 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 
 	apiResponse := mapping.MapODObjectToExpungedObjectResponse(&dbObject).WithCallerPermission(protocolCaller(caller))
 
-	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(
-		*gem.Payload.Audit.Resources[0],
-		*gem.Payload.Audit.Resources[0],
-	))
 	h.publishSuccess(gem, r)
 
 	jsonResponse(w, apiResponse)
