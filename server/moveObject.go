@@ -12,10 +12,10 @@ import (
 
 	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/dao"
-	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/services/audit"
 	"decipher.com/object-drive-server/util"
 )
 
@@ -124,21 +124,36 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 
 	caller, _ := CallerFromContext(ctx)
 	dao := DAOFromContext(ctx)
-	gem, _ := GEMFromContext(ctx)
-	session := SessionIDFromContext(ctx)
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
+	gem, _ := GEMFromContext(ctx)
+	gem.Action = "update"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventModify")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "MOVE")
+
 	// Get object
 	if r.Header.Get("Content-Type") != "application/json" {
-		return NewAppError(http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
+		herr := NewAppError(http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
+		h.publishError(gem, herr)
+		return herr
 	}
 	requestObject, err = parseMoveObjectRequestAsJSON(r, ctx)
 	if err != nil {
-		return NewAppError(http.StatusBadRequest, err, "Error parsing JSON")
+		herr := NewAppError(http.StatusBadRequest, err, "Error parsing JSON")
+		h.publishError(gem, herr)
+		return herr
 	}
+	gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
+	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, "", "", 0, "", "", hex.EncodeToString(requestObject.ID))
+
 	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
-		return NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
+		herr := NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
+		h.publishError(gem, herr)
+		return herr
 	}
+	gem.Payload.Audit.Resources = gem.Payload.Audit.Resources[:len(gem.Payload.Audit.Resources)-1]
+	gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, dbObject.Name, "", dbObject.ContentSize.Int64, "OBJECT", dbObject.TypeName.String, hex.EncodeToString(requestObject.ID))
+	gem.Payload.ChangeToken = dbObject.ChangeToken
 
 	code, errCause, msg := moveObjectRaw(
 		dao,
@@ -151,20 +166,20 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	)
 
 	if errCause != nil || msg != "" {
-		return NewAppError(code, errCause, msg)
+		herr := NewAppError(code, errCause, msg)
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	apiResponse := mapping.MapODObjectToObject(&dbObject).WithCallerPermission(protocolCaller(caller))
 
-	gem.Action = "update"
-	gem.Payload = events.ObjectDriveEvent{
-		ObjectID:     apiResponse.ID,
-		ChangeToken:  apiResponse.ChangeToken,
-		UserDN:       caller.DistinguishedName,
-		StreamUpdate: false,
-		SessionID:    session,
-	}
-	h.EventQueue.Publish(gem)
+	gem.Payload.ChangeToken = apiResponse.ChangeToken
+	gem.Payload.StreamUpdate = false
+	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(
+		*gem.Payload.Audit.Resources[0],
+		audit.NewResource(apiResponse.Name, "", apiResponse.ContentSize, "OBJECT", apiResponse.TypeName, apiResponse.ID),
+	))
+	h.publishSuccess(gem, r)
 
 	jsonResponse(w, apiResponse)
 	return nil

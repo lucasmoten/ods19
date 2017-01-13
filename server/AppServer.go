@@ -210,6 +210,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	gem := globalEventFromRequest(r)
 	gem.Payload.Audit = defaultAudit(r)
+	gem.Payload.Audit = audit.WithID(gem.Payload.Audit, "guid", gem.ID)
 	gem.Payload.UserDN = caller.DistinguishedName
 	gem.Payload.SessionID = sessionID
 	gem.Payload.StreamUpdate = false

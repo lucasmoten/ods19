@@ -8,10 +8,10 @@ import (
 	"encoding/hex"
 
 	"decipher.com/object-drive-server/auth"
-	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/services/audit"
 	"golang.org/x/net/context"
 )
 
@@ -21,28 +21,40 @@ func (h AppServer) doBulkMove(ctx context.Context, w http.ResponseWriter, r *htt
 	caller, _ := CallerFromContext(ctx)
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	gem, _ := GEMFromContext(ctx)
-	session := SessionIDFromContext(ctx)
+	gem.Action = "update"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventModify")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "MOVE")
 
 	var objects []protocol.MoveObjectRequest
 	bytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return NewAppError(400, err, "Cannot unmarshal list of IDs")
+		herr := NewAppError(400, err, "Cannot read list of IDs")
+		h.publishError(gem, herr)
+		return herr
 	}
 	err = json.Unmarshal(bytes, &objects)
 	if err != nil {
-		return NewAppError(400, err, "Cannot parse list of IDs")
+		herr := NewAppError(400, err, "Cannot parse list of IDs")
+		h.publishError(gem, herr)
+		return herr
 	}
 
-	bulkResponse := make([]protocol.ObjectError, 0)
+	var bulkResponse []protocol.ObjectError
 	for _, o := range objects {
+		gem.ID = newGUID()
+		gem.Payload.Audit = audit.WithID(gem.Payload.Audit, "guid", gem.ID)
+		gem.Payload.Audit.Resources = nil
+		gem.Payload.Audit.ModifiedPairList = nil
 		id, err := hex.DecodeString(o.ID)
 		if err != nil {
+			herr := NewAppError(400, err, "Cannot decode object id")
+			h.publishError(gem, herr)
 			bulkResponse = append(bulkResponse,
 				protocol.ObjectError{
 					ObjectID: o.ID,
-					Error:    err.Error(),
-					Msg:      "Cannot decode object id",
-					Code:     400,
+					Error:    herr.Error.Error(),
+					Msg:      herr.Msg,
+					Code:     herr.Code,
 				},
 			)
 			continue
@@ -52,18 +64,25 @@ func (h AppServer) doBulkMove(ctx context.Context, w http.ResponseWriter, r *htt
 			ID:          id,
 			ChangeToken: o.ChangeToken,
 		}
+		gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
+		gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, "", "", 0, "", "", hex.EncodeToString(requestObject.ID))
 		dbObject, err := dao.GetObject(requestObject, true)
 		if err != nil {
+			herr := NewAppError(400, err, "Error retrieving object")
+			h.publishError(gem, herr)
 			bulkResponse = append(bulkResponse,
 				protocol.ObjectError{
 					ObjectID: o.ID,
-					Error:    err.Error(),
-					Msg:      "Error retrieving object",
-					Code:     400,
+					Error:    herr.Error.Error(),
+					Msg:      herr.Msg,
+					Code:     herr.Code,
 				},
 			)
 			continue
 		}
+		gem.Payload.Audit.Resources = gem.Payload.Audit.Resources[:len(gem.Payload.Audit.Resources)-1]
+		gem.Payload.Audit = audit.WithResource(gem.Payload.Audit, dbObject.Name, "", dbObject.ContentSize.Int64, "OBJECT", dbObject.TypeName.String, hex.EncodeToString(requestObject.ID))
+		gem.Payload.ChangeToken = dbObject.ChangeToken
 
 		code, errCause, msg := moveObjectRaw(
 			dao,
@@ -76,13 +95,14 @@ func (h AppServer) doBulkMove(ctx context.Context, w http.ResponseWriter, r *htt
 		)
 
 		if errCause != nil {
-			errMsg := errCause.Error()
+			herr := NewAppError(code, errCause, msg)
+			h.publishError(gem, herr)
 			bulkResponse = append(bulkResponse,
 				protocol.ObjectError{
 					ObjectID: o.ID,
-					Error:    errMsg,
-					Msg:      msg,
-					Code:     code,
+					Error:    herr.Error.Error(),
+					Msg:      herr.Msg,
+					Code:     herr.Code,
 				},
 			)
 			continue
@@ -100,15 +120,14 @@ func (h AppServer) doBulkMove(ctx context.Context, w http.ResponseWriter, r *htt
 
 		apiResponse := mapping.MapODObjectToObject(&dbObject).WithCallerPermission(protocolCaller(caller))
 
-		gem.Action = "update"
-		gem.Payload = events.ObjectDriveEvent{
-			ObjectID:     apiResponse.ID,
-			ChangeToken:  apiResponse.ChangeToken,
-			UserDN:       caller.DistinguishedName,
-			StreamUpdate: false,
-			SessionID:    session,
-		}
-		h.EventQueue.Publish(gem)
+		gem.Payload.ChangeToken = apiResponse.ChangeToken
+		gem.Payload.StreamUpdate = false
+		gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(
+			*gem.Payload.Audit.Resources[0],
+			audit.NewResource(apiResponse.Name, "", apiResponse.ContentSize, "OBJECT", apiResponse.TypeName, apiResponse.ID),
+		))
+		h.publishSuccess(gem, r)
+
 	}
 	jsonResponse(w, bulkResponse)
 	return nil
