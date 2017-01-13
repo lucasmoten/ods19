@@ -105,7 +105,7 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
             + `No`
             + `Unknown`
     + properties (properties array, optional) - Array of custom properties to be associated with the newly created object.
-    + permissions (array[PermissionUser,PermissionGroup]) - **[1.0, Deprecated]** - Array of permissions associated with this object.
+    + permissions (array[PermissionUserCreate,PermissionGroupCreate]) - **[1.0, Deprecated]** - Array of permissions associated with this object.
 
     + Body
     
@@ -114,19 +114,117 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
             Content-Type: application/json
             
             {
-                "typeName": "File",
-                "name": "My new file",
-                "description": "This is the description for my file",
-                "parentId": "",
-                "acm": {
-                    "classif": "u",
-                    "version": "2.1.0"
+              "typeName": "File",
+              "name": "gettysburgaddress.txt",
+              "description": "Description here",
+              "parentId": "",
+              "acm": {
+                "classif": "U",
+                "dissem_countries": [
+                  "USA"
+                ],
+                "share": {
+                  "users": [
+                    "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                    "CN=test tester02,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                    "CN=test tester03,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                    "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
+                  ],
+                  "projects": [
+                    {
+                      "ukpn": {
+                        "disp_nm": "Project Name",
+                        "groups": [
+                          "Group Name",
+                          "Cats",
+                          "Dogs"
+                        ]
+                      },
+                      "ukpn2": {
+                        "disp_nm": "Project Name 2",
+                        "groups": [
+                          "Group 1",
+                          "Group 2",
+                          "Group 3"
+                        ]
+                      }
+                    }
+                  ]
                 },
-                "contentType": "text/plain",
-                "contentSize": 31,
-                "properties": [],
-                "containsUSPersonsData": "No",
-                "exemptFromFOIA": "No"
+                "version": "2.1.0"
+              },
+              "permission": {
+                "create": {
+                  "allow": [
+                    "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                  ]
+                },
+                "read": {
+                  "allow": [
+                    "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10",
+                    "group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1"
+                  ]
+                },
+                "update": {
+                  "allow": [
+                    "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                  ]
+                },
+                "delete": {
+                  "allow": [
+                    "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                  ]
+                },
+                "share": {
+                  "allow": [
+                    "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                  ]
+                }
+              },
+              "contentType": "text",
+              "contentSize": "1511",
+              "properties": [
+                {
+                  "name": "Some Property",
+                  "value": "Some Property Value",
+                  "classificationPM": "U//FOUO"
+                }
+              ],
+              "containsUSPersonsData": "No",
+              "exemptFromFOIA": "No",
+              "permissions": [
+                {
+                  "share": {
+                    "users": [
+                      "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
+                    ]
+                  },
+                  "allowCreate": false,
+                  "allowRead": true,
+                  "allowUpdate": true,
+                  "allowDelete": false,
+                  "allowShare": false
+                },
+                {
+                  "share": {
+                    "projects": [
+                      {
+                        "dctc": {
+                          "disp_nm": "DCTC",
+                          "groups": [
+                            "ODrive_G1"
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  "allowCreate": false,
+                  "allowRead": true,
+                  "allowUpdate": false,
+                  "allowDelete": false,
+                  "allowShare": false
+                }
+              ]
             }
             --7518615725
             Content-Disposition: form-data; name="filestream"; filename="test.txt"
@@ -170,7 +268,7 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
             + `No`
             + `Unknown`
     + properties (properties array, optional) - Array of custom properties to be associated with the newly created object.
-    + permissions (array[PermissionUser,PermissionGroup]) - **[1.0, Deprecated]** - Array of permissions associated with this object.
+    + permissions (array[PermissionUserCreate,PermissionGroupCreate]) - **[1.0, Deprecated]** - Array of permissions associated with this object.
 
     + Attributes (CreateObjectRequestNoStream)
 
@@ -2028,6 +2126,14 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + disp_nm: `DCTC` (string, required) - The display name for the project
 + groups: `ODrive_G1` (array[string], required) - Array of groups to be targetted by this share within the project.
 
+## ACMShareCreateGroupSample (object)
+
++ projects (array[ACMShareCreateSampleProjectsDCTC], optional) - Array of projects with nested groups that are targets of this share.
+
+## ACMShareCreateUserSample (object)
+
++ users: `CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (array[string], optional) - Array of distinguished names for users that are targets of this share.
+
 ## Breadcrumb (object)
 
 + id: `11e5e4867a6e3d8389020242ac110002` (string) - The object ID of an object's breadcrumb. Should never be empty.
@@ -2065,7 +2171,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + properties (array[PropertyCreate]) - Array of custom properties to be associated with the object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
-+ permissions (array[PermissionUser,PermissionGroup]) - **Deprecated** - Array of permissions associated with this object.
++ permissions (array[PermissionUserCreate,PermissionGroupCreate]) - **Deprecated** - Array of permissions associated with this object.
 
 ## CreateObjectRequestNoStream (object)
 
@@ -2080,7 +2186,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + properties (array[PropertyCreate]) - Array of custom properties to be associated with the object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
-+ permissions (array[PermissionUser,PermissionGroup]) - **Deprecated** - Array of permissions associated with this object.
++ permissions (array[PermissionUserCreate,PermissionGroupCreate]) - **Deprecated** - Array of permissions associated with this object.
 
 ## CreateZipRequest (object)
 
@@ -2361,16 +2467,14 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + allow (array[string], optional) - The list of resources allowed to perform this capability
 + deny (array[string], optional) - The list of resources denied this capability
 
-## PermissionUser (object)
+## PermissionCreate (object)
 
-+ grantee: `cntesttester10oupeopleoudaeouchimeraou_s_governmentcus` (string) -  The flattened form of the user or group this permission targets
-+ userDistinguishedName: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) - The user for whom this permission is granted to
-+ displayName: `test tester10` (string) - A representation of the grantee suitable for display in user interfaces
-+ allowCreate: true (boolean) -  Indicates whether the grantee can create child objects under the referenced object of this permission.
++ share (ACMShareCreateSample) - The share structure for this permission representing one or more targets to be granted the permissions
++ allowCreate: false (boolean) -  Indicates whether the grantee can create child objects under the referenced object of this permission.
 + allowRead: true (boolean) -  Indicates whether the grantee can view the object referenced by this permission.
 + allowUpdate: true (boolean) -  Indicates whether the grantee can modify the object referenced by this permission.
-+ allowDelete: true (boolean) -  Indicates whether the grantee can delete the object referenced by this permission.
-+ allowShare: true (boolean) -  Indicates whether the grantee can reshare the object referenced by this permission.
++ allowDelete: false (boolean) -  Indicates whether the grantee can delete the object referenced by this permission.
++ allowShare: false (boolean) -  Indicates whether the grantee can reshare the object referenced by this permission.
 
 ## PermissionGroup (object)
 
@@ -2385,9 +2489,29 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + allowDelete: true (boolean) -  Indicates whether the grantee can delete the object referenced by this permission.
 + allowShare: true (boolean) -  Indicates whether the grantee can reshare the object referenced by this permission.
 
-## PermissionCreate (object)
+## PermissionGroupCreate (object)
 
-+ share (ACMShareCreateSample) - The share structure for this permission representing one or more targets to be granted the permissions
++ share (ACMShareCreateGroupSample) - The share structure for this permission representing one or more targets to be granted the permissions
++ allowCreate: false (boolean) -  Indicates whether the grantee can create child objects under the referenced object of this permission.
++ allowRead: true (boolean) -  Indicates whether the grantee can view the object referenced by this permission.
++ allowUpdate: false (boolean) -  Indicates whether the grantee can modify the object referenced by this permission.
++ allowDelete: false (boolean) -  Indicates whether the grantee can delete the object referenced by this permission.
++ allowShare: false (boolean) -  Indicates whether the grantee can reshare the object referenced by this permission.
+
+## PermissionUser (object)
+
++ grantee: `cntesttester10oupeopleoudaeouchimeraou_s_governmentcus` (string) -  The flattened form of the user or group this permission targets
++ userDistinguishedName: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) - The user for whom this permission is granted to
++ displayName: `test tester10` (string) - A representation of the grantee suitable for display in user interfaces
++ allowCreate: true (boolean) -  Indicates whether the grantee can create child objects under the referenced object of this permission.
++ allowRead: true (boolean) -  Indicates whether the grantee can view the object referenced by this permission.
++ allowUpdate: true (boolean) -  Indicates whether the grantee can modify the object referenced by this permission.
++ allowDelete: true (boolean) -  Indicates whether the grantee can delete the object referenced by this permission.
++ allowShare: true (boolean) -  Indicates whether the grantee can reshare the object referenced by this permission.
+
+## PermissionUserCreate (object)
+
++ share (ACMShareCreateUserSample) - The share structure for this permission representing one or more targets to be granted the permissions
 + allowCreate: false (boolean) -  Indicates whether the grantee can create child objects under the referenced object of this permission.
 + allowRead: true (boolean) -  Indicates whether the grantee can view the object referenced by this permission.
 + allowUpdate: true (boolean) -  Indicates whether the grantee can modify the object referenced by this permission.
