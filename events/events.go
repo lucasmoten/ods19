@@ -51,7 +51,7 @@ func (e GEM) Yield() []byte {
 // this type is to be embedded in the Global Event Model (GEM).
 type ObjectDriveEvent struct {
 	// Audit embeds the ICS 500-27 schema
-	Audit auditevent.AuditEvent
+	Audit auditevent.AuditEvent `json:"audit_event"`
 	// ObjectID is a 32 character hex encoded string corresponding to the database ID.
 	ObjectID string `json:"object_id"`
 	// ChangeToken is a random string regenerated with each update to an object.

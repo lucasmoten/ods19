@@ -245,20 +245,26 @@
 		{
 			"checksumSHA1": "rui9NtF/7fl5nr+wopgv8AfLBCg=",
 			"path": "github.com/deciphernow/gm-fabric-go/audit/acm_thrift",
-			"revision": "16992bd346da7d80c668687eb967294f5a87e59c",
-			"revisionTime": "2017-01-05T19:12:27Z"
+			"revision": "3ae51a53fb1bd5f0d1781f898d4fcd30833dfcca",
+			"revisionTime": "2017-01-17T16:49:43Z"
 		},
 		{
-			"checksumSHA1": "KalyafoRgazZ5s9O1Lfly1aH8ls=",
+			"checksumSHA1": "f2MccceplocZk6mdzKN5MxhhkR0=",
+			"path": "github.com/deciphernow/gm-fabric-go/audit/audittransformationservice_thrift",
+			"revision": "3ae51a53fb1bd5f0d1781f898d4fcd30833dfcca",
+			"revisionTime": "2017-01-17T16:49:43Z"
+		},
+		{
+			"checksumSHA1": "o0UU0CI9WtTKn06Gl35MNWjwZ8g=",
 			"path": "github.com/deciphernow/gm-fabric-go/audit/components_thrift",
-			"revision": "16992bd346da7d80c668687eb967294f5a87e59c",
-			"revisionTime": "2017-01-05T19:12:27Z"
+			"revision": "3ae51a53fb1bd5f0d1781f898d4fcd30833dfcca",
+			"revisionTime": "2017-01-17T16:49:43Z"
 		},
 		{
-			"checksumSHA1": "gaK1Y1fCFVozodaioBU4OvEjIuE=",
+			"checksumSHA1": "jRFSwE0twIZI29aB7yn/iNr/lxs=",
 			"path": "github.com/deciphernow/gm-fabric-go/audit/events_thrift",
-			"revision": "16992bd346da7d80c668687eb967294f5a87e59c",
-			"revisionTime": "2017-01-05T19:12:27Z"
+			"revision": "3ae51a53fb1bd5f0d1781f898d4fcd30833dfcca",
+			"revisionTime": "2017-01-17T16:49:43Z"
 		},
 		{
 			"checksumSHA1": "y2Kh4iPlgCPXSGTCcFpzePYdzzg=",
@@ -373,6 +379,18 @@
 			"path": "github.com/spacemonkeygo/spacelog",
 			"revision": "ae95ccc1eb0c8ce2496c43177430efd61930f7e4",
 			"revisionTime": "2015-03-20T15:06:48-06:00"
+		},
+		{
+			"checksumSHA1": "YRtwcbCRhmXDaHJCtV9sIC45Cn4=",
+			"path": "github.com/tidwall/gjson",
+			"revision": "e3f249f4fdf33c278edeb770426a6f83c954ae64",
+			"revisionTime": "2016-12-16T16:22:41Z"
+		},
+		{
+			"checksumSHA1": "qmePMXEDYGwkAfT9QvtMC58JN/E=",
+			"path": "github.com/tidwall/match",
+			"revision": "173748da739a410c5b0b813b956f89ff94730b4c",
+			"revisionTime": "2016-08-30T17:39:30Z"
 		},
 		{
 			"checksumSHA1": "Qb0eMcC9P6tYLT4KNLvNNmvhPr4=",

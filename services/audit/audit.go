@@ -69,7 +69,7 @@ func NewResource(Name string, Location string, Size int64, Type string, SubType 
 		Name:     &resourceName,
 		Location: stringPtr(Location),
 		// TODO: Convert this later
-		Size:       int32PtrOrZero(Size),
+		Size:       int64Ptr(Size),
 		SubType:    stringPtr(SubType),
 		Type:       stringPtr(Type),
 		Identifier: stringPtr(Identifier),

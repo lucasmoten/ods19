@@ -1,0 +1,22 @@
+{
+    "kafka_addrs": ["kafka:9092"],
+    "zk_addrs": ["10.2.11.36:2181", "10.2.11.37:2181", "10.2.11.38:2181"],
+    "audit_zk_path": "/bedrock/service/audit-transformation/1.0/thrift",
+    "audit_svc_ip": "10.2.11.47",
+    "audit_svc_port": "9121",
+    "trust": "/Users/cmcfarland/Code/Go/src/decipher.com/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem",
+    "cert": "/Users/cmcfarland/Code/Go/src/decipher.com/object-drive-server/defaultcerts/client-aac/id/client.cert.pem",
+    "key": "/Users/cmcfarland/Code/Go/src/decipher.com/object-drive-server/defaultcerts/client-aac/id/client.key.pem",
+    "kafka_topic": "odrive-event",
+    "defaults": {
+        "type": "",
+        "action": "",
+        "action_mode": "",
+        "action_result": "",
+        "agency": "",
+        "home_agency": "",
+        "network": "",
+        "edh_guide_number": ""
+    }
+}
+

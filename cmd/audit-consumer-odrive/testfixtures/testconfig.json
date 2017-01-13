@@ -1,0 +1,18 @@
+{
+    "kafka_addrs": ["kafka:9092"],
+    "zk_addrs": [],
+    "kafka_topic": "odrive-event",
+    "trust": "foo",
+    "cert": "baz",
+    "key": "zed",
+    "defaults": {
+        "type": "",
+        "action": "",
+        "action_mode": "",
+        "action_result": "",
+        "agency": "Castle Black",
+        "home_agency": "Westoros",
+        "network": "The Realm",
+        "edh_guide_number": "5555"
+    }
+}
