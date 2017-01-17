@@ -12,6 +12,7 @@ import (
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/services/audit"
 )
 
 // listObjects returns a paged object result set. If parentID is given in the request URI,
@@ -25,6 +26,12 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 	user, _ := UserFromContext(ctx)
 	dao := DAOFromContext(ctx)
 
+	gem, _ := GEMFromContext(ctx)
+	gem.Action = "access"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventAccess")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "ACCESS")
+	gem.Payload.Audit = audit.WithQueryString(gem.Payload.Audit, r.URL.String())
+
 	parentObject := models.ODObject{}
 	var pagingRequest *protocol.PagingRequest
 	var err error
@@ -33,18 +40,25 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 	captured, _ := CaptureGroupsFromContext(ctx)
 	pagingRequest, err = protocol.NewPagingRequest(r, captured, false)
 	if err != nil {
-		return NewAppError(400, err, "Error parsing request")
+		herr := NewAppError(400, err, "Error parsing request")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	parentObject, err = assignObjectIDFromPagingRequest(pagingRequest, parentObject)
 	if err != nil {
-		return NewAppError(400, err, "Object Identifier in Request URI is not a hex string")
+		herr := NewAppError(400, err, "Object Identifier in Request URI is not a hex string")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	// TODO can we remove this? We should expect snippets to be set by now.
 	snippetFields, ok := SnippetsFromContext(ctx)
 	if !ok {
-		return NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
+		herr := NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
+		h.publishError(gem, herr)
+		return herr
+
 	}
 	user.Snippets = snippetFields
 
@@ -59,16 +73,23 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 		if err != nil {
 			log.Println(err)
 			code, msg := listObjectsDAOErr(err)
-			return NewAppError(code, err, msg)
+			herr := NewAppError(code, err, msg)
+			h.publishError(gem, herr)
+			return herr
+
 		}
 		// Check for permission to read this object
 		if ok := isUserAllowedToRead(ctx, &dbObject); !ok {
-			return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to list contents of this object")
+			herr := NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to list contents of this object")
+			h.publishError(gem, herr)
+			return herr
 		}
 
 		// Check if deleted
 		if ok, code, err := isDeletedErr(dbObject); !ok {
-			return NewAppError(code, err, "deleted object")
+			herr := NewAppError(code, err, "deleted object")
+			h.publishError(gem, herr)
+			return herr
 		}
 
 		// Get the objects
@@ -77,7 +98,9 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 	}
 	if err != nil {
 		code, msg := listObjectsDAOErr(err)
-		return NewAppError(code, err, msg)
+		herr := NewAppError(code, err, msg)
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	// Response in requested format
@@ -87,6 +110,9 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 	for objectIndex, object := range apiResponse.Objects {
 		apiResponse.Objects[objectIndex] = object.WithCallerPermission(protocolCaller(caller))
 	}
+
+	gem.Payload.Audit = WithResourcesFromResultset(gem.Payload.Audit, results)
+	h.publishSuccess(gem, r)
 
 	// Output as JSON
 	jsonResponse(w, apiResponse)
