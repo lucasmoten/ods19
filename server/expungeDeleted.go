@@ -45,10 +45,7 @@ func (h AppServer) expungeDeleted(ctx context.Context, w http.ResponseWriter, r 
 		return herr
 	}
 	for _, o := range expungedObjects.Objects {
-		gem.ID = newGUID()
-		gem.Payload.Audit = audit.WithID(gem.Payload.Audit, "guid", gem.ID)
-		gem.Payload.Audit.Resources = nil
-		gem.Payload.Audit.ModifiedPairList = nil
+		gem = ResetBulkItem(gem)
 		gem.Payload.ObjectID = hex.EncodeToString(o.ID)
 		gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(o.ID))
 		gem.Payload.Audit = audit.WithResources(gem.Payload.Audit, NewResourceFromObject(o))

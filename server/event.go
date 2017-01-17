@@ -55,6 +55,8 @@ func defaultAudit(r *http.Request) events_thrift.AuditEvent {
 	e = audit.WithAction(e, "ACCESS")
 	e = audit.WithActionResult(e, "FAILURE")
 	e = audit.WithActionInitiator(e, "DISTINGUISHED_NAME", config.GetNormalizedDistinguishedName(r.Header.Get("USER_DN")))
+	e = audit.WithCreator(e, "APPLICATION", "OBJECTDRIVEAPI")
+	e = audit.WithCreatedOn(e, time.Now().UTC().Format("2006-01-02T15:04:05.000Z"))
 
 	return e
 }
