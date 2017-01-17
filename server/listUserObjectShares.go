@@ -8,6 +8,7 @@ import (
 
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/services/audit"
 )
 
 func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
@@ -17,23 +18,35 @@ func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWrit
 	user, _ := UserFromContext(ctx)
 	dao := DAOFromContext(ctx)
 
+	gem, _ := GEMFromContext(ctx)
+	gem.Action = "access"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventAccess")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "ACCESS")
+	gem.Payload.Audit = audit.WithQueryString(gem.Payload.Audit, r.URL.String())
+
 	// Parse Request
 	pagingRequest, err := protocol.NewPagingRequest(r, nil, false)
 	if err != nil {
-		return NewAppError(400, err, "Error parsing request")
+		herr := NewAppError(400, err, "Error parsing request")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	// Snippets
 	snippetFields, ok := SnippetsFromContext(ctx)
 	if !ok {
-		return NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
+		herr := NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
+		h.publishError(gem, herr)
+		return herr
 	}
 	user.Snippets = snippetFields
 
 	// Fetch objects for requested page
 	results, err := dao.GetObjectsSharedToMe(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest))
 	if err != nil {
-		return NewAppError(500, err, "GetObjectsSharedToMe query failed")
+		herr := NewAppError(500, err, "GetObjectsSharedToMe query failed")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	// Response in requested format
@@ -43,6 +56,9 @@ func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWrit
 	for objectIndex, object := range apiResponse.Objects {
 		apiResponse.Objects[objectIndex] = object.WithCallerPermission(protocolCaller(caller))
 	}
+
+	gem.Payload.Audit = WithResourcesFromResultset(gem.Payload.Audit, results)
+	h.publishSuccess(gem, r)
 
 	// Output as JSON
 	jsonResponse(w, apiResponse)
