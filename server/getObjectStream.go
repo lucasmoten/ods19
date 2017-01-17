@@ -21,6 +21,7 @@ import (
 	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/crypto"
+	"decipher.com/object-drive-server/services/audit"
 
 	db "decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
@@ -58,11 +59,20 @@ func extractByteRange(r *http.Request) (*crypto.ByteRange, error) {
 func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 	var err error
 	var requestObject models.ODObject
+	gem, _ := GEMFromContext(ctx)
+	gem.Action = "access"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventAccess")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "ACCESS")
 
 	requestObject, err = parseGetObjectRequest(ctx)
 	if err != nil {
-		return NewAppError(500, err, "Error parsing URI")
+		herr := NewAppError(500, err, "Error parsing URI")
+		h.publishError(gem, herr)
+		return herr
 	}
+	gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
+	gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))
+
 	dao := DAOFromContext(ctx)
 
 	// Retrieve existing object from the data store
@@ -70,16 +80,25 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 	if err != nil {
 		//Equality issue on errors?
 		if err.Error() == db.ErrNoRows.Error() {
-			return NewAppError(404, err, "Not found")
+			herr := NewAppError(404, err, "Not found")
+			h.publishError(gem, herr)
+			return herr
 		}
-		return NewAppError(500, err, "Error retrieving object")
+		herr := NewAppError(500, err, "Error retrieving object")
+		h.publishError(gem, herr)
+		return herr
 	}
+	gem.Payload.Audit = audit.WithResources(gem.Payload.Audit, NewResourceFromObject(dbObject))
+	gem.Payload.ChangeToken = dbObject.ChangeToken
 
 	if len(dbObject.ID) == 0 {
-		return NewAppError(400, err, "Object retrieved doesn't have an id")
+		herr := NewAppError(400, err, "Object retrieved doesn't have an id")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	//Performance count this operation
+	ctx = ContextWithGEM(ctx, gem)
 	beganAt := h.Tracker.BeginTime(performance.DownloadCounter)
 	transferred, herr := h.getObjectStreamWithObject(ctx, w, r, dbObject)
 	//Make sure that we count as zero bytes if there was a download error from S3
@@ -93,8 +112,14 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 	)
 	//And then return if something went wrong
 	if herr != nil {
+		if herr.Error != nil {
+			h.publishError(gem, herr)
+		} else {
+			h.publishSuccess(gem, r)
+		}
 		return herr
 	}
+	h.publishSuccess(gem, r)
 	return nil
 }
 
@@ -104,6 +129,7 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	caller, _ := CallerFromContext(ctx)
 	var NoBytesReturned int64
 	var err error
+	gem, _ := GEMFromContext(ctx)
 
 	// // Get caller value from ctx.
 	// caller, ok := CallerFromContext(ctx)
@@ -112,14 +138,17 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	// }
 
 	if dbObject.IsDeleted {
+		var herr *AppError
 		switch {
 		case dbObject.IsExpunged:
-			return NoBytesReturned, NewAppError(410, err, "The object no longer exists.")
+			herr = NewAppError(410, err, "The object no longer exists")
 		case dbObject.IsAncestorDeleted:
-			return NoBytesReturned, NewAppError(405, err, "The object cannot be modified because an ancestor is deleted.")
+			herr = NewAppError(405, err, "The object cannot be modified because an ancestor is deleted.")
 		default:
-			return NoBytesReturned, NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
+			herr = NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
 		}
+		h.publishError(gem, herr)
+		return NoBytesReturned, herr
 	}
 
 	// Check read permission, and capture permission for the encryptKey
@@ -127,7 +156,9 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	//		Permission.grantee matches caller, and AllowRead is true
 	ok, userPermission := isUserAllowedToReadWithPermission(ctx, &dbObject)
 	if !ok {
-		return NoBytesReturned, NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
+		herr := NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
+		h.publishError(gem, herr)
+		return NoBytesReturned, herr
 	}
 
 	dp := ciphertext.FindCiphertextCacheByObject(&dbObject)
@@ -137,18 +168,24 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	var fileKey []byte
 	fileKey = crypto.ApplyPassphrase(masterKey, userPermission.PermissionIV, userPermission.EncryptKey)
 	if len(fileKey) == 0 {
-		return NoBytesReturned, NewAppError(500, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object")
+		herr := NewAppError(500, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object")
+		h.publishError(gem, herr)
+		return NoBytesReturned, herr
 	}
 
 	// Check AAC to compare user clearance to  metadata Classifications
 	// 		Check if Classification is allowed for this User
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
-		return NoBytesReturned, ClassifyObjectACMError(err)
+		herr := ClassifyObjectACMError(err)
+		h.publishError(gem, herr)
+		return NoBytesReturned, herr
 	}
 
 	if !dbObject.ContentSize.Valid || dbObject.ContentSize.Int64 <= int64(0) {
-		return NoBytesReturned, NewAppError(204, nil, "No content", zap.Int64("bytes", dbObject.ContentSize.Int64))
+		herr := NewAppError(204, nil, "No content", zap.Int64("bytes", dbObject.ContentSize.Int64))
+		h.publishError(gem, herr)
+		return NoBytesReturned, herr
 	}
 
 	disposition := "inline"
@@ -218,14 +255,18 @@ func acmExtractItem(item string, rawAcm string) (string, error) {
 // We have an io.ReadCloser() that will fill the bytes by range requesting
 // out of S3.  It will not write these bytes to disk in an intermediate step.
 func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject, w http.ResponseWriter, r *http.Request, encryptKey []byte, withMetadata bool, disposition string) (int64, *AppError) {
+	var NoBytesReturned int64
 	var err error
+	gem, _ := GEMFromContext(ctx)
 	var finalStatus *AppError
 	logger := LoggerFromContext(ctx)
 
 	//Prepare for range requesting
 	byteRange, err := extractByteRange(r)
 	if err != nil {
-		return 0, NewAppError(400, err, "Unable to parse byte range")
+		herr := NewAppError(400, err, "Unable to parse byte range")
+		h.publishError(gem, herr)
+		return NoBytesReturned, herr
 	}
 	var blocksSkipped int64
 	var cipherStartAt int64
@@ -290,7 +331,8 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 			w.Header().Set("Etag", etag)
 			if clientEtag == etag {
 				w.Header().Del("Content-Length")
-				return 0, NewAppError(http.StatusNotModified, nil, "Not Modified")
+				herr := NewAppError(http.StatusNotModified, nil, "Not Modified")
+				return NoBytesReturned, herr
 			}
 			//Note that if we return a nil error, the stats collector will think we got a 200
 			//Begin writing a 206... one of the rare codes that still returns content
@@ -302,7 +344,8 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 			w.Header().Set("Etag", etag)
 			if clientEtag == etag {
 				w.Header().Del("Content-Length")
-				return 0, NewAppError(http.StatusNotModified, nil, "Not Modified")
+				herr := NewAppError(http.StatusNotModified, nil, "Not Modified")
+				return NoBytesReturned, herr
 			}
 			//Begin writing back a normal 200
 			w.WriteHeader(http.StatusOK)
@@ -319,7 +362,9 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	//Pull the file from the cache
 	cipherReader, isLocalPuller, err = d.NewPuller(logger, rName, totalLength, cipherStartAt, -1)
 	if err != nil {
-		return 0, NewAppError(500, err, err.Error())
+		herr := NewAppError(500, err, err.Error())
+		h.publishError(gem, herr)
+		return NoBytesReturned, herr
 	}
 	defer cipherReader.Close()
 	//If it didn't come from the files in the cache, then make sure we ReCache it for future use

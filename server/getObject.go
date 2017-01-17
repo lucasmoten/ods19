@@ -28,8 +28,9 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 
 	requestObject, err := parseGetObjectRequest(ctx)
 	if err != nil {
-		ctx = ContextWithGEM(ctx, gem)
-		return NewAppError(500, err, "Error parsing URI")
+		herr := NewAppError(500, err, "Error parsing URI")
+		h.publishError(gem, herr)
+		return herr
 	}
 	gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
 	gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))
