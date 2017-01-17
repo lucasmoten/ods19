@@ -12,57 +12,84 @@ import (
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/crypto"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/services/audit"
 )
 
 func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	dao := DAOFromContext(ctx)
-
 	var requestObject models.ODObject
 	var err error
+	gem, _ := GEMFromContext(ctx)
+	gem.Action = "access"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventAccess")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "ACCESS")
 
 	captured, ok := CaptureGroupsFromContext(ctx)
 	if !ok {
-		return NewAppError(500, errors.New("Could not get capture groups"), "No capture groups.")
+		herr := NewAppError(500, errors.New("Could not get capture groups"), "No capture groups.")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	if captured["objectId"] == "" {
-		return NewAppError(http.StatusBadRequest, errors.New("Could not extract objectID from URI"), "URI: "+r.URL.Path)
+		herr := NewAppError(http.StatusBadRequest, errors.New("Could not extract objectID from URI"), "URI: "+r.URL.Path)
+		h.publishError(gem, herr)
+		return herr
 	}
 	bytesObjectID, err := hex.DecodeString(captured["objectId"])
 	if err != nil {
-		return NewAppError(http.StatusBadRequest, err, "Invalid objectID in URI.")
+		herr := NewAppError(http.StatusBadRequest, err, "Invalid objectID in URI.")
+		h.publishError(gem, herr)
+		return herr
 	}
 	requestObject.ID = bytesObjectID
+	gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
+	gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))
+
 	if captured["revisionId"] == "" {
-		return NewAppError(http.StatusBadRequest, errors.New("Could not extract revisionId from URI"), "URI: "+r.URL.Path)
+		herr := NewAppError(http.StatusBadRequest, errors.New("Could not extract revisionId from URI"), "URI: "+r.URL.Path)
+		h.publishError(gem, herr)
+		return herr
 	}
 	requestObject.ChangeCount, err = strconv.Atoi(captured["revisionId"])
 	if err != nil {
-		return NewAppError(http.StatusBadRequest, err, "Invalid revisionId in URI.")
+		herr := NewAppError(http.StatusBadRequest, err, "Invalid revisionId in URI.")
+		h.publishError(gem, herr)
+		return herr
 	}
 	var fileKey []byte
 	var herr *AppError
 	// Current version authorization checks
 	dbObjectCurrent, err := dao.GetObject(requestObject, false)
 	if err != nil {
-		return NewAppError(500, err, "Error retrieving object")
+		herr := NewAppError(500, err, "Error retrieving object")
+		h.publishError(gem, herr)
+		return herr
 	}
 	if herr, fileKey = getFileKeyAndCheckAuthAndObjectState(ctx, h, &dbObjectCurrent); herr != nil {
+		h.publishError(gem, herr)
 		return herr
 	}
 	// Requested revision
 	dbObjectRevision, err := dao.GetObjectRevision(requestObject, true)
 	if err != nil {
-		return NewAppError(500, err, "Error retrieving object")
+		herr := NewAppError(500, err, "Error retrieving object")
+		h.publishError(gem, herr)
+		return herr
 	}
+	gem.Payload.Audit = audit.WithResources(gem.Payload.Audit, NewResourceFromObject(dbObjectRevision))
+	gem.Payload.ChangeToken = dbObjectRevision.ChangeToken
 	if herr, fileKey = getFileKeyAndCheckAuthAndObjectState(ctx, h, &dbObjectRevision); herr != nil {
+		h.publishError(gem, herr)
 		return herr
 	}
 
 	// Fail fast: Don't even look at cache or retrieve if the file size is 0
 	if !dbObjectRevision.ContentSize.Valid || dbObjectRevision.ContentSize.Int64 <= int64(0) {
-		return NewAppError(204, nil, "No content")
+		herr := NewAppError(204, nil, "No content")
+		h.publishSuccess(gem, r)
+		return herr
 	}
 
 	disposition := "inline"
@@ -70,11 +97,17 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	if len(overrideDisposition) > 0 {
 		disposition = overrideDisposition
 	}
-
+	ctx = ContextWithGEM(ctx, gem)
 	_, appError := h.getAndStreamFile(ctx, &dbObjectRevision, w, r, fileKey, false, disposition)
 	if appError != nil {
+		if appError.Error != nil {
+			h.publishError(gem, appError)
+		} else {
+			h.publishSuccess(gem, r)
+		}
 		return appError
 	}
+	h.publishSuccess(gem, r)
 	return nil
 }
 
