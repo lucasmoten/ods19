@@ -7,6 +7,7 @@ import (
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/protocol"
 
+	"decipher.com/object-drive-server/services/audit"
 	"golang.org/x/net/context"
 )
 
@@ -16,19 +17,28 @@ func (h AppServer) query(ctx context.Context, w http.ResponseWriter, r *http.Req
 	caller, _ := CallerFromContext(ctx)
 	user, _ := UserFromContext(ctx)
 	dao := DAOFromContext(ctx)
+	gem, _ := GEMFromContext(ctx)
+	gem.Action = "access"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventSearchQry")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "PARAMETER_SEARCH")
+	gem.Payload.Audit = audit.WithQueryString(gem.Payload.Audit, r.URL.String())
 
 	// Parse paging info
 	captured, _ := CaptureGroupsFromContext(ctx)
 	pagingRequest, err := protocol.NewPagingRequest(r, nil, false)
 	if err != nil {
-		return NewAppError(400, err, "Error parsing request")
+		herr := NewAppError(400, err, "Error parsing request")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	// Check if a filter was provided
 	if len(pagingRequest.FilterSettings) == 0 {
 		// Parse search phrase from the request path if there is no filter set
 		if captured["searchPhrase"] == "" {
-			return NewAppError(http.StatusBadRequest, errors.New("Could not extract searchPhrase from URI"), "URI: "+r.URL.Path)
+			herr := NewAppError(http.StatusBadRequest, errors.New("Could not extract searchPhrase from URI"), "URI: "+r.URL.Path)
+			h.publishError(gem, herr)
+			return herr
 		}
 		searchPhrase := captured["searchPhrase"]
 		// Build default filters with search phrase
@@ -38,14 +48,18 @@ func (h AppServer) query(ctx context.Context, w http.ResponseWriter, r *http.Req
 	// Snippets
 	snippetFields, ok := SnippetsFromContext(ctx)
 	if !ok {
-		return NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
+		herr := NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
+		h.publishError(gem, herr)
+		return herr
 	}
 	user.Snippets = snippetFields
 
 	// Perform the basic search
 	results, err := dao.SearchObjectsByNameOrDescription(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest), false)
 	if err != nil {
-		return NewAppError(500, errors.New("Database call failed: "), err.Error())
+		herr := NewAppError(500, errors.New("Database call failed: "), err.Error())
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	// Response in requested format
@@ -55,6 +69,9 @@ func (h AppServer) query(ctx context.Context, w http.ResponseWriter, r *http.Req
 	for objectIndex, object := range apiResponse.Objects {
 		apiResponse.Objects[objectIndex] = object.WithCallerPermission(protocolCaller(caller))
 	}
+
+	gem.Payload.Audit = WithResourcesFromResultset(gem.Payload.Audit, results)
+	h.publishSuccess(gem, r)
 
 	// Output as JSON
 	jsonResponse(w, apiResponse)
