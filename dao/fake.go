@@ -79,9 +79,9 @@ func (fake *FakeDAO) DeleteObjectType(objectType models.ODObjectType) error {
 	return fake.Err
 }
 
-// Expunge objects deleted by user.
-func (fake *FakeDAO) ExpungeDeletedByUser(user models.ODUser, pageSize int) (int64, error) {
-	return int64(0), fake.Err
+// ExpungeDeletedByUser for FakeDAO.
+func (fake *FakeDAO) ExpungeDeletedByUser(user models.ODUser, pageSize int) (models.ODObjectResultset, error) {
+	return fake.ObjectResultSet, fake.Err
 }
 
 // ExpungeObject for FakeDAO.

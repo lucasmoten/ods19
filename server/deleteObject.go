@@ -91,6 +91,9 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 		}
 	}
 
+	// reget the object so that changetoken and deleteddate are correct
+	dbObject, err = dao.GetObject(requestObject, false)
+
 	// Response in requested format
 	apiResponse := mapping.MapODObjectToDeletedObjectResponse(&dbObject).WithCallerPermission(protocolCaller(caller))
 
