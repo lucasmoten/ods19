@@ -7,8 +7,7 @@ import (
 )
 
 // ExpungeDeletedByUser for a given user, iterate the list of trashed (deleted) object roots and delete them
-func (dao *DataAccessLayer) ExpungeDeletedByUser(user models.ODUser, pageSize int) (int64, error) {
-	total := int64(0)
+func (dao *DataAccessLayer) ExpungeDeletedByUser(user models.ODUser, pageSize int) (models.ODObjectResultset, error) {
 
 	if pageSize <= 0 {
 		pageSize = 10000
@@ -19,46 +18,60 @@ func (dao *DataAccessLayer) ExpungeDeletedByUser(user models.ODUser, pageSize in
 		PageSize:   pageSize,
 	}
 
+	var overallExpunged models.ODObjectResultset
+	overallExpunged.PageCount = 1
+	overallExpunged.PageNumber = 1
+
 	// Deleting trash can be a huge operation.  Operate in transactional chunks so that we can make progress, even if we time out
 	// Note that it's always page 1, because we keep getting the trash list
 	for {
 		tx, err := dao.MetadataDB.Beginx()
 		if err != nil {
 			dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
-			return total, err
+			return overallExpunged, err
 		}
-		count, err := dao.expungeDeletedByUserInTransaction(tx, user, pagingRequest)
-		total += count
+		expungedObjects, err := dao.expungeDeletedByUserInTransaction(tx, user, pagingRequest)
 		if err != nil {
 			dao.GetLogger().Error("Error in ExpungeDeletedByUser", zap.String("err", err.Error()))
 			tx.Rollback()
-			return total, err
+			return overallExpunged, err
 		}
 		tx.Commit()
 		// If we deleted 0 objects this time, then we are clean
-		if count == 0 {
-			return total, nil
+		if expungedObjects.PageCount == 0 {
+			return overallExpunged, nil
 		}
+		for _, r := range expungedObjects.Objects {
+			overallExpunged.Objects = append(overallExpunged.Objects, r)
+		}
+		overallExpunged.PageRows = len(overallExpunged.Objects)
+		overallExpunged.PageSize = overallExpunged.PageRows
+		overallExpunged.TotalRows = overallExpunged.PageRows
 	}
 }
 
-func (dao *DataAccessLayer) expungeDeletedByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest) (int64, error) {
-	total := int64(0)
+func (dao *DataAccessLayer) expungeDeletedByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	response, err := getTrashedObjectsByUserInTransaction(tx, user, pagingRequest)
 	updateObjectStatement, err := expungeObjectInTransactionPrepare(tx)
+	var expungedObjects models.ODObjectResultset
 	defer updateObjectStatement.Close()
 	if err != nil {
-		return 0, err
+		return expungedObjects, err
 	}
 	for _, r := range response.Objects {
 		//Note: this will do a retrieve of the object by ID!
 		err := expungeObjectInTransaction(tx, user, r, true, updateObjectStatement)
 		if err != nil {
-			return total, err
+			return expungedObjects, err
 		}
-		total++
+		expungedObjects.Objects = append(expungedObjects.Objects, r)
+		expungedObjects.PageNumber = GetSanitizedPageNumber(pagingRequest.PageNumber)
+		expungedObjects.PageSize = GetSanitizedPageSize(pagingRequest.PageSize)
+		expungedObjects.PageRows = len(expungedObjects.Objects)
+		expungedObjects.PageCount = GetPageCount(expungedObjects.TotalRows, expungedObjects.PageSize)
+		expungedObjects.TotalRows = expungedObjects.PageRows
 	}
-	return total, err
+	return expungedObjects, err
 }
 
 // Get a page of objects - just the ID because expungeObjectInTransaction does not need a full object

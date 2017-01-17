@@ -13,8 +13,8 @@ A series of microservice operations are exposed on the API gateway for use of Ob
 | Get an Object Stream | Retrieves the content stream of an object. |
 | Update Object | Used for updating the metadata of an object. |
 | Update Object Stream | Used for updating the content stream and metadata of an object. |
-| Delete Objects | Delete objects in bulk. |
 | Delete Object | Marks an object as deleted an only available from the user's trash. |
+| Delete Objects | Delete objects in bulk. |
 | Delete Object Forever | Expunges an object so that it cannot be restored from the trash. |
 | List Object Revisions | Retrieves a resultset of revisions for an object. |
 | Get Object Revision Stream | Retrieves the content stream of a specific revision of an object. |
@@ -31,6 +31,7 @@ A series of microservice operations are exposed on the API gateway for use of Ob
 | List Objects Shared | Retreives a resultset of objects that the user has shared. |
 | List Trashed Objects | Retrieves a resultset of objects in the user's trash. |
 | Undelete Object | Restores an object from the user's trash. |
+| Empty Trash | Expunges all objects in the user's trash. |
 | User Stats | Retrieve information for user's storage consumtpion. |
 | Zip Files | Get a zip of some files. |
 
@@ -314,7 +315,7 @@ Delete a set of objects.  It requires the id and the change token for each one.
     + Body
 
             [
-                {"objectId":"11e5e4867a6e3d8389020242ac110002","code":200, "error":"", "msg":""},
+                {"objectId":"11e5e4867a6e3d8389020242ac110002","code":200},
                 {"objectId":"11e5e4867a6f3d8389020242ac110002","code":400, "error":"unable to find object", "msg":"cannot delete object"}
             ]
 
@@ -997,7 +998,7 @@ Move a set of objects.  It requires the id and the change token for each one.
     + Body
 
             [
-                {"objectId":"11e5e4867a6e3d8389020242ac110002", "code":200, "error":"", "msg":""},
+                {"objectId":"11e5e4867a6e3d8389020242ac110002", "code":200},
                 {"objectId":"11e5e4867a6f3d8389020242ac110002", "code":400, "error":"unable to find object", "msg":"cannot move object"}
             ]
 
@@ -1997,9 +1998,9 @@ This creates a new revision of the object.
 
 
 
-## Expunge deleted objects [/trashed{?pageSize}]
+## Empty Trash [/trashed{?pageSize}]
 
-Objects that have been put into the trash can be undeleted until the trash is emptied.
+Objects that have been put into the trash can be expunged until the trash is emptied.
 This is effectively the same as calling the operation Delete Object Forever for everything that has been trashed.
 
 + Parameters

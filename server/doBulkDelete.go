@@ -2,16 +2,14 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"net/http"
 
 	"encoding/hex"
 
-	"decipher.com/object-drive-server/events"
-	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/services/audit"
 	"golang.org/x/net/context"
 )
 
@@ -19,30 +17,41 @@ func (h AppServer) doBulkDelete(ctx context.Context, w http.ResponseWriter, r *h
 
 	dao := DAOFromContext(ctx)
 	user, _ := UserFromContext(ctx)
-	caller, ok := CallerFromContext(ctx)
-	if !ok {
-		return NewAppError(http.StatusInternalServerError, errors.New("Could not get caller from context"), "Invalid caller.")
-	}
-	session := SessionIDFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
+	gem.Action = "delete"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventDelete")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "REMOVE")
 
 	var objects []protocol.ObjectVersioned
 	bytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return NewAppError(400, err, "Cannot unmarshal list of IDs")
+		herr := NewAppError(400, err, "Cannot read list of IDs")
+		h.publishError(gem, herr)
+		return herr
 	}
-	json.Unmarshal(bytes, &objects)
+	err = json.Unmarshal(bytes, &objects)
+	if err != nil {
+		herr := NewAppError(400, err, "Cannot parse list of IDs")
+		h.publishError(gem, herr)
+		return herr
+	}
 
-	bulkResponse := make([]protocol.ObjectError, 0)
+	var bulkResponse []protocol.ObjectError
 	for _, o := range objects {
+		gem.ID = newGUID()
+		gem.Payload.Audit = audit.WithID(gem.Payload.Audit, "guid", gem.ID)
+		gem.Payload.Audit.Resources = nil
+		gem.Payload.Audit.ModifiedPairList = nil
 		id, err := hex.DecodeString(o.ObjectID)
 		if err != nil {
+			herr := NewAppError(400, err, "Cannot decode object id")
+			h.publishError(gem, herr)
 			bulkResponse = append(bulkResponse,
 				protocol.ObjectError{
 					ObjectID: o.ObjectID,
-					Error:    err.Error(),
-					Msg:      "Cannot decode object id",
-					Code:     400,
+					Error:    herr.Error.Error(),
+					Msg:      herr.Msg,
+					Code:     herr.Code,
 				},
 			)
 			continue
@@ -52,28 +61,34 @@ func (h AppServer) doBulkDelete(ctx context.Context, w http.ResponseWriter, r *h
 			ID:          id,
 			ChangeToken: o.ChangeToken,
 		}
-
+		gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
+		gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))
 		dbObject, err := dao.GetObject(requestObject, true)
 		if err != nil {
+			herr := NewAppError(400, err, "Error retrieving object")
+			h.publishError(gem, herr)
 			bulkResponse = append(bulkResponse,
 				protocol.ObjectError{
 					ObjectID: o.ObjectID,
-					Error:    err.Error(),
-					Msg:      "Error retrieving object",
-					Code:     400,
+					Error:    herr.Error.Error(),
+					Msg:      herr.Msg,
+					Code:     herr.Code,
 				},
 			)
 			continue
 		}
-
+		gem.Payload.Audit = audit.WithResources(gem.Payload.Audit, NewResourceFromObject(dbObject))
+		gem.Payload.ChangeToken = dbObject.ChangeToken
 		err = dao.DeleteObject(user, dbObject, true)
 		if err != nil {
+			herr := NewAppError(400, err, "DAO Error deleting object")
+			h.publishError(gem, herr)
 			bulkResponse = append(bulkResponse,
 				protocol.ObjectError{
 					ObjectID: o.ObjectID,
-					Error:    err.Error(),
-					Msg:      "Cannot decode object id",
-					Code:     400,
+					Error:    herr.Error.Error(),
+					Msg:      herr.Msg,
+					Code:     herr.Code,
 				},
 			)
 			continue
@@ -89,18 +104,12 @@ func (h AppServer) doBulkDelete(ctx context.Context, w http.ResponseWriter, r *h
 			},
 		)
 
-		// Response in requested format
-		apiResponse := mapping.MapODObjectToDeletedObjectResponse(&dbObject).WithCallerPermission(protocolCaller(caller))
+		// reget the object so that changetoken and deleteddate are correct
+		dbObject, err = dao.GetObject(requestObject, false)
+		gem.Payload.ChangeToken = dbObject.ChangeToken
 
-		gem.Action = "delete"
-		gem.Payload = events.ObjectDriveEvent{
-			ObjectID:     apiResponse.ID,
-			ChangeToken:  requestObject.ChangeToken,
-			UserDN:       caller.DistinguishedName,
-			StreamUpdate: false,
-			SessionID:    session,
-		}
-		h.EventQueue.Publish(gem)
+		h.publishSuccess(gem, r)
+
 	}
 	jsonResponse(w, bulkResponse)
 	return nil

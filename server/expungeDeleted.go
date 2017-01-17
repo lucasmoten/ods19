@@ -1,7 +1,10 @@
 package server
 
 import (
+	"encoding/hex"
 	"net/http"
+
+	"decipher.com/object-drive-server/services/audit"
 
 	"strconv"
 
@@ -10,7 +13,7 @@ import (
 
 // ExpungedStats just returns the number of objects explicitly expunged
 type ExpungedStats struct {
-	ExpungedCount int64 `json:"expunged_count"`
+	ExpungedCount int `json:"expunged_count"`
 }
 
 // Trash objects that fall into this paging request's page
@@ -20,20 +23,39 @@ func (h AppServer) expungeDeleted(ctx context.Context, w http.ResponseWriter, r 
 	// Get user from context
 	user, _ := UserFromContext(ctx)
 	dao := DAOFromContext(ctx)
+	gem, _ := GEMFromContext(ctx)
+	gem.Action = "delete"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventDelete")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "DELETE")
 	pageSize := 10000
 	pageSizeStr := r.URL.Query()["pageSize"]
 	if len(pageSizeStr) > 0 {
 		var err error
 		pageSize, err = strconv.Atoi(pageSizeStr[0])
 		if err != nil {
-			return NewAppError(400, err, "malformed pageSize")
+			herr := NewAppError(400, err, "malformed pageSize")
+			h.publishError(gem, herr)
+			return herr
 		}
 	}
-	rows, err := dao.ExpungeDeletedByUser(user, pageSize)
+	expungedObjects, err := dao.ExpungeDeletedByUser(user, pageSize)
 	if err != nil {
-		return NewAppError(500, err, "Unable to expunge deleted objects for user")
+		herr := NewAppError(500, err, "Unable to expunge deleted objects for user")
+		h.publishError(gem, herr)
+		return herr
 	}
-	expungedStats := ExpungedStats{ExpungedCount: rows}
+	for _, o := range expungedObjects.Objects {
+		gem.ID = newGUID()
+		gem.Payload.Audit = audit.WithID(gem.Payload.Audit, "guid", gem.ID)
+		gem.Payload.Audit.Resources = nil
+		gem.Payload.Audit.ModifiedPairList = nil
+		gem.Payload.ObjectID = hex.EncodeToString(o.ID)
+		gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(o.ID))
+		gem.Payload.Audit = audit.WithResources(gem.Payload.Audit, NewResourceFromObject(o))
+		gem.Payload.ChangeToken = o.ChangeToken
+		h.publishSuccess(gem, r)
+	}
+	expungedStats := ExpungedStats{ExpungedCount: expungedObjects.TotalRows}
 	jsonResponse(w, expungedStats)
 
 	return nil
