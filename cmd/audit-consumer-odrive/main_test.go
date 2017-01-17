@@ -76,4 +76,7 @@ func TestApplyAuditDefaults(t *testing.T) {
 	if *ae.Edh.Guide.Number != "4444" {
 		t.Error("ApplyAuditDefaults should not override already-set inner EDH Guide Number")
 	}
+	if *ae.Creator.IdentityType != "APPLICATION" {
+		t.Error("ApplyAuditDefaults should set Creator.IdentityType")
+	}
 }

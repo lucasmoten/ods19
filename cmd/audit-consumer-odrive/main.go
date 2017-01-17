@@ -150,6 +150,7 @@ func (ac *AuditConsumer) Start() error {
 				log.Println("could not unmarshal audit:", err)
 				continue
 			}
+			ae = ApplyAuditDefaults(ae, ac.config)
 			// TODO should buffer these and submit as a batch
 			submit := []*auditevent.AuditEvent{&ae}
 			resp, err := ac.svc.SubmitAuditEvents(submit)

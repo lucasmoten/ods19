@@ -16,7 +16,9 @@
         "agency": "",
         "home_agency": "",
         "network": "",
-        "edh_guide_number": ""
+        "edh_guide_number": "",
+        "creator_value": "Object Drive",
+        "creator_type": "APPLICATION"
     }
 }
 
