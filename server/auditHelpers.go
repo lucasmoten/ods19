@@ -45,7 +45,7 @@ func NewResourceFromObject(obj models.ODObject) components_thrift.Resource {
 	resource.Description = &components_thrift.ResourceDescription{
 		Content: stringPtr(obj.Description.String),
 	}
-	resource.Size = int32PtrOrZero(obj.ContentSize.Int64)
+	resource.Size = int64Ptr(obj.ContentSize.Int64)
 	acm := NewAuditACMFromString(obj.RawAcm.String)
 	resource.Acm = &acm
 	return resource

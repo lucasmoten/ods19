@@ -56,12 +56,29 @@ func ApplyAuditDefaults(ae auditevent.AuditEvent, conf AuditConsumerConfig) audi
 		val := conf.Defaults["edh_guide_number"]
 		ae.Edh.Guide.Number = stringPtr(val)
 	}
+
+	if ae.Creator == nil {
+		ae.Creator = &components_thrift.Creator{}
+	}
+	if ae.Creator.Value == nil {
+		val := conf.Defaults["creator_value"]
+		ae.Creator.Value = stringPtr(val)
+		val = conf.Defaults["creator_type"]
+		ae.Creator.IdentityType = stringPtrDefault(val, "APPLICATION")
+	}
 	return ae
 }
 
 func stringPtr(s string) *string {
 	if s == "" {
 		return nil
+	}
+	return &s
+}
+
+func stringPtrDefault(s, val string) *string {
+	if s == "" {
+		return &val
 	}
 	return &s
 }
@@ -75,7 +92,6 @@ func stringPtr(s string) *string {
 	ActionTargets                  []*components_thrift.ActionTarget         `thrift:"9" json:"action_targets,omitempty"`
 	AdditionalInfo                 map[string]string                         `thrift:"10" json:"additional_info,omitempty"`
 	CountriesOfCitizenship         []string                                  `thrift:"12" json:"countries_of_citizenship,omitempty"`
-	Creator                        *components_thrift.Creator                `thrift:"14" json:"creator,omitempty"`
 	Edh                            *components_thrift.Edh                    `thrift:"15" json:"edh,omitempty"`
 	ResponsibleEntity              *components_thrift.ResponsibleEntity      `thrift:"16" json:"responsible_entity,omitempty"`
 	Id                             *components_thrift.Id                     `thrift:"18" json:"id,omitempty"`

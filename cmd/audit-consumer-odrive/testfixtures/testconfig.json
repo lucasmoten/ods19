@@ -13,6 +13,8 @@
         "agency": "Castle Black",
         "home_agency": "Westoros",
         "network": "The Realm",
-        "edh_guide_number": "5555"
+        "edh_guide_number": "5555",
+        "creator_value": "Object Drive",
+        "creator_type": "APPLICATION"
     }
 }
