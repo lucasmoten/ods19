@@ -11,6 +11,7 @@ import (
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/services/audit"
 )
 
 // listGroupObjects returns a paged object result set of those objects owned by a specified group.
@@ -21,6 +22,13 @@ func (h AppServer) listGroupObjects(ctx context.Context, w http.ResponseWriter, 
 	caller, _ := CallerFromContext(ctx)
 	user, _ := UserFromContext(ctx)
 	dao := DAOFromContext(ctx)
+
+	gem, _ := GEMFromContext(ctx)
+	gem.Action = "access"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventSearchQry")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "PARAMETER_SEARCH")
+	gem.Payload.Audit = audit.WithQueryString(gem.Payload.Audit, r.URL.String())
+
 	snippetFields, _ := SnippetsFromContext(ctx)
 	user.Snippets = snippetFields
 
@@ -31,14 +39,18 @@ func (h AppServer) listGroupObjects(ctx context.Context, w http.ResponseWriter, 
 	captured, _ := CaptureGroupsFromContext(ctx)
 	pagingRequest, err = protocol.NewPagingRequest(r, captured, false)
 	if err != nil {
-		return NewAppError(400, err, "Error parsing request")
+		herr := NewAppError(400, err, "Error parsing request")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	// Group name validation
 	groupName := captured["groupName"]
 	if groupName == "" {
 		msg := "Group name required when listing objects for group"
-		return NewAppError(400, fmt.Errorf(msg), msg)
+		herr := NewAppError(400, fmt.Errorf(msg), msg)
+		h.publishError(gem, herr)
+		return herr
 	}
 	groupName = strings.ToLower(groupName)
 	userHasGroup := false
@@ -50,7 +62,9 @@ func (h AppServer) listGroupObjects(ctx context.Context, w http.ResponseWriter, 
 	}
 	if !userHasGroup {
 		msg := "Forbidden. Not a member of requested group"
-		return NewAppError(403, fmt.Errorf(msg), msg)
+		herr := NewAppError(403, fmt.Errorf(msg), msg)
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	// Fetch the matching objects
@@ -58,7 +72,9 @@ func (h AppServer) listGroupObjects(ctx context.Context, w http.ResponseWriter, 
 	results, err = dao.GetRootObjectsWithPropertiesByGroup(groupName, user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest))
 	if err != nil {
 		code, msg := listObjectsDAOErr(err)
-		return NewAppError(code, err, msg)
+		herr := NewAppError(code, err, msg)
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	// Response in requested format
@@ -68,6 +84,9 @@ func (h AppServer) listGroupObjects(ctx context.Context, w http.ResponseWriter, 
 	for objectIndex, object := range apiResponse.Objects {
 		apiResponse.Objects[objectIndex] = object.WithCallerPermission(protocolCaller(caller))
 	}
+
+	gem.Payload.Audit = WithResourcesFromResultset(gem.Payload.Audit, results)
+	h.publishSuccess(gem, r)
 
 	// Output as JSON
 	jsonResponse(w, apiResponse)
