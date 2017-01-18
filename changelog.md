@@ -7,6 +7,7 @@ Release vNEXT
 * ENH: Bulk Move objects: POST /objects/move
 * FIX: Restore ability to update properties on objects
 * ENH: Bulk Change owner objects: POST /objects/owner/{resourceString}
+* ENH: Return properties in search results consistent with other list calls
 
 Release v1.0.1.12
 -----------------
