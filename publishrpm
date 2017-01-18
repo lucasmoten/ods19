@@ -1,4 +1,63 @@
+CIRCLE_BUILD_NUM=$1
+if [ ${#1} -eq 0 ]
+then
+  echo "You must provide the build number corresponding to the RPM"
+  echo "to retrieve from odrive-builds and push to builds.363-283.io"
+  echo "For example, ./publishrpm 719"
+  exit 1
+fi
+
+COUNTMEMEAWSKEY=$(printenv | grep "MEME_AWS_ACCESS_KEY_ID" -c)
+if [ $COUNTMEMEAWSKEY -eq 0 ]
+then
+  echo "envvar MEME_AWS_ACCESS_KEY_ID is not set"
+  exit 1
+fi
+COUNTMEMESECRET=$(printenv | grep "MEME_AWS_SECRET_ACCESS_KEY" -c)
+if [ $COUNTMEMESECRET -eq 0 ]
+then
+  echo "envvar MEME_AWS_SECRET_ACCESS_KEY is not set"
+  exit 1
+fi
+
 export AWS_ACCESS_KEY_ID=$MEME_AWS_ACCESS_KEY_ID
 export AWS_SECRET_ACCESS_KEY=$MEME_AWS_SECRET_ACCESS_KEY
 
-aws s3 cp object-drive-1.0-test-SNAPSHOT.x86_64.rpm s3://builds.363-283.io/object-drive-1.0.1.SNAPSHOT.rpm
+# Get from S3, built by CIRCLE
+RPMFILE=object-drive-1.0.1.${CIRCLE_BUILD_NUM}.x86_64.rpm
+curl -O https://s3.amazonaws.com/odrive-builds/circle/rpms/${RPMFILE} -f
+if [ -f "$RPMFILE" ]
+then
+  echo "Retrieved file ${RPMFILE}"
+else
+  echo "No file matching ${RPMFILE} was found in S3"
+  exit 1
+fi
+
+# Determine build date
+BUILDDATE=$(rpm -qip ${RPMFILE} | grep "Build Date" | awk '{ print $6 " " $5 " " $7 }')
+if [ -n "$BUILDDATE" ]
+then
+  echo "Build date is ${BUILDDATE}"
+else
+  echo "Could not determine build date"
+  exit 1
+fi
+
+# Format BUILDDATE as YYYYMMDD
+BUILDDATEYYYYMMDD=$(date -d"${BUILDDATE}" +%Y%m%d)
+if [ -n "$BUILDDATEYYYYMMDD" ]
+then
+  echo "Formatted build date is ${BUILDDATEYYYYMMDD}"
+else
+  echo "Cound not convert to YYYYMMDD format"
+  exit 1
+fi
+
+
+# File format needs to be
+# <Service Name>-<major version>.<minor version>.<patch version>.<build number>.<YYYYMMDD>.rpm
+REMOTEFILE="object-drive-1.0.1.${CIRCLE_BUILD_NUM}.${BUILDDATEYYYYMMDD}.rpm"
+echo "File to save as in bucket is ${REMOTEFILE}"
+
+aws s3 cp ${RPMFILE} s3://builds.363-283.io/${REMOTEFILE}
