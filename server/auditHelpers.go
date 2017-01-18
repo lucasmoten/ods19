@@ -64,7 +64,7 @@ func NewAuditACMFromString(rawacm string) acm_thrift.Acm {
 // NewAuditTargetForID creates an audit action target for an object id
 func NewAuditTargetForID(ID []byte) components_thrift.ActionTarget {
 	at := components_thrift.ActionTarget{}
-	at.IdentityType = stringPtr("OBJECTID")
+	at.IdentityType = stringPtr("FILE_OBJECT")
 	at.Value = stringPtr(hex.EncodeToString(ID))
 	return at
 }
