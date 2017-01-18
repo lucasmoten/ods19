@@ -115,6 +115,10 @@ func NewDataAccessLayer(conf config.DatabaseConfiguration, opts ...Opt) (*DataAc
 	if err != nil {
 		return nil, "", fmt.Errorf("getting db state failed: %v", err)
 	}
+	if state.SchemaVersion != SchemaVersion {
+		err = fmt.Errorf("Database schema is at version '%s' and DAO expects version '%s'. If database version is newer, then you need to upgrade this instances of object-drive", state.SchemaVersion, SchemaVersion)
+		return nil, "", err
+	}
 
 	return &d, state.Identifier, nil
 }
@@ -142,6 +146,7 @@ func pingDB(d *DataAccessLayer) error {
 	sleep := 3
 
 	var err error
+	var state models.DBState
 
 	for attempts < max {
 
@@ -152,9 +157,13 @@ func pingDB(d *DataAccessLayer) error {
 			logger.Info("db sleep for retry")
 			time.Sleep(time.Duration(sleep) * time.Second)
 		} else {
-			_, err = d.GetDBState()
+			state, err = d.GetDBState()
 			if err != nil {
 				logger.Info("db available but schema not populated")
+				time.Sleep(time.Duration(sleep) * time.Second)
+			}
+			if state.SchemaVersion != SchemaVersion {
+				logger.Info("sleep for potential migration")
 				time.Sleep(time.Duration(sleep) * time.Second)
 			}
 		}

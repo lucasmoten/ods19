@@ -8,6 +8,7 @@ Release vNEXT
 * FIX: Restore ability to update properties on objects
 * ENH: Bulk Change owner objects: POST /objects/owner/{resourceString}
 * ENH: Return properties in search results consistent with other list calls
+* ENH: Check database schema version on startup. Must match expected. Wait for migration before terminating.
 
 Release v1.0.1.12
 -----------------
