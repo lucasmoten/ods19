@@ -296,6 +296,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	user, err := h.FetchUser(ctx)
 	if err != nil {
 		sendErrorResponse(logger, &w, 500, err, "Error loading user")
+		herr := NewAppError(500, err, "Error loading user")
+		h.publishError(gem, herr)
 		return
 	}
 
@@ -303,6 +305,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	groups, snippets, err := h.GetUserGroupsAndSnippets(ctx)
 	if err != nil {
 		sendErrorResponse(logger, &w, 500, err, "Error retrieving user snippets")
+		herr := NewAppError(500, err, "Error retrieving user snippets")
+		h.publishError(gem, herr)
 		return
 	}
 
@@ -382,13 +386,16 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			herr = h.listObjectsSubscriptions(ctx, w, r)
 		// - basic HTTP 200 health check
 		case h.Routes.Ping.MatchString(uri):
+			h.publishSuccess(gem, r)
 			herr = nil
 		// - list object types
 		case h.Routes.ObjectTypes.MatchString(uri):
 			// TODO: h.listObjectTypes(ctx, w, r)
 			herr = NewAppError(404, nil, "Not matched")
+			h.publishError(gem, herr)
 		default:
 			herr = do404(ctx, w, r)
+			h.publishError(gem, herr)
 		}
 
 	case "POST":
@@ -454,6 +461,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			herr = h.doBulkOwnership(ctx, w, r)
 		default:
 			herr = do404(ctx, w, r)
+			h.publishError(gem, herr)
 		}
 
 	case "DELETE":
@@ -493,9 +501,11 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			herr = h.doBulkDelete(ctx, w, r)
 		default:
 			herr = do404(ctx, w, r)
+			h.publishError(gem, herr)
 		}
 	default:
 		herr = do404(ctx, w, r)
+		h.publishError(gem, herr)
 	}
 
 	// TODO: Before returning, finalize any metrics, capturing time/error codes ?

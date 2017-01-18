@@ -22,6 +22,7 @@ import (
 
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/services/aac"
+	"decipher.com/object-drive-server/services/audit"
 	"decipher.com/object-drive-server/util"
 	"golang.org/x/net/context"
 )
@@ -330,6 +331,11 @@ func zipRequestValidation(zipSpec *protocol.Zip) {
 }
 
 func (h AppServer) postZip(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
+	gem, _ := GEMFromContext(ctx)
+	gem.Action = "access"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventExport")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "EXPORT")
+
 	// Just give the zip file a standardized name for now.
 	w.Header().Set("Content-Type", "application/zip")
 	defer util.FinishBody(r.Body)
@@ -337,7 +343,9 @@ func (h AppServer) postZip(ctx context.Context, w http.ResponseWriter, r *http.R
 
 	err := util.FullDecode(r.Body, &zipSpec)
 	if err != nil {
-		return NewAppError(500, err, "unable to perform zip due to malformed request")
+		herr := NewAppError(500, err, "unable to perform zip due to malformed request")
+		h.publishError(gem, herr)
+		return herr
 	}
 	// This cleans up to make the input safe to go into the headers and sets defaults
 	zipRequestValidation(&zipSpec)
@@ -365,13 +373,18 @@ func (h AppServer) postZip(ctx context.Context, w http.ResponseWriter, r *http.R
 		var requestObject models.ODObject
 		requestObject.ID, err = hex.DecodeString(id)
 		if err != nil {
-			return NewAppError(500, err, "could not decode id")
+			herr := NewAppError(500, err, "could not decode id")
+			h.publishError(gem, herr)
+			return herr
 		}
 		obj, err := dao.GetObject(requestObject, true)
 		if err != nil {
 			code, msg, err := getObjectDAOError(err)
-			return NewAppError(code, err, msg)
+			herr := NewAppError(code, err, msg)
+			h.publishError(gem, herr)
+			return herr
 		}
+		gem.Payload.Audit = audit.WithResources(gem.Payload.Audit, NewResourceFromObject(obj))
 		// Make sure that we don't have name collisions
 		obj.Name = zipSuggestName(usedNames, obj.Name)
 		if obj.ContentSize.Valid && obj.ContentSize.Int64 > 0 {
@@ -379,6 +392,7 @@ func (h AppServer) postZip(ctx context.Context, w http.ResponseWriter, r *http.R
 			var herr *AppError
 			herr = zipIncludeFile(h, ctx, obj, ".", zw, manifest, usedNames)
 			if herr != nil {
+				h.publishError(gem, herr)
 				return herr
 			}
 		} else {
@@ -388,8 +402,15 @@ func (h AppServer) postZip(ctx context.Context, w http.ResponseWriter, r *http.R
 	// We accumulated a lot of data in the manifest.  Write it out now.
 	herr := zipWriteManifest(h.AAC, ctx, logger, zw, manifest)
 	if herr != nil {
+		h.publishError(gem, herr)
 		return herr
 	}
-	zw.Close()
+	if err = zw.Close(); err != nil {
+		herr := NewAppError(500, err, "could not properly close zip file")
+		h.publishError(gem, herr)
+		return herr
+	}
+
+	h.publishSuccess(gem, r)
 	return nil
 }

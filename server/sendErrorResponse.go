@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 	"runtime"
 	"sync"
@@ -103,11 +102,6 @@ func sendErrorResponseRaw(logger zap.Logger, w *http.ResponseWriter, herr *AppEr
 	}
 }
 
-// writeCounters lets us write the counters out to stats
-func renderErrorCounters(w http.ResponseWriter) {
-	doWriteCounters(w)
-}
-
 /*
   Error counters keep a matrix of {errorCode,endpoint} like:
     200,createObject
@@ -123,43 +117,4 @@ type counterKey struct {
 	//file:line are not necessarily required, but they do help to isolate exactly which code location
 	File string
 	Line int
-}
-
-// Write the counters out.  Make sure we are in the thread of the datastructure when we do this
-func doWriteCounters(w http.ResponseWriter) {
-
-	//Count the total number of events per endpoint, and report for each line
-	// This call can stall the whole server while it does its print outs.
-	//endpointTotals := make(map[string]int64)
-	totalQueries := int64(0)
-	totalErrors := int64(0)
-	var lines = make([]string, 0)
-
-	//We are under the lock, so don't do IO in here yet.
-	mutex.Lock()
-	for _, v := range counters {
-		totalQueries += v
-	}
-	for k, v := range counters {
-		//Unless it's 400 or greater, it's not an error.
-		if k.Code >= 400 {
-			lines = append(
-				lines,
-				fmt.Sprintf("%d\t%d\t%s:%d", v, k.Code, k.File, k.Line),
-			)
-			totalErrors += v
-		}
-	}
-	mutex.Unlock()
-
-	//Do io outside the mutex!
-	if len(lines) == 0 {
-		fmt.Fprintf(w, "Errors: none\n")
-	} else {
-		fmt.Fprintf(w, "Errors: %d in %d queries\n", totalErrors, totalQueries)
-		fmt.Fprintf(w, "count\tcode\tfile:line\n")
-		for i := range lines {
-			fmt.Fprintf(w, "%s\n", lines[i])
-		}
-	}
 }

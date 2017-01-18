@@ -56,10 +56,7 @@ func (h AppServer) doBulkOwnership(ctx context.Context, w http.ResponseWriter, r
 
 	var bulkResponse []protocol.ObjectError
 	for _, o := range objects {
-		gem.ID = newGUID()
-		gem.Payload.Audit = audit.WithID(gem.Payload.Audit, "guid", gem.ID)
-		gem.Payload.Audit.Resources = nil
-		gem.Payload.Audit.ModifiedPairList = nil
+		gem = ResetBulkItem(gem)
 
 		changeRequest := protocol.ChangeOwnerRequest{
 			ID:          o.ObjectID,

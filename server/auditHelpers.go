@@ -3,7 +3,9 @@ package server
 import (
 	"encoding/hex"
 	"encoding/json"
+	"time"
 
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/services/audit"
 	"github.com/deciphernow/gm-fabric-go/audit/acm_thrift"
@@ -65,4 +67,14 @@ func NewAuditTargetForID(ID []byte) components_thrift.ActionTarget {
 	at.IdentityType = stringPtr("OBJECTID")
 	at.Value = stringPtr(hex.EncodeToString(ID))
 	return at
+}
+
+// ResetBulkItem clears fields specific to an event and assigns new id and time
+func ResetBulkItem(gem events.GEM) events.GEM {
+	gem.ID = newGUID()
+	gem.Payload.Audit = audit.WithID(gem.Payload.Audit, "guid", gem.ID)
+	gem.Payload.Audit = audit.WithCreatedOn(gem.Payload.Audit, time.Now().UTC().Format("2006-01-02T15:04:05.000Z"))
+	gem.Payload.Audit.Resources = nil
+	gem.Payload.Audit.ModifiedPairList = nil
+	return gem
 }

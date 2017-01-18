@@ -41,10 +41,7 @@ func (h AppServer) doBulkMove(ctx context.Context, w http.ResponseWriter, r *htt
 
 	var bulkResponse []protocol.ObjectError
 	for _, o := range objects {
-		gem.ID = newGUID()
-		gem.Payload.Audit = audit.WithID(gem.Payload.Audit, "guid", gem.ID)
-		gem.Payload.Audit.Resources = nil
-		gem.Payload.Audit.ModifiedPairList = nil
+		gem = ResetBulkItem(gem)
 		id, err := hex.DecodeString(o.ID)
 		if err != nil {
 			herr := NewAppError(400, err, "Cannot decode object id")
