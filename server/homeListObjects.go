@@ -42,6 +42,6 @@ func (h *AppServer) homeListObjects(ctx context.Context, w http.ResponseWriter, 
 		h.publishError(gem, herr)
 		return herr
 	}
-	h.publishSuccess(gem, r)
+	h.publishSuccess(gem, w)
 	return nil
 }

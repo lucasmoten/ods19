@@ -173,10 +173,10 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	gem.Payload.ChangeToken = apiResponse.ChangeToken
 	gem.Payload.StreamUpdate = isMultipart
 	gem.Payload.Audit = audit.WithResources(gem.Payload.Audit, auditResource)
-	h.publishSuccess(gem, r)
 
 	jsonResponse(w, apiResponse)
 
+	h.publishSuccess(gem, w)
 	return nil
 }
 

@@ -45,7 +45,7 @@ func (h AppServer) favicon(ctx context.Context, w http.ResponseWriter, r *http.R
 		h.publishError(gem, herr)
 		return herr
 	}
-	h.publishSuccess(gem, r)
+	h.publishSuccess(gem, w)
 
 	return nil
 }

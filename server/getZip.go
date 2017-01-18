@@ -411,6 +411,6 @@ func (h AppServer) postZip(ctx context.Context, w http.ResponseWriter, r *http.R
 		return herr
 	}
 
-	h.publishSuccess(gem, r)
+	h.publishSuccess(gem, w)
 	return nil
 }

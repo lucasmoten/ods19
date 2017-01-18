@@ -179,9 +179,8 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	gem.Payload.ChangeToken = apiResponse.ChangeToken
 	gem.Payload.StreamUpdate = false
 	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
-	h.publishSuccess(gem, r)
 
 	jsonResponse(w, apiResponse)
-
+	h.publishSuccess(gem, w)
 	return nil
 }

@@ -29,6 +29,6 @@ func (h AppServer) userStats(ctx context.Context, w http.ResponseWriter, r *http
 		return herr
 	}
 	jsonResponse(w, userStats)
-	h.publishSuccess(gem, r)
+	h.publishSuccess(gem, w)
 	return nil
 }

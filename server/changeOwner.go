@@ -87,9 +87,9 @@ func (h AppServer) changeOwner(ctx context.Context, w http.ResponseWriter, r *ht
 	// Event broadcast
 	gem.Payload.ChangeToken = apiResponse.ChangeToken
 	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
-	h.publishSuccess(gem, r)
 
 	jsonResponse(w, *apiResponse)
+	h.publishSuccess(gem, w)
 	return nil
 }
 

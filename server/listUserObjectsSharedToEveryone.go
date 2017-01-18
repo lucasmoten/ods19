@@ -49,9 +49,9 @@ func (h AppServer) listUserObjectsSharedToEveryone(ctx context.Context, w http.R
 	}
 
 	gem.Payload.Audit = WithResourcesFromResultset(gem.Payload.Audit, results)
-	h.publishSuccess(gem, r)
 
 	// Output as JSON
 	jsonResponse(w, apiResponse)
+	h.publishSuccess(gem, w)
 	return nil
 }

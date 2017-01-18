@@ -86,8 +86,8 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 
 	apiResponse := mapping.MapODObjectToExpungedObjectResponse(&dbObject).WithCallerPermission(protocolCaller(caller))
 
-	h.publishSuccess(gem, r)
 
 	jsonResponse(w, apiResponse)
+	h.publishSuccess(gem, w)
 	return nil
 }

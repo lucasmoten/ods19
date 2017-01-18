@@ -98,9 +98,9 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 	apiResponse := mapping.MapODObjectToDeletedObjectResponse(&dbObject).WithCallerPermission(protocolCaller(caller))
 
 	gem.Payload.StreamUpdate = false
-	h.publishSuccess(gem, r)
 
 	jsonResponse(w, apiResponse)
+	h.publishSuccess(gem, w)
 	return nil
 }
 

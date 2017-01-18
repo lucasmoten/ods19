@@ -111,10 +111,9 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	}
 
 	gem.Payload.Audit = WithResourcesFromResultset(gem.Payload.Audit, response)
-	h.publishSuccess(gem, r)
 
 	// Output as JSON
 	jsonResponse(w, apiResponse)
-
+	h.publishSuccess(gem, w)
 	return nil
 }
