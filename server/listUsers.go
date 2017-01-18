@@ -9,9 +9,14 @@ import (
 
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/services/audit"
 )
 
 func (h AppServer) listUsers(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
+	gem, _ := GEMFromContext(ctx)
+	gem.Action = "access"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventAccess")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "ACCESS")
 
 	// Retreive the users
 	var users []models.ODUser
@@ -19,7 +24,9 @@ func (h AppServer) listUsers(ctx context.Context, w http.ResponseWriter, r *http
 
 	users, err := dao.GetUsers()
 	if err != nil {
-		return NewAppError(500, err, "Unable to get user list")
+		herr := NewAppError(500, err, "Unable to get user list")
+		h.publishError(gem, herr)
+		return herr
 	}
 	// Alter the returned users to
 	//      Remove any that look like groups
@@ -56,6 +63,7 @@ func (h AppServer) listUsers(ctx context.Context, w http.ResponseWriter, r *http
 
 	apiResponse := mapping.MapODUsersToUsers(&odusers)
 	jsonResponse(w, apiResponse)
+	h.publishSuccess(gem, r)
 	return nil
 }
 

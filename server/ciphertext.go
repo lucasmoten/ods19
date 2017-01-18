@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"decipher.com/object-drive-server/ciphertext"
+	"decipher.com/object-drive-server/services/audit"
 	"github.com/uber-go/zap"
 	"golang.org/x/net/context"
 )
@@ -20,8 +21,14 @@ import (
 // without p2p requesting.
 //
 func (h AppServer) getCiphertext(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
+	gem, _ := GEMFromContext(ctx)
+	gem.Action = "access"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventAccess")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "ACCESS")
 	if r.Header.Get("USER_DN") != ciphertext.PeerSignifier {
-		return NewAppError(403, fmt.Errorf("p2p required to get ciphertext"), "forbidden")
+		herr := NewAppError(403, fmt.Errorf("p2p required to get ciphertext"), "forbidden")
+		h.publishError(gem, herr)
+		return herr
 	}
 	//We are getting a p2p ciphertext request, so that we can handle getting range requests
 	//before a file can make it into PermanentStorage
@@ -29,7 +36,9 @@ func (h AppServer) getCiphertext(ctx context.Context, w http.ResponseWriter, r *
 	//Ask a drain provider directly to give us a particular ciphertext.
 	captureGroups, ok := CaptureGroupsFromContext(ctx)
 	if !ok {
-		return NewAppError(400, nil, "unparseable uri parameters")
+		herr := NewAppError(400, nil, "unparseable uri parameters")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	//Specify which ciphertext out of which drain provider we are looking for
@@ -41,7 +50,9 @@ func (h AppServer) getCiphertext(ctx context.Context, w http.ResponseWriter, r *
 	startAt := int64(0)
 	byteRange, err := extractByteRange(r)
 	if err != nil {
-		return NewAppError(400, err, "byte range parse fail")
+		herr := NewAppError(400, err, "byte range parse fail")
+		h.publishError(gem, herr)
+		return herr
 	}
 	//We just want to know where to start from, and stream the whole file
 	//until the client stops reading it.
@@ -53,12 +64,18 @@ func (h AppServer) getCiphertext(ctx context.Context, w http.ResponseWriter, r *
 	f, length, err := ciphertext.UseLocalFile(logger, dp, rName, startAt)
 	if err != nil {
 		//Keep it quiet in the case of not found
-		return NewAppError(500, err, "error looking in p2p cache")
+		herr := NewAppError(500, err, "error looking in p2p cache")
+		h.publishError(gem, herr)
+		return herr
 	}
 	if f == nil {
-		return NewAppError(204, nil, "not in this p2p cache")
+		herr := NewAppError(204, nil, "not in this p2p cache")
+		h.publishError(gem, herr)
+		return herr
 	}
 	if length < 0 {
+		herr := NewAppError(http.StatusInternalServerError, nil, "p2p bad legnth")
+		h.publishError(gem, herr)
 		logger.Error("p2p bad length", zap.Int64("Content-Length", length))
 	}
 	defer f.Close()
@@ -71,5 +88,6 @@ func (h AppServer) getCiphertext(ctx context.Context, w http.ResponseWriter, r *
 	if err != nil && strings.Contains(err.Error(), "write: connection reset by peer") == false {
 		logger.Info("p2p copy failure", zap.String("err", err.Error()), zap.Int64("bytes", byteCount))
 	}
+	h.publishSuccess(gem, r)
 	return nil
 }

@@ -9,6 +9,7 @@ Release vNEXT
 * ENH: Bulk Change owner objects: POST /objects/owner/{resourceString}
 * ENH: Return properties in search results consistent with other list calls
 * ENH: Check database schema version on startup. Must match expected. Wait for migration before terminating.
+* ENH: Emit events with audit payload for all handlers to support ICS 500-27
 
 Release v1.0.1.12
 -----------------

@@ -19,8 +19,8 @@ func (h AppServer) listUserObjectsShared(ctx context.Context, w http.ResponseWri
 
 	gem, _ := GEMFromContext(ctx)
 	gem.Action = "access"
-	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventAccess")
-	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "ACCESS")
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventSearchQry")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "PARAMETER_SEARCH")
 	gem.Payload.Audit = audit.WithQueryString(gem.Payload.Audit, r.URL.String())
 
 	// Parse Request
