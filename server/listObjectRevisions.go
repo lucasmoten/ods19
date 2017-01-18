@@ -11,6 +11,7 @@ import (
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/services/audit"
 )
 
 // listObjectRevisions is a method handler on AppServer for implementing the
@@ -22,11 +23,19 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	user, _ := UserFromContext(ctx)
 	dao := DAOFromContext(ctx)
 
+	gem, _ := GEMFromContext(ctx)
+	gem.Action = "access"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventSearchQry")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "PARAMETER_SEARCH")
+	gem.Payload.Audit = audit.WithQueryString(gem.Payload.Audit, r.URL.String())
+
 	// Parse Request
 	captured, _ := CaptureGroupsFromContext(ctx)
 	pagingRequest, err := protocol.NewPagingRequest(r, captured, true)
 	if err != nil {
-		return NewAppError(400, err, "Error parsing request")
+		herr := NewAppError(400, err, "Error parsing request")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	// Fetch matching object
@@ -34,11 +43,15 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	// valid decoding checked when parsed, no need to check for error again
 	obj.ID, err = hex.DecodeString(pagingRequest.ObjectID)
 	if err != nil {
-		return NewAppError(400, err, "Object Identifier in Request URI is not a hex string")
+		herr := NewAppError(400, err, "Object Identifier in Request URI is not a hex string")
+		h.publishError(gem, herr)
+		return herr
 	}
 	dbObject, err := dao.GetObject(obj, false)
 	if err != nil {
-		return NewAppError(500, err, "Error retrieving object")
+		herr := NewAppError(500, err, "Error retrieving object")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	// Check for permission to read this object
@@ -50,18 +63,26 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			return NewAppError(410, err, "The object no longer exists.")
+			herr := NewAppError(410, err, "The object no longer exists.")
+			h.publishError(gem, herr)
+			return herr
 		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-			return NewAppError(405, err, "The object cannot be read because an ancestor is deleted.")
+			herr := NewAppError(405, err, "The object cannot be read because an ancestor is deleted.")
+			h.publishError(gem, herr)
+			return herr
 		case dbObject.IsDeleted:
-			return NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it before listing its contents")
+			herr := NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it before listing its contents")
+			h.publishError(gem, herr)
+			return herr
 		}
 	}
 
 	// Snippets
 	snippetFields, ok := SnippetsFromContext(ctx)
 	if !ok {
-		return NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
+		herr := NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
+		h.publishError(gem, herr)
+		return herr
 	}
 	user.Snippets = snippetFields
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
@@ -76,7 +97,9 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	// Get the revision information for this objects
 	response, err := dao.GetObjectRevisionsWithPropertiesByUser(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest), dbObject, checkACM)
 	if err != nil {
-		return NewAppError(500, err, "General error")
+		herr := NewAppError(500, err, "General error")
+		h.publishError(gem, herr)
+		return herr
 	}
 
 	// Response in requested format
@@ -86,6 +109,9 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	for objectIndex, object := range apiResponse.Objects {
 		apiResponse.Objects[objectIndex] = object.WithCallerPermission(protocolCaller(caller))
 	}
+
+	gem.Payload.Audit = WithResourcesFromResultset(gem.Payload.Audit, response)
+	h.publishSuccess(gem, r)
 
 	// Output as JSON
 	jsonResponse(w, apiResponse)
