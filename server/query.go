@@ -55,7 +55,7 @@ func (h AppServer) query(ctx context.Context, w http.ResponseWriter, r *http.Req
 	user.Snippets = snippetFields
 
 	// Perform the basic search
-	results, err := dao.SearchObjectsByNameOrDescription(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest), false)
+	results, err := dao.SearchObjectsByNameOrDescription(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest), true)
 	if err != nil {
 		herr := NewAppError(500, errors.New("Database call failed: "), err.Error())
 		h.publishError(gem, herr)
