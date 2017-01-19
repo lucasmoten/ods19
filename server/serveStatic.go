@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 
 	"golang.org/x/net/context"
@@ -33,7 +34,7 @@ func (h AppServer) serveStatic(ctx context.Context, w http.ResponseWriter, r *ht
 		h.publishError(gem, herr)
 		return herr
 	}
-	path := filepath.Join(h.StaticDir, afterStatic)
+	path := path.Clean(filepath.Join(h.StaticDir, afterStatic))
 	if err := util.SanitizePath(path); err != nil {
 		herr := NewAppError(404, err, errStaticResourceNotFound)
 		h.publishError(gem, herr)
