@@ -1,9 +1,14 @@
 FORMAT: 1A
 
 # Object Drive Microservice API
-A series of microservice operations are exposed on the API gateway for use of Object Drive. These services are in REST format. A listing of microservice operations is summarized in the table below
+A series of microservice operations are exposed on the API gateway for use of Object Drive. 
+
+[Change Log](static/temmplates/changelog.html)
+
 
 ## Summary of Operations Available
+
+A listing of microservice operations is summarized in the table below.
 
 | Name | Purpose |
 | --- | --- |
@@ -48,9 +53,6 @@ The http level result of calling APIs that happens inside of SSL:
 
 [Actual Traffic - Basic Operations](static/templates/APISample.html)
 
-<!--
-[Share (from real traffic)](static/templates/TestShare.html)
--->
 Testing interface: 
 
 [Development (for development)](ui)

@@ -6,4 +6,5 @@ cd `dirname $0`
 docker run --rm -ti -v `pwd`:/docs humangeo/aglio -i docs/home.md --theme-variables streak -o root.html
 mv -f root.html server/static/templates/root.html
 
-
+docker run --rm -ti -v `pwd`:/docs humangeo/aglio -i changelog.md --theme-variables streak -o changelog.html
+mv -f changelog.html server/static/templates/changelog.html
