@@ -1,6 +1,8 @@
-Changelog
+FORMAT: 1A
 
-Release vNEXT
+# Object Drive Changelog
+
+## Release v1.0.1.13
 -------------
 * ENH: Calculated full path and unique names for objects. Slashes are now restricted characters from updates.
 * ENH: Bulk Delete objects: DELETE /objects
@@ -9,9 +11,10 @@ Release vNEXT
 * ENH: Bulk Change owner objects: POST /objects/owner/{resourceString}
 * ENH: Return properties in search results consistent with other list calls
 * ENH: Check database schema version on startup. Must match expected. Wait for migration before terminating.
-* ENH: Emit events with audit payload for all handlers to support ICS 500-27
+* NEW: Emit events with audit payload for all handlers to support ICS 500-27
+* NEW: Build Changelog into HTML and link from API Documentation
 
-Release v1.0.1.12
+## Release v1.0.1.12
 -----------------
 * ENH: Determination of content type from file extension on upload expanded to larger list
 * ENH: Autoscale shutdown from lifecycle messages now handle 10 messages at a time, configured via OD_AWS_SQS_BATCHSIZE
@@ -21,18 +24,18 @@ Release v1.0.1.12
 * FIX: Service init script only changes ownership of certificates if they are found under OD_BASEPATH
 * DOC: API Documentation updated with sectiosn for empty trash and retrieving bulk objects
 
-Release v1.0.1.11
+## Release v1.0.1.11
 -----------------
 * ENH: Added more logging for AAC Client connection when receiving announce data
 * FIX: RPM adds user and group if not present. Now deletes only on uninstall, not upgrades.
 
-Release v1.0.1.10
+## Release v1.0.1.10
 -----------------
 * FIX: RPM updated to create services group, and change ownership to object-drive:services
 * ENH: Performance improvements to database list/search operations, and additional indexing on key columns
 * FIX: Object-Drive Service Init script no longer assigns group to process to prevent failure.
 
-Release v1.0.1.9
+## Release v1.0.1.9
 ----------------
 * ENH: Command `serviceTest` renamed to `test`
 * FIX: RPM updated to use /opt/services/object-drive-1.0 installation path, object-drive-1.0 for servicename, object-drive for username
@@ -42,7 +45,7 @@ Release v1.0.1.9
 * DOC: API Documentation updated with Change Owner and List Objects at Root For Group
 * ENH: ACL Impersonation Whitelist read from different location in object-drive.yml 
 
-Release v1.0.1.8
+## Release v1.0.1.8
 ----------------
 * NEW: CORS support in the server
 * DOC: API Documentation now reflects changes where OwnedBy field is now stored and returned in serialized resource format
@@ -53,7 +56,7 @@ Release v1.0.1.8
 * FIX: Port announced for service in ZK is based upon actual server port selected
 * FIX: Prevent non-owners from moving objects
 
-Release v1.0.1.7
+## Release v1.0.1.7
 ----------------
 * NEW: AAC is discoverable from its own ZK cluster, not just default ZK.
 * NEW: Additional debug logging around database code for updating ACMs on objects.
@@ -61,7 +64,7 @@ Release v1.0.1.7
 * NEW: Configuration for environment variable OD_AWS_ENDPOINT is now read from OD_AWS_S3_ENDPOINT
 * NEW: Support for Peer2Peer retrieval of content streams when running multiple instances of ODrive
 
-Release v1.0.1.6
+## Release v1.0.1.6
 ----------------
 
 * FIX: odrive-database utility now allows cascade override from config file
@@ -71,7 +74,7 @@ Release v1.0.1.6
 * NEW: Update Object request supports passing updated permissions in new 1.1 format
 * NEW: Create Object request supports providing permissions in new 1.1 format
 
-Release v1.0.1.5
+## Release v1.0.1.5
 ----------------
 
 * NEW: disableS3 with an empty S3 Bucket variable.  it works with load balancing due to p2p caching.
@@ -84,7 +87,7 @@ Release v1.0.1.5
   longer returning the complete list with redacted folder names
 * NEW: Autoscaling report gets messages triggered by a CloudWatch alarm writes to SQS so we shut down and tell Autoscale 
 
-Release v1.0.1.4
+## Release v1.0.1.4
 ----------------
 
 * FIX: Shared with Me now excludes objects shared to Everyone
@@ -100,7 +103,7 @@ Release v1.0.1.4
 * FIX: List of objects /shared to others will exclude those that are private to the user. 
 * NEW: CloudWatch metrics that enable the setting of alarms by admins (an auto-scaling prerequisite)
 
-Release v1.0.1
+## Release v1.0.1
 --------------
 
 * ENH: Connection to Zookeeper recovery improvements when timed out
@@ -111,7 +114,7 @@ Release v1.0.1
 * FIX: odrive binary will run as user `odrive` when installed with yum package
 * FIX: Major Release number bump at customer request
 
-Release v0.1.0
+## Release v0.1.0
 --------------
 
 * REF: Remove broken STANDALONE flag
