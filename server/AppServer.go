@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"runtime/debug"
@@ -82,6 +83,17 @@ type AppServer struct {
 	AclImpersonationWhitelist []string
 }
 
+func resolvePath(p string) (string, error) {
+	if !path.IsAbs(p) {
+		wd, err := os.Getwd()
+		if err != nil {
+			return p, err
+		}
+		return path.Clean(path.Join(wd, p)), nil
+	}
+	return p, nil
+}
+
 // NewAppServer creates an AppServer.
 func NewAppServer(conf config.ServerSettingsConfiguration) (*AppServer, error) {
 
@@ -100,6 +112,12 @@ func NewAppServer(conf config.ServerSettingsConfiguration) (*AppServer, error) {
 
 	usersLruCache := ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50))
 
+	// We will be appending malicious URLs to this.  This directory must be fully qualified.
+	staticDir, err := resolvePath(conf.PathToStaticFiles)
+	if err != nil {
+		return nil, err
+	}
+
 	httpHandler := AppServer{
 		Port:                      conf.ListenPort,
 		Bind:                      conf.ListenBind,
@@ -108,7 +126,7 @@ func NewAppServer(conf config.ServerSettingsConfiguration) (*AppServer, error) {
 		Tracker:                   performance.NewJobReporters(1024),
 		ServicePrefix:             config.RootURLRegex,
 		TemplateCache:             templates,
-		StaticDir:                 conf.PathToStaticFiles,
+		StaticDir:                 staticDir,
 		UsersLruCache:             usersLruCache,
 		AclImpersonationWhitelist: conf.AclImpersonationWhitelist,
 	}
