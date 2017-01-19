@@ -27,5 +27,10 @@ func SanitizePath(path string) error {
 	if re.MatchString(path) {
 		return fmt.Errorf("Relative path detected. Possible attack. Path string: %s\n", path)
 	}
+	attackPattern = `\%`
+	re = regexp.MustCompile(attackPattern)
+	if re.MatchString(path) {
+		return fmt.Errorf("Encoding metacharacter detected. Possible attack. Path string: %s\n", path)
+	}
 	return nil
 }

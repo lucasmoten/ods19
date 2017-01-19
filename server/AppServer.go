@@ -294,6 +294,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			herr = h.getStats(ctx, w, r)
 			withoutDatabase = true
 		case h.Routes.StaticFiles.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.StaticFiles)
 			herr = h.serveStatic(ctx, w, r)
 			withoutDatabase = true
 		// API documentation
