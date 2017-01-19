@@ -50,12 +50,15 @@ func defaultAudit(r *http.Request) events_thrift.AuditEvent {
 	e = audit.WithAdditionalInfo(e, "USER_DN", r.Header.Get("USER_DN"))
 	e = audit.WithAdditionalInfo(e, "SSL_CLIENT_S_DN", r.Header.Get("SSL_CLIENT_S_DN"))
 	e = audit.WithActionTargetVersions(e, "1.0")
-	e = audit.WithQueryString(e, r.URL.RawQuery)
+	query := r.URL.RawQuery
+	if len(query) > 0 {
+		e = audit.WithQueryString(e, r.URL.RawQuery)
+	}
 	e = audit.WithType(e, "EventUnknown")
 	e = audit.WithAction(e, "ACCESS")
 	e = audit.WithActionResult(e, "FAILURE")
 	e = audit.WithActionInitiator(e, "DISTINGUISHED_NAME", config.GetNormalizedDistinguishedName(r.Header.Get("USER_DN")))
-	e = audit.WithCreator(e, "APPLICATION", "OBJECTDRIVEAPI")
+	e = audit.WithCreator(e, "APPLICATION", "Object Drive")
 	e = audit.WithCreatedOn(e, time.Now().UTC().Format("2006-01-02T15:04:05.000Z"))
 
 	return e

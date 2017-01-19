@@ -63,7 +63,7 @@ func (h AppServer) listUsers(ctx context.Context, w http.ResponseWriter, r *http
 
 	apiResponse := mapping.MapODUsersToUsers(&odusers)
 	jsonResponse(w, apiResponse)
-	h.publishSuccess(gem, r)
+	h.publishSuccess(gem, w)
 	return nil
 }
 

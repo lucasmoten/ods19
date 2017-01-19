@@ -55,6 +55,7 @@ func (h AppServer) doBulkOwnership(ctx context.Context, w http.ResponseWriter, r
 	}
 
 	var bulkResponse []protocol.ObjectError
+	w.Header().Set("Status","200")
 	for _, o := range objects {
 		gem = ResetBulkItem(gem)
 
@@ -170,7 +171,7 @@ func (h AppServer) doBulkOwnership(ctx context.Context, w http.ResponseWriter, r
 
 		gem.Payload.ChangeToken = apiResponse.ChangeToken
 		gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
-		h.publishSuccess(gem, r)
+		h.publishSuccess(gem, w)
 	}
 	jsonResponse(w, bulkResponse)
 	return nil

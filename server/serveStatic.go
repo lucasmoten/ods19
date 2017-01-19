@@ -53,6 +53,6 @@ func (h AppServer) serveStatic(ctx context.Context, w http.ResponseWriter, r *ht
 		h.publishError(gem, herr)
 		return herr
 	}
-	h.publishSuccess(gem, r)
+	h.publishSuccess(gem, w)
 	return nil
 }

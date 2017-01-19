@@ -386,7 +386,10 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			herr = h.listObjectsSubscriptions(ctx, w, r)
 		// - basic HTTP 200 health check
 		case h.Routes.Ping.MatchString(uri):
-			h.publishSuccess(gem, r)
+			gem.Action = "access"
+			gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventAccess")
+			gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "ACCESS")
+			h.publishSuccess(gem, w)
 			herr = nil
 		// - list object types
 		case h.Routes.ObjectTypes.MatchString(uri):
@@ -534,9 +537,13 @@ func (h *AppServer) publishError(gem events.GEM, herr *AppError) {
 	}
 	h.EventQueue.Publish(gem)
 }
-func (h *AppServer) publishSuccess(gem events.GEM, r *http.Request) {
+func (h *AppServer) publishSuccess(gem events.GEM, w http.ResponseWriter) {
 	gem.Payload.Audit = audit.WithActionResult(gem.Payload.Audit, "SUCCESS")
-	gem.Payload.Audit = audit.WithActionTargetMessages(gem.Payload.Audit, r.Header.Get("Status"))
+	status := w.Header().Get("Status")
+	if len(status) == 0 {
+		status = "200"
+	}
+	gem.Payload.Audit = audit.WithActionTargetMessages(gem.Payload.Audit, status)
 	h.EventQueue.Publish(gem)
 }
 

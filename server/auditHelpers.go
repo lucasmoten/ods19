@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/hex"
 	"encoding/json"
+	"strconv"
 	"time"
 
 	"decipher.com/object-drive-server/events"
@@ -32,6 +33,7 @@ func WithResourcesFromResultset(e events_thrift.AuditEvent, results models.ODObj
 	for _, r := range results.Objects {
 		e = audit.WithResources(e, NewResourceFromObject(r))
 	}
+	e = audit.WithResult(e, "OBJECT", strconv.Itoa(results.TotalRows), "object-drive-query-results.json")
 	return e
 }
 
@@ -44,8 +46,10 @@ func NewResourceFromObject(obj models.ODObject) components_thrift.Resource {
 	resource.Identifier = stringPtr(hex.EncodeToString(obj.ID))
 	resource.Type = stringPtr("OBJECT")
 	resource.SubType = stringPtr(obj.TypeName.String)
-	resource.Description = &components_thrift.ResourceDescription{
-		Content: stringPtr(obj.Description.String),
+	if obj.Description.Valid && len(obj.Description.String) > 0 {
+		resource.Description = &components_thrift.ResourceDescription{
+			Content: stringPtr(obj.Description.String),
+		}
 	}
 	resource.Size = int64Ptr(obj.ContentSize.Int64)
 	acm := NewAuditACMFromString(obj.RawAcm.String)

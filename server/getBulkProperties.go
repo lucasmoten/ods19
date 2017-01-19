@@ -38,6 +38,7 @@ func (h AppServer) getBulkProperties(ctx context.Context, w http.ResponseWriter,
 	bulkResponse.PageNumber = 1
 	bulkResponse.PageCount = 1
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
+	w.Header().Set("Status","200")
 	for _, requestObjectID := range objects.ObjectIds {
 		gem = ResetBulkItem(gem)
 		id, err := hex.DecodeString(requestObjectID)
@@ -180,7 +181,7 @@ func (h AppServer) getBulkProperties(ctx context.Context, w http.ResponseWriter,
 		bulkResponse.Objects = append(bulkResponse.Objects, apiResponse)
 		bulkResponse.TotalRows++
 		bulkResponse.PageSize++
-		h.publishSuccess(gem, r)
+		h.publishSuccess(gem, w)
 	}
 	jsonResponse(w, bulkResponse)
 	return nil

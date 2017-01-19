@@ -44,13 +44,14 @@ func (h AppServer) expungeDeleted(ctx context.Context, w http.ResponseWriter, r 
 		h.publishError(gem, herr)
 		return herr
 	}
+	w.Header().Set("Status","200")
 	for _, o := range expungedObjects.Objects {
 		gem = ResetBulkItem(gem)
 		gem.Payload.ObjectID = hex.EncodeToString(o.ID)
 		gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(o.ID))
 		gem.Payload.Audit = audit.WithResources(gem.Payload.Audit, NewResourceFromObject(o))
 		gem.Payload.ChangeToken = o.ChangeToken
-		h.publishSuccess(gem, r)
+		h.publishSuccess(gem, w)
 	}
 	expungedStats := ExpungedStats{ExpungedCount: expungedObjects.TotalRows}
 	jsonResponse(w, expungedStats)

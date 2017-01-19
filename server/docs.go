@@ -30,6 +30,6 @@ func (h AppServer) docs(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		h.publishError(gem, herr)
 		return herr
 	}
-	h.publishSuccess(gem, r)
+	h.publishSuccess(gem, w)
 	return nil
 }

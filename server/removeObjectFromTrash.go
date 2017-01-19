@@ -87,8 +87,8 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	gem.Payload.ChangeToken = unDeletedObj.ChangeToken
 	gem.Payload.StreamUpdate = unDeletedObj.ContentSize.Int64 > 0
 	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
-	h.publishSuccess(gem, r)
 
 	jsonResponse(w, apiResponse)
+	h.publishSuccess(gem, w)
 	return nil
 }

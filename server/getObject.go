@@ -71,7 +71,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	if dbObject.IsDeleted {
 		apiResponse := mapping.MapODObjectToDeletedObject(&dbObject).WithCallerPermission(protocolCaller(caller))
 		jsonResponse(w, apiResponse)
-		h.publishSuccess(gem, r)
+		h.publishSuccess(gem, w)
 		return nil
 	}
 
@@ -94,7 +94,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 		WithBreadcrumbs(crumbs)
 	jsonResponse(w, apiResponse)
 
-	h.publishSuccess(gem, r)
+	h.publishSuccess(gem, w)
 
 	return nil
 }

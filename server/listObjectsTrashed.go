@@ -53,7 +53,6 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 	apiResponse := mapping.MapODObjectResultsetToObjectResultset(&results)
 
 	gem.Payload.Audit = WithResourcesFromResultset(gem.Payload.Audit, results)
-	h.publishSuccess(gem, r)
 
 	// Caller permissions
 	for objectIndex, object := range apiResponse.Objects {
@@ -62,6 +61,6 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 
 	// Output as JSON
 	jsonResponse(w, apiResponse)
-
+	h.publishSuccess(gem, w)
 	return nil
 }

@@ -88,7 +88,7 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	// Fail fast: Don't even look at cache or retrieve if the file size is 0
 	if !dbObjectRevision.ContentSize.Valid || dbObjectRevision.ContentSize.Int64 <= int64(0) {
 		herr := NewAppError(204, nil, "No content")
-		h.publishSuccess(gem, r)
+		h.publishSuccess(gem, w)
 		return herr
 	}
 
@@ -103,11 +103,11 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 		if appError.Error != nil {
 			h.publishError(gem, appError)
 		} else {
-			h.publishSuccess(gem, r)
+			h.publishSuccess(gem, w)
 		}
 		return appError
 	}
-	h.publishSuccess(gem, r)
+	h.publishSuccess(gem, w)
 	return nil
 }
 

@@ -88,6 +88,6 @@ func (h AppServer) getCiphertext(ctx context.Context, w http.ResponseWriter, r *
 	if err != nil && strings.Contains(err.Error(), "write: connection reset by peer") == false {
 		logger.Info("p2p copy failure", zap.String("err", err.Error()), zap.Int64("bytes", byteCount))
 	}
-	h.publishSuccess(gem, r)
+	h.publishSuccess(gem, w)
 	return nil
 }

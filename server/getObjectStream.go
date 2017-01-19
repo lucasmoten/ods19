@@ -115,11 +115,11 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 		if herr.Error != nil {
 			h.publishError(gem, herr)
 		} else {
-			h.publishSuccess(gem, r)
+			h.publishSuccess(gem, w)
 		}
 		return herr
 	}
-	h.publishSuccess(gem, r)
+	h.publishSuccess(gem, w)
 	return nil
 }
 

@@ -37,6 +37,7 @@ func (h AppServer) doBulkDelete(ctx context.Context, w http.ResponseWriter, r *h
 	}
 
 	var bulkResponse []protocol.ObjectError
+	w.Header().Set("Status","200")
 	for _, o := range objects {
 		gem = ResetBulkItem(gem)
 		id, err := hex.DecodeString(o.ObjectID)
@@ -105,7 +106,7 @@ func (h AppServer) doBulkDelete(ctx context.Context, w http.ResponseWriter, r *h
 		dbObject, err = dao.GetObject(requestObject, false)
 		gem.Payload.ChangeToken = dbObject.ChangeToken
 
-		h.publishSuccess(gem, r)
+		h.publishSuccess(gem, w)
 
 	}
 	jsonResponse(w, bulkResponse)

@@ -175,9 +175,9 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 
 	gem.Payload.ChangeToken = apiResponse.ChangeToken
 	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
-	h.publishSuccess(gem, r)
 
 	jsonResponse(w, apiResponse)
+	h.publishSuccess(gem, w)
 	return nil
 }
 
