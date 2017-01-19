@@ -7,4 +7,4 @@ EXPOSE 4430
 
 WORKDIR /go/src/decipher.com/object-drive-server/cmd/odrive
 RUN go build -race -o main .
-CMD ["./main"]
+CMD ["./main", "--staticRoot", "/go/src/decipher.com/object-drive-server/server/static", "--templateDir", "/go/src/decipher.com/object-drive-server/server/static/templates"]

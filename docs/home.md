@@ -3,7 +3,7 @@ FORMAT: 1A
 # Object Drive Microservice API
 A series of microservice operations are exposed on the API gateway for use of Object Drive. 
 
-[Change Log](static/temmplates/changelog.html)
+[Change Log](static/templates/changelog.html)
 
 
 ## Summary of Operations Available
