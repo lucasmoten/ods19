@@ -23,14 +23,14 @@ func TestGetRegexCaptureGroups(t *testing.T) {
 
 func TestSanitizePath(t *testing.T) {
 	okayPath := "/var/www/static/app.js"
-	err := SanitizePath(okayPath)
+	err := SanitizePath("/var/www", okayPath)
 	if err != nil {
 		t.Logf("Expected this path to PASS sanitize test: %s\n", okayPath)
 		t.Fail()
 	}
 
 	badPath := "/going/to/hack/../you/now.js"
-	err = SanitizePath(badPath)
+	err = SanitizePath("/var/www", badPath)
 	if err == nil {
 		t.Logf("Expected this path to FAIL sanitize test: %s\n", badPath)
 		t.Fail()

@@ -25,7 +25,7 @@ func (h AppServer) favicon(ctx context.Context, w http.ResponseWriter, r *http.R
 
 	path := filepath.Join(h.StaticDir, "favicon.ico")
 	LoggerFromContext(ctx).Info("favicon path", zap.String("path", path))
-	if err := util.SanitizePath(path); err != nil {
+	if err := util.SanitizePath(h.StaticDir, path); err != nil {
 		herr := NewAppError(404, nil, errStaticResourceNotFound)
 		h.publishError(gem, herr)
 		return herr
