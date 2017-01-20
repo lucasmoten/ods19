@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 // GetRegexCaptureGroups takes a string and a compiled RegExp, and returns
@@ -20,8 +21,15 @@ func GetRegexCaptureGroups(s string, re *regexp.Regexp) map[string]string {
 	return result
 }
 
-func SanitizePath(path string) error {
-
+// SanitizePath is for files that came from hostile input.  it's more restrictive than all allowed files
+// (ie: Arabic names, things that really do need percent in the name - it may be other people's files that we did not invent the name for),
+// since we not only ensure that we are under the root, but disallow percentages as if they are escapes.
+// it's not appropriate for everything, but it is good for files that we control the names of.
+func SanitizePath(root, path string) error {
+	// The path must really begin with the root, and not use .. tricks to apparently have the prefix, but get out.
+	if strings.HasPrefix(path, root) == false {
+		return fmt.Errorf("Normalized path is not in root.  Definite attack attempt: %s", path)
+	}
 	attackPattern := `\.{2,}`
 	re := regexp.MustCompile(attackPattern)
 	if re.MatchString(path) {

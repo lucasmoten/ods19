@@ -33,17 +33,17 @@ func (h AppServer) serveStatic(ctx context.Context, w http.ResponseWriter, r *ht
 		return herr
 	}
 	afterStatic := captured["path"]
-	if strings.Contains(afterStatic, "%25") || strings.Contains(afterStatic, "%") ||
-		strings.Contains(afterStatic, "..") ||
-		strings.Contains(afterStatic, "%2e%2e") || strings.Contains(afterStatic, "%u002e%u002e") ||
-		strings.Contains(afterStatic, "%2E%2E") || strings.Contains(afterStatic, "%u002E%u002E") ||
-		strings.Contains(afterStatic, "%c0%2e") || strings.Contains(afterStatic, "%e0%40%ae") || strings.Contains(afterStatic, "%c0ae") {
-		herr := NewAppError(403, fmt.Errorf("path for static resource may not be encoded"), errServingStatic)
+	path := path.Clean(filepath.Join(h.StaticDir, afterStatic))
+	// Because these are the static files that we control the names of, simply disallow escaping entirely,
+	// and avoid nitpicking about combinations.  Foreign names may show up in other places, but not required
+	// here.
+	if strings.Contains(path, "%") || strings.Contains(path, "\\") {
+		herr := NewAppError(403, fmt.Errorf("Static file paths do not allow escaping"), errServingStatic)
 		h.publishError(gem, herr)
 		return herr
 	}
-	path := path.Clean(filepath.Join(h.StaticDir, afterStatic))
-	if err := util.SanitizePath(path); err != nil {
+	// Sanitize path ensures that we are somewhere under the root
+	if err := util.SanitizePath(h.StaticDir, path); err != nil {
 		herr := NewAppError(404, err, errStaticResourceNotFound)
 		h.publishError(gem, herr)
 		return herr
