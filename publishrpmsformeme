@@ -79,6 +79,8 @@ aws s3 cp ${RPMFILE} s3://builds.363-283.io/${REMOTEFILE}
 BUILDDATEUI=$(date +%Y%m%d)
 UIRPMFILE="drive-1.0-1.x86_64.rpm"
 cd ${OD_ROOT}/object-drive-ui
+jspm install
+npm run build
 ./buildimage.sh
 cd ${OD_ROOT}/object-drive-ui/rpm
 ./build
