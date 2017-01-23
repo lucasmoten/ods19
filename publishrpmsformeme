@@ -1,9 +1,22 @@
+#!/bin/bash
+
 CIRCLE_BUILD_NUM=$1
 if [ ${#1} -eq 0 ]
 then
   echo "You must provide the build number corresponding to the RPM"
   echo "to retrieve from odrive-builds and push to builds.363-283.io"
-  echo "For example, ./publishrpm 719"
+  echo "as the first argument"
+  echo "For example, ./publishrpm 909 1.0.3"
+  exit 1
+fi
+
+UI_VERSION=$2
+if [ ${#2} -eq 0 ]
+then
+  echo "You must provide the version number for the UI for which"
+  echo "the RPM will be built and pushed to builds.363-283.io"
+  echo "as the second argument"
+  echo "For example, ./publishrpm 909 1.0.3"
   exit 1
 fi
 
@@ -59,5 +72,21 @@ fi
 # <Service Name>-<major version>.<minor version>.<patch version>.<build number>.<YYYYMMDD>.rpm
 REMOTEFILE="object-drive-1.0.1.${CIRCLE_BUILD_NUM}.${BUILDDATEYYYYMMDD}.rpm"
 echo "File to save as in bucket is ${REMOTEFILE}"
-
+echo "Command: aws s3 cp ${RPMFILE} s3://builds.363-283.io/${REMOTEFILE}"
 aws s3 cp ${RPMFILE} s3://builds.363-283.io/${REMOTEFILE}
+
+# Build the UI (resulting RPM is drive-1.0-1.x86_64.rpm)
+BUILDDATEUI=$(date +%Y%m%d)
+UIRPMFILE="drive-1.0-1.x86_64.rpm"
+cd ${OD_ROOT}/object-drive-ui
+./buildimage.sh
+cd ${OD_ROOT}/object-drive-ui/rpm
+./build
+
+# File format needs to be
+# <App Name>-<major version>.<minor version>.<patch version>.<build number>.<YYYYMMDD>.{SNAPSHOT}.rpm
+# drive-ui-1.0.0.{CIRCLE_BUILD_NUM}.{BUILDDATEUI}.SNAPSHOT.rpm
+UIREMOTEFILE="drive-ui-${UI_VERSION}.${CIRCLE_BUILD_NUM}.${BUILDDATEUI}.SNAPSHOT.rpm"
+echo "File to save as in bucket is ${UIREMOTEFILE}"
+echo "Command: aws s3 cp ${UIRPMFILE} s3://builds.363-283.io/${UIREMOTEFILE}"
+aws s3 cp ${UIRPMFILE} s3://builds.363-283.io/${UIREMOTEFILE}
