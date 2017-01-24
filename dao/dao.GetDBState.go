@@ -1,8 +1,6 @@
 package dao
 
 import (
-	"log"
-
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
@@ -32,12 +30,6 @@ func getDBStateInTransaction(tx *sqlx.Tx) (models.DBState, error) {
 	err := tx.Unsafe().Get(&dbState, getDBStateStatement)
 	if err != nil {
 		return dbState, err
-	}
-
-	// Warn if the version reported by DB doesn't match value set here in DAO
-	if dbState.SchemaVersion != SchemaVersion {
-		msg := "WARNING: Schema mismatch. Database is at version '%s' and DAO expects version '%s'"
-		log.Printf(msg, dbState.SchemaVersion, SchemaVersion)
 	}
 
 	return dbState, nil

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"testing"
 
@@ -60,7 +59,7 @@ func TestBulkMove(t *testing.T) {
 			ParentID:    to.ID,
 		}
 		inObjects = append(inObjects, inObject)
-		log.Printf("moving %s to parent %s", o.ID, to.ID)
+		t.Logf("moving %s to parent %s", o.ID, to.ID)
 	}
 
 	// Delete them in bulk

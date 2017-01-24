@@ -152,7 +152,7 @@ func stallForAvailability() int {
 	}
 
 	// Try every few seconds
-	tck := time.NewTicker(10 * time.Second)
+	tck := time.NewTicker(1 * time.Second)
 	defer tck.Stop()
 
 	// Give up after a while.  We need enough time to cover from when containers are brought up to when they should pass

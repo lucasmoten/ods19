@@ -3,7 +3,6 @@ package server_test
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"net/http"
 	"testing"
 
@@ -45,22 +44,22 @@ func testExpungeDeletedDeleteObject(t *testing.T, clientid int, obj *protocol.Ob
 	objChangeToken.ChangeToken = obj.ChangeToken
 	jsonBody, err := json.Marshal(objChangeToken)
 	if err != nil {
-		log.Printf("Unable to marshal json for request:%v", err)
+		t.Logf("Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
 	req, err := http.NewRequest("POST", deleteuri, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
+		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
 	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
-		log.Printf("Unable to do request:%v", err)
+		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
 
 	if res.StatusCode != 200 {
-		log.Printf("delete failed: %d %s", res.StatusCode, res.Status)
+		t.Logf("delete failed: %d %s", res.StatusCode, res.Status)
 		t.FailNow()
 	}
 }

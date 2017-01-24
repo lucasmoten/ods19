@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"testing"
 
@@ -56,7 +55,7 @@ func bulkOwnershipTo(t *testing.T, clientid int, nextUser string) {
 			ChangeToken: o.ChangeToken,
 		}
 		inObjects = append(inObjects, inObject)
-		log.Printf("transfer %s to user %s", o.ID, nextUser)
+		t.Logf("transfer %s to user %s", o.ID, nextUser)
 	}
 
 	testBulkOwnershipCall(

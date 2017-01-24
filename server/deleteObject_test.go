@@ -3,8 +3,6 @@ package server_test
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 	"testing"
 
@@ -22,8 +20,7 @@ func TestDeleteObject(t *testing.T) {
 	clientid := 0
 
 	if verboseOutput {
-		fmt.Printf("(Verbose Mode) Using client id %d", clientid)
-		fmt.Println()
+		t.Logf("(Verbose Mode) Using client id %d", clientid)
 	}
 
 	// Create folder under root
@@ -35,12 +32,12 @@ func TestDeleteObject(t *testing.T) {
 	objChangeToken.ChangeToken = folder1.ChangeToken
 	jsonBody, err := json.Marshal(objChangeToken)
 	if err != nil {
-		log.Printf("Unable to marshal json for request:%v", err)
+		t.Logf("Unable to marshal json for request:%v", err)
 		t.FailNow()
 	}
 	req, err := http.NewRequest("POST", deleteuri, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
+		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -56,63 +53,52 @@ func TestDeleteObject(t *testing.T) {
 	// do the request
 	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
-		log.Printf("Unable to do request:%v", err)
+		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
 	trafficLogs[APISampleFile].Response(t, res)
 	defer util.FinishBody(res.Body)
 	// process Response
 	if res.StatusCode != http.StatusOK {
-		log.Printf("bad status: %s", res.Status)
+		t.Logf("bad status: %s", res.Status)
 		t.FailNow()
 	}
 	var deletedFolder protocol.DeletedObjectResponse
 	err = util.FullDecode(res.Body, &deletedFolder)
 	if err != nil {
-		log.Printf("Error decoding json to deletedFolder: %v", err)
-		log.Println()
+		t.Logf("Error decoding json to deletedFolder: %v", err)
 		t.FailNow()
 	}
-	// if verboseOutput {
-	// 	jsonData, err := json.MarshalIndent(deletedFolder, "", "  ")
-	// 	if err != nil {
-	// 		log.Printf("(Error in Verbose Mode) Error marshalling response back to json: %s", err.Error())
-	// 		return
-	// 	}
-	// 	fmt.Println("Here is the json object:")
-	// 	fmt.Println(string(jsonData))
-	// }
 
 	// now make sure the item is marked as deleted when calling for properties
 	geturi := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
 	req, err = http.NewRequest("GET", geturi, nil)
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
+		t.Logf("Error setting up HTTP Request: %v", err)
 		t.FailNow()
 	}
 	// do the request
 	res, err = clients[clientid].Client.Do(req)
 	if err != nil {
-		log.Printf("Unable to do request:%v", err)
+		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
 	defer util.FinishBody(res.Body)
 	// process Response
 	if res.StatusCode != http.StatusOK {
-		log.Printf("bad status: %s", res.Status)
+		t.Logf("bad status: %s", res.Status)
 		t.FailNow()
 	}
 	var getResponse protocol.DeletedObject
 	err = util.FullDecode(res.Body, &getResponse)
 	if err != nil {
-		log.Printf("Error decoding json to getResponse: %v", err)
-		log.Println()
+		t.Logf("Error decoding json to getResponse: %v", err)
 		t.FailNow()
 	}
 	// Verify that it has deletedDate and deletedBy
 	if len(getResponse.DeletedBy) == 0 {
-		log.Printf("Deleted by is not set")
+		t.Logf("Deleted by is not set")
 		t.FailNow()
 	}
 
