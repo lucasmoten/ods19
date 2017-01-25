@@ -1,5 +1,6 @@
 FROM deciphernow/centos-openssl-go:1.7
 
+RUN yum install -y anacron
 COPY build /go/src/decipher.com/object-drive-server
 
 EXPOSE 4430
