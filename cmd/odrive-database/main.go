@@ -347,6 +347,7 @@ func status(clictx *cli.Context) error {
 	// TODO(cm): we can, potentially, add many summary stats here, e.g. object count
 	if !isDBEmpty(db) {
 		fmt.Println("STATUS: database is not empty")
+		fmt.Println("Schema Version: ", getSchemaVersion(db))
 		return nil
 	}
 	fmt.Println("STATUS: database is empty")
@@ -469,14 +470,30 @@ func isDBEmpty(db *sqlx.DB) bool {
 	stmt := `select table_name from information_schema.tables where table_name = 'object'`
 	err := tx.Select(&name, stmt)
 	if err != nil {
+		tx.Rollback()
 		log.Println("could not do query:", err)
 		return false
 	}
+	tx.Commit()
 	if len(name) == 0 {
 		fmt.Println("db returned no results when querying for expected tables")
 		return true
 	}
 	return name[0] != "object"
+}
+
+func getSchemaVersion(db *sqlx.DB) string {
+	tx := db.MustBegin()
+	var schemaVersion []string
+	stmt := `select schemaVersion from dbstate`
+	err := tx.Select(&schemaVersion, stmt)
+	if err != nil {
+		tx.Rollback()
+		log.Println("could not determine schema version:", err)
+		return "UNKNOWN"
+	}
+	tx.Commit()
+	return schemaVersion[0]
 }
 
 // execStmt executes a SQL string against a database transaction.
