@@ -14,13 +14,27 @@ import (
 
 // AsyncProducer is a events.Publisher implementation for Kafka queues.
 type AsyncProducer struct {
-	producer  sarama.AsyncProducer
-	logger    zap.Logger
-	reconnect bool
+	producer       sarama.AsyncProducer
+	logger         zap.Logger
+	reconnect      bool
+	successActions []string
+	failureActions []string
 }
 
 // Publish implements the events.Publisher interface.
 func (ap *AsyncProducer) Publish(e events.Event) {
+
+	publishEvent := false
+	if e.IsSuccessful() {
+		publishEvent = publishEvent || stringInSlice("*", ap.successActions)
+		publishEvent = publishEvent || stringInSlice(e.EventAction(), ap.successActions)
+	} else {
+		publishEvent = publishEvent || stringInSlice("*", ap.failureActions)
+		publishEvent = publishEvent || stringInSlice(e.EventAction(), ap.failureActions)
+	}
+	if !publishEvent {
+		return
+	}
 
 	msg := sarama.ProducerMessage{
 		Topic: "odrive-event",
@@ -28,6 +42,15 @@ func (ap *AsyncProducer) Publish(e events.Event) {
 	}
 
 	ap.producer.Input() <- &msg
+}
+
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
 }
 
 // Reconnect implements the events.Publisher interface.
@@ -42,6 +65,14 @@ type Opt func(*AsyncProducer)
 func WithLogger(logger zap.Logger) Opt {
 	return func(ap *AsyncProducer) {
 		ap.logger = logger
+	}
+}
+
+// WithPublishActions sets success and failure actions that should be published on an AsyncProducer
+func WithPublishActions(successActions []string, failureActions []string) Opt {
+	return func(ap *AsyncProducer) {
+		ap.successActions = successActions
+		ap.failureActions = failureActions
 	}
 }
 
