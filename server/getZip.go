@@ -332,7 +332,7 @@ func zipRequestValidation(zipSpec *protocol.Zip) {
 
 func (h AppServer) postZip(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 	gem, _ := GEMFromContext(ctx)
-	gem.Action = "access"
+	gem.Action = "zip"
 	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventExport")
 	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "EXPORT")
 
