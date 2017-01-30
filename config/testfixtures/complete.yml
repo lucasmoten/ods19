@@ -57,6 +57,18 @@ event_queue:
     zk_addrs:
         - "foo"
         - "baz"
+    publish_failure_actions:
+        - "*"
+    publish_success_actions:
+        - "access"
+        - "authenticate"
+        - "create"
+        - "delete"
+        - "list"
+        - "undelete"
+        - "unknown"
+        - "update"
+        - "zip"
 
 zk:
     ip: ""

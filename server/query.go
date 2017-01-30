@@ -18,7 +18,7 @@ func (h AppServer) query(ctx context.Context, w http.ResponseWriter, r *http.Req
 	user, _ := UserFromContext(ctx)
 	dao := DAOFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
-	gem.Action = "access"
+	gem.Action = "list"
 	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventSearchQry")
 	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "PARAMETER_SEARCH")
 	gem.Payload.Audit = audit.WithQueryString(gem.Payload.Audit, r.URL.String())

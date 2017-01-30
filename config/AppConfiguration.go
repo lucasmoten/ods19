@@ -79,8 +79,10 @@ type DatabaseConfiguration struct {
 
 // EventQueueConfiguration configures publishing to the Kakfa event queue.
 type EventQueueConfiguration struct {
-	KafkaAddrs []string `yaml:"kafka_addrs"`
-	ZKAddrs    []string `yaml:"zk_addrs"`
+	KafkaAddrs            []string `yaml:"kafka_addrs"`
+	ZKAddrs               []string `yaml:"zk_addrs"`
+	PublishSuccessActions []string `yaml:"publish_success_actions"`
+	PublishFailureActions []string `yaml:"publish_failure_actions"`
 }
 
 // S3CiphertextCacheOpts describes our current disk cache configuration.
@@ -258,6 +260,8 @@ func NewEventQueueConfiguration(confFile AppConfiguration, opts CommandLineOpts)
 	var eqc EventQueueConfiguration
 	eqc.KafkaAddrs = CascadeStringSlice(OD_EVENT_KAFKA_ADDRS, confFile.EventQueue.KafkaAddrs, empty)
 	eqc.ZKAddrs = CascadeStringSlice(OD_EVENT_ZK_ADDRS, confFile.EventQueue.ZKAddrs, empty)
+	eqc.PublishSuccessActions = CascadeStringSlice(OD_EVENT_PUBLISH_SUCCESS_ACTIONS, confFile.EventQueue.PublishSuccessActions, []string{"*"})
+	eqc.PublishFailureActions = CascadeStringSlice(OD_EVENT_PUBLISH_FAILURE_ACTIONS, confFile.EventQueue.PublishFailureActions, []string{"*"})
 	return eqc
 }
 
