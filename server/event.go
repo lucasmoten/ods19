@@ -15,17 +15,19 @@ import (
 // Invoke this function before a specific route is chosen.
 func globalEventFromRequest(r *http.Request) events.GEM {
 	e := events.GEM{
-		ID:            newGUID(),
-		SchemaVersion: "1.0",
-		OriginatorTokens: []string{
-			r.Header.Get("EXTERNAL_SYS_DN"),
-			r.Header.Get("USER_DN"),
-		},
+		ID:              newGUID(),
+		SchemaVersion:   "1.0",
 		EventType:       "object-drive-event",
 		SystemIP:        resolveOurIP(),
 		XForwardedForIP: r.Header.Get("X-Forwarded-For"),
 		Timestamp:       time.Now().Unix(),
 		Action:          "unknown",
+	}
+	if len(r.Header.Get("EXTERNAL_SYS_DN")) > 0 {
+		e.OriginatorTokens = append(e.OriginatorTokens, r.Header.Get("EXTERNAL_SYS_DN"))
+	}
+	if len(r.Header.Get("USER_DN")) > 0 {
+		e.OriginatorTokens = append(e.OriginatorTokens, r.Header.Get("USER_DN"))
 	}
 
 	return e
