@@ -15,6 +15,7 @@
 import sys, os, subprocess, re, time, signal
 from pwd import getpwnam
 from grp import getgrnam
+from stat import *
 
 # init scripts must write a validly-named lockfile
 username = "object-drive"
@@ -36,8 +37,14 @@ def change_owner(path, uid, gid, perms):
     Set permissions on file or dir. uid and perms must be int type, eg. 0o755.
     Group is ignored with -1.
     """
-    os.chown(path, uid, gid)
-    os.chmod(path, perms)
+    statinfo = os.stat(path)
+    puid = statinfo.st_uid
+    pgid = statinfo.st_gid
+    pmode = statinfo.st_mode
+    if uid != puid or (gid != -1 and gid != pgid):
+        os.chown(path, uid, gid)  
+    if perms != oct(pmode & 0777):
+        os.chmod(path, perms)
 
 
 def create_dir_not_exists(path):
@@ -98,7 +105,7 @@ def start():
         env_for_proc[k] = os.getenv(k, "")
 
     # Change permissions on configuration file.
-    os.chown(conf, uid, -1)
+    change_owner(conf, uid, -1, 0o750)
 
     # Change ownership of logging directory and file, if the file exists.
     logging_dir = os.path.split(logfile)[0]
