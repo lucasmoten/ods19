@@ -40,12 +40,20 @@ func WithResourcesFromResultset(e events_thrift.AuditEvent, results models.ODObj
 // NewResourceFromObject creates an audit resource from a object drive object suitable as targetted resource, original or modified
 func NewResourceFromObject(obj models.ODObject) components_thrift.Resource {
 	resource := components_thrift.Resource{}
+	resourceName := "Unnamed Object"
+	if len(obj.Name) > 0 {
+		resourceName = obj.Name
+	}
 	resource.Name = &components_thrift.ResourceName{
-		Title: stringPtr(obj.Name),
+		Title: stringPtr(resourceName),
 	}
 	resource.Identifier = stringPtr(hex.EncodeToString(obj.ID))
 	resource.Type = stringPtr("OBJECT")
-	resource.SubType = stringPtr(obj.TypeName.String)
+	resourceSubtype := "Object"
+	if len(obj.TypeName.String) > 0 {
+		resourceSubtype = obj.TypeName.String
+	}
+	resource.SubType = stringPtr(resourceSubtype)
 	if obj.Description.Valid && len(obj.Description.String) > 0 {
 		resource.Description = &components_thrift.ResourceDescription{
 			Content: stringPtr(obj.Description.String),

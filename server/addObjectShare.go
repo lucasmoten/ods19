@@ -15,6 +15,7 @@ import (
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/services/audit"
 	"decipher.com/object-drive-server/util"
 )
 
@@ -134,6 +135,12 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 		StreamUpdate: false,
 		SessionID:    session,
 	}
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventModify")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "PERMISSION_MODIFY")
+	gem.Payload.ObjectID = hex.EncodeToString(updatedObject.ID)
+	gem.Payload.ChangeToken = apiResponse.ChangeToken
+	gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(updatedObject.ID))
+	gem.Payload.Audit = audit.WithResources(gem.Payload.Audit, NewResourceFromObject(updatedObject))
 	h.EventQueue.Publish(gem)
 
 	jsonResponse(w, apiResponse)
