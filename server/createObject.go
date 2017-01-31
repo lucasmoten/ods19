@@ -3,6 +3,7 @@ package server
 import (
 	//"encoding/hex"
 
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"mime"
@@ -145,7 +146,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	user, _ := UserFromContext(ctx)
 	snippetFields, _ := SnippetsFromContext(ctx)
 	user.Snippets = snippetFields
-	if err = handleIntermediateFoldersDuringCreation(dao, user, dp.GetMasterKey(), &obj); err != nil {
+	if err = handleIntermediateFoldersDuringCreation(ctx, h, user, dp.GetMasterKey(), &obj); err != nil {
 		herr = NewAppError(500, err, "error processing intermediate folders")
 		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
@@ -184,12 +185,19 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 // hierarchy leading up to the object name delimited by / and \ reserved characters. Note that this
 // should not be applied for object updates since it can change the location of an object which is
 // restricted as a separate operation, only permitted to owners.
-func handleIntermediateFoldersDuringCreation(mdb dao.DAO, user models.ODUser, masterKey string, obj *models.ODObject) error {
+func handleIntermediateFoldersDuringCreation(ctx context.Context, h AppServer, user models.ODUser, masterKey string, obj *models.ODObject) error {
+
+	gem, _ := GEMFromContext(ctx)
+	gem.Action = "create"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventCreate")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "CREATE")
+	gem = ResetBulkItem(gem)
+	dao := DAOFromContext(ctx)
 
 	partName := trimPathDelimitersFromNameReturnAnyPart(obj)
 	if partName != "" {
 		// Get existing objects whose name matches this part
-		matchedObjects, err := getObjectsWithName(mdb, user, obj.OwnedBy.String, partName, obj.ParentID)
+		matchedObjects, err := getObjectsWithName(dao, user, obj.OwnedBy.String, partName, obj.ParentID)
 		if err != nil {
 			return err
 		}
@@ -210,15 +218,24 @@ func handleIntermediateFoldersDuringCreation(mdb dao.DAO, user models.ODUser, ma
 				models.SetEncryptKey(masterKey, &newPermission)
 				folderObj.Permissions = append(folderObj.Permissions, newPermission)
 			}
-			matchedObject, err = mdb.CreateObject(&folderObj)
+			matchedObject, err = dao.CreateObject(&folderObj)
 			if err != nil {
 				return err
 			}
+			auditResource := NewResourceFromObject(matchedObject)
+			gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(matchedObject.ID))
+			gem.Payload.ObjectID = hex.EncodeToString(matchedObject.ID)
+			gem.Payload.ChangeToken = matchedObject.ChangeToken
+			gem.Payload.StreamUpdate = false
+			gem.Payload.Audit = audit.WithResources(gem.Payload.Audit, auditResource)
+			gem.Payload.Audit = audit.WithActionResult(gem.Payload.Audit, "SUCCESS")
+			gem.Payload.Audit = audit.WithActionTargetMessages(gem.Payload.Audit, string(http.StatusOK))
+			h.EventQueue.Publish(gem)
 		}
 		// Shift the parent id for the object being created
 		obj.ParentID = matchedObject.ID
 
-		return handleIntermediateFoldersDuringCreation(mdb, user, masterKey, obj)
+		return handleIntermediateFoldersDuringCreation(ctx, h, user, masterKey, obj)
 	}
 	return nil
 }
