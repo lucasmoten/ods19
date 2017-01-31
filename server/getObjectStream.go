@@ -183,8 +183,8 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	}
 
 	if !dbObject.ContentSize.Valid || dbObject.ContentSize.Int64 <= int64(0) {
-		herr := NewAppError(204, nil, "No content", zap.Int64("bytes", dbObject.ContentSize.Int64))
-		h.publishError(gem, herr)
+		herr := NewAppError(204, nil, "No content")
+		h.publishSuccess(gem, w)
 		return NoBytesReturned, herr
 	}
 

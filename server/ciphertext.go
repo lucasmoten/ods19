@@ -70,7 +70,7 @@ func (h AppServer) getCiphertext(ctx context.Context, w http.ResponseWriter, r *
 	}
 	if f == nil {
 		herr := NewAppError(204, nil, "not in this p2p cache")
-		h.publishError(gem, herr)
+		h.publishSuccess(gem, w)
 		return herr
 	}
 	if length < 0 {
