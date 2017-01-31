@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 
@@ -17,6 +18,11 @@ func (h AppServer) doBulkDelete(ctx context.Context, w http.ResponseWriter, r *h
 
 	dao := DAOFromContext(ctx)
 	user, _ := UserFromContext(ctx)
+	caller, ok := CallerFromContext(ctx)
+	if !ok {
+		return NewAppError(http.StatusInternalServerError, errors.New("Could not get caller from context"), "Invalid caller.")
+	}
+
 	gem, _ := GEMFromContext(ctx)
 	gem.Action = "delete"
 	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventDelete")
@@ -37,7 +43,6 @@ func (h AppServer) doBulkDelete(ctx context.Context, w http.ResponseWriter, r *h
 	}
 
 	var bulkResponse []protocol.ObjectError
-	w.Header().Set("Status","200")
 	for _, o := range objects {
 		gem = ResetBulkItem(gem)
 		id, err := hex.DecodeString(o.ObjectID)
@@ -77,9 +82,10 @@ func (h AppServer) doBulkDelete(ctx context.Context, w http.ResponseWriter, r *h
 		}
 		gem.Payload.Audit = audit.WithResources(gem.Payload.Audit, NewResourceFromObject(dbObject))
 		gem.Payload.ChangeToken = dbObject.ChangeToken
-		err = dao.DeleteObject(user, dbObject, true)
-		if err != nil {
-			herr := NewAppError(400, err, "DAO Error deleting object")
+
+		// Auth check
+		if ok := isUserAllowedToDelete(ctx, &dbObject); !ok {
+			herr := NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to delete this object")
 			h.publishError(gem, herr)
 			bulkResponse = append(bulkResponse,
 				protocol.ObjectError{
@@ -90,6 +96,45 @@ func (h AppServer) doBulkDelete(ctx context.Context, w http.ResponseWriter, r *h
 				},
 			)
 			continue
+		}
+
+		// State check
+		if dbObject.IsDeleted {
+			// Deleted already
+			switch {
+			case dbObject.IsExpunged:
+				herr := NewAppError(http.StatusGone, err, "The referenced object no longer exists.")
+				h.publishError(gem, herr)
+				bulkResponse = append(bulkResponse,
+					protocol.ObjectError{
+						ObjectID: o.ObjectID,
+						Error:    herr.Error.Error(),
+						Msg:      herr.Msg,
+						Code:     herr.Code,
+					},
+				)
+				continue
+			default:
+				// Just ignore files already deleted.
+			}
+		} else {
+			// ok to change
+			dbObject.ModifiedBy = caller.DistinguishedName
+			dbObject.ChangeToken = requestObject.ChangeToken
+			err = dao.DeleteObject(user, dbObject, true)
+			if err != nil {
+				herr := NewAppError(http.StatusInternalServerError, err, "DAO Error deleting object")
+				h.publishError(gem, herr)
+				bulkResponse = append(bulkResponse,
+					protocol.ObjectError{
+						ObjectID: o.ObjectID,
+						Error:    herr.Error.Error(),
+						Msg:      herr.Msg,
+						Code:     herr.Code,
+					},
+				)
+				continue
+			}
 		}
 
 		bulkResponse = append(
