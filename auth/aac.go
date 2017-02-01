@@ -68,7 +68,8 @@ func (aac *AACAuth) GetFlattenedACM(acm string) (string, error) {
 	}
 	msgsString := strings.Join(acmResponse.Messages, "/")
 	if !acmResponse.Success {
-		aac.Logger.Error("AAC.PopulateAndValidateAcm failed", zap.Bool("success", acmResponse.Success))
+		aac.Logger.Error("AAC.PopulateAndValidateAcm failed", zap.Bool("success", acmResponse.Success), zap.String("acm", acm))
+
 		return acm, fmt.Errorf("%s %s", ErrServiceNotSuccessful.Error(), msgsString)
 	}
 	if !acmResponse.AcmValid {
@@ -81,6 +82,7 @@ func (aac *AACAuth) GetFlattenedACM(acm string) (string, error) {
 	}
 
 	// If passed all conditions, acm is flattened
+	aac.Logger.Debug("AAC.PopulateAndValidateACM success", zap.String("before-acm", acm), zap.String("after-acm", acmResponse.AcmInfo.Acm))
 	return acmResponse.AcmInfo.Acm, nil
 }
 

@@ -1147,3 +1147,91 @@ func TestCreateObjectWithPathing(t *testing.T) {
 
 	t.Logf("* Create object with pathing is successful")
 }
+
+func TestCreateObjectWithACMHavingDate(t *testing.T) {
+
+	log.Printf("TestCreateObjectWithACMHavingDate is currently being skipped to allow CI builds to proceed. This test will fail until AAC gets a fix")
+	t.Skip()
+
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+
+	ghodsissue508 := `{
+    "permission": { 
+		"create": { 
+			"allow": [
+				"user/cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+	 		]
+		},
+		"read": {
+			"allow": [
+				"user/cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+	 		]			
+		},
+		"update": {
+			"allow": [
+				"user/cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+	 		]			
+		},
+		"delete": {
+			"allow": [
+				"user/cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+	 		]			
+		}
+	},	
+    "acm": {
+		"declass_dt": "2037-12-01T05:00:00.000",
+        "fgi_open": [],
+        "rel_to": [],
+        "sci_ctrls": [],
+        "owner_prod": [],
+        "portion": "S",
+        "disp_only": "",
+        "disponly_to": [],
+        "banner": "SECRET",
+        "non_ic": [],
+        "classif": "S",
+        "atom_energy": [],
+        "dissem_ctrls": [],
+        "sar_id": [],
+        "version": "2.1.0",
+        "fgi_protect": [],
+        "share": {
+            "users": [
+                "cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+            ],
+            "projects": {}
+        }
+    },
+    "progress": {
+        "percentage": 1,
+        "loading": true
+    },
+    "isShared": true,
+    "content": {
+        "ext": "png"
+    },
+    "type": "test",
+    "file": {},
+    "user_dn": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+    "name": "object-having-acm-with-declass_dt"
+}`
+	newobjuri := host + cfg.NginxRootURL + "/objects"
+	myobject, err := utils.UnmarshalStringToInterface(ghodsissue508)
+	if err != nil {
+		t.Logf("Error converting to interface: %s", err.Error())
+		t.FailNow()
+	}
+	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
+	createObjectRes, err := clients[tester10].Client.Do(createObjectReq)
+	defer util.FinishBody(createObjectRes.Body)
+
+	t.Logf("* Processing Response")
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, createObjectRes, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(createObjectRes.Body, &createdObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+}
