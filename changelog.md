@@ -2,6 +2,11 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release vNEXT
+-------------
+* FIX: Service process now assigned group and user when sudoing down from root.
+* ENH: Orphaned files that cannot be removed due to permissions are renamed to permit service termination.
+
 ## Release v1.0.1.13
 -------------
 * ENH: Calculated full path and unique names for objects. Slashes are now restricted characters from updates.

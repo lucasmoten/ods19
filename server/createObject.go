@@ -434,12 +434,17 @@ func validateCreateObjectHeaders(r *http.Request) *AppError {
 func removeOrphanedFile(logger zap.Logger, d ciphertext.CiphertextCache, contentConnector string) {
 	fileID := ciphertext.FileId(contentConnector)
 	uploadedName := ciphertext.NewFileName(fileID, "uploaded")
+	orphanedName := ciphertext.NewFileName(fileID, "orphaned")
 	var err error
 	if d != nil {
 		err = d.Files().Remove(d.Resolve(uploadedName))
 	}
 	if err != nil {
-		logger.Error("cannot remove orphaned file", zap.String("fileID", string(fileID)))
+		logger.Error("cannot remove orphaned file. will attempt rename", zap.String("fileID", string(fileID)))
+		err = d.Files().Rename(d.Resolve(uploadedName), d.Resolve(orphanedName))
+		if err != nil {
+			logger.Error("cannot rename uploaded file to orphaned state. check directory permissions in cache folder", zap.String("fileID", string(fileID)))
+		}
 	}
 }
 
