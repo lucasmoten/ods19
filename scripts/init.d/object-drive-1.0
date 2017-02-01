@@ -143,8 +143,8 @@ def start():
     change_owner(pidfile, uid, gid, 0o750)
 
     # Change the user for the currently executing script, e.g. "su down". 
+    os.setgid(gid)
     os.setuid(uid)
-    #os.setgid(gid)
 
     print "Starting object-drive-1.0"
     f = open(logfile, "a")
