@@ -22,14 +22,18 @@ username = "object-drive"
 groupname = "services"
 service = "object-drive-1.0"
 lockfile = os.path.join('/var/lock/subsys', service)
-pidfile = "/opt/services/object-drive-1.0/pidfile"
-static_root = "/opt/services/object-drive-1.0/libs/server/static"
+install_path = "/opt/services/object-drive-1.0"
+pidfile = os.path.join(install_path, "pidfile")
+static_root = os.path.join(install_path, "libs/server/static")
 templates = os.path.join(static_root, "templates")
 # Default logging location. Set OD_LOG_LOCATION in env.sh to override.
-logfile = "/opt/services/object-drive-1.0/log/object-drive.log"
-envfile = "/opt/services/object-drive-1.0/env.sh"
-conf = "/opt/services/object-drive-1.0/object-drive.yml"
+logfile = os.path.join(install_path, "log/object-drive.log")
+envfile = os.path.join(install_path, "env.sh")
+conf = os.path.join(install_path, "object-drive.yml")
 default_ciphers = "--addCipher TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 --addCipher TLS_RSA_WITH_AES_128_CBC_SHA"
+odserver = os.path.join(install_path, "object-drive-1.0")
+dbtool = os.path.join(install_path, "database")
+obfuscatetool = os.path.join(install_path, "obfuscate")
 
 
 def change_owner(path, uid, gid, perms):
@@ -83,7 +87,7 @@ def start():
     # Declaring global required for mutation.
     global logfile
     if not os.getenv("OD_CACHE_ROOT"):
-        os.environ["OD_CACHE_ROOT"] = "/opt/services/object-drive-1.0/cache"
+        os.environ["OD_CACHE_ROOT"] = os.path.join(install_path, "cache")
     if os.getenv("OD_LOG_LOCATION"):
         location = os.getenv("OD_LOG_LOCATION")
         print "Using log location set by $OD_LOG_LOCATION: " + location
@@ -139,6 +143,11 @@ def start():
     touch_file(pidfile)
     change_owner(pidfile, uid, gid, 0o640)
 
+    # Change permissions on executables
+    change_owner(odserver, uid, gid, 0o750)
+    change_owner(dbtool, uid, gid, 0o750)
+    change_owner(obfuscatetool, uid, gid, 0o750)
+
     # Change permissions on configuration file so uid/gid for process can read
     change_owner(conf, uid, gid, 0o640)
 
@@ -151,11 +160,17 @@ def start():
 
     ciphs = get_ciphers()
     splitted = ciphs.split(" ")
-    command = ['/opt/services/object-drive-1.0/object-drive-1.0', '--conf', conf, '--templateDir', templates, "--staticRoot", static_root]
+    command = [odserver, '--conf', conf, '--templateDir', templates, "--staticRoot", static_root]
     command.extend(splitted)
-    ps = subprocess.Popen(command, stdout=f, stderr=f, env=env_for_proc)
-    with open(pidfile, "w") as pf:
-        pf.write(str(ps.pid) + '\n')
+    try:
+        ps = subprocess.Popen(command, stdout=f, stderr=f, env=env_for_proc)
+        with open(pidfile, "w") as pf:
+            pf.write(str(ps.pid) + '\n')
+    except Exception as e:
+        print e
+        if os.path.exists(pidfile):
+            os.remove(pidfile)        
+        sys.exit(1)
 
 
 def stop():
