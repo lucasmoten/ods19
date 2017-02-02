@@ -168,6 +168,11 @@ func zipWriteFile(
 	userPermission models.ODObjectPermission,
 	manifest *zipManifest,
 ) *AppError {
+	totalLength := obj.ContentSize.Int64
+	if totalLength <= 0 {
+		logger.Debug("Skipping object have no content length")
+		return nil
+	}
 	logger := LoggerFromContext(ctx)
 	dp := ciphertext.FindCiphertextCacheByObject(&obj)
 	// Using captured permission, derive filekey
@@ -179,12 +184,14 @@ func zipWriteFile(
 
 	// Get the ciphertext for this file
 	rName := ciphertext.FileId(obj.ContentConnector.String)
-	totalLength := obj.ContentSize.Int64
 	cipherReader, err := zipReadCloser(dp, logger, rName, totalLength)
+	if cipherReader != nil {
+		defer cipherReader.Close()
+	}
 	if err != nil {
 		logger.Error("unable to create puller for PermanentStorage", zap.String("err", err.Error()))
+		return NewAppError(500, err, "Unable to create pullet to read files")
 	}
-	defer cipherReader.Close()
 	logger.Debug("PermanentStorage pull for zip begin", zap.String("fname", obj.Name), zap.Int64("bytes", totalLength))
 
 	// Write the file header out, to properly set timestamps and permissions
@@ -209,7 +216,6 @@ func zipWriteFile(
 		"zip for client",
 		byteRange,
 	)
-	cipherReader.Close()
 	logger.Debug("s3 pull for zip end", zap.String("fname", obj.Name), zap.Int64("bytes", actualLength))
 	return nil
 }
