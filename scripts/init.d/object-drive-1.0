@@ -43,7 +43,7 @@ def change_owner(path, uid, gid, perms):
     pmode = statinfo.st_mode
     if uid != puid or (gid != -1 and gid != pgid):
         os.chown(path, uid, gid)  
-    if perms != oct(pmode & 0777):
+    if perms != oct(pmode & 0o777):
         os.chmod(path, perms)
 
 
@@ -104,25 +104,22 @@ def start():
     for k in os.environ.keys():
         env_for_proc[k] = os.getenv(k, "")
 
-    # Change permissions on configuration file.
-    change_owner(conf, uid, -1, 0o750)
-
     # Change ownership of logging directory and file, if the file exists.
     logging_dir = os.path.split(logfile)[0]
     create_dir_not_exists(logging_dir)
     change_owner(logging_dir, uid, gid, 0o750)
     if os.path.exists(logfile):
-        change_owner(logfile, uid, gid, 0o750)
+        change_owner(logfile, uid, gid, 0o640)
 
     # Change ownership of cache dir and its contents.
     cache_dir = os.path.split(os.getenv("OD_CACHE_ROOT"))[0]
     create_dir_not_exists(cache_dir)
-    os.chown(cache_dir, uid, -1)
+    os.chown(cache_dir, uid, gid)
     for root, dirs, files in os.walk(cache_dir):
         for d in dirs:
             change_owner(os.path.join(root, d), uid, gid, 0o750)
-            for n in files:
-                change_owner(os.path.join(root, n), uid, gid, 0o750)
+        for n in files:
+            change_owner(os.path.join(root, n), uid, gid, 0o640)
     
     # Change ownership of certificates if exists, and beneath the base path
     if os.getenv("OD_CERTPATH"):
@@ -135,12 +132,15 @@ def start():
                         for root, dirs, files in os.walk(certpath):
                             for d in dirs:
                                 change_owner(os.path.join(root, d), uid, gid, 0o750)
-                                for n in files:
-                                    change_owner(os.path.join(root, n), uid, gid, 0o750)
+                            for n in files:
+                                change_owner(os.path.join(root, n), uid, gid, 0o640)
 
     # Change ownership of pidfile. 
     touch_file(pidfile)
-    change_owner(pidfile, uid, gid, 0o750)
+    change_owner(pidfile, uid, gid, 0o640)
+
+    # Change permissions on configuration file so uid/gid for process can read
+    change_owner(conf, uid, gid, 0o640)
 
     # Change the user for the currently executing script, e.g. "su down". 
     os.setgid(gid)
