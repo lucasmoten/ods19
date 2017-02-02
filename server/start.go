@@ -219,7 +219,7 @@ func aacKeepalive(app *AppServer, conf config.AppConfiguration) {
 					logger.Error("aacKeepalive health check failure", zap.Object("err", err))
 					aacReconnect(app, conf)
 				} else {
-					logger.Info("aacKeepalive health check success")
+					logger.Debug("aacKeepalive health check success")
 				}
 			} else {
 				logger.Error("aacKeepalive saw nil pointer to AAC")

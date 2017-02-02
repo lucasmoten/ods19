@@ -212,8 +212,10 @@ func MapMoveObjectRequestToODObject(i *protocol.MoveObjectRequest) (models.ODObj
 	id, err := hex.DecodeString(i.ID)
 	switch {
 	case err != nil, len(id) == 0:
-		log.Printf("Unable to decode id")
-		return o, err
+		if len(id) == 0 {
+			return o, fmt.Errorf("Unable to decode id from empty string, %v", err)
+		}
+		return o, fmt.Errorf("Unable to decode id from %s, %v", i.ID, err)
 	default:
 		o.ID = id
 	}
@@ -236,8 +238,10 @@ func MapChangeOwnerRequestToODObject(i *protocol.ChangeOwnerRequest) (models.ODO
 	id, err := hex.DecodeString(i.ID)
 	switch {
 	case err != nil, len(id) == 0:
-		log.Printf("Unable to decode id")
-		return o, err
+		if len(id) == 0 {
+			return o, fmt.Errorf("Unable to decode id from empty string, %v", err)
+		}
+		return o, fmt.Errorf("Unable to decode id from %s, %v", i.ID, err)
 	default:
 		o.ID = id
 	}
@@ -254,8 +258,10 @@ func MapDeleteObjectRequestToODObject(i *protocol.DeleteObjectRequest) (models.O
 	id, err := hex.DecodeString(i.ID)
 	switch {
 	case err != nil, len(id) == 0:
-		log.Printf("Unable to decode id")
-		return o, err
+		if len(id) == 0 {
+			return o, fmt.Errorf("Unable to decode id from empty string, %v", err)
+		}
+		return o, fmt.Errorf("Unable to decode id from %s, %v", i.ID, err)
 	default:
 		o.ID = id
 	}
@@ -276,8 +282,7 @@ func OverwriteODObjectWithCreateObjectRequest(o *models.ODObject, i *protocol.Cr
 	switch {
 	case err != nil:
 		if len(i.ParentID) > 0 {
-			log.Printf("Unable to decode parent id")
-			return err
+			return fmt.Errorf("Unable to decode parent id from %s, %v", i.ParentID, err)
 		}
 	case len(parentID) == 0:
 		////If the i.id being sent in is blank, that's a signal to NOT use it
