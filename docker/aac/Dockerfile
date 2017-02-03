@@ -25,12 +25,12 @@ EXPOSE 6379
 EXPOSE 9093
 
 # Prepare for CTE AAC
-RUN useradd cte
+RUN useradd aac
 #All files (edited) that are supplied by us
 ADD build/aac-fs.tgz /
-RUN chown -R cte:cte /opt/cte
-RUN ln -s /opt/cte/cte-aac-service-server-1.0.0-SNAPSHOT /opt/cte/cte-aac-service-server-1.0.0
-RUN ln -s /opt/cte/cte-aac-service-server-1.0.0/bin/cte-aac-service-server /etc/init.d/cte-aac-service-server-1.0.0
-RUN chown cte:cte /opt/cte
+RUN chown -R aac:aac /opt/cte
+RUN ln -s /opt/cte/aac-1.1.3-SNAPSHOT /opt/cte/aac-1.1.3
+RUN ln -s /opt/cte/aac-1.1.3/bin/aac /etc/init.d/aac-1.1.3
+RUN chown aac:aac /opt/cte
 
 

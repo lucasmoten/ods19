@@ -6,6 +6,8 @@ services:
         command: "/root/entry"
         tty: true
         stdin_open: true
+        environment:
+            - CONFIG_DIR=/opt/cte/aac-1.1.3/etc
         depends_on:
             - "dias"
             - "zk"
