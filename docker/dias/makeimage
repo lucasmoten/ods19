@@ -4,6 +4,7 @@ import sys
 import shutil
 import subprocess
 import imp
+import errno
 
 this_script = os.path.abspath(os.path.split(__file__)[1])
 # Split absolute path; address `object-drive` w/ negative index.
@@ -12,13 +13,29 @@ source_file = os.path.join(PROJECT_ROOT, "odb")
 
 driver = imp.load_source('module.name', source_file)
 
+def copy(src, dest, remove_existing=False):
+    if remove_existing and os.path.isdir(dest):
+        shutil.rmtree(dest)
+    if remove_existing and os.path.isfile(dest):
+        os.remove(dest)
+    try:
+        shutil.copytree(src, dest)
+    except OSError as e:
+        # If the error was caused because the source wasn't a directory
+        if e.errno == errno.ENOTDIR:
+            shutil.copy(src, dest)
+        else:
+            print('Directory not copied. Error: %s' % e)
+
 if __name__ == '__main__':
 
     od_root = os.getenv("OD_ROOT")
     if od_root is None:
         print 'OD_ROOT not set'
         sys.exit(1)
-
+    copy("../../defaultcerts/server/server.cert.pem", od_root+"/dias-simulator/nginx/ssl/server.crt")
+    copy("../../defaultcerts/server/server.key.pem", od_root+"/dias-simulator/nginx/ssl/server.key")
+    copy("../../defaultcerts/server/server.trust.pem", od_root+"/dias-simulator/nginx/ssl/ca.crt")
     os.chdir(os.path.join(od_root, 'dias-simulator'))
     dockerfile = os.path.abspath('./Dockerfile')
     driver.run_dockerfile(dockerfile, "deciphernow/dias")

@@ -21,16 +21,6 @@ def compile_docs():
         log.error('Error compiling documentation: {0}')
 
 
-def generate_certs():
-    gencerts_dir = os.path.join(PROJECT_ROOT, 'defaultcerts', 'server')
-    if os.path.exists(gencerts_dir):
-        os.chdir(gencerts_dir)
-        try:
-            subprocess.check_call(['./exportit'])
-        except subprocess.CalledProcessError as e:
-            log.error('Error from command {0}: {1}'.format(e.cmd, str(e)))
-
-
 def go_get_libs():
     os.chdir(PROJECT_ROOT)
     try:

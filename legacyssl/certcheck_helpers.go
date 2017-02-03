@@ -36,7 +36,7 @@ func completeChain(id *x509.Certificate, trusts []*x509.Certificate) []*x509.Cer
 	}
 }
 
-func findInChain(subject string, trusts []*x509.Certificate) *x509.Certificate {
+func findInChain(subject string, trusts []*x509.Certificate, logit bool) *x509.Certificate {
 	for i := 0; i < len(trusts); i++ {
 		thissubject := GetDNFromCert(trusts[i].Subject)
 		if thissubject == subject {
@@ -91,6 +91,11 @@ func NewTLSConfigForTest(logf LoggingFunction, trustPath, certPath, keyPath stri
 		logf("cant parse cert: %v", err)
 		return nil, err
 	}
+	// build and check our cert chain
+	if x509cert == nil {
+		panic(fmt.Sprintf("cannot complete chain on a nil cert from %v", cert.Certificate[0]))
+	}
+
 	certs := []tls.Certificate{cert}
 
 	opts := x509.VerifyOptions{
@@ -98,7 +103,6 @@ func NewTLSConfigForTest(logf LoggingFunction, trustPath, certPath, keyPath stri
 		Roots:         trustCertPool,
 	}
 
-	// build and check our cert chain
 	x509certs := completeChain(x509cert, x509parsedCerts)
 	logf("our cert chain:")
 	LogCertificateChain(logf, x509certs)
@@ -110,20 +114,6 @@ func NewTLSConfigForTest(logf LoggingFunction, trustPath, certPath, keyPath stri
 	}
 	logf("our cert isValid:")
 	LogCertificateChains(logf, ourChains)
-
-	theirDN := "CN=twl-server-generic2,OU=DAE,OU=DIA,OU=twl-server-generic2,O=U.S. Government,C=US"
-	x509theirCert := findInChain(theirDN, x509parsedCerts)
-	x509theirCerts := completeChain(x509theirCert, x509parsedCerts)
-	logf("their cert chain:")
-	LogCertificateChain(logf, x509theirCerts)
-	theirChains, err := x509theirCert.Verify(opts)
-	if err != nil {
-		logf("error verifying chain: %v", err)
-		return nil, err
-	}
-	logf("their cert isValid")
-	LogCertificateChains(logf, theirChains)
-	logf("creating config")
 
 	cfg := tls.Config{
 		Certificates:             certs,

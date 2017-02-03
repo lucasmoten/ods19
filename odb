@@ -158,6 +158,9 @@ def gatekeeper_build():
     build_fs = os.path.join(build_dir, 'fs')
     shutil.copytree(checked_in_resources, build_fs)
 
+    shutil.copyfile(os.path.join(PROJECT_ROOT,'defaultcerts','server','server.cert.pem'), os.path.join(gatekeeper_dir,'build','fs','etc','nginx','server.cert.pem'))
+    shutil.copyfile(os.path.join(PROJECT_ROOT,'defaultcerts','server','server.key.pem'), os.path.join(gatekeeper_dir,'build','fs','etc','nginx','server.key.pem'))
+    shutil.copyfile(os.path.join(PROJECT_ROOT,'defaultcerts','server','server.trust.pem'), os.path.join(gatekeeper_dir,'build','fs','etc','nginx','server.trust.pem'))
     # If an rpm was built, then bake it into the gatekeeper build
     rpm_path = os.path.join(os.getenv("OD_ROOT"), "object-drive-ui", "rpm")
     rpm_location = glob(rpm_path + "/*.rpm")
