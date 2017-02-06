@@ -637,7 +637,11 @@ func TestUpdateObjectWithoutACM(t *testing.T) {
 func TestUpdateObjectWithACMHavingEmptyValueInPart(t *testing.T) {
 	tester10 := 0
 	t.Logf("* Create object as tester10")
-	folder, _ := makeFolderWithACMViaJSON("TestUpdateObjectWithACMHavingEmptyValueInPart", testhelpers.ValidACMUnclassifiedEmptyDissemCountries, tester10)
+	folder, err := makeFolderWithACMViaJSON("TestUpdateObjectWithACMHavingEmptyValueInPart", testhelpers.ValidACMUnclassifiedEmptyDissemCountries, tester10)
+	if err != nil {
+		t.Logf("Error creating folder: %v", err)
+		t.FailNow()
+	}
 	t.Logf("* Update object, with an ACM that has an empty dissem countries in the part")
 	updateObj := protocol.UpdateObjectRequest{}
 	updateObj.ChangeToken = folder.ChangeToken
@@ -788,7 +792,11 @@ func TestUpdateObjectHasPermissions(t *testing.T) {
 func TestUpdateObjectToEveryoneReturnsOwnerCRUDS(t *testing.T) {
 	tester10 := 0
 	t.Logf("* Create object shared to just me (#98 steps 1-3)")
-	folder, _ := makeFolderWithACMViaJSON("TestUpdateObjectToEveryoneReturnsOwnerCRUDS", testhelpers.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
+	folder, err := makeFolderWithACMViaJSON("TestUpdateObjectToEveryoneReturnsOwnerCRUDS", testhelpers.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
+	if err != nil {
+		t.Logf("Error creating folder: %v", err)
+		t.FailNow()
+	}
 
 	t.Logf("* Update object with share to everone (#98 steps 4-6)")
 	objStringTemplate := `{
@@ -832,7 +840,11 @@ func TestUpdateObjectToEveryoneReturnsOwnerCRUDS(t *testing.T) {
 func TestUpdateObjectWithPermissions(t *testing.T) {
 	tester10 := 0
 	t.Logf("* Create object shared to just tester10")
-	folder, _ := makeFolderWithACMViaJSON("TestUpdateObjectWithPermissions", testhelpers.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
+	folder, err := makeFolderWithACMViaJSON("TestUpdateObjectWithPermissions", testhelpers.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
+	if err != nil {
+		t.Logf("Error creating folder: %v", err)
+		t.FailNow()
+	}
 
 	t.Logf("* Update object with RU for ODrive, and leave CRUDS for owner as implicit")
 	objStringTemplate := `{

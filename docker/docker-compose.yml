@@ -62,7 +62,10 @@ services:
             - OD_DB_USERNAME
             - OD_ENCRYPT_MASTERKEY
             - OD_EVENT_KAFKA_ADDRS
+            - OD_EVENT_PUBLISH_FAILURE_ACTIONS
+            - OD_EVENT_PUBLISH_SUCCESS_ACTIONS
             - OD_EVENT_ZK_ADDRS 
+            - OD_LOG_LEVEL
             - OD_DOCKERVM_OVERRIDE
             - OD_SERVER_CA=/go/src/decipher.com/object-drive-server/defaultcerts/server/trust.pem
             - OD_SERVER_CERT=/go/src/decipher.com/object-drive-server/defaultcerts/server/server.cert.pem
@@ -151,8 +154,11 @@ services:
             - OD_DB_USERNAME
             - OD_ENCRYPT_MASTERKEY
             - OD_EVENT_KAFKA_ADDRS  
+            - OD_EVENT_PUBLISH_FAILURE_ACTIONS
+            - OD_EVENT_PUBLISH_SUCCESS_ACTIONS
             - OD_EVENT_ZK_ADDRS
             - OD_DOCKERVM_OVERRIDE
+            - OD_LOG_LEVEL
             - OD_SERVER_CA=/go/src/decipher.com/object-drive-server/defaultcerts/server/trust.pem
             - OD_SERVER_CERT=/go/src/decipher.com/object-drive-server/defaultcerts/server/server.cert.pem
             - OD_SERVER_KEY=/go/src/decipher.com/object-drive-server/defaultcerts/server/server.key.pem

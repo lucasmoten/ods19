@@ -216,8 +216,16 @@ func TestUpdateStreamWithoutProvidingACMButHasStream(t *testing.T) {
 	} else {
 		var topFolder *protocol.Object
 		topFolder, err = makeFolderWithACMViaJSON("UpdateStreamNoACM-Top Folder", acm, clientID)
+		if err != nil {
+			t.Logf("Error making topfolder in test: %v", err)
+			t.FailNow()
+		}
 		var childFolder *protocol.Object
 		childFolder, err = makeFolderWithACMWithParentViaJSON("UpdateStreamNoACM-Object In Top Folder", topFolder.ID, acm, clientID)
+		if err != nil {
+			t.Logf("Error making childfolder in test: %v", err)
+			t.FailNow()
+		}
 		created = *childFolder
 	}
 

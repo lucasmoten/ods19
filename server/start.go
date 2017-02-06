@@ -128,7 +128,7 @@ func configureEventQueue(app *AppServer, conf config.EventQueueConfiguration, zk
 	if len(conf.KafkaAddrs) > 0 {
 		logger.Info("using direct connect for Kafka queue")
 		var err error
-		app.EventQueue, err = kafka.NewAsyncProducer(conf.KafkaAddrs, kafka.WithLogger(logger))
+		app.EventQueue, err = kafka.NewAsyncProducer(conf.KafkaAddrs, kafka.WithLogger(logger), kafka.WithPublishActions(conf.PublishSuccessActions, conf.PublishFailureActions))
 		if err != nil {
 			logger.Fatal("cannot direct connect to Kakfa queue", zap.Object("err", err), zap.String("help", help))
 		}
@@ -150,7 +150,7 @@ func configureEventQueue(app *AppServer, conf config.EventQueueConfiguration, zk
 		// Allow time for kafka to be available in zookeeper
 		waitTime := 1
 		prevWaitTime := 0
-		ap, err := kafka.DiscoverKafka(conn, "/brokers/ids", setter, kafka.WithLogger(logger))
+		ap, err := kafka.DiscoverKafka(conn, "/brokers/ids", setter, kafka.WithLogger(logger), kafka.WithPublishActions(conf.PublishSuccessActions, conf.PublishFailureActions))
 		for ap == nil || err != nil {
 			logger.Warn("kafka was not discovered in zookeeper.", zap.Int("waitTime in seconds", waitTime))
 			if waitTime > 10 {
@@ -164,7 +164,7 @@ func configureEventQueue(app *AppServer, conf config.EventQueueConfiguration, zk
 			waitTime = waitTime + prevWaitTime
 			prevWaitTime = waitTime
 			err = nil
-			ap, err = kafka.DiscoverKafka(conn, "/brokers/ids", setter, kafka.WithLogger(logger))
+			ap, err = kafka.DiscoverKafka(conn, "/brokers/ids", setter, kafka.WithLogger(logger), kafka.WithPublishActions(conf.PublishSuccessActions, conf.PublishFailureActions))
 		}
 		if err != nil {
 			logger.Fatal("error discovering kafka from zk", zap.Object("err", err), zap.String("help", help))
@@ -219,7 +219,7 @@ func aacKeepalive(app *AppServer, conf config.AppConfiguration) {
 					logger.Error("aacKeepalive health check failure", zap.Object("err", err))
 					aacReconnect(app, conf)
 				} else {
-					logger.Info("aacKeepalive health check success")
+					logger.Debug("aacKeepalive health check success")
 				}
 			} else {
 				logger.Error("aacKeepalive saw nil pointer to AAC")

@@ -576,11 +576,13 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, f os.FileInfo, err er
 	}
 
 	//Size and age determine the value of the file
-	t := f.ModTime().Unix() //In units of second
-	n := time.Now().Unix()  //In unites of second
-	ageInSeconds := n - t
+	t := f.ModTime().Unix()     //In units of second
+	n := time.Now().Unix()      //In units of second
+	ageInSeconds := (n - t) + 1 // Ensure > 0
 	size := f.Size()
 	ext := path.Ext(string(fqName))
+
+	oneWeek := int64(60 * 60 * 24 * 7)
 
 	//Get the current disk space usage
 	sfs := syscall.Statfs_t{}
@@ -596,13 +598,13 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, f os.FileInfo, err er
 	//Fraction of disk used
 	usage := 1.0 - float64(sfs.Bavail)/float64(sfs.Blocks)
 	switch {
-	//Note that .cached files are securely stored in S3 already
+	//Note that .cached files are persistently stored already
 	case ext == ".cached":
-		//If we hit usage high watermark, we essentially panic and start deleting from the cache
-		//until we are at low watermark
+		// Remove if above high watermark, or if aged and above the low watermark
+		// Limit for file upload is effectively the space between high watermark and disk filled.
 		oldEnoughToEvict := (ageInSeconds > d.ageEligibleForEviction)
 		fullEnoughToEvict := (usage > d.lowWatermark)
-		mustEvict := (usage > d.highWatermark && ageInSeconds >= d.ageEligibleForEviction)
+		mustEvict := (usage > d.highWatermark) // more aggressive. if we're above high watermark, ignore age.
 		// expect usage to sawtooth between lowWatermark and highWatermark
 		// with the value of the file setting priority until we hit highWatermark
 		if (oldEnoughToEvict && fullEnoughToEvict) || mustEvict {
@@ -612,10 +614,11 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, f os.FileInfo, err er
 				errReturn := os.Remove(fqName)
 				if errReturn != nil {
 					d.Logger.Error(
-						"unable to purge",
+						"unable to purge cached file",
 						zap.String("filename", fqName),
 						zap.String("err", errReturn.Error()),
 					)
+					attemptToEmptyFile(d, fqName)
 					return nil
 				}
 				d.Logger.Info(
@@ -627,12 +630,17 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, f os.FileInfo, err er
 				)
 			}
 		}
+	case ext == ".orphaned":
+		errReturn := os.Remove(fqName)
+		if errReturn != nil {
+			d.Logger.Error("unable to purge orphaned file", zap.String("filename", fqName), zap.String("err", errReturn.Error()))
+			attemptToEmptyFile(d, fqName)
+			return nil
+		}
 	case ext == ".uploaded":
-		if ageInSeconds > 60*60*24*7 {
+		if ageInSeconds > oneWeek {
 			// There is something clearly wrong here.  Log it
-			d.Logger.Error(
-				"ciphertextcache file not uploaded after a long time",
-			)
+			d.Logger.Error("ciphertextcache file not uploaded after a long time", zap.String("filename", fqName))
 			return nil
 		}
 	default:
@@ -640,7 +648,7 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, f os.FileInfo, err er
 		//garbage.  If a machine has been turned off for a few days, the files
 		//might legitimately be awaiting upload.  Other states are certainly
 		//garbage after only a few hours.
-		if ageInSeconds > 60*60*24*7 {
+		if ageInSeconds > oneWeek {
 			errReturn := os.Remove(fqName)
 			if errReturn != nil {
 				d.Logger.Error(
@@ -648,6 +656,7 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, f os.FileInfo, err er
 					zap.String("filename", fqName),
 					zap.String("err", errReturn.Error()),
 				)
+				attemptToEmptyFile(d, fqName)
 				return nil
 			}
 			//Count this anomaly
@@ -661,6 +670,14 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, f os.FileInfo, err er
 		}
 	}
 	return
+}
+
+func attemptToEmptyFile(d *CiphertextCacheData, fqName string) {
+	e := os.Truncate(fqName, 0)
+	if e != nil {
+		d.Logger.Error("unable to empty file", zap.String("filename", fqName), zap.String("err", e.Error()))
+	}
+	d.Logger.Info("truncated file to free space", zap.String("filename", fqName))
 }
 
 // CacheInventory writes an inventory of what's in the cache to a writer for the stats page

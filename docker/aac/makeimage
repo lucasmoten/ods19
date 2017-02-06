@@ -110,6 +110,14 @@ copy_libs()
   )
 }
 
+copy_certs()
+{
+  (
+    cd opt/cte/config/certificates/jks/ && rm *.cer
+    cp $GOPATH/src/decipher.com/object-drive-server/defaultcerts/server/*.jks .
+  )
+}
+
 # Same level as dockerfile
 unpack_build()
 {
@@ -120,6 +128,7 @@ unpack_build()
   (
     cd $FS_HOME
     cp -R ../../resources/fs/* .
+    copy_certs
     mkdir -p opt/cte
     (
       cd opt/cte

@@ -15,20 +15,25 @@
 import sys, os, subprocess, re, time, signal
 from pwd import getpwnam
 from grp import getgrnam
+from stat import *
 
 # init scripts must write a validly-named lockfile
 username = "object-drive"
 groupname = "services"
 service = "object-drive-1.0"
 lockfile = os.path.join('/var/lock/subsys', service)
-pidfile = "/opt/services/object-drive-1.0/pidfile"
-static_root = "/opt/services/object-drive-1.0/libs/server/static"
+install_path = "/opt/services/object-drive-1.0"
+pidfile = os.path.join(install_path, "pidfile")
+static_root = os.path.join(install_path, "libs/server/static")
 templates = os.path.join(static_root, "templates")
 # Default logging location. Set OD_LOG_LOCATION in env.sh to override.
-logfile = "/opt/services/object-drive-1.0/log/object-drive.log"
-envfile = "/opt/services/object-drive-1.0/env.sh"
-conf = "/opt/services/object-drive-1.0/object-drive.yml"
+logfile = os.path.join(install_path, "log/object-drive.log")
+envfile = os.path.join(install_path, "env.sh")
+conf = os.path.join(install_path, "object-drive.yml")
 default_ciphers = "--addCipher TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 --addCipher TLS_RSA_WITH_AES_128_CBC_SHA"
+odserver = os.path.join(install_path, "object-drive-1.0")
+dbtool = os.path.join(install_path, "database")
+obfuscatetool = os.path.join(install_path, "obfuscate")
 
 
 def change_owner(path, uid, gid, perms):
@@ -36,8 +41,14 @@ def change_owner(path, uid, gid, perms):
     Set permissions on file or dir. uid and perms must be int type, eg. 0o755.
     Group is ignored with -1.
     """
-    os.chown(path, uid, gid)
-    os.chmod(path, perms)
+    statinfo = os.stat(path)
+    puid = statinfo.st_uid
+    pgid = statinfo.st_gid
+    pmode = statinfo.st_mode
+    if uid != puid or (gid != -1 and gid != pgid):
+        os.chown(path, uid, gid)  
+    if perms != oct(pmode & 0o777):
+        os.chmod(path, perms)
 
 
 def create_dir_not_exists(path):
@@ -76,7 +87,7 @@ def start():
     # Declaring global required for mutation.
     global logfile
     if not os.getenv("OD_CACHE_ROOT"):
-        os.environ["OD_CACHE_ROOT"] = "/opt/services/object-drive-1.0/cache"
+        os.environ["OD_CACHE_ROOT"] = os.path.join(install_path, "cache")
     if os.getenv("OD_LOG_LOCATION"):
         location = os.getenv("OD_LOG_LOCATION")
         print "Using log location set by $OD_LOG_LOCATION: " + location
@@ -97,25 +108,22 @@ def start():
     for k in os.environ.keys():
         env_for_proc[k] = os.getenv(k, "")
 
-    # Change permissions on configuration file.
-    os.chown(conf, uid, -1)
-
     # Change ownership of logging directory and file, if the file exists.
     logging_dir = os.path.split(logfile)[0]
     create_dir_not_exists(logging_dir)
     change_owner(logging_dir, uid, gid, 0o750)
     if os.path.exists(logfile):
-        change_owner(logfile, uid, gid, 0o750)
+        change_owner(logfile, uid, gid, 0o640)
 
     # Change ownership of cache dir and its contents.
     cache_dir = os.path.split(os.getenv("OD_CACHE_ROOT"))[0]
     create_dir_not_exists(cache_dir)
-    os.chown(cache_dir, uid, -1)
+    os.chown(cache_dir, uid, gid)
     for root, dirs, files in os.walk(cache_dir):
         for d in dirs:
             change_owner(os.path.join(root, d), uid, gid, 0o750)
-            for n in files:
-                change_owner(os.path.join(root, n), uid, gid, 0o750)
+        for n in files:
+            change_owner(os.path.join(root, n), uid, gid, 0o640)
     
     # Change ownership of certificates if exists, and beneath the base path
     if os.getenv("OD_CERTPATH"):
@@ -128,55 +136,81 @@ def start():
                         for root, dirs, files in os.walk(certpath):
                             for d in dirs:
                                 change_owner(os.path.join(root, d), uid, gid, 0o750)
-                                for n in files:
-                                    change_owner(os.path.join(root, n), uid, gid, 0o750)
+                            for n in files:
+                                change_owner(os.path.join(root, n), uid, gid, 0o640)
 
     # Change ownership of pidfile. 
     touch_file(pidfile)
-    change_owner(pidfile, uid, gid, 0o750)
+    change_owner(pidfile, uid, gid, 0o640)
+
+    # Change permissions on executables
+    change_owner(odserver, uid, gid, 0o750)
+    change_owner(dbtool, uid, gid, 0o750)
+    change_owner(obfuscatetool, uid, gid, 0o750)
+
+    # Change permissions on configuration file so uid/gid for process can read
+    change_owner(conf, uid, gid, 0o640)
 
     # Change the user for the currently executing script, e.g. "su down". 
+    os.setgid(gid)
     os.setuid(uid)
-    #os.setgid(gid)
 
     print "Starting object-drive-1.0"
     f = open(logfile, "a")
 
     ciphs = get_ciphers()
     splitted = ciphs.split(" ")
-    command = ['/opt/services/object-drive-1.0/object-drive-1.0', '--conf', conf, '--templateDir', templates, "--staticRoot", static_root]
+    command = [odserver, '--conf', conf, '--templateDir', templates, "--staticRoot", static_root]
     command.extend(splitted)
-    ps = subprocess.Popen(command, stdout=f, stderr=f, env=env_for_proc)
-    with open(pidfile, "w") as pf:
-        pf.write(str(ps.pid) + '\n')
+    try:
+        ps = subprocess.Popen(command, stdout=f, stderr=f, env=env_for_proc)
+        with open(pidfile, "w") as pf:
+            pf.write(str(ps.pid) + '\n')
+    except Exception as e:
+        print e
+        if os.path.exists(pidfile):
+            os.remove(pidfile)        
+        sys.exit(1)
 
 
 def stop():
     print "Stopping object-drive-1.0"
-    if not os.path.exists(pidfile):
-        print "error: could not find pidfile at %s. object-drive-1.0 may be running under a custom script"
-        sys.exit(1)
     try:
-        pid = get_pid_from_pidfile(pidfile)
-        # Remove invalid pidfile.
-        if not is_process_running(pid):
-            print "removing stale pidfile"
-            os.remove(pidfile)
-            sys.exit(1)
-        os.kill(int(pid), signal.SIGTERM)
-        print "SIGTERM sent to process. If there are files pending upload, it may take time for the process to clean up files and exit."
-        # Sleep for same time paired to signals.go for accepting/finishing new work
-        time.sleep(5)
+        pid = get_my_pid()
+        if pid < 0:
+            # process not running and no pidfile
+            return 0
+        else:
+            # either pidfile or a process
+            if not is_process_running(pid):
+                # no running process, cleanup
+                if os.path.exists(pidfile):
+                    print "removing stale pidfile"
+                    os.remove(pidfile)
+                return 0
+            else:
+                # there is a running process, kill it
+                os.kill(int(pid), signal.SIGTERM)
+                print "SIGTERM sent to process. If there are files pending upload, it may take time for the process to clean up files and exit."
+                # Sleep for same time paired to signals.go for accepting/finishing new work
+                time.sleep(5)
+                if os.path.exists(pidfile):
+                    os.remove(pidfile)
+                return 0
     except Exception as e:
         print e
-        print "could not kill pid %s" % pid
+        print "could not kill process"
         sys.exit(1)
-    os.remove(pidfile)
+        return 1
+
 
 def restart():
-    stop()
-    lock()
-    start()
+    r = stop()
+    if r == 0:
+        lock()
+        start()
+    else:
+        sys.exit(1)
 
 
 def status():
@@ -203,7 +237,26 @@ def get_pid_from_pidfile(path):
         if len(pid) > 0:
             return pid
         else:
-            raise ValueError("invalid pid read from file: %s" % pid)
+            return -1
+
+
+def get_pid_for_process():
+    child = subprocess.Popen(['pgrep',service], stdout=subprocess.PIPE, shell=True)
+    results = child.communicate()
+    if len(results) > 0:
+        return results[0]
+    else:
+        return -1
+
+
+def get_my_pid():
+    if not locked():
+        return get_pid_for_process()
+    else:
+        if not os.path.exists(pidfile):
+            return -1
+        else:
+            return get_pid_from_pidfile(pidfile)
 
 
 def is_process_running(process_id):
@@ -213,6 +266,8 @@ def is_process_running(process_id):
     except OSError:
         return False
 
+
+    
 
 def is_absolute_path(path):
     return os.path.isabs(path)

@@ -143,7 +143,7 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 		case dbObject.IsExpunged:
 			herr = NewAppError(410, err, "The object no longer exists")
 		case dbObject.IsAncestorDeleted:
-			herr = NewAppError(405, err, "The object cannot be modified because an ancestor is deleted.")
+			herr = NewAppError(405, err, "The object cannot be retrieved because an ancestor is deleted.")
 		default:
 			herr = NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
 		}
@@ -183,8 +183,8 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	}
 
 	if !dbObject.ContentSize.Valid || dbObject.ContentSize.Int64 <= int64(0) {
-		herr := NewAppError(204, nil, "No content", zap.Int64("bytes", dbObject.ContentSize.Int64))
-		h.publishError(gem, herr)
+		herr := NewAppError(204, nil, "No content")
+		h.publishSuccess(gem, w)
 		return NoBytesReturned, herr
 	}
 

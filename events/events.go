@@ -9,6 +9,8 @@ import (
 // Event defines a type that can yield itself as JSON bytes.
 type Event interface {
 	Yield() []byte
+	EventAction() string
+	IsSuccessful() bool
 }
 
 // GEM stands for Global Event Model, the standard envelope for events that all
@@ -43,6 +45,20 @@ type GEM struct {
 func (e GEM) Yield() []byte {
 	b, _ := json.Marshal(e)
 	return b
+}
+
+// EventAction satisfies the Event interface
+func (e GEM) EventAction() string {
+	return e.Action
+}
+
+// IsSuccessful satisfies the Event interface
+func (e GEM) IsSuccessful() bool {
+	if e.Payload.Audit.ActionResult == nil {
+		return false
+	}
+	eventResult := *e.Payload.Audit.ActionResult
+	return eventResult == "SUCCESS"
 }
 
 // ObjectDriveEvent defines an Event suitable for many system subscribers. Fields

@@ -2,6 +2,15 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release vNEXT
+-------------
+* FIX: Service process now assigned group and user when sudoing down from root.
+* ENH: Orphaned files that cannot be removed due to permissions are renamed to permit service termination.
+* ENH: Service init script for restart handles discrepent pidfile.
+* FIX: Fixed minor bug in how zip files are processed if puller can't be initialized
+* ENH: Cached files that cannot be removed due to faulty permissions are truncated if allowed to free up space.
+* FIX: Cache purging of files when space consumed is above high watermark no longer considers age.
+
 ## Release v1.0.1.13
 -------------
 * ENH: Calculated full path and unique names for objects. Slashes are now restricted characters from updates.

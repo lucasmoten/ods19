@@ -226,22 +226,31 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := newLogger(config.RootLogger, sessionID, caller.CommonName, r)
 	defer logCrashInServeHTTP(logger, w)
 
+	// Authentication check GEM
+	authGem := globalEventFromRequest(r)
+	authGem.Action = "authenticate"
+	authGem.Payload.SessionID = sessionID
+	authGem.Payload.Audit = defaultAudit(r)
+	authGem.Payload.Audit = audit.WithID(authGem.Payload.Audit, "guid", authGem.ID)
+	authGem.Payload.UserDN = caller.DistinguishedName
+	authGem.Payload.Audit = audit.WithType(authGem.Payload.Audit, "EventAuthenticate")
+	authGem.Payload.Audit = audit.WithAction(authGem.Payload.Audit, "AUTHENTICATE")
+	if err := caller.ValidateHeaders(h.AclImpersonationWhitelist, r); err != nil {
+		herr := NewAppError(401, err, err.Error())
+		h.publishError(authGem, herr)
+		sendErrorResponse(logger, &w, 401, err, err.Error())
+		return
+	}
+	authGem.Payload.Audit = audit.WithActionResult(authGem.Payload.Audit, "SUCCESS")
+	h.EventQueue.Publish(authGem)
+
+	// Request GEM routed through
 	gem := globalEventFromRequest(r)
 	gem.Payload.Audit = defaultAudit(r)
 	gem.Payload.Audit = audit.WithID(gem.Payload.Audit, "guid", gem.ID)
 	gem.Payload.UserDN = caller.DistinguishedName
 	gem.Payload.SessionID = sessionID
 	gem.Payload.StreamUpdate = false
-
-	if err := caller.ValidateHeaders(h.AclImpersonationWhitelist, r); err != nil {
-		gem.Action = "authenticate"
-		gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventAuthenticate")
-		gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "AUTHENTICATE")
-		herr := NewAppError(401, err, err.Error())
-		h.publishError(gem, herr)
-		sendErrorResponse(logger, &w, 401, err, err.Error())
-		return
-	}
 
 	ctx := context.Background()
 	ctx = ContextWithLogger(ctx, logger)
