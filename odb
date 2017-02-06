@@ -41,7 +41,8 @@ COMMANDS_REQUIRED = [
     ('gulp', 'version', 'gulp must be installed globally\n\tTry `npm install gulp -g`'),
     ('docker', 'version', ''),
     ('docker-compose', 'ps', ''),
-    ('go-bindata', '-version', 'go-bindata not installed\n\tTry `go get -u github.com/jteeuwen/go-bindata/...`')
+    ('go-bindata', '-version', 'go-bindata not installed\n\tTry `go get -u github.com/jteeuwen/go-bindata/...`'),
+    ('govendor', 'version', 'govendor not installed\n\tTry `go get -u github.com/kardianos/govendor`')
 ]
 
 

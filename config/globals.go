@@ -47,9 +47,21 @@ func RandomID() string {
 }
 
 func initLogger() zap.Logger {
-	//We must use NodeID - the same random number used to register in zk
-	logger := zap.New(zap.NewJSONEncoder(), zap.Output(os.Stdout), zap.ErrorOutput(os.Stdout)).With(zap.String("node", NodeID))
-	logger.SetLevel(zap.Level(getEnvOrDefaultIntLogged(logger, "OD_LOG_LEVEL", 0)))
+	var lvl zap.Option
+	switch getEnvOrDefaultInt(OD_LOG_LEVEL, 0) {
+	case -1:
+		lvl = zap.DebugLevel
+	case 0:
+		lvl = zap.InfoLevel
+	case 1:
+		lvl = zap.WarnLevel
+	case 2:
+		lvl = zap.ErrorLevel
+	default:
+		lvl = zap.InfoLevel
+	}
+	logger := zap.New(zap.NewJSONEncoder(), lvl, zap.Output(os.Stdout),
+		zap.ErrorOutput(os.Stdout)).With(zap.String("node", NodeID))
 	return logger
 }
 
