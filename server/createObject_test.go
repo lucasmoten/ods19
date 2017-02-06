@@ -1150,9 +1150,6 @@ func TestCreateObjectWithPathing(t *testing.T) {
 
 func TestCreateObjectWithACMHavingDate(t *testing.T) {
 
-	log.Printf("TestCreateObjectWithACMHavingDate is currently being skipped to allow CI builds to proceed. This test will fail until AAC gets a fix")
-	t.Skip()
-
 	if testing.Short() {
 		t.Skip()
 	}

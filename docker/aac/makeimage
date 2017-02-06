@@ -22,7 +22,7 @@ edit_launcher()
 {
   (
     cd bin
-    thefile=cte-aac-service-server
+    thefile=aac
 #    sed -i.bak 's/RUN_AS_USER\=\(cte\(aac\)*\|cte\)/RUN_AS_USER\=cteaac/  ' $thefile
 #    sed -i.bak 's/RUN_AS_USER\=cte/RUN_AS_USER\=cteaac/  ' $thefile
     chmod 766 $thefile
@@ -38,13 +38,15 @@ edit_parameters_config()
     thefile=parameters.config
     # Delete the zookeeperConnection line, and replace it with a connection that references localhost
     sed -i.bak '/zookeeperConnection/ d ' $thefile
-    echo " \n " >> $thefile
+    echo "" >> $thefile
     echo '-gov.ic.cte.server.config.zk.zookeeperConnection=zk:2181' >> $thefile
     echo '-gov.ic.cte.server.config.ipAddress.enableIpAddressResolution=true' >> $thefile
     echo '-gov.ic.cte.server.config.ipAddress.useNetworkInterfaceName=eth0' >> $thefile
-    sed -i.bak '/whitelist/ s@.*@-acl.whitelist.file=/opt/cte/cte-aac-service-server-1.0.0/etc/aac-proxying-server-whitelist.txt@' $thefile
+    sed -i.bak '/whitelist/ s@.*@-acl.whitelist.file=/opt/cte/aac-1.1.3/etc/aac-proxying-server-whitelist.txt@' $thefile
     sed -i.bak '/config\.thrift\.port/ s/9091/9093/' $thefile
     sed -i.bak '/announcementPoint/ s/2\.2/1\.0/' $thefile
+    sed -i.bak '/docker\.enabled/ s/-/#-/' $thefile
+
     chmod 766 $thefile
   )
   (
@@ -65,9 +67,19 @@ edit_security_service_properties()
     sed -i.bak 's/redis\.password=password/redis.password=/g' $thefile
     sed -i.bak '/attribute\.service\.endpoint/ s@=.*@=https://dias/ws/services/DIASMessageReceiverService@' $thefile
     sed -i.bak 's/user\.security\.attributes\.cache\.ttl\.sec=.*/#user.security.attributes.cache.ttl.sec=86400/g' $thefile
+    sed -i.bak '/espm\.policy\.dir/ s@/opt/cte/config/policies/espm@/opt/cte/resources/policies/espm@' $thefile
+    sed -i.bak '/espe\.policy\.dir/ s@/opt/cte/config/policies/espe@/opt/cte/resources/policies/espe@' $thefile
     #sed -i.bak '/^token\.type\.mapping/  s/3_0/2_2/g' $thefile
     # Delete references to "audit" since they are not present in Garth's file
     sed -i.bak '/^audit/ d ' $thefile
+    # Add more parameters
+    echo '' >> $thefile
+    echo 'auditing.default.client.ip=0.0.0.0' >> $thefile
+    echo 'auditing.default.csr.name=Bedrock' >> $thefile
+    echo '' >> $thefile
+    echo 'audit.service.zk.connectioninfo=zk:2181' >> $thefile
+    echo 'audit.service.zk.announcement.point=/bedrock/service/audit/2.3' >> $thefile
+    echo 'audit.service.timeout.seconds=20' >> $thefile
     chmod 766 $thefile
   )
 }
@@ -94,14 +106,15 @@ edit_wrapper_conf()
   (
     cd etc
     thefile=wrapper.conf
-    sed -i.bak 's@/opt/cte/cte-aac-service-server@/opt/cte/cte-aac-service-server-1.0.0@g' $thefile 
-    sed -i.bak '/^wrapper\.logfile\.loglevel/ s/INFO/DEBUG/' $thefile
+#    sed -i.bak 's@/opt/cte/cte-aac-service-server@/opt/cte/cte-aac-service-server-1.0.0@g' $thefile 
+    sed -i.bak 's@/opt/services/aac-1.1/etc@/opt/cte/aac-1.1.3/etc@g' $thefile
+    #sed -i.bak '/^wrapper\.logfile\.loglevel/ s/INFO/DEBUG/' $thefile
     chmod 766 $thefile
   )
 }
 
 
-#We are in FS_HOME/opt/cte/cte-aac-service-server-1.0.0-SNAPSHOT
+#We are in FS_HOME/opt/cte/aac-1.1.3
 copy_libs()
 {
   (
@@ -133,7 +146,7 @@ unpack_build()
     (
       cd opt/cte
       tar zxf $AAC_HOME/server/target/*.tgz
-      cd cte-aac-service-server-1.0.0-SNAPSHOT
+      cd aac-1.1.3
       edit_launcher
       edit_parameters_config
       edit_security_service_properties     

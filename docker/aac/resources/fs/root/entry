@@ -24,12 +24,12 @@ fi
 
 cd /root
 (
-APP=cte-aac-service-server-1.0.0
+APP=aac-1.1.3
 /usr/sbin/redis-server /etc/redis.conf 2>&1 &
 cd /opt/cte/aac-data-and-scripts/scripts
 ./loadRefDataIntoRedis.sh
 touch /opt/cte/$APP/logs/application.log
-chown cte:cte /opt/cte/$APP/logs/application.log
+chown aac:aac /opt/cte/$APP/logs/application.log
 tail -f /opt/cte/$APP/logs/application.log &
 /etc/init.d/$APP $START_COMMAND
 )

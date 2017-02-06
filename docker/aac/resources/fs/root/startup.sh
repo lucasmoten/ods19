@@ -1,7 +1,7 @@
 #!/bin/bash
 
 (
-APP=cte-aac-service-server-1.0.0
+APP=aac-1.1.3
 /usr/sbin/redis-server /etc/redis.conf 2>&1 &
 /opt/zookeeper/bin/zkServer.sh start
 /etc/init.d/$APP start
