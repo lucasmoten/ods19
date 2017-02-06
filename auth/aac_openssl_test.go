@@ -10,6 +10,10 @@ import (
 )
 
 // Note: this test MUST wait for stallForAvailability because it talks to aac directly
+//
+// Note: with the new certs, we were able to connect without openssl!!!
+// Consider getting rid of it once we have stabilized under the new certs.
+//
 func TestLegacySSLUnnecessary(t *testing.T) {
 	if testing.Short() {
 		return
@@ -49,8 +53,11 @@ func TestLegacySSLUnnecessary(t *testing.T) {
 		t.Logf("connectionState.OCSPResponse: %v", cs.OCSPResponse)
 		t.Logf("connectionState.TLSUnique: %v", cs.TLSUnique)
 		conn.Close()
-		t.Logf("hey, direct tls connect worked! start eliminating cgo if you can!")
-		t.FailNow()
+		t.Logf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+		t.Logf("hey, direct tls connect to AAC worked! start eliminating cgo if you can!")
+		t.Logf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+		//t.FailNow()
+	} else {
+		t.Logf("expected inability to connect to aac without openssl: %v", err)
 	}
-	t.Logf("expected inability to connect to aac without openssl: %v", err)
 }

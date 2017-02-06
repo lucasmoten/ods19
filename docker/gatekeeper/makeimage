@@ -5,11 +5,13 @@ import argparse
 import shutil
 import subprocess
 import imp
+import errno
 
 from glob import glob
 
 PROJECT_ROOT = os.path.join(os.getenv("GOPATH"), "src", "decipher.com", "object-drive-server")
 source_file = os.path.join(PROJECT_ROOT, "odb")
+default_certs = os.path.join(PROJECT_ROOT, "defaultcerts", "server")
 #driver = imp.load_source('module.name', source_file)
 
 
@@ -120,6 +122,19 @@ if __name__ == '__main__':
     checked_in_resources = os.path.join(gatekeeper_dir, 'resources', 'fs')
     build_fs = os.path.join(build_dir, 'fs')
     copy(checked_in_resources, build_fs)
+
+    copy(
+        default_certs+"/server.cert.pem",
+        build_fs+"/etc/nginx/server.cert.pem"
+    )
+    copy(
+        default_certs+"/server.key.pem", 
+        build_fs+"/etc/nginx/server.key.pem"
+    )
+    copy(
+        default_certs+"/server.trust.pem", 
+        build_fs+"/etc/nginx/server.trust.pem"
+    )
 
     # If an rpm was built, then bake it into the gatekeeper build
     rpm_path = os.path.join(os.getenv("OD_ROOT"), "object-drive-ui", "rpm")
