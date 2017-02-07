@@ -10,6 +10,7 @@ FORMAT: 1A
 * FIX: Fixed minor bug in how zip files are processed if puller can't be initialized
 * ENH: Cached files that cannot be removed due to faulty permissions are truncated if allowed to free up space.
 * FIX: Cache purging of files when space consumed is above high watermark no longer considers age.
+* FIX: Improve durability of connection to AAC to reduce unnecessary rpc client shutdown.
 
 ## Release v1.0.1.13
 -------------

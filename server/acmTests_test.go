@@ -46,8 +46,9 @@ func TestAcmWithoutShare(t *testing.T) {
 	failNowOnErr(t, err, "Error decoding json to Object: %v")
 
 	// ### Verify all clients can read it
-	testers := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	testers := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	shouldHaveReadForObjectID(t, createdObject.ID, testers...)
+	shouldNotHaveReadForObjectID(t, createdObject.ID, 10)
 }
 
 // TestAcmWithShareForODrive - User T1 creates object O2 with ACM having share
@@ -393,7 +394,8 @@ func TestAddReadShareForGroupRemovesEveryone(t *testing.T) {
 	t.Logf("* Verify all clients can read it")
 	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
 	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
-	shouldHaveReadForObjectID(t, createdObject.ID, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+	shouldHaveReadForObjectID(t, createdObject.ID, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+	shouldNotHaveReadForObjectID(t, createdObject.ID, 10)
 	shouldHaveEveryonePermission(t, createdObject.ID, 1)
 
 	t.Logf("* User T1 Adds Share with read permission for group ODrive G2 to O9.")
@@ -536,32 +538,40 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 			t.Fail()
 		}
 		defer util.FinishBody(httpGetResponse.Body)
-		if httpGetResponse.StatusCode != http.StatusOK {
-			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
-			t.Fail()
-		} else {
-			t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
-		}
-		if clientIdx == len(clients)-1 {
-			var retrievedObject protocol.Object
-			err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
-			if err != nil {
-				t.Logf("Error decoding json to Object: %v", err)
-				t.FailNow()
+		if clientIdx < 10 {
+			if httpGetResponse.StatusCode != http.StatusOK {
+				t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
 			}
-			t.Logf("* Resulting permissions")
-			hasEveryone := false
-			for _, permission := range retrievedObject.Permissions {
-				t.Logf("%s", permission)
-				if permission.GroupName == models.EveryoneGroup {
-					hasEveryone = true
+			if clientIdx == len(clients)-1 {
+				var retrievedObject protocol.Object
+				err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
+				if err != nil {
+					t.Logf("Error decoding json to Object: %v", err)
+					t.FailNow()
 				}
-			}
-			if !hasEveryone {
-				t.Logf("Missing %s", models.EveryoneGroup)
-				t.FailNow()
+				t.Logf("* Resulting permissions")
+				hasEveryone := false
+				for _, permission := range retrievedObject.Permissions {
+					t.Logf("%s", permission)
+					if permission.GroupName == models.EveryoneGroup {
+						hasEveryone = true
+					}
+				}
+				if !hasEveryone {
+					t.Logf("Missing %s", models.EveryoneGroup)
+					t.FailNow()
+				}
+			} else {
+				ioutil.ReadAll(httpGetResponse.Body)
 			}
 		} else {
+			if httpGetResponse.StatusCode != http.StatusForbidden {
+				t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
+				t.Fail()
+			}
 			ioutil.ReadAll(httpGetResponse.Body)
 		}
 		httpGetResponse.Body.Close()
@@ -807,13 +817,20 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 			t.Fail()
 		}
 		defer util.FinishBody(httpGetResponse.Body)
-		if httpGetResponse.StatusCode != http.StatusOK {
-			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
-			t.Fail()
+		if clientIdx < 10 {
+			if httpGetResponse.StatusCode != http.StatusOK {
+				t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			}
 		} else {
-			t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			if httpGetResponse.StatusCode != http.StatusForbidden {
+				t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
+				t.Fail()
+			}
 		}
-		if clientIdx == len(clients)-1 {
+		if clientIdx == 0 {
 			var retrievedObject protocol.Object
 			err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
 			if err != nil {
@@ -1172,13 +1189,20 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			t.Fail()
 		}
 		defer util.FinishBody(httpGetResponse.Body)
-		if httpGetResponse.StatusCode != http.StatusOK {
-			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
-			t.Fail()
+		if clientIdx < 10 {
+			if httpGetResponse.StatusCode != http.StatusOK {
+				t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			}
 		} else {
-			t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			if httpGetResponse.StatusCode != http.StatusForbidden {
+				t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
+				t.Fail()
+			}
 		}
-		if clientIdx == len(clients)-1 {
+		if clientIdx == 0 {
 			var retrievedObject protocol.Object
 			err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
 			if err != nil {
@@ -1519,13 +1543,20 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			t.Fail()
 		}
 		defer util.FinishBody(httpGetResponse.Body)
-		if httpGetResponse.StatusCode != http.StatusOK {
-			t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
-			t.Fail()
+		if clientIdx < 10 {
+			if httpGetResponse.StatusCode != http.StatusOK {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			}
 		} else {
-			t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			if httpGetResponse.StatusCode != http.StatusForbidden {
+				t.Logf("Bad status for client %d (%s). Status was %s", clientIdx, ci.Name, httpGetResponse.Status)
+				t.Fail()
+			}
 		}
-		if clientIdx == len(clients)-1 {
+		if clientIdx == 0 {
 			t.Logf("* Resulting permissions")
 			hasEveryone := false
 			for _, permission := range updatedObject5.Permissions {

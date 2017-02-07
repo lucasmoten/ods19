@@ -33,9 +33,9 @@ if __name__ == '__main__':
     if od_root is None:
         print 'OD_ROOT not set'
         sys.exit(1)
-    copy("../../defaultcerts/server/server.cert.pem", od_root+"/dias-simulator/nginx/ssl/server.crt")
-    copy("../../defaultcerts/server/server.key.pem", od_root+"/dias-simulator/nginx/ssl/server.key")
-    copy("../../defaultcerts/server/server.trust.pem", od_root+"/dias-simulator/nginx/ssl/ca.crt")
+    copy("../../defaultcerts/server/server.cert.pem", od_root+"/dias-simulator/nginx/ssl/server.public")
+    copy("../../defaultcerts/server/server.key.pem", od_root+"/dias-simulator/nginx/ssl/server.private")
+    copy("../../defaultcerts/server/server.trust.pem", od_root+"/dias-simulator/nginx/ssl/trusted.crt")
     os.chdir(os.path.join(od_root, 'dias-simulator'))
     dockerfile = os.path.abspath('./Dockerfile')
     driver.run_dockerfile(dockerfile, "deciphernow/dias")

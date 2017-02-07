@@ -602,13 +602,20 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 			t.Fail()
 		}
 		defer util.FinishBody(httpGetResponse.Body)
-		if httpGetResponse.StatusCode != http.StatusOK {
-			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
-			t.Fail()
+		if clientIdx < 10 {
+			if httpGetResponse.StatusCode != http.StatusOK {
+				t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			}
 		} else {
-			t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			if httpGetResponse.StatusCode != http.StatusForbidden {
+				t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
+				t.Fail()
+			}
 		}
-		if clientIdx == len(clients)-1 {
+		if clientIdx == 0 {
 			var retrievedObject protocol.Object
 			err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
 			if err != nil {
@@ -671,13 +678,20 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 			t.Fail()
 		}
 		defer util.FinishBody(httpGetResponse.Body)
-		if httpGetResponse.StatusCode != http.StatusOK {
-			t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
-			t.Fail()
+		if clientIdx < 10 {
+			if httpGetResponse.StatusCode != http.StatusOK {
+				t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
+				t.Fail()
+			} else {
+				t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			}
 		} else {
-			t.Logf("%s is allowed to read %s", ci.Name, createdObject.Name)
+			if httpGetResponse.StatusCode != http.StatusForbidden {
+				t.Logf("Bad status for client %d. Status was %s", clientIdx, httpGetResponse.Status)
+				t.Fail()
+			}
 		}
-		if clientIdx == len(clients)-1 {
+		if clientIdx == 0 {
 			var retrievedObject protocol.Object
 			err = util.FullDecode(httpGetResponse.Body, &retrievedObject)
 			if err != nil {
