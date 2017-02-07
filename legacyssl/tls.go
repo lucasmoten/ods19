@@ -5,11 +5,11 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
-	"net"
-	"net/http"
-	"time"
+
+	"decipher.com/object-drive-server/config"
 
 	"github.com/spacemonkeygo/openssl"
 )
@@ -70,57 +70,6 @@ func NewTLSConfigFromPEM(trustPath, certPath string) (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
-// NewOpenSSLTransport returns a TCP connection establish with OpenSSL.
-func NewOpenSSLTransport(trustPath, certPath, keyPath, host string, port int, dialOpts *OpenSSLDialOptions) (*openssl.Conn, error) {
-
-	// Default to flag 0
-	if dialOpts == nil {
-		dialOpts = &OpenSSLDialOptions{}
-	}
-	dialOpts.SetInsecureSkipHostVerification()
-
-	ctx, err := openssl.NewCtx()
-	if err != nil {
-		return nil, err
-	}
-	ctx.SetOptions(openssl.CipherServerPreference)
-	ctx.SetOptions(openssl.NoSSLv3)
-
-	err = ctx.LoadVerifyLocations(trustPath, "")
-	if err != nil {
-		return nil, err
-	}
-
-	certBytes, err := ioutil.ReadFile(certPath)
-	if err != nil {
-		return nil, err
-	}
-
-	cert, err := openssl.LoadCertificateFromPEM(certBytes)
-	if err != nil {
-		return nil, err
-	}
-	ctx.UseCertificate(cert)
-
-	keyBytes, err := ioutil.ReadFile(keyPath)
-	if err != nil {
-		return nil, err
-	}
-	privKey, err := openssl.LoadPrivateKeyFromPEM(keyBytes)
-	if err != nil {
-		return nil, err
-	}
-	ctx.UsePrivateKey(privKey)
-
-	addr := fmt.Sprintf("%s:%d", host, port)
-	conn, err := openssl.Dial("tcp", addr, ctx, dialOpts.Flags)
-	if err != nil {
-		log.Printf("Error making openssl connection: %s", err.Error())
-		return nil, err
-	}
-	return conn, nil
-}
-
 // GetDNFromCert will extract the DN in the format that everything expects.
 func GetDNFromCert(name pkix.Name) string {
 	dnSeq := name.ToRDNSequence()
@@ -151,47 +100,30 @@ func GetDNFromCert(name pkix.Name) string {
 	return dnArray
 }
 
-// NewTLSConfig returns a tls.Config object for creating standard Golang https
-// clients. This method is a helper and users can implement their own.
-func NewTLSConfig(trustPath, certPath, keyPath string) (*tls.Config, error) {
-
-	// Create the trusted certificate pool.
-	trustBytes, err := ioutil.ReadFile(trustPath)
+func NewSSLConn(trustPath, certPath, keyPath, host, port string, insecure bool) (io.ReadWriteCloser, error) {
+	//first try it without open ssl, and complain when falling back on openssl
+	serverName := ""
+	conn, err := config.NewTLSClientConn(trustPath, certPath, keyPath, serverName, host, port, insecure)
 	if err != nil {
-		log.Printf("Unable to read %s: %v", trustPath, err)
-		return nil, err
-	}
-	trustCertPool := x509.NewCertPool()
-	if !trustCertPool.AppendCertsFromPEM(trustBytes) {
-		log.Printf("Error parsing cert: %v", err)
-		return nil, err
-	}
+		conn2, err2 := NewOpenSSLConn(trustPath, certPath, keyPath, host, port, insecure)
+		if err2 != nil {
+			return nil, err2
+		}
+		// If we never get this error, then we can just call config.NewTLSClientConn directly, and eliminate cgo
+		log.Printf("ERROR: we could not connect with standard Go TLS, but could connect with OpenSSL.  Re-issuing this certificate may make this problem go away.")
+		return conn2, nil
 
-	// Create certificate.
-	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
-	if err != nil {
-		log.Printf("Error parsing cert: %v", err)
-		return nil, err
 	}
-
-	cfg := tls.Config{
-		Certificates:             []tls.Certificate{cert},
-		ClientCAs:                trustCertPool,
-		InsecureSkipVerify:       true,
-		ServerName:               "twl-server-generic2",
-		PreferServerCipherSuites: true,
-	}
-	cfg.BuildNameToCertificate()
-
-	return &cfg, nil
+	log.Printf("INFO: we are using native Go TLS to connect to %s:%s", host, port)
+	return conn, nil
 }
 
 // NewOpenSSLConn returns a TCP connection establish with OpenSSL.
-func NewOpenSSLConn(trustPath, certPath, keyPath, host, port string, dialOpts *OpenSSLDialOptions) (*openssl.Conn, error) {
+func NewOpenSSLConn(trustPath, certPath, keyPath, host, port string, insecure bool) (io.ReadWriteCloser, error) {
 
-	// Default to flag 0
-	if dialOpts == nil {
-		dialOpts = &OpenSSLDialOptions{}
+	dialOpts := &OpenSSLDialOptions{}
+	if insecure {
+		dialOpts.SetInsecureSkipHostVerification()
 	}
 
 	ctx, err := openssl.NewCtx()
@@ -234,60 +166,4 @@ func NewOpenSSLConn(trustPath, certPath, keyPath, host, port string, dialOpts *O
 		return nil, err
 	}
 	return conn, nil
-}
-
-// func NewOpenSSLHTTPClient(trustPath, certPath, keyPath, "twl-server-generic2", "9093", dialOpts)
-// NewOpenSSLHTTPClient
-func NewOpenSSLHTTPClient(trustPath, certPath, keyPath, host, port string, dialOpts *OpenSSLDialOptions) (*http.Client, error) {
-
-	// Default to flag 0
-	if dialOpts == nil {
-		dialOpts = &OpenSSLDialOptions{}
-	}
-
-	dialOpts.SetInsecureSkipHostVerification()
-
-	ctx, err := openssl.NewCtx()
-	if err != nil {
-		return nil, err
-	}
-
-	ctx.SetOptions(openssl.CipherServerPreference)
-	ctx.SetOptions(openssl.NoSSLv3)
-	err = ctx.LoadVerifyLocations(trustPath, "")
-	if err != nil {
-		return nil, err
-	}
-
-	certBytes, err := ioutil.ReadFile(certPath)
-	if err != nil {
-		return nil, err
-	}
-
-	cert, err := openssl.LoadCertificateFromPEM(certBytes)
-	if err != nil {
-		return nil, err
-	}
-	ctx.UseCertificate(cert)
-
-	keyBytes, err := ioutil.ReadFile(keyPath)
-	if err != nil {
-		return nil, err
-	}
-	privKey, err := openssl.LoadPrivateKeyFromPEM(keyBytes)
-	if err != nil {
-		return nil, err
-	}
-	ctx.UsePrivateKey(privKey)
-
-	c := &http.Client{Transport: &http.Transport{
-		DialTLS: func(network, address string) (net.Conn, error) {
-			return openssl.Dial("tcp", address, ctx, dialOpts.Flags)
-		},
-		Proxy:                 http.ProxyFromEnvironment,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	}}
-
-	return c, nil
 }

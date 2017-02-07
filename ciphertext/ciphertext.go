@@ -2,10 +2,8 @@ package ciphertext
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -71,29 +69,18 @@ func setPeers(newPeerMap map[string]*PeerMapData, oldPeerMap map[string]*PeerMap
 	connectionMapMutex.Unlock()
 }
 
-func newTLSConfig(trustPath, certPath, keyPath string) (*tls.Config, error) {
-	trustBytes, err := ioutil.ReadFile(trustPath)
+func NewTLSClientConn(trustPath, certPath, keyPath, serverName, host, port string, insecure bool) (*http.Client, error) {
+	conf, err := config.NewTLSClientConfig(trustPath, certPath, keyPath, serverName, insecure)
 	if err != nil {
-		return nil, fmt.Errorf("Error parsing CA trust %s: %v", trustPath, err)
+		return nil, err
 	}
-	trustCertPool := x509.NewCertPool()
-	if !trustCertPool.AppendCertsFromPEM(trustBytes) {
-		return nil, fmt.Errorf("Error adding CA trust to pool: %v", err)
-	}
-	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
-	if err != nil {
-		return nil, fmt.Errorf("Error parsing cert: %v", err)
-	}
-	cfg := tls.Config{
-		Certificates:             []tls.Certificate{cert},
-		ClientCAs:                trustCertPool,
-		InsecureSkipVerify:       true,
-		ServerName:               peerCN,
-		PreferServerCipherSuites: true,
-	}
-	cfg.BuildNameToCertificate()
-
-	return &cfg, nil
+	return &http.Client{
+		Transport: &http.Transport{
+			DialTLS: func(network, address string) (net.Conn, error) {
+				return tls.Dial("tcp", fmt.Sprintf("%s:%s", host, port), conf)
+			},
+		},
+	}, nil
 }
 
 // We would like to have a .cached file, but an .uploaded file will do.
@@ -158,7 +145,6 @@ func useP2PFile(logger zap.Logger, zone CiphertextCacheZone, rName FileId, begin
 			url := fmt.Sprintf("https://%s:%d/ciphertext/%s/%s", peer.Host, peer.Port, string(zone), string(rName))
 
 			//Set up a transport to connect to peer if there isn't one
-			var conf *tls.Config
 			var err error
 			var conn *http.Client
 
@@ -169,16 +155,9 @@ func useP2PFile(logger zap.Logger, zone CiphertextCacheZone, rName FileId, begin
 			connectionMapMutex.RUnlock()
 
 			if conn == nil {
-				conf, err = newTLSConfig(peer.CA, peer.Cert, peer.CertKey)
+				conn, err = NewTLSClientConn(peer.CA, peer.Cert, peer.CertKey, peerCN, peer.Host, fmt.Sprintf("%d", peer.Port), true)
 				if err != nil {
 					logger.Warn("p2p cannot connect", zap.String("url", url), zap.String("err", err.Error()))
-				}
-				conn = &http.Client{
-					Transport: &http.Transport{
-						DialTLS: func(network, address string) (net.Conn, error) {
-							return tls.Dial("tcp", fmt.Sprintf("%s:%d", peer.Host, peer.Port), conf)
-						},
-					},
 				}
 
 				//Set the new connection if we got one

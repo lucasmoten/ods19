@@ -14,34 +14,6 @@ var (
 	logger = zap.New(zap.NewJSONEncoder(), zap.Output(os.Stdout), zap.ErrorOutput(os.Stdout))
 )
 
-// buildClientTLSConfig prepares a tls.Config object for this application to use
-// when acting as a client connecting to a dependent resource.
-func buildClientTLSConfig(CAPath string, ClientCertPath string, ClientKeyPath string, ServerName string, InsecureSkipVerify bool) tls.Config {
-	// Root Certificate pool
-	// The set of root certificate authorities that this client will use when
-	// verifying the server certificate indicated as the identity of the
-	// server this config will be used to connect to.
-	rootCAsCertPool := buildCertPoolFromPath(CAPath, "for client")
-
-	// Client public and private certificate
-	if len(ClientCertPath) == 0 || len(ClientKeyPath) == 0 {
-		return tls.Config{
-			RootCAs:            rootCAsCertPool,
-			ServerName:         ServerName,
-			InsecureSkipVerify: InsecureSkipVerify,
-		}
-	} else {
-		clientCert := buildx509Identity(ClientCertPath, ClientKeyPath)
-
-		return tls.Config{
-			RootCAs:            rootCAsCertPool,
-			Certificates:       clientCert,
-			ServerName:         ServerName,
-			InsecureSkipVerify: InsecureSkipVerify,
-		}
-	}
-}
-
 // buildServerTLSConfig prepares a tls.Config object for this application to
 // listen for connecting clients.
 func buildServerTLSConfig(caPath, certPath, keyPath string, clientCert bool, ciphers []string, minVersion string) tls.Config {
