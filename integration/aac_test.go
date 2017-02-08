@@ -48,7 +48,7 @@ func TestMain(m *testing.M) {
 
 	// using the announcements, get the host + port
 	aacHost := "aac"
-	aacPort := 9093
+	aacPort := "9093"
 
 	// AAC trust, client public & private key
 	trustPath := filepath.Join("..", "defaultcerts", "clients", "client.trust.pem")
@@ -56,10 +56,7 @@ func TestMain(m *testing.M) {
 	keyPath := filepath.Join("..", "defaultcerts", "clients", "test_1.key.pem")
 
 	// Setup connection config with SSL
-	dialOpts := &legacyssl.OpenSSLDialOptions{}
-	dialOpts.SetInsecureSkipHostVerification()
-	conn, err := legacyssl.NewOpenSSLTransport(
-		trustPath, certPath, keyPath, aacHost, aacPort, dialOpts)
+	conn, err := legacyssl.NewSSLConn(trustPath, certPath, keyPath, aacHost, aacPort, true)
 	if err != nil {
 		log.Fatal(err)
 	}

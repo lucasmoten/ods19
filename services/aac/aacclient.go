@@ -1,6 +1,8 @@
 package aac
 
 import (
+	"fmt"
+
 	"decipher.com/object-drive-server/legacyssl"
 	"github.com/samuel/go-thrift/thrift"
 )
@@ -8,8 +10,7 @@ import (
 // GetAACClient creates a new AacServiceClient.
 func GetAACClient(aacHost string, aacPort int, trustPath, certPath, keyPath string) (*AacServiceClient, error) {
 
-	conn, err := legacyssl.NewOpenSSLTransport(
-		trustPath, certPath, keyPath, aacHost, aacPort, nil)
+	conn, err := legacyssl.NewSSLConn(trustPath, certPath, keyPath, aacHost, fmt.Sprintf("%d", aacPort), true)
 
 	if err != nil {
 		return nil, err
