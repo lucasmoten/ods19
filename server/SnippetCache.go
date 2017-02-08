@@ -1,7 +1,10 @@
 package server
 
 import (
+	"strings"
+
 	"decipher.com/object-drive-server/auth"
+	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/metadata/models/acm"
 	"golang.org/x/net/context"
 )
@@ -15,8 +18,15 @@ func (h AppServer) GetUserGroupsAndSnippets(ctx context.Context) ([]string, *acm
 
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	snippetFields, ok := SnippetsFromContext(ctx)
+	// From local profiles
 	if !ok {
-
+		if strings.ToLower(caller.UserDistinguishedName) == strings.ToLower(ciphertext.PeerSignifier) {
+			// no snippets
+			ok = true
+		}
+	}
+	// From AAC
+	if !ok {
 		snippetFields, err = aacAuth.GetSnippetsForUser(caller.UserDistinguishedName)
 		if err != nil {
 			return nil, nil, err
