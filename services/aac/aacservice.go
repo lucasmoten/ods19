@@ -29,8 +29,8 @@ type AcmsForRollupWithPath struct {
 
 type CheckAccessAndPopulateResponse struct {
 	Success           bool           `thrift:"1,required" json:"success"`
-	Messages          []string       `thrift:"2,optional" json:"messages"` // NOTE: codegen made this field "required"
-	AcmResponseList   []*AcmResponse `thrift:"3,required" json:"AcmResponseList"`
+	Messages          []string       `thrift:"2,optional" json:"messages"`          // NOTE: codegen made this field "required"
+	AcmResponseList   []*AcmResponse `thrift:"3,optional" json:"AcmResponseList"`   // NOTE: codegen made this field "required"
 	RollupAcmResponse *AcmResponse   `thrift:"4,optional" json:"rollupAcmResponse"` // NOTE: codegen made this field "required"
 }
 
@@ -64,7 +64,7 @@ type SimpleAcmResponse struct {
 type SnippetResponse struct {
 	Success  bool     `thrift:"1,required" json:"success"`
 	Messages []string `thrift:"2,optional" json:"messages"` // NOTE:  generator marked this as required
-	Snippets string   `thrift:"3,required" json:"snippets"`
+	Snippets string   `thrift:"3,optional" json:"snippets"` // NOTE:  generator marked this as required
 }
 
 type UserAttributesResponse struct {

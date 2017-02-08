@@ -101,7 +101,7 @@ func TestAACAuthGetSnippetsForUser(t *testing.T) {
 
 	subtests := []testAACAuth{}
 	subtests = append(subtests, testAACAuth{expectedIsError: true, subtestname: "No User", expectedError: auth.ErrUserNotSpecified})
-	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "Fake User", userIdentity: "Fake User"})
+	subtests = append(subtests, testAACAuth{expectedIsError: true, subtestname: "Fake User", userIdentity: "Fake User", expectedError: auth.ErrServiceNotSuccessful})
 	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "Jonathan Holmes", userIdentity: "CN=Holmes Jonathan,OU=People,OU=Bedrock,OU=Six 3 Systems,O=U.S. Government,C=US"})
 	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "Tester 10", userIdentity: "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us", expectedSnippets: "dissem_countries allowed (USA) AND f_accms disallow () AND f_atom_energy allowed () AND f_clearance allowed (ts,s,c,u) AND f_macs disallow (tide,bir,watchdog) AND f_missions allowed () AND f_oc_org allowed (dia) AND f_regions allowed () AND f_sar_id allowed () AND f_sci_ctrls disallow (hcs_p,kdk,rsv) AND f_share allowed (dctc_odrive,dctc_odrive_g1,cntesttester10oupeopleoudaeouchimeraou_s_governmentcus,cusou_s_governmentouchimeraoudaeoupeoplecntesttester10)"})
 	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "Uppercase Tester 10", userIdentity: "CN=Test Tester10,OU=People,OU=DAE,OU=Chimera,O=U.S. Government,C=US", expectedSnippets: "dissem_countries allowed (USA) AND f_accms disallow () AND f_atom_energy allowed () AND f_clearance allowed (ts,s,c,u) AND f_macs disallow (tide,bir,watchdog) AND f_missions allowed () AND f_oc_org allowed (dia) AND f_regions allowed () AND f_sar_id allowed () AND f_sci_ctrls disallow (hcs_p,kdk,rsv) AND f_share allowed (dctc_odrive,dctc_odrive_g1,cntesttester10oupeopleoudaeouchimeraou_s_governmentcus,cusou_s_governmentouchimeraoudaeoupeoplecntesttester10)"})
@@ -229,6 +229,7 @@ func TestAACAuthIsUserAuthorizedForACM(t *testing.T) {
 	idFake := "Fake User"
 	idJon := "CN=Holmes Jonathan,OU=People,OU=Bedrock,OU=Six 3 Systems,O=U.S. Government,C=US"
 	idDave := "CN=Yantz David,OU=People,OU=Bedrock,OU=Mantech,O=U.S. Government,C=US"
+	idDefault := "cn=NonExistent But Will Give Default,OU=People"
 	idTester10 := "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
 	idTester01 := "cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
 
@@ -236,18 +237,21 @@ func TestAACAuthIsUserAuthorizedForACM(t *testing.T) {
 	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "No User or ACM expect error", expectedError: auth.ErrACMNotSpecified})
 	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "No User expect error", expectedError: auth.ErrUserNotSpecified, acm: acmUnclass})
 	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "User with Invalid ACM expect error", userIdentity: idFake, expectedError: auth.ErrACMNotValid, acm: `{"x":"123"}`})
-	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "Fake User (-DIAS) for unclass expect error", userIdentity: idFake, expectedError: auth.ErrUserNotAuthorized, acm: acmUnclass})
-	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "Jonathan Holmes (-DIAS) for unclass expect error", userIdentity: idJon, expectedError: auth.ErrUserNotAuthorized, acm: acmUnclass})
+	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "Fake User (-DIAS) for unclass expect error", userIdentity: idFake, expectedError: auth.ErrServiceNotSuccessful, acm: acmUnclass})
+	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "Nonexistent but gives default people (-DIAS) for unclass expect error", userIdentity: idDefault, expectedError: auth.ErrUserNotAuthorized, acm: acmUnclass})
+	subtests = append(subtests, testAACAuth{expectedIsError: false, expectedIsAuthorized: true, subtestname: "Jonathan Holmes (+DIAS) for unclass", userIdentity: idJon, acm: acmUnclass})
 	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "David Yantz (+DIAS) for unclass expect error", userIdentity: idDave, expectedError: auth.ErrUserNotAuthorized, acm: acmUnclass})
 	subtests = append(subtests, testAACAuth{expectedIsError: false, expectedIsAuthorized: true, subtestname: "Tester 10 (+DIAS) for unclass", userIdentity: idTester10, acm: acmUnclass})
 	subtests = append(subtests, testAACAuth{expectedIsError: false, expectedIsAuthorized: true, subtestname: "Tester 01 (+DIAS) for unclass", userIdentity: idTester01, acm: acmUnclass})
-	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "Fake User (-DIAS) for secret expect error", userIdentity: idFake, expectedError: auth.ErrUserNotAuthorized, acm: acmSecret})
-	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "Jonathan Holmes (-DIAS) for secret expect error", userIdentity: idJon, expectedError: auth.ErrUserNotAuthorized, acm: acmSecret})
+	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "Fake User (-DIAS) for secret expect error", userIdentity: idFake, expectedError: auth.ErrServiceNotSuccessful, acm: acmSecret})
+	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "Nonexistent but gives default people (-DIAS) for secret expect error", userIdentity: idDefault, expectedError: auth.ErrUserNotAuthorized, acm: acmSecret})
+	subtests = append(subtests, testAACAuth{expectedIsError: false, expectedIsAuthorized: true, subtestname: "Jonathan Holmes (+DIAS) for secret", userIdentity: idJon, acm: acmSecret})
 	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "David Yantz (+DIAS) for secret expect error", userIdentity: idDave, expectedError: auth.ErrUserNotAuthorized, acm: acmSecret})
 	subtests = append(subtests, testAACAuth{expectedIsError: false, expectedIsAuthorized: true, subtestname: "Tester 10 (+DIAS) for secret", userIdentity: idTester10, acm: acmSecret})
 	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "Tester 01 (+DIAS) for secret expect error", userIdentity: idTester01, expectedError: auth.ErrUserNotAuthorized, acm: acmSecret})
-	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "Fake User (-DIAS) for top secret expect error", userIdentity: idFake, expectedError: auth.ErrUserNotAuthorized, acm: acmTopSecret})
-	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "Jonathan Holmes (-DIAS) for top secret expect error", userIdentity: idJon, expectedError: auth.ErrUserNotAuthorized, acm: acmTopSecret})
+	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "Fake User (-DIAS) for top secret expect error", userIdentity: idFake, expectedError: auth.ErrServiceNotSuccessful, acm: acmTopSecret})
+	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "Nonexistent but gives default people (-DIAS) for top secret expect error", userIdentity: idDefault, expectedError: auth.ErrUserNotAuthorized, acm: acmTopSecret})
+	subtests = append(subtests, testAACAuth{expectedIsError: false, expectedIsAuthorized: true, subtestname: "Jonathan Holmes (+DIAS) for top secret", userIdentity: idJon, acm: acmTopSecret})
 	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "David Yantz (+DIAS) for top secret expect error", userIdentity: idDave, expectedError: auth.ErrUserNotAuthorized, acm: acmTopSecret})
 	subtests = append(subtests, testAACAuth{expectedIsError: false, expectedIsAuthorized: true, subtestname: "Tester 10 (+DIAS) for top secret", userIdentity: idTester10, acm: acmTopSecret})
 	subtests = append(subtests, testAACAuth{expectedIsError: true, expectedIsAuthorized: false, subtestname: "Tester 01 (+DIAS) for top secret expect error", userIdentity: idTester01, expectedError: auth.ErrUserNotAuthorized, acm: acmTopSecret})

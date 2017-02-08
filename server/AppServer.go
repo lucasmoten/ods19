@@ -13,11 +13,13 @@ import (
 	"regexp"
 	"runtime/debug"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/karlseguin/ccache"
 	"github.com/uber-go/zap"
 
+	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/autoscale"
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/dao"
@@ -332,8 +334,12 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx = ContextWithUser(ctx, *user)
 	groups, snippets, err := h.GetUserGroupsAndSnippets(ctx)
 	if err != nil {
-		sendErrorResponse(logger, &w, 500, err, "Error retrieving user snippets")
-		herr := NewAppError(500, err, "Error retrieving user snippets")
+		statusCode := http.StatusInternalServerError
+		if strings.HasPrefix(err.Error(), auth.ErrServiceNotSuccessful.Error()) {
+			statusCode = http.StatusForbidden
+		}
+		sendErrorResponse(logger, &w, statusCode, err, "Error retrieving user snippets")
+		herr := NewAppError(statusCode, err, "Error retrieving user snippets")
 		h.publishError(gem, herr)
 		return
 	}

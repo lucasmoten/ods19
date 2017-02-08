@@ -448,3 +448,38 @@ func TestListObjectsWithInvalidFilterCondition(t *testing.T) {
 		t.FailNow()
 	}
 }
+
+func TestListObjectsForNonExistentUser(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip()
+	}
+	clientid := 10
+	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
+	nonexistentuser := "cn=bob smith,ou=fake,ou=dia,o=u.s. government,c=us"
+
+	// URL
+	uri := host + cfg.NginxRootURL + "/objects"
+
+	// Request
+	req, err := http.NewRequest("GET", uri, nil)
+	if err != nil {
+		log.Printf("Error setting up HTTP Request: %v", err)
+		t.FailNow()
+	}
+	req.Header.Add("USER_DN", nonexistentuser)
+	req.Header.Add("SSL_CLIENT_S_DN", whitelistedDN)
+	req.Header.Add("EXTERNAL_SYS_DN", whitelistedDN)
+
+	res, err := clients[clientid].Client.Do(req)
+	if err != nil {
+		log.Printf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	defer util.FinishBody(res.Body)
+	// Response validation
+	if res.StatusCode != http.StatusForbidden {
+		log.Printf("bad status: %s", res.Status)
+		t.FailNow()
+	}
+}
