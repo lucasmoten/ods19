@@ -248,6 +248,7 @@ func aacReconnect(app *AppServer, conf config.AppConfiguration) {
 	}
 
 	conn := zkState.Conn
+	defer conn.Close()
 	path := conf.AACSettings.AACAnnouncementPoint
 	members, _, err := conn.Children(path)
 	if err != nil {
