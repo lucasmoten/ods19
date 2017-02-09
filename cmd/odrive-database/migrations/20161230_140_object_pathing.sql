@@ -29,7 +29,7 @@ BEGIN
 
     # Rules
     # Type must be specified
-    SELECT COUNT(*) FROM object_type WHERE isDeleted = 0 AND id = NEW.typeId INTO count_type;
+    SELECT COUNT(*) FROM object_type WHERE id = NEW.typeId INTO count_type;
     IF count_type = 0 THEN
         SET error_msg := concat(error_msg, 'Field typeId required ');
     END IF;
@@ -46,7 +46,7 @@ BEGIN
         SET NEW.parentId := NULL;
     END IF;
     IF NEW.parentId IS NOT NULL THEN
-        SELECT COUNT(*) FROM object WHERE isDeleted = 0 AND id = NEW.parentId INTO count_parent;
+        SELECT COUNT(*) FROM object WHERE id = NEW.parentId INTO count_parent;
         IF count_parent = 0 THEN
             SET error_msg := concat(error_msg, 'Field parentId must be valid ');
         END IF;
@@ -237,7 +237,7 @@ BEGIN
         SET NEW.parentId := NULL;
     END IF;
     IF NEW.parentId IS NOT NULL THEN
-        SELECT COUNT(*) FROM object WHERE (isDeleted = 0 or (NEW.IsDeleted <> OLD.IsDeleted)) AND id = NEW.parentId INTO count_parent;
+        SELECT COUNT(*) FROM object WHERE id = NEW.parentId INTO count_parent;
         IF count_parent = 0 THEN
             SET error_msg := concat(error_msg, 'Field parentId must be valid ');
         END IF;
