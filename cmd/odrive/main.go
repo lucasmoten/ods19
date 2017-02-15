@@ -18,6 +18,12 @@ import (
 	samuelzk "github.com/samuel/go-zookeeper/zk"
 )
 
+// Build and Commit are set at build time with -ldflags
+var (
+	Build  string
+	Commit string
+)
+
 // Services that require network
 const (
 	S3Service        = "s3"
@@ -38,7 +44,7 @@ func main() {
 	cliParser := cli.NewApp()
 	cliParser.Name = "odrive"
 	cliParser.Usage = "object-drive-server binary"
-	cliParser.Version = "1.0"
+	cliParser.Version = fmt.Sprintf("1.0 - Build Number %s %s", Build, Commit)
 
 	cliParser.Commands = []cli.Command{
 		{

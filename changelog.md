@@ -2,8 +2,12 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release vNEXT
+--------------------
+* ENH: Build number and git commit sha1 now exposed with the --version flag
+
 ## Release v1.0.1.14
--------------
+--------------------
 * FIX: Service process now assigned group and user when sudoing down from root.
 * ENH: Orphaned files that cannot be removed due to permissions are renamed to permit service termination.
 * ENH: Service init script for restart handles discrepent pidfile.

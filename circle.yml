@@ -25,7 +25,7 @@ dependencies:
         - rm -rf ~/.go_workspace/src/$IMPORT_PATH
         - cp -rf ~/$REPO_NAME ~/.go_workspace/src/$IMPORT_PATH
         - cd ~/.go_workspace/src/$IMPORT_PATH && govendor sync
-        - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive && go build
+        - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive && go build -ldflags "-X main.Build=${CIRCLE_BUILD_NUM} -X main.Commit=${CIRCLE_SHA1}"
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/obfuscate && go build
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && go-bindata schema migrations ../../defaultcerts/client-mysql/id ../../defaultcerts/client-mysql/trust
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && go build
