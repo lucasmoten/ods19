@@ -108,7 +108,7 @@ func DiscoverKafka(conn *zk.Conn, path string, setter func(*AsyncProducer), opts
 
 	ap, err := NewAsyncProducer(brokers, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("broker data found, but could not establish connection to Kafka")
+		return nil, fmt.Errorf("broker data found, but could not establish connection to Kafka: %v", err)
 	}
 
 	// Get the chan zk.Event for changes to children
