@@ -1,22 +1,28 @@
 #!/bin/bash
 
+# This script should be run whenever we have a server release intended to be 
+# pushed to the MEME Dev VPC for Bedrock
+#
+# Publishes the Object Drive Server RPM to the buids.363-283.io S3 bucket for
+# Bedrock. The Object Drive Server RPM should already have been built from 
+# circle, and build number expected as argument. RPM filenames are converted to
+# a format that denotes the version and build date. Prior to uploading to S3 
+# bucket, you will be prompted for each, allowing opportunity to test builds, 
+# and exit to verify structure.
+#
+# Pre-requisites
+#   1. Object Drive Server rpm should be built by circle and in the 
+#      odrive-builds bucket
+#   2. You have environment variables set for MEME_AWS_ACCESS_KEY_ID and 
+#      MEME_AWS_SECRET_ACCESS_KEY for writing to the builds.363-283.io bucket
+
 CIRCLE_BUILD_NUM=$1
 if [ ${#1} -eq 0 ]
 then
   echo "You must provide the build number corresponding to the RPM"
   echo "to retrieve from odrive-builds and push to builds.363-283.io"
   echo "as the first argument"
-  echo "For example, ./publishrpm 909 1.0.3"
-  exit 1
-fi
-
-UI_VERSION=$2
-if [ ${#2} -eq 0 ]
-then
-  echo "You must provide the version number for the UI for which"
-  echo "the RPM will be built and pushed to builds.363-283.io"
-  echo "as the second argument"
-  echo "For example, ./publishrpm 909 1.0.3"
+  echo "For example, ./publishrpm 1028"
   exit 1
 fi
 
@@ -73,22 +79,16 @@ fi
 REMOTEFILE="object-drive-1.0.1.${CIRCLE_BUILD_NUM}.${BUILDDATEYYYYMMDD}.rpm"
 echo "File to save as in bucket is ${REMOTEFILE}"
 echo "Command: aws s3 cp ${RPMFILE} s3://builds.363-283.io/${REMOTEFILE}"
-aws s3 cp ${RPMFILE} s3://builds.363-283.io/${REMOTEFILE}
+echo "Do you wish to copy to the builds.363-283.io bucket?"
+select yn in "Yes" "No"; do
+  case $yn in
+    "Yes") 
+      aws s3 cp ${RPMFILE} s3://builds.363-283.io/${REMOTEFILE}
+      break
+      ;;
+    "No") 
+      break
+      ;;
+  esac
+done
 
-# Build the UI (resulting RPM is drive-1.0-1.x86_64.rpm)
-BUILDDATEUI=$(date +%Y%m%d)
-UIRPMFILE="drive-1.0-1.x86_64.rpm"
-cd ${OD_ROOT}/object-drive-ui
-jspm install
-npm run build
-./buildimage.sh
-cd ${OD_ROOT}/object-drive-ui/rpm
-./build
-
-# File format needs to be
-# <App Name>-<major version>.<minor version>.<patch version>.<build number>.<YYYYMMDD>.{SNAPSHOT}.rpm
-# drive-ui-1.0.0.{CIRCLE_BUILD_NUM}.{BUILDDATEUI}.SNAPSHOT.rpm
-UIREMOTEFILE="drive-ui-${UI_VERSION}.${CIRCLE_BUILD_NUM}.${BUILDDATEUI}.SNAPSHOT.rpm"
-echo "File to save as in bucket is ${UIREMOTEFILE}"
-echo "Command: aws s3 cp ${UIRPMFILE} s3://builds.363-283.io/${UIREMOTEFILE}"
-aws s3 cp ${UIRPMFILE} s3://builds.363-283.io/${UIREMOTEFILE}
