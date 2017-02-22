@@ -82,7 +82,7 @@ func (d *CiphertextCacheData) NewPuller(logger zap.Logger, rName FileId, totalLe
 	attempts := 20
 	for attempts > 0 && err != nil && d.PermanentStorage != nil {
 		//Keep trying PermanentStorage
-		//In general, we should never get here, because it's a barely bounded stall.
+		//This can happen due to temporarily losing the only node that has the ciphertext. Maybe we should just get an error in this case.
 		err = p.More(false)
 		if err == nil {
 			break
@@ -137,7 +137,7 @@ func (p *Puller) getFileHandle(begin, end int64, p2p bool) (io.ReadCloser, error
 	// Range request it out of PermanentStorage if we can
 	f, err := p.CiphertextCache.GetPermanentStorage().GetStream(p.Key, begin, end)
 	if err == nil && f != nil {
-		p.From = pullFromPeer
+		p.From = pullFromStorage
 	} else {
 		// We are doomed to lose the connection.  It will get logged.
 		p.From = pullFromUnknown
