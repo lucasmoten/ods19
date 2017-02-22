@@ -204,7 +204,7 @@ func newLogger(logger zap.Logger, sessionID, cn string, r *http.Request) zap.Log
 		With(zap.String("cn", cn)).
 		With(zap.String("method", r.Method)).
 		With(zap.String("uri", r.RequestURI)).
-		With(zap.String("date", fmt.Sprintf("%v", time.Now())))
+		With(zap.String("date", time.Now().Format(time.RFC3339Nano)))
 }
 
 //When there is a panic, all deferred functions get executed.

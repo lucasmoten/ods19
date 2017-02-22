@@ -4,6 +4,10 @@ FORMAT: 1A
 
 ## Release vNEXT
 --------------------
+* ENH: Logging now renders timestamp in RFC3339 format intsead of seconds since unix epoch.
+
+## Release v1.0.1.15
+--------------------
 * ENH: Build number and git commit sha1 now exposed with the --version flag
 * FIX: Uncached large files no longer truncated at 16MB during download
 
