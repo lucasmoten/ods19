@@ -32,11 +32,19 @@ var defaultConfig = config.AppConfiguration{
 	},
 }
 
+// Version metadata should be set at build time with -ldflags.
+var (
+	Build   string
+	Commit  string
+	Version string
+)
+
 func main() {
 
 	app := cli.NewApp()
 	app.Name = "odrive-database"
 	app.Usage = "odrive database manager for setup and migrations"
+	app.Version = fmt.Sprintf("%s build :%s", Version, Build)
 
 	// Declare flags common to commands, and pass them in Flags below.
 	confFlag := cli.StringFlag{

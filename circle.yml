@@ -25,10 +25,10 @@ dependencies:
         - rm -rf ~/.go_workspace/src/$IMPORT_PATH
         - cp -rf ~/$REPO_NAME ~/.go_workspace/src/$IMPORT_PATH
         - cd ~/.go_workspace/src/$IMPORT_PATH && govendor sync
-        - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive && go build -ldflags "-X main.Build=${CIRCLE_BUILD_NUM} -X main.Commit=${CIRCLE_SHA1}"
+        - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive && go build -ldflags "-X main.Build=${CIRCLE_BUILD_NUM} -X main.Commit=${CIRCLE_SHA1} -X main.Version=$(git describe --abbrev=0 --tags)"
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/obfuscate && go build
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && go-bindata schema migrations ../../defaultcerts/client-mysql/id ../../defaultcerts/client-mysql/trust
-        - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && go build
+        - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && go build -ldflags "-X main.Build=${CIRCLE_BUILD_NUM} -X main.Commit=${CIRCLE_SHA1} -X main.Version=$(git describe --abbrev=0 --tags)"
         - cd ~/.go_workspace/src/$IMPORT_PATH && ./makedocs
         - cd ~/.go_workspace/src/$IMPORT_PATH && docker build -t deciphernow/odrive:latest .
         - cd ~/.go_workspace/src/$IMPORT_PATH/.ci && docker-compose pull zk kafka aac metadatadb gatekeeper dias
@@ -52,5 +52,14 @@ deployment:
             - cd ~/.go_workspace/src/$IMPORT_PATH && mv object-drive-1.0-${CIRCLE_BUILD_NUM}-SNAPSHOT.x86_64.rpm object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm
             - cd ~/.go_workspace/src/$IMPORT_PATH && aws s3 cp object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm s3://odrive-builds/circle/rpms/object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm --acl public-read
             - docker push deciphernow/odrive:latest
+    release:
+        tag: /v.*/
+        owner: DecipherNow
+        commands:
+            - cd ~/.go_workspace/src/$IMPORT_PATH && ./makerpm $CIRCLE_BUILD_NUM:
+                    timeout: 1200
+            - cd ~/.go_workspace/src/$IMPORT_PATH && mv object-drive-1.0-${CIRCLE_BUILD_NUM}-SNAPSHOT.x86_64.rpm object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm
+            - cd ~/.go_workspace/src/$IMPORT_PATH && aws s3 cp object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm s3://odrive-builds/circle/rpms/object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm --acl public-read
+            - cd ~/.go_workspace/src/$IMPORT_PATH && docker push deciphernow/odrive:latest
 
 
