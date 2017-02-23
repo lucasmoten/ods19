@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -571,7 +572,7 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, f os.FileInfo, err er
 
 	//Ignore directories.  We should not have an unbounded number of directories.
 	//And we must ignore h.CacheLocation
-	if f.IsDir() {
+	if f.IsDir() || !f.Mode().IsRegular() {
 		return nil
 	}
 
@@ -716,6 +717,33 @@ func (d *CiphertextCacheData) CountUploaded() int {
 	return uploaded
 }
 
+func cachePurgeIteration(d *CiphertextCacheData) {
+	defer func() {
+		if r := recover(); r != nil {
+			d.Logger.Error(
+				"purge crash",
+				zap.Object("context", r),
+				zap.String("stack", string(debug.Stack())),
+			)
+		}
+	}()
+
+	fqCache := d.Files().Resolve(d.Resolve(""))
+	err := filepath.Walk(
+		fqCache,
+		func(name string, f os.FileInfo, err error) (errReturn error) {
+			return filePurgeVisit(d, name, f, err)
+		},
+	)
+	if err != nil {
+		d.Logger.Error(
+			"unable to walk cache",
+			zap.String("filename", fqCache),
+			zap.String("err", err.Error()),
+		)
+	}
+}
+
 // CachePurge will periodically delete files that do not need to be in the cache.
 func (d *CiphertextCacheData) CachePurge() {
 	if d.PermanentStorage == nil {
@@ -726,22 +754,8 @@ func (d *CiphertextCacheData) CachePurge() {
 	//    lowWatermark (floating point 0..1)
 	//    highWatermark (floating point 0..1)
 	//    ageEligibleForEviction (integer seconds)
-	var err error
 	for {
-		fqCache := d.Files().Resolve(d.Resolve(""))
-		err = filepath.Walk(
-			fqCache,
-			func(name string, f os.FileInfo, err error) (errReturn error) {
-				return filePurgeVisit(d, name, f, err)
-			},
-		)
-		if err != nil {
-			d.Logger.Error(
-				"unable to walk cache",
-				zap.String("filename", fqCache),
-				zap.String("err", err.Error()),
-			)
-		}
+		cachePurgeIteration(d)
 		time.Sleep(d.walkSleep)
 	}
 }
