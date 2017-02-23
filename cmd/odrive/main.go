@@ -18,25 +18,12 @@ import (
 	samuelzk "github.com/samuel/go-zookeeper/zk"
 )
 
-// Build and Commit are set at build time with -ldflags
+// Version metadata should be set at build time with -ldflags.
 var (
-	Build  string
-	Commit string
+	Build   string
+	Commit  string
+	Version string
 )
-
-// Services that require network
-const (
-	S3Service        = "s3"
-	AACService       = "aac"
-	DatabaseService  = "db"
-	ZookeeperService = "zk"
-)
-
-type emptyLogger struct{}
-
-func (emptyLogger) Printf(format string, a ...interface{}) {
-	//log.Printf(format, a...)
-}
 
 func main() {
 	samuelzk.DefaultLogger = emptyLogger{}
@@ -44,7 +31,7 @@ func main() {
 	cliParser := cli.NewApp()
 	cliParser.Name = "odrive"
 	cliParser.Usage = "object-drive-server binary"
-	cliParser.Version = fmt.Sprintf("1.0 - Build Number %s %s", Build, Commit)
+	cliParser.Version = fmt.Sprintf("%s build :%s", Version, Build)
 
 	cliParser.Commands = []cli.Command{
 		{
@@ -133,6 +120,18 @@ func main() {
 
 	cliParser.Run(os.Args)
 }
+
+// Services available for testing.
+const (
+	S3Service        = "s3"
+	AACService       = "aac"
+	DatabaseService  = "db"
+	ZookeeperService = "zk"
+)
+
+type emptyLogger struct{}
+
+func (emptyLogger) Printf(format string, a ...interface{}) {}
 
 func serviceTest(ctx *cli.Context) error {
 	service := ctx.Args().First()
