@@ -260,7 +260,6 @@ func CloudWatchReportingStart(tracker *performance.JobReporters) {
 	var sleepTime int
 
 	if cwConfig == nil {
-		logger.Warn("cloudwatch not configured", zap.String("required", "OD_AWS_CLOUDWATCH_NAME"))
 		namespace = aws.String("nullCloudwatch")
 		sleepTime = 60
 	} else {
@@ -274,7 +273,7 @@ func CloudWatchReportingStart(tracker *performance.JobReporters) {
 		sleepTime = cwConfig.SleepTimeInSeconds
 	}
 
-	logger.Info("cloudwatch monitoring started", zap.String("namespace", *namespace))
+	logger.Info("cloudwatch monitoring started", zap.String("implementation", *namespace))
 	var dims []*cloudwatch.Dimension
 	dims = append(dims, &cloudwatch.Dimension{Name: aws.String("Service Name"), Value: aws.String("odrive")})
 
