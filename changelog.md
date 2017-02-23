@@ -3,6 +3,10 @@ FORMAT: 1A
 # Object Drive Changelog
 
 ## Release vNEXT
+----------------
+* ENH: Latest git tag is embedded in --version flag. 
+
+## Release v1.0.1.15
 --------------------
 * ENH: Build number and git commit sha1 now exposed with the --version flag
 * FIX: Uncached large files no longer truncated at 16MB during download
@@ -19,7 +23,7 @@ FORMAT: 1A
 * FIX: Close connection to ZK when polling for AAC connection every 30 sec.
 
 ## Release v1.0.1.13
--------------
+--------------------
 * ENH: Calculated full path and unique names for objects. Slashes are now restricted characters from updates.
 * ENH: Bulk Delete objects: DELETE /objects
 * ENH: Bulk Move objects: POST /objects/move
@@ -31,7 +35,7 @@ FORMAT: 1A
 * NEW: Build Changelog into HTML and link from API Documentation
 
 ## Release v1.0.1.12
------------------
+--------------------
 * ENH: Determination of content type from file extension on upload expanded to larger list
 * ENH: Autoscale shutdown from lifecycle messages now handle 10 messages at a time, configured via OD_AWS_SQS_BATCHSIZE
 * NEW: Empty Trash: DELETE /trashed
@@ -46,13 +50,13 @@ FORMAT: 1A
 * FIX: RPM adds user and group if not present. Now deletes only on uninstall, not upgrades.
 
 ## Release v1.0.1.10
------------------
+--------------------
 * FIX: RPM updated to create services group, and change ownership to object-drive:services
 * ENH: Performance improvements to database list/search operations, and additional indexing on key columns
 * FIX: Object-Drive Service Init script no longer assigns group to process to prevent failure.
 
 ## Release v1.0.1.9
-----------------
+-------------------
 * ENH: Command `serviceTest` renamed to `test`
 * FIX: RPM updated to use /opt/services/object-drive-1.0 installation path, object-drive-1.0 for servicename, object-drive for username
 * REF: Abstract AAC authorization calls from server handlers to new interface
@@ -62,7 +66,7 @@ FORMAT: 1A
 * ENH: ACL Impersonation Whitelist read from different location in object-drive.yml 
 
 ## Release v1.0.1.8
-----------------
+-------------------
 * NEW: CORS support in the server
 * DOC: API Documentation now reflects changes where OwnedBy field is now stored and returned in serialized resource format
 * NEW: Masterkey refactored down into cache layer
