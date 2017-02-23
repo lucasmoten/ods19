@@ -147,7 +147,6 @@ fi
 /usr/bin/getent group services || /usr/sbin/groupadd -f -r services
 /usr/bin/getent passwd object-drive || /usr/sbin/useradd --no-create-home --no-user-group --gid services object-drive 
 
-
 exit 0
 
 %post
@@ -159,7 +158,12 @@ if [ -f /tmp/env.sh ]; then
     echo "moving old env.sh"
     mv -f /tmp/env.sh /opt/services/object-drive-1.0/env.sh
 fi
-
+if [ -d /etc/chkconfig.d ]; then
+    echo "configuring chkconfig enabling run level 3 and 5"
+    chkconfig --add object-drive-1.0
+    chkconfig --level 3 object-drive-1.0 on
+    chkconfig --level 5 object-drive-1.0 on
+fi
 
 %postun
 if [ "$1" = "1" ]; then
