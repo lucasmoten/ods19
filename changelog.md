@@ -9,6 +9,7 @@ FORMAT: 1A
 ## Release v1.0.1.15
 --------------------
 * ENH: Logging now renders timestamp in RFC3339 format intsead of seconds since unix epoch.
+* ENH: RPM installation will now set to start service on run levels 3 and 5 via chkconfig.
 
 ## Release v1.0.1.15
 --------------------
