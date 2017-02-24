@@ -1,0 +1,33 @@
+@startuml
+User -> Nginx: GET $PREFIX/objects/$ID/stream\nas $DN\nEtag
+Nginx -> Odrive: GET /objects/$ID/stream\nUSER_DN=$DN\nEtag
+Odrive -> MySQL: Find record
+alt record not found
+    Odrive -> Nginx: 500 Internal Error
+else Etag Match
+    Odrive -> Nginx: 304 Not Modified
+else record found
+    MySQL -> Odrive: Object record
+    Odrive -> AAC: Authorization Lookup
+    alt Not Authorized
+      Odrive -> Nginx: 403 Not Authorized
+    else Authorized
+    ref over Odrive: Ciphertext Search
+    Odrive -> Cache: Search Locally
+    alt on disk
+      Cache -> Odrive: Feed Range to end
+    else not on disk
+      Odrive -> Peer: Search Peers
+      alt in peer
+        Peer -> Odrive: Feed Range to end
+      else not in peer
+        Odrive -> S3: Search S3
+        S3 -> Odrive: Feed Range In 16MB Chunks
+      end
+    end
+    ref over Odrive: Decrypt in TLS stream
+    Odrive -> Nginx: 2XX (200 OK, or 206 Partial)
+    end
+    Nginx -> User: Plaintext file under TLS
+end
+@enduml
