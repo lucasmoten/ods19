@@ -2,9 +2,10 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
-## Release vNEXT
+## Release v1.0.1.16
 ----------------
 * ENH: Latest git tag is embedded in --version flag. 
+* FIX: Bugfix to listing shared objects and trash for users with apostrophe in DN
 
 ## Release v1.0.1.15
 --------------------

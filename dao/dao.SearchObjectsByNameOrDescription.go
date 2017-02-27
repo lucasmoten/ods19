@@ -411,10 +411,10 @@ func buildListObjectsMyGroupOwns(tx *sqlx.Tx, user models.ODUser) []string {
 		if len(group) > 0 {
 			if acmGrantee, err := getAcmGranteeInTransaction(tx, group); err == nil {
 				resourceName := acmGrantee.ResourceName()
-				ownedby = append(ownedby, "'"+resourceName+"'")
+				ownedby = append(ownedby, "'"+MySQLSafeString2(resourceName)+"'")
 				resourceNameNoDisplayName := removeDisplayNameFromResourceString(resourceName)
 				if resourceName != resourceNameNoDisplayName {
-					ownedby = append(ownedby, "'"+resourceNameNoDisplayName+"'")
+					ownedby = append(ownedby, "'"+MySQLSafeString2(resourceNameNoDisplayName)+"'")
 				}
 			}
 		}
