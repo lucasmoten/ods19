@@ -149,3 +149,43 @@ func TestListObjectsSharedToMe(t *testing.T) {
 	}
 
 }
+
+func TestListObjectsSharedToMeWithApostropheInDN595(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	userDN := "cn=d'angelo nicole e js0s962,ou=people,ou=sois,ou=dod,o=u.s. government,c=us"
+	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
+	client := 10
+	uriShares := host + cfg.NginxRootURL + "/shares?pageNumber=1&pageSize=30&sortField=modifieddate&"
+	ACMeveryone := `{"banner":"UNCLASSIFIED","classif":"U","dissem_countries":["USA"],"portion":"U","version":"2.1.0"}`
+
+	t.Logf("* Add object for d'angelo nicole so that acmgrantee record will exist")
+
+	folderuri := host + cfg.NginxRootURL + "/objects"
+	folder := protocol.Object{}
+	folder.Name = "folder for nicole"
+	folder.TypeName = "Folder"
+	folder.RawAcm = ACMeveryone
+	createFolderRequest := makeHTTPRequestFromInterface(t, "POST", folderuri, folder)
+	createFolderRequest.Header.Add("USER_DN", userDN)
+	createFolderRequest.Header.Add("SSL_CLIENT_S_DN", whitelistedDN)
+	createFolderRequest.Header.Add("EXTERNAL_SYS_DN", whitelistedDN)
+	createFolderResponse, err := clients[client].Client.Do(createFolderRequest)
+	failNowOnErr(t, err, "Unable to do create request")
+	statusMustBe(t, 200, createFolderResponse, "Bad status creating object")
+
+	t.Logf("* Get objects shared to tester1")
+	listSharesRequest := makeHTTPRequestFromInterface(t, "GET", uriShares, nil)
+	listSharesRequest.Header.Add("USER_DN", userDN)
+	listSharesRequest.Header.Add("SSL_CLIENT_S_DN", whitelistedDN)
+	listSharesRequest.Header.Add("EXTERNAL_SYS_DN", whitelistedDN)
+	listSharesResponse, err := clients[client].Client.Do(listSharesRequest)
+
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, listSharesResponse, "Bad status when listing objects shared to the user")
+	var sharedToUserDN protocol.ObjectResultset
+	util.FullDecode(listSharesResponse.Body, &sharedToUserDN)
+}

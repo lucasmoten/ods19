@@ -165,5 +165,89 @@ func TestDAOGetObjectsSharedToMe(t *testing.T) {
 		t.Logf("FAIL: object2 created by user1 showed up in user2 sharedtome list")
 		t.Fail()
 	}
+}
 
+func TestDAOGetObjectsSharedToMeWithApostropheInDN595(t *testing.T) {
+	t.SkipNow()
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	t.Logf("* Generating search prefix")
+	searchPrefix, err := util.NewGUID()
+	if err != nil {
+		t.Logf("FAIL: Could not generate search prefix: %s", err.Error())
+		t.Fail()
+	}
+	t.Logf("  prefix = %s", searchPrefix)
+
+	t.Logf("* Make an object1 as user1, shared to user 11 with apostrophe in DN")
+	var object1 models.ODObject
+	object1.CreatedBy = usernames[1]
+	object1.Name = searchPrefix + " object1 (shared to user11)"
+	object1.TypeName.String = "Test Object"
+	object1.TypeName.Valid = true
+	object1.RawAcm.String = testhelpers.ValidACMUnclassifiedFOUOSharedToDAOTester11
+	permissions1 := make([]models.ODObjectPermission, 2)
+	permissions1[0].CreatedBy = object1.CreatedBy
+	permissions1[0].Grantee = models.AACFlatten(usernames[1])
+	permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
+	permissions1[0].AcmGrantee.Grantee = permissions1[0].Grantee
+	permissions1[0].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[1])
+	permissions1[0].AllowCreate = true
+	permissions1[0].AllowRead = true
+	permissions1[0].AllowUpdate = true
+	permissions1[0].AllowDelete = true
+	permissions1[0].AllowShare = true
+	permissions1[1].CreatedBy = object1.CreatedBy
+	permissions1[1].Grantee = models.AACFlatten(usernames[11])
+	permissions1[1].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[11])
+	permissions1[1].AcmGrantee.Grantee = permissions1[1].Grantee
+	permissions1[1].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[11])
+	permissions1[1].AllowRead = true
+	object1.Permissions = permissions1
+	createdObject1, err := d.CreateObject(&object1)
+	if err != nil {
+		t.Error("Failed to create object")
+	}
+	if createdObject1.ID == nil {
+		t.Error("Expected ID to be set")
+	}
+	object1 = createdObject1
+
+	t.Logf("* Setting up search filter")
+	paging := dao.PagingRequest{}
+	paging.PageNumber = 1
+	paging.PageSize = 1000
+	filter := []dao.FilterSetting{}
+	filter1 := dao.FilterSetting{}
+	filter1.FilterField = "name"
+	filter1.Condition = "contains"
+	filter1.Expression = searchPrefix
+	filter = append(filter, filter1)
+	paging.FilterSettings = filter
+
+	t.Logf("* Get objects shared to me as user11 containing %s", searchPrefix)
+	user11 := models.ODUser{}
+	user11.DistinguishedName = usernames[11]
+	user11Snippets, err := acm.NewODriveRawSnippetFieldsFromSnippetResponse(SnippetDAOTP11)
+	if err != nil {
+		t.Logf("FAIL: Error converting snippets for user11 %s", err.Error())
+		t.Fail()
+	}
+	user11.Snippets = &user11Snippets
+	user11object1Found := false
+	user11SharedToMe, err := d.GetObjectsSharedToMe(user11, paging)
+	t.Logf("  total rows = %d", user11SharedToMe.TotalRows)
+	for _, user11object := range user11SharedToMe.Objects {
+		t.Logf("  %s is shared to user11", user11object.Name)
+		if bytes.Equal(user11object.ID, object1.ID) {
+			user11object1Found = true
+		}
+	}
+	if !user11object1Found {
+		t.Logf("FAIL: object1 created by user1 did not show up in user11 sharedtome list")
+		t.Fail()
+	}
 }
