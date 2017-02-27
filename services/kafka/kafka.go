@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/events"
 
 	"github.com/Shopify/sarama"
@@ -94,7 +95,7 @@ func NewAsyncProducer(brokerList []string, opts ...Opt) (*AsyncProducer, error) 
 }
 
 func defaults(ap *AsyncProducer) {
-	ap.logger = zap.New(zap.NewJSONEncoder())
+	ap.logger = config.RootLogger
 }
 
 // DiscoverKafka keeps a connection to Kafka alive. A discovered instance is returned early, and a setter callback

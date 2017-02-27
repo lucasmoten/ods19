@@ -2,7 +2,6 @@ package dao
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"decipher.com/object-drive-server/config"
@@ -124,7 +123,7 @@ func NewDataAccessLayer(conf config.DatabaseConfiguration, opts ...Opt) (*DataAc
 }
 
 func defaults(d *DataAccessLayer) {
-	d.Logger = zap.New(zap.NewJSONEncoder(), zap.Output(os.Stdout), zap.ErrorOutput(os.Stdout)).With(zap.String("node", config.NodeID))
+	d.Logger = config.RootLogger
 }
 
 // GetLogger is a logger, probably for this session
