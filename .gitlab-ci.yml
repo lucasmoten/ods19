@@ -1,0 +1,35 @@
+image: docker.363-283.io/docker/backend:maven-3.3.9-jdk-8
+
+# NOTE: we do not sync all containers here. GitLab CI build environments will 
+# run out of space if we push all containers at once. Another runner might give
+# us more options, such as the GitLab CI "shell" runner.
+
+stages:
+  - publish
+        
+docker-publish-job:
+    stage: publish
+
+    script:
+        - service docker start; sleep 2;
+        - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+        - docker pull deciphernow/odrive
+        - docker pull deciphernow/metadatadb
+          #- docker pull deciphernow/gatekeeper
+          #- docker pull deciphernow/zk
+          #- docker pull deciphernow/aac
+        - docker tag deciphernow/odrive docker.363-283.io/cte/object-drive-server 
+        - docker tag deciphernow/metadatadb docker.363-283.io/cte/object-drive-server:metadatadb
+          #- docker tag deciphernow/gatekeeper:latest docker.363-283.io/cte/object-drive-metadatadb:gatekeeper
+          #- docker tag deciphernow/zk:latest docker.363-283.io/cte/object-drive-metadatadb:zk
+          #- docker tag deciphernow/aac:latest docker.363-283.io/cte/object-drive-metadatadb:aac
+        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN docker.363-283.io
+        - docker push docker.363-283.io/cte/object-drive-server 
+        - docker push docker.363-283.io/cte/object-drive-server:metadatadb
+          #- docker push docker.363-283.io/cte/object-drive-metadatadb:aac 
+          #- docker push docker.363-283.io/cte/object-drive-metadatadb:zk
+          #- docker push docker.363-283.io/cte/object-drive-metadatadb:gatekeeper 
+
+    only:
+        - develop       
+
