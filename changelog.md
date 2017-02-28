@@ -2,13 +2,13 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
-## Release v1.0.1.16
-----------------
-* ENH: Latest git tag is embedded in --version flag. 
-* FIX: Bugfix to listing shared objects and trash for users with apostrophe in DN
-
-## Release v1.0.1.15
+## Release v1.0.1.17
 --------------------
+* ENH: Latest git tag is embedded in --version flag. 
+
+## Release v1.0.1.16
+--------------------
+* FIX: Bugfix to listing shared objects and trash for users with apostrophe in DN
 * ENH: Logging now renders timestamp in RFC3339 format intsead of seconds since unix epoch.
 * ENH: RPM installation will now set to start service on run levels 3 and 5 via chkconfig.
 
