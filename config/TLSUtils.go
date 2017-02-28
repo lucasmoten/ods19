@@ -10,10 +10,6 @@ import (
 	"github.com/uber-go/zap"
 )
 
-var (
-	logger = zap.New(zap.NewJSONEncoder(), zap.Output(os.Stdout), zap.ErrorOutput(os.Stdout))
-)
-
 // buildServerTLSConfig prepares a tls.Config object for this application to
 // listen for connecting clients.
 func buildServerTLSConfig(caPath, certPath, keyPath string, clientCert bool, ciphers []string, minVersion string) tls.Config {

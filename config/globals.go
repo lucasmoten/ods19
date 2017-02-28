@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/uber-go/zap"
 )
@@ -17,6 +18,9 @@ var (
 
 	// RootLogger is from which all other loggers are defined - because this is where we get NodeID in logs
 	RootLogger = initLogger()
+
+	// By default, the logger used in config package is the RootLogger
+	logger = RootLogger
 
 	// DockerVM is used for development tests only. It is the default resolve for the dockervm hostname.
 	// Use an IP address to get around DNS resolution issues with docker in some environments
@@ -60,8 +64,20 @@ func initLogger() zap.Logger {
 	default:
 		lvl = zap.InfoLevel
 	}
-	logger := zap.New(zap.NewJSONEncoder(), lvl, zap.Output(os.Stdout),
+
+	// Create a formatter that takes name, zone, example as format
+	tf := func() zap.TimeFormatter {
+		return zap.TimeFormatter(func(t time.Time) zap.Field {
+			return zap.String("tstamp", t.Format(time.RFC3339Nano))
+		})
+	}
+
+	logger := zap.New(
+		zap.NewJSONEncoder(tf()),
+		lvl,
+		zap.Output(os.Stdout),
 		zap.ErrorOutput(os.Stdout)).With(zap.String("node", NodeID))
+
 	return logger
 }
 

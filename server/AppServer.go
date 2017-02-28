@@ -14,7 +14,6 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/karlseguin/ccache"
 	"github.com/uber-go/zap"
@@ -199,12 +198,7 @@ func (h *AppServer) InitRegex() {
 
 // newLogger instantiates a logger for our object service with basic fields pre-populated.
 func newLogger(logger zap.Logger, sessionID, cn string, r *http.Request) zap.Logger {
-	return logger.
-		With(zap.String("session", sessionID)).
-		With(zap.String("cn", cn)).
-		With(zap.String("method", r.Method)).
-		With(zap.String("uri", r.RequestURI)).
-		With(zap.String("date", time.Now().Format(time.RFC3339Nano)))
+	return logger.With(zap.String("session", sessionID))
 }
 
 //When there is a panic, all deferred functions get executed.
@@ -268,7 +262,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		zap.String("xdn", caller.ExternalSystemDistinguishedName),
 		zap.String("sdn", caller.SSLClientSDistinguishedName),
 		zap.String("udn", caller.UserDistinguishedName),
-		zap.String("dtime", time.Now().String()),
+		zap.String("method", r.Method),
+		zap.String("uri", r.RequestURI),
 	)
 
 	var uri = r.URL.Path
