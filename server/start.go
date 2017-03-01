@@ -39,7 +39,6 @@ func Start(conf config.AppConfiguration) error {
 	}
 	app.RootDAO = d
 
-	// Since we only have one cache, if there was a problem getting it, treat it as fatal.
 	zone := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
 	cache, loggableErr := ciphertext.NewS3CiphertextCache(zone, conf.CacheSettings, dbID)
 	if loggableErr != nil {
@@ -54,7 +53,7 @@ func Start(conf config.AppConfiguration) error {
 		logger.Fatal("Could not register with Zookeeper")
 	}
 
-	stls := conf.ServerSettings.GetTLSConfig()
+	tlsConfig := conf.ServerSettings.GetTLSConfig()
 
 	httpServer := &http.Server{
 		Addr:           app.Addr,
@@ -62,7 +61,7 @@ func Start(conf config.AppConfiguration) error {
 		ReadTimeout:    100000 * time.Second,
 		WriteTimeout:   100000 * time.Second,
 		MaxHeaderBytes: 1 << 20,
-		TLSConfig:      &stls,
+		TLSConfig:      &tlsConfig,
 	}
 	exitChan := make(chan error)
 	go func() {
@@ -71,21 +70,13 @@ func Start(conf config.AppConfiguration) error {
 	}()
 
 	zkTracking(app, conf)
-
-	autoscale.CloudWatchReportingStart(app.Tracker)
-
 	logger.Info("starting server", zap.String("addr", app.Addr))
 
-	// When this gets a shutdown signal, it will terminate when all files are uploaded
+	autoscale.CloudWatchReportingStart(app.Tracker)
 	autoscale.WatchForShutdown(app.DefaultZK, logger)
 
-	// unconditionall stall until aacCreated
-	logger.Info(
-		"waiting for aac to be created",
-	)
-	// Stall until we get the first one
+	logger.Info("waiting for aac to be created")
 	app.AAC = <-aacCreated
-	// We MUST drain the channel from somewhere, or else a recreate of AAC will stall forever
 	go func() {
 		for {
 			select {
@@ -95,7 +86,7 @@ func Start(conf config.AppConfiguration) error {
 		}
 	}()
 
-	// Write our ephemeral node in zk.
+	// Announce our new service in ZK.
 	err = zookeeper.ServiceAnnouncement(app.DefaultZK, "https", "ALIVE", conf.ZK.IP, conf.ZK.Port)
 	if err != nil {
 		logger.Fatal("Could not announce self in zk")

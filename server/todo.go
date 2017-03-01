@@ -31,3 +31,7 @@ func (h AppServer) addObjectToFolder(ctx context.Context, w http.ResponseWriter,
 func (h AppServer) listFavorites(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 	return NewAppError(501, nil, "listFavorites is not yet implemented")
 }
+
+func (h AppServer) listObjectTypes(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
+	return NewAppError(501, nil, "listObjectTypes is not yet implemented")
+}

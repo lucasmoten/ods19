@@ -81,7 +81,6 @@ type RSAComponents struct {
 
 // CreateRandomName gives each file a random name
 func CreateRandomName() string {
-	//Sha256 keys are 256 bits
 	key := make([]byte, 32)
 	rand.Read(key)
 	return hex.EncodeToString(key)

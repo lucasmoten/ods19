@@ -20,6 +20,7 @@ func (h AppServer) GetUserGroupsAndSnippets(ctx context.Context) ([]string, *acm
 	snippetFields, ok := SnippetsFromContext(ctx)
 	// From local profiles
 	if !ok {
+		// TODO(cm): should we perform this check outside of this function?
 		if strings.ToLower(caller.UserDistinguishedName) == strings.ToLower(ciphertext.PeerSignifier) {
 			// no snippets
 			ok = true

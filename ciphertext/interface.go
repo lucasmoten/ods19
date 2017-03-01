@@ -32,9 +32,8 @@ type FileNameCached string
 // CiphertextCache handles the cached transfer of data in and out of permanent storage
 type CiphertextCache interface {
 	Files() FileSystem
-	// This is the location where files get cached, and is used to organize things in the drain.  It's either an S3 or filesystem path off of CacheRoot()
-	//Cache() string
-	// Resolve these to locations in the drain provider, which doesn't say anything about where it is on filesystem - not fully qualified yet
+	// Resolve these to locations in the drain provider, which doesn't say anything about
+	// where it is on filesystem - not fully qualified yet
 	Resolve(FileName) FileNameCached
 	// Writeback moves files from the cache into some kind of permanent storage (the drain)
 	Writeback(rName FileId, size int64) error
@@ -64,15 +63,16 @@ var ciphertextCaches = make(map[CiphertextCacheZone]CiphertextCache)
 
 // FindCiphertextCacheByObject gets us a drain provider that corresponds with the object
 //
-//  This implementation ASSUMES that main.go is setting us up with a propvider per zone
+// This implementation ASSUMES that main.go is setting us up with a provider per zone
 func FindCiphertextCacheByObject(obj *models.ODObject) CiphertextCache {
-	//When we have an API token, and a way to configure multiple providers, we simply pick a provider as a functino object's properties (already tested to work)
-	//For now, every object is getting default, but we can't change this without getting unique configs per CiphertextCache
+	// When we have an API token, and a way to configure multiple providers, we simply pick a provider as a functino object's properties (already tested to work)
+	// For now, every object is getting default, but we can't change this without getting unique configs per CiphertextCache
 	return FindCiphertextCache(S3_DEFAULT_CIPHERTEXT_CACHE)
 }
 
 // FindCiphertextCache gets us a drain provider by zone.  We ONLY use this to construct drain providers.  Ask for it by object otherwise.
 func FindCiphertextCache(zone CiphertextCacheZone) CiphertextCache {
+	// TODO(cm): This doesn't seem to do anything.
 	dp := ciphertextCaches[zone]
 	if dp == nil {
 		dp = ciphertextCaches[zone]
