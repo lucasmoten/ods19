@@ -26,8 +26,8 @@ import (
 	"decipher.com/object-drive-server/protocol"
 )
 
-//If we are returning potentially after the object has been uploaded to disk,
-//then there is a time-span where abort must cleanup after itself
+// If we are returning potentially after the object has been uploaded to disk,
+// then there is a time-span where abort must cleanup after itself
 func abortUploadObject(
 	logger zap.Logger,
 	dp ciphertext.CiphertextCache,
@@ -42,11 +42,10 @@ func abortUploadObject(
 
 // This is split because we are going to need to be able to do things in between getting metadata and accepting the bytes
 // when we have a masterkey per cache
-func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *multipart.Reader, obj *models.ODObject,
+func (h AppServer) acceptObjectUpload(ctx context.Context, mpr *multipart.Reader, obj *models.ODObject,
 	grant *models.ODObjectPermission, asCreate bool, afterMeta func(*models.ODObject)) (func(), *AppError) {
 
-	// Get the first part
-	part, err := multipartReader.NextPart()
+	part, err := mpr.NextPart()
 	if err != nil {
 		return nil, NewAppError(400, err, "error getting metadata part")
 	}
@@ -58,7 +57,7 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, multipartReader *mult
 
 	// Get the second part if the first was consumed.
 	if parsedMetadata {
-		part, err = multipartReader.NextPart()
+		part, err = mpr.NextPart()
 		if err == io.EOF {
 			return nil, NewAppError(400, err, "error getting stream part")
 		}

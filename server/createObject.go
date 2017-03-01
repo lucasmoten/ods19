@@ -26,17 +26,17 @@ import (
 	"decipher.com/object-drive-server/util"
 )
 
-// createObject is a method handler on AppServer for createObject microservice operation.
+// createObject creates an object or an object stream.
 func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
 	logger := LoggerFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
+	dao := DAOFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
+
 	gem.Action = "create"
 	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventCreate")
 	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "CREATE")
-
-	dao := DAOFromContext(ctx)
 
 	var obj models.ODObject
 	var createdObject models.ODObject
@@ -57,14 +57,9 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	isMultipart := contentTypeIsMultipartFormData(r)
 	if isMultipart {
 
-		// Streamed objects have an IV
 		iv := crypto.CreateIV()
 		obj.EncryptIV = iv
-
-		// Assign uniquely generated reference
-		// NOTE: we could generate a software GUID here, and unify our object IDs.
-		rName := crypto.CreateRandomName()
-		obj.ContentConnector = models.ToNullString(rName)
+		obj.ContentConnector = models.ToNullString(crypto.CreateRandomName())
 
 		multipartReader, err := r.MultipartReader()
 		if err != nil {
@@ -326,9 +321,7 @@ func permissionWithOwnerDefaults(caller Caller) models.ODObjectPermission {
 	return ownerPermission
 }
 
-// handleCreatePrerequisites used by both createObject and createFolder to do common tasks against created objects
-// Returns true if the request is now handled - which happens in the case of errors that terminate
-// the http request
+// handleCreatePrerequisites used by both createObject and createFolder to do common tasks against created objects.
 func handleCreatePrerequisites(ctx context.Context, h AppServer, requestObject *models.ODObject) *AppError {
 	dao := DAOFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
@@ -379,11 +372,11 @@ func handleCreatePrerequisites(ctx context.Context, h AppServer, requestObject *
 		return NewAppError(428, errors.New("Creating object in a deleted state is not allowed"), "Creating object in a deleted state is not allowed")
 	}
 
-	// Setup meta data...
 	requestObject.CreatedBy = caller.DistinguishedName
 	requestObject.OwnedBy = models.ToNullString("user/" + caller.DistinguishedName)
 
 	// Give owner full CRUDS (read given by acm share)
+	// TODO(cm): this needs clarification
 	ownerCRUDS, _ := models.PermissionForOwner(requestObject.OwnedBy.String)
 	ownerCUDS := models.PermissionWithoutRead(ownerCRUDS)
 	requestObject.Permissions = append(requestObject.Permissions, ownerCUDS)
@@ -392,12 +385,8 @@ func handleCreatePrerequisites(ctx context.Context, h AppServer, requestObject *
 }
 
 func contentTypeIsMultipartFormData(r *http.Request) bool {
-	ct := r.Header.Get("Content-Type")
-	if ct == "" {
-		return false
-	}
-	d, _, err := mime.ParseMediaType(ct)
-	if err != nil || d != "multipart/form-data" {
+	media, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || media != "multipart/form-data" {
 		return false
 	}
 	return true

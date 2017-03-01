@@ -46,35 +46,35 @@ const (
 	Snippets
 )
 
-// AppServer contains definition for the metadata server
+// AppServer is an http.Handler implementation that holds most service dependencies.
 type AppServer struct {
-	// Port is the TCP port that the web server listens on
+	// Port is the TCP port that the web server listens on.
 	Port string
 	// Bind is the Network Address that the web server will use.
 	Bind string
-	// Addr is the combined network address and port the server listens on
+	// Addr is the combined network address and port the server listens on.
 	Addr string
 	// DAO is the interface contract with the database.
 	RootDAO dao.DAO
-	// Conf is the configuration passed to the application
+	// Conf is the configuration passed to the application.
 	Conf config.ServerSettingsConfiguration
-	// ServicePrefix is the base RootURL for all public operations of web server
+	// ServicePrefix is the base url. Used when matching routes.
 	ServicePrefix string
-	// AAC is a handle to the Authorization and Access Control client
+	// AAC is a handle to the security service.
 	AAC aac.AacService
-	// AACZK is a pointer to the cluster where we discover AAC. May be set to DefaultZK.
+	// AACZK is a pointer to the cluster where we discover AAC. May be the same as DefaultZK.
 	AACZK *zookeeper.ZKState
 	// EventQueue is a Publisher interface we use to publish our main event stream.
 	EventQueue events.Publisher
-	// EventQueueZK is a pointer to the cluster where we discover Kafka. May be set to DefaultZK.
+	// EventQueueZK is a pointer to the cluster where we discover Kafka. May be the same as DefaultZK.
 	EventQueueZK *zookeeper.ZKState
 	// Tracker captures metrics about upload/download throughput.
 	Tracker *performance.JobReporters
-	// TemplateCache is location of HTML templates used by server
+	// TemplateCache holds HTML templates.
 	TemplateCache *template.Template
-	// StaticDir is location of static objects like javascript
+	// StaticDir is the path of static web assets.
 	StaticDir string
-	// Routes holds the routes.
+	// Routes holds the compiled regular expressions used when matching routes. See InitRegex method.
 	Routes *StaticRx
 	// DefaultZK wraps a connection to the ZK cluster we announce to, and holds state for odrive's registration.
 	DefaultZK *zookeeper.ZKState
@@ -82,17 +82,6 @@ type AppServer struct {
 	UsersLruCache *ccache.Cache
 	// AclWhitelist provides a list of distinguished names allowed to perform impersonation
 	AclImpersonationWhitelist []string
-}
-
-func resolvePath(p string) (string, error) {
-	if !path.IsAbs(p) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return p, err
-		}
-		return path.Clean(path.Join(wd, p)), nil
-	}
-	return p, nil
 }
 
 // NewAppServer creates an AppServer.
@@ -113,13 +102,12 @@ func NewAppServer(conf config.ServerSettingsConfiguration) (*AppServer, error) {
 
 	usersLruCache := ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50))
 
-	// We will be appending malicious URLs to this.  This directory must be fully qualified.
 	staticDir, err := resolvePath(conf.PathToStaticFiles)
 	if err != nil {
 		return nil, err
 	}
 
-	httpHandler := AppServer{
+	app := AppServer{
 		Port:                      conf.ListenPort,
 		Bind:                      conf.ListenBind,
 		Addr:                      conf.ListenBind + ":" + conf.ListenPort,
@@ -132,9 +120,9 @@ func NewAppServer(conf config.ServerSettingsConfiguration) (*AppServer, error) {
 		AclImpersonationWhitelist: conf.AclImpersonationWhitelist,
 	}
 
-	httpHandler.InitRegex()
+	app.InitRegex()
 
-	return &httpHandler, nil
+	return &app, nil
 }
 
 // InitRegex compiles static regexes and initializes the AppServer Routes field.
@@ -196,11 +184,6 @@ func (h *AppServer) InitRegex() {
 	}
 }
 
-// newLogger instantiates a logger for our object service with basic fields pre-populated.
-func newLogger(logger zap.Logger, sessionID, cn string, r *http.Request) zap.Logger {
-	return logger.With(zap.String("session", sessionID))
-}
-
 //When there is a panic, all deferred functions get executed.
 func logCrashInServeHTTP(logger zap.Logger, w http.ResponseWriter) {
 	if r := recover(); r != nil {
@@ -219,7 +202,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("sessionid", sessionID)
 
 	caller := CallerFromRequest(r)
-	logger := newLogger(config.RootLogger, sessionID, caller.CommonName, r)
+	logger := config.RootLogger.With(zap.String("session", sessionID))
 	defer logCrashInServeHTTP(logger, w)
 
 	// Authentication check GEM
@@ -231,6 +214,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	authGem.Payload.UserDN = caller.DistinguishedName
 	authGem.Payload.Audit = audit.WithType(authGem.Payload.Audit, "EventAuthenticate")
 	authGem.Payload.Audit = audit.WithAction(authGem.Payload.Audit, "AUTHENTICATE")
+
 	if err := caller.ValidateHeaders(h.AclImpersonationWhitelist, r); err != nil {
 		herr := NewAppError(401, err, err.Error())
 		h.publishError(authGem, herr)
@@ -270,8 +254,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var herr *AppError
 
 	// CORS support - if it specifies an origin, then reflect back an access control origin
-	reqOrigin := r.Header.Get("Origin")
-	if reqOrigin != "" {
+	if reqOrigin := r.Header.Get("Origin"); reqOrigin != "" {
 		w.Header().Set("Access-Control-Allow-Origin", reqOrigin)
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 	}
@@ -415,16 +398,10 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			herr = h.listObjectsSubscriptions(ctx, w, r)
 		// - basic HTTP 200 health check
 		case h.Routes.Ping.MatchString(uri):
-			gem.Action = "access"
-			gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventAccess")
-			gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "ACCESS")
-			h.publishSuccess(gem, w)
 			herr = nil
 		// - list object types
 		case h.Routes.ObjectTypes.MatchString(uri):
-			// TODO: h.listObjectTypes(ctx, w, r)
-			herr = NewAppError(404, nil, "Not matched")
-			h.publishError(gem, herr)
+			herr = h.listObjectTypes(ctx, w, r)
 		default:
 			herr = do404(ctx, w, r)
 			h.publishError(gem, herr)
@@ -747,6 +724,17 @@ func newGUID() string {
 		log.Printf("could not create GUID: %s", err.Error())
 	}
 	return guid
+}
+
+func resolvePath(p string) (string, error) {
+	if !path.IsAbs(p) {
+		wd, err := os.Getwd()
+		if err != nil {
+			return p, err
+		}
+		return path.Clean(path.Join(wd, p)), nil
+	}
+	return p, nil
 }
 
 // StaticRx statically references compiled regular expressions.

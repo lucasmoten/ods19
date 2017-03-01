@@ -50,7 +50,7 @@ func (h AppServer) FetchUser(ctx context.Context) (*models.ODUser, error) {
 }
 
 // getOrCreateUser attempts to retrieve an existing user by their DN. If no user is found, exactly
-// two attempts are made to create the user. We retry because it is possible two goroutines are
+// two attempts are made to create the user.
 func getOrCreateUser(dao dao.DAO, caller Caller) (*models.ODUser, error) {
 
 	query := models.ODUser{DistinguishedName: caller.DistinguishedName}
@@ -74,7 +74,7 @@ func getOrCreateUser(dao dao.DAO, caller Caller) (*models.ODUser, error) {
 		}
 
 		// Not yet in database, we need to add them
-		var newUser = models.ODUser{
+		newUser := models.ODUser{
 			DistinguishedName: caller.DistinguishedName,
 			DisplayName:       models.ToNullString(caller.CommonName),
 			CreatedBy:         caller.DistinguishedName,
@@ -86,5 +86,5 @@ func getOrCreateUser(dao dao.DAO, caller Caller) (*models.ODUser, error) {
 		return &created, nil
 	}
 
-	return nil, fmt.Errorf("Error communicating with database to get user.")
+	return nil, fmt.Errorf("error communicating with database to get user")
 }

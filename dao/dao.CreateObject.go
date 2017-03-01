@@ -75,6 +75,7 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 
 	// Assign a random content connector value if this object doesnt have one
 	if len(object.ContentConnector.String) == 0 {
+		// TODO(cm): Why would this happen?
 		object.ContentConnector = models.ToNullString(crypto.CreateRandomName())
 	}
 
