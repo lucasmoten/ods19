@@ -202,7 +202,6 @@ func requiresReconnect(err interface{}) bool {
 			sarama.ErrLeaderNotAvailable,
 			sarama.ErrNotLeaderForPartition,
 			sarama.ErrBrokerNotAvailable,
-			sarama.ErrMessageSizeTooLarge,
 			sarama.ErrStaleControllerEpochCode,
 			sarama.ErrOffsetMetadataTooLarge,
 			sarama.ErrNetworkException,
@@ -225,6 +224,7 @@ func requiresReconnect(err interface{}) bool {
 			sarama.ErrUnsupportedVersion:
 			return true
 		case sarama.ErrInvalidSessionTimeout,
+			sarama.ErrMessageSizeTooLarge,
 			sarama.ErrIllegalGeneration,
 			sarama.ErrOffsetsLoadInProgress,
 			sarama.ErrConsumerCoordinatorNotAvailable,
