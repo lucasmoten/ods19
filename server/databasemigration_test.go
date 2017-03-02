@@ -2,7 +2,6 @@ package server_test
 
 import (
 	"database/sql"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -64,7 +63,8 @@ func TestDBMigration20161230(t *testing.T) {
 	username := fakeDN0
 	var modelObj models.ODObject
 	randomGUID, _ := util.NewGUID()
-	modelObj.Name = fmt.Sprintf("/%s/TestDBMigration20161230/path/delimiters", randomGUID)
+	defaultPathDelimiter := string(rune(30)) // 20161230 was a slash, 20170301 is now the record separator character code 30
+	modelObj.Name = strings.Join([]string{randomGUID, "TestDBMigration20161230", "path", "delimiters"}, defaultPathDelimiter)
 	t.Logf("Original name before migration: %s", modelObj.Name)
 	modelObj.EncryptIV = crypto.CreateIV()
 	modelObj.CreatedBy = username

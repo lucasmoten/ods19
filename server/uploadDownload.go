@@ -43,23 +43,23 @@ func abortUploadObject(
 // This is split because we are going to need to be able to do things in between getting metadata and accepting the bytes
 // when we have a masterkey per cache
 func (h AppServer) acceptObjectUpload(ctx context.Context, mpr *multipart.Reader, obj *models.ODObject,
-	grant *models.ODObjectPermission, asCreate bool, afterMeta func(*models.ODObject)) (func(), *AppError) {
+	grant *models.ODObjectPermission, asCreate bool, afterMeta func(*models.ODObject)) (func(), string, *AppError) {
 
 	part, err := mpr.NextPart()
 	if err != nil {
-		return nil, NewAppError(400, err, "error getting metadata part")
+		return nil, "", NewAppError(400, err, "error getting metadata part")
 	}
 
-	parsedMetadata, herr := h.acceptObjectUploadMeta(ctx, part, obj, grant, asCreate)
+	parsedMetadata, pathDelimiter, herr := h.acceptObjectUploadMeta(ctx, part, obj, grant, asCreate)
 	if herr != nil {
-		return nil, herr
+		return nil, "", herr
 	}
 
 	// Get the second part if the first was consumed.
 	if parsedMetadata {
 		part, err = mpr.NextPart()
 		if err == io.EOF {
-			return nil, NewAppError(400, err, "error getting stream part")
+			return nil, "", NewAppError(400, err, "error getting stream part")
 		}
 	}
 
@@ -69,17 +69,19 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, mpr *multipart.Reader
 	}
 
 	// Process the stream
-	return h.acceptObjectUploadStream(ctx, part, obj, grant, asCreate, parsedMetadata)
+	drainFunc, herr := h.acceptObjectUploadStream(ctx, part, obj, grant, asCreate, parsedMetadata)
+	return drainFunc, pathDelimiter, herr
 }
 
 // Get an update obj from the caller - we are not persisting anything yet
 func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.Part, obj *models.ODObject,
-	grant *models.ODObjectPermission, asCreate bool) (bool, *AppError) {
+	grant *models.ODObjectPermission, asCreate bool) (bool, string, *AppError) {
 	var herr *AppError
 
 	parsedMetadata := false
 	var createObjectRequest protocol.CreateObjectRequest
 	var updateObjectRequest protocol.UpdateObjectAndStreamRequest
+	var pathDelimiter string
 
 	if part.FormName() == "ObjectMetadata" {
 		parsedMetadata = true
@@ -87,7 +89,7 @@ func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.P
 		limit := 5 << (10 * 2)
 		metadata, err := ioutil.ReadAll(io.LimitReader(part, int64(limit)))
 		if err != nil {
-			return parsedMetadata, NewAppError(400, err, "could not read json metadata")
+			return parsedMetadata, "", NewAppError(400, err, "could not read json metadata")
 		}
 		// Parse into a useable struct
 		if asCreate {
@@ -96,7 +98,7 @@ func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.P
 			err = json.Unmarshal(metadata, &updateObjectRequest)
 		}
 		if err != nil {
-			return parsedMetadata, NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", metadata))
+			return parsedMetadata, "", NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", metadata))
 		}
 
 		// Validation & Mapping for Create
@@ -104,12 +106,13 @@ func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.P
 			// Mapping to object
 			err = mapping.OverwriteODObjectWithCreateObjectRequest(obj, &createObjectRequest)
 			if err != nil {
-				return parsedMetadata, NewAppError(400, err, "Error updating object with data from request")
+				return parsedMetadata, "", NewAppError(400, err, "Error updating object with data from request")
 			}
 			// Post mapping rules applied for create (not deleted, enforce owner cruds, assign meta)
 			if herr := handleCreatePrerequisites(ctx, h, obj); herr != nil {
-				return parsedMetadata, herr
+				return parsedMetadata, "", herr
 			}
+			pathDelimiter = createObjectRequest.NamePathDelimiter
 		}
 
 		// Validation & Mapping for Update
@@ -117,25 +120,25 @@ func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.P
 			// ID in json must match that on the URI
 			herr = compareIDFromJSONWithURI(ctx, updateObjectRequest)
 			if herr != nil {
-				return parsedMetadata, herr
+				return parsedMetadata, "", herr
 			}
 			// ChangeToken must be provided and match the object
 			if obj.ChangeToken != updateObjectRequest.ChangeToken {
-				return parsedMetadata, NewAppError(400, nil, "Changetoken must be up to date")
+				return parsedMetadata, "", NewAppError(400, nil, "Changetoken must be up to date")
 			}
 			// Mapping to object
 			err = mapping.OverwriteODObjectWithUpdateObjectAndStreamRequest(obj, &updateObjectRequest)
 			if err != nil {
-				return parsedMetadata, NewAppError(400, err, fmt.Sprintf("Could not extract data from json response: %s", err.Error()))
+				return parsedMetadata, "", NewAppError(400, err, fmt.Sprintf("Could not extract data from json response: %s", err.Error()))
 			}
 		}
 
 		// Whether creating or updating, the ACM must have a value
 		if len(obj.RawAcm.String) == 0 {
-			return parsedMetadata, NewAppError(400, err, "An ACM must be specified")
+			return parsedMetadata, "", NewAppError(400, err, "An ACM must be specified")
 		}
 	}
-	return parsedMetadata, nil
+	return parsedMetadata, pathDelimiter, nil
 }
 
 // Get the bytes from the caller.

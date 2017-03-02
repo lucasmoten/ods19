@@ -921,7 +921,8 @@ func TestUpdateObjectWithPathing(t *testing.T) {
 	folder1 := makeFolderViaJSON("Test Folder 1 ", tester10, t)
 
 	t.Logf("* Attempt to rename it")
-	changedName := "Renamed/with/pathing"
+	defaultPathDelimiter := string(rune(30)) // 20161230 was a slash, 20170301 is now the record separator character code 30
+	changedName := strings.Join([]string{"renamed", "with", "pathing"}, defaultPathDelimiter)
 	updateuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
 	folder1.Name = changedName
 

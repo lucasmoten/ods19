@@ -81,6 +81,20 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
        * File - This type may be assigned if no type is given, and you are creating an object with a stream
        * Folder - This type may be assigned if no type is given, and you are creating an object without a stream
     + name: `New File` (string, optional) - The name to be given this object.  If no name is given, then objects are created with the default name pattern of `New <typeName>`.
+    + namePathDelimimter: `:::` (string, optional) - An optional alternate path delimiter for which the name given should be assessed to generate intermediate objects when establishing a folder/file structure hierarchy. By default, the name will be split on the record seaprator (ASCII character 30).
+       * Example splitting `abc:::def:::ghi` on `:::`
+         * creates object `abc` if it does not already exist
+         * creates object `def` if it does not already exist as a child of `abc`
+         * creates object `ghi` as a child of `def`
+       * Example splitting `abc/def/ghi` on `/`
+         * creates object `abc` if it does not already exist
+         * creates object `def` if it does not already exist as a child of `abc`
+         * creates object `ghi` as a child of `def`
+       * Example splitting `(U//FOUO) Turnip Greens` on `/`
+         * creates object `(U` if it does not already exist
+         * creates object `FOUO) Turnip Greens` as a child of `(U`
+       * Example splitting `(U//FOUO) Turnip Greens` with default record separator
+         * creates object `(U//FOUO) Turnip Greens`       
     + description (string, optional) - An optional abstract of the object's contents.
     + parentId (string, optional) - Hex encoded identifier of an object, typically a folder, into which this new object is being created as a child object. If no value is specified, then the object will be created in the root location of the user who is creating it.
     + acm (object, required) - Access Control Model is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies.  This value may be provided in either serialized string format, or nested object format.
@@ -244,6 +258,20 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
        * File - This type may be assigned if no type is given, and you are creating an object with a stream
        * Folder - This type may be assigned if no type is given, and you are creating an object without a stream
     + name: `New Folder` (string, optional) - The name to be given this object.  If no name is given, then objects are created with the default name pattern of `New <typeName>`.
+    + namePathDelimimter: `:::` (string, optional) - An optional alternate path delimiter for which the name given should be assessed to generate intermediate objects when establishing a folder/file structure hierarchy. By default, the name will be split on the record seaprator (ASCII character 30).
+       * Example splitting `abc:::def:::ghi` on `:::`
+         * creates object `abc` if it does not already exist
+         * creates object `def` if it does not already exist as a child of `abc`
+         * creates object `ghi` as a child of `def`
+       * Example splitting `abc/def/ghi` on `/`
+         * creates object `abc` if it does not already exist
+         * creates object `def` if it does not already exist as a child of `abc`
+         * creates object `ghi` as a child of `def`
+       * Example splitting `(U//FOUO) Turnip Greens` on `/`
+         * creates object `(U` if it does not already exist
+         * creates object `FOUO) Turnip Greens` as a child of `(U`
+       * Example splitting `(U//FOUO) Turnip Greens` with default record separator
+         * creates object `(U//FOUO) Turnip Greens`                
     + description (string, optional) - An optional abstract of the object's contents.
     + parentId (string, optional) - Hex encoded identifier of an object, typically a folder, into which this new object is being created as a child object. If no value is specified, then the object will be created in the root location of the user who is creating it.
     + acm (object, required) - Access Control Model is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies.  This value may be provided in either serialized string format, or nested object format.

@@ -103,7 +103,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		h.publishError(gem, herr)
 		return herr
 	}
-	drainFunc, herr := h.acceptObjectUpload(ctx, multipartReader, &dbObject, &grant, false, nil)
+	drainFunc, _, herr := h.acceptObjectUpload(ctx, multipartReader, &dbObject, &grant, false, nil)
 	dp := ciphertext.FindCiphertextCacheByObject(&dbObject)
 	if herr != nil {
 		herr := abortUploadObject(logger, dp, &dbObject, true, herr)

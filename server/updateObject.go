@@ -301,8 +301,8 @@ func parseUpdateObjectRequestAsJSON(r *http.Request, ctx context.Context) (model
 
 	// Map changes over the requestObject
 	if len(jsonObject.Name) > 0 {
-		if strings.IndexAny(jsonObject.Name, "/\\") > -1 {
-			return requestObject, errors.New("bad request: name cannot include reserved characters {\\,/}")
+		if strings.IndexAny(jsonObject.Name, defaultPathDelimiter) > -1 {
+			return requestObject, errors.New("bad request: name cannot include path delimiter character")
 		}
 		requestObject.Name = jsonObject.Name
 	}
