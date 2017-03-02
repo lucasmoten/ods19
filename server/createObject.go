@@ -26,6 +26,8 @@ import (
 	"decipher.com/object-drive-server/util"
 )
 
+const defaultPathDelimiter = string(rune(30)) // 30 = record separator
+
 // createObject creates an object or an object stream.
 func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
@@ -40,6 +42,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	var obj models.ODObject
 	var createdObject models.ODObject
+	var pathDelimiter string
 	var err error
 	var herr *AppError
 	var drainFunc func()
@@ -68,7 +71,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 			return herr
 		}
 
-		drainFunc, herr = h.acceptObjectUpload(ctx, multipartReader, &obj, &ownerPermission, true, afterMeta)
+		drainFunc, pathDelimiter, herr = h.acceptObjectUpload(ctx, multipartReader, &obj, &ownerPermission, true, afterMeta)
 		if herr != nil {
 			dp := ciphertext.FindCiphertextCacheByObject(&obj)
 			h.publishError(gem, herr)
@@ -83,7 +86,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		}
 
 		// Parse body as json to populate object
-		obj, herr = parseCreateObjectRequestAsJSON(r)
+		obj, pathDelimiter, herr = parseCreateObjectRequestAsJSON(r)
 		if herr != nil {
 			h.publishError(gem, herr)
 			return herr
@@ -141,7 +144,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	user, _ := UserFromContext(ctx)
 	snippetFields, _ := SnippetsFromContext(ctx)
 	user.Snippets = snippetFields
-	if err = handleIntermediateFoldersDuringCreation(ctx, h, user, dp.GetMasterKey(), &obj); err != nil {
+	if err = handleIntermediateFoldersDuringCreation(ctx, h, user, dp.GetMasterKey(), &obj, pathDelimiter); err != nil {
 		herr = NewAppError(500, err, "error processing intermediate folders")
 		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
@@ -180,7 +183,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 // hierarchy leading up to the object name delimited by / and \ reserved characters. Note that this
 // should not be applied for object updates since it can change the location of an object which is
 // restricted as a separate operation, only permitted to owners.
-func handleIntermediateFoldersDuringCreation(ctx context.Context, h AppServer, user models.ODUser, masterKey string, obj *models.ODObject) error {
+func handleIntermediateFoldersDuringCreation(ctx context.Context, h AppServer, user models.ODUser, masterKey string, obj *models.ODObject, pathDelimiter string) error {
 
 	gem, _ := GEMFromContext(ctx)
 	gem.Action = "create"
@@ -189,7 +192,12 @@ func handleIntermediateFoldersDuringCreation(ctx context.Context, h AppServer, u
 	gem = ResetBulkItem(gem)
 	dao := DAOFromContext(ctx)
 
-	partName := trimPathDelimitersFromNameReturnAnyPart(obj)
+	// Determine actual path delimiter to use.
+	if len(pathDelimiter) == 0 {
+		pathDelimiter = defaultPathDelimiter
+	}
+
+	partName := trimPathDelimitersFromNameReturnAnyPart(obj, pathDelimiter)
 	if partName != "" {
 		// Get existing objects whose name matches this part
 		matchedObjects, err := getObjectsWithName(dao, user, obj.OwnedBy.String, partName, obj.ParentID)
@@ -230,28 +238,15 @@ func handleIntermediateFoldersDuringCreation(ctx context.Context, h AppServer, u
 		// Shift the parent id for the object being created
 		obj.ParentID = matchedObject.ID
 
-		return handleIntermediateFoldersDuringCreation(ctx, h, user, masterKey, obj)
+		return handleIntermediateFoldersDuringCreation(ctx, h, user, masterKey, obj, pathDelimiter)
 	}
 	return nil
 }
 
-func trimPathDelimitersFromNameReturnAnyPart(obj *models.ODObject) string {
-	// trim leading and trailing slashes
-	for strings.HasPrefix(obj.Name, "/") || strings.HasPrefix(obj.Name, "\\") {
-		obj.Name = obj.Name[1:]
-	}
-	for strings.HasSuffix(obj.Name, "/") || strings.HasSuffix(obj.Name, "\\") {
-		obj.Name = obj.Name[:len(obj.Name)-1]
-	}
-
-	// if there are slashes in the name, we need to change to location
-	dpos := strings.IndexAny(obj.Name, "/\\")
-	if dpos > -1 {
-		partName := obj.Name[:dpos]
-		obj.Name = obj.Name[dpos+1:]
-		return partName
-	}
-	return ""
+func trimPathDelimitersFromNameReturnAnyPart(obj *models.ODObject, pathDelimiter string) string {
+	part, remainder := util.GetNextDelimitedPart(obj.Name, pathDelimiter)
+	obj.Name = remainder
+	return part
 }
 
 func getObjectsWithName(mdb dao.DAO, user models.ODUser, ownedBy string, name string, parentID []byte) (models.ODObjectResultset, error) {
@@ -392,7 +387,7 @@ func contentTypeIsMultipartFormData(r *http.Request) bool {
 	return true
 }
 
-func parseCreateObjectRequestAsJSON(r *http.Request) (models.ODObject, *AppError) {
+func parseCreateObjectRequestAsJSON(r *http.Request) (models.ODObject, string, *AppError) {
 	var jsonObject protocol.CreateObjectRequest
 	object := models.ODObject{}
 	var err error
@@ -400,16 +395,16 @@ func parseCreateObjectRequestAsJSON(r *http.Request) (models.ODObject, *AppError
 	// Decode to JSON
 	err = util.FullDecode(r.Body, &jsonObject)
 	if err != nil {
-		return object, NewAppError(400, err, "Could not parse json object as a protocol.CreateObjectRequest")
+		return object, "", NewAppError(400, err, "Could not parse json object as a protocol.CreateObjectRequest")
 	}
 
 	// Map to internal object type
 	object, err = mapping.MapCreateObjectRequestToODObject(&jsonObject)
 	if err != nil {
-		return object, NewAppError(400, err, "Could not map request to internal struct type")
+		return object, "", NewAppError(400, err, "Could not map request to internal struct type")
 	}
 
-	return object, nil
+	return object, jsonObject.NamePathDelimiter, nil
 }
 
 func validateCreateObjectHeaders(r *http.Request) *AppError {

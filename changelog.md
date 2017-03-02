@@ -4,6 +4,8 @@ FORMAT: 1A
 
 ## Release v1.0.1.17
 --------------------
+* FIX: Path Delimiter for internal storage is now using record separator in place of forward slash
+* ENH: Create Object operation may specify namePathDelimiter to override default
 * ENH: Latest git tag is embedded in --version flag. 
 
 ## Release v1.0.1.16

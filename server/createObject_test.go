@@ -1074,7 +1074,23 @@ func TestCreateObjectWithPathing(t *testing.T) {
 	folder1 := makeFolderViaJSON("TestCreateObjectWithPathing", tester10, t)
 
 	t.Logf("* Create a folder under that named this/is/an/object which the handler will expand hierarchially")
-	folder2 := makeFolderWithParentViaJSON("this/is/an/object", folder1.ID, tester10, t)
+	folderuri := host + cfg.NginxRootURL + "/objects"
+	folderA := protocol.CreateObjectRequest{}
+	folderA.Name = "this/is/an/object"
+	folderA.NamePathDelimiter = "/"
+	folderA.TypeName = "Folder"
+	folderA.ParentID = folder1.ID
+	folderA.RawAcm = testhelpers.ValidACMUnclassified
+	createFolderAReq := makeHTTPRequestFromInterface(t, "POST", folderuri, folderA)
+	createFolderARes, err := clients[tester10].Client.Do(createFolderAReq)
+	defer util.FinishBody(createFolderARes.Body)
+	statusMustBe(t, http.StatusOK, createFolderARes, "bad status creating folders")
+	var folder2 protocol.Object
+	err = util.FullDecode(createFolderARes.Body, &folder2)
+	if err != nil {
+		t.Errorf("Error decoding json to object: %v", err)
+		t.FailNow()
+	}
 
 	t.Logf("* Verify that folder2 parent is not null/empty, and not ID of folder1")
 	if folder2.ParentID == folder1.ID {
@@ -1125,7 +1141,22 @@ func TestCreateObjectWithPathing(t *testing.T) {
 	}
 
 	t.Logf("* Create a folder under the original folder also named this/is/an/object which the handler will expand hierarchially")
-	folder3 := makeFolderWithParentViaJSON("this/is/an/object", folder1.ID, tester10, t)
+	folderB := protocol.CreateObjectRequest{}
+	folderB.Name = "this/is/an/object"
+	folderB.NamePathDelimiter = "/"
+	folderB.TypeName = "Folder"
+	folderB.ParentID = folder1.ID
+	folderB.RawAcm = testhelpers.ValidACMUnclassified
+	createFolderBReq := makeHTTPRequestFromInterface(t, "POST", folderuri, folderB)
+	createFolderBRes, err := clients[tester10].Client.Do(createFolderBReq)
+	defer util.FinishBody(createFolderBRes.Body)
+	statusMustBe(t, http.StatusOK, createFolderBRes, "bad status creating folders")
+	var folder3 protocol.Object
+	err = util.FullDecode(createFolderBRes.Body, &folder3)
+	if err != nil {
+		t.Errorf("Error decoding json to object: %v", err)
+		t.FailNow()
+	}
 
 	t.Logf("* Verify that folder3 parent is not null/empty, and not ID of folder1  and is not folder2, but has same parent as folder2")
 	if folder3.ParentID == folder1.ID {

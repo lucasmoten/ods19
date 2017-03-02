@@ -5,9 +5,19 @@ type CreateObjectRequest struct {
 	// TypeName reflects the name of the object type associated with TypeID
 	TypeName string `json:"typeName"`
 	// Name is the given name for the object. (e.g., filename)
-	Name        string `json:"name"`
+	Name string `json:"name"`
+	// NamePathDelimiter is an optional delimiter for which the name value is intended
+	// to be broken up to create intermediate objects to represent a hierarchy.  by
+	// default this value is internally processed as the record separator (char 30).
+	// It may be overridden by providing a different string here
+	NamePathDelimiter string `json:"namePathDelimiter,omitempty"`
+	// Description is an abstract of the object or its contents
 	Description string `json:"description"`
-	ParentID    string `json:"parentId,omitempty"`
+	// ParentID can optionally reference another object by its ID in hexadecimal string
+	// format to denote the parent/ancestor of this object for hierarchical purposes.
+	// Leaving this field empty, or not present indicates that the object should be
+	// created at the 'root' or 'top level'
+	ParentID string `json:"parentId,omitempty"`
 	// RawACM is the raw ACM string that got supplied to create this object
 	RawAcm interface{} `json:"acm"`
 	// ContentType indicates the mime-type, and potentially the character set
