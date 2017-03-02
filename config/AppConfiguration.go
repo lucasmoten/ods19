@@ -39,92 +39,181 @@ type AppConfiguration struct {
 	EventQueue         EventQueueConfiguration     `yaml:"event_queue"`
 }
 
-// AACConfiguration holds data required for an AAC client.
+// AACConfiguration holds data required for an AAC client. Host and port are often
+// discovered dynamically via Zookeeper.
 type AACConfiguration struct {
-	CAPath               string `yaml:"trust"`
-	ClientCert           string `yaml:"cert"`
-	ClientKey            string `yaml:"key"`
-	HostName             string `yaml:"hostname"`
-	Port                 string `yaml:"port"`
+	// CAPath is the path to a PEM encoded certificate that the AAC trusts.
+	CAPath string `yaml:"trust"`
+	// ClientCert is the path to a PEM encoded certificate we present to the AAC.
+	ClientCert string `yaml:"cert"`
+	// ClientKey is the path to a PEM encoded private key.
+	ClientKey string `yaml:"key"`
+	// Hostname is the hostname of the AAC service
+	HostName string `yaml:"hostname"`
+	// Port is the port AAC is listening on.
+	Port string `yaml:"port"`
+	// AACAnnouncementPoint is a path to inspect in Zookeeper, if we are using
+	// service discovery to connect to AAC.
 	AACAnnouncementPoint string `yaml:"zk_path"`
 	// ZKAddrs can be set to discover AAC from a non-default Zookeeper cluster.
 	ZKAddrs []string `yaml:"zk_addrs"`
 }
 
-// CommandLineOpts holds command line options so they can be passed as a param.
+// CommandLineOpts holds command line options parsed on application start. This
+// object is passed to many higher level constructors, so that command line params
+// can override certain configurations.
 type CommandLineOpts struct {
-	Ciphers           []string
-	UseTLS            bool
-	StaticRootPath    string
-	TemplateDir       string
+	// Ciphers is a list of TLS ciphers we are willing to accept.
+	Ciphers []string
+	// UseTLS specifies whether we will only accept TLS connections.
+	UseTLS bool
+	// StaticRootPath is a path to the static web assets directory.
+	StaticRootPath string
+	// TemplateDir is the path to Go templates directory.
+	TemplateDir string
+	// TLSMinimumVersion is the minimum TLS version we accept.
 	TLSMinimumVersion string
-	Conf              string
-	Whitelist         []string
+	// Conf is a path to our YAML configuration file.
+	Conf string
+	// Whitelist holds ACL whitelist entries passed at the command line.
+	Whitelist []string
 }
 
 // DatabaseConfiguration is a structure that defines the attributes
 // needed for setting up database connection
 type DatabaseConfiguration struct {
-	Driver     string `yaml:"driver"`
-	Username   string `yaml:"username"`
-	Password   string `yaml:"password"`
-	Protocol   string `yaml:"protocol"`
-	Host       string `yaml:"host"`
-	Port       string `yaml:"port"`
-	Schema     string `yaml:"schema"`
-	Params     string `yaml:"conn_params"`
-	UseTLS     bool   `yaml:"use_tls"`
-	SkipVerify bool   `yaml:"insecure_skip_veriry"`
-	CAPath     string `yaml:"trust"`
+	// Driver specifies the database driver. Only "mysql" is supported.
+	Driver string `yaml:"driver"`
+	// Username is the database username.
+	Username string `yaml:"username"`
+	// Password is the database password. If the configuration is intended
+	// to execute DDL, a user with write permissions is required.
+	Password string `yaml:"password"`
+	// Protocol specifies the network protocol. Only "tcp" is supported.
+	Protocol string `yaml:"protocol"`
+	// Host is the database hostname.
+	Host string `yaml:"host"`
+	// Port is the database port. Commonly 3363 for MySQL.
+	Port string `yaml:"port"`
+	// Schema is the database name to connect to. A single server can host
+	// many logical schemas. The object drive default is "metadatadb".
+	Schema string `yaml:"schema"`
+	// Params are custom connection params injected into the DSN. These
+	// will vary depending on your server's configuration.
+	Params string `yaml:"conn_params"`
+	// UseTLS determines whether you should connect to the database with TLS.
+	// This is currently hardcoded to true.
+	UseTLS bool `yaml:"use_tls"`
+	// SkipVerify controls whether the hostname of an SSL peer is verified.
+	// This is hardcoded to false for legacy compatibility reasons.
+	SkipVerify bool `yaml:"insecure_skip_veriry"`
+	// CAPath is the path to a PEM encoded certificate. For connecting to
+	// some test databases this might be the only SSL asset required, if
+	// 2-way SSL is not enforced.
+	CAPath string `yaml:"trust"`
+	// ClientCert is the path to our PEM encoded client certificate.
 	ClientCert string `yaml:"cert"`
-	ClientKey  string `yaml:"key"`
+	// ClientKey is the path to our PEM encoded client key.
+	ClientKey string `yaml:"key"`
 }
 
 // EventQueueConfiguration configures publishing to the Kakfa event queue.
 type EventQueueConfiguration struct {
-	KafkaAddrs            []string `yaml:"kafka_addrs"`
-	ZKAddrs               []string `yaml:"zk_addrs"`
+	// KafkaAddrs is a list of host:port pairs of Kafka brokers. If provided,
+	// a direct connection to the brokers is established.
+	KafkaAddrs []string `yaml:"kafka_addrs"`
+	// ZKAddrs is a list of host:port pairs of ZK nodes. A common
+	// architecture is to have a ZK cluster entirely dedicated to Kafka. This
+	// config option handles that scenario.
+	ZKAddrs []string `yaml:"zk_addrs"`
+	// PublishSuccessActions, if provided, specifies the types of success actions
+	// to publish to Kafka. If empty, all success actions are published.
 	PublishSuccessActions []string `yaml:"publish_success_actions"`
+	// PublishFailureActions, if provided, specifies the types of success actions
+	// to publish to Kafka. If empty, all failure actions are published.
 	PublishFailureActions []string `yaml:"publish_failure_actions"`
 }
 
 // S3CiphertextCacheOpts describes our current disk cache configuration.
 type S3CiphertextCacheOpts struct {
-	Root          string  `yaml:"root_dir"`
-	Partition     string  `yaml:"partition"`
-	LowWatermark  float64 `yaml:"low_watermark"`
+	// Root specifies an absolute or relative path to set the root directory of
+	// the local cache. All uploads are cached on disk. This directory must be
+	// writable by the server process.
+	Root string `yaml:"root_dir"`
+	// Partition is an optional path prefix for objects written to S3.
+	Partition string `yaml:"partition"`
+	// LowWatermark denotes a percentage of local storage that must be used before
+	// the cache eviction routine will operate on items in the cache.
+	LowWatermark float64 `yaml:"low_watermark"`
+	// HighWatermark denotes a  percentage of local storage. If exceeded, cache
+	// items older than EvictAge will be eligible for puge.
 	HighWatermark float64 `yaml:"high_waterwark"`
-	EvictAge      int64   `yaml:"evict_age"`
-	WalkSleep     int64   `yaml:"walk_sleep"`
-	MasterKey     string  `yaml:"masterkey"`
-	ChunkSize     int64   `yaml:"chunk_size"`
+	// EvictAge denotes the minimum age, in seconds, a file in cache before it
+	// is eligible for purge from the cache to free up space.
+	EvictAge int64 `yaml:"evict_age"`
+	// Walk sleep sets frequency, in seconds, for which all files in the cache are
+	// examined to determine if they should be purged.
+	WalkSleep int64 `yaml:"walk_sleep"`
+	// MasterKey is the master encryption key. This must be kept safe. Losing this
+	// key will make encrypted data unrecoverable.
+	MasterKey string `yaml:"masterkey"`
+	// ChunkSize specifies a memory block size to send to S3 when durably persisting
+	// cached files.
+	ChunkSize int64 `yaml:"chunk_size"`
 }
 
 // ServerSettingsConfiguration holds the attributes needed for
 // setting up an AppServer listener.
 type ServerSettingsConfiguration struct {
-	BasePath                  string   `yaml:"base_path"`
-	ListenPort                string   `yaml:"port"`
-	ListenBind                string   `yaml:"bind"`
-	UseTLS                    bool     `yaml:"use_tls"`
-	CAPath                    string   `yaml:"trust"`
-	ServerCertChain           string   `yaml:"cert"`
-	ServerKey                 string   `yaml:"key"`
-	RequireClientCert         bool     `yaml:"require_client_cert"`
-	CipherSuites              []string `yaml:"ciphers"`
-	MinimumVersion            string   `yaml:"min_version"`
+	// BasePath is the root URL for static assets. Only used for debug UI.
+	BasePath string `yaml:"base_path"`
+	// ListenPort is the port the server listens on. Default is 4430.
+	ListenPort string `yaml:"port"`
+	// ListenBind is the address to bind to. Hardcoded to 0.0.0.0
+	ListenBind string `yaml:"bind"`
+	// UseTLS controls whether the server requires TLS. Default is true.
+	UseTLS bool `yaml:"use_tls"`
+	// CAPath is the path to a PEM encoded certificate of our CA.
+	CAPath string `yaml:"trust"`
+	// ServerCertChain is the path to our server's PEM encoded cert.
+	ServerCertChain string `yaml:"cert"`
+	// ServerKey is the path to our server's PEM encoded key.
+	ServerKey string `yaml:"key"`
+	// RequireClientCert specifies whether clients must present a certificate
+	// signed by our CA. Default is true.
+	RequireClientCert bool `yaml:"require_client_cert"`
+	// CipherSuites specifies the ciphers we will accept. Common values are
+	// TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 and TLS_RSA_WITH_AES_128_CBC_SHA
+	CipherSuites []string `yaml:"ciphers"`
+	// MinimumVersion is the minimum TLS protocol version we support. Currently TLS 1.2
+	MinimumVersion string `yaml:"min_version"`
+	// AclImpersonationWhitelist is a list of Distinguished Names. If a client
+	// (usually another machine) is on this list, it may pass us another DN in
+	// an HTTP header, and "impersonate" that identitiy. The common use case
+	// is for an edge proxy (such as nginx) to pass through requests from users
+	// outside the network. This configuration option must be specified in YAML
+	// or on the command line.
 	AclImpersonationWhitelist []string `yaml:"acl_whitelist"`
-	PathToStaticFiles         string   `yaml:"static_root"`
-	PathToTemplateFiles       string   `yaml:"template_root"`
+	// PathToStaticFiles is a location on disk where static assets are stored.
+	PathToStaticFiles string `yaml:"static_root"`
+	// PathToTemplateFiles is a location on disk where Go templates are stored.
+	PathToTemplateFiles string `yaml:"template_root"`
 }
 
 // ZKSettings holds the data required to communicate with default Zookeeper.
 type ZKSettings struct {
-	IP             string `yaml:"ip"`
-	Port           string `yaml:"port"`
-	Address        string `yaml:"address"`
+	// The IP address of our server, as reported to Zookeeper. If configured,
+	// we override the value detected as the server's IP address on startup.
+	IP string `yaml:"ip"`
+	// The Port of our server, announced to Zookeeper.
+	Port string `yaml:"port"`
+	// Address is the address of the Zookeeper cluster we attempt to connect to.
+	Address string `yaml:"address"`
+	// BasepathOdrive is a Zookeeper path. We register ourselves as an ephemeral
+	// node under this path.
 	BasepathOdrive string `yaml:"register_odrive_as"`
-	Timeout        int64  `yaml:"timeout"`
+	// Timeout configures a timeout for the Zookeeper driver in seconds.
+	Timeout int64 `yaml:"timeout"`
 }
 
 // NewAppConfiguration loads the configuration from the different sources in the environment.
@@ -617,34 +706,51 @@ func getEnvOrDefaultSplitStringSlice(envVar string, defaultVal []string) []strin
 	return splitted
 }
 
-// AWSConfig for getting a session
+// AWSConfig holds data suitable for creating AWS service session objects.
+// Different regions and datacenters can be accessed by specifying non-default
+// values for Endpoint and Region. Values for this struct may be provided
+// by environment variables, IAM roles, AWS credentials files, or Object Drive
+// application configuration.
 type AWSConfig struct {
-	Endpoint        string
-	Region          string
-	AccessKeyID     string
+	// Endpoint represents the AWS datacenter that provides a service.
+	Endpoint string
+	// Region specifies the AWS region, e.g. "us-east-1"
+	Region string
+	// AccessKeyID is the AWS identity.
+	AccessKeyID string
+	// SecretAccessKey is the AWS secret key.
 	SecretAccessKey string
 }
 
-// S3Config stores created config for S3
+// S3Config stores created config for S3.
 type S3Config struct {
 	AWSConfig *AWSConfig
 }
 
-// CWConfig config stores config for cloudwatch
+// CWConfig config stores config for cloudwatch.
 type CWConfig struct {
-	AWSConfig          *AWSConfig
+	AWSConfig *AWSConfig
+	// SleepTimeInSeconds is the Cloudwatch polling interval, in seconds.
 	SleepTimeInSeconds int
-	Name               string
+	// Name denotes the Cloudwatch namespace. This names where operators
+	// can view Cloudwatch metrics for our service. A recommended value
+	// would be the ZK path we announce to.
+	Name string
 }
 
 // AutoScalingConfig session for the queueing service
 type AutoScalingConfig struct {
-	AWSConfigSQS         *AWSConfig
-	AWSConfigASG         *AWSConfig
-	QueueName            string
+	AWSConfigSQS *AWSConfig
+	AWSConfigASG *AWSConfig
+	// QueueName is the SQS queue name. If blank, SQS is disabled.
+	QueueName string
+	// GroupName is the name of our service's ASG.
 	AutoScalingGroupName string
-	EC2InstanceID        string
-	PollingInterval      int64
+	// EC2InstanceID uniquely identifies the EC2 instance we are running on.
+	// This is required to terminate our own instance.
+	EC2InstanceID string
+	// PollingInterval is the interval, in seconds, for polling our Cloudwatch metrics.
+	PollingInterval int64
 	// QueueBatchSize denotes the number of messages to retrieve from SQS per
 	// each fetch to determine if message is intended to be processed by this
 	// instance
