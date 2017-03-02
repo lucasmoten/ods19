@@ -1,22 +1,28 @@
 #!/bin/bash
 
-cd `dirname $0`
+cd `dirname ${0}`
 odriverpmbuilt=`docker images | grep odriverpm -c`
 
-if [ "$odriverpmbuilt" == "1" ]
+if [ "${odriverpmbuilt}" == "1" ]
 then
   echo docker image already built
 else
   docker build -t deciphernow/odriverpm:latest scripts
 fi
 
-ARG_VERSION=$1
+ARG_VERSION=${1}
 if [ ${#1} -eq 0 ]
 then
   ARG_VERSION="test"
 fi
 
 ( ./makedocs )
-docker run -i -e ODRIVE_PACKAGE_NAME="odrive-${ARG_VERSION}" -e ODRIVE_VERSION=${ARG_VERSION} -v `pwd`:/go/src/decipher.com/object-drive-server deciphernow/odriverpm:latest scripts/build.sh
+docker run -i \
+   -e ODRIVE_PACKAGE_NAME="odrive-${ARG_VERSION}" \
+   -e ODRIVE_VERSION=${ARG_VERSION} \
+   -e CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM} \
+   -e CIRCLE_SHA1=${CIRCLE_SHA1} \
+   -e TAG_VERSION=${2} \
+   -v `pwd`:/go/src/decipher.com/object-drive-server deciphernow/odriverpm:latest scripts/build.sh
 
 
