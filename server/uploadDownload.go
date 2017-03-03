@@ -225,19 +225,23 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 	}
 	defer outFile.Close()
 
-	//Write the encrypted data to the filesystem
+	// Write the encrypted data to the filesystem
 	byteRange := crypto.NewByteRange()
 	checksum, length, err := crypto.DoCipherByReaderWriter(logger, part, outFile, fileKey, iv, "uploading from browser", byteRange)
 	if err != nil {
-		//It could be the client's fault, so we use 400 here.
+		// It could be the client's fault.  Check the message.
 		msg := fmt.Sprintf("Unable to write ciphertext %s", outFileUploading)
-		//If something went wrong, just get rid of this file.  We only have part of it,
+		// If something went wrong, just get rid of this file.  We only have part of it,
 		// so we can't retry anyway.
 		d.Files().Remove(outFileUploading)
-		return nil, NewAppError(400, err, msg), err
+		// The user terminating the upload is actually not an internal error, and user can trigger it intentionally
+		if strings.HasPrefix(err.Error(), "multipart: Part Read: unexpected EOF") {
+			return nil, NewAppError(400, err, msg), err
+		}
+		return nil, NewAppError(500, err, msg), err
 	}
 
-	//Rename it to indicate that it can be moved to S3
+	// Rename it to indicate that it can be moved to S3
 	err = d.Files().Rename(outFileUploading, outFileUploaded)
 	if err != nil {
 		msg := fmt.Sprintf("Unable to rename uploaded file %s", outFileUploading)
@@ -247,11 +251,11 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 	}
 	logger.Info("s3 enqueued", zap.String("fileID", string(fileID)))
 
-	//Record metadata
+	// Record metadata
 	obj.ContentHash = checksum
 	obj.ContentSize.Int64 = length
 
-	//At the end of this function, we can mark the file as stored in S3.
+	// At the end of this function, we can mark the file as stored in S3.
 	return func() { h.Writeback(obj, fileID, length, 3) }, nil, err
 }
 
