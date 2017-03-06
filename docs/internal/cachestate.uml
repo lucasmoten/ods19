@@ -1,0 +1,44 @@
+@startuml
+scale 2/3
+
+state Uploading
+
+state HasRecord {
+  state Uploaded 
+
+  state InS3 {
+    state Cached
+    state Caching 
+    state Purged
+    [*] -down-> Cached
+    Cached --> Purged: old
+    state Caching {
+      state Recache {
+        [*] -down-> FromS3
+        [*] -down-> FromPeer
+        FromS3 -down-> [*]
+        FromPeer -down-> [*]
+      }
+      note right of Recache: ensure hit next time.\nmay be very slow.
+      --
+      state RangeRequest {
+        state RangeFromS3
+        state RangeFromPeer
+        [*] -down--> RangeFromS3
+        RangeFromS3 -left--> RangeFromS3
+        [*] -down--> RangeFromPeer
+        RangeFromPeer --> [*]
+        RangeFromS3 --> [*]
+        note left of RangeFromS3: in 16MB chunks
+      }
+      note right of RangeRequest: service request to http client.\nmust respond in seconds.
+    }
+    Purged --> Caching: requested
+    Caching --> Cached: will hit next time
+  }
+  Uploaded -> InS3 
+}
+
+[*] -> Uploading
+Uploading -> HasRecord
+@enduml

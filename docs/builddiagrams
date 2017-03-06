@@ -1,0 +1,6 @@
+#!/bin/bash
+
+cd `dirname $0`
+java -jar ./plantuml.jar internal/*.uml
+cp internal/getObjectStream.png ../server/static/js/getObjectStream.png
+cp internal/etag.png            ../server/static/js/etag.png

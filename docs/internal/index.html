@@ -1,0 +1,122 @@
+<html>
+  <head>
+    <title>Internal Documentation</title>
+  </head>
+
+  <h1>Create Object</h1>
+ 
+  <img style="float:right" src=create.png>
+  The code to create objects is centered around uploading files.
+  The interface is a use of multipart mime in the http specification.
+  
+  <ul>
+    <li>createObject.go - accepting an upload for an object that does not yet exist</li>
+    <li>updateObject.go - accepting an upload for an object that exist, to create a new version</li>
+    <li>uploadDownload.go - the common code between createObject.go and updateObject.go</li>
+  </ul>
+
+  There are two things that get uploaded to the endpoint <i>/objects</i>:
+  <ul>
+    <li>ObjectMetadata - Gives us a name, and security data.  We need this before we start accepting bytes for the file
+    <li>The data part (which has a FileName property) - forward to acceptObjectUploadStream
+  </ul>  
+
+  As soon as we have enough information to start accepting bytes, we need to have a key to encipher to.
+  We generate a random iv, and set a random key before writing it into the permission
+
+  <pre>
+	...
+
+	// SetEncryptKey to create a permission that is not a copy of anything yet existing.
+	func SetEncryptKey(passphrase string, dst *ODObjectPermission) {
+		k := crypto.CreateKey()
+		dst.PermissionIV = crypto.CreatePermissionIV()
+		dst.EncryptKey = crypto.ApplyPassphrase(passphrase, dst.PermissionIV, k)
+		dst.PermissionMAC = CalculatePermissionMAC(passphrase, dst)
+	}
+	...
+  </pre>
+
+  The update will need to get an existing object from the database for getting these same parts, and will also call acceptObjectUploadStream.
+  While the object is being uploaded, it is being written to disk in a cipher.
+
+  <pre>
+	checksum, length, err := crypto.DoCipherByReaderWriter(logger, part, outFile, fileKey, iv, "uploading from browser", byteRange)
+  </pre>
+
+  We use the same cipher to read from disk as well, because the cipher has a symmetric key.
+  The main trick in this is that when we are reading back the data, we may end up range requesting,
+  and will need to do adjustments to the ciphertext to get the bytes back out.
+
+  <h3>Note</h3>
+
+  We could NOT use the normal Go mime upload consumption code, because if you do, then files larger than 10MB will be written to the disk
+  in plaintext (which is better than held in memory, but still a problem).  This is why we explicitly get a multipartReader,
+  so that we can iterate over the file handle in order, and push the bytes through DoCipherByReaderWriter to ensure that we only
+  dump plaintext to disk.
+
+  <pre>
+        multipartReader, err := r.MultipartReader()
+  </pre>
+
+  <h2>Get Object</h2>
+
+  <img style="float:right" src=streaming.png>
+  When getting an object, the main difficulty involved is in that we only store ciphertext on disk,
+  and must be able to range request out of it.  The ciphertext could exist in one of a few places,
+  depending on cache pressure, and how recently the file got uploaded.
+
+  <pre>
+	iv := adjustIV(object.EncryptIV, byteRange)
+	//Actually send back the cipherFile
+	var actualLength int64
+	_, actualLength, err = crypto.DoCipherByReaderWriter(
+		logger,
+		cipherReader,
+		w,
+		encryptKey,
+		iv,
+		"client downloading",
+		byteRange,
+	)
+  </pre>
+
+  The ciphertext package encapsulates getting the ciphertext that had previously been written down.
+  Each cache can have its own masterkey (though, currently there is only one cache).  So in order to get a ciphertext,
+  you need to state for which object you mean, in order to find the cache.  From that you can get the key:
+
+  <pre>
+ 	dp := ciphertext.FindCiphertextCacheByObject(&dbObject)
+	masterKey := dp.GetMasterKey() 
+  </pre>
+
+  When asking for a ciphertext, it could be in multiple states (for the local odrive):
+
+  <ul>
+    <li> .uploading - bytes are still being transferred up, and there is no database record of the file
+    <li> .uploaded - bytes are all transferred up, and there is a database record of the file (note: we must be careful here to not invite clients to come get the data with a record until we have all bytes)
+    <li> .cached - the bytes are safely stored in S3
+    <li> [missing] - if there is a database record for this file, yet it's missing it must be somewhere.  it is either in S3, or in another peer as .uploaded or .cached.  We can search peers for it.
+    <li> .caching - getting it back from S3.  this could take a while, so we must range request out of S3 at the same time so that the client is not stalled.  when we got all bytes, it's .cached
+  </ul>
+
+  It is CRITICAL that we do not sit around and wait for the file to appear either on disk or in S3.
+  What we do here is the main reason we are not experiencing major issues with large files or higher download concurrency.
+  Nginx will timeout clients that sit around and wait, which will also cause http clients to queue up and consume memory in sessions.
+  This rather complex search scheme exists because when the object is created or updated, we can't wait indefinitely for the file to get to S3 to respond to the user, so we respond as soon as we have all the bytes.
+  When going to get the file, we also cannot sit around and wait for the whole file to transfer from S3 back to a node.
+  Some files could take an hour.
+
+  <h2>Cache State</h2>
+
+  Because we know that the ciphertext exists somewhere (guaranteed by the existence of a database record) we always have these options:
+
+  <ul>
+    <li> Pull from local disk if it is there.  Because we get a streaming file handle, no chunking trickery is required
+    <li> Pull from a peer if we find a copy there.  Similarly, we get a streaming file handle, so no chunking trickery is required
+    <li> If we must get it from S3, in addition to fetching the entire file (regardless of range requesting), we must in parallel service a sequence of range requests to S3.  The chunk sizes must be such that the latency is acceptable to the client.  It is not just a performance issue.  If nginx thinks it is taking too long, the connection will become unreliable as Nginx cuts the connections off.
+  </ul>
+
+  <img src=cachestate.png>
+   
+</html>
