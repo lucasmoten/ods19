@@ -24,3 +24,6 @@ debug.*
 root.html
 APISample.html
 changelog.html
+server/root.html
+server/js/*.png
+docs/internal/*.png

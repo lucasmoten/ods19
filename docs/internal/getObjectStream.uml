@@ -1,0 +1,19 @@
+@startuml
+scale 2/3
+User -> Nginx: GET $PREFIX/objects/$ID/stream\nas $DN\nEtag
+Nginx -> Odrive: GET /objects/$ID/stream\nUSER_DN=$DN\nEtag
+alt record not found
+    Odrive -> Nginx: 500 Internal Error
+else Etag Match
+    Odrive -> Nginx: 304 Not Modified
+else record found
+    Odrive -> AAC: Authorization (Security Clearance) Lookup
+    alt Not Authorized
+      Odrive -> Nginx: 403 Not Authorized
+    else Authorized
+    ref over Odrive: Ciphertext Search
+    Odrive -> Nginx: 2XX (200 OK, or 206 Partial)
+    end
+    Nginx -> User: Plaintext file under TLS
+end
+@enduml

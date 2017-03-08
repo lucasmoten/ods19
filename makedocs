@@ -6,5 +6,10 @@ cd `dirname $0`
 docker run --rm -ti -v `pwd`:/docs humangeo/aglio -i docs/home.md --theme-variables streak -o root.html
 mv -f root.html server/static/templates/root.html
 
+#Make it so that i can view locally without rebuild like: file:///Users/rfielding/gocode/src/decipher.com/object-drive-server/server/root.html
+cp server/static/templates/root.html server
+
 docker run --rm -ti -v `pwd`:/docs humangeo/aglio -i changelog.md --theme-variables streak -o changelog.html
 mv -f changelog.html server/static/templates/changelog.html
+
+(cd docs && ./builddiagrams)

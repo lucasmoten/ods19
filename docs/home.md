@@ -848,7 +848,28 @@ This creates a new revision of the object.
 
 ## Get Object Stream [/objects/{objectId}/stream{?disposition}]
 
-The content stream for an object may be retrieved or updated at the URI designated.
+When retrieving the bytes for an object, the behavior of real web browsers needs to be taken into account.
+A request to an object that is successfully found will return a 200 HTTP code and keep streaming back bytes.
+It is up to the client to be reasonable when it handles it.
+Expect the number of bytes coming back to possibly use an unacceptably large amount of memory (many GB in the response), particularly when writing to the API for the purposes of indexing.
+The content-length will state how many bytes can come back, so the client can simply stop reading the stream when if has seen everything it needs to see.
+Otherwise, the client must read the data in a streaming fashion to ensure that only a small in-memory buffer is required, generally to forward to an indexing call (ie: Elastic Search).
+Use of this feature is not just for performance, as not following this may keep the client from working correctly at all (by getting timeout and out of memory errors).
+
+Actual browser behavior is far more complex than simply retrieving the files, and it is a good idea for custom clients to follow these conventions to get good performance.
+When an object stream comes back, it will specify an `Etag` value.  The client should remember this value, and resend an `If-None-Match` which contains the known `Etag` value.
+If the content has not been changed (ie: there is no new version for this file), then a `304 Not Modified` will be sent back instead of a stream.
+For situations where there are a lot of URLs that resolve to images, and the browser is fetching them just because it doesn't know if they changed, the speedup is going to be dramatic.
+
+![Get Object Stream](static/js/getObjectStream.png)
+
+In addition to Etag, real browsers do range requesting, particularly for video.  If a browser goes to get a stream, it will look at its mime type and content-length.
+The browser may decide to simply read a small amount of the file from a 200 OK response, and cut off reading the stream early (close the connection).
+Then when the browser needs more bytes, it will put in a header like `Range: 23433-432178` to select a specific chunk for more bytes, or leave the range open-ended like `Range:23433-`,
+where the browser may again close the connection at its leisure.  When it does this, it will get a `206 Partial Content` code rather than a 200 OK.
+It is the client's use of the `Range` tag that allows the response to be 206.
+
+![Get Object Stream](static/js/etag.png)
 
 + Parameters
     + objectId: `11e5e48664f5d8c789020242ac110002` (string, required) - Hex encoded identifier of the object to be retrieved.

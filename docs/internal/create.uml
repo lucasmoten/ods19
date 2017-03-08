@@ -1,0 +1,22 @@
+@startuml
+scale 2/3
+
+ref over Client: Make an object
+Client -> Odrive: POST /objects\nContent-Type: multipart/mixed; boundary=asdfasdf
+Client -> Odrive: Content-type: application/json
+Client -> Odrive: [json]
+Odrive -> Odrive: create object
+Client -> Odrive: Content-type: application/pdf\n FileName: thefile.pdf
+Client -> Odrive: [bytes]
+Odrive -> Client: objectId, changeToken - used to make updates and find the object later\nchangeToken is proof that we know the latest version
+
+ref over Client: Update an object 
+Client -> Odrive: POST /objects/$ID/stream \nContent-Type: multipart/mixed; boundary=asdfasdf
+Client -> Odrive: Content-type: application/json
+Client -> Odrive: [json] - includes changeToken
+Odrive -> Odrive: update object
+Client -> Odrive: Content-type: application/pdf\n FileName: thefile.pdf
+Client -> Odrive: [bytes]
+Odrive -> Client: objectId, changeToken - wrote out the new version, now we have new changeToken
+@enduml
+

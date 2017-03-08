@@ -1,4 +1,6 @@
 machine:
+    java:
+        version: openjdk7
     environment:
         IMPORT_PATH: "decipher.com/object-drive-server"
         REPO_NAME: "object-drive-server"
