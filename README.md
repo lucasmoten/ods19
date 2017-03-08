@@ -5,25 +5,6 @@
 API documentation may be reviewed at the root of an instantiated object-drive server,
 previewed [here](./docs/home.md), or accessed from this [live instance on Bedrock](https://bedrock.363-283.io/services/object-drive/1.0/)
 
-# Vendoring
-
-We are using a vendoring tool called `govendor` to pin our dependencies to a specific commit.
-
-```
-go get github.com/kardianos/govendor
-go install github.com/kardianos/govendor
-```
-
-
-The **govendor** tool should now be in $GOPATH/bin. Make sure that is on your PATH.
-Sync the dependencies to the local **/vendor** folder like this:
-
-```
-govendor sync
-```
-Note that when you do this, the vendor/ directory will have a vendor.json file, and a bunch of directories for repos.
-Sometimes it is necessary to delete all of the directories under vendor/ and re-run `govendor sync` to get `go build ./...`
-to build with a consistent source tree.
 
 # Configuration
 
@@ -32,7 +13,7 @@ Detailed here: https://gitlab.363-283.io/cte/object-drive/wikis/object-drive-env
 See also the example docker-compose file **.ci/docker-compose.yml** for example environment variables.
 Note that some vars are not set directly inline, because they contain secrets (e.g. AWS vars).
 
-# Hosting The Code
+# Clone this repository
 
 All dependent Go code is relative to the **GOPATH**. Create the the directory **$GOPATH/src/decipher.com**
 and clone this project there. This will allow imports like this to resolve correctly.
@@ -43,79 +24,70 @@ import "decipher.com/object-drive-server/somepackage"
 
 # Openssl bindings dependency 
 
-Due to internal openssl use, `pkg-config` must be setup for the go code to compile. See our Dockerfiles 
-show exactly how this is done on the different Linux distributions.  On OSX (ElCapitan specifically) 
-more can go wrong, in addition to installing `pkg-config` for openssl, you may need to help the system 
-to find the proper packages with this set in your .bash_profile (when you get an inability to find "bios.h" 
-during `go build ./...`) 
+This project depends on OpenSSL, and binds to C code (uses CGO). This means you
+may need to set the `PKG_CONFIG_PATH` variable. This can vary by distribution.
+
+If you're using brew on a Mac, you might set it like this:
 
 ```bash
 export PKG_CONFIG_PATH="$(brew --prefix openssl)/lib/pkgconfig"
 ```
 
-Note that $OD_ROOT is where `cte/object-drive` is checked out.
+On Ubuntu, it might be
 
-> The cte/object-drive project pulls together the environment that cte/object-drive-server executes in.  Refer to that project to get all of the dependencies setup to actually execute odrive (npm, gulp, proper hub.docker.com login, archiva setup, and so on).   
-
-```
-$OD_ROOT/object-drive
+```bash
+export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig"
 ```
 
-Metadataconnector Browser:
+# Setting up your development environment
 
-* Make sure that you set these environment variables:
-  * OD_AWS_REGION=us-east-1
-  * OD_AWS_ACCESS_KEY_ID
-  * OD_AWS_SECRET_KEY
-  * OD_ZK_URL=zk_1:2181,zk_2:2181,zk_3:2181
-
-# Checking out and building
-
-You should be able to build the source like this.
+Developing on this project requires maven, docker, and nodejs configurations.
+Also, a separate build "root" directory must be specified by setting the `OD_ROOT`
+environment variable. The build script will check out and build other dependencies
+there. Consider this a volatile directory. A fine location to set would be
 
 ```
-$ git clone ssh://git@gitlab.363-283.io:2252/cte/object-drive-server.git $GOPATH/src/decipher.com
-$ cd $GOPATH/src/decipher.com
+export OD_ROOT=$HOME/my_code/od_root
 ```
 
-This invokes the Python build script that fetches dependencies, builds binaries,
-and exports required certificates.
-
-# Generating Thrift Code
-
-Once you have the latest version of the go-thrift library installed, put it's
-**generator** binary on your PATH. Then run the top-level thrift Service IDL
-file through the generator.
-
-Install the Thrift code generator with:
+After that is done, run
 
 ```
-go install github.com/samuel/go-thrift/generator
+./odb build
 ```
 
-Example (from within /services/foo/thrift):
+`odb` is a python script that builds binaries and docker containers for this
+project and its dependencies. It also inspects your build environment, and 
+notifies you when tools are missing.
+
+This project requires edits to your **/etc/hosts** file. These are the most 
+common settings:
 
 ```
-generator -go.signedbytes=true Foo.thrift ../generated
+127.0.0.1 localhost dockervm fqdn.for.metadatadb.local gatekeeper metadatadb aac metadataconnector zk pk ui builder kafka twl-server-generic2 gateway metadatadb
 ```
 
-# Running Tests
+Tests can be run locally if the suite of containers defined in **docker/docker-compose.yml**
+are built and running. Run `go test ./...` from the root of this project.
 
-Run **every** test in the project with a `./...` recursive walk.
+# Vendoring
 
-```
-cd $GOPATH/src/decipher.com/object-drive-server
-go test ./... -v
-```
-
-Only run short tests by specifying `-short=true`:
+We are using a vendoring tool called `govendor` to pin our dependencies to a specific commit.
 
 ```
-go test ./... -short=true -v
+go get github.com/kardianos/govendor
+go install github.com/kardianos/govendor
 ```
 
-Hooray for automated tests!
+The **govendor** tool should now be in $GOPATH/bin. Make sure that is on your PATH.
+Sync the dependencies to the local **/vendor** folder like this:
 
+```
+govendor sync
+```
+Note that when you do this, the vendor/ directory will have a vendor.json file, and a bunch of directories for repos.
+Sometimes it is necessary to delete all of the directories under vendor/ and re-run `govendor sync` to get `go build ./...`
+to build with a consistent source tree.
 
 # Other Configuration
 
@@ -152,16 +124,3 @@ cd $GOPATH/src/decipher.com/object-drive-server
 ./makerpm 2600
 ```
 
-Hostnames:
-
-Every service that we connect to from the location of the docker command must be routable and have a hostname lookup.  If your docker-machine maps to 127.0.0.1, or 192.168.99.100 (remote docker machine):
-
-```
-# Host Database.  Whatever dockervm (the docker machine is).  Lookup by $(docker-machine ip default), or localhost, etc.
-....
-127.0.0.1       localhost
-192.168.99.100 dockervm fqdn.for.metadatadb.local gatekeeper metadatadb aac metadataconnector zk pk ui builder kafka twl-server-generic2 gateway metadatadb
-....
-```
-```
-```
