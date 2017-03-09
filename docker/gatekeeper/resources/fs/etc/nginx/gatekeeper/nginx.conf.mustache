@@ -121,26 +121,26 @@
         # Hard coded locations
         ######
 
-        location /service/apps/1.0 {
+        location /services/apps/1.0 {
             expires -1;
-            proxy_pass            https://chm.363-283.io/service/apps/1.0;
+            proxy_pass            https://chm.363-283.io/services/apps/1.0;
             proxy_set_header      user_dn         $ssl_client_s_dn_value;
         }
 
-        location /service/userservice/1.0 {
+        location /services/userservice/1.0 {
                 expires -1;
-                proxy_pass            https://chm.363-283.io/service/userservice/1.0;
+                proxy_pass            https://chm.363-283.io/services/userservice/1.0;
                 proxy_set_header      user_dn         $ssl_client_s_dn_value;
         }
 
       location /acm {
           expires -1;
-          proxy_pass            https://chm.363-283.io/service/aac/1.0/acm;
+          proxy_pass            https://chm.363-283.io/services/aac/1.0/acm;
           proxy_set_header      user_dn         $ssl_client_s_dn_value;
       }
-      location /service/aac/1.0/capco {
+      location /services/aac/1.0/capco {
           expires -1;
-          proxy_pass            https://chm.363-283.io/service/aac/1.0/capco;
+          proxy_pass            https://chm.363-283.io/services/aac/1.0/capco;
           proxy_set_header      user_dn         $ssl_client_s_dn_value;
       }
 
@@ -175,9 +175,9 @@
 
 
         # Send all other service requests to Chimera APIs page
-        location /service {
+        location /services {
                 expires -1;
-                try_files /service/chimeraAPIs.html /;
+                try_files /services/chimeraAPIs.html /;
         }
 
 
