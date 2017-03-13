@@ -612,31 +612,35 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, f os.FileInfo, err er
 			value := size / (ageInSeconds * ageInSeconds)
 			if value == 0 || mustEvict {
 				//Name is fully qualified, so use os call!
-				errReturn := os.Remove(fqName)
-				if errReturn != nil {
-					d.Logger.Error(
-						"unable to purge cached file",
+				if _, err := os.Stat(fqName); err == nil {
+					errReturn := os.Remove(fqName)
+					if errReturn != nil {
+						d.Logger.Error(
+							"unable to purge cached file",
+							zap.String("filename", fqName),
+							zap.String("err", errReturn.Error()),
+						)
+						attemptToEmptyFile(d, fqName)
+						return nil
+					}
+					d.Logger.Info(
+						"purge",
 						zap.String("filename", fqName),
-						zap.String("err", errReturn.Error()),
+						zap.Int64("ageinseconds", ageInSeconds),
+						zap.Int64("size", size),
+						zap.Float64("usage", usage),
 					)
-					attemptToEmptyFile(d, fqName)
-					return nil
 				}
-				d.Logger.Info(
-					"purge",
-					zap.String("filename", fqName),
-					zap.Int64("ageinseconds", ageInSeconds),
-					zap.Int64("size", size),
-					zap.Float64("usage", usage),
-				)
 			}
 		}
 	case ext == ".orphaned":
-		errReturn := os.Remove(fqName)
-		if errReturn != nil {
-			d.Logger.Error("unable to purge orphaned file", zap.String("filename", fqName), zap.String("err", errReturn.Error()))
-			attemptToEmptyFile(d, fqName)
-			return nil
+		if _, err := os.Stat(fqName); err == nil {
+			errReturn := os.Remove(fqName)
+			if errReturn != nil {
+				d.Logger.Error("unable to purge orphaned file", zap.String("filename", fqName), zap.String("err", errReturn.Error()))
+				attemptToEmptyFile(d, fqName)
+				return nil
+			}
 		}
 	case ext == ".uploaded":
 		if ageInSeconds > oneWeek {
@@ -650,23 +654,25 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, f os.FileInfo, err er
 		//might legitimately be awaiting upload.  Other states are certainly
 		//garbage after only a few hours.
 		if ageInSeconds > oneWeek {
-			errReturn := os.Remove(fqName)
-			if errReturn != nil {
-				d.Logger.Error(
-					"unable to purge",
+			if _, err := os.Stat(fqName); err == nil {
+				errReturn := os.Remove(fqName)
+				if errReturn != nil {
+					d.Logger.Error(
+						"unable to purge",
+						zap.String("filename", fqName),
+						zap.String("err", errReturn.Error()),
+					)
+					attemptToEmptyFile(d, fqName)
+					return nil
+				}
+				//Count this anomaly
+				d.Logger.Warn(
+					"purged for age",
 					zap.String("filename", fqName),
-					zap.String("err", errReturn.Error()),
+					zap.Int64("age", ageInSeconds),
+					zap.Float64("usage", usage),
 				)
-				attemptToEmptyFile(d, fqName)
-				return nil
 			}
-			//Count this anomaly
-			d.Logger.Warn(
-				"purged for age",
-				zap.String("filename", fqName),
-				zap.Int64("age", ageInSeconds),
-				zap.Float64("usage", usage),
-			)
 			return nil
 		}
 	}
@@ -674,11 +680,13 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, f os.FileInfo, err er
 }
 
 func attemptToEmptyFile(d *CiphertextCacheData, fqName string) {
-	e := os.Truncate(fqName, 0)
-	if e != nil {
-		d.Logger.Error("unable to empty file", zap.String("filename", fqName), zap.String("err", e.Error()))
+	if _, err := os.Stat(fqName); err == nil {
+		e := os.Truncate(fqName, 0)
+		if e != nil {
+			d.Logger.Error("unable to empty file", zap.String("filename", fqName), zap.String("err", e.Error()))
+		}
+		d.Logger.Info("truncated file to free space", zap.String("filename", fqName))
 	}
-	d.Logger.Info("truncated file to free space", zap.String("filename", fqName))
 }
 
 // CacheInventory writes an inventory of what's in the cache to a writer for the stats page
