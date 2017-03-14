@@ -18,6 +18,8 @@ import (
 )
 
 var (
+	// PeerSignifier indicates an identifer to use for identifying that the request is from a peer instance. It should be a value
+	// that will not be presented as the user id from normal PKI connections which are distinguished names.
 	// Leave this alone!  We are blocking direct access to this endpoing by setting it to something that can't be a DN.
 	// It has to be the same for all peers.  If we needed it, real identifier is the cert DN which is set on
 	// the user context for other values.  It CANNOT be associated with a particular user, because background processes will
@@ -69,6 +71,8 @@ func setPeers(newPeerMap map[string]*PeerMapData, oldPeerMap map[string]*PeerMap
 	connectionMapMutex.Unlock()
 }
 
+// NewTLSClientConn is a wrapper preparing a http.Client connection setup to use the provided PKI credentials, and
+// connect to a specific server host and port.
 func NewTLSClientConn(trustPath, certPath, keyPath, serverName, host, port string, insecure bool) (*http.Client, error) {
 	conf, err := config.NewTLSClientConfig(trustPath, certPath, keyPath, serverName, insecure)
 	if err != nil {
@@ -83,7 +87,7 @@ func NewTLSClientConn(trustPath, certPath, keyPath, serverName, host, port strin
 	}, nil
 }
 
-// We would like to have a .cached file, but an .uploaded file will do.
+// UseLocalFile returns a handle to either the .cached file or .uploaded file
 //  It is the caller's responsibility to close the file handle
 func UseLocalFile(logger zap.Logger, d CiphertextCache, rName FileId, cipherStartAt int64) (*os.File, int64, error) {
 	var cipherFile *os.File

@@ -2,29 +2,33 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release v1.0.1.18rc
+----------------------
+* FIX: Check that cache files exist before attempting to remove them.
+
 ## Release v1.0.1.17
 --------------------
-* FIX: Path Delimiter for internal storage is now using record separator in place of forward slash
-* ENH: Create Object operation may specify namePathDelimiter to override default
+* FIX: Path Delimiter for internal storage is now using record separator in place of forward slash.
+* ENH: Create Object operation may specify namePathDelimiter to override default.
 * ENH: Latest git tag is embedded in --version flag. 
 
 ## Release v1.0.1.16
 --------------------
-* FIX: Bugfix to listing shared objects and trash for users with apostrophe in DN
+* FIX: Bugfix to listing shared objects and trash for users with apostrophe in DN.
 * ENH: Logging now renders timestamp in RFC3339 format intsead of seconds since unix epoch.
 * ENH: RPM installation will now set to start service on run levels 3 and 5 via chkconfig.
 
 ## Release v1.0.1.15
 --------------------
-* ENH: Build number and git commit sha1 now exposed with the --version flag
-* FIX: Uncached large files no longer truncated at 16MB during download
+* ENH: Build number and git commit sha1 now exposed with the --version flag.
+* FIX: Uncached large files no longer truncated at 16MB during download.
 
 ## Release v1.0.1.14
 --------------------
 * FIX: Service process now assigned group and user when sudoing down from root.
 * ENH: Orphaned files that cannot be removed due to permissions are renamed to permit service termination.
 * ENH: Service init script for restart handles discrepent pidfile.
-* FIX: Fixed minor bug in how zip files are processed if puller can't be initialized
+* FIX: Fixed minor bug in how zip files are processed if puller can't be initialized.
 * ENH: Cached files that cannot be removed due to faulty permissions are truncated if allowed to free up space.
 * FIX: Cache purging of files when space consumed is above high watermark no longer considers age.
 * FIX: Improve durability of connection to AAC to reduce unnecessary rpc client shutdown.
