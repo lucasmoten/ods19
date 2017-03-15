@@ -301,8 +301,8 @@ func parseUpdateObjectRequestAsJSON(r *http.Request, ctx context.Context) (model
 
 	// Map changes over the requestObject
 	if len(jsonObject.Name) > 0 {
-		if strings.IndexAny(jsonObject.Name, defaultPathDelimiter) > -1 {
-			return requestObject, errors.New("bad request: name cannot include path delimiter character")
+		if part, _ := util.GetNextDelimitedPart(jsonObject.Name, util.DefaultPathDelimiter); len(part) > 0 {
+			return requestObject, fmt.Errorf("bad request: name cannot include path delimiter %s", util.DefaultPathDelimiter)
 		}
 		requestObject.Name = jsonObject.Name
 	}

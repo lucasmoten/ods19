@@ -5,6 +5,7 @@ FORMAT: 1A
 ## Release v1.0.1.18rc
 ----------------------
 * FIX: Check that cache files exist before attempting to remove them.
+* FIX: Path Delimiter validation for Update Object to permit slashes.
 
 ## Release v1.0.1.17
 --------------------
