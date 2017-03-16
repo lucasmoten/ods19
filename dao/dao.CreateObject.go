@@ -99,7 +99,8 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
         ,contentHash = ?
         ,encryptIV = ?
         ,containsUSPersonsData = ?
-        ,exemptFromFOIA = ?        
+        ,exemptFromFOIA = ?
+        ,ownedBy = ?
     `)
 	if err != nil {
 		return dbObject, fmt.Errorf("CreateObject Preparing add object statement, %s", err.Error())
@@ -108,7 +109,7 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		object.Name, object.Description.String, object.ParentID,
 		object.ContentConnector.String, object.RawAcm.String,
 		object.ContentType.String, object.ContentSize.Int64, object.ContentHash,
-		object.EncryptIV, object.ContainsUSPersonsData, object.ExemptFromFOIA)
+		object.EncryptIV, object.ContainsUSPersonsData, object.ExemptFromFOIA, object.OwnedBy.String)
 	if err != nil {
 		return dbObject, fmt.Errorf("CreateObject Error executing add object statement, %s", err.Error())
 	}

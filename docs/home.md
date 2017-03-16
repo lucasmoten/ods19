@@ -121,6 +121,9 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
             + `Yes`
             + `No`
             + `Unknown`
+    + ownedBy: `user/{distinguishedName}/{displayName}` (string, optional) - Change ownership to group on create
+       * Groups that we are in are allowed
+         * group/{projectName}/{projectDisplayName}/{groupName}/{displayName}
     + properties (properties array, optional) - Array of custom properties to be associated with the newly created object.
     + permissions (array[PermissionUserCreate,PermissionGroupCreate]) - **[1.0, Deprecated]** - Array of permissions associated with this object.
 

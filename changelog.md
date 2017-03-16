@@ -6,6 +6,7 @@ FORMAT: 1A
 ----------------------
 * FIX: Check that cache files exist before attempting to remove them.
 * FIX: Path Delimiter validation for Update Object to permit slashes.
+* ENH: Allow owner to be specified on object create
 
 ## Release v1.0.1.17
 --------------------
