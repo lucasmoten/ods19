@@ -26,8 +26,6 @@ import (
 	"decipher.com/object-drive-server/util"
 )
 
-const defaultPathDelimiter = string(rune(30)) // 30 = record separator
-
 // createObject creates an object or an object stream.
 func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
@@ -194,7 +192,7 @@ func handleIntermediateFoldersDuringCreation(ctx context.Context, h AppServer, u
 
 	// Determine actual path delimiter to use.
 	if len(pathDelimiter) == 0 {
-		pathDelimiter = defaultPathDelimiter
+		pathDelimiter = util.DefaultPathDelimiter
 	}
 
 	partName := trimPathDelimitersFromNameReturnAnyPart(obj, pathDelimiter)

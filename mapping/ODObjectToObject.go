@@ -3,13 +3,12 @@ package mapping
 import (
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
-	"strings"
 
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/utils"
 )
 
@@ -359,8 +358,8 @@ func OverwriteODObjectWithUpdateObjectAndStreamRequest(o *models.ODObject, i *pr
 	}
 
 	if len(i.Name) > 0 {
-		if strings.IndexAny(i.Name, "/\\") > -1 {
-			return errors.New("bad request: name cannot include reserved characters {\\,/}")
+		if part, _ := util.GetNextDelimitedPart(i.Name, util.DefaultPathDelimiter); len(part) > 0 {
+			return fmt.Errorf("bad request: name cannot include path delimiter %s", util.DefaultPathDelimiter)
 		}
 		o.Name = i.Name
 	}
