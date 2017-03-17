@@ -36,4 +36,6 @@ type CreateObjectRequest struct {
 	Properties []Property `json:"properties,omitempty"`
 	// Permissions is the API 1.0 version for providing permissions for users and groups with a share model
 	Permissions []ObjectShare `json:"permissions,omitempty"`
+	// Owner which could be a group, or different user from the one uploading
+	OwnedBy string `json:"ownedBy,omitempty"`
 }

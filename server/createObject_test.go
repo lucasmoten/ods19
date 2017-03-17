@@ -365,6 +365,41 @@ func TestCreateWithPermissions(t *testing.T) {
 	failWithoutDCTCOdrive(t, createdObject)
 }
 
+func TestCreateWithPermissionsOwnedBy(t *testing.T) {
+
+	tester10 := 0
+
+	t.Logf("* Create object")
+	t.Logf("preparing")
+	var object protocol.CreateObjectRequest
+	object.Name = "TestCreateWithPermissionsOwnedBy"
+	object.RawAcm = `{"classif":"U"}`
+	object.OwnedBy = "group/dctc/DCTC/ODrive/DCTC ODrive"
+	permission := protocol.ObjectShare{Share: makeGroupShare("dctc", "DCTC", "ODrive"), AllowCreate: true, AllowRead: true, AllowUpdate: true, AllowDelete: true}
+	object.Permissions = append(object.Permissions, permission)
+	t.Logf("jsoninfying")
+	jsonBody, _ := json.MarshalIndent(object, "", "  ")
+	uriCreate := host + cfg.NginxRootURL + "/objects"
+	t.Logf("http request and client")
+	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
+	httpCreate.Header.Set("Content-Type", "application/json")
+	t.Logf("execute client")
+	createdObject := doCreateObjectRequestWithTrafficLog(t, tester10, httpCreate, 200, &TrafficLogDescription{
+		OperationName:       "create owned by group",
+		RequestDescription:  "add in ownedBy group",
+		ResponseDescription: "object added, but immediately owned by the group",
+	})
+	t.Logf("ownedby: %s", createdObject.OwnedBy)
+	t.Logf("* Verify everyone in odrive group can read")
+	shouldHaveReadForObjectID(t, createdObject.ID, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+	failWithoutDCTCOdrive(t, createdObject)
+
+	if createdObject.OwnedBy != object.OwnedBy {
+		t.Logf("owned by %s rather than %s", createdObject.OwnedBy, object.OwnedBy)
+		t.FailNow()
+	}
+}
+
 // TestCreateWithPermissionsNewUser has tester10 create an object shared to tester11 (who will does not yet exist)
 func TestCreateWithPermissionsNewUser(t *testing.T) {
 
@@ -490,11 +525,29 @@ func TestCreateWithPermissionsNewUser3(t *testing.T) {
 	_ = doCreateObjectRequestWithTrafficLog(t, tester10, httpCreate, 200, trafficLogsDescription)
 }
 
+func TestCreateStreamWithPermissions(t *testing.T) {
+	genericTestCreateStreamWithPermissions(t, "", http.StatusOK)
+}
+
+func TestCreateStreamWithPermissionsOwnedBy(t *testing.T) {
+	groupdn := "group/dctc/DCTC/ODrive/DCTC ODrive"
+	obj := genericTestCreateStreamWithPermissions(t, groupdn, http.StatusOK)
+	if groupdn != obj.OwnedBy {
+		t.Logf("ownedBy was not properly set")
+		t.FailNow()
+	}
+}
+
+func TestCreateStreamWithPermissionsOwnedByEveryone(t *testing.T) {
+	groupdn := "group/-Everyone"
+	_ = genericTestCreateStreamWithPermissions(t, groupdn, http.StatusPreconditionRequired)
+}
+
 // TestCreateStreamWithPermissions creates an object as Tester10, and includes a
 // permission for create, read, update, and delete granted to ODrive group.
 // All users in the group should be able to retrieve it, and update it.
 // This test originates from cte/object-drive-server#93
-func TestCreateStreamWithPermissions(t *testing.T) {
+func genericTestCreateStreamWithPermissions(t *testing.T, ownedBy string, codeExpected int) *protocol.Object {
 
 	tester10 := 0
 
@@ -503,6 +556,9 @@ func TestCreateStreamWithPermissions(t *testing.T) {
 	var object protocol.CreateObjectRequest
 	object.Name = "TestCreateWithPermissions"
 	object.RawAcm = `{"classif":"U"}`
+	if len(ownedBy) > 0 {
+		object.OwnedBy = ownedBy
+	}
 	permission := protocol.ObjectShare{Share: makeGroupShare("dctc", "DCTC", "ODrive"), AllowCreate: true, AllowRead: true, AllowUpdate: true, AllowDelete: true}
 	object.Permissions = append(object.Permissions, permission)
 	t.Logf("jsoninfying")
@@ -548,17 +604,22 @@ func TestCreateStreamWithPermissions(t *testing.T) {
 	}
 	trafficLogs[APISampleFile].Response(t, res)
 	defer util.FinishBody(res.Body)
-	if res.StatusCode != http.StatusOK {
+
+	if res.StatusCode != codeExpected {
 		t.FailNow()
 	}
 
 	var createdObject protocol.Object
-	err = util.FullDecode(res.Body, &createdObject)
-	res.Body.Close()
+	if res.StatusCode == http.StatusOK {
+		err = util.FullDecode(res.Body, &createdObject)
+		res.Body.Close()
 
-	t.Logf("* Verify everyone in odrive group can read")
-	shouldHaveReadForObjectID(t, createdObject.ID, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
-	failWithoutDCTCOdrive(t, &createdObject)
+		t.Logf("* Verify everyone in odrive group can read")
+		shouldHaveReadForObjectID(t, createdObject.ID, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+		failWithoutDCTCOdrive(t, &createdObject)
+	}
+
+	return &createdObject
 }
 
 func TestCreateFoldersMultiLevelsDeep(t *testing.T) {

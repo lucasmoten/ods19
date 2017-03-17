@@ -366,7 +366,40 @@ func handleCreatePrerequisites(ctx context.Context, h AppServer, requestObject *
 	}
 
 	requestObject.CreatedBy = caller.DistinguishedName
-	requestObject.OwnedBy = models.ToNullString("user/" + caller.DistinguishedName)
+	// There may already be an ownedBy that is not the same as createdBy
+	self := "user/" + requestObject.CreatedBy
+	targetGroup := requestObject.OwnedBy.String
+	if len(targetGroup) == 0 {
+		requestObject.OwnedBy = models.ToNullString(self)
+	} else {
+		// owner is already set, so determine if group name causes it to get rejected
+		// it can also be rejected if it's just another user.
+		isAllowed := false
+		// Allow us to set to ourselves.
+		if strings.Compare(self, targetGroup) == 0 {
+			isAllowed = true
+		}
+		// Otherwise, we must set to a group (which we "are" in some sense)
+		if !isAllowed && strings.HasPrefix(targetGroup, "group/") {
+			groups, ok := GroupsFromContext(ctx)
+			if !ok {
+				return NewAppError(500, errors.New("Error getting groups"), "Error getting groups")
+			}
+			if strings.Compare(strings.ToLower(targetGroup), strings.ToLower("group/-Everyone")) == 0 {
+				return NewAppError(428, errors.New("Cannot assign to everyone group"), "Cannot assign to everyone group")
+			}
+			tg := models.NewODAcmGranteeFromResourceName(targetGroup)
+			for _, g := range groups {
+				if strings.Compare(g, tg.Grantee) == 0 {
+					isAllowed = true
+				}
+			}
+		}
+		if !isAllowed {
+			msg := "User must be in group being set as the owner"
+			return NewAppError(428, errors.New(msg), msg)
+		}
+	}
 
 	// Give owner full CRUDS (read given by acm share)
 	// TODO(cm): this needs clarification
@@ -397,7 +430,7 @@ func parseCreateObjectRequestAsJSON(r *http.Request) (models.ODObject, string, *
 	}
 
 	// Map to internal object type
-	object, err = mapping.MapCreateObjectRequestToODObject(&jsonObject)
+	err = mapping.OverwriteODObjectWithCreateObjectRequest(&object, &jsonObject)
 	if err != nil {
 		return object, "", NewAppError(400, err, "Could not map request to internal struct type")
 	}

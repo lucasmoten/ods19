@@ -4,11 +4,12 @@ import (
 	"testing"
 
 	"decipher.com/object-drive-server/mapping"
+	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 )
 
-func TestMapCreateObjectRequestToODObject(t *testing.T) {
+func TestOverwriteODObjectWithCreateObjectRequest(t *testing.T) {
 
 	input := protocol.CreateObjectRequest{
 		Name:        "Test",
@@ -17,7 +18,8 @@ func TestMapCreateObjectRequestToODObject(t *testing.T) {
 		ContentType: "text/plain",
 		ContentSize: 1024,
 	}
-	result, err := mapping.MapCreateObjectRequestToODObject(&input)
+	var result models.ODObject
+	err := mapping.OverwriteODObjectWithCreateObjectRequest(&result, &input)
 
 	if err != nil {
 		t.Fail()

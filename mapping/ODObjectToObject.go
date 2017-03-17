@@ -157,52 +157,6 @@ func MapODObjectToJSON(i *models.ODObject) string {
 	return string(jsonobj)
 }
 
-// MapCreateObjectRequestToODObject converts an API exposable protocol object used for
-// create requests into an internally usable model object
-func MapCreateObjectRequestToODObject(i *protocol.CreateObjectRequest) (models.ODObject, error) {
-
-	var err error
-	o := models.ODObject{}
-	o.TypeName = models.ToNullString(i.TypeName)
-	o.Name = i.Name
-	o.Description = models.ToNullString(i.Description)
-	o.ParentID, err = hex.DecodeString(i.ParentID)
-	if err != nil {
-		return o, fmt.Errorf("Unable to decode parent id from %s", i.ParentID)
-	}
-	if len(o.ParentID) == 0 {
-		o.ParentID = nil
-	}
-	o.RawAcm.Valid = true
-	o.RawAcm.String, err = utils.MarshalInterfaceToString(i.RawAcm)
-	if err != nil {
-		return o, fmt.Errorf("Unable to convert ACM to string %v", err)
-	}
-	o.ContentType = models.ToNullString(i.ContentType)
-	o.ContentSize.Valid = true
-	o.ContentSize.Int64 = i.ContentSize
-	o.Properties, err = MapPropertiesToODProperties(&i.Properties)
-	if err != nil {
-		return o, err
-	}
-	// Prefer newer permission format
-	o.Permissions, err = MapPermissionToODPermissions(&i.Permission)
-	if err != nil {
-		return o, err
-	}
-	// But fallback to permissions if none populated
-	if len(o.Permissions) == 0 {
-		o.Permissions, err = MapObjectSharesToODPermissions(&i.Permissions)
-		if err != nil {
-			return o, err
-		}
-	}
-	o.ContainsUSPersonsData = i.ContainsUSPersonsData
-	o.ExemptFromFOIA = i.ExemptFromFOIA
-
-	return o, nil
-}
-
 // MapMoveObjectRequestToODObject converts an API exposable protocol object
 // used for move requests into an internally usable model object
 func MapMoveObjectRequestToODObject(i *protocol.MoveObjectRequest) (models.ODObject, error) {
@@ -296,13 +250,12 @@ func OverwriteODObjectWithCreateObjectRequest(o *models.ODObject, i *protocol.Cr
 	o.RawAcm = models.ToNullString(parsedACM)
 
 	o.ContentType = models.ToNullString(i.ContentType)
+	o.ContentSize.Valid = true
 	o.ContentSize.Int64 = i.ContentSize
-
 	o.Properties, err = MapPropertiesToODProperties(&i.Properties)
 	if err != nil {
 		return err
 	}
-
 	// Prefer newer permission format
 	o.Permissions, err = MapPermissionToODPermissions(&i.Permission)
 	if err != nil {
@@ -315,7 +268,10 @@ func OverwriteODObjectWithCreateObjectRequest(o *models.ODObject, i *protocol.Cr
 			return err
 		}
 	}
-
+	// If we are passing in an override of ownedBy, do it here
+	if len(i.OwnedBy) > 0 {
+		o.OwnedBy = models.ToNullString(i.OwnedBy)
+	}
 	o.ContainsUSPersonsData = i.ContainsUSPersonsData
 	o.ExemptFromFOIA = i.ExemptFromFOIA
 	return nil
