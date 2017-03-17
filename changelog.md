@@ -8,6 +8,7 @@ FORMAT: 1A
 * FIX: Path Delimiter validation for Update Object to permit slashes.
 * ENH: Allow owner to be specified on object create
 * FIX: Service init script will now check lock state before starting.
+* FIX: Return cause of error to caller for failure to create object.
 
 ## Release v1.0.1.17
 --------------------
