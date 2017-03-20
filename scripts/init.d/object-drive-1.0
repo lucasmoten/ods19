@@ -64,8 +64,21 @@ def get_ciphers():
 
 
 def lock():
-    open(lockfile, 'w').close()
-
+    if not locked():
+        open(lockfile, 'w').close()
+    else:
+        pid = get_my_pid()
+        if pid < 0:
+            # process not running and no pidfile
+            return 0
+        else:
+            if is_process_running(pid):
+                print "STATUS: object-drive-1.0 is already running"
+                os.exit(1)
+            else:
+                if os.path.exists(pidfile):
+                    print "removing stale pidfile"
+                    removepidfile()
 
 def locked():
     return os.path.exists(lockfile)
@@ -76,10 +89,8 @@ def touch_file(path):
         f = open(path, "w")
         f.close()
 
-
 def unlock():
     os.remove(lockfile)
-
 
 def start():
     # Source our shell environment from env.sh file.
@@ -92,8 +103,7 @@ def start():
         location = os.getenv("OD_LOG_LOCATION")
         print "Using log location set by $OD_LOG_LOCATION: " + location
         logfile = location
-    if os.path.exists(pidfile):
-        os.remove(pidfile)
+    removepidfile()
     if not is_absolute_path(logfile):
         print "Logging location must be absolute path"
         os.exit(1)
@@ -168,8 +178,8 @@ def start():
             pf.write(str(ps.pid) + '\n')
     except Exception as e:
         print e
-        if os.path.exists(pidfile):
-            os.remove(pidfile)        
+        removepidfile()
+        unlock()
         sys.exit(1)
 
 
@@ -186,7 +196,7 @@ def stop():
                 # no running process, cleanup
                 if os.path.exists(pidfile):
                     print "removing stale pidfile"
-                    os.remove(pidfile)
+                    removepidfile()
                 return 0
             else:
                 # there is a running process, kill it
@@ -194,8 +204,7 @@ def stop():
                 print "SIGTERM sent to process. If there are files pending upload, it may take time for the process to clean up files and exit."
                 # Sleep for same time paired to signals.go for accepting/finishing new work
                 time.sleep(5)
-                if os.path.exists(pidfile):
-                    os.remove(pidfile)
+                removepidfile()
                 return 0
     except Exception as e:
         print e
@@ -225,11 +234,14 @@ def status():
         if not is_process_running(pid):
             print "pidfile exists but object-drive-1.0 not running"
             print "removing stale pidfile"
-            os.remove(pidfile)
+            removepidfile()
             return 1
         print "STATUS: object-drive-1.0 is running"
         return 0
 
+def removepidfile():
+    if os.path.exists(pidfile):
+        os.remove(pidfile)    
 
 def get_pid_from_pidfile(path):
     with open(path, 'r') as f:
