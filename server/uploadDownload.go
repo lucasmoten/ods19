@@ -106,7 +106,7 @@ func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.P
 			// Mapping to object
 			err = mapping.OverwriteODObjectWithCreateObjectRequest(obj, &createObjectRequest)
 			if err != nil {
-				return parsedMetadata, "", NewAppError(400, err, "Error updating object with data from request")
+				return parsedMetadata, "", NewAppError(400, err, fmt.Sprintf("Error creating object with data from request: %s", err.Error()))
 			}
 			// Post mapping rules applied for create (not deleted, enforce owner cruds, assign meta)
 			if herr := handleCreatePrerequisites(ctx, h, obj); herr != nil {
