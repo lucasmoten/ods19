@@ -59,6 +59,23 @@ Testing interface:
 
 [Drive UI](/apps/drive/home)
 
+## General Guidance Regarding Data Types
+
+Dates are serialized in responses in RFC3339 format. RFC3339 is an ISO 8601 
+format where the date and time are shown to at least the second. Portions of a
+second are optional and may be given to millisecond precision. Trailing zeros
+in portions of a second are truncated.
+
+An unset date, as is common for deleted date, may be represented as January 1 
+in year 1. This will appear as `0001-01-01T00:00:00Z`
+
+Identifiers are hex encoded UUID values with a length of 32 when in string 
+format.  These UUID values are generated at the database backing store.  
+
+Boolean values represented as `true` or `false` are stored internally as
+a 1 or a 0.  Trinary values, with settings of `Yes`, `No`, and `Unknown`
+are treated as strings.
+
 # Group CRUD Object Operations
 These basic operations provide support for creating, retrieving, updating and deleting objects. 
 
@@ -501,9 +518,9 @@ possible a list of Errors coming back with the objects that came back successful
                 "properties": [
                     {
                     "id": "11e5e4867a6e3d8389020242ac110002",
-                    "createdDate": "2016-03-07T17:03:13Z",
+                    "createdDate": "2016-03-07T17:03:13.1234Z",
                     "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-                    "modifiedDate": "2016-03-07T17:03:13Z",
+                    "modifiedDate": "2016-03-07T17:03:13.1234Z",
                     "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
                     "changeCount": 1,
                     "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",
@@ -557,9 +574,9 @@ possible a list of Errors coming back with the objects that came back successful
                 ]
                 },{
                 "id": "11e5e4867a6e3d8389020242ac189124",
-                "createdDate": "2016-03-07T17:03:13Z",
+                "createdDate": "2016-03-07T17:03:13.123Z",
                 "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-                "modifiedDate": "2016-03-07T17:03:13Z",
+                "modifiedDate": "2016-03-07T17:03:13.123456Z",
                 "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
                 "deletedDate": "0001-01-01T00:00:00Z",
                 "deletedBy": "``",
@@ -672,9 +689,9 @@ possible a list of Errors coming back with the objects that came back successful
                 "properties": [
                     {
                     "id": "11e5e4867a6e3d8389020242ac189124",
-                    "createdDate": "2016-03-07T17:03:13Z",
+                    "createdDate": "2016-03-07T17:03:13.4876Z",
                     "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-                    "modifiedDate": "2016-03-07T17:03:13Z",
+                    "modifiedDate": "2016-03-07T17:03:13.4876Z",
                     "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
                     "changeCount": 1,
                     "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",
@@ -2252,11 +2269,11 @@ The UI will accumulate a list of file ID values to include in a zip file.
 ## GetObjectResponse (object)
 
 + id: `11e5e4867a6e3d8389020242ac110002`  (string, required) - The unique identifier of the object hex encoded to a string. This value can be used for alterations and listing on other RESTful methods.
-+ createdDate: `2016-03-07T17:03:13Z`  (string) - The date and time the object was created in the system in UTC ISO 8601 format.
++ createdDate: `2016-03-07T17:03:13.000001Z`  (string) - The date and time the object was created in the system in RFC3339 format. 
 + createdBy: `cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us` (string) - The user that created the object.
-+ modifiedDate: `2016-03-07T17:03:13Z` (string) -  The date and time the object was last modified in the system in UTC ISO 8601 format. For unchanged objects, this will reflect the same value as the createdDate field.
++ modifiedDate: `2016-03-07T17:03:13Z` (string) -  The date and time the object was last modified in the system in RFC3339 format. For unchanged objects, this will reflect the same value as the createdDate field.
 + modifiedBy: `cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us` (string) - The user that last modified this object. For unchanged objects, this will reflect the same value as the createdBy field.
-+ deletedDate: `0001-01-01T00:00:00Z` (string, optional) -  The date and time the object was deleted in the system in UTC ISO 8601 format. This field is only populated if the object is in the trash.
++ deletedDate: `0001-01-01T00:00:00Z` (string, optional) -  The date and time the object was deleted in the system in RFC3339 format. This field is only populated if the object is in the trash.
 + deletedBy: `` (string) - The user that deleted the object. This field is only populated if the object is in the trash.
 + changeCount: 42 (number) - The total count of changes that have been made to this object over its lifespan. Synonymous with version number. For unchanged objects, this will always be 0.
 + changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) - A hash of the object's unique identifier and last modification date and time.
@@ -2280,20 +2297,20 @@ The UI will accumulate a list of file ID values to include in a zip file.
 
 ## ObjectDeleted (object)
 
-+ deletedDate: `2016-03-07T17:03:13Z` (string, optional) -  The date and time the object was deleted in the system in UTC ISO 8601 format. This field is only present if the object is in the trash.
++ deletedDate: `2016-03-07T17:03:13Z` (string, optional) -  The date and time the object was deleted in the system in RFC3339 format. This field is only present if the object is in the trash.
 
 ## ObjectExpunged (object)
 
-+ expungedDate: `2016-03-07T17:03:13Z` (string, optional) -  The date and time the object was expunged from the system in UTC ISO 8601 format. 
++ expungedDate: `2016-03-07T17:03:13Z` (string, optional) -  The date and time the object was expunged from the system in RFC3339 format. 
 
 ## ObjectResp (object)
 
 + id: `11e5e4867a6e3d8389020242ac110002`  (string, required) - The unique identifier of the object hex encoded to a string. This value can be used for alterations and listing on other RESTful methods.
-+ createdDate: `2016-03-07T17:03:13Z`  (string) - The date and time the object was created in the system in UTC ISO 8601 format.
++ createdDate: `2016-03-07T17:03:13Z`  (string) - The date and time the object was created in the system in RFC3339 format.
 + createdBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) - The user that created the object.
-+ modifiedDate: `2016-03-07T17:03:13Z` (string) -  The date and time the object was last modified in the system in UTC ISO 8601 format. For unchanged objects, this will reflect the same value as the createdDate field.
++ modifiedDate: `2016-03-07T17:03:13Z` (string) -  The date and time the object was last modified in the system in RFC3339 format. For unchanged objects, this will reflect the same value as the createdDate field.
 + modifiedBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) - The user that last modified this object. For unchanged objects, this will reflect the same value as the createdBy field.
-+ deletedDate: `0001-01-01T00:00:00Z` (string, optional) -  The date and time the object was deleted in the system in UTC ISO 8601 format. This field is only populated if the object is in the trash.
++ deletedDate: `0001-01-01T00:00:00Z` (string, optional) -  The date and time the object was deleted in the system in RFC3339 format. This field is only populated if the object is in the trash.
 + deletedBy: `` (string) - The user that deleted the object. This field is only populated if the object is in the trash.
 + changeCount: 42 (number) - The total count of changes that have been made to this object over its lifespan. Synonymous with version number. For unchanged objects, this will always be 0.
 + changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) - A hash of the object's unique identifier and last modification date and time.
@@ -2317,11 +2334,11 @@ The UI will accumulate a list of file ID values to include in a zip file.
 ## ObjectRespChild1 (object)
 
 + id: `11e5e4867a6e3d8389020242ac110001`  (string, required) - The unique identifier of the object hex encoded to a string. This value can be used for alterations and listing on other RESTful methods.
-+ createdDate: `2016-03-07T17:03:13Z`  (string) - The date and time the object was created in the system in UTC ISO 8601 format.
++ createdDate: `2016-03-07T17:03:13Z`  (string) - The date and time the object was created in the system in RFC3339 format.
 + createdBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) - The user that created the object.
-+ modifiedDate: `2016-03-07T17:03:13Z` (string) -  The date and time the object was last modified in the system in UTC ISO 8601 format. For unchanged objects, this will reflect the same value as the createdDate field.
++ modifiedDate: `2016-03-07T17:03:13Z` (string) -  The date and time the object was last modified in the system in RFC3339 format. For unchanged objects, this will reflect the same value as the createdDate field.
 + modifiedBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) - The user that last modified this object. For unchanged objects, this will reflect the same value as the createdBy field.
-+ deletedDate: `0001-01-01T00:00:00Z` (string, optional) -  The date and time the object was deleted in the system in UTC ISO 8601 format. This field is only populated if the object is in the trash.
++ deletedDate: `0001-01-01T00:00:00Z` (string, optional) -  The date and time the object was deleted in the system in RFC3339 format. This field is only populated if the object is in the trash.
 + deletedBy: `` (string) - The user that deleted the object. This field is only populated if the object is in the trash.
 + changeCount: 42 (number) - The total count of changes that have been made to this object over its lifespan. Synonymous with version number. For unchanged objects, this will always be 0.
 + changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) - A hash of the object's unique identifier and last modification date and time.
@@ -2345,11 +2362,11 @@ The UI will accumulate a list of file ID values to include in a zip file.
 ## ObjectRespChild2 (object)
 
 + id: `11e5e4867a6e3d8389020242ac110002`  (string, required) - The unique identifier of the object hex encoded to a string. This value can be used for alterations and listing on other RESTful methods.
-+ createdDate: `2016-03-07T17:03:13Z`  (string) - The date and time the object was created in the system in UTC ISO 8601 format.
++ createdDate: `2016-03-07T17:03:13Z`  (string) - The date and time the object was created in the system in RFC3339 format.
 + createdBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) - The user that created the object.
-+ modifiedDate: `2016-03-07T17:03:13Z` (string) -  The date and time the object was last modified in the system in UTC ISO 8601 format. For unchanged objects, this will reflect the same value as the createdDate field.
++ modifiedDate: `2016-03-07T17:03:13Z` (string) -  The date and time the object was last modified in the system in RFC3339 format. For unchanged objects, this will reflect the same value as the createdDate field.
 + modifiedBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) - The user that last modified this object. For unchanged objects, this will reflect the same value as the createdBy field.
-+ deletedDate: `0001-01-01T00:00:00Z` (string, optional) -  The date and time the object was deleted in the system in UTC ISO 8601 format. This field is only populated if the object is in the trash.
++ deletedDate: `0001-01-01T00:00:00Z` (string, optional) -  The date and time the object was deleted in the system in RFC3339 format. This field is only populated if the object is in the trash.
 + deletedBy: `` (string) - The user that deleted the object. This field is only populated if the object is in the trash.
 + changeCount: 42 (number) - The total count of changes that have been made to this object over its lifespan. Synonymous with version number. For unchanged objects, this will always be 0.
 + changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) - A hash of the object's unique identifier and last modification date and time.
@@ -2374,11 +2391,11 @@ The UI will accumulate a list of file ID values to include in a zip file.
 ## ObjectRespDeleted (object)
 
 + id: `11e5e4867a6e3d8389020242ac110002`  (string, required) - string The unique identifier of the object hex encoded to a string. This value can be used for alterations and listing on other RESTful methods.
-+ createdDate: `2016-03-07T17:03:13Z`  (string) - The date and time the object was created in the system in UTC ISO 8601 format.
++ createdDate: `2016-03-07T17:03:13Z`  (string) - The date and time the object was created in the system in RFC3339 format.
 + createdBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) - The user that created the object.
-+ modifiedDate: `2016-03-07T17:03:13Z` (string) -  The date and time the object was last modified in the system in UTC ISO 8601 format. For unchanged objects, this will reflect the same value as the createdDate field.
++ modifiedDate: `2016-03-07T17:03:13Z` (string) -  The date and time the object was last modified in the system in RFC3339 format. For unchanged objects, this will reflect the same value as the createdDate field.
 + modifiedBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) - The user that last modified this object. For unchanged objects, this will reflect the same value as the createdBy field.
-+ deletedDate: `2016-03-07T17:03:13Z` (string, optional) -  The date and time the object was deleted in the system in UTC ISO 8601 format. This field is only present if the object is in the trash.
++ deletedDate: `2016-03-07T17:03:13Z` (string, optional) -  The date and time the object was deleted in the system in RFC3339 format. This field is only present if the object is in the trash.
 + deletedBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) - The user that deleted the object. This field is only present if the object is in the trash.
 + changeCount: 42 (number) - The total count of changes that have been made to this object over its lifespan. Synonymous with version number. For unchanged objects, this will always be 0.
 + changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) - A hash of the object's unique identifier and last modification date and time.
@@ -2576,9 +2593,9 @@ The UI will accumulate a list of file ID values to include in a zip file.
 ## Property (object)
 
 + id: `11e5e4867a6e3d8389020242ac110002` (string) - The unique identifier of the property associated to the object hex encoded to a string.
-+ createdDate: `2016-03-07T17:03:13Z` (string) - The date and time the property was created in the system in UTC ISO 8601 format.
++ createdDate: `2016-03-07T17:03:13Z` (string) - The date and time the property was created in the system in RFC3339 format.
 + createdBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) -  The user that created the property .
-+ modifiedDate: `2016-03-07T17:03:13Z` (string) - The date and time the property was last modified in the system in UTC ISO 8601 format.
++ modifiedDate: `2016-03-07T17:03:13Z` (string) - The date and time the property was last modified in the system in RFC3339 format.
 + modifiedBy: `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (string) -  The user that last modified this property .
 + changeCount: 1 (number) - The total count of changes that have been made to this property over its lifespan. Synonymous with version number.
 + changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) -  A hash of the property's unique identifier and last modification date and time.
