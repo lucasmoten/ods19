@@ -1,0 +1,2 @@
+# Ignore pngs, because they are generated
+*.png
