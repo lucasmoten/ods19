@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"path"
@@ -678,35 +677,6 @@ func do404(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppErro
 	uri := r.URL.Path
 	msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
 	return NewAppError(404, nil, fmt.Sprintf("Resource not found %s", msg))
-}
-
-// resolve the ip address once only
-var ipString string
-
-func resolveOurIP() string {
-	//If our IP changes, a lot more than this breaks (zk for one thing, then nobody can reach us, and cloudwatch reboots us).
-	//So, it's a constant from startup of odrive.
-	if ipString != "" {
-		return ipString
-	}
-	hostname, err := os.Hostname()
-	if err != nil {
-		config.RootLogger.Error("unable to resolve our own hostname")
-		return ""
-	}
-	myIPs, err := net.LookupIP(hostname)
-	if err != nil {
-		config.RootLogger.Error("could not lookup IP for hostname")
-		return ""
-	}
-	for _, addr := range myIPs {
-		if addr.To4() != nil {
-			ipString = addr.String()
-			config.RootLogger.Info("resolved our IP", zap.String("ip", ipString))
-			return addr.String()
-		}
-	}
-	return ""
 }
 
 // jsonResponse writes a response, and should be called for all HTTP handlers that return JSON.

@@ -9,6 +9,7 @@ import (
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/services/audit"
+	"decipher.com/object-drive-server/util"
 )
 
 // globalEventFromRequest extracts data from the request and sets up a
@@ -18,7 +19,7 @@ func globalEventFromRequest(r *http.Request) events.GEM {
 		ID:              newGUID(),
 		SchemaVersion:   "1.0",
 		EventType:       "object-drive-event",
-		SystemIP:        resolveOurIP(),
+		SystemIP:        util.GetIP(config.RootLogger),
 		XForwardedForIP: r.Header.Get("X-Forwarded-For"),
 		Timestamp:       time.Now().Unix(),
 		Action:          "unknown",
