@@ -3,11 +3,12 @@ package config
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"net"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"decipher.com/object-drive-server/util"
 
 	"github.com/uber-go/zap"
 )
@@ -83,6 +84,8 @@ func initLogger() zap.Logger {
 
 func lookupDockerHost() string {
 	answer := "dockervm"
+	// TODO: Find out why test clients need to use this, and what kinds.
+	// TODO: Find out why this necessitates definining a DOCKER_HOST and OD_DOCKERVM_OVERRIDE and what the differences are.
 	//This is used by test clients
 	dockerhost := os.Getenv("DOCKER_HOST")
 	if dockerhost != "" {
@@ -92,41 +95,16 @@ func lookupDockerHost() string {
 }
 
 func lookupDockerVMPort() string {
-	answer := "8080"
-	//Allow us to change the port, to get around nginx
-	p := GetEnvOrDefault("OD_DOCKERVM_PORT", "8080")
-	if p != "" && len(p) > 0 {
-		answer = p
-	}
-	return answer
+	return GetEnvOrDefault("OD_DOCKERVM_PORT", "8080")
 }
 
 func lookupOurIP() string {
-	answer := lookupDockerHost()
-	//Find our IP that we want gatekeeper to contact us with
-	hostname, err := os.Hostname()
-	if err != nil {
-		RootLogger.Error("could not look up our own hostname to find ip for gatekeeper")
+	ip := util.GetIP(RootLogger)
+	if len(ip) > 0 {
+		return ip
 	}
-	if len(hostname) > 0 {
-		myIPs, err := net.LookupIP(hostname)
-		if err != nil {
-			RootLogger.Error("could not get a set of ips for our hostname")
-		}
-		if len(myIPs) > 0 {
-			for a := range myIPs {
-				if myIPs[a].To4() != nil {
-					answer = myIPs[a].String()
-					break
-				}
-			}
-		} else {
-			RootLogger.Error("We did not find our ip")
-		}
-	} else {
-		RootLogger.Error("We could not find our hostname")
-	}
-	return answer
+	// TODO: Isolate the reason why this hack is in here.
+	return lookupDockerHost()
 }
 
 // RegexEscape is a helper method that takes a string and replaces the period metacharacter with backslash escaping.

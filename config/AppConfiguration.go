@@ -7,10 +7,11 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net"
 	"os"
 	"strconv"
 	"strings"
+
+	"decipher.com/object-drive-server/util"
 
 	"github.com/deciphernow/commons/gov/encryptor"
 	"github.com/go-sql-driver/mysql"
@@ -455,7 +456,7 @@ func NewZKSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) ZKSet
 	var conf ZKSettings
 	conf.Address = cascade(OD_ZK_URL, confFile.ZK.Address, "zk:2181")
 	conf.BasepathOdrive = cascade(OD_ZK_ANNOUNCE, confFile.ZK.BasepathOdrive, "/services/object-drive/1.0")
-	conf.IP = cascade(OD_ZK_MYIP, confFile.ZK.IP, resolveIP())
+	conf.IP = cascade(OD_ZK_MYIP, confFile.ZK.IP, util.GetIP(logger))
 	conf.Port = cascade(OD_ZK_MYPORT, confFile.ZK.Port, "")
 	conf.Timeout = cascadeInt(OD_ZK_TIMEOUT, confFile.ZK.Timeout, 5)
 
@@ -823,32 +824,4 @@ func NewAutoScalingConfig() *AutoScalingConfig {
 		ret.QueueBatchSize = 1
 	}
 	return ret
-}
-
-func resolveIP() string {
-	hostname, err := os.Hostname()
-	if err != nil {
-		logger.Error("error looking up hostname")
-		return ""
-	}
-	if len(hostname) > 0 {
-		myIPs, err := net.LookupIP(hostname)
-		if err != nil {
-			logger.Error("could not get a set of ips for our hostname")
-			return ""
-		}
-		if len(myIPs) > 0 {
-			for a := range myIPs {
-				if myIPs[a].To4() != nil {
-					return myIPs[a].String()
-
-				}
-			}
-		} else {
-			logger.Error("We did not find our ip")
-		}
-	} else {
-		logger.Error("We could not find our hostname")
-	}
-	return ""
 }

@@ -267,6 +267,18 @@
 			"revisionTime": "2017-01-17T16:49:43Z"
 		},
 		{
+			"checksumSHA1": "6wqAFkupdlBE9PEBExc5kH6XlUE=",
+			"path": "github.com/deciphernow/gm-fabric-go/gk",
+			"revision": "86ca38bc08b8e3230dc937dc102d50811b7fbeb6",
+			"revisionTime": "2017-03-07T23:01:10Z"
+		},
+		{
+			"checksumSHA1": "3pooojGSsZk9CFqkD6StLF1nYho=",
+			"path": "github.com/deciphernow/gm-fabric-go/zkutil",
+			"revision": "86ca38bc08b8e3230dc937dc102d50811b7fbeb6",
+			"revisionTime": "2017-03-07T23:01:10Z"
+		},
+		{
 			"checksumSHA1": "y2Kh4iPlgCPXSGTCcFpzePYdzzg=",
 			"path": "github.com/eapache/go-resiliency/breaker",
 			"revision": "b86b1ec0dd4209a588dc1285cdd471e73525c0b3",
