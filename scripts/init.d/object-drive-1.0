@@ -12,12 +12,15 @@
 # Description: object-drive-1.0 server process
 ### END INIT INFO
 
-import sys, os, subprocess, re, time, signal
+import sys, os, subprocess, re, time, signal, logging
 from pwd import getpwnam
 from grp import getgrnam
 from stat import *
 
 # init scripts must write a validly-named lockfile
+# set level=logging.DEBUG for more diagnostic info if something in the script isn't working
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+global logfile
 username = "object-drive"
 groupname = "services"
 service = "object-drive-1.0"
@@ -35,8 +38,8 @@ odserver = os.path.join(install_path, "object-drive-1.0")
 dbtool = os.path.join(install_path, "database")
 obfuscatetool = os.path.join(install_path, "obfuscate")
 
-
 def change_owner(path, uid, gid, perms):
+    logging.debug('In change_owner for %s', path)
     """
     Set permissions on file or dir. uid and perms must be int type, eg. 0o755.
     Group is ignored with -1.
@@ -52,18 +55,21 @@ def change_owner(path, uid, gid, perms):
 
 
 def create_dir_not_exists(path):
+    logging.debug('In create_dir_not_exists for %s', path)
     if not os.path.exists(path):
-        print 'creating %s' % path
+        logging.info('Creating directory: %s', path)
         os.makedirs(path)
 
 
 def get_ciphers():
+    logging.debug('In get_ciphers')
     if os.getenv("OD_CIPHERS"):
         return os.getenv("OD_CIPHERS")
     return default_ciphers
 
 
 def lock():
+    logging.debug('In lock')
     if not locked():
         open(lockfile, 'w').close()
     else:
@@ -73,40 +79,33 @@ def lock():
             return 0
         else:
             if is_process_running(pid):
-                print "STATUS: object-drive-1.0 is already running"
+                logging.warning('Service %s is already running', service)
                 os.exit(1)
             else:
                 if os.path.exists(pidfile):
-                    print "removing stale pidfile"
+                    logging.warning('Removing state pidfile')
                     removepidfile()
 
 def locked():
+    logging.debug('In locked')
     return os.path.exists(lockfile)
 
 
 def touch_file(path):
+    logging.debug('In touch_file for %s', path)
     if not os.path.exists(path):
         f = open(path, "w")
         f.close()
 
 def unlock():
+    logging.debug('In unlock')
     os.remove(lockfile)
 
 def start():
-    # Source our shell environment from env.sh file.
-    shell_source(envfile)
-    # Declaring global required for mutation.
-    global logfile
+    logging.debug('In start')
     if not os.getenv("OD_CACHE_ROOT"):
         os.environ["OD_CACHE_ROOT"] = os.path.join(install_path, "cache")
-    if os.getenv("OD_LOG_LOCATION"):
-        location = os.getenv("OD_LOG_LOCATION")
-        print "Using log location set by $OD_LOG_LOCATION: " + location
-        logfile = location
     removepidfile()
-    if not is_absolute_path(logfile):
-        print "Logging location must be absolute path"
-        os.exit(1)
 
     # Get uid of user account.
     uid = getpwnam(username).pw_uid
@@ -127,6 +126,9 @@ def start():
 
     # Change ownership of cache dir and its contents.
     cache_dir = os.path.split(os.getenv("OD_CACHE_ROOT"))[0]
+    if not is_absolute_path(cache_dir):
+        logging.error('Cache root location (OD_CACHE_ROOT) must be absolute path')
+        os.exit(1)
     create_dir_not_exists(cache_dir)
     os.chown(cache_dir, uid, gid)
     for root, dirs, files in os.walk(cache_dir):
@@ -138,9 +140,15 @@ def start():
     # Change ownership of certificates if exists, and beneath the base path
     if os.getenv("OD_CERTPATH"):
         certpath = os.getenv("OD_CERTPATH")
+        if not is_absolute_path(certpath):
+            logging.error('Certificate path location (OD_CERTPATH) must be absolute path')
+            os.exit(1)
         if os.path.exists(certpath):
             if os.getenv("OD_BASEPATH"):
                 basepath = os.getenv("OD_BASEPATH")
+                if not is_absolute_path(basepath):
+                    logging.error('Base path location (OD_BASEPATH) must be absolute path')
+                    os.exit(1)
                 if os.path.exists(basepath):
                     if certpath.startswith(basepath):
                         for root, dirs, files in os.walk(certpath):
@@ -165,7 +173,7 @@ def start():
     os.setgid(gid)
     os.setuid(uid)
 
-    print "Starting object-drive-1.0"
+    logging.info('Starting %s', service)
     f = open(logfile, "a")
 
     ciphs = get_ciphers()
@@ -184,7 +192,8 @@ def start():
 
 
 def stop():
-    print "Stopping object-drive-1.0"
+    logging.debug('In stop')
+    logging.info('Stopping %s', service)
     try:
         pid = get_my_pid()
         if pid < 0:
@@ -195,25 +204,26 @@ def stop():
             if not is_process_running(pid):
                 # no running process, cleanup
                 if os.path.exists(pidfile):
-                    print "removing stale pidfile"
+                    logging.warning('Removing stale pidfile')
                     removepidfile()
                 return 0
             else:
                 # there is a running process, kill it
                 os.kill(int(pid), signal.SIGTERM)
-                print "SIGTERM sent to process. If there are files pending upload, it may take time for the process to clean up files and exit."
+                logging.info('SIGTERM sent to process. If there are files pending upload, it may take time for the process to clean up files and exit.')
                 # Sleep for same time paired to signals.go for accepting/finishing new work
                 time.sleep(5)
                 removepidfile()
                 return 0
     except Exception as e:
         print e
-        print "could not kill process"
+        logging.error('Could not kill process')
         sys.exit(1)
         return 1
 
 
 def restart():
+    logging.debug('In restart')
     r = stop()
     if r == 0:
         lock()
@@ -223,27 +233,30 @@ def restart():
 
 
 def status():
+    logging.debug('In status')
     if not locked():
-        print "STATUS: object-drive-1.0 not running"
+        logging.info('STATUS: %s not running', service)
         return 3
     else:
         if not os.path.exists(pidfile):
-            print "STATUS: object-drive-1.0 is not running"
+            logging.info('STATUS: %s is not running', service)
             return 0
         pid = get_pid_from_pidfile(pidfile)
         if not is_process_running(pid):
-            print "pidfile exists but object-drive-1.0 not running"
-            print "removing stale pidfile"
+            logging.warning('A pidfile exists but %s is not running', service)
+            logging.warning('Removing stale pidfile')
             removepidfile()
             return 1
-        print "STATUS: object-drive-1.0 is running"
+        logging.info('STATUS: %s is running', service)
         return 0
 
 def removepidfile():
+    logging.debug('In removepidfile')
     if os.path.exists(pidfile):
         os.remove(pidfile)    
 
 def get_pid_from_pidfile(path):
+    logging.debug('In get_pid_from_pidfile for %s', path)
     with open(path, 'r') as f:
         pid = f.readline().split('\n')[0]
         if len(pid) > 0:
@@ -253,6 +266,7 @@ def get_pid_from_pidfile(path):
 
 
 def get_pid_for_process():
+    logging.debug('In get_pid_from_process')
     child = subprocess.Popen(['pgrep',service], stdout=subprocess.PIPE, shell=True)
     results = child.communicate()
     if len(results) > 0:
@@ -262,6 +276,7 @@ def get_pid_for_process():
 
 
 def get_my_pid():
+    logging.debug('In get_my_pid')
     if not locked():
         return get_pid_for_process()
     else:
@@ -272,6 +287,7 @@ def get_my_pid():
 
 
 def is_process_running(process_id):
+    logging.debug('In is_process_running')
     try:
         os.kill(int(process_id), 0)
         return True
@@ -279,13 +295,13 @@ def is_process_running(process_id):
         return False
 
 
-    
-
 def is_absolute_path(path):
+    logging.debug('In is_absolute_path for %s', path)
     return os.path.isabs(path)
 
 
 def shell_source(script):
+    logging.debug('In shell_source for %s', script)
     """
     Emulate the behavior of `source foo.sh`
     """
@@ -300,6 +316,15 @@ if __name__ == '__main__':
     try:
         if len(sys.argv) == 1:
             raise ValueError
+        # Source our shell environment from env.sh file.
+        shell_source(envfile)           
+        if os.getenv("OD_LOG_LOCATION"):
+            location = os.getenv("OD_LOG_LOCATION")
+            logging.info('Using log location set by $OD_LOG_LOCATION: %s', location)
+            logfile = location
+        if not is_absolute_path(logfile):
+            logging.error('Logging location (OD_LOG_LOCATION) must be absolute path')
+            os.exit(1)            
         create_dir_not_exists(os.path.split(logfile)[0])
         command = str(sys.argv[1]).strip().lower()
         if command == 'start':
@@ -321,7 +346,7 @@ if __name__ == '__main__':
     except (SystemExit):
         pass
     except (ValueError):
-        print >> sys.stderr, "Usage: %s [start|stop|restart|status]" % service
+        print >> sys.stderr, "USAGE: %s [start|stop|restart|status]" % service
         sys.exit(2)
     except:
         # Other errors
