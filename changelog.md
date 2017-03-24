@@ -13,6 +13,7 @@ FORMAT: 1A
 * FIX: Centralized how our IP address is determined. 
 * FIX: Init script now checks that paths are configured as absolute.
 * ENH: Init script now uses logging with log levels.
+* ENH: Server startup will now block forever until main ZK cluster is reachable.
 
 ## Release v1.0.1.17
 --------------------
