@@ -11,6 +11,8 @@ FORMAT: 1A
 * FIX: Return cause of error to caller for failure to create object.
 * DOC: API Documentation now denotes dates in RFC3339 format.
 * FIX: Centralized how our IP address is determined. 
+* FIX: Init script now checks that paths are configured as absolute.
+* ENH: Init script now uses logging with log levels.
 
 ## Release v1.0.1.17
 --------------------
