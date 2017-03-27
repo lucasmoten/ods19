@@ -85,21 +85,29 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 		return herr
 	}
 	user.Snippets = snippetFields
-	aacAuth := auth.NewAACAuth(logger, h.AAC)
-	checkACM := func(o *models.ODObject) bool {
-		isAllowed, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, o.RawAcm.String)
-		if err != nil {
-			return false
-		}
-		return isAllowed
-	}
 
 	// Get the revision information for this objects
-	response, err := dao.GetObjectRevisionsWithPropertiesByUser(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest), dbObject, checkACM)
+	response, err := dao.GetObjectRevisionsByUser(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest), dbObject, true)
 	if err != nil {
 		herr := NewAppError(500, err, "General error")
 		h.publishError(gem, herr)
 		return herr
+	}
+
+	// Redact as appropriate
+	aacAuth := auth.NewAACAuth(logger, h.AAC)
+	for i, o := range response.Objects {
+		if isAllowed, _ := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, o.RawAcm.String); !isAllowed {
+			ro := models.ODObject{
+				ID:           o.ID,
+				ChangeCount:  o.ChangeCount,
+				CreatedBy:    o.CreatedBy,
+				ModifiedBy:   o.ModifiedBy,
+				CreatedDate:  o.CreatedDate,
+				ModifiedDate: o.ModifiedDate,
+			}
+			response.Objects[i] = ro
+		}
 	}
 
 	// Response in requested format

@@ -62,21 +62,27 @@ func TestUpdateObjectWithClassificationDrop(t *testing.T) {
 	var listOfRevisions protocol.ObjectResultset
 	err = util.FullDecode(res.Body, &listOfRevisions)
 	if err != nil {
-		t.Logf("Unable to decod version listing: %v", err)
+		t.Logf("Unable to decode version listing: %v", err)
 		t.FailNow()
 	}
+	visibleCount := 0
+	redactedCount := 0
 	for _, v := range listOfRevisions.Objects {
 		acmMap, ok := v.RawAcm.(map[string]interface{})
 		if ok {
+			visibleCount += 1
 			banner, ok := acmMap["banner"].(string)
 			if ok {
-				if "TOP SECRET//SI/TK" == banner {
+				if strings.HasPrefix(banner, "TOP SECRET") {
 					t.Logf("We got something we don't have permission for")
 					t.FailNow()
 				}
 			}
+		} else {
+			redactedCount += 1
 		}
 	}
+	t.Logf("Visible: %d, Redacted: %d", visibleCount, redactedCount)
 }
 
 func TestListObjectRevisions(t *testing.T) {
