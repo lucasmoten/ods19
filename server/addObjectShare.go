@@ -316,12 +316,12 @@ func parseObjectShareRequest(r *http.Request, ctx context.Context) ([]models.ODO
 	// Parse the JSON body into the requestedShare
 	err = util.FullDecode(r.Body, &requestedShare)
 	if err != nil {
-		return requestedPermissions, errors.New("Unable to decode share from JSON body")
+		return requestedPermissions, errors.New("unable to decode share from JSON body")
 	}
 	// Map to internal permission(s)
 	requestedPermissions, err = mapping.MapObjectShareToODPermissions(&requestedShare)
 	if err != nil {
-		return requestedPermissions, errors.New("Error mapping share to permissions")
+		return requestedPermissions, errors.New("error mapping share to permissions")
 	}
 
 	// Return it
@@ -332,15 +332,15 @@ func getObjectIDFromContext(ctx context.Context) ([]byte, error) {
 	var bytesObjectID []byte
 	captured, ok := CaptureGroupsFromContext(ctx)
 	if !ok {
-		return bytesObjectID, errors.New("Could not get capture groups")
+		return bytesObjectID, errors.New("could not get capture groups")
 	}
 	// Assign requestedPermission with the objectId being shared
 	if captured["objectId"] == "" {
-		return bytesObjectID, errors.New("Could not extract objectid from URI")
+		return bytesObjectID, errors.New("could not extract objectid from URI")
 	}
 	bytesObjectID, err := hex.DecodeString(captured["objectId"])
 	if err != nil {
-		return bytesObjectID, errors.New("Invalid objectid in URI.")
+		return bytesObjectID, errors.New("invalid objectid in URI")
 	}
 	return bytesObjectID, nil
 }

@@ -39,8 +39,7 @@ type DAO interface {
 	GetObjectPermission(objectPermission models.ODObjectPermission) (models.ODObjectPermission, error)
 	GetObjectProperty(objectProperty models.ODObjectPropertyEx) (models.ODObjectPropertyEx, error)
 	GetObjectRevision(object models.ODObject, loadProperties bool) (models.ODObject, error)
-	GetObjectRevisionsByUser(user models.ODUser, pagingRequest PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error)
-	GetObjectRevisionsWithPropertiesByUser(user models.ODUser, pagingRequest PagingRequest, object models.ODObject, checkACM CheckACM) (models.ODObjectResultset, error)
+	GetObjectRevisionsByUser(user models.ODUser, pagingRequest PagingRequest, object models.ODObject, withProperties bool) (models.ODObjectResultset, error)
 	GetObjectType(objectType models.ODObjectType) (*models.ODObjectType, error)
 	GetObjectTypeByName(typeName string, addIfMissing bool, createdBy string) (models.ODObjectType, error)
 	GetObjectsIHaveShared(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error)
@@ -68,9 +67,6 @@ type DAO interface {
 	UpdatePermission(permission models.ODObjectPermission) error
 	GetLogger() zap.Logger
 }
-
-// CheckACM is a function passed in for checking authorization to read an object
-type CheckACM func(*models.ODObject) bool
 
 // DataAccessLayer is a concrete DAO implementation with a true DB connection.
 type DataAccessLayer struct {
