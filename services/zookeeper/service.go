@@ -319,9 +319,6 @@ func doZkRecovery(z *ZKState, zlogger zap.Logger) bool {
 			zap.String("err", err.Error()),
 		)
 		oldConnection := z.Conn
-		//Redoing zk is dire, and it will disturb aac connections in progress, but at least we will recover
-		////Possibility: change the nodeid so that we look like a new instance, like this:
-		//globalconfig.NodeID = globalconfig.RandomID()
 		zNew, err := RegisterApplication(z.registeredPath, z.ZKAddress, z.Timeout)
 		if err != nil {
 			zlogger.Error(
@@ -453,4 +450,25 @@ func ServiceReAnnouncement(zkState *ZKState, protocol string, stat, host string,
 		logger.Info("zk our address", zap.String("ip", host), zap.Int("port", intPort))
 	}
 	return err
+}
+
+// IsOnline returns a channel that will only receive data if a connection to Zookeeper can be established.
+func IsOnline(addrs []string) chan bool {
+	success := make(chan bool)
+	go func() {
+		for {
+			log.Println("ZK try:", addrs)
+			conn, _, err := zk.Connect(addrs, 5*time.Second)
+			if err != nil {
+				log.Println("ZK fail", err)
+				time.Sleep(10 * time.Second)
+				continue
+			}
+			conn.Close()
+			success <- true
+			return
+		}
+	}()
+
+	return success
 }

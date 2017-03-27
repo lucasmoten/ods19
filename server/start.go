@@ -26,6 +26,10 @@ var (
 
 // Start starts the server and wires together dependencies.
 func Start(conf config.AppConfiguration) error {
+
+	// Block forever until Kafka and ZK come online
+	blockForRequiredServices(conf)
+
 	app, err := NewAppServer(conf.ServerSettings)
 	if err != nil {
 		logger.Error("error constructing app server", zap.String("err", err.Error()))
@@ -365,4 +369,10 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 		}
 	}
 	zookeeper.TrackAnnouncement(aacZK, aacConf.AACAnnouncementPoint, aacAnnouncer)
+}
+
+func blockForRequiredServices(conf config.AppConfiguration) {
+	// TODO: Pick the right ZK for this check
+	zkOnline := zookeeper.IsOnline(strings.Split(conf.ZK.Address, ","))
+	<-zkOnline
 }
