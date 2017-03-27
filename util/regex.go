@@ -28,17 +28,17 @@ func GetRegexCaptureGroups(s string, re *regexp.Regexp) map[string]string {
 func SanitizePath(root, path string) error {
 	// The path must really begin with the root, and not use .. tricks to apparently have the prefix, but get out.
 	if strings.HasPrefix(path, root) == false {
-		return fmt.Errorf("Normalized path is not in root.  Definite attack attempt: %s", path)
+		return fmt.Errorf("normalized path is not in root.  definite attack attempt: %s", path)
 	}
 	attackPattern := `\.{2,}`
 	re := regexp.MustCompile(attackPattern)
 	if re.MatchString(path) {
-		return fmt.Errorf("Relative path detected. Possible attack. Path string: %s\n", path)
+		return fmt.Errorf("relative path detected. possible attack. path string: %s", path)
 	}
 	attackPattern = `\%`
 	re = regexp.MustCompile(attackPattern)
 	if re.MatchString(path) {
-		return fmt.Errorf("Encoding metacharacter detected. Possible attack. Path string: %s\n", path)
+		return fmt.Errorf("encoding metacharacter detected. possible attack. path string: %s", path)
 	}
 	return nil
 }

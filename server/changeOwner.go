@@ -34,7 +34,7 @@ func (h AppServer) changeOwner(ctx context.Context, w http.ResponseWriter, r *ht
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	captured, _ := CaptureGroupsFromContext(ctx)
 	// Get object
-	if r.Header.Get("Content-Type") != "application/json" {
+	if !util.IsApplicationJSON(r.Header.Get("Content-Type")) {
 		herr := NewAppError(http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
 		h.publishError(gem, herr)
 		return herr

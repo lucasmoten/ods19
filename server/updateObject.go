@@ -37,7 +37,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 
-	if r.Header.Get("Content-Type") != "application/json" {
+	if !util.IsApplicationJSON(r.Header.Get("Content-Type")) {
 		herr := NewAppError(400, nil, "expected application/json Content-Type")
 		h.publishError(gem, herr)
 		return herr
