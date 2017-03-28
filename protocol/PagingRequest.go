@@ -99,7 +99,7 @@ func NewPagingRequest(r *http.Request, captured map[string]string, isObjectIDReq
 		pr, _ := newPagingRequestFromURLValues(vals)
 		pagingRequest = &pr
 	case "POST":
-		if r.Header.Get("Content-Type") == "application/json" {
+		if util.IsApplicationJSON(r.Header.Get("Content-Type")) {
 			pr, err := newPagingRequestFromJSONBody(r.Body)
 			if err != nil {
 				return nil, errors.New("Error parsing request from message body")

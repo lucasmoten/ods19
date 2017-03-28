@@ -131,7 +131,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "MOVE")
 
 	// Get object
-	if r.Header.Get("Content-Type") != "application/json" {
+	if !util.IsApplicationJSON(r.Header.Get("Content-Type")) {
 		herr := NewAppError(http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
 		h.publishError(gem, herr)
 		return herr

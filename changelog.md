@@ -15,6 +15,7 @@ FORMAT: 1A
 * ENH: Init script now uses logging with log levels.
 * ENH: Server startup will now block forever until main ZK cluster is reachable.
 * REF: Internal refactor for retrieving object revisions.
+* FIX: Normalized checks on Content-Type expecting application/json to permit charset.
 
 ## Release v1.0.1.17
 --------------------

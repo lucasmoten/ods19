@@ -439,7 +439,7 @@ func parseCreateObjectRequestAsJSON(r *http.Request) (models.ODObject, string, *
 }
 
 func validateCreateObjectHeaders(r *http.Request) *AppError {
-	if r.Header.Get("Content-Type") != "application/json" {
+	if !util.IsApplicationJSON(r.Header.Get("Content-Type")) {
 		err := fmt.Errorf("Content-Type is '%s', expected application/json", r.Header.Get("Content-Type"))
 		return NewAppError(400, err, "expected Content-Type application/json")
 	}
