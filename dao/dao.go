@@ -13,12 +13,13 @@ import (
 // SchemaVersion marks compatibility with previously created databases.
 // On startup, we should be checking the schema, and raise some alarm if
 // the schema is out of date, or trigger a migration, etc.
-var SchemaVersion = "20170301"
+var SchemaVersion = "20170331"
 
 // DAO defines the contract our app has with the database.
 type DAO interface {
 	AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission) (models.ODObjectPermission, error)
 	AddPropertyToObject(object models.ODObject, property *models.ODProperty) (models.ODProperty, error)
+	AssociateUsersToNewACM(object models.ODObject, done chan bool) error
 	CreateObject(object *models.ODObject) (models.ODObject, error)
 	CreateObjectType(objectType *models.ODObjectType) (models.ODObjectType, error)
 	CreateUser(models.ODUser) (models.ODUser, error)
@@ -35,6 +36,7 @@ type DAO interface {
 	GetChildObjectsWithProperties(pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
 	GetChildObjectsWithPropertiesByUser(user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
 	GetDBState() (models.DBState, error)
+	GetLogger() zap.Logger
 	GetObject(object models.ODObject, loadProperties bool) (models.ODObject, error)
 	GetObjectPermission(objectPermission models.ODObjectPermission) (models.ODObjectPermission, error)
 	GetObjectProperty(objectProperty models.ODObjectPropertyEx) (models.ODObjectPropertyEx, error)
@@ -56,16 +58,18 @@ type DAO interface {
 	GetRootObjectsWithPropertiesByGroup(groupName string, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error)
 	GetRootObjectsWithPropertiesByUser(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error)
 	GetTrashedObjectsByUser(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error)
+	GetUserAOCacheByDistinguishedName(user models.ODUser) (models.ODUserAOCache, error)
 	GetUserByDistinguishedName(user models.ODUser) (models.ODUser, error)
 	GetUsers() ([]models.ODUser, error)
 	GetUserStats(dn string) (models.UserStats, error)
 	IsParentIDADescendent(id []byte, parentID []byte) (bool, error)
+	RebuildUserACMCache(useraocache *models.ODUserAOCache, user models.ODUser, done chan bool) error
 	SearchObjectsByNameOrDescription(user models.ODUser, pagingRequest PagingRequest, loadProperties bool) (models.ODObjectResultset, error)
+	SetUserAOCacheByDistinguishedName(useraocache *models.ODUserAOCache, user models.ODUser) error
 	UndeleteObject(object *models.ODObject) (models.ODObject, error)
 	UpdateObject(object *models.ODObject) error
 	UpdateObjectProperty(objectProperty models.ODObjectPropertyEx) error
 	UpdatePermission(permission models.ODObjectPermission) error
-	GetLogger() zap.Logger
 }
 
 // DataAccessLayer is a concrete DAO implementation with a true DB connection.

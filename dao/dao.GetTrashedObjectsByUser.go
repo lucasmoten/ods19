@@ -33,12 +33,14 @@ func getTrashedObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagin
         o.id    
     from object o
         inner join object_type ot on o.typeid = ot.id
-        inner join object_permission op on op.objectid = o.id and op.isdeleted = 0 and op.allowread = 1
-        inner join objectacm acm on o.id = acm.objectid
-    where o.isdeleted = 1 and o.isExpunged = 0 and o.isAncestorDeleted = 0 `
+        inner join object_permission op on op.objectid = o.id and op.isdeleted = 0 and op.allowread = 1 `
+	query += buildJoinUserToACM(tx, user)
+	query += ` where o.isdeleted = 1 and o.isExpunged = 0 and o.isAncestorDeleted = 0 `
 	query += buildFilterRequireObjectsIOrMyGroupsOwn(tx, user)
-	query += buildFilterForUserACMShare(user)
-	query += buildFilterForUserSnippets(user)
+	query += buildFilterForUserACMShare(tx, user)
+	if !isOption409() {
+		query += buildFilterForUserSnippets(user)
+	}
 	query += buildFilterSortAndLimit(pagingRequest)
 	err = tx.Select(&response.Objects, query)
 	if err != nil {

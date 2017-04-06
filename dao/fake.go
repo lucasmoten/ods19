@@ -30,6 +30,7 @@ type FakeDAO struct {
 	Parents           []models.ODObject
 	Property          models.ODProperty
 	User              models.ODUser
+	UserAOCache       models.ODUserAOCache
 	Users             []models.ODUser
 	UserStatsData     models.UserStats
 }
@@ -42,6 +43,11 @@ func (fake *FakeDAO) AddPermissionToObject(object models.ODObject, permission *m
 // AddPropertyToObject for FakeDAO.
 func (fake *FakeDAO) AddPropertyToObject(object models.ODObject, property *models.ODProperty) (models.ODProperty, error) {
 	return fake.Property, fake.Err
+}
+
+// AssociateUsersToNewACM for FakeDAO.
+func (fake *FakeDAO) AssociateUsersToNewACM(object models.ODObject, done chan bool) error {
+	return fake.Err
 }
 
 // CreateObject for FakeDAO.
@@ -240,6 +246,11 @@ func (fake *FakeDAO) GetTrashedObjectsByUser(user models.ODUser, pagingRequest P
 	return fake.ObjectResultSet, fake.Err
 }
 
+// GetUserAOCacheByDistinguishedName for FakeDAO
+func (fake *FakeDAO) GetUserAOCacheByDistinguishedName(user models.ODUser) (models.ODUserAOCache, error) {
+	return fake.UserAOCache, fake.Err
+}
+
 // GetUserByDistinguishedName for FakeDAO.
 func (fake *FakeDAO) GetUserByDistinguishedName(user models.ODUser) (models.ODUser, error) {
 	for _, u := range fake.Users {
@@ -261,14 +272,24 @@ func (fake *FakeDAO) GetUserStats(dn string) (models.UserStats, error) {
 	return fake.UserStatsData, fake.Err
 }
 
-// IsParentIDADescendent for FakeDAO.
+// IsParentIDADescendent for FakeDAO
 func (fake *FakeDAO) IsParentIDADescendent(id []byte, parentID []byte) (bool, error) {
 	return fake.IsDescendent, fake.Err
+}
+
+// RebuildUserACMCache for FakeDAO
+func (fake *FakeDAO) RebuildUserACMCache(useraocache *models.ODUserAOCache, user models.ODUser, done chan bool) error {
+	return fake.Err
 }
 
 // SearchObjectsByNameOrDescription for FakeDAO
 func (fake *FakeDAO) SearchObjectsByNameOrDescription(user models.ODUser, pagingRequest PagingRequest, loadProperties bool) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
+}
+
+// SetUserAOCacheByDistinguishedName for FakeDAO
+func (fake *FakeDAO) SetUserAOCacheByDistinguishedName(useraocache *models.ODUserAOCache, user models.ODUser) error {
+	return fake.Err
 }
 
 // UndeleteObject for FakeDAO.

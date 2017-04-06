@@ -52,11 +52,12 @@ func TestDAOAddPermissionToObject(t *testing.T) {
 		// Now add the permission
 		permission := models.ODObjectPermission{}
 		permission.CreatedBy = usernames[1]
-		permission.Grantee = usernames[1]
+		permission.Grantee = models.AACFlatten(usernames[1])
+		permission.AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[1])
 		permission.AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
 		permission.AcmGrantee.Grantee = permission.Grantee
-		permission.AcmGrantee.UserDistinguishedName.String = permission.Grantee
-		permission.AcmGrantee.UserDistinguishedName.Valid = true
+		permission.AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[1])
+		permission.AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[1])
 		permission.AllowCreate = true
 		permission.AllowRead = true
 		permission.AllowUpdate = true

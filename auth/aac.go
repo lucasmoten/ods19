@@ -107,7 +107,7 @@ func (aac *AACAuth) GetSnippetsForUser(userIdentity string) (*acm.ODriveRawSnipp
 		return nil, ErrUserNotSpecified
 	}
 
-	// TODO: Support injecting user profiles for server identities
+	// TODO: Support injecting user profiles for server identities? Only if AAC wont handle it
 
 	// Service state
 	if aac.Service == nil {

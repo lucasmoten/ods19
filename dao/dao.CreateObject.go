@@ -4,6 +4,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
+
+	"encoding/hex"
 
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/crypto"
@@ -16,6 +19,7 @@ import (
 func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObject, error) {
 	logger := dao.GetLogger()
 	tx, err := dao.MetadataDB.Beginx()
+	var obj models.ODObject
 	if err != nil {
 		dao.GetLogger().Error("could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObject{}, err
@@ -26,11 +30,37 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 		tx.Rollback()
 	} else {
 		tx.Commit()
-	}
-	obj, err := dao.GetObject(dbObject, true)
-	if err != nil {
-		logger.Error("error in CreateObject subsequent GetObject call]")
-		return models.ODObject{}, err
+		// Calculate in background and as separate transaction...
+		runasync := true
+		if runasync {
+			if err := insertAssociationOfACMToModifiedByIfValid(dao, dbObject); err != nil {
+				logger.Error("Error associating the ACM on this object to the user that created it!", zap.Error(err), zap.String("ObjectID", hex.EncodeToString(dbObject.ID)), zap.String("modifiedby", dbObject.ModifiedBy), zap.Int64("acmID", dbObject.ACMID))
+			}
+			go func() {
+				done := make(chan bool)
+				timeout := time.After(60 * time.Second)
+				go dao.AssociateUsersToNewACM(dbObject, done)
+
+				for {
+					select {
+					case <-timeout:
+						dao.GetLogger().Warn("CreateObject call to AssociateUsersToNewACM timed out")
+						return
+					case <-done:
+						return
+					}
+				}
+			}()
+		} else {
+			done := make(chan bool, 1)
+			dao.AssociateUsersToNewACM(dbObject, done)
+		}
+		// Refetch
+		obj, err = dao.GetObject(dbObject, true)
+		if err != nil {
+			logger.Error("error in CreateObject subsequent GetObject call]")
+			return models.ODObject{}, err
+		}
 	}
 	return obj, err
 }
@@ -46,7 +76,7 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		object.ParentID = nil
 	}
 	if object.CreatedBy == "" {
-		return dbObject, errors.New("Cannot create object. Missing CreatedBy field.")
+		return dbObject, errors.New("cannot create object, createdby field is missing")
 	}
 
 	// Add creator if not yet present. (From direct DAO calls)
@@ -85,6 +115,10 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		return dbObject, fmt.Errorf("Error normalizing ACM on new object: %v (acm: %s)", err.Error(), object.RawAcm.String)
 	}
 	object.RawAcm.String = newACMNormalized
+	err = setObjectACM2ForObjectInTransaction(tx, object)
+	if err != nil {
+		return dbObject, fmt.Errorf("Error assigning ACM ID for object: %s", err.Error())
+	}
 
 	addObjectStatement, err := tx.Preparex(`insert object set 
         createdBy = ?
@@ -101,6 +135,7 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
         ,containsUSPersonsData = ?
         ,exemptFromFOIA = ?
         ,ownedBy = ?
+        ,acmId = ?
     `)
 	if err != nil {
 		return dbObject, fmt.Errorf("CreateObject Preparing add object statement, %s", err.Error())
@@ -109,7 +144,8 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		object.Name, object.Description.String, object.ParentID,
 		object.ContentConnector.String, object.RawAcm.String,
 		object.ContentType.String, object.ContentSize.Int64, object.ContentHash,
-		object.EncryptIV, object.ContainsUSPersonsData, object.ExemptFromFOIA, object.OwnedBy.String)
+		object.EncryptIV, object.ContainsUSPersonsData, object.ExemptFromFOIA, object.OwnedBy.String,
+		object.ACMID)
 	if err != nil {
 		return dbObject, fmt.Errorf("CreateObject Error executing add object statement, %s", err.Error())
 	}
@@ -159,7 +195,8 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
         ,o.isStreamStored
         ,o.containsUSPersonsData
         ,o.exemptFromFOIA
-        ,ot.name typeName   
+        ,ot.name typeName
+		,o.acmid   
     from object o 
         inner join object_type ot on o.typeId = ot.id 
     where 

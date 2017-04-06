@@ -209,8 +209,7 @@ func createTestObjectAllPermissions(username string) models.ODObject {
 	name, _ := util.NewGUID()
 	obj.Name = name
 	obj.CreatedBy = username
-	obj.TypeName.String = "File"
-	obj.TypeName.Valid = true
+	obj.TypeName = models.ToNullString("File")
 	obj.RawAcm.String = testhelpers.ValidACMUnclassified
 
 	var perms models.ODObjectPermission
@@ -218,9 +217,9 @@ func createTestObjectAllPermissions(username string) models.ODObject {
 	perms.Grantee = models.AACFlatten(username)
 	perms.AcmShare = fmt.Sprintf(`{"users":[%s]}`, perms.CreatedBy)
 	perms.AcmGrantee.Grantee = perms.Grantee
-	perms.AcmGrantee.UserDistinguishedName.String = perms.CreatedBy
-	perms.AcmGrantee.UserDistinguishedName.Valid = true
-	perms.AllowCreate, perms.AllowDelete, perms.AllowRead, perms.AllowUpdate = true, true, true, true
+	perms.AcmGrantee.ResourceString = models.ToNullString("user/" + username)
+	perms.AcmGrantee.UserDistinguishedName = models.ToNullString(username)
+	perms.AllowCreate, perms.AllowDelete, perms.AllowRead, perms.AllowUpdate, perms.AllowShare = true, true, true, true, true
 
 	obj.Permissions = append(obj.Permissions, perms)
 	return obj

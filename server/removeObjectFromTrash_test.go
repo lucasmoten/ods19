@@ -130,21 +130,24 @@ func TestHTTPUndeleteObject(t *testing.T) {
 
 func TestUndeleteExpungedObjectFails(t *testing.T) {
 
-	user1, user2 := setupFakeUsers()
+	user0, user1, user2 := setupFakeUsers()
 
-	expungedObj := testhelpers.NewTrashedObject(fakeDN1)
+	expungedObj := testhelpers.NewTrashedObject(fakeDN0)
 	expungedObj.IsExpunged = true
 
-	snippetResp := testhelpers.GetTestSnippetResponse()
+	snippetResponse := aac.SnippetResponse{
+		Success:  true,
+		Snippets: testhelpers.SnippetTP10,
+	}
 
 	fakeAAC := &aac.FakeAAC{
-		SnippetResp: snippetResp,
+		SnippetResp: &snippetResponse,
 		Err:         nil,
 	}
 
 	fakeDAO := &dao.FakeDAO{
 		Object: expungedObj,
-		Users:  []models.ODUser{user1, user2},
+		Users:  []models.ODUser{user0, user1, user2},
 	}
 	fakeQueue := kafka.NewFakeAsyncProducer(nil)
 	s := server.AppServer{
@@ -165,7 +168,7 @@ func TestUndeleteExpungedObjectFails(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.Header.Add("USER_DN", fakeDN1)
+	r.Header.Add("USER_DN", fakeDN0)
 	r.Header.Add("SSL_CLIENT_S_DN", whitelistedDN)
 	r.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -182,21 +185,24 @@ func TestUndeleteExpungedObjectFails(t *testing.T) {
 
 func TestUndeleteObjectWithDeletedAncestorFails(t *testing.T) {
 
-	user1, user2 := setupFakeUsers()
+	user0, user1, user2 := setupFakeUsers()
 
-	withAncestorDeleted := testhelpers.NewTrashedObject(fakeDN1)
+	withAncestorDeleted := testhelpers.NewTrashedObject(fakeDN0)
 	withAncestorDeleted.IsAncestorDeleted = true
 
-	snippetResp := testhelpers.GetTestSnippetResponse()
+	snippetResponse := aac.SnippetResponse{
+		Success:  true,
+		Snippets: testhelpers.SnippetTP10,
+	}
 
 	fakeAAC := &aac.FakeAAC{
-		SnippetResp: snippetResp,
+		SnippetResp: &snippetResponse,
 		Err:         nil,
 	}
 
 	fakeDAO := &dao.FakeDAO{
 		Object: withAncestorDeleted,
-		Users:  []models.ODUser{user1, user2},
+		Users:  []models.ODUser{user0, user1, user2},
 	}
 	fakeQueue := kafka.NewFakeAsyncProducer(nil)
 	s := server.AppServer{
@@ -217,7 +223,7 @@ func TestUndeleteObjectWithDeletedAncestorFails(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.Header.Add("USER_DN", fakeDN1)
+	r.Header.Add("USER_DN", fakeDN0)
 	r.Header.Add("SSL_CLIENT_S_DN", whitelistedDN)
 	r.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()

@@ -79,6 +79,7 @@ services:
             - OD_ZK_AAC=/cte/service/aac/1.0/thrift
             - OD_ZK_TIMEOUT
             - OD_ZK_URL
+            - OD_OPTION_409=true
         depends_on:
             - "metadatadb"
             - "aac"
@@ -87,7 +88,7 @@ services:
 
     metadatadb:
         image: "deciphernow/metadatadb:latest"
-        mem_limit: 1024m
+        mem_limit: 8192m
         env_file:
             - ./metadatadb/env
         environment:
@@ -172,6 +173,7 @@ services:
             - OD_ZK_AAC=/cte/service/aac/1.0/thrift
             - OD_ZK_TIMEOUT
             - OD_ZK_URL
+            - OD_OPTION_409=true
         depends_on:
             - "metadatadb"
             - "aac"

@@ -4,8 +4,8 @@ import "errors"
 
 // Database errors
 var (
-	ErrMissingID          = errors.New("Missing ID field.")
-	ErrMissingChangeToken = errors.New("Missing ChangeToken.")
-	ErrMissingModifiedBy  = errors.New("Object ModifiedBy was not specified for object being updated")
+	ErrMissingID          = errors.New("missing id field")
+	ErrMissingChangeToken = errors.New("missing changetoken")
+	ErrMissingModifiedBy  = errors.New("object modifiedby was not specified for object being updated")
 	ErrNoRows             = errors.New("sql: no rows in result set")
 )

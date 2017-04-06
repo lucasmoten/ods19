@@ -476,7 +476,7 @@ func populateExtensionToContentTypeMap() {
 	ExtensionToContentType["xls"] = "application/vnd.ms-excel"
 	ExtensionToContentType["xlsb"] = "application/vnd.ms-excel.sheet.binary.macroEnabled.12"
 	ExtensionToContentType["xlsm"] = "application/vnd.ms-excel.sheet.macroEnabled.12"
-	ExtensionToContentType["xlsx"] = "application/vnd.openxmlformats-officedocuemnt.spreadsheetml.sheet"
+	ExtensionToContentType["xlsx"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 	ExtensionToContentType["xlt"] = "application/vnd.ms-excel"
 	ExtensionToContentType["xltm"] = "application/vnd.ms-excel.template.macroEnabled.12"
 	ExtensionToContentType["xltx"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.template"

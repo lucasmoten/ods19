@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
@@ -18,6 +19,7 @@ import (
 // appropriate sql calls to the database to update the existing object and acm
 // changing properties and permissions associated.
 func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
+	logger := dao.GetLogger()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
@@ -29,6 +31,32 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 		tx.Rollback()
 	} else {
 		tx.Commit()
+		// Calculate in background and as separate transaction...
+		runasync := true
+		if runasync {
+			if err := insertAssociationOfACMToModifiedByIfValid(dao, *object); err != nil {
+				logger.Error("Error associating the ACM on this object to the user that created it!", zap.Error(err), zap.String("ObjectID", hex.EncodeToString(object.ID)), zap.String("modifiedby", object.ModifiedBy), zap.Int64("acmID", object.ACMID))
+			}
+
+			go func() {
+				done := make(chan bool)
+				timeout := time.After(60 * time.Second)
+				go dao.AssociateUsersToNewACM(*object, done)
+
+				for {
+					select {
+					case <-timeout:
+						dao.GetLogger().Warn("UpdateObject call to AssociateUsersToNewACM timed out")
+						return
+					case <-done:
+						return
+					}
+				}
+			}()
+		} else {
+			done := make(chan bool, 1)
+			dao.AssociateUsersToNewACM(*object, done)
+		}
 	}
 	return err
 }
@@ -80,9 +108,12 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 	// Normalize ACM
 	newACMNormalized, err := normalizedACM(object.RawAcm.String)
 	if err != nil {
-		return fmt.Errorf("Error normalizing ACM on new object: %v (acm: %s)", err.Error(), object.RawAcm.String)
+		return fmt.Errorf("Error normalizing ACM on modified object: %v (acm: %s)", err.Error(), object.RawAcm.String)
 	}
 	object.RawAcm.String = newACMNormalized
+	if err := setObjectACM2ForObjectInTransaction(tx, object); err != nil {
+		return fmt.Errorf("Error assigning ACM ID for object: %v", err.Error())
+	}
 
 	// update object
 	updateObjectStatement, err := tx.Preparex(`update object set 
@@ -99,7 +130,8 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
         ,contentHash = ?
         ,encryptIV = ?
         ,containsUSPersonsData = ?
-        ,exemptFromFOIA = ?        
+        ,exemptFromFOIA = ?
+        ,acmId = ?
     where id = ? and changeToken = ?`)
 	if err != nil {
 		return fmt.Errorf("UpdateObject Preparing update object statement, %s", err.Error())
@@ -111,7 +143,9 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		object.Name, object.Description.String, object.ParentID,
 		object.ContentConnector.String, object.RawAcm.String,
 		object.ContentType.String, object.ContentSize, object.ContentHash,
-		object.EncryptIV, object.ContainsUSPersonsData, object.ExemptFromFOIA, object.ID,
+		object.EncryptIV, object.ContainsUSPersonsData, object.ExemptFromFOIA,
+		object.ACMID,
+		object.ID,
 		object.ChangeToken)
 	if err != nil {
 		return fmt.Errorf("UpdateObject Error executing update object statement, %s", err.Error())
@@ -229,7 +263,6 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		return fmt.Errorf("UpdateObject Error retrieving object %v, %s", object, err.Error())
 	}
 	*object = dbObject
-
 	return nil
 }
 

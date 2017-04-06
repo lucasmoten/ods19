@@ -36,10 +36,12 @@ func getObjectsSharedToEveryoneInTransaction(tx *sqlx.Tx, user models.ODUser, pa
         o.id    
     from object o
         inner join object_type ot on o.typeid = ot.id
-        inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1 and op.grantee = '` + MySQLSafeString2(models.AACFlatten(models.EveryoneGroup)) + `'
-        inner join objectacm acm on o.id = acm.objectid            
-    where o.isdeleted = 0 `
-	query += buildFilterExcludeNonRootedSharedToEveryone()
+        inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1 and op.grantee = '` + MySQLSafeString2(models.AACFlatten(models.EveryoneGroup)) + `' `
+	query += buildJoinUserToACM(tx, user)
+	query += ` where o.isdeleted = 0 `
+	if !isOption409() {
+		query += buildFilterExcludeNonRootedSharedToEveryone()
+	}
 	query += buildFilterForUserSnippets(user)
 	query += buildFilterSortAndLimit(pagingRequest)
 	err := tx.Select(&response.Objects, query)

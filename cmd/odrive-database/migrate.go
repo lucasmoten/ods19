@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"time"
 
 	"github.com/rubenv/sql-migrate"
 	"github.com/urfave/cli"
@@ -54,8 +56,14 @@ func migrateUp(clictx *cli.Context) error {
 		AssetDir: AssetDir,
 		Dir:      "migrations",
 	}
-
+	ticker := time.NewTicker(time.Second * 30)
+	go func() {
+		for _ = range ticker.C {
+			log.Println(fmt.Sprintf("migration_status: %s", getMigrationStatus(db)))
+		}
+	}()
 	n, err := migrate.Exec(db.DB, "mysql", m, migrate.Up)
+	ticker.Stop()
 	if err != nil {
 		return err
 	}
@@ -74,9 +82,15 @@ func migrateDown(clictx *cli.Context) error {
 		AssetDir: AssetDir,
 		Dir:      "migrations",
 	}
-
+	ticker := time.NewTicker(time.Second * 30)
+	go func() {
+		for _ = range ticker.C {
+			log.Println(fmt.Sprintf("migration_status: %s", getMigrationStatus(db)))
+		}
+	}()
 	// Apply exactly one migration down.
 	n, err := migrate.ExecMax(db.DB, "mysql", m, migrate.Down, 1)
+	ticker.Stop()
 	if err != nil {
 		return err
 	}

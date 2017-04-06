@@ -14,6 +14,8 @@ import (
 )
 
 func TestUserStats(t *testing.T) {
+	typeName := "TestUserStats"
+
 	clientID := 0
 	if testing.Short() {
 		t.Skip()
@@ -21,9 +23,19 @@ func TestUserStats(t *testing.T) {
 	userStats := doUserStatsQuery(t)
 	statsIntegrityCheck(t, userStats)
 
+	// See if type exists already
+	typeObjects1 := 0
+	typeSize1 := int64(0)
+	for _, typeMetrics := range userStats.ObjectStorageMetrics {
+		if typeMetrics.TypeName == typeName {
+			typeObjects1 = typeMetrics.Objects
+			typeSize1 = typeMetrics.ObjectsSize
+		}
+	}
+
 	//Create an object of known size, for its side-effects
 	data := "0123456789"
-	res, _ := doTestCreateObjectSimple(t, data, clientID, nil, nil, ValidAcmCreateObjectSimple)
+	res, _ := doTestCreateObjectSimpleWithType(t, data, clientID, nil, nil, ValidAcmCreateObjectSimple, typeName)
 	if res == nil {
 		t.Errorf("Unable to run query")
 	}
@@ -36,11 +48,25 @@ func TestUserStats(t *testing.T) {
 	userStats2 := doUserStatsQuery(t)
 	statsIntegrityCheck(t, userStats)
 
-	if userStats2.TotalObjects != userStats.TotalObjects+1 {
+	// Verify type is in the array
+	typeFound2 := false
+	typeObjects2 := 0
+	typeSize2 := int64(0)
+	for _, typeMetrics := range userStats2.ObjectStorageMetrics {
+		if typeMetrics.TypeName == typeName {
+			typeFound2 = true
+			typeObjects2 = typeMetrics.Objects
+			typeSize2 = typeMetrics.ObjectsSize
+		}
+	}
+	if !typeFound2 {
+		t.Errorf("No objects found of type %s", typeName)
+	}
+	if typeObjects2 != typeObjects1+1 {
 		t.Errorf("Expected to see one more object added")
 	}
 
-	diff := userStats2.TotalObjectsSize - userStats.TotalObjectsSize
+	diff := typeSize2 - typeSize1
 	if int64(len(data)) != diff {
 		t.Errorf("Expecting an %d byte object addition to add diff %d", len(data), diff)
 	}

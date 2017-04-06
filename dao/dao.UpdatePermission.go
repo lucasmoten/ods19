@@ -36,20 +36,20 @@ func updatePermissionInTransaction(tx *sqlx.Tx, permission models.ODObjectPermis
 		,permissionMAC = ?
     where id = ? and changeToken = ?`)
 	if err != nil {
-		return fmt.Errorf("UpdatePermission Preparing update statement, %s", err.Error())
+		return fmt.Errorf("updatePermission error preparing update statement, %s", err.Error())
 	}
 	result, err := updatePermissionStatement.Exec(permission.ModifiedBy,
 		permission.EncryptKey, permission.PermissionIV, permission.PermissionMAC,
 		permission.ID, permission.ChangeToken)
 	if err != nil {
-		return fmt.Errorf("UpdatePermission Error executing update statement, %s", err.Error())
+		return fmt.Errorf("updatePermission error executing update statement, %s", err.Error())
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("UpdatePermission Error checking result for rows affected, %s", err.Error())
+		return fmt.Errorf("updatePermission error checking result for rows affected, %s", err.Error())
 	}
 	if rowsAffected <= 0 {
-		return fmt.Errorf("UpdatePermission Did not affect any rows (Possible bad ID or changeToken)!")
+		return fmt.Errorf("updatePermission did not affect any rows, possibly bad id or changetoken")
 	}
 
 	return nil

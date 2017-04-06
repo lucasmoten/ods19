@@ -33,6 +33,7 @@ func addPermissionToObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object m
 	var dbPermission models.ODObjectPermission
 
 	// Check that grantee specified exists
+	permission.Grantee = models.AACFlatten(permission.Grantee)
 	dbAcmGrantee, dbAcmGranteeErr := getAcmGranteeInTransaction(tx, permission.Grantee)
 	if dbAcmGranteeErr == sql.ErrNoRows {
 		// Add if it didnt

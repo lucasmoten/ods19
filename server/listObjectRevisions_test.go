@@ -23,6 +23,7 @@ func TestUpdateObjectWithClassificationDrop(t *testing.T) {
 			ResponseDescription: "Get an object to update",
 		},
 		testhelpers.ValidACMTopSecretSITK)
+	t.Logf("Verifying newly created file exists")
 	doCheckFileNowExists(t, clientID, created)
 	t.Logf("Update with a lower classification")
 	data = "**** ** **** ***** **** says: It's time!"
@@ -54,10 +55,8 @@ func TestUpdateObjectWithClassificationDrop(t *testing.T) {
 		},
 	)
 	res, err := clients[unclearedID].Client.Do(req)
-	if err != nil {
-		t.Logf("unable to make request for versions: %v", err)
-		t.FailNow()
-	}
+	failNowOnErr(t, err, "Unable to do request")
+	statusExpected(t, 200, res, "Bad status when getting revisions")
 	trafficLogs[APISampleFile].Response(t, res)
 	var listOfRevisions protocol.ObjectResultset
 	err = util.FullDecode(res.Body, &listOfRevisions)

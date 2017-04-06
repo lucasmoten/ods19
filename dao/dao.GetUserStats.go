@@ -37,7 +37,7 @@ func getUserStatsInTransaction(logger zap.Logger, tx *sqlx.Tx, dn string) (model
 			sum(ifnull(o.contentsize,0)) as ObjectsSize
 		from
 			object_type t 
-			inner join object o on t.id = o.typeid ` + buildFilterRequireObjectsIOwn(models.ODUser{DistinguishedName: dn}) + `
+			inner join object o on t.id = o.typeid ` + buildFilterRequireObjectsIOwn(tx, models.ODUser{DistinguishedName: dn}) + `
 		group by 
 			t.name`
 	err = tx.Select(&objectMetrics, sql)

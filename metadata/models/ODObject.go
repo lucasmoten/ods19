@@ -103,6 +103,8 @@ type ODObject struct {
 	ContainsUSPersonsData string `db:"containsUSPersonsData"`
 	// ExemptFromFOIA indicates if this object is exempt from Freedom of Information Act requests (Yes,No,Unknown)
 	ExemptFromFOIA string `db:"exemptFromFOIA"`
+	// ACMID indicates the unique identifier to the immutable ACM association
+	ACMID int64 `db:"acmid"`
 }
 
 // ODObjectResultset encapsulates the ODObject defined herein as an array with

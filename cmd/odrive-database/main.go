@@ -183,12 +183,25 @@ func connect(clictx *cli.Context) (*sqlx.DB, error) {
 	log.Println("connecting to db")
 	db, err := newDBConn(conf.DatabaseConnection)
 	if err != nil {
-		return nil, fmt.Errorf("could not connect to db: %v\n", err)
+		return nil, fmt.Errorf("could not connect to db: %v", err)
 	}
 	// try pinging the DB 10 times
 	if err := tryPing(db, 10); err != nil {
 		return nil, err
 	}
+	// verify db initialized correctly -- if binary logging enabled, then log_bin_trust_function_creators must be on
+	logBin, err := isGlobalVariable(db, `log_bin`, `ON`)
+	if err != nil {
+		return nil, err
+	}
+	logBinTrustFunctionCreators, err := isGlobalVariable(db, `log_bin_trust_function_creators`, `ON`)
+	if err != nil {
+		return nil, err
+	}
+	if logBin && !logBinTrustFunctionCreators {
+		return nil, fmt.Errorf("log_bin is enabled (on/1), but log_bin_trust_function_creators is not. For AWS RDS, define a custom parameter group that sets this variable to 1, and restart the instance before running this tool again")
+	}
+
 	return db, nil
 }
 
@@ -321,7 +334,7 @@ func initialize(clictx *cli.Context) error {
 	fmt.Println("force schema creation:", force)
 
 	if !isDBEmpty(db) && !force {
-		return errors.New("Database is not empty. Please review which DB you're connecting to or run with --force=true.")
+		return errors.New("database is not empty. Please review which DB you're connecting to or run with --force=true")
 	}
 	fmt.Println("DB is ready to receive schema")
 	if err := createSchema(db); err != nil {
@@ -349,7 +362,7 @@ func status(clictx *cli.Context) error {
 
 	db, err := connect(clictx)
 	if err != nil {
-		return fmt.Errorf("could not create db connection: %v\n", err)
+		return fmt.Errorf("could not create db connection: %v", err)
 	}
 
 	// TODO(cm): we can, potentially, add many summary stats here, e.g. object count
@@ -366,7 +379,7 @@ func status(clictx *cli.Context) error {
 func loadConfig(path string) (config.AppConfiguration, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
-		return config.AppConfiguration{}, fmt.Errorf("path error: %v\n", err)
+		return config.AppConfiguration{}, fmt.Errorf("path error: %v", err)
 	}
 	return config.LoadYAMLConfig(absPath)
 
@@ -378,7 +391,7 @@ func newDBConn(conf config.DatabaseConfiguration) (*sqlx.DB, error) {
 
 	tlsConf, err := newTLSConfig(conf.CAPath, conf.ClientCert, conf.ClientKey)
 	if err != nil {
-		return nil, fmt.Errorf("could not build tls config: %v\n", err)
+		return nil, fmt.Errorf("could not build tls config: %v", err)
 	}
 
 	mysql.RegisterTLSConfig("custom", tlsConf)
@@ -502,6 +515,32 @@ func getSchemaVersion(db *sqlx.DB) string {
 	}
 	tx.Commit()
 	return schemaVersion[0]
+}
+
+func getMigrationStatus(db *sqlx.DB) string {
+	tx := db.MustBegin()
+	var description []string
+	stmt := `select description from migration_status order by id desc limit 1`
+	err := tx.Select(&description, stmt)
+	if err != nil {
+		tx.Rollback()
+		return "processing a migration prior to 20170331" // fmt.Sprintf("error getting migration status: %s", err.Error())
+	}
+	tx.Commit()
+	return description[0]
+}
+
+func isGlobalVariable(db *sqlx.DB, variableName string, expectedVariableValue string) (bool, error) {
+	tx := db.MustBegin()
+	var actualValue []string
+	stmt := `select variable_value from information_schema.global_variables where variable_name = ?`
+	err := tx.Select(&actualValue, stmt, variableName)
+	if err != nil {
+		tx.Rollback()
+		return false, err
+	}
+	tx.Commit()
+	return (actualValue[0] == expectedVariableValue), nil
 }
 
 // execStmt executes a SQL string against a database transaction.

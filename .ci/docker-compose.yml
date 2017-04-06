@@ -54,6 +54,7 @@ odrive:
         - OD_SERVER_KEY=/go/src/decipher.com/object-drive-server/defaultcerts/server/server.key.pem
         - OD_CACHE_PARTITION=circleci/build
         - OD_SERVER_PORT=4430
+        - OD_OPTION_409=true
     links:
         - "metadatadb"
         - "aac"
@@ -61,7 +62,7 @@ odrive:
         - "kafka"
 
 metadatadb:
-    image: "deciphernow/metadatadb:latest"
+    image: "deciphernow/metadatadb:issue409"
     hostname: "fqdn.for.metadatadb.local"
     environment:
         - MYSQL_CONTAINER_NAME=metadatadb

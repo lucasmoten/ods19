@@ -24,8 +24,7 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	var parent models.ODObject
 	parent.Name = "Test Parent Object for GetChildObjectsWithProperties" + timeSuffix
 	parent.CreatedBy = usernames[1]
-	parent.TypeName.String = "File"
-	parent.TypeName.Valid = true
+	parent.TypeName = models.ToNullString("File")
 	parent.RawAcm.String = testhelpers.ValidACMUnclassified
 	dbParent, err := d.CreateObject(&parent)
 	if dbParent.ID == nil {
@@ -42,8 +41,7 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	var child1 models.ODObject
 	child1.Name = "Test Child Object 1 for GetChildObjectsWithProperties" + timeSuffix
 	child1.CreatedBy = usernames[1]
-	child1.TypeName.String = "File"
-	child1.TypeName.Valid = true
+	child1.TypeName = models.ToNullString("File")
 	child1.ParentID = dbParent.ID
 	child1.RawAcm.String = testhelpers.ValidACMUnclassified
 	dbChild1, err := d.CreateObject(&child1)
@@ -60,10 +58,8 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	var property1 models.ODProperty
 	property1.CreatedBy = child1.CreatedBy
 	property1.Name = "Test Property C1P1"
-	property1.Value.String = "Test Property 1 Value"
-	property1.Value.Valid = true
-	property1.ClassificationPM.String = "UNCLASSIFIED"
-	property1.ClassificationPM.Valid = true
+	property1.Value = models.ToNullString("Test Property 1 Value")
+	property1.ClassificationPM = models.ToNullString("UNCLASSIFIED")
 	_, err = d.AddPropertyToObject(dbChild1, &property1)
 	if err != nil {
 		t.Error(err)
@@ -71,10 +67,8 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	var property2 models.ODProperty
 	property2.CreatedBy = child1.CreatedBy
 	property2.Name = "Test Property C1P2"
-	property2.Value.String = "Test Property 2 Value"
-	property2.Value.Valid = true
-	property2.ClassificationPM.String = "UNCLASSIFIED"
-	property2.ClassificationPM.Valid = true
+	property2.Value = models.ToNullString("Test Property 2 Value")
+	property2.ClassificationPM = models.ToNullString("UNCLASSIFIED")
 	_, err = d.AddPropertyToObject(dbChild1, &property2)
 	if err != nil {
 		t.Error(err)
@@ -85,8 +79,7 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	var child2 models.ODObject
 	child2.Name = "Test Child Object 2 for GetChildObjectsWithProperties" + timeSuffix
 	child2.CreatedBy = usernames[1]
-	child2.TypeName.String = "File"
-	child2.TypeName.Valid = true
+	child2.TypeName = models.ToNullString("File")
 	child2.ParentID = dbParent.ID
 	child2.RawAcm.String = testhelpers.ValidACMUnclassified
 	dbChild2, err := d.CreateObject(&child2)
@@ -103,10 +96,8 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	var propertyc2p1 models.ODProperty
 	propertyc2p1.CreatedBy = child2.CreatedBy
 	propertyc2p1.Name = "Test Property C2P1"
-	propertyc2p1.Value.String = "Test Property 1 Value"
-	propertyc2p1.Value.Valid = true
-	propertyc2p1.ClassificationPM.String = "UNCLASSIFIED"
-	propertyc2p1.ClassificationPM.Valid = true
+	propertyc2p1.Value = models.ToNullString("Test Property 1 Value")
+	propertyc2p1.ClassificationPM = models.ToNullString("UNCLASSIFIED")
 	_, err = d.AddPropertyToObject(dbChild2, &propertyc2p1)
 	if err != nil {
 		t.Error(err)
@@ -114,10 +105,8 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	var propertyc2p2 models.ODProperty
 	propertyc2p2.CreatedBy = child2.CreatedBy
 	propertyc2p2.Name = "Test Property C2P2"
-	propertyc2p2.Value.String = "Test Property 2 Value"
-	propertyc2p2.Value.Valid = true
-	propertyc2p2.ClassificationPM.String = "UNCLASSIFIED"
-	propertyc2p2.ClassificationPM.Valid = true
+	propertyc2p2.Value = models.ToNullString("Test Property 2 Value")
+	propertyc2p2.ClassificationPM = models.ToNullString("UNCLASSIFIED")
 	_, err = d.AddPropertyToObject(dbChild2, &propertyc2p2)
 	if err != nil {
 		t.Error(err)
@@ -125,10 +114,8 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	var propertyc2p3 models.ODProperty
 	propertyc2p3.CreatedBy = child2.CreatedBy
 	propertyc2p3.Name = "Test Property C2P3"
-	propertyc2p3.Value.String = "Test Property 3 Value"
-	propertyc2p3.Value.Valid = true
-	propertyc2p3.ClassificationPM.String = "UNCLASSIFIED"
-	propertyc2p3.ClassificationPM.Valid = true
+	propertyc2p3.Value = models.ToNullString("Test Property 3 Value")
+	propertyc2p3.ClassificationPM = models.ToNullString("UNCLASSIFIED")
 	_, err = d.AddPropertyToObject(dbChild2, &propertyc2p3)
 	if err != nil {
 		t.Error(err)
@@ -136,10 +123,8 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	var propertyc2p4 models.ODProperty
 	propertyc2p4.CreatedBy = child2.CreatedBy
 	propertyc2p4.Name = "Test Property C2P4"
-	propertyc2p4.Value.String = "Test Property 4 Value"
-	propertyc2p4.Value.Valid = true
-	propertyc2p4.ClassificationPM.String = "UNCLASSIFIED"
-	propertyc2p4.ClassificationPM.Valid = true
+	propertyc2p4.Value = models.ToNullString("Test Property 4 Value")
+	propertyc2p4.ClassificationPM = models.ToNullString("UNCLASSIFIED")
 	_, err = d.AddPropertyToObject(dbChild2, &propertyc2p4)
 	if err != nil {
 		t.Error(err)
@@ -147,10 +132,8 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	var propertyc2p5 models.ODProperty
 	propertyc2p5.CreatedBy = child2.CreatedBy
 	propertyc2p5.Name = "Test Property C2P5"
-	propertyc2p5.Value.String = "Test Property 5 Value"
-	propertyc2p5.Value.Valid = true
-	propertyc2p5.ClassificationPM.String = "UNCLASSIFIED"
-	propertyc2p5.ClassificationPM.Valid = true
+	propertyc2p5.Value = models.ToNullString("Test Property 5 Value")
+	propertyc2p5.ClassificationPM = models.ToNullString("UNCLASSIFIED")
 	_, err = d.AddPropertyToObject(dbChild2, &propertyc2p5)
 	if err != nil {
 		t.Error(err)

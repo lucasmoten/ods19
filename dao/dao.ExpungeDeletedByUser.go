@@ -87,12 +87,20 @@ func (dao *DataAccessLayer) expungeDeletedByUserInTransactionMore(tx *sqlx.Tx, u
         o.changeToken    
     from object o
         inner join object_type ot on o.typeid = ot.id
-        inner join object_permission op on op.objectid = o.id and op.isdeleted = 0 and op.allowread = 1
-        inner join objectacm acm on o.id = acm.objectid
-    where o.isdeleted = 1 and o.isExpunged = 0 and o.isAncestorDeleted = 0 `
+        inner join object_permission op on op.objectid = o.id and op.isdeleted = 0 and op.allowread = 1 `
+	if isOption409() {
+		query += `inner join acm2 on o.acmid = acm2.id inner join useracm on acm2.id = useracm.acmid inner join user on useracm.userid = user.id and user.distinguishedname = '`
+		query += MySQLSafeString(user.DistinguishedName)
+		query += `'`
+	} else {
+		query += `inner join objectacm on o.id = objectacm.objectid `
+	}
+	query += ` where o.isdeleted = 1 and o.isExpunged = 0 and o.isAncestorDeleted = 0 `
 	query += buildFilterRequireObjectsIOrMyGroupsOwn(tx, user)
-	query += buildFilterForUserACMShare(user)
-	query += buildFilterForUserSnippets(user)
+	query += buildFilterForUserACMShare(tx, user)
+	if !isOption409() {
+		query += buildFilterForUserSnippets(user)
+	}
 	query += buildFilterSortAndLimit(pagingRequest)
 	err = tx.Select(&response.Objects, query)
 	dao.GetLogger().Info("expungeDeletedByUserInTransactionMore", zap.Object("user", user), zap.Object("pagingRequest", pagingRequest), zap.Int("rows", len(response.Objects)))

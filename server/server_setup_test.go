@@ -328,13 +328,13 @@ func newClientTLSConfig(client *ClientIdentity) (*tls.Config, error) {
 
 func NewFakeServerWithDAOUsers() *server.AppServer {
 
-	user1, user2 := setupFakeUsers()
+	user0, user1, user2 := setupFakeUsers()
 
 	guid, err := util.NewGUID()
 	if err != nil {
 		log.Printf("Could not create GUID.")
 	}
-	perms := []models.ODObjectPermission{{Grantee: fakeDN1}}
+	perms := []models.ODObjectPermission{{Grantee: fakeDN0}}
 	perms[0].AllowRead = true
 	obj := models.ODObject{Permissions: perms}
 	obj.ID = []byte(guid)
@@ -342,7 +342,7 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 	obj.RawAcm.Valid = true
 
 	fakeDAO := dao.FakeDAO{
-		Users:  []models.ODUser{user1, user2},
+		Users:  []models.ODUser{user0, user1, user2},
 		Object: obj,
 	}
 
@@ -351,8 +351,8 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 		Snippets: testhelpers.SnippetTP10,
 	}
 	// Acm needs to have value in f_share that corresponds to the user
-	// that is creating objects.  For example, the grantee above for fakeDN1
-	// will need cntesttester01oupeopleoudaeouchimeraou_s_governmentcus
+	// that is creating objects.  For example, the grantee above for fakeDN0
+	// will need cntesttester10oupeopleoudaeouchimeraou_s_governmentcus
 	// so that has been put into the ValidAcmUnclassifiedWithFShare value
 	acmInfoResponse := aac.AcmInfo{
 		Acm:             testhelpers.ValidACMUnclassifiedWithFShare,
@@ -399,11 +399,13 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 	return &s
 }
 
-func setupFakeUsers() (models.ODUser, models.ODUser) {
+func setupFakeUsers() (models.ODUser, models.ODUser, models.ODUser) {
+	user0 := models.ODUser{DistinguishedName: fakeDN0}
 	user1 := models.ODUser{DistinguishedName: fakeDN1}
 	user2 := models.ODUser{DistinguishedName: fakeDN2}
+	user0.CreatedBy = fakeDN0
 	user1.CreatedBy = fakeDN1
 	user2.CreatedBy = fakeDN2
 
-	return user1, user2
+	return user0, user1, user2
 }

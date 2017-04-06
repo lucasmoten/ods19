@@ -26,8 +26,7 @@ func TestDAOGetRootObjects(t *testing.T) {
 	var object1 models.ODObject
 	object1.Name = "Test GetRootObjects"
 	object1.CreatedBy = usernames[1]
-	object1.TypeName.String = "Test Type"
-	object1.TypeName.Valid = true
+	object1.TypeName = models.ToNullString("Test Type")
 	object1.RawAcm.String = testhelpers.ValidACMUnclassified
 	dbObject1, err := d.CreateObject(&object1)
 	if err != nil {

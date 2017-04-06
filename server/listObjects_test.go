@@ -311,7 +311,7 @@ func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level 
 	defer util.FinishBody(res.Body)
 	// Response validation
 	if res.StatusCode != http.StatusOK {
-		//log.Printf("bad status: %s %s", res.Status, hex.EncodeToString(childid))
+		t.Logf("Status code expected was 200 but received %d %s %s", res.StatusCode, res.Status, childid)
 		t.Logf(depthstring)
 		t.Logf(" >>> 403 Unauthorized to read this object, so cannot list children")
 		return

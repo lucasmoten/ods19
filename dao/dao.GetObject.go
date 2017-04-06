@@ -1,6 +1,9 @@
 package dao
 
 import (
+	"database/sql"
+	"encoding/hex"
+
 	"decipher.com/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
@@ -17,7 +20,11 @@ func (dao *DataAccessLayer) GetObject(object models.ODObject, loadProperties boo
 	}
 	dbObject, err := getObjectInTransaction(tx, object, loadProperties)
 	if err != nil {
-		dao.GetLogger().Error("Error in GetObject", zap.String("err", err.Error()))
+		if err != sql.ErrNoRows {
+			dao.GetLogger().Error("Error in GetObject", zap.String("err", err.Error()))
+		} else {
+			dao.GetLogger().Info("GetObject requested id not found", zap.String("id", hex.EncodeToString(object.ID)))
+		}
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -64,7 +71,8 @@ func getObjectInTransaction(tx *sqlx.Tx, object models.ODObject, loadProperties 
         ,o.isStreamStored
         ,o.containsUSPersonsData
         ,o.exemptFromFOIA
-        ,ot.name typeName     
+        ,ot.name typeName
+        ,o.acmId acmid
     from object o 
         inner join object_type ot on o.typeid = ot.id 
     where o.id = ?`

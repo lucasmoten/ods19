@@ -369,6 +369,8 @@ func TestCreateWithPermissionsOwnedBy(t *testing.T) {
 
 	tester10 := 0
 
+	ownerNoDisplayName := "group/dctc/DCTC/ODrive"
+
 	t.Logf("* Create object")
 	t.Logf("preparing")
 	var object protocol.CreateObjectRequest
@@ -394,7 +396,7 @@ func TestCreateWithPermissionsOwnedBy(t *testing.T) {
 	shouldHaveReadForObjectID(t, createdObject.ID, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
 	failWithoutDCTCOdrive(t, createdObject)
 
-	if createdObject.OwnedBy != object.OwnedBy {
+	if createdObject.OwnedBy != ownerNoDisplayName {
 		t.Logf("owned by %s rather than %s", createdObject.OwnedBy, object.OwnedBy)
 		t.FailNow()
 	}
@@ -531,8 +533,9 @@ func TestCreateStreamWithPermissions(t *testing.T) {
 
 func TestCreateStreamWithPermissionsOwnedBy(t *testing.T) {
 	groupdn := "group/dctc/DCTC/ODrive/DCTC ODrive"
+	groupdnnodisplayname := "group/dctc/DCTC/ODrive"
 	obj := genericTestCreateStreamWithPermissions(t, groupdn, http.StatusOK)
-	if groupdn != obj.OwnedBy {
+	if groupdnnodisplayname != obj.OwnedBy {
 		t.Logf("ownedBy was not properly set")
 		t.FailNow()
 	}

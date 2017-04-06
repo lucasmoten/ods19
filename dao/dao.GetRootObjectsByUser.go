@@ -39,16 +39,20 @@ func getRootObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
         distinct sql_calc_found_rows 
         o.id        
     from object o
-        inner join object_type ot on o.typeid = ot.id
-        inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1
-        inner join objectacm acm on o.id = acm.objectid
-    where o.isdeleted = 0 and o.parentid is null `
-	query += buildFilterRequireObjectsIOwn(user)
-	query += buildFilterForUserACMShare(user)
-	query += buildFilterForUserSnippets(user)
+        inner join object_type ot on o.typeid = ot.id `
+	if !isOption409() {
+		// no need to join object_permission because for this query, as owner of these objects, we are assuming full cruds
+		query += `
+        	inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1 `
+	}
+	query += buildJoinUserToACM(tx, user)
+	query += ` where o.isdeleted = 0 and o.parentid is null `
+	query += buildFilterRequireObjectsIOwn(tx, user)
+	if !isOption409() {
+		query += buildFilterForUserACMShare(tx, user)
+		query += buildFilterForUserSnippets(user)
+	}
 	query += buildFilterSortAndLimit(pagingRequest)
-
-	//log.Println(query)
 	err := tx.Select(&response.Objects, query)
 	if err != nil {
 		return response, err
