@@ -82,7 +82,7 @@
         ######
         #Service Routes from Gatekeeper
         ######
-        
+
         {{#locations}}
             location {{context}} {
             expires -1;
@@ -115,7 +115,7 @@
                 {{key}}                 {{value}}
             {{/attributes}}
             }
-        {{/locations}}        
+        {{/locations}}
 
         ######
         # Hard coded locations
@@ -130,6 +130,12 @@
         location /services/userservice/1.0 {
                 expires -1;
                 proxy_pass            https://chm.363-283.io/services/userservice/1.0;
+                proxy_set_header      user_dn         $ssl_client_s_dn_value;
+        }
+
+        location /services/csx/proxy/1.3 {
+                expires -1;
+                proxy_pass            https://chm.363-283.io/services/csx/proxy/1.3;
                 proxy_set_header      user_dn         $ssl_client_s_dn_value;
         }
 
