@@ -3,7 +3,7 @@ package events
 import (
 	"encoding/json"
 
-	auditevent "github.com/deciphernow/gm-fabric-go/audit/events_thrift"
+	auditevent "github.com/deciphernow/gov-go/audit/events_thrift"
 )
 
 // Event defines a type that can yield itself as JSON bytes.

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/deciphernow/gm-fabric-go/audit/events_thrift"
+	"github.com/deciphernow/gov-go/audit/events_thrift"
 
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/events"
