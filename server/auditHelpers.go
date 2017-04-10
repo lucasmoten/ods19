@@ -9,9 +9,9 @@ import (
 	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/services/audit"
-	"github.com/deciphernow/gm-fabric-go/audit/acm_thrift"
-	"github.com/deciphernow/gm-fabric-go/audit/components_thrift"
-	"github.com/deciphernow/gm-fabric-go/audit/events_thrift"
+	"github.com/deciphernow/gov-go/audit/acm_thrift"
+	"github.com/deciphernow/gov-go/audit/components_thrift"
+	"github.com/deciphernow/gov-go/audit/events_thrift"
 )
 
 // Utilities for dealing with pointers to primitive types.

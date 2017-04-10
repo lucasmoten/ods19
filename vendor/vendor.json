@@ -243,30 +243,6 @@
 			"revisionTime": "2016-11-10T19:49:42-05:00"
 		},
 		{
-			"checksumSHA1": "rui9NtF/7fl5nr+wopgv8AfLBCg=",
-			"path": "github.com/deciphernow/gm-fabric-go/audit/acm_thrift",
-			"revision": "3ae51a53fb1bd5f0d1781f898d4fcd30833dfcca",
-			"revisionTime": "2017-01-17T16:49:43Z"
-		},
-		{
-			"checksumSHA1": "f2MccceplocZk6mdzKN5MxhhkR0=",
-			"path": "github.com/deciphernow/gm-fabric-go/audit/audittransformationservice_thrift",
-			"revision": "3ae51a53fb1bd5f0d1781f898d4fcd30833dfcca",
-			"revisionTime": "2017-01-17T16:49:43Z"
-		},
-		{
-			"checksumSHA1": "o0UU0CI9WtTKn06Gl35MNWjwZ8g=",
-			"path": "github.com/deciphernow/gm-fabric-go/audit/components_thrift",
-			"revision": "3ae51a53fb1bd5f0d1781f898d4fcd30833dfcca",
-			"revisionTime": "2017-01-17T16:49:43Z"
-		},
-		{
-			"checksumSHA1": "jRFSwE0twIZI29aB7yn/iNr/lxs=",
-			"path": "github.com/deciphernow/gm-fabric-go/audit/events_thrift",
-			"revision": "3ae51a53fb1bd5f0d1781f898d4fcd30833dfcca",
-			"revisionTime": "2017-01-17T16:49:43Z"
-		},
-		{
 			"checksumSHA1": "6wqAFkupdlBE9PEBExc5kH6XlUE=",
 			"path": "github.com/deciphernow/gm-fabric-go/gk",
 			"revision": "86ca38bc08b8e3230dc937dc102d50811b7fbeb6",
@@ -277,6 +253,30 @@
 			"path": "github.com/deciphernow/gm-fabric-go/zkutil",
 			"revision": "86ca38bc08b8e3230dc937dc102d50811b7fbeb6",
 			"revisionTime": "2017-03-07T23:01:10Z"
+		},
+		{
+			"checksumSHA1": "s5b6ENpR3Miy8uhckAZWfaFeKFc=",
+			"path": "github.com/deciphernow/gov-go/audit/acm_thrift",
+			"revision": "a620b813a7238acd5635c38d429f51ffadd4a8db",
+			"revisionTime": "2017-04-10T16:51:00Z"
+		},
+		{
+			"checksumSHA1": "F+5WlJvkBT/RZeRFvUgbsWPSjV8=",
+			"path": "github.com/deciphernow/gov-go/audit/audittransformationservice_thrift",
+			"revision": "a620b813a7238acd5635c38d429f51ffadd4a8db",
+			"revisionTime": "2017-04-10T16:51:00Z"
+		},
+		{
+			"checksumSHA1": "UNbKmcG3H6qPQNZvQ9okTwTWP8w=",
+			"path": "github.com/deciphernow/gov-go/audit/components_thrift",
+			"revision": "a620b813a7238acd5635c38d429f51ffadd4a8db",
+			"revisionTime": "2017-04-10T16:51:00Z"
+		},
+		{
+			"checksumSHA1": "lrGF38uFGViJYcMr5fDxaKuBrrY=",
+			"path": "github.com/deciphernow/gov-go/audit/events_thrift",
+			"revision": "a620b813a7238acd5635c38d429f51ffadd4a8db",
+			"revisionTime": "2017-04-10T16:51:00Z"
 		},
 		{
 			"checksumSHA1": "y2Kh4iPlgCPXSGTCcFpzePYdzzg=",

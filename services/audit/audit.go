@@ -3,9 +3,9 @@ package audit
 import (
 	"log"
 
-	"github.com/deciphernow/gm-fabric-go/audit/acm_thrift"
-	"github.com/deciphernow/gm-fabric-go/audit/components_thrift"
-	"github.com/deciphernow/gm-fabric-go/audit/events_thrift"
+	"github.com/deciphernow/gov-go/audit/acm_thrift"
+	"github.com/deciphernow/gov-go/audit/components_thrift"
+	"github.com/deciphernow/gov-go/audit/events_thrift"
 )
 
 /* Create generic Event for now
