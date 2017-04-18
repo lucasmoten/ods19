@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -74,7 +73,6 @@ func newPagingRequestFromJSONBody(body io.ReadCloser) (PagingRequest, error) {
 	err = util.FullDecode(body, &pr)
 	if err != nil {
 		if err != io.EOF {
-			log.Printf("Error parsing paging information in json: %v", err)
 			return pr, err
 		}
 		// EOF ok. Reassign defaults and reset the error

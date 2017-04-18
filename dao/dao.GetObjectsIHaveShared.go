@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"log"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 
@@ -35,14 +37,19 @@ func getObjectsIHaveSharedInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
         o.id 
     from object o
         inner join object_type ot on o.typeid = ot.id
-        inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1
-        inner join objectacm acm on o.id = acm.objectid            
-    where o.isdeleted = 0 
+        inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1 `
+	query += buildJoinUserToACM(tx, user)
+	query += ` where o.isdeleted = 0 
         and op.createdby = '` + MySQLSafeString2(user.DistinguishedName) + `' 
 		and op.grantee <> '` + MySQLSafeString2(models.AACFlatten(user.DistinguishedName)) + `'`
-	query += buildFilterExcludeNonRootedIHaveShared(user)
-	query += buildFilterForUserSnippets(user)
+	if !isOption409() {
+		query += buildFilterExcludeNonRootedIHaveShared(user)
+		query += buildFilterForUserSnippets(user)
+	}
 	query += buildFilterSortAndLimit(pagingRequest)
+	log.Printf("--- TEST MARKER ---")
+	log.Printf(query)
+	log.Printf("--- TEST MARKER ---")
 	err := tx.Select(&response.Objects, query)
 	if err != nil {
 		return response, err

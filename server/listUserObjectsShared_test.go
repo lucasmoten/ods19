@@ -67,6 +67,8 @@ func TestListObjectsSharedToOthers(t *testing.T) {
 }
 
 func TestListObjectsSharedToOthersExcludeChildren(t *testing.T) {
+	// Skipping this test now since no longer excluding children for performance reasons
+	t.Skip()
 
 	if testing.Short() {
 		t.Skip()

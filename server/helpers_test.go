@@ -203,6 +203,18 @@ func doTestCreateObjectSimple(
 	description *TrafficLogDescription,
 	acmString string,
 ) (*http.Response, protocol.Object) {
+	return doTestCreateObjectSimpleWithType(t, data, clientID, trafficLog, description, acmString, "File")
+}
+
+func doTestCreateObjectSimpleWithType(
+	t *testing.T,
+	data string,
+	clientID int,
+	trafficLog *TrafficLog,
+	description *TrafficLogDescription,
+	acmString string,
+	typeName string,
+) (*http.Response, protocol.Object) {
 	client := clients[clientID].Client
 	testName, err := util.NewGUID()
 	if err != nil {
@@ -220,7 +232,7 @@ func doTestCreateObjectSimple(
 
 	createRequest := protocol.CreateObjectRequest{
 		Name:     testName,
-		TypeName: "File",
+		TypeName: typeName,
 		RawAcm:   acm,
 	}
 

@@ -305,7 +305,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	}
 
 	t.Logf("* Create object as testperson10 with ACM that is TS")
-	createdFolder, err := makeFolderWithACMViaJSON("TestAddFolderWithTSSITK "+strconv.FormatInt(time.Now().Unix(), 10), testhelpers.ValidACMTopSecretSITK, 0)
+	createdFolder, err := makeFolderWithACMViaJSON("TestAddFolderWithTSSITK-"+strconv.FormatInt(time.Now().Unix(), 10), testhelpers.ValidACMTopSecretSITK, 0)
 	if err != nil {
 		t.Logf("Error making folder 1: %v", err)
 		t.FailNow()
@@ -405,6 +405,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 
 	t.Logf("* Verify that the object is listed as shared from testperson10 /shared")
 	shareListURI := host + cfg.NginxRootURL + "/shared?filterField=name&condition=equals&expression=" + url.QueryEscape(createdFolder.Name)
+	t.Logf("Looking for object via %s", shareListURI)
 	shareListRequest, err := http.NewRequest("GET", shareListURI, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
@@ -427,7 +428,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 		t.FailNow()
 	}
 	if listOfObjects.TotalRows == 0 {
-		t.Logf("No matching shares")
+		t.Logf("No matching shares looking for %s", shareListURI)
 		t.FailNow()
 	}
 

@@ -120,7 +120,6 @@ func isUserAllowedTo(ctx context.Context, obj *models.ODObject, requiredPermissi
 	masterKey := dp.GetMasterKey()
 
 	for _, permission := range obj.Permissions {
-		//LoggerFromContext(ctx).Info("Examining permissions ", zap.Object("permission", permission))
 		// Skip if permission is deleted
 		if permission.IsDeleted {
 			continue
@@ -148,10 +147,8 @@ func isUserAllowedTo(ctx context.Context, obj *models.ODObject, requiredPermissi
 			}
 		}
 		if !granteeMatch {
-			// LoggerFromContext(ctx).Info("Grantee is not a match", zap.String("grantee", permission.Grantee))
 			continue
 		}
-		// LoggerFromContext(ctx).Info("Grantee matches", zap.String("grantee", permission.Grantee))
 		// Skip if this this permission has invalid signature
 		if !models.EqualsPermissionMAC(masterKey, &permission) {
 			// Not valid. Log it

@@ -14,7 +14,7 @@ func TestListObjectsSharedToMe(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-
+	excludingChildren := false
 	tester1 := 1 // represents Alice
 	tester2 := 2 // represents Bob
 	uriShares := host + cfg.NginxRootURL + "/shares"
@@ -74,9 +74,15 @@ func TestListObjectsSharedToMe(t *testing.T) {
 	var sharedToTester1 protocol.ObjectResultset
 	err = util.FullDecode(listSharesTester1Response.Body, &sharedToTester1)
 
-	t.Logf("* Verify tester1 sees B3, B4, B8, but not A1-A5, B1, B2, B5, B6, B7, B9")
 	tester1Expects := []string{b3.ID, b4.ID, b8.ID}
-	tester1Exclude := []string{a1.ID, a2.ID, a3.ID, a4.ID, a5.ID, b1.ID, b2.ID, b5.ID, b6.ID, b7.ID, b9.ID}
+	tester1Exclude := []string{a1.ID, a2.ID, a3.ID, a4.ID, a5.ID, b1.ID, b2.ID, b7.ID}
+	if excludingChildren {
+		t.Logf("* Verify tester1 sees B3, B4, B8, but not A1-A5, B1, B2, B5, B6, B7, B9")
+		tester1Exclude = append(tester1Exclude, b5.ID, b6.ID, b9.ID)
+	} else {
+		t.Logf("* Verify tester1 sees B3, B4, B5, B6, B8, B9 but not A1-A5, B1, B2, B7")
+		tester1Expects = append(tester1Expects, b5.ID, b6.ID, b9.ID)
+	}
 	for _, o := range sharedToTester1.Objects {
 		found := false
 		for _, excludeID := range tester1Exclude {
@@ -90,7 +96,7 @@ func TestListObjectsSharedToMe(t *testing.T) {
 			t.Fail()
 		}
 	}
-	for _, expectedID := range tester1Expects {
+	for i, expectedID := range tester1Expects {
 		found := false
 		for _, o := range sharedToTester1.Objects {
 			if strings.Compare(o.ID, expectedID) == 0 {
@@ -99,7 +105,7 @@ func TestListObjectsSharedToMe(t *testing.T) {
 			}
 		}
 		if !found {
-			t.Logf("Tester1 expected object with id %s but it was not returned in shares", expectedID)
+			t.Logf("Tester1 expected object[%d] with id %s but it was not returned in shares", i, expectedID)
 			t.Fail()
 		}
 	}
@@ -115,9 +121,9 @@ func TestListObjectsSharedToMe(t *testing.T) {
 	var sharedToTester2 protocol.ObjectResultset
 	err = util.FullDecode(listSharesTester2Response.Body, &sharedToTester2)
 
-	t.Logf("* Verify tester2 sees A3, but not A1, A2, A4, A5, or any from B")
-	tester2Expects := []string{a3.ID}
-	tester2Exclude := []string{a1.ID, a2.ID, a4.ID, a5.ID, b1.ID, b2.ID, b3.ID, b4.ID, b5.ID, b6.ID, b7.ID, b8.ID, b9.ID}
+	t.Logf("* Verify tester2 sees A3, A4, A5 but not A1, A2, or any from B")
+	tester2Expects := []string{a3.ID, a4.ID, a5.ID}
+	tester2Exclude := []string{a1.ID, a2.ID, b1.ID, b2.ID, b3.ID, b4.ID, b5.ID, b6.ID, b7.ID, b8.ID, b9.ID}
 	for _, o := range sharedToTester2.Objects {
 		found := false
 		for _, excludeID := range tester2Exclude {
@@ -131,7 +137,7 @@ func TestListObjectsSharedToMe(t *testing.T) {
 			t.Fail()
 		}
 	}
-	for _, expectedID := range tester2Expects {
+	for i, expectedID := range tester2Expects {
 		found := false
 		for _, o := range sharedToTester2.Objects {
 			if strings.Compare(o.ID, expectedID) == 0 {
@@ -140,7 +146,7 @@ func TestListObjectsSharedToMe(t *testing.T) {
 			}
 		}
 		if !found {
-			t.Logf("Tester2 expected object with id %s but it was not returned in shares", expectedID)
+			t.Logf("Tester2 expected object %d with id %s but it was not returned in shares", i, expectedID)
 			t.Fail()
 		}
 	}

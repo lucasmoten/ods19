@@ -20,16 +20,15 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	var object models.ODObject
 	object.CreatedBy = usernames[1]
 	object.Name = "Test Object Revision"
-	object.TypeName.String = "Test Object"
-	object.TypeName.Valid = true
+	object.TypeName = models.ToNullString("Test Object")
 	object.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions := make([]models.ODObjectPermission, 2)
 	permissions[0].CreatedBy = object.CreatedBy
 	permissions[0].Grantee = models.AACFlatten(usernames[1])
 	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
 	permissions[0].AcmGrantee.Grantee = permissions[0].Grantee
-	permissions[0].AcmGrantee.UserDistinguishedName.String = permissions[0].Grantee
-	permissions[0].AcmGrantee.UserDistinguishedName.Valid = true
+	permissions[0].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[1])
+	permissions[0].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[1])
 	permissions[0].AllowCreate = true
 	permissions[0].AllowRead = true
 	permissions[0].AllowUpdate = true
@@ -39,8 +38,8 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	permissions[1].Grantee = models.AACFlatten(usernames[2])
 	permissions[1].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[2])
 	permissions[1].AcmGrantee.Grantee = permissions[1].Grantee
-	permissions[1].AcmGrantee.UserDistinguishedName.String = permissions[1].Grantee
-	permissions[1].AcmGrantee.UserDistinguishedName.Valid = true
+	permissions[1].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[2])
+	permissions[1].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[2])
 	permissions[1].AllowCreate = true
 	permissions[1].AllowRead = true
 	permissions[1].AllowUpdate = true
@@ -86,27 +85,27 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	}
 
 	// Get list of revisions
-	user := models.ODUser{DistinguishedName: usernames[1]}
+	user := setupUserWithSnippets(usernames[1])
 	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: dao.MaxPageSize, SortSettings: []dao.SortSetting{dao.SortSetting{SortField: "changecount", SortAscending: false}}}
 	resultset, err := d.GetObjectRevisionsByUser(user, pagingRequest, object, false)
 	if err != nil {
 		t.Error("Error getting revisions for object")
 	}
 	if resultset.TotalRows != 3 {
-		t.Error(fmt.Errorf("Expected 3 revisions, got %d", resultset.TotalRows))
+		t.Errorf("Expected 3 revisions, got %d", resultset.TotalRows)
 	}
 	t.Logf("Object ID: %s", hex.EncodeToString(object.ID))
 	for _, obj := range resultset.Objects {
 		t.Logf("Object CC: %d, ModifiedBy: %s, Name: %s", obj.ChangeCount, obj.ModifiedBy, obj.Name)
 	}
-	if resultset.Objects[1].ModifiedBy != usernames[2] {
-		t.Error(fmt.Errorf("Expected revision to be modified by %s, but got %s", usernames[2], resultset.Objects[1].ModifiedBy))
+	if !t.Failed() && resultset.Objects[1].ModifiedBy != usernames[2] {
+		t.Errorf("Expected revision to be modified by %s, but got %s", usernames[2], resultset.Objects[1].ModifiedBy)
 	}
-	if resultset.Objects[0].Name != "Renamed again by user 1" {
-		t.Error(fmt.Errorf("Expected revision to be named %s, but got %s", "Renamed again by user 1", resultset.Objects[0].Name))
+	if !t.Failed() && resultset.Objects[0].Name != "Renamed again by user 1" {
+		t.Errorf("Expected revision to be named %s, but got %s", "Renamed again by user 1", resultset.Objects[0].Name)
 	}
-	if resultset.Objects[2].Name != "Test Object Revision" {
-		t.Error(fmt.Errorf("Expected revision to be named %s, but got %s", "Test Object Revision", resultset.Objects[2].Name))
+	if !t.Failed() && resultset.Objects[2].Name != "Test Object Revision" {
+		t.Errorf("Expected revision to be named %s, but got %s", "Test Object Revision", resultset.Objects[2].Name)
 	}
 
 	// Cleanup

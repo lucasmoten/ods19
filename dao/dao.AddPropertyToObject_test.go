@@ -22,8 +22,7 @@ func TestDAOAddPropertyToObject(t *testing.T) {
 	var obj models.ODObject
 	obj.Name = "Test Object for Adding Property"
 	obj.CreatedBy = usernames[1]
-	obj.TypeName.String = "File"
-	obj.TypeName.Valid = true
+	obj.TypeName = models.ToNullString("File")
 	obj.RawAcm.String = testhelpers.ValidACMUnclassified
 	dbObject, err := d.CreateObject(&obj)
 	if dbObject.ID == nil {
@@ -40,10 +39,8 @@ func TestDAOAddPropertyToObject(t *testing.T) {
 	var property models.ODProperty
 	property.CreatedBy = obj.CreatedBy
 	property.Name = "Test Property"
-	property.Value.String = "Test Property Value"
-	property.Value.Valid = true
-	property.ClassificationPM.String = "UNCLASSIFIED"
-	property.ClassificationPM.Valid = true
+	property.Value = models.ToNullString("Test Property Value")
+	property.ClassificationPM = models.ToNullString("UNCLASSIFIED")
 	_, err = d.AddPropertyToObject(dbObject, &property)
 	if err != nil {
 		t.Error(err)

@@ -124,6 +124,7 @@ func TestChangeOwnerToGroup(t *testing.T) {
 
 	t.Logf("* Changing ownership to group")
 	newowner := "group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1"
+	newownernodisplayname := "group/dctc/DCTC/ODrive_G1"
 	changeowneruri := host + config.NginxRootURL + "/objects/" + createdObject.ID + "/owner/" + newowner
 	objChangeToken := protocol.ChangeTokenStruct{ChangeToken: createdObject.ChangeToken}
 	changeOwnerRequest := makeHTTPRequestFromInterface(t, "POST", changeowneruri, objChangeToken)
@@ -143,7 +144,7 @@ func TestChangeOwnerToGroup(t *testing.T) {
 	failNowOnErr(t, err, "Error decoding json to Object")
 
 	t.Logf("* Verifying owner changed")
-	if updatedObject.OwnedBy != newowner {
+	if updatedObject.OwnedBy != newownernodisplayname {
 		t.Logf("Owner for folder2 is %s expected %s", updatedObject.OwnedBy, newowner)
 		t.FailNow()
 	}

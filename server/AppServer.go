@@ -136,7 +136,6 @@ func (h *AppServer) InitRegex() {
 		Favicon:         route("/favicon.ico$"),
 		StatsObject:     route("/stats$"),
 		StaticFiles:     route("/static/(?P<path>.*)"),
-		Users:           route("/users$"),
 		// Service operations
 		APIDocumentation: route("/$"),
 		UserStats:        route("/userstats$"),
@@ -321,20 +320,25 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// NOTE: Adding the groups to Caller
+	// Adding the groups to Caller and into context
 	caller.Groups = groups
 	ctx = ContextWithCaller(ctx, caller)
 	ctx = ContextWithSnippets(ctx, snippets)
 	ctx = ContextWithGroups(ctx, groups)
 
+	// Validate User AO Cache state, rebuilding as needed in the background
+	if err := h.CheckUserAOCache(ctx); err != nil {
+		statusCode := http.StatusInternalServerError
+		sendErrorResponse(logger, &w, statusCode, err, "Error checking the user authorization object cache")
+		herr := NewAppError(statusCode, err, "Error checking the user authorization object cache")
+		h.publishError(gem, herr)
+		return
+	}
+
 	switch r.Method {
 	case "GET":
 		switch {
-		// Development UI
-		case h.Routes.Users.MatchString(uri):
-			herr = h.listUsers(ctx, w, r)
-			// API
-			// - user profile usage information
+		// - user profile usage information
 		case h.Routes.UserStats.MatchString(uri):
 			herr = h.userStats(ctx, w, r)
 		// - get object properties

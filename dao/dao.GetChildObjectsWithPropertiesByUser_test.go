@@ -20,20 +20,20 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	var parent models.ODObject
 	parent.Name = "Test Parent Object for GetChildObjectsWithPropertiesByUser"
 	parent.CreatedBy = user1
-	parent.TypeName.String = "File"
-	parent.TypeName.Valid = true
+	parent.TypeName = models.ToNullString("File")
 	parent.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions := make([]models.ODObjectPermission, 1)
 	permissions[0].CreatedBy = user1
 	permissions[0].Grantee = models.AACFlatten(user1)
 	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, user1)
 	permissions[0].AcmGrantee.Grantee = permissions[0].Grantee
-	permissions[0].AcmGrantee.UserDistinguishedName.String = permissions[0].Grantee
-	permissions[0].AcmGrantee.UserDistinguishedName.Valid = true
+	permissions[0].AcmGrantee.ResourceString = models.ToNullString("user/" + user1)
+	permissions[0].AcmGrantee.UserDistinguishedName = models.ToNullString(user1)
 	permissions[0].AllowCreate = true
 	permissions[0].AllowRead = true
 	permissions[0].AllowUpdate = true
 	permissions[0].AllowDelete = true
+	permissions[0].AllowShare = true
 	parent.Permissions = permissions
 	dbParent, err := d.CreateObject(&parent)
 	if dbParent.ID == nil {
@@ -50,8 +50,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	var child1 models.ODObject
 	child1.Name = "Test Child Object 1 for GetChildObjectsWithPropertiesByUser"
 	child1.CreatedBy = user1
-	child1.TypeName.String = "File"
-	child1.TypeName.Valid = true
+	child1.TypeName = models.ToNullString("File")
 	child1.ParentID = dbParent.ID
 	child1.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions1 := make([]models.ODObjectPermission, 1)
@@ -59,12 +58,13 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	permissions1[0].Grantee = models.AACFlatten(user1)
 	permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, user1)
 	permissions1[0].AcmGrantee.Grantee = permissions1[0].Grantee
-	permissions1[0].AcmGrantee.UserDistinguishedName.String = permissions1[0].Grantee
-	permissions1[0].AcmGrantee.UserDistinguishedName.Valid = true
+	permissions1[0].AcmGrantee.ResourceString = models.ToNullString("user/" + user1)
+	permissions1[0].AcmGrantee.UserDistinguishedName = models.ToNullString(user1)
 	permissions1[0].AllowCreate = true
 	permissions1[0].AllowRead = true
 	permissions1[0].AllowUpdate = true
 	permissions1[0].AllowDelete = true
+	permissions1[0].AllowShare = true
 	child1.Permissions = permissions1
 	dbChild1, err := d.CreateObject(&child1)
 	if dbChild1.ID == nil {
@@ -80,10 +80,8 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	var property1 models.ODProperty
 	property1.CreatedBy = dbChild1.CreatedBy
 	property1.Name = "Test Property C1P1"
-	property1.Value.String = "Test Property 1 Value"
-	property1.Value.Valid = true
-	property1.ClassificationPM.String = "UNCLASSIFIED"
-	property1.ClassificationPM.Valid = true
+	property1.Value = models.ToNullString("Test Property 1 Value")
+	property1.ClassificationPM = models.ToNullString("UNCLASSIFIED")
 	_, err = d.AddPropertyToObject(dbChild1, &property1)
 	if err != nil {
 		t.Error(err)
@@ -91,10 +89,8 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	var property2 models.ODProperty
 	property2.CreatedBy = dbChild1.CreatedBy
 	property2.Name = "Test Property C1P2"
-	property2.Value.String = "Test Property 2 Value"
-	property2.Value.Valid = true
-	property2.ClassificationPM.String = "UNCLASSIFIED"
-	property2.ClassificationPM.Valid = true
+	property2.Value = models.ToNullString("Test Property 2 Value")
+	property2.ClassificationPM = models.ToNullString("UNCLASSIFIED")
 	_, err = d.AddPropertyToObject(dbChild1, &property2)
 	if err != nil {
 		t.Error(err)
@@ -104,8 +100,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	var child2 models.ODObject
 	child2.Name = "Test Child Object 2 for GetChildObjectsWithPropertiesByUser"
 	child2.CreatedBy = user1
-	child2.TypeName.String = "File"
-	child2.TypeName.Valid = true
+	child2.TypeName = models.ToNullString("File")
 	child2.ParentID = dbParent.ID
 	child2.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions2 := make([]models.ODObjectPermission, 1)
@@ -113,12 +108,13 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	permissions2[0].Grantee = models.AACFlatten(user1)
 	permissions2[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, user1)
 	permissions2[0].AcmGrantee.Grantee = permissions2[0].Grantee
-	permissions2[0].AcmGrantee.UserDistinguishedName.String = permissions2[0].Grantee
-	permissions2[0].AcmGrantee.UserDistinguishedName.Valid = true
+	permissions2[0].AcmGrantee.ResourceString = models.ToNullString("user/" + user1)
+	permissions2[0].AcmGrantee.UserDistinguishedName = models.ToNullString(user1)
 	permissions2[0].AllowCreate = true
 	permissions2[0].AllowRead = true
 	permissions2[0].AllowUpdate = true
 	permissions2[0].AllowDelete = true
+	permissions2[0].AllowShare = true
 	child2.Permissions = permissions2
 	dbChild2, err := d.CreateObject(&child2)
 	if dbChild2.ID == nil {
@@ -134,10 +130,8 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	var propertyc2p1 models.ODProperty
 	propertyc2p1.CreatedBy = dbChild2.CreatedBy
 	propertyc2p1.Name = "Test Property C2P1"
-	propertyc2p1.Value.String = "Test Property 1 Value"
-	propertyc2p1.Value.Valid = true
-	propertyc2p1.ClassificationPM.String = "UNCLASSIFIED"
-	propertyc2p1.ClassificationPM.Valid = true
+	propertyc2p1.Value = models.ToNullString("Test Property 1 Value")
+	propertyc2p1.ClassificationPM = models.ToNullString("UNCLASSIFIED")
 	_, err = d.AddPropertyToObject(dbChild2, &propertyc2p1)
 	if err != nil {
 		t.Error(err)
@@ -145,10 +139,8 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	var propertyc2p2 models.ODProperty
 	propertyc2p2.CreatedBy = dbChild2.CreatedBy
 	propertyc2p2.Name = "Test Property C2P2"
-	propertyc2p2.Value.String = "Test Property 2 Value"
-	propertyc2p2.Value.Valid = true
-	propertyc2p2.ClassificationPM.String = "UNCLASSIFIED"
-	propertyc2p2.ClassificationPM.Valid = true
+	propertyc2p2.Value = models.ToNullString("Test Property 2 Value")
+	propertyc2p2.ClassificationPM = models.ToNullString("UNCLASSIFIED")
 	_, err = d.AddPropertyToObject(dbChild2, &propertyc2p2)
 	if err != nil {
 		t.Error(err)
@@ -156,10 +148,8 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	var propertyc2p3 models.ODProperty
 	propertyc2p3.CreatedBy = dbChild2.CreatedBy
 	propertyc2p3.Name = "Test Property C2P3"
-	propertyc2p3.Value.String = "Test Property 3 Value"
-	propertyc2p3.Value.Valid = true
-	propertyc2p3.ClassificationPM.String = "UNCLASSIFIED"
-	propertyc2p3.ClassificationPM.Valid = true
+	propertyc2p3.Value = models.ToNullString("Test Property 3 Value")
+	propertyc2p3.ClassificationPM = models.ToNullString("UNCLASSIFIED")
 	_, err = d.AddPropertyToObject(dbChild2, &propertyc2p3)
 	if err != nil {
 		t.Error(err)
@@ -167,10 +157,8 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	var propertyc2p4 models.ODProperty
 	propertyc2p4.CreatedBy = dbChild2.CreatedBy
 	propertyc2p4.Name = "Test Property C2P4"
-	propertyc2p4.Value.String = "Test Property 4 Value"
-	propertyc2p4.Value.Valid = true
-	propertyc2p4.ClassificationPM.String = "UNCLASSIFIED"
-	propertyc2p4.ClassificationPM.Valid = true
+	propertyc2p4.Value = models.ToNullString("Test Property 4 Value")
+	propertyc2p4.ClassificationPM = models.ToNullString("UNCLASSIFIED")
 	_, err = d.AddPropertyToObject(dbChild2, &propertyc2p4)
 	if err != nil {
 		t.Error(err)
@@ -178,17 +166,15 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	var propertyc2p5 models.ODProperty
 	propertyc2p5.CreatedBy = dbChild2.CreatedBy
 	propertyc2p5.Name = "Test Property C2P5"
-	propertyc2p5.Value.String = "Test Property 5 Value"
-	propertyc2p5.Value.Valid = true
-	propertyc2p5.ClassificationPM.String = "UNCLASSIFIED"
-	propertyc2p5.ClassificationPM.Valid = true
+	propertyc2p5.Value = models.ToNullString("Test Property 5 Value")
+	propertyc2p5.ClassificationPM = models.ToNullString("UNCLASSIFIED")
 	_, err = d.AddPropertyToObject(dbChild2, &propertyc2p5)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// Get child objects with properties from a single page of up to 10
-	user := models.ODUser{DistinguishedName: user1}
+	user := setupUserWithSnippets(user1)
 	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: 10, SortSettings: []dao.SortSetting{dao.SortSetting{SortField: "name", SortAscending: true}}}
 	resultset, err := d.GetChildObjectsWithPropertiesByUser(user, pagingRequest, dbParent)
 	if err != nil {
@@ -253,7 +239,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 			t.Error(fmt.Errorf("Expected child on page 2 to have 5 properties, but it had %d", len(resultset.Objects[0].Properties)))
 		}
 	}
-	user.DistinguishedName = user2
+	user = setupUserWithSnippets(user2)
 	pagingRequest.PageNumber = 1
 	pagingRequest.PageSize = 10
 	resultset, err = d.GetChildObjectsWithPropertiesByUser(user, pagingRequest, parent)

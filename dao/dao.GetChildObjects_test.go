@@ -19,8 +19,7 @@ func TestDAOGetChildObjects(t *testing.T) {
 	var parent models.ODObject
 	parent.Name = "Test GetChildObjects Parent"
 	parent.CreatedBy = usernames[1]
-	parent.TypeName.String = "Test Type"
-	parent.TypeName.Valid = true
+	parent.TypeName = models.ToNullString("Test Type")
 	parent.RawAcm.String = testhelpers.ValidACMUnclassified
 	dbParent, err := d.CreateObject(&parent)
 	if err != nil {
@@ -41,8 +40,7 @@ func TestDAOGetChildObjects(t *testing.T) {
 	child.Name = "Test GetChildObjects Child"
 	child.CreatedBy = usernames[1]
 	child.ParentID = dbParent.ID
-	child.TypeName.String = "Test Type"
-	child.TypeName.Valid = true
+	child.TypeName = models.ToNullString("Test Type")
 	child.RawAcm.String = testhelpers.ValidACMUnclassified
 	dbChild, err := d.CreateObject(&child)
 	if err != nil {

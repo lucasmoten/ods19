@@ -35,7 +35,7 @@ func TestCreateFolderProtocol(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.Header.Add("USER_DN", fakeDN1)
+	r.Header.Add("USER_DN", fakeDN0)
 	r.Header.Add("SSL_CLIENT_S_DN", whitelistedDN)
 	r.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()

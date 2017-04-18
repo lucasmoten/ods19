@@ -34,10 +34,13 @@ func TestListObjectsTrashedJSONResponse(t *testing.T) {
 		Users:           []models.ODUser{user},
 	}
 
-	snippetResp := testhelpers.GetTestSnippetResponse()
+	snippetResponse := aac.SnippetResponse{
+		Success:  true,
+		Snippets: testhelpers.SnippetTP10,
+	}
 
 	fakeAAC := aac.FakeAAC{
-		SnippetResp: snippetResp,
+		SnippetResp: &snippetResponse,
 		Err:         nil,
 	}
 	fakeQueue := kafka.NewFakeAsyncProducer(nil)

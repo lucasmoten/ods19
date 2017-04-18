@@ -40,15 +40,21 @@ func getRootObjectsByGroupInTransaction(tx *sqlx.Tx, groupName string, user mode
         o.id      
     from object o
         inner join object_type ot on o.typeid = ot.id
-        inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1
-        inner join objectacm acm on o.id = acm.objectid
-    where o.isdeleted = 0 and o.parentid is null `
+        inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1 `
+	if isOption409() {
+		query += `inner join acm2 on o.acmid = acm2.id inner join useracm on acm2.id = useracm.acmid inner join user on useracm.userid = user.id and user.distinguishedname = '`
+		query += MySQLSafeString(user.DistinguishedName)
+		query += `'`
+	} else {
+		query += `inner join objectacm on o.id = objectacm.objectid `
+	}
+	query += ` where o.isdeleted = 0 and o.parentid is null `
 	query += buildFilterRequireObjectsGroupOwns(tx, groupName)
-	query += buildFilterForUserACMShare(user)
-	query += buildFilterForUserSnippets(user)
+	query += buildFilterForUserACMShare(tx, user)
+	if isOption409() {
+		query += buildFilterForUserSnippets(user)
+	}
 	query += buildFilterSortAndLimit(pagingRequest)
-
-	//log.Println(query)
 	err := tx.Select(&response.Objects, query)
 	if err != nil {
 		return response, err

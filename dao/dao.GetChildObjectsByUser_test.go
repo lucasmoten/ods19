@@ -31,18 +31,19 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 	permissions[0].Grantee = models.AACFlatten(usernames[1])
 	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
 	permissions[0].AcmGrantee.Grantee = permissions[0].Grantee
-	permissions[0].AcmGrantee.UserDistinguishedName.String = permissions[0].Grantee
-	permissions[0].AcmGrantee.UserDistinguishedName.Valid = true
+	permissions[0].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[1])
+	permissions[0].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[1])
 	permissions[0].AllowCreate = true
 	permissions[0].AllowRead = true
 	permissions[0].AllowUpdate = true
 	permissions[0].AllowDelete = true
+	permissions[0].AllowShare = true
 	permissions[1].CreatedBy = parent.CreatedBy
 	permissions[1].Grantee = models.AACFlatten(usernames[2])
 	permissions[1].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[2])
 	permissions[1].AcmGrantee.Grantee = permissions[1].Grantee
-	permissions[1].AcmGrantee.UserDistinguishedName.String = permissions[1].Grantee
-	permissions[1].AcmGrantee.UserDistinguishedName.Valid = true
+	permissions[1].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[2])
+	permissions[1].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[2])
 	permissions[1].AllowCreate = true
 	permissions[1].AllowRead = true
 	parent.Permissions = permissions
@@ -73,12 +74,13 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 		permissions1[0].Grantee = models.AACFlatten(usernames[1])
 		permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
 		permissions1[0].AcmGrantee.Grantee = permissions1[0].Grantee
-		permissions1[0].AcmGrantee.UserDistinguishedName.String = permissions1[0].Grantee
-		permissions1[0].AcmGrantee.UserDistinguishedName.Valid = true
+		permissions1[0].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[1])
+		permissions1[0].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[1])
 		permissions1[0].AllowCreate = true
 		permissions1[0].AllowRead = true
 		permissions1[0].AllowUpdate = true
 		permissions1[0].AllowDelete = true
+		permissions1[0].AllowShare = true
 		child1.Permissions = permissions1
 		dbChild1, err := d.CreateObject(&child1)
 		if err != nil {
@@ -101,27 +103,27 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 		child2.Name = "Test GetChildObjectsByUser Child by TP2"
 		child2.CreatedBy = usernames[2]
 		child2.ParentID = dbParent.ID
-		child2.TypeName.String = "Test Type"
-		child2.TypeName.Valid = true
+		child2.TypeName = models.ToNullString("Test Type")
 		child2.RawAcm.String = testhelpers.ValidACMUnclassified
 		// NEW! Add permissions...
 		permissions2 := make([]models.ODObjectPermission, 2)
 		permissions2[0].CreatedBy = child2.CreatedBy
-		permissions2[0].Grantee = models.AACFlatten(usernames[1])
-		permissions2[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
+		permissions2[0].Grantee = models.AACFlatten(permissions2[0].CreatedBy)
+		permissions2[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, permissions2[0].CreatedBy)
 		permissions2[0].AcmGrantee.Grantee = permissions2[0].Grantee
-		permissions2[0].AcmGrantee.UserDistinguishedName.String = permissions2[0].Grantee
-		permissions2[0].AcmGrantee.UserDistinguishedName.Valid = true
+		permissions2[0].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[1])
+		permissions2[0].AcmGrantee.UserDistinguishedName = models.ToNullString(permissions2[0].CreatedBy)
 		permissions2[0].AllowCreate = true
 		permissions2[0].AllowRead = true
 		permissions2[0].AllowUpdate = true
 		permissions2[0].AllowDelete = true
+		permissions2[0].AllowShare = true
 		permissions2[1].CreatedBy = child2.CreatedBy
 		permissions2[1].Grantee = models.AACFlatten(usernames[2])
 		permissions2[1].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[2])
 		permissions2[1].AcmGrantee.Grantee = permissions2[1].Grantee
-		permissions2[1].AcmGrantee.UserDistinguishedName.String = permissions2[1].Grantee
-		permissions2[1].AcmGrantee.UserDistinguishedName.Valid = true
+		permissions2[1].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[2])
+		permissions2[1].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[2])
 		permissions2[1].AllowCreate = true
 		permissions2[1].AllowRead = true
 		child2.Permissions = permissions2
@@ -141,7 +143,7 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 		if !bytes.Equal(dbChild2.ParentID, dbParent.ID) {
 			t.Error("expected child parentID to match parent ID")
 		}
-		user := models.ODUser{DistinguishedName: dbChild2.CreatedBy}
+		user := setupUserWithSnippets(dbChild2.CreatedBy)
 		pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: 10}
 		resultset, err := d.GetChildObjectsByUser(user, pagingRequest, dbParent)
 		if err != nil {

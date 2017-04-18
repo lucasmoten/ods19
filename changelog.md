@@ -2,6 +2,17 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release v1.0.1.19
+--------------------
+* FIX: Spelling correction to content type assignment for files having extension xlsx.
+* DOC: API Documentation now denotes Get Bulk Properties is via POST method.
+* DOC: API Documentation now indicates proper default (false) for sortAscending.
+* ENH: Performance Improvements for List/Search operations.
+* ENH: Database Migration tool will now periodically output status for long running migrations.
+* ENH: Database Migration tool will check if database parameters are setup when using binary logging.
+* ENH: Search/List filters have additional experimental filter conditions begins, ends, notbegins, notends, notcontains, notequals.
+* DB: The database schema version is now 20170331. A migration should be performed.
+
 ## Release v1.0.1.18
 --------------------
 * FIX: Check that cache files exist before attempting to remove them.

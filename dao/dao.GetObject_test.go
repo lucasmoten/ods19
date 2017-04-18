@@ -19,14 +19,16 @@ func TestDAOGetObject(t *testing.T) {
 	obj.TypeName = models.ToNullString("File")
 
 	permissions := make([]models.ODObjectPermission, 1)
-	permissions[0].Grantee = obj.CreatedBy
+	permissions[0].Grantee = models.AACFlatten(obj.CreatedBy)
 	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, permissions[0].Grantee)
 	permissions[0].AcmGrantee.Grantee = permissions[0].Grantee
-	permissions[0].AcmGrantee.UserDistinguishedName = models.ToNullString(permissions[0].Grantee)
+	permissions[0].AcmGrantee.UserDistinguishedName = models.ToNullString(obj.CreatedBy)
+	permissions[0].AcmGrantee.ResourceString = models.ToNullString("user/" + obj.CreatedBy)
 	permissions[0].AllowCreate = true
 	permissions[0].AllowRead = true
 	permissions[0].AllowUpdate = true
 	permissions[0].AllowDelete = true
+	permissions[0].AllowShare = true
 	obj.Permissions = permissions
 
 	properties := make([]models.ODObjectPropertyEx, 1)

@@ -372,7 +372,7 @@ Delete a set of objects.  It requires the id and the change token for each one.
 
 ## Bulk object properties [/objects/properties]
 
-### Get bulk object properties [GET]
+### Get bulk object properties [POST]
 Get multiple objects at once
 
 This returns an object result set.  Note that because this gets
@@ -1177,8 +1177,8 @@ This microservice operation will remove an object from the trash and delete it f
             + `ownedby`
             + `typename`
             + `uspersons`
-    + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-        + Default: true
+    + sortAscending: true (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
+        + Default: false
 
 
 
@@ -1286,8 +1286,8 @@ This microservice operation will remove an object from the trash and delete it f
             + `ownedby`
             + `typename`
             + `uspersons`
-    + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-        + Default: true
+    + sortAscending: true (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
+        + Default: false
     + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
         + Default: `or`
         + Members
@@ -1359,8 +1359,8 @@ This microservice operation will remove an object from the trash and delete it f
             + `ownedby`
             + `typename`
             + `uspersons`
-    + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-        + Default: true
+    + sortAscending: true (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
+        + Default: false
     + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
         + Default: `or`
         + Members
@@ -1434,8 +1434,8 @@ This microservice operation retrieves a list of objects with no parent owned by 
             + `ownedby`
             + `typename`
             + `uspersons`
-    + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-        + Default: true
+    + sortAscending: true (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
+        + Default: false
     + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
         + Default: `or`
         + Members
@@ -1514,8 +1514,8 @@ Purpose: This microservice operation retrieves a list of objects contained withi
             + `ownedby`
             + `typename`
             + `uspersons`
-    + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-        + Default: true
+    + sortAscending: true (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
+        + Default: false
     + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
         + Default: `or`
         + Members
@@ -1547,7 +1547,7 @@ Purpose: This microservice operation retrieves a list of objects contained withi
     
 ### List Objects Shared to Everyone [GET]
 
-This microservice operation retrieves a list of objects that are shared to everyone, but excludes those whose immediate parent is also shared to everyone, thus providing contextual root shares.
+This microservice operation retrieves a list of objects that are shared to everyone.
 
 + Request
 
@@ -1745,8 +1745,8 @@ This changes ownership of files in bulk.  It behaves like multiple changeOwner r
             + `ownedby`
             + `typename`
             + `uspersons`
-    + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-        + Default: true
+    + sortAscending: true (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
+        + Default: false
     + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
         + Default: `or`
         + Members
@@ -1822,8 +1822,8 @@ This microservice operation retrieves a list of objects at the root owned by the
             + `ownedby`
             + `typename`
             + `uspersons`
-    + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-        + Default: true
+    + sortAscending: true (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
+        + Default: false
     + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
         + Default: `or`
         + Members
@@ -1903,8 +1903,8 @@ This microservice operation retrieves a list of objects that the user has shared
             + `ownedby`
             + `typename`
             + `uspersons`
-    + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-        + Default: true
+    + sortAscending: true (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
+        + Default: false
     + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
         + Default: `or`
         + Members
@@ -1985,8 +1985,8 @@ This microservice operation retrieves a list of objects that the user has shared
             + `ownedby`
             + `typename`
             + `uspersons`
-    + sortAscending: false (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-        + Default: true
+    + sortAscending: true (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
+        + Default: false
     + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
         + Default: `or`
         + Members

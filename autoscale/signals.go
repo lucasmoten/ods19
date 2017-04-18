@@ -225,7 +225,7 @@ func (as *AutoScaler) WatchForShutdownByMessage() {
 		return
 	}
 
-	//Log setup parameters as sanity check
+	// Report setup parameters as sanity check
 	logger.Info(
 		"sqs queue",
 		zap.String("queueName", as.Config.QueueName),

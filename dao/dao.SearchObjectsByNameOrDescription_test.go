@@ -187,21 +187,20 @@ func TestDAOSearchObjectsAndOrFilter(t *testing.T) {
 func setupObjectForDAOSearchObjectsTest(name string) models.ODObject {
 	var obj models.ODObject
 	obj.Name = "Test " + name + " Name"
-	obj.Description.String = name + " Description"
-	obj.Description.Valid = true
+	obj.Description = models.ToNullString(name + " Description")
 	obj.CreatedBy = usernames[1]
-	obj.TypeName.String = "File"
-	obj.TypeName.Valid = true
+	obj.TypeName = models.ToNullString("File")
 	permissions := make([]models.ODObjectPermission, 1)
 	permissions[0].Grantee = models.AACFlatten(obj.CreatedBy)
 	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, permissions[0].CreatedBy)
 	permissions[0].AcmGrantee.Grantee = permissions[0].Grantee
-	permissions[0].AcmGrantee.UserDistinguishedName.String = permissions[0].CreatedBy
-	permissions[0].AcmGrantee.UserDistinguishedName.Valid = true
+	permissions[0].AcmGrantee.ResourceString = models.ToNullString("user/" + obj.CreatedBy)
+	permissions[0].AcmGrantee.UserDistinguishedName = models.ToNullString(permissions[0].CreatedBy)
 	permissions[0].AllowCreate = true
 	permissions[0].AllowRead = true
 	permissions[0].AllowUpdate = true
 	permissions[0].AllowDelete = true
+	permissions[0].AllowShare = true
 	obj.Permissions = permissions
 	obj.RawAcm.String = testhelpers.ValidACMUnclassified
 	return obj

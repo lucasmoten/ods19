@@ -54,3 +54,19 @@ type ODUserResultset struct {
 	Resultset
 	Users []ODUser
 }
+
+// ODUserAOCache captures the attributes for metadata about the state of a
+// User's Authorization Object Cache
+type ODUserAOCache struct {
+	// ID is the unique identifier for an item in Object Drive.
+	ID int64 `db:"id"`
+	// UserID is the unique identifier associating to the user
+	UserID []byte `db:"userid"`
+	// IsCaching indicates whether a separate routine, perhaps from this same
+	// process, or a peer is currently rebuilding the user's cache
+	IsCaching bool `db:"iscaching"`
+	// CacheDate denotes how long ago this cache was rebuilt
+	CacheDate NullTime `db:"cachedate"`
+	// SHA256Hash is the SHA-256 bit hash of the user's snippets
+	SHA256Hash string `db:"sha256hash"`
+}

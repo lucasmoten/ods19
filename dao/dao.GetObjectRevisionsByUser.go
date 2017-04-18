@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"strings"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 
@@ -63,17 +65,23 @@ func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagi
         ,ao.containsUSPersonsData
         ,ao.exemptFromFOIA
         ,ot.name typeName
+		,ao.acmid
     from a_object ao 
         inner join object_type ot on ao.typeid = ot.id
-        inner join object_permission op on ao.id = op.objectid and op.isdeleted = 0 and op.allowread = 1
-        inner join objectacm acm on ao.id = acm.objectid
-    where 
-        ao.isexpunged = 0
-        and ao.id = ? 
-    `
-	query += buildFilterForUserACMShare(user)
-	query += buildFilterForUserSnippets(user)
+        inner join object_permission op on ao.id = op.objectid and op.isdeleted = 0 and op.allowread = 1 `
+	query += buildJoinUserToACM(tx, user)
+	query += ` where ao.isdeleted = 0 and ao.id = ? `
+	query += buildFilterForUserACMShare(tx, user)
+	if !isOption409() {
+		query += buildFilterForUserSnippets(user)
+	}
 	query += buildFilterSortAndLimitArchive(pagingRequest)
+	if isOption409() {
+		query = strings.Replace(query, "a_object ao", "a_object o", -1)
+		query = strings.Replace(query, "ao.", "o.", -1)
+	} else {
+		query = strings.Replace(query, "on o.id =", "on ao.id =", -1)
+	}
 	err := tx.Select(&response.Objects, query, object.ID)
 	if err != nil {
 		return response, err

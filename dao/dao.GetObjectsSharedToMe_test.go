@@ -29,14 +29,14 @@ func TestDAOGetObjectsSharedToMe(t *testing.T) {
 	var object1 models.ODObject
 	object1.CreatedBy = usernames[1]
 	object1.Name = searchPrefix + " object1 (shared to user1)"
-	object1.TypeName.String = "Test Object"
-	object1.TypeName.Valid = true
+	object1.TypeName = models.ToNullString("Test Object")
 	object1.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions1 := make([]models.ODObjectPermission, 2)
 	permissions1[0].CreatedBy = object1.CreatedBy
 	permissions1[0].Grantee = models.AACFlatten(usernames[1])
 	permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
 	permissions1[0].AcmGrantee.Grantee = permissions1[0].Grantee
+	permissions1[0].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[1])
 	permissions1[0].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[1])
 	permissions1[0].AllowCreate = true
 	permissions1[0].AllowRead = true
@@ -47,6 +47,7 @@ func TestDAOGetObjectsSharedToMe(t *testing.T) {
 	permissions1[1].Grantee = models.AACFlatten(usernames[2])
 	permissions1[1].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[2])
 	permissions1[1].AcmGrantee.Grantee = permissions1[1].Grantee
+	permissions1[1].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[2])
 	permissions1[1].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[2])
 	permissions1[1].AllowRead = true
 	object1.Permissions = permissions1
@@ -63,14 +64,14 @@ func TestDAOGetObjectsSharedToMe(t *testing.T) {
 	var object2 models.ODObject
 	object2.CreatedBy = usernames[1]
 	object2.Name = searchPrefix + " object2 (shared to everyone)"
-	object2.TypeName.String = "Test Object"
-	object2.TypeName.Valid = true
+	object2.TypeName = models.ToNullString("Test Object")
 	object2.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions2 := make([]models.ODObjectPermission, 2)
 	permissions2[0].CreatedBy = object1.CreatedBy
 	permissions2[0].Grantee = models.AACFlatten(usernames[1])
 	permissions2[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
 	permissions2[0].AcmGrantee.Grantee = permissions2[0].Grantee
+	permissions2[0].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[1])
 	permissions2[0].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[1])
 	permissions2[0].AllowCreate = true
 	permissions2[0].AllowRead = true
@@ -81,6 +82,7 @@ func TestDAOGetObjectsSharedToMe(t *testing.T) {
 	permissions2[1].Grantee = models.AACFlatten(models.EveryoneGroup)
 	permissions2[1].AcmShare = fmt.Sprintf(`{"projects":{"%s":{"disp_nm":"%s","groups":["%s"]}}}`, "", "", models.EveryoneGroup)
 	permissions2[1].AcmGrantee.Grantee = permissions2[1].Grantee
+	permissions2[1].AcmGrantee.ResourceString = models.ToNullString("group/" + models.EveryoneGroup)
 	permissions2[1].AcmGrantee.GroupName = models.ToNullString(models.EveryoneGroup)
 	permissions2[1].AllowRead = true
 	object2.Permissions = permissions2
@@ -186,14 +188,14 @@ func TestDAOGetObjectsSharedToMeWithApostropheInDN595(t *testing.T) {
 	var object1 models.ODObject
 	object1.CreatedBy = usernames[1]
 	object1.Name = searchPrefix + " object1 (shared to user11)"
-	object1.TypeName.String = "Test Object"
-	object1.TypeName.Valid = true
+	object1.TypeName = models.ToNullString("Test Object")
 	object1.RawAcm.String = testhelpers.ValidACMUnclassifiedFOUOSharedToDAOTester11
 	permissions1 := make([]models.ODObjectPermission, 2)
 	permissions1[0].CreatedBy = object1.CreatedBy
 	permissions1[0].Grantee = models.AACFlatten(usernames[1])
 	permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
 	permissions1[0].AcmGrantee.Grantee = permissions1[0].Grantee
+	permissions1[0].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[1])
 	permissions1[0].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[1])
 	permissions1[0].AllowCreate = true
 	permissions1[0].AllowRead = true
@@ -204,6 +206,7 @@ func TestDAOGetObjectsSharedToMeWithApostropheInDN595(t *testing.T) {
 	permissions1[1].Grantee = models.AACFlatten(usernames[11])
 	permissions1[1].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[11])
 	permissions1[1].AcmGrantee.Grantee = permissions1[1].Grantee
+	permissions1[1].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[11])
 	permissions1[1].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[11])
 	permissions1[1].AllowRead = true
 	object1.Permissions = permissions1

@@ -32,6 +32,18 @@ func FullDecode(r io.ReadCloser, obj interface{}) error {
 	return err
 }
 
+// FullDecodeRawString reads all of reader into buffer, populates json if possible, converts to string returning any error
+func FullDecodeRawString(r io.ReadCloser, obj interface{}) (string, error) {
+	buf, err := ioutil.ReadAll(r)
+	if err != nil {
+		return "", err
+	}
+	err = json.Unmarshal(buf, obj)
+	rawString := string(buf)
+	FinishBody(r)
+	return rawString, err
+}
+
 // FinishBody ensures that body is completely consumed - call in a defer
 func FinishBody(r io.ReadCloser) {
 	if r != nil {

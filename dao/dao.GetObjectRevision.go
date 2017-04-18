@@ -62,6 +62,7 @@ func getObjectRevisionInTransaction(tx *sqlx.Tx, object models.ODObject, loadPro
         ,ao.containsUSPersonsData
         ,ao.exemptFromFOIA
         ,ot.name typeName
+        ,ao.acmid
     from a_object ao 
         inner join object o on ao.id = o.id
         inner join object_type ot on ao.typeid = ot.id
