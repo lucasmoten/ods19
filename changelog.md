@@ -2,6 +2,10 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release v1.0.1.21
+--------------------
+* CFG: Docker container for metadatadb innodb_buffer_pool_size being set to 128MB.
+
 ## Release v1.0.1.20
 --------------------
 * FIX: Migration for 20170331 now forces creation of aacflatten function if not present.
