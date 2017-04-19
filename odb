@@ -526,6 +526,13 @@ class Builder(object):
         checked_out_repo = os.path.join(self.checkout_dir, repo)
         if os.path.exists(checked_out_repo):
             self.logger.info("git repository {0} already checked out. Skipping clone...".format(repo))
+            try:
+                subprocess.check_call(
+                    ['git', 'checkout', '-B', tag],
+                    stdout=sys.stdout, stderr=sys.stderr)
+            except subprocess.CalledProcessError as e:
+                self.logger.error("Error from git checkout: {0}".format(e))
+                sys.exit(1)                
             return
         try:
             # Checkout the repo to our checkout directory

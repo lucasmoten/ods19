@@ -29,8 +29,8 @@ RUN useradd aac
 #All files (edited) that are supplied by us
 ADD build/aac-fs.tgz /
 RUN chown -R aac:aac /opt/cte
-RUN ln -s /opt/cte/aac-1.1.3-SNAPSHOT /opt/cte/aac-1.1.3
-RUN ln -s /opt/cte/aac-1.1.3/bin/aac /etc/init.d/aac-1.1.3
+RUN ln -s /opt/cte/aac-1.1.4-SNAPSHOT /opt/cte/aac-1.1.4
+RUN ln -s /opt/cte/aac-1.1.4/bin/aac /etc/init.d/aac-1.1.4
 RUN chown aac:aac /opt/cte
 
 

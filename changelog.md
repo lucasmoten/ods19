@@ -5,6 +5,7 @@ FORMAT: 1A
 ## Release v1.0.1.21
 --------------------
 * CFG: Docker container for metadatadb innodb_buffer_pool_size being set to 128MB.
+* FIX: Docker container for aac upgraded to 1.1.4
 
 ## Release v1.0.1.20
 --------------------
