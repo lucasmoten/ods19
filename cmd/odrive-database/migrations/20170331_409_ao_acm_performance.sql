@@ -279,6 +279,35 @@ END;
 CALL sp_Patch_20170331_tables_ownedbyid();
 DROP PROCEDURE IF EXISTS sp_Patch_20170331_tables_ownedbyid;    
 
+drop function if exists aacflatten;
+-- +migrate StatementBegin
+CREATE FUNCTION aacflatten(dn varchar(255)) RETURNS varchar(255) DETERMINISTIC
+BEGIN
+    DECLARE o varchar(255);
+
+    SET o := dn;
+    -- empty list
+    SET o := REPLACE(o, ' ', '');
+    SET o := REPLACE(o, ',', '');
+    SET o := REPLACE(o, '=', '');
+    SET o := REPLACE(o, '''', '');
+    SET o := REPLACE(o, ':', '');
+    SET o := REPLACE(o, '(', '');
+    SET o := REPLACE(o, ')', '');
+    SET o := REPLACE(o, '$', '');
+    SET o := REPLACE(o, '[', '');
+    SET o := REPLACE(o, ']', '');
+    SET o := REPLACE(o, '{', '');
+    SET o := REPLACE(o, ']', '');
+    SET o := REPLACE(o, '|', '');
+    SET o := REPLACE(o, '\\', '');
+    -- underscore list
+    SET o := REPLACE(o, '.', '_');
+    SET o := REPLACE(o, '-', '_');
+    RETURN o;
+END;
+-- +migrate StatementEnd
+
 -- If a value needs altered in object_permission, what do we need to do to fix the hash? and does it impact the file ?
 INSERT INTO migration_status SET description = '20170331_409_ao_acm_performance.sql fixing invalid grantee in acmgrantee';
 DROP PROCEDURE IF EXISTS sp_Patch_20170331_grantee_flattening;

@@ -2,6 +2,10 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release v1.0.1.20
+--------------------
+* FIX: Migration for 20170331 now forces creation of aacflatten function if not present.
+
 ## Release v1.0.1.19
 --------------------
 * FIX: Spelling correction to content type assignment for files having extension xlsx.
