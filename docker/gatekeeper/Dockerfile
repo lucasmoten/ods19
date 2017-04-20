@@ -16,6 +16,4 @@ ADD fs.tgz /
 RUN mkdir /etc/nginx/html/apps
 RUN ln -s /etc/nginx/html/apps /etc/nginx/apps
 
-RUN if `ls *.rpm`; then rpm -i `ls *.rpm`; else echo ""; echo "***** Drive UI is not installed"; echo ""; fi
-
 EXPOSE 8080
