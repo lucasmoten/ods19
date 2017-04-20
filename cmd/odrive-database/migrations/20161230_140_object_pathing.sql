@@ -549,10 +549,20 @@ CALL sp_Patch_FolderHierarchy('${OD_ENCRYPT_MASTERKEY}');
 DROP PROCEDURE IF EXISTS sp_Patch_FolderHierarchy;
 
 -- add field to acmgrantee table to store resourceString representation
-ALTER TABLE acmgrantee 
-    ADD COLUMN resourceString varchar(300) after grantee,
-    ADD INDEX ix_resourceString (resourceString)
-;
+DROP PROCEDURE IF EXISTS sp_Patch_20161230_tables_acmgrantee;
+-- +migrate StatementBegin
+CREATE PROCEDURE sp_Patch_20161230_tables_acmgrantee()
+BEGIN
+    IF NOT EXISTS ( select null from information_schema.columns where table_schema = database() and table_name = 'acmgrantee' and column_name = 'resourceString') THEN
+        ALTER TABLE acmgrantee ADD COLUMN resourceString varchar(300) after grantee;
+    END IF;
+    IF NOT EXISTS ( select null from information_schema.statistics where table_schema = database() and table_name = 'acmgrantee' and column_name = 'resourceString') THEN
+        ALTER TABLE acmgrantee ADD INDEX ix_resourceString (resourceString);
+    END IF;
+END;
+-- +migrate StatementEnd
+CALL sp_Patch_20161230_tables_acmgrantee();
+DROP PROCEDURE IF EXISTS sp_Patch_20161230_tables_acmgrantee;  
 
 -- a temporary procedure that will populate the resourceString from the other fields in the acmgrantee table
 DROP PROCEDURE IF EXISTS sp_Patch_PopulateResourceStrings;
@@ -1250,11 +1260,27 @@ BEGIN
 	SET NEW.identifier := concat(@@hostname, '-', left(uuid(),8));
 END;
 -- +migrate StatementEnd
-update dbstate set schemaVersion = '20161230';
+-- update schema. This is unique here to accomodate an instance that was manually set to the version.
+update dbstate set schemaVersion = '20161230' where schemaVersion <> '20161230';
 
 -- +migrate Down
-DROP INDEX ix_resourceString ON acmgrantee;
-ALTER TABLE acmgrantee DROP COLUMN resourceString;
+
+DROP PROCEDURE IF EXISTS sp_Patch_20161230_tables_acmgrantee;
+-- +migrate StatementBegin
+CREATE PROCEDURE sp_Patch_20161230_tables_acmgrantee()
+BEGIN
+    IF EXISTS ( select null from information_schema.statistics where table_schema = database() and table_name = 'acmgrantee' and column_name = 'resourceString') THEN
+        DROP INDEX ix_resourceString ON acmgrantee;
+    END IF;
+    IF EXISTS ( select null from information_schema.columns where table_schema = database() and table_name = 'acmgrantee' and column_name = 'resourceString') THEN
+        ALTER TABLE acmgrantee DROP COLUMN resourceString;
+    END IF;
+END;
+-- +migrate StatementEnd
+CALL sp_Patch_20161230_tables_acmgrantee();
+DROP PROCEDURE IF EXISTS sp_Patch_20161230_tables_acmgrantee;  
+
+-- remove table for pathing
 DROP TABLE IF EXISTS object_pathing;
 
 -- remove triggers on object for create/update
