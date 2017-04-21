@@ -148,7 +148,7 @@ func configureEventQueue(app *AppServer, conf config.EventQueueConfiguration, zk
 		ap, err := kafka.DiscoverKafka(conn, "/brokers/ids", setter, kafka.WithLogger(logger), kafka.WithPublishActions(conf.PublishSuccessActions, conf.PublishFailureActions))
 		for ap == nil || err != nil {
 			logger.Warn("kafka was not discovered in zookeeper.", zap.Int("waitTime in seconds", waitTime))
-			if waitTime > 10 {
+			if waitTime > 600 {
 				logger.Error(
 					"kafka discovery is taking too long",
 					zap.Int("waitTime in Seconds", waitTime),
