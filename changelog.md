@@ -7,6 +7,7 @@ FORMAT: 1A
 * CFG: Docker container for metadatadb innodb_buffer_pool_size being set to 128MB.
 * FIX: Docker container for aac upgraded to 1.1.4
 * FIX: Migration Script for 20161230 is now more resilient to multiple runs.
+* ENH: Wait up to 10 minutes for kafka availability on startup before failing.
 
 ## Release v1.0.1.20
 --------------------
