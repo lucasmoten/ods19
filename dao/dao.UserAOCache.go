@@ -2,9 +2,7 @@ package dao
 
 import (
 	"database/sql"
-	"encoding/hex"
 	"fmt"
-	"log"
 	"time"
 
 	"decipher.com/object-drive-server/metadata/models"
@@ -445,7 +443,6 @@ func insertUserACM(tx *sqlx.Tx, user models.ODUser, acmID int64) error {
 	if ra == 0 {
 		return fmt.Errorf("insertUserACM did not affect any rows, %s", err.Error())
 	}
-	log.Printf("associating user %s to acm %d", hex.EncodeToString(user.ID), acmID)
 	return nil
 }
 

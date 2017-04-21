@@ -2,7 +2,6 @@ package server_test
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"testing"
 	"time"
@@ -52,14 +51,14 @@ func TestAOACMPerformance(t *testing.T) {
 				}
 				req, err := http.NewRequest("GET", uri, nil)
 				if err != nil {
-					log.Printf("Error setting up HTTP Request: %v", err)
+					t.Logf("Error setting up HTTP Request: %v", err)
 					t.FailNow()
 				}
 				req.Header.Set("Content-Type", "application/json")
 				timeStart := time.Now()
 				res, err := clients[i].Client.Do(req)
 				if err != nil {
-					log.Printf("Unable to do request: %v", err)
+					t.Logf("Unable to do request: %v", err)
 					t.FailNow()
 				}
 				duration := time.Since(timeStart).Seconds()
@@ -71,8 +70,8 @@ func TestAOACMPerformance(t *testing.T) {
 						var listOfObjects protocol.ObjectResultset
 						rawString, err := util.FullDecodeRawString(res.Body, &listOfObjects)
 						if err != nil {
-							log.Printf("error decoding body: %v", err)
-							log.Printf("%s", rawString)
+							t.Logf("error decoding body: %v", err)
+							t.Logf("%s", rawString)
 							t.FailNow()
 						}
 						matches = listOfObjects.TotalRows

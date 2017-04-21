@@ -1,8 +1,6 @@
 package dao
 
 import (
-	"log"
-
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 
@@ -47,9 +45,6 @@ func getObjectsIHaveSharedInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
 		query += buildFilterForUserSnippets(user)
 	}
 	query += buildFilterSortAndLimit(pagingRequest)
-	log.Printf("--- TEST MARKER ---")
-	log.Printf(query)
-	log.Printf("--- TEST MARKER ---")
 	err := tx.Select(&response.Objects, query)
 	if err != nil {
 		return response, err
