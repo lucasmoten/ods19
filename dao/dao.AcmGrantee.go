@@ -103,6 +103,7 @@ func createAcmGranteeInTransaction(logger zap.Logger, tx *sqlx.Tx, acmGrantee mo
 		acmGrantee.ResourceString = models.ToNullString(acmGrantee.ResourceName())
 	}
 	acmGrantee.ResourceString = models.ToNullString(removeDisplayNameFromResourceString(acmGrantee.ResourceString.String))
+	acmGrantee.Grantee = models.AACFlatten(acmGrantee.Grantee)
 
 	var dbAcmGrantee models.ODAcmGrantee
 	addAcmGranteeStatement, err := tx.Preparex(

@@ -285,7 +285,7 @@ CREATE FUNCTION aacflatten(dn varchar(255)) RETURNS varchar(255) DETERMINISTIC
 BEGIN
     DECLARE o varchar(255);
 
-    SET o := dn;
+    SET o := LOWER(dn);
     -- empty list
     SET o := REPLACE(o, ' ', '');
     SET o := REPLACE(o, ',', '');
