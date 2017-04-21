@@ -8,6 +8,9 @@ FORMAT: 1A
 * FIX: Docker container for aac upgraded to 1.1.4
 * FIX: Migration Script for 20161230 is now more resilient to multiple runs.
 * ENH: Wait up to 10 minutes for kafka availability on startup before failing.
+* FIX: Saving grantee during permission creation is now being normalized.
+* FIX: Database AACFlatten function now applies lowercase.
+* DB: The database schema version is now 20170421. A migration should be performed.
 
 ## Release v1.0.1.20
 --------------------
