@@ -11,6 +11,7 @@ FORMAT: 1A
 * FIX: Saving grantee during permission creation is now being normalized.
 * FIX: Database AACFlatten function now applies lowercase.
 * DB: The database schema version is now 20170421. A migration should be performed.
+* CFG: Set export OD_OPTION_409=true in env.sh to enable performance improvements.
 
 ## Release v1.0.1.20
 --------------------
@@ -26,6 +27,7 @@ FORMAT: 1A
 * ENH: Database Migration tool will check if database parameters are setup when using binary logging.
 * ENH: Search/List filters have additional experimental filter conditions begins, ends, notbegins, notends, notcontains, notequals.
 * DB: The database schema version is now 20170331. A migration should be performed.
+* CFG: Set export OD_OPTION_409=true in env.sh to enable performance improvements.
 
 ## Release v1.0.1.18
 --------------------
