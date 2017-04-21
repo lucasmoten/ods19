@@ -141,11 +141,25 @@ var Vars = []string{OD_AAC_CA,
 }
 
 // PrintODEnvironment prints the content of all environment variables required
-// by odrive.
+// by odrive. Sensitive values are redacted
 func PrintODEnvironment() {
+	var filtered = []string{
+		OD_AWS_ACCESS_KEY_ID,
+		OD_AWS_SECRET_ACCESS_KEY,
+		OD_ENCRYPT_MASTERKEY,
+		OD_DB_PASSWORD,
+	}
+	redact := func(envVar, value string) string {
+		for _, restricted := range filtered {
+			if envVar == restricted {
+				return "<redacted>"
+			}
+		}
+		return value
+	}
 	fmt.Println("object-drive environment variables. Number of vars:", len(Vars))
 	for _, variable := range Vars {
-		fmt.Printf("%s=%s\n", variable, os.Getenv(variable))
+		fmt.Printf("%s=%s\n", variable, redact(variable, os.Getenv(variable)))
 	}
 }
 
