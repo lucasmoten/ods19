@@ -150,6 +150,7 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 
 	if rebuild {
 		useraocache.CacheDate.Time = time.Now()
+		useraocache.CacheDate.Valid = true
 		useraocache.IsCaching = true
 		useraocache.SHA256Hash = snippetHash
 		if err := dao.SetUserAOCacheByDistinguishedName(&useraocache, user); err != nil {
