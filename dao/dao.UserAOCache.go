@@ -53,6 +53,7 @@ func (dao *DataAccessLayer) SetUserAOCacheByDistinguishedName(useraocache *model
 		newuseraocache := models.ODUserAOCache{}
 		newuseraocache.UserID = user.ID
 		newuseraocache.CacheDate.Time = time.Now()
+		newuseraocache.CacheDate.Valid = true
 		newuseraocache.IsCaching = true
 		newuseraocache.SHA256Hash = ""
 		useraocache = &newuseraocache
@@ -115,6 +116,7 @@ func (dao *DataAccessLayer) SetUserAOCacheByDistinguishedName(useraocache *model
 }
 
 func insertUserAOCache(tx *sqlx.Tx, useraocache *models.ODUserAOCache) error {
+	useraocache.CacheDate.Valid = true
 	stmt, err := tx.Preparex(`insert useraocache set userid = ?, iscaching = ?, cachedate = ?, sha256hash = ?`)
 	if err != nil {
 		return fmt.Errorf("insertUserAOCache error preparing add statement, %s", err.Error())
@@ -131,6 +133,7 @@ func insertUserAOCache(tx *sqlx.Tx, useraocache *models.ODUserAOCache) error {
 }
 
 func updateUserAOCache(tx *sqlx.Tx, useraocache *models.ODUserAOCache) error {
+	useraocache.CacheDate.Valid = true
 	stmt, err := tx.Preparex(`update useraocache set iscaching = ?, cachedate = ?, sha256hash = ? where userid = ?`)
 	if err != nil {
 		return fmt.Errorf("updateUserAOCache error preparing update statement, %s", err.Error())
