@@ -62,7 +62,7 @@ odrive:
         - "kafka"
 
 metadatadb:
-    image: "deciphernow/metadatadb:issue409"
+    image: "deciphernow/metadatadb:latest"
     hostname: "fqdn.for.metadatadb.local"
     environment:
         - MYSQL_CONTAINER_NAME=metadatadb
@@ -75,7 +75,7 @@ metadatadb:
         - "3309:3306"
 
 zk:
-    image: "deciphernow/zk:latest"
+    image: "jplock/zookeeper"
     ports:
         - 2181:2181
 
