@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS useraocache
     id int unsigned not null auto_increment
     ,userid binary(16) not null
     ,isCaching tinyint not null default 1
-    ,cacheDate timestamp(6) not null default current_timestamp
+    ,cacheDate timestamp(6) not null
     ,sha256hash char(64) not null
     ,CONSTRAINT pk_useraocache PRIMARY KEY (id)
     ,CONSTRAINT fk_useraocache_userid FOREIGN KEY (userid) REFERENCES user(id)
