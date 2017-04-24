@@ -2,6 +2,10 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release v1.0.1.22
+--------------------
+* DOC: API Documentation now denotes length, minvalue, maxlength, maxvalue.
+
 ## Release v1.0.1.21
 --------------------
 * CFG: Docker container for metadatadb innodb_buffer_pool_size being set to 128MB.

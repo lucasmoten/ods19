@@ -94,10 +94,10 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
 + Request With Content Stream (multipart/form-data; boundary=7518615725)
     When creating a new object with a content stream, such as a file, this must be presented in multipart/form-data format, with the metadata about the object provided in a field named 'ObjectMetadata' containing a JSON structure of the following fields.
 
-    + typeName (string, required) -  The type to be assigned to this object.  Custom types may be referenecd here for the purposes of rules or processing constraints and definition of properties.
+    + typeName (string, maxlength=255, required) -  The type to be assigned to this object.  Custom types may be referenecd here for the purposes of rules or processing constraints and definition of properties.
        * File - This type may be assigned if no type is given, and you are creating an object with a stream
        * Folder - This type may be assigned if no type is given, and you are creating an object without a stream
-    + name: `New File` (string, optional) - The name to be given this object.  If no name is given, then objects are created with the default name pattern of `New <typeName>`.
+    + name: `New File` (string, maxlength=255, optional) - The name to be given this object.  If no name is given, then objects are created with the default name pattern of `New <typeName>`.
     + namePathDelimimter: `:::` (string, optional) - An optional alternate path delimiter for which the name given should be assessed to generate intermediate objects when establishing a folder/file structure hierarchy. By default, the name will be split on the record seaprator (ASCII character 30).
        * Example splitting `abc:::def:::ghi` on `:::`
          * creates object `abc` if it does not already exist
@@ -112,8 +112,8 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
          * creates object `FOUO) Turnip Greens` as a child of `(U`
        * Example splitting `(U//FOUO) Turnip Greens` with default record separator
          * creates object `(U//FOUO) Turnip Greens`       
-    + description (string, optional) - An optional abstract of the object's contents.
-    + parentId (string, optional) - Hex encoded identifier of an object, typically a folder, into which this new object is being created as a child object. If no value is specified, then the object will be created in the root location of the user who is creating it.
+    + description (string, maxlength=10240, optional) - An optional abstract of the object's contents.
+    + parentId (string, length=32, optional) - Hex encoded identifier of an object, typically a folder, into which this new object is being created as a child object. If no value is specified, then the object will be created in the root location of the user who is creating it.
     + acm (object, required) - Access Control Model is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies.  This value may be provided in either serialized string format, or nested object format.
     + permission (PermissionRequest, optional) - [1.1] The permissions associated with this object by capability and resource allowed.  Resources take the following form:
        * {resourceType}/{serialized-representation}/{optional-display-name}
@@ -124,21 +124,21 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
          * group/{projectName}/{projectDisplayName}/{groupName}/{displayName}
          * group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1
          * group/-Everyone
-    + contentType: `text/plain` (string, optional) - The suggested mime type for the content stream if given for this object.
-    + contentSize: 0 (int, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.
-    + containsUSPersonsData: `Yes` (string, optional) - Indicates if this object contains US Persons data.
+    + contentType: `text/plain` (string, maxlength=255, optional) - The suggested mime type for the content stream if given for this object.
+    + contentSize: 0 (int, maxvalue=9223372036854775807, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.  The maxvalue given here is theoretical based upon the maximum allowable value represented in 8 bytes. The actual maximum size of an object is initially constrained by free disk storage space in the local cache on the instance the object is being created.
+    + containsUSPersonsData: `Yes` (string, maxlength=255, optional) - Indicates if this object contains US Persons data.
         + Default: `Unknown`  
         + Members
             + `Yes`
             + `No`
             + `Unknown`
-    + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  
+    + exemptFromFOIA: `No` (string, maxlength=255, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  
         + Default: `Unknown`  
         + Members
             + `Yes`
             + `No`
             + `Unknown`
-    + ownedBy: `user/{distinguishedName}/{displayName}` (string, optional) - Change ownership to group on create
+    + ownedBy: `user/{distinguishedName}/{displayName}` (string, maxlength=255, optional) - Permits assigning the ownership to a group during create
        * Groups that we are in are allowed
          * group/{projectName}/{projectDisplayName}/{groupName}/{displayName}
     + properties (properties array, optional) - Array of custom properties to be associated with the newly created object.
@@ -274,10 +274,10 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
 + Request Without a Content Stream (application/json)
     When creating a new object without a content stream, such as a folder, the object definition may be specified directly in the request body as typified below.
 
-    + typeName (string, required) -  The type to be assigned to this object.  Custom types may be referenecd here for the purposes of rules or processing constraints and definition of properties.
+    + typeName (string, maxlength=255, required) -  The type to be assigned to this object.  Custom types may be referenecd here for the purposes of rules or processing constraints and definition of properties.
        * File - This type may be assigned if no type is given, and you are creating an object with a stream
        * Folder - This type may be assigned if no type is given, and you are creating an object without a stream
-    + name: `New Folder` (string, optional) - The name to be given this object.  If no name is given, then objects are created with the default name pattern of `New <typeName>`.
+    + name: `New Folder` (string, maxlength=255, optional) - The name to be given this object.  If no name is given, then objects are created with the default name pattern of `New <typeName>`.
     + namePathDelimimter: `:::` (string, optional) - An optional alternate path delimiter for which the name given should be assessed to generate intermediate objects when establishing a folder/file structure hierarchy. By default, the name will be split on the record seaprator (ASCII character 30).
        * Example splitting `abc:::def:::ghi` on `:::`
          * creates object `abc` if it does not already exist
@@ -292,8 +292,8 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
          * creates object `FOUO) Turnip Greens` as a child of `(U`
        * Example splitting `(U//FOUO) Turnip Greens` with default record separator
          * creates object `(U//FOUO) Turnip Greens`                
-    + description (string, optional) - An optional abstract of the object's contents.
-    + parentId (string, optional) - Hex encoded identifier of an object, typically a folder, into which this new object is being created as a child object. If no value is specified, then the object will be created in the root location of the user who is creating it.
+    + description (string, maxlength=10240, optional) - An optional abstract of the object's contents.
+    + parentId (string, length=32, optional) - Hex encoded identifier of an object, typically a folder, into which this new object is being created as a child object. If no value is specified, then the object will be created in the root location of the user who is creating it.
     + acm (object, required) - Access Control Model is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies.  This value may be provided in either serialized string format, or nested object format.
     + permission (PermissionRequest, optional) - [1.1] The permissions associated with this object by capability and resource allowed.  Resources take the following form:
        * {resourceType}/{serialized-representation}/{optional-display-name}
@@ -304,20 +304,23 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
          * group/{projectName}/{projectDisplayName}/{groupName}/{displayName}
          * group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1
          * group/-Everyone
-    + contentType: `` (string, optional) - The suggested mime type for the content stream if given for this object.
-    + contentSize: 0 (int, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.
-    + containsUSPersonsData: `Yes` (string, optional) - Indicates if this object contains US Persons data.
+    + contentType: `` (string, maxlength=255, optional) - The suggested mime type for the content stream if given for this object.
+    + contentSize: 0 (int, maxvalue=9223372036854775807, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.  The maxvalue given here is theoretical based upon the maximum allowable value represented in 8 bytes. The actual maximum size of an object is initially constrained by free disk storage space in the local cache on the instance the object is being created.
+    + containsUSPersonsData: `Yes` (string, maxlength=255, optional) - Indicates if this object contains US Persons data.
         + Default: `Unknown`  
         + Members
             + `Yes`
             + `No`
             + `Unknown`
-    + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  
+    + exemptFromFOIA: `No` (string, maxlength=255, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  
         + Default: `Unknown`  
         + Members
             + `Yes`
             + `No`
             + `Unknown`
+    + ownedBy: `user/{distinguishedName}/{displayName}` (string, maxlength=255, optional) - Permits assigning the ownership to a group during create
+       * Groups that we are in are allowed
+         * group/{projectName}/{projectDisplayName}/{groupName}/{displayName}
     + properties (properties array, optional) - Array of custom properties to be associated with the newly created object.
     + permissions (array[PermissionUserCreate,PermissionGroupCreate]) - **[1.0, Deprecated]** - Array of permissions associated with this object.
 
@@ -770,7 +773,7 @@ possible a list of Errors coming back with the objects that came back successful
 Metadata for an object may be retrieved or updated at the URI designated.  
 
 + Parameters
-    + objectId: `11e5e48664f5d8c789020242ac110002` (string, required) - string Hex encoded identifier of the object to be retrieved.
+    + objectId: `11e5e48664f5d8c789020242ac110002` (string(length=32), required) - string Hex encoded identifier of the object to be retrieved.
 
 ### Get an Object [GET]
 This microservice operation retrieves the metadata about an object. 
@@ -808,10 +811,10 @@ This creates a new revision of the object.
 
     The JSON object provided in the body can contain the following fields:
 
-    + changeToken (string, required) - The current change token on the object
-    + typeName: `Folder` (string, optional) -  The type to be assigned to this object.  During update if no typeName is given, then the existing type will be retained
-    + name (string, optional) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.
-    + description (string, optional) - The new description to be given as an abstract of the objects content stream. If no value is provided, or this field is ommitted, then the description will not be changed.
+    + changeToken (string, length=32, required) - The current change token on the object
+    + typeName: `Folder` (string, maxlength=255, optional) -  The type to be assigned to this object.  During update if no typeName is given, then the existing type will be retained
+    + name (string, maxlength=255, optional) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.
+    + description (string, maxlength=10240, optional) - The new description to be given as an abstract of the objects content stream. If no value is provided, or this field is ommitted, then the description will not be changed.
     + acm (object, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. https://confluence.363-283.io/pages/viewpage.action?pageId=557850. If no value is provided, or this field is ommitted, then the acm will not be changed. This value may be provided in either serialized string format, or nested object format.
     + permission (PermissionRequest, optional) - [1.1] The permissions associated with this object by capability and resource allowed.  Resources take the following form:
        * {resourceType}/{serialized-representation}/{optional-display-name}
@@ -822,13 +825,13 @@ This creates a new revision of the object.
          * group/{projectName}/{projectDisplayName}/{groupName}/{displayName}
          * group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1
          * group/-Everyone
-    + containsUSPersonsData: `Yes` (string, optional) - Indicates if this object contains US Persons data.
+    + containsUSPersonsData: `Yes` (string, maxlength=255, optional) - Indicates if this object contains US Persons data.
         + Default: `Unknown`  
         + Members
             + `Yes`
             + `No`
             + `Unknown`
-    + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  
+    + exemptFromFOIA: `No` (string, maxlength=255, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  
         + Default: `Unknown`  
         + Members
             + `Yes`
@@ -892,7 +895,7 @@ It is the client's use of the `Range` tag that allows the response to be 206.
 ![Get Object Stream](static/js/etag.png)
 
 + Parameters
-    + objectId: `11e5e48664f5d8c789020242ac110002` (string, required) - Hex encoded identifier of the object to be retrieved.
+    + objectId: `11e5e48664f5d8c789020242ac110002` (string(length=32), required) - Hex encoded identifier of the object to be retrieved.
     + disposition: `attachment` (string, optional) - The Content-Disposition to be set in the header of the response to control UI/Browser operation
         + Default: `inline`
         + Members
@@ -950,7 +953,7 @@ files that are too large to buffer in memory.
 Updates the actual file bytes associated with an objectId. This must be provided in multipart/form-data format, with the metadata about the object provided in a field named 'ObjectMetadata'.
 
 + Parameters
-    + objectId: `11e5e48664f5d8c789020242ac110002` (string, required) - Hex encoded identifier of the object to be retrieved.
+    + objectId: `11e5e48664f5d8c789020242ac110002` (string(length=32), required) - Hex encoded identifier of the object to be retrieved.
 
 ### Update an Object Stream [POST]
 
@@ -960,12 +963,12 @@ This creates a new revision of the object.
 
     The JSON object provided in the body can contain the following fields:
 
-    + id: `11e5e48664f5d8c789020242ac110002` (string, required) - The unique identifier of the object hex encoded to a string. This value must match the objectId provided in the URI.
-    + changeToken (string, required) - A hash value expected to match the targeted object’s current changeToken value. This value is retrieved from get or list operations.
-    + typeName (string, optional) -  The new type to be assigned to this object. Common types include 'File', 'Folder'. If no value is provided or this field is omitted, then the type will not be changed.
-    + name (string, optional) - The new name to be given this object. It does not have to be unique. It may refer to a conventional filename and extension. If no value is provided, or this field is ommitted, then the name will not be changed.
-    + description (string, optional) - The new description to be given as an abstract of the objects content stream. If no value is provided, or this field is ommitted, then the description will not be changed.
-    + acm (string OR object, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. https://confluence.363-283.io/pages/viewpage.action?pageId=557850. If no value is provided, or this field is ommitted, then the acm will not be changed.  This value may be provided in either serialized string format, or nested object format.
+    + id: `11e5e48664f5d8c789020242ac110002` (string, length=32, required) - The unique identifier of the object hex encoded to a string. This value must match the objectId provided in the URI.
+    + changeToken (string, length=32, required) - A hash value expected to match the targeted object’s current changeToken value. This value is retrieved from get or list operations.
+    + typeName (string, maxlength=255, optional) -  The new type to be assigned to this object. Common types include 'File', 'Folder'. If no value is provided or this field is omitted, then the type will not be changed.
+    + name (string, maxlength=255, optional) - The new name to be given this object. It does not have to be unique. It may refer to a conventional filename and extension. If no value is provided, or this field is ommitted, then the name will not be changed.
+    + description (string, maxlength=10240, optional) - The new description to be given as an abstract of the objects content stream. If no value is provided, or this field is ommitted, then the description will not be changed.
+    + acm (object, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. https://confluence.363-283.io/pages/viewpage.action?pageId=557850. If no value is provided, or this field is ommitted, then the acm will not be changed.  This value may be provided in either serialized string format, or nested object format.
     + permission (PermissionRequest, optional) - [1.1] The permissions associated with this object by capability and resource allowed.  Resources take the following form:
        * {resourceType}/{serialized-representation}/{optional-display-name}
        * Examples for Users
@@ -975,15 +978,15 @@ This creates a new revision of the object.
          * group/{projectName}/{projectDisplayName}/{groupName}/{displayName}
          * group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1
          * group/-Everyone
-    + contentType: `text/html` (string, optional) - The suggested mime type for the content stream if given for this object.
-    + contentSize: 0 (int, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.
-    + containsUSPersonsData: `Yes` (string, optional) - Indicates if this object contains US Persons data.
+    + contentType: `text/html` (string, maxlength=255, optional) - The suggested mime type for the content stream if given for this object.
+    + contentSize: 0 (int, maxvalue=9223372036854775807, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.  The maxvalue given here is theoretical based upon the maximum allowable value represented in 8 bytes. The actual maximum size of an object is initially constrained by free disk storage space in the local cache on the instance the object is being created.
+    + containsUSPersonsData: `Yes` (string, maxlength=255, optional) - Indicates if this object contains US Persons data.
         + Default: `Unknown`  
         + Members
             + `Yes`
             + `No`
             + `Unknown`
-    + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  
+    + exemptFromFOIA: `No` (string, maxlength=255, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  
         + Default: `Unknown`  
         + Members
             + `Yes`
@@ -1076,7 +1079,7 @@ Move a set of objects.  It requires the id and the change token for each one.
 ## Delete Object [/objects/{objectId}/trash]
 
 + Parameters
-    + objectId: `11e5e4867a6e3d8389020242ac110002` (string, required) - Hex encoded identifier of the object to be deleted.
+    + objectId: `11e5e4867a6e3d8389020242ac110002` (string(length=32), required) - Hex encoded identifier of the object to be deleted.
 
 ### Delete Object [POST]
 This microservice operation handles the deletion of an object within Object Drive. When objects are deleted, they are marked as such but remain intact for auditing purposes and the ability to restore (remove from trash). All other operations that pertain to retrieval or updating filter deleted objects internally. The exception to this is when viewing the contents of the trash via List Trashed Objects, or performing Undelete Object, and Delete Object Forever operations.
@@ -1116,7 +1119,7 @@ When an object is deleted, a recursive action is performed on all natural childr
 ## Delete Object Forever [/objects/{objectId}]  
 
 + Parameters
-     + objectId: `11e5e4867a6e3d8389020242ac110002` (string, required) - Hex encoded identifier of the object to be deleted.
+     + objectId: `11e5e4867a6e3d8389020242ac110002` (string(length=32), required) - Hex encoded identifier of the object to be deleted.
 
 ### Delete Object Forever [DELETE]
 This microservice operation will remove an object from the trash and delete it forever.  
@@ -1157,9 +1160,9 @@ This microservice operation will remove an object from the trash and delete it f
 ## List Object Revisions [/revisions/{objectId}{?pageNumber,pageSize,sortField,sortAscending}]
 
 + Parameters
-    + objectId: `11e5e4867a6e3d8389020242ac110002` (string, required) - Hex encoded identifier of the object for which revisions are being requested.
-    + pageNumber: 1 (number, optional) - The page number of results to be returned to support chunked output.
-    + pageSize: 20 (number, optional) - The number of results to return per page.
+    + objectId: `11e5e4867a6e3d8389020242ac110002` (string(length=32), required) - Hex encoded identifier of the object for which revisions are being requested.
+    + pageNumber: 1 (number(minvalue=1), optional) - The page number of results to be returned to support chunked output.
+    + pageSize: 20 (number(minvalue=1, maxvalue=10000), optional) - The number of results to return per page.
     + sortField: `contentsize` (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
         + Default: `createddate`
         + Members
@@ -1211,9 +1214,9 @@ This microservice operation will remove an object from the trash and delete it f
 ## Get Object Stream Revision [/revisions/{objectId}/{revisionId}/stream{?disposition}]
 
 + Parameters
-    + objectId: `11e5e4867a6e3d8389020242ac110002` (string, required) - Hex encoded identifier of the object to be retrieved.
-    + revisionId: 2 (number, required) - The revision number to be retrieved. 
-    + disposition: `attachment` (number, optional) - The value to assign the Content-Disposition in the response.
+    + objectId: `11e5e4867a6e3d8389020242ac110002` (string(length=32), required) - Hex encoded identifier of the object to be retrieved.
+    + revisionId: 2 (number(minvalue=0), required) - The revision number to be retrieved. 
+    + disposition: `attachment` (string, optional) - The value to assign the Content-Disposition in the response.
         + Default: `inline`
         + Members
             + `inline` - The default disposition
@@ -1267,8 +1270,8 @@ This microservice operation will remove an object from the trash and delete it f
 
 + Parameters
     + searchPhrase: `image/gif` (string, required) - The phrase to look for inclusion within the name or description of objects. This will be overridden if parameters for filterField are set.
-    + pageNumber: 1 (number, optional) - The page number of results to be returned to support chunked output.
-    + pageSize: 20 (number, optional) - The number of results to return per page.
+    + pageNumber: 1 (number(minvalue=1), optional) - The page number of results to be returned to support chunked output.
+    + pageSize: 20 (number(minvalue=1, maxvalue=10000), optional) - The number of results to return per page.
     + sortField: `contentsize` (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
         + Default: `createddate`
         + Members
@@ -1340,8 +1343,8 @@ This microservice operation will remove an object from the trash and delete it f
     + groupName: dctc_odrive_g1 (string, required) - The flattened name of a group for which the user is a member and objects owned by the group should be returned.
         * The flattened values for user identity are also acceptable
         * Psuedogroups, such as `_everyone` are not acceptable for this request, but are forbidden from owning objects anyway.
-    + pageNumber: 1 (number, optional) - The page number of results to be returned to support chunked output.
-    + pageSize: 20 (number, optional) - The number of results to return per page.
+    + pageNumber: 1 (number(minvalue=1), optional) - The page number of results to be returned to support chunked output.
+    + pageSize: 20 (number(minvalue=1, maxvalue=10000), optional) - The number of results to return per page.
     + sortField: `contentsize` (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
         + Default: `createddate`
         + Members
@@ -1414,9 +1417,9 @@ This microservice operation retrieves a list of objects with no parent owned by 
 ## List Objects Under Parent [/objects/{objectId}{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
-    + objectId: `11e5e4867a6e3d8389020242ac110002` (string, required) - Hex encoded unique identifier of the folder or other object for which to return a list of child objects. 
-    + pageNumber: 1 (number, optional) - The page number of results to be returned to support chunked output.
-    + pageSize: 20 (number, optional) - The number of results to return per page.
+    + objectId: `11e5e4867a6e3d8389020242ac110002` (string(length=32), required) - Hex encoded unique identifier of the folder or other object for which to return a list of child objects. 
+    + pageNumber: 1 (number(minvalue=1), optional) - The page number of results to be returned to support chunked output.
+    + pageSize: 20 (number(minvalue=1, maxvalue=10000), optional) - The number of results to return per page.
     + sortField: `contentsize` (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
         + Default: `createddate`
         + Members
@@ -1495,8 +1498,8 @@ Purpose: This microservice operation retrieves a list of objects contained withi
 ## List Objects Shared to Everyone [/sharedpublic{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
-    + pageNumber: 1 (number, optional) - The page number of results to be returned to support chunked output.
-    + pageSize: 20 (number, optional) - The number of results to return per page.
+    + pageNumber: 1 (number(minvalue=1), optional) - The page number of results to be returned to support chunked output.
+    + pageSize: 20 (number(minvalue=1, maxvalue=10000), optional) - The number of results to return per page.
     + sortField: `contentsize` (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
         + Default: `createddate`
         + Members
@@ -1574,8 +1577,8 @@ This microservice operation retrieves a list of objects that are shared to every
 ## Move Object [/objects/{objectId}/move/{folderId}]
 
 + Parameters
-    + objectId: `11e5e4867a6e3d8389020242ac110002` (string, required) - Hex encoded identifier of the object to be moved.
-    + folderId: `30211e5e48ac110067a6e3d802420289` (string, optional) - Hex encoded identifier of the folder into which this object should be moved.  If no identifier is provided, then the object will be moved to the owner's root folder.
+    + objectId: `11e5e4867a6e3d8389020242ac110002` (string(length=32), required) - Hex encoded identifier of the object to be moved.
+    + folderId: `30211e5e48ac110067a6e3d802420289` (string(length=32), optional) - Hex encoded identifier of the folder into which this object should be moved.  If no identifier is provided, then the object will be moved to the owner's root folder.
 
 ### Move Object [POST]
 This microservice operation supports moving an object such as a file or folder from one location to another. By default, all objects are created in the ‘root’ as they have no parent folder given.
@@ -1624,8 +1627,8 @@ Only the owner of an object is allowed to move it.
 ## Change Owner [/objects/{objectId}/owner/{newOwner}]
 
 + Parameters
-    + objectId: `11e5e4867a6e3d8389020242ac110002` (string, required) - Hex encoded identifier of the object to be moved.
-    + newOwner: `group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1` (string, required) - A resource string compliant value representing the new owner. Resources take the following form:
+    + objectId: `11e5e4867a6e3d8389020242ac110002` (string(length=32), required) - Hex encoded identifier of the object to be moved.
+    + newOwner: `group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1` (string(maxlength=255), required) - A resource string compliant value representing the new owner. Resources take the following form:
        * {resourceType}/{serialized-representation}/{optional-display-name}
        * Examples for Users
          * user/{distinguishedName}/{displayName}
@@ -1690,7 +1693,15 @@ Although it is not permitted to assign ownership to Everyone, ownership may be a
 ## Change Owner [/objects/owner/{newOwner}]
 
 + Parameters
-    + newOwner: `user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us`
+    + newOwner: `user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us` (string(maxlength=255), required) - A resource string compliant value representing the new owner. Resources take the following form:
+       * {resourceType}/{serialized-representation}/{optional-display-name}
+       * Examples for Users
+         * user/{distinguishedName}/{displayName}
+         * user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10
+       * Examples for groups
+         * group/{projectName}/{projectDisplayName}/{groupName}/{displayName}
+         * group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1
+         * group/-Everyone
 
 ### Change Owner [POST]
 
@@ -1726,8 +1737,8 @@ This changes ownership of files in bulk.  It behaves like multiple changeOwner r
 
 + Parameters
 
-    + pageNumber: 1 (number, optional) - The page number of results to be returned to support chunked output.
-    + pageSize: 20 (number, optional) - The number of results to return per page.
+    + pageNumber: 1 (number(minvalue=1), optional) - The page number of results to be returned to support chunked output.
+    + pageSize: 20 (number(minvalue=1, maxvalue=10000), optional) - The number of results to return per page.
     + sortField: `contentsize` (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
         + Default: `createddate`
         + Members
@@ -1803,8 +1814,8 @@ This microservice operation retrieves a list of objects at the root owned by the
 ## List User Object Shares [/shares{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
-    + pageNumber: 1 (number, optional) - The page number of results to be returned to support chunked output.
-    + pageSize: 20 (number, optional) - The number of results to return per page.
+    + pageNumber: 1 (number(minvalue=1), optional) - The page number of results to be returned to support chunked output.
+    + pageSize: 20 (number(minvalue=1, maxvalue=10000), optional) - The number of results to return per page.
     + sortField: `contentsize` (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
         + Default: `createddate`
         + Members
@@ -1884,8 +1895,8 @@ This microservice operation retrieves a list of objects that the user has shared
 ## List User Objects Shared [/shared{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
-    + pageNumber: 1 (number, optional) - The page number of results to be returned to support chunked output.
-    + pageSize: 20 (number, optional) - The number of results to return per page.
+    + pageNumber: 1 (number(minvalue=1), optional) - The page number of results to be returned to support chunked output.
+    + pageSize: 20 (number(minvalue=1, maxvalue=10000), optional) - The number of results to return per page.
     + sortField: `contentsize` (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
         + Default: `createddate`
         + Members
@@ -1966,8 +1977,8 @@ This microservice operation retrieves a list of objects that the user has shared
 ## List Trashed Objects [/trashed{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
-    + pageNumber: 1 (number, optional) - The page number of results to be returned to support chunked output.
-    + pageSize: 20 (number, optional) - The number of results to return per page.
+    + pageNumber: 1 (number(minvalue=1), optional) - The page number of results to be returned to support chunked output.
+    + pageSize: 20 (number(minvalue=1, maxvalue=10000), optional) - The number of results to return per page.
     + sortField: `contentsize` (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
         + Default: `createddate`
         + Members
@@ -2075,7 +2086,7 @@ Objects that have been put into the trash can be expunged until the trash is emp
 This is effectively the same as calling the operation Delete Object Forever for everything that has been trashed.
 
 + Parameters
-    + pageSize: 10000 (number, optional) - The batch size to expunge objects in
+    + pageSize: 10000 (number(minvalue=1, maxvalue=10000), optional) - The batch size to expunge objects in
 
 ### Empty Trash [DELETE]
 
@@ -2232,9 +2243,9 @@ The UI will accumulate a list of file ID values to include in a zip file.
 
 ## CreateObjectRequest (object)
 
-+ typeName: `File` (string) - The display name of the type assigned this object.
-+ name: `gettysburgaddress.txt` (string) - The name for this object. 
-+ description: `Description here` (string) - An abstract of the object's purpose.
++ typeName: `File` (string, optional) - The display name of the type assigned this object.
++ name: `gettysburgaddress.txt` (string, optional) - The name for this object. 
++ description: `Description here` (string, optional) - An abstract of the object's purpose.
 + parentId: ` ` (string, optional) - The unique identifier of the objects parent hex encoded to a string.  An empty value will result in this object being created in the user's root folder.
 + acm (ACM, required) - The acm value associated with this object in object form
 + permission (PermissionRequest, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
