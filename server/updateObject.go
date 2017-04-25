@@ -122,7 +122,10 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	// Retain existing values for content stream info
 	requestObject.ContentConnector = dbObject.ContentConnector
-	requestObject.ContentType = dbObject.ContentType
+	if !requestObject.ContentType.Valid {
+		// only if not set from the update
+		requestObject.ContentType = dbObject.ContentType
+	}
 	requestObject.ContentSize = dbObject.ContentSize
 	requestObject.ContentHash = dbObject.ContentHash
 	requestObject.EncryptIV = dbObject.EncryptIV
@@ -323,6 +326,9 @@ func parseUpdateObjectRequestAsJSON(r *http.Request, ctx context.Context) (model
 	requestObject.Permissions, err = mapping.MapPermissionToODPermissions(&jsonObject.Permission)
 	if err != nil {
 		return requestObject, err
+	}
+	if len(jsonObject.ContentType) > 0 {
+		requestObject.ContentType = models.ToNullString(jsonObject.ContentType)
 	}
 	if len(jsonObject.ContainsUSPersonsData) > 0 {
 		requestObject.ContainsUSPersonsData = jsonObject.ContainsUSPersonsData
