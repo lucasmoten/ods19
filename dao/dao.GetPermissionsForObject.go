@@ -50,8 +50,8 @@ func getPermissionsForObjectInTransaction(tx *sqlx.Tx, object models.ODObject) (
         ,op.encryptKey
         ,op.permissionIV
         ,op.permissionMAC
-    from object_permission op 
-        inner join object o on op.objectid = o.id 
+    from 
+		object_permission op 
     where 
         op.isdeleted = 0 
         and op.objectid = ?`
