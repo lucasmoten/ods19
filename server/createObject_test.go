@@ -1454,3 +1454,173 @@ func TestCreateObjectWithACMHavingDate(t *testing.T) {
 	err = util.FullDecode(createObjectRes.Body, &createdObject)
 	failNowOnErr(t, err, "Error decoding json to Object")
 }
+
+func TestCreateObjectAPISample662(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+	method := "POST"
+	uri := host + cfg.NginxRootURL + "/objects"
+	ghodsissue662 := `
+--7518615725
+Content-Disposition: form-data; name="ObjectMetadata"
+Content-Type: application/json
+
+{
+  "typeName": "File",
+  "name": "gettysburgaddress.txt",
+  "description": "Description here",
+  "parentId": "",
+  "acm": {
+    "classif": "U",
+    "dissem_countries": [
+      "USA"
+    ],
+    "share": {
+      "users": [
+        "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+        "CN=test tester02,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+        "CN=test tester03,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+        "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
+      ],
+      "projects": [
+        {
+          "ukpn": {
+            "disp_nm": "Project Name",
+            "groups": [
+              "Group Name",
+              "Cats",
+              "Dogs"
+            ]
+          },
+          "ukpn2": {
+            "disp_nm": "Project Name 2",
+            "groups": [
+              "Group 1",
+              "Group 2",
+              "Group 3"
+            ]
+          }
+        }
+      ]
+    },
+    "version": "2.1.0"
+  },
+  "permission": {
+    "create": {
+      "allow": [
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+      ]
+    },
+    "read": {
+      "allow": [
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10",
+        "group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1"
+      ]
+    },
+    "update": {
+      "allow": [
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+      ]
+    },
+    "delete": {
+      "allow": [
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+      ]
+    },
+    "share": {
+      "allow": [
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+      ]
+    }
+  },
+  "contentType": "text",
+  "contentSize": "1511",
+  "properties": [
+    {
+      "name": "Some Property",
+      "value": "Some Property Value",
+      "classificationPM": "U//FOUO"
+    }
+  ],
+  "containsUSPersonsData": "No",
+  "exemptFromFOIA": "No",
+  "permissions": [
+    {
+      "share": {
+        "users": [
+          "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
+        ]
+      },
+      "allowCreate": false,
+      "allowRead": true,
+      "allowUpdate": true,
+      "allowDelete": false,
+      "allowShare": false
+    },
+    {
+      "share": {
+        "projects": [
+          {
+            "dctc": {
+              "disp_nm": "DCTC",
+              "groups": [
+                "ODrive_G1"
+              ]
+            }
+          }
+        ]
+      },
+      "allowCreate": false,
+      "allowRead": true,
+      "allowUpdate": false,
+      "allowDelete": false,
+      "allowShare": false
+    }
+  ]
+}
+--7518615725
+Content-Disposition: form-data; name="filestream"; filename="test.txt"
+Content-Type: application/octet-stream
+
+This is the content of the file
+
+--7518615725--
+    
+`
+	t.Logf(`* Initial attempt using exact API sample ... "contentSize": "1511"`)
+	var requestBuffer *bytes.Buffer
+	requestBuffer = bytes.NewBufferString(ghodsissue662)
+	req, err := http.NewRequest(method, uri, requestBuffer)
+	if err != nil {
+		t.Logf("Error setting up HTTP request: %v", err)
+		t.FailNow()
+	}
+	req.Header.Set("Content-Type", "multipart/form-data; boundary=7518615725")
+	createObjectRes, err := clients[tester10].Client.Do(req)
+	defer util.FinishBody(createObjectRes.Body)
+	t.Logf("* Processing Response")
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 400, createObjectRes, "Bad status when creating object")
+
+	t.Logf(`* Reattempt with the contentSize passed as a number instead of string ... "contentSize": 1511`)
+	fixedghodsissue662 := strings.Replace(ghodsissue662, `"1511"`, `1511`, -1)
+	var requestBuffer2 *bytes.Buffer
+	requestBuffer2 = bytes.NewBufferString(fixedghodsissue662)
+	req2, err := http.NewRequest(method, uri, requestBuffer2)
+	if err != nil {
+		t.Logf("Error setting up HTTP request: %v", err)
+		t.FailNow()
+	}
+	req2.Header.Set("Content-Type", "multipart/form-data; boundary=7518615725")
+	createObjectRes2, err := clients[tester10].Client.Do(req2)
+	defer util.FinishBody(createObjectRes2.Body)
+	t.Logf("* Processing Response")
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, createObjectRes2, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(createObjectRes2.Body, &createdObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+}
