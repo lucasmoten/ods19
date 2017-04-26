@@ -159,7 +159,16 @@ func useP2PFile(logger zap.Logger, zone CiphertextCacheZone, rName FileId, begin
 			connectionMapMutex.RUnlock()
 
 			if conn == nil {
-				conn, err = NewTLSClientConn(peer.CA, peer.Cert, peer.CertKey, peerCN, peer.Host, fmt.Sprintf("%d", peer.Port), true)
+				insecureSkipVerify := config.GetEnvOrDefault(config.OD_PEER_INSECURE_SKIP_VERIFY, "false") == "true"
+				conn, err = NewTLSClientConn(
+					peer.CA,
+					peer.Cert,
+					peer.CertKey,
+					peerCN,
+					peer.Host,
+					fmt.Sprintf("%d", peer.Port),
+					insecureSkipVerify,
+				)
 				if err != nil {
 					logger.Warn("p2p cannot connect", zap.String("url", url), zap.String("err", err.Error()))
 				}

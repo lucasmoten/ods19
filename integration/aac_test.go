@@ -6,9 +6,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"decipher.com/object-drive-server/legacyssl"
+	//"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models/acm"
 	aac "decipher.com/object-drive-server/services/aac"
+	"decipher.com/object-drive-server/ssl"
 	"decipher.com/object-drive-server/util"
 	t2 "github.com/samuel/go-thrift/thrift"
 )
@@ -42,21 +43,29 @@ func DontRun() bool {
 }
 
 func TestMain(m *testing.M) {
-	if DontRun() {
-		return
-	}
 
 	// using the announcements, get the host + port
 	aacHost := "aac"
 	aacPort := "9093"
 
 	// AAC trust, client public & private key
-	trustPath := filepath.Join("..", "defaultcerts", "clients", "client.trust.pem")
-	certPath := filepath.Join("..", "defaultcerts", "clients", "test_1.cert.pem")
-	keyPath := filepath.Join("..", "defaultcerts", "clients", "test_1.key.pem")
+	trustPath := filepath.Join("..", "defaultcerts", "client-aac", "trust", "client.trust.pem")
+	certPath := filepath.Join("..", "defaultcerts", "client-aac", "id", "client.cert.pem")
+	keyPath := filepath.Join("..", "defaultcerts", "client-aac", "id", "client.key.pem")
+
+	//serverCN := config.GetEnvOrDefault(config.OD_AAC_CN, "")
+	serverCN := "twl-server-generic2"
 
 	// Setup connection config with SSL
-	conn, err := legacyssl.NewSSLConn(trustPath, certPath, keyPath, aacHost, aacPort, true)
+	conn, err := ssl.NewTLSClientConn(
+		trustPath,
+		certPath,
+		keyPath,
+		serverCN, // blank has to be default so we can use blank if they go by hostname in cert
+		aacHost,
+		aacPort,
+		false,
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
