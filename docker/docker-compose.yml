@@ -88,7 +88,9 @@ services:
 
     metadatadb:
         image: "deciphernow/metadatadb:latest"
-        mem_limit: 8192m
+        mem_limit: 1024m
+        cpuset: "0"
+        #cpu_quota: 25000
         env_file:
             - ./metadatadb/env
         environment:

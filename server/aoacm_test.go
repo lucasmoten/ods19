@@ -13,13 +13,20 @@ import (
 )
 
 func TestAOACMPerformance(t *testing.T) {
-	t.Skip() // only run this manually. its designed to take some time and will generally timeout on circle and regular testing
+	// only run this manually. its designed to take some time and will generally timeout on circle and regular testing
+	if isCircleCI() {
+		t.Skip()
+	}
+
 	if testing.Short() {
 		t.Skip()
 	}
 
 	testTime := time.Now()
-
+	basehost := host
+	// The following are merely for convenience to target this manual test against a different server
+	//basehost = "https://bedrock.363-283.io"
+	//basehost = "https://chm.363-283.io"
 	var uris []string
 	uris = append(uris, "/objects")
 	uris = append(uris, "/shares")
@@ -38,7 +45,7 @@ func TestAOACMPerformance(t *testing.T) {
 		t.Logf("operation      matches    1       2       3       4       5     average time")
 		t.Logf("----------------------------------------------------------------------------")
 		for _, operation := range uris {
-			uri := host + config.NginxRootURL + operation
+			uri := basehost + config.NginxRootURL + operation
 			var responseTimes []float64
 			var responseTimesString []string
 			responseTimeSuccess := 0

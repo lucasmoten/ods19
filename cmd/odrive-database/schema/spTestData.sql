@@ -90,6 +90,8 @@ BEGIN
     DECLARE vPermissionIV binary(32) default 0;
     DECLARE vPermissionMAC binary(32) default 0;
     DECLARE vEncryptKey binary(32) default 0;
+    DECLARE player1id binary(16) default '';
+    DECLARE player2id binary(16) default '';
 
     IF MASTERKEY = '' THEN
         signal sqlstate '45000' set message_text = 'A masterkey must be provided as last argument to properly establish permissions.';
@@ -100,11 +102,13 @@ BEGIN
 	IF count_user = 0 THEN
 		INSERT user SET distinguishedName = player1, createdBy = player1;
 	END IF;
+    SELECT id from user where distinguishedName = player1 INTO player1id;
 	# Create player2 if not exist
 	SELECT count(*) FROM user where distinguishedName = player2 INTO count_user;
 	IF count_user = 0 THEN
 		INSERT user SET distinguishedName = player2, createdBy = player1;
 	END IF;
+    SELECT id from user where distinguishedName = player2 INTO player2id;
     # Create ACM keys
     # - dissem_countries
     SELECT count(*) FROM acmkey where name = 'dissem_countries' and isdeleted = 0 INTO count_user;
@@ -342,6 +346,16 @@ BEGIN
     IF (SELECT 1=1 FROM acmvalue2 WHERE name = granteeForEveryone) IS NULL THEN
         INSERT INTO acmvalue2 SET name = granteeForEveryone;
     END IF;
+    # User ACM association
+    IF (SELECT 1=1 FROM useracm where acmid = acmid1 and userid = player1id) IS NULL THEN
+        INSERT INTO useracm SET userid = player1id, acmid = acm2id1;
+    END IF;
+    IF (SELECT 1=1 FROM useracm where acmid = acmid1 and userid = player2id) IS NULL THEN
+        INSERT INTO useracm SET userid = player2id, acmid = acm2id1;
+    END IF;
+    IF (SELECT 1=1 FROM useracm where acmid = acmid2 and userid = player2id) IS NULL THEN
+        INSERT INTO useracm SET userid = player2id, acmid = acm2id2;
+    END IF;
 
     # Determine if assigning to root or under an existing object
     IF LENGTH(assignedParentId) > 0 THEN
@@ -387,7 +401,7 @@ BEGIN
         SET granteeForCreatedBy := grantee1;
         SET granteeForOtherUser := grantee2;
         SET new_object_acm = acm2;
-        IF ((cur_object mod 2) > 0) THEN
+        IF ((cur_object mod 2) = 0) THEN
             SET new_object_acm = acm1;
             SET createdBy := player2;
             SET otherUser := player1;
