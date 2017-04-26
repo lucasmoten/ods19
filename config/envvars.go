@@ -10,9 +10,11 @@ import (
 const (
 	OD_AAC_CA                        = "OD_AAC_CA"
 	OD_AAC_CERT                      = "OD_AAC_CERT"
+	OD_AAC_CN                        = "OD_AAC_CN"
 	OD_AAC_HOST                      = "OD_AAC_HOST"
 	OD_AAC_KEY                       = "OD_AAC_KEY"
 	OD_AAC_PORT                      = "OD_AAC_PORT"
+	OD_AAC_INSECURE_SKIP_VERIFY      = "OD_AAC_INSECURE_SKIP_VERIFY"
 	OD_AAC_ZK_ADDRS                  = "OD_AAC_ZK_ADDRS"
 	OD_AWS_ACCESS_KEY_ID             = "OD_AWS_ACCESS_KEY_ID"
 	OD_AWS_ASG_ENDPOINT              = "OD_AWS_ASG_ENDPOINT"
@@ -57,6 +59,7 @@ const (
 	OD_LOG_LEVEL                     = "OD_LOG_LEVEL"
 	OD_LOG_LOCATION                  = "OD_LOG_LOCATION"
 	OD_PEER_CN                       = "OD_PEER_CN"
+	OD_PEER_INSECURE_SKIP_VERIFY     = "OD_PEER_INSECURE_SKIP_VERIFY"
 	OD_PEER_SIGNIFIER                = "OD_PEER_SIGNIFIER"
 	OD_SERVER_CA                     = "OD_SERVER_CA"
 	OD_SERVER_BASEPATH               = "OD_SERVER_BASEPATH"
@@ -77,9 +80,11 @@ const (
 // to inspect all the config in the current environment provided by env vars.
 var Vars = []string{OD_AAC_CA,
 	OD_AAC_CERT,
+	OD_AAC_CN,
 	OD_AAC_HOST,
 	OD_AAC_KEY,
 	OD_AAC_PORT,
+	OD_AAC_INSECURE_SKIP_VERIFY,
 	OD_AAC_ZK_ADDRS,
 	OD_AWS_ACCESS_KEY_ID,
 	OD_AWS_ASG_ENDPOINT,
@@ -125,6 +130,7 @@ var Vars = []string{OD_AAC_CA,
 	OD_LOG_LOCATION,
 	OD_PEER_CN,
 	OD_PEER_SIGNIFIER,
+	OD_PEER_INSECURE_SKIP_VERIFY,
 	OD_SERVER_BASEPATH,
 	OD_SERVER_CA,
 	OD_SERVER_CERT,

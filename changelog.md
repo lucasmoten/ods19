@@ -1,6 +1,9 @@
 FORMAT: 1A
 
 # Object Drive Changelog
+## Release vNEW
+---------------
+* FIX: Security fix for client certificate checks to AAC and peer odrives
 
 ## Release v1.0.1.22
 --------------------

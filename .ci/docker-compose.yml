@@ -46,6 +46,10 @@ odrive:
         - OD_DB_CERT=/go/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
         - OD_DB_KEY=/go/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
         - OD_DB_CONN_PARAMS=parseTime=true&collation=utf8_unicode_ci
+        - OD_AAC_CN=twl-server-generic2
+        - OD_AAC_INSECURE_SKIP_VERIFY=false
+        - OD_PEER_CN=twl-server-generic2
+        - OD_PEER_INSECURE_SKIP_VERIFY=false
         - OD_DOCKERVM_OVERRIDE=localhost
         - OD_DOCKERVM_PORT=8888
         - OD_EVENT_KAFKA_ADDRS=kafka:9092

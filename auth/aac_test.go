@@ -19,9 +19,9 @@ func newAACAuth(t *testing.T) auth.AACAuth {
 	aacHost := "aac"
 	aacPort := 9093
 	// AAC trust, client public & private key
-	trustPath := filepath.Join("..", "defaultcerts", "clients", "client.trust.pem")
-	certPath := filepath.Join("..", "defaultcerts", "clients", "test_1.cert.pem")
-	keyPath := filepath.Join("..", "defaultcerts", "clients", "test_1.key.pem")
+	trustPath := filepath.Join("..", "defaultcerts", "client-aac", "trust", "client.trust.pem")
+	certPath := filepath.Join("..", "defaultcerts", "client-aac", "id", "client.cert.pem")
+	keyPath := filepath.Join("..", "defaultcerts", "client-aac", "id", "client.key.pem")
 
 	t.Logf("AAC client initializing with trust: %s, cert: %s, key: %s", trustPath, certPath, keyPath)
 	aacClient, err := aac.GetAACClient(aacHost, aacPort, trustPath, certPath, keyPath)
