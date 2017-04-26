@@ -10,13 +10,13 @@ import (
 // GetRootObjectsByGroup retrieves a list of Objects in Object Drive that are
 // not nested beneath any other objects natively (natural parentId is null) and
 // are owned by the specified group.
-func (dao *DataAccessLayer) GetRootObjectsByGroup(groupName string, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
+func (dao *DataAccessLayer) GetRootObjectsByGroup(groupGranteeName string, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getRootObjectsByGroupInTransaction(tx, groupName, user, pagingRequest)
+	response, err := getRootObjectsByGroupInTransaction(tx, groupGranteeName, user, pagingRequest)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetRootObjectsByGroup", zap.String("err", err.Error()))
 		tx.Rollback()
@@ -26,7 +26,7 @@ func (dao *DataAccessLayer) GetRootObjectsByGroup(groupName string, user models.
 	return response, err
 }
 
-func getRootObjectsByGroupInTransaction(tx *sqlx.Tx, groupName string, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
+func getRootObjectsByGroupInTransaction(tx *sqlx.Tx, groupGranteeName string, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 
 	response := models.ODObjectResultset{}
 	// NOTE: distinct is unfortunately used here because object_permission
@@ -49,7 +49,7 @@ func getRootObjectsByGroupInTransaction(tx *sqlx.Tx, groupName string, user mode
 		query += `inner join objectacm on o.id = objectacm.objectid `
 	}
 	query += ` where o.isdeleted = 0 and o.parentid is null `
-	query += buildFilterRequireObjectsGroupOwns(tx, groupName)
+	query += buildFilterRequireObjectsGroupOwns(tx, groupGranteeName)
 	query += buildFilterForUserACMShare(tx, user)
 	if isOption409() {
 		query += buildFilterForUserSnippets(user)
@@ -70,7 +70,7 @@ func getRootObjectsByGroupInTransaction(tx *sqlx.Tx, groupName string, user mode
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	// Load full meta, properties, and permissions
 	for i := 0; i < len(response.Objects); i++ {
-		obj, err := getObjectInTransaction(tx, response.Objects[i], true)
+		obj, err := getObjectInTransaction(tx, response.Objects[i], false)
 		if err != nil {
 			return response, err
 		}

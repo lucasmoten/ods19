@@ -32,8 +32,16 @@ func (acmGrantee *ODAcmGrantee) String() string {
 	return acmGrantee.ResourceName()
 }
 
-// ResourceName returns the built up resource name for a grantee based upon its composite parts
+// ResourceName returns the built up resource name for a grantee based upon its composite parts and display name
 func (acmGrantee *ODAcmGrantee) ResourceName() string {
+	return acmGrantee.getResourceName(true)
+}
+
+// ResourceNameRaw returns the built up resource name for a grantee based upon its composite parts
+func (acmGrantee *ODAcmGrantee) ResourceNameRaw() string {
+	return acmGrantee.getResourceName(false)
+}
+func (acmGrantee *ODAcmGrantee) getResourceName(withDisplay bool) string {
 	if len(acmGrantee.DisplayName.String) > 0 {
 		o := []string{}
 		if len(acmGrantee.UserDistinguishedName.String) > 0 {
@@ -53,7 +61,9 @@ func (acmGrantee *ODAcmGrantee) ResourceName() string {
 		} else {
 			o = append(o, "unknown")
 		}
-		o = append(o, acmGrantee.DisplayName.String)
+		if withDisplay {
+			o = append(o, acmGrantee.DisplayName.String)
+		}
 		if len(o) > 0 {
 			return strings.Join(o, "/")
 		}

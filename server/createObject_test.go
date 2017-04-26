@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
@@ -1237,6 +1239,131 @@ func TestCreateObjectWithPathing(t *testing.T) {
 	}
 	if folder3.ParentID != folder2.ParentID {
 		t.Errorf("Folder3 parent is not the same as folder2")
+		t.FailNow()
+	}
+
+	t.Logf("* Create object with pathing is successful")
+}
+
+func TestCreateObjectWithPathingForGroup(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+
+	t.Logf("* Create a folder under root owned by group which has pathing")
+	DN4TP := strconv.FormatInt(time.Now().Unix(), 10)
+	objectwithpathingforgroup := `
+{
+	"name": "TestCreateObjectWithPathingForGroup` + DN4TP + `/and/sub/folders",
+	"namePathDelimiter": "/",
+	"typeName": "Folder",
+	"ownedBy": "group/dctc/DCTC/ODrive/DCTC ODrive",
+    "acm": {
+		"declass_dt": "2037-12-01T05:00:00.000",
+        "fgi_open": [],
+        "rel_to": [],
+        "sci_ctrls": [],
+        "owner_prod": [],
+        "portion": "S",
+        "disp_only": "",
+        "disponly_to": [],
+        "banner": "SECRET",
+        "non_ic": [],
+        "classif": "S",
+        "atom_energy": [],
+        "dissem_ctrls": [],
+        "sar_id": [],
+        "version": "2.1.0",
+        "fgi_protect": [],
+        "share": {
+            "projects": {
+				"dctc": {
+					"disp_nm": "DCTC",
+					"groups": ["ODrive"]
+				}
+			}
+        }
+    }
+}`
+	newobjuri := host + cfg.NginxRootURL + "/objects"
+	myobject, err := utils.UnmarshalStringToInterface(objectwithpathingforgroup)
+	if err != nil {
+		t.Logf("Error converting to interface: %s", err.Error())
+		t.FailNow()
+	}
+	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
+	createObjectRes, err := clients[tester10].Client.Do(createObjectReq)
+	defer util.FinishBody(createObjectRes.Body)
+
+	t.Logf("* Processing Response")
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, createObjectRes, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(createObjectRes.Body, &createdObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+
+	t.Logf("* Leaf Node Created ID: %s", createdObject.ID)
+
+	t.Logf("* Verify expected name")
+	if createdObject.Name != "folders" {
+		t.Errorf("Leaf node object was named %s, expected %s", createdObject.Name, "folders")
+		t.FailNow()
+	}
+
+	t.Logf("* Verify created by tester10")
+	tester10DN := "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+	if createdObject.CreatedBy != tester10DN {
+		t.Errorf("Object was created by %s, expected %s", createdObject.CreatedBy, tester10DN)
+		t.FailNow()
+	}
+
+	t.Logf("* Verify owned by")
+	groupResourceName := "group/dctc/DCTC/ODrive"
+	if createdObject.OwnedBy != groupResourceName {
+		t.Errorf("Object was owned by %s, expected %s", createdObject.OwnedBy, groupResourceName)
+		t.FailNow()
+	}
+
+	t.Logf("* Verify has a parent")
+	parentID := createdObject.ParentID
+	if len(parentID) == 0 {
+		t.Errorf("Object has no parent")
+		t.FailNow()
+	}
+
+	t.Logf("* Traverse ancestors of created object, looking for expected object names")
+	t.Logf("* First parent %s", parentID)
+	parent := getObject(parentID, tester10, t)
+	if parent.Name != "sub" {
+		t.Errorf("Parent object named %s, expected %s", parent.Name, "sub")
+		t.FailNow()
+	}
+	parentID = parent.ParentID
+	if len(parentID) == 0 {
+		t.Errorf("Object has no parent")
+		t.FailNow()
+	}
+	t.Logf("* Second parent %s", parentID)
+	parent = getObject(parentID, tester10, t)
+	if parent.Name != "and" {
+		t.Errorf("Parent object named %s, expected %s", parent.Name, "and")
+		t.FailNow()
+	}
+	parentID = parent.ParentID
+	if len(parentID) == 0 {
+		t.Errorf("Object has no parent")
+		t.FailNow()
+	}
+	t.Logf("* Root parent %s", parentID)
+	parent = getObject(parentID, tester10, t)
+	if parent.Name != `TestCreateObjectWithPathingForGroup`+DN4TP {
+		t.Errorf("Parent object name %s, expected %s", parent.Name, `TestCreateObjectWithPathingForGroup`+DN4TP)
+		t.FailNow()
+	}
+	parentID = parent.ParentID
+	if len(parentID) != 0 {
+		t.Errorf("Object is not at the root")
 		t.FailNow()
 	}
 
