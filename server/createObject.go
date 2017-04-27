@@ -19,6 +19,8 @@ import (
 	"decipher.com/object-drive-server/services/audit"
 	"golang.org/x/net/context"
 
+	"os"
+
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
@@ -460,6 +462,10 @@ func removeOrphanedFile(logger zap.Logger, d ciphertext.CiphertextCache, content
 	uploadedName := ciphertext.NewFileName(fileID, "uploaded")
 	orphanedName := ciphertext.NewFileName(fileID, "orphaned")
 	var err error
+	if _, err := d.Files().Stat(d.Resolve(uploadedName)); os.IsNotExist(err) {
+		// noop
+		return
+	}
 	if d != nil {
 		err = d.Files().Remove(d.Resolve(uploadedName))
 	}
