@@ -398,20 +398,14 @@ func MySQLSafeString2(i string) string {
 	return o
 }
 
-func buildFilterRequireObjectsGroupOwns(tx *sqlx.Tx, groupName string) string {
-	acmGrantee, err := getAcmGranteeInTransaction(tx, groupName)
+func buildFilterRequireObjectsGroupOwns(tx *sqlx.Tx, groupGranteeName string) string {
+	acmGrantee, err := getAcmGranteeInTransaction(tx, groupGranteeName)
 	where := " and "
 	if err != nil {
 		// If there are no grantees matching this group, then no objects owned by it. Exclude everything
 		where += "1 = 0"
 	} else {
-		resourceName := acmGrantee.ResourceName()
-		resourceNameNoDisplayName := removeDisplayNameFromResourceString(resourceName)
-		where += "o.ownedby in ('" + MySQLSafeString2(resourceName) + "'"
-		if resourceName != resourceNameNoDisplayName {
-			where += ", '" + MySQLSafeString2(resourceNameNoDisplayName) + "'"
-		}
-		where += ")"
+		where += "o.ownedby = '" + MySQLSafeString2(acmGrantee.ResourceNameRaw()) + "'"
 	}
 	return where
 }
@@ -502,12 +496,8 @@ func buildListObjectsMyGroupOwns(tx *sqlx.Tx, user models.ODUser) []string {
 	for _, group := range groups {
 		if len(group) > 0 {
 			if acmGrantee, err := getAcmGranteeInTransaction(tx, group); err == nil {
-				resourceName := acmGrantee.ResourceName()
+				resourceName := acmGrantee.ResourceNameRaw()
 				ownedby = append(ownedby, "'"+MySQLSafeString2(resourceName)+"'")
-				resourceNameNoDisplayName := removeDisplayNameFromResourceString(resourceName)
-				if resourceName != resourceNameNoDisplayName {
-					ownedby = append(ownedby, "'"+MySQLSafeString2(resourceNameNoDisplayName)+"'")
-				}
 			}
 		}
 	}

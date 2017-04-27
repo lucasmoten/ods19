@@ -164,6 +164,32 @@ func listChildren(parentID string, clientid int, t *testing.T) *protocol.ObjectR
 	return &resultset
 }
 
+func getObject(id string, clientid int, t *testing.T) *protocol.Object {
+	uri := host + cfg.NginxRootURL + "/objects/" + id + "/properties"
+	req, _ := http.NewRequest("GET", uri, nil)
+	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
+	client := &http.Client{Transport: transport}
+	res, err := client.Do(req)
+	if err != nil {
+		t.Errorf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	defer util.FinishBody(res.Body)
+	// process Response
+	if res.StatusCode != http.StatusOK {
+		t.Errorf("bad status: %s", res.Status)
+		htmlData, _ := ioutil.ReadAll(res.Body)
+		t.Errorf("Status was %s. Body: %s", res.Status, string(htmlData))
+	}
+	var result protocol.Object
+	err = util.FullDecode(res.Body, &result)
+	if err != nil {
+		t.Errorf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	return &result
+}
+
 // DoWithDecodedResult is the common case of getting back a json response that is ok
 // Need to have one that isn't closed yet so we can dump out to traffic log
 // The _test package structure is preventing just moving this into the testhelpers

@@ -258,8 +258,17 @@ func getObjectsWithName(mdb dao.DAO, user models.ODUser, ownedBy string, name st
 		} else {
 			matchedObjects, err = mdb.GetChildObjectsByUser(user, pagingRequest, models.ODObject{ID: parentID})
 		}
+	} else if strings.HasPrefix(ownedBy, "group/") {
+		if parentID == nil {
+			targetGrantee := models.NewODAcmGranteeFromResourceName(ownedBy)
+			groupName := targetGrantee.Grantee
+			matchedObjects, err = mdb.GetRootObjectsByGroup(groupName, user, pagingRequest)
+		} else {
+			matchedObjects, err = mdb.GetChildObjectsByUser(user, pagingRequest, models.ODObject{ID: parentID})
+		}
 	} else {
-		// TODO: when possible to create objects with group as owner, similar funcs will be called to match
+		// Resource type unsupported
+		err = fmt.Errorf("Unable to get objects based upon ownedBy resource : %s", ownedBy)
 	}
 	return matchedObjects, err
 }
