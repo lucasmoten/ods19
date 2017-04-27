@@ -125,7 +125,7 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
          * group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1
          * group/-Everyone
     + contentType: `text/plain` (string, maxlength=255, optional) - The suggested mime type for the content stream if given for this object.
-    + contentSize: 0 (int, maxvalue=9223372036854775807, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.  The maxvalue given here is theoretical based upon the maximum allowable value represented in 8 bytes. The actual maximum size of an object is initially constrained by free disk storage space in the local cache on the instance the object is being created.
+    + contentSize: 0 (number, maxvalue=9223372036854775807, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.  The maxvalue given here is theoretical based upon the maximum allowable value represented in 8 bytes. The actual maximum size of an object is initially constrained by free disk storage space in the local cache on the instance the object is being created.
     + containsUSPersonsData: `Yes` (string, maxlength=255, optional) - Indicates if this object contains US Persons data.
         + Default: `Unknown`  
         + Members
@@ -219,7 +219,7 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
                 }
               },
               "contentType": "text",
-              "contentSize": "1511",
+              "contentSize": 1511,
               "properties": [
                 {
                   "name": "Some Property",
@@ -305,7 +305,7 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
          * group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1
          * group/-Everyone
     + contentType: `` (string, maxlength=255, optional) - The suggested mime type for the content stream if given for this object.
-    + contentSize: 0 (int, maxvalue=9223372036854775807, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.  The maxvalue given here is theoretical based upon the maximum allowable value represented in 8 bytes. The actual maximum size of an object is initially constrained by free disk storage space in the local cache on the instance the object is being created.
+    + contentSize: 0 (number, maxvalue=9223372036854775807, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.  The maxvalue given here is theoretical based upon the maximum allowable value represented in 8 bytes. The actual maximum size of an object is initially constrained by free disk storage space in the local cache on the instance the object is being created.
     + containsUSPersonsData: `Yes` (string, maxlength=255, optional) - Indicates if this object contains US Persons data.
         + Default: `Unknown`  
         + Members
@@ -514,7 +514,7 @@ possible a list of Errors coming back with the objects that came back successful
                     }
                 },
                 "contentType": "text",
-                "contentSize": "1511",
+                "contentSize": 1511,
                 "isPDFAvailable": false,
                 "containsUSPersonsData": "No",
                 "exemptFromFOIA": "No",
@@ -979,7 +979,7 @@ This creates a new revision of the object.
          * group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1
          * group/-Everyone
     + contentType: `text/html` (string, maxlength=255, optional) - The suggested mime type for the content stream if given for this object.
-    + contentSize: 0 (int, maxvalue=9223372036854775807, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.  The maxvalue given here is theoretical based upon the maximum allowable value represented in 8 bytes. The actual maximum size of an object is initially constrained by free disk storage space in the local cache on the instance the object is being created.
+    + contentSize: 0 (number, maxvalue=9223372036854775807, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.  The maxvalue given here is theoretical based upon the maximum allowable value represented in 8 bytes. The actual maximum size of an object is initially constrained by free disk storage space in the local cache on the instance the object is being created.
     + containsUSPersonsData: `Yes` (string, maxlength=255, optional) - Indicates if this object contains US Persons data.
         + Default: `Unknown`  
         + Members
@@ -2250,7 +2250,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + acm (ACM, required) - The acm value associated with this object in object form
 + permission (PermissionRequest, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value should be empty.
-+ contentSize: 1511 (string) - The length of the object's content stream, if present. For objects without a content stream, this value should be 0.
++ contentSize: 1511 (number) - The length of the object's content stream, if present. For objects without a content stream, this value should be 0.
 + properties (array[PropertyCreate]) - Array of custom properties to be associated with the object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
@@ -2265,7 +2265,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + acm (ACM, required) - The acm value associated with this object in object form
 + permission (PermissionRequest, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
 + contentType: ` ` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value should be empty.
-+ contentSize: 0 (string) - The length of the object's content stream, if present. For objects without a content stream, this value should be 0.
++ contentSize: 0 (number) - The length of the object's content stream, if present. For objects without a content stream, this value should be 0.
 + properties (array[PropertyCreate]) - Array of custom properties to be associated with the object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
@@ -2297,7 +2297,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + acm (ACMResponse, required) - The acm value associated with this object in object form
 + permission (PermissionResponse, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
-+ contentSize: 1511 (string) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
++ contentSize: 1511 (number) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
 + isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
@@ -2334,7 +2334,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + acm (ACMResponse, required) - The acm value associated with this object in object form
 + permission (PermissionResponse, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
-+ contentSize: 1511 (string) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
++ contentSize: 1511 (number) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
 + isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
@@ -2362,7 +2362,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + acm (ACMResponse, required) - The acm value associated with this object in object form
 + permission (PermissionResponse, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
-+ contentSize: 1511 (string) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
++ contentSize: 1511 (number) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
 + isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
@@ -2390,7 +2390,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + acm (ACMResponse, required) - The acm value associated with this object in object form
 + permission (PermissionResponse, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
-+ contentSize: 1511 (string) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
++ contentSize: 1511 (number) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
 + isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
@@ -2419,7 +2419,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + acm (ACMResponse, required) - The acm value associated with this object in object form
 + permission (PermissionResponse, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
-+ contentSize: 1511 (string) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
++ contentSize: 1511 (number) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
 + isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.

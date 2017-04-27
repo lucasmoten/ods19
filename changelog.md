@@ -9,6 +9,7 @@ FORMAT: 1A
 * CFG: Database tool compatibility with MySQL 5.7 (requires parameter show_compatibility_56 = 1)
 * FIX: Add support for creating objects owned by group with pathing at time of creation.
 * FIX: Security fix for client certificate checks to AAC and peer odrives
+* DOC: API Documentation correction to create object size sample denoting contentSize as a number.
 
 ## Release v1.0.1.21
 --------------------
