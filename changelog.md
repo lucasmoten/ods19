@@ -1,13 +1,13 @@
 FORMAT: 1A
 
 # Object Drive Changelog
-## Release vNEW
----------------
-* FIX: Security fix for client certificate checks to AAC and peer odrives
 
 ## Release v1.0.1.22
 --------------------
 * DOC: API Documentation now denotes length, minvalue, maxlength, maxvalue.
+* FIX: Permit contentType to be specified during update without a content stream.
+* CFG: Database tool compatibility with MySQL 5.7 (requires parameter show_compatibility_56 = 1)
+* FIX: Security fix for client certificate checks to AAC and peer odrives
 
 ## Release v1.0.1.21
 --------------------

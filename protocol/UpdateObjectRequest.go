@@ -21,6 +21,9 @@ type UpdateObjectRequest struct {
 	RawAcm interface{} `json:"acm"`
 	// Permission is the API 1.1+ version for providing permissions for users and groups with a resource and capability driven approach
 	Permission Permission `json:"permission,omitempty"`
+	// ContentType indicates the mime-type, and potentially the character set
+	// encoding for the object contents
+	ContentType string `json:"contentType,omitempty"`
 	// ContainsUSPersonsData indicates if this object contains US Persons data (Yes,No,Unknown)
 	ContainsUSPersonsData string `json:"containsUSPersonsData,omitEmpty"`
 	// ExemptFromFOIA indicates if this object is exempt from Freedom of Information Act requests (Yes,No,Unknown)

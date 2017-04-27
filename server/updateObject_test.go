@@ -323,7 +323,6 @@ func TestUpdateObjectToChangeOwnedBy(t *testing.T) {
 		t.Logf("Owner is not %s. It is %s", expectedOwner, updatedObject.OwnedBy)
 		t.FailNow()
 	}
-
 }
 
 func TestUpdateObjectPreventAcmShareChange(t *testing.T) {
@@ -1006,5 +1005,52 @@ func TestUpdateObjectProperty(t *testing.T) {
 		t.Logf("Expected property value to be 'new property value' but got %s", updated2.Properties[0].Value)
 		t.FailNow()
 	}
+}
 
+func TestUpdateObjectContentTypeWithoutStream(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	clientid := 0
+
+	// default for objects with content stream = "application/octet-stream"
+	// no default is given for those without
+
+	t.Logf("Create 1 folders under root")
+	folder := makeFolderViaJSON("Test Folder for Update ", clientid, t)
+	initialContentType := folder.ContentType // presumably empty per above since this is a folder
+
+	t.Logf("Attempt to change content type")
+	updateuri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
+	folder.ContentType = "text/plain" // force it to something other then empty or application/octet-stream default
+	jsonBody, err := json.Marshal(folder)
+	if err != nil {
+		t.Logf("Unable to marshal json for request:%v", err)
+		t.FailNow()
+	}
+	req, err := http.NewRequest("POST", updateuri, bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	if err != nil {
+		t.Logf("Error setting up HTTP Request: %v", err)
+		t.FailNow()
+	}
+	t.Logf("do the request")
+	res, err := clients[clientid].Client.Do(req)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	defer util.FinishBody(res.Body)
+
+	t.Logf("Need to parse the body and verify it didnt change")
+	var updatedObject protocol.Object
+	err = util.FullDecode(res.Body, &updatedObject)
+	if err != nil {
+		t.Logf("Error decoding json to Object: %v", err)
+		t.FailNow()
+	}
+	if strings.Compare(updatedObject.ContentType, initialContentType) == 0 {
+		t.Logf("Content Type was not changed to %s", initialContentType)
+		t.FailNow()
+	}
 }
