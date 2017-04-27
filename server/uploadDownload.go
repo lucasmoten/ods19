@@ -170,6 +170,32 @@ func (h AppServer) acceptObjectUploadStream(ctx context.Context, part *multipart
 		if obj.Name == "" {
 			obj.Name = part.FileName()
 		}
+		// Issue #663 Look to see if any encoding is set
+		cte := part.Header.Get("Content-Transfer-Encoding")
+		if len(cte) > 0 {
+			msg := fmt.Sprintf("Content-Transfer-Encoding: %s is not supported for file part. File should be provided in native binary format.", cte)
+			return nil, NewAppError(400, fmt.Errorf("%s", msg), msg)
+		}
+		ct := part.Header.Get("Content-Type")
+		ctparts := strings.Split(ct, ";")
+		if len(ctparts) > 1 {
+			for _, v := range ctparts {
+				lv := strings.ToLower(strings.TrimSpace(v))
+				// Sampling from `Content-Type: image/png; base64`. Not even sure this is valid in this header, as its more typical in html img src.
+				if lv == "base64" {
+					msg := fmt.Sprintf("Content-Type: %s is not supported for file part. File should be provided in native binary format with no encoding declarations.", ct)
+					return nil, NewAppError(400, fmt.Errorf("%s", msg), msg)
+				}
+				// Permit character set, but only if utf-8
+				if strings.HasPrefix(lv, "charset=") {
+					if lv != "charset=utf-8" {
+						msg := fmt.Sprintf("Content-Type: %s is not supported for file part. File should be provided in native binary format with no encoding declarations.", ct)
+						return nil, NewAppError(400, fmt.Errorf("%s", msg), msg)
+					}
+				}
+			}
+		}
+
 		drainFunc, herr, err = h.beginUpload(ctx, caller, part, obj, grant)
 		if herr != nil {
 			return nil, herr
