@@ -9,6 +9,9 @@ import (
 )
 
 // NewAWSSession instantiates a connection to AWS.
+//
+// Information on how to use the returned session can be found in the
+// AWS API, https://docs.aws.amazon.com/sdk-for-go/api/aws/session.
 func NewAWSSession(awsConfig *config.AWSConfig, logger zap.Logger) *session.Session {
 	theCredentials := credentials.NewStaticCredentials(awsConfig.AccessKeyID, awsConfig.SecretAccessKey, "")
 	if len(awsConfig.AccessKeyID) > 0 && len(awsConfig.SecretAccessKey) > 0 {
