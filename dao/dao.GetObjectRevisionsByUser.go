@@ -67,8 +67,10 @@ func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagi
         ,ot.name typeName
 		,ao.acmid
     from a_object ao 
-        inner join object_type ot on ao.typeid = ot.id
-        inner join object_permission op on ao.id = op.objectid and op.isdeleted = 0 and op.allowread = 1 `
+        inner join object_type ot on ao.typeid = ot.id `
+	if !isOption409() {
+		query += ` inner join object_permission op on ao.id = op.objectid and op.isdeleted = 0 and op.allowread = 1 `
+	}
 	query += buildJoinUserToACM(tx, user)
 	query += ` where ao.isdeleted = 0 and ao.id = ? `
 	query += buildFilterForUserACMShare(tx, user)

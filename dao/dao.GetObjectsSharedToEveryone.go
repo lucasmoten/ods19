@@ -35,12 +35,16 @@ func getObjectsSharedToEveryoneInTransaction(tx *sqlx.Tx, user models.ODUser, pa
         distinct sql_calc_found_rows 
         o.id    
     from object o
-        inner join object_type ot on o.typeid = ot.id
-        inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1 and op.grantee = '` + MySQLSafeString2(models.AACFlatten(models.EveryoneGroup)) + `' `
+        inner join object_type ot on o.typeid = ot.id `
+	if !isOption409() {
+		query += ` inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1 and op.grantee = '` + MySQLSafeString2(models.AACFlatten(models.EveryoneGroup)) + `' `
+	}
 	query += buildJoinUserToACM(tx, user)
 	query += ` where o.isdeleted = 0 `
 	if !isOption409() {
 		query += buildFilterExcludeNonRootedSharedToEveryone()
+	} else {
+		query += " and (acm2.flattenedacm like '%f_share=' or acm2.flattenedacm like '%f_share=;%')"
 	}
 	query += buildFilterForUserSnippets(user)
 	query += buildFilterSortAndLimit(pagingRequest)

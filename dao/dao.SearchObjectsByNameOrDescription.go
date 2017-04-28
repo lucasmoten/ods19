@@ -43,8 +43,10 @@ func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUs
         distinct sql_calc_found_rows 
         o.id    
     from object o
-        inner join object_type ot on o.typeid = ot.id
-		inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1 `
+        inner join object_type ot on o.typeid = ot.id `
+	if !isOption409() {
+		query += ` inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1 `
+	}
 	query += buildJoinUserToACM(tx, user)
 	query += ` where o.isdeleted = 0 and o.isexpunged = 0 and o.isancestordeleted = 0`
 	query += buildFilterForUserACMShare(tx, user)
@@ -241,8 +243,9 @@ func buildJoinUserToACM(tx *sqlx.Tx, user models.ODUser) string {
 
 func buildFilterForUserACMShare(tx *sqlx.Tx, user models.ODUser) string {
 	if isOption409() {
-		sql := " and op.grantee in ('" + MySQLSafeString2(models.AACFlatten(models.EveryoneGroup)) + "','" + strings.Join(getACMValueNamesForUser(tx, user, "f_share"), "','") + "')"
-		return sql
+		return "" // this is already filtered by joining the user to acm
+		// sql := " and op.grantee in ('" + MySQLSafeString2(models.AACFlatten(models.EveryoneGroup)) + "','" + strings.Join(getACMValueNamesForUser(tx, user, "f_share"), "','") + "')"
+		// return sql
 	}
 
 	var allowedGrantees []string
@@ -442,13 +445,17 @@ func buildFilterExcludeObjectsIOrMyGroupsOwn(tx *sqlx.Tx, user models.ODUser) st
 
 func getACMValueFor(tx *sqlx.Tx, valueName string) int64 {
 	var result []int64
+	ret := int64(-1)
 	sql := "select id from acmvalue2 where name = ?"
 	err := tx.Select(&result, sql, valueName)
 	if err != nil {
 		log.Printf(err.Error())
-		return -1
+	} else {
+		if len(result) > 0 {
+			ret = result[0]
+		}
 	}
-	return result[0]
+	return ret
 }
 
 func getACMValuesForUser(tx *sqlx.Tx, user models.ODUser, keyName string) []string {

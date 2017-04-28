@@ -39,13 +39,13 @@ func getRootObjectsByGroupInTransaction(tx *sqlx.Tx, groupGranteeName string, us
         distinct sql_calc_found_rows 
         o.id      
     from object o
-        inner join object_type ot on o.typeid = ot.id
-        inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1 `
+        inner join object_type ot on o.typeid = ot.id `         
 	if isOption409() {
 		query += `inner join acm2 on o.acmid = acm2.id inner join useracm on acm2.id = useracm.acmid inner join user on useracm.userid = user.id and user.distinguishedname = '`
 		query += MySQLSafeString(user.DistinguishedName)
 		query += `'`
 	} else {
+		query += `inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1 `
 		query += `inner join objectacm on o.id = objectacm.objectid `
 	}
 	query += ` where o.isdeleted = 0 and o.parentid is null `
