@@ -11,6 +11,7 @@ FORMAT: 1A
 * FIX: Security fix for client certificate checks to AAC and peer odrives
 * DOC: API Documentation correction to create object size sample denoting contentSize as a number.
 * FIX: Build process will install graphviz to satisfy plantuml need for dot for diagram generation.
+* DOC: API Documentation denotes that content streams should not have encoding or character sets.
 
 ## Release v1.0.1.21
 --------------------

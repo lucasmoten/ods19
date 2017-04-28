@@ -92,7 +92,7 @@ it comes back from creation, or from getting an object listing, or from an updat
 An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage.action?ageId=557850
 
 + Request With Content Stream (multipart/form-data; boundary=7518615725)
-    When creating a new object with a content stream, such as a file, this must be presented in multipart/form-data format, with the metadata about the object provided in a field named 'ObjectMetadata' containing a JSON structure of the following fields.
+    When creating a new object with a content stream, such as a file, this must be presented in multipart/form-data format, with the metadata about the object provided in a field named 'ObjectMetadata' containing a JSON structure of the following fields.  The content stream for the object should be the second part, as the native bytes without use of encoding or character sets.
 
     + typeName (string, maxlength=255, required) -  The type to be assigned to this object.  Custom types may be referenecd here for the purposes of rules or processing constraints and definition of properties.
        * File - This type may be assigned if no type is given, and you are creating an object with a stream
@@ -958,7 +958,7 @@ Updates the actual file bytes associated with an objectId. This must be provided
 ### Update an Object Stream [POST]
 
 This creates a new revision of the object.
-    
+
 + Request (multipart/form-data; boundary=b428e6cd1933)
 
     The JSON object provided in the body can contain the following fields:
@@ -993,6 +993,8 @@ This creates a new revision of the object.
             + `No`
             + `Unknown`
     + properties (properties array, optional) -  An array of custom properties to be associated with this object for property changes. For the properties specified, those who do not match existing properties on the object by name will be added. For the properties that do match existing properties by name, if the value specified is blank or empty, then the existing property will be deleted, otherwise, the property will be updated to the new value. If properties are specified in the array, then existing properties on the object are retained. Properties are only removed from an object if they are provided, with their value set to an empty string.
+
+    The content stream for the object should be the second part, as the native bytes without use of encoding or character sets.
            
     + Body
 
