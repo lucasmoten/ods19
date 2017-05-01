@@ -23,6 +23,7 @@ type ObjectDrive interface {
 	GetObject(id string) (protocol.Object, error)
 	CreateObject(protocol.CreateObjectRequest, io.Reader) (protocol.Object, error)
 	GetObjectStream(id string) (io.Reader, error)
+	DeleteObject(id string, token string) (protocol.DeletedObjectResponse, error)
 }
 
 // Client implents ObjectDrive.
@@ -175,6 +176,48 @@ func (c *Client) GetObjectStream(id string) (io.Reader, error) {
 	}
 
 	return resp.Body, nil
+}
+
+// DeleteObject deletes an object on the server to the trash.
+func (c *Client) DeleteObject(id string, token string) (protocol.DeletedObjectResponse, error) {
+	var deleteResponse protocol.DeletedObjectResponse
+	url := c.url + "/objects/" + id + "/trash"
+	var deleteRequest = protocol.DeleteObjectRequest{
+		ID:          id,
+		ChangeToken: token,
+	}
+
+	jsonBody, err := json.MarshalIndent(deleteRequest, "", "    ")
+	if err != nil {
+		return deleteResponse, err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return deleteResponse, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	// Submit the request
+	resp, err := c.httpClient.Do(req)
+	log.Println("Status: ", resp.Status)
+	if err != nil {
+		log.Println(err)
+		return deleteResponse, err
+	}
+
+	defer resp.Body.Close()
+
+	// Send back the created object properties
+	fmt.Println("Decoding the response")
+	err = json.NewDecoder(resp.Body).Decode(&deleteResponse)
+	if err != nil {
+		return deleteResponse, err
+	}
+
+	return deleteResponse, nil
+
 }
 
 // WriteObject retrieves an object and writes it to the filesystem.

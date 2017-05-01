@@ -73,7 +73,15 @@ func TestRoundTrip(t *testing.T) {
 		assert.Nil(t, err, fmt.Sprintf("Retrieving stream hit an error: %s", err))
 
 		outName := path.Join("./retrieved", newObj.Name)
+		log.Println("ChangeToken: ", newObj.ChangeToken)
 		err = WriteObject(outName, reader)
 		assert.Nil(t, err, fmt.Sprintf("Writing encountered an error: %s", err))
+
+		// Delete the fixture
+		log.Printf("Deleting object")
+		delResponse, err := me.DeleteObject(newObj.ID, newObj.ChangeToken)
+		assert.Nil(t, err, "Error on deleting object %s", err)
+		log.Printf("Response from delete: %v", delResponse)
+
 	}
 }
