@@ -20,6 +20,23 @@ var conf = Config{
 	Remote: "https://dockervm:8080/services/object-drive/1.0",
 }
 
+// TestMain setups up the necessary files for the test-suite.
+func TestMain(m *testing.M) {
+
+	message := []byte("Testing....testing...is this thing on?")
+	os.Mkdir("fixtures", os.FileMode(int(0700)))
+	err := ioutil.WriteFile("fixtures/testParticle1.txt", message, os.FileMode(int(0700)))
+	if err != nil {
+		log.Println(err)
+	}
+
+	code := m.Run()
+
+	os.Remove("fixtures/testParticle1.txt")
+
+	os.Exit(code)
+}
+
 // TestNewClient simple starts up a new client with using included certs and a default
 // Object-drive instance.  The drive must be up and running for this to succeed.
 func TestNewClient(t *testing.T) {
