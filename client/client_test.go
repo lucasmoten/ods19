@@ -2,37 +2,41 @@ package client
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
 	"testing"
 
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
 	"github.com/stretchr/testify/assert"
 )
+
+// testDir defines the location for files used in upload/download tests.
+var testDir string
 
 // conf contains configuration necessary for the client to connect to a running odrive instance.
 var conf = Config{
 	Cert:   os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/test_0.cert.pem",
 	Trust:  os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/client.trust.pem",
 	Key:    os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/test_0.key.pem",
-	Remote: "https://dockervm:8080/services/object-drive/1.0",
+	Remote: fmt.Sprintf("https://%s:%s/services/object-drive/1.0", config.DockerVM, config.Port),
 }
 
 // TestMain setups up the necessary files for the test-suite.
 func TestMain(m *testing.M) {
+	testDir, _ = ioutil.TempDir("./", "testData")
 
-	message := []byte("Testing....testing...is this thing on?")
-	os.Mkdir("fixtures", os.FileMode(int(0700)))
-	err := ioutil.WriteFile("fixtures/testParticle1.txt", message, os.FileMode(int(0700)))
+	testFile, err := ioutil.TempFile(testDir, "particle")
 	if err != nil {
-		log.Println(err)
+		fmt.Printf("Error creating test file %s", testFile)
 	}
 
 	code := m.Run()
 
-	os.Remove("fixtures/testParticle1.txt")
+	os.RemoveAll(testDir)
 
 	os.Exit(code)
 }
@@ -50,17 +54,17 @@ func TestNewClient(t *testing.T) {
 func TestRoundTrip(t *testing.T) {
 	me, err := NewClient(conf)
 
-	var dataDir = "./fixtures"
-	files, err := ioutil.ReadDir(dataDir)
+	files, err := ioutil.ReadDir(testDir)
 	if err != nil {
+		t.Log("Can't read anything from the test directory")
 		log.Fatal(err)
 	}
 
 	// Run tests for all files in the fixtures folder
 	for _, file := range files {
 		// Upload local test fixtures
-		fullFilePath := path.Join(dataDir, file.Name())
-		log.Println(fullFilePath)
+		fullFilePath := path.Join(testDir, file.Name())
+		t.Log(fullFilePath)
 
 		var permissions = protocol.Permission{
 			Read: protocol.PermissionCapability{
@@ -80,25 +84,45 @@ func TestRoundTrip(t *testing.T) {
 			OwnedBy:               "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
 		}
 
-		newObj, err := me.CreateObject(upObj, nil)
+		fReader, err := os.Open(fullFilePath)
+		if err != nil {
+			t.Log(err)
+		}
+		newObj, err := me.CreateObject(upObj, fReader)
 		assert.Nil(t, err, fmt.Sprintf("Creating object hit an error: %s", err))
 
-		log.Printf("Uploaded object has ID: %s", newObj.ID)
+		t.Log("Uploaded object has ID: %s", newObj.ID)
 
 		// Pull the fixtures back down
 		reader, err := me.GetObjectStream(newObj.ID)
 		assert.Nil(t, err, fmt.Sprintf("Retrieving stream hit an error: %s", err))
 
+		os.MkdirAll(path.Join("retrieved", testDir), os.FileMode(int(0700)))
 		outName := path.Join("./retrieved", newObj.Name)
-		log.Println("ChangeToken: ", newObj.ChangeToken)
-		err = WriteObject(outName, reader)
+		t.Log("ChangeToken: ", newObj.ChangeToken)
+		err = writeObjectToDisk(outName, reader)
 		assert.Nil(t, err, fmt.Sprintf("Writing encountered an error: %s", err))
 
 		// Delete the fixture
-		log.Printf("Deleting object")
+		t.Log("Deleting object")
 		delResponse, err := me.DeleteObject(newObj.ID, newObj.ChangeToken)
 		assert.Nil(t, err, "Error on deleting object %s", err)
-		log.Printf("Response from delete: %v", delResponse)
+		t.Log("Response from delete: %v", delResponse)
 
 	}
+}
+
+// writeObjectToDisk retrieves an object and writes it to the filesystem.
+func writeObjectToDisk(name string, reader io.Reader) error {
+	file, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(name, file, os.FileMode(int(0700)))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

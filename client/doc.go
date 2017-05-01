@@ -1,21 +1,34 @@
 /*
-Package client implements common operations to build basic client-side
-applications.  These focus on the basic create, read, update, and destroy type operations.
+Package client implements common operations to build client-side applications.
+These focus on the basic create, read, update, and destroy type operations.
 
-Basics
+Below briefly illustrates a simple cycle of creating a client and using it to perform
+a few operations.  The first step is to create a new client.
 
-This is kinda an overview of things.
+  var conf = Config{
+    // Setup certs, odrive URL, etc
+  }
 
-Operations
+  client, err := NewClient(conf)
+  // err handling
 
-Once I figure out what it does, i'll put the available operations and examples
-here.  Kinda like the following.
+This client can then be used to perform operations in ObjectDrive.
 
-  me, err := NewClient(conf)
+ var uploadObject = protocol.CreateObjectRequest{
+   TypeName: "File",
+   Name:     "SampleFile",
+   // etc..
+ }
 
-  newObj, err := me.CreateObject(upObj, nil)
-  reader, err := me.GetObjectStream(newObj.ID)
-  WriteObject(newObj.Name, reader)
+ reader, err := os.Open("SampleFile")
+
+ retObj, err := client.CreateObject(uploadObject, reader)
+
+The return from CreateObject will have the metadata of the uploaded file, which can be
+used to facilitate further operations, such as retrieval or deletion. E.g.
+
+  // Move the object to the trash.
+  deleteResp, err := client.DeleteObject(retObj.ID, retObj.ChangeToken)
 
 */
 package client

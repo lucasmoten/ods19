@@ -12,7 +12,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
-	"os"
 	"strings"
 
 	"decipher.com/object-drive-server/protocol"
@@ -48,9 +47,10 @@ type Opt func(*Client) *Client
 
 // NewClient instantiates a new Client that implements ObjectDrive.  This client can be used to perform
 // CRUD operations on a running ObjectDrive instance.
+//
+// The client requires a configuration structure that contains the key bits of information necessary to
+// establish a connection to the ObjectDrive: certificates, trusts, keys, and remote URL.
 func NewClient(conf Config, opts ...Opt) (*Client, error) {
-	log.Printf("Starting client with Cert: %s \n", conf.Cert)
-
 	trust, err := ioutil.ReadFile(conf.Trust)
 	if err != nil {
 		return nil, err
@@ -84,13 +84,6 @@ func (c *Client) CreateObject(obj protocol.CreateObjectRequest, reader io.Reader
 	putURL := c.url + "/objects"
 	var newObj protocol.Object
 
-	log.Printf("Starting to upload something to %s", putURL)
-
-	f, err := os.Open(obj.Name)
-	if err != nil {
-		return newObj, err
-	}
-
 	body := bytes.Buffer{}
 	writer := multipart.NewWriter(&body)
 
@@ -105,7 +98,7 @@ func (c *Client) CreateObject(obj protocol.CreateObjectRequest, reader io.Reader
 		return newObj, err
 	}
 
-	if _, err = io.Copy(part, f); err != nil {
+	if _, err = io.Copy(part, reader); err != nil {
 		return newObj, err
 	}
 
@@ -142,7 +135,8 @@ func (c *Client) CreateObject(obj protocol.CreateObjectRequest, reader io.Reader
 	return newObj, nil
 }
 
-// GetObject returns an object's metadata properties.
+// GetObject returns an the metadata associated with an object based on it's unique ID.  This metadata
+// can be used to facilitate further operations and modifications on the object.
 func (c *Client) GetObject(id string) (protocol.Object, error) {
 	var obj protocol.Object
 
@@ -178,10 +172,11 @@ func (c *Client) GetObjectStream(id string) (io.Reader, error) {
 	return resp.Body, nil
 }
 
-// DeleteObject deletes an object on the server to the trash.
+// DeleteObject moves an object on the server to the trash.  The object's ID and changetoken from the
+// current object in ObjectDrive are needed to perform the operation.
 func (c *Client) DeleteObject(id string, token string) (protocol.DeletedObjectResponse, error) {
-	var deleteResponse protocol.DeletedObjectResponse
 	url := c.url + "/objects/" + id + "/trash"
+	var deleteResponse protocol.DeletedObjectResponse
 	var deleteRequest = protocol.DeleteObjectRequest{
 		ID:          id,
 		ChangeToken: token,
@@ -201,7 +196,6 @@ func (c *Client) DeleteObject(id string, token string) (protocol.DeletedObjectRe
 
 	// Submit the request
 	resp, err := c.httpClient.Do(req)
-	log.Println("Status: ", resp.Status)
 	if err != nil {
 		log.Println(err)
 		return deleteResponse, err
@@ -210,7 +204,6 @@ func (c *Client) DeleteObject(id string, token string) (protocol.DeletedObjectRe
 	defer resp.Body.Close()
 
 	// Send back the created object properties
-	fmt.Println("Decoding the response")
 	err = json.NewDecoder(resp.Body).Decode(&deleteResponse)
 	if err != nil {
 		return deleteResponse, err
@@ -220,21 +213,7 @@ func (c *Client) DeleteObject(id string, token string) (protocol.DeletedObjectRe
 
 }
 
-// WriteObject retrieves an object and writes it to the filesystem.
-func WriteObject(name string, reader io.Reader) error {
-	file, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return err
-	}
-
-	err = ioutil.WriteFile(name, file, os.FileMode(int(0700)))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
+// writePartField
 func writePartField(w *multipart.Writer, fieldname, value, contentType string) error {
 	p, err := createFormField(w, fieldname, contentType)
 	if err != nil {
@@ -244,12 +223,15 @@ func writePartField(w *multipart.Writer, fieldname, value, contentType string) e
 	return err
 }
 
+// quoteEscaper replaces some special characters in a given string.
 var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
 
+// escapeQuotes replaces single quotes and double-backslashes in the current string.
 func escapeQuotes(s string) string {
 	return quoteEscaper.Replace(s)
 }
 
+// createFormField creates the MIME field for a POST request.
 func createFormField(w *multipart.Writer, fieldname, contentType string) (io.Writer, error) {
 	h := make(textproto.MIMEHeader)
 	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"`, escapeQuotes(fieldname)))
