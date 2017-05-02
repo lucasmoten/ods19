@@ -4,12 +4,6 @@
 
 * API documentation for the Object Drive service may be reviewed at the root of an instantiated object-drive server,
 previewed [here](./docs/home.md), or accessed from this [live instance on Bedrock](https://bedrock.363-283.io/services/object-drive/1.0/)
-* Documentation for the Go code in this repository can be found
- using the `go doc` tool. Full usage of the tool can be found
- [on the docs page](https://godoc.org/golang.org/x/tools/cmd/godoc),
- but a quick usage pattern is:
- * `godoc -http=:6060 -goroot=./`
- * open `http://localhost:6060/pkg/decipher.com/object-drive-server/` in your web-browser
 
 
 # Configuration
