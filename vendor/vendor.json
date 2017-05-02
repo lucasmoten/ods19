@@ -213,10 +213,10 @@
 			"revisionTime": "2015-10-26T03:11:53+08:00"
 		},
 		{
-			"checksumSHA1": "5rPfda8jFccr3A6heL+JAmi9K9g=",
+			"checksumSHA1": "dvabztWVQX8f6oMLRyv4dLH+TGY=",
 			"path": "github.com/davecgh/go-spew/spew",
-			"revision": "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d",
-			"revisionTime": "2015-11-05T21:09:06Z"
+			"revision": "346938d642f2ec3594ed81d874461961cd0faa76",
+			"revisionTime": "2016-10-29T20:57:26Z"
 		},
 		{
 			"checksumSHA1": "3ryKB35gbVHN2s6uXzsOPb94mYg=",
@@ -345,6 +345,13 @@
 			"revisionTime": "2016-02-19T14:26:09Z"
 		},
 		{
+			"checksumSHA1": "zKKp5SZ3d3ycKe4EKMNT0BqAWBw=",
+			"origin": "github.com/stretchr/testify/vendor/github.com/pmezard/go-difflib/difflib",
+			"path": "github.com/pmezard/go-difflib/difflib",
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"revisionTime": "2017-01-30T11:31:45Z"
+		},
+		{
 			"checksumSHA1": "lCS/i5iwmskT8IL8hHEkKy1DlMc=",
 			"path": "github.com/rlmcpherson/s3gof3r",
 			"revision": "b574ee38528c51c2c8652b79e71245817c59bd61",
@@ -391,6 +398,12 @@
 			"path": "github.com/spacemonkeygo/spacelog",
 			"revision": "ae95ccc1eb0c8ce2496c43177430efd61930f7e4",
 			"revisionTime": "2015-03-20T15:06:48-06:00"
+		},
+		{
+			"checksumSHA1": "JXUVA1jky8ZX8w09p2t5KLs97Nc=",
+			"path": "github.com/stretchr/testify/assert",
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"revisionTime": "2017-01-30T11:31:45Z"
 		},
 		{
 			"checksumSHA1": "YRtwcbCRhmXDaHJCtV9sIC45Cn4=",
