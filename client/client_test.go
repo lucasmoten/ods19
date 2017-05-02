@@ -25,6 +25,11 @@ var conf = Config{
 	Remote: fmt.Sprintf("https://%s:%s/services/object-drive/1.0", config.DockerVM, config.Port),
 }
 
+var permissions = protocol.Permission{
+	Read: protocol.PermissionCapability{
+		AllowedResources: []string{"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"},
+	}}
+
 // TestMain setups up the necessary files for the test-suite.
 func TestMain(m *testing.M) {
 	testDir, _ = ioutil.TempDir("./", "testData")
@@ -66,11 +71,6 @@ func TestRoundTrip(t *testing.T) {
 		fullFilePath := path.Join(testDir, file.Name())
 		t.Log(fullFilePath)
 
-		var permissions = protocol.Permission{
-			Read: protocol.PermissionCapability{
-				AllowedResources: []string{"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"},
-			}}
-
 		var upObj = protocol.CreateObjectRequest{
 			TypeName:              "File",
 			Name:                  fullFilePath,
@@ -110,6 +110,29 @@ func TestRoundTrip(t *testing.T) {
 		t.Log("Response from delete: %v", delResponse)
 
 	}
+}
+
+// TestCreteObjectNoSTream tests the creation of an object with no stream, just metadata,
+// such as a folder.
+func TestCreateObjectNoStream(t *testing.T) {
+	me, err := NewClient(conf)
+
+	var upObj = protocol.CreateObjectRequest{
+		TypeName:              "Folder",
+		Name:                  "TestDir",
+		NamePathDelimiter:     fmt.Sprintf("%s", os.PathSeparator),
+		Description:           "A test Particle ",
+		ParentID:              "",
+		RawAcm:                `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
+		ContainsUSPersonsData: "Unknown",
+		ExemptFromFOIA:        "",
+		Permission:            permissions,
+		OwnedBy:               "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+	}
+
+	retObj, err := me.CreateObject(upObj, nil)
+	assert.Nil(t, err, "Error creating object with no stream %s", err)
+
 }
 
 // writeObjectToDisk retrieves an object and writes it to the filesystem.

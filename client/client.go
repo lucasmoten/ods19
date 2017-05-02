@@ -79,32 +79,44 @@ func NewClient(conf Config, opts ...Opt) (*Client, error) {
 	return &Client{&c, conf.Remote}, nil
 }
 
-// CreateObject performs the create operation on the ObjectDrive; writing a local file up to the drive.
+// CreateObject performs the create operation on the ObjectDrive from the CreateObjectRequest that fully
+// specifies the object to be created.  The caller must also provide an open io.Reader interface to the stream
+// they wish to upload.  If creating an object with no filestream, such as a folder, then reader must be nil.
 func (c *Client) CreateObject(obj protocol.CreateObjectRequest, reader io.Reader) (protocol.Object, error) {
 	putURL := c.url + "/objects"
 	var newObj protocol.Object
-
-	body := bytes.Buffer{}
-	writer := multipart.NewWriter(&body)
 
 	jsonBody, err := json.MarshalIndent(obj, "", "    ")
 	if err != nil {
 		return newObj, err
 	}
 
-	writePartField(writer, "ObjectMetadata", string(jsonBody), "application/json")
-	part, err := writer.CreateFormFile("filestream", obj.Name)
-	if err != nil {
-		return newObj, err
-	}
+	body := bytes.Buffer{}
+	contentType := ""
 
-	if _, err = io.Copy(part, reader); err != nil {
-		return newObj, err
-	}
+	// If an io.Reader is passed, then the data will be uploaded.  Otherwise, only metadata will be
+	// uploaded with no associated filestream
+	if reader != nil {
+		writer := multipart.NewWriter(&body)
 
-	err = writer.Close()
-	if err != nil {
-		return newObj, err
+		writePartField(writer, "ObjectMetadata", string(jsonBody), "application/json")
+		part, err := writer.CreateFormFile("filestream", obj.Name)
+		if err != nil {
+			return newObj, err
+		}
+
+		if _, err = io.Copy(part, reader); err != nil {
+			return newObj, err
+		}
+
+		err = writer.Close()
+		if err != nil {
+			return newObj, err
+		}
+
+		contentType = writer.FormDataContentType()
+	} else {
+		body.Write([]byte(jsonBody))
 	}
 
 	// Now that you have a form, you can submit it to your handler.
@@ -115,7 +127,10 @@ func (c *Client) CreateObject(obj protocol.CreateObjectRequest, reader io.Reader
 
 	// Don't forget to set the content type, this will contain the boundary.
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Content-Type", writer.FormDataContentType())
+	// Only set for filestreams
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
 
 	// Submit the request
 	resp, err := c.httpClient.Do(req)
