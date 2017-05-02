@@ -298,9 +298,9 @@ func TestAACAuthIsUserAuthorizedForACM(t *testing.T) {
 // Don't fail yet if we can't get an AAC - we need this to stall until it is available
 func newAACAuthRaw() (*auth.AACAuth, error) {
 	// AAC trust, client public & private key
-	trustPath := filepath.Join("..", "defaultcerts", "clients", "client.trust.pem")
-	certPath := filepath.Join("..", "defaultcerts", "clients", "test_1.cert.pem")
-	keyPath := filepath.Join("..", "defaultcerts", "clients", "test_1.key.pem")
+	trustPath := filepath.Join("..", "defaultcerts", "client-aac", "trust", "client.trust.pem")
+	certPath := filepath.Join("..", "defaultcerts", "client-aac", "id", "client.cert.pem")
+	keyPath := filepath.Join("..", "defaultcerts", "client-aac", "id", "client.key.pem")
 	aacClient, err := aac.GetAACClient("aac", 9093, trustPath, certPath, keyPath)
 	if err != nil {
 		return nil, err
