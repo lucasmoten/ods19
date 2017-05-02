@@ -2,7 +2,7 @@
 
 # API Documentation
 
-API documentation may be reviewed at the root of an instantiated object-drive server,
+* API documentation for the Object Drive service may be reviewed at the root of an instantiated object-drive server,
 previewed [here](./docs/home.md), or accessed from this [live instance on Bedrock](https://bedrock.363-283.io/services/object-drive/1.0/)
 
 
@@ -22,7 +22,7 @@ and clone this project there. This will allow imports like this to resolve corre
 import "decipher.com/object-drive-server/somepackage"
 ```
 
-# Openssl bindings dependency 
+# Openssl bindings dependency
 
 This project depends on OpenSSL, and binds to C code (uses CGO). This means you
 may need to set the `PKG_CONFIG_PATH` variable. This can vary by distribution.
@@ -57,10 +57,10 @@ After that is done, run
 ```
 
 `odb` is a python script that builds binaries and docker containers for this
-project and its dependencies. It also inspects your build environment, and 
+project and its dependencies. It also inspects your build environment, and
 notifies you when tools are missing.
 
-This project requires edits to your **/etc/hosts** file. These are the most 
+This project requires edits to your **/etc/hosts** file. These are the most
 common settings:
 
 ```
@@ -91,23 +91,23 @@ to build with a consistent source tree.
 
 # Other Configuration
 
-Binaries for the main server are built under **cmd/odrive**. 
+Binaries for the main server are built under **cmd/odrive**.
 
 # odutil
 
-Another tool is compiled under **cmd/odutil**. Currently it can upload and 
+Another tool is compiled under **cmd/odutil**. Currently it can upload and
 download files from S3. AWS credentials are taken from the environment.
 
-Upload 
+Upload
 
 ```
-odutil -cmd upload -input somefile.txt -bucket decipher-tools -key some/path/somefile.txt 
+odutil -cmd upload -input somefile.txt -bucket decipher-tools -key some/path/somefile.txt
 ```
 
 Download
 
 ```
-odutil -cmd download -input somefile.txt -bucket decipher-tools -key some/path/somefile.txt 
+odutil -cmd download -input somefile.txt -bucket decipher-tools -key some/path/somefile.txt
 ```
 
 Generating current docs (no longer checked in):
@@ -123,4 +123,3 @@ cd $GOPATH/src/decipher.com/object-drive-server
 #make an rpm and call it build number 2600.  It will be in current directory when done
 ./makerpm 2600
 ```
-

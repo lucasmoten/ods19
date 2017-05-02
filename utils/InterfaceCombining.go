@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// deDupe creates a new interface with any duplicate attributes removed.
 func deDupe(sArr []interface{}) []interface{} {
 	var oArr []interface{}
 	for _, s := range sArr {
@@ -144,6 +145,8 @@ func CombineInterface(sourceInterface interface{}, interfaceToAdd interface{}) i
 	}
 	return sMap
 }
+
+// createMapFromInterface converts an interface structure into a map data type.
 func createMapFromInterface(sourceInterface interface{}) (map[string]interface{}, bool) {
 	m, ok := sourceInterface.(map[string]interface{})
 	return m, ok
