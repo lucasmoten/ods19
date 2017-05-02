@@ -36,21 +36,19 @@ var _ ObjectDrive = (*Client)(nil)
 
 // Config defines the bare minimum that must be statically configured for a Client.
 type Config struct {
-	Cert   string
-	Trust  string
-	Key    string
-	Remote string
+	Cert       string
+	Trust      string
+	Key        string
+	SkipVerify bool
+	Remote     string
 }
-
-// Opt modifies a client passed to it.
-type Opt func(*Client) *Client
 
 // NewClient instantiates a new Client that implements ObjectDrive.  This client can be used to perform
 // CRUD operations on a running ObjectDrive instance.
 //
 // The client requires a configuration structure that contains the key bits of information necessary to
 // establish a connection to the ObjectDrive: certificates, trusts, keys, and remote URL.
-func NewClient(conf Config, opts ...Opt) (*Client, error) {
+func NewClient(conf Config) (*Client, error) {
 	trust, err := ioutil.ReadFile(conf.Trust)
 	if err != nil {
 		return nil, err
@@ -65,7 +63,7 @@ func NewClient(conf Config, opts ...Opt) (*Client, error) {
 	}
 
 	tlsConfig := &tls.Config{
-		InsecureSkipVerify:       true,
+		InsecureSkipVerify:       conf.SkipVerify,
 		Certificates:             []tls.Certificate{cert},
 		ClientCAs:                caPool,
 		PreferServerCipherSuites: true,

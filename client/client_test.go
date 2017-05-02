@@ -19,10 +19,11 @@ var testDir string
 
 // conf contains configuration necessary for the client to connect to a running odrive instance.
 var conf = Config{
-	Cert:   os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/test_0.cert.pem",
-	Trust:  os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/client.trust.pem",
-	Key:    os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/test_0.key.pem",
-	Remote: fmt.Sprintf("https://%s:%s/services/object-drive/1.0", config.DockerVM, config.Port),
+	Cert:       os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/test_0.cert.pem",
+	Trust:      os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/client.trust.pem",
+	Key:        os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/test_0.key.pem",
+	SkipVerify: true,
+	Remote:     fmt.Sprintf("https://%s:%s/services/object-drive/1.0", config.DockerVM, config.Port),
 }
 
 var permissions = protocol.Permission{
@@ -131,6 +132,7 @@ func TestCreateObjectNoStream(t *testing.T) {
 	}
 
 	retObj, err := me.CreateObject(upObj, nil)
+	t.Log("Object created is: ", retObj.ID)
 	assert.Nil(t, err, "Error creating object with no stream %s", err)
 
 }
