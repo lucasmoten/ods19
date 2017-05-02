@@ -47,17 +47,11 @@ Detailed code examples that use the API:
 
 [Java Caller (create an object)](static/templates/ObjectDriveSDK.java)
 
-[Javascript Caller (our simple test user interface)](static/templates/listObjects.js)
-
 The http level result of calling APIs that happens inside of SSL:
 
 [Actual Traffic - Basic Operations](static/templates/APISample.html)
 
-Testing interface: 
-
-[Development (for development)](ui)
-
-[Drive UI](/apps/drive/home)
+[Drive UI](/apps/drive/index.html)
 
 ## General Guidance Regarding Data Types
 

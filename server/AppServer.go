@@ -130,12 +130,9 @@ func (h *AppServer) InitRegex() {
 		return regexp.MustCompile(h.ServicePrefix + path)
 	}
 	h.Routes = &StaticRx{
-		// UI
-		Home:            route("/ui/?$"),
-		HomeListObjects: route("/ui/listObjects/?$"),
-		Favicon:         route("/favicon.ico$"),
-		StatsObject:     route("/stats$"),
-		StaticFiles:     route("/static/(?P<path>.*)"),
+		Favicon:     route("/favicon.ico$"),
+		StatsObject: route("/stats$"),
+		StaticFiles: route("/static/(?P<path>.*)"),
 		// Service operations
 		APIDocumentation: route("/$"),
 		UserStats:        route("/userstats$"),
@@ -268,13 +265,6 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		withoutDatabase = true
 	case "GET":
 		switch {
-		// Development UI
-		case h.Routes.Home.MatchString(uri):
-			herr = h.home(ctx, w, r)
-			withoutDatabase = true
-		case h.Routes.HomeListObjects.MatchString(uri):
-			herr = h.homeListObjects(ctx, w, r)
-			withoutDatabase = true
 		case h.Routes.Favicon.MatchString(uri):
 			herr = h.favicon(ctx, w, r)
 			withoutDatabase = true
@@ -718,8 +708,6 @@ func resolvePath(p string) (string, error) {
 
 // StaticRx statically references compiled regular expressions.
 type StaticRx struct {
-	Home                   *regexp.Regexp
-	HomeListObjects        *regexp.Regexp
 	Favicon                *regexp.Regexp
 	StatsObject            *regexp.Regexp
 	StaticFiles            *regexp.Regexp
