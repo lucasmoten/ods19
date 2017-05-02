@@ -20,7 +20,7 @@ machine:
 dependencies:
     pre:
         - sudo pip install docker-compose
-        - sudo pip install graphviz
+        - sudo apt-get install graphviz
         - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
         - go get -u github.com/kardianos/govendor
         - go get -u github.com/jteeuwen/go-bindata/...
