@@ -2,6 +2,11 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release v1.0.1.23
+--------------------
+* FIX: Allow Content-Transfer-Encoding to be specified as binary, 8bit, or 7bit.
+* FIX: Allow Content-Type to support charset values of utf-8 or iso-8859-1.
+
 ## Release v1.0.1.22
 --------------------
 * DOC: API Documentation now denotes length, minvalue, maxlength, maxvalue.

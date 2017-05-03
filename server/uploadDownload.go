@@ -170,11 +170,14 @@ func (h AppServer) acceptObjectUploadStream(ctx context.Context, part *multipart
 		if obj.Name == "" {
 			obj.Name = part.FileName()
 		}
-		// Issue #663 Look to see if any encoding is set
+		// Issue #663, #739 Look to see if any encoding is set and isn't binary
 		cte := part.Header.Get("Content-Transfer-Encoding")
 		if len(cte) > 0 {
-			msg := fmt.Sprintf("Content-Transfer-Encoding: %s is not supported for file part. File should be provided in native binary format.", cte)
-			return nil, NewAppError(400, fmt.Errorf("%s", msg), msg)
+			cte = strings.ToLower(cte)
+			if cte != "binary" && cte != "8bit" && cte != "7bit" {
+				msg := fmt.Sprintf("Content-Transfer-Encoding: %s is not supported for file part. File should be provided in native binary format.", cte)
+				return nil, NewAppError(400, fmt.Errorf("%s", msg), msg)
+			}
 		}
 		ct := part.Header.Get("Content-Type")
 		ctparts := strings.Split(ct, ";")
@@ -186,9 +189,9 @@ func (h AppServer) acceptObjectUploadStream(ctx context.Context, part *multipart
 					msg := fmt.Sprintf("Content-Type: %s is not supported for file part. File should be provided in native binary format with no encoding declarations.", ct)
 					return nil, NewAppError(400, fmt.Errorf("%s", msg), msg)
 				}
-				// Permit character set, but only if utf-8
+				// Permit character set, but only if utf-8 or charset=ISO-8859-1
 				if strings.HasPrefix(lv, "charset=") {
-					if lv != "charset=utf-8" {
+					if lv != "charset=utf-8" && lv != "charset=iso-8859-1" {
 						msg := fmt.Sprintf("Content-Type: %s is not supported for file part. File should be provided in native binary format with no encoding declarations.", ct)
 						return nil, NewAppError(400, fmt.Errorf("%s", msg), msg)
 					}
