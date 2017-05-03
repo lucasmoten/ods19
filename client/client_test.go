@@ -33,7 +33,7 @@ var permissions = protocol.Permission{
 
 // TestMain setups up the necessary files for the test-suite.
 func TestMain(m *testing.M) {
-	testDir, _ = ioutil.TempDir("./", "testData")
+	testDir, _ = ioutil.TempDir("", "testData")
 
 	testFile, err := ioutil.TempFile(testDir, "particle")
 	if err != nil {
@@ -60,6 +60,8 @@ func TestNewClient(t *testing.T) {
 func TestRoundTrip(t *testing.T) {
 	me, err := NewClient(conf)
 
+	t.Log("Reading from temporary directory for files to upload: ", testDir)
+
 	files, err := ioutil.ReadDir(testDir)
 	if err != nil {
 		t.Log("Can't read anything from the test directory")
@@ -74,7 +76,7 @@ func TestRoundTrip(t *testing.T) {
 
 		var upObj = protocol.CreateObjectRequest{
 			TypeName:              "File",
-			Name:                  fullFilePath,
+			Name:                  file.Name(),
 			NamePathDelimiter:     fmt.Sprintf("%s", os.PathSeparator),
 			Description:           "A test Particle ",
 			ParentID:              "",
@@ -92,14 +94,16 @@ func TestRoundTrip(t *testing.T) {
 		newObj, err := me.CreateObject(upObj, fReader)
 		assert.Nil(t, err, fmt.Sprintf("Creating object hit an error: %s", err))
 
-		t.Log("Uploaded object has ID: %s", newObj.ID)
+		t.Log("Uploaded object has ID: ", newObj.ID)
 
 		// Pull the fixtures back down
 		reader, err := me.GetObjectStream(newObj.ID)
 		assert.Nil(t, err, fmt.Sprintf("Retrieving stream hit an error: %s", err))
 
-		os.MkdirAll(path.Join("retrieved", testDir), os.FileMode(int(0700)))
-		outName := path.Join("./retrieved", newObj.Name)
+		os.MkdirAll(path.Join(testDir, "retrieved"), os.FileMode(int(0700)))
+		outName := path.Join(testDir, "retrieved", newObj.Name)
+
+		t.Log("Preparing to pull down file to: ", outName)
 		t.Log("ChangeToken: ", newObj.ChangeToken)
 		err = writeObjectToDisk(outName, reader)
 		assert.Nil(t, err, fmt.Sprintf("Writing encountered an error: %s", err))
@@ -108,7 +112,7 @@ func TestRoundTrip(t *testing.T) {
 		t.Log("Deleting object")
 		delResponse, err := me.DeleteObject(newObj.ID, newObj.ChangeToken)
 		assert.Nil(t, err, "Error on deleting object %s", err)
-		t.Log("Response from delete: %v", delResponse)
+		t.Log("Response from delete: ", delResponse)
 
 	}
 }
