@@ -1705,7 +1705,7 @@ Although it is not permitted to assign ownership to Everyone, ownership may be a
          * group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1
          * group/-Everyone
 
-### Change Owner [POST]
+### Change Owner Bulk [POST]
 
 This changes ownership of files in bulk.  It behaves like multiple changeOwner requests.
 
