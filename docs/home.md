@@ -1338,6 +1338,20 @@ This microservice operation will remove an object from the trash and delete it f
         * Error retrieving object
         * Error determining user.
 
+## List Groups with Objects [/groups]
+
+### List Groups with Objects [GET]
+
+This microservice operation retrieves a list of groups for which the user is a member that have objects at the root.  As users may be members of an undeterminate number of groups, this eliminates the need to list the objects of every group to determine if a group currently contains objects.
+
++ Response 200 (application/json)
+
+    + Attributes (GroupSpaceResultset)
+       
++ Response 500
+
+        Error retrieving groupspaces
+
 ## List Objects At Root For Group [/groupobjects/{groupName}{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
@@ -2307,6 +2321,22 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + callerPermissions (CallerPermission) - Permissions granted to the caller that resulted in this object being returned.
 + permissions (array[PermissionUser,PermissionGroup]) - **Deprecated** - Array of permissions associated with this object.
 + breadcrumbs (array[BreadcrumbParent,Breadcrumb]) - Array of IDs representing the parent chain for the object returned buy the API call. Will be empty for objects located at the root.
+
+## GroupSpaceResp (object)
+
++ grantee: `dctc_odrive` (string) - The flattened group name identifier that matches f_share values in an ACM.
++ resourceString: `group/dctc/DCTC/ODrive` (string) - The resource string identifying the group suitable for use as the ownedBy value when creating new objects to be owned by the group.
++ displayName: `DCTC ODrive` (string) - A UI friendly representation of the resource string.
++ quantity: 3 (number) - The current number of objects owned by the group for which the caller is allowed to see at the root.
+
+## GroupSpaceResultset (object)
+
++ totalRows: 100 (number) - Total number of groups the user is a member of that own objects at the root.
++ pageCount: 10 (number) - Always 1.
++ pageNumber: 1 (number) - Always 1.
++ pageSize: 10 (number) - Total number of groups the user is a member of that own objects at the root.
++ pageRows: 10 (number) - Total number of groups the user is a member of that own objects at the root.
++ groups (array[GroupSpaceResp]) - Array containing group information.
 
 ## ObjectDeleted (object)
 

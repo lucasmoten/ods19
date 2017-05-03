@@ -164,6 +164,7 @@ func (h *AppServer) InitRegex() {
 		SharedToEveryone: route("/sharedpublic$"),
 		SharedObject:     route("/shared/(?P<objectId>[0-9a-fA-F]{32})$"),
 		GroupObjects:     route("/groupobjects/(?P<groupName>.*)$"),
+		Groups:           route("/groups$"),
 		// - search
 		Search: route("/search/(?P<searchPhrase>.*)$"),
 		// - trash
@@ -388,6 +389,10 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.Search.MatchString(uri):
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Search)
 			herr = h.query(ctx, w, r)
+		// - my groups with objects
+		case h.Routes.Groups.MatchString(uri):
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Groups)
+			herr = h.listMyGroupsWithObjects(ctx, w, r)
 		// FUTURE API, NOT YET IMPLEMENTED
 		// - get relationships
 		case h.Routes.ObjectLinks.MatchString(uri):
@@ -741,6 +746,7 @@ type StaticRx struct {
 	SharedToEveryone       *regexp.Regexp
 	SharedObject           *regexp.Regexp
 	GroupObjects           *regexp.Regexp
+	Groups                 *regexp.Regexp
 	Search                 *regexp.Regexp
 	Trash                  *regexp.Regexp
 	Zip                    *regexp.Regexp

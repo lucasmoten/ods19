@@ -36,6 +36,7 @@ type DAO interface {
 	GetChildObjectsWithProperties(pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
 	GetChildObjectsWithPropertiesByUser(user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
 	GetDBState() (models.DBState, error)
+	GetGroupsForUser(user models.ODUser) (models.GroupSpaceResultset, error)
 	GetLogger() zap.Logger
 	GetObject(object models.ODObject, loadProperties bool) (models.ODObject, error)
 	GetObjectPermission(objectPermission models.ODObjectPermission) (models.ODObjectPermission, error)

@@ -98,9 +98,7 @@ func makeFolderWithACMWithParentViaJSON(folderName string, parentID string, rawA
 	}
 	// do the request
 	req.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
-	client := &http.Client{Transport: transport}
-	res, err := client.Do(req)
+	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		log.Printf("Unable to do request:%v", err)
 		return nil, err
@@ -141,9 +139,7 @@ func makeFolderWithParentViaJSON(folderName string, parentID string, clientid in
 func listChildren(parentID string, clientid int, t *testing.T) *protocol.ObjectResultset {
 	uri := host + cfg.NginxRootURL + "/objects/" + parentID
 	req, _ := http.NewRequest("GET", uri, nil)
-	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
-	client := &http.Client{Transport: transport}
-	res, err := client.Do(req)
+	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		t.Errorf("Unable to do request:%v", err)
 		t.FailNow()
@@ -167,9 +163,7 @@ func listChildren(parentID string, clientid int, t *testing.T) *protocol.ObjectR
 func getObject(id string, clientid int, t *testing.T) *protocol.Object {
 	uri := host + cfg.NginxRootURL + "/objects/" + id + "/properties"
 	req, _ := http.NewRequest("GET", uri, nil)
-	transport := &http.Transport{TLSClientConfig: clients[clientid].Config}
-	client := &http.Client{Transport: transport}
-	res, err := client.Do(req)
+	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		t.Errorf("Unable to do request:%v", err)
 		t.FailNow()

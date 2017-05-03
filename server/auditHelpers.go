@@ -37,6 +37,15 @@ func WithResourcesFromResultset(e events_thrift.AuditEvent, results models.ODObj
 	return e
 }
 
+// WithResourcesFromDAOGroupSpaceRS writes lists of groups
+func WithResourcesFromDAOGroupSpaceRS(e events_thrift.AuditEvent, results models.GroupSpaceResultset) events_thrift.AuditEvent {
+	for _, r := range results.GroupSpaces {
+		e = audit.WithResources(e, NewResourceFromGroupSpace(r))
+	}
+	e = audit.WithResult(e, "GROUP", strconv.Itoa(results.TotalRows), "object-drive-query-results.json")
+	return e
+}
+
 // NewResourceFromObject creates an audit resource from a object drive object suitable as targetted resource, original or modified
 func NewResourceFromObject(obj models.ODObject) components_thrift.Resource {
 	resource := components_thrift.Resource{}
@@ -62,6 +71,23 @@ func NewResourceFromObject(obj models.ODObject) components_thrift.Resource {
 	resource.Size = int64Ptr(obj.ContentSize.Int64)
 	acm := NewAuditACMFromString(obj.RawAcm.String)
 	resource.Acm = &acm
+	return resource
+}
+
+// NewResourceFromGroupSpace creates an audit resource from a object drive group space suitable as targetted resource, original or modified
+func NewResourceFromGroupSpace(gs models.GroupSpace) components_thrift.Resource {
+	resource := components_thrift.Resource{}
+	resourceName := "Unnamed Group"
+	if len(gs.Grantee) > 0 {
+		resourceName = gs.Grantee
+	}
+	resource.Name = &components_thrift.ResourceName{
+		Title: stringPtr(resourceName),
+	}
+	resource.Identifier = stringPtr(gs.ResourceString)
+	resource.Type = stringPtr("GROUP")
+	resource.SubType = stringPtr("Group")
+	resource.Size = int64Ptr(int64(gs.Quantity))
 	return resource
 }
 
