@@ -7,7 +7,7 @@ import (
 
 	"time"
 
-	globalconfig "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 )
 
@@ -15,24 +15,25 @@ import (
 // reponses for each of the methods that FakeDAO will implement. These fake
 // response fields can be explicitly set, or setup functions can be defined.
 type FakeDAO struct {
-	AcmGrantee        models.ODAcmGrantee
-	AcmGrantees       []models.ODAcmGrantee
-	DBState           models.DBState
-	Err               error
-	IsDescendent      bool
-	Object            models.ODObject
-	ObjectPermission  models.ODObjectPermission
-	ObjectPermissions []models.ODObjectPermission
-	ObjectProperites  []models.ODObjectPropertyEx
-	ObjectPropertyEx  models.ODObjectPropertyEx
-	ObjectType        models.ODObjectType
-	ObjectResultSet   models.ODObjectResultset
-	Parents           []models.ODObject
-	Property          models.ODProperty
-	User              models.ODUser
-	UserAOCache       models.ODUserAOCache
-	Users             []models.ODUser
-	UserStatsData     models.UserStats
+	AcmGrantee          models.ODAcmGrantee
+	AcmGrantees         []models.ODAcmGrantee
+	DBState             models.DBState
+	Err                 error
+	GroupSpaceResultSet models.GroupSpaceResultset
+	IsDescendent        bool
+	Object              models.ODObject
+	ObjectPermission    models.ODObjectPermission
+	ObjectPermissions   []models.ODObjectPermission
+	ObjectProperites    []models.ODObjectPropertyEx
+	ObjectPropertyEx    models.ODObjectPropertyEx
+	ObjectType          models.ODObjectType
+	ObjectResultSet     models.ODObjectResultset
+	Parents             []models.ODObject
+	Property            models.ODProperty
+	User                models.ODUser
+	UserAOCache         models.ODUserAOCache
+	Users               []models.ODUser
+	UserStatsData       models.UserStats
 }
 
 // AddPermissionToObject for FakeDAO.
@@ -136,9 +137,14 @@ func (fake *FakeDAO) GetDBState() (models.DBState, error) {
 	return fake.DBState, fake.Err
 }
 
+// GetGroupsForUser for FakeDAO
+func (fake *FakeDAO) GetGroupsForUser(user models.ODUser) (models.GroupSpaceResultset, error) {
+	return fake.GroupSpaceResultSet, fake.Err
+}
+
 // GetLogger returns a logger for the current session (or any other context - we want correlation across a request)
 func (fake *FakeDAO) GetLogger() zap.Logger {
-	return globalconfig.RootLogger
+	return config.RootLogger
 }
 
 // GetObject for FakeDAO.

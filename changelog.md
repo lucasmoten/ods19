@@ -6,6 +6,7 @@ FORMAT: 1A
 --------------------
 * FIX: Allow Content-Transfer-Encoding to be specified as binary, 8bit, or 7bit.
 * FIX: Allow Content-Type to support charset values of utf-8 or iso-8859-1.
+* NEW: Operation /groups returns information about groups for which caller is a member of that owns objects.
 
 ## Release v1.0.1.22
 --------------------
