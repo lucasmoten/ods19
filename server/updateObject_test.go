@@ -885,9 +885,10 @@ func TestUpdateObjectWithPermissions(t *testing.T) {
 	}
 
 	t.Logf("* Checking that ODrive group has read and update")
-	groupName := "group/dctc/DCTC/ODrive/DCTC ODrive"
+	groupName := "group/dctc/dctc/odrive"
 	foundReader := false
 	for _, allowedReader := range updated.Permission.Read.AllowedResources {
+		t.Logf("allowed reader = %s", allowedReader)
 		if allowedReader == groupName {
 			foundReader = true
 			break
@@ -899,6 +900,7 @@ func TestUpdateObjectWithPermissions(t *testing.T) {
 	}
 	foundUpdater := false
 	for _, allowedUpdater := range updated.Permission.Update.AllowedResources {
+		t.Logf("allowed updater = %s", allowedUpdater)
 		if allowedUpdater == groupName {
 			foundUpdater = true
 			break

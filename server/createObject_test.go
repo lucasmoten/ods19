@@ -267,7 +267,7 @@ func failWithoutDCTCOdrive(t *testing.T, createdObject *protocol.Object) {
 			hasEveryone := false
 			for _, permission := range retrievedObject.Permissions {
 				t.Logf("%s", permission)
-				if permission.GroupName == models.EveryoneGroup {
+				if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 					hasEveryone = true
 				}
 				if permission.Grantee == "dctc_odrive" {
@@ -371,7 +371,7 @@ func TestCreateWithPermissionsOwnedBy(t *testing.T) {
 
 	tester10 := 0
 
-	ownerNoDisplayName := "group/dctc/DCTC/ODrive"
+	ownerNoDisplayName := "group/dctc/dctc/odrive"
 
 	t.Logf("* Create object")
 	t.Logf("preparing")
@@ -399,7 +399,7 @@ func TestCreateWithPermissionsOwnedBy(t *testing.T) {
 	failWithoutDCTCOdrive(t, createdObject)
 
 	if createdObject.OwnedBy != ownerNoDisplayName {
-		t.Logf("owned by %s rather than %s", createdObject.OwnedBy, object.OwnedBy)
+		t.Logf("owned by %s rather than %s", createdObject.OwnedBy, ownerNoDisplayName)
 		t.FailNow()
 	}
 }
@@ -535,7 +535,7 @@ func TestCreateStreamWithPermissions(t *testing.T) {
 
 func TestCreateStreamWithPermissionsOwnedBy(t *testing.T) {
 	groupdn := "group/dctc/DCTC/ODrive/DCTC ODrive"
-	groupdnnodisplayname := "group/dctc/DCTC/ODrive"
+	groupdnnodisplayname := "group/dctc/dctc/odrive"
 	obj := genericTestCreateStreamWithPermissions(t, groupdn, http.StatusOK)
 	if groupdnnodisplayname != obj.OwnedBy {
 		t.Logf("ownedBy was not properly set")
@@ -1319,7 +1319,7 @@ func TestCreateObjectWithPathingForGroup(t *testing.T) {
 	}
 
 	t.Logf("* Verify owned by")
-	groupResourceName := "group/dctc/DCTC/ODrive"
+	groupResourceName := "group/dctc/dctc/odrive"
 	if createdObject.OwnedBy != groupResourceName {
 		t.Errorf("Object was owned by %s, expected %s", createdObject.OwnedBy, groupResourceName)
 		t.FailNow()

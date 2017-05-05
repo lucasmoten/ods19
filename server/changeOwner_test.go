@@ -124,7 +124,7 @@ func TestChangeOwnerToGroup(t *testing.T) {
 
 	t.Logf("* Changing ownership to group")
 	newowner := "group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1"
-	newownernodisplayname := "group/dctc/DCTC/ODrive_G1"
+	newownernodisplayname := "group/dctc/dctc/odrive_g1"
 	changeowneruri := host + config.NginxRootURL + "/objects/" + createdObject.ID + "/owner/" + newowner
 	objChangeToken := protocol.ChangeTokenStruct{ChangeToken: createdObject.ChangeToken}
 	changeOwnerRequest := makeHTTPRequestFromInterface(t, "POST", changeowneruri, objChangeToken)

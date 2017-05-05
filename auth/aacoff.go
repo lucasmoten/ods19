@@ -2,6 +2,7 @@ package auth
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"decipher.com/object-drive-server/mapping"
@@ -162,6 +163,39 @@ func aacInjectPermissionsIntoACM(logger zap.Logger, permissions []models.ODObjec
 	if err != nil {
 		return acm, fmt.Errorf("%s %s", ErrFailToInjectPermissions, err.Error())
 	}
+	// Normalize disp_nm in share to lowercase (738)
+	for aK, aV := range acmMap {
+		if aV == nil {
+			continue
+		}
+		if strings.ToLower(aK) == "share" && strings.ToLower(reflect.TypeOf(aV).Kind().String()) == "map" {
+			acmMap1, _ := aV.(map[string]interface{})
+			for aK1, aV1 := range acmMap1 {
+				if aV1 == nil {
+					continue
+				}
+				if strings.ToLower(aK1) == "projects" && strings.ToLower(reflect.TypeOf(aV1).Kind().String()) == "map" {
+					acmMap2, _ := aV1.(map[string]interface{})
+					for aK2, aV2 := range acmMap2 {
+						// This aK2 represents the project name as a key in the map. It's what we want disp_nm to be
+						if strings.ToLower(reflect.TypeOf(aV2).Kind().String()) == "map" {
+							acmMap3, _ := aV2.(map[string]interface{})
+							for aK3, aV3 := range acmMap3 {
+								if strings.ToLower(aK3) == "disp_nm" && aK2 != aV3 {
+									// force lowercase
+									acmMap3[aK3] = strings.ToLower(aK2)
+									// bubble up assignment
+									acmMap2[aK2] = acmMap3
+									acmMap1[aK1] = acmMap2
+									acmMap[aK] = acmMap1
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 
 	// Process permissions
 	for idx, permission := range permissions {
@@ -180,9 +214,11 @@ func aacInjectPermissionsIntoACM(logger zap.Logger, permissions []models.ODObjec
 		if !ok {
 			acmShareInterface = emptyInterface
 		}
-		permissionInterface, err := utils.UnmarshalStringToInterface(permission.AcmShare)
+		// Normalize to lowercase before unmarshal and combine (738)
+		lowercaseAcmShare := strings.ToLower(permission.AcmShare)
+		permissionInterface, err := utils.UnmarshalStringToInterface(lowercaseAcmShare)
 		if err != nil {
-			return acm, fmt.Errorf("%s permission %d unmarshal error from %s %s", ErrFailToInjectPermissions, idx, permission.AcmShare, err.Error())
+			return acm, fmt.Errorf("%s permission %d unmarshal error from %s %s", ErrFailToInjectPermissions, idx, lowercaseAcmShare, err.Error())
 		}
 		acmMap[acmShareKey] = utils.CombineInterface(acmShareInterface, permissionInterface)
 	}
