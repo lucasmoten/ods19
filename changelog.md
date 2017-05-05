@@ -2,6 +2,10 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release v1.0.1.24
+--------------------
+* ENH: Add option for CLI tools `odrive` and `odrive-database` to print DB schema version.
+
 ## Release v1.0.1.23
 --------------------
 * FIX: Allow Content-Transfer-Encoding to be specified as binary, 8bit, or 7bit.
@@ -54,7 +58,7 @@ FORMAT: 1A
 * FIX: Service init script will now check lock state before starting.
 * FIX: Return cause of error to caller for failure to create object.
 * DOC: API Documentation now denotes dates in RFC3339 format.
-* FIX: Centralized how our IP address is determined. 
+* FIX: Centralized how our IP address is determined.
 * FIX: Init script now checks that paths are configured as absolute.
 * ENH: Init script now uses logging with log levels.
 * ENH: Server startup will now block forever until main ZK cluster is reachable.
@@ -65,7 +69,7 @@ FORMAT: 1A
 --------------------
 * FIX: Path Delimiter for internal storage is now using record separator in place of forward slash.
 * ENH: Create Object operation may specify namePathDelimiter to override default.
-* ENH: Latest git tag is embedded in --version flag. 
+* ENH: Latest git tag is embedded in --version flag.
 
 ## Release v1.0.1.16
 --------------------
@@ -106,7 +110,7 @@ FORMAT: 1A
 * ENH: Determination of content type from file extension on upload expanded to larger list
 * ENH: Autoscale shutdown from lifecycle messages now handle 10 messages at a time, configured via OD_AWS_SQS_BATCHSIZE
 * NEW: Empty Trash: DELETE /trashed
-* NEW: Bulk Get Properties: GET /objects/properties 
+* NEW: Bulk Get Properties: GET /objects/properties
 * FIX: OD_ZK_ANNOUNCE no longer must be 4 parts, and default changed to /services/object-drive/1.0
 * FIX: Service init script only changes ownership of certificates if they are found under OD_BASEPATH
 * DOC: API Documentation updated with sectiosn for empty trash and retrieving bulk objects
@@ -130,7 +134,7 @@ FORMAT: 1A
 * NEW: Implemented API operation to change owner
 * NEW: Implemented API to list root objects owned by a group
 * DOC: API Documentation updated with Change Owner and List Objects at Root For Group
-* ENH: ACL Impersonation Whitelist read from different location in object-drive.yml 
+* ENH: ACL Impersonation Whitelist read from different location in object-drive.yml
 
 ## Release v1.0.1.8
 -------------------
@@ -147,7 +151,7 @@ FORMAT: 1A
 ----------------
 * NEW: AAC is discoverable from its own ZK cluster, not just default ZK.
 * NEW: Additional debug logging around database code for updating ACMs on objects.
-* FIX: Can specify everyone (group/-Everyone/-Everyone) for read permission when creating object 
+* FIX: Can specify everyone (group/-Everyone/-Everyone) for read permission when creating object
 * NEW: Configuration for environment variable OD_AWS_ENDPOINT is now read from OD_AWS_S3_ENDPOINT
 * NEW: Support for Peer2Peer retrieval of content streams when running multiple instances of ODrive
 
@@ -172,7 +176,7 @@ FORMAT: 1A
 * NEW: List of objects shared to everyone (/sharedpublic) will exclude those whose parent is also shared to everyone.
 * FIX: Breadcrumbs will be limited to the first parents accessible to a user. No
   longer returning the complete list with redacted folder names
-* NEW: Autoscaling report gets messages triggered by a CloudWatch alarm writes to SQS so we shut down and tell Autoscale 
+* NEW: Autoscaling report gets messages triggered by a CloudWatch alarm writes to SQS so we shut down and tell Autoscale
 
 ## Release v1.0.1.4
 ----------------
@@ -187,7 +191,7 @@ FORMAT: 1A
 * FIX: ACM part processing will now skip empty values instead of failing to store update.
 * FIX: Update Object with ACM Share now ensures owner retains read access.
 * FIX: Existing objects have full CRUDS permissions assigned to owners.
-* FIX: List of objects /shared to others will exclude those that are private to the user. 
+* FIX: List of objects /shared to others will exclude those that are private to the user.
 * NEW: CloudWatch metrics that enable the setting of alarms by admins (an auto-scaling prerequisite)
 
 ## Release v1.0.1

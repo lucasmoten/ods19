@@ -77,6 +77,20 @@ func main() {
 			},
 		},
 		{
+			Name:  "schemaversion",
+			Usage: "connect to database and print schema version",
+			Flags: []cli.Flag{confFlag, useEmbedded},
+			Action: func(clictx *cli.Context) error {
+				db, err := connect(clictx)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				fmt.Println("Schema Version: ", getSchemaVersion(db))
+				return nil
+			},
+		},
+		{
 			Name:  "init",
 			Usage: "connect and initialize mysql database",
 			Flags: []cli.Flag{confFlag, force, useEmbedded},
@@ -162,9 +176,9 @@ func main() {
 		confFlag,
 	}
 
-	// There is no "default" command. Print help and exit.
+	// There is no "default" command.  Print help and exit.
 	app.Action = func(clictx *cli.Context) error {
-		fmt.Printf("Must specify command. Run `%s help` for info", app.Name)
+		fmt.Printf("Must specify command. Run `%s help` for info\n", app.Name)
 		return nil
 	}
 
@@ -643,14 +657,14 @@ func exampleConfig() {
 
 	contents := `
 database:
-    username: 
-    password: 
-    host: 
-    port: 
-    schema: 
-    trust: 
-    cert: 
-    key: 
+    username:
+    password:
+    host:
+    port:
+    schema:
+    trust:
+    cert:
+    key:
 
 `
 

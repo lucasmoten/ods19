@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"decipher.com/object-drive-server/ciphertext"
+	"decipher.com/object-drive-server/dao"
 
 	"decipher.com/object-drive-server/amazon"
 
@@ -34,6 +35,14 @@ func main() {
 	cliParser.Version = fmt.Sprintf("%s build :%s", Version, Build)
 
 	cliParser.Commands = []cli.Command{
+		{
+			Name:  "schemaversion",
+			Usage: "Expected DB Schema version in use.",
+			Action: func(ctx *cli.Context) error {
+				fmt.Printf("Schema Version Needed: %s\n", dao.SchemaVersion)
+				return nil
+			},
+		},
 		{
 			Name:  "env",
 			Usage: "Print all environment variables",
@@ -105,7 +114,6 @@ func main() {
 	}
 
 	cliParser.Action = func(c *cli.Context) error {
-
 		opts := config.NewCommandLineOpts(c)
 		conf := config.NewAppConfiguration(opts)
 
