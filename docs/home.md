@@ -98,7 +98,7 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
        * File - This type may be assigned if no type is given, and you are creating an object with a stream
        * Folder - This type may be assigned if no type is given, and you are creating an object without a stream
     + name: `New File` (string, maxlength=255, optional) - The name to be given this object.  If no name is given, then objects are created with the default name pattern of `New <typeName>`.
-    + namePathDelimimter: `:::` (string, optional) - An optional alternate path delimiter for which the name given should be assessed to generate intermediate objects when establishing a folder/file structure hierarchy. By default, the name will be split on the record seaprator (ASCII character 30).
+    + namePathDelimiter: `:::` (string, optional) - An optional alternate path delimiter for which the name given should be assessed to generate intermediate objects when establishing a folder/file structure hierarchy. By default, the name will be split on the record seaprator (ASCII character 30).
        * Example splitting `abc:::def:::ghi` on `:::`
          * creates object `abc` if it does not already exist
          * creates object `def` if it does not already exist as a child of `abc`
@@ -278,7 +278,7 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
        * File - This type may be assigned if no type is given, and you are creating an object with a stream
        * Folder - This type may be assigned if no type is given, and you are creating an object without a stream
     + name: `New Folder` (string, maxlength=255, optional) - The name to be given this object.  If no name is given, then objects are created with the default name pattern of `New <typeName>`.
-    + namePathDelimimter: `:::` (string, optional) - An optional alternate path delimiter for which the name given should be assessed to generate intermediate objects when establishing a folder/file structure hierarchy. By default, the name will be split on the record seaprator (ASCII character 30).
+    + namePathDelimiter: `:::` (string, optional) - An optional alternate path delimiter for which the name given should be assessed to generate intermediate objects when establishing a folder/file structure hierarchy. By default, the name will be split on the record seaprator (ASCII character 30).
        * Example splitting `abc:::def:::ghi` on `:::`
          * creates object `abc` if it does not already exist
          * creates object `def` if it does not already exist as a child of `abc`
