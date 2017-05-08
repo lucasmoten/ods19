@@ -461,7 +461,7 @@ func TestAddReadShareForGroupRemovesEveryone(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject2.Permissions {
 				t.Logf("%s", permission)
-				if permission.GroupName == models.EveryoneGroup {
+				if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -556,7 +556,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 				hasEveryone := false
 				for _, permission := range retrievedObject.Permissions {
 					t.Logf("%s", permission)
-					if permission.GroupName == models.EveryoneGroup {
+					if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 						hasEveryone = true
 					}
 				}
@@ -643,7 +643,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject2.Permissions {
 				t.Logf("%s", permission)
-				if permission.GroupName == models.EveryoneGroup {
+				if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -730,7 +730,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject3.Permissions {
 				t.Logf("%s", permission)
-				if permission.GroupName == models.EveryoneGroup {
+				if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -841,7 +841,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range retrievedObject.Permissions {
 				t.Logf("%s", permission)
-				if permission.GroupName == models.EveryoneGroup {
+				if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 					hasEveryone = true
 				}
 			}
@@ -921,7 +921,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject2.Permissions {
 				t.Logf("%s", permission)
-				if permission.GroupName == models.EveryoneGroup {
+				if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -1008,7 +1008,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject3.Permissions {
 				t.Logf("%s", permission)
-				if permission.GroupName == models.EveryoneGroup {
+				if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -1101,7 +1101,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject4.Permissions {
 				t.Logf("%s", permission)
-				if permission.GroupName == models.EveryoneGroup {
+				if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -1213,7 +1213,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range retrievedObject.Permissions {
 				t.Logf("%s", permission)
-				if permission.GroupName == models.EveryoneGroup {
+				if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 					hasEveryone = true
 				}
 			}
@@ -1293,7 +1293,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject2.Permissions {
 				t.Logf("%s", permission)
-				if permission.GroupName == models.EveryoneGroup {
+				if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -1380,7 +1380,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject3.Permissions {
 				t.Logf("%s", permission)
-				if permission.GroupName == models.EveryoneGroup {
+				if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -1473,7 +1473,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject4.Permissions {
 				t.Logf("%s", permission)
-				if permission.GroupName == models.EveryoneGroup {
+				if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -1561,7 +1561,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 			hasEveryone := false
 			for _, permission := range updatedObject5.Permissions {
 				t.Logf("%s", permission)
-				if permission.GroupName == models.EveryoneGroup {
+				if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 					hasEveryone = true
 				}
 				if strings.Contains(permission.Grantee, "cn=test tester01,") {
@@ -1611,9 +1611,9 @@ func shouldHaveEveryonePermission(t *testing.T, objID string, clientIdxs ...int)
 		err = util.FullDecode(resp.Body, &obj)
 		failNowOnErr(t, err, "unable to decode object from json")
 		hasEveryone := false
-		for _, p := range obj.Permissions {
-			t.Logf("%s", p)
-			if p.GroupName == models.EveryoneGroup {
+		for _, permission := range obj.Permissions {
+			t.Logf("%s", permission)
+			if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 				hasEveryone = true
 			}
 		}

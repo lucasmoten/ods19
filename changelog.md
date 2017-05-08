@@ -6,6 +6,8 @@ FORMAT: 1A
 --------------------
 * ENH: Add option for CLI tools `odrive` and `odrive-database` to print DB schema version.
 * FIX: Corrected spelling of `namePathDelimiter` in API documentation for create object.
+* FIX: Normalize resource string and grantee parts to lowercase. Force disp_nm in ACM to lowercase matching project key.
+* DB: The database schema is now 20170505. A migration should be performed.
 
 ## Release v1.0.1.23
 --------------------

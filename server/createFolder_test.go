@@ -565,9 +565,9 @@ func TestCreateFolderWithPermissionForEveryone264(t *testing.T) {
 	}
 
 	// Validating permissions against expectations
-	theCreator := "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
-	explicitUser := "user/cn=twl-server-generic2,ou=dae,ou=dia,o=u.s. government,c=us/twl-server-generic2"
-	everyone := "group/-Everyone/-Everyone"
+	theCreator := "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+	explicitUser := "user/cn=twl-server-generic2,ou=dae,ou=dia,o=u.s. government,c=us"
+	everyone := "group/-everyone"
 	if !hasExpectedValues([]string{theCreator, explicitUser}, createdFolder.Permission.Create.AllowedResources) {
 		log.Printf("Missing values expected in create")
 		t.Fail()

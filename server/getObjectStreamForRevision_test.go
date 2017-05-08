@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 
 	cfg "decipher.com/object-drive-server/config"
@@ -476,7 +477,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 		hasEveryone := false
 		for _, permission := range objShare.Permissions {
 			t.Logf("%s", permission)
-			if permission.GroupName == models.EveryoneGroup {
+			if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 				hasEveryone = true
 			}
 		}
@@ -527,7 +528,7 @@ func TestGetObjectStreamForRevision_WithoutPermission(t *testing.T) {
 	hasEveryone := false
 	for _, permission := range objResponse2.Permissions {
 		t.Logf("%s", permission)
-		if permission.GroupName == models.EveryoneGroup {
+		if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 			hasEveryone = true
 		}
 	}

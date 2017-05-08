@@ -482,7 +482,7 @@ possible a list of Errors coming back with the objects that came back successful
                     "read": {
                     "allow": [
                         "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10",
-                        "group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1"
+                        "group/dctc/dctc/odrive_g1"
                     ],
                     "deny": [
                         "``"
@@ -553,9 +553,9 @@ possible a list of Errors coming back with the objects that came back successful
                     {
                     "grantee": "dctc_odrive_g1",
                     "projectName": "dctc",
-                    "projectDisplayName": "DCTC",
-                    "groupName": "ODrive_G1",
-                    "displayName": "DCTC ODrive_G1",
+                    "projectDisplayName": "dctc",
+                    "groupName": "odrive_g1",
+                    "displayName": "dctc odrive_g1",
                     "allowCreate": true,
                     "allowRead": true,
                     "allowUpdate": true,
@@ -621,19 +621,19 @@ possible a list of Errors coming back with the objects that came back successful
                     "projects": [
                         {
                         "ukpn": {
-                            "disp_nm": "Project Name",
+                            "disp_nm": "project name",
                             "groups": [
-                            "Group Name",
-                            "Cats",
-                            "Dogs"
+                            "group name",
+                            "cats",
+                            "dogs"
                             ]
                         },
                         "ukpn2": {
-                            "disp_nm": "Project Name 2",
+                            "disp_nm": "project name 2",
                             "groups": [
-                            "Group 1",
-                            "Group 2",
-                            "Group 3"
+                            "group 1",
+                            "group 2",
+                            "group 3"
                             ]
                         }
                         }
@@ -653,7 +653,7 @@ possible a list of Errors coming back with the objects that came back successful
                     "read": {
                     "allow": [
                         "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10",
-                        "group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1"
+                        "group/dctc/dctc/odrive_g1"
                     ],
                     "deny": [
                         "``"
@@ -724,9 +724,9 @@ possible a list of Errors coming back with the objects that came back successful
                     {
                     "grantee": "dctc_odrive_g1",
                     "projectName": "dctc",
-                    "projectDisplayName": "DCTC",
-                    "groupName": "ODrive_G1",
-                    "displayName": "DCTC ODrive_G1",
+                    "projectDisplayName": "dctc",
+                    "groupName": "odrive_g1",
+                    "displayName": "dctc odrive_g1",
                     "allowCreate": true,
                     "allowRead": true,
                     "allowUpdate": true,
@@ -2193,7 +2193,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 
 ## ACMShare (object)
 
-+ users: `CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US`, `CN=test tester02,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US`, `CN=test tester03,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US`, `CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US` (array[string], optional) - Array of distinguished names for users that are targets of this share.
++ users: `cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us`, `cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us`, `cn=test tester03,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us`, `cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us` (array[string], optional) - Array of distinguished names for users that are targets of this share.
 + projects (array[ACMShareProjects], optional) - Array of projects with nested groups that are targets of this share.
 
 ## ACMShareProjects (object)
@@ -2304,7 +2304,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + deletedBy: `` (string) - The user that deleted the object. This field is only populated if the object is in the trash.
 + changeCount: 42 (number) - The total count of changes that have been made to this object over its lifespan. Synonymous with version number. For unchanged objects, this will always be 0.
 + changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) - A hash of the object's unique identifier and last modification date and time.
-+ ownedBy: `user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us` (string) - The resource that owns this object. For a user, this is denoted with a prefix of `user/` followed by the user's distinguished name.  A group is prefixed by `group/` followed by project name, project display name, and group name.  Example group resource string: `group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1` 
++ ownedBy: `user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us` (string) - The resource that owns this object. For a user, this is denoted with a prefix of `user/` followed by the user's distinguished name.  A group is prefixed by `group/` followed by project name, project display name, and group name.  Example group resource string: `group/dctc/dctc/odrive_g1` 
 + typeId: `11e5e48664f5d8c789020242ac110002` (string) - The unique identifier of the type assigned this object hex encoded to a string.
 + typeName: `File` (string) - The display name of the type assigned this object.
 + name: `gettysburgaddress.txt` (string) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.
@@ -2325,8 +2325,8 @@ The UI will accumulate a list of file ID values to include in a zip file.
 ## GroupSpaceResp (object)
 
 + grantee: `dctc_odrive` (string) - The flattened group name identifier that matches f_share values in an ACM.
-+ resourceString: `group/dctc/DCTC/ODrive` (string) - The resource string identifying the group suitable for use as the ownedBy value when creating new objects to be owned by the group.
-+ displayName: `DCTC ODrive` (string) - A UI friendly representation of the resource string.
++ resourceString: `group/dctc/dctc/odrive` (string) - The resource string identifying the group suitable for use as the ownedBy value when creating new objects to be owned by the group.
++ displayName: `dctc odrive` (string) - A UI friendly representation of the resource string.
 + quantity: 3 (number) - The current number of objects owned by the group for which the caller is allowed to see at the root.
 
 ## GroupSpaceResultset (object)
@@ -2357,7 +2357,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + deletedBy: `` (string) - The user that deleted the object. This field is only populated if the object is in the trash.
 + changeCount: 42 (number) - The total count of changes that have been made to this object over its lifespan. Synonymous with version number. For unchanged objects, this will always be 0.
 + changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) - A hash of the object's unique identifier and last modification date and time.
-+ ownedBy: `user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us` (string) - The resource that owns this object. For a user, this is denoted with a prefix of `user/` followed by the user's distinguished name.  A group is prefixed by `group/` followed by project name, project display name, and group name.  Example group resource string: `group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1` 
++ ownedBy: `user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us` (string) - The resource that owns this object. For a user, this is denoted with a prefix of `user/` followed by the user's distinguished name.  A group is prefixed by `group/` followed by project name, project display name, and group name.  Example group resource string: `group/dctc/dctc/odrive_g1` 
 + typeId: `11e5e48664f5d8c789020242ac110002` (string) - The unique identifier of the type assigned this object hex encoded to a string.
 + typeName: `File` (string) - The display name of the type assigned this object.
 + name: `gettysburgaddress.txt` (string) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.
@@ -2385,7 +2385,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + deletedBy: `` (string) - The user that deleted the object. This field is only populated if the object is in the trash.
 + changeCount: 42 (number) - The total count of changes that have been made to this object over its lifespan. Synonymous with version number. For unchanged objects, this will always be 0.
 + changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) - A hash of the object's unique identifier and last modification date and time.
-+ ownedBy: `user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us` (string) - The resource that owns this object. For a user, this is denoted with a prefix of `user/` followed by the user's distinguished name.  A group is prefixed by `group/` followed by project name, project display name, and group name.  Example group resource string: `group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1` 
++ ownedBy: `user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us` (string) - The resource that owns this object. For a user, this is denoted with a prefix of `user/` followed by the user's distinguished name.  A group is prefixed by `group/` followed by project name, project display name, and group name.  Example group resource string: `group/dctc/dctc/odrive_g1` 
 + typeId: `11e5e48664f5d8c789020242ac110002` (string) - The unique identifier of the type assigned this object hex encoded to a string.
 + typeName: `File` (string) - The display name of the type assigned this object.
 + name: `child 1` (string) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.

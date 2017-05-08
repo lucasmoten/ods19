@@ -250,7 +250,7 @@ func (permission ODObjectPermission) String() string {
 }
 
 func getResourceNameFromAcmGrantee(acmGrantee ODAcmGrantee) string {
-	return acmGrantee.ResourceName()
+	return acmGrantee.ResourceNameRaw()
 }
 
 func getResourceNameFromAcmShare(acmShare string) string {

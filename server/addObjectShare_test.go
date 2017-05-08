@@ -210,7 +210,7 @@ func TestAddObjectShare(t *testing.T) {
 	hasEveryone := false
 	for _, permission := range retrievedObject.Permissions {
 		t.Logf("%s", permission)
-		if permission.GroupName == models.EveryoneGroup {
+		if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 			hasEveryone = true
 		}
 	}
@@ -280,7 +280,7 @@ func TestAddObjectShare(t *testing.T) {
 	hasEveryone = false
 	for _, permission := range retrievedObject.Permissions {
 		t.Logf("%s", permission)
-		if permission.GroupName == models.EveryoneGroup {
+		if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 			hasEveryone = true
 		}
 	}
@@ -336,7 +336,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	hasEveryone := false
 	for _, permission := range retrievedObject.Permissions {
 		t.Logf("%s", permission)
-		if permission.GroupName == models.EveryoneGroup {
+		if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 			hasEveryone = true
 		}
 	}
@@ -394,7 +394,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	hasEveryone = false
 	for _, permission := range updatedObject.Permissions {
 		t.Logf("%s", permission)
-		if permission.GroupName == models.EveryoneGroup {
+		if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 			hasEveryone = true
 		}
 	}
@@ -481,7 +481,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	hasEveryone = false
 	for _, permission := range retrievedObject.Permissions {
 		t.Logf("%s", permission)
-		if permission.GroupName == models.EveryoneGroup {
+		if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 			hasEveryone = true
 		}
 	}
@@ -538,7 +538,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	hasEveryone = false
 	for _, permission := range retrievedObject.Permissions {
 		t.Logf("%s", permission)
-		if permission.GroupName == models.EveryoneGroup {
+		if strings.ToLower(permission.GroupName) == strings.ToLower(models.EveryoneGroup) {
 			hasEveryone = true
 		}
 	}

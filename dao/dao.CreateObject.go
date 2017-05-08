@@ -88,7 +88,9 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		userRequested.DistinguishedName = object.CreatedBy
 		userRequested.DisplayName = models.ToNullString(config.GetCommonName(object.CreatedBy))
 		userRequested.CreatedBy = object.CreatedBy
-		_, err = createUserInTransaction(logger, tx, userRequested)
+		userCreated := models.ODUser{}
+		userCreated, err = createUserInTransaction(logger, tx, userRequested)
+		object.CreatedBy = userCreated.DistinguishedName
 	}
 
 	if object.TypeID == nil {

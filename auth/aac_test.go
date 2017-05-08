@@ -156,7 +156,8 @@ func TestAACAuthInjectPermissionsIntoACM(t *testing.T) {
 	aacAuth := newAACAuth(t)
 	acmUnclassEveryone := `{"classif":"U","share":null,"version":"2.1.0"}`
 	acmUnclassODrive := `{"classif":"U","share":{"projects":{"dctc":{"disp_nm":"DCTC","groups":["ODrive"]}}},"version":"2.1.0"}`
-	acmUnclassODriveT1T2 := `{"classif":"U","share":{"projects":{"dctc":{"disp_nm":"DCTC","groups":["ODrive"]}},"users":["cnt1","cnt2"]},"version":"2.1.0"}`
+	acmUnclassODriveMod := `{"classif":"U","share":{"projects":{"dctc":{"disp_nm":"dctc","groups":["ODrive"]}}},"version":"2.1.0"}`
+	acmUnclassODriveT1T2 := `{"classif":"U","share":{"projects":{"dctc":{"disp_nm":"dctc","groups":["ODrive"]}},"users":["cnt1","cnt2"]},"version":"2.1.0"}`
 	acmUnclassT1T2 := `{"classif":"U","share":{"users":["cnt1","cnt2"]},"version":"2.1.0"}`
 	T1CRUDS := models.ODObjectPermission{
 		Grantee: "cnt1",
@@ -178,7 +179,7 @@ func TestAACAuthInjectPermissionsIntoACM(t *testing.T) {
 	nopermissions := []models.ODObjectPermission{}
 
 	subtests := []testAACAuth{}
-	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "shared + no permissions unmodified", permissions: nopermissions, acm: acmUnclassODrive, expectedModified: acmUnclassODrive})
+	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "shared + no permissions unmodified", permissions: nopermissions, acm: acmUnclassODrive, expectedModified: acmUnclassODriveMod})
 	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "shared + permissions changes", permissions: permissionsT1T2, acm: acmUnclassODrive, expectedModified: acmUnclassODriveT1T2})
 	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "public + permissions changes", permissions: permissionsT1T2, acm: acmUnclassEveryone, expectedModified: acmUnclassT1T2})
 
