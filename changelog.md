@@ -5,6 +5,7 @@ FORMAT: 1A
 ## Release v1.0.1.24
 --------------------
 * ENH: Add option for CLI tools `odrive` and `odrive-database` to print DB schema version.
+* FIX: Corrected spelling of `namePathDelimiter` in API documentation for create object.
 
 ## Release v1.0.1.23
 --------------------
