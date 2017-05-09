@@ -7,7 +7,7 @@ FORMAT: 1A
 * ENH: Add option for CLI tools `odrive` and `odrive-database` to print DB schema version.
 * FIX: Corrected spelling of `namePathDelimiter` in API documentation for create object.
 * FIX: Normalize resource string and grantee parts to lowercase. Force disp_nm in ACM to lowercase matching project key.
-* DB: The database schema is now 20170505. A migration should be performed.
+* DB: The database schema is now 20170508. A migration should be performed.
 
 ## Release v1.0.1.23
 --------------------
@@ -22,6 +22,7 @@ FORMAT: 1A
 * CFG: Database tool compatibility with MySQL 5.7 (requires parameter show_compatibility_56 = 1)
 * FIX: Add support for creating objects owned by group with pathing at time of creation.
 * FIX: Security fix for client certificate checks to AAC and peer odrives
+* CFG: Certicicate checks for AAC and PEER CN set in OD_AAC_CN and OD_PEER_CN in env.sh
 * DOC: API Documentation correction to create object size sample denoting contentSize as a number.
 * FIX: Build process will install graphviz to satisfy plantuml need for dot for diagram generation.
 * DOC: API Documentation denotes that content streams should not have encoding or character sets.

@@ -74,19 +74,19 @@ func TestListObjectsSharedToMe(t *testing.T) {
 	var sharedToTester1 protocol.ObjectResultset
 	err = util.FullDecode(listSharesTester1Response.Body, &sharedToTester1)
 
-	tester1Expects := []string{b3.ID, b4.ID, b8.ID}
-	tester1Exclude := []string{a1.ID, a2.ID, a3.ID, a4.ID, a5.ID, b1.ID, b2.ID, b7.ID}
+	tester1Expects := []*protocol.Object{b3, b4, b8}
+	tester1Exclude := []*protocol.Object{a1, a2, a3, a4, a5, b1, b2, b7}
 	if excludingChildren {
 		t.Logf("* Verify tester1 sees B3, B4, B8, but not A1-A5, B1, B2, B5, B6, B7, B9")
-		tester1Exclude = append(tester1Exclude, b5.ID, b6.ID, b9.ID)
+		tester1Exclude = append(tester1Exclude, b5, b6, b9)
 	} else {
 		t.Logf("* Verify tester1 sees B3, B4, B5, B6, B8, B9 but not A1-A5, B1, B2, B7")
-		tester1Expects = append(tester1Expects, b5.ID, b6.ID, b9.ID)
+		tester1Expects = append(tester1Expects, b5, b6, b9)
 	}
 	for _, o := range sharedToTester1.Objects {
 		found := false
-		for _, excludeID := range tester1Exclude {
-			if strings.Compare(o.ID, excludeID) == 0 {
+		for _, exclude := range tester1Exclude {
+			if strings.Compare(o.ID, exclude.ID) == 0 {
 				t.Logf("Object %s was found in tester1 shares when expected to be excluded", o.Name)
 				found = true
 				break
@@ -96,16 +96,16 @@ func TestListObjectsSharedToMe(t *testing.T) {
 			t.Fail()
 		}
 	}
-	for i, expectedID := range tester1Expects {
+	for i, expected := range tester1Expects {
 		found := false
 		for _, o := range sharedToTester1.Objects {
-			if strings.Compare(o.ID, expectedID) == 0 {
+			if strings.Compare(o.ID, expected.ID) == 0 {
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Logf("Tester1 expected object[%d] with id %s but it was not returned in shares", i, expectedID)
+			t.Logf("Tester1 expected object[%d] %s with id %s but it was not returned in shares", i, expected.Name, expected.ID)
 			t.Fail()
 		}
 	}

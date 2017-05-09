@@ -89,6 +89,9 @@ func init() {
 	user.CreatedBy = "Bob"
 	_, err = d.CreateUser(user)
 
+	// TODO: snippets & acm association for DAOTEST users created above is needed when OD_OPTION_409 is the law of the land
+	// based on SnippetDAOTP01 and SnippetDAOTP02
+
 }
 
 func TestTransactionalUpdate(t *testing.T) {
