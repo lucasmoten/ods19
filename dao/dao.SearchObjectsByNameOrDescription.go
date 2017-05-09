@@ -485,7 +485,7 @@ func getACMValueNamesForUser(tx *sqlx.Tx, user models.ODUser, keyName string) []
 func buildFilterRequireObjectsIOrMyGroupsOwn(tx *sqlx.Tx, user models.ODUser) string {
 	// This can easily work as an inner join for more speediness
 	if isOption409() {
-		return " and o.ownedbyid in (-1" + strings.Join(getACMValuesForUser(tx, user, "f_share"), ",") + ")"
+		return " and o.ownedbyid in (-1," + strings.Join(getACMValuesForUser(tx, user, "f_share"), ",") + ")"
 	}
 	return " and o.ownedby in (" + strings.Join(buildListObjectsIOrMyGroupsOwn(tx, user), ",") + ")"
 }

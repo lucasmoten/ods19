@@ -11,7 +11,7 @@ func TestGetParents(t *testing.T) {
 		t.Skip()
 	}
 
-	parent, child, err := createParentChildObjectPair(usernames[1])
+	parent, child, err := createParentChildObjectPair(users[1].DistinguishedName)
 	if err != nil {
 		t.Errorf("could not create parent-child object pair: %v\n", err)
 	}

@@ -67,15 +67,17 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 		child1.ParentID = dbParent.ID
 		child1.TypeName.String = "Test Type"
 		child1.TypeName.Valid = true
-		child1.RawAcm.String = testhelpers.ValidACMUnclassified
+		acmUforTP1 := testhelpers.ValidACMUnclassified
+		acmUforTP1 = strings.Replace(acmUforTP1, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s"]`, models.AACFlatten(usernames[1])), -1)
+		child1.RawAcm = models.ToNullString(acmUforTP1)
 		// NEW! Add permissions...
 		permissions1 := make([]models.ODObjectPermission, 1)
 		permissions1[0].CreatedBy = child1.CreatedBy
-		permissions1[0].Grantee = models.AACFlatten(usernames[1])
-		permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
+		permissions1[0].Grantee = models.AACFlatten(child1.CreatedBy)
+		permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, child1.CreatedBy)
 		permissions1[0].AcmGrantee.Grantee = permissions1[0].Grantee
-		permissions1[0].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[1])
-		permissions1[0].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[1])
+		permissions1[0].AcmGrantee.ResourceString = models.ToNullString("user/" + child1.CreatedBy)
+		permissions1[0].AcmGrantee.UserDistinguishedName = models.ToNullString(child1.CreatedBy)
 		permissions1[0].AllowCreate = true
 		permissions1[0].AllowRead = true
 		permissions1[0].AllowUpdate = true
@@ -104,7 +106,9 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 		child2.CreatedBy = usernames[2]
 		child2.ParentID = dbParent.ID
 		child2.TypeName = models.ToNullString("Test Type")
-		child2.RawAcm.String = testhelpers.ValidACMUnclassified
+		acmUforTP1TP2 := testhelpers.ValidACMUnclassified
+		acmUforTP1TP2 = strings.Replace(acmUforTP1TP2, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s","%s"]`, models.AACFlatten(usernames[1]), models.AACFlatten(usernames[2])), -1)
+		child2.RawAcm = models.ToNullString(acmUforTP1TP2)
 		// NEW! Add permissions...
 		permissions2 := make([]models.ODObjectPermission, 2)
 		permissions2[0].CreatedBy = child2.CreatedBy
@@ -143,7 +147,7 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 		if !bytes.Equal(dbChild2.ParentID, dbParent.ID) {
 			t.Error("expected child parentID to match parent ID")
 		}
-		user := setupUserWithSnippets(dbChild2.CreatedBy)
+		user := users[2]
 		pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: 10}
 		resultset, err := d.GetChildObjectsByUser(user, pagingRequest, dbParent)
 		if err != nil {
@@ -152,6 +156,9 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 		if resultset.TotalRows != 1 {
 			t.Error(fmt.Errorf("Resultset had %d totalrows", resultset.TotalRows))
 			t.Error("expected 1 child")
+			for i, o := range resultset.Objects {
+				t.Errorf("%d = %s", i, o.Name)
+			}
 		} else {
 			if resultset.Objects[0].ModifiedBy != child2.CreatedBy {
 				t.Error("expected result modifiedBy to match child2 created by")

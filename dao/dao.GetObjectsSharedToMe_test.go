@@ -3,11 +3,12 @@ package dao_test
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"testing"
+	"time"
 
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
@@ -27,28 +28,30 @@ func TestDAOGetObjectsSharedToMe(t *testing.T) {
 
 	t.Logf("* Make an object1 as user1, shared to user2")
 	var object1 models.ODObject
-	object1.CreatedBy = usernames[1]
+	object1.CreatedBy = users[1].DistinguishedName
 	object1.Name = searchPrefix + " object1 (shared to user1)"
 	object1.TypeName = models.ToNullString("Test Object")
-	object1.RawAcm.String = testhelpers.ValidACMUnclassified
+	acmUforTP1TP2 := testhelpers.ValidACMUnclassified
+	acmUforTP1TP2 = strings.Replace(acmUforTP1TP2, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s","%s"]`, models.AACFlatten(usernames[1]), models.AACFlatten(usernames[2])), -1)
+	object1.RawAcm = models.ToNullString(acmUforTP1TP2)
 	permissions1 := make([]models.ODObjectPermission, 2)
 	permissions1[0].CreatedBy = object1.CreatedBy
-	permissions1[0].Grantee = models.AACFlatten(usernames[1])
-	permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
+	permissions1[0].Grantee = models.AACFlatten(object1.CreatedBy)
+	permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, object1.CreatedBy)
 	permissions1[0].AcmGrantee.Grantee = permissions1[0].Grantee
-	permissions1[0].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[1])
-	permissions1[0].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[1])
+	permissions1[0].AcmGrantee.ResourceString = models.ToNullString("user/" + object1.CreatedBy)
+	permissions1[0].AcmGrantee.UserDistinguishedName = models.ToNullString(object1.CreatedBy)
 	permissions1[0].AllowCreate = true
 	permissions1[0].AllowRead = true
 	permissions1[0].AllowUpdate = true
 	permissions1[0].AllowDelete = true
 	permissions1[0].AllowShare = true
 	permissions1[1].CreatedBy = object1.CreatedBy
-	permissions1[1].Grantee = models.AACFlatten(usernames[2])
-	permissions1[1].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[2])
+	permissions1[1].Grantee = models.AACFlatten(users[2].DistinguishedName)
+	permissions1[1].AcmShare = fmt.Sprintf(`{"users":[%s]}`, users[2].DistinguishedName)
 	permissions1[1].AcmGrantee.Grantee = permissions1[1].Grantee
-	permissions1[1].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[2])
-	permissions1[1].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[2])
+	permissions1[1].AcmGrantee.ResourceString = models.ToNullString("user/" + users[2].DistinguishedName)
+	permissions1[1].AcmGrantee.UserDistinguishedName = models.ToNullString(users[2].DistinguishedName)
 	permissions1[1].AllowRead = true
 	object1.Permissions = permissions1
 	createdObject1, err := d.CreateObject(&object1)
@@ -62,23 +65,23 @@ func TestDAOGetObjectsSharedToMe(t *testing.T) {
 
 	t.Logf("* Make an object2 as user1, shared to everyone")
 	var object2 models.ODObject
-	object2.CreatedBy = usernames[1]
+	object2.CreatedBy = users[1].DistinguishedName
 	object2.Name = searchPrefix + " object2 (shared to everyone)"
 	object2.TypeName = models.ToNullString("Test Object")
 	object2.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions2 := make([]models.ODObjectPermission, 2)
-	permissions2[0].CreatedBy = object1.CreatedBy
-	permissions2[0].Grantee = models.AACFlatten(usernames[1])
-	permissions2[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
+	permissions2[0].CreatedBy = object2.CreatedBy
+	permissions2[0].Grantee = models.AACFlatten(object2.CreatedBy)
+	permissions2[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, object2.CreatedBy)
 	permissions2[0].AcmGrantee.Grantee = permissions2[0].Grantee
-	permissions2[0].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[1])
-	permissions2[0].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[1])
+	permissions2[0].AcmGrantee.ResourceString = models.ToNullString("user/" + object2.CreatedBy)
+	permissions2[0].AcmGrantee.UserDistinguishedName = models.ToNullString(object2.CreatedBy)
 	permissions2[0].AllowCreate = true
-	permissions2[0].AllowRead = true
+	permissions2[0].AllowRead = false
 	permissions2[0].AllowUpdate = true
 	permissions2[0].AllowDelete = true
 	permissions2[0].AllowShare = true
-	permissions2[1].CreatedBy = object1.CreatedBy
+	permissions2[1].CreatedBy = object2.CreatedBy
 	permissions2[1].Grantee = models.AACFlatten(models.EveryoneGroup)
 	permissions2[1].AcmShare = fmt.Sprintf(`{"projects":{"%s":{"disp_nm":"%s","groups":["%s"]}}}`, "", "", models.EveryoneGroup)
 	permissions2[1].AcmGrantee.Grantee = permissions2[1].Grantee
@@ -107,17 +110,9 @@ func TestDAOGetObjectsSharedToMe(t *testing.T) {
 	paging.FilterSettings = filter
 
 	t.Logf("* Get objects shared to me as user1 containing %s", searchPrefix)
-	user1 := models.ODUser{}
-	user1.DistinguishedName = usernames[1]
-	user1Snippets, err := acm.NewODriveRawSnippetFieldsFromSnippetResponse(SnippetDAOTP01)
-	if err != nil {
-		t.Logf("FAIL: Error converting snippets for user1 %s", err.Error())
-		t.Fail()
-	}
-	user1.Snippets = &user1Snippets
 	user1object1Found := false
 	user1object2Found := false
-	user1SharedToMe, err := d.GetObjectsSharedToMe(user1, paging)
+	user1SharedToMe, err := d.GetObjectsSharedToMe(users[1], paging)
 	t.Logf("  total rows = %d", user1SharedToMe.TotalRows)
 	for _, user1object := range user1SharedToMe.Objects {
 		t.Logf("  %s is shared to user1", user1object.Name)
@@ -138,17 +133,9 @@ func TestDAOGetObjectsSharedToMe(t *testing.T) {
 	}
 
 	t.Logf("* Get objects shared to me as user2 containing %s", searchPrefix)
-	user2 := models.ODUser{}
-	user2.DistinguishedName = usernames[2]
-	user2Snippets, err := acm.NewODriveRawSnippetFieldsFromSnippetResponse(SnippetDAOTP02)
-	if err != nil {
-		t.Logf("FAIL: Error converting snippets for user2 %s", err.Error())
-		t.Fail()
-	}
-	user2.Snippets = &user2Snippets
 	user2object1Found := false
 	user2object2Found := false
-	user2SharedToMe, err := d.GetObjectsSharedToMe(user2, paging)
+	user2SharedToMe, err := d.GetObjectsSharedToMe(users[2], paging)
 	t.Logf("  total rows = %d", user2SharedToMe.TotalRows)
 	for _, user2object := range user2SharedToMe.Objects {
 		t.Logf("  %s is shared to user2", user2object.Name)
@@ -170,7 +157,7 @@ func TestDAOGetObjectsSharedToMe(t *testing.T) {
 }
 
 func TestDAOGetObjectsSharedToMeWithApostropheInDN595(t *testing.T) {
-	t.SkipNow()
+	//t.SkipNow()
 
 	if testing.Short() {
 		t.Skip()
@@ -186,28 +173,30 @@ func TestDAOGetObjectsSharedToMeWithApostropheInDN595(t *testing.T) {
 
 	t.Logf("* Make an object1 as user1, shared to user 11 with apostrophe in DN")
 	var object1 models.ODObject
-	object1.CreatedBy = usernames[1]
+	object1.CreatedBy = users[1].DistinguishedName
 	object1.Name = searchPrefix + " object1 (shared to user11)"
 	object1.TypeName = models.ToNullString("Test Object")
-	object1.RawAcm.String = testhelpers.ValidACMUnclassifiedFOUOSharedToDAOTester11
+	acmUforTP1TP11 := testhelpers.ValidACMUnclassified
+	acmUforTP1TP11 = strings.Replace(acmUforTP1TP11, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s","%s"]`, models.AACFlatten(object1.CreatedBy), models.AACFlatten(users[11].DistinguishedName)), -1)
+	object1.RawAcm = models.ToNullString(acmUforTP1TP11)
 	permissions1 := make([]models.ODObjectPermission, 2)
 	permissions1[0].CreatedBy = object1.CreatedBy
-	permissions1[0].Grantee = models.AACFlatten(usernames[1])
-	permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
+	permissions1[0].Grantee = models.AACFlatten(object1.CreatedBy)
+	permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, object1.CreatedBy)
 	permissions1[0].AcmGrantee.Grantee = permissions1[0].Grantee
-	permissions1[0].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[1])
-	permissions1[0].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[1])
+	permissions1[0].AcmGrantee.ResourceString = models.ToNullString("user/" + object1.CreatedBy)
+	permissions1[0].AcmGrantee.UserDistinguishedName = models.ToNullString(object1.CreatedBy)
 	permissions1[0].AllowCreate = true
 	permissions1[0].AllowRead = true
 	permissions1[0].AllowUpdate = true
 	permissions1[0].AllowDelete = true
 	permissions1[0].AllowShare = true
 	permissions1[1].CreatedBy = object1.CreatedBy
-	permissions1[1].Grantee = models.AACFlatten(usernames[11])
-	permissions1[1].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[11])
+	permissions1[1].Grantee = models.AACFlatten(users[11].DistinguishedName)
+	permissions1[1].AcmShare = fmt.Sprintf(`{"users":[%s]}`, users[11].DistinguishedName)
 	permissions1[1].AcmGrantee.Grantee = permissions1[1].Grantee
-	permissions1[1].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[11])
-	permissions1[1].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[11])
+	permissions1[1].AcmGrantee.ResourceString = models.ToNullString("user/" + users[11].DistinguishedName)
+	permissions1[1].AcmGrantee.UserDistinguishedName = models.ToNullString(users[11].DistinguishedName)
 	permissions1[1].AllowRead = true
 	object1.Permissions = permissions1
 	createdObject1, err := d.CreateObject(&object1)
@@ -232,16 +221,10 @@ func TestDAOGetObjectsSharedToMeWithApostropheInDN595(t *testing.T) {
 	paging.FilterSettings = filter
 
 	t.Logf("* Get objects shared to me as user11 containing %s", searchPrefix)
-	user11 := models.ODUser{}
-	user11.DistinguishedName = usernames[11]
-	user11Snippets, err := acm.NewODriveRawSnippetFieldsFromSnippetResponse(SnippetDAOTP11)
-	if err != nil {
-		t.Logf("FAIL: Error converting snippets for user11 %s", err.Error())
-		t.Fail()
-	}
-	user11.Snippets = &user11Snippets
 	user11object1Found := false
-	user11SharedToMe, err := d.GetObjectsSharedToMe(user11, paging)
+	// Short delay to accomodate the async call for useracm association
+	time.Sleep(time.Millisecond * 250)
+	user11SharedToMe, err := d.GetObjectsSharedToMe(users[11], paging)
 	t.Logf("  total rows = %d", user11SharedToMe.TotalRows)
 	for _, user11object := range user11SharedToMe.Objects {
 		t.Logf("  %s is shared to user11", user11object.Name)

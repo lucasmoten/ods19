@@ -23,6 +23,8 @@ func (dao *DataAccessLayer) GetUserAOCacheByDistinguishedName(user models.ODUser
 	if err != nil {
 		if err != sql.ErrNoRows {
 			dao.GetLogger().Error("Error in GetUserAOCacheByDistinguishedName", zap.String("err", err.Error()))
+		} else {
+			err = nil
 		}
 		tx.Rollback()
 	} else {
@@ -57,6 +59,9 @@ func (dao *DataAccessLayer) SetUserAOCacheByDistinguishedName(useraocache *model
 		newuseraocache.IsCaching = true
 		newuseraocache.SHA256Hash = ""
 		useraocache = &newuseraocache
+	}
+	if len(useraocache.UserID) == 0 {
+		useraocache.UserID = user.ID
 	}
 	// Check if first insert or otherwise updates
 	if useraocache.ID == 0 {
@@ -147,7 +152,7 @@ func updateUserAOCache(tx *sqlx.Tx, useraocache *models.ODUserAOCache) error {
 		return fmt.Errorf("updateUserAOCache error determining rows affected, %s", err.Error())
 	}
 	if ra == 0 {
-		return fmt.Errorf("udpateUserAOCache did not affect any rows, %s", err.Error())
+		return fmt.Errorf("udpateUserAOCache did not affect any rows")
 	}
 	return nil
 }

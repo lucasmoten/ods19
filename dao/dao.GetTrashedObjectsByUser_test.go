@@ -3,7 +3,9 @@ package dao_test
 import (
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"testing"
+	"time"
 
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
@@ -19,23 +21,21 @@ func TestDAOGetTrashedObjectsByUser(t *testing.T) {
 
 	// Create an object. Delete the object. Object should
 	// show up in trash.
-
-	user3 := setupUserWithSnippets(usernames[3])
 	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: 1000}
 	// Create an object.
-	objA := createTestObjectAllPermissions(user3.DistinguishedName)
+	objA := createTestObjectAllPermissions(users[3].DistinguishedName)
 	createdA, err := d.CreateObject(&objA)
 	if err != nil {
 		t.Fatalf("Error creating objA: %v\n", err)
 	}
 	// Delete the object, placing it in the trash.
-	err = d.DeleteObject(user3, createdA, true)
+	err = d.DeleteObject(users[3], createdA, true)
 	if err != nil {
 		t.Fatalf("Error deleting object createdA: %v\n", err)
 	}
 
 	// Call listObjectsTrashed for user.
-	results, err := d.GetTrashedObjectsByUser(user3, pagingRequest)
+	results, err := d.GetTrashedObjectsByUser(users[3], pagingRequest)
 
 	// Ensure that the delete objects in trash.
 	intrash := false
@@ -59,20 +59,20 @@ func TestDAOGetTrashedObjectsDeleteParent(t *testing.T) {
 		t.Skip()
 	}
 
-	user3 := setupUserWithSnippets(usernames[3])
 	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: 1000}
 
 	// Create parent-child relationship, then delete the parent.
 	// Parent should show up in trash. Child should not show up
 	// in trash. Neither should show up on listObjects.
-	parent1, child1, err := createParentChildObjectPair(user3.DistinguishedName)
+	parent1, child1, err := createParentChildObjectPair(users[3].DistinguishedName)
 	if err != nil {
 		t.Errorf("Error creating parent-child pair: %v\n", err)
 	}
-	if err = d.DeleteObject(user3, parent1, true); err != nil {
+	if err = d.DeleteObject(users[3], parent1, true); err != nil {
 		t.Errorf("Error deleting test parent1: %v\n", err)
 	}
-	results, err := d.GetTrashedObjectsByUser(user3, pagingRequest)
+	time.Sleep(time.Millisecond * 250)
+	results, err := d.GetTrashedObjectsByUser(users[3], pagingRequest)
 	if err != nil {
 		t.Errorf("Error calling GetTrashedObjectsByUser: %v\n", err)
 	}
@@ -97,7 +97,7 @@ func TestDAOGetTrashedObjectsDeleteParent(t *testing.T) {
 		}
 	}
 	// Assert neither show up in root
-	results, err = d.GetRootObjectsByUser(user3, pagingRequest)
+	results, err = d.GetRootObjectsByUser(users[3], pagingRequest)
 	for _, o := range results.Objects {
 		if o.Name == child1.Name {
 			t.Logf("Object child1 has a deleted parent, should not show in GetRootObjectsByUser. ID of child is %s", hex.EncodeToString(o.ID))
@@ -109,7 +109,7 @@ func TestDAOGetTrashedObjectsDeleteParent(t *testing.T) {
 		}
 	}
 	// Assert neither show up in listObjects.
-	results, err = d.GetChildObjectsByUser(user3, pagingRequest, parent1)
+	results, err = d.GetChildObjectsByUser(users[3], pagingRequest, parent1)
 	for _, o := range results.Objects {
 		if o.Name == child1.Name {
 			t.Logf("Object child1 has a deleted parent, should not show in GetChildObjectsByUser. ID of child is %s", hex.EncodeToString(o.ID))
@@ -132,23 +132,22 @@ func TestDAOGetTrashedObjectsDeleteChild(t *testing.T) {
 		t.Skip()
 	}
 
-	user3 := setupUserWithSnippets(usernames[3])
 	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: 1000}
 	// Create parent-child relationship, then delete the child.
 	// Child should show up in trash. Parent should show up in
 	// listObjects.
-	parent2, child2, err := createParentChildObjectPair(user3.DistinguishedName)
+	parent2, child2, err := createParentChildObjectPair(users[3].DistinguishedName)
 	if err != nil {
 		t.Logf("Error creating parent-child pair: %v\n", err)
 		t.Fail()
 	}
-	if err = d.DeleteObject(user3, child2, true); err != nil {
+	if err = d.DeleteObject(users[3], child2, true); err != nil {
 		t.Logf("Error deleting test parent2: %v\n", err)
 		t.Fail()
 	}
 	// Assert child2 is in trash.
 	intrash := false
-	results, err := d.GetTrashedObjectsByUser(user3, pagingRequest)
+	results, err := d.GetTrashedObjectsByUser(users[3], pagingRequest)
 	for _, o := range results.Objects {
 		if o.Name == child2.Name {
 			intrash = true
@@ -159,7 +158,7 @@ func TestDAOGetTrashedObjectsDeleteChild(t *testing.T) {
 		t.Fail()
 	}
 	// Assert parent2 is in listObjects.
-	results, err = d.GetRootObjectsByUser(user3, pagingRequest)
+	results, err = d.GetRootObjectsByUser(users[3], pagingRequest)
 	inlist := false
 	for _, o := range results.Objects {
 		if o.Name == parent2.Name {
@@ -171,7 +170,7 @@ func TestDAOGetTrashedObjectsDeleteChild(t *testing.T) {
 		t.Fail()
 	}
 	// Assert child2 is not in listObjects.
-	results, err = d.GetChildObjectsByUser(user3, pagingRequest, parent2)
+	results, err = d.GetChildObjectsByUser(users[3], pagingRequest, parent2)
 	intrash = false
 	for _, o := range results.Objects {
 		if o.Name == child2.Name {
@@ -210,8 +209,9 @@ func createTestObjectAllPermissions(username string) models.ODObject {
 	obj.Name = name
 	obj.CreatedBy = username
 	obj.TypeName = models.ToNullString("File")
-	obj.RawAcm.String = testhelpers.ValidACMUnclassified
-
+	acm := testhelpers.ValidACMUnclassified
+	acm = strings.Replace(acm, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s"]`, models.AACFlatten(username)), -1)
+	obj.RawAcm = models.ToNullString(acm)
 	var perms models.ODObjectPermission
 	perms.CreatedBy = username
 	perms.Grantee = models.AACFlatten(username)

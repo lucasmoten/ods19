@@ -18,28 +18,30 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 
 	// Make an object
 	var object models.ODObject
-	object.CreatedBy = usernames[1]
+	object.CreatedBy = users[1].DistinguishedName
 	object.Name = "Test Object Revision"
 	object.TypeName = models.ToNullString("Test Object")
-	object.RawAcm.String = testhelpers.ValidACMUnclassified
+	acmUforTP1TP2 := testhelpers.ValidACMUnclassified
+	acmUforTP1TP2 = strings.Replace(acmUforTP1TP2, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s","%s"]`, models.AACFlatten(usernames[1]), models.AACFlatten(usernames[2])), -1)
+	object.RawAcm = models.ToNullString(acmUforTP1TP2)
 	permissions := make([]models.ODObjectPermission, 2)
 	permissions[0].CreatedBy = object.CreatedBy
-	permissions[0].Grantee = models.AACFlatten(usernames[1])
-	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[1])
+	permissions[0].Grantee = models.AACFlatten(object.CreatedBy)
+	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, object.CreatedBy)
 	permissions[0].AcmGrantee.Grantee = permissions[0].Grantee
-	permissions[0].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[1])
-	permissions[0].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[1])
+	permissions[0].AcmGrantee.ResourceString = models.ToNullString("user/" + object.CreatedBy)
+	permissions[0].AcmGrantee.UserDistinguishedName = models.ToNullString(object.CreatedBy)
 	permissions[0].AllowCreate = true
 	permissions[0].AllowRead = true
 	permissions[0].AllowUpdate = true
 	permissions[0].AllowDelete = true
 	permissions[0].AllowShare = true
 	permissions[1].CreatedBy = object.CreatedBy
-	permissions[1].Grantee = models.AACFlatten(usernames[2])
-	permissions[1].AcmShare = fmt.Sprintf(`{"users":[%s]}`, usernames[2])
+	permissions[1].Grantee = models.AACFlatten(users[2].DistinguishedName)
+	permissions[1].AcmShare = fmt.Sprintf(`{"users":[%s]}`, users[2].DistinguishedName)
 	permissions[1].AcmGrantee.Grantee = permissions[1].Grantee
-	permissions[1].AcmGrantee.ResourceString = models.ToNullString("user/" + usernames[2])
-	permissions[1].AcmGrantee.UserDistinguishedName = models.ToNullString(usernames[2])
+	permissions[1].AcmGrantee.ResourceString = models.ToNullString("user/" + users[2].DistinguishedName)
+	permissions[1].AcmGrantee.UserDistinguishedName = models.ToNullString(users[2].DistinguishedName)
 	permissions[1].AllowCreate = true
 	permissions[1].AllowRead = true
 	permissions[1].AllowUpdate = true
@@ -56,7 +58,7 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 
 	// Change it once
 	object.Name = "Renamed by user 2"
-	object.ModifiedBy = usernames[2]
+	object.ModifiedBy = users[2].DistinguishedName
 	err = d.UpdateObject(&object)
 	if err != nil {
 		t.Error("Failed to update object")
@@ -71,7 +73,7 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 
 	// Change it twice
 	object.Name = "Renamed again by user 1"
-	object.ModifiedBy = usernames[1]
+	object.ModifiedBy = users[1].DistinguishedName
 	err = d.UpdateObject(&object)
 	if err != nil {
 		t.Error("Failed to update object")
@@ -85,7 +87,7 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	}
 
 	// Get list of revisions
-	user := setupUserWithSnippets(usernames[1])
+	user := users[1]
 	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: dao.MaxPageSize, SortSettings: []dao.SortSetting{dao.SortSetting{SortField: "changecount", SortAscending: false}}}
 	resultset, err := d.GetObjectRevisionsByUser(user, pagingRequest, object, false)
 	if err != nil {
@@ -98,8 +100,8 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	for _, obj := range resultset.Objects {
 		t.Logf("Object CC: %d, ModifiedBy: %s, Name: %s", obj.ChangeCount, obj.ModifiedBy, obj.Name)
 	}
-	if !t.Failed() && resultset.Objects[1].ModifiedBy != usernames[2] {
-		t.Errorf("Expected revision to be modified by %s, but got %s", usernames[2], resultset.Objects[1].ModifiedBy)
+	if !t.Failed() && resultset.Objects[1].ModifiedBy != users[2].DistinguishedName {
+		t.Errorf("Expected revision to be modified by %s, but got %s", users[2].DistinguishedName, resultset.Objects[1].ModifiedBy)
 	}
 	if !t.Failed() && resultset.Objects[0].Name != "Renamed again by user 1" {
 		t.Errorf("Expected revision to be named %s, but got %s", "Renamed again by user 1", resultset.Objects[0].Name)

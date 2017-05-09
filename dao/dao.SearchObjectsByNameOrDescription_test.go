@@ -8,7 +8,6 @@ import (
 
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
 )
@@ -56,8 +55,7 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 	pagingRequest.FilterSettings = make([]dao.FilterSetting, 0)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterNameAsSearch1)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterDescriptionAsSearch1)
-	user := setupUserWithSnippets(usernames[1])
-	searchResults1, err := d.SearchObjectsByNameOrDescription(user, pagingRequest, false)
+	searchResults1, err := d.SearchObjectsByNameOrDescription(users[1], pagingRequest, false)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
@@ -79,7 +77,7 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 	pagingRequest.FilterSettings = make([]dao.FilterSetting, 0)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterNameAsSearch2)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterDescriptionAsSearch2)
-	searchResults2, err := d.SearchObjectsByNameOrDescription(user, pagingRequest, false)
+	searchResults2, err := d.SearchObjectsByNameOrDescription(users[1], pagingRequest, false)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
@@ -101,7 +99,7 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 	pagingRequest.FilterSettings = make([]dao.FilterSetting, 0)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterNameAsSearch3)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterDescriptionAsSearch3)
-	searchResults3, err := d.SearchObjectsByNameOrDescription(user, pagingRequest, false)
+	searchResults3, err := d.SearchObjectsByNameOrDescription(users[1], pagingRequest, false)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
@@ -123,7 +121,7 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 	pagingRequest.FilterSettings = make([]dao.FilterSetting, 0)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterNameAsSearch4)
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, filterDescriptionAsSearch4)
-	searchResults4, err := d.SearchObjectsByNameOrDescription(user, pagingRequest, false)
+	searchResults4, err := d.SearchObjectsByNameOrDescription(users[1], pagingRequest, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -152,14 +150,11 @@ func TestDAOSearchObjectsAndOrFilter(t *testing.T) {
 	obj2 := setupObjectForDAOSearchObjectsTest(obj2Name)
 	d.CreateObject(&obj2)
 
-	// User
-	user := setupUserWithSnippets(usernames[1])
-
 	// OR test (default filter match type)
 	pagingRequestOR := dao.PagingRequest{FilterSettings: []dao.FilterSetting{
 		dao.FilterSetting{FilterField: "name", Condition: "contains", Expression: obj1Name},
 		dao.FilterSetting{FilterField: "name", Condition: "contains", Expression: obj2Name}}}
-	searchResultsOR, err := d.SearchObjectsByNameOrDescription(user, pagingRequestOR, false)
+	searchResultsOR, err := d.SearchObjectsByNameOrDescription(users[1], pagingRequestOR, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -173,7 +168,7 @@ func TestDAOSearchObjectsAndOrFilter(t *testing.T) {
 		dao.FilterSetting{FilterField: "name", Condition: "contains", Expression: obj1Name},
 		dao.FilterSetting{FilterField: "owner", Condition: "contains", Expression: usernames[1]}},
 		FilterMatchType: "and"}
-	searchResultsAND, err := d.SearchObjectsByNameOrDescription(user, pagingRequestAND, false)
+	searchResultsAND, err := d.SearchObjectsByNameOrDescription(users[1], pagingRequestAND, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -204,20 +199,4 @@ func setupObjectForDAOSearchObjectsTest(name string) models.ODObject {
 	obj.Permissions = permissions
 	obj.RawAcm.String = testhelpers.ValidACMUnclassified
 	return obj
-}
-
-func setupUserWithSnippets(username string) models.ODUser {
-	var user models.ODUser
-	user.DistinguishedName = username
-
-	snippet := acm.RawSnippetFields{}
-	snippet.FieldName = "f_share"
-	snippet.Treatment = "allowed"
-	snippet.Values = make([]string, 1)
-	snippet.Values[0] = models.AACFlatten(username)
-	snippets := acm.ODriveRawSnippetFields{}
-	snippets.Snippets = append(snippets.Snippets, snippet)
-	user.Snippets = &snippets
-
-	return user
 }
