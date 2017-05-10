@@ -155,7 +155,7 @@ BEGIN
             END IF;
             SET ACMMIGRATECOUNT := ACMMIGRATECOUNT + 1;
             IF floor(ACMMIGRATECOUNT/5000) = ceiling(ACMMIGRATECOUNT/5000) THEN
-                INSERT INTO migration_status SET description = concat('20170331_409_ao_acm_performance.sql migrate acm to populate acm2 tables (', ACCMIGRATECOUNT, ' of ', ACMMIGRATETOTAL, ')');
+                INSERT INTO migration_status SET description = concat('20170331_409_ao_acm_performance.sql migrate acm to populate acm2 tables (', ACMMIGRATECOUNT, ' of ', ACMMIGRATETOTAL, ')');
             END IF;
             -- value
             IF (SELECT 1=1 FROM acmvalue2 WHERE name = vValueName) IS NULL THEN
