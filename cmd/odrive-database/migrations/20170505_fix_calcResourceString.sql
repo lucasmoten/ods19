@@ -137,7 +137,7 @@ BEGIN
 END;
 -- +migrate StatementEnd
 
-INSERT INTO migration_status SET description = '20170331_409_ao_acm_performance.sql recreating triggers on object';
+INSERT INTO migration_status SET description = '20170505_738_calcResourceString recreating triggers on object';
 DROP TRIGGER IF EXISTS ti_object;
 DROP TRIGGER IF EXISTS tu_object;
 -- +migrate StatementBegin
@@ -627,7 +627,7 @@ END;
 -- +migrate StatementEnd
 
 
-INSERT INTO migration_status SET description = '20170331_409_ao_acm_performance.sql creating triggers on acmgrantee';
+INSERT INTO migration_status SET description = '20170505_738_calcResourceString creating triggers on acmgrantee';
 DROP TRIGGER IF EXISTS ti_acmgrantee;
 -- +migrate StatementBegin
 CREATE TRIGGER ti_acmgrantee
@@ -685,7 +685,7 @@ END;
 
 -- dbstate
 DROP TRIGGER IF EXISTS ti_dbstate;
-INSERT INTO migration_status SET description = '20170505_739_calcResourceString.sql setting schema version';
+INSERT INTO migration_status SET description = '20170505_738_calcResourceString.sql setting schema version';
 -- +migrate StatementBegin
 CREATE TRIGGER ti_dbstate
 BEFORE INSERT ON dbstate FOR EACH ROW

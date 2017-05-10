@@ -6,7 +6,7 @@ DROP TRIGGER IF EXISTS tu_object_permission;
 
 -- add column createdbyid and granteeid to object_permission and a_object_permission tables, 
 -- along with foreign key constraint, done in a procedure to check if exists
-INSERT INTO migration_status SET description = '20170508_409_permissiongrantee.sql adding granteeid and createdbyid to object_permission table';
+INSERT INTO migration_status SET description = '20170508_409_permissiongrantee adding granteeid and createdbyid to object_permission table';
 DROP PROCEDURE IF EXISTS sp_Patch_20170508_tables_permission;
 -- +migrate StatementBegin
 CREATE PROCEDURE sp_Patch_20170508_tables_permission()
@@ -31,12 +31,12 @@ CALL sp_Patch_20170508_tables_permission();
 DROP PROCEDURE IF EXISTS sp_Patch_20170508_tables_permission; 
 
 -- Migrate existing permissions, determining acmvalue2 identifiers based upon createdby
-INSERT INTO migration_status SET description = '20170508_409_permissiongrantee.sql creating procedure to populate createdbyid';
+INSERT INTO migration_status SET description = '20170508_409_permissiongrantee creating procedure to populate createdbyid';
 DROP PROCEDURE IF EXISTS sp_Patch_20170508_transform_permissions;
 -- +migrate StatementBegin
 CREATE PROCEDURE sp_Patch_20170508_transform_permissions()
 BEGIN
-    INSERT INTO migration_status SET description = '20170508_409_permissiongrantee.sql assign createdbyid from createdby';
+    INSERT INTO migration_status SET description = '20170508_409_permissiongrantee assign createdbyid from createdby';
     ASSIGNCREATEDBYID: BEGIN
         DECLARE vCreatedByID int unsigned default 0;
         DECLARE vCreatedBy varchar(255) default '';
@@ -50,7 +50,12 @@ BEGIN
                 CLOSE c_createdby;
                 LEAVE get_createdby;
             END IF;
-			SELECT id FROM acmvalue2 WHERE name = aacflatten(vCreatedBy) INTO vCreatedByID;
+            IF (SELECT 1=1 FROM acmvalue2 WHERE name = aacflatten(vCreatedBy)) IS NULL THEN
+                INSERT INTO acmvalue2 (name) VALUES (aacflatten(vCreatedBy));
+                SET vCreatedByID := LAST_INSERT_ID();
+            ELSE
+                SELECT id FROM acmvalue2 WHERE name = aacflatten(vCreatedBy) INTO vCreatedByID;
+            END IF;
 			UPDATE a_object_permission SET createdbyid = vCreatedByID WHERE createdby = vCreatedBy;
 			UPDATE object_permission SET createdbyid = vCreatedByID WHERE createdby = vCreatedBy;
         END LOOP get_createdby;
@@ -61,12 +66,12 @@ CALL sp_Patch_20170508_transform_permissions();
 DROP PROCEDURE IF EXISTS sp_Patch_20170508_transform_permissions;   
 
 -- Migrate existing permissions, determining acmvalue2 identifiers based upon grantee
-INSERT INTO migration_status SET description = '20170508_409_permissiongrantee.sql creating procedure to populate granteeid';
+INSERT INTO migration_status SET description = '20170508_409_permissiongrantee creating procedure to populate granteeid';
 DROP PROCEDURE IF EXISTS sp_Patch_20170508_transform_permissions;
 -- +migrate StatementBegin
 CREATE PROCEDURE sp_Patch_20170508_transform_permissions()
 BEGIN
-    INSERT INTO migration_status SET description = '20170508_409_permissiongrantee.sql assign granteeid from grantee';
+    INSERT INTO migration_status SET description = '20170508_409_permissiongrantee assign granteeid from grantee';
     ASSIGNGRANTEEID: BEGIN
         DECLARE vGranteeID int unsigned default 0;
         DECLARE vGrantee varchar(255) default '';
@@ -80,7 +85,12 @@ BEGIN
                 CLOSE c_grantee;
                 LEAVE get_grantee;
             END IF;
-			SELECT id FROM acmvalue2 WHERE name = aacflatten(vGrantee) INTO vGranteeID;
+            IF (SELECT 1=1 FROM acmvalue2 WHERE name = aacflatten(vGrantee)) IS NULL THEN
+                INSERT INTO acmvalue2 (name) VALUES (aacflatten(vGrantee));
+                SET vGranteeID := LAST_INSERT_ID();
+            ELSE
+                SELECT id FROM acmvalue2 WHERE name = aacflatten(vGrantee) INTO vGranteeID;
+            END IF;
 			UPDATE a_object_permission SET granteeid = vGranteeID WHERE grantee = vGrantee;
 			UPDATE object_permission SET granteeid = vGranteeID WHERE grantee = vGrantee;
         END LOOP get_grantee;
@@ -90,8 +100,8 @@ END;
 CALL sp_Patch_20170508_transform_permissions();
 DROP PROCEDURE IF EXISTS sp_Patch_20170508_transform_permissions; 
 
-INSERT INTO migration_status SET description = '20170508_409_permissiongrantee.sql reindexing object_permission';
-INSERT INTO migration_status SET description = '20170508_409_permissiongrantee.sql removing constraints and indexes from object_permission';
+INSERT INTO migration_status SET description = '20170508_409_permissiongrantee reindexing object_permission';
+INSERT INTO migration_status SET description = '20170508_409_permissiongrantee removing constraints and indexes from object_permission';
 DROP PROCEDURE IF EXISTS sp_Patch_20170508_constraints_permission;
 -- +migrate StatementBegin
 CREATE PROCEDURE sp_Patch_20170508_constraints_permission()
@@ -163,7 +173,7 @@ END;
 -- +migrate StatementEnd
 CALL sp_Patch_20170508_constraints_permission();
 DROP PROCEDURE IF EXISTS sp_Patch_20170508_constraints_permission;
-INSERT INTO migration_status SET description = '20170508_409_permissiongrantee.sql creating constraints and indexes on object_permission';
+INSERT INTO migration_status SET description = '20170508_409_permissiongrantee creating constraints and indexes on object_permission';
 ALTER TABLE object_permission 
 	ADD CONSTRAINT fk_object_permission_granteeid FOREIGN KEY (granteeid) REFERENCES acmvalue2(id)
 	,ADD CONSTRAINT fk_object_permission_createdBy FOREIGN KEY (createdBy) REFERENCES user(distinguishedName)
@@ -172,8 +182,8 @@ ALTER TABLE object_permission
 	,ADD CONSTRAINT fk_object_permission_objectId FOREIGN KEY (objectId) REFERENCES object(id)
 	,ADD KEY ix_object_permission_allowread (isdeleted,allowread);
 
-INSERT INTO migration_status SET description = '20170508_409_permissiongrantee.sql reindexing object';
-INSERT INTO migration_status SET description = '20170508_409_permissiongrantee.sql removing constraints and indexes from object';
+INSERT INTO migration_status SET description = '20170508_409_permissiongrantee reindexing object';
+INSERT INTO migration_status SET description = '20170508_409_permissiongrantee removing constraints and indexes from object';
 DROP PROCEDURE IF EXISTS sp_Patch_20170508_constraints_object;
 -- +migrate StatementBegin
 CREATE PROCEDURE sp_Patch_20170508_constraints_object()
@@ -266,7 +276,7 @@ END;
 -- +migrate StatementEnd
 CALL sp_Patch_20170508_constraints_object();
 DROP PROCEDURE IF EXISTS sp_Patch_20170508_constraints_object;
-INSERT INTO migration_status SET description = '20170508_409_permissiongrantee.sql creating constraints and indexes on object';
+INSERT INTO migration_status SET description = '20170508_409_permissiongrantee creating constraints and indexes on object';
 ALTER TABLE object
 	ADD CONSTRAINT fk_object_acmid FOREIGN KEY (acmid) REFERENCES acm2(id)
 	,ADD CONSTRAINT fk_object_createdBy FOREIGN KEY (createdBy) REFERENCES user(distinguishedName)	-- may not be needed, filters for user root rely on ownership
@@ -282,7 +292,7 @@ ALTER TABLE object
 	,ADD KEY ix_object_isdeleted (isdeleted)
 	,ADD KEY ix_object_description (description);
 
-INSERT INTO migration_status SET description = '20170508_409_permissiongrantee.sql recreating ti_object_permission';
+INSERT INTO migration_status SET description = '20170508_409_permissiongrantee recreating ti_object_permission';
 -- +migrate StatementBegin
 CREATE TRIGGER ti_object_permission
 BEFORE INSERT ON object_permission FOR EACH ROW
@@ -401,7 +411,7 @@ BEGIN
 END;
 -- +migrate StatementEnd
 
-INSERT INTO migration_status SET description = '20170508_409_permissiongrantee.sql recreating tu_object_permission';
+INSERT INTO migration_status SET description = '20170508_409_permissiongrantee recreating tu_object_permission';
 -- +migrate StatementBegin
 CREATE TRIGGER tu_object_permission
 BEFORE UPDATE ON object_permission FOR EACH ROW
@@ -607,7 +617,7 @@ END;
 
 -- dbstate
 DROP TRIGGER IF EXISTS ti_dbstate;
-INSERT INTO migration_status SET description = '20170508_409_permissiongrantee.sql setting schema version';
+INSERT INTO migration_status SET description = '20170508_409_permissiongrantee setting schema version';
 -- +migrate StatementBegin
 CREATE TRIGGER ti_dbstate
 BEFORE INSERT ON dbstate FOR EACH ROW
@@ -642,7 +652,7 @@ DROP TRIGGER IF EXISTS tu_object_permission;
 
 -- remove column createdbyid and granteeid to object_permission and a_object_permission tables, 
 -- along with foreign key constraint, done in a procedure to check if exists
-INSERT INTO migration_status SET description = '20170508_409_permissiongrantee.sql removing createdbyid and granteeid from object_permission table';
+INSERT INTO migration_status SET description = '20170508_409_permissiongrantee removing createdbyid and granteeid from object_permission table';
 DROP PROCEDURE IF EXISTS sp_Patch_20170508_tables_permission;
 -- +migrate StatementBegin
 CREATE PROCEDURE sp_Patch_20170508_tables_permission()
@@ -668,7 +678,7 @@ END;
 CALL sp_Patch_20170508_tables_permission();
 DROP PROCEDURE IF EXISTS sp_Patch_20170508_tables_permission;
 
-INSERT INTO migration_status SET description = '20170508_409_permissiongrantee.sql restoring ti_object_permission';
+INSERT INTO migration_status SET description = '20170508_409_permissiongrantee restoring ti_object_permission';
 -- +migrate StatementBegin
 CREATE TRIGGER ti_object_permission
 BEFORE INSERT ON object_permission FOR EACH ROW
@@ -775,7 +785,7 @@ BEGIN
 
 END;
 -- +migrate StatementEnd
-INSERT INTO migration_status SET description = '20170508_409_permissiongrantee.sql restoring tu_object_permission';
+INSERT INTO migration_status SET description = '20170508_409_permissiongrantee restoring tu_object_permission';
 -- +migrate StatementBegin
 CREATE TRIGGER tu_object_permission
 BEFORE UPDATE ON object_permission FOR EACH ROW
@@ -979,7 +989,7 @@ END;
 
 -- dbstate
 DROP TRIGGER IF EXISTS ti_dbstate;
-INSERT INTO migration_status SET description = '20170508_409_permissiongrantee.sql setting schema version';
+INSERT INTO migration_status SET description = '20170508_409_permissiongrantee setting schema version';
 -- +migrate StatementBegin
 CREATE TRIGGER ti_dbstate
 BEFORE INSERT ON dbstate FOR EACH ROW
