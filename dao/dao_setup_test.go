@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/metadata/models/acm"
 )
 
 const (
@@ -26,6 +28,7 @@ const (
 var db *sqlx.DB
 var d *dao.DataAccessLayer
 var usernames = make([]string, 15)
+var users = make([]models.ODUser, 15)
 
 // NewAppConfigurationWithDefaults provides some defaults to the constructor
 // function for AppConfiguration. Normally these parameters are specified
@@ -48,6 +51,9 @@ func newAppConfigurationWithDefaults() config.AppConfiguration {
 func init() {
 	os.Setenv(config.OD_TOKENJAR_LOCATION, "../defaultcerts/token.jar")
 
+	// Force this option for tests which then expects snippets to be cached in DB and on user
+	os.Setenv("OD_OPTION_409", "true")
+
 	appConfiguration := newAppConfigurationWithDefaults()
 	dbConfig := appConfiguration.DatabaseConnection
 
@@ -67,6 +73,7 @@ func init() {
 
 	// Create users referenced by these tests
 	user := models.ODUser{}
+	var createdUser models.ODUser
 	for i := 0; i < len(usernames); i++ {
 		if i == 0 {
 			usernames[i] = "CN=[DAOTEST]test tester10, O=U.S. Government, OU=chimera, OU=DAE, OU=People, C=US"
@@ -82,16 +89,59 @@ func init() {
 		user.DistinguishedName = usernames[i]
 		user.DisplayName = models.ToNullString(config.GetCommonName(user.DistinguishedName))
 		user.CreatedBy = user.DistinguishedName
-		_, err = d.CreateUser(user)
+		createdUser, err = d.CreateUser(user)
+		if err != nil {
+			log.Printf("Error creating user %s %v", user.DistinguishedName, err)
+		} else {
+			if len(createdUser.ID) == 0 {
+				log.Printf("Could not get id for user %s", user.DistinguishedName)
+			}
+
+			snippetString := strings.Replace(SnippetDAOTP01, "cndaotesttesttester01ou_s_governmentouchimeraoudaeoupeoplecus", models.AACFlatten(user.DistinguishedName), -1)
+			if err := PopulateSnippetsForTestUser(&createdUser, snippetString); err != nil {
+				log.Printf("Error populating snippets %v", err)
+			}
+		}
+		users[i] = createdUser
 	}
 
 	user.DistinguishedName = "Bob"
+	user.DisplayName = models.ToNullString("Bob")
 	user.CreatedBy = "Bob"
-	_, err = d.CreateUser(user)
+	createdUser, err = d.CreateUser(user)
+	if err != nil {
+		log.Printf("Error creating user %s %v", user.DistinguishedName, err)
+	} else {
+		snippetString := strings.Replace(SnippetDAOTP01, "cndaotesttesttester01ou_s_governmentouchimeraoudaeoupeoplecus", models.AACFlatten(user.DistinguishedName), -1)
+		if err := PopulateSnippetsForTestUser(&createdUser, snippetString); err != nil {
+			log.Printf("Error populating snippets %v", err)
+		}
+	}
+}
 
-	// TODO: snippets & acm association for DAOTEST users created above is needed when OD_OPTION_409 is the law of the land
-	// based on SnippetDAOTP01 and SnippetDAOTP02
+func PopulateSnippetsForTestUser(user *models.ODUser, snippetString string) error {
 
+	useraocache, err := d.GetUserAOCacheByDistinguishedName(*user)
+	if err != nil {
+		return err
+	}
+	var ptrUserAOCache *models.ODUserAOCache
+	if useraocache.ID != 0 {
+		useraocache.UserID = user.ID
+		useraocache.CacheDate.Time = time.Now()
+		ptrUserAOCache = &useraocache
+	} else {
+		ptrUserAOCache = nil
+	}
+	snippets, err := acm.NewODriveRawSnippetFieldsFromSnippetResponse(snippetString)
+	if err != nil {
+		return err
+	}
+	user.Snippets = &snippets
+	if err := d.SetUserAOCacheByDistinguishedName(ptrUserAOCache, *user); err != nil {
+		return err
+	}
+	return nil
 }
 
 func TestTransactionalUpdate(t *testing.T) {

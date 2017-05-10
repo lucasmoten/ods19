@@ -13,22 +13,20 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	user1 := usernames[1]
-	user2 := usernames[2]
 
 	// create parent object
 	var parent models.ODObject
 	parent.Name = "Test Parent Object for GetChildObjectsWithPropertiesByUser"
-	parent.CreatedBy = user1
+	parent.CreatedBy = users[1].DistinguishedName
 	parent.TypeName = models.ToNullString("File")
 	parent.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions := make([]models.ODObjectPermission, 1)
-	permissions[0].CreatedBy = user1
-	permissions[0].Grantee = models.AACFlatten(user1)
-	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, user1)
+	permissions[0].CreatedBy = parent.CreatedBy
+	permissions[0].Grantee = models.AACFlatten(parent.CreatedBy)
+	permissions[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, parent.CreatedBy)
 	permissions[0].AcmGrantee.Grantee = permissions[0].Grantee
-	permissions[0].AcmGrantee.ResourceString = models.ToNullString("user/" + user1)
-	permissions[0].AcmGrantee.UserDistinguishedName = models.ToNullString(user1)
+	permissions[0].AcmGrantee.ResourceString = models.ToNullString("user/" + parent.CreatedBy)
+	permissions[0].AcmGrantee.UserDistinguishedName = models.ToNullString(parent.CreatedBy)
 	permissions[0].AllowCreate = true
 	permissions[0].AllowRead = true
 	permissions[0].AllowUpdate = true
@@ -49,17 +47,17 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	// create child 1
 	var child1 models.ODObject
 	child1.Name = "Test Child Object 1 for GetChildObjectsWithPropertiesByUser"
-	child1.CreatedBy = user1
+	child1.CreatedBy = users[1].DistinguishedName
 	child1.TypeName = models.ToNullString("File")
 	child1.ParentID = dbParent.ID
 	child1.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions1 := make([]models.ODObjectPermission, 1)
-	permissions1[0].CreatedBy = user1
-	permissions1[0].Grantee = models.AACFlatten(user1)
-	permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, user1)
+	permissions1[0].CreatedBy = child1.CreatedBy
+	permissions1[0].Grantee = models.AACFlatten(child1.CreatedBy)
+	permissions1[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, child1.CreatedBy)
 	permissions1[0].AcmGrantee.Grantee = permissions1[0].Grantee
-	permissions1[0].AcmGrantee.ResourceString = models.ToNullString("user/" + user1)
-	permissions1[0].AcmGrantee.UserDistinguishedName = models.ToNullString(user1)
+	permissions1[0].AcmGrantee.ResourceString = models.ToNullString("user/" + child1.CreatedBy)
+	permissions1[0].AcmGrantee.UserDistinguishedName = models.ToNullString(child1.CreatedBy)
 	permissions1[0].AllowCreate = true
 	permissions1[0].AllowRead = true
 	permissions1[0].AllowUpdate = true
@@ -99,17 +97,17 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	// create child 2
 	var child2 models.ODObject
 	child2.Name = "Test Child Object 2 for GetChildObjectsWithPropertiesByUser"
-	child2.CreatedBy = user1
+	child2.CreatedBy = users[1].DistinguishedName
 	child2.TypeName = models.ToNullString("File")
 	child2.ParentID = dbParent.ID
 	child2.RawAcm.String = testhelpers.ValidACMUnclassified
 	permissions2 := make([]models.ODObjectPermission, 1)
-	permissions2[0].CreatedBy = user1
-	permissions2[0].Grantee = models.AACFlatten(user1)
-	permissions2[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, user1)
+	permissions2[0].CreatedBy = child2.CreatedBy
+	permissions2[0].Grantee = models.AACFlatten(child2.CreatedBy)
+	permissions2[0].AcmShare = fmt.Sprintf(`{"users":[%s]}`, child2.CreatedBy)
 	permissions2[0].AcmGrantee.Grantee = permissions2[0].Grantee
-	permissions2[0].AcmGrantee.ResourceString = models.ToNullString("user/" + user1)
-	permissions2[0].AcmGrantee.UserDistinguishedName = models.ToNullString(user1)
+	permissions2[0].AcmGrantee.ResourceString = models.ToNullString("user/" + child2.CreatedBy)
+	permissions2[0].AcmGrantee.UserDistinguishedName = models.ToNullString(child2.CreatedBy)
 	permissions2[0].AllowCreate = true
 	permissions2[0].AllowRead = true
 	permissions2[0].AllowUpdate = true
@@ -174,7 +172,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	}
 
 	// Get child objects with properties from a single page of up to 10
-	user := setupUserWithSnippets(user1)
+	user := users[1]
 	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: 10, SortSettings: []dao.SortSetting{dao.SortSetting{SortField: "name", SortAscending: true}}}
 	resultset, err := d.GetChildObjectsWithPropertiesByUser(user, pagingRequest, dbParent)
 	if err != nil {
@@ -239,7 +237,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 			t.Error(fmt.Errorf("Expected child on page 2 to have 5 properties, but it had %d", len(resultset.Objects[0].Properties)))
 		}
 	}
-	user = setupUserWithSnippets(user2)
+	user = users[2]
 	pagingRequest.PageNumber = 1
 	pagingRequest.PageSize = 10
 	resultset, err = d.GetChildObjectsWithPropertiesByUser(user, pagingRequest, parent)
@@ -251,7 +249,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	}
 
 	// cleanup
-	user.DistinguishedName = user1
+	user = users[1]
 	for _, object := range resultset.Objects {
 		for _, property := range object.Properties {
 			d.DeleteObjectProperty(property)

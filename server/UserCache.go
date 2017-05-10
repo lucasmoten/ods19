@@ -149,6 +149,7 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 	}
 
 	if rebuild {
+		useraocache.UserID = user.ID
 		useraocache.CacheDate.Time = time.Now()
 		useraocache.CacheDate.Valid = true
 		useraocache.IsCaching = true
