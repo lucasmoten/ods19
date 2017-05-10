@@ -9,14 +9,13 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/karlseguin/ccache"
 
 	"decipher.com/object-drive-server/ciphertext"
+	testclient "decipher.com/object-drive-server/client"
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
@@ -25,6 +24,7 @@ import (
 	"decipher.com/object-drive-server/services/kafka"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
+	"github.com/deciphernow/gm-fabric-go/tlsutil2"
 )
 
 var (
@@ -43,6 +43,27 @@ var (
 	trafficLogs map[string]*TrafficLog
 )
 
+var (
+	testIP = flag.String("testIP", "", "The IP address for test API requests. Usually the dockerVM")
+)
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	testSettings()
+	trafficLogs = make(map[string]*TrafficLog)
+	trafficLogs[APISampleFile] = NewTrafficLog(APISampleFile)
+	defer trafficLogs[APISampleFile].Close()
+	// setup populates our global clients
+	setup(*testIP)
+	code := stallForAvailability()
+	if code != 0 {
+		os.Exit(code)
+	}
+	code = m.Run()
+	cleanupOpenFiles()
+	os.Exit(code)
+}
+
 func setup(ip string) {
 
 	if ip == "" {
@@ -52,28 +73,8 @@ func setup(ip string) {
 	}
 
 	if !testing.Short() {
-		generatePopulation()
-	}
-}
-
-var (
-	testIP = flag.String("testIP", "", "The IP address for test API requests. Usually the dockerVM")
-)
-
-func countOpenFiles() int {
-	out, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("lsof -p %v", os.Getpid())).Output()
-	if err != nil {
-		log.Printf("no lsof on this machine: %v", err)
-		return 0
-	}
-	log.Print(string(out))
-	lines := strings.Split(string(out), "\n")
-	return len(lines) - 1
-}
-
-func dumpOpenFiles(shouldPrint bool, at string) {
-	if shouldPrint {
-		fmt.Printf("filehandles at %s: %d\n", at, countOpenFiles())
+		// We have 11 entries for our clients global var.
+		populateClients(11)
 	}
 }
 
@@ -185,35 +186,6 @@ func TestTokenJar(t *testing.T) {
 	}
 }
 
-func testMainBody(m *testing.M) int {
-	flag.Parse()
-
-	testSettings()
-	trafficLogs = make(map[string]*TrafficLog)
-	trafficLogs[APISampleFile] = NewTrafficLog(APISampleFile)
-	defer trafficLogs[APISampleFile].Close()
-	setup(*testIP)
-	// flunk the whole test suite if we are not running short tests, and server is down.
-	// it's ok for server to be down on short tests (we will need to do more short/skip in tests though)
-	code := stallForAvailability()
-	if code != 0 {
-		return code
-	}
-	code = m.Run()
-	cleanupOpenFiles()
-	return code
-}
-
-func TestMain(m *testing.M) {
-	os.Exit(testMainBody(m))
-}
-
-func generatePopulation() {
-	//We have 11 test certs (note the test_0 is known as tester10, and the last is twl-server-generic)
-	population := 11
-	populateClients(population)
-}
-
 func populateClients(population int) {
 	clients = make([]*ClientIdentity, population)
 	for i := 0; i < len(clients); i++ {
@@ -255,6 +227,8 @@ type ClientIdentity struct {
 	Index         int
 	Client        *http.Client
 	Groups        []string
+	C             *testclient.Client
+	Cert          *x509.Certificate
 }
 
 func getClientIdentityFromDefaultCerts(component string, certSet string) (*ClientIdentity, error) {
@@ -274,18 +248,38 @@ func getClientIdentityFromDefaultCerts(component string, certSet string) (*Clien
 }
 
 func getClientIdentity(i int, name string) (*ClientIdentity, error) {
+
+	// NOTE(cm): We use these paths for old-style test http clients and new client lib Clients.
+	trustPath := os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/client.trust.pem")
+	certPath := os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/" + name + ".cert.pem")
+	keyPath := os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/" + name + ".key.pem")
+
 	ci := &ClientIdentity{
-		TrustPem: os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/client.trust.pem"),
-		CertPem:  os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/" + name + ".cert.pem"),
-		KeyPem:   os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/" + name + ".key.pem"),
+		TrustPem: trustPath,
+		CertPem:  certPath,
+		KeyPem:   keyPath,
 	}
 	config, err := newClientTLSConfig(ci)
 	if err != nil {
-		log.Printf("Cannot get identity: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("cannot get client identity: %v", err)
 	}
 	ci.Config = config
 	ci.Name = name
+
+	// New client.Client instance can be set on field C for use in tests.
+	clientConf := testclient.Config{
+		Cert:  certPath,
+		Trust: trustPath,
+		Key:   keyPath,
+		// We expect host to be set globally before this function runs.
+		Remote:     host + "/services/object-drive/1.0",
+		SkipVerify: true,
+	}
+	c, err := testclient.NewClient(clientConf)
+	if err != nil {
+		return nil, fmt.Errorf("cannot instantiate client.Client: %v", err)
+	}
+	ci.C = c
 
 	return ci, nil
 }
@@ -305,20 +299,22 @@ func newClientTLSConfig(client *ClientIdentity) (*tls.Config, error) {
 		return nil, err
 	}
 
-	//Create certkeypair
 	cert, err := tls.LoadX509KeyPair(client.CertPem, client.KeyPem)
 	if err != nil {
 		log.Printf("Error parsing cert: %v", err)
 		return nil, err
 	}
+
+	x509Cert, err := tlsutil2.X509FromPEMFile(client.CertPem)
+	if err != nil {
+		return nil, err
+	}
+	client.Cert = x509Cert
+
 	tlsConfig := &tls.Config{
-		InsecureSkipVerify: true,
-		Certificates:       []tls.Certificate{cert},
-		// Ensure that we only use our "CA" to validate certificates
-		ClientCAs: trustCertPool,
-		// PFS because we can but this will reject client with RSA certificates
-		// CipherSuites: []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
-		// Force it server side
+		InsecureSkipVerify:       true,
+		Certificates:             []tls.Certificate{cert},
+		ClientCAs:                trustCertPool,
 		PreferServerCipherSuites: true,
 		MinVersion:               tls.VersionTLS10,
 	}

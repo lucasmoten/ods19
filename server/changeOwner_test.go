@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
+	"time"
 
 	"decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
-
-	"decipher.com/object-drive-server/protocol"
 )
 
 // TestChangeOwner validates that change owner is implemented, ownership changes, and parent set to root
@@ -19,19 +20,19 @@ func TestChangeOwner(t *testing.T) {
 		t.Skip()
 	}
 	clientid := 0
-	fakeDN0Owner := "user/" + fakeDN0
-	fakeDN1Owner := "user/" + fakeDN1
+	originalOwner := "user/" + fakeDN0
+	newOwner := "user/" + fakeDN1
 
 	t.Logf("* Creating 2 folders under root")
 	folder1 := makeFolderViaJSON("Test ChangeOwner Folder 1 ", clientid, t)
 	folder2 := makeFolderViaJSON("Test ChangeOwner Folder 2 ", clientid, t)
-	t.Logf("* Verifying owner of both folders as %s", fakeDN0Owner)
-	if folder1.OwnedBy != fakeDN0Owner {
-		t.Logf("Owner for folder1 is %s expected %s", folder1.OwnedBy, fakeDN0Owner)
+	t.Logf("* Verifying owner of both folders as %s", originalOwner)
+	if folder1.OwnedBy != originalOwner {
+		t.Logf("Owner for folder1 is %s expected %s", folder1.OwnedBy, originalOwner)
 		t.FailNow()
 	}
-	if folder2.OwnedBy != fakeDN0Owner {
-		t.Logf("Owner for folder2 is %s expected %s", folder2.OwnedBy, fakeDN0Owner)
+	if folder2.OwnedBy != originalOwner {
+		t.Logf("Owner for folder2 is %s expected %s", folder2.OwnedBy, originalOwner)
 		t.FailNow()
 	}
 	t.Logf("* Moving folder 2 under folder 1")
@@ -49,14 +50,12 @@ func TestChangeOwner(t *testing.T) {
 		t.FailNow()
 	}
 	req.Header.Set("Content-Type", "application/json")
-	// do the request
 	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
 	}
 	defer util.FinishBody(res.Body)
-	// process Response
 	if res.StatusCode != http.StatusOK {
 		t.Logf("bad status: %s", res.Status)
 		t.FailNow()
@@ -67,15 +66,14 @@ func TestChangeOwner(t *testing.T) {
 		t.Logf("Error decoding json to Object: %v", err)
 		t.FailNow()
 	}
-	t.Logf("* Verifying owner of moved folder is still %s", fakeDN0Owner)
-	if updatedFolder.OwnedBy != fakeDN0Owner {
-		t.Logf("Owner for folder2 is %s expected %s", updatedFolder.OwnedBy, fakeDN0Owner)
+	t.Logf("* Verifying owner of moved folder is still %s", originalOwner)
+	if updatedFolder.OwnedBy != originalOwner {
+		t.Logf("Owner for folder2 is %s expected %s", updatedFolder.OwnedBy, originalOwner)
 		t.FailNow()
 	}
 
-	newowner := fakeDN1Owner
-	t.Logf("* Changing owner of folder 2 to %s", newowner)
-	changeowneruri := host + config.NginxRootURL + "/objects/" + folder2.ID + "/owner/" + newowner
+	t.Logf("* Changing owner of folder 2 to %s", newOwner)
+	changeowneruri := host + config.NginxRootURL + "/objects/" + folder2.ID + "/owner/" + newOwner
 	objChangeToken.ChangeToken = updatedFolder.ChangeToken
 	changeOwnerRequest := makeHTTPRequestFromInterface(t, "POST", changeowneruri, objChangeToken)
 	changeOwnerResponse, err := clients[clientid].Client.Do(changeOwnerRequest)
@@ -86,8 +84,8 @@ func TestChangeOwner(t *testing.T) {
 	failNowOnErr(t, err, "Error decoding json to Object")
 
 	t.Logf("* Verifying owner changed")
-	if updatedObject.OwnedBy != newowner {
-		t.Logf("Owner for folder2 is %s expected %s", updatedObject.OwnedBy, newowner)
+	if updatedObject.OwnedBy != newOwner {
+		t.Logf("Owner for folder2 is %s expected %s", updatedObject.OwnedBy, newOwner)
 		t.FailNow()
 	}
 
@@ -171,4 +169,77 @@ func TestChangeOwnerToEveryoneDisallowed(t *testing.T) {
 	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 400, changeOwnerResponse, "Bad status when changing owner")
 	defer util.FinishBody(changeOwnerResponse.Body)
+}
+
+func TestChangeOwnerRecursive(t *testing.T) {
+	randomName := func(name string) string {
+		s, _ := util.NewGUID()
+		return name + s
+	}
+	clientid := 0
+	root, child1, child2, child3 := randomName("root"), randomName("child1"), randomName("child2"), randomName("child3")
+
+	t.Logf("Create object hierarchy:\n root: %s\n child1: %s\n child2: %s\n child3: %s\n", root, child1, child2, child3)
+	cor := protocol.CreateObjectRequest{
+		NamePathDelimiter: ":::",
+		Name:              strings.Join([]string{root, child1, child2, child3}, ":::"),
+		RawAcm:            testhelpers.ValidACMUnclassifiedFOUOSharedToTester10,
+	}
+	child3Obj, err := clients[clientid].C.CreateObject(cor, nil)
+	failNowOnErr(t, err, "unable to do request")
+
+	// We want to change child1 owner. Get at child1 by walking up ParentIDs.
+	child2Obj, err := clients[clientid].C.GetObject(child3Obj.ParentID)
+	failNowOnErr(t, err, "unable to do get child2")
+	child1Obj, err := clients[clientid].C.GetObject(child2Obj.ParentID)
+	failNowOnErr(t, err, "unable to do get child1")
+
+	// tester01 try to get child1Obj; We expect failure, but need to make a
+	// request to guarantee that the user exists.
+	_, err = clients[1].C.GetObject(child1Obj.ID)
+	if err != nil {
+		t.Logf("Expected error: %v", err)
+	}
+
+	// ChangeOwnerRequest for child1 with ApplyRecursively true.
+	newOwner := "user/" + fakeDN1
+	chor := protocol.ChangeOwnerRequest{
+		ChangeToken:      child1Obj.ChangeToken,
+		ApplyRecursively: true,
+		ID:               child1Obj.ID,
+		NewOwner:         newOwner,
+	}
+	t.Logf("ChangeOwnerRequest: %v\n", chor)
+
+	_, err = clients[clientid].C.ChangeOwner(chor)
+	if err != nil {
+		t.Errorf("change owner did not succeed: %v", err)
+		t.FailNow()
+	}
+
+	tries := 0
+	for {
+		// We must retry because this is an async operation on the server.
+		final, err := clients[1].C.GetObject(child3Obj.ID)
+		if err != nil {
+			if tries < 50 {
+				tries++
+				t.Logf("Sleeping 50 ms. Tries %v", tries)
+				time.Sleep(50 * time.Millisecond)
+				continue
+			}
+			t.Errorf("GetObject should succeed for tester1 on child3: %v", err)
+			t.FailNow()
+		}
+		if newOwner != final.OwnedBy {
+			t.Errorf("expected %s got %s", newOwner, final.OwnedBy)
+			t.FailNow()
+		}
+		if final.ChangeCount != 1 {
+			t.Errorf("expected exactly 1 update; got: %v", final.ChangeCount)
+			t.FailNow()
+		}
+		break
+	}
+
 }

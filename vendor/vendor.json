@@ -249,6 +249,12 @@
 			"revisionTime": "2017-03-07T23:01:10Z"
 		},
 		{
+			"checksumSHA1": "k6jCP1ooy8Tg+GW7GlMV29DD2xE=",
+			"path": "github.com/deciphernow/gm-fabric-go/tlsutil2",
+			"revision": "36659dc475a433893933894618033b3200e51096",
+			"revisionTime": "2017-05-08T16:39:05Z"
+		},
+		{
 			"checksumSHA1": "3pooojGSsZk9CFqkD6StLF1nYho=",
 			"path": "github.com/deciphernow/gm-fabric-go/zkutil",
 			"revision": "86ca38bc08b8e3230dc937dc102d50811b7fbeb6",

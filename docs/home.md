@@ -1669,9 +1669,9 @@ Although it is not permitted to assign ownership to Everyone, ownership may be a
 
 + Request (application/json)
 
-    The JSON object in the request body should contain a change token:
+    The JSON object in the request body should contain a change token and whether to apply the operation recursively:
 
-    + Attributes (ChangeToken)
+    + Attributes (ChangeOwnerRequest)
 
 + Response 200 (application/json)
     + Attributes (ObjectResp)
@@ -2255,6 +2255,11 @@ The UI will accumulate a list of file ID values to include in a zip file.
 
 ## ChangeToken (object)
 
++ changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) - A hash of the object's unique identifier and last modification date and time.
+
+## ChangeOwnerRequest (object)
+
++ applyRecursively: `false` (boolean) - If true, the ownership change operation will apply to all of an object's descendants.
 + changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) - A hash of the object's unique identifier and last modification date and time.
 
 ## CreateObjectRequest (object)

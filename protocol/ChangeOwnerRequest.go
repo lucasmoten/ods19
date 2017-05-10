@@ -11,4 +11,6 @@ type ChangeOwnerRequest struct {
 	// NewOwner indicates the individual user or group that will become the new
 	// owner of the object
 	NewOwner string `json:"newOwner"`
+	// ApplyRecursively will apply the change owner request to all child objects if true.
+	ApplyRecursively bool `json:"applyRecursively"`
 }

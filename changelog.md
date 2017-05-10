@@ -11,6 +11,8 @@ FORMAT: 1A
 * NEW: Add CLI for client library to allow test uploads.
 * FIX: Bugfix for 20170331 migration script
 * DB: The database schema is now 20170508. A migration should be performed.
+* NEW: Add `applyRecursively` field to API endpoint for changing object ownership.
+
 
 ## Release v1.0.1.23
 --------------------

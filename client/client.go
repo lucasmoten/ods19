@@ -11,6 +11,7 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	"net/http/httputil"
 	"net/textproto"
 	"strings"
 
@@ -19,16 +20,19 @@ import (
 
 // ObjectDrive defines operations for our client (and eventually our server).
 type ObjectDrive interface {
-	GetObject(id string) (protocol.Object, error)
 	CreateObject(protocol.CreateObjectRequest, io.Reader) (protocol.Object, error)
-	GetObjectStream(id string) (io.Reader, error)
+	ChangeOwner(protocol.ChangeOwnerRequest) (protocol.Object, error)
 	DeleteObject(id string, token string) (protocol.DeletedObjectResponse, error)
+	GetObject(id string) (protocol.Object, error)
+	GetObjectStream(id string) (io.Reader, error)
 }
 
-// Client implents ObjectDrive.
+// Client implements ObjectDrive.
 type Client struct {
 	httpClient *http.Client
 	url        string
+	// Verbose will print extra debug information if true.
+	Verbose bool
 }
 
 // Verify that Client Implements ObjectDrive.
@@ -74,7 +78,7 @@ func NewClient(conf Config) (*Client, error) {
 	var c http.Client
 	c.Transport = &http.Transport{TLSClientConfig: tlsConfig}
 
-	return &Client{&c, conf.Remote}, nil
+	return &Client{&c, conf.Remote, false}, nil
 }
 
 // CreateObject performs the create operation on the ObjectDrive from the CreateObjectRequest that fully
@@ -160,6 +164,10 @@ func (c *Client) GetObject(id string) (protocol.Object, error) {
 		return obj, err
 	}
 
+	if meta.StatusCode != 200 {
+		return obj, fmt.Errorf("got HTTP error code: %v", meta.StatusCode)
+	}
+
 	body, err := ioutil.ReadAll(meta.Body)
 	if err != nil {
 		return obj, err
@@ -226,6 +234,28 @@ func (c *Client) DeleteObject(id string, token string) (protocol.DeletedObjectRe
 
 }
 
+// ChangeOwner ...
+func (c *Client) ChangeOwner(req protocol.ChangeOwnerRequest) (protocol.Object, error) {
+	uri := c.url + "/objects/" + req.ID + "/owner/" + req.NewOwner
+	var ret protocol.Object
+	resp, err := doPost(uri, req, c.httpClient)
+	if err != nil {
+		return ret, fmt.Errorf("error performing request: %v", err)
+	}
+	if c.Verbose {
+		data, _ := httputil.DumpResponse(resp, true)
+		fmt.Printf("%s", string(data))
+	}
+	defer resp.Body.Close()
+
+	err = json.NewDecoder(resp.Body).Decode(&ret)
+	if err != nil {
+		return ret, fmt.Errorf("could not decode response: %v", err)
+	}
+
+	return ret, nil
+}
+
 // writePartField
 func writePartField(w *multipart.Writer, fieldname, value, contentType string) error {
 	p, err := createFormField(w, fieldname, contentType)
@@ -250,4 +280,21 @@ func createFormField(w *multipart.Writer, fieldname, contentType string) (io.Wri
 	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"`, escapeQuotes(fieldname)))
 	h.Set("Content-Type", contentType)
 	return w.CreatePart(h)
+}
+
+func doPost(uri string, body interface{}, c *http.Client) (*http.Response, error) {
+	jsonBody, err := json.MarshalIndent(body, "", "    ")
+	if err != nil {
+		return nil, fmt.Errorf("could not marshall json body: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	// Submit the request
+	return c.Do(req)
 }

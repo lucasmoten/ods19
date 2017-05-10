@@ -2,7 +2,7 @@
 
 # API Documentation
 
-* API documentation for the Object Drive service may be reviewed at the root of an instantiated object-drive server,
+API documentation for the Object Drive service may be reviewed at the root of an instantiated object-drive server,
 previewed [here](./docs/home.md), or accessed from this [live instance on Bedrock](https://bedrock.363-283.io/services/object-drive/1.0/)
 
 

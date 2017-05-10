@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/uber-go/zap"
+
 	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/dao"
@@ -24,6 +26,7 @@ func (h AppServer) changeOwner(ctx context.Context, w http.ResponseWriter, r *ht
 
 	var requestObject models.ODObject
 	var err error
+	var recursive bool
 
 	caller, _ := CallerFromContext(ctx)
 	dao := DAOFromContext(ctx)
@@ -33,20 +36,19 @@ func (h AppServer) changeOwner(ctx context.Context, w http.ResponseWriter, r *ht
 	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "OWNERSHIP_MODIFY")
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	captured, _ := CaptureGroupsFromContext(ctx)
-	// Get object
-	if !util.IsApplicationJSON(r.Header.Get("Content-Type")) {
-		herr := NewAppError(http.StatusBadRequest, errors.New("Bad Request"), "Requires Content-Type: application/json")
-		h.publishError(gem, herr)
-		return herr
-	}
-	requestObject, err = parseChangeOwnerRequestAsJSON(r, captured["objectId"], captured["newOwner"])
+
+	requestObject, recursive, err = parseChangeOwnerRequestAsJSON(r, captured["objectId"], captured["newOwner"])
 	if err != nil {
-		herr := NewAppError(http.StatusBadRequest, err, "Error parsing JSON")
+		herr := NewAppError(http.StatusBadRequest, err, "bad request")
 		h.publishError(gem, herr)
 		return herr
 	}
+
+	newOwnerStr := captured["newOwner"]
+
 	gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
 	gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))
+
 	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
 		herr := NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
@@ -70,14 +72,7 @@ func (h AppServer) changeOwner(ctx context.Context, w http.ResponseWriter, r *ht
 
 	// Capture and overwrite here for comparison later after the update
 	requestObject.ChangeCount = dbObject.ChangeCount
-	apiResponse, herr := changeOwnerRaw(
-		&requestObject,
-		&dbObject,
-		&updatePermission,
-		aacAuth,
-		caller,
-		dao,
-	)
+	apiResponse, herr := changeOwnerRaw(&requestObject, &dbObject, &updatePermission, aacAuth, caller, dao)
 	if herr != nil {
 		h.publishError(gem, herr)
 		return herr
@@ -90,7 +85,139 @@ func (h AppServer) changeOwner(ctx context.Context, w http.ResponseWriter, r *ht
 
 	jsonResponse(w, *apiResponse)
 	h.publishSuccess(gem, w)
+
+	// begin recursive application
+	if recursive {
+		go h.changeOwnerRecursive(ctx, newOwnerStr, requestObject.ID)
+	}
 	return nil
+}
+
+func (h AppServer) changeOwnerRecursive(ctx context.Context, newOwner string, id []byte) {
+	d := DAOFromContext(ctx)
+	rs := getKnownResourceStringsFromUserGroups(ctx)
+	caller, _ := CallerFromContext(ctx)
+	aacAuth := auth.NewAACAuth(logger, h.AAC)
+	gem, _ := GEMFromContext(ctx)
+	gem.Action = "update"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventModify")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "OWNERSHIP_MODIFY")
+
+	page := 1
+	pr := dao.PagingRequest{PageNumber: page, PageSize: dao.MaxPageSize}
+	obj := models.ODObject{ID: id}
+
+	children, err := d.GetChildObjectsWithProperties(pr, obj)
+	if err != nil {
+		logger.Error("error calling GetChildObjectsWithProperties", zap.Object("err", err))
+		return
+	}
+
+	for {
+		for _, child := range children.Objects {
+
+			gem.Payload.ObjectID = hex.EncodeToString(child.ID)
+			gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(child.ID))
+			auditOriginal := NewResourceFromObject(child)
+
+			if !aacAuth.IsUserOwner(caller.DistinguishedName, rs, child.OwnedBy.String) {
+				continue
+			}
+			if child.IsDeleted {
+				continue
+			}
+
+			perm, err := models.CreateODPermissionFromResource(newOwner)
+			if err != nil {
+				logger.Error("could not create new owner permission", zap.Object("err", err))
+				gem.Payload.Audit = audit.WithActionResult(gem.Payload.Audit, "FAILURE")
+				h.EventQueue.Publish(gem)
+				continue
+			}
+
+			if perm.AcmGrantee.Grantee == "" {
+				logger.Error("grantee cannot be empty string", zap.Object("err", err))
+				gem.Payload.Audit = audit.WithActionResult(gem.Payload.Audit, "FAILURE")
+				h.EventQueue.Publish(gem)
+				continue
+			}
+			// Don't allow transfer to everyone
+			if isPermissionFor(&perm, models.EveryoneGroup) {
+				err = errors.New("cannot transfer ownership to everyone")
+				logger.Error("error changing owner recursively", zap.Object("err", err))
+				gem.Payload.Audit = audit.WithActionResult(gem.Payload.Audit, "FAILURE")
+				h.EventQueue.Publish(gem)
+				continue
+			}
+
+			ok, existingPerm := isUserAllowedToUpdateWithPermission(ctx, &child)
+			if !ok {
+				logger.Error("grantee cannot be empty string", zap.Object("err", errors.New("caller cannot update object")))
+				continue
+			}
+			// Owner gets full cruds
+			perm.AllowCreate, perm.AllowRead, perm.AllowUpdate, perm.AllowDelete, perm.AllowShare = true, true, true, true, true
+			masterKey := ciphertext.FindCiphertextCacheByObject(&child).GetMasterKey()
+			models.CopyEncryptKey(masterKey, &existingPerm, &perm)
+			child.Permissions = append(child.Permissions, perm)
+
+			modifiedACM, err := aacAuth.InjectPermissionsIntoACM(child.Permissions, child.RawAcm.String)
+			if err != nil {
+				logger.Error("cannot inject permissions into child object", zap.Object("err", err))
+				continue
+			}
+			modifiedACM, err = aacAuth.GetFlattenedACM(modifiedACM)
+			if err != nil {
+				logger.Error("error calling GetFlattenedACM", zap.Object("err", err))
+				continue
+			}
+			child.RawAcm = models.ToNullString(modifiedACM)
+			modifiedPermissions, modifiedACM, err := aacAuth.NormalizePermissionsFromACM(child.OwnedBy.String, child.Permissions, modifiedACM, false)
+			if err != nil {
+				logger.Error("error calling NormalizePermissionsFromACM", zap.Object("err", err))
+				continue
+			}
+			child.RawAcm = models.ToNullString(modifiedACM)
+			child.Permissions = modifiedPermissions
+
+			// NOTE(cm): why the check again?
+			if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, child.RawAcm.String); err != nil {
+				logger.Error("error calling IsUserAuthorizedForACM", zap.Object("err", err))
+				continue
+			}
+			consolidateChangingPermissions(&child)
+			for i, p := range child.Permissions {
+				models.CopyEncryptKey(masterKey, &existingPerm, &p)
+				models.CopyEncryptKey(masterKey, &existingPerm, &child.Permissions[i])
+			}
+			child.ModifiedBy = caller.DistinguishedName
+			// TODO(cm) move up earlier in this function?
+			child.OwnedBy = models.ToNullString(newOwner)
+			err = d.UpdateObject(&child)
+			if err != nil {
+				logger.Error("error updating child object with new permissions", zap.Object("err", err))
+				continue
+			}
+
+			auditModified := NewResourceFromObject(child)
+			gem.Payload.Audit = audit.WithModifiedPairList(
+				gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
+			h.EventQueue.Publish(gem)
+			h.changeOwnerRecursive(ctx, newOwner, child.ID)
+
+		}
+		page++
+		if page > children.PageCount {
+			break
+		}
+		pr.PageNumber = page
+		var err error
+		children, err = d.GetChildObjectsWithProperties(pr, obj)
+		if err != nil {
+			logger.Error("error calling GetChildObjectsWithProperties", zap.Object("err", err))
+			return
+		}
+	}
 }
 
 func changeOwnerRaw(
@@ -105,18 +232,16 @@ func changeOwnerRaw(
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			return nil, NewAppError(http.StatusGone, err, "The object no longer exists.")
+			return nil, NewAppError(http.StatusGone, err, "object no longer exists")
 		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-			return nil, NewAppError(http.StatusMethodNotAllowed, err, "The object cannot be modified because an ancestor is deleted.")
+			return nil, NewAppError(http.StatusMethodNotAllowed, err, "object cannot be modified because an ancestor is deleted")
 		case dbObject.IsDeleted:
-			return nil, NewAppError(http.StatusMethodNotAllowed, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it")
+			return nil, NewAppError(http.StatusMethodNotAllowed, err, "object is already in the trash")
 		}
 	}
 
-	// Check that the change token on the object passed in matches the current
-	// state of the object in the data store
 	if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) != 0 {
-		return nil, NewAppError(http.StatusPreconditionRequired, errors.New("Precondition required: ChangeToken does not match expected value"), "ChangeToken does not match expected value. Object may have been changed by another request.")
+		return nil, NewAppError(http.StatusPreconditionRequired, errors.New("ChangeToken does not match expected value"), "ChangeToken does not match expected value")
 	}
 
 	// Check that the owner of the object passed in is different then the current
@@ -133,6 +258,7 @@ func changeOwnerRaw(
 		if err != nil {
 			return nil, NewAppError(http.StatusBadRequest, err, err.Error())
 		}
+		// TODO(cm): Why this additional check? CreateODPermissionsFromResource should return err.
 		if newOwnerPermission.AcmGrantee.Grantee == "" {
 			msg := "Value provided for new owner could not be parsed"
 			err = fmt.Errorf("%s: %s", msg, requestObject.OwnedBy.String)
@@ -140,22 +266,21 @@ func changeOwnerRaw(
 		}
 		// Don't allow transferring to everyone
 		if isPermissionFor(&newOwnerPermission, models.EveryoneGroup) {
-			msg := "Transferring ownership to everyone is not allowed"
-			err = fmt.Errorf("%s", msg)
-			return nil, NewAppError(http.StatusBadRequest, err, msg)
+			err = errors.New("Transferring ownership to everyone is not allowed")
+			return nil, NewAppError(http.StatusBadRequest, err, err.Error())
 		}
 
-		// Force to root
+		// Move the top-level changed object to the new owner's root. If child objects
+		// are affected recursively, they should become children under this top-level object.
 		dbObject.ParentID = nil
 
-		// Setup cruds
-		dp := ciphertext.FindCiphertextCacheByObject(dbObject)
-		masterKey := dp.GetMasterKey()
+		// New owner gets full CRUDS automatically.
 		newOwnerPermission.AllowCreate = true
 		newOwnerPermission.AllowRead = true
 		newOwnerPermission.AllowUpdate = true
 		newOwnerPermission.AllowDelete = true
 		newOwnerPermission.AllowShare = true
+		masterKey := ciphertext.FindCiphertextCacheByObject(dbObject).GetMasterKey()
 		models.CopyEncryptKey(masterKey, updatePermission, &newOwnerPermission)
 		dbObject.Permissions = append(dbObject.Permissions, newOwnerPermission)
 
@@ -179,18 +304,13 @@ func changeOwnerRaw(
 			return nil, ClassifyObjectACMError(err)
 		}
 
-		// Consolidate permissions
 		consolidateChangingPermissions(dbObject)
-		// copy ownerPermission.EncryptKey to all existing permissions:
+
 		for idx, permission := range dbObject.Permissions {
 			models.CopyEncryptKey(masterKey, updatePermission, &permission)
 			models.CopyEncryptKey(masterKey, updatePermission, &dbObject.Permissions[idx])
 		}
 
-		// Call metadata connector to update the object in the data store
-		// We reference the dbObject here instead of request to isolate what is
-		// allowed to be changed in this operation
-		// Force the modified by to be that of the caller
 		dbObject.ModifiedBy = caller.DistinguishedName
 		dbObject.OwnedBy = requestObject.OwnedBy
 		err = dao.UpdateObject(dbObject)
@@ -213,34 +333,38 @@ func changeOwnerRaw(
 	return &apiResponse, nil
 }
 
-func parseChangeOwnerRequestAsJSON(r *http.Request, objectID string, newOwner string) (models.ODObject, error) {
+func parseChangeOwnerRequestAsJSON(r *http.Request, objectID string, newOwner string) (models.ODObject, bool, error) {
 	var jsonObject protocol.ChangeOwnerRequest
 	var requestObject models.ODObject
 	var err error
 
+	if !util.IsApplicationJSON(r.Header.Get("Content-Type")) {
+		return requestObject, false, errors.New("expected header Content-Type: application/json")
+	}
+
 	// Depends on this for the changeToken
 	err = util.FullDecode(r.Body, &jsonObject)
 	if err != nil {
-		return requestObject, err
+		return requestObject, false, err
 	}
 
 	// Initialize requestobject with the objectId being requested
 	if objectID == "" {
-		return requestObject, errors.New("Could not extract ObjectID from URI")
+		return requestObject, false, errors.New("could not extract ObjectID from URI")
 	}
 	_, err = hex.DecodeString(objectID)
 	if err != nil {
-		return requestObject, errors.New("Invalid ObjectID in URI")
+		return requestObject, false, errors.New("invalid ObjectID in URI")
 	}
 	jsonObject.ID = objectID
 	// And the new owner
 	if len(newOwner) > 0 {
 		jsonObject.NewOwner = newOwner
 	} else {
-		return requestObject, errors.New("A new owner is required when changing owner")
+		return requestObject, false, errors.New("A new owner is required when changing owner")
 	}
 
 	// Map to internal object type
 	requestObject, err = mapping.MapChangeOwnerRequestToODObject(&jsonObject)
-	return requestObject, err
+	return requestObject, jsonObject.ApplyRecursively, err
 }
