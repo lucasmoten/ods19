@@ -48,6 +48,10 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	// Permit the defer in testMainBody to run its course before exit
+	os.Exit(testMainBody(m))
+}
+func testMainBody(m *testing.M) int {
 	flag.Parse()
 	testSettings()
 	trafficLogs = make(map[string]*TrafficLog)
@@ -55,13 +59,12 @@ func TestMain(m *testing.M) {
 	defer trafficLogs[APISampleFile].Close()
 	// setup populates our global clients
 	setup(*testIP)
-	code := stallForAvailability()
-	if code != 0 {
-		os.Exit(code)
+	if code := stallForAvailability(); code != 0 {
+		return code
 	}
-	code = m.Run()
+	code := m.Run()
 	cleanupOpenFiles()
-	os.Exit(code)
+	return code
 }
 
 func setup(ip string) {
