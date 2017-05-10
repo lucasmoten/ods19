@@ -12,6 +12,7 @@ FORMAT: 1A
 * FIX: Bugfix for 20170331 migration script
 * DB: The database schema is now 20170508. A migration should be performed.
 * NEW: Add `applyRecursively` field to API endpoint for changing object ownership.
+* NEW: Add MoveObject method to the client library. 
 
 
 ## Release v1.0.1.23

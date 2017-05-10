@@ -141,6 +141,62 @@ func TestCreateObjectNoStream(t *testing.T) {
 
 }
 
+func TestMoveObject(t *testing.T) {
+	me, err := NewClient(conf)
+
+	// Create file at root.
+	testFile, err := ioutil.TempFile(testDir, "particle")
+	if err != nil {
+		fmt.Printf("error creating test file %s", testFile)
+	}
+
+	var fileReq = protocol.CreateObjectRequest{
+		TypeName:              "File",
+		Name:                  "ToMoveOrNotToMove",
+		NamePathDelimiter:     fmt.Sprintf("%s", os.PathSeparator),
+		Description:           "This had better move to NOT the root folder.",
+		ParentID:              "",
+		RawAcm:                `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
+		ContainsUSPersonsData: "Unknown",
+		ExemptFromFOIA:        "",
+		Permission:            permissions,
+		OwnedBy:               "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+	}
+
+	fileObj, err := me.CreateObject(fileReq, testFile)
+	t.Log("File created is: ", fileObj.ID)
+	assert.Nil(t, err, "error creating file to move", err)
+
+	// Now create the folder in which to move it.
+	var dirReq = protocol.CreateObjectRequest{
+		TypeName:              "Folder",
+		Name:                  "MovedTo",
+		NamePathDelimiter:     fmt.Sprintf("%s", os.PathSeparator),
+		Description:           "Give me some files!",
+		ParentID:              "",
+		RawAcm:                `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
+		ContainsUSPersonsData: "Unknown",
+		ExemptFromFOIA:        "",
+		Permission:            permissions,
+		OwnedBy:               "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+	}
+
+	dirObj, err := me.CreateObject(dirReq, nil)
+	t.Log("Folder created is: ", dirObj.ID)
+	assert.Nil(t, err, "Error creating object with no stream %s", err)
+
+	// Mow perform the move
+	var moveReq = protocol.MoveObjectRequest{
+		ID:          fileObj.ID,
+		ChangeToken: fileObj.ChangeToken,
+		ParentID:    dirObj.ID,
+	}
+
+	moved, err := me.MoveObject(moveReq)
+	t.Log("Moved object to", dirObj.Name, " with ID ", moved.ParentID)
+	assert.Nil(t, err, "error moving object %s", err)
+}
+
 // writeObjectToDisk retrieves an object and writes it to the filesystem.
 func writeObjectToDisk(name string, reader io.Reader) error {
 	file, err := ioutil.ReadAll(reader)

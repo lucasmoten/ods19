@@ -25,6 +25,7 @@ type ObjectDrive interface {
 	DeleteObject(id string, token string) (protocol.DeletedObjectResponse, error)
 	GetObject(id string) (protocol.Object, error)
 	GetObjectStream(id string) (io.Reader, error)
+	MoveObject(protocol.MoveObjectRequest) (protocol.Object, error)
 }
 
 // Client implements ObjectDrive.
@@ -238,6 +239,30 @@ func (c *Client) DeleteObject(id string, token string) (protocol.DeletedObjectRe
 func (c *Client) ChangeOwner(req protocol.ChangeOwnerRequest) (protocol.Object, error) {
 	uri := c.url + "/objects/" + req.ID + "/owner/" + req.NewOwner
 	var ret protocol.Object
+
+	resp, err := doPost(uri, req, c.httpClient)
+	if err != nil {
+		return ret, fmt.Errorf("error performing request: %v", err)
+	}
+	if c.Verbose {
+		data, _ := httputil.DumpResponse(resp, true)
+		fmt.Printf("%s", string(data))
+	}
+	defer resp.Body.Close()
+
+	err = json.NewDecoder(resp.Body).Decode(&ret)
+	if err != nil {
+		return ret, fmt.Errorf("could not decode response: %v", err)
+	}
+
+	return ret, nil
+}
+
+// MoveObject moves a given file or folder into a new parent folder, both specified by ID.
+func (c *Client) MoveObject(req protocol.MoveObjectRequest) (protocol.Object, error) {
+	uri := c.url + "/objects/" + req.ID + "/move/" + req.ParentID
+	var ret protocol.Object
+
 	resp, err := doPost(uri, req, c.httpClient)
 	if err != nil {
 		return ret, fmt.Errorf("error performing request: %v", err)
