@@ -8,6 +8,7 @@ FORMAT: 1A
 * FIX: Corrected spelling of `namePathDelimiter` in API documentation for create object.
 * FIX: Normalize resource string and grantee parts to lowercase. Force disp_nm in ACM to lowercase matching project key.
 * DB: The database schema is now 20170508. A migration should be performed.
+* NEW: Add CLI for client library to allow test uploads.
 
 ## Release v1.0.1.23
 --------------------
