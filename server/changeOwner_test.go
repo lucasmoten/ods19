@@ -3,6 +3,7 @@ package server_test
 import (
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
@@ -185,7 +186,7 @@ func TestChangeOwnerRecursive(t *testing.T) {
 		Name:              strings.Join([]string{root, child1, child2, child3}, ":::"),
 		RawAcm:            testhelpers.ValidACMUnclassifiedFOUOSharedToTester10,
 	}
-	child3Obj, err := clients[clientid].C.CreateObject(cor, nil)
+	child3Obj, err := clients[clientid].C.CreateObject(cor, bytes.NewBuffer([]byte("testvalue")))
 	failNowOnErr(t, err, "unable to do request")
 
 	// We want to change child1 owner. Get at child1 by walking up ParentIDs.
@@ -240,6 +241,24 @@ func TestChangeOwnerRecursive(t *testing.T) {
 			t.FailNow()
 		}
 		break
+	}
+
+	t.Log("Attempting to retrieve stream as tester1")
+	stream, err := clients[1].C.GetObjectStream(child3Obj.ID)
+	if err != nil {
+		t.Errorf("getting object stream failed: %v", err)
+		t.FailNow()
+	}
+
+	data, err := ioutil.ReadAll(stream)
+	if err != nil {
+		t.Errorf("could not read returned stream: %v", err)
+		t.FailNow()
+	}
+	t.Log("Stream data received:")
+	t.Log(string(data))
+	if string(data) != "testvalue" {
+		t.Errorf("expected stream to contain 'testvalue', but got: %s", string(data))
 	}
 
 }
