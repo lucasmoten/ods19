@@ -2,9 +2,14 @@ package server_test
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
 
 	"github.com/karlseguin/ccache"
@@ -241,4 +246,122 @@ func newGUID(t *testing.T) string {
 		t.Errorf("Could not create GUID.")
 	}
 	return guid
+}
+
+func TestGetObject_UserNotInDBAndObjectDoesNotExist(t *testing.T) {
+	objectid := "abcdef0123456789abcdef0123456789"
+	uri := host + config.NginxRootURL + "/objects/" + objectid + "/properties"
+	server := 10
+	userdn := "cn=fake user,ou=people,ou=sois,ou=dod,o=u.s. government,c=us"
+	twldn := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
+	req, err := http.NewRequest("GET", uri, nil)
+	if err != nil {
+		t.Logf("error %s", err.Error())
+		t.FailNow()
+	}
+	req.Header.Add("USER_DN", userdn)
+	req.Header.Add("SSL_CLIENT_S_DN", twldn)
+	req.Header.Add("EXTERNAL_SYS_DN", twldn)
+	res, err := clients[server].Client.Do(req)
+	data, _ := ioutil.ReadAll(res.Body)
+	t.Logf("Length of data is %d", len(data))
+}
+
+func TestGetObject_UserNotInDIASAndObjectDoesNotExist(t *testing.T) {
+	objectid := "abcdef0123456789abcdef0123456789"
+	uri := host + config.NginxRootURL + "/objects/" + objectid + "/properties"
+	server := 10
+	userdn := "cn=fake user,ou=person,ou=sois,ou=dod,o=u.s. government,c=us"
+	twldn := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
+	req, err := http.NewRequest("GET", uri, nil)
+	if err != nil {
+		t.Logf("error %s", err.Error())
+		t.FailNow()
+	}
+	req.Header.Add("USER_DN", userdn)
+	req.Header.Add("SSL_CLIENT_S_DN", twldn)
+	req.Header.Add("EXTERNAL_SYS_DN", twldn)
+	res, err := clients[server].Client.Do(req)
+	data, _ := ioutil.ReadAll(res.Body)
+	t.Logf("Length of data is %d", len(data))
+}
+
+func TestGetObject_500UsersAndObjectDoesNotExist(t *testing.T) {
+	userdn := "cn=fake user,ou=people,ou=sois,ou=dod,o=u.s. government,c=us"
+	qty := 500
+	var wg sync.WaitGroup
+	wg.Add(qty)
+	for i := 1; i <= qty; i++ {
+		newuser := strings.Replace(userdn, "fake user", fmt.Sprintf("fake user A %d", i), -1)
+		go func(userdn string) {
+			defer wg.Done()
+			objectid := "abcdef0123456789abcdef0123456789"
+			objectid = newGUID(t)
+			uri := host + config.NginxRootURL + "/objects/" + objectid + "/properties"
+			server := 10
+			twldn := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
+			req, err := http.NewRequest("GET", uri, nil)
+			if err != nil {
+				t.Logf("error %s", err.Error())
+				t.FailNow()
+			}
+			req.Header.Add("USER_DN", userdn)
+			req.Header.Add("SSL_CLIENT_S_DN", twldn)
+			req.Header.Add("EXTERNAL_SYS_DN", twldn)
+			log.Printf("fetching object %s as %s", objectid, userdn)
+			res, err := clients[server].Client.Do(req)
+			if err != nil {
+				t.Logf("error doing client request: %s", err.Error())
+			}
+			if res != nil && res.Body != nil {
+				_, _ = ioutil.ReadAll(res.Body)
+			}
+		}(newuser)
+	}
+	wg.Wait()
+}
+
+func TestGetObject_100UsersAndObjectDoesNotExistAsNewClient(t *testing.T) {
+	userdn := "cn=fake user,ou=people,ou=sois,ou=dod,o=u.s. government,c=us"
+	qty := 100
+	var wg sync.WaitGroup
+	wg.Add(qty)
+	for i := 1; i <= qty; i++ {
+		newuser := strings.Replace(userdn, "fake user", fmt.Sprintf("fake user B %d", i), -1)
+		go func(userdn string) {
+			defer wg.Done()
+			objectid := "abcdef0123456789abcdef0123456789"
+			objectid = newGUID(t)
+			uri := host + config.NginxRootURL + "/objects/" + objectid + "/stream"
+			server := 10
+			twldn := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
+			req, err := http.NewRequest("GET", uri, nil)
+			if err != nil {
+				t.Logf("error %s", err.Error())
+				t.FailNow()
+			}
+			req.Header.Add("USER_DN", userdn)
+			req.Header.Add("SSL_CLIENT_S_DN", twldn)
+			req.Header.Add("EXTERNAL_SYS_DN", twldn)
+			log.Printf("fetching object %s as %s", objectid, userdn)
+
+			newTransport := &http.Transport{TLSClientConfig: clients[server].Config}
+			newClient := &http.Client{Transport: newTransport}
+			res, err := newClient.Do(req)
+			if err != nil {
+				t.Logf("error doing client request: %s", err.Error())
+			}
+			if res != nil {
+				p := make([]byte, 70) // to read 7 of the 10 bytes expected, leaving some more needing read
+				n, err := res.Body.Read(p)
+				if err != nil && err != io.EOF {
+					t.Logf("error reading body: %s", err.Error())
+				}
+				s := string(p[:n])
+				t.Logf("response for %s: %s", objectid, s)
+				_, _ = ioutil.ReadAll(res.Body) // if this isn't called, we end up exhausting file handles
+			}
+		}(newuser)
+	}
+	wg.Wait()
 }
