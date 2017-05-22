@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"decipher.com/object-drive-server/protocol"
+	"github.com/deciphernow/gm-fabric-go/tlsutil2"
 )
 
 // ObjectDrive defines operations for our client (and eventually our server).
@@ -34,6 +35,8 @@ type Client struct {
 	url        string
 	// Verbose will print extra debug information if true.
 	Verbose bool
+	conf    Config
+	MyDN    string
 }
 
 // Verify that Client Implements ObjectDrive.
@@ -45,7 +48,13 @@ type Config struct {
 	Trust      string
 	Key        string
 	SkipVerify bool
-	Remote     string
+	// Remote specifies the full API proxy prefix: https://{host}:{port}/{prefix}
+	// Actual object drive API endpoints are appended to this string.
+	Remote string
+	// Impersonation is a DN of a user we want to impersonate. If set, HTTP headers
+	// USER_DN will be set to this value, and EXTERNAL_SYS_DN and SSL_CLIENT_S_DN
+	// will be set to the Client.MyDN field.
+	Impersonation string
 }
 
 // NewClient instantiates a new Client that implements ObjectDrive.  This client can be used to perform
@@ -67,6 +76,12 @@ func NewClient(conf Config) (*Client, error) {
 		return nil, err
 	}
 
+	x509Cert, err := tlsutil2.X509FromPEMFile(conf.Cert)
+	if err != nil {
+		return nil, err
+	}
+	dn := tlsutil2.GetDistinguishedName(x509Cert)
+
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify:       conf.SkipVerify,
 		Certificates:             []tls.Certificate{cert},
@@ -79,26 +94,25 @@ func NewClient(conf Config) (*Client, error) {
 	var c http.Client
 	c.Transport = &http.Transport{TLSClientConfig: tlsConfig}
 
-	return &Client{&c, conf.Remote, false}, nil
+	return &Client{&c, conf.Remote, false, conf, dn}, nil
 }
 
 // CreateObject performs the create operation on the ObjectDrive from the CreateObjectRequest that fully
 // specifies the object to be created.  The caller must also provide an open io.Reader interface to the stream
 // they wish to upload.  If creating an object with no filestream, such as a folder, then reader must be nil.
 func (c *Client) CreateObject(obj protocol.CreateObjectRequest, reader io.Reader) (protocol.Object, error) {
-	putURL := c.url + "/objects"
+	uri := c.url + "/objects"
 	var newObj protocol.Object
 
 	jsonBody, err := json.MarshalIndent(obj, "", "    ")
 	if err != nil {
-		return newObj, err
+		return newObj, fmt.Errorf("could not marshal json: %v", err)
 	}
 
-	body := bytes.Buffer{}
-	contentType := ""
+	var body bytes.Buffer
+	var contentType string
 
-	// If an io.Reader is passed, then the data will be uploaded.  Otherwise, only metadata will be
-	// uploaded with no associated filestream
+	// If an io.Reader is passed, upload its contents.
 	if reader != nil {
 		writer := multipart.NewWriter(&body)
 
@@ -123,7 +137,7 @@ func (c *Client) CreateObject(obj protocol.CreateObjectRequest, reader io.Reader
 	}
 
 	// Now that you have a form, you can submit it to your handler.
-	req, err := http.NewRequest("POST", putURL, &body)
+	req, err := http.NewRequest("POST", uri, &body)
 	if err != nil {
 		return newObj, err
 	}
@@ -135,14 +149,20 @@ func (c *Client) CreateObject(obj protocol.CreateObjectRequest, reader io.Reader
 		req.Header.Set("Content-Type", contentType)
 	}
 
-	// Submit the request
+	if c.conf.Impersonation != "" {
+		setImpersonationHeaders(req, c.conf.Impersonation, c.MyDN)
+	}
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		log.Println(err)
 		return newObj, err
 	}
-
 	defer resp.Body.Close()
+	if c.Verbose {
+		data, _ := httputil.DumpResponse(resp, true)
+		fmt.Printf("%s", string(data))
+	}
 
 	// Send back the created object properties
 	err = json.NewDecoder(resp.Body).Decode(&newObj)
@@ -153,23 +173,31 @@ func (c *Client) CreateObject(obj protocol.CreateObjectRequest, reader io.Reader
 	return newObj, nil
 }
 
-// GetObject returns an the metadata associated with an object based on it's unique ID.  This metadata
-// can be used to facilitate further operations and modifications on the object.
+// GetObject fetches the metadata associated with an object by its unique ID.
 func (c *Client) GetObject(id string) (protocol.Object, error) {
 	var obj protocol.Object
 
 	propertyURL := c.url + "/objects/" + id + "/properties"
 
-	meta, err := c.httpClient.Get(propertyURL)
+	req, err := http.NewRequest("GET", propertyURL, nil)
 	if err != nil {
 		return obj, err
 	}
 
-	if meta.StatusCode != 200 {
-		return obj, fmt.Errorf("got HTTP error code: %v", meta.StatusCode)
+	if c.conf.Impersonation != "" {
+		setImpersonationHeaders(req, c.conf.Impersonation, c.MyDN)
 	}
 
-	body, err := ioutil.ReadAll(meta.Body)
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return obj, err
+	}
+
+	if resp.StatusCode != 200 {
+		return obj, fmt.Errorf("got HTTP error code: %v", resp.StatusCode)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return obj, err
 	}
@@ -186,7 +214,16 @@ func (c *Client) GetObject(id string) (protocol.Object, error) {
 func (c *Client) GetObjectStream(id string) (io.Reader, error) {
 	fileURL := c.url + "/objects/" + id + "/stream"
 
-	resp, err := c.httpClient.Get(fileURL)
+	req, err := http.NewRequest("GET", fileURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.conf.Impersonation != "" {
+		setImpersonationHeaders(req, c.conf.Impersonation, c.MyDN)
+	}
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -198,26 +235,15 @@ func (c *Client) GetObjectStream(id string) (io.Reader, error) {
 // current object in ObjectDrive are needed to perform the operation.
 func (c *Client) DeleteObject(id string, token string) (protocol.DeletedObjectResponse, error) {
 	url := c.url + "/objects/" + id + "/trash"
+
 	var deleteResponse protocol.DeletedObjectResponse
-	var deleteRequest = protocol.DeleteObjectRequest{
+
+	deleteRequest := protocol.DeleteObjectRequest{
 		ID:          id,
 		ChangeToken: token,
 	}
 
-	jsonBody, err := json.MarshalIndent(deleteRequest, "", "    ")
-	if err != nil {
-		return deleteResponse, err
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		return deleteResponse, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	// Submit the request
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.doPost(url, deleteRequest)
 	if err != nil {
 		log.Println(err)
 		return deleteResponse, err
@@ -225,14 +251,12 @@ func (c *Client) DeleteObject(id string, token string) (protocol.DeletedObjectRe
 
 	defer resp.Body.Close()
 
-	// Send back the created object properties
 	err = json.NewDecoder(resp.Body).Decode(&deleteResponse)
 	if err != nil {
 		return deleteResponse, err
 	}
 
 	return deleteResponse, nil
-
 }
 
 // ChangeOwner ...
@@ -240,7 +264,7 @@ func (c *Client) ChangeOwner(req protocol.ChangeOwnerRequest) (protocol.Object, 
 	uri := c.url + "/objects/" + req.ID + "/owner/" + req.NewOwner
 	var ret protocol.Object
 
-	resp, err := doPost(uri, req, c.httpClient)
+	resp, err := c.doPost(uri, req)
 	if err != nil {
 		return ret, fmt.Errorf("error performing request: %v", err)
 	}
@@ -263,7 +287,7 @@ func (c *Client) MoveObject(req protocol.MoveObjectRequest) (protocol.Object, er
 	uri := c.url + "/objects/" + req.ID + "/move/" + req.ParentID
 	var ret protocol.Object
 
-	resp, err := doPost(uri, req, c.httpClient)
+	resp, err := c.doPost(uri, req)
 	if err != nil {
 		return ret, fmt.Errorf("error performing request: %v", err)
 	}
@@ -281,7 +305,26 @@ func (c *Client) MoveObject(req protocol.MoveObjectRequest) (protocol.Object, er
 	return ret, nil
 }
 
-// writePartField
+func (c *Client) doPost(uri string, body interface{}) (*http.Response, error) {
+	jsonBody, err := json.MarshalIndent(body, "", "    ")
+	if err != nil {
+		return nil, fmt.Errorf("could not marshall json body: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+
+	if c.conf.Impersonation != "" {
+		setImpersonationHeaders(req, c.conf.Impersonation, c.MyDN)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	return c.httpClient.Do(req)
+}
+
 func writePartField(w *multipart.Writer, fieldname, value, contentType string) error {
 	p, err := createFormField(w, fieldname, contentType)
 	if err != nil {
@@ -307,19 +350,10 @@ func createFormField(w *multipart.Writer, fieldname, contentType string) (io.Wri
 	return w.CreatePart(h)
 }
 
-func doPost(uri string, body interface{}, c *http.Client) (*http.Response, error) {
-	jsonBody, err := json.MarshalIndent(body, "", "    ")
-	if err != nil {
-		return nil, fmt.Errorf("could not marshall json body: %v", err)
-	}
-
-	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	// Submit the request
-	return c.Do(req)
+func setImpersonationHeaders(req *http.Request, impersonating, sysDNs string) {
+	// who I want to become
+	req.Header.Set("USER_DN", impersonating)
+	// who I am
+	req.Header.Set("EXTERNAL_SYS_DN", sysDNs)
+	req.Header.Set("SSL_CLIENT_S_DN", sysDNs)
 }

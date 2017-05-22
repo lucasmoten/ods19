@@ -9,8 +9,11 @@ import (
 	"path"
 	"testing"
 
+	"strings"
+
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util/testhelpers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -195,6 +198,34 @@ func TestMoveObject(t *testing.T) {
 	moved, err := me.MoveObject(moveReq)
 	t.Log("Moved object to", dirObj.Name, " with ID ", moved.ParentID)
 	assert.Nil(t, err, "error moving object %s", err)
+}
+
+func TestImpersonation(t *testing.T) {
+	t.Log("create a new config with impersonation")
+	cnf := conf
+	cnf.Cert = os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/server/server.cert.pem"
+	cnf.Trust = os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/server/server.trust.pem"
+	cnf.Key = os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/server/server.key.pem"
+	cnf.Impersonation = "cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+	c, err := NewClient(cnf)
+	if err != nil {
+		t.Fatalf("could not create client with impersonation: %v", err)
+	}
+	c.Verbose = testing.Verbose()
+
+	t.Logf("MyDN: %s", c.MyDN)
+	cor := protocol.CreateObjectRequest{
+		Name:   "impersonados",
+		RawAcm: testhelpers.ValidACMUnclassifiedFOUOSharedToTester10,
+	}
+	obj, err := c.CreateObject(cor, nil)
+	if err != nil {
+		t.Errorf("create object with impersonation did not succeed: %v", err)
+		t.FailNow()
+	}
+	if !strings.HasPrefix(obj.OwnedBy, "user/cn=test tester01") {
+		t.Errorf("expected tester01 to be the owner, since tester01 was impersonated")
+	}
 }
 
 // writeObjectToDisk retrieves an object and writes it to the filesystem.

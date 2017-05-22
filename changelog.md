@@ -2,9 +2,10 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
-## Release New
+## Release v1.0.1.25
 --------------------
 * ENH: Clean up error message when cannot connect to AAC
+* ENH: allow impersonating requests in the client library with new config field "Impersonation"
 
 ## Release v1.0.1.24
 --------------------
