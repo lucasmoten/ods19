@@ -69,7 +69,7 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, mpr *multipart.Reader
 	}
 
 	// Process the stream
-	drainFunc, herr := h.acceptObjectUploadStream(ctx, part, obj, grant, asCreate, parsedMetadata)
+	drainFunc, herr := h.acceptObjectUploadStream(ctx, part, obj, grant)
 	return drainFunc, pathDelimiter, herr
 }
 
@@ -93,16 +93,9 @@ func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.P
 		}
 		// Parse into a useable struct
 		if asCreate {
-			err = json.Unmarshal(metadata, &createObjectRequest)
-		} else {
-			err = json.Unmarshal(metadata, &updateObjectRequest)
-		}
-		if err != nil {
-			return parsedMetadata, "", NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", metadata))
-		}
-
-		// Validation & Mapping for Create
-		if asCreate {
+			if err = json.Unmarshal(metadata, &createObjectRequest); err != nil {
+				return parsedMetadata, "", NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", metadata))
+			}
 			// Mapping to object
 			err = mapping.OverwriteODObjectWithCreateObjectRequest(obj, &createObjectRequest)
 			if err != nil {
@@ -113,10 +106,10 @@ func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.P
 				return parsedMetadata, "", herr
 			}
 			pathDelimiter = createObjectRequest.NamePathDelimiter
-		}
-
-		// Validation & Mapping for Update
-		if !asCreate {
+		} else {
+			if err = json.Unmarshal(metadata, &updateObjectRequest); err != nil {
+				return parsedMetadata, "", NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", metadata))
+			}
 			// ID in json must match that on the URI
 			herr = compareIDFromJSONWithURI(ctx, updateObjectRequest)
 			if herr != nil {
@@ -138,12 +131,43 @@ func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.P
 			return parsedMetadata, "", NewAppError(400, err, "An ACM must be specified")
 		}
 	}
-	return parsedMetadata, pathDelimiter, nil
+	return parsedMetadata, pathDelimiter, herr
+}
+
+func (h AppServer) parsePartContentType(part *multipart.Part) *AppError {
+	cte := part.Header.Get("Content-Transfer-Encoding")
+	if len(cte) > 0 {
+		cte = strings.ToLower(cte)
+		if cte != "binary" && cte != "8bit" && cte != "7bit" {
+			msg := fmt.Sprintf("Content-Transfer-Encoding: %s is not supported for file part. File should be provided in native binary format.", cte)
+			return NewAppError(400, fmt.Errorf("%s", msg), msg)
+		}
+	}
+	ct := part.Header.Get("Content-Type")
+	ctparts := strings.Split(ct, ";")
+	if len(ctparts) > 1 {
+		for _, v := range ctparts {
+			lv := strings.ToLower(strings.TrimSpace(v))
+			// Sampling from `Content-Type: image/png; base64`. Not even sure this is valid in this header, as its more typical in html img src.
+			if lv == "base64" {
+				msg := fmt.Sprintf("Content-Type: %s is not supported for file part. File should be provided in native binary format with no encoding declarations.", ct)
+				return NewAppError(400, fmt.Errorf("%s", msg), msg)
+			}
+			// Permit character set, but only if utf-8 or charset=ISO-8859-1
+			if strings.HasPrefix(lv, "charset=") {
+				if lv != "charset=utf-8" && lv != "charset=iso-8859-1" {
+					msg := fmt.Sprintf("Content-Type: %s is not supported for file part. File should be provided in native binary format with no encoding declarations.", ct)
+					return NewAppError(400, fmt.Errorf("%s", msg), msg)
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // Get the bytes from the caller.
 func (h AppServer) acceptObjectUploadStream(ctx context.Context, part *multipart.Part, obj *models.ODObject,
-	grant *models.ODObjectPermission, asCreate bool, parsedMetadata bool) (func(), *AppError) {
+	grant *models.ODObjectPermission) (func(), *AppError) {
 
 	var herr *AppError
 	var err error
@@ -155,62 +179,32 @@ func (h AppServer) acceptObjectUploadStream(ctx context.Context, part *multipart
 		return nil, NewAppError(400, fmt.Errorf("User not provided in context"), "Could not determine user")
 	}
 
-	if part != nil && len(part.FileName()) > 0 {
-		if !parsedMetadata {
-			msg := "ObjectMetadata is required during create"
-			if !asCreate {
-				msg = "Metadata must be provided in part named 'ObjectMetadata' to create or update an object and must appear before the file contents"
-			}
-			return drainFunc, NewAppError(400, nil, msg)
+	if part == nil || len(part.FileName()) == 0 {
+		if drainFunc == nil {
+			return nil, NewAppError(400, nil, "file must be supplied as multipart mime part")
 		}
-		// Guess the content type and name if it wasn't supplied
-		if obj.ContentType.Valid == false || len(obj.ContentType.String) == 0 {
-			obj.ContentType = models.ToNullString(GetContentTypeFromFilename(part.FileName()))
-		}
-		if obj.Name == "" {
-			obj.Name = part.FileName()
-		}
-		// Issue #663, #739 Look to see if any encoding is set and isn't binary
-		cte := part.Header.Get("Content-Transfer-Encoding")
-		if len(cte) > 0 {
-			cte = strings.ToLower(cte)
-			if cte != "binary" && cte != "8bit" && cte != "7bit" {
-				msg := fmt.Sprintf("Content-Transfer-Encoding: %s is not supported for file part. File should be provided in native binary format.", cte)
-				return nil, NewAppError(400, fmt.Errorf("%s", msg), msg)
-			}
-		}
-		ct := part.Header.Get("Content-Type")
-		ctparts := strings.Split(ct, ";")
-		if len(ctparts) > 1 {
-			for _, v := range ctparts {
-				lv := strings.ToLower(strings.TrimSpace(v))
-				// Sampling from `Content-Type: image/png; base64`. Not even sure this is valid in this header, as its more typical in html img src.
-				if lv == "base64" {
-					msg := fmt.Sprintf("Content-Type: %s is not supported for file part. File should be provided in native binary format with no encoding declarations.", ct)
-					return nil, NewAppError(400, fmt.Errorf("%s", msg), msg)
-				}
-				// Permit character set, but only if utf-8 or charset=ISO-8859-1
-				if strings.HasPrefix(lv, "charset=") {
-					if lv != "charset=utf-8" && lv != "charset=iso-8859-1" {
-						msg := fmt.Sprintf("Content-Type: %s is not supported for file part. File should be provided in native binary format with no encoding declarations.", ct)
-						return nil, NewAppError(400, fmt.Errorf("%s", msg), msg)
-					}
-				}
-			}
-		}
-
-		drainFunc, herr, err = h.beginUpload(ctx, caller, part, obj, grant)
-		if herr != nil {
-			return nil, herr
-		}
-		if err != nil {
-			return nil, NewAppError(500, err, "error caching file")
-		}
+		return drainFunc, nil
 	}
 
-	// catch the nil,nil,nil return case
-	if drainFunc == nil {
-		return nil, NewAppError(400, nil, "file must be supplied as multipart mime part")
+	// Guess the content type and name if it wasn't supplied
+	if obj.ContentType.Valid == false || len(obj.ContentType.String) == 0 {
+		obj.ContentType = models.ToNullString(GetContentTypeFromFilename(part.FileName()))
+	}
+	if obj.Name == "" {
+		obj.Name = part.FileName()
+	}
+	// Issue #663, #739 Look to see if any encoding is set and isn't binary
+	herr = h.parsePartContentType(part)
+	if herr != nil {
+		return nil, herr
+	}
+
+	drainFunc, herr, err = h.beginUpload(ctx, caller, part, obj, grant)
+	if herr != nil {
+		return nil, herr
+	}
+	if err != nil {
+		return nil, NewAppError(500, err, "error caching file")
 	}
 	return drainFunc, nil
 }
