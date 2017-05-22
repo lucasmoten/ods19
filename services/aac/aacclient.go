@@ -3,6 +3,7 @@ package aac
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"decipher.com/object-drive-server/ssl"
 
@@ -24,8 +25,8 @@ func GetAACClient(aacHost string, aacPort int, trustPath, certPath, keyPath stri
 		insecureSkipVerify,
 	)
 	if err != nil {
-		if insecureSkipVerify == false {
-			log.Printf("!!! Check that the AAC server cert CN matches us.  unable to get AAC. skipVerify:%t cn=%s: %v", insecureSkipVerify, serverCN, err)
+		if insecureSkipVerify == false && strings.Contains(err.Error(), "certificate is valid for") {
+			log.Printf("Unable to get a valid AAC Client connection. AAC Server Certificate Common Name %s should match value configured in OD_AAC_CN, or OD_AAC_INSECURE_SKIP_VERIFY should be set to true: %v", serverCN, err)
 		}
 		return nil, err
 	}
