@@ -2,6 +2,10 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release New
+--------------------
+* ENH: Clean up error message when cannot connect to AAC
+
 ## Release v1.0.1.24
 --------------------
 * ENH: Add option for CLI tools `odrive` and `odrive-database` to print DB schema version.
