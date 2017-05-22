@@ -41,16 +41,8 @@ func getObjectsIHaveSharedInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
         inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1 `
 	query += buildJoinUserToACM(tx, user)
 	query += ` where o.isdeleted = 0 `
-
-	if !isOption409() {
-		query += ` and op.createdby = '` + MySQLSafeString2(user.DistinguishedName) + `' `
-		query += ` and op.grantee <> '` + MySQLSafeString2(models.AACFlatten(user.DistinguishedName)) + `'`
-		query += buildFilterExcludeNonRootedIHaveShared(user)
-		query += buildFilterForUserSnippets(user)
-	} else {
-		usergranteeid := strconv.FormatInt(getACMValueFor(tx, models.AACFlatten(user.DistinguishedName)), 10)
-		query += fmt.Sprintf(` and op.createdbyid = %s and op.granteeid <> %s `, usergranteeid, usergranteeid)
-	}
+	usergranteeid := strconv.FormatInt(getACMValueFor(tx, models.AACFlatten(user.DistinguishedName)), 10)
+	query += fmt.Sprintf(` and op.createdbyid = %s and op.granteeid <> %s `, usergranteeid, usergranteeid)
 	query += buildFilterSortAndLimit(pagingRequest)
 	err := tx.Select(&response.Objects, query)
 	if err != nil {
@@ -74,24 +66,4 @@ func getObjectsIHaveSharedInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
 		response.Objects[i] = obj
 	}
 	return response, err
-}
-
-// buildFilterExcludeNonRootedIHaveShared builds a where clause portion for a
-// sql statement suitable for filtering returned objects to not include those
-// whose parent is also shared by the user
-func buildFilterExcludeNonRootedIHaveShared(user models.ODUser) string {
-	return `
-	 and (
-		o.parentId is null or o.parentId not in (
-			select 
-				objectId 
-			from 
-				object_permission
-			where 
-				isdeleted = 0 
-				and allowRead = 1
-				and grantee <> '` + MySQLSafeString2(models.AACFlatten(user.DistinguishedName)) + `'
-		)
-	)
-	`
 }
