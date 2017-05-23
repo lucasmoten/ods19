@@ -54,11 +54,11 @@ func TestAACAuthGetFlattenedACM(t *testing.T) {
 	subtests = append(subtests, testAACAuth{subtestname: "No ACM", expectedIsError: true, expectedError: auth.ErrACMNotSpecified})
 	subtests = append(subtests, testAACAuth{subtestname: "Valid ACM", expectedIsError: false, acm: `{"version":"2.1.0", "classif": "U"}`})
 	subtests = append(subtests, testAACAuth{subtestname: "Valid ACM w/Expected", expectedIsError: false, acm: `{"version":"2.1.0", "classif":"U"}`, expectedFlattened: `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_sar_id":[],"f_atom_energy":[],"f_macs":[]}`})
-	subtests = append(subtests, testAACAuth{subtestname: "Invalid ACM", expectedIsError: true, acm: "meh", expectedError: auth.ErrServiceNotSuccessful})
+	subtests = append(subtests, testAACAuth{subtestname: "Invalid ACM", expectedIsError: true, acm: "meh", expectedError: auth.ErrACMResponseFailed})
 
 	for testIdx, subtest := range subtests {
 		t.Logf("Subtest %d: %s", testIdx, subtest.subtestname)
-		flattenedACM, err := aacAuth.GetFlattenedACM(subtest.acm)
+		flattenedACM, _, err := aacAuth.GetFlattenedACM(subtest.acm)
 		// If expecting an error but didn't get one
 		if subtest.expectedIsError && err == nil {
 			if subtest.expectedError != nil {

@@ -111,9 +111,10 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
-	modifiedACM, err = aacAuth.GetFlattenedACM(modifiedACM)
+	var msgs []string
+	modifiedACM, msgs, err = aacAuth.GetFlattenedACM(modifiedACM)
 	if err != nil {
-		herr = ClassifyFlattenError(err)
+		herr = NewAppError(authHTTPErr(err), err, err.Error()+strings.Join(msgs, "/"))
 		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
@@ -127,7 +128,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	obj.RawAcm = models.ToNullString(modifiedACM)
 	obj.Permissions = modifiedPermissions
 	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, obj.RawAcm.String); err != nil {
-		herr = ClassifyObjectACMError(err)
+		herr = NewAppError(authHTTPErr(err), err, err.Error())
 		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}

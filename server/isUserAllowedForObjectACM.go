@@ -2,68 +2,37 @@ package server
 
 import (
 	"encoding/hex"
+	"log"
 	"strings"
 
 	"github.com/uber-go/zap"
 
+	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/metadata/models"
 	"golang.org/x/net/context"
 )
 
-// ClassifyObjectACMError is the default pattern for classifying errors
-func ClassifyObjectACMError(err error) *AppError {
-	if IsDeniedAccess(err) {
-		return NewAppError(403, err, err.Error())
+func authHTTPErr(err error) int {
+	// Type conversion to auth.Error with our error string
+	switch auth.Error(err.Error()) {
+	case auth.ErrACMNotSpecified,
+		auth.ErrACMNotValid,
+		auth.ErrACMResponseFailed:
+		return 400
+	case auth.ErrUserNotAuthorized:
+		return 403
+	case auth.ErrFailToCheckUserAccess,
+		auth.ErrFailToFlattenACM,
+		auth.ErrFailToInjectPermissions,
+		auth.ErrFailToNormalizePermissions,
+		auth.ErrFailToRebuildACMFromPermissions,
+		auth.ErrFailToRetrieveSnippets:
+		return 502
+	default:
+		log.Printf("WARNING: default 403 response due to unmapped error %v\n", err)
+		return 403
 	}
-	if IsUserAllowedForObjectInternalError(err) {
-		return NewAppError(502, err, err.Error())
-	}
-	return NewAppError(400, err, err.Error())
-}
-
-// IsDeniedAccess is for access denials that have nothing to do with internal or input errors
-func IsDeniedAccess(err error) bool {
-	if err == nil {
-		return false
-	}
-	return strings.HasPrefix(err.Error(), "auth: user not authorized")
-}
-
-// IsUserAllowedForObjectInternalError is for failures to even make the call
-func IsUserAllowedForObjectInternalError(err error) bool {
-	if err == nil {
-		return false
-	}
-	if strings.HasPrefix(err.Error(), "auth: unable") {
-		return true
-	}
-	if strings.HasPrefix(err.Error(), "auth: service") {
-		return true
-	}
-	return false
-}
-
-// ClassifyFlattenError is the default pattern for classifying errors
-func ClassifyFlattenError(err error) *AppError {
-	if IsFlattenInternalError(err) {
-		return NewAppError(500, err, err.Error())
-	}
-	return NewAppError(400, err, err.Error())
-}
-
-// IsFlattenInternalError indicates an internal error during flattening, not bad user input
-func IsFlattenInternalError(err error) bool {
-	if err == nil {
-		return false
-	}
-	if strings.HasPrefix(err.Error(), "auth: unable") {
-		return true
-	}
-	if strings.HasPrefix(err.Error(), "auth: service") {
-		return true
-	}
-	return false
 }
 
 func isUserAllowedToReadWithPermission(ctx context.Context, obj *models.ODObject) (bool, models.ODObjectPermission) {
@@ -116,8 +85,7 @@ func isUserAllowedTo(ctx context.Context, obj *models.ODObject, requiredPermissi
 	var userPermission models.ODObjectPermission
 	var granteeMatch bool
 
-	dp := ciphertext.FindCiphertextCacheByObject(obj)
-	masterKey := dp.GetMasterKey()
+	masterKey := ciphertext.FindCiphertextCacheByObject(nil).GetMasterKey()
 
 	for _, permission := range obj.Permissions {
 		// Skip if permission is deleted
@@ -164,6 +132,7 @@ func isUserAllowedTo(ctx context.Context, obj *models.ODObject, requiredPermissi
 			(requiredPermission.AllowShare && permission.AllowShare) {
 
 			// Build up combined permission
+			// TODO(cm): is this ever not going to be the case?
 			if len(userPermission.Grantee) == 0 {
 				// first hit, copy direct
 				userPermission = permission

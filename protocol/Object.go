@@ -6,7 +6,7 @@ import (
 )
 
 // Object is a nestable structure defining the base attributes for an Object
-// in Object Drive
+// in Object Drive.
 type Object struct {
 	// ID is the unique identifier for this object in Object Drive.
 	ID string `json:"id"`

@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/http"
+	"strings"
 
 	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/ciphertext"
@@ -92,7 +93,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	// from a clearance perspective
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
-		herr := ClassifyObjectACMError(err)
+		herr := NewAppError(authHTTPErr(err), err, err.Error())
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -111,11 +112,11 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		return herr
 	}
 	masterKey := dp.GetMasterKey()
-
+	var msgs []string
 	modifiedACM := dbObject.RawAcm.String
-	modifiedACM, err = aacAuth.GetFlattenedACM(modifiedACM)
+	modifiedACM, msgs, err = aacAuth.GetFlattenedACM(modifiedACM)
 	if err != nil {
-		herr = ClassifyFlattenError(err)
+		herr = NewAppError(authHTTPErr(err), err, err.Error()+strings.Join(msgs, "/"))
 		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
@@ -130,7 +131,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	dbObject.Permissions = modifiedPermissions
 	// Final access check against altered ACM
 	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
-		herr = ClassifyObjectACMError(err)
+		herr = NewAppError(authHTTPErr(err), err, err.Error())
 		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}

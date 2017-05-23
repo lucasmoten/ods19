@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -20,6 +19,7 @@ import (
 	"decipher.com/object-drive-server/protocol"
 )
 
+// input298 has variable input for fields id and changeToken.
 var input298 = `
 {
     "id": "%s",
@@ -225,35 +225,9 @@ func TestUpdateObjectToHaveNoName(t *testing.T) {
 	updateObjectRequest.ID = folder.ID
 	updateObjectRequest.Name = ""
 	updateObjectRequest.ChangeToken = folder.ChangeToken
-	updateuri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
-	jsonBody, err := json.Marshal(updateObjectRequest)
+	updatedFolder, err := clients[clientid].C.UpdateObject(updateObjectRequest)
 	if err != nil {
-		t.Logf("Unable to marshal json for request:%v", err)
-		t.FailNow()
-	}
-	req, err := http.NewRequest("POST", updateuri, bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-	if err != nil {
-		t.Logf("Error setting up HTTP Request: %v", err)
-		t.FailNow()
-	}
-	// do the request
-	res, err := clients[clientid].Client.Do(req)
-	if err != nil {
-		t.Logf("Unable to do request:%v", err)
-		t.FailNow()
-	}
-	defer util.FinishBody(res.Body)
-	// process Response
-	if res.StatusCode != http.StatusOK {
-		t.Logf("bad status: %s", res.Status)
-		t.FailNow()
-	}
-	var updatedFolder protocol.Object
-	err = util.FullDecode(res.Body, &updatedFolder)
-	if err != nil {
-		t.Logf("Error decoding json to Object: %v", err)
-		log.Println()
+		t.Errorf("error calling update folder: %v", err)
 		t.FailNow()
 	}
 	if strings.Compare(updatedFolder.Name, folder.Name) != 0 {
@@ -302,11 +276,6 @@ func TestUpdateObjectToChangeOwnedBy(t *testing.T) {
 		t.FailNow()
 	}
 	defer util.FinishBody(res.Body)
-	// // process Response
-	// if res.StatusCode != 428 {
-	// 	t.Logf("bad status: %s", res.Status)
-	// 	t.FailNow()
-	// }
 
 	t.Logf("Need to parse the body and verify it didnt change")
 	var updatedObject protocol.Object

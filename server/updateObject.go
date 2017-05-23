@@ -14,6 +14,7 @@ import (
 
 	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/ciphertext"
+	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
@@ -26,6 +27,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	var requestObject models.ODObject
 	var err error
+	var recursive bool
 
 	caller, _ := CallerFromContext(ctx)
 	logger := LoggerFromContext(ctx)
@@ -37,24 +39,16 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 
-	if !util.IsApplicationJSON(r.Header.Get("Content-Type")) {
-		herr := NewAppError(400, nil, "expected application/json Content-Type")
-		h.publishError(gem, herr)
-		return herr
-	}
-
-	requestObject, err = parseUpdateObjectRequestAsJSON(r, ctx)
+	requestObject, recursive, err = parseUpdateObjectRequestAsJSON(r, ctx)
 	if err != nil {
-		herr := NewAppError(400, err, fmt.Sprintf("Error parsing JSON %s", err.Error()))
+		herr := NewAppError(400, err, err.Error())
 		h.publishError(gem, herr)
 		return herr
 	}
 	gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
 	gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))
 
-	// Business Logic...
-
-	// Retrieve existing object from the data store
+	// Retrieve existing object from the database.
 	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
 		herr := NewAppError(500, err, "Error retrieving object")
@@ -63,14 +57,12 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	}
 	auditOriginal := NewResourceFromObject(dbObject)
 
-	dp := ciphertext.FindCiphertextCacheByObject(&dbObject)
-	masterKey := dp.GetMasterKey()
-
 	// Check if the user has permissions to update the ODObject
 	var grant models.ODObjectPermission
 	var ok bool
+
 	if ok, grant = isUserAllowedToUpdateWithPermission(ctx, &dbObject); !ok {
-		herr := NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
+		herr := NewAppError(403, errors.New("forbidden"), "user does not have permission to update this object")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -78,7 +70,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// ACM check for whether user has permission to read this object
 	// from a clearance perspective
 	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
-		herr := ClassifyObjectACMError(err)
+		herr := NewAppError(authHTTPErr(err), err, err.Error())
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -104,7 +96,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	// Check that assignment as deleted isn't occuring here. Should use deleteObject operations
 	if requestObject.IsDeleted || requestObject.IsAncestorDeleted || requestObject.IsExpunged {
-		herr := NewAppError(428, errors.New("Precondition required: Updating object as deleted not allowed. Send to trash or DELETE instead."), "Assigning object as deleted through update operation not allowed. Use deleteObject operation")
+		herr := NewAppError(428, errors.New("updating object as deleted not allowed"), "Assigning object as deleted through update operation not allowed. Use deleteObject operation")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -112,7 +104,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Check that the change token on the object passed in matches the current
 	// state of the object in the data store
 	if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) != 0 {
-		herr := NewAppError(428, errors.New("Precondition required: ChangeToken does not match expected value"), "ChangeToken does not match expected value. Object may have been changed by another request.")
+		herr := NewAppError(428, errors.New("changeToken does not match expected value"), "changeToken does not match expected value")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -140,6 +132,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	}
 
 	// Assign existing permissions from the database object to the request object
+
 	if len(requestObject.Permissions) == 0 {
 		requestObject.Permissions = dbObject.Permissions
 	} else {
@@ -158,9 +151,9 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		requestObject.Permissions = combinedPermissions
 	}
 
-	flattenedACM, err := aacAuth.GetFlattenedACM(requestObject.RawAcm.String)
+	flattenedACM, msgs, err := aacAuth.GetFlattenedACM(requestObject.RawAcm.String)
 	if err != nil {
-		herr := ClassifyFlattenError(err)
+		herr := NewAppError(authHTTPErr(err), err, err.Error()+strings.Join(msgs, "/"))
 		h.publishError(gem, herr)
 		return herr
 
@@ -177,12 +170,14 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	requestObject.Permissions = modifiedPermissions
 	// Access check against altered ACM as a whole
 	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, requestObject.RawAcm.String); err != nil {
-		herr := ClassifyObjectACMError(err)
+		herr := NewAppError(authHTTPErr(err), err, err.Error())
 		h.publishError(gem, herr)
 		return herr
 
 	}
 	consolidateChangingPermissions(&requestObject)
+
+	masterKey := ciphertext.FindCiphertextCacheByObject(nil).GetMasterKey()
 	// copy grant.EncryptKey to all existing permissions:
 	for idx, permission := range requestObject.Permissions {
 		models.CopyEncryptKey(masterKey, &grant, &permission)
@@ -195,7 +190,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	if strings.Compare(dbObject.RawAcm.String, requestObject.RawAcm.String) != 0 {
 		// Ensure user is allowed this acm
 		if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, requestObject.RawAcm.String); err != nil {
-			herr := ClassifyObjectACMError(err)
+			herr := NewAppError(authHTTPErr(err), err, err.Error())
 			h.publishError(gem, herr)
 			return herr
 
@@ -245,24 +240,6 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		return herr
 	}
 
-	// After the update, check that key values have changed...
-	if requestObject.ChangeCount <= dbObject.ChangeCount {
-		logger.Error("ChangeCount didn't update when processing request",
-			zap.Int("old", requestObject.ChangeCount), zap.Int("new", dbObject.ChangeCount),
-			zap.String("requestObject.ID", hex.EncodeToString(requestObject.ID)), zap.String("dbObject.ID", hex.EncodeToString(dbObject.ID)))
-		herr := NewAppError(500, nil, "ChangeCount didn't update when processing request")
-		h.publishError(gem, herr)
-		return herr
-
-	}
-	if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) == 0 {
-		logger.Error("ChangeToken didn't update when procesing request",
-			zap.String("old token", requestObject.ChangeToken), zap.String("new token", dbObject.ChangeToken))
-		herr := NewAppError(500, nil, "ChangeToken didn't update when processing request")
-		h.publishError(gem, herr)
-		return herr
-	}
-
 	dbObject, err = dao.GetObject(requestObject, true)
 	if err != nil {
 		herr := NewAppError(500, err, "Error retrieving object")
@@ -278,68 +255,183 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	jsonResponse(w, apiResponse)
 	h.publishSuccess(gem, w)
+
+	if recursive {
+
+		applyable := dbObject
+		go h.updateObjectRecursive(ctx, applyable)
+
+	}
 	return nil
 }
 
-func parseUpdateObjectRequestAsJSON(r *http.Request, ctx context.Context) (models.ODObject, error) {
-	var jsonObject protocol.UpdateObjectRequest
-	requestObject := models.ODObject{}
-	var err error
+func buggin(s string, thing interface{}) { fmt.Printf("DEBUG: %s %v", s, thing) }
 
-	// Get ID from URI
+func (h AppServer) updateObjectRecursive(ctx context.Context, applyable models.ODObject) {
+	buggin("recusive! Name is", applyable.Name)
+	d := DAOFromContext(ctx)
+	caller, _ := CallerFromContext(ctx)
+	aacAuth := auth.NewAACAuth(logger, h.AAC)
+	gem, _ := GEMFromContext(ctx)
+	gem.Action = "update"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventModify")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "SHARE_MODIFY")
+
+	page := 1
+	pr := dao.PagingRequest{PageNumber: page, PageSize: dao.MaxPageSize}
+
+	children, err := d.GetChildObjectsWithProperties(pr, applyable)
+	if err != nil {
+		logger.Error("error calling GetChildObjectsWithProperties", zap.Object("err", err))
+		return
+	}
+
+	for {
+		for _, child := range children.Objects {
+
+			gem.Payload.ObjectID = hex.EncodeToString(child.ID)
+			gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(child.ID))
+			auditOriginal := NewResourceFromObject(child)
+
+			if child.IsDeleted {
+				continue
+			}
+
+			ok, updatePermission := isUserAllowedToShareWithPermission(ctx, &child)
+			if !ok {
+				herr := NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
+				h.publishError(gem, herr)
+				continue
+			}
+
+			if updatePermission.AcmGrantee.Grantee == "" {
+				logger.Error("grantee cannot be empty string", zap.Object("err", err))
+				gem.Payload.Audit = audit.WithActionResult(gem.Payload.Audit, "FAILURE")
+				h.EventQueue.Publish(gem)
+				continue
+			}
+
+			// newACM, err := aacAuth.InjectPermissionsIntoACM(applyable.Permissions, child.RawAcm.String)
+			newACM, err := aacAuth.InjectPermissionsIntoACM(applyable.Permissions, applyable.RawAcm.String)
+			if err != nil {
+				gem.Payload.Audit = audit.WithActionResult(gem.Payload.Audit, "FAILURE")
+				h.EventQueue.Publish(gem)
+				continue
+			}
+			// newPerms, newACM2, err := aacAuth.NormalizePermissionsFromACM(child.OwnedBy.String, child.Permissions, newACM, false)
+			newPerms, newACM2, err := aacAuth.NormalizePermissionsFromACM(child.OwnedBy.String, applyable.Permissions, newACM, false)
+			if err != nil {
+				gem.Payload.Audit = audit.WithActionResult(gem.Payload.Audit, "FAILURE")
+				h.EventQueue.Publish(gem)
+				continue
+			}
+			child.Permissions = newPerms
+
+			newerACM, err := aacAuth.RebuildACMFromPermissions(child.Permissions, newACM2)
+			if err != nil {
+				gem.Payload.Audit = audit.WithActionResult(gem.Payload.Audit, "FAILURE")
+				h.EventQueue.Publish(gem)
+				continue
+			}
+			child.RawAcm = models.ToNullString(newerACM)
+
+			if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, child.RawAcm.String); err != nil {
+				logger.Error("error calling IsUserAuthorizedForACM", zap.Object("err", err))
+				continue
+			}
+			consolidateChangingPermissions(&child)
+			// Get around: Invalid MAC on permission
+			masterKey := ciphertext.FindCiphertextCacheByObject(nil).GetMasterKey()
+			for i, p := range child.Permissions {
+				models.CopyEncryptKey(masterKey, &updatePermission, &p)
+				models.CopyEncryptKey(masterKey, &updatePermission, &child.Permissions[i])
+			}
+			child.ModifiedBy = caller.DistinguishedName
+			err = d.UpdateObject(&child)
+			if err != nil {
+				logger.Error("error updating child object with new permissions", zap.Object("err", err))
+				continue
+			}
+
+			auditModified := NewResourceFromObject(child)
+			gem.Payload.Audit = audit.WithModifiedPairList(
+				gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
+			h.EventQueue.Publish(gem)
+			h.updateObjectRecursive(ctx, child)
+		}
+		page++
+		if page > children.PageCount {
+			break
+		}
+		pr.PageNumber = page
+		var err error
+		children, err = d.GetChildObjectsWithProperties(pr, applyable)
+		if err != nil {
+			logger.Error("error calling GetChildObjectsWithProperties", zap.Object("err", err))
+			return
+		}
+	}
+}
+
+// parseUpdateObjectRequestAsJSON parses a request into our models object.
+// Internally the function inspects HTTP headers, URL params, and decodes
+// the request's JSON body. Parsed data is mapped into the returned models.ODObject type.
+//
+// TODO(cm): We delegate to 2 custom mapping funcs in this function. This function is
+// a constructor in disguise.
+func parseUpdateObjectRequestAsJSON(r *http.Request, ctx context.Context) (models.ODObject, bool, error) {
+	var jsonObject protocol.UpdateObjectRequest
+	var requestObject models.ODObject
+	var err error
+	var recursive bool
+
+	if !util.IsApplicationJSON(r.Header.Get("Content-Type")) {
+		return requestObject, false, errors.New("expected Content-Type: application/json")
+	}
+
+	// Instantiate models.ODObject with []byte ID set from URL capture groups.
 	requestObject, err = parseGetObjectRequest(ctx)
 	if err != nil {
-		return requestObject, errors.New("Object Identifier in Request URI is not a hex string")
+		return requestObject, false, errors.New("Object Identifier in Request URI is not a hex string")
 	}
 
-	// Get portion from body
 	err = util.FullDecode(r.Body, &jsonObject)
 	if err != nil {
-		return requestObject, err
+		return requestObject, false, err
 	}
+	recursive = jsonObject.RecusiveShare
 
 	if strings.Compare(hex.EncodeToString(requestObject.ID), jsonObject.ID) != 0 {
-		return requestObject, errors.New("bad request: ID mismatch")
+		return requestObject, false, errors.New("bad request: ID mismatch")
 	}
 
 	// Map changes over the requestObject
-	if len(jsonObject.Name) > 0 {
+	if jsonObject.Name != "" {
 		if part, _ := util.GetNextDelimitedPart(jsonObject.Name, util.DefaultPathDelimiter); len(part) > 0 {
-			return requestObject, fmt.Errorf("bad request: name cannot include path delimiter %s", util.DefaultPathDelimiter)
+			return requestObject, false, fmt.Errorf("bad request: name cannot include path delimiter %s", util.DefaultPathDelimiter)
 		}
 		requestObject.Name = jsonObject.Name
 	}
 	requestObject.ChangeToken = jsonObject.ChangeToken
-	if len(jsonObject.TypeName) > 0 {
-		requestObject.TypeName = models.ToNullString(jsonObject.TypeName)
-	}
-	if len(jsonObject.Description) > 0 {
-		requestObject.Description = models.ToNullString(jsonObject.Description)
-	}
+	requestObject.TypeName = models.ToNullString(jsonObject.TypeName)
+	requestObject.Description = models.ToNullString(jsonObject.Description)
+
 	convertedAcm, err := utils.MarshalInterfaceToString(jsonObject.RawAcm)
 	if err != nil {
-		return requestObject, err
+		return requestObject, false, err
 	}
-	if len(convertedAcm) > 0 {
-		requestObject.RawAcm = models.ToNullString(convertedAcm)
-	}
+	requestObject.RawAcm = models.ToNullString(convertedAcm)
 	requestObject.Permissions, err = mapping.MapPermissionToODPermissions(&jsonObject.Permission)
 	if err != nil {
-		return requestObject, err
+		return requestObject, false, err
 	}
-	if len(jsonObject.ContentType) > 0 {
-		requestObject.ContentType = models.ToNullString(jsonObject.ContentType)
-	}
-	if len(jsonObject.ContainsUSPersonsData) > 0 {
-		requestObject.ContainsUSPersonsData = jsonObject.ContainsUSPersonsData
-	}
-	if len(jsonObject.ExemptFromFOIA) > 0 {
-		requestObject.ExemptFromFOIA = jsonObject.ExemptFromFOIA
-	}
+	requestObject.ContentType = models.ToNullString(jsonObject.ContentType)
+	requestObject.ContainsUSPersonsData = jsonObject.ContainsUSPersonsData
+	requestObject.ExemptFromFOIA = jsonObject.ExemptFromFOIA
 	if len(jsonObject.Properties) > 0 {
 		requestObject.Properties, err = mapping.MapPropertiesToODProperties(&jsonObject.Properties)
 	}
 
 	// Return it
-	return requestObject, err
+	return requestObject, recursive, err
 }

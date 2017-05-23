@@ -27,6 +27,7 @@ type ObjectDrive interface {
 	GetObject(id string) (protocol.Object, error)
 	GetObjectStream(id string) (io.Reader, error)
 	MoveObject(protocol.MoveObjectRequest) (protocol.Object, error)
+	UpdateObject(protocol.UpdateObjectRequest) (protocol.Object, error)
 }
 
 // Client implements ObjectDrive.
@@ -234,6 +235,7 @@ func (c *Client) GetObjectStream(id string) (io.Reader, error) {
 // DeleteObject moves an object on the server to the trash.  The object's ID and changetoken from the
 // current object in ObjectDrive are needed to perform the operation.
 func (c *Client) DeleteObject(id string, token string) (protocol.DeletedObjectResponse, error) {
+
 	url := c.url + "/objects/" + id + "/trash"
 
 	var deleteResponse protocol.DeletedObjectResponse
@@ -248,7 +250,6 @@ func (c *Client) DeleteObject(id string, token string) (protocol.DeletedObjectRe
 		log.Println(err)
 		return deleteResponse, err
 	}
-
 	defer resp.Body.Close()
 
 	err = json.NewDecoder(resp.Body).Decode(&deleteResponse)
@@ -259,7 +260,7 @@ func (c *Client) DeleteObject(id string, token string) (protocol.DeletedObjectRe
 	return deleteResponse, nil
 }
 
-// ChangeOwner ...
+// ChangeOwner changes the object's ownedBy field.
 func (c *Client) ChangeOwner(req protocol.ChangeOwnerRequest) (protocol.Object, error) {
 	uri := c.url + "/objects/" + req.ID + "/owner/" + req.NewOwner
 	var ret protocol.Object
@@ -267,10 +268,6 @@ func (c *Client) ChangeOwner(req protocol.ChangeOwnerRequest) (protocol.Object, 
 	resp, err := c.doPost(uri, req)
 	if err != nil {
 		return ret, fmt.Errorf("error performing request: %v", err)
-	}
-	if c.Verbose {
-		data, _ := httputil.DumpResponse(resp, true)
-		fmt.Printf("%s", string(data))
 	}
 	defer resp.Body.Close()
 
@@ -291,9 +288,25 @@ func (c *Client) MoveObject(req protocol.MoveObjectRequest) (protocol.Object, er
 	if err != nil {
 		return ret, fmt.Errorf("error performing request: %v", err)
 	}
-	if c.Verbose {
-		data, _ := httputil.DumpResponse(resp, true)
-		fmt.Printf("%s", string(data))
+	defer resp.Body.Close()
+
+	err = json.NewDecoder(resp.Body).Decode(&ret)
+	if err != nil {
+		return ret, fmt.Errorf("could not decode response: %v", err)
+	}
+
+	return ret, nil
+}
+
+// UpdateObject updates an object's metadata or permissions. See also the
+// alternative method, UpdateObjectAndStream.
+func (c *Client) UpdateObject(req protocol.UpdateObjectRequest) (protocol.Object, error) {
+	uri := c.url + "/objects/" + req.ID + "/properties"
+	var ret protocol.Object
+
+	resp, err := c.doPost(uri, req)
+	if err != nil {
+		return ret, fmt.Errorf("http error %v: %v", resp.StatusCode, err)
 	}
 	defer resp.Body.Close()
 
@@ -356,4 +369,5 @@ func setImpersonationHeaders(req *http.Request, impersonating, sysDNs string) {
 	// who I am
 	req.Header.Set("EXTERNAL_SYS_DN", sysDNs)
 	req.Header.Set("SSL_CLIENT_S_DN", sysDNs)
+
 }

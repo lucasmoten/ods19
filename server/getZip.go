@@ -230,11 +230,7 @@ func zipHasAccess(h AppServer, ctx context.Context, dbObject *models.ODObject) (
 	caller, _ := CallerFromContext(ctx)
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
-		if IsDeniedAccess(err) {
-			logger.Error("zip does not give access", zap.String("err", err.Error()))
-			return false, models.ODObjectPermission{}
-		}
-		logger.Error("zip unable to check acm for access", zap.String("err", err.Error()))
+		logger.Error("auth error", zap.String("err", err.Error()))
 		return false, models.ODObjectPermission{}
 	}
 	return isUserAllowedToReadWithPermission(ctx, dbObject)

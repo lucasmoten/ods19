@@ -57,7 +57,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	}
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
-		herr := ClassifyObjectACMError(err)
+		herr := NewAppError(authHTTPErr(err), err, err.Error())
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -141,10 +141,7 @@ func redactParents(ctx context.Context, auth auth.Authorization, parents []model
 			break
 		}
 		if _, err := auth.IsUserAuthorizedForACM(caller.DistinguishedName, p.RawAcm.String); err != nil {
-			if !IsDeniedAccess(err) {
-				// log possible 502 and continue
-				logger.Error("AAC error checking parent", zap.Object("err", err))
-			}
+			logger.Error("AAC error checking parent", zap.Object("err", err))
 			break
 		}
 		// prepend, because filtering required backwards-iteration, but we need to
@@ -178,20 +175,21 @@ func breadcrumbsFromParents(parents []models.ODObject) []protocol.Breadcrumb {
 }
 
 func parseGetObjectRequest(ctx context.Context) (models.ODObject, error) {
+
 	var requestObject models.ODObject
 
 	// Get capture groups from ctx.
 	captured, ok := CaptureGroupsFromContext(ctx)
 	if !ok {
-		return requestObject, errors.New("Could not get capture groups")
+		return requestObject, errors.New("could not get capture groups")
 	}
 
 	if captured["objectId"] == "" {
-		return requestObject, errors.New("Could not extract objectId from URI")
+		return requestObject, errors.New("could not extract objectId from URI")
 	}
 	bytesObjectID, err := hex.DecodeString(captured["objectId"])
 	if err != nil {
-		return requestObject, errors.New("Invalid objectid in URI.")
+		return requestObject, errors.New("invalid objectid in URI")
 	}
 	requestObject.ID = bytesObjectID
 	return requestObject, nil

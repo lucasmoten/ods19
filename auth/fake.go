@@ -20,8 +20,8 @@ type FakeAuth struct {
 }
 
 // GetFlattenedACM for FakeAuth
-func (fake *FakeAuth) GetFlattenedACM(acm string) (flattenedACM string, err error) {
-	return fake.FlattenedACM, fake.Err
+func (fake *FakeAuth) GetFlattenedACM(acm string) (flattenedACM string, msgs []string, err error) {
+	return fake.FlattenedACM, nil, fake.Err
 }
 
 // GetGroupsForUser for FakeAuth

@@ -40,15 +40,15 @@ func NewAACAuth(logger zap.Logger, service aac.AacService) *AACAuth {
 }
 
 // GetFlattenedACM for AACAuth
-func (aac *AACAuth) GetFlattenedACM(acm string) (string, error) {
+func (aac *AACAuth) GetFlattenedACM(acm string) (string, []string, error) {
 	// Checks that dont depend on service availability
 	// No ACM
 	if acm == "" {
-		return acm, ErrACMNotSpecified
+		return acm, nil, ErrACMNotSpecified
 	}
 	// Service state
 	if aac.Service == nil {
-		return acm, ErrServiceNotSet
+		return acm, nil, ErrServiceNotSet
 	}
 
 	// Do request
@@ -57,33 +57,32 @@ func (aac *AACAuth) GetFlattenedACM(acm string) (string, error) {
 	// Process response
 	if acmResponseError != nil {
 		aac.Logger.Error("Error calling AAC.PopulateAndValidateAcm", zap.String("err", acmResponseError.Error()))
-		return acm, ErrFailToFlattenACM
+		return acm, nil, ErrFailToFlattenACM
 	}
 	if acmResponse == nil {
 		aac.Logger.Error("Error calling AAC.PopulateAndValidateAcm", zap.String("acmResponse", "nil"))
-		return acm, ErrServiceNoResponse
+		return acm, nil, ErrServiceNoResponse
 	}
 	for _, msg := range acmResponse.Messages {
 		aac.Logger.Info("Message in AAC.PopulateAndValidateAcm", zap.String("msg", msg))
 	}
-	msgsString := strings.Join(acmResponse.Messages, "/")
+
 	if !acmResponse.Success {
 		aac.Logger.Error("AAC.PopulateAndValidateAcm failed", zap.Bool("success", acmResponse.Success), zap.String("acm", acm))
-
-		return acm, fmt.Errorf("%s %s", ErrServiceNotSuccessful.Error(), msgsString)
+		return acm, acmResponse.Messages, ErrACMResponseFailed
 	}
 	if !acmResponse.AcmValid {
 		aac.Logger.Error("AAC.PopulateAndValidateAcm failed", zap.Bool("valid", acmResponse.AcmValid))
-		return acm, fmt.Errorf("%s %s", ErrACMNotValid.Error(), msgsString)
+		return acm, acmResponse.Messages, ErrACMNotValid
 	}
 	if acmResponse.AcmInfo == nil {
 		aac.Logger.Error("AAC.PopulateAndValidateAcm failed", zap.String("acmInfo", "nil"))
-		return acm, ErrServiceNotSuccessful
+		return acm, acmResponse.Messages, ErrServiceNotSuccessful
 	}
 
 	// If passed all conditions, acm is flattened
 	aac.Logger.Debug("AAC.PopulateAndValidateACM success", zap.String("before-acm", acm), zap.String("after-acm", acmResponse.AcmInfo.Acm))
-	return acmResponse.AcmInfo.Acm, nil
+	return acmResponse.AcmInfo.Acm, acmResponse.Messages, nil
 }
 
 // GetGroupsForUser for AACAuth
@@ -167,33 +166,31 @@ func (aac *AACAuth) IsUserAuthorizedForACM(userIdentity string, acm string) (boo
 	}
 
 	// Preflatten
-	flattenedACM, flattenedACMErr := aac.GetFlattenedACM(acm)
-	if flattenedACMErr != nil {
-		return false, flattenedACMErr
+	flattenedACM, _, err := aac.GetFlattenedACM(acm)
+	if err != nil {
+		return false, err
 	}
 
-	// Do request
-	checkAccessResponse, checkAccessError := aac.Service.CheckAccess(userIdentity, tokenType, flattenedACM)
-
-	// Process response
-	if checkAccessError != nil {
-		aac.Logger.Error("Error calling AAC.CheckAccess", zap.String("err", checkAccessError.Error()))
+	// Call AAC Service.
+	resp, err := aac.Service.CheckAccess(userIdentity, tokenType, flattenedACM)
+	if err != nil {
+		aac.Logger.Error("error calling AAC.CheckAccess", zap.String("err", err.Error()))
 		return false, ErrFailToCheckUserAccess
 	}
-	if checkAccessResponse == nil {
-		aac.Logger.Error("Error calling AAC.CheckAccess", zap.String("checkAccessResponse", "nil"))
+	if resp == nil {
+		aac.Logger.Error("error calling AAC.CheckAccess", zap.String("response", "nil"))
 		return false, ErrServiceNoResponse
 	}
-	for _, msg := range checkAccessResponse.Messages {
+	for _, msg := range resp.Messages {
 		aac.Logger.Info("Message in AAC.CheckAccess Response", zap.String("msg", msg))
 	}
-	msgsString := strings.Join(checkAccessResponse.Messages, "/")
-	if !checkAccessResponse.Success {
-		aac.Logger.Error("AAC.CheckAccess failed", zap.Bool("success", checkAccessResponse.Success))
+	msgsString := strings.Join(resp.Messages, "/")
+	if !resp.Success {
+		aac.Logger.Error("AAC.CheckAccess failed", zap.Bool("success", resp.Success))
 		return false, fmt.Errorf("%s %s", ErrServiceNotSuccessful.Error(), msgsString)
 	}
-	if !checkAccessResponse.HasAccess {
-		aac.Logger.Error("AAC.CheckAccess failed", zap.Bool("hasAccess", checkAccessResponse.HasAccess))
+	if !resp.HasAccess {
+		aac.Logger.Error("AAC.CheckAccess failed", zap.Bool("hasAccess", resp.HasAccess))
 		return false, fmt.Errorf("%s %s", ErrUserNotAuthorized.Error(), msgsString)
 	}
 

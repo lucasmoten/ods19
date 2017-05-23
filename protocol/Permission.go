@@ -22,7 +22,10 @@ type Permission struct {
 
 // Consolidated consolidates permission by capability taking into account
 // removal of duplicate resource entries, and removing resources from
-// allowed list if also appears in denied list
+// allowed list if also appears in denied list.
+// NOTE(cm): should we be so lenient here? If there are duplicates in
+// allow AND deny in the same object, it seems like we should throw
+// an error.
 func (permission Permission) Consolidated() Permission {
 	permission.Create = permission.Create.RemoveDuplicates()
 	permission.Read = permission.Read.RemoveDuplicates()

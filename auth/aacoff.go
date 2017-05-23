@@ -41,13 +41,13 @@ func NewAACAuthOff(logger zap.Logger) *AACAuthOff {
 }
 
 // GetFlattenedACM for AACAuthOff
-func (aac *AACAuthOff) GetFlattenedACM(acm string) (string, error) {
+func (aac *AACAuthOff) GetFlattenedACM(acm string) (string, []string, error) {
 	// Checks that dont depend on service availability
 	// No ACM
 	if acm == "" {
-		return acm, ErrACMNotSpecified
+		return acm, nil, ErrACMNotSpecified
 	}
-	return acm, ErrServiceNotSet
+	return acm, nil, ErrServiceNotSet
 }
 
 // GetGroupsForUser for AACAuthOff
@@ -258,6 +258,10 @@ func aacIsUserOwner(logger zap.Logger, userIdentity string, resourceStrings []st
 	}
 	return false
 }
+
+// aacNormalizePermissionsFromACM takes an ACM, merges the permissions into the passed-in permissions slice,
+// and guarantees that objectOwner retains full CRUDS in the returned permissions.
+// Takes permissions, maps to a format that matches the "share" key in the ACM.
 func aacNormalizePermissionsFromACM(logger zap.Logger, objectOwner string, permissions []models.ODObjectPermission, acm string, isCreating bool) ([]models.ODObjectPermission, string, error) {
 	var modifiedPermissions []models.ODObjectPermission
 	var modifiedACM string
@@ -348,6 +352,9 @@ func aacNormalizePermissionsFromACM(logger zap.Logger, objectOwner string, permi
 
 	return modifiedPermissions, modifiedACM, nil
 }
+
+// aacRebuildACMFromPermissions deletes existing share key from ACM, and overwrites with
+// the passed-in permissions slice.
 func aacRebuildACMFromPermissions(logger zap.Logger, permissions []models.ODObjectPermission, acm string) (string, error) {
 	var modifiedACM string
 	var err error

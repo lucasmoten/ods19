@@ -177,7 +177,7 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	// 		Check if Classification is allowed for this User
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
-		herr := ClassifyObjectACMError(err)
+		herr := NewAppError(authHTTPErr(err), err, err.Error())
 		h.publishError(gem, herr)
 		return NoBytesReturned, herr
 	}

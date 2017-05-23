@@ -85,7 +85,8 @@ type ODObjectPermission struct {
 	// content stream for this object at rest for this particular grantee and
 	// revision
 	EncryptKey []byte `db:"encryptKey"`
-	// PermissionIV is a fresh random bitstring used for encrypting the key, and implicitly in the signature of the encrypt
+	// PermissionIV is a fresh random bitstring used for encrypting the key, and
+	// implicitly in the signature of the encrypt
 	PermissionIV []byte `db:"permissionIV"`
 	// PermissionMAC lets us authenticate that odrive actually wrote this permission
 	PermissionMAC []byte `db:"permissionMAC"`

@@ -37,10 +37,9 @@ var permissions = protocol.Permission{
 // TestMain setups up the necessary files for the test-suite.
 func TestMain(m *testing.M) {
 	testDir, _ = ioutil.TempDir("", "testData")
-
 	testFile, err := ioutil.TempFile(testDir, "particle")
 	if err != nil {
-		fmt.Printf("Error creating test file %s", testFile)
+		log.Println("error creating temp file:", testFile, err)
 	}
 
 	code := m.Run()
@@ -62,13 +61,15 @@ func TestNewClient(t *testing.T) {
 // complete successfully.
 func TestRoundTrip(t *testing.T) {
 	me, err := NewClient(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	t.Log("Reading from temporary directory for files to upload: ", testDir)
 
 	files, err := ioutil.ReadDir(testDir)
 	if err != nil {
-		t.Log("Can't read anything from the test directory")
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 
 	// Run tests for all files in the fixtures folder
@@ -80,7 +81,7 @@ func TestRoundTrip(t *testing.T) {
 		var upObj = protocol.CreateObjectRequest{
 			TypeName:              "File",
 			Name:                  file.Name(),
-			NamePathDelimiter:     fmt.Sprintf("%s", os.PathSeparator),
+			NamePathDelimiter:     fmt.Sprintf("%v", os.PathSeparator),
 			Description:           "A test Particle ",
 			ParentID:              "",
 			RawAcm:                `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
@@ -128,7 +129,7 @@ func TestCreateObjectNoStream(t *testing.T) {
 	var upObj = protocol.CreateObjectRequest{
 		TypeName:              "Folder",
 		Name:                  "TestDir",
-		NamePathDelimiter:     fmt.Sprintf("%s", os.PathSeparator),
+		NamePathDelimiter:     fmt.Sprintf("%v", os.PathSeparator),
 		Description:           "A test Particle ",
 		ParentID:              "",
 		RawAcm:                `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
@@ -150,13 +151,13 @@ func TestMoveObject(t *testing.T) {
 	// Create file at root.
 	testFile, err := ioutil.TempFile(testDir, "particle")
 	if err != nil {
-		fmt.Printf("error creating test file %s", testFile)
+		fmt.Printf("error creating test file")
 	}
 
 	var fileReq = protocol.CreateObjectRequest{
 		TypeName:              "File",
 		Name:                  "ToMoveOrNotToMove",
-		NamePathDelimiter:     fmt.Sprintf("%s", os.PathSeparator),
+		NamePathDelimiter:     fmt.Sprintf("%v", os.PathSeparator),
 		Description:           "This had better move to NOT the root folder.",
 		ParentID:              "",
 		RawAcm:                `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
@@ -174,7 +175,7 @@ func TestMoveObject(t *testing.T) {
 	var dirReq = protocol.CreateObjectRequest{
 		TypeName:              "Folder",
 		Name:                  "MovedTo",
-		NamePathDelimiter:     fmt.Sprintf("%s", os.PathSeparator),
+		NamePathDelimiter:     fmt.Sprintf("%v", os.PathSeparator),
 		Description:           "Give me some files!",
 		ParentID:              "",
 		RawAcm:                `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
@@ -228,14 +229,41 @@ func TestImpersonation(t *testing.T) {
 	}
 }
 
+func TestUpdateObject(t *testing.T) {
+	c, err := NewClient(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.Verbose = testing.Verbose()
+	cor := protocol.CreateObjectRequest{
+		RawAcm:  `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
+		OwnedBy: "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+	}
+	obj, err := c.CreateObject(cor, nil)
+	if err != nil {
+		t.Errorf("create object error: %v", err)
+	}
+	var uor = protocol.UpdateObjectRequest{
+		Name:        "espresso",
+		ID:          obj.ID,
+		ChangeToken: obj.ChangeToken,
+	}
+	uo, err := c.UpdateObject(uor)
+	if err != nil {
+		t.Errorf("error updating object: %v")
+	}
+	t.Log(uo)
+
+}
+
 // writeObjectToDisk retrieves an object and writes it to the filesystem.
 func writeObjectToDisk(name string, reader io.Reader) error {
-	file, err := ioutil.ReadAll(reader)
+	data, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(name, file, os.FileMode(int(0700)))
+	err = ioutil.WriteFile(name, data, os.FileMode(int(0700)))
 	if err != nil {
 		return err
 	}

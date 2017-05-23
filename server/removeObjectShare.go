@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/hex"
 	"net/http"
+	"strings"
 
 	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
@@ -97,14 +98,15 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 				return NewAppError(500, err, "Error rebuilding ACM from revised permissions")
 			}
 			// Flatten
-			modifiedACM, err = aacAuth.GetFlattenedACM(modifiedACM)
+			var msgs []string
+			modifiedACM, msgs, err = aacAuth.GetFlattenedACM(modifiedACM)
 			if err != nil {
-				return ClassifyFlattenError(err)
+				return NewAppError(authHTTPErr(err), err, err.Error()+strings.Join(msgs, "/"))
 			}
 			dbObject.RawAcm = models.ToNullString(modifiedACM)
 			// Check that caller has access
 			if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
-				return ClassifyObjectACMError(err)
+				return NewAppError(authHTTPErr(err), err, err.Error())
 			}
 
 			// Finally update the object in database, which handles permissions transactionally

@@ -130,7 +130,7 @@ func getFileKeyAndCheckAuthAndObjectState(ctx context.Context, h AppServer, dbOb
 	caller, _ := CallerFromContext(ctx)
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
-		return ClassifyObjectACMError(err), fileKey
+		return NewAppError(authHTTPErr(err), err, err.Error()), fileKey
 	}
 
 	if dbObject.IsDeleted {

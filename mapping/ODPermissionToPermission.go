@@ -282,7 +282,7 @@ func MapObjectShareToODPermissions(i *protocol.ObjectShare) ([]models.ODObjectPe
 // MapPermissionToODPermissions converts a protocol permission object into an array of model permissions
 func MapPermissionToODPermissions(i *protocol.Permission) ([]models.ODObjectPermission, error) {
 	*i = i.Consolidated()
-	o := []models.ODObjectPermission{}
+	var o []models.ODObjectPermission
 	var err error
 	permissions := make(map[string]models.ODObjectPermission)
 	for _, resource := range i.Create.AllowedResources {
@@ -327,7 +327,7 @@ func MapPermissionToODPermissions(i *protocol.Permission) ([]models.ODObjectPerm
 func mergeODPermissions(permissions map[string]models.ODObjectPermission, resource string, permission models.ODObjectPermission) (map[string]models.ODObjectPermission, error) {
 	flattened := protocol.GetFlattenedNameFromResource(resource)
 	var err error
-	if len(flattened) > 0 {
+	if flattened != "" {
 		mappedPermission, ok := permissions[flattened]
 		if !ok {
 			mappedPermission, err = models.CreateODPermissionFromResource(resource)
