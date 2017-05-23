@@ -265,10 +265,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	return nil
 }
 
-func buggin(s string, thing interface{}) { fmt.Printf("DEBUG: %s %v", s, thing) }
-
 func (h AppServer) updateObjectRecursive(ctx context.Context, applyable models.ODObject) {
-	buggin("recusive! Name is", applyable.Name)
 	d := DAOFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
@@ -399,7 +396,7 @@ func parseUpdateObjectRequestAsJSON(r *http.Request, ctx context.Context) (model
 	if err != nil {
 		return requestObject, false, err
 	}
-	recursive = jsonObject.RecusiveShare
+	recursive = jsonObject.RecursiveShare
 
 	if strings.Compare(hex.EncodeToString(requestObject.ID), jsonObject.ID) != 0 {
 		return requestObject, false, errors.New("bad request: ID mismatch")

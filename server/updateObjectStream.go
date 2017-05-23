@@ -16,28 +16,34 @@ import (
 	"golang.org/x/net/context"
 )
 
-// updateObjectStream ...
 func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 	var drainFunc func()
+	var requestObject models.ODObject
+	var err error
+	var recursive bool
 
 	logger := LoggerFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
 	dao := DAOFromContext(ctx)
+	captured, _ := CaptureGroupsFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
+	aacAuth := auth.NewAACAuth(logger, h.AAC)
+
 	gem.Action = "update"
 	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventModify")
 	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "MODIFY")
 
-	var requestObject models.ODObject
-	var err error
-
-	requestObject, err = parseGetObjectRequest(ctx)
-	if err != nil {
-		herr := NewAppError(500, err, "Error parsing URI")
-		h.publishError(gem, herr)
-		return herr
+	if captured["objectId"] == "" {
+		return NewAppError(http.StatusBadRequest, errors.New("bad request"), "invalid objectId in URI")
 	}
-	gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
+
+	bytesID, err := hex.DecodeString(captured["objectId"])
+	if err != nil {
+		return NewAppError(http.StatusBadRequest, errors.New("bad request"), "")
+	}
+	requestObject.ID = bytesID
+
+	gem.Payload.ObjectID = captured["objectId"]
 	gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))
 
 	// Retrieve existing object from the data store
@@ -53,12 +59,6 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		return herr
 	}
 	auditOriginal := NewResourceFromObject(dbObject)
-
-	if len(dbObject.ID) == 0 {
-		herr := NewAppError(400, err, "Object for update doesn't have an id")
-		h.publishError(gem, herr)
-		return herr
-	}
 
 	if dbObject.IsDeleted {
 		switch {
@@ -77,7 +77,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		}
 	}
 
-	//We need a name for the new text, and a new iv
+	// We need a name for the new text, and a new iv
 	dbObject.ContentConnector.String = crypto.CreateRandomName()
 	dbObject.EncryptIV = crypto.CreateIV()
 	// Check if the user has permissions to update the ODObject
@@ -91,7 +91,6 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 
 	// ACM check for whether user has permission to read this object
 	// from a clearance perspective
-	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
 		herr := NewAppError(authHTTPErr(err), err, err.Error())
 		h.publishError(gem, herr)
@@ -104,7 +103,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		h.publishError(gem, herr)
 		return herr
 	}
-	drainFunc, _, herr := h.acceptObjectUpload(ctx, multipartReader, &dbObject, &grant, false, nil)
+	drainFunc, _, recursive, herr := h.acceptObjectUpload(ctx, multipartReader, &dbObject, &grant, false, nil)
 	dp := ciphertext.FindCiphertextCacheByObject(&dbObject)
 	if herr != nil {
 		herr := abortUploadObject(logger, dp, &dbObject, true, herr)
@@ -183,5 +182,10 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 
 	jsonResponse(w, apiResponse)
 	h.publishSuccess(gem, w)
+
+	if recursive {
+		// TODO
+		return nil
+	}
 	return nil
 }

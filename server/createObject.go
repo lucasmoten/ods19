@@ -71,7 +71,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 			return herr
 		}
 
-		drainFunc, pathDelimiter, herr = h.acceptObjectUpload(ctx, multipartReader, &obj, &ownerPermission, true, afterMeta)
+		drainFunc, pathDelimiter, _, herr = h.acceptObjectUpload(ctx, multipartReader, &obj, &ownerPermission, true, afterMeta)
 		if herr != nil {
 			dp := ciphertext.FindCiphertextCacheByObject(&obj)
 			h.publishError(gem, herr)

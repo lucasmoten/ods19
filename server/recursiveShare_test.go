@@ -104,7 +104,7 @@ func TestShareRecursive(t *testing.T) {
 		uor := protocol.UpdateObjectRequest{
 			ID:            child1Obj.ID,
 			ChangeToken:   child1Obj.ChangeToken,
-			RecusiveShare: true,
+			RecursiveShare: true,
 			Permission:    c.perms,
 			// We HAVE to use an ACM? See issue 775
 			RawAcm: testhelpers.ValidACMUnclassifiedFOUOSharedToTester01And02,

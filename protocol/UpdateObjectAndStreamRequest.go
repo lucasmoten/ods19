@@ -33,6 +33,6 @@ type UpdateObjectAndStreamRequest struct {
 	ExemptFromFOIA string `json:"exemptFromFOIA,omitEmpty"`
 	// Properties is an array of Object Properties associated with this object
 	Properties []Property `json:"properties,omitempty"`
-	// RecusiveShare, if true, will apply the updated share permissions to all child objects.
-	RecusiveShare bool `json:"recusiveShare"`
+	// RecursiveShare, if true, will apply the updated share permissions to all child objects.
+	RecursiveShare bool `json:"recursiveShare"`
 }
