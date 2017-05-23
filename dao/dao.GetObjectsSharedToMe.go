@@ -40,23 +40,11 @@ func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
         o.id    
     from object o
         inner join object_type ot on o.typeid = ot.id `
-	if !isOption409() {
-		query += ` inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1 and op.grantee <> '` + MySQLSafeString2(models.AACFlatten(models.EveryoneGroup)) + `' `
-	}
 	query += buildJoinUserToACM(tx, user)
 	query += ` where o.isdeleted = 0 `
 	query += buildFilterExcludeObjectsIOrMyGroupsOwn(tx, user)
-	if !isOption409() {
-		query += buildFilterExcludeNonRootedSharedToMe(tx, user)
-	}
 	// exclude those shared to everyone. for shared to me either explicit to me, or to a group im a member of
-	if isOption409() {
-		query += " and (acm2.flattenedacm like '%f_share=%' and acm2.flattenedacm not like '%f_share=;%' and acm2.flattenedacm not like '%f_share=')"
-	}
-	query += buildFilterForUserACMShare(tx, user)
-	if !isOption409() {
-		query += buildFilterForUserSnippets(user)
-	}
+	query += " and (acm2.flattenedacm like '%f_share=%' and acm2.flattenedacm not like '%f_share=;%' and acm2.flattenedacm not like '%f_share=')"
 	query += buildFilterSortAndLimit(pagingRequest)
 	err := tx.Select(&response.Objects, query)
 	if err != nil {
@@ -87,41 +75,10 @@ func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
 // those whose parent is also shared to the user as determined by the snippets
 // associated with them as their f_share values containing groups and userdn
 func buildFilterExcludeNonRootedSharedToMe(tx *sqlx.Tx, user models.ODUser) string {
-	if isOption409() {
-		var sql string
-		sql += " and (o.parentId is null or o.parentId not in ("
-		sql += "select objectId from object_permission where isdeleted = 0 and allowRead = 1 and grantee in ("
-		sql += "'" + strings.Join(getACMValueNamesForUser(tx, user, "f_share"), "','") + "'"
-		sql += ")))"
-		return sql
-	}
-
 	var sql string
 	sql += " and (o.parentId is null or o.parentId not in ("
 	sql += "select objectId from object_permission where isdeleted = 0 and allowRead = 1 and grantee in ("
-	fShares := false
-	if user.Snippets != nil {
-		for _, rawFields := range user.Snippets.Snippets {
-			switch rawFields.FieldName {
-			case "f_share":
-				for _, shareValue := range rawFields.Values {
-					if len(strings.TrimSpace(shareValue)) > 0 {
-						if fShares {
-							sql += ", "
-						}
-						sql += "'" + MySQLSafeString2(shareValue) + "'"
-						fShares = true
-					}
-				}
-				break
-			default:
-				continue
-			}
-		}
-	}
-	if !fShares {
-		sql += "'" + MySQLSafeString(models.AACFlatten(user.DistinguishedName)) + "'"
-	}
+	sql += "'" + strings.Join(getACMValueNamesForUser(tx, user, "f_share"), "','") + "'"
 	sql += ")))"
 	return sql
 }

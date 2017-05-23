@@ -44,15 +44,8 @@ func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUs
         o.id    
     from object o
         inner join object_type ot on o.typeid = ot.id `
-	if !isOption409() {
-		query += ` inner join object_permission op on op.objectId = o.id and op.isdeleted = 0 and op.allowread = 1 `
-	}
 	query += buildJoinUserToACM(tx, user)
 	query += ` where o.isdeleted = 0 and o.isexpunged = 0 and o.isancestordeleted = 0`
-	query += buildFilterForUserACMShare(tx, user)
-	if !isOption409() {
-		query += buildFilterForUserSnippets(user)
-	}
 	query += buildFilterSortAndLimit(pagingRequest)
 	err := tx.Select(&response.Objects, query)
 	if err != nil {
@@ -225,103 +218,10 @@ func buildFilterSortAndLimitArchive(pagingRequest PagingRequest) string {
 }
 
 func buildJoinUserToACM(tx *sqlx.Tx, user models.ODUser) string {
-	if isOption409() {
-		joinByID := true // tests indicate this is indeed faster most of the time
-		if joinByID {
-			query := ` inner join acm2 on o.acmid = acm2.id inner join useracm on acm2.id = useracm.acmid and useracm.userid = unhex('`
-			query += hex.EncodeToString(user.ID)
-			query += `') `
-			return query
-		}
-		query := `inner join acm2 on o.acmid = acm2.id inner join useracm on acm2.id = useracm.acmid inner join user on useracm.userid = user.id and user.distinguishedname = '`
-		query += MySQLSafeString(user.DistinguishedName)
-		query += `'`
-		return query
-	}
-	return ` inner join objectacm on o.id = objectacm.objectid `
-}
-
-func buildFilterForUserACMShare(tx *sqlx.Tx, user models.ODUser) string {
-	if isOption409() {
-		return "" // this is already filtered by joining the user to acm
-		// sql := " and op.grantee in ('" + MySQLSafeString2(models.AACFlatten(models.EveryoneGroup)) + "','" + strings.Join(getACMValueNamesForUser(tx, user, "f_share"), "','") + "')"
-		// return sql
-	}
-
-	var allowedGrantees []string
-	allowedGrantees = append(allowedGrantees, "'"+MySQLSafeString2(models.AACFlatten(models.EveryoneGroup))+"'")
-	groups := getGroupsFromSnippets(user)
-	for _, group := range groups {
-		allowedGrantees = append(allowedGrantees, "'"+MySQLSafeString2(models.AACFlatten(group))+"'")
-	}
-	return " and op.grantee in (" + strings.Join(allowedGrantees, ",") + ") "
-}
-
-func buildFilterForUserSnippets(user models.ODUser) string {
-	if isOption409() {
-		return ""
-	}
-
-	if user.Snippets == nil {
-		return " and 1=0 "
-	}
-
-	return buildFilterForUserSnippetsUsingACM(user)
-}
-
-func buildFilterForUserSnippetsUsingACM(user models.ODUser) string {
-	if user.Snippets == nil {
-		return " and 1=0"
-	}
-
-	// sql is going to be the returned portion of the where clause built up from the snippets
-	var sql string
-
-	sql += " and objectacm.acmId in (select id from acm where 1=1 "
-
-	// Now iterate all the fields building up the where clause portion
-	for _, rawFields := range user.Snippets.Snippets {
-		switch rawFields.Treatment {
-		case "disallow":
-			sql += " and id not in ("
-			// where it does have the field
-			sql += "select acmid from acmpart inner join acmkey on acmpart.acmkeyid = acmkey.id inner join acmvalue on acmpart.acmvalueid = acmvalue.id "
-			sql += "where acmkey.name = '" + MySQLSafeString2(rawFields.FieldName) + "' "
-			sql += "and acmvalue.name in (''"
-			for _, value := range rawFields.Values {
-				sql += ",'" + MySQLSafeString2(value) + "'"
-			}
-			sql += ") and acmpart.isdeleted = 0 and acmkey.isdeleted = 0 and acmvalue.isdeleted = 0) "
-		case "allowed":
-			sql += " and id in ("
-			// where it doesn't have the field
-			sql += "select id from acm where isdeleted = 0 and id not in (select acm.id from acm inner join acmpart on acmpart.acmid = acm.id and acmpart.isdeleted = 0 inner join acmkey on acmpart.acmkeyid = acmkey.id and acmkey.name like '" + MySQLSafeString(rawFields.FieldName) + "' and acmkey.isdeleted = 0 where acm.isdeleted = 0)"
-			// where it does have the field
-			sql += " union "
-			sql += "select acmid from acmpart inner join acmkey on acmpart.acmkeyid = acmkey.id inner join acmvalue on acmpart.acmvalueid = acmvalue.id "
-			sql += "where acmkey.name = '" + MySQLSafeString2(rawFields.FieldName) + "' "
-			sql += "and (acmvalue.name = '' "
-			for _, value := range rawFields.Values {
-				sql += " or acmvalue.name = '" + MySQLSafeString2(value) + "'"
-			}
-			sql += ") and acmpart.isdeleted = 0 and acmkey.isdeleted = 0 and acmvalue.isdeleted = 0)"
-		default:
-			log.Printf("Warning: Unhandled treatment type from snippets")
-		}
-	}
-
-	sql += ")"
-	return sql
-}
-
-func buildFilterExcludeEveryone() string {
-	var sql string
-	sql += " and o.id not in ("
-	sql += "select distinct objectid from object_permission "
-	sql += "where isdeleted = 0 and grantee = '"
-	sql += MySQLSafeString2(models.AACFlatten(models.EveryoneGroup))
-	sql += "') "
-	return sql
+	query := ` inner join acm2 on o.acmid = acm2.id inner join useracm on acm2.id = useracm.acmid and useracm.userid = unhex('`
+	query += hex.EncodeToString(user.ID)
+	query += `') `
+	return query
 }
 
 // MySQLSafeString takes an input string and escapes characters as appropriate
@@ -429,18 +329,11 @@ func removeDisplayNameFromResourceString(resourceString string) string {
 }
 
 func buildFilterRequireObjectsIOwn(tx *sqlx.Tx, user models.ODUser) string {
-	if isOption409() {
-		return fmt.Sprintf(" and o.ownedbyid = %d", getACMValueFor(tx, models.AACFlatten(user.DistinguishedName)))
-	}
-
-	return " and o.ownedby = 'user/" + MySQLSafeString2(user.DistinguishedName) + "'"
+	return fmt.Sprintf(" and o.ownedbyid = %d", getACMValueFor(tx, models.AACFlatten(user.DistinguishedName)))
 }
 
 func buildFilterExcludeObjectsIOrMyGroupsOwn(tx *sqlx.Tx, user models.ODUser) string {
-	if isOption409() {
-		return " and o.ownedbyid not in (-1," + strings.Join(getACMValuesForUser(tx, user, "f_share"), ",") + ")"
-	}
-	return " and o.ownedby not in (" + strings.Join(buildListObjectsIOrMyGroupsOwn(tx, user), ",") + ")"
+	return " and o.ownedbyid not in (-1," + strings.Join(getACMValuesForUser(tx, user, "f_share"), ",") + ")"
 }
 
 func getACMValueFor(tx *sqlx.Tx, valueName string) int64 {
@@ -483,11 +376,7 @@ func getACMValueNamesForUser(tx *sqlx.Tx, user models.ODUser, keyName string) []
 }
 
 func buildFilterRequireObjectsIOrMyGroupsOwn(tx *sqlx.Tx, user models.ODUser) string {
-	// This can easily work as an inner join for more speediness
-	if isOption409() {
-		return " and o.ownedbyid in (-1," + strings.Join(getACMValuesForUser(tx, user, "f_share"), ",") + ")"
-	}
-	return " and o.ownedby in (" + strings.Join(buildListObjectsIOrMyGroupsOwn(tx, user), ",") + ")"
+	return " and o.ownedbyid in (-1," + strings.Join(getACMValuesForUser(tx, user, "f_share"), ",") + ")"
 }
 
 func buildListObjectsIOrMyGroupsOwn(tx *sqlx.Tx, user models.ODUser) []string {

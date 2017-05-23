@@ -76,9 +76,12 @@ func expungeObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.O
 		return nil
 	}
 
-	// Option to populate user snippets from database
-	if explicit && isOption409() {
+	// Populate user snippets from database
+	if explicit {
 		user.Snippets, err = getUserSnippets(tx, user)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Mark as deleted and expunged

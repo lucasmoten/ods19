@@ -51,9 +51,6 @@ func newAppConfigurationWithDefaults() config.AppConfiguration {
 func init() {
 	os.Setenv(config.OD_TOKENJAR_LOCATION, "../defaultcerts/token.jar")
 
-	// Force this option for tests which then expects snippets to be cached in DB and on user
-	os.Setenv("OD_OPTION_409", "true")
-
 	appConfiguration := newAppConfigurationWithDefaults()
 	dbConfig := appConfiguration.DatabaseConnection
 

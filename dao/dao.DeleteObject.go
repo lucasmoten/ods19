@@ -3,7 +3,6 @@ package dao
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -64,9 +63,12 @@ func deleteObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.OD
 		return nil
 	}
 
-	// Option to populate user snippets from database
-	if explicit && isOption409() {
+	// Populate user snippets from database
+	if explicit {
 		user.Snippets, err = getUserSnippets(tx, user)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Mark as deleted
@@ -163,10 +165,4 @@ func isUserMemberOf(user models.ODUser, groupName string) bool {
 	// no matches
 	return false
 
-}
-
-func isOption409() bool {
-	option409 := os.Getenv("OD_OPTION_409")
-	option409 = strings.ToLower(strings.TrimSpace(option409))
-	return option409 == "true"
 }
