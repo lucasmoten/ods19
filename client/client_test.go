@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -250,9 +251,40 @@ func TestUpdateObject(t *testing.T) {
 	}
 	uo, err := c.UpdateObject(uor)
 	if err != nil {
-		t.Errorf("error updating object: %v")
+		t.Errorf("error updating object: %v", err)
 	}
 	t.Log(uo)
+
+}
+
+func TestUpdateObjectAndStream(t *testing.T) {
+	c, err := NewClient(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.Verbose = testing.Verbose()
+	cor := protocol.CreateObjectRequest{
+		Name:    "Mets",
+		RawAcm:  `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
+		OwnedBy: "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+	}
+	obj, err := c.CreateObject(cor, nil)
+	if err != nil {
+		t.Errorf("create object error: %v", err)
+	}
+	var uoasr = protocol.UpdateObjectAndStreamRequest{
+		Name:        "Astros",
+		ID:          obj.ID,
+		ChangeToken: obj.ChangeToken,
+	}
+	buf := bytes.NewBuffer([]byte("Altuve"))
+	uo, err := c.UpdateObjectAndStream(uoasr, buf)
+	if err != nil {
+		t.Errorf("error updating object: %v", err)
+	}
+	if uo.Name != "Astros" {
+		t.Errorf("expected Astros but got %s", uo.Name)
+	}
 
 }
 

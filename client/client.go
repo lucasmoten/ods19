@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -28,6 +29,7 @@ type ObjectDrive interface {
 	GetObjectStream(id string) (io.Reader, error)
 	MoveObject(protocol.MoveObjectRequest) (protocol.Object, error)
 	UpdateObject(protocol.UpdateObjectRequest) (protocol.Object, error)
+	UpdateObjectAndStream(protocol.UpdateObjectAndStreamRequest, io.Reader) (protocol.Object, error)
 }
 
 // Client implements ObjectDrive.
@@ -101,13 +103,13 @@ func NewClient(conf Config) (*Client, error) {
 // CreateObject performs the create operation on the ObjectDrive from the CreateObjectRequest that fully
 // specifies the object to be created.  The caller must also provide an open io.Reader interface to the stream
 // they wish to upload.  If creating an object with no filestream, such as a folder, then reader must be nil.
-func (c *Client) CreateObject(obj protocol.CreateObjectRequest, reader io.Reader) (protocol.Object, error) {
+func (c *Client) CreateObject(req protocol.CreateObjectRequest, reader io.Reader) (protocol.Object, error) {
 	uri := c.url + "/objects"
-	var newObj protocol.Object
+	var ret protocol.Object
 
-	jsonBody, err := json.MarshalIndent(obj, "", "    ")
+	jsonBody, err := json.MarshalIndent(req, "", "    ")
 	if err != nil {
-		return newObj, fmt.Errorf("could not marshal json: %v", err)
+		return ret, fmt.Errorf("could not marshal json: %v", err)
 	}
 
 	var body bytes.Buffer
@@ -118,18 +120,18 @@ func (c *Client) CreateObject(obj protocol.CreateObjectRequest, reader io.Reader
 		writer := multipart.NewWriter(&body)
 
 		writePartField(writer, "ObjectMetadata", string(jsonBody), "application/json")
-		part, err := writer.CreateFormFile("filestream", obj.Name)
+		part, err := writer.CreateFormFile("filestream", req.Name)
 		if err != nil {
-			return newObj, err
+			return ret, err
 		}
 
 		if _, err = io.Copy(part, reader); err != nil {
-			return newObj, err
+			return ret, err
 		}
 
 		err = writer.Close()
 		if err != nil {
-			return newObj, err
+			return ret, err
 		}
 
 		contentType = writer.FormDataContentType()
@@ -137,27 +139,24 @@ func (c *Client) CreateObject(obj protocol.CreateObjectRequest, reader io.Reader
 		body.Write([]byte(jsonBody))
 	}
 
-	// Now that you have a form, you can submit it to your handler.
-	req, err := http.NewRequest("POST", uri, &body)
+	httpReq, err := http.NewRequest("POST", uri, &body)
 	if err != nil {
-		return newObj, err
+		return ret, err
 	}
 
-	// Don't forget to set the content type, this will contain the boundary.
-	req.Header.Set("Content-Type", "application/json")
-	// Only set for filestreams
+	httpReq.Header.Set("Content-Type", "application/json")
 	if contentType != "" {
-		req.Header.Set("Content-Type", contentType)
+		httpReq.Header.Set("Content-Type", contentType)
 	}
 
 	if c.conf.Impersonation != "" {
-		setImpersonationHeaders(req, c.conf.Impersonation, c.MyDN)
+		setImpersonationHeaders(httpReq, c.conf.Impersonation, c.MyDN)
 	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
 		log.Println(err)
-		return newObj, err
+		return ret, err
 	}
 	defer resp.Body.Close()
 	if c.Verbose {
@@ -166,12 +165,12 @@ func (c *Client) CreateObject(obj protocol.CreateObjectRequest, reader io.Reader
 	}
 
 	// Send back the created object properties
-	err = json.NewDecoder(resp.Body).Decode(&newObj)
+	err = json.NewDecoder(resp.Body).Decode(&ret)
 	if err != nil {
-		return newObj, err
+		return ret, err
 	}
 
-	return newObj, nil
+	return ret, nil
 }
 
 // GetObject fetches the metadata associated with an object by its unique ID.
@@ -298,8 +297,8 @@ func (c *Client) MoveObject(req protocol.MoveObjectRequest) (protocol.Object, er
 	return ret, nil
 }
 
-// UpdateObject updates an object's metadata or permissions. See also the
-// alternative method, UpdateObjectAndStream.
+// UpdateObject updates an object's metadata or permissions. To update an actual
+// filestream, use UpdateObjectAndStream.
 func (c *Client) UpdateObject(req protocol.UpdateObjectRequest) (protocol.Object, error) {
 	uri := c.url + "/objects/" + req.ID + "/properties"
 	var ret protocol.Object
@@ -307,6 +306,64 @@ func (c *Client) UpdateObject(req protocol.UpdateObjectRequest) (protocol.Object
 	resp, err := c.doPost(uri, req)
 	if err != nil {
 		return ret, fmt.Errorf("http error %v: %v", resp.StatusCode, err)
+	}
+	defer resp.Body.Close()
+
+	err = json.NewDecoder(resp.Body).Decode(&ret)
+	if err != nil {
+		return ret, fmt.Errorf("could not decode response: %v", err)
+	}
+
+	return ret, nil
+}
+
+// UpdateObjectAndStream updates an object's associated stream as well as its metadata or permissions.
+func (c *Client) UpdateObjectAndStream(req protocol.UpdateObjectAndStreamRequest, r io.Reader) (protocol.Object, error) {
+	uri := c.url + "/objects/" + req.ID + "/stream"
+	var ret protocol.Object
+
+	if r == nil {
+		return ret, errors.New("you must provide an io.Reader")
+	}
+
+	jsonBody, err := json.MarshalIndent(req, "", "    ")
+	if err != nil {
+		return ret, fmt.Errorf("could not marshal json: %v", err)
+	}
+
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	writePartField(writer, "ObjectMetadata", string(jsonBody), "application/json")
+	part, err := writer.CreateFormFile("filestream", req.Name)
+	if err != nil {
+		return ret, err
+	}
+	contentType := writer.FormDataContentType()
+
+	if _, err = io.Copy(part, r); err != nil {
+		return ret, err
+	}
+
+	err = writer.Close()
+	if err != nil {
+		return ret, err
+	}
+
+	httpReq, err := http.NewRequest("POST", uri, &body)
+	if err != nil {
+		return ret, err
+	}
+
+	httpReq.Header.Set("Content-Type", contentType)
+
+	if c.conf.Impersonation != "" {
+		setImpersonationHeaders(httpReq, c.conf.Impersonation, c.MyDN)
+	}
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		log.Println(err)
+		return ret, err
 	}
 	defer resp.Body.Close()
 
