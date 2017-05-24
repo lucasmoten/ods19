@@ -184,8 +184,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	h.publishSuccess(gem, w)
 
 	if recursive {
-		// TODO
-		return nil
+		go h.updateObjectRecursive(ctx, dbObject)
 	}
 	return nil
 }

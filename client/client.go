@@ -227,6 +227,9 @@ func (c *Client) GetObjectStream(id string) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
+	if resp.StatusCode != 200 && resp.StatusCode != 204 {
+		return nil, fmt.Errorf("http status: %v", resp.StatusCode)
+	}
 
 	return resp.Body, nil
 }

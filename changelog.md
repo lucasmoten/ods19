@@ -7,6 +7,7 @@ FORMAT: 1A
 * ENH: Clean up error message when cannot connect to AAC
 * ENH: allow impersonating requests in the client library with new config field "Impersonation"
 * REF: Performance improvements for #409 are always enabled and no longer toggleable. OD_OPTION_409 no longer needs to be set.
+* ENH: Allow recursive application of updates to object sharing and permissions.
 
 ## Release v1.0.1.24
 --------------------
