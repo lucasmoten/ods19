@@ -125,25 +125,31 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Retain existing ownership
 	requestObject.OwnedBy = models.ToNullString(dbObject.OwnedBy.String)
 
-	// If there was no ACM provided...
-	if len(requestObject.RawAcm.String) == 0 {
-		// There was no change, retain existing from dbObject
+	updatingAcm := len(requestObject.RawAcm.String) > 0
+	updatingPermissions := len(requestObject.Permissions) > 0
+	if !updatingAcm {
+		// start with existing acm from database
 		requestObject.RawAcm = models.ToNullString(dbObject.RawAcm.String)
 	}
-
-	// Assign existing permissions from the database object to the request object
-
-	if len(requestObject.Permissions) == 0 {
+	if !updatingPermissions {
+		// use existing permissions from database
 		requestObject.Permissions = dbObject.Permissions
+		if updatingAcm {
+			// existing permissions will be marked as deleted, acm is authoritative
+			for pidx := range requestObject.Permissions {
+				requestObject.Permissions[pidx].IsDeleted = true
+			}
+		}
 	} else {
 		combinedPermissions := make([]models.ODObjectPermission, len(requestObject.Permissions)+len(dbObject.Permissions))
-		// Any existing permissions will be marked as deleted, since past in overrides.
 		idx := 0
+		// existing permissions will be marked as deleted
 		for _, d := range dbObject.Permissions {
 			d.IsDeleted = true
 			combinedPermissions[idx] = d
 			idx = idx + 1
 		}
+		// passed in explicitly overrides
 		for _, r := range requestObject.Permissions {
 			combinedPermissions[idx] = r
 			idx = idx + 1

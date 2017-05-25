@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -35,16 +36,21 @@ func newAACAuth(t *testing.T) auth.AACAuth {
 }
 
 type testAACAuth struct {
-	subtestname          string
-	userIdentity         string
-	acm                  string
-	permissions          []models.ODObjectPermission
-	expectedFlattened    string
-	expectedModified     string
-	expectedIsAuthorized bool
-	expectedIsError      bool
-	expectedError        error
-	expectedSnippets     string
+	subtestname                 string
+	userIdentity                string
+	owner                       string
+	acm                         string
+	permissions                 []models.ODObjectPermission
+	expectedFlattened           string
+	expectedModifiedAcm         string
+	expectedModifiedPermissions []models.ODObjectPermission
+	expectedIsAuthorized        bool
+	expectedIsError             bool
+	expectedError               error
+	expectedSnippets            string
+	expectedGroups              []string
+	creating                    bool
+	failed                      bool
 }
 
 func TestAACAuthGetFlattenedACM(t *testing.T) {
@@ -61,6 +67,7 @@ func TestAACAuthGetFlattenedACM(t *testing.T) {
 		flattenedACM, _, err := aacAuth.GetFlattenedACM(subtest.acm)
 		// If expecting an error but didn't get one
 		if subtest.expectedIsError && err == nil {
+			subtest.failed = true
 			if subtest.expectedError != nil {
 				t.Logf("[x] Expected error (%s), got none", subtest.expectedError.Error())
 			} else {
@@ -71,12 +78,14 @@ func TestAACAuthGetFlattenedACM(t *testing.T) {
 		}
 		// If expecting an error, but got a different one
 		if subtest.expectedIsError && err != nil && !strings.HasPrefix(err.Error(), subtest.expectedError.Error()) {
+			subtest.failed = true
 			t.Logf("[x] Expected error (%s) but got error (%s)", subtest.expectedError.Error(), err.Error())
 			t.Fail()
 			continue
 		}
 		// If not expecting an error, but got one
 		if !subtest.expectedIsError && err != nil {
+			subtest.failed = true
 			t.Logf("[x] Got an error %s", err.Error())
 			t.Fail()
 			continue
@@ -84,6 +93,7 @@ func TestAACAuthGetFlattenedACM(t *testing.T) {
 		// If the flattenedACM isn't what we expected
 		if len(subtest.expectedFlattened) > 0 {
 			if strings.Compare(subtest.expectedFlattened, flattenedACM) != 0 {
+				subtest.failed = true
 				t.Logf("[x] ACM returned did not match expected result.")
 				t.Logf("%s", flattenedACM)
 				t.Fail()
@@ -92,7 +102,9 @@ func TestAACAuthGetFlattenedACM(t *testing.T) {
 				t.Logf("OK  Flattened ACM matches expected value")
 			}
 		}
-		t.Logf("OK  All checks passed")
+		if !subtest.failed {
+			t.Logf("    Got expected results. Subtest passes")
+		}
 	}
 }
 
@@ -111,6 +123,7 @@ func TestAACAuthGetSnippetsForUser(t *testing.T) {
 		snippets, err := aacAuth.GetSnippetsForUser(subtest.userIdentity)
 		// If expecting an error but didn't get one
 		if subtest.expectedIsError && err == nil {
+			subtest.failed = true
 			if subtest.expectedError != nil {
 				t.Logf("[x] Expected error (%s), got none", subtest.expectedError.Error())
 			} else {
@@ -121,12 +134,14 @@ func TestAACAuthGetSnippetsForUser(t *testing.T) {
 		}
 		// If expecting an error, but got a different one
 		if subtest.expectedIsError && err != nil && !strings.HasPrefix(err.Error(), subtest.expectedError.Error()) {
+			subtest.failed = true
 			t.Logf("[x] Expected error (%s) but got error (%s)", subtest.expectedError.Error(), err.Error())
 			t.Fail()
 			continue
 		}
 		// If not expecting an error, but got one
 		if !subtest.expectedIsError && err != nil {
+			subtest.failed = true
 			t.Logf("[x] Got an error %s", err.Error())
 			t.Fail()
 			continue
@@ -136,18 +151,22 @@ func TestAACAuthGetSnippetsForUser(t *testing.T) {
 		if len(subtest.expectedSnippets) != 0 {
 			// If the length of snippets is empty
 			if snippets == nil {
+				subtest.failed = true
 				t.Logf("[x] No snippets were returned")
 				t.Fail()
 				continue
 			}
 			actualSnippets := snippets.String()
 			if strings.Compare(actualSnippets, subtest.expectedSnippets) != 0 {
+				subtest.failed = true
 				t.Logf("[x] Expected snippets to be %s but got %s", subtest.expectedSnippets, actualSnippets)
 				t.Fail()
 				continue
 			}
 		}
-		t.Logf("OK  All checks passed")
+		if !subtest.failed {
+			t.Logf("    Got expected results. Subtest passes")
+		}
 	}
 }
 
@@ -179,15 +198,16 @@ func TestAACAuthInjectPermissionsIntoACM(t *testing.T) {
 	nopermissions := []models.ODObjectPermission{}
 
 	subtests := []testAACAuth{}
-	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "shared + no permissions unmodified", permissions: nopermissions, acm: acmUnclassODrive, expectedModified: acmUnclassODriveMod})
-	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "shared + permissions changes", permissions: permissionsT1T2, acm: acmUnclassODrive, expectedModified: acmUnclassODriveT1T2})
-	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "public + permissions changes", permissions: permissionsT1T2, acm: acmUnclassEveryone, expectedModified: acmUnclassT1T2})
+	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "shared + no permissions unmodified", permissions: nopermissions, acm: acmUnclassODrive, expectedModifiedAcm: acmUnclassODriveMod})
+	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "shared + permissions changes", permissions: permissionsT1T2, acm: acmUnclassODrive, expectedModifiedAcm: acmUnclassODriveT1T2})
+	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "public + permissions changes", permissions: permissionsT1T2, acm: acmUnclassEveryone, expectedModifiedAcm: acmUnclassT1T2})
 
 	for testIdx, subtest := range subtests {
 		t.Logf("Subtest %d: %s", testIdx, subtest.subtestname)
 		modifiedAcm, err := aacAuth.InjectPermissionsIntoACM(subtest.permissions, subtest.acm)
 		// If expecting an error but didn't get one
 		if subtest.expectedIsError && err == nil {
+			subtest.failed = true
 			if subtest.expectedError != nil {
 				t.Logf("[x] Expected error (%s), got none", subtest.expectedError.Error())
 			} else {
@@ -198,23 +218,28 @@ func TestAACAuthInjectPermissionsIntoACM(t *testing.T) {
 		}
 		// If expecting an error, but got a different one
 		if subtest.expectedIsError && err != nil && !strings.HasPrefix(err.Error(), subtest.expectedError.Error()) {
+			subtest.failed = true
 			t.Logf("[x] Expected error (%s) but got error (%s)", subtest.expectedError.Error(), err.Error())
 			t.Fail()
 			continue
 		}
 		// If not expecting an error, but got one
 		if !subtest.expectedIsError && err != nil {
+			subtest.failed = true
 			t.Logf("[x] Got an error %s", err.Error())
 			t.Fail()
 			continue
 		}
 		// If the result isnt what we expect
-		if subtest.expectedModified != modifiedAcm {
-			t.Logf("[x] Expected %s but got %s for injecting permissions", subtest.expectedModified, modifiedAcm)
+		if subtest.expectedModifiedAcm != modifiedAcm {
+			subtest.failed = true
+			t.Logf("[x] Expected %s but got %s for injecting permissions", subtest.expectedModifiedAcm, modifiedAcm)
 			t.Fail()
 			continue
 		}
-		t.Logf("OK  All checks passed")
+		if !subtest.failed {
+			t.Logf("    Got expected results. Subtest passes")
+		}
 	}
 }
 
@@ -266,6 +291,7 @@ func TestAACAuthIsUserAuthorizedForACM(t *testing.T) {
 		authorized, err := aacAuth.IsUserAuthorizedForACM(subtest.userIdentity, subtest.acm)
 		// If expecting an error but didn't get one
 		if subtest.expectedIsError && err == nil {
+			subtest.failed = true
 			if subtest.expectedError != nil {
 				t.Logf("[x] Expected error (%s), got none", subtest.expectedError.Error())
 			} else {
@@ -276,23 +302,428 @@ func TestAACAuthIsUserAuthorizedForACM(t *testing.T) {
 		}
 		// If expecting an error, but got a different one
 		if subtest.expectedIsError && err != nil && !strings.HasPrefix(err.Error(), subtest.expectedError.Error()) {
+			subtest.failed = true
 			t.Logf("[x] Expected error (%s) but got error (%s)", subtest.expectedError.Error(), err.Error())
 			t.Fail()
 			continue
 		}
 		// If not expecting an error, but got one
 		if !subtest.expectedIsError && err != nil {
+			subtest.failed = true
 			t.Logf("[x] Got an error %s", err.Error())
 			t.Fail()
 			continue
 		}
 		// If the result isnt what we expect
 		if subtest.expectedIsAuthorized != authorized {
+			subtest.failed = true
 			t.Logf("[x] Expected %t but got %t for authorized", subtest.expectedIsAuthorized, authorized)
 			t.Fail()
 			continue
 		}
-		t.Logf("OK  All checks passed")
+		if !subtest.failed {
+			t.Logf("    Got expected results. Subtest passes")
+		}
+	}
+}
+
+// TestAACAuthGetGroupsFromSnippets tests both GetSnippetsForUser and GetGroupsFromSnippets
+func TestAACAuthGetGroupsFromSnippets(t *testing.T) {
+	aacAuth := newAACAuth(t)
+
+	subtests := []testAACAuth{}
+	subtests = append(subtests, testAACAuth{subtestname: "No User", userIdentity: "Fake User", expectedIsError: true, expectedIsAuthorized: false, expectedError: auth.ErrServiceNotSuccessful})
+	subtests = append(subtests, testAACAuth{subtestname: "Nonexistent, default profile from dias simulator -- if this fails, the dias simulator profile likely changed. ok to update", userIdentity: "cn=NonExistent But Will Give Default,OU=People", expectedIsError: false, expectedGroups: []string{"lcp_cois_east", "lcp_cois_north", "jitfct_twl_fdo", "jitfct_twl_fle", "dctc_bedrock", "dctc_bedrock_admin", "dctc_administrator", "dctc_dctc_super_user", "dctc_dctc_user", "dctc_dctc_rfi_manager", "dctc_cermt_sys_dashboard", "dctc_ftf_reader", "dctc_ftf_writer", "dctc_productbuilder", "dctc_habeas", "dctc_pb_dctc", "dctc_pb_aprc", "dctc_pb_amrc", "dctc_pb_eerc", "dctc_pb_marc", "dctc_dctc_tma_admin", "dctc_dctc_tma_rfi_manager", "dctc_formd_reader", "cnnonexistentbutwillgivedefaultoupeople", "oupeoplecnnonexistentbutwillgivedefault"}})
+	subtests = append(subtests, testAACAuth{subtestname: "Tester 10", userIdentity: "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us", expectedIsError: false, expectedGroups: []string{"dctc_odrive", "dctc_odrive_g1", "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus", "cusou_s_governmentouchimeraoudaeoupeoplecntesttester10"}})
+	subtests = append(subtests, testAACAuth{subtestname: "Tester 01", userIdentity: "cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us", expectedIsError: false, expectedGroups: []string{"dctc_odrive", "dctc_odrive_g2", "cntesttester01oupeopleoudaeouchimeraou_s_governmentcus", "cusou_s_governmentouchimeraoudaeoupeoplecntesttester01"}})
+
+	for testIdx, subtest := range subtests {
+		t.Logf("Subtest %d: %s", testIdx, subtest.subtestname)
+		snippets, err := aacAuth.GetSnippetsForUser(subtest.userIdentity)
+		// If expecting an error but didn't get one
+		if subtest.expectedIsError && err == nil {
+			subtest.failed = true
+			if subtest.expectedError != nil {
+				t.Logf("[x] Expected error (%s), got none", subtest.expectedError.Error())
+			} else {
+				t.Logf("[x] Expected error but got none")
+			}
+			t.Fail()
+			continue
+		}
+		// If expecting an error, but got a different one
+		if subtest.expectedIsError && err != nil && !strings.HasPrefix(err.Error(), subtest.expectedError.Error()) {
+			subtest.failed = true
+			t.Logf("[x] Expected error (%s) but got error (%s)", subtest.expectedError.Error(), err.Error())
+			t.Fail()
+			continue
+		}
+		// If not expecting an error, but got one
+		if !subtest.expectedIsError && err != nil {
+			subtest.failed = true
+			t.Logf("[x] Got an error %s", err.Error())
+			t.Fail()
+			continue
+		}
+		groups := aacAuth.GetGroupsFromSnippets(snippets)
+		for _, group := range groups {
+			groupFoundInExpected := false
+			for _, expectedGroup := range subtest.expectedGroups {
+				if group == expectedGroup {
+					groupFoundInExpected = true
+					break
+				}
+			}
+			if !groupFoundInExpected {
+				subtest.failed = true
+				t.Logf("[x] Group '%s' in snippets was not expected", group)
+				t.Fail()
+			}
+		}
+		for _, expectedGroup := range subtest.expectedGroups {
+			expectedFoundInGroups := false
+			for _, group := range groups {
+				if group == expectedGroup {
+					expectedFoundInGroups = true
+					break
+				}
+			}
+			if !expectedFoundInGroups {
+				subtest.failed = true
+				t.Logf("[x] Expected group '%s' was not found in snippets", expectedGroup)
+				t.Fail()
+			}
+		}
+		if !subtest.failed {
+			t.Logf("    Got expected results. Subtest passes")
+		}
+	}
+}
+
+func TestAACAuthNormalizePermissionsFromACM(t *testing.T) {
+	aacAuth := newAACAuth(t)
+
+	subtests := []testAACAuth{}
+	subtests = append(subtests,
+		testAACAuth{
+			subtestname: "Tester10 owns with acm shared to tester01 and explicit tester10 CRUDS. Expect tester10 to get CRUDS and tester01 to have read only",
+			creating:    false,
+			owner:       "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+			acm:         `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"portion":"U//FOUO","share":{"users":["cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
+			permissions: []models.ODObjectPermission{
+				models.ODObjectPermission{
+					ID:          []byte{123, 45},
+					Grantee:     "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+					AcmShare:    fmt.Sprintf(`{"users":["%s"]}`, "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+					AllowCreate: true,
+					AllowRead:   true,
+					AllowUpdate: true,
+					AllowDelete: true,
+					AllowShare:  true,
+					AcmGrantee: models.ODAcmGrantee{
+						Grantee:               "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+						DisplayName:           models.ToNullString("test tester10"),
+						UserDistinguishedName: models.ToNullString("cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+						ResourceString:        models.ToNullString("user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"),
+					},
+				},
+			},
+			expectedModifiedAcm: `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"portion":"U//FOUO","share":{"users":["cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
+			expectedModifiedPermissions: []models.ODObjectPermission{
+				models.ODObjectPermission{
+					Grantee:     "cntesttester01oupeopleoudaeouchimeraou_s_governmentcus",
+					AcmShare:    fmt.Sprintf(`{"users":["%s"]}`, "cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+					AllowCreate: false,
+					AllowRead:   true,
+					AllowUpdate: false,
+					AllowDelete: false,
+					AllowShare:  false,
+					AcmGrantee: models.ODAcmGrantee{
+						Grantee:               "cntesttester01oupeopleoudaeouchimeraou_s_governmentcus",
+						DisplayName:           models.ToNullString("test tester01"),
+						UserDistinguishedName: models.ToNullString("cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+						ResourceString:        models.ToNullString("user/cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester01"),
+					},
+				},
+				models.ODObjectPermission{
+					Grantee:     "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+					AcmShare:    fmt.Sprintf(`{"users":["%s"]}`, "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+					AllowCreate: true,
+					AllowRead:   true,
+					AllowUpdate: true,
+					AllowDelete: true,
+					AllowShare:  true,
+					AcmGrantee: models.ODAcmGrantee{
+						Grantee:               "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+						DisplayName:           models.ToNullString("test tester10"),
+						UserDistinguishedName: models.ToNullString("cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+						ResourceString:        models.ToNullString("user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"),
+					},
+				},
+			},
+		},
+		testAACAuth{
+			subtestname: "Tester10 owns with acm shared to everyone and explicit tester10 CRUDS. Expect tester10 to get CUDS and everyone to have read only",
+			creating:    false,
+			owner:       "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+			acm:         `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"portion":"U//FOUO","version":"2.1.0"}`,
+			permissions: []models.ODObjectPermission{
+				models.ODObjectPermission{
+					ID:          []byte{123, 45},
+					Grantee:     "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+					AcmShare:    fmt.Sprintf(`{"users":["%s"]}`, "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+					AllowCreate: true,
+					AllowRead:   true,
+					AllowUpdate: true,
+					AllowDelete: true,
+					AllowShare:  true,
+					AcmGrantee: models.ODAcmGrantee{
+						Grantee:               "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+						DisplayName:           models.ToNullString("test tester10"),
+						UserDistinguishedName: models.ToNullString("cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+						ResourceString:        models.ToNullString("user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"),
+					},
+				},
+			},
+			expectedModifiedAcm: `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"portion":"U//FOUO","version":"2.1.0"}`,
+			expectedModifiedPermissions: []models.ODObjectPermission{
+				models.ODObjectPermission{
+					Grantee:     "_everyone",
+					AcmShare:    `{"projects":{"":{"disp_nm":"","groups":["-Everyone"]}}}`,
+					AllowCreate: false,
+					AllowRead:   true,
+					AllowUpdate: false,
+					AllowDelete: false,
+					AllowShare:  false,
+					AcmGrantee: models.ODAcmGrantee{
+						Grantee:        "_everyone",
+						DisplayName:    models.ToNullString("-Everyone"),
+						GroupName:      models.ToNullString("-Everyone"),
+						ResourceString: models.ToNullString("group/-Everyone/-Everyone"),
+					},
+				},
+				// existing cruds permission gets deleted since it picks up that everyone grants the read
+				models.ODObjectPermission{
+					Grantee:     "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+					AcmShare:    fmt.Sprintf(`{"users":["%s"]}`, "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+					IsDeleted:   true,
+					AllowCreate: true,
+					AllowRead:   true,
+					AllowUpdate: true,
+					AllowDelete: true,
+					AllowShare:  true,
+					AcmGrantee: models.ODAcmGrantee{
+						Grantee:               "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+						DisplayName:           models.ToNullString("test tester10"),
+						UserDistinguishedName: models.ToNullString("cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+						ResourceString:        models.ToNullString("user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"),
+					},
+				},
+				// replacement permission for tester10
+				models.ODObjectPermission{
+					Grantee:     "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+					AcmShare:    fmt.Sprintf(`{"users":["%s"]}`, "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+					AllowCreate: true,
+					AllowRead:   false,
+					AllowUpdate: true,
+					AllowDelete: true,
+					AllowShare:  true,
+					AcmGrantee: models.ODAcmGrantee{
+						Grantee:               "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+						DisplayName:           models.ToNullString("test tester10"),
+						UserDistinguishedName: models.ToNullString("cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+						ResourceString:        models.ToNullString("user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"),
+					},
+				},
+			},
+		},
+		testAACAuth{
+			subtestname:         "Tester10 owns with acm shared to odrive group, no initial permissions declared. Expect odrive to get R, and tester10 to get CRUDS",
+			creating:            false,
+			owner:               "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+			acm:                 `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"portion":"U//FOUO","share":{"projects":{"dctc":{"disp_nm":"DCTC","groups":["ODrive"]}}},"version":"2.1.0"}`,
+			expectedModifiedAcm: `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"portion":"U//FOUO","share":{"projects":{"dctc":{"disp_nm":"dctc","groups":["odrive"]}},"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
+			expectedModifiedPermissions: []models.ODObjectPermission{
+				models.ODObjectPermission{
+					Grantee:     "dctc_odrive",
+					AcmShare:    `{"projects":{"dctc":{"disp_nm":"dctc","groups":["odrive"]}}}`,
+					AllowCreate: false,
+					AllowRead:   true,
+					AllowUpdate: false,
+					AllowDelete: false,
+					AllowShare:  false,
+					AcmGrantee: models.ODAcmGrantee{
+						Grantee:            "dctc_odrive",
+						ProjectName:        models.ToNullString("dctc"),
+						ProjectDisplayName: models.ToNullString("dctc"),
+						DisplayName:        models.ToNullString("dctc odrive"),
+						GroupName:          models.ToNullString("odrive"),
+						ResourceString:     models.ToNullString("group/dctc/dctc/odrive/dctc odrive"),
+					},
+				},
+				models.ODObjectPermission{
+					Grantee:     "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+					AcmShare:    fmt.Sprintf(`{"users":["%s"]}`, "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+					AllowCreate: true,
+					AllowRead:   true,
+					AllowUpdate: true,
+					AllowDelete: true,
+					AllowShare:  true,
+					AcmGrantee: models.ODAcmGrantee{
+						Grantee:               "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+						DisplayName:           models.ToNullString("test tester10"),
+						UserDistinguishedName: models.ToNullString("cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+						ResourceString:        models.ToNullString("user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"),
+					},
+				},
+			},
+		},
+		testAACAuth{
+			subtestname: "Tester10 owns with acm private to self. Permissions grant to Tester01 create and read. Expect modified share to include Tester01",
+			creating:    false,
+			owner:       "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+			acm:         `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"portion":"U//FOUO","share":{"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
+			permissions: []models.ODObjectPermission{
+				models.ODObjectPermission{
+					Grantee:     "cntesttester01oupeopleoudaeouchimeraou_s_governmentcus",
+					AcmShare:    fmt.Sprintf(`{"users":["%s"]}`, "cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+					AllowCreate: true,
+					AllowRead:   true,
+					AllowUpdate: false,
+					AllowDelete: false,
+					AllowShare:  false,
+					AcmGrantee: models.ODAcmGrantee{
+						Grantee:               "cntesttester01oupeopleoudaeouchimeraou_s_governmentcus",
+						DisplayName:           models.ToNullString("test tester01"),
+						UserDistinguishedName: models.ToNullString("cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+						ResourceString:        models.ToNullString("user/cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester01"),
+					},
+				},
+			},
+			expectedModifiedAcm: `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"portion":"U//FOUO","share":{"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
+			expectedModifiedPermissions: []models.ODObjectPermission{
+				// originally in acm share
+				models.ODObjectPermission{
+					Grantee:     "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+					AcmShare:    fmt.Sprintf(`{"users":["%s"]}`, "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+					AllowCreate: false,
+					AllowRead:   true,
+					AllowUpdate: false,
+					AllowDelete: false,
+					AllowShare:  false,
+					AcmGrantee: models.ODAcmGrantee{
+						Grantee:               "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+						DisplayName:           models.ToNullString("test tester10"),
+						UserDistinguishedName: models.ToNullString("cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+						ResourceString:        models.ToNullString("user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"),
+					},
+				},
+				// owner cruds
+				models.ODObjectPermission{
+					Grantee:     "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+					AcmShare:    fmt.Sprintf(`{"users":["%s"]}`, "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+					AllowCreate: true,
+					AllowRead:   true,
+					AllowUpdate: true,
+					AllowDelete: true,
+					AllowShare:  true,
+					AcmGrantee: models.ODAcmGrantee{
+						Grantee:               "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+						DisplayName:           models.ToNullString("test tester10"),
+						UserDistinguishedName: models.ToNullString("cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+						ResourceString:        models.ToNullString("user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"),
+					},
+				},
+				// permissions created from initial acm share
+				models.ODObjectPermission{
+					Grantee:     "cntesttester01oupeopleoudaeouchimeraou_s_governmentcus",
+					AcmShare:    fmt.Sprintf(`{"users":["%s"]}`, "cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+					AllowCreate: true,
+					AllowRead:   true,
+					AllowUpdate: false,
+					AllowDelete: false,
+					AllowShare:  false,
+					AcmGrantee: models.ODAcmGrantee{
+						Grantee:               "cntesttester01oupeopleoudaeouchimeraou_s_governmentcus",
+						DisplayName:           models.ToNullString("test tester01"),
+						UserDistinguishedName: models.ToNullString("cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"),
+						ResourceString:        models.ToNullString("user/cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester01"),
+					},
+				},
+			},
+		},
+	)
+
+	for testIdx, subtest := range subtests {
+		t.Logf("Subtest %d: %s", testIdx, subtest.subtestname)
+		modifiedPermissions, modifiedAcm, err := aacAuth.NormalizePermissionsFromACM(subtest.owner, subtest.permissions, subtest.acm, subtest.creating)
+		// If expecting an error but didn't get one
+		if subtest.expectedIsError && err == nil {
+			subtest.failed = true
+			if subtest.expectedError != nil {
+				t.Logf("[x] Expected error (%s), got none", subtest.expectedError.Error())
+			} else {
+				t.Logf("[x] Expected error but got none")
+			}
+			t.Fail()
+			continue
+		}
+		// If expecting an error, but got a different one
+		if subtest.expectedIsError && err != nil && !strings.HasPrefix(err.Error(), subtest.expectedError.Error()) {
+			subtest.failed = true
+			t.Logf("[x] Expected error (%s) but got error (%s)", subtest.expectedError.Error(), err.Error())
+			t.Fail()
+			continue
+		}
+		// If not expecting an error, but got one
+		if !subtest.expectedIsError && err != nil {
+			subtest.failed = true
+			t.Logf("[x] Got an error %s", err.Error())
+			t.Fail()
+			continue
+		}
+		// If the result isnt what we expect
+		if subtest.expectedModifiedAcm != modifiedAcm {
+			subtest.failed = true
+			t.Logf("[x] Expected acm of %s but got %s for normalizing permissions from acm", subtest.expectedModifiedAcm, modifiedAcm)
+			t.Fail()
+			continue
+		}
+		for _, modifiedPermission := range modifiedPermissions {
+			modifiedPermissionInExpected := false
+			for _, expectedModifiedPermission := range subtest.expectedModifiedPermissions {
+				if modifiedPermission.IsDeleted == expectedModifiedPermission.IsDeleted {
+					if strings.ToLower(modifiedPermission.String()) == strings.ToLower(expectedModifiedPermission.String()) {
+						modifiedPermissionInExpected = true
+					}
+				}
+			}
+			if !modifiedPermissionInExpected {
+				subtest.failed = true
+				t.Logf("[x] Permission '%s' was not expected", modifiedPermission.String())
+				t.Logf("    Deleted? %t", modifiedPermission.IsDeleted)
+				t.Fail()
+			}
+		}
+		for _, expectedModifiedPermission := range subtest.expectedModifiedPermissions {
+			expectedFoundInModfied := false
+			for _, modifiedPermission := range modifiedPermissions {
+				if modifiedPermission.IsDeleted == expectedModifiedPermission.IsDeleted {
+					if strings.ToLower(modifiedPermission.String()) == strings.ToLower(expectedModifiedPermission.String()) {
+						expectedFoundInModfied = true
+					}
+				}
+			}
+			if !expectedFoundInModfied {
+				subtest.failed = true
+				t.Logf("[x] Permission '%s' was not found in modified list", expectedModifiedPermission.String())
+				t.Logf("    Deleted? %t", expectedModifiedPermission.IsDeleted)
+				t.Fail()
+			}
+		}
+		if !subtest.failed {
+			t.Logf("    Got expected results. Subtest passes")
+		}
 	}
 }
 

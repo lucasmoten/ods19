@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -308,7 +307,7 @@ func TestGetObject_500UsersAndObjectDoesNotExist(t *testing.T) {
 			req.Header.Add("USER_DN", userdn)
 			req.Header.Add("SSL_CLIENT_S_DN", twldn)
 			req.Header.Add("EXTERNAL_SYS_DN", twldn)
-			log.Printf("fetching object %s as %s", objectid, userdn)
+			t.Logf("fetching object %s as %s", objectid, userdn)
 			res, err := clients[server].Client.Do(req)
 			if err != nil {
 				t.Logf("error doing client request: %s", err.Error())
@@ -343,7 +342,7 @@ func TestGetObject_100UsersAndObjectDoesNotExistAsNewClient(t *testing.T) {
 			req.Header.Add("USER_DN", userdn)
 			req.Header.Add("SSL_CLIENT_S_DN", twldn)
 			req.Header.Add("EXTERNAL_SYS_DN", twldn)
-			log.Printf("fetching object %s as %s", objectid, userdn)
+			t.Logf("fetching object %s as %s", objectid, userdn)
 
 			newTransport := &http.Transport{TLSClientConfig: clients[server].Config}
 			newClient := &http.Client{Transport: newTransport}
