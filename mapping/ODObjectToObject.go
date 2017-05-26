@@ -350,6 +350,13 @@ func OverwriteODObjectWithUpdateObjectAndStreamRequest(o *models.ODObject, i *pr
 			idx = idx + 1
 		}
 		o.Permissions = combinedPermissions
+	} else {
+		if len(parsedACM) > 0 {
+			// Mark existing as deleted, acm overrides
+			for idx := range o.Permissions {
+				o.Permissions[idx].IsDeleted = true
+			}
+		}
 	}
 
 	if len(i.ContentType) > 0 {

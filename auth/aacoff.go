@@ -274,7 +274,7 @@ func aacNormalizePermissionsFromACM(logger zap.Logger, objectOwner string, permi
 	}
 	shareInterface := acmMap[acmShareKey]
 	var sharePermissions []models.ODObjectPermission
-	// TODO: Consider moving MapObjectShareToODPermissions into this pacakge, and resolve protocl.ObjectShare in the process
+	// TODO: Consider moving MapObjectShareToODPermissions into this package, and resolve protocol.ObjectShare in the process
 	sharePermissions, err = mapping.MapObjectShareToODPermissions(&protocol.ObjectShare{AllowRead: true, Share: shareInterface})
 	if err != nil {
 		return nil, "", fmt.Errorf("%s error converting acm to permissions %s", ErrFailToNormalizePermissions.Error(), err.Error())
@@ -287,6 +287,7 @@ func aacNormalizePermissionsFromACM(logger zap.Logger, objectOwner string, permi
 	// Everyone tracking
 	acmSaysEveryone := len(sharePermissions) == 0
 	hasEveryone := false
+	hasExplicitPermissions := len(permissions) > 0
 	for _, permission := range permissions {
 		if !permission.IsDeleted && permission.AllowRead && aacIsPermissionFor(permission, models.EveryoneGroup) {
 			hasEveryone = true
@@ -294,7 +295,8 @@ func aacNormalizePermissionsFromACM(logger zap.Logger, objectOwner string, permi
 				permission.IsDeleted = true
 			}
 		}
-		if !permission.IsDeleted || !isCreating {
+		//if !permission.IsDeleted || !isCreating {
+		if !permission.IsDeleted || !permission.IsCreating() {
 			modifiedPermissions = append(modifiedPermissions, permission)
 		}
 	}
@@ -307,10 +309,10 @@ func aacNormalizePermissionsFromACM(logger zap.Logger, objectOwner string, permi
 	ownerCRUDS, _ := models.PermissionForOwner(objectOwner)
 	modifiedPermissions = append(modifiedPermissions, ownerCRUDS)
 	sharePermissions = append(sharePermissions, ownerCRUDS)
-
 	// Adjustments if has everyone, or not found in share
 	for i := len(modifiedPermissions) - 1; i >= 0; i-- {
 		permission := modifiedPermissions[i]
+
 		// Identify whether permission is referenced in share
 		foundInShare := false
 		for _, sharePermission := range sharePermissions {
@@ -319,8 +321,9 @@ func aacNormalizePermissionsFromACM(logger zap.Logger, objectOwner string, permi
 				break
 			}
 		}
+
 		// Alter or recreate permissions if has everyone
-		if (!foundInShare || acmSaysEveryone) && !permission.IsDeleted && permission.AllowRead && !aacIsPermissionFor(permission, models.EveryoneGroup) {
+		if ((!hasExplicitPermissions && !foundInShare) || acmSaysEveryone) && !permission.IsDeleted && permission.AllowRead && !aacIsPermissionFor(permission, models.EveryoneGroup) {
 			replacementPermission := models.PermissionWithoutRead(permission)
 			permission.IsDeleted = true
 			modifiedPermissions[i] = permission
