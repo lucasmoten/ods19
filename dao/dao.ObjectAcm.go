@@ -362,16 +362,7 @@ func getOverallFlattenedACM(acmMap map[string]interface{}) string {
 			}
 			// sort the values
 			sort.Strings(alphaAcmValues)
-			// iterate values to append them to the flattened acm
-			for av2, acmValue := range alphaAcmValues {
-				if av2 <= av {
-					// comma delimit the values
-					if av2 > 0 {
-						flattenedACM += ","
-					}
-					flattenedACM += acmValue
-				}
-			}
+			flattenedACM += strings.Join(alphaAcmValues, ",")
 		}
 	}
 

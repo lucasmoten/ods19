@@ -428,7 +428,7 @@ func TestAACAuthNormalizePermissionsFromACM(t *testing.T) {
 					},
 				},
 			},
-			expectedModifiedAcm: `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"portion":"U//FOUO","share":{"users":["cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
+			expectedModifiedAcm: `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":["cntesttester01oupeopleoudaeouchimeraou_s_governmentcus","cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"],"portion":"U//FOUO","share":{"projects":null,"users":["cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
 			expectedModifiedPermissions: []models.ODObjectPermission{
 				models.ODObjectPermission{
 					Grantee:     "cntesttester01oupeopleoudaeouchimeraou_s_governmentcus",
@@ -485,7 +485,7 @@ func TestAACAuthNormalizePermissionsFromACM(t *testing.T) {
 					},
 				},
 			},
-			expectedModifiedAcm: `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"portion":"U//FOUO","version":"2.1.0"}`,
+			expectedModifiedAcm: `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":[],"portion":"U//FOUO","version":"2.1.0"}`,
 			expectedModifiedPermissions: []models.ODObjectPermission{
 				models.ODObjectPermission{
 					Grantee:     "_everyone",
@@ -542,7 +542,7 @@ func TestAACAuthNormalizePermissionsFromACM(t *testing.T) {
 			creating:            false,
 			owner:               "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
 			acm:                 `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"portion":"U//FOUO","share":{"projects":{"dctc":{"disp_nm":"DCTC","groups":["ODrive"]}}},"version":"2.1.0"}`,
-			expectedModifiedAcm: `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"portion":"U//FOUO","share":{"projects":{"dctc":{"disp_nm":"dctc","groups":["odrive"]}},"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
+			expectedModifiedAcm: `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":["cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","dctc_odrive"],"portion":"U//FOUO","share":{"projects":{"dctc":{"disp_nm":"dctc","groups":["odrive"]}},"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
 			expectedModifiedPermissions: []models.ODObjectPermission{
 				models.ODObjectPermission{
 					Grantee:     "dctc_odrive",
@@ -600,7 +600,7 @@ func TestAACAuthNormalizePermissionsFromACM(t *testing.T) {
 					},
 				},
 			},
-			expectedModifiedAcm: `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"portion":"U//FOUO","share":{"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
+			expectedModifiedAcm: `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":["cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","cntesttester01oupeopleoudaeouchimeraou_s_governmentcus"],"portion":"U//FOUO","share":{"projects":null,"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
 			expectedModifiedPermissions: []models.ODObjectPermission{
 				// originally in acm share
 				models.ODObjectPermission{

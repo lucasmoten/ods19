@@ -8,6 +8,7 @@ import (
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/services/aac"
+	"decipher.com/object-drive-server/utils"
 	"github.com/uber-go/zap"
 )
 
@@ -203,7 +204,23 @@ func (aac *AACAuth) IsUserOwner(userIdentity string, resourceStrings []string, o
 
 // NormalizePermissionsFromACM for AACAuth
 func (aac *AACAuth) NormalizePermissionsFromACM(objectOwner string, permissions []models.ODObjectPermission, acm string, isCreating bool) ([]models.ODObjectPermission, string, error) {
-	return aacNormalizePermissionsFromACM(aac.Logger, objectOwner, permissions, acm, isCreating)
+	modifiedPermissions, modifiedACM, err := aacNormalizePermissionsFromACM(aac.Logger, objectOwner, permissions, acm, isCreating)
+	// Service call for flattening populates f_* values
+	modifiedACM, _, err = aac.GetFlattenedACM(modifiedACM)
+	if err != nil {
+		return modifiedPermissions, modifiedACM, err // fmt.Errorf("%v %s", err, strings.Join(msgs, "/"))
+	}
+	// Since AAC returns in its own order, we need to re-sort by keys for consistency
+	acmMap, err := utils.UnmarshalStringToMap(modifiedACM)
+	if err != nil {
+		return modifiedPermissions, modifiedACM, fmt.Errorf("%s unmarshal error %s", ErrFailToRebuildACMFromPermissions, err.Error())
+	}
+	modifiedACM, err = utils.MarshalInterfaceToString(acmMap)
+	if err != nil {
+		return modifiedPermissions, modifiedACM, fmt.Errorf("%s marshal error %s", ErrFailToRebuildACMFromPermissions, err.Error())
+	}
+	// Done
+	return modifiedPermissions, modifiedACM, err
 }
 
 // RebuildACMFromPermissions for AACAuth

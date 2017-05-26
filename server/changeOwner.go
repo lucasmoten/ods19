@@ -166,12 +166,6 @@ func (h AppServer) changeOwnerRecursive(ctx context.Context, newOwner string, id
 				logger.Error("cannot inject permissions into child object", zap.Object("err", err))
 				continue
 			}
-			modifiedACM, _, err = aacAuth.GetFlattenedACM(modifiedACM)
-			if err != nil {
-				logger.Error("error calling GetFlattenedACM", zap.Object("err", err))
-				continue
-			}
-			child.RawAcm = models.ToNullString(modifiedACM)
 			modifiedPermissions, modifiedACM, err := aacAuth.NormalizePermissionsFromACM(child.OwnedBy.String, child.Permissions, modifiedACM, false)
 			if err != nil {
 				logger.Error("error calling NormalizePermissionsFromACM", zap.Object("err", err))
@@ -287,17 +281,11 @@ func changeOwnerRaw(
 		// Inject into ACM and Rebuild
 		modifiedACM, err := aacAuth.InjectPermissionsIntoACM(dbObject.Permissions, dbObject.RawAcm.String)
 		if err != nil {
-			return nil, NewAppError(500, err, "Error injecting permission for new owner")
+			return nil, NewAppError(authHTTPErr(err), err, "Error injecting permission for new owner")
 		}
-		var msgs []string
-		modifiedACM, msgs, err = aacAuth.GetFlattenedACM(modifiedACM)
-		if err != nil {
-			return nil, NewAppError(authHTTPErr(err), err, err.Error()+strings.Join(msgs, "/"))
-		}
-		dbObject.RawAcm = models.ToNullString(modifiedACM)
 		modifiedPermissions, modifiedACM, err := aacAuth.NormalizePermissionsFromACM(dbObject.OwnedBy.String, dbObject.Permissions, modifiedACM, dbObject.IsCreating())
 		if err != nil {
-			return nil, NewAppError(500, err, err.Error())
+			return nil, NewAppError(authHTTPErr(err), err, err.Error())
 		}
 		dbObject.RawAcm = models.ToNullString(modifiedACM)
 		dbObject.Permissions = modifiedPermissions

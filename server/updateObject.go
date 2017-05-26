@@ -157,17 +157,9 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		requestObject.Permissions = combinedPermissions
 	}
 
-	flattenedACM, msgs, err := aacAuth.GetFlattenedACM(requestObject.RawAcm.String)
-	if err != nil {
-		herr := NewAppError(authHTTPErr(err), err, err.Error()+strings.Join(msgs, "/"))
-		h.publishError(gem, herr)
-		return herr
-
-	}
-	requestObject.RawAcm = models.ToNullString(flattenedACM)
 	modifiedPermissions, modifiedACM, err := aacAuth.NormalizePermissionsFromACM(requestObject.OwnedBy.String, requestObject.Permissions, requestObject.RawAcm.String, requestObject.IsCreating())
 	if err != nil {
-		herr := NewAppError(500, err, err.Error())
+		herr := NewAppError(authHTTPErr(err), err, err.Error())
 		h.publishError(gem, herr)
 		return herr
 
