@@ -107,21 +107,14 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	modifiedACM, err := aacAuth.InjectPermissionsIntoACM(obj.Permissions, obj.RawAcm.String)
 	if err != nil {
-		herr := NewAppError(500, err, "Error injecting provided permissions")
-		h.publishError(gem, herr)
-		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
-	}
-	var msgs []string
-	modifiedACM, msgs, err = aacAuth.GetFlattenedACM(modifiedACM)
-	if err != nil {
-		herr = NewAppError(authHTTPErr(err), err, err.Error()+strings.Join(msgs, "/"))
+		herr := NewAppError(authHTTPErr(err), err, "Error injecting provided permissions")
 		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
 	obj.RawAcm = models.ToNullString(modifiedACM)
 	modifiedPermissions, modifiedACM, err := aacAuth.NormalizePermissionsFromACM(obj.OwnedBy.String, obj.Permissions, modifiedACM, obj.IsCreating())
 	if err != nil {
-		herr = NewAppError(500, err, err.Error())
+		herr = NewAppError(authHTTPErr(err), err, err.Error())
 		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}

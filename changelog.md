@@ -10,7 +10,8 @@ FORMAT: 1A
 * ENH: Allow recursive application of updates to object sharing and permissions.
 * FIX: Normalization of Permissions and ACM having permissions with grantees not declared in acm share will now retain read access. (Seen when creating objects)
 * FIX: Updating object with acm and no permissions will remove existing permissions with grantees not present in revised acm
-* ENH: Updating object without acm but with permissions will merge provided permissions to existing acm.
+* FIX: Updating object without acm but with permissions will merge provided permissions to existing acm.
+* FIX: Flatten resulting ACM after Normalizing Permissions and ACM to ensure f_* keys can be joined appropriately.
 
 ## Release v1.0.1.24
 --------------------

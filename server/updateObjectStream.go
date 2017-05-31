@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/http"
-	"strings"
 
 	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/ciphertext"
@@ -111,18 +110,9 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 		return herr
 	}
 	masterKey := dp.GetMasterKey()
-	var msgs []string
-	modifiedACM := dbObject.RawAcm.String
-	modifiedACM, msgs, err = aacAuth.GetFlattenedACM(modifiedACM)
-	if err != nil {
-		herr = NewAppError(authHTTPErr(err), err, err.Error()+strings.Join(msgs, "/"))
-		h.publishError(gem, herr)
-		return abortUploadObject(logger, dp, &dbObject, true, herr)
-	}
-	dbObject.RawAcm = models.ToNullString(modifiedACM)
 	modifiedPermissions, modifiedACM, err := aacAuth.NormalizePermissionsFromACM(dbObject.OwnedBy.String, dbObject.Permissions, dbObject.RawAcm.String, dbObject.IsCreating())
 	if err != nil {
-		herr = NewAppError(500, err, err.Error())
+		herr = NewAppError(authHTTPErr(err), err, err.Error())
 		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}

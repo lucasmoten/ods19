@@ -335,7 +335,7 @@ func TestCreateWithCantFlattenACM(t *testing.T) {
 	t.Logf("check response")
 	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 400, res, "Bad status when creating object")
-	messageMustContain(t, res, "No markings provided to format")
+	messageMustContain(t, res, "acm not valid")
 }
 
 // TestCreateWithPermissions creates an object as Tester10, and includes a
