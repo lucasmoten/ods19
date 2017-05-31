@@ -5,13 +5,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"os"
+	"path"
+	"strconv"
+	"sync"
+	"time"
 
 	yaml "gopkg.in/yaml.v2"
 
 	"decipher.com/object-drive-server/client"
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/util"
 	"github.com/deciphernow/gov-go/testcerts"
 
 	"github.com/urfave/cli"
@@ -29,9 +35,32 @@ func main() {
 		Usage: "Path to yaml config",
 	}
 
+	testerFlag := cli.StringFlag{
+		Name:  "tester",
+		Value: "10",
+		Usage: "tester credentials to use for connection",
+	}
+
 	jsonFlag := cli.BoolFlag{
 		Name:  "json",
 		Usage: "print all responses as formatted JSON",
+	}
+
+	yamlFlag := cli.BoolFlag{
+		Name:  "yaml",
+		Usage: "print all responses as formatted YAML",
+	}
+
+	queueFlag := cli.IntFlag{
+		Name:  "queue",
+		Value: 1000,
+		Usage: "queue size in threaded upload",
+	}
+
+	threadFlag := cli.IntFlag{
+		Name:  "threads",
+		Value: 64,
+		Usage: "number of threads to use in upload",
 	}
 
 	app.Commands = []cli.Command{
@@ -45,7 +74,7 @@ func main() {
 					Trust:      "/path/to/client.trust.pem",
 					Key:        "/path/to/test.key.pem",
 					SkipVerify: true,
-					Remote:     "https://url.to.odrive",
+					Remote:     "https://host:port/path/to/service",
 				}
 
 				fmt.Println("# Example configuration file for odrive")
@@ -56,18 +85,20 @@ func main() {
 		},
 		{
 			Name:  "test-connection",
-			Usage: "establish connection to odrive and check for erros",
-			Flags: []cli.Flag{confFlag},
+			Usage: "establish connection to odrive and check for errors",
+			Flags: []cli.Flag{confFlag, testerFlag},
 			Action: func(clictx *cli.Context) error {
 
-				conf, err := gatherConf(clictx.String("conf"))
+				conf, err := gatherConf(clictx.String("conf"), clictx.String("tester"))
 				if err != nil {
 					log.Println(err)
+					return err
 				}
 
 				c, err := client.NewClient(conf)
 				if err != nil {
 					log.Println("could not establish connection", err)
+					return err
 				}
 
 				log.Println("connection established successfully", c)
@@ -77,31 +108,41 @@ func main() {
 		{
 			Name:  "upload",
 			Usage: "upload file to odrive",
-			Flags: []cli.Flag{confFlag, jsonFlag},
+			Flags: []cli.Flag{confFlag, jsonFlag, yamlFlag, testerFlag},
 			Action: func(clictx *cli.Context) error {
-				conf, err := gatherConf(clictx.String("conf"))
+				tester, err := parseTesterString(clictx.String("tester"))
+				if err != nil {
+					return err
+				}
+
+				conf, err := gatherConf(clictx.String("conf"), clictx.String("tester"))
 				if err != nil {
 					log.Println(err)
+					return err
 				}
 
 				c, err := client.NewClient(conf)
 				if err != nil {
-					log.Println("Could not establish connection", err)
+					log.Println("could not establish connection", err)
+					return err
 				}
 
 				var permissions = protocol.Permission{
 					Read: protocol.PermissionCapability{
-						AllowedResources: []string{"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"},
+						AllowedResources: []string{fmt.Sprintf("user/cn=test tester%s,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester%s", tester, tester)},
 					}}
 
 				for _, fileName := range clictx.Args() {
-					fmt.Printf("uploading %s...", fileName)
+					if !(clictx.Bool("json") || clictx.Bool("yaml")) {
+						fmt.Printf("uploading %s...", fileName)
+					}
+
 					var obj = protocol.CreateObjectRequest{
 						TypeName:   "File",
 						Name:       fileName,
-						RawAcm:     `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
+						RawAcm:     `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"]}`,
 						Permission: permissions,
-						OwnedBy:    "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+						OwnedBy:    fmt.Sprintf("user/cn=test tester%s,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us", tester),
 					}
 
 					fReader, err := os.Open(fileName)
@@ -113,14 +154,116 @@ func main() {
 						log.Println("create error: ", err)
 					}
 
-					fmt.Println("done")
-
 					if clictx.Bool("json") {
 						prettyPrint(newObj, "json")
+					} else if clictx.Bool("yaml") {
+						prettyPrint(newObj, "yaml")
+					} else {
+						fmt.Println("done")
 					}
 
 				}
 
+				return nil
+			},
+		},
+		{
+			Name:  "test-fill",
+			Usage: "upload a sample of random files and directories to the server",
+			Flags: []cli.Flag{confFlag, jsonFlag, yamlFlag, testerFlag, queueFlag, threadFlag},
+			Action: func(clictx *cli.Context) error {
+
+				tester, err := parseTesterString(clictx.String("tester"))
+				if err != nil {
+					return err
+				}
+
+				// Default to 10 items, parsing the first numerical argument if supplied
+				// by the user.
+				nFiles := 10
+				if len(clictx.Args()) > 0 {
+					nArg, err := strconv.Atoi(clictx.Args()[0])
+					if err != nil {
+						fmt.Println("argument counldn't parse to int:", clictx.Args()[0])
+						return err
+					}
+					nFiles = nArg
+				}
+
+				rand.Seed(time.Now().Unix())
+
+				conf, err := gatherConf(clictx.String("conf"), clictx.String("tester"))
+				if err != nil {
+					log.Println(err)
+					return err
+				}
+
+				c, err := client.NewClient(conf)
+				if err != nil {
+					log.Println("could not establish connection", err)
+					return err
+				}
+
+				var permissions = protocol.Permission{
+					Read: protocol.PermissionCapability{
+						AllowedResources: []string{fmt.Sprintf("user/cn=test tester%s,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester%s", tester, tester)},
+					}}
+
+				fillFile := func() {
+					fReader := randomFile()
+					fakePath := randomPath()
+
+					fullName := path.Join(fakePath, fReader.Name())
+
+					var obj = protocol.CreateObjectRequest{
+						TypeName:          "File",
+						Name:              fullName,
+						NamePathDelimiter: "/",
+						RawAcm:            `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"]}`,
+						Permission:        permissions,
+						OwnedBy:           fmt.Sprintf("user/cn=test tester%s,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us", tester),
+					}
+
+					newObj, err := c.CreateObject(obj, fReader)
+					if err != nil {
+						log.Println("error on create: ", err)
+						return
+					}
+					fReader.Close()
+
+					if clictx.Bool("json") {
+						prettyPrint(newObj, "json")
+					} else if clictx.Bool("yaml") {
+						prettyPrint(newObj, "yaml")
+					} else {
+						fmt.Printf("uploaded: %s\n", fReader.Name())
+					}
+
+					os.RemoveAll(fReader.Name())
+				}
+
+				// Fill a queue with tasks (could be much larger than the tasks queue)
+				tasks := make(chan bool, clictx.Int("queue"))
+				go func() {
+					for i := 0; i < nFiles; i++ {
+						tasks <- true
+					}
+					close(tasks)
+				}()
+
+				// Spawn nThreads to deal with nFiles tasks
+				nThreads := clictx.Int("threads")
+				wg := &sync.WaitGroup{}
+				wg.Add(nThreads)
+				for i := 0; i < nThreads; i++ {
+					go func() {
+						defer wg.Done()
+						for _ = range tasks {
+							fillFile()
+						}
+					}()
+				}
+				wg.Wait()
 				return nil
 			},
 		},
@@ -130,6 +273,10 @@ func main() {
 	app.Flags = []cli.Flag{
 		confFlag,
 		jsonFlag,
+		yamlFlag,
+		testerFlag,
+		queueFlag,
+		threadFlag,
 	}
 
 	// There is no "default" command.  Print help and exit.
@@ -145,50 +292,56 @@ func main() {
 // Calling gatherConf with a blank string invokes hard-coded default values and
 // certificates, while calling with a named YAML file will load the given values.
 // If a YAML file is specified, ALL values must be set.
-func gatherConf(confFile string) (client.Config, error) {
+func gatherConf(confFile string, testerN string) (client.Config, error) {
 	conf := client.Config{}
+	i, err := strconv.Atoi(testerN)
+	if i == 10 {
+		i = 0
+	}
+	testerString := strconv.Itoa(i)
 
-	if confFile == "" {
-		// Get defaults from gov-go binary assets
+	// Get defaults from gov-go binary assets
 
-		// Retrieve Cert
-		certContent, err := testcerts.Asset("testcerts/test_0.cert.pem")
-		if err != nil {
-			log.Println(err)
-		}
-		certFile, err := writeContents(certContent)
-		if err != nil {
-			log.Println(err)
-		}
-		conf.Cert = certFile
+	// Retrieve Cert
+	certContent, err := testcerts.Asset(fmt.Sprintf("testcerts/test_%s.cert.pem", testerString))
+	if err != nil {
+		log.Println(err)
+	}
+	certFile, err := writeContents(certContent)
+	if err != nil {
+		log.Println(err)
+	}
+	conf.Cert = certFile
 
-		// Retrieve Key
-		keyContents, err := testcerts.Asset("testcerts/test_0.key.pem")
-		if err != nil {
-			log.Println(err)
-		}
-		keyFile, err := writeContents(keyContents)
-		if err != nil {
-			log.Println(err)
-		}
-		conf.Key = keyFile
+	// Retrieve Key
+	keyContents, err := testcerts.Asset(fmt.Sprintf("testcerts/test_%s.key.pem", testerString))
+	if err != nil {
+		log.Println(err)
+	}
+	keyFile, err := writeContents(keyContents)
+	if err != nil {
+		log.Println(err)
+	}
+	conf.Key = keyFile
 
-		// Retrieve Trust
-		trustContents, err := testcerts.Asset("testcerts/client.trust.pem")
-		if err != nil {
-			log.Println(err)
-		}
-		trustFile, err := writeContents(trustContents)
-		if err != nil {
-			log.Println(err)
-		}
-		conf.Trust = trustFile
+	// Retrieve Trust
+	trustContents, err := testcerts.Asset("testcerts/client.trust.pem")
+	if err != nil {
+		log.Println(err)
+	}
+	trustFile, err := writeContents(trustContents)
+	if err != nil {
+		log.Println(err)
+	}
+	conf.Trust = trustFile
 
-		// Set remaining defaults
-		conf.SkipVerify = true
-		conf.Remote = fmt.Sprintf("https://%s:%s/services/object-drive/1.0", config.DockerVM, config.Port)
+	// Set remaining defaults
+	conf.SkipVerify = true
+	conf.Remote = fmt.Sprintf("https://%s:%s/services/object-drive/1.0", config.DockerVM, config.Port)
 
-	} else {
+	// Override supplied values
+	if confFile != "" {
+		log.Println("overriding defaults from ", confFile)
 		// Parse the conf-file
 		yamlFile, err := ioutil.ReadFile(confFile)
 		if err != nil {
@@ -244,4 +397,63 @@ func prettyPrint(v interface{}, format string) {
 	}
 
 	fmt.Println(string(b))
+}
+
+// randomPath creates a random string representing a valid path of directories.
+func randomPath() string {
+	randomName := func(name string) string {
+		s, _ := util.NewGUID()
+		return name + s
+	}
+
+	baseDir := "./"
+	depth := rand.Intn(4)
+
+	for i := 0; i < depth; i++ {
+		baseDir = baseDir + randomName("child") + "/"
+	}
+
+	return baseDir
+}
+
+// randomFile opens a randomely named local file and appends a random
+// body of characters into it.
+func randomFile() *os.File {
+	newFile, err := ioutil.TempFile("./", "testFile_")
+	if err != nil {
+		fmt.Println("Error writing temporary file", err)
+	}
+
+	body := randBody(rand.Intn(50))
+	newFile.WriteString(body)
+
+	return newFile
+}
+
+// randBody creates a random string of length n.
+func randBody(n int) string {
+	var letters = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
+// parseTesterString translates a numerical string into the needed
+// value to use as testerXX in sending and recieving data from odrive.
+func parseTesterString(tester string) (string, error) {
+	i, err := strconv.Atoi(tester)
+	if err != nil {
+		return "", err
+	}
+	testerString := strconv.Itoa(i)
+
+	if i < 10 {
+		testerString = "0" + testerString
+	}
+
+	return testerString, nil
+
 }

@@ -8,6 +8,7 @@ FORMAT: 1A
 * ENH: allow impersonating requests in the client library with new config field "Impersonation"
 * REF: Performance improvements for #409 are always enabled and no longer toggleable. OD_OPTION_409 no longer needs to be set.
 * ENH: Allow recursive application of updates to object sharing and permissions.
+* ENH: Add testing features to odrive-test-cli: upload random datasuits, specify tester creds, override partial configs.
 * FIX: Normalization of Permissions and ACM having permissions with grantees not declared in acm share will now retain read access. (Seen when creating objects)
 * FIX: Updating object with acm and no permissions will remove existing permissions with grantees not present in revised acm
 * FIX: Updating object without acm but with permissions will merge provided permissions to existing acm.
