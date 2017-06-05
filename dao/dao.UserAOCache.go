@@ -460,42 +460,24 @@ type acmkv struct {
 }
 
 func insertAssociationOfACMToModifiedByIfValid(dao *DataAccessLayer, object models.ODObject) error {
-	var users []models.ODUser
-	var stmt *sqlx.Stmt
-	var err error
-	var sql string
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		return err
 	}
-	sql, err = buildUsersValidForACMByIDSQL(tx, object.ACMID)
+	// Get user id for the modifier of the object
+	user := models.ODUser{DistinguishedName: object.ModifiedBy}
+	user, err = getUserByDistinguishedNameInTransaction(tx, user)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	// tack on the user
-	sql += " and u.distinguishedName = '" + MySQLSafeString(object.ModifiedBy) + "'"
-
-	if stmt, err = tx.Preparex(sql); err != nil {
+	// Join to ACM. User permission to this acm was previously validated
+	if err = insertUserACM(tx, user, object.ACMID); err != nil {
 		tx.Rollback()
 		return err
 	}
-	if err = stmt.Select(&users); err != nil {
-		tx.Rollback()
-		return err
-	}
-	if len(users) == 1 {
-		user := models.ODUser{}
-		user.ID = users[0].ID
-		if err = insertUserACM(tx, user, object.ACMID); err != nil {
-			tx.Rollback()
-			return err
-		}
-		tx.Commit()
-		return nil
-	}
-	tx.Rollback()
-	return fmt.Errorf("expected one user for associating to acm, got %d", len(users))
+	tx.Commit()
+	return nil
 }
 
 func getUsersValidForACMByID(tx *sqlx.Tx, acmID int64) ([]models.ODUser, error) {
