@@ -7,9 +7,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tidwall/gjson"
+
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
+	"decipher.com/object-drive-server/utils"
 )
 
 func TestUpdateObjectShareRecursive(t *testing.T) {
@@ -39,36 +42,36 @@ func TestUpdateObjectShareRecursive(t *testing.T) {
 		{
 			0, // creator
 			0, // sharer
-			1, // requester
+			2, // requester
 			protocol.Permission{ // updated permissions. None are passed at first.
 				Create: protocol.PermissionCapability{
 					AllowedResources: []string{
-						"user/" + fakeDN1 + "/test tester01",
+						"user/" + fakeDN1 + "/test tester02",
 					},
 				},
 				Read: protocol.PermissionCapability{
 					AllowedResources: []string{
-						"user/" + fakeDN1 + "/test tester01",
+						"user/" + fakeDN1 + "/test tester02",
 					},
 				},
 				Update: protocol.PermissionCapability{
 					AllowedResources: []string{
-						"user/" + fakeDN1 + "/test tester01",
+						"user/" + fakeDN1 + "/test tester02",
 					},
 				},
 				Delete: protocol.PermissionCapability{
 					AllowedResources: []string{
-						"user/" + fakeDN1 + "/test tester01",
+						"user/" + fakeDN1 + "/test tester02",
 					},
 				},
 				Share: protocol.PermissionCapability{
 					AllowedResources: []string{
-						"user/" + fakeDN1 + "/test tester01",
+						"user/" + fakeDN1 + "/test tester02",
 					},
 				},
 			},
-			testhelpers.ValidACMUnclassifiedFOUOSharedToTester10,      // initial acm
-			testhelpers.ValidACMUnclassifiedFOUOSharedToTester01And02, // updated acm
+			`{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"portion":"U//FOUO","share":{"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
+			`{"banner":"SECRET//NF","classif":"S","dissem_countries":["USA"],"dissem_ctrls":["NF"],"portion":"S//NF","share":{"users":["cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
 		},
 	}
 
@@ -88,6 +91,18 @@ func TestUpdateObjectShareRecursive(t *testing.T) {
 		if err != nil {
 			t.Errorf("create failed for creator %v: %v", c.requester, err)
 		}
+		child3Acm, err := utils.MarshalInterfaceToString(child3Obj.RawAcm)
+		if err != nil {
+			t.Errorf("unable to convert acm")
+		}
+		child3classif := gjson.Get(child3Acm, "classif")
+		if !child3classif.Exists() {
+			t.Errorf("acm for child3 does not have classif")
+		}
+		child3fShare := gjson.Get(child3Acm, "f_share")
+		if !child3fShare.Exists() {
+			t.Errorf("acm for child3 does not have f_share")
+		}
 		// get the parentid of the parentid
 		child2Obj, err := clients[c.creator].C.GetObject(child3Obj.ParentID)
 		if err != nil {
@@ -106,9 +121,19 @@ func TestUpdateObjectShareRecursive(t *testing.T) {
 			RawAcm:         c.updatedACM,
 		}
 		clients[c.sharer].C.Verbose = testing.Verbose()
-		_, err = clients[c.sharer].C.UpdateObject(uor)
+		child1Updated, err := clients[c.sharer].C.UpdateObject(uor)
 		if err != nil {
 			t.Errorf("error updating object: %v", err)
+			t.FailNow()
+		}
+		child1UpdatedAcm, err := utils.MarshalInterfaceToString(child1Updated.RawAcm)
+		if err != nil {
+			t.Errorf("unable to convert acm for updated child1")
+			t.FailNow()
+		}
+		child1UpdatedfShare := gjson.Get(child1UpdatedAcm, "f_share")
+		if !child1UpdatedfShare.Exists() {
+			t.Error("acm for child1 updated does not have f_share")
 			t.FailNow()
 		}
 
@@ -123,7 +148,7 @@ func TestUpdateObjectShareRecursive(t *testing.T) {
 		tries := 0
 		for {
 			// We must retry because this is an async operation on the server.
-			_, err := clients[c.requester].C.GetObject(child3Obj.ID)
+			child3Updated, err := clients[c.requester].C.GetObject(child3Obj.ID)
 			if err != nil {
 				if tries < 50 {
 					tries++
@@ -134,6 +159,65 @@ func TestUpdateObjectShareRecursive(t *testing.T) {
 				t.Errorf("GetObject should succeed for tester1 on child3: %v", err)
 				t.FailNow()
 			}
+			child3UpdatedAcm, err := utils.MarshalInterfaceToString(child3Updated.RawAcm)
+			if err != nil {
+				t.Errorf("unable to convert acm for updated child 3")
+				t.FailNow()
+			}
+			child3Updatedclassif := gjson.Get(child3UpdatedAcm, "classif")
+			if !child3Updatedclassif.Exists() {
+				t.Error("acm for child3 updated does not have classif")
+				t.FailNow()
+			}
+			child3UpdatedfShare := gjson.Get(child3UpdatedAcm, "f_share")
+			if !child3UpdatedfShare.Exists() {
+				t.Error("acm for child3 updated does not have f_share")
+				t.FailNow()
+			}
+			if child3classif.Str != child3Updatedclassif.Str {
+				t.Errorf("classification for child3 changed from %s to %s", child3classif, child3Updatedclassif)
+				t.FailNow()
+			}
+			if child3UpdatedfShare == child3fShare {
+				t.Error("expected f_share for child3 to change")
+				t.FailNow()
+			}
+			// verify all f_share in child3 are found in child1
+			child3UpdatedfShare.ForEach(func(key, value gjson.Result) bool {
+				child3fShareVal := value.String()
+				found := false
+				child1UpdatedfShare.ForEach(func(key, value gjson.Result) bool {
+					child1fShareVal := value.String()
+					if child1fShareVal == child3fShareVal {
+						found = true
+						return false
+					}
+					return true
+				})
+				if !found {
+					t.Errorf("expected f_share value %s from child3 to be found in child1 but it was not", child3fShareVal)
+					t.FailNow()
+				}
+				return true
+			})
+			// verify all f_share in child1 are found in child3
+			child1UpdatedfShare.ForEach(func(key, value gjson.Result) bool {
+				child1fShareVal := value.String()
+				found := false
+				child3UpdatedfShare.ForEach(func(key, value gjson.Result) bool {
+					child3fShareVal := value.String()
+					if child3fShareVal == child1fShareVal {
+						found = true
+						return false
+					}
+					return true
+				})
+				if !found {
+					t.Errorf("expected f_share value %s from child1 to be found in child3 but it was not", child1fShareVal)
+					t.FailNow()
+				}
+				return true
+			})
 			break
 		}
 	}
