@@ -683,19 +683,19 @@ func createAcmValueInTransaction(tx *sqlx.Tx, theType *models.ODAcmValue) (model
 	return dbType, nil
 }
 
-func setObjectACM2ForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) error {
+func setObjectACM2ForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) (bool, error) {
 	acmInterface, err := utils.UnmarshalStringToInterface(object.RawAcm.String)
 	if err != nil {
-		return err
+		return false, err
 	}
 	acmMap, ok := acmInterface.(map[string]interface{})
 	if !ok {
-		return fmt.Errorf("Unable to convert ACM to map")
+		return false, fmt.Errorf("Unable to convert ACM to map")
 	}
 	overallFlattenedACM := getOverallFlattenedACM(acmMap)
 	acm, acmCreated, err := getAcm2ByNameInTransaction(tx, overallFlattenedACM, true)
 	if err != nil {
-		return err
+		return false, err
 	}
 	object.ACMID = acm.ID
 
@@ -708,7 +708,7 @@ func setObjectACM2ForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) e
 				// Get Id for this Key, adding if Necessary
 				acmKey, err := getAcmKey2ByNameInTransaction(tx, acmKeyName, true)
 				if err != nil {
-					return err
+					return false, err
 				}
 				// Convert values to a string array
 				var acmValues []string
@@ -742,19 +742,19 @@ func setObjectACM2ForObjectInTransaction(tx *sqlx.Tx, object *models.ODObject) e
 					// Get Id for this Value, adding if Necessary
 					acmValue, err := getAcmValue2ByNameInTransaction(tx, acmValueName, true)
 					if err != nil {
-						return err
+						return false, err
 					}
 					// Insert relationship of acm key and value as an acm part on the acm
 					err = createAcmPart2ForACMInTransaction(tx, acm, acmKey, acmValue)
 					if err != nil {
-						return err
+						return false, err
 					}
 				}
 			}
 		}
 	}
 
-	return nil
+	return acmCreated, nil
 }
 
 func getAcm2ByNameInTransaction(tx *sqlx.Tx, namedValue string, addIfMissing bool) (models.ODAcm2, bool, error) {

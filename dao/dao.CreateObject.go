@@ -24,36 +24,38 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 		dao.GetLogger().Error("could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObject{}, err
 	}
-	dbObject, err := createObjectInTransaction(logger, tx, object)
+	dbObject, acmCreated, err := createObjectInTransaction(logger, tx, object)
 	if err != nil {
 		logger.Error("error in CreateObject", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()
 		// Calculate in background and as separate transaction...
-		runasync := true
-		if runasync {
-			if err := insertAssociationOfACMToModifiedByIfValid(dao, dbObject); err != nil {
-				logger.Error("Error associating the ACM on this object to the user that created it!", zap.Error(err), zap.String("ObjectID", hex.EncodeToString(dbObject.ID)), zap.String("modifiedby", dbObject.ModifiedBy), zap.Int64("acmID", dbObject.ACMID))
-			}
-			go func() {
-				done := make(chan bool)
-				timeout := time.After(60 * time.Second)
-				go dao.AssociateUsersToNewACM(dbObject, done)
-
-				for {
-					select {
-					case <-timeout:
-						dao.GetLogger().Warn("CreateObject call to AssociateUsersToNewACM timed out")
-						return
-					case <-done:
-						return
-					}
+		if acmCreated {
+			runasync := true
+			if runasync {
+				if err := insertAssociationOfACMToModifiedByIfValid(dao, dbObject); err != nil {
+					logger.Error("Error associating the ACM on this object to the user that created it!", zap.Error(err), zap.String("ObjectID", hex.EncodeToString(dbObject.ID)), zap.String("modifiedby", dbObject.ModifiedBy), zap.Int64("acmID", dbObject.ACMID))
 				}
-			}()
-		} else {
-			done := make(chan bool, 1)
-			dao.AssociateUsersToNewACM(dbObject, done)
+				go func() {
+					done := make(chan bool)
+					timeout := time.After(60 * time.Second)
+					go dao.AssociateUsersToNewACM(dbObject, done)
+
+					for {
+						select {
+						case <-timeout:
+							dao.GetLogger().Warn("CreateObject call to AssociateUsersToNewACM timed out")
+							return
+						case <-done:
+							return
+						}
+					}
+				}()
+			} else {
+				done := make(chan bool, 1)
+				dao.AssociateUsersToNewACM(dbObject, done)
+			}
 		}
 		// Refetch
 		obj, err = dao.GetObject(dbObject, true)
@@ -65,9 +67,10 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 	return obj, err
 }
 
-func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.ODObject) (models.ODObject, error) {
+func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.ODObject) (models.ODObject, bool, error) {
 
 	var dbObject models.ODObject
+	var acmCreated bool
 
 	if len(object.TypeID) == 0 {
 		object.TypeID = nil
@@ -76,7 +79,7 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		object.ParentID = nil
 	}
 	if object.CreatedBy == "" {
-		return dbObject, errors.New("cannot create object, createdby field is missing")
+		return dbObject, acmCreated, errors.New("cannot create object, createdby field is missing")
 	}
 
 	// Add creator if not yet present. (From direct DAO calls)
@@ -96,7 +99,7 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 	if object.TypeID == nil {
 		objectType, err := getObjectTypeByNameInTransaction(tx, object.TypeName.String, true, object.CreatedBy)
 		if err != nil {
-			return dbObject, fmt.Errorf("CreateObject Error calling GetObjectTypeByName, %s", err.Error())
+			return dbObject, acmCreated, fmt.Errorf("CreateObject Error calling GetObjectTypeByName, %s", err.Error())
 		}
 		object.TypeID = objectType.ID
 	}
@@ -114,12 +117,12 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 	// Normalize ACM
 	newACMNormalized, err := normalizedACM(object.RawAcm.String)
 	if err != nil {
-		return dbObject, fmt.Errorf("Error normalizing ACM on new object: %v (acm: %s)", err.Error(), object.RawAcm.String)
+		return dbObject, acmCreated, fmt.Errorf("Error normalizing ACM on new object: %v (acm: %s)", err.Error(), object.RawAcm.String)
 	}
 	object.RawAcm.String = newACMNormalized
-	err = setObjectACM2ForObjectInTransaction(tx, object)
+	acmCreated, err = setObjectACM2ForObjectInTransaction(tx, object)
 	if err != nil {
-		return dbObject, fmt.Errorf("Error assigning ACM ID for object: %s", err.Error())
+		return dbObject, acmCreated, fmt.Errorf("Error assigning ACM ID for object: %s", err.Error())
 	}
 
 	addObjectStatement, err := tx.Preparex(`insert object set 
@@ -140,7 +143,7 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
         ,acmId = ?
     `)
 	if err != nil {
-		return dbObject, fmt.Errorf("CreateObject Preparing add object statement, %s", err.Error())
+		return dbObject, acmCreated, fmt.Errorf("CreateObject Preparing add object statement, %s", err.Error())
 	}
 	result, err := addObjectStatement.Exec(object.CreatedBy, object.TypeID,
 		object.Name, object.Description.String, object.ParentID,
@@ -149,18 +152,18 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		object.EncryptIV, object.ContainsUSPersonsData, object.ExemptFromFOIA, object.OwnedBy.String,
 		object.ACMID)
 	if err != nil {
-		return dbObject, fmt.Errorf("CreateObject Error executing add object statement, %s", err.Error())
+		return dbObject, acmCreated, fmt.Errorf("CreateObject Error executing add object statement, %s", err.Error())
 	}
 	err = addObjectStatement.Close()
 	if err != nil {
-		return dbObject, fmt.Errorf("CreateObject Error closing addObjectStatement, %s", err.Error())
+		return dbObject, acmCreated, fmt.Errorf("CreateObject Error closing addObjectStatement, %s", err.Error())
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return dbObject, fmt.Errorf("CreateObject Error checking result for rows affected, %s", err.Error())
+		return dbObject, acmCreated, fmt.Errorf("CreateObject Error checking result for rows affected, %s", err.Error())
 	}
 	if rowsAffected <= 0 {
-		return dbObject, fmt.Errorf("CreateObject object inserted but no rows affected")
+		return dbObject, acmCreated, fmt.Errorf("CreateObject object inserted but no rows affected")
 	}
 
 	// Get the ID of the newly created object and assign to returned object.
@@ -210,7 +213,7 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
     order by o.createddate desc limit 1`
 	err = tx.Get(&dbObject, getObjectStatement, object.CreatedBy, object.TypeID, object.Name, object.ContentConnector)
 	if err != nil {
-		return dbObject, fmt.Errorf("CreateObject Error retrieving object, %s", err.Error())
+		return dbObject, acmCreated, fmt.Errorf("CreateObject Error retrieving object, %s", err.Error())
 	}
 
 	// Add properties of object.Properties []models.ODObjectPropertyEx
@@ -229,10 +232,10 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 			}
 			dbProperty, err := addPropertyToObjectInTransaction(tx, dbObject, &objectProperty)
 			if err != nil {
-				return dbObject, fmt.Errorf("Error saving property %d (%s) when creating object", i, property.Name)
+				return dbObject, acmCreated, fmt.Errorf("Error saving property %d (%s) when creating object", i, property.Name)
 			}
 			if dbProperty.ID == nil {
-				return dbObject, fmt.Errorf("New property does not have an ID")
+				return dbObject, acmCreated, fmt.Errorf("New property does not have an ID")
 			}
 		}
 	}
@@ -243,10 +246,10 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 			permission.CreatedBy = dbObject.CreatedBy
 			dbPermission, err := addPermissionToObjectInTransaction(logger, tx, dbObject, &permission)
 			if err != nil {
-				return dbObject, fmt.Errorf("Error saving permission # %d {Grantee: \"%s\") when creating object:%v", i, permission.Grantee, err)
+				return dbObject, acmCreated, fmt.Errorf("Error saving permission # %d {Grantee: \"%s\") when creating object:%v", i, permission.Grantee, err)
 			}
 			if dbPermission.ModifiedBy != permission.CreatedBy {
-				return dbObject, fmt.Errorf("When creating object, permission did not get modifiedby set to createdby")
+				return dbObject, acmCreated, fmt.Errorf("When creating object, permission did not get modifiedby set to createdby")
 			}
 			object.Permissions[i] = dbPermission
 		}
@@ -255,8 +258,8 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 	// Initialize acm
 	err = setObjectACMForObjectInTransaction(tx, &dbObject, true)
 	if err != nil {
-		return dbObject, fmt.Errorf("Error saving ACM to object: %s", err.Error())
+		return dbObject, acmCreated, fmt.Errorf("Error saving ACM to object: %s", err.Error())
 	}
 
-	return dbObject, nil
+	return dbObject, acmCreated, nil
 }

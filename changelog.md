@@ -13,6 +13,7 @@ FORMAT: 1A
 * FIX: Updating object with acm and no permissions will remove existing permissions with grantees not present in revised acm
 * FIX: Updating object without acm but with permissions will merge provided permissions to existing acm.
 * FIX: Flatten resulting ACM after Normalizing Permissions and ACM to ensure f_* keys can be joined appropriately.
+* ENH: Improve insert/update performance by only checking to associate ACM to users when a new ACM is created.
 
 ## Release v1.0.1.24
 --------------------
