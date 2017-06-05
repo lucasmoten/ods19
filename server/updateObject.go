@@ -307,7 +307,7 @@ func (h AppServer) updateObjectRecursive(ctx context.Context, applyable models.O
 			}
 
 			// newACM, err := aacAuth.InjectPermissionsIntoACM(applyable.Permissions, child.RawAcm.String)
-			newACM, err := aacAuth.InjectPermissionsIntoACM(applyable.Permissions, applyable.RawAcm.String)
+			newACM, err := aacAuth.InjectPermissionsIntoACM(applyable.Permissions, child.RawAcm.String)
 			if err != nil {
 				gem.Payload.Audit = audit.WithActionResult(gem.Payload.Audit, "FAILURE")
 				h.EventQueue.Publish(gem)
