@@ -172,8 +172,8 @@ func main() {
 			Usage: "upload a sample of random files and directories to the server",
 			Flags: []cli.Flag{confFlag, jsonFlag, yamlFlag, testerFlag, queueFlag, threadFlag},
 			Action: func(clictx *cli.Context) error {
-				var err error
 
+				rand.Seed(time.Now().Unix())
 				// Default to 10 items, parsing the first numerical argument if supplied
 				// by the user.
 				nFiles := 10
@@ -186,53 +186,51 @@ func main() {
 					nFiles = nArg
 				}
 
-				rand.Seed(time.Now().Unix())
-
-				impersonation := false
-				if len(clictx.Args()) > 1 && clictx.Args()[1] == "impersonation" {
-					impersonation = true
-				}
-				var conf client.Config
-				tester, err := parseTesterString(clictx.String("tester"))
-				if err != nil {
-					return err
-				}
-				username := fmt.Sprintf("test tester%s", tester)
-				userdn := fmt.Sprintf("cn=%s,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us", username)
-				resource := fmt.Sprintf("user/%s/%s", userdn, username)
-				ownedBy := fmt.Sprintf("user/%s", userdn)
-				if impersonation {
-					conf.Cert = "../../defaultcerts/server/server.cert.pem"
-					conf.Key = "../../defaultcerts/server/server.key.pem"
-					conf.Trust = "../../defaultcerts/server/server.trust.pem"
-					conf.Impersonation = userdn
-					//conf, err = gatherConfRaw(conf, clictx.String("conf"), cert, key, trust)
-					conf.SkipVerify = true
-					conf.Remote = fmt.Sprintf("https://%s:%s/services/object-drive/1.0", config.DockerVM, config.Port)
-					id := rand.Int31() % 50
-					username = fmt.Sprintf("usey%d mcuser%d", id, id)
-					userdn = fmt.Sprintf("cn=%s,ou=aaa,o=u.s. government,c=us", username)
-					resource = fmt.Sprintf("user/%s/%s", userdn, username)
-					ownedBy = ""
-				} else {
-					conf, err = gatherConf(clictx.String("conf"), clictx.String("tester"))
+				newUserFillFunc := func() error {
+					impersonation := false
+					if len(clictx.Args()) > 1 && clictx.Args()[1] == "impersonation" {
+						impersonation = true
+					}
+					var conf client.Config
+					tester, err := parseTesterString(clictx.String("tester"))
 					if err != nil {
-						log.Println(err)
 						return err
 					}
-				}
-				c, err := client.NewClient(conf)
-				if err != nil {
-					log.Println("could not establish connection", err)
-					return err
-				}
+					username := fmt.Sprintf("test tester%s", tester)
+					userdn := fmt.Sprintf("cn=%s,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us", username)
+					resource := fmt.Sprintf("user/%s/%s", userdn, username)
+					ownedBy := fmt.Sprintf("user/%s", userdn)
+					if impersonation {
+						conf.Cert = "../../defaultcerts/server/server.cert.pem"
+						conf.Key = "../../defaultcerts/server/server.key.pem"
+						conf.Trust = "../../defaultcerts/server/server.trust.pem"
+						conf.Impersonation = userdn
+						//conf, err = gatherConfRaw(conf, clictx.String("conf"), cert, key, trust)
+						conf.SkipVerify = true
+						conf.Remote = fmt.Sprintf("https://%s:%s/services/object-drive/1.0", config.DockerVM, config.Port)
+						id := rand.Int31() % 5000
+						username = fmt.Sprintf("usey%d mcuser%d", id, id)
+						userdn = fmt.Sprintf("cn=%s,ou=aaa,o=u.s. government,c=us", username)
+						resource = fmt.Sprintf("user/%s/%s", userdn, username)
+						ownedBy = ""
+					} else {
+						conf, err = gatherConf(clictx.String("conf"), clictx.String("tester"))
+						if err != nil {
+							log.Println(err)
+							return err
+						}
+					}
+					c, err := client.NewClient(conf)
+					if err != nil {
+						log.Println("could not establish connection", err)
+						return err
+					}
 
-				var permissions = protocol.Permission{
-					Read: protocol.PermissionCapability{
-						AllowedResources: []string{resource},
-					}}
-
-				fillFile := func() {
+					var permissions = protocol.Permission{
+						Read: protocol.PermissionCapability{
+							AllowedResources: []string{resource},
+						},
+					}
 					fReader := randomFile()
 					fakePath := randomPath()
 
@@ -250,7 +248,7 @@ func main() {
 					newObj, err := c.CreateObject(obj, fReader)
 					if err != nil {
 						log.Println("error on create: ", err)
-						return
+						return err
 					}
 					fReader.Close()
 
@@ -263,6 +261,7 @@ func main() {
 					}
 
 					os.RemoveAll(fReader.Name())
+					return nil
 				}
 
 				// Fill a queue with tasks (could be much larger than the tasks queue)
@@ -282,7 +281,7 @@ func main() {
 					go func() {
 						defer wg.Done()
 						for _ = range tasks {
-							fillFile()
+							newUserFillFunc()
 						}
 					}()
 				}
