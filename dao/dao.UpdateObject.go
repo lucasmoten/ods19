@@ -22,12 +22,28 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 	logger := dao.GetLogger()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		logger.Error("Could not begin transaction", zap.String("err", err.Error()))
 		return err
 	}
-	acmCreated, err := updateObjectInTransaction(dao.GetLogger(), tx, object)
+	var acmCreated bool
+	deadlockRetry := 3
+	deadlockMessage := `Error 1213: Deadlock found when trying to get lock; try restarting transaction`
+	acmCreated, err = updateObjectInTransaction(logger, tx, object)
+	// Deadlock trapper on acm
+	for deadlockRetry > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
+		// Cancel the old transaction and start a new one
+		tx.Rollback()
+		tx, err = dao.MetadataDB.Beginx()
+		if err != nil {
+			logger.Error("could not begin transaction", zap.String("err", err.Error()))
+			return err
+		}
+		// Retry the create
+		deadlockRetry--
+		acmCreated, err = updateObjectInTransaction(logger, tx, object)
+	}
 	if err != nil {
-		dao.GetLogger().Error("Error in UpdateObject", zap.String("err", err.Error()))
+		logger.Error("Error in UpdateObject", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()

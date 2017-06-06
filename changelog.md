@@ -2,6 +2,10 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release v1.0.1.26
+--------------------
+* FIX: Resolve deadlock on create/update where newly recognized acm being inserted by multiple concurrent transactions
+
 ## Release v1.0.1.25
 --------------------
 * ENH: Clean up error message when cannot connect to AAC

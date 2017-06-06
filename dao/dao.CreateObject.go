@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"encoding/hex"
@@ -21,10 +22,27 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 	tx, err := dao.MetadataDB.Beginx()
 	var obj models.ODObject
 	if err != nil {
-		dao.GetLogger().Error("could not begin transaction", zap.String("err", err.Error()))
+		logger.Error("could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObject{}, err
 	}
-	dbObject, acmCreated, err := createObjectInTransaction(logger, tx, object)
+	var dbObject models.ODObject
+	var acmCreated bool
+	deadlockRetry := 3
+	deadlockMessage := `Error 1213: Deadlock found when trying to get lock; try restarting transaction`
+	dbObject, acmCreated, err = createObjectInTransaction(logger, tx, object)
+	// Deadlock trapper on acm
+	for deadlockRetry > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
+		// Cancel the old transaction and start a new one
+		tx.Rollback()
+		tx, err = dao.MetadataDB.Beginx()
+		if err != nil {
+			logger.Error("could not begin transaction", zap.String("err", err.Error()))
+			return models.ODObject{}, err
+		}
+		// Retry the create
+		deadlockRetry--
+		dbObject, acmCreated, err = createObjectInTransaction(logger, tx, object)
+	}
 	if err != nil {
 		logger.Error("error in CreateObject", zap.String("err", err.Error()))
 		tx.Rollback()
@@ -152,7 +170,8 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		object.EncryptIV, object.ContainsUSPersonsData, object.ExemptFromFOIA, object.OwnedBy.String,
 		object.ACMID)
 	if err != nil {
-		return dbObject, acmCreated, fmt.Errorf("CreateObject Error executing add object statement, %s", err.Error())
+		errMsg := err.Error()
+		return dbObject, acmCreated, fmt.Errorf("CreateObject Error executing add object statement, %s", errMsg)
 	}
 	err = addObjectStatement.Close()
 	if err != nil {
