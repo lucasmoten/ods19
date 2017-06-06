@@ -10,6 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 
 	"decipher.com/object-drive-server/util"
@@ -26,11 +27,14 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 		return err
 	}
 	var acmCreated bool
-	deadlockRetry := 3
-	deadlockMessage := `Error 1213: Deadlock found when trying to get lock; try restarting transaction`
+	deadlockRetryCounter := config.GetEnvOrDefaultInt("OD_DEADLOCK_RETRYCOUNTER", 5)
+	deadlockRetryDelay := config.GetEnvOrDefaultInt("OD_DEADLOCK_RETRYDELAYMS", 333)
+	deadlockMessage := `Deadlock`
 	acmCreated, err = updateObjectInTransaction(logger, tx, object)
 	// Deadlock trapper on acm
-	for deadlockRetry > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
+	for deadlockRetryCounter > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
+		logger.Info("deadlock in UpdateObject, restarting transaction", zap.Int("deadlockRetryCounter", deadlockRetryCounter))
+		time.Sleep(time.Duration(deadlockRetryDelay) * time.Millisecond)
 		// Cancel the old transaction and start a new one
 		tx.Rollback()
 		tx, err = dao.MetadataDB.Beginx()
@@ -39,7 +43,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 			return err
 		}
 		// Retry the create
-		deadlockRetry--
+		deadlockRetryCounter--
 		acmCreated, err = updateObjectInTransaction(logger, tx, object)
 	}
 	if err != nil {

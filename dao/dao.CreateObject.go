@@ -27,11 +27,14 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 	}
 	var dbObject models.ODObject
 	var acmCreated bool
-	deadlockRetry := 3
-	deadlockMessage := `Error 1213: Deadlock found when trying to get lock; try restarting transaction`
+	deadlockRetryCounter := config.GetEnvOrDefaultInt("OD_DEADLOCK_RETRYCOUNTER", 5)
+	deadlockRetryDelay := config.GetEnvOrDefaultInt("OD_DEADLOCK_RETRYDELAYMS", 333)
+	deadlockMessage := "Deadlock"
 	dbObject, acmCreated, err = createObjectInTransaction(logger, tx, object)
 	// Deadlock trapper on acm
-	for deadlockRetry > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
+	for deadlockRetryCounter > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
+		logger.Info("deadlock in CreateObject, restarting transaction", zap.Int("deadlockRetryCounter", deadlockRetryCounter))
+		time.Sleep(time.Duration(deadlockRetryDelay) * time.Millisecond)
 		// Cancel the old transaction and start a new one
 		tx.Rollback()
 		tx, err = dao.MetadataDB.Beginx()
@@ -40,7 +43,7 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 			return models.ODObject{}, err
 		}
 		// Retry the create
-		deadlockRetry--
+		deadlockRetryCounter--
 		dbObject, acmCreated, err = createObjectInTransaction(logger, tx, object)
 	}
 	if err != nil {
