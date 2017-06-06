@@ -7,6 +7,8 @@ from pprint import pprint
 
 newusers = 5000
 
+os.chdir(os.environ['OD_ROOT'] + "/dias-simulator/client")
+ 
 # Create a new user that is similar to an existing user, but with a new name and new security attributes
 while newusers > 0:
 	for subdir, dirs, files in os.walk("./users"):
