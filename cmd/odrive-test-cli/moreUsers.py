@@ -33,3 +33,6 @@ while newusers > 0:
 
 					with open(subdir + "/" + first + " " + last + ".json", 'w') as outf:
 						json.dump(data, outf, ensure_ascii=True, indent=4)	
+
+os.chdir(os.environ['OD_ROOT'] + "/dias-simulator")
+os.system("docker build -t deciphernow/dias-simulator .")
