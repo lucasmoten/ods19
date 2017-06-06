@@ -1,0 +1,9 @@
+#!/bin/bash
+
+cp ./moreUsers.py $OD_ROOT/dias-simulator/client/moreUsers.py
+(
+  cd $OD_ROOT/dias-simulator/client
+  ./moreUsers.py
+  cd $OD_ROOT/dias-simulator
+  docker-compose build
+)
