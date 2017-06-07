@@ -248,6 +248,7 @@ func newGUID(t *testing.T) string {
 }
 
 func TestGetObject_UserNotInDBAndObjectDoesNotExist(t *testing.T) {
+	t.Skip()
 	objectid := "abcdef0123456789abcdef0123456789"
 	uri := host + config.NginxRootURL + "/objects/" + objectid + "/properties"
 	server := 10
@@ -267,6 +268,7 @@ func TestGetObject_UserNotInDBAndObjectDoesNotExist(t *testing.T) {
 }
 
 func TestGetObject_UserNotInDIASAndObjectDoesNotExist(t *testing.T) {
+	t.Skip()
 	objectid := "abcdef0123456789abcdef0123456789"
 	uri := host + config.NginxRootURL + "/objects/" + objectid + "/properties"
 	server := 10
@@ -286,6 +288,7 @@ func TestGetObject_UserNotInDIASAndObjectDoesNotExist(t *testing.T) {
 }
 
 func TestGetObject_500UsersAndObjectDoesNotExist(t *testing.T) {
+	t.Skip()
 	userdn := "cn=fake user,ou=people,ou=sois,ou=dod,o=u.s. government,c=us"
 	qty := 500
 	var wg sync.WaitGroup
@@ -321,6 +324,7 @@ func TestGetObject_500UsersAndObjectDoesNotExist(t *testing.T) {
 }
 
 func TestGetObject_100UsersAndObjectDoesNotExistAsNewClient(t *testing.T) {
+	t.Skip()
 	userdn := "cn=fake user,ou=people,ou=sois,ou=dod,o=u.s. government,c=us"
 	qty := 100
 	var wg sync.WaitGroup

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"encoding/hex"
@@ -21,10 +22,30 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 	tx, err := dao.MetadataDB.Beginx()
 	var obj models.ODObject
 	if err != nil {
-		dao.GetLogger().Error("could not begin transaction", zap.String("err", err.Error()))
+		logger.Error("could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObject{}, err
 	}
-	dbObject, acmCreated, err := createObjectInTransaction(logger, tx, object)
+	var dbObject models.ODObject
+	var acmCreated bool
+	deadlockRetryCounter := config.GetEnvOrDefaultInt("OD_DEADLOCK_RETRYCOUNTER", 5)
+	deadlockRetryDelay := config.GetEnvOrDefaultInt("OD_DEADLOCK_RETRYDELAYMS", 333)
+	deadlockMessage := "Deadlock"
+	dbObject, acmCreated, err = createObjectInTransaction(logger, tx, object)
+	// Deadlock trapper on acm
+	for deadlockRetryCounter > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
+		logger.Info("deadlock in CreateObject, restarting transaction", zap.Int("deadlockRetryCounter", deadlockRetryCounter))
+		time.Sleep(time.Duration(deadlockRetryDelay) * time.Millisecond)
+		// Cancel the old transaction and start a new one
+		tx.Rollback()
+		tx, err = dao.MetadataDB.Beginx()
+		if err != nil {
+			logger.Error("could not begin transaction", zap.String("err", err.Error()))
+			return models.ODObject{}, err
+		}
+		// Retry the create
+		deadlockRetryCounter--
+		dbObject, acmCreated, err = createObjectInTransaction(logger, tx, object)
+	}
 	if err != nil {
 		logger.Error("error in CreateObject", zap.String("err", err.Error()))
 		tx.Rollback()
@@ -152,7 +173,8 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		object.EncryptIV, object.ContainsUSPersonsData, object.ExemptFromFOIA, object.OwnedBy.String,
 		object.ACMID)
 	if err != nil {
-		return dbObject, acmCreated, fmt.Errorf("CreateObject Error executing add object statement, %s", err.Error())
+		errMsg := err.Error()
+		return dbObject, acmCreated, fmt.Errorf("CreateObject Error executing add object statement, %s", errMsg)
 	}
 	err = addObjectStatement.Close()
 	if err != nil {

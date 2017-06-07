@@ -10,6 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 
 	"decipher.com/object-drive-server/util"
@@ -22,12 +23,31 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 	logger := dao.GetLogger()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		logger.Error("Could not begin transaction", zap.String("err", err.Error()))
 		return err
 	}
-	acmCreated, err := updateObjectInTransaction(dao.GetLogger(), tx, object)
+	var acmCreated bool
+	deadlockRetryCounter := config.GetEnvOrDefaultInt("OD_DEADLOCK_RETRYCOUNTER", 5)
+	deadlockRetryDelay := config.GetEnvOrDefaultInt("OD_DEADLOCK_RETRYDELAYMS", 333)
+	deadlockMessage := `Deadlock`
+	acmCreated, err = updateObjectInTransaction(logger, tx, object)
+	// Deadlock trapper on acm
+	for deadlockRetryCounter > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
+		logger.Info("deadlock in UpdateObject, restarting transaction", zap.Int("deadlockRetryCounter", deadlockRetryCounter))
+		time.Sleep(time.Duration(deadlockRetryDelay) * time.Millisecond)
+		// Cancel the old transaction and start a new one
+		tx.Rollback()
+		tx, err = dao.MetadataDB.Beginx()
+		if err != nil {
+			logger.Error("could not begin transaction", zap.String("err", err.Error()))
+			return err
+		}
+		// Retry the create
+		deadlockRetryCounter--
+		acmCreated, err = updateObjectInTransaction(logger, tx, object)
+	}
 	if err != nil {
-		dao.GetLogger().Error("Error in UpdateObject", zap.String("err", err.Error()))
+		logger.Error("Error in UpdateObject", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()

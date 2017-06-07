@@ -68,7 +68,7 @@ type Config struct {
 func NewClient(conf Config) (*Client, error) {
 	trust, err := ioutil.ReadFile(conf.Trust)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("while opening trust file %s: %v", conf.Trust, err)
 	}
 	caPool := x509.NewCertPool()
 	if caPool.AppendCertsFromPEM(trust) == false {
@@ -76,7 +76,7 @@ func NewClient(conf Config) (*Client, error) {
 	}
 	cert, err := tls.LoadX509KeyPair(conf.Cert, conf.Key)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("while opening cert and key file %s, %s: %v", conf.Cert, conf.Key, err)
 	}
 
 	x509Cert, err := tlsutil2.X509FromPEMFile(conf.Cert)
@@ -89,6 +89,7 @@ func NewClient(conf Config) (*Client, error) {
 		InsecureSkipVerify:       conf.SkipVerify,
 		Certificates:             []tls.Certificate{cert},
 		ClientCAs:                caPool,
+		RootCAs:                  caPool,
 		PreferServerCipherSuites: true,
 		MinVersion:               tls.VersionTLS10,
 	}

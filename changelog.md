@@ -2,6 +2,12 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release v1.0.1.26
+--------------------
+* FIX: Resolve deadlock on create/update where newly recognized acm being inserted by multiple concurrent transactions
+* CFG: Optional setting for deadlock retries can be configured via OD_DEADLOCK_RETRYCOUNTER, default is 5
+* CFG: Optional settinf for deadlock retry delay can be configured via OD_DEADLOCK_RETRYDELAYMS, default is 333.
+
 ## Release v1.0.1.25
 --------------------
 * ENH: Clean up error message when cannot connect to AAC
