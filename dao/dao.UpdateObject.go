@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -127,6 +128,25 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 	// Assign a generic name if this object name is being cleared
 	if len(object.Name) == 0 {
 		object.Name = "Unnamed " + object.TypeName.String
+	}
+
+	// Add ownedby if a user that is not yet present.
+	ownedby := object.OwnedBy.String
+	if len(ownedby) > 0 {
+		acmGrantee := models.NewODAcmGranteeFromResourceName(ownedby)
+		if acmGrantee.UserDistinguishedName.Valid && len(acmGrantee.UserDistinguishedName.String) > 0 {
+			userRequested := models.ODUser{}
+			userRequested.DistinguishedName = acmGrantee.UserDistinguishedName.String
+			_, err := getUserByDistinguishedNameInTransaction(tx, userRequested)
+			if err != nil && err == sql.ErrNoRows {
+				// Not yet in database, we need to add this user
+				userRequested.DisplayName = models.ToNullString(config.GetCommonName(userRequested.DistinguishedName))
+				userRequested.CreatedBy = object.CreatedBy
+				userCreated := models.ODUser{}
+				userCreated, err = createUserInTransaction(logger, tx, userRequested)
+				object.OwnedBy = models.ToNullString("user/" + userCreated.DistinguishedName)
+			}
+		}
 	}
 
 	// Normalize ACM

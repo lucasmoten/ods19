@@ -7,6 +7,7 @@ FORMAT: 1A
 * FIX: Resolve deadlock on create/update where newly recognized acm being inserted by multiple concurrent transactions
 * CFG: Optional setting for deadlock retries can be configured via OD_DEADLOCK_RETRYCOUNTER, default is 5
 * CFG: Optional settinf for deadlock retry delay can be configured via OD_DEADLOCK_RETRYDELAYMS, default is 333.
+* FIX: API call to change owner referencing a user that is not yet cached will no longer fail.
 
 ## Release v1.0.1.25
 --------------------
