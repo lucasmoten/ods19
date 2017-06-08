@@ -2,6 +2,7 @@ package dao
 
 import (
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 )
@@ -11,6 +12,7 @@ import (
 // changeCount. Optionally, loadProperties flag pulls in nested properties
 // associated with this revision of the object.
 func (dao *DataAccessLayer) GetObjectRevision(object models.ODObject, loadProperties bool) (models.ODObject, error) {
+	defer util.Time("GetObjectRevision")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

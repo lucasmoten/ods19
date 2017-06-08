@@ -2,6 +2,7 @@ package dao
 
 import (
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 )
@@ -9,6 +10,7 @@ import (
 // GetObjectProperty return the requested property by ID.
 // NOTE: Should we just pass an ID instead?
 func (dao *DataAccessLayer) GetObjectProperty(objectProperty models.ODObjectPropertyEx) (models.ODObjectPropertyEx, error) {
+	defer util.Time("GetObjectProperty")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

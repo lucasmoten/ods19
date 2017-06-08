@@ -2,6 +2,10 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release vNew
+--------------------
+* ENH: instrumentation added for database, aac, and overall http calls - made visible in /stats for now
+
 ## Release v1.0.1.26 (June 8, 2017)
 --------------------
 * FIX: Resolve deadlock on create/update where newly recognized ACM being inserted by multiple concurrent transactions

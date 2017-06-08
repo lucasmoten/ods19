@@ -12,12 +12,14 @@ import (
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/crypto"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 )
 
 // CreateObject ...
 func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObject, error) {
+	defer util.Time("CreateObject")()
 	logger := dao.GetLogger()
 	tx, err := dao.MetadataDB.Beginx()
 	var obj models.ODObject

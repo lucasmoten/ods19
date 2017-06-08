@@ -7,11 +7,13 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 )
 
 // AddPropertyToObject creates a new property with the provided name and value,
 // and then associates that Property object to the Object indicated by ObjectID
 func (dao *DataAccessLayer) AddPropertyToObject(object models.ODObject, property *models.ODProperty) (models.ODProperty, error) {
+	defer util.Time("AddPropertyToObject")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

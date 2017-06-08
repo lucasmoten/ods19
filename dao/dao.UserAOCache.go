@@ -7,6 +7,7 @@ import (
 
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
+	"decipher.com/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 )
@@ -14,6 +15,7 @@ import (
 // GetUserAOCacheByDistinguishedName looks up the user authorization object cache state using the
 // provided distinguished name
 func (dao *DataAccessLayer) GetUserAOCacheByDistinguishedName(user models.ODUser) (models.ODUserAOCache, error) {
+	defer util.Time("GetUserAOCacheByDistinguishedName")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

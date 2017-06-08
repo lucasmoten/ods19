@@ -7,12 +7,14 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 )
 
 // CreateUser adds the passed in user to the database. Once added, the record is
 // retrieved and the user passed in by reference is updated with the remaining
 // attributes.
 func (dao *DataAccessLayer) CreateUser(user models.ODUser) (models.ODUser, error) {
+	defer util.Time("CreateUser")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

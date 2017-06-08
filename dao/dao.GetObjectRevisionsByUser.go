@@ -7,11 +7,13 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 )
 
 // GetObjectRevisionsByUser retrieves a list of revisions for an object.
 func (dao *DataAccessLayer) GetObjectRevisionsByUser(
 	user models.ODUser, pagingRequest PagingRequest, object models.ODObject, withProperties bool) (models.ODObjectResultset, error) {
+	defer util.Time("GetObjectRevisionsByUser")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

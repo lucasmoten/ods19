@@ -7,6 +7,7 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 )
 
 // DeleteObjectProperty uses the passed in objectProperty and makes the
@@ -17,6 +18,7 @@ import (
 //    objectProperty.ChangeToken must be set to the current value
 //    objectProperty.ModifiedBy must be set to the user performing the operation
 func (dao *DataAccessLayer) DeleteObjectProperty(objectProperty models.ODObjectPropertyEx) error {
+	defer util.Time("DeleteObjectProperty")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

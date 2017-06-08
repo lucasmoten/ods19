@@ -4,12 +4,14 @@ import (
 	"strings"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 )
 
 // GetUserStats returns metrics of object counts and file space used for objects and revisions owned by a user
 func (dao *DataAccessLayer) GetUserStats(dn string) (models.UserStats, error) {
+	defer util.Time("GetUserStats")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

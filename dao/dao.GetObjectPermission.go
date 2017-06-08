@@ -2,6 +2,7 @@ package dao
 
 import (
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 )
@@ -9,6 +10,7 @@ import (
 // GetObjectPermission return the requested permission by ID.
 // NOTE: Should we just pass an ID instead?
 func (dao *DataAccessLayer) GetObjectPermission(objectPermission models.ODObjectPermission) (models.ODObjectPermission, error) {
+	defer util.Time("GetObjectPermission")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

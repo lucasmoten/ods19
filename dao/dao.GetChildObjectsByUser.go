@@ -5,6 +5,7 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 )
 
 // GetChildObjectsByUser retrieves a list of Objects in Object Drive that are
@@ -12,6 +13,7 @@ import (
 // user or group.
 func (dao *DataAccessLayer) GetChildObjectsByUser(
 	user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
+	defer util.Time("GetChildObjectsByUser")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

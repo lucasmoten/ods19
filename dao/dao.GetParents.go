@@ -2,6 +2,7 @@ package dao
 
 import (
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 )
@@ -11,6 +12,7 @@ import (
 // The slice of parents is sorted with the root-level parent first, and the object's immediate
 // parent last.
 func (dao *DataAccessLayer) GetParents(child models.ODObject) ([]models.ODObject, error) {
+	defer util.Time("GetParents")()
 
 	var parents []models.ODObject
 

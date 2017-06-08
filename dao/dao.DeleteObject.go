@@ -11,6 +11,7 @@ import (
 
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
+	"decipher.com/object-drive-server/util"
 )
 
 // DeleteObject uses the passed in object and makes the appropriate sql calls to
@@ -24,6 +25,7 @@ import (
 //      whose purpose is to mark child items as implicitly deleted due to an
 //      ancestor being deleted.
 func (dao *DataAccessLayer) DeleteObject(user models.ODUser, object models.ODObject, explicit bool) error {
+	defer util.Time("DeleteObject")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
