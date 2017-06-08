@@ -42,23 +42,11 @@ mkdir -m 755 -p ${ODRIVE_PACKAGE_NAME}/etc/init.d
 mkdir -m 755 -p ${ODRIVE_PACKAGE_NAME}/etc/logrotate.d
 mkdir -m 750 -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0
 mkdir -m 750 -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/js
-mkdir -m 750 -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/js/ajax/libs/bootstrap/3.3.6/css
-mkdir -m 750 -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/js/ajax/libs/jquery/3.0.0-beta1
-mkdir -m 750 -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/js/ajax/libs/reqwest/2.0.5
-mkdir -m 750 -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/js/ajax/libs/then-request/2.1.1
 mkdir -m 750 -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates
 
 install -m 750 -D ${ODRIVE_BINARY_DIR}/odrive ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/object-drive-1.0
 install -m 640 -D ${ODRIVE_BINARY_DIR}/odrive.yml ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/object-drive.yml
-install -m 640 -D ${ODRIVE_ROOT}/server/static/js/listObjects.js ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/js/listObjects.js
 install -m 640 -D ${ODRIVE_ROOT}/server/static/js/ajax/libs/bootstrap/3.3.6/css/bootstrap.min.css ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/js/ajax/libs/bootstrap/3.3.6/css/bootstrap.min.css
-install -m 640 -D ${ODRIVE_ROOT}/server/static/js/ajax/libs/jquery/3.0.0-beta1/jquery.js ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/js/ajax/libs/jquery/3.0.0-beta1/jquery.js
-install -m 640 -D ${ODRIVE_ROOT}/server/static/js/ajax/libs/reqwest/2.0.5/reqwest.js ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/js/ajax/libs/reqwest/2.0.5/reqwest.js
-install -m 640 -D ${ODRIVE_ROOT}/server/static/js/ajax/libs/then-request/2.1.1/request.js ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/js/ajax/libs/then-request/2.1.1/request.js
-install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/_function.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/_function.html
-install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/home.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/home.html
-install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/listObjects.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/listObjects.html
-install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/listObjects.js ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/listObjects.js
 install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/ObjectDriveSDK.java ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/ObjectDriveSDK.java
 install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/root.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/root.html
 install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/APISample.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/APISample.html

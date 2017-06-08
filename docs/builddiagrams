@@ -2,12 +2,13 @@
 
 cd `dirname $0`
 
-if [ $(dpkg-query -W -f='${Status}' graphviz 2>/dev/null | grep -c "ok installed") -eq 0 ];
+if [ $(which dot | wc -l) -eq 1 ];
 then
-  echo "Graphviz is not installed. This package provides /usr/bin/dot used by plantuml.jar to produce the UML diagrams"
-else 
   java -jar ./plantuml.jar internal/*.uml
+  mkdir -p ../server/static/js
   cp internal/getObjectStream.png ../server/static/js/getObjectStream.png
   cp internal/etag.png            ../server/static/js/etag.png
+else
+  echo "Graphviz is not installed. dot must be in the path, as it is used by plantuml.jar to produce the UML diagrams"
 fi
 

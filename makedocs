@@ -3,13 +3,14 @@
 cd `dirname $0`
 
 #Use humangeo's aglio container and copy artifact to where it needs to be
-docker run --rm -ti -v `pwd`:/docs humangeo/aglio -i docs/home.md --theme-variables streak -o root.html
+docker run -ti -v `pwd`:/docs humangeo/aglio -i docs/home.md --theme-variables streak -o root.html
+mkdir -p server/static/templates
 mv -f root.html server/static/templates/root.html
 
 #Make it so that i can view locally without rebuild like: file:///Users/rfielding/gocode/src/decipher.com/object-drive-server/server/root.html
 cp server/static/templates/root.html server
 
-docker run --rm -ti -v `pwd`:/docs humangeo/aglio -i changelog.md --theme-variables streak -o changelog.html
+docker run -ti -v `pwd`:/docs humangeo/aglio -i changelog.md --theme-variables streak -o changelog.html
 mv -f changelog.html server/static/templates/changelog.html
 
 (cd docs && ./builddiagrams)
