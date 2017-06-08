@@ -3,7 +3,9 @@ package server_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"strings"
 	"testing"
@@ -152,6 +154,54 @@ func TestChangeOwnerToGroup(t *testing.T) {
 	shouldNotHaveReadForObjectID(t, updatedObject.ID, 1, 2, 3, 4, 5)
 }
 
+func TestChangeOwnerToNonCachedUser(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	clientid := 0
+
+	t.Logf("* Creating a private object")
+	myobject := protocol.CreateObjectRequest{Name: "Test ChangeOwner to Group", TypeName: "Folder", RawAcm: testhelpers.ValidACMUnclassifiedFOUOSharedToTester10}
+	newobjuri := host + config.NginxRootURL + "/objects"
+	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
+	createObjectRes, err := clients[clientid].Client.Do(createObjectReq)
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, createObjectRes, "Bad status when creating object")
+	var createdObject protocol.Object
+	err = util.FullDecode(createObjectRes.Body, &createdObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+
+	t.Logf("* Changing ownership to another user")
+	rand.Seed(time.Now().UTC().UnixNano())
+	randomnum := rand.Int()
+	newowner := fmt.Sprintf("user/cn=uncached user%6d,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us", randomnum)
+	changeowneruri := host + config.NginxRootURL + "/objects/" + createdObject.ID + "/owner/" + newowner
+	objChangeToken := protocol.ChangeTokenStruct{ChangeToken: createdObject.ChangeToken}
+	changeOwnerRequest := makeHTTPRequestFromInterface(t, "POST", changeowneruri, objChangeToken)
+	changeOwnerResponse, err := clients[clientid].Client.Do(changeOwnerRequest)
+	failNowOnErr(t, err, "Unable to do request")
+	if changeOwnerResponse.StatusCode != http.StatusOK {
+		t.Fail()
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(changeOwnerResponse.Body)
+		bodytext := buf.String()
+		t.Logf("Failed to change owner to %s", newowner)
+		t.Logf("Response status = %d, body follows", changeOwnerResponse.StatusCode)
+		t.Logf(bodytext)
+		ioutil.ReadAll(changeOwnerResponse.Body)
+		t.FailNow()
+	}
+	statusMustBe(t, 200, changeOwnerResponse, "Bad status when changing owner")
+	var updatedObject protocol.Object
+	err = util.FullDecode(changeOwnerResponse.Body, &updatedObject)
+	failNowOnErr(t, err, "Error decoding json to Object")
+
+	t.Logf("* Verifying owner changed")
+	if updatedObject.OwnedBy != newowner {
+		t.Logf("Owner for folder2 is %s expected %s", updatedObject.OwnedBy, newowner)
+		t.FailNow()
+	}
+}
 func TestChangeOwnerToEveryoneDisallowed(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
