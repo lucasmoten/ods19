@@ -283,6 +283,11 @@ func (fake *FakeDAO) IsParentIDADescendent(id []byte, parentID []byte) (bool, er
 	return fake.IsDescendent, fake.Err
 }
 
+// IsReadOnly returns the current state of whether this DAO is considered read only
+func (fake *FakeDAO) IsReadOnly(refresh bool) bool {
+	return false
+}
+
 // RebuildUserACMCache for FakeDAO
 func (fake *FakeDAO) RebuildUserACMCache(useraocache *models.ODUserAOCache, user models.ODUser, done chan bool) error {
 	return fake.Err

@@ -442,6 +442,11 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case "POST":
+		if h.RootDAO.IsReadOnly(false) {
+			msg := "Service Unavailable. Operation not permitted until database schema upgrade completed. Service operating in read-only mode."
+			herr = NewAppError(503, fmt.Errorf(msg), msg)
+			break
+		}
 		// API
 		switch {
 		// - create object
@@ -524,6 +529,11 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case "DELETE":
+		if h.RootDAO.IsReadOnly(false) {
+			msg := "Service Unavailable. Operation not permitted until database schema upgrade completed. Service operating in read-only mode."
+			herr = NewAppError(503, fmt.Errorf(msg), msg)
+			break
+		}
 		switch {
 		// - delete object forever
 		case h.Routes.ObjectExpunge.RX.MatchString(uri):

@@ -2,10 +2,12 @@ package server_test
 
 import (
 	"database/sql"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -13,6 +15,8 @@ import (
 
 	"encoding/hex"
 	"encoding/json"
+
+	"time"
 
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/config"
@@ -135,6 +139,59 @@ func TestDBMigration20161230(t *testing.T) {
 	}
 }
 
+func TestDBSchemaVersionReadOnly(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
+	t.Logf("Get a reference to database")
+	os.Setenv(config.OD_TOKENJAR_LOCATION, os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/token.jar"))
+	appConfiguration := newAppConfigurationWithDefaults()
+	dbConfig := appConfiguration.DatabaseConnection
+	dbConfig.CAPath = os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/trust")
+	dbConfig.ClientCert = os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem")
+	dbConfig.ClientKey = os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-key.pem")
+	db, err := dbConfig.GetDatabaseHandle()
+	if err != nil {
+		panic(err)
+	}
+	d := &dao.DataAccessLayer{MetadataDB: db, Logger: config.RootLogger}
+
+	t.Logf("Set schema version to unexpected")
+	nanotime := strconv.Itoa(time.Now().UTC().Nanosecond())
+	setSchemaVersion(t, d, fmt.Sprintf("%s-x%s", dao.SchemaVersion, nanotime))
+
+	t.Logf("Wait for server to detect the change")
+	time.Sleep(30 * time.Second)
+
+	t.Logf("Attempt to create an object in read only state")
+	obj := protocol.CreateObjectRequest{
+		Name:     fmt.Sprintf("TestDBSchemaVersionReadOnly %s", nanotime),
+		RawAcm:   `{"classif":"U"}`,
+		TypeName: "Folder"}
+	_, err = clients[0].C.CreateObject(obj, nil)
+	if err != nil {
+		t.Logf("%s", err.Error())
+	} else {
+		t.Logf("Object creation was successful even though database should be in readonly state")
+		t.Fail()
+	}
+
+	t.Logf("Restore schema version back as other tests depend on write access")
+	setSchemaVersion(t, d, dao.SchemaVersion)
+
+	t.Logf("Wait for server to detect the change")
+	time.Sleep(30 * time.Second)
+
+	t.Logf("Attempt to create an object in writeable state")
+	writeableobj := protocol.CreateObjectRequest{Name: fmt.Sprintf("TestDBSchemaVersionWritable %s", nanotime), RawAcm: `{"classif":"U"}`, TypeName: "Folder"}
+	_, err = clients[0].C.CreateObject(writeableobj, nil)
+	if err != nil {
+		t.Logf("%s", err.Error())
+		t.Fail()
+	}
+}
+
 func addGranteeIfNotExistsBefore20161230(t *testing.T, d *dao.DataAccessLayer, permission models.ODObjectPermission) {
 	tx, err := d.MetadataDB.Beginx()
 	if err != nil {
@@ -232,6 +289,32 @@ func addPermissionToObjectBefore20161230(t *testing.T, d *dao.DataAccessLayer, o
 		return
 	}
 	addPermissionStatement.Close()
+	tx.Commit()
+}
+func setSchemaVersion(t *testing.T, d *dao.DataAccessLayer, version string) {
+	tx, err := d.MetadataDB.Beginx()
+	if err != nil {
+		t.Logf("Error beginning transaction %v", err)
+		t.Fail()
+		return
+	}
+	// Setup the statement
+	stmt, err := tx.Preparex(`update dbstate set schemaversion = ?`)
+	if err != nil {
+		tx.Rollback()
+		t.Logf("Error preparing statement for dbstate %v", err)
+		t.Fail()
+		return
+	}
+	// Set it
+	_, err = stmt.Exec(version)
+	if err != nil {
+		tx.Rollback()
+		t.Logf("Error executing statement for dbstate: %v", err)
+		t.Fail()
+		return
+	}
+	stmt.Close()
 	tx.Commit()
 }
 
