@@ -11,6 +11,7 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 )
 
 // SearchObjectsByNameOrDescription retrieves a list of Objects, their
@@ -18,6 +19,7 @@ import (
 // available to the user making the call, matching any specified
 // filter settings on the paging request, and ordered by sort settings
 func (dao *DataAccessLayer) SearchObjectsByNameOrDescription(user models.ODUser, pagingRequest PagingRequest, loadProperties bool) (models.ODObjectResultset, error) {
+	defer util.Time("SearchObjectsByNameOrDescription")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

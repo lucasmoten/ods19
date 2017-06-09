@@ -8,6 +8,7 @@ import (
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/services/aac"
+	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/utils"
 	"github.com/uber-go/zap"
 )
@@ -42,6 +43,7 @@ func NewAACAuth(logger zap.Logger, service aac.AacService) *AACAuth {
 
 // GetFlattenedACM for AACAuth
 func (aac *AACAuth) GetFlattenedACM(acm string) (string, []string, error) {
+	defer util.Time("GetFlattenACM")()
 	// Checks that dont depend on service availability
 	// No ACM
 	if acm == "" {
@@ -88,6 +90,7 @@ func (aac *AACAuth) GetFlattenedACM(acm string) (string, []string, error) {
 
 // GetGroupsForUser for AACAuth
 func (aac *AACAuth) GetGroupsForUser(userIdentity string) ([]string, error) {
+	defer util.Time("GetGroupsForUser")()
 	snippets, err := aac.GetSnippetsForUser(userIdentity)
 	if err != nil {
 		return nil, err
@@ -97,11 +100,13 @@ func (aac *AACAuth) GetGroupsForUser(userIdentity string) ([]string, error) {
 
 // GetGroupsFromSnippets for AACAuth
 func (aac *AACAuth) GetGroupsFromSnippets(snippets *acm.ODriveRawSnippetFields) []string {
+	defer util.Time("GetGroupsFromSnippets")()
 	return aacGetGroupsFromSnippets(aac.Logger, snippets)
 }
 
 // GetSnippetsForUser for AACAuth
 func (aac *AACAuth) GetSnippetsForUser(userIdentity string) (*acm.ODriveRawSnippetFields, error) {
+	defer util.Time("GetSnippetsForUser")()
 	// No User (Anonymous)
 	if userIdentity == "" {
 		return nil, ErrUserNotSpecified
@@ -145,11 +150,13 @@ func (aac *AACAuth) GetSnippetsForUser(userIdentity string) (*acm.ODriveRawSnipp
 
 // InjectPermissionsIntoACM for AACAuth
 func (aac *AACAuth) InjectPermissionsIntoACM(permissions []models.ODObjectPermission, acm string) (string, error) {
+	defer util.Time("InjectPermissionsIntoACM")()
 	return aacInjectPermissionsIntoACM(aac.Logger, permissions, acm)
 }
 
 // IsUserAuthorizedForACM for AACAuth
 func (aac *AACAuth) IsUserAuthorizedForACM(userIdentity string, acm string) (bool, error) {
+	defer util.Time("IsUserAuthorizedForACM")()
 	// Checks that dont depend on service availability
 	// No ACM
 	if acm == "" {
@@ -199,11 +206,13 @@ func (aac *AACAuth) IsUserAuthorizedForACM(userIdentity string, acm string) (boo
 
 // IsUserOwner for AACAuth
 func (aac *AACAuth) IsUserOwner(userIdentity string, resourceStrings []string, objectOwner string) bool {
+	defer util.Time("IsUserOwner")()
 	return aacIsUserOwner(aac.Logger, userIdentity, resourceStrings, objectOwner)
 }
 
 // NormalizePermissionsFromACM for AACAuth
 func (aac *AACAuth) NormalizePermissionsFromACM(objectOwner string, permissions []models.ODObjectPermission, acm string, isCreating bool) ([]models.ODObjectPermission, string, error) {
+	defer util.Time("NormalizePermissionsFromACM")()
 	modifiedPermissions, modifiedACM, err := aacNormalizePermissionsFromACM(aac.Logger, objectOwner, permissions, acm, isCreating)
 	// Service call for flattening populates f_* values
 	modifiedACM, _, err = aac.GetFlattenedACM(modifiedACM)
@@ -225,6 +234,7 @@ func (aac *AACAuth) NormalizePermissionsFromACM(objectOwner string, permissions 
 
 // RebuildACMFromPermissions for AACAuth
 func (aac *AACAuth) RebuildACMFromPermissions(permissions []models.ODObjectPermission, acm string) (string, error) {
+	defer util.Time("RebuildACMFromPermissions")()
 	return aacRebuildACMFromPermissions(aac.Logger, permissions, acm)
 }
 

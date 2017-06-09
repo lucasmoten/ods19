@@ -6,12 +6,15 @@ import (
 
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 )
 
 // GetAcmGrantee retrieves an exsiting AcmGrantee record by the grantee name.
 func (dao *DataAccessLayer) GetAcmGrantee(grantee string) (models.ODAcmGrantee, error) {
+	defer util.Time("GetAcmGrantee")()
+
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
@@ -29,6 +32,8 @@ func (dao *DataAccessLayer) GetAcmGrantee(grantee string) (models.ODAcmGrantee, 
 
 // GetAcmGrantees retrieves a list of acm grantee records from a provided list of grantee names
 func (dao *DataAccessLayer) GetAcmGrantees(grantees []string) ([]models.ODAcmGrantee, error) {
+	defer util.Time("GetAcmGrantees")()
+
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

@@ -7,6 +7,7 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 )
 
 // DeleteObjectType uses the passed in objectType and makes the appropriate sql
@@ -16,6 +17,7 @@ import (
 //    objectType.ChangeToken must be set to the current value
 //    objectType.ModifiedBy must be set to the user performing the operation
 func (dao *DataAccessLayer) DeleteObjectType(objectType models.ODObjectType) error {
+	defer util.Time("DeleteObjectPropertyType")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

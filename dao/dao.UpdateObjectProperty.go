@@ -7,6 +7,7 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 )
 
 // UpdateObjectProperty uses the passed in objectProperty and makes the
@@ -18,6 +19,7 @@ import (
 //    objectProperty.ModifiedBy must be set to the user performing the operation
 //    objectProperty.Value.String must be set to the new value.
 func (dao *DataAccessLayer) UpdateObjectProperty(objectProperty models.ODObjectPropertyEx) error {
+	defer util.Time("UpdateObjectProperty")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

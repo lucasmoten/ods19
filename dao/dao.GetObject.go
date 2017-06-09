@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 )
@@ -13,6 +14,7 @@ import (
 // the database to retrieve and return the requested object by ID. Optionally,
 // loadProperties flag pulls in nested properties associated with the object.
 func (dao *DataAccessLayer) GetObject(object models.ODObject, loadProperties bool) (models.ODObject, error) {
+	defer util.Time("GetObject")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

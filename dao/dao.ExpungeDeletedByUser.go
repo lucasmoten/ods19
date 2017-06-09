@@ -2,12 +2,14 @@ package dao
 
 import (
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 )
 
 // ExpungeDeletedByUser for a given user, iterate the list of trashed (deleted) object roots and delete them
 func (dao *DataAccessLayer) ExpungeDeletedByUser(user models.ODUser, pageSize int) (models.ODObjectResultset, error) {
+	defer util.Time("ExpungeDeletedByUser")()
 
 	if pageSize <= 0 {
 		pageSize = 10000

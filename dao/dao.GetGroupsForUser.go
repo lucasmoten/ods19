@@ -5,10 +5,12 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 )
 
 // GetGroupsForUser retrieves a list of groups the user is a member of that have root objects and their counts
 func (dao *DataAccessLayer) GetGroupsForUser(user models.ODUser) (models.GroupSpaceResultset, error) {
+	defer util.Time("GetGroupsForUser")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

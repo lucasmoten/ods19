@@ -3,6 +3,9 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"time"
+
+	metrics "github.com/rcrowley/go-metrics"
 
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/services/audit"
@@ -98,4 +101,36 @@ func doWriteCounters(w http.ResponseWriter) {
 			fmt.Fprintf(w, "%s\n", lines[i])
 		}
 	}
+
+	fmt.Fprintf(w, "\n\n")
+	// Log go-metrics
+	scale := time.Millisecond
+	du := float64(scale)
+	duSuffix := scale.String()[1:]
+	metrics.DefaultRegistry.Each(
+		func(name string, i interface{}) {
+			metric, ok := i.(metrics.Timer)
+			if ok {
+				t := metric.Snapshot()
+				if t.Count() > 0 {
+					ps := t.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999})
+					fmt.Fprintf(w, "timer %s\n", name)
+					fmt.Fprintf(w, "  count:       %9d\n", t.Count())
+					fmt.Fprintf(w, "  min:         %12.2f%s\n", float64(t.Min())/du, duSuffix)
+					fmt.Fprintf(w, "  max:         %12.2f%s\n", float64(t.Max())/du, duSuffix)
+					fmt.Fprintf(w, "  mean:        %12.2f%s\n", t.Mean()/du, duSuffix)
+					fmt.Fprintf(w, "  stddev:      %12.2f%s\n", t.StdDev()/du, duSuffix)
+					fmt.Fprintf(w, "  median:      %12.2f%s\n", ps[0]/du, duSuffix)
+					fmt.Fprintf(w, "  75%%:         %12.2f%s\n", ps[1]/du, duSuffix)
+					fmt.Fprintf(w, "  95%%:         %12.2f%s\n", ps[2]/du, duSuffix)
+					fmt.Fprintf(w, "  99%%:         %12.2f%s\n", ps[3]/du, duSuffix)
+					fmt.Fprintf(w, "  99.9%%:       %12.2f%s\n", ps[4]/du, duSuffix)
+					fmt.Fprintf(w, "  1-min rate:  %12.2f\n", t.Rate1())
+					fmt.Fprintf(w, "  5-min rate:  %12.2f\n", t.Rate5())
+					fmt.Fprintf(w, "  15-min rate: %12.2f\n", t.Rate15())
+					fmt.Fprintf(w, "  mean rate:   %12.2f\n", t.RateMean())
+				}
+			}
+		},
+	)
 }

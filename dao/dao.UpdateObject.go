@@ -21,6 +21,7 @@ import (
 // appropriate sql calls to the database to update the existing object and acm
 // changing properties and permissions associated.
 func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
+	defer util.Time("UpdateObject")()
 	logger := dao.GetLogger()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {

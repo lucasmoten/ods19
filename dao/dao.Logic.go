@@ -6,12 +6,14 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 )
 
 // IsParentIDADescendent accepts an object identifier and a parent that would
 // be assigned, and walks the tree from the target parent to the root (nil)
 // looking to see if it references the same object.
 func (dao *DataAccessLayer) IsParentIDADescendent(id []byte, parentID []byte) (bool, error) {
+	defer util.Time("IsParentIDADescendent")()
 	tx := dao.MetadataDB.MustBegin()
 	result, err := isParentIDADescendentInTransaction(tx, id, parentID)
 	if err != nil {

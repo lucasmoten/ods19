@@ -7,11 +7,13 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 )
 
 // UpdatePermission uses the passed in permission and makes the appropriate
 // sql calls to the database to update the existing grant
 func (dao *DataAccessLayer) UpdatePermission(permission models.ODObjectPermission) error {
+	defer util.Time("UpdatePermission")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

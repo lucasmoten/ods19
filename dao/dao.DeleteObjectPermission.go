@@ -7,6 +7,7 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 )
 
 // DeleteObjectPermission uses the passed in objectPermission and makes the
@@ -16,6 +17,7 @@ import (
 //    objectPermission.ChangeToken must be set to the current value
 //    objectPermission.ModifiedBy must be set to the user performing the operation
 func (dao *DataAccessLayer) DeleteObjectPermission(objectPermission models.ODObjectPermission) (models.ODObjectPermission, error) {
+	defer util.Time("DeleteObjectPermission")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

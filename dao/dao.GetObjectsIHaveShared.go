@@ -8,11 +8,13 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 )
 
 // GetObjectsIHaveShared retrieves a list of Objects that I have explicitly
 // shared to others
 func (dao *DataAccessLayer) GetObjectsIHaveShared(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
+	defer util.Time("GetObjectsIHaveShared")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

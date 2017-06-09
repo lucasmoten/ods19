@@ -8,6 +8,7 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 )
 
 // CreateObjectType adds a new object type definition to the database based upon
@@ -15,6 +16,7 @@ import (
 // the object type must exist.  Once added, the record is retrieved and the
 // object type passed in by reference is updated with the remaining attributes
 func (dao *DataAccessLayer) CreateObjectType(objectType *models.ODObjectType) (models.ODObjectType, error) {
+	defer util.Time("CreateObjectType")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))

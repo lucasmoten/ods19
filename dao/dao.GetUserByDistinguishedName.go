@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 )
@@ -11,6 +12,7 @@ import (
 // GetUserByDistinguishedName looks up user record from the database using the
 // provided distinguished name
 func (dao *DataAccessLayer) GetUserByDistinguishedName(user models.ODUser) (models.ODUser, error) {
+	defer util.Time("GetUserByDistinguishedName")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
