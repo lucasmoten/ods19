@@ -25,32 +25,32 @@ type ObjectShare struct {
 	//       }
 	//    }
 	//
-	Share interface{} `json:"share"`
+	Share interface{} `json:"share,omitEmpty"`
 
 	// AllowCreate indicates whether the users/groups in the share will be
 	// granted permission to create child objects beneath the target of this
 	// grant when adding permissions or revoking such when removing permissions
-	AllowCreate bool `json:"allowCreate"`
+	AllowCreate bool `json:"allowCreate,omitEmpty"`
 
 	// AllowRead indicates whether the users/groups in the share will be
 	// granted permission to read the object metadata and properties, object
 	// stream or list its children when adding permissions or revoking such
 	// when removing permissions
-	AllowRead bool `json:"allowRead"`
+	AllowRead bool `json:"allowRead,omitEmpty"`
 
 	// AllowUpdate indicates whether the users/groups in the share will be
 	// granted permission to make changes to the object metadata and properties
 	// or its content stream when adding permissions or revoking such when
 	// removing permissions
-	AllowUpdate bool `json:"allowUpdate"`
+	AllowUpdate bool `json:"allowUpdate,omitEmpty"`
 
 	// AllowDelete indicates whether the users/groups in the share will be
 	// granted permission to delete the object when adding permissions or
 	// revoking such when removing permissions
-	AllowDelete bool `json:"allowDelete"`
+	AllowDelete bool `json:"allowDelete,omitEmpty"`
 
 	// AllowShare indicates whether the users/groups in the share will be
 	// granted permission to share the object to others when adding permissions
 	// or revoking such capability when removing permissions
-	AllowShare bool `json:"allowShare"`
+	AllowShare bool `json:"allowShare,omitEmpty"`
 }

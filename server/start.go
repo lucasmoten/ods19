@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -41,7 +42,13 @@ func Start(conf config.AppConfiguration) error {
 		logger.Error("Error configuring DAO.  Check envrionment variable settings for OD_DB_*", zap.String("err", err.Error()))
 		return err
 	}
+	if d.ReadOnly {
+		if d.SchemaVersion != dao.SchemaVersion {
+			logger.Warn(fmt.Sprintf("Database schema is at version '%s' and DAO expects version '%s'. Operating in read only mode until the database is upgraded.", d.SchemaVersion, dao.SchemaVersion))
+		}
+	}
 	app.RootDAO = d
+	go daoReadOnlyCheck(app)
 
 	zone := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
 	cache, loggableErr := ciphertext.NewS3CiphertextCache(zone, conf.CacheSettings, dbID)
@@ -375,4 +382,29 @@ func blockForRequiredServices(conf config.AppConfiguration) {
 	// TODO: Pick the right ZK for this check
 	zkOnline := zookeeper.IsOnline(strings.Split(conf.ZK.Address, ","))
 	<-zkOnline
+}
+
+func daoReadOnlyCheck(app *AppServer) {
+
+	t := time.NewTicker(time.Duration(30 * time.Second))
+
+	for {
+		select {
+		case <-t.C:
+			beforeReadOnly := app.RootDAO.IsReadOnly(false)
+			// refreshes
+			afterReadOnly := app.RootDAO.IsReadOnly(true)
+			// Did state change?
+			if beforeReadOnly != afterReadOnly {
+				if beforeReadOnly {
+					logger.Info("DAO has entered the writeable state")
+				} else {
+					logger.Warn("DAO is read only")
+				}
+			}
+		case <-shutdown:
+			t.Stop()
+			return
+		}
+	}
 }

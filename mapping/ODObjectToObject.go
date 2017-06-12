@@ -247,6 +247,9 @@ func OverwriteODObjectWithCreateObjectRequest(o *models.ODObject, i *protocol.Cr
 	if err != nil {
 		return fmt.Errorf("Unable to convert ACM: %v", err)
 	}
+	if len(parsedACM) == 0 {
+		return fmt.Errorf("ACM is required when creating object")
+	}
 	o.RawAcm = models.ToNullString(parsedACM)
 
 	o.ContentType = models.ToNullString(i.ContentType)

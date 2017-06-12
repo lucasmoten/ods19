@@ -5,6 +5,7 @@ FORMAT: 1A
 ## Release vNew
 --------------------
 * ENH: instrumentation added for database, aac, and overall http calls - made visible in /stats for now
+* ENH: If database schema does not match expected, service will startup in readonly mode, and switch to writeable once migration is complete.
 
 ## Release v1.0.1.26 (June 8, 2017)
 --------------------

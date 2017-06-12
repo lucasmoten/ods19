@@ -2,6 +2,7 @@ package dao
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"decipher.com/object-drive-server/config"
@@ -14,6 +15,7 @@ import (
 // On startup, we should be checking the schema, and raise some alarm if
 // the schema is out of date, or trigger a migration, etc.
 var SchemaVersion = "20170508"
+var mutexReadOnly sync.Mutex
 
 // DAO defines the contract our app has with the database.
 type DAO interface {
@@ -64,6 +66,7 @@ type DAO interface {
 	GetUsers() ([]models.ODUser, error)
 	GetUserStats(dn string) (models.UserStats, error)
 	IsParentIDADescendent(id []byte, parentID []byte) (bool, error)
+	IsReadOnly(refresh bool) bool
 	RebuildUserACMCache(useraocache *models.ODUserAOCache, user models.ODUser, done chan bool) error
 	SearchObjectsByNameOrDescription(user models.ODUser, pagingRequest PagingRequest, loadProperties bool) (models.ODObjectResultset, error)
 	SetUserAOCacheByDistinguishedName(useraocache *models.ODUserAOCache, user models.ODUser) error
@@ -79,6 +82,10 @@ type DataAccessLayer struct {
 	MetadataDB *sqlx.DB
 	// Logger has a default, but can be updated by passing options to constructor.
 	Logger zap.Logger
+	// ReadOnly denotes whether database is accepting changes
+	ReadOnly bool
+	// SchemaVersion indicates the database schema version
+	SchemaVersion string
 }
 
 // Opt sets an option on DataAccessLayer.
@@ -115,9 +122,9 @@ func NewDataAccessLayer(conf config.DatabaseConfiguration, opts ...Opt) (*DataAc
 	if err != nil {
 		return nil, "", fmt.Errorf("getting db state failed: %v", err)
 	}
-	if state.SchemaVersion != SchemaVersion {
-		err = fmt.Errorf("Database schema is at version '%s' and DAO expects version '%s'. If database version is newer, then you need to upgrade this instances of object-drive", state.SchemaVersion, SchemaVersion)
-		return nil, "", err
+	d.SchemaVersion = state.SchemaVersion
+	if d.SchemaVersion == SchemaVersion {
+		d.ReadOnly = false
 	}
 
 	return &d, state.Identifier, nil
@@ -125,6 +132,7 @@ func NewDataAccessLayer(conf config.DatabaseConfiguration, opts ...Opt) (*DataAc
 
 func defaults(d *DataAccessLayer) {
 	d.Logger = config.RootLogger
+	d.ReadOnly = true
 }
 
 // GetLogger is a logger, probably for this session
@@ -149,25 +157,59 @@ func pingDB(d *DataAccessLayer) error {
 	var state models.DBState
 
 	for attempts < max {
-
 		attempts++
-
 		err = d.MetadataDB.Ping()
 		if err != nil {
-			logger.Info("db sleep for retry")
-			time.Sleep(time.Duration(sleep) * time.Second)
+			logger.Info(fmt.Sprintf("Database not yet available, rechecking in %d seconds", sleep))
 		} else {
 			state, err = d.GetDBState()
-			if err != nil {
-				logger.Info("db available but schema not populated")
-				time.Sleep(time.Duration(sleep) * time.Second)
-			}
-			if state.SchemaVersion != SchemaVersion {
-				logger.Info("sleep for potential migration")
-				time.Sleep(time.Duration(sleep) * time.Second)
+			switch {
+			case err != nil:
+				logger.Info(fmt.Sprintf("Database online but schema not yet populated. Rechecking in %d seconds", sleep))
+			case state.SchemaVersion != SchemaVersion:
+				logger.Info(fmt.Sprintf("Database online with schema at version %s but expecting %s. Rechecking in %d seconds for pending migration.", state.SchemaVersion, SchemaVersion, sleep))
+			case state.SchemaVersion == SchemaVersion:
+				logger.Info(fmt.Sprintf("Database online at schema version %s", SchemaVersion))
+				sleep = 0
 			}
 		}
-
+		if sleep > 0 {
+			time.Sleep(time.Duration(sleep) * time.Second)
+		} else {
+			break
+		}
 	}
 	return err
+}
+
+// IsReadOnly returns the current state of whether this DAO is considered read only
+func (d *DataAccessLayer) IsReadOnly(refresh bool) bool {
+	result := true
+	mutexReadOnly.Lock()
+	defer mutexReadOnly.Unlock()
+	if refresh {
+		beforeReadOnly := d.ReadOnly
+		// Default to readonly
+		d.ReadOnly = true
+		// Find out our schema
+		state, err := d.GetDBState()
+		if err != nil {
+			d.Logger.Warn("getting db state failed", zap.Error(err))
+		} else {
+			d.SchemaVersion = state.SchemaVersion
+			if d.SchemaVersion == SchemaVersion {
+				d.ReadOnly = false
+			}
+			afterReadOnly := d.ReadOnly
+			if beforeReadOnly != afterReadOnly {
+				if afterReadOnly {
+					d.Logger.Info(fmt.Sprintf("Database online with schema at version %s but expecting %s. Readonly = %t", d.SchemaVersion, SchemaVersion, afterReadOnly))
+				} else {
+					d.Logger.Info(fmt.Sprintf("Database online with schema at version %s", d.SchemaVersion))
+				}
+			}
+		}
+	}
+	result = d.ReadOnly
+	return result
 }
