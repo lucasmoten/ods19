@@ -53,9 +53,6 @@ type ODObject struct {
 	// OwnedBy indicates the individual user or group that currently owns the
 	// object and has implict full permissions on the object
 	OwnedBy NullString `db:"ownedBy"`
-	// OwnedByNew indicates the individual user or group that the current owner
-	// is transferring ownership to for facilitating changeOwner operations
-	OwnedByNew NullString `db:"ownedByNew" json:"-"`
 	// TypeID references the ODObjectType by its ID indicating the type of this
 	// object
 	TypeID []byte `db:"typeId"`
@@ -95,10 +92,6 @@ type ODObject struct {
 	Permissions []ODObjectPermission `json:"permissions"`
 	// CallerPermissions is a composite permission of what the caller is allowed.
 	CallerPermissions ODCommonPermission `json:"callerPermission"`
-	// IsPDFAvailable indicates if a PDF rendition is available for this object
-	IsPDFAvailable bool `db:"isPDFAvailable"`
-	// IsStreamStored indicates if the content stream for this object is stored in the cloud and can be retrieved
-	IsStreamStored bool `db:"isStreamStored"`
 	// ContainsUSPersonsData indicates if this object contains US Persons data (Yes,No,Unknown)
 	ContainsUSPersonsData string `db:"containsUSPersonsData"`
 	// ExemptFromFOIA indicates if this object is exempt from Freedom of Information Act requests (Yes,No,Unknown)

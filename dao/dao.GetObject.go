@@ -68,9 +68,6 @@ func getObjectInTransaction(tx *sqlx.Tx, object models.ODObject, loadProperties 
         ,o.contentSize
         ,o.contentHash
         ,o.encryptIV
-        ,o.ownedByNew
-        ,o.isPDFAvailable
-        ,o.isStreamStored
         ,o.containsUSPersonsData
         ,o.exemptFromFOIA
         ,ot.name typeName

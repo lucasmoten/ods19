@@ -203,19 +203,6 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		return acmCreated, util.NewLoggable("UpdateObject did not affect any rows", nil, zap.String("id", hex.EncodeToString(object.ID)), zap.String("changetoken", object.ChangeToken))
 	}
 
-	// Process ACM changes
-	oldACMNormalized, err := normalizedACM(dbObject.RawAcm.String)
-	if err != nil {
-		return acmCreated, fmt.Errorf("Error normalizing ACM on database object: %s {dbObject.RawAcm: %s}", err.Error(), dbObject.RawAcm.String)
-	}
-	if strings.Compare(oldACMNormalized, newACMNormalized) != 0 {
-		object.RawAcm.String = newACMNormalized
-		err := setObjectACMForObjectInTransaction(tx, object, false)
-		if err != nil { //&& err != sql.ErrNoRows {
-			return acmCreated, fmt.Errorf("Error updating ACM for object: %s {oldacm: %s} {newacm: %s}", err.Error(), dbObject.RawAcm.String, object.RawAcm.String)
-		}
-	}
-
 	// Compare properties on database object to properties associated with passed
 	// in object
 	for _, objectProperty := range object.Properties {

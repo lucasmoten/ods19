@@ -61,9 +61,6 @@ func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagi
         ,ao.contentSize
         ,ao.contentHash
         ,ao.encryptIV
-        ,ao.ownedByNew
-        ,ao.isPDFAvailable
-        ,ao.isStreamStored
         ,ao.containsUSPersonsData
         ,ao.exemptFromFOIA
         ,ot.name typeName
