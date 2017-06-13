@@ -7,20 +7,16 @@ docker-publish-job:
     stage: publish
 
     script:
-        # We pull, retag, and then push the server and metadatadb containers.
-        # NOTE(cm): metadatadb is tagged twice for the convenience of some
-        # existing projects. We should standardize on one.
+        # Sync from docker hub, re-tag, push to gitlab registry
         - service docker start; sleep 2;
         - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
         - docker pull deciphernow/odrive
         - docker pull deciphernow/metadatadb
         - docker tag deciphernow/odrive docker.363-283.io/cte/object-drive-server 
         - docker tag deciphernow/metadatadb docker.363-283.io/cte/object-drive-server:metadatadb
-        - docker tag deciphernow/metadatadb docker.363-283.io/cte/object-drive-metadatadb:latest
         - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN docker.363-283.io
         - docker push docker.363-283.io/cte/object-drive-server 
         - docker push docker.363-283.io/cte/object-drive-server:metadatadb
-        - docker push docker.363-283.io/cte/object-drive-metadatadb:latest
 
     only:
         - develop       
