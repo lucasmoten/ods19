@@ -2,15 +2,20 @@
 
 cd `dirname $0`
 
-#Use humangeo's aglio container and copy artifact to where it needs to be
-docker run -ti -v `pwd`:/docs humangeo/aglio -i docs/home.md --theme-variables streak -o root.html
-mkdir -p server/static/templates
-mv -f root.html server/static/templates/root.html
+TEMPLATES=server/static/templates
 
-#Make it so that i can view locally without rebuild like: file:///Users/rfielding/gocode/src/decipher.com/object-drive-server/server/root.html
-cp server/static/templates/root.html server
+#Use humangeo's aglio container and copy artifact to where it needs to be
+docker run -ti -v `pwd`:/docs humangeo/aglio -i docs/home.md --theme-variables streak -o api.html
+mkdir -p server/static/templates
+mv -f api.html ${TEMPLATES}/api.html
 
 docker run -ti -v `pwd`:/docs humangeo/aglio -i changelog.md --theme-variables streak -o changelog.html
-mv -f changelog.html server/static/templates/changelog.html
+mv -f changelog.html ${TEMPLATES}/changelog.html
+
+docker run -ti -v `pwd`:/docs humangeo/aglio -i docs/overview.md --theme-variables streak -o overview.html
+mv -f overview.html ${TEMPLATES}/root.html
+
+# Hack to view root locally.
+cp ${TEMPLATES}/root.html server
 
 (cd docs && ./builddiagrams)

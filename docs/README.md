@@ -27,9 +27,12 @@ If you wish to generate a static `html` file, run the following command
 aglio --theme-variables streak -i home.md -o home.html
 ```
 
-## Build assets into static root
+See the `makedocs` script for usage with `docker run`
 
-```
-cd /docs
-./build
-```
+
+## Editing the docs
+
+* Add a markdown file parsable by aglio to the project
+* Edit the **makedocs** script to compile the docs to html
+* Include the compiled html in our RPM by editing **scripts/prepare-rpm-env.sh**
+

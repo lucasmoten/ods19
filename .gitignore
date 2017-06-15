@@ -22,6 +22,7 @@ debug.*
 
 # Compiled documentation
 root.html
+api.html
 APISample.html
 changelog.html
 server/root.html
