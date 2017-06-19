@@ -29,13 +29,14 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 	}
 	var dbObject models.ODObject
 	var acmCreated bool
-	deadlockRetryCounter := config.GetEnvOrDefaultInt("OD_DEADLOCK_RETRYCOUNTER", 5)
-	deadlockRetryDelay := config.GetEnvOrDefaultInt("OD_DEADLOCK_RETRYDELAYMS", 333)
+
+	deadlockRetryCounter := dao.DeadlockRetryCounter
+	deadlockRetryDelay := dao.DeadlockRetryDelay
 	deadlockMessage := "Deadlock"
 	dbObject, acmCreated, err = createObjectInTransaction(logger, tx, object)
 	// Deadlock trapper on acm
 	for deadlockRetryCounter > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
-		logger.Info("deadlock in CreateObject, restarting transaction", zap.Int("deadlockRetryCounter", deadlockRetryCounter))
+		logger.Info("deadlock in CreateObject, restarting transaction", zap.Int64("deadlockRetryCounter", deadlockRetryCounter))
 		time.Sleep(time.Duration(deadlockRetryDelay) * time.Millisecond)
 		// Cancel the old transaction and start a new one
 		tx.Rollback()

@@ -116,6 +116,9 @@ type DatabaseConfiguration struct {
 	ClientCert string `yaml:"cert"`
 	// ClientKey is the path to our PEM encoded client key.
 	ClientKey string `yaml:"key"`
+
+	DeadlockRetryCounter int64 `yaml:"deadlock_retrycounter"`
+	DeadlockRetryDelay   int64 `yaml:"deadlock_retrydelay"`
 }
 
 // EventQueueConfiguration configures publishing to the Kakfa event queue.
@@ -344,6 +347,10 @@ func NewDatabaseConfigFromEnv(confFile AppConfiguration, opts CommandLineOpts) D
 	dbConf.Driver = defaultDBDriver
 	dbConf.UseTLS = true
 	dbConf.SkipVerify = true
+
+	// Parameters necessary to handle deadlock situations
+	dbConf.DeadlockRetryCounter = cascadeInt(OD_DEADLOCK_RETRYCOUNTER, confFile.DatabaseConnection.DeadlockRetryCounter, 5)
+	dbConf.DeadlockRetryDelay = cascadeInt(OD_DEADLOCK_RETRYDELAYMS, confFile.DatabaseConnection.DeadlockRetryDelay, 333)
 
 	return dbConf
 }

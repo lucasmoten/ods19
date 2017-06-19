@@ -7,7 +7,7 @@ RUN yum -y update
 #
 # Install Redis
 RUN yum -y install epel-release; \
-    yum -y install redis;
+    yum -y --nogpgcheck install redis;
 RUN sed -i 's/daemonize no/daemonize yes/' /etc/redis.conf 
 
 #

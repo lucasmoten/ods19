@@ -86,7 +86,13 @@ type DataAccessLayer struct {
 	ReadOnly bool
 	// SchemaVersion indicates the database schema version
 	SchemaVersion string
+	// Parameters to resolve deadlock needed by interface methods
+	DeadlockRetryCounter int64
+	DeadlockRetryDelay   int64
 }
+
+// Verify that DataAccessLayer Implements DAO.
+var _ DAO = (*DataAccessLayer)(nil)
 
 // Opt sets an option on DataAccessLayer.
 type Opt func(*DataAccessLayer)
@@ -108,7 +114,7 @@ func NewDataAccessLayer(conf config.DatabaseConfiguration, opts ...Opt) (*DataAc
 	}
 	d := DataAccessLayer{MetadataDB: db}
 
-	defaults(&d)
+	defaults(&d, conf)
 	for _, opt := range opts {
 		opt(&d)
 	}
@@ -130,9 +136,11 @@ func NewDataAccessLayer(conf config.DatabaseConfiguration, opts ...Opt) (*DataAc
 	return &d, state.Identifier, nil
 }
 
-func defaults(d *DataAccessLayer) {
+func defaults(d *DataAccessLayer, conf config.DatabaseConfiguration) {
 	d.Logger = config.RootLogger
 	d.ReadOnly = true
+	d.DeadlockRetryCounter = conf.DeadlockRetryCounter
+	d.DeadlockRetryDelay = conf.DeadlockRetryDelay
 }
 
 // GetLogger is a logger, probably for this session
