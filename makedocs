@@ -1,21 +1,75 @@
-#!/bin/bash
+#!/usr/bin/env python
 
-cd `dirname $0`
+import getpass
+import glob
+import os
+import shutil
+import subprocess
+import re
 
-TEMPLATES=server/static/templates
+#-------------------------------------------------------------------------------
 
-#Use humangeo's aglio container and copy artifact to where it needs to be
-docker run -ti -v `pwd`:/docs humangeo/aglio -i docs/home.md --theme-variables streak -o api.html
-mkdir -p server/static/templates
-mv -f api.html ${TEMPLATES}/api.html
+def strip_external_styles(filename, outname=None):
+    """ Strip out references to external styles in html files.
+    
+    Parameters
+    ----------
+    filename : str
+        Fullname of the file to strip from.
+    outname : bool, opt
+        Outname to write to.  If not supplied, will write in-place.
+    """
+    
+    ext_links = ['(<link.*?http.+?>)', 
+                 '(@import url\(.*?http.+?\);)']
 
-docker run -ti -v `pwd`:/docs humangeo/aglio -i changelog.md --theme-variables streak -o changelog.html
-mv -f changelog.html ${TEMPLATES}/changelog.html
+    with open(filename, 'r') as handle:
+        body = handle.read()
+         
+    for pattern in ext_links:
+        regex = re.compile(pattern)
+        body = regex.sub('', body)
+            
+    with open(filename, 'w') as handle:
+        handle.write(body)
 
-docker run -ti -v `pwd`:/docs humangeo/aglio -i docs/overview.md --theme-variables streak -o overview.html
-mv -f overview.html ${TEMPLATES}/root.html
+#-------------------------------------------------------------------------------
 
-# Hack to view root locally.
-cp ${TEMPLATES}/root.html server
+if __name__ == "__main__":
+    convert_cmds = ["docker run -ti -v {}:/docs humangeo/aglio -i docs/home.md  --theme-variables streak --theme-variables docs/odrive.less -o api.html".format(os.getcwd()),
+                    "docker run -ti -v {}:/docs humangeo/aglio -i changelog.md --theme-variables streak --theme-variables docs/odrive.less -o changelog.html".format(os.getcwd()),
+                    "docker run -ti -v {}:/docs humangeo/aglio -i docs/overview.md --theme-variables streak --theme-variables docs/odrive.less -o root.html".format(os.getcwd())]
 
-(cd docs && ./builddiagrams)
+    for cmd in convert_cmds:
+        try:
+            subprocess.check_call(cmd.split())
+        except subprocess.CalledProcessError as e:
+            print e
+            exit(1)
+
+    final_dir = 'server/static/templates'
+    if not os.path.exists(final_dir):
+        os.makedirs(final_dir)
+        
+    for item in glob.glob('*.html'):
+        #--Assert files are editable by current user.  Needed to resolve issues
+        #--with Circle-CI
+        if not os.access(item, os.W_OK):
+            try:
+                subprocess.check_call(["sudo", "chown", "{0}:{0}".format(getpass.getuser()), item])
+                os.chmod(item, 0o0644)
+            except subprocess.CalledProcessError as e:
+                print "could not write to output file"
+                print e
+            
+
+        strip_external_styles(item)
+        shutil.move(item, os.path.join(final_dir, item))
+        
+    shutil.copy(os.path.join(final_dir, 'root.html'), 'server/')
+    
+    initial_dir = os.getcwd()
+    os.chdir('docs')
+    subprocess.check_call(["./builddiagrams"])
+    os.chdir(initial_dir)
+    
