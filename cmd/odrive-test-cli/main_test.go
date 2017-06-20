@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestParseTestString tests the mapping of string testers
@@ -29,7 +29,7 @@ func TestParseTestString(t *testing.T) {
 
 	for input, truth := range truthMappings {
 		output, err := parseTesterString(input)
-		assert.Nil(t, err, fmt.Sprintf("error parsing string: %s", err))
+		require.Nil(t, err, fmt.Sprintf("error parsing string: %s", err))
 		if output != truth {
 			t.Error("Failed to parse ", input, " into ", truth)
 		}
