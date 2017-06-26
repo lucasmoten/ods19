@@ -55,8 +55,6 @@ type Object struct {
 	ContentSize int64 `json:"contentSize"`
 	// A sha256 hash of the plaintext as hex encoded string
 	ContentHash string `json:"contentHash"`
-	// IsPDFAvailable indicates if a PDF rendition is available for this object
-	IsPDFAvailable bool `json:"isPDFAvailable"`
 	// ContainsUSPersonsData indicates if this object contains US Persons data (Yes,No,Unknown)
 	ContainsUSPersonsData string `json:"containsUSPersonsData"`
 	// ExemptFromFOIA indicates if this object is exempt from Freedom of Information Act requests (Yes,No,Unknown)

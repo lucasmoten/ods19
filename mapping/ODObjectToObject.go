@@ -55,7 +55,6 @@ func MapODObjectToObject(i *models.ODObject) protocol.Object {
 	o.Properties = MapODPropertiesToProperties(&i.Properties)
 	o.Permissions = MapODPermissionsToPermissions_1_0(&i.Permissions)
 	o.Permission = MapODPermissionsToPermission(&i.Permissions)
-	o.IsPDFAvailable = i.IsPDFAvailable
 	o.ContainsUSPersonsData = i.ContainsUSPersonsData
 	o.ExemptFromFOIA = i.ExemptFromFOIA
 	return o
@@ -117,7 +116,6 @@ func MapODObjectToDeletedObject(i *models.ODObject) protocol.DeletedObject {
 	o.Properties = MapODPropertiesToProperties(&i.Properties)
 	o.Permissions = MapODPermissionsToPermissions_1_0(&i.Permissions)
 	o.Permission = MapODPermissionsToPermission(&i.Permissions)
-	o.IsPDFAvailable = i.IsPDFAvailable
 	o.ContainsUSPersonsData = i.ContainsUSPersonsData
 	o.ExemptFromFOIA = i.ExemptFromFOIA
 	return o

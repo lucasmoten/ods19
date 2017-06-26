@@ -458,7 +458,6 @@ possible a list of Errors coming back with the objects that came back successful
                 },
                 "contentType": "text",
                 "contentSize": 1511,
-                "isPDFAvailable": false,
                 "containsUSPersonsData": "No",
                 "exemptFromFOIA": "No",
                 "properties": [
@@ -513,7 +512,7 @@ possible a list of Errors coming back with the objects that came back successful
                     "name": "parentFolderA"
                     },
                     {
-                    "id": "11e5e4867a6e3d8389020242ac110002",
+                    "id": "11e5e4867a6e3d8489020242ac110002",
                     "parentId": "11e5e4867a6e3d8389020242ac110002",
                     "name": "folderA"
                     }
@@ -628,8 +627,7 @@ possible a list of Errors coming back with the objects that came back successful
                     }
                 },
                 "contentType": "text",
-                "contentSize": "1511",
-                "isPDFAvailable": false,
+                "contentSize": 1511,
                 "containsUSPersonsData": "No",
                 "exemptFromFOIA": "No",
                 "properties": [
@@ -684,7 +682,7 @@ possible a list of Errors coming back with the objects that came back successful
                     "name": "parentFolderA"
                     },
                     {
-                    "id": "11e5e4867a6e3d8389020242ac110002",
+                    "id": "11e5e4867a6e3d8489020242ac110002",
                     "parentId": "11e5e4867a6e3d8389020242ac110002",
                     "name": "folderA"
                     }
@@ -2264,7 +2262,6 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + permission (PermissionResponse, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
 + contentSize: 1511 (number) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
-+ isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 + properties (array[Property]) - Array of custom properties associated with the object.
@@ -2317,7 +2314,6 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + permission (PermissionResponse, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
 + contentSize: 1511 (number) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
-+ isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 + properties (array[Property]) - Array of custom properties associated with the object.
@@ -2345,7 +2341,6 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + permission (PermissionResponse, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
 + contentSize: 1511 (number) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
-+ isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 + properties (array[Property]) - Array of custom properties associated with the object.
@@ -2373,7 +2368,6 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + permission (PermissionResponse, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
 + contentSize: 1511 (number) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
-+ isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 + properties (array[Property]) - Array of custom properties associated with the object.
@@ -2402,7 +2396,6 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + permission (PermissionResponse, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
 + contentSize: 1511 (number) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
-+ isPDFAvailable: `false` (boolean) - Indicates if a PDF rendition is available for this object.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 + properties (array[Property]) - Array of custom properties associated with the object.

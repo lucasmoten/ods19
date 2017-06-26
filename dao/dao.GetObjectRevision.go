@@ -58,9 +58,6 @@ func getObjectRevisionInTransaction(tx *sqlx.Tx, object models.ODObject, loadPro
         ,ao.contentSize
         ,ao.contentHash
         ,ao.encryptIV
-        ,ao.ownedByNew
-        ,ao.isPDFAvailable
-        ,ao.isStreamStored
         ,ao.containsUSPersonsData
         ,ao.exemptFromFOIA
         ,ot.name typeName

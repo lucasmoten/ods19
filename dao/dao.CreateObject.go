@@ -133,8 +133,12 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 	}
 
 	// Assign a random content connector value if this object doesnt have one
+	//
+	// This value is normally set for objects having a content stream.  For folder objects, this value is not
+	// initially set, but we leverage it below as a psuedo unique identifier for fetching the created
+	// record. This is because the truly unique identifier is generated in the database as a non-predictive
+	// GUID.
 	if len(object.ContentConnector.String) == 0 {
-		// TODO(cm): Why would this happen?
 		object.ContentConnector = models.ToNullString(crypto.CreateRandomName())
 	}
 
@@ -191,7 +195,7 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		return dbObject, acmCreated, fmt.Errorf("CreateObject object inserted but no rows affected")
 	}
 
-	// Get the ID of the newly created object and assign to returned object.
+	// Get the populated fields (id, createddate, modifieddate, etc) of the newly created object and assign to returned object.
 	// This assumes most recent created by the user of the type and name.
 	getObjectStatement := `
     select 
@@ -220,9 +224,6 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
         ,o.contentSize
         ,o.contentHash
         ,o.encryptIV
-        ,o.ownedByNew
-        ,o.isPDFAvailable
-        ,o.isStreamStored
         ,o.containsUSPersonsData
         ,o.exemptFromFOIA
         ,ot.name typeName
@@ -278,12 +279,6 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 			}
 			object.Permissions[i] = dbPermission
 		}
-	}
-
-	// Initialize acm
-	err = setObjectACMForObjectInTransaction(tx, &dbObject, true)
-	if err != nil {
-		return dbObject, acmCreated, fmt.Errorf("Error saving ACM to object: %s", err.Error())
 	}
 
 	return dbObject, acmCreated, nil

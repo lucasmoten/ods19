@@ -4,7 +4,7 @@ machine:
     environment:
         IMPORT_PATH: "decipher.com/object-drive-server"
         REPO_NAME: "object-drive-server"
-        ODRIVE_VERSION: "1.0.1"
+        ODRIVE_VERSION: "1.0.2"
         GOPATH: "/home/ubuntu/.go_workspace"
     hosts:
         kafka: 127.0.0.1
@@ -43,8 +43,6 @@ test:
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && ./odrive-database debug > db.yml
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && CONTAINERIP=$(docker inspect -f '{{.NetworkSettings.IPAddress }}' $(docker ps -a | grep metadatadb | awk '{print $1}')) sed -i "s/127.0.0.1/$CONTAINERIP/g" db.yml
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && ./odrive-database init --conf db.yml --force=true
-        - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && ./odrive-database migrate down --conf db.yml
-        - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && ./odrive-database migrate up --conf db.yml
         - cd ~/.go_workspace/src/$IMPORT_PATH && GOPATH=~/.go_workspace && go test `go list ./... | grep -v vendor`
 
 deployment:
