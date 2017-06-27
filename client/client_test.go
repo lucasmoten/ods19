@@ -10,12 +10,13 @@ import (
 	"path"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"strings"
 
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util/testhelpers"
-	"github.com/stretchr/testify/assert"
 )
 
 // testDir defines the location for files used in upload/download tests.
@@ -54,7 +55,7 @@ func TestMain(m *testing.M) {
 // Object-drive instance.  The drive must be up and running for this to succeed.
 func TestNewClient(t *testing.T) {
 	_, err := NewClient(conf)
-	assert.Nil(t, err, fmt.Sprintf("ERROR creating new client: %s", err))
+	require.Nil(t, err, fmt.Sprintf("ERROR creating new client: %s", err))
 }
 
 // TestRoundTrip tests the upload/download mechanisms by iterating through every file in the
@@ -97,13 +98,13 @@ func TestRoundTrip(t *testing.T) {
 			t.Log(err)
 		}
 		newObj, err := me.CreateObject(upObj, fReader)
-		assert.Nil(t, err, fmt.Sprintf("Creating object hit an error: %s", err))
+		require.Nil(t, err, fmt.Sprintf("Creating object hit an error: %s", err))
 
 		t.Log("Uploaded object has ID: ", newObj.ID)
 
 		// Pull the fixtures back down
 		reader, err := me.GetObjectStream(newObj.ID)
-		assert.Nil(t, err, fmt.Sprintf("Retrieving stream hit an error: %s", err))
+		require.Nil(t, err, fmt.Sprintf("Retrieving stream hit an error: %s", err))
 
 		os.MkdirAll(path.Join(testDir, "retrieved"), os.FileMode(int(0700)))
 		outName := path.Join(testDir, "retrieved", newObj.Name)
@@ -111,12 +112,12 @@ func TestRoundTrip(t *testing.T) {
 		t.Log("Preparing to pull down file to: ", outName)
 		t.Log("ChangeToken: ", newObj.ChangeToken)
 		err = writeObjectToDisk(outName, reader)
-		assert.Nil(t, err, fmt.Sprintf("Writing encountered an error: %s", err))
+		require.Nil(t, err, fmt.Sprintf("Writing encountered an error: %s", err))
 
 		// Delete the fixture
 		t.Log("Deleting object")
 		delResponse, err := me.DeleteObject(newObj.ID, newObj.ChangeToken)
-		assert.Nil(t, err, "Error on deleting object %s", err)
+		require.Nil(t, err, "Error on deleting object %s", err)
 		t.Log("Response from delete: ", delResponse)
 
 	}
@@ -142,7 +143,7 @@ func TestCreateObjectNoStream(t *testing.T) {
 
 	retObj, err := me.CreateObject(upObj, nil)
 	t.Log("Object created is: ", retObj.ID)
-	assert.Nil(t, err, "Error creating object with no stream %s", err)
+	require.Nil(t, err, "Error creating object with no stream %s", err)
 
 }
 
@@ -170,7 +171,7 @@ func TestMoveObject(t *testing.T) {
 
 	fileObj, err := me.CreateObject(fileReq, testFile)
 	t.Log("File created is: ", fileObj.ID)
-	assert.Nil(t, err, "error creating file to move", err)
+	require.Nil(t, err, "error creating file to move", err)
 
 	// Now create the folder in which to move it.
 	var dirReq = protocol.CreateObjectRequest{
@@ -188,7 +189,7 @@ func TestMoveObject(t *testing.T) {
 
 	dirObj, err := me.CreateObject(dirReq, nil)
 	t.Log("Folder created is: ", dirObj.ID)
-	assert.Nil(t, err, "Error creating object with no stream %s", err)
+	require.Nil(t, err, "Error creating object with no stream %s", err)
 
 	// Mow perform the move
 	var moveReq = protocol.MoveObjectRequest{
@@ -199,7 +200,7 @@ func TestMoveObject(t *testing.T) {
 
 	moved, err := me.MoveObject(moveReq)
 	t.Log("Moved object to", dirObj.Name, " with ID ", moved.ParentID)
-	assert.Nil(t, err, "error moving object %s", err)
+	require.Nil(t, err, "error moving object %s", err)
 }
 
 func TestImpersonation(t *testing.T) {
