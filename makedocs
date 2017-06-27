@@ -3,9 +3,10 @@
 import getpass
 import glob
 import os
+import re
 import shutil
 import subprocess
-import re
+import tempfile
 
 #-------------------------------------------------------------------------------
 
@@ -35,6 +36,29 @@ def strip_external_styles(filename, outname=None):
 
 #-------------------------------------------------------------------------------
 
+def force_access(filename):
+    """ Copies file to temp location, deletes original, then restores
+    
+    This function takes advantage of unix filesystem rules to change ownership
+    of a file.  Though moving a file will keep the creator's permissions, 
+    performaing a copy will update the ownership to the user that issues the 
+    command.  
+    
+    Parameters
+    ----------
+    filename : str
+        Full path to the file to be forced under current user ownership
+    
+    """
+    
+    _, temp_name = tempfile.mkstemp()
+    
+    shutil.copy(filename, temp_name)
+    os.remove(filename)
+    shutil.copy(temp_name, filename)
+
+#-------------------------------------------------------------------------------
+
 if __name__ == "__main__":
     convert_cmds = ["docker run -ti -v {}:/docs humangeo/aglio -i docs/home.md  --theme-variables streak --theme-variables docs/odrive.less -o api.html".format(os.getcwd()),
                     "docker run -ti -v {}:/docs humangeo/aglio -i changelog.md --theme-variables streak --theme-variables docs/odrive.less -o changelog.html".format(os.getcwd()),
@@ -55,13 +79,7 @@ if __name__ == "__main__":
         #--Assert files are editable by current user.  Needed to resolve issues
         #--with Circle-CI
         if not os.access(item, os.W_OK):
-            try:
-                subprocess.check_call(["sudo", "chown", "{0}:{0}".format(getpass.getuser()), item])
-                os.chmod(item, 0o0644)
-            except subprocess.CalledProcessError as e:
-                print "could not write to output file"
-                print e
-            
+            force_access(item)
 
         strip_external_styles(item)
         shutil.move(item, os.path.join(final_dir, item))
