@@ -6,6 +6,8 @@ Secure object storage.
 ## Changelog
 [Change Log](static/templates/changelog.html)
 
+## Setup
+[Environment](static/templates/environment.html)
 
 ## List of Operations 
 

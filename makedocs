@@ -61,6 +61,7 @@ def force_access(filename):
 
 if __name__ == "__main__":
     convert_cmds = ["docker run -ti -v {}:/docs humangeo/aglio -i docs/home.md  --theme-variables streak --theme-variables docs/odrive.less -o api.html".format(os.getcwd()),
+                    "docker run -ti -v {}:/docs humangeo/aglio -i docs/environment.md  --theme-variables streak --theme-variables docs/odrive.less -o environment.html".format(os.getcwd()),
                     "docker run -ti -v {}:/docs humangeo/aglio -i changelog.md --theme-variables streak --theme-variables docs/odrive.less -o changelog.html".format(os.getcwd()),
                     "docker run -ti -v {}:/docs humangeo/aglio -i docs/overview.md --theme-variables streak --theme-variables docs/odrive.less -o root.html".format(os.getcwd())]
 
