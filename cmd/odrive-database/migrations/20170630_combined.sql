@@ -12,31 +12,6 @@ CREATE TABLE IF NOT EXISTS migration_status
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
 ;
 
--- Inject placeholders for prior migrations
-INSERT INTO migration_status SET description = '20170630_combined injecting placeholders for prior migrations';
-DROP PROCEDURE IF EXISTS sp_Patch_20170630_gorp_migrations;
--- +migrate StatementBegin
-CREATE PROCEDURE sp_Patch_20170630_gorp_migrations()
-BEGIN
-    IF NOT EXISTS ( select null from gorp_migrations where id = '20170301_576_path_delimiter.sql' ) THEN
-        insert gorp_migrations set applied_at = current_timestamp(), id = '20170301_576_path_delimiter.sql';
-    END IF;
-    IF NOT EXISTS ( select null from gorp_migrations where id = '20170331_409_ao_acm_performance.sql' ) THEN
-        insert gorp_migrations set applied_at = current_timestamp(), id = '20170331_409_ao_acm_performance.sql';
-    END IF;
-    IF NOT EXISTS ( select null from gorp_migrations where id = '20170421_409_aacflatten.sql' ) THEN
-        insert gorp_migrations set applied_at = current_timestamp(), id = '20170421_409_aacflatten.sql';
-    END IF;
-    IF NOT EXISTS ( select null from gorp_migrations where id = '20170505_fix_calcResourceString.sql' ) THEN
-        insert gorp_migrations set applied_at = current_timestamp(), id = '20170505_fix_calcResourceString.sql';
-    END IF;
-    IF NOT EXISTS ( select null from gorp_migrations where id = '20170508_409_permissiongrantee.sql' ) THEN
-        insert gorp_migrations set applied_at = current_timestamp(), id = '20170508_409_permissiongrantee.sql';
-    END IF;
-END;
--- +migrate StatementEnd
-CALL sp_Patch_20170630_gorp_migrations();
-
 -- Drop triggers (all for tables being dropped, and ti/tu for those being kept and recreated later)
 DROP TRIGGER IF EXISTS td_acm;
 DROP TRIGGER IF EXISTS ti_acm;
@@ -110,668 +85,887 @@ proc_label: BEGIN
         -- derived from constraints.create.sql
         INSERT INTO migration_status SET description = '20170630_combined drop foreign keys and indexes from constraints.create.sql';
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acm' and binary constraint_name = 'fk_acm_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acm_createdBy';
             ALTER TABLE `acm` DROP FOREIGN KEY `fk_acm_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acm' and binary index_name = 'fk_acm_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acm_createdBy';
             ALTER TABLE `acm` DROP INDEX `fk_acm_createdBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acm' and binary constraint_name = 'fk_acm_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acm_deletedBy';
             ALTER TABLE `acm` DROP FOREIGN KEY `fk_acm_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acm' and binary index_name = 'fk_acm_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acm_deletedBy';
             ALTER TABLE `acm` DROP INDEX `fk_acm_deletedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acm' and binary constraint_name = 'fk_acm_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acm_modifiedBy';
             ALTER TABLE `acm` DROP FOREIGN KEY `fk_acm_modifiedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acm' and binary index_name = 'fk_acm_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acm_modifiedBy';
             ALTER TABLE `acm` DROP INDEX `fk_acm_modifiedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmgrantee' and binary constraint_name = 'fk_acmgrantee_userDistinguishedName') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmgrantee_userDistinguishedName';
             ALTER TABLE `acmgrantee` DROP FOREIGN KEY `fk_acmgrantee_userDistinguishedName`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acmgrantee' and binary index_name = 'fk_acmgrantee_userDistinguishedName') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acmgrantee_userDistinguishedName';
             ALTER TABLE `acmgrantee` DROP INDEX `fk_acmgrantee_userDistinguishedName`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmkey' and binary constraint_name = 'fk_acmkey_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmkey_createdBy';
             ALTER TABLE `acmkey` DROP FOREIGN KEY `fk_acmkey_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acmkey' and binary index_name = 'fk_acmkey_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acmkey_createdBy';
             ALTER TABLE `acmkey` DROP INDEX `fk_acmkey_createdBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmkey' and binary constraint_name = 'fk_acmkey_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmkey_deletedBy';
             ALTER TABLE `acmkey` DROP FOREIGN KEY `fk_acmkey_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acmkey' and binary index_name = 'fk_acmkey_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acmkey_deletedBy';
             ALTER TABLE `acmkey` DROP INDEX `fk_acmkey_deletedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmkey' and binary constraint_name = 'fk_acmkey_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmkey_modifiedBy';
             ALTER TABLE `acmkey` DROP FOREIGN KEY `fk_acmkey_modifiedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acmkey' and binary index_name = 'fk_acmkey_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acmkey_modifiedby';
             ALTER TABLE `acmkey` DROP INDEX `fk_acmkey_modifiedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmpart' and binary constraint_name = 'fk_acmpart_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmpart_createdBy';
             ALTER TABLE `acmpart` DROP FOREIGN KEY `fk_acmpart_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acmpart' and binary index_name = 'fk_acmpart_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acmpart_createdBy';
             ALTER TABLE `acmpart` DROP INDEX `fk_acmpart_createdBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmpart' and binary constraint_name = 'fk_acmpart_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmpart_deletedBy';
             ALTER TABLE `acmpart` DROP FOREIGN KEY `fk_acmpart_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acmpart' and binary index_name = 'fk_acmpart_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acmpart_deletedBy';
             ALTER TABLE `acmpart` DROP INDEX `fk_acmpart_deletedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmpart' and binary constraint_name = 'fk_acmpart_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmpart_modifiedBy';
             ALTER TABLE `acmpart` DROP FOREIGN KEY `fk_acmpart_modifiedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acmpart' and binary index_name = 'fk_acmpart_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acmpart_modifiedBy';
             ALTER TABLE `acmpart` DROP INDEX `fk_acmpart_modifiedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmpart' and binary constraint_name = 'fk_acmpart_acmId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmpart_acmId';
             ALTER TABLE `acmpart` DROP FOREIGN KEY `fk_acmpart_acmId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acmpart' and binary index_name = 'fk_acmpart_acmId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acmpart_acmId';
             ALTER TABLE `acmpart` DROP INDEX `fk_acmpart_acmId`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmpart' and binary constraint_name = 'fk_acmpart_acmKeyId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmpart_acmKeyId';
             ALTER TABLE `acmpart` DROP FOREIGN KEY `fk_acmpart_acmKeyId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acmpart' and binary index_name = 'fk_acmpart_acmKeyId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmpart_acmKeyId';
             ALTER TABLE `acmpart` DROP INDEX `fk_acmpart_acmKeyId`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmpart' and binary constraint_name = 'fk_acmpart_acmValueId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmpart_acmValueId';
             ALTER TABLE `acmpart` DROP FOREIGN KEY `fk_acmpart_acmValueId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acmpart' and binary index_name = 'fk_acmpart_acmValueId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acmpart_acmValueId';
             ALTER TABLE `acmpart` DROP INDEX `fk_acmpart_acmValueId`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmvalue' and binary constraint_name = 'fk_acmvalue_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmvalue_createdBy';
             ALTER TABLE `acmvalue` DROP FOREIGN KEY `fk_acmvalue_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acmvalue' and binary index_name = 'fk_acmvalue_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acmvalue_createdBy';
             ALTER TABLE `acmvalue` DROP INDEX `fk_acmvalue_createdBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmvalue' and binary constraint_name = 'fk_acmvalue_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmvalue_deletedBy';
             ALTER TABLE `acmvalue` DROP FOREIGN KEY `fk_acmvalue_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acmvalue' and binary index_name = 'fk_acmvalue_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acmvalue_deletedBy';
             ALTER TABLE `acmvalue` DROP INDEX `fk_acmvalue_deletedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmvalue' and binary constraint_name = 'fk_acmvalue_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmvalue_modifiedBy';
             ALTER TABLE `acmvalue` DROP FOREIGN KEY `fk_acmvalue_modifiedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acmvalue' and binary index_name = 'fk_acmvalue_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acmvalue_modifiedBy';
             ALTER TABLE `acmvalue` DROP INDEX `fk_acmvalue_modifiedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_createdBy';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_createdBy';
             ALTER TABLE `object` DROP INDEX `fk_object_createdBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_deletedBy';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_deletedBy';
             ALTER TABLE `object` DROP INDEX `fk_object_deletedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_expungedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_expungedBy';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_expungedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_expungedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_expungedBy';
             ALTER TABLE `object` DROP INDEX `fk_object_expungedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_modifiedBy';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_modifiedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_modifiedBy';
             ALTER TABLE `object` DROP INDEX `fk_object_modifiedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_ownedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_ownedBy';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_ownedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_ownedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_ownedBy';
             ALTER TABLE `object` DROP INDEX `fk_object_ownedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_ownedByNew') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_ownedByNew';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_ownedByNew`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_ownedByNew') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_ownedByNew';
             ALTER TABLE `object` DROP INDEX `fk_object_ownedByNew`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_parentId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_parentId';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_parentId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_parentId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_parentId';
             ALTER TABLE `object` DROP INDEX `fk_object_parentId`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_typeId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_typeId';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_typeId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_typeId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_typeId';
             ALTER TABLE `object` DROP INDEX `fk_object_typeId`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'objectacm' and binary constraint_name = 'fk_objectacm_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_objectacm_createdBy';
             ALTER TABLE `objectacm` DROP FOREIGN KEY `fk_objectacm_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'objectacm' and binary index_name = 'fk_objectacm_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_objectacm_createdBy';
             ALTER TABLE `objectacm` DROP INDEX `fk_objectacm_createdBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'objectacm' and binary constraint_name = 'fk_objectacm_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_objectacm_deletedBy';
             ALTER TABLE `objectacm` DROP FOREIGN KEY `fk_objectacm_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'objectacm' and binary index_name = 'fk_objectacm_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_objectacm_deletedBy';
             ALTER TABLE `objectacm` DROP INDEX `fk_objectacm_deletedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'objectacm' and binary constraint_name = 'fk_objectacm_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_objectacm_modifiedBy';
             ALTER TABLE `objectacm` DROP FOREIGN KEY `fk_objectacm_modifiedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'objectacm' and binary index_name = 'fk_objectacm_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_objectacm_modifiedBy';
             ALTER TABLE `objectacm` DROP INDEX `fk_objectacm_modifiedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'objectacm' and binary constraint_name = 'fk_objectacm_objectId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_objectacm_objectId';
             ALTER TABLE `objectacm` DROP FOREIGN KEY `fk_objectacm_objectId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'objectacm' and binary index_name = 'fk_objectacm_objectId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_objectacm_objectId';
             ALTER TABLE `objectacm` DROP INDEX `fk_objectacm_objectId`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'objectacm' and binary constraint_name = 'fk_objectacm_acmId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_objectacm_acmId';
             ALTER TABLE `objectacm` DROP FOREIGN KEY `fk_objectacm_acmId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'objectacm' and binary index_name = 'fk_objectacm_acmId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_objectacm_acmId';
             ALTER TABLE `objectacm` DROP INDEX `fk_objectacm_acmId`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_createdBy';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_createdBy';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_createdBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_deletedBy';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_deletedBy';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_deletedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_grantee') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_grantee';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_grantee`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_grantee') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_grantee';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_grantee`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_modifiedBy';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_modifiedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_modifiedBy';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_modifiedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_objectId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_objectId';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_objectId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_objectId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_objectId';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_objectId`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_property' and binary constraint_name = 'fk_object_property_objectId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_property_objectId';
             ALTER TABLE `object_property` DROP FOREIGN KEY `fk_object_property_objectId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_property' and binary index_name = 'fk_object_property_objectId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_property_objectId';
             ALTER TABLE `object_property` DROP INDEX `fk_object_property_objectId`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_property' and binary constraint_name = 'fk_object_property_propertyId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_property_propertyId';
             ALTER TABLE `object_property` DROP FOREIGN KEY `fk_object_property_propertyId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_property' and binary index_name = 'fk_object_property_propertyId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_property_propertyId';
             ALTER TABLE `object_property` DROP INDEX `fk_object_property_propertyId`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_tag' and binary constraint_name = 'fk_object_tag_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_tag_createdBy';
             ALTER TABLE `object_tag` DROP FOREIGN KEY `fk_object_tag_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_tag' and binary index_name = 'fk_object_tag_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_tag_createdBy';
             ALTER TABLE `object_tag` DROP INDEX `fk_object_tag_createdBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_tag' and binary constraint_name = 'fk_object_tag_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_tag_deletedBy';
             ALTER TABLE `object_tag` DROP FOREIGN KEY `fk_object_tag_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_tag' and binary index_name = 'fk_object_tag_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_tag_deletedBy';
             ALTER TABLE `object_tag` DROP INDEX `fk_object_tag_deletedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_tag' and binary constraint_name = 'fk_object_tag_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_tag_modifiedBy';
             ALTER TABLE `object_tag` DROP FOREIGN KEY `fk_object_tag_modifiedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_tag' and binary index_name = 'fk_object_tag_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_tag_modifiedBy';
             ALTER TABLE `object_tag` DROP INDEX `fk_object_tag_modifiedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_tag' and binary constraint_name = 'fk_object_tag_objectId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_tag_objectId';
             ALTER TABLE `object_tag` DROP FOREIGN KEY `fk_object_tag_objectId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_tag' and binary index_name = 'fk_object_tag_objectId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_tag_objectId';
             ALTER TABLE `object_tag` DROP INDEX `fk_object_tag_objectId`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_type' and binary constraint_name = 'fk_object_type_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_type_createdBy';
             ALTER TABLE `object_type` DROP FOREIGN KEY `fk_object_type_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_type' and binary index_name = 'fk_object_type_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_type_createdBy';
             ALTER TABLE `object_type` DROP INDEX `fk_object_type_createdBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_type' and binary constraint_name = 'fk_object_type_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_type_deletedBy';
             ALTER TABLE `object_type` DROP FOREIGN KEY `fk_object_type_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_type' and binary index_name = 'fk_object_type_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_type_deletedBy';
             ALTER TABLE `object_type` DROP INDEX `fk_object_type_deletedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_type' and binary constraint_name = 'fk_object_type_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_type_modifiedBy';
             ALTER TABLE `object_type` DROP FOREIGN KEY `fk_object_type_modifiedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_type' and binary index_name = 'fk_object_type_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_type_modifiedBy';
             ALTER TABLE `object_type` DROP INDEX `fk_object_type_modifiedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_type' and binary constraint_name = 'fk_object_type_ownedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_type_ownedBy';
             ALTER TABLE `object_type` DROP FOREIGN KEY `fk_object_type_ownedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_type' and binary index_name = 'fk_object_type_ownedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_type_ownedBy';
             ALTER TABLE `object_type` DROP INDEX `fk_object_type_ownedBy`;
         END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_type_property' and binary constraint_name = 'fk_object_type_property_propertyId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_type_property_propertyId';
             ALTER TABLE `object_type_property` DROP FOREIGN KEY `fk_object_type_property_propertyId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_type_property' and binary index_name = 'fk_object_type_property_propertyId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_type_property_propertyId';
             ALTER TABLE `object_type_property` DROP INDEX `fk_object_type_property_propertyId`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_type_property' and binary constraint_name = 'fk_object_type_property_typeId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_type_property_typeId';
             ALTER TABLE `object_type_property` DROP FOREIGN KEY `fk_object_type_property_typeId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_type_property' and binary index_name = 'fk_object_type_property_typeId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_type_property_typeId';
             ALTER TABLE `object_type_property` DROP INDEX `fk_object_type_property_typeId`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'property' and binary constraint_name = 'fk_property_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_property_createdBy';
             ALTER TABLE `property` DROP FOREIGN KEY `fk_property_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'property' and binary index_name = 'fk_property_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_property_createdBy';
             ALTER TABLE `property` DROP INDEX `fk_property_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'property' and binary constraint_name = 'fk_property_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_property_deletedBy';
             ALTER TABLE `property` DROP FOREIGN KEY `fk_property_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'property' and binary index_name = 'fk_property_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_property_deletedBy';
             ALTER TABLE `property` DROP INDEX `fk_property_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'property' and binary constraint_name = 'fk_property_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_property_modifiedBy';
             ALTER TABLE `property` DROP FOREIGN KEY `fk_property_modifiedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'property' and binary index_name = 'fk_property_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_property_modifiedBy';
             ALTER TABLE `property` DROP INDEX `fk_property_modifiedBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'relationship' and binary constraint_name = 'fk_relationship_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_relationship_createdBy';
             ALTER TABLE `relationship` DROP FOREIGN KEY `fk_relationship_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'relationship' and binary index_name = 'fk_relationship_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_relationship_createdBy';
             ALTER TABLE `relationship` DROP INDEX `fk_relationship_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'relationship' and binary constraint_name = 'fk_relationship_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_relationship_deletedBy';
             ALTER TABLE `relationship` DROP FOREIGN KEY `fk_relationship_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'relationship' and binary index_name = 'fk_relationship_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_relationship_deletedBy';
             ALTER TABLE `relationship` DROP INDEX `fk_relationship_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'relationship' and binary constraint_name = 'fk_relationship_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_relationship_modifiedBy';
             ALTER TABLE `relationship` DROP FOREIGN KEY `fk_relationship_modifiedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'relationship' and binary index_name = 'fk_relationship_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_relationship_modifiedBy';
             ALTER TABLE `relationship` DROP INDEX `fk_relationship_modifiedBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'relationship' and binary constraint_name = 'fk_relationship_sourceId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_relationship_sourceId';
             ALTER TABLE `relationship` DROP FOREIGN KEY `fk_relationship_sourceId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'relationship' and binary index_name = 'fk_relationship_sourceId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_relationship_sourceId';
             ALTER TABLE `relationship` DROP INDEX `fk_relationship_sourceId`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'relationship' and binary constraint_name = 'fk_relationship_targetId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_relationship_targetId';
             ALTER TABLE `relationship` DROP FOREIGN KEY `fk_relationship_targetId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'relationship' and binary index_name = 'fk_relationship_targetId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_relationship_targetId';
             ALTER TABLE `relationship` DROP INDEX `fk_relationship_targetId`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'user_object_favorite' and binary constraint_name = 'fk_user_object_favorite_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_user_object_favorite_createdBy';
             ALTER TABLE `user_object_favorite` DROP FOREIGN KEY `fk_user_object_favorite_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'user_object_favorite' and binary index_name = 'fk_user_object_favorite_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_user_object_favorite_createdBy';
             ALTER TABLE `user_object_favorite` DROP INDEX `fk_user_object_favorite_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'user_object_favorite' and binary constraint_name = 'fk_user_object_favorite_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_user_object_favorite_deletedBy';
             ALTER TABLE `user_object_favorite` DROP FOREIGN KEY `fk_user_object_favorite_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'user_object_favorite' and binary index_name = 'fk_user_object_favorite_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_user_object_favorite_deletedBy';
             ALTER TABLE `user_object_favorite` DROP INDEX `fk_user_object_favorite_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'user_object_favorite' and binary constraint_name = 'fk_user_object_favorite_objectId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_user_object_favorite_objectId';
             ALTER TABLE `user_object_favorite` DROP FOREIGN KEY `fk_user_object_favorite_objectId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'user_object_favorite' and binary index_name = 'fk_user_object_favorite_objectId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_user_object_favorite_objectId';
             ALTER TABLE `user_object_favorite` DROP INDEX `fk_user_object_favorite_objectId`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'user_object_subscription' and binary constraint_name = 'fk_user_object_subscription_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_user_object_subscription_createdBy';
             ALTER TABLE `user_object_subscription` DROP FOREIGN KEY `fk_user_object_subscription_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'user_object_subscription' and binary index_name = 'fk_user_object_subscription_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_user_object_subscription_createdBy';
             ALTER TABLE `user_object_subscription` DROP INDEX `fk_user_object_subscription_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'user_object_subscription' and binary constraint_name = 'fk_user_object_subscription_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_user_object_subscription_deletedBy';
             ALTER TABLE `user_object_subscription` DROP FOREIGN KEY `fk_user_object_subscription_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'user_object_subscription' and binary index_name = 'fk_user_object_subscription_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_user_object_subscription_deletedBy';
             ALTER TABLE `user_object_subscription` DROP INDEX `fk_user_object_subscription_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'user_object_subscription' and binary constraint_name = 'fk_user_object_subscription_objectId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_user_object_subscription_objectId';
             ALTER TABLE `user_object_subscription` DROP FOREIGN KEY `fk_user_object_subscription_objectId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'user_object_subscription' and binary index_name = 'fk_user_object_subscription_objectId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_user_object_subscription_objectId';
             ALTER TABLE `user_object_subscription` DROP INDEX `fk_user_object_subscription_objectId`;
         END IF;
         -- derived from 2_idx_object_permission.sql
         INSERT INTO migration_status SET description = '20170630_combined drop foreign keys and indexes from 2_idx_object_permission.sql';
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_createdBy';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_createdBy';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'ix_object_permission_createdby') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop ix_object_permission_createdby';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `ix_object_permission_createdby`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'ix_object_permission_createdby') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_object_permission_createdby';
             ALTER TABLE `object_permission` DROP INDEX `ix_object_permission_createdby`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'ix_object_permission_allowread') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop ix_object_permission_allowread';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `ix_object_permission_allowread`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'ix_object_permission_allowread') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_object_permission_allowread';
             ALTER TABLE `object_permission` DROP INDEX `ix_object_permission_allowread`;
         END IF;
         -- derived from 3_ownedby_fk_and_triggers.sql
         INSERT INTO migration_status SET description = '20170630_combined drop foreign keys and indexes from 3_ownedby_fk_and_triggers.sql';
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_ownedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_ownedBy';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_ownedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_ownedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_ownedBy';
             ALTER TABLE `object` DROP INDEX `fk_object_ownedBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_ownedByNew') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_ownedByNew';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_ownedByNew`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_ownedByNew') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_ownedByNew';
             ALTER TABLE `object` DROP INDEX `fk_object_ownedByNew`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'ix_ownedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop ix_ownedBy';
             ALTER TABLE `object` DROP FOREIGN KEY `ix_ownedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_ownedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_ownedBy';
             ALTER TABLE `object` DROP INDEX `ix_ownedBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'a_object' and binary constraint_name = 'ix_ownedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop ix_ownedBy';
             ALTER TABLE `a_object` DROP FOREIGN KEY `ix_ownedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'a_object' and binary index_name = 'ix_ownedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_ownedBy';
             ALTER TABLE `a_object` DROP INDEX `ix_ownedBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_type' and binary constraint_name = 'fk_object_type_ownedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_type_ownedBy';
             ALTER TABLE `object_type` DROP FOREIGN KEY `fk_object_type_ownedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_type' and binary index_name = 'fk_object_type_ownedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_type_ownedBy';
             ALTER TABLE `object_type` DROP INDEX `fk_object_type_ownedBy`;
         END IF;
         -- derived from 20170331_409_ao_acm_performance.sql
         INSERT INTO migration_status SET description = '20170630_combined drop foreign keys and indexes from 20170331_409_ao_acm_performance.sql';
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmkey2' and binary constraint_name = 'ix_acmvalue2_name') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop ix_acmvalue2_name from acmkey2';
             ALTER TABLE `acmkey2` DROP FOREIGN KEY `ix_acmvalue2_name`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acmkey2' and binary index_name = 'ix_acmvalue2_name') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_acmvalue2_name from acmkey2';
             ALTER TABLE `acmkey2` DROP INDEX `ix_acmvalue2_name`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmvalue2' and binary constraint_name = 'ix_acmvalue2_name') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop ix_acmvalue2_name';
             ALTER TABLE `acmvalue2` DROP FOREIGN KEY `ix_acmvalue2_name`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acmvalue2' and binary index_name = 'ix_acmvalue2_name') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_acmvalue2_name';
             ALTER TABLE `acmvalue2` DROP INDEX `ix_acmvalue2_name`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmpart2' and binary constraint_name = 'fk_acmpart2_acmid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmpart2_acmid';
             ALTER TABLE `acmpart2` DROP FOREIGN KEY `fk_acmpart2_acmid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acmpart2' and binary index_name = 'fk_acmpart2_acmid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acmpart2_acmid';
             ALTER TABLE `acmpart2` DROP INDEX `fk_acmpart2_acmid`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmpart2' and binary constraint_name = 'fk_acmpart2_acmkeyid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmpart2_acmkeyid';
             ALTER TABLE `acmpart2` DROP FOREIGN KEY `fk_acmpart2_acmkeyid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acmpart2' and binary index_name = 'fk_acmpart2_acmkeyid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acmpart2_acmkeyid';
             ALTER TABLE `acmpart2` DROP INDEX `fk_acmpart2_acmkeyid`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmpart2' and binary constraint_name = 'fk_acmpart2_acmvalueid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmpart2_acmvalueid';
             ALTER TABLE `acmpart2` DROP FOREIGN KEY `fk_acmpart2_acmvalueid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'acmpart2' and binary index_name = 'fk_acmpart2_acmvalueid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acmpart2_acmvalueid';
             ALTER TABLE `acmpart2` DROP INDEX `fk_acmpart2_acmvalueid`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'useraocachepart' and binary constraint_name = 'fk_useraocachepart_userid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_useraocachepart_userid';
             ALTER TABLE `useraocachepart` DROP FOREIGN KEY `fk_useraocachepart_userid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'useraocachepart' and binary index_name = 'fk_useraocachepart_userid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_useraocachepart_userid';
             ALTER TABLE `useraocachepart` DROP INDEX `fk_useraocachepart_userid`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'useraocachepart' and binary constraint_name = 'fk_useraocachepart_userkeyid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_useraocachepart_userkeyid';
             ALTER TABLE `useraocachepart` DROP FOREIGN KEY `fk_useraocachepart_userkeyid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'useraocachepart' and binary index_name = 'fk_useraocachepart_userkeyid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_useraocachepart_userkeyid';
             ALTER TABLE `useraocachepart` DROP INDEX `fk_useraocachepart_userkeyid`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'useraocachepart' and binary constraint_name = 'fk_useraocachepart_uservalueid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_useraocachepart_uservalueid';
             ALTER TABLE `useraocachepart` DROP FOREIGN KEY `fk_useraocachepart_uservalueid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'useraocachepart' and binary index_name = 'fk_useraocachepart_uservalueid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_useraocachepart_uservalueid';
             ALTER TABLE `useraocachepart` DROP INDEX `fk_useraocachepart_uservalueid`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'useraocache' and binary constraint_name = 'fk_useraocache_userid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_useraocachepart_userid';
             ALTER TABLE `useraocache` DROP FOREIGN KEY `fk_useraocache_userid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'useraocache' and binary index_name = 'fk_useraocache_userid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_useraocachepart_userid';
             ALTER TABLE `useraocache` DROP INDEX `fk_useraocache_userid`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'useracm' and binary constraint_name = 'fk_useracm_userid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_useracm_userid';
             ALTER TABLE `useracm` DROP FOREIGN KEY `fk_useracm_userid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'useracm' and binary index_name = 'fk_useracm_userid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_useracm_userid';
             ALTER TABLE `useracm` DROP INDEX `fk_useracm_userid`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'useracm' and binary constraint_name = 'fk_useracm_acmid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_useracm_acmid';
             ALTER TABLE `useracm` DROP FOREIGN KEY `fk_useracm_acmid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'useracm' and binary index_name = 'fk_useracm_acmid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_useracm_acmid';
             ALTER TABLE `useracm` DROP INDEX `fk_useracm_acmid`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_acmid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_acmid';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_acmid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_acmid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_acmid';
             ALTER TABLE `object` DROP INDEX `fk_object_acmid`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_ownedbyid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_ownedbyid';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_ownedbyid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_ownedbyid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_ownedbyid';
             ALTER TABLE `object` DROP INDEX `fk_object_ownedbyid`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_grantee') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_grantee';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_grantee`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_grantee') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_grantee';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_grantee`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'ix_grantee') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop ix_grantee';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `ix_grantee`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'ix_grantee') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_grantee';
             ALTER TABLE `object_permission` DROP INDEX `ix_grantee`;
         END IF;        
         -- derived from 20170508_409_permissiongrantee.sql
         INSERT INTO migration_status SET description = '20170630_combined drop foreign keys and indexes from 20170508_409_permissiongrantee.sql';
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_createdbyid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_createdbyid';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_createdbyid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_createdbyid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_createdbyid';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_createdbyid`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_granteeid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_granteeid';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_granteeid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_granteeid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_granteeid';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_granteeid`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_deletedBy';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_deletedBy';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_modifiedBy';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_modifiedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_modifiedBy';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_modifiedBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_granteeid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_granteeid';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_granteeid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_granteeid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_granteeid';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_granteeid`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_createdBy';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_createdBy';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'ix_object_permission_createdby') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_object_permission_createdby';
             ALTER TABLE `object_permission` DROP INDEX `ix_object_permission_createdby`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_createdbyid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_createdbyid';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_createdbyid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_createdbyid') THEN	
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_createdbyid';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_createdbyid`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_grantee') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_grantee';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_grantee`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'ix_grantee') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_grantee';
             ALTER TABLE `object_permission` DROP INDEX `ix_grantee`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_grantee') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_grantee';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_grantee`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_objectId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_objectId';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_objectId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_objectId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_objectId';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_objectId`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_objectid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_objectid';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_objectid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_objectid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_objectid';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_objectid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'ix_objectId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_objectId';
             ALTER TABLE `object_permission` DROP INDEX `ix_objectId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'ix_isDeleted') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_isDeleted';
             ALTER TABLE `object_permission` DROP INDEX `ix_isDeleted`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and index_name like 'ix_object_permission_allowread') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_object_permission_allowread';
             ALTER TABLE `object_permission` DROP INDEX `ix_object_permission_allowread`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_acmid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_acmid';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_acmid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_acmid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_acmid';
             ALTER TABLE `object` DROP INDEX `fk_object_acmid`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_createdBy';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_createdBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_createdBy';
             ALTER TABLE `object` DROP INDEX `fk_object_createdBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_deletedBy';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_deletedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_deletedBy';
             ALTER TABLE `object` DROP INDEX `fk_object_deletedBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_expungedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_expungedBy';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_expungedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_expungedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_expungedBy';
             ALTER TABLE `object` DROP INDEX `fk_object_expungedBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_modifiedBy';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_modifiedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_modifiedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_modifiedBy';
             ALTER TABLE `object` DROP INDEX `fk_object_modifiedBy`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_ownedbyid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_ownedbyid';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_ownedbyid`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_ownedbyid') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_ownedbyid';
             ALTER TABLE `object` DROP INDEX `fk_object_ownedbyid`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_parentId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_parentId';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_parentId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_parentId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_parentId';
             ALTER TABLE `object` DROP INDEX `fk_object_parentId`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_typeId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_typeId';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_typeId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_typeId') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_typeId';
             ALTER TABLE `object` DROP INDEX `fk_object_typeId`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_createdDate') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_createdDate';
             ALTER TABLE `object` DROP INDEX `ix_createdDate`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_modifiedDate') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_modifiedDate';
             ALTER TABLE `object` DROP INDEX `ix_modifiedDate`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_ownedBy') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_ownedBy';
             ALTER TABLE `object` DROP INDEX `ix_ownedBy`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'idx_object_description') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index idx_object_description';
             ALTER TABLE `object` DROP INDEX `idx_object_description`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_ownedByNew') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_ownedByNew';
             ALTER TABLE `object` DROP INDEX `fk_object_ownedByNew`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_name') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_name';
             ALTER TABLE `object` DROP INDEX `ix_name`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_isDeleted') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_isDeleted';
             ALTER TABLE `object` DROP INDEX `ix_isDeleted`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_object_createdDate') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_object_createdDate';
             ALTER TABLE `object` DROP INDEX `ix_object_createdDate`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_object_modifiedDate') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_object_modifiedDate';
             ALTER TABLE `object` DROP INDEX `ix_object_modifiedDate`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_object_name') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_object_name';
             ALTER TABLE `object` DROP INDEX `ix_object_name`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_object_isdeleted') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_object_isdeleted';
             ALTER TABLE `object` DROP INDEX `ix_object_isdeleted`;
         END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_object_description') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop index ix_object_description';
             ALTER TABLE `object` DROP INDEX `ix_object_description`;
         END IF;
     end proc_main;
@@ -1368,11 +1562,12 @@ proc_label: BEGIN
             END IF;
             SET counter := counter + 1;
             IF floor(counter/5000) = ceiling(counter/5000) THEN
-                INSERT INTO migration_status SET description = concat('20170630_combined assign ownedbyid and acmid (>', counter, 'objects)');
+                INSERT INTO migration_status SET description = concat('20170630_combined assign ownedbyid and acmid (>', counter, ' objects)');
             END IF;
             REVISIONS: BEGIN
                 DECLARE vAID int default 0;
                 DECLARE vPrevAID int default -1;
+                DECLARE vPrevOwnedBy varchar(255) default '';                
                 DECLARE vChangeCount int default 0;
                 DECLARE vPrevChangeCount int default -1;
                 DECLARE vFlattenedACM text default '';
@@ -1383,7 +1578,7 @@ proc_label: BEGIN
                         FROM a_object 
                         WHERE id = vObjectID
                         UNION ALL
-                        SELECT -1 a_id, a.ownedby, -1 id, oa.modifieddate, a.name acm
+                        SELECT -1 a_id, '', -1 id, oa.modifieddate, a.name acm
                         FROM a_objectacm oa INNER JOIN acm a on oa.acmid = a.id
                         WHERE oa.objectid = vObjectID
                     ) AS d ORDER BY d.modifieddate;
@@ -1396,7 +1591,12 @@ proc_label: BEGIN
                         CLOSE c_revision;
                         LEAVE get_revision;
                     END IF;
-                    SET vOwnedBy := calcResourceString(vOwnedBy);
+                    IF vOwnedBy <> '' THEN
+                        SET vOwnedBy := calcResourceString(vOwnedBy);
+                        SET vPrevOwnedBy := vOwnedBy;
+                    ELSE
+                        SET vOwnedBy := vPrevOwnedBy;
+                    END IF;
                     SET vOwnedByID := calcGranteeIDFromResourceString(vOwnedBy);
                     -- Row represents Object Revision
                     IF vAID <> -1 AND vChangeCount <> -1 THEN
@@ -1448,7 +1648,9 @@ proc_label: BEGIN
         DECLARE c_permission_finished int default 0;
         DECLARE c_permission cursor for 
             SELECT id, objectid 
-            FROM object_permission;
+            FROM object_permission
+            WHERE granteeid is null or granteeid = 0 or createdbyid is null or createdbyid = 0
+            ;
         DECLARE continue handler for not found set c_permission_finished = 1;
         OPEN c_permission;
         get_permission: LOOP
@@ -1459,14 +1661,14 @@ proc_label: BEGIN
             END IF;
             SET counter := counter + 1;
             IF floor(counter/5000) = ceiling(counter/5000) THEN
-                INSERT INTO migration_status SET description = concat('20170630_combined update permissions (>', counter, 'permission records)');
+                INSERT INTO migration_status SET description = concat('20170630_combined update permissions (>', counter, ' permission records)');
             END IF;
             REVISIONS: BEGIN
                 DECLARE vAID int default 0;
                 DECLARE c_revision_finished int default 0;
                 DECLARE c_revision cursor FOR 
                     SELECT a_id, createdby, grantee, allowcreate, allowread, allowupdate, allowdelete, allowshare, encryptkey 
-                    FROM object_permission 
+                    FROM a_object_permission 
                     WHERE id = vID and objectid = vObjectID
                     ORDER BY changecount asc;
                 DECLARE continue handler for not found SET c_revision_finished = 1;
@@ -1479,7 +1681,7 @@ proc_label: BEGIN
                     END IF;
                     SET counterr := counterr + 1;
                     IF floor(counterr/5000) = ceiling(counterr/5000) THEN
-                        INSERT INTO migration_status SET description = contact('20170630_combined update permissions (>', counterr, 'archive permission records)');
+                        INSERT INTO migration_status SET description = concat('20170630_combined update permissions (>', counterr, ' archive permission records)');
                     END IF;
                     SET vGrantee := lower(aacflatten(vGrantee));
                     IF (SELECT 1=1 FROM acmvalue2 WHERE name = vGrantee) IS NULL THEN
