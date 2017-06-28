@@ -437,7 +437,8 @@ func parseCreateObjectRequestAsJSON(r *http.Request) (models.ODObject, string, *
 	// Map to internal object type
 	err = mapping.OverwriteODObjectWithCreateObjectRequest(&object, &jsonObject)
 	if err != nil {
-		return object, "", NewAppError(400, err, "Could not map request to internal struct type")
+		msg := fmt.Sprintf("Could not map request to internal struct type. %s", err.Error())
+		return object, "", NewAppError(400, err, msg)
 	}
 
 	return object, jsonObject.NamePathDelimiter, nil

@@ -320,7 +320,7 @@ func CreateODPermissionFromResource(resource string) (ODObjectPermission, error)
 	if strings.HasPrefix(resource, "group/") {
 		return createODPermissionFromGroupResource(resource), nil
 	}
-	return ODObjectPermission{}, fmt.Errorf("Unhandled format for resource string")
+	return ODObjectPermission{}, fmt.Errorf("unhandled format for resource string `%s`, must begin with `user/` or `group/`", resource)
 }
 
 func createODPermissionFromUserResource(resource string) ODObjectPermission {
