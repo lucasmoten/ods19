@@ -490,5 +490,57 @@ BEGIN
     END LOOP get_object;
 END
 //
+delimiter ;
 
+delimiter //
+DROP PROCEDURE IF EXISTS sp_TestDataDisperse
+//
+SELECT 'Creating procedure' as Action
+//
+CREATE PROCEDURE sp_TestDataDisperse(
+    IN iOwnedById int,
+    IN iMaxChild int
+)
+BEGIN
+    DECLARE vNullParentCount int default 0;
+    DECLARE vGoAgain int default 1;
+    WHILE vGoAgain > 0 DO
+        OVERALL: BEGIN
+            DECLARE vID binary(16) default '';
+            DECLARE vParentID binary(16) default null;
+            DECLARE vChildCount int default 0;
+            DECLARE c_object_finished int default 0;
+            DECLARE c_object cursor FOR SELECT id FROM object WHERE isdeleted = 0 and ownedbyid = iOwnedById and parentid is null;
+            DECLARE continue handler for not found set c_object_finished = 1;
+            OPEN c_object;
+            get_object: LOOP
+                FETCH c_object INTO vID;
+                IF c_object_finished = 1 THEN
+                    CLOSE c_object;
+                    LEAVE get_object;
+                END IF;
+                SET vChildCount := vChildCount + 1;
+                IF vChildCount > iMaxChild THEN
+                    SET vParentID := NULL;
+                    SET vChildCount := 1;
+                END IF;
+                IF vParentID IS NULL THEN
+                    SET vParentID := vID;
+                    SET vChildCount := 0;
+                ELSE
+                    IF vParentID IS NOT NULL AND vParentID <> vID THEN
+                        UPDATE object SET parentID = vParentID, isdeleted = 0 WHERE id = vID;
+                    END IF;
+                END IF;
+            END LOOP get_object;
+        END OVERALL;
+        SELECT count(0) INTO vNullParentCount FROM object WHERE isdeleted = 0 and ownedbyid = iOwnedById and parentid is null;
+        IF vNullParentCount > iMaxChild THEN
+            SET vGoAgain := 1;
+        ELSE
+            SET vGoAgain := 0;
+        END IF; 
+    END WHILE;        
+END
+//
 delimiter ;
