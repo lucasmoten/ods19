@@ -54,7 +54,7 @@ services:
             - OD_CACHE_WALKSLEEP
             - OD_DB_CA
             - OD_DB_CERT
-            - OD_DB_CONN_PARAMS=parseTime=true&collation=utf8_unicode_ci
+            - OD_DB_CONN_PARAMS=parseTime=true&collation=utf8_unicode_ci&readTimeout=30s
             - OD_DB_HOST
             - OD_DB_KEY
             - OD_DB_MAXIDLECONNS
@@ -153,7 +153,7 @@ services:
             - OD_CACHE_WALKSLEEP
             - OD_DB_CA
             - OD_DB_CERT
-            - OD_DB_CONN_PARAMS=parseTime=true&collation=utf8_unicode_ci
+            - OD_DB_CONN_PARAMS=parseTime=true&collation=utf8_unicode_ci&readTimeout=30s
             - OD_DB_HOST
             - OD_DB_KEY
             - OD_DB_MAXIDLECONNS

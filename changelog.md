@@ -8,6 +8,7 @@ FORMAT: 1A
 * ENH: If database schema does not match expected, service will startup in readonly mode, and switch to writeable once migration is complete.
 * ENH: Add deadlock configuration parameters to global configurations.
 * ENH: Database migrations for 2017 have been consolidated into a single upgrade. Schema is now 20170630
+* CFG: Docker-Compose readTimeout set for database connections to 30s. Recommend values under the timeout set for the edge.
 
 ## Release v1.0.1.26 (June 8, 2017)
 --------------------
