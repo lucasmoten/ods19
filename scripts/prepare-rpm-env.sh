@@ -52,6 +52,7 @@ install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/APISample.html ${ODRIVE
 install -m 640 -D ${ODRIVE_ROOT}/server/static/js/getObjectStream.png ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/js/getObjectStream.png
 install -m 640 -D ${ODRIVE_ROOT}/server/static/js/etag.png ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/js/etag.png
 install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/changelog.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/changelog.html
+install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/environment.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/environment.html
 install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/api.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/api.html
 install -m 640 -D ${ODRIVE_ROOT}/server/static/favicon.ico ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/favicon.ico
 install -m 640 -D ${ODRIVE_ROOT}/server/static/css/source_code_pro.css ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/css/source_code_pro.css 
