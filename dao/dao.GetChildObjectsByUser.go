@@ -36,7 +36,6 @@ func getChildObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
 	// allows multiple records per object and grantee.
 	query := `
     select 
-        distinct sql_calc_found_rows 
         o.id    
 	from object o
         inner join object_type ot on o.typeid = ot.id `
@@ -48,7 +47,7 @@ func getChildObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
 		return response, err
 	}
 	// Paging stats guidance
-	err = tx.Get(&response.TotalRows, "select found_rows()")
+	err = tx.Get(&response.TotalRows, queryRowCount(query), object.ID)
 	if err != nil {
 		return response, err
 	}

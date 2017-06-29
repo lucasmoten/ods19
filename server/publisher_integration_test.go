@@ -2,6 +2,7 @@ package server_test
 
 import (
 	"encoding/json"
+	"os"
 	"testing"
 	"time"
 
@@ -14,6 +15,12 @@ import (
 )
 
 func TestPublishEvents(t *testing.T) {
+
+	if (os.Getenv("OD_EVENT_ZK_ADDRS") == "") && (os.Getenv("OD_EVENT_KAFKA_ADDRS") == "") {
+		t.Logf("OD_EVENT_ZK_ADDRS and OD_EVENT_KAFKA_ADDRS is not set. Events will not be emitted.")
+		t.SkipNow()
+	}
+
 	published := make(map[string][]string)
 	clientID := 0
 

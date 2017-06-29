@@ -31,11 +31,8 @@ func (dao *DataAccessLayer) GetObjectRevisionsByUser(
 
 func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, object models.ODObject, withProperties bool) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
-	// NOTE: distinct is unfortunately used here because object_permission
-	// allows multiple records per object and grantee.
 	query := `
     select 
-        distinct sql_calc_found_rows
         ao.id
         ,ao.createdDate
         ,ao.createdBy
@@ -77,7 +74,7 @@ func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagi
 		return response, err
 	}
 	// Paging stats guidance
-	err = tx.Get(&response.TotalRows, "select found_rows()")
+	err = tx.Get(&response.TotalRows, queryRowCount(query), object.ID)
 	if err != nil {
 		return response, err
 	}

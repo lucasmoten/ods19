@@ -30,11 +30,9 @@ func getObjectsSharedToEveryoneInTransaction(tx *sqlx.Tx, user models.ODUser, pa
 
 	response := models.ODObjectResultset{}
 
-	// Get distinct due to multiple permissions may yield the same.
 	// Only include those that are shared to everyone
 	query := `
     select
-        distinct sql_calc_found_rows 
         o.id    
     from object o
         inner join object_type ot on o.typeid = ot.id `
@@ -47,7 +45,7 @@ func getObjectsSharedToEveryoneInTransaction(tx *sqlx.Tx, user models.ODUser, pa
 		return response, err
 	}
 	// Paging stats guidance
-	err = tx.Get(&response.TotalRows, "select found_rows()")
+	err = tx.Get(&response.TotalRows, queryRowCount(query))
 	if err != nil {
 		return response, err
 	}

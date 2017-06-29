@@ -84,7 +84,6 @@ func (dao *DataAccessLayer) expungeDeletedByUserInTransactionMore(tx *sqlx.Tx, u
 
 	query := `
     select 
-        distinct sql_calc_found_rows 
         o.id,
         o.changeToken    
     from object o
