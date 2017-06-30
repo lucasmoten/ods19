@@ -9,6 +9,7 @@ FORMAT: 1A
 * ENH: Add deadlock configuration parameters to global configurations.
 * ENH: Database migrations for 2017 have been consolidated into a single upgrade. Schema is now 20170630
 * CFG: Docker-Compose readTimeout set for database connections to 30s. Recommend values under the timeout set for the edge.
+* FIX: Return useful error message when resource string not provided in correct format.
 
 ## Release v1.0.1.26 (June 8, 2017)
 --------------------

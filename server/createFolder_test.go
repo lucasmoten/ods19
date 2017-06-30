@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -569,19 +570,19 @@ func TestCreateFolderWithPermissionForEveryone264(t *testing.T) {
 	explicitUser := "user/cn=twl-server-generic2,ou=dae,ou=dia,o=u.s. government,c=us"
 	everyone := "group/-everyone"
 	if !hasExpectedValues([]string{theCreator, explicitUser}, createdFolder.Permission.Create.AllowedResources) {
-		log.Printf("Missing values expected in create")
+		t.Logf("Missing values expected in create")
 		t.Fail()
 	}
 	if !hasExpectedValues([]string{theCreator, explicitUser, everyone}, createdFolder.Permission.Read.AllowedResources) {
-		log.Printf("Missing values expected in read")
+		t.Logf("Missing values expected in read")
 		t.Fail()
 	}
 	if !hasExpectedValues([]string{theCreator, explicitUser}, createdFolder.Permission.Update.AllowedResources) {
-		log.Printf("Missing values expected in update")
+		t.Logf("Missing values expected in update")
 		t.Fail()
 	}
 	if !hasExpectedValues([]string{theCreator, explicitUser}, createdFolder.Permission.Delete.AllowedResources) {
-		log.Printf("Missing values expected in delete")
+		t.Logf("Missing values expected in delete")
 		t.Fail()
 	}
 	if !hasExpectedValues([]string{theCreator, explicitUser}, createdFolder.Permission.Share.AllowedResources) {
@@ -605,4 +606,81 @@ func hasExpectedValues(expected []string, actual []string) bool {
 		}
 	}
 	return true
+}
+
+func TestCreateFolderWithInvalidResourceString827(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+
+	ghodsissue827 := `{
+		"acm":"{\"version\":\"2.1.0\",\"classif\":\"U\",\"portion\":\"U\",\"banner\":\"UNCLASSIFIED\",\"dissem_countries\":[\"USA\"]}"
+		,"permission":{
+			"create":{
+				"allow":[
+					"user/cn=twl-server-generic2,ou=dae,ou=dia,o=u.s. government,c=us/twl-server-generic2"
+					]
+				}
+			,"read":{
+				"allow":[
+					"user/cn=twl-server-generic2,ou=dae,ou=dia,o=u.s. government,c=us/twl-server-generic2"
+					,"/group/-Everyone/-Everyone"
+					,"/group/dctc/dctc/odrive"
+					]
+				}
+			,"update":{
+				"allow":[
+					"user/cn=twl-server-generic2,ou=dae,ou=dia,o=u.s. government,c=us/twl-server-generic2"
+					]
+				}
+			,"delete":{
+				"allow":[
+					"user/cn=twl-server-generic2,ou=dae,ou=dia,o=u.s. government,c=us/twl-server-generic2"
+					]
+				}
+			,"share":{
+				"allow":[
+					"user/cn=twl-server-generic2,ou=dae,ou=dia,o=u.s. government,c=us/twl-server-generic2"
+					]
+				}
+			}
+		,"typeName":"Folder"
+		,"name":"TEST827"
+		,"description":"TEST827"
+	}`
+	newobjuri := host + cfg.NginxRootURL + "/objects"
+	myobject, err := utils.UnmarshalStringToInterface(ghodsissue827)
+	if err != nil {
+		t.Logf("Error converting to interface: %s", err.Error())
+		t.FailNow()
+	}
+	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
+	createObjectRes, err := clients[tester10].Client.Do(createObjectReq)
+	if err != nil {
+		t.Logf("Unable to do request:%v", err)
+		t.FailNow()
+	}
+	defer util.FinishBody(createObjectRes.Body)
+
+	// Response validation
+	if createObjectRes.StatusCode != http.StatusBadRequest {
+		t.Logf("req1 bad status: %s", createObjectRes.Status)
+		t.FailNow()
+	}
+
+	responseBodyBytes := make([]byte, 500)
+	l, err := createObjectRes.Body.Read(responseBodyBytes)
+	if err != nil && err != io.EOF {
+		t.Logf("Error reading response: %v", err)
+		t.FailNow()
+	}
+	responseBodyString := strings.TrimSpace(string(responseBodyBytes[:l]))
+
+	expectedBodyString := "Could not map request to internal struct type. unhandled format for resource string `/group/-Everyone/-Everyone`, must begin with `user/` or `group/`"
+	if responseBodyString != expectedBodyString {
+		t.Logf("Expected body to contain \n\t%s\nbut it was \n\t%s", expectedBodyString, responseBodyBytes)
+		t.Fail()
+	}
+
 }
