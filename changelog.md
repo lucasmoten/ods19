@@ -10,6 +10,7 @@ FORMAT: 1A
 * ENH: Database migrations for 2017 have been consolidated into a single upgrade. Schema is now 20170630
 * CFG: Docker-Compose readTimeout set for database connections to 30s. Recommend values under the timeout set for the edge.
 * FIX: Return useful error message when resource string not provided in correct format.
+* FIX: Startup performance issue relating to scenarios with large caches
 * FIX: Corrected count of groups for user.
 
 ## Release v1.0.1.26 (June 8, 2017)
