@@ -64,7 +64,6 @@ func undeleteAncestorChildren(logger zap.Logger, tx *sqlx.Tx, object *models.ODO
 	var results models.ODObjectResultset
 
 	query := `select
-        distinct sql_calc_found_rows 
         o.id    
         ,o.createdDate
         ,o.createdBy

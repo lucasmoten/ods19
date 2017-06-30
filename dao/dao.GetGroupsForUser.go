@@ -30,7 +30,7 @@ func getGroupsForUserInTransaction(tx *sqlx.Tx, user models.ODUser) (models.Grou
 
 	response := models.GroupSpaceResultset{}
 
-	sql := `
+	query := `
 		select 
 			ag.grantee grantee, 
 			ag.resourceString resourceString, 
@@ -52,12 +52,12 @@ func getGroupsForUserInTransaction(tx *sqlx.Tx, user models.ODUser) (models.Grou
 		order by ag.displayName
 	`
 
-	err := tx.Select(&response.GroupSpaces, sql)
+	err := tx.Select(&response.GroupSpaces, query)
 	if err != nil {
 		return response, err
 	}
 	// Paging stats guidance
-	err = tx.Get(&response.TotalRows, "select found_rows()")
+	err = tx.Get(&response.TotalRows, queryRowCount(query))
 	if err != nil {
 		return response, err
 	}

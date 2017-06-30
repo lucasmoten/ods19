@@ -1624,3 +1624,36 @@ This is the content of the file
 	err = util.FullDecode(createObjectRes2.Body, &createdObject)
 	failNowOnErr(t, err, "Error decoding json to Object")
 }
+
+func TestCreateObjectWithNameNearMaxLength(t *testing.T) {
+
+	randomName := func(name string) string {
+		s, _ := util.NewGUID()
+		return name + s
+	}
+	clientid := 0
+	// base name, with randomization (length = 12+32 = 44)
+	testname := randomName("TestIssue833")
+	// include characters we presume may be problematic expanding size from encoding (length adding 22 = 66)
+	testname += " (IAVA) Something (S) "
+	// ensure we have a long enough length to hit the max (length adding 180 = 246)
+	testname += strings.Repeat("1234x", 36)
+	// add an extension bringing it up to 251 length
+	testname += ".docx"
+	t.Logf("object name: %s", testname)
+
+	cor := protocol.CreateObjectRequest{
+		Name:   testname,
+		RawAcm: testhelpers.ValidACMUnclassifiedFOUOSharedToTester10,
+	}
+	theobj, err := clients[clientid].C.CreateObject(cor, bytes.NewBuffer([]byte("testvalue")))
+	failNowOnErr(t, err, "unable to do request")
+	if theobj.Name != testname {
+		t.Logf("Name of object saved as: %s", theobj.Name)
+		t.Fail()
+	}
+	if len(theobj.Name) != 251 {
+		t.Logf("Length of name is reported as %d expected 251", len(theobj.Name))
+		t.Fail()
+	}
+}

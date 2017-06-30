@@ -31,14 +31,11 @@ func (dao *DataAccessLayer) GetRootObjectsByUser(user models.ODUser, pagingReque
 func getRootObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 
 	response := models.ODObjectResultset{}
-	// NOTE: distinct is unfortunately used here because object_permission
-	// allows multiple records per object and grantee.
 	// NOTE: While this looks similar to GetChildObjectsByUser there is more at
 	// stake here as there is the requirement that the object permission grantee
 	// is also the owner of each matching object.
 	query := `
     select 
-        distinct sql_calc_found_rows 
         o.id        
     from object o
         inner join object_type ot on o.typeid = ot.id `
@@ -51,7 +48,7 @@ func getRootObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
 		return response, err
 	}
 	// Paging stats guidance
-	err = tx.Get(&response.TotalRows, "select found_rows()")
+	err = tx.Get(&response.TotalRows, queryRowCount(query))
 	if err != nil {
 		return response, err
 	}

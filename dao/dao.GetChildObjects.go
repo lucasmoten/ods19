@@ -31,7 +31,6 @@ func getChildObjectsInTransaction(tx *sqlx.Tx, pagingRequest PagingRequest, obje
 	response := models.ODObjectResultset{}
 	query := `
     select 
-        distinct sql_calc_found_rows 
         o.id    
     from object o 
         inner join object_type ot on o.typeid = ot.id 
@@ -42,7 +41,7 @@ func getChildObjectsInTransaction(tx *sqlx.Tx, pagingRequest PagingRequest, obje
 		return response, err
 	}
 	// Paging stats guidance
-	err = tx.Get(&response.TotalRows, "select found_rows()")
+	err = tx.Get(&response.TotalRows, queryRowCount(query), object.ID)
 	if err != nil {
 		return response, err
 	}
