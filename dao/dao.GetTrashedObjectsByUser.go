@@ -31,7 +31,6 @@ func getTrashedObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagin
 
 	query := `
     select 
-        distinct sql_calc_found_rows 
         o.id    
     from object o
         inner join object_type ot on o.typeid = ot.id `
@@ -44,7 +43,7 @@ func getTrashedObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagin
 		return response, err
 	}
 	// Paging stats guidance
-	err = tx.Get(&response.TotalRows, "select found_rows()")
+	err = tx.Get(&response.TotalRows, queryRowCount(query))
 	if err != nil {
 		return response, err
 	}

@@ -33,12 +33,10 @@ func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
 
 	response := models.ODObjectResultset{}
 
-	// Get distinct due to multiple permissions may yield the same.
 	// Filter out object owned by since owner's don't need to list items they've shared to themself
 	// Only list explicit shares to avoid all nested children appearing in same list
 	query := `
     select
-        distinct sql_calc_found_rows 
         o.id    
     from object o
         inner join object_type ot on o.typeid = ot.id `
@@ -53,7 +51,7 @@ func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
 		return response, err
 	}
 	// Paging stats guidance
-	err = tx.Get(&response.TotalRows, "select found_rows()")
+	err = tx.Get(&response.TotalRows, queryRowCount(query))
 	if err != nil {
 		return response, err
 	}

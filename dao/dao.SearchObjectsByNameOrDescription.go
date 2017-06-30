@@ -42,7 +42,6 @@ func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUs
 	// allows multiple records per object and grantee.
 	query := `
     select 
-        distinct sql_calc_found_rows 
         o.id    
     from object o
         inner join object_type ot on o.typeid = ot.id `
@@ -53,9 +52,8 @@ func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUs
 	if err != nil {
 		return response, err
 	}
-
 	// Paging stats guidance
-	err = tx.Get(&response.TotalRows, "select found_rows()")
+	err = tx.Get(&response.TotalRows, queryRowCount(query))
 	if err != nil {
 		return response, err
 	}
@@ -74,6 +72,23 @@ func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUs
 
 	// Done
 	return response, err
+}
+
+func queryRowCount(query string) string {
+	lquery := strings.ToLower(query)
+	// if precalculated - mysql/mariadb variants
+	if strings.Index(lquery, "sql_calc_found_rows") > 0 {
+		return "select found_rows()"
+	}
+	// as simple select count
+	queryCount := query
+	if limitIdx := strings.Index(lquery, "limit "); limitIdx > 0 {
+		queryCount = queryCount[:limitIdx]
+	}
+	if fromIdx := strings.Index(lquery, "from "); fromIdx > 0 {
+		queryCount = "select count(0) " + queryCount[fromIdx:]
+	}
+	return queryCount
 }
 
 // buildOrderBy is a function intended for use in building up the base order by clause for

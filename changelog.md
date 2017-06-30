@@ -2,7 +2,7 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
-## Release v1.0.2 (target June 30, 2017)
+## Release v1.0.2 (June 30, 2017)
 --------------------
 * ENH: Instrumentation added for database, aac, and overall http calls - made visible in /stats for now
 * ENH: If database schema does not match expected, service will startup in readonly mode, and switch to writeable once migration is complete.
@@ -10,6 +10,7 @@ FORMAT: 1A
 * ENH: Database migrations for 2017 have been consolidated into a single upgrade. Schema is now 20170630
 * CFG: Docker-Compose readTimeout set for database connections to 30s. Recommend values under the timeout set for the edge.
 * FIX: Return useful error message when resource string not provided in correct format.
+* FIX: Corrected count of groups for user.
 
 ## Release v1.0.1.26 (June 8, 2017)
 --------------------
