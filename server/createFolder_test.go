@@ -677,9 +677,10 @@ func TestCreateFolderWithInvalidResourceString827(t *testing.T) {
 	}
 	responseBodyString := strings.TrimSpace(string(responseBodyBytes[:l]))
 
-	expectedBodyString := "Could not map request to internal struct type. unhandled format for resource string `/group/-Everyone/-Everyone`, must begin with `user/` or `group/`"
-	if responseBodyString != expectedBodyString {
-		t.Logf("Expected body to contain \n\t%s\nbut it was \n\t%s", expectedBodyString, responseBodyBytes)
+	expectedBodyString1 := "Could not map request to internal struct type. unhandled format for resource string `/group/-Everyone/-Everyone`, must begin with `user/` or `group/`"
+	expectedBodyString2 := "Could not map request to internal struct type. unhandled format for resource string `/group/dctc/dctc/odrive`, must begin with `user/` or `group/`"
+	if responseBodyString != expectedBodyString1 && responseBodyString != expectedBodyString2 {
+		t.Logf("Response wasn't an expected value: %s", responseBodyBytes)
 		t.Fail()
 	}
 
