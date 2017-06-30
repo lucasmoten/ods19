@@ -2,6 +2,10 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release vNew
+* FIX: orphaned files need deletion
+* ENH: log when we need to drain files up to S3 after an odrive restart
+
 ## Release v1.0.2 (June 30, 2017)
 --------------------
 * ENH: Instrumentation added for database, aac, and overall http calls - made visible in /stats for now

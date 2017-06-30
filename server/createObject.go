@@ -454,21 +454,21 @@ func validateCreateObjectHeaders(r *http.Request) *AppError {
 
 func removeOrphanedFile(logger zap.Logger, d ciphertext.CiphertextCache, contentConnector string) {
 	fileID := ciphertext.FileId(contentConnector)
-	uploadedName := ciphertext.NewFileName(fileID, "uploaded")
-	orphanedName := ciphertext.NewFileName(fileID, "orphaned")
+	uploadedName := ciphertext.NewFileName(fileID, ".uploaded")
+	orphanedName := ciphertext.NewFileName(fileID, ".orphaned")
 	var err error
 	if _, err := d.Files().Stat(d.Resolve(uploadedName)); os.IsNotExist(err) {
-		// noop
+		logger.Error("uploaded orphan file does not exist", zap.String("err", err.Error()))
 		return
 	}
 	if d != nil {
 		err = d.Files().Remove(d.Resolve(uploadedName))
 	}
 	if err != nil {
-		logger.Error("cannot remove orphaned file. will attempt rename", zap.String("fileID", string(fileID)))
+		logger.Error("cannot remove orphaned file. will attempt rename", zap.String("fileID", string(fileID)), zap.String("err", err.Error()))
 		err = d.Files().Rename(d.Resolve(uploadedName), d.Resolve(orphanedName))
 		if err != nil {
-			logger.Error("cannot rename uploaded file to orphaned state. check directory permissions in cache folder", zap.String("fileID", string(fileID)))
+			logger.Error("cannot rename uploaded file to orphaned state. check directory permissions in cache folder", zap.String("fileID", string(fileID)), zap.String("err", err.Error()))
 		}
 	}
 }
