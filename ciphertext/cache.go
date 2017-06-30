@@ -3,9 +3,9 @@ package ciphertext
 import (
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"path"
-	"path/filepath"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -234,6 +234,28 @@ func (d *CiphertextCacheData) Files() FileSystem {
 	return d.files
 }
 
+type Walker func(fqName string) error
+
+func Walk(fqCache string, walker Walker) error {
+	d, err := os.Open(fqCache)
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+	for {
+		dirnames, err := d.Readdirnames(1000)
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+		for i := 0; i < len(dirnames); i++ {
+			walker(fmt.Sprintf("%s/%s", fqCache, dirnames[i]))
+		}
+	}
+}
+
 // DrainUploadedFilesToSafetyRaw is the drain without the goroutine at the end
 func (d *CiphertextCacheData) DrainUploadedFilesToSafetyRaw() {
 	if d.PermanentStorage == nil {
@@ -242,30 +264,23 @@ func (d *CiphertextCacheData) DrainUploadedFilesToSafetyRaw() {
 	}
 	//Walk through the cache, and handle .uploaded files
 	fqCache := d.Files().Resolve(d.Resolve(""))
-	err := filepath.Walk(
+	err := Walk(
 		fqCache,
 		// We need to capture d because this interface won't let us pass it
-		func(fqName string, f os.FileInfo, err error) (errReturn error) {
-			if err != nil {
-				d.Logger.Error(
-					"error walking directory",
-					zap.String("filename", fqName),
-					zap.String("err", err.Error()),
-				)
-				// I didn't generate this error, so I am assuming that I can just log the problem.
-				// TODO: this error is not being counted
-				return nil
-			}
-
-			if f.IsDir() {
-				return nil
-			}
-			size := f.Size()
+		func(fqName string) (errReturn error) {
 			ext := path.Ext(fqName)
 			if ext == ".uploaded" {
+				f, err := os.Stat(fqName)
+				if err != nil {
+					return err
+				}
+				if f.IsDir() {
+					return nil
+				}
+				size := f.Size()
 				fBase := path.Base(fqName)
 				rName := FileId(fBase[:len(fBase)-len(ext)])
-				err := d.Writeback(rName, size)
+				err = d.Writeback(rName, size)
 				if err != nil {
 					d.Logger.Error("error draining cache", zap.String("err", err.Error()))
 				}
@@ -558,15 +573,15 @@ func CacheMustExist(d CiphertextCache, logger zap.Logger) (err error) {
 //  a delay in size drops that is dependent on size and doubly dependent on age since last access.
 //  Size and Age prioritize what is still sitting in cache when we hit lowWatermark.
 //
-func filePurgeVisit(d *CiphertextCacheData, fqName string, f os.FileInfo, err error) (errReturn error) {
+func filePurgeVisit(d *CiphertextCacheData, fqName string, usage float64) (errReturn error) {
+	// Note: cached files are the 99.99% case
+	f, err := os.Stat(fqName)
 	if err != nil {
 		d.Logger.Error(
-			"error walking directory",
+			"unable to stat file",
 			zap.String("filename", fqName),
 			zap.String("err", err.Error()),
 		)
-		// I didn't generate this error, so I am assuming that I can just log the problem.
-		// TODO: this error is not being counted
 		return nil
 	}
 
@@ -585,19 +600,6 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, f os.FileInfo, err er
 
 	oneWeek := int64(60 * 60 * 24 * 7)
 
-	//Get the current disk space usage
-	sfs := syscall.Statfs_t{}
-	err = syscall.Statfs(fqName, &sfs)
-	if err != nil {
-		d.Logger.Error(
-			"unable to purge on statfs fail",
-			zap.String("filename", fqName),
-			zap.String("err", err.Error()),
-		)
-		return nil
-	}
-	//Fraction of disk used
-	usage := 1.0 - float64(sfs.Bavail)/float64(sfs.Blocks)
 	switch {
 	//Note that .cached files are persistently stored already
 	case ext == ".cached":
@@ -605,7 +607,10 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, f os.FileInfo, err er
 		// Limit for file upload is effectively the space between high watermark and disk filled.
 		oldEnoughToEvict := (ageInSeconds > d.ageEligibleForEviction)
 		fullEnoughToEvict := (usage > d.lowWatermark)
-		mustEvict := (usage > d.highWatermark) // more aggressive. if we're above high watermark, ignore age.
+		// ie: highWatermark 0.9, lowWatermark 0.7, usage 0.95:
+		// 0.05 over high watermark,
+		// 0.25 over low watermark - so delete 1/4 of the data randomly
+		mustEvict := ((usage-d.highWatermark) > 0 && rand.Float64() < (usage-d.lowWatermark))
 		// expect usage to sawtooth between lowWatermark and highWatermark
 		// with the value of the file setting priority until we hit highWatermark
 		if (oldEnoughToEvict && fullEnoughToEvict) || mustEvict {
@@ -693,12 +698,12 @@ func attemptToEmptyFile(d *CiphertextCacheData, fqName string) {
 func (d *CiphertextCacheData) CacheInventory(w io.Writer, verbose bool) {
 	fqCache := d.Files().Resolve(d.Resolve(""))
 	fmt.Fprintf(w, "\n\ncache at %s on %s\n", fqCache, config.NodeID)
-	filepath.Walk(
+	Walk(
 		fqCache,
-		func(name string, f os.FileInfo, err error) error {
-			if err == nil && strings.Compare(name, fqCache) != 0 {
-				if verbose || strings.HasSuffix(name, ".uploaded") {
-					fmt.Fprintf(w, "%s\n", name)
+		func(fqName string) error {
+			if strings.Compare(fqName, fqCache) != 0 {
+				if verbose || strings.HasSuffix(fqName, ".uploaded") {
+					fmt.Fprintf(w, "%s\n", fqName)
 				}
 			}
 			return nil
@@ -711,10 +716,10 @@ func (d *CiphertextCacheData) CacheInventory(w io.Writer, verbose bool) {
 func (d *CiphertextCacheData) CountUploaded() int {
 	uploaded := 0
 	fqCache := d.Files().Resolve(d.Resolve(""))
-	filepath.Walk(
+	Walk(
 		fqCache,
-		func(name string, f os.FileInfo, err error) error {
-			if err == nil && strings.Compare(name, fqCache) != 0 {
+		func(name string) error {
+			if strings.Compare(name, fqCache) != 0 {
 				if strings.HasSuffix(name, ".uploaded") {
 					uploaded++
 				}
@@ -725,7 +730,7 @@ func (d *CiphertextCacheData) CountUploaded() int {
 	return uploaded
 }
 
-func cachePurgeIteration(d *CiphertextCacheData) {
+func cachePurgeIteration(d *CiphertextCacheData, usage float64) {
 	defer func() {
 		if r := recover(); r != nil {
 			d.Logger.Error(
@@ -737,10 +742,10 @@ func cachePurgeIteration(d *CiphertextCacheData) {
 	}()
 
 	fqCache := d.Files().Resolve(d.Resolve(""))
-	err := filepath.Walk(
+	err := Walk(
 		fqCache,
-		func(name string, f os.FileInfo, err error) (errReturn error) {
-			return filePurgeVisit(d, name, f, err)
+		func(fqName string) (errReturn error) {
+			return filePurgeVisit(d, fqName, usage)
 		},
 	)
 	if err != nil {
@@ -763,7 +768,24 @@ func (d *CiphertextCacheData) CachePurge() {
 	//    highWatermark (floating point 0..1)
 	//    ageEligibleForEviction (integer seconds)
 	for {
-		cachePurgeIteration(d)
+		//Get the current disk space usage
+		fqCache := d.Files().Resolve(d.Resolve(""))
+		sfs := syscall.Statfs_t{}
+		err := syscall.Statfs(fqCache, &sfs)
+		if err != nil {
+			d.Logger.Error(
+				"unable to purge on statfs fail",
+				zap.String("filename", fqCache),
+				zap.String("err", err.Error()),
+			)
+		} else {
+			//Fraction of disk used
+			usage := 1.0 - float64(sfs.Bavail)/float64(sfs.Blocks)
+			//don't even bother walking if we are below the low watermark
+			if usage > d.lowWatermark {
+				cachePurgeIteration(d, usage)
+			}
+		}
 		time.Sleep(d.walkSleep)
 	}
 }
