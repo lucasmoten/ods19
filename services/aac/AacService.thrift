@@ -97,11 +97,13 @@ struct ClearUserAttributesResponse{
  *  @param success. True if request was successfully processed, otherwise false
  *  @param messages. List of error/warning messages
  *  @param snippets. Snippets in JSON form keyed by the snippet name.
+ *  @param found. false - If snippetType not found, all attributes returned as null value. 1 Non-Null == true.
  */
 struct SnippetResponse{
     1: bool success,
     2: list<string> messages,
-    3: string snippets
+    3: string snippets,
+    4: optional bool found
 }
 
 /**

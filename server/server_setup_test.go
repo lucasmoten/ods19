@@ -348,6 +348,7 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 	snippetResponse := aac.SnippetResponse{
 		Success:  true,
 		Snippets: testhelpers.SnippetTP10,
+		Found:    true,
 	}
 	// Acm needs to have value in f_share that corresponds to the user
 	// that is creating objects.  For example, the grantee above for fakeDN0
