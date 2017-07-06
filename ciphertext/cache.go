@@ -251,7 +251,12 @@ func Walk(fqCache string, walker Walker) error {
 			return err
 		}
 		for i := 0; i < len(dirnames); i++ {
-			walker(fmt.Sprintf("%s/%s", fqCache, dirnames[i]))
+			// avoid double-slash in name, which probably causes a mismatch vs S3
+			if strings.HasSuffix(fqCache, "/") || strings.HasPrefix(dirnames[i], "/") {
+				walker(fmt.Sprintf("%s%s", fqCache, dirnames[i]))
+			} else {
+				walker(fmt.Sprintf("%s/%s", fqCache, dirnames[i]))
+			}
 		}
 	}
 }
@@ -270,11 +275,14 @@ func (d *CiphertextCacheData) DrainUploadedFilesToSafetyRaw() {
 		func(fqName string) (errReturn error) {
 			ext := path.Ext(fqName)
 			if ext == ".uploaded" {
+				d.Logger.Warn("there is an uploaded file that we need to handle", zap.String("fqName", fqName))
 				f, err := os.Stat(fqName)
 				if err != nil {
+					d.Logger.Error("there is an uploaded file that we cannot stat", zap.String("err", err.Error()))
 					return err
 				}
 				if f.IsDir() {
+					d.Logger.Error("we have a directory with a .uploaded extension in the cache", zap.String("fqName", fqName))
 					return nil
 				}
 				size := f.Size()
