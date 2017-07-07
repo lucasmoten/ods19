@@ -67,7 +67,7 @@ func (aac *AACAuth) GetFlattenedACM(acm string) (string, []string, error) {
 		return acm, nil, ErrServiceNoResponse
 	}
 	for _, msg := range acmResponse.Messages {
-		aac.Logger.Info("Message in AAC.PopulateAndValidateAcm", zap.String("msg", msg))
+		aac.Logger.Info("Message in AAC.PopulateAndValidateAcm", zap.String("message", msg))
 	}
 
 	if !acmResponse.Success {
@@ -130,7 +130,7 @@ func (aac *AACAuth) GetSnippetsForUser(userIdentity string) (*acm.ODriveRawSnipp
 		return nil, ErrServiceNoResponse
 	}
 	for _, msg := range getSnippetsResponse.Messages {
-		aac.Logger.Info("AAC.GetSnippets response", zap.String("msg", msg))
+		aac.Logger.Info("AAC.GetSnippets response", zap.String("message", msg))
 	}
 	msgsString := strings.Join(getSnippetsResponse.Messages, "/")
 	if !getSnippetsResponse.Success {
@@ -188,7 +188,7 @@ func (aac *AACAuth) IsUserAuthorizedForACM(userIdentity string, acm string) (boo
 		return false, ErrServiceNoResponse
 	}
 	for _, msg := range resp.Messages {
-		aac.Logger.Info("Message in AAC.CheckAccess Response", zap.String("msg", msg))
+		aac.Logger.Info("Message in AAC.CheckAccess Response", zap.String("message", msg))
 	}
 	msgsString := strings.Join(resp.Messages, "/")
 	if !resp.Success {
