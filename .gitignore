@@ -30,5 +30,5 @@ server/root.html
 server/js/*.png
 docs/internal/*.png
 
-# Build log
-ordive_build.log
+# Bbuild logs
+odrive_build.log
