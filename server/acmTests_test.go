@@ -70,10 +70,8 @@ func TestAcmWithShareForODrive(t *testing.T) {
 	uriCreate := host + cfg.NginxRootURL + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[tester1].Config}
-	client := &http.Client{Transport: transport}
 	// exec and get response
-	httpCreateResponse, err := client.Do(httpCreate)
+	httpCreateResponse, err := clients[tester1].Client.Do(httpCreate)
 	failNowOnErr(t, err, "Unable to do request")
 	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
@@ -106,10 +104,8 @@ func TestAcmWithShareCreatorIsNotInWillForceThemIntoShare(t *testing.T) {
 	uriCreate := host + cfg.NginxRootURL + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[tester1].Config}
-	client := &http.Client{Transport: transport}
 	t.Logf("exec and get response")
-	httpCreateResponse, err := client.Do(httpCreate)
+	httpCreateResponse, err := clients[tester1].Client.Do(httpCreate)
 	failNowOnErr(t, err, "unable to do request")
 	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
@@ -145,10 +141,8 @@ func TestAcmWithShareForODriveG1Allowed(t *testing.T) {
 	uriCreate := host + cfg.NginxRootURL + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[tester10].Config}
-	client := &http.Client{Transport: transport}
 	// exec and get response
-	httpCreateResponse, err := client.Do(httpCreate)
+	httpCreateResponse, err := clients[tester10].Client.Do(httpCreate)
 	failNowOnErr(t, err, "Unable to do request")
 	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
@@ -432,9 +426,7 @@ func TestAddReadShareForGroupRemovesEveryone(t *testing.T) {
 
 	t.Logf("* Verify 1-5 can read, but not others since Everyone removed")
 	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
+		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
 		if err != nil {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
@@ -512,10 +504,8 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 	uriCreate := host + cfg.NginxRootURL + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[tester1].Config}
-	client := &http.Client{Transport: transport}
 	// exec and get response
-	httpCreateResponse, err := client.Do(httpCreate)
+	httpCreateResponse, err := clients[tester1].Client.Do(httpCreate)
 	failNowOnErr(t, err, "Unable to do request")
 	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
@@ -530,9 +520,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
 	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
 	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
+		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
 		if err != nil {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
@@ -593,7 +581,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 	httpCreateGroupShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateGroupShare.Header.Set("Content-Type", "application/json")
 	// exec and get response
-	httpCreateGroupShareResponse, err := client.Do(httpCreateGroupShare)
+	httpCreateGroupShareResponse, err := clients[tester1].Client.Do(httpCreateGroupShare)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -614,9 +602,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 
 	t.Logf("* Verify 1-5 can read, but not others since Everyone removed")
 	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
+		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
 		if err != nil {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
@@ -680,7 +666,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 	httpCreateUserShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateUserShare.Header.Set("Content-Type", "application/json")
 	// exec and get response
-	httpCreateUserShareResponse, err := client.Do(httpCreateUserShare)
+	httpCreateUserShareResponse, err := clients[tester1].Client.Do(httpCreateUserShare)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -701,9 +687,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 
 	t.Logf("* Verify 1-5, 10 can read, but not others since Everyone removed")
 	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
+		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
 		if err != nil {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
@@ -791,10 +775,8 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 	uriCreate := host + cfg.NginxRootURL + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[tester1].Config}
-	client := &http.Client{Transport: transport}
 	// exec and get response
-	httpCreateResponse, err := client.Do(httpCreate)
+	httpCreateResponse, err := clients[tester1].Client.Do(httpCreate)
 	failNowOnErr(t, err, "Unable to do request")
 	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
@@ -809,9 +791,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
 	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
 	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
+		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
 		if err != nil {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
@@ -871,7 +851,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 	httpCreateGroupShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateGroupShare.Header.Set("Content-Type", "application/json")
 	// exec and get response
-	httpCreateGroupShareResponse, err := client.Do(httpCreateGroupShare)
+	httpCreateGroupShareResponse, err := clients[tester1].Client.Do(httpCreateGroupShare)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -892,9 +872,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 
 	t.Logf("* Verify 1-5 can read, but not others since Everyone removed")
 	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
+		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
 		if err != nil {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
@@ -958,7 +936,8 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 	httpCreateUserShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateUserShare.Header.Set("Content-Type", "application/json")
 	// exec and get response
-	httpCreateUserShareResponse, err := client.Do(httpCreateUserShare)
+	// TODO figure out if this is really tester1
+	httpCreateUserShareResponse, err := clients[tester1].Client.Do(httpCreateUserShare)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -979,9 +958,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 
 	t.Logf("* Verify 1-5, 10 can read, but not others since Everyone removed")
 	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
+		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
 		if err != nil {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
@@ -1051,7 +1028,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 	httpUpdateObject, _ := http.NewRequest("POST", uriUpdate, bytes.NewBuffer(jsonBody))
 	httpUpdateObject.Header.Set("Content-Type", "application/json")
 	// exec and get response
-	httpUpdateObjectResponse, err := client.Do(httpUpdateObject)
+	httpUpdateObjectResponse, err := clients[tester1].Client.Do(httpUpdateObject)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -1072,9 +1049,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 
 	t.Logf("* Verify 1-5 can read, but nobody else")
 	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
+		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
 		if err != nil {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
@@ -1163,10 +1138,8 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	uriCreate := host + cfg.NginxRootURL + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
-	transport := &http.Transport{TLSClientConfig: clients[tester1].Config}
-	client := &http.Client{Transport: transport}
 	// exec and get response
-	httpCreateResponse, err := client.Do(httpCreate)
+	httpCreateResponse, err := clients[tester1].Client.Do(httpCreate)
 	failNowOnErr(t, err, "Unable to do request")
 	defer util.FinishBody(httpCreateResponse.Body)
 	statusMustBe(t, 200, httpCreateResponse, "Bad status when creating object")
@@ -1181,9 +1154,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
 	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
 	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
+		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
 		if err != nil {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
@@ -1243,7 +1214,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	httpCreateGroupShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateGroupShare.Header.Set("Content-Type", "application/json")
 	// exec and get response
-	httpCreateGroupShareResponse, err := client.Do(httpCreateGroupShare)
+	httpCreateGroupShareResponse, err := clients[tester1].Client.Do(httpCreateGroupShare)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -1264,9 +1235,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 
 	t.Logf("* Verify 1-5 can read, but not others since Everyone removed")
 	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
+		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
 		if err != nil {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
@@ -1330,7 +1299,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	httpCreateUserShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateUserShare.Header.Set("Content-Type", "application/json")
 	// exec and get response
-	httpCreateUserShareResponse, err := client.Do(httpCreateUserShare)
+	httpCreateUserShareResponse, err := clients[tester1].Client.Do(httpCreateUserShare)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -1351,9 +1320,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 
 	t.Logf("* Verify 1-5, 10 can read, but not others since Everyone removed")
 	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
+		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
 		if err != nil {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
@@ -1423,7 +1390,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	httpUpdateObject, _ := http.NewRequest("POST", uriUpdate, bytes.NewBuffer(jsonBody))
 	httpUpdateObject.Header.Set("Content-Type", "application/json")
 	// exec and get response
-	httpUpdateObjectResponse, err := client.Do(httpUpdateObject)
+	httpUpdateObjectResponse, err := clients[tester1].Client.Do(httpUpdateObject)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -1444,9 +1411,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 
 	t.Logf("* Verify 1-5 can read, but nobody else")
 	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
+		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
 		if err != nil {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
@@ -1514,7 +1479,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	httpUpdateObject, _ = http.NewRequest("POST", uriUpdate, bytes.NewBuffer(jsonBody))
 	httpUpdateObject.Header.Set("Content-Type", "application/json")
 	// exec and get response
-	httpUpdateObjectResponse, err = client.Do(httpUpdateObject)
+	httpUpdateObjectResponse, err = clients[tester1].Client.Do(httpUpdateObject)
 	if err != nil {
 		t.Logf("Unable to do request:%v", err)
 		t.FailNow()
@@ -1535,9 +1500,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 
 	t.Logf("* Verify everyone can read")
 	for clientIdx, ci := range clients {
-		transport := &http.Transport{TLSClientConfig: ci.Config}
-		client := &http.Client{Transport: transport}
-		httpGetResponse, err := client.Do(httpGet)
+		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
 		if err != nil {
 			t.Logf("Error retrieving properties for client %d: %v", clientIdx, err)
 			t.Fail()
