@@ -37,6 +37,7 @@ func TestListObjectsTrashedJSONResponse(t *testing.T) {
 	snippetResponse := aac.SnippetResponse{
 		Success:  true,
 		Snippets: testhelpers.SnippetTP10,
+		Found:    true,
 	}
 
 	fakeAAC := aac.FakeAAC{

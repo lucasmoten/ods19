@@ -137,6 +137,10 @@ func (aac *AACAuth) GetSnippetsForUser(userIdentity string) (*acm.ODriveRawSnipp
 		aac.Logger.Error("AAC.GetSnippets failed", zap.Bool("success", getSnippetsResponse.Success))
 		return nil, fmt.Errorf("%s %s", ErrServiceNotSuccessful.Error(), msgsString)
 	}
+	if !getSnippetsResponse.Found {
+		aac.Logger.Error("AAC.GetSnippets failed", zap.Bool("found", getSnippetsResponse.Found))
+		return nil, fmt.Errorf("%s %s", ErrServiceNotSuccessful.Error(), msgsString)
+	}
 
 	// Convert to Snippet Fields
 	convertedSnippets, convertedSnippetsError := acm.NewODriveRawSnippetFieldsFromSnippetResponse(getSnippetsResponse.Snippets)

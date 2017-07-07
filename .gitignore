@@ -29,3 +29,6 @@ environment.html
 server/root.html
 server/js/*.png
 docs/internal/*.png
+
+# Build log
+ordive_build.log

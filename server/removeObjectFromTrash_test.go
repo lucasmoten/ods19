@@ -138,6 +138,7 @@ func TestUndeleteExpungedObjectFails(t *testing.T) {
 	snippetResponse := aac.SnippetResponse{
 		Success:  true,
 		Snippets: testhelpers.SnippetTP10,
+		Found:    true,
 	}
 
 	fakeAAC := &aac.FakeAAC{
@@ -193,6 +194,7 @@ func TestUndeleteObjectWithDeletedAncestorFails(t *testing.T) {
 	snippetResponse := aac.SnippetResponse{
 		Success:  true,
 		Snippets: testhelpers.SnippetTP10,
+		Found:    true,
 	}
 
 	fakeAAC := &aac.FakeAAC{

@@ -199,6 +199,7 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 	snippetResponse := aac.SnippetResponse{
 		Success:  true,
 		Snippets: testhelpers.SnippetTP10,
+		Found:    true,
 	}
 	acmInfo := aac.AcmInfo{
 		Acm: testhelpers.ValidACMUnclassified,

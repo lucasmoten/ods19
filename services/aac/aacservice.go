@@ -65,6 +65,7 @@ type SnippetResponse struct {
 	Success  bool     `thrift:"1,required" json:"success"`
 	Messages []string `thrift:"2,optional" json:"messages"` // NOTE:  generator marked this as required
 	Snippets string   `thrift:"3,optional" json:"snippets"` // NOTE:  generator marked this as required
+	Found    bool     `thrift:"4,optional" json:"found"`    // NOTE:  added in aac 1.1.4+
 }
 
 type UserAttributesResponse struct {
