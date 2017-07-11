@@ -10,6 +10,7 @@ import (
 
 	"github.com/uber-go/zap"
 
+	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
@@ -149,6 +150,22 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 	}
 
 	if rebuild {
+		aacAuth := auth.NewAACAuth(logger, h.AAC)
+		userAttributes, err := aacAuth.GetAttributesForUser(caller.UserDistinguishedName)
+		if err != nil {
+			logger.Warn("error retrieving user attributes", zap.Error(err))
+			return err
+		}
+		for _, diasProject := range userAttributes.DIASUserGroups.Projects {
+			for _, groupName := range diasProject.Groups {
+				resourceName := fmt.Sprintf("group/%s/%s", diasProject.Name, groupName)
+				acmGrantee := models.NewODAcmGranteeFromResourceName(resourceName)
+				if _, err := h.RootDAO.CreateAcmGrantee(acmGrantee); err != nil {
+					logger.Warn("error saving new acmgrantee", zap.Error(err))
+					return err
+				}
+			}
+		}
 		useraocache.UserID = user.ID
 		useraocache.CacheDate.Time = time.Now()
 		useraocache.CacheDate.Valid = true

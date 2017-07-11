@@ -39,10 +39,15 @@ func TestListObjectsTrashedJSONResponse(t *testing.T) {
 		Snippets: testhelpers.SnippetTP10,
 		Found:    true,
 	}
+	attributesResponse := aac.UserAttributesResponse{
+		Success:        true,
+		UserAttributes: "{\"diasUserGroups\":{\"projects\":[{\"projectName\":\"DCTC\",\"groupNames\":[\"ODrive\"]}]}}",
+	}
 
 	fakeAAC := aac.FakeAAC{
-		SnippetResp: &snippetResponse,
-		Err:         nil,
+		SnippetResp:        &snippetResponse,
+		UserAttributesResp: &attributesResponse,
+		Err:                nil,
 	}
 	fakeQueue := kafka.NewFakeAsyncProducer(nil)
 	s := server.AppServer{

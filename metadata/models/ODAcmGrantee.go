@@ -1,6 +1,8 @@
 package models
 
-import "strings"
+import (
+	"strings"
+)
 
 // ODAcmGrantee is the detailed fields of an Acm Share for an individual
 // grantee, and associates to an object permission via the Grantee as a key
@@ -34,7 +36,7 @@ func (acmGrantee *ODAcmGrantee) String() string {
 
 // ResourceName returns the built up resource name for a grantee based upon its composite parts and display name
 func (acmGrantee *ODAcmGrantee) ResourceName() string {
-	return acmGrantee.getResourceName(true)
+	return acmGrantee.getResourceName(false)
 }
 
 // ResourceNameRaw returns the built up resource name for a grantee based upon its composite parts
@@ -85,36 +87,63 @@ func NewODAcmGranteeFromResourceName(resourceName string) ODAcmGrantee {
 func newODAcmGranteeFromUserResource(resource string) ODAcmGrantee {
 	parts := strings.Split(strings.Replace(resource, "user/", "", 1), "/")
 	grantee := ODAcmGrantee{}
-	if len(parts) > 0 {
-		grantee.UserDistinguishedName = ToNullString(parts[0])
-		grantee.Grantee = AACFlatten(parts[0])
-		grantee.DisplayName = ToNullString(parts[0])
-		if len(parts) > 1 {
-			grantee.DisplayName = ToNullString(parts[1])
+	grantee.UserDistinguishedName = ToNullString(parts[0])
+	grantee.Grantee = AACFlatten(parts[0])
+	grantee.DisplayName = ToNullString(parts[0])
+	if len(parts) > 1 {
+		grantee.DisplayName = ToNullString(parts[1])
+	} else {
+		dnparts := strings.Split(parts[0], ",")
+		for _, dnpart := range dnparts {
+			dnkv := strings.Split(dnpart, "=")
+			if len(dnkv) > 1 && dnkv[0] == "cn" {
+				grantee.DisplayName = ToNullString(dnkv[1])
+			}
 		}
 	}
+
 	return grantee
 }
 
 func newODAcmGranteeFromGroupResource(resource string) ODAcmGrantee {
-	parts := strings.Split(strings.Replace(resource, "group/", "", 1), "/")
+	parts := strings.Split(strings.Replace(strings.ToLower(resource), "group/", "", 1), "/")
 	grantee := ODAcmGrantee{}
 	switch len(parts) {
 	case 1:
+		// group (e.g. group/-everyone)
 		grantee.GroupName = ToNullString(parts[0])
 	case 2:
+		// group will always exist in last part (e.g. group/-everyone/-everyone)
 		grantee.GroupName = ToNullString(parts[1])
+		// Check if has project declared (e.g. group/dctc/odrive)
+		if AACFlatten(parts[0]) != AACFlatten(parts[1]) {
+			grantee.ProjectName = ToNullString(parts[0])
+			grantee.ProjectDisplayName = ToNullString(parts[0])
+		}
+	case 3:
+		// Check if has project display name (e.g. group/dctc/DCTC/odrive)
+		if AACFlatten(parts[0]) == AACFlatten(parts[1]) {
+			grantee.ProjectName = ToNullString(parts[0])
+			grantee.ProjectDisplayName = ToNullString(parts[1])
+			grantee.GroupName = ToNullString(parts[2])
+		} else {
+			// Has overall display name but not project display name (e.g. group/dctc/odrive/dctc_odrive)
+			grantee.ProjectName = ToNullString(parts[0])
+			grantee.ProjectDisplayName = ToNullString(parts[0])
+			grantee.GroupName = ToNullString(parts[1])
+		}
 	default:
+		// including display name (e.g. group/dctc/dctc/odrive/dctc odrive)
 		grantee.ProjectName = ToNullString(parts[0])
 		grantee.ProjectDisplayName = ToNullString(parts[1])
 		grantee.GroupName = ToNullString(parts[2])
 	}
 	if len(grantee.ProjectDisplayName.String) > 0 {
 		grantee.Grantee = AACFlatten(strings.TrimSpace(grantee.ProjectDisplayName.String + "_" + grantee.GroupName.String))
+		grantee.DisplayName = ToNullString(strings.TrimSpace(grantee.ProjectDisplayName.String + " " + grantee.GroupName.String))
 	} else {
 		grantee.Grantee = AACFlatten(grantee.GroupName.String)
+		grantee.DisplayName = ToNullString(grantee.GroupName.String)
 	}
-	grantee.DisplayName = ToNullString(strings.TrimSpace(grantee.ProjectDisplayName.String + " " + grantee.GroupName.String))
-
 	return grantee
 }

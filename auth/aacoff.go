@@ -40,6 +40,16 @@ func NewAACAuthOff(logger zap.Logger) *AACAuthOff {
 	return a
 }
 
+// GetAttributesForUser for AACAuthOff
+func (aac *AACAuthOff) GetAttributesForUser(userIdentity string) (*acm.ODriveUserAttributes, error) {
+	var attributes *acm.ODriveUserAttributes
+	// No User (Anonymous)
+	if userIdentity == "" {
+		return nil, ErrUserNotSpecified
+	}
+	return attributes, nil
+}
+
 // GetFlattenedACM for AACAuthOff
 func (aac *AACAuthOff) GetFlattenedACM(acm string) (string, []string, error) {
 	// Checks that dont depend on service availability

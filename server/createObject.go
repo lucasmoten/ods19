@@ -99,7 +99,6 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		}
 	}
 	obj.CreatedBy = caller.DistinguishedName
-
 	dp := ciphertext.FindCiphertextCacheByObject(&obj)
 	masterKey := dp.GetMasterKey()
 
@@ -397,6 +396,10 @@ func handleCreatePrerequisites(ctx context.Context, h AppServer, requestObject *
 			for _, g := range groups {
 				if strings.Compare(g, tg.Grantee) == 0 {
 					isAllowed = true
+					// Apply normalized form
+					requestObject.OwnedBy = models.ToNullString(tg.String())
+					// No need to check every group the user has
+					break
 				}
 			}
 		}

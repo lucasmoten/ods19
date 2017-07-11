@@ -229,6 +229,7 @@ func getKnownResourceStringsFromUserGroups(ctx context.Context) (resourceStrings
 	dao := DAOFromContext(ctx)
 	acmGrantees, err := dao.GetAcmGrantees(groups)
 	if err != nil {
+		log.Printf("Error calling GetAcmGrantees %s", err.Error())
 		return resourceStrings
 	}
 	for _, acmGrantee := range acmGrantees {

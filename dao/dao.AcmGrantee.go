@@ -52,6 +52,7 @@ func (dao *DataAccessLayer) GetAcmGrantees(grantees []string) ([]models.ODAcmGra
 				tx.Rollback()
 				return acmgrantees, err
 			}
+			err = nil
 		}
 	}
 	tx.Commit()
@@ -75,6 +76,25 @@ func getAcmGranteeInTransaction(tx *sqlx.Tx, grantee string) (models.ODAcmGrante
 	err := tx.Unsafe().Get(&response, query, grantee)
 	if err != nil {
 		return response, err
+	}
+	return response, err
+}
+
+// CreateAcmGrantee creates an AcmGrantee record if it does not already exist, otherwise fetches by the grantee name.
+func (dao *DataAccessLayer) CreateAcmGrantee(acmGrantee models.ODAcmGrantee) (models.ODAcmGrantee, error) {
+	defer util.Time("CreateAcmGrantee")()
+
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		return models.ODAcmGrantee{}, err
+	}
+	response, err := createAcmGranteeInTransaction(dao.GetLogger(), tx, acmGrantee)
+	if err != nil {
+		dao.GetLogger().Error("Error in CreateAcmGrantee", zap.String("err", err.Error()))
+		tx.Rollback()
+	} else {
+		tx.Commit()
 	}
 	return response, err
 }

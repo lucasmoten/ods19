@@ -29,6 +29,8 @@ const (
 	ErrFailToNormalizePermissions = Error("auth: unable to normalize permissions")
 	// ErrFailToRebuildACMFromPermissions is an authorization error returned if not able to rebuild the ACM.
 	ErrFailToRebuildACMFromPermissions = Error("auth: unable to rebuild acm from permissions")
+	// ErrFailToRetrieveAttributes is an authorization error returned if service error occurs while retrieving user attributes.
+	ErrFailToRetrieveAttributes = Error("auth: unable to retrieve attributes")
 	// ErrFailToRetrieveSnippets is an authorization error returned if service error occurs while retrieving snippets.
 	ErrFailToRetrieveSnippets = Error("auth: unable to retrieve snippets")
 	// ErrUserNotAuthorized is an authorization error that is returned if a user identity does not have authorization for ACM.
@@ -39,6 +41,7 @@ const (
 
 // Authorization represents a common interface for which any auth implementation is expected to support
 type Authorization interface {
+	GetAttributesForUser(userIdentity string) (attributes *acm.ODriveUserAttributes, err error)
 	GetFlattenedACM(acm string) (flattenedACM string, msgs []string, err error)
 	GetGroupsForUser(userIdentity string) (groups []string, err error)
 	GetGroupsFromSnippets(snippets *acm.ODriveRawSnippetFields) (groups []string)

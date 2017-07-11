@@ -331,17 +331,50 @@ func buildFilterRequireObjectsGroupOwns(tx *sqlx.Tx, groupGranteeName string) st
 }
 
 func removeDisplayNameFromResourceString(resourceString string) string {
-	partCount := len(strings.Split(resourceString, "/"))
-	if partCount == 3 || partCount == 5 {
-		// includes display name
-		// 5 group/dctc/DCTC/ODrive/DCTC ODrive
-		// 3 group/_everyone/-Everyone
-		// 3 user/cn=bob/bob
-		return resourceString[0:strings.LastIndex(resourceString, "/")]
+	allButLastPart := resourceString[0:strings.LastIndex(resourceString, "/")]
+	parts := strings.Split(resourceString, "/")
+	partCount := len(parts)
+	resourceType := parts[0]
+	switch resourceType {
+	case "user":
+		switch partCount {
+		// user/cn=bob
+		case 2:
+			return resourceString
+		// user/cn=bob/bob
+		case 3:
+			return allButLastPart
+		// invalid GIGO
+		default:
+			return resourceString
+		}
+	case "group":
+		switch partCount {
+		// group/_everyone
+		case 2:
+			return resourceString
+		// group/_everyone/-Everyone
+		// group/dctc/odrive
+		case 3:
+			// group/_everyone/-Everyone
+			if models.AACFlatten(parts[1]) == models.AACFlatten(parts[2]) {
+				return allButLastPart
+			}
+			return resourceString
+		// group/dctc/DCTC/ODrive
+		case 4:
+			// TODO: When removing project display name, this will need altered
+			// along with the calcResourceString database function
+			return resourceString
+		// group/dctc/DCTC/ODrive/DCTC ODrive
+		case 5:
+			return allButLastPart
+		}
+	// invalid GIGO
+	default:
+		return resourceString
 	}
-	// 4 group/dctc/DCTC/ODrive
-	// 2 group/_everyone
-	// 2 user/cn=bob
+	// unsupported GIGO
 	return resourceString
 }
 

@@ -41,6 +41,50 @@ func NewAACAuth(logger zap.Logger, service aac.AacService) *AACAuth {
 	return a
 }
 
+// GetAttributesForUser for AACAuth
+func (aac *AACAuth) GetAttributesForUser(userIdentity string) (*acm.ODriveUserAttributes, error) {
+	defer util.Time("GetAttributesForUser")()
+	// No User (Anonymous)
+	if userIdentity == "" {
+		return nil, ErrUserNotSpecified
+	}
+
+	// Service state
+	if aac.Service == nil {
+		return nil, ErrServiceNotSet
+	}
+
+	// Do request
+	getUserAttributesResponse, getUserAttributesError := aac.Service.GetUserAttributes(userIdentity, tokenType, snippetType)
+
+	// Process response
+	if getUserAttributesError != nil {
+		aac.Logger.Error("Error calling AAC.GetUserAttributes", zap.String("err", getUserAttributesError.Error()))
+		return nil, ErrFailToRetrieveAttributes
+	}
+	if getUserAttributesResponse == nil {
+		aac.Logger.Error("Error calling AAC.GetUserAttributes", zap.String("getUserAttributesResponse", "nil"))
+		return nil, ErrServiceNoResponse
+	}
+	for _, msg := range getUserAttributesResponse.Messages {
+		aac.Logger.Info("AAC.GetUserAttributes response", zap.String("message", msg))
+	}
+	msgsString := strings.Join(getUserAttributesResponse.Messages, "/")
+	if !getUserAttributesResponse.Success {
+		aac.Logger.Error("AAC.GetUserAttributes failed", zap.Bool("success", getUserAttributesResponse.Success))
+		return nil, fmt.Errorf("%s %s", ErrServiceNotSuccessful.Error(), msgsString)
+	}
+
+	// Convert to ODrive User Attributes
+	convertedAttributes, convertedAttributesError := acm.NewODriveAttributesFromAttributeResponse(getUserAttributesResponse.UserAttributes)
+	if convertedAttributesError != nil {
+		aac.Logger.Error("Convert attributes to object failed", zap.String("err", convertedAttributesError.Error()))
+		return nil, convertedAttributesError
+	}
+
+	return &convertedAttributes, nil
+}
+
 // GetFlattenedACM for AACAuth
 func (aac *AACAuth) GetFlattenedACM(acm string) (string, []string, error) {
 	defer util.Time("GetFlattenACM")()

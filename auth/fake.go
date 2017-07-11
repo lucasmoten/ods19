@@ -17,6 +17,12 @@ type FakeAuth struct {
 	ModifiedACM         string
 	ModifiedPermissions []models.ODObjectPermission
 	Snippets            *acm.ODriveRawSnippetFields
+	UserAttributes      *acm.ODriveUserAttributes
+}
+
+// GetAttributesForUser for FakeAuth
+func (fake *FakeAuth) GetAttributesForUser(userIdentity string) (attributes *acm.ODriveUserAttributes, err error) {
+	return fake.UserAttributes, fake.Err
 }
 
 // GetFlattenedACM for FakeAuth

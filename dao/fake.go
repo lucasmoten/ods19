@@ -51,6 +51,11 @@ func (fake *FakeDAO) AssociateUsersToNewACM(object models.ODObject, done chan bo
 	return fake.Err
 }
 
+// CreateAcmGrantee for FakeDAO.
+func (fake *FakeDAO) CreateAcmGrantee(acmGrantee models.ODAcmGrantee) (models.ODAcmGrantee, error) {
+	return fake.AcmGrantee, fake.Err
+}
+
 // CreateObject for FakeDAO.
 func (fake *FakeDAO) CreateObject(object *models.ODObject) (models.ODObject, error) {
 	return fake.Object, fake.Err

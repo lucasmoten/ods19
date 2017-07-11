@@ -6,6 +6,8 @@ FORMAT: 1A
 * FIX: Cleanup uploaded files when metadata validation fails during create/update
 * ENH: Log when we need to drain files up to S3 after an odrive restart
 * ENH: Add check for found flag in response to get snippets during authorization
+* FIX: Change Owner now validates that caller is member of group when changing ownership to group
+* ENH: Resource Strings for OwnedBy and Permission may be specified in short form `group/{projectname}/{groupname}`
 
 ## Release v1.0.2 (June 30, 2017)
 --------------------

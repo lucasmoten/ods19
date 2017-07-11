@@ -22,6 +22,7 @@ type DAO interface {
 	AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission) (models.ODObjectPermission, error)
 	AddPropertyToObject(object models.ODObject, property *models.ODProperty) (models.ODProperty, error)
 	AssociateUsersToNewACM(object models.ODObject, done chan bool) error
+	CreateAcmGrantee(acmGrantee models.ODAcmGrantee) (models.ODAcmGrantee, error)
 	CreateObject(object *models.ODObject) (models.ODObject, error)
 	CreateObjectType(objectType *models.ODObjectType) (models.ODObjectType, error)
 	CreateUser(models.ODUser) (models.ODUser, error)

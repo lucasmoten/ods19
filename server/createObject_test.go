@@ -1657,3 +1657,34 @@ func TestCreateObjectWithNameNearMaxLength(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestCreateObjectOwnedByGroupViaShortResourceName(t *testing.T) {
+
+	randomName := func(name string) string {
+		s, _ := util.NewGUID()
+		return name + s
+	}
+	clientid := 0
+	// base name, with randomization (length = 12+32 = 44)
+	ownedbyin := "group/dctc/odrive"
+	ownedbyout := "group/dctc/dctc/odrive"
+	testname := randomName("Test owned by ")
+	testname += ownedbyin
+	t.Logf("object name: %s", testname)
+
+	cor := protocol.CreateObjectRequest{
+		Name:    testname,
+		RawAcm:  testhelpers.ValidACMUnclassifiedFOUOSharedToTester10,
+		OwnedBy: ownedbyin,
+	}
+	theobj, err := clients[clientid].C.CreateObject(cor, bytes.NewBuffer([]byte("testvalue")))
+	failNowOnErr(t, err, "unable to do request")
+	if theobj.Name != testname {
+		t.Logf("Name of object saved as: %s", theobj.Name)
+		t.Fail()
+	}
+	if theobj.OwnedBy != ownedbyout {
+		t.Logf("Owner is %s expected %s", theobj.OwnedBy, ownedbyout)
+		t.Fail()
+	}
+}

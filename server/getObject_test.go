@@ -201,6 +201,10 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 		Snippets: testhelpers.SnippetTP10,
 		Found:    true,
 	}
+	attributesResponse := aac.UserAttributesResponse{
+		Success:        true,
+		UserAttributes: "{\"diasUserGroups\":{\"projects\":[{\"projectName\":\"DCTC\",\"groupNames\":[\"ODrive\"]}]}}",
+	}
 	acmInfo := aac.AcmInfo{
 		Acm: testhelpers.ValidACMUnclassified,
 	}
@@ -215,7 +219,8 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 			Success:   true,
 			HasAccess: true,
 		},
-		SnippetResp: &snippetResponse,
+		SnippetResp:        &snippetResponse,
+		UserAttributesResp: &attributesResponse,
 	}
 	fakeQueue := kafka.NewFakeAsyncProducer(nil)
 	fakeServer := server.AppServer{RootDAO: &fakeDAO,

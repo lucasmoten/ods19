@@ -350,6 +350,10 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 		Snippets: testhelpers.SnippetTP10,
 		Found:    true,
 	}
+	attributesResponse := aac.UserAttributesResponse{
+		Success:        true,
+		UserAttributes: "{\"diasUserGroups\":{\"projects\":[{\"projectName\":\"DCTC\",\"groupNames\":[\"ODrive\"]}]}}",
+	}
 	// Acm needs to have value in f_share that corresponds to the user
 	// that is creating objects.  For example, the grantee above for fakeDN0
 	// will need cntesttester10oupeopleoudaeouchimeraou_s_governmentcus
@@ -384,6 +388,7 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 		CheckAccessResp:            &checkAccessResponse,
 		CheckAccessAndPopulateResp: &checkAccessAndPopulateResponse,
 		SnippetResp:                &snippetResponse,
+		UserAttributesResp:         &attributesResponse,
 	}
 
 	fakeQueue := kafka.NewFakeAsyncProducer(nil)

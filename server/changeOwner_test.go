@@ -132,7 +132,7 @@ func TestChangeOwnerToGroup(t *testing.T) {
 	trafficLogs[APISampleFile].Request(t, changeOwnerRequest,
 		&TrafficLogDescription{
 			OperationName:       "Change Owner for Object",
-			RequestDescription:  "Transfer object ownershpi to a different user or group",
+			RequestDescription:  "Transfer object ownership to a different user or group",
 			ResponseDescription: "Ownership changed to designated resource, and moved to root",
 		},
 	)
@@ -152,6 +152,40 @@ func TestChangeOwnerToGroup(t *testing.T) {
 	t.Logf("* Verify the right users can read")
 	shouldHaveReadForObjectID(t, updatedObject.ID, 0, 6, 7, 8, 9)
 	shouldNotHaveReadForObjectID(t, updatedObject.ID, 1, 2, 3, 4, 5)
+}
+
+func TestChangeOwnerToGroupWithClient(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	clientid := 0
+
+	t.Logf("* Creating a private object")
+	createObjectRequest := protocol.CreateObjectRequest{}
+	createObjectRequest.Name = "Test ChangeOwner to Group"
+	createObjectRequest.TypeName = "Folder"
+	createObjectRequest.RawAcm = testhelpers.ValidACMUnclassifiedFOUOSharedToTester10
+	createdObject, err := clients[clientid].C.CreateObject(createObjectRequest, nil)
+	if err != nil {
+		t.Logf("Error creating object: %v", err)
+		t.FailNow()
+	}
+
+	t.Logf("* Changing ownership to group")
+	newowner := "group/dctc/dctc/odrive_g1"
+	changeOwnerRequest := protocol.ChangeOwnerRequest{}
+	changeOwnerRequest.ID = createdObject.ID
+	changeOwnerRequest.ChangeToken = createdObject.ChangeToken
+	changeOwnerRequest.NewOwner = newowner
+	changedObject, err := clients[clientid].C.ChangeOwner(changeOwnerRequest)
+	if err != nil {
+		t.Logf("Error changing owner: %v", err)
+		t.FailNow()
+	}
+	if changedObject.OwnedBy != newowner {
+		t.Logf("Owner of changed object is '%s', expected '%s'", changedObject.OwnedBy, newowner)
+		t.Fail()
+	}
 }
 
 func TestChangeOwnerToNonCachedUser(t *testing.T) {
@@ -218,7 +252,7 @@ func TestChangeOwnerToEveryoneDisallowed(t *testing.T) {
 	changeOwnerRequest := makeHTTPRequestFromInterface(t, "POST", changeowneruri, objChangeToken)
 	changeOwnerResponse, err := clients[clientid].Client.Do(changeOwnerRequest)
 	failNowOnErr(t, err, "Unable to do request")
-	statusMustBe(t, 400, changeOwnerResponse, "Bad status when changing owner")
+	statusMustBe(t, http.StatusPreconditionRequired, changeOwnerResponse, "Bad status when changing owner")
 	defer util.FinishBody(changeOwnerResponse.Body)
 }
 

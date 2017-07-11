@@ -57,15 +57,61 @@ func (h AppServer) changeOwner(ctx context.Context, w http.ResponseWriter, r *ht
 	}
 	auditOriginal := NewResourceFromObject(dbObject)
 
-	// Auth check
+	// Auth checks
 	okToUpdate, updatePermission := isUserAllowedToUpdateWithPermission(ctx, &dbObject)
 	if !okToUpdate {
 		herr := NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
 		h.publishError(gem, herr)
 		return herr
 	}
-	if !aacAuth.IsUserOwner(caller.DistinguishedName, getKnownResourceStringsFromUserGroups(ctx), dbObject.OwnedBy.String) {
+	// Verify caller owns the object being changed or is member of group having ownership
+	userGroupResourceStrings := getKnownResourceStringsFromUserGroups(ctx)
+	if len(userGroupResourceStrings) == 0 {
+		herr := NewAppError(http.StatusInternalServerError, errors.New("Forbidden"), "Forbidden - Server cannot load resource strings from user groups")
+		h.publishError(gem, herr)
+		return herr
+	}
+	if !aacAuth.IsUserOwner(caller.DistinguishedName, userGroupResourceStrings, dbObject.OwnedBy.String) {
 		herr := NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User must be an object owner to transfer ownership of the object")
+		h.publishError(gem, herr)
+		return herr
+	}
+	// Verify target is either a different user (no way to validate yet), or a group the caller is a member of, and normalize the resource string
+	newOwnerAcmGrantee := models.NewODAcmGranteeFromResourceName(requestObject.OwnedBy.String)
+	targetResourceString := newOwnerAcmGrantee.ResourceName()
+	if len(newOwnerAcmGrantee.UserDistinguishedName.String) > 0 {
+		if newOwnerAcmGrantee.UserDistinguishedName.String == caller.DistinguishedName {
+			msg := "Unable to change owner of object to self."
+			herr := NewAppError(http.StatusBadRequest, errors.New(msg), msg)
+			h.publishError(gem, herr)
+			return herr
+		}
+		requestObject.OwnedBy = models.ToNullString(targetResourceString)
+	} else if len(newOwnerAcmGrantee.GroupName.String) > 0 {
+		if targetResourceString == "group/-everyone" {
+			msg := "Cannot assign ownership of object to everyone group"
+			herr := NewAppError(http.StatusPreconditionRequired, errors.New(msg), msg)
+			h.publishError(gem, herr)
+			return herr
+		}
+		allowed := false
+		for _, groupString := range userGroupResourceStrings {
+			log.Println(fmt.Sprintf("target: %s, groupstring: %s", targetResourceString, groupString))
+			if groupString == targetResourceString {
+				allowed = true
+				requestObject.OwnedBy = models.ToNullString(targetResourceString)
+				break
+			}
+		}
+		if !allowed {
+			msg := "User must be in group being set as the owner"
+			herr := NewAppError(http.StatusPreconditionRequired, errors.New(msg), msg)
+			h.publishError(gem, herr)
+			return herr
+		}
+	} else {
+		msg := fmt.Sprintf("Unrecognized value for new owner %s", requestObject.OwnedBy.String)
+		herr := NewAppError(http.StatusBadRequest, errors.New(msg), msg)
 		h.publishError(gem, herr)
 		return herr
 	}
