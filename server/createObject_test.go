@@ -1688,3 +1688,11 @@ func TestCreateObjectOwnedByGroupViaShortResourceName(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestCreateObjectMinimal(t *testing.T) {
+	// This test creates an object with the minimal information required.
+	// If we could avoid requiring an ACM here, then object-drive could arguably be considered a data lake
+	theobj, err := clients[0].C.CreateObject(protocol.CreateObjectRequest{RawAcm: testhelpers.ValidACMUnclassified}, nil)
+	failNowOnErr(t, err, "unable to do request")
+	t.Logf("object: %v", theobj)
+}
