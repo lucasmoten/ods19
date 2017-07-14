@@ -2,7 +2,7 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
-## Release vNew
+## Release v1.0.3 (July 14, 2017)
 * FIX: Cleanup uploaded files when metadata validation fails during create/update
 * ENH: Log when we need to drain files up to S3 after an odrive restart
 * ENH: Add check for found flag in response to get snippets during authorization
