@@ -6,15 +6,10 @@ rm ui-*.tar
 rm ui.tar
 wget https://s3.amazonaws.com/decipherers/$TARFILE
 (
-  rm -rf ui/opt
-  mkdir -p ui/opt/apps/drive
-  cd ui/opt/apps/drive
-  tar xvf ../../../../$TARFILE
-)
-(
+  mkdir ui
   cd ui
-  tar cvf ../ui.tar opt
+  tar xvf ../$TARFILE
 )
-docker cp ui.tar docker_proxier_1:ui.tar
+docker cp $TARFILE docker_proxier_1:ui.tar
 docker exec docker_proxier_1 tar xvf /ui.tar
 docker exec docker_proxier_1 chown -R nginx:nginx /opt/apps
