@@ -171,6 +171,11 @@ ES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:
          try_files $uri /apps/finder/index.html;
      }
 
+     location /apps/drive/ {
+         root /opt/;
+         try_files $uri /apps/drive/index.html;
+     }
+
     location /acm {
         proxy_pass https://${AAC_SERVICE_HOST}:${AAC_SERVICE_PORT};
         proxy_set_header USER_DN    $ssl_client_s_dn;
