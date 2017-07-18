@@ -13,3 +13,5 @@ wget https://s3.amazonaws.com/decipherers/$TARFILE
 docker cp $TARFILE docker_proxier_1:ui.tar
 docker exec docker_proxier_1 tar xvf /ui.tar
 docker exec docker_proxier_1 chown -R nginx:nginx /opt/apps
+rm -rf ui
+rm ui-*.tar
