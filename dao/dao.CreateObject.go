@@ -33,7 +33,7 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 	deadlockRetryCounter := dao.DeadlockRetryCounter
 	deadlockRetryDelay := dao.DeadlockRetryDelay
 	deadlockMessage := "Deadlock"
-	dbObject, acmCreated, err = createObjectInTransaction(logger, tx, object)
+	dbObject, acmCreated, err = createObjectInTransaction(logger, tx, dao, object)
 	// Deadlock trapper on acm
 	for deadlockRetryCounter > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
 		logger.Info("deadlock in CreateObject, restarting transaction", zap.Int64("deadlockRetryCounter", deadlockRetryCounter))
@@ -47,7 +47,7 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 		}
 		// Retry the create
 		deadlockRetryCounter--
-		dbObject, acmCreated, err = createObjectInTransaction(logger, tx, object)
+		dbObject, acmCreated, err = createObjectInTransaction(logger, tx, dao, object)
 	}
 	if err != nil {
 		logger.Error("error in CreateObject", zap.String("err", err.Error()))
@@ -91,7 +91,7 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 	return obj, err
 }
 
-func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.ODObject) (models.ODObject, bool, error) {
+func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, dao *DataAccessLayer, object *models.ODObject) (models.ODObject, bool, error) {
 
 	var dbObject models.ODObject
 	var acmCreated bool
@@ -148,7 +148,7 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.OD
 		return dbObject, acmCreated, fmt.Errorf("Error normalizing ACM on new object: %v (acm: %s)", err.Error(), object.RawAcm.String)
 	}
 	object.RawAcm.String = newACMNormalized
-	acmCreated, err = setObjectACM2ForObjectInTransaction(tx, object)
+	acmCreated, err = setObjectACM2ForObjectInTransaction(tx, dao, object)
 	if err != nil {
 		return dbObject, acmCreated, fmt.Errorf("Error assigning ACM ID for object: %s", err.Error())
 	}

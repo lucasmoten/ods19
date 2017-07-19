@@ -87,7 +87,7 @@ func (dao *DataAccessLayer) SetUserAOCacheByDistinguishedName(useraocache *model
 	}
 	// Build user ao cache parts
 	for _, snippet := range user.Snippets.Snippets {
-		acmkey, err := getAcmKey2ByNameInTransaction(tx, snippet.FieldName, true)
+		acmkey, err := getAcmKey2ByName(dao, snippet.FieldName, true)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -95,7 +95,7 @@ func (dao *DataAccessLayer) SetUserAOCacheByDistinguishedName(useraocache *model
 		isallowed := (snippet.Treatment == "allowed")
 		if len(snippet.Values) > 0 {
 			for _, value := range snippet.Values {
-				acmvalue, err := getAcmValue2ByNameInTransaction(tx, value, true)
+				acmvalue, err := getAcmValue2ByName(dao, value, true)
 				if err != nil {
 					tx.Rollback()
 					return err
