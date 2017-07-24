@@ -2,6 +2,10 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release v1.0.5 (July 24, 2017)
+--------------------
+* ENH: Added backwards compatibility for AAC 1.0.x when checking user snippets
+
 ## Release v1.0.4 (July 19, 2017)
 --------------------
 * FIX: Subquery returns more than 1 row error when creating objects fixed

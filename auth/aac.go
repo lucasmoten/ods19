@@ -3,8 +3,10 @@ package auth
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/metadata/models/acm"
 	"decipher.com/object-drive-server/services/aac"
@@ -33,11 +35,17 @@ const (
 type AACAuth struct {
 	Logger  zap.Logger
 	Service aac.AacService
+	Version string
 }
 
 // NewAACAuth is a helper that builds an AACAuth from a provided logger and service connection
 func NewAACAuth(logger zap.Logger, service aac.AacService) *AACAuth {
-	a := &AACAuth{Logger: logger, Service: service}
+	a := &AACAuth{Logger: logger, Service: service, Version: "1.1"}
+	// lm - Set AAC version based upon announcement point info, otherwise continue to assume 1.1
+	AACAnnouncementPoint := os.Getenv(config.OD_ZK_AAC)
+	if len(AACAnnouncementPoint) > 0 && strings.Contains(AACAnnouncementPoint, "/1.0/") {
+		a.Version = "1.0"
+	}
 	return a
 }
 
@@ -181,9 +189,11 @@ func (aac *AACAuth) GetSnippetsForUser(userIdentity string) (*acm.ODriveRawSnipp
 		aac.Logger.Error("AAC.GetSnippets failed", zap.Bool("success", getSnippetsResponse.Success))
 		return nil, fmt.Errorf("%s %s", ErrServiceNotSuccessful.Error(), msgsString)
 	}
-	if !getSnippetsResponse.Found {
-		aac.Logger.Error("AAC.GetSnippets failed", zap.Bool("found", getSnippetsResponse.Found))
-		return nil, fmt.Errorf("%s %s", ErrServiceNotSuccessful.Error(), msgsString)
+	if aac.Version == "1.1" {
+		if !getSnippetsResponse.Found {
+			aac.Logger.Error("AAC.GetSnippets failed", zap.Bool("found", getSnippetsResponse.Found))
+			return nil, fmt.Errorf("%s %s", ErrServiceNotSuccessful.Error(), msgsString)
+		}
 	}
 
 	// Convert to Snippet Fields

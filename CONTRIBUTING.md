@@ -81,8 +81,8 @@ git push origin --tags
 If you ever need to delete a tag, you can do this:
 
 ```
-git tag -d v1.0.4
-git push origin :refs/tags/v1.0.4
+git tag -d vTheTagName
+git push origin :refs/tags/vTheTagName
 ```
 
 
