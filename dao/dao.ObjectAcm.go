@@ -211,24 +211,28 @@ func getAcmKey2ByName(dao *DataAccessLayer, namedValue string, addIfMissing bool
 	var result models.ODAcmKey2
 	logger := dao.GetLogger()
 	tx, err := dao.MetadataDB.Beginx()
-	deadlockRetryCounter := dao.DeadlockRetryCounter
-	deadlockRetryDelay := dao.DeadlockRetryDelay
+	retryCounter := dao.DeadlockRetryCounter
+	retryDelay := dao.DeadlockRetryDelay
+	duplicateMessage := "Duplicate entry"
 	deadlockMessage := "Deadlock"
 	stmt := `select id, name from acmkey2 where name = ?`
 	err = tx.Get(&result, stmt, namedValue)
-	for deadlockRetryCounter > 0 && err != nil && (strings.Contains(err.Error(), deadlockMessage) || err == sql.ErrNoRows) {
+	for retryCounter > 0 && err != nil && (strings.Contains(err.Error(), duplicateMessage) || strings.Contains(err.Error(), deadlockMessage) || err.Error() == sql.ErrNoRows.Error()) {
 		if strings.Contains(err.Error(), deadlockMessage) {
-			logger.Info("deadlock in getAcmKey2ByName, restarting transaction", zap.Int64("deadlockRetryCounter", deadlockRetryCounter))
+			logger.Info("deadlock in getAcmKey2ByName, restarting transaction", zap.Int64("retryCounter", retryCounter))
 		}
-		time.Sleep(time.Duration(deadlockRetryDelay) * time.Millisecond)
+		if strings.Contains(err.Error(), duplicateMessage) {
+			logger.Info("duplicate in getAcmKey2ByName, restarting transaction", zap.Int64("retryCounter", retryCounter))
+		}
 		tx.Rollback()
+		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		tx, err = dao.MetadataDB.Beginx()
 		if err != nil {
 			logger.Error("could not begin transaction", zap.String("err", err.Error()))
 			return result, err
 		}
 		// Retry
-		deadlockRetryCounter--
+		retryCounter--
 		err = tx.Get(&result, stmt, namedValue)
 		if err != nil && err == sql.ErrNoRows && addIfMissing {
 			result.Name = namedValue
@@ -266,24 +270,28 @@ func getAcmValue2ByName(dao *DataAccessLayer, namedValue string, addIfMissing bo
 	var result models.ODAcmValue2
 	logger := dao.GetLogger()
 	tx, err := dao.MetadataDB.Beginx()
-	deadlockRetryCounter := dao.DeadlockRetryCounter
-	deadlockRetryDelay := dao.DeadlockRetryDelay
+	retryCounter := dao.DeadlockRetryCounter
+	retryDelay := dao.DeadlockRetryDelay
+	duplicateMessage := "Duplicate entry"
 	deadlockMessage := "Deadlock"
 	stmt := `select id, name from acmvalue2 where name = ?`
 	err = tx.Get(&result, stmt, namedValue)
-	for deadlockRetryCounter > 0 && err != nil && (strings.Contains(err.Error(), deadlockMessage) || err.Error() == sql.ErrNoRows.Error()) {
+	for retryCounter > 0 && err != nil && (strings.Contains(err.Error(), duplicateMessage) || strings.Contains(err.Error(), deadlockMessage) || err.Error() == sql.ErrNoRows.Error()) {
 		if strings.Contains(err.Error(), deadlockMessage) {
-			logger.Info("deadlock in getAcmValue2ByName, restarting transaction", zap.Int64("deadlockRetryCounter", deadlockRetryCounter))
+			logger.Info("deadlock in getAcmValue2ByName, restarting transaction", zap.Int64("retryCounter", retryCounter))
 		}
-		time.Sleep(time.Duration(deadlockRetryDelay) * time.Millisecond)
+		if strings.Contains(err.Error(), duplicateMessage) {
+			logger.Info("duplicate in getAcmValue2ByName, restarting transaction", zap.Int64("retryCounter", retryCounter))
+		}
 		tx.Rollback()
+		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		tx, err = dao.MetadataDB.Beginx()
 		if err != nil {
 			logger.Error("could not begin transaction", zap.String("err", err.Error()))
 			return result, err
 		}
 		// Retry
-		deadlockRetryCounter--
+		retryCounter--
 		if err = tx.Get(&result, stmt, namedValue); err != nil {
 			if err.Error() == sql.ErrNoRows.Error() && addIfMissing {
 				result.Name = namedValue
