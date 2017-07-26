@@ -1698,10 +1698,10 @@ proc_label: BEGIN
                         SELECT id FROM acmvalue2 WHERE name = vCreatedBy INTO vCreatedByID;
                     END IF;
                     SET vPermissionMAC := new_keymac('${OD_ENCRYPT_MASTERKEY}',vGrantee,vAllowCreate,vAllowRead,vAllowUpdate,vAllowDelete,vAllowShare,hex(vEncryptKey));
-                    UPDATE a_object_permission SET grantee = vGrantee, granteeid = vGranteeID, createdbyid = vCreatedByID, permissionmac = vPermissionMAC where a_id = vAID;
+                    UPDATE a_object_permission SET grantee = vGrantee, granteeid = vGranteeID, createdbyid = vCreatedByID, permissionmac = unhex(vPermissionMAC) where a_id = vAID;
                 END LOOP get_revision;
             END REVISIONS;
-            UPDATE object_permission SET grantee = vGrantee, granteeid = vGranteeID, createdbyid = vCreatedByID, permissionmac = vPermissionMAC WHERE id = vID; 
+            UPDATE object_permission SET grantee = vGrantee, granteeid = vGranteeID, createdbyid = vCreatedByID, permissionmac = unhex(vPermissionMAC) WHERE id = vID; 
         END LOOP get_permission;
     END proc_main;   
 END;

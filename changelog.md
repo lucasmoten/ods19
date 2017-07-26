@@ -2,13 +2,17 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release v1.0.6 (July 26, 2017)
+--------------------
+* FIX: Database migrations run from rollup script 20170630 now use correct value for permission mac. Schema is now 20170726
+
 ## Release v1.0.5 (July 24, 2017)
 --------------------
 * ENH: Added backwards compatibility for AAC 1.0.x when checking user snippets
 
 ## Release v1.0.4 (July 19, 2017)
 --------------------
-* FIX: Subquery returns more than 1 row error when creating objects fixed
+* FIX: Subquery returns more than 1 row error when creating objects fixed. Schema is now 20170718
 
 ## Release v1.0.3 (July 17, 2017)
 --------------------
