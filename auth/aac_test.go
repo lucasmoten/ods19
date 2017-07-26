@@ -54,14 +54,16 @@ type testAACAuth struct {
 }
 
 func TestAACAuthGetFlattenedACM(t *testing.T) {
-	t.Skip(`Skipping due to burdensome maintenance. New versions of AAC introduce HCS-P, and return macs and accms fields even when empty.`)
 	aacAuth := newAACAuth(t)
 
 	subtests := []testAACAuth{}
 	subtests = append(subtests, testAACAuth{subtestname: "No ACM", expectedIsError: true, expectedError: auth.ErrACMNotSpecified})
 	subtests = append(subtests, testAACAuth{subtestname: "Valid ACM", expectedIsError: false, acm: `{"version":"2.1.0", "classif": "U"}`})
-	subtests = append(subtests, testAACAuth{subtestname: "Valid ACM w/Expected", expectedIsError: false, acm: `{"version":"2.1.0", "classif":"U"}`, expectedFlattened: `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_sar_id":[],"f_atom_energy":[],"f_macs":[]}`})
+	subtests = append(subtests, testAACAuth{subtestname: "Valid ACM w/Expected", expectedIsError: false, acm: `{"version":"2.1.0", "classif":"U"}`, expectedFlattened: `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_sar_id":[],"f_atom_energy":[],"f_macs":[]}`})
 	subtests = append(subtests, testAACAuth{subtestname: "Invalid ACM", expectedIsError: true, acm: "meh", expectedError: auth.ErrACMResponseFailed})
+	subtests = append(subtests, testAACAuth{subtestname: "CTE Security Service 54 without portion in input", expectedIsError: false, acm: `{"version":"2.1.0", "classif":"TS", "owner_prod":["USA"], "atom_energy":[], "sar_id":[], "sci_ctrls":["SI"], "disponly_to":[""], "dissem_ctrls": ["OC","NF"], "non_ic":[], "rel_to":[], "declass_ex": "50X1-HUM", "deriv_from": "FROM MULTIPLE SOURCES", "fgi_open": ["ISR"], "fgi_protect": [], "banner": "TOP SECRET//SI//FGI ISR//ORCON/NOFORN", "dissem_countries": ["USA"], "accms": [], "macs": [], "oc_attribs": [{"orgs":["DOD_DIA"],"missions":[],"regions":[]}], "share": {"users":[],"projects":{"bedrock":{"disp_nm":"Bedrock","groups":["WATCHDOG_USER"]}}},"disp_only":""}`, expectedFlattened: `{"version":"2.1.0","classif":"TS","owner_prod":["USA"],"atom_energy":[],"sar_id":[],"sci_ctrls":["SI"],"disponly_to":[""],"dissem_ctrls":["OC","NF"],"non_ic":[],"rel_to":[],"declass_ex":"50X1-HUM","deriv_from":"FROM MULTIPLE SOURCES","fgi_open":["ISR"],"fgi_protect":[],"portion":"TS//SI//FGI ISR//OC/NF","banner":"TOP SECRET//SI//FGI ISR//ORCON/NOFORN","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":["DOD_DIA"],"missions":[],"regions":[]}],"share":{"users":[],"projects":{"bedrock":{"disp_nm":"Bedrock","groups":["WATCHDOG_USER"]}}},"f_clearance":["ts"],"f_sci_ctrls":["si"],"f_accms":[],"f_oc_org":["dod_dia","dni"],"f_regions":[],"f_missions":[],"f_share":["bedrock_watchdog_user"],"f_sar_id":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`})
+	// The following test fails because AAC is improperly parsing ISR from the portion and changing to Non-US
+	//subtests = append(subtests, testAACAuth{subtestname: "CTE Security Service 54 with portion in input", expectedIsError: false, acm: `{"version":"2.1.0", "classif":"TS", "owner_prod":["USA"], "atom_energy":[], "sar_id":[], "sci_ctrls":["SI"], "disponly_to":[""], "dissem_ctrls": ["OC","NF"], "non_ic":[], "rel_to":[], "declass_ex": "50X1-HUM", "deriv_from": "FROM MULTIPLE SOURCES", "fgi_open": ["ISR"], "fgi_protect": [], "portion": "//ISR TS//SI//OC/NF", "banner": "TOP SECRET//SI//FGI ISR//ORCON/NOFORN", "dissem_countries": ["USA"], "accms": [], "macs": [], "oc_attribs": [{"orgs":["DOD_DIA"],"missions":[],"regions":[]}], "share": {"users":[],"projects":{"bedrock":{"disp_nm":"Bedrock","groups":["WATCHDOG_USER"]}}},"disp_only":""}`, expectedFlattened: `{"version":"2.1.0","classif":"TS","owner_prod":["USA"],"atom_energy":[],"sar_id":[],"sci_ctrls":["SI"],"disponly_to":[""],"dissem_ctrls":["OC","NF"],"non_ic":[],"rel_to":[],"declass_ex":"50X1-HUM","deriv_from":"FROM MULTIPLE SOURCES","fgi_open":["ISR"],"fgi_protect":[],"portion":"TS//SI//FGI ISR//OC/NF","banner":"TOP SECRET//SI//FGI ISR//ORCON/NOFORN","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":["DOD_DIA"],"missions":[],"regions":[]}],"share":{"users":[],"projects":{"bedrock":{"disp_nm":"Bedrock","groups":["WATCHDOG_USER"]}}},"f_clearance":["ts"],"f_sci_ctrls":["si"],"f_accms":[],"f_oc_org":["dod_dia","dni"],"f_regions":[],"f_missions":[],"f_share":["bedrock_watchdog_user"],"f_sar_id":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`})
 
 	for testIdx, subtest := range subtests {
 		t.Logf("Subtest %d: %s", testIdx, subtest.subtestname)
@@ -96,7 +98,9 @@ func TestAACAuthGetFlattenedACM(t *testing.T) {
 			if strings.Compare(subtest.expectedFlattened, flattenedACM) != 0 {
 				subtest.failed = true
 				t.Logf("[x] ACM returned did not match expected result.")
-				t.Logf("%s", flattenedACM)
+				t.Logf("\t Sent: %s", subtest.acm)
+				t.Logf("\t Received: %s", flattenedACM)
+				t.Logf("\t Expected: %s", subtest.expectedFlattened)
 				t.Fail()
 				continue
 			} else {
@@ -110,15 +114,14 @@ func TestAACAuthGetFlattenedACM(t *testing.T) {
 }
 
 func TestAACAuthGetSnippetsForUser(t *testing.T) {
-	t.Skip(`Skipping due to burdensome maintenance. New versions of AAC introduce HCS-P, and return macs and accms fields even when empty.`)
 	aacAuth := newAACAuth(t)
 
 	subtests := []testAACAuth{}
 	subtests = append(subtests, testAACAuth{expectedIsError: true, subtestname: "No User", expectedError: auth.ErrUserNotSpecified})
 	subtests = append(subtests, testAACAuth{expectedIsError: true, subtestname: "Fake User", userIdentity: "Fake User", expectedError: auth.ErrServiceNotSuccessful})
 	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "Jonathan Holmes", userIdentity: "CN=Holmes Jonathan,OU=People,OU=Bedrock,OU=Six 3 Systems,O=U.S. Government,C=US"})
-	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "Tester 10", userIdentity: "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us", expectedSnippets: "dissem_countries allowed (USA) AND f_accms disallow () AND f_atom_energy allowed () AND f_clearance allowed (ts,s,c,u) AND f_macs disallow (tide,bir,watchdog) AND f_missions allowed () AND f_oc_org allowed (dia) AND f_regions allowed () AND f_sar_id allowed () AND f_sci_ctrls disallow (hcs_p,kdk,rsv) AND f_share allowed (dctc_odrive,dctc_odrive_g1,cntesttester10oupeopleoudaeouchimeraou_s_governmentcus,cusou_s_governmentouchimeraoudaeoupeoplecntesttester10)"})
-	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "Uppercase Tester 10", userIdentity: "CN=Test Tester10,OU=People,OU=DAE,OU=Chimera,O=U.S. Government,C=US", expectedSnippets: "dissem_countries allowed (USA) AND f_accms disallow () AND f_atom_energy allowed () AND f_clearance allowed (ts,s,c,u) AND f_macs disallow (tide,bir,watchdog) AND f_missions allowed () AND f_oc_org allowed (dia) AND f_regions allowed () AND f_sar_id allowed () AND f_sci_ctrls disallow (hcs_p,kdk,rsv) AND f_share allowed (dctc_odrive,dctc_odrive_g1,cntesttester10oupeopleoudaeouchimeraou_s_governmentcus,cusou_s_governmentouchimeraoudaeoupeoplecntesttester10)"})
+	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "Tester 10", userIdentity: "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us", expectedSnippets: "dissem_countries allowed (USA) AND f_accms disallow () AND f_atom_energy allowed () AND f_clearance allowed (ts,s,c,u) AND f_macs disallow (tide,bir,watchdog) AND f_missions allowed () AND f_oc_org allowed (dia) AND f_regions allowed () AND f_sar_id allowed () AND f_sci_ctrls disallow (kdk,rsv) AND f_share allowed (dctc_odrive,dctc_odrive_g1,cntesttester10oupeopleoudaeouchimeraou_s_governmentcus,cusou_s_governmentouchimeraoudaeoupeoplecntesttester10)"})
+	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "Uppercase Tester 10", userIdentity: "CN=Test Tester10,OU=People,OU=DAE,OU=Chimera,O=U.S. Government,C=US", expectedSnippets: "dissem_countries allowed (USA) AND f_accms disallow () AND f_atom_energy allowed () AND f_clearance allowed (ts,s,c,u) AND f_macs disallow (tide,bir,watchdog) AND f_missions allowed () AND f_oc_org allowed (dia) AND f_regions allowed () AND f_sar_id allowed () AND f_sci_ctrls disallow (kdk,rsv) AND f_share allowed (dctc_odrive,dctc_odrive_g1,cntesttester10oupeopleoudaeouchimeraou_s_governmentcus,cusou_s_governmentouchimeraoudaeoupeoplecntesttester10)"})
 
 	for testIdx, subtest := range subtests {
 		t.Logf("Subtest %d: %s", testIdx, subtest.subtestname)
@@ -403,7 +406,7 @@ func TestAACAuthGetGroupsFromSnippets(t *testing.T) {
 }
 
 func TestAACAuthNormalizePermissionsFromACM(t *testing.T) {
-	t.Skip(`Skipping due to burdensome maintenance. New versions of AAC introduce HCS-P, and return macs and accms fields even when empty.`)
+	//t.Skip(`Skipping due to burdensome maintenance. New versions of AAC introduce HCS-P, and return macs and accms fields even when empty.`)
 	aacAuth := newAACAuth(t)
 
 	subtests := []testAACAuth{}
@@ -431,7 +434,7 @@ func TestAACAuthNormalizePermissionsFromACM(t *testing.T) {
 					},
 				},
 			},
-			expectedModifiedAcm: `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":["cntesttester01oupeopleoudaeouchimeraou_s_governmentcus","cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"],"portion":"U//FOUO","share":{"projects":null,"users":["cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
+			expectedModifiedAcm: `{"accms":[],"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":["cntesttester01oupeopleoudaeouchimeraou_s_governmentcus","cntesttester10oupeopleoudaeouchimeraou_s_governmentcus"],"macs":[],"portion":"U//FOUO","share":{"projects":null,"users":["cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
 			expectedModifiedPermissions: []models.ODObjectPermission{
 				models.ODObjectPermission{
 					Grantee:     "cntesttester01oupeopleoudaeouchimeraou_s_governmentcus",
@@ -488,7 +491,7 @@ func TestAACAuthNormalizePermissionsFromACM(t *testing.T) {
 					},
 				},
 			},
-			expectedModifiedAcm: `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":[],"portion":"U//FOUO","version":"2.1.0"}`,
+			expectedModifiedAcm: `{"accms":[],"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":[],"macs":[],"portion":"U//FOUO","version":"2.1.0"}`,
 			expectedModifiedPermissions: []models.ODObjectPermission{
 				models.ODObjectPermission{
 					Grantee:     "_everyone",
@@ -545,7 +548,7 @@ func TestAACAuthNormalizePermissionsFromACM(t *testing.T) {
 			creating:            false,
 			owner:               "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
 			acm:                 `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"portion":"U//FOUO","share":{"projects":{"dctc":{"disp_nm":"DCTC","groups":["ODrive"]}}},"version":"2.1.0"}`,
-			expectedModifiedAcm: `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":["cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","dctc_odrive"],"portion":"U//FOUO","share":{"projects":{"dctc":{"disp_nm":"dctc","groups":["odrive"]}},"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
+			expectedModifiedAcm: `{"accms":[],"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":["cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","dctc_odrive"],"macs":[],"portion":"U//FOUO","share":{"projects":{"dctc":{"disp_nm":"dctc","groups":["odrive"]}},"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
 			expectedModifiedPermissions: []models.ODObjectPermission{
 				models.ODObjectPermission{
 					Grantee:     "dctc_odrive",
@@ -603,7 +606,7 @@ func TestAACAuthNormalizePermissionsFromACM(t *testing.T) {
 					},
 				},
 			},
-			expectedModifiedAcm: `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":["cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","cntesttester01oupeopleoudaeouchimeraou_s_governmentcus"],"portion":"U//FOUO","share":{"projects":null,"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
+			expectedModifiedAcm: `{"accms":[],"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":["cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","cntesttester01oupeopleoudaeouchimeraou_s_governmentcus"],"macs":[],"portion":"U//FOUO","share":{"projects":null,"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`,
 			expectedModifiedPermissions: []models.ODObjectPermission{
 				// originally in acm share
 				models.ODObjectPermission{
