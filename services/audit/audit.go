@@ -409,3 +409,92 @@ func int32PtrOrZero(i int64) *int32 {
 	}
 	return &x
 }
+
+// WithACMCopies ... populates other acm fields in the emitted event with that in the resource
+func WithACMCopies(e events_thrift.AuditEvent) events_thrift.AuditEvent {
+	// acm of an individual resource
+	var racm *acm_thrift.Acm
+	racm = nil
+	// acm of an individual modified pair list
+	var mpacm *acm_thrift.Acm
+	mpacm = nil
+	// could be an overall acm
+	var oacm *acm_thrift.Acm
+	oacm = nil
+
+	// Look at resources to get overall acm
+	if e.Resources != nil {
+		for i, r := range e.Resources {
+			if r.Acm != nil {
+				racm = r.Acm
+				if oacm == nil {
+					oacm = racm
+				}
+				// copy to places in the resource that are missing the acm
+				if r.Name != nil {
+					if r.Name.Acm == nil {
+						r.Name.Acm = racm
+					}
+				}
+				if r.Content != nil {
+					if r.Content.Acm == nil {
+						r.Content.Acm = racm
+					}
+				}
+				if r.Description != nil {
+					if r.Description.Acm == nil {
+						r.Description.Acm = racm
+					}
+				}
+				e.Resources[i] = r
+			}
+		}
+	}
+	// Look at modified pairs for overall acm
+	if e.ModifiedPairList != nil {
+		for i, m := range e.ModifiedPairList {
+			mpacm = nil
+			// get acm from either original or modified resources, preferring the newer
+			if mpacm == nil && m.Modified != nil && m.Modified.Acm != nil {
+				mpacm = m.Modified.Acm
+			}
+			if mpacm == nil && m.Original != nil && m.Original.Acm != nil {
+				mpacm = m.Original.Acm
+			}
+			if oacm == nil {
+				oacm = mpacm
+			}
+			// assign if not set
+			if m.Original != nil && m.Original.Acm == nil {
+				m.Original.Acm = mpacm
+			}
+			if m.Modified != nil && m.Modified.Acm == nil {
+				m.Modified.Acm = mpacm
+			}
+			e.ModifiedPairList[i] = m
+		}
+	}
+
+	// If have an acm from a resource or modified pair list, populate common places that are still null
+	if oacm != nil {
+		// - action_targets[].acm
+		if e.ActionTargets != nil {
+			for i, t := range e.ActionTargets {
+				if t.Acm == nil {
+					t.Acm = oacm
+					e.ActionTargets[i] = t
+				}
+			}
+		}
+		// - edh.acm
+		if e.Edh == nil {
+			edh := components_thrift.Edh{}
+			e = WithEnterpriseDataHeader(e, edh)
+		}
+		if e.Edh.Acm == nil {
+			e.Edh.Acm = oacm
+		}
+	}
+
+	return e
+}

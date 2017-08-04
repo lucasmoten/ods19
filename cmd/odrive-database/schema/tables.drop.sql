@@ -26,6 +26,7 @@ DROP TABLE IF EXISTS a_user_object_subscription;
 
 # Main tables
 DROP TABLE IF EXISTS acm;
+DROP TABLE IF EXISTS acm2;
 DROP TABLE IF EXISTS acm_accm;
 DROP TABLE IF EXISTS acm_accm_coicontrol;
 DROP TABLE IF EXISTS acm_coicontrol;
@@ -38,8 +39,11 @@ DROP TABLE IF EXISTS acm_share;
 DROP TABLE IF EXISTS acm_share_user;
 DROP TABLE IF EXISTS acmgrantee;
 DROP TABLE IF EXISTS acmkey;
+DROP TABLE IF EXISTS acmkey2;
 DROP TABLE IF EXISTS acmpart;
+DROP TABLE IF EXISTS acmpart2;
 DROP TABLE IF EXISTS acmvalue;
+DROP TABLE IF EXISTS acmvalue2;
 DROP TABLE IF EXISTS dbstate;
 DROP TABLE IF EXISTS field_changes;
 DROP TABLE IF EXISTS object;
@@ -52,6 +56,9 @@ DROP TABLE IF EXISTS object_type_property;
 DROP TABLE IF EXISTS property;
 DROP TABLE IF EXISTS relationship;
 DROP TABLE IF EXISTS user;
+DROP TABLE IF EXISTS useracm;
+DROP TABLE IF EXISTS useraocache;
+DROP TABLE IF EXISTS useraocachepart;
 DROP TABLE IF EXISTS user_object_favorite;
 DROP TABLE IF EXISTS user_object_subscription;
 

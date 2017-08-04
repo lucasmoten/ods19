@@ -619,6 +619,7 @@ func (h *AppServer) publishError(gem events.GEM, herr *AppError) {
 	if len(herr.Msg) > 0 {
 		gem.Payload.Audit = audit.WithActionTargetMessages(gem.Payload.Audit, herr.Msg)
 	}
+	gem.Payload.Audit = audit.WithACMCopies(gem.Payload.Audit)
 	h.EventQueue.Publish(gem)
 }
 func (h *AppServer) publishSuccess(gem events.GEM, w http.ResponseWriter) {
@@ -628,6 +629,7 @@ func (h *AppServer) publishSuccess(gem events.GEM, w http.ResponseWriter) {
 		status = "200"
 	}
 	gem.Payload.Audit = audit.WithActionTargetMessages(gem.Payload.Audit, status)
+	gem.Payload.Audit = audit.WithACMCopies(gem.Payload.Audit)
 	h.EventQueue.Publish(gem)
 }
 

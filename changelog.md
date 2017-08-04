@@ -2,6 +2,12 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release v1.0.7 (August 4, 2017)
+--------------------
+* ENH: Events emitted with action_mode setup, and ACM value copied to all nested components with an ACM field.
+* FIX: Database initialize scripts drop of constraints and tables to support CI builds
+* ENH: CI build docker-compose converted to version 2.
+
 ## Release v1.0.6 (July 26, 2017)
 --------------------
 * FIX: Database migrations run from rollup script 20170630 now use correct value for permission mac. Schema is now 20170726
