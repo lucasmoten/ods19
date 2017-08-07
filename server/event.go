@@ -61,6 +61,7 @@ func defaultAudit(r *http.Request) events_thrift.AuditEvent {
 	}
 	e = audit.WithType(e, "EventUnknown")
 	e = audit.WithAction(e, "ACCESS")
+	e = audit.WithActionMode(e, "USER_INITIATED")
 	e = audit.WithActionResult(e, "FAILURE")
 	e = audit.WithActionInitiator(e, "DISTINGUISHED_NAME", config.GetNormalizedDistinguishedName(r.Header.Get("USER_DN")))
 	application := r.Header.Get("APPLICATION")
