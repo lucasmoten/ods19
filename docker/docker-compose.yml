@@ -13,7 +13,7 @@ services:
       - odrive
 
   aac:
-    image: docker.363-283.io/cte/cte-security-service:1.1.3
+    image: docker.363-283.io/cte/cte-security-service:1.1.6
     tty: true
     stdin_open: true
     ports:
