@@ -545,16 +545,38 @@ func getMigrationStatus(db *sqlx.DB) string {
 }
 
 func isGlobalVariable(db *sqlx.DB, variableName string, expectedVariableValue string) (bool, error) {
+	schemaToUse := "information_schema"
+	var b57 bool
+	var err error
+	b57, err = isMySQL57(db)
+	if err != nil {
+		return b57, err
+	}
+	if b57 {
+		schemaToUse = "performance_schema"
+	}
+
 	tx := db.MustBegin()
 	var actualValue []string
-	stmt := `select variable_value from information_schema.global_variables where variable_name = ?`
-	err := tx.Select(&actualValue, stmt, variableName)
+	stmt := `select variable_value from ` + schemaToUse + `.global_variables where variable_name = ?`
+	err = tx.Select(&actualValue, stmt, variableName)
 	if err != nil {
 		tx.Rollback()
 		return false, err
 	}
 	tx.Commit()
 	return (actualValue[0] == expectedVariableValue), nil
+}
+func isMySQL57(db *sqlx.DB) (bool, error) {
+	tx := db.MustBegin()
+	var dbVersion []string
+	err := tx.Select(&dbVersion, "select version()")
+	if err != nil {
+		tx.Rollback()
+		return false, err
+	}
+	tx.Commit()
+	return strings.HasPrefix(strings.Join(dbVersion, "xxxxxxxxxxxxxxxxxx"), "5.7"), nil
 }
 
 // execStmt executes a SQL string against a database transaction.

@@ -332,14 +332,6 @@ proc_label: BEGIN
             INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_deletedBy';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_deletedBy`;
         END IF;    
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_grantee') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_grantee';
-            ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_grantee`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_grantee') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_grantee';
-            ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_grantee`;
-        END IF;    
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_modifiedBy') THEN
             INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_modifiedBy';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_modifiedBy`;
@@ -582,14 +574,6 @@ proc_label: BEGIN
             INSERT INTO migration_status SET description = '20170630_combined drop index ix_object_permission_createdby';
             ALTER TABLE `object_permission` DROP INDEX `ix_object_permission_createdby`;
         END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'ix_object_permission_allowread') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop ix_object_permission_allowread';
-            ALTER TABLE `object_permission` DROP FOREIGN KEY `ix_object_permission_allowread`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'ix_object_permission_allowread') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index ix_object_permission_allowread';
-            ALTER TABLE `object_permission` DROP INDEX `ix_object_permission_allowread`;
-        END IF;
         -- derived from 3_ownedby_fk_and_triggers.sql
         INSERT INTO migration_status SET description = '20170630_combined drop foreign keys and indexes from 3_ownedby_fk_and_triggers.sql';
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_ownedBy') THEN
@@ -642,110 +626,6 @@ proc_label: BEGIN
             INSERT INTO migration_status SET description = '20170630_combined drop index ix_acmvalue2_name from acmkey2';
             ALTER TABLE `acmkey2` DROP INDEX `ix_acmvalue2_name`;
         END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmvalue2' and binary constraint_name = 'ix_acmvalue2_name') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop ix_acmvalue2_name';
-            ALTER TABLE `acmvalue2` DROP FOREIGN KEY `ix_acmvalue2_name`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'acmvalue2' and binary index_name = 'ix_acmvalue2_name') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index ix_acmvalue2_name';
-            ALTER TABLE `acmvalue2` DROP INDEX `ix_acmvalue2_name`;
-        END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmpart2' and binary constraint_name = 'fk_acmpart2_acmid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmpart2_acmid';
-            ALTER TABLE `acmpart2` DROP FOREIGN KEY `fk_acmpart2_acmid`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'acmpart2' and binary index_name = 'fk_acmpart2_acmid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acmpart2_acmid';
-            ALTER TABLE `acmpart2` DROP INDEX `fk_acmpart2_acmid`;
-        END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmpart2' and binary constraint_name = 'fk_acmpart2_acmkeyid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmpart2_acmkeyid';
-            ALTER TABLE `acmpart2` DROP FOREIGN KEY `fk_acmpart2_acmkeyid`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'acmpart2' and binary index_name = 'fk_acmpart2_acmkeyid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acmpart2_acmkeyid';
-            ALTER TABLE `acmpart2` DROP INDEX `fk_acmpart2_acmkeyid`;
-        END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmpart2' and binary constraint_name = 'fk_acmpart2_acmvalueid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_acmpart2_acmvalueid';
-            ALTER TABLE `acmpart2` DROP FOREIGN KEY `fk_acmpart2_acmvalueid`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'acmpart2' and binary index_name = 'fk_acmpart2_acmvalueid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_acmpart2_acmvalueid';
-            ALTER TABLE `acmpart2` DROP INDEX `fk_acmpart2_acmvalueid`;
-        END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'useraocachepart' and binary constraint_name = 'fk_useraocachepart_userid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_useraocachepart_userid';
-            ALTER TABLE `useraocachepart` DROP FOREIGN KEY `fk_useraocachepart_userid`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'useraocachepart' and binary index_name = 'fk_useraocachepart_userid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_useraocachepart_userid';
-            ALTER TABLE `useraocachepart` DROP INDEX `fk_useraocachepart_userid`;
-        END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'useraocachepart' and binary constraint_name = 'fk_useraocachepart_userkeyid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_useraocachepart_userkeyid';
-            ALTER TABLE `useraocachepart` DROP FOREIGN KEY `fk_useraocachepart_userkeyid`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'useraocachepart' and binary index_name = 'fk_useraocachepart_userkeyid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_useraocachepart_userkeyid';
-            ALTER TABLE `useraocachepart` DROP INDEX `fk_useraocachepart_userkeyid`;
-        END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'useraocachepart' and binary constraint_name = 'fk_useraocachepart_uservalueid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_useraocachepart_uservalueid';
-            ALTER TABLE `useraocachepart` DROP FOREIGN KEY `fk_useraocachepart_uservalueid`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'useraocachepart' and binary index_name = 'fk_useraocachepart_uservalueid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_useraocachepart_uservalueid';
-            ALTER TABLE `useraocachepart` DROP INDEX `fk_useraocachepart_uservalueid`;
-        END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'useraocache' and binary constraint_name = 'fk_useraocache_userid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_useraocachepart_userid';
-            ALTER TABLE `useraocache` DROP FOREIGN KEY `fk_useraocache_userid`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'useraocache' and binary index_name = 'fk_useraocache_userid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_useraocachepart_userid';
-            ALTER TABLE `useraocache` DROP INDEX `fk_useraocache_userid`;
-        END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'useracm' and binary constraint_name = 'fk_useracm_userid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_useracm_userid';
-            ALTER TABLE `useracm` DROP FOREIGN KEY `fk_useracm_userid`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'useracm' and binary index_name = 'fk_useracm_userid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_useracm_userid';
-            ALTER TABLE `useracm` DROP INDEX `fk_useracm_userid`;
-        END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'useracm' and binary constraint_name = 'fk_useracm_acmid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_useracm_acmid';
-            ALTER TABLE `useracm` DROP FOREIGN KEY `fk_useracm_acmid`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'useracm' and binary index_name = 'fk_useracm_acmid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_useracm_acmid';
-            ALTER TABLE `useracm` DROP INDEX `fk_useracm_acmid`;
-        END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_acmid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_acmid';
-            ALTER TABLE `object` DROP FOREIGN KEY `fk_object_acmid`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_acmid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_acmid';
-            ALTER TABLE `object` DROP INDEX `fk_object_acmid`;
-        END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_ownedbyid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_ownedbyid';
-            ALTER TABLE `object` DROP FOREIGN KEY `fk_object_ownedbyid`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_ownedbyid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_ownedbyid';
-            ALTER TABLE `object` DROP INDEX `fk_object_ownedbyid`;
-        END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_grantee') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_grantee';
-            ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_grantee`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_grantee') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_grantee';
-            ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_grantee`;
-        END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'ix_grantee') THEN
             INSERT INTO migration_status SET description = '20170630_combined drop ix_grantee';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `ix_grantee`;
@@ -756,22 +636,6 @@ proc_label: BEGIN
         END IF;        
         -- derived from 20170508_409_permissiongrantee.sql
         INSERT INTO migration_status SET description = '20170630_combined drop foreign keys and indexes from 20170508_409_permissiongrantee.sql';
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_createdbyid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_createdbyid';
-            ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_createdbyid`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_createdbyid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_createdbyid';
-            ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_createdbyid`;
-        END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_granteeid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_granteeid';
-            ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_granteeid`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_granteeid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_granteeid';
-            ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_granteeid`;
-        END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_deletedBy') THEN
             INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_deletedBy';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_deletedBy`;
@@ -788,14 +652,6 @@ proc_label: BEGIN
             INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_modifiedBy';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_modifiedBy`;
         END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_granteeid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_granteeid';
-            ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_granteeid`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_granteeid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_granteeid';
-            ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_granteeid`;
-        END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_createdBy') THEN
             INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_createdBy';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_createdBy`;
@@ -808,14 +664,6 @@ proc_label: BEGIN
             INSERT INTO migration_status SET description = '20170630_combined drop index ix_object_permission_createdby';
             ALTER TABLE `object_permission` DROP INDEX `ix_object_permission_createdby`;
         END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_createdbyid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_createdbyid';
-            ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_createdbyid`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_createdbyid') THEN	
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_createdbyid';
-            ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_createdbyid`;
-        END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_grantee') THEN
             INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_grantee';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_grantee`;
@@ -824,6 +672,7 @@ proc_label: BEGIN
             INSERT INTO migration_status SET description = '20170630_combined drop index ix_grantee';
             ALTER TABLE `object_permission` DROP INDEX `ix_grantee`;
         END IF;
+        -- x
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_grantee') THEN
             INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_grantee';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_grantee`;
@@ -836,14 +685,6 @@ proc_label: BEGIN
             INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_objectId';
             ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_objectId`;
         END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_objectid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_objectid';
-            ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_objectid`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'fk_object_permission_objectid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_permission_objectid';
-            ALTER TABLE `object_permission` DROP INDEX `fk_object_permission_objectid`;
-        END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'ix_objectId') THEN
             INSERT INTO migration_status SET description = '20170630_combined drop index ix_objectId';
             ALTER TABLE `object_permission` DROP INDEX `ix_objectId`;
@@ -855,14 +696,6 @@ proc_label: BEGIN
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and index_name like 'ix_object_permission_allowread') THEN
             INSERT INTO migration_status SET description = '20170630_combined drop index ix_object_permission_allowread';
             ALTER TABLE `object_permission` DROP INDEX `ix_object_permission_allowread`;
-        END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_acmid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_acmid';
-            ALTER TABLE `object` DROP FOREIGN KEY `fk_object_acmid`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_acmid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_acmid';
-            ALTER TABLE `object` DROP INDEX `fk_object_acmid`;
         END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_createdBy') THEN
             INSERT INTO migration_status SET description = '20170630_combined drop fk_object_createdBy';
@@ -896,14 +729,6 @@ proc_label: BEGIN
             INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_modifiedBy';
             ALTER TABLE `object` DROP INDEX `fk_object_modifiedBy`;
         END IF;
-        IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_ownedbyid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_ownedbyid';
-            ALTER TABLE `object` DROP FOREIGN KEY `fk_object_ownedbyid`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_ownedbyid') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_ownedbyid';
-            ALTER TABLE `object` DROP INDEX `fk_object_ownedbyid`;
-        END IF;
         IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_parentId') THEN
             INSERT INTO migration_status SET description = '20170630_combined drop fk_object_parentId';
             ALTER TABLE `object` DROP FOREIGN KEY `fk_object_parentId`;
@@ -932,10 +757,6 @@ proc_label: BEGIN
             INSERT INTO migration_status SET description = '20170630_combined drop index ix_ownedBy';
             ALTER TABLE `object` DROP INDEX `ix_ownedBy`;
         END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'idx_object_description') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index idx_object_description';
-            ALTER TABLE `object` DROP INDEX `idx_object_description`;
-        END IF;
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'fk_object_ownedByNew') THEN
             INSERT INTO migration_status SET description = '20170630_combined drop index fk_object_ownedByNew';
             ALTER TABLE `object` DROP INDEX `fk_object_ownedByNew`;
@@ -955,18 +776,6 @@ proc_label: BEGIN
         IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_object_modifiedDate') THEN
             INSERT INTO migration_status SET description = '20170630_combined drop index ix_object_modifiedDate';
             ALTER TABLE `object` DROP INDEX `ix_object_modifiedDate`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_object_name') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index ix_object_name';
-            ALTER TABLE `object` DROP INDEX `ix_object_name`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_object_isdeleted') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index ix_object_isdeleted';
-            ALTER TABLE `object` DROP INDEX `ix_object_isdeleted`;
-        END IF;
-        IF EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_object_description') THEN
-            INSERT INTO migration_status SET description = '20170630_combined drop index ix_object_description';
-            ALTER TABLE `object` DROP INDEX `ix_object_description`;
         END IF;
     end proc_main;
 END;
@@ -1373,6 +1182,422 @@ BEGIN
 END;
 -- +migrate StatementEnd
 
+INSERT INTO migration_status SET description = '20170630_combined create constraints';
+DROP PROCEDURE IF EXISTS sp_Patch_20170630_create_constraints;
+-- +migrate StatementBegin
+CREATE PROCEDURE sp_Patch_20170630_create_constraints()
+proc_label: BEGIN
+    -- tracking variables for tables with more then one constraint or index
+    DECLARE has_fk_acmgrantee_userdistinguishedname int default false;
+    DECLARE has_ix_acmgrantee_resourcestring int default false;
+    DECLARE has_fk_acmpart2_acmid int default false;
+    DECLARE has_fk_acmpart2_acmkeyid int default false;
+    DECLARE has_fk_acmpart2_acmvalueid int default false;
+    DECLARE has_fk_object_acmid int default false;
+    DECLARE has_fk_object_createdby int default false;
+    DECLARE has_fk_object_deletedby int default false;
+    DECLARE has_fk_object_expungedby int default false;
+    DECLARE has_fk_object_modifiedby int default false;
+    DECLARE has_fk_object_ownedbyid int default false;
+    DECLARE has_fk_object_parentid int default false;
+    DECLARE has_fk_object_typeid int default false;
+    DECLARE has_ix_object_createddate int default false;
+    DECLARE has_ix_object_description int default false;
+    DECLARE has_ix_object_isdeleted int default false;
+    DECLARE has_ix_object_modifieddate int default false;
+    DECLARE has_ix_object_name int default false;
+
+    -- acmgrantee
+    IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmgrantee' and binary constraint_name = 'fk_acmgrantee_userdistinguishedname') THEN
+        SET has_fk_acmgrantee_userdistinguishedname := true;
+    END IF;
+    IF EXISTS (select null from information_schema.statistics where table_name = 'acmgrantee' and binary index_name = 'ix_acmgrantee_resourcestring') THEN
+        SET has_ix_acmgrantee_resourcestring := true;
+    END IF;
+    IF (NOT has_fk_acmgrantee_userdistinguishedname AND NOT has_ix_acmgrantee_resourcestring) THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on acmgrantee';
+        ALTER TABLE acmgrantee
+            ADD CONSTRAINT fk_acmgrantee_userdistinguishedname FOREIGN KEY (userdistinguishedname) REFERENCES user(distinguishedname)
+            ,ADD KEY ix_acmgrantee_resourcestring (resourcestring);
+        SET has_fk_acmgrantee_userdistinguishedname := true;
+        SET has_ix_acmgrantee_resourcestring := true;
+    END IF;
+    IF NOT has_fk_acmgrantee_userdistinguishedname THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_acmgrantee_userdistinguishedname';
+        ALTER TABLE acmgrantee ADD CONSTRAINT fk_acmgrantee_userdistinguishedname FOREIGN KEY (userdistinguishedname) REFERENCES user(distinguishedname);
+        SET has_fk_acmgrantee_userdistinguishedname := true;
+    END IF;
+    IF NOT has_ix_acmgrantee_resourcestring THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_acmgrantee_resourcestring';
+        ALTER TABLE acmgrantee ADD KEY ix_acmgrantee_resourcestring (resourcestring);
+        SET has_ix_acmgrantee_resourcestring := true;
+    END IF;
+    -- acmkey2
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'acmkey2' and binary index_name = 'ix_acmkey2_name') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_acmkey2_name';
+        ALTER TABLE acmkey2 ADD KEY ix_acmkey2_name (name);
+    END IF;
+    -- acmpart2
+    IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmpart2' and binary constraint_name = 'fk_acmpart2_acmid') THEN
+        SET has_fk_acmpart2_acmid := true;
+    END IF;
+    IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmpart2' and binary constraint_name = 'fk_acmpart2_acmkeyid') THEN
+        SET has_fk_acmpart2_acmkeyid := true;
+    END IF;
+    IF EXISTS (select null from information_schema.table_constraints where table_name = 'acmpart2' and binary constraint_name = 'fk_acmpart2_acmvalueid') THEN
+        SET has_fk_acmpart2_acmvalueid := true;
+    END IF;
+    IF (NOT has_fk_acmpart2_acmid AND NOT has_fk_acmpart2_acmkeyid AND NOT has_fk_acmpart2_acmvalueid) THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on acmpart2';
+        ALTER TABLE acmpart2
+            ADD CONSTRAINT fk_acmpart2_acmid FOREIGN KEY (acmid) REFERENCES acm2(id)
+            ,ADD CONSTRAINT fk_acmpart2_acmkeyid FOREIGN KEY (acmkeyid) REFERENCES acmkey2(id)
+            ,ADD CONSTRAINT fk_acmpart2_acmvalueid FOREIGN KEY (acmvalueid) REFERENCES acmvalue2(id);
+        SET has_fk_acmpart2_acmid := true;
+        SET has_fk_acmpart2_acmkeyid := true;
+        SET has_fk_acmpart2_acmvalueid := true;
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'acmpart2' and binary constraint_name = 'fk_acmpart2_acmid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_acmpart2_acmid';
+        ALTER TABLE acmpart2 ADD CONSTRAINT fk_acmpart2_acmid FOREIGN KEY (acmid) REFERENCES acm2(id);
+        SET has_fk_acmpart2_acmid := true;
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'acmpart2' and binary constraint_name = 'fk_acmpart2_acmkeyid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_acmpart2_acmkeyid';
+        ALTER TABLE acmpart2 ADD CONSTRAINT fk_acmpart2_acmkeyid FOREIGN KEY (acmkeyid) REFERENCES acmkey2(id);
+        SET has_fk_acmpart2_acmkeyid := true;
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'acmpart2' and binary constraint_name = 'fk_acmpart2_acmvalueid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_acmpart2_acmvalueid';
+        ALTER TABLE acmpart2 ADD CONSTRAINT fk_acmpart2_acmvalueid FOREIGN KEY (acmvalueid) REFERENCES acmvalue2(id);
+        SET has_fk_acmpart2_acmvalueid := true;
+    END IF;
+    -- acmvalue2
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'acmvalue2' and binary index_name = 'ix_acmvalue2_name') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_acmvalue2_name';
+        ALTER TABLE acmvalue2 ADD KEY ix_acmvalue2_name (name);
+    END IF;
+    -- object
+    IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_acmid') THEN
+        SET has_fk_object_acmid := true;
+    END IF;
+    IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_createdby') THEN
+        SET has_fk_object_createdby := true;
+    END IF;
+    IF EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_deletedby') THEN
+        SET has_fk_object_deletedby := true;
+    END IF;
+    IF (NOT has_fk_object_acmid AND NOT has_fk_object_createdby AND NOT has_fk_object_deletedby AND NOT has_fk_object_expungedby AND NOT has_fk_object_modifiedby
+        AND NOT has_fk_object_ownedbyid AND NOT has_fk_object_parentid AND NOT has_fk_object_typeid AND NOT has_ix_object_createddate AND NOT has_ix_object_description
+        AND NOT has_ix_object_isdeleted AND NOT has_ix_object_modifieddate AND NOT has_ix_object_name) THEN 
+        INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on object';
+        ALTER TABLE object 
+            ADD CONSTRAINT fk_object_acmid FOREIGN KEY (acmid) REFERENCES acm2(id)
+            ,ADD CONSTRAINT fk_object_createdby FOREIGN KEY (createdby) REFERENCES user(distinguishedname)
+            ,ADD CONSTRAINT fk_object_deletedby FOREIGN KEY (deletedby) REFERENCES user(distinguishedname)
+            ,ADD CONSTRAINT fk_object_expungedby FOREIGN KEY (expungedby) REFERENCES user(distinguishedname)
+            ,ADD CONSTRAINT fk_object_modifiedby FOREIGN KEY (modifiedby) REFERENCES user(distinguishedname)
+            ,ADD CONSTRAINT fk_object_ownedbyid FOREIGN KEY (ownedbyid) REFERENCES acmvalue2(id)
+            ,ADD CONSTRAINT fk_object_parentid FOREIGN KEY (parentid) REFERENCES object(id)
+            ,ADD CONSTRAINT fk_object_typeid FOREIGN KEY (typeid) REFERENCES object_type(id)
+            ,ADD KEY ix_object_createddate (createddate)
+            ,ADD KEY ix_object_description (description)
+            ,ADD KEY ix_object_isdeleted (isdeleted)
+            ,ADD KEY ix_object_modifieddate (modifieddate)
+            ,ADD KEY ix_object_name (name);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_acmid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_acmid';
+        ALTER TABLE object ADD CONSTRAINT fk_object_acmid FOREIGN KEY (acmid) REFERENCES acm2(id);
+        SET has_fk_object_acmid := true;
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_createdby') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_createdby';
+        ALTER TABLE object ADD CONSTRAINT fk_object_createdby FOREIGN KEY (createdby) REFERENCES user(distinguishedname);
+        SET has_fk_object_createdby := true;
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_deletedby') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_deletedby';
+        ALTER TABLE object ADD CONSTRAINT fk_object_deletedby FOREIGN KEY (deletedby) REFERENCES user(distinguishedname);
+        SET has_fk_object_deletedby := true;
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_expungedby') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_expungedby';
+        ALTER TABLE object ADD CONSTRAINT fk_object_expungedby FOREIGN KEY (expungedby) REFERENCES user(distinguishedname);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_modifiedby') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_modifiedby';
+        ALTER TABLE object ADD CONSTRAINT fk_object_modifiedby FOREIGN KEY (modifiedby) REFERENCES user(distinguishedname);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_ownedbyid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_ownedbyid';
+        ALTER TABLE object ADD CONSTRAINT fk_object_ownedbyid FOREIGN KEY (ownedbyid) REFERENCES acmvalue2(id);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_parentid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_parentid';
+        ALTER TABLE object ADD CONSTRAINT fk_object_parentid FOREIGN KEY (parentid) REFERENCES object(id);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object' and binary constraint_name = 'fk_object_typeid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_typeid';
+        ALTER TABLE object ADD CONSTRAINT fk_object_typeid FOREIGN KEY (typeid) REFERENCES object_type(id);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_object_createddate') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_object_createddate';
+        ALTER TABLE object ADD KEY ix_object_createddate (createddate);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_object_description') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_object_description';
+        ALTER TABLE object ADD KEY ix_object_description (description);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_object_isdeleted') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_object_isdeleted';
+        ALTER TABLE object ADD KEY ix_object_isdeleted (isdeleted);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_object_modifieddate') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_object_modifieddate';
+        ALTER TABLE object ADD KEY ix_object_modifieddate (modifieddate);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'object' and binary index_name = 'ix_object_name') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_object_name';
+        ALTER TABLE object ADD KEY ix_object_name (name);
+    END IF;
+    -- object_permission
+    IF (NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_createdby') 
+        AND NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_createdbyid')
+        AND NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_grantee')
+        AND NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_granteeid')
+        AND NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_objectid')
+        AND NOT EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'ix_object_permission_allowread')) THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on object_permission';
+        ALTER TABLE object_permission 
+            ADD CONSTRAINT fk_object_permission_createdby FOREIGN KEY (createdby) REFERENCES user(distinguishedname)
+            ,ADD CONSTRAINT fk_object_permission_createdbyid FOREIGN KEY (createdbyid) REFERENCES acmvalue2(id)
+            ,ADD CONSTRAINT fk_object_permission_grantee FOREIGN KEY (grantee) REFERENCES acmgrantee(grantee)
+            ,ADD CONSTRAINT fk_object_permission_granteeid FOREIGN KEY (granteeid) REFERENCES acmvalue2(id)
+            ,ADD CONSTRAINT fk_object_permission_objectid FOREIGN KEY (objectid) REFERENCES object(id)
+            ,ADD KEY ix_object_permission_allowread (isdeleted,allowread);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_createdby') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_permission_createdby';
+        ALTER TABLE object_permission ADD CONSTRAINT fk_object_permission_createdby FOREIGN KEY (createdby) REFERENCES user(distinguishedname);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_createdbyid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_permission_createdbyid';
+        ALTER TABLE object_permission ADD CONSTRAINT fk_object_permission_createdbyid FOREIGN KEY (createdbyid) REFERENCES acmvalue2(id);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_grantee') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_permission_grantee';
+        ALTER TABLE object_permission ADD CONSTRAINT fk_object_permission_grantee FOREIGN KEY (grantee) REFERENCES acmgrantee(grantee);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_granteeid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_permission_granteeid';
+        ALTER TABLE object_permission ADD CONSTRAINT fk_object_permission_granteeid FOREIGN KEY (granteeid) REFERENCES acmvalue2(id);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_objectid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_permission_objectid';
+        ALTER TABLE object_permission ADD CONSTRAINT fk_object_permission_objectid FOREIGN KEY (objectid) REFERENCES object(id);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'ix_object_permission_allowread') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_object_permission_allowread';
+        ALTER TABLE object_permission ADD KEY ix_object_permission_allowread (isdeleted,allowread);
+    END IF;
+    -- object_property
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object_property' and binary constraint_name = 'fk_object_property_objectid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_property_objectid';
+        ALTER TABLE object_property ADD CONSTRAINT fk_object_property_objectid FOREIGN KEY (objectid) REFERENCES object(id);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object_property' and binary constraint_name = 'fk_object_property_propertyid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_property_propertyid';
+        ALTER TABLE object_property ADD CONSTRAINT fk_object_property_propertyid FOREIGN KEY (propertyid) REFERENCES property(id);
+    END IF;
+    -- object_type
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object_type' and binary constraint_name = 'fk_object_type_createdby') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_type_createdby';
+        ALTER TABLE object_type ADD CONSTRAINT fk_object_type_createdby FOREIGN KEY (createdby) REFERENCES user(distinguishedname);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object_type' and binary constraint_name = 'fk_object_type_deletedby') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_type_deletedby';
+        ALTER TABLE object_type ADD CONSTRAINT fk_object_type_deletedby FOREIGN KEY (deletedby) REFERENCES user(distinguishedname);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object_type' and binary constraint_name = 'fk_object_type_modifiedby') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_type_modifiedby';
+        ALTER TABLE object_type ADD CONSTRAINT fk_object_type_modifiedby FOREIGN KEY (modifiedby) REFERENCES user(distinguishedname);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'object_type' and binary index_name = 'ix_object_type_isdeleted') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_object_type_isdeleted';
+        ALTER TABLE object_type ADD KEY ix_object_type_isdeleted (isdeleted);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'object_type' and binary index_name = 'ix_object_type_name') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_object_type_name';
+        ALTER TABLE object_type ADD KEY ix_object_type_name (name);
+    END IF;
+    -- object_type_property
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object_type_property' and binary constraint_name = 'fk_object_type_property_propertyid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_type_property_propertyid';
+        ALTER TABLE object_type_property ADD CONSTRAINT fk_object_type_property_propertyid FOREIGN KEY (propertyid) REFERENCES property(id);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'object_type_property' and binary constraint_name = 'fk_object_type_property_typeid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_object_type_property_typeid';
+        ALTER TABLE object_type_property ADD CONSTRAINT fk_object_type_property_typeid FOREIGN KEY (propertyid) REFERENCES object_type(id);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'object_type_property' and binary index_name = 'ix_object_type_property_isdeleted') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_object_type_property_isdeleted';
+        ALTER TABLE object_type_property ADD KEY ix_object_type_property_isdeleted (isdeleted);
+    END IF;
+    -- property
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'property' and binary constraint_name = 'fk_property_createdby') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_property_createdby';
+        ALTER TABLE property ADD CONSTRAINT fk_property_createdby FOREIGN KEY (createdby) REFERENCES user(distinguishedname);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'property' and binary constraint_name = 'fk_property_deletedby') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_property_deletedby';
+        ALTER TABLE property ADD CONSTRAINT fk_property_deletedby FOREIGN KEY (deletedby) REFERENCES user(distinguishedname);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'property' and binary constraint_name = 'fk_property_modifiedby') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_property_modifiedby';
+        ALTER TABLE property ADD CONSTRAINT fk_property_modifiedby FOREIGN KEY (modifiedby) REFERENCES user(distinguishedname);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'property' and binary index_name = 'ix_property_isdeleted') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_property_isdeleted';
+        ALTER TABLE property ADD KEY ix_property_isdeleted (isdeleted);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'property' and binary index_name = 'ix_property_name') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_property_name';
+        ALTER TABLE property ADD KEY ix_property_name (name);
+    END IF;
+    -- useracm
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'useracm' and binary constraint_name = 'fk_useracm_acmid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_useracm_acmid';
+        ALTER TABLE useracm ADD CONSTRAINT fk_useracm_acmid FOREIGN KEY (acmid) REFERENCES acm2(id);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'useracm' and binary constraint_name = 'fk_useracm_userid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_useracm_userid';
+        ALTER TABLE useracm ADD CONSTRAINT fk_useracm_userid FOREIGN KEY (userid) REFERENCES user(id);
+    END IF;
+    -- useraocache
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'useraocache' and binary constraint_name = 'fk_useraocache_userid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_useraocache_userid';
+        ALTER TABLE useraocache ADD CONSTRAINT fk_useraocache_userid FOREIGN KEY (userid) REFERENCES user(id);
+    END IF;
+    -- useraocachepart
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'useraocachepart' and binary constraint_name = 'fk_useraocachepart_userid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_useraocachepart_userid';
+        ALTER TABLE useraocachepart ADD CONSTRAINT fk_useraocachepart_userid FOREIGN KEY (userid) REFERENCES user(id);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'useraocachepart' and binary constraint_name = 'fk_useraocachepart_userkeyid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_useraocachepart_userkeyid';
+        ALTER TABLE useraocachepart ADD CONSTRAINT fk_useraocachepart_userkeyid FOREIGN KEY (userkeyid) REFERENCES acmkey2(id);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.table_constraints where table_name = 'useraocachepart' and binary constraint_name = 'fk_useraocachepart_uservalueid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating fk_useraocachepart_uservalueid';
+        ALTER TABLE useraocachepart ADD CONSTRAINT fk_useraocachepart_uservalueid FOREIGN KEY (uservalueid) REFERENCES acmvalue2(id);
+    END IF;
+    -- a_object
+    IF (NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object' and binary index_name = 'ix_a_object_changecount') 
+        AND NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object' and binary index_name = 'ix_a_object_id')
+        AND NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object' and binary index_name = 'ix_a_object_modifieddate')) THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on a_object';
+        ALTER TABLE a_object 
+            ADD KEY ix_a_object_changecount (changecount)
+            ,ADD KEY ix_a_object_id (id)
+            ,ADD KEY ix_a_object_modifieddate (modifieddate);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object' and binary index_name = 'ix_a_object_changecount') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_a_object_changecount';
+        ALTER TABLE a_object ADD KEY ix_a_object_changecount (changecount);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object' and binary index_name = 'ix_a_object_id') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_a_object_id';
+        ALTER TABLE a_object ADD KEY ix_a_object_id (id);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object' and binary index_name = 'ix_a_object_modifieddate') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_a_object_modifieddate';
+        ALTER TABLE a_object ADD KEY ix_a_object_modifieddate (modifieddate);
+    END IF;
+    -- a_object_permission
+    IF (NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object_permission' and binary index_name = 'ix_a_object_permission_changecount')
+        AND NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object_permission' and binary index_name = 'ix_a_object_permission_grantee')
+        AND NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object_permission' and binary index_name = 'ix_a_object_permission_id')
+        AND NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object_permission' and binary index_name = 'ix_a_object_permission_modifieddate')
+        AND NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object_permission' and binary index_name = 'ix_a_object_permission_objectid')) THEN
+        ALTER TABLE a_object_permission 
+            ADD KEY ix_a_object_permission_changecount (changecount)
+            ,ADD KEY ix_a_object_permission_grantee (grantee)
+            ,ADD KEY ix_a_object_permission_id (id)
+            ,ADD KEY ix_a_object_permission_modifieddate (modifieddate)
+            ,ADD KEY ix_a_object_permission_objectid (objectid);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object_permission' and binary index_name = 'ix_a_object_permission_changecount') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_a_object_permission_changecount';
+        ALTER TABLE a_object_permission ADD KEY ix_a_object_permission_changecount (changecount);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object_permission' and binary index_name = 'ix_a_object_permission_grantee') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_a_object_permission_grantee';
+        ALTER TABLE a_object_permission ADD KEY ix_a_object_permission_grantee (grantee);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object_permission' and binary index_name = 'ix_a_object_permission_id') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_a_object_permission_id';
+        ALTER TABLE a_object_permission ADD KEY ix_a_object_permission_id (id);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object_permission' and binary index_name = 'ix_a_object_permission_modifieddate') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_a_object_permission_modifieddate';
+        ALTER TABLE a_object_permission ADD KEY ix_a_object_permission_modifieddate (modifieddate);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object_permission' and binary index_name = 'ix_a_object_permission_objectid') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_a_object_permission_objectid';
+        ALTER TABLE a_object_permission ADD KEY ix_a_object_permission_objectid (objectid);
+    END IF;
+    -- a_object_type
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object_type' and binary index_name = 'ix_a_object_type_changecount') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_a_object_type_changecount';
+        ALTER TABLE a_object_type ADD KEY ix_a_object_type_changecount (changecount);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object_type' and binary index_name = 'ix_a_object_type_id') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_a_object_type_id';
+        ALTER TABLE a_object_type ADD KEY ix_a_object_type_id (id);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object_type' and binary index_name = 'ix_a_object_type_isdeleted') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_a_object_type_isdeleted';
+        ALTER TABLE a_object_type ADD KEY ix_a_object_type_isdeleted (isdeleted);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_object_type' and binary index_name = 'ix_a_object_type_modifieddate') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_a_object_type_modifieddate';
+        ALTER TABLE a_object_type ADD KEY ix_a_object_type_modifieddate (modifieddate);
+    END IF;
+    -- a_property
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_property' and binary index_name = 'ix_property_changecount') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_property_changecount';
+        ALTER TABLE a_property ADD KEY ix_property_changecount (changecount);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_property' and binary index_name = 'ix_property_id') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_property_id';
+        ALTER TABLE a_property ADD KEY ix_property_id (id);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_property' and binary index_name = 'ix_property_isdeleted') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_property_isdeleted';
+        ALTER TABLE a_property ADD KEY ix_property_isdeleted (isdeleted);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_property' and binary index_name = 'ix_property_modifieddate') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_property_modifieddate';
+        ALTER TABLE a_property ADD KEY ix_property_modifieddate (modifieddate);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_property' and binary index_name = 'ix_property_name') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_property_name';
+        ALTER TABLE a_property ADD KEY ix_property_name (name);
+    END IF;
+    -- a_user
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_user' and binary index_name = 'ix_user_distinguishedname') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_user_distinguishedname';
+        ALTER TABLE a_user ADD KEY ix_user_distinguishedname (distinguishedname);
+    END IF;
+    IF NOT EXISTS (select null from information_schema.statistics where table_name = 'a_user' and binary index_name = 'ix_user_modifieddate') THEN
+        INSERT INTO migration_status SET description = '20170630_combined creating ix_user_modifieddate';
+        ALTER TABLE a_user ADD KEY ix_user_modifieddate (modifieddate);
+    END IF;
+END;
+-- +migrate StatementEnd
+CALL sp_Patch_20170630_create_constraints();
+
 INSERT INTO migration_status SET description = '20170630_combined transform acmid to new indexed tables';
 DROP PROCEDURE IF EXISTS sp_Patch_20170630_transform_acmid;
 -- +migrate StatementBegin
@@ -1630,79 +1855,30 @@ proc_label: BEGIN
         LEAVE proc_label;
     END IF;
     proc_main: BEGIN
-        DECLARE counter int default 0;
-        DECLARE counterr int default 0;
-        DECLARE vID binary(16) default 0;
-        DECLARE vObjectID binary(16) default 0;
-        DECLARE vCreatedBy varchar(255) default '';
-        DECLARE vGrantee varchar(255) default '';
-        DECLARE vAllowCreate tinyint(1) default 0;
-        DECLARE vAllowRead tinyint(1) default 0;
-        DECLARE vAllowUpdate tinyint(1) default 0;
-        DECLARE vAllowDelete tinyint(1) default 0;
-        DECLARE vAllowShare tinyint(1) default 0;
-        DECLARE vEncryptKey binary(32) default 0;
-        DECLARE vCreatedByID int unsigned default 0;
-        DECLARE vGranteeID int unsigned default 0;
-        DECLARE vPermissionMAC binary(32) default 0;
-        DECLARE c_permission_finished int default 0;
-        DECLARE c_permission cursor for 
-            SELECT id, objectid 
-            FROM object_permission
-            WHERE granteeid is null or granteeid = 0 or createdbyid is null or createdbyid = 0
-            ;
-        DECLARE continue handler for not found set c_permission_finished = 1;
-        OPEN c_permission;
-        get_permission: LOOP
-            FETCH c_permission INTO vID, vObjectID;
-            IF c_permission_finished = 1 THEN
-                CLOSE c_permission;
-                LEAVE get_permission;
-            END IF;
-            SET counter := counter + 1;
-            IF floor(counter/5000) = ceiling(counter/5000) THEN
-                INSERT INTO migration_status SET description = concat('20170630_combined update permissions (>', counter, ' permission records)');
-            END IF;
-            REVISIONS: BEGIN
-                DECLARE vAID int default 0;
-                DECLARE c_revision_finished int default 0;
-                DECLARE c_revision cursor FOR 
-                    SELECT a_id, createdby, grantee, allowcreate, allowread, allowupdate, allowdelete, allowshare, encryptkey 
-                    FROM a_object_permission 
-                    WHERE id = vID and objectid = vObjectID
-                    ORDER BY changecount asc;
-                DECLARE continue handler for not found SET c_revision_finished = 1;
-                OPEN c_revision;
-                get_revision: LOOP
-                    FETCH c_revision INTO vAID, vCreatedBy, vGrantee, vAllowCreate, vAllowRead, vAllowUpdate, vAllowDelete, vAllowShare, vEncryptKey;
-                    IF c_revision_finished = 1 THEN
-                        CLOSE c_revision;
-                        LEAVE get_revision;
-                    END IF;
-                    SET counterr := counterr + 1;
-                    IF floor(counterr/5000) = ceiling(counterr/5000) THEN
-                        INSERT INTO migration_status SET description = concat('20170630_combined update permissions (>', counterr, ' archive permission records)');
-                    END IF;
-                    SET vGrantee := lower(aacflatten(vGrantee));
-                    IF (SELECT 1=1 FROM acmvalue2 WHERE name = vGrantee) IS NULL THEN
-                        INSERT INTO acmvalue2 SET name = vGrantee;
-                        SET vGranteeID := LAST_INSERT_ID();
-                    ELSE
-                        SELECT id FROM acmvalue2 WHERE name = vGrantee INTO vGranteeID;
-                    END IF;
-                    SET vCreatedBy := lower(aacflatten(vCreatedBy));
-                    IF (SELECT 1=1 FROM acmvalue2 WHERE name = vCreatedBy) IS NULL THEN
-                        INSERT INTO acmvalue2 SET name = vCreatedBy;
-                        SET vCreatedByID := LAST_INSERT_ID();
-                    ELSE
-                        SELECT id FROM acmvalue2 WHERE name = vCreatedBy INTO vCreatedByID;
-                    END IF;
-                    SET vPermissionMAC := new_keymac('${OD_ENCRYPT_MASTERKEY}',vGrantee,vAllowCreate,vAllowRead,vAllowUpdate,vAllowDelete,vAllowShare,hex(vEncryptKey));
-                    UPDATE a_object_permission SET grantee = vGrantee, granteeid = vGranteeID, createdbyid = vCreatedByID, permissionmac = unhex(vPermissionMAC) where a_id = vAID;
-                END LOOP get_revision;
-            END REVISIONS;
-            UPDATE object_permission SET grantee = vGrantee, granteeid = vGranteeID, createdbyid = vCreatedByID, permissionmac = unhex(vPermissionMAC) WHERE id = vID; 
-        END LOOP get_permission;
+        -- add values to acmvalue2 that are needed for grantee and createdby
+        INSERT INTO migration_status SET description = '20170630_combined adding normalized grantee from object_permission to acmvalue2';
+        insert into acmvalue2 (name) select aacflatten(grantee) from (select distinct grantee from object_permission) a where aacflatten(grantee) not in (select name from acmvalue2);
+        INSERT INTO migration_status SET description = '20170630_combined adding normalized createdby from object_permission to acmvalue2';
+        insert into acmvalue2 (name) select aacflatten(createdby) from (select distinct createdby from object_permission) a where aacflatten(createdby) not in (select name from acmvalue2);
+        INSERT INTO migration_status SET description = '20170630_combined adding normalized grantee from a_object_permission to acmvalue2';
+        insert into acmvalue2 (name) select aacflatten(grantee) from (select distinct grantee from a_object_permission) a where aacflatten(grantee) not in (select name from acmvalue2);
+        INSERT INTO migration_status SET description = '20170630_combined adding normalized createdby from a_object_permission to acmvalue2';
+        insert into acmvalue2 (name) select aacflatten(createdby) from (select distinct createdby from a_object_permission) a where aacflatten(createdby) not in (select name from acmvalue2);
+        -- update permissions with normalized grantee
+        INSERT INTO migration_status SET description = '20170630_combined normalize grantee in object_permission';
+        update object_permission set grantee = aacflatten(grantee);
+        INSERT INTO migration_status SET description = '20170630_combined normalize grantee in a_object_permission';
+        update a_object_permission set grantee = aacflatten(grantee);        
+        -- update permissions to populate granteeid and createdby id (once this fires, the old way continuation wont work without mods)
+        INSERT INTO migration_status SET description = '20170630_combined set granteeid and createdbyid for object_permission';
+        update object_permission op set granteeid = (select id from acmvalue2 where name = op.grantee), createdbyid = (select id from acmvalue2 where name = op.createdby);
+        INSERT INTO migration_status SET description = '20170630_combined set granteeid and createdbyid for a_object_permission';
+        update a_object_permission aop set granteeid = (select id from acmvalue2 where name = aop.grantee), createdbyid = (select id from acmvalue2 where name = aop.createdby);
+        -- update permissions with revised permissionmac (since grantee may have changed)
+        INSERT INTO migration_status SET description = '20170630_combined recalculate permission mac in object_permission';
+        update object_permission p set permissionMAC = unhex( new_keymac('${OD_ENCRYPT_MASTERKEY}', p.grantee, p.allowCreate, p.allowRead, p.allowUpdate, p.allowDelete, p.allowShare, hex(encryptKey)));
+        INSERT INTO migration_status SET description = '20170630_combined recalculate permission mac in a_object_permission';
+        update a_object_permission p set permissionMAC = unhex( new_keymac('${OD_ENCRYPT_MASTERKEY}', p.grantee, p.allowCreate, p.allowRead, p.allowUpdate, p.allowDelete, p.allowShare, hex(encryptKey)));
     END proc_main;   
 END;
 -- +migrate StatementEnd
@@ -2963,138 +3139,7 @@ BEGIN
 	);
 END;
 -- +migrate StatementEnd
-INSERT INTO migration_status SET description = '20170630_combined create constraints';
-DROP PROCEDURE IF EXISTS sp_Patch_20170630_create_constraints;
--- +migrate StatementBegin
-CREATE PROCEDURE sp_Patch_20170630_create_constraints()
-proc_label: BEGIN
-    -- only do this if not yet 20170630
-    IF EXISTS( select null from dbstate where schemaversion = '20170630') THEN
-        LEAVE proc_label;
-    END IF;
-    -- acmgrantee
-    INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on acmgrantee';
-    ALTER TABLE acmgrantee
-        ADD CONSTRAINT fk_acmgrantee_userdistinguishedname FOREIGN KEY (userdistinguishedname) REFERENCES user(distinguishedname)
-        ,ADD KEY ix_acmgrantee_resourcestring (resourcestring);
-    -- acmkey2
-    INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on acmkey2';
-    ALTER TABLE acmkey2
-        ADD KEY ix_acmkey2_name (name);
-    -- acmpart2
-    INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on acmpart2';
-    ALTER TABLE acmpart2
-        ADD CONSTRAINT fk_acmpart2_acmid FOREIGN KEY (acmid) REFERENCES acm2(id)
-        ,ADD CONSTRAINT fk_acmpart2_acmkeyid FOREIGN KEY (acmkeyid) REFERENCES acmkey2(id)
-        ,ADD CONSTRAINT fk_acmpart2_acmvalueid FOREIGN KEY (acmvalueid) REFERENCES acmvalue2(id);
-    -- acmvalue2
-    INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on acmvalue2';
-    ALTER TABLE acmvalue2
-        ADD KEY ix_acmvalue2_name (name);
-    -- object
-    INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on object';
-    ALTER TABLE object
-        ADD CONSTRAINT fk_object_acmid FOREIGN KEY (acmid) REFERENCES acm2(id)
-        ,ADD CONSTRAINT fk_object_createdby FOREIGN KEY (createdby) REFERENCES user(distinguishedname)
-        ,ADD CONSTRAINT fk_object_deletedby FOREIGN KEY (deletedby) REFERENCES user(distinguishedname)
-        ,ADD CONSTRAINT fk_object_expungedby FOREIGN KEY (expungedby) REFERENCES user(distinguishedname)
-        ,ADD CONSTRAINT fk_object_modifiedby FOREIGN KEY (modifiedby) REFERENCES user(distinguishedname)
-        ,ADD CONSTRAINT fk_object_ownedbyid FOREIGN KEY (ownedbyid) REFERENCES acmvalue2(id)
-        ,ADD CONSTRAINT fk_object_parentid FOREIGN KEY (parentid) REFERENCES object(id)
-        ,ADD CONSTRAINT fk_object_typeid FOREIGN KEY (typeid) REFERENCES object_type(id)
-        ,ADD KEY ix_object_createddate (createddate)
-        ,ADD KEY ix_object_description (description)
-        ,ADD KEY ix_object_isdeleted (isdeleted)
-        ,ADD KEY ix_object_modifieddate (modifieddate)
-        ,ADD KEY ix_object_name (name);
-    -- object_permission
-    INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on object_permission';
-    ALTER TABLE object_permission 
-        ADD CONSTRAINT fk_object_permission_createdby FOREIGN KEY (createdby) REFERENCES user(distinguishedname)
-        ,ADD CONSTRAINT fk_object_permission_createdbyid FOREIGN KEY (createdbyid) REFERENCES acmvalue2(id)
-        ,ADD CONSTRAINT fk_object_permission_grantee FOREIGN KEY (grantee) REFERENCES acmgrantee(grantee)
-        ,ADD CONSTRAINT fk_object_permission_granteeid FOREIGN KEY (granteeid) REFERENCES acmvalue2(id)
-        ,ADD CONSTRAINT fk_object_permission_objectid FOREIGN KEY (objectId) REFERENCES object(id)
-        ,ADD KEY ix_object_permission_allowread (isdeleted,allowread);
-    -- object_property
-    INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on object_property';
-    ALTER TABLE object_property
-        ADD CONSTRAINT fk_object_property_objectid FOREIGN KEY (objectid) REFERENCES object(id)
-        ,ADD CONSTRAINT fk_object_property_propertyid FOREIGN KEY (propertyid) REFERENCES property(id);
-    -- object_type
-    INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on object_type';
-    ALTER TABLE object_type
-        ADD CONSTRAINT fk_object_type_createdby FOREIGN KEY (createdby) REFERENCES user(distinguishedname)
-        ,ADD CONSTRAINT fk_object_type_deletedby FOREIGN KEY (deletedby) REFERENCES user(distinguishedname)
-        ,ADD CONSTRAINT fk_object_type_modifiedby FOREIGN KEY (modifiedby) REFERENCES user(distinguishedname)
-        ,ADD KEY ix_object_type_isdeleted (isdeleted)
-        ,ADD KEY ix_object_type_name (name);
-    -- object_type_property
-    INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on object_type_property';
-    ALTER TABLE object_type_property
-        ADD CONSTRAINT fk_object_type_property_propertyid FOREIGN KEY (propertyid) REFERENCES property(id)
-        ,ADD CONSTRAINT fk_object_type_property_typeid FOREIGN KEY (typeid) REFERENCES object_type(id)
-        ,ADD KEY ix_object_type_property_isdeleted (isdeleted);
-    -- property
-    INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on property';
-    ALTER TABLE property
-        ADD CONSTRAINT fk_property_createdby FOREIGN KEY (createdby) REFERENCES user(distinguishedname)
-        ,ADD CONSTRAINT fk_property_deletedby FOREIGN KEY (deletedby) REFERENCES user(distinguishedname)
-        ,ADD CONSTRAINT fk_property_modifiedby FOREIGN KEY (modifiedby) REFERENCES user(distinguishedname)
-        ,ADD KEY ix_property_isdeleted (isdeleted)
-        ,ADD KEY ix_property_name (name);       
-    -- useracm
-    INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on useracm';
-    ALTER TABLE useracm
-        ADD CONSTRAINT fk_useracm_acmid FOREIGN KEY (acmid) REFERENCES acm2(id)
-        ,ADD CONSTRAINT fk_useracm_userid FOREIGN KEY (userid) REFERENCES user(id);        
-    -- useraocache
-    INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on useraocache';
-    ALTER TABLE useraocache
-        ADD CONSTRAINT fk_useraocache_userid FOREIGN KEY (userid) REFERENCES user(id);
-    -- useraocachepart
-    INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on useraocachepart';
-    ALTER TABLE useraocachepart
-        ADD CONSTRAINT fk_useraocachepart_userid FOREIGN KEY (userid) REFERENCES user(id)
-        ,ADD CONSTRAINT fk_useraocachepart_userkeyid FOREIGN KEY (userkeyid) REFERENCES acmkey2(id)
-        ,ADD CONSTRAINT fk_useraocachepart_uservalueid FOREIGN KEY (uservalueid) REFERENCES acmvalue2(id);        
-    -- a_object
-    INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on a_object';
-    ALTER TABLE a_object
-        ADD KEY ix_a_object_changecount (changecount)
-        ,ADD KEY ix_a_object_id (id)
-        ,ADD KEY ix_a_object_modifieddate (modifieddate);
-    -- a_object_permission
-    INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on a_object_permission';
-    ALTER TABLE a_object_permission
-        ADD KEY ix_a_object_permission_changecount (changecount)
-        ,ADD KEY ix_a_object_permission_grantee (grantee)
-        ,ADD KEY ix_a_object_permission_id (id)
-        ,ADD KEY ix_a_object_permission_modifieddate (modifieddate)
-        ,ADD KEY ix_a_object_permission_objectid (objectid);
-    -- a_object_type
-    INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on a_object_type';
-    ALTER TABLE a_object_type
-        ADD KEY ix_a_object_type_changecount (changecount)
-        ,ADD KEY ix_a_object_type_id (id)
-        ,ADD KEY ix_a_object_type_isdeleted (isdeleted)
-        ,ADD KEY ix_a_object_type_modifieddate (modifieddate);
-    -- a_property
-    INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on a_property';
-    ALTER TABLE a_property
-        ADD KEY ix_property_changecount (changecount)
-        ,ADD KEY ix_property_id (id)
-        ,ADD KEY ix_property_isdeleted (isdeleted)
-        ,ADD KEY ix_property_modifieddate (modifieddate)
-        ,ADD KEY ix_property_name (name);
-    -- a_user
-    INSERT INTO migration_status SET description = '20170630_combined creating constraints and indexes on a_user';
-    ALTER TABLE a_user
-        ADD KEY ix_user_distinguishedname (distinguishedname)
-        ,ADD KEY ix_user_modifieddate (modifieddate);
-END;
--- +migrate StatementEnd
-CALL sp_Patch_20170630_create_constraints();
+
 SET FOREIGN_KEY_CHECKS=1;
 DROP PROCEDURE IF EXISTS sp_Patch_20170630_gorp_migrations; 
 DROP PROCEDURE IF EXISTS sp_Patch_20170630_drop_keys_and_indexes_raw;
