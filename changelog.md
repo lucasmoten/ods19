@@ -2,7 +2,13 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
-## Release v1.0.7 (August 4, 2017)
+## Release vNext
+--------------------
+* ENH: DB upgrade tool now checks which version of MySQL to leverage performance_schema for reading variables.
+* ENH: DB Migration for 20170630 rollup now creates constraints and indexes prior to transorming data
+* ENH: DB Migration for 20170630 now has significant time improvement for processing permissions
+
+## Release v1.0.7 (August 8, 2017)
 --------------------
 * ENH: Events emitted with action_mode setup, and ACM value copied to all nested components with an ACM field.
 * FIX: Database initialize scripts drop of constraints and tables to support CI builds

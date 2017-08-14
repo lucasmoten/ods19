@@ -30,9 +30,20 @@ then
   echo "You must provide the build number corresponding to the RPM"
   echo "to retrieve from odrive-builds and push to builds.363-283.io"
   echo "as the first argument"
-  echo "For example, ./publishrpm 1028"
+  echo "For example, ./publish-to-meme-rpms 1028"
   exit 1
 fi
+
+GOV_ODRIVE_VERSION=$2
+if [ ${#2} -eq 0 ]
+then
+  echo "You must provide a version number for the RPM naming to be"
+  echo "used for semver as major.minor.patch.  A forth value, the"
+  echo "build number from continuous integration is automatically"
+  echo "added.  If you do not know which version to use, at the time"
+  echo "of this writing, the version was 1.0.1"
+  exit 1
+fi  
 
 COUNTMEMEAWSKEY=$(printenv | grep "MEME_AWS_ACCESS_KEY_ID" -c)
 if [ $COUNTMEMEAWSKEY -eq 0 ]
@@ -89,7 +100,7 @@ fi
 
 # File format needs to be
 # <Service Name>-<major version>.<minor version>.<patch version>.<build number>.<YYYYMMDD>.rpm
-REMOTEFILE="object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.${BUILDDATEYYYYMMDD}.rpm"
+REMOTEFILE="object-drive-${GOV_ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.${BUILDDATEYYYYMMDD}.rpm"
 echo "File to save as in bucket is ${REMOTEFILE}"
 echo "Command: aws s3 cp ${RPMFILE} s3://builds.363-283.io/${REMOTEFILE}"
 echo "Do you wish to copy to the builds.363-283.io bucket?"
