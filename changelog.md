@@ -2,7 +2,7 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
-## Release vNext
+## Release v1.0.8 (August 17, 2017)
 --------------------
 * ENH: DB upgrade tool now checks which version of MySQL to leverage performance_schema for reading variables.
 * ENH: DB Migration for 20170630 rollup now creates constraints and indexes prior to transorming data
