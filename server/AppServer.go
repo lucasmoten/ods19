@@ -136,9 +136,6 @@ func (h *AppServer) InitRegex() {
 			TMPOST:   metrics.NewTimer(),
 			TMDELETE: metrics.NewTimer(),
 		}
-		metrics.Register("GET "+path, v.TMGET)
-		metrics.Register("POST "+path, v.TMPOST)
-		metrics.Register("DELETE "+path, v.TMDELETE)
 		return v
 	}
 	h.Routes = &StaticRx{
@@ -204,7 +201,7 @@ func logCrashInServeHTTP(logger zap.Logger, w http.ResponseWriter) {
 
 // ServeHTTP handles the routing of requests
 func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var matched *regexp.Regexp
+	var matched string
 	beginTSInMS := util.NowMS()
 
 	sessionID := newSessionID()
@@ -282,17 +279,17 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			herr = h.favicon(ctx, w, r)
 			withoutDatabase = true
 		case h.Routes.StatsObject.RX.MatchString(uri):
-			matched = h.Routes.StatsObject.RX
+			matched = "StatsObject"
 			herr = h.getStats(ctx, w, r)
 			withoutDatabase = true
 		case h.Routes.StaticFiles.RX.MatchString(uri):
-			matched = h.Routes.StaticFiles.RX
+			matched = "StaticFiles"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.StaticFiles.RX)
 			herr = h.serveStatic(ctx, w, r)
 			withoutDatabase = true
 		// API documentation
 		case h.Routes.APIDocumentation.RX.MatchString(uri):
-			matched = h.Routes.APIDocumentation.RX
+			matched = "APIDocumentation"
 			herr = h.docs(ctx, w, r)
 			withoutDatabase = true
 		}
@@ -347,94 +344,94 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		switch {
 		// - user profile usage information
 		case h.Routes.UserStats.RX.MatchString(uri):
-			matched = h.Routes.UserStats.RX
+			matched = "UserStats"
 			herr = h.userStats(ctx, w, r)
 		// - get object properties
 		case h.Routes.ObjectProperties.RX.MatchString(uri):
-			matched = h.Routes.ObjectProperties.RX
+			matched = "ObjectProperties"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectProperties.RX)
 			herr = h.getObject(ctx, w, r)
 		// - get object stream
 		case h.Routes.ObjectStream.RX.MatchString(uri):
-			matched = h.Routes.ObjectStream.RX
+			matched = "ObjectStream"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectStream.RX)
 			herr = h.getObjectStream(ctx, w, r)
 		// - get ciphertext
 		case h.Routes.Ciphertext.RX.MatchString(uri):
-			matched = h.Routes.Ciphertext.RX
+			matched = "Ciphertext"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Ciphertext.RX)
 			herr = h.getCiphertext(ctx, w, r)
 		// - list objects at root owned by the caller
 		case h.Routes.Objects.RX.MatchString(uri):
-			matched = h.Routes.Objects.RX
+			matched = "Objects"
 			herr = h.listObjects(ctx, w, r)
 		// - list objects at root owned by a group
 		case h.Routes.GroupObjects.RX.MatchString(uri):
-			matched = h.Routes.GroupObjects.RX
+			matched = "GroupObjects"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.GroupObjects.RX)
 			herr = h.listGroupObjects(ctx, w, r)
 		// - list objects of object
 		case h.Routes.Object.RX.MatchString(uri):
-			matched = h.Routes.Object.RX
+			matched = "Object"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Object.RX)
 			herr = h.listObjects(ctx, w, r)
 		// - list trash
 		case h.Routes.Trash.RX.MatchString(uri):
-			matched = h.Routes.Trash.RX
+			matched = "Trash"
 			herr = h.listObjectsTrashed(ctx, w, r)
 		// - list objects shared to me
 		case h.Routes.SharedToMe.RX.MatchString(uri):
-			matched = h.Routes.SharedToMe.RX
+			matched = "SharedToMe"
 			herr = h.listUserObjectShares(ctx, w, r)
 		// - list objects i've shared with others
 		case h.Routes.SharedToOthers.RX.MatchString(uri):
-			matched = h.Routes.SharedToOthers.RX
+			matched = "SharedToOthers"
 			herr = h.listUserObjectsShared(ctx, w, r)
 		// - list objects shared to everyone
 		case h.Routes.SharedToEveryone.RX.MatchString(uri):
-			matched = h.Routes.SharedToEveryone.RX
+			matched = "SharedToEveryone"
 			herr = h.listUserObjectsSharedToEveryone(ctx, w, r)
 		// - list object revisions (array of get object properties)
 		case h.Routes.Revisions.RX.MatchString(uri):
-			matched = h.Routes.Revisions.RX
+			matched = "Revisions"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Revisions.RX)
 			herr = h.listObjectRevisions(ctx, w, r)
 		// - get object revision stream
 		case h.Routes.RevisionStream.RX.MatchString(uri):
-			matched = h.Routes.RevisionStream.RX
+			matched = "RevisionStream"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.RevisionStream.RX)
 			herr = h.getObjectStreamForRevision(ctx, w, r)
 		// - search
 		case h.Routes.Search.RX.MatchString(uri):
-			matched = h.Routes.Search.RX
+			matched = "Search"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Search.RX)
 			herr = h.query(ctx, w, r)
 		// - my groups with objects
 		case h.Routes.Groups.RX.MatchString(uri):
-			matched = h.Routes.Groups.RX
+			matched = "Groups"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Groups.RX)
 			herr = h.listMyGroupsWithObjects(ctx, w, r)
 		// FUTURE API, NOT YET IMPLEMENTED
 		// - get relationships
 		case h.Routes.ObjectLinks.RX.MatchString(uri):
-			matched = h.Routes.ObjectLinks.RX
+			matched = "ObjectLinks"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectLinks.RX)
 			herr = h.getRelationships(ctx, w, r)
 		// - list favorite / starred objects
 		case h.Routes.Favorites.RX.MatchString(uri):
-			matched = h.Routes.Favorites.RX
+			matched = "Favorites"
 			herr = h.listFavorites(ctx, w, r)
 		// - list subscribed objects
 		case h.Routes.Subscribed.RX.MatchString(uri):
-			matched = h.Routes.Subscribed.RX
+			matched = "Subscribed"
 			herr = h.listObjectsSubscriptions(ctx, w, r)
 		// - basic HTTP 200 health check
 		case h.Routes.Ping.RX.MatchString(uri):
-			matched = h.Routes.Ping.RX
+			matched = "Ping"
 			herr = nil
 		// - list object types
 		case h.Routes.ObjectTypes.RX.MatchString(uri):
-			matched = h.Routes.ObjectTypes.RX
+			matched = "ObjectTypes"
 			herr = h.listObjectTypes(ctx, w, r)
 		default:
 			herr = do404(ctx, w, r)
@@ -451,76 +448,76 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		switch {
 		// - create object
 		case h.Routes.Objects.RX.MatchString(uri):
-			matched = h.Routes.Objects.RX
+			matched = "Objects"
 			herr = h.createObject(ctx, w, r)
 		// - delete object (updates state)
 		case h.Routes.ObjectDelete.RX.MatchString(uri):
-			matched = h.Routes.ObjectDelete.RX
+			matched = "ObjectDelete"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectDelete.RX)
 			herr = h.deleteObject(ctx, w, r)
 		// - undelete object (updates state)
 		case h.Routes.ObjectUndelete.RX.MatchString(uri):
-			matched = h.Routes.ObjectUndelete.RX
+			matched = "ObjectUndelete"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectUndelete.RX)
 			herr = h.removeObjectFromTrash(ctx, w, r)
 		// - update object properties
 		case h.Routes.ObjectProperties.RX.MatchString(uri):
-			matched = h.Routes.ObjectProperties.RX
+			matched = "ObjectProperties"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectProperties.RX)
 			herr = h.updateObject(ctx, w, r)
 		// - update object stream
 		case h.Routes.ObjectStream.RX.MatchString(uri):
-			matched = h.Routes.ObjectStream.RX
+			matched = "ObjectStream"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectStream.RX)
 			herr = h.updateObjectStream(ctx, w, r)
 		// - create object share
 		case h.Routes.SharedObject.RX.MatchString(uri):
-			matched = h.Routes.SharedObject.RX
+			matched = "SharedObject"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.SharedObject.RX)
 			herr = h.addObjectShare(ctx, w, r)
 		// - move object
 		case h.Routes.ObjectMove.RX.MatchString(uri):
-			matched = h.Routes.ObjectMove.RX
+			matched = "ObjectMove"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectMove.RX)
 			herr = h.moveObject(ctx, w, r)
 		// - change owner
 		case h.Routes.ObjectChangeOwner.RX.MatchString(uri):
-			matched = h.Routes.ObjectChangeOwner.RX
+			matched = "ObjectChangeOwner"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectChangeOwner.RX)
 			herr = h.changeOwner(ctx, w, r)
 		// - create favorite
 		case h.Routes.FavoriteObject.RX.MatchString(uri):
-			matched = h.Routes.FavoriteObject.RX
+			matched = "FavoriteObject"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.FavoriteObject.RX)
 			herr = h.addObjectToFavorites(ctx, w, r)
 		// - create symbolic link from object to another folder
 		case h.Routes.LinkToObject.RX.MatchString(uri):
-			matched = h.Routes.LinkToObject.RX
+			matched = "LinkToObject"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.LinkToObject.RX)
 			herr = h.addObjectToFolder(ctx, w, r)
 		// - create subscriptionId
 		case h.Routes.ObjectSubscribe.RX.MatchString(uri):
-			matched = h.Routes.ObjectSubscribe.RX
+			matched = "ObjectSubscribe"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectSubscribe.RX)
 			herr = h.addObjectSubscription(ctx, w, r)
 		// - create zippost
 		case h.Routes.Zip.RX.MatchString(uri):
-			matched = h.Routes.Zip.RX
+			matched = "Zip"
 			herr = h.postZip(ctx, w, r)
 		// - create object type
 		case h.Routes.ObjectType.RX.MatchString(uri):
-			matched = h.Routes.ObjectType.RX
+			matched = "ObjectType"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectType.RX)
 			herr = NewAppError(404, nil, "Not implemented")
 		case h.Routes.BulkProperties.RX.MatchString(uri):
-			matched = h.Routes.BulkProperties.RX
+			matched = "BulkProperties"
 			herr = h.getBulkProperties(ctx, w, r)
 		case h.Routes.ObjectsMove.RX.MatchString(uri):
-			matched = h.Routes.ObjectsMove.RX
+			matched = "ObjectsMove"
 			herr = h.doBulkMove(ctx, w, r)
 		// - change owner
 		case h.Routes.ObjectsChangeOwner.RX.MatchString(uri):
-			matched = h.Routes.ObjectsChangeOwner.RX
+			matched = "ObjectsChangeOwner"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectsChangeOwner.RX)
 			herr = h.doBulkOwnership(ctx, w, r)
 		default:
@@ -537,45 +534,45 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		switch {
 		// - delete object forever
 		case h.Routes.ObjectExpunge.RX.MatchString(uri):
-			matched = h.Routes.ObjectExpunge.RX
+			matched = "ObjectExpunge"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectExpunge.RX)
 			herr = h.deleteObjectForever(ctx, w, r)
 			// - remove object share
 		case h.Routes.SharedObject.RX.MatchString(uri):
-			matched = h.Routes.SharedObject.RX
+			matched = "SharedObject"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.SharedObject.RX)
 			herr = h.removeObjectShare(ctx, w, r)
 		// - remove object favorite
 		case h.Routes.FavoriteObject.RX.MatchString(uri):
-			matched = h.Routes.FavoriteObject.RX
+			matched = "FavoriteObject"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.FavoriteObject.RX)
 			herr = h.removeObjectFromFavorites(ctx, w, r)
 		// - remove symbolic link
 		case h.Routes.LinkToObject.RX.MatchString(uri):
-			matched = h.Routes.LinkToObject.RX
+			matched = "LinkToObject"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.LinkToObject.RX)
 			herr = h.removeObjectFromFolder(ctx, w, r)
 		// - remove subscription
 		case h.Routes.SubscribedSubscription.RX.MatchString(uri):
-			matched = h.Routes.SubscribedSubscription.RX
+			matched = "SubscribedSubscription"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.SubscribedSubscription.RX)
 			herr = h.removeObjectSubscription(ctx, w, r)
 		// - remove all subscriptions
 		case h.Routes.Subscribed.RX.MatchString(uri):
-			matched = h.Routes.Subscribed.RX
+			matched = "Subscribed"
 			herr = NewAppError(404, nil, "Not implemented")
 		// - Empty this user's trash
 		case h.Routes.Trash.RX.MatchString(uri):
-			matched = h.Routes.Trash.RX
+			matched = "Trash"
 			herr = h.expungeDeleted(ctx, w, r)
 		// - remove object type
 		case h.Routes.ObjectType.RX.MatchString(uri):
-			matched = h.Routes.ObjectType.RX
+			matched = "ObjectType"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectType.RX)
 			herr = NewAppError(404, nil, "Not implemented")
 			// TODO: h.deleteObjectType(ctx, w, r)
 		case h.Routes.Objects.RX.MatchString(uri):
-			matched = h.Routes.Objects.RX
+			matched = "Objects"
 			herr = h.doBulkDelete(ctx, w, r)
 		default:
 			herr = do404(ctx, w, r)
@@ -598,12 +595,10 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		autoscale.CloudWatchTransaction(beginTSInMS, endTSInMS, h.Tracker)
 	}
 
-	if matched != nil {
-		tm := metrics.Get(r.Method + " " + matched.String())
-		t, ok := tm.(metrics.Timer)
-		if ok {
-			t.Update(time.Duration(endTSInMS-beginTSInMS) * time.Millisecond)
-		}
+	if len(matched) > 0 {
+		timerName := r.Method + "/" + matched
+		tm := metrics.GetOrRegisterTimer(timerName, metrics.DefaultRegistry)
+		tm.Update(time.Duration(endTSInMS-beginTSInMS) * time.Millisecond)
 	}
 }
 

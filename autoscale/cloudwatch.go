@@ -53,24 +53,23 @@ func CloudWatchDump(w io.Writer) {
 	//We do NOT want to do periodic logging of successful CloudWatch sends, or it will fill the logs with noise and make them large when nothing interesting is happening.
 	//So, let us look at such stats here.
 	if renderedStats.CPUUtilization != nil {
-		fmt.Fprintf(w, "cpuUtilization: %f pct\n", *renderedStats.CPUUtilization)
+		fmt.Fprintf(w, "\t\"cpu_utilization_pct\": %f,\n", *renderedStats.CPUUtilization)
 	}
 	if renderedStats.Throughput != nil {
-		fmt.Fprintf(w, "throughput: %f kB/s\n", *renderedStats.Throughput)
+		fmt.Fprintf(w, "\t\"throughput_kb\": %f,\n", *renderedStats.Throughput)
 	}
 	if renderedStats.Latency != nil {
-		fmt.Fprintf(w, "latency: %f ms\n", *renderedStats.Latency)
+		fmt.Fprintf(w, "\t\"latency_ms\": %f,\n", *renderedStats.Latency)
 	}
 	if renderedStats.Load != nil {
-		fmt.Fprintf(w, "load: %f processes\n", *renderedStats.Load)
+		fmt.Fprintf(w, "\t\"load_processes\": %f,\n", *renderedStats.Load)
 	}
 	if renderedStats.MemKB != nil {
-		fmt.Fprintf(w, "mem: %f kB\n", *renderedStats.MemKB)
+		fmt.Fprintf(w, "\t\"mem_used_kb\": %f,\n", *renderedStats.MemKB)
 	}
 	if renderedStats.MemPct != nil {
-		fmt.Fprintf(w, "mem: %f pct\n", *renderedStats.MemPct)
+		fmt.Fprintf(w, "\t\"mem_used_pct\": %f,\n", *renderedStats.MemPct)
 	}
-	fmt.Fprintf(w, "\n")
 }
 
 func CloudWatchTransaction(start, stop int64, tracker *performance.JobReporters) {
