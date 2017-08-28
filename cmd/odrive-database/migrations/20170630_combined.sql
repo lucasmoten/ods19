@@ -630,6 +630,10 @@ proc_label: BEGIN
             INSERT INTO migration_status SET description = '20170630_combined drop ix_grantee';
             ALTER TABLE `object_permission` DROP FOREIGN KEY `ix_grantee`;
         END IF;
+        IF EXISTS (select null from information_schema.table_constraints where table_name = 'object_permission' and binary constraint_name = 'fk_object_permission_grantee') THEN
+            INSERT INTO migration_status SET description = '20170630_combined drop fk_object_permission_grantee';
+            ALTER TABLE `object_permission` DROP FOREIGN KEY `fk_object_permission_grantee`;
+        END IF;        
         IF EXISTS (select null from information_schema.statistics where table_name = 'object_permission' and binary index_name = 'ix_grantee') THEN
             INSERT INTO migration_status SET description = '20170630_combined drop index ix_grantee';
             ALTER TABLE `object_permission` DROP INDEX `ix_grantee`;

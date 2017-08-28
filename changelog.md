@@ -2,6 +2,10 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release v1.0.9 (August 28, 2017)
+--------------------
+* FIX: Migration for 20170630 combined drops fk_object_permission_grantee before ix_grantee
+
 ## Release v1.0.8 (August 17, 2017)
 --------------------
 * ENH: DB upgrade tool now checks which version of MySQL to leverage performance_schema for reading variables.
