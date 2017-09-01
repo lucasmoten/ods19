@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/uber-go/zap"
@@ -100,6 +102,7 @@ func getOrCreateUser(dao dao.DAO, caller Caller) (*models.ODUser, error) {
 // call to rebuild and the current date of the cache is older then a specified
 // duration (for now hardcoded as 2 minutes)
 func (h AppServer) CheckUserAOCache(ctx context.Context) error {
+	timein := time.Now()
 	logger := LoggerFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
 	dao := DAOFromContext(ctx)
@@ -107,12 +110,13 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 	if !hasSnippets || snippets == nil {
 		return nil
 	}
+	// Normalizes, serializes, and hashes...
+	snippetHash := calculateSnippetHash(snippets)
 	user, _ := UserFromContext(ctx)
 	user.Snippets = snippets
-	useraocache, err := dao.GetUserAOCacheByDistinguishedName(user)
 	rebuild := false
-	snippetHash := calculateSnippetHash(snippets)
 
+	useraocache, err := dao.GetUserAOCacheByDistinguishedName(user)
 	// If no user ao cache yet ..
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -150,55 +154,106 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 	}
 
 	if rebuild {
-		aacAuth := auth.NewAACAuth(logger, h.AAC)
-		userAttributes, err := aacAuth.GetAttributesForUser(caller.UserDistinguishedName)
-		if err != nil {
-			logger.Warn("error retrieving user attributes", zap.Error(err))
-			return err
-		}
-		for _, diasProject := range userAttributes.DIASUserGroups.Projects {
-			for _, groupName := range diasProject.Groups {
-				resourceName := fmt.Sprintf("group/%s/%s", diasProject.Name, groupName)
-				acmGrantee := models.NewODAcmGranteeFromResourceName(resourceName)
-				if _, err := h.RootDAO.CreateAcmGrantee(acmGrantee); err != nil {
-					logger.Warn("error saving new acmgrantee", zap.Error(err))
-					return err
-				}
-			}
-		}
+		// Init
 		useraocache.UserID = user.ID
 		useraocache.CacheDate.Time = time.Now()
 		useraocache.CacheDate.Valid = true
 		useraocache.IsCaching = true
 		useraocache.SHA256Hash = snippetHash
-		if err := dao.SetUserAOCacheByDistinguishedName(&useraocache, user); err != nil {
-			logger.Warn("error saving user ao cache", zap.Error(err))
-			return err
-		}
-		runasync := true
-		if runasync {
-			go func() {
-				done := make(chan bool)
-				timeout := time.After(60 * time.Second)
-				go dao.RebuildUserACMCache(&useraocache, user, done)
-
-				for {
-					select {
-					case <-timeout:
-						dao.GetLogger().Warn("CheckUserAOCache call to RebuildUserACMCache timed out")
-						return
-					case <-done:
-						return
+		// Random delay and recheck
+		if isUserAOCacheBeingBuilt(dao, user, useraocache) {
+			logger.Info("Peer cache rebuild happening in parallel. Skipping")
+		} else {
+			// Save the cache definition
+			if err := dao.SetUserAOCacheByDistinguishedName(&useraocache, user); err != nil {
+				logger.Warn("error saving user ao cache", zap.Error(err))
+				return err
+			}
+			// With user attributes, add grantees (and resulting keys) for missing project/groups
+			aacAuth := auth.NewAACAuth(logger, h.AAC)
+			userAttributes, err := aacAuth.GetAttributesForUser(caller.UserDistinguishedName)
+			if err != nil {
+				logger.Warn("error retrieving user attributes", zap.Error(err))
+				return err
+			}
+			for _, diasProject := range userAttributes.DIASUserGroups.Projects {
+				if len(strings.TrimSpace(diasProject.Name)) == 0 {
+					logger.Warn("dias project name is empty, skipping")
+					continue
+				}
+				for _, groupName := range diasProject.Groups {
+					if len(strings.TrimSpace(groupName)) == 0 {
+						logger.Warn("dias project group name is empty, skipping")
+						continue
+					}
+					resourceName := fmt.Sprintf("group/%s/%s", diasProject.Name, groupName)
+					acmGrantee := models.NewODAcmGranteeFromResourceName(resourceName)
+					if _, err := h.RootDAO.CreateAcmGrantee(acmGrantee); err != nil {
+						logger.Warn("error saving new acmgrantee", zap.Error(err), zap.String("acmGrantee", acmGrantee.ResourceName()), zap.String("grantee", acmGrantee.Grantee), zap.String("diasProject", diasProject.Name), zap.String("diasProject.Group", groupName))
+						continue
 					}
 				}
-			}()
-		} else {
-			done := make(chan bool, 1)
-			dao.RebuildUserACMCache(&useraocache, user, done)
+			}
+			// Build links from user to acm
+			runasync := false
+			if runasync {
+				go func() {
+					done := make(chan bool)
+					timeout := time.After(60 * time.Second)
+					go dao.RebuildUserACMCache(&useraocache, user, done)
+
+					for {
+						select {
+						case <-timeout:
+							dao.GetLogger().Warn("CheckUserAOCache call to RebuildUserACMCache timed out")
+							return
+						case <-done:
+							return
+						}
+					}
+				}()
+			} else {
+				done := make(chan bool, 1)
+				dao.RebuildUserACMCache(&useraocache, user, done)
+			}
+		}
+	}
+
+	for isUserAOCacheBeingBuilt(dao, user, useraocache) {
+		if time.Since(timein).Seconds() > 40.0 {
+			return fmt.Errorf("CheckUserAOCache waiting for cache being built until ready timed out")
 		}
 	}
 
 	return nil
+}
+
+func isUserAOCacheBeingBuilt(dao dao.DAO, user models.ODUser, desired models.ODUserAOCache) bool {
+	beingbuilt := true
+	// Random delay from 10-100 ms to permit parallel operations from same request to commence
+	// Checked in DB because peer nodes may be servicing request due to nginx RR and need to centralize
+	minimumDelay := 10
+	randomDelay := rand.New(rand.NewSource(time.Now().UnixNano())).Intn(90) + minimumDelay
+	time.Sleep(time.Duration(randomDelay) * time.Millisecond)
+	// Now check state
+	actual, err := dao.GetUserAOCacheByDistinguishedName(user)
+	// if errors (typically sql.ErrNoRows, then not being built)
+	if err != nil {
+		return false
+	}
+	// caching status
+	if !actual.IsCaching {
+		return false
+	}
+	// overdue
+	if time.Since(actual.CacheDate.Time).Minutes() > 2.0 {
+		return false
+	}
+	// hash state
+	if actual.SHA256Hash != desired.SHA256Hash {
+		return false
+	}
+	return beingbuilt
 }
 
 func calculateSnippetHash(snippets *acm.ODriveRawSnippetFields) string {

@@ -171,7 +171,7 @@ func (ap *AsyncProducer) start() {
 	go func() {
 		defer func() { ap.reconnect = true }()
 		for err := range ap.producer.Errors() {
-			ap.logger.Error("KAFKA ERROR", zap.Object("err", err))
+			ap.logger.Error("KAFKA ERROR", zap.Error(err))
 			if requiresReconnect(err) {
 				ap.reconnect = true
 			}
@@ -187,6 +187,8 @@ func requiresReconnect(err interface{}) bool {
 	// the actual error value.
 	pe, ok := err.(*sarama.ProducerError)
 	if !ok {
+		// NOTE(lm): If its not a sarama.ProducerError, we return false which instructs not to reconnect.
+		//           what kind of error would it be ?
 		return false
 	}
 

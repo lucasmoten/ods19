@@ -3,6 +3,7 @@ package dao
 import (
 	"database/sql"
 	"strings"
+	"time"
 
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
@@ -83,15 +84,32 @@ func getAcmGranteeInTransaction(tx *sqlx.Tx, grantee string) (models.ODAcmGrante
 // CreateAcmGrantee creates an AcmGrantee record if it does not already exist, otherwise fetches by the grantee name.
 func (dao *DataAccessLayer) CreateAcmGrantee(acmGrantee models.ODAcmGrantee) (models.ODAcmGrantee, error) {
 	defer util.Time("CreateAcmGrantee")()
-
+	logger := dao.GetLogger()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		logger.Error("Could not begin transaction", zap.String("err", err.Error()))
 		return models.ODAcmGrantee{}, err
 	}
+	deadlockRetryCounter := dao.DeadlockRetryCounter
+	deadlockRetryDelay := dao.DeadlockRetryDelay
+	deadlockMessage := "Deadlock"
 	response, err := createAcmGranteeInTransaction(dao.GetLogger(), tx, acmGrantee)
+	for deadlockRetryCounter > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
+		logger.Info("deadlock in CreateAcmGrantee, restarting transaction", zap.Int64("deadlockRetryCounter", deadlockRetryCounter))
+		time.Sleep(time.Duration(deadlockRetryDelay) * time.Millisecond)
+		// Cancel the old transaction and start a new one
+		tx.Rollback()
+		tx, err = dao.MetadataDB.Beginx()
+		if err != nil {
+			logger.Error("could not begin transaction", zap.String("err", err.Error()))
+			return models.ODAcmGrantee{}, err
+		}
+		// Retry the create
+		deadlockRetryCounter--
+		response, err = createAcmGranteeInTransaction(dao.GetLogger(), tx, acmGrantee)
+	}
 	if err != nil {
-		dao.GetLogger().Error("Error in CreateAcmGrantee", zap.String("err", err.Error()))
+		logger.Error("Error in CreateAcmGrantee", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()
