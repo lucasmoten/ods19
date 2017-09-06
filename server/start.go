@@ -29,7 +29,7 @@ var (
 func Start(conf config.AppConfiguration) error {
 
 	// Block forever until Kafka and ZK come online
-	blockForRequiredServices(conf)
+	blockForRequiredServices(logger, conf)
 
 	app, err := NewAppServer(conf.ServerSettings)
 	if err != nil {
@@ -154,7 +154,7 @@ func configureEventQueue(app *AppServer, conf config.EventQueueConfiguration, zk
 		prevWaitTime := 0
 		ap, err := kafka.DiscoverKafka(conn, "/brokers/ids", setter, kafka.WithLogger(logger), kafka.WithPublishActions(conf.PublishSuccessActions, conf.PublishFailureActions))
 		for ap == nil || err != nil {
-			logger.Warn("kafka was not discovered in zookeeper.", zap.Int("waitTime in seconds", waitTime))
+			logger.Info("kafka was not discovered in zookeeper.", zap.Int("waitTime in seconds", waitTime))
 			if waitTime > 600 {
 				logger.Error(
 					"kafka discovery is taking too long",
@@ -378,10 +378,13 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 	zookeeper.TrackAnnouncement(aacZK, aacConf.AACAnnouncementPoint, aacAnnouncer)
 }
 
-func blockForRequiredServices(conf config.AppConfiguration) {
+func blockForRequiredServices(l zap.Logger, conf config.AppConfiguration) {
 	// TODO: Pick the right ZK for this check
-	zkOnline := zookeeper.IsOnline(strings.Split(conf.ZK.Address, ","))
+	l.Info("waiting for zookeeper to come online")
+	addrs := strings.Split(conf.ZK.Address, ",")
+	zkOnline := zookeeper.IsOnline(addrs)
 	<-zkOnline
+	l.Info("zookeeper cluster found", zap.Object("addrs", addrs))
 }
 
 func daoReadOnlyCheck(app *AppServer) {
