@@ -102,7 +102,7 @@ func defaults(ap *AsyncProducer) {
 // is invoked when nodes in the cluster change.
 func DiscoverKafka(conn *zk.Conn, path string, setter func(*AsyncProducer), opts ...Opt) (*AsyncProducer, error) {
 
-	brokers := buildBrokers(conn, path)
+	brokers := BrokersFromZKPath(conn, path)
 	if len(brokers) < 1 {
 		return nil, errors.New("no broker data found at Kafka path")
 	}
@@ -123,7 +123,7 @@ func DiscoverKafka(conn *zk.Conn, path string, setter func(*AsyncProducer), opts
 		for e := range events {
 			l.Info("zk event watching kafka path", zap.Object("event", e))
 			if e.Type == zk.EventNodeChildrenChanged {
-				brokers := buildBrokers(conn, path)
+				brokers := BrokersFromZKPath(conn, path)
 				if len(brokers) < 1 {
 					l.Error("no kafka brokers found at zk path", zap.String("path", path))
 				} else {
@@ -143,10 +143,10 @@ func DiscoverKafka(conn *zk.Conn, path string, setter func(*AsyncProducer), opts
 	return ap, nil
 }
 
-// buildBrokers queries a zookeeper path and returns a string slice of host:port pairs
+// BrokersFromZKPath queries a zookeeper path and returns a string slice of host:port pairs
 // suitable for the kafka library's constructor. Errors are ignored, because the caller
 // can decide what to do if a zero-length list of brokers is returned.
-func buildBrokers(conn *zk.Conn, path string) []string {
+func BrokersFromZKPath(conn *zk.Conn, path string) []string {
 
 	var brokers []string
 
