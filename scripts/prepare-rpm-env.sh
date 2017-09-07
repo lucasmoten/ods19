@@ -111,6 +111,7 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 
 
 %pre
+# backup config for restoration
 if [ -f /etc/odrive/odrive.yml ]; then
     cp -f /etc/odrive/odrive.yml /tmp
 fi
@@ -120,6 +121,7 @@ fi
 if [ -f /opt/services/object-drive-1.0/object-drive.yml ]; then
     cp -f /opt/services/object-drive-1.0/object-drive.yml /tmp/odrive.yml
 fi
+# backup environment settings for restoration
 if [ -f /etc/odrive/env.sh ]; then
     cp -f /etc/odrive/env.sh /tmp
 fi
@@ -135,10 +137,16 @@ fi
 if [ -f /opt/services/object-drive-1.0/env.sh.rpmsave ]; then
     cp -f /opt/services/object-drive-1.0/env.sh.rpmsave /tmp/env.sh
 fi
-
+# add group and user if not already present
 /usr/bin/getent group services || /usr/sbin/groupadd -f -r services
 /usr/bin/getent passwd object-drive || /usr/sbin/useradd --no-create-home --no-user-group --gid services object-drive 
-
+# check if existing service running
+if pgrep -x "object-drive-1.0" > /dev/null; then
+   echo "running" > /tmp/object-drive-1.0.runstate
+   service object-drive-1.0 stop
+else
+   echo "stopped" > /tmp/object-drive-1.0.runstate
+fi
 exit 0
 
 %post
@@ -155,6 +163,9 @@ if [ -d /etc/chkconfig.d ]; then
     chkconfig --add object-drive-1.0
     chkconfig --level 3 object-drive-1.0 on
     chkconfig --level 5 object-drive-1.0 on
+fi
+if grep -q "running" /tmp/object-drive-1.0.runstate; then
+    service object-drive-1.0 start
 fi
 
 %postun

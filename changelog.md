@@ -8,6 +8,7 @@ FORMAT: 1A
 * FIX: Allow saving new grantees introduced in user ao cache
 * ENH: Reduce time between check for user ao cache and creation/update
 * ENH: Improve logging of kafka connections on startup
+* ENH: RPM upgrade will stop and start service if running during upgrade
 
 ## Release v1.0.9 (August 28, 2017)
 --------------------
