@@ -235,19 +235,19 @@ def restart():
 def status():
     logging.debug('In status')
     if not locked():
-        logging.info('STATUS: %s not running', service)
+        logging.info('%s is not locked or running', service)
         return 3
     else:
         if not os.path.exists(pidfile):
-            logging.info('STATUS: %s is not running', service)
+            logging.info('%s is not running', service)
             return 0
         pid = get_pid_from_pidfile(pidfile)
         if not is_process_running(pid):
             logging.warning('A pidfile exists but %s is not running', service)
-            logging.warning('Removing stale pidfile')
+            logging.warning('Removing stale pidfile for %s', service)
             removepidfile()
             return 1
-        logging.info('STATUS: %s is running', service)
+        logging.info('%s is running (pid %s)', service, pid)
         return 0
 
 def removepidfile():
