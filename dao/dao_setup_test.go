@@ -1,6 +1,7 @@
 package dao_test
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -117,24 +118,24 @@ func init() {
 }
 
 func PopulateSnippetsForTestUser(user *models.ODUser, snippetString string) error {
-
+	snippetbytes := sha256.Sum256([]byte(snippetString))
+	snippetHash := fmt.Sprintf("%x", snippetbytes)
 	useraocache, err := d.GetUserAOCacheByDistinguishedName(*user)
 	if err != nil {
 		return err
 	}
 	var ptrUserAOCache *models.ODUserAOCache
-	if useraocache.ID != 0 {
-		useraocache.UserID = user.ID
-		useraocache.CacheDate.Time = time.Now()
-		ptrUserAOCache = &useraocache
-	} else {
-		ptrUserAOCache = nil
-	}
+	useraocache.UserID = user.ID
+	useraocache.CacheDate.Time = time.Now()
+	useraocache.CacheDate.Valid = true
+	useraocache.SHA256Hash = snippetHash
+	ptrUserAOCache = &useraocache
 	snippets, err := acm.NewODriveRawSnippetFieldsFromSnippetResponse(snippetString)
 	if err != nil {
 		return err
 	}
 	user.Snippets = &snippets
+	ptrUserAOCache.SHA256Hash = snippetHash
 	if err := d.SetUserAOCacheByDistinguishedName(ptrUserAOCache, *user); err != nil {
 		return err
 	}

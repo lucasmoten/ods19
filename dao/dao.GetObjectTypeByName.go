@@ -70,7 +70,7 @@ func getObjectTypeByNameInTransaction(tx *sqlx.Tx, typeName string, addIfMissing
 				// Any errors? return them
 				if err != nil {
 					// Empty return with error from creation
-					return objectType, fmt.Errorf("Error creating object when missing: %s", err.Error())
+					return objectType, fmt.Errorf("Error creating object type when missing: %s", err.Error())
 				}
 				// Assign created type to the return value
 				objectType = createdObjectType
@@ -97,7 +97,7 @@ func getObjectTypeByNameInTransaction(tx *sqlx.Tx, typeName string, addIfMissing
 				// phase and caller may accidentally use if not properly
 				// checking errors
 				objectType = models.ODObjectType{}
-				return objectType, fmt.Errorf("Error recreating object when previous was deleted: %s", err.Error())
+				return objectType, fmt.Errorf("Error recreating object type when previous was deleted: %s", err.Error())
 			}
 			// Assign created type to the return value
 			objectType = createdObjectType

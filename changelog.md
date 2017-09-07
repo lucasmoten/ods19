@@ -2,6 +2,13 @@ FORMAT: 1A
 
 # Object Drive Changelog
 
+## Release vSNAPSHOT
+--------------------
+* FIX: Resolve deadlock on inserting user ao cache
+* FIX: Allow saving new grantees introduced in user ao cache
+* ENH: Reduce time between check for user ao cache and creation/update
+* ENH: Improve logging of kafka connections on startup
+
 ## Release v1.0.9 (August 28, 2017)
 --------------------
 * FIX: Migration for 20170630 combined drops fk_object_permission_grantee before ix_grantee
