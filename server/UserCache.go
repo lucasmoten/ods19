@@ -195,6 +195,7 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 				}
 			}
 			// Build links from user to acm
+			// TODO: If there are short circuited mini rebuilds, they can be done sync, and then full done async
 			runasync := false
 			if runasync {
 				go func() {
@@ -229,11 +230,11 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 }
 
 func isUserAOCacheBeingBuilt(dao dao.DAO, user models.ODUser, desired models.ODUserAOCache) bool {
-	beingbuilt := true
-	// Random delay from 10-100 ms to permit parallel operations from same request to commence
+	// Random delay from 50-200 ms to permit parallel operations from same request to commence
 	// Checked in DB because peer nodes may be servicing request due to nginx RR and need to centralize
-	minimumDelay := 10
-	randomDelay := rand.New(rand.NewSource(time.Now().UnixNano())).Intn(90) + minimumDelay
+	minimumDelay := 50
+	maximumDelay := 200
+	randomDelay := rand.New(rand.NewSource(time.Now().UnixNano())).Intn(maximumDelay-minimumDelay) + minimumDelay
 	time.Sleep(time.Duration(randomDelay) * time.Millisecond)
 	// Now check state
 	actual, err := dao.GetUserAOCacheByDistinguishedName(user)
@@ -253,7 +254,7 @@ func isUserAOCacheBeingBuilt(dao dao.DAO, user models.ODUser, desired models.ODU
 	if actual.SHA256Hash != desired.SHA256Hash {
 		return false
 	}
-	return beingbuilt
+	return true
 }
 
 func calculateSnippetHash(snippets *acm.ODriveRawSnippetFields) string {
