@@ -228,8 +228,8 @@ func deleteUserAOCacheParts(tx *sqlx.Tx, user models.ODUser) error {
 }
 
 func insertUserAOCachePart(dao *DataAccessLayer, tx *sqlx.Tx, user models.ODUser, isallowed bool, acmkey models.ODAcmKey2, acmvalue *models.ODAcmValue2) error {
-	retryCounter := dao.DeadlockRetryCounter
-	retryDelay := dao.DeadlockRetryDelay
+	deadlockRetryCounter := dao.DeadlockRetryCounter
+	deadlockRetryDelay := dao.DeadlockRetryDelay
 	deadlockMessage := "Deadlock"
 	logger := dao.GetLogger()
 	var result sql.Result
@@ -243,15 +243,15 @@ func insertUserAOCachePart(dao *DataAccessLayer, tx *sqlx.Tx, user models.ODUser
 	} else {
 		result, err = stmt.Exec(user.ID, isallowed, acmkey.ID, nil)
 	}
-	for retryCounter > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
+	for deadlockRetryCounter > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
 		if strings.Contains(err.Error(), deadlockMessage) {
-			logger.Info("deadlock in insertUserAOCachePart, restarting transaction", zap.Int64("retryCounter", retryCounter))
+			logger.Info("deadlock in insertUserAOCachePart, restarting transaction", zap.Int64("deadlockRetryCounter", deadlockRetryCounter))
 		}
 		tx.Rollback()
-		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
+		time.Sleep(time.Duration(deadlockRetryDelay) * time.Millisecond)
 		tx, err = dao.MetadataDB.Beginx()
 		if err != nil {
-			logger.Error("could not begin transaction", zap.String("err", err.Error()))
+			logger.Error("could not begin transaction in useraocachepart", zap.String("err", err.Error()))
 			return err
 		}
 		stmt, err = tx.Preparex(`insert useraocachepart set userid = ?, isallowed = ?, userkeyid = ?, uservalueid = ?`)
@@ -259,7 +259,7 @@ func insertUserAOCachePart(dao *DataAccessLayer, tx *sqlx.Tx, user models.ODUser
 			return fmt.Errorf("insertUserAOCachePart error preparing add statement after deadlock, %s", err.Error())
 		}
 		// Retry
-		retryCounter--
+		deadlockRetryCounter--
 		if acmvalue != nil {
 			result, err = stmt.Exec(user.ID, isallowed, acmkey.ID, acmvalue.ID)
 		} else {
