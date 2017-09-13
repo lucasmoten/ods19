@@ -1269,8 +1269,16 @@ This microservice operation will remove an object from the trash and delete it f
             + `uspersons`
     + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
         + Members
-            + `equals`
+            + `begins`
             + `contains`
+            + `ends`
+            + `equals`
+            + `lessthan`
+            + `morethan`
+            + `notbegins`
+            + `notcontains`
+            + `notends`
+            + `notequals`
     + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
 
 ### Search [GET]
@@ -1356,8 +1364,16 @@ This microservice operation retrieves a list of groups for which the user is a m
             + `uspersons`
     + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
         + Members
-            + `equals`
+            + `begins`
             + `contains`
+            + `ends`
+            + `equals`
+            + `lessthan`
+            + `morethan`
+            + `notbegins`
+            + `notcontains`
+            + `notends`
+            + `notequals`
     + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
 
 ### List Objects At Root For Group [GET]
@@ -1431,8 +1447,16 @@ This microservice operation retrieves a list of objects with no parent owned by 
             + `uspersons`
     + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
         + Members
-            + `equals`
+            + `begins`
             + `contains`
+            + `ends`
+            + `equals`
+            + `lessthan`
+            + `morethan`
+            + `notbegins`
+            + `notcontains`
+            + `notends`
+            + `notequals`
     + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
 
 ### List Object Under Parent [GET]
@@ -1511,8 +1535,16 @@ Purpose: This microservice operation retrieves a list of objects contained withi
             + `uspersons`
     + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
         + Members
-            + `equals`
+            + `begins`
             + `contains`
+            + `ends`
+            + `equals`
+            + `lessthan`
+            + `morethan`
+            + `notbegins`
+            + `notcontains`
+            + `notends`
+            + `notequals`
     + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
     
 ### List Objects Shared to Everyone [GET]
@@ -1672,7 +1704,6 @@ Although it is not permitted to assign ownership to Everyone, ownership may be a
          * group/{projectName}/{projectDisplayName}/{groupName}/{displayName}
          * group/dctc/odrive_g1
          * group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1
-         * group/-Everyone
 
 ### Change Owner Bulk [POST]
 
@@ -1754,8 +1785,16 @@ This changes ownership of files in bulk.  It behaves like multiple changeOwner r
             + `uspersons`
     + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
         + Members
-            + `equals`
+            + `begins`
             + `contains`
+            + `ends`
+            + `equals`
+            + `lessthan`
+            + `morethan`
+            + `notbegins`
+            + `notcontains`
+            + `notends`
+            + `notequals`
     + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
 
 ### List Objects At Root For User [GET]
@@ -1831,8 +1870,16 @@ This microservice operation retrieves a list of objects at the root owned by the
             + `uspersons`
     + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
         + Members
-            + `equals`
+            + `begins`
             + `contains`
+            + `ends`
+            + `equals`
+            + `lessthan`
+            + `morethan`
+            + `notbegins`
+            + `notcontains`
+            + `notends`
+            + `notequals`            
     + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
 
 ### List User Object Shares [GET]
@@ -1912,8 +1959,16 @@ This microservice operation retrieves a list of objects that the user has shared
             + `uspersons`
     + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
         + Members
-            + `equals`
+            + `begins`
             + `contains`
+            + `ends`
+            + `equals`
+            + `lessthan`
+            + `morethan`
+            + `notbegins`
+            + `notcontains`
+            + `notends`
+            + `notequals`
     + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
 
 ### List User Objects Shared [GET]
@@ -1994,8 +2049,16 @@ This microservice operation retrieves a list of objects that the user has shared
             + `uspersons`
     + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
         + Members
-            + `equals`
+            + `begins`
             + `contains`
+            + `ends`
+            + `equals`
+            + `lessthan`
+            + `morethan`
+            + `notbegins`
+            + `notcontains`
+            + `notends`
+            + `notequals`
     + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
 
 ### List Trashed Objects [GET]

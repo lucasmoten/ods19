@@ -10,7 +10,11 @@ FORMAT: 1A
 * ENH: Improve logging of kafka connections on startup
 * ENH: RPM upgrade will stop and start service if running during upgrade
 * ENH: Status check on service will indicate process id when running
+<<<<<<< 015ca368eeb7af0fc2bcc9709dd4681393ef4c68
 * ENH: Support configuration of publish topic via OD_EVENT_TOPIC
+=======
+* DOC: Updated API Documentation with filter conditions and corrected Change Owner
+>>>>>>> Updated API Documentation
 
 ## Release v1.0.9 (August 28, 2017)
 --------------------
