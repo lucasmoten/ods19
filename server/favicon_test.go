@@ -13,7 +13,7 @@ func TestFaviconDefault(t *testing.T) {
 
 	s := NewFakeServerWithDAOUsers()
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
-	s.AclImpersonationWhitelist = append(s.AclImpersonationWhitelist, whitelistedDN)
+	s.ACLImpersonationWhitelist = append(s.ACLImpersonationWhitelist, whitelistedDN)
 	// This is the equivalent of the default for actual server since this test is in libs/server
 	s.StaticDir = filepath.Join("static")
 
@@ -40,7 +40,7 @@ func TestFaviconFailsForNoStaticDir(t *testing.T) {
 
 	s := NewFakeServerWithDAOUsers()
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
-	s.AclImpersonationWhitelist = append(s.AclImpersonationWhitelist, whitelistedDN)
+	s.ACLImpersonationWhitelist = append(s.ACLImpersonationWhitelist, whitelistedDN)
 	// Simulates staticDir "" for server startup
 	s.StaticDir = ""
 

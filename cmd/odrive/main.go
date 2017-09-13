@@ -193,19 +193,19 @@ func serviceTest(ctx *cli.Context) error {
 			}
 			var found bool
 			for _, t := range topics {
-				if t == "odrive-event" {
+				if t == conf.EventQueue.Topic {
 					found = true
 				}
 			}
 			if !found {
-				fmt.Println("Topic odrive-event was not found")
+				fmt.Printf("Topic %s was not found\n", conf.EventQueue.Topic)
 			} else {
-				fmt.Println("Topic odrive-event found")
-				n, err := c.WritablePartitions("odrive-event")
+				fmt.Printf("Topic %s found\n", conf.EventQueue.Topic)
+				n, err := c.WritablePartitions(conf.EventQueue.Topic)
 				if err != nil {
-					return fmt.Errorf("error getting writable partitions for odrive-event topic: %v", err)
+					return fmt.Errorf("error getting writable partitions for %s topic: %v", conf.EventQueue.Topic, err)
 				}
-				fmt.Printf("Found %v writable partition(s) for odrive-event topic\n", len(n))
+				fmt.Printf("Found %v writable partition(s) for %s topic\n", len(n), conf.EventQueue.Topic)
 			}
 			return nil
 		}

@@ -30,7 +30,7 @@ func TestCreateFolderProtocol(t *testing.T) {
 	s := NewFakeServerWithDAOUsers()
 
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
-	s.AclImpersonationWhitelist = append(s.AclImpersonationWhitelist, whitelistedDN)
+	s.ACLImpersonationWhitelist = append(s.ACLImpersonationWhitelist, whitelistedDN)
 
 	r, err := http.NewRequest("POST", cfg.RootURL+"/objects", bytes.NewBuffer([]byte(jsonNoParent)))
 	if err != nil {

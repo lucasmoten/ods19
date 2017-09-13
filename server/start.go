@@ -130,7 +130,7 @@ func configureEventQueue(app *AppServer, conf config.EventQueueConfiguration, zk
 	if len(conf.KafkaAddrs) > 0 {
 		logger.Info("using direct connect for Kafka queue")
 		var err error
-		app.EventQueue, err = kafka.NewAsyncProducer(conf.KafkaAddrs, kafka.WithLogger(logger), kafka.WithPublishActions(conf.PublishSuccessActions, conf.PublishFailureActions))
+		app.EventQueue, err = kafka.NewAsyncProducer(conf.KafkaAddrs, kafka.WithLogger(logger), kafka.WithPublishActions(conf.PublishSuccessActions, conf.PublishFailureActions), kafka.WithTopic(conf.Topic))
 		if err != nil {
 			logger.Fatal("cannot direct connect to Kakfa queue", zap.Object("err", err), zap.String("help", help))
 		}
@@ -152,7 +152,7 @@ func configureEventQueue(app *AppServer, conf config.EventQueueConfiguration, zk
 		// Allow time for kafka to be available in zookeeper
 		waitTime := 1
 		prevWaitTime := 0
-		ap, err := kafka.DiscoverKafka(conn, "/brokers/ids", setter, kafka.WithLogger(logger), kafka.WithPublishActions(conf.PublishSuccessActions, conf.PublishFailureActions))
+		ap, err := kafka.DiscoverKafka(conn, "/brokers/ids", setter, kafka.WithLogger(logger), kafka.WithPublishActions(conf.PublishSuccessActions, conf.PublishFailureActions), kafka.WithTopic(conf.Topic))
 		for ap == nil || err != nil {
 			logger.Info("kafka was not discovered in zookeeper.", zap.Int("waitTime in seconds", waitTime))
 			if waitTime > 600 {
@@ -166,7 +166,7 @@ func configureEventQueue(app *AppServer, conf config.EventQueueConfiguration, zk
 			waitTime = waitTime + prevWaitTime
 			prevWaitTime = waitTime
 			err = nil
-			ap, err = kafka.DiscoverKafka(conn, "/brokers/ids", setter, kafka.WithLogger(logger), kafka.WithPublishActions(conf.PublishSuccessActions, conf.PublishFailureActions))
+			ap, err = kafka.DiscoverKafka(conn, "/brokers/ids", setter, kafka.WithLogger(logger), kafka.WithPublishActions(conf.PublishSuccessActions, conf.PublishFailureActions), kafka.WithTopic(conf.Topic))
 		}
 		if err != nil {
 			logger.Fatal("error discovering kafka from zk", zap.Object("err", err), zap.String("help", help))

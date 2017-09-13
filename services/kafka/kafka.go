@@ -20,6 +20,7 @@ type AsyncProducer struct {
 	reconnect      bool
 	successActions []string
 	failureActions []string
+	topic          string
 }
 
 // Publish implements the events.Publisher interface.
@@ -38,7 +39,7 @@ func (ap *AsyncProducer) Publish(e events.Event) {
 	}
 
 	msg := sarama.ProducerMessage{
-		Topic: "odrive-event",
+		Topic: ap.topic,
 		Value: sarama.ByteEncoder(e.Yield()),
 	}
 
@@ -74,6 +75,13 @@ func WithPublishActions(successActions []string, failureActions []string) Opt {
 	return func(ap *AsyncProducer) {
 		ap.successActions = successActions
 		ap.failureActions = failureActions
+	}
+}
+
+// WithTopic sets the topic name for events to be published on
+func WithTopic(topic string) Opt {
+	return func(ap *AsyncProducer) {
+		ap.topic = topic
 	}
 }
 

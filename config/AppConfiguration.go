@@ -24,7 +24,8 @@ var (
 	defaultDBDriver = "mysql"
 	defaultDBHost   = "metadatadb"
 	defaultDBPort   = "3306"
-	DefaultBucket   = getEnvOrDefault("OD_AWS_S3_BUCKET", "")
+	// DefaultBucket is the name of the S3 storage bucket to use for encrypted files
+	DefaultBucket = getEnvOrDefault("OD_AWS_S3_BUCKET", "")
 )
 
 var empty []string
@@ -136,6 +137,8 @@ type EventQueueConfiguration struct {
 	// PublishFailureActions, if provided, specifies the types of success actions
 	// to publish to Kafka. If empty, all failure actions are published.
 	PublishFailureActions []string `yaml:"publish_failure_actions"`
+	// Topic denotes the name of the topic to publish events to in Kafka.
+	Topic string `yaml:"topic"`
 }
 
 // S3CiphertextCacheOpts describes our current disk cache configuration.
@@ -191,13 +194,13 @@ type ServerSettingsConfiguration struct {
 	CipherSuites []string `yaml:"ciphers"`
 	// MinimumVersion is the minimum TLS protocol version we support. Currently TLS 1.2
 	MinimumVersion string `yaml:"min_version"`
-	// AclImpersonationWhitelist is a list of Distinguished Names. If a client
+	// ACLImpersonationWhitelist is a list of Distinguished Names. If a client
 	// (usually another machine) is on this list, it may pass us another DN in
 	// an HTTP header, and "impersonate" that identitiy. The common use case
 	// is for an edge proxy (such as nginx) to pass through requests from users
 	// outside the network. This configuration option must be specified in YAML
 	// or on the command line.
-	AclImpersonationWhitelist []string `yaml:"acl_whitelist"`
+	ACLImpersonationWhitelist []string `yaml:"acl_whitelist"`
 	// PathToStaticFiles is a location on disk where static assets are stored.
 	PathToStaticFiles string `yaml:"static_root"`
 	// PathToTemplateFiles is a location on disk where Go templates are stored.
@@ -362,6 +365,7 @@ func NewEventQueueConfiguration(confFile AppConfiguration, opts CommandLineOpts)
 	eqc.ZKAddrs = CascadeStringSlice(OD_EVENT_ZK_ADDRS, confFile.EventQueue.ZKAddrs, empty)
 	eqc.PublishSuccessActions = CascadeStringSlice(OD_EVENT_PUBLISH_SUCCESS_ACTIONS, confFile.EventQueue.PublishSuccessActions, []string{"*"})
 	eqc.PublishFailureActions = CascadeStringSlice(OD_EVENT_PUBLISH_FAILURE_ACTIONS, confFile.EventQueue.PublishFailureActions, []string{"*"})
+	eqc.Topic = cascade(OD_EVENT_TOPIC, confFile.EventQueue.Topic, "odrive-event")
 	return eqc
 }
 
@@ -443,7 +447,7 @@ func NewServerSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) S
 	settings.ServerKey = cascade(OD_SERVER_KEY, confFile.ServerSettings.ServerKey, "")
 
 	// We only use conf.yml and cli opts for the ACL whitelist
-	settings.AclImpersonationWhitelist = selectNonEmptyStringSlice(opts.Whitelist, confFile.ServerSettings.AclImpersonationWhitelist)
+	settings.ACLImpersonationWhitelist = selectNonEmptyStringSlice(opts.Whitelist, confFile.ServerSettings.ACLImpersonationWhitelist)
 
 	// Defaults
 	settings.ListenBind = "0.0.0.0"

@@ -69,6 +69,7 @@ event_queue:
         - "unknown"
         - "update"
         - "zip"
+    topic: "odrive-event"
 
 zk:
     ip: ""

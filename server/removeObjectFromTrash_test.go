@@ -164,7 +164,7 @@ func TestUndeleteExpungedObjectFails(t *testing.T) {
 	}
 
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
-	s.AclImpersonationWhitelist = append(s.AclImpersonationWhitelist, whitelistedDN)
+	s.ACLImpersonationWhitelist = append(s.ACLImpersonationWhitelist, whitelistedDN)
 
 	guid, _ := util.NewGUID()
 	fullURL := cfg.NginxRootURL + "/objects/" + guid + "/untrash"
@@ -225,7 +225,7 @@ func TestUndeleteObjectWithDeletedAncestorFails(t *testing.T) {
 	}
 
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
-	s.AclImpersonationWhitelist = append(s.AclImpersonationWhitelist, whitelistedDN)
+	s.ACLImpersonationWhitelist = append(s.ACLImpersonationWhitelist, whitelistedDN)
 
 	guid, _ := util.NewGUID()
 	fullURL := cfg.NginxRootURL + "/objects/" + guid + "/untrash"
