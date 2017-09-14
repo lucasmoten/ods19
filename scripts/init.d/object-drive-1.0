@@ -240,7 +240,7 @@ def status():
     else:
         if not os.path.exists(pidfile):
             logging.info('%s is not running', service)
-            return 0
+            return 3
         pid = get_pid_from_pidfile(pidfile)
         if not is_process_running(pid):
             logging.warning('A pidfile exists but %s is not running', service)
@@ -344,7 +344,7 @@ if __name__ == '__main__':
         else:
             raise ValueError
     except (SystemExit):
-        pass
+        raise
     except (ValueError):
         print >> sys.stderr, "USAGE: %s [start|stop|restart|status]" % service
         sys.exit(2)

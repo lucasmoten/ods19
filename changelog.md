@@ -10,11 +10,10 @@ FORMAT: 1A
 * ENH: Improve logging of kafka connections on startup
 * ENH: RPM upgrade will stop and start service if running during upgrade
 * ENH: Status check on service will indicate process id when running
-<<<<<<< 015ca368eeb7af0fc2bcc9709dd4681393ef4c68
 * ENH: Support configuration of publish topic via OD_EVENT_TOPIC
-=======
 * DOC: Updated API Documentation with filter conditions and corrected Change Owner
->>>>>>> Updated API Documentation
+* FIX: SysV init script reports exit code 3 from `status` when odrive is not running
+* FIX: SysV init script correctly propagates exit code when sys.exit is called
 
 ## Release v1.0.9 (August 28, 2017)
 --------------------
