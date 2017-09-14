@@ -231,7 +231,7 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 	}
 
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
-	fakeServer.AclImpersonationWhitelist = append(fakeServer.AclImpersonationWhitelist, whitelistedDN)
+	fakeServer.ACLImpersonationWhitelist = append(fakeServer.ACLImpersonationWhitelist, whitelistedDN)
 
 	fakeServer.InitRegex()
 	return &fakeServer

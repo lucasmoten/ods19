@@ -24,10 +24,10 @@ func TestParseWhitelistFromConfigFile(t *testing.T) {
 		t.Errorf("Could not unmarshal yaml config file: %v\n", err)
 	}
 
-	if len(conf.ServerSettings.AclImpersonationWhitelist) != 3 {
+	if len(conf.ServerSettings.ACLImpersonationWhitelist) != 3 {
 		t.Fail()
 	}
-	if conf.ServerSettings.AclImpersonationWhitelist[0] != "first" {
+	if conf.ServerSettings.ACLImpersonationWhitelist[0] != "first" {
 		t.Fail()
 	}
 
@@ -39,6 +39,9 @@ func TestParseAppConfigurationFromConfigFile(t *testing.T) {
 
 	reset2 := unsetReset("OD_EVENT_ZK_ADDRS")
 	defer reset2()
+
+	reset3 := unsetReset("OD_EVENT_TOPIC")
+	defer reset3()
 
 	contents := readAllOrFail(t, "testfixtures/complete.yml")
 	var conf config.AppConfiguration
@@ -61,9 +64,12 @@ func TestParseAppConfigurationFromConfigFile(t *testing.T) {
 	if len(conf.EventQueue.ZKAddrs) != 2 {
 		t.Errorf("expected zk_addrs string slice of len 2, got: %v", conf.EventQueue.ZKAddrs)
 	}
-	if conf.ServerSettings.AclImpersonationWhitelist[0] != "foo" {
+	if conf.EventQueue.Topic != "odrive-event" {
+		t.Errorf("expected odrive-event, got: %v", conf.EventQueue.Topic)
+	}
+	if conf.ServerSettings.ACLImpersonationWhitelist[0] != "foo" {
 
-		t.Errorf("expected whitelist entry foo but got: %s", conf.ServerSettings.AclImpersonationWhitelist[0])
+		t.Errorf("expected whitelist entry foo but got: %s", conf.ServerSettings.ACLImpersonationWhitelist[0])
 	}
 
 }

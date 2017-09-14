@@ -45,7 +45,7 @@ func newAppConfigurationWithDefaults() config.AppConfiguration {
 		TLSMinimumVersion: "1.2",
 	}
 	conf = config.NewAppConfiguration(opts)
-	conf.ServerSettings.AclImpersonationWhitelist = whitelist
+	conf.ServerSettings.ACLImpersonationWhitelist = whitelist
 	return conf
 }
 

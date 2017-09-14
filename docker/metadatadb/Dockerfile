@@ -3,7 +3,7 @@ FROM centos:centos7
 RUN yum -y install --setopt=tsflags=nodocs epel-release && \
     yum -y install --setopt=tsflags=nodocs mariadb-server bind-utils pwgen psmisc hostname && \
     yum -y erase vim-minimal && \
-    yum -y update && yum clean all
+    yum -y update --exclude=iputils && yum clean all
 
 VOLUME /var/lib/mysql
 

@@ -100,6 +100,7 @@ Object Drive publishes a single event stream for client applications.
 | OD_EVENT_ZK_ADDRS | A comma-separated list of **host:port** pairs. These are ZK nodes.  | |
 | OD_EVENT_PUBLISH_FAILURE_ACTIONS | A comma delimited list of event action types that should be published to kafka if request failed. The default value * enables all failure events to be published. Permissible values are access, authenticate, create, delete, list, undelete, unknown, update, zip. | * |
 | OD_EVENT_PUBLISH_SUCCESS_ACTIONS | A comma delimited list of event action types that should be published to kafka if request succeeded. The default value * enables all success events to be published. Permissible values are access, authenticate, create, delete, list, undelete, unknown, update, zip. | * |
+| OD_EVENT_TOPIC | The name of the topic for which events will be published to. | odrive-event |
 
 **NOTE:** If both Event Queue config options are blank, odrive will not publish events.
 

@@ -87,6 +87,7 @@ services:
         - OD_EVENT_ZK_ADDRS=zk:2181
         - OD_EVENT_PUBLISH_FAILURE_ACTIONS
         - OD_EVENT_PUBLISH_SUCCESS_ACTIONS
+        - OD_EVENT_TOPIC
         - OD_SERVER_CA=/go/src/decipher.com/object-drive-server/defaultcerts/server/trust.pem
         - OD_SERVER_CERT=/go/src/decipher.com/object-drive-server/defaultcerts/server/server.cert.pem
         - OD_SERVER_KEY=/go/src/decipher.com/object-drive-server/defaultcerts/server/server.key.pem
@@ -147,6 +148,7 @@ services:
         - OD_EVENT_ZK_ADDRS=zk:2181
         - OD_EVENT_PUBLISH_FAILURE_ACTIONS
         - OD_EVENT_PUBLISH_SUCCESS_ACTIONS
+        - OD_EVENT_TOPIC
         - OD_SERVER_CA=/go/src/decipher.com/object-drive-server/defaultcerts/server/trust.pem
         - OD_SERVER_CERT=/go/src/decipher.com/object-drive-server/defaultcerts/server/server.cert.pem
         - OD_SERVER_KEY=/go/src/decipher.com/object-drive-server/defaultcerts/server/server.key.pem

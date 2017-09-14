@@ -82,7 +82,7 @@ type AppServer struct {
 	// UsersLruCache contains a cache of users with support to purge those least recently used when filling. Up to 1000 users will be retained in memory
 	UsersLruCache *ccache.Cache
 	// AclWhitelist provides a list of distinguished names allowed to perform impersonation
-	AclImpersonationWhitelist []string
+	ACLImpersonationWhitelist []string
 }
 
 // NewAppServer creates an AppServer.
@@ -118,7 +118,7 @@ func NewAppServer(conf config.ServerSettingsConfiguration) (*AppServer, error) {
 		TemplateCache:             templates,
 		StaticDir:                 staticDir,
 		UsersLruCache:             usersLruCache,
-		AclImpersonationWhitelist: conf.AclImpersonationWhitelist,
+		ACLImpersonationWhitelist: conf.ACLImpersonationWhitelist,
 	}
 
 	app.InitRegex()
@@ -221,7 +221,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	authGem.Payload.Audit = audit.WithType(authGem.Payload.Audit, "EventAuthenticate")
 	authGem.Payload.Audit = audit.WithAction(authGem.Payload.Audit, "AUTHENTICATE")
 
-	if err := caller.ValidateHeaders(h.AclImpersonationWhitelist, r); err != nil {
+	if err := caller.ValidateHeaders(h.ACLImpersonationWhitelist, r); err != nil {
 		herr := NewAppError(401, err, err.Error())
 		h.publishError(authGem, herr)
 		sendErrorResponse(logger, &w, 401, err, err.Error())

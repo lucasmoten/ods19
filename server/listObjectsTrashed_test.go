@@ -60,7 +60,7 @@ func TestListObjectsTrashedJSONResponse(t *testing.T) {
 	s.InitRegex()
 
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
-	s.AclImpersonationWhitelist = append(s.AclImpersonationWhitelist, whitelistedDN)
+	s.ACLImpersonationWhitelist = append(s.ACLImpersonationWhitelist, whitelistedDN)
 
 	r, err := http.NewRequest("GET", cfg.RootURL+"/trashed?pageNumber=1&pageSize=50", nil)
 	r.Header.Set("USER_DN", user.DistinguishedName)
