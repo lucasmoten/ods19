@@ -14,6 +14,7 @@ FORMAT: 1A
 * DOC: Updated API Documentation with filter conditions and corrected Change Owner
 * FIX: SysV init script reports exit code 3 from `status` when odrive is not running
 * FIX: SysV init script correctly propagates exit code when sys.exit is called
+* DEG: Added IsPDFAvailable field to json responses for object metadata
 
 ## Release v1.0.9 (August 28, 2017)
 --------------------

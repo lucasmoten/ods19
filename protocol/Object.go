@@ -74,6 +74,9 @@ type Object struct {
 	// Clients can use breadcrumbs to display a list of parents. The top-level
 	// parent should be the first item in the slice.
 	Breadcrumbs []Breadcrumb `json:"breadcrumbs,omitempty"`
+	// IsPDFAvailable is readded back in here to maintain backwards compatibility for
+	// integrations that expect this field to exist and will break if it is not present
+	IsPDFAvailable bool `json:"isPDFAvailable"`
 }
 
 // WithBreadcrumbs extends the object's Breadcrumbs slice, if it exists. If it does
