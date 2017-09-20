@@ -294,7 +294,7 @@ func (fake *FakeDAO) IsReadOnly(refresh bool) bool {
 }
 
 // RebuildUserACMCache for FakeDAO
-func (fake *FakeDAO) RebuildUserACMCache(useraocache *models.ODUserAOCache, user models.ODUser, done chan bool) error {
+func (fake *FakeDAO) RebuildUserACMCache(useraocache *models.ODUserAOCache, user models.ODUser, done chan bool, mode string) error {
 	return fake.Err
 }
 

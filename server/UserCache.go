@@ -115,6 +115,7 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 	user, _ := UserFromContext(ctx)
 	user.Snippets = snippets
 	rebuild := false
+	built := false
 
 	useraocache, err := dao.GetUserAOCacheByDistinguishedName(user)
 	// If no user ao cache yet ..
@@ -165,17 +166,20 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 			logger.Info("Peer cache rebuild happening in parallel. Skipping")
 		} else {
 			// Save the cache definition
+			logger.Info("Saving user cache placeholder")
 			if err := dao.SetUserAOCacheByDistinguishedName(&useraocache, user); err != nil {
 				logger.Warn("error saving user ao cache", zap.Error(err))
 				return err
 			}
 			// With user attributes, add grantees (and resulting keys) for missing project/groups
 			aacAuth := auth.NewAACAuth(logger, h.AAC)
+			logger.Info("Getting user attributes to base cache on")
 			userAttributes, err := aacAuth.GetAttributesForUser(caller.UserDistinguishedName)
 			if err != nil {
 				logger.Warn("error retrieving user attributes", zap.Error(err))
 				return err
 			}
+			logger.Info("Adding necessary groups")
 			for _, diasProject := range userAttributes.DIASUserGroups.Projects {
 				if len(strings.TrimSpace(diasProject.Name)) == 0 {
 					logger.Warn("dias project name is empty, skipping")
@@ -195,34 +199,51 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 				}
 			}
 			// Build links from user to acm
-			// TODO: If there are short circuited mini rebuilds, they can be done sync, and then full done async
 			runasync := false
+			// Short circuited mini builds are front loaded based upon request characteristics
+			if method, ok := RequestMethodFromContext(ctx); ok && method == "GET" {
+				if uri, ok := RequestURIFromContext(ctx); ok && h.Routes.Objects.RX.MatchString(uri) {
+					done := make(chan bool, 1)
+					logger.Info("Building initial user cache for userroot")
+					dao.RebuildUserACMCache(&useraocache, user, done, "userroot")
+					built = true
+					runasync = true
+				}
+			}
+			// Full rebuild
 			if runasync {
+				logger.Info("Building full user cache asynchronously")
+				built = true
 				go func() {
 					done := make(chan bool)
 					timeout := time.After(60 * time.Second)
-					go dao.RebuildUserACMCache(&useraocache, user, done)
+					go dao.RebuildUserACMCache(&useraocache, user, done, "")
 
 					for {
 						select {
 						case <-timeout:
-							dao.GetLogger().Warn("CheckUserAOCache call to RebuildUserACMCache timed out")
+							logger.Warn("CheckUserAOCache call to RebuildUserACMCache timed out")
 							return
 						case <-done:
+							logger.Info("Asynchronous cache build completed")
 							return
 						}
 					}
 				}()
 			} else {
+				logger.Info("Building full user cache synchronously")
 				done := make(chan bool, 1)
-				dao.RebuildUserACMCache(&useraocache, user, done)
+				dao.RebuildUserACMCache(&useraocache, user, done, "")
+				built = true
 			}
 		}
 	}
 
-	for isUserAOCacheBeingBuilt(dao, user, useraocache) {
-		if time.Since(timein).Seconds() > 40.0 {
-			return fmt.Errorf("CheckUserAOCache waiting for cache being built until ready timed out")
+	if rebuild {
+		for !built && isUserAOCacheBeingBuilt(dao, user, useraocache) {
+			if time.Since(timein).Seconds() > 40.0 {
+				return fmt.Errorf("CheckUserAOCache waiting for cache being built until ready timed out")
+			}
 		}
 	}
 

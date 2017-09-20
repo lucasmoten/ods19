@@ -68,7 +68,7 @@ type DAO interface {
 	GetUserStats(dn string) (models.UserStats, error)
 	IsParentIDADescendent(id []byte, parentID []byte) (bool, error)
 	IsReadOnly(refresh bool) bool
-	RebuildUserACMCache(useraocache *models.ODUserAOCache, user models.ODUser, done chan bool) error
+	RebuildUserACMCache(useraocache *models.ODUserAOCache, user models.ODUser, done chan bool, mode string) error
 	SearchObjectsByNameOrDescription(user models.ODUser, pagingRequest PagingRequest, loadProperties bool) (models.ODObjectResultset, error)
 	SetUserAOCacheByDistinguishedName(useraocache *models.ODUserAOCache, user models.ODUser) error
 	UndeleteObject(object *models.ODObject) (models.ODObject, error)

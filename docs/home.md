@@ -756,6 +756,7 @@ This creates a new revision of the object.
 
     The JSON object provided in the body can contain the following fields:
 
+    + id: `11e5e48664f5d8c789020242ac110002` (string, length=32, required) - The unique identifier of the object hex encoded to a string. This value must match the objectId provided in the URI.
     + changeToken (string, length=32, required) - The current change token on the object
     + typeName: `Folder` (string, maxlength=255, optional) -  The type to be assigned to this object.  During update if no typeName is given, then the existing type will be retained
     + name (string, maxlength=255, optional) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.

@@ -118,8 +118,8 @@ Remaining server settings are noted here
 
 | Name | Description | Default |
 | --- | --- | --- |
-| OD_DEADLOCK_RETRYCOUNTER | Indicates the number of times a create or update operation should be retried if the transaction fails due to a database deadlock | 5 |
-| OD_DEADLOCK_RETRYDELAYMS | The duration in milliseconds between retry attempts for a create or update operation when a transaction fails due to a deadlock in the database | 333 |
+| OD_DEADLOCK_RETRYCOUNTER | Indicates the number of times a create or update operation should be retried if the transaction fails due to a database deadlock | 30 |
+| OD_DEADLOCK_RETRYDELAYMS | The duration in milliseconds between retry attempts for a create or update operation when a transaction fails due to a deadlock in the database | 55 |
 | OD_DOCKERVM_OVERRIDE | **DEVELOPMENT ONLY** Allows for overriding the host name used for go tests when checking server integration tests.  | dockervm |
 | OD_DOCKERVM_PORT | **DEVELOPMENT ONLY** Allows for overriding the port used for go tests when checking server integration tests to bypass nginx.  | 8080 |
 | **OD_ENCRYPT_MASTERKEY** | The secret master key used as part of the encryption key for all files stored in the system. If this value is changed, all file keys must be adjusted at the same time. If you don't set this, the service will shut down.  Note that if a token.jar is installed onto the system, we can use the Bedrock encrypt format like `ENC{...} | |
