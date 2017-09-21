@@ -97,9 +97,6 @@ services:
         - OD_ZK_TIMEOUT
         - OD_ZK_URL
         - OD_STANDALONE=false
-    ports:
-        - 4430:4430
-        - 4480:4480
     depends_on:
         - metadatadb
         - aac
