@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -1695,4 +1696,132 @@ func TestCreateObjectMinimal(t *testing.T) {
 	theobj, err := clients[0].C.CreateObject(protocol.CreateObjectRequest{RawAcm: testhelpers.ValidACMUnclassified}, nil)
 	failNowOnErr(t, err, "unable to do request")
 	t.Logf("object: %v", theobj)
+}
+
+func TestCreateObjectsWithACMSeries(t *testing.T) {
+
+	if testing.Short() || isCircleCI() {
+		t.Skip()
+	}
+	tester10 := 0
+
+	var accms []string
+	var clearances []string
+	var macs []string
+	var oc_orgs []string
+	var sci_ctrls []string
+	var shareusers []string
+	clearances = append(clearances, "c")
+	clearances = append(clearances, "u")
+	clearances = append(clearances, "s")
+	clearances = append(clearances, "ts")
+	sci_ctrls = append(sci_ctrls, "bye")
+	sci_ctrls = append(sci_ctrls, "byeman")
+	sci_ctrls = append(sci_ctrls, "_g")
+	sci_ctrls = append(sci_ctrls, "g")
+	sci_ctrls = append(sci_ctrls, "hcs")
+	sci_ctrls = append(sci_ctrls, "hcs_p")
+	sci_ctrls = append(sci_ctrls, "kdk")
+	sci_ctrls = append(sci_ctrls, "moray")
+	sci_ctrls = append(sci_ctrls, "operational_sigint_byeman")
+	sci_ctrls = append(sci_ctrls, "osb")
+	sci_ctrls = append(sci_ctrls, "rsv")
+	sci_ctrls = append(sci_ctrls, "si")
+	sci_ctrls = append(sci_ctrls, "si_g")
+	sci_ctrls = append(sci_ctrls, "spoke")
+	sci_ctrls = append(sci_ctrls, "tk")
+	sci_ctrls = append(sci_ctrls, "umbra")
+	sci_ctrls = append(sci_ctrls, "z")
+	sci_ctrls = append(sci_ctrls, "zarf")
+	accms = append(accms, "accm_unknown")
+	accms = append(accms, "american_beech")
+	accms = append(accms, "american_chestnut")
+	accms = append(accms, "balsam_fir")
+	accms = append(accms, "bigtooth_aspen")
+	accms = append(accms, "bitternut_hickory")
+	accms = append(accms, "black_ash")
+	accms = append(accms, "black_cherry")
+	accms = append(accms, "black_locust")
+	accms = append(accms, "black_oak")
+	accms = append(accms, "chestnut_oak")
+	accms = append(accms, "cucumber_tree")
+	accms = append(accms, "eastern_hemlock")
+	accms = append(accms, "paper_birch")
+	accms = append(accms, "quaking_aspen")
+	accms = append(accms, "red_spruce")
+	accms = append(accms, "scarlet_oak")
+	accms = append(accms, "silver_maple")
+	accms = append(accms, "slippery_elm")
+	accms = append(accms, "spider_man")
+	accms = append(accms, "tulip_tree")
+	accms = append(accms, "white_ash")
+	accms = append(accms, "yellow_birch")
+	macs = append(macs, "autobots")
+	macs = append(macs, "autobots_bumblebee")
+	macs = append(macs, "autobots_hotrod")
+	macs = append(macs, "autobots_ironhide")
+	macs = append(macs, "autobots_jazz")
+	macs = append(macs, "autobots_optimus_prime")
+	macs = append(macs, "autobots_red_alert")
+	macs = append(macs, "autobots_wheeljack")
+	macs = append(macs, "bir")
+	macs = append(macs, "cir_a1")
+	macs = append(macs, "cir_a2")
+	macs = append(macs, "cir_a3")
+	macs = append(macs, "dea")
+	macs = append(macs, "discepticon")
+	macs = append(macs, "discepticon_full_tilt")
+	macs = append(macs, "discepticon_megaton")
+	macs = append(macs, "discepticon_shockwave")
+	macs = append(macs, "discepticon_starscream")
+	macs = append(macs, "dr_a1")
+	macs = append(macs, "lampshade")
+	macs = append(macs, "lampshade_blue")
+	macs = append(macs, "lampshade_brown")
+	macs = append(macs, "lampshade_purple")
+	macs = append(macs, "lightspeed")
+	macs = append(macs, "mac_unknown")
+	macs = append(macs, "telcom")
+	macs = append(macs, "tide")
+	macs = append(macs, "usp_ii")
+	macs = append(macs, "watchdog")
+	macs = append(macs, "wires")
+	oc_orgs = append(oc_orgs, "dia")
+	for u := 0; u < 100; u++ {
+		shareusers = append(shareusers, fmt.Sprintf("cn=test tester%d,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us", u))
+	}
+
+	prand := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for i := 0; i < 3000; i++ {
+		clearance := clearances[prand.Intn(len(clearances))]
+		acm := `{"version":"2.1.0","classif":"` + clearance + `"`
+		if clearance != "u" {
+			acm += `,` + acmseriesfield("sci_ctrls", 3, sci_ctrls)
+			//acm += `,` + acmseriesfield("accms", 3, accms)
+			//acm += `,` + acmseriesfield("macs", 3, macs)
+		}
+		// share
+		acm += `,"share":{` + acmseriesfield("users", 9, shareusers) + `}`
+		// close out acm
+		acm += `,"dissem_countries":["USA"]`
+		acm += `}`
+		objname := fmt.Sprintf("TestCreateObjectsWithACMSeries %d", i)
+		t.Logf("creating acm series %d for acm %s", i, acm)
+		clients[tester10].C.CreateObject(protocol.CreateObjectRequest{Name: objname, RawAcm: acm}, nil)
+	}
+}
+
+func acmseriesfield(fieldname string, maxvals int, valueset []string) string {
+	prand := rand.New(rand.NewSource(time.Now().UnixNano()))
+	response := `"` + fieldname + `":[`
+	r := prand.Intn(maxvals)
+	for c := 0; c < r; c++ {
+		if c > 0 {
+			response += `,`
+		}
+		v := valueset[prand.Intn(len(valueset))]
+		response += `"` + v + `"`
+	}
+	response += `]`
+	return response
 }

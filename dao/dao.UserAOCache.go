@@ -2,7 +2,9 @@ package dao
 
 import (
 	"database/sql"
+	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -281,7 +283,7 @@ func insertUserAOCachePart(dao *DataAccessLayer, tx *sqlx.Tx, user models.ODUser
 
 // RebuildUserACMCache examines the user authorization object cache parts and compares to acms to determine which
 // acms the user is elligible to see, and then forms a static link for use for fast filtering in search/list calls
-func (dao *DataAccessLayer) RebuildUserACMCache(useraocache *models.ODUserAOCache, user models.ODUser, done chan bool) error {
+func (dao *DataAccessLayer) RebuildUserACMCache(useraocache *models.ODUserAOCache, user models.ODUser, done chan bool, mode string) error {
 	defer func() { done <- true }()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
@@ -289,29 +291,34 @@ func (dao *DataAccessLayer) RebuildUserACMCache(useraocache *models.ODUserAOCach
 		dao.GetLogger().Error("rebuildUserACMCache Could not begin transaction", zap.String("err", err.Error()))
 		return err
 	}
-	// Rebuilding based upon user.snippets for now.
-	// 1. Delete existing User ACM associations
-	if err = deleteUserACMs(tx, user); err != nil {
-		tx.Rollback()
-		dao.GetLogger().Error("rebuildUserACMCache error deleting existing user acms", zap.Error(err))
-		return err
-	}
-	// 2. Get the matching ids
+	// 1. Determine the ids a user should have
 	var acmids []int64
-	if acmids, err = getACMIDsValidForUser(tx, user); err != nil {
+	if acmids, err = getACMIDsValidForUser(tx, user, mode); err != nil {
 		tx.Rollback()
 		dao.GetLogger().Error("rebuildUserACMCache had error getting list of matching ids", zap.Error(err))
 		return err
 	}
-	// 3. With each id, add association to the user
-	for idx, acmid := range acmids {
-		if err := insertUserACM(tx, user, acmid); err != nil {
-			tx.Rollback()
-			dao.GetLogger().Error("rebuildUserACMCache error inserting useracm", zap.Int("index", idx), zap.Error(err))
-			return err
-		}
+	acmidlist := sqlIntSeq(acmids)
+	// 2. Delete those which the user currently has associated that should not be anymore
+	if err = deleteInvalidUserACMs(tx, user, acmidlist); err != nil {
+		tx.Rollback()
+		dao.GetLogger().Error("rebuildUserACMCache error deleting existing user acms", zap.Error(err))
+		return err
 	}
+	// 3. Insert those that the user should have but currently dont
+	if err = insertUserACMList(tx, user, acmidlist); err != nil {
+		tx.Rollback()
+		dao.GetLogger().Error("rebuildUserACMCache error inserting useracms", zap.String("acmidlist", acmidlist), zap.Error(err))
+		return err
+	}
+	tx.Commit()
 	// 4. Done caching
+	tx, err = dao.MetadataDB.Beginx()
+	if err != nil {
+		tx.Rollback()
+		dao.GetLogger().Error("rebuildUserACMCache Could not begin transaction for marking cache complete", zap.String("err", err.Error()))
+		return err
+	}
 	useraocache.IsCaching = false
 	if err = updateUserAOCache(dao, tx, useraocache); err != nil {
 		tx.Rollback()
@@ -392,17 +399,20 @@ func getUserAOCachePartSnippets(tx *sqlx.Tx, user models.ODUser) ([]useraocachep
 	return cachesnippets, nil
 }
 
-func getACMIDsValidForUser(tx *sqlx.Tx, user models.ODUser) ([]int64, error) {
+func getACMIDsValidForUser(tx *sqlx.Tx, user models.ODUser, mode string) ([]int64, error) {
 	var acmids []int64
 	snippets, err := getUserSnippets(tx, user)
 	if err != nil {
 		return acmids, err
 	}
-	acmids, err = getACMIDsValidForUserBySnippets(tx, snippets)
+	acmids, err = getACMIDsValidForUserBySnippets(tx, snippets, user, mode)
 	return acmids, err
 }
 
 func getUserSnippets(tx *sqlx.Tx, user models.ODUser) (*acm.ODriveRawSnippetFields, error) {
+	if user.Snippets != nil {
+		return user.Snippets, nil
+	}
 	var cachesnippets []useraocachepartsnippet
 	var err error
 	if cachesnippets, err = getUserAOCachePartSnippets(tx, user); err != nil {
@@ -434,7 +444,7 @@ func convertCacheSnippetsToODriveRawSnippetFields(cachesnippets []useraocachepar
 	return &snippets
 }
 
-func getACMIDsValidForUserBySnippets(tx *sqlx.Tx, snippets *acm.ODriveRawSnippetFields) ([]int64, error) {
+func getACMIDsValidForUserBySnippets(tx *sqlx.Tx, snippets *acm.ODriveRawSnippetFields, user models.ODUser, mode string) ([]int64, error) {
 	var acmids []int64
 	var sql string
 	sql += "select distinct id from acm2 where 1=1 "
@@ -468,19 +478,45 @@ func getACMIDsValidForUserBySnippets(tx *sqlx.Tx, snippets *acm.ODriveRawSnippet
 			return acmids, fmt.Errorf("unhandled treatment type from snippets %s", rawFields.Treatment)
 		}
 	}
+	if mode == "userroot" {
+		ownedbyid := getACMValueFor(tx, models.AACFlatten(user.DistinguishedName))
+		sql += fmt.Sprintf(" and id in (select distinct acmid from object where parentid is null and ownedbyid = %d)", ownedbyid)
+	}
 	if err := tx.Select(&acmids, sql); err != nil {
 		return acmids, err
 	}
 	return acmids, nil
 }
 
-func deleteUserACMs(tx *sqlx.Tx, user models.ODUser) error {
-	sql := `delete from useracm where userid = ?`
+func sqlIntSeq(ns []int64) string {
+	if len(ns) == 0 {
+		return ""
+	}
+
+	// Appr. 3 chars per num plus the comma.
+	estimate := len(ns) * 4
+	b := make([]byte, 0, estimate)
+	// Or simply
+	//   b := []byte{}
+	for _, n := range ns {
+		b = strconv.AppendInt(b, int64(n), 10)
+		b = append(b, ',')
+	}
+	b = b[:len(b)-1]
+	return string(b)
+}
+
+func deleteInvalidUserACMs(tx *sqlx.Tx, user models.ODUser, acmidlist string) error {
+	sql := `delete from useracm where userid = unhex('` + hex.EncodeToString(user.ID) + `')`
+	if len(acmidlist) > 0 {
+		// no valid acmids for user, delete them all
+		sql += ` and acmid not in (` + acmidlist + `)`
+	}
 	stmt, err := tx.Preparex(sql)
 	if err != nil {
 		return fmt.Errorf("deleteUserACMs error preparing delete statement, %s", err.Error())
 	}
-	result, err := stmt.Exec(user.ID)
+	result, err := stmt.Exec()
 	if err != nil {
 		return fmt.Errorf("deleteUserACMs error executing delete statement, %s", err.Error())
 	}
@@ -491,47 +527,28 @@ func deleteUserACMs(tx *sqlx.Tx, user models.ODUser) error {
 	return nil
 }
 
-func doesUserHaveACM(tx *sqlx.Tx, user models.ODUser, acmID int64) (bool, error) {
-	stmt, err := tx.Preparex(`select id from useracm where userid = ? and acmid = ?`)
+func insertUserACMList(tx *sqlx.Tx, user models.ODUser, acmidlist string) error {
+	if len(acmidlist) == 0 {
+		// no acmids for user, nothing to do
+		return nil
+	}
+	sql := `insert into useracm (userid,acmid) select unhex('`
+	sql += hex.EncodeToString(user.ID) + `'), id `
+	sql += `from acm2 where id not in (select acmid from useracm where userid = unhex('`
+	sql += hex.EncodeToString(user.ID) + `')) and id in (` + acmidlist + `)`
+	stmt, err := tx.Preparex(sql)
 	if err != nil {
-		return false, fmt.Errorf("doesUserHaveACM error preparing select statement, %s", err.Error())
+		return fmt.Errorf("insertUserACMList error preparing insert statement, %s", err.Error())
 	}
-	var useracmid []int64
-	if err = stmt.Select(&useracmid, user.ID, acmID); err != nil {
-		if err != sql.ErrNoRows {
-			return false, fmt.Errorf("doesUserHaveACM error executing select statement, %s", err.Error())
-		}
-		return false, nil
+	_, err = stmt.Exec()
+	if err != nil {
+		return fmt.Errorf("insertUserACMList error executing insert statement, %s", err.Error())
 	}
-	return len(useracmid) > 0, nil
+	return nil
 }
 
 func insertUserACM(tx *sqlx.Tx, user models.ODUser, acmID int64) error {
-	var hasACM bool
-	var err error
-	if hasACM, err = doesUserHaveACM(tx, user, acmID); err != nil {
-		return fmt.Errorf("insertUserACM error checking if user has acm, %s", err.Error())
-	}
-	if hasACM {
-		// nothing to do, already present, dont create dupes
-		return nil
-	}
-	stmt, err := tx.Preparex(`insert useracm set userid = ?, acmid = ?`)
-	if err != nil {
-		return fmt.Errorf("insertUserACM error preparing add statement, %s", err.Error())
-	}
-	result, err := stmt.Exec(user.ID, acmID)
-	if err != nil {
-		return fmt.Errorf("insertUserACM error executing add statement, %s, acmID = %d", err.Error(), acmID)
-	}
-	ra, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("insertUserACM error determining rows affected, %s", err.Error())
-	}
-	if ra == 0 {
-		return fmt.Errorf("insertUserACM did not affect any rows, %s", err.Error())
-	}
-	return nil
+	return insertUserACMList(tx, user, fmt.Sprintf("%v", acmID))
 }
 
 type acmkv struct {

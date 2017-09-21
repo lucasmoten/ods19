@@ -45,6 +45,8 @@ const (
 	DAO
 	Groups
 	Snippets
+	RequestMethod
+	RequestURI
 )
 
 // AppServer is an http.Handler implementation that holds most service dependencies.
@@ -329,6 +331,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx = ContextWithCaller(ctx, caller)
 	ctx = ContextWithSnippets(ctx, snippets)
 	ctx = ContextWithGroups(ctx, groups)
+	ctx = ContextWithRequestMethod(ctx, r.Method)
+	ctx = ContextWithRequestURI(ctx, uri)
 
 	// Validate User AO Cache state, rebuilding as needed in the background
 	if err := h.CheckUserAOCache(ctx); err != nil {
@@ -658,6 +662,16 @@ func ContextWithGroups(ctx context.Context, groups []string) context.Context {
 	return context.WithValue(ctx, Groups, groups)
 }
 
+// ContextWithRequestMethod puts the request method on the context object
+func ContextWithRequestMethod(ctx context.Context, method string) context.Context {
+	return context.WithValue(ctx, RequestMethod, method)
+}
+
+// ContextWithRequestURI puts the request uri on the context object
+func ContextWithRequestURI(ctx context.Context, uri string) context.Context {
+	return context.WithValue(ctx, RequestURI, uri)
+}
+
 // ContextWithSnippets puts the user's snippets from AAC on the context object
 func ContextWithSnippets(ctx context.Context, snippets *acm.ODriveRawSnippetFields) context.Context {
 	return context.WithValue(ctx, Snippets, snippets)
@@ -691,6 +705,18 @@ func GEMFromContext(ctx context.Context) (events.GEM, bool) {
 func GroupsFromContext(ctx context.Context) ([]string, bool) {
 	groups, ok := ctx.Value(Groups).([]string)
 	return groups, ok
+}
+
+// RequestMethodFromContext extracts the request method from the context if set.
+func RequestMethodFromContext(ctx context.Context) (string, bool) {
+	method, ok := ctx.Value(RequestMethod).(string)
+	return method, ok
+}
+
+// RequestURIFromContext extracts the request uri from the context if set.
+func RequestURIFromContext(ctx context.Context) (string, bool) {
+	uri, ok := ctx.Value(RequestURI).(string)
+	return uri, ok
 }
 
 // SnippetsFromContext extracts the user's snippets from the context

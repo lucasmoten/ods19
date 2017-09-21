@@ -67,7 +67,7 @@ func init() {
 		panic(err)
 	}
 
-	d = &dao.DataAccessLayer{MetadataDB: db, Logger: config.RootLogger, DeadlockRetryCounter: 5, DeadlockRetryDelay: 333}
+	d = &dao.DataAccessLayer{MetadataDB: db, Logger: config.RootLogger, DeadlockRetryCounter: 30, DeadlockRetryDelay: 55}
 
 	// Create users referenced by these tests
 	user := models.ODUser{}
