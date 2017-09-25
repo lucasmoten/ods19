@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cp ../defaultcerts/clients/*.p12 customer/certs
+tar cvf customer.tar customer/
+aws s3 cp customer.tar s3://decipherers/customer.tar --acl public-read

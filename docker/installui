@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TARFILE=ui-2017-07-17.tar
+TARFILE=ui-2017-09-26.tar
 cd $GOPATH/src/decipher.com/object-drive-server/docker
 rm ui-*.tar
 rm ui.tar
