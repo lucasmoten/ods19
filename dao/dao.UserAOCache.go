@@ -80,48 +80,128 @@ func (dao *DataAccessLayer) SetUserAOCacheByDistinguishedName(useraocache *model
 	}
 	tx.Commit()
 
-	// New transaction..
-	tx, err = dao.MetadataDB.Beginx()
-	// Clear user ao cache parts
-	err = deleteUserAOCacheParts(tx, user)
-	if err != nil {
-		tx.Rollback()
+	// Add any missing keys and values
+	if err = createKeysAndValuesFromSnippets(dao, user.Snippets.Snippets); err != nil {
 		return err
 	}
-	// Build user ao cache parts
-	for _, snippet := range user.Snippets.Snippets {
-		acmkey, err := getAcmKey2ByName(dao, snippet.FieldName, true)
-		if err != nil {
-			tx.Rollback()
-			return err
+	// delete existing
+	if err := execStatementWithDeadlockRetry(dao, "deleteUserAOCacheParts", "delete from useraocachepart where userid = unhex('"+hex.EncodeToString(user.ID)+"')"); err != nil {
+		return err
+	}
+	// Add the definition parts to the user
+	if err = insertUserAOCacheParts(dao, user); err != nil {
+		return err
+	}
+	return nil
+}
+
+// createKeysAndValuesForSnippets takes a more tactical approach to adding rows to the database to
+// support referential integrity by iterating the definition, and building up minimal SQL statements
+// before hitting the database, as opposed to traditional round trip select/insert calls for each
+// unique key or value.
+func createKeysAndValuesFromSnippets(dao *DataAccessLayer, snippetFields []acm.RawSnippetFields) error {
+	// PREP
+	// tables to insert rows
+	keySQL := `insert into acmkey2 (name) values `
+	valueSQL := `insert into acmvalue2 (name) values `
+	// value pairings
+	kf, vf := false, false
+	for _, f := range snippetFields {
+		if len(f.FieldName) > 0 {
+			if kf {
+				keySQL += `,`
+			}
+			kf = true
+			keySQL += `('` + MySQLSafeString2(f.FieldName) + `')`
 		}
-		isallowed := (snippet.Treatment == "allowed")
-		if len(snippet.Values) > 0 {
-			for _, value := range snippet.Values {
-				acmvalue, err := getAcmValue2ByName(dao, value, true)
-				if err != nil {
-					tx.Rollback()
-					return err
-				}
-				err = insertUserAOCachePart(dao, tx, user, isallowed, acmkey, &acmvalue)
-				if err != nil {
-					tx.Rollback()
-					return err
-				}
+		for _, v := range f.Values {
+			if vf {
+				valueSQL += `,`
 			}
-		} else {
-			// Definition can include no values which means..
-			//  allowed -- no values are allowed
-			//  disallow -- no values are prevented
-			err = insertUserAOCachePart(dao, tx, user, isallowed, acmkey, nil)
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
+			vf = true
+			valueSQL += `('` + MySQLSafeString2(v) + `')`
 		}
 	}
-	tx.Commit()
+	// closeout with duplicate handler (keep as same)
+	keySQL += ` on duplicate key update name = name`
+	valueSQL += ` on duplicate key update name = name`
+	// run them
+	if err := execStatementWithDeadlockRetry(dao, "createKeysFromSnippets", keySQL); err != nil {
+		return err
+	}
+	if err := execStatementWithDeadlockRetry(dao, "createValuesFromSnippets", valueSQL); err != nil {
+		return err
+	}
+	return nil
+}
 
+func insertUserAOCacheParts(dao *DataAccessLayer, user models.ODUser) error {
+	snippetFields := user.Snippets.Snippets
+	fullsql := `insert into useraocachepart (userid, isallowed, userkeyid, uservalueid) `
+	for i, f := range snippetFields {
+		sql := ``
+		if i > 0 {
+			sql += ` union `
+		}
+		sql += `select unhex('` + hex.EncodeToString(user.ID) + `')`
+		if f.Treatment == "allowed" {
+			sql += fmt.Sprintf(",1,ak%d.id,", i)
+		} else {
+			sql += fmt.Sprintf(",0,ak%d.id,", i)
+		}
+		if len(f.Values) == 0 {
+			sql += fmt.Sprintf("null from acmkey2 ak%d where ak%d.name = '%s'", i, i, MySQLSafeString2(f.FieldName))
+		} else {
+			sql += fmt.Sprintf("av%d.id from acmkey2 ak%d left outer join acmvalue2 av%d on 1=1 where ak%d.name = '%s' and av%d.name in (", i, i, i, i, MySQLSafeString2(f.FieldName), i)
+			for x, v := range f.Values {
+				if x > 0 {
+					sql += `,`
+				}
+				sql += fmt.Sprintf("'%s'", MySQLSafeString2(v))
+			}
+			sql += `)`
+		}
+		fullsql += sql
+	}
+	return execStatementWithDeadlockRetry(dao, "insertUserAOCacheParts", fullsql)
+}
+
+func execStatementWithDeadlockRetry(dao *DataAccessLayer, funcLbl string, sql string) error {
+	retryCounter := dao.DeadlockRetryCounter
+	retryDelay := dao.DeadlockRetryDelay
+	deadlockMessage := "Deadlock"
+	logger := dao.GetLogger()
+
+	// Initial transaction
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		return fmt.Errorf("%s could not begin transaction, %s", funcLbl, err.Error())
+	}
+	// deadlock looper
+	err = fmt.Errorf(deadlockMessage)
+	for retryCounter > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
+		if strings.Contains(err.Error(), deadlockMessage) && retryCounter != dao.DeadlockRetryCounter {
+			logger.Info("deadlock, restarting transaction", zap.String("funcLbl", funcLbl), zap.Int64("retryCounter", retryCounter))
+		}
+		tx.Rollback()
+		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
+		tx, err = dao.MetadataDB.Beginx()
+		if err != nil {
+			return fmt.Errorf("%s could not begin transaction, %s", funcLbl, err.Error())
+		}
+		retryCounter--
+		stmt, err := tx.Preparex(sql)
+		if err != nil {
+			return fmt.Errorf("%s error preparing key statement, %s", funcLbl, err.Error())
+		}
+		err = nil
+		_, err = stmt.Exec()
+	}
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("%s error executing statement, %s", funcLbl, err.Error())
+	}
+	tx.Commit()
 	return nil
 }
 

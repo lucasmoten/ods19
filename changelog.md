@@ -16,6 +16,7 @@ FORMAT: 1A
 * FIX: SysV init script correctly propagates exit code when sys.exit is called
 * DEG: Added IsPDFAvailable field to json responses for object metadata
 * NEW: Added a distributable quick start dockerized environment 
+* ENH: Improve performance saving user snippet definition
 
 ## Release v1.0.9 (August 28, 2017)
 --------------------
