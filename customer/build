@@ -1,5 +1,7 @@
 #!/bin/bash
+mkdir -p bundle/certs
+cp ../defaultcerts/clients/*.p12 bundle/certs
+tar cf customer.tar bundle/
+THEDATE=$(date +%Y%m%d)
+aws s3 cp customer.tar s3://odrive-builds/customer/object-drive-quickstart.${THEDATE}.x86_64.tar --acl public-read
 
-cp ../defaultcerts/clients/*.p12 customer/certs
-tar cvf customer.tar customer/
-aws s3 cp customer.tar s3://decipherers/customer.tar --acl public-read
