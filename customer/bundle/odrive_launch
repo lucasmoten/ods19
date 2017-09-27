@@ -110,24 +110,23 @@ restart()
 
   # Fetch the latest UI from S3 and install it into proxier
 
-  #TARFILE=ui-2017-07-17.tar
-  TARFILE=ui-2017-09-26.tar
+  UITARFILE=ui-2017-09-26.tar
   rm ui-*.tar
   rm ui.tar
-  wget https://s3.amazonaws.com/decipherers/$TARFILE
+  wget https://s3.amazonaws.com/decipherers/$UITARFILE
 
   (
     mkdir ui
     cd ui
-    tar xf ../$TARFILE
+    tar xf ../$UITARFILE
     cp ../settings.json opt/apps/drive/json/settings.json 
     cp ../chm_drive.json opt/apps/drive/json/chm_drive.json
     cp ../piwik.js opt/apps/drive/json/piwik.js
     cp ../piwik.php opt/apps/drive/json/piwik.php
-    tar -cf ../$TARFILE *
+    tar -cf ../$UITARFILE *
   )
 
-  docker cp $TARFILE docker_proxier_1:ui.tar
+  docker cp $UITARFILE docker_proxier_1:ui.tar
   docker exec docker_proxier_1 tar xf /ui.tar
   docker exec docker_proxier_1 chown -R nginx:nginx /opt/apps
   rm -rf ui

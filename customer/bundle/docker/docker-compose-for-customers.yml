@@ -48,7 +48,7 @@ services:
       - postgres
 
   odrive:
-    image: "deciphernow/odrive:latest"
+    image: "deciphernow/odrive:vSNAPSHOT"
     environment:
         - OD_AAC_CA=/go/src/decipher.com/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
         - OD_AAC_CERT=/go/src/decipher.com/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
@@ -104,7 +104,7 @@ services:
         - kafka
 
   metadatadb:
-    image: "deciphernow/metadatadb:latest"
+    image: "deciphernow/metadatadb:vSNAPSHOT"
     mem_limit: 1024m
     cpuset: "0"
     environment:
@@ -190,7 +190,7 @@ services:
         - /var/run/docker.sock:/var/run/docker.sock
 
   proxier:
-    image: nginx
+    image: nginx:1.13
     environment:
        - AAC_SERVICE_HOST=aac
        - AAC_SERVICE_PORT=8443
