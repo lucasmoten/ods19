@@ -17,6 +17,7 @@ FORMAT: 1A
 * DEG: Added IsPDFAvailable field to json responses for object metadata
 * NEW: Added a distributable quick start dockerized environment 
 * ENH: Improve performance saving user snippet definition
+* ENH: database tool now resolves ip when using default config to favor non 127.0.0.1
 
 ## Release v1.0.9 (August 28, 2017)
 --------------------

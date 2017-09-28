@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,7 +24,7 @@ import (
 var defaultConfig = config.AppConfiguration{
 	DatabaseConnection: config.DatabaseConfiguration{
 		Driver:   "mysql",
-		Host:     "127.0.0.1",
+		Host:     resolveHostIP(),
 		Port:     "3306",
 		Schema:   "metadatadb",
 		Protocol: "tcp",
@@ -705,4 +706,21 @@ func printConf(conf config.AppConfiguration) {
 	fmt.Printf("    %s: %s\n", "trust", db.CAPath)
 	fmt.Printf("    %s: %s\n", "cert", db.ClientCert)
 	fmt.Printf("    %s: %s\n", "key", db.ClientKey)
+}
+
+// resolveHostIP returns an ip from the interfaces, preferring something other then 127.0.0.1 loopback
+// intended to support running in docker for windows setups
+func resolveHostIP() string {
+	netInterfaceAddresses, err := net.InterfaceAddrs()
+	if err != nil {
+		return "127.0.0.1"
+	}
+	for _, netInterfaceAddress := range netInterfaceAddresses {
+		networkIP, ok := netInterfaceAddress.(*net.IPNet)
+		if ok && !networkIP.IP.IsLoopback() && networkIP.IP.To4() != nil {
+			ip := networkIP.IP.String()
+			return ip
+		}
+	}
+	return "127.0.0.1"
 }
