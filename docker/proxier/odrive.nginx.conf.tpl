@@ -42,7 +42,6 @@ ES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:
 
     location ^~ /services/object-drive/1.0/ {
         rewrite ^/services/object-drive/1.0/(.*) /$1; 
-        expires -1;
         set $user_dn_value $ssl_client_s_dn;
         set $external_sys_dn_value '';
         if ($http_user_dn) {
@@ -73,6 +72,17 @@ ES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:
         proxy_set_header Host       $host;
         proxy_set_header X-Real-IP  $remote_addr;
     }
+    location ^~ /services/csx/proxy/1.2/ {
+        rewrite ^/services/csx/proxy/1.2/(.*) /$1 break;
+        # The command we provide in docker-compose.yml will use 'envsubst' to replace ${VAR} placeholders shown below
+        # with actual values.
+        proxy_pass https://${FINDER_HOST}:${FINDER_PORT};
+        proxy_set_header USER_DN    $ssl_client_s_dn;
+        proxy_set_header EXTERNAL_SYS_DN 'cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us';
+        proxy_set_header Host       $host;
+        proxy_set_header X-Real-IP  $remote_addr;
+    }
+
 
     #
     # Proxy CTE User Service to docker container
@@ -120,6 +130,41 @@ ES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:
         proxy_set_header X-Real-IP  $remote_addr;
     }
 
+    #location /services/apps/1.0 {
+    #    expires -1;
+    #    proxy_pass https://${CTE_APPS_SERVICE_HOST}:${CTE_APPS_SERVICE_PORT}/services/apps/1.0;
+    #    proxy_set_header USER_DN    $ssl_client_s_dn;
+    #    proxy_set_header Host       $host;
+    #    proxy_set_header X-Real-IP  $remote_addr;
+    #}
+
+    location /services/apps/1.0/apps/id/chm_drive {
+        try_files $uri /apps/drive/json/chm_drive.json;
+    }
+    location /piwik/piwik.js {
+        try_files $uri /apps/drive/json/piwik.js;
+    }
+    location /piwik/piwik.php {
+        try_files $uri /apps/drive/json/piwik.php;
+    }
+
+    location /services/ess/1.0 {
+            expires -1;
+
+            # determine USER_DN and EXTERNAL_SYS_DN (if USER_DN exists, impersonation is true)
+            set $user_dn_value $ssl_client_s_dn;
+            set $external_sys_dn_value '';
+            if ($http_user_dn) {
+                set $user_dn_value $http_user_dn;
+                set $external_sys_dn_value $ssl_client_s_dn_value;
+            }
+
+            proxy_set_header EXTERNAL_SYS_DN $external_sys_dn_value;
+            proxy_set_header USER_DN $user_dn_value;
+
+            proxy_pass               http://es:9200/services/ess/1.0;
+    }
+
 
     #
     # csx-saved-search-service requests to docker container
@@ -137,22 +182,12 @@ ES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:
     #
     # Proxy 2-way SSL connections (i.e., client pki cert) to AWS-based services
     #
-    location ^~ /services/ {
-        proxy_pass https://bedrock.363-283.io;
-        proxy_set_header USER_DN $ssl_client_s_dn;
-        proxy_set_header Host      $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-
-#    #
-#    # Proxy 2-way SSL connections (i.e., client pki cert) to AWS-based Piwik analytics service
-#    #
-#    location ^~ /piwik/ {
-#        proxy_pass https://chm.363-283.io;
-#        proxy_set_header USER_DN $ssl_client_s_dn;
-#        proxy_set_header Host      $host;
-#        proxy_set_header X-Real-IP $remote_addr;
-#    }
+    #location ^~ /services/ {
+    #    proxy_pass https://bedrock.363-283.io;
+    #    proxy_set_header USER_DN $ssl_client_s_dn;
+    #    proxy_set_header Host      $host;
+    #    proxy_set_header X-Real-IP $remote_addr;
+    #}
 
      #
      # Workaround for jspm_packages living outside the gulp dev package

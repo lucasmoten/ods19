@@ -268,3 +268,29 @@ services:
   #    # end of command: < /tmp/docker/odrive.nginx.conf.tpl > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'
     command: /bin/bash -c "env && envsubst '$$ODRIVE_SERVICE_HOST $$ODRIVE_SERVICE_PORT $$FINDER_EXTERNAL_IP $$FINDER_HOST $$FINDER_PORT $$AAC_SERVICE_HOST $$AAC_SERVICE_PORT $$CTE_APPS_SERVICE_HOST $$CTE_APPS_SERVICE_PORT $$CTE_USER_SERVICE_HOST $$CTE_USER_SERVICE_PORT' < /tmp/docker/odrive.nginx.conf.tpl > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
 
+
+  mongo:
+    image: mongo:3.4
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "bedrock_user"
+      MONGO_INITDB_ROOT_PASSWORD: "password"
+      MONGO_DBNAME: "bedrock"
+      MONGO_INITDB_DBNAME: "bedrock"
+      MONGO_INITDB_DATABASE: "bedrock"
+
+
+  odrive-indexer:
+    image: deciphernow/odrive-indexer:1.0.0-SNAPSHOT
+    environment:
+      ODRIVE_TEMPLATES: "true"
+      ODRIVE_FIELDS: "true"
+      DEBUG: "false"
+      MONGO_DB: "admin"
+      MONGO_COLLECT_ALL_EVENTS_ENABLED: "false"
+      ES_ALIAS_NAME: "odrive"
+    depends_on:
+      - es
+      - kafka
+      - zk
+      - mongo 
+

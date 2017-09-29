@@ -42,7 +42,6 @@ ES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:
 
     location ^~ /services/object-drive/1.0/ {
         rewrite ^/services/object-drive/1.0/(.*) /$1; 
-        expires -1;
         set $user_dn_value $ssl_client_s_dn;
         set $external_sys_dn_value '';
         if ($http_user_dn) {

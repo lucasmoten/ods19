@@ -9,9 +9,12 @@ wget https://s3.amazonaws.com/decipherers/$TARFILE
   mkdir ui
   cd ui
   tar xvf ../$TARFILE
+  cp $GOPATH/src/decipher.com/object-drive-server/customer/bundle/docker/settings.json opt/apps/drive/json/settings.json
+  cp $GOPATH/src/decipher.com/object-drive-server/customer/bundle/docker/chm_drive.json opt/apps/drive/json/chm_drive.json
+  cp $GOPATH/src/decipher.com/object-drive-server/customer/bundle/docker/piwik.js opt/apps/drive/json/piwik.js
+  cp $GOPATH/src/decipher.com/object-drive-server/customer/bundle/docker/piwik.php opt/apps/drive/json/piwik.php
+  tar cvf ../ui.tar *
 )
-docker cp $TARFILE docker_proxier_1:ui.tar
+docker cp ui.tar docker_proxier_1:ui.tar
 docker exec docker_proxier_1 tar xvf /ui.tar
 docker exec docker_proxier_1 chown -R nginx:nginx /opt/apps
-rm -rf ui
-rm ui-*.tar
