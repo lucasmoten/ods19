@@ -8,6 +8,8 @@ then
   mkdir -p ../server/static/js
   cp internal/getObjectStream.png ../server/static/js/getObjectStream.png
   cp internal/etag.png            ../server/static/js/etag.png
+  mkdir -p ../server/static/images
+  cp images/odrive-service.png    ../server/static/images/odrive-service.png
 else
   echo "Graphviz is not installed. dot must be in the path, as it is used by plantuml.jar to produce the UML diagrams"
 fi

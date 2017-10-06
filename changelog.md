@@ -1,6 +1,17 @@
 FORMAT: 1A
 
-# Object Drive Changelog
+# Object Drive 1.0 
+
+# Group Navigation
+
+## Table of Contents
+
++ [Service Overview](../../)
++ [RESTful API documentation](rest.html)
++ [Environment](environment.html)
++ [Changelog](changelog.html)
+
+# Group Changelog
 
 ## Release vSNAPSHOT
 --------------------
@@ -18,6 +29,7 @@ FORMAT: 1A
 * NEW: Added a distributable quick start dockerized environment 
 * ENH: Improve performance saving user snippet definition
 * ENH: database tool now resolves ip when using default config to favor non 127.0.0.1
+* DOC: Add service architecture diagram to documentation
 
 ## Release v1.0.9 (August 28, 2017)
 --------------------
