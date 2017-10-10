@@ -22,7 +22,7 @@ func (h AppServer) docs(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		return herr
 	}
 
-	tmpl := h.TemplateCache.Lookup("root.html")
+	tmpl := h.TemplateCache.Lookup("home.html")
 
 	w.Header().Set("Content-Type", "text/html")
 	if err := tmpl.Execute(w, nil); err != nil {

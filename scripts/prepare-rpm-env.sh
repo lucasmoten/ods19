@@ -41,14 +41,16 @@ mkdir -m 755 ${ODRIVE_PACKAGE_NAME}
 mkdir -m 755 -p ${ODRIVE_PACKAGE_NAME}/etc/init.d
 mkdir -m 755 -p ${ODRIVE_PACKAGE_NAME}/etc/logrotate.d
 mkdir -m 750 -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0
+mkdir -m 750 -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/images
 mkdir -m 750 -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/js
 mkdir -m 750 -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates
 
 install -m 750 -D ${ODRIVE_BINARY_DIR}/odrive ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/object-drive-1.0
 install -m 640 -D ${ODRIVE_BINARY_DIR}/odrive.yml ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/object-drive.yml
 install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/ObjectDriveSDK.java ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/ObjectDriveSDK.java
-install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/root.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/root.html
+install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/home.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/home.html
 install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/APISample.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/APISample.html
+install -m 640 -D ${ODRIVE_ROOT}/server/static/images/odrive-service.png ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/images/odrive-service.png
 install -m 640 -D ${ODRIVE_ROOT}/server/static/js/getObjectStream.png ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/js/getObjectStream.png
 install -m 640 -D ${ODRIVE_ROOT}/server/static/js/etag.png ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/js/etag.png
 install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/changelog.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/changelog.html

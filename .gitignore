@@ -22,11 +22,14 @@ debug.*
 
 # Compiled documentation
 root.html
+home.html
 api.html
+rest.html
 APISample.html
 changelog.html
 environment.html
 server/root.html
+server/home.html
 server/js/*.png
 docs/internal/*.png
 

@@ -60,10 +60,10 @@ def force_access(filename):
 #-------------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    convert_cmds = ["docker run -ti -v {0}:/docs humangeo/aglio -i docs/home.md  --theme-variables streak --theme-variables docs/odrive.less -o api.html".format(os.getcwd()),
-                    "docker run -ti -v {0}:/docs humangeo/aglio -i docs/environment.md  --theme-variables streak --theme-variables docs/odrive.less -o environment.html".format(os.getcwd()),
-                    "docker run -ti -v {0}:/docs humangeo/aglio -i changelog.md --theme-variables streak --theme-variables docs/odrive.less -o changelog.html".format(os.getcwd()),
-                    "docker run -ti -v {0}:/docs humangeo/aglio -i docs/overview.md --theme-variables streak --theme-variables docs/odrive.less -o root.html".format(os.getcwd())]
+    convert_cmds = ["docker run -ti -v {0}:/docs humangeo/aglio -i docs/home.md -o home.html".format(os.getcwd()),
+                    "docker run -ti -v {0}:/docs humangeo/aglio -i docs/rest.md -o rest.html".format(os.getcwd()),
+                    "docker run -ti -v {0}:/docs humangeo/aglio -i docs/environment.md -o environment.html".format(os.getcwd()),
+                    "docker run -ti -v {0}:/docs humangeo/aglio -i changelog.md -o changelog.html".format(os.getcwd())]
 
     for cmd in convert_cmds:
         try:
@@ -85,7 +85,7 @@ if __name__ == "__main__":
         strip_external_styles(item)
         shutil.move(item, os.path.join(final_dir, item))
         
-    shutil.copy(os.path.join(final_dir, 'root.html'), 'server/')
+    shutil.copy(os.path.join(final_dir, 'home.html'), 'server/')
     
     initial_dir = os.getcwd()
     os.chdir('docs')
