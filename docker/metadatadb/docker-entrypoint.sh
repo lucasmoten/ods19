@@ -26,7 +26,7 @@ if [ "$1" = 'mysqld_safe' ]; then
 			DELETE FROM mysql.user ;
 			CREATE USER 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
 			GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION ;
-			GRANT USAGE ON *.* TO 'root'@'%' REQUIRE X509;
+			GRANT USAGE ON *.* TO 'root'@'%' REQUIRE SSL;
 			DROP DATABASE IF EXISTS test ;
 		EOSQL
 
@@ -36,7 +36,7 @@ if [ "$1" = 'mysqld_safe' ]; then
 
 		if [ "$MYSQL_USER" -a "$MYSQL_PASSWORD" ]; then
 			echo "CREATE USER '$MYSQL_USER'@'%' IDENTIFIED BY '$MYSQL_PASSWORD';" >> "$tempSqlFile"
-			echo "GRANT USAGE ON  *.* TO '$MYSQL_USER'@'%' REQUIRE X509;" >> "$tempSqlFile"
+			echo "GRANT USAGE ON  *.* TO '$MYSQL_USER'@'%' REQUIRE SSL;" >> "$tempSqlFile"
 			if [ "$MYSQL_DATABASE" ]; then
 				echo "GRANT ALL ON \`$MYSQL_DATABASE\`.* TO '$MYSQL_USER'@'%' ;" >> "$tempSqlFile"
 			fi
