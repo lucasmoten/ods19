@@ -16,7 +16,7 @@
 #   2. You have environment variables set for MEME_AWS_ACCESS_KEY_ID and 
 #      MEME_AWS_SECRET_ACCESS_KEY for writing to the builds.363-283.io bucket
 
-ODRIVE_VERSION="1.0.9"
+ODRIVE_VERSION=$(grep 'ODRIVE_VERSION:' circle.yml | awk '{ print $2}' | sed -e 's/^"//' -e 's/"$//')
 
 CIRCLE_BUILD_NUM=$1
 if [ ${#1} -eq 0 ]
@@ -31,13 +31,7 @@ fi
 GOV_ODRIVE_VERSION=$2
 if [ ${#2} -eq 0 ]
 then
-  echo "You must provide a version number for the RPM naming to be"
-  echo "used for semver as major.minor.patch.  A forth value, the"
-  echo "build number from continuous integration is automatically"
-  echo "added.  If you do not know which version to use, at the time"
-  echo "of this writing, the version was 1.0.1"
-  echo "For example, ./publish-to-meme-ods-rpm 1880 1.0.1"  
-  exit 1
+  GOV_ODRIVE_VERSION=1.0-$ODRIVE_VERSION
 fi  
 
 COUNTMEMEAWSKEY=$(printenv | grep "MEME_AWS_ACCESS_KEY_ID" -c)

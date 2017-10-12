@@ -62,7 +62,7 @@ If you want to develop against Object Drive, see the [API Documentation](static/
 | List Trashed Objects | Retrieves a resultset of objects in the user's trash. |
 | Undelete Object | Restores an object from the user's trash. |
 | Empty Trash | Expunges all objects in the user's trash. |
-| User Stats | Retrieve information for user's storage consumtpion. |
+| User Stats | Retrieve information for user's storage consumption. |
 | Zip Files | Get a zip of some files. |
 
 

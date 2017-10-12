@@ -17,6 +17,7 @@ subprocess.check_call(["go", "build"])
 # Set up env for prepare_rpm_env.sh
 os.environ["ODRIVE_BINARY_DIR"] = binary_root
 os.environ["ODRIVE_VERSION"] = "V1"
+os.environ["ODRIVE_BUILDNUM"] = "SNAPSHOT"
 os.environ["ODRIVE_ROOT"]= odrive_root
 
 os.chdir(odrive_root)

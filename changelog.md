@@ -13,7 +13,7 @@ FORMAT: 1A
 
 # Group Changelog
 
-## Release vSNAPSHOT
+## Release v1.0.10 (October 17, 2017)
 --------------------
 * FIX: Resolve deadlock on inserting user ao cache
 * FIX: Allow saving new grantees introduced in user ao cache
@@ -30,6 +30,7 @@ FORMAT: 1A
 * ENH: Improve performance saving user snippet definition
 * ENH: database tool now resolves ip when using default config to favor non 127.0.0.1
 * DOC: Add service architecture diagram to documentation
+* ENH: Restructured RPM generation to include version and build number
 
 ## Release v1.0.9 (August 28, 2017)
 --------------------
