@@ -18,11 +18,19 @@ if [ -z ${ODRIVE_VERSION+x} ]; then
     exit 1
 fi
 
+if [ -z ${ODRIVE_BUILDNUM+x} ]; then
+    echo "ODRIVE_BUILDNUM must be set"
+    exit 1
+fi
+
 ODRIVE_PACKAGE_NAME="object-drive-1.0-${ODRIVE_VERSION}"
 
 ODRIVE_DATABASE_DIR="$ODRIVE_ROOT/cmd/odrive-database"
 
 ODRIVE_OBFUSCATE_DIR="$ODRIVE_ROOT/cmd/obfuscate"
+
+ODRIVE_BUILDDATE=$(date +%Y%m%d)
+ODRIVE_RELEASE="${ODRIVE_BUILDNUM}.${ODRIVE_BUILDDATE}"
 
 mkdir -p ~/rpmbuild/{RPMS,SRPMS,BUILD,SOURCES,SPECS,tmp}
 
@@ -91,7 +99,7 @@ cat <<EOF > SPECS/object-drive-1.0.spec
 Summary: Binary distribution of object-drive-server
 Name: object-drive-1.0
 Version: ${ODRIVE_VERSION}
-Release: SNAPSHOT
+Release: ${ODRIVE_RELEASE}
 License: None
 Group: Development/Tools
 SOURCE0 : %{name}-%{version}.tar.gz

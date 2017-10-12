@@ -13,7 +13,21 @@ fi
 ARG_VERSION=${1}
 if [ ${#1} -eq 0 ]
 then
-  ARG_VERSION="test"
+  ARG_VERSION=$(grep 'ODRIVE_VERSION:' circle.yml | awk '{ print $2}' | sed -e 's/^"//' -e 's/"$//')
+  echo Version was not specified. Using $ARG_VERSION
+fi
+
+ARG_BUILDNUM=${2}
+if [ ${#2} -eq 0 ]
+then  
+  ARG_BUILDNUM="SNAPSHOT"
+  if [ -z ${CIRCLE_BUILD_NUM} ]; then
+    echo Build Number was not specified. Using $ARG_BUILDNUM
+  fi
+fi
+
+if [ -z ${CIRCLE_BUILD_NUM} ]; then
+  CIRCLE_BUILD_NUM=$ARG_BUILDNUM
 fi
 
 ( ./makedocs )
@@ -22,7 +36,7 @@ docker run -i \
    -e ODRIVE_VERSION=${ARG_VERSION} \
    -e CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM} \
    -e CIRCLE_SHA1=${CIRCLE_SHA1} \
-   -e TAG_VERSION=${2} \
+   -e TAG_VERSION=${3} \
    -v `pwd`:/go/src/decipher.com/object-drive-server deciphernow/odriverpm:latest scripts/build.sh
 
 

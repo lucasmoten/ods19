@@ -120,6 +120,6 @@ Making an rpm (will build docs as well):
 
 ```
 cd $GOPATH/src/decipher.com/object-drive-server
-#make an rpm and call it build number 2600.  It will be in current directory when done
-./makerpm 2600
+#make an rpm as version 1.0.9 and call it build number 2600.  It will be in current directory when done
+./makerpm 1.0.9 2600
 ```

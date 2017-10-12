@@ -24,11 +24,15 @@ echo "Building odrive-database"
 )
 ( cd cmd/obfuscate && go build )
 
+# satisfy dependency in prepare-rpm-env
+export ODRIVE_BUILDNUM=${CIRCLE_BUILD_NUM}
+export ODRIVE_BUILDDATE=$(date +%Y%m%d)
+
 echo "invoking prepare-rpm-env.sh"
 ${ODRIVE_ROOT}/scripts/prepare-rpm-env.sh
-cp ~/rpmbuild/RPMS/x86_64/object-drive-1.0-${ODRIVE_VERSION}-SNAPSHOT.x86_64.rpm $ODRIVE_ROOT
+cp ~/rpmbuild/RPMS/x86_64/object-drive-1.0-${ODRIVE_VERSION}-${ODRIVE_BUILDNUM}.${ODRIVE_BUILDDATE}.x86_64.rpm $ODRIVE_ROOT
 
 cd $ODRIVE_ROOT
 
 echo "installing object-drive RPM"
-rpm -i object-drive-1.0-${ODRIVE_VERSION}-SNAPSHOT.x86_64.rpm
+rpm -i object-drive-1.0-${ODRIVE_VERSION}-${ODRIVE_BUILDNUM}.${ODRIVE_BUILDDATE}.x86_64.rpm
