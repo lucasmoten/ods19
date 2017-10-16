@@ -31,6 +31,7 @@ FORMAT: 1A
 * ENH: database tool now resolves ip when using default config to favor non 127.0.0.1
 * DOC: Add service architecture diagram to documentation
 * ENH: Restructured RPM generation to include version and build number
+* FIX: Database migration tool no longer hardcodes name as `odrive-database`
 
 ## Release v1.0.9 (August 28, 2017)
 --------------------
