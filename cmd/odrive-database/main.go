@@ -43,7 +43,7 @@ var (
 func main() {
 
 	app := cli.NewApp()
-	app.Name = "odrive-database"
+	app.Name = os.Args[0] // "odrive-database"
 	app.Usage = "odrive database manager for setup and migrations"
 	app.Version = fmt.Sprintf("%s build :%s", Version, Build)
 
@@ -149,7 +149,7 @@ func main() {
 		},
 		{
 			Name:  "status",
-			Usage: "print status for configured database",
+			Usage: "print status for configured database connection",
 			Flags: []cli.Flag{confFlag, useEmbedded},
 			Action: func(clictx *cli.Context) error {
 				fmt.Println("Checking DB status.")
@@ -162,7 +162,7 @@ func main() {
 		},
 		{
 			Name:  "template",
-			Usage: "echo a template configuration file for odrive-database; can be piped to file",
+			Usage: "echo a template configuration file for " + app.Name + " utility; can be piped to file",
 			Flags: []cli.Flag{},
 			Action: func(clictx *cli.Context) error {
 
@@ -383,6 +383,7 @@ func status(clictx *cli.Context) error {
 	// TODO(cm): we can, potentially, add many summary stats here, e.g. object count
 	if !isDBEmpty(db) {
 		fmt.Println("STATUS: database is not empty")
+		fmt.Println("Identifier: ", getIdentifier(db))
 		fmt.Println("Schema Version: ", getSchemaVersion(db))
 		return nil
 	}
@@ -530,6 +531,20 @@ func getSchemaVersion(db *sqlx.DB) string {
 	}
 	tx.Commit()
 	return schemaVersion[0]
+}
+
+func getIdentifier(db *sqlx.DB) string {
+	tx := db.MustBegin()
+	var identifier []string
+	stmt := `select identifier from dbstate`
+	err := tx.Select(&identifier, stmt)
+	if err != nil {
+		tx.Rollback()
+		log.Println("could not determine identifier:", err)
+		return "UNKNOWN"
+	}
+	tx.Commit()
+	return identifier[0]
 }
 
 func getMigrationStatus(db *sqlx.DB) string {
