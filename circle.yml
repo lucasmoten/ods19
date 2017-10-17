@@ -4,7 +4,7 @@ machine:
     environment:
         IMPORT_PATH: "decipher.com/object-drive-server"
         REPO_NAME: "object-drive-server"
-        ODRIVE_VERSION: "1.0.10"
+        ODRIVE_VERSION: "1.0.11"
         GOPATH: "/home/ubuntu/.go_workspace"
         OD_ROOT: "/home/ubuntu/od_root"
     hosts:

@@ -13,6 +13,10 @@ FORMAT: 1A
 
 # Group Changelog
 
+## Unreleased v1.0.11
+--------------------
+* FIX: Gitlab CI configuration for docker login
+
 ## Release v1.0.10 (October 17, 2017)
 --------------------
 * FIX: Resolve deadlock on inserting user ao cache
