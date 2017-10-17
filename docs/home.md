@@ -12,7 +12,27 @@ FORMAT: 1A
 + [Changelog](static/templates/changelog.html)
 
 # Group Service Overview
-Secure object storage....(need some more details here)
+The Object Drive Service provides for secure storage and high performance retrieval of hierarchical folder organization of objects that are named, owned and managed by users and their groups.
+
+Clients can use this API for manipulating objects including basic CRUD operations, and use of basic filter and sort mechanisms for finding objects available to them.
+
+Features supported:
+
++ Access control managed through combination of ACM for read access, with granular permissions that may be granted to individual users or groups to delegate the ability to
+  + Create children of a folder
+  + Read a file or folder
+  + Update a file or folder metadata or content stream
+  + Delete a file or folder
+  + Share access to object to other users or groups
++ All retrieval operations are automatically filtered based upon user authorization object associated with credentials.
++ Associated content stream is encrypted at rest using AES-256 CTR encryption.
++ Content streams of objects may be retrieved via traditional serial or partial range request operations and include support for ETags.
++ Automatic versioning of objects when metadata or content stream is updated with ability to retrieve prior versions
++ Objects may be marked deleted, restored from trash, or permanently deleted.
++ Objects created by users are by default owned by that user unless assigned to a group for which they are a member.
++ Ownership of objects may be transferred from the current owner, or member of a group if owned by a group.
++ Auxiliary operations for packaging several objects into a compressed archive (zip) or performing bulk operations
+
 
 ## Service Dependencies
 
