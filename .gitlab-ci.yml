@@ -9,7 +9,7 @@ docker-publish-job:
     script:
         # Sync from docker hub, re-tag, push to gitlab registry
         - service docker start; sleep 2;
-        - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+        - docker login -u $DOCKER_USER -p $DOCKER_PASS
         - docker pull deciphernow/odrive
         - docker pull deciphernow/metadatadb
         - docker tag deciphernow/odrive docker.363-283.io/cte/object-drive-server 
