@@ -63,6 +63,9 @@ def create_dir_not_exists(path):
 
 def get_ciphers():
     logging.debug('In get_ciphers')
+    if os.getenv("OD_SERVER_CIPHERS")
+        return os.getenv("OD_SERVER_CIPHERS")
+    # maintained for backwards compatibility in this script only
     if os.getenv("OD_CIPHERS"):
         return os.getenv("OD_CIPHERS")
     return default_ciphers

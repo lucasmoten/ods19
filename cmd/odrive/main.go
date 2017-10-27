@@ -126,6 +126,10 @@ func main() {
 			zap.String("templateDir", opts.TemplateDir),
 			zap.String("tlsMinimumVersion", opts.TLSMinimumVersion))
 
+		for _, v := range conf.ServerSettings.ACLImpersonationWhitelist {
+			config.RootLogger.Info("permitted to impersonate", zap.String("whitelisted dn", v))
+		}
+
 		err := server.Start(conf)
 		return err
 	}

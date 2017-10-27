@@ -134,9 +134,11 @@ Remaining server settings are noted here
 | OD_DOCKERVM_OVERRIDE | **DEVELOPMENT ONLY** Allows for overriding the host name used for go tests when checking server integration tests.  | dockervm |
 | OD_DOCKERVM_PORT | **DEVELOPMENT ONLY** Allows for overriding the port used for go tests when checking server integration tests to bypass nginx.  | 8080 |
 | **OD_ENCRYPT_MASTERKEY** | The secret master key used as part of the encryption key for all files stored in the system. If this value is changed, all file keys must be adjusted at the same time. If you don't set this, the service will shut down.  Note that if a token.jar is installed onto the system, we can use the Bedrock encrypt format like `ENC{...} | |
+| OD_SERVER_ACL_WHITELIST*n* | One or more environment variable prefixes to denote distinguished name assigned to the access control whitelist that controls whether a connector can impersonate as another identity. | |
 | OD_SERVER_BASEPATH | The base URL root. Used in debug UIs.    | "/services/object-drive/1.0" |
 | OD_SERVER_CA | The path to the certificate authority folder or file containing public certificate(s) to trust as the server.    |  |
 | OD_SERVER_CERT |The path to the public certificate for the server credentials.  |  |
+| OD_SERVER_CIPHERS | A comma delimited list of ciphers to be allowed for connections. Valid values are TLS_RSA_WITH_RC4_128_SHA, TLS_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA (recommended), TLS_RSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_ECDSA_WITH_RC4_128_SHA, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_RC4_128_SHA, TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 (recommended), TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 |  |
 | OD_SERVER_KEY | The path to the server's private key.   |  |
 | OD_SERVER_PORT | The port for which this object-drive instance will listen on. Binding to ports below 1024 require setting additional security settings on the system.  | 4430 |
 | OD_LOG_LEVEL | Should be Info (OD_LOG_LEVEL=0, -1 is Debug, 0 is Info, 1 is Warn, 2 is Error, 3 is Fatal, etc.) for production systems | 0 |

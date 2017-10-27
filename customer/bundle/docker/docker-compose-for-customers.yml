@@ -87,8 +87,10 @@ services:
         - OD_EVENT_PUBLISH_FAILURE_ACTIONS
         - OD_EVENT_PUBLISH_SUCCESS_ACTIONS
         - OD_EVENT_TOPIC
+        - OD_SERVER_ACL_WHITELIST1=cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us
         - OD_SERVER_CA=/go/src/decipher.com/object-drive-server/defaultcerts/server/trust.pem
         - OD_SERVER_CERT=/go/src/decipher.com/object-drive-server/defaultcerts/server/server.cert.pem
+        - OD_SERVER_CIPHERS=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA
         - OD_SERVER_KEY=/go/src/decipher.com/object-drive-server/defaultcerts/server/server.key.pem
         - OD_SERVER_PORT=4430
         - OD_ZK_ANNOUNCE=/cte/service/object-drive/1.0
