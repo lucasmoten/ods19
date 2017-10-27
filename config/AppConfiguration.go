@@ -449,15 +449,17 @@ func NewServerSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) S
 	settings.ServerCertChain = cascade(OD_SERVER_CERT, confFile.ServerSettings.ServerCertChain, "")
 	settings.ServerKey = cascade(OD_SERVER_KEY, confFile.ServerSettings.ServerKey, "")
 
-	// We only use conf.yml and cli opts for the ACL whitelist
-	settings.ACLImpersonationWhitelist = selectNonEmptyStringSlice(opts.Whitelist, confFile.ServerSettings.ACLImpersonationWhitelist)
+	// Use environment, configuration file, or cli options (includes a default) for the Cipher Suites (whichver has values first is used)
+	settings.CipherSuites = selectNonEmptyStringSlice(CascadeStringSlice(OD_SERVER_CIPHERS, confFile.ServerSettings.CipherSuites, opts.Ciphers))
+
+	// Use cli options, environment, or configuration file for the ACL whitelist (whichever has values first is used)
+	settings.ACLImpersonationWhitelist = selectNonEmptyStringSlice(opts.Whitelist, getEnvSliceFromPrefix(OD_SERVER_ACL_WHITELIST), confFile.ServerSettings.ACLImpersonationWhitelist)
 
 	// Defaults
 	settings.ListenBind = "0.0.0.0"
 	settings.UseTLS = opts.UseTLS
 	settings.RequireClientCert = true
 	settings.MinimumVersion = opts.TLSMinimumVersion
-	settings.CipherSuites = opts.Ciphers
 	settings.PathToStaticFiles = opts.StaticRootPath
 	settings.PathToTemplateFiles = opts.TemplateDir
 
@@ -719,6 +721,19 @@ func getEnvOrDefaultSplitStringSlice(envVar string, defaultVal []string) []strin
 	}
 	splitted := strings.Split(os.Getenv(envVar), ",")
 	return splitted
+}
+
+func getEnvSliceFromPrefix(envVar string) []string {
+	sl := make([]string, 0)
+	for _, e := range os.Environ() {
+		i := strings.Index(e, "=")
+		k := e[:i]
+		v := e[i+1 : len(e)]
+		if strings.HasPrefix(strings.ToUpper(k), strings.ToUpper(envVar)) && len(v) > 0 {
+			sl = append(sl, v)
+		}
+	}
+	return sl
 }
 
 // AWSConfig holds data suitable for creating AWS service session objects.

@@ -16,6 +16,8 @@ FORMAT: 1A
 ## Unreleased v1.0.11
 --------------------
 * FIX: Gitlab CI configuration for docker login
+* NEW: Allowable ciphers can be provided as environment variable `OD_SERVER_CIPHERS`
+* NEW: ACL Whitelist values can be provided with environment variables beginning with `OD_SERVER_ACL_WHITELIST`
 
 ## Release v1.0.10 (October 17, 2017)
 --------------------
