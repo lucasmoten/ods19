@@ -1,4 +1,4 @@
-package client
+package client_test
 
 import (
 	"bytes"
@@ -14,6 +14,7 @@ import (
 
 	"strings"
 
+	"decipher.com/object-drive-server/client"
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util/testhelpers"
@@ -23,11 +24,11 @@ import (
 var testDir string
 
 // conf contains configuration necessary for the client to connect to a running odrive instance.
-var conf = Config{
+var conf = client.Config{
 	Cert:       os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/test_0.cert.pem",
 	Trust:      os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/client.trust.pem",
 	Key:        os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/test_0.key.pem",
-	SkipVerify: true,
+	SkipVerify: true, // LM: currently set to true because the global "dockervm" wont actually match the cert for remote
 	Remote:     fmt.Sprintf("https://%s:%s/services/object-drive/1.0", config.DockerVM, config.Port),
 }
 
@@ -54,7 +55,7 @@ func TestMain(m *testing.M) {
 // TestNewClient simple starts up a new client with using included certs and a default
 // Object-drive instance.  The drive must be up and running for this to succeed.
 func TestNewClient(t *testing.T) {
-	_, err := NewClient(conf)
+	_, err := client.NewClient(conf)
 	require.Nil(t, err, fmt.Sprintf("ERROR creating new client: %s", err))
 }
 
@@ -62,7 +63,7 @@ func TestNewClient(t *testing.T) {
 // fixtures directory and performing a sequence of upload and download to verify the operations
 // complete successfully.
 func TestRoundTrip(t *testing.T) {
-	me, err := NewClient(conf)
+	me, err := client.NewClient(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,7 +127,7 @@ func TestRoundTrip(t *testing.T) {
 // TestCreteObjectNoSTream tests the creation of an object with no stream, just metadata,
 // such as a folder.
 func TestCreateObjectNoStream(t *testing.T) {
-	me, err := NewClient(conf)
+	me, err := client.NewClient(conf)
 
 	var upObj = protocol.CreateObjectRequest{
 		TypeName:              "Folder",
@@ -148,7 +149,7 @@ func TestCreateObjectNoStream(t *testing.T) {
 }
 
 func TestMoveObject(t *testing.T) {
-	me, err := NewClient(conf)
+	me, err := client.NewClient(conf)
 
 	// Create file at root.
 	testFile, err := ioutil.TempFile(testDir, "particle")
@@ -210,7 +211,7 @@ func TestImpersonation(t *testing.T) {
 	cnf.Trust = os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/server/server.trust.pem"
 	cnf.Key = os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/server/server.key.pem"
 	cnf.Impersonation = "cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
-	c, err := NewClient(cnf)
+	c, err := client.NewClient(cnf)
 	if err != nil {
 		t.Fatalf("could not create client with impersonation: %v", err)
 	}
@@ -232,7 +233,7 @@ func TestImpersonation(t *testing.T) {
 }
 
 func TestUpdateObject(t *testing.T) {
-	c, err := NewClient(conf)
+	c, err := client.NewClient(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,7 +260,7 @@ func TestUpdateObject(t *testing.T) {
 }
 
 func TestUpdateObjectAndStream(t *testing.T) {
-	c, err := NewClient(conf)
+	c, err := client.NewClient(conf)
 	if err != nil {
 		t.Fatal(err)
 	}

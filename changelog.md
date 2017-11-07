@@ -18,6 +18,7 @@ FORMAT: 1A
 * FIX: Gitlab CI configuration for docker login
 * NEW: Allowable ciphers can be provided as environment variable `OD_SERVER_CIPHERS`
 * NEW: ACL Whitelist values can be provided with environment variables beginning with `OD_SERVER_ACL_WHITELIST`
+* ENH: Updated to latest version of gm-fabric-go SDK
 
 ## Release v1.0.10 (October 17, 2017)
 --------------------
