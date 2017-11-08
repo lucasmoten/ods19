@@ -12,11 +12,10 @@ import (
 	"testing"
 	"time"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 	"decipher.com/object-drive-server/utils"
 )
 
@@ -30,7 +29,7 @@ func TestCreateObjectMalicious(t *testing.T) {
 	data := "Initial test data 1"
 	//An exe name with some backspace chars to make it display as txt
 	tmpName := "initialTestData1.exe\b\b\btxt"
-	f, closer, err := testhelpers.GenerateTempFile(data)
+	f, closer, err := GenerateTempFile(data)
 	if err != nil {
 		t.Errorf("Could not open temp file for write: %v\n", err)
 	}
@@ -46,11 +45,11 @@ func TestCreateObjectMalicious(t *testing.T) {
       "acm": "%s",
       "createdBy": "CN=POTUS,C=US"
     }
-    `, jsonEscape(testhelpers.ValidACMUnclassified))
+    `, jsonEscape(server.ValidACMUnclassified))
 	t.Log(jsonString)
 	jsonBody := []byte(jsonString)
 
-	req, err := testhelpers.NewCreateObjectPOSTRequestRaw("objects", host, "", f, tmpName, jsonBody)
+	req, err := NewCreateObjectPOSTRequestRaw("objects", "", f, tmpName, jsonBody)
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
@@ -128,7 +127,7 @@ func TestCreateWithACMInObjectFormat(t *testing.T) {
 	}
 
 	// Attempt to post a new object
-	uri := host + cfg.NginxRootURL + "/objects"
+	uri := mountPoint + "/objects"
 	body := `--651f24479ab34530af50aa607ce7512c
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
@@ -247,7 +246,7 @@ func doCreateObjectRequest(t *testing.T, clientID int, req *http.Request, expect
 }
 
 func failWithoutDCTCOdrive(t *testing.T, createdObject *protocol.Object) {
-	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	uriGetProperties := mountPoint + "/objects/" + createdObject.ID + "/properties"
 	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
 	foundGrantee := false
 	for clientIdx, ci := range clients {
@@ -326,7 +325,7 @@ func TestCreateWithCantFlattenACM(t *testing.T) {
 
 	t.Logf("jsoninfying")
 	jsonBody, _ := json.Marshal(object)
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	t.Logf("http request and client")
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
@@ -356,7 +355,7 @@ func TestCreateWithPermissions(t *testing.T) {
 	object.Permissions = append(object.Permissions, permission)
 	t.Logf("jsoninfying")
 	jsonBody, _ := json.Marshal(object)
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	t.Logf("http request and client")
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
@@ -384,7 +383,7 @@ func TestCreateWithPermissionsOwnedBy(t *testing.T) {
 	object.Permissions = append(object.Permissions, permission)
 	t.Logf("jsoninfying")
 	jsonBody, _ := json.MarshalIndent(object, "", "  ")
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	t.Logf("http request and client")
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
@@ -414,15 +413,15 @@ func TestCreateWithPermissionsNewUser(t *testing.T) {
 	t.Logf("preparing")
 	var object protocol.CreateObjectRequest
 	object.Name = "TestCreateWithPermissionsNewUser"
-	object.RawAcm = testhelpers.ValidACMUnclassifiedFOUOSharedToTester11
+	object.RawAcm = server.ValidACMUnclassifiedFOUOSharedToTester11
 	permission := protocol.ObjectShare{
-		Share: makeUserShare(testhelpers.Tester11DN), AllowCreate: true, AllowRead: true, AllowUpdate: true, AllowDelete: true,
+		Share: makeUserShare(server.Tester11DN), AllowCreate: true, AllowRead: true, AllowUpdate: true, AllowDelete: true,
 	}
 	object.Permissions = append(object.Permissions, permission)
 
 	t.Logf("jsoninfying")
 	jsonBody, _ := json.Marshal(object)
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	t.Logf("http request and client")
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
@@ -445,16 +444,16 @@ func TestCreateWithPermissionsNewUser2(t *testing.T) {
 	t.Logf("preparing")
 	var object protocol.CreateObjectRequest
 	object.Name = "TestCreateWithPermissionsNewUser2"
-	object.RawAcm = testhelpers.ValidACMUnclassifiedFOUOSharedToTester10
+	object.RawAcm = server.ValidACMUnclassifiedFOUOSharedToTester10
 	permission := protocol.ObjectShare{
-		Share:      makeUserShare(testhelpers.Tester10DN),
+		Share:      makeUserShare(server.Tester10DN),
 		AllowRead:  true,
 		AllowShare: true,
 	}
 	object.Permissions = append(object.Permissions, permission)
 	t.Logf("jsoninfying")
 	jsonBody, _ := json.Marshal(object)
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	t.Logf("http request and client")
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
@@ -465,9 +464,9 @@ func TestCreateWithPermissionsNewUser2(t *testing.T) {
 	// tester10 shares to tester11 (who will never visit odrive)
 	//
 	t.Logf("* Create share granting read access to odrive") // will replace models.EveryoneGroup
-	shareuri := host + cfg.NginxRootURL + "/shared/" + responseObj.ID
+	shareuri := mountPoint + "/shared/" + responseObj.ID
 	shareSetting := protocol.ObjectShare{}
-	shareSetting.Share = makeUserShare(testhelpers.Tester12DN)
+	shareSetting.Share = makeUserShare(server.Tester12DN)
 	shareSetting.AllowRead = true
 	jsonBody, err := json.MarshalIndent(shareSetting, "", "  ")
 	if err != nil {
@@ -512,12 +511,12 @@ func TestCreateWithPermissionsNewUser3(t *testing.T) {
 	t.Logf("preparing")
 	var object protocol.CreateObjectRequest
 	object.Name = "TestCreateWithPermissionsNewUser3"
-	object.RawAcm = testhelpers.ValidACMUnclassifiedFOUOSharedToTester13
-	object.Permission.Read.AllowedResources = append(object.Permission.Read.AllowedResources, "user/"+testhelpers.Tester13DN)
+	object.RawAcm = server.ValidACMUnclassifiedFOUOSharedToTester13
+	object.Permission.Read.AllowedResources = append(object.Permission.Read.AllowedResources, "user/"+server.Tester13DN)
 
 	t.Logf("jsoninfying")
 	jsonBody, _ := json.MarshalIndent(object, "", "  ")
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	t.Logf("http request and client")
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
@@ -575,13 +574,13 @@ func genericTestCreateStreamWithPermissions(t *testing.T, ownedBy string, codeEx
 	data := "Initial test data 2"
 	//An exe name with some backspace chars to make it display as txt
 	tmpName := "initialTestData2.txt"
-	f, closer, err := testhelpers.GenerateTempFile(data)
+	f, closer, err := GenerateTempFile(data)
 	if err != nil {
 		t.Errorf("Could not open temp file for write: %v\n", err)
 	}
 	defer closer()
 
-	req, err := testhelpers.NewCreateObjectPOSTRequestRaw("objects", host, "", f, tmpName, jsonBody)
+	req, err := NewCreateObjectPOSTRequestRaw("objects", "", f, tmpName, jsonBody)
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
@@ -634,14 +633,14 @@ func TestCreateFoldersMultiLevelsDeep(t *testing.T) {
 	}
 	tester1 := 1
 	depth := 50
-	createURI := host + cfg.NginxRootURL + "/objects"
+	createURI := mountPoint + "/objects"
 	parentFolder := protocol.Object{}
 	for curDepth := 1; curDepth < depth; curDepth++ {
 		t.Logf("* Creating folder #%d", curDepth)
 		newFolder := protocol.CreateObjectRequest{}
 		newFolder.ParentID = parentFolder.ID
 		newFolder.Name = fmt.Sprintf("Folders Multi Levels Deep %d", curDepth)
-		newFolder.RawAcm = testhelpers.ValidACMUnclassified
+		newFolder.RawAcm = server.ValidACMUnclassified
 		newFolder.TypeName = "Folder"
 		createReq := makeHTTPRequestFromInterface(t, "POST", createURI, newFolder)
 		createRes, err := clients[tester1].Client.Do(createReq)
@@ -669,8 +668,8 @@ func TestCreateObjectWithParentSetInJSON(t *testing.T) {
 	folder2Obj.Name = "Test Folder 2"
 	folder2Obj.ParentID = folder1.ID
 	folder2Obj.TypeName = "Folder"
-	folder2Obj.RawAcm = testhelpers.ValidACMUnclassified
-	newobjuri := host + cfg.NginxRootURL + "/objects"
+	folder2Obj.RawAcm = server.ValidACMUnclassified
+	newobjuri := mountPoint + "/objects"
 	createFolderReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, folder2Obj)
 	createFolderRes, err := clients[tester10].Client.Do(createFolderReq)
 	failNowOnErr(t, err, "Unable to do request")
@@ -687,9 +686,9 @@ func TestCreateObjectWithUSPersonsData(t *testing.T) {
 	myobject := protocol.CreateObjectRequest{}
 	myobject.Name = "This has US Persons Data"
 	myobject.TypeName = "Arbitrary Object"
-	myobject.RawAcm = testhelpers.ValidACMUnclassified
+	myobject.RawAcm = server.ValidACMUnclassified
 	myobject.ContainsUSPersonsData = "Yes"
-	newobjuri := host + cfg.NginxRootURL + "/objects"
+	newobjuri := mountPoint + "/objects"
 	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
 	createObjectRes, err := clients[tester10].Client.Do(createObjectReq)
 
@@ -721,8 +720,8 @@ func TestCreateObjectWithUSPersonsDataNotSet(t *testing.T) {
 	myobject := protocol.CreateObjectRequest{}
 	myobject.Name = "This has Unknown US Persons Data"
 	myobject.TypeName = "Arbitrary Object"
-	myobject.RawAcm = testhelpers.ValidACMUnclassified
-	newobjuri := host + cfg.NginxRootURL + "/objects"
+	myobject.RawAcm = server.ValidACMUnclassified
+	newobjuri := mountPoint + "/objects"
 	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
 	createObjectRes, err := clients[tester10].Client.Do(createObjectReq)
 
@@ -751,9 +750,9 @@ func TestCreateObjectWithFOIAExempt(t *testing.T) {
 	myobject := protocol.CreateObjectRequest{}
 	myobject.Name = "This has FOIA Exempt"
 	myobject.TypeName = "Arbitrary Object"
-	myobject.RawAcm = testhelpers.ValidACMUnclassified
+	myobject.RawAcm = server.ValidACMUnclassified
 	myobject.ExemptFromFOIA = "Yes"
-	newobjuri := host + cfg.NginxRootURL + "/objects"
+	newobjuri := mountPoint + "/objects"
 	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
 	createObjectRes, err := clients[tester10].Client.Do(createObjectReq)
 
@@ -785,8 +784,8 @@ func TestCreateObjectWithFOIAExemptNotSet(t *testing.T) {
 	myobject := protocol.CreateObjectRequest{}
 	myobject.Name = "This has Unknown FOIA Exemption"
 	myobject.TypeName = "Arbitrary Object"
-	myobject.RawAcm = testhelpers.ValidACMUnclassified
-	newobjuri := host + cfg.NginxRootURL + "/objects"
+	myobject.RawAcm = server.ValidACMUnclassified
+	newobjuri := mountPoint + "/objects"
 	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
 	createObjectRes, err := clients[tester10].Client.Do(createObjectReq)
 
@@ -862,7 +861,7 @@ func TestCreateObjectWithPermissionsThatDontGrantToOwner(t *testing.T) {
     "user_dn": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
     "name": "Screen Shot 2016-08-26 at 4.01.54 PM.png"
 }`
-	newobjuri := host + cfg.NginxRootURL + "/objects"
+	newobjuri := mountPoint + "/objects"
 	myobject, err := utils.UnmarshalStringToInterface(issue221)
 	if err != nil {
 		t.Logf("Error converting to interface: %s", err.Error())
@@ -945,7 +944,7 @@ func TestCreateObjectWithPermissions11ThatDontGrantToOwner(t *testing.T) {
     "user_dn": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
     "name": "Screen Shot 2016-08-26 at 4.01.54 PM.png"
 }`
-	newobjuri := host + cfg.NginxRootURL + "/objects"
+	newobjuri := mountPoint + "/objects"
 	myobject, err := utils.UnmarshalStringToInterface(ghodsissue217)
 	if err != nil {
 		t.Logf("Error converting to interface: %s", err.Error())
@@ -1041,7 +1040,7 @@ func TestCreateObjectWithPermissionFavoredOverOlderPermissions(t *testing.T) {
     "user_dn": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
     "name": "Screen Shot 2016-08-26 at 4.01.54 PM.png"
 }`
-	newobjuri := host + cfg.NginxRootURL + "/objects"
+	newobjuri := mountPoint + "/objects"
 	myobject, err := utils.UnmarshalStringToInterface(ghodsissue217)
 	if err != nil {
 		t.Logf("Error converting to interface: %s", err.Error())
@@ -1085,13 +1084,13 @@ func TestCreateStreamWithNewPermissions(t *testing.T) {
 	data := "Initial test data 2"
 	//An exe name with some backspace chars to make it display as txt
 	tmpName := "initialTestData2.txt"
-	f, closer, err := testhelpers.GenerateTempFile(data)
+	f, closer, err := GenerateTempFile(data)
 	if err != nil {
 		t.Errorf("Could not open temp file for write: %v\n", err)
 	}
 	defer closer()
 
-	req, err := testhelpers.NewCreateObjectPOSTRequestRaw("objects", host, "", f, tmpName, jsonBody)
+	req, err := NewCreateObjectPOSTRequestRaw("objects", "", f, tmpName, jsonBody)
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
@@ -1141,13 +1140,13 @@ func TestCreateObjectWithPathing(t *testing.T) {
 	folder1 := makeFolderViaJSON("TestCreateObjectWithPathing", tester10, t)
 
 	t.Logf("* Create a folder under that named this/is/an/object which the handler will expand hierarchially")
-	folderuri := host + cfg.NginxRootURL + "/objects"
+	folderuri := mountPoint + "/objects"
 	folderA := protocol.CreateObjectRequest{}
 	folderA.Name = "this/is/an/object"
 	folderA.NamePathDelimiter = "/"
 	folderA.TypeName = "Folder"
 	folderA.ParentID = folder1.ID
-	folderA.RawAcm = testhelpers.ValidACMUnclassified
+	folderA.RawAcm = server.ValidACMUnclassified
 	createFolderAReq := makeHTTPRequestFromInterface(t, "POST", folderuri, folderA)
 	createFolderARes, err := clients[tester10].Client.Do(createFolderAReq)
 	defer util.FinishBody(createFolderARes.Body)
@@ -1213,7 +1212,7 @@ func TestCreateObjectWithPathing(t *testing.T) {
 	folderB.NamePathDelimiter = "/"
 	folderB.TypeName = "Folder"
 	folderB.ParentID = folder1.ID
-	folderB.RawAcm = testhelpers.ValidACMUnclassified
+	folderB.RawAcm = server.ValidACMUnclassified
 	createFolderBReq := makeHTTPRequestFromInterface(t, "POST", folderuri, folderB)
 	createFolderBRes, err := clients[tester10].Client.Do(createFolderBReq)
 	defer util.FinishBody(createFolderBRes.Body)
@@ -1287,7 +1286,7 @@ func TestCreateObjectWithPathingForGroup(t *testing.T) {
         }
     }
 }`
-	newobjuri := host + cfg.NginxRootURL + "/objects"
+	newobjuri := mountPoint + "/objects"
 	myobject, err := utils.UnmarshalStringToInterface(objectwithpathingforgroup)
 	if err != nil {
 		t.Logf("Error converting to interface: %s", err.Error())
@@ -1438,7 +1437,7 @@ func TestCreateObjectWithACMHavingDate(t *testing.T) {
     "user_dn": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
     "name": "object-having-acm-with-declass_dt"
 }`
-	newobjuri := host + cfg.NginxRootURL + "/objects"
+	newobjuri := mountPoint + "/objects"
 	myobject, err := utils.UnmarshalStringToInterface(ghodsissue508)
 	if err != nil {
 		t.Logf("Error converting to interface: %s", err.Error())
@@ -1463,7 +1462,7 @@ func TestCreateObjectAPISample662(t *testing.T) {
 	}
 	tester10 := 0
 	method := "POST"
-	uri := host + cfg.NginxRootURL + "/objects"
+	uri := mountPoint + "/objects"
 	ghodsissue662 := `
 --7518615725
 Content-Disposition: form-data; name="ObjectMetadata"
@@ -1645,7 +1644,7 @@ func TestCreateObjectWithNameNearMaxLength(t *testing.T) {
 
 	cor := protocol.CreateObjectRequest{
 		Name:   testname,
-		RawAcm: testhelpers.ValidACMUnclassifiedFOUOSharedToTester10,
+		RawAcm: server.ValidACMUnclassifiedFOUOSharedToTester10,
 	}
 	theobj, err := clients[clientid].C.CreateObject(cor, bytes.NewBuffer([]byte("testvalue")))
 	failNowOnErr(t, err, "unable to do request")
@@ -1675,7 +1674,7 @@ func TestCreateObjectOwnedByGroupViaShortResourceName(t *testing.T) {
 
 	cor := protocol.CreateObjectRequest{
 		Name:    testname,
-		RawAcm:  testhelpers.ValidACMUnclassifiedFOUOSharedToTester10,
+		RawAcm:  server.ValidACMUnclassifiedFOUOSharedToTester10,
 		OwnedBy: ownedbyin,
 	}
 	theobj, err := clients[clientid].C.CreateObject(cor, bytes.NewBuffer([]byte("testvalue")))
@@ -1693,7 +1692,7 @@ func TestCreateObjectOwnedByGroupViaShortResourceName(t *testing.T) {
 func TestCreateObjectMinimal(t *testing.T) {
 	// This test creates an object with the minimal information required.
 	// If we could avoid requiring an ACM here, then object-drive could arguably be considered a data lake
-	theobj, err := clients[0].C.CreateObject(protocol.CreateObjectRequest{RawAcm: testhelpers.ValidACMUnclassified}, nil)
+	theobj, err := clients[0].C.CreateObject(protocol.CreateObjectRequest{RawAcm: server.ValidACMUnclassified}, nil)
 	failNowOnErr(t, err, "unable to do request")
 	t.Logf("object: %v", theobj)
 }

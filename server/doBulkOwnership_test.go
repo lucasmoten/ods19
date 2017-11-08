@@ -7,12 +7,11 @@ import (
 	"net/http"
 	"testing"
 
-	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
 )
 
 func testBulkOwnershipCall(t *testing.T, clientid int, inObjects []protocol.ObjectVersioned, newOwner string) {
-	uri := host + config.NginxRootURL + "/objects/owner/" + newOwner
+	uri := mountPoint + "/objects/owner/" + newOwner
 	jsonBody, err := json.MarshalIndent(inObjects, "", "  ")
 	failNowOnErr(t, err, "Unable to marshal request")
 	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))

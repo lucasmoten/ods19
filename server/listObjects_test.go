@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"testing"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/protocol"
@@ -27,7 +26,7 @@ func TestListObjectsRoot(t *testing.T) {
 	}
 
 	// URL
-	uri := host + cfg.NginxRootURL + "/objects"
+	uri := mountPoint + "/objects"
 	uri1 := uri + "?PageNumber=1&PageSize=2"
 
 	// Request
@@ -89,7 +88,7 @@ func TestListObjectsRootPaging(t *testing.T) {
 	}
 
 	// URL
-	uri := host + cfg.NginxRootURL + "/objects"
+	uri := mountPoint + "/objects"
 	uri1 := uri + "?PageNumber=1&PageSize=1"
 
 	// Request
@@ -185,7 +184,7 @@ func TestListObjectsChild(t *testing.T) {
 	}
 
 	// URLs
-	uri := host + cfg.NginxRootURL + "/objects?PageSize="
+	uri := mountPoint + "/objects?PageSize="
 	if testing.Short() {
 		uri += "20"
 	} else {
@@ -277,7 +276,7 @@ func TestListObjectsChild(t *testing.T) {
 
 func showChildTree(t *testing.T, verboseOutput bool, client *http.Client, level int, childid string) {
 	// URLs
-	uri := host + cfg.NginxRootURL + "/objects/" + childid + "?PageSize="
+	uri := mountPoint + "/objects/" + childid + "?PageSize="
 	if testing.Short() {
 		uri += "20"
 	} else {
@@ -390,7 +389,7 @@ func TestListObjectsWithInvalidFilterField(t *testing.T) {
 	}
 
 	// URL
-	uri := host + cfg.NginxRootURL + "/objects"
+	uri := mountPoint + "/objects"
 	uri1 := uri + "?PageNumber=1&PageSize=1&filterField=NON_EXISTENT_FIELD&condition=equals&expression=x"
 
 	// Request
@@ -426,7 +425,7 @@ func TestListObjectsWithInvalidFilterCondition(t *testing.T) {
 	}
 
 	// URL
-	uri := host + cfg.NginxRootURL + "/objects"
+	uri := mountPoint + "/objects"
 	uri1 := uri + "?PageNumber=1&PageSize=1&filterField=NON_EXISTENT_FIELD&condition=INVALID_CONDITION&expression=x"
 
 	// Request
@@ -459,7 +458,7 @@ func TestListObjectsForNonExistentUser(t *testing.T) {
 	nonexistentuser := "cn=bob smith,ou=fake,ou=dia,o=u.s. government,c=us"
 
 	// URL
-	uri := host + cfg.NginxRootURL + "/objects"
+	uri := mountPoint + "/objects"
 
 	// Request
 	req, err := http.NewRequest("GET", uri, nil)

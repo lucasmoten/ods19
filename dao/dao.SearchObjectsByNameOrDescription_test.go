@@ -8,8 +8,8 @@ import (
 
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
@@ -197,6 +197,6 @@ func setupObjectForDAOSearchObjectsTest(name string) models.ODObject {
 	permissions[0].AllowDelete = true
 	permissions[0].AllowShare = true
 	obj.Permissions = permissions
-	obj.RawAcm.String = testhelpers.ValidACMUnclassified
+	obj.RawAcm.String = server.ValidACMUnclassified
 	return obj
 }

@@ -10,20 +10,19 @@ import (
 	"strings"
 	"testing"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestUpdateObjectStreamWithMismatchedIDs(t *testing.T) {
 	t.Logf("Create new test object with stream")
 	clientID := 6
 	data, _ := util.NewGUID()
-	f, closer, err := testhelpers.GenerateTempFile(data)
+	f, closer, err := GenerateTempFile(data)
 	defer closer()
 
-	req, err := testhelpers.NewCreateObjectPOSTRequest(host, "", f)
+	req, err := NewCreateObjectPOSTRequest("", f)
 	failNowOnErr(t, err, "could not create a createObject POST request")
 
 	res, err := clients[clientID].Client.Do(req)
@@ -39,8 +38,8 @@ func TestUpdateObjectStreamWithMismatchedIDs(t *testing.T) {
 
 	t.Logf("Try to update object by changing to a bad URL")
 	wrongID, _ := util.NewGUID()
-	badUpdateURI := host + cfg.NginxRootURL + fmt.Sprintf("/objects/%s/stream", wrongID)
-	buf, boundary := testhelpers.NewMultipartRequestBody(t, obj, f)
+	badUpdateURI := mountPoint + fmt.Sprintf("/objects/%s/stream", wrongID)
+	buf, boundary := NewMultipartRequestBody(t, obj, f)
 	updateReq, _ := http.NewRequest("POST", badUpdateURI, buf)
 	updateReq.Header.Set("Content-Type", boundary)
 	t.Logf("  boundary is %s", boundary)
@@ -51,8 +50,8 @@ func TestUpdateObjectStreamWithMismatchedIDs(t *testing.T) {
 
 	t.Logf("Try to update object by changing to a bad JSON id")
 	obj.ID = wrongID
-	goodUpdateURI := host + cfg.NginxRootURL + fmt.Sprintf("/objects/%s/stream", correctID)
-	buf, boundary = testhelpers.NewMultipartRequestBody(t, obj, f)
+	goodUpdateURI := mountPoint + fmt.Sprintf("/objects/%s/stream", correctID)
+	buf, boundary = NewMultipartRequestBody(t, obj, f)
 	updateReq, _ = http.NewRequest("POST", goodUpdateURI, buf)
 	updateReq.Header.Set("Content-Type", boundary)
 	t.Logf("  boundary is %s", boundary)
@@ -139,7 +138,7 @@ func TestUpdateObjectWithProperties(t *testing.T) {
 	}
 
 	// NOTE: do we need to do string escaping here?
-	acm := strings.Replace(testhelpers.ValidACMUnclassifiedFOUO, "\"", "\\\"", -1)
+	acm := strings.Replace(server.ValidACMUnclassifiedFOUO, "\"", "\\\"", -1)
 	t.Logf("Use changetoken for update. id:%s oldChangeToken:%s changeCount:%d", created.ID, created.ChangeToken, created.ChangeCount)
 	doPropertyUpdate(t, clientID, created.ID, fmt.Sprintf(updateTemplate, created.ID, acm, created.ChangeToken),
 		trafficLogs[APISampleFile],
@@ -237,9 +236,9 @@ func TestUpdateStreamWithoutProvidingACMButHasStream(t *testing.T) {
 	updateURISuffix := "objects/" + created.ID + "/stream"
 	data2 := `{"x":"123"}`
 	tmpName := "_capco_favorites.json"
-	f, closer, err := testhelpers.GenerateTempFile(data2)
+	f, closer, err := GenerateTempFile(data2)
 	defer closer()
-	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(updateURISuffix, host, "", f, tmpName, jsonBody)
+	req, err := NewCreateObjectPOSTRequestRaw(updateURISuffix, "", f, tmpName, jsonBody)
 
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
@@ -326,7 +325,7 @@ func doMaliciousUpdate(t *testing.T, oid, jsonString string) {
 	data := "Initial test data 2"
 	// An exe name with some backspace chars to make it display as txt
 	tmpName := "initialTestData2.exe\b\b\btxt"
-	tmp, tmpCloser, err := testhelpers.GenerateTempFile(data)
+	tmp, tmpCloser, err := GenerateTempFile(data)
 	if err != nil {
 		t.Errorf("Could not open temp file for write: %v\n", err)
 	}
@@ -334,8 +333,8 @@ func doMaliciousUpdate(t *testing.T, oid, jsonString string) {
 
 	jsonBody := []byte(jsonString)
 
-	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
-		fmt.Sprintf("objects/%s/stream", oid), host, "", tmp, tmpName, jsonBody)
+	req, err := NewCreateObjectPOSTRequestRaw(
+		fmt.Sprintf("objects/%s/stream", oid), "", tmp, tmpName, jsonBody)
 	failNowOnErr(t, err, "unable to create HTTP request")
 
 	res, err := clients[clientID].Client.Do(req)
@@ -368,7 +367,7 @@ func doPropertyUpdate(
 
 	data := "Initial test data 3 asdf"
 	tmpName := "initialTestData3.txt"
-	tmp, tmpCloser, err := testhelpers.GenerateTempFile(data)
+	tmp, tmpCloser, err := GenerateTempFile(data)
 	if err != nil {
 		t.Errorf("Could not open temp file for write: %v\n", err)
 	}
@@ -376,7 +375,7 @@ func doPropertyUpdate(
 
 	jsonBody := []byte(updateJSON)
 	urlPath := fmt.Sprintf("objects/%s/stream", oid)
-	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(urlPath, host, "", tmp, tmpName, jsonBody)
+	req, err := NewCreateObjectPOSTRequestRaw(urlPath, "", tmp, tmpName, jsonBody)
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
@@ -407,7 +406,7 @@ func doPropertyUpdate(
 
 func doUpdateStreamForObjectID(t *testing.T, clientID int, oid string, newObj protocol.Object) protocol.Object {
 
-	req := testhelpers.NewUpdateObjectStreamPOSTRequest(t, host, newObj)
+	req := NewUpdateObjectStreamPOSTRequest(t, newObj)
 
 	res, err := clients[clientID].Client.Do(req)
 	failNowOnErr(t, err, "could not do update stream request")
@@ -433,7 +432,7 @@ func doReCheckProperties(t *testing.T, oid, jsonString string) {
 	// use more than one client ID.
 	clientID := 5
 
-	req, err := testhelpers.NewGetObjectRequest(oid, "", host)
+	req, err := NewGetObjectRequest(oid, "")
 	if err != nil {
 		t.Logf("Unable to generate get re-request:%v", err)
 	}

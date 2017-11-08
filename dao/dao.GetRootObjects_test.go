@@ -5,7 +5,7 @@ import (
 
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/util/testhelpers"
+	"decipher.com/object-drive-server/server"
 )
 
 func TestDAOGetRootObjects(t *testing.T) {
@@ -27,7 +27,7 @@ func TestDAOGetRootObjects(t *testing.T) {
 	object1.Name = "Test GetRootObjects"
 	object1.CreatedBy = usernames[1]
 	object1.TypeName = models.ToNullString("Test Type")
-	object1.RawAcm.String = testhelpers.ValidACMUnclassified
+	object1.RawAcm.String = server.ValidACMUnclassified
 	dbObject1, err := d.CreateObject(&object1)
 	if err != nil {
 		t.Error(err)

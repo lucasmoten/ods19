@@ -30,10 +30,8 @@ func attemptToStealFile(t *testing.T, filename string) {
 	escapedPeriod := "%2e" // %u002e
 	upAFolder := "/" + escapedPeriod + escapedPeriod
 
-	odrivehost := getIPAddressForContainer(t, "docker_odrive_1")
-
-	odrivehost = odrivehost + ":4430" // "dockervm:4430"
-	//uri := host + cfg.NginxRootURL + "/static/" + upAFolder + upAFolder + upAFolder + upAFolder + upAFolder + upAFolder + "etc/passwd"
+	odrivehost := "proxier:4430" // "dockervm:4430"
+	//uri := mountPoint + "/static/" + upAFolder + upAFolder + upAFolder + upAFolder + upAFolder + upAFolder + "etc/passwd"
 	uri := "https://" + odrivehost + "/static" + upAFolder + upAFolder + upAFolder + upAFolder + upAFolder + upAFolder + filename
 
 	// Request

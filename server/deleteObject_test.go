@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"testing"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/protocol"
@@ -27,7 +26,7 @@ func TestDeleteObject(t *testing.T) {
 	folder1 := makeFolderViaJSON("Test Folder for Deletion ", clientid, t)
 
 	// Now delete the first folder
-	deleteuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/trash"
+	deleteuri := mountPoint + "/objects/" + folder1.ID + "/trash"
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder1.ChangeToken
 	jsonBody, err := json.Marshal(objChangeToken)
@@ -71,7 +70,7 @@ func TestDeleteObject(t *testing.T) {
 	}
 
 	// now make sure the item is marked as deleted when calling for properties
-	geturi := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
+	geturi := mountPoint + "/objects/" + folder1.ID + "/properties"
 	req, err = http.NewRequest("GET", geturi, nil)
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
@@ -122,7 +121,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 	t.Logf("  folder 2: %s", folder2.ID)
 
 	t.Logf("* Attempt to move folder 2 under folder 1")
-	moveuri := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
+	moveuri := mountPoint + "/objects/" + folder2.ID + "/move/" + folder1.ID
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder2.ChangeToken
 	jsonBody, err := json.Marshal(objChangeToken)
@@ -157,7 +156,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 	}
 
 	t.Logf("* Deleting the first folder")
-	deleteuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/trash"
+	deleteuri := mountPoint + "/objects/" + folder1.ID + "/trash"
 	objChangeToken = protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder1.ChangeToken
 	jsonBody, err = json.Marshal(objChangeToken)
@@ -192,7 +191,7 @@ func TestDeleteWithChildObject(t *testing.T) {
 	}
 
 	t.Logf("* Make sure we can't get folder2 anymore (because its a child of a deleted item)")
-	geturi := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/properties"
+	geturi := mountPoint + "/objects/" + folder2.ID + "/properties"
 	req, err = http.NewRequest("GET", geturi, nil)
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {

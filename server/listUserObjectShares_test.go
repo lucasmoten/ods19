@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 )
@@ -17,7 +16,7 @@ func TestListObjectsSharedToMe(t *testing.T) {
 	excludingChildren := false
 	tester1 := 1 // represents Alice
 	tester2 := 2 // represents Bob
-	uriShares := host + cfg.NginxRootURL + "/shares"
+	uriShares := mountPoint + "/shares"
 
 	ACMtester1Private := `{"banner":"UNCLASSIFIED","classif":"U","dissem_countries":["USA"],"portion":"U","share":{"users":["cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`
 	ACMtester2Private := `{"banner":"UNCLASSIFIED","classif":"U","dissem_countries":["USA"],"portion":"U","share":{"users":["cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`
@@ -165,12 +164,12 @@ func TestListObjectsSharedToMeWithApostropheInDN595(t *testing.T) {
 	userDN := "cn=d'angelo nicole e js0s962,ou=people,ou=sois,ou=dod,o=u.s. government,c=us"
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
 	client := 10
-	uriShares := host + cfg.NginxRootURL + "/shares?pageNumber=1&pageSize=30&sortField=modifieddate&"
+	uriShares := mountPoint + "/shares?pageNumber=1&pageSize=30&sortField=modifieddate&"
 	ACMeveryone := `{"banner":"UNCLASSIFIED","classif":"U","dissem_countries":["USA"],"portion":"U","version":"2.1.0"}`
 
 	t.Logf("* Add object for d'angelo nicole so that acmgrantee record will exist")
 
-	folderuri := host + cfg.NginxRootURL + "/objects"
+	folderuri := mountPoint + "/objects"
 	folder := protocol.Object{}
 	folder.Name = "folder for nicole"
 	folder.TypeName = "Folder"

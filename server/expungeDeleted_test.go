@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"testing"
 
-	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
@@ -17,7 +16,7 @@ func testExpungeDeletedCreateObject(t *testing.T, clientid int) *protocol.Object
 }
 
 func countTrash(t *testing.T, clientID int) int {
-	trashURI := host + config.NginxRootURL + "/trashed?pageNumber=1&pageSize=1000"
+	trashURI := mountPoint + "/trashed?pageNumber=1&pageSize=1000"
 
 	trashReq, err := http.NewRequest("GET", trashURI, nil)
 	if err != nil {
@@ -39,7 +38,7 @@ func countTrash(t *testing.T, clientID int) int {
 }
 
 func testExpungeDeletedDeleteObject(t *testing.T, clientid int, obj *protocol.Object) {
-	deleteuri := host + config.NginxRootURL + "/objects/" + obj.ID + "/trash"
+	deleteuri := mountPoint + "/objects/" + obj.ID + "/trash"
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = obj.ChangeToken
 	jsonBody, err := json.Marshal(objChangeToken)
@@ -74,7 +73,7 @@ func TestExpungeDeleted(t *testing.T) {
 	countTrashBefore := countTrash(t, clientid)
 
 	// Clean the trash
-	trashuri := host + config.NginxRootURL + "/trashed"
+	trashuri := mountPoint + "/trashed"
 
 	req, err := http.NewRequest("DELETE", trashuri, nil)
 	// do the request

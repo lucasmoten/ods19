@@ -8,8 +8,8 @@ import (
 
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestDAOGetChildObjectsWithProperties(t *testing.T) {
@@ -25,7 +25,7 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	parent.Name = "Test Parent Object for GetChildObjectsWithProperties" + timeSuffix
 	parent.CreatedBy = usernames[1]
 	parent.TypeName = models.ToNullString("File")
-	parent.RawAcm.String = testhelpers.ValidACMUnclassified
+	parent.RawAcm.String = server.ValidACMUnclassified
 	dbParent, err := d.CreateObject(&parent)
 	if dbParent.ID == nil {
 		t.Error("expected ID to be set")
@@ -43,7 +43,7 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	child1.CreatedBy = usernames[1]
 	child1.TypeName = models.ToNullString("File")
 	child1.ParentID = dbParent.ID
-	child1.RawAcm.String = testhelpers.ValidACMUnclassified
+	child1.RawAcm.String = server.ValidACMUnclassified
 	dbChild1, err := d.CreateObject(&child1)
 	if dbChild1.ID == nil {
 		t.Error("expected ID to be set")
@@ -81,7 +81,7 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	child2.CreatedBy = usernames[1]
 	child2.TypeName = models.ToNullString("File")
 	child2.ParentID = dbParent.ID
-	child2.RawAcm.String = testhelpers.ValidACMUnclassified
+	child2.RawAcm.String = server.ValidACMUnclassified
 	dbChild2, err := d.CreateObject(&child2)
 	if dbChild2.ID == nil {
 		t.Error("expected ID to be set")

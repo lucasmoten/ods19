@@ -10,10 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestListMyGroupsWithObjects(t *testing.T) {
@@ -77,12 +76,12 @@ func TestListMyGroupsWithObjects(t *testing.T) {
 }
 
 func makeObjectOwnedByGroup(t *testing.T, clientid int, ownedby string) {
-	objuri := host + config.NginxRootURL + "/objects"
+	objuri := mountPoint + "/objects"
 	obj := protocol.Object{}
 	obj.Name = "TestListMyGroupsWithObjects " + strconv.FormatInt(time.Now().Unix(), 10)
 	obj.TypeName = "Folder"
 	obj.OwnedBy = ownedby
-	obj.RawAcm = testhelpers.ValidACMUnclassified
+	obj.RawAcm = server.ValidACMUnclassified
 	jsonBody, err := json.Marshal(obj)
 	if err != nil {
 		t.Logf("Unable to marshal json for request:%v", err)
@@ -100,7 +99,7 @@ func makeObjectOwnedByGroup(t *testing.T, clientid int, ownedby string) {
 	statusMustBe(t, 200, res, fmt.Sprintf("client id %d could not create object %s", clientid, obj.Name))
 }
 func getUserGroups(t *testing.T, clientid int) *protocol.GroupSpaceResultset {
-	groupsuri := host + config.NginxRootURL + "/groups"
+	groupsuri := mountPoint + "/groups"
 	req, err := http.NewRequest("GET", groupsuri, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)

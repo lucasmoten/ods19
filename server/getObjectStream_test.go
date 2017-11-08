@@ -8,17 +8,16 @@ import (
 	"testing"
 
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestEtag(t *testing.T) {
 	clientID := 5
 	b := []byte(`abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@`)
 
-	file, cleanup := testhelpers.GenerateTempFileFromBytes(b, t)
+	file, cleanup := GenerateTempFileFromBytes(b, t)
 	defer cleanup()
 
-	req, err := testhelpers.NewCreateObjectPOSTRequest(host, "", file)
+	req, err := NewCreateObjectPOSTRequest("", file)
 	if err != nil {
 		t.Errorf("Failure from NewCreateObjectPOSTRequest: %v\n", err)
 	}
@@ -26,7 +25,7 @@ func TestEtag(t *testing.T) {
 	responseObject := doCreateObjectRequest(t, clientID, req, 200)
 
 	//Ask for it in order to get the eTag and a 200
-	req2, err := testhelpers.NewGetObjectStreamRequest(responseObject.ID, "", host)
+	req2, err := NewGetObjectStreamRequest(responseObject.ID, "")
 	if err != nil {
 		t.Errorf("Failure from redo get object stream: %v\n", err)
 	}
@@ -44,7 +43,7 @@ func TestEtag(t *testing.T) {
 	}
 
 	//Ask again with the eTag and get a 304
-	req3, err := testhelpers.NewGetObjectStreamRequest(responseObject.ID, "", host)
+	req3, err := NewGetObjectStreamRequest(responseObject.ID, "")
 	if err != nil {
 		t.Errorf("Failure from redo get object stream: %v\n", err)
 	}
@@ -67,7 +66,7 @@ func TestEtag(t *testing.T) {
 	util.FinishBody(res3.Body)
 
 	//Ask with a wrong tag and get 200
-	req4, err := testhelpers.NewGetObjectStreamRequest(responseObject.ID, "", host)
+	req4, err := NewGetObjectStreamRequest(responseObject.ID, "")
 	if err != nil {
 		t.Errorf("Failure from redo get object stream: %v\n", err)
 	}
@@ -86,10 +85,10 @@ func TestUploadAndGetByteRange(t *testing.T) {
 	start, end := 5, 35
 	expected := b[start:end]
 
-	file, cleanup := testhelpers.GenerateTempFileFromBytes(b, t)
+	file, cleanup := GenerateTempFileFromBytes(b, t)
 	defer cleanup()
 
-	req, err := testhelpers.NewCreateObjectPOSTRequest(host, "", file)
+	req, err := NewCreateObjectPOSTRequest("", file)
 	if err != nil {
 		t.Errorf("Failure from NewCreateObjectPOSTRequest: %v\n", err)
 	}
@@ -97,7 +96,7 @@ func TestUploadAndGetByteRange(t *testing.T) {
 	clientID := 5
 	responseObject := doCreateObjectRequest(t, clientID, req, 200)
 
-	rangeReq, err := testhelpers.NewGetObjectStreamRequest(responseObject.ID, "", host)
+	rangeReq, err := NewGetObjectStreamRequest(responseObject.ID, "")
 	if err != nil {
 		t.Errorf("Could not create GetObjectStreamRequest: %v\n", err)
 	}

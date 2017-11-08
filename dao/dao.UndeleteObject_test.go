@@ -1,10 +1,7 @@
 package dao_test
 
-import (
-	"testing"
-
-	"decipher.com/object-drive-server/util/testhelpers"
-)
+import "testing"
+import "decipher.com/object-drive-server/server"
 
 func TestUndeleteObjectWithChildren(t *testing.T) {
 
@@ -25,18 +22,18 @@ func TestUndeleteObjectWithChildren(t *testing.T) {
 	*/
 
 	// Create folder1.
-	folder1 := testhelpers.NewObjectWithPermissionsAndProperties(usernames[1], "Folder")
+	folder1 := server.NewObjectWithPermissionsAndProperties(usernames[1], "Folder")
 	folder1, err := d.CreateObject(&folder1)
 
 	// Set up children of folder1.
-	objA := testhelpers.NewObjectWithPermissionsAndProperties(usernames[1], "File")
-	folder1, objA, err = testhelpers.CreateParentChildObjectRelationship(folder1, objA)
+	objA := server.NewObjectWithPermissionsAndProperties(usernames[1], "File")
+	folder1, objA, err = server.CreateParentChildObjectRelationship(folder1, objA)
 
-	objB := testhelpers.NewObjectWithPermissionsAndProperties(usernames[1], "File")
-	folder1, objB, err = testhelpers.CreateParentChildObjectRelationship(folder1, objB)
+	objB := server.NewObjectWithPermissionsAndProperties(usernames[1], "File")
+	folder1, objB, err = server.CreateParentChildObjectRelationship(folder1, objB)
 
-	folder2 := testhelpers.NewObjectWithPermissionsAndProperties(usernames[1], "Folder")
-	folder1, folder2, err = testhelpers.CreateParentChildObjectRelationship(folder1, folder2)
+	folder2 := server.NewObjectWithPermissionsAndProperties(usernames[1], "Folder")
+	folder1, folder2, err = server.CreateParentChildObjectRelationship(folder1, folder2)
 
 	objA, err = d.CreateObject(&objA)
 	objB, err = d.CreateObject(&objB)
@@ -46,14 +43,14 @@ func TestUndeleteObjectWithChildren(t *testing.T) {
 	}
 
 	// folder2 already created. Set up children of folder2.
-	objC := testhelpers.NewObjectWithPermissionsAndProperties(usernames[1], "File")
-	folder2, objC, err = testhelpers.CreateParentChildObjectRelationship(folder2, objC)
+	objC := server.NewObjectWithPermissionsAndProperties(usernames[1], "File")
+	folder2, objC, err = server.CreateParentChildObjectRelationship(folder2, objC)
 
-	folder3 := testhelpers.NewObjectWithPermissionsAndProperties(usernames[1], "Folder")
-	folder2, folder3, err = testhelpers.CreateParentChildObjectRelationship(folder2, folder3)
+	folder3 := server.NewObjectWithPermissionsAndProperties(usernames[1], "Folder")
+	folder2, folder3, err = server.CreateParentChildObjectRelationship(folder2, folder3)
 
-	objE := testhelpers.NewObjectWithPermissionsAndProperties(usernames[1], "File")
-	folder2, objE, err = testhelpers.CreateParentChildObjectRelationship(folder2, objE)
+	objE := server.NewObjectWithPermissionsAndProperties(usernames[1], "File")
+	folder2, objE, err = server.CreateParentChildObjectRelationship(folder2, objE)
 
 	objC, err = d.CreateObject(&objC)
 	folder3, err = d.CreateObject(&folder3)
@@ -63,8 +60,8 @@ func TestUndeleteObjectWithChildren(t *testing.T) {
 	}
 
 	// folder3 already created. Set up children of folder3.
-	objD := testhelpers.NewObjectWithPermissionsAndProperties(usernames[1], "File")
-	folder3, objD, err = testhelpers.CreateParentChildObjectRelationship(folder3, objD)
+	objD := server.NewObjectWithPermissionsAndProperties(usernames[1], "File")
+	folder3, objD, err = server.CreateParentChildObjectRelationship(folder3, objD)
 
 	objD, err = d.CreateObject(&objD)
 	if err != nil {

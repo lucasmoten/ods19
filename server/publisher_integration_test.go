@@ -9,7 +9,7 @@ import (
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/util/testhelpers"
+	"decipher.com/object-drive-server/server"
 
 	"github.com/Shopify/sarama"
 )
@@ -25,14 +25,14 @@ func TestPublishEvents(t *testing.T) {
 	clientID := 0
 
 	// Perform API calls that we expect to generate events on Kafka queue: create and then delete
-	_, obj := doTestCreateObjectSimple(t, "test data", clientID, nil, nil, testhelpers.ValidACMUnclassified)
+	_, obj := doTestCreateObjectSimple(t, "test data", clientID, nil, nil, server.ValidACMUnclassified)
 	published[obj.ID] = append(published[obj.ID], "create")
 
-	_, obj = doTestUpdateObjectSimple(t, "updated data", clientID, obj, nil, nil, testhelpers.ValidACMUnclassified)
+	_, obj = doTestUpdateObjectSimple(t, "updated data", clientID, obj, nil, nil, server.ValidACMUnclassified)
 	published[obj.ID] = append(published[obj.ID], "update")
 	po := protocol.Object{ID: obj.ID}
 	po.ChangeToken = obj.ChangeToken
-	req, err := testhelpers.NewDeleteObjectRequest(po, "", host)
+	req, err := NewDeleteObjectRequest(po, "")
 	failNowOnErr(t, err, "could not create delete object request")
 	resp, err := clients[clientID].Client.Do(req)
 	failNowOnErr(t, err, "error calling delete object")
@@ -42,7 +42,7 @@ func TestPublishEvents(t *testing.T) {
 	// Read events asynchronously
 	appConf := config.NewAppConfiguration(config.CommandLineOpts{Conf: "../config/testfixtures/complete.yml"})
 	topic := appConf.EventQueue.Topic
-	pc := partitionConsumerForTopic(t, []string{config.DockerVM + ":9092"}, topic)
+	pc := partitionConsumerForTopic(t, []string{"kafka:9092"}, topic)
 	defer pc.Close()
 	ch := pc.Messages()
 

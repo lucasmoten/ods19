@@ -9,8 +9,8 @@ import (
 
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestDAOGetTrashedObjectsByUser(t *testing.T) {
@@ -209,7 +209,7 @@ func createTestObjectAllPermissions(username string) models.ODObject {
 	obj.Name = name
 	obj.CreatedBy = username
 	obj.TypeName = models.ToNullString("File")
-	acm := testhelpers.ValidACMUnclassified
+	acm := server.ValidACMUnclassified
 	acm = strings.Replace(acm, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s"]`, models.AACFlatten(username)), -1)
 	obj.RawAcm = models.ToNullString(acm)
 	var perms models.ODObjectPermission

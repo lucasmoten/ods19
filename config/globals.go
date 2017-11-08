@@ -23,10 +23,6 @@ var (
 	// By default, the logger used in config package is the RootLogger
 	logger = RootLogger
 
-	// DockerVM is used for development tests only. It is the default resolve for the dockervm hostname.
-	// Use an IP address to get around DNS resolution issues with docker in some environments
-	DockerVM = lookupDockerHost()
-
 	// MyIP is used for development only. It overrides the reported lookup of IP based upon the hostname.
 	MyIP = lookupOurIP()
 
@@ -39,9 +35,6 @@ var (
 
 	// RootURLRegex is the routing url regex for our entire app - TODO: deprecate this
 	RootURLRegex = RegexEscape(RootURL)
-
-	// NginxRootURL should only be refrenced by our generic UI for routing purposes to fill in the base href in templates
-	NginxRootURL = "/services/object-drive/1.0"
 )
 
 // RandomID generates a random string
@@ -83,7 +76,7 @@ func initLogger() zap.Logger {
 }
 
 func lookupDockerHost() string {
-	answer := "dockervm"
+	answer := "proxier"
 	// TODO: Find out why test clients need to use this, and what kinds.
 	// TODO: Find out why this necessitates definining a DOCKER_HOST and OD_DOCKERVM_OVERRIDE and what the differences are.
 	//This is used by test clients

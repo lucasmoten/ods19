@@ -4,10 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestListObjectsSharedToEveryone(t *testing.T) {
@@ -22,10 +21,10 @@ func TestListObjectsSharedToEveryone(t *testing.T) {
 	folder1 := makeFolderViaJSON("TestListObjectsSharedToEveryone - Everyone", tester1, t)
 
 	t.Logf("* Create folder as Tester01 not shared to everyone")
-	folder2, err := makeFolderWithACMViaJSON("TestListObjectsSharedToEveryone - Not Everyone", testhelpers.ValidACMUnclassifiedFOUOSharedToTester01And02, tester1)
+	folder2, err := makeFolderWithACMViaJSON("TestListObjectsSharedToEveryone - Not Everyone", server.ValidACMUnclassifiedFOUOSharedToTester01And02, tester1)
 
 	t.Logf("* Get list of objects shared to everyone")
-	uriEveryone := host + cfg.NginxRootURL + "/sharedpublic"
+	uriEveryone := mountPoint + "/sharedpublic"
 	listReq1 := makeHTTPRequestFromInterface(t, "GET", uriEveryone, nil)
 	listRes1, err := clients[tester1].Client.Do(listReq1)
 	failNowOnErr(t, err, "Unable to do request")
@@ -64,7 +63,7 @@ func TestListObjectsSharedToEveryoneExcludeChildren(t *testing.T) {
 	}
 
 	tester1 := 1 // represents Alice
-	uriEveryone := host + cfg.NginxRootURL + "/sharedpublic"
+	uriEveryone := mountPoint + "/sharedpublic"
 
 	ACMtester1Private := `{"banner":"UNCLASSIFIED","classif":"U","dissem_countries":["USA"],"portion":"U","share":{"users":["cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`
 	ACMtester1And2 := `{"banner":"UNCLASSIFIED","classif":"U","dissem_countries":["USA"],"portion":"U","share":{"users":["cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`

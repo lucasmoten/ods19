@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/services/audit"
 	"golang.org/x/net/context"
 )
@@ -32,7 +31,7 @@ func (h *AppServer) homeListObjects(ctx context.Context, w http.ResponseWriter, 
 	parentID := r.URL.Query().Get("parentId")
 	tmpl := h.TemplateCache.Lookup("listObjects.html")
 	data := struct{ RootURL, DistinguishedName, ParentID string }{
-		RootURL:           cfg.NginxRootURL,
+		RootURL:           "/services/object-drive/1.0",
 		DistinguishedName: caller.DistinguishedName,
 		ParentID:          parentID,
 	}

@@ -7,8 +7,8 @@ import (
 
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestDAOAddPermissionToObject(t *testing.T) {
@@ -21,7 +21,7 @@ func TestDAOAddPermissionToObject(t *testing.T) {
 	object.Name = "Test Object for Permissions"
 	object.CreatedBy = usernames[1]
 	object.TypeName = models.ToNullString("Test Type")
-	object.RawAcm = models.ToNullString(testhelpers.ValidACMUnclassified)
+	object.RawAcm = models.ToNullString(server.ValidACMUnclassified)
 	dbObject, err := d.CreateObject(&object)
 	if err != nil {
 		t.Error(err)

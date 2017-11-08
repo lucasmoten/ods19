@@ -9,8 +9,8 @@ import (
 
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestDAOGetObjectsSharedToMe(t *testing.T) {
@@ -31,7 +31,7 @@ func TestDAOGetObjectsSharedToMe(t *testing.T) {
 	object1.CreatedBy = users[1].DistinguishedName
 	object1.Name = searchPrefix + " object1 (shared to user1)"
 	object1.TypeName = models.ToNullString("Test Object")
-	acmUforTP1TP2 := testhelpers.ValidACMUnclassified
+	acmUforTP1TP2 := server.ValidACMUnclassified
 	acmUforTP1TP2 = strings.Replace(acmUforTP1TP2, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s","%s"]`, models.AACFlatten(usernames[1]), models.AACFlatten(usernames[2])), -1)
 	object1.RawAcm = models.ToNullString(acmUforTP1TP2)
 	permissions1 := make([]models.ODObjectPermission, 2)
@@ -68,7 +68,7 @@ func TestDAOGetObjectsSharedToMe(t *testing.T) {
 	object2.CreatedBy = users[1].DistinguishedName
 	object2.Name = searchPrefix + " object2 (shared to everyone)"
 	object2.TypeName = models.ToNullString("Test Object")
-	object2.RawAcm.String = testhelpers.ValidACMUnclassified
+	object2.RawAcm.String = server.ValidACMUnclassified
 	permissions2 := make([]models.ODObjectPermission, 2)
 	permissions2[0].CreatedBy = object2.CreatedBy
 	permissions2[0].Grantee = models.AACFlatten(object2.CreatedBy)
@@ -176,7 +176,7 @@ func TestDAOGetObjectsSharedToMeWithApostropheInDN595(t *testing.T) {
 	object1.CreatedBy = users[1].DistinguishedName
 	object1.Name = searchPrefix + " object1 (shared to user11)"
 	object1.TypeName = models.ToNullString("Test Object")
-	acmUforTP1TP11 := testhelpers.ValidACMUnclassified
+	acmUforTP1TP11 := server.ValidACMUnclassified
 	acmUforTP1TP11 = strings.Replace(acmUforTP1TP11, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s","%s"]`, models.AACFlatten(object1.CreatedBy), models.AACFlatten(users[11].DistinguishedName)), -1)
 	object1.RawAcm = models.ToNullString(acmUforTP1TP11)
 	permissions1 := make([]models.ODObjectPermission, 2)

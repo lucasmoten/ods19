@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/util/testhelpers"
+	"decipher.com/object-drive-server/server"
 )
 
 func TestDAOAddPropertyToObject(t *testing.T) {
@@ -23,7 +23,7 @@ func TestDAOAddPropertyToObject(t *testing.T) {
 	obj.Name = "Test Object for Adding Property"
 	obj.CreatedBy = usernames[1]
 	obj.TypeName = models.ToNullString("File")
-	obj.RawAcm.String = testhelpers.ValidACMUnclassified
+	obj.RawAcm.String = server.ValidACMUnclassified
 	dbObject, err := d.CreateObject(&obj)
 	if dbObject.ID == nil {
 		t.Error("expected ID to be set")

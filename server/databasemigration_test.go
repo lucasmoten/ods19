@@ -24,8 +24,8 @@ import (
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 // TestDBMigration20161230 leverages the server startup that ensures docker containers for DB and server are up
@@ -78,7 +78,7 @@ func TestDBMigration20161230(t *testing.T) {
 	modelObj.CreatedBy = username
 	modelObj.TypeName.String = "File"
 	modelObj.TypeName.Valid = true
-	modelObj.RawAcm.String = testhelpers.ValidACMUnclassified
+	modelObj.RawAcm.String = server.ValidACMUnclassified
 	createdObj, err := d.CreateObject(&modelObj)
 	if err != nil {
 		t.Logf("Error creating object: %v\n", err)
@@ -106,7 +106,7 @@ func TestDBMigration20161230(t *testing.T) {
 	objectID := hex.EncodeToString(createdObj.ID)
 	t.Logf("ObjectID is %s", objectID)
 	tester10 := 0
-	req, _ := testhelpers.NewGetObjectRequest(objectID, "", host)
+	req, _ := NewGetObjectRequest(objectID, "")
 	resp, _ := clients[tester10].Client.Do(req)
 	data, _ := ioutil.ReadAll(resp.Body)
 	var obj protocol.Object

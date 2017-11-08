@@ -17,7 +17,7 @@ import (
 	"decipher.com/object-drive-server/client"
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/util/testhelpers"
+	"decipher.com/object-drive-server/server"
 )
 
 // testDir defines the location for files used in upload/download tests.
@@ -29,7 +29,7 @@ var conf = client.Config{
 	Trust:      os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/client.trust.pem",
 	Key:        os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/test_0.key.pem",
 	SkipVerify: true, // LM: currently set to true because the global "dockervm" wont actually match the cert for remote
-	Remote:     fmt.Sprintf("https://%s:%s/services/object-drive/1.0", config.DockerVM, config.Port),
+	Remote:     fmt.Sprintf("https://proxier:%s/services/object-drive/1.0", config.Port),
 }
 
 var permissions = protocol.Permission{
@@ -220,7 +220,7 @@ func TestImpersonation(t *testing.T) {
 	t.Logf("MyDN: %s", c.MyDN)
 	cor := protocol.CreateObjectRequest{
 		Name:   "impersonados",
-		RawAcm: testhelpers.ValidACMUnclassifiedFOUOSharedToTester10,
+		RawAcm: server.ValidACMUnclassifiedFOUOSharedToTester10,
 	}
 	obj, err := c.CreateObject(cor, nil)
 	if err != nil {

@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"testing"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/protocol"
@@ -25,7 +24,7 @@ func TestQuery(t *testing.T) {
 	}
 
 	// URL
-	uri := host + cfg.NginxRootURL + "/search/test"
+	uri := mountPoint + "/search/test"
 
 	// Body
 	paging := protocol.PagingRequest{}
@@ -92,7 +91,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 	folder2 := makeFolderViaJSON("Test Folder 2 "+searchPhrase, clientid, t)
 
 	// Modify the 1st folder
-	updateuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
+	updateuri := mountPoint + "/objects/" + folder1.ID + "/properties"
 	updateObjectRequest := protocol.UpdateObjectRequest{}
 	updateObjectRequest.ID = folder1.ID
 	updateObjectRequest.Name = folder1.Name
@@ -130,7 +129,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 	updateObjectRequest.ChangeToken = updatedFolder.ChangeToken
 	updateObjectRequest.Description = "The folder has been changed twice"
 	// Modify the 1st folder again
-	updateuri = host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
+	updateuri = mountPoint + "/objects/" + folder1.ID + "/properties"
 	jsonBody, err = json.Marshal(updateObjectRequest)
 	if err != nil {
 		t.Logf("Unable to marshal json for request:%v", err)
@@ -162,7 +161,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 	folder1.ChangeToken = updatedFolder.ChangeToken
 
 	// URL
-	uri := host + cfg.NginxRootURL + "/search/" + searchPhrase + "?sortField=version&sortAscending=false&PageSize=2&PageNumber=1"
+	uri := mountPoint + "/search/" + searchPhrase + "?sortField=version&sortAscending=false&PageSize=2&PageNumber=1"
 
 	// Request
 	req, err := http.NewRequest("GET", uri, nil)
@@ -214,7 +213,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 	changes2 := listOfObjects.Objects[1].ChangeCount
 	// If there are more pages, go fetch the last
 	if listOfObjects.TotalRows > 2 {
-		uri := host + cfg.NginxRootURL + "/search/" + searchPhrase + "?sortField=version&sortAscending=false&PageSize=2&PageNumber=" + strconv.Itoa(listOfObjects.PageCount)
+		uri := mountPoint + "/search/" + searchPhrase + "?sortField=version&sortAscending=false&PageSize=2&PageNumber=" + strconv.Itoa(listOfObjects.PageCount)
 		if err != nil {
 			t.Logf("Unable to marshal json for request:%v", err)
 			t.FailNow()
@@ -263,7 +262,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 
 	// Cleanup
 	// Now delete the first folder
-	deleteuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/trash"
+	deleteuri := mountPoint + "/objects/" + folder1.ID + "/trash"
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder1.ChangeToken
 	jsonBody, err = json.Marshal(objChangeToken)
@@ -297,7 +296,7 @@ func TestQuerySortByVersionDescending(t *testing.T) {
 	}
 
 	// Now delete the second folder
-	deleteuri = host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/trash"
+	deleteuri = mountPoint + "/objects/" + folder2.ID + "/trash"
 	objChangeToken = protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder2.ChangeToken
 	jsonBody, err = json.Marshal(objChangeToken)

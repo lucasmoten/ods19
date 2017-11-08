@@ -12,11 +12,15 @@ import (
 	"testing"
 	"time"
 
-	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/server"
+
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
+
+// Include this in the server_test package so that it cannot escape it,
+// and purge NginxRootUrl and DockerVM references
+const mountPoint = "https://proxier:8080/services/object-drive/1.0"
 
 func makeHTTPRequestFromInterface(t *testing.T, method string, uri string, obj interface{}) *http.Request {
 	var requestBuffer *bytes.Buffer
@@ -64,7 +68,7 @@ func makeGroupShareString(project string, displayName string, groupName string) 
 }
 
 func doAddObjectShare(t *testing.T, obj *protocol.Object, share *protocol.ObjectShare, clientid int) *protocol.Object {
-	shareuri := host + cfg.NginxRootURL + "/shared/" + obj.ID
+	shareuri := mountPoint + "/shared/" + obj.ID
 	req := makeHTTPRequestFromInterface(t, "POST", shareuri, share)
 	res, err := clients[clientid].Client.Do(req)
 	failNowOnErr(t, err, "Unable to do request")
@@ -80,7 +84,7 @@ func makeFolderWithACMViaJSON(folderName string, rawAcm string, clientid int) (*
 }
 
 func makeFolderWithACMWithParentViaJSON(folderName string, parentID string, rawAcm string, clientid int) (*protocol.Object, error) {
-	folderuri := host + cfg.NginxRootURL + "/objects"
+	folderuri := mountPoint + "/objects"
 	folder := protocol.Object{}
 	folder.Name = folderName
 	folder.TypeName = "Folder"
@@ -127,7 +131,7 @@ func makeFolderViaJSON(folderName string, clientid int, t *testing.T) *protocol.
 func makeFolderWithParentViaJSON(folderName string, parentID string, clientid int, t *testing.T) *protocol.Object {
 
 	nameWithTimestamp := folderName + strconv.FormatInt(time.Now().Unix(), 10)
-	obj, err := makeFolderWithACMWithParentViaJSON(nameWithTimestamp, parentID, testhelpers.ValidACMUnclassified, clientid)
+	obj, err := makeFolderWithACMWithParentViaJSON(nameWithTimestamp, parentID, server.ValidACMUnclassified, clientid)
 
 	if err != nil {
 		t.Errorf("Error creating folder %s: %v\n", folderName, err)
@@ -137,7 +141,7 @@ func makeFolderWithParentViaJSON(folderName string, parentID string, clientid in
 }
 
 func listChildren(parentID string, clientid int, t *testing.T) *protocol.ObjectResultset {
-	uri := host + cfg.NginxRootURL + "/objects/" + parentID
+	uri := mountPoint + "/objects/" + parentID
 	req, _ := http.NewRequest("GET", uri, nil)
 	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
@@ -161,7 +165,7 @@ func listChildren(parentID string, clientid int, t *testing.T) *protocol.ObjectR
 }
 
 func getObject(id string, clientid int, t *testing.T) *protocol.Object {
-	uri := host + cfg.NginxRootURL + "/objects/" + id + "/properties"
+	uri := mountPoint + "/objects/" + id + "/properties"
 	req, _ := http.NewRequest("GET", uri, nil)
 	res, err := clients[clientid].Client.Do(req)
 	if err != nil {
@@ -244,7 +248,7 @@ func doTestCreateObjectSimpleWithType(
 	var acm interface{}
 	json.Unmarshal([]byte(acmString), &acm)
 	tmpName := "initialTestData1.txt"
-	tmp, tmpCloser, err := testhelpers.GenerateTempFile(data)
+	tmp, tmpCloser, err := GenerateTempFile(data)
 	if err != nil {
 		t.Errorf("Could not open temp file for write: %v\n", err)
 	}
@@ -263,8 +267,8 @@ func doTestCreateObjectSimpleWithType(
 		t.Fail()
 	}
 
-	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
-		"objects", host, "", tmp, tmpName, jsonBody)
+	req, err := NewCreateObjectPOSTRequestRaw(
+		"objects", "", tmp, tmpName, jsonBody)
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
@@ -298,7 +302,7 @@ func doTestUpdateObjectSimple(
 	var acm interface{}
 	json.Unmarshal([]byte(acmString), &acm)
 	tmpName := "initialTestData1.txt"
-	tmp, tmpCloser, err := testhelpers.GenerateTempFile(data)
+	tmp, tmpCloser, err := GenerateTempFile(data)
 	if err != nil {
 		t.Errorf("Could not open temp file for write: %v\n", err)
 	}
@@ -318,8 +322,8 @@ func doTestUpdateObjectSimple(
 		t.Fail()
 	}
 
-	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
-		"objects/"+oldObject.ID+"/stream", host, "", tmp, tmpName, jsonBody)
+	req, err := NewCreateObjectPOSTRequestRaw(
+		"objects/"+oldObject.ID+"/stream", "", tmp, tmpName, jsonBody)
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
@@ -337,7 +341,7 @@ func doTestUpdateObjectSimple(
 
 func doCheckFileNowExists(t *testing.T, clientID int, jres protocol.Object) {
 
-	uri2 := host + cfg.NginxRootURL + "/objects"
+	uri2 := mountPoint + "/objects"
 	if jres.ParentID != "" {
 		uri2 = uri2 + "/" + jres.ParentID
 	}
@@ -380,7 +384,7 @@ func doCheckFileNowExists(t *testing.T, clientID int, jres protocol.Object) {
 }
 
 func shouldHaveReadForObjectID(t *testing.T, objID string, clientIdxs ...int) {
-	uri := host + cfg.NginxRootURL + "/objects/" + objID + "/properties"
+	uri := mountPoint + "/objects/" + objID + "/properties"
 	getReq, _ := http.NewRequest("GET", uri, nil)
 	for _, i := range clientIdxs {
 		// reaches for package global clients
@@ -401,7 +405,7 @@ func shouldHaveReadForObjectID(t *testing.T, objID string, clientIdxs ...int) {
 }
 
 func shouldNotHaveReadForObjectID(t *testing.T, objID string, clientIdxs ...int) {
-	uri := host + cfg.NginxRootURL + "/objects/" + objID + "/properties"
+	uri := mountPoint + "/objects/" + objID + "/properties"
 	getReq, _ := http.NewRequest("GET", uri, nil)
 	for _, i := range clientIdxs {
 		// reaches for package global clients
@@ -415,7 +419,7 @@ func shouldNotHaveReadForObjectID(t *testing.T, objID string, clientIdxs ...int)
 }
 
 func expectingReadForObjectIDVersion(t *testing.T, code int, version int, objID string, clientIdxs ...int) {
-	uri := host + cfg.NginxRootURL + "/revisions/" + objID + "/" + strconv.Itoa(version) + "/stream"
+	uri := mountPoint + "/revisions/" + objID + "/" + strconv.Itoa(version) + "/stream"
 	getReq, _ := http.NewRequest("GET", uri, nil)
 	for _, i := range clientIdxs {
 		// reaches for package global clients

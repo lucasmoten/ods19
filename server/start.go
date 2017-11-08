@@ -14,7 +14,6 @@ import (
 	"decipher.com/object-drive-server/services/aac"
 	"decipher.com/object-drive-server/services/kafka"
 	"decipher.com/object-drive-server/services/zookeeper"
-	"decipher.com/object-drive-server/util/testhelpers"
 	"github.com/samuel/go-zookeeper/zk"
 	"github.com/uber-go/zap"
 )
@@ -216,7 +215,7 @@ func aacKeepalive(app *AppServer, conf config.AppConfiguration) {
 		case <-t.C:
 			if app.AAC != nil {
 				logger.Debug("aacKeepalive: checking health")
-				_, err := app.AAC.ValidateAcm(testhelpers.ValidACMUnclassified)
+				_, err := app.AAC.ValidateAcm(ValidACMUnclassified)
 				if err != nil {
 					logger.Error("aacKeepalive health check failure", zap.Object("err", err))
 					aacReconnect(app, conf)
@@ -284,7 +283,7 @@ func aacReconnect(app *AppServer, conf config.AppConfiguration) {
 			continue
 		}
 		// we have a client. let's run a test before we set the pointer.
-		_, err = client.ValidateAcm(testhelpers.ValidACMUnclassified)
+		_, err = client.ValidateAcm(ValidACMUnclassified)
 		if err != nil {
 			logger.Error("aacReconnect: call to ValidateAcm failed", zap.Object("announcData", info))
 			continue
@@ -326,7 +325,7 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 		// Test our connection after an event hits our queue.
 		var err error
 		if app.AAC != nil {
-			_, err = app.AAC.ValidateAcm(testhelpers.ValidACMUnclassified)
+			_, err = app.AAC.ValidateAcm(ValidACMUnclassified)
 		}
 		if app.AAC == nil || err != nil {
 			if app.AAC == nil {
@@ -345,7 +344,7 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 					port := announcement.ServiceEndpoint.Port
 					aacc, err := aac.GetAACClient(host, port, aacConf.CAPath, aacConf.ClientCert, aacConf.ClientKey)
 					if err == nil {
-						_, err = aacc.ValidateAcm(testhelpers.ValidACMUnclassified)
+						_, err = aacc.ValidateAcm(ValidACMUnclassified)
 						if err != nil {
 							logger.Error("aac reconnect check error", zap.String("err", err.Error()))
 						} else {

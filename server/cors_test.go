@@ -12,8 +12,8 @@ import (
 func TestCors(t *testing.T) {
 	//Preflight request for a POST is like this:
 
-	origin := "https://" + cfg.DockerVM + ":" + cfg.Port
-	req, err := http.NewRequest("OPTIONS", origin+""+cfg.NginxRootURL+"/objects/0123456789abcdef0123456789abcdef", nil)
+	origin := "https://proxier" + ":" + cfg.Port
+	req, err := http.NewRequest("OPTIONS", mountPoint+"/objects/0123456789abcdef0123456789abcdef", nil)
 	if err != nil {
 		t.Errorf("Unable to generate request:%v", err)
 		t.FailNow()
@@ -61,7 +61,7 @@ func TestCors(t *testing.T) {
 
 	// Also check that normal methods get origin checks:
 	// Make an arbitrary request, where we set origin and get it reflected back as allowed
-	req, err = http.NewRequest("GET", "https://"+cfg.DockerVM+":"+cfg.Port+""+cfg.NginxRootURL+"/userstats", nil)
+	req, err = http.NewRequest("GET", mountPoint+"/userstats", nil)
 	if err != nil {
 		t.Errorf("Unable to generate request:%v", err)
 		t.FailNow()

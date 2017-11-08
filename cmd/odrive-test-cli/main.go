@@ -207,7 +207,7 @@ func main() {
 						conf.Impersonation = userdn
 						//conf, err = gatherConfRaw(conf, clictx.String("conf"), cert, key, trust)
 						conf.SkipVerify = true
-						conf.Remote = fmt.Sprintf("https://%s:%s/services/object-drive/1.0", config.DockerVM, config.Port)
+						conf.Remote = fmt.Sprintf("https://proxier:%s/services/object-drive/1.0", config.Port)
 						id := rand.Int31() % 5000
 						username = fmt.Sprintf("usey%d mcuser%d", id, id)
 						userdn = fmt.Sprintf("cn=%s,ou=aaa,o=u.s. government,c=us", username)
@@ -366,7 +366,7 @@ func gatherConfRaw(conf client.Config, confFile string, cert, key, trust string)
 
 	// Set remaining defaults
 	conf.SkipVerify = true
-	conf.Remote = fmt.Sprintf("https://%s:%s/services/object-drive/1.0", config.DockerVM, config.Port)
+	conf.Remote = fmt.Sprintf("https://proxier:%s/services/object-drive/1.0", config.Port)
 
 	// Override supplied values
 	if confFile != "" {

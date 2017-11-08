@@ -18,14 +18,13 @@ import (
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/server"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestListObjectsTrashedJSONResponse(t *testing.T) {
 
 	user := models.ODUser{DistinguishedName: fakeDN1}
 
-	obj1 := testhelpers.NewTrashedObject(user.DistinguishedName)
+	obj1 := NewTrashedObject(user.DistinguishedName)
 	resultset := models.ODObjectResultset{
 		Objects: []models.ODObject{obj1},
 	}
@@ -36,7 +35,7 @@ func TestListObjectsTrashedJSONResponse(t *testing.T) {
 
 	snippetResponse := aac.SnippetResponse{
 		Success:  true,
-		Snippets: testhelpers.SnippetTP10,
+		Snippets: server.SnippetTP10,
 		Found:    true,
 	}
 	attributesResponse := aac.UserAttributesResponse{
@@ -109,7 +108,7 @@ func TestHTTPListObjectsTrashed(t *testing.T) {
 		err = os.Remove(name)
 	}()
 
-	req, err := testhelpers.NewCreateObjectPOSTRequest(host, "", tmp)
+	req, err := NewCreateObjectPOSTRequest("", tmp)
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
@@ -128,14 +127,14 @@ func TestHTTPListObjectsTrashed(t *testing.T) {
 
 	expected := objResponse.Name
 
-	deleteReq, err := testhelpers.NewDeleteObjectRequest(objResponse, "", host)
+	deleteReq, err := NewDeleteObjectRequest(objResponse, "")
 	deleteRes, err := clients[clientID].Client.Do(deleteReq)
 	if err != nil {
 		t.Errorf("Delete request failed: %v\n", err)
 		t.FailNow()
 	}
 	defer util.FinishBody(deleteRes.Body)
-	trashURI := host + cfg.NginxRootURL + "/trashed?pageNumber=1&pageSize=1000"
+	trashURI := mountPoint + "/trashed?pageNumber=1&pageSize=1000"
 
 	trashReq, err := http.NewRequest("GET", trashURI, nil)
 	if err != nil {

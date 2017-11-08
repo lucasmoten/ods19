@@ -7,7 +7,7 @@ import (
 
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/util/testhelpers"
+	"decipher.com/object-drive-server/server"
 )
 
 func TestDAOGetChildObjects(t *testing.T) {
@@ -20,7 +20,7 @@ func TestDAOGetChildObjects(t *testing.T) {
 	parent.Name = "Test GetChildObjects Parent"
 	parent.CreatedBy = usernames[1]
 	parent.TypeName = models.ToNullString("Test Type")
-	parent.RawAcm.String = testhelpers.ValidACMUnclassified
+	parent.RawAcm.String = server.ValidACMUnclassified
 	dbParent, err := d.CreateObject(&parent)
 	if err != nil {
 		t.Error(err)
@@ -41,7 +41,7 @@ func TestDAOGetChildObjects(t *testing.T) {
 	child.CreatedBy = usernames[1]
 	child.ParentID = dbParent.ID
 	child.TypeName = models.ToNullString("Test Type")
-	child.RawAcm.String = testhelpers.ValidACMUnclassified
+	child.RawAcm.String = server.ValidACMUnclassified
 	dbChild, err := d.CreateObject(&child)
 	if err != nil {
 		t.Error(err)

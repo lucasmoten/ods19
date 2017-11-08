@@ -7,7 +7,7 @@ import (
 
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/util/testhelpers"
+	"decipher.com/object-drive-server/server"
 )
 
 func TestDAOGetRootObjectsByUser(t *testing.T) {
@@ -36,7 +36,7 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 	object1.Name = "Test GetRootObjectsByUser for user1"
 	object1.CreatedBy = users[1].DistinguishedName
 	object1.TypeName = models.ToNullString("Test Type")
-	acmUforTP1 := testhelpers.ValidACMUnclassified
+	acmUforTP1 := server.ValidACMUnclassified
 	acmUforTP1 = strings.Replace(acmUforTP1, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s"]`, models.AACFlatten(usernames[1])), -1)
 	object1.RawAcm = models.ToNullString(acmUforTP1)
 	permissions1 := make([]models.ODObjectPermission, 1)
@@ -70,7 +70,7 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 	object2.Name = "Test GetRootObjectsByUser for user2"
 	object2.CreatedBy = users[2].DistinguishedName
 	object2.TypeName = models.ToNullString("Test Type")
-	acmUforTP2 := testhelpers.ValidACMUnclassified
+	acmUforTP2 := server.ValidACMUnclassified
 	acmUforTP2 = strings.Replace(acmUforTP2, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s"]`, models.AACFlatten(usernames[2])), -1)
 	object2.RawAcm = models.ToNullString(acmUforTP2)
 	permissions2 := make([]models.ODObjectPermission, 1)
@@ -139,7 +139,7 @@ func TestDAOGetRootObjectsForBobbyTables(t *testing.T) {
 	object1.Name = "Test GetRootObjectsByUser for bobby 'tables"
 	object1.CreatedBy = user1.DistinguishedName
 	object1.TypeName = models.ToNullString("Test Type")
-	acmUforBobbyTables := testhelpers.ValidACMUnclassified
+	acmUforBobbyTables := server.ValidACMUnclassified
 	acmUforBobbyTables = strings.Replace(acmUforBobbyTables, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s"]`, models.AACFlatten(users[11].DistinguishedName)), -1)
 	object1.RawAcm = models.ToNullString(acmUforBobbyTables)
 	permissions1 := make([]models.ODObjectPermission, 1)

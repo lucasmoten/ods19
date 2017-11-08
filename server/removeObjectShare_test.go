@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/util"
 
@@ -25,7 +24,7 @@ func TestRemoveObjectShareFromCaller(t *testing.T) {
 
 	t.Logf("Remove tester01 Shares to as tester01")
 	delegate := 1
-	uriRemoveShare := host + cfg.NginxRootURL + "/shared/" + newObject.ID
+	uriRemoveShare := mountPoint + "/shared/" + newObject.ID
 	removeShareRequest := protocol.ObjectShare{}
 	removeShareRequest.Share = makeUserShare(fakeDN1)
 	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
@@ -62,7 +61,7 @@ func TestRemoveObjectShareFromOtherUser(t *testing.T) {
 	shouldNotHaveReadForObjectID(t, newObject.ID, 2, 3, 4, 5)
 
 	t.Logf("Remove tester01 Shares to as tester10")
-	uriRemoveShare := host + cfg.NginxRootURL + "/shared/" + newObject.ID
+	uriRemoveShare := mountPoint + "/shared/" + newObject.ID
 	removeShareRequest := protocol.ObjectShare{}
 	removeShareRequest.Share = makeUserShare(fakeDN1)
 	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
@@ -90,7 +89,7 @@ func TestRemoveObjectShareFromOwner(t *testing.T) {
 
 	t.Logf("As Tester01 Remove Shares to tester10")
 	delegate := 1
-	uriRemoveShare := host + cfg.NginxRootURL + "/shared/" + newObject.ID
+	uriRemoveShare := mountPoint + "/shared/" + newObject.ID
 	removeShareRequest := protocol.ObjectShare{}
 	removeShareRequest.Share = makeUserShare(fakeDN0)
 	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
@@ -115,7 +114,7 @@ func TestRemoveObjectShareFromNonExistentUser(t *testing.T) {
 
 	t.Logf("As Tester01 Remove Shares to nonexistentuser")
 	delegate := 1
-	uriRemoveShare := host + cfg.NginxRootURL + "/shared/" + newObject.ID
+	uriRemoveShare := mountPoint + "/shared/" + newObject.ID
 	removeShareRequest := protocol.ObjectShare{}
 	removeShareRequest.Share = makeUserShare("nonexistentuser")
 	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
@@ -143,7 +142,7 @@ func TestRemoveObjectShareFromCallerGroup(t *testing.T) {
 
 	t.Logf("As Tester01 Remove Shares to odrive_g2")
 	delegate := 1
-	uriRemoveShare := host + cfg.NginxRootURL + "/shared/" + newObject.ID
+	uriRemoveShare := mountPoint + "/shared/" + newObject.ID
 	removeShareRequest := protocol.ObjectShare{}
 	removeShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G2")
 	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
@@ -170,7 +169,7 @@ func TestRemoveObjectShareFromOtherGroup(t *testing.T) {
 
 	t.Logf("As Tester01 Remove Shares to odrive_g1")
 	delegate := 1
-	uriRemoveShare := host + cfg.NginxRootURL + "/shared/" + newObject.ID
+	uriRemoveShare := mountPoint + "/shared/" + newObject.ID
 	removeShareRequest := protocol.ObjectShare{}
 	removeShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G1")
 	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
@@ -196,7 +195,7 @@ func TestRemoveObjectShareFromEveryoneGroup(t *testing.T) {
 	shouldHaveReadForObjectID(t, newObject.ID, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0)
 
 	t.Logf("As Tester10 Remove Shares to everyone group")
-	uriRemoveShare := host + cfg.NginxRootURL + "/shared/" + newObject.ID
+	uriRemoveShare := mountPoint + "/shared/" + newObject.ID
 	removeShareRequest := protocol.ObjectShare{}
 	removeShareRequest.Share = makeGroupShare("", "", models.EveryoneGroup)
 	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
@@ -224,7 +223,7 @@ func TestRemoveObjectShareWithoutPermission(t *testing.T) {
 
 	t.Logf("As Tester01 Remove Shares to Everyone")
 	delegate := 1
-	uriRemoveShare := host + cfg.NginxRootURL + "/shared/" + newObject.ID
+	uriRemoveShare := mountPoint + "/shared/" + newObject.ID
 	removeShareRequest := protocol.ObjectShare{}
 	removeShareRequest.Share = makeGroupShare("", "", models.EveryoneGroup)
 	removeShareReq := makeHTTPRequestFromInterface(t, "DELETE", uriRemoveShare, removeShareRequest)
@@ -277,7 +276,7 @@ func createSharedObjectForTestRemoveObjectShare(t *testing.T, clientid int, acmS
 	// permissions if any passed in
 	createObjectRequest.Permissions = permissions
 	// http request
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	createReq := makeHTTPRequestFromInterface(t, "POST", uriCreate, createObjectRequest)
 	trafficLogs[APISampleFile].Request(t, createReq, &TrafficLogDescription{OperationName: "create shared object for test remove object share", RequestDescription: "req", ResponseDescription: "res"})
 	// exec and get response

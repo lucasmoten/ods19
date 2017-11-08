@@ -7,12 +7,11 @@ import (
 	"net/http"
 	"testing"
 
-	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
 )
 
 func testBulkDeleteCall(t *testing.T, clientid int, inObjects []protocol.ObjectVersioned) {
-	deleteuri := host + config.NginxRootURL + "/objects"
+	deleteuri := mountPoint + "/objects"
 	jsonBody, err := json.Marshal(inObjects)
 	failNowOnErr(t, err, "Unable to marshal json")
 	req, err := http.NewRequest("DELETE", deleteuri, bytes.NewBuffer(jsonBody))

@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/utils"
 
@@ -33,7 +32,7 @@ func TestMoveObject(t *testing.T) {
 	folder2 := makeFolderViaJSON("Test Folder 2 ", clientid, t)
 
 	// Attempt to move folder 2 under folder 1
-	moveuri := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
+	moveuri := mountPoint + "/objects/" + folder2.ID + "/move/" + folder1.ID
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder2.ChangeToken
 	jsonBody, err := json.Marshal(objChangeToken)
@@ -99,7 +98,7 @@ func TestMoveObjectToRoot(t *testing.T) {
 	t.Logf("  Folder 2 ID: %s", folder2.ID)
 
 	t.Logf("* Move folder 2 under folder 1")
-	moveuri := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
+	moveuri := mountPoint + "/objects/" + folder2.ID + "/move/" + folder1.ID
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder2.ChangeToken
 	moveReq1 := makeHTTPRequestFromInterface(t, "POST", moveuri, objChangeToken)
@@ -118,7 +117,7 @@ func TestMoveObjectToRoot(t *testing.T) {
 	}
 
 	t.Logf("* Move folder 2 back to root")
-	moveuriroot := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/move/"
+	moveuriroot := mountPoint + "/objects/" + folder2.ID + "/move/"
 	objChangeToken.ChangeToken = updatedFolder2a.ChangeToken
 	moveReq2 := makeHTTPRequestFromInterface(t, "POST", moveuriroot, objChangeToken)
 	moveRes2, err := clients[tester10].Client.Do(moveReq2)
@@ -149,7 +148,7 @@ func TestMoveObjectWrongChangeToken(t *testing.T) {
 	t.Logf("  Folder 2 ID: %s", folder2.ID)
 
 	t.Logf("* Move folder 2 under folder 1 with wrong changetoken")
-	moveuri := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
+	moveuri := mountPoint + "/objects/" + folder2.ID + "/move/" + folder1.ID
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder1.ChangeToken
 	moveReq1 := makeHTTPRequestFromInterface(t, "POST", moveuri, objChangeToken)
@@ -166,7 +165,7 @@ func TestMoveObjectFailsForNonOwnerWithUpdate(t *testing.T) {
 	tester10 := 0
 	tester01 := 1
 	t.Logf("* Create 2 folders under root as tester10, shared to tester1 and group ODrive with update")
-	newobjuri := host + cfg.NginxRootURL + "/objects"
+	newobjuri := mountPoint + "/objects"
 	newFolderSharedToODrive := `{
 		"name": "TestMoveObjectFailsForNonOwnerWithUpdate %d",
 		"type": "Folder",
@@ -209,7 +208,7 @@ func TestMoveObjectFailsForNonOwnerWithUpdate(t *testing.T) {
 	failNowOnErr(t, err, "Error decoding json to Object")
 
 	t.Logf("* Attempt to move folder 2 under folder 1 as Tester1. Expect failure")
-	moveuri := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
+	moveuri := mountPoint + "/objects/" + folder2.ID + "/move/" + folder1.ID
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder2.ChangeToken
 	moveReq1 := makeHTTPRequestFromInterface(t, "POST", moveuri, objChangeToken)
