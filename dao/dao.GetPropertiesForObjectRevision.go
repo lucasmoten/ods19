@@ -28,6 +28,9 @@ func (dao *DataAccessLayer) GetPropertiesForObjectRevision(object models.ODObjec
 
 func getPropertiesForObjectRevisionInTransaction(tx *sqlx.Tx, object models.ODObject) ([]models.ODObjectPropertyEx, error) {
 	response := []models.ODObjectPropertyEx{}
+	// #989 There is no archive table for the join betwen a_object and a_property, so need to use the object_property
+	// table for the join, and constrain by the date for those properties created or modified no later than 10
+	// milliseconds after the object modification time. Previously this was 1 full second, which is far too generous
 	query := `
     select 
         ap.id
@@ -48,10 +51,13 @@ func getPropertiesForObjectRevisionInTransaction(tx *sqlx.Tx, object models.ODOb
         inner join a_object ao on op.objectid = ao.id
     where 
         ap.isdeleted = 0 
-        and ap.createdDate < date_add(ao.modifieddate,interval 1 minute)
-        and op.isdeleted = 0 
+        and ap.modifiedDate < date_add(ao.modifieddate,interval 10000 microsecond)
+        and (op.isdeleted = 0 or op.deleteddate > date_add(ao.modifieddate,interval 10000 microsecond))
         and ao.id = ?
-        and ao.changeCount = ?`
+		and ao.changeCount = ?
+	order by
+		ap.name asc, ap.propertyValue asc
+		`
 	err := tx.Select(&response, query, object.ID, object.ChangeCount)
 	if err != nil {
 		return response, err

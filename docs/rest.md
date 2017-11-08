@@ -796,7 +796,7 @@ This creates a new revision of the object.
             + `Yes`
             + `No`
             + `Unknown`
-    + properties (properties array, optional) -  An array of custom properties to be associated with this object for property changes. For the properties specified, those who do not match existing properties on the object by name will be added. For the properties that do match existing properties by name, if the value specified is blank or empty, then the existing property will be deleted, otherwise, the property will be updated to the new value. If properties are specified in the array, then existing properties on the object are retained. Properties are only removed from an object if they are provided, with their value set to an empty string.
+    + properties (properties array, optional) -  An array of custom properties to be associated with this object for property changes. For the properties specified, those who do not match existing properties on the object by name will be added. For the properties that do match existing properties by name, if the value specified is blank or empty, then the existing property will be deleted, otherwise, the property will be updated to the new value. If properties are not specified in the array, then existing properties on the object are retained. Properties are only removed from an object if they are provided, with their value set to an empty string.
     + recursiveShare (boolean, optional) - If set to true, updates to sharing and permissions are applied to an objects children. Note that this initiates an asyncrhronous operation on the server, in the background. Clients may need to wait for changes to take effect.
 
     + Attributes (UpdateObject)
@@ -954,7 +954,7 @@ This creates a new revision of the object.
             + `Yes`
             + `No`
             + `Unknown`
-    + properties (properties array, optional) -  An array of custom properties to be associated with this object for property changes. For the properties specified, those who do not match existing properties on the object by name will be added. For the properties that do match existing properties by name, if the value specified is blank or empty, then the existing property will be deleted, otherwise, the property will be updated to the new value. If properties are specified in the array, then existing properties on the object are retained. Properties are only removed from an object if they are provided, with their value set to an empty string.
+    + properties (properties array, optional) -  An array of custom properties to be associated with this object for property changes. For the properties specified, those who do not match existing properties on the object by name will be added. For the properties that do match existing properties by name, if the value specified is blank or empty, then the existing property will be deleted, otherwise, the property will be updated to the new value. If properties are not specified in the array, then existing properties on the object are retained. Properties are only removed from an object if they are provided, with their value set to an empty string.
     + recursiveShare (boolean, optional) - If set to true, updates to sharing and permissions are applied to an objects children. Note that this initiates an asyncrhronous operation on the server, in the background. Clients may need to wait for changes to take effect.
 
     The content stream for the object should be the second part, as the native bytes without use of encoding or character sets.

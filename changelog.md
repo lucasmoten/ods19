@@ -19,6 +19,8 @@ FORMAT: 1A
 * NEW: Allowable ciphers can be provided as environment variable `OD_SERVER_CIPHERS`
 * NEW: ACL Whitelist values can be provided with environment variables beginning with `OD_SERVER_ACL_WHITELIST`
 * ENH: Updated to latest version of gm-fabric-go SDK
+* FIX: Delete and recreate property when changing its value to register deletion for filtering
+* FIX: Get Object Revisions will now return proper changes for property names and values
 
 ## Release v1.0.10 (October 17, 2017)
 --------------------

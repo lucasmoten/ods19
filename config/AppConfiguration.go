@@ -346,7 +346,7 @@ func NewDatabaseConfigFromEnv(confFile AppConfiguration, opts CommandLineOpts) D
 	dbConf.CAPath = cascade(OD_DB_CA, confFile.DatabaseConnection.CAPath, "")
 	dbConf.ClientCert = cascade(OD_DB_CERT, confFile.DatabaseConnection.ClientCert, "")
 	dbConf.ClientKey = cascade(OD_DB_KEY, confFile.DatabaseConnection.ClientKey, "")
-	dbConf.Params = cascade(OD_DB_CONN_PARAMS, confFile.DatabaseConnection.Params, "parseTime=true&collation=utf8_unicode_ci")
+	dbConf.Params = cascade(OD_DB_CONN_PARAMS, confFile.DatabaseConnection.Params, "parseTime=true&collation=utf8_unicode_ci&readTimeout=30s")
 
 	// Defaults
 	dbConf.Protocol = "tcp"
