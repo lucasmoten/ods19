@@ -8,6 +8,8 @@ machine:
         GOPATH: "/home/ubuntu/.go_workspace"
         OD_ROOT: "/home/ubuntu/od_root"
     hosts:
+        odrive: 127.0.0.1
+        proxier: 127.0.0.1
         kafka: 127.0.0.1
         metadatadb: 127.0.0.1
         zk: 127.0.0.1
