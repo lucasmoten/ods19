@@ -79,11 +79,11 @@ func NewClient(conf Config) (*Client, error) {
 		return nil, fmt.Errorf("while opening cert and key file %s, %s: %v", conf.Cert, conf.Key, err)
 	}
 
-	x509Cert, err := tlsutil2.X509FromPEMFile(conf.Cert)
+	pub, err := x509.ParseCertificate(cert.Certificate[0])
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("while parsing public certificate from cert and key file %s, %s: %v", conf.Cert, conf.Key, err)
 	}
-	dn := tlsutil2.GetDistinguishedName(x509Cert)
+	mydn := tlsutil2.GetDistinguishedName(pub)
 
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify:       conf.SkipVerify,
@@ -98,7 +98,7 @@ func NewClient(conf Config) (*Client, error) {
 	var c http.Client
 	c.Transport = &http.Transport{TLSClientConfig: tlsConfig}
 
-	return &Client{&c, conf.Remote, false, conf, dn}, nil
+	return &Client{&c, conf.Remote, false, conf, mydn}, nil
 }
 
 // CreateObject performs the create operation on the ObjectDrive from the CreateObjectRequest that fully

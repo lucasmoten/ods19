@@ -243,22 +243,22 @@
 			"revisionTime": "2016-11-10T19:49:42-05:00"
 		},
 		{
-			"checksumSHA1": "6wqAFkupdlBE9PEBExc5kH6XlUE=",
+			"checksumSHA1": "PU/Lmsl9nEzYeIjmnLMBxBWpWVU=",
 			"path": "github.com/deciphernow/gm-fabric-go/gk",
-			"revision": "86ca38bc08b8e3230dc937dc102d50811b7fbeb6",
-			"revisionTime": "2017-03-07T23:01:10Z"
+			"revision": "72ff4b0ece87a0dcb78707b26a21455c3f676612",
+			"revisionTime": "2017-11-07T19:28:33Z"
 		},
 		{
-			"checksumSHA1": "k6jCP1ooy8Tg+GW7GlMV29DD2xE=",
+			"checksumSHA1": "BlrB+o2Ez5pL0aF7xYc3MKALq9U=",
 			"path": "github.com/deciphernow/gm-fabric-go/tlsutil2",
-			"revision": "36659dc475a433893933894618033b3200e51096",
-			"revisionTime": "2017-05-08T16:39:05Z"
+			"revision": "72ff4b0ece87a0dcb78707b26a21455c3f676612",
+			"revisionTime": "2017-11-07T19:28:33Z"
 		},
 		{
-			"checksumSHA1": "3pooojGSsZk9CFqkD6StLF1nYho=",
+			"checksumSHA1": "iNzODOsyTXsbUbiKATvSQFO3Eyk=",
 			"path": "github.com/deciphernow/gm-fabric-go/zkutil",
-			"revision": "86ca38bc08b8e3230dc937dc102d50811b7fbeb6",
-			"revisionTime": "2017-03-07T23:01:10Z"
+			"revision": "72ff4b0ece87a0dcb78707b26a21455c3f676612",
+			"revisionTime": "2017-11-07T19:28:33Z"
 		},
 		{
 			"checksumSHA1": "s5b6ENpR3Miy8uhckAZWfaFeKFc=",
@@ -393,10 +393,10 @@
 			"revisionTime": "2016-01-12T11:43:55-08:00"
 		},
 		{
-			"checksumSHA1": "Mjz0ZUqS94MA3AjF7ros5I/RSxc=",
+			"checksumSHA1": "U4ypvRxOj4YYX1YlHyeCPaFq5Xg=",
 			"path": "github.com/samuel/go-zookeeper/zk",
-			"revision": "218e9c81c0dd8b3b18172b2bbfad92cc7d6db55f",
-			"revisionTime": "2015-11-02T15:44:00-08:00"
+			"revision": "9a96098268ef555eb1f04d8b1ee813d0a87e5089",
+			"revisionTime": "2017-10-27T00:15:00Z"
 		},
 		{
 			"checksumSHA1": "i5TehLixUkrs7/8wgeTTVZBqC/c=",

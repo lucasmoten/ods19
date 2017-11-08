@@ -24,7 +24,6 @@ import (
 	"decipher.com/object-drive-server/services/kafka"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/util/testhelpers"
-	"github.com/deciphernow/gm-fabric-go/tlsutil2"
 )
 
 var (
@@ -308,9 +307,9 @@ func newClientTLSConfig(client *ClientIdentity) (*tls.Config, error) {
 		return nil, err
 	}
 
-	x509Cert, err := tlsutil2.X509FromPEMFile(client.CertPem)
+	x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("while parsing public certificate from cert and key file %s, %s: %v", client.CertPem, client.KeyPem, err)
 	}
 	client.Cert = x509Cert
 
