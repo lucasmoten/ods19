@@ -47,7 +47,10 @@ func getPropertiesForObjectInTransaction(tx *sqlx.Tx, object models.ODObject) ([
     where 
         p.isdeleted = 0 
         and op.isdeleted = 0 
-        and op.objectid = ?`
+		and op.objectid = ?
+	order by
+		p.name asc, p.propertyValue asc
+		`
 	err := tx.Select(&response, query, object.ID)
 	if err != nil {
 		return response, err

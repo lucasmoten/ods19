@@ -76,7 +76,7 @@ The database is used to store metadata about objects and supports querying for m
 | OD_DB_CA | The path to the certificate authority folder or file containing public certificate(s) to trust as the server when connecting to the database over TLS.  |  |
 | OD_DB_CN | The cn of the ssl cert of the database. | fqdn.for.metadatadb.local (default is for testing only) |
 | OD_DB_CERT | The path to the public certificate for the user credentials connecting to the database.  |  |
-| OD_DB_CONN_PARAMS | Custom parameters to include for the database connection. For MySQL/MariaDB, we are using `parseTime=true&collation=utf8_unicode_ci` |  |
+| OD_DB_CONN_PARAMS | Custom parameters to include for the database connection. For MySQL/MariaDB, we are using `parseTime=true&collation=utf8_unicode_ci&readTimeout=30s` |  |
 | OD_DB_HOST | The name or IP address of the MySQL / MariaDB / Aurora conforming database.  |  |
 | OD_DB_KEY | The path to the private key for the user credentials connecting to the database.  |  | 
 | OD_DB_MAXIDLECONNS | The maximum number of database connections to keep idle. Overrides language default of 2.  | 10 |

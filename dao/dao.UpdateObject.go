@@ -206,12 +206,18 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, dao *DataAccessLa
 	// Compare properties on database object to properties associated with passed
 	// in object
 	for _, objectProperty := range object.Properties {
-		existingProperty := false
+		addProperty := true
+		// Check if existing need deleted
 		for _, dbProperty := range dbObject.Properties {
-			if objectProperty.Name == dbProperty.Name && objectProperty.Value.Valid {
-				// Updating an existing property
-				existingProperty = true
-				if len(objectProperty.Value.String) == 0 {
+			if objectProperty.Name == dbProperty.Name {
+				// Delete if value is empty, differs, or classificationPM  differs
+				if (len(objectProperty.Value.String) == 0) ||
+					(objectProperty.Value.String != dbProperty.Value.String) ||
+					(objectProperty.ClassificationPM.String != dbProperty.ClassificationPM.String) {
+					// Don't readd the property if the intent is to delete
+					if len(objectProperty.Value.String) == 0 {
+						addProperty = false
+					}
 					// Deleting matching properties by name. The id and changeToken are
 					// implicit from dbObject for each one that matches.
 					dbProperty.ModifiedBy = object.ModifiedBy
@@ -222,24 +228,12 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, dao *DataAccessLa
 					// don't break for loop here because we want to clean out all of the
 					// existing properties with the same name in this case.
 				} else {
-					// The name matched, but value isn't empty. Is it different?
-					if (objectProperty.Value.String != dbProperty.Value.String) ||
-						(objectProperty.ClassificationPM.String != dbProperty.ClassificationPM.String) {
-						// Existing property, but with a new value... need to update
-						dbProperty.ModifiedBy = object.ModifiedBy
-						dbProperty.Value = models.ToNullString(objectProperty.Value.String)
-						dbProperty.ClassificationPM = models.ToNullString(objectProperty.ClassificationPM.String)
-						err = updateObjectPropertyInTransaction(tx, dbProperty)
-						if err != nil {
-							return acmCreated, util.NewLoggable("error updating property during update", err, zap.String("property.name", dbProperty.Name))
-						}
-					}
-					// break out of the for loop on database objects
-					break
+					// name, value, and classificationPM are the same. dont add
+					addProperty = false
 				}
 			}
 		} // dbPropety
-		if !existingProperty {
+		if addProperty {
 			// Add the newly passed in property
 			var newProperty models.ODProperty
 			newProperty.CreatedBy = object.ModifiedBy
@@ -257,8 +251,6 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, dao *DataAccessLa
 			if dbProperty.ID == nil {
 				return acmCreated, fmt.Errorf("New property does not have an ID")
 			}
-		} else {
-			// This existing property needs to be updated
 		}
 	} //objectProperty
 

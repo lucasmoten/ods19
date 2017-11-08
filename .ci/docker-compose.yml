@@ -89,7 +89,7 @@ services:
           - OD_DB_CA=/go/src/decipher.com/object-drive-server/defaultcerts/client-mysql/trust/ca.pem
           - OD_DB_CERT=/go/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
           - OD_DB_KEY=/go/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
-          - OD_DB_CONN_PARAMS=parseTime=true&collation=utf8_unicode_ci
+          - OD_DB_CONN_PARAMS=parseTime=true&collation=utf8_unicode_ci&readTimeout=30s
           - OD_DOCKERVM_OVERRIDE=localhost
           - OD_DOCKERVM_PORT=8888
           - OD_ENCRYPT_MASTERKEY=qheucir912h343u91i23hiu
