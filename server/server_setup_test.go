@@ -23,7 +23,6 @@ import (
 	"decipher.com/object-drive-server/services/aac"
 	"decipher.com/object-drive-server/services/kafka"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 var (
@@ -37,7 +36,6 @@ const (
 )
 
 var (
-	host        string
 	clients     []*ClientIdentity
 	trafficLogs map[string]*TrafficLog
 )
@@ -67,12 +65,6 @@ func testMainBody(m *testing.M) int {
 }
 
 func setup(ip string) {
-
-	if ip == "" {
-		host = fmt.Sprintf("https://%s:%s", config.DockerVM, config.Port)
-	} else {
-		host = fmt.Sprintf("https://%s:%s", ip, config.Port)
-	}
 
 	if !testing.Short() {
 		// We have 11 entries for our clients global var.
@@ -127,7 +119,7 @@ func stallForAvailability() int {
 		return 0
 	}
 
-	url := "https://" + config.DockerVM + ":" + config.Port + config.NginxRootURL + "/ping"
+	url := mountPoint + "/ping"
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -274,7 +266,7 @@ func getClientIdentity(i int, name string) (*ClientIdentity, error) {
 		Trust: trustPath,
 		Key:   keyPath,
 		// We expect host to be set globally before this function runs.
-		Remote:     host + "/services/object-drive/1.0",
+		Remote:     mountPoint,
 		SkipVerify: true,
 	}
 	c, err := testclient.NewClient(clientConf)
@@ -336,7 +328,7 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 	perms[0].AllowRead = true
 	obj := models.ODObject{Permissions: perms}
 	obj.ID = []byte(guid)
-	obj.RawAcm.String = testhelpers.ValidACMUnclassified
+	obj.RawAcm.String = server.ValidACMUnclassified
 	obj.RawAcm.Valid = true
 
 	fakeDAO := dao.FakeDAO{
@@ -346,7 +338,7 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 
 	snippetResponse := aac.SnippetResponse{
 		Success:  true,
-		Snippets: testhelpers.SnippetTP10,
+		Snippets: server.SnippetTP10,
 		Found:    true,
 	}
 	attributesResponse := aac.UserAttributesResponse{
@@ -358,7 +350,7 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 	// will need cntesttester10oupeopleoudaeouchimeraou_s_governmentcus
 	// so that has been put into the ValidAcmUnclassifiedWithFShare value
 	acmInfoResponse := aac.AcmInfo{
-		Acm:             testhelpers.ValidACMUnclassifiedWithFShare,
+		Acm:             server.ValidACMUnclassifiedWithFShare,
 		IncludeInRollup: false,
 	}
 
@@ -393,7 +385,6 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 	fakeQueue := kafka.NewFakeAsyncProducer(nil)
 
 	s := server.AppServer{RootDAO: &fakeDAO,
-		ServicePrefix: config.RootURLRegex,
 		AAC:           &fakeAAC,
 		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
 		EventQueue:    fakeQueue,

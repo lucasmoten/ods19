@@ -8,12 +8,8 @@ import (
 	"net/http"
 	"testing"
 
-	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
-
-var deleteMe string = fmt.Sprintf("https://%s:%s", config.DockerVM, config.Port)
 
 func TestReproduce268(t *testing.T) {
 
@@ -32,15 +28,15 @@ func TestReproduce268(t *testing.T) {
 		RawAcm: once,
 		Name:   newGUID(t),
 	}
-	f, fn, err := testhelpers.GenerateTempFile("somedata")
+	f, fn, err := GenerateTempFile("somedata")
 	if err != nil {
 		t.Errorf("could not make file")
 	}
 	defer fn()
 	data, err := json.Marshal(objCreate)
 	failNowOnErr(t, err, "could not marshal create object as json")
-	req, _ := testhelpers.NewCreateObjectPOSTRequestRaw(
-		"objects", deleteMe, "", f, "somefilename", data,
+	req, _ := NewCreateObjectPOSTRequestRaw(
+		"objects", "", f, "somefilename", data,
 	)
 	resp, err := c.Do(req)
 	failNowOnErr(t, err, "could not do create object request")
@@ -59,9 +55,9 @@ func TestReproduce268(t *testing.T) {
 	// Do the update
 	data2, err := json.Marshal(objResp)
 	failNowOnErr(t, err, "could not marshal second request from first")
-	updateURL := fmt.Sprintf("/services/object-drive/1.0/objects/%s/properties", objResp.ID)
+	updateURL := fmt.Sprintf("/objects/%s/properties", objResp.ID)
 	t.Logf("update URL: %s", updateURL)
-	req2, _ := http.NewRequest("POST", deleteMe+updateURL, bytes.NewBuffer(data2))
+	req2, _ := http.NewRequest("POST", mountPoint+updateURL, bytes.NewBuffer(data2))
 	req2.Header.Set("Content-Type", "application/json")
 	t.Logf("logging request: %v", req2)
 	resp2, err := c.Do(req2)

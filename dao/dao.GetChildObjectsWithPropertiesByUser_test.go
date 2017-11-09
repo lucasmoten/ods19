@@ -6,7 +6,7 @@ import (
 
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/util/testhelpers"
+	"decipher.com/object-drive-server/server"
 )
 
 func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
@@ -19,7 +19,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	parent.Name = "Test Parent Object for GetChildObjectsWithPropertiesByUser"
 	parent.CreatedBy = users[1].DistinguishedName
 	parent.TypeName = models.ToNullString("File")
-	parent.RawAcm.String = testhelpers.ValidACMUnclassified
+	parent.RawAcm.String = server.ValidACMUnclassified
 	permissions := make([]models.ODObjectPermission, 1)
 	permissions[0].CreatedBy = parent.CreatedBy
 	permissions[0].Grantee = models.AACFlatten(parent.CreatedBy)
@@ -50,7 +50,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	child1.CreatedBy = users[1].DistinguishedName
 	child1.TypeName = models.ToNullString("File")
 	child1.ParentID = dbParent.ID
-	child1.RawAcm.String = testhelpers.ValidACMUnclassified
+	child1.RawAcm.String = server.ValidACMUnclassified
 	permissions1 := make([]models.ODObjectPermission, 1)
 	permissions1[0].CreatedBy = child1.CreatedBy
 	permissions1[0].Grantee = models.AACFlatten(child1.CreatedBy)
@@ -100,7 +100,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	child2.CreatedBy = users[1].DistinguishedName
 	child2.TypeName = models.ToNullString("File")
 	child2.ParentID = dbParent.ID
-	child2.RawAcm.String = testhelpers.ValidACMUnclassified
+	child2.RawAcm.String = server.ValidACMUnclassified
 	permissions2 := make([]models.ODObjectPermission, 1)
 	permissions2[0].CreatedBy = child2.CreatedBy
 	permissions2[0].Grantee = models.AACFlatten(child2.CreatedBy)

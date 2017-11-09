@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/protocol"
@@ -23,7 +22,6 @@ func TestAOACMPerformance(t *testing.T) {
 	}
 
 	testTime := time.Now()
-	basehost := host
 	// The following are merely for convenience to target this manual test against a different server
 	//basehost = "https://bedrock.363-283.io"
 	//basehost = "https://chm.363-283.io"
@@ -45,7 +43,7 @@ func TestAOACMPerformance(t *testing.T) {
 		t.Logf("operation      matches    1       2       3       4       5     average time")
 		t.Logf("----------------------------------------------------------------------------")
 		for _, operation := range uris {
-			uri := basehost + config.NginxRootURL + operation
+			uri := mountPoint + operation
 			var responseTimes []float64
 			var responseTimesString []string
 			responseTimeSuccess := 0

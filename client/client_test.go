@@ -15,9 +15,30 @@ import (
 	"strings"
 
 	"decipher.com/object-drive-server/client"
-	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/util/testhelpers"
+	"decipher.com/object-drive-server/server"
+)
+
+func getEnvWithDefault(name string, def string) string {
+	val := os.Getenv(name)
+	if val == "" {
+		return def
+	}
+	return val
+}
+
+var ourEndpoint = fmt.Sprintf(
+	"https://%s:%s",
+	getEnvWithDefault("OD_DOCKERVM_OVERRIDE", "proxier"),
+	getEnvWithDefault("OD_DOCKERVM_PORT", "8080"),
+)
+
+// This is duplicated from server_test, so that these variables cannot
+// accidentally be used in the running server.  We can't do imports
+// of foreign test packages.
+var mountPoint = fmt.Sprintf(
+	"%s/services/object-drive/1.0",
+	ourEndpoint,
 )
 
 // testDir defines the location for files used in upload/download tests.
@@ -29,7 +50,7 @@ var conf = client.Config{
 	Trust:      os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/client.trust.pem",
 	Key:        os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/test_0.key.pem",
 	SkipVerify: true, // LM: currently set to true because the global "dockervm" wont actually match the cert for remote
-	Remote:     fmt.Sprintf("https://%s:%s/services/object-drive/1.0", config.DockerVM, config.Port),
+	Remote:     mountPoint,
 }
 
 var permissions = protocol.Permission{
@@ -220,7 +241,7 @@ func TestImpersonation(t *testing.T) {
 	t.Logf("MyDN: %s", c.MyDN)
 	cor := protocol.CreateObjectRequest{
 		Name:   "impersonados",
-		RawAcm: testhelpers.ValidACMUnclassifiedFOUOSharedToTester10,
+		RawAcm: server.ValidACMUnclassifiedFOUOSharedToTester10,
 	}
 	obj, err := c.CreateObject(cor, nil)
 	if err != nil {

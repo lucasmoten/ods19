@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"decipher.com/object-drive-server/util/testhelpers"
+	"decipher.com/object-drive-server/server"
 )
 
 func TestAddObjectACMs(t *testing.T) {
@@ -30,8 +30,8 @@ func TestAddObjectACMs(t *testing.T) {
 	var acms []string
 
 	acms = append(acms, "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[\"USA\"],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"NF\",\"FISA\"],\"non_ic\":[],\"rel_to\":[],\"declass_ex\":\"14X1-HUM\",\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U//NF/FISA\",\"banner\":\"UNCLASSIFIED//NOFORN/FISA\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[{\"coi\":\"DEA\",\"disp_nm\":\"DEA\"}],\"oc_attribs\":[{}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[\"dea\"],\"disp_only\":\"\"}")
-	acms = append(acms, testhelpers.ValidACMTopSecretSITK)
-	acms = append(acms, testhelpers.ValidACMUnclassified)
+	acms = append(acms, server.ValidACMTopSecretSITK)
+	acms = append(acms, server.ValidACMUnclassified)
 
 	// Here are some more that should be valid
 	acms = append(acms, `{"banner":"TOP SECRET//SI/TK","classif":"TS","dissem_countries":["USA"],"f_clearance":["ts"],"f_sci_ctrls":["si","tk"],"owner_prod":["USA"],"portion":"TS//SI/TK","sci_ctrls":["si","tk"],"version":"2.1.0"}`)

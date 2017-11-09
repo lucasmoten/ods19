@@ -11,10 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 // TestChangeOwner validates that change owner is implemented, ownership changes, and parent set to root
@@ -39,7 +38,7 @@ func TestChangeOwner(t *testing.T) {
 		t.FailNow()
 	}
 	t.Logf("* Moving folder 2 under folder 1")
-	moveuri := host + config.NginxRootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
+	moveuri := mountPoint + "/objects/" + folder2.ID + "/move/" + folder1.ID
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder2.ChangeToken
 	jsonBody, err := json.Marshal(objChangeToken)
@@ -76,7 +75,7 @@ func TestChangeOwner(t *testing.T) {
 	}
 
 	t.Logf("* Changing owner of folder 2 to %s", newOwner)
-	changeowneruri := host + config.NginxRootURL + "/objects/" + folder2.ID + "/owner/" + newOwner
+	changeowneruri := mountPoint + "/objects/" + folder2.ID + "/owner/" + newOwner
 	objChangeToken.ChangeToken = updatedFolder.ChangeToken
 	changeOwnerRequest := makeHTTPRequestFromInterface(t, "POST", changeowneruri, objChangeToken)
 	changeOwnerResponse, err := clients[clientid].Client.Do(changeOwnerRequest)
@@ -106,8 +105,8 @@ func TestChangeOwnerToGroup(t *testing.T) {
 	clientid := 0
 
 	t.Logf("* Creating a private object")
-	myobject := protocol.CreateObjectRequest{Name: "Test ChangeOwner to Group", TypeName: "Folder", RawAcm: testhelpers.ValidACMUnclassifiedFOUOSharedToTester10}
-	newobjuri := host + config.NginxRootURL + "/objects"
+	myobject := protocol.CreateObjectRequest{Name: "Test ChangeOwner to Group", TypeName: "Folder", RawAcm: server.ValidACMUnclassifiedFOUOSharedToTester10}
+	newobjuri := mountPoint + "/objects"
 	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
 	createObjectRes, err := clients[clientid].Client.Do(createObjectReq)
 	failNowOnErr(t, err, "Unable to do request")
@@ -126,7 +125,7 @@ func TestChangeOwnerToGroup(t *testing.T) {
 	t.Logf("* Changing ownership to group")
 	newowner := "group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1"
 	newownernodisplayname := "group/dctc/dctc/odrive_g1"
-	changeowneruri := host + config.NginxRootURL + "/objects/" + createdObject.ID + "/owner/" + newowner
+	changeowneruri := mountPoint + "/objects/" + createdObject.ID + "/owner/" + newowner
 	objChangeToken := protocol.ChangeTokenStruct{ChangeToken: createdObject.ChangeToken}
 	changeOwnerRequest := makeHTTPRequestFromInterface(t, "POST", changeowneruri, objChangeToken)
 	trafficLogs[APISampleFile].Request(t, changeOwnerRequest,
@@ -164,7 +163,7 @@ func TestChangeOwnerToGroupWithClient(t *testing.T) {
 	createObjectRequest := protocol.CreateObjectRequest{}
 	createObjectRequest.Name = "Test ChangeOwner to Group"
 	createObjectRequest.TypeName = "Folder"
-	createObjectRequest.RawAcm = testhelpers.ValidACMUnclassifiedFOUOSharedToTester10
+	createObjectRequest.RawAcm = server.ValidACMUnclassifiedFOUOSharedToTester10
 	createdObject, err := clients[clientid].C.CreateObject(createObjectRequest, nil)
 	if err != nil {
 		t.Logf("Error creating object: %v", err)
@@ -195,8 +194,8 @@ func TestChangeOwnerToNonCachedUser(t *testing.T) {
 	clientid := 0
 
 	t.Logf("* Creating a private object")
-	myobject := protocol.CreateObjectRequest{Name: "Test ChangeOwner to Group", TypeName: "Folder", RawAcm: testhelpers.ValidACMUnclassifiedFOUOSharedToTester10}
-	newobjuri := host + config.NginxRootURL + "/objects"
+	myobject := protocol.CreateObjectRequest{Name: "Test ChangeOwner to Group", TypeName: "Folder", RawAcm: server.ValidACMUnclassifiedFOUOSharedToTester10}
+	newobjuri := mountPoint + "/objects"
 	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
 	createObjectRes, err := clients[clientid].Client.Do(createObjectReq)
 	failNowOnErr(t, err, "Unable to do request")
@@ -209,7 +208,7 @@ func TestChangeOwnerToNonCachedUser(t *testing.T) {
 	rand.Seed(time.Now().UTC().UnixNano())
 	randomnum := rand.Int()
 	newowner := fmt.Sprintf("user/cn=uncached user%6d,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us", randomnum)
-	changeowneruri := host + config.NginxRootURL + "/objects/" + createdObject.ID + "/owner/" + newowner
+	changeowneruri := mountPoint + "/objects/" + createdObject.ID + "/owner/" + newowner
 	objChangeToken := protocol.ChangeTokenStruct{ChangeToken: createdObject.ChangeToken}
 	changeOwnerRequest := makeHTTPRequestFromInterface(t, "POST", changeowneruri, objChangeToken)
 	changeOwnerResponse, err := clients[clientid].Client.Do(changeOwnerRequest)
@@ -247,7 +246,7 @@ func TestChangeOwnerToEveryoneDisallowed(t *testing.T) {
 
 	t.Logf("* Attempting to change ownership to everyone")
 	newowner := "group/-Everyone"
-	changeowneruri := host + config.NginxRootURL + "/objects/" + folder1.ID + "/owner/" + newowner
+	changeowneruri := mountPoint + "/objects/" + folder1.ID + "/owner/" + newowner
 	objChangeToken := protocol.ChangeTokenStruct{ChangeToken: folder1.ChangeToken}
 	changeOwnerRequest := makeHTTPRequestFromInterface(t, "POST", changeowneruri, objChangeToken)
 	changeOwnerResponse, err := clients[clientid].Client.Do(changeOwnerRequest)
@@ -268,7 +267,7 @@ func TestChangeOwnerRecursive(t *testing.T) {
 	cor := protocol.CreateObjectRequest{
 		NamePathDelimiter: ":::",
 		Name:              strings.Join([]string{root, child1, child2, child3}, ":::"),
-		RawAcm:            testhelpers.ValidACMUnclassifiedFOUOSharedToTester10,
+		RawAcm:            server.ValidACMUnclassifiedFOUOSharedToTester10,
 	}
 	child3Obj, err := clients[clientid].C.CreateObject(cor, bytes.NewBuffer([]byte("testvalue")))
 	failNowOnErr(t, err, "unable to do request")

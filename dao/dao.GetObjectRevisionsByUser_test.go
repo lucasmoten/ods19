@@ -8,7 +8,7 @@ import (
 
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/util/testhelpers"
+	"decipher.com/object-drive-server/server"
 )
 
 func TestDAOGetObjectRevisionsByUser(t *testing.T) {
@@ -21,7 +21,7 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	object.CreatedBy = users[1].DistinguishedName
 	object.Name = "Test Object Revision"
 	object.TypeName = models.ToNullString("Test Object")
-	acmUforTP1TP2 := testhelpers.ValidACMUnclassified
+	acmUforTP1TP2 := server.ValidACMUnclassified
 	acmUforTP1TP2 = strings.Replace(acmUforTP1TP2, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s","%s"]`, models.AACFlatten(usernames[1]), models.AACFlatten(usernames[2])), -1)
 	object.RawAcm = models.ToNullString(acmUforTP1TP2)
 	permissions := make([]models.ODObjectPermission, 2)

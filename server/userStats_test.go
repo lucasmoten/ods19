@@ -9,8 +9,6 @@ import (
 
 	"encoding/json"
 	"io/ioutil"
-
-	cfg "decipher.com/object-drive-server/config"
 )
 
 func TestUserStats(t *testing.T) {
@@ -74,7 +72,7 @@ func TestUserStats(t *testing.T) {
 
 func doUserStatsQuery(t *testing.T) models.UserStats {
 	// Get shares as the creator
-	req, err := http.NewRequest("GET", "https://"+cfg.DockerVM+":"+cfg.Port+""+cfg.NginxRootURL+"/userstats", nil)
+	req, err := http.NewRequest("GET", mountPoint+"/userstats", nil)
 	if err != nil {
 		t.Errorf("Unable to generate request:%v", err)
 		t.FailNow()

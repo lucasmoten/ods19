@@ -4,10 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestListObjectsSharedToOthers(t *testing.T) {
@@ -22,13 +21,13 @@ func TestListObjectsSharedToOthers(t *testing.T) {
 	folder1 := makeFolderViaJSON("TestListObjectsSharedToOthers - Everyone", tester1, t)
 
 	t.Logf("* Create folder2 as Tester01 that is private to Tester01")
-	folder2, err := makeFolderWithACMViaJSON("TestListObjectsSharedToOthers - Tester01", testhelpers.ValidACMUnclassifiedFOUOSharedToTester01, tester1)
+	folder2, err := makeFolderWithACMViaJSON("TestListObjectsSharedToOthers - Tester01", server.ValidACMUnclassifiedFOUOSharedToTester01, tester1)
 
 	t.Logf("* Create folder3 as Tester01 that is shared to Tester01 and Tester02")
-	folder3, err := makeFolderWithACMViaJSON("TestListObjectsSharedToOthers - Tester01, Tester02", testhelpers.ValidACMUnclassifiedFOUOSharedToTester01And02, tester1)
+	folder3, err := makeFolderWithACMViaJSON("TestListObjectsSharedToOthers - Tester01, Tester02", server.ValidACMUnclassifiedFOUOSharedToTester01And02, tester1)
 
 	t.Logf("* Get list of objects shared by tester01")
-	uriShared := host + cfg.NginxRootURL + "/shared"
+	uriShared := mountPoint + "/shared"
 	listReq1 := makeHTTPRequestFromInterface(t, "GET", uriShared, nil)
 	listRes1, err := clients[tester1].Client.Do(listReq1)
 	failNowOnErr(t, err, "Unable to do request")
@@ -75,7 +74,7 @@ func TestListObjectsSharedToOthersExcludeChildren(t *testing.T) {
 	}
 
 	tester1 := 1 // represents Alice
-	uriShared := host + cfg.NginxRootURL + "/shared"
+	uriShared := mountPoint + "/shared"
 
 	ACMtester1Private := `{"banner":"UNCLASSIFIED","classif":"U","dissem_countries":["USA"],"portion":"U","share":{"users":["cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`
 	ACMtester1And2 := `{"banner":"UNCLASSIFIED","classif":"U","dissem_countries":["USA"],"portion":"U","share":{"users":["cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`

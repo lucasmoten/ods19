@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"testing"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/protocol"
@@ -25,7 +24,7 @@ func XTestListObjectShares(t *testing.T) {
 	folder1 := makeFolderViaJSON("Test Folder 1 ", clientid1, t)
 
 	// URL
-	uri := host + cfg.NginxRootURL + "/object/" + folder1.ID + "/shares"
+	uri := mountPoint + "/object/" + folder1.ID + "/shares"
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)

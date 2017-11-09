@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
@@ -30,7 +29,7 @@ func TestAcmWithoutShare(t *testing.T) {
 	createObjectRequest.ContentSize = 0
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	// prep http request
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
 	// exec and get response
@@ -67,7 +66,7 @@ func TestAcmWithShareForODrive(t *testing.T) {
 	// jsonify it
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	// prep http request
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
 	// exec and get response
@@ -101,7 +100,7 @@ func TestAcmWithShareCreatorIsNotInWillForceThemIntoShare(t *testing.T) {
 	// jsonify it
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	t.Logf("prep http request")
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
 	t.Logf("exec and get response")
@@ -138,7 +137,7 @@ func TestAcmWithShareForODriveG1Allowed(t *testing.T) {
 	// jsonify it
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	// prep http request
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
 	// exec and get response
@@ -171,7 +170,7 @@ func TestAcmWithShareForODriveG2Allowed(t *testing.T) {
 	// jsonify it
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	// prep http request
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
 	// exec and get response
@@ -206,7 +205,7 @@ func TestAddReadShareForUser(t *testing.T) {
 	// jsonify it
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	// prep http request
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
 	t.Logf("TestAddReadShareForUser - exec and get response")
@@ -227,7 +226,7 @@ func TestAddReadShareForUser(t *testing.T) {
 	// jsonify it
 	jsonBody, _ = json.Marshal(createShareRequest)
 	t.Logf("TestAddReadShareForUser - prep http request")
-	uriShare := host + cfg.NginxRootURL + "/shared/" + createdObject.ID
+	uriShare := mountPoint + "/shared/" + createdObject.ID
 	httpCreateShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateShare.Header.Set("Content-Type", "application/json")
 	t.Logf("TestAddReadShareForUser - exec and get response")
@@ -264,7 +263,7 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	// jsonify it
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	// prep http request
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
 
@@ -287,7 +286,7 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	// jsonify it
 	jsonBody, _ = json.Marshal(createShareRequest)
 	// prep http request
-	uriShare := host + cfg.NginxRootURL + "/shared/" + createdObject.ID
+	uriShare := mountPoint + "/shared/" + createdObject.ID
 	// prep http request
 	httpCreateShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateShare.Header.Set("Content-Type", "application/json")
@@ -340,7 +339,7 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	t.Logf("Verify tester9 can update")
 	tester9 := 9
 	updatedObject2.Name += " changed by Tester09"
-	uriUpdate := host + cfg.NginxRootURL + "/objects/" + updatedObject2.ID + "/properties"
+	uriUpdate := mountPoint + "/objects/" + updatedObject2.ID + "/properties"
 	// jsonify it
 	jsonBody, _ = json.Marshal(updatedObject2)
 	// prep http request
@@ -373,7 +372,7 @@ func TestAddReadShareForGroupRemovesEveryone(t *testing.T) {
 	createObjectRequest.ContentSize = 0
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	// prep http request
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
 	// exec and get response
@@ -386,7 +385,7 @@ func TestAddReadShareForGroupRemovesEveryone(t *testing.T) {
 	failNowOnErr(t, err, "error decoding json to Object")
 
 	t.Logf("* Verify all clients can read it")
-	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	uriGetProperties := mountPoint + "/objects/" + createdObject.ID + "/properties"
 	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
 	shouldHaveReadForObjectID(t, createdObject.ID, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
 	shouldNotHaveReadForObjectID(t, createdObject.ID, 10)
@@ -401,7 +400,7 @@ func TestAddReadShareForGroupRemovesEveryone(t *testing.T) {
 	// jsonify it
 	jsonBody, _ = json.Marshal(createGroupShareRequest)
 	// prep http request
-	uriShare := host + cfg.NginxRootURL + "/shared/" + createdObject.ID
+	uriShare := mountPoint + "/shared/" + createdObject.ID
 	httpCreateGroupShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateGroupShare.Header.Set("Content-Type", "application/json")
 	// exec and get response
@@ -501,7 +500,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 	createObjectRequest.ContentSize = 0
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	// prep http request
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
 	// exec and get response
@@ -517,7 +516,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 	}
 
 	t.Logf("* Verify all clients can read it")
-	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	uriGetProperties := mountPoint + "/objects/" + createdObject.ID + "/properties"
 	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
 	for clientIdx, ci := range clients {
 		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
@@ -577,7 +576,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 	// jsonify it
 	jsonBody, _ = json.Marshal(createGroupShareRequest)
 	// prep http request
-	uriShare := host + cfg.NginxRootURL + "/shared/" + createdObject.ID
+	uriShare := mountPoint + "/shared/" + createdObject.ID
 	httpCreateGroupShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateGroupShare.Header.Set("Content-Type", "application/json")
 	// exec and get response
@@ -772,7 +771,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 	createObjectRequest.ContentSize = 0
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	// prep http request
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
 	// exec and get response
@@ -788,7 +787,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 	}
 
 	t.Logf("* Verify all clients can read it")
-	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	uriGetProperties := mountPoint + "/objects/" + createdObject.ID + "/properties"
 	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
 	for clientIdx, ci := range clients {
 		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
@@ -847,7 +846,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 	// jsonify it
 	jsonBody, _ = json.Marshal(createGroupShareRequest)
 	// prep http request
-	uriShare := host + cfg.NginxRootURL + "/shared/" + createdObject.ID
+	uriShare := mountPoint + "/shared/" + createdObject.ID
 	httpCreateGroupShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateGroupShare.Header.Set("Content-Type", "application/json")
 	// exec and get response
@@ -1021,7 +1020,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 	acmWithODriveG1 := `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{"projects":{"DCTC":{"disp_nm":"DCTC","groups":["ODrive_G2"]}}}}`
 	updatedObject3.RawAcm = acmWithODriveG1
 	updatedObject3.Permission = protocol.Permission{}
-	uriUpdate := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	uriUpdate := mountPoint + "/objects/" + createdObject.ID + "/properties"
 	// jsonify it
 	jsonBody, _ = json.Marshal(updatedObject3)
 	// prep http request
@@ -1135,7 +1134,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	createObjectRequest.ContentSize = 0
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	// prep http request
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
 	// exec and get response
@@ -1151,7 +1150,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	}
 
 	t.Logf("* Verify all clients can read it")
-	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	uriGetProperties := mountPoint + "/objects/" + createdObject.ID + "/properties"
 	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
 	for clientIdx, ci := range clients {
 		httpGetResponse, err := clients[clientIdx].Client.Do(httpGet)
@@ -1210,7 +1209,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	// jsonify it
 	jsonBody, _ = json.Marshal(createGroupShareRequest)
 	// prep http request
-	uriShare := host + cfg.NginxRootURL + "/shared/" + createdObject.ID
+	uriShare := mountPoint + "/shared/" + createdObject.ID
 	httpCreateGroupShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateGroupShare.Header.Set("Content-Type", "application/json")
 	// exec and get response
@@ -1383,7 +1382,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	acmWithODriveG1 := `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{"projects":{"DCTC":{"disp_nm":"DCTC","groups":["ODrive_G2"]}}}}`
 	updatedObject3.RawAcm = acmWithODriveG1
 	updatedObject3.Permission = protocol.Permission{}
-	uriUpdate := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	uriUpdate := mountPoint + "/objects/" + createdObject.ID + "/properties"
 	// jsonify it
 	jsonBody, _ = json.Marshal(updatedObject3)
 	// prep http request
@@ -1561,7 +1560,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 }
 
 func shouldHaveEveryonePermission(t *testing.T, objID string, clientIdxs ...int) {
-	uri := host + cfg.NginxRootURL + "/objects/" + objID + "/properties"
+	uri := mountPoint + "/objects/" + objID + "/properties"
 	getReq, _ := http.NewRequest("GET", uri, nil)
 	for _, i := range clientIdxs {
 		// reaches for package global clients

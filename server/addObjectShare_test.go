@@ -12,12 +12,11 @@ import (
 	"testing"
 	"time"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/util/testhelpers"
 	"decipher.com/object-drive-server/utils"
 
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
 )
 
@@ -40,7 +39,7 @@ func TestAddObjectShare(t *testing.T) {
 	folder2 := makeFolderViaJSON("Test Folder 2 ", tester10, t)
 
 	t.Logf("* Moving folder 2 under folder 1")
-	moveuri := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/move/" + folder1.ID
+	moveuri := mountPoint + "/objects/" + folder2.ID + "/move/" + folder1.ID
 	objChangeToken := protocol.ChangeTokenStruct{}
 	objChangeToken.ChangeToken = folder2.ChangeToken
 	jsonBody, err := json.Marshal(objChangeToken)
@@ -68,7 +67,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 
 	t.Logf("* Retrieve folder 1 as tester1")
-	geturi := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
+	geturi := mountPoint + "/objects/" + folder1.ID + "/properties"
 	getReq1, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
@@ -96,7 +95,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 
 	t.Logf("* Retrieve folder 2 as tester1")
-	geturi = host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/properties"
+	geturi = mountPoint + "/objects/" + folder2.ID + "/properties"
 	getReq2, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
@@ -123,7 +122,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 
 	t.Logf("* Add read share as tester10 for tester1,tester10 to folder1")
-	shareuri := host + cfg.NginxRootURL + "/shared/" + folder1.ID
+	shareuri := mountPoint + "/shared/" + folder1.ID
 	shareSetting := protocol.ObjectShare{}
 	shareSetting.Share = utils.CombineInterface(makeUserShare(fakeDN0), makeUserShare(fakeDN1))
 	shareSetting.AllowRead = true
@@ -158,7 +157,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 
 	t.Logf("* Attempt to retrieve folder1 as tester1")
-	geturi = host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
+	geturi = mountPoint + "/objects/" + folder1.ID + "/properties"
 	getReq4, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
@@ -185,7 +184,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 
 	t.Logf("* Attempt to retrieve folder2 as tester1")
-	geturi = host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/properties"
+	geturi = mountPoint + "/objects/" + folder2.ID + "/properties"
 	getReq5, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
@@ -220,7 +219,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 
 	t.Logf("* Add share as tester10 for tester1 to folder1 (NOOP since read exists)")
-	shareuri = host + cfg.NginxRootURL + "/shared/" + folder1.ID
+	shareuri = mountPoint + "/shared/" + folder1.ID
 	shareSetting = protocol.ObjectShare{}
 	shareSetting.Share = utils.CombineInterface(makeUserShare(fakeDN0), makeUserShare(fakeDN1))
 	shareSetting.AllowRead = true
@@ -255,7 +254,7 @@ func TestAddObjectShare(t *testing.T) {
 	}
 
 	t.Logf("* Attempt to retrieve folder2 as tester1")
-	geturi = host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/properties"
+	geturi = mountPoint + "/objects/" + folder2.ID + "/properties"
 	getReq7, err := http.NewRequest("GET", geturi, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
@@ -305,14 +304,14 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	}
 
 	t.Logf("* Create object as testperson10 with ACM that is TS")
-	createdFolder, err := makeFolderWithACMViaJSON("TestAddFolderWithTSSITK-"+strconv.FormatInt(time.Now().Unix(), 10), testhelpers.ValidACMTopSecretSITK, 0)
+	createdFolder, err := makeFolderWithACMViaJSON("TestAddFolderWithTSSITK-"+strconv.FormatInt(time.Now().Unix(), 10), server.ValidACMTopSecretSITK, 0)
 	if err != nil {
 		t.Logf("Error making folder 1: %v", err)
 		t.FailNow()
 	}
 
 	t.Logf("* Verify testperson10 can get object")
-	getReq1, err := testhelpers.NewGetObjectRequest(createdFolder.ID, "", host)
+	getReq1, err := NewGetObjectRequest(createdFolder.ID, "")
 	if err != nil {
 		t.Logf("Unable to generate get re-request:%v", err)
 	}
@@ -358,7 +357,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	}
 
 	t.Logf("* Create share granting read access to odrive") // will replace models.EveryoneGroup
-	shareuri := host + cfg.NginxRootURL + "/shared/" + createdFolder.ID
+	shareuri := mountPoint + "/shared/" + createdFolder.ID
 	shareSetting := protocol.ObjectShare{}
 	shareSetting.Share = makeGroupShare("DCTC", "DCTC", "ODrive")
 	//shareSetting.Grantee = fakeDN1
@@ -404,7 +403,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	}
 
 	t.Logf("* Verify that the object is listed as shared from testperson10 /shared")
-	shareListURI := host + cfg.NginxRootURL + "/shared?filterField=name&condition=equals&expression=" + url.QueryEscape(createdFolder.Name)
+	shareListURI := mountPoint + "/shared?filterField=name&condition=equals&expression=" + url.QueryEscape(createdFolder.Name)
 	t.Logf("Looking for object via %s", shareListURI)
 	shareListRequest, err := http.NewRequest("GET", shareListURI, nil)
 	if err != nil {
@@ -447,8 +446,8 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	t.Logf("* Update object as testperson10 to change ACM to be U")
 	//folderUpdate := createdFolder -- object changed from adding permission(s) so created object does not have current change token
 	folderUpdate := updatedObject
-	folderUpdate.RawAcm = testhelpers.ValidACMUnclassified
-	updateuri := host + cfg.NginxRootURL + "/objects/" + folderUpdate.ID + "/properties"
+	folderUpdate.RawAcm = server.ValidACMUnclassified
+	updateuri := mountPoint + "/objects/" + folderUpdate.ID + "/properties"
 	jsonBody, err = json.Marshal(folderUpdate)
 	if err != nil {
 		t.Logf("Unable to marshal json for request:%v", err)
@@ -491,7 +490,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	}
 
 	t.Logf("* Verify testperson01 can list objects in the shared to me /shares")
-	sharedToMeListURI := host + cfg.NginxRootURL + "/shares?filterField=name&condition=equals&expression=" + url.QueryEscape(createdFolder.Name)
+	sharedToMeListURI := mountPoint + "/shares?filterField=name&condition=equals&expression=" + url.QueryEscape(createdFolder.Name)
 	sharedToMeListRequest, err := http.NewRequest("GET", sharedToMeListURI, nil)
 	if err != nil {
 		t.Logf("Error setting up HTTP Request: %v", err)
@@ -561,7 +560,7 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 	// jsonify it
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	// prep http request
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	httpCreate, _ := http.NewRequest("POST", uriCreate, bytes.NewBuffer(jsonBody))
 	httpCreate.Header.Set("Content-Type", "application/json")
 	transport := &http.Transport{TLSClientConfig: clients[tester1].Config}
@@ -592,7 +591,7 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 	}
 
 	t.Logf("* Verify all clients can read it")
-	uriGetProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	uriGetProperties := mountPoint + "/objects/" + createdObject.ID + "/properties"
 	httpGet, _ := http.NewRequest("GET", uriGetProperties, nil)
 	for clientIdx, ci := range clients {
 		transport := &http.Transport{TLSClientConfig: ci.Config}
@@ -645,7 +644,7 @@ func TestAddShareThatRevokesOwnerRead(t *testing.T) {
 	// jsonify it
 	jsonBody, _ = json.Marshal(createShareRequest)
 	// prep http request
-	uriShare := host + cfg.NginxRootURL + "/shared/" + createdObject.ID
+	uriShare := mountPoint + "/shared/" + createdObject.ID
 	// prep http request
 	httpCreateShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
 	httpCreateShare.Header.Set("Content-Type", "application/json")
@@ -767,7 +766,7 @@ func TestAddShareForCRDoesNotGiveCRUDS(t *testing.T) {
 	createObjectRequest.TypeName = "Folder"
 	createObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"]}`
 	createObjectRequest.ContentSize = 0
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	httpCreate := makeHTTPRequestFromInterface(t, "POST", uriCreate, createObjectRequest)
 	httpCreateResponse, err := clients[tester10].Client.Do(httpCreate)
 	if err != nil {
@@ -793,7 +792,7 @@ func TestAddShareForCRDoesNotGiveCRUDS(t *testing.T) {
 	updateObjectRequest.ChangeToken = createdObject.ChangeToken
 	updateObjectRequest.ID = createdObject.ID
 	updateObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}}`
-	uriUpdateProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	uriUpdateProperties := mountPoint + "/objects/" + createdObject.ID + "/properties"
 	httpUpdate := makeHTTPRequestFromInterface(t, "POST", uriUpdateProperties, updateObjectRequest)
 	httpUpdateResponse, err := clients[tester10].Client.Do(httpUpdate)
 	if err != nil {
@@ -821,7 +820,7 @@ func TestAddShareForCRDoesNotGiveCRUDS(t *testing.T) {
 	createShareRequest.AllowDelete = false
 	createShareRequest.AllowShare = false
 	createShareRequest.Share = makeUserShare(user_dn_ling_chen)
-	uriShare := host + cfg.NginxRootURL + "/shared/" + createdObject.ID
+	uriShare := mountPoint + "/shared/" + createdObject.ID
 	httpShare := makeHTTPRequestFromInterface(t, "POST", uriShare, createShareRequest)
 	httpShareResponse, err := clients[tester10].Client.Do(httpShare)
 	if err != nil {
@@ -859,7 +858,7 @@ func TestAddShareForRDoesNotGiveCRUDS(t *testing.T) {
 	createObjectRequest.TypeName = "Folder"
 	createObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"]}`
 	createObjectRequest.ContentSize = 0
-	uriCreate := host + cfg.NginxRootURL + "/objects"
+	uriCreate := mountPoint + "/objects"
 	httpCreate := makeHTTPRequestFromInterface(t, "POST", uriCreate, createObjectRequest)
 	httpCreateResponse, err := clients[tester10].Client.Do(httpCreate)
 	if err != nil {
@@ -885,7 +884,7 @@ func TestAddShareForRDoesNotGiveCRUDS(t *testing.T) {
 	updateObjectRequest.ChangeToken = createdObject.ChangeToken
 	updateObjectRequest.ID = createdObject.ID
 	updateObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}}`
-	uriUpdateProperties := host + cfg.NginxRootURL + "/objects/" + createdObject.ID + "/properties"
+	uriUpdateProperties := mountPoint + "/objects/" + createdObject.ID + "/properties"
 	httpUpdate := makeHTTPRequestFromInterface(t, "POST", uriUpdateProperties, updateObjectRequest)
 	httpUpdateResponse, err := clients[tester10].Client.Do(httpUpdate)
 	if err != nil {
@@ -913,7 +912,7 @@ func TestAddShareForRDoesNotGiveCRUDS(t *testing.T) {
 	createShareRequest.AllowDelete = false
 	createShareRequest.AllowShare = false
 	createShareRequest.Share = makeUserShare(user_dn_ling_chen)
-	uriShare := host + cfg.NginxRootURL + "/shared/" + createdObject.ID
+	uriShare := mountPoint + "/shared/" + createdObject.ID
 	httpShare := makeHTTPRequestFromInterface(t, "POST", uriShare, createShareRequest)
 	httpShareResponse, err := clients[tester10].Client.Do(httpShare)
 	if err != nil {

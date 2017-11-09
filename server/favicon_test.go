@@ -5,8 +5,6 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"testing"
-
-	cfg "decipher.com/object-drive-server/config"
 )
 
 func TestFaviconDefault(t *testing.T) {
@@ -17,7 +15,7 @@ func TestFaviconDefault(t *testing.T) {
 	// This is the equivalent of the default for actual server since this test is in libs/server
 	s.StaticDir = filepath.Join("static")
 
-	r, err := http.NewRequest("GET", cfg.RootURL+"/favicon.ico", nil)
+	r, err := http.NewRequest("GET", mountPoint+"/favicon.ico", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +42,7 @@ func TestFaviconFailsForNoStaticDir(t *testing.T) {
 	// Simulates staticDir "" for server startup
 	s.StaticDir = ""
 
-	r, err := http.NewRequest("GET", cfg.RootURL+"/favicon.ico", nil)
+	r, err := http.NewRequest("GET", mountPoint+"/favicon.ico", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

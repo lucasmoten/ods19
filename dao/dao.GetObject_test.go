@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/util/testhelpers"
+	"decipher.com/object-drive-server/server"
 )
 
 func TestDAOGetObject(t *testing.T) {
@@ -38,7 +38,7 @@ func TestDAOGetObject(t *testing.T) {
 	properties[0].ClassificationPM = models.ToNullString("UNCLASSIFIED")
 	obj.Properties = properties
 
-	obj.RawAcm = models.ToNullString(testhelpers.ValidACMUnclassified)
+	obj.RawAcm = models.ToNullString(server.ValidACMUnclassified)
 
 	dbObject, err := d.CreateObject(&obj)
 	if err != nil {

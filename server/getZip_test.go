@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/server"
+
 	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestZipCorrect(t *testing.T) {
@@ -96,7 +96,7 @@ func TestZipBad(t *testing.T) {
 	//Remember individual objects
 	someDataString := "lat=5,long=6"
 	var objs []protocol.Object
-	acm := testhelpers.ValidACMUnclassifiedFOUOSharedToTester01And02
+	acm := server.ValidACMUnclassifiedFOUOSharedToTester01And02
 	objs = append(objs, testZipMakeFileWithACM(t, tester01, "", fmt.Sprintf("tester01private.txt"), someDataString, acm))
 	//test tester10 will perform the zip.  test tester01 owns the file.
 	doTestZip(t, objs, someDataString, duplicates, 400, nil, nil)
@@ -125,7 +125,7 @@ func doTestZip(t *testing.T, objs []protocol.Object, someDataString string, dupl
 	t.Logf("%s", string(jsonBytes))
 
 	t.Logf("Actually perform a zip request and ensure that we get something back")
-	uri := host + cfg.NginxRootURL + "/zip"
+	uri := mountPoint + "/zip"
 	t.Logf("trying: POST %s", uri)
 	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonBytes))
 	if err != nil {
@@ -230,19 +230,19 @@ func testZipMakeFileWithACM(t *testing.T, clientID int, parentID string, name st
 	}
 
 	tmpName := name
-	tmp, tmpCloser, err := testhelpers.GenerateTempFile(data)
+	tmp, tmpCloser, err := GenerateTempFile(data)
 	if err != nil {
 		t.Errorf("Could not open temp file for write: %v\n", err)
 	}
 	defer tmpCloser()
 
-	req, err := testhelpers.NewCreateObjectPOSTRequestRaw(
-		"objects", host, "", tmp, tmpName, jsonBody)
+	req, err := NewCreateObjectPOSTRequestRaw(
+		"objects", "", tmp, tmpName, jsonBody)
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
 
-	res, obj, err := testhelpers.DoWithDecodedResult(client, req)
+	res, obj, err := DoWithDecodedResult2(client, req)
 
 	if err != nil {
 		t.Fail()

@@ -11,9 +11,8 @@ import (
 	"testing"
 	"time"
 
-	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 	"decipher.com/object-drive-server/utils"
 
 	"decipher.com/object-drive-server/protocol"
@@ -112,7 +111,7 @@ func TestUpdateObject298(t *testing.T) {
 	folder := makeFolderViaJSON("Test Folder for Update ", clientid, t)
 
 	// Attempt to rename the folder
-	updateuri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
+	updateuri := mountPoint + "/objects/" + folder.ID + "/properties"
 	jsonBody := []byte(fmt.Sprintf(input298, folder.ID, folder.ChangeToken))
 
 	req, err := http.NewRequest("POST", updateuri, bytes.NewBuffer(jsonBody))
@@ -168,7 +167,7 @@ func TestUpdateObject(t *testing.T) {
 	folder := makeFolderViaJSON("Test Folder for Update ", clientid, t)
 
 	// Attempt to rename the folder
-	updateuri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
+	updateuri := mountPoint + "/objects/" + folder.ID + "/properties"
 	folder.Name = "Test Folder Updated " + strconv.FormatInt(time.Now().Unix(), 10)
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
@@ -256,7 +255,7 @@ func TestUpdateObjectToChangeOwnedBy(t *testing.T) {
 	expectedOwner := folder.OwnedBy
 
 	t.Logf("Attempt to change owner")
-	updateuri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
+	updateuri := mountPoint + "/objects/" + folder.ID + "/properties"
 	folder.OwnedBy = fakeDN2
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
@@ -310,7 +309,7 @@ func TestUpdateObjectPreventAcmShareChange(t *testing.T) {
 	shareSetting.AllowUpdate = true
 	updatedFolder := doAddObjectShare(t, folder, &shareSetting, tester1)
 
-	updateuri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
+	updateuri := mountPoint + "/objects/" + folder.ID + "/properties"
 
 	t.Logf("* Tester02 updates name but leave ACM alone")
 	updatedFolder.Name += " changed name"
@@ -323,7 +322,7 @@ func TestUpdateObjectPreventAcmShareChange(t *testing.T) {
 
 	t.Logf("* Tester02 update name again, as well as ACM without changing share")
 	updatedFolder.Name += " again"
-	updatedFolder.RawAcm = testhelpers.ValidACMUnclassifiedFOUO
+	updatedFolder.RawAcm = server.ValidACMUnclassifiedFOUO
 	updateReq2 := makeHTTPRequestFromInterface(t, "POST", updateuri, updatedFolder)
 	updateRes2, err := clients[tester2].Client.Do(updateReq2)
 	failNowOnErr(t, err, "Unable to do request")
@@ -333,7 +332,7 @@ func TestUpdateObjectPreventAcmShareChange(t *testing.T) {
 
 	t.Logf("* Tester02 update name + acm with a different share. Expect error")
 	updatedFolder.Name += " and share"
-	updatedFolder.RawAcm = testhelpers.ValidACMUnclassifiedFOUOSharedToTester01And02
+	updatedFolder.RawAcm = server.ValidACMUnclassifiedFOUOSharedToTester01And02
 	updateReq3 := makeHTTPRequestFromInterface(t, "POST", updateuri, updatedFolder)
 	updateRes3, err := clients[tester2].Client.Do(updateReq3)
 	failNowOnErr(t, err, "Unable to do request")
@@ -350,7 +349,7 @@ func TestUpdateObjectPreventAcmShareChange(t *testing.T) {
 
 	t.Logf("* Tester02 update name + acm with a different share. Expect success")
 	updatedFolder.Name += " and share"
-	updatedFolder.RawAcm = testhelpers.ValidACMUnclassifiedFOUOSharedToTester01And02
+	updatedFolder.RawAcm = server.ValidACMUnclassifiedFOUOSharedToTester01And02
 	updateReq4 := makeHTTPRequestFromInterface(t, "POST", updateuri, updatedFolder)
 	updateRes4, err := clients[tester2].Client.Do(updateReq4)
 	failNowOnErr(t, err, "Unable to do request")
@@ -373,7 +372,7 @@ func TestUpdateObjectWithDifferentIDInJSON(t *testing.T) {
 	folder2 := makeFolderViaJSON("Test Folder 2 ", tester1, t)
 
 	t.Logf("* Attempt to Update folder1, using folder2's id")
-	updateuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
+	updateuri := mountPoint + "/objects/" + folder1.ID + "/properties"
 	folder1.ID = folder2.ID
 	folder1.Name = "Please dont let me save this"
 
@@ -386,7 +385,7 @@ func TestUpdateObjectWithDifferentIDInJSON(t *testing.T) {
 	if t.Failed() {
 		t.Logf("  Name of object updated is .. %s", updatedFolder.Name)
 
-		geturi := host + cfg.NginxRootURL + "/objects/" + folder2.ID + "/properties"
+		geturi := mountPoint + "/objects/" + folder2.ID + "/properties"
 		getObjReq := makeHTTPRequestFromInterface(t, "GET", geturi, nil)
 		getObjRes, err := clients[tester10].Client.Do(getObjReq)
 		failNowOnErr(t, err, "Unable to do request")
@@ -409,7 +408,7 @@ func TestRenameObject(t *testing.T) {
 
 	t.Logf("* Attempt to rename it")
 	changedName := "Renamed"
-	updateuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
+	updateuri := mountPoint + "/objects/" + folder1.ID + "/properties"
 	folder1.Name = changedName
 
 	updateFolderReq := makeHTTPRequestFromInterface(t, "POST", updateuri, folder1)
@@ -429,7 +428,7 @@ func TestUpdateObjectCallerPermissions(t *testing.T) {
 	t.Logf("* Create folder as tester9")
 	folder := makeFolderViaJSON("caller_permissions_test", tester9, t)
 	t.Logf("* Update folder by changing name")
-	uri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
+	uri := mountPoint + "/objects/" + folder.ID + "/properties"
 	folder.Name = "Renamed"
 	req := makeHTTPRequestFromInterface(t, "POST", uri, folder)
 	resp, err := clients[tester9].Client.Do(req)
@@ -448,7 +447,7 @@ func TestUpdateObjectCallerPermissions(t *testing.T) {
 	share.AllowUpdate = true
 	share.Share = makeUserShare(fakeDN0)
 	jsonBody, _ := json.Marshal(share)
-	shareURI := host + cfg.NginxRootURL + "/shared/" + folder.ID
+	shareURI := mountPoint + "/shared/" + folder.ID
 	shareReq, _ := http.NewRequest("POST", shareURI, bytes.NewBuffer(jsonBody))
 	shareReq.Header.Set("Content-Type", "application/json")
 	resp, err = clients[tester9].Client.Do(shareReq)
@@ -569,7 +568,7 @@ func TestUpdateObjectShareInAFolder(t *testing.T) {
 }`
 	objString := fmt.Sprintf(objStringTemplate, folderChild.ID, folderParent.ID, folderChild.ChangeToken)
 	objInt, _ := utils.UnmarshalStringToInterface(objString)
-	uri := host + cfg.NginxRootURL + "/objects/" + folderChild.ID + "/properties"
+	uri := mountPoint + "/objects/" + folderChild.ID + "/properties"
 	req := makeHTTPRequestFromInterface(t, "POST", uri, objInt)
 	resp, err := clients[tester10].Client.Do(req)
 	failNowOnErr(t, err, "unable to do request")
@@ -593,7 +592,7 @@ func TestUpdateObjectWithoutACM(t *testing.T) {
 	updateObj.Name = folder.Name + " updated"
 	updateObj.TypeID = folder.TypeID
 	updateObj.TypeName = folder.TypeName
-	uri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
+	uri := mountPoint + "/objects/" + folder.ID + "/properties"
 	req := makeHTTPRequestFromInterface(t, "POST", uri, updateObj)
 	resp, err := clients[tester10].Client.Do(req)
 	failNowOnErr(t, err, "unable to do request")
@@ -605,7 +604,7 @@ func TestUpdateObjectWithoutACM(t *testing.T) {
 func TestUpdateObjectWithACMHavingEmptyValueInPart(t *testing.T) {
 	tester10 := 0
 	t.Logf("* Create object as tester10")
-	folder, err := makeFolderWithACMViaJSON("TestUpdateObjectWithACMHavingEmptyValueInPart", testhelpers.ValidACMUnclassifiedEmptyDissemCountries, tester10)
+	folder, err := makeFolderWithACMViaJSON("TestUpdateObjectWithACMHavingEmptyValueInPart", server.ValidACMUnclassifiedEmptyDissemCountries, tester10)
 	if err != nil {
 		t.Logf("Error creating folder: %v", err)
 		t.FailNow()
@@ -618,10 +617,10 @@ func TestUpdateObjectWithACMHavingEmptyValueInPart(t *testing.T) {
 	updateObj.ExemptFromFOIA = folder.ExemptFromFOIA
 	updateObj.ID = folder.ID
 	updateObj.Name = folder.Name + " updated"
-	updateObj.RawAcm, _ = utils.UnmarshalStringToInterface(testhelpers.ValidACMUnclassifiedEmptyDissemCountriesEmptyFShare)
+	updateObj.RawAcm, _ = utils.UnmarshalStringToInterface(server.ValidACMUnclassifiedEmptyDissemCountriesEmptyFShare)
 	updateObj.TypeID = folder.TypeID
 	updateObj.TypeName = folder.TypeName
-	uri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
+	uri := mountPoint + "/objects/" + folder.ID + "/properties"
 	req := makeHTTPRequestFromInterface(t, "POST", uri, updateObj)
 	resp, err := clients[tester10].Client.Do(req)
 	failNowOnErr(t, err, "unable to do request")
@@ -726,7 +725,7 @@ func TestUpdateObjectHasPermissions(t *testing.T) {
 }`
 	objString := fmt.Sprintf(objStringTemplate, folderChild.ID, folderParent.ID, folderChild.ChangeToken)
 	objInt, _ := utils.UnmarshalStringToInterface(objString)
-	uri := host + cfg.NginxRootURL + "/objects/" + folderChild.ID + "/properties"
+	uri := mountPoint + "/objects/" + folderChild.ID + "/properties"
 	req := makeHTTPRequestFromInterface(t, "POST", uri, objInt)
 	resp, err := clients[tester10].Client.Do(req)
 	failNowOnErr(t, err, "unable to do request")
@@ -760,7 +759,7 @@ func TestUpdateObjectHasPermissions(t *testing.T) {
 func TestUpdateObjectToEveryoneReturnsOwnerCRUDS(t *testing.T) {
 	tester10 := 0
 	t.Logf("* Create object shared to just me (#98 steps 1-3)")
-	folder, err := makeFolderWithACMViaJSON("TestUpdateObjectToEveryoneReturnsOwnerCRUDS", testhelpers.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
+	folder, err := makeFolderWithACMViaJSON("TestUpdateObjectToEveryoneReturnsOwnerCRUDS", server.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
 	if err != nil {
 		t.Logf("Error creating folder: %v", err)
 		t.FailNow()
@@ -774,7 +773,7 @@ func TestUpdateObjectToEveryoneReturnsOwnerCRUDS(t *testing.T) {
 	}`
 	objString := fmt.Sprintf(objStringTemplate, folder.ID, folder.ChangeToken)
 	objInt, _ := utils.UnmarshalStringToInterface(objString)
-	uri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
+	uri := mountPoint + "/objects/" + folder.ID + "/properties"
 	req := makeHTTPRequestFromInterface(t, "POST", uri, objInt)
 	resp, err := clients[tester10].Client.Do(req)
 	failNowOnErr(t, err, "unable to do request")
@@ -808,7 +807,7 @@ func TestUpdateObjectToEveryoneReturnsOwnerCRUDS(t *testing.T) {
 func TestUpdateObjectWithPermissions(t *testing.T) {
 	tester10 := 0
 	t.Logf("* Create object shared to just tester10")
-	folder, err := makeFolderWithACMViaJSON("TestUpdateObjectWithPermissions", testhelpers.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
+	folder, err := makeFolderWithACMViaJSON("TestUpdateObjectWithPermissions", server.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
 	if err != nil {
 		t.Logf("Error creating folder: %v", err)
 		t.FailNow()
@@ -823,7 +822,7 @@ func TestUpdateObjectWithPermissions(t *testing.T) {
 	}`
 	objString := fmt.Sprintf(objStringTemplate, folder.ID, folder.ChangeToken)
 	objInt, _ := utils.UnmarshalStringToInterface(objString)
-	uri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
+	uri := mountPoint + "/objects/" + folder.ID + "/properties"
 	req := makeHTTPRequestFromInterface(t, "POST", uri, objInt)
 	resp, err := clients[tester10].Client.Do(req)
 	failNowOnErr(t, err, "unable to do request")
@@ -893,7 +892,7 @@ func TestUpdateObjectWithPathing(t *testing.T) {
 	t.Logf("* Attempt to rename it")
 	defaultPathDelimiter := string(rune(30)) // 20161230 was a slash, 20170301 is now the record separator character code 30
 	changedName := strings.Join([]string{"renamed", "with", "pathing"}, defaultPathDelimiter)
-	updateuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
+	updateuri := mountPoint + "/objects/" + folder1.ID + "/properties"
 	folder1.Name = changedName
 
 	updateFolderReq := makeHTTPRequestFromInterface(t, "POST", updateuri, folder1)
@@ -916,7 +915,7 @@ func TestUpdateObjectProperty(t *testing.T) {
 	folder1.Properties = append(folder1.Properties, protocol.Property{Name: "custom-property", Value: "property value 1"})
 
 	t.Logf("* Update the object")
-	updateuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
+	updateuri := mountPoint + "/objects/" + folder1.ID + "/properties"
 	req := makeHTTPRequestFromInterface(t, "POST", updateuri, folder1)
 	trafficLogs[APISampleFile].Request(t, req, &TrafficLogDescription{
 		OperationName:       "Update Object With New Property",
@@ -992,7 +991,7 @@ func TestUpdateObjectContentTypeWithoutStream(t *testing.T) {
 	initialContentType := folder.ContentType // presumably empty per above since this is a folder
 
 	t.Logf("Attempt to change content type")
-	updateuri := host + cfg.NginxRootURL + "/objects/" + folder.ID + "/properties"
+	updateuri := mountPoint + "/objects/" + folder.ID + "/properties"
 	folder.ContentType = "text/plain" // force it to something other then empty or application/octet-stream default
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {

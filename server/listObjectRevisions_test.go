@@ -5,10 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestUpdateObjectWithClassificationDrop(t *testing.T) {
@@ -22,7 +21,7 @@ func TestUpdateObjectWithClassificationDrop(t *testing.T) {
 			RequestDescription:  "Generate a file with high classification",
 			ResponseDescription: "Get an object to update",
 		},
-		testhelpers.ValidACMTopSecretSITK)
+		server.ValidACMTopSecretSITK)
 	t.Logf("Verifying newly created file exists")
 	doCheckFileNowExists(t, clientID, created)
 	t.Logf("Update with a lower classification")
@@ -35,7 +34,7 @@ func TestUpdateObjectWithClassificationDrop(t *testing.T) {
 			RequestDescription:  "Lower the classification request",
 			ResponseDescription: "The redacted file",
 		},
-		testhelpers.ValidACMUnclassifiedFOUO)
+		server.ValidACMUnclassifiedFOUO)
 	t.Logf("Check the access from a user with lower clearance")
 	unclearedID := 1
 	shouldHaveReadForObjectID(t, updated.ID, unclearedID)
@@ -45,7 +44,7 @@ func TestUpdateObjectWithClassificationDrop(t *testing.T) {
 	expectingReadForObjectIDVersion(t, http.StatusForbidden, 0, updated.ID, unclearedID)
 
 	t.Logf("Lower cleared user lists versions")
-	uri := host + cfg.NginxRootURL + "/revisions/" + updated.ID
+	uri := mountPoint + "/revisions/" + updated.ID
 	req := makeHTTPRequestFromInterface(t, "GET", uri, nil)
 	trafficLogs[APISampleFile].Request(t, req,
 		&TrafficLogDescription{
@@ -98,7 +97,7 @@ func TestListObjectRevisions(t *testing.T) {
 
 	t.Logf("Modify it, changing the name")
 	changedName := "Testing Revisions - Renamed"
-	updateuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
+	updateuri := mountPoint + "/objects/" + folder1.ID + "/properties"
 	folder1.Name = changedName
 	updateFolderReq := makeHTTPRequestFromInterface(t, "POST", updateuri, folder1)
 	updateFolderRes, err := clients[tester10].Client.Do(updateFolderReq)
@@ -113,7 +112,7 @@ func TestListObjectRevisions(t *testing.T) {
 	changedName = updatedFolder.Name
 
 	t.Logf("Get revisions for the folder")
-	revisionsuri := host + cfg.NginxRootURL + "/revisions/" + folder1.ID
+	revisionsuri := mountPoint + "/revisions/" + folder1.ID
 	revisionsReq := makeHTTPRequestFromInterface(t, "GET", revisionsuri, nil)
 	revisionsRes, err := clients[tester10].Client.Do(revisionsReq)
 	failNowOnErr(t, err, "Unable to do request")
@@ -153,7 +152,7 @@ func TestListObjectRevisionsWithProperties(t *testing.T) {
 	t.Logf("Folder ID = %s", folder1.ID)
 
 	t.Logf("Modify it, adding a property")
-	updateuri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/properties"
+	updateuri := mountPoint + "/objects/" + folder1.ID + "/properties"
 	folder1.Properties = append(folder1.Properties, protocol.Property{Name: "property1", Value: "originalvalue1"})
 	updateFolderReq := makeHTTPRequestFromInterface(t, "POST", updateuri, folder1)
 	updateFolderRes, err := clients[tester10].Client.Do(updateFolderReq)
@@ -213,7 +212,7 @@ func TestListObjectRevisionsWithProperties(t *testing.T) {
 	}
 
 	t.Logf("Get revisions for the folder")
-	revisionsuri := host + cfg.NginxRootURL + "/revisions/" + folder1.ID
+	revisionsuri := mountPoint + "/revisions/" + folder1.ID
 	revisionsReq := makeHTTPRequestFromInterface(t, "GET", revisionsuri, nil)
 	revisionsRes, err := clients[tester10].Client.Do(revisionsReq)
 	failNowOnErr(t, err, "Unable to do request")

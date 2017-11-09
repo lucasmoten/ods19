@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"testing"
 
-	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 )
@@ -41,7 +40,7 @@ func TestGetBulkProperties(t *testing.T) {
 		t.FailNow()
 	}
 
-	uri := host + config.NginxRootURL + "/objects/properties"
+	uri := mountPoint + "/objects/properties"
 	t.Logf("trying: POST %s", uri)
 	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonBytes))
 	if err != nil {

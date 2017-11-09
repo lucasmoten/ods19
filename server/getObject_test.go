@@ -15,7 +15,6 @@ import (
 
 	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/util/testhelpers"
 
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
@@ -39,7 +38,7 @@ func TestGetObjectBreadcrumbs(t *testing.T) {
 		protocol.Breadcrumb{ID: folderC.ID, ParentID: folderC.ParentID, Name: folderC.Name},
 	}
 
-	req, _ := testhelpers.NewGetObjectRequest(folderD.ID, "", host)
+	req, _ := NewGetObjectRequest(folderD.ID, "")
 	resp, _ := clients[clientID].Client.Do(req)
 	data, _ := ioutil.ReadAll(resp.Body)
 
@@ -73,10 +72,10 @@ func TestGetObject_DeletedAncestorReturns405(t *testing.T) {
 	folderC := makeFolderWithParentViaJSON("folderC", folderB.ID, clientID, t)
 	folderD := makeFolderWithParentViaJSON("folderD", folderC.ID, clientID, t)
 
-	req, _ := testhelpers.NewDeleteObjectRequest(*folderB, "", host)
+	req, _ := NewDeleteObjectRequest(*folderB, "")
 	_, _ = clients[clientID].Client.Do(req)
 
-	req, _ = testhelpers.NewGetObjectRequest(folderD.ID, "", host)
+	req, _ = NewGetObjectRequest(folderD.ID, "")
 	resp, _ := clients[clientID].Client.Do(req)
 	defer util.FinishBody(resp.Body)
 
@@ -88,13 +87,13 @@ func TestGetObject_DeletedAncestorReturns405(t *testing.T) {
 func TestGetObject_TSClassificationIsRedactedInBreadcrumbs(t *testing.T) {
 
 	tester10 := 0
-	folderA, _ := makeFolderWithACMWithParentViaJSON("folderA", "", testhelpers.ValidACMTopSecretSharedToTester01, tester10)
-	folderB, _ := makeFolderWithACMWithParentViaJSON("folderB", folderA.ID, testhelpers.ValidACMTopSecretSharedToTester01, tester10)
-	folderC, _ := makeFolderWithACMWithParentViaJSON("folderC", folderB.ID, testhelpers.ValidACMTopSecretSharedToTester01, tester10)
-	folderD, _ := makeFolderWithACMWithParentViaJSON("folderD", folderC.ID, testhelpers.ValidACMUnclassified, tester10)
+	folderA, _ := makeFolderWithACMWithParentViaJSON("folderA", "", server.ValidACMTopSecretSharedToTester01, tester10)
+	folderB, _ := makeFolderWithACMWithParentViaJSON("folderB", folderA.ID, server.ValidACMTopSecretSharedToTester01, tester10)
+	folderC, _ := makeFolderWithACMWithParentViaJSON("folderC", folderB.ID, server.ValidACMTopSecretSharedToTester01, tester10)
+	folderD, _ := makeFolderWithACMWithParentViaJSON("folderD", folderC.ID, server.ValidACMUnclassified, tester10)
 
 	tester01 := 1
-	req, _ := testhelpers.NewGetObjectRequest(folderD.ID, "", host)
+	req, _ := NewGetObjectRequest(folderD.ID, "")
 	resp, _ := clients[tester01].Client.Do(req)
 	data, _ := ioutil.ReadAll(resp.Body)
 	var obj protocol.Object
@@ -109,10 +108,10 @@ func TestGetObject_TSClassificationIsRedactedInBreadcrumbs(t *testing.T) {
 
 func TestGetObject_PrivateObjectsRedactedInBreadcrumbs(t *testing.T) {
 	tester10 := 0
-	folderA, _ := makeFolderWithACMWithParentViaJSON("folderA", "", testhelpers.ValidACMUnclassifiedFOUOSharedToTester10, tester10)
-	folderB, _ := makeFolderWithACMWithParentViaJSON("folderB", folderA.ID, testhelpers.ValidACMUnclassifiedFOUOSharedToTester10, tester10)
-	folderC, _ := makeFolderWithACMWithParentViaJSON("folderC", folderB.ID, testhelpers.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
-	folderD, _ := makeFolderWithACMWithParentViaJSON("folderD", folderC.ID, testhelpers.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
+	folderA, _ := makeFolderWithACMWithParentViaJSON("folderA", "", server.ValidACMUnclassifiedFOUOSharedToTester10, tester10)
+	folderB, _ := makeFolderWithACMWithParentViaJSON("folderB", folderA.ID, server.ValidACMUnclassifiedFOUOSharedToTester10, tester10)
+	folderC, _ := makeFolderWithACMWithParentViaJSON("folderC", folderB.ID, server.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
+	folderD, _ := makeFolderWithACMWithParentViaJSON("folderD", folderC.ID, server.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
 
 	t.Log("Only folderC is not redacted in our breadcrumbs for folderD")
 	crumbs := []protocol.Breadcrumb{
@@ -120,7 +119,7 @@ func TestGetObject_PrivateObjectsRedactedInBreadcrumbs(t *testing.T) {
 	}
 
 	tester01 := 1
-	req, _ := testhelpers.NewGetObjectRequest(folderD.ID, "", host)
+	req, _ := NewGetObjectRequest(folderD.ID, "")
 	resp, _ := clients[tester01].Client.Do(req)
 	data, _ := ioutil.ReadAll(resp.Body)
 	var obj protocol.Object
@@ -167,12 +166,12 @@ func TestAppServerGetObjectAgainstFake(t *testing.T) {
 	perms := []models.ODObjectPermission{readPermission}
 	obj := models.ODObject{Permissions: perms}
 	obj.ID = []byte(guid)
-	obj.RawAcm.String, obj.RawAcm.Valid = testhelpers.ValidACMUnclassified, true
+	obj.RawAcm.String, obj.RawAcm.Valid = server.ValidACMUnclassified, true
 
 	fakeServer := setupFakeServerWithObjectForUser(user, obj)
 
 	// Simulate the getObject call.
-	req, err := http.NewRequest("GET", config.RootURL+objectURL, nil)
+	req, err := http.NewRequest("GET", mountPoint+objectURL, nil)
 	req.Header.Add("USER_DN", whitelistedDN)
 	req.Header.Add("SSL_CLIENT_S_DN", whitelistedDN)
 
@@ -198,7 +197,7 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 
 	snippetResponse := aac.SnippetResponse{
 		Success:  true,
-		Snippets: testhelpers.SnippetTP10,
+		Snippets: server.SnippetTP10,
 		Found:    true,
 	}
 	attributesResponse := aac.UserAttributesResponse{
@@ -206,7 +205,7 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 		UserAttributes: "{\"diasUserGroups\":{\"projects\":[{\"projectName\":\"DCTC\",\"groupNames\":[\"ODrive\"]}]}}",
 	}
 	acmInfo := aac.AcmInfo{
-		Acm: testhelpers.ValidACMUnclassified,
+		Acm: server.ValidACMUnclassified,
 	}
 	acmResponse := aac.AcmResponse{
 		Success:  true,
@@ -224,7 +223,6 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 	}
 	fakeQueue := kafka.NewFakeAsyncProducer(nil)
 	fakeServer := server.AppServer{RootDAO: &fakeDAO,
-		ServicePrefix: config.RootURLRegex,
 		AAC:           &fakeAAC,
 		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
 		EventQueue:    fakeQueue,
@@ -256,7 +254,7 @@ func newGUID(t *testing.T) string {
 func TestGetObject_UserNotInDBAndObjectDoesNotExist(t *testing.T) {
 	t.Skip()
 	objectid := "abcdef0123456789abcdef0123456789"
-	uri := host + config.NginxRootURL + "/objects/" + objectid + "/properties"
+	uri := mountPoint + "/objects/" + objectid + "/properties"
 	server := 10
 	userdn := "cn=fake user,ou=people,ou=sois,ou=dod,o=u.s. government,c=us"
 	twldn := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
@@ -276,7 +274,7 @@ func TestGetObject_UserNotInDBAndObjectDoesNotExist(t *testing.T) {
 func TestGetObject_UserNotInDIASAndObjectDoesNotExist(t *testing.T) {
 	t.Skip()
 	objectid := "abcdef0123456789abcdef0123456789"
-	uri := host + config.NginxRootURL + "/objects/" + objectid + "/properties"
+	uri := mountPoint + "/objects/" + objectid + "/properties"
 	server := 10
 	userdn := "cn=fake user,ou=person,ou=sois,ou=dod,o=u.s. government,c=us"
 	twldn := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
@@ -305,7 +303,7 @@ func TestGetObject_500UsersAndObjectDoesNotExist(t *testing.T) {
 			defer wg.Done()
 			objectid := "abcdef0123456789abcdef0123456789"
 			objectid = newGUID(t)
-			uri := host + config.NginxRootURL + "/objects/" + objectid + "/properties"
+			uri := mountPoint + "/objects/" + objectid + "/properties"
 			server := 10
 			twldn := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
 			req, err := http.NewRequest("GET", uri, nil)
@@ -341,7 +339,7 @@ func TestGetObject_100UsersAndObjectDoesNotExistAsNewClient(t *testing.T) {
 			defer wg.Done()
 			objectid := "abcdef0123456789abcdef0123456789"
 			objectid = newGUID(t)
-			uri := host + config.NginxRootURL + "/objects/" + objectid + "/stream"
+			uri := mountPoint + "/objects/" + objectid + "/stream"
 			server := 10
 			twldn := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
 			req, err := http.NewRequest("GET", uri, nil)

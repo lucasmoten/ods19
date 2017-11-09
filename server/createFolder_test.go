@@ -13,9 +13,8 @@ import (
 	"testing"
 	"time"
 
-	cfg "decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 	"decipher.com/object-drive-server/utils"
 
 	"decipher.com/object-drive-server/protocol"
@@ -24,7 +23,7 @@ import (
 func TestCreateFolderProtocol(t *testing.T) {
 
 	jsonNoParent := fmt.Sprintf(`
-    { "typeName": "Folder", "name": "",  "parentId": "", "acm": "%s", "contentType": "", "contentSize": 0 }`, jsonEscape(testhelpers.ValidACMUnclassified))
+    { "typeName": "Folder", "name": "",  "parentId": "", "acm": "%s", "contentType": "", "contentSize": 0 }`, jsonEscape(server.ValidACMUnclassified))
 
 	t.Log(jsonNoParent)
 	s := NewFakeServerWithDAOUsers()
@@ -32,7 +31,7 @@ func TestCreateFolderProtocol(t *testing.T) {
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
 	s.ACLImpersonationWhitelist = append(s.ACLImpersonationWhitelist, whitelistedDN)
 
-	r, err := http.NewRequest("POST", cfg.RootURL+"/objects", bytes.NewBuffer([]byte(jsonNoParent)))
+	r, err := http.NewRequest("POST", mountPoint+"/objects", bytes.NewBuffer([]byte(jsonNoParent)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +65,7 @@ func TestCreateFolderAtRoot(t *testing.T) {
 	}
 
 	// URL
-	uri := host + cfg.NginxRootURL + "/objects"
+	uri := mountPoint + "/objects"
 	if verboseOutput {
 		fmt.Printf("(Verbose Mode) uri: %s\n", uri)
 	}
@@ -75,7 +74,7 @@ func TestCreateFolderAtRoot(t *testing.T) {
 	folder := protocol.Object{}
 	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().Unix(), 10)
 	folder.TypeName = "Folder"
-	folder.RawAcm = testhelpers.ValidACMUnclassified
+	folder.RawAcm = server.ValidACMUnclassified
 	// Cannot use nil for string
 	folder.ParentID = ""
 	jsonBody, err := json.Marshal(folder)
@@ -132,7 +131,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 	}
 
 	// URL
-	uri := host + cfg.NginxRootURL + "/objects"
+	uri := mountPoint + "/objects"
 	if verboseOutput {
 		fmt.Printf("(Verbose Mode) uri: %s\n", uri)
 	}
@@ -142,7 +141,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().Unix(), 10)
 	folder.TypeName = "Folder"
 	folder.ParentID = ""
-	folder.RawAcm = testhelpers.ValidACMUnclassified
+	folder.RawAcm = server.ValidACMUnclassified
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v\n", err)
@@ -188,7 +187,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 	// - This creates the subfolder
 	folder.ParentID = createdFolder.ID
 	folder.Name = "Test Subfolder " + strconv.FormatInt(time.Now().Unix(), 10)
-	folder.RawAcm = testhelpers.ValidACMUnclassified
+	folder.RawAcm = server.ValidACMUnclassified
 	jsonBody, err = json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
@@ -247,7 +246,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 	}
 
 	// URL
-	uri := host + cfg.NginxRootURL + "/objects"
+	uri := mountPoint + "/objects"
 	if verboseOutput {
 		fmt.Printf("(Verbose Mode) uri: %s", uri)
 		fmt.Println()
@@ -258,7 +257,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().Unix(), 10)
 	folder.TypeName = "Folder"
 	folder.ParentID = ""
-	folder.RawAcm = testhelpers.ValidACMUnclassified
+	folder.RawAcm = server.ValidACMUnclassified
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
@@ -286,7 +285,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 	// - This creates the subfolder
 	folder.ParentID = createdFolder.ID
 	folder.Name = "Test Subfolder " + strconv.FormatInt(time.Now().Unix(), 10)
-	folder.RawAcm = testhelpers.ValidACMUnclassified
+	folder.RawAcm = server.ValidACMUnclassified
 	jsonBody, err = json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
@@ -329,7 +328,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 	}
 
 	// URL
-	uri := host + cfg.NginxRootURL + "/objects"
+	uri := mountPoint + "/objects"
 	if verboseOutput {
 		t.Logf("(Verbose Mode) uri: %s", uri)
 	}
@@ -340,7 +339,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().Unix(), 10)
 	folder.TypeName = "Folder"
 	folder.ParentID = ""
-	folder.RawAcm = testhelpers.ValidACMUnclassified
+	folder.RawAcm = server.ValidACMUnclassified
 	grant2client2 := protocol.ObjectShare{}
 	grant2client2.Share = makeUserShare(fakeDN1)
 	grant2client2.AllowRead = true
@@ -349,7 +348,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 	// grant2self is permission for the owner. This same permission, minus the read access
 	// is implicitly granted by the server for owner when creating an object. Since a
 	// permission for client2 is being established with read access, the object isn't
-	// going to be shared with everyone per the ACM on testhelpers.ValidACMUnclassified
+	// going to be shared with everyone per the ACM on server.ValidACMUnclassified
 	// so read access needs to be established
 	grant2self := protocol.ObjectShare{}
 	grant2self.Share = makeUserShare(fakeDN0)
@@ -403,7 +402,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 	t.Logf("* Creating subfolder")
 	folder.ParentID = createdFolder.ID
 	folder.Name = "Test Subfolder " + strconv.FormatInt(time.Now().Unix(), 10)
-	folder.RawAcm = testhelpers.ValidACMUnclassified
+	folder.RawAcm = server.ValidACMUnclassified
 	jsonBody, err = json.Marshal(folder)
 	if err != nil {
 		t.Logf("Unable to marshal json for request:%v", err)
@@ -442,7 +441,7 @@ func TestCreateFolderWithoutName(t *testing.T) {
 	}
 
 	// URL
-	uri := host + cfg.NginxRootURL + "/objects"
+	uri := mountPoint + "/objects"
 	if verboseOutput {
 		fmt.Printf("(Verbose Mode) uri: %s", uri)
 		fmt.Println()
@@ -451,7 +450,7 @@ func TestCreateFolderWithoutName(t *testing.T) {
 	// Body
 	folder := protocol.Object{}
 	folder.TypeName = "Folder"
-	folder.RawAcm = testhelpers.ValidACMUnclassified
+	folder.RawAcm = server.ValidACMUnclassified
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
 		log.Printf("Unable to marshal json for request:%v", err)
@@ -534,7 +533,7 @@ func TestCreateFolderWithPermissionForEveryone264(t *testing.T) {
 		,"name":"TEST1"
 		,"description":"TEST1"
 	}`
-	newobjuri := host + cfg.NginxRootURL + "/objects"
+	newobjuri := mountPoint + "/objects"
 	myobject, err := utils.UnmarshalStringToInterface(ghodsissue264)
 	if err != nil {
 		t.Logf("Error converting to interface: %s", err.Error())
@@ -649,7 +648,7 @@ func TestCreateFolderWithInvalidResourceString827(t *testing.T) {
 		,"name":"TEST827"
 		,"description":"TEST827"
 	}`
-	newobjuri := host + cfg.NginxRootURL + "/objects"
+	newobjuri := mountPoint + "/objects"
 	myobject, err := utils.UnmarshalStringToInterface(ghodsissue827)
 	if err != nil {
 		t.Logf("Error converting to interface: %s", err.Error())

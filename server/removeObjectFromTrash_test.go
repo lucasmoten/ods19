@@ -11,7 +11,6 @@ import (
 
 	"github.com/karlseguin/ccache"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/dao"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
@@ -19,7 +18,6 @@ import (
 	"decipher.com/object-drive-server/services/aac"
 	"decipher.com/object-drive-server/services/kafka"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 )
 
 func TestHTTPUndeleteObject(t *testing.T) {
@@ -44,7 +42,7 @@ func TestHTTPUndeleteObject(t *testing.T) {
 		err = os.Remove(name)
 	}()
 
-	req, err := testhelpers.NewCreateObjectPOSTRequest(host, "", tmp)
+	req, err := NewCreateObjectPOSTRequest("", tmp)
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
@@ -74,7 +72,7 @@ func TestHTTPUndeleteObject(t *testing.T) {
 
 	expected := objResponse.Name
 
-	deleteReq, err := testhelpers.NewDeleteObjectRequest(objResponse, "", host)
+	deleteReq, err := NewDeleteObjectRequest(objResponse, "")
 	res, err = clients[clientID].Client.Do(deleteReq)
 	if err != nil {
 		t.Errorf("Delete request failed: %v\n", err)
@@ -83,7 +81,7 @@ func TestHTTPUndeleteObject(t *testing.T) {
 	defer util.FinishBody(res.Body)
 
 	// We must do another GET to get a valid changeToken
-	getReq, err := testhelpers.NewGetObjectRequest(objID, "", host)
+	getReq, err := NewGetObjectRequest(objID, "")
 	if err != nil {
 		t.Errorf("Error from NewGetObjectRequest: %v\n", err)
 	}
@@ -102,8 +100,8 @@ func TestHTTPUndeleteObject(t *testing.T) {
 	res.Body.Close()
 
 	// This must be passed valid change token
-	undeleteReq, err := testhelpers.NewUndeleteObjectDELETERequest(
-		objID, getObjectResponse.ChangeToken, "", host)
+	undeleteReq, err := NewUndeleteObjectDELETERequest(
+		objID, getObjectResponse.ChangeToken, "")
 	res, err = clients[clientID].Client.Do(undeleteReq)
 	if err != nil {
 		t.Errorf("Delete request failed: %v\n", err)
@@ -132,12 +130,12 @@ func TestUndeleteExpungedObjectFails(t *testing.T) {
 
 	user0, user1, user2 := setupFakeUsers()
 
-	expungedObj := testhelpers.NewTrashedObject(fakeDN0)
+	expungedObj := NewTrashedObject(fakeDN0)
 	expungedObj.IsExpunged = true
 
 	snippetResponse := aac.SnippetResponse{
 		Success:  true,
-		Snippets: testhelpers.SnippetTP10,
+		Snippets: server.SnippetTP10,
 		Found:    true,
 	}
 	attributesResponse := aac.UserAttributesResponse{
@@ -167,7 +165,7 @@ func TestUndeleteExpungedObjectFails(t *testing.T) {
 	s.ACLImpersonationWhitelist = append(s.ACLImpersonationWhitelist, whitelistedDN)
 
 	guid, _ := util.NewGUID()
-	fullURL := cfg.NginxRootURL + "/objects/" + guid + "/untrash"
+	fullURL := mountPoint + "/objects/" + guid + "/untrash"
 	r, err := http.NewRequest(
 		"POST", fullURL,
 		bytes.NewBuffer([]byte(`{"changeToken": "1234567890"}`)))
@@ -193,12 +191,12 @@ func TestUndeleteObjectWithDeletedAncestorFails(t *testing.T) {
 
 	user0, user1, user2 := setupFakeUsers()
 
-	withAncestorDeleted := testhelpers.NewTrashedObject(fakeDN0)
+	withAncestorDeleted := NewTrashedObject(fakeDN0)
 	withAncestorDeleted.IsAncestorDeleted = true
 
 	snippetResponse := aac.SnippetResponse{
 		Success:  true,
-		Snippets: testhelpers.SnippetTP10,
+		Snippets: server.SnippetTP10,
 		Found:    true,
 	}
 	attributesResponse := aac.UserAttributesResponse{
@@ -228,7 +226,7 @@ func TestUndeleteObjectWithDeletedAncestorFails(t *testing.T) {
 	s.ACLImpersonationWhitelist = append(s.ACLImpersonationWhitelist, whitelistedDN)
 
 	guid, _ := util.NewGUID()
-	fullURL := cfg.NginxRootURL + "/objects/" + guid + "/untrash"
+	fullURL := mountPoint + "/objects/" + guid + "/untrash"
 	r, err := http.NewRequest(
 		"POST", fullURL,
 		bytes.NewBuffer([]byte(`{"changeToken": "1234567890"}`)))

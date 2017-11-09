@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/uber-go/zap"
@@ -137,14 +136,13 @@ func UseLocalFile(logger zap.Logger, d CiphertextCache, rName FileId, cipherStar
 //
 // It is the CALLER's responsibility to close io.ReadCloser !!
 func useP2PFile(logger zap.Logger, zone CiphertextCacheZone, rName FileId, begin int64) (io.ReadCloser, error) {
-	cfgPort, _ := strconv.Atoi(config.Port)
 	//Iterate over the current value of peerMap.  Do NOT lock this loop, as there is long IO in here.
 	connectionMapMutex.RLock()
 	thisMap := peerMap
 	connectionMapMutex.RUnlock()
 	for peerKey, peer := range thisMap {
 		//If this is NOT our own entry
-		if peer != nil && (peer.Host != config.MyIP || peer.Port != cfgPort) {
+		if peer != nil && (peer.Host != config.MyIP) {
 			//Ensure that we have a connection to the peer
 			url := fmt.Sprintf("https://%s:%d/ciphertext/%s/%s", peer.Host, peer.Port, string(zone), string(rName))
 

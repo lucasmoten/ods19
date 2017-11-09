@@ -10,8 +10,8 @@ import (
 	"github.com/tidwall/gjson"
 
 	"decipher.com/object-drive-server/protocol"
+	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/util/testhelpers"
 	"decipher.com/object-drive-server/utils"
 )
 
@@ -283,8 +283,8 @@ func TestUpdateObjectAndStreamShareRecursive(t *testing.T) {
 				},
 			},
 			[]byte("The Biologist"),
-			testhelpers.ValidACMUnclassifiedFOUOSharedToTester10,      // initial acm
-			testhelpers.ValidACMUnclassifiedFOUOSharedToTester01And02, // updated acm
+			server.ValidACMUnclassifiedFOUOSharedToTester10,      // initial acm
+			server.ValidACMUnclassifiedFOUOSharedToTester01And02, // updated acm
 		},
 	}
 

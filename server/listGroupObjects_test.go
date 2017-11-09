@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"testing"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/util"
 
@@ -17,7 +16,7 @@ func TestListGroupObjects(t *testing.T) {
 	groupName := models.AACFlatten(fakeDN0)
 
 	// URL
-	uri := host + cfg.NginxRootURL + "/groupobjects/" + groupName
+	uri := mountPoint + "/groupobjects/" + groupName
 	uri1 := uri + "?PageNumber=1&PageSize=2"
 
 	// Request
@@ -59,7 +58,7 @@ func TestListGroupObjectsNotAMember(t *testing.T) {
 	clientid := 0
 
 	// URL
-	uri := host + cfg.NginxRootURL + "/groupobjects/somegroup"
+	uri := mountPoint + "/groupobjects/somegroup"
 	uri1 := uri + "?PageNumber=1&PageSize=2"
 
 	// Request
@@ -82,7 +81,7 @@ func TestListGroupObjectsCounts(t *testing.T) {
 	groupName := "dctc_odrive_g1"
 	groupResourceName := "group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1"
 	// URL
-	uri := host + cfg.NginxRootURL + "/groupobjects/" + groupName
+	uri := mountPoint + "/groupobjects/" + groupName
 	uri1 := uri + "?PageNumber=1&PageSize=2"
 
 	t.Logf("* List objects owned by group %s", groupName)
@@ -110,7 +109,7 @@ func TestListGroupObjectsCounts(t *testing.T) {
 	folder1 := makeFolderViaJSON("new folder", clientid, t)
 
 	t.Logf("* Changing ownership to the group")
-	changeowneruri := host + cfg.NginxRootURL + "/objects/" + folder1.ID + "/owner/" + groupResourceName
+	changeowneruri := mountPoint + "/objects/" + folder1.ID + "/owner/" + groupResourceName
 	objChangeToken := protocol.ChangeTokenStruct{ChangeToken: folder1.ChangeToken}
 	changeOwnerRequest := makeHTTPRequestFromInterface(t, "POST", changeowneruri, objChangeToken)
 	changeOwnerResponse, err := clients[clientid].Client.Do(changeOwnerRequest)
