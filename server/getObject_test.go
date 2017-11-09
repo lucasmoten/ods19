@@ -171,7 +171,7 @@ func TestAppServerGetObjectAgainstFake(t *testing.T) {
 	fakeServer := setupFakeServerWithObjectForUser(user, obj)
 
 	// Simulate the getObject call.
-	req, err := http.NewRequest("GET", config.RootURL+objectURL, nil)
+	req, err := http.NewRequest("GET", mountPoint+objectURL, nil)
 	req.Header.Add("USER_DN", whitelistedDN)
 	req.Header.Add("SSL_CLIENT_S_DN", whitelistedDN)
 
@@ -223,7 +223,6 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 	}
 	fakeQueue := kafka.NewFakeAsyncProducer(nil)
 	fakeServer := server.AppServer{RootDAO: &fakeDAO,
-		ServicePrefix: config.RootURLRegex,
 		AAC:           &fakeAAC,
 		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
 		EventQueue:    fakeQueue,

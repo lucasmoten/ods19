@@ -5,14 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/util"
 )
 
 func TestCors(t *testing.T) {
 	//Preflight request for a POST is like this:
-
-	origin := "https://proxier" + ":" + cfg.Port
+	origin := ourEndpoint
 	req, err := http.NewRequest("OPTIONS", mountPoint+"/objects/0123456789abcdef0123456789abcdef", nil)
 	if err != nil {
 		t.Errorf("Unable to generate request:%v", err)

@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/utils"
@@ -32,7 +31,7 @@ func TestCreateFolderProtocol(t *testing.T) {
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
 	s.ACLImpersonationWhitelist = append(s.ACLImpersonationWhitelist, whitelistedDN)
 
-	r, err := http.NewRequest("POST", cfg.RootURL+"/objects", bytes.NewBuffer([]byte(jsonNoParent)))
+	r, err := http.NewRequest("POST", mountPoint+"/objects", bytes.NewBuffer([]byte(jsonNoParent)))
 	if err != nil {
 		t.Fatal(err)
 	}

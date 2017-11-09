@@ -61,8 +61,6 @@ type AppServer struct {
 	RootDAO dao.DAO
 	// Conf is the configuration passed to the application.
 	Conf config.ServerSettingsConfiguration
-	// ServicePrefix is the base url. Used when matching routes.
-	ServicePrefix string
 	// AAC is a handle to the security service.
 	AAC aac.AacService
 	// AACZK is a pointer to the cluster where we discover AAC. May be the same as DefaultZK.
@@ -116,7 +114,6 @@ func NewAppServer(conf config.ServerSettingsConfiguration) (*AppServer, error) {
 		Addr:                      conf.ListenBind + ":" + conf.ListenPort,
 		Conf:                      conf,
 		Tracker:                   performance.NewJobReporters(1024),
-		ServicePrefix:             config.RootURLRegex,
 		TemplateCache:             templates,
 		StaticDir:                 staticDir,
 		UsersLruCache:             usersLruCache,
@@ -133,7 +130,7 @@ func (h *AppServer) InitRegex() {
 	route := func(path string) StaticRxData {
 		v := StaticRxData{
 			Pattern:  path,
-			RX:       regexp.MustCompile(h.ServicePrefix + path),
+			RX:       regexp.MustCompile(path),
 			TMGET:    metrics.NewTimer(),
 			TMPOST:   metrics.NewTimer(),
 			TMDELETE: metrics.NewTimer(),

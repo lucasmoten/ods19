@@ -9,7 +9,6 @@ import (
 
 	"github.com/karlseguin/ccache"
 
-	cfg "decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/services/aac"
 	"decipher.com/object-drive-server/services/kafka"
 	"decipher.com/object-drive-server/util"
@@ -51,7 +50,6 @@ func TestListObjectsTrashedJSONResponse(t *testing.T) {
 	fakeQueue := kafka.NewFakeAsyncProducer(nil)
 	s := server.AppServer{
 		RootDAO:       &fakeDAO,
-		ServicePrefix: cfg.RootURLRegex,
 		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
 		AAC:           &fakeAAC,
 		EventQueue:    fakeQueue,
@@ -61,7 +59,7 @@ func TestListObjectsTrashedJSONResponse(t *testing.T) {
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
 	s.ACLImpersonationWhitelist = append(s.ACLImpersonationWhitelist, whitelistedDN)
 
-	r, err := http.NewRequest("GET", cfg.RootURL+"/trashed?pageNumber=1&pageSize=50", nil)
+	r, err := http.NewRequest("GET", mountPoint+"/trashed?pageNumber=1&pageSize=50", nil)
 	r.Header.Set("USER_DN", user.DistinguishedName)
 	r.Header.Set("SSL_CLIENT_S_DN", whitelistedDN)
 

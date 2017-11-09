@@ -15,12 +15,33 @@ import (
 	yaml "gopkg.in/yaml.v2"
 
 	"decipher.com/object-drive-server/client"
-	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 	"github.com/deciphernow/gov-go/testcerts"
 
 	"github.com/urfave/cli"
+)
+
+func getEnvWithDefault(name string, def string) string {
+	val := os.Getenv(name)
+	if val == "" {
+		return def
+	}
+	return val
+}
+
+var ourEndpoint = fmt.Sprintf(
+	"https://%s:%s",
+	getEnvWithDefault("OD_DOCKERVM_OVERRIDE", "proxier"),
+	getEnvWithDefault("OD_DOCKERVM_PORT", "8080"),
+)
+
+// This is duplicated from server_test, so that these variables cannot
+// accidentally be used in the running server.  We can't do imports
+// of foreign test packages.
+var mountPoint = fmt.Sprintf(
+	"%s/services/object-drive/1.0",
+	ourEndpoint,
 )
 
 func main() {
@@ -207,7 +228,7 @@ func main() {
 						conf.Impersonation = userdn
 						//conf, err = gatherConfRaw(conf, clictx.String("conf"), cert, key, trust)
 						conf.SkipVerify = true
-						conf.Remote = fmt.Sprintf("https://proxier:%s/services/object-drive/1.0", config.Port)
+						conf.Remote = mountPoint
 						id := rand.Int31() % 5000
 						username = fmt.Sprintf("usey%d mcuser%d", id, id)
 						userdn = fmt.Sprintf("cn=%s,ou=aaa,o=u.s. government,c=us", username)
@@ -366,7 +387,7 @@ func gatherConfRaw(conf client.Config, confFile string, cert, key, trust string)
 
 	// Set remaining defaults
 	conf.SkipVerify = true
-	conf.Remote = fmt.Sprintf("https://proxier:%s/services/object-drive/1.0", config.Port)
+	conf.Remote = mountPoint
 
 	// Override supplied values
 	if confFile != "" {

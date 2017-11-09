@@ -23,18 +23,8 @@ var (
 	// By default, the logger used in config package is the RootLogger
 	logger = RootLogger
 
-	// MyIP is used for development only. It overrides the reported lookup of IP based upon the hostname.
+	// We need to know if we are seeing our own IP in some cases
 	MyIP = lookupOurIP()
-
-	// Port is used for development tests only. It overrides the port used when sending test requests
-	// to bypass local NGINX Gatekeeper container for hosts that have issues with docker in some environments
-	Port = lookupDockerVMPort()
-
-	// RootURL is the base url for our app - TODO: deprecate this
-	RootURL = ""
-
-	// RootURLRegex is the routing url regex for our entire app - TODO: deprecate this
-	RootURLRegex = RegexEscape(RootURL)
 )
 
 // RandomID generates a random string
@@ -75,29 +65,8 @@ func initLogger() zap.Logger {
 	return logger
 }
 
-func lookupDockerHost() string {
-	answer := "proxier"
-	// TODO: Find out why test clients need to use this, and what kinds.
-	// TODO: Find out why this necessitates definining a DOCKER_HOST and OD_DOCKERVM_OVERRIDE and what the differences are.
-	//This is used by test clients
-	dockerhost := os.Getenv("DOCKER_HOST")
-	if dockerhost != "" {
-		answer = strings.Split(dockerhost, ":")[1][2:]
-	}
-	return GetEnvOrDefault("OD_DOCKERVM_OVERRIDE", answer)
-}
-
-func lookupDockerVMPort() string {
-	return GetEnvOrDefault("OD_DOCKERVM_PORT", "8080")
-}
-
 func lookupOurIP() string {
-	ip := util.GetIP(RootLogger)
-	if len(ip) > 0 {
-		return ip
-	}
-	// TODO: Isolate the reason why this hack is in here.
-	return lookupDockerHost()
+	return util.GetIP(RootLogger)
 }
 
 // RegexEscape is a helper method that takes a string and replaces the period metacharacter with backslash escaping.
