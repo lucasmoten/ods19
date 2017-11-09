@@ -11,8 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	"decipher.com/object-drive-server/server"
-
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
@@ -671,7 +669,7 @@ func TestGetObjectStreamForRevision_WithoutPermissionToCurrent(t *testing.T) {
 	updateObj.ExemptFromFOIA = objResponse1.ExemptFromFOIA
 	updateObj.ID = objResponse1.ID
 	updateObj.Name = objResponse1.Name + " updated"
-	updateObj.RawAcm, _ = utils.UnmarshalStringToInterface(server.ValidACMTopSecretSITK)
+	updateObj.RawAcm, _ = utils.UnmarshalStringToInterface(ValidACMTopSecretSITK)
 	updateObj.TypeID = objResponse1.TypeID
 	updateObj.TypeName = objResponse1.TypeName
 	updateUri := mountPoint + "/objects/" + objID + "/properties"

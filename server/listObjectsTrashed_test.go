@@ -34,7 +34,7 @@ func TestListObjectsTrashedJSONResponse(t *testing.T) {
 
 	snippetResponse := aac.SnippetResponse{
 		Success:  true,
-		Snippets: server.SnippetTP10,
+		Snippets: SnippetTP10,
 		Found:    true,
 	}
 	attributesResponse := aac.UserAttributesResponse{

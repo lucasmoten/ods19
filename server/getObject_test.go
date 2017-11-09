@@ -87,10 +87,10 @@ func TestGetObject_DeletedAncestorReturns405(t *testing.T) {
 func TestGetObject_TSClassificationIsRedactedInBreadcrumbs(t *testing.T) {
 
 	tester10 := 0
-	folderA, _ := makeFolderWithACMWithParentViaJSON("folderA", "", server.ValidACMTopSecretSharedToTester01, tester10)
-	folderB, _ := makeFolderWithACMWithParentViaJSON("folderB", folderA.ID, server.ValidACMTopSecretSharedToTester01, tester10)
-	folderC, _ := makeFolderWithACMWithParentViaJSON("folderC", folderB.ID, server.ValidACMTopSecretSharedToTester01, tester10)
-	folderD, _ := makeFolderWithACMWithParentViaJSON("folderD", folderC.ID, server.ValidACMUnclassified, tester10)
+	folderA, _ := makeFolderWithACMWithParentViaJSON("folderA", "", ValidACMTopSecretSharedToTester01, tester10)
+	folderB, _ := makeFolderWithACMWithParentViaJSON("folderB", folderA.ID, ValidACMTopSecretSharedToTester01, tester10)
+	folderC, _ := makeFolderWithACMWithParentViaJSON("folderC", folderB.ID, ValidACMTopSecretSharedToTester01, tester10)
+	folderD, _ := makeFolderWithACMWithParentViaJSON("folderD", folderC.ID, ValidACMUnclassified, tester10)
 
 	tester01 := 1
 	req, _ := NewGetObjectRequest(folderD.ID, "")
@@ -108,10 +108,10 @@ func TestGetObject_TSClassificationIsRedactedInBreadcrumbs(t *testing.T) {
 
 func TestGetObject_PrivateObjectsRedactedInBreadcrumbs(t *testing.T) {
 	tester10 := 0
-	folderA, _ := makeFolderWithACMWithParentViaJSON("folderA", "", server.ValidACMUnclassifiedFOUOSharedToTester10, tester10)
-	folderB, _ := makeFolderWithACMWithParentViaJSON("folderB", folderA.ID, server.ValidACMUnclassifiedFOUOSharedToTester10, tester10)
-	folderC, _ := makeFolderWithACMWithParentViaJSON("folderC", folderB.ID, server.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
-	folderD, _ := makeFolderWithACMWithParentViaJSON("folderD", folderC.ID, server.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
+	folderA, _ := makeFolderWithACMWithParentViaJSON("folderA", "", ValidACMUnclassifiedFOUOSharedToTester10, tester10)
+	folderB, _ := makeFolderWithACMWithParentViaJSON("folderB", folderA.ID, ValidACMUnclassifiedFOUOSharedToTester10, tester10)
+	folderC, _ := makeFolderWithACMWithParentViaJSON("folderC", folderB.ID, ValidACMUnclassifiedFOUOSharedToTester01, tester10)
+	folderD, _ := makeFolderWithACMWithParentViaJSON("folderD", folderC.ID, ValidACMUnclassifiedFOUOSharedToTester01, tester10)
 
 	t.Log("Only folderC is not redacted in our breadcrumbs for folderD")
 	crumbs := []protocol.Breadcrumb{
@@ -197,7 +197,7 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 
 	snippetResponse := aac.SnippetResponse{
 		Success:  true,
-		Snippets: server.SnippetTP10,
+		Snippets: SnippetTP10,
 		Found:    true,
 	}
 	attributesResponse := aac.UserAttributesResponse{

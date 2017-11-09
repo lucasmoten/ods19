@@ -16,7 +16,6 @@ import (
 
 	"decipher.com/object-drive-server/client"
 	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/server"
 )
 
 func getEnvWithDefault(name string, def string) string {
@@ -26,6 +25,8 @@ func getEnvWithDefault(name string, def string) string {
 	}
 	return val
 }
+
+const ValidACMUnclassifiedFOUOSharedToTester10 = `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_clearance":["u"],"f_share":["cntesttester01oupeopleoudaeouchimeraou_s_governmentcus"],"portion":"U//FOUO","share":{"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`
 
 var ourEndpoint = fmt.Sprintf(
 	"https://%s:%s",
@@ -241,7 +242,7 @@ func TestImpersonation(t *testing.T) {
 	t.Logf("MyDN: %s", c.MyDN)
 	cor := protocol.CreateObjectRequest{
 		Name:   "impersonados",
-		RawAcm: server.ValidACMUnclassifiedFOUOSharedToTester10,
+		RawAcm: ValidACMUnclassifiedFOUOSharedToTester10,
 	}
 	obj, err := c.CreateObject(cor, nil)
 	if err != nil {
