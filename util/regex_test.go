@@ -8,11 +8,11 @@ import (
 func TestGetRegexCaptureGroups(t *testing.T) {
 
 	pattern := "/static/(?P<path>.*)"
-	s := "/static/js/listObjects.js"
+	s := "/static/js/someinclude.js"
 	re := regexp.MustCompile(pattern)
 	result := GetRegexCaptureGroups(s, re)
 
-	if result["path"] != "js/listObjects.js" {
+	if result["path"] != "js/someinclude.js" {
 		t.Fail()
 	}
 
