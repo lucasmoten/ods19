@@ -59,7 +59,7 @@ deployment:
             - cd ~/.go_workspace/src/$IMPORT_PATH && ./makerpm $ODRIVE_VERSION $CIRCLE_BUILD_NUM $(git describe --abbrev=0 --tags):
                     timeout: 1200
             - cd ~/.go_workspace/src/$IMPORT_PATH && mv object-drive-1.0-${ODRIVE_VERSION}-${CIRCLE_BUILD_NUM}.$(date +%Y%m%d).x86_64.rpm object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm
-            - cd ~/.go_workspace/src/$IMPORT_PATH && aws s3 cp object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm s3://odrive-builds/circle/rpms/object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm --acl public-read
+            - cd ~/.go_workspace/src/$IMPORT_PATH && aws s3 cp object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm s3://odrive-builds/circle/rpms/develop/$(date +%Y%m)/object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm --acl private
             - docker push deciphernow/odrive:latest
             - docker push deciphernow/metadatadb:latest
     release:
@@ -69,7 +69,7 @@ deployment:
             - cd ~/.go_workspace/src/$IMPORT_PATH && ./makerpm $ODRIVE_VERSION $CIRCLE_BUILD_NUM $(git describe --abbrev=0 --tags):
                     timeout: 1200
             - cd ~/.go_workspace/src/$IMPORT_PATH && mv object-drive-1.0-${ODRIVE_VERSION}-${CIRCLE_BUILD_NUM}.$(date +%Y%m%d).x86_64.rpm object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm
-            - cd ~/.go_workspace/src/$IMPORT_PATH && aws s3 cp object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm s3://odrive-builds/circle/rpms/object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm --acl public-read
+            - cd ~/.go_workspace/src/$IMPORT_PATH && aws s3 cp object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm s3://odrive-builds/circle/rpms/release/object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm --acl private
             
             - docker push deciphernow/odrive:latest
             - docker tag deciphernow/odrive:latest deciphernow/odrive:$CIRCLE_TAG
