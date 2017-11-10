@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
 )
 
@@ -138,7 +137,7 @@ func TestUpdateObjectWithProperties(t *testing.T) {
 	}
 
 	// NOTE: do we need to do string escaping here?
-	acm := strings.Replace(server.ValidACMUnclassifiedFOUO, "\"", "\\\"", -1)
+	acm := strings.Replace(ValidACMUnclassifiedFOUO, "\"", "\\\"", -1)
 	t.Logf("Use changetoken for update. id:%s oldChangeToken:%s changeCount:%d", created.ID, created.ChangeToken, created.ChangeCount)
 	doPropertyUpdate(t, clientID, created.ID, fmt.Sprintf(updateTemplate, created.ID, acm, created.ChangeToken),
 		trafficLogs[APISampleFile],

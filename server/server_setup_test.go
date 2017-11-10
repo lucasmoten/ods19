@@ -338,7 +338,7 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 
 	snippetResponse := aac.SnippetResponse{
 		Success:  true,
-		Snippets: server.SnippetTP10,
+		Snippets: SnippetTP10,
 		Found:    true,
 	}
 	attributesResponse := aac.UserAttributesResponse{
@@ -350,7 +350,7 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 	// will need cntesttester10oupeopleoudaeouchimeraou_s_governmentcus
 	// so that has been put into the ValidAcmUnclassifiedWithFShare value
 	acmInfoResponse := aac.AcmInfo{
-		Acm:             server.ValidACMUnclassifiedWithFShare,
+		Acm:             ValidACMUnclassifiedWithFShare,
 		IncludeInRollup: false,
 	}
 

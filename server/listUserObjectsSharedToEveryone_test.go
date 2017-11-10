@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
 )
 
@@ -21,7 +20,7 @@ func TestListObjectsSharedToEveryone(t *testing.T) {
 	folder1 := makeFolderViaJSON("TestListObjectsSharedToEveryone - Everyone", tester1, t)
 
 	t.Logf("* Create folder as Tester01 not shared to everyone")
-	folder2, err := makeFolderWithACMViaJSON("TestListObjectsSharedToEveryone - Not Everyone", server.ValidACMUnclassifiedFOUOSharedToTester01And02, tester1)
+	folder2, err := makeFolderWithACMViaJSON("TestListObjectsSharedToEveryone - Not Everyone", ValidACMUnclassifiedFOUOSharedToTester01And02, tester1)
 
 	t.Logf("* Get list of objects shared to everyone")
 	uriEveryone := mountPoint + "/sharedpublic"

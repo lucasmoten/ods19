@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
 )
 
@@ -105,7 +104,7 @@ func TestChangeOwnerToGroup(t *testing.T) {
 	clientid := 0
 
 	t.Logf("* Creating a private object")
-	myobject := protocol.CreateObjectRequest{Name: "Test ChangeOwner to Group", TypeName: "Folder", RawAcm: server.ValidACMUnclassifiedFOUOSharedToTester10}
+	myobject := protocol.CreateObjectRequest{Name: "Test ChangeOwner to Group", TypeName: "Folder", RawAcm: ValidACMUnclassifiedFOUOSharedToTester10}
 	newobjuri := mountPoint + "/objects"
 	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
 	createObjectRes, err := clients[clientid].Client.Do(createObjectReq)
@@ -163,7 +162,7 @@ func TestChangeOwnerToGroupWithClient(t *testing.T) {
 	createObjectRequest := protocol.CreateObjectRequest{}
 	createObjectRequest.Name = "Test ChangeOwner to Group"
 	createObjectRequest.TypeName = "Folder"
-	createObjectRequest.RawAcm = server.ValidACMUnclassifiedFOUOSharedToTester10
+	createObjectRequest.RawAcm = ValidACMUnclassifiedFOUOSharedToTester10
 	createdObject, err := clients[clientid].C.CreateObject(createObjectRequest, nil)
 	if err != nil {
 		t.Logf("Error creating object: %v", err)
@@ -194,7 +193,7 @@ func TestChangeOwnerToNonCachedUser(t *testing.T) {
 	clientid := 0
 
 	t.Logf("* Creating a private object")
-	myobject := protocol.CreateObjectRequest{Name: "Test ChangeOwner to Group", TypeName: "Folder", RawAcm: server.ValidACMUnclassifiedFOUOSharedToTester10}
+	myobject := protocol.CreateObjectRequest{Name: "Test ChangeOwner to Group", TypeName: "Folder", RawAcm: ValidACMUnclassifiedFOUOSharedToTester10}
 	newobjuri := mountPoint + "/objects"
 	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
 	createObjectRes, err := clients[clientid].Client.Do(createObjectReq)
@@ -267,7 +266,7 @@ func TestChangeOwnerRecursive(t *testing.T) {
 	cor := protocol.CreateObjectRequest{
 		NamePathDelimiter: ":::",
 		Name:              strings.Join([]string{root, child1, child2, child3}, ":::"),
-		RawAcm:            server.ValidACMUnclassifiedFOUOSharedToTester10,
+		RawAcm:            ValidACMUnclassifiedFOUOSharedToTester10,
 	}
 	child3Obj, err := clients[clientid].C.CreateObject(cor, bytes.NewBuffer([]byte("testvalue")))
 	failNowOnErr(t, err, "unable to do request")

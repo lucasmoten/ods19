@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
 )
 
@@ -21,7 +20,7 @@ func TestUpdateObjectWithClassificationDrop(t *testing.T) {
 			RequestDescription:  "Generate a file with high classification",
 			ResponseDescription: "Get an object to update",
 		},
-		server.ValidACMTopSecretSITK)
+		ValidACMTopSecretSITK)
 	t.Logf("Verifying newly created file exists")
 	doCheckFileNowExists(t, clientID, created)
 	t.Logf("Update with a lower classification")
@@ -34,7 +33,7 @@ func TestUpdateObjectWithClassificationDrop(t *testing.T) {
 			RequestDescription:  "Lower the classification request",
 			ResponseDescription: "The redacted file",
 		},
-		server.ValidACMUnclassifiedFOUO)
+		ValidACMUnclassifiedFOUO)
 	t.Logf("Check the access from a user with lower clearance")
 	unclearedID := 1
 	shouldHaveReadForObjectID(t, updated.ID, unclearedID)

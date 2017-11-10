@@ -12,8 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"decipher.com/object-drive-server/server"
-
 	"decipher.com/object-drive-server/util"
 
 	"decipher.com/object-drive-server/protocol"
@@ -96,7 +94,7 @@ func TestZipBad(t *testing.T) {
 	//Remember individual objects
 	someDataString := "lat=5,long=6"
 	var objs []protocol.Object
-	acm := server.ValidACMUnclassifiedFOUOSharedToTester01And02
+	acm := ValidACMUnclassifiedFOUOSharedToTester01And02
 	objs = append(objs, testZipMakeFileWithACM(t, tester01, "", fmt.Sprintf("tester01private.txt"), someDataString, acm))
 	//test tester10 will perform the zip.  test tester01 owns the file.
 	doTestZip(t, objs, someDataString, duplicates, 400, nil, nil)

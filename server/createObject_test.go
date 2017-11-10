@@ -413,9 +413,9 @@ func TestCreateWithPermissionsNewUser(t *testing.T) {
 	t.Logf("preparing")
 	var object protocol.CreateObjectRequest
 	object.Name = "TestCreateWithPermissionsNewUser"
-	object.RawAcm = server.ValidACMUnclassifiedFOUOSharedToTester11
+	object.RawAcm = ValidACMUnclassifiedFOUOSharedToTester11
 	permission := protocol.ObjectShare{
-		Share: makeUserShare(server.Tester11DN), AllowCreate: true, AllowRead: true, AllowUpdate: true, AllowDelete: true,
+		Share: makeUserShare(Tester11DN), AllowCreate: true, AllowRead: true, AllowUpdate: true, AllowDelete: true,
 	}
 	object.Permissions = append(object.Permissions, permission)
 
@@ -444,9 +444,9 @@ func TestCreateWithPermissionsNewUser2(t *testing.T) {
 	t.Logf("preparing")
 	var object protocol.CreateObjectRequest
 	object.Name = "TestCreateWithPermissionsNewUser2"
-	object.RawAcm = server.ValidACMUnclassifiedFOUOSharedToTester10
+	object.RawAcm = ValidACMUnclassifiedFOUOSharedToTester10
 	permission := protocol.ObjectShare{
-		Share:      makeUserShare(server.Tester10DN),
+		Share:      makeUserShare(Tester10DN),
 		AllowRead:  true,
 		AllowShare: true,
 	}
@@ -466,7 +466,7 @@ func TestCreateWithPermissionsNewUser2(t *testing.T) {
 	t.Logf("* Create share granting read access to odrive") // will replace models.EveryoneGroup
 	shareuri := mountPoint + "/shared/" + responseObj.ID
 	shareSetting := protocol.ObjectShare{}
-	shareSetting.Share = makeUserShare(server.Tester12DN)
+	shareSetting.Share = makeUserShare(Tester12DN)
 	shareSetting.AllowRead = true
 	jsonBody, err := json.MarshalIndent(shareSetting, "", "  ")
 	if err != nil {
@@ -511,8 +511,8 @@ func TestCreateWithPermissionsNewUser3(t *testing.T) {
 	t.Logf("preparing")
 	var object protocol.CreateObjectRequest
 	object.Name = "TestCreateWithPermissionsNewUser3"
-	object.RawAcm = server.ValidACMUnclassifiedFOUOSharedToTester13
-	object.Permission.Read.AllowedResources = append(object.Permission.Read.AllowedResources, "user/"+server.Tester13DN)
+	object.RawAcm = ValidACMUnclassifiedFOUOSharedToTester13
+	object.Permission.Read.AllowedResources = append(object.Permission.Read.AllowedResources, "user/"+Tester13DN)
 
 	t.Logf("jsoninfying")
 	jsonBody, _ := json.MarshalIndent(object, "", "  ")
@@ -1644,7 +1644,7 @@ func TestCreateObjectWithNameNearMaxLength(t *testing.T) {
 
 	cor := protocol.CreateObjectRequest{
 		Name:   testname,
-		RawAcm: server.ValidACMUnclassifiedFOUOSharedToTester10,
+		RawAcm: ValidACMUnclassifiedFOUOSharedToTester10,
 	}
 	theobj, err := clients[clientid].C.CreateObject(cor, bytes.NewBuffer([]byte("testvalue")))
 	failNowOnErr(t, err, "unable to do request")
@@ -1674,7 +1674,7 @@ func TestCreateObjectOwnedByGroupViaShortResourceName(t *testing.T) {
 
 	cor := protocol.CreateObjectRequest{
 		Name:    testname,
-		RawAcm:  server.ValidACMUnclassifiedFOUOSharedToTester10,
+		RawAcm:  ValidACMUnclassifiedFOUOSharedToTester10,
 		OwnedBy: ownedbyin,
 	}
 	theobj, err := clients[clientid].C.CreateObject(cor, bytes.NewBuffer([]byte("testvalue")))

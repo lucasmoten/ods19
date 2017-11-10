@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"decipher.com/object-drive-server/server"
 	"decipher.com/object-drive-server/util"
 	"decipher.com/object-drive-server/utils"
 
@@ -322,7 +321,7 @@ func TestUpdateObjectPreventAcmShareChange(t *testing.T) {
 
 	t.Logf("* Tester02 update name again, as well as ACM without changing share")
 	updatedFolder.Name += " again"
-	updatedFolder.RawAcm = server.ValidACMUnclassifiedFOUO
+	updatedFolder.RawAcm = ValidACMUnclassifiedFOUO
 	updateReq2 := makeHTTPRequestFromInterface(t, "POST", updateuri, updatedFolder)
 	updateRes2, err := clients[tester2].Client.Do(updateReq2)
 	failNowOnErr(t, err, "Unable to do request")
@@ -332,7 +331,7 @@ func TestUpdateObjectPreventAcmShareChange(t *testing.T) {
 
 	t.Logf("* Tester02 update name + acm with a different share. Expect error")
 	updatedFolder.Name += " and share"
-	updatedFolder.RawAcm = server.ValidACMUnclassifiedFOUOSharedToTester01And02
+	updatedFolder.RawAcm = ValidACMUnclassifiedFOUOSharedToTester01And02
 	updateReq3 := makeHTTPRequestFromInterface(t, "POST", updateuri, updatedFolder)
 	updateRes3, err := clients[tester2].Client.Do(updateReq3)
 	failNowOnErr(t, err, "Unable to do request")
@@ -349,7 +348,7 @@ func TestUpdateObjectPreventAcmShareChange(t *testing.T) {
 
 	t.Logf("* Tester02 update name + acm with a different share. Expect success")
 	updatedFolder.Name += " and share"
-	updatedFolder.RawAcm = server.ValidACMUnclassifiedFOUOSharedToTester01And02
+	updatedFolder.RawAcm = ValidACMUnclassifiedFOUOSharedToTester01And02
 	updateReq4 := makeHTTPRequestFromInterface(t, "POST", updateuri, updatedFolder)
 	updateRes4, err := clients[tester2].Client.Do(updateReq4)
 	failNowOnErr(t, err, "Unable to do request")
@@ -604,7 +603,7 @@ func TestUpdateObjectWithoutACM(t *testing.T) {
 func TestUpdateObjectWithACMHavingEmptyValueInPart(t *testing.T) {
 	tester10 := 0
 	t.Logf("* Create object as tester10")
-	folder, err := makeFolderWithACMViaJSON("TestUpdateObjectWithACMHavingEmptyValueInPart", server.ValidACMUnclassifiedEmptyDissemCountries, tester10)
+	folder, err := makeFolderWithACMViaJSON("TestUpdateObjectWithACMHavingEmptyValueInPart", ValidACMUnclassifiedEmptyDissemCountries, tester10)
 	if err != nil {
 		t.Logf("Error creating folder: %v", err)
 		t.FailNow()
@@ -617,7 +616,7 @@ func TestUpdateObjectWithACMHavingEmptyValueInPart(t *testing.T) {
 	updateObj.ExemptFromFOIA = folder.ExemptFromFOIA
 	updateObj.ID = folder.ID
 	updateObj.Name = folder.Name + " updated"
-	updateObj.RawAcm, _ = utils.UnmarshalStringToInterface(server.ValidACMUnclassifiedEmptyDissemCountriesEmptyFShare)
+	updateObj.RawAcm, _ = utils.UnmarshalStringToInterface(ValidACMUnclassifiedEmptyDissemCountriesEmptyFShare)
 	updateObj.TypeID = folder.TypeID
 	updateObj.TypeName = folder.TypeName
 	uri := mountPoint + "/objects/" + folder.ID + "/properties"
@@ -759,7 +758,7 @@ func TestUpdateObjectHasPermissions(t *testing.T) {
 func TestUpdateObjectToEveryoneReturnsOwnerCRUDS(t *testing.T) {
 	tester10 := 0
 	t.Logf("* Create object shared to just me (#98 steps 1-3)")
-	folder, err := makeFolderWithACMViaJSON("TestUpdateObjectToEveryoneReturnsOwnerCRUDS", server.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
+	folder, err := makeFolderWithACMViaJSON("TestUpdateObjectToEveryoneReturnsOwnerCRUDS", ValidACMUnclassifiedFOUOSharedToTester01, tester10)
 	if err != nil {
 		t.Logf("Error creating folder: %v", err)
 		t.FailNow()
@@ -807,7 +806,7 @@ func TestUpdateObjectToEveryoneReturnsOwnerCRUDS(t *testing.T) {
 func TestUpdateObjectWithPermissions(t *testing.T) {
 	tester10 := 0
 	t.Logf("* Create object shared to just tester10")
-	folder, err := makeFolderWithACMViaJSON("TestUpdateObjectWithPermissions", server.ValidACMUnclassifiedFOUOSharedToTester01, tester10)
+	folder, err := makeFolderWithACMViaJSON("TestUpdateObjectWithPermissions", ValidACMUnclassifiedFOUOSharedToTester01, tester10)
 	if err != nil {
 		t.Logf("Error creating folder: %v", err)
 		t.FailNow()
