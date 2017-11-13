@@ -33,7 +33,7 @@ templates = os.path.join(static_root, "templates")
 logfile = os.path.join(install_path, "log/object-drive.log")
 envfile = os.path.join(install_path, "env.sh")
 conf = os.path.join(install_path, "object-drive.yml")
-default_ciphers = "--addCipher TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 --addCipher TLS_RSA_WITH_AES_128_CBC_SHA"
+default_ciphers = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA"
 odserver = os.path.join(install_path, "object-drive-1.0")
 dbtool = os.path.join(install_path, "database")
 obfuscatetool = os.path.join(install_path, "obfuscate")
@@ -63,13 +63,7 @@ def create_dir_not_exists(path):
 
 def get_ciphers():
     logging.debug('In get_ciphers')
-    if os.getenv("OD_SERVER_CIPHERS")
-        return os.getenv("OD_SERVER_CIPHERS")
-    # maintained for backwards compatibility in this script only
-    if os.getenv("OD_CIPHERS"):
-        return os.getenv("OD_CIPHERS")
-    return default_ciphers
-
+    return os.getenv("OD_SERVER_CIPHERS", os.getenv("OD_CIPHERS", default_ciphers))
 
 def lock():
     logging.debug('In lock')
@@ -178,11 +172,14 @@ def start():
 
     logging.info('Starting %s', service)
     f = open(logfile, "a")
-
-    ciphs = get_ciphers()
-    splitted = ciphs.split(" ")
+    # base command
     command = [odserver, '--conf', conf, '--templateDir', templates, "--staticRoot", static_root]
-    command.extend(splitted)
+    # add allowed ciphers
+    ciphers = get_ciphers()
+    cipherlist = ciphers.split(",")
+    for cipher in cipherlist
+        command.append("--addCipher")
+        command.append(cipher)
     try:
         ps = subprocess.Popen(command, stdout=f, stderr=f, env=env_for_proc)
         with open(pidfile, "w") as pf:
