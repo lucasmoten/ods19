@@ -27,7 +27,7 @@ AAC Integration is used for authorization requests. At the time of this writing 
 | OD_AAC_ZK_ADDRS | Comma-separated list of host:port pairs to connect to a Zookeeper cluster specific to AAC discovery  |  |
 | OD_AAC_INSECURE_SKIP_VERIFY | This turns off certificate verification.  Do not do this.  Leave this value at its default. | false |
 
-### AWS Settings
+### AWS S3
 Amazon Web Services environment variables contain credentials for AWS used for S3 and other backend cloud services.
 
 | Name | Description | Default |
@@ -38,9 +38,9 @@ Amazon Web Services environment variables contain credentials for AWS used for S
 | OD_AWS_S3_BUCKET | The S3 Bucket name to use.  The credentials used defined in OD_AWS_SECRET_ACCESS_KEY and OD_AWS_ACCESS_KEY_ID must have READ and WRITE privileges to the bucket. |  |
 | OD_AWS_S3_ENDPOINT | On the high side we must override this to point to the location of S3 services. OD_AWS_ENDPOINT is a deprecated duplicate of this variable | s3.amazonaws.com |
 | OD_AWS_SECRET_ACCESS_KEY | AWS secret key. Access and secret key variables override credentials stored in credential and config files.  Note that if a token.jar is installed onto the system, we can use the Bedrock encrypt format like `ENC{...}` |  |
-|OD_AWS_S3_FETCH_MB| The size (in MB) of chunks to pull from S3 in cases where odrive is re-caching from S3.  This is a compromise between response time vs billing caused by S3 billing per request.|16|
+|OD_AWS_S3_FETCH_MB| The size (in MB) of chunks to pull from S3 in cases where Object Drive is re-caching from S3.  This is a compromise between response time vs billing caused by S3 billing per request.|16|
 
-### AutoScaling
+### AWS Autoscaling
 CloudWatch, SQS, and AutoScale with alarms (installed in AWS) interact to produce autoscaling behavior.
 
 | Name | Description | Default |
@@ -56,7 +56,7 @@ CloudWatch, SQS, and AutoScale with alarms (installed in AWS) interact to produc
 | OD_AWS_SQS_INTERVAL | Poll interval for the lifecycle queue in seconds | 60 |
 | OD_AWS_SQS_NAME | This is the name of the lifecycle queue.  Blank to disable use of SQS for this purpose. When left blank (default), the shutdown by message is disabled |  |
 
-### Cache Settings
+### Cache
 Storage cache on disk as an intermediary for upload/download to and from S3
 
 | Name | Description | Default |
@@ -64,11 +64,11 @@ Storage cache on disk as an intermediary for upload/download to and from S3
 | OD_CACHE_EVICTAGE | Denotes the minimum age, in seconds, a file in cache before it is eligible for eviction (purge) from the cache to free up space.  | 300 |
 | OD_CACHE_HIGHWATERMARK | Denotes a percentage of the file storage on the local mount point as the high size such that when the total space used exceeds the allocated percentage, a file in the cache will be purged if its age last used exceeds the eviction age time.  | 0.75 |
 | OD_CACHE_LOWWATERMARK | Denotes a percentage of the file storage on the local mount point as the low size where total consumption must be at least that specified for files to be considered for purging.  | 0.50 |
-| OD_CACHE_PARTITION | An optional path for prefixing folders as part of the key in S3 prior to the cache folder. Intended for delineating different environments. For example, the Jenkins Continuous Integration Build Environment uses "jenkins/build" to easily identify files that were put in by the jenkins build odrive instances that may safely be purged from the system.  |  |
-| OD_CACHE_ROOT | An optional absolute or relative path to set the root of the local cache settings to override the default which beings in the same folder as working directory from which the odrive instance was started.  odrive should be run as user "odrive" rather than "root", and OD_CACHE_ROOT should be readable and writable by this user.  When installed via an rpm, launch as odrive is handled by the init script in recent builds.| . |
+| OD_CACHE_PARTITION | An optional path for prefixing folders as part of the key in S3 prior to the cache folder. Intended for delineating different environments. For example, the Jenkins Continuous Integration Build Environment uses "jenkins/build" to easily identify files that were put in by the jenkins build instances that may safely be purged from the system.  |  |
+| OD_CACHE_ROOT | An optional absolute or relative path to set the root of the local cache settings to override the default which beings in the same folder as working directory from which the Object Drive instance was started.  Object Drive should be run as user "object-drive-1.0" rather than "root", and OD_CACHE_ROOT should be readable and writable by this user.  When installed via an rpm, the launch of the Object Drive daemon is handled by the init script in /etc/init.d.| . |
 | OD_CACHE_WALKSLEEP | Denotes the frequency, in seconds, for which all files in the cache are examined to determine if they should be purged.  | 30 |
 
-### Database Connection Settings
+### Database for Metadata
 The database is used to store metadata about objects and supports querying for matching objects to drive list operations and filter for user access.
 
 | Name | Description | Default |
@@ -86,22 +86,7 @@ The database is used to store metadata about objects and supports querying for m
 | OD_DB_SCHEMA | The schema to connect to after logging into the database.  |  |
 | OD_DB_USERNAME | The username portion of credentials when connecting to database.  |  |
 
-### Database Dev AWS Settings 
-
-In order to connect to an AWS database that is distinct from your local database, set environment variables so that you can run mysql-client.sh and mysql-aws.sh concurrently from your workstation shells:
-
-**DEVELOPMENT ONLY** 
-
-| Name | Description | Default |
-| --- | --- | --- |
-| OD_DB_AWS_MYSQL_MASTER_USER | OD_DB_USERNAME override for aws staging instance  |  |
-| OD_DB_AWS_MYSQL_MASTER_PASSWORD | OD_DB_PASSWORD override for aws staging instance  |  |
-| OD_DB_AWS_MYSQL_ENDPOINT | OD_DB_HOST override for aws staging instance  |  |
-| OD_DB_AWS_MYSQL_PORT | OD_DB_PORT override for aws staging instance  |  |
-| OD_DB_AWS_MYSQL_DATABASE_NAME | OD_DB_SCHEMA override for aws staging instance  |  |
-| OD_DB_AWS_MYSQL_SSL_CA_PATH | OD_DB_CA override for aws staging instance  |  |
-
-### Event Queue
+### Event Publishing
 
 Object Drive publishes a single event stream for client applications.
 
@@ -113,10 +98,17 @@ Object Drive publishes a single event stream for client applications.
 | OD_EVENT_PUBLISH_SUCCESS_ACTIONS | A comma delimited list of event action types that should be published to kafka if request succeeded. The default value * enables all success events to be published. Permissible values are access, authenticate, create, delete, list, undelete, unknown, update, zip. | * |
 | OD_EVENT_TOPIC | The name of the topic for which events will be published to. | odrive-event |
 
-**NOTE:** If both Event Queue config options are blank, odrive will not publish events.
+**NOTE:** If both the Kafka broker and ZooKeeper address options are blank, Object Drive will not publish events.
 
-### P2P
-When odrives need to contact each other to collaborate on ciphertext
+### Logging
+ObjectDrive itself just logs to stdout.  But when the service script launches it from `/etc/init.d`, it reads an `env.sh` of environment variables.  One of the things that this environment variable does is to set a default log location and will take an override in env.sh itself.
+
+| Name | Description | Default |
+| --- | --- | --- |
+| OD_LOG_LOCATION | The location of a log file, supplied in `env.sh`  to override log location. | object-drive.log |
+
+### Peer to Peer
+Peer nodes of Object Drive within a cluster can communicate with each other to leverage local cache
 
 | Name | Description | Default |
 | --- | --- | --- |
@@ -131,8 +123,6 @@ Remaining server settings are noted here
 | --- | --- | --- |
 | OD_DEADLOCK_RETRYCOUNTER | Indicates the number of times a create or update operation should be retried if the transaction fails due to a database deadlock | 30 |
 | OD_DEADLOCK_RETRYDELAYMS | The duration in milliseconds between retry attempts for a create or update operation when a transaction fails due to a deadlock in the database | 55 |
-| OD_DOCKERVM_OVERRIDE | **DEVELOPMENT ONLY** Allows for overriding the host name used for go tests when checking server integration tests.  | dockervm |
-| OD_DOCKERVM_PORT | **DEVELOPMENT ONLY** Allows for overriding the port used for go tests when checking server integration tests to bypass nginx.  | 8080 |
 | **OD_ENCRYPT_MASTERKEY** | The secret master key used as part of the encryption key for all files stored in the system. If this value is changed, all file keys must be adjusted at the same time. If you don't set this, the service will shut down.  Note that if a token.jar is installed onto the system, we can use the Bedrock encrypt format like `ENC{...} | |
 | OD_SERVER_ACL_WHITELIST*n* | One or more environment variable prefixes to denote distinguished name assigned to the access control whitelist that controls whether a connector can impersonate as another identity. | |
 | OD_SERVER_BASEPATH | The base URL root. Used in debug UIs.    | "/services/object-drive/1.0" |
@@ -145,27 +135,31 @@ Remaining server settings are noted here
 | OD_TOKENJAR_LOCATION | If a token.jar is placed on the filesystem to support Bedrock secret encryption format, then this is the full location of that jar file.  That jar is presumed to have used OD_TOKENJAR_PASSWORD in its generation | `/opt/services/object-drive-1.0/token.jar` |
 | OD_TOKENJAR_PASSWORD | This is the password that is embedded into code that is authorized to decrypt secrets that we cannot avoid writing down on the system.  The security of the system does not lie in this password, but in the fact that each token.jar should be using a fresh sample.dat that has a fresh key per cluster.  This value generally does not need an override, but it is here in case it does get changed without recompiling the code.  | Embedded in compiled code |
 
-### Zookeeper Announcement
+### Zookeeper
 Zookeeper is used to announce the availability of this instance of the object drive services.  At the edge, gatekeeper and nginx rely upon this information to publish availability and facilitate routing requests to the service.
 
 | Name | Description | Default |
 | --- | --- | --- |
 | OD_ZK_AAC | The announce point for AAC nodes.  Matches gatekeeper config cluster.aac.zk-location | /cte/service/aac/1.0/thrift |
-| OD_ZK_ANNOUNCE|The mount point for announcements where our zookeeper https node is placed.   The point of this variable is to match the gatekeeper cluster.odrive.zk-location without the https part | /services/object-drive/1.0 |
+| OD_ZK_ANNOUNCE|The mount point for announcements where our zookeeper https node is placed.   This should match the gatekeeper cluster.odrive.zk-location without the https part | /services/object-drive/1.0 |
 | OD_ZK_MYIP | The IP address of the Object-Drive server as reported to Zookeeper. If this environment variable is defined it will override the value detected as the server's IP address on startup. | globalconfig.MyIP |
 | OD_ZK_MYPORT | The Port of the Object-Drive server as reported to Zookeeper. If this environment variable is defined it will override the value detected as the server's listening port on startup. | serverPort _4430_ |
 | OD_ZK_TIMEOUT | Timeout in seconds for zookeeper sessions | 5 |
 | OD_ZK_URL | A comma delimited list of zookeeper instances to announce to. The structure of this value should be server1:port1,server2:port2,serverN:portN. If misconfigured, the server will never start.  | zk:2181 |
 
-### Logging
-ObjectDrive itself just logs to stdout.  But when the `/etc/init.d/odrive` service script launches it, it reads an `env.sh` of environment variables.  One of the things that this environment variable does is to set a default log location and will take an override in env.sh itself.
+### Development 
+
+**DEVELOPMENT ONLY** 
+
+The following are convenience variables that work in conjunction with development scripts (mysql-client.sh and mysql-aws.sh), or for running integration tests against the object drive service directly instead of through nginx or other edge gateway platform.
 
 | Name | Description | Default |
 | --- | --- | --- |
-| OD_LOG_LOCATION | The location of a log file, supplied in `env.sh`  to override log location.  Deal with log rotation by putting a date stamp in the name.| object-drive.log |
-
-For example, the `env.sh` on Bedrock:
-```
-export OD_LOG_LOCATION=/opt/bedrock/odrive/log/object-drive-`date +%FT%H_%M`.log
-```
-Since these servers are restarted nightly, the log will rotate to a new file every time it is restarted.  The odrive binary itself, being container-oriented will just log to stdout.  If you are not using the normal `service odrive start` to launch it, then have a bash script that sets the environment and puts a date in the log file.  There is a presumption that the service is regularly restarted, which is true in Bedrock.  If you need to do this with a cron job, then you can do so.
+| OD_DB_AWS_MYSQL_MASTER_USER | OD_DB_USERNAME override for aws staging instance  |  |
+| OD_DB_AWS_MYSQL_MASTER_PASSWORD | OD_DB_PASSWORD override for aws staging instance  |  |
+| OD_DB_AWS_MYSQL_ENDPOINT | OD_DB_HOST override for aws staging instance  |  |
+| OD_DB_AWS_MYSQL_PORT | OD_DB_PORT override for aws staging instance  |  |
+| OD_DB_AWS_MYSQL_DATABASE_NAME | OD_DB_SCHEMA override for aws staging instance  |  |
+| OD_DB_AWS_MYSQL_SSL_CA_PATH | OD_DB_CA override for aws staging instance  |  |
+| OD_DOCKERVM_OVERRIDE | **DEVELOPMENT ONLY** Allows for overriding the host name used for go tests when checking server integration tests.  | dockervm |
+| OD_DOCKERVM_PORT | **DEVELOPMENT ONLY** Allows for overriding the port used for go tests when checking server integration tests direct to Object Drive.  | 8080 |
