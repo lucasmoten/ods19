@@ -177,7 +177,7 @@ def start():
     # add allowed ciphers
     ciphers = get_ciphers()
     cipherlist = ciphers.split(",")
-    for cipher in cipherlist
+    for cipher in cipherlist:
         command.append("--addCipher")
         command.append(cipher)
     try:
