@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 
 #-------------------------------------------------------------------------------
@@ -89,6 +90,9 @@ if __name__ == "__main__":
     
     initial_dir = os.getcwd()
     os.chdir('docs')
-    subprocess.check_call(["./builddiagrams"])
+    command = ["./builddiagrams"]
+    if len(sys.argv) > 1:
+        command.extend(sys.argv[1:])
+    subprocess.check_call(command)
     os.chdir(initial_dir)
     

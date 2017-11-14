@@ -30,7 +30,7 @@ if [ -z ${CIRCLE_BUILD_NUM} ]; then
   CIRCLE_BUILD_NUM=$ARG_BUILDNUM
 fi
 
-( ./makedocs )
+( ./makedocs ${ARG_VERSION} ${ARG_BUILDNUM} )
 docker run -i \
    -e ODRIVE_PACKAGE_NAME="odrive-${ARG_VERSION}" \
    -e ODRIVE_VERSION=${ARG_VERSION} \
