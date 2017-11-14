@@ -38,7 +38,7 @@ dependencies:
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/obfuscate && go build
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && go-bindata schema migrations ../../defaultcerts/client-mysql/id ../../defaultcerts/client-mysql/trust
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && go build -ldflags "-X main.Build=${CIRCLE_BUILD_NUM} -X main.Commit=${CIRCLE_SHA1} -X main.Version=$(git describe --abbrev=0 --tags)"
-        - cd ~/.go_workspace/src/$IMPORT_PATH && ./makedocs
+        - cd ~/.go_workspace/src/$IMPORT_PATH && ./makedocs ${ODRIVE_VERSION} ${CIRCLE_BUILD_NUM}
         - cd ~/.go_workspace/src/$IMPORT_PATH && ./odb --build -i deciphernow/odrive -t latest
         - cd ~/.go_workspace/src/$IMPORT_PATH && ./odb --build -i deciphernow/metadatadb -t latest
         - cd ~/.go_workspace/src/$IMPORT_PATH/.ci && docker-compose pull zk kafka aac gatekeeper dias redis
