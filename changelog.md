@@ -15,7 +15,7 @@ FORMAT: 1A
 
 # Group Changelog
 
-## Unreleased v1.0.11
+## Release v1.0.11 (November 15, 2017)
 --------------------
 * FIX: Gitlab CI configuration for docker login
 * NEW: Allowable ciphers can be provided as environment variable `OD_SERVER_CIPHERS`
