@@ -24,6 +24,7 @@ FORMAT: 1A
 * FIX: Delete and recreate property when changing its value to register deletion for filtering
 * FIX: Get Object Revisions will now return proper changes for property names and values
 * DOC: Adding indication of exact build numbers to generated docs
+* DOC: Corrections to API docs for delete operations
 
 ## Release v1.0.10 (October 17, 2017)
 --------------------

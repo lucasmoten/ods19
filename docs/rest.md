@@ -310,422 +310,6 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
 
         Error storing metadata or stream
 
-### Delete Objects [DELETE]
-
-Delete a set of objects.  It requires the id and the change token for each one.
-
-+ Request (application/json)
-
-    + Body
-
-            [
-                {"ObjectId":"11e5e4867a6e3d8389020242ac110002", "ChangeToken":"e18919"},
-                {"ObjectId":"11e5e4867a6f3d8389020242ac110002", "ChangeToken":"a38919"}
-            ]
-
-+ Response 200
-
-    + Body
-
-            [
-                {"objectId":"11e5e4867a6e3d8389020242ac110002","code":200},
-                {"objectId":"11e5e4867a6f3d8389020242ac110002","code":400, "error":"unable to find object", "msg":"cannot delete object"}
-            ]
-
-
-## Bulk object properties [/objects/properties]
-
-### Get bulk object properties [POST]
-Get multiple objects at once
-
-This returns an object result set.  Note that because this gets
-objects in bulk, it is 
-possible a list of Errors coming back with the objects that came back successfully.
-
-+ Request (application/json)
-
-    + Body
-
-            {
-                "objectIds" : [
-                        "11e5e4867a6e3d8389020242ac110002",
-                        "11e5e4867a6e3d8389020242ac189124",
-                        "11e5e4867a6e3f8389020242ac110002"
-                ]
-            }
-
-+ Response 200
-
-    + Body
-    
-            {
-            totalRows: 2,
-            pageNumber: 1,
-            pageRows: 1,
-            pageNumber: 1,
-            objects:[    
-                {
-                "id": "11e5e4867a6e3d8389020242ac110002",
-                "createdDate": "2016-03-07T17:03:13Z",
-                "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-                "modifiedDate": "2016-03-07T17:03:13Z",
-                "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-                "deletedDate": "0001-01-01T00:00:00Z",
-                "deletedBy": "``",
-                "changeCount": 42,
-                "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",
-                "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-                "typeId": "11e5e48664f5d8c789020242ac110002",
-                "typeName": "File",
-                "name": "gettysburgaddress.txt",
-                "description": "Description here",
-                "parentId": "",
-                "acm": {
-                    "banner": "UNCLASSIFIED",
-                    "classif": "U",
-                    "dissem_countries": [
-                    "USA"
-                    ],
-                    "f_accms": [],
-                    "f_atom_energy": [],
-                    "f_clearance": "u",
-                    "f_macs": [],
-                    "f_missions": [],
-                    "f_oc_org": [],
-                    "f_sci_ctrls": [],
-                    "f_regions": [],
-                    "f_share": [
-                    "x",
-                    "y",
-                    "z"
-                    ],
-                    "portion": "U",
-                    "share": {
-                    "users": [
-                        "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-                        "CN=test tester02,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-                        "CN=test tester03,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-                        "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
-                    ],
-                    "projects": [
-                        {
-                        "ukpn": {
-                            "disp_nm": "Project Name",
-                            "groups": [
-                            "Group Name",
-                            "Cats",
-                            "Dogs"
-                            ]
-                        },
-                        "ukpn2": {
-                            "disp_nm": "Project Name 2",
-                            "groups": [
-                            "Group 1",
-                            "Group 2",
-                            "Group 3"
-                            ]
-                        }
-                        }
-                    ]
-                    },
-                    "version": "2.1.0"
-                },
-                "permission": {
-                    "create": {
-                    "allow": [
-                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
-                    ],
-                    "deny": [
-                        "``"
-                    ]
-                    },
-                    "read": {
-                    "allow": [
-                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10",
-                        "group/dctc/dctc/odrive_g1"
-                    ],
-                    "deny": [
-                        "``"
-                    ]
-                    },
-                    "update": {
-                    "allow": [
-                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
-                    ],
-                    "deny": [
-                        "``"
-                    ]
-                    },
-                    "delete": {
-                    "allow": [
-                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
-                    ],
-                    "deny": [
-                        "``"
-                    ]
-                    },
-                    "share": {
-                    "allow": [
-                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
-                    ],
-                    "deny": [
-                        "``"
-                    ]
-                    }
-                },
-                "contentType": "text",
-                "contentSize": 1511,
-                "containsUSPersonsData": "No",
-                "exemptFromFOIA": "No",
-                "properties": [
-                    {
-                    "id": "11e5e4867a6e3d8389020242ac110002",
-                    "createdDate": "2016-03-07T17:03:13.1234Z",
-                    "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-                    "modifiedDate": "2016-03-07T17:03:13.1234Z",
-                    "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-                    "changeCount": 1,
-                    "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",
-                    "name": "Some Property",
-                    "value": "Some Property Value",
-                    "classificationPM": "U"
-                    }
-                ],
-                "callerPermissions": {
-                    "allowCreate": false,
-                    "allowRead": true,
-                    "allowUpdate": false,
-                    "allowDelete": false,
-                    "allowShare": false
-                },
-                "permissions": [
-                    {
-                    "grantee": "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
-                    "userDistinguishedName": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-                    "displayName": "test tester10",
-                    "allowCreate": true,
-                    "allowRead": true,
-                    "allowUpdate": true,
-                    "allowDelete": true,
-                    "allowShare": true
-                    },
-                    {
-                    "grantee": "dctc_odrive_g1",
-                    "projectName": "dctc",
-                    "projectDisplayName": "dctc",
-                    "groupName": "odrive_g1",
-                    "displayName": "dctc odrive_g1",
-                    "allowCreate": true,
-                    "allowRead": true,
-                    "allowUpdate": true,
-                    "allowDelete": true,
-                    "allowShare": true
-                    }
-                ],
-                "breadcrumbs": [
-                    {
-                    "id": "11e5e4867a6e3d8389020242ac110002",
-                    "parentId": "",
-                    "name": "parentFolderA"
-                    },
-                    {
-                    "id": "11e5e4867a6e3d8489020242ac110002",
-                    "parentId": "11e5e4867a6e3d8389020242ac110002",
-                    "name": "folderA"
-                    }
-                ]
-                },{
-                "id": "11e5e4867a6e3d8389020242ac189124",
-                "createdDate": "2016-03-07T17:03:13.123Z",
-                "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-                "modifiedDate": "2016-03-07T17:03:13.123456Z",
-                "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-                "deletedDate": "0001-01-01T00:00:00Z",
-                "deletedBy": "``",
-                "changeCount": 42,
-                "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",
-                "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-                "typeId": "11e5e48664f5d8c789020242ac110002",
-                "typeName": "File",
-                "name": "gettysburgaddress.txt",
-                "description": "Description here",
-                "parentId": "",
-                "acm": {
-                    "banner": "UNCLASSIFIED",
-                    "classif": "U",
-                    "dissem_countries": [
-                    "USA"
-                    ],
-                    "f_accms": [],
-                    "f_atom_energy": [],
-                    "f_clearance": "u",
-                    "f_macs": [],
-                    "f_missions": [],
-                    "f_oc_org": [],
-                    "f_sci_ctrls": [],
-                    "f_regions": [],
-                    "f_share": [
-                    "x",
-                    "y",
-                    "z"
-                    ],
-                    "portion": "U",
-                    "share": {
-                    "users": [
-                        "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-                        "CN=test tester02,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-                        "CN=test tester03,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-                        "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
-                    ],
-                    "projects": [
-                        {
-                        "ukpn": {
-                            "disp_nm": "project name",
-                            "groups": [
-                            "group name",
-                            "cats",
-                            "dogs"
-                            ]
-                        },
-                        "ukpn2": {
-                            "disp_nm": "project name 2",
-                            "groups": [
-                            "group 1",
-                            "group 2",
-                            "group 3"
-                            ]
-                        }
-                        }
-                    ]
-                    },
-                    "version": "2.1.0"
-                },
-                "permission": {
-                    "create": {
-                    "allow": [
-                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
-                    ],
-                    "deny": [
-                        "``"
-                    ]
-                    },
-                    "read": {
-                    "allow": [
-                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10",
-                        "group/dctc/dctc/odrive_g1"
-                    ],
-                    "deny": [
-                        "``"
-                    ]
-                    },
-                    "update": {
-                    "allow": [
-                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
-                    ],
-                    "deny": [
-                        "``"
-                    ]
-                    },
-                    "delete": {
-                    "allow": [
-                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
-                    ],
-                    "deny": [
-                        "``"
-                    ]
-                    },
-                    "share": {
-                    "allow": [
-                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
-                    ],
-                    "deny": [
-                        "``"
-                    ]
-                    }
-                },
-                "contentType": "text",
-                "contentSize": 1511,
-                "containsUSPersonsData": "No",
-                "exemptFromFOIA": "No",
-                "properties": [
-                    {
-                    "id": "11e5e4867a6e3d8389020242ac189124",
-                    "createdDate": "2016-03-07T17:03:13.4876Z",
-                    "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-                    "modifiedDate": "2016-03-07T17:03:13.4876Z",
-                    "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-                    "changeCount": 1,
-                    "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",
-                    "name": "Some Property",
-                    "value": "Some Property Value",
-                    "classificationPM": "U"
-                    }
-                ],
-                "callerPermissions": {
-                    "allowCreate": false,
-                    "allowRead": true,
-                    "allowUpdate": false,
-                    "allowDelete": false,
-                    "allowShare": false
-                },
-                "permissions": [
-                    {
-                    "grantee": "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
-                    "userDistinguishedName": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
-                    "displayName": "test tester10",
-                    "allowCreate": true,
-                    "allowRead": true,
-                    "allowUpdate": true,
-                    "allowDelete": true,
-                    "allowShare": true
-                    },
-                    {
-                    "grantee": "dctc_odrive_g1",
-                    "projectName": "dctc",
-                    "projectDisplayName": "dctc",
-                    "groupName": "odrive_g1",
-                    "displayName": "dctc odrive_g1",
-                    "allowCreate": true,
-                    "allowRead": true,
-                    "allowUpdate": true,
-                    "allowDelete": true,
-                    "allowShare": true
-                    }
-                ],
-                "breadcrumbs": [
-                    {
-                    "id": "11e5e4867a6e3d8389020242ac189124",
-                    "parentId": "",
-                    "name": "parentFolderA"
-                    },
-                    {
-                    "id": "11e5e4867a6e3d8489020242ac110002",
-                    "parentId": "11e5e4867a6e3d8389020242ac110002",
-                    "name": "folderA"
-                    }
-                ]
-                }
-            ],
-            objectErrors: [
-                "objectId": "11e5e4867a6e3f8389020242ac110002",
-                "code": 400,
-                "error": "error in query",
-                "msg": "not found",
-            ]
-            }
-
-+ Response 400
-
-        Unable to decode request
-        
-+ Response 403
-
-        Forbidden
-
-+ Response 500
-
-        Error retrieving data
-
 ## Object Metadata [/objects/{objectId}/properties]
 
 Metadata for an object may be retrieved or updated at the URI designated.  
@@ -1019,30 +603,6 @@ This creates a new revision of the object.
 
         Error storing metadata or stream
 
-## Move Objects [/objects/move]
-
-### Move Objects [POST]
-
-Move a set of objects.  It requires the id and the change token for each one.
-
-+ Request (application/json)
-
-    + Body
-
-            [
-                {"id":"11e5e4867a6e3d8389020242ac110002", "changeToken":"e18919", "parentId":"11e5e4867aaa3d8389020242ac110002"},
-                {"id":"11e5e4867a6f3d8389020242ac110002", "changeToken":"a38919", "parentId":"11e5e4867aaa3d8389020242ac110002"}
-            ]
-
-+ Response 200
-
-    + Body
-
-            [
-                {"objectId":"11e5e4867a6e3d8389020242ac110002", "code":200},
-                {"objectId":"11e5e4867a6f3d8389020242ac110002", "code":400, "error":"unable to find object", "msg":"cannot move object"}
-            ]
-
 ## Delete Object [/objects/{objectId}/trash]
 
 + Parameters
@@ -1057,7 +617,7 @@ When an object is deleted, a recursive action is performed on all natural childr
            
 + Request (application/json)
 
-    + Attributes (ChangeToken)
+    + Attributes (DeleteObjectRequest)
             
 + Response 200 (application/json)
 
@@ -1093,7 +653,7 @@ This microservice operation will remove an object from the trash and delete it f
 
 + Request (application/json)
 
-    + Attributes (ChangeToken)
+    + Attributes (DeleteObjectRequest)
 
 + Response 200 (application/json)
 
@@ -1604,7 +1164,7 @@ Only the owner of an object is allowed to move it.
 
     The JSON object in the request body should contain a change token:
 
-    + Attributes (ChangeToken)
+    + Attributes (MoveObjectRequest)
 
 + Response 200 (application/json)
     + Attributes (ObjectResp)
@@ -1704,46 +1264,6 @@ Although it is not permitted to assign ownership to Everyone, ownership may be a
 + Response 500
 
         Error storing metadata or stream
-
-## Change Owner [/objects/owner/{newOwner}]
-
-+ Parameters
-    + newOwner: `user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us` (string(maxlength=255), required) - A resource string compliant value representing the new owner. Resources take the following form:
-       * {resourceType}/{serialized-representation}/{optional-display-name}
-       * Examples for Users
-         * user/{distinguishedName}/{displayName}
-         * user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10
-       * Examples for groups
-         * group/{projectName}/{groupName}
-         * group/{projectName}/{projectDisplayName}/{groupName}/{displayName}
-         * group/dctc/odrive_g1
-         * group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1
-
-### Change Owner Bulk [POST]
-
-This changes ownership of files in bulk.  It behaves like multiple changeOwner requests.
-
-+ Request (application/json)
-
-    We will supply a list of object ids and their change tokens.  We will get back an individual http code for each one.
-
-    + Body
-
-            {
-                {"objectId":"22de09d2e0a09cbc0d90e", "changeToken":"ad90e90c9e245"}, 
-                {"objectId":"42de09d2e0a09cbc0d90e", "changeToken":"cd90e90c9e245"} 
-            }
-
-+ Response 200
-
-    The request itself is generally valid.  We will get a list of response codes and messages per ID from the original request.
-
-    + Body
-
-            {
-                {"objectId":"22de09d2e0a09cbc0d90e","error":"","msg":"","code",200},
-                {"objectId":"42de09d2e0a09cbc0d90e","error":"","msg":"","code",200}
-            }  
 
 # Group User Centric Operations
 
@@ -2162,17 +1682,475 @@ User Stats provides metrics information for the user's total number of objects a
         Internal Server Error
 
 
-# Group Auxillary Operations
+# Group Auxillary &amp; Bulk Operations
 
 ---
 
-## Create Zip of objects [/zip]
+## Get object properties [/objects/properties]
+
+### Get object properties [POST]
+Get multiple objects at once
+
+This returns an object result set.  Note that because this gets
+objects in bulk, it is 
+possible a list of Errors coming back with the objects that came back successfully.
+
++ Request (application/json)
+
+    + Body
+
+            {
+                "objectIds" : [
+                        "11e5e4867a6e3d8389020242ac110002",
+                        "11e5e4867a6e3d8389020242ac189124",
+                        "11e5e4867a6e3f8389020242ac110002"
+                ]
+            }
+
++ Response 200
+
+    + Body
+    
+            {
+            totalRows: 2,
+            pageNumber: 1,
+            pageRows: 1,
+            pageNumber: 1,
+            objects:[    
+                {
+                "id": "11e5e4867a6e3d8389020242ac110002",
+                "createdDate": "2016-03-07T17:03:13Z",
+                "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+                "modifiedDate": "2016-03-07T17:03:13Z",
+                "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+                "deletedDate": "0001-01-01T00:00:00Z",
+                "deletedBy": "``",
+                "changeCount": 42,
+                "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",
+                "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+                "typeId": "11e5e48664f5d8c789020242ac110002",
+                "typeName": "File",
+                "name": "gettysburgaddress.txt",
+                "description": "Description here",
+                "parentId": "",
+                "acm": {
+                    "banner": "UNCLASSIFIED",
+                    "classif": "U",
+                    "dissem_countries": [
+                    "USA"
+                    ],
+                    "f_accms": [],
+                    "f_atom_energy": [],
+                    "f_clearance": "u",
+                    "f_macs": [],
+                    "f_missions": [],
+                    "f_oc_org": [],
+                    "f_sci_ctrls": [],
+                    "f_regions": [],
+                    "f_share": [
+                    "x",
+                    "y",
+                    "z"
+                    ],
+                    "portion": "U",
+                    "share": {
+                    "users": [
+                        "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                        "CN=test tester02,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                        "CN=test tester03,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                        "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
+                    ],
+                    "projects": [
+                        {
+                        "ukpn": {
+                            "disp_nm": "Project Name",
+                            "groups": [
+                            "Group Name",
+                            "Cats",
+                            "Dogs"
+                            ]
+                        },
+                        "ukpn2": {
+                            "disp_nm": "Project Name 2",
+                            "groups": [
+                            "Group 1",
+                            "Group 2",
+                            "Group 3"
+                            ]
+                        }
+                        }
+                    ]
+                    },
+                    "version": "2.1.0"
+                },
+                "permission": {
+                    "create": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    },
+                    "read": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10",
+                        "group/dctc/dctc/odrive_g1"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    },
+                    "update": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    },
+                    "delete": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    },
+                    "share": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    }
+                },
+                "contentType": "text",
+                "contentSize": 1511,
+                "containsUSPersonsData": "No",
+                "exemptFromFOIA": "No",
+                "properties": [
+                    {
+                    "id": "11e5e4867a6e3d8389020242ac110002",
+                    "createdDate": "2016-03-07T17:03:13.1234Z",
+                    "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                    "modifiedDate": "2016-03-07T17:03:13.1234Z",
+                    "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                    "changeCount": 1,
+                    "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",
+                    "name": "Some Property",
+                    "value": "Some Property Value",
+                    "classificationPM": "U"
+                    }
+                ],
+                "callerPermissions": {
+                    "allowCreate": false,
+                    "allowRead": true,
+                    "allowUpdate": false,
+                    "allowDelete": false,
+                    "allowShare": false
+                },
+                "permissions": [
+                    {
+                    "grantee": "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+                    "userDistinguishedName": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                    "displayName": "test tester10",
+                    "allowCreate": true,
+                    "allowRead": true,
+                    "allowUpdate": true,
+                    "allowDelete": true,
+                    "allowShare": true
+                    },
+                    {
+                    "grantee": "dctc_odrive_g1",
+                    "projectName": "dctc",
+                    "projectDisplayName": "dctc",
+                    "groupName": "odrive_g1",
+                    "displayName": "dctc odrive_g1",
+                    "allowCreate": true,
+                    "allowRead": true,
+                    "allowUpdate": true,
+                    "allowDelete": true,
+                    "allowShare": true
+                    }
+                ],
+                "breadcrumbs": [
+                    {
+                    "id": "11e5e4867a6e3d8389020242ac110002",
+                    "parentId": "",
+                    "name": "parentFolderA"
+                    },
+                    {
+                    "id": "11e5e4867a6e3d8489020242ac110002",
+                    "parentId": "11e5e4867a6e3d8389020242ac110002",
+                    "name": "folderA"
+                    }
+                ]
+                },{
+                "id": "11e5e4867a6e3d8389020242ac189124",
+                "createdDate": "2016-03-07T17:03:13.123Z",
+                "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+                "modifiedDate": "2016-03-07T17:03:13.123456Z",
+                "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+                "deletedDate": "0001-01-01T00:00:00Z",
+                "deletedBy": "``",
+                "changeCount": 42,
+                "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",
+                "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+                "typeId": "11e5e48664f5d8c789020242ac110002",
+                "typeName": "File",
+                "name": "gettysburgaddress.txt",
+                "description": "Description here",
+                "parentId": "",
+                "acm": {
+                    "banner": "UNCLASSIFIED",
+                    "classif": "U",
+                    "dissem_countries": [
+                    "USA"
+                    ],
+                    "f_accms": [],
+                    "f_atom_energy": [],
+                    "f_clearance": "u",
+                    "f_macs": [],
+                    "f_missions": [],
+                    "f_oc_org": [],
+                    "f_sci_ctrls": [],
+                    "f_regions": [],
+                    "f_share": [
+                    "x",
+                    "y",
+                    "z"
+                    ],
+                    "portion": "U",
+                    "share": {
+                    "users": [
+                        "CN=test tester01,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                        "CN=test tester02,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                        "CN=test tester03,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                        "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US"
+                    ],
+                    "projects": [
+                        {
+                        "ukpn": {
+                            "disp_nm": "project name",
+                            "groups": [
+                            "group name",
+                            "cats",
+                            "dogs"
+                            ]
+                        },
+                        "ukpn2": {
+                            "disp_nm": "project name 2",
+                            "groups": [
+                            "group 1",
+                            "group 2",
+                            "group 3"
+                            ]
+                        }
+                        }
+                    ]
+                    },
+                    "version": "2.1.0"
+                },
+                "permission": {
+                    "create": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    },
+                    "read": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10",
+                        "group/dctc/dctc/odrive_g1"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    },
+                    "update": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    },
+                    "delete": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    },
+                    "share": {
+                    "allow": [
+                        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"
+                    ],
+                    "deny": [
+                        "``"
+                    ]
+                    }
+                },
+                "contentType": "text",
+                "contentSize": 1511,
+                "containsUSPersonsData": "No",
+                "exemptFromFOIA": "No",
+                "properties": [
+                    {
+                    "id": "11e5e4867a6e3d8389020242ac189124",
+                    "createdDate": "2016-03-07T17:03:13.4876Z",
+                    "createdBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                    "modifiedDate": "2016-03-07T17:03:13.4876Z",
+                    "modifiedBy": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                    "changeCount": 1,
+                    "changeToken": "65eea405306ed436d18b8b1c0b0b2cd3",
+                    "name": "Some Property",
+                    "value": "Some Property Value",
+                    "classificationPM": "U"
+                    }
+                ],
+                "callerPermissions": {
+                    "allowCreate": false,
+                    "allowRead": true,
+                    "allowUpdate": false,
+                    "allowDelete": false,
+                    "allowShare": false
+                },
+                "permissions": [
+                    {
+                    "grantee": "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+                    "userDistinguishedName": "CN=test tester10,OU=People,OU=DAE,OU=chimera,O=U.S. Government,C=US",
+                    "displayName": "test tester10",
+                    "allowCreate": true,
+                    "allowRead": true,
+                    "allowUpdate": true,
+                    "allowDelete": true,
+                    "allowShare": true
+                    },
+                    {
+                    "grantee": "dctc_odrive_g1",
+                    "projectName": "dctc",
+                    "projectDisplayName": "dctc",
+                    "groupName": "odrive_g1",
+                    "displayName": "dctc odrive_g1",
+                    "allowCreate": true,
+                    "allowRead": true,
+                    "allowUpdate": true,
+                    "allowDelete": true,
+                    "allowShare": true
+                    }
+                ],
+                "breadcrumbs": [
+                    {
+                    "id": "11e5e4867a6e3d8389020242ac189124",
+                    "parentId": "",
+                    "name": "parentFolderA"
+                    },
+                    {
+                    "id": "11e5e4867a6e3d8489020242ac110002",
+                    "parentId": "11e5e4867a6e3d8389020242ac110002",
+                    "name": "folderA"
+                    }
+                ]
+                }
+            ],
+            objectErrors: [
+                "objectId": "11e5e4867a6e3f8389020242ac110002",
+                "code": 400,
+                "error": "error in query",
+                "msg": "not found",
+            ]
+            }
+
++ Response 400
+
+        Unable to decode request
+        
++ Response 403
+
+        Forbidden
+
++ Response 500
+
+        Error retrieving data
+
+## Move Objects [/objects/move]
+
+### Move Objects [POST]
+
+Move a set of objects.  It requires the id and the change token for each one.
+
++ Request (application/json)
+
+    + Body
+
+            [
+                {"id":"11e5e4867a6e3d8389020242ac110002", "changeToken":"e18919", "parentId":"11e5e4867aaa3d8389020242ac110002"},
+                {"id":"11e5e4867a6f3d8389020242ac110002", "changeToken":"a38919", "parentId":"11e5e4867aaa3d8389020242ac110002"}
+            ]
+
++ Response 200
+
+    + Body
+
+            [
+                {"objectId":"11e5e4867a6e3d8389020242ac110002", "code":200},
+                {"objectId":"11e5e4867a6f3d8389020242ac110002", "code":400, "error":"unable to find object", "msg":"cannot move object"}
+            ]
+
+## Change Owner Bulk [/objects/owner/{newOwner}]
+
++ Parameters
+    + newOwner: `user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us` (string(maxlength=255), required) - A resource string compliant value representing the new owner. Resources take the following form:
+       * {resourceType}/{serialized-representation}/{optional-display-name}
+       * Examples for Users
+         * user/{distinguishedName}/{displayName}
+         * user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10
+       * Examples for groups
+         * group/{projectName}/{groupName}
+         * group/{projectName}/{projectDisplayName}/{groupName}/{displayName}
+         * group/dctc/odrive_g1
+         * group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1
+
+### Change Owner Bulk [POST]
+
+This changes ownership of files in bulk.  It behaves like multiple changeOwner requests.
+
++ Request (application/json)
+
+    We will supply a list of object ids and their change tokens.  We will get back an individual http code for each one.
+
+    + Body
+
+            {
+                {"objectId":"22de09d2e0a09cbc0d90e", "changeToken":"ad90e90c9e245"}, 
+                {"objectId":"42de09d2e0a09cbc0d90e", "changeToken":"cd90e90c9e245"} 
+            }
+
++ Response 200
+
+    The request itself is generally valid.  We will get a list of response codes and messages per ID from the original request.
+
+    + Body
+
+            {
+                {"objectId":"22de09d2e0a09cbc0d90e","error":"","msg":"","code",200},
+                {"objectId":"42de09d2e0a09cbc0d90e","error":"","msg":"","code",200}
+            }  
+
+
+## Zip of objects [/zip]
 
 + objectIds (string array, required) - An array of object identifiers of files to be zipped.  
 + fileName (string, optional) - The name to give to the zip file.  Default to "drive.zip".
 + disposition (string, optional) - Either "inline" or "attachment", which is a hint to the browser for handling the result
 
-### Create Zip of objects [POST]
+### Zip of objects [POST]
 
 Create a zip of objects from a shopping cart
 The UI will accumulate a list of file ID values to include in a zip file.
@@ -2194,6 +2172,29 @@ The UI will accumulate a list of file ID values to include in a zip file.
 
 + Response 500
 
+## Delete Objects [/objects]
+
+### Delete Objects [DELETE]
+
+Delete a set of objects.  It requires the id and the change token for each one.
+
++ Request (application/json)
+
+    + Body
+
+            [
+                {"ObjectId":"11e5e4867a6e3d8389020242ac110002", "ChangeToken":"e18919"},
+                {"ObjectId":"11e5e4867a6f3d8389020242ac110002", "ChangeToken":"a38919"}
+            ]
+
++ Response 200
+
+    + Body
+
+            [
+                {"objectId":"11e5e4867a6e3d8389020242ac110002","code":200},
+                {"objectId":"11e5e4867a6f3d8389020242ac110002","code":400, "error":"unable to find object", "msg":"cannot delete object"}
+            ]
 
 
 # Data Structures
@@ -2330,6 +2331,11 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + fileName: `drive.zip` (string) - The filename to be assigned the returned zip file by default.
 + disposition: `inline` (string) - The disposition setting for the response. Valid values are `inline` and `attachment` to direct browsers how to treat the file.
 
+## DeleteObjectRequest (object)
+
++ id: `11e5e4867a6e3d8389020242ac110002`  (string, required) - The unique identifier of the object hex encoded to a string. 
++ changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) - A hash of the object's unique identifier and last modification date and time.
+
 ## GetObjectResponse (object)
 
 + id: `11e5e4867a6e3d8389020242ac110002`  (string, required) - The unique identifier of the object hex encoded to a string. This value can be used for alterations and listing on other RESTful methods.
@@ -2373,6 +2379,11 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + pageSize: 10 (number) - Total number of groups the user is a member of that own objects at the root.
 + pageRows: 10 (number) - Total number of groups the user is a member of that own objects at the root.
 + groups (array[GroupSpaceResp]) - Array containing group information.
+
+## MoveObjectRequest (object)
+
++ id: `11e5e4867a6e3d8389020242ac110002`  (string, required) - The unique identifier of the object hex encoded to a string. 
++ changeToken: `65eea405306ed436d18b8b1c0b0b2cd3` (string) - A hash of the object's unique identifier and last modification date and time.
 
 ## ObjectDeleted (object)
 
