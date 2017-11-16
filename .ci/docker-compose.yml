@@ -90,8 +90,8 @@ services:
           - OD_DB_CERT=/go/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
           - OD_DB_KEY=/go/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
           - OD_DB_CONN_PARAMS=parseTime=true&collation=utf8_unicode_ci&readTimeout=30s
-          - OD_DOCKERVM_OVERRIDE=localhost
-          - OD_DOCKERVM_PORT=8888
+          - OD_EXTERNAL_HOST=proxier
+          - OD_EXTERNAL_PORT=8888
           - OD_ENCRYPT_MASTERKEY=qheucir912h343u91i23hiu
           #- OD_EVENT_KAFKA_ADDRS=kafka:9092
           - OD_EVENT_ZK_ADDRS=zk:2181
@@ -119,12 +119,25 @@ services:
           - "zk"
           - "kafka"
 
-    gatekeeper:
-        image: "deciphernow/gatekeeper:latest"
-        command: "/root/entry"
-        depends_on:
-          - "aac"
-          - "zk"
-          - "odrive"
-        ports:
-          - 8888:443
+    proxier:
+      image: nginx
+      environment:
+        - AAC_SERVICE_HOST=aac
+        - AAC_SERVICE_PORT=9093
+        - ODRIVE_SERVICE_HOST=odrive
+        - ODRIVE_SERVICE_PORT=4430
+      volumes:
+        - ../docker/proxier:/tmp/docker
+      ports:
+        - "8888:443"
+      depends_on:
+        - aac
+        - odrive
+    #    # The envsubst command will swap out anything in the input file that begins with $ with a corresponding env
+    #    # variable, or if one can't be found, an empty string. Since nginx conf files also make use of $-prefixed
+    #    # variables, we will pass in the specific variables we want envsubst to replace (this is called the "shell
+    #    # format" argument). Also note that we need to escape our $-prefixed variables, docker-compose style, to
+    #    # prevent docker-compose from trying to replace the variables (i.e., $VAR becomes $$VAR).
+    #    # end of command: < /tmp/docker/odrive.nginx.conf.tpl > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'
+      command: /bin/bash -c "env && envsubst '$$ODRIVE_SERVICE_HOST $$ODRIVE_SERVICE_PORT $$AAC_SERVICE_HOST $$AAC_SERVICE_PORT' < /tmp/docker/circle.nginx.conf.tpl > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+

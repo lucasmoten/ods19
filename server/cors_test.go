@@ -10,7 +10,7 @@ import (
 
 func TestCors(t *testing.T) {
 	//Preflight request for a POST is like this:
-	origin := ourEndpoint
+	origin := schemeAuthority
 	req, err := http.NewRequest("OPTIONS", mountPoint+"/objects/0123456789abcdef0123456789abcdef", nil)
 	if err != nil {
 		t.Errorf("Unable to generate request:%v", err)

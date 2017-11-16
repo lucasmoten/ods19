@@ -142,6 +142,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	gem.Payload.ChangeToken = apiResponse.ChangeToken
 	gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(updatedObject.ID))
 	gem.Payload.Audit = audit.WithResources(gem.Payload.Audit, NewResourceFromObject(updatedObject))
+	gem.Payload = events.WithEnrichedPayload(gem.Payload, apiResponse)
 	h.EventQueue.Publish(gem)
 
 	jsonResponse(w, apiResponse)

@@ -4,7 +4,7 @@ machine:
     environment:
         IMPORT_PATH: "decipher.com/object-drive-server"
         REPO_NAME: "object-drive-server"
-        ODRIVE_VERSION: "1.0.11"
+        ODRIVE_VERSION: "1.0.12"
         GOPATH: "/home/ubuntu/.go_workspace"
         OD_ROOT: "/home/ubuntu/od_root"
     hosts:
@@ -41,11 +41,15 @@ dependencies:
         - cd ~/.go_workspace/src/$IMPORT_PATH && ./makedocs ${ODRIVE_VERSION} ${CIRCLE_BUILD_NUM}
         - cd ~/.go_workspace/src/$IMPORT_PATH && ./odb --build -i deciphernow/odrive -t latest
         - cd ~/.go_workspace/src/$IMPORT_PATH && ./odb --build -i deciphernow/metadatadb -t latest
-        - cd ~/.go_workspace/src/$IMPORT_PATH/.ci && docker-compose pull zk kafka aac gatekeeper dias redis
+        - cd ~/.go_workspace/src/$IMPORT_PATH/.ci && docker-compose pull zk kafka aac proxier dias redis
         - cd ~/.go_workspace/src/$IMPORT_PATH/.ci && docker-compose up -d
+        - cd ~/.go_workspace/src/$IMPORT_PATH/.ci && docker-compose ps
+        - cd ~/.go_workspace/src/$IMPORT_PATH/.ci && docker-compose logs odrive
+        - cd ~/.go_workspace/src/$IMPORT_PATH/.ci && docker-compose logs proxier
 
 test:
     override:
+        - export OD_EXTERNAL_HOST=$(docker inspect -f '{{.NetworkSettings.IPAddress }}' $(docker ps -a | grep proxier | awk '{print $1}'))
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && export OD_DB_HOST=$(docker inspect -f '{{.NetworkSettings.IPAddress }}' $(docker ps -a | grep metadatadb | awk '{print $1}'))
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && ./odrive-database debug > db.yml
         - cd ~/.go_workspace/src/$IMPORT_PATH/cmd/odrive-database && CONTAINERIP=$(docker inspect -f '{{.NetworkSettings.IPAddress }}' $(docker ps -a | grep metadatadb | awk '{print $1}')) sed -i "s/127.0.0.1/$CONTAINERIP/g" db.yml
@@ -71,6 +75,7 @@ deployment:
             - cd ~/.go_workspace/src/$IMPORT_PATH && ./makerpm $ODRIVE_VERSION $CIRCLE_BUILD_NUM $(git describe --abbrev=0 --tags):
                     timeout: 1200
             - cd ~/.go_workspace/src/$IMPORT_PATH && mv object-drive-1.0-${ODRIVE_VERSION}-${CIRCLE_BUILD_NUM}.$(date +%Y%m%d).x86_64.rpm object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm
+            - cd ~/.go_workspace/src/$IMPORT_PATH && aws s3 cp object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm s3://odrive-builds/circle/rpms/develop/$(date +%Y%m)/object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm --acl private            
             - cd ~/.go_workspace/src/$IMPORT_PATH && aws s3 cp object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm s3://odrive-builds/circle/rpms/release/object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm --acl private
             
             - docker push deciphernow/odrive:latest

@@ -64,7 +64,8 @@ if __name__ == "__main__":
     convert_cmds = ["docker run -ti -v {0}:/docs humangeo/aglio -i docs/home.md -o home.html".format(os.getcwd()),
                     "docker run -ti -v {0}:/docs humangeo/aglio -i docs/rest.md -o rest.html".format(os.getcwd()),
                     "docker run -ti -v {0}:/docs humangeo/aglio -i docs/environment.md -o environment.html".format(os.getcwd()),
-                    "docker run -ti -v {0}:/docs humangeo/aglio -i changelog.md -o changelog.html".format(os.getcwd())]
+                    "docker run -ti -v {0}:/docs humangeo/aglio -i changelog.md -o changelog.html".format(os.getcwd()),
+                    "docker run -ti -v {0}:/docs humangeo/aglio -i docs/events.md -o events.html".format(os.getcwd())]
 
     for cmd in convert_cmds:
         try:

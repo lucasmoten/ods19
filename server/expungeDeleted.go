@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"net/http"
 
+	"decipher.com/object-drive-server/events"
+	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/services/audit"
 
 	"strconv"
@@ -51,6 +53,7 @@ func (h AppServer) expungeDeleted(ctx context.Context, w http.ResponseWriter, r 
 		gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(o.ID))
 		gem.Payload.Audit = audit.WithResources(gem.Payload.Audit, NewResourceFromObject(o))
 		gem.Payload.ChangeToken = o.ChangeToken
+		gem.Payload = events.WithEnrichedPayload(gem.Payload, mapping.MapODObjectToObject(&o))
 		h.publishSuccess(gem, w)
 	}
 	expungedStats := ExpungedStats{ExpungedCount: expungedObjects.TotalRows}

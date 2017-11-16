@@ -23,7 +23,7 @@ import javax.json.*;
   
   #!/bin/bash
   endpoint=https://bedrock.363-283.io/services/object-drive/1.0
-  endpoint=https://dockervm:8080/services/object-drive/1.0
+  endpoint=https://proxier:8080/services/object-drive/1.0
   classpath=.:javax.json-1.0.4.jar
   javac -classpath $classpath ObjectDriveSDK.java && java -classpath $classpath ObjectDriveSDK \
     $endpoint \

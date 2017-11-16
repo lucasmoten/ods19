@@ -7,6 +7,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/services/audit"
@@ -85,9 +86,8 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 	}
 
 	apiResponse := mapping.MapODObjectToExpungedObjectResponse(&dbObject).WithCallerPermission(protocolCaller(caller))
-
-
 	jsonResponse(w, apiResponse)
+	gem.Payload = events.WithEnrichedPayload(gem.Payload, mapping.MapODObjectToObject(&dbObject))
 	h.publishSuccess(gem, w)
 	return nil
 }

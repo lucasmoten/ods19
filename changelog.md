@@ -10,10 +10,15 @@ FORMAT: 1A
 
 + [Service Overview](../../)
 + [RESTful API documentation](rest.html)
++ [Emitted Events documentation](events.html)
 + [Environment](environment.html)
 + [Changelog](changelog.html)
 
 # Group Changelog
+
+## Unreleased v1.0.12
+---------------------
+* ENH: Enriched Payload of Events to include more fields from object for change actions
 
 ## Release v1.0.11 (November 15, 2017)
 --------------------

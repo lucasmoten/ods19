@@ -13,6 +13,7 @@ import (
 	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/dao"
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
@@ -128,7 +129,7 @@ func (h AppServer) changeOwner(ctx context.Context, w http.ResponseWriter, r *ht
 	// Event broadcast
 	gem.Payload.ChangeToken = apiResponse.ChangeToken
 	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
-
+	gem.Payload = events.WithEnrichedPayload(gem.Payload, *apiResponse)
 	jsonResponse(w, *apiResponse)
 	h.publishSuccess(gem, w)
 
@@ -220,7 +221,7 @@ func (h AppServer) changeOwnerRecursive(ctx context.Context, newOwner string, id
 			child.RawAcm = models.ToNullString(modifiedACM)
 			child.Permissions = modifiedPermissions
 
-			// NOTE(cm): why the check again?
+			// ACM checked for each being moved
 			if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, child.RawAcm.String); err != nil {
 				logger.Error("error calling IsUserAuthorizedForACM", zap.Object("err", err))
 				continue
@@ -242,9 +243,10 @@ func (h AppServer) changeOwnerRecursive(ctx context.Context, newOwner string, id
 			auditModified := NewResourceFromObject(child)
 			gem.Payload.Audit = audit.WithModifiedPairList(
 				gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
+			apiResponse := mapping.MapODObjectToObject(&child)
+			gem.Payload = events.WithEnrichedPayload(gem.Payload, apiResponse)
 			h.EventQueue.Publish(gem)
-			h.changeOwnerRecursive(ctx, newOwner, child.ID)
-
+			go h.changeOwnerRecursive(ctx, newOwner, child.ID)
 		}
 		page++
 		if page > children.PageCount {

@@ -8,6 +8,8 @@ import (
 
 	"encoding/hex"
 
+	"decipher.com/object-drive-server/events"
+	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/services/audit"
@@ -150,7 +152,7 @@ func (h AppServer) doBulkDelete(ctx context.Context, w http.ResponseWriter, r *h
 		// reget the object so that changetoken and deleteddate are correct
 		dbObject, err = dao.GetObject(requestObject, false)
 		gem.Payload.ChangeToken = dbObject.ChangeToken
-
+		gem.Payload = events.WithEnrichedPayload(gem.Payload, mapping.MapODObjectToObject(&dbObject))
 		h.publishSuccess(gem, w)
 
 	}

@@ -10,6 +10,7 @@ FORMAT: 1A
 
 + [Service Overview](../../)
 + [RESTful API documentation](rest.html)
++ [Emitted Events documentation](events.html)
 + [Environment](environment.html)
 + [Changelog](changelog.html)
 
