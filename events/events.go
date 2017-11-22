@@ -3,6 +3,8 @@ package events
 import (
 	"encoding/json"
 
+	"decipher.com/object-drive-server/protocol"
+
 	auditevent "github.com/deciphernow/gov-go/audit/events_thrift"
 )
 
@@ -66,24 +68,78 @@ func (e GEM) IsSuccessful() bool {
 // as single event stream that supports auditing, indexing, and more. Note that
 // this type is to be embedded in the Global Event Model (GEM).
 type ObjectDriveEvent struct {
-	// Audit embeds the ICS 500-27 schema
+	// Audit (since 1.0) embeds the ICS 500-27 schema
 	Audit auditevent.AuditEvent `json:"audit_event"`
-	// ObjectID is a 32 character hex encoded string corresponding to the database ID.
+	// ObjectID (since 1.0) is a 32 character hex encoded string corresponding to the database ID.
 	ObjectID string `json:"object_id"`
-	// ChangeToken is a random string regenerated with each update to an object.
-	// A successful update to an object must present the most-current ChangeToken.
+	// ChangeToken (since 1.0) is generated value assigned as a hash based upon the id, change count, and modified date
 	ChangeToken string `json:"change_token"`
-	// StreamUpdate indicates whether an event corresponds to a server action
+	// StreamUpdate (since 1.0) indicates whether an event corresponds to a server action
 	// that changed the bytes of the file.
 	StreamUpdate bool `json:"stream_update"`
-	// UserDN identifies the user that triggered the action.
+	// UserDN (since 1.0) identifies the user that triggered the action.
 	UserDN string `json:"user_dn"`
-	// SessionID is a random string generated for each http request.
+	// SessionID (since 1.0) is a random string generated for each http request.
 	SessionID string `json:"session_id"`
+	// ---------------------------------------------------------------
+	// CreatedBy (since 1.0.12) is the user that created this item.
+	CreatedBy string `json:"createdBy,omitempty"`
+	// ModifiedBy (since 1.0.12) is the user that last modified this item
+	ModifiedBy string `json:"modifiedBy,omitempty"`
+	// DeletedBy (since 1.0.12) is the user that last modified this item
+	DeletedBy string `json:"deletedBy,omitempty"`
+	// ChangeCount (since 1.0.12) indicates the number of times the item has been modified.
+	ChangeCount int `json:"changeCount,omitempty"`
+	// OwnedBy (since 1.0.12) indicates the individual user or group owning the object with full permissions
+	OwnedBy string `json:"ownedBy,omitempty"`
+	// ObjectType (since 1.0.12) reflects the name of the object type associated with TypeID
+	ObjectType string `json:"objectType,omitempty"`
+	// Name (since 1.0.12) is the given name for the object. (e.g., filename)
+	Name string `json:"name,omitempty"`
+	// Description (since 1.0.12) is an abstract of the object or its contents
+	Description string `json:"description,omitempty"`
+	// ParentID (since 1.0.12) refers to another object by id that is the parent of the one referenced herein
+	ParentID string `json:"parentId,omitempty"`
+	// ContentType (since 1.0.12) indicates the mime-type for the object contents
+	ContentType string `json:"contentType,omitempty"`
+	// ContentSize (since 1.0.12) denotes the length of the content stream for this object in bytes
+	ContentSize int64 `json:"contentSize,omitempty"`
+	// ContentHash (since 1.0.12) is a sha256 hash of the plaintext as hex encoded string
+	ContentHash string `json:"contentHash,omitempty"`
+	// ContainsUSPersonsData (since 1.0.12) indicates if this object contains US Persons data (Yes,No,Unknown)
+	ContainsUSPersonsData string `json:"containsUSPersonsData,omitempty"`
+	// ExemptFromFOIA (since 1.0.12) indicates if this object is exempt from Freedom of Information Act requests (Yes,No,Unknown)
+	ExemptFromFOIA string `json:"exemptFromFOIA,omitempty"`
+	// Breadcrumbs (since 1.0.12) is an array of Breadcrumb that may be returned on some API calls.
+	// Clients can use breadcrumbs to display a list of parents. The top-level
+	// parent should be the first item in the slice.
+	Breadcrumbs []protocol.Breadcrumb `json:"breadcrumbs,omitempty"`
 }
 
 // Yield satisfies the Event interface.
 func (e ObjectDriveEvent) Yield() []byte {
 	b, _ := json.Marshal(e)
 	return b
+}
+
+// WithEnrichedPayload populates payload fields with information from a protocol object
+func WithEnrichedPayload(p ObjectDriveEvent, i protocol.Object) ObjectDriveEvent {
+	p.Breadcrumbs = i.Breadcrumbs
+	p.ChangeCount = i.ChangeCount
+	p.ChangeToken = i.ChangeToken
+	p.ContainsUSPersonsData = i.ContainsUSPersonsData
+	p.ContentHash = i.ContentHash
+	p.ContentSize = i.ContentSize
+	p.ContentType = i.ContentType
+	p.CreatedBy = i.CreatedBy
+	p.DeletedBy = i.DeletedBy
+	p.Description = i.Description
+	p.ExemptFromFOIA = i.ExemptFromFOIA
+	p.ModifiedBy = i.ModifiedBy
+	p.Name = i.Name
+	p.ObjectID = i.ID
+	p.ObjectType = i.TypeName
+	p.OwnedBy = i.OwnedBy
+	p.ParentID = i.ParentID
+	return p
 }

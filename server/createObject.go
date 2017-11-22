@@ -16,6 +16,7 @@ import (
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/crypto"
 	"decipher.com/object-drive-server/dao"
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/services/audit"
 	"golang.org/x/net/context"
 
@@ -165,7 +166,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	gem.Payload.ChangeToken = apiResponse.ChangeToken
 	gem.Payload.StreamUpdate = isMultipart
 	gem.Payload.Audit = audit.WithResources(gem.Payload.Audit, auditResource)
-
+	gem.Payload = events.WithEnrichedPayload(gem.Payload, apiResponse)
 	jsonResponse(w, apiResponse)
 
 	h.publishSuccess(gem, w)
@@ -226,6 +227,8 @@ func handleIntermediateFoldersDuringCreation(ctx context.Context, h AppServer, u
 			gem.Payload.Audit = audit.WithResources(gem.Payload.Audit, auditResource)
 			gem.Payload.Audit = audit.WithActionResult(gem.Payload.Audit, "SUCCESS")
 			gem.Payload.Audit = audit.WithActionTargetMessages(gem.Payload.Audit, string(http.StatusOK))
+			apiResponse := mapping.MapODObjectToObject(&matchedObject)
+			gem.Payload = events.WithEnrichedPayload(gem.Payload, apiResponse)
 			h.EventQueue.Publish(gem)
 		}
 		// Shift the parent id for the object being created

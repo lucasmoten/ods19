@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/services/audit"
@@ -87,7 +88,7 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	gem.Payload.ChangeToken = unDeletedObj.ChangeToken
 	gem.Payload.StreamUpdate = unDeletedObj.ContentSize.Int64 > 0
 	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
-
+	gem.Payload = events.WithEnrichedPayload(gem.Payload, apiResponse)
 	jsonResponse(w, apiResponse)
 	h.publishSuccess(gem, w)
 	return nil

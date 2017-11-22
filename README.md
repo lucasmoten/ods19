@@ -64,7 +64,7 @@ This project requires edits to your **/etc/hosts** file. These are the most
 common settings:
 
 ```
-127.0.0.1 localhost dockervm fqdn.for.metadatadb.local gatekeeper metadatadb aac metadataconnector zk pk ui builder kafka twl-server-generic2 gateway metadatadb
+127.0.0.1	localhost      aac consumers01 dias dockervm gatekeeper jobs01 kafka metadatadb nginx01 packager proxier python01 redis salt service01 twl-server-generic2 zk zookeeper
 ```
 
 Tests can be run locally if the suite of containers defined in **docker/docker-compose.yml**

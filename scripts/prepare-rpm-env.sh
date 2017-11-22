@@ -68,6 +68,7 @@ install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/ObjectDriveSDK.java ${O
 install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/api.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/api.html
 install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/changelog.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/changelog.html
 install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/environment.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/environment.html
+install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/events.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/events.html
 install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/home.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/home.html
 install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/rest.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/rest.html
 

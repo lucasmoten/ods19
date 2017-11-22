@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/server"
 
 	"decipher.com/object-drive-server/protocol"
@@ -27,17 +28,16 @@ func getEnvWithDefault(name string, def string) string {
 	return val
 }
 
-var ourEndpoint = fmt.Sprintf(
+var schemeAuthority = fmt.Sprintf(
 	"https://%s:%s",
-	getEnvWithDefault("OD_DOCKERVM_OVERRIDE", "proxier"),
-	getEnvWithDefault("OD_DOCKERVM_PORT", "8080"),
+	getEnvWithDefault(config.OD_EXTERNAL_HOST, "proxier"),
+	getEnvWithDefault(config.OD_EXTERNAL_PORT, "8080"),
 )
 
 // Include this in the server_test package so that it cannot escape it,
-// and purge NginxRootUrl and DockerVM references
 var mountPoint = fmt.Sprintf(
 	"%s/services/object-drive/1.0",
-	ourEndpoint,
+	schemeAuthority,
 )
 
 func makeHTTPRequestFromInterface(t *testing.T, method string, uri string, obj interface{}) *http.Request {

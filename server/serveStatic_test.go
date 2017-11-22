@@ -30,9 +30,8 @@ func attemptToStealFile(t *testing.T, filename string) {
 	escapedPeriod := "%2e" // %u002e
 	upAFolder := "/" + escapedPeriod + escapedPeriod
 
-	odrivehost := "proxier:4430" // "dockervm:4430"
 	//uri := mountPoint + "/static/" + upAFolder + upAFolder + upAFolder + upAFolder + upAFolder + upAFolder + "etc/passwd"
-	uri := "https://" + odrivehost + "/static" + upAFolder + upAFolder + upAFolder + upAFolder + upAFolder + upAFolder + filename
+	uri := schemeAuthority + "/static" + upAFolder + upAFolder + upAFolder + upAFolder + upAFolder + upAFolder + filename
 
 	// Request
 	req, err := http.NewRequest("GET", uri, nil)

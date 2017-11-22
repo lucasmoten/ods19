@@ -13,46 +13,53 @@
 # Pre-requisites
 #   1. Object Drive Server rpm should be built by circle and in the 
 #      odrive-builds bucket
-#   2. You have environment variables set for MEME_AWS_ACCESS_KEY_ID and 
-#      MEME_AWS_SECRET_ACCESS_KEY for writing to the builds.363-283.io bucket
+#   2. You have aws credentials defined in ~/.aws/credentials for each of
+#      decipher363283io    and    meme
+#   3. You must have a GITHUB_TOKEN representing an OAuth token with read 
+#      access to this repo. Get one by following guidance here 
+#      https://developer.github.com/v3/guides/getting-started/
 
+# Default to latest/current version
 ODRIVE_VERSION=$(grep 'ODRIVE_VERSION:' circle.yml | awk '{ print $2}' | sed -e 's/^"//' -e 's/"$//')
 
-CIRCLE_BUILD_NUM=$1
-if [ ${#1} -eq 0 ]
+# Validate
+COUNT_GITHUB_TOKEN=$(printenv | grep "GITHUB_TOKEN" -c)
+if [ $COUNT_GITHUB_TOKEN -eq 0 ]
 then
-  echo "You must provide the build number corresponding to the RPM"
-  echo "to retrieve from odrive-builds and push to builds.363-283.io"
-  echo "as the first argument"
-  echo "For example, ./publish-to-meme-ods-rpm 1880 1.0.1"
+  echo "envvar GITHUB_TOKEN is not set"
+  exit 1
+fi
+GITHUB_API_LINE=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" https://api.github.com/repos/DecipherNow/object-drive-server/releases | head -20 | grep "\"name\":")
+GITHUB_API_VERSION=$(echo $GITHUB_API_LINE | awk '{print $3}')
+GITHUB_API_BUILDNUM=$(echo $GITHUB_API_LINE | awk '{print $6}' | sed s/"\","//)
+
+if [ $GITHUB_API_VERSION -eq 0 ]
+then
+  ODS_VERSION=$ODRIVE_VERSION
+else
+  ODS_VERSION=$GITHUB_API_VERSION
+fi
+GOV_ODRIVE_VERSION=1.0-$ODS_VERSION
+
+AWS_PROFILE_NAME="decipher363283io"
+COUNT_PROFILE=$(cat ~/.aws/credentials | grep "${AWS_PROFILE_NAME}" | wc -l)
+if [ $COUNT_PROFILE -eq 0 ]
+then
+  echo "A profile named $AWS_PROFILE_NAME was not found in ~/.aws/credentials"
+  exit 1
+fi
+AWS_PROFILE_NAME="meme"
+COUNT_PROFILE=$(cat ~/.aws/credentials | grep "${AWS_PROFILE_NAME}" | wc -l)
+if [ $COUNT_PROFILE -eq 0 ]
+then
+  echo "A profile named $AWS_PROFILE_NAME was not found in ~/.aws/credentials"
   exit 1
 fi
 
-GOV_ODRIVE_VERSION=$2
-if [ ${#2} -eq 0 ]
-then
-  GOV_ODRIVE_VERSION=1.0-$ODRIVE_VERSION
-fi  
-
-COUNTMEMEAWSKEY=$(printenv | grep "MEME_AWS_ACCESS_KEY_ID" -c)
-if [ $COUNTMEMEAWSKEY -eq 0 ]
-then
-  echo "envvar MEME_AWS_ACCESS_KEY_ID is not set"
-  exit 1
-fi
-COUNTMEMESECRET=$(printenv | grep "MEME_AWS_SECRET_ACCESS_KEY" -c)
-if [ $COUNTMEMESECRET -eq 0 ]
-then
-  echo "envvar MEME_AWS_SECRET_ACCESS_KEY is not set"
-  exit 1
-fi
-
-export AWS_ACCESS_KEY_ID=$MEME_AWS_ACCESS_KEY_ID
-export AWS_SECRET_ACCESS_KEY=$MEME_AWS_SECRET_ACCESS_KEY
 
 # Get from S3, built by CIRCLE
-RPMFILE=object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm
-curl -O https://s3.amazonaws.com/odrive-builds/circle/rpms/${RPMFILE} -f
+RPMFILE=object-drive-${ODS_VERSION}.${GITHUB_API_BUILDNUM}.x86_64.rpm
+aws s3 cp s3://odrive-builds/circle/rpms/release/${RPMFILE} . --profile decipher363283io
 if [ -f "$RPMFILE" ]
 then
   echo "Retrieved file ${RPMFILE}"
@@ -81,17 +88,16 @@ else
   exit 1
 fi
 
-
 # File format needs to be
 # <Service Name>-<major version>.<minor version>.<patch version>.<build number>.<YYYYMMDD>.rpm
-REMOTEFILE="object-drive-${GOV_ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.${BUILDDATEYYYYMMDD}.rpm"
+REMOTEFILE="object-drive-${GOV_ODRIVE_VERSION}.${GITHUB_API_BUILDNUM}.${BUILDDATEYYYYMMDD}.rpm"
 echo "File to save as in bucket is ${REMOTEFILE}"
-echo "Command: aws s3 cp ${RPMFILE} s3://builds.363-283.io/${REMOTEFILE}"
+echo "Command: aws s3 cp ${RPMFILE} s3://builds.363-283.io/${REMOTEFILE} --profile meme"
 echo "Do you wish to copy to the builds.363-283.io bucket?"
 select yn in "Yes" "No"; do
   case $yn in
     "Yes") 
-      aws s3 cp ${RPMFILE} s3://builds.363-283.io/${REMOTEFILE}
+      aws s3 cp ${RPMFILE} s3://builds.363-283.io/${REMOTEFILE} --profile meme
       break
       ;;
     "No") 

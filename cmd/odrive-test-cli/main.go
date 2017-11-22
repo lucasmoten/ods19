@@ -15,6 +15,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 
 	"decipher.com/object-drive-server/client"
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/util"
 	"github.com/deciphernow/gov-go/testcerts"
@@ -30,10 +31,10 @@ func getEnvWithDefault(name string, def string) string {
 	return val
 }
 
-var ourEndpoint = fmt.Sprintf(
+var schemeAuthority = fmt.Sprintf(
 	"https://%s:%s",
-	getEnvWithDefault("OD_DOCKERVM_OVERRIDE", "proxier"),
-	getEnvWithDefault("OD_DOCKERVM_PORT", "8080"),
+	getEnvWithDefault(config.OD_EXTERNAL_HOST, "proxier"),
+	getEnvWithDefault(config.OD_EXTERNAL_PORT, "8080"),
 )
 
 // This is duplicated from server_test, so that these variables cannot
@@ -41,7 +42,7 @@ var ourEndpoint = fmt.Sprintf(
 // of foreign test packages.
 var mountPoint = fmt.Sprintf(
 	"%s/services/object-drive/1.0",
-	ourEndpoint,
+	schemeAuthority,
 )
 
 func main() {

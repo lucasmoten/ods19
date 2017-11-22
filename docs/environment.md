@@ -10,6 +10,7 @@ FORMAT: 1A
 
 + [Service Overview](../../)
 + [RESTful API documentation](rest.html)
++ [Emitted Events documentation](events.html)
 + [Environment](environment.html)
 + [Changelog](changelog.html)
 
@@ -163,5 +164,5 @@ The following are convenience variables that work in conjunction with developmen
 | OD_DB_AWS_MYSQL_PORT | OD_DB_PORT override for aws staging instance  |  |
 | OD_DB_AWS_MYSQL_DATABASE_NAME | OD_DB_SCHEMA override for aws staging instance  |  |
 | OD_DB_AWS_MYSQL_SSL_CA_PATH | OD_DB_CA override for aws staging instance  |  |
-| OD_DOCKERVM_OVERRIDE | **DEVELOPMENT ONLY** Allows for overriding the host name used for go tests when checking server integration tests.  | dockervm |
-| OD_DOCKERVM_PORT | **DEVELOPMENT ONLY** Allows for overriding the port used for go tests when checking server integration tests direct to Object Drive.  | 8080 |
+| OD_EXTERNAL_HOST | **DEVELOPMENT ONLY** Allows for overriding the host name used for go tests when checking server integration tests.  | proxier |
+| OD_EXTERNAL_PORT | **DEVELOPMENT ONLY** Allows for overriding the port used for go tests when checking server integration tests direct to Object Drive.  | 8080 |

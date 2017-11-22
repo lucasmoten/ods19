@@ -9,12 +9,14 @@ import (
 	"os"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
 	"strings"
 
 	"decipher.com/object-drive-server/client"
+	"decipher.com/object-drive-server/config"
 	"decipher.com/object-drive-server/protocol"
 )
 
@@ -28,10 +30,10 @@ func getEnvWithDefault(name string, def string) string {
 
 const ValidACMUnclassifiedFOUOSharedToTester10 = `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_clearance":["u"],"f_share":["cntesttester01oupeopleoudaeouchimeraou_s_governmentcus"],"portion":"U//FOUO","share":{"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`
 
-var ourEndpoint = fmt.Sprintf(
+var schemeAuthority = fmt.Sprintf(
 	"https://%s:%s",
-	getEnvWithDefault("OD_DOCKERVM_OVERRIDE", "proxier"),
-	getEnvWithDefault("OD_DOCKERVM_PORT", "8080"),
+	getEnvWithDefault(config.OD_EXTERNAL_HOST, "proxier"),
+	getEnvWithDefault(config.OD_EXTERNAL_PORT, "8080"),
 )
 
 // This is duplicated from server_test, so that these variables cannot
@@ -39,7 +41,7 @@ var ourEndpoint = fmt.Sprintf(
 // of foreign test packages.
 var mountPoint = fmt.Sprintf(
 	"%s/services/object-drive/1.0",
-	ourEndpoint,
+	schemeAuthority,
 )
 
 // testDir defines the location for files used in upload/download tests.
@@ -50,7 +52,7 @@ var conf = client.Config{
 	Cert:       os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/test_0.cert.pem",
 	Trust:      os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/client.trust.pem",
 	Key:        os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/test_0.key.pem",
-	SkipVerify: true, // LM: currently set to true because the global "dockervm" wont actually match the cert for remote
+	SkipVerify: true, // LM: currently set to true because the global OD_EXTERNAL_HOST may not actually match the cert for remote
 	Remote:     mountPoint,
 }
 
@@ -66,7 +68,9 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Println("error creating temp file:", testFile, err)
 	}
-
+	if code := stallForAvailability(); code != 0 {
+		os.Exit(code)
+	}
 	code := m.Run()
 
 	os.RemoveAll(testDir)
@@ -150,6 +154,9 @@ func TestRoundTrip(t *testing.T) {
 // such as a folder.
 func TestCreateObjectNoStream(t *testing.T) {
 	me, err := client.NewClient(conf)
+	if err != nil {
+		t.Fatalf("could not create client: %v", err)
+	}
 
 	var upObj = protocol.CreateObjectRequest{
 		TypeName:              "Folder",
@@ -172,6 +179,9 @@ func TestCreateObjectNoStream(t *testing.T) {
 
 func TestMoveObject(t *testing.T) {
 	me, err := client.NewClient(conf)
+	if err != nil {
+		t.Fatalf("could not create client: %v", err)
+	}
 
 	// Create file at root.
 	testFile, err := ioutil.TempFile(testDir, "particle")
@@ -257,7 +267,7 @@ func TestImpersonation(t *testing.T) {
 func TestUpdateObject(t *testing.T) {
 	c, err := client.NewClient(conf)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("could not create client: %v", err)
 	}
 	c.Verbose = testing.Verbose()
 	cor := protocol.CreateObjectRequest{
@@ -284,7 +294,7 @@ func TestUpdateObject(t *testing.T) {
 func TestUpdateObjectAndStream(t *testing.T) {
 	c, err := client.NewClient(conf)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("could not create client: %v", err)
 	}
 	c.Verbose = testing.Verbose()
 	cor := protocol.CreateObjectRequest{
@@ -325,4 +335,46 @@ func writeObjectToDisk(name string, reader io.Reader) error {
 	}
 
 	return nil
+}
+
+func stallForAvailability() int {
+	c, err := client.NewClient(conf)
+	if err != nil {
+		log.Printf("could not create client: %v", err)
+		return -9
+	}
+
+	// Do this on every try to check the server
+	retryFunc := func() int {
+		res, err := c.Ping()
+		if err != nil {
+			log.Printf("bad request: %v", err)
+			return -11
+		}
+		if !res {
+			log.Printf("odrive not ready to serve")
+			return -10
+		}
+		return 0
+	}
+
+	// Try every few seconds
+	tck := time.NewTicker(1 * time.Second)
+	defer tck.Stop()
+
+	// Give up after a while.  We need enough time to cover from when containers are brought up to when they should pass
+	timeout := time.After(5 * time.Minute)
+
+	// Attempt to check the server.  Quit if we pass timeout
+	for {
+		select {
+		case <-tck.C:
+			code := retryFunc()
+			if code == 0 {
+				return 0
+			}
+		case <-timeout:
+			return -12
+		}
+	}
 }

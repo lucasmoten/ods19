@@ -15,6 +15,7 @@ import (
 	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/ciphertext"
 	"decipher.com/object-drive-server/dao"
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
@@ -250,7 +251,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	gem.Payload.ChangeToken = apiResponse.ChangeToken
 	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
 	gem.Payload.StreamUpdate = false
-
+	gem.Payload = events.WithEnrichedPayload(gem.Payload, apiResponse)
 	jsonResponse(w, apiResponse)
 	h.publishSuccess(gem, w)
 
@@ -351,6 +352,8 @@ func (h AppServer) updateObjectRecursive(ctx context.Context, applyable models.O
 			auditModified := NewResourceFromObject(child)
 			gem.Payload.Audit = audit.WithModifiedPairList(
 				gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
+			apiResponse := mapping.MapODObjectToObject(&child)
+			gem.Payload = events.WithEnrichedPayload(gem.Payload, apiResponse)
 			h.EventQueue.Publish(gem)
 			h.updateObjectRecursive(ctx, child)
 		}

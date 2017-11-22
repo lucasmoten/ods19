@@ -301,6 +301,21 @@ func (c *Client) MoveObject(req protocol.MoveObjectRequest) (protocol.Object, er
 	return ret, nil
 }
 
+// Ping checks if the server is up
+func (c *Client) Ping() (bool, error) {
+	pingURL := c.url + "/ping"
+	req, err := http.NewRequest("GET", pingURL, nil)
+	if err != nil {
+		return false, fmt.Errorf("error creating request: %v", err)
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("error performing request: %v", err)
+	}
+	defer resp.Body.Close()
+	return (resp.StatusCode == http.StatusOK), nil
+}
+
 // UpdateObject updates an object's metadata or permissions. To update an actual
 // filestream, use UpdateObjectAndStream.
 func (c *Client) UpdateObject(req protocol.UpdateObjectRequest) (protocol.Object, error) {

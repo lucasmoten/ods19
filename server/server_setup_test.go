@@ -41,7 +41,7 @@ var (
 )
 
 var (
-	testIP = flag.String("testIP", "", "The IP address for test API requests. Usually the dockerVM")
+	testIP = flag.String("testIP", "", "The IP address for test API requests. (e.g., docker virtual machine ip)")
 )
 
 func TestMain(m *testing.M) {

@@ -11,6 +11,7 @@ import (
 	"github.com/uber-go/zap"
 
 	"decipher.com/object-drive-server/auth"
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/protocol"
 	"decipher.com/object-drive-server/services/audit"
@@ -39,23 +40,23 @@ func (h AppServer) doBulkOwnership(ctx context.Context, w http.ResponseWriter, r
 
 	var objects []protocol.ObjectVersioned
 	var bytes []byte
-	limit := 5 * 1024 * 1024
-	bytes, err := ioutil.ReadAll(io.LimitReader(r.Body, int64(limit)))
+	limit5MB := 5 * 1024 * 1024
+	bytes, err := ioutil.ReadAll(io.LimitReader(r.Body, int64(limit5MB)))
 
 	if err != nil {
-		herr := NewAppError(400, err, "Cannot unmarshal list of IDs", zap.String("baddata", string(bytes)))
+		herr := NewAppError(http.StatusBadRequest, err, "Cannot unmarshal list of IDs", zap.String("baddata", string(bytes)))
 		h.publishError(gem, herr)
 		return herr
 	}
 	err = json.Unmarshal(bytes, &objects)
 	if err != nil {
-		herr := NewAppError(400, err, "Cannot parse list of IDs", zap.String("baddata", string(bytes)))
+		herr := NewAppError(http.StatusBadRequest, err, "Cannot parse list of IDs", zap.String("baddata", string(bytes)))
 		h.publishError(gem, herr)
 		return herr
 	}
 
 	var bulkResponse []protocol.ObjectError
-	w.Header().Set("Status","200")
+	w.Header().Set("Status", "200") // should not be necessary
 	for _, o := range objects {
 		gem = ResetBulkItem(gem)
 
@@ -85,7 +86,7 @@ func (h AppServer) doBulkOwnership(ctx context.Context, w http.ResponseWriter, r
 		requestObject.ChangeToken = o.ChangeToken
 		dbObject, err := dao.GetObject(requestObject, true)
 		if err != nil {
-			herr := NewAppError(400, err, "Error retrieving object")
+			herr := NewAppError(http.StatusBadRequest, err, "Error retrieving object")
 			h.publishError(gem, herr)
 			bulkResponse = append(bulkResponse,
 				protocol.ObjectError{
@@ -132,7 +133,7 @@ func (h AppServer) doBulkOwnership(ctx context.Context, w http.ResponseWriter, r
 		var msg string
 		var errCause error
 
-		_, herr := changeOwnerRaw(
+		apiResponse, herr := changeOwnerRaw(
 			&requestObject, &dbObject,
 			&updatePermission,
 			aacAuth,
@@ -163,14 +164,12 @@ func (h AppServer) doBulkOwnership(ctx context.Context, w http.ResponseWriter, r
 				ObjectID: o.ObjectID,
 				Error:    "",
 				Msg:      "",
-				Code:     200,
+				Code:     http.StatusOK,
 			},
 		)
 
-		apiResponse := mapping.MapODObjectToObject(&dbObject).WithCallerPermission(protocolCaller(caller))
-
-		gem.Payload.ChangeToken = apiResponse.ChangeToken
 		gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
+		gem.Payload = events.WithEnrichedPayload(gem.Payload, *apiResponse)
 		h.publishSuccess(gem, w)
 	}
 	jsonResponse(w, bulkResponse)

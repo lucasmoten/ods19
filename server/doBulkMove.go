@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 
 	"decipher.com/object-drive-server/auth"
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
@@ -28,24 +29,24 @@ func (h AppServer) doBulkMove(ctx context.Context, w http.ResponseWriter, r *htt
 	var objects []protocol.MoveObjectRequest
 	bytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		herr := NewAppError(400, err, "Cannot read list of IDs")
+		herr := NewAppError(http.StatusBadRequest, err, "Cannot read list of IDs")
 		h.publishError(gem, herr)
 		return herr
 	}
 	err = json.Unmarshal(bytes, &objects)
 	if err != nil {
-		herr := NewAppError(400, err, "Cannot parse list of IDs")
+		herr := NewAppError(http.StatusBadRequest, err, "Cannot parse list of IDs")
 		h.publishError(gem, herr)
 		return herr
 	}
 
 	var bulkResponse []protocol.ObjectError
-	w.Header().Set("Status","200")
+	w.Header().Set("Status", (string)(http.StatusOK))
 	for _, o := range objects {
 		gem = ResetBulkItem(gem)
 		id, err := hex.DecodeString(o.ID)
 		if err != nil {
-			herr := NewAppError(400, err, "Cannot decode object id")
+			herr := NewAppError(http.StatusBadRequest, err, "Cannot decode object id")
 			h.publishError(gem, herr)
 			bulkResponse = append(bulkResponse,
 				protocol.ObjectError{
@@ -66,7 +67,7 @@ func (h AppServer) doBulkMove(ctx context.Context, w http.ResponseWriter, r *htt
 		gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))
 		dbObject, err := dao.GetObject(requestObject, true)
 		if err != nil {
-			herr := NewAppError(400, err, "Error retrieving object")
+			herr := NewAppError(http.StatusBadRequest, err, "Error retrieving object")
 			h.publishError(gem, herr)
 			bulkResponse = append(bulkResponse,
 				protocol.ObjectError{
@@ -112,7 +113,7 @@ func (h AppServer) doBulkMove(ctx context.Context, w http.ResponseWriter, r *htt
 				ObjectID: o.ID,
 				Error:    "",
 				Msg:      "",
-				Code:     200,
+				Code:     http.StatusOK,
 			},
 		)
 
@@ -120,6 +121,7 @@ func (h AppServer) doBulkMove(ctx context.Context, w http.ResponseWriter, r *htt
 
 		gem.Payload.ChangeToken = apiResponse.ChangeToken
 		gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
+		gem.Payload = events.WithEnrichedPayload(gem.Payload, apiResponse)
 		h.publishSuccess(gem, w)
 
 	}

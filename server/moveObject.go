@@ -12,6 +12,7 @@ import (
 
 	"decipher.com/object-drive-server/auth"
 	"decipher.com/object-drive-server/dao"
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/mapping"
 	"decipher.com/object-drive-server/metadata/models"
 	"decipher.com/object-drive-server/protocol"
@@ -175,7 +176,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 
 	gem.Payload.ChangeToken = apiResponse.ChangeToken
 	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
-
+	gem.Payload = events.WithEnrichedPayload(gem.Payload, apiResponse)
 	jsonResponse(w, apiResponse)
 	h.publishSuccess(gem, w)
 	return nil
