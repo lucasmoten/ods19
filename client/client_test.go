@@ -17,6 +17,7 @@ import (
 
 	"decipher.com/object-drive-server/client"
 	"decipher.com/object-drive-server/config"
+	"decipher.com/object-drive-server/events"
 	"decipher.com/object-drive-server/protocol"
 )
 
@@ -50,9 +51,10 @@ var testDir string
 // conf contains configuration necessary for the client to connect to a running odrive instance.
 var conf = client.Config{
 	Cert:       os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/test_0.cert.pem",
-	Trust:      os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/client.trust.pem",
+	Trust:      os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/server/server.trust.pem",
 	Key:        os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/test_0.key.pem",
-	SkipVerify: true, // LM: currently set to true because the global OD_EXTERNAL_HOST may not actually match the cert for remote
+	SkipVerify: false,
+	ServerName: getEnvWithDefault("OD_PEER_CN", "twl-server-generic2"), // If you set OD_PEER_CN, then this matches it
 	Remote:     mountPoint,
 }
 
@@ -375,6 +377,50 @@ func stallForAvailability() int {
 			}
 		case <-timeout:
 			return -12
+		}
+	}
+}
+
+func fetcher(c *client.OdriveResponder, gem *events.GEM) error {
+	userDn := gem.Payload.UserDN
+	objectId := gem.Payload.ObjectID
+
+	if gem.Action == "create" {
+		odc, err := client.NewClient(c.Conf)
+		if err != nil {
+			return err
+		}
+		odc.MyDN = userDn
+		obj, err := odc.GetObject(objectId)
+		if err != nil {
+			return err
+		}
+		c.Note("created: %s %s %s", objectId, obj.ContentType, obj.Name)
+	}
+	return nil
+}
+
+func TestResponder(t *testing.T) {
+	t.Skip()
+	// Connect to kafka
+	c, err := client.NewOdriveResponder(
+		conf,
+		"odrive_to_text",
+		os.Getenv("OD_EVENT_ZK_ADDRS"),
+		fetcher,
+	)
+	if err != nil {
+		log.Printf("error creating: %v", err)
+		t.FailNow()
+	}
+	c.Timeout = 1 * time.Second
+	c.DebugMode = true
+	c.Note("connect to kafka")
+	for {
+		err = c.ConsumeKafka()
+		if err != nil {
+			log.Printf("error connecting: %v", err)
+			t.FailNow()
 		}
 	}
 }

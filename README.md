@@ -123,3 +123,9 @@ cd $GOPATH/src/decipher.com/object-drive-server
 #make an rpm as version 1.0.9 and call it build number 2600.  It will be in current directory when done
 ./makerpm 1.0.9 2600
 ```
+
+# Client
+
+For writing a client to listen on changes and to pull content in response, see this link.
+
+[client](client/README.md)

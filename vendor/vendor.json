@@ -489,6 +489,18 @@
 			"revisionTime": "2016-05-24T20:27:12Z"
 		},
 		{
+			"checksumSHA1": "azeqbBjYyd/UYnL21UBo2JmM8Mo=",
+			"path": "github.com/wvanbergen/kafka/consumergroup",
+			"revision": "bc265fedb9ff5b5c5d3c0fdcef4a819b3523d3ee",
+			"revisionTime": "2016-09-27T09:30:20Z"
+		},
+		{
+			"checksumSHA1": "yh90mFYYX35FRZD8bQTjUFZ8rN8=",
+			"path": "github.com/wvanbergen/kazoo-go",
+			"revision": "494a179ad10a1a52daa7536a82cc215bc728c399",
+			"revisionTime": "2017-11-10T11:12:02Z"
+		},
+		{
 			"checksumSHA1": "5ARrN3Zq+E9zazFb/N+b08Serys=",
 			"path": "golang.org/x/net/context",
 			"revision": "04b9de9b512f58addf28c9853d50ebef61c3953e",

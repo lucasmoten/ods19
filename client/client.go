@@ -26,7 +26,7 @@ type ObjectDrive interface {
 	ChangeOwner(protocol.ChangeOwnerRequest) (protocol.Object, error)
 	DeleteObject(id string, token string) (protocol.DeletedObjectResponse, error)
 	GetObject(id string) (protocol.Object, error)
-	GetObjectStream(id string) (io.Reader, error)
+	GetObjectStream(id string) (io.ReadCloser, error)
 	MoveObject(protocol.MoveObjectRequest) (protocol.Object, error)
 	UpdateObject(protocol.UpdateObjectRequest) (protocol.Object, error)
 	UpdateObjectAndStream(protocol.UpdateObjectAndStreamRequest, io.Reader) (protocol.Object, error)
@@ -38,7 +38,7 @@ type Client struct {
 	url        string
 	// Verbose will print extra debug information if true.
 	Verbose bool
-	conf    Config
+	Conf    Config
 	MyDN    string
 }
 
@@ -50,7 +50,7 @@ type Config struct {
 	Cert       string
 	Trust      string
 	Key        string
-	SkipVerify bool
+	SkipVerify bool // DO NOT SET THIS.  Set ServerName to match CN of the Remote
 	// Remote specifies the full API proxy prefix: https://{host}:{port}/{prefix}
 	// Actual object drive API endpoints are appended to this string.
 	Remote string
@@ -58,6 +58,7 @@ type Config struct {
 	// USER_DN will be set to this value, and EXTERNAL_SYS_DN and SSL_CLIENT_S_DN
 	// will be set to the Client.MyDN field.
 	Impersonation string
+	ServerName    string // OD_PEER_CN has this value, or if it's blank then it must match Dial hostname
 }
 
 // NewClient instantiates a new Client that implements ObjectDrive.  This client can be used to perform
@@ -92,6 +93,7 @@ func NewClient(conf Config) (*Client, error) {
 		RootCAs:                  caPool,
 		PreferServerCipherSuites: true,
 		MinVersion:               tls.VersionTLS10,
+		ServerName:               conf.ServerName,
 	}
 	tlsConfig.BuildNameToCertificate()
 
@@ -150,8 +152,8 @@ func (c *Client) CreateObject(req protocol.CreateObjectRequest, reader io.Reader
 		httpReq.Header.Set("Content-Type", contentType)
 	}
 
-	if c.conf.Impersonation != "" {
-		setImpersonationHeaders(httpReq, c.conf.Impersonation, c.MyDN)
+	if c.Conf.Impersonation != "" {
+		setImpersonationHeaders(httpReq, c.Conf.Impersonation, c.MyDN)
 	}
 
 	resp, err := c.httpClient.Do(httpReq)
@@ -185,8 +187,8 @@ func (c *Client) GetObject(id string) (protocol.Object, error) {
 		return obj, err
 	}
 
-	if c.conf.Impersonation != "" {
-		setImpersonationHeaders(req, c.conf.Impersonation, c.MyDN)
+	if c.Conf.Impersonation != "" {
+		setImpersonationHeaders(req, c.Conf.Impersonation, c.MyDN)
 	}
 
 	resp, err := c.httpClient.Do(req)
@@ -212,7 +214,7 @@ func (c *Client) GetObject(id string) (protocol.Object, error) {
 }
 
 // GetObjectStream fetches the filestream associated with an object, if any exists.
-func (c *Client) GetObjectStream(id string) (io.Reader, error) {
+func (c *Client) GetObjectStream(id string) (io.ReadCloser, error) {
 	fileURL := c.url + "/objects/" + id + "/stream"
 
 	req, err := http.NewRequest("GET", fileURL, nil)
@@ -220,8 +222,8 @@ func (c *Client) GetObjectStream(id string) (io.Reader, error) {
 		return nil, err
 	}
 
-	if c.conf.Impersonation != "" {
-		setImpersonationHeaders(req, c.conf.Impersonation, c.MyDN)
+	if c.Conf.Impersonation != "" {
+		setImpersonationHeaders(req, c.Conf.Impersonation, c.MyDN)
 	}
 
 	resp, err := c.httpClient.Do(req)
@@ -375,8 +377,8 @@ func (c *Client) UpdateObjectAndStream(req protocol.UpdateObjectAndStreamRequest
 
 	httpReq.Header.Set("Content-Type", contentType)
 
-	if c.conf.Impersonation != "" {
-		setImpersonationHeaders(httpReq, c.conf.Impersonation, c.MyDN)
+	if c.Conf.Impersonation != "" {
+		setImpersonationHeaders(httpReq, c.Conf.Impersonation, c.MyDN)
 	}
 
 	resp, err := c.httpClient.Do(httpReq)
@@ -405,8 +407,8 @@ func (c *Client) doPost(uri string, body interface{}) (*http.Response, error) {
 		return nil, err
 	}
 
-	if c.conf.Impersonation != "" {
-		setImpersonationHeaders(req, c.conf.Impersonation, c.MyDN)
+	if c.Conf.Impersonation != "" {
+		setImpersonationHeaders(req, c.Conf.Impersonation, c.MyDN)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
