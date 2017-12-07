@@ -7,9 +7,9 @@ import (
 
 	"golang.org/x/net/context"
 
-	"decipher.com/object-drive-server/mapping"
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/mapping"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/protocol"
 )
 
 func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {

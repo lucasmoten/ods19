@@ -3,7 +3,7 @@
 # Helper script to gather assets from other areas of the project to the
 # local assets folder.
 
-root=${GOPATH}/src/decipher.com/object-drive-server
+root=${GOPATH}/src/github.com/deciphernow/object-drive-server
 
 # Make sure assets path exists for this build/trust
 mkdir -p ${root}/packer/object-drive-1.0/assets/trust

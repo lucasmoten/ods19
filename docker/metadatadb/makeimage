@@ -38,7 +38,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     # Locate object-drive-server project
-    object_drive_server = os.path.join(gopath, 'src', 'decipher.com', 'object-drive-server')
+    object_drive_server = os.path.join(gopath, 'src', 'github.com/deciphernow', 'object-drive-server')
     defaultcerts = os.path.join(object_drive_server, 'defaultcerts')
     odrive_database = os.path.join(object_drive_server, 'cmd', 'odrive-database')
     metadatadb_dir = os.path.join(PROJECT_ROOT, 'docker', 'metadatadb')

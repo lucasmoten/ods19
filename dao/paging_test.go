@@ -3,7 +3,7 @@ package dao_test
 import (
 	"testing"
 
-	"decipher.com/object-drive-server/dao"
+	"github.com/deciphernow/object-drive-server/dao"
 )
 
 func TestGetSanitizedPageNumber(t *testing.T) {

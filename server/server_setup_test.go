@@ -14,15 +14,15 @@ import (
 
 	"github.com/karlseguin/ccache"
 
-	"decipher.com/object-drive-server/ciphertext"
-	testclient "decipher.com/object-drive-server/client"
-	"decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/dao"
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/server"
-	"decipher.com/object-drive-server/services/aac"
-	"decipher.com/object-drive-server/services/kafka"
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/ciphertext"
+	testclient "github.com/deciphernow/object-drive-server/client"
+	"github.com/deciphernow/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/dao"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/server"
+	"github.com/deciphernow/object-drive-server/services/aac"
+	"github.com/deciphernow/object-drive-server/services/kafka"
+	"github.com/deciphernow/object-drive-server/util"
 )
 
 var (
@@ -227,9 +227,9 @@ type ClientIdentity struct {
 
 func getClientIdentityFromDefaultCerts(component string, certSet string) (*ClientIdentity, error) {
 	ci := &ClientIdentity{
-		TrustPem: os.ExpandEnv(fmt.Sprintf("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/%s/%s.trust.pem", component, certSet)),
-		CertPem:  os.ExpandEnv(fmt.Sprintf("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/%s/%s.cert.pem", component, certSet)),
-		KeyPem:   os.ExpandEnv(fmt.Sprintf("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/%s/%s.key.pem", component, certSet)),
+		TrustPem: os.ExpandEnv(fmt.Sprintf("$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/%s/%s.trust.pem", component, certSet)),
+		CertPem:  os.ExpandEnv(fmt.Sprintf("$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/%s/%s.cert.pem", component, certSet)),
+		KeyPem:   os.ExpandEnv(fmt.Sprintf("$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/%s/%s.key.pem", component, certSet)),
 	}
 	config, err := newClientTLSConfig(ci)
 	if err != nil {
@@ -244,9 +244,9 @@ func getClientIdentityFromDefaultCerts(component string, certSet string) (*Clien
 func getClientIdentity(i int, name string) (*ClientIdentity, error) {
 
 	// NOTE(cm): We use these paths for old-style test http clients and new client lib Clients.
-	trustPath := os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/client.trust.pem")
-	certPath := os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/" + name + ".cert.pem")
-	keyPath := os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/clients/" + name + ".key.pem")
+	trustPath := os.ExpandEnv("$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/clients/client.trust.pem")
+	certPath := os.ExpandEnv("$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/clients/" + name + ".cert.pem")
+	keyPath := os.ExpandEnv("$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/clients/" + name + ".key.pem")
 
 	ci := &ClientIdentity{
 		TrustPem: trustPath,

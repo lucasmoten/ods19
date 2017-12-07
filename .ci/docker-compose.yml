@@ -70,11 +70,11 @@ services:
     odrive:
         image: "deciphernow/odrive:latest" #built local
         environment:
-          - OD_AAC_CA=/go/src/decipher.com/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
-          - OD_AAC_CERT=/go/src/decipher.com/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
+          - OD_AAC_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
+          - OD_AAC_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
           - OD_AAC_CN=twl-server-generic2
           - OD_AAC_INSECURE_SKIP_VERIFY=false
-          - OD_AAC_KEY=/go/src/decipher.com/object-drive-server/defaultcerts/client-aac/id/client.key.pem
+          - OD_AAC_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/id/client.key.pem
           - OD_AWS_ACCESS_KEY_ID
           - OD_AWS_REGION=us-east-1
           - OD_AWS_S3_BUCKET=decipherers
@@ -86,9 +86,9 @@ services:
           - OD_DB_HOST=metadatadb
           - OD_DB_PORT=3306
           - OD_DB_SCHEMA=metadatadb
-          - OD_DB_CA=/go/src/decipher.com/object-drive-server/defaultcerts/client-mysql/trust/ca.pem
-          - OD_DB_CERT=/go/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
-          - OD_DB_KEY=/go/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
+          - OD_DB_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/trust/ca.pem
+          - OD_DB_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
+          - OD_DB_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
           - OD_DB_CONN_PARAMS=parseTime=true&collation=utf8_unicode_ci&readTimeout=30s
           - OD_EXTERNAL_HOST=proxier
           - OD_EXTERNAL_PORT=8888
@@ -100,9 +100,9 @@ services:
           - OD_EVENT_TOPIC=odrive-event
           - OD_PEER_CN=twl-server-generic2
           - OD_PEER_INSECURE_SKIP_VERIFY=false
-          - OD_SERVER_CA=/go/src/decipher.com/object-drive-server/defaultcerts/server/trust.pem
-          - OD_SERVER_CERT=/go/src/decipher.com/object-drive-server/defaultcerts/server/server.cert.pem
-          - OD_SERVER_KEY=/go/src/decipher.com/object-drive-server/defaultcerts/server/server.key.pem
+          - OD_SERVER_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/trust.pem
+          - OD_SERVER_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.cert.pem
+          - OD_SERVER_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.key.pem
           - OD_SERVER_PORT=4430
           - OD_ZK_AAC=/cte/service/aac/1.1/thrift
           - OD_ZK_ANNOUNCE=/cte/service/object-drive/1.0

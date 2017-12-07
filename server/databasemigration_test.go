@@ -18,14 +18,14 @@ import (
 
 	"time"
 
-	"decipher.com/object-drive-server/ciphertext"
-	"decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/crypto"
-	"decipher.com/object-drive-server/dao"
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/server"
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/ciphertext"
+	"github.com/deciphernow/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/crypto"
+	"github.com/deciphernow/object-drive-server/dao"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/server"
+	"github.com/deciphernow/object-drive-server/util"
 )
 
 // TestDBMigration20161230 leverages the server startup that ensures docker containers for DB and server are up
@@ -48,9 +48,9 @@ func TestDBMigration20161230(t *testing.T) {
 	os.Setenv(config.OD_TOKENJAR_LOCATION, "../defaultcerts/token.jar")
 	appConfiguration := newAppConfigurationWithDefaults()
 	dbConfig := appConfiguration.DatabaseConnection
-	dbConfig.CAPath = os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/trust")
-	dbConfig.ClientCert = os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem")
-	dbConfig.ClientKey = os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-key.pem")
+	dbConfig.CAPath = os.ExpandEnv("$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/trust")
+	dbConfig.ClientCert = os.ExpandEnv("$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem")
+	dbConfig.ClientKey = os.ExpandEnv("$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-key.pem")
 	var err error
 	db, err = dbConfig.GetDatabaseHandle()
 	if err != nil {
@@ -145,12 +145,12 @@ func TestDBSchemaVersionReadOnly(t *testing.T) {
 	}
 
 	t.Logf("Get a reference to database")
-	os.Setenv(config.OD_TOKENJAR_LOCATION, os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/token.jar"))
+	os.Setenv(config.OD_TOKENJAR_LOCATION, os.ExpandEnv("$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/token.jar"))
 	appConfiguration := newAppConfigurationWithDefaults()
 	dbConfig := appConfiguration.DatabaseConnection
-	dbConfig.CAPath = os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/trust")
-	dbConfig.ClientCert = os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem")
-	dbConfig.ClientKey = os.ExpandEnv("$GOPATH/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-key.pem")
+	dbConfig.CAPath = os.ExpandEnv("$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/trust")
+	dbConfig.ClientCert = os.ExpandEnv("$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem")
+	dbConfig.ClientKey = os.ExpandEnv("$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-key.pem")
 	db, err := dbConfig.GetDatabaseHandle()
 	if err != nil {
 		panic(err)
@@ -320,7 +320,7 @@ func setSchemaVersion(t *testing.T, d *dao.DataAccessLayer, version string) {
 
 func newAppConfigurationWithDefaults() config.AppConfiguration {
 	var conf config.AppConfiguration
-	projectRoot := filepath.Join(os.Getenv("GOPATH"), "src", "decipher.com", "object-drive-server")
+	projectRoot := filepath.Join(os.Getenv("GOPATH"), "src", "github.com/deciphernow", "object-drive-server")
 	whitelist := []string{"cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"}
 	opts := config.CommandLineOpts{
 		Ciphers:           []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"},
@@ -361,8 +361,8 @@ func makeMigrateCommand(direction string) *exec.Cmd {
 			args = append(args, "lxc-attach", "-n", "$(docker inspect --format \"{{.Id}}\" docker_metadatadb_1)", "--", "bash", "-c", "/usr/local/bin/odrive-database", "migrate", direction, "--useEmbedded=true")
 			return exec.Command("sudo", args...)
 		} else {
-			args = append(args, "migrate", direction, "--useEmbedded=true", "--conf", "/home/ubuntu/.go_workspace/src/decipher.com/object-drive-server/cmd/odrive-database/db.yml")
-			return exec.Command("/home/ubuntu/.go_workspace/src/decipher.com/object-drive-server/cmd/odrive-database/odrive-database")
+			args = append(args, "migrate", direction, "--useEmbedded=true", "--conf", "/home/ubuntu/.go_workspace/src/github.com/deciphernow/object-drive-server/cmd/odrive-database/db.yml")
+			return exec.Command("/home/ubuntu/.go_workspace/src/github.com/deciphernow/object-drive-server/cmd/odrive-database/odrive-database")
 		}
 	} else {
 		args = append(args, "exec", "-t", "docker_metadatadb_1", "/usr/local/bin/odrive-database", "migrate", direction, "--useEmbedded=true")

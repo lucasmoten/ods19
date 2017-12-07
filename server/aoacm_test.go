@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/util"
 
-	"decipher.com/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/protocol"
 )
 
 func TestAOACMPerformance(t *testing.T) {

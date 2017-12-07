@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/util"
 )
 
 // TestChangeOwner validates that change owner is implemented, ownership changes, and parent set to root

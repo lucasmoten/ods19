@@ -9,10 +9,10 @@ import (
 
 	"encoding/hex"
 
-	"decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/crypto"
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/crypto"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 )

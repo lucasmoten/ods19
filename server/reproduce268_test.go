@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	"decipher.com/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/protocol"
 )
 
 func TestReproduce268(t *testing.T) {

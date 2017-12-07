@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"decipher.com/object-drive-server/dao"
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/server"
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/dao"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/server"
+	"github.com/deciphernow/object-drive-server/util"
 )
 
 func TestDAOGetObjectsSharedToMe(t *testing.T) {

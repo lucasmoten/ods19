@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/util"
 )
 
 func TestUpdateObjectWithClassificationDrop(t *testing.T) {
@@ -199,7 +199,7 @@ func TestListObjectRevisionsWithProperties(t *testing.T) {
 	err = util.FullDecode(updateFolderRes3.Body, &updatedFolder3)
 	if len(updatedFolder3.Properties) != 2 {
 		t.Logf(" Property count is incorrect")
-		t.Fail()
+		t.FailNow()
 	}
 	if updatedFolder3.Properties[0].Name != "property1" || updatedFolder3.Properties[0].Value != "changedvalue" {
 		t.Logf(" Property[0] is not expected (property1=changedvalue). actual(%s=%s)", updatedFolder3.Properties[0].Name, updatedFolder3.Properties[0].Value)
@@ -228,7 +228,7 @@ func TestListObjectRevisionsWithProperties(t *testing.T) {
 		case 1:
 			if len(revision.Properties) != 1 {
 				t.Logf("1st revision has %d properties", len(revision.Properties))
-				t.Fail()
+				t.FailNow()
 			}
 			if revision.Properties[0].Name != "property1" || revision.Properties[0].Value != "originalvalue1" {
 				t.Logf("1st revision property is %s=%s", revision.Properties[0].Name, revision.Properties[0].Value)
@@ -237,7 +237,7 @@ func TestListObjectRevisionsWithProperties(t *testing.T) {
 		case 2:
 			if len(revision.Properties) != 2 {
 				t.Logf("2st revision has %d properties", len(revision.Properties))
-				t.Fail()
+				t.FailNow()
 			}
 			if revision.Properties[0].Name != "property1" || revision.Properties[0].Value != "originalvalue1" {
 				t.Logf("2st revision 1st property is %s=%s", revision.Properties[0].Name, revision.Properties[1].Value)
@@ -250,7 +250,7 @@ func TestListObjectRevisionsWithProperties(t *testing.T) {
 		case 3:
 			if len(revision.Properties) != 2 {
 				t.Logf("3rd revision has %d properties", len(revision.Properties))
-				t.Fail()
+				t.FailNow()
 			}
 			if revision.Properties[0].Name != "property1" || revision.Properties[0].Value != "changedvalue" {
 				t.Logf("3rd revision 1st property is %s=%s", revision.Properties[0].Name, revision.Properties[1].Value)

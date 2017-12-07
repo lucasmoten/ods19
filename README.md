@@ -15,11 +15,11 @@ Note that some vars are not set directly inline, because they contain secrets (e
 
 # Clone this repository
 
-All dependent Go code is relative to the **GOPATH**. Create the the directory **$GOPATH/src/decipher.com**
+All dependent Go code is relative to the **GOPATH**. Create the the directory **$GOPATH/src/github.com/deciphernow**
 and clone this project there. This will allow imports like this to resolve correctly.
 
 ```go
-import "decipher.com/object-drive-server/somepackage"
+import "github.com/deciphernow/object-drive-server/somepackage"
 ```
 
 # Openssl bindings dependency
@@ -119,7 +119,7 @@ Generating current docs (no longer checked in):
 Making an rpm (will build docs as well):
 
 ```
-cd $GOPATH/src/decipher.com/object-drive-server
+cd $GOPATH/src/github.com/deciphernow/object-drive-server
 #make an rpm as version 1.0.9 and call it build number 2600.  It will be in current directory when done
 ./makerpm 1.0.9 2600
 ```

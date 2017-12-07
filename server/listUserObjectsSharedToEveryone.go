@@ -3,9 +3,9 @@ package server
 import (
 	"net/http"
 
-	"decipher.com/object-drive-server/mapping"
-	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/services/audit"
+	"github.com/deciphernow/object-drive-server/mapping"
+	"github.com/deciphernow/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/services/audit"
 	"golang.org/x/net/context"
 )
 

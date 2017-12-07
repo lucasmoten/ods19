@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/protocol"
 )
 
 // MapODPropertyToProperty converts an ODObjectPropertyEx from internal model

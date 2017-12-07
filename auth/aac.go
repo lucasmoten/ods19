@@ -6,12 +6,12 @@ import (
 	"os"
 	"strings"
 
-	"decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/metadata/models/acm"
-	"decipher.com/object-drive-server/services/aac"
-	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/utils"
+	"github.com/deciphernow/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/metadata/models/acm"
+	"github.com/deciphernow/object-drive-server/services/aac"
+	"github.com/deciphernow/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/utils"
 	"github.com/uber-go/zap"
 )
 

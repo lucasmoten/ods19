@@ -9,14 +9,14 @@ import (
 
 	"github.com/karlseguin/ccache"
 
-	"decipher.com/object-drive-server/services/aac"
-	"decipher.com/object-drive-server/services/kafka"
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/services/aac"
+	"github.com/deciphernow/object-drive-server/services/kafka"
+	"github.com/deciphernow/object-drive-server/util"
 
-	"decipher.com/object-drive-server/dao"
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/server"
+	"github.com/deciphernow/object-drive-server/dao"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/server"
 )
 
 func TestListObjectsTrashedJSONResponse(t *testing.T) {

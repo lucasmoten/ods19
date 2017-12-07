@@ -9,9 +9,9 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/metadata/models/acm"
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/metadata/models/acm"
+	"github.com/deciphernow/object-drive-server/util"
 )
 
 // DeleteObject uses the passed in object and makes the appropriate sql calls to

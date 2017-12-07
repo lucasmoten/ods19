@@ -7,10 +7,10 @@ import (
 
 	"golang.org/x/net/context"
 
-	"decipher.com/object-drive-server/events"
-	"decipher.com/object-drive-server/mapping"
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/services/audit"
+	"github.com/deciphernow/object-drive-server/events"
+	"github.com/deciphernow/object-drive-server/mapping"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/services/audit"
 )
 
 func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {

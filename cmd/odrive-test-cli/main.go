@@ -14,10 +14,10 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
-	"decipher.com/object-drive-server/client"
-	"decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/client"
+	"github.com/deciphernow/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/util"
 	"github.com/deciphernow/gov-go/testcerts"
 
 	"github.com/urfave/cli"

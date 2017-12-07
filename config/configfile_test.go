@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"decipher.com/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/config"
 
 	"gopkg.in/yaml.v2"
 )

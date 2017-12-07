@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"testing"
 
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/util"
 
-	"decipher.com/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/protocol"
 )
 
 func TestListGroupObjects(t *testing.T) {

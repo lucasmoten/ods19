@@ -7,8 +7,8 @@ import (
 
 	"time"
 
-	"decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/metadata/models"
 )
 
 // FakeDAO is suitable for tests. Add fields to this struct to hold fake

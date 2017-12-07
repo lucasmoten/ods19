@@ -131,7 +131,7 @@ copy_certs()
 {
   (
     cd opt/cte/config/certificates/jks/ && rm *.cer
-    cp $GOPATH/src/decipher.com/object-drive-server/defaultcerts/server/*.jks .
+    cp $GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/server/*.jks .
   )
 }
 

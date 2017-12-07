@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"decipher.com/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/config"
 )
 
 func TestEnvVars(t *testing.T) {

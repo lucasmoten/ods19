@@ -5,9 +5,9 @@ import (
 	"io"
 	"strings"
 
-	"decipher.com/object-drive-server/amazon"
-	"decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/amazon"
+	"github.com/deciphernow/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/util"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"

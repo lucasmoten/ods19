@@ -5,14 +5,14 @@ import (
 	"errors"
 	"net/http"
 
-	"decipher.com/object-drive-server/auth"
-	"decipher.com/object-drive-server/ciphertext"
-	"decipher.com/object-drive-server/crypto"
-	db "decipher.com/object-drive-server/dao"
-	"decipher.com/object-drive-server/events"
-	"decipher.com/object-drive-server/mapping"
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/services/audit"
+	"github.com/deciphernow/object-drive-server/auth"
+	"github.com/deciphernow/object-drive-server/ciphertext"
+	"github.com/deciphernow/object-drive-server/crypto"
+	db "github.com/deciphernow/object-drive-server/dao"
+	"github.com/deciphernow/object-drive-server/events"
+	"github.com/deciphernow/object-drive-server/mapping"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/services/audit"
 	"golang.org/x/net/context"
 )
 

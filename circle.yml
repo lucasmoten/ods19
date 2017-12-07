@@ -2,7 +2,7 @@ machine:
     java:
         version: openjdk7
     environment:
-        IMPORT_PATH: "decipher.com/object-drive-server"
+        IMPORT_PATH: "github.com/deciphernow/object-drive-server"
         REPO_NAME: "object-drive-server"
         ODRIVE_VERSION: "1.0.12"
         GOPATH: "/home/ubuntu/.go_workspace"

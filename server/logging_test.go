@@ -95,7 +95,7 @@ func (trafficLog *TrafficLog) render() {
 	if len(gopath) == 0 {
 		log.Printf("GOPATH needs to be set for request logging to work")
 	}
-	fqRoot := fmt.Sprintf("%s/src/decipher.com/object-drive-server", gopath)
+	fqRoot := fmt.Sprintf("%s/src/github.com/deciphernow/object-drive-server", gopath)
 	fqName := fmt.Sprintf("%s/server/static/templates/%s.html", fqRoot, trafficLog.Name)
 	var err error
 	trafficLog.File, err = os.Create(fqName)

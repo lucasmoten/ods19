@@ -11,8 +11,8 @@ import (
 
 	"github.com/uber-go/zap"
 
-	"decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/utils"
+	"github.com/deciphernow/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/utils"
 )
 
 var (

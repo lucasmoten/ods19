@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/utils"
+	"github.com/deciphernow/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/utils"
 
-	"decipher.com/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/protocol"
 )
 
 func TestMoveObject(t *testing.T) {

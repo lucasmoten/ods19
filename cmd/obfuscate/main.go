@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"decipher.com/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/config"
 
 	"github.com/deciphernow/commons/gov/encryptor"
 )

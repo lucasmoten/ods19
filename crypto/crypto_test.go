@@ -8,8 +8,8 @@ import (
 	"os"
 	"testing"
 
-	cfg "decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/crypto"
+	cfg "github.com/deciphernow/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/crypto"
 )
 
 func TestBasicCipher(t *testing.T) {

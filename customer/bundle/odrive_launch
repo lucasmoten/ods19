@@ -46,9 +46,9 @@ export OD_AAC_HOST=
 export OD_DB_PASSWORD=dbPassword
 export OD_DB_USERNAME=dbuser
 export OD_DB_HOST=metadatadb
-export OD_DB_CA=/go/src/decipher.com/object-drive-server/defaultcerts/client-mysql/trust/ca.pem
-export OD_DB_CERT=/go/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
-export OD_DB_KEY=/go/src/decipher.com/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
+export OD_DB_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/trust/ca.pem
+export OD_DB_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
+export OD_DB_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
 export OD_DB_PORT=3306
 export OD_DB_SCHEMA=metadatadb
 export OD_DB_CONN_PARAMS='parseTime=true&collation=utf8_unicode_ci&readTimeout=30s'

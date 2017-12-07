@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"decipher.com/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/metadata/models"
 )
 
 func TestDAOCreateObjectType(t *testing.T) {

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/events"
+	"github.com/deciphernow/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/events"
 
 	"github.com/Shopify/sarama"
 	"github.com/samuel/go-zookeeper/zk"

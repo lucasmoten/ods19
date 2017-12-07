@@ -15,10 +15,10 @@ import (
 
 	"strings"
 
-	"decipher.com/object-drive-server/client"
-	"decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/events"
-	"decipher.com/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/client"
+	"github.com/deciphernow/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/events"
+	"github.com/deciphernow/object-drive-server/protocol"
 )
 
 func getEnvWithDefault(name string, def string) string {
@@ -50,9 +50,9 @@ var testDir string
 
 // conf contains configuration necessary for the client to connect to a running odrive instance.
 var conf = client.Config{
-	Cert:       os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/test_0.cert.pem",
-	Trust:      os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/server/server.trust.pem",
-	Key:        os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/clients/test_0.key.pem",
+	Cert:       os.Getenv("GOPATH") + "/src/github.com/deciphernow/object-drive-server/defaultcerts/clients/test_0.cert.pem",
+	Trust:      os.Getenv("GOPATH") + "/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.trust.pem",
+	Key:        os.Getenv("GOPATH") + "/src/github.com/deciphernow/object-drive-server/defaultcerts/clients/test_0.key.pem",
 	SkipVerify: false,
 	ServerName: getEnvWithDefault("OD_PEER_CN", "twl-server-generic2"), // If you set OD_PEER_CN, then this matches it
 	Remote:     mountPoint,
@@ -241,9 +241,9 @@ func TestMoveObject(t *testing.T) {
 func TestImpersonation(t *testing.T) {
 	t.Log("create a new config with impersonation")
 	cnf := conf
-	cnf.Cert = os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/server/server.cert.pem"
-	cnf.Trust = os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/server/server.trust.pem"
-	cnf.Key = os.Getenv("GOPATH") + "/src/decipher.com/object-drive-server/defaultcerts/server/server.key.pem"
+	cnf.Cert = os.Getenv("GOPATH") + "/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.cert.pem"
+	cnf.Trust = os.Getenv("GOPATH") + "/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.trust.pem"
+	cnf.Key = os.Getenv("GOPATH") + "/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.key.pem"
 	cnf.Impersonation = "cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
 	c, err := client.NewClient(cnf)
 	if err != nil {

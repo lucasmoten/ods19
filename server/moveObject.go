@@ -10,14 +10,14 @@ import (
 
 	"golang.org/x/net/context"
 
-	"decipher.com/object-drive-server/auth"
-	"decipher.com/object-drive-server/dao"
-	"decipher.com/object-drive-server/events"
-	"decipher.com/object-drive-server/mapping"
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/services/audit"
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/auth"
+	"github.com/deciphernow/object-drive-server/dao"
+	"github.com/deciphernow/object-drive-server/events"
+	"github.com/deciphernow/object-drive-server/mapping"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/services/audit"
+	"github.com/deciphernow/object-drive-server/util"
 )
 
 func moveObjectRaw(dao dao.DAO, ctx context.Context, caller Caller, resourceStrings []string, aacAuth *auth.AACAuth, requestObject models.ODObject, dbObject *models.ODObject) (int, error, string) {

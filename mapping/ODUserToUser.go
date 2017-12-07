@@ -1,8 +1,8 @@
 package mapping
 
 import (
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/protocol"
 )
 
 // MapODUserToUser ...

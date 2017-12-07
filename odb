@@ -17,7 +17,7 @@ import textwrap
 from contextlib import closing
 from glob import glob
 
-PROJECT_ROOT = os.path.join(os.getenv("GOPATH"), "src", "decipher.com", "object-drive-server")
+PROJECT_ROOT = os.path.join(os.getenv("GOPATH"), "src", "github.com/deciphernow", "object-drive-server")
 
 """
 Map of repo names to their valid git remotes, and the branch to checkout.

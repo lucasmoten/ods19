@@ -5,9 +5,9 @@ import (
 	"log"
 	"strings"
 
-	"decipher.com/object-drive-server/ssl"
+	"github.com/deciphernow/object-drive-server/ssl"
 
-	"decipher.com/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/config"
 	"github.com/samuel/go-thrift/thrift"
 )
 
