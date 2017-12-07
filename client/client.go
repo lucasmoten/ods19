@@ -16,8 +16,8 @@ import (
 	"net/textproto"
 	"strings"
 
+	"github.com/deciphernow/commons/tlsutil"
 	"github.com/deciphernow/object-drive-server/protocol"
-	"github.com/deciphernow/gm-fabric-go/tlsutil2"
 )
 
 // ObjectDrive defines operations for our client (and eventually our server).
@@ -84,7 +84,7 @@ func NewClient(conf Config) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("while parsing public certificate from cert and key file %s, %s: %v", conf.Cert, conf.Key, err)
 	}
-	mydn := tlsutil2.GetDistinguishedName(pub)
+	mydn := tlsutil.GetDistinguishedName(pub)
 
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify:       conf.SkipVerify,
