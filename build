@@ -9,7 +9,7 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 log = logging.getLogger('BUILD')
 
 GOPATH = os.getenv('GOPATH')
-PROJECT_ROOT = os.path.join(GOPATH, 'src', 'github.com/deciphernow', 'object-drive-server')
+PROJECT_ROOT = os.path.join(GOPATH, 'src', 'github.com', 'deciphernow', 'object-drive-server')
 
 
 def compile_docs():
