@@ -18,8 +18,8 @@ import (
 	"os"
 	"time"
 
-	"decipher.com/object-drive-server/client"
-	"decipher.com/object-drive-server/events"
+	"github.com/deciphernow/object-drive-server/client"
+	"github.com/deciphernow/object-drive-server/events"
 )
 
 func FetchStream(c *client.OdriveResponder, odc *client.Client, gem *events.GEM) error {

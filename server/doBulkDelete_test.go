@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"decipher.com/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/protocol"
 )
 
 func testBulkDeleteCall(t *testing.T, clientid int, inObjects []protocol.ObjectVersioned) {

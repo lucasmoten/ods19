@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"decipher.com/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/metadata/models"
 
 	"github.com/uber-go/zap"
 )

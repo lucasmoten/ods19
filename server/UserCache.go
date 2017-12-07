@@ -12,10 +12,10 @@ import (
 
 	"github.com/uber-go/zap"
 
-	"decipher.com/object-drive-server/auth"
-	"decipher.com/object-drive-server/dao"
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/metadata/models/acm"
+	"github.com/deciphernow/object-drive-server/auth"
+	"github.com/deciphernow/object-drive-server/dao"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/metadata/models/acm"
 	"golang.org/x/net/context"
 )
 

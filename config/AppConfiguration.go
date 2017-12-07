@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/util"
 
 	"github.com/deciphernow/commons/gov/encryptor"
 	"github.com/go-sql-driver/mysql"

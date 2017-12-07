@@ -9,7 +9,7 @@ import errno
 
 from glob import glob
 
-PROJECT_ROOT = os.path.join(os.getenv("GOPATH"), "src", "decipher.com", "object-drive-server")
+PROJECT_ROOT = os.path.join(os.getenv("GOPATH"), "src", "github.com", "deciphernow", "object-drive-server")
 source_file = os.path.join(PROJECT_ROOT, "odb")
 default_certs = os.path.join(PROJECT_ROOT, "defaultcerts", "server")
 #driver = imp.load_source('module.name', source_file)

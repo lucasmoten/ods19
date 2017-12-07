@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/protocol"
 )
 
 // protocolCaller converts the server.Caller type to a protocol.Caller type. Recommending

@@ -3,7 +3,7 @@ package models_test
 import (
 	"testing"
 
-	"decipher.com/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/metadata/models"
 )
 
 func TestAACFlatten(t *testing.T) {

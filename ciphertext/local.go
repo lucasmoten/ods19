@@ -4,8 +4,8 @@ import (
 	"io"
 	"os"
 
-	"decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/util"
 
 	"github.com/uber-go/zap"
 )

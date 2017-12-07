@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"decipher.com/object-drive-server/services/zookeeper"
+	"github.com/deciphernow/object-drive-server/services/zookeeper"
 )
 
 func TestCreateServiceAnnouncement(t *testing.T) {

@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"decipher.com/object-drive-server/events"
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/services/audit"
+	"github.com/deciphernow/object-drive-server/events"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/services/audit"
 	"github.com/deciphernow/gov-go/audit/acm_thrift"
 	"github.com/deciphernow/gov-go/audit/components_thrift"
 	"github.com/deciphernow/gov-go/audit/events_thrift"

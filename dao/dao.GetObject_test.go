@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/server"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/server"
 )
 
 func TestDAOGetObject(t *testing.T) {

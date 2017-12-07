@@ -7,10 +7,10 @@ import (
 
 	metrics "github.com/rcrowley/go-metrics"
 
-	"decipher.com/object-drive-server/services/audit"
+	"github.com/deciphernow/object-drive-server/services/audit"
 	"golang.org/x/net/context"
 
-	"decipher.com/object-drive-server/autoscale"
+	"github.com/deciphernow/object-drive-server/autoscale"
 )
 
 func (h AppServer) getStats(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {

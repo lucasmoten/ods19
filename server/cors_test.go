@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/util"
 )
 
 func TestCors(t *testing.T) {

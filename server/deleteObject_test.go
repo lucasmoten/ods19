@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"testing"
 
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/util"
 
-	"decipher.com/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/protocol"
 )
 
 func TestDeleteObject(t *testing.T) {

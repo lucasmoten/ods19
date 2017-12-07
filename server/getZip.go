@@ -15,15 +15,15 @@ import (
 
 	"encoding/hex"
 
-	"decipher.com/object-drive-server/auth"
-	"decipher.com/object-drive-server/ciphertext"
-	"decipher.com/object-drive-server/crypto"
-	"decipher.com/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/auth"
+	"github.com/deciphernow/object-drive-server/ciphertext"
+	"github.com/deciphernow/object-drive-server/crypto"
+	"github.com/deciphernow/object-drive-server/protocol"
 
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/services/aac"
-	"decipher.com/object-drive-server/services/audit"
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/services/aac"
+	"github.com/deciphernow/object-drive-server/services/audit"
+	"github.com/deciphernow/object-drive-server/util"
 	"golang.org/x/net/context"
 )
 

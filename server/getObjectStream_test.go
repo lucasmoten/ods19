@@ -7,7 +7,7 @@ import (
 	"net/http/httputil"
 	"testing"
 
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/util"
 )
 
 func TestEtag(t *testing.T) {

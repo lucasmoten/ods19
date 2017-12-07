@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"decipher.com/object-drive-server/utils"
+	"github.com/deciphernow/object-drive-server/utils"
 )
 
 func TestThisTestPasses(t *testing.T) {

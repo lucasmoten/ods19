@@ -1,7 +1,7 @@
 package kafka
 
 import (
-	"decipher.com/object-drive-server/events"
+	"github.com/deciphernow/object-drive-server/events"
 	"github.com/uber-go/zap"
 )
 

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/util"
 )
 
 // PagingRequest supports a request constrained to a given page number and size

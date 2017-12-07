@@ -1,6 +1,6 @@
 #!/bin/bash
 
 EC2=centos@52.23.153.111
-rm -rf $GOPATH/src/decipher.com/object-drive-server/cmd/metadataconnector/cache
+rm -rf $GOPATH/src/github.com/deciphernow/object-drive-server/cmd/metadataconnector/cache
 rsync -azP $GOPATH/src/ $EC2:gocode/src
 rsync -azP $OD_ROOT/ $EC2:javacode

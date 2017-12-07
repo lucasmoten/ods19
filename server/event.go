@@ -6,10 +6,10 @@ import (
 
 	"github.com/deciphernow/gov-go/audit/events_thrift"
 
-	"decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/events"
-	"decipher.com/object-drive-server/services/audit"
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/events"
+	"github.com/deciphernow/object-drive-server/services/audit"
+	"github.com/deciphernow/object-drive-server/util"
 )
 
 // globalEventFromRequest extracts data from the request and sets up a

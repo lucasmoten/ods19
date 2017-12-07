@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	//"decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/metadata/models/acm"
-	aac "decipher.com/object-drive-server/services/aac"
-	"decipher.com/object-drive-server/ssl"
-	"decipher.com/object-drive-server/util"
+	//"github.com/deciphernow/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/metadata/models/acm"
+	aac "github.com/deciphernow/object-drive-server/services/aac"
+	"github.com/deciphernow/object-drive-server/ssl"
+	"github.com/deciphernow/object-drive-server/util"
 	t2 "github.com/samuel/go-thrift/thrift"
 )
 

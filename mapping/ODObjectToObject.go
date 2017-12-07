@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"log"
 
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/utils"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/utils"
 )
 
 // MapODObjectToObject converts an internal ODObject model object into an API

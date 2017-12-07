@@ -5,8 +5,8 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/util"
 )
 
 // IsParentIDADescendent accepts an object identifier and a parent that would

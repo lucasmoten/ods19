@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	"decipher.com/object-drive-server/mapping"
-	"decipher.com/object-drive-server/services/audit"
+	"github.com/deciphernow/object-drive-server/mapping"
+	"github.com/deciphernow/object-drive-server/services/audit"
 
 	"golang.org/x/net/context"
 )

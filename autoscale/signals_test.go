@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"decipher.com/object-drive-server/autoscale"
-	cfg "decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/autoscale"
+	cfg "github.com/deciphernow/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/config"
 	"github.com/aws/aws-sdk-go/aws"
 	asg "github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/sqs"

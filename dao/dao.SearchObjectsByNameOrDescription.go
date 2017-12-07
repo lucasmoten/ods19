@@ -10,8 +10,8 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/util"
 )
 
 // SearchObjectsByNameOrDescription retrieves a list of Objects, their

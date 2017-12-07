@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/util"
 
 	"github.com/uber-go/zap"
 )

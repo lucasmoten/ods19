@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/utils"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/utils"
 	"github.com/jmoiron/sqlx"
 	"github.com/uber-go/zap"
 )

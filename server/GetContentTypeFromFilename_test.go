@@ -4,7 +4,7 @@ import (
 	"mime"
 	"testing"
 
-	"decipher.com/object-drive-server/server"
+	"github.com/deciphernow/object-drive-server/server"
 )
 
 func TestGetContentTypeFromFilename(t *testing.T) {

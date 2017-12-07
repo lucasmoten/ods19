@@ -12,8 +12,8 @@ import (
 
 	"golang.org/x/net/context"
 
-	"decipher.com/object-drive-server/services/audit"
-	"decipher.com/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/services/audit"
+	"github.com/deciphernow/object-drive-server/util"
 )
 
 var (

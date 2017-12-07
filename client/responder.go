@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"decipher.com/object-drive-server/events"
+	"github.com/deciphernow/object-drive-server/events"
 	"github.com/Shopify/sarama"
 	"github.com/wvanbergen/kafka/consumergroup"
 )

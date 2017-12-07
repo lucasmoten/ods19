@@ -3,9 +3,9 @@ package server
 import (
 	"strings"
 
-	"decipher.com/object-drive-server/auth"
-	"decipher.com/object-drive-server/ciphertext"
-	"decipher.com/object-drive-server/metadata/models/acm"
+	"github.com/deciphernow/object-drive-server/auth"
+	"github.com/deciphernow/object-drive-server/ciphertext"
+	"github.com/deciphernow/object-drive-server/metadata/models/acm"
 	"golang.org/x/net/context"
 )
 

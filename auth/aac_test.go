@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"decipher.com/object-drive-server/auth"
-	"decipher.com/object-drive-server/config"
-	"decipher.com/object-drive-server/metadata/models"
-	"decipher.com/object-drive-server/services/aac"
+	"github.com/deciphernow/object-drive-server/auth"
+	"github.com/deciphernow/object-drive-server/config"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/services/aac"
 )
 
 func newAACAuth(t *testing.T) auth.AACAuth {

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"decipher.com/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/metadata/models"
 )
 
 func TestDAOGetObjectType(t *testing.T) {

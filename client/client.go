@@ -16,7 +16,7 @@ import (
 	"net/textproto"
 	"strings"
 
-	"decipher.com/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/protocol"
 	"github.com/deciphernow/gm-fabric-go/tlsutil2"
 )
 

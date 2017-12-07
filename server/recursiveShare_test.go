@@ -9,9 +9,9 @@ import (
 
 	"github.com/tidwall/gjson"
 
-	"decipher.com/object-drive-server/protocol"
-	"decipher.com/object-drive-server/util"
-	"decipher.com/object-drive-server/utils"
+	"github.com/deciphernow/object-drive-server/protocol"
+	"github.com/deciphernow/object-drive-server/util"
+	"github.com/deciphernow/object-drive-server/utils"
 )
 
 func TestUpdateObjectShareRecursive(t *testing.T) {

@@ -1,7 +1,7 @@
 package protocol
 
 import (
-	"decipher.com/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/metadata/models"
 )
 
 // Caller provides the distinguished names obtained from specific request

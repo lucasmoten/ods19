@@ -7,7 +7,7 @@ import subprocess
 from glob import glob
 
 
-PROJECT_ROOT = os.path.join(os.getenv("GOPATH"), "src", "decipher.com", "object-drive-server")
+PROJECT_ROOT = os.path.join(os.getenv("GOPATH"), "src", "github.com", "deciphernow", "object-drive-server")
 
 
 def run_dockerfile(dockerfile, image, tag="latest"):
