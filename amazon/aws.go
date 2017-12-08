@@ -1,11 +1,11 @@
 package amazon
 
 import (
-	"github.com/deciphernow/object-drive-server/config"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/uber-go/zap"
+	"github.com/deciphernow/object-drive-server/config"
+	"go.uber.org/zap"
 )
 
 // NewAWSSession instantiates a connection to AWS.

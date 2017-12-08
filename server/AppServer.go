@@ -17,7 +17,7 @@ import (
 
 	"github.com/karlseguin/ccache"
 	metrics "github.com/rcrowley/go-metrics"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 
 	"github.com/deciphernow/object-drive-server/auth"
 	"github.com/deciphernow/object-drive-server/autoscale"

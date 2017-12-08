@@ -10,7 +10,7 @@ import (
 
 	"github.com/Shopify/sarama"
 	"github.com/samuel/go-zookeeper/zk"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 // AsyncProducer is a events.Publisher implementation for Kafka queues.

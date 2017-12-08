@@ -12,7 +12,7 @@ import (
 	"github.com/deciphernow/object-drive-server/metadata/models/acm"
 	"github.com/deciphernow/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 // GetUserAOCacheByDistinguishedName looks up the user authorization object cache state using the

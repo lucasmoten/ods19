@@ -1,6 +1,6 @@
 package util
 
-import "github.com/uber-go/zap"
+import "go.uber.org/zap"
 
 //
 // Loggable gives us simple errors that are comparable by message - keep named args separate

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 	"golang.org/x/net/context"
 
 	"github.com/deciphernow/object-drive-server/metadata/models"

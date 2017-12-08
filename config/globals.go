@@ -10,7 +10,7 @@ import (
 
 	"github.com/deciphernow/object-drive-server/util"
 
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 var (

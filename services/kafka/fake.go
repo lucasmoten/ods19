@@ -2,7 +2,7 @@ package kafka
 
 import (
 	"github.com/deciphernow/object-drive-server/events"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 // FakeAsyncProducer is a null implementation of events.Publisher.

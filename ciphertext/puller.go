@@ -5,7 +5,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 const (

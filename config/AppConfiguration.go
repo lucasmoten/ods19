@@ -16,7 +16,7 @@ import (
 	"github.com/deciphernow/commons/gov/encryptor"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 	"github.com/urfave/cli"
 )
 

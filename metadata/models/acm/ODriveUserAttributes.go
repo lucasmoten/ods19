@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 // ODriveUserAttributes is a structure to hold the dias groups returned from user attributes

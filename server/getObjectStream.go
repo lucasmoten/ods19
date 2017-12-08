@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 
 	"golang.org/x/net/context"
 

@@ -2,7 +2,7 @@ package dao
 
 import (
 	"github.com/jmoiron/sqlx"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 
 	"github.com/deciphernow/object-drive-server/metadata/models"
 	"github.com/deciphernow/object-drive-server/util"

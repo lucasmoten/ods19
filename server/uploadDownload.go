@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 
 	"github.com/deciphernow/object-drive-server/ciphertext"
 	"github.com/deciphernow/object-drive-server/crypto"

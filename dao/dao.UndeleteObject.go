@@ -7,7 +7,7 @@ import (
 	"github.com/deciphernow/object-drive-server/metadata/models"
 	"github.com/deciphernow/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 // UndeleteObject undeletes an object at the database level

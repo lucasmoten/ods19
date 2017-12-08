@@ -7,7 +7,7 @@ import (
 
 	"github.com/deciphernow/object-drive-server/metadata/models"
 
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 const (

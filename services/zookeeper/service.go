@@ -10,7 +10,7 @@ import (
 
 	globalconfig "github.com/deciphernow/object-drive-server/config"
 	"github.com/samuel/go-zookeeper/zk"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 var (

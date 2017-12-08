@@ -3,7 +3,7 @@ package dao
 import (
 	"errors"
 
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 
 	"time"
 

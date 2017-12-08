@@ -9,7 +9,7 @@ import (
 
 	"github.com/Shopify/sarama"
 	"github.com/samuel/go-zookeeper/zk"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 	"github.com/urfave/cli"
 
 	"github.com/deciphernow/object-drive-server/amazon"

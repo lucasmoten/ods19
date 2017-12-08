@@ -13,7 +13,7 @@ import (
 	"github.com/deciphernow/object-drive-server/metadata/models"
 	"github.com/deciphernow/object-drive-server/utils"
 	"github.com/jmoiron/sqlx"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 var acmFieldsRegex = regexp.MustCompile(`(^f_.*|^dissem_countries$)`)
