@@ -1,6 +1,6 @@
 package server
 
-import "github.com/uber-go/zap"
+import "go.uber.org/zap"
 
 // AppError encapsulates an error with a desired http status code so that the server
 // can issue the error code to the client.

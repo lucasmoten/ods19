@@ -4,7 +4,7 @@ import (
 	"github.com/deciphernow/object-drive-server/metadata/models"
 	"github.com/deciphernow/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 // GetRootObjectsWithProperties retrieves a list of Objects and their Properties

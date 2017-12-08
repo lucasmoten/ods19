@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 
 	"github.com/deciphernow/object-drive-server/auth"
 	"github.com/deciphernow/object-drive-server/ciphertext"

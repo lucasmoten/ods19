@@ -15,7 +15,7 @@ import (
 	"github.com/deciphernow/object-drive-server/services/kafka"
 	"github.com/deciphernow/object-drive-server/services/zookeeper"
 	"github.com/samuel/go-zookeeper/zk"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 // Globals

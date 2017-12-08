@@ -7,7 +7,7 @@ import (
 	"github.com/deciphernow/object-drive-server/config"
 	"github.com/deciphernow/object-drive-server/util"
 
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 // PermanentStorageLocalData is where we write back permanently

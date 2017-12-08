@@ -8,7 +8,7 @@ import (
 	"github.com/deciphernow/object-drive-server/config"
 	"github.com/deciphernow/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 // SchemaVersion marks compatibility with previously created databases.

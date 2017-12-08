@@ -12,7 +12,7 @@ import (
 	"github.com/deciphernow/object-drive-server/services/aac"
 	"github.com/deciphernow/object-drive-server/util"
 	"github.com/deciphernow/object-drive-server/utils"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 var (

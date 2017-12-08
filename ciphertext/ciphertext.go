@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 
 	"github.com/deciphernow/object-drive-server/config"
 

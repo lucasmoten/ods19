@@ -13,7 +13,7 @@ import (
 	"log"
 	"math/big"
 
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 // ByteRange for handling video

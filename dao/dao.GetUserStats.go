@@ -6,7 +6,7 @@ import (
 	"github.com/deciphernow/object-drive-server/metadata/models"
 	"github.com/deciphernow/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 // GetUserStats returns metrics of object counts and file space used for objects and revisions owned by a user

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 
 	"github.com/deciphernow/object-drive-server/config"
 	"github.com/deciphernow/object-drive-server/utils"

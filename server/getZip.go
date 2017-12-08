@@ -11,7 +11,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 
 	"encoding/hex"
 

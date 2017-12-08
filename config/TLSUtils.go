@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 // buildServerTLSConfig prepares a tls.Config object for this application to

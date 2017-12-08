@@ -8,7 +8,7 @@ import (
 
 	"github.com/deciphernow/object-drive-server/services/audit"
 	"github.com/deciphernow/object-drive-server/util"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 
 	"golang.org/x/net/context"
 )

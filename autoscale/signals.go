@@ -15,7 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	asg "github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 const (

@@ -465,12 +465,6 @@
 			"revisionTime": "2016-07-18T20:38:59Z"
 		},
 		{
-			"checksumSHA1": "j+wWJzvcoh8tITqZSTW/9iXUHBg=",
-			"path": "github.com/uber-go/zap",
-			"revision": "c4939d1166b2220bb45338e21506623b4bbdec50",
-			"revisionTime": "2016-09-29T16:02:16-07:00"
-		},
-		{
 			"checksumSHA1": "l0h7xesS0Qe3qGWcMf+MnEQnja8=",
 			"path": "github.com/urfave/cli",
 			"revision": "595ba45e735c1e9c1f9ddc9e2ef21997fca893f2",
@@ -493,6 +487,12 @@
 			"path": "github.com/wvanbergen/kazoo-go",
 			"revision": "494a179ad10a1a52daa7536a82cc215bc728c399",
 			"revisionTime": "2017-11-10T11:12:02Z"
+		},
+		{
+			"checksumSHA1": "8C6fpdoH5bcV3PjG+XvsReyBbeE=",
+			"path": "go.uber.org/zap",
+			"revision": "c4939d1166b2220bb45338e21506623b4bbdec50",
+			"revisionTime": "2016-09-29T16:02:16-07:00"
 		},
 		{
 			"checksumSHA1": "5ARrN3Zq+E9zazFb/N+b08Serys=",

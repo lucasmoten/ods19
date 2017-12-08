@@ -10,7 +10,7 @@ import (
 	"github.com/deciphernow/object-drive-server/metadata/models/acm"
 	"github.com/deciphernow/object-drive-server/protocol"
 	"github.com/deciphernow/object-drive-server/utils"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 // AACAuthOff is an Authorization implementation modeled on AAC in an offline / not-ready state.

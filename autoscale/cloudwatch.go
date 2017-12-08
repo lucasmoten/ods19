@@ -17,7 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	linuxproc "github.com/c9s/goprocinfo/linux"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 var (
