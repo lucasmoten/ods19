@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var (
@@ -16,7 +17,7 @@ var (
 )
 
 // NewAppError constructs an application error
-func NewAppError(code int, err error, msg string, fields ...zap.Field) *AppError {
+func NewAppError(code int, err error, msg string, fields ...zapcore.Field) *AppError {
 	_, file, line, _ := runtime.Caller(1)
 	return &AppError{
 		Code:   code,
@@ -28,23 +29,23 @@ func NewAppError(code int, err error, msg string, fields ...zap.Field) *AppError
 	}
 }
 
-func countOKResponse(logger zap.Logger) {
+func countOKResponse(logger *zap.Logger) {
 	sendErrorResponseRaw(logger, nil, nil)
 }
 
 // sendError lets us send the new AppError type before getting rid of server.AppError
-func sendError(logger zap.Logger, w *http.ResponseWriter, err error, msg string, fields ...zap.Field) {
+func sendError(logger *zap.Logger, w *http.ResponseWriter, err error, msg string, fields ...zapcore.Field) {
 	//If we are given no diagnostic information, then assume that 500 is the code
 	_, file, line, _ := runtime.Caller(1)
 	sendErrorResponseRaw(logger, w, &AppError{500, err, msg, file, line, fields})
 }
 
-func sendErrorResponse(logger zap.Logger, w *http.ResponseWriter, code int, err error, msg string, fields ...zap.Field) {
+func sendErrorResponse(logger *zap.Logger, w *http.ResponseWriter, code int, err error, msg string, fields ...zapcore.Field) {
 	_, file, line, _ := runtime.Caller(1)
 	sendErrorResponseRaw(logger, w, &AppError{code, err, msg, file, line, fields})
 }
 
-func sendAppErrorResponse(logger zap.Logger, w *http.ResponseWriter, herr *AppError) {
+func sendAppErrorResponse(logger *zap.Logger, w *http.ResponseWriter, herr *AppError) {
 	sendErrorResponseRaw(logger, w, herr)
 }
 
@@ -60,14 +61,14 @@ func alreadySent(code int) bool {
 }
 
 // sendErrorResponse is the publicly called function for sending error response from top level handlers
-func sendErrorResponseRaw(logger zap.Logger, w *http.ResponseWriter, herr *AppError) {
+func sendErrorResponseRaw(logger *zap.Logger, w *http.ResponseWriter, herr *AppError) {
 	if herr != nil {
 		var herrString string
 		if herr.Error != nil {
 			herrString = herr.Error.Error()
 		}
 		//Pre-append our fields to the field list
-		var fields []zap.Field
+		var fields []zapcore.Field
 		fields = append(fields, zap.Int("status", herr.Code))
 		fields = append(fields, zap.String("message", herr.Msg))
 		fields = append(fields, zap.String("err", herrString))
@@ -77,12 +78,12 @@ func sendErrorResponseRaw(logger zap.Logger, w *http.ResponseWriter, herr *AppEr
 			fields = append(fields, v)
 		}
 		if herr.Code < 400 {
-			logger.Info("transaction end", fields...)
+			logger.Info("transaction finish", fields...)
 		} else {
-			if herr.Code < 500 {
-				logger.Warn("transaction end", fields...)
+			if herr.Code != 500 {
+				logger.Info("transaction finish", fields...)
 			} else {
-				logger.Error("transaction end", fields...)
+				logger.Error("transaction finish", fields...)
 			}
 		}
 		mutex.Lock()
@@ -92,7 +93,7 @@ func sendErrorResponseRaw(logger zap.Logger, w *http.ResponseWriter, herr *AppEr
 			http.Error(*w, herr.Msg, herr.Code)
 		}
 	} else {
-		logger.Info("transaction end",
+		logger.Info("transaction finish",
 			zap.Int("status", 200),
 		)
 		//It's implicitly a 200 - or some other OK where we sent back a nil error

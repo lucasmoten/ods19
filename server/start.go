@@ -38,12 +38,12 @@ func Start(conf config.AppConfiguration) error {
 
 	d, dbID, err := dao.NewDataAccessLayer(conf.DatabaseConnection, dao.WithLogger(logger))
 	if err != nil {
-		logger.Error("Error configuring DAO.  Check envrionment variable settings for OD_DB_*", zap.String("err", err.Error()))
+		logger.Error("error configuring dao.  check envrionment variable settings for OD_DB_*", zap.String("err", err.Error()))
 		return err
 	}
 	if d.ReadOnly {
 		if d.SchemaVersion != dao.SchemaVersion {
-			logger.Warn(fmt.Sprintf("Database schema is at version '%s' and DAO expects version '%s'. Operating in read only mode until the database is upgraded.", d.SchemaVersion, dao.SchemaVersion))
+			logger.Warn(fmt.Sprintf("database schema is at version '%s' and dao expects version '%s'. operating in read only mode until the database is upgraded.", d.SchemaVersion, dao.SchemaVersion))
 		}
 	}
 	app.RootDAO = d
@@ -60,7 +60,7 @@ func Start(conf config.AppConfiguration) error {
 
 	err = connectWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, conf.ZK.Timeout)
 	if err != nil {
-		logger.Fatal("Could not register with Zookeeper")
+		logger.Fatal("could not register with zookeeper")
 	}
 
 	tlsConfig := conf.ServerSettings.GetTLSConfig()
@@ -99,7 +99,7 @@ func Start(conf config.AppConfiguration) error {
 	// Announce our new service in ZK.
 	err = zookeeper.ServiceAnnouncement(app.DefaultZK, "https", "ALIVE", conf.ZK.IP, conf.ZK.Port)
 	if err != nil {
-		logger.Fatal("Could not announce self in zk")
+		logger.Fatal("could not announce self in zk")
 	} else {
 		logger.Info(
 			"registering odrive AppServer with ZK",
@@ -116,7 +116,7 @@ func Start(conf config.AppConfiguration) error {
 
 // configureEventQueue will set a directly-configured Kafka queue on AppServer, or discover one from ZK.
 func configureEventQueue(app *AppServer, conf config.EventQueueConfiguration, zkTimeout int64) {
-	logger.Info("Kafka Config", zap.Object("conf", conf))
+	logger.Info("kafka Config", zap.Any("conf", conf))
 
 	if len(conf.KafkaAddrs) == 0 && len(conf.ZKAddrs) == 0 {
 		// no configuration still provides null implementation
@@ -131,7 +131,7 @@ func configureEventQueue(app *AppServer, conf config.EventQueueConfiguration, zk
 		var err error
 		app.EventQueue, err = kafka.NewAsyncProducer(conf.KafkaAddrs, kafka.WithLogger(logger), kafka.WithPublishActions(conf.PublishSuccessActions, conf.PublishFailureActions), kafka.WithTopic(conf.Topic))
 		if err != nil {
-			logger.Fatal("cannot direct connect to Kakfa queue", zap.Object("err", err), zap.String("help", help))
+			logger.Fatal("cannot direct connect to Kakfa queue", zap.String("err", err.Error()), zap.String("help", help))
 		}
 		return
 	}
@@ -140,7 +140,7 @@ func configureEventQueue(app *AppServer, conf config.EventQueueConfiguration, zk
 		logger.Info("attempting to discover Kafka queue from zookeeper")
 		conn, _, err := zk.Connect(conf.ZKAddrs, time.Duration(zkTimeout)*time.Second)
 		if err != nil {
-			logger.Fatal("err from zk.Connect", zap.Object("err", err), zap.String("help", help))
+			logger.Fatal("err from zk.Connect", zap.String("err", err.Error()), zap.String("help", help))
 		}
 		setter := func(ap *kafka.AsyncProducer) {
 			// Don't just reset the conn because a zk event told you to, do an explicit check.
@@ -168,7 +168,7 @@ func configureEventQueue(app *AppServer, conf config.EventQueueConfiguration, zk
 			ap, err = kafka.DiscoverKafka(conn, "/brokers/ids", setter, kafka.WithLogger(logger), kafka.WithPublishActions(conf.PublishSuccessActions, conf.PublishFailureActions), kafka.WithTopic(conf.Topic))
 		}
 		if err != nil {
-			logger.Fatal("error discovering kafka from zk", zap.Object("err", err), zap.String("help", help))
+			logger.Fatal("error discovering kafka from zk", zap.String("err", err.Error()), zap.String("help", help))
 		}
 		logger.Info("kafka discovery successful")
 		app.EventQueue = ap
@@ -217,7 +217,7 @@ func aacKeepalive(app *AppServer, conf config.AppConfiguration) {
 				logger.Debug("aacKeepalive: checking health")
 				_, err := app.AAC.ValidateAcm(ValidACMUnclassified)
 				if err != nil {
-					logger.Error("aacKeepalive health check failure", zap.Object("err", err))
+					logger.Error("aacKeepalive health check failure", zap.String("err", err.Error()))
 					aacReconnect(app, conf)
 				} else {
 					logger.Debug("aacKeepalive health check success")
@@ -244,7 +244,7 @@ func aacReconnect(app *AppServer, conf config.AppConfiguration) {
 	}
 	zkState, err := zookeeper.NewZKState(addrs, 10)
 	if err != nil {
-		logger.Error("aacReconnect: could not connect to zk addrs", zap.Object("addrs", addrs))
+		logger.Error("aacReconnect: could not connect to zk addrs", zap.Any("addrs", addrs))
 		return
 	}
 
@@ -279,13 +279,13 @@ func aacReconnect(app *AppServer, conf config.AppConfiguration) {
 		key := conf.AACSettings.ClientKey
 		client, err := aac.GetAACClient(host, port, trust, cert, key)
 		if err != nil {
-			logger.Error("aacReconnect: error creating aac client with announce data", zap.Object("announcData", info))
+			logger.Error("aacReconnect: error creating aac client with announce data", zap.Any("announcData", info))
 			continue
 		}
 		// we have a client. let's run a test before we set the pointer.
 		_, err = client.ValidateAcm(ValidACMUnclassified)
 		if err != nil {
-			logger.Error("aacReconnect: call to ValidateAcm failed", zap.Object("announcData", info))
+			logger.Error("aacReconnect: call to ValidateAcm failed", zap.Any("announcData", info))
 			continue
 		}
 		logger.Info("successfully reconnected to aac")
@@ -349,15 +349,15 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 							logger.Error("aac reconnect check error", zap.String("err", err.Error()))
 						} else {
 							aacCreated <- aacc
-							logger.Info("aac chosen", zap.Object("announcement", announcement))
+							logger.Info("aac chosen", zap.Any("announcement", announcement))
 							// ok... go with this one!
 							break
 						}
 					} else {
-						logger.Error("aac reconnect error", zap.String("err", err.Error()), zap.Object("announcement", announcement))
+						logger.Error("aac reconnect error", zap.String("err", err.Error()), zap.Any("announcement", announcement))
 					}
 				} else {
-					logger.Warn("aac announcement skipped as status is not alive", zap.Object("announcement", announcement))
+					logger.Warn("aac announcement skipped as status is not alive", zap.Any("announcement", announcement))
 				}
 			}
 
@@ -367,7 +367,7 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 	aacZK := app.DefaultZK
 
 	if len(aacConf.ZKAddrs) > 0 {
-		logger.Info("connection to custom aac zk", zap.Object("addrs", aacConf.ZKAddrs))
+		logger.Info("connection to custom aac zk", zap.Any("addrs", aacConf.ZKAddrs))
 		var err error
 		aacZK, err = zookeeper.NewZKState(aacConf.ZKAddrs, zkConf.Timeout)
 		if err != nil {
@@ -377,13 +377,13 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 	zookeeper.TrackAnnouncement(aacZK, aacConf.AACAnnouncementPoint, aacAnnouncer)
 }
 
-func blockForRequiredServices(l zap.Logger, conf config.AppConfiguration) {
+func blockForRequiredServices(l *zap.Logger, conf config.AppConfiguration) {
 	// TODO: Pick the right ZK for this check
 	l.Info("waiting for zookeeper to come online")
 	addrs := strings.Split(conf.ZK.Address, ",")
 	zkOnline := zookeeper.IsOnline(addrs)
 	<-zkOnline
-	l.Info("zookeeper cluster found", zap.Object("addrs", addrs))
+	l.Info("zookeeper cluster found", zap.String("addrs", conf.ZK.Address))
 }
 
 func daoReadOnlyCheck(app *AppServer) {
@@ -399,9 +399,9 @@ func daoReadOnlyCheck(app *AppServer) {
 			// Did state change?
 			if beforeReadOnly != afterReadOnly {
 				if beforeReadOnly {
-					logger.Info("DAO has entered the writeable state")
+					logger.Info("dao has entered the writeable state")
 				} else {
-					logger.Warn("DAO is read only")
+					logger.Info("dao is read only")
 				}
 			}
 		case <-shutdown:

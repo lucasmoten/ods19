@@ -9,8 +9,8 @@ import (
 
 	"github.com/Shopify/sarama"
 	"github.com/samuel/go-zookeeper/zk"
-	"go.uber.org/zap"
 	"github.com/urfave/cli"
+	"go.uber.org/zap"
 
 	"github.com/deciphernow/object-drive-server/amazon"
 	"github.com/deciphernow/object-drive-server/ciphertext"
@@ -120,7 +120,6 @@ func main() {
 	cliParser.Action = func(c *cli.Context) error {
 		opts := config.NewCommandLineOpts(c)
 		conf := config.NewAppConfiguration(opts)
-
 		config.RootLogger.Info("configuration-settings", zap.String("confPath", opts.Conf),
 			zap.String("staticRoot", opts.StaticRootPath),
 			zap.String("templateDir", opts.TemplateDir),

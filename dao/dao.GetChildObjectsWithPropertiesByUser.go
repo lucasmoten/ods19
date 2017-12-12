@@ -15,12 +15,12 @@ func (dao *DataAccessLayer) GetChildObjectsWithPropertiesByUser(
 	defer util.Time("GetChildObjectsWithPropertiesByUser")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObjectResultset{}, err
 	}
 	response, err := getChildObjectsWithPropertiesByUserInTransaction(tx, user, pagingRequest, object)
 	if err != nil {
-		dao.GetLogger().Error("Error in GetChildObjectsWithPropertiesByUser", zap.String("err", err.Error()))
+		dao.GetLogger().Error("error in getchildobjectswithpropertiesbyuser", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()

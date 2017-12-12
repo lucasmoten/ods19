@@ -179,9 +179,11 @@ func (h *AppServer) InitRegex() {
 }
 
 //When there is a panic, all deferred functions get executed.
-func logCrashInServeHTTP(logger zap.Logger, w http.ResponseWriter) {
+func logCrashInServeHTTP(logger *zap.Logger, w http.ResponseWriter) {
 	if r := recover(); r != nil {
-		logger.Error("odrive crash", zap.Object("context", r), zap.String("stack", string(debug.Stack())))
+		logger.Error("odrive crash",
+			zap.Any("context", r),
+			zap.String("stack", string(debug.Stack())))
 		w.WriteHeader(http.StatusInternalServerError)
 		//Note: even if follow "let it crash" and explicitly return an error code,
 		//we should log this and return a 500 if we plan on doing a system exit on internal 5xx errors.
@@ -650,7 +652,7 @@ func SnippetsFromContext(ctx context.Context) (*acm.ODriveRawSnippetFields, bool
 }
 
 // ContextWithLogger puts the logger on the context
-func ContextWithLogger(ctx context.Context, logger zap.Logger) context.Context {
+func ContextWithLogger(ctx context.Context, logger *zap.Logger) context.Context {
 	return context.WithValue(ctx, Logger, logger)
 }
 
@@ -664,8 +666,8 @@ func SessionIDFromContext(ctx context.Context) string {
 }
 
 // LoggerFromContext gets an uber zap logger from our context
-func LoggerFromContext(ctx context.Context) zap.Logger {
-	logger, ok := ctx.Value(Logger).(zap.Logger)
+func LoggerFromContext(ctx context.Context) *zap.Logger {
+	logger, ok := ctx.Value(Logger).(*zap.Logger)
 	if !ok {
 		log.Print("!!! Any ctx object you get should have a logger set on it")
 	}

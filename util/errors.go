@@ -1,6 +1,9 @@
 package util
 
-import "go.uber.org/zap"
+import (
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+)
 
 //
 // Loggable gives us simple errors that are comparable by message - keep named args separate
@@ -14,7 +17,7 @@ import "go.uber.org/zap"
 //
 type Loggable struct {
 	Msg  string
-	Args []zap.Field
+	Args []zapcore.Field
 }
 
 // Satisfy the error interface
@@ -23,22 +26,22 @@ func (e Loggable) Error() string {
 }
 
 // ToInfo writes to zap Info
-func (e Loggable) ToInfo(logger zap.Logger) {
+func (e Loggable) ToInfo(logger *zap.Logger) {
 	logger.Info(e.Msg, e.Args...)
 }
 
 // ToError writes to zap Error
-func (e Loggable) ToError(logger zap.Logger) {
+func (e Loggable) ToError(logger *zap.Logger) {
 	logger.Error(e.Msg, e.Args...)
 }
 
 // ToFatal writes to zap Fatal
-func (e Loggable) ToFatal(logger zap.Logger) {
+func (e Loggable) ToFatal(logger *zap.Logger) {
 	logger.Fatal(e.Msg, e.Args...)
 }
 
 // NewLoggable with vararg parameters
-func NewLoggable(msg string, cause error, args ...zap.Field) *Loggable {
+func NewLoggable(msg string, cause error, args ...zapcore.Field) *Loggable {
 	if cause != nil {
 		args = append(args, zap.String("err", cause.Error()))
 	}

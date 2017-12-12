@@ -25,7 +25,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 	logger := dao.GetLogger()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		logger.Error("Could not begin transaction", zap.String("err", err.Error()))
+		logger.Error("could not begin transaction", zap.String("err", err.Error()))
 		return err
 	}
 	var acmCreated bool
@@ -35,7 +35,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 	acmCreated, err = updateObjectInTransaction(logger, tx, dao, object)
 	// Deadlock trapper on acm
 	for deadlockRetryCounter > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
-		logger.Info("deadlock in UpdateObject, restarting transaction", zap.Int64("deadlockRetryCounter", deadlockRetryCounter))
+		logger.Info("deadlock in updateobject, restarting transaction", zap.Int64("deadlockRetryCounter", deadlockRetryCounter))
 		time.Sleep(time.Duration(deadlockRetryDelay) * time.Millisecond)
 		// Cancel the old transaction and start a new one
 		tx.Rollback()
@@ -49,7 +49,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 		acmCreated, err = updateObjectInTransaction(logger, tx, dao, object)
 	}
 	if err != nil {
-		logger.Error("Error in UpdateObject", zap.String("err", err.Error()))
+		logger.Error("error in UpdateObject", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -58,7 +58,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 			runasync := true
 			if runasync {
 				if err := insertAssociationOfACMToModifiedByIfValid(dao, *object); err != nil {
-					logger.Error("Error associating the ACM on this object to the user that created it!", zap.Error(err), zap.String("ObjectID", hex.EncodeToString(object.ID)), zap.String("modifiedby", object.ModifiedBy), zap.Int64("acmID", object.ACMID))
+					logger.Error("error associating the acm on this object to the user that created it!", zap.String("err", err.Error()), zap.String("ObjectID", hex.EncodeToString(object.ID)), zap.String("modifiedby", object.ModifiedBy), zap.Int64("acmID", object.ACMID))
 				}
 
 				go func() {
@@ -69,7 +69,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 					for {
 						select {
 						case <-timeout:
-							dao.GetLogger().Warn("UpdateObject call to AssociateUsersToNewACM timed out")
+							dao.GetLogger().Warn("updateobject call to associateuserstonewacm timed out")
 							return
 						case <-done:
 							return
@@ -85,7 +85,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 	return err
 }
 
-func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, dao *DataAccessLayer, object *models.ODObject) (bool, error) {
+func updateObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessLayer, object *models.ODObject) (bool, error) {
 
 	var acmCreated bool
 
@@ -106,7 +106,7 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, dao *DataAccessLa
 	// Fetch current state of object
 	dbObject, err := getObjectInTransaction(tx, *object, true)
 	if err != nil {
-		return acmCreated, fmt.Errorf("UpdateObject Error retrieving object, %s", err.Error())
+		return acmCreated, fmt.Errorf("updateobject error retrieving object, %s", err.Error())
 	}
 	// Check if changeToken matches
 	if object.ChangeToken != dbObject.ChangeToken {
@@ -153,11 +153,11 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, dao *DataAccessLa
 	// Normalize ACM
 	newACMNormalized, err := normalizedACM(object.RawAcm.String)
 	if err != nil {
-		return acmCreated, fmt.Errorf("Error normalizing ACM on modified object: %v (acm: %s)", err.Error(), object.RawAcm.String)
+		return acmCreated, fmt.Errorf("error normalizing acm on modified object: %v (acm: %s)", err.Error(), object.RawAcm.String)
 	}
 	object.RawAcm.String = newACMNormalized
 	if acmCreated, err = setObjectACM2ForObjectInTransaction(tx, dao, object); err != nil {
-		return acmCreated, fmt.Errorf("Error assigning ACM ID for object: %v", err.Error())
+		return acmCreated, fmt.Errorf("error assigning acm id for object: %v", err.Error())
 	}
 
 	// update object
@@ -179,7 +179,7 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, dao *DataAccessLa
         ,acmId = ?
     where id = ? and changeToken = ?`)
 	if err != nil {
-		return acmCreated, fmt.Errorf("UpdateObject Preparing update object statement, %s", err.Error())
+		return acmCreated, fmt.Errorf("updateobject preparing update object statement, %s", err.Error())
 	}
 	defer updateObjectStatement.Close()
 	// Update it
@@ -193,14 +193,14 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, dao *DataAccessLa
 		object.ID,
 		object.ChangeToken)
 	if err != nil {
-		return acmCreated, fmt.Errorf("UpdateObject Error executing update object statement, %s", err.Error())
+		return acmCreated, fmt.Errorf("updateobject error executing update object statement, %s", err.Error())
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return acmCreated, fmt.Errorf("UpdateObject Error checking result for rows affected, %s", err.Error())
+		return acmCreated, fmt.Errorf("updateobject error checking result for rows affected, %s", err.Error())
 	}
 	if rowsAffected <= 0 {
-		return acmCreated, util.NewLoggable("UpdateObject did not affect any rows", nil, zap.String("id", hex.EncodeToString(object.ID)), zap.String("changetoken", object.ChangeToken))
+		return acmCreated, util.NewLoggable("updateobject did not affect any rows", nil, zap.String("id", hex.EncodeToString(object.ID)), zap.String("changetoken", object.ChangeToken))
 	}
 
 	// Compare properties on database object to properties associated with passed
@@ -249,7 +249,7 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, dao *DataAccessLa
 				return acmCreated, util.NewLoggable("error saving property for object", err, zap.String("property.name", objectProperty.Name))
 			}
 			if dbProperty.ID == nil {
-				return acmCreated, fmt.Errorf("New property does not have an ID")
+				return acmCreated, fmt.Errorf("new property does not have an id")
 			}
 		}
 	} //objectProperty
@@ -263,20 +263,20 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, dao *DataAccessLa
 			permission.ModifiedBy = object.ModifiedBy
 			deletedPermission, err := deleteObjectPermissionInTransaction(tx, permission)
 			if err != nil {
-				return acmCreated, fmt.Errorf("Error deleting removed permission #%d: %v", permIdx, err)
+				return acmCreated, fmt.Errorf("error deleting removed permission #%d: %v", permIdx, err)
 			}
 			if deletedPermission.DeletedBy.String != deletedPermission.ModifiedBy {
-				return acmCreated, fmt.Errorf("When deleting permission #%d, it did not get deletedBy set to modifiedBy", permIdx)
+				return acmCreated, fmt.Errorf("when deleting permission #%d, it did not get deletedby set to modifiedby", permIdx)
 			}
 		}
 		if permission.IsCreating() && !permission.IsDeleted {
 			permission.CreatedBy = object.ModifiedBy
 			createdPermission, err := addPermissionToObjectInTransaction(logger, tx, *object, &permission)
 			if err != nil {
-				return acmCreated, fmt.Errorf("Error saving permission #%d {%s) when updating object:%v", permIdx, permission, err)
+				return acmCreated, fmt.Errorf("error saving permission #%d {%s) when updating object:%v", permIdx, permission, err)
 			}
 			if createdPermission.ModifiedBy != createdPermission.CreatedBy {
-				return acmCreated, fmt.Errorf("When creating permission #%d, it did not get modifiedby set to createdby", permIdx)
+				return acmCreated, fmt.Errorf("when creating permission #%d, it did not get modifiedby set to createdby", permIdx)
 			}
 		}
 	}
@@ -284,7 +284,7 @@ func updateObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, dao *DataAccessLa
 	// Refetch object again with properties and permissions
 	dbObject, err = getObjectInTransaction(tx, *object, true)
 	if err != nil {
-		return acmCreated, fmt.Errorf("UpdateObject Error retrieving object %v, %s", object, err.Error())
+		return acmCreated, fmt.Errorf("updateobject error retrieving object %v, %s", object, err.Error())
 	}
 	*object = dbObject
 	return acmCreated, nil

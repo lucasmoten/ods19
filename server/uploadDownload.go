@@ -29,7 +29,7 @@ import (
 // If we are returning potentially after the object has been uploaded to disk,
 // then there is a time-span where abort must cleanup after itself
 func abortUploadObject(
-	logger zap.Logger,
+	logger *zap.Logger,
 	dp ciphertext.CiphertextCache,
 	obj *models.ODObject,
 	isMultipart bool,
@@ -224,7 +224,7 @@ func (h AppServer) beginUpload(ctx context.Context, caller Caller, part *multipa
 		return nil, herr, err
 	}
 	//Make sure that we can compute throughput from this (the message name and param name are important)
-	LoggerFromContext(ctx).Info("transaction up", zap.Int64("bytes", bytes))
+	LoggerFromContext(ctx).Info("received content stream from client", zap.Int64("bytes", bytes))
 	return drainFunc, herr, err
 }
 

@@ -25,7 +25,7 @@ func (dao *DataAccessLayer) GetUsers() ([]models.ODUser, error) {
 	return result, err
 }
 
-func getUsersInTransaction(logger zap.Logger, tx *sqlx.Tx) ([]models.ODUser, error) {
+func getUsersInTransaction(logger *zap.Logger, tx *sqlx.Tx) ([]models.ODUser, error) {
 
 	var result []models.ODUser
 	getUsersStatement := `

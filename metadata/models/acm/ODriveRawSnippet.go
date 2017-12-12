@@ -73,12 +73,12 @@ func newODriveRawSnippetFieldFromString(quotedSnippet string, expectedFieldName 
 
 	// Validate quotedSnippet is not null
 	if strings.Compare(quotedSnippet, "null") == 0 {
-		logger.Error("acm snippet field is null", zap.Object("acm", quotedSnippet))
+		logger.Error("acm snippet field is null", zap.String("acm", quotedSnippet))
 		return rawSnippetFields, fmt.Errorf("AAC returned a snippet where %s is null", expectedFieldName)
 	}
 	// Validate quotedSnippet is not an empty string
 	if len(strings.TrimSpace(quotedSnippet)) == 0 {
-		logger.Error("acm snippet field is empty", zap.Object("acm", quotedSnippet))
+		logger.Error("acm snippet field is empty", zap.String("acm", quotedSnippet))
 		return rawSnippetFields, fmt.Errorf("AAC returned a snippet where %s is empty", expectedFieldName)
 	}
 
@@ -86,7 +86,7 @@ func newODriveRawSnippetFieldFromString(quotedSnippet string, expectedFieldName 
 	jsonIOReader := bytes.NewBufferString(quotedSnippet)
 	err = (json.NewDecoder(jsonIOReader)).Decode(&rawSnippetFields)
 	if err != io.EOF && err != nil {
-		logger.Error("acm snippet field unparseable", zap.Object("acm", quotedSnippet), zap.String("err", err.Error()))
+		logger.Error("acm snippet field unparseable", zap.String("acm", quotedSnippet), zap.String("err", err.Error()))
 		return rawSnippetFields, err
 	}
 	if err == io.EOF {
@@ -95,7 +95,7 @@ func newODriveRawSnippetFieldFromString(quotedSnippet string, expectedFieldName 
 
 	// Validate the snippet field name matches the expected field name
 	if strings.Compare(expectedFieldName, rawSnippetFields.FieldName) != 0 {
-		logger.Error("acm snippet field name mismatch", zap.Object("expectedFieldName", expectedFieldName), zap.Object("rawSnippetFields.FieldName", rawSnippetFields.FieldName))
+		logger.Error("acm snippet field name mismatch", zap.String("expectedFieldName", expectedFieldName), zap.String("rawSnippetFields.FieldName", rawSnippetFields.FieldName))
 		return rawSnippetFields, fmt.Errorf("AAC returned a snippet where field name %s did not match expected name %s", rawSnippetFields.FieldName, expectedFieldName)
 	}
 
@@ -103,7 +103,7 @@ func newODriveRawSnippetFieldFromString(quotedSnippet string, expectedFieldName 
 	switch rawSnippetFields.Treatment {
 	case "allowed", "disallow": // valid
 	default:
-		logger.Error("acm snippet field treatment type is unsupported", zap.Object("rawSnippetFields.Treatment", rawSnippetFields.Treatment))
+		logger.Error("acm snippet field treatment type is unsupported", zap.String("rawSnippetFields.Treatment", rawSnippetFields.Treatment))
 		return rawSnippetFields, fmt.Errorf("AAC returned a snippet where treatment type %s is not supported on field %s", rawSnippetFields.Treatment, expectedFieldName)
 	}
 
@@ -120,7 +120,7 @@ func NewODriveRawSnippetFieldsFromSnippetResponse(snippets string) (ODriveRawSni
 	if strings.HasPrefix(snippets, `{\`) {
 		unquotedSnippets, err = strconv.Unquote(snippets)
 		if err != nil {
-			logger.Error("acm snippet unquoting error", zap.Object("snippets", snippets), zap.Object("err", err.Error()))
+			logger.Error("acm snippet unquoting error", zap.String("snippets", snippets), zap.String("err", err.Error()))
 			return rawSnippetFields, err
 		}
 	}
@@ -149,12 +149,12 @@ func convertSnippetsUsingInterface(snippets string) (ODriveRawSnippetFields, err
 	// Stage 1: Convert snippets to a map
 	snippetInterface, err := utils.UnmarshalStringToInterface(snippets)
 	if err != nil {
-		logger.Error("acm snippet unparseable", zap.Object("snippets", snippets), zap.Object("err", err.Error()))
+		logger.Error("acm snippet unparseable", zap.String("snippets", snippets), zap.String("err", err.Error()))
 		return rawSnippetFields, err
 	}
 	snippetMap, ok := snippetInterface.(map[string]interface{})
 	if !ok {
-		logger.Error("acm snippet does not convert to map", zap.Object("snippets", snippets))
+		logger.Error("acm snippet does not convert to map", zap.String("snippets", snippets))
 		return rawSnippetFields, fmt.Errorf("Unable to process snippet for user")
 	}
 
@@ -182,7 +182,7 @@ func convertSnippetsUsingInterface(snippets string) (ODriveRawSnippetFields, err
 		// Serialize the value to a string
 		snippetPart, err := utils.MarshalInterfaceToString(snippetValue)
 		if err != nil {
-			logger.Error("acm snippet part could not be serialized", zap.Object("key", snippetKey), zap.Object("snippetValue", snippetValue))
+			logger.Error("acm snippet part could not be serialized", zap.String("key", snippetKey))
 			return rawSnippetFields, fmt.Errorf("Unable to process snippet for user. Field %s could not be parsed", snippetKey)
 		}
 
@@ -210,7 +210,7 @@ func convertSnippetsUsingStruct(snippets string) (ODriveRawSnippetFields, error)
 	jsonIOReader := bytes.NewBufferString(snippets)
 	err = (json.NewDecoder(jsonIOReader)).Decode(&parsedSnippets)
 	if err != nil {
-		logger.Error("acm snippet unparseable", zap.Object("snippets", snippets))
+		logger.Error("acm snippet unparseable", zap.String("snippets", snippets))
 		return rawSnippetFields, err
 	}
 

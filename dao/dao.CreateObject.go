@@ -59,7 +59,7 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 			runasync := true
 			if runasync {
 				if err := insertAssociationOfACMToModifiedByIfValid(dao, dbObject); err != nil {
-					logger.Error("Error associating the ACM on this object to the user that created it!", zap.Error(err), zap.String("ObjectID", hex.EncodeToString(dbObject.ID)), zap.String("modifiedby", dbObject.ModifiedBy), zap.Int64("acmID", dbObject.ACMID))
+					logger.Error("error associating the acm on this object to the user that created it!", zap.String("err", err.Error()), zap.String("ObjectID", hex.EncodeToString(dbObject.ID)), zap.String("modifiedby", dbObject.ModifiedBy), zap.Int64("acmID", dbObject.ACMID))
 				}
 				go func() {
 					done := make(chan bool)
@@ -69,7 +69,7 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 					for {
 						select {
 						case <-timeout:
-							dao.GetLogger().Warn("CreateObject call to AssociateUsersToNewACM timed out")
+							dao.GetLogger().Warn("createobject call to associateuserstonewacm timed out")
 							return
 						case <-done:
 							return
@@ -91,7 +91,7 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 	return obj, err
 }
 
-func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, dao *DataAccessLayer, object *models.ODObject) (models.ODObject, bool, error) {
+func createObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessLayer, object *models.ODObject) (models.ODObject, bool, error) {
 
 	var dbObject models.ODObject
 	var acmCreated bool
@@ -181,18 +181,18 @@ func createObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, dao *DataAccessLa
 		object.ACMID)
 	if err != nil {
 		errMsg := err.Error()
-		return dbObject, acmCreated, fmt.Errorf("CreateObject Error executing add object statement, %s", errMsg)
+		return dbObject, acmCreated, fmt.Errorf("createobject error executing add object statement, %s", errMsg)
 	}
 	err = addObjectStatement.Close()
 	if err != nil {
-		return dbObject, acmCreated, fmt.Errorf("CreateObject Error closing addObjectStatement, %s", err.Error())
+		return dbObject, acmCreated, fmt.Errorf("createobject error closing addobjectstatement, %s", err.Error())
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return dbObject, acmCreated, fmt.Errorf("CreateObject Error checking result for rows affected, %s", err.Error())
+		return dbObject, acmCreated, fmt.Errorf("createobject error checking result for rows affected, %s", err.Error())
 	}
 	if rowsAffected <= 0 {
-		return dbObject, acmCreated, fmt.Errorf("CreateObject object inserted but no rows affected")
+		return dbObject, acmCreated, fmt.Errorf("createobject object inserted but no rows affected")
 	}
 
 	// Get the populated fields (id, createddate, modifieddate, etc) of the newly created object and assign to returned object.

@@ -27,7 +27,7 @@ func (dao *DataAccessLayer) ExpungeObject(user models.ODUser, object models.ODOb
 	defer util.Time("ExpungeObject")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("could not begin transaction", zap.String("err", err.Error()))
 		return err
 	}
 	object.ModifiedBy = user.DistinguishedName
@@ -37,7 +37,7 @@ func (dao *DataAccessLayer) ExpungeObject(user models.ODUser, object models.ODOb
 
 	err = expungeObjectInTransaction(tx, user, object, explicit, updateObjectStatement)
 	if err != nil {
-		dao.GetLogger().Error("Error in ExpungeObject", zap.String("err", err.Error()))
+		dao.GetLogger().Error("error in expungeobject", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()

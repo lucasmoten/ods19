@@ -141,7 +141,7 @@ func redactParents(ctx context.Context, auth auth.Authorization, parents []model
 			break
 		}
 		if _, err := auth.IsUserAuthorizedForACM(caller.DistinguishedName, p.RawAcm.String); err != nil {
-			logger.Error("AAC error checking parent", zap.Object("err", err))
+			logger.Info("aac error checking parent", zap.String("err", err.Error()))
 			break
 		}
 		// prepend, because filtering required backwards-iteration, but we need to
@@ -154,6 +154,7 @@ func redactParents(ctx context.Context, auth auth.Authorization, parents []model
 func errOnDeletedParents(parents []models.ODObject) *AppError {
 	for _, parent := range parents {
 		if parent.IsDeleted {
+			logger.Info("one or more parents deleted", zap.Any("parents", parents))
 			return NewAppError(500, errors.New("cannot get properties on object with deleted ancestor"), "")
 		}
 	}

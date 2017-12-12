@@ -148,7 +148,7 @@ func (fake *FakeDAO) GetGroupsForUser(user models.ODUser) (models.GroupSpaceResu
 }
 
 // GetLogger returns a logger for the current session (or any other context - we want correlation across a request)
-func (fake *FakeDAO) GetLogger() zap.Logger {
+func (fake *FakeDAO) GetLogger() *zap.Logger {
 	return config.RootLogger
 }
 

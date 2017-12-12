@@ -30,7 +30,7 @@ func (dao *DataAccessLayer) CreateUser(user models.ODUser) (models.ODUser, error
 	return dbUser, err
 }
 
-func createUserInTransaction(logger zap.Logger, tx *sqlx.Tx, user models.ODUser) (models.ODUser, error) {
+func createUserInTransaction(logger *zap.Logger, tx *sqlx.Tx, user models.ODUser) (models.ODUser, error) {
 	var dbUser models.ODUser
 	addUserStatement, err := tx.Preparex(
 		`insert user set createdBy = ?, distinguishedName = ?, displayName = ?, email = ?`)
@@ -55,15 +55,15 @@ func createUserInTransaction(logger zap.Logger, tx *sqlx.Tx, user models.ODUser)
 		return dbUser, err
 	}
 	if rowCount < 1 {
-		logger.Warn("No rows were added when inserting the user!")
+		logger.Warn("no rows were added when inserting the user!")
 	}
 	// Get the newly added user
 	dbUser, err = getUserByDistinguishedNameInTransaction(tx, user)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			logger.Error("User was not found even after just adding", zap.String("err", err.Error()))
+			logger.Error("user was not found even after just adding", zap.String("err", err.Error()))
 		} else {
-			logger.Error("An error occurred retrieving newly added user", zap.String("err", err.Error()))
+			logger.Error("an error occurred retrieving newly added user", zap.String("err", err.Error()))
 		}
 		return dbUser, err
 	}

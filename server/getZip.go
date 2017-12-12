@@ -76,10 +76,10 @@ type zipUsedNames struct {
 
 // We need to retain classifications of files, so we need to write something
 // to re-associate them, short of doing file renaming to retain classification
-func zipWriteManifest(aacClient aac.AacService, ctx context.Context, logger zap.Logger, zw *zip.Writer, manifest *zipManifest) *AppError {
+func zipWriteManifest(ctx context.Context, aacClient aac.AacService, zw *zip.Writer, manifest *zipManifest) *AppError {
 	user, ok := UserFromContext(ctx)
 	if !ok {
-		return NewAppError(500, nil, "unable to get user")
+		return NewAppError(500, nil, "unable to get user from context")
 	}
 	// manifest acms were stored in a list to make them unique
 	// So now we need the list of unique values
@@ -130,7 +130,7 @@ func zipWriteManifest(aacClient aac.AacService, ctx context.Context, logger zap.
 }
 
 // Get a reader on the ciphertext - locally if it exists, or range requested out of S3 otherwise
-func zipReadCloser(dp ciphertext.CiphertextCache, logger zap.Logger, rName ciphertext.FileId, totalLength int64) (io.ReadCloser, error) {
+func zipReadCloser(dp ciphertext.CiphertextCache, logger *zap.Logger, rName ciphertext.FileId, totalLength int64) (io.ReadCloser, error) {
 	// Range request it if we don't have it
 	f, _, err := dp.NewPuller(logger, rName, totalLength, 0, -1)
 	return f, err
@@ -161,8 +161,8 @@ func newManifestInfo(fqPath string, dt time.Time) *zipFileInfo {
 // Note that we do NOT support file paths now.  We only produce flat zips of individual files, with
 // no original directory hierarchy.
 func zipWriteFile(
-	h AppServer,
 	ctx context.Context,
+	h AppServer,
 	obj models.ODObject,
 	zw *zip.Writer,
 	userPermission models.ODObjectPermission,
@@ -170,7 +170,7 @@ func zipWriteFile(
 ) *AppError {
 	totalLength := obj.ContentSize.Int64
 	if totalLength <= 0 {
-		logger.Debug("Skipping object have no content length")
+		logger.Debug("skipping object have no content length")
 		return nil
 	}
 	logger := LoggerFromContext(ctx)
@@ -192,16 +192,16 @@ func zipWriteFile(
 		logger.Error("unable to create puller for PermanentStorage", zap.String("err", err.Error()))
 		return NewAppError(500, err, "Unable to create pullet to read files")
 	}
-	logger.Debug("PermanentStorage pull for zip begin", zap.String("fname", obj.Name), zap.Int64("bytes", totalLength))
+	logger.Debug("permanentstorage pull for zip begin", zap.String("fname", obj.Name), zap.Int64("bytes", totalLength))
 
 	// Write the file header out, to properly set timestamps and permissions
 	header, err := zip.FileInfoHeader(newFileInfo(obj, obj.Name))
 	if err != nil {
-		return NewAppError(500, err, "Unable to create file info header")
+		return NewAppError(500, err, "unable to create file info header")
 	}
 	w, err := zw.CreateHeader(header)
 	if err != nil {
-		return NewAppError(500, err, "Unable to write zip file")
+		return NewAppError(500, err, "unable to write zip file")
 	}
 
 	// Actually send back the cipherFile to zip stream - decrypted
@@ -220,17 +220,17 @@ func zipWriteFile(
 	return nil
 }
 
-func zipHasAccess(h AppServer, ctx context.Context, dbObject *models.ODObject) (bool, models.ODObjectPermission) {
+func zipHasAccess(ctx context.Context, h AppServer, dbObject *models.ODObject) (bool, models.ODObjectPermission) {
 	logger := LoggerFromContext(ctx)
 	stillExists := dbObject.IsDeleted == false && dbObject.IsExpunged == false && dbObject.IsAncestorDeleted == false
 	if !stillExists {
-		logger.Error("object no longer exists for zip")
+		logger.Info("object no longer exists for zip", zap.String("objectid", hex.EncodeToString(dbObject.ID)))
 		return false, models.ODObjectPermission{}
 	}
 	caller, _ := CallerFromContext(ctx)
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
-		logger.Error("auth error", zap.String("err", err.Error()))
+		logger.Info("auth error", zap.String("err", err.Error()))
 		return false, models.ODObjectPermission{}
 	}
 	return isUserAllowedToReadWithPermission(ctx, dbObject)
@@ -238,15 +238,15 @@ func zipHasAccess(h AppServer, ctx context.Context, dbObject *models.ODObject) (
 
 // zipIncludeFile puts a single file into the zipArchive.
 func zipIncludeFile(
-	h AppServer,
 	ctx context.Context,
+	h AppServer,
 	obj models.ODObject,
 	path string,
 	zw *zip.Writer,
 	manifest *zipManifest,
 	usedNames *zipUsedNames,
 ) *AppError {
-	hasAccess, userPermission := zipHasAccess(h, ctx, &obj)
+	hasAccess, userPermission := zipHasAccess(ctx, h, &obj)
 	if hasAccess {
 		if obj.RawAcm.Valid {
 			portion, err := acmExtractItem("portion", obj.RawAcm.String)
@@ -259,7 +259,7 @@ func zipIncludeFile(
 				Name:    obj.Name,
 			}
 			manifest.Files = append(manifest.Files, thisFile)
-			herr := zipWriteFile(h, ctx, obj, zw, userPermission, manifest)
+			herr := zipWriteFile(ctx, h, obj, zw, userPermission, manifest)
 			if herr != nil {
 				return herr
 			}
@@ -345,7 +345,7 @@ func (h AppServer) postZip(ctx context.Context, w http.ResponseWriter, r *http.R
 
 	err := util.FullDecode(r.Body, &zipSpec)
 	if err != nil {
-		herr := NewAppError(500, err, "unable to perform zip due to malformed request")
+		herr := NewAppError(400, err, "unable to perform zip due to malformed request")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -375,7 +375,7 @@ func (h AppServer) postZip(ctx context.Context, w http.ResponseWriter, r *http.R
 		var requestObject models.ODObject
 		requestObject.ID, err = hex.DecodeString(id)
 		if err != nil {
-			herr := NewAppError(500, err, "could not decode id")
+			herr := NewAppError(400, err, "could not decode id")
 			h.publishError(gem, herr)
 			return herr
 		}
@@ -392,7 +392,7 @@ func (h AppServer) postZip(ctx context.Context, w http.ResponseWriter, r *http.R
 		if obj.ContentSize.Valid && obj.ContentSize.Int64 > 0 {
 			// Go ahead and actually include this root object in the archive
 			var herr *AppError
-			herr = zipIncludeFile(h, ctx, obj, ".", zw, manifest, usedNames)
+			herr = zipIncludeFile(ctx, h, obj, ".", zw, manifest, usedNames)
 			if herr != nil {
 				h.publishError(gem, herr)
 				return herr
@@ -402,7 +402,7 @@ func (h AppServer) postZip(ctx context.Context, w http.ResponseWriter, r *http.R
 		}
 	}
 	// We accumulated a lot of data in the manifest.  Write it out now.
-	herr := zipWriteManifest(h.AAC, ctx, logger, zw, manifest)
+	herr := zipWriteManifest(ctx, h.AAC, zw, manifest)
 	if herr != nil {
 		h.publishError(gem, herr)
 		return herr

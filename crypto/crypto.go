@@ -36,11 +36,11 @@ type CipherStreamReader struct {
 	H       hash.Hash
 	Size    int64
 	Written int64
-	Logger  zap.Logger
+	Logger  *zap.Logger
 }
 
 // NewCipherStreamReader Create a new ciphered stream with hashing
-func NewCipherStreamReader(logger zap.Logger, w cipher.Stream, r io.Reader) *CipherStreamReader {
+func NewCipherStreamReader(logger *zap.Logger, w cipher.Stream, r io.Reader) *CipherStreamReader {
 	return &CipherStreamReader{
 		S:       w,
 		R:       r,
@@ -178,7 +178,7 @@ func CreateIV() (iv []byte) {
 //XXX Need a proper read-write pipe that will xor with the key as it writes,
 // need to facilitate efficient encrypted append.
 func DoCipherByReaderWriter(
-	logger zap.Logger,
+	logger *zap.Logger,
 	inFile io.Reader,
 	outFile io.Writer,
 	key []byte,

@@ -16,7 +16,7 @@ import (
 // AsyncProducer is a events.Publisher implementation for Kafka queues.
 type AsyncProducer struct {
 	producer       sarama.AsyncProducer
-	logger         zap.Logger
+	logger         *zap.Logger
 	reconnect      bool
 	successActions []string
 	failureActions []string
@@ -64,7 +64,7 @@ func (ap *AsyncProducer) Reconnect() bool {
 type Opt func(*AsyncProducer)
 
 // WithLogger sets a custom logger on an AsyncProducer.
-func WithLogger(logger zap.Logger) Opt {
+func WithLogger(logger *zap.Logger) Opt {
 	return func(ap *AsyncProducer) {
 		ap.logger = logger
 	}
@@ -129,7 +129,7 @@ func DiscoverKafka(conn *zk.Conn, path string, setter func(*AsyncProducer), opts
 
 	go func() {
 		for e := range events {
-			l.Info("zk event watching kafka path", zap.Object("event", e))
+			l.Info("zk event watching kafka path", zap.Any("event", e))
 			if e.Type == zk.EventNodeChildrenChanged {
 				brokers := BrokersFromZKPath(conn, path)
 				if len(brokers) < 1 {
@@ -137,10 +137,10 @@ func DiscoverKafka(conn *zk.Conn, path string, setter func(*AsyncProducer), opts
 				} else {
 					p, err := NewAsyncProducer(brokers, opts...)
 					if err != nil {
-						l.Error("error re-creating Kafka connection", zap.Object("err", err))
+						l.Error("error re-creating Kafka connection", zap.String("err", err.Error()))
 						continue
 					}
-					l.Info("found kafka brokers", zap.Object("brokers", brokers))
+					l.Info("found kafka brokers", zap.Any("brokers", brokers))
 					// invoke the callback with a new instance
 					setter(p)
 				}
@@ -179,7 +179,7 @@ func (ap *AsyncProducer) start() {
 	go func() {
 		defer func() { ap.reconnect = true }()
 		for err := range ap.producer.Errors() {
-			ap.logger.Error("KAFKA ERROR", zap.Error(err))
+			ap.logger.Error("KAFKA ERROR", zap.String("err", err.Error()))
 			if requiresReconnect(err) {
 				ap.reconnect = true
 			}

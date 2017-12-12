@@ -40,7 +40,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 
-	requestObject, recursive, err = parseUpdateObjectRequestAsJSON(r, ctx)
+	requestObject, recursive, err = parseUpdateObjectRequestAsJSON(ctx, r)
 	if err != nil {
 		herr := NewAppError(400, err, err.Error())
 		h.publishError(gem, herr)
@@ -278,7 +278,7 @@ func (h AppServer) updateObjectRecursive(ctx context.Context, applyable models.O
 
 	children, err := d.GetChildObjectsWithProperties(pr, applyable)
 	if err != nil {
-		logger.Error("error calling GetChildObjectsWithProperties", zap.Object("err", err))
+		logger.Error("error calling GetChildObjectsWithProperties", zap.String("err", err.Error()))
 		return
 	}
 
@@ -301,7 +301,7 @@ func (h AppServer) updateObjectRecursive(ctx context.Context, applyable models.O
 			}
 
 			if updatePermission.AcmGrantee.Grantee == "" {
-				logger.Error("grantee cannot be empty string", zap.Object("err", err))
+				logger.Error("grantee cannot be empty string", zap.String("err", err.Error()))
 				gem.Payload.Audit = audit.WithActionResult(gem.Payload.Audit, "FAILURE")
 				h.EventQueue.Publish(gem)
 				continue
@@ -332,7 +332,7 @@ func (h AppServer) updateObjectRecursive(ctx context.Context, applyable models.O
 			child.RawAcm = models.ToNullString(newerACM)
 
 			if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, child.RawAcm.String); err != nil {
-				logger.Error("error calling IsUserAuthorizedForACM", zap.Object("err", err))
+				logger.Error("error calling IsUserAuthorizedForACM", zap.String("err", err.Error()))
 				continue
 			}
 			consolidateChangingPermissions(&child)
@@ -345,7 +345,7 @@ func (h AppServer) updateObjectRecursive(ctx context.Context, applyable models.O
 			child.ModifiedBy = caller.DistinguishedName
 			err = d.UpdateObject(&child)
 			if err != nil {
-				logger.Error("error updating child object with new permissions", zap.Object("err", err))
+				logger.Error("error updating child object with new permissions", zap.String("err", err.Error()))
 				continue
 			}
 
@@ -365,7 +365,7 @@ func (h AppServer) updateObjectRecursive(ctx context.Context, applyable models.O
 		var err error
 		children, err = d.GetChildObjectsWithProperties(pr, applyable)
 		if err != nil {
-			logger.Error("error calling GetChildObjectsWithProperties", zap.Object("err", err))
+			logger.Error("error calling GetChildObjectsWithProperties", zap.String("err", err.Error()))
 			return
 		}
 	}
@@ -377,7 +377,7 @@ func (h AppServer) updateObjectRecursive(ctx context.Context, applyable models.O
 //
 // TODO(cm): We delegate to 2 custom mapping funcs in this function. This function is
 // a constructor in disguise.
-func parseUpdateObjectRequestAsJSON(r *http.Request, ctx context.Context) (models.ODObject, bool, error) {
+func parseUpdateObjectRequestAsJSON(ctx context.Context, r *http.Request) (models.ODObject, bool, error) {
 	var jsonObject protocol.UpdateObjectRequest
 	var requestObject models.ODObject
 	var err error

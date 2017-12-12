@@ -28,7 +28,7 @@ func (dao *DataAccessLayer) UndeleteObject(object *models.ODObject) (models.ODOb
 	return dbObject, nil
 }
 
-func undeleteObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.ODObject) (models.ODObject, error) {
+func undeleteObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, object *models.ODObject) (models.ODObject, error) {
 	var dbObject models.ODObject
 
 	if object.ID == nil {
@@ -60,7 +60,7 @@ func undeleteObjectInTransaction(logger zap.Logger, tx *sqlx.Tx, object *models.
 	return dbObject, nil
 }
 
-func undeleteAncestorChildren(logger zap.Logger, tx *sqlx.Tx, object *models.ODObject) error {
+func undeleteAncestorChildren(logger *zap.Logger, tx *sqlx.Tx, object *models.ODObject) error {
 	var results models.ODObjectResultset
 
 	query := `select
