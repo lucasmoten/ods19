@@ -55,6 +55,7 @@ services:
         - OD_AAC_HOST=aac                     # has default
         - OD_AAC_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/id/client.key.pem
         - OD_AAC_CN=twl-server-generic2
+        - OD_AAC_HEALTHCHECK={"version":"2.1.0","classif":"U"}
         - OD_AAC_INSECURE_SKIP_VERIFY=false
         - OD_PEER_CN=twl-server-generic2
         - OD_PEER_INSECURE_SKIP_VERIFY=false

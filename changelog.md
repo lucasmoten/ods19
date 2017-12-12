@@ -22,6 +22,12 @@ FORMAT: 1A
 * REF: Changed imports to github.com/deciphernow/object-drive-server
 * REF: Changed references to vendored uber-zap to go.uber.org/zap, upgraded to 1.7.1
 * ENH: Logging output changed to tab delimit timestamp, log level, message, and fields
+* ENH: Allow validation acm to be configurable as environment variable `OD_AAC_HEALTHCHECK`
+* ENH: Log level set via `OD_LOG_LEVEL` now supports numeric and text representations of level
+* FIX: SysV init script for lockfile now resides in installation folder
+* FIX: SysV init script no longer uses Shell for subprocesses
+* ENH: A more descriptive error message is returned when providing file stream before objectmetadata
+* ENH: Object names are trimmed of whitespace on create/update
 
 ## Release v1.0.11 (November 15, 2017)
 --------------------

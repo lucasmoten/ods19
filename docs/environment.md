@@ -24,11 +24,12 @@ AAC Integration is used for authorization requests. At the time of this writing 
 | Name | Description | Default |
 | --- | --- | --- |
 | OD_AAC_CA | The path to the certificate authority folder or file containing public certificate(s) to trust as the server when connecting to AAC.  |  |
-| OD_AAC_CN | The CN that we expect all AAC servers to have.  We use this when we enforce certificate verification.  This `MUST` be set in order to connect. | |
 | OD_AAC_CERT | The path to the public certificate for the user credentials connecting to AAC.  |  |
+| OD_AAC_CN | The CN that we expect all AAC servers to have.  We use this when we enforce certificate verification.  This `MUST` be set in order to connect. | |
+| OD_AAC_HEALTHCHECK | An acm expected to validate against the AAC service. | {"version":"2.1.0","classif":"U"} |
+| OD_AAC_INSECURE_SKIP_VERIFY | This turns off certificate verification.  Do not do this.  Leave this value at its default. | false |
 | OD_AAC_KEY | The path to the private key for the user credentials connecting to AAC.  |  |
 | OD_AAC_ZK_ADDRS | Comma-separated list of host:port pairs to connect to a Zookeeper cluster specific to AAC discovery  |  |
-| OD_AAC_INSECURE_SKIP_VERIFY | This turns off certificate verification.  Do not do this.  Leave this value at its default. | false |
 
 ### AWS S3
 Amazon Web Services environment variables contain credentials for AWS used for S3 and other backend cloud services.

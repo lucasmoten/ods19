@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/deciphernow/object-drive-server/metadata/models"
 	"github.com/deciphernow/object-drive-server/protocol"
@@ -225,7 +226,7 @@ func MapDeleteObjectRequestToODObject(i *protocol.DeleteObjectRequest) (models.O
 // the CreateObjectRequest are valid for mapping during creating objects
 func OverwriteODObjectWithCreateObjectRequest(o *models.ODObject, i *protocol.CreateObjectRequest) error {
 	o.TypeName = models.ToNullString(i.TypeName)
-	o.Name = i.Name
+	o.Name = strings.TrimSpace(i.Name)
 	o.Description = models.ToNullString(i.Description)
 
 	// Parent ID convert string to byte, reassign to nil if empty
@@ -318,7 +319,7 @@ func OverwriteODObjectWithUpdateObjectAndStreamRequest(o *models.ODObject, i *pr
 		if part, _ := util.GetNextDelimitedPart(i.Name, util.DefaultPathDelimiter); len(part) > 0 {
 			return fmt.Errorf("bad request: name cannot include path delimiter %s", util.DefaultPathDelimiter)
 		}
-		o.Name = i.Name
+		o.Name = strings.TrimSpace(i.Name)
 	}
 
 	if len(i.Description) > 0 {

@@ -45,7 +45,7 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, mpr *multipart.Reader
 
 	part, err := mpr.NextPart()
 	if err != nil {
-		return nil, "", false, NewAppError(400, err, "error getting metadata part")
+		return nil, "", false, NewAppError(400, err, fmt.Sprintf("error getting metadata part %s", err.Error()))
 	}
 
 	parsedMetadata, pathDelimiter, recursive, herr := h.acceptObjectUploadMeta(ctx, part, obj, grant, asCreate)
@@ -83,56 +83,62 @@ func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.P
 	var updateObjectRequest protocol.UpdateObjectAndStreamRequest
 	var pathDelimiter string
 
-	if part.FormName() == "ObjectMetadata" {
-		parsedMetadata = true
+	expectedPartName := "ObjectMetadata"
 
-		limit := 5 << (10 * 2)
-		metadata, err := ioutil.ReadAll(io.LimitReader(part, int64(limit)))
-		if err != nil {
-			return parsedMetadata, "", false, NewAppError(400, err, "could not read json metadata")
-		}
-		// Parse into a useable struct
-		if asCreate {
-			if err = json.Unmarshal(metadata, &createObjectRequest); err != nil {
-				return parsedMetadata, "", false, NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", metadata))
-			}
-			// Mapping to object
-			err = mapping.OverwriteODObjectWithCreateObjectRequest(obj, &createObjectRequest)
-			if err != nil {
-				return parsedMetadata, "", false, NewAppError(400, err, fmt.Sprintf("Error creating object with data from request: %s", err.Error()))
-			}
-			// Post mapping rules applied for create (not deleted, enforce owner cruds, assign meta)
-			if herr := handleCreatePrerequisites(ctx, h, obj); herr != nil {
-				return parsedMetadata, "", false, herr
-			}
-			pathDelimiter = createObjectRequest.NamePathDelimiter
-		} else {
-			if err = json.Unmarshal(metadata, &updateObjectRequest); err != nil {
-				return parsedMetadata, "", false, NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", metadata))
-			}
-			// ID in json must match that on the URI
-			herr = compareIDFromJSONWithURI(ctx, updateObjectRequest)
-			if herr != nil {
-				return parsedMetadata, "", false, herr
-			}
-			// ChangeToken must be provided and match the object
-			if obj.ChangeToken != updateObjectRequest.ChangeToken {
-				return parsedMetadata, "", false, NewAppError(400, nil, "Changetoken must be up to date")
-			}
-			// Mapping to object
-			err = mapping.OverwriteODObjectWithUpdateObjectAndStreamRequest(obj, &updateObjectRequest)
-			if err != nil {
-				return parsedMetadata, "", false, NewAppError(400, err, fmt.Sprintf("Could not extract data from json response: %s", err.Error()))
-			}
-			// Set our recursive bool here
-			recursive = updateObjectRequest.RecursiveShare
-		}
-
-		// Whether creating or updating, the ACM must have a value
-		if len(obj.RawAcm.String) == 0 {
-			return parsedMetadata, "", false, NewAppError(400, err, "An ACM must be specified")
-		}
+	if strings.ToLower(part.FormName()) != strings.ToLower(expectedPartName) {
+		errMsg := fmt.Sprintf("the first part name for a multipart upload must be %s", expectedPartName)
+		err := fmt.Errorf("%s", errMsg)
+		return parsedMetadata, "", false, NewAppError(400, err, errMsg)
 	}
+	parsedMetadata = true
+
+	limit := 5 << (10 * 2)
+	metadata, err := ioutil.ReadAll(io.LimitReader(part, int64(limit)))
+	if err != nil {
+		return parsedMetadata, "", false, NewAppError(400, err, "could not read json metadata")
+	}
+	// Parse into a useable struct
+	if asCreate {
+		if err = json.Unmarshal(metadata, &createObjectRequest); err != nil {
+			return parsedMetadata, "", false, NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", metadata))
+		}
+		// Mapping to object
+		err = mapping.OverwriteODObjectWithCreateObjectRequest(obj, &createObjectRequest)
+		if err != nil {
+			return parsedMetadata, "", false, NewAppError(400, err, fmt.Sprintf("Error creating object with data from request: %s", err.Error()))
+		}
+		// Post mapping rules applied for create (not deleted, enforce owner cruds, assign meta)
+		if herr := handleCreatePrerequisites(ctx, h, obj); herr != nil {
+			return parsedMetadata, "", false, herr
+		}
+		pathDelimiter = createObjectRequest.NamePathDelimiter
+	} else {
+		if err = json.Unmarshal(metadata, &updateObjectRequest); err != nil {
+			return parsedMetadata, "", false, NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", metadata))
+		}
+		// ID in json must match that on the URI
+		herr = compareIDFromJSONWithURI(ctx, updateObjectRequest)
+		if herr != nil {
+			return parsedMetadata, "", false, herr
+		}
+		// ChangeToken must be provided and match the object
+		if obj.ChangeToken != updateObjectRequest.ChangeToken {
+			return parsedMetadata, "", false, NewAppError(400, nil, "Changetoken must be up to date")
+		}
+		// Mapping to object
+		err = mapping.OverwriteODObjectWithUpdateObjectAndStreamRequest(obj, &updateObjectRequest)
+		if err != nil {
+			return parsedMetadata, "", false, NewAppError(400, err, fmt.Sprintf("Could not extract data from json response: %s", err.Error()))
+		}
+		// Set our recursive bool here
+		recursive = updateObjectRequest.RecursiveShare
+	}
+
+	// Whether creating or updating, the ACM must have a value
+	if len(obj.RawAcm.String) == 0 {
+		return parsedMetadata, "", false, NewAppError(400, err, "An ACM must be specified")
+	}
+
 	return parsedMetadata, pathDelimiter, recursive, herr
 }
 

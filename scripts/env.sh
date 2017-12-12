@@ -6,6 +6,7 @@
 
 export OD_AAC_CA=
 export OD_AAC_CERT=
+export OD_AAC_HEALTHCHECK=
 export OD_AAC_HOST=
 export OD_AAC_KEY=
 export OD_AAC_PORT=
