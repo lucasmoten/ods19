@@ -27,7 +27,7 @@ func (dao *DataAccessLayer) GetUserStats(dn string) (models.UserStats, error) {
 	return userStats, err
 }
 
-func getUserStatsInTransaction(logger zap.Logger, tx *sqlx.Tx, dn string) (models.UserStats, error) {
+func getUserStatsInTransaction(logger *zap.Logger, tx *sqlx.Tx, dn string) (models.UserStats, error) {
 	var userStats models.UserStats
 	var err error
 	// Get base objects

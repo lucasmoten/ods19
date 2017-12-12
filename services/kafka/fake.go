@@ -7,15 +7,15 @@ import (
 
 // FakeAsyncProducer is a null implementation of events.Publisher.
 type FakeAsyncProducer struct {
-	logger zap.Logger
+	logger *zap.Logger
 }
 
 // NewFakeAsyncProducer returns a null Kafka events.Publisher implementation.
-func NewFakeAsyncProducer(logger zap.Logger) *FakeAsyncProducer {
+func NewFakeAsyncProducer(logger *zap.Logger) *FakeAsyncProducer {
 	if logger == nil {
-		logger = zap.New(zap.NewJSONEncoder(), zap.Output(zap.Discard), zap.ErrorOutput(zap.Discard))
+		logger = zap.NewNop()
 	}
-	logger.Info("Using FakeAsyncProducer")
+	logger.Info("using fakeasyncproducer")
 	return &FakeAsyncProducer{logger}
 }
 

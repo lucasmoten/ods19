@@ -8,13 +8,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	asg "github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/deciphernow/object-drive-server/amazon"
 	"github.com/deciphernow/object-drive-server/ciphertext"
 	"github.com/deciphernow/object-drive-server/config"
 	"github.com/deciphernow/object-drive-server/services/zookeeper"
-	"github.com/aws/aws-sdk-go/aws"
-	asg "github.com/aws/aws-sdk-go/service/autoscaling"
-	"github.com/aws/aws-sdk-go/service/sqs"
 	"go.uber.org/zap"
 )
 
@@ -28,7 +28,7 @@ const (
 // AutoScaler is where all the interfaces for autoscaling related functionality reside
 type AutoScaler struct {
 	//Logger accepts messages as it works
-	Logger zap.Logger
+	Logger *zap.Logger
 	//ZKState lets us signal to stop sending us work
 	ZKState *zookeeper.ZKState
 	//Config is our environment variables
@@ -189,7 +189,7 @@ func (as *AutoScaler) handleLifecycleMessage(m string, warn bool) *LifecycleMess
 		if strings.Compare(parsed.EC2InstanceID, as.Config.EC2InstanceID) == 0 {
 			logger.Info(
 				"sqs autoscaling lifecycle transition observed",
-				zap.Object("parsed", parsed),
+				zap.Any("parsed", parsed),
 			)
 			return &parsed
 		}
@@ -269,7 +269,7 @@ func (as *AutoScaler) WatchForShutdownByMessage() {
 	if err != nil {
 		logger.Error("sqs queue error",
 			zap.String("err", err.Error()),
-			zap.Object("config", as.Config),
+			zap.Any("config", as.Config),
 		)
 		as.ExitChannel <- exitIgnore
 		return
@@ -320,7 +320,7 @@ func (as *AutoScaler) WatchForShutdownByMessage() {
 }
 
 // WatchForShutdown looks for requests to shut down, either through signals or messages
-func WatchForShutdown(z *zookeeper.ZKState, logger zap.Logger) {
+func WatchForShutdown(z *zookeeper.ZKState, logger *zap.Logger) {
 
 	//Get an SQS session
 	sqsConfig := config.NewAutoScalingConfig()

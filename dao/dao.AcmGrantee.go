@@ -18,12 +18,12 @@ func (dao *DataAccessLayer) GetAcmGrantee(grantee string) (models.ODAcmGrantee, 
 
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("could not begin transaction", zap.String("err", err.Error()))
 		return models.ODAcmGrantee{}, err
 	}
 	response, err := getAcmGranteeInTransaction(tx, grantee)
 	if err != nil {
-		dao.GetLogger().Error("Error in GetAcmGrantee", zap.String("err", err.Error()))
+		dao.GetLogger().Error("error in getacmgrantee", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -37,7 +37,7 @@ func (dao *DataAccessLayer) GetAcmGrantees(grantees []string) ([]models.ODAcmGra
 
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("could not begin transaction", zap.String("err", err.Error()))
 		return []models.ODAcmGrantee{}, err
 	}
 	acmgrantees := []models.ODAcmGrantee{}
@@ -49,7 +49,7 @@ func (dao *DataAccessLayer) GetAcmGrantees(grantees []string) ([]models.ODAcmGra
 			// we can't commit yet, because we are in a loop
 		} else {
 			if err != sql.ErrNoRows {
-				dao.GetLogger().Error("Error in GetAcmGrantees", zap.String("err", err.Error()))
+				dao.GetLogger().Error("error in getacmgrantees", zap.String("err", err.Error()))
 				tx.Rollback()
 				return acmgrantees, err
 			}
@@ -87,7 +87,7 @@ func (dao *DataAccessLayer) CreateAcmGrantee(acmGrantee models.ODAcmGrantee) (mo
 	logger := dao.GetLogger()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		logger.Error("Could not begin transaction", zap.String("err", err.Error()))
+		logger.Error("could not begin transaction", zap.String("err", err.Error()))
 		return models.ODAcmGrantee{}, err
 	}
 	deadlockRetryCounter := dao.DeadlockRetryCounter
@@ -95,7 +95,7 @@ func (dao *DataAccessLayer) CreateAcmGrantee(acmGrantee models.ODAcmGrantee) (mo
 	deadlockMessage := "Deadlock"
 	response, err := createAcmGranteeInTransaction(dao.GetLogger(), tx, acmGrantee)
 	for deadlockRetryCounter > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
-		logger.Info("deadlock in CreateAcmGrantee, restarting transaction", zap.Int64("deadlockRetryCounter", deadlockRetryCounter))
+		logger.Info("deadlock in createacmgrantee, restarting transaction", zap.Int64("deadlockRetryCounter", deadlockRetryCounter))
 		time.Sleep(time.Duration(deadlockRetryDelay) * time.Millisecond)
 		// Cancel the old transaction and start a new one
 		tx.Rollback()
@@ -109,7 +109,7 @@ func (dao *DataAccessLayer) CreateAcmGrantee(acmGrantee models.ODAcmGrantee) (mo
 		response, err = createAcmGranteeInTransaction(dao.GetLogger(), tx, acmGrantee)
 	}
 	if err != nil {
-		logger.Error("Error in CreateAcmGrantee", zap.String("err", err.Error()))
+		logger.Error("error in createacmgrantee", zap.String("err", err.Error()))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -117,7 +117,7 @@ func (dao *DataAccessLayer) CreateAcmGrantee(acmGrantee models.ODAcmGrantee) (mo
 	return response, err
 }
 
-func createAcmGranteeInTransaction(logger zap.Logger, tx *sqlx.Tx, acmGrantee models.ODAcmGrantee) (models.ODAcmGrantee, error) {
+func createAcmGranteeInTransaction(logger *zap.Logger, tx *sqlx.Tx, acmGrantee models.ODAcmGrantee) (models.ODAcmGrantee, error) {
 
 	// If grantee is for a user, check that user specified exists
 	userDN := acmGrantee.UserDistinguishedName.String
@@ -175,15 +175,15 @@ func createAcmGranteeInTransaction(logger zap.Logger, tx *sqlx.Tx, acmGrantee mo
 		return dbAcmGrantee, err
 	}
 	if rowCount < 1 {
-		logger.Warn("No rows were added when inserting the grantee!")
+		logger.Warn("no rows were added when inserting the grantee!")
 	}
 	// Get the newly added grantee
 	dbAcmGrantee, err = getAcmGranteeInTransaction(tx, acmGrantee.Grantee)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			logger.Error("Grantee was not found even after just adding", zap.String("err", err.Error()))
+			logger.Error("grantee was not found even after just adding", zap.String("err", err.Error()))
 		} else {
-			logger.Error("An error occurred retrieving newly added grantee", zap.String("err", err.Error()))
+			logger.Error("an error occurred retrieving newly added grantee", zap.String("err", err.Error()))
 		}
 		return dbAcmGrantee, err
 	}

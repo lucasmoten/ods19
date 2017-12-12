@@ -221,7 +221,11 @@ func TestListObjectsChild(t *testing.T) {
 	t.Logf("Depth display in child tree")
 	level := 0
 	depthstring := "+-"
-	for _, obj := range listOfObjects.Objects {
+	maxtest := 50
+	for ix, obj := range listOfObjects.Objects {
+		if maxtest > 0 && ix > maxtest {
+			break
+		}
 		if verboseOutput {
 			t.Logf("%s%s", depthstring, obj.Name)
 		}

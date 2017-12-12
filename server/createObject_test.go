@@ -1698,7 +1698,7 @@ func TestCreateObjectMinimal(t *testing.T) {
 }
 
 func TestCreateObjectsWithACMSeries(t *testing.T) {
-
+	maxobjects := 300 //3000 note that this creates objects that may be referenced by other tests (e.g. TestListObjectsChild)
 	if testing.Short() || isCircleCI() {
 		t.Skip()
 	}
@@ -1791,7 +1791,7 @@ func TestCreateObjectsWithACMSeries(t *testing.T) {
 	}
 
 	prand := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for i := 0; i < 3000; i++ {
+	for i := 0; i < maxobjects; i++ {
 		clearance := clearances[prand.Intn(len(clearances))]
 		acm := `{"version":"2.1.0","classif":"` + clearance + `"`
 		if clearance != "u" {

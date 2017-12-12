@@ -88,7 +88,7 @@ func NewTLSClientConn(trustPath, certPath, keyPath, serverName, host, port strin
 
 // UseLocalFile returns a handle to either the .cached file or .uploaded file
 //  It is the caller's responsibility to close the file handle
-func UseLocalFile(logger zap.Logger, d CiphertextCache, rName FileId, cipherStartAt int64) (*os.File, int64, error) {
+func UseLocalFile(logger *zap.Logger, d CiphertextCache, rName FileId, cipherStartAt int64) (*os.File, int64, error) {
 	var cipherFile *os.File
 	var err error
 	var length int64
@@ -135,7 +135,7 @@ func UseLocalFile(logger zap.Logger, d CiphertextCache, rName FileId, cipherStar
 // It is better to do this than it is to stall while the file moves to S3.
 //
 // It is the CALLER's responsibility to close io.ReadCloser !!
-func useP2PFile(logger zap.Logger, zone CiphertextCacheZone, rName FileId, begin int64) (io.ReadCloser, error) {
+func useP2PFile(logger *zap.Logger, zone CiphertextCacheZone, rName FileId, begin int64) (io.ReadCloser, error) {
 	//Iterate over the current value of peerMap.  Do NOT lock this loop, as there is long IO in here.
 	connectionMapMutex.RLock()
 	thisMap := peerMap

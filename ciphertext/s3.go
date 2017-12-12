@@ -97,7 +97,7 @@ func NewS3CiphertextCache(zone CiphertextCacheZone, conf config.S3CiphertextCach
 	if config.DefaultBucket != "" {
 		permanentStorage = NewPermanentStorageData(sess, &config.DefaultBucket)
 	} else {
-		logger.Info("PermanentStorage is empty because there is no bucket name")
+		logger.Info("permanentstorage is empty because there is no bucket name")
 	}
 
 	d, err := NewCiphertextCacheRaw(zone, &conf, dbID, logger, permanentStorage)
@@ -114,14 +114,14 @@ func TestS3Connection(sess *session.Session) bool {
 	uploader := s3manager.NewUploader(sess)
 	bucketName := config.GetEnvOrDefault("OD_AWS_S3_BUCKET", "")
 	if bucketName == "" {
-		logger.Error("serviceTestError",
+		logger.Error("error testing s3 connection",
 			zap.String("err", "Missing environment variable OD_AWS_S3_BUCKET"))
 		return false
 	}
 	input := s3.GetBucketAclInput{Bucket: aws.String(bucketName)}
 	output, err := uploader.S3.GetBucketAcl(&input)
 	if err != nil {
-		logger.Error("serviceTestError", zap.String("err", err.Error()))
+		logger.Error("error testing s3 connection", zap.String("err", err.Error()))
 		return false
 	}
 	hasRead, hasWrite := false, false
@@ -138,9 +138,9 @@ func TestS3Connection(sess *session.Session) bool {
 		return true
 	}
 
-	logger.Error("serviceTestError",
+	logger.Error("error testing s3 connection",
 		zap.String("err", "Insufficient permissions on bucket"),
-		zap.Object("GetBucketAclOutput", output),
+		zap.Any("GetBucketAclOutput", output),
 	)
 	return false
 }

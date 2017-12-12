@@ -20,7 +20,8 @@ FORMAT: 1A
 ---------------------
 * ENH: Enriched Payload of Events to include more fields from object for change actions
 * REF: Changed imports to github.com/deciphernow/object-drive-server
-* REF: Changed references to vendored uber-zap to go.uber.org/zap
+* REF: Changed references to vendored uber-zap to go.uber.org/zap, upgraded to 1.7.1
+* ENH: Logging output changed to tab delimit timestamp, log level, message, and fields
 
 ## Release v1.0.11 (November 15, 2017)
 --------------------

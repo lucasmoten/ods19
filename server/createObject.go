@@ -458,13 +458,13 @@ func validateCreateObjectHeaders(r *http.Request) *AppError {
 	return nil
 }
 
-func removeOrphanedFile(logger zap.Logger, d ciphertext.CiphertextCache, contentConnector string) {
+func removeOrphanedFile(logger *zap.Logger, d ciphertext.CiphertextCache, contentConnector string) {
 	fileID := ciphertext.FileId(contentConnector)
 	uploadedName := ciphertext.NewFileName(fileID, ".uploaded")
 	orphanedName := ciphertext.NewFileName(fileID, ".orphaned")
 	var err error
 	if _, err := d.Files().Stat(d.Resolve(uploadedName)); os.IsNotExist(err) {
-		logger.Error("uploaded orphan file does not exist", zap.String("err", err.Error()))
+		logger.Info("file sent was not stored locally, no need to remove or rename")
 		return
 	}
 	if d != nil {

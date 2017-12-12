@@ -85,7 +85,7 @@ func (s *PermanentStorageLocalData) GetStream(key *string, begin, end int64) (io
 }
 
 // NewLocalCiphertextCache sets up a cache with default parameters overridden by environment variables
-func NewLocalCiphertextCache(logger zap.Logger, zone CiphertextCacheZone, conf config.S3CiphertextCacheOpts, dbID string) (*CiphertextCacheData, *util.Loggable) {
+func NewLocalCiphertextCache(logger *zap.Logger, zone CiphertextCacheZone, conf config.S3CiphertextCacheOpts, dbID string) (*CiphertextCacheData, *util.Loggable) {
 	//Create a permanent storage with all directories in it pre-created
 	var permanentStorage PermanentStorage
 	// This is S3 behavior - done before every insert.  Imitate it here.

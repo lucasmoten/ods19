@@ -79,18 +79,18 @@ func setACMPartFromInterface(ctx context.Context, obj *models.ODObject, acmKeySe
 	// Convert to string
 	newACM, err := utils.MarshalInterfaceToString(acmMap)
 	if err != nil {
-		return NewAppError(500, err, "Unable to update ACM")
+		return NewAppError(500, err, "unable to update acm")
 	}
 	normalizedNewACM, err := utils.NormalizeMarshalledInterface(newACM)
 	if err != nil {
-		return NewAppError(500, err, "Unable to normalize new ACM")
+		return NewAppError(500, err, "unable to normalize new acm")
 	}
 	normalizedOriginalACM, err := utils.NormalizeMarshalledInterface(obj.RawAcm.String)
 	if err != nil {
-		return NewAppError(500, err, "Unable to normalize original ACM")
+		return NewAppError(500, err, "unable to normalize original acm")
 	}
 	if strings.Compare(normalizedNewACM, normalizedOriginalACM) != 0 {
-		LoggerFromContext(ctx).Debug("Changing value of ACM", zap.String("original acm", obj.RawAcm.String), zap.String("normalized original acm", normalizedOriginalACM), zap.String("normalized new acm", normalizedNewACM))
+		LoggerFromContext(ctx).Debug("changing vlaue of acm", zap.String("original acm", obj.RawAcm.String), zap.String("normalized original acm", normalizedOriginalACM), zap.String("normalized new acm", normalizedNewACM))
 		obj.RawAcm.String = normalizedNewACM
 	}
 	return nil

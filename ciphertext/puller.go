@@ -27,7 +27,7 @@ const (
 //
 type Puller struct {
 	CiphertextCache *CiphertextCacheData `json:"-"`
-	Logger          zap.Logger           `json:"-"`
+	Logger          *zap.Logger          `json:"-"`
 	// TotalLen is total size of this range request - if known, determined by CipherStart,CipherStop
 	TotalLen int64
 	// CipherStart must be cipher block aligned... not necessarily what browser asked for (may be slightly lower)
@@ -57,7 +57,7 @@ type Puller struct {
 }
 
 // NewPuller prepares to start pulling ciphertexts.  This should now be the ONLY way to get them.
-func (d *CiphertextCacheData) NewPuller(logger zap.Logger, rName FileId, totalLength, cipherStartAt, cipherStopAt int64) (io.ReadCloser, bool, error) {
+func (d *CiphertextCacheData) NewPuller(logger *zap.Logger, rName FileId, totalLength, cipherStartAt, cipherStopAt int64) (io.ReadCloser, bool, error) {
 	key := toKey(string(d.Resolve(NewFileName(rName, ""))))
 	p := &Puller{
 		CiphertextCache: d,

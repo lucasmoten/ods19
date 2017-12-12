@@ -375,20 +375,20 @@ func (dao *DataAccessLayer) RebuildUserACMCache(useraocache *models.ODUserAOCach
 	var acmids []int64
 	if acmids, err = getACMIDsValidForUser(tx, user, mode); err != nil {
 		tx.Rollback()
-		dao.GetLogger().Error("rebuildUserACMCache had error getting list of matching ids", zap.Error(err))
+		dao.GetLogger().Error("rebuildUserACMCache had error getting list of matching ids", zap.String("err", err.Error()))
 		return err
 	}
 	acmidlist := sqlIntSeq(acmids)
 	// 2. Delete those which the user currently has associated that should not be anymore
 	if err = deleteInvalidUserACMs(tx, user, acmidlist); err != nil {
 		tx.Rollback()
-		dao.GetLogger().Error("rebuildUserACMCache error deleting existing user acms", zap.Error(err))
+		dao.GetLogger().Error("rebuildUserACMCache error deleting existing user acms", zap.String("err", err.Error()))
 		return err
 	}
 	// 3. Insert those that the user should have but currently dont
 	if err = insertUserACMList(tx, user, acmidlist); err != nil {
 		tx.Rollback()
-		dao.GetLogger().Error("rebuildUserACMCache error inserting useracms", zap.String("acmidlist", acmidlist), zap.Error(err))
+		dao.GetLogger().Error("rebuildUserACMCache error inserting useracms", zap.String("acmidlist", acmidlist), zap.String("err", err.Error()))
 		return err
 	}
 	tx.Commit()
@@ -402,7 +402,7 @@ func (dao *DataAccessLayer) RebuildUserACMCache(useraocache *models.ODUserAOCach
 	useraocache.IsCaching = false
 	if err = updateUserAOCache(dao, tx, useraocache); err != nil {
 		tx.Rollback()
-		dao.GetLogger().Error("rebuildUserACMCache error marking user cache as done", zap.Error(err))
+		dao.GetLogger().Error("rebuildUserACMCache error marking user cache as done", zap.String("err", err.Error()))
 		return err
 	}
 	tx.Commit()
@@ -415,7 +415,7 @@ func (dao *DataAccessLayer) RebuildUserACMCache(useraocache *models.ODUserAOCach
 func (dao *DataAccessLayer) AssociateUsersToNewACM(object models.ODObject, done chan bool) error {
 	defer func() { done <- true }()
 	if err := associateUsersToNewACM(dao, object, 0); err != nil {
-		dao.GetLogger().Error("associateUsersToNewACM encountered error", zap.Error(err))
+		dao.GetLogger().Error("associateUsersToNewACM encountered error", zap.String("err", err.Error()))
 		return err
 	}
 	return nil

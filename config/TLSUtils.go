@@ -43,11 +43,11 @@ func buildServerTLSConfig(caPath, certPath, keyPath string, clientCert bool, cip
 	}
 	switch minimumVersion {
 	case tls.VersionTLS10:
-		logger.Info("TLS MinVersion set", zap.String("ver", "1.0"))
+		logger.Info("tls minversion set", zap.String("ver", "1.0"))
 	case tls.VersionTLS11:
-		logger.Info("TLS MinVersion set", zap.String("ver", "1.1"))
+		logger.Info("tls minversion set", zap.String("ver", "1.1"))
 	case tls.VersionTLS12:
-		logger.Info("TLS MinVersion set", zap.String("ver", "1.2"))
+		logger.Info("tls minversion set", zap.String("ver", "1.2"))
 	}
 
 	return tls.Config{
@@ -87,15 +87,15 @@ func buildCipherSuites(CipherSuiteNames []string) []uint16 {
 			v := cipherValueConstLookup[CipherSuiteNames[i]]
 			clogger := logger.With(zap.String("suite", CipherSuiteNames[i]))
 			if v > 0 {
-				clogger.Info("Enabling cipher suite")
+				clogger.Info("enabling cipher suite")
 				cipherSuites = append(cipherSuites, v)
 			} else {
-				clogger.Warn("Cipher suite not known")
+				clogger.Info("cipher suite not known")
 			}
 		}
 	} else {
 		for key, value := range cipherValueConstLookup {
-			logger.Warn("Enabling cipher suite", zap.String("suite", key))
+			logger.Info("enabling cipher suite", zap.String("suite", key))
 			cipherSuites = append(cipherSuites, value)
 		}
 	}
@@ -109,7 +109,7 @@ func buildx509Identity(certFile string, keyFile string) []tls.Certificate {
 	certs, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		logger.Info(
-			"Error loading x509 Key Pair",
+			"error loading x509 key pair",
 			zap.String("err", err.Error()),
 			zap.String("certfile", certFile),
 			zap.String("keyfile", keyFile),
@@ -125,7 +125,7 @@ func buildx509Identity(certFile string, keyFile string) []tls.Certificate {
 // in the pool. If it is a folder, then all files in the folder are added to the pool.
 func buildCertPoolFromPath(filePath string, poolName string) *x509.CertPool {
 	flogger := logger.With(zap.String("filepath", filePath)).With(zap.String("pool", poolName))
-	flogger.Info("Preparing certificate pool")
+	flogger.Info("preparing certificate pool")
 	theCertPool := x509.NewCertPool()
 
 	// Open path indicated in configuration
@@ -174,14 +174,14 @@ func buildCertPoolFromPath(filePath string, poolName string) *x509.CertPool {
 // a certificate pool of trusted certificate authorities
 func addPEMFileToPool(PEMfile string, certPool *x509.CertPool) {
 	plogger := logger.With(zap.String("pem", PEMfile))
-	plogger.Info("Adding PEM file")
+	plogger.Info("adding pem file")
 	pem, err := ioutil.ReadFile(PEMfile)
 	if err != nil {
-		plogger.Error("Error reading PEM file", zap.String("err", err.Error()))
+		plogger.Error("error reading pem file", zap.String("err", err.Error()))
 		return
 	}
 	if ok := certPool.AppendCertsFromPEM(pem); !ok {
-		plogger.Error("Failed to append the PEM to the pool")
+		plogger.Error("failed to append the PEM to the pool")
 		return
 	}
 }

@@ -17,15 +17,15 @@ func (dao *DataAccessLayer) GetObject(object models.ODObject, loadProperties boo
 	defer util.Time("GetObject")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("could not begin transaction", zap.String("err", err.Error()))
 		return models.ODObject{}, err
 	}
 	dbObject, err := getObjectInTransaction(tx, object, loadProperties)
 	if err != nil {
 		if err != sql.ErrNoRows {
-			dao.GetLogger().Error("Error in GetObject", zap.String("err", err.Error()))
+			dao.GetLogger().Error("error in getobject", zap.String("err", err.Error()))
 		} else {
-			dao.GetLogger().Info("GetObject requested id not found", zap.String("id", hex.EncodeToString(object.ID)))
+			dao.GetLogger().Info("getobject requested id not found", zap.String("id", hex.EncodeToString(object.ID)))
 		}
 		tx.Rollback()
 	} else {

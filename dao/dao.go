@@ -40,7 +40,7 @@ type DAO interface {
 	GetChildObjectsWithPropertiesByUser(user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
 	GetDBState() (models.DBState, error)
 	GetGroupsForUser(user models.ODUser) (models.GroupSpaceResultset, error)
-	GetLogger() zap.Logger
+	GetLogger() *zap.Logger
 	GetObject(object models.ODObject, loadProperties bool) (models.ODObject, error)
 	GetObjectPermission(objectPermission models.ODObjectPermission) (models.ODObjectPermission, error)
 	GetObjectProperty(objectProperty models.ODObjectPropertyEx) (models.ODObjectPropertyEx, error)
@@ -82,7 +82,7 @@ type DataAccessLayer struct {
 	// MetadataDB is the connection.
 	MetadataDB *sqlx.DB
 	// Logger has a default, but can be updated by passing options to constructor.
-	Logger zap.Logger
+	Logger *zap.Logger
 	// ReadOnly denotes whether database is accepting changes
 	ReadOnly bool
 	// SchemaVersion indicates the database schema version
@@ -99,7 +99,7 @@ var _ DAO = (*DataAccessLayer)(nil)
 type Opt func(*DataAccessLayer)
 
 // WithLogger sets a custom logger on DataAccessLayer.
-func WithLogger(logger zap.Logger) Opt {
+func WithLogger(logger *zap.Logger) Opt {
 	return func(d *DataAccessLayer) {
 		d.Logger = logger
 	}
@@ -145,7 +145,7 @@ func defaults(d *DataAccessLayer, conf config.DatabaseConfiguration) {
 }
 
 // GetLogger is a logger, probably for this session
-func (d *DataAccessLayer) GetLogger() zap.Logger {
+func (d *DataAccessLayer) GetLogger() *zap.Logger {
 	return d.Logger
 }
 
@@ -169,16 +169,16 @@ func pingDB(d *DataAccessLayer) error {
 		attempts++
 		err = d.MetadataDB.Ping()
 		if err != nil {
-			logger.Info(fmt.Sprintf("Database not yet available, rechecking in %d seconds", sleep))
+			logger.Info(fmt.Sprintf("database not yet available, rechecking in %d seconds", sleep))
 		} else {
 			state, err = d.GetDBState()
 			switch {
 			case err != nil:
-				logger.Info(fmt.Sprintf("Database online but schema not yet populated. Rechecking in %d seconds", sleep))
+				logger.Info(fmt.Sprintf("database online but schema not yet populated. rechecking in %d seconds", sleep))
 			case state.SchemaVersion != SchemaVersion:
-				logger.Info(fmt.Sprintf("Database online with schema at version %s but expecting %s. Rechecking in %d seconds for pending migration.", state.SchemaVersion, SchemaVersion, sleep))
+				logger.Info(fmt.Sprintf("database online with schema at version %s but expecting %s. rechecking in %d seconds for pending migration", state.SchemaVersion, SchemaVersion, sleep))
 			case state.SchemaVersion == SchemaVersion:
-				logger.Info(fmt.Sprintf("Database online at schema version %s", SchemaVersion))
+				logger.Info(fmt.Sprintf("database online at schema version %s", SchemaVersion))
 				sleep = 0
 			}
 		}
@@ -203,7 +203,7 @@ func (d *DataAccessLayer) IsReadOnly(refresh bool) bool {
 		// Find out our schema
 		state, err := d.GetDBState()
 		if err != nil {
-			d.Logger.Warn("getting db state failed", zap.Error(err))
+			d.Logger.Info("getting db state failed", zap.String("err", err.Error()))
 		} else {
 			d.SchemaVersion = state.SchemaVersion
 			if d.SchemaVersion == SchemaVersion {
@@ -212,9 +212,9 @@ func (d *DataAccessLayer) IsReadOnly(refresh bool) bool {
 			afterReadOnly := d.ReadOnly
 			if beforeReadOnly != afterReadOnly {
 				if afterReadOnly {
-					d.Logger.Info(fmt.Sprintf("Database online with schema at version %s but expecting %s. Readonly = %t", d.SchemaVersion, SchemaVersion, afterReadOnly))
+					d.Logger.Info(fmt.Sprintf("database online with schema at version %s but expecting %s. readonly = %t", d.SchemaVersion, SchemaVersion, afterReadOnly))
 				} else {
-					d.Logger.Info(fmt.Sprintf("Database online with schema at version %s", d.SchemaVersion))
+					d.Logger.Info(fmt.Sprintf("database online with schema at version %s", d.SchemaVersion))
 				}
 			}
 		}

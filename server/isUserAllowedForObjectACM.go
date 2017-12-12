@@ -120,7 +120,7 @@ func isUserAllowedTo(ctx context.Context, obj *models.ODObject, requiredPermissi
 		// Skip if this this permission has invalid signature
 		if !models.EqualsPermissionMAC(masterKey, &permission) {
 			// Not valid. Log it
-			LoggerFromContext(ctx).Warn("Invalid mac on permission, skipping", zap.String("objectId", hex.EncodeToString(obj.ID)), zap.String("permissionId", hex.EncodeToString(permission.ID)), zap.String("grantee", permission.Grantee))
+			LoggerFromContext(ctx).Warn("invalid mac on permission, skipping", zap.String("objectId", hex.EncodeToString(obj.ID)), zap.String("permissionId", hex.EncodeToString(permission.ID)), zap.String("grantee", permission.Grantee))
 			continue
 		}
 

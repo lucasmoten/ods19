@@ -95,6 +95,6 @@ func (dao *DataAccessLayer) expungeDeletedByUserInTransactionMore(tx *sqlx.Tx, u
 	query += buildFilterRequireObjectsIOrMyGroupsOwn(tx, user)
 	query += buildFilterSortAndLimit(pagingRequest)
 	err = tx.Select(&response.Objects, query)
-	dao.GetLogger().Info("expungeDeletedByUserInTransactionMore", zap.Object("user", user), zap.Object("pagingRequest", pagingRequest), zap.Int("rows", len(response.Objects)))
+	dao.GetLogger().Info("expungeDeletedByUserInTransactionMore", zap.Any("user", user), zap.Any("pagingRequest", pagingRequest), zap.Int("rows", len(response.Objects)))
 	return response, err
 }

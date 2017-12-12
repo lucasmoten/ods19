@@ -1,6 +1,6 @@
 package server
 
-import "go.uber.org/zap"
+import "go.uber.org/zap/zapcore"
 
 // AppError encapsulates an error with a desired http status code so that the server
 // can issue the error code to the client.
@@ -25,10 +25,10 @@ import "go.uber.org/zap"
 //     }
 //
 type AppError struct {
-	Code   int         //the http error code to return with the msg
-	Error  error       //an error that is ONLY for the log.  showing to the user may be sensitive.
-	Msg    string      //message to show to the user, and in log
-	File   string      //origin file
-	Line   int         //origin line
-	Fields []zap.Field //Set of arguments for the msg so that msg can be constant
+	Code   int             //the http error code to return with the msg
+	Error  error           //an error that is ONLY for the log.  showing to the user may be sensitive.
+	Msg    string          //message to show to the user, and in log
+	File   string          //origin file
+	Line   int             //origin line
+	Fields []zapcore.Field //Set of arguments for the msg so that msg can be constant
 }

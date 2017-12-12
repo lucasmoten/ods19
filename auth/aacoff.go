@@ -15,7 +15,7 @@ import (
 
 // AACAuthOff is an Authorization implementation modeled on AAC in an offline / not-ready state.
 type AACAuthOff struct {
-	Logger zap.Logger
+	Logger *zap.Logger
 }
 
 const (
@@ -35,7 +35,7 @@ const (
 )
 
 // NewAACAuthOff is a helper that builds an AACAuthOff from a provided logger
-func NewAACAuthOff(logger zap.Logger) *AACAuthOff {
+func NewAACAuthOff(logger *zap.Logger) *AACAuthOff {
 	a := &AACAuthOff{Logger: logger}
 	return a
 }
@@ -151,7 +151,7 @@ func aacFlatten(inVal string) string {
 	}
 	return outVal
 }
-func aacGetGroupsFromSnippets(logger zap.Logger, snippets *acm.ODriveRawSnippetFields) []string {
+func aacGetGroupsFromSnippets(logger *zap.Logger, snippets *acm.ODriveRawSnippetFields) []string {
 	var groups []string
 	if snippets != nil {
 		for _, field := range snippets.Snippets {
@@ -163,7 +163,7 @@ func aacGetGroupsFromSnippets(logger zap.Logger, snippets *acm.ODriveRawSnippetF
 	}
 	return groups
 }
-func aacInjectPermissionsIntoACM(logger zap.Logger, permissions []models.ODObjectPermission, acm string) (string, error) {
+func aacInjectPermissionsIntoACM(logger *zap.Logger, permissions []models.ODObjectPermission, acm string) (string, error) {
 	var modifiedACM string
 	var err error
 	var emptyInterface interface{}
@@ -246,7 +246,7 @@ func aacInjectPermissionsIntoACM(logger zap.Logger, permissions []models.ODObjec
 func aacIsPermissionFor(permission models.ODObjectPermission, grantee string) bool {
 	return aacFlatten(permission.Grantee) == aacFlatten(grantee)
 }
-func aacIsUserOwner(logger zap.Logger, userIdentity string, resourceStrings []string, objectOwner string) bool {
+func aacIsUserOwner(logger *zap.Logger, userIdentity string, resourceStrings []string, objectOwner string) bool {
 	// No User (Anonymous)
 	if userIdentity == "" {
 		return false
@@ -272,7 +272,7 @@ func aacIsUserOwner(logger zap.Logger, userIdentity string, resourceStrings []st
 // aacNormalizePermissionsFromACM takes an ACM, merges the permissions into the passed-in permissions slice,
 // and guarantees that objectOwner retains full CRUDS in the returned permissions.
 // Takes permissions, maps to a format that matches the "share" key in the ACM.
-func aacNormalizePermissionsFromACM(logger zap.Logger, objectOwner string, permissions []models.ODObjectPermission, acm string, isCreating bool) ([]models.ODObjectPermission, string, error) {
+func aacNormalizePermissionsFromACM(logger *zap.Logger, objectOwner string, permissions []models.ODObjectPermission, acm string, isCreating bool) ([]models.ODObjectPermission, string, error) {
 	var modifiedPermissions []models.ODObjectPermission
 	var modifiedACM string
 	var err error
@@ -368,7 +368,7 @@ func aacNormalizePermissionsFromACM(logger zap.Logger, objectOwner string, permi
 
 // aacRebuildACMFromPermissions deletes existing share key from ACM, and overwrites with
 // the passed-in permissions slice.
-func aacRebuildACMFromPermissions(logger zap.Logger, permissions []models.ODObjectPermission, acm string) (string, error) {
+func aacRebuildACMFromPermissions(logger *zap.Logger, permissions []models.ODObjectPermission, acm string) (string, error) {
 	var modifiedACM string
 	var err error
 	// Convert to an addressable map

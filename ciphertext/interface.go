@@ -38,7 +38,7 @@ type CiphertextCache interface {
 	// Writeback moves files from the cache into some kind of permanent storage (the drain)
 	Writeback(rName FileId, size int64) error
 	// NewPuller creates a virtual io.ReadCloser that pulls from PermanentStorage
-	NewPuller(logger zap.Logger, rName FileId, totalLength, cipherStartAt, cipherStopAt int64) (io.ReadCloser, bool, error)
+	NewPuller(logger *zap.Logger, rName FileId, totalLength, cipherStartAt, cipherStopAt int64) (io.ReadCloser, bool, error)
 	// PermanentStorage handles reads and writes out of the cache
 	GetPermanentStorage() PermanentStorage
 	// CacheInventory gives a text listing of work outstanding before we can safely terminate

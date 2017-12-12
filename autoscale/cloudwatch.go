@@ -10,13 +10,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	linuxproc "github.com/c9s/goprocinfo/linux"
 	"github.com/deciphernow/object-drive-server/amazon"
 	"github.com/deciphernow/object-drive-server/config"
 	"github.com/deciphernow/object-drive-server/performance"
 	"github.com/deciphernow/object-drive-server/util"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	linuxproc "github.com/c9s/goprocinfo/linux"
 	"go.uber.org/zap"
 )
 
@@ -72,6 +72,7 @@ func CloudWatchDump(w io.Writer) {
 	}
 }
 
+// CloudWatchTransaction wraps CloudWatchTransactionRaw with start/stop and bytes
 func CloudWatchTransaction(start, stop int64, tracker *performance.JobReporters) {
 	bytes := tracker.GetUploadDownloadByteTotal()
 	CloudWatchTransactionRaw(start, stop, bytes)
@@ -101,11 +102,11 @@ func CloudWatchStartInterval(tracker *performance.JobReporters, now int64) {
 }
 
 // log debug info to cloudwatch that you can see if you sdet log level to debug
-func logMetricDatum(logger zap.Logger, d *cloudwatch.MetricDatum) {
+func logMetricDatum(logger *zap.Logger, d *cloudwatch.MetricDatum) {
 	logger.Debug(
 		"cloudwatch datum",
 		zap.String("MetricName", *d.MetricName),
-		zap.Object("Dimensions", d.Dimensions),
+		zap.Any("Dimensions", d.Dimensions),
 		zap.String("Timestamp", fmt.Sprintf("%v", *d.Timestamp)),
 		zap.String("Unit", *d.Unit),
 		zap.Float64("Value", *d.Value),
@@ -113,7 +114,7 @@ func logMetricDatum(logger zap.Logger, d *cloudwatch.MetricDatum) {
 }
 
 // GetProcStat gives us info required to compute cpu utilization related stats
-func GetProcStat(logger zap.Logger) *linuxproc.Stat {
+func GetProcStat(logger *zap.Logger) *linuxproc.Stat {
 	//You can only compute a cpu percentage relative to a previous reading.  So this is the one that starts the interval.
 	var err error
 	prevStat, err := linuxproc.ReadStat("/proc/stat")
@@ -134,7 +135,7 @@ type LoadAvgStat struct {
 }
 
 // GetLoadAvgStat gives us the info required to compute load average (same as top)
-func GetLoadAvgStat(logger zap.Logger) *LoadAvgStat {
+func GetLoadAvgStat(logger *zap.Logger) *LoadAvgStat {
 	var err error
 	f, err := os.Open("/proc/loadavg")
 	if err != nil {

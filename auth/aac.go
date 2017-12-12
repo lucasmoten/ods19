@@ -33,13 +33,13 @@ const (
 
 // AACAuth is an Authorization implementation backed by the AAC Service.
 type AACAuth struct {
-	Logger  zap.Logger
+	Logger  *zap.Logger
 	Service aac.AacService
 	Version string
 }
 
 // NewAACAuth is a helper that builds an AACAuth from a provided logger and service connection
-func NewAACAuth(logger zap.Logger, service aac.AacService) *AACAuth {
+func NewAACAuth(logger *zap.Logger, service aac.AacService) *AACAuth {
 	a := &AACAuth{Logger: logger, Service: service, Version: "1.1"}
 	// lm - Set AAC version based upon announcement point info, otherwise continue to assume 1.1
 	AACAnnouncementPoint := os.Getenv(config.OD_ZK_AAC)
@@ -67,26 +67,26 @@ func (aac *AACAuth) GetAttributesForUser(userIdentity string) (*acm.ODriveUserAt
 
 	// Process response
 	if getUserAttributesError != nil {
-		aac.Logger.Error("Error calling AAC.GetUserAttributes", zap.String("err", getUserAttributesError.Error()))
+		aac.Logger.Warn("error calling aac.getuserattributes", zap.String("err", getUserAttributesError.Error()))
 		return nil, ErrFailToRetrieveAttributes
 	}
 	if getUserAttributesResponse == nil {
-		aac.Logger.Error("Error calling AAC.GetUserAttributes", zap.String("getUserAttributesResponse", "nil"))
+		aac.Logger.Warn("error calling aac.getuserattributes", zap.String("getUserAttributesResponse", "nil"))
 		return nil, ErrServiceNoResponse
 	}
 	for _, msg := range getUserAttributesResponse.Messages {
-		aac.Logger.Info("AAC.GetUserAttributes response", zap.String("message", msg))
+		aac.Logger.Info("aac.getuserattributes response", zap.String("message", msg))
 	}
 	msgsString := strings.Join(getUserAttributesResponse.Messages, "/")
 	if !getUserAttributesResponse.Success {
-		aac.Logger.Error("AAC.GetUserAttributes failed", zap.Bool("success", getUserAttributesResponse.Success))
+		aac.Logger.Info("aac.getuserattributes failed", zap.Bool("success", getUserAttributesResponse.Success))
 		return nil, fmt.Errorf("%s %s", ErrServiceNotSuccessful.Error(), msgsString)
 	}
 
 	// Convert to ODrive User Attributes
 	convertedAttributes, convertedAttributesError := acm.NewODriveAttributesFromAttributeResponse(getUserAttributesResponse.UserAttributes)
 	if convertedAttributesError != nil {
-		aac.Logger.Error("Convert attributes to object failed", zap.String("err", convertedAttributesError.Error()))
+		aac.Logger.Info("convert attributes to object failed", zap.String("err", convertedAttributesError.Error()))
 		return nil, convertedAttributesError
 	}
 
@@ -111,32 +111,32 @@ func (aac *AACAuth) GetFlattenedACM(acm string) (string, []string, error) {
 
 	// Process response
 	if acmResponseError != nil {
-		aac.Logger.Error("Error calling AAC.PopulateAndValidateAcm", zap.String("err", acmResponseError.Error()))
+		aac.Logger.Warn("error calling aac.populateandvalidateacm", zap.String("err", acmResponseError.Error()))
 		return acm, nil, ErrFailToFlattenACM
 	}
 	if acmResponse == nil {
-		aac.Logger.Error("Error calling AAC.PopulateAndValidateAcm", zap.String("acmResponse", "nil"))
+		aac.Logger.Warn("error calling aac.populateandvalidateacm", zap.String("acmResponse", "nil"))
 		return acm, nil, ErrServiceNoResponse
 	}
 	for _, msg := range acmResponse.Messages {
-		aac.Logger.Info("Message in AAC.PopulateAndValidateAcm", zap.String("message", msg))
+		aac.Logger.Info("message in aac.populateandvalidateacm", zap.String("message", msg))
 	}
 
 	if !acmResponse.Success {
-		aac.Logger.Error("AAC.PopulateAndValidateAcm failed", zap.Bool("success", acmResponse.Success), zap.String("acm", acm))
+		aac.Logger.Info("aac.populateandvalidateacm failed", zap.Bool("success", acmResponse.Success), zap.String("acm", acm))
 		return acm, acmResponse.Messages, ErrACMResponseFailed
 	}
 	if !acmResponse.AcmValid {
-		aac.Logger.Error("AAC.PopulateAndValidateAcm failed", zap.Bool("valid", acmResponse.AcmValid))
+		aac.Logger.Info("aac.populateandvalidateacm failed", zap.Bool("valid", acmResponse.AcmValid))
 		return acm, acmResponse.Messages, ErrACMNotValid
 	}
 	if acmResponse.AcmInfo == nil {
-		aac.Logger.Error("AAC.PopulateAndValidateAcm failed", zap.String("acmInfo", "nil"))
+		aac.Logger.Info("aac.populateandvalidateacm failed", zap.String("acmInfo", "nil"))
 		return acm, acmResponse.Messages, ErrServiceNotSuccessful
 	}
 
 	// If passed all conditions, acm is flattened
-	aac.Logger.Debug("AAC.PopulateAndValidateACM success", zap.String("before-acm", acm), zap.String("after-acm", acmResponse.AcmInfo.Acm))
+	aac.Logger.Debug("aac.populateandvalidateacm success", zap.String("before-acm", acm), zap.String("after-acm", acmResponse.AcmInfo.Acm))
 	return acmResponse.AcmInfo.Acm, acmResponse.Messages, nil
 }
 
@@ -174,24 +174,24 @@ func (aac *AACAuth) GetSnippetsForUser(userIdentity string) (*acm.ODriveRawSnipp
 
 	// Process response
 	if getSnippetsError != nil {
-		aac.Logger.Error("Error calling AAC.GetSnippets", zap.String("err", getSnippetsError.Error()))
+		aac.Logger.Warn("error calling aac.getsnippets", zap.String("err", getSnippetsError.Error()))
 		return nil, ErrFailToRetrieveSnippets
 	}
 	if getSnippetsResponse == nil {
-		aac.Logger.Error("Error calling AAC.GetSnippets", zap.String("getSnippetsResponse", "nil"))
+		aac.Logger.Warn("error calling aac.getsnippets", zap.String("getSnippetsResponse", "nil"))
 		return nil, ErrServiceNoResponse
 	}
 	for _, msg := range getSnippetsResponse.Messages {
-		aac.Logger.Info("AAC.GetSnippets response", zap.String("message", msg))
+		aac.Logger.Info("aac.getsnippets response", zap.String("message", msg))
 	}
 	msgsString := strings.Join(getSnippetsResponse.Messages, "/")
 	if !getSnippetsResponse.Success {
-		aac.Logger.Error("AAC.GetSnippets failed", zap.Bool("success", getSnippetsResponse.Success))
+		aac.Logger.Info("aac.getsnippets failed", zap.Bool("success", getSnippetsResponse.Success))
 		return nil, fmt.Errorf("%s %s", ErrServiceNotSuccessful.Error(), msgsString)
 	}
 	if aac.Version == "1.1" {
 		if !getSnippetsResponse.Found {
-			aac.Logger.Error("AAC.GetSnippets failed", zap.Bool("found", getSnippetsResponse.Found))
+			aac.Logger.Info("aac.getsnippets failed", zap.Bool("found", getSnippetsResponse.Found))
 			return nil, fmt.Errorf("%s %s", ErrServiceNotSuccessful.Error(), msgsString)
 		}
 	}
@@ -199,7 +199,7 @@ func (aac *AACAuth) GetSnippetsForUser(userIdentity string) (*acm.ODriveRawSnipp
 	// Convert to Snippet Fields
 	convertedSnippets, convertedSnippetsError := acm.NewODriveRawSnippetFieldsFromSnippetResponse(getSnippetsResponse.Snippets)
 	if convertedSnippetsError != nil {
-		aac.Logger.Error("Convert snippets to fields failed", zap.String("err", convertedSnippetsError.Error()))
+		aac.Logger.Error("convert snippets to fields failed", zap.String("err", convertedSnippetsError.Error()))
 		return nil, convertedSnippetsError
 	}
 
@@ -238,23 +238,23 @@ func (aac *AACAuth) IsUserAuthorizedForACM(userIdentity string, acm string) (boo
 	// Call AAC Service.
 	resp, err := aac.Service.CheckAccess(userIdentity, tokenType, flattenedACM)
 	if err != nil {
-		aac.Logger.Error("error calling AAC.CheckAccess", zap.String("err", err.Error()))
+		aac.Logger.Warn("error calling aac.checkaccess", zap.String("err", err.Error()))
 		return false, ErrFailToCheckUserAccess
 	}
 	if resp == nil {
-		aac.Logger.Error("error calling AAC.CheckAccess", zap.String("response", "nil"))
+		aac.Logger.Warn("error calling aac.checkaccess", zap.String("response", "nil"))
 		return false, ErrServiceNoResponse
 	}
 	for _, msg := range resp.Messages {
-		aac.Logger.Info("Message in AAC.CheckAccess Response", zap.String("message", msg))
+		aac.Logger.Info("message in aac.checkaccess response", zap.String("message", msg))
 	}
 	msgsString := strings.Join(resp.Messages, "/")
 	if !resp.Success {
-		aac.Logger.Error("AAC.CheckAccess failed", zap.Bool("success", resp.Success))
+		aac.Logger.Info("aac.checkaccess failed", zap.Bool("success", resp.Success))
 		return false, fmt.Errorf("%s %s", ErrServiceNotSuccessful.Error(), msgsString)
 	}
 	if !resp.HasAccess {
-		aac.Logger.Error("AAC.CheckAccess failed", zap.Bool("hasAccess", resp.HasAccess))
+		aac.Logger.Info("aac.checkaccess failed", zap.Bool("hasAccess", resp.HasAccess))
 		return false, fmt.Errorf("%s %s", ErrUserNotAuthorized.Error(), msgsString)
 	}
 

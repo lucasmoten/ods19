@@ -121,23 +121,23 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 	// If no user ao cache yet ..
 	if err != nil {
 		if err == sql.ErrNoRows {
-			logger.Info("User AO Cache will be built because it does not exist", zap.String("dn", caller.DistinguishedName), zap.String("userdn", user.DistinguishedName))
+			logger.Info("user ao cache will be built because it does not exist", zap.String("dn", caller.DistinguishedName), zap.String("userdn", user.DistinguishedName))
 			rebuild = true
 			useraocache.UserID = user.ID
 		} else {
 			// Unrecoverable error
-			logger.Warn("unable to get user ao cache", zap.Error(err), zap.String("dn", caller.DistinguishedName))
+			logger.Warn("unable to get user ao cache", zap.String("err", err.Error()), zap.String("dn", caller.DistinguishedName))
 			return err
 		}
 	} else {
 		// If hash isn't the same...
 		if useraocache.SHA256Hash != snippetHash {
 			if !useraocache.IsCaching {
-				logger.Info("User AO Cache will be built because the hash of the snippets changed", zap.String("dn", caller.DistinguishedName), zap.String("userdn", user.DistinguishedName), zap.String("oldhash", useraocache.SHA256Hash), zap.String("newhash", snippetHash))
+				logger.Info("user ao cache will be built because the hash of the snippets changed", zap.String("dn", caller.DistinguishedName), zap.String("userdn", user.DistinguishedName), zap.String("oldhash", useraocache.SHA256Hash), zap.String("newhash", snippetHash))
 				rebuild = true
 			} else {
 				// another process is doing this work..
-				logger.Warn("Cache is already being rebuilt for change to hash", zap.String("dn", caller.DistinguishedName))
+				logger.Info("cache is already being rebuilt for change to hash", zap.String("dn", caller.DistinguishedName))
 			}
 		} else {
 			// hash is the same, see if caching
@@ -145,10 +145,10 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 				// if caching and older than 2 minutes ...
 				if time.Since(useraocache.CacheDate.Time).Minutes() > 2.0 {
 					// something may be wrong (or else we're going to create a race condition)
-					logger.Warn("Cache rebuild for user took longer then 2 minutes. Rebuilding", zap.String("dn", caller.DistinguishedName))
+					logger.Warn("cache rebuild for user took longer then 2 minutes. Rebuilding", zap.String("dn", caller.DistinguishedName))
 					rebuild = true
 				} else {
-					logger.Warn("Cache being rebuilt for same hash but has not exceeded 2 minute", zap.String("dn", caller.DistinguishedName))
+					logger.Info("cache being rebuilt for same hash but has not exceeded 2 minute", zap.String("dn", caller.DistinguishedName))
 				}
 			}
 		}
@@ -163,23 +163,23 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 		useraocache.SHA256Hash = snippetHash
 		// Random delay and recheck
 		if isUserAOCacheBeingBuilt(dao, user, useraocache) {
-			logger.Info("Peer cache rebuild happening in parallel. Skipping")
+			logger.Info("peer cache rebuild happening in parallel. skipping")
 		} else {
 			// Save the cache definition
-			logger.Info("Saving user cache placeholder")
+			logger.Info("saving user cache placeholder")
 			if err := dao.SetUserAOCacheByDistinguishedName(&useraocache, user); err != nil {
-				logger.Warn("error saving user ao cache", zap.Error(err))
+				logger.Warn("error saving user ao cache", zap.String("err", err.Error()))
 				return err
 			}
 			// With user attributes, add grantees (and resulting keys) for missing project/groups
 			aacAuth := auth.NewAACAuth(logger, h.AAC)
-			logger.Info("Getting user attributes to base cache on")
+			logger.Info("getting user attributes to base cache on")
 			userAttributes, err := aacAuth.GetAttributesForUser(caller.UserDistinguishedName)
 			if err != nil {
-				logger.Warn("error retrieving user attributes", zap.Error(err))
+				logger.Warn("error retrieving user attributes", zap.String("err", err.Error()))
 				return err
 			}
-			logger.Info("Adding necessary groups")
+			logger.Info("adding necessary groups")
 			for _, diasProject := range userAttributes.DIASUserGroups.Projects {
 				if len(strings.TrimSpace(diasProject.Name)) == 0 {
 					logger.Warn("dias project name is empty, skipping")
@@ -193,7 +193,7 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 					resourceName := fmt.Sprintf("group/%s/%s", diasProject.Name, groupName)
 					acmGrantee := models.NewODAcmGranteeFromResourceName(resourceName)
 					if _, err := h.RootDAO.CreateAcmGrantee(acmGrantee); err != nil {
-						logger.Warn("error saving new acmgrantee", zap.Error(err), zap.String("acmGrantee", acmGrantee.ResourceName()), zap.String("grantee", acmGrantee.Grantee), zap.String("diasProject", diasProject.Name), zap.String("diasProject.Group", groupName))
+						logger.Warn("error saving new acmgrantee", zap.String("err", err.Error()), zap.String("acmGrantee", acmGrantee.ResourceName()), zap.String("grantee", acmGrantee.Grantee), zap.String("diasProject", diasProject.Name), zap.String("diasProject.Group", groupName))
 						continue
 					}
 				}
@@ -204,7 +204,7 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 			if method, ok := RequestMethodFromContext(ctx); ok && method == "GET" {
 				if uri, ok := RequestURIFromContext(ctx); ok && h.Routes.Objects.RX.MatchString(uri) {
 					done := make(chan bool, 1)
-					logger.Info("Building initial user cache for userroot")
+					logger.Info("building initial user cache for userroot")
 					dao.RebuildUserACMCache(&useraocache, user, done, "userroot")
 					built = true
 					runasync = true
@@ -212,7 +212,7 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 			}
 			// Full rebuild
 			if runasync {
-				logger.Info("Building full user cache asynchronously")
+				logger.Info("building full user cache asynchronously")
 				built = true
 				go func() {
 					done := make(chan bool)
@@ -222,16 +222,16 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 					for {
 						select {
 						case <-timeout:
-							logger.Warn("CheckUserAOCache call to RebuildUserACMCache timed out")
+							logger.Warn("checkuseraocache call to rebuilduseracmcache timed out")
 							return
 						case <-done:
-							logger.Info("Asynchronous cache build completed")
+							logger.Info("asynchronous cache build completed")
 							return
 						}
 					}
 				}()
 			} else {
-				logger.Info("Building full user cache synchronously")
+				logger.Info("building full user cache synchronously")
 				done := make(chan bool, 1)
 				dao.RebuildUserACMCache(&useraocache, user, done, "")
 				built = true
@@ -242,7 +242,7 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 	if rebuild {
 		for !built && isUserAOCacheBeingBuilt(dao, user, useraocache) {
 			if time.Since(timein).Seconds() > 40.0 {
-				return fmt.Errorf("CheckUserAOCache waiting for cache being built until ready timed out")
+				return fmt.Errorf("checkuseraocache waiting for cache being built until ready timed out")
 			}
 		}
 	}

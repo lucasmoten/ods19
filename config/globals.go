@@ -3,6 +3,7 @@ package config
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/deciphernow/object-drive-server/util"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var (
@@ -23,7 +25,7 @@ var (
 	// By default, the logger used in config package is the RootLogger
 	logger = RootLogger
 
-	// We need to know if we are seeing our own IP in some cases
+	// MyIP gives the IP to expose
 	MyIP = lookupOurIP()
 )
 
@@ -34,8 +36,14 @@ func RandomID() string {
 	return hex.EncodeToString(buf)
 }
 
-func initLogger() zap.Logger {
-	var lvl zap.Option
+// TimeEncoder is a custom encoder for zap.logging in RFC3339Nano format
+func TimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+	enc.AppendString(t.Format(time.RFC3339Nano))
+}
+
+// initLogger sets up the logger
+func initLogger() *zap.Logger {
+	var lvl zapcore.Level
 	switch getEnvOrDefaultInt(OD_LOG_LEVEL, 0) {
 	case -1:
 		lvl = zap.DebugLevel
@@ -48,21 +56,33 @@ func initLogger() zap.Logger {
 	default:
 		lvl = zap.InfoLevel
 	}
+	atomiclvl := zap.NewAtomicLevelAt(lvl)
 
-	// Create a formatter that takes name, zone, example as format
-	tf := func() zap.TimeFormatter {
-		return zap.TimeFormatter(func(t time.Time) zap.Field {
-			return zap.String("tstamp", t.Format(time.RFC3339Nano))
-		})
+	cfg := zap.Config{
+		Level:       atomiclvl,
+		Development: true,
+		Encoding:    "console", // currently have to use `console` instead of `json` due to flaws in implementation
+		EncoderConfig: zapcore.EncoderConfig{
+			TimeKey:        "tstamp",
+			LevelKey:       "level",
+			NameKey:        "logger",
+			CallerKey:      "caller",
+			MessageKey:     "msg",
+			StacktraceKey:  "stacktrace",
+			EncodeLevel:    zapcore.CapitalLevelEncoder,
+			EncodeTime:     TimeEncoder,
+			EncodeDuration: zapcore.StringDurationEncoder,
+		},
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stderr"},
+	}
+	log, err := cfg.Build()
+	if err != nil {
+		fmt.Println(err)
+		panic("logging config had an error")
 	}
 
-	logger := zap.New(
-		zap.NewJSONEncoder(tf()),
-		lvl,
-		zap.Output(os.Stdout),
-		zap.ErrorOutput(os.Stdout)).With(zap.String("node", NodeID))
-
-	return logger
+	return log
 }
 
 func lookupOurIP() string {
@@ -91,14 +111,14 @@ func GetEnvOrDefaultInt(name string, defaultValue int) int {
 	return getEnvOrDefaultIntLogged(RootLogger, name, defaultValue)
 }
 
-func getEnvOrDefaultIntLogged(logger zap.Logger, name string, defaultValue int) int {
+func getEnvOrDefaultIntLogged(logger *zap.Logger, name string, defaultValue int) int {
 	envVal := os.Getenv(name)
 	if len(envVal) == 0 {
 		return defaultValue
 	}
 	i, err := strconv.Atoi(envVal)
 	if err != nil {
-		logger.Warn(
+		logger.Info(
 			"Environment variable did not parse as an int, so was given a default value",
 			zap.String("name", name),
 		)

@@ -273,10 +273,10 @@ func trackAnnouncementsLoop(z *ZKState, at string, handler AnnounceHandler) {
 					zlogger.Info(
 						"zk object-drive announcements are empty.  re-announcing.",
 					)
-					doReAnnouncements(z, logger)
+					doReAnnouncements(z, zlogger)
 				}
 				if ok {
-					zlogger.Info("zk membership change", zap.Object("announcements", announcements))
+					zlogger.Info("zk membership change", zap.Any("announcements", announcements))
 					if handler != nil {
 						handler(at, announcements)
 					}
@@ -308,7 +308,7 @@ func doZkCleanup(oldConnection *zk.Conn) {
 	oldConnection.Close()
 }
 
-func doZkRecovery(z *ZKState, zlogger zap.Logger) bool {
+func doZkRecovery(z *ZKState, zlogger *zap.Logger) bool {
 	ok := false
 	// Just try to re-announce - this almost always works (pauses and restarts of zk)
 	zlogger.Error("zk recover")
@@ -359,7 +359,7 @@ func isZKOk(err error) bool {
 }
 
 // ServiceStop will shut down our zookeeper connections, so that we don't get new work.
-func ServiceStop(zkState *ZKState, protocol string, logger zap.Logger) {
+func ServiceStop(zkState *ZKState, protocol string, logger *zap.Logger) {
 	logger.Info("zk terminating")
 	zkState.IsTerminated = true
 	path := zkState.registeredPath + "/" + protocol + "/" + globalconfig.NodeID
@@ -377,7 +377,7 @@ func ServiceStop(zkState *ZKState, protocol string, logger zap.Logger) {
 }
 
 // try to fix it. if anything goes wrong, we try again.
-func doReAnnouncements(zkState *ZKState, logger zap.Logger) error {
+func doReAnnouncements(zkState *ZKState, logger *zap.Logger) error {
 	if zkState.IsTerminated {
 		return nil
 	}
@@ -387,7 +387,7 @@ func doReAnnouncements(zkState *ZKState, logger zap.Logger) error {
 		err := ServiceReAnnouncement(zkState, a.protocol, a.stat, a.host, a.port)
 		if isZKOk(err) == false {
 			logger.Error(
-				"zk re announce service", zap.Object("reannouncement", a), zap.String("err", err.Error()),
+				"zk re announce service", zap.Any("reannouncement", a), zap.String("err", err.Error()),
 			)
 			returnErr = err
 		}

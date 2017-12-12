@@ -16,8 +16,8 @@ import (
 	"github.com/deciphernow/commons/gov/encryptor"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
-	"go.uber.org/zap"
 	"github.com/urfave/cli"
+	"go.uber.org/zap"
 )
 
 var (
@@ -594,9 +594,13 @@ func (r *DatabaseConfiguration) buildDSN() string {
 		}
 	}
 	logDSN := dbDSN
-	logDSN = strings.Replace(logDSN, r.Password, "{password}", -1)
-	logDSN = strings.Replace(logDSN, r.Username, "{username}", -1)
-	logger.Info("Using this connection string", zap.String("dbdsn", logDSN))
+	if len(r.Password) > 0 {
+		logDSN = strings.Replace(logDSN, r.Password, "{password}", -1)
+	}
+	if len(r.Username) > 0 {
+		logDSN = strings.Replace(logDSN, r.Username, "{username}", -1)
+	}
+	logger.Info("using this connection string", zap.String("dbdsn", logDSN))
 	return dbDSN
 }
 

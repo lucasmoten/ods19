@@ -32,7 +32,7 @@ func NewODriveAttributesFromAttributeResponse(userattributes string) (ODriveUser
 	if strings.HasPrefix(userattributes, `{\`) {
 		unquotedAttributes, err = strconv.Unquote(userattributes)
 		if err != nil {
-			logger.Error("acm attributes unquoting error", zap.Object("attributes", userattributes), zap.Object("err", err.Error()))
+			logger.Error("acm attributes unquoting error", zap.String("attributes", userattributes), zap.String("err", err.Error()))
 			return userAttributes, err
 		}
 	}
@@ -40,7 +40,7 @@ func NewODriveAttributesFromAttributeResponse(userattributes string) (ODriveUser
 	jsonIOReader := bytes.NewBufferString(unquotedAttributes)
 	err = (json.NewDecoder(jsonIOReader)).Decode(&userAttributes)
 	if err != nil {
-		logger.Error("acm attributes unparseable", zap.Object("attributes", unquotedAttributes))
+		logger.Error("acm attributes unparseable", zap.String("attributes", unquotedAttributes))
 		return userAttributes, err
 	}
 
