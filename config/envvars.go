@@ -11,6 +11,7 @@ const (
 	OD_AAC_CA                        = "OD_AAC_CA"
 	OD_AAC_CERT                      = "OD_AAC_CERT"
 	OD_AAC_CN                        = "OD_AAC_CN"
+	OD_AAC_HEALTHCHECK               = "OD_AAC_HEALTHCHECK"
 	OD_AAC_HOST                      = "OD_AAC_HOST"
 	OD_AAC_KEY                       = "OD_AAC_KEY"
 	OD_AAC_PORT                      = "OD_AAC_PORT"
@@ -86,6 +87,7 @@ const (
 var Vars = []string{OD_AAC_CA,
 	OD_AAC_CERT,
 	OD_AAC_CN,
+	OD_AAC_HEALTHCHECK,
 	OD_AAC_HOST,
 	OD_AAC_KEY,
 	OD_AAC_PORT,

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -1823,4 +1824,58 @@ func acmseriesfield(fieldname string, maxvals int, valueset []string) string {
 	}
 	response += `]`
 	return response
+}
+
+func TestUploadFileBeforeMetadata1020(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+	method := "POST"
+	uri := mountPoint + "/objects"
+	ghodsissue1020 := `
+--7518615725
+Content-Disposition: form-data; name="filestream"; filename="testfile1020.txt"
+Content-Type: application/octet-stream
+
+file before metadata
+--7518615725
+Content-Disposition: form-data; name="ObjectMetadata"
+Content-Type: application/json
+
+{
+	"typeName": "File",
+	"name": "testfile1020.txt",
+	"description": "Description here",
+	"acm": {
+	"classif": "U",
+	"version": "2.1.0"
+	},
+	"contentType": "text",
+	"contentSize": "20",
+	"containsUSPersonsData": "No",
+	"exemptFromFOIA": "No"
+}
+
+--7518615725--
+	
+	`
+	t.Logf(`* Attempt to upload file content before metadata`)
+	var requestBuffer *bytes.Buffer
+	requestBuffer = bytes.NewBufferString(ghodsissue1020)
+	req, err := http.NewRequest(method, uri, requestBuffer)
+	if err != nil {
+		t.Logf("Error setting up HTTP request: %v", err)
+		t.FailNow()
+	}
+	req.Header.Set("Content-Type", "multipart/form-data; boundary=7518615725")
+	createObjectRes, err := clients[tester10].Client.Do(req)
+	defer util.FinishBody(createObjectRes.Body)
+	t.Logf("* Processing Response")
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 400, createObjectRes, "Bad status when creating object")
+	data, _ := ioutil.ReadAll(createObjectRes.Body)
+	t.Logf("* Length of data is %d", len(data))
+	t.Logf("* Output is %s", string(data))
 }

@@ -50,6 +50,8 @@ type AACConfiguration struct {
 	ClientCert string `yaml:"cert"`
 	// ClientKey is the path to a PEM encoded private key.
 	ClientKey string `yaml:"key"`
+	// Healthcheck is an ACM expected to pass validation
+	HealthCheck string `yaml:"healthcheck"`
 	// Hostname is the hostname of the AAC service
 	HostName string `yaml:"hostname"`
 	// Port is the port AAC is listening on.
@@ -265,6 +267,9 @@ func NewAACSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) AACC
 	conf.CAPath = cascade(OD_AAC_CA, confFile.AACSettings.CAPath, "")
 	conf.ClientCert = cascade(OD_AAC_CERT, confFile.AACSettings.ClientCert, "")
 	conf.ClientKey = cascade(OD_AAC_KEY, confFile.AACSettings.ClientKey, "")
+
+	// Healthcheck
+	conf.HealthCheck = cascade(OD_AAC_HEALTHCHECK, confFile.AACSettings.HealthCheck, "{\"version\":\"2.1.0\",\"classif\":\"U\"}")
 
 	// HostName and Port should only be set if we want to directly connect to AAC and not use service discovery.
 	conf.HostName = cascade(OD_AAC_HOST, confFile.AACSettings.HostName, "")

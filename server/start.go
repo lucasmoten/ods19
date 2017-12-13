@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/deciphernow/object-drive-server/auth"
 	"github.com/deciphernow/object-drive-server/autoscale"
 	"github.com/deciphernow/object-drive-server/ciphertext"
 	"github.com/deciphernow/object-drive-server/config"
@@ -214,8 +215,10 @@ func aacKeepalive(app *AppServer, conf config.AppConfiguration) {
 		select {
 		case <-t.C:
 			if app.AAC != nil {
-				logger.Debug("aacKeepalive: checking health")
-				_, err := app.AAC.ValidateAcm(ValidACMUnclassified)
+				logger.Debug("aacKeepalive checking health")
+				aacAuth := auth.NewAACAuth(logger, app.AAC)
+				_, _, err := aacAuth.GetFlattenedACM(conf.AACSettings.HealthCheck)
+				//_, err := app.AAC.PopulateAndValidateAcm ValidateAcm()
 				if err != nil {
 					logger.Error("aacKeepalive health check failure", zap.String("err", err.Error()))
 					aacReconnect(app, conf)

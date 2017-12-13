@@ -44,14 +44,14 @@ func TimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 // initLogger sets up the logger
 func initLogger() *zap.Logger {
 	var lvl zapcore.Level
-	switch getEnvOrDefaultInt(OD_LOG_LEVEL, 0) {
-	case -1:
+	switch strings.ToUpper(getEnvOrDefault(OD_LOG_LEVEL, "INFO")) {
+	case "-1", "DEBUG":
 		lvl = zap.DebugLevel
-	case 0:
+	case "0", "INFO":
 		lvl = zap.InfoLevel
-	case 1:
+	case "1", "WARN":
 		lvl = zap.WarnLevel
-	case 2:
+	case "2", "ERROR":
 		lvl = zap.ErrorLevel
 	default:
 		lvl = zap.InfoLevel

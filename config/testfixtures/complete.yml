@@ -49,6 +49,7 @@ aac:
     trust: "foo"
     cert: ""
     key: ""
+    healthcheck: "{\"version\":\"2.1.0\",\"classif\":\"U\"}"
     hostname: ""
     port: ""
     zk_path: ""

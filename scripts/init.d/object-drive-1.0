@@ -24,8 +24,8 @@ global logfile
 username = "object-drive"
 groupname = "services"
 service = "object-drive-1.0"
-lockfile = os.path.join('/var/lock/subsys', service)
 install_path = "/opt/services/object-drive-1.0"
+lockfile = os.path.join(install_path, "lockfile")
 pidfile = os.path.join(install_path, "pidfile")
 static_root = os.path.join(install_path, "libs/server/static")
 templates = os.path.join(static_root, "templates")
@@ -267,7 +267,7 @@ def get_pid_from_pidfile(path):
 
 def get_pid_for_process():
     logging.debug('In get_pid_from_process')
-    child = subprocess.Popen(['pgrep',service], stdout=subprocess.PIPE, shell=True)
+    child = subprocess.Popen(['pgrep',service], stdout=subprocess.PIPE, shell=False)
     results = child.communicate()
     if len(results) > 0:
         return results[0]
@@ -305,7 +305,7 @@ def shell_source(script):
     """
     Emulate the behavior of `source foo.sh`
     """
-    pipe = subprocess.Popen(". %s; env" % script, stdout=subprocess.PIPE, shell=True)
+    pipe = subprocess.Popen(". %s; env" % script, stdout=subprocess.PIPE, shell=False)
     output = pipe.communicate()[0]
     env = dict((line.split("=", 1) for line in output.splitlines()))
     os.environ.update(env)
