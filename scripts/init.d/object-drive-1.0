@@ -39,11 +39,11 @@ dbtool = os.path.join(install_path, "database")
 obfuscatetool = os.path.join(install_path, "obfuscate")
 
 def change_owner(path, uid, gid, perms):
-    logging.debug('In change_owner for %s', path)
     """
     Set permissions on file or dir. uid and perms must be int type, eg. 0o755.
     Group is ignored with -1.
     """
+    logging.debug('In change_owner for %s', path)
     statinfo = os.stat(path)
     puid = statinfo.st_uid
     pgid = statinfo.st_gid
@@ -301,14 +301,19 @@ def is_absolute_path(path):
 
 
 def shell_source(script):
-    logging.debug('In shell_source for %s', script)
-    """
-    Emulate the behavior of `source foo.sh`
-    """
-    pipe = subprocess.Popen(". %s; env" % script, stdout=subprocess.PIPE, shell=False)
-    output = pipe.communicate()[0]
-    env = dict((line.split("=", 1) for line in output.splitlines()))
-    os.environ.update(env)
+    source_file = open(script, "r")
+    source_dict = {}
+    prefix = "export "
+    for line in source_file:
+        if line.lower().startswith(prefix):
+            line = line[len(prefix):]
+            line_parts = line.split("=", 1)
+            line_key = line_parts[0]
+            line_value = line_parts[1].rstrip("\r\n ")
+            line_value = os.path.expandvars(line_value)
+            source_dict[line_key] = line_value
+            os.environ.update(source_dict)
+    source_file.close()
 
 
 # Script entry point.
