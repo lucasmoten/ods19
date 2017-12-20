@@ -26,6 +26,7 @@ groupname = "services"
 service = "object-drive-1.0"
 install_path = "/opt/services/object-drive-1.0"
 lockfile = os.path.join(install_path, "lockfile")
+oldlockfile = "/var/lock/subsys/object-drive-1.0"
 pidfile = os.path.join(install_path, "pidfile")
 static_root = os.path.join(install_path, "libs/server/static")
 templates = os.path.join(static_root, "templates")
@@ -71,9 +72,6 @@ def lock():
         open(lockfile, 'w').close()
     else:
         pid = get_my_pid()
-        if len(pid) == 0:
-            # process not running and no pidfile
-            return 0            
         if pid < 0:
             # process not running and no pidfile
             return 0
@@ -88,7 +86,14 @@ def lock():
 
 def locked():
     logging.debug('In locked')
-    return os.path.exists(lockfile)
+    if os.path.exists(lockfile):
+        logging.debug('- lockfile found')
+        return True
+    if os.path.exists(oldlockfile):
+        logging.debug('- lockfile found in old location')
+        return True
+    logging.debug('- no lockfile')
+    return False
 
 
 def touch_file(path):
@@ -103,8 +108,7 @@ def unlock():
         os.remove(lockfile)
     else:
         # Remove any older if exists
-        oldlockfile = "/var/lock/subsys/object-drive-1.0"
-        if os.path.exists(oldlockfile)
+        if os.path.exists(oldlockfile):
             os.remove(oldlockfile)
 
 def start():
@@ -205,9 +209,6 @@ def stop():
     logging.info('Stopping %s', service)
     try:
         pid = get_my_pid()
-        if len(pid) == 0:
-            # process not running and no pidfile
-            return 0
         if pid < 0:
             # process not running and no pidfile
             return 0
