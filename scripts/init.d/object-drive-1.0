@@ -71,6 +71,9 @@ def lock():
         open(lockfile, 'w').close()
     else:
         pid = get_my_pid()
+        if len(pid) == 0:
+            # process not running and no pidfile
+            return 0            
         if pid < 0:
             # process not running and no pidfile
             return 0
@@ -80,7 +83,7 @@ def lock():
                 os.exit(1)
             else:
                 if os.path.exists(pidfile):
-                    logging.warning('Removing state pidfile')
+                    logging.warning('Removing stale pidfile')
                     removepidfile()
 
 def locked():
@@ -96,7 +99,13 @@ def touch_file(path):
 
 def unlock():
     logging.debug('In unlock')
-    os.remove(lockfile)
+    if os.path.exists(lockfile):
+        os.remove(lockfile)
+    else:
+        # Remove any older if exists
+        oldlockfile = "/var/lock/subsys/object-drive-1.0"
+        if os.path.exists(oldlockfile)
+            os.remove(oldlockfile)
 
 def start():
     logging.debug('In start')
@@ -196,6 +205,9 @@ def stop():
     logging.info('Stopping %s', service)
     try:
         pid = get_my_pid()
+        if len(pid) == 0:
+            # process not running and no pidfile
+            return 0
         if pid < 0:
             # process not running and no pidfile
             return 0
@@ -288,6 +300,8 @@ def get_my_pid():
 
 def is_process_running(process_id):
     logging.debug('In is_process_running')
+    if len(process_id) == 0:
+        return False
     try:
         os.kill(int(process_id), 0)
         return True
@@ -310,6 +324,10 @@ def shell_source(script):
             line_parts = line.split("=", 1)
             line_key = line_parts[0]
             line_value = line_parts[1].rstrip("\r\n ")
+            line_value = line_value.lstrip("\"")
+            line_value = line_value.rstrip("\"")
+            line_value = line_value.lstrip("\'")
+            line_value = line_value.rstrip("\'")
             line_value = os.path.expandvars(line_value)
             source_dict[line_key] = line_value
             os.environ.update(source_dict)

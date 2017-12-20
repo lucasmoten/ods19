@@ -243,16 +243,16 @@
 			"revisionTime": "2016-11-10T19:49:42-05:00"
 		},
 		{
-			"checksumSHA1": "PU/Lmsl9nEzYeIjmnLMBxBWpWVU=",
+			"checksumSHA1": "katwbBB1zUJzBQmcY1BVzKbC2lc=",
 			"path": "github.com/deciphernow/gm-fabric-go/gk",
-			"revision": "72ff4b0ece87a0dcb78707b26a21455c3f676612",
-			"revisionTime": "2017-11-07T19:28:33Z"
+			"revision": "9928bd869ad63d4af927ff6e492fd9ff01f5299f",
+			"revisionTime": "2017-12-03T02:51:00Z"
 		},
 		{
-			"checksumSHA1": "iNzODOsyTXsbUbiKATvSQFO3Eyk=",
+			"checksumSHA1": "JIoSXdid8CPr883fa1L9L4/5AqQ=",
 			"path": "github.com/deciphernow/gm-fabric-go/zkutil",
-			"revision": "72ff4b0ece87a0dcb78707b26a21455c3f676612",
-			"revisionTime": "2017-11-07T19:28:33Z"
+			"revision": "9928bd869ad63d4af927ff6e492fd9ff01f5299f",
+			"revisionTime": "2017-12-03T02:51:00Z"
 		},
 		{
 			"checksumSHA1": "s5b6ENpR3Miy8uhckAZWfaFeKFc=",
