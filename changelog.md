@@ -16,8 +16,8 @@ FORMAT: 1A
 
 # Group Changelog
 
-## Unreleased v1.0.12
----------------------
+## Release v1.0.12 (December 20, 2017)
+--------------------
 * ENH: Enriched Payload of Events to include more fields from object for change actions
 * REF: Changed imports to github.com/deciphernow/object-drive-server
 * REF: Changed references to vendored uber-zap to go.uber.org/zap, upgraded to 1.7.1
@@ -28,7 +28,7 @@ FORMAT: 1A
 * FIX: SysV init script no longer uses Shell for subprocesses
 * ENH: A more descriptive error message is returned when providing file stream before objectmetadata
 * ENH: Object names are trimmed of whitespace on create/update
-* ENH: Added search support to the golang client libraries
+* NEW: Added search support to the golang client libraries
 
 ## Release v1.0.11 (November 15, 2017)
 --------------------
