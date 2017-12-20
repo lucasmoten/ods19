@@ -28,6 +28,7 @@ type ObjectDrive interface {
 	GetObject(id string) (protocol.Object, error)
 	GetObjectStream(id string) (io.ReadCloser, error)
 	MoveObject(protocol.MoveObjectRequest) (protocol.Object, error)
+	Search(paging protocol.PagingRequest, searchAllObjects bool) (protocol.ObjectResultset, error)
 	UpdateObject(protocol.UpdateObjectRequest) (protocol.Object, error)
 	UpdateObjectAndStream(protocol.UpdateObjectAndStreamRequest, io.Reader) (protocol.Object, error)
 }
@@ -316,6 +317,63 @@ func (c *Client) Ping() (bool, error) {
 	}
 	defer resp.Body.Close()
 	return (resp.StatusCode == http.StatusOK), nil
+}
+
+// Search facilitates listing objects at root, under a folder, or full breadth
+// search of all objects applying the requesting filtering, sorting, and paging
+// conditions to the results
+func (c *Client) Search(paging protocol.PagingRequest, searchAllObjects bool) (protocol.ObjectResultset, error) {
+	uri := c.url
+	if searchAllObjects {
+		uri += "/search/using-client-library"
+	} else {
+		uri += "/objects"
+		if len(paging.ObjectID) > 0 {
+			uri += "/" + paging.ObjectID
+		}
+	}
+	uri += "?"
+	if len(paging.FilterMatchType) > 0 {
+		uri += fmt.Sprintf("filterMatchType=%s&", paging.FilterMatchType)
+	}
+	for _, fs := range paging.FilterSettings {
+		uri += fmt.Sprintf("filterField=%s&condition=%s&expression=%s&", fs.FilterField, fs.Condition, fs.Expression)
+	}
+	for _, ss := range paging.SortSettings {
+		uri += fmt.Sprintf("sortField=%s&sortAscending=%t&", ss.SortField, ss.SortAscending)
+	}
+	uri += fmt.Sprintf("pageNumber=%d&pageSize=%d&", paging.PageNumber, paging.PageSize)
+
+	var ret protocol.ObjectResultset
+
+	req, err := http.NewRequest("GET", uri, nil)
+	if err != nil {
+		return ret, fmt.Errorf("error creating request: %v", err)
+	}
+	if c.Conf.Impersonation != "" {
+		setImpersonationHeaders(req, c.Conf.Impersonation, c.MyDN)
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return ret, fmt.Errorf("error performing request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return ret, fmt.Errorf("got HTTP error code: %v", resp.StatusCode)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return ret, err
+	}
+
+	jsonErr := json.Unmarshal(body, &ret)
+	if jsonErr != nil {
+		return ret, jsonErr
+	}
+
+	return ret, nil
 }
 
 // UpdateObject updates an object's metadata or permissions. To update an actual

@@ -28,6 +28,7 @@ FORMAT: 1A
 * FIX: SysV init script no longer uses Shell for subprocesses
 * ENH: A more descriptive error message is returned when providing file stream before objectmetadata
 * ENH: Object names are trimmed of whitespace on create/update
+* ENH: Added search support to the golang client libraries
 
 ## Release v1.0.11 (November 15, 2017)
 --------------------
