@@ -87,6 +87,158 @@ func TestNewClient(t *testing.T) {
 	require.Nil(t, err, fmt.Sprintf("ERROR creating new client: %s", err))
 }
 
+// TestCreteObjectNoSTream tests the creation of an object with no stream, just metadata,
+// such as a folder.
+func TestCreateObjectNoStream(t *testing.T) {
+	me, err := client.NewClient(conf)
+	if err != nil {
+		t.Fatalf("could not create client: %v", err)
+	}
+
+	var upObj = protocol.CreateObjectRequest{
+		TypeName:              "Folder",
+		Name:                  "TestDir",
+		NamePathDelimiter:     fmt.Sprintf("%v", os.PathSeparator),
+		Description:           "A test Particle ",
+		ParentID:              "",
+		RawAcm:                `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
+		ContainsUSPersonsData: "Unknown",
+		ExemptFromFOIA:        "",
+		Permission:            permissions,
+		OwnedBy:               "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+	}
+
+	retObj, err := me.CreateObject(upObj, nil)
+	t.Log("Object created is: ", retObj.ID)
+	require.Nil(t, err, "Error creating object with no stream %s", err)
+
+}
+
+func TestImpersonation(t *testing.T) {
+	t.Log("create a new config with impersonation")
+	cnf := conf
+	cnf.Cert = os.Getenv("GOPATH") + "/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.cert.pem"
+	cnf.Trust = os.Getenv("GOPATH") + "/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.trust.pem"
+	cnf.Key = os.Getenv("GOPATH") + "/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.key.pem"
+	cnf.Impersonation = "cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+	c, err := client.NewClient(cnf)
+	if err != nil {
+		t.Fatalf("could not create client with impersonation: %v", err)
+	}
+	c.Verbose = testing.Verbose()
+
+	t.Logf("MyDN: %s", c.MyDN)
+	cor := protocol.CreateObjectRequest{
+		Name:   "impersonados",
+		RawAcm: ValidACMUnclassifiedFOUOSharedToTester10,
+	}
+	obj, err := c.CreateObject(cor, nil)
+	if err != nil {
+		t.Errorf("create object with impersonation did not succeed: %v", err)
+		t.FailNow()
+	}
+	if !strings.HasPrefix(obj.OwnedBy, "user/cn=test tester01") {
+		t.Errorf("expected tester01 to be the owner, since tester01 was impersonated")
+	}
+}
+
+func TestListRootObjects(t *testing.T) {
+	c, err := client.NewClient(conf)
+	if err != nil {
+		t.Fatalf("could not create client: %v", err)
+	}
+	c.Verbose = testing.Verbose()
+	pr := protocol.PagingRequest{}
+	_, err = c.Search(pr, false)
+	if err != nil {
+		t.Errorf("search error listing root objects: %v", err)
+	}
+}
+
+func TestMoveObject(t *testing.T) {
+	me, err := client.NewClient(conf)
+	if err != nil {
+		t.Fatalf("could not create client: %v", err)
+	}
+
+	// Create file at root.
+	testFile, err := ioutil.TempFile(testDir, "particle")
+	if err != nil {
+		fmt.Printf("error creating test file")
+	}
+
+	var fileReq = protocol.CreateObjectRequest{
+		TypeName:              "File",
+		Name:                  "ToMoveOrNotToMove",
+		NamePathDelimiter:     fmt.Sprintf("%v", os.PathSeparator),
+		Description:           "This had better move to NOT the root folder.",
+		ParentID:              "",
+		RawAcm:                `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
+		ContainsUSPersonsData: "Unknown",
+		ExemptFromFOIA:        "",
+		Permission:            permissions,
+		OwnedBy:               "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+	}
+
+	fileObj, err := me.CreateObject(fileReq, testFile)
+	t.Log("File created is: ", fileObj.ID)
+	require.Nil(t, err, "error creating file to move", err)
+
+	// Now create the folder in which to move it.
+	var dirReq = protocol.CreateObjectRequest{
+		TypeName:              "Folder",
+		Name:                  "MovedTo",
+		NamePathDelimiter:     fmt.Sprintf("%v", os.PathSeparator),
+		Description:           "Give me some files!",
+		ParentID:              "",
+		RawAcm:                `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
+		ContainsUSPersonsData: "Unknown",
+		ExemptFromFOIA:        "",
+		Permission:            permissions,
+		OwnedBy:               "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+	}
+
+	dirObj, err := me.CreateObject(dirReq, nil)
+	t.Log("Folder created is: ", dirObj.ID)
+	require.Nil(t, err, "Error creating object with no stream %s", err)
+
+	// Mow perform the move
+	var moveReq = protocol.MoveObjectRequest{
+		ID:          fileObj.ID,
+		ChangeToken: fileObj.ChangeToken,
+		ParentID:    dirObj.ID,
+	}
+
+	moved, err := me.MoveObject(moveReq)
+	t.Log("Moved object to", dirObj.Name, " with ID ", moved.ParentID)
+	require.Nil(t, err, "error moving object %s", err)
+}
+
+func TestResponder(t *testing.T) {
+	t.Skip()
+	// Connect to kafka
+	c, err := client.NewOdriveResponder(
+		conf,
+		"odrive_to_text",
+		os.Getenv("OD_EVENT_ZK_ADDRS"),
+		fetcher,
+	)
+	if err != nil {
+		log.Printf("error creating: %v", err)
+		t.FailNow()
+	}
+	c.Timeout = 1 * time.Second
+	c.DebugMode = true
+	c.Note("connect to kafka")
+	for {
+		err = c.ConsumeKafka()
+		if err != nil {
+			log.Printf("error connecting: %v", err)
+			t.FailNow()
+		}
+	}
+}
+
 // TestRoundTrip tests the upload/download mechanisms by iterating through every file in the
 // fixtures directory and performing a sequence of upload and download to verify the operations
 // complete successfully.
@@ -152,117 +304,24 @@ func TestRoundTrip(t *testing.T) {
 	}
 }
 
-// TestCreteObjectNoSTream tests the creation of an object with no stream, just metadata,
-// such as a folder.
-func TestCreateObjectNoStream(t *testing.T) {
-	me, err := client.NewClient(conf)
+func TestSearchObjects(t *testing.T) {
+	c, err := client.NewClient(conf)
 	if err != nil {
 		t.Fatalf("could not create client: %v", err)
-	}
-
-	var upObj = protocol.CreateObjectRequest{
-		TypeName:              "Folder",
-		Name:                  "TestDir",
-		NamePathDelimiter:     fmt.Sprintf("%v", os.PathSeparator),
-		Description:           "A test Particle ",
-		ParentID:              "",
-		RawAcm:                `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
-		ContainsUSPersonsData: "Unknown",
-		ExemptFromFOIA:        "",
-		Permission:            permissions,
-		OwnedBy:               "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-	}
-
-	retObj, err := me.CreateObject(upObj, nil)
-	t.Log("Object created is: ", retObj.ID)
-	require.Nil(t, err, "Error creating object with no stream %s", err)
-
-}
-
-func TestMoveObject(t *testing.T) {
-	me, err := client.NewClient(conf)
-	if err != nil {
-		t.Fatalf("could not create client: %v", err)
-	}
-
-	// Create file at root.
-	testFile, err := ioutil.TempFile(testDir, "particle")
-	if err != nil {
-		fmt.Printf("error creating test file")
-	}
-
-	var fileReq = protocol.CreateObjectRequest{
-		TypeName:              "File",
-		Name:                  "ToMoveOrNotToMove",
-		NamePathDelimiter:     fmt.Sprintf("%v", os.PathSeparator),
-		Description:           "This had better move to NOT the root folder.",
-		ParentID:              "",
-		RawAcm:                `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
-		ContainsUSPersonsData: "Unknown",
-		ExemptFromFOIA:        "",
-		Permission:            permissions,
-		OwnedBy:               "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-	}
-
-	fileObj, err := me.CreateObject(fileReq, testFile)
-	t.Log("File created is: ", fileObj.ID)
-	require.Nil(t, err, "error creating file to move", err)
-
-	// Now create the folder in which to move it.
-	var dirReq = protocol.CreateObjectRequest{
-		TypeName:              "Folder",
-		Name:                  "MovedTo",
-		NamePathDelimiter:     fmt.Sprintf("%v", os.PathSeparator),
-		Description:           "Give me some files!",
-		ParentID:              "",
-		RawAcm:                `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
-		ContainsUSPersonsData: "Unknown",
-		ExemptFromFOIA:        "",
-		Permission:            permissions,
-		OwnedBy:               "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-	}
-
-	dirObj, err := me.CreateObject(dirReq, nil)
-	t.Log("Folder created is: ", dirObj.ID)
-	require.Nil(t, err, "Error creating object with no stream %s", err)
-
-	// Mow perform the move
-	var moveReq = protocol.MoveObjectRequest{
-		ID:          fileObj.ID,
-		ChangeToken: fileObj.ChangeToken,
-		ParentID:    dirObj.ID,
-	}
-
-	moved, err := me.MoveObject(moveReq)
-	t.Log("Moved object to", dirObj.Name, " with ID ", moved.ParentID)
-	require.Nil(t, err, "error moving object %s", err)
-}
-
-func TestImpersonation(t *testing.T) {
-	t.Log("create a new config with impersonation")
-	cnf := conf
-	cnf.Cert = os.Getenv("GOPATH") + "/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.cert.pem"
-	cnf.Trust = os.Getenv("GOPATH") + "/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.trust.pem"
-	cnf.Key = os.Getenv("GOPATH") + "/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.key.pem"
-	cnf.Impersonation = "cn=test tester01,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
-	c, err := client.NewClient(cnf)
-	if err != nil {
-		t.Fatalf("could not create client with impersonation: %v", err)
 	}
 	c.Verbose = testing.Verbose()
 
-	t.Logf("MyDN: %s", c.MyDN)
-	cor := protocol.CreateObjectRequest{
-		Name:   "impersonados",
-		RawAcm: ValidACMUnclassifiedFOUOSharedToTester10,
-	}
-	obj, err := c.CreateObject(cor, nil)
+	// Leverage another test to create a file named `ToMoveOrNotToMove` and move it into a folder `MovedTo`
+	TestMoveObject(t)
+
+	pr := protocol.PagingRequest{}
+	pr.FilterSettings = append(pr.FilterSettings, protocol.FilterSetting{FilterField: "name", Condition: "equals", Expression: "ToMoveOrNotToMove"})
+	ors, err := c.Search(pr, true)
 	if err != nil {
-		t.Errorf("create object with impersonation did not succeed: %v", err)
-		t.FailNow()
+		t.Errorf("search error listing root objects: %v", err)
 	}
-	if !strings.HasPrefix(obj.OwnedBy, "user/cn=test tester01") {
-		t.Errorf("expected tester01 to be the owner, since tester01 was impersonated")
+	if ors.TotalRows == 0 {
+		t.Errorf("expected at least one item to be found in search")
 	}
 }
 
@@ -398,29 +457,4 @@ func fetcher(c *client.OdriveResponder, gem *events.GEM) error {
 		c.Note("created: %s %s %s", objectId, obj.ContentType, obj.Name)
 	}
 	return nil
-}
-
-func TestResponder(t *testing.T) {
-	t.Skip()
-	// Connect to kafka
-	c, err := client.NewOdriveResponder(
-		conf,
-		"odrive_to_text",
-		os.Getenv("OD_EVENT_ZK_ADDRS"),
-		fetcher,
-	)
-	if err != nil {
-		log.Printf("error creating: %v", err)
-		t.FailNow()
-	}
-	c.Timeout = 1 * time.Second
-	c.DebugMode = true
-	c.Note("connect to kafka")
-	for {
-		err = c.ConsumeKafka()
-		if err != nil {
-			log.Printf("error connecting: %v", err)
-			t.FailNow()
-		}
-	}
 }
