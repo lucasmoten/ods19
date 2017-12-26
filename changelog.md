@@ -16,6 +16,10 @@ FORMAT: 1A
 
 # Group Changelog
 
+## Unreleased v1.0.13
+---------------------
+* FIX: Corrected count of objects and groups when listing groups
+
 ## Release v1.0.12 (December 20, 2017)
 --------------------
 * ENH: Enriched Payload of Events to include more fields from object for change actions

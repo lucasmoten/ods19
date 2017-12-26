@@ -80,13 +80,20 @@ func queryRowCount(query string) string {
 	if strings.Index(lquery, "sql_calc_found_rows") > 0 {
 		return "select found_rows()"
 	}
+	// inefficient ways of determining totals...
 	// as simple select count
 	queryCount := query
 	if limitIdx := strings.Index(lquery, "limit "); limitIdx > 0 {
 		queryCount = queryCount[:limitIdx]
 	}
-	if fromIdx := strings.Index(lquery, "from "); fromIdx > 0 {
-		queryCount = "select count(0) " + queryCount[fromIdx:]
+	if strings.Index(lquery, " count(") > 0 {
+		// existing count. wrap the entire query.
+		queryCount = "select count(0) from (" + lquery + ")"
+	} else {
+		// no nested count to account for
+		if fromIdx := strings.Index(lquery, "from "); fromIdx > 0 {
+			queryCount = "select count(0) " + queryCount[fromIdx:]
+		}
 	}
 	return queryCount
 }
