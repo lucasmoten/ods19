@@ -32,6 +32,7 @@ func getGroupsForUserInTransaction(tx *sqlx.Tx, user models.ODUser) (models.Grou
 
 	query := `
 		select 
+			distinct sql_calc_found_rows
 			ag.grantee grantee, 
 			ag.resourceString resourceString, 
 			ag.displayName displayName, 
