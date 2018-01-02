@@ -17,12 +17,12 @@ func (dao *DataAccessLayer) CreateUser(user models.ODUser) (models.ODUser, error
 	defer util.Time("CreateUser")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODUser{}, err
 	}
 	dbUser, err := createUserInTransaction(dao.GetLogger(), tx, user)
 	if err != nil {
-		dao.GetLogger().Error("Error in CreateUser", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in CreateUser", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -61,9 +61,9 @@ func createUserInTransaction(logger *zap.Logger, tx *sqlx.Tx, user models.ODUser
 	dbUser, err = getUserByDistinguishedNameInTransaction(tx, user)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			logger.Error("user was not found even after just adding", zap.String("err", err.Error()))
+			logger.Error("user was not found even after just adding", zap.Error(err))
 		} else {
-			logger.Error("an error occurred retrieving newly added user", zap.String("err", err.Error()))
+			logger.Error("an error occurred retrieving newly added user", zap.Error(err))
 		}
 		return dbUser, err
 	}

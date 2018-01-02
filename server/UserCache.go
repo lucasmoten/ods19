@@ -126,7 +126,7 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 			useraocache.UserID = user.ID
 		} else {
 			// Unrecoverable error
-			logger.Warn("unable to get user ao cache", zap.String("err", err.Error()), zap.String("dn", caller.DistinguishedName))
+			logger.Warn("unable to get user ao cache", zap.Error(err), zap.String("dn", caller.DistinguishedName))
 			return err
 		}
 	} else {
@@ -168,7 +168,7 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 			// Save the cache definition
 			logger.Info("saving user cache placeholder")
 			if err := dao.SetUserAOCacheByDistinguishedName(&useraocache, user); err != nil {
-				logger.Warn("error saving user ao cache", zap.String("err", err.Error()))
+				logger.Warn("error saving user ao cache", zap.Error(err))
 				return err
 			}
 			// With user attributes, add grantees (and resulting keys) for missing project/groups
@@ -176,7 +176,7 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 			logger.Info("getting user attributes to base cache on")
 			userAttributes, err := aacAuth.GetAttributesForUser(caller.UserDistinguishedName)
 			if err != nil {
-				logger.Warn("error retrieving user attributes", zap.String("err", err.Error()))
+				logger.Warn("error retrieving user attributes", zap.Error(err))
 				return err
 			}
 			logger.Info("adding necessary groups")
@@ -193,7 +193,7 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 					resourceName := fmt.Sprintf("group/%s/%s", diasProject.Name, groupName)
 					acmGrantee := models.NewODAcmGranteeFromResourceName(resourceName)
 					if _, err := h.RootDAO.CreateAcmGrantee(acmGrantee); err != nil {
-						logger.Warn("error saving new acmgrantee", zap.String("err", err.Error()), zap.String("acmGrantee", acmGrantee.ResourceName()), zap.String("grantee", acmGrantee.Grantee), zap.String("diasProject", diasProject.Name), zap.String("diasProject.Group", groupName))
+						logger.Warn("error saving new acmgrantee", zap.Error(err), zap.String("acmGrantee", acmGrantee.ResourceName()), zap.String("grantee", acmGrantee.Grantee), zap.String("diasProject", diasProject.Name), zap.String("diasProject.Group", groupName))
 						continue
 					}
 				}

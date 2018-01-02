@@ -471,10 +471,10 @@ func removeOrphanedFile(logger *zap.Logger, d ciphertext.CiphertextCache, conten
 		err = d.Files().Remove(d.Resolve(uploadedName))
 	}
 	if err != nil {
-		logger.Error("cannot remove orphaned file. will attempt rename", zap.String("fileID", string(fileID)), zap.String("err", err.Error()))
+		logger.Error("cannot remove orphaned file. will attempt rename", zap.String("fileID", string(fileID)), zap.Error(err))
 		err = d.Files().Rename(d.Resolve(uploadedName), d.Resolve(orphanedName))
 		if err != nil {
-			logger.Error("cannot rename uploaded file to orphaned state. check directory permissions in cache folder", zap.String("fileID", string(fileID)), zap.String("err", err.Error()))
+			logger.Error("cannot rename uploaded file to orphaned state. check directory permissions in cache folder", zap.String("fileID", string(fileID)), zap.Error(err))
 		}
 	}
 }

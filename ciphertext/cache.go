@@ -278,7 +278,7 @@ func (d *CiphertextCacheData) DrainUploadedFilesToSafetyRaw() {
 				d.Logger.Info("there is an uploaded file that we need to handle", zap.String("fqName", fqName))
 				f, err := os.Stat(fqName)
 				if err != nil {
-					d.Logger.Error("there is an uploaded file that we cannot stat", zap.String("err", err.Error()))
+					d.Logger.Error("there is an uploaded file that we cannot stat", zap.Error(err))
 					return err
 				}
 				if f.IsDir() {
@@ -290,7 +290,7 @@ func (d *CiphertextCacheData) DrainUploadedFilesToSafetyRaw() {
 				rName := FileId(fBase[:len(fBase)-len(ext)])
 				err = d.Writeback(rName, size)
 				if err != nil {
-					d.Logger.Warn("error draining cache", zap.String("err", err.Error()))
+					d.Logger.Warn("error draining cache", zap.Error(err))
 				}
 			}
 			//Note: dont remove .uploading or .caching files as there may be another odrive using this cache
@@ -299,7 +299,7 @@ func (d *CiphertextCacheData) DrainUploadedFilesToSafetyRaw() {
 		},
 	)
 	if err != nil {
-		d.Logger.Warn("unable to walk cache", zap.String("err", err.Error()))
+		d.Logger.Warn("unable to walk cache", zap.Error(err))
 	}
 }
 
@@ -331,7 +331,7 @@ func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 		d.Logger.Warn(
 			"cant writeback file",
 			zap.String("filename", d.Files().Resolve(outFileUploaded)),
-			zap.String("err", err.Error()),
+			zap.Error(err),
 		)
 		return err
 	}
@@ -348,7 +348,7 @@ func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 		if err != nil {
 			d.Logger.Warn(
 				"could not write to permanentstorage",
-				zap.String("err", err.Error()),
+				zap.Error(err),
 			)
 			return err
 		}
@@ -362,7 +362,7 @@ func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 			"unable to rename",
 			zap.String("from", d.Files().Resolve(outFileUploaded)),
 			zap.String("to", d.Files().Resolve(outFileCached)),
-			zap.String("err", err.Error()),
+			zap.Error(err),
 		)
 		return err
 	}
@@ -389,7 +389,7 @@ func (d *CiphertextCacheData) doDownloadFromPermanentStorage(foutCaching FileNam
 		d.Logger.Error(
 			msg,
 			zap.String("filename", d.Files().Resolve(foutCaching)),
-			zap.String("err", err.Error()),
+			zap.Error(err),
 		)
 		return err
 	}
@@ -418,7 +418,7 @@ func (d *CiphertextCacheData) BackgroundRecache(rName FileId, totalLength int64)
 		if err != nil {
 			logger.Warn(
 				"background recache failed",
-				zap.String("err", err.Error()),
+				zap.Error(err),
 			)
 			return
 		}
@@ -466,13 +466,13 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 	err = d.doDownloadFromPermanentStorage(foutCaching, key)
 	if err != nil {
 		if err.Error() != PermanentStorageNotFoundErrorString {
-			d.Logger.Warn("download from PermanentStorage error", zap.String("err", err.Error()))
+			d.Logger.Warn("download from PermanentStorage error", zap.Error(err))
 		}
 		// Check p2p.... it has to be there...
 		var filep2p io.ReadCloser
 		filep2p, err = useP2PFile(d.Logger, d.CiphertextCacheZone, rName, 0)
 		if err != nil {
-			d.Logger.Error("p2p cannot find", zap.String("err", err.Error()))
+			d.Logger.Error("p2p cannot find", zap.Error(err))
 		}
 		if filep2p != nil {
 			defer filep2p.Close()
@@ -482,7 +482,7 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 				_, err = io.Copy(fOut, filep2p)
 				fOut.Close()
 				if err != nil {
-					d.Logger.Error("p2p recache failed", zap.String("err", err.Error()))
+					d.Logger.Error("p2p recache failed", zap.Error(err))
 				} else {
 					d.Logger.Info("p2p recache success")
 				}
@@ -518,7 +518,7 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 	}
 
 	if err != nil {
-		d.Logger.Error("giving up on recaching file", zap.String("err", err.Error()))
+		d.Logger.Error("giving up on recaching file", zap.Error(err))
 		return err
 	}
 
@@ -588,7 +588,7 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, usage float64) (errRe
 		d.Logger.Error(
 			"unable to stat file",
 			zap.String("filename", fqName),
-			zap.String("err", err.Error()),
+			zap.Error(err),
 		)
 		return nil
 	}
@@ -631,7 +631,7 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, usage float64) (errRe
 						d.Logger.Error(
 							"unable to purge cached file",
 							zap.String("filename", fqName),
-							zap.String("err", errReturn.Error()),
+							zap.Error(errReturn),
 						)
 						attemptToEmptyFile(d, fqName)
 						return nil
@@ -650,7 +650,7 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, usage float64) (errRe
 		if _, err := os.Stat(fqName); err == nil {
 			errReturn := os.Remove(fqName)
 			if errReturn != nil {
-				d.Logger.Error("unable to purge orphaned file", zap.String("filename", fqName), zap.String("err", errReturn.Error()))
+				d.Logger.Error("unable to purge orphaned file", zap.String("filename", fqName), zap.Error(errReturn))
 				attemptToEmptyFile(d, fqName)
 				return nil
 			}
@@ -673,7 +673,7 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, usage float64) (errRe
 					d.Logger.Error(
 						"unable to purge",
 						zap.String("filename", fqName),
-						zap.String("err", errReturn.Error()),
+						zap.Error(errReturn),
 					)
 					attemptToEmptyFile(d, fqName)
 					return nil
@@ -696,7 +696,7 @@ func attemptToEmptyFile(d *CiphertextCacheData, fqName string) {
 	if _, err := os.Stat(fqName); err == nil {
 		e := os.Truncate(fqName, 0)
 		if e != nil {
-			d.Logger.Error("unable to empty file", zap.String("filename", fqName), zap.String("err", e.Error()))
+			d.Logger.Error("unable to empty file", zap.String("filename", fqName), zap.Error(e))
 		}
 		d.Logger.Info("truncated file to free space", zap.String("filename", fqName))
 	}
@@ -760,7 +760,7 @@ func cachePurgeIteration(d *CiphertextCacheData, usage float64) {
 		d.Logger.Error(
 			"unable to walk cache",
 			zap.String("filename", fqCache),
-			zap.String("err", err.Error()),
+			zap.Error(err),
 		)
 	}
 }
@@ -784,7 +784,7 @@ func (d *CiphertextCacheData) CachePurge() {
 			d.Logger.Error(
 				"unable to purge on statfs fail",
 				zap.String("filename", fqCache),
-				zap.String("err", err.Error()),
+				zap.Error(err),
 			)
 		} else {
 			//Fraction of disk used

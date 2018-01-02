@@ -41,9 +41,9 @@ func (e Loggable) ToFatal(logger *zap.Logger) {
 }
 
 // NewLoggable with vararg parameters
-func NewLoggable(msg string, cause error, args ...zapcore.Field) *Loggable {
-	if cause != nil {
-		args = append(args, zap.String("err", cause.Error()))
+func NewLoggable(msg string, err error, args ...zapcore.Field) *Loggable {
+	if err != nil {
+		args = append(args, zap.Error(err))
 	}
 	return &Loggable{msg, args}
 }

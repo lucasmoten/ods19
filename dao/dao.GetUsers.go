@@ -12,12 +12,12 @@ func (dao *DataAccessLayer) GetUsers() ([]models.ODUser, error) {
 	defer util.Time("GetUsers")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return []models.ODUser{}, err
 	}
 	result, err := getUsersInTransaction(dao.GetLogger(), tx)
 	if err != nil {
-		dao.GetLogger().Error("Error in GetUsers", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in GetUsers", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -36,7 +36,7 @@ func getUsersInTransaction(logger *zap.Logger, tx *sqlx.Tx) ([]models.ODUser, er
     from user`
 	err := tx.Select(&result, getUsersStatement)
 	if err != nil {
-		logger.Error("Unable to execute query", zap.String("sql", getUsersStatement), zap.String("err", err.Error()))
+		logger.Error("Unable to execute query", zap.String("sql", getUsersStatement), zap.Error(err))
 	}
 	return result, err
 }

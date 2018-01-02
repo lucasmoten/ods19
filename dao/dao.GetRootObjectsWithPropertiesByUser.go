@@ -15,12 +15,12 @@ func (dao *DataAccessLayer) GetRootObjectsWithPropertiesByUser(user models.ODUse
 	defer util.Time("GetRootObjectsWithPropertiesByUser")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
 	response, err := getRootObjectsWithPropertiesByUserInTransaction(tx, user, pagingRequest)
 	if err != nil {
-		dao.GetLogger().Error("Error in GetRootObjectsWithPropertiesByUser", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in GetRootObjectsWithPropertiesByUser", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()

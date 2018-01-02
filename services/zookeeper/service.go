@@ -178,7 +178,7 @@ func trackMountLoop(z *ZKState, at string, handler AnnounceHandler) {
 		if err != nil {
 			zlogger.Error(
 				"zk watch exist error",
-				zap.String("err", err.Error()),
+				zap.Error(err),
 			)
 			//recover after all errors
 			doZkRecovery(z, zlogger)
@@ -192,7 +192,7 @@ func trackMountLoop(z *ZKState, at string, handler AnnounceHandler) {
 				if ev.Err != nil {
 					zlogger.Error(
 						"zk event error",
-						zap.String("err", ev.Err.Error()),
+						zap.Error(ev.Err),
 					)
 					//recover after all errors
 					doZkRecovery(z, zlogger)
@@ -209,7 +209,7 @@ func GetAnnouncements(z *ZKState, at string) (map[string]AnnounceData, error) {
 	if err != nil {
 		zlogger.Error(
 			"zk watch child error",
-			zap.String("err", err.Error()),
+			zap.Error(err),
 		)
 		return nil, nil
 	}
@@ -221,7 +221,7 @@ func GetAnnouncements(z *ZKState, at string) (map[string]AnnounceData, error) {
 			zlogger.Error(
 				"error getting data on peer",
 				zap.String("peer", p),
-				zap.String("err", err.Error()),
+				zap.Error(err),
 			)
 			return nil, err
 		}
@@ -246,7 +246,7 @@ func trackAnnouncementsLoop(z *ZKState, at string, handler AnnounceHandler) {
 			if err != nil {
 				zlogger.Error(
 					"zk watch child error",
-					zap.String("err", err.Error()),
+					zap.Error(err),
 				)
 				ok = false
 			} else {
@@ -258,7 +258,7 @@ func trackAnnouncementsLoop(z *ZKState, at string, handler AnnounceHandler) {
 						zlogger.Error(
 							"zk error getting data on peer",
 							zap.String("peer", p),
-							zap.String("err", err.Error()),
+							zap.Error(err),
 						)
 						ok = false
 					} else {
@@ -285,7 +285,7 @@ func trackAnnouncementsLoop(z *ZKState, at string, handler AnnounceHandler) {
 					if ev.Err != nil {
 						zlogger.Error(
 							"zk event error",
-							zap.String("err", ev.Err.Error()),
+							zap.Error(ev.Err),
 						)
 						ok = false
 					}
@@ -316,14 +316,14 @@ func doZkRecovery(z *ZKState, zlogger *zap.Logger) bool {
 	if err != nil {
 		zlogger.Error(
 			"zk re register error",
-			zap.String("err", err.Error()),
+			zap.Error(err),
 		)
 		oldConnection := z.Conn
 		zNew, err := RegisterApplication(z.registeredPath, z.ZKAddress, z.Timeout)
 		if err != nil {
 			zlogger.Error(
 				"zk re register error cant create connection",
-				zap.String("err", err.Error()),
+				zap.Error(err),
 			)
 		} else {
 			//Use the new connection
@@ -333,7 +333,7 @@ func doZkRecovery(z *ZKState, zlogger *zap.Logger) bool {
 			if err != nil {
 				zlogger.Error(
 					"zk re register error after create connection",
-					zap.String("err", err.Error()),
+					zap.Error(err),
 				)
 			}
 			//Get rid of the old connection
@@ -365,12 +365,12 @@ func ServiceStop(zkState *ZKState, protocol string, logger *zap.Logger) {
 	path := zkState.registeredPath + "/" + protocol + "/" + globalconfig.NodeID
 	_, _, err := zkState.Conn.Exists(path)
 	if err != nil {
-		logger.Error("zk exists node fail", zap.String("err", err.Error()))
+		logger.Error("zk exists node fail", zap.Error(err))
 	}
 	logger.Info("zk must remove its ephemeral node", zap.String("path", path))
 	err = zkState.Conn.Delete(path, -1)
 	if err != nil {
-		logger.Error("zk delete node fail", zap.String("err", err.Error()))
+		logger.Error("zk delete node fail", zap.Error(err))
 	} else {
 		logger.Info("zk terminated our ephemeral node")
 	}
@@ -387,7 +387,7 @@ func doReAnnouncements(zkState *ZKState, logger *zap.Logger) error {
 		err := ServiceReAnnouncement(zkState, a.protocol, a.stat, a.host, a.port)
 		if isZKOk(err) == false {
 			logger.Error(
-				"zk re announce service", zap.Any("reannouncement", a), zap.String("err", err.Error()),
+				"zk re announce service", zap.Any("reannouncement", a), zap.Error(err),
 			)
 			returnErr = err
 		}
@@ -434,7 +434,7 @@ func ServiceReAnnouncement(zkState *ZKState, protocol string, stat, host string,
 	//Marshall the announcement into bytes
 	asBytes, err := json.Marshal(aData)
 	if err != nil {
-		logger.Error("ServiceAnnouncement could not marshal AnnounceData", zap.String("err", err.Error()))
+		logger.Error("ServiceAnnouncement could not marshal AnnounceData", zap.Error(err))
 		return err
 	}
 

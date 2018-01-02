@@ -29,12 +29,12 @@ func (dao *DataAccessLayer) ExpungeDeletedByUser(user models.ODUser, pageSize in
 	for {
 		tx, err := dao.MetadataDB.Beginx()
 		if err != nil {
-			dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+			dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 			return overallExpunged, err
 		}
 		expungedObjects, err := dao.expungeDeletedByUserInTransaction(tx, user, pagingRequest)
 		if err != nil {
-			dao.GetLogger().Error("Error in ExpungeDeletedByUser", zap.String("err", err.Error()))
+			dao.GetLogger().Error("Error in ExpungeDeletedByUser", zap.Error(err))
 			tx.Rollback()
 			return overallExpunged, err
 		}

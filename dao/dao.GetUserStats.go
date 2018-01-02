@@ -14,12 +14,12 @@ func (dao *DataAccessLayer) GetUserStats(dn string) (models.UserStats, error) {
 	defer util.Time("GetUserStats")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.UserStats{}, err
 	}
 	userStats, err := getUserStatsInTransaction(dao.GetLogger(), tx, dn)
 	if err != nil {
-		dao.GetLogger().Error("Error in GetUserStats", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in GetUserStats", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -44,7 +44,7 @@ func getUserStatsInTransaction(logger *zap.Logger, tx *sqlx.Tx, dn string) (mode
 			t.name`
 	err = tx.Select(&objectMetrics, sql)
 	if err != nil {
-		logger.Error("Unable to execute query", zap.String("sql", sql), zap.String("err", err.Error()))
+		logger.Error("Unable to execute query", zap.String("sql", sql), zap.Error(err))
 		return userStats, err
 	}
 	userStats.ObjectStorageMetrics = objectMetrics
@@ -53,7 +53,7 @@ func getUserStatsInTransaction(logger *zap.Logger, tx *sqlx.Tx, dn string) (mode
 	sql = strings.Replace(sql, " object ", " a_object ", -1)
 	err = tx.Select(&archiveMetrics, sql)
 	if err != nil {
-		logger.Error("Unable to execute query", zap.String("sql", sql), zap.String("err", err.Error()))
+		logger.Error("Unable to execute query", zap.String("sql", sql), zap.Error(err))
 		return userStats, err
 	}
 	// Merge archive into base objects

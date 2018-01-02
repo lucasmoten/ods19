@@ -141,7 +141,7 @@ func redactParents(ctx context.Context, auth auth.Authorization, parents []model
 			break
 		}
 		if _, err := auth.IsUserAuthorizedForACM(caller.DistinguishedName, p.RawAcm.String); err != nil {
-			logger.Info("aac error checking parent", zap.String("err", err.Error()))
+			logger.Info("aac error checking parent", zap.Error(err))
 			break
 		}
 		// prepend, because filtering required backwards-iteration, but we need to

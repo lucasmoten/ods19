@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"runtime"
 	"sync"
@@ -71,7 +72,7 @@ func sendErrorResponseRaw(logger *zap.Logger, w *http.ResponseWriter, herr *AppE
 		var fields []zapcore.Field
 		fields = append(fields, zap.Int("status", herr.Code))
 		fields = append(fields, zap.String("message", herr.Msg))
-		fields = append(fields, zap.String("err", herrString))
+		fields = append(fields, zap.Error(fmt.Errorf(herrString)))
 		fields = append(fields, zap.String("file", herr.File))
 		fields = append(fields, zap.Int("line", herr.Line))
 		for _, v := range herr.Fields {

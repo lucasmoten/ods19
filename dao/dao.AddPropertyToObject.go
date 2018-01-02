@@ -16,12 +16,12 @@ func (dao *DataAccessLayer) AddPropertyToObject(object models.ODObject, property
 	defer util.Time("AddPropertyToObject")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("could not begin transaction", zap.Error(err))
 		return models.ODProperty{}, err
 	}
 	dbProperty, err := addPropertyToObjectInTransaction(tx, object, property)
 	if err != nil {
-		dao.GetLogger().Error("error in addpropertytoobject", zap.String("err", err.Error()))
+		dao.GetLogger().Error("error in addpropertytoobject", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()

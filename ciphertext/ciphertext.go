@@ -168,7 +168,7 @@ func useP2PFile(logger *zap.Logger, zone CiphertextCacheZone, rName FileId, begi
 					insecureSkipVerify,
 				)
 				if err != nil {
-					logger.Warn("p2p cannot connect", zap.String("url", url), zap.String("err", err.Error()))
+					logger.Warn("p2p cannot connect", zap.String("url", url), zap.Error(err))
 				}
 
 				//Set the new connection if we got one
@@ -190,7 +190,7 @@ func useP2PFile(logger *zap.Logger, zone CiphertextCacheZone, rName FileId, begi
 					}
 				}
 				if err != nil {
-					logger.Error("p2p cannot connect to peer", zap.String("err", err.Error()))
+					logger.Error("p2p cannot connect to peer", zap.Error(err))
 				}
 			}
 		}

@@ -12,12 +12,12 @@ func (dao *DataAccessLayer) GetDBState() (models.DBState, error) {
 	defer util.Time("GetDBState")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("could not begin transaction", zap.Error(err))
 		return models.DBState{}, err
 	}
 	dbState, err := getDBStateInTransaction(tx)
 	if err != nil {
-		dao.GetLogger().Warn("error in getdbstate", zap.String("err", err.Error()))
+		dao.GetLogger().Warn("error in getdbstate", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()

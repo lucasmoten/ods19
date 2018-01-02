@@ -14,12 +14,12 @@ func (dao *DataAccessLayer) GetRootObjects(pagingRequest PagingRequest) (models.
 	defer util.Time("GetRootObjects")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
 	response, err := getRootObjectsInTransaction(tx, pagingRequest)
 	if err != nil {
-		dao.GetLogger().Error("Error in GetRootObjects", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in GetRootObjects", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()

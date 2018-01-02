@@ -21,12 +21,12 @@ func (dao *DataAccessLayer) DeleteObjectProperty(objectProperty models.ODObjectP
 	defer util.Time("DeleteObjectProperty")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return err
 	}
 	err = deleteObjectPropertyInTransaction(tx, objectProperty)
 	if err != nil {
-		dao.GetLogger().Error("Error in DeleteObjectProperty", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in DeleteObjectProperty", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()

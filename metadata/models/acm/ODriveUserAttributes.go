@@ -32,7 +32,7 @@ func NewODriveAttributesFromAttributeResponse(userattributes string) (ODriveUser
 	if strings.HasPrefix(userattributes, `{\`) {
 		unquotedAttributes, err = strconv.Unquote(userattributes)
 		if err != nil {
-			logger.Error("acm attributes unquoting error", zap.String("attributes", userattributes), zap.String("err", err.Error()))
+			logger.Error("acm attributes unquoting error", zap.String("attributes", userattributes), zap.Error(err))
 			return userAttributes, err
 		}
 	}

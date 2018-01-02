@@ -115,13 +115,13 @@ func TestS3Connection(sess *session.Session) bool {
 	bucketName := config.GetEnvOrDefault("OD_AWS_S3_BUCKET", "")
 	if bucketName == "" {
 		logger.Error("error testing s3 connection",
-			zap.String("err", "Missing environment variable OD_AWS_S3_BUCKET"))
+			zap.Error(fmt.Errorf("Missing environment variable OD_AWS_S3_BUCKET")))
 		return false
 	}
 	input := s3.GetBucketAclInput{Bucket: aws.String(bucketName)}
 	output, err := uploader.S3.GetBucketAcl(&input)
 	if err != nil {
-		logger.Error("error testing s3 connection", zap.String("err", err.Error()))
+		logger.Error("error testing s3 connection", zap.Error(err))
 		return false
 	}
 	hasRead, hasWrite := false, false
@@ -139,7 +139,7 @@ func TestS3Connection(sess *session.Session) bool {
 	}
 
 	logger.Error("error testing s3 connection",
-		zap.String("err", "Insufficient permissions on bucket"),
+		zap.Error(fmt.Errorf("Insufficient permissions on bucket")),
 		zap.Any("GetBucketAclOutput", output),
 	)
 	return false

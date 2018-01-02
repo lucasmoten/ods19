@@ -287,7 +287,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 			if err != nil {
 				logger.Warn(
 					"acm parse",
-					zap.String("err", err.Error()),
+					zap.Error(err),
 					zap.String("acm", object.RawAcm.String),
 				)
 			} else {
@@ -403,7 +403,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 			logger.Error(
 				"client disconnect",
 				zap.String("filename", d.Files().Resolve(cipherFilePathCached)),
-				zap.String("err", err.Error()),
+				zap.Error(err),
 			)
 		}
 	}

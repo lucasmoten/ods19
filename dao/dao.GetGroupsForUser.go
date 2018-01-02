@@ -13,12 +13,12 @@ func (dao *DataAccessLayer) GetGroupsForUser(user models.ODUser) (models.GroupSp
 	defer util.Time("GetGroupsForUser")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("could not begin transaction", zap.Error(err))
 		return models.GroupSpaceResultset{}, err
 	}
 	response, err := getGroupsForUserInTransaction(tx, user)
 	if err != nil {
-		dao.GetLogger().Error("error in getgroupsforuser", zap.String("err", err.Error()))
+		dao.GetLogger().Error("error in getgroupsforuser", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()
