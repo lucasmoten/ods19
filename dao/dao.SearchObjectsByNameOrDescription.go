@@ -22,12 +22,12 @@ func (dao *DataAccessLayer) SearchObjectsByNameOrDescription(user models.ODUser,
 	defer util.Time("SearchObjectsByNameOrDescription")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
 	response, err := searchObjectsByNameOrDescriptionInTransaction(tx, user, pagingRequest, loadProperties)
 	if err != nil {
-		dao.GetLogger().Error("Error in SearchObjectsByNameOrDescription", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in SearchObjectsByNameOrDescription", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()

@@ -16,12 +16,12 @@ func (dao *DataAccessLayer) UpdatePermission(permission models.ODObjectPermissio
 	defer util.Time("UpdatePermission")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return err
 	}
 	err = updatePermissionInTransaction(tx, permission)
 	if err != nil {
-		dao.GetLogger().Error("Error in UpdatePermission", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in UpdatePermission", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()

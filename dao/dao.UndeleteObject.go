@@ -15,12 +15,12 @@ func (dao *DataAccessLayer) UndeleteObject(object *models.ODObject) (models.ODOb
 	defer util.Time("UndeleteObject")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObject{}, err
 	}
 	dbObject, err := undeleteObjectInTransaction(dao.GetLogger(), tx, object)
 	if err != nil {
-		dao.GetLogger().Error("Error in UndeleteObject", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in UndeleteObject", zap.Error(err))
 		tx.Rollback()
 		return models.ODObject{}, err
 	}
@@ -101,7 +101,7 @@ func undeleteAncestorChildren(logger *zap.Logger, tx *sqlx.Tx, object *models.OD
 
 	err := tx.Select(&results.Objects, query, object.ID)
 	if err != nil {
-		logger.Error("Error from Select in undeleteAncestorChildren", zap.String("err", err.Error()))
+		logger.Error("Error from Select in undeleteAncestorChildren", zap.Error(err))
 		return err
 	}
 

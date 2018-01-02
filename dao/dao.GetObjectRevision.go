@@ -15,12 +15,12 @@ func (dao *DataAccessLayer) GetObjectRevision(object models.ODObject, loadProper
 	defer util.Time("GetObjectRevision")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObject{}, err
 	}
 	dbObject, err := getObjectRevisionInTransaction(tx, object, loadProperties)
 	if err != nil {
-		dao.GetLogger().Error("Error in GetObjectRevision", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in GetObjectRevision", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()

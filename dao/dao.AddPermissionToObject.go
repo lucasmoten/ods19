@@ -17,12 +17,12 @@ func (dao *DataAccessLayer) AddPermissionToObject(object models.ODObject, permis
 	defer util.Time("AddPermissionToObject")
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("could not begin transaction", zap.Error(err))
 		return models.ODObjectPermission{}, err
 	}
 	response, err := addPermissionToObjectInTransaction(dao.GetLogger(), tx, object, permission)
 	if err != nil {
-		dao.GetLogger().Error("error in addpermissiontoobject", zap.String("err", err.Error()))
+		dao.GetLogger().Error("error in addpermissiontoobject", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()

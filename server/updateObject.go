@@ -278,7 +278,7 @@ func (h AppServer) updateObjectRecursive(ctx context.Context, applyable models.O
 
 	children, err := d.GetChildObjectsWithProperties(pr, applyable)
 	if err != nil {
-		logger.Error("error calling GetChildObjectsWithProperties", zap.String("err", err.Error()))
+		logger.Error("error calling GetChildObjectsWithProperties", zap.Error(err))
 		return
 	}
 
@@ -301,7 +301,7 @@ func (h AppServer) updateObjectRecursive(ctx context.Context, applyable models.O
 			}
 
 			if updatePermission.AcmGrantee.Grantee == "" {
-				logger.Error("grantee cannot be empty string", zap.String("err", err.Error()))
+				logger.Error("grantee cannot be empty string", zap.Error(err))
 				gem.Payload.Audit = audit.WithActionResult(gem.Payload.Audit, "FAILURE")
 				h.EventQueue.Publish(gem)
 				continue
@@ -332,7 +332,7 @@ func (h AppServer) updateObjectRecursive(ctx context.Context, applyable models.O
 			child.RawAcm = models.ToNullString(newerACM)
 
 			if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, child.RawAcm.String); err != nil {
-				logger.Error("error calling IsUserAuthorizedForACM", zap.String("err", err.Error()))
+				logger.Error("error calling IsUserAuthorizedForACM", zap.Error(err))
 				continue
 			}
 			consolidateChangingPermissions(&child)
@@ -345,7 +345,7 @@ func (h AppServer) updateObjectRecursive(ctx context.Context, applyable models.O
 			child.ModifiedBy = caller.DistinguishedName
 			err = d.UpdateObject(&child)
 			if err != nil {
-				logger.Error("error updating child object with new permissions", zap.String("err", err.Error()))
+				logger.Error("error updating child object with new permissions", zap.Error(err))
 				continue
 			}
 
@@ -365,7 +365,7 @@ func (h AppServer) updateObjectRecursive(ctx context.Context, applyable models.O
 		var err error
 		children, err = d.GetChildObjectsWithProperties(pr, applyable)
 		if err != nil {
-			logger.Error("error calling GetChildObjectsWithProperties", zap.String("err", err.Error()))
+			logger.Error("error calling GetChildObjectsWithProperties", zap.Error(err))
 			return
 		}
 	}

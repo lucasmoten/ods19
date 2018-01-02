@@ -12,12 +12,12 @@ func (dao *DataAccessLayer) GetTrashedObjectsByUser(user models.ODUser, pagingRe
 	defer util.Time("GetTrashedObjectsByUser")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
 	results, err := getTrashedObjectsByUserInTransaction(tx, user, pagingRequest)
 	if err != nil {
-		dao.GetLogger().Error("Error in GetTrashedObjectsByUser", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in GetTrashedObjectsByUser", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()

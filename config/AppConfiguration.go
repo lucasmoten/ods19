@@ -127,7 +127,7 @@ type DatabaseConfiguration struct {
 	DeadlockRetryDelay int64 `yaml:"deadlock_retrydelay"`
 }
 
-// EventQueueConfiguration configures publishing to the Kakfa event queue.
+// EventQueueConfiguration configures publishing to the Kafka event queue.
 type EventQueueConfiguration struct {
 	// KafkaAddrs is a list of host:port pairs of Kafka brokers. If provided,
 	// a direct connection to the brokers is established.

@@ -137,7 +137,7 @@ func DiscoverKafka(conn *zk.Conn, path string, setter func(*AsyncProducer), opts
 				} else {
 					p, err := NewAsyncProducer(brokers, opts...)
 					if err != nil {
-						l.Error("error re-creating Kafka connection", zap.String("err", err.Error()))
+						l.Error("error re-creating Kafka connection", zap.Error(err))
 						continue
 					}
 					l.Info("found kafka brokers", zap.Any("brokers", brokers))
@@ -179,7 +179,7 @@ func (ap *AsyncProducer) start() {
 	go func() {
 		defer func() { ap.reconnect = true }()
 		for err := range ap.producer.Errors() {
-			ap.logger.Error("KAFKA ERROR", zap.String("err", err.Error()))
+			ap.logger.Error("KAFKA ERROR", zap.Error(err))
 			if requiresReconnect(err) {
 				ap.reconnect = true
 			}

@@ -156,7 +156,7 @@ func (h AppServer) changeOwnerRecursive(ctx context.Context, newOwner string, id
 
 	children, err := d.GetChildObjectsWithProperties(pr, obj)
 	if err != nil {
-		logger.Error("error calling GetChildObjectsWithProperties", zap.String("err", err.Error()))
+		logger.Error("error calling GetChildObjectsWithProperties", zap.Error(err))
 		return
 	}
 
@@ -176,14 +176,14 @@ func (h AppServer) changeOwnerRecursive(ctx context.Context, newOwner string, id
 
 			perm, err := models.CreateODPermissionFromResource(newOwner)
 			if err != nil {
-				logger.Error("could not create new owner permission", zap.String("err", err.Error()))
+				logger.Error("could not create new owner permission", zap.Error(err))
 				gem.Payload.Audit = audit.WithActionResult(gem.Payload.Audit, "FAILURE")
 				h.EventQueue.Publish(gem)
 				continue
 			}
 
 			if perm.AcmGrantee.Grantee == "" {
-				logger.Error("grantee cannot be empty string", zap.String("err", err.Error()))
+				logger.Error("grantee cannot be empty string", zap.Error(err))
 				gem.Payload.Audit = audit.WithActionResult(gem.Payload.Audit, "FAILURE")
 				h.EventQueue.Publish(gem)
 				continue
@@ -191,7 +191,7 @@ func (h AppServer) changeOwnerRecursive(ctx context.Context, newOwner string, id
 			// Don't allow transfer to everyone
 			if isPermissionFor(&perm, models.EveryoneGroup) {
 				err = errors.New("cannot transfer ownership to everyone")
-				logger.Error("error changing owner recursively", zap.String("err", err.Error()))
+				logger.Error("error changing owner recursively", zap.Error(err))
 				gem.Payload.Audit = audit.WithActionResult(gem.Payload.Audit, "FAILURE")
 				h.EventQueue.Publish(gem)
 				continue
@@ -199,7 +199,7 @@ func (h AppServer) changeOwnerRecursive(ctx context.Context, newOwner string, id
 
 			ok, existingPerm := isUserAllowedToUpdateWithPermission(ctx, &child)
 			if !ok {
-				logger.Error("grantee cannot be empty string", zap.String("err", "caller cannot update object"))
+				logger.Error("grantee cannot be empty string", zap.Error(fmt.Errorf("caller cannot update object")))
 				continue
 			}
 			// Owner gets full cruds
@@ -210,12 +210,12 @@ func (h AppServer) changeOwnerRecursive(ctx context.Context, newOwner string, id
 
 			modifiedACM, err := aacAuth.InjectPermissionsIntoACM(child.Permissions, child.RawAcm.String)
 			if err != nil {
-				logger.Error("cannot inject permissions into child object", zap.String("err", err.Error()))
+				logger.Error("cannot inject permissions into child object", zap.Error(err))
 				continue
 			}
 			modifiedPermissions, modifiedACM, err := aacAuth.NormalizePermissionsFromACM(child.OwnedBy.String, child.Permissions, modifiedACM, false)
 			if err != nil {
-				logger.Error("error calling NormalizePermissionsFromACM", zap.String("err", err.Error()))
+				logger.Error("error calling NormalizePermissionsFromACM", zap.Error(err))
 				continue
 			}
 			child.RawAcm = models.ToNullString(modifiedACM)
@@ -223,7 +223,7 @@ func (h AppServer) changeOwnerRecursive(ctx context.Context, newOwner string, id
 
 			// ACM checked for each being moved
 			if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, child.RawAcm.String); err != nil {
-				logger.Error("error calling IsUserAuthorizedForACM", zap.String("err", err.Error()))
+				logger.Error("error calling IsUserAuthorizedForACM", zap.Error(err))
 				continue
 			}
 			consolidateChangingPermissions(&child)
@@ -236,7 +236,7 @@ func (h AppServer) changeOwnerRecursive(ctx context.Context, newOwner string, id
 			child.OwnedBy = models.ToNullString(newOwner)
 			err = d.UpdateObject(&child)
 			if err != nil {
-				logger.Error("error updating child object with new permissions", zap.String("err", err.Error()))
+				logger.Error("error updating child object with new permissions", zap.Error(err))
 				continue
 			}
 
@@ -256,7 +256,7 @@ func (h AppServer) changeOwnerRecursive(ctx context.Context, newOwner string, id
 		var err error
 		children, err = d.GetChildObjectsWithProperties(pr, obj)
 		if err != nil {
-			logger.Error("error calling GetChildObjectsWithProperties", zap.String("err", err.Error()))
+			logger.Error("error calling GetChildObjectsWithProperties", zap.Error(err))
 			return
 		}
 	}

@@ -85,7 +85,7 @@ func (as *AutoScaler) autoScalerTerminating(lifecycleMessage *LifecycleMessage) 
 		}
 		_, err := asgSession.CompleteLifecycleAction(actionInput)
 		if err != nil {
-			logger.Warn("autoscale terminate fail", zap.String("err", err.Error()), zap.String("note", "ignore if this server was not spawned by autoscale"))
+			logger.Warn("autoscale terminate fail", zap.Error(err), zap.String("note", "ignore if this server was not spawned by autoscale"))
 		} else {
 			logger.Info("autoscale terminate success")
 		}
@@ -105,7 +105,7 @@ func (as *AutoScaler) waitingToTerminate(lifecycleMessage *LifecycleMessage, rem
 		if as.ASG != nil {
 			_, err := as.ASG.RecordLifecycleActionHeartbeat(heartbeatInput)
 			if err != nil {
-				logger.Warn("autoscale heartbeat fail", zap.String("err", err.Error()), zap.String("note", "ignore if this server was not spawned by autoscale"))
+				logger.Warn("autoscale heartbeat fail", zap.Error(err), zap.String("note", "ignore if this server was not spawned by autoscale"))
 			} else {
 				logger.Info("autoscale heartbeat success")
 			}
@@ -180,7 +180,7 @@ func (as *AutoScaler) handleLifecycleMessage(m string, warn bool) *LifecycleMess
 	err := json.Unmarshal([]byte(m), &parsed)
 	//Assume that this queue is ONLY used for lifecycle messages for this scaling group.
 	if warn {
-		logger.Warn("sqs unparseable", zap.String("err", err.Error()))
+		logger.Warn("sqs unparseable", zap.Error(err))
 	}
 	//These messages can be anything - xml, json, etc -, so if we use these simple struct parses, we just need
 	//to ignore the errors completely
@@ -247,7 +247,7 @@ func (as *AutoScaler) WatchForShutdownByMessage() {
 	if err != nil {
 		logger.Error(
 			"sqs queue get url failed",
-			zap.String("err", err.Error()),
+			zap.Error(err),
 		)
 		as.ExitChannel <- exitIgnore
 		return
@@ -268,7 +268,7 @@ func (as *AutoScaler) WatchForShutdownByMessage() {
 	)
 	if err != nil {
 		logger.Error("sqs queue error",
-			zap.String("err", err.Error()),
+			zap.Error(err),
 			zap.Any("config", as.Config),
 		)
 		as.ExitChannel <- exitIgnore
@@ -314,7 +314,7 @@ func (as *AutoScaler) WatchForShutdownByMessage() {
 			},
 		)
 		if err != nil {
-			logger.Error("sqs rcv fail", zap.String("err", err.Error()))
+			logger.Error("sqs rcv fail", zap.Error(err))
 		}
 	}
 }

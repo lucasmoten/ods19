@@ -14,12 +14,12 @@ func (dao *DataAccessLayer) GetRootObjectsWithPropertiesByGroup(groupGranteeName
 	defer util.Time("GetRootObjectsWithPropertiesByGroup")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
 	response, err := getRootObjectsWithPropertiesByGroupInTransaction(tx, groupGranteeName, user, pagingRequest)
 	if err != nil {
-		dao.GetLogger().Error("Error in GetRootObjectsWithPropertiesByGroup", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in GetRootObjectsWithPropertiesByGroup", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()

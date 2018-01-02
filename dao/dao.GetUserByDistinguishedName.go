@@ -15,13 +15,13 @@ func (dao *DataAccessLayer) GetUserByDistinguishedName(user models.ODUser) (mode
 	defer util.Time("GetUserByDistinguishedName")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODUser{}, err
 	}
 	dbUser, err := getUserByDistinguishedNameInTransaction(tx, user)
 	if err != nil {
 		if err != sql.ErrNoRows {
-			dao.GetLogger().Error("Error in GetUserByDistinguishedName", zap.String("err", err.Error()))
+			dao.GetLogger().Error("Error in GetUserByDistinguishedName", zap.Error(err))
 		}
 		tx.Rollback()
 	} else {

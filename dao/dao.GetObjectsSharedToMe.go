@@ -16,12 +16,12 @@ func (dao *DataAccessLayer) GetObjectsSharedToMe(user models.ODUser, pagingReque
 	defer util.Time("GetObjectsSharedToMe")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
 	response, err := getObjectsSharedToMeInTransaction(tx, user, pagingRequest)
 	if err != nil {
-		dao.GetLogger().Error("Error in GetObjectsSharedToMe", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in GetObjectsSharedToMe", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()

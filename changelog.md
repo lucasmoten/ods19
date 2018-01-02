@@ -19,6 +19,7 @@ FORMAT: 1A
 ## Unreleased v1.0.13
 ---------------------
 * FIX: Corrected count of objects and groups when listing groups
+* FIX: Minor spelling discrepancy for Kafka logging on startup
 
 ## Release v1.0.12 (December 20, 2017)
 --------------------

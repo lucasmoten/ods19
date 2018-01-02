@@ -9,7 +9,7 @@ import (
 func GetIP(logger *zap.Logger) string {
 	ip, err := gk.GetIP()
 	if err != nil {
-		logger.Error("error getting ip", zap.String("err", err.Error()))
+		logger.Error("error getting ip", zap.Error(err))
 	}
 	return ip
 }

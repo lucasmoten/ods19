@@ -159,7 +159,7 @@ func getAcm2ByNameInTransaction(dao *DataAccessLayer, namedValue string, addIfMi
 		tx.Rollback()
 		tx, err = dao.MetadataDB.Beginx()
 		if err != nil {
-			logger.Error("could not begin transaction", zap.String("err", err.Error()))
+			logger.Error("could not begin transaction", zap.Error(err))
 			return result, created, err
 		}
 		// Retry
@@ -181,7 +181,7 @@ func getAcm2ByNameInTransaction(dao *DataAccessLayer, namedValue string, addIfMi
 		}
 	}
 	if err != nil {
-		logger.Error("error in getAcm2ByNameInTransaction", zap.String("err", err.Error()))
+		logger.Error("error in getAcm2ByNameInTransaction", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -228,7 +228,7 @@ func getAcmKey2ByName(dao *DataAccessLayer, namedValue string, addIfMissing bool
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		tx, err = dao.MetadataDB.Beginx()
 		if err != nil {
-			logger.Error("could not begin transaction", zap.String("err", err.Error()))
+			logger.Error("could not begin transaction", zap.Error(err))
 			return result, err
 		}
 		// Retry
@@ -242,7 +242,7 @@ func getAcmKey2ByName(dao *DataAccessLayer, namedValue string, addIfMissing bool
 		}
 	}
 	if err != nil {
-		logger.Error("error in getAcmKey2ByName", zap.String("err", err.Error()))
+		logger.Error("error in getAcmKey2ByName", zap.Error(err))
 		tx.Rollback()
 		return result, fmt.Errorf("error creating acm key when missing: %s", err.Error())
 	}
@@ -287,7 +287,7 @@ func getAcmValue2ByName(dao *DataAccessLayer, namedValue string, addIfMissing bo
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		tx, err = dao.MetadataDB.Beginx()
 		if err != nil {
-			logger.Error("could not begin transaction", zap.String("err", err.Error()))
+			logger.Error("could not begin transaction", zap.Error(err))
 			return result, err
 		}
 		// Retry
@@ -299,12 +299,12 @@ func getAcmValue2ByName(dao *DataAccessLayer, namedValue string, addIfMissing bo
 					continue
 				}
 			} else {
-				logger.Error("error retrieving value", zap.String("err", err.Error()))
+				logger.Error("error retrieving value", zap.Error(err))
 			}
 		}
 	}
 	if err != nil {
-		logger.Error("error in getAcmValue2ByName", zap.String("err", err.Error()))
+		logger.Error("error in getAcmValue2ByName", zap.Error(err))
 		tx.Rollback()
 		return result, fmt.Errorf("error creating acm value when missing value %s: %s", namedValue, err.Error())
 	}

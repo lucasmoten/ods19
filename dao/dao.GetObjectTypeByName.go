@@ -17,12 +17,12 @@ func (dao *DataAccessLayer) GetObjectTypeByName(typeName string, addIfMissing bo
 	defer util.Time("GetObjectTypeByName")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectType{}, err
 	}
 	objectType, err := getObjectTypeByNameInTransaction(tx, typeName, addIfMissing, createdBy)
 	if err != nil {
-		dao.GetLogger().Error("Error in GetObjectTypeByName", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in GetObjectTypeByName", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()

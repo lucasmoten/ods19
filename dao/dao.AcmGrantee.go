@@ -18,12 +18,12 @@ func (dao *DataAccessLayer) GetAcmGrantee(grantee string) (models.ODAcmGrantee, 
 
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("could not begin transaction", zap.Error(err))
 		return models.ODAcmGrantee{}, err
 	}
 	response, err := getAcmGranteeInTransaction(tx, grantee)
 	if err != nil {
-		dao.GetLogger().Error("error in getacmgrantee", zap.String("err", err.Error()))
+		dao.GetLogger().Error("error in getacmgrantee", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -37,7 +37,7 @@ func (dao *DataAccessLayer) GetAcmGrantees(grantees []string) ([]models.ODAcmGra
 
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("could not begin transaction", zap.Error(err))
 		return []models.ODAcmGrantee{}, err
 	}
 	acmgrantees := []models.ODAcmGrantee{}
@@ -49,7 +49,7 @@ func (dao *DataAccessLayer) GetAcmGrantees(grantees []string) ([]models.ODAcmGra
 			// we can't commit yet, because we are in a loop
 		} else {
 			if err != sql.ErrNoRows {
-				dao.GetLogger().Error("error in getacmgrantees", zap.String("err", err.Error()))
+				dao.GetLogger().Error("error in getacmgrantees", zap.Error(err))
 				tx.Rollback()
 				return acmgrantees, err
 			}
@@ -87,7 +87,7 @@ func (dao *DataAccessLayer) CreateAcmGrantee(acmGrantee models.ODAcmGrantee) (mo
 	logger := dao.GetLogger()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		logger.Error("could not begin transaction", zap.String("err", err.Error()))
+		logger.Error("could not begin transaction", zap.Error(err))
 		return models.ODAcmGrantee{}, err
 	}
 	deadlockRetryCounter := dao.DeadlockRetryCounter
@@ -101,7 +101,7 @@ func (dao *DataAccessLayer) CreateAcmGrantee(acmGrantee models.ODAcmGrantee) (mo
 		tx.Rollback()
 		tx, err = dao.MetadataDB.Beginx()
 		if err != nil {
-			logger.Error("could not begin transaction", zap.String("err", err.Error()))
+			logger.Error("could not begin transaction", zap.Error(err))
 			return models.ODAcmGrantee{}, err
 		}
 		// Retry the create
@@ -109,7 +109,7 @@ func (dao *DataAccessLayer) CreateAcmGrantee(acmGrantee models.ODAcmGrantee) (mo
 		response, err = createAcmGranteeInTransaction(dao.GetLogger(), tx, acmGrantee)
 	}
 	if err != nil {
-		logger.Error("error in createacmgrantee", zap.String("err", err.Error()))
+		logger.Error("error in createacmgrantee", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -181,9 +181,9 @@ func createAcmGranteeInTransaction(logger *zap.Logger, tx *sqlx.Tx, acmGrantee m
 	dbAcmGrantee, err = getAcmGranteeInTransaction(tx, acmGrantee.Grantee)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			logger.Error("grantee was not found even after just adding", zap.String("err", err.Error()))
+			logger.Error("grantee was not found even after just adding", zap.Error(err))
 		} else {
-			logger.Error("an error occurred retrieving newly added grantee", zap.String("err", err.Error()))
+			logger.Error("an error occurred retrieving newly added grantee", zap.Error(err))
 		}
 		return dbAcmGrantee, err
 	}

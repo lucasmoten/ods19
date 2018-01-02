@@ -90,7 +90,7 @@ func (aac *AACAuthOff) GetSnippetsForUser(userIdentity string) (*acm.ODriveRawSn
 	// Convert to Snippet Fields
 	convertedSnippets, convertedSnippetsError := acm.NewODriveRawSnippetFieldsFromSnippetResponse(snippetString)
 	if convertedSnippetsError != nil {
-		aac.Logger.Error("Convert snippets to fields failed", zap.String("err", convertedSnippetsError.Error()))
+		aac.Logger.Error("Convert snippets to fields failed", zap.Error(convertedSnippetsError))
 		return nil, convertedSnippetsError
 	}
 

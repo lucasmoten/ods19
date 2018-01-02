@@ -25,7 +25,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 	logger := dao.GetLogger()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		logger.Error("could not begin transaction", zap.String("err", err.Error()))
+		logger.Error("could not begin transaction", zap.Error(err))
 		return err
 	}
 	var acmCreated bool
@@ -41,7 +41,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 		tx.Rollback()
 		tx, err = dao.MetadataDB.Beginx()
 		if err != nil {
-			logger.Error("could not begin transaction", zap.String("err", err.Error()))
+			logger.Error("could not begin transaction", zap.Error(err))
 			return err
 		}
 		// Retry the create
@@ -49,7 +49,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 		acmCreated, err = updateObjectInTransaction(logger, tx, dao, object)
 	}
 	if err != nil {
-		logger.Error("error in UpdateObject", zap.String("err", err.Error()))
+		logger.Error("error in UpdateObject", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -58,7 +58,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 			runasync := true
 			if runasync {
 				if err := insertAssociationOfACMToModifiedByIfValid(dao, *object); err != nil {
-					logger.Error("error associating the acm on this object to the user that created it!", zap.String("err", err.Error()), zap.String("ObjectID", hex.EncodeToString(object.ID)), zap.String("modifiedby", object.ModifiedBy), zap.Int64("acmID", object.ACMID))
+					logger.Error("error associating the acm on this object to the user that created it!", zap.Error(err), zap.String("ObjectID", hex.EncodeToString(object.ID)), zap.String("modifiedby", object.ModifiedBy), zap.Int64("acmID", object.ACMID))
 				}
 
 				go func() {

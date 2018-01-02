@@ -13,12 +13,12 @@ func (dao *DataAccessLayer) GetObjectProperty(objectProperty models.ODObjectProp
 	defer util.Time("GetObjectProperty")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectPropertyEx{}, err
 	}
 	dbObjectProperty, err := getObjectPropertyInTransaction(tx, objectProperty)
 	if err != nil {
-		dao.GetLogger().Error("Error in GetObjectProperty", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in GetObjectProperty", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()

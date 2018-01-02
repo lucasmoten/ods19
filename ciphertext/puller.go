@@ -121,7 +121,7 @@ func (p *Puller) getFileHandle(begin, end int64, p2p bool) (io.ReadCloser, error
 	if p2p || p.IsP2P || p.CiphertextCache.GetPermanentStorage() == nil {
 		filep2p, err = useP2PFile(p.Logger, p.CiphertextCache.CiphertextCacheZone, p.RName, begin)
 		if err != nil {
-			p.Logger.Info("puller cant use p2p", zap.String("err", err.Error()))
+			p.Logger.Info("puller cant use p2p", zap.Error(err))
 		}
 	}
 	if filep2p != nil {
@@ -180,7 +180,7 @@ func (p *Puller) More(useP2P bool) error {
 		p.Logger.Error(
 			"unable to get a puller filehandle",
 			zap.String("key", *p.Key),
-			zap.String("err", err.Error()),
+			zap.Error(err),
 		)
 		return err
 	}

@@ -12,12 +12,12 @@ func (dao *DataAccessLayer) GetPermissionsForObject(object models.ODObject) ([]m
 	defer util.Time("GetPermissionsForObject")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return []models.ODObjectPermission{}, err
 	}
 	response, err := getPermissionsForObjectInTransaction(tx, object)
 	if err != nil {
-		dao.GetLogger().Error("Error in GetPermissionsForObject", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in GetPermissionsForObject", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()

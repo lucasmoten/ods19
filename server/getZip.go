@@ -189,7 +189,7 @@ func zipWriteFile(
 		defer cipherReader.Close()
 	}
 	if err != nil {
-		logger.Error("unable to create puller for PermanentStorage", zap.String("err", err.Error()))
+		logger.Error("unable to create puller for PermanentStorage", zap.Error(err))
 		return NewAppError(500, err, "Unable to create pullet to read files")
 	}
 	logger.Debug("permanentstorage pull for zip begin", zap.String("fname", obj.Name), zap.Int64("bytes", totalLength))
@@ -230,7 +230,7 @@ func zipHasAccess(ctx context.Context, h AppServer, dbObject *models.ODObject) (
 	caller, _ := CallerFromContext(ctx)
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	if _, err := aacAuth.IsUserAuthorizedForACM(caller.DistinguishedName, dbObject.RawAcm.String); err != nil {
-		logger.Info("auth error", zap.String("err", err.Error()))
+		logger.Info("auth error", zap.Error(err))
 		return false, models.ODObjectPermission{}
 	}
 	return isUserAllowedToReadWithPermission(ctx, dbObject)

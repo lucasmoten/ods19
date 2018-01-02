@@ -110,7 +110,7 @@ func buildx509Identity(certFile string, keyFile string) []tls.Certificate {
 	if err != nil {
 		logger.Info(
 			"error loading x509 key pair",
-			zap.String("err", err.Error()),
+			zap.Error(err),
 			zap.String("certfile", certFile),
 			zap.String("keyfile", keyFile),
 		)
@@ -131,7 +131,7 @@ func buildCertPoolFromPath(filePath string, poolName string) *x509.CertPool {
 	// Open path indicated in configuration
 	pathSpec, err := os.Open(filePath)
 	if err != nil {
-		flogger.Error("error opening file path", zap.String("err", err.Error()))
+		flogger.Error("error opening file path", zap.Error(err))
 		return theCertPool
 
 	}
@@ -140,7 +140,7 @@ func buildCertPoolFromPath(filePath string, poolName string) *x509.CertPool {
 	// Check information about the path specification
 	pathSpecInfo, err := pathSpec.Stat()
 	if err != nil {
-		flogger.Error("error retrieving path specification information", zap.String("err", err.Error()))
+		flogger.Error("error retrieving path specification information", zap.Error(err))
 		return theCertPool
 	}
 
@@ -150,7 +150,7 @@ func buildCertPoolFromPath(filePath string, poolName string) *x509.CertPool {
 		// The path is a directory, read all the files
 		files, err := ioutil.ReadDir(filePath)
 		if err != nil {
-			flogger.Error("reading directory", zap.String("err", err.Error()))
+			flogger.Error("reading directory", zap.Error(err))
 			return theCertPool
 		}
 		if !strings.HasSuffix(filePath, "/") {
@@ -177,7 +177,7 @@ func addPEMFileToPool(PEMfile string, certPool *x509.CertPool) {
 	plogger.Info("adding pem file")
 	pem, err := ioutil.ReadFile(PEMfile)
 	if err != nil {
-		plogger.Error("error reading pem file", zap.String("err", err.Error()))
+		plogger.Error("error reading pem file", zap.Error(err))
 		return
 	}
 	if ok := certPool.AppendCertsFromPEM(pem); !ok {

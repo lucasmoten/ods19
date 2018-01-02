@@ -119,7 +119,7 @@ func GetProcStat(logger *zap.Logger) *linuxproc.Stat {
 	var err error
 	prevStat, err := linuxproc.ReadStat("/proc/stat")
 	if err != nil {
-		logger.Error("stat read fail", zap.String("err", err.Error()))
+		logger.Error("stat read fail", zap.Error(err))
 	}
 	return prevStat
 }
@@ -139,7 +139,7 @@ func GetLoadAvgStat(logger *zap.Logger) *LoadAvgStat {
 	var err error
 	f, err := os.Open("/proc/loadavg")
 	if err != nil {
-		logger.Error("loadavg fail to open", zap.String("err", err.Error()))
+		logger.Error("loadavg fail to open", zap.Error(err))
 		return nil
 	}
 	defer f.Close()
@@ -147,7 +147,7 @@ func GetLoadAvgStat(logger *zap.Logger) *LoadAvgStat {
 	buffer := make([]byte, 1024)
 	count, err := f.Read(buffer)
 	if err != nil {
-		logger.Error("loadavg fail to parse", zap.String("err", err.Error()))
+		logger.Error("loadavg fail to parse", zap.Error(err))
 		return nil
 	}
 	bufferString := string(buffer[:count])
@@ -409,7 +409,7 @@ func CloudWatchReportingStart(tracker *performance.JobReporters) {
 				} else {
 					_, err := cwSession.PutMetricData(params)
 					if err != nil {
-						logger.Error("cloudwatch put metric data fail", zap.String("err", err.Error()))
+						logger.Error("cloudwatch put metric data fail", zap.Error(err))
 					} else {
 						logger.Debug("cloudwatch success")
 					}

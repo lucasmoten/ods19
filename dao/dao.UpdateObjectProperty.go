@@ -22,12 +22,12 @@ func (dao *DataAccessLayer) UpdateObjectProperty(objectProperty models.ODObjectP
 	defer util.Time("UpdateObjectProperty")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return err
 	}
 	err = updateObjectPropertyInTransaction(tx, objectProperty)
 	if err != nil {
-		dao.GetLogger().Error("Error in UpdateObjectProperty", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in UpdateObjectProperty", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()

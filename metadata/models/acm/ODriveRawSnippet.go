@@ -86,7 +86,7 @@ func newODriveRawSnippetFieldFromString(quotedSnippet string, expectedFieldName 
 	jsonIOReader := bytes.NewBufferString(quotedSnippet)
 	err = (json.NewDecoder(jsonIOReader)).Decode(&rawSnippetFields)
 	if err != io.EOF && err != nil {
-		logger.Error("acm snippet field unparseable", zap.String("acm", quotedSnippet), zap.String("err", err.Error()))
+		logger.Error("acm snippet field unparseable", zap.String("acm", quotedSnippet), zap.Error(err))
 		return rawSnippetFields, err
 	}
 	if err == io.EOF {
@@ -120,7 +120,7 @@ func NewODriveRawSnippetFieldsFromSnippetResponse(snippets string) (ODriveRawSni
 	if strings.HasPrefix(snippets, `{\`) {
 		unquotedSnippets, err = strconv.Unquote(snippets)
 		if err != nil {
-			logger.Error("acm snippet unquoting error", zap.String("snippets", snippets), zap.String("err", err.Error()))
+			logger.Error("acm snippet unquoting error", zap.String("snippets", snippets), zap.Error(err))
 			return rawSnippetFields, err
 		}
 	}
@@ -149,7 +149,7 @@ func convertSnippetsUsingInterface(snippets string) (ODriveRawSnippetFields, err
 	// Stage 1: Convert snippets to a map
 	snippetInterface, err := utils.UnmarshalStringToInterface(snippets)
 	if err != nil {
-		logger.Error("acm snippet unparseable", zap.String("snippets", snippets), zap.String("err", err.Error()))
+		logger.Error("acm snippet unparseable", zap.String("snippets", snippets), zap.Error(err))
 		return rawSnippetFields, err
 	}
 	snippetMap, ok := snippetInterface.(map[string]interface{})

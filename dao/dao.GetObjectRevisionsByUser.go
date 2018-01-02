@@ -16,12 +16,12 @@ func (dao *DataAccessLayer) GetObjectRevisionsByUser(
 	defer util.Time("GetObjectRevisionsByUser")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
 	response, err := getObjectRevisionsByUserInTransaction(tx, user, pagingRequest, object, withProperties)
 	if err != nil {
-		dao.GetLogger().Error("Error in GetObjectRevisionsByUser", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in GetObjectRevisionsByUser", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()

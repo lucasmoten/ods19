@@ -22,14 +22,14 @@ func (dao *DataAccessLayer) GetParents(child models.ODObject) ([]models.ODObject
 
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return nil, err
 	}
 
 	parents, err = getParentsInTransaction(tx, child)
 
 	if err != nil {
-		dao.GetLogger().Error("Error in GetParents", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Error in GetParents", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()

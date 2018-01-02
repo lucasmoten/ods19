@@ -67,7 +67,7 @@ func (aac *AACAuth) GetAttributesForUser(userIdentity string) (*acm.ODriveUserAt
 
 	// Process response
 	if getUserAttributesError != nil {
-		aac.Logger.Warn("error calling aac.getuserattributes", zap.String("err", getUserAttributesError.Error()))
+		aac.Logger.Warn("error calling aac.getuserattributes", zap.Error(getUserAttributesError))
 		return nil, ErrFailToRetrieveAttributes
 	}
 	if getUserAttributesResponse == nil {
@@ -86,7 +86,7 @@ func (aac *AACAuth) GetAttributesForUser(userIdentity string) (*acm.ODriveUserAt
 	// Convert to ODrive User Attributes
 	convertedAttributes, convertedAttributesError := acm.NewODriveAttributesFromAttributeResponse(getUserAttributesResponse.UserAttributes)
 	if convertedAttributesError != nil {
-		aac.Logger.Info("convert attributes to object failed", zap.String("err", convertedAttributesError.Error()))
+		aac.Logger.Info("convert attributes to object failed", zap.Error(convertedAttributesError))
 		return nil, convertedAttributesError
 	}
 
@@ -111,7 +111,7 @@ func (aac *AACAuth) GetFlattenedACM(acm string) (string, []string, error) {
 
 	// Process response
 	if acmResponseError != nil {
-		aac.Logger.Warn("error calling aac.populateandvalidateacm", zap.String("err", acmResponseError.Error()))
+		aac.Logger.Warn("error calling aac.populateandvalidateacm", zap.Error(acmResponseError))
 		return acm, nil, ErrFailToFlattenACM
 	}
 	if acmResponse == nil {
@@ -174,7 +174,7 @@ func (aac *AACAuth) GetSnippetsForUser(userIdentity string) (*acm.ODriveRawSnipp
 
 	// Process response
 	if getSnippetsError != nil {
-		aac.Logger.Warn("error calling aac.getsnippets", zap.String("err", getSnippetsError.Error()))
+		aac.Logger.Warn("error calling aac.getsnippets", zap.Error(getSnippetsError))
 		return nil, ErrFailToRetrieveSnippets
 	}
 	if getSnippetsResponse == nil {
@@ -199,7 +199,7 @@ func (aac *AACAuth) GetSnippetsForUser(userIdentity string) (*acm.ODriveRawSnipp
 	// Convert to Snippet Fields
 	convertedSnippets, convertedSnippetsError := acm.NewODriveRawSnippetFieldsFromSnippetResponse(getSnippetsResponse.Snippets)
 	if convertedSnippetsError != nil {
-		aac.Logger.Error("convert snippets to fields failed", zap.String("err", convertedSnippetsError.Error()))
+		aac.Logger.Error("convert snippets to fields failed", zap.Error(convertedSnippetsError))
 		return nil, convertedSnippetsError
 	}
 
@@ -238,7 +238,7 @@ func (aac *AACAuth) IsUserAuthorizedForACM(userIdentity string, acm string) (boo
 	// Call AAC Service.
 	resp, err := aac.Service.CheckAccess(userIdentity, tokenType, flattenedACM)
 	if err != nil {
-		aac.Logger.Warn("error calling aac.checkaccess", zap.String("err", err.Error()))
+		aac.Logger.Warn("error calling aac.checkaccess", zap.Error(err))
 		return false, ErrFailToCheckUserAccess
 	}
 	if resp == nil {

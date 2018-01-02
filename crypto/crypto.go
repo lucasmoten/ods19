@@ -188,12 +188,12 @@ func DoCipherByReaderWriter(
 ) (checksum []byte, length int64, err error) {
 	writeCipher, err := aes.NewCipher(key)
 	if err != nil {
-		logger.Error("unable to use cipher", zap.String("description", description), zap.String("err", err.Error()))
+		logger.Error("unable to use cipher", zap.String("description", description), zap.Error(err))
 		return nil, 0, err
 	}
 	writeCipherStream := cipher.NewCTR(writeCipher, iv[:])
 	if err != nil {
-		logger.Error("unable to use block mode", zap.String("description", description), zap.String("err", err.Error()))
+		logger.Error("unable to use block mode", zap.String("description", description), zap.Error(err))
 		return nil, 0, err
 	}
 

@@ -21,13 +21,13 @@ func (dao *DataAccessLayer) GetUserAOCacheByDistinguishedName(user models.ODUser
 	defer util.Time("GetUserAOCacheByDistinguishedName")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODUserAOCache{}, err
 	}
 	dbUserAOCache, err := getUserAOCacheByDistinguishedNameInTransaction(tx, user)
 	if err != nil {
 		if err != sql.ErrNoRows {
-			dao.GetLogger().Error("Error in GetUserAOCacheByDistinguishedName", zap.String("err", err.Error()))
+			dao.GetLogger().Error("Error in GetUserAOCacheByDistinguishedName", zap.Error(err))
 		} else {
 			err = nil
 		}
@@ -52,7 +52,7 @@ func getUserAOCacheByDistinguishedNameInTransaction(tx *sqlx.Tx, user models.ODU
 func (dao *DataAccessLayer) SetUserAOCacheByDistinguishedName(useraocache *models.ODUserAOCache, user models.ODUser) error {
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return err
 	}
 	// Uninitialized passed in. New it up
@@ -226,7 +226,7 @@ func insertUserAOCache(dao *DataAccessLayer, tx *sqlx.Tx, useraocache *models.OD
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		tx, err = dao.MetadataDB.Beginx()
 		if err != nil {
-			logger.Error("could not begin transaction", zap.String("err", err.Error()))
+			logger.Error("could not begin transaction", zap.Error(err))
 			return err
 		}
 		stmt, err = tx.Preparex(`insert useraocache set userid = ?, iscaching = ?, cachedate = ?, sha256hash = ?`)
@@ -268,7 +268,7 @@ func updateUserAOCache(dao *DataAccessLayer, tx *sqlx.Tx, useraocache *models.OD
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		tx, err = dao.MetadataDB.Beginx()
 		if err != nil {
-			logger.Error("could not begin transaction", zap.String("err", err.Error()))
+			logger.Error("could not begin transaction", zap.Error(err))
 			return err
 		}
 		stmt, err = tx.Preparex(`update useraocache set iscaching = ?, cachedate = ?, sha256hash = ? where userid = ?`)
@@ -333,7 +333,7 @@ func insertUserAOCachePart(dao *DataAccessLayer, tx *sqlx.Tx, user models.ODUser
 		time.Sleep(time.Duration(deadlockRetryDelay) * time.Millisecond)
 		tx, err = dao.MetadataDB.Beginx()
 		if err != nil {
-			logger.Error("could not begin transaction in useraocachepart", zap.String("err", err.Error()))
+			logger.Error("could not begin transaction in useraocachepart", zap.Error(err))
 			return err
 		}
 		stmt, err = tx.Preparex(`insert useraocachepart set userid = ?, isallowed = ?, userkeyid = ?, uservalueid = ?`)
@@ -368,27 +368,27 @@ func (dao *DataAccessLayer) RebuildUserACMCache(useraocache *models.ODUserAOCach
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		tx.Rollback()
-		dao.GetLogger().Error("rebuildUserACMCache Could not begin transaction", zap.String("err", err.Error()))
+		dao.GetLogger().Error("rebuildUserACMCache Could not begin transaction", zap.Error(err))
 		return err
 	}
 	// 1. Determine the ids a user should have
 	var acmids []int64
 	if acmids, err = getACMIDsValidForUser(tx, user, mode); err != nil {
 		tx.Rollback()
-		dao.GetLogger().Error("rebuildUserACMCache had error getting list of matching ids", zap.String("err", err.Error()))
+		dao.GetLogger().Error("rebuildUserACMCache had error getting list of matching ids", zap.Error(err))
 		return err
 	}
 	acmidlist := sqlIntSeq(acmids)
 	// 2. Delete those which the user currently has associated that should not be anymore
 	if err = deleteInvalidUserACMs(tx, user, acmidlist); err != nil {
 		tx.Rollback()
-		dao.GetLogger().Error("rebuildUserACMCache error deleting existing user acms", zap.String("err", err.Error()))
+		dao.GetLogger().Error("rebuildUserACMCache error deleting existing user acms", zap.Error(err))
 		return err
 	}
 	// 3. Insert those that the user should have but currently dont
 	if err = insertUserACMList(tx, user, acmidlist); err != nil {
 		tx.Rollback()
-		dao.GetLogger().Error("rebuildUserACMCache error inserting useracms", zap.String("acmidlist", acmidlist), zap.String("err", err.Error()))
+		dao.GetLogger().Error("rebuildUserACMCache error inserting useracms", zap.String("acmidlist", acmidlist), zap.Error(err))
 		return err
 	}
 	tx.Commit()
@@ -396,13 +396,13 @@ func (dao *DataAccessLayer) RebuildUserACMCache(useraocache *models.ODUserAOCach
 	tx, err = dao.MetadataDB.Beginx()
 	if err != nil {
 		tx.Rollback()
-		dao.GetLogger().Error("rebuildUserACMCache Could not begin transaction for marking cache complete", zap.String("err", err.Error()))
+		dao.GetLogger().Error("rebuildUserACMCache Could not begin transaction for marking cache complete", zap.Error(err))
 		return err
 	}
 	useraocache.IsCaching = false
 	if err = updateUserAOCache(dao, tx, useraocache); err != nil {
 		tx.Rollback()
-		dao.GetLogger().Error("rebuildUserACMCache error marking user cache as done", zap.String("err", err.Error()))
+		dao.GetLogger().Error("rebuildUserACMCache error marking user cache as done", zap.Error(err))
 		return err
 	}
 	tx.Commit()
@@ -415,7 +415,7 @@ func (dao *DataAccessLayer) RebuildUserACMCache(useraocache *models.ODUserAOCach
 func (dao *DataAccessLayer) AssociateUsersToNewACM(object models.ODObject, done chan bool) error {
 	defer func() { done <- true }()
 	if err := associateUsersToNewACM(dao, object, 0); err != nil {
-		dao.GetLogger().Error("associateUsersToNewACM encountered error", zap.String("err", err.Error()))
+		dao.GetLogger().Error("associateUsersToNewACM encountered error", zap.Error(err))
 		return err
 	}
 	return nil

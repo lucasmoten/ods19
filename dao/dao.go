@@ -203,7 +203,7 @@ func (d *DataAccessLayer) IsReadOnly(refresh bool) bool {
 		// Find out our schema
 		state, err := d.GetDBState()
 		if err != nil {
-			d.Logger.Info("getting db state failed", zap.String("err", err.Error()))
+			d.Logger.Info("getting db state failed", zap.Error(err))
 		} else {
 			d.SchemaVersion = state.SchemaVersion
 			if d.SchemaVersion == SchemaVersion {

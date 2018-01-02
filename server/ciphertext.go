@@ -86,7 +86,7 @@ func (h AppServer) getCiphertext(ctx context.Context, w http.ResponseWriter, r *
 
 	//It is perfectly normal for a client to only pull part of the data and cut us off
 	if err != nil && strings.Contains(err.Error(), "write: connection reset by peer") == false {
-		logger.Info("p2p copy failure", zap.String("err", err.Error()), zap.Int64("bytes", byteCount))
+		logger.Info("p2p copy failure", zap.Error(err), zap.Int64("bytes", byteCount))
 	}
 	h.publishSuccess(gem, w)
 	return nil
