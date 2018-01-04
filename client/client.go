@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/textproto"
+	"net/url"
 	"strings"
 
 	"github.com/deciphernow/commons/tlsutil"
@@ -329,23 +330,23 @@ func (c *Client) Search(paging protocol.PagingRequest, searchAllObjects bool) (p
 	} else {
 		uri += "/objects"
 		if len(paging.ObjectID) > 0 {
-			uri += "/" + paging.ObjectID
+			uri += "/" + url.QueryEscape(paging.ObjectID)
 		}
 	}
 	uri += "?"
 	if len(paging.FilterMatchType) > 0 {
-		uri += fmt.Sprintf("filterMatchType=%s&", paging.FilterMatchType)
+		uri += fmt.Sprintf("filterMatchType=%s&", url.QueryEscape(paging.FilterMatchType))
 	}
 	for _, fs := range paging.FilterSettings {
-		uri += fmt.Sprintf("filterField=%s&condition=%s&expression=%s&", fs.FilterField, fs.Condition, fs.Expression)
+		uri += fmt.Sprintf("filterField=%s&condition=%s&expression=%s&", url.QueryEscape(fs.FilterField), url.QueryEscape(fs.Condition), url.QueryEscape(fs.Expression))
 	}
 	for _, ss := range paging.SortSettings {
-		uri += fmt.Sprintf("sortField=%s&sortAscending=%t&", ss.SortField, ss.SortAscending)
+		uri += fmt.Sprintf("sortField=%s&sortAscending=%t&", url.QueryEscape(ss.SortField), ss.SortAscending)
 	}
 	uri += fmt.Sprintf("pageNumber=%d&pageSize=%d&", paging.PageNumber, paging.PageSize)
 
 	var ret protocol.ObjectResultset
-
+	log.Printf(uri)
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		return ret, fmt.Errorf("error creating request: %v", err)

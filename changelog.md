@@ -20,6 +20,7 @@ FORMAT: 1A
 ---------------------
 * FIX: Corrected count of objects and groups when listing groups
 * FIX: Minor spelling discrepancy for Kafka logging on startup
+* FIX: Fixed client library search call to url encode query parameters
 
 ## Release v1.0.12 (December 20, 2017)
 --------------------
