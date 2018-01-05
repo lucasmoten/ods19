@@ -67,12 +67,12 @@ func TestPublishEvents(t *testing.T) {
 		return
 	}()
 
-	timeout := time.After(5 * time.Second)
+	timeout := time.After(30 * time.Second)
 	for {
 		select {
 		case <-timeout:
 			t.Logf("5 second timeout exceeded. Please run integration tests with empty Kafka queues.")
-			t.Skip()
+			//t.Skip()
 			return
 		case <-done:
 			t.Log("Found all expected events")

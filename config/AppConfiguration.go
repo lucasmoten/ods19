@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/deciphernow/gov-go/gov/encryptor"
 	"github.com/deciphernow/object-drive-server/util"
 
-	"github.com/deciphernow/commons/gov/encryptor"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/urfave/cli"

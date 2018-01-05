@@ -17,7 +17,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/deciphernow/commons/tlsutil"
+	"github.com/deciphernow/gm-fabric-go/tlsutil"
 	"github.com/deciphernow/object-drive-server/protocol"
 )
 
