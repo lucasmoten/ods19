@@ -21,6 +21,8 @@ FORMAT: 1A
 * FIX: Corrected count of objects and groups when listing groups
 * FIX: Minor spelling discrepancy for Kafka logging on startup
 * FIX: Fixed client library search call to url encode query parameters
+* FIX: Remove temporary containers when building documentation
+* ENH: Enforce non-usage of CGO in odb build and continuous integration
 
 ## Release v1.0.12 (December 20, 2017)
 --------------------

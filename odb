@@ -95,6 +95,7 @@ def metadatadb_build(tag="latest"):
     os.chdir(odrive_database)
     os.putenv('GOOS', 'linux')
     os.putenv('GOARCH', 'amd64')
+    os.putenv('CGO_ENABLED', '0')
     try:
         subprocess.check_call(["go-bindata", "schema", "migrations", "../../defaultcerts/client-mysql/id", "../../defaultcerts/client-mysql/trust"]) 
         subprocess.check_call(["go", "build"]) 
