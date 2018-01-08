@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/deciphernow/gov-go/gov/encryptor"
 	"github.com/deciphernow/object-drive-server/config"
-
-	"github.com/deciphernow/commons/gov/encryptor"
 )
 
 func help() {

@@ -219,12 +219,6 @@
 			"revisionTime": "2016-10-29T20:57:26Z"
 		},
 		{
-			"checksumSHA1": "3ryKB35gbVHN2s6uXzsOPb94mYg=",
-			"path": "github.com/deciphernow/commons",
-			"revision": "971d13c4d08603fbfa96cf072a03994e42e6070f",
-			"revisionTime": "2016-11-10T19:49:42-05:00"
-		},
-		{
 			"checksumSHA1": "ff8DZQAkszikGCT4wAU4Pl+u5uI=",
 			"path": "github.com/deciphernow/commons/gov",
 			"revision": "971d13c4d08603fbfa96cf072a03994e42e6070f",
@@ -247,6 +241,12 @@
 			"path": "github.com/deciphernow/gm-fabric-go/gk",
 			"revision": "9928bd869ad63d4af927ff6e492fd9ff01f5299f",
 			"revisionTime": "2017-12-03T02:51:00Z"
+		},
+		{
+			"checksumSHA1": "0astwMe2gcp49NC5zn6aRV6cKW8=",
+			"path": "github.com/deciphernow/gm-fabric-go/tlsutil",
+			"revision": "f829ee9a33f5eb57d895b1709bd4e3069432b28e",
+			"revisionTime": "2018-01-04T21:56:10Z"
 		},
 		{
 			"checksumSHA1": "JIoSXdid8CPr883fa1L9L4/5AqQ=",
@@ -277,6 +277,12 @@
 			"path": "github.com/deciphernow/gov-go/audit/events_thrift",
 			"revision": "a620b813a7238acd5635c38d429f51ffadd4a8db",
 			"revisionTime": "2017-04-10T16:51:00Z"
+		},
+		{
+			"checksumSHA1": "uLuqzOcgQOz798dZDiiqIIKO4NU=",
+			"path": "github.com/deciphernow/gov-go/gov/encryptor",
+			"revision": "f6226c3d2e7137a8194714b9a67fa59671783c55",
+			"revisionTime": "2017-12-14T16:07:53Z"
 		},
 		{
 			"checksumSHA1": "Zy4ERNin/KpksYcvndcNn4YXyJg=",
@@ -393,19 +399,7 @@
 			"revisionTime": "2017-10-27T00:15:00Z"
 		},
 		{
-			"checksumSHA1": "jGs/19Yim2KH8IIAtNo5gkakTjk=",
-			"path": "github.com/spacemonkeygo/openssl",
-			"revision": "4ea35d79e3ae2758eac37f0348cdc58aa167e78a",
-			"revisionTime": "2017-12-07T20:32:26Z"
-		},
-		{
-			"checksumSHA1": "bSL99i42P6OVH88I94u3+hCoUPc=",
-			"path": "github.com/spacemonkeygo/openssl/utils",
-			"revision": "4ea35d79e3ae2758eac37f0348cdc58aa167e78a",
-			"revisionTime": "2017-12-07T20:32:26Z"
-		},
-		{
-			"checksumSHA1": "TzNKZUQhRUSvmT2IdzE08pxL9xU=",
+			"checksumSHA1": "uSM3B4ESRTfVB+Grcuc3kJUy0Ns=",
 			"path": "github.com/spacemonkeygo/spacelog",
 			"revision": "081216856ee01315ad130cb9ccd5d2a40624c619",
 			"revisionTime": "2017-10-24T14:56:50Z"
