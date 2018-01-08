@@ -393,22 +393,22 @@
 			"revisionTime": "2017-10-27T00:15:00Z"
 		},
 		{
-			"checksumSHA1": "i5TehLixUkrs7/8wgeTTVZBqC/c=",
+			"checksumSHA1": "jGs/19Yim2KH8IIAtNo5gkakTjk=",
 			"path": "github.com/spacemonkeygo/openssl",
-			"revision": "71f9da2a482c2b7bc3507c3fabaf714d6bb8b75d",
-			"revisionTime": "2015-11-29T11:55:40-07:00"
+			"revision": "4ea35d79e3ae2758eac37f0348cdc58aa167e78a",
+			"revisionTime": "2017-12-07T20:32:26Z"
 		},
 		{
 			"checksumSHA1": "bSL99i42P6OVH88I94u3+hCoUPc=",
 			"path": "github.com/spacemonkeygo/openssl/utils",
-			"revision": "71f9da2a482c2b7bc3507c3fabaf714d6bb8b75d",
-			"revisionTime": "2015-11-29T11:55:40-07:00"
+			"revision": "4ea35d79e3ae2758eac37f0348cdc58aa167e78a",
+			"revisionTime": "2017-12-07T20:32:26Z"
 		},
 		{
-			"checksumSHA1": "uSM3B4ESRTfVB+Grcuc3kJUy0Ns=",
+			"checksumSHA1": "TzNKZUQhRUSvmT2IdzE08pxL9xU=",
 			"path": "github.com/spacemonkeygo/spacelog",
-			"revision": "ae95ccc1eb0c8ce2496c43177430efd61930f7e4",
-			"revisionTime": "2015-03-20T15:06:48-06:00"
+			"revision": "081216856ee01315ad130cb9ccd5d2a40624c619",
+			"revisionTime": "2017-10-24T14:56:50Z"
 		},
 		{
 			"checksumSHA1": "K0crHygPTP42i1nLKWphSlvOQJw=",
