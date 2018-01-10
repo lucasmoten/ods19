@@ -24,11 +24,31 @@ func TestListObjectsSharedToMe(t *testing.T) {
 	ACMeveryone := `{"banner":"UNCLASSIFIED","classif":"U","dissem_countries":["USA"],"portion":"U","version":"2.1.0"}`
 
 	t.Logf("* Creating hierarchy of objects owned by tester1")
-	a1, _ := makeFolderWithACMViaJSON("A1", ACMtester1Private, tester1)
-	a2, _ := makeFolderWithACMWithParentViaJSON("A2", a1.ID, ACMtester1Private, tester1)
-	a3, _ := makeFolderWithACMWithParentViaJSON("A3", a1.ID, ACMtester1And2, tester1)
-	a4, _ := makeFolderWithACMWithParentViaJSON("A4", a3.ID, ACMeveryone, tester1)
-	a5, _ := makeFolderWithACMWithParentViaJSON("A5", a3.ID, ACMtester1And2, tester1)
+	a1, err := makeFolderWithACMViaJSON("A1", ACMtester1Private, tester1)
+	if err != nil {
+		t.Errorf("A1 fail: %v", err)
+		t.FailNow()
+	}
+	a2, err := makeFolderWithACMWithParentViaJSON("A2", a1.ID, ACMtester1Private, tester1)
+	if err != nil {
+		t.Errorf("A2 fail: %v", err)
+		t.FailNow()
+	}
+	a3, err := makeFolderWithACMWithParentViaJSON("A3", a1.ID, ACMtester1And2, tester1)
+	if err != nil {
+		t.Errorf("A3 fail: %v", err)
+		t.FailNow()
+	}
+	a4, err := makeFolderWithACMWithParentViaJSON("A4", a3.ID, ACMeveryone, tester1)
+	if err != nil {
+		t.Errorf("A4 fail: %v", err)
+		t.FailNow()
+	}
+	a5, err := makeFolderWithACMWithParentViaJSON("A5", a3.ID, ACMtester1And2, tester1)
+	if err != nil {
+		t.Errorf("A5 fail: %v", err)
+		t.FailNow()
+	}
 	t.Logf(`
 [Tester1 Root]
    [A1] tester1 private
@@ -44,15 +64,51 @@ func TestListObjectsSharedToMe(t *testing.T) {
 	a4 = a4b
 
 	t.Logf("* Creating hierarchy of objects owned by tester2")
-	b1, _ := makeFolderWithACMViaJSON("B1", ACMtester2Private, tester2)
-	b2, _ := makeFolderWithACMWithParentViaJSON("B2", b1.ID, ACMeveryone, tester2)
-	b3, _ := makeFolderWithACMWithParentViaJSON("B3", b1.ID, ACMtester1And2, tester2)
-	b4, _ := makeFolderWithACMWithParentViaJSON("B4", b1.ID, ACMtester1And2, tester2)
-	b5, _ := makeFolderWithACMWithParentViaJSON("B5", a4.ID, ACMtester1And2, tester2)
-	b6, _ := makeFolderWithACMWithParentViaJSON("B6", b4.ID, ACMtester1And2, tester2)
-	b7, _ := makeFolderWithACMWithParentViaJSON("B7", b6.ID, ACMtester2Private, tester2)
-	b8, _ := makeFolderWithACMWithParentViaJSON("B8", b7.ID, ACMtester1And2, tester2)
-	b9, _ := makeFolderWithACMWithParentViaJSON("B9", b6.ID, ACMtester1And2, tester2)
+	b1, err := makeFolderWithACMViaJSON("B1", ACMtester2Private, tester2)
+	if err != nil {
+		t.Errorf("B1 fail: %v", err)
+		t.FailNow()
+	}
+	b2, err := makeFolderWithACMWithParentViaJSON("B2", b1.ID, ACMeveryone, tester2)
+	if err != nil {
+		t.Errorf("B2 fail: %v", err)
+		t.FailNow()
+	}
+	b3, err := makeFolderWithACMWithParentViaJSON("B3", b1.ID, ACMtester1And2, tester2)
+	if err != nil {
+		t.Errorf("B3 fail: %v", err)
+		t.FailNow()
+	}
+	b4, err := makeFolderWithACMWithParentViaJSON("B4", b1.ID, ACMtester1And2, tester2)
+	if err != nil {
+		t.Errorf("B4 fail: %v", err)
+		t.FailNow()
+	}
+	b5, err := makeFolderWithACMWithParentViaJSON("B5", a4.ID, ACMtester1And2, tester2)
+	if err != nil {
+		t.Errorf("B5 fail: %v", err)
+		t.FailNow()
+	}
+	b6, err := makeFolderWithACMWithParentViaJSON("B6", b4.ID, ACMtester1And2, tester2)
+	if err != nil {
+		t.Errorf("B6 fail: %v", err)
+		t.FailNow()
+	}
+	b7, err := makeFolderWithACMWithParentViaJSON("B7", b6.ID, ACMtester2Private, tester2)
+	if err != nil {
+		t.Errorf("B7 fail: %v", err)
+		t.FailNow()
+	}
+	b8, err := makeFolderWithACMWithParentViaJSON("B8", b7.ID, ACMtester1And2, tester2)
+	if err != nil {
+		t.Errorf("B8 fail: %v", err)
+		t.FailNow()
+	}
+	b9, err := makeFolderWithACMWithParentViaJSON("B9", b6.ID, ACMtester1And2, tester2)
+	if err != nil {
+		t.Errorf("B9 fail: %v", err)
+		t.FailNow()
+	}
 	t.Logf(`
 [Tester2 Root]                                  [B5] created under [A4] owned by tester1
    [B1] tester2 private
