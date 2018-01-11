@@ -282,13 +282,13 @@ func aacReconnect(app *AppServer, conf config.AppConfiguration) {
 		key := conf.AACSettings.ClientKey
 		client, err := aac.GetAACClient(host, port, trust, cert, key)
 		if err != nil {
-			logger.Error("aacReconnect: error creating aac client with announce data", zap.Any("announcData", info))
+			logger.Error("aacReconnect: error creating aac client with announce data", zap.Any("announceData", info))
 			continue
 		}
 		// we have a client. let's run a test before we set the pointer.
 		_, err = client.ValidateAcm(ValidACMUnclassified)
 		if err != nil {
-			logger.Error("aacReconnect: call to ValidateAcm failed", zap.Any("announcData", info))
+			logger.Error("aacReconnect: call to ValidateAcm failed", zap.Any("announceData", info))
 			continue
 		}
 		logger.Info("successfully reconnected to aac")
