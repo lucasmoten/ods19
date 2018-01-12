@@ -42,12 +42,13 @@ func TestDiscoverKafka(t *testing.T) {
 
 // triggerEvent is an wacky routine to trigger a ZK event.
 func triggerEvent(t *testing.T, conn *zk.Conn, path string, quit chan bool) {
-
-	timeout := time.After(5 * time.Second)
+	// normally, we get an immediate response - so having a large timeout is not a problem
+	timeout := time.After(30 * time.Second)
 
 	for {
 		select {
 		case <-timeout:
+			// Note: rjf - on my machine this almost always times out.
 			t.Log("timeout exceeded")
 			return
 		case <-quit:

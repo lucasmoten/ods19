@@ -4,7 +4,7 @@ TARFILE=ui-2017-09-26.tar
 cd $GOPATH/src/github.com/deciphernow/object-drive-server/docker
 rm ui-*.tar
 rm ui.tar
-wget https://s3.amazonaws.com/decipherers/$TARFILE
+aws s3 cp s3://decipherers/$TARFILE $TARFILE
 (
   mkdir ui
   cd ui

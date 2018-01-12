@@ -24,7 +24,10 @@ if [ "X$AWS_S3_BUCKET" == "X" ]
 then
   echo AWS_S3_BUCKET  mst be set to a valid bucket name like decipherers
 fi
-
+if [ "X$DM_NAME" == "X" ]
+then
+  echo DM_NAME points to the go machine default, and we are assuming "default" via "" for now
+fi
 export OD_AWS_REGION=$AWS_REGION
 
 export OD_AWS_VPC=$AWS_VPC
@@ -91,9 +94,11 @@ export OD_CACHE_WALKSLEEP=15
 export NODE_ENV=prod
 export OD_AAC_ZK_ADDRS=pk:2181
 
-DCOMPOSE="docker-compose -f docker-compose-for-customers.yml"
+DCOMPOSE="docker-compose"
 
 alias dc="$DCOMPOSE"
+
+#in docker directory
 restart()
 {
   $DCOMPOSE stop
@@ -113,8 +118,7 @@ restart()
   UITARFILE=ui-2017-09-26.tar
   rm ui-*.tar
   rm ui.tar
-  wget https://s3.amazonaws.com/decipherers/$UITARFILE
-
+  aws s3 cp s3://decipherers/$UITARFILE $UITARFILE
   (
     mkdir ui
     cd ui
@@ -136,14 +140,14 @@ restart()
 action=$1
 if [ "X`command -v docker-machine`" == "X" ]
 then
-  connecttoprefix=https://localhost:8080/apps/drive/index.html
+  connecttoprefix=https://localhost:8080
 else
-  dmip=$(docker-machine ip)
+  dmip=$(docker-machine ip $DM_NAME)
   if [ "X$dmip" == "X" ]
   then
-    connecttoprefix=https://localhost:8080/apps/drive/index.html
+    connecttoprefix=https://localhost:8080
     else
-      connecttoprefix=https://$(docker-machine ip):8080/apps/drive/index.html
+      connecttoprefix=https://${dmip}:8080
   fi
 fi
 connectto=$connecttoprefix/apps/drive/index.html

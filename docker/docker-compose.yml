@@ -236,6 +236,7 @@ services:
     hostname: kafka
     image: wurstmeister/kafka:0.10.2.1  #0.8.2.1 or 0.10.2.1
     environment:
+      KAFKA_HEAP_OPTS: "-Xmx1G -Xms500M"
       KAFKA_ADVERTISED_HOST: "kafka"
       KAFKA_ADVERTISED_PORT: "9092"
       KAFKA_ZOOKEEPER_CONNECT: zk
