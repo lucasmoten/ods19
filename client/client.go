@@ -346,7 +346,6 @@ func (c *Client) Search(paging protocol.PagingRequest, searchAllObjects bool) (p
 	uri += fmt.Sprintf("pageNumber=%d&pageSize=%d&", paging.PageNumber, paging.PageSize)
 
 	var ret protocol.ObjectResultset
-	log.Printf(uri)
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		return ret, fmt.Errorf("error creating request: %v", err)
