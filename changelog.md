@@ -24,6 +24,7 @@ FORMAT: 1A
 * FIX: Remove temporary containers when building documentation
 * ENH: Enforce non-usage of CGO in odb build and continuous integration
 * CFG: Development envrionment, CI, and Customer bundle now referencing AAC 1.2.2-SNAPSHOT
+* DOC: Includes furthe guidance for development environment setup
 
 ## Release v1.0.12 (December 20, 2017)
 --------------------
