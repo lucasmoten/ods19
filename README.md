@@ -3,7 +3,7 @@
 # API Documentation
 
 API documentation for the Object Drive service may be reviewed at the root of an instantiated object-drive server,
-previewed [here](./docs/home.md), or accessed from this [live instance on Bedrock](https://bedrock.363-283.io/services/object-drive/1.0/)
+previewed [here](./docs/home.md), or accessed from this [live instance on MEME](https://meme.363-283.io/services/object-drive/1.0/)
 
 
 # Configuration
@@ -76,6 +76,14 @@ Consider this a volatile directory. This can be anywhere, but a fine choice is `
 1. Create the directory `$HOME/my_code/od_root/`.
 2. Then added `export OD_ROOT=$HOME/my_code/od_root` to my `.bash_profile`.
 
+
+#### Dependent Projects
+If you are developing changes with AAC and DIAS, you will need to retrieve those from a private gitlab repository at gitlab.363-283.io. The project names are
+* AAC is at cte/cte-security-service
+* DIAS is at bedrock/dias-simulator
+For convenience, docker images are referenced by the docker-compose. These point to
+* AAC from docker.363-283.io/cte/cte-security-service:1.2.2-SNAPSHOT
+* DIAS from deciphernow/dias:latest
 
 
 #### Update `/etc/hosts`
