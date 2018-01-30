@@ -1,14 +1,14 @@
 package dao
 
 import (
-	"database/sql"
 	"fmt"
+	"time"
 
-	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 
 	"github.com/deciphernow/object-drive-server/metadata/models"
 	"github.com/deciphernow/object-drive-server/util"
+	"github.com/jmoiron/sqlx"
 )
 
 // CreateObjectType adds a new object type definition to the database based upon
@@ -17,14 +17,25 @@ import (
 // object type passed in by reference is updated with the remaining attributes
 func (dao *DataAccessLayer) CreateObjectType(objectType *models.ODObjectType) (models.ODObjectType, error) {
 	defer util.Time("CreateObjectType")()
+	logger := dao.GetLogger()
+	retryCounter := dao.DeadlockRetryCounter
+	retryDelay := dao.DeadlockRetryDelay
+	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded"}
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
+		logger.Error("could not begin transaction", zap.Error(err))
 		return models.ODObjectType{}, err
 	}
 	dbObjectType, err := createObjectTypeInTransaction(tx, objectType)
+	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
+		logger.Debug("restarting transaction for createObjectTypeInTransaction", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
+		tx.Rollback()
+		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
+		retryCounter--
+		dbObjectType, err = createObjectTypeInTransaction(tx, objectType)
+	}
 	if err != nil {
-		dao.GetLogger().Error("Error in CreateObjectType", zap.Error(err))
+		logger.Error("error in CreateObjectType", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -34,29 +45,18 @@ func (dao *DataAccessLayer) CreateObjectType(objectType *models.ODObjectType) (m
 
 func createObjectTypeInTransaction(tx *sqlx.Tx, objectType *models.ODObjectType) (models.ODObjectType, error) {
 	var dbObjectType models.ODObjectType
-	addObjectTypeStatement, err := tx.Preparex(`insert object_type set 
-        createdBy = ?
-        ,name = ?
-        ,description = ?
-        ,contentConnector = ?
-    `)
+	addObjectTypeStatement, err := tx.Preparex(`
+		insert ignore into object_type set createdBy = ?, name = ?, description = ?, contentConnector = ?`)
 	if err != nil {
 		return dbObjectType, fmt.Errorf("CreateObjectType error preparing add object type statement, %s", err.Error())
 	}
+	defer addObjectTypeStatement.Close()
 	// Add it
-	result, err := addObjectTypeStatement.Exec(objectType.CreatedBy, objectType.Name, objectType.Description.String, objectType.ContentConnector.String)
-	if err != nil {
-		return dbObjectType, fmt.Errorf("CreateObjectType error executing add object type statement, %s", err.Error())
+	if _, err := addObjectTypeStatement.Exec(objectType.CreatedBy, objectType.Name,
+		objectType.Description.String, objectType.ContentConnector.String); err != nil {
+		return dbObjectType, err
 	}
-	// Cannot use result.LastInsertId() as our identifier is not an autoincremented int
-	rowCount, err := result.RowsAffected()
-	if err != nil {
-		return dbObjectType, fmt.Errorf("CreateObjectType error checking rows affected, %s", err.Error())
-	}
-	if rowCount < 1 {
-		return dbObjectType, fmt.Errorf("CreateObjectType there was less than one row affected")
-	}
-	// Get the ID of the newly created object type and assign to passed in objectType
+	// Retrieve it
 	getObjectTypeStatement := `
     select
         id
@@ -74,16 +74,9 @@ func createObjectTypeInTransaction(tx *sqlx.Tx, objectType *models.ODObjectType)
         ,contentConnector
     from object_type 
     where 
-        createdBy = ?
-        and name = ? 
+        name = ? 
         and isdeleted = 0 
     order by createdDate desc limit 1`
-	err = tx.Get(&dbObjectType, getObjectTypeStatement, objectType.CreatedBy, objectType.Name)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return dbObjectType, fmt.Errorf("CreateObjectType type was not found even after just adding it!, %s", err.Error())
-		}
-		return dbObjectType, fmt.Errorf("CreateObjectType error getting newly added object type, %s", err.Error())
-	}
-	return dbObjectType, nil
+	err = tx.Get(&dbObjectType, getObjectTypeStatement, objectType.Name)
+	return dbObjectType, err
 }

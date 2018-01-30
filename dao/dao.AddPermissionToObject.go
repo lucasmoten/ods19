@@ -64,6 +64,7 @@ func addPermissionToObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, object 
 	if err != nil {
 		return dbPermission, err
 	}
+	defer addPermissionStatement.Close()
 	// Add it
 	result, err := addPermissionStatement.Exec(permission.CreatedBy, object.ID,
 		dbAcmGrantee.Grantee, permission.AcmShare, permission.AllowCreate,
@@ -78,7 +79,6 @@ func addPermissionToObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, object 
 	if rowCount < 1 {
 		return dbPermission, errors.New("No rows added from inserting permission")
 	}
-	addPermissionStatement.Close()
 	// Get the ID of the newly created permission
 	var newPermissionID []byte
 	getPermissionIDStatement, err := tx.Preparex(`
@@ -97,10 +97,11 @@ func addPermissionToObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, object 
         and allowDelete = ? 
         and allowShare = ? 
     order by createddate desc limit 1
-    `)
+	`)
 	if err != nil {
 		return dbPermission, err
 	}
+	defer getPermissionIDStatement.Close()
 	err = getPermissionIDStatement.QueryRowx(permission.CreatedBy, object.ID,
 		permission.Grantee, permission.AcmShare, permission.AllowCreate, permission.AllowRead,
 		permission.AllowUpdate, permission.AllowDelete,
@@ -108,7 +109,6 @@ func addPermissionToObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, object 
 	if err != nil {
 		return dbPermission, err
 	}
-	getPermissionIDStatement.Close()
 	// Retrieve back into permission
 	err = tx.Get(&dbPermission, `
     select 

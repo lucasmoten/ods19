@@ -2,7 +2,7 @@ package dao_test
 
 import "testing"
 
-func TestUndeleteObjectWithChildren(t *testing.T) {
+func TestDAOUndeleteObjectWithChildren(t *testing.T) {
 
 	if testing.Short() {
 		t.Skip()

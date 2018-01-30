@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"encoding/hex"
@@ -30,23 +29,15 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 	var dbObject models.ODObject
 	var acmCreated bool
 
-	deadlockRetryCounter := dao.DeadlockRetryCounter
-	deadlockRetryDelay := dao.DeadlockRetryDelay
-	deadlockMessage := "Deadlock"
+	retryCounter := dao.DeadlockRetryCounter
+	retryDelay := dao.DeadlockRetryDelay
+	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded"}
 	dbObject, acmCreated, err = createObjectInTransaction(logger, tx, dao, object)
-	// Deadlock trapper on acm
-	for deadlockRetryCounter > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
-		logger.Info("deadlock in CreateObject, restarting transaction", zap.Int64("deadlockRetryCounter", deadlockRetryCounter))
-		time.Sleep(time.Duration(deadlockRetryDelay) * time.Millisecond)
-		// Cancel the old transaction and start a new one
+	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
+		logger.Debug("restarting transaction for CreateObject", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
 		tx.Rollback()
-		tx, err = dao.MetadataDB.Beginx()
-		if err != nil {
-			logger.Error("could not begin transaction", zap.Error(err))
-			return models.ODObject{}, err
-		}
-		// Retry the create
-		deadlockRetryCounter--
+		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
+		retryCounter--
 		dbObject, acmCreated, err = createObjectInTransaction(logger, tx, dao, object)
 	}
 	if err != nil {
@@ -121,7 +112,7 @@ func createObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 	}
 
 	if object.TypeID == nil {
-		objectType, err := getObjectTypeByNameInTransaction(tx, object.TypeName.String, true, object.CreatedBy)
+		objectType, err := dao.GetObjectTypeByName(object.TypeName.String, true, object.CreatedBy)
 		if err != nil {
 			return dbObject, acmCreated, fmt.Errorf("CreateObject Error calling GetObjectTypeByName, %s", err.Error())
 		}
@@ -173,6 +164,7 @@ func createObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 	if err != nil {
 		return dbObject, acmCreated, fmt.Errorf("CreateObject Preparing add object statement, %s", err.Error())
 	}
+	defer addObjectStatement.Close()
 	result, err := addObjectStatement.Exec(object.CreatedBy, object.TypeID,
 		object.Name, object.Description.String, object.ParentID,
 		object.ContentConnector.String, object.RawAcm.String,
@@ -182,10 +174,6 @@ func createObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 	if err != nil {
 		errMsg := err.Error()
 		return dbObject, acmCreated, fmt.Errorf("createobject error executing add object statement, %s", errMsg)
-	}
-	err = addObjectStatement.Close()
-	if err != nil {
-		return dbObject, acmCreated, fmt.Errorf("createobject error closing addobjectstatement, %s", err.Error())
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {

@@ -41,7 +41,6 @@ func deleteObjectTypeInTransaction(tx *sqlx.Tx, objectType models.ODObjectType) 
 	if objectType.ChangeToken == "" {
 		return ErrMissingChangeToken
 	}
-
 	existingObjectType, err := getObjectTypeInTransaction(tx, objectType)
 	if err != nil {
 		return err
@@ -54,7 +53,6 @@ func deleteObjectTypeInTransaction(tx *sqlx.Tx, objectType models.ODObjectType) 
 		// NOOP
 		return nil
 	}
-
 	// Mark as deleted
 	existingObjectType.IsDeleted = true
 	existingObjectType.ModifiedBy = objectType.ModifiedBy
@@ -63,13 +61,11 @@ func deleteObjectTypeInTransaction(tx *sqlx.Tx, objectType models.ODObjectType) 
 	if err != nil {
 		return err
 	}
+	defer updateObjectTypeStatement.Close()
 	_, err = updateObjectTypeStatement.Exec(
 		existingObjectType.ModifiedBy, existingObjectType.IsDeleted, existingObjectType.ID)
 	if err != nil {
 		return err
 	}
-
-	// TODO: Anything else need deleted based on this object type ?
-
 	return nil
 }

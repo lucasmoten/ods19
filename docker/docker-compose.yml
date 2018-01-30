@@ -92,7 +92,7 @@ services:
         - OD_EVENT_PUBLISH_FAILURE_ACTIONS
         - OD_EVENT_PUBLISH_SUCCESS_ACTIONS
         - OD_EVENT_TOPIC
-        - OD_LOG_LEVEL=INFO
+        - OD_LOG_LEVEL=DEBUG
         - OD_SERVER_ACL_WHITELIST1=cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us
         - OD_SERVER_ACL_WHITELIST2=cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us
         - OD_SERVER_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/trust.pem

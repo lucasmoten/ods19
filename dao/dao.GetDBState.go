@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"database/sql"
+
 	"github.com/deciphernow/object-drive-server/metadata/models"
 	"github.com/deciphernow/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
@@ -17,7 +19,9 @@ func (dao *DataAccessLayer) GetDBState() (models.DBState, error) {
 	}
 	dbState, err := getDBStateInTransaction(tx)
 	if err != nil {
-		dao.GetLogger().Warn("error in getdbstate", zap.Error(err))
+		if err != sql.ErrNoRows {
+			dao.GetLogger().Warn("error in getdbstate", zap.Error(err))
+		}
 		tx.Rollback()
 	} else {
 		tx.Commit()

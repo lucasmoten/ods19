@@ -85,27 +85,20 @@ func getAcmGranteeInTransaction(tx *sqlx.Tx, grantee string) (models.ODAcmGrante
 func (dao *DataAccessLayer) CreateAcmGrantee(acmGrantee models.ODAcmGrantee) (models.ODAcmGrantee, error) {
 	defer util.Time("CreateAcmGrantee")()
 	logger := dao.GetLogger()
+	retryCounter := dao.DeadlockRetryCounter
+	retryDelay := dao.DeadlockRetryDelay
+	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded"}
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		logger.Error("could not begin transaction", zap.Error(err))
 		return models.ODAcmGrantee{}, err
 	}
-	deadlockRetryCounter := dao.DeadlockRetryCounter
-	deadlockRetryDelay := dao.DeadlockRetryDelay
-	deadlockMessage := "Deadlock"
 	response, err := createAcmGranteeInTransaction(dao.GetLogger(), tx, acmGrantee)
-	for deadlockRetryCounter > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
-		logger.Info("deadlock in createacmgrantee, restarting transaction", zap.Int64("deadlockRetryCounter", deadlockRetryCounter))
-		time.Sleep(time.Duration(deadlockRetryDelay) * time.Millisecond)
-		// Cancel the old transaction and start a new one
+	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
+		logger.Debug("restarting transaction for CreateAcmGrantee", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
 		tx.Rollback()
-		tx, err = dao.MetadataDB.Beginx()
-		if err != nil {
-			logger.Error("could not begin transaction", zap.Error(err))
-			return models.ODAcmGrantee{}, err
-		}
-		// Retry the create
-		deadlockRetryCounter--
+		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
+		retryCounter--
 		response, err = createAcmGranteeInTransaction(dao.GetLogger(), tx, acmGrantee)
 	}
 	if err != nil {
@@ -177,6 +170,7 @@ func createAcmGranteeInTransaction(logger *zap.Logger, tx *sqlx.Tx, acmGrantee m
 	if rowCount < 1 {
 		logger.Warn("no rows were added when inserting the grantee!")
 	}
+	addAcmGranteeStatement.Close()
 	// Get the newly added grantee
 	dbAcmGrantee, err = getAcmGranteeInTransaction(tx, acmGrantee.Grantee)
 	if err != nil {

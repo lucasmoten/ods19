@@ -42,6 +42,7 @@ func addPropertyToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, prope
 	if err != nil {
 		return dbProperty, err
 	}
+	defer addPropertyStatement.Close()
 	// Add it
 	result, err := addPropertyStatement.Exec(property.CreatedBy, property.Name, property.Value.String, property.ClassificationPM.String)
 	if err != nil {
@@ -52,7 +53,6 @@ func addPropertyToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, prope
 	if rowCount < 1 {
 		return dbProperty, errors.New("No rows added from inserting property")
 	}
-	addPropertyStatement.Close()
 	// Get the ID of the newly created property
 	var newPropertyID []byte
 	getPropertyIDStatement, err := tx.Preparex(`
@@ -68,11 +68,11 @@ func addPropertyToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, prope
 	if err != nil {
 		return dbProperty, err
 	}
+	defer getPropertyIDStatement.Close()
 	err = getPropertyIDStatement.QueryRowx(property.CreatedBy, property.Name, property.Value.String, property.ClassificationPM.String).Scan(&newPropertyID)
 	if err != nil {
 		return dbProperty, err
 	}
-	getPropertyIDStatement.Close()
 	// Retrieve back into property
 	getPropertyStatement := `
     select
@@ -106,6 +106,7 @@ func addPropertyToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, prope
 	if err != nil {
 		return dbProperty, err
 	}
+	defer addObjectPropertyStatement.Close()
 	result, err = addObjectPropertyStatement.Exec(property.CreatedBy, object.ID, newPropertyID)
 	if err != nil {
 		return dbProperty, err
@@ -114,7 +115,5 @@ func addPropertyToObjectInTransaction(tx *sqlx.Tx, object models.ODObject, prope
 	if rowCount < 1 {
 		return dbProperty, errors.New("No rows added from inserting object_property")
 	}
-	addObjectPropertyStatement.Close()
-
 	return dbProperty, nil
 }

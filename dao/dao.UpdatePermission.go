@@ -36,7 +36,8 @@ func updatePermissionInTransaction(tx *sqlx.Tx, permission models.ODObjectPermis
         ,encryptKey = ? 
 		,permissionIV = ?
 		,permissionMAC = ?
-    where id = ? and changeToken = ?`)
+	where id = ? and changeToken = ?`)
+	defer updatePermissionStatement.Close()
 	if err != nil {
 		return fmt.Errorf("updatePermission error preparing update statement, %s", err.Error())
 	}

@@ -65,11 +65,11 @@ func deleteObjectPermissionInTransaction(tx *sqlx.Tx, objectPermission models.OD
 	if err != nil {
 		return dbObjectPermission, err
 	}
+	defer updateObjectPermissionStatement.Close()
 	_, err = updateObjectPermissionStatement.Exec(dbObjectPermission.ModifiedBy, dbObjectPermission.IsDeleted, dbObjectPermission.DeletedBy.String, dbObjectPermission.ID)
 	if err != nil {
 		return dbObjectPermission, err
 	}
-
 	// Refetch to pick up changed state for deleted date
 	dbObjectPermission, err = getObjectPermissionInTransaction(tx, objectPermission)
 	if err != nil {

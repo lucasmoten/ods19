@@ -45,11 +45,10 @@ func undeleteObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, object *models
 	if err != nil {
 		return dbObject, err
 	}
-
+	defer undeleteStatement.Close()
 	if _, err = undeleteStatement.Exec(object.ModifiedBy, object.ID); err != nil {
 		return dbObject, err
 	}
-
 	err = undeleteAncestorChildren(logger, tx, object)
 	if err != nil {
 		return dbObject, err

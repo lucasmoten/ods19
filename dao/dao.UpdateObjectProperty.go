@@ -69,10 +69,10 @@ func updateObjectPropertyInTransaction(tx *sqlx.Tx, objectProperty models.ODObje
 	if err != nil {
 		return err
 	}
+	defer updateObjectPropertyStatement.Close()
 	_, err = updateObjectPropertyStatement.Exec(dbObjectProperty.ModifiedBy, dbObjectProperty.Value.String, dbObjectProperty.ClassificationPM.String, dbObjectProperty.ID)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }

@@ -2,7 +2,7 @@ package dao_test
 
 import "testing"
 
-func TestExpectedCountOfDatabaseObjects(t *testing.T) {
+func TestDAOExpectedCountOfDatabaseObjects(t *testing.T) {
 
 	// Add additional tests to this slice of struct
 	var cases = []struct {
