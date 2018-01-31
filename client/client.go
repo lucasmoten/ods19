@@ -239,6 +239,43 @@ func (c *Client) GetObjectStream(id string) (io.ReadCloser, error) {
 	return resp.Body, nil
 }
 
+// GetRevisions fetches the revisions over time for an object by its unique ID.
+func (c *Client) GetRevisions(id string) (protocol.ObjectResultset, error) {
+	var obj protocol.ObjectResultset
+
+	revisionURL := c.url + "/revisions/" + id
+
+	req, err := http.NewRequest("GET", revisionURL, nil)
+	if err != nil {
+		return obj, err
+	}
+
+	if c.Conf.Impersonation != "" {
+		setImpersonationHeaders(req, c.Conf.Impersonation, c.MyDN)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return obj, err
+	}
+
+	if resp.StatusCode != 200 {
+		return obj, fmt.Errorf("got HTTP error code: %v", resp.StatusCode)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return obj, err
+	}
+
+	jsonErr := json.Unmarshal(body, &obj)
+	if jsonErr != nil {
+		return obj, jsonErr
+	}
+
+	return obj, nil
+}
+
 // DeleteObject moves an object on the server to the trash.  The object's ID and changetoken from the
 // current object in ObjectDrive are needed to perform the operation.
 func (c *Client) DeleteObject(id string, token string) (protocol.DeletedObjectResponse, error) {

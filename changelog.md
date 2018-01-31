@@ -27,6 +27,7 @@ FORMAT: 1A
 * DOC: Includes further guidance for development environment setup
 * FIX: Added deadlock and lock wait timeout handler to create object type
 * ENH: Successive updates on same object is now throttled to 50ms
+* NEW: Added revision support to the golang client libraries
 
 ## Release v1.0.12 (December 20, 2017)
 --------------------
