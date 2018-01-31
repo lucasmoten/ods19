@@ -19,6 +19,7 @@ FORMAT: 1A
 ## Unreleased v1.0.14
 ---------------------
 * FIX: Added missing interface definition in golang client libraries
+* CFG: Developer configuration updates for UI
 
 ## Release v1.0.13 (January 31, 2018)
 ---------------------
