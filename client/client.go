@@ -28,6 +28,7 @@ type ObjectDrive interface {
 	DeleteObject(id string, token string) (protocol.DeletedObjectResponse, error)
 	GetObject(id string) (protocol.Object, error)
 	GetObjectStream(id string) (io.ReadCloser, error)
+	GetRevisions(id string) (protocol.ObjectResultset, error)
 	MoveObject(protocol.MoveObjectRequest) (protocol.Object, error)
 	Search(paging protocol.PagingRequest, searchAllObjects bool) (protocol.ObjectResultset, error)
 	UpdateObject(protocol.UpdateObjectRequest) (protocol.Object, error)

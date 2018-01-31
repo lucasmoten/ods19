@@ -16,6 +16,10 @@ FORMAT: 1A
 
 # Group Changelog
 
+## Unreleased v1.0.14
+---------------------
+* FIX: Added missing interface definition in golang client libraries
+
 ## Release v1.0.13 (January 31, 2018)
 ---------------------
 * FIX: Corrected count of objects and groups when listing groups
