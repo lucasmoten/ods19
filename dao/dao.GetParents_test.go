@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestGetParents(t *testing.T) {
+func TestDAOGetParents(t *testing.T) {
 
 	if testing.Short() {
 		t.Skip()

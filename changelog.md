@@ -16,7 +16,7 @@ FORMAT: 1A
 
 # Group Changelog
 
-## Unreleased v1.0.13
+## Release v1.0.13 (January 31, 2018)
 ---------------------
 * FIX: Corrected count of objects and groups when listing groups
 * FIX: Minor spelling discrepancy for Kafka logging on startup
@@ -24,7 +24,9 @@ FORMAT: 1A
 * FIX: Remove temporary containers when building documentation
 * ENH: Enforce non-usage of CGO in odb build and continuous integration
 * CFG: Development envrionment, CI, and Customer bundle now referencing AAC 1.2.2-SNAPSHOT
-* DOC: Includes furthe guidance for development environment setup
+* DOC: Includes further guidance for development environment setup
+* FIX: Added deadlock and lock wait timeout handler to create object type
+* ENH: Successive updates on same object is now throttled to 50ms
 
 ## Release v1.0.12 (December 20, 2017)
 --------------------

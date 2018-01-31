@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"strconv"
+
 	"github.com/deciphernow/object-drive-server/metadata/models"
 	"github.com/deciphernow/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
@@ -51,8 +53,8 @@ func getPropertiesForObjectRevisionInTransaction(tx *sqlx.Tx, object models.ODOb
         inner join a_object ao on op.objectid = ao.id
     where 
         ap.isdeleted = 0 
-        and ap.modifiedDate < date_add(ao.modifieddate,interval 10000 microsecond)
-        and (op.isdeleted = 0 or op.deleteddate > date_add(ao.modifieddate,interval 10000 microsecond))
+        and ap.modifiedDate < date_add(ao.modifieddate,interval ` + strconv.Itoa(updateTimeWindowMS*1000) + ` microsecond)
+        and (op.isdeleted = 0 or op.deleteddate > date_add(ao.modifieddate,interval ` + strconv.Itoa(updateTimeWindowMS*1000) + ` microsecond))
         and ao.id = ?
 		and ao.changeCount = ?
 	order by

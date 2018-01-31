@@ -1,7 +1,9 @@
 package dao
 
 import (
+	"database/sql"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -221,4 +223,57 @@ func (d *DataAccessLayer) IsReadOnly(refresh bool) bool {
 	}
 	result = d.ReadOnly
 	return result
+}
+
+func containsAny(msg string, a []string) bool {
+	for _, s := range a {
+		if strings.Contains(msg, s) {
+			return true
+		}
+	}
+	return false
+}
+func firstMatch(msg string, a []string) string {
+	for _, s := range a {
+		if strings.Contains(msg, s) {
+			return s
+		}
+	}
+	return ""
+
+}
+
+func execStatementWithDeadlockRetry(dao *DataAccessLayer, funcLbl string, query string) error {
+	retryCounter := dao.DeadlockRetryCounter
+	retryDelay := dao.DeadlockRetryDelay
+	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded", sql.ErrNoRows.Error(), "First Attempt"}
+	logger := dao.GetLogger()
+	// Looper with forced entry (actual err for retries is assigned at bottom of the loop)
+	err := fmt.Errorf("First Attempt")
+	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
+		if retryCounter != dao.DeadlockRetryCounter {
+			logger.Debug("restarting transaction", zap.String("funcLbl", funcLbl), zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
+		}
+		var errBeginx error
+		tx, errBeginx := dao.MetadataDB.Beginx()
+		if errBeginx != nil {
+			return fmt.Errorf("%s could not begin transaction, %s", funcLbl, errBeginx.Error())
+		}
+		retryCounter--
+		var errPreparex error
+		stmt, errPreparex := tx.Preparex(query)
+		if errPreparex != nil {
+			return fmt.Errorf("%s error preparing key statement, %s", funcLbl, errPreparex.Error())
+		}
+		err = nil
+		_, err = stmt.Exec()
+		stmt.Close()
+		if err != nil {
+			tx.Rollback()
+			time.Sleep(time.Duration(retryDelay) * time.Millisecond)
+		} else {
+			tx.Commit()
+		}
+	}
+	return nil
 }

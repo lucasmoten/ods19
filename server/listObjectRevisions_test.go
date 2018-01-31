@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/deciphernow/object-drive-server/protocol"
 	"github.com/deciphernow/object-drive-server/util"
@@ -143,6 +144,7 @@ func TestListObjectRevisionsWithProperties(t *testing.T) {
 	}
 
 	tester10 := 0
+	stepDelay := 333
 
 	t.Logf("Create a folder")
 	originalName := "Testing Revisions - Created"
@@ -150,7 +152,8 @@ func TestListObjectRevisionsWithProperties(t *testing.T) {
 	originalName = folder1.Name
 	t.Logf("Folder ID = %s", folder1.ID)
 
-	t.Logf("Modify it, adding a property")
+	t.Logf("Modify it, adding a property (property1=originalvalue1)")
+	time.Sleep(time.Duration(stepDelay) * time.Millisecond)
 	updateuri := mountPoint + "/objects/" + folder1.ID + "/properties"
 	folder1.Properties = append(folder1.Properties, protocol.Property{Name: "property1", Value: "originalvalue1"})
 	updateFolderReq := makeHTTPRequestFromInterface(t, "POST", updateuri, folder1)
@@ -168,7 +171,8 @@ func TestListObjectRevisionsWithProperties(t *testing.T) {
 		t.FailNow()
 	}
 
-	t.Logf("Modify again, adding another property")
+	t.Logf("Modify again, adding another property (property2=originalvalue2)")
+	time.Sleep(time.Duration(stepDelay) * time.Millisecond)
 	updatedFolder.Properties = append(updatedFolder.Properties, protocol.Property{Name: "property2", Value: "originalvalue2"})
 	updateFolderReq2 := makeHTTPRequestFromInterface(t, "POST", updateuri, updatedFolder)
 	updateFolderRes2, err := clients[tester10].Client.Do(updateFolderReq2)
@@ -189,7 +193,8 @@ func TestListObjectRevisionsWithProperties(t *testing.T) {
 		t.FailNow()
 	}
 
-	t.Logf("Modify again, changing value of first property")
+	t.Logf("Modify again, changing value of first property to 'changedvalue'")
+	time.Sleep(time.Duration(stepDelay) * time.Millisecond)
 	updatedFolder2.Properties[0].Value = "changedvalue"
 	updateFolderReq3 := makeHTTPRequestFromInterface(t, "POST", updateuri, updatedFolder2)
 	updateFolderRes3, err := clients[tester10].Client.Do(updateFolderReq3)
@@ -211,58 +216,80 @@ func TestListObjectRevisionsWithProperties(t *testing.T) {
 	}
 
 	t.Logf("Get revisions for the folder")
+	time.Sleep(time.Duration(stepDelay) * time.Millisecond)
 	revisionsuri := mountPoint + "/revisions/" + folder1.ID
 	revisionsReq := makeHTTPRequestFromInterface(t, "GET", revisionsuri, nil)
-	revisionsRes, err := clients[tester10].Client.Do(revisionsReq)
-	failNowOnErr(t, err, "Unable to do request")
-	statusExpected(t, 200, revisionsRes, "Bad status when getting revisions")
-	var listOfRevisions protocol.ObjectResultset
-	err = util.FullDecode(revisionsRes.Body, &listOfRevisions)
-	for _, revision := range listOfRevisions.Objects {
-		switch revision.ChangeCount {
-		case 0:
-			if len(revision.Properties) != 0 {
-				t.Logf("Original revision has %d properties", len(revision.Properties))
-				t.Fail()
-			}
-		case 1:
-			if len(revision.Properties) != 1 {
-				t.Logf("1st revision has %d properties", len(revision.Properties))
+	retryCount := 5
+	retryDelay := 1000
+	successfulRevisionCheck := false
+	for !successfulRevisionCheck && retryCount > 0 {
+		successfulRevisionCheck = true
+		revisionsRes, err := clients[tester10].Client.Do(revisionsReq)
+		failNowOnErr(t, err, "Unable to do request")
+		statusExpected(t, 200, revisionsRes, "Bad status when getting revisions")
+		var listOfRevisions protocol.ObjectResultset
+		err = util.FullDecode(revisionsRes.Body, &listOfRevisions)
+		for _, revision := range listOfRevisions.Objects {
+			switch revision.ChangeCount {
+			case 0:
+				if len(revision.Properties) != 0 {
+					t.Logf("Original revision has %d properties", len(revision.Properties))
+					successfulRevisionCheck = false
+				}
+			case 1:
+				if len(revision.Properties) != 1 {
+					t.Logf("1st revision has %d properties", len(revision.Properties))
+					successfulRevisionCheck = false
+				} else {
+					if revision.Properties[0].Name != "property1" || revision.Properties[0].Value != "originalvalue1" {
+						t.Logf("1st revision property is %s=%s", revision.Properties[0].Name, revision.Properties[0].Value)
+						successfulRevisionCheck = false
+					}
+				}
+			case 2:
+				if len(revision.Properties) != 2 {
+					t.Logf("2st revision has %d properties", len(revision.Properties))
+					successfulRevisionCheck = false
+				} else {
+					if revision.Properties[0].Name != "property1" || revision.Properties[0].Value != "originalvalue1" {
+						t.Logf("2st revision 1st property is %s=%s", revision.Properties[0].Name, revision.Properties[1].Value)
+						successfulRevisionCheck = false
+					}
+					if revision.Properties[1].Name != "property2" || revision.Properties[1].Value != "originalvalue2" {
+						t.Logf("2st revision 2nd property is %s=%s", revision.Properties[1].Name, revision.Properties[1].Value)
+						successfulRevisionCheck = false
+					}
+				}
+			case 3:
+				if len(revision.Properties) != 2 {
+					t.Logf("3rd revision has %d properties", len(revision.Properties))
+					successfulRevisionCheck = false
+				} else {
+					if revision.Properties[0].Name != "property1" || revision.Properties[0].Value != "changedvalue" {
+						t.Logf("3rd revision 1st property is %s=%s", revision.Properties[0].Name, revision.Properties[1].Value)
+						successfulRevisionCheck = false
+					}
+					if revision.Properties[1].Name != "property2" || revision.Properties[1].Value != "originalvalue2" {
+						t.Logf("3rd revision 2nd property is %s=%s", revision.Properties[1].Name, revision.Properties[1].Value)
+						successfulRevisionCheck = false
+					}
+				}
+			default:
+				t.Logf("More revisions exist then expected. There are %d records", listOfRevisions.TotalRows)
 				t.FailNow()
 			}
-			if revision.Properties[0].Name != "property1" || revision.Properties[0].Value != "originalvalue1" {
-				t.Logf("1st revision property is %s=%s", revision.Properties[0].Name, revision.Properties[0].Value)
-				t.Fail()
-			}
-		case 2:
-			if len(revision.Properties) != 2 {
-				t.Logf("2st revision has %d properties", len(revision.Properties))
-				t.FailNow()
-			}
-			if revision.Properties[0].Name != "property1" || revision.Properties[0].Value != "originalvalue1" {
-				t.Logf("2st revision 1st property is %s=%s", revision.Properties[0].Name, revision.Properties[1].Value)
-				t.Fail()
-			}
-			if revision.Properties[1].Name != "property2" || revision.Properties[1].Value != "originalvalue2" {
-				t.Logf("2st revision 2nd property is %s=%s", revision.Properties[1].Name, revision.Properties[1].Value)
-				t.Fail()
-			}
-		case 3:
-			if len(revision.Properties) != 2 {
-				t.Logf("3rd revision has %d properties", len(revision.Properties))
-				t.FailNow()
-			}
-			if revision.Properties[0].Name != "property1" || revision.Properties[0].Value != "changedvalue" {
-				t.Logf("3rd revision 1st property is %s=%s", revision.Properties[0].Name, revision.Properties[1].Value)
-				t.Fail()
-			}
-			if revision.Properties[1].Name != "property2" || revision.Properties[1].Value != "originalvalue2" {
-				t.Logf("3rd revision 2nd property is %s=%s", revision.Properties[1].Name, revision.Properties[1].Value)
-				t.Fail()
-			}
-		default:
-			t.Logf("More revisions exist then expected. There are %d records", listOfRevisions.TotalRows)
-			t.Fail()
 		}
+		if !successfulRevisionCheck {
+			for ri, revision := range listOfRevisions.Objects {
+				t.Logf("revision %d %v", ri, revision)
+			}
+			t.Logf("Retrying this revision after potential database snapshot stabilization. Retries remaining: %d", retryCount)
+			retryCount--
+			time.Sleep(time.Duration(retryDelay) * time.Millisecond)
+		}
+	}
+	if !successfulRevisionCheck {
+		t.Logf("Retries for listing object revision exhausted")
+		t.Fail()
 	}
 }

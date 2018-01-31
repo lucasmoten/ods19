@@ -14,7 +14,7 @@ import (
 //as in the Go code.  This is testing that they actually perform
 //the same operation, to demonstrate that migration and rotation of keys
 //will succeed.
-func TestKeyMigrateRotate(t *testing.T) {
+func TestDAOKeyMigrateRotate(t *testing.T) {
 	//The existing masterkey
 	m := "otterpaws"
 	t.Logf("masterKey: %s", m)

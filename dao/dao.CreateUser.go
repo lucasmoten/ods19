@@ -37,7 +37,7 @@ func createUserInTransaction(logger *zap.Logger, tx *sqlx.Tx, user models.ODUser
 	if err != nil {
 		return dbUser, err
 	}
-
+	defer addUserStatement.Close()
 	result, err := addUserStatement.Exec(user.CreatedBy, user.DistinguishedName, user.DisplayName, user.Email)
 	if err != nil {
 		// Possible race condition here... Distinguished Name must be unique, and if

@@ -6,7 +6,7 @@ import (
 	"github.com/deciphernow/object-drive-server/dao"
 )
 
-func TestGetSanitizedPageNumber(t *testing.T) {
+func TestDAOGetSanitizedPageNumber(t *testing.T) {
 	if dao.GetSanitizedPageNumber(-1) != 1 {
 		t.Error("expected 1")
 	}
@@ -21,7 +21,7 @@ func TestGetSanitizedPageNumber(t *testing.T) {
 	}
 }
 
-func TestGetSanitizedPageSize(t *testing.T) {
+func TestDAOGetSanitizedPageSize(t *testing.T) {
 	if dao.GetSanitizedPageSize(-1) != 1 {
 		t.Error("expected 1")
 	}
@@ -42,7 +42,7 @@ func TestGetSanitizedPageSize(t *testing.T) {
 	}
 }
 
-func TestGetLimit(t *testing.T) {
+func TestDAOGetLimit(t *testing.T) {
 	if dao.GetLimit(0, 0) != 1 {
 		t.Error("expected 1")
 	}
@@ -57,7 +57,7 @@ func TestGetLimit(t *testing.T) {
 	}
 }
 
-func TestGetOffset(t *testing.T) {
+func TestDAOGetOffset(t *testing.T) {
 	if dao.GetOffset(1, 20) != 0 {
 		t.Error("expected 1")
 	}
@@ -72,7 +72,7 @@ func TestGetOffset(t *testing.T) {
 	}
 }
 
-func TestGetPageCount(t *testing.T) {
+func TestDAOGetPageCount(t *testing.T) {
 	if dao.GetPageCount(34, 20) != 2 {
 		t.Error("expected 2")
 	}

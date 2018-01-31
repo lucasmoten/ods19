@@ -74,8 +74,8 @@ func getObjectInTransaction(tx *sqlx.Tx, object models.ODObject, loadProperties 
         ,o.acmId acmid
     from object o 
         inner join object_type ot on o.typeid = ot.id 
-    where o.id = ?`
-	err := tx.Unsafe().Get(&dbObject, getObjectStatement, object.ID)
+	where o.id = ?`
+	err := tx.Get(&dbObject, getObjectStatement, object.ID)
 	if err != nil {
 		return dbObject, err
 	}

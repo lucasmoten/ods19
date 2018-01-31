@@ -146,39 +146,29 @@ func getAcm2ByNameInTransaction(dao *DataAccessLayer, namedValue string, addIfMi
 	var result models.ODAcm2
 	logger := dao.GetLogger()
 	tx, err := dao.MetadataDB.Beginx()
-	deadlockRetryCounter := dao.DeadlockRetryCounter
-	deadlockRetryDelay := dao.DeadlockRetryDelay
-	deadlockMessage := "Deadlock"
+	retryCounter := dao.DeadlockRetryCounter
+	retryDelay := dao.DeadlockRetryDelay
+	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded", sql.ErrNoRows.Error()}
 	stmt := `select id, sha256hash, flattenedacm from acm2 where flattenedacm = ?`
 	err = tx.Get(&result, stmt, namedValue)
-	for deadlockRetryCounter > 0 && err != nil && (strings.Contains(err.Error(), deadlockMessage) || err == sql.ErrNoRows) {
-		if strings.Contains(err.Error(), deadlockMessage) {
-			logger.Info("deadlock in getAcm2ByNameInTransaction, restarting transaction", zap.Int64("deadlockRetryCounter", deadlockRetryCounter))
-		}
-		time.Sleep(time.Duration(deadlockRetryDelay) * time.Millisecond)
-		tx.Rollback()
-		tx, err = dao.MetadataDB.Beginx()
-		if err != nil {
-			logger.Error("could not begin transaction", zap.Error(err))
-			return result, created, err
-		}
-		// Retry
-		deadlockRetryCounter--
-		err = tx.Get(&result, stmt, namedValue)
-		if err != nil {
-			if err == sql.ErrNoRows && addIfMissing {
-				err = nil
-				result.FlattenedACM = namedValue
-				shabytes := sha256.Sum256([]byte(namedValue))
-				result.SHA256Hash = fmt.Sprintf("%x", shabytes)
-				var acmID int64
-				if acmID, err = createAcm2InTransaction(tx, &result); err != nil {
-					continue
-				}
-				result.ID = acmID
-				created = true
+	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
+		retryCounter--
+		if err == sql.ErrNoRows && addIfMissing {
+			result.FlattenedACM = namedValue
+			shabytes := sha256.Sum256([]byte(namedValue))
+			result.SHA256Hash = fmt.Sprintf("%x", shabytes)
+			var acmID int64
+			if acmID, err = createAcm2InTransaction(tx, &result); err != nil {
+				time.Sleep(time.Duration(retryDelay) * time.Millisecond)
+				continue
 			}
+			result.ID = acmID
+			created = true
+			break
 		}
+		logger.Debug("restarting transaction for getAcm2ByNameInTransaction", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
+		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
+		err = tx.Get(&result, stmt, namedValue)
 	}
 	if err != nil {
 		logger.Error("error in getAcm2ByNameInTransaction", zap.Error(err))
@@ -195,6 +185,7 @@ func createAcm2InTransaction(tx *sqlx.Tx, theType *models.ODAcm2) (int64, error)
 	if err != nil {
 		return newID, fmt.Errorf("createAcm2InTransaction error preparing add statement, %s", err.Error())
 	}
+	defer stmt.Close()
 	result, err := stmt.Exec(theType.SHA256Hash, theType.FlattenedACM)
 	if err != nil {
 		return newID, fmt.Errorf("createAcm2InTransaction error executing add statement, %s", err.Error())
@@ -213,25 +204,13 @@ func getAcmKey2ByName(dao *DataAccessLayer, namedValue string, addIfMissing bool
 	tx, err := dao.MetadataDB.Beginx()
 	retryCounter := dao.DeadlockRetryCounter
 	retryDelay := dao.DeadlockRetryDelay
-	duplicateMessage := "Duplicate entry"
-	deadlockMessage := "Deadlock"
+	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded", sql.ErrNoRows.Error()}
 	stmt := `select id, name from acmkey2 where name = ?`
 	err = tx.Get(&result, stmt, namedValue)
-	for retryCounter > 0 && err != nil && (strings.Contains(err.Error(), duplicateMessage) || strings.Contains(err.Error(), deadlockMessage) || err.Error() == sql.ErrNoRows.Error()) {
-		if strings.Contains(err.Error(), deadlockMessage) {
-			logger.Info("deadlock in getAcmKey2ByName, restarting transaction", zap.Int64("retryCounter", retryCounter))
-		}
-		if strings.Contains(err.Error(), duplicateMessage) {
-			logger.Info("duplicate in getAcmKey2ByName, restarting transaction", zap.Int64("retryCounter", retryCounter))
-		}
+	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
+		logger.Debug("restarting transaction for getAcmKey2ByName", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
 		tx.Rollback()
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
-		tx, err = dao.MetadataDB.Beginx()
-		if err != nil {
-			logger.Error("could not begin transaction", zap.Error(err))
-			return result, err
-		}
-		// Retry
 		retryCounter--
 		err = tx.Get(&result, stmt, namedValue)
 		if err != nil && err == sql.ErrNoRows && addIfMissing {
@@ -255,6 +234,7 @@ func createAcmKey2InTransaction(tx *sqlx.Tx, theType *models.ODAcmKey2) error {
 	if err != nil {
 		return fmt.Errorf("createAcmKey2InTransaction error preparing add statement, %s", err.Error())
 	}
+	defer stmt.Close()
 	result, err := stmt.Exec(theType.Name)
 	if err != nil {
 		return fmt.Errorf("createAcmKey2InTransaction error executing add statement, %s", err.Error())
@@ -272,25 +252,13 @@ func getAcmValue2ByName(dao *DataAccessLayer, namedValue string, addIfMissing bo
 	tx, err := dao.MetadataDB.Beginx()
 	retryCounter := dao.DeadlockRetryCounter
 	retryDelay := dao.DeadlockRetryDelay
-	duplicateMessage := "Duplicate entry"
-	deadlockMessage := "Deadlock"
+	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded", sql.ErrNoRows.Error()}
 	stmt := `select id, name from acmvalue2 where name = ?`
 	err = tx.Get(&result, stmt, namedValue)
-	for retryCounter > 0 && err != nil && (strings.Contains(err.Error(), duplicateMessage) || strings.Contains(err.Error(), deadlockMessage) || err.Error() == sql.ErrNoRows.Error()) {
-		if strings.Contains(err.Error(), deadlockMessage) {
-			logger.Info("deadlock in getAcmValue2ByName, restarting transaction", zap.Int64("retryCounter", retryCounter))
-		}
-		if strings.Contains(err.Error(), duplicateMessage) {
-			logger.Info("duplicate in getAcmValue2ByName, restarting transaction", zap.Int64("retryCounter", retryCounter))
-		}
-		tx.Rollback()
+	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
+		logger.Debug("restarting transaction for getAcmValue2ByName", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
+		//tx.Rollback()
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
-		tx, err = dao.MetadataDB.Beginx()
-		if err != nil {
-			logger.Error("could not begin transaction", zap.Error(err))
-			return result, err
-		}
-		// Retry
 		retryCounter--
 		if err = tx.Get(&result, stmt, namedValue); err != nil {
 			if err.Error() == sql.ErrNoRows.Error() && addIfMissing {
@@ -317,6 +285,7 @@ func createAcmValue2InTransaction(tx *sqlx.Tx, theType *models.ODAcmValue2) erro
 	if err != nil {
 		return fmt.Errorf("createAcmValue2InTransaction error preparing add statement, %s", err.Error())
 	}
+	defer stmt.Close()
 	result, err := stmt.Exec(theType.Name)
 	if err != nil {
 		return fmt.Errorf("createAcmValue2InTransaction error executing add statement, %s", err.Error())
@@ -333,6 +302,7 @@ func createAcmPart2ForACMInTransaction(tx *sqlx.Tx, acm models.ODAcm2, acmKey mo
 	if err != nil {
 		return fmt.Errorf("createAcmPart2ForACMInTransaction error preparing add statement, %s", err.Error())
 	}
+	defer stmt.Close()
 	result, err := stmt.Exec(acm.ID, acmKey.ID, acmValue.ID)
 	if err != nil {
 		return fmt.Errorf("createAcmPart2ForACMInTransaction error executing add statement, %s", err.Error())

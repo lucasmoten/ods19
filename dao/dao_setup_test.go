@@ -142,7 +142,7 @@ func PopulateSnippetsForTestUser(user *models.ODUser, snippetString string) erro
 	return nil
 }
 
-func TestTransactionalUpdate(t *testing.T) {
+func TestDAOTransactionalUpdate(t *testing.T) {
 
 	// Always skip.
 	t.Skip()
@@ -160,6 +160,7 @@ func TestTransactionalUpdate(t *testing.T) {
 	if err != nil {
 		log.Printf("Error %v", err)
 	}
+	addObjectTypeStatement.Close()
 
 	// Select 1st time
 	dbObjectType1 := models.ODObjectType{}
@@ -212,6 +213,7 @@ func TestTransactionalUpdate(t *testing.T) {
 	if err != nil {
 		log.Printf("Error %v", err)
 	}
+	updateObjectTypeStatement.Close()
 
 	// Select 2nd time
 	var dbObjectType2 models.ODObjectType

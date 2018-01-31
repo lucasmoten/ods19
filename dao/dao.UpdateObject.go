@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -16,6 +15,13 @@ import (
 
 	"github.com/deciphernow/object-drive-server/util"
 )
+
+// updateTimeWindow defines the minimum time, in microseconds, between updates to an object for
+// isolating changes to revisions which track by time (e.g. when properties and permissions change)
+// this should be as small as possible to reduce throttling, but as long as necessary to accomodate
+// associating the save of revision info. If it takes longer then this time period to save the data
+// it may not show up in the revision for properties
+const updateTimeWindowMS = 50
 
 // UpdateObject uses the passed in object and acm configuration and makes the
 // appropriate sql calls to the database to update the existing object and acm
@@ -29,23 +35,15 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 		return err
 	}
 	var acmCreated bool
-	deadlockRetryCounter := dao.DeadlockRetryCounter
-	deadlockRetryDelay := dao.DeadlockRetryDelay
-	deadlockMessage := `Deadlock`
+	retryCounter := dao.DeadlockRetryCounter
+	retryDelay := dao.DeadlockRetryDelay
+	retryOnErrorMessageContains := []string{"Throttled", "Duplicate entry", "Deadlock", "Lock wait timeout exceeded", sql.ErrNoRows.Error()}
 	acmCreated, err = updateObjectInTransaction(logger, tx, dao, object)
-	// Deadlock trapper on acm
-	for deadlockRetryCounter > 0 && err != nil && strings.Contains(err.Error(), deadlockMessage) {
-		logger.Info("deadlock in updateobject, restarting transaction", zap.Int64("deadlockRetryCounter", deadlockRetryCounter))
-		time.Sleep(time.Duration(deadlockRetryDelay) * time.Millisecond)
-		// Cancel the old transaction and start a new one
+	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
+		logger.Debug("restarting transaction for UpdateObject", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
 		tx.Rollback()
-		tx, err = dao.MetadataDB.Beginx()
-		if err != nil {
-			logger.Error("could not begin transaction", zap.Error(err))
-			return err
-		}
-		// Retry the create
-		deadlockRetryCounter--
+		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
+		retryCounter--
 		acmCreated, err = updateObjectInTransaction(logger, tx, dao, object)
 	}
 	if err != nil {
@@ -116,10 +114,20 @@ func updateObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 	if dbObject.IsDeleted {
 		return acmCreated, fmt.Errorf("unable to modify object if deleted. Call UndeletObject first")
 	}
+	// Check if too recent
+	currentTime := time.Now().UTC()
+	timeSinceCurrentRevision := currentTime.Sub(dbObject.ModifiedDate) / 1000
+	if timeSinceCurrentRevision < updateTimeWindowMS {
+		return acmCreated, fmt.Errorf("Throttled. Time since previous revision is too soon")
+
+	}
+	// if timeFromCurrentRevision/1000 < updateTimeWindow {
+
+	// }
 
 	// lookup type, assign its id to the object for reference
 	if object.TypeID == nil {
-		objectType, err := getObjectTypeByNameInTransaction(tx, object.TypeName.String, true, object.ModifiedBy)
+		objectType, err := dao.GetObjectTypeByName(object.TypeName.String, true, object.ModifiedBy)
 		if err != nil {
 			return acmCreated, fmt.Errorf("UpdateObject Error calling GetObjectTypeByName, %s", err.Error())
 		}

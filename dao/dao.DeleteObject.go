@@ -92,13 +92,13 @@ func deleteObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.OD
 	if err != nil {
 		return err
 	}
+	defer updateObjectStatement.Close()
 	_, err = updateObjectStatement.Exec(dbObject.ModifiedBy,
 		dbObject.IsDeleted, dbObject.DeletedDate, dbObject.DeletedBy,
 		dbObject.IsAncestorDeleted, dbObject.ID)
 	if err != nil {
 		return err
 	}
-
 	// Process children
 	hasUndeletedChildren := true
 	deletedAtLeastOne := true
