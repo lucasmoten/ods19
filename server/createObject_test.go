@@ -1853,7 +1853,7 @@ Content-Type: application/json
 	"version": "2.1.0"
 	},
 	"contentType": "text",
-	"contentSize": "20",
+	"contentSize": 20,
 	"containsUSPersonsData": "No",
 	"exemptFromFOIA": "No"
 }
@@ -1875,6 +1875,48 @@ Content-Type: application/json
 	t.Logf("* Processing Response")
 	failNowOnErr(t, err, "Unable to do request")
 	statusMustBe(t, 400, createObjectRes, "Bad status when creating object")
+	data, _ := ioutil.ReadAll(createObjectRes.Body)
+	t.Logf("* Length of data is %d", len(data))
+	t.Logf("* Output is %s", string(data))
+}
+
+func TestCreateObject1062(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+	method := "POST"
+	uri := mountPoint + "/objects"
+	ghodsissue1062 := `
+------WebKitFormBoundary9ysvqzrB6fZ3rk3Q
+Content-Disposition: form-data; name="ObjectMetadata"
+
+{"typeName":"file","name":"foundIntel_02022018.xlsx","parentId":"","description":"odrive uploader test file aaa","acm":{"version":"2.1.0","classif":"TS","owner_prod":["USA"],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"TS","banner":"TOP SECRET","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["ts"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_sar_id":[],"f_atom_energy":[],"f_macs":[],"disp_only":""},"permission":{"create":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"]},"read":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"]},"update":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"]},"delete":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"]},"share":{}},"containsUSPersonsData":"","exemptFromFOIA":""}
+------WebKitFormBoundary9ysvqzrB6fZ3rk3Q
+Content-Disposition: form-data; name="filestream"; filename="foundIntel_02022018.xlsx"
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+
+
+------WebKitFormBoundary9ysvqzrB6fZ3rk3Q--
+
+`
+	//{"typeName":"file","name":"foundIntel_02022018.xlsx","parentId":"","description":"odrive uploader test file aaa","acm":{"version":"2.1.0","classif":"TS","owner_prod":["USA"],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"TS","banner":"TOP SECRET","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["ts"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_sar_id":[],"f_atom_energy":[],"f_macs":[],"disp_only":""},"permission":{"create":{"allow":"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"},"read":{"allow":"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"},"update":{"allow":"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"},"delete":{"allow":"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"},"share":{}},"containsUSPersonsData":"","exemptFromFOIA":""}
+
+	t.Logf("* Attempt to upload multipart from webkit")
+	var requestBuffer *bytes.Buffer
+	requestBuffer = bytes.NewBufferString(ghodsissue1062)
+	req, err := http.NewRequest(method, uri, requestBuffer)
+	if err != nil {
+		t.Logf("Error setting up HTTP request: %v", err)
+		t.FailNow()
+	}
+	req.Header.Set("Content-Type", "multipart/form-data; boundary=----WebKitFormBoundary9ysvqzrB6fZ3rk3Q")
+	createObjectRes, err := clients[tester10].Client.Do(req)
+	defer util.FinishBody(createObjectRes.Body)
+	t.Logf("* Processing Response")
+	failNowOnErr(t, err, "Unable to do request")
+	statusExpected(t, 200, createObjectRes, "Bad status when creating object")
 	data, _ := ioutil.ReadAll(createObjectRes.Body)
 	t.Logf("* Length of data is %d", len(data))
 	t.Logf("* Output is %s", string(data))

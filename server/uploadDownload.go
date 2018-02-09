@@ -187,11 +187,13 @@ func (h AppServer) acceptObjectUploadStream(ctx context.Context, part *multipart
 		return nil, NewAppError(400, fmt.Errorf("User not provided in context"), "Could not determine user")
 	}
 
-	if part == nil || len(part.FileName()) == 0 {
-		if drainFunc == nil {
-			return nil, NewAppError(400, nil, "file must be supplied as multipart mime part")
-		}
-		return drainFunc, nil
+	if part == nil {
+		return nil, NewAppError(400, nil, "no more parts with file")
+	}
+
+	cd := part.Header.Get("Content-Disposition")
+	if !strings.Contains(cd, "filename") {
+		return nil, NewAppError(400, nil, "file must be supplied as multipart mime part")
 	}
 
 	// Guess the content type and name if it wasn't supplied
