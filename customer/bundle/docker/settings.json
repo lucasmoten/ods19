@@ -17,8 +17,8 @@
         "statusResolution": ["Try re-entering your query and clicking the <img style='height: 20px; width 20px;' src='icons/svg/gray/031-magnifying-glass.svg'> button to repeat your search.", "Try reloading from the <b style='color: #e2588b;'><a href='/apps/drive/home'>Home</a></b> page, and then repeating your search.", "Repeat your search to see if the problem persists."]
       }
   },
-  "aacServiceEndpoint": "/services/aac/1.0",
-  "acmServiceEndpoint": "/acm",
+  "aacServiceEndpoint": "/services/aac/1.2",
+  "acmServiceEndpoint": "/services/aac/1.2/acm",
   "additionalBannerDescription": " -- UNCLASSIFIED SYSTEM AND CONTENT - ALL CLASS MARKINGS ARE FOR TESTING PURPOSES ONLY",
   "appServiceEndpoint": "/services/apps/1.0",
   "appTrayDisabled": true,

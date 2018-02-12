@@ -40,7 +40,7 @@ services:
       ELASTICSEARCH_HOST: es
       ZK_HOST: zk
       JAVAX_PERSISTENCE_JDBC_URL: jdbc:postgresql://postgres:5432/chimera_test
-      ZK_ANNOUNCEPOINT_AAC: /cte/service/aac/1.1
+      ZK_ANNOUNCEPOINT_AAC: /cte/service/aac/1.2
       ZOOKEEPER_URL: zk:2181
       GOV_IC_CTE_SERVER_CONFIG_ZK_ZOOKEEPERCONNECTION: zk:2181
     ports:
@@ -220,7 +220,7 @@ services:
     hostname: es
     image:  docker.363-283.io/docker/backend:elasticsearch-1.7.2 # removed -FINDER for blank ES
     environment:
-      - AAC_ZOOKEEPER_ANNOUNCEMENT_POINT=/cte/service/aac/1.1
+      - AAC_ZOOKEEPER_ANNOUNCEMENT_POINT=/cte/service/aac/1.2
     ports:
       - "9200:9200"
     depends_on:
