@@ -20,6 +20,9 @@ FORMAT: 1A
 ---------------------
 * FIX: Added missing interface definition in golang client libraries
 * CFG: Developer configuration updates for UI
+* ENH: Warmup time for AAC now settable via environment variables `OD_AAC_WARMUP_TIME`
+* ENH: Recheck interval for AAC health check now settable via environment variables `OD_AAC_RECHECK_TIME`
+* ENH: Retry delay for zookeeper connection now settable via environment variable `OD_ZK_RETRYDELAY`
 
 ## Release v1.0.13 (January 31, 2018)
 ---------------------

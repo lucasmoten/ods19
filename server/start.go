@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"strings"
 	"time"
@@ -59,7 +60,7 @@ func Start(conf config.AppConfiguration) error {
 
 	configureEventQueue(app, conf.EventQueue, conf.ZK.Timeout)
 
-	err = connectWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, conf.ZK.Timeout)
+	err = connectWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, conf.ZK.Timeout, conf.ZK.RetryDelay)
 	if err != nil {
 		logger.Fatal("could not register with zookeeper")
 	}
@@ -191,10 +192,10 @@ func connectWithZookeeperTry(app *AppServer, zkBasePath string, zkAddress string
 	return nil
 }
 
-func connectWithZookeeper(app *AppServer, zkBasePath string, zkAddress string, zkTimeout int64) error {
+func connectWithZookeeper(app *AppServer, zkBasePath string, zkAddress string, zkTimeout int64, zkRetryDelay int64) error {
 	err := connectWithZookeeperTry(app, zkBasePath, zkAddress, zkTimeout)
 	for err != nil {
-		sleepInSeconds := 10
+		sleepInSeconds := int(math.Max(1, math.Min(60, float64(zkRetryDelay))))
 		logger.Warn("zk cant register", zap.Int("retry time in seconds", sleepInSeconds))
 		time.Sleep(time.Duration(sleepInSeconds) * time.Second)
 		err = connectWithZookeeperTry(app, zkBasePath, zkAddress, zkTimeout)
@@ -207,9 +208,11 @@ var shutdown = make(chan bool)
 func aacKeepalive(app *AppServer, conf config.AppConfiguration) {
 
 	// first run, sleep immediately. Let original ZK code try first.
-	time.Sleep(time.Second * 20)
+	warmupTime := int(math.Max(1, math.Min(60, float64(conf.AACSettings.WarmupTime))))
+	time.Sleep(time.Second * time.Duration(warmupTime))
 
-	t := time.NewTicker(time.Duration(30 * time.Second))
+	recheckTime := int(math.Max(1, math.Min(600, float64(conf.AACSettings.RecheckTime))))
+	t := time.NewTicker(time.Duration(time.Second * time.Duration(recheckTime)))
 
 	for {
 		select {

@@ -61,6 +61,10 @@ type AACConfiguration struct {
 	AACAnnouncementPoint string `yaml:"zk_path"`
 	// ZKAddrs can be set to discover AAC from a non-default Zookeeper cluster.
 	ZKAddrs []string `yaml:"zk_addrs"`
+	// WarumpTime is the number of seconds to wait for ZK before checking health of AAC
+	WarmupTime int64 `yaml:"warmup_time"`
+	// RecheckTime is the interval seconds between AAC health status checks
+	RecheckTime int64 `yaml:"recheck_time"`
 }
 
 // CommandLineOpts holds command line options parsed on application start. This
@@ -226,6 +230,8 @@ type ZKSettings struct {
 	BasepathOdrive string `yaml:"register_odrive_as"`
 	// Timeout configures a timeout for the Zookeeper driver in seconds.
 	Timeout int64 `yaml:"timeout"`
+	// RetryDelay configures the number of seconds between retry attempts to connect
+	RetryDelay int64 `yaml:"retrydelay"`
 }
 
 // NewAppConfiguration loads the configuration from the different sources in the environment.
@@ -279,6 +285,10 @@ func NewAACSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) AACC
 
 	// If ZKAddrs is set, we attempt to discover AAC from a non-default Zookeeper cluster.
 	conf.ZKAddrs = CascadeStringSlice(OD_AAC_ZK_ADDRS, confFile.AACSettings.ZKAddrs, empty)
+
+	// Time delays for startup and recheck interval
+	conf.WarmupTime = cascadeInt(OD_AAC_WARMUP_TIME, confFile.AACSettings.WarmupTime, 20)
+	conf.RecheckTime = cascadeInt(OD_AAC_RECHECK_TIME, confFile.AACSettings.RecheckTime, 30)
 
 	return conf
 }
@@ -480,6 +490,7 @@ func NewZKSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) ZKSet
 	conf.IP = cascade(OD_ZK_MYIP, confFile.ZK.IP, util.GetIP(logger))
 	conf.Port = cascade(OD_ZK_MYPORT, confFile.ZK.Port, "")
 	conf.Timeout = cascadeInt(OD_ZK_TIMEOUT, confFile.ZK.Timeout, 5)
+	conf.RetryDelay = cascadeInt(OD_ZK_RETRYDELAY, confFile.ZK.RetryDelay, 3)
 
 	return conf
 }

@@ -29,6 +29,8 @@ AAC Integration is used for authorization requests. At the time of this writing 
 | OD_AAC_HEALTHCHECK | An acm expected to validate against the AAC service. | {"version":"2.1.0","classif":"U"} |
 | OD_AAC_INSECURE_SKIP_VERIFY | This turns off certificate verification.  Do not do this.  Leave this value at its default. | false |
 | OD_AAC_KEY | The path to the private key for the user credentials connecting to AAC.  |  |
+| OD_AAC_RECHECK_TIME | The interval seconds between AAC health status checks (1-600) | 30 |
+| OD_AAC_WARMUP_TIME | The number of seconds to wait for ZK before checking health of AAC (1-60) | 10 |
 | OD_AAC_ZK_ADDRS | Comma-separated list of host:port pairs to connect to a Zookeeper cluster specific to AAC discovery  |  |
 
 ### AWS S3
@@ -148,6 +150,7 @@ Zookeeper is used to announce the availability of this instance of the object dr
 | OD_ZK_ANNOUNCE|The mount point for announcements where our zookeeper https node is placed.   This should match the gatekeeper cluster.odrive.zk-location without the https part | /services/object-drive/1.0 |
 | OD_ZK_MYIP | The IP address of the Object-Drive server as reported to Zookeeper. If this environment variable is defined it will override the value detected as the server's IP address on startup. | globalconfig.MyIP |
 | OD_ZK_MYPORT | The Port of the Object-Drive server as reported to Zookeeper. If this environment variable is defined it will override the value detected as the server's listening port on startup. | serverPort _4430_ |
+| OD_ZK_RETRYDELAY | The number of seconds between retry attempts when connecting to ZooKeeper (1-10) | 3 |
 | OD_ZK_TIMEOUT | Timeout in seconds for zookeeper sessions | 5 |
 | OD_ZK_URL | A comma delimited list of zookeeper instances to announce to. The structure of this value should be server1:port1,server2:port2,serverN:portN. If misconfigured, the server will never start.  | zk:2181 |
 
