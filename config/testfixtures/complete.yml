@@ -53,6 +53,8 @@ aac:
     hostname: ""
     port: ""
     zk_path: ""
+    warmup_time: 5
+    recheck_time: 30
 
 event_queue:
     kafka_addrs:
@@ -79,3 +81,4 @@ zk:
     port: ""
     address: ""
     register_odrive_as: ""
+    retrydelay: 10

@@ -16,6 +16,8 @@ const (
 	OD_AAC_KEY                       = "OD_AAC_KEY"
 	OD_AAC_PORT                      = "OD_AAC_PORT"
 	OD_AAC_INSECURE_SKIP_VERIFY      = "OD_AAC_INSECURE_SKIP_VERIFY"
+	OD_AAC_RECHECK_TIME              = "OD_AAC_RECHECK_TIME"
+	OD_AAC_WARMUP_TIME               = "OD_AAC_WARMUP_TIME"
 	OD_AAC_ZK_ADDRS                  = "OD_AAC_ZK_ADDRS"
 	OD_AWS_ACCESS_KEY_ID             = "OD_AWS_ACCESS_KEY_ID"
 	OD_AWS_ASG_ENDPOINT              = "OD_AWS_ASG_ENDPOINT"
@@ -78,6 +80,7 @@ const (
 	OD_ZK_ANNOUNCE                   = "OD_ZK_ANNOUNCE"
 	OD_ZK_MYIP                       = "OD_ZK_MYIP"
 	OD_ZK_MYPORT                     = "OD_ZK_MYPORT"
+	OD_ZK_RETRYDELAY                 = "OD_ZK_RETRYDELAY"
 	OD_ZK_TIMEOUT                    = "OD_ZK_TIMEOUT"
 	OD_ZK_URL                        = "OD_ZK_URL"
 )
@@ -92,6 +95,8 @@ var Vars = []string{OD_AAC_CA,
 	OD_AAC_KEY,
 	OD_AAC_PORT,
 	OD_AAC_INSECURE_SKIP_VERIFY,
+	OD_AAC_RECHECK_TIME,
+	OD_AAC_WARMUP_TIME,
 	OD_AAC_ZK_ADDRS,
 	OD_AWS_ACCESS_KEY_ID,
 	OD_AWS_ASG_ENDPOINT,
@@ -154,6 +159,7 @@ var Vars = []string{OD_AAC_CA,
 	OD_ZK_ANNOUNCE,
 	OD_ZK_MYIP,
 	OD_ZK_MYPORT,
+	OD_ZK_RETRYDELAY,
 	OD_ZK_TIMEOUT,
 	OD_ZK_URL,
 }

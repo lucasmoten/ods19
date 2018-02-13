@@ -161,8 +161,8 @@ func pingDB(d *DataAccessLayer) error {
 	logger := d.GetLogger()
 
 	attempts := 0
-	max := 20
-	sleep := 3
+	max := 60
+	sleep := 1
 
 	var err error
 	var state models.DBState
