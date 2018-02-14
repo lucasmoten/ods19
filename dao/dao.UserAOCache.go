@@ -49,11 +49,6 @@ func getUserAOCacheByDistinguishedNameInTransaction(tx *sqlx.Tx, user models.ODU
 // SetUserAOCacheByDistinguishedName ensures a record exists for the user authorization object cache state,
 // marks it as being cached, and rebuilds the cache parts for the authorization object from snippets
 func (dao *DataAccessLayer) SetUserAOCacheByDistinguishedName(useraocache *models.ODUserAOCache, user models.ODUser) error {
-	tx, err := dao.MetadataDB.Beginx()
-	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
-		return err
-	}
 	// Uninitialized passed in. New it up
 	if useraocache == nil {
 		newuseraocache := models.ODUserAOCache{}
@@ -69,18 +64,17 @@ func (dao *DataAccessLayer) SetUserAOCacheByDistinguishedName(useraocache *model
 	}
 	// Check if first insert or otherwise updates
 	if useraocache.ID == 0 {
-		err = insertUserAOCache(dao, tx, useraocache)
+		if err := insertUserAOCache(dao, useraocache); err != nil {
+			return err
+		}
 	} else {
-		err = updateUserAOCache(dao, tx, useraocache)
+		if err := updateUserAOCache(dao, useraocache); err != nil {
+			return err
+		}
 	}
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	tx.Commit()
 
 	// Add any missing keys and values
-	if err = createKeysAndValuesFromSnippets(dao, user.Snippets.Snippets); err != nil {
+	if err := createKeysAndValuesFromSnippets(dao, user.Snippets.Snippets); err != nil {
 		return err
 	}
 	// delete existing
@@ -88,7 +82,7 @@ func (dao *DataAccessLayer) SetUserAOCacheByDistinguishedName(useraocache *model
 		return err
 	}
 	// Add the definition parts to the user
-	if err = insertUserAOCacheParts(dao, user); err != nil {
+	if err := insertUserAOCacheParts(dao, user); err != nil {
 		return err
 	}
 	return nil
@@ -165,13 +159,18 @@ func insertUserAOCacheParts(dao *DataAccessLayer, user models.ODUser) error {
 	return execStatementWithDeadlockRetry(dao, "insertUserAOCacheParts", fullsql)
 }
 
-func insertUserAOCache(dao *DataAccessLayer, tx *sqlx.Tx, useraocache *models.ODUserAOCache) error {
+func insertUserAOCache(dao *DataAccessLayer, useraocache *models.ODUserAOCache) error {
+	logger := dao.GetLogger()
 	useraocache.CacheDate.Time = time.Now()
 	useraocache.CacheDate.Valid = true
 	retryCounter := dao.DeadlockRetryCounter
 	retryDelay := dao.DeadlockRetryDelay
 	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded", sql.ErrNoRows.Error()}
-	logger := dao.GetLogger()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		logger.Error("could not begin transaction", zap.Error(err))
+		return err
+	}
 	stmt, err := tx.Preparex(`insert useraocache set userid = ?, iscaching = ?, cachedate = ?, sha256hash = ?`)
 	if err != nil {
 		return fmt.Errorf("insertUserAOCache error preparing add statement, %s", err.Error())
@@ -179,20 +178,27 @@ func insertUserAOCache(dao *DataAccessLayer, tx *sqlx.Tx, useraocache *models.OD
 	defer stmt.Close()
 	result, err := stmt.Exec(useraocache.UserID, useraocache.IsCaching, useraocache.CacheDate, useraocache.SHA256Hash)
 	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
-		logger.Debug("restarting transaction for insertUserAOCache", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
+		logger.Debug("restarting trasnaction for insertUserAOCache", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
 		tx.Rollback()
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
+		retryCounter--
+		tx, err = dao.MetadataDB.Beginx()
+		if err != nil {
+			logger.Error("could not begin transaction", zap.Error(err))
+			return err
+		}
 		stmtRetry, errPrepare := tx.Preparex(`insert useraocache set userid = ?, iscaching = ?, cachedate = ?, sha256hash = ?`)
 		if errPrepare != nil {
 			return fmt.Errorf("insertUserAOCache error preparing add statement after deadlock, %s", errPrepare.Error())
 		}
 		defer stmtRetry.Close()
-		retryCounter--
 		result, err = stmtRetry.Exec(useraocache.UserID, useraocache.IsCaching, useraocache.CacheDate, useraocache.SHA256Hash)
 	}
 	if err != nil {
+		tx.Rollback()
 		return fmt.Errorf("insertUserAOCache error executing add statement, %s", err.Error())
 	}
+	tx.Commit()
 	useraocache.ID, err = result.LastInsertId()
 	if err != nil {
 		return fmt.Errorf("insertUserAOCache error getting last inserted id, %s", err.Error())
@@ -200,13 +206,18 @@ func insertUserAOCache(dao *DataAccessLayer, tx *sqlx.Tx, useraocache *models.OD
 	return nil
 }
 
-func updateUserAOCache(dao *DataAccessLayer, tx *sqlx.Tx, useraocache *models.ODUserAOCache) error {
+func updateUserAOCache(dao *DataAccessLayer, useraocache *models.ODUserAOCache) error {
+	logger := dao.GetLogger()
 	useraocache.CacheDate.Time = time.Now()
 	useraocache.CacheDate.Valid = true
 	retryCounter := dao.DeadlockRetryCounter
 	retryDelay := dao.DeadlockRetryDelay
 	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded", sql.ErrNoRows.Error()}
-	logger := dao.GetLogger()
+	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		logger.Error("could not begin transaction", zap.Error(err))
+		return err
+	}
 	stmt, err := tx.Preparex(`update useraocache set iscaching = ?, cachedate = ?, sha256hash = ? where userid = ?`)
 	if err != nil {
 		return fmt.Errorf("updateUserAOCache error preparing update statement, %s", err.Error())
@@ -217,18 +228,25 @@ func updateUserAOCache(dao *DataAccessLayer, tx *sqlx.Tx, useraocache *models.OD
 		logger.Debug("restarting transaction for updateUserAOCache", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
 		tx.Rollback()
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
+		retryCounter--
+		tx, err = dao.MetadataDB.Beginx()
+		if err != nil {
+			logger.Error("could not begin transaction", zap.Error(err))
+			return err
+		}
 		stmtRetry, errPrepare := tx.Preparex(`update useraocache set iscaching = ?, cachedate = ?, sha256hash = ? where userid = ?`)
 		if errPrepare != nil {
 			return fmt.Errorf("updateUserAOCache error preparing update statement after deadlock, %s", errPrepare.Error())
 		}
 		defer stmtRetry.Close()
 		// Retry
-		retryCounter--
 		result, err = stmtRetry.Exec(useraocache.IsCaching, useraocache.CacheDate, useraocache.SHA256Hash, useraocache.UserID)
 	}
 	if err != nil {
+		tx.Rollback()
 		return fmt.Errorf("updateUserAOCache error executing update statement, %s", err.Error())
 	}
+	tx.Commit()
 	ra, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("updateUserAOCache error determining rows affected, %s", err.Error())
@@ -275,8 +293,8 @@ func insertUserAOCachePart(dao *DataAccessLayer, tx *sqlx.Tx, user models.ODUser
 		result, err = stmt.Exec(user.ID, isallowed, acmkey.ID, nil)
 	}
 	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
-		logger.Debug("restarting transaction for insertUserAOCachePart", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
-		tx.Rollback()
+		logger.Debug("retrying statement for insertUserAOCachePart", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
+		//tx.Rollback()
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		stmtRetry, errPrepare := tx.Preparex(`insert useraocachepart set userid = ?, isallowed = ?, userkeyid = ?, uservalueid = ?`)
 		if errPrepare != nil {
@@ -343,7 +361,7 @@ func (dao *DataAccessLayer) RebuildUserACMCache(useraocache *models.ODUserAOCach
 		return err
 	}
 	useraocache.IsCaching = false
-	if err = updateUserAOCache(dao, tx, useraocache); err != nil {
+	if err = updateUserAOCache(dao, useraocache); err != nil {
 		tx.Rollback()
 		dao.GetLogger().Error("rebuildUserACMCache error marking user cache as done", zap.Error(err))
 		return err

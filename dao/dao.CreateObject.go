@@ -20,8 +20,8 @@ import (
 func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObject, error) {
 	defer util.Time("CreateObject")()
 	logger := dao.GetLogger()
-	tx, err := dao.MetadataDB.Beginx()
 	var obj models.ODObject
+	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		logger.Error("could not begin transaction", zap.Error(err))
 		return models.ODObject{}, err
@@ -38,6 +38,11 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 		tx.Rollback()
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		retryCounter--
+		tx, err = dao.MetadataDB.Beginx()
+		if err != nil {
+			logger.Error("could not begin transaction", zap.Error(err))
+			return models.ODObject{}, err
+		}
 		dbObject, acmCreated, err = createObjectInTransaction(logger, tx, dao, object)
 	}
 	if err != nil {
