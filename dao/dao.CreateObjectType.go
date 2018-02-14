@@ -32,6 +32,11 @@ func (dao *DataAccessLayer) CreateObjectType(objectType *models.ODObjectType) (m
 		tx.Rollback()
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		retryCounter--
+		tx, err = dao.MetadataDB.Beginx()
+		if err != nil {
+			logger.Error("could not begin transaction", zap.Error(err))
+			return models.ODObjectType{}, err
+		}
 		dbObjectType, err = createObjectTypeInTransaction(tx, objectType)
 	}
 	if err != nil {

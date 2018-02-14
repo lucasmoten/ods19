@@ -146,6 +146,10 @@ func getAcm2ByNameInTransaction(dao *DataAccessLayer, namedValue string, addIfMi
 	var result models.ODAcm2
 	logger := dao.GetLogger()
 	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		logger.Error("could not begin transaction", zap.Error(err))
+		return result, created, err
+	}
 	retryCounter := dao.DeadlockRetryCounter
 	retryDelay := dao.DeadlockRetryDelay
 	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded", sql.ErrNoRows.Error()}
@@ -202,6 +206,10 @@ func getAcmKey2ByName(dao *DataAccessLayer, namedValue string, addIfMissing bool
 	var result models.ODAcmKey2
 	logger := dao.GetLogger()
 	tx, err := dao.MetadataDB.Beginx()
+	if err != nil {
+		logger.Error("could not begin transaction", zap.Error(err))
+		return result, err
+	}
 	retryCounter := dao.DeadlockRetryCounter
 	retryDelay := dao.DeadlockRetryDelay
 	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded", sql.ErrNoRows.Error()}
@@ -212,6 +220,11 @@ func getAcmKey2ByName(dao *DataAccessLayer, namedValue string, addIfMissing bool
 		tx.Rollback()
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		retryCounter--
+		tx, err = dao.MetadataDB.Beginx()
+		if err != nil {
+			logger.Error("could not begin transaction", zap.Error(err))
+			return result, err
+		}
 		err = tx.Get(&result, stmt, namedValue)
 		if err != nil && err == sql.ErrNoRows && addIfMissing {
 			result.Name = namedValue
@@ -257,7 +270,6 @@ func getAcmValue2ByName(dao *DataAccessLayer, namedValue string, addIfMissing bo
 	err = tx.Get(&result, stmt, namedValue)
 	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
 		logger.Debug("restarting transaction for getAcmValue2ByName", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
-		//tx.Rollback()
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		retryCounter--
 		if err = tx.Get(&result, stmt, namedValue); err != nil {

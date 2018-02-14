@@ -99,6 +99,11 @@ func (dao *DataAccessLayer) CreateAcmGrantee(acmGrantee models.ODAcmGrantee) (mo
 		tx.Rollback()
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		retryCounter--
+		tx, err = dao.MetadataDB.Beginx()
+		if err != nil {
+			logger.Error("could not begin transaction", zap.Error(err))
+			return models.ODAcmGrantee{}, err
+		}
 		response, err = createAcmGranteeInTransaction(dao.GetLogger(), tx, acmGrantee)
 	}
 	if err != nil {

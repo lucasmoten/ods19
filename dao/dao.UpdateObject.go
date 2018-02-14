@@ -44,6 +44,11 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 		tx.Rollback()
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		retryCounter--
+		tx, err = dao.MetadataDB.Beginx()
+		if err != nil {
+			logger.Error("could not begin transaction", zap.Error(err))
+			return err
+		}
 		acmCreated, err = updateObjectInTransaction(logger, tx, dao, object)
 	}
 	if err != nil {
@@ -117,14 +122,12 @@ func updateObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 	// Check if too recent
 	currentTime := time.Now().UTC()
 	timeSinceCurrentRevision := currentTime.Sub(dbObject.ModifiedDate) / 1000
-	if timeSinceCurrentRevision < updateTimeWindowMS {
-		return acmCreated, fmt.Errorf("Throttled. Time since previous revision is too soon")
-
+	for timeSinceCurrentRevision < updateTimeWindowMS {
+		logger.Debug("throttling update request on object")
+		time.Sleep(time.Duration(updateTimeWindowMS) * time.Millisecond)
+		currentTime = time.Now().UTC()
+		timeSinceCurrentRevision = currentTime.Sub(dbObject.ModifiedDate) / 1000
 	}
-	// if timeFromCurrentRevision/1000 < updateTimeWindow {
-
-	// }
-
 	// lookup type, assign its id to the object for reference
 	if object.TypeID == nil {
 		objectType, err := dao.GetObjectTypeByName(object.TypeName.String, true, object.ModifiedBy)

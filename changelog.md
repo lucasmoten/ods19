@@ -24,6 +24,7 @@ FORMAT: 1A
 * ENH: Recheck interval for AAC health check now settable via environment variables `OD_AAC_RECHECK_TIME`
 * ENH: Retry delay for zookeeper connection now settable via environment variable `OD_ZK_RETRYDELAY`
 * REF: Upgraded AWS-SDK-GO to v1.12.75 (2018-02-12)
+* FIX: Fixed locations where transaction need restarted after rollback during retry
 
 ## Release v1.0.13 (January 31, 2018)
 ---------------------
