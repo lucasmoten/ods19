@@ -1,4 +1,4 @@
-FROM deciphernow/centos-openssl-go:1.7
+FROM deciphernow/centos-openssl-go:1.9.4
 
 ENV OD_TOKENJAR_LOCATION /go/src/github.com/deciphernow/object-drive-server/defaultcerts/token.jar
 

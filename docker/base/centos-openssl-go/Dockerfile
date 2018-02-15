@@ -10,8 +10,8 @@ RUN yum -y update; \
     yum -y install gcc;
 
 RUN yum install -y yum-plugin-ovl
-RUN wget https://storage.googleapis.com/golang/go1.7.linux-amd64.tar.gz
-RUN tar -C /usr/local -xzf go1.7.linux-amd64.tar.gz
+RUN wget https://storage.googleapis.com/golang/go1.9.4.linux-amd64.tar.gz
+RUN tar -C /usr/local -xzf go1.9.4.linux-amd64.tar.gz
 ENV PATH /usr/local/go/bin:$PATH
 ENV GOPATH /go
 

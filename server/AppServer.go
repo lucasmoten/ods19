@@ -175,6 +175,8 @@ func (h *AppServer) InitRegex() {
 		// - trash
 		Trash: route("/trashed$"),
 		Zip:   route("/zip$"),
+		// - File pathing
+		Files: route("/files/(?P<path>.*)"),
 	}
 }
 
@@ -278,7 +280,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.StaticFiles.RX)
 			herr = h.serveStatic(ctx, w, r)
 			withoutDatabase = true
-		// API documentation
+		case h.Routes.Files.RX.MatchString(uri):
+			// drop to with database and user below. necessary to match since docs at root
 		case h.Routes.APIDocumentation.RX.MatchString(uri):
 			matched = "APIDocumentation"
 			herr = h.docs(ctx, w, r)
@@ -408,6 +411,10 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.Ping.RX.MatchString(uri):
 			matched = "Ping"
 			herr = nil
+		case h.Routes.Files.RX.MatchString(uri):
+			matched = "Files"
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Files.RX)
+			herr = h.getObjectByPath(ctx, w, r)
 		default:
 			herr = do404(ctx, w, r)
 			h.publishError(gem, herr)
@@ -776,4 +783,5 @@ type StaticRx struct {
 	Trash              StaticRxData
 	Zip                StaticRxData
 	ObjectsMove        StaticRxData
+	Files              StaticRxData
 }
