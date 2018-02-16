@@ -25,6 +25,7 @@ FORMAT: 1A
 * ENH: Retry delay for zookeeper connection now settable via environment variable `OD_ZK_RETRYDELAY`
 * REF: Upgraded AWS-SDK-GO to v1.12.75 (2018-02-12)
 * FIX: Fixed locations where transaction need restarted after rollback during retry
+* ENH: Experimental retrieval of file stream and object listings by path at /files/{path}
 
 ## Release v1.0.13 (January 31, 2018)
 ---------------------
