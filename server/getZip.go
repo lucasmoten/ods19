@@ -216,7 +216,7 @@ func zipWriteFile(
 		"zip for client",
 		byteRange,
 	)
-	logger.Debug("s3 pull for zip end", zap.String("fname", obj.Name), zap.Int64("bytes", actualLength))
+	logger.Debug("file pull for zip end", zap.String("fname", obj.Name), zap.Int64("bytes", actualLength))
 	return nil
 }
 

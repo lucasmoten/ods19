@@ -282,7 +282,7 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 		d.Files().Remove(outFileUploading)
 		return nil, NewAppError(500, err, msg), err
 	}
-	logger.Info("s3 enqueued", zap.String("fileID", string(fileID)))
+	logger.Info("file enqueued", zap.String("fileID", string(fileID)))
 
 	// Record metadata
 	obj.ContentHash = checksum

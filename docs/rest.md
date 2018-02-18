@@ -1143,7 +1143,100 @@ This microservice operation retrieves a list of objects that are shared to every
 
         Error storing metadata or stream
 
+## List or Get Files [/files/{groupobjects}/{groupName}/{path}{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
+This microservice operation is experimental (since v1.0.14), and can be used to retrieve files using URIs based upon folder and file names.  This is useful if you want to provide a direct link to a file where you know the object names, but not necessarily the id, or if that file is comprised of markup language referencing other resources stored with relative locations from that file, typical of HTML viewed in a browser.
+
++ Examples
+    * /files/my/folder/path/to/a/file.html
+    * /files/groupobjects/dctc_odrive/folderownedbydctc_odrive/another-subfolder/afile 
+    * /files/groupobjects/dctc_odrive/folderownedbydctc_odrive/another-subfolder
+
++ Parameters
+
+    + groupobjects: groupobjects (string, optional) - When present, the next path component should represent a groupName for which the user has membership in.
+    + groupName: dctc_odrive_g1 (string, optional) - The flattened name of a group for which the user is a member and objects owned by the group should be returned.
+        * When present, the first object named in the path is looked up from the targetted group. Otherwise, the first object should be owned by the user.
+        * The flattened values for user identity are also acceptable
+        * Psuedogroups, such as `_everyone` are not acceptable for this request, but are forbidden from owning objects anyway.
+    + path: index.html (string, optional) - The name of an object to be returned in the given path delimited by forward slashes.  If no path is given, or the final object has a content size of 0, then this will result in a list of objects being returned.
+    + pageNumber: 1 (number(minvalue=1), optional) - The page number of results to be returned to support chunked output.
+    + pageSize: 20 (number(minvalue=1, maxvalue=10000), optional) - The number of results to return per page when listing a directory.
+    + sortField: `contentsize` (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
+        + Default: `createddate`
+        + Members
+            + `changecount`
+            + `createdby`
+            + `createddate`
+            + `contentsize`
+            + `contenttype`
+            + `description`
+            + `foiaexempt`
+            + `id`
+            + `modifiedby`
+            + `modifieddate`
+            + `name`
+            + `ownedby`
+            + `typename`
+            + `uspersons`
+    + sortAscending: true (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
+        + Default: false
+    + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
+        + Default: `or`
+        + Members
+            + `all`
+            + `and`
+            + `any`
+            + `or`
+    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
+        + Members
+            + `changecount`
+            + `createdby`
+            + `createddate`
+            + `contentsize`
+            + `contenttype`
+            + `description`
+            + `foiaexempt`
+            + `id`
+            + `modifiedby`
+            + `modifieddate`
+            + `name`
+            + `ownedby`
+            + `typename`
+            + `uspersons`
+    + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
+        + Members
+            + `begins`
+            + `contains`
+            + `ends`
+            + `equals`
+            + `lessthan`
+            + `morethan`
+            + `notbegins`
+            + `notcontains`
+            + `notends`
+            + `notequals`
+    + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
+
+### List or Get Files [GET]
+
+This microservice operation is experimental (since v1.0.14), and can be used to retrieve files using URIs based upon folder and file names.
+
++ Response 200 (application/json)
+
+    + Attributes (ObjectResultset)
+
++ Response 400
+
+        Unable to decode request.
+        
++ Response 403
+
+        Forbidden if the user is not a member of the provided group name or lacks sufficient access to the target object.
+       
++ Response 500
+
+        Error retrieving objects
 # Group Filing Operations
 
 ---
