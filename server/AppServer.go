@@ -149,6 +149,7 @@ func (h *AppServer) InitRegex() {
 		Objects:          route("/objects$"),
 		Object:           route("/objects/(?P<objectId>[0-9a-fA-F]{32})$"),
 		ObjectProperties: route("/objects/(?P<objectId>[0-9a-fA-F]{32})/properties$"),
+		ObjectCopy:       route("/objects/(?P<objectId>[0-9a-fA-F]{32})/copy$"),
 		ObjectStream:     route("/objects/(?P<objectId>[0-9a-fA-F]{32})/stream(\\.[0-9a-zA-Z]*)?$"),
 		Ciphertext:       route("/ciphertext/(?P<zone>[0-9a-zA-Z_]*)?/(?P<rname>[0-9a-fA-F]{64})$"),
 		BulkProperties:   route("/objects/properties$"),
@@ -447,6 +448,11 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			matched = "ObjectProperties"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectProperties.RX)
 			herr = h.updateObject(ctx, w, r)
+		// - make object copy
+		case h.Routes.ObjectCopy.RX.MatchString(uri):
+			matched = "ObjectCopy"
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectCopy.RX)
+			herr = h.copyObject(ctx, w, r)
 		// - update object stream
 		case h.Routes.ObjectStream.RX.MatchString(uri):
 			matched = "ObjectStream"
@@ -761,6 +767,7 @@ type StaticRx struct {
 	Objects            StaticRxData
 	Object             StaticRxData
 	ObjectProperties   StaticRxData
+	ObjectCopy         StaticRxData
 	ObjectStream       StaticRxData
 	Ciphertext         StaticRxData
 	ObjectChangeOwner  StaticRxData

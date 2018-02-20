@@ -23,8 +23,9 @@ import (
 
 // ObjectDrive defines operations for our client (and eventually our server).
 type ObjectDrive interface {
-	CreateObject(protocol.CreateObjectRequest, io.Reader) (protocol.Object, error)
 	ChangeOwner(protocol.ChangeOwnerRequest) (protocol.Object, error)
+	CopyObject(protocol.CopyObjectRequest) (protocol.Object, error)
+	CreateObject(protocol.CreateObjectRequest, io.Reader) (protocol.Object, error)
 	DeleteObject(id string, token string) (protocol.DeletedObjectResponse, error)
 	GetObject(id string) (protocol.Object, error)
 	GetObjectStream(id string) (io.ReadCloser, error)
@@ -106,6 +107,64 @@ func NewClient(conf Config) (*Client, error) {
 	return &Client{&c, conf.Remote, false, conf, mydn}, nil
 }
 
+// ChangeOwner changes the object's ownedBy field.
+func (c *Client) ChangeOwner(req protocol.ChangeOwnerRequest) (protocol.Object, error) {
+	uri := c.url + "/objects/" + req.ID + "/owner/" + req.NewOwner
+	var ret protocol.Object
+
+	resp, err := c.doPost(uri, req)
+	if err != nil {
+		return ret, fmt.Errorf("error performing request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	err = json.NewDecoder(resp.Body).Decode(&ret)
+	if err != nil {
+		return ret, fmt.Errorf("could not decode response: %v", err)
+	}
+
+	return ret, nil
+}
+
+// CopyObject performs the copy operation on the ObjectDrive from the CiotObjectRequest that indicates
+// the object to be copied by referencing its id. The caller must have permission to the object and its
+// revisions. The resultant object is created as a sibling to the original. File streams, if any,
+// and accompanied permissions, derive from the original object
+func (c *Client) CopyObject(req protocol.CopyObjectRequest) (protocol.Object, error) {
+	uri := c.url + "/objects/" + req.ID + "/copy"
+	var ret protocol.Object
+
+	httpReq, err := http.NewRequest("POST", uri, nil)
+	if err != nil {
+		return ret, err
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	if c.Conf.Impersonation != "" {
+		setImpersonationHeaders(httpReq, c.Conf.Impersonation, c.MyDN)
+	}
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		log.Println(err)
+		return ret, err
+	}
+	defer resp.Body.Close()
+	if c.Verbose {
+		data, _ := httputil.DumpResponse(resp, true)
+		fmt.Printf("%s", string(data))
+	}
+
+	// Send back the created object properties
+	err = json.NewDecoder(resp.Body).Decode(&ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+
 // CreateObject performs the create operation on the ObjectDrive from the CreateObjectRequest that fully
 // specifies the object to be created.  The caller must also provide an open io.Reader interface to the stream
 // they wish to upload.  If creating an object with no filestream, such as a folder, then reader must be nil.
@@ -177,6 +236,34 @@ func (c *Client) CreateObject(req protocol.CreateObjectRequest, reader io.Reader
 	}
 
 	return ret, nil
+}
+
+// DeleteObject moves an object on the server to the trash.  The object's ID and changetoken from the
+// current object in ObjectDrive are needed to perform the operation.
+func (c *Client) DeleteObject(id string, token string) (protocol.DeletedObjectResponse, error) {
+
+	url := c.url + "/objects/" + id + "/trash"
+
+	var deleteResponse protocol.DeletedObjectResponse
+
+	deleteRequest := protocol.DeleteObjectRequest{
+		ID:          id,
+		ChangeToken: token,
+	}
+
+	resp, err := c.doPost(url, deleteRequest)
+	if err != nil {
+		log.Println(err)
+		return deleteResponse, err
+	}
+	defer resp.Body.Close()
+
+	err = json.NewDecoder(resp.Body).Decode(&deleteResponse)
+	if err != nil {
+		return deleteResponse, err
+	}
+
+	return deleteResponse, nil
 }
 
 // GetObject fetches the metadata associated with an object by its unique ID.
@@ -275,53 +362,6 @@ func (c *Client) GetRevisions(id string) (protocol.ObjectResultset, error) {
 	}
 
 	return obj, nil
-}
-
-// DeleteObject moves an object on the server to the trash.  The object's ID and changetoken from the
-// current object in ObjectDrive are needed to perform the operation.
-func (c *Client) DeleteObject(id string, token string) (protocol.DeletedObjectResponse, error) {
-
-	url := c.url + "/objects/" + id + "/trash"
-
-	var deleteResponse protocol.DeletedObjectResponse
-
-	deleteRequest := protocol.DeleteObjectRequest{
-		ID:          id,
-		ChangeToken: token,
-	}
-
-	resp, err := c.doPost(url, deleteRequest)
-	if err != nil {
-		log.Println(err)
-		return deleteResponse, err
-	}
-	defer resp.Body.Close()
-
-	err = json.NewDecoder(resp.Body).Decode(&deleteResponse)
-	if err != nil {
-		return deleteResponse, err
-	}
-
-	return deleteResponse, nil
-}
-
-// ChangeOwner changes the object's ownedBy field.
-func (c *Client) ChangeOwner(req protocol.ChangeOwnerRequest) (protocol.Object, error) {
-	uri := c.url + "/objects/" + req.ID + "/owner/" + req.NewOwner
-	var ret protocol.Object
-
-	resp, err := c.doPost(uri, req)
-	if err != nil {
-		return ret, fmt.Errorf("error performing request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	err = json.NewDecoder(resp.Body).Decode(&ret)
-	if err != nil {
-		return ret, fmt.Errorf("could not decode response: %v", err)
-	}
-
-	return ret, nil
 }
 
 // MoveObject moves a given file or folder into a new parent folder, both specified by ID.
