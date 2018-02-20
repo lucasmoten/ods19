@@ -26,6 +26,7 @@ FORMAT: 1A
 * REF: Upgraded AWS-SDK-GO to v1.12.75 (2018-02-12)
 * FIX: Fixed locations where transaction need restarted after rollback during retry
 * ENH: Experimental retrieval of file stream and object listings by path at /files/{path}
+* ENH: The [golang client library](../client.go) is now linked from the API Documentation
 
 ## Release v1.0.13 (January 31, 2018)
 ---------------------

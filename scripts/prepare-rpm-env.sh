@@ -55,6 +55,7 @@ mkdir -m 750 -p ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server
 
 install -m 750 -D ${ODRIVE_BINARY_DIR}/odrive ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/object-drive-1.0
 install -m 640 -D ${ODRIVE_BINARY_DIR}/odrive.yml ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/object-drive.yml
+install -m 640 -D ${ODRIVE_ROOT}/server/static/client.go ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/client.go 
 install -m 640 -D ${ODRIVE_ROOT}/server/static/css/source_code_pro.css ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/css/source_code_pro.css 
 install -m 640 -D ${ODRIVE_ROOT}/server/static/favicon.ico ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/favicon.ico
 install -m 640 -D ${ODRIVE_ROOT}/server/static/images/odrive-builddate.png ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/images/odrive-builddate.png

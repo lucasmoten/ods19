@@ -361,6 +361,10 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.Objects.RX.MatchString(uri):
 			matched = "Objects"
 			herr = h.listObjects(ctx, w, r)
+		case h.Routes.Files.RX.MatchString(uri):
+			matched = "Files"
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Files.RX)
+			herr = h.getObjectByPath(ctx, w, r)
 		// - list objects at root owned by a group
 		case h.Routes.GroupObjects.RX.MatchString(uri):
 			matched = "GroupObjects"
@@ -411,10 +415,6 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case h.Routes.Ping.RX.MatchString(uri):
 			matched = "Ping"
 			herr = nil
-		case h.Routes.Files.RX.MatchString(uri):
-			matched = "Files"
-			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.Files.RX)
-			herr = h.getObjectByPath(ctx, w, r)
 		default:
 			herr = do404(ctx, w, r)
 			h.publishError(gem, herr)
