@@ -47,7 +47,7 @@ type testAACAuth struct {
 	expectedIsAuthorized        bool
 	expectedIsError             bool
 	expectedError               error
-	expectedSnippets            string
+	expectedSnippets            []string
 	expectedGroups              []string
 	creating                    bool
 	failed                      bool
@@ -120,8 +120,8 @@ func TestAACAuthGetSnippetsForUser(t *testing.T) {
 	subtests = append(subtests, testAACAuth{expectedIsError: true, subtestname: "No User", expectedError: auth.ErrUserNotSpecified})
 	subtests = append(subtests, testAACAuth{expectedIsError: true, subtestname: "Fake User", userIdentity: "Fake User", expectedError: auth.ErrServiceNotSuccessful})
 	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "Jonathan Holmes", userIdentity: "CN=Holmes Jonathan,OU=People,OU=Bedrock,OU=Six 3 Systems,O=U.S. Government,C=US"})
-	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "Tester 10", userIdentity: "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us", expectedSnippets: "dissem_countries allowed (USA) AND f_accms disallow () AND f_atom_energy allowed () AND f_clearance allowed (ts,s,c,u) AND f_macs disallow (tide,bir,watchdog) AND f_missions allowed () AND f_oc_org allowed (dia) AND f_regions allowed () AND f_sar_id allowed () AND f_sci_ctrls disallow (kdk,rsv) AND f_share allowed (dctc_odrive,dctc_odrive_g1,cntesttester10oupeopleoudaeouchimeraou_s_governmentcus,cusou_s_governmentouchimeraoudaeoupeoplecntesttester10)"})
-	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "Uppercase Tester 10", userIdentity: "CN=Test Tester10,OU=People,OU=DAE,OU=Chimera,O=U.S. Government,C=US", expectedSnippets: "dissem_countries allowed (USA) AND f_accms disallow () AND f_atom_energy allowed () AND f_clearance allowed (ts,s,c,u) AND f_macs disallow (tide,bir,watchdog) AND f_missions allowed () AND f_oc_org allowed (dia) AND f_regions allowed () AND f_sar_id allowed () AND f_sci_ctrls disallow (kdk,rsv) AND f_share allowed (dctc_odrive,dctc_odrive_g1,cntesttester10oupeopleoudaeouchimeraou_s_governmentcus,cusou_s_governmentouchimeraoudaeoupeoplecntesttester10)"})
+	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "Tester 10", userIdentity: "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us", expectedSnippets: []string{"dissem_countries allowed (USA)", "f_accms disallow ()", "f_atom_energy allowed ()", "f_clearance allowed (ts,s,c,u)", "f_macs disallow (tide,bir,watchdog)", "f_missions allowed ()", "f_oc_org allowed (dia)", "f_regions allowed ()", "f_sar_id allowed ()", "f_sci_ctrls disallow (kdk,rsv)", "dctc_odrive", "dctc_odrive_g1", "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus", "cusou_s_governmentouchimeraoudaeoupeoplecntesttester10"}})
+	subtests = append(subtests, testAACAuth{expectedIsError: false, subtestname: "Uppercase Tester 10", userIdentity: "CN=Test Tester10,OU=People,OU=DAE,OU=Chimera,O=U.S. Government,C=US", expectedSnippets: []string{"dissem_countries allowed (USA)", "f_accms disallow ()", "f_atom_energy allowed ()", "f_clearance allowed (ts,s,c,u)", "f_macs disallow (tide,bir,watchdog)", "f_missions allowed ()", "f_oc_org allowed (dia)", "f_regions allowed ()", "f_sar_id allowed ()", "f_sci_ctrls disallow (kdk,rsv)", "dctc_odrive", "dctc_odrive_g1", "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus", "cusou_s_governmentouchimeraoudaeoupeoplecntesttester10"}})
 
 	for testIdx, subtest := range subtests {
 		t.Logf("Subtest %d: %s", testIdx, subtest.subtestname)
@@ -162,11 +162,13 @@ func TestAACAuthGetSnippetsForUser(t *testing.T) {
 				continue
 			}
 			actualSnippets := snippets.String()
-			if strings.Compare(actualSnippets, subtest.expectedSnippets) != 0 {
-				subtest.failed = true
-				t.Logf("[x] Expected snippets to be %s but got %s", subtest.expectedSnippets, actualSnippets)
-				t.Fail()
-				continue
+			for _, expected := range subtest.expectedSnippets {
+				if !strings.Contains(actualSnippets, expected) {
+					subtest.failed = true
+					t.Logf("[x] Expected snippets to contain %s but got %s", subtest.expectedSnippets, actualSnippets)
+					t.Fail()
+					continue
+				}
 			}
 		}
 		if !subtest.failed {
@@ -371,20 +373,6 @@ func TestAACAuthGetGroupsFromSnippets(t *testing.T) {
 			continue
 		}
 		groups := aacAuth.GetGroupsFromSnippets(snippets)
-		for _, group := range groups {
-			groupFoundInExpected := false
-			for _, expectedGroup := range subtest.expectedGroups {
-				if group == expectedGroup {
-					groupFoundInExpected = true
-					break
-				}
-			}
-			if !groupFoundInExpected {
-				subtest.failed = true
-				t.Logf("[x] Group '%s' in snippets was not expected", group)
-				t.Fail()
-			}
-		}
 		for _, expectedGroup := range subtest.expectedGroups {
 			expectedFoundInGroups := false
 			for _, group := range groups {
