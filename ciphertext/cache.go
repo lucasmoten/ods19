@@ -337,7 +337,7 @@ func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 	}
 	defer fIn.Close()
 
-	if d.PermanentStorage != nil {
+	if size > 0 && d.PermanentStorage != nil {
 		d.Logger.Info(
 			"writeback to PermanentStorage",
 			zap.String("bucket", *d.PermanentStorage.GetName()),
@@ -729,7 +729,13 @@ func (d *CiphertextCacheData) CountUploaded() int {
 		func(name string) error {
 			if strings.Compare(name, fqCache) != 0 {
 				if strings.HasSuffix(name, ".uploaded") {
-					uploaded++
+					fi, e := os.Stat(name)
+					if e != nil {
+						return e
+					}
+					if fi.Size() > 0 {
+						uploaded++
+					}
 				}
 			}
 			return nil
