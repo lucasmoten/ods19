@@ -27,6 +27,7 @@ FORMAT: 1A
 * FIX: Fixed locations where transaction need restarted after rollback during retry
 * ENH: Experimental retrieval of file stream and object listings by path at /files/{path}
 * ENH: The [golang client library](../client.go) is now linked from the API Documentation
+* NEW: Added support for creating a copy of an existing object
 
 ## Release v1.0.13 (January 31, 2018)
 ---------------------
