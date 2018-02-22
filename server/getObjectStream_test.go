@@ -1,12 +1,15 @@
 package server_test
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
+	"strings"
 	"testing"
 
+	"github.com/deciphernow/object-drive-server/protocol"
 	"github.com/deciphernow/object-drive-server/util"
 )
 
@@ -149,4 +152,47 @@ func debugResponse(resp *http.Response) {
 	dump, _ := httputil.DumpResponse(resp, true)
 	fmt.Println("DEBUG:")
 	fmt.Printf("%q", dump)
+}
+
+func TestGetObjectStream1076(t *testing.T) {
+	tester10 := 0
+
+	baseName := "TestGetObjectStream1076%s.txt%s"
+
+	// setup objects
+	cor := protocol.CreateObjectRequest{
+		Name:        "TestGetObjectStream1076().gif",
+		RawAcm:      `{"version":"2.1.0","classif":"U"}`,
+		ContentType: "text/plain",
+		TypeName:    "File",
+	}
+	charsexts := []string{"\r", "\n", "\r\n", "(", ")"}
+	charsfiles := []string{"()", "(", ")", "$", "&", "%"}
+	for ei, charsext := range charsexts {
+		for ci, charsfile := range charsfiles {
+			f := bytes.NewBuffer([]byte(`<html><head><title>TestGetObjectStream1076</title></head><body>This is a test.</body></html>`))
+			cor.Name = fmt.Sprintf(baseName, charsfile, charsext)
+			r, err := clients[tester10].C.CreateObject(cor, f)
+			if err != nil {
+				t.Errorf("Could not create object %s", cor.Name)
+			}
+			rangeReq, err := NewGetObjectStreamRequest(r.ID, "")
+			if err != nil {
+				t.Errorf("Could not create GetObjectStreamRequest for %s: %v\n", cor.Name, err)
+			}
+			rangeRes, err := clients[tester10].Client.Do(rangeReq)
+			if err != nil {
+				t.Errorf("Could not get object stream for %s: %v\n", cor.Name, err)
+			}
+			defer util.FinishBody(rangeRes.Body)
+			cd := rangeRes.Header.Get("Content-Disposition")
+			if !strings.Contains(cd, charsfile) {
+				t.Logf("%d %d Original file name (%s) doesn't match content disposition (%s)", ei, ci, cor.Name, cd)
+			}
+			_, err = ioutil.ReadAll(rangeRes.Body)
+			if err != nil {
+				t.Errorf("Could not read response body for %s: %v\n", cor.Name, err)
+			}
+		}
+	}
 }
