@@ -6,14 +6,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 
 	"go.uber.org/zap"
 
 	"golang.org/x/net/context"
-
-	"net/url"
 
 	"encoding/hex"
 	"encoding/json"
@@ -250,6 +249,42 @@ func acmExtractItem(item string, rawAcm string) (string, error) {
 	return "", err
 }
 
+func sanitizeDisposition(s string) string {
+	switch strings.ToLower(s) {
+	case "attachment":
+		return "attachment"
+	case "inline":
+		return "inline"
+	default:
+		return "inline"
+	}
+}
+
+func sanitizeAgainstCRLFInHeader(s string) string {
+	o := s
+	// Disallow any carriage returns, line feeds
+	o = strings.Replace(o, "\r", "", -1)
+	o = strings.Replace(o, "%0d", "", -1)
+	o = strings.Replace(o, "%0D", "", -1)
+	o = strings.Replace(o, "\n", "", -1)
+	o = strings.Replace(o, "%0a", "", -1)
+	o = strings.Replace(o, "%0A", "", -1)
+	return o
+}
+
+func sanitizeFilename(s string) string {
+	o := s
+	// Get rid of any leading or trailing whitespace (CR, LF, TAB, SPACE, BACKSPACE, etc)
+	o = strings.TrimSpace(o)
+	// Get rid of any CRLF headers that support HTTP Header Injection
+	o = sanitizeAgainstCRLFInHeader(o)
+	// Take only the base part (ie, if name is "something/../../evil/file.txt", then just return the file.txt
+	o = path.Base(o)
+	o = strings.TrimSpace(o)
+
+	return o
+}
+
 // The interface for these files is now a valid io.ReadCloser.
 // In the case of a cache miss, we no longer wait for the entire file.
 // We have an io.ReadCloser() that will fill the bytes by range requesting
@@ -291,13 +326,13 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 					zap.String("acm", object.RawAcm.String),
 				)
 			} else {
-				w.Header().Set("Classification-Banner", banner)
+				w.Header().Set("Classification-Banner", sanitizeAgainstCRLFInHeader(banner))
 			}
 		}
 	}
 
 	//When setting headers, take measures to handle byte range requesting
-	w.Header().Set("Content-Type", object.ContentType.String)
+	w.Header().Set("Content-Type", sanitizeAgainstCRLFInHeader(object.ContentType.String))
 	var start = int64(0)
 	var stop = object.ContentSize.Int64 - 1
 	var fullLength = object.ContentSize.Int64
@@ -317,10 +352,10 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", reportedContentLength))
 		//typical disposition values: inline, attachment - RFC2183.
-		w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=%s", disposition, url.QueryEscape(object.Name)))
+		w.Header().Set("Content-Disposition", fmt.Sprintf(`%s; filename="%s"`, sanitizeDisposition(disposition), sanitizeFilename(object.Name)))
 		//RFC2183 talks about Content-Description.  We should set this.
 		if object.Description.Valid && len(object.Description.String) > 0 {
-			w.Header().Set("Content-Description", object.Description.String)
+			w.Header().Set("Content-Description", sanitizeAgainstCRLFInHeader(object.Description.String))
 		}
 		//This contentHash is a sha256 of the full plaintext.
 		contentHash := hex.EncodeToString(object.ContentHash)

@@ -185,7 +185,7 @@ func (c *Client) CreateObject(req protocol.CreateObjectRequest, reader io.Reader
 		writer := multipart.NewWriter(&body)
 
 		writePartField(writer, "ObjectMetadata", string(jsonBody), "application/json")
-		part, err := writer.CreateFormFile("filestream", req.Name)
+		part, err := writer.CreateFormFile("filestream", strings.TrimSpace(req.Name))
 		if err != nil {
 			return ret, err
 		}
