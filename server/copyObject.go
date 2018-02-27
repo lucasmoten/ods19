@@ -115,41 +115,26 @@ func (h AppServer) copyObject(ctx context.Context, w http.ResponseWriter, r *htt
 			o.CreatedBy = caller.DistinguishedName
 			o.ModifiedBy = caller.DistinguishedName
 			o.OwnedBy = models.ToNullString("user/" + caller.DistinguishedName)
-			o.ID = copiedObject.ID
-			o.ChangeToken = copiedObject.ChangeToken
-			// Owner gets full cruds
-			perm, err := models.CreateODPermissionFromResource(o.OwnedBy.String)
-			perm.AllowCreate, perm.AllowRead, perm.AllowUpdate, perm.AllowDelete, perm.AllowShare = true, true, true, true, true
-			masterKey := ciphertext.FindCiphertextCacheByObject(&o).GetMasterKey()
-			models.CopyEncryptKey(masterKey, &existingPerm, &perm)
-			o.Permissions = append(o.Permissions, perm)
-
-			modifiedACM, err := aacAuth.InjectPermissionsIntoACM(o.Permissions, o.RawAcm.String)
-			if err != nil {
-				logger.Error("cannot inject permissions into copied object", zap.Error(err))
-				continue
-			}
-			modifiedPermissions, modifiedACM, err := aacAuth.NormalizePermissionsFromACM(o.OwnedBy.String, o.Permissions, modifiedACM, false)
-			if err != nil {
-				logger.Error("error calling NormalizePermissionsFromACM", zap.Error(err))
-				continue
-			}
-			o.RawAcm = models.ToNullString(modifiedACM)
-			o.Permissions = modifiedPermissions
+			o.ID = copiedObject.ID                   // will be empty until created
+			o.ChangeToken = copiedObject.ChangeToken // will be empty until created
 			if len(copiedObject.ID) > 0 {
 				// update
 				// - reset gem
-				gem, _ := GEMFromContext(ctx)
+				gem = ResetBulkItem(gem)
 				gem.Action = "update"
 				gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventModify")
 				gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "MODIFY")
+				// - permissions retained for every revision of the copy
+				o.Permissions = copiedObject.Permissions
 				// - save metadata
-				err = dao.UpdateObject(&copiedObject)
+				err = dao.UpdateObject(&o)
 				if err != nil {
 					herr := NewAppError(500, err, "error storing object")
 					h.publishError(gem, herr)
 					return herr
 				}
+				// - copy result back into copiedObject
+				copiedObject = o
 				// - gem success
 				apiResponse = mapping.MapODObjectToObject(&copiedObject)
 				auditResource := NewResourceFromObject(copiedObject)
@@ -162,6 +147,26 @@ func (h AppServer) copyObject(ctx context.Context, w http.ResponseWriter, r *htt
 				h.publishSuccess(gem, w)
 			} else {
 				// create
+				// - permissions for all revisions of the copy are the same because getting revisions always
+				//   returns the current ermissions
+				// Owner gets full cruds
+				perm, err := models.CreateODPermissionFromResource(o.OwnedBy.String)
+				perm.AllowCreate, perm.AllowRead, perm.AllowUpdate, perm.AllowDelete, perm.AllowShare = true, true, true, true, true
+				masterKey := ciphertext.FindCiphertextCacheByObject(&o).GetMasterKey()
+				models.CopyEncryptKey(masterKey, &existingPerm, &perm)
+				o.Permissions = append(o.Permissions, perm)
+				modifiedACM, err := aacAuth.InjectPermissionsIntoACM(o.Permissions, o.RawAcm.String)
+				if err != nil {
+					logger.Error("cannot inject permissions into copied object", zap.Error(err))
+					continue
+				}
+				modifiedPermissions, modifiedACM, err := aacAuth.NormalizePermissionsFromACM(o.OwnedBy.String, o.Permissions, modifiedACM, false)
+				if err != nil {
+					logger.Error("error calling NormalizePermissionsFromACM", zap.Error(err))
+					continue
+				}
+				o.RawAcm = models.ToNullString(modifiedACM)
+				o.Permissions = modifiedPermissions
 				// - save metadata
 				copiedObject, err = dao.CreateObject(&o)
 				if err != nil {
