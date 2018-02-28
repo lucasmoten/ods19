@@ -27,6 +27,7 @@ type ObjectDrive interface {
 	CopyObject(protocol.CopyObjectRequest) (protocol.Object, error)
 	CreateObject(protocol.CreateObjectRequest, io.Reader) (protocol.Object, error)
 	DeleteObject(id string, token string) (protocol.DeletedObjectResponse, error)
+	ExpungeObject(id string, token string) (protocol.ExpungedObjectResponse, error)
 	GetObject(id string) (protocol.Object, error)
 	GetObjectStream(id string) (io.ReadCloser, error)
 	GetRevisions(id string) (protocol.ObjectResultset, error)
@@ -118,6 +119,10 @@ func (c *Client) ChangeOwner(req protocol.ChangeOwnerRequest) (protocol.Object, 
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return ret, errorFromResponse(resp)
+	}
+
 	err = json.NewDecoder(resp.Body).Decode(&ret)
 	if err != nil {
 		return ret, fmt.Errorf("could not decode response: %v", err)
@@ -134,26 +139,19 @@ func (c *Client) CopyObject(req protocol.CopyObjectRequest) (protocol.Object, er
 	uri := c.url + "/objects/" + req.ID + "/copy"
 	var ret protocol.Object
 
-	httpReq, err := http.NewRequest("POST", uri, nil)
+	resp, err := c.doPost(uri, nil)
 	if err != nil {
-		return ret, err
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	if c.Conf.Impersonation != "" {
-		setImpersonationHeaders(httpReq, c.Conf.Impersonation, c.MyDN)
-	}
-
-	resp, err := c.httpClient.Do(httpReq)
-	if err != nil {
-		log.Println(err)
-		return ret, err
+		return ret, fmt.Errorf("error performing request: %v", err)
 	}
 	defer resp.Body.Close()
+
 	if c.Verbose {
 		data, _ := httputil.DumpResponse(resp, true)
 		fmt.Printf("%s", string(data))
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return ret, errorFromResponse(resp)
 	}
 
 	// Send back the created object properties
@@ -229,6 +227,10 @@ func (c *Client) CreateObject(req protocol.CreateObjectRequest, reader io.Reader
 		fmt.Printf("%s", string(data))
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return ret, errorFromResponse(resp)
+	}
+
 	// Send back the created object properties
 	err = json.NewDecoder(resp.Body).Decode(&ret)
 	if err != nil {
@@ -244,7 +246,7 @@ func (c *Client) DeleteObject(id string, token string) (protocol.DeletedObjectRe
 
 	url := c.url + "/objects/" + id + "/trash"
 
-	var deleteResponse protocol.DeletedObjectResponse
+	var ret protocol.DeletedObjectResponse
 
 	deleteRequest := protocol.DeleteObjectRequest{
 		ID:          id,
@@ -254,53 +256,81 @@ func (c *Client) DeleteObject(id string, token string) (protocol.DeletedObjectRe
 	resp, err := c.doPost(url, deleteRequest)
 	if err != nil {
 		log.Println(err)
-		return deleteResponse, err
+		return ret, err
 	}
 	defer resp.Body.Close()
 
-	err = json.NewDecoder(resp.Body).Decode(&deleteResponse)
-	if err != nil {
-		return deleteResponse, err
+	if resp.StatusCode != http.StatusOK {
+		return ret, errorFromResponse(resp)
 	}
 
-	return deleteResponse, nil
+	err = json.NewDecoder(resp.Body).Decode(&ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+
+// ExpungeObject deletes an object from the system. It cannot be restored from the user's trash
+// using the API calls
+func (c *Client) ExpungeObject(id string, token string) (protocol.ExpungedObjectResponse, error) {
+
+	url := c.url + "/objects/" + id
+
+	var ret protocol.ExpungedObjectResponse
+
+	deleteRequest := protocol.DeleteObjectRequest{
+		ID:          id,
+		ChangeToken: token,
+	}
+
+	resp, err := c.doDelete(url, deleteRequest)
+	if err != nil {
+		log.Println(err)
+		return ret, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return ret, errorFromResponse(resp)
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
 }
 
 // GetObject fetches the metadata associated with an object by its unique ID.
 func (c *Client) GetObject(id string) (protocol.Object, error) {
-	var obj protocol.Object
+	var ret protocol.Object
 
 	propertyURL := c.url + "/objects/" + id + "/properties"
 
-	req, err := http.NewRequest("GET", propertyURL, nil)
+	resp, err := c.doGet(propertyURL, nil)
 	if err != nil {
-		return obj, err
+		return ret, fmt.Errorf("error performing request: %v", err)
 	}
+	defer resp.Body.Close()
 
-	if c.Conf.Impersonation != "" {
-		setImpersonationHeaders(req, c.Conf.Impersonation, c.MyDN)
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return obj, err
-	}
-
-	if resp.StatusCode != 200 {
-		return obj, fmt.Errorf("got HTTP error code: %v", resp.StatusCode)
+	if resp.StatusCode != http.StatusOK {
+		return ret, errorFromResponse(resp)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return obj, err
+		return ret, err
 	}
 
-	jsonErr := json.Unmarshal(body, &obj)
+	jsonErr := json.Unmarshal(body, &ret)
 	if jsonErr != nil {
-		return obj, jsonErr
+		return ret, jsonErr
 	}
 
-	return obj, nil
+	return ret, nil
 }
 
 // GetObjectStream fetches the filestream associated with an object, if any exists.
@@ -320,7 +350,8 @@ func (c *Client) GetObjectStream(id string) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode != 200 && resp.StatusCode != 204 {
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		return nil, fmt.Errorf("http status: %v", resp.StatusCode)
 	}
 
@@ -329,39 +360,31 @@ func (c *Client) GetObjectStream(id string) (io.ReadCloser, error) {
 
 // GetRevisions fetches the revisions over time for an object by its unique ID.
 func (c *Client) GetRevisions(id string) (protocol.ObjectResultset, error) {
-	var obj protocol.ObjectResultset
+	var ret protocol.ObjectResultset
 
 	revisionURL := c.url + "/revisions/" + id
 
-	req, err := http.NewRequest("GET", revisionURL, nil)
+	resp, err := c.doGet(revisionURL, nil)
 	if err != nil {
-		return obj, err
+		return ret, fmt.Errorf("error performing request: %v", err)
 	}
+	defer resp.Body.Close()
 
-	if c.Conf.Impersonation != "" {
-		setImpersonationHeaders(req, c.Conf.Impersonation, c.MyDN)
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return obj, err
-	}
-
-	if resp.StatusCode != 200 {
-		return obj, fmt.Errorf("got HTTP error code: %v", resp.StatusCode)
+	if resp.StatusCode != http.StatusOK {
+		return ret, errorFromResponse(resp)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return obj, err
+		return ret, err
 	}
 
-	jsonErr := json.Unmarshal(body, &obj)
+	jsonErr := json.Unmarshal(body, &ret)
 	if jsonErr != nil {
-		return obj, jsonErr
+		return ret, jsonErr
 	}
 
-	return obj, nil
+	return ret, nil
 }
 
 // MoveObject moves a given file or folder into a new parent folder, both specified by ID.
@@ -374,6 +397,10 @@ func (c *Client) MoveObject(req protocol.MoveObjectRequest) (protocol.Object, er
 		return ret, fmt.Errorf("error performing request: %v", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return ret, errorFromResponse(resp)
+	}
 
 	err = json.NewDecoder(resp.Body).Decode(&ret)
 	if err != nil {
@@ -424,21 +451,14 @@ func (c *Client) Search(paging protocol.PagingRequest, searchAllObjects bool) (p
 	uri += fmt.Sprintf("pageNumber=%d&pageSize=%d&", paging.PageNumber, paging.PageSize)
 
 	var ret protocol.ObjectResultset
-	req, err := http.NewRequest("GET", uri, nil)
-	if err != nil {
-		return ret, fmt.Errorf("error creating request: %v", err)
-	}
-	if c.Conf.Impersonation != "" {
-		setImpersonationHeaders(req, c.Conf.Impersonation, c.MyDN)
-	}
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.doGet(uri, nil)
 	if err != nil {
 		return ret, fmt.Errorf("error performing request: %v", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		return ret, fmt.Errorf("got HTTP error code: %v", resp.StatusCode)
+	if resp.StatusCode != http.StatusOK {
+		return ret, errorFromResponse(resp)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -465,6 +485,10 @@ func (c *Client) UpdateObject(req protocol.UpdateObjectRequest) (protocol.Object
 		return ret, fmt.Errorf("http error %v: %v", resp.StatusCode, err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return ret, errorFromResponse(resp)
+	}
 
 	err = json.NewDecoder(resp.Body).Decode(&ret)
 	if err != nil {
@@ -524,6 +548,10 @@ func (c *Client) UpdateObjectAndStream(req protocol.UpdateObjectAndStreamRequest
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return ret, errorFromResponse(resp)
+	}
+
 	err = json.NewDecoder(resp.Body).Decode(&ret)
 	if err != nil {
 		return ret, fmt.Errorf("could not decode response: %v", err)
@@ -532,13 +560,34 @@ func (c *Client) UpdateObjectAndStream(req protocol.UpdateObjectAndStreamRequest
 	return ret, nil
 }
 
+func (c *Client) doDelete(uri string, body interface{}) (*http.Response, error) {
+	return c.doMethod("DELETE", uri, body)
+}
+func (c *Client) doGet(uri string, body interface{}) (*http.Response, error) {
+	return c.doMethod("GET", uri, body)
+}
+func (c *Client) doPatch(uri string, body interface{}) (*http.Response, error) {
+	return c.doMethod("POST", uri, body)
+}
 func (c *Client) doPost(uri string, body interface{}) (*http.Response, error) {
-	jsonBody, err := json.MarshalIndent(body, "", "    ")
-	if err != nil {
-		return nil, fmt.Errorf("could not marshall json body: %v", err)
+	return c.doMethod("POST", uri, body)
+}
+func (c *Client) doPut(uri string, body interface{}) (*http.Response, error) {
+	return c.doMethod("POST", uri, body)
+}
+func (c *Client) doMethod(method string, uri string, body interface{}) (*http.Response, error) {
+	var err error
+	var jsonBody []byte
+	var req *http.Request
+	if body != nil {
+		jsonBody, err = json.MarshalIndent(body, "", "    ")
+		if err != nil {
+			return nil, fmt.Errorf("could not marshall json body: %v", err)
+		}
+		req, err = http.NewRequest(method, uri, bytes.NewBuffer(jsonBody))
+	} else {
+		req, err = http.NewRequest(method, uri, nil)
 	}
-
-	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return nil, err
 	}
@@ -550,6 +599,16 @@ func (c *Client) doPost(uri string, body interface{}) (*http.Response, error) {
 	req.Header.Set("Content-Type", "application/json")
 
 	return c.httpClient.Do(req)
+}
+
+func errorFromResponse(resp *http.Response) error {
+
+	statusCode := resp.StatusCode
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	return fmt.Errorf("%d %s", statusCode, string(body))
 }
 
 func writePartField(w *multipart.Writer, fieldname, value, contentType string) error {
@@ -577,11 +636,10 @@ func createFormField(w *multipart.Writer, fieldname, contentType string) (io.Wri
 	return w.CreatePart(h)
 }
 
-func setImpersonationHeaders(req *http.Request, impersonating, sysDNs string) {
+func setImpersonationHeaders(req *http.Request, impersonating, sysDN string) {
 	// who I want to become
 	req.Header.Set("USER_DN", impersonating)
 	// who I am
-	req.Header.Set("EXTERNAL_SYS_DN", sysDNs)
-	req.Header.Set("SSL_CLIENT_S_DN", sysDNs)
-
+	req.Header.Set("EXTERNAL_SYS_DN", sysDN)
+	req.Header.Set("SSL_CLIENT_S_DN", sysDN)
 }

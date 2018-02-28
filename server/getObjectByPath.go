@@ -122,7 +122,7 @@ func (h AppServer) getObjectByPath(ctx context.Context, w http.ResponseWriter, r
 			if i == 2 {
 				// list objects at root for group
 				captured["groupName"] = groupname
-				h.listGroupObjects(context.WithValue(ctx, CaptureGroupsVal, captured), w, r)
+				return h.listGroupObjects(context.WithValue(ctx, CaptureGroupsVal, captured), w, r)
 			}
 			// in a subfolder for group, performs as normal list
 			captured["objectId"] = hex.EncodeToString(targetObject.ID)

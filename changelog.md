@@ -31,6 +31,7 @@ FORMAT: 1A
 * FIX: Creating Object with Stream using client library now trims whitespace of provided object name.
 * FIX: Retrieving file stream now trims whitespace of object name, and returns only base filename
 * FIX: Close HTTP Header Injection attacks in headers returned when retrieving file streams
+* NEW: Added expunge support to the golang client libraries
 
 ## Release v1.0.13 (January 31, 2018)
 ---------------------
