@@ -16,8 +16,8 @@ FORMAT: 1A
 
 # Group Changelog
 
-## Unreleased v1.0.14
----------------------
+## Release v1.0.14 (February 28, 2018)
+--------------------
 * FIX: Added missing interface definition in golang client libraries
 * CFG: Developer configuration updates for UI
 * ENH: Warmup time for AAC now settable via environment variables `OD_AAC_WARMUP_TIME`
