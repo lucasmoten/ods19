@@ -16,6 +16,15 @@ FORMAT: 1A
 
 # Group Changelog
 
+## Unreleased v1.0.15 (Target March 31, 2018)
+---------------------
+* TODO: [Issue 1083](https://github.com/DecipherNow/object-drive-server/issues/1083) ADX Container Image
+* TODO: [Issue 947](https://github.com/DecipherNow/object-drive-server/issues/947) [Issue 1079](https://github.com/DecipherNow/object-drive-server/issues/1079) Migrate to Circle CI 2.0
+* TODO: [Issue 1081](https://github.com/DecipherNow/object-drive-server/issues/1081) Remove userHasGroup filter from list group objects
+* TODO: [Issue 1070](https://github.com/DecipherNow/object-drive-server/issues/1070) API Documentation for - clarify user root vs group root and usage patterns
+* TODO: API Documentation for - POST /objects/{objectid}/copy
+* TODO: API Documentation for - GET /files/{path}
+
 ## Release v1.0.14 (February 28, 2018)
 --------------------
 * FIX: Added missing interface definition in golang client libraries
