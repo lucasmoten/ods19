@@ -585,6 +585,7 @@ func (c *Client) doMethod(method string, uri string, body interface{}) (*http.Re
 			return nil, fmt.Errorf("could not marshall json body: %v", err)
 		}
 		req, err = http.NewRequest(method, uri, bytes.NewBuffer(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
 	} else {
 		req, err = http.NewRequest(method, uri, nil)
 	}
@@ -595,8 +596,6 @@ func (c *Client) doMethod(method string, uri string, body interface{}) (*http.Re
 	if c.Conf.Impersonation != "" {
 		setImpersonationHeaders(req, c.Conf.Impersonation, c.MyDN)
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 
 	return c.httpClient.Do(req)
 }
