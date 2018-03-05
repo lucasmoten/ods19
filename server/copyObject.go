@@ -88,19 +88,12 @@ func (h AppServer) copyObject(ctx context.Context, w http.ResponseWriter, r *htt
 	}
 	user.Snippets = snippetFields
 
-	// Get the revision information for this objects
-	captured, _ := CaptureGroupsFromContext(ctx)
 	// -- initialize paging request as the object id
-	pagingRequest, err := protocol.NewPagingRequest(r, captured, true)
-	if err != nil {
-		herr := NewAppError(400, err, "Error parsing request")
-		h.publishError(gem, herr)
-		return herr
-	}
+	pagingRequest := protocol.PagingRequest{ObjectID: hex.EncodeToString(requestObject.ID)}
 	// change sort to be in order of revisions
 	pagingRequest.SortSettings = []protocol.SortSetting{protocol.SortSetting{SortField: "changecount", SortAscending: true}}
 	// get them
-	response, err := dao.GetObjectRevisionsByUser(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest), dbObject, true)
+	response, err := dao.GetObjectRevisionsByUser(user, mapping.MapPagingRequestToDAOPagingRequest(&pagingRequest), dbObject, true)
 	if err != nil {
 		herr := NewAppError(500, err, "General error")
 		h.publishError(gem, herr)

@@ -46,6 +46,7 @@ func TestCopyObject(t *testing.T) {
 		Name:        "TestCopyObject-renamed",
 		RawAcm:      `{"version":"2.1.0","classif":"U"}`, // ends up shared to everyone
 		TypeName:    "TestObject",
+		Permission:  protocol.Permission{},
 	}
 	res3, err := clients[tester10].C.UpdateObject(update3)
 	if err != nil {
@@ -60,6 +61,7 @@ func TestCopyObject(t *testing.T) {
 		Description: "Tester10 will see all three revisions. Everyone else will only have access to 2",
 		RawAcm:      `{"version":"2.1.0","classif":"U"}`, // ends up shared to everyone
 		TypeName:    "TestObject",
+		Permission:  protocol.Permission{},
 	}
 	res4, err := clients[tester10].C.UpdateObject(update4)
 	if err != nil {
@@ -78,9 +80,6 @@ func TestCopyObject(t *testing.T) {
 	// Some validation checks
 	if res5.ID == res1.ID {
 		t.Errorf("ID of the copy is the same as the original object")
-	}
-	if res5.ChangeCount != res4.ChangeCount-1 {
-		t.Errorf("The number of revisions on the copy (%d) is not the expected count (%d)", res5.ChangeCount, res4.ChangeCount-1)
 	}
 	if res5.Name != res4.Name {
 		t.Errorf("The name of the copied object (%s) doesn't match the final name of the original object (%s)", res5.Name, res4.Name)

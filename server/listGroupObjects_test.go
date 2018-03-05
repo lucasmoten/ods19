@@ -54,28 +54,6 @@ func TestListGroupObjects(t *testing.T) {
 	}
 }
 
-func TestListGroupObjectsNotAMember(t *testing.T) {
-	clientid := 0
-
-	// URL
-	uri := mountPoint + "/groupobjects/somegroup"
-	uri1 := uri + "?PageNumber=1&PageSize=2"
-
-	// Request
-	req, err := http.NewRequest("GET", uri1, nil)
-	if err != nil {
-		log.Printf("Error setting up HTTP Request: %v", err)
-		t.FailNow()
-	}
-	req.Header.Set("Content-Type", "application/json")
-	res, err := clients[clientid].Client.Do(req)
-	failNowOnErr(t, err, "Unable to do request")
-	defer util.FinishBody(res.Body)
-	// Response validation
-	statusMustBe(t, 403, res, "Bad status when listing objects in group")
-	messageMustContain(t, res, "Not a member")
-}
-
 func TestListGroupObjectsCounts(t *testing.T) {
 	clientid := 0
 	groupName := "dctc_odrive_g1"

@@ -53,19 +53,6 @@ func (h AppServer) listGroupObjects(ctx context.Context, w http.ResponseWriter, 
 		return herr
 	}
 	groupName = strings.ToLower(groupName)
-	userHasGroup := false
-	for _, group := range caller.Groups {
-		if strings.ToLower(group) == groupName {
-			userHasGroup = true
-			break
-		}
-	}
-	if !userHasGroup {
-		msg := "Forbidden. Not a member of requested group"
-		herr := NewAppError(403, fmt.Errorf(msg), msg)
-		h.publishError(gem, herr)
-		return herr
-	}
 
 	// Fetch the matching objects
 	var results models.ODObjectResultset
