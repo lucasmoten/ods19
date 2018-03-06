@@ -20,12 +20,10 @@ FORMAT: 1A
 ---------------------
 * FIX: Copy operation no longer requires header for Content-Type to be set
 * ENH: Listing group objects can now be done using user as group.
+* DOC: Copy Object, Download File By Path, Download File By Group Path, List Files By Path, List Files By Group Path are now documented
 * TODO: [Issue 1083](https://github.com/DecipherNow/object-drive-server/issues/1083) ADX Container Image
 * TODO: [Issue 947](https://github.com/DecipherNow/object-drive-server/issues/947) [Issue 1079](https://github.com/DecipherNow/object-drive-server/issues/1079) Migrate to Circle CI 2.0
-* TODO: [Issue 1081](https://github.com/DecipherNow/object-drive-server/issues/1081) Remove userHasGroup filter from list group objects
 * TODO: [Issue 1070](https://github.com/DecipherNow/object-drive-server/issues/1070) API Documentation for - clarify user root vs group root and usage patterns
-* TODO: API Documentation for - POST /objects/{objectid}/copy
-* TODO: API Documentation for - GET /files/{path}
 
 ## Release v1.0.14 (February 28, 2018)
 --------------------
