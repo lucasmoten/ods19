@@ -1237,9 +1237,364 @@ This microservice operation is experimental (since v1.0.14), and can be used to 
 + Response 500
 
         Error retrieving objects
+
+# Group File Retrieval
+
+---
+
+## Download File By Path [/files/{path}{?disposition}]
+
++ Parameters
+    + path: `folder/subfolder/file.txt` (string, optional) - The path to a file to be retrieved
+    + disposition: `attachment` (string, optional) - The Content-Disposition to be set in the header of the response to control UI/Browser operation
+        + Default: `inline`
+        + Members
+            + `inline`
+            + `attachment`
+### Download File By Path [GET]
+This microservice operation retrieves a file content stream given a standard URI path. For each component of the path
+the service will identify matching file or folder of that name for which the user has read access to iteratively until
+it reaches the final node.  If a user does not have read access to any component of the path, an error code will be
+returned.  This is a convenience function around manually making calls to list/search for objects with a given name 
+to accomplish the same.
+
+Headers are passed along to support range requests, ETags, and so forth.
+
++ Response 200
+
+    + Headers
+
+            Content-Length: 26
+            Cache-Control: no-cache
+            Connection: keep-alive
+            Content-Type: text
+            Date: Wed, 24 Feb 2016 23:34:20 GMT
+            Expires: Wed, 24 Feb 2016 23:34:19 GMT
+            Server: nginx/1.8.1
+
+    + Body
+    
+            The bytes representing the content stream of the object 
+
++ Response 204
+
++ Response 304
+
++ Response 400
+
+        Unable to decode request
+        
++ Response 403
+
+        Forbidden
+
++ Response 404
+
+        File Not Found
+
++ Response 405
+
+        Deleted
+        
++ Response 410
+
+        Does Not Exist
+
+
+## List Files By Path [/files/{path}/{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
+
++ Parameters
+    + path: `folder/subfolder/` (string, optional) - The path to a folder to retrieve a directory listing
+    + pageNumber: 1 (number(minvalue=1), optional) - The page number of results to be returned to support chunked output.
+    + pageSize: 20 (number(minvalue=1, maxvalue=10000), optional) - The number of results to return per page.
+    + sortField: `contentsize` (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
+        + Default: `createddate`
+        + Members
+            + `changecount`
+            + `createdby`
+            + `createddate`
+            + `contentsize`
+            + `contenttype`
+            + `description`
+            + `foiaexempt`
+            + `id`
+            + `modifiedby`
+            + `modifieddate`
+            + `name`
+            + `ownedby`
+            + `typename`
+            + `uspersons`
+    + sortAscending: true (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
+        + Default: false
+    + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
+        + Default: `or`
+        + Members
+            + `all`
+            + `and`
+            + `any`
+            + `or`
+    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
+        + Members
+            + `changecount`
+            + `createdby`
+            + `createddate`
+            + `contentsize`
+            + `contenttype`
+            + `description`
+            + `foiaexempt`
+            + `id`
+            + `modifiedby`
+            + `modifieddate`
+            + `name`
+            + `ownedby`
+            + `typename`
+            + `uspersons`
+    + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
+        + Members
+            + `begins`
+            + `contains`
+            + `ends`
+            + `equals`
+            + `lessthan`
+            + `morethan`
+            + `notbegins`
+            + `notcontains`
+            + `notends`
+            + `notequals`
+    + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
+
+### List Files By Path [GET]
+This microservice operation retrieves a list of objects contained within the specified path, with optional settings for pagination. By default, this operation only returns metadata about the first 20 items.  For each component of the path
+the service will identify matching file or folder of that name for which the user has read access to iteratively until
+it reaches the final node.  If a user does not have read access to any component of the path, an error code will be
+returned.  This is a convenience function around manually making calls to list/search for objects with a given name 
+to accomplish the same.
+
++ Response 200 (application/json)
+
+    + Attributes (ObjectResultsetChildren)
+
++ Response 400
+
+        Unable to decode request
+        
++ Response 403
+
+        If the user is forbidden from listing children of an object or a component of the path because they don't have read access to it
+        
++ Response 405
+
+        Deleted
+        
++ Response 410
+
+        Does Not Exist
+
++ Response 500
+
+        Error retrieving object represented as the parent to retrieve children, or some other error.
+
+## Download File By Group Path [/files/groupobjects/{groupName}/{path}{?disposition}]
+
++ Parameters
+    + groupName: dctc_odrive_g1 (string, required) - The flattened name of a group for which to base initial object ownership under when looking at the path for file to retrieve
+        * The flattened values for user identity are also acceptable
+        * Psuedogroups, such as `_everyone` are not acceptable for this request, but are forbidden from owning objects anyway.
+    + path: `folder/subfolder/file.txt` (string, optional) - The path to a file to be retrieved
+    + disposition: `attachment` (string, optional) - The Content-Disposition to be set in the header of the response to control UI/Browser operation
+        + Default: `inline`
+        + Members
+            + `inline`
+            + `attachment`
+### Download File By Group Path [GET]
+This microservice operation retrieves a file content stream given a standard URI path. For each component of the path
+the service will identify matching file or folder of that name for which the user has read access to iteratively until
+it reaches the final node.  If a user does not have read access to any component of the path, an error code will be
+returned.  This is a convenience function around manually making calls to list/search for objects with a given name 
+to accomplish the same.
+
+Headers are passed along to support range requests, ETags, and so forth.
+
++ Response 200
+
+    + Headers
+
+            Content-Length: 26
+            Cache-Control: no-cache
+            Connection: keep-alive
+            Content-Type: text
+            Date: Wed, 24 Feb 2016 23:34:20 GMT
+            Expires: Wed, 24 Feb 2016 23:34:19 GMT
+            Server: nginx/1.8.1
+
+    + Body
+    
+            The bytes representing the content stream of the object 
+
++ Response 204
+
++ Response 304
+
++ Response 400
+
+        Unable to decode request
+        
++ Response 403
+
+        Forbidden
+
++ Response 404
+
+        File Not Found
+
++ Response 405
+
+        Deleted
+        
++ Response 410
+
+        Does Not Exist
+
+
+## List Files By Group Path [/files/groupobjects/{groupName}/{path}/{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
+
++ Parameters
+    + groupName: dctc_odrive_g1 (string, required) - The flattened name of a group for which to base initial object ownership under when looking at the path for list of objects to retrieve
+        * The flattened values for user identity are also acceptable
+        * Psuedogroups, such as `_everyone` are not acceptable for this request, but are forbidden from owning objects anyway.
+    + path: `folder/subfolder/` (string, optional) - The path to a folder to retrieve a directory listing
+    + pageNumber: 1 (number(minvalue=1), optional) - The page number of results to be returned to support chunked output.
+    + pageSize: 20 (number(minvalue=1, maxvalue=10000), optional) - The number of results to return per page.
+    + sortField: `contentsize` (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
+        + Default: `createddate`
+        + Members
+            + `changecount`
+            + `createdby`
+            + `createddate`
+            + `contentsize`
+            + `contenttype`
+            + `description`
+            + `foiaexempt`
+            + `id`
+            + `modifiedby`
+            + `modifieddate`
+            + `name`
+            + `ownedby`
+            + `typename`
+            + `uspersons`
+    + sortAscending: true (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
+        + Default: false
+    + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
+        + Default: `or`
+        + Members
+            + `all`
+            + `and`
+            + `any`
+            + `or`
+    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
+        + Members
+            + `changecount`
+            + `createdby`
+            + `createddate`
+            + `contentsize`
+            + `contenttype`
+            + `description`
+            + `foiaexempt`
+            + `id`
+            + `modifiedby`
+            + `modifieddate`
+            + `name`
+            + `ownedby`
+            + `typename`
+            + `uspersons`
+    + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
+        + Members
+            + `begins`
+            + `contains`
+            + `ends`
+            + `equals`
+            + `lessthan`
+            + `morethan`
+            + `notbegins`
+            + `notcontains`
+            + `notends`
+            + `notequals`
+    + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
+
+### List Files By Group Path [GET]
+This microservice operation retrieves a list of objects contained within the specified path, with optional settings for pagination. By default, this operation only returns metadata about the first 20 items.  For each component of the path
+the service will identify matching file or folder of that name for which the user has read access to iteratively until
+it reaches the final node.  If a user does not have read access to any component of the path, an error code will be
+returned.  This is a convenience function around manually making calls to list/search for objects with a given name 
+to accomplish the same.
+
++ Response 200 (application/json)
+
+    + Attributes (ObjectResultsetChildren)
+
++ Response 400
+
+        Unable to decode request
+        
++ Response 403
+
+        If the user is forbidden from listing children of an object or a component of the path because they don't have read access to it
+        
++ Response 405
+
+        Deleted
+        
++ Response 410
+
+        Does Not Exist
+
++ Response 500
+
+        Error retrieving object represented as the parent to retrieve children, or some other error.
+
+
+
 # Group Filing Operations
 
 ---
+
+## Copy Object [/objects/{objectId}/copy]
+
++ Parameters
+    + objectId: `11e5e4867a6e3d8389020242ac110002` (string(length=32), required) - Hex encoded identifier of the object to be copied.
+
+### Copy Object [POST]
+This microservice operation supports copying an object and its revisions, including permissions and any dynamic properties therein to a new object of the same general characteristics and location, but owned by the user initiating the operation.
+
+Only those revisions for which the caller has permission to retrieve are copied to the new object. Thus, there may be fewer revisions then the original object.  The object created references the same underlying content stream as the source object
+and its revisions (A copy of such is not made in permanent storage, since it already exists).  The user initiating the call,
+by virtue of being owner, will receive full CRUDS permissions added to the copied object.
+
+This operation does not require a content type header to be set, nor a body to be provided. Such attributes are reserved for future use.
+
++ Response 200 (application/json)
+    + Attributes (ObjectResp)
+
++ Response 403
+
+        Unauthorized
+        
++ Response 404
+
+        The requested object is not found.
+        
++ Response 405
+
+        Deleted
+        
++ Response 410
+
+        Does Not Exist
+
++ Response 500
+
+        Error storing metadata or stream
+
 
 ## Move Object [/objects/{objectId}/move/{folderId}]
 
@@ -1780,9 +2135,9 @@ User Stats provides metrics information for the user's total number of objects a
 
 ---
 
-## Get object properties [/objects/properties]
+## Get Object Properties [/objects/properties]
 
-### Get object properties [POST]
+### Get Object Properties [POST]
 Get multiple objects at once
 
 This returns an object result set.  Note that because this gets
@@ -2238,13 +2593,13 @@ This changes ownership of files in bulk.  It behaves like multiple changeOwner r
             }  
 
 
-## Zip of objects [/zip]
+## Zip of Objects [/zip]
 
 + objectIds (string array, required) - An array of object identifiers of files to be zipped.  
 + fileName (string, optional) - The name to give to the zip file.  Default to "drive.zip".
 + disposition (string, optional) - Either "inline" or "attachment", which is a hint to the browser for handling the result
 
-### Zip of objects [POST]
+### Zip of Objects [POST]
 
 Create a zip of objects from a shopping cart
 The UI will accumulate a list of file ID values to include in a zip file.
