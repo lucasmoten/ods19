@@ -61,11 +61,11 @@ def force_access(filename):
 #-------------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    convert_cmds = ["docker run --rm -ti -v {0}:/docs humangeo/aglio -i docs/home.md -o home.html".format(os.getcwd()),
-                    "docker run --rm -ti -v {0}:/docs humangeo/aglio -i docs/rest.md -o rest.html".format(os.getcwd()),
-                    "docker run --rm -ti -v {0}:/docs humangeo/aglio -i docs/environment.md -o environment.html".format(os.getcwd()),
-                    "docker run --rm -ti -v {0}:/docs humangeo/aglio -i changelog.md -o changelog.html".format(os.getcwd()),
-                    "docker run --rm -ti -v {0}:/docs humangeo/aglio -i docs/events.md -o events.html".format(os.getcwd())]
+    convert_cmds = ["docker run --rm -ti -v {0}:/docs deciphernow/aglio:2.3.0 /usr/local/bin/aglio -i /docs/docs/home.md -o /docs/home.html".format(os.getcwd()),
+                    "docker run --rm -ti -v {0}:/docs deciphernow/aglio:2.3.0 /usr/local/bin/aglio -i /docs/docs/rest.md -o /docs/rest.html".format(os.getcwd()),
+                    "docker run --rm -ti -v {0}:/docs deciphernow/aglio:2.3.0 /usr/local/bin/aglio -i /docs/docs/environment.md -o /docs/environment.html".format(os.getcwd()),
+                    "docker run --rm -ti -v {0}:/docs deciphernow/aglio:2.3.0 /usr/local/bin/aglio -i /docs/changelog.md -o /docs/changelog.html".format(os.getcwd()),
+                    "docker run --rm -ti -v {0}:/docs deciphernow/aglio:2.3.0 /usr/local/bin/aglio -i /docs/docs/events.md -o /docs/events.html".format(os.getcwd())]
 
     for cmd in convert_cmds:
         try:
