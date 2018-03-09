@@ -311,6 +311,28 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
 
         Error storing metadata or stream
 
+### Bulk Delete Objects [DELETE]
+
+Delete a set of objects.  It requires the id and the change token for each one.
+
++ Request (application/json)
+
+    + Body
+
+            [
+                {"ObjectId":"11e5e4867a6e3d8389020242ac110002", "ChangeToken":"e18919"},
+                {"ObjectId":"11e5e4867a6f3d8389020242ac110002", "ChangeToken":"a38919"}
+            ]
+
++ Response 200
+
+    + Body
+
+            [
+                {"objectId":"11e5e4867a6e3d8389020242ac110002","code":200},
+                {"objectId":"11e5e4867a6f3d8389020242ac110002","code":400, "error":"unable to find object", "msg":"cannot delete object"}
+            ]
+
 ## Object Metadata [/objects/{objectId}/properties]
 
 Metadata for an object may be retrieved or updated at the URI designated.  
@@ -794,7 +816,9 @@ This microservice operation will remove an object from the trash and delete it f
 
 ## Search [/search/{searchPhrase}{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
-**EXPERIMENTAL** - Search operations are an experimental feature
+**EXPERIMENTAL** - Search operations are an experimental feature.
+
+The **id** field values for sortField and filterFiled refer to the object id only.  While there are other identifiers for metadata fields, these are not directly supported here.  If you want to search on objects specific to a single folder identified by parentid, make use of the List Folder Objects and List User Objects at Root operations defined elsewhere.
 
 + Parameters
     + searchPhrase: `image/gif` (string, required) - The phrase to look for inclusion within the name or description of objects. This will be overridden if parameters for filterField are set.
@@ -2511,30 +2535,6 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + Response 400              
 
 + Response 500
-
-## Bulk Delete Objects [/objects]
-
-### Bulk Delete Objects [DELETE]
-
-Delete a set of objects.  It requires the id and the change token for each one.
-
-+ Request (application/json)
-
-    + Body
-
-            [
-                {"ObjectId":"11e5e4867a6e3d8389020242ac110002", "ChangeToken":"e18919"},
-                {"ObjectId":"11e5e4867a6f3d8389020242ac110002", "ChangeToken":"a38919"}
-            ]
-
-+ Response 200
-
-    + Body
-
-            [
-                {"objectId":"11e5e4867a6e3d8389020242ac110002","code":200},
-                {"objectId":"11e5e4867a6f3d8389020242ac110002","code":400, "error":"unable to find object", "msg":"cannot delete object"}
-            ]
 
 
 # Data Structures

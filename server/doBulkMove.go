@@ -58,10 +58,25 @@ func (h AppServer) doBulkMove(ctx context.Context, w http.ResponseWriter, r *htt
 			)
 			continue
 		}
+		parentid, err := hex.DecodeString(o.ParentID)
+		if err != nil {
+			herr := NewAppError(http.StatusBadRequest, err, "Cannot decode object parent id")
+			h.publishError(gem, herr)
+			bulkResponse = append(bulkResponse,
+				protocol.ObjectError{
+					ObjectID: o.ID,
+					Error:    herr.Error.Error(),
+					Msg:      herr.Msg,
+					Code:     herr.Code,
+				},
+			)
+			continue
+		}
 
 		requestObject := models.ODObject{
 			ID:          id,
 			ChangeToken: o.ChangeToken,
+			ParentID:    parentid,
 		}
 		gem.Payload.ObjectID = hex.EncodeToString(requestObject.ID)
 		gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))

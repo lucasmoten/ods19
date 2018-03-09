@@ -124,6 +124,20 @@ func (h AppServer) changeOwner(ctx context.Context, w http.ResponseWriter, r *ht
 		h.publishError(gem, herr)
 		return herr
 	}
+	parents, err := dao.GetParents(dbObject)
+	if err != nil {
+		herr := NewAppError(500, err, "error retrieving object parents")
+		h.publishError(gem, herr)
+		return herr
+	}
+
+	filtered := redactParents(ctx, aacAuth, parents)
+	if appError := errOnDeletedParents(parents); appError != nil {
+		h.publishError(gem, appError)
+		return appError
+	}
+	crumbs := breadcrumbsFromParents(filtered)
+	apiResponse.WithBreadcrumbs(crumbs)
 	auditModified := NewResourceFromObject(dbObject)
 
 	// Event broadcast

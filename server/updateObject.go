@@ -245,8 +245,21 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 		h.publishError(gem, herr)
 		return herr
 	}
+	parents, err := dao.GetParents(dbObject)
+	if err != nil {
+		herr := NewAppError(500, err, "error retrieving object parents")
+		h.publishError(gem, herr)
+		return herr
+	}
+	filtered := redactParents(ctx, aacAuth, parents)
+	if appError := errOnDeletedParents(parents); appError != nil {
+		h.publishError(gem, appError)
+		return appError
+	}
+	crumbs := breadcrumbsFromParents(filtered)
+
 	auditModified := NewResourceFromObject(dbObject)
-	apiResponse := mapping.MapODObjectToObject(&dbObject).WithCallerPermission(protocolCaller(caller))
+	apiResponse := mapping.MapODObjectToObject(&dbObject).WithCallerPermission(protocolCaller(caller)).WithBreadcrumbs(crumbs)
 
 	gem.Payload.ChangeToken = apiResponse.ChangeToken
 	gem.Payload.Audit = audit.WithModifiedPairList(gem.Payload.Audit, audit.NewModifiedResourcePair(auditOriginal, auditModified))
