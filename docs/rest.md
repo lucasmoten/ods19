@@ -16,11 +16,11 @@ FORMAT: 1A
 
 # Group RESTful API
 
-## General Guidance Regarding Data Types
+## Data Type Guidance
 
 Dates are serialized in responses in RFC3339 format. RFC3339 is an ISO 8601 
 format where the date and time are shown to at least the second. Portions of a
-second are optional and may be given to millisecond precision. Trailing zeros
+second are optional and may be given to nanosecond precision. Trailing zeros
 in portions of a second are truncated.
 
 An unset date, as is common for deleted date, may be represented as January 1 
@@ -739,7 +739,7 @@ This microservice operation will remove an object from the trash and delete it f
         * Error determining user.
 
 
-## Get Object Stream Revision [/revisions/{objectId}/{revisionId}/stream{?disposition}]
+## Get Older Object Stream [/revisions/{objectId}/{revisionId}/stream{?disposition}]
 
 + Parameters
     + objectId: `11e5e4867a6e3d8389020242ac110002` (string(length=32), required) - Hex encoded identifier of the object to be retrieved.
@@ -750,7 +750,7 @@ This microservice operation will remove an object from the trash and delete it f
             + `inline` - The default disposition
             + `attachment` - Supports browser prompting the user to save the response as a file.
 
-### Get Object Stream Revision [GET]
+### Get Older Object Stream [GET]
 
 + Response 200
 
@@ -872,9 +872,95 @@ This microservice operation will remove an object from the trash and delete it f
         * Error retrieving object
         * Error determining user.
 
-## List Groups with Objects [/groups]
+## List User Objects At Root [/objects{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
-### List Groups with Objects [GET]
++ Parameters
+
+    + pageNumber: 1 (number(minvalue=1), optional) - The page number of results to be returned to support chunked output.
+    + pageSize: 20 (number(minvalue=1, maxvalue=10000), optional) - The number of results to return per page.
+    + sortField: `contentsize` (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
+        + Default: `createddate`
+        + Members
+            + `changecount`
+            + `createdby`
+            + `createddate`
+            + `contentsize`
+            + `contenttype`
+            + `description`
+            + `foiaexempt`
+            + `id`
+            + `modifiedby`
+            + `modifieddate`
+            + `name`
+            + `ownedby`
+            + `typename`
+            + `uspersons`
+    + sortAscending: true (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
+        + Default: false
+    + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
+        + Default: `or`
+        + Members
+            + `all`
+            + `and`
+            + `any`
+            + `or`
+    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
+        + Members
+            + `changecount`
+            + `createdby`
+            + `createddate`
+            + `contentsize`
+            + `contenttype`
+            + `description`
+            + `foiaexempt`
+            + `id`
+            + `modifiedby`
+            + `modifieddate`
+            + `name`
+            + `ownedby`
+            + `typename`
+            + `uspersons`
+    + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
+        + Members
+            + `begins`
+            + `contains`
+            + `ends`
+            + `equals`
+            + `lessthan`
+            + `morethan`
+            + `notbegins`
+            + `notcontains`
+            + `notends`
+            + `notequals`
+    + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
+
+### List User Objects At Root [GET]
+
+This microservice operation retrieves a list of objects at the root owned by the caller, with optional settings for pagination, sorting, and filtering.
+
++ Response 200 (application/json)
+
+    + Attributes (ObjectResultset)
+
++ Response 400
+
+        Unable to decode request
+        
++ Response 403
+
+        Forbidden
+
++ Response 405
+
+        Deleted
+        
++ Response 410
+
+        Does Not Exist
+
+## List Groups having Objects [/groups]
+
+### List Groups having Objects [GET]
 
 This microservice operation retrieves a list of groups for which the user is a member that have objects at the root.  As users may be members of an undeterminate number of groups, this eliminates the need to list the objects of every group to determine if a group currently contains objects.
 
@@ -886,7 +972,7 @@ This microservice operation retrieves a list of groups for which the user is a m
 
         Error retrieving groupspaces
 
-## List Objects At Root For Group [/groupobjects/{groupName}{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
+## List Group Objects At Root [/groupobjects/{groupName}{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
 
@@ -951,7 +1037,7 @@ This microservice operation retrieves a list of groups for which the user is a m
             + `notequals`
     + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
 
-### List Objects At Root For Group [GET]
+### List Group Objects At Root [GET]
 
 This microservice operation retrieves a list of objects with no parent owned by the specified group, with optional settings for pagination, sorting, and filtering.
 
@@ -972,7 +1058,7 @@ This microservice operation retrieves a list of objects with no parent owned by 
 
         Error retrieving objects
 
-## List Objects Under Parent [/objects/{objectId}{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
+## List Folder Objects [/objects/{objectId}{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
     + objectId: `11e5e4867a6e3d8389020242ac110002` (string(length=32), required) - Hex encoded unique identifier of the folder or other object for which to return a list of child objects. 
@@ -1034,7 +1120,7 @@ This microservice operation retrieves a list of objects with no parent owned by 
             + `notequals`
     + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
 
-### List Object Under Parent [GET]
+### List Folder Objects [GET]
 Purpose: This microservice operation retrieves a list of objects contained within the specified parent, with optional settings for pagination. By default, this operation only returns metadata about the first 20 items.
 
 + Response 200 (application/json)
@@ -1061,7 +1147,7 @@ Purpose: This microservice operation retrieves a list of objects contained withi
 
         Error retrieving object represented as the parent to retrieve children, or some other error.
 
-## List Objects Shared to Everyone [/sharedpublic{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
+## List Public Objects [/sharedpublic{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
     + pageNumber: 1 (number(minvalue=1), optional) - The page number of results to be returned to support chunked output.
@@ -1122,7 +1208,7 @@ Purpose: This microservice operation retrieves a list of objects contained withi
             + `notequals`
     + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
     
-### List Objects Shared to Everyone [GET]
+### List Public Objects [GET]
 
 This microservice operation retrieves a list of objects that are shared to everyone.
 
@@ -1143,101 +1229,6 @@ This microservice operation retrieves a list of objects that are shared to every
 
         Error storing metadata or stream
 
-## List or Get Files [/files/{groupobjects}/{groupName}/{path}{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
-
-This microservice operation is experimental (since v1.0.14), and can be used to retrieve files using URIs based upon folder and file names.  This is useful if you want to provide a direct link to a file where you know the object names, but not necessarily the id, or if that file is comprised of markup language referencing other resources stored with relative locations from that file, typical of HTML viewed in a browser.
-
-+ Examples
-    * /files/my/folder/path/to/a/file.html
-    * /files/groupobjects/dctc_odrive/folderownedbydctc_odrive/another-subfolder/afile 
-    * /files/groupobjects/dctc_odrive/folderownedbydctc_odrive/another-subfolder
-
-+ Parameters
-
-    + groupobjects: groupobjects (string, optional) - When present, the next path component should represent a groupName for which the user has membership in.
-    + groupName: dctc_odrive_g1 (string, optional) - The flattened name of a group for which the user is a member and objects owned by the group should be returned.
-        * When present, the first object named in the path is looked up from the targetted group. Otherwise, the first object should be owned by the user.
-        * The flattened values for user identity are also acceptable
-        * Psuedogroups, such as `_everyone` are not acceptable for this request, but are forbidden from owning objects anyway.
-    + path: index.html (string, optional) - The name of an object to be returned in the given path delimited by forward slashes.  If no path is given, or the final object has a content size of 0, then this will result in a list of objects being returned.
-    + pageNumber: 1 (number(minvalue=1), optional) - The page number of results to be returned to support chunked output.
-    + pageSize: 20 (number(minvalue=1, maxvalue=10000), optional) - The number of results to return per page when listing a directory.
-    + sortField: `contentsize` (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
-        + Default: `createddate`
-        + Members
-            + `changecount`
-            + `createdby`
-            + `createddate`
-            + `contentsize`
-            + `contenttype`
-            + `description`
-            + `foiaexempt`
-            + `id`
-            + `modifiedby`
-            + `modifieddate`
-            + `name`
-            + `ownedby`
-            + `typename`
-            + `uspersons`
-    + sortAscending: true (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-        + Default: false
-    + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
-        + Default: `or`
-        + Members
-            + `all`
-            + `and`
-            + `any`
-            + `or`
-    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
-        + Members
-            + `changecount`
-            + `createdby`
-            + `createddate`
-            + `contentsize`
-            + `contenttype`
-            + `description`
-            + `foiaexempt`
-            + `id`
-            + `modifiedby`
-            + `modifieddate`
-            + `name`
-            + `ownedby`
-            + `typename`
-            + `uspersons`
-    + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
-        + Members
-            + `begins`
-            + `contains`
-            + `ends`
-            + `equals`
-            + `lessthan`
-            + `morethan`
-            + `notbegins`
-            + `notcontains`
-            + `notends`
-            + `notequals`
-    + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
-
-### List or Get Files [GET]
-
-This microservice operation is experimental (since v1.0.14), and can be used to retrieve files using URIs based upon folder and file names.
-
-+ Response 200 (application/json)
-
-    + Attributes (ObjectResultset)
-
-+ Response 400
-
-        Unable to decode request.
-        
-+ Response 403
-
-        Forbidden if the user is not a member of the provided group name or lacks sufficient access to the target object.
-       
-+ Response 500
-
-        Error retrieving objects
-
 # Group File Retrieval
 
 ---
@@ -1252,11 +1243,7 @@ This microservice operation is experimental (since v1.0.14), and can be used to 
             + `inline`
             + `attachment`
 ### Download File By Path [GET]
-This microservice operation retrieves a file content stream given a standard URI path. For each component of the path
-the service will identify matching file or folder of that name for which the user has read access to iteratively until
-it reaches the final node.  If a user does not have read access to any component of the path, an error code will be
-returned.  This is a convenience function around manually making calls to list/search for objects with a given name 
-to accomplish the same.
+This microservice operation is experimental (since v1.0.14). This microservice operation retrieves a file content stream given a standard URI path. For each component of the path the service will identify matching file or folder of that name for which the user has read access to iteratively until it reaches the final node.  If a user does not have read access to any component of the path, an error code will be returned.  This is a convenience function around manually making calls to list/search for objects with a given name to accomplish the same.
 
 Headers are passed along to support range requests, ETags, and so forth.
 
@@ -1364,10 +1351,7 @@ Headers are passed along to support range requests, ETags, and so forth.
     + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
 
 ### List Files By Path [GET]
-This microservice operation retrieves a list of objects contained within the specified path, with optional settings for pagination. By default, this operation only returns metadata about the first 20 items.  For each component of the path
-the service will identify matching file or folder of that name for which the user has read access to iteratively until
-it reaches the final node.  If a user does not have read access to any component of the path, an error code will be
-returned.  This is a convenience function around manually making calls to list/search for objects with a given name 
+This microservice operation is experimental (since v1.0.14). This microservice operation retrieves a list of objects contained within the specified path, with optional settings for pagination. By default, this operation only returns metadata about the first 20 items.  For each component of the path the service will identify matching file or folder of that name for which the user has read access to iteratively until it reaches the final node.  If a user does not have read access to any component of the path, an error code will be returned.  This is a convenience function around manually making calls to list/search for objects with a given name 
 to accomplish the same.
 
 + Response 200 (application/json)
@@ -1394,7 +1378,7 @@ to accomplish the same.
 
         Error retrieving object represented as the parent to retrieve children, or some other error.
 
-## Download File By Group Path [/files/groupobjects/{groupName}/{path}{?disposition}]
+## Download Group File By Path [/files/groupobjects/{groupName}/{path}{?disposition}]
 
 + Parameters
     + groupName: dctc_odrive_g1 (string, required) - The flattened name of a group for which to base initial object ownership under when looking at the path for file to retrieve
@@ -1406,12 +1390,8 @@ to accomplish the same.
         + Members
             + `inline`
             + `attachment`
-### Download File By Group Path [GET]
-This microservice operation retrieves a file content stream given a standard URI path. For each component of the path
-the service will identify matching file or folder of that name for which the user has read access to iteratively until
-it reaches the final node.  If a user does not have read access to any component of the path, an error code will be
-returned.  This is a convenience function around manually making calls to list/search for objects with a given name 
-to accomplish the same.
+### Download Group File By Path [GET]
+This microservice operation is experimental (since v1.0.14). This microservice operation retrieves a file content stream given a standard URI path. For each component of the path the service will identify matching file or folder of that name for which the user has read access to iteratively until it reaches the final node.  If a user does not have read access to any component of the path, an error code will be returned.  This is a convenience function around manually making calls to list/search for objects with a given name to accomplish the same.
 
 Headers are passed along to support range requests, ETags, and so forth.
 
@@ -1456,7 +1436,7 @@ Headers are passed along to support range requests, ETags, and so forth.
         Does Not Exist
 
 
-## List Files By Group Path [/files/groupobjects/{groupName}/{path}/{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
+## List Group Files By Path [/files/groupobjects/{groupName}/{path}/{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
     + groupName: dctc_odrive_g1 (string, required) - The flattened name of a group for which to base initial object ownership under when looking at the path for list of objects to retrieve
@@ -1521,11 +1501,8 @@ Headers are passed along to support range requests, ETags, and so forth.
             + `notequals`
     + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
 
-### List Files By Group Path [GET]
-This microservice operation retrieves a list of objects contained within the specified path, with optional settings for pagination. By default, this operation only returns metadata about the first 20 items.  For each component of the path
-the service will identify matching file or folder of that name for which the user has read access to iteratively until
-it reaches the final node.  If a user does not have read access to any component of the path, an error code will be
-returned.  This is a convenience function around manually making calls to list/search for objects with a given name 
+### List Group Files By Path [GET]
+This microservice operation is experimental (since v1.0.14). This microservice operation retrieves a list of objects contained within the specified path, with optional settings for pagination. By default, this operation only returns metadata about the first 20 items.  For each component of the path the service will identify matching file or folder of that name for which the user has read access to iteratively until it reaches the final node.  If a user does not have read access to any component of the path, an error code will be returned.  This is a convenience function around manually making calls to list/search for objects with a given name 
 to accomplish the same.
 
 + Response 200 (application/json)
@@ -1717,92 +1694,6 @@ Although it is not permitted to assign ownership to Everyone, ownership may be a
 # Group User Centric Operations
 
 ---
-
-## List Objects At Root For User [/objects{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
-
-+ Parameters
-
-    + pageNumber: 1 (number(minvalue=1), optional) - The page number of results to be returned to support chunked output.
-    + pageSize: 20 (number(minvalue=1, maxvalue=10000), optional) - The number of results to return per page.
-    + sortField: `contentsize` (string, optional) - Denotes a field that the results should be sorted on. Can be specified multiple times for complex sorting.
-        + Default: `createddate`
-        + Members
-            + `changecount`
-            + `createdby`
-            + `createddate`
-            + `contentsize`
-            + `contenttype`
-            + `description`
-            + `foiaexempt`
-            + `id`
-            + `modifiedby`
-            + `modifieddate`
-            + `name`
-            + `ownedby`
-            + `typename`
-            + `uspersons`
-    + sortAscending: true (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
-        + Default: false
-    + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
-        + Default: `or`
-        + Members
-            + `all`
-            + `and`
-            + `any`
-            + `or`
-    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
-        + Members
-            + `changecount`
-            + `createdby`
-            + `createddate`
-            + `contentsize`
-            + `contenttype`
-            + `description`
-            + `foiaexempt`
-            + `id`
-            + `modifiedby`
-            + `modifieddate`
-            + `name`
-            + `ownedby`
-            + `typename`
-            + `uspersons`
-    + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
-        + Members
-            + `begins`
-            + `contains`
-            + `ends`
-            + `equals`
-            + `lessthan`
-            + `morethan`
-            + `notbegins`
-            + `notcontains`
-            + `notends`
-            + `notequals`
-    + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
-
-### List Objects At Root For User [GET]
-
-This microservice operation retrieves a list of objects at the root owned by the caller, with optional settings for pagination, sorting, and filtering.
-
-+ Response 200 (application/json)
-
-    + Attributes (ObjectResultset)
-
-+ Response 400
-
-        Unable to decode request
-        
-+ Response 403
-
-        Forbidden
-
-+ Response 405
-
-        Deleted
-        
-+ Response 410
-
-        Does Not Exist
 
 ## List User Object Shares [/shares{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
@@ -2135,9 +2026,9 @@ User Stats provides metrics information for the user's total number of objects a
 
 ---
 
-## Get Object Properties [/objects/properties]
+## Bulk Get Objects Properties [/objects/properties]
 
-### Get Object Properties [POST]
+### Bulk Get Objects [POST]
 Get multiple objects at once
 
 This returns an object result set.  Note that because this gets
@@ -2326,13 +2217,13 @@ possible a list of Errors coming back with the objects that came back successful
                 ],
                 "breadcrumbs": [
                     {
-                    "id": "11e5e4867a6e3d8389020242ac110002",
+                    "id": "11e0202427a6eac115e4863d83890002",
                     "parentId": "",
                     "name": "parentFolderA"
                     },
                     {
                     "id": "11e5e4867a6e3d8489020242ac110002",
-                    "parentId": "11e5e4867a6e3d8389020242ac110002",
+                    "parentId": "11e0202427a6eac115e4863d83890002",
                     "name": "folderA"
                     }
                 ]
@@ -2496,13 +2387,13 @@ possible a list of Errors coming back with the objects that came back successful
                 ],
                 "breadcrumbs": [
                     {
-                    "id": "11e5e4867a6e3d8389020242ac189124",
+                    "id": "11e0202427a6eac115e4863d83890002",
                     "parentId": "",
                     "name": "parentFolderA"
                     },
                     {
                     "id": "11e5e4867a6e3d8489020242ac110002",
-                    "parentId": "11e5e4867a6e3d8389020242ac110002",
+                    "parentId": "11e0202427a6eac115e4863d83890002",
                     "name": "folderA"
                     }
                 ]
@@ -2528,9 +2419,9 @@ possible a list of Errors coming back with the objects that came back successful
 
         Error retrieving data
 
-## Move Objects [/objects/move]
+## Bulk Move Objects [/objects/move]
 
-### Move Objects [POST]
+### Bulk Move Objects [POST]
 
 Move a set of objects.  It requires the id and the change token for each one.
 
@@ -2552,7 +2443,7 @@ Move a set of objects.  It requires the id and the change token for each one.
                 {"objectId":"11e5e4867a6f3d8389020242ac110002", "code":400, "error":"unable to find object", "msg":"cannot move object"}
             ]
 
-## Change Owner Bulk [/objects/owner/{newOwner}]
+## Bulk Change Owner [/objects/owner/{newOwner}]
 
 + Parameters
     + newOwner: `user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us` (string(maxlength=255), required) - A resource string compliant value representing the new owner. Resources take the following form:
@@ -2566,7 +2457,7 @@ Move a set of objects.  It requires the id and the change token for each one.
          * group/dctc/odrive_g1
          * group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1
 
-### Change Owner Bulk [POST]
+### Bulk Change Owner [POST]
 
 This changes ownership of files in bulk.  It behaves like multiple changeOwner requests.
 
@@ -2621,9 +2512,9 @@ The UI will accumulate a list of file ID values to include in a zip file.
 
 + Response 500
 
-## Delete Objects [/objects]
+## Bulk Delete Objects [/objects]
 
-### Delete Objects [DELETE]
+### Bulk Delete Objects [DELETE]
 
 Delete a set of objects.  It requires the id and the change token for each one.
 
@@ -2717,13 +2608,13 @@ Delete a set of objects.  It requires the id and the change token for each one.
 
 ## Breadcrumb (object)
 
-+ id: `11e5e4867a6e3d8389020242ac110002` (string) - The object ID of an object's breadcrumb. Should never be empty.
-+ parentId: `11e5e4867a6e3d8389020242ac110002` (string) - The parent ID of an object's breadcrumb. Will be empty if a breadcrumb is a root object.
++ id: `11e5e4867a6e3d8489020242ac110002` (string) - The object ID of an object's breadcrumb. Should never be empty.
++ parentId: `11e0202427a6eac115e4863d83890002` (string) - The parent ID of an object's breadcrumb. Will be empty if a breadcrumb is a root object.
 + name: `folderA` (string) - The object name for an object's breadcrumb. Useful for displaying folder hierarchies.
 
 ## BreadcrumbParent (object)
 
-+ id: `11e5e4867a6e3d8389020242ac110002` (string) - The object ID of an object's breadcrumb. Should never be empty.
++ id: `11e0202427a6eac115e4863d83890002` (string) - The object ID of an object's breadcrumb. Should never be empty.
 + parentId: ` ` (string) - The parent ID of an object's breadcrumb. Will be empty if a breadcrumb is a root object.
 + name: `parentFolderA` (string) - The object name for an object's breadcrumb. Useful for displaying folder hierarchies.
 
