@@ -150,6 +150,19 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
+	parents, err := dao.GetParents(createdObject)
+	if err != nil {
+		herr := NewAppError(500, err, "error retrieving object parents")
+		h.publishError(gem, herr)
+		return herr
+	}
+
+	filtered := redactParents(ctx, aacAuth, parents)
+	if appError := errOnDeletedParents(parents); appError != nil {
+		h.publishError(gem, appError)
+		return appError
+	}
+	crumbs := breadcrumbsFromParents(filtered)
 	auditResource := NewResourceFromObject(createdObject)
 	// For requests where a stream was provided, only drain off into S3 once we have a record,
 	// and we pass all security checks.  Note that in between acceptObjectUpload and here,
@@ -160,7 +173,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		}
 	}
 
-	apiResponse := mapping.MapODObjectToObject(&createdObject).WithCallerPermission(protocolCaller(caller))
+	apiResponse := mapping.MapODObjectToObject(&createdObject).WithCallerPermission(protocolCaller(caller)).WithBreadcrumbs(crumbs)
 	gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(createdObject.ID))
 	gem.Payload.ObjectID = apiResponse.ID
 	gem.Payload.ChangeToken = apiResponse.ChangeToken

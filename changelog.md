@@ -23,6 +23,7 @@ FORMAT: 1A
 * DOC: Copy Object, Download File By Path, Download File By Group Path, List Files By Path, List Files By Group Path are now documented
 * DOC: Documentation now generated with deciphernow/aglio image
 * DOC: Fixed breadcrumb samples to have unique object ids between parent and child
+* FIX: Fixed bug where bulk move operation was always moving targetted objects to root folder
 * TODO: [Issue 1083](https://github.com/DecipherNow/object-drive-server/issues/1083) ADX Container Image
 * TODO: [Issue 947](https://github.com/DecipherNow/object-drive-server/issues/947) [Issue 1079](https://github.com/DecipherNow/object-drive-server/issues/1079) Migrate to Circle CI 2.0
 

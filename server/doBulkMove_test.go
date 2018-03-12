@@ -40,7 +40,18 @@ func testBulkMoveCall(t *testing.T, clientid int, inObjects []protocol.MoveObjec
 			t.Logf("some objects were not moved: %s", string(objectErrorsBytes))
 			t.FailNow()
 		}
+
+		objectProperties, err := clients[clientid].C.GetObject(objectErrors[i].ObjectID)
+		if err != nil {
+			t.Logf("error getting properties to validate object moved: %s", err.Error())
+			t.FailNow()
+		}
+		if inObjects[i].ParentID != objectProperties.ParentID {
+			t.Logf("Validation on object move failed. Expected Object '%s' to be moved to parent '%s'. Actual parent id for object '%s' is reported to be '%s'", inObjects[i].ID, inObjects[i].ParentID, objectProperties.ID, objectProperties.ParentID)
+			t.FailNow()
+		}
 	}
+
 }
 
 func TestBulkMove(t *testing.T) {
