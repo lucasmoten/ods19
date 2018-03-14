@@ -65,6 +65,66 @@ See also the example docker-compose file **.ci/docker-compose.yml** for example 
 Note that some vars are not set directly inline, because they contain secrets (e.g. AWS vars).
 
 
+#### Python
+
+The scripts depend on python 2. 
+
+Install in Ubuntu linux via
+```
+sudo apt-get update
+sudo apt-get install python2.7 python-pip
+```
+
+#### Dot and Graphviz
+
+Building documentation requires dot to be installed. 
+
+Install in Ubuntu Linux via
+```
+sudo apt-get update
+sudo apt-get install graphviz
+```
+
+#### Docker and Docker Compose
+
+Building documentation and container images requires docker to be installed. 
+
+Follow the guidance for your platform from the [Docker page](https://docs.docker.com/install/linux/docker-ce/ubuntu/#install-using-the-repository)
+
+In addition, install docker-compose in Ubuntu Linux via
+```
+sudo apt-get install docker-compose
+```
+
+To use the docker commands without sudo, add yourself to the docker group and apply the changes
+```
+sudo groupadd docker
+#sudo gpasswd -a $USER docker
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+#### AWS CLI
+
+Use the following commands to install the AWS CLI
+
+```
+pip install awscli --upgrade --user
+```
+
+#### Go-BinData
+
+Object Drive leverages this capability to package multiple script files for data migrations into binary form.
+
+```
+env GIT_TERMINAL_PROMPT=1 go get -u github.com/jteeuwen/go-bindata/...
+```
+#### Maven
+If planning to do full clean builds, you may need maven to support dependent projects using java.
+```
+sudo apt-get install maven
+```
+
 #### Development Environment
 Developing on this project requires maven, docker, and nodejs configurations.
 Also, a separate build "root" directory must be specified by setting the `OD_ROOT`
@@ -79,12 +139,36 @@ Consider this a volatile directory. This can be anywhere, but a fine choice is `
 
 #### Dependent Projects
 If you are developing changes with AAC and DIAS, you will need to retrieve those from a private gitlab repository at gitlab.363-283.io. The project names are
-* AAC is at cte/cte-security-service
-* DIAS is at bedrock/dias-simulator
-For convenience, docker images are referenced by the docker-compose. These point to
-* AAC from docker.363-283.io/cte/cte-security-service:1.2.2-SNAPSHOT
-* DIAS from deciphernow/dias:latest
 
+* AAC is at cte/cte-security-service
+  * A docker image is available at: `docker.363-283.io/cte/cte-security-service:1.2.2-SNAPSHOT`
+* Redis is used by AAC
+  * A docker image is available at: `docker.363-283.io/docker/backend:redis-3.2.2`
+* DIAS is at bedrock/dias-simulator
+  * A docker image is available at: `deciphernow/dias:latest`
+
+Additional external projects referenced by the docker-compose file for testing full event to indexing, and user access
+
+* Finder is a facade around elastic search.
+  * A docker image is available at: `docker.363-283.io/bedrock/finder-service:1.0.0-SNAPSHOT`
+* Elastic Search gives some json document search capability
+  * A docker image is available at: `docker.363-283.io/docker/backend:elasticsearch-1.7.2`
+* ODrive Indexer listens for events on kafka, and saves to Elastic Search
+  * A docker image is available at: `docker.363-283.io/bedrock/object-drive-indexer-service:1.0.0-SNAPSHOT`
+* User Service
+  * A docker image is available at: `docker.363-283.io/chimera/user-service:1.0.1-SNAPSHOT`
+* Postgres is used by the user service for storing data
+  * A docker image is available at: `docker.363-283.io/docker/backend:postgres-9.4`
+  
+
+If you have gitlab.363-283.io credentials, you can clone these projects into OD_ROOT as follows
+```
+cd $OD_ROOT
+git clone ssh://git@gitlab.363-283.io:2252/cte/cte-security-service.git
+git clone ssh://git@gitlab.363-283.io:2252/bedrock/dias-simulator.git
+```
+
+When these are present, they can be built when calling `./odb --build`, which will allow you to edit configuration in your dias-simulator instance to alter user permissions for testing.
 
 #### Update `/etc/hosts`
 Once we get everything going, we will be running locally so we need to provide name addressing from the host to the containers.

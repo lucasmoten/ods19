@@ -198,14 +198,21 @@ def packaging_build(tag="latest"):
     shutil.rmtree(build_dir)
 
 
-def dias_build(tag="latest"):
+def dias_build(self, tag="latest"):
     """ Build the dias simulator docker image
     """
     
     od_root = os.getenv("OD_ROOT")
-    os.chdir(os.path.join(od_root, 'dias-simulator'))
-    dockerfile = os.path.abspath('./Dockerfile')
-    run_dockerfile(dockerfile, "deciphernow/dias", tag)
+    if len(od_root) > 0 and os.path.exists(od_root):
+        dias_path = os.path.join(od_root, 'dias-simulator')
+        if os.path.exists(dias_path):
+            os.chdir(dias_path)
+            dockerfile = os.path.abspath('./Dockerfile')
+            run_dockerfile(dockerfile, "deciphernow/dias", tag)
+        else:
+            self.logger.info("DIAS Simulator not cloned into OD_ROOT at {0}. Check README.md. Skipping DIAS build.".format(dias_path))
+    else:
+        self.logger.info("OD_ROOT is undefined. Skipping DIAS build")
     
 
 def run_dockerfile(dockerfile, image, tag="latest"):
@@ -360,7 +367,7 @@ class Builder(object):
         metadatadb_build()
         gatekeeper_build()
         packaging_build()
-        dias_build()
+        dias_build(self)
         
         self.logger.info("Build Finished")
 
@@ -387,7 +394,7 @@ class Builder(object):
         elif 'odriverpm' in image_name:
             packaging_build(tag)
         elif 'dias' in image_name:
-            dias_build(tag)
+            dias_build(self, tag)
         else:
             raise ValueError("Image name not known: {0}".format(image_name))
 
