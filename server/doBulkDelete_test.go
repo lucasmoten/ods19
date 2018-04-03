@@ -10,7 +10,7 @@ import (
 	"github.com/deciphernow/object-drive-server/protocol"
 )
 
-func testBulkDeleteCall(t *testing.T, clientid int, inObjects []protocol.ObjectVersioned) {
+func testBulkDeleteCall(t *testing.T, clientid int, inObjects []protocol.ObjectVersioned, expectedItems int, expectedFailures int) {
 	deleteuri := mountPoint + "/objects"
 	jsonBody, err := json.Marshal(inObjects)
 	failNowOnErr(t, err, "Unable to marshal json")
@@ -41,7 +41,7 @@ func testBulkDeleteCall(t *testing.T, clientid int, inObjects []protocol.ObjectV
 		}
 		failedCount := 0
 		responses := len(bulkResponse)
-		if responses != 7 {
+		if responses != expectedItems {
 			t.Logf("wrong number of items in response: %v", responses)
 			t.FailNow()
 		}
@@ -50,7 +50,7 @@ func testBulkDeleteCall(t *testing.T, clientid int, inObjects []protocol.ObjectV
 				failedCount++
 			}
 		}
-		if failedCount != 2 {
+		if failedCount != expectedFailures {
 			t.Logf("expected 2 failures, but got %d", failedCount)
 			t.FailNow()
 		}
@@ -81,5 +81,21 @@ func TestBulkDelete(t *testing.T) {
 	}
 
 	// Delete them in bulk
-	testBulkDeleteCall(t, clientid, inObjects)
+	testBulkDeleteCall(t, clientid, inObjects, 7, 2)
+}
+
+func TestBulkDelete4000(t *testing.T) {
+	clientid := 0
+	var inObjects []protocol.ObjectVersioned
+	o := makeFolderViaJSON("Test BulkDelete4000", clientid, t)
+	// Add the same item to be deleted 4000 times
+	for i := 0; i < 4000; i++ {
+		inObject := protocol.ObjectVersioned{
+			ObjectID:    o.ID,
+			ChangeToken: o.ChangeToken,
+		}
+		inObjects = append(inObjects, inObject)
+	}
+	// Delete them in bulk
+	testBulkDeleteCall(t, clientid, inObjects, 4000, 0)
 }

@@ -24,8 +24,10 @@ FORMAT: 1A
 * DOC: Documentation now generated with deciphernow/aglio image
 * DOC: Fixed breadcrumb samples to have unique object ids between parent and child
 * FIX: Fixed bug where bulk move operation was always moving targetted objects to root folder
+* FIX: Bulk operations will now properly clear action targets when preparing GEM
 * TODO: [Issue 1083](https://github.com/DecipherNow/object-drive-server/issues/1083) ADX Container Image
 * TODO: [Issue 947](https://github.com/DecipherNow/object-drive-server/issues/947) [Issue 1079](https://github.com/DecipherNow/object-drive-server/issues/1079) Migrate to Circle CI 2.0
+
 
 ## Release v1.0.14 (February 28, 2018)
 --------------------
