@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/deciphernow/object-drive-server/events"
-	"github.com/deciphernow/object-drive-server/metadata/models"
-	"github.com/deciphernow/object-drive-server/services/audit"
 	"github.com/deciphernow/gov-go/audit/acm_thrift"
 	"github.com/deciphernow/gov-go/audit/components_thrift"
 	"github.com/deciphernow/gov-go/audit/events_thrift"
+	"github.com/deciphernow/object-drive-server/events"
+	"github.com/deciphernow/object-drive-server/metadata/models"
+	"github.com/deciphernow/object-drive-server/services/audit"
 )
 
 // Utilities for dealing with pointers to primitive types.
@@ -112,6 +112,7 @@ func ResetBulkItem(gem events.GEM) events.GEM {
 	gem.ID = newGUID()
 	gem.Payload.Audit = audit.WithID(gem.Payload.Audit, "guid", gem.ID)
 	gem.Payload.Audit = audit.WithCreatedOn(gem.Payload.Audit, time.Now().UTC().Format("2006-01-02T15:04:05.000Z"))
+	gem.Payload.Audit.ActionTargets = nil
 	gem.Payload.Audit.Resources = nil
 	gem.Payload.Audit.ModifiedPairList = nil
 	return gem
