@@ -27,7 +27,7 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 	// Parse paging info
 	pagingRequest, err := protocol.NewPagingRequest(r, nil, false)
 	if err != nil {
-		herr := NewAppError(400, err, "Error parsing request")
+		herr := NewAppError(http.StatusBadRequest, err, "Error parsing request")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -35,7 +35,7 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 	// Snippets
 	snippetFields, ok := SnippetsFromContext(ctx)
 	if !ok {
-		herr := NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
+		herr := NewAppError(http.StatusBadGateway, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -44,7 +44,7 @@ func (h AppServer) listObjectsTrashed(ctx context.Context, w http.ResponseWriter
 	// Get trash for this user
 	results, err := dao.GetTrashedObjectsByUser(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest))
 	if err != nil {
-		herr := NewAppError(500, errors.New("Database call failed: "), err.Error())
+		herr := NewAppError(http.StatusInternalServerError, errors.New("Database call failed: "), err.Error())
 		h.publishError(gem, herr)
 		return herr
 	}

@@ -40,14 +40,14 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 	captured, _ := CaptureGroupsFromContext(ctx)
 	pagingRequest, err = protocol.NewPagingRequest(r, captured, false)
 	if err != nil {
-		herr := NewAppError(400, err, "Error parsing request")
+		herr := NewAppError(http.StatusBadRequest, err, "Error parsing request")
 		h.publishError(gem, herr)
 		return herr
 	}
 
 	parentObject, err = assignObjectIDFromPagingRequest(pagingRequest, parentObject)
 	if err != nil {
-		herr := NewAppError(400, err, "Object Identifier in Request URI is not a hex string")
+		herr := NewAppError(http.StatusBadRequest, err, "Object Identifier in Request URI is not a hex string")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -55,7 +55,7 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 	// TODO can we remove this? We should expect snippets to be set by now.
 	snippetFields, ok := SnippetsFromContext(ctx)
 	if !ok {
-		herr := NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
+		herr := NewAppError(http.StatusBadGateway, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
 		h.publishError(gem, herr)
 		return herr
 
@@ -80,7 +80,7 @@ func (h AppServer) listObjects(ctx context.Context, w http.ResponseWriter, r *ht
 		}
 		// Check for permission to read this object
 		if ok := isUserAllowedToRead(ctx, &dbObject); !ok {
-			herr := NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to list contents of this object")
+			herr := NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to list contents of this object")
 			h.publishError(gem, herr)
 			return herr
 		}
@@ -132,11 +132,11 @@ func assignObjectIDFromPagingRequest(pagingRequest *protocol.PagingRequest, pare
 func isDeletedErr(obj models.ODObject) (ok bool, code int, err error) {
 	switch {
 	case obj.IsExpunged:
-		return false, 410, errors.New("object is expunged")
+		return false, http.StatusGone, errors.New("object is expunged")
 	case obj.IsAncestorDeleted:
-		return false, 405, errors.New("object ancestor is deleted")
+		return false, http.StatusConflict, errors.New("object ancestor is deleted")
 	case obj.IsDeleted:
-		return false, 405, errors.New("object is deleted")
+		return false, http.StatusConflict, errors.New("object is deleted")
 	}
 	return true, 0, nil
 }
@@ -144,8 +144,8 @@ func isDeletedErr(obj models.ODObject) (ok bool, code int, err error) {
 func listObjectsDAOErr(err error) (code int, message string) {
 	switch err {
 	case sql.ErrNoRows:
-		return 404, "Object not found"
+		return http.StatusBadRequest, "Object not found"
 	default:
-		return 500, "Error retrieving object"
+		return http.StatusInternalServerError, "Error retrieving object"
 	}
 }

@@ -35,14 +35,14 @@ func (h AppServer) expungeDeleted(ctx context.Context, w http.ResponseWriter, r 
 		var err error
 		pageSize, err = strconv.Atoi(pageSizeStr[0])
 		if err != nil {
-			herr := NewAppError(400, err, "malformed pageSize")
+			herr := NewAppError(http.StatusBadRequest, err, "malformed pageSize")
 			h.publishError(gem, herr)
 			return herr
 		}
 	}
 	expungedObjects, err := dao.ExpungeDeletedByUser(user, pageSize)
 	if err != nil {
-		herr := NewAppError(500, err, "Unable to expunge deleted objects for user")
+		herr := NewAppError(http.StatusInternalServerError, err, "Unable to expunge deleted objects for user")
 		h.publishError(gem, herr)
 		return herr
 	}

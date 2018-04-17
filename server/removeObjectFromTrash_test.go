@@ -242,8 +242,8 @@ func TestUndeleteObjectWithDeletedAncestorFails(t *testing.T) {
 
 	s.ServeHTTP(w, r)
 
-	if respCode := w.Code; respCode != 405 {
-		t.Errorf("Expected response code 405. Got: %v", respCode)
+	if respCode := w.Code; respCode != http.StatusConflict {
+		t.Errorf("Expected response code 409. Got: %v", respCode)
 	}
 
 }

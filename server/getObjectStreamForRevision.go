@@ -27,7 +27,7 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 
 	captured, ok := CaptureGroupsFromContext(ctx)
 	if !ok {
-		herr := NewAppError(500, errors.New("Could not get capture groups"), "No capture groups.")
+		herr := NewAppError(http.StatusInternalServerError, errors.New("Could not get capture groups"), "No capture groups.")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -63,7 +63,7 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	// Current version authorization checks
 	dbObjectCurrent, err := dao.GetObject(requestObject, false)
 	if err != nil {
-		herr := NewAppError(500, err, "Error retrieving object")
+		herr := NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -74,7 +74,7 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 	// Requested revision
 	dbObjectRevision, err := dao.GetObjectRevision(requestObject, true)
 	if err != nil {
-		herr := NewAppError(500, err, "Error retrieving object")
+		herr := NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -87,7 +87,7 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 
 	// Fail fast: Don't even look at cache or retrieve if the file size is 0
 	if !dbObjectRevision.ContentSize.Valid || dbObjectRevision.ContentSize.Int64 <= int64(0) {
-		herr := NewAppError(204, nil, "No content")
+		herr := NewAppError(http.StatusNoContent, nil, "No content")
 		h.publishSuccess(gem, w)
 		return herr
 	}
@@ -116,7 +116,7 @@ func getFileKeyAndCheckAuthAndObjectState(ctx context.Context, h AppServer, dbOb
 
 	ok, userPermission := isUserAllowedToReadWithPermission(ctx, dbObject)
 	if !ok {
-		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object"), fileKey
+		return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object"), fileKey
 	}
 
 	dp := ciphertext.FindCiphertextCacheByObject(dbObject)
@@ -124,7 +124,7 @@ func getFileKeyAndCheckAuthAndObjectState(ctx context.Context, h AppServer, dbOb
 
 	fileKey = crypto.ApplyPassphrase(masterKey, userPermission.PermissionIV, userPermission.EncryptKey)
 	if len(fileKey) == 0 {
-		return NewAppError(500, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object"), fileKey
+		return NewAppError(http.StatusInternalServerError, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object"), fileKey
 	}
 
 	caller, _ := CallerFromContext(ctx)
@@ -136,11 +136,11 @@ func getFileKeyAndCheckAuthAndObjectState(ctx context.Context, h AppServer, dbOb
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			return NewAppError(410, nil, "The object no longer exists."), fileKey
+			return NewAppError(http.StatusGone, nil, "The object no longer exists."), fileKey
 		case dbObject.IsAncestorDeleted:
-			return NewAppError(405, nil, "The object cannot be retreived because an ancestor is deleted."), fileKey
+			return NewAppError(http.StatusConflict, nil, "The object cannot be retreived because an ancestor is deleted."), fileKey
 		default:
-			return NewAppError(405, nil, "The object is deleted"), fileKey
+			return NewAppError(http.StatusConflict, nil, "The object is deleted"), fileKey
 		}
 	}
 

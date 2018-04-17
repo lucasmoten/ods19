@@ -128,7 +128,7 @@ func NewODriveRawSnippetFieldsFromSnippetResponse(snippets string) (ODriveRawSni
 	// oDrive no longer trusts AAC to provide back our snippet in the expected
 	// format. As such, the response returned must be validated against our
 	// expectations to be considered valid.  If not valid, an error will be
-	// returned and its up to server handlers to return 403 Unauthorized.
+	// returned and its up to server handlers to return as Forbidden.
 	// If at any point we fail on an individual field, fail fast. Don't continue
 	// processing the others as it means AAC is not properly configured and
 	// nothing about this snippet should be trusted.

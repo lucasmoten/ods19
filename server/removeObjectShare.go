@@ -95,7 +95,7 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 			// Rebuild
 			modifiedACM, err = aacAuth.RebuildACMFromPermissions(dbObject.Permissions, modifiedACM)
 			if err != nil {
-				return NewAppError(500, err, "error rebuilding acm from revised permissions")
+				return NewAppError(http.StatusInternalServerError, err, "error rebuilding acm from revised permissions")
 			}
 			// Flatten
 			var msgs []string
@@ -111,7 +111,7 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 
 			// Finally update the object in database, which handles permissions transactionally
 			if err := dao.UpdateObject(&dbObject); err != nil {
-				return NewAppError(500, err, "error updating object")
+				return NewAppError(http.StatusInternalServerError, err, "error updating object")
 			}
 		}
 	} // permissions provided
@@ -119,7 +119,7 @@ func (h AppServer) removeObjectShare(ctx context.Context, w http.ResponseWriter,
 	// Now fetch updated object
 	updatedObject, err := dao.GetObject(dbObject, false)
 	if err != nil {
-		return NewAppError(500, err, "error retrieving object")
+		return NewAppError(http.StatusInternalServerError, err, "error retrieving object")
 	}
 	apiResponse := mapping.MapODObjectToObject(&updatedObject).WithCallerPermission(protocolCaller(caller))
 

@@ -67,7 +67,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 
 		multipartReader, err := r.MultipartReader()
 		if err != nil {
-			herr := NewAppError(400, err, "Unable to get mime multipart")
+			herr := NewAppError(http.StatusBadRequest, err, "Unable to get mime multipart")
 			h.publishError(gem, herr)
 			return herr
 		}
@@ -139,20 +139,20 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	snippetFields, _ := SnippetsFromContext(ctx)
 	user.Snippets = snippetFields
 	if err = handleIntermediateFoldersDuringCreation(ctx, h, user, dp.GetMasterKey(), &obj, pathDelimiter); err != nil {
-		herr = NewAppError(500, err, "error processing intermediate folders")
+		herr = NewAppError(http.StatusInternalServerError, err, "error processing intermediate folders")
 		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
 
 	createdObject, err = dao.CreateObject(&obj)
 	if err != nil {
-		herr = NewAppError(500, err, "error storing object")
+		herr = NewAppError(http.StatusInternalServerError, err, "error storing object")
 		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
 	parents, err := dao.GetParents(createdObject)
 	if err != nil {
-		herr := NewAppError(500, err, "error retrieving object parents")
+		herr := NewAppError(http.StatusInternalServerError, err, "error retrieving object parents")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -358,31 +358,31 @@ func handleCreatePrerequisites(ctx context.Context, h AppServer, requestObject *
 		parentObject.ID = requestObject.ParentID
 		dbParentObject, err := dao.GetObject(parentObject, false)
 		if err != nil {
-			return NewAppError(500, err, "Error retrieving parent object")
+			return NewAppError(http.StatusInternalServerError, err, "Error retrieving parent object")
 		}
 
 		// Check if the user has permissions to create child objects under the
 		// parent.
 		if ok := isUserAllowedToCreate(ctx, &dbParentObject); !ok {
-			return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to create children under this object")
+			return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to create children under this object")
 		}
 
 		// Make sure the object isn't deleted.
 		if dbParentObject.IsDeleted {
 			switch {
 			case dbParentObject.IsExpunged:
-				return NewAppError(410, err, "object is expunged")
+				return NewAppError(http.StatusGone, err, "ancestor object is expunged")
 			case dbParentObject.IsAncestorDeleted:
-				return NewAppError(405, err, "cannot create object under deleted anscestor")
+				return NewAppError(http.StatusConflict, err, "cannot create object under deleted anscestor")
 			default:
-				return NewAppError(405, err, "object is deleted")
+				return NewAppError(http.StatusConflict, err, "cannot create object under deleted parent")
 			}
 		}
 	}
 
 	// Disallow creating as deleted
 	if requestObject.IsDeleted || requestObject.IsAncestorDeleted || requestObject.IsExpunged {
-		return NewAppError(428, errors.New("Creating object in a deleted state is not allowed"), "Creating object in a deleted state is not allowed")
+		return NewAppError(http.StatusConflict, errors.New("creating object in a deleted state is not allowed"), "creating object in a deleted state is not allowed")
 	}
 
 	requestObject.CreatedBy = caller.DistinguishedName
@@ -403,10 +403,10 @@ func handleCreatePrerequisites(ctx context.Context, h AppServer, requestObject *
 		if !isAllowed && strings.HasPrefix(targetGroup, "group/") {
 			groups, ok := GroupsFromContext(ctx)
 			if !ok {
-				return NewAppError(500, errors.New("Error getting groups"), "Error getting groups")
+				return NewAppError(http.StatusInternalServerError, errors.New("Error getting groups"), "Error getting groups")
 			}
 			if strings.Compare(strings.ToLower(targetGroup), strings.ToLower("group/-Everyone")) == 0 {
-				return NewAppError(428, errors.New("Cannot assign to everyone group"), "Cannot assign to everyone group")
+				return NewAppError(http.StatusBadRequest, errors.New("Cannot assign to everyone group"), "Cannot assign to everyone group")
 			}
 			tg := models.NewODAcmGranteeFromResourceName(targetGroup)
 			for _, g := range groups {
@@ -421,7 +421,7 @@ func handleCreatePrerequisites(ctx context.Context, h AppServer, requestObject *
 		}
 		if !isAllowed {
 			msg := "User must be in group being set as the owner"
-			return NewAppError(428, errors.New(msg), msg)
+			return NewAppError(http.StatusBadRequest, errors.New(msg), msg)
 		}
 	}
 
@@ -450,14 +450,14 @@ func parseCreateObjectRequestAsJSON(r *http.Request) (models.ODObject, string, *
 	// Decode to JSON
 	err = util.FullDecode(r.Body, &jsonObject)
 	if err != nil {
-		return object, "", NewAppError(400, err, "Could not parse json object as a protocol.CreateObjectRequest")
+		return object, "", NewAppError(http.StatusBadRequest, err, "Could not parse json object as a protocol.CreateObjectRequest")
 	}
 
 	// Map to internal object type
 	err = mapping.OverwriteODObjectWithCreateObjectRequest(&object, &jsonObject)
 	if err != nil {
 		msg := fmt.Sprintf("Could not map request to internal struct type. %s", err.Error())
-		return object, "", NewAppError(400, err, msg)
+		return object, "", NewAppError(http.StatusBadRequest, err, msg)
 	}
 
 	return object, jsonObject.NamePathDelimiter, nil
@@ -466,7 +466,7 @@ func parseCreateObjectRequestAsJSON(r *http.Request) (models.ODObject, string, *
 func validateCreateObjectHeaders(r *http.Request) *AppError {
 	if !util.IsApplicationJSON(r.Header.Get("Content-Type")) {
 		err := fmt.Errorf("Content-Type is '%s', expected application/json", r.Header.Get("Content-Type"))
-		return NewAppError(400, err, "expected Content-Type application/json")
+		return NewAppError(http.StatusBadRequest, err, "expected Content-Type application/json")
 	}
 	return nil
 }

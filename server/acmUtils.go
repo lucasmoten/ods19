@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
 
@@ -18,18 +19,18 @@ func createMapFromInterface(sourceInterface interface{}) (map[string]interface{}
 }
 func getACMMap(obj *models.ODObject) (*AppError, map[string]interface{}) {
 	if !obj.RawAcm.Valid {
-		return NewAppError(400, fmt.Errorf("The object has no valid ACM"), "Missing ACM"), nil
+		return NewAppError(http.StatusBadRequest, fmt.Errorf("The object has no valid ACM"), "Missing ACM"), nil
 	}
 	if len(obj.RawAcm.String) == 0 {
-		return NewAppError(400, fmt.Errorf("The object has no ACM"), "Missing ACM"), nil
+		return NewAppError(http.StatusBadRequest, fmt.Errorf("The object has no ACM"), "Missing ACM"), nil
 	}
 	acmInterface, err := utils.UnmarshalStringToInterface(obj.RawAcm.String)
 	if err != nil {
-		return NewAppError(500, err, "ACM unparseable"), nil
+		return NewAppError(http.StatusInternalServerError, err, "ACM unparseable"), nil
 	}
 	acmMap, ok := createMapFromInterface(acmInterface)
 	if !ok {
-		return NewAppError(500, fmt.Errorf("ACM does not convert to map"), "ACM unparseable"), nil
+		return NewAppError(http.StatusInternalServerError, fmt.Errorf("ACM does not convert to map"), "ACM unparseable"), nil
 	}
 	return nil, acmMap
 }
@@ -79,15 +80,15 @@ func setACMPartFromInterface(ctx context.Context, obj *models.ODObject, acmKeySe
 	// Convert to string
 	newACM, err := utils.MarshalInterfaceToString(acmMap)
 	if err != nil {
-		return NewAppError(500, err, "unable to update acm")
+		return NewAppError(http.StatusInternalServerError, err, "unable to update acm")
 	}
 	normalizedNewACM, err := utils.NormalizeMarshalledInterface(newACM)
 	if err != nil {
-		return NewAppError(500, err, "unable to normalize new acm")
+		return NewAppError(http.StatusInternalServerError, err, "unable to normalize new acm")
 	}
 	normalizedOriginalACM, err := utils.NormalizeMarshalledInterface(obj.RawAcm.String)
 	if err != nil {
-		return NewAppError(500, err, "unable to normalize original acm")
+		return NewAppError(http.StatusInternalServerError, err, "unable to normalize original acm")
 	}
 	if strings.Compare(normalizedNewACM, normalizedOriginalACM) != 0 {
 		LoggerFromContext(ctx).Debug("changing vlaue of acm", zap.String("original acm", obj.RawAcm.String), zap.String("normalized original acm", normalizedOriginalACM), zap.String("normalized new acm", normalizedNewACM))

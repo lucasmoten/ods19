@@ -25,7 +25,7 @@ func (h AppServer) getObjectByPath(ctx context.Context, w http.ResponseWriter, r
 	// Get capture groups from ctx.
 	captured, ok := CaptureGroupsFromContext(ctx)
 	if !ok {
-		herr := NewAppError(500, errors.New("could not get capture groups"), "Error parsing URI")
+		herr := NewAppError(http.StatusInternalServerError, errors.New("could not get capture groups"), "Error parsing URI")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -51,14 +51,14 @@ func (h AppServer) getObjectByPath(ctx context.Context, w http.ResponseWriter, r
 				if strings.ToLower(part) != "groupobjects" {
 					resultset, err := dao.GetRootObjectsByUser(user, mapping.MapPagingRequestToDAOPagingRequest(&pagingRequest))
 					if err != nil {
-						herr := NewAppError(404, err, "Error finding match at root")
+						herr := NewAppError(http.StatusNotFound, err, "Error finding match at root")
 						h.publishError(gem, herr)
 						return herr
 					}
 					if resultset.PageCount > 0 {
 						targetObject = resultset.Objects[0]
 					} else {
-						herr := NewAppError(404, err, "No matching objects at root")
+						herr := NewAppError(http.StatusNotFound, err, "No matching objects at root")
 						h.publishError(gem, herr)
 						return herr
 					}
@@ -76,7 +76,7 @@ func (h AppServer) getObjectByPath(ctx context.Context, w http.ResponseWriter, r
 						pagingRequest.FilterSettings[0] = partFilterSettings
 						resultset, err := dao.GetRootObjectsByGroup(groupname, user, mapping.MapPagingRequestToDAOPagingRequest(&pagingRequest))
 						if err != nil {
-							herr := NewAppError(404, err, "Error finding match at groupfolder")
+							herr := NewAppError(http.StatusNotFound, err, "Error finding match at groupfolder")
 							h.publishError(gem, herr)
 							return herr
 						}
@@ -85,7 +85,7 @@ func (h AppServer) getObjectByPath(ctx context.Context, w http.ResponseWriter, r
 							// flip back to false as we're no longer at the group root
 							groupobjects = false
 						} else {
-							herr := NewAppError(404, err, "No matching objects in groupfolder")
+							herr := NewAppError(http.StatusNotFound, err, "No matching objects in groupfolder")
 							h.publishError(gem, herr)
 							return herr
 						}
@@ -95,14 +95,14 @@ func (h AppServer) getObjectByPath(ctx context.Context, w http.ResponseWriter, r
 					pagingRequest.FilterSettings[0] = partFilterSettings
 					resultset, err := dao.GetChildObjectsByUser(user, mapping.MapPagingRequestToDAOPagingRequest(&pagingRequest), targetObject)
 					if err != nil {
-						herr := NewAppError(404, err, "Error finding match at folder")
+						herr := NewAppError(http.StatusNotFound, err, "Error finding match at folder")
 						h.publishError(gem, herr)
 						return herr
 					}
 					if resultset.PageCount > 0 {
 						targetObject = resultset.Objects[0]
 					} else {
-						herr := NewAppError(404, err, "No matching objects in folder")
+						herr := NewAppError(http.StatusNotFound, err, "No matching objects in folder")
 						h.publishError(gem, herr)
 						return herr
 					}

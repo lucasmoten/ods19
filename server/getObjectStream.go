@@ -65,7 +65,7 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 
 	requestObject, err = parseGetObjectRequest(ctx)
 	if err != nil {
-		herr := NewAppError(500, err, "Error parsing URI")
+		herr := NewAppError(http.StatusBadRequest, err, "Error parsing URI")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -79,11 +79,11 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 	if err != nil {
 		//Equality issue on errors?
 		if err.Error() == db.ErrNoRows.Error() {
-			herr := NewAppError(404, err, "Not found")
+			herr := NewAppError(http.StatusNotFound, err, "Not found")
 			h.publishError(gem, herr)
 			return herr
 		}
-		herr := NewAppError(500, err, "Error retrieving object")
+		herr := NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -91,7 +91,7 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 	gem.Payload.ChangeToken = dbObject.ChangeToken
 
 	if len(dbObject.ID) == 0 {
-		herr := NewAppError(400, err, "Object retrieved doesn't have an id")
+		herr := NewAppError(http.StatusInternalServerError, err, "Object retrieved doesn't have an id")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -130,21 +130,15 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	var err error
 	gem, _ := GEMFromContext(ctx)
 
-	// // Get caller value from ctx.
-	// caller, ok := CallerFromContext(ctx)
-	// if !ok {
-	// 	return NoBytesReturned, NewAppError(500, err, "Could not determine user")
-	// }
-
 	if dbObject.IsDeleted {
 		var herr *AppError
 		switch {
 		case dbObject.IsExpunged:
-			herr = NewAppError(410, err, "The object no longer exists")
+			herr = NewAppError(http.StatusGone, err, "The object no longer exists")
 		case dbObject.IsAncestorDeleted:
-			herr = NewAppError(405, err, "The object cannot be retrieved because an ancestor is deleted.")
+			herr = NewAppError(http.StatusConflict, err, "The object cannot be retrieved because an ancestor is deleted.")
 		default:
-			herr = NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
+			herr = NewAppError(http.StatusConflict, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
 		}
 		h.publishError(gem, herr)
 		return NoBytesReturned, herr
@@ -155,7 +149,7 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	//		Permission.grantee matches caller, and AllowRead is true
 	ok, userPermission := isUserAllowedToReadWithPermission(ctx, &dbObject)
 	if !ok {
-		herr := NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
+		herr := NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
 		h.publishError(gem, herr)
 		return NoBytesReturned, herr
 	}
@@ -167,7 +161,7 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	var fileKey []byte
 	fileKey = crypto.ApplyPassphrase(masterKey, userPermission.PermissionIV, userPermission.EncryptKey)
 	if len(fileKey) == 0 {
-		herr := NewAppError(500, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object")
+		herr := NewAppError(http.StatusInternalServerError, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object")
 		h.publishError(gem, herr)
 		return NoBytesReturned, herr
 	}
@@ -182,7 +176,7 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	}
 
 	if !dbObject.ContentSize.Valid || dbObject.ContentSize.Int64 <= int64(0) {
-		herr := NewAppError(204, nil, "No content")
+		herr := NewAppError(http.StatusNoContent, nil, "No content")
 		h.publishSuccess(gem, w)
 		return NoBytesReturned, herr
 	}
@@ -299,7 +293,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	//Prepare for range requesting
 	byteRange, err := extractByteRange(r)
 	if err != nil {
-		herr := NewAppError(400, err, "Unable to parse byte range")
+		herr := NewAppError(http.StatusBadRequest, err, "Unable to parse byte range")
 		h.publishError(gem, herr)
 		return NoBytesReturned, herr
 	}
@@ -397,7 +391,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	//Pull the file from the cache
 	cipherReader, isLocalPuller, err = d.NewPuller(logger, rName, totalLength, cipherStartAt, -1)
 	if err != nil {
-		herr := NewAppError(500, err, err.Error())
+		herr := NewAppError(http.StatusInternalServerError, err, err.Error())
 		h.publishError(gem, herr)
 		return NoBytesReturned, herr
 	}

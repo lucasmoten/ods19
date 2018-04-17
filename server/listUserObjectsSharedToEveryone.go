@@ -27,7 +27,7 @@ func (h AppServer) listUserObjectsSharedToEveryone(ctx context.Context, w http.R
 	// Parse Request
 	pagingRequest, err := protocol.NewPagingRequest(r, nil, false)
 	if err != nil {
-		herr := NewAppError(400, err, "Error parsing request")
+		herr := NewAppError(http.StatusBadRequest, err, "Error parsing request")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -35,7 +35,7 @@ func (h AppServer) listUserObjectsSharedToEveryone(ctx context.Context, w http.R
 	// Fetch matching objects
 	results, err := dao.GetObjectsSharedToEveryone(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest))
 	if err != nil {
-		herr := NewAppError(500, err, "GetObjectsSharedToEveryone query failed")
+		herr := NewAppError(http.StatusInternalServerError, err, "GetObjectsSharedToEveryone query failed")
 		h.publishError(gem, herr)
 		return herr
 	}

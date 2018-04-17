@@ -16,7 +16,7 @@ func (h AppServer) userStats(ctx context.Context, w http.ResponseWriter, r *http
 	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "ACCESS")
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		herr := NewAppError(500, nil, "could not get caller")
+		herr := NewAppError(http.StatusInternalServerError, nil, "could not get caller")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -24,7 +24,7 @@ func (h AppServer) userStats(ctx context.Context, w http.ResponseWriter, r *http
 
 	userStats, err := dao.GetUserStats(caller.DistinguishedName)
 	if err != nil {
-		herr := NewAppError(500, err, "could not query for stats")
+		herr := NewAppError(http.StatusInternalServerError, err, "could not query for stats")
 		h.publishError(gem, herr)
 		return herr
 	}

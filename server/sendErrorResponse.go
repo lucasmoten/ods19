@@ -38,7 +38,7 @@ func countOKResponse(logger *zap.Logger) {
 func sendError(logger *zap.Logger, w *http.ResponseWriter, err error, msg string, fields ...zapcore.Field) {
 	//If we are given no diagnostic information, then assume that 500 is the code
 	_, file, line, _ := runtime.Caller(1)
-	sendErrorResponseRaw(logger, w, &AppError{500, err, msg, file, line, fields})
+	sendErrorResponseRaw(logger, w, &AppError{http.StatusInternalServerError, err, msg, file, line, fields})
 }
 
 func sendErrorResponse(logger *zap.Logger, w *http.ResponseWriter, code int, err error, msg string, fields ...zapcore.Field) {
@@ -78,12 +78,15 @@ func sendErrorResponseRaw(logger *zap.Logger, w *http.ResponseWriter, herr *AppE
 		for _, v := range herr.Fields {
 			fields = append(fields, v)
 		}
-		if herr.Code < 400 {
+		if herr.Code < http.StatusBadRequest {
+			//1xx-3xx series
 			logger.Info("transaction finish", fields...)
 		} else {
-			if herr.Code != 500 {
+			if herr.Code != http.StatusInternalServerError {
+				//4xx series (client error)
 				logger.Info("transaction finish", fields...)
 			} else {
+				//5xx series (server error)
 				logger.Error("transaction finish", fields...)
 			}
 		}
@@ -95,22 +98,14 @@ func sendErrorResponseRaw(logger *zap.Logger, w *http.ResponseWriter, herr *AppE
 		}
 	} else {
 		logger.Info("transaction finish",
-			zap.Int("status", 200),
+			zap.Int("status", http.StatusOK),
 		)
 		//It's implicitly a 200 - or some other OK where we sent back a nil error
 		mutex.Lock()
-		counters[counterKey{200, "", 0}]++
+		counters[counterKey{http.StatusOK, "", 0}]++
 		mutex.Unlock()
 	}
 }
-
-/*
-  Error counters keep a matrix of {errorCode,endpoint} like:
-    200,createObject
-    500,deleteObject
-
-  This is part of cleaning up logging and error handling
-*/
 
 // We key counters by code and endpoint tuple
 type counterKey struct {

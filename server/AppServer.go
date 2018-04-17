@@ -216,9 +216,9 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	authGem.Payload.Audit = audit.WithAction(authGem.Payload.Audit, "AUTHENTICATE")
 
 	if err := caller.ValidateHeaders(h.ACLImpersonationWhitelist, r); err != nil {
-		herr := NewAppError(401, err, err.Error())
+		herr := NewAppError(http.StatusUnauthorized, err, err.Error())
 		h.publishError(authGem, herr)
-		sendErrorResponse(logger, &w, 401, err, err.Error())
+		sendErrorResponse(logger, &w, http.StatusUnauthorized, err, err.Error())
 		return
 	}
 	authGem.Payload.Audit = audit.WithActionResult(authGem.Payload.Audit, "SUCCESS")
@@ -300,8 +300,8 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.FetchUser(ctx)
 	if err != nil {
-		sendErrorResponse(logger, &w, 500, err, "Error loading user")
-		herr := NewAppError(500, err, "Error loading user")
+		sendErrorResponse(logger, &w, http.StatusInternalServerError, err, "Error loading user")
+		herr := NewAppError(http.StatusInternalServerError, err, "Error loading user")
 		h.publishError(gem, herr)
 		return
 	}
@@ -424,7 +424,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		if h.RootDAO.IsReadOnly(false) {
 			msg := "Service Unavailable. Operation not permitted until database schema upgrade completed. Service operating in read-only mode."
-			herr = NewAppError(503, fmt.Errorf(msg), msg)
+			herr = NewAppError(http.StatusServiceUnavailable, fmt.Errorf(msg), msg)
 			break
 		}
 		// API
@@ -496,7 +496,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "DELETE":
 		if h.RootDAO.IsReadOnly(false) {
 			msg := "Service Unavailable. Operation not permitted until database schema upgrade completed. Service operating in read-only mode."
-			herr = NewAppError(503, fmt.Errorf(msg), msg)
+			herr = NewAppError(http.StatusServiceUnavailable, fmt.Errorf(msg), msg)
 			break
 		}
 		switch {
@@ -717,7 +717,7 @@ func do404(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppErro
 	}
 	uri := r.URL.Path
 	msg := caller.DistinguishedName + " from address " + r.RemoteAddr + " using " + r.UserAgent() + " unhandled operation " + r.Method + " " + uri
-	return NewAppError(404, nil, fmt.Sprintf("Resource not found %s", msg))
+	return NewAppError(http.StatusNotFound, nil, fmt.Sprintf("Resource not found %s", msg))
 }
 
 // jsonResponse writes a response, and should be called for all HTTP handlers that return JSON.

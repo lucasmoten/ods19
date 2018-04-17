@@ -50,11 +50,11 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
 		if err.Error() == db.ErrNoRows.Error() {
-			herr := NewAppError(404, err, "Not found")
+			herr := NewAppError(http.StatusNotFound, err, "Not found")
 			h.publishError(gem, herr)
 			return herr
 		}
-		herr := NewAppError(500, err, "Error retrieving object")
+		herr := NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -63,15 +63,15 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			herr := NewAppError(410, err, "The object no longer exists.")
+			herr := NewAppError(http.StatusGone, err, "The object no longer exists.")
 			h.publishError(gem, herr)
 			return herr
 		case dbObject.IsAncestorDeleted:
-			herr := NewAppError(405, err, "The object cannot be modified because an ancestor is deleted.")
+			herr := NewAppError(http.StatusConflict, err, "The object cannot be modified because an ancestor is deleted.")
 			h.publishError(gem, herr)
 			return herr
 		default:
-			herr := NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
+			herr := NewAppError(http.StatusConflict, err, "The object is currently in the trash. Use removeObjectFromtrash to restore it before updating it.")
 			h.publishError(gem, herr)
 			return herr
 		}
@@ -84,7 +84,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	var grant models.ODObjectPermission
 	var ok bool
 	if ok, grant = isUserAllowedToUpdateWithPermission(ctx, &dbObject); !ok {
-		herr := NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
+		herr := NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -99,7 +99,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
-		herr := NewAppError(400, err, "unable to open multipart reader")
+		herr := NewAppError(http.StatusBadRequest, err, "unable to open multipart reader")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -129,7 +129,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	// Verify user has access to change the share if the ACMs are different
 	unchangedDbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
-		herr = NewAppError(500, err, err.Error())
+		herr = NewAppError(http.StatusInternalServerError, err, err.Error())
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -141,7 +141,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 			return abortUploadObject(logger, dp, &dbObject, true, herr)
 		}
 		if !isUserAllowedToShare(ctx, &unchangedDbObject) {
-			herr = NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to change the share for this object")
+			herr = NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to change the share for this object")
 			h.publishError(gem, herr)
 			return abortUploadObject(logger, dp, &dbObject, true, herr)
 		}
@@ -157,13 +157,13 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	dbObject.ModifiedBy = caller.DistinguishedName
 	err = dao.UpdateObject(&dbObject)
 	if err != nil {
-		herr = NewAppError(500, err, "error storing object")
+		herr = NewAppError(http.StatusInternalServerError, err, "error storing object")
 		h.publishError(gem, herr)
 		return abortUploadObject(logger, dp, &dbObject, true, herr)
 	}
 	parents, err := dao.GetParents(dbObject)
 	if err != nil {
-		herr := NewAppError(500, err, "error retrieving object parents")
+		herr := NewAppError(http.StatusInternalServerError, err, "error retrieving object parents")
 		h.publishError(gem, herr)
 		return herr
 	}

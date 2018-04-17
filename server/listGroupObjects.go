@@ -39,7 +39,7 @@ func (h AppServer) listGroupObjects(ctx context.Context, w http.ResponseWriter, 
 	captured, _ := CaptureGroupsFromContext(ctx)
 	pagingRequest, err = protocol.NewPagingRequest(r, captured, false)
 	if err != nil {
-		herr := NewAppError(400, err, "Error parsing request")
+		herr := NewAppError(http.StatusBadRequest, err, "Error parsing request")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -48,7 +48,7 @@ func (h AppServer) listGroupObjects(ctx context.Context, w http.ResponseWriter, 
 	groupName := captured["groupName"]
 	if groupName == "" {
 		msg := "Group name required when listing objects for group"
-		herr := NewAppError(400, fmt.Errorf(msg), msg)
+		herr := NewAppError(http.StatusBadRequest, fmt.Errorf(msg), msg)
 		h.publishError(gem, herr)
 		return herr
 	}

@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"mime/multipart"
+	"net/http"
 	"path"
 	"strings"
 	"time"
@@ -45,7 +46,7 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, mpr *multipart.Reader
 
 	part, err := mpr.NextPart()
 	if err != nil {
-		return nil, "", false, NewAppError(400, err, fmt.Sprintf("error getting metadata part %s", err.Error()))
+		return nil, "", false, NewAppError(http.StatusBadRequest, err, fmt.Sprintf("error getting metadata part %s", err.Error()))
 	}
 
 	parsedMetadata, pathDelimiter, recursive, herr := h.acceptObjectUploadMeta(ctx, part, obj, grant, asCreate)
@@ -57,7 +58,7 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, mpr *multipart.Reader
 	if parsedMetadata {
 		part, err = mpr.NextPart()
 		if err == io.EOF {
-			return nil, "", false, NewAppError(400, err, "error getting stream part")
+			return nil, "", false, NewAppError(http.StatusBadRequest, err, "error getting stream part")
 		}
 	}
 
@@ -88,24 +89,24 @@ func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.P
 	if strings.ToLower(part.FormName()) != strings.ToLower(expectedPartName) {
 		errMsg := fmt.Sprintf("the first part name for a multipart upload must be %s", expectedPartName)
 		err := fmt.Errorf("%s", errMsg)
-		return parsedMetadata, "", false, NewAppError(400, err, errMsg)
+		return parsedMetadata, "", false, NewAppError(http.StatusBadRequest, err, errMsg)
 	}
 	parsedMetadata = true
 
 	limit := 5 << (10 * 2)
 	metadata, err := ioutil.ReadAll(io.LimitReader(part, int64(limit)))
 	if err != nil {
-		return parsedMetadata, "", false, NewAppError(400, err, "could not read json metadata")
+		return parsedMetadata, "", false, NewAppError(http.StatusBadRequest, err, "could not read json metadata")
 	}
 	// Parse into a useable struct
 	if asCreate {
 		if err = json.Unmarshal(metadata, &createObjectRequest); err != nil {
-			return parsedMetadata, "", false, NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", metadata))
+			return parsedMetadata, "", false, NewAppError(http.StatusBadRequest, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", metadata))
 		}
 		// Mapping to object
 		err = mapping.OverwriteODObjectWithCreateObjectRequest(obj, &createObjectRequest)
 		if err != nil {
-			return parsedMetadata, "", false, NewAppError(400, err, fmt.Sprintf("Error creating object with data from request: %s", err.Error()))
+			return parsedMetadata, "", false, NewAppError(http.StatusBadRequest, err, fmt.Sprintf("Error creating object with data from request: %s", err.Error()))
 		}
 		// Post mapping rules applied for create (not deleted, enforce owner cruds, assign meta)
 		if herr := handleCreatePrerequisites(ctx, h, obj); herr != nil {
@@ -114,7 +115,7 @@ func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.P
 		pathDelimiter = createObjectRequest.NamePathDelimiter
 	} else {
 		if err = json.Unmarshal(metadata, &updateObjectRequest); err != nil {
-			return parsedMetadata, "", false, NewAppError(400, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", metadata))
+			return parsedMetadata, "", false, NewAppError(http.StatusBadRequest, err, fmt.Sprintf("Could not decode ObjectMetadata: %s", metadata))
 		}
 		// ID in json must match that on the URI
 		herr = compareIDFromJSONWithURI(ctx, updateObjectRequest)
@@ -123,12 +124,12 @@ func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.P
 		}
 		// ChangeToken must be provided and match the object
 		if obj.ChangeToken != updateObjectRequest.ChangeToken {
-			return parsedMetadata, "", false, NewAppError(400, nil, "Changetoken must be up to date")
+			return parsedMetadata, "", false, NewAppError(http.StatusConflict, nil, "Changetoken must be up to date")
 		}
 		// Mapping to object
 		err = mapping.OverwriteODObjectWithUpdateObjectAndStreamRequest(obj, &updateObjectRequest)
 		if err != nil {
-			return parsedMetadata, "", false, NewAppError(400, err, fmt.Sprintf("Could not extract data from json response: %s", err.Error()))
+			return parsedMetadata, "", false, NewAppError(http.StatusBadRequest, err, fmt.Sprintf("Could not extract data from json response: %s", err.Error()))
 		}
 		// Set our recursive bool here
 		recursive = updateObjectRequest.RecursiveShare
@@ -136,7 +137,7 @@ func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.P
 
 	// Whether creating or updating, the ACM must have a value
 	if len(obj.RawAcm.String) == 0 {
-		return parsedMetadata, "", false, NewAppError(400, err, "An ACM must be specified")
+		return parsedMetadata, "", false, NewAppError(http.StatusBadRequest, err, "An ACM must be specified")
 	}
 
 	return parsedMetadata, pathDelimiter, recursive, herr
@@ -148,7 +149,7 @@ func (h AppServer) parsePartContentType(part *multipart.Part) *AppError {
 		cte = strings.ToLower(cte)
 		if cte != "binary" && cte != "8bit" && cte != "7bit" {
 			msg := fmt.Sprintf("Content-Transfer-Encoding: %s is not supported for file part. File should be provided in native binary format.", cte)
-			return NewAppError(400, fmt.Errorf("%s", msg), msg)
+			return NewAppError(http.StatusBadRequest, fmt.Errorf("%s", msg), msg)
 		}
 	}
 	ct := part.Header.Get("Content-Type")
@@ -159,13 +160,13 @@ func (h AppServer) parsePartContentType(part *multipart.Part) *AppError {
 			// Sampling from `Content-Type: image/png; base64`. Not even sure this is valid in this header, as its more typical in html img src.
 			if lv == "base64" {
 				msg := fmt.Sprintf("Content-Type: %s is not supported for file part. File should be provided in native binary format with no encoding declarations.", ct)
-				return NewAppError(400, fmt.Errorf("%s", msg), msg)
+				return NewAppError(http.StatusBadRequest, fmt.Errorf("%s", msg), msg)
 			}
 			// Permit character set, but only if utf-8 or charset=ISO-8859-1
 			if strings.HasPrefix(lv, "charset=") {
 				if lv != "charset=utf-8" && lv != "charset=iso-8859-1" {
 					msg := fmt.Sprintf("Content-Type: %s is not supported for file part. File should be provided in native binary format with no encoding declarations.", ct)
-					return NewAppError(400, fmt.Errorf("%s", msg), msg)
+					return NewAppError(http.StatusBadRequest, fmt.Errorf("%s", msg), msg)
 				}
 			}
 		}
@@ -184,16 +185,16 @@ func (h AppServer) acceptObjectUploadStream(ctx context.Context, part *multipart
 	// Get caller value from ctx.
 	caller, ok := CallerFromContext(ctx)
 	if !ok {
-		return nil, NewAppError(400, fmt.Errorf("User not provided in context"), "Could not determine user")
+		return nil, NewAppError(http.StatusBadRequest, fmt.Errorf("User not provided in context"), "Could not determine user")
 	}
 
 	if part == nil {
-		return nil, NewAppError(400, nil, "no more parts with file")
+		return nil, NewAppError(http.StatusBadRequest, nil, "no more parts with file")
 	}
 
 	cd := part.Header.Get("Content-Disposition")
 	if !strings.Contains(cd, "filename") {
-		return nil, NewAppError(400, nil, "file must be supplied as multipart mime part")
+		return nil, NewAppError(http.StatusBadRequest, nil, "file must be supplied as multipart mime part")
 	}
 
 	// Guess the content type and name if it wasn't supplied
@@ -214,7 +215,7 @@ func (h AppServer) acceptObjectUploadStream(ctx context.Context, part *multipart
 		return nil, herr
 	}
 	if err != nil {
-		return nil, NewAppError(500, err, "error caching file")
+		return nil, NewAppError(http.StatusInternalServerError, err, "error caching file")
 	}
 	return drainFunc, nil
 }
@@ -254,7 +255,7 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 	outFile, err := d.Files().Create(outFileUploading)
 	if err != nil {
 		msg := fmt.Sprintf("Unable to open ciphertext uploading file %s", outFileUploading)
-		return nil, NewAppError(500, err, msg), err
+		return nil, NewAppError(http.StatusInternalServerError, err, msg), err
 	}
 	defer outFile.Close()
 
@@ -269,9 +270,9 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 		d.Files().Remove(outFileUploading)
 		// The user terminating the upload is actually not an internal error, and user can trigger it intentionally
 		if strings.HasPrefix(err.Error(), "multipart: Part Read: unexpected EOF") {
-			return nil, NewAppError(400, err, msg), err
+			return nil, NewAppError(http.StatusBadRequest, err, msg), err
 		}
-		return nil, NewAppError(500, err, msg), err
+		return nil, NewAppError(http.StatusInternalServerError, err, msg), err
 	}
 
 	// Rename it to indicate that it can be moved to S3
@@ -280,7 +281,7 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 		msg := fmt.Sprintf("Unable to rename uploaded file %s", outFileUploading)
 		// I can't see why this would happen, but this file is toast if this happens.
 		d.Files().Remove(outFileUploading)
-		return nil, NewAppError(500, err, msg), err
+		return nil, NewAppError(http.StatusInternalServerError, err, msg), err
 	}
 	logger.Info("file enqueued", zap.String("fileID", string(fileID)))
 
@@ -336,7 +337,7 @@ func compareIDFromJSONWithURI(ctx context.Context, obj protocol.UpdateObjectAndS
 	fromURI := captured["objectId"]
 
 	if strings.Compare(obj.ID, fromURI) != 0 {
-		return NewAppError(400, nil, "ID mismatch: json POST vs. URI")
+		return NewAppError(http.StatusBadRequest, nil, "ID mismatch: json POST vs. URI")
 	}
 
 	return nil

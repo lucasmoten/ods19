@@ -28,7 +28,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 
 	requestObject, err := parseGetObjectRequest(ctx)
 	if err != nil {
-		herr := NewAppError(500, err, "Error parsing URI")
+		herr := NewAppError(http.StatusBadRequest, err, "Error parsing URI")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -51,7 +51,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 	// Check if the user has permissions to read the ODObject
 	//		Permission.grantee matches caller, and AllowRead is true
 	if ok := isUserAllowedToRead(ctx, &dbObject); !ok {
-		herr := NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
+		herr := NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -77,7 +77,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 
 	parents, err := dao.GetParents(dbObject)
 	if err != nil {
-		herr := NewAppError(500, err, "error retrieving object parents")
+		herr := NewAppError(http.StatusInternalServerError, err, "error retrieving object parents")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -102,9 +102,9 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 func isExpungedOrAnscestorDeletedErr(obj models.ODObject) (ok bool, code int, err error) {
 	switch {
 	case obj.IsExpunged:
-		return false, 410, errors.New("The object no longer exists.")
+		return false, http.StatusGone, errors.New("object no longer exists")
 	case obj.IsAncestorDeleted:
-		return false, 405, errors.New("The object cannot be retreived because an ancestor is deleted.")
+		return false, http.StatusConflict, errors.New("object cannot be retreived because an ancestor is deleted")
 	}
 	// NOTE the obj.IsDeleted case is not an error for getObject. Getting metadata
 	// about a trashed object with IsDeleted = true is still okay.
@@ -115,14 +115,14 @@ func getObjectDAOError(err error) (int, string, error) {
 	if err != nil {
 		//We can't use equality checks on the error
 		if err.Error() == dao.ErrNoRows.Error() {
-			return 404, "Not found", dao.ErrNoRows
+			return http.StatusNotFound, "Not found", dao.ErrNoRows
 		}
 	}
 	switch err {
 	case dao.ErrMissingID:
-		return 400, "Must provide ID field", err
+		return http.StatusBadRequest, "Must provide ID field", err
 	default:
-		return 500, "Error retrieving object", err
+		return http.StatusInternalServerError, "Error retrieving object", err
 	}
 }
 
@@ -155,7 +155,7 @@ func errOnDeletedParents(parents []models.ODObject) *AppError {
 	for _, parent := range parents {
 		if parent.IsDeleted {
 			logger.Info("one or more parents deleted", zap.Any("parents", parents))
-			return NewAppError(500, errors.New("cannot get properties on object with deleted ancestor"), "")
+			return NewAppError(http.StatusConflict, errors.New("cannot get properties on object with deleted ancestor"), "")
 		}
 	}
 	return nil
