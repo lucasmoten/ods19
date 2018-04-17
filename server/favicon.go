@@ -26,14 +26,14 @@ func (h AppServer) favicon(ctx context.Context, w http.ResponseWriter, r *http.R
 	path := filepath.Join(h.StaticDir, "favicon.ico")
 	LoggerFromContext(ctx).Info("favicon path", zap.String("path", path))
 	if err := util.SanitizePath(h.StaticDir, path); err != nil {
-		herr := NewAppError(404, nil, errStaticResourceNotFound)
+		herr := NewAppError(http.StatusNotFound, nil, errStaticResourceNotFound)
 		h.publishError(gem, herr)
 		return herr
 	}
 
 	f, err := os.Open(path)
 	if err != nil {
-		herr := NewAppError(404, nil, errStaticResourceNotFound)
+		herr := NewAppError(http.StatusNotFound, nil, errStaticResourceNotFound)
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -41,7 +41,7 @@ func (h AppServer) favicon(ctx context.Context, w http.ResponseWriter, r *http.R
 	w.Header().Set("Content-Type", "image/x-icon")
 	_, err = io.Copy(w, f)
 	if err != nil {
-		herr := NewAppError(500, nil, errServingStatic)
+		herr := NewAppError(http.StatusInternalServerError, nil, errServingStatic)
 		h.publishError(gem, herr)
 		return herr
 	}

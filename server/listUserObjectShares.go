@@ -27,7 +27,7 @@ func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWrit
 	// Parse Request
 	pagingRequest, err := protocol.NewPagingRequest(r, nil, false)
 	if err != nil {
-		herr := NewAppError(400, err, "Error parsing request")
+		herr := NewAppError(http.StatusBadRequest, err, "Error parsing request")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -35,7 +35,7 @@ func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWrit
 	// Snippets
 	snippetFields, ok := SnippetsFromContext(ctx)
 	if !ok {
-		herr := NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
+		herr := NewAppError(http.StatusBadGateway, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -44,7 +44,7 @@ func (h AppServer) listUserObjectShares(ctx context.Context, w http.ResponseWrit
 	// Fetch objects for requested page
 	results, err := dao.GetObjectsSharedToMe(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest))
 	if err != nil {
-		herr := NewAppError(500, err, "GetObjectsSharedToMe query failed")
+		herr := NewAppError(http.StatusInternalServerError, err, "GetObjectsSharedToMe query failed")
 		h.publishError(gem, herr)
 		return herr
 	}

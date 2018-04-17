@@ -79,7 +79,7 @@ type zipUsedNames struct {
 func zipWriteManifest(ctx context.Context, aacClient aac.AacService, zw *zip.Writer, manifest *zipManifest) *AppError {
 	user, ok := UserFromContext(ctx)
 	if !ok {
-		return NewAppError(500, nil, "unable to get user from context")
+		return NewAppError(http.StatusInternalServerError, nil, "unable to get user from context")
 	}
 	// manifest acms were stored in a list to make them unique
 	// So now we need the list of unique values
@@ -89,31 +89,31 @@ func zipWriteManifest(ctx context.Context, aacClient aac.AacService, zw *zip.Wri
 	}
 
 	if len(acmList) == 0 {
-		return NewAppError(400, nil, "No data to zip")
+		return NewAppError(http.StatusBadRequest, nil, "No data to zip")
 	}
 
 	// Compute the rollup
 	resp, err := aacClient.RollupAcms(user.DistinguishedName, acmList, "public", "")
 	if !resp.Success {
-		return NewAppError(500, err, "could not roll up zip file acms")
+		return NewAppError(http.StatusInternalServerError, err, "could not roll up zip file acms")
 	}
 	if !resp.AcmValid {
-		return NewAppError(500, err, "invalid acm")
+		return NewAppError(http.StatusInternalServerError, err, "invalid acm")
 	}
 	// Write the rollup, and extract its banner
 	banner, err := acmExtractItem("banner", resp.AcmInfo.Acm)
 	if err != nil {
-		return NewAppError(500, err, "invalid acm")
+		return NewAppError(http.StatusInternalServerError, err, "invalid acm")
 	}
 
 	// Begin writing the manifest (associate portion with individual files)
 	header, err := zip.FileInfoHeader(newManifestInfo("classification_manifest.txt", time.Now()))
 	if err != nil {
-		return NewAppError(500, err, "Unable to create file acm info header")
+		return NewAppError(http.StatusInternalServerError, err, "Unable to create file acm info header")
 	}
 	w, err := zw.CreateHeader(header)
 	if err != nil {
-		return NewAppError(500, err, "unable to create manifest")
+		return NewAppError(http.StatusInternalServerError, err, "unable to create manifest")
 	}
 
 	// Make sure that the first line of the manifest is the rollup portion,
@@ -179,7 +179,7 @@ func zipWriteFile(
 	var fileKey []byte
 	fileKey = crypto.ApplyPassphrase(dp.GetMasterKey(), userPermission.PermissionIV, userPermission.EncryptKey)
 	if len(fileKey) == 0 {
-		return NewAppError(500, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object")
+		return NewAppError(http.StatusInternalServerError, errors.New("Internal Server Error"), "Internal Server Error - Unable to derive file key from user permission to read/view this object")
 	}
 
 	// Get the ciphertext for this file
@@ -190,18 +190,18 @@ func zipWriteFile(
 	}
 	if err != nil {
 		logger.Error("unable to create puller for PermanentStorage", zap.Error(err))
-		return NewAppError(500, err, "Unable to create pullet to read files")
+		return NewAppError(http.StatusInternalServerError, err, "Unable to create pullet to read files")
 	}
 	logger.Debug("permanentstorage pull for zip begin", zap.String("fname", obj.Name), zap.Int64("bytes", totalLength))
 
 	// Write the file header out, to properly set timestamps and permissions
 	header, err := zip.FileInfoHeader(newFileInfo(obj, obj.Name))
 	if err != nil {
-		return NewAppError(500, err, "unable to create file info header")
+		return NewAppError(http.StatusInternalServerError, err, "unable to create file info header")
 	}
 	w, err := zw.CreateHeader(header)
 	if err != nil {
-		return NewAppError(500, err, "unable to write zip file")
+		return NewAppError(http.StatusInternalServerError, err, "unable to write zip file")
 	}
 
 	// Actually send back the cipherFile to zip stream - decrypted
@@ -251,7 +251,7 @@ func zipIncludeFile(
 		if obj.RawAcm.Valid {
 			portion, err := acmExtractItem("portion", obj.RawAcm.String)
 			if err != nil {
-				return NewAppError(500, err, "Could not get portion from object")
+				return NewAppError(http.StatusInternalServerError, err, "Could not get portion from object")
 			}
 			manifest.ACMs[obj.RawAcm.String] = true
 			thisFile := zipManifestItem{
@@ -264,7 +264,7 @@ func zipIncludeFile(
 				return herr
 			}
 		} else {
-			return NewAppError(500, nil, "No portion on object")
+			return NewAppError(http.StatusInternalServerError, nil, "No portion on object")
 		}
 	}
 	return nil
@@ -345,7 +345,7 @@ func (h AppServer) postZip(ctx context.Context, w http.ResponseWriter, r *http.R
 
 	err := util.FullDecode(r.Body, &zipSpec)
 	if err != nil {
-		herr := NewAppError(400, err, "unable to perform zip due to malformed request")
+		herr := NewAppError(http.StatusBadRequest, err, "unable to perform zip due to malformed request")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -375,7 +375,7 @@ func (h AppServer) postZip(ctx context.Context, w http.ResponseWriter, r *http.R
 		var requestObject models.ODObject
 		requestObject.ID, err = hex.DecodeString(id)
 		if err != nil {
-			herr := NewAppError(400, err, "could not decode id")
+			herr := NewAppError(http.StatusBadRequest, err, "could not decode id")
 			h.publishError(gem, herr)
 			return herr
 		}
@@ -408,7 +408,7 @@ func (h AppServer) postZip(ctx context.Context, w http.ResponseWriter, r *http.R
 		return herr
 	}
 	if err = zw.Close(); err != nil {
-		herr := NewAppError(500, err, "could not properly close zip file")
+		herr := NewAppError(http.StatusInternalServerError, err, "could not properly close zip file")
 		h.publishError(gem, herr)
 		return herr
 	}

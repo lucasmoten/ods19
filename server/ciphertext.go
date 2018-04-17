@@ -26,7 +26,7 @@ func (h AppServer) getCiphertext(ctx context.Context, w http.ResponseWriter, r *
 	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventAccess")
 	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "ACCESS")
 	if r.Header.Get("USER_DN") != ciphertext.PeerSignifier {
-		herr := NewAppError(403, fmt.Errorf("p2p required to get ciphertext"), "forbidden")
+		herr := NewAppError(http.StatusForbidden, fmt.Errorf("p2p required to get ciphertext"), "forbidden")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -36,7 +36,7 @@ func (h AppServer) getCiphertext(ctx context.Context, w http.ResponseWriter, r *
 	//Ask a drain provider directly to give us a particular ciphertext.
 	captureGroups, ok := CaptureGroupsFromContext(ctx)
 	if !ok {
-		herr := NewAppError(400, nil, "unparseable uri parameters")
+		herr := NewAppError(http.StatusBadRequest, nil, "unparseable uri parameters")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -50,7 +50,7 @@ func (h AppServer) getCiphertext(ctx context.Context, w http.ResponseWriter, r *
 	startAt := int64(0)
 	byteRange, err := extractByteRange(r)
 	if err != nil {
-		herr := NewAppError(400, err, "byte range parse fail")
+		herr := NewAppError(http.StatusBadRequest, err, "byte range parse fail")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -64,12 +64,12 @@ func (h AppServer) getCiphertext(ctx context.Context, w http.ResponseWriter, r *
 	f, length, err := ciphertext.UseLocalFile(logger, dp, rName, startAt)
 	if err != nil {
 		//Keep it quiet in the case of not found
-		herr := NewAppError(500, err, "error looking in p2p cache")
+		herr := NewAppError(http.StatusInternalServerError, err, "error looking in p2p cache")
 		h.publishError(gem, herr)
 		return herr
 	}
 	if f == nil {
-		herr := NewAppError(204, nil, "not in this p2p cache")
+		herr := NewAppError(http.StatusNoContent, nil, "not in this p2p cache")
 		h.publishSuccess(gem, w)
 		return herr
 	}

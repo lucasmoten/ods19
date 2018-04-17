@@ -28,7 +28,7 @@ func (h AppServer) getBulkProperties(ctx context.Context, w http.ResponseWriter,
 	var objects protocol.ObjectIds
 	bytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		herr := NewAppError(400, err, "Cannot unmarshal list of IDs")
+		herr := NewAppError(http.StatusBadRequest, err, "Cannot unmarshal list of IDs")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -38,7 +38,7 @@ func (h AppServer) getBulkProperties(ctx context.Context, w http.ResponseWriter,
 	bulkResponse.PageNumber = 1
 	bulkResponse.PageCount = 1
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
-	w.Header().Set("Status","200")
+	w.Header().Set("Status", "200")
 	for _, requestObjectID := range objects.ObjectIds {
 		gem = ResetBulkItem(gem)
 		id, err := hex.DecodeString(requestObjectID)

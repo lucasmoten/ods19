@@ -33,13 +33,13 @@ func (h AppServer) doBulkDelete(ctx context.Context, w http.ResponseWriter, r *h
 	var objects []protocol.ObjectVersioned
 	bytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		herr := NewAppError(400, err, "Cannot read list of IDs")
+		herr := NewAppError(http.StatusBadRequest, err, "Cannot read list of IDs")
 		h.publishError(gem, herr)
 		return herr
 	}
 	err = json.Unmarshal(bytes, &objects)
 	if err != nil {
-		herr := NewAppError(400, err, "Cannot parse list of IDs")
+		herr := NewAppError(http.StatusBadRequest, err, "Cannot parse list of IDs")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -49,7 +49,7 @@ func (h AppServer) doBulkDelete(ctx context.Context, w http.ResponseWriter, r *h
 		gem = ResetBulkItem(gem)
 		id, err := hex.DecodeString(o.ObjectID)
 		if err != nil {
-			herr := NewAppError(400, err, "Cannot decode object id")
+			herr := NewAppError(http.StatusBadRequest, err, "Cannot decode object id")
 			h.publishError(gem, herr)
 			bulkResponse = append(bulkResponse,
 				protocol.ObjectError{
@@ -70,7 +70,7 @@ func (h AppServer) doBulkDelete(ctx context.Context, w http.ResponseWriter, r *h
 		gem.Payload.Audit = audit.WithActionTarget(gem.Payload.Audit, NewAuditTargetForID(requestObject.ID))
 		dbObject, err := dao.GetObject(requestObject, true)
 		if err != nil {
-			herr := NewAppError(400, err, "Error retrieving object")
+			herr := NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
 			h.publishError(gem, herr)
 			bulkResponse = append(bulkResponse,
 				protocol.ObjectError{
@@ -145,7 +145,7 @@ func (h AppServer) doBulkDelete(ctx context.Context, w http.ResponseWriter, r *h
 				ObjectID: o.ObjectID,
 				Error:    "",
 				Msg:      "",
-				Code:     200,
+				Code:     http.StatusOK,
 			},
 		)
 

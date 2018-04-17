@@ -99,7 +99,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 			// Rebuild
 			modifiedACM, err = aacAuth.RebuildACMFromPermissions(dbObject.Permissions, modifiedACM)
 			if err != nil {
-				return NewAppError(500, err, "Error rebuilding ACM from revised permissions")
+				return NewAppError(http.StatusInternalServerError, err, "Error rebuilding ACM from revised permissions")
 			}
 			// Flatten
 			var msgs []string
@@ -115,7 +115,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 
 			// Finally update the object in database, which handles permissions transactionally
 			if err := dao.UpdateObject(&dbObject); err != nil {
-				return NewAppError(500, err, "Error updating object")
+				return NewAppError(http.StatusInternalServerError, err, "Error updating object")
 			}
 		}
 	}
@@ -123,7 +123,7 @@ func (h AppServer) addObjectShare(ctx context.Context, w http.ResponseWriter, r 
 	// Now fetch updated object
 	updatedObject, err := dao.GetObject(dbObject, false)
 	if err != nil {
-		return NewAppError(500, err, "Error retrieving object")
+		return NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
 	}
 
 	apiResponse := mapping.MapODObjectToObject(&updatedObject).WithCallerPermission(protocolCaller(caller))
@@ -161,7 +161,7 @@ func commonObjectSharePrep(ctx context.Context, r *http.Request) (models.ODObjec
 	// Get the object ID from the request
 	bytesObjectID, err := getObjectIDFromContext(ctx)
 	if err != nil {
-		return rollupPermission, permissions, dbObject, NewAppError(400, err, err.Error())
+		return rollupPermission, permissions, dbObject, NewAppError(http.StatusBadRequest, err, err.Error())
 	}
 
 	// Load the existing object
@@ -169,32 +169,32 @@ func commonObjectSharePrep(ctx context.Context, r *http.Request) (models.ODObjec
 	requestedObject.ID = bytesObjectID
 	dbObject, err = dao.GetObject(requestedObject, false)
 	if err != nil {
-		return rollupPermission, permissions, dbObject, NewAppError(500, err, "Error retrieving object")
+		return rollupPermission, permissions, dbObject, NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
 	}
 
 	// Check Permissions
 	allowedToShare := false
 	allowedToShare, rollupPermission = isUserAllowedToShareWithPermission(ctx, &dbObject)
 	if !allowedToShare {
-		return rollupPermission, permissions, dbObject, NewAppError(403, errors.New("unauthorized to share"), "Forbidden - User does not have permission to modify shares for an object")
+		return rollupPermission, permissions, dbObject, NewAppError(http.StatusForbidden, errors.New("unauthorized to share"), "Forbidden - User does not have permission to modify shares for an object")
 	}
 
 	// Check if the object is deleted
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			return rollupPermission, permissions, dbObject, NewAppError(410, err, "The object no longer exists.")
+			return rollupPermission, permissions, dbObject, NewAppError(http.StatusGone, err, "The object no longer exists.")
 		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-			return rollupPermission, permissions, dbObject, NewAppError(405, err, "Unallowed to set shares for deleted objects.")
+			return rollupPermission, permissions, dbObject, NewAppError(http.StatusConflict, err, "Unallowed to set shares for deleted objects.")
 		case dbObject.IsDeleted:
-			return rollupPermission, permissions, dbObject, NewAppError(405, err, "Unallowed to set shares for deleted objects. Use removeObjectFromTrash to restore this object before setting shares.")
+			return rollupPermission, permissions, dbObject, NewAppError(http.StatusConflict, err, "Unallowed to set shares for deleted objects. Use removeObjectFromTrash to restore this object before setting shares.")
 		}
 	}
 
 	//Get the json data from the request and map to an array of permission objects
 	permissions, err = parseObjectShareRequest(r, ctx)
 	if err != nil {
-		return rollupPermission, permissions, dbObject, NewAppError(400, err, "Error parsing request")
+		return rollupPermission, permissions, dbObject, NewAppError(http.StatusBadRequest, err, "Error parsing request")
 	}
 
 	// All good

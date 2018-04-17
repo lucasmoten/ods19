@@ -25,7 +25,7 @@ func (h AppServer) listMyGroupsWithObjects(ctx context.Context, w http.ResponseW
 	// Get groups for this user
 	results, err := dao.GetGroupsForUser(user)
 	if err != nil {
-		herr := NewAppError(500, errors.New("Database call failed: "), err.Error())
+		herr := NewAppError(http.StatusInternalServerError, errors.New("Database call failed: "), err.Error())
 		h.publishError(gem, herr)
 		return herr
 	}

@@ -126,7 +126,7 @@ func (h AppServer) changeOwner(ctx context.Context, w http.ResponseWriter, r *ht
 	}
 	parents, err := dao.GetParents(dbObject)
 	if err != nil {
-		herr := NewAppError(500, err, "error retrieving object parents")
+		herr := NewAppError(http.StatusInternalServerError, err, "error retrieving object parents")
 		h.publishError(gem, herr)
 		return herr
 	}

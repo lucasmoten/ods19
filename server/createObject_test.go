@@ -546,7 +546,7 @@ func TestCreateStreamWithPermissionsOwnedBy(t *testing.T) {
 
 func TestCreateStreamWithPermissionsOwnedByEveryone(t *testing.T) {
 	groupdn := "group/-Everyone"
-	_ = genericTestCreateStreamWithPermissions(t, groupdn, http.StatusPreconditionRequired)
+	_ = genericTestCreateStreamWithPermissions(t, groupdn, http.StatusBadRequest)
 }
 
 // TestCreateStreamWithPermissions creates an object as Tester10, and includes a
@@ -612,6 +612,7 @@ func genericTestCreateStreamWithPermissions(t *testing.T, ownedBy string, codeEx
 	defer util.FinishBody(res.Body)
 
 	if res.StatusCode != codeExpected {
+		t.Logf("Status code returned %d is not the same as that which was expected %d", res.StatusCode, codeExpected)
 		t.FailNow()
 	}
 

@@ -64,7 +64,7 @@ func TestGetObjectBreadcrumbs(t *testing.T) {
 
 }
 
-func TestGetObject_DeletedAncestorReturns405(t *testing.T) {
+func TestGetObject_DeletedAncestorReturns409(t *testing.T) {
 	clientID := 4
 
 	folderA := makeFolderViaJSON("folderA", clientID, t)
@@ -79,8 +79,8 @@ func TestGetObject_DeletedAncestorReturns405(t *testing.T) {
 	resp, _ := clients[clientID].Client.Do(req)
 	defer util.FinishBody(resp.Body)
 
-	if resp.StatusCode != 405 {
-		t.Errorf("bad status: expected 405, but got %v", resp.StatusCode)
+	if resp.StatusCode != http.StatusConflict {
+		t.Errorf("bad status: expected 409, but got %v", resp.StatusCode)
 	}
 }
 

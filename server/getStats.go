@@ -46,7 +46,7 @@ func renderErrorCounters(w http.ResponseWriter) {
 	}
 	for k, v := range counters {
 		// Unless it's 400 or greater, it's not an error.
-		if k.Code >= 400 {
+		if k.Code >= http.StatusBadRequest {
 			totalErrors += v
 		}
 	}

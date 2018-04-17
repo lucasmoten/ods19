@@ -32,7 +32,7 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 
 	requestObject, err := parseGetObjectRequest(ctx)
 	if err != nil {
-		herr := NewAppError(500, err, "Error parsing URI")
+		herr := NewAppError(http.StatusBadRequest, err, "Error parsing URI")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -49,26 +49,26 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 	auditOriginal := NewResourceFromObject(dbObject)
 
 	if dbObject.IsExpunged {
-		herr := NewAppError(410, errors.New("Cannot undelete an expunged object"), "Object was expunged")
+		herr := NewAppError(http.StatusGone, errors.New("Cannot undelete an expunged object"), "Object was expunged")
 		h.publishError(gem, herr)
 		return herr
 	}
 
 	if dbObject.IsAncestorDeleted {
-		herr := NewAppError(405, errors.New("Cannot undelete an object with a deleted parent"), "Object has deleted ancestor")
+		herr := NewAppError(http.StatusConflict, errors.New("Cannot undelete an object with a deleted parent"), "Object has deleted ancestor")
 		h.publishError(gem, herr)
 		return herr
 	}
 
 	if dbObject.ChangeToken != changeToken.ChangeToken {
 		err := errors.New("Changetoken in database does not match client changeToken")
-		herr := NewAppError(400, err, "Invalid changeToken.")
+		herr := NewAppError(http.StatusConflict, err, "Invalid changeToken.")
 		h.publishError(gem, herr)
 		return herr
 	}
 
 	if ok := isUserAllowedToDelete(ctx, &dbObject); !ok {
-		herr := NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to undelete this object")
+		herr := NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to undelete this object")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -77,7 +77,7 @@ func (h AppServer) removeObjectFromTrash(ctx context.Context, w http.ResponseWri
 
 	unDeletedObj, err := dao.UndeleteObject(&dbObject)
 	if err != nil {
-		herr := NewAppError(500, err, "Error restoring object")
+		herr := NewAppError(http.StatusInternalServerError, err, "Error restoring object")
 		h.publishError(gem, herr)
 		return herr
 	}

@@ -21,7 +21,7 @@ func (h AppServer) cors(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "ACCESS")
 
 	if r.Header.Get("Origin") == "" {
-		herr := NewAppError(400, fmt.Errorf("Origin must be specificed in CORS Preflight request"), "missing origin")
+		herr := NewAppError(http.StatusBadRequest, fmt.Errorf("Origin must be specificed in CORS Preflight request"), "missing origin")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -42,7 +42,7 @@ func (h AppServer) cors(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Content-Type", "text/plain charset=UTF-8")
 	w.Header().Set("Content-Length", "0")
 
-	herr := NewAppError(204, nil, "No content")
+	herr := NewAppError(http.StatusNoContent, nil, "No content")
 	h.publishSuccess(gem, w)
 	return herr
 }

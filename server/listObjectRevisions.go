@@ -33,7 +33,7 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	captured, _ := CaptureGroupsFromContext(ctx)
 	pagingRequest, err := protocol.NewPagingRequest(r, captured, true)
 	if err != nil {
-		herr := NewAppError(400, err, "Error parsing request")
+		herr := NewAppError(http.StatusBadRequest, err, "Error parsing request")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -43,35 +43,35 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	// valid decoding checked when parsed, no need to check for error again
 	obj.ID, err = hex.DecodeString(pagingRequest.ObjectID)
 	if err != nil {
-		herr := NewAppError(400, err, "Object Identifier in Request URI is not a hex string")
+		herr := NewAppError(http.StatusBadRequest, err, "Object Identifier in Request URI is not a hex string")
 		h.publishError(gem, herr)
 		return herr
 	}
 	dbObject, err := dao.GetObject(obj, false)
 	if err != nil {
-		herr := NewAppError(500, err, "Error retrieving object")
+		herr := NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
 		h.publishError(gem, herr)
 		return herr
 	}
 
 	// Check for permission to read this object
 	if ok := isUserAllowedToRead(ctx, &dbObject); !ok {
-		return NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to list revisions of this object")
+		return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to list revisions of this object")
 	}
 
 	// Is it deleted?
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			herr := NewAppError(410, err, "The object no longer exists.")
+			herr := NewAppError(http.StatusGone, err, "The object no longer exists.")
 			h.publishError(gem, herr)
 			return herr
 		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-			herr := NewAppError(405, err, "The object cannot be read because an ancestor is deleted.")
+			herr := NewAppError(http.StatusConflict, err, "The object cannot be read because an ancestor is deleted.")
 			h.publishError(gem, herr)
 			return herr
 		case dbObject.IsDeleted:
-			herr := NewAppError(405, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it before listing its contents")
+			herr := NewAppError(http.StatusConflict, err, "The object is currently in the trash. Use removeObjectFromTrash to restore it before listing its contents")
 			h.publishError(gem, herr)
 			return herr
 		}
@@ -80,7 +80,7 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	// Snippets
 	snippetFields, ok := SnippetsFromContext(ctx)
 	if !ok {
-		herr := NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
+		herr := NewAppError(http.StatusBadGateway, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -89,7 +89,7 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	// Get the revision information for this objects
 	response, err := dao.GetObjectRevisionsByUser(user, mapping.MapPagingRequestToDAOPagingRequest(pagingRequest), dbObject, true)
 	if err != nil {
-		herr := NewAppError(500, err, "General error")
+		herr := NewAppError(http.StatusInternalServerError, err, "General error")
 		h.publishError(gem, herr)
 		return herr
 	}

@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/hex"
 	"log"
+	"net/http"
 	"strings"
 
 	"go.uber.org/zap"
@@ -19,19 +20,19 @@ func authHTTPErr(err error) int {
 	case auth.ErrACMNotSpecified,
 		auth.ErrACMNotValid,
 		auth.ErrACMResponseFailed:
-		return 400
+		return http.StatusBadRequest
 	case auth.ErrUserNotAuthorized:
-		return 403
+		return http.StatusForbidden
 	case auth.ErrFailToCheckUserAccess,
 		auth.ErrFailToFlattenACM,
 		auth.ErrFailToInjectPermissions,
 		auth.ErrFailToNormalizePermissions,
 		auth.ErrFailToRebuildACMFromPermissions,
 		auth.ErrFailToRetrieveSnippets:
-		return 502
+		return http.StatusBadGateway
 	default:
-		log.Printf("WARNING: default 403 response due to unmapped error %v\n", err)
-		return 403
+		log.Printf("WARNING: default response due to unmapped error %v\n", err)
+		return http.StatusForbidden
 	}
 }
 

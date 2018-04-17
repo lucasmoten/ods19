@@ -29,7 +29,7 @@ func (h AppServer) copyObject(ctx context.Context, w http.ResponseWriter, r *htt
 
 	requestObject, err := parseGetObjectRequest(ctx)
 	if err != nil {
-		herr := NewAppError(500, err, "Error parsing URI")
+		herr := NewAppError(http.StatusBadRequest, err, "Error parsing URI")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -53,7 +53,7 @@ func (h AppServer) copyObject(ctx context.Context, w http.ResponseWriter, r *htt
 	//		Permission.grantee matches caller, and AllowRead is true
 	ok, existingPerm := isUserAllowedToReadWithPermission(ctx, &dbObject)
 	if !ok {
-		herr := NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
+		herr := NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -82,7 +82,7 @@ func (h AppServer) copyObject(ctx context.Context, w http.ResponseWriter, r *htt
 	// Snippets
 	snippetFields, ok := SnippetsFromContext(ctx)
 	if !ok {
-		herr := NewAppError(502, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
+		herr := NewAppError(http.StatusBadGateway, errors.New("Error retrieving user permissions"), "Error communicating with upstream")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -95,7 +95,7 @@ func (h AppServer) copyObject(ctx context.Context, w http.ResponseWriter, r *htt
 	// get them
 	response, err := dao.GetObjectRevisionsByUser(user, mapping.MapPagingRequestToDAOPagingRequest(&pagingRequest), dbObject, true)
 	if err != nil {
-		herr := NewAppError(500, err, "General error")
+		herr := NewAppError(http.StatusInternalServerError, err, "General error")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -122,7 +122,7 @@ func (h AppServer) copyObject(ctx context.Context, w http.ResponseWriter, r *htt
 				// - save metadata
 				err = dao.UpdateObject(&o)
 				if err != nil {
-					herr := NewAppError(500, err, "error storing object")
+					herr := NewAppError(http.StatusInternalServerError, err, "error storing object")
 					h.publishError(gem, herr)
 					return herr
 				}
@@ -163,7 +163,7 @@ func (h AppServer) copyObject(ctx context.Context, w http.ResponseWriter, r *htt
 				// - save metadata
 				copiedObject, err = dao.CreateObject(&o)
 				if err != nil {
-					herr := NewAppError(500, err, "error storing object")
+					herr := NewAppError(http.StatusInternalServerError, err, "error storing object")
 					h.publishError(gem, herr)
 					return herr
 				}
@@ -184,7 +184,7 @@ func (h AppServer) copyObject(ctx context.Context, w http.ResponseWriter, r *htt
 
 	parents, err := dao.GetParents(copiedObject)
 	if err != nil {
-		herr := NewAppError(500, err, "error retrieving object parents")
+		herr := NewAppError(http.StatusInternalServerError, err, "error retrieving object parents")
 		h.publishError(gem, herr)
 		return herr
 	}

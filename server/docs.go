@@ -26,7 +26,7 @@ func (h AppServer) docs(ctx context.Context, w http.ResponseWriter, r *http.Requ
 
 	w.Header().Set("Content-Type", "text/html")
 	if err := tmpl.Execute(w, nil); err != nil {
-		herr := NewAppError(500, err, err.Error())
+		herr := NewAppError(http.StatusInternalServerError, err, err.Error())
 		h.publishError(gem, herr)
 		return herr
 	}

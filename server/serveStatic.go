@@ -28,7 +28,7 @@ func (h AppServer) serveStatic(ctx context.Context, w http.ResponseWriter, r *ht
 	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "ACCESS")
 	captured, ok := CaptureGroupsFromContext(ctx)
 	if !ok {
-		herr := NewAppError(500, errors.New("Could not get capture groups"), "No capture groups.")
+		herr := NewAppError(http.StatusInternalServerError, errors.New("Could not get capture groups"), "No capture groups.")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -38,18 +38,18 @@ func (h AppServer) serveStatic(ctx context.Context, w http.ResponseWriter, r *ht
 	// and avoid nitpicking about combinations.  Foreign names may show up in other places, but not required
 	// here.
 	if strings.Contains(path, "%") || strings.Contains(path, "\\") {
-		herr := NewAppError(403, fmt.Errorf("Static file paths do not allow escaping"), errServingStatic)
+		herr := NewAppError(http.StatusBadRequest, fmt.Errorf("Static file paths do not allow escaping"), errServingStatic)
 		h.publishError(gem, herr)
 		return herr
 	}
 	// Sanitize path ensures that we are somewhere under the root
 	if err := util.SanitizePath(h.StaticDir, path); err != nil {
-		herr := NewAppError(404, err, errStaticResourceNotFound)
+		herr := NewAppError(http.StatusNotFound, err, errStaticResourceNotFound)
 		h.publishError(gem, herr)
 		return herr
 	}
 	if !strings.Contains(path, h.StaticDir) {
-		herr := NewAppError(403, fmt.Errorf("path for static resource must be within the static directory"), errServingStatic)
+		herr := NewAppError(http.StatusBadRequest, fmt.Errorf("path for static resource must be within the static directory"), errServingStatic)
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -57,13 +57,13 @@ func (h AppServer) serveStatic(ctx context.Context, w http.ResponseWriter, r *ht
 	f, err := os.Open(path)
 	defer f.Close()
 	if err != nil {
-		herr := NewAppError(404, err, errStaticResourceNotFound)
+		herr := NewAppError(http.StatusNotFound, err, errStaticResourceNotFound)
 		h.publishError(gem, herr)
 		return herr
 	}
 	_, err = io.Copy(w, f)
 	if err != nil {
-		herr := NewAppError(500, err, errServingStatic)
+		herr := NewAppError(http.StatusInternalServerError, err, errServingStatic)
 		h.publishError(gem, herr)
 		return herr
 	}

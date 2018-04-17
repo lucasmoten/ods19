@@ -42,7 +42,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	requestObject, recursive, err = parseUpdateObjectRequestAsJSON(ctx, r)
 	if err != nil {
-		herr := NewAppError(400, err, err.Error())
+		herr := NewAppError(http.StatusBadRequest, err, err.Error())
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -52,7 +52,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Retrieve existing object from the database.
 	dbObject, err := dao.GetObject(requestObject, true)
 	if err != nil {
-		herr := NewAppError(500, err, "Error retrieving object")
+		herr := NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -63,7 +63,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	var ok bool
 
 	if ok, grant = isUserAllowedToUpdateWithPermission(ctx, &dbObject); !ok {
-		herr := NewAppError(403, errors.New("forbidden"), "user does not have permission to update this object")
+		herr := NewAppError(http.StatusForbidden, errors.New("forbidden"), "user does not have permission to update this object")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -81,15 +81,15 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			herr := NewAppError(410, nil, "The object no longer exists.")
+			herr := NewAppError(http.StatusGone, nil, "The object no longer exists.")
 			h.publishError(gem, herr)
 			return herr
 		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-			herr := NewAppError(405, nil, "The object cannot be modified because an ancestor is deleted.")
+			herr := NewAppError(http.StatusConflict, nil, "The object cannot be modified because an ancestor is deleted.")
 			h.publishError(gem, herr)
 			return herr
 		case dbObject.IsDeleted:
-			herr := NewAppError(405, nil, "The object is currently in the trash. Use removeObjectFromTrash to restore it")
+			herr := NewAppError(http.StatusConflict, nil, "The object is currently in the trash. Use removeObjectFromTrash to restore it")
 			h.publishError(gem, herr)
 			return herr
 		}
@@ -97,7 +97,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 
 	// Check that assignment as deleted isn't occuring here. Should use deleteObject operations
 	if requestObject.IsDeleted || requestObject.IsAncestorDeleted || requestObject.IsExpunged {
-		herr := NewAppError(428, errors.New("updating object as deleted not allowed"), "Assigning object as deleted through update operation not allowed. Use deleteObject operation")
+		herr := NewAppError(http.StatusConflict, errors.New("updating object as deleted not allowed"), "Assigning object as deleted through update operation not allowed. Use deleteObject operation")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -105,7 +105,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Check that the change token on the object passed in matches the current
 	// state of the object in the data store
 	if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) != 0 {
-		herr := NewAppError(428, errors.New("changeToken does not match expected value"), "changeToken does not match expected value")
+		herr := NewAppError(http.StatusConflict, errors.New("changeToken does not match expected value"), "changeToken does not match expected value")
 		h.publishError(gem, herr)
 		return herr
 	}
@@ -205,7 +205,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 			dbPermissions, _ := dao.GetPermissionsForObject(dbObject)
 			dbObject.Permissions = dbPermissions
 			if !isUserAllowedToShare(ctx, &dbObject) {
-				herr := NewAppError(403, errors.New("Forbidden"), "Forbidden - User does not have permission to change the share for this object")
+				herr := NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to change the share for this object")
 				h.publishError(gem, herr)
 				return herr
 			}
@@ -234,20 +234,20 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	requestObject.ModifiedBy = caller.DistinguishedName
 	err = dao.UpdateObject(&requestObject)
 	if err != nil {
-		herr := NewAppError(500, err, "DAO Error updating object")
+		herr := NewAppError(http.StatusInternalServerError, err, "DAO Error updating object")
 		h.publishError(gem, herr)
 		return herr
 	}
 
 	dbObject, err = dao.GetObject(requestObject, true)
 	if err != nil {
-		herr := NewAppError(500, err, "Error retrieving object")
+		herr := NewAppError(http.StatusInternalServerError, err, "Error retrieving object")
 		h.publishError(gem, herr)
 		return herr
 	}
 	parents, err := dao.GetParents(dbObject)
 	if err != nil {
-		herr := NewAppError(500, err, "error retrieving object parents")
+		herr := NewAppError(http.StatusInternalServerError, err, "error retrieving object parents")
 		h.publishError(gem, herr)
 		return herr
 	}
