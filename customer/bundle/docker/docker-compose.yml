@@ -101,7 +101,6 @@ services:
         - OD_ZK_AAC=/cte/service/aac/1.2/thrift
         - OD_ZK_TIMEOUT
         - OD_ZK_URL
-        - OD_STANDALONE=false
     depends_on:
         - metadatadb
         - aac

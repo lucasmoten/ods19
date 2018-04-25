@@ -62,7 +62,7 @@ func Start(conf config.AppConfiguration) error {
 
 	err = connectWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, conf.ZK.Timeout, conf.ZK.RetryDelay)
 	if err != nil {
-		logger.Fatal("could not register with zookeeper")
+		logger.Warn("could not register with zookeeper")
 	}
 
 	tlsConfig := conf.ServerSettings.GetTLSConfig()

@@ -59,11 +59,6 @@ On macs with homebrew use `brew install openssl`.
 2. Object Drive uses the openssl C bindings, so add it to the correct environment variable.
 If using a mac use `export PKG_CONFIG_PATH="$(brew --prefix openssl)/lib/pkgconfig"` or on linux it may be: `export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig"`
 
-Detailed here: https://gitlab.363-283.io/cte/object-drive/wikis/object-drive-environment-variables
-
-See also the example docker-compose file **.ci/docker-compose.yml** for example environment variables.
-Note that some vars are not set directly inline, because they contain secrets (e.g. AWS vars).
-
 
 #### Python
 
@@ -227,60 +222,39 @@ You will need the certificates found in `$GOPATH/src/github.com/deciphernow/obje
 
 ## 3. Set up environment for Object Drive Server
 There are a **lot** of environment variables that need to be set up for Object Drive to function properly.
-More detailed on all of the variables can be found in [docs/environment.md](docs/environment.md).
+More details on all of the variables can be found in [docs/environment.md](docs/environment.md).
 
-1. To start, get AWS credentials I talked to Rob Fielding (@rfielding) and Lucas Moten (@lucasmoten), what is needed is the `aws_access_key_id` and `aws_secret_access_key` which they will provide.
+A minimal set of environment variables and docker configuration are found in [docker/docker-compose-minimal.yml](docker/docker-compose-minimal.yml).  These are listed below. These exact values can be used when running the containers locally for development purposes. This setup depends upon defaults, and does not leverage AWS for permanent storage, or database instance as it depends on running alongside the referenced metadatadb database container. Event publishing to Kafka is not enabled when using this configuration.  If you are developing a consumer service, refer to the full stack docker-compose files in this project.
 
-2. Having already set the variables for everything in the previous section, here are all of the other environment variables that I needed to get Object Drive working, keep in mind I have already defined `GOPATH`:
-    ```bash
-    # local Object Drive things
-    export OD_ENCRYPT_MASTERKEY=hi
-    export OD_AWS_ACCESS_KEY_ID="your key"
-    export OD_AWS_SECRET_ACCESS_KEY="your key"
 
-    export OD_AAC_CA=$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
-    export OD_AAC_CERT=$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
-    export OD_AAC_CN=twl-server-generic2
-    export OD_AAC_KEY=$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/id/client.key.pem
-    export OD_AAC_ZK_ADDRS=zk:2181
-    export OD_AWS_REGION=us-east-1
-    export OD_AWS_S3_BUCKET=decipherers
-    export OD_AWS_S3_ENDPOINT=s3.amazonaws.com
-    export OD_AWS_S3_FETCH_MB=16
-    export OD_CACHE_EVICTAGE=300
-    export OD_CACHE_HIGHWATERMARK=0.75
-    export OD_CACHE_LOWWATERMARK=0.50
-    export OD_CACHE_PARTITION=[name no space]
-    export OD_CACHE_WALKSLEEP=30
-    export OD_CERTPATH=$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts
-    export OD_DB_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/trust
-    export OD_DB_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
-    export OD_DB_CONN_PARAMS='parseTime=true&collation=utf8_unicode_ci&readTimeout=30s'
-    export OD_DB_HOST=metadatadb
-    export OD_DB_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
-    export OD_DB_MAXIDLECONNS=5
-    export OD_DB_MAXOPENCONNS=10
-    export OD_DB_PASSWORD=dbPassword
-    export OD_DB_PORT=3306
-    export OD_DB_SCHEMA=metadatadb
-    export OD_DB_USERNAME=dbuser
-    export OD_EVENT_PUBLISH_FAILURE_ACTIONS=disabled
-    export OD_EVENT_PUBLISH_SUCCESS_ACTIONS=create,delete,undelete,update
-    export OD_EVENT_ZK_ADDRS=zk:2181
-    export OD_LOG_LEVEL=0
-    export OD_PEER_CN=twl-server-generic2
-    export OD_PEER_SIGNIFIER=P2P
-    export OD_SERVER_BASEPATH=/services/object-drive/1.0
-    export OD_SERVER_CA=$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/server-web/trust/server.trust.pem
-    export OD_SERVER_CERT=$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/server-web/id/server.cert.pem
-    export OD_SERVER_KEY=$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/server-web/id/server.key.pem
-    export OD_SERVER_PORT=4430
-    export OD_ZK_AAC=/cte/service/aac/1.0/thrift
-    export OD_ZK_ANNOUNCE=/services/object-drive/1.0
-    export OD_ZK_TIMEOUT=5
-    export OD_ZK_URL=zk:2181
-    ```
-
+```
+- OD_AAC_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
+- OD_AAC_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
+- OD_AAC_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/id/client.key.pem
+- OD_AAC_CN=twl-server-generic2
+- OD_AAC_INSECURE_SKIP_VERIFY=true
+- OD_PEER_CN=twl-server-generic2
+- OD_AWS_S3_BUCKET=
+- OD_DB_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/trust
+- OD_DB_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
+- OD_DB_CONN_PARAMS=parseTime=true&collation=utf8_unicode_ci&readTimeout=30s
+- OD_DB_HOST=metadatadb
+- OD_DB_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
+- OD_DB_PASSWORD=dbPassword
+- OD_DB_PORT=3306
+- OD_DB_SCHEMA=metadatadb
+- OD_DB_USERNAME=dbuser
+- OD_ENCRYPT_MASTERKEY=0
+- OD_EVENT_PUBLISH_FAILURE_ACTIONS=
+- OD_EVENT_PUBLISH_SUCCESS_ACTIONS=
+- OD_SERVER_ACL_WHITELIST1=cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us
+- OD_SERVER_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/trust.pem
+- OD_SERVER_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.cert.pem
+- OD_SERVER_CIPHERS=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA
+- OD_SERVER_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.key.pem
+- OD_ZK_ANNOUNCE=/cte/service/object-drive/1.0
+- OD_ZK_AAC=/cte/service/aac/1.2/thrift
+```
 
 ## 4. Clone this repository
 

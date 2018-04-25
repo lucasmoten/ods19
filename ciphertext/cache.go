@@ -264,7 +264,7 @@ func Walk(fqCache string, walker Walker) error {
 // DrainUploadedFilesToSafetyRaw is the drain without the goroutine at the end
 func (d *CiphertextCacheData) DrainUploadedFilesToSafetyRaw() {
 	if d.PermanentStorage == nil {
-		d.Logger.Info("persistentstorage not used")
+		d.Logger.Info("permanent storage is nil. unable to drain files to safety")
 		return
 	}
 	//Walk through the cache, and handle .uploaded files
@@ -339,7 +339,7 @@ func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 
 	if size > 0 && d.PermanentStorage != nil {
 		d.Logger.Info(
-			"writeback to PermanentStorage",
+			"writeback to permanent storage",
 			zap.String("bucket", *d.PermanentStorage.GetName()),
 			zap.String("key", *key),
 		)
@@ -347,7 +347,7 @@ func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 		err = d.PermanentStorage.Upload(fIn, key)
 		if err != nil {
 			d.Logger.Warn(
-				"could not write to permanentstorage",
+				"could not write to permanent storage",
 				zap.Error(err),
 			)
 			return err
@@ -368,7 +368,7 @@ func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 	}
 	if d.PermanentStorage != nil {
 		d.Logger.Info(
-			"permanentstorage stored",
+			"permanent storage stored",
 			zap.String("rname", string(rName)),
 		)
 	}
@@ -378,7 +378,7 @@ func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 
 func (d *CiphertextCacheData) doDownloadFromPermanentStorage(foutCaching FileNameCached, key *string) error {
 	if d.PermanentStorage == nil {
-		return util.NewLoggable("there is no PermanentStorage set", nil)
+		return util.NewLoggable(PermanentStorageNotSet, nil)
 	}
 
 	//Do a whole file download from PermanentStorage
@@ -465,14 +465,16 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 
 	err = d.doDownloadFromPermanentStorage(foutCaching, key)
 	if err != nil {
-		if err.Error() != PermanentStorageNotFoundErrorString {
-			d.Logger.Warn("download from PermanentStorage error", zap.Error(err))
+		if d.PermanentStorage != nil {
+			if err.Error() != PermanentStorageNotFoundErrorString {
+				d.Logger.Info("download from permanent storage was not successful", zap.Error(err))
+			}
 		}
-		// Check p2p.... it has to be there...
+		// Check p2p.... it may be there...
 		var filep2p io.ReadCloser
 		filep2p, err = useP2PFile(d.Logger, d.CiphertextCacheZone, rName, 0)
 		if err != nil {
-			d.Logger.Error("p2p cannot find", zap.Error(err))
+			d.Logger.Info("p2p cannot find", zap.Error(err))
 		}
 		if filep2p != nil {
 			defer filep2p.Close()
@@ -482,11 +484,16 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 				_, err = io.Copy(fOut, filep2p)
 				fOut.Close()
 				if err != nil {
-					d.Logger.Error("p2p recache failed", zap.Error(err))
+					d.Logger.Info("p2p recache failed", zap.Error(err))
 				} else {
 					d.Logger.Info("p2p recache success")
 				}
 				// leave err where it is.
+			}
+		} else {
+			if d.PermanentStorage == nil {
+				// single node without permanent storage and does not have
+				return nil
 			}
 		}
 	}
@@ -503,7 +510,7 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 			break
 		} else {
 			d.Logger.Error(
-				"unable to download out of PermanentStorage or p2p",
+				"unable to download out of permanent storage or p2p",
 				zap.Duration("seconds", waitTime/(time.Second)),
 				zap.Int("more tries", tries-1),
 				zap.String("key", string(rName)),
@@ -774,7 +781,7 @@ func cachePurgeIteration(d *CiphertextCacheData, usage float64) {
 // CachePurge will periodically delete files that do not need to be in the cache.
 func (d *CiphertextCacheData) CachePurge() {
 	if d.PermanentStorage == nil {
-		d.Logger.Info("PersistentStorage is nil.  purge is disabled.")
+		d.Logger.Info("permanent storage is nil.  purge is disabled.")
 		return
 	}
 	// read from environment variables:

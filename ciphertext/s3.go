@@ -3,7 +3,9 @@ package ciphertext
 import (
 	"fmt"
 	"io"
+	"math/rand"
 	"strings"
+	"time"
 
 	"github.com/deciphernow/object-drive-server/amazon"
 	"github.com/deciphernow/object-drive-server/config"
@@ -48,6 +50,12 @@ func (s *PermanentStorageData) Upload(fIn io.ReadSeeker, key *string) error {
 		Bucket: s.Bucket,
 		Key:    key,
 	})
+	if err != nil && strings.Contains(err.Error(), "reduce your request rate") {
+		// backoff
+		s3Backoff()
+		// retry
+		_, err = uploader.Upload(&s3manager.UploadInput{Body: fIn, Bucket: s.Bucket, Key: key})
+	}
 	return err
 }
 
@@ -59,7 +67,20 @@ func (s *PermanentStorageData) Download(fOut io.WriterAt, key *string) (int64, e
 	if err != nil && strings.Contains(err.Error(), "NoSuchKey") {
 		err = util.NewLoggable(PermanentStorageNotFoundErrorString, err, zap.String("key", *key))
 	}
+	if err != nil && strings.Contains(err.Error(), "reduce your request rate") {
+		// backoff
+		s3Backoff()
+		// retry
+		bytes, err = downloader.Download(fOut, &s3.GetObjectInput{Bucket: s.Bucket, Key: key})
+	}
 	return bytes, err
+}
+
+func s3Backoff() {
+	minimumDelay := 50
+	maximumDelay := 1200
+	randomDelay := rand.New(rand.NewSource(time.Now().UnixNano())).Intn(maximumDelay-minimumDelay) + minimumDelay
+	time.Sleep(time.Duration(randomDelay) * time.Millisecond)
 }
 
 // GetStream from S3

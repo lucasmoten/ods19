@@ -15,6 +15,7 @@ const (
 	S3_DEFAULT_CIPHERTEXT_CACHE = CiphertextCacheZone("S3_DEFAULT")
 
 	PermanentStorageNotFoundErrorString = "not found in permanent storage"
+	PermanentStorageNotSet              = "there is no PermanentStorage set"
 )
 
 // CiphertextCacheZone looks up ciphertext caches

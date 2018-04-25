@@ -31,10 +31,6 @@ func TestDAOKeyMigrateRotate(t *testing.T) {
 	fileKey := crypto.CreateKey()
 	t.Logf("fileKey: %s", hex.EncodeToString(fileKey))
 
-	//Old style encrypted keys look like this
-	oldEncryptedKey := crypto.ApplyPassphraseOld(m, p.Grantee, fileKey)
-	t.Logf("oldEncryptedKey: %s", hex.EncodeToString(oldEncryptedKey))
-
 	//The IV for a new style permission
 	newPermissionIV := crypto.CreatePermissionIV()
 	t.Logf("newPermissionIV: %s", hex.EncodeToString(newPermissionIV))
@@ -61,29 +57,8 @@ func TestDAOKeyMigrateRotate(t *testing.T) {
 	var result string
 	tx := db.MustBegin()
 
-	//Recover the original file key
-	err := tx.Get(&result, `
-        select 
-            lcase(bitwise256_xor(
-                old_keydecrypt(?,?),
-                ?
-            )) plainKey
-    `,
-		m,
-		p.Grantee,
-		hex.EncodeToString(oldEncryptedKey),
-	)
-	if err != nil {
-		t.Errorf("unable to invoke stored function: %v", err)
-	}
-	t.Logf("recovered fileKey: %s", result)
-
-	if strings.Compare(result, hex.EncodeToString(fileKey)) != 0 {
-		t.Error("recovered wrong key")
-	}
-
 	//Generate the correct new (after migration) key
-	err = tx.Get(&result, `
+	err := tx.Get(&result, `
         select 
             lcase(bitwise256_xor(
                 new_keydecrypt(?,?),
