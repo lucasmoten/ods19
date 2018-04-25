@@ -28,9 +28,7 @@ FORMAT: 1A
 * REF: Now using HTTP status code constants from net/http, with some corrections
 * FIX: Fixed erroneous error logging at service startup during canary check
 * DEV: A minimal docker-compose file is now available for integrators
-* TODO: [Issue 1083](https://github.com/DecipherNow/object-drive-server/issues/1083) ADX Container Image
-* TODO: [Issue 947](https://github.com/DecipherNow/object-drive-server/issues/947) [Issue 1079](https://github.com/DecipherNow/object-drive-server/issues/1079) Migrate to Circle CI 2.0
-
+* FIX: No longer defaulting ServerName expectation of peer nodes within an instance.
 
 ## Release v1.0.14 (February 28, 2018)
 --------------------

@@ -23,9 +23,9 @@ var (
 	// It has to be the same for all peers.  If we needed it, real identifier is the cert DN which is set on
 	// the user context for other values.  It CANNOT be associated with a particular user, because background processes will
 	// do this on behalf of nobody in particular.
-	PeerSignifier = config.GetEnvOrDefault("OD_PEER_SIGNIFIER", "P2P")
+	PeerSignifier = config.GetEnvOrDefault(config.OD_PEER_SIGNIFIER, "P2P")
 	// When we connect p2p, we may need to set the CN being expected
-	peerCN = config.GetEnvOrDefault("OD_PEER_CN", "twl-server-generic2")
+	peerCN = config.GetEnvOrDefault(config.OD_PEER_CN, "")
 	// peerMap is repopulated by a callback that knows when the odrive membership group changes
 	peerMap            = make(map[string]*PeerMapData) //Atomically updated
 	connectionMap      = make(map[string]*http.Client) //Locked for add and remove - no IO under these locks!

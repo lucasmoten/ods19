@@ -133,7 +133,7 @@ func TestS3Connection(sess *session.Session) bool {
 	logger := config.RootLogger.With(zap.String("session", "CiphertextCache"))
 
 	uploader := s3manager.NewUploader(sess)
-	bucketName := config.GetEnvOrDefault("OD_AWS_S3_BUCKET", "")
+	bucketName := config.GetEnvOrDefault(config.OD_AWS_S3_BUCKET, "")
 	if bucketName == "" {
 		logger.Error("error testing s3 connection",
 			zap.Error(fmt.Errorf("Missing environment variable OD_AWS_S3_BUCKET")))
