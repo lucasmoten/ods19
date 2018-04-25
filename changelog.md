@@ -26,6 +26,8 @@ FORMAT: 1A
 * FIX: Fixed bug where bulk move operation was always moving targetted objects to root folder
 * FIX: Bulk operations will now properly clear action targets when preparing GEM
 * REF: Now using HTTP status code constants from net/http, with some corrections
+* FIX: Fixed erroneous error logging at service startup during canary check
+* DEV: A minimal docker-compose file is now available for integrators
 * TODO: [Issue 1083](https://github.com/DecipherNow/object-drive-server/issues/1083) ADX Container Image
 * TODO: [Issue 947](https://github.com/DecipherNow/object-drive-server/issues/947) [Issue 1079](https://github.com/DecipherNow/object-drive-server/issues/1079) Migrate to Circle CI 2.0
 

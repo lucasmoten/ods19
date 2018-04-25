@@ -1,0 +1,97 @@
+version: '2'
+
+services:
+
+  dias:
+    image: deciphernow/dias:latest    
+    ports:
+      - "8443:443"
+
+  zk:
+    image: wurstmeister/zookeeper:3.4.6
+    ports:
+      - "2181:2181"
+
+  redis:
+    image: docker.363-283.io/docker/backend:redis-3.2.2
+    depends_on:
+      - zk
+
+  aac:
+    #image: docker.363-283.io/cte/cte-security-service:1.2.2-SNAPSHOT
+    image: docker.363-283.io/cte/cte-security-service:latest
+    tty: true
+    stdin_open: true
+    ports:
+      - "9093:9000"
+      - "7444:8443"
+    environment:
+        - COM_DECIPHERNOW_SERVER_CONFIG_ZK_ZOOKEEPERCONNECTION=zk:2181
+        - COM_DECIPHERNOW_SERVER_CONFIG_ZK_ANNOUNCEMENTPOINT=/cte/service/aac/1.2
+        - COM_DECIPHERNOW_SERVER_CONFIG_TLS_TRUSTSTORE=/opt/config/certificates/jks/truststore.jks
+        - COM_DECIPHERNOW_SERVER_CONFIG_TLS_KEYSTORE=/opt/config/certificates/jks/twlserver.jks
+        - COM_DECIPHERNOW_SERVER_CONFIG_THRIFT_PORT=9000
+        - COM_DECIPHERNOW_SERVER_CONFIG_REDIS_FAIL_SLEEPMILLISECONDS=3000
+        - COM_DECIPHERNOW_SERVER_CONFIG_REDIS_FAIL_LOGRETRYCOUNT=60
+        - GOV_IC_CTE_AAC_CONFIG_REDIS_FAIL_SLEEPMILLISECONDS=1000
+        - GOV_IC_CTE_AAC_CONFIG_REDIS_FAIL_LOGRETRYCOUNT=60
+        - REDIS_HOST=redis
+        - ZOOKEEPER_URL=zk:2181
+        - CLOUDSHARE_DIAS_ATTRIBUTE_SERVICE_ENDPOINT=https://dias/ws/services/DIASMessageReceiverService
+    depends_on:
+      - zk
+      - redis
+      - dias
+
+  metadatadb:
+    image: "deciphernow/metadatadb:latest"
+    mem_limit: 1024m
+    cpuset: "0"
+    environment:
+      - MYSQL_CONTAINER_NAME=metadatadb
+      - MYSQL_USER=dbuser
+      - MYSQL_DATABASE=metadatadb
+      - MYSQL_ROOT_PASSWORD=dbRootPassword
+      - MYSQL_PASSWORD=dbPassword
+      - OD_ENCRYPT_MASTERKEY
+    ports:
+      - 3306:3306
+    command: "./docker-entrypoint.sh mysqld_safe"
+
+  odrive:
+    image: "deciphernow/odrive:latest"
+    environment:
+        - OD_AAC_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
+        - OD_AAC_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
+        - OD_AAC_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/id/client.key.pem
+        - OD_AAC_CN=twl-server-generic2
+        - OD_AAC_INSECURE_SKIP_VERIFY=true
+        - OD_PEER_CN=twl-server-generic2
+        - OD_AWS_S3_BUCKET=
+        - OD_DB_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/trust
+        - OD_DB_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
+        - OD_DB_CONN_PARAMS=parseTime=true&collation=utf8_unicode_ci&readTimeout=30s
+        - OD_DB_HOST=metadatadb
+        - OD_DB_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
+        - OD_DB_PASSWORD=dbPassword
+        - OD_DB_PORT=3306
+        - OD_DB_SCHEMA=metadatadb
+        - OD_DB_USERNAME=dbuser
+        - OD_ENCRYPT_MASTERKEY=0
+        - OD_EVENT_PUBLISH_FAILURE_ACTIONS=
+        - OD_EVENT_PUBLISH_SUCCESS_ACTIONS=
+        - OD_SERVER_ACL_WHITELIST1=cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us
+        - OD_SERVER_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/trust.pem
+        - OD_SERVER_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.cert.pem
+        - OD_SERVER_CIPHERS=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA
+        - OD_SERVER_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.key.pem
+        - OD_ZK_ANNOUNCE=/cte/service/object-drive/1.0
+        - OD_ZK_AAC=/cte/service/aac/1.2/thrift
+    depends_on:
+        - metadatadb
+        - aac
+        - zk
+        - dias
+
+
+

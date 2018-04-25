@@ -111,6 +111,7 @@ ObjectDrive itself just logs to stdout.  But when the service script launches it
 
 | Name | Description | Default |
 | --- | --- | --- |
+| OD_LOG_LEVEL | Should be Info (OD_LOG_LEVEL=0, -1 is Debug, 0 is Info, 1 is Warn, 2 is Error, 3 is Fatal, etc.) for production systems | 0 |
 | OD_LOG_LOCATION | The location of a log file, supplied in `env.sh`  to override log location. | object-drive.log |
 
 ### Peer to Peer
@@ -129,7 +130,7 @@ Remaining server settings are noted here
 | --- | --- | --- |
 | OD_DEADLOCK_RETRYCOUNTER | Indicates the number of times a create or update operation should be retried if the transaction fails due to a database deadlock | 30 |
 | OD_DEADLOCK_RETRYDELAYMS | The duration in milliseconds between retry attempts for a create or update operation when a transaction fails due to a deadlock in the database | 55 |
-| **OD_ENCRYPT_MASTERKEY** | The secret master key used as part of the encryption key for all files stored in the system. If this value is changed, all file keys must be adjusted at the same time. If you don't set this, the service will shut down.  Note that if a token.jar is installed onto the system, we can use the Bedrock encrypt format like `ENC{...} | |
+| **OD_ENCRYPT_MASTERKEY** | **Required** The secret master key used as part of the encryption key for all files stored in the system. If this value is changed, all file keys must be adjusted at the same time. If you don't set this, the service will shut down.  Note that if a token.jar is installed onto the system, we can use the Bedrock encrypt format like `ENC{...} | |
 | OD_SERVER_ACL_WHITELIST*n* | One or more environment variable prefixes to denote distinguished name assigned to the access control whitelist that controls whether a connector can impersonate as another identity. | |
 | OD_SERVER_BASEPATH | The base URL root. Used in debug UIs.    | "/services/object-drive/1.0" |
 | OD_SERVER_CA | The path to the certificate authority folder or file containing public certificate(s) to trust as the server.    |  |
@@ -137,7 +138,6 @@ Remaining server settings are noted here
 | OD_SERVER_CIPHERS | A comma delimited list of ciphers to be allowed for connections. Valid values are TLS_RSA_WITH_RC4_128_SHA, TLS_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA (recommended), TLS_RSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_ECDSA_WITH_RC4_128_SHA, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_RC4_128_SHA, TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 (recommended), TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 |  |
 | OD_SERVER_KEY | The path to the server's private key.   |  |
 | OD_SERVER_PORT | The port for which this object-drive instance will listen on. Binding to ports below 1024 require setting additional security settings on the system.  | 4430 |
-| OD_LOG_LEVEL | Should be Info (OD_LOG_LEVEL=0, -1 is Debug, 0 is Info, 1 is Warn, 2 is Error, 3 is Fatal, etc.) for production systems | 0 |
 | OD_TOKENJAR_LOCATION | If a token.jar is placed on the filesystem to support Bedrock secret encryption format, then this is the full location of that jar file.  That jar is presumed to have used OD_TOKENJAR_PASSWORD in its generation | `/opt/services/object-drive-1.0/token.jar` |
 | OD_TOKENJAR_PASSWORD | This is the password that is embedded into code that is authorized to decrypt secrets that we cannot avoid writing down on the system.  The security of the system does not lie in this password, but in the fact that each token.jar should be using a fresh sample.dat that has a fresh key per cluster.  This value generally does not need an override, but it is here in case it does get changed without recompiling the code.  | Embedded in compiled code |
 
