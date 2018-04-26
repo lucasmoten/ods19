@@ -25,7 +25,7 @@ var (
 	defaultDBHost   = "metadatadb"
 	defaultDBPort   = "3306"
 	// DefaultBucket is the name of the S3 storage bucket to use for encrypted files
-	DefaultBucket = getEnvOrDefault("OD_AWS_S3_BUCKET", "")
+	DefaultBucket = getEnvOrDefault(OD_AWS_S3_BUCKET, "")
 )
 
 var empty []string
@@ -510,8 +510,8 @@ func (r *DatabaseConfiguration) GetDatabaseHandle() (*sqlx.DB, error) {
 	}
 	// Setup handle to the database
 	db, err := sqlx.Open(r.Driver, r.buildDSN())
-	db.SetMaxIdleConns(int(getEnvOrDefaultInt("OD_DB_MAXIDLECONNS", 10)))
-	db.SetMaxOpenConns(int(getEnvOrDefaultInt("OD_DB_MAXOPENCONNS", 10)))
+	db.SetMaxIdleConns(int(getEnvOrDefaultInt(OD_DB_MAXIDLECONNS, 10)))
+	db.SetMaxOpenConns(int(getEnvOrDefaultInt(OD_DB_MAXOPENCONNS, 10)))
 	return db, err
 }
 
