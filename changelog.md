@@ -16,7 +16,7 @@ FORMAT: 1A
 
 # Group Changelog
 
-## Unreleased v1.0.15 (Target April 30, 2018)
+## Release v1.0.15 (April 27, 2018)
 ---------------------
 * FIX: Copy operation no longer requires header for Content-Type to be set
 * ENH: Listing group objects can now be done using user as group.
