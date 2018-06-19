@@ -21,10 +21,10 @@ func TestAuditSetters(t *testing.T) {
 	}
 
 	if *en.E.Action != "ACCESS" {
-		t.Errorf("unexpected action: %s", en.E.Action)
+		t.Errorf("unexpected action: %v", en.E.Action)
 	}
 	if *en.E.Type != "EventAccess" {
-		t.Errorf("unexpected type: %s", en.E.Type)
+		t.Errorf("unexpected type: %v", en.E.Type)
 	}
 
 	testPointer(t, en)
@@ -32,9 +32,9 @@ func TestAuditSetters(t *testing.T) {
 
 func testPointer(t *testing.T, en envelope) {
 	if *en.E.Action != "ACCESS" {
-		t.Errorf("unexpected action: %s", en.E.Action)
+		t.Errorf("unexpected action: %v", en.E.Action)
 	}
 	if *en.E.Type != "EventAccess" {
-		t.Errorf("unexpected type: %s", en.E.Type)
+		t.Errorf("unexpected type: %v", en.E.Type)
 	}
 }
