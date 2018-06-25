@@ -29,7 +29,7 @@ func (dao *DataAccessLayer) GetObjectRevisionsByUser(
 	return response, err
 }
 
-func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, object models.ODObject, withProperties bool) (models.ODObjectResultset, error) {
+func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, object models.ODObject, loadProperties bool) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	query := `
     select 
@@ -87,7 +87,7 @@ func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagi
 	permissions := []models.ODObjectPermission{}
 	for i := 0; i < len(response.Objects); i++ {
 		// Populate properties if requested
-		if withProperties {
+		if loadProperties {
 			properties, err := getPropertiesForObjectRevisionInTransaction(tx, response.Objects[i])
 			if err != nil {
 				return response, err
@@ -103,6 +103,9 @@ func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagi
 			}
 		}
 		response.Objects[i].Permissions = permissions
+	}
+	if loadProperties {
+		response = postProcessingFilterOnCustomProperties(response, pagingRequest)
 	}
 	return response, err
 }

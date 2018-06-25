@@ -69,7 +69,9 @@ func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUs
 		}
 		response.Objects[i] = obj
 	}
-
+	if loadProperties {
+		response = postProcessingFilterOnCustomProperties(response, pagingRequest)
+	}
 	// Done
 	return response, err
 }
@@ -246,6 +248,104 @@ func buildJoinUserToACM(tx *sqlx.Tx, user models.ODUser) string {
 	query += hex.EncodeToString(user.ID)
 	query += `') `
 	return query
+}
+
+func postProcessingFilterOnCustomProperties(response models.ODObjectResultset, pagingRequest PagingRequest) models.ODObjectResultset {
+	// initialize response
+	filteredResponse := models.ODObjectResultset{}
+	// quick checks for post processing
+	noFilters := (len(pagingRequest.FilterSettings) == 0)
+	orMatchType := (pagingRequest.FilterMatchType != "and")
+	if noFilters || orMatchType {
+		filteredResponse = response
+	} else {
+		// carry over values from initial response
+		filteredResponse.PageNumber = response.PageNumber
+		filteredResponse.PageSize = response.PageSize
+		filteredResponse.PageCount = response.PageCount
+		// check each response
+		for _, responseObject := range response.Objects {
+			// assume we're matched unless invalidated below
+			propertiesMatching := true
+			// check each filter against the request
+			for _, filterSetting := range pagingRequest.FilterSettings {
+				dbField := getDBFieldFromPagingRequestField(filterSetting.FilterField)
+				if len(dbField) != 0 {
+					// field was already handled during query against dataset
+					continue
+				}
+				// track if the property referenced in filter is found
+				propertyFound := false
+				// examine each property
+				for _, property := range responseObject.Properties {
+					// see if it matches the filter field
+					if strings.ToLower(property.Name) == strings.ToLower(filterSetting.FilterField) {
+						// found
+						propertyFound = true
+						// check condition of the filter. comparisons below are negation checks
+						// for whether it should it should be removed from the filtered response
+						switch strings.ToLower(filterSetting.Condition) {
+						case "morethan":
+							if !(property.Value.String > filterSetting.Expression) {
+								propertiesMatching = false
+							}
+						case "lessthan":
+							if !(property.Value.String < filterSetting.Expression) {
+								propertiesMatching = false
+							}
+						case "notbegins":
+							if strings.HasPrefix(property.Value.String, filterSetting.Expression) {
+								propertiesMatching = false
+							}
+						case "begins":
+							if !strings.HasPrefix(property.Value.String, filterSetting.Expression) {
+								propertiesMatching = false
+							}
+						case "notends":
+							if strings.HasSuffix(property.Value.String, filterSetting.Expression) {
+								propertiesMatching = false
+							}
+						case "ends":
+							if !strings.HasSuffix(property.Value.String, filterSetting.Expression) {
+								propertiesMatching = false
+							}
+						case "notcontains":
+							if strings.Contains(property.Value.String, filterSetting.Expression) {
+								propertiesMatching = false
+							}
+						case "contains":
+							if !strings.Contains(property.Value.String, filterSetting.Expression) {
+								propertiesMatching = false
+							}
+						case "notequals":
+							if property.Value.String == filterSetting.Expression {
+								propertiesMatching = false
+							}
+						default: // "equals":
+							if property.Value.String != filterSetting.Expression {
+								propertiesMatching = false
+							}
+						}
+					}
+				}
+				// if we didn't even find the property referenced, we can only keep if its
+				// a negation filter. (e.g., object doesn't have the property, and filtering on its value not equal)
+				if !propertyFound {
+					// invalidate this response if the filter condition is not a negation
+					if !strings.HasPrefix(filterSetting.Condition, "not") {
+						propertiesMatching = false
+					}
+				}
+			}
+			// Include in response if still matching
+			if propertiesMatching {
+				filteredResponse.Objects = append(filteredResponse.Objects, responseObject)
+			}
+		}
+		// Update matching page rows for filtered response based on new count
+		filteredResponse.PageRows = len(filteredResponse.Objects)
+	}
+	return filteredResponse
 }
 
 // MySQLSafeString takes an input string and escapes characters as appropriate

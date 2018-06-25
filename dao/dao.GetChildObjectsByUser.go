@@ -30,8 +30,8 @@ func (dao *DataAccessLayer) GetChildObjectsByUser(
 }
 
 func getChildObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
+	loadProperties := true
 	response := models.ODObjectResultset{}
-
 	// NOTE: distinct is unfortunately used here because object_permission
 	// allows multiple records per object and grantee.
 	query := `
@@ -57,11 +57,14 @@ func getChildObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	// Load full meta, properties, and permissions
 	for i := 0; i < len(response.Objects); i++ {
-		obj, err := getObjectInTransaction(tx, response.Objects[i], true)
+		obj, err := getObjectInTransaction(tx, response.Objects[i], loadProperties)
 		if err != nil {
 			return response, err
 		}
 		response.Objects[i] = obj
+	}
+	if loadProperties {
+		response = postProcessingFilterOnCustomProperties(response, pagingRequest)
 	}
 	return response, err
 }

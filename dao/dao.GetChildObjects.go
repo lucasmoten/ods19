@@ -57,5 +57,8 @@ func getChildObjectsInTransaction(tx *sqlx.Tx, pagingRequest PagingRequest, obje
 		}
 		response.Objects[i] = obj
 	}
+	if loadProperties {
+		response = postProcessingFilterOnCustomProperties(response, pagingRequest)
+	}
 	return response, err
 }

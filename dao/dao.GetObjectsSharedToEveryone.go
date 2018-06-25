@@ -27,7 +27,7 @@ func (dao *DataAccessLayer) GetObjectsSharedToEveryone(user models.ODUser, pagin
 }
 
 func getObjectsSharedToEveryoneInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
-
+	loadProperties := true
 	response := models.ODObjectResultset{}
 
 	// Only include those that are shared to everyone
@@ -55,11 +55,14 @@ func getObjectsSharedToEveryoneInTransaction(tx *sqlx.Tx, user models.ODUser, pa
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	// Load full meta, properties, and permissions
 	for i := 0; i < len(response.Objects); i++ {
-		obj, err := getObjectInTransaction(tx, response.Objects[i], true)
+		obj, err := getObjectInTransaction(tx, response.Objects[i], loadProperties)
 		if err != nil {
 			return response, err
 		}
 		response.Objects[i] = obj
+	}
+	if loadProperties {
+		response = postProcessingFilterOnCustomProperties(response, pagingRequest)
 	}
 	return response, err
 }
