@@ -235,24 +235,6 @@
 			"revisionTime": "2016-10-29T20:57:26Z"
 		},
 		{
-			"checksumSHA1": "ff8DZQAkszikGCT4wAU4Pl+u5uI=",
-			"path": "github.com/deciphernow/commons/gov",
-			"revision": "971d13c4d08603fbfa96cf072a03994e42e6070f",
-			"revisionTime": "2016-11-10T19:49:42-05:00"
-		},
-		{
-			"checksumSHA1": "QDQ7fAci8SZ7Bl/JK3icBjO11Zo=",
-			"path": "github.com/deciphernow/commons/gov/encryptor",
-			"revision": "971d13c4d08603fbfa96cf072a03994e42e6070f",
-			"revisionTime": "2016-11-10T19:49:42-05:00"
-		},
-		{
-			"checksumSHA1": "USzl9m2iawGeb4dFdQIT6AwP1HY=",
-			"path": "github.com/deciphernow/commons/tlsutil",
-			"revision": "971d13c4d08603fbfa96cf072a03994e42e6070f",
-			"revisionTime": "2016-11-10T19:49:42-05:00"
-		},
-		{
 			"checksumSHA1": "katwbBB1zUJzBQmcY1BVzKbC2lc=",
 			"path": "github.com/deciphernow/gm-fabric-go/gk",
 			"revision": "9928bd869ad63d4af927ff6e492fd9ff01f5299f",
