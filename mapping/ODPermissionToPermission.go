@@ -3,6 +3,7 @@ package mapping
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/deciphernow/object-drive-server/metadata/models"
@@ -87,11 +88,16 @@ func applyEveryonePermissionsIfExists(i []protocol.Permission_1_0) []protocol.Pe
 // models to an array of API exposable Permission and applies everyone permissions
 func MapODPermissionsToPermission(i *[]models.ODObjectPermission) protocol.Permission {
 	o := protocol.Permission{}
-	create := make(map[string]bool)
-	read := make(map[string]bool)
-	update := make(map[string]bool)
-	delete := make(map[string]bool)
-	share := make(map[string]bool)
+	create := []string{}
+	read := []string{}
+	update := []string{}
+	delete := []string{}
+	share := []string{}
+	// create := make(map[string]bool)
+	// read := make(map[string]bool)
+	// update := make(map[string]bool)
+	// delete := make(map[string]bool)
+	// share := make(map[string]bool)
 	hasEveryone := false
 	var everyonePermissions *models.ODObjectPermission
 	for _, q := range *i {
@@ -103,38 +109,53 @@ func MapODPermissionsToPermission(i *[]models.ODObjectPermission) protocol.Permi
 	}
 	for _, q := range *i {
 		resourceName := q.GetResourceName()
-		if q.AllowCreate || (hasEveryone && everyonePermissions.AllowCreate) {
-			create[resourceName] = true
+		if (q.AllowCreate || (hasEveryone && everyonePermissions.AllowCreate)) && !valueInStringArray(create, resourceName) {
+			create = append(create, resourceName)
 		}
-		if q.AllowRead || (hasEveryone && everyonePermissions.AllowRead) {
-			read[resourceName] = true
+		if (q.AllowRead || (hasEveryone && everyonePermissions.AllowRead)) && !valueInStringArray(read, resourceName) {
+			read = append(read, resourceName)
 		}
-		if q.AllowUpdate || (hasEveryone && everyonePermissions.AllowUpdate) {
-			update[resourceName] = true
+		if (q.AllowUpdate || (hasEveryone && everyonePermissions.AllowUpdate)) && !valueInStringArray(update, resourceName) {
+			update = append(update, resourceName)
 		}
-		if q.AllowDelete || (hasEveryone && everyonePermissions.AllowDelete) {
-			delete[resourceName] = true
+		if (q.AllowDelete || (hasEveryone && everyonePermissions.AllowDelete)) && !valueInStringArray(delete, resourceName) {
+			delete = append(delete, resourceName)
 		}
-		if q.AllowShare || (hasEveryone && everyonePermissions.AllowShare) {
-			share[resourceName] = true
+		if (q.AllowShare || (hasEveryone && everyonePermissions.AllowShare)) && !valueInStringArray(share, resourceName) {
+			share = append(share, resourceName)
 		}
 	}
-	for k := range create {
+	sort.Strings(create)
+	sort.Strings(read)
+	sort.Strings(update)
+	sort.Strings(delete)
+	sort.Strings(share)
+	for _, k := range create {
 		o.Create.AllowedResources = append(o.Create.AllowedResources, k)
 	}
-	for k := range read {
+	for _, k := range read {
 		o.Read.AllowedResources = append(o.Read.AllowedResources, k)
 	}
-	for k := range update {
+	for _, k := range update {
 		o.Update.AllowedResources = append(o.Update.AllowedResources, k)
 	}
-	for k := range delete {
+	for _, k := range delete {
 		o.Delete.AllowedResources = append(o.Delete.AllowedResources, k)
 	}
-	for k := range share {
+	for _, k := range share {
 		o.Share.AllowedResources = append(o.Share.AllowedResources, k)
 	}
 	return o
+}
+
+// I'm sure we have this kind of function somewhere else but i couldnt locate
+func valueInStringArray(a []string, v string) bool {
+	for _, s := range a {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }
 
 // MapObjectSharesToODPermissions takes an array of ObjectShare request, and

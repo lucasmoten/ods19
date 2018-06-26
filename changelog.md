@@ -19,6 +19,7 @@ FORMAT: 1A
 ## Release v1.0.16 (June 29, 2018)
 ---------------------
 * ENH: Filters can now be applied against custom properties for list/search operations
+* ENH: Permissions for objects will now be returned in a deterministic order by grantee
 
 ## Release v1.0.15 (April 27, 2018)
 ---------------------

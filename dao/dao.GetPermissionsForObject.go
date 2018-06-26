@@ -56,7 +56,9 @@ func getPermissionsForObjectInTransaction(tx *sqlx.Tx, object models.ODObject) (
 		object_permission op 
     where 
         op.isdeleted = 0 
-        and op.objectid = ?`
+		and op.objectid = ?
+	order by
+		op.grantee`
 	err := tx.Select(&response, query, object.ID)
 	if err != nil {
 		return response, err
