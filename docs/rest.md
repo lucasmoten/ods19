@@ -707,7 +707,7 @@ This microservice operation will remove an object from the trash and delete it f
 
 ---
 
-## List Object Revisions [/revisions/{objectId}{?pageNumber,pageSize,sortField,sortAscending}]
+## List Object Revisions [/revisions/{objectId}{?pageNumber,pageSize,sortField,sortAscending,filterMatchType,filterField,condition,expression}]
 
 + Parameters
     + objectId: `11e5e4867a6e3d8389020242ac110002` (string(length=32), required) - Hex encoded identifier of the object for which revisions are being requested.
@@ -732,7 +732,42 @@ This microservice operation will remove an object from the trash and delete it f
             + `uspersons`
     + sortAscending: true (boolean, optional) - Indicates whether to sort in ascending or descending order. If not provided, the default is false.
         + Default: false
-
+    + filterMatchType: `and` (string, optional) - **experimental** - Allows for overriding default filter to require either all or any filters match.
+        + Default: `or`
+        + Members
+            + `all`
+            + `and`
+            + `any`
+            + `or`
+    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition). Introduced in v1.0.16, field names specified that do not appear in the list below will be compared to custom properties of the given name for potential removal from the returned page of the resultset.
+        + Members
+            + `changecount`
+            + `createdby`
+            + `createddate`
+            + `contentsize`
+            + `contenttype`
+            + `description`
+            + `foiaexempt`
+            + `id`
+            + `modifiedby`
+            + `modifieddate`
+            + `name`
+            + `ownedby`
+            + `typename`
+            + `uspersons`
+    + condition: `equals` (enum[string], optional) - **experimental** - The match type for filtering
+        + Members
+            + `begins`
+            + `contains`
+            + `ends`
+            + `equals`
+            + `lessthan`
+            + `morethan`
+            + `notbegins`
+            + `notcontains`
+            + `notends`
+            + `notequals`
+    + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
 
 
 ### List Object Revisions [GET]
@@ -850,7 +885,7 @@ The **id** field values for sortField and filterFiled refer to the object id onl
             + `and`
             + `any`
             + `or`
-    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
+    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition). Introduced in v1.0.16, field names specified that do not appear in the list below will be compared to custom properties of the given name for potential removal from the returned page of the resultset.
         + Members
             + `changecount`
             + `createdby`
@@ -928,7 +963,7 @@ The **id** field values for sortField and filterFiled refer to the object id onl
             + `and`
             + `any`
             + `or`
-    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
+    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition) Introduced in v1.0.16, field names specified that do not appear in the list below will be compared to custom properties of the given name for potential removal from the returned page of the resultset.
         + Members
             + `changecount`
             + `createdby`
@@ -1031,7 +1066,7 @@ This microservice operation retrieves a list of groups for which the user is a m
             + `and`
             + `any`
             + `or`
-    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
+    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition). Introduced in v1.0.16, field names specified that do not appear in the list below will be compared to custom properties of the given name for potential removal from the returned page of the resultset.
         + Members
             + `changecount`
             + `createdby`
@@ -1114,7 +1149,7 @@ This microservice operation retrieves a list of objects with no parent owned by 
             + `and`
             + `any`
             + `or`
-    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
+    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition). Introduced in v1.0.16, field names specified that do not appear in the list below will be compared to custom properties of the given name for potential removal from the returned page of the resultset.
         + Members
             + `changecount`
             + `createdby`
@@ -1202,7 +1237,7 @@ Purpose: This microservice operation retrieves a list of objects contained withi
             + `and`
             + `any`
             + `or`
-    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
+    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition). Introduced in v1.0.16, field names specified that do not appear in the list below will be compared to custom properties of the given name for potential removal from the returned page of the resultset.
         + Members
             + `changecount`
             + `createdby`
@@ -1344,7 +1379,7 @@ Headers are passed along to support range requests, ETags, and so forth.
             + `and`
             + `any`
             + `or`
-    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
+    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition). Introduced in v1.0.16, field names specified that do not appear in the list below will be compared to custom properties of the given name for potential removal from the returned page of the resultset.
         + Members
             + `changecount`
             + `createdby`
@@ -1495,7 +1530,7 @@ Headers are passed along to support range requests, ETags, and so forth.
             + `and`
             + `any`
             + `or`
-    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
+    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition). Introduced in v1.0.16, field names specified that do not appear in the list below will be compared to custom properties of the given name for potential removal from the returned page of the resultset.
         + Members
             + `changecount`
             + `createdby`
@@ -1750,7 +1785,7 @@ Although it is not permitted to assign ownership to Everyone, ownership may be a
             + `and`
             + `any`
             + `or`
-    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
+    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition). Introduced in v1.0.16, field names specified that do not appear in the list below will be compared to custom properties of the given name for potential removal from the returned page of the resultset.
         + Members
             + `changecount`
             + `createdby`
@@ -1839,7 +1874,7 @@ This microservice operation retrieves a list of objects that the user has shared
             + `and`
             + `any`
             + `or`
-    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
+    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition). Introduced in v1.0.16, field names specified that do not appear in the list below will be compared to custom properties of the given name for potential removal from the returned page of the resultset.
         + Members
             + `changecount`
             + `createdby`
@@ -1929,7 +1964,7 @@ This microservice operation retrieves a list of objects that the user has shared
             + `and`
             + `any`
             + `or`
-    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition)
+    + filterField: `changecount` (string, optional) - **experimental** - Denotes a field that the results should be filtered on. Can be specified multiple times. If filterField is set, condition and expression must also be set to complete the tupled filter query.  Multiple filters act as a union, joining combined sets (OR condition) as opposed to requiring all filters be met as exclusionary (AND condition). Introduced in v1.0.16, field names specified that do not appear in the list below will be compared to custom properties of the given name for potential removal from the returned page of the resultset.
         + Members
             + `changecount`
             + `createdby`

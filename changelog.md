@@ -16,6 +16,10 @@ FORMAT: 1A
 
 # Group Changelog
 
+## Release v1.0.16 (June 29, 2018)
+---------------------
+* ENH: Filters can now be applied against custom properties for list/search operations
+
 ## Release v1.0.15 (April 27, 2018)
 ---------------------
 * FIX: Copy operation no longer requires header for Content-Type to be set
