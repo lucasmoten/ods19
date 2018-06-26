@@ -110,6 +110,15 @@ func TestCreateObjectSimple(t *testing.T) {
 
 var ValidAcmCreateObjectSimple = `{"version":"2.1.0","classif":"U","dissem_ctrls":["FOUO"],"portion":"U//FOUO","banner":"UNCLASSIFIED//FOUO","dissem_countries":["USA"],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"]}`
 
+func TestCreateObjectSimpleNoCheck(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	clientID := 5
+	data := "Initial test data 1"
+	doTestCreateObjectSimple(t, data, clientID, nil, nil, `{"version":"2.1.0","classif":"U"}`)
+}
+
 func TestCreateWithACMInObjectFormat(t *testing.T) {
 
 	// Test originates from a sample request from Rob Olson from email

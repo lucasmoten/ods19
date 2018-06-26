@@ -293,18 +293,50 @@ services:
       MONGO_INITDB_DATABASE: "bedrock"
 
 
+  # odrive-indexer:
+  #   image: deciphernow/odrive-indexer:1.0.0-SNAPSHOT
+  #   environment:
+  #     ODRIVE_TEMPLATES: "true"
+  #     ODRIVE_FIELDS: "true"
+  #     DEBUG: "false"
+  #     MONGO_DB: "admin"
+  #     MONGO_COLLECT_ALL_EVENTS_ENABLED: "false"
+  #     ES_ALIAS_NAME: "odrive"
+  #   depends_on:
+  #     - es
+  #     - kafka
+  #     - zk
+  #     - mongo 
+
+  es5:
+    hostname: es5
+    image:  docker.363-283.io/docker/backend:elasticsearch-5.3.1
+    ports:
+      - "9202:9200"
+      - "9302:9300"
+
   odrive-indexer:
-    image: deciphernow/odrive-indexer:1.0.0-SNAPSHOT
+    image: docker.363-283.io/bedrock/object-drive-indexer-service:2.0.0-SNAPSHOT
     environment:
-      ODRIVE_TEMPLATES: "true"
-      ODRIVE_FIELDS: "true"
       DEBUG: "false"
-      MONGO_DB: "admin"
-      MONGO_COLLECT_ALL_EVENTS_ENABLED: "false"
-      ES_ALIAS_NAME: "odrive"
+      MONGO_COLLECT_ERRORS_ENABLED: "true"
+      KAFKA_THREADS: "2"
+      ES_CONTENT_FIELDS: "sanitizedTitle,content"
+      ES_SOURCE_FIELDS: "parentId,breadcrumbs,isPDFAvailable,containsUSPersonsData,exemptFromFOIA,finderTitle,indexerTitle,typeName,description,deletedBy,permissions,contentSize,modifiedBy,id,contentType,isPDFAvailable,exemptFromFOIA,dataType,changeCount,permission,changeToken,containsUSPersonsData,parentId,contentHash,createdDate,createdBy,deletedDate,modifiedDate,name,typeId,ownedBy,sanitizedTitle"
+      TIKA_OCR_ENABLED: "false"
+      TIKA_EXTRACT_TIMEOUT_SECONDS: "120"
+      TIKA_OCR_MAX_SIZE_MB: "20"
+      ES_HOSTS: "es5:9200"
+      ES_MAPPINGS_DIR: "etc/mappings/es5"
+      ES_INDEX_NAME: "odrive_v001"
+      TIKA_EXTRACT_SIZE_MB: "10"
+      TIKA_EXTRACT_MAX_PDF_SIZE_MB: "10"
+    ports:
+      - "7555:8443"
+      - "4001:4001"
+#    volumes: # Uncomment to update test tika config updates without rebuilding service
+#      - ./docker/tika/tika-config.xml:/opt/services/odrive-indexer-2.0/etc/tika-config.xml
     depends_on:
       - es
       - kafka
       - zk
-      - mongo 
-
