@@ -20,6 +20,7 @@ FORMAT: 1A
 ---------------------
 * ENH: Filters can now be applied against custom properties for list/search operations
 * ENH: Permissions for objects will now be returned in a deterministic order by grantee
+* DEV: Removed duplicate reference to odrive-indexer in docker-compose file
 
 ## Release v1.0.15 (April 27, 2018)
 ---------------------
