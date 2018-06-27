@@ -234,6 +234,7 @@ func updateObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 					dbProperty.ModifiedBy = object.ModifiedBy
 					err = deleteObjectPropertyInTransaction(tx, dbProperty)
 					if err != nil {
+						logger.Debug("error deleting property", zap.Error(err))
 						return acmCreated, util.NewLoggable("error deleting property during update", err, zap.String("property.name", dbProperty.Name))
 					}
 					// don't break for loop here because we want to clean out all of the

@@ -162,8 +162,9 @@ func (h *AppServer) InitRegex() {
 		ObjectsMove:        route("/objects/move$"),
 		ObjectsChangeOwner: route("/objects/owner/(?P<newOwner>.*)$"),
 		// - revisions
-		Revisions:      route("/revisions/(?P<objectId>[0-9a-fA-F]{32})$"),
-		RevisionStream: route("/revisions/(?P<objectId>[0-9a-fA-F]{32})/(?P<revisionId>.*)/stream(\\.[0-9a-zA-Z]*)?$"),
+		Revisions:       route("/revisions/(?P<objectId>[0-9a-fA-F]{32})$"),
+		RevisionRestore: route("/revisions/(?P<objectId>[0-9a-fA-F]{32})/(?P<revisionId>.*)/restore$"),
+		RevisionStream:  route("/revisions/(?P<objectId>[0-9a-fA-F]{32})/(?P<revisionId>.*)/stream(\\.[0-9a-zA-Z]*)?$"),
 		// - share
 		SharedToMe:       route("/shares$"),
 		SharedToOthers:   route("/shared$"),
@@ -488,6 +489,10 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			matched = "ObjectsChangeOwner"
 			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.ObjectsChangeOwner.RX)
 			herr = h.doBulkOwnership(ctx, w, r)
+		case h.Routes.RevisionRestore.RX.MatchString(uri):
+			matched = "RevisionRestore"
+			ctx = parseCaptureGroups(ctx, r.URL.Path, h.Routes.RevisionRestore.RX)
+			herr = h.restoreVersion(ctx, w, r)
 		default:
 			herr = do404(ctx, w, r)
 			h.publishError(gem, herr)
@@ -779,6 +784,7 @@ type StaticRx struct {
 	BulkProperties     StaticRxData
 	Ping               StaticRxData
 	Revisions          StaticRxData
+	RevisionRestore    StaticRxData
 	RevisionStream     StaticRxData
 	SharedToMe         StaticRxData
 	SharedToOthers     StaticRxData

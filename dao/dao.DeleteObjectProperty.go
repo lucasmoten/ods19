@@ -1,8 +1,6 @@
 package dao
 
 import (
-	"fmt"
-
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 
@@ -46,10 +44,10 @@ func deleteObjectPropertyInTransaction(tx *sqlx.Tx, objectProperty models.ODObje
 	if err != nil {
 		return err
 	}
-	// Check if changeToken matches
-	if objectProperty.ChangeToken != dbObjectProperty.ChangeToken {
-		return fmt.Errorf("ChangeToken does not match expected value %s", dbObjectProperty.ChangeToken)
-	}
+	// // Check if changeToken matches
+	// if objectProperty.ChangeToken != dbObjectProperty.ChangeToken {
+	// 	return fmt.Errorf("ChangeToken %s for property %s does not match expected value %s", objectProperty.ChangeToken, objectProperty.Name, dbObjectProperty.ChangeToken)
+	// }
 	// Check if already deleted
 	if dbObjectProperty.IsDeleted {
 		// NOOP
