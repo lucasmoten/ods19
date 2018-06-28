@@ -65,11 +65,8 @@ func testMainBody(m *testing.M) int {
 }
 
 func setup(ip string) {
-
-	if !testing.Short() {
-		// We have 11 entries for our clients global var.
-		populateClients(11)
-	}
+	// We have 11 entries for our clients global var.
+	populateClients(11)
 }
 
 func cleanupOpenFiles() {
