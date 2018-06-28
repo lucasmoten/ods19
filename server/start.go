@@ -324,7 +324,10 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 	zookeeper.TrackAnnouncement(app.DefaultZK, zkConf.BasepathOdrive+"/https", odriveAnnouncer)
 
 	aacAnnouncer := func(_ string, announcements map[string]zookeeper.AnnounceData) {
-		if announcements == nil {
+		if announcements == nil || len(announcements) == 0 {
+			// Responding to this can only remove the last working aac that missed its zk lease,
+			// and won't fix anything because it's empty.  so, only respond if there are
+			// more than zero announcements.
 			logger.Info("aac announcements are empty. skipping")
 			return
 		}
