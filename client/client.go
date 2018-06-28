@@ -15,6 +15,7 @@ import (
 	"net/http/httputil"
 	"net/textproto"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/deciphernow/gm-fabric-go/tlsutil"
@@ -32,6 +33,7 @@ type ObjectDrive interface {
 	GetObjectStream(id string) (io.ReadCloser, error)
 	GetRevisions(id string) (protocol.ObjectResultset, error)
 	MoveObject(protocol.MoveObjectRequest) (protocol.Object, error)
+	RestoreRevision(id string, token string, changeCount int) (protocol.Object, error)
 	Search(paging protocol.PagingRequest, searchAllObjects bool) (protocol.ObjectResultset, error)
 	UpdateObject(protocol.UpdateObjectRequest) (protocol.Object, error)
 	UpdateObjectAndStream(protocol.UpdateObjectAndStreamRequest, io.Reader) (protocol.Object, error)
@@ -423,6 +425,37 @@ func (c *Client) Ping() (bool, error) {
 	}
 	defer resp.Body.Close()
 	return (resp.StatusCode == http.StatusOK), nil
+}
+
+// RestoreRevision is a convenience operation to restore a prior version as the current version
+// without the need to reupload a file, pass permissions or properties.  The permissions and ACM
+// will remain the same as the current version, and this operation is not permitted if the owner
+// or location would change.
+func (c *Client) RestoreRevision(id string, token string, changeCount int) (protocol.Object, error) {
+
+	uri := c.url + "/revisions/" + id + "/" + strconv.Itoa(changeCount) + "/restore"
+	var ret protocol.Object
+
+	req := protocol.ChangeTokenStruct{
+		ChangeToken: token,
+	}
+
+	resp, err := c.doPost(uri, req)
+	if err != nil {
+		return ret, fmt.Errorf("error performing request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return ret, errorFromResponse(resp)
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&ret)
+	if err != nil {
+		return ret, fmt.Errorf("could not decode response: %v", err)
+	}
+
+	return ret, nil
 }
 
 // Search facilitates listing objects at root, under a folder, or full breadth

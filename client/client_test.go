@@ -239,6 +239,84 @@ func TestResponder(t *testing.T) {
 	}
 }
 
+func TestRestoreVersion(t *testing.T) {
+	c, err := client.NewClient(conf)
+	if err != nil {
+		t.Fatalf("could not create client: %v", err)
+	}
+	c.Verbose = testing.Verbose()
+	cor := protocol.CreateObjectRequest{
+		Name:    "restoreversion1",
+		RawAcm:  `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"]}`,
+		OwnedBy: "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+	}
+	obj, err := c.CreateObject(cor, nil)
+	if err != nil {
+		t.Errorf("create object error: %v", err)
+	}
+	var uor1 = protocol.UpdateObjectRequest{
+		Name:        "change1",
+		ID:          obj.ID,
+		ChangeToken: obj.ChangeToken,
+		Properties:  []protocol.Property{protocol.Property{Name: "p1", Value: "v1"}, protocol.Property{Name: "p2", Value: "v2"}},
+	}
+	uo1, err := c.UpdateObject(uor1)
+	if err != nil {
+		t.Errorf("error updating object: %v", err)
+	}
+	var uor2 = protocol.UpdateObjectRequest{
+		Name:        "change2",
+		ID:          obj.ID,
+		ChangeToken: uo1.ChangeToken,
+		Properties:  []protocol.Property{protocol.Property{Name: "p1", Value: "changed"}, protocol.Property{Name: "p2", Value: ""}, protocol.Property{Name: "p3", Value: "new"}},
+	}
+	uo2, err := c.UpdateObject(uor2)
+	if err != nil {
+		t.Errorf("error updating object: %v", err)
+	}
+
+	// restore version 2 (changecount=1)
+	uo3, err := c.RestoreRevision(obj.ID, uo2.ChangeToken, uo1.ChangeCount)
+	if err != nil {
+		t.Errorf("error restoring object: %v", err)
+	}
+	if uo3.Name != uo1.Name {
+		t.Errorf("restored version name was %s, expected %s", uo3.Name, uo1.Name)
+	}
+	if len(uo3.Properties) != len(uo1.Properties) {
+		t.Errorf("restored version had %d properties, expected %d", len(uo3.Properties), len(uo1.Properties))
+	}
+
+	// restore version 3 (changecount=2)
+	uo4, err := c.RestoreRevision(obj.ID, uo3.ChangeToken, uo2.ChangeCount)
+	if err != nil {
+		t.Errorf("error restoring object: %v", err)
+	}
+	if uo4.Name != uo2.Name {
+		t.Errorf("restored version name was %s, expected %s", uo4.Name, uo2.Name)
+	}
+	if len(uo4.Properties) != len(uo2.Properties) {
+		t.Errorf("restored version had %d properties, expected %d", len(uo4.Properties), len(uo2.Properties))
+	}
+
+	// restore original version (changecount=0)
+	uo5, err := c.RestoreRevision(obj.ID, uo4.ChangeToken, obj.ChangeCount)
+	if err != nil {
+		t.Errorf("error restoring object: %v", err)
+	}
+	if uo5.Name != obj.Name {
+		t.Errorf("restored version name was %s, expected %s", uo5.Name, obj.Name)
+	}
+	if len(uo5.Properties) > len(obj.Properties) {
+		t.Errorf("restored version had %d properties, expected %d", len(uo5.Properties), len(obj.Properties))
+	}
+	if uo5.ChangeCount != 5 {
+		t.Errorf("change count of restored object was %d", uo5.ChangeCount)
+	}
+
+	t.Log(uo4)
+}
+
 // TestRoundTrip tests the upload/download mechanisms by iterating through every file in the
 // fixtures directory and performing a sequence of upload and download to verify the operations
 // complete successfully.

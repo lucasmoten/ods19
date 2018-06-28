@@ -21,6 +21,9 @@ FORMAT: 1A
 * ENH: Filters can now be applied against custom properties for list/search operations
 * ENH: Permissions for objects will now be returned in a deterministic order by grantee
 * DEV: Removed duplicate reference to odrive-indexer in docker-compose file
+* NEW: Added support for restoring a version of an object
+* NEW: Added restore version support to the golang client libraries
+* ENH: Removed changetoken check for individual property modifications during update
 
 ## Release v1.0.15 (April 27, 2018)
 ---------------------

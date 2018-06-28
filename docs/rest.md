@@ -845,6 +845,46 @@ This microservice operation will remove an object from the trash and delete it f
         * Error retrieving object
         * Error determining user.`
 
+## Restore Revision as Current [/revisions/{objectId}/{revisionId}/restore]
+
++ Parameters
+    + objectId: `11e5e4867a6e3d8389020242ac110002` (string(length=32), required) - Hex encoded identifier of the object to be updated.
+    + revisionId: 2 (number(minvalue=0), required) - The revision number to be restored as the current version. 
+
+### Restore Revision as Current [POST]
+This microservice operation makes a copy of the prior specified version and makes it the current version as a new revision without the need for uploading a file or specifying properties, fields or permissions.  The version being restored must have the same location and owner, and the caller of the operation must have update privileges on the current revision, and at least read access on the prior revision.  Current properties are replaced by the properties on the revision being restored.  Permissions and ACM remain the same as the current version.  You cannot restore a deleted version, or any version if the current version is deleted.
+
++ Request (application/json)
+
+    The JSON object in the request body should contain the change token of the current revision:
+
+    + Attributes (ChangeToken)
+
++ Response 200 (application/json)
+    + Attributes (GetObjectResponse)
+
++ Response 400
+
+        Malformed Request
+
++ Response 403
+
+        Forbidden
+
++ Response 404
+
+        Not Found
+
++ Response 410
+
+        Does Not Exist
+
++ Response 500
+
+        Error Retrieving Object
+
+
+
 # Group Search & List Operations
 
 ---
