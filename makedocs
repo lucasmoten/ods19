@@ -60,37 +60,39 @@ def force_access(filename):
 
 #-------------------------------------------------------------------------------
 
+dockercmd = 'cat %s | docker run --rm -i deciphernow/aglio:2.3.0 sh -c "cat > f.md ; /usr/local/bin/aglio -i f.md -o f.html &> /dev/null; cat f.html" > %s'
 if __name__ == "__main__":
-    convert_cmds = ["docker run --rm -ti -v {0}:/docs deciphernow/aglio:2.3.0 /usr/local/bin/aglio -i /docs/docs/home.md -o /docs/home.html".format(os.getcwd()),
-                    "docker run --rm -ti -v {0}:/docs deciphernow/aglio:2.3.0 /usr/local/bin/aglio -i /docs/docs/rest.md -o /docs/rest.html".format(os.getcwd()),
-                    "docker run --rm -ti -v {0}:/docs deciphernow/aglio:2.3.0 /usr/local/bin/aglio -i /docs/docs/environment.md -o /docs/environment.html".format(os.getcwd()),
-                    "docker run --rm -ti -v {0}:/docs deciphernow/aglio:2.3.0 /usr/local/bin/aglio -i /docs/changelog.md -o /docs/changelog.html".format(os.getcwd()),
-                    "docker run --rm -ti -v {0}:/docs deciphernow/aglio:2.3.0 /usr/local/bin/aglio -i /docs/docs/events.md -o /docs/events.html".format(os.getcwd())]
+    convert_cmds = [dockercmd % ("docs/home.md","docs/home.html"),
+                    dockercmd % ("docs/rest.md","docs/rest.html"),
+                    dockercmd % ("docs/environment.md", "docs/environment.html"),
+                    dockercmd % ("changelog.md", "docs/changelog.html"),
+                    dockercmd % ("docs/events.md", "docs/events.html")]
 
     for cmd in convert_cmds:
+        print(cmd)
         try:
-            subprocess.check_call(cmd.split())
-        except subprocess.CalledProcessError as e:
+            os.system(cmd)
+        except Exception as e:
             print e
             exit(1)
 
     final_dir = 'server/static/templates'
     if not os.path.exists(final_dir):
+        print("must copy %s" % (final_dir))
         os.makedirs(final_dir)
         
+    initial_dir = os.getcwd()
+    os.chdir('docs')
+    shutil.copy('home.html',os.path.join('..','server', 'home.html'))    
+    shutil.copy('home.html',os.path.join('..','server', 'root.html'))    
     for item in glob.glob('*.html'):
+        print("must copy %s" % (item))
         #--Assert files are editable by current user.  Needed to resolve issues
         #--with Circle-CI
         if not os.access(item, os.W_OK):
             force_access(item)
-
         strip_external_styles(item)
-        shutil.move(item, os.path.join(final_dir, item))
-        
-    shutil.copy(os.path.join(final_dir, 'home.html'), 'server/')
-    
-    initial_dir = os.getcwd()
-    os.chdir('docs')
+        shutil.move(item, os.path.join('..',final_dir, item))    
     command = ["./builddiagrams"]
     if len(sys.argv) > 1:
         command.extend(sys.argv[1:])

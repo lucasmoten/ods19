@@ -1,0 +1,39 @@
+#!/bin/bash
+
+#!!! run this from $ODRIVE_ROOT
+export ODRIVE_ROOT=$GOPATH/src/$IMPORT_PATH
+export ODRIVE_BINARY_DIR=$ODRIVE_ROOT/cmd/odrive
+
+# Package in samples of actual test traffic
+docker cp \
+  ci_odrive_1:/gosrc/src/github.com/deciphernow/object-drive-server/server/static/templates/APISample.html \
+  $ODRIVE_ROOT/server/static/templates/APISample.html
+
+ARG_VERSION=${1}
+if [ ${#1} -eq 0 ]
+then
+  ARG_VERSION=$(grep 'ODRIVE_VERSION:' circle.yml | awk '{ print $2}' | sed -e 's/^"//' -e 's/"$//')
+  echo Version was not specified. Using $ARG_VERSION
+fi
+
+ARG_BUILDNUM=${2}
+if [ ${#2} -eq 0 ]
+then  
+  ARG_BUILDNUM="SNAPSHOT"
+  if [ -z ${CIRCLE_BUILD_NUM} ]; then
+    echo Build Number was not specified. Using $ARG_BUILDNUM
+  fi
+fi
+
+if [ -z ${CIRCLE_BUILD_NUM} ]; then
+  CIRCLE_BUILD_NUM=$ARG_BUILDNUM
+fi
+
+( ./makedocs ${ARG_VERSION} ${ARG_BUILDNUM} )
+export ODRIVE_PACKAGE_NAME="odrive-${ARG_VERSION}" 
+export ODRIVE_VERSION=${ARG_VERSION} 
+export CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM} 
+export CIRCLE_SHA1=${CIRCLE_SHA1} 
+export TAG_VERSION=${3} 
+scripts/build.sh
+

@@ -1,0 +1,16 @@
+#!/bin/bash
+
+. ./.circleci/cienv
+
+cd $GOPATH/src/$IMPORT_PATH/.ci && docker-compose up -d
+# Proxier being up is not enough, because we are unable to mount a template.  We must bring up proxier in a hung state, copy in the template and edit it, then turn on the server.
+docker exec ci_proxier_1 mkdir /tmp/docker
+docker exec ci_proxier_1 mkdir /tmp/docker/pki
+cd $GOPATH/src/$IMPORT_PATH/docker && docker cp proxier/pki/client.crt ci_proxier_1:/tmp/docker/pki/client.crt
+cd $GOPATH/src/$IMPORT_PATH/docker && docker cp proxier/pki/trusted.crt ci_proxier_1:/tmp/docker/pki/trusted.crt
+cd $GOPATH/src/$IMPORT_PATH/docker && docker cp proxier/pki/server.public ci_proxier_1:/tmp/docker/pki/server.public
+cd $GOPATH/src/$IMPORT_PATH/docker && docker cp proxier/pki/server.private ci_proxier_1:/tmp/docker/pki/server.private
+cd $GOPATH/src/$IMPORT_PATH/docker && docker cp proxier/circle.nginx.conf.tpl ci_proxier_1:/tmp/docker/circle.nginx.conf.tpl
+docker exec ci_proxier_1 /bin/bash -c 'cat /tmp/docker/circle.nginx.conf.tpl | sed "s/\${AAC_SERVICE_HOST}/$AAC_SERVICE_HOST/g" | sed "s/\${AAC_SERVICE_PORT}/$AAC_SERVICE_PORT/g" | sed "s/\${ODRIVE_SERVICE_HOST}/$ODRIVE_SERVICE_HOST/g" | sed "s/\${ODRIVE_SERVICE_PORT}/$ODRIVE_SERVICE_PORT/g" > /etc/nginx/conf.d/default.conf'
+docker exec -itd ci_proxier_1 /bin/bash -c 'nginx -g "daemon off;"'
+

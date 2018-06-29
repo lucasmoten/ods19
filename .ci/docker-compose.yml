@@ -95,7 +95,7 @@ services:
           - OD_DB_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
           - OD_DB_CONN_PARAMS=parseTime=true&collation=utf8_unicode_ci&readTimeout=30s
           - OD_EXTERNAL_HOST=proxier
-          - OD_EXTERNAL_PORT=8888
+          - OD_EXTERNAL_PORT=443
           - OD_ENCRYPT_MASTERKEY=qheucir912h343u91i23hiu
           #- OD_EVENT_KAFKA_ADDRS=kafka:9092
           - OD_EVENT_ZK_ADDRS=zk:2181
@@ -114,6 +114,7 @@ services:
           - OD_ZK_ROOT
           - OD_ZK_TIMEOUT
           - OD_ZK_URL
+          - OD_AAC_TEST_PORT=9000
         ports:
           - 4430:4430
           - 4480:4480
@@ -127,11 +128,9 @@ services:
       image: nginx
       environment:
         - AAC_SERVICE_HOST=aac
-        - AAC_SERVICE_PORT=9093
+        - AAC_SERVICE_PORT=9000
         - ODRIVE_SERVICE_HOST=odrive
         - ODRIVE_SERVICE_PORT=4430
-      volumes:
-        - ../docker/proxier:/tmp/docker
       ports:
         - "8888:443"
       depends_on:
@@ -143,5 +142,6 @@ services:
     #    # format" argument). Also note that we need to escape our $-prefixed variables, docker-compose style, to
     #    # prevent docker-compose from trying to replace the variables (i.e., $VAR becomes $$VAR).
     #    # end of command: < /tmp/docker/odrive.nginx.conf.tpl > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'
-      command: /bin/bash -c "env && envsubst '$$ODRIVE_SERVICE_HOST $$ODRIVE_SERVICE_PORT $$AAC_SERVICE_HOST $$AAC_SERVICE_PORT' < /tmp/docker/circle.nginx.conf.tpl > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+      command: sleep 10000
+      
 

@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# this is just in here so that we can partially test the deployment before this is actually merged
+DEPLOY_BRANCH="circle2-b"
+
+thisbranch=`git rev-parse --abbrev-ref HEAD`
+if [ $thisbranch = $DEPLOY_BRANCH ] 
+then
+  # There will be one rpm in here from the build
+  for r in `ls /home/circleci/rpmbuild/RPMS/x86_64/*.rpm`
+  do
+    r2=object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm
+    echo mv $r $r2
+    echo aws s3 cp $r2 s3://odrive-builds/circle/rpms/develop/$(date +%Y%m)/object-drive-${ODRIVE_VERSION}.${CIRCLE_BUILD_NUM}.x86_64.rpm --acl private
+    echo docker push deciphernow/odrive:latest
+    echo docker push deciphernow/metadatadb:latest
+  done
+else
+  echo Merge this into $DEPLOY_BRANCH to deploy
+fi
+
+
