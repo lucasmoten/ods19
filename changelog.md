@@ -16,6 +16,10 @@ FORMAT: 1A
 
 # Group Changelog
 
+## Release v1.0.17 (Unreleased)
+---------------------
+* FIX: Postprocessing list/search filtering now includes TotalRows
+
 ## Release v1.0.16 (June 29, 2018)
 ---------------------
 * ENH: Filters can now be applied against custom properties for list/search operations

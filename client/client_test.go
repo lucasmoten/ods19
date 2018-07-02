@@ -246,9 +246,10 @@ func TestRestoreVersion(t *testing.T) {
 	}
 	c.Verbose = testing.Verbose()
 	cor := protocol.CreateObjectRequest{
-		Name:    "restoreversion1",
-		RawAcm:  `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"]}`,
-		OwnedBy: "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+		Name:       "restoreversion1",
+		RawAcm:     `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"]}`,
+		OwnedBy:    "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+		Properties: []protocol.Property{protocol.Property{Name: "p1", Value: "original"}},
 	}
 	obj, err := c.CreateObject(cor, nil)
 	if err != nil {
@@ -312,6 +313,11 @@ func TestRestoreVersion(t *testing.T) {
 	}
 	if uo5.ChangeCount != 5 {
 		t.Errorf("change count of restored object was %d", uo5.ChangeCount)
+	}
+	for _, p := range uo5.Properties {
+		if p.Name == "p1" && p.Value != "original" {
+			t.Errorf("Expected property value for p1 to be 'original', got %s", p.Value)
+		}
 	}
 
 	t.Log(uo4)
