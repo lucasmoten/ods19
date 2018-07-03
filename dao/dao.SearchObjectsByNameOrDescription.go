@@ -263,78 +263,68 @@ func postProcessingFilterOnCustomProperties(response models.ODObjectResultset, p
 		filteredResponse.PageNumber = response.PageNumber
 		filteredResponse.PageSize = response.PageSize
 		filteredResponse.PageCount = response.PageCount
+		filteredResponse.TotalRows = response.TotalRows
 		// check each response
 		for _, responseObject := range response.Objects {
 			// assume we're matched unless invalidated below
 			propertiesMatching := true
 			// check each filter against the request
 			for _, filterSetting := range pagingRequest.FilterSettings {
-				dbField := getDBFieldFromPagingRequestField(filterSetting.FilterField)
-				if len(dbField) != 0 {
+				filterField := getDBFieldFromPagingRequestField(filterSetting.FilterField)
+				if len(filterField) != 0 {
 					// field was already handled during query against dataset
 					continue
 				}
+				filterField = strings.ToLower(filterSetting.FilterField)
+				condition := strings.ToLower(filterSetting.Condition)
+				checkValue := strings.ToLower(filterSetting.Expression)
 				// track if the property referenced in filter is found
 				propertyFound := false
 				// examine each property
 				for _, property := range responseObject.Properties {
 					// see if it matches the filter field
-					if strings.ToLower(property.Name) == strings.ToLower(filterSetting.FilterField) {
+					if strings.ToLower(property.Name) == filterField {
 						// found
 						propertyFound = true
+						propertyValue := strings.ToLower(property.Value.String)
 						// check condition of the filter. comparisons below are negation checks
-						// for whether it should it should be removed from the filtered response
-						switch strings.ToLower(filterSetting.Condition) {
+						// for whether it should be removed from the filtered response
+						switch condition {
 						case "morethan":
-							if !(property.Value.String > filterSetting.Expression) {
-								propertiesMatching = false
-							}
+							propertiesMatching = propertiesMatching && (propertyValue > checkValue)
 						case "lessthan":
-							if !(property.Value.String < filterSetting.Expression) {
-								propertiesMatching = false
-							}
+							propertiesMatching = propertiesMatching && (propertyValue < checkValue)
 						case "notbegins":
-							if strings.HasPrefix(property.Value.String, filterSetting.Expression) {
-								propertiesMatching = false
-							}
+							propertiesMatching = propertiesMatching && !strings.HasPrefix(propertyValue, checkValue)
 						case "begins":
-							if !strings.HasPrefix(property.Value.String, filterSetting.Expression) {
-								propertiesMatching = false
-							}
+							propertiesMatching = propertiesMatching && strings.HasPrefix(propertyValue, checkValue)
 						case "notends":
-							if strings.HasSuffix(property.Value.String, filterSetting.Expression) {
-								propertiesMatching = false
-							}
+							propertiesMatching = propertiesMatching && !strings.HasSuffix(propertyValue, checkValue)
 						case "ends":
-							if !strings.HasSuffix(property.Value.String, filterSetting.Expression) {
-								propertiesMatching = false
-							}
+							propertiesMatching = propertiesMatching && strings.HasSuffix(propertyValue, checkValue)
 						case "notcontains":
-							if strings.Contains(property.Value.String, filterSetting.Expression) {
-								propertiesMatching = false
-							}
+							propertiesMatching = propertiesMatching && !strings.Contains(propertyValue, checkValue)
 						case "contains":
-							if !strings.Contains(property.Value.String, filterSetting.Expression) {
-								propertiesMatching = false
-							}
+							propertiesMatching = propertiesMatching && strings.Contains(propertyValue, checkValue)
 						case "notequals":
-							if property.Value.String == filterSetting.Expression {
-								propertiesMatching = false
-							}
+							propertiesMatching = propertiesMatching && !(propertyValue == checkValue)
 						default: // "equals":
-							if property.Value.String != filterSetting.Expression {
-								propertiesMatching = false
-							}
+							propertiesMatching = propertiesMatching && (propertyValue == checkValue)
 						}
 					}
+					if !propertiesMatching {
+						break
+					}
 				}
-				// if we didn't even find the property referenced, we can only keep if its
-				// a negation filter. (e.g., object doesn't have the property, and filtering on its value not equal)
+				// If we didn't even find the property referenced, we can only keep if its a negation filter.
+				// For example, object doens't have the property, and filtering on its value not equal
 				if !propertyFound {
-					// invalidate this response if the filter condition is not a negation
-					if !strings.HasPrefix(filterSetting.Condition, "not") {
+					if !strings.HasPrefix(condition, "not") {
 						propertiesMatching = false
 					}
+				}
+				if !propertiesMatching {
+					break
 				}
 			}
 			// Include in response if still matching
