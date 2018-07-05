@@ -3,7 +3,7 @@ version: '2'
 services:
 
   dias:
-    image: deciphernow/dias:latest    
+    image: deciphernow/dias:1.1.0    
     ports:
       - "8443:443"
 

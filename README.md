@@ -140,7 +140,7 @@ If you are developing changes with AAC and DIAS, you will need to retrieve those
 * Redis is used by AAC
   * A docker image is available at: `docker.363-283.io/docker/backend:redis-3.2.2`
 * DIAS is at bedrock/dias-simulator
-  * A docker image is available at: `deciphernow/dias:latest`
+  * A docker image is available at: `deciphernow/dias:1.1.0`
 
 Additional external projects referenced by the docker-compose file for testing full event to indexing, and user access
 

@@ -8,7 +8,7 @@ services:
           - 2181:2181
 
     dias:
-        image: "deciphernow/dias"
+        image: "deciphernow/dias:1.1.0"
         ports:
           - "8443:443"
 
