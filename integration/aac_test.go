@@ -1,9 +1,11 @@
 package integration
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	//"github.com/deciphernow/object-drive-server/config"
@@ -42,11 +44,23 @@ func DontRun() bool {
 	//return testing.Short()
 }
 
+func getAACPort() int {
+	aacPortOverride := os.Getenv("OD_AAC_TEST_PORT")
+	if len(aacPortOverride) > 0 {
+		p, err := strconv.Atoi(aacPortOverride)
+		if err != nil {
+			log.Printf("reading OD_AAC_TEST_PORT: %v", err)
+		}
+		return p
+	}
+	return 9093
+}
+
 func TestMain(m *testing.M) {
 
 	// using the announcements, get the host + port
 	aacHost := "aac"
-	aacPort := "9093"
+	aacPort := fmt.Sprintf("%d", getAACPort())
 
 	// AAC trust, client public & private key
 	trustPath := filepath.Join("..", "defaultcerts", "client-aac", "trust", "client.trust.pem")

@@ -1,0 +1,21 @@
+#!/bin/bash
+
+. ./.circleci/cienv
+
+#huh? build can't find go in the path, but if I ssh in, it's in the path and everything.
+cd $GOPATH/src/$IMPORT_PATH
+go get -u github.com/kardianos/govendor
+go get -u github.com/jteeuwen/go-bindata/...
+govendor sync
+cd $GOPATH/src/$IMPORT_PATH/cmd/odrive && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Build=${CIRCLE_BUILD_NUM} -X main.Commit=${CIRCLE_SHA1} -X main.Version=$(git describe --abbrev=0 --tags)"
+cd $GOPATH/src/$IMPORT_PATH/cmd/obfuscate && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build
+cd $GOPATH/src/$IMPORT_PATH/cmd/odrive-database && go-bindata schema migrations ../../defaultcerts/client-mysql/id ../../defaultcerts/client-mysql/trust
+cd $GOPATH/src/$IMPORT_PATH/cmd/odrive-database && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Build=${CIRCLE_BUILD_NUM} -X main.Commit=${CIRCLE_SHA1} -X main.Version=$(git describe --abbrev=0 --tags)"
+mkdir -p $GOPATH/src/$IMPORT_PATH/server/static/templates
+cd $GOPATH/src/$IMPORT_PATH && ./makedocs ${ODRIVE_VERSION} ${CIRCLE_BUILD_NUM}
+cd $GOPATH/src/$IMPORT_PATH && ./odb --build -i deciphernow/odrive -t latest
+cd $GOPATH/src/$IMPORT_PATH && ./odb --build -i deciphernow/metadatadb -t latest
+#cd $GOPATH/src/$IMPORT_PATH && ./odb --build
+# note that we tar it up here because go-bindata created some stuff
+( cd .. && tar cvf od.tar object-drive-server )
+

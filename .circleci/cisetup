@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Install all the secondary compilers that we need to avoid checking in binaries into the repo,
+# mostly docs.  Also update certs, etc.
+# We need a compiler toolchain to build rpms for instance
+echo begin Installations
+  sudo apt-get update -y
+  sudo apt-get install -y ca-certificate
+  sudo apt-get install -y python-pip
+  pip install --upgrade pip
+  pip install docker-compose
+  sudo apt-get install -y default-jre
+  sudo apt-get install -y graphviz
+  sudo apt-get install -y imagemagick
+  sudo apt-get install -y rpm
+echo begin Installations

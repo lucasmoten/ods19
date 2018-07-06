@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -15,10 +16,22 @@ import (
 	"github.com/deciphernow/object-drive-server/services/aac"
 )
 
+func getAACPort() int {
+	aacPortOverride := os.Getenv("OD_AAC_TEST_PORT")
+	if len(aacPortOverride) > 0 {
+		p, err := strconv.Atoi(aacPortOverride)
+		if err != nil {
+			log.Printf("reading OD_AAC_TEST_PORT: %v", err)
+		}
+		return p
+	}
+	return 9093
+}
+
 func newAACAuth(t *testing.T) auth.AACAuth {
 	// AAC server and port hardcoded
 	aacHost := "aac"
-	aacPort := 9093
+	aacPort := getAACPort()
 	// AAC trust, client public & private key
 	trustPath := filepath.Join("..", "defaultcerts", "client-aac", "trust", "client.trust.pem")
 	certPath := filepath.Join("..", "defaultcerts", "client-aac", "id", "client.cert.pem")
@@ -727,7 +740,7 @@ func newAACAuthRaw() (*auth.AACAuth, error) {
 	trustPath := filepath.Join("..", "defaultcerts", "client-aac", "trust", "client.trust.pem")
 	certPath := filepath.Join("..", "defaultcerts", "client-aac", "id", "client.cert.pem")
 	keyPath := filepath.Join("..", "defaultcerts", "client-aac", "id", "client.key.pem")
-	aacClient, err := aac.GetAACClient("aac", 9093, trustPath, certPath, keyPath)
+	aacClient, err := aac.GetAACClient("aac", getAACPort(), trustPath, certPath, keyPath)
 	if err != nil {
 		return nil, err
 	}
@@ -743,7 +756,7 @@ func stallForAvailability() int {
 
 	// Do this on every try to check the server
 	retryFunc := func() int {
-		log.Printf("try connection: %s:%d", "aac", 9093)
+		log.Printf("try connection: %s:%d", "aac", getAACPort())
 		aacAuth, err := newAACAuthRaw()
 		if err != nil {
 			log.Printf("aac not ready: %v", err)

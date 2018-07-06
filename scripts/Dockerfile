@@ -13,8 +13,8 @@ RUN yum -y update; \
     yum -y install make; \
     yum -y install gcc;
 
-RUN wget https://storage.googleapis.com/golang/go1.6.linux-amd64.tar.gz
-RUN tar -C /usr/local -xzf go1.6.linux-amd64.tar.gz
+RUN wget https://storage.googleapis.com/golang/go1.10.linux-amd64.tar.gz
+RUN tar -C /usr/local -xzf go1.10.linux-amd64.tar.gz
 ENV PATH /usr/local/go/bin:/go/bin:$PATH
 ENV GOPATH /go
 RUN mkdir -p /go/src/github.com/deciphernow/object-drive-server

@@ -34,5 +34,6 @@ cp ~/rpmbuild/RPMS/x86_64/object-drive-1.0-${ODRIVE_VERSION}-${ODRIVE_BUILDNUM}.
 
 cd $ODRIVE_ROOT
 
-echo "installing object-drive RPM"
-rpm -i object-drive-1.0-${ODRIVE_VERSION}-${ODRIVE_BUILDNUM}.${ODRIVE_BUILDDATE}.x86_64.rpm
+## don't install it automatically.  could have makerpm perform this after build.sh
+#echo "installing object-drive RPM"
+#rpm -i object-drive-1.0-${ODRIVE_VERSION}-${ODRIVE_BUILDNUM}.${ODRIVE_BUILDDATE}.x86_64.rpm
