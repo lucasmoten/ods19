@@ -3,7 +3,6 @@ server {
     listen 80;
     listen 443 ssl default_server;
     server_name localhost;
-    #ssl on;
     error_log   /dev/stdout debug;
 
 

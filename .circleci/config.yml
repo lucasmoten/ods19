@@ -11,7 +11,7 @@ jobs:
       REPO_NAME: object-drive-server
       GOPATH: /go
       DEPLOY_BRANCH: develop
-      ODRIVE_VERSION: 1.0.18
+      ODRIVE_VERSION: 1.0.17
     docker:
     - image: circleci/golang:1.10
     steps:
