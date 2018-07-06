@@ -1797,8 +1797,8 @@ func TestCreateObjectsWithACMSeries(t *testing.T) {
 	macs = append(macs, "watchdog")
 	macs = append(macs, "wires")
 	oc_orgs = append(oc_orgs, "dia")
-	for u := 0; u < 100; u++ {
-		shareusers = append(shareusers, fmt.Sprintf("cn=test tester%d,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us", u))
+	for u := 1; u <= 10; u++ {
+		shareusers = append(shareusers, fmt.Sprintf("cn=test tester%02d,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us", u))
 	}
 
 	prand := rand.New(rand.NewSource(time.Now().UnixNano()))

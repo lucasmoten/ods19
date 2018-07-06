@@ -194,7 +194,7 @@ services:
     command: "./docker-entrypoint.sh mysqld_safe"
 
   dias:
-    image: deciphernow/dias:latest    
+    image: deciphernow/dias:1.1.0    
     ports:
       - "8443:443"
 
