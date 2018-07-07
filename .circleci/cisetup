@@ -6,10 +6,11 @@
 echo begin Installations
   sudo apt-get update -y
   sudo apt-get install -y ca-certificate
-  sudo apt-get install -y python-pip
+  sudo apt-get install -y python-pip groff
   pip install --upgrade pip
   pip install docker-compose
-  pip install awscli --upgrade --user
+  pip install aws
+  pip install awscli 
   sudo apt-get install -y default-jre
   sudo apt-get install -y graphviz
   sudo apt-get install -y imagemagick
