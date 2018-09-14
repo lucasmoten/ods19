@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	globalconfig "github.com/deciphernow/object-drive-server/config"
+	globalconfig "bitbucket.di2e.net/dime/object-drive-server/config"
 	"github.com/samuel/go-zookeeper/zk"
 	"go.uber.org/zap"
 )

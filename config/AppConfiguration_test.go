@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/deciphernow/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
 )
 
 func TestCascadeStringSlice_EmptyVarYieldsZeroLenSlice(t *testing.T) {

@@ -4,10 +4,10 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/deciphernow/object-drive-server/mapping"
-	"github.com/deciphernow/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/mapping"
+	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 
-	"github.com/deciphernow/object-drive-server/services/audit"
+	"bitbucket.di2e.net/dime/object-drive-server/services/audit"
 	"golang.org/x/net/context"
 )
 

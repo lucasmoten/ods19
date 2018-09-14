@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"testing"
 
-	//"github.com/deciphernow/object-drive-server/config"
-	"github.com/deciphernow/object-drive-server/metadata/models/acm"
-	aac "github.com/deciphernow/object-drive-server/services/aac"
-	"github.com/deciphernow/object-drive-server/ssl"
-	"github.com/deciphernow/object-drive-server/util"
+	//"bitbucket.di2e.net/dime/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models/acm"
+	aac "bitbucket.di2e.net/dime/object-drive-server/services/aac"
+	"bitbucket.di2e.net/dime/object-drive-server/ssl"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 	t2 "github.com/samuel/go-thrift/thrift"
 )
 

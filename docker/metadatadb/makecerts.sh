@@ -21,12 +21,12 @@ openssl x509 -issuer -subject -dates -noout -in client-cert.pem
 openssl verify -CAfile ca.pem server-cert.pem client-cert.pem
 
 # Copy CA for mysql to defaultcerts
-mkdir -p $GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/trust
-cp ca.pem $GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/trust/ca.pem
+mkdir -p $GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/trust
+cp ca.pem $GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/trust/ca.pem
 
 # Copy Client Cert + Key to defaultcerts
-mkdir -p $GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id
-cp client-cert.pem $GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
-cp client-key.pem $GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
+mkdir -p $GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/id
+cp client-cert.pem $GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
+cp client-key.pem $GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
 
 

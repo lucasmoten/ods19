@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/deciphernow/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
 
 	s3 "github.com/rlmcpherson/s3gof3r"
 )

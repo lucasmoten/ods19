@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/deciphernow/object-drive-server/events"
-	"github.com/deciphernow/object-drive-server/mapping"
-	"github.com/deciphernow/object-drive-server/metadata/models"
-	"github.com/deciphernow/object-drive-server/services/audit"
+	"bitbucket.di2e.net/dime/object-drive-server/events"
+	"bitbucket.di2e.net/dime/object-drive-server/mapping"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/services/audit"
 
-	"github.com/deciphernow/object-drive-server/auth"
-	"github.com/deciphernow/object-drive-server/ciphertext"
+	"bitbucket.di2e.net/dime/object-drive-server/auth"
+	"bitbucket.di2e.net/dime/object-drive-server/ciphertext"
 	"golang.org/x/net/context"
 )
 

@@ -14,10 +14,10 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"github.com/deciphernow/object-drive-server/config"
-	"github.com/deciphernow/object-drive-server/dao"
-	"github.com/deciphernow/object-drive-server/metadata/models"
-	"github.com/deciphernow/object-drive-server/metadata/models/acm"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/dao"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models/acm"
 )
 
 const (
@@ -36,7 +36,7 @@ var users = make([]models.ODUser, 15)
 // on the command line.
 func newAppConfigurationWithDefaults() config.AppConfiguration {
 	var conf config.AppConfiguration
-	projectRoot := filepath.Join(os.Getenv("GOPATH"), "src", "github.com/deciphernow", "object-drive-server")
+	projectRoot := filepath.Join(os.Getenv("GOPATH"), "src", "bitbucket.di2e.net", "dime", "object-drive-server")
 	whitelist := []string{"cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"}
 	opts := config.CommandLineOpts{
 		Ciphers:           []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"},
@@ -57,9 +57,9 @@ func init() {
 
 	// DAO tests hit a locally-running database directly.
 	// This is a hack to get correct paths to certs. Depends on GOPATH.
-	dbConfig.CAPath = os.ExpandEnv("$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/trust")
-	dbConfig.ClientCert = os.ExpandEnv("$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem")
-	dbConfig.ClientKey = os.ExpandEnv("$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-key.pem")
+	dbConfig.CAPath = os.ExpandEnv("$GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/trust")
+	dbConfig.ClientCert = os.ExpandEnv("$GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem")
+	dbConfig.ClientKey = os.ExpandEnv("$GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/id/client-key.pem")
 
 	var err error
 	db, err = dbConfig.GetDatabaseHandle()

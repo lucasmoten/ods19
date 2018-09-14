@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"github.com/deciphernow/object-drive-server/metadata/models"
-	"github.com/deciphernow/object-drive-server/metadata/models/acm"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models/acm"
 )
 
 // FakeAuth is suitable for tests. Add fields to this struct to hold fake

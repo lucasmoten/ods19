@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/deciphernow/object-drive-server/config"
-	"github.com/deciphernow/object-drive-server/crypto"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/crypto"
 )
 
 // ODObjectPermission is a nestable structure defining the attributes for

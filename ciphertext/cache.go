@@ -12,8 +12,8 @@ import (
 
 	"syscall"
 
-	"github.com/deciphernow/object-drive-server/config"
-	"github.com/deciphernow/object-drive-server/util"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 
 	"crypto/sha256"
 

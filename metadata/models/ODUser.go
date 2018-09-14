@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/deciphernow/object-drive-server/metadata/models/acm"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models/acm"
 )
 
 // ODUser is a structure defining the attributes of a user as referenced in

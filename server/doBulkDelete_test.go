@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/deciphernow/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 )
 
 func testBulkDeleteCall(t *testing.T, clientid int, inObjects []protocol.ObjectVersioned, expectedItems int, expectedFailures int) {

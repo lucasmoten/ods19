@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deciphernow/object-drive-server/util"
-	"github.com/deciphernow/object-drive-server/utils"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
+	"bitbucket.di2e.net/dime/object-drive-server/utils"
 
-	"github.com/deciphernow/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 )
 
 // input298 has variable input for fields id and changeToken.

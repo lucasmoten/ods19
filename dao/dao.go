@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/deciphernow/object-drive-server/config"
-	"github.com/deciphernow/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )

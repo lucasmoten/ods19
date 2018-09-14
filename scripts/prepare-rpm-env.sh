@@ -109,7 +109,7 @@ Release: ${ODRIVE_RELEASE}
 License: None
 Group: Development/Tools
 SOURCE0 : %{name}-%{version}.tar.gz
-URL: https://github.com/DecipherNow/object-drive-server
+URL: https://bitbucket.di2e.net/dime/object-drive-server
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 

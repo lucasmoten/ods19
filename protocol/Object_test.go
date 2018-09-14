@@ -3,7 +3,7 @@ package protocol_test
 import (
 	"testing"
 
-	"github.com/deciphernow/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 )
 
 func TestWithCallerPermission(t *testing.T) {

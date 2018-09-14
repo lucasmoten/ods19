@@ -2,7 +2,7 @@ machine:
     java:
         version: openjdk7
     environment:
-        IMPORT_PATH: "github.com/deciphernow/object-drive-server"
+        IMPORT_PATH: "bitbucket.di2e.net/dime/object-drive-server"
         REPO_NAME: "object-drive-server"
         ODRIVE_VERSION: "1.0.17"
         GOPATH: "/home/ubuntu/.go_workspace"

@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/deciphernow/object-drive-server/metadata/models"
-	"github.com/deciphernow/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 )
 
 // MapODPermissionToPermission_1_0 converts an internal ODPermission model to an

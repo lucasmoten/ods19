@@ -12,12 +12,12 @@ import (
 	"github.com/urfave/cli"
 	"go.uber.org/zap"
 
-	"github.com/deciphernow/object-drive-server/amazon"
-	"github.com/deciphernow/object-drive-server/ciphertext"
-	"github.com/deciphernow/object-drive-server/config"
-	"github.com/deciphernow/object-drive-server/dao"
-	"github.com/deciphernow/object-drive-server/server"
-	"github.com/deciphernow/object-drive-server/services/kafka"
+	"bitbucket.di2e.net/dime/object-drive-server/amazon"
+	"bitbucket.di2e.net/dime/object-drive-server/ciphertext"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/dao"
+	"bitbucket.di2e.net/dime/object-drive-server/server"
+	"bitbucket.di2e.net/dime/object-drive-server/services/kafka"
 )
 
 // Version metadata should be set at build time with -ldflags.

@@ -3,9 +3,9 @@ package server
 import (
 	"strings"
 
-	"github.com/deciphernow/object-drive-server/auth"
-	"github.com/deciphernow/object-drive-server/ciphertext"
-	"github.com/deciphernow/object-drive-server/metadata/models/acm"
+	"bitbucket.di2e.net/dime/object-drive-server/auth"
+	"bitbucket.di2e.net/dime/object-drive-server/ciphertext"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models/acm"
 	"golang.org/x/net/context"
 )
 

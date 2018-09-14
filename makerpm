@@ -37,6 +37,6 @@ docker run -i \
    -e CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM} \
    -e CIRCLE_SHA1=${CIRCLE_SHA1} \
    -e TAG_VERSION=${3} \
-   -v `pwd`:/go/src/github.com/deciphernow/object-drive-server deciphernow/odriverpm:latest scripts/build.sh
+   -v `pwd`:/go/src/bitbucket.di2e.net/dime/object-drive-server deciphernow/odriverpm:latest scripts/build.sh
 
 

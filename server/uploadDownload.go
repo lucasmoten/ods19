@@ -14,17 +14,17 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/deciphernow/object-drive-server/ciphertext"
-	"github.com/deciphernow/object-drive-server/crypto"
+	"bitbucket.di2e.net/dime/object-drive-server/ciphertext"
+	"bitbucket.di2e.net/dime/object-drive-server/crypto"
 	"golang.org/x/net/context"
 
-	"github.com/deciphernow/object-drive-server/mapping"
+	"bitbucket.di2e.net/dime/object-drive-server/mapping"
 
 	"mime"
 
-	"github.com/deciphernow/object-drive-server/metadata/models"
-	"github.com/deciphernow/object-drive-server/performance"
-	"github.com/deciphernow/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/performance"
+	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 )
 
 // If we are returning potentially after the object has been uploaded to disk,

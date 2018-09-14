@@ -5,11 +5,11 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/deciphernow/object-drive-server/mapping"
-	"github.com/deciphernow/object-drive-server/metadata/models"
-	"github.com/deciphernow/object-drive-server/metadata/models/acm"
-	"github.com/deciphernow/object-drive-server/protocol"
-	"github.com/deciphernow/object-drive-server/utils"
+	"bitbucket.di2e.net/dime/object-drive-server/mapping"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models/acm"
+	"bitbucket.di2e.net/dime/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/utils"
 	"go.uber.org/zap"
 )
 

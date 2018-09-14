@@ -5,11 +5,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/deciphernow/object-drive-server/ciphertext"
-	"github.com/deciphernow/object-drive-server/config"
-	"github.com/deciphernow/object-drive-server/util"
+	"bitbucket.di2e.net/dime/object-drive-server/ciphertext"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 
-	cfg "github.com/deciphernow/object-drive-server/config"
+	cfg "bitbucket.di2e.net/dime/object-drive-server/config"
 )
 
 func cacheParams(root, partition string) (string, ciphertext.CiphertextCacheZone, config.S3CiphertextCacheOpts, string) {

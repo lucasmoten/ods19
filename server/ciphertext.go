@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/deciphernow/object-drive-server/ciphertext"
-	"github.com/deciphernow/object-drive-server/services/audit"
+	"bitbucket.di2e.net/dime/object-drive-server/ciphertext"
+	"bitbucket.di2e.net/dime/object-drive-server/services/audit"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )

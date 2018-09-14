@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/deciphernow/gov-go/gov/encryptor"
-	"github.com/deciphernow/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
 )
 
 func help() {

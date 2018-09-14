@@ -59,11 +59,11 @@ services:
   odrive:
     image: "deciphernow/odrive:latest"
     environment:
-        - OD_AAC_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
-        - OD_AAC_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
+        - OD_AAC_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
+        - OD_AAC_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
         - OD_AAC_HEALTHCHECK={"version":"2.1.0","classif":"U"}
         - OD_AAC_HOST=aac                         # has default
-        - OD_AAC_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/id/client.key.pem
+        - OD_AAC_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.key.pem
         - OD_AAC_CN=twl-server-generic2
         - OD_AAC_INSECURE_SKIP_VERIFY=true
         - OD_PEER_CN=twl-server-generic2
@@ -80,11 +80,11 @@ services:
         - OD_CACHE_ROOT
         - OD_CACHE_WALKSLEEP
         - OD_CACHE_PARTITION
-        - OD_DB_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/trust
-        - OD_DB_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
+        - OD_DB_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/trust
+        - OD_DB_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
         - OD_DB_CONN_PARAMS=parseTime=true&collation=utf8_unicode_ci&readTimeout=30s
         - OD_DB_HOST=metadatadb
-        - OD_DB_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
+        - OD_DB_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
         - OD_DB_MAXIDLECONNS
         - OD_DB_MAXOPENCONNS
         - OD_DB_PASSWORD=dbPassword
@@ -100,10 +100,10 @@ services:
         - OD_LOG_LEVEL=DEBUG
         - OD_SERVER_ACL_WHITELIST1=cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us
         - OD_SERVER_ACL_WHITELIST2=cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us
-        - OD_SERVER_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/trust.pem
-        - OD_SERVER_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.cert.pem
+        - OD_SERVER_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/trust.pem
+        - OD_SERVER_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.cert.pem
         - OD_SERVER_CIPHERS=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA
-        - OD_SERVER_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.key.pem
+        - OD_SERVER_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.key.pem
         - OD_SERVER_PORT=4430
         - OD_ZK_ANNOUNCE=/cte/service/object-drive/1.0
         - OD_ZK_AAC=/cte/service/aac/1.2/thrift
@@ -121,10 +121,10 @@ services:
     tty: true
     stdin_open: true
     environment:
-        - OD_AAC_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
-        - OD_AAC_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
+        - OD_AAC_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
+        - OD_AAC_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
         - OD_AAC_HOST=aac                         # has default
-        - OD_AAC_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/id/client.key.pem
+        - OD_AAC_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.key.pem
         - OD_AAC_CN=twl-server-generic2
         - OD_AAC_INSECURE_SKIP_VERIFY=false
         - OD_PEER_CN=twl-server-generic2
@@ -141,11 +141,11 @@ services:
         - OD_CACHE_ROOT
         - OD_CACHE_WALKSLEEP
         - OD_CACHE_PARTITION
-        - OD_DB_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/trust
-        - OD_DB_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
+        - OD_DB_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/trust
+        - OD_DB_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
         - OD_DB_CONN_PARAMS=parseTime=true&collation=utf8_unicode_ci&readTimeout=30s
         - OD_DB_HOST=metadatadb
-        - OD_DB_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
+        - OD_DB_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
         - OD_DB_MAXIDLECONNS
         - OD_DB_MAXOPENCONNS
         - OD_DB_PASSWORD=dbPassword
@@ -159,10 +159,10 @@ services:
         - OD_EVENT_PUBLISH_SUCCESS_ACTIONS
         - OD_EVENT_TOPIC
         - OD_SERVER_ACL_WHITELIST1=cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us
-        - OD_SERVER_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/trust.pem
-        - OD_SERVER_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.cert.pem
+        - OD_SERVER_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/trust.pem
+        - OD_SERVER_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.cert.pem
         - OD_SERVER_CIPHERS=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA
-        - OD_SERVER_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.key.pem
+        - OD_SERVER_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.key.pem
         - OD_SERVER_PORT=4430
         - OD_ZK_ANNOUNCE=/cte/service/object-drive/1.0
         - OD_ZK_AAC=/cte/service/aac/1.2/thrift
@@ -176,7 +176,7 @@ services:
         - kafka
     command: "/bin/bash"
     volumes:
-        - ./..:/go/src/github.com/deciphernow/object-drive-server
+        - ./..:/go/src/bitbucket.di2e.net/dime/object-drive-server
 
   metadatadb:
     image: "deciphernow/metadatadb:latest"

@@ -3,10 +3,10 @@ package mapping_test
 import (
 	"testing"
 
-	"github.com/deciphernow/object-drive-server/mapping"
-	"github.com/deciphernow/object-drive-server/metadata/models"
-	"github.com/deciphernow/object-drive-server/protocol"
-	"github.com/deciphernow/object-drive-server/util"
+	"bitbucket.di2e.net/dime/object-drive-server/mapping"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
 func TestOverwriteODObjectWithCreateObjectRequest(t *testing.T) {

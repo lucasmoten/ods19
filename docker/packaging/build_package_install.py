@@ -3,7 +3,7 @@ import os, subprocess
 
 # This script is run during docker build.
 
-odrive_root = "/go/src/github.com/deciphernow/object-drive-server"
+odrive_root = "/go/src/bitbucket.di2e.net/dime/object-drive-server"
 database_root = os.path.join(odrive_root, "cmd", "odrive-database")
 binary_root = os.path.join(odrive_root, "cmd", "odrive")
 obfuscate_root = os.path.join(odrive_root, "cmd", "obfuscate")

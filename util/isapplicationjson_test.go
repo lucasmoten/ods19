@@ -1,7 +1,7 @@
 package util_test
 
 import "testing"
-import "github.com/deciphernow/object-drive-server/util"
+import "bitbucket.di2e.net/dime/object-drive-server/util"
 
 func TestIsApplicationJSON(t *testing.T) {
 	if util.IsApplicationJSON("text/plain") {

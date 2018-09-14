@@ -17,14 +17,12 @@ import textwrap
 from contextlib import closing
 from glob import glob
 
-PROJECT_ROOT = os.path.join(os.getenv("GOPATH"), "src", "github.com", "deciphernow", "object-drive-server")
+PROJECT_ROOT = os.path.join(os.getenv("GOPATH"), "src", "bitbucket.di2e.net", "dime", "object-drive-server")
 
 """
 Map of repo names to their valid git remotes, and the branch to checkout.
 """
 GIT_DEPENDENCIES = {
-    'cte-security-service':
-        ('ssh://git@gitlab.363-283.io:2252/cte/cte-security-service.git', 'release-1.1.4'),
     'object-drive-ui':
         ('ssh://git@gitlab.363-283.io:2252/cte/object-drive-ui.git', 'develop'),
     'dias-simulator':
@@ -355,8 +353,6 @@ class Builder(object):
         """
         
         self.inspect_toolchain()
-        self.clone_tag('cte-security-service', GIT_DEPENDENCIES['cte-security-service'][0],
-                          GIT_DEPENDENCIES['cte-security-service'][1])
         self.clone_branch('object-drive-ui', GIT_DEPENDENCIES['object-drive-ui'][0],
                              GIT_DEPENDENCIES['object-drive-ui'][1], build=False)
         self.clone_branch('dias-simulator', GIT_DEPENDENCIES['dias-simulator'][0],
@@ -382,10 +378,7 @@ class Builder(object):
             name to tag the docker image with. 
         """
         
-        if 'aac' in image_name:
-            # TODO get this into a build-in function
-            self.docker('aac')
-        elif 'odrive' in image_name:
+        if 'odrive' in image_name:
             odrive_build(tag)
         elif 'metadatadb' in image_name:
             metadatadb_build(tag)
@@ -508,7 +501,7 @@ class Builder(object):
         else:
             try:
                 subprocess.check_call(
-                        ['git', 'clone', '-b', branch, 'git@github.com:DecipherNow/object-drive-server.git',
+                        ['git', 'clone', '-b', branch, 'git@bitbucket.di2e.net/dime/object-drive-server.git',
                          repository_directory],
                         stdout=sys.stdout, stderr=sys.stderr)
             except subprocess.CalledProcessError as e:
@@ -587,7 +580,6 @@ def parse_args():
     
     default_images= ["deciphernow/odrive",
                      "deciphernow/gatekeeper",
-                     "deciphernow/aac",
                      "deciphernow/odriverpm",
                      "deciphernow/metadatadb",
                      "deciphernow/dias"]
@@ -643,5 +635,3 @@ if __name__ == '__main__':
         else:
             logger.info("building all images")
             builder.build_all()
-
-

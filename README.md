@@ -25,7 +25,7 @@ Step by step information for starting Object Drive from complete scratch.
     export PATH=$PATH:$GOPATH/bin
     ```
 
-3. In `$GOPATH`, the `bin` and `pkg` directories mostly handle themselves. However, `src` is highly structured by where the code comes from. So if the code was downloaded from GitHub.com, it would go into the `$GOPATH/src/github.com/` directory, if it came from golang.org it would go in the `$GOPATH/src/golang.org/` directory. This structure makes it easier for dependency managers like `govender` or `dep` (both of which I have encountered in deciphernow repos) to manage the packages.
+3. In `$GOPATH`, the `bin` and `pkg` directories mostly handle themselves. However, `src` is highly structured by where the code comes from. So if the code was downloaded from bitbucket.di2e.net, it would go into the `$GOPATH/src/bitbucket.di2e.net/` directory, if it came from golang.org it would go in the `$GOPATH/src/golang.org/` directory. This structure makes it easier for dependency managers like `govender` or `dep` to manage the packages.
 
     So the overall setup of the go workspace would look something like this:
     ```
@@ -33,9 +33,11 @@ Step by step information for starting Object Drive from complete scratch.
     ├── bin                  <-- Executables go here
     ├── pkg                  <-- Object files (*.a) go here
     └── src                  <-- Source files go here. This is where the work happens
-        └── github.com       <-- Folder containing source code from the GitHub repos
-            └── deciphernow  <-- Folder containing source code from the deciphernow orginization
-        └── golang.org       <-- Folder containing source code from golang.org
+        └── bitbucket.di2e.net  <-- Folder containing source code from the BitBucket DI2E repos
+            └── dime            <-- Folder containing source code from the dime orginization
+        └── github.com          <-- Folder containing source code from the GitHub repos
+            └── deciphernow     <-- Folder containing source code from the deciphernow orginization
+        └── golang.org          <-- Folder containing source code from golang.org
     ```
 
 ## 2 Install/Set up Dependent Things
@@ -218,7 +220,7 @@ What is actually granted depends on the dias system in use.
 We reference the dias simulator, and profiles can be found here: https://gitlab.363-283.io/bedrock/dias-simulator/blob/master/client/users
 
 On a mac, this is handled using your keychain. If you use chrome follow the *Importing your Certificate into Chrome* section of https://www.comodo.com/support/products/authentication_certs/setup/mac_chrome.php for installing the certificates. 
-You will need the certificates found in `$GOPATH/src/github.com/deciphernow/object-drive-server/defaultcerts/clients/`. The password for all of the `.p12` certification files is `password`. 
+You will need the certificates found in `$GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/clients/`. The password for all of the `.p12` certification files is `password`. 
 
 ## 3. Set up environment for Object Drive Server
 There are a **lot** of environment variables that need to be set up for Object Drive to function properly.
@@ -228,18 +230,18 @@ A minimal set of environment variables and docker configuration are found in [do
 
 
 ```
-- OD_AAC_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
-- OD_AAC_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
-- OD_AAC_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-aac/id/client.key.pem
+- OD_AAC_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
+- OD_AAC_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
+- OD_AAC_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.key.pem
 - OD_AAC_CN=twl-server-generic2
 - OD_AAC_INSECURE_SKIP_VERIFY=true
 - OD_PEER_CN=twl-server-generic2
 - OD_AWS_S3_BUCKET=
-- OD_DB_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/trust
-- OD_DB_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
+- OD_DB_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/trust
+- OD_DB_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
 - OD_DB_CONN_PARAMS=parseTime=true&collation=utf8_unicode_ci&readTimeout=30s
 - OD_DB_HOST=metadatadb
-- OD_DB_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
+- OD_DB_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
 - OD_DB_PASSWORD=dbPassword
 - OD_DB_PORT=3306
 - OD_DB_SCHEMA=metadatadb
@@ -248,10 +250,10 @@ A minimal set of environment variables and docker configuration are found in [do
 - OD_EVENT_PUBLISH_FAILURE_ACTIONS=
 - OD_EVENT_PUBLISH_SUCCESS_ACTIONS=
 - OD_SERVER_ACL_WHITELIST1=cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us
-- OD_SERVER_CA=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/trust.pem
-- OD_SERVER_CERT=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.cert.pem
+- OD_SERVER_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/trust.pem
+- OD_SERVER_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.cert.pem
 - OD_SERVER_CIPHERS=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA
-- OD_SERVER_KEY=/go/src/github.com/deciphernow/object-drive-server/defaultcerts/server/server.key.pem
+- OD_SERVER_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.key.pem
 - OD_ZK_ANNOUNCE=/cte/service/object-drive/1.0
 - OD_ZK_AAC=/cte/service/aac/1.2/thrift
 ```
@@ -259,16 +261,16 @@ A minimal set of environment variables and docker configuration are found in [do
 ## 4. Clone this repository
 
 All dependent Go code is relative to the **GOPATH**.
-Create the the directory **$GOPATH/src/github.com/deciphernow**
+Create the the directory **$GOPATH/src/bitbucket.di2e.net/dime**
 and clone this project there. This will allow imports like this to resolve correctly.
 
 ``` bash
 cd $GOPATH/src/
-mkdir github.com/
-cd github.com/
-mkdir deciphernow
-cd deciphernow
-git clone https://github.com/DecipherNow/object-drive-server.git
+mkdir bitbucket.di2e.net/
+cd bitbucket.di2e.net/
+mkdir dime
+cd dime
+git clone https://${USERNAME}@bitbucket.di2e.net/scm/dime/object-drive-server.git
 ```
 
 Most of the work is being done on the `develop` branch so that is probably what you will want to use that code:
@@ -280,7 +282,7 @@ git checkout develop
 Then you should be able to run the following within a go program
 
 ```go
-import "github.com/deciphernow/object-drive-server/somepackage"
+import "bitbucket.di2e.net/dime/object-drive-server/somepackage"
 ```
 
 ## 5. Build and start the Object Drive Source code
@@ -344,34 +346,34 @@ The default timeout for go tests is 5 minutes so we told it to take 300 minutes 
 
 
 If you are lucky and nothing is currenty broken, you should see this as output:
-```?   	github.com/deciphernow/object-drive-server/amazon	[no test files]
-ok  	github.com/deciphernow/object-drive-server/auth	10.801s
-ok  	github.com/deciphernow/object-drive-server/autoscale	0.026s
-ok  	github.com/deciphernow/object-drive-server/ciphertext	0.037s
-ok  	github.com/deciphernow/object-drive-server/client	2.000s
-?   	github.com/deciphernow/object-drive-server/cmd/obfuscate	[no test files]
-?   	github.com/deciphernow/object-drive-server/cmd/odrive	[no test files]
-?   	github.com/deciphernow/object-drive-server/cmd/odrive-database	[no test files]
-ok  	github.com/deciphernow/object-drive-server/cmd/odrive-test-cli	0.023s
-ok  	github.com/deciphernow/object-drive-server/cmd/odutil	0.224s [no tests to run]
-ok  	github.com/deciphernow/object-drive-server/config	0.154s
-ok  	github.com/deciphernow/object-drive-server/crypto	0.034s
-ok  	github.com/deciphernow/object-drive-server/dao	7.740s
-?   	github.com/deciphernow/object-drive-server/events	[no test files]
-ok  	github.com/deciphernow/object-drive-server/integration	0.101s
-ok  	github.com/deciphernow/object-drive-server/mapping	0.031s
-ok  	github.com/deciphernow/object-drive-server/metadata/models	0.030s
-?   	github.com/deciphernow/object-drive-server/metadata/models/acm	[no test files]
-ok  	github.com/deciphernow/object-drive-server/performance	2.340s
-ok  	github.com/deciphernow/object-drive-server/protocol	0.023s
-ok  	github.com/deciphernow/object-drive-server/server	633.861s
-?   	github.com/deciphernow/object-drive-server/services/aac	[no test files]
-ok  	github.com/deciphernow/object-drive-server/services/audit	0.009s
-ok  	github.com/deciphernow/object-drive-server/services/kafka	0.020s
-ok  	github.com/deciphernow/object-drive-server/services/zookeeper	0.033s
-?   	github.com/deciphernow/object-drive-server/ssl	[no test files]
-ok  	github.com/deciphernow/object-drive-server/util	0.016s
-?   	github.com/deciphernow/object-drive-server/utils	[no test files]
+```?   	bitbucket.di2e.net/dime/object-drive-server/amazon	[no test files]
+ok  	bitbucket.di2e.net/dime/object-drive-server/auth	10.801s
+ok  	bitbucket.di2e.net/dime/object-drive-server/autoscale	0.026s
+ok  	bitbucket.di2e.net/dime/object-drive-server/ciphertext	0.037s
+ok  	bitbucket.di2e.net/dime/object-drive-server/client	2.000s
+?   	bitbucket.di2e.net/dime/object-drive-server/cmd/obfuscate	[no test files]
+?   	bitbucket.di2e.net/dime/object-drive-server/cmd/odrive	[no test files]
+?   	bitbucket.di2e.net/dime/object-drive-server/cmd/odrive-database	[no test files]
+ok  	bitbucket.di2e.net/dime/object-drive-server/cmd/odrive-test-cli	0.023s
+ok  	bitbucket.di2e.net/dime/object-drive-server/cmd/odutil	0.224s [no tests to run]
+ok  	bitbucket.di2e.net/dime/object-drive-server/config	0.154s
+ok  	bitbucket.di2e.net/dime/object-drive-server/crypto	0.034s
+ok  	bitbucket.di2e.net/dime/object-drive-server/dao	7.740s
+?   	bitbucket.di2e.net/dime/object-drive-server/events	[no test files]
+ok  	bitbucket.di2e.net/dime/object-drive-server/integration	0.101s
+ok  	bitbucket.di2e.net/dime/object-drive-server/mapping	0.031s
+ok  	bitbucket.di2e.net/dime/object-drive-server/metadata/models	0.030s
+?   	bitbucket.di2e.net/dime/object-drive-server/metadata/models/acm	[no test files]
+ok  	bitbucket.di2e.net/dime/object-drive-server/performance	2.340s
+ok  	bitbucket.di2e.net/dime/object-drive-server/protocol	0.023s
+ok  	bitbucket.di2e.net/dime/object-drive-server/server	633.861s
+?   	bitbucket.di2e.net/dime/object-drive-server/services/aac	[no test files]
+ok  	bitbucket.di2e.net/dime/object-drive-server/services/audit	0.009s
+ok  	bitbucket.di2e.net/dime/object-drive-server/services/kafka	0.020s
+ok  	bitbucket.di2e.net/dime/object-drive-server/services/zookeeper	0.033s
+?   	bitbucket.di2e.net/dime/object-drive-server/ssl	[no test files]
+ok  	bitbucket.di2e.net/dime/object-drive-server/util	0.016s
+?   	bitbucket.di2e.net/dime/object-drive-server/utils	[no test files]
 ```
 
 
@@ -406,7 +408,7 @@ Generating current docs (no longer checked in):
 Making an rpm (will build docs as well):
 
 ```
-cd $GOPATH/src/github.com/deciphernow/object-drive-server
+cd $GOPATH/src/bitbucket.di2e.net/dime/object-drive-server
 #make an rpm as version 1.0.9 and call it build number 2600.  It will be in current directory when done
 ./makerpm 1.0.9 2600
 ```

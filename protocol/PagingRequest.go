@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/deciphernow/object-drive-server/util"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
 // PagingRequest supports a request constrained to a given page number and size

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 TARFILE=ui-2017-09-26.tar
-cd $GOPATH/src/github.com/deciphernow/object-drive-server/docker
+cd $GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/docker
 rm ui-*.tar
 rm ui.tar
 aws s3 cp s3://decipherers/$TARFILE $TARFILE
@@ -9,10 +9,10 @@ aws s3 cp s3://decipherers/$TARFILE $TARFILE
   mkdir ui
   cd ui
   tar xvf ../$TARFILE
-  cp $GOPATH/src/github.com/deciphernow/object-drive-server/customer/bundle/docker/settings.json opt/apps/drive/json/settings.json
-  cp $GOPATH/src/github.com/deciphernow/object-drive-server/customer/bundle/docker/chm_drive.json opt/apps/drive/json/chm_drive.json
-  cp $GOPATH/src/github.com/deciphernow/object-drive-server/customer/bundle/docker/piwik.js opt/apps/drive/json/piwik.js
-  cp $GOPATH/src/github.com/deciphernow/object-drive-server/customer/bundle/docker/piwik.php opt/apps/drive/json/piwik.php
+  cp $GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/customer/bundle/docker/settings.json opt/apps/drive/json/settings.json
+  cp $GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/customer/bundle/docker/chm_drive.json opt/apps/drive/json/chm_drive.json
+  cp $GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/customer/bundle/docker/piwik.js opt/apps/drive/json/piwik.js
+  cp $GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/customer/bundle/docker/piwik.php opt/apps/drive/json/piwik.php
   tar cvf ../ui.tar *
 )
 docker cp ui.tar docker_proxier_1:ui.tar

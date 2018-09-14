@@ -6,10 +6,10 @@ import (
 
 	"github.com/deciphernow/gov-go/audit/events_thrift"
 
-	"github.com/deciphernow/object-drive-server/config"
-	"github.com/deciphernow/object-drive-server/events"
-	"github.com/deciphernow/object-drive-server/services/audit"
-	"github.com/deciphernow/object-drive-server/util"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/events"
+	"bitbucket.di2e.net/dime/object-drive-server/services/audit"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
 // globalEventFromRequest extracts data from the request and sets up a

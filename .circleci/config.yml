@@ -1,13 +1,13 @@
 version: 2
 jobs:
   build:
-    working_directory: /go/src/github.com/deciphernow/object-drive-server
+    working_directory: /go/src/bitbucket.di2e.net/dime/object-drive-server
     parallelism: 1
     shell: /bin/bash --login
     environment:
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
-      IMPORT_PATH: github.com/deciphernow/object-drive-server
+      IMPORT_PATH: bitbucket.di2e.net/dime/object-drive-server
       REPO_NAME: object-drive-server
       GOPATH: /go
       DEPLOY_BRANCH: develop
@@ -18,43 +18,43 @@ jobs:
     - checkout
     - setup_remote_docker
     - run:
-        working_directory: /go/src/github.com/deciphernow/object-drive-server
+        working_directory: /go/src/bitbucket.di2e.net/dime/object-drive-server
         name: general setup
         command: ./.circleci/cisetup
     - run:
-        working_directory: /go/src/github.com/deciphernow/object-drive-server
+        working_directory: /go/src/bitbucket.di2e.net/dime/object-drive-server
         name: container setup
         command: ./.circleci/cicontainer
     - run:
-        working_directory: /go/src/github.com/deciphernow/object-drive-server
+        working_directory: /go/src/bitbucket.di2e.net/dime/object-drive-server
         name: compilation
         command: ./.circleci/cicompile
     - run:
-        working_directory: /go/src/github.com/deciphernow/object-drive-server
+        working_directory: /go/src/bitbucket.di2e.net/dime/object-drive-server
         name: proxier setup
         command: ./.circleci/ciproxier
     - run:
-        working_directory: /go/src/github.com/deciphernow/object-drive-server
+        working_directory: /go/src/bitbucket.di2e.net/dime/object-drive-server
         name: general build
         command: ./.circleci/cibuild
     - run:
         name: migrate test
-        working_directory: /go/src/github.com/deciphernow/object-drive-server/cmd/odrive-database
+        working_directory: /go/src/bitbucket.di2e.net/dime/object-drive-server/cmd/odrive-database
         command: echo TODO './odrive-database debug > db.yml && ./odrive-database init --conf db.yml --force=true'
     - run: 
         name: migrate func test
-        working_directory: /go/src/github.com/deciphernow/object-drive-server/scripts/init.d
+        working_directory: /go/src/bitbucket.di2e.net/dime/object-drive-server/scripts/init.d
         command: echo TODO './func-test.py'
     - run:
-        working_directory: /go/src/github.com/deciphernow/object-drive-server
+        working_directory: /go/src/bitbucket.di2e.net/dime/object-drive-server
         name: integration test run
         command: ./.circleci/ciintegrationtest
     - run:
-        working_directory: /go/src/github.com/deciphernow/object-drive-server
+        working_directory: /go/src/bitbucket.di2e.net/dime/object-drive-server
         name: make rpm
         command: ./.circleci/cirpm
     - run:
-        working_directory: /go/src/github.com/deciphernow/object-drive-server
+        working_directory: /go/src/bitbucket.di2e.net/dime/object-drive-server
         name: deploy rpm and images if on deploy branch
         command: ./.circleci/cideploy
 
