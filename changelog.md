@@ -77,7 +77,7 @@ FORMAT: 1A
 ## Release v1.0.12 (December 20, 2017)
 --------------------
 * ENH: Enriched Payload of Events to include more fields from object for change actions
-* REF: Changed imports to github.com/deciphernow/object-drive-server
+* REF: Changed imports to bitbucket.di2e.net/dime/object-drive-server
 * REF: Changed references to vendored uber-zap to go.uber.org/zap, upgraded to 1.7.1
 * ENH: Logging output changed to tab delimit timestamp, log level, message, and fields
 * ENH: Allow validation acm to be configurable as environment variable `OD_AAC_HEALTHCHECK`

@@ -19,7 +19,7 @@ import (
 	"strings"
 
 	"github.com/deciphernow/gm-fabric-go/tlsutil"
-	"github.com/deciphernow/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 )
 
 // ObjectDrive defines operations for our client (and eventually our server).

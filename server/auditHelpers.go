@@ -9,9 +9,9 @@ import (
 	"github.com/deciphernow/gov-go/audit/acm_thrift"
 	"github.com/deciphernow/gov-go/audit/components_thrift"
 	"github.com/deciphernow/gov-go/audit/events_thrift"
-	"github.com/deciphernow/object-drive-server/events"
-	"github.com/deciphernow/object-drive-server/metadata/models"
-	"github.com/deciphernow/object-drive-server/services/audit"
+	"bitbucket.di2e.net/dime/object-drive-server/events"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/services/audit"
 )
 
 // Utilities for dealing with pointers to primitive types.

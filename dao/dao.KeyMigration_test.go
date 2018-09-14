@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/deciphernow/object-drive-server/crypto"
-	"github.com/deciphernow/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/crypto"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
 )
 
 //The migration and key rotation functions rely on

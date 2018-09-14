@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deciphernow/object-drive-server/services/zookeeper"
+	"bitbucket.di2e.net/dime/object-drive-server/services/zookeeper"
 )
 
 func TestCreateServiceAnnouncement(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/deciphernow/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
 )
 
 // CallerPermission is a structure defining the attributes for

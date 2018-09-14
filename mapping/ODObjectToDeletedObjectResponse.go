@@ -3,8 +3,8 @@ package mapping
 import (
 	"encoding/hex"
 
-	"github.com/deciphernow/object-drive-server/metadata/models"
-	"github.com/deciphernow/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 )
 
 // MapODObjectToDeletedObjectResponse converts an internal ODObject model object

@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/deciphernow/gov-go/gov/encryptor"
-	"github.com/deciphernow/object-drive-server/util"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"

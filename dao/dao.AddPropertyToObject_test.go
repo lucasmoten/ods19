@@ -4,8 +4,8 @@ import (
 	"log"
 	"testing"
 
-	"github.com/deciphernow/object-drive-server/metadata/models"
-	"github.com/deciphernow/object-drive-server/server"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/server"
 )
 
 func TestDAOAddPropertyToObject(t *testing.T) {

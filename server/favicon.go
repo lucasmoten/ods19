@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/deciphernow/object-drive-server/services/audit"
-	"github.com/deciphernow/object-drive-server/util"
+	"bitbucket.di2e.net/dime/object-drive-server/services/audit"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 	"go.uber.org/zap"
 
 	"golang.org/x/net/context"

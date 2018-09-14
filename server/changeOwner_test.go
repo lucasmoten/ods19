@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deciphernow/object-drive-server/protocol"
-	"github.com/deciphernow/object-drive-server/util"
+	"bitbucket.di2e.net/dime/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
 // TestChangeOwner validates that change owner is implemented, ownership changes, and parent set to root

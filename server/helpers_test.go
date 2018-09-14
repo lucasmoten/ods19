@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deciphernow/object-drive-server/config"
-	"github.com/deciphernow/object-drive-server/server"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/server"
 
-	"github.com/deciphernow/object-drive-server/protocol"
-	"github.com/deciphernow/object-drive-server/util"
+	"bitbucket.di2e.net/dime/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
 func getEnvWithDefault(name string, def string) string {

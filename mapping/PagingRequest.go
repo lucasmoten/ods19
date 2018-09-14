@@ -1,8 +1,8 @@
 package mapping
 
 import (
-	"github.com/deciphernow/object-drive-server/dao"
-	"github.com/deciphernow/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/dao"
+	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 )
 
 // MapPagingRequestToDAOPagingRequest converts a protocol PagingRequest to the

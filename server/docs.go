@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	"github.com/deciphernow/object-drive-server/services/audit"
+	"bitbucket.di2e.net/dime/object-drive-server/services/audit"
 
 	"golang.org/x/net/context"
 )

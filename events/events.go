@@ -3,7 +3,7 @@ package events
 import (
 	"encoding/json"
 
-	"github.com/deciphernow/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 
 	auditevent "github.com/deciphernow/gov-go/audit/events_thrift"
 )

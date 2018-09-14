@@ -5,9 +5,9 @@ import (
 	"log"
 	"strings"
 
-	"github.com/deciphernow/object-drive-server/ssl"
+	"bitbucket.di2e.net/dime/object-drive-server/ssl"
 
-	"github.com/deciphernow/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"github.com/samuel/go-thrift/thrift"
 )
 

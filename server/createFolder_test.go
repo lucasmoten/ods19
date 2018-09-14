@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deciphernow/object-drive-server/server"
-	"github.com/deciphernow/object-drive-server/util"
-	"github.com/deciphernow/object-drive-server/utils"
+	"bitbucket.di2e.net/dime/object-drive-server/server"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
+	"bitbucket.di2e.net/dime/object-drive-server/utils"
 
-	"github.com/deciphernow/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 )
 
 func TestCreateFolderProtocol(t *testing.T) {

@@ -12,16 +12,16 @@ import (
 
 	"fmt"
 
-	"github.com/deciphernow/object-drive-server/auth"
-	"github.com/deciphernow/object-drive-server/ciphertext"
-	"github.com/deciphernow/object-drive-server/dao"
-	"github.com/deciphernow/object-drive-server/events"
-	"github.com/deciphernow/object-drive-server/mapping"
-	"github.com/deciphernow/object-drive-server/metadata/models"
-	"github.com/deciphernow/object-drive-server/protocol"
-	"github.com/deciphernow/object-drive-server/services/audit"
-	"github.com/deciphernow/object-drive-server/util"
-	"github.com/deciphernow/object-drive-server/utils"
+	"bitbucket.di2e.net/dime/object-drive-server/auth"
+	"bitbucket.di2e.net/dime/object-drive-server/ciphertext"
+	"bitbucket.di2e.net/dime/object-drive-server/dao"
+	"bitbucket.di2e.net/dime/object-drive-server/events"
+	"bitbucket.di2e.net/dime/object-drive-server/mapping"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/services/audit"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
+	"bitbucket.di2e.net/dime/object-drive-server/utils"
 )
 
 func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {

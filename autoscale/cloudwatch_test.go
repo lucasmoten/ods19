@@ -3,9 +3,9 @@ package autoscale_test
 import (
 	"testing"
 
-	"github.com/deciphernow/object-drive-server/autoscale"
-	performance "github.com/deciphernow/object-drive-server/performance"
-	"github.com/deciphernow/object-drive-server/util"
+	"bitbucket.di2e.net/dime/object-drive-server/autoscale"
+	performance "bitbucket.di2e.net/dime/object-drive-server/performance"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 
 	linuxproc "github.com/c9s/goprocinfo/linux"
 )

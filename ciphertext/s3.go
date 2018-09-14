@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/deciphernow/object-drive-server/amazon"
-	"github.com/deciphernow/object-drive-server/config"
-	"github.com/deciphernow/object-drive-server/util"
+	"bitbucket.di2e.net/dime/object-drive-server/amazon"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"

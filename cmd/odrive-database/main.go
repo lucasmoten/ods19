@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/deciphernow/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/rubenv/sql-migrate"

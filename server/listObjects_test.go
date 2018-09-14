@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/deciphernow/object-drive-server/util"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 
-	"github.com/deciphernow/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 )
 
 func TestListObjectsRoot(t *testing.T) {

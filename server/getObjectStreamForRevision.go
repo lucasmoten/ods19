@@ -8,11 +8,11 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/deciphernow/object-drive-server/auth"
-	"github.com/deciphernow/object-drive-server/ciphertext"
-	"github.com/deciphernow/object-drive-server/crypto"
-	"github.com/deciphernow/object-drive-server/metadata/models"
-	"github.com/deciphernow/object-drive-server/services/audit"
+	"bitbucket.di2e.net/dime/object-drive-server/auth"
+	"bitbucket.di2e.net/dime/object-drive-server/ciphertext"
+	"bitbucket.di2e.net/dime/object-drive-server/crypto"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/services/audit"
 )
 
 func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {

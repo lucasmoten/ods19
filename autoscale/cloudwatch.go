@@ -13,10 +13,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	linuxproc "github.com/c9s/goprocinfo/linux"
-	"github.com/deciphernow/object-drive-server/amazon"
-	"github.com/deciphernow/object-drive-server/config"
-	"github.com/deciphernow/object-drive-server/performance"
-	"github.com/deciphernow/object-drive-server/util"
+	"bitbucket.di2e.net/dime/object-drive-server/amazon"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/performance"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 	"go.uber.org/zap"
 )
 

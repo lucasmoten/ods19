@@ -7,8 +7,8 @@ import (
 
 	"time"
 
-	"github.com/deciphernow/object-drive-server/config"
-	"github.com/deciphernow/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
 )
 
 // FakeDAO is suitable for tests. Add fields to this struct to hold fake

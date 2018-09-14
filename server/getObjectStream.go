@@ -17,14 +17,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	"github.com/deciphernow/object-drive-server/auth"
-	"github.com/deciphernow/object-drive-server/ciphertext"
-	"github.com/deciphernow/object-drive-server/crypto"
-	"github.com/deciphernow/object-drive-server/services/audit"
+	"bitbucket.di2e.net/dime/object-drive-server/auth"
+	"bitbucket.di2e.net/dime/object-drive-server/ciphertext"
+	"bitbucket.di2e.net/dime/object-drive-server/crypto"
+	"bitbucket.di2e.net/dime/object-drive-server/services/audit"
 
-	db "github.com/deciphernow/object-drive-server/dao"
-	"github.com/deciphernow/object-drive-server/metadata/models"
-	"github.com/deciphernow/object-drive-server/performance"
+	db "bitbucket.di2e.net/dime/object-drive-server/dao"
+	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/performance"
 )
 
 func extractByteRange(r *http.Request) (*crypto.ByteRange, error) {

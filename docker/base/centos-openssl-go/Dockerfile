@@ -15,4 +15,4 @@ RUN tar -C /usr/local -xzf go1.9.4.linux-amd64.tar.gz
 ENV PATH /usr/local/go/bin:$PATH
 ENV GOPATH /go
 
-RUN mkdir -p /go/src/github.com/deciphernow/object-drive-server
+RUN mkdir -p /go/src/bitbucket.di2e.net/dime/object-drive-server
