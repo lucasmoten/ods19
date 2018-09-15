@@ -8,8 +8,6 @@ import (
 	"bitbucket.di2e.net/dime/object-drive-server/ciphertext"
 	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
-
-	cfg "bitbucket.di2e.net/dime/object-drive-server/config"
 )
 
 func cacheParams(root, partition string) (string, ciphertext.CiphertextCacheZone, config.S3CiphertextCacheOpts, string) {
@@ -38,7 +36,7 @@ func cacheParams(root, partition string) (string, ciphertext.CiphertextCacheZone
 // Write a non-trivial file into cache
 //
 func TestCacheSimple(t *testing.T) {
-	logger := cfg.RootLogger
+	logger := config.RootLogger
 	testRoot := os.TempDir()
 	testPartition := "partition0"
 	_, zone, conf, dbID := cacheParams(testRoot, testPartition)
@@ -101,7 +99,7 @@ func TestCacheSimple(t *testing.T) {
 // Bring it up with the initial key, then bring up with wrong key, then correct key.
 //
 func TestCacheCreateWrongKey(t *testing.T) {
-	logger := cfg.RootLogger
+	logger := config.RootLogger
 	testRoot := os.TempDir()
 	testPartition := "partition0"
 	_, zone, conf, dbID := cacheParams(testRoot, testPartition)

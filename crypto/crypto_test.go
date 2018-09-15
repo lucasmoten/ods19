@@ -8,12 +8,12 @@ import (
 	"os"
 	"testing"
 
-	cfg "bitbucket.di2e.net/dime/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/crypto"
 )
 
 func TestBasicCipher(t *testing.T) {
-	logger := cfg.RootLogger
+	logger := config.RootLogger
 
 	data := []byte(`
     0123456789
@@ -101,7 +101,7 @@ func TestBasicCipher(t *testing.T) {
 
 func BasicCipherRaw(t *testing.T, data []byte, ciphertextName string, byteRange *crypto.ByteRange, key []byte, iv []byte) {
 	var err error
-	logger := cfg.RootLogger
+	logger := config.RootLogger
 
 	//Make a temp file that we can close and re-open later.
 	replaintextName := "crypto_test.replaintext.tmp"

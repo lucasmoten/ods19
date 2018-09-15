@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import datetime
 import getpass
 import glob
 import os
@@ -60,6 +61,36 @@ def force_access(filename):
 
 #-------------------------------------------------------------------------------
 
+def get_version():
+    changelogverline = subprocess.check_output(['grep', '-m', '1', '## Release', 'changelog.md'])
+    return changelogverline.split()[2]
+
+#-------------------------------------------------------------------------------
+
+def get_buildnumber():
+    buildnumber = subprocess.check_output(['cat', 'BUILDNUMBER']).strip()
+    return buildnumber
+
+
+#-------------------------------------------------------------------------------
+
+def inject_replacements(filename, changelogver, buildnumber, outname=None):
+    """ Strip out references to external styles in html files.
+    
+    Parameters
+    ----------
+    filename : str
+        Fullname of the file to strip from.
+    outname : bool, opt
+        Outname to write to.  If not supplied, will write in-place.
+    """
+    
+    subprocess.check_call(['sed', '-i', 's/{0}/{1}/ '.format(re.escape('--Version--'),changelogver), filename])
+    subprocess.check_call(['sed', '-i', 's/{0}/{1}/ '.format(re.escape('--BuildNumber--'),buildnumber), filename])
+    subprocess.check_call(['sed', '-i', 's/{0}/{1}/ '.format(re.escape('--BuildDate--'),datetime.datetime.today().strftime('%Y-%m-%d')), filename])
+
+#-------------------------------------------------------------------------------
+
 dockercmd = 'cat %s | docker run --rm -i deciphernow/aglio:2.3.0 sh -c "cat > f.md ; /usr/local/bin/aglio -i f.md -o f.html &> /dev/null; cat f.html" > %s'
 if __name__ == "__main__":
     convert_cmds = [dockercmd % ("docs/home.md","docs/home.html"),
@@ -80,7 +111,9 @@ if __name__ == "__main__":
     if not os.path.exists(final_dir):
         print("must copy %s" % (final_dir))
         os.makedirs(final_dir)
-        
+
+    changelogver = get_version()     
+    buildnumber = get_buildnumber()   
     initial_dir = os.getcwd()
     os.chdir('docs')
     shutil.copy('home.html',os.path.join('..','server', 'home.html'))    
@@ -92,6 +125,7 @@ if __name__ == "__main__":
         if not os.access(item, os.W_OK):
             force_access(item)
         strip_external_styles(item)
+        inject_replacements(item, changelogver, buildnumber)
         shutil.move(item, os.path.join('..',final_dir, item))    
     command = ["./builddiagrams"]
     if len(sys.argv) > 1:

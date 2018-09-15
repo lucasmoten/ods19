@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/deciphernow/gov-go/gov/encryptor"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
+	"bitbucket.di2e.net/greymatter/gov-go/gov/encryptor"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
@@ -214,6 +214,29 @@ type ServerSettingsConfiguration struct {
 	PathToStaticFiles string `yaml:"static_root"`
 	// PathToTemplateFiles is a location on disk where Go templates are stored.
 	PathToTemplateFiles string `yaml:"template_root"`
+	// IdleTimeout is the maximum amount of time to wait for the
+	// next request when keep-alives are enabled. If IdleTimeout
+	// is zero, the value of ReadTimeout is used. If both are
+	// zero, ReadHeaderTimeout is used.
+	IdleTimeout int64 `yaml:"timeout_idle"`
+	// ReadTimeout is the maximum duration for reading the entire
+	// request, including the body.
+	//
+	// Because ReadTimeout does not let Handlers make per-request
+	// decisions on each request body's acceptable deadline or
+	// upload rate, most users will prefer to use
+	// ReadHeaderTimeout. It is valid to use them both.
+	ReadTimeout int64 `yaml:"timeout_read"`
+	// ReadHeaderTimeout is the amount of time allowed to read
+	// request headers. The connection's read deadline is reset
+	// after reading the headers and the Handler can decide what
+	// is considered too slow for the body.
+	ReadHeaderTimeout int64 `yaml:"timeout_read_header"`
+	// WriteTimeout is the maximum duration before timing out
+	// writes of the response. It is reset whenever a new
+	// request's header is read. Like ReadTimeout, it does not
+	// let Handlers make decisions on a per-request basis.
+	WriteTimeout int64 `yaml:"timeout_write"`
 }
 
 // ZKSettings holds the data required to communicate with default Zookeeper.
@@ -232,6 +255,8 @@ type ZKSettings struct {
 	Timeout int64 `yaml:"timeout"`
 	// RetryDelay configures the number of seconds between retry attempts to connect
 	RetryDelay int64 `yaml:"retrydelay"`
+	// RecheckTime is the interval seconds between ZK health status checks
+	RecheckTime int64 `yaml:"recheck_time"`
 }
 
 // NewAppConfiguration loads the configuration from the different sources in the environment.
@@ -470,6 +495,12 @@ func NewServerSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) S
 	// Use cli options, environment, or configuration file for the ACL whitelist (whichever has values first is used)
 	settings.ACLImpersonationWhitelist = selectNonEmptyStringSlice(opts.Whitelist, getEnvSliceFromPrefix(OD_SERVER_ACL_WHITELIST), confFile.ServerSettings.ACLImpersonationWhitelist)
 
+	// Timeouts
+	settings.IdleTimeout = cascadeInt(OD_SERVER_TIMEOUT_IDLE, confFile.ServerSettings.IdleTimeout, 60)
+	settings.ReadTimeout = cascadeInt(OD_SERVER_TIMEOUT_READ, confFile.ServerSettings.ReadTimeout, 0)
+	settings.ReadHeaderTimeout = cascadeInt(OD_SERVER_TIMEOUT_READHEADER, confFile.ServerSettings.ReadHeaderTimeout, 5)
+	settings.WriteTimeout = cascadeInt(OD_SERVER_TIMEOUT_WRITE, confFile.ServerSettings.WriteTimeout, 3600)
+
 	// Defaults
 	settings.ListenBind = "0.0.0.0"
 	settings.UseTLS = opts.UseTLS
@@ -491,6 +522,7 @@ func NewZKSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) ZKSet
 	conf.Port = cascade(OD_ZK_MYPORT, confFile.ZK.Port, "")
 	conf.Timeout = cascadeInt(OD_ZK_TIMEOUT, confFile.ZK.Timeout, 5)
 	conf.RetryDelay = cascadeInt(OD_ZK_RETRYDELAY, confFile.ZK.RetryDelay, 3)
+	conf.RecheckTime = cascadeInt(OD_ZK_RECHECK_TIME, confFile.ZK.RecheckTime, 30)
 
 	return conf
 }
@@ -847,9 +879,6 @@ func NewCWConfig() *CWConfig {
 	ret.AWSConfig = NewAWSConfig(OD_AWS_CLOUDWATCH_ENDPOINT)
 	ret.SleepTimeInSeconds = int(getEnvOrDefaultInt(OD_AWS_CLOUDWATCH_INTERVAL, 300))
 	ret.Name = getEnvOrDefault(OD_AWS_CLOUDWATCH_NAME, "")
-	if ret.Name == "" {
-		return nil
-	}
 	return ret
 }
 

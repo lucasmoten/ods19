@@ -3,6 +3,36 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "p8VAP3MrJSKgvj41C9D/LwDp9j4=",
+			"path": "bitbucket.di2e.net/greymatter/gov-go/audit/acm_thrift",
+			"revision": "5d3d12bac0a129c06a9c80511f413586eca8143d",
+			"revisionTime": "2018-09-20T16:17:30Z"
+		},
+		{
+			"checksumSHA1": "VHlcUk2JZeHwh/NL9zyNLqyaCQU=",
+			"path": "bitbucket.di2e.net/greymatter/gov-go/audit/components_thrift",
+			"revision": "5d3d12bac0a129c06a9c80511f413586eca8143d",
+			"revisionTime": "2018-09-20T16:17:30Z"
+		},
+		{
+			"checksumSHA1": "7xmY5xC2zhTzVcvX0ZVmTo8Qhic=",
+			"path": "bitbucket.di2e.net/greymatter/gov-go/audit/events_thrift",
+			"revision": "5d3d12bac0a129c06a9c80511f413586eca8143d",
+			"revisionTime": "2018-09-20T16:17:30Z"
+		},
+		{
+			"checksumSHA1": "ombPs4T0/67U/4hezbEsNlO8ZCs=",
+			"path": "bitbucket.di2e.net/greymatter/gov-go/gov/encryptor",
+			"revision": "5d3d12bac0a129c06a9c80511f413586eca8143d",
+			"revisionTime": "2018-09-20T16:17:30Z"
+		},
+		{
+			"checksumSHA1": "Izf6ftGkpMkeWv9DLHPEHLhQrR0=",
+			"path": "bitbucket.di2e.net/greymatter/gov-go/testcerts",
+			"revision": "5d3d12bac0a129c06a9c80511f413586eca8143d",
+			"revisionTime": "2018-09-20T16:17:30Z"
+		},
+		{
 			"checksumSHA1": "zEVXyrmEkx8E9mcVILP3tia1HJo=",
 			"path": "github.com/Shopify/sarama",
 			"revision": "8eb9752774926ca15f9828b7bb5202f1a5b9305c",
@@ -251,42 +281,6 @@
 			"path": "github.com/deciphernow/gm-fabric-go/zkutil",
 			"revision": "9928bd869ad63d4af927ff6e492fd9ff01f5299f",
 			"revisionTime": "2017-12-03T02:51:00Z"
-		},
-		{
-			"checksumSHA1": "s5b6ENpR3Miy8uhckAZWfaFeKFc=",
-			"path": "github.com/deciphernow/gov-go/audit/acm_thrift",
-			"revision": "a620b813a7238acd5635c38d429f51ffadd4a8db",
-			"revisionTime": "2017-04-10T16:51:00Z"
-		},
-		{
-			"checksumSHA1": "F+5WlJvkBT/RZeRFvUgbsWPSjV8=",
-			"path": "github.com/deciphernow/gov-go/audit/audittransformationservice_thrift",
-			"revision": "a620b813a7238acd5635c38d429f51ffadd4a8db",
-			"revisionTime": "2017-04-10T16:51:00Z"
-		},
-		{
-			"checksumSHA1": "UNbKmcG3H6qPQNZvQ9okTwTWP8w=",
-			"path": "github.com/deciphernow/gov-go/audit/components_thrift",
-			"revision": "a620b813a7238acd5635c38d429f51ffadd4a8db",
-			"revisionTime": "2017-04-10T16:51:00Z"
-		},
-		{
-			"checksumSHA1": "lrGF38uFGViJYcMr5fDxaKuBrrY=",
-			"path": "github.com/deciphernow/gov-go/audit/events_thrift",
-			"revision": "a620b813a7238acd5635c38d429f51ffadd4a8db",
-			"revisionTime": "2017-04-10T16:51:00Z"
-		},
-		{
-			"checksumSHA1": "uLuqzOcgQOz798dZDiiqIIKO4NU=",
-			"path": "github.com/deciphernow/gov-go/gov/encryptor",
-			"revision": "f6226c3d2e7137a8194714b9a67fa59671783c55",
-			"revisionTime": "2017-12-14T16:07:53Z"
-		},
-		{
-			"checksumSHA1": "Zy4ERNin/KpksYcvndcNn4YXyJg=",
-			"path": "github.com/deciphernow/gov-go/testcerts",
-			"revision": "9bc1a11282a92852807dd748a17a79c2f28d52b7",
-			"revisionTime": "2017-05-08T15:34:26Z"
 		},
 		{
 			"checksumSHA1": "y2Kh4iPlgCPXSGTCcFpzePYdzzg=",

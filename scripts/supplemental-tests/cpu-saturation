@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -euo pipefail
+
+fulload() { 
+    dd if=/dev/urandom | bzip2 -9 >> /dev/null | dd if=/dev/urandom | bzip2 -9 >> /dev/null | dd if=/dev/urandom | bzip2 -9 >> /dev/null | dd if=/dev/urandom | bzip2 -9 >> /dev/null | dd if=/dev/urandom | bzip2 -9 >> /dev/null | dd if=/dev/urandom | bzip2 -9 >> /dev/null | dd if=/dev/urandom | bzip2 -9 >> /dev/null | dd if=/dev/urandom | bzip2 -9 >> /dev/null &
+}; 
+fulload; read; killall bzip2

@@ -30,7 +30,7 @@ export ODRIVE_BUILDDATE=$(date +%Y%m%d)
 
 echo "invoking prepare-rpm-env.sh"
 ${ODRIVE_ROOT}/scripts/prepare-rpm-env.sh
-cp ~/rpmbuild/RPMS/x86_64/object-drive-1.0-${ODRIVE_VERSION}-${ODRIVE_BUILDNUM}.${ODRIVE_BUILDDATE}.x86_64.rpm $ODRIVE_ROOT
+cp ~/rpmbuild/RPMS/x86_64/object-drive-1.0-${ODRIVE_VERSION}-${ODRIVE_BUILDNUM}.${ODRIVE_BUILDDATE}.x86_64.rpm ${ODRIVE_ROOT}
 
-cd $ODRIVE_ROOT
-
+cd ${ODRIVE_ROOT}
+#chown nobody:nogroup *.rpm

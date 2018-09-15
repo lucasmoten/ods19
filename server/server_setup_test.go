@@ -15,7 +15,7 @@ import (
 	"github.com/karlseguin/ccache"
 
 	"bitbucket.di2e.net/dime/object-drive-server/ciphertext"
-	testclient "bitbucket.di2e.net/dime/object-drive-server/client"
+	"bitbucket.di2e.net/dime/object-drive-server/client"
 	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/dao"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
@@ -218,7 +218,7 @@ type ClientIdentity struct {
 	Index         int
 	Client        *http.Client
 	Groups        []string
-	C             *testclient.Client
+	C             *client.Client
 	Cert          *x509.Certificate
 }
 
@@ -258,7 +258,7 @@ func getClientIdentity(i int, name string) (*ClientIdentity, error) {
 	ci.Name = name
 
 	// New client.Client instance can be set on field C for use in tests.
-	clientConf := testclient.Config{
+	clientConf := client.Config{
 		Cert:  certPath,
 		Trust: trustPath,
 		Key:   keyPath,
@@ -266,7 +266,7 @@ func getClientIdentity(i int, name string) (*ClientIdentity, error) {
 		Remote:     mountPoint,
 		SkipVerify: true,
 	}
-	c, err := testclient.NewClient(clientConf)
+	c, err := client.NewClient(clientConf)
 	if err != nil {
 		return nil, fmt.Errorf("cannot instantiate client.Client: %v", err)
 	}

@@ -8,13 +8,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	asg "github.com/aws/aws-sdk-go/service/autoscaling"
-	"github.com/aws/aws-sdk-go/service/sqs"
 	"bitbucket.di2e.net/dime/object-drive-server/amazon"
 	"bitbucket.di2e.net/dime/object-drive-server/ciphertext"
 	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/services/zookeeper"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	"go.uber.org/zap"
 )
 
@@ -52,8 +52,8 @@ type AutoScalerSQS interface {
 
 // AutoScalerASG hides ASG
 type AutoScalerASG interface {
-	RecordLifecycleActionHeartbeat(req *asg.RecordLifecycleActionHeartbeatInput) (*asg.RecordLifecycleActionHeartbeatOutput, error)
-	CompleteLifecycleAction(req *asg.CompleteLifecycleActionInput) (*asg.CompleteLifecycleActionOutput, error)
+	RecordLifecycleActionHeartbeat(req *autoscaling.RecordLifecycleActionHeartbeatInput) (*autoscaling.RecordLifecycleActionHeartbeatOutput, error)
+	CompleteLifecycleAction(req *autoscaling.CompleteLifecycleActionInput) (*autoscaling.CompleteLifecycleActionOutput, error)
 }
 
 //LifecycleMessage is related to us
@@ -77,7 +77,7 @@ func (as *AutoScaler) autoScalerTerminating(lifecycleMessage *LifecycleMessage) 
 	//Notify autoscaling that we are ready to be terminated
 	if asgSession != nil && lifecycleMessage != nil {
 		logger.Info("autoscale terminating")
-		actionInput := &asg.CompleteLifecycleActionInput{
+		actionInput := &autoscaling.CompleteLifecycleActionInput{
 			AutoScalingGroupName:  aws.String(as.Config.AutoScalingGroupName),
 			LifecycleActionResult: aws.String(actionResult),
 			LifecycleActionToken:  aws.String(lifecycleMessage.LifecycleActionToken),
@@ -97,7 +97,7 @@ func (as *AutoScaler) waitingToTerminate(lifecycleMessage *LifecycleMessage, rem
 	logger := as.Logger.With(zap.Int("remainingFiles", remainingFiles))
 	//If we have not terminated yet, then send a heartbeat
 	if lifecycleMessage != nil {
-		heartbeatInput := &asg.RecordLifecycleActionHeartbeatInput{
+		heartbeatInput := &autoscaling.RecordLifecycleActionHeartbeatInput{
 			AutoScalingGroupName: aws.String(as.Config.AutoScalingGroupName),
 			LifecycleActionToken: aws.String(lifecycleMessage.LifecycleActionToken),
 			LifecycleHookName:    aws.String(lifecycleMessage.LifecycleHookName),
@@ -267,7 +267,7 @@ func (as *AutoScaler) WatchForShutdownByMessage() {
 		},
 	)
 	if err != nil {
-		logger.Error("sqs queue error",
+		logger.Warn("sqs queue error",
 			zap.Error(err),
 			zap.Any("config", as.Config),
 		)
@@ -328,7 +328,7 @@ func WatchForShutdown(z *zookeeper.ZKState, logger *zap.Logger) {
 	//We use this to get remote messages to shut down
 	var sqsSession AutoScalerSQS = sqs.New(amazon.NewAWSSession(sqsConfig.AWSConfigSQS, logger))
 	//We need this if we want to stay alive after getting a termination message.
-	var asgSession AutoScalerASG = asg.New(amazon.NewAWSSession(sqsConfig.AWSConfigASG, logger))
+	var asgSession AutoScalerASG = autoscaling.New(amazon.NewAWSSession(sqsConfig.AWSConfigASG, logger))
 
 	as := &AutoScaler{
 		Logger:      logger,

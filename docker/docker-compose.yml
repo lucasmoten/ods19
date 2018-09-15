@@ -105,10 +105,15 @@ services:
         - OD_SERVER_CIPHERS=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA
         - OD_SERVER_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.key.pem
         - OD_SERVER_PORT=4430
+        - OD_SERVER_TIMEOUT_READ=100000
+        - OD_SERVER_TIMEOUT_WRITE=100000
         - OD_ZK_ANNOUNCE=/cte/service/object-drive/1.0
         - OD_ZK_AAC=/cte/service/aac/1.2/thrift
-        - OD_ZK_TIMEOUT
+        - OD_ZK_RECHECK_TIME=30
+        - OD_ZK_TIMEOUT=1
         - OD_ZK_URL
+    ports:
+      - "4430:4430"
     depends_on:
         - metadatadb
         - aac
@@ -166,7 +171,8 @@ services:
         - OD_SERVER_PORT=4430
         - OD_ZK_ANNOUNCE=/cte/service/object-drive/1.0
         - OD_ZK_AAC=/cte/service/aac/1.2/thrift
-        - OD_ZK_TIMEOUT
+        - OD_ZK_RECHECK_TIME=30
+        - OD_ZK_TIMEOUT=1
         - OD_ZK_URL
     depends_on:
         - metadatadb

@@ -35,6 +35,10 @@ server:
         - "baz"
     static_root: ""
     template_root: ""
+    timeout_idle: 60
+    timeout_read: 0
+    timeout_readheader: 5
+    timeout_write: 3600
 
 
 disk_cache:
@@ -82,3 +86,4 @@ zk:
     address: ""
     register_odrive_as: ""
     retrydelay: 10
+    recheck_time: 30

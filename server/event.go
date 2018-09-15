@@ -4,12 +4,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/deciphernow/gov-go/audit/events_thrift"
-
 	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/events"
 	"bitbucket.di2e.net/dime/object-drive-server/services/audit"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
+	"bitbucket.di2e.net/greymatter/gov-go/audit/events_thrift"
 )
 
 // globalEventFromRequest extracts data from the request and sets up a

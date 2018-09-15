@@ -3,7 +3,7 @@ package audit
 import (
 	"testing"
 
-	"github.com/deciphernow/gov-go/audit/events_thrift"
+	"bitbucket.di2e.net/greymatter/gov-go/audit/events_thrift"
 )
 
 // Don't import the GEM, fake it with a wrapper

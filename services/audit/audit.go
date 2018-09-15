@@ -3,9 +3,9 @@ package audit
 import (
 	"log"
 
-	"github.com/deciphernow/gov-go/audit/acm_thrift"
-	"github.com/deciphernow/gov-go/audit/components_thrift"
-	"github.com/deciphernow/gov-go/audit/events_thrift"
+	"bitbucket.di2e.net/greymatter/gov-go/audit/acm_thrift"
+	"bitbucket.di2e.net/greymatter/gov-go/audit/components_thrift"
+	"bitbucket.di2e.net/greymatter/gov-go/audit/events_thrift"
 )
 
 /* Create generic Event for now

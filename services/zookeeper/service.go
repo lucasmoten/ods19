@@ -8,22 +8,22 @@ import (
 	"strings"
 	"time"
 
-	globalconfig "bitbucket.di2e.net/dime/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"github.com/samuel/go-zookeeper/zk"
 	"go.uber.org/zap"
 )
 
 var (
-	logger     = globalconfig.RootLogger
+	logger     = config.RootLogger
 	defaultACL = zk.WorldACL(zk.PermAll)
 )
 
 // AnnouncementRequest is information required to re-invoke announcements
 type AnnouncementRequest struct {
-	protocol string
-	stat     string
-	host     string
-	port     string
+	Protocol string
+	Stat     string
+	Host     string
+	Port     string
 }
 
 // ZKState holds a ZK connection and other stateful attributes.
@@ -108,13 +108,12 @@ func RegisterApplication(originalPath string, zkAddress string, zkTimeout int64)
 		zap.Int64("timeout", zkTimeout),
 	)
 
-	zlogger.Info("zk connect")
-
+	zlogger.Info("zk connect attempt")
 	conn, _, err := zk.Connect(addrs, time.Second*time.Duration(zkTimeout))
 	if err != nil {
 		return &ZKState{}, err
 	}
-
+	zlogger.Debug("zk connected to local pool")
 	// Ensure the announcement path is in the correct format
 	zkURI := originalPath
 	if !strings.HasPrefix(zkURI, "/") {
@@ -122,7 +121,7 @@ func RegisterApplication(originalPath string, zkAddress string, zkTimeout int64)
 	}
 	zkURI = strings.TrimRight(zkURI, "/")
 
-	zlogger.Info("zk full URI setting", zap.String("zkuri", zkURI))
+	zlogger.Debug("zk full URI setting", zap.String("zkuri", zkURI))
 
 	zkState := ZKState{
 		ZKAddress:            zkAddress,
@@ -255,7 +254,7 @@ func trackAnnouncementsLoop(z *ZKState, at string, handler AnnounceHandler) {
 					thisChild := at + "/" + p
 					data, _, err := z.Conn.Get(thisChild)
 					if err != nil {
-						zlogger.Error(
+						zlogger.Warn(
 							"zk error getting data on peer",
 							zap.String("peer", p),
 							zap.Error(err),
@@ -273,7 +272,7 @@ func trackAnnouncementsLoop(z *ZKState, at string, handler AnnounceHandler) {
 					zlogger.Info(
 						"zk object-drive announcements are empty.  re-announcing.",
 					)
-					doReAnnouncements(z, zlogger)
+					DoReAnnouncements(z, zlogger)
 				}
 				if ok {
 					zlogger.Info("zk membership change", zap.Any("announcements", announcements))
@@ -283,7 +282,7 @@ func trackAnnouncementsLoop(z *ZKState, at string, handler AnnounceHandler) {
 					//blocks until it changes
 					ev := <-childrenEvents
 					if ev.Err != nil {
-						zlogger.Error(
+						zlogger.Warn(
 							"zk event error",
 							zap.Error(ev.Err),
 						)
@@ -311,17 +310,17 @@ func doZkCleanup(oldConnection *zk.Conn) {
 func doZkRecovery(z *ZKState, zlogger *zap.Logger) bool {
 	ok := false
 	// Just try to re-announce - this almost always works (pauses and restarts of zk)
-	zlogger.Error("zk recover")
-	err := doReAnnouncements(z, zlogger)
+	zlogger.Info("zk recovery started")
+	err := DoReAnnouncements(z, zlogger)
 	if err != nil {
-		zlogger.Error(
+		zlogger.Warn(
 			"zk re register error",
 			zap.Error(err),
 		)
 		oldConnection := z.Conn
 		zNew, err := RegisterApplication(z.registeredPath, z.ZKAddress, z.Timeout)
 		if err != nil {
-			zlogger.Error(
+			zlogger.Warn(
 				"zk re register error cant create connection",
 				zap.Error(err),
 			)
@@ -329,9 +328,9 @@ func doZkRecovery(z *ZKState, zlogger *zap.Logger) bool {
 			//Use the new connection
 			*z = *zNew
 			//Try to re-announce again.  If this fails, we still note that we are not ok, so it can be done again later.
-			err := doReAnnouncements(z, zlogger)
+			err := DoReAnnouncements(z, zlogger)
 			if err != nil {
-				zlogger.Error(
+				zlogger.Warn(
 					"zk re register error after create connection",
 					zap.Error(err),
 				)
@@ -352,9 +351,15 @@ func isZKOk(err error) bool {
 	if err == nil {
 		return true
 	}
-	if err.Error() == "zk: node already exists" {
+	switch err.Error() {
+	case "zk: node already exists":
 		return true
+	case "zk: could not connect to a server":
+		return false
+	default:
+		logger.Debug("isZKOk error", zap.String("error", err.Error()))
 	}
+
 	return false
 }
 
@@ -362,31 +367,31 @@ func isZKOk(err error) bool {
 func ServiceStop(zkState *ZKState, protocol string, logger *zap.Logger) {
 	logger.Info("zk terminating")
 	zkState.IsTerminated = true
-	path := zkState.registeredPath + "/" + protocol + "/" + globalconfig.NodeID
+	path := zkState.registeredPath + "/" + protocol + "/" + config.NodeID
 	_, _, err := zkState.Conn.Exists(path)
 	if err != nil {
-		logger.Error("zk exists node fail", zap.Error(err))
+		logger.Warn("zk exists node fail", zap.Error(err))
 	}
 	logger.Info("zk must remove its ephemeral node", zap.String("path", path))
 	err = zkState.Conn.Delete(path, -1)
 	if err != nil {
-		logger.Error("zk delete node fail", zap.Error(err))
+		logger.Warn("zk delete node fail", zap.Error(err))
 	} else {
 		logger.Info("zk terminated our ephemeral node")
 	}
 }
 
-// try to fix it. if anything goes wrong, we try again.
-func doReAnnouncements(zkState *ZKState, logger *zap.Logger) error {
+// DoReAnnouncements will try to fix it. if anything goes wrong, we try again.
+func DoReAnnouncements(zkState *ZKState, logger *zap.Logger) error {
 	if zkState.IsTerminated {
 		return nil
 	}
 
 	var returnErr error
 	for _, a := range zkState.AnnouncementRequests {
-		err := ServiceReAnnouncement(zkState, a.protocol, a.stat, a.host, a.port)
+		err := ServiceReAnnouncement(zkState, a.Protocol, a.Stat, a.Host, a.Port)
 		if isZKOk(err) == false {
-			logger.Error(
+			logger.Warn(
 				"zk re announce service", zap.Any("reannouncement", a), zap.Error(err),
 			)
 			returnErr = err
@@ -398,11 +403,12 @@ func doReAnnouncements(zkState *ZKState, logger *zap.Logger) error {
 // ServiceAnnouncement is same as ServiceReAnnouncement with remembering for re-register later
 func ServiceAnnouncement(zkState *ZKState, protocol string, stat, host string, port string) error {
 	aReq := AnnouncementRequest{
-		protocol: protocol,
-		stat:     stat,
-		host:     host,
-		port:     port,
+		Protocol: protocol,
+		Stat:     stat,
+		Host:     host,
+		Port:     port,
 	}
+	logger.Debug("zk service announcing", zap.Any("announcementrequest", aReq))
 	zkState.AnnouncementRequests = append(zkState.AnnouncementRequests, aReq)
 	return ServiceReAnnouncement(zkState, protocol, stat, host, port)
 }
@@ -443,7 +449,7 @@ func ServiceReAnnouncement(zkState *ZKState, protocol string, stat, host string,
 	newPath, err := makeNewNode(zkState.Conn, "protocols", zkState.Protocols, protocol, 0, emptyData)
 	if isZKOk(err) {
 		// Register a member with our data - we must use the randomID that was assigned on startup for odrive
-		newPath, err = makeNewNode(zkState.Conn, "announcement", newPath, globalconfig.NodeID, zk.FlagEphemeral, asBytes)
+		newPath, err = makeNewNode(zkState.Conn, "announcement", newPath, config.NodeID, zk.FlagEphemeral, asBytes)
 		if isZKOk(err) {
 			err = nil
 		}

@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/deciphernow/gov-go/audit/acm_thrift"
-	"github.com/deciphernow/gov-go/audit/components_thrift"
-	"github.com/deciphernow/gov-go/audit/events_thrift"
 	"bitbucket.di2e.net/dime/object-drive-server/events"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
 	"bitbucket.di2e.net/dime/object-drive-server/services/audit"
+	"bitbucket.di2e.net/greymatter/gov-go/audit/acm_thrift"
+	"bitbucket.di2e.net/greymatter/gov-go/audit/components_thrift"
+	"bitbucket.di2e.net/greymatter/gov-go/audit/events_thrift"
 )
 
 // Utilities for dealing with pointers to primitive types.

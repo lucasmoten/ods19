@@ -68,12 +68,14 @@ func Start(conf config.AppConfiguration) error {
 	tlsConfig := conf.ServerSettings.GetTLSConfig()
 
 	httpServer := &http.Server{
-		Addr:           app.Addr,
-		Handler:        app,
-		ReadTimeout:    100000 * time.Second,
-		WriteTimeout:   100000 * time.Second,
-		MaxHeaderBytes: 1 << 20,
-		TLSConfig:      &tlsConfig,
+		Addr:              app.Addr,
+		Handler:           app,
+		IdleTimeout:       time.Duration(conf.ServerSettings.IdleTimeout) * time.Second,
+		ReadTimeout:       time.Duration(conf.ServerSettings.ReadTimeout) * time.Second,
+		ReadHeaderTimeout: time.Duration(conf.ServerSettings.ReadHeaderTimeout) * time.Second,
+		WriteTimeout:      time.Duration(conf.ServerSettings.WriteTimeout) * time.Second,
+		MaxHeaderBytes:    1 << 20,
+		TLSConfig:         &tlsConfig,
 	}
 	exitChan := make(chan error)
 	go func() {
@@ -205,6 +207,61 @@ func connectWithZookeeper(app *AppServer, zkBasePath string, zkAddress string, z
 
 var shutdown = make(chan bool)
 
+func zkKeepalive(app *AppServer, conf config.AppConfiguration) {
+
+	// first run, sleep immediately. Let original ZK code try first.
+	warmupTime := int(math.Max(1, math.Min(60, float64(conf.ZK.RetryDelay))))
+	time.Sleep(time.Second * time.Duration(warmupTime))
+
+	recheckTime := int(math.Max(1, math.Min(600, float64(conf.ZK.RecheckTime))))
+	t := time.NewTicker(time.Duration(time.Second * time.Duration(recheckTime)))
+
+	for {
+		select {
+		case <-t.C:
+			if app.DefaultZK != nil {
+				logger.Debug("zkKeepalive checking health")
+				children, _, err := app.DefaultZK.Conn.Children(conf.ZK.BasepathOdrive + "/https")
+				if err != nil {
+					logger.Debug("zkKeepalive health check failure, attempting reconnect")
+					connectWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, conf.ZK.Timeout, conf.ZK.RetryDelay)
+				} else {
+					if len(children) > 0 {
+						// make sure our ephemeral node exists!
+						foundOurself := false
+						for _, v := range children {
+							if v == config.NodeID {
+								foundOurself = true
+								break
+							}
+						}
+						if foundOurself {
+							logger.Debug("zkKeepalive health check success")
+						} else {
+							logger.Debug("zkKeepalive health check failed to find our node, attempting reconnect")
+							connectWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, conf.ZK.Timeout, conf.ZK.RetryDelay)
+							zookeeper.DoReAnnouncements(app.DefaultZK, logger)
+							// may need serviceannouncement instead
+						}
+
+					} else {
+						logger.Debug("zkKeepalive health check failure, no children, including us, at announcement path, attempting reconnect")
+						connectWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, conf.ZK.Timeout, conf.ZK.RetryDelay)
+						zookeeper.DoReAnnouncements(app.DefaultZK, logger)
+						// may need serviceannouncement instead
+					}
+				}
+			} else {
+				logger.Error("zkKeepalive saw nil pointer to ZK, attempting reconnect")
+				connectWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, conf.ZK.Timeout, conf.ZK.RetryDelay)
+			}
+		case <-shutdown:
+			t.Stop()
+			return
+		}
+	}
+}
+
 func aacKeepalive(app *AppServer, conf config.AppConfiguration) {
 
 	// first run, sleep immediately. Let original ZK code try first.
@@ -305,6 +362,7 @@ func aacReconnect(app *AppServer, conf config.AppConfiguration) {
 func zkTracking(app *AppServer, conf config.AppConfiguration) {
 
 	go aacKeepalive(app, conf)
+	go zkKeepalive(app, conf)
 
 	srvConf, aacConf, zkConf := conf.ServerSettings, conf.AACSettings, conf.ZK
 

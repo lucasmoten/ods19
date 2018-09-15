@@ -143,15 +143,19 @@ def gatekeeper_build(tag="latest"):
     shutil.copyfile(os.path.join(PROJECT_ROOT,'defaultcerts','server','server.key.pem'), os.path.join(gatekeeper_dir,'build','fs','etc','nginx','server.key.pem'))
     shutil.copyfile(os.path.join(PROJECT_ROOT,'defaultcerts','server','server.trust.pem'), os.path.join(gatekeeper_dir,'build','fs','etc','nginx','server.trust.pem'))
     # If an rpm was built, then bake it into the gatekeeper build
-    rpm_path = os.path.join(os.getenv("OD_ROOT"), "object-drive-ui", "rpm")
-    rpm_location = glob(rpm_path + "/*.rpm")
-    if len( rpm_location ) > 0:
-        rpm_src = rpm_location[0]
-        rpm_name = rpm_location[0].split(os.sep)[-1]
-        rpm_dst = os.path.join(build_fs, rpm_name)
-        shutil.copyfile(rpm_src, rpm_dst)
+    od_root = os.getenv("OD_ROOT")
+    if len(od_root) > 0 and os.path.exists(od_root):
+        rpm_path = os.path.join(os.getenv("OD_ROOT"), "object-drive-ui", "rpm")
+        rpm_location = glob(rpm_path + "/*.rpm")
+        if len( rpm_location ) > 0:
+            rpm_src = rpm_location[0]
+            rpm_name = rpm_location[0].split(os.sep)[-1]
+            rpm_dst = os.path.join(build_fs, rpm_name)
+            shutil.copyfile(rpm_src, rpm_dst)
+        else:
+            print ("skipping rpm, as it is not found at %s" % rpm_location)
     else:
-        print ("skipping rpm, as it is not found at %s" % rpm_location)
+        self.logger.info("OD_ROOT is undefined. Skipping check for Object Drive UI RPM and installation")
 
     # tar up the fake filesystem
     tar_path = os.path.abspath(os.path.join(build_dir, 'fs'))
@@ -330,16 +334,16 @@ class Builder(object):
             
         if not "OD_ROOT" in os.environ:
             ### TODO create this for the user?
-            self.logger.error("OD_ROOT environment not set")
-            sys.exit(1)
+            self.logger.info("OD_ROOT environment not set. No remote projects can be cloned locally")
+        else:
+            self.checkout_dir = os.getenv("OD_ROOT")
+            self.logger.info("Setting checkout directory. Used if git clone is invoked: {0}".format(self.checkout_dir))
             
         self.env_commands = required_commands
         self.build_dir = os.getcwd()  # TODO look this up by GOPATH?
-        self.checkout_dir = os.getenv("OD_ROOT")
-        self.devnull = open(os.devnull)
-        
+        self.devnull = open(os.devnull)        
         self.logger.info("Build directory: {0}".format(self.build_dir))
-        self.logger.info("Setting checkout directory. Used if git clone is invoked: {0}".format(self.checkout_dir))
+        
 
     def build_all(self):
         """ Run entire build process for odrive.
@@ -459,21 +463,26 @@ class Builder(object):
 
         """
 
-        checked_out_repo = os.path.join(self.checkout_dir, repo)
-        if os.path.exists(checked_out_repo):
-            self.logger.info("git repository {0} already checked out. Skipping clone...".format(repo))
-            return
-        try:
-            # Checkout the repo to our checkout directory
-            subprocess.check_call(
-                    ['git', 'clone', '-b', branch, repo_url, checked_out_repo],
-                    stdout=sys.stdout, stderr=sys.stderr)
-        except subprocess.CalledProcessError as e:
-            self.logger.error("Error from git clone: {0}".format(e))
-            sys.exit(1)
+        if len(self.checkout_dir) > 0:
 
-        if build:
-            self.build_project(checked_out_repo, repo)
+            checked_out_repo = os.path.join(self.checkout_dir, repo)
+            if os.path.exists(checked_out_repo):
+                self.logger.info("git repository {0} already checked out. Skipping clone...".format(repo))
+                return
+            try:
+                # Checkout the repo to our checkout directory
+                subprocess.check_call(
+                        ['git', 'clone', '-b', branch, repo_url, checked_out_repo],
+                        stdout=sys.stdout, stderr=sys.stderr)
+            except subprocess.CalledProcessError as e:
+                self.logger.error("Error from git clone: {0}".format(e))
+                sys.exit(1)
+
+            if build:
+                self.build_project(checked_out_repo, repo)
+
+        else:
+            self.logger.warn("request to clone branch denied for {0} since checkout_dir is not established. must define OD_ROOT environment variable".format(repo))
 
     def build_project(self, checked_out_repo, repo):
         # cd into directory
@@ -521,20 +530,25 @@ class Builder(object):
             self.logger.error("Error from go get: {0}".format(e))
 
     def clone_tag(self, repo, repo_url, tag):
-        checked_out_repo = os.path.join(self.checkout_dir, repo)
-        if os.path.exists(checked_out_repo):
-            self.logger.info("git repository {0} already checked out. Skipping clone...".format(repo))
-            return
-        try:
-            # Checkout the repo to our checkout directory
-            subprocess.check_call(
-                    ['git', 'clone', '--branch', tag, repo_url, checked_out_repo],
-                    stdout=sys.stdout, stderr=sys.stderr)
-        except subprocess.CalledProcessError as e:
-            self.logger.error("Error from git clone: {0}".format(e))
-            sys.exit(1)
+        if len(self.checkout_dir) > 0:
 
-        self.build_project(checked_out_repo, repo)
+            checked_out_repo = os.path.join(self.checkout_dir, repo)
+            if os.path.exists(checked_out_repo):
+                self.logger.info("git repository {0} already checked out. Skipping clone...".format(repo))
+                return
+            try:
+                # Checkout the repo to our checkout directory
+                subprocess.check_call(
+                        ['git', 'clone', '--branch', tag, repo_url, checked_out_repo],
+                        stdout=sys.stdout, stderr=sys.stderr)
+            except subprocess.CalledProcessError as e:
+                self.logger.error("Error from git clone: {0}".format(e))
+                sys.exit(1)
+
+            self.build_project(checked_out_repo, repo)
+        else:
+            self.logger.warn("request to clone tag denied for {0} since checkout_dir is not established. must define OD_ROOT environment variable".format(repo))
+
 
 #-------------------------------------------------------------------------------
 

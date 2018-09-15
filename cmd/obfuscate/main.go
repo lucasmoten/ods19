@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/deciphernow/gov-go/gov/encryptor"
 	"bitbucket.di2e.net/dime/object-drive-server/config"
+	"bitbucket.di2e.net/greymatter/gov-go/gov/encryptor"
 )
 
 func help() {
