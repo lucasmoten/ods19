@@ -10,13 +10,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	linuxproc "github.com/c9s/goprocinfo/linux"
 	"bitbucket.di2e.net/dime/object-drive-server/amazon"
 	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/performance"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	linuxproc "github.com/c9s/goprocinfo/linux"
 	"go.uber.org/zap"
 )
 
@@ -119,7 +119,7 @@ func GetProcStat(logger *zap.Logger) *linuxproc.Stat {
 	var err error
 	prevStat, err := linuxproc.ReadStat("/proc/stat")
 	if err != nil {
-		logger.Error("stat read fail", zap.Error(err))
+		logger.Warn("stat read fail", zap.Error(err))
 	}
 	return prevStat
 }
@@ -139,7 +139,7 @@ func GetLoadAvgStat(logger *zap.Logger) *LoadAvgStat {
 	var err error
 	f, err := os.Open("/proc/loadavg")
 	if err != nil {
-		logger.Error("loadavg fail to open", zap.Error(err))
+		logger.Warn("loadavg fail to open", zap.Error(err))
 		return nil
 	}
 	defer f.Close()
@@ -147,7 +147,7 @@ func GetLoadAvgStat(logger *zap.Logger) *LoadAvgStat {
 	buffer := make([]byte, 1024)
 	count, err := f.Read(buffer)
 	if err != nil {
-		logger.Error("loadavg fail to parse", zap.Error(err))
+		logger.Warn("loadavg fail to parse", zap.Error(err))
 		return nil
 	}
 	bufferString := string(buffer[:count])
@@ -257,20 +257,17 @@ func CloudWatchReportingStart(tracker *performance.JobReporters) {
 	cwConfig := config.NewCWConfig()
 	var cwSession *cloudwatch.CloudWatch
 	var namespace *string
-	var sleepTime int
 
-	if cwConfig == nil {
+	if len(cwConfig.Name) == 0 {
 		namespace = aws.String("nullCloudwatch")
-		sleepTime = 60
 	} else {
 		//We use an immutable dimension that marks this as the odrive service, where we actually report to CloudWatch
 		//for the IP (presuming they are unique, which is generally true outside of docker deployments)
 		namespace = aws.String(cwConfig.Name)
 		cwSession = cloudwatch.New(amazon.NewAWSSession(cwConfig.AWSConfig, logger))
 		if cwSession == nil {
-			logger.Error("cloudwatch txn fail on null session")
+			logger.Warn("cloudwatch txn fail on null session")
 		}
-		sleepTime = cwConfig.SleepTimeInSeconds
 	}
 
 	logger.Info("cloudwatch monitoring started", zap.String("implementation", *namespace))
@@ -282,8 +279,8 @@ func CloudWatchReportingStart(tracker *performance.JobReporters) {
 		prevStat := GetProcStat(logger)
 		for {
 			CloudWatchStartInterval(tracker, util.NowMS())
-			logger.Debug("cloudwatch wait", zap.Int("timeInSeconds", sleepTime))
-			time.Sleep(time.Duration(sleepTime) * time.Second)
+			logger.Debug("cloudwatch wait", zap.Int("timeInSeconds", cwConfig.SleepTimeInSeconds))
+			time.Sleep(time.Duration(cwConfig.SleepTimeInSeconds) * time.Second)
 			logger.Debug("cloudwatch to report")
 
 			//Get all the fields that we want to report from here
@@ -401,15 +398,10 @@ func CloudWatchReportingStart(tracker *performance.JobReporters) {
 			}
 
 			if len(metricDatum) > 0 {
-				cwLogger := logger.With(zap.String("namespace", *namespace))
-				if cwSession == nil {
-					for _, p := range params.MetricData {
-						logMetricDatum(cwLogger, p)
-					}
-				} else {
+				if cwSession != nil {
 					_, err := cwSession.PutMetricData(params)
 					if err != nil {
-						logger.Error("cloudwatch put metric data fail", zap.Error(err))
+						logger.Warn("cloudwatch put metric data fail", zap.Error(err))
 					} else {
 						logger.Debug("cloudwatch success")
 					}

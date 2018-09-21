@@ -12,7 +12,7 @@ echo begin Unit test prep
 # in ci_odrive_1, the GOPATH of /go has old tests.  Just unpack what we actually built, and test that directly.
 docker cp $GOPATH/src/$IMPORT_PATH/../od.tar ci_odrive_1:/od.tar
 # unpack our GOPATH into /gosrc
-docker exec ci_odrive_1 /bin/bash -c "mkdir -p /gosrc/src/github.com/deciphernow"
-docker exec ci_odrive_1 /bin/bash -c "cd /gosrc/src/github.com/deciphernow && tar xvf /od.tar"
+docker exec ci_odrive_1 /bin/bash -c "mkdir -p /gosrc/src/bitbucket.di2e.net/dime"
+docker exec ci_odrive_1 /bin/bash -c "cd /gosrc/src/bitbucket.di2e.net/dime && tar xvf /od.tar"
 echo end Unit test prep
 

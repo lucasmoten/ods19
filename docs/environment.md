@@ -2,7 +2,7 @@ FORMAT: 1A
 
 # Object Drive 1.0 
 
-<table style="width:100%;border:0px;"><tbody><tr><td style="padding:0px;border-spacing:0;border-collapse:collapse;font-family:Helvetica;font-size:10pt;vertical-align:center;">Version</td><td style="padding:0px;padding-top:6px;"><img src="../images/odrive-version.png" alt="Version"></td><td style="width:20%;font-size:8pt;"> </td><td style="padding:0px;font-size:10pt;">Build</td><td style="padding:0px;padding-top:6px;"><img src="../images/odrive-buildnum.png" alt="Build Number"></td><td style="width:20%;font-size:8pt;"></td><td style="padding:0px;font-size:10pt;">Date</td><td style="padding:0px;padding-top:6px;"><img src="../images/odrive-builddate.png" alt="Build Number"></td></tr></tbody></table>
+<table style="width:100%;border:0px;padding:0px;border-spacing:0;border-collapse:collapse;font-family:Helvetica;font-size:10pt;vertical-align:center;"><tbody><tr><td style="padding:0px;font-size:10pt;">Version</td><td style="padding:0px;font-size:10pt;">--Version--</td><td style="width:20%;font-size:8pt;"> </td><td style="padding:0px;font-size:10pt;">Build</td><td style="padding:0px;font-size:10pt;">--BuildNumber--</td><td style="width:20%;font-size:8pt;"></td><td style="padding:0px;font-size:10pt;">Date</td><td style="padding:0px;font-size:10pt;">--BuildDate--</td></tr></tbody></table>
 
 # Group Navigation
 
@@ -111,6 +111,7 @@ ObjectDrive itself just logs to stdout.  But when the service script launches it
 
 | Name | Description | Default |
 | --- | --- | --- |
+| OD_LOG_MODE | Denotes whether logging is in development or production mode.  When in development mode, stack traces will be output for WARN level messages and above. For production mode, stack traces are only output in ERROR level. Permissible values are production, development | Production |
 | OD_LOG_LEVEL | Should be Info (OD_LOG_LEVEL=0, -1 is Debug, 0 is Info, 1 is Warn, 2 is Error, 3 is Fatal, etc.) for production systems | 0 |
 | OD_LOG_LOCATION | The location of a log file, supplied in `env.sh`  to override log location. | object-drive.log |
 
@@ -135,9 +136,13 @@ Remaining server settings are noted here
 | OD_SERVER_BASEPATH | The base URL root. Used in debug UIs.    | "/services/object-drive/1.0" |
 | OD_SERVER_CA | The path to the certificate authority folder or file containing public certificate(s) to trust as the server.    |  |
 | OD_SERVER_CERT |The path to the public certificate for the server credentials.  |  |
-| OD_SERVER_CIPHERS | A comma delimited list of ciphers to be allowed for connections. Valid values are TLS_RSA_WITH_RC4_128_SHA, TLS_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA (recommended), TLS_RSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_ECDSA_WITH_RC4_128_SHA, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_RC4_128_SHA, TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 (recommended), TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 |  |
+| OD_SERVER_CIPHERS | A comma delimited list of ciphers to be allowed for connections. Valid values are TLS_RSA_WITH_RC4_128_SHA, TLS_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA (recommended), TLS_RSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_ECDSA_WITH_RC4_128_SHA, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_RC4_128_SHA, TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 (recommended), TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305, TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305 |  |
 | OD_SERVER_KEY | The path to the server's private key.   |  |
 | OD_SERVER_PORT | The port for which this object-drive instance will listen on. Binding to ports below 1024 require setting additional security settings on the system.  | 4430 |
+| OD_SERVER_TIMEOUT_IDLE | This is the maximum amount of time to wait for the next request when keep-alives are enabled, in seconds | 60 |
+| OD_SERVER_TIMEOUT_READ | This is the maximum duration for reading the entire request, including the body | |
+| OD_SERVER_TIMEOUT_READHEADER | This is the amount of time allowed to read request headers, in seconds | 5 |
+| OD_SERVER_TIMEOUT_WRITE | This is the maximum duration before timing out writes of the response, in seconds | 3600 |
 | OD_TOKENJAR_LOCATION | If a token.jar is placed on the filesystem to support Bedrock secret encryption format, then this is the full location of that jar file.  That jar is presumed to have used OD_TOKENJAR_PASSWORD in its generation | `/opt/services/object-drive-1.0/token.jar` |
 | OD_TOKENJAR_PASSWORD | This is the password that is embedded into code that is authorized to decrypt secrets that we cannot avoid writing down on the system.  The security of the system does not lie in this password, but in the fact that each token.jar should be using a fresh sample.dat that has a fresh key per cluster.  This value generally does not need an override, but it is here in case it does get changed without recompiling the code.  | Embedded in compiled code |
 
@@ -150,6 +155,7 @@ Zookeeper is used to announce the availability of this instance of the object dr
 | OD_ZK_ANNOUNCE|The mount point for announcements where our zookeeper https node is placed.   This should match the gatekeeper cluster.odrive.zk-location without the https part | /services/object-drive/1.0 |
 | OD_ZK_MYIP | The IP address of the Object-Drive server as reported to Zookeeper. If this environment variable is defined it will override the value detected as the server's IP address on startup. | globalconfig.MyIP |
 | OD_ZK_MYPORT | The Port of the Object-Drive server as reported to Zookeeper. If this environment variable is defined it will override the value detected as the server's listening port on startup. | serverPort _4430_ |
+| OD_ZK_RECHECK_TIME | The interval seconds between ZK health status checks (1-600) | 30 |
 | OD_ZK_RETRYDELAY | The number of seconds between retry attempts when connecting to ZooKeeper (1-10) | 3 |
 | OD_ZK_TIMEOUT | Timeout in seconds for zookeeper sessions | 5 |
 | OD_ZK_URL | A comma delimited list of zookeeper instances to announce to. The structure of this value should be server1:port1,server2:port2,serverN:portN. If misconfigured, the server will never start.  | zk:2181 |

@@ -7,10 +7,9 @@ import (
 	"time"
 
 	"bitbucket.di2e.net/dime/object-drive-server/autoscale"
-	cfg "bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"github.com/aws/aws-sdk-go/aws"
-	asg "github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
@@ -137,16 +136,16 @@ func newTestAutoScalerASG(t *testing.T) *testAutoScalerASG {
 	return &testAutoScalerASG{t: t}
 }
 
-func (s *testAutoScalerASG) RecordLifecycleActionHeartbeat(req *asg.RecordLifecycleActionHeartbeatInput) (*asg.RecordLifecycleActionHeartbeatOutput, error) {
+func (s *testAutoScalerASG) RecordLifecycleActionHeartbeat(req *autoscaling.RecordLifecycleActionHeartbeatInput) (*autoscaling.RecordLifecycleActionHeartbeatOutput, error) {
 	return nil, nil
 }
 
-func (s *testAutoScalerASG) CompleteLifecycleAction(req *asg.CompleteLifecycleActionInput) (*asg.CompleteLifecycleActionOutput, error) {
+func (s *testAutoScalerASG) CompleteLifecycleAction(req *autoscaling.CompleteLifecycleActionInput) (*autoscaling.CompleteLifecycleActionOutput, error) {
 	return nil, nil
 }
 
 func TestAutoScale(t *testing.T) {
-	logger := cfg.RootLogger
+	logger := config.RootLogger
 	//Simulate a queue of messages, and make sure that we parse what we need to see, and ignore what we do not
 	sqs := newTestAutoScalerSQS(t)
 	as := &autoscale.AutoScaler{

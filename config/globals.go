@@ -57,10 +57,18 @@ func initLogger() *zap.Logger {
 		lvl = zap.InfoLevel
 	}
 	atomiclvl := zap.NewAtomicLevelAt(lvl)
-
+	var isdevelopment bool
+	switch strings.ToUpper(getEnvOrDefault(OD_LOG_MODE, "production")) {
+	case "-1", "0", "NO", "FALSE", "PRODUCTION", "PROD":
+		isdevelopment = false
+	case "1", "YES", "TRUE", "DEVELOPMENT", "DEVELOP", "DEV":
+		isdevelopment = true
+	default:
+		isdevelopment = false
+	}
 	cfg := zap.Config{
 		Level:       atomiclvl,
-		Development: true,
+		Development: isdevelopment,
 		Encoding:    "console", // currently have to use `console` instead of `json` due to flaws in implementation
 		EncoderConfig: zapcore.EncoderConfig{
 			TimeKey:        "tstamp",

@@ -136,7 +136,9 @@ func (aac *AACAuth) GetFlattenedACM(acm string) (string, []string, error) {
 	}
 
 	// If passed all conditions, acm is flattened
-	aac.Logger.Debug("aac.populateandvalidateacm success", zap.String("before-acm", acm), zap.String("after-acm", acmResponse.AcmInfo.Acm))
+	if strings.ToUpper(config.GetEnvOrDefault(config.OD_LOG_MODE, "production")) == "DEVELOPMENT" {
+		aac.Logger.Debug("aac.populateandvalidateacm success", zap.String("before-acm", acm), zap.String("after-acm", acmResponse.AcmInfo.Acm))
+	}
 	return acmResponse.AcmInfo.Acm, acmResponse.Messages, nil
 }
 

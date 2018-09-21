@@ -1,32 +1,28 @@
 package server
 
 import (
-	//"encoding/hex"
-
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"mime"
 	"net/http"
+	"os"
 	"strings"
 
 	"go.uber.org/zap"
 
 	"bitbucket.di2e.net/dime/object-drive-server/auth"
 	"bitbucket.di2e.net/dime/object-drive-server/ciphertext"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/crypto"
 	"bitbucket.di2e.net/dime/object-drive-server/dao"
 	"bitbucket.di2e.net/dime/object-drive-server/events"
-	"bitbucket.di2e.net/dime/object-drive-server/services/audit"
-	"golang.org/x/net/context"
-
-	"os"
-
-	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/mapping"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
 	"bitbucket.di2e.net/dime/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/services/audit"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
+	"golang.org/x/net/context"
 )
 
 // createObject creates an object or an object stream.

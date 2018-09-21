@@ -10,10 +10,10 @@ import (
 
 	//"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models/acm"
-	aac "bitbucket.di2e.net/dime/object-drive-server/services/aac"
+	"bitbucket.di2e.net/dime/object-drive-server/services/aac"
 	"bitbucket.di2e.net/dime/object-drive-server/ssl"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
-	t2 "github.com/samuel/go-thrift/thrift"
+	"github.com/samuel/go-thrift/thrift"
 )
 
 var userDN1 = "CN=Holmes Jonathan,OU=People,OU=Bedrock,OU=Six 3 Systems,O=U.S. Government,C=US"
@@ -84,8 +84,8 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 	// Setup thrift client with connection config
-	trns := t2.NewTransport(t2.NewFramedReadWriteCloser(conn, 0), t2.BinaryProtocol)
-	client := t2.NewClient(trns, true)
+	trns := thrift.NewTransport(thrift.NewFramedReadWriteCloser(conn, 0), thrift.BinaryProtocol)
+	client := thrift.NewClient(trns, true)
 	aacClient = aac.AacServiceClient{Client: client}
 
 	// Finally ready to run tests with the connected aacClient

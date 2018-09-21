@@ -2,7 +2,7 @@ FORMAT: 1A
 
 # Object Drive 1.0 
 
-<table style="width:100%;border:0px;"><tbody><tr><td style="padding:0px;border-spacing:0;border-collapse:collapse;font-family:Helvetica;font-size:10pt;vertical-align:center;">Version</td><td style="padding:0px;padding-top:6px;"><img src="../images/odrive-version.png" alt="Version"></td><td style="width:20%;font-size:8pt;"> </td><td style="padding:0px;font-size:10pt;">Build</td><td style="padding:0px;padding-top:6px;"><img src="../images/odrive-buildnum.png" alt="Build Number"></td><td style="width:20%;font-size:8pt;"></td><td style="padding:0px;font-size:10pt;">Date</td><td style="padding:0px;padding-top:6px;"><img src="../images/odrive-builddate.png" alt="Build Number"></td></tr></tbody></table>
+<table style="width:100%;border:0px;padding:0px;border-spacing:0;border-collapse:collapse;font-family:Helvetica;font-size:10pt;vertical-align:center;"><tbody><tr><td style="padding:0px;font-size:10pt;">Version</td><td style="padding:0px;font-size:10pt;">--Version--</td><td style="width:20%;font-size:8pt;"> </td><td style="padding:0px;font-size:10pt;">Build</td><td style="padding:0px;font-size:10pt;">--BuildNumber--</td><td style="width:20%;font-size:8pt;"></td><td style="padding:0px;font-size:10pt;">Date</td><td style="padding:0px;font-size:10pt;">--BuildDate--</td></tr></tbody></table>
 
 # Group Navigation
 
@@ -20,6 +20,12 @@ FORMAT: 1A
 ---------------------
 * FIX: Postprocessing list/search filtering now includes TotalRows
 * REF: Dev & Build process now use DIAS Simulator 1.1.0
+* REF: Imports switched over to new home repository in bitbucket
+* NEW: Recheck interval for ZK health check now settable via environment variables `OD_ZK_RECHECK_TIME`
+* NEW: Added support for configuring logger in development or production mode `OD_LOG_MODE`
+* NEW: Added support for configuring the HTTP Server Timeouts using `OD_SERVER_TIMEOUT_IDLE`, `OD_SERVER_TIMEOUT_READ`, `OD_SERVER_TIMEOUT_READHEADER`, and `OD_SERVER_TIMEOUT_WRITE`
+* NEW: Added support for additional ciphers used during C-S communication.
+* NEW: Jenkins support for building binaries and docker images
 
 ## Release v1.0.16 (June 29, 2018)
 ---------------------

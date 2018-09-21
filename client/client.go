@@ -18,8 +18,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/deciphernow/gm-fabric-go/tlsutil"
 	"bitbucket.di2e.net/dime/object-drive-server/protocol"
+	"github.com/deciphernow/gm-fabric-go/tlsutil"
 )
 
 // ObjectDrive defines operations for our client (and eventually our server).
@@ -29,6 +29,7 @@ type ObjectDrive interface {
 	CreateObject(protocol.CreateObjectRequest, io.Reader) (protocol.Object, error)
 	DeleteObject(id string, token string) (protocol.DeletedObjectResponse, error)
 	ExpungeObject(id string, token string) (protocol.ExpungedObjectResponse, error)
+	GetHttpClient() *http.Client
 	GetObject(id string) (protocol.Object, error)
 	GetObjectStream(id string) (io.ReadCloser, error)
 	GetRevisions(id string) (protocol.ObjectResultset, error)
@@ -304,6 +305,10 @@ func (c *Client) ExpungeObject(id string, token string) (protocol.ExpungedObject
 	}
 
 	return ret, nil
+}
+
+func (c *Client) GetHttpClient() *http.Client {
+	return c.httpClient
 }
 
 // GetObject fetches the metadata associated with an object by its unique ID.

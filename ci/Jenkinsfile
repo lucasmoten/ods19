@@ -1,0 +1,195 @@
+node('docker') {
+
+    cleanWs()
+    sh 'printenv'
+
+    def commit_id
+    def git_tag
+    def version_display
+    def version_major
+    def version_minor
+    def version_path
+    def version_full
+    def scmVars
+    def projectpath
+    def govgopath
+
+    stage('Install Tools') {
+        // These first three values are changeable if you want to upgrade to newer versions of go
+        golang_folder = "/home/jenkins/go-1.11"
+        golang_tar_file = "go1.11.linux-amd64.tar.gz"
+        golang_tar_sum = "b3fcf280ff86558e0559e185b601c9eade0fd24c900b4c63cd14d1d38613e499"
+        // This is the secret sauce to setting environment variables within the pipeline
+        script {
+            env.GOPATH = "${JENKINS_HOME}/workspace/gocode"
+            sh "mkdir -p ${GOPATH}/bin"
+            sh "mkdir -p ${GOPATH}/src/bitbucket.di2e.net/dime"
+            env.PATH = "${GOPATH}/bin:${PATH}"
+            
+        }
+        projectpath = "/home/jenkins/workspace/gocode/src/bitbucket.di2e.net/dime/object-drive-server"
+        script {
+            env.ODRIVE_ROOT = "${projectpath}"
+        }
+        govgopath = "/home/jenkins/workspace/gocode/src/bitbucket.di2e.net/greymatter/gov-go"
+        // Check if go installed already
+        if(!fileExists("${golang_folder}/go/bin/")) {
+            // Download it
+            sh "wget -q https://dl.google.com/go/${golang_tar_file}"
+            // Check the sha256sum
+            actualSum = sh(returnStdout: true, script: "sha256sum ${golang_tar_file}").trim()
+            actualSum = actualSum.replace("${golang_tar_file}","").trim()
+            // Compare to expected
+            if (actualSum != golang_tar_sum) {
+                sh "echo Expected Value: ${golang_tar_sum}"
+                sh "echo   Actual Value: ${actualSum}"
+                error "Actual SHA256SUM of golang download didn't match expected value. Halting"
+            } else {
+                sh "echo sha256sum validated: ${actualSum}"
+            }
+            // Installation
+            sh "mkdir -p ${golang_folder}"
+            sh "tar -C ${golang_folder} -xzf ${golang_tar_file}"
+        } else {
+            sh "echo Go is already installed"
+        }
+        script {
+            env.PATH = "${golang_folder}/go/bin:$PATH"
+        }
+
+        // Check if govendor installed already
+        if(!fileExists(JENKINS_HOME + "/workspace/gocode/bin/govendor")) {
+            sh "go get -u github.com/kardianos/govendor"
+        } else {
+            sh "echo govendor is already installed"
+        }
+
+        // Check if go-bindata installed already
+        if(!fileExists(JENKINS_HOME + "/workspace/gocode/bin/go-bindata")) {
+            sh "go get -u github.com/jteeuwen/go-bindata/..."
+        } else {
+            sh "echo go-bindata is already installed"
+        }
+    }
+
+    stage('Checkout Code') {
+        scmVars = checkout scm
+        // copy into the go path so we can build it
+        sh "mkdir -p ${projectpath}"
+        sh "cd ${JENKINS_HOME}/workspace/gocode/src/bitbucket.di2e.net/dime && rm -rf object-drive-server"
+        sh "cp -r ${JENKINS_HOME}/workspace/DIME/object-drive-server ${JENKINS_HOME}/workspace/gocode/src/bitbucket.di2e.net/dime/"
+    }
+
+    stage('Determine Version') {
+        // get commit id
+        commit_id = scmVars.GIT_COMMIT
+        sh "echo ${commit_id}"
+        commit_id = sh(returnStdout: true, script: "git rev-parse --short HEAD | head -1").trim()
+        sh "echo ${commit_id}"
+        // get tag
+        git_tag = sh(returnStdout: true, script: "git tag --contains | head -1").trim()
+        // build_number save to file
+        sh "echo ${BUILD_NUMBER} > BUILDNUMBER"
+        // get version
+        version_display = sh(returnStdout: true, script: "grep -m 1 '## Release' changelog.md | sed -E -e 's/[[:blank:]]+/\\n/g' | grep -m 1 v").trim()
+        version_parts = version_display.split('\\.')
+        if (version_parts.size() > 0) {
+            version_major = version_parts[0]
+            if (version_major.length() == 0) {
+                version_major = '0'
+            }
+        } else {
+            version_major = '0'
+        }
+        if (version_parts.size() > 1) {
+            version_minor = version_parts[1]
+            if (version_minor.length() == 0) {
+                version_minor = '0'
+            }
+        } else {
+            version_minor = '0'
+        }
+        if (version_parts.size() > 2) {
+            version_patch = version_parts[2]
+            if (version_patch.length() == 0) {
+                version_patch = '0'
+            }
+        } else {
+            version_patch = '0'
+        }
+        version_full = version_major + "." + version_minor + "." + version_patch
+        script {
+            env.CIRCLE_BUILD_NUM = "${BUILD_NUMBER}"
+            env.CIRCLE_SHA1 = "${commit_id}"
+            env.TAG_VERSION = "${git_tag}"
+        }
+    }
+
+    stage('Build Documentation') {
+        sh "mkdir -p ${projectpath}/server/static/templates"
+        sh "cd ${projectpath} && ./makedocs ${version_display} ${BUILD_NUMBER}"
+    }
+
+    stage('Build Binaries') {
+        sh "cd ${projectpath}/cmd/odrive && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags '-X main.Build=${BUILD_NUMBER} -X main.Commit=${commit_id} -X main.Version=${version_full}'"      
+        sh "cd ${projectpath}/cmd/obfuscate && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build"
+        sh "cd ${projectpath}/cmd/odrive-database && go-bindata schema migrations ../../defaultcerts/client-mysql/id ../../defaultcerts/client-mysql/trust"
+        sh "cd ${projectpath}/cmd/odrive-database && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags '-X main.Build=${BUILD_NUMBER} -X main.Commit=${commit_id} -X main.Version=${version_full}'"
+    }
+
+    stage('Build Docker Image') {
+        sh "cd ${projectpath} && ./odb --build -i deciphernow/odrive -t latest"
+        sh "cd ${projectpath} && ./odb --build -i deciphernow/metadatadb -t latest"
+    }
+
+    stage('Run and Test ????') {
+        // TODO: docker-compose to start the stack
+        // TODO: wait for startup
+        // TODO: run integration tests, producing api samples
+    }
+
+    stage('Package and Deploy RPM') {
+        // Make it!
+        build_date = sh(returnStdout: true, script: "date +%Y%m%d").trim()
+        script {
+            env.ODRIVE_BUILDDATE="${build_date}"
+        }
+        sh "cd ${projectpath} && ./makerpm ${version_full} ${commit_id} ${git_tag}"
+        sh "mv ${projectpath}/object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm ${WORKSPACE}"
+
+        // Archived as job output
+        archiveArtifacts artifacts: '*.rpm'
+        
+        // To Nexus
+        withCredentials([usernamePassword(credentialsId: 'dime_svc_acct', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+            sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/object-drive-server/object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm"
+        }        
+    }
+
+    stage('Tag and Push Docker Images') {
+        // Tag and push images into docker-dime.di2e.net/dime/object-drive-server
+        // latest
+        sh "docker tag deciphernow/odrive:latest docker-dime.di2e.net/dime/object-drive-server:latest"
+        sh "docker tag deciphernow/metadatadb:latest docker-dime.di2e.net/dime/object-drive-metadatadb:latest"
+        // by commit id
+        // sh "docker tag deciphernow/odrive:latest docker-dime.di2e.net/dime/object-drive-server:${commit_id}"
+        // sh "docker tag deciphernow/metadatadb:latest docker-dime.di2e.net/dime/object-drive-metadatadb:${commit_id}"
+        // tagged release
+        if (git_tag != "") {
+            sh "docker tag deciphernow/odrive:latest docker-dime.di2e.net/dime/object-drive-server:${version_display}"
+            sh "docker tag deciphernow/metadatadb:latest docker-dime.di2e.net/dime/object-drive-metadatadb:${version_display}"
+        }
+
+        // Push images
+        docker.withRegistry('http://docker-dime.di2e.net', 'dime_svc_acct') {
+            docker.image('docker-dime.di2e.net/dime/object-drive-server:latest').push()
+            docker.image('docker-dime.di2e.net/dime/object-drive-metadatadb:latest').push()
+            // docker.image('docker-dime.di2e.net/dime/object-drive-server:' + commit_id).push()
+            // docker.image('docker-dime.di2e.net/dime/object-drive-metadatadb:' + commit_id).push()
+            if (git_tag != "") {
+                docker.image('docker-dime.di2e.net/dime/object-drive-server:' + version_display).push()
+                docker.image('docker-dime.di2e.net/dime/object-drive-metadatadb:' + version_display).push()
+            }
+        }
+    }
+}

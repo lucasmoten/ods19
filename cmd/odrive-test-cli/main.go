@@ -18,7 +18,7 @@ import (
 	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
-	"github.com/deciphernow/gov-go/testcerts"
+	"bitbucket.di2e.net/greymatter/gov-go/testcerts"
 
 	"github.com/urfave/cli"
 )

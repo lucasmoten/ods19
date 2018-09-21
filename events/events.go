@@ -5,7 +5,7 @@ import (
 
 	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 
-	auditevent "github.com/deciphernow/gov-go/audit/events_thrift"
+	auditevent "bitbucket.di2e.net/greymatter/gov-go/audit/events_thrift"
 )
 
 // Event defines a type that can yield itself as JSON bytes.
