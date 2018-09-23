@@ -14,6 +14,6 @@ DTFMT="20180516"
 while true; do
   let COUNTER=COUNTER+1 
   DTFMT=$(date '+%Y/%m/%d/%H/%M')
-  curl --silent --header "USER_DN: ${UDN}" --header "EXTERNAL_SYS_DN: ${SDN}" --header "SSL_CLIENT_S_DN: ${SDN}" --form 'ObjectMetadata={"typeName":"File","name":"DISP-'${DTFMT}'/'${COUNTER}'","namePathDelimiter":"/","acm":{"classif":"U","version":"2.1.0"}}' --form 'blob=@"makerpm"' --insecure --cacert ${CA} --cert ${CERT} --key ${KEY} https://localhost:8080/services/object-drive/1.0/objects >> /dev/null
+  curl --silent --header "USER_DN: ${UDN}" --header "EXTERNAL_SYS_DN: ${SDN}" --header "SSL_CLIENT_S_DN: ${SDN}" --form 'ObjectMetadata={"typeName":"File","name":"DISP-'${DTFMT}'/'${COUNTER}'","namePathDelimiter":"/","acm":{"classif":"U","version":"2.1.0"}}' --form 'blob=@"curlupload"' --insecure --cacert ${CA} --cert ${CERT} --key ${KEY} https://localhost:4430/services/object-drive/1.0/objects >> /dev/null
 done
 

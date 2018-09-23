@@ -56,7 +56,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	// NOTE: this bool is used far below to call drainFunc
 	isMultipart := contentTypeIsMultipartFormData(r)
 	if isMultipart {
-
+		logger.Debug("creating with multipart")
 		iv := crypto.CreateIV()
 		obj.EncryptIV = iv
 		obj.ContentConnector = models.ToNullString(crypto.CreateRandomName())
@@ -75,6 +75,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 			return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 		}
 	} else {
+		logger.Debug("creating with json only")
 		// Check headers
 		herr = validateCreateObjectHeaders(r)
 		if herr != nil {

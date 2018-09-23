@@ -460,6 +460,7 @@ func daoReadOnlyCheck(app *AppServer) {
 	for {
 		select {
 		case <-t.C:
+			logger.Debug("db readonly-flag checking health")
 			beforeReadOnly := app.RootDAO.IsReadOnly(false)
 			// refreshes
 			afterReadOnly := app.RootDAO.IsReadOnly(true)
@@ -471,6 +472,7 @@ func daoReadOnlyCheck(app *AppServer) {
 					logger.Info("dao is read only")
 				}
 			}
+			logger.Debug("db readonly-flag health check success")
 		case <-shutdown:
 			t.Stop()
 			return

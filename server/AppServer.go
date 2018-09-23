@@ -199,11 +199,23 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var matched string
 	beginTSInMS := util.NowMS()
 
-	sessionID := newSessionID()
+	sessionID := r.Header.Get("sessionid")
+	sessionRequestCount := 0
+	if len(sessionID) == 0 {
+		sessionID = newSessionID()
+	} else {
+		v := r.Header.Get("sessionrc")
+		i, e := strconv.Atoi(v)
+		if e == nil {
+			sessionRequestCount = i
+		}
+	}
+	sessionRequestCount = sessionRequestCount + 1
 	w.Header().Add("sessionid", sessionID)
+	w.Header().Add("sessionrc", strconv.Itoa(sessionRequestCount))
 
 	caller := CallerFromRequest(r)
-	logger := config.RootLogger.With(zap.String("session", sessionID))
+	logger := config.RootLogger.With(zap.String("session", sessionID), zap.String("sessionrc", strconv.Itoa(sessionRequestCount)))
 	defer logCrashInServeHTTP(logger, w)
 
 	// Authentication check GEM
@@ -262,6 +274,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Vary", "Origin")
 
 	// The following routes can be handled without calls to the database
+	logger.Debug("checking routes that dont require database")
 	withoutDatabase := false
 	switch r.Method {
 	case "OPTIONS":
@@ -298,7 +311,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-
+	logger.Debug("fetching user info")
 	user, err := h.FetchUser(ctx)
 	if err != nil {
 		sendErrorResponse(logger, &w, http.StatusInternalServerError, err, "Error loading user")
@@ -308,6 +321,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx = ContextWithUser(ctx, *user)
+	logger.Debug("getting user groups and snippets")
 	groups, snippets, err := h.GetUserGroupsAndSnippets(ctx)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
@@ -329,6 +343,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx = ContextWithRequestURI(ctx, uri)
 
 	// Validate User AO Cache state, rebuilding as needed in the background
+	logger.Debug("validating user ao cache state")
 	if err := h.CheckUserAOCache(ctx); err != nil {
 		statusCode := http.StatusInternalServerError
 		sendErrorResponse(logger, &w, statusCode, err, "Error checking the user authorization object cache")
@@ -336,7 +351,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.publishError(gem, herr)
 		return
 	}
-
+	logger.Debug("routing to request handler")
 	switch r.Method {
 	case "GET":
 		switch {

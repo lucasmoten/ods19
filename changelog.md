@@ -16,7 +16,7 @@ FORMAT: 1A
 
 # Group Changelog
 
-## Release v1.0.17 (Unreleased)
+## Release v1.0.17 (September 23, 2018)
 ---------------------
 * FIX: Postprocessing list/search filtering now includes TotalRows
 * REF: Dev & Build process now use DIAS Simulator 1.1.0
@@ -26,6 +26,7 @@ FORMAT: 1A
 * NEW: Added support for configuring the HTTP Server Timeouts using `OD_SERVER_TIMEOUT_IDLE`, `OD_SERVER_TIMEOUT_READ`, `OD_SERVER_TIMEOUT_READHEADER`, and `OD_SERVER_TIMEOUT_WRITE`
 * NEW: Added support for additional ciphers used during C-S communication.
 * NEW: Jenkins support for building binaries and docker images
+* NEW: Added support for configuring maximum lifetime of database connections using `OD_DB_CONNMAXLIFETIME`
 
 ## Release v1.0.16 (June 29, 2018)
 ---------------------

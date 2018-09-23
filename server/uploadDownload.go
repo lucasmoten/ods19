@@ -76,7 +76,7 @@ func (h AppServer) acceptObjectUpload(ctx context.Context, mpr *multipart.Reader
 func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.Part, obj *models.ODObject,
 	grant *models.ODObjectPermission, asCreate bool) (bool, string, bool, *AppError) {
 	var herr *AppError
-
+	logger := LoggerFromContext(ctx)
 	var recursive bool
 
 	parsedMetadata := false
@@ -92,7 +92,7 @@ func (h AppServer) acceptObjectUploadMeta(ctx context.Context, part *multipart.P
 		return parsedMetadata, "", false, NewAppError(http.StatusBadRequest, err, errMsg)
 	}
 	parsedMetadata = true
-
+	logger.Debug("reading metadata up to 5.2MB in length")
 	limit := 5 << (10 * 2)
 	metadata, err := ioutil.ReadAll(io.LimitReader(part, int64(limit)))
 	if err != nil {
@@ -221,6 +221,8 @@ func (h AppServer) acceptObjectUploadStream(ctx context.Context, part *multipart
 }
 
 func (h AppServer) beginUpload(ctx context.Context, caller Caller, part *multipart.Part, obj *models.ODObject, grant *models.ODObjectPermission) (beginDrain func(), herr *AppError, err error) {
+	logger := LoggerFromContext(ctx)
+	logger.Debug("tracking upload start time")
 	beganAt := h.Tracker.BeginTime(performance.UploadCounter)
 	drainFunc, herr, err := h.beginUploadTimed(ctx, caller, part, obj, grant)
 	bytes := obj.ContentSize.Int64
@@ -228,6 +230,7 @@ func (h AppServer) beginUpload(ctx context.Context, caller Caller, part *multipa
 	if herr != nil {
 		bytes = 0
 	}
+	logger.Debug("tracking upload end time")
 	h.Tracker.EndTime(performance.UploadCounter, beganAt, performance.SizeJob(bytes))
 	if herr != nil {
 		return nil, herr, err
@@ -240,6 +243,7 @@ func (h AppServer) beginUpload(ctx context.Context, caller Caller, part *multipa
 func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *multipart.Part, obj *models.ODObject,
 	grant *models.ODObjectPermission) (beginDrain func(), herr *AppError, err error) {
 	logger := LoggerFromContext(ctx)
+	logger.Debug("within timed upload")
 	dp := ciphertext.FindCiphertextCacheByObject(obj)
 	masterKey := dp.GetMasterKey()
 	fileID := ciphertext.FileId(obj.ContentConnector.String)
@@ -252,6 +256,7 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 	outFileUploading := d.Resolve(ciphertext.NewFileName(fileID, ".uploading"))
 	outFileUploaded := d.Resolve(ciphertext.NewFileName(fileID, ".uploaded"))
 
+	logger.Debug("creating file to receive ciphertext as .uploading", zap.String("fileID", string(fileID)))
 	outFile, err := d.Files().Create(outFileUploading)
 	if err != nil {
 		msg := fmt.Sprintf("Unable to open ciphertext uploading file %s", outFileUploading)
@@ -276,6 +281,7 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 	}
 
 	// Rename it to indicate that it can be moved to S3
+	logger.Debug("file received, renaming to .uploaded", zap.String("fileID", string(fileID)))
 	err = d.Files().Rename(outFileUploading, outFileUploaded)
 	if err != nil {
 		msg := fmt.Sprintf("Unable to rename uploaded file %s", outFileUploading)
