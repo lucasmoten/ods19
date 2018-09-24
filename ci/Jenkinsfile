@@ -92,7 +92,7 @@ node('docker') {
         sh "echo ${BUILD_NUMBER} > BUILDNUMBER"
         // get version
         version_display = sh(returnStdout: true, script: "grep -m 1 '## Release' changelog.md | sed -E -e 's/[[:blank:]]+/\\n/g' | grep -m 1 v").trim()
-        version_parts = version_display.split('\\.')
+        version_parts = version_display.replace("v","") .split('\\.')
         if (version_parts.size() > 0) {
             version_major = version_parts[0]
             if (version_major.length() == 0) {
@@ -163,11 +163,11 @@ node('docker') {
         // To Bamboo
         // TODO:     sh "./ci/deploy"
         
+        // To Nexus
+        withCredentials([usernamePassword(credentialsId: 'dime_svc_acct', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+            sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/object-drive-server/object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm"
+        }
         if (git_tag != "") {
-            // To Nexus
-            withCredentials([usernamePassword(credentialsId: 'dime_svc_acct', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/object-drive-server/object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm"
-            }
             // To S3
             withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'MEME_S3_CREDS',
                         usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {

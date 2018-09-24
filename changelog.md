@@ -16,7 +16,7 @@ FORMAT: 1A
 
 # Group Changelog
 
-## Release v1.0.17 (September 23, 2018)
+## Release v1.0.17 (September 24, 2018)
 ---------------------
 * FIX: Postprocessing list/search filtering now includes TotalRows
 * REF: Dev & Build process now use DIAS Simulator 1.1.0
