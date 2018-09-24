@@ -203,9 +203,10 @@ func (d *DataAccessLayer) IsReadOnly(refresh bool) bool {
 		// Default to readonly
 		d.ReadOnly = true
 		// Find out our schema
+		d.Logger.Debug("checking db state")
 		state, err := d.GetDBState()
 		if err != nil {
-			d.Logger.Info("getting db state failed", zap.Error(err))
+			d.Logger.Warn("getting db state failed", zap.Error(err))
 		} else {
 			d.SchemaVersion = state.SchemaVersion
 			if d.SchemaVersion == SchemaVersion {
@@ -263,6 +264,7 @@ func execStatementWithDeadlockRetry(dao *DataAccessLayer, funcLbl string, query 
 		var errPreparex error
 		stmt, errPreparex := tx.Preparex(query)
 		if errPreparex != nil {
+			tx.Rollback()
 			return fmt.Errorf("%s error preparing key statement, %s", funcLbl, errPreparex.Error())
 		}
 		err = nil

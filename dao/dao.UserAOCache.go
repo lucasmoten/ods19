@@ -18,20 +18,25 @@ import (
 // provided distinguished name
 func (dao *DataAccessLayer) GetUserAOCacheByDistinguishedName(user models.ODUser) (models.ODUserAOCache, error) {
 	defer util.Time("GetUserAOCacheByDistinguishedName")()
+	dao.GetLogger().Debug("starting txn for GetUserAOCacheByDistinguishedName", zap.String("user", user.DistinguishedName))
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODUserAOCache{}, err
 	}
+	dao.GetLogger().Debug("entering txn for GetUserAOCacheByDistinguishedName", zap.String("user", user.DistinguishedName))
 	dbUserAOCache, err := getUserAOCacheByDistinguishedNameInTransaction(tx, user)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			dao.GetLogger().Error("Error in GetUserAOCacheByDistinguishedName", zap.Error(err))
 		} else {
+			dao.GetLogger().Warn("swallowing error", zap.Error(err))
 			err = nil
 		}
+		dao.GetLogger().Debug("rolling back txn for GetUserAOCacheByDistinguishedName")
 		tx.Rollback()
 	} else {
+		dao.GetLogger().Debug("committing txn for GetUserAOCacheByDistinguishedName")
 		tx.Commit()
 	}
 	return dbUserAOCache, err

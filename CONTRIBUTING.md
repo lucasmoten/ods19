@@ -72,9 +72,9 @@ To create a release, do the following:
 
 ```
 git fetch origin
-git checkout master
+git checkout develop
 git reset --hard origin/develop
-git tag -a v0.1.0 -m 'version 0.1.0'
+git tag -a v0.0.0 -m 'version 0.0.0'
 git push origin --tags
 ```
 

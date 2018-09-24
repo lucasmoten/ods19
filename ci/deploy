@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# Settings
+# --------
+: ${SSH_IDENTITY:=$HOME/.ssh/bamboo.key}
+
+# Main
+# ----
+
+RPM="$(echo *.rpm)"
+
+echo ">> uploading RPM . . ."
+scp -i $SSH_IDENTITY $RPM bamboo@10.2.13.244:/repos/meme
+
+
+# The yum repo is updated every 5 minutes after the hour,
+# so figure out how long we have to wait.
+# We'll assume that our clock isn't too far off.
+wait_time="$((5 - $(date '+%M') % 5))"
+echo ">> sleeping for $wait_time minutes . . ."
+sleep "${wait_time}m"
+
+echo ">> running salt on BEDROCK-Salt-Master . . ."
+ssh -t -i $SSH_IDENTITY bamboo@10.2.13.244 "sudo -H sh -c 'bash /opt/meme/updateRepos.sh'"
+
+echo ">> reloading salt state on BEDROCK-Salt-Master . . ."
+ssh -t -i $SSH_IDENTITY bamboo@10.2.13.244 "sudo salt 'service*' state.apply services/object_drive_1_0 saltenv=base && sudo salt 'service*' service.restart object-drive-1.0"
+
+# To manually kick off the reloading of the RPM in salt, run:
+# salt 'service*' state.apply services/object_drive_1_0 saltenv=base

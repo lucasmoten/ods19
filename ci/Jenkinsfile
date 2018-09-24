@@ -159,11 +159,21 @@ node('docker') {
 
         // Archived as job output
         archiveArtifacts artifacts: '*.rpm'
+
+        // To Bamboo
+        // TODO:     sh "./ci/deploy"
         
-        // To Nexus
-        withCredentials([usernamePassword(credentialsId: 'dime_svc_acct', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-            sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/object-drive-server/object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm"
-        }        
+        if (git_tag != "") {
+            // To Nexus
+            withCredentials([usernamePassword(credentialsId: 'dime_svc_acct', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/object-drive-server/object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm"
+            }
+            // To S3
+            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'MEME_S3_CREDS',
+                        usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                sh "aws s3 cp ./object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm s3://builds.363-283.io/"
+            }
+        }
     }
 
     stage('Tag and Push Docker Images') {

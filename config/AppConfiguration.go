@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 	"bitbucket.di2e.net/greymatter/gov-go/gov/encryptor"
@@ -388,6 +389,12 @@ func NewDatabaseConfigFromEnv(confFile AppConfiguration, opts CommandLineOpts) D
 	dbConf.ClientKey = cascade(OD_DB_KEY, confFile.DatabaseConnection.ClientKey, "")
 	dbConf.Params = cascade(OD_DB_CONN_PARAMS, confFile.DatabaseConnection.Params, "parseTime=true&collation=utf8_unicode_ci&readTimeout=30s")
 
+	// Sanity readTimeout
+	if !strings.Contains(dbConf.Params, "readTimeout=") {
+		log.Printf("WARNING: No readTimeout parameter specified in OD_DB_CONN_PARAMS or in conn_params. Setting 30s default")
+		dbConf.Params = dbConf.Params + "&readTimeout=30s"
+	}
+
 	// Defaults
 	dbConf.Protocol = "tcp"
 	dbConf.Driver = defaultDBDriver
@@ -542,6 +549,7 @@ func (r *DatabaseConfiguration) GetDatabaseHandle() (*sqlx.DB, error) {
 	}
 	// Setup handle to the database
 	db, err := sqlx.Open(r.Driver, r.buildDSN())
+	db.SetConnMaxLifetime(time.Second * time.Duration(getEnvOrDefaultInt(OD_DB_CONNMAXLIFETIME, 30)))
 	db.SetMaxIdleConns(int(getEnvOrDefaultInt(OD_DB_MAXIDLECONNS, 10)))
 	db.SetMaxOpenConns(int(getEnvOrDefaultInt(OD_DB_MAXOPENCONNS, 10)))
 	return db, err

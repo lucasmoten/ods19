@@ -41,6 +41,7 @@ export GOPATH=~/gocode
 export OD_ROOT=~/javacode
 export OD_DB_MAXIDLECONNS=5
 export OD_DB_MAXOPENCONNS=5
+export OD_DB_CONNMAXLIFETIME=30
 export OD_ENCRYPT_MASTERKEY=otterpaws
 export OD_ZK_ANNOUNCE=/cte/service/object-drive/1.0
 export OD_AAC_CN=twl-server-generic2

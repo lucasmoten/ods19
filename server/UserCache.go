@@ -111,15 +111,18 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 		return nil
 	}
 	// Normalizes, serializes, and hashes...
+	logger.Debug("calculating snippet hash")
 	snippetHash := calculateSnippetHash(snippets)
 	user, _ := UserFromContext(ctx)
 	user.Snippets = snippets
 	rebuild := false
 	built := false
 
+	logger.Debug("getting user ao cache from DB")
 	useraocache, err := dao.GetUserAOCacheByDistinguishedName(user)
 	// If no user ao cache yet ..
 	if err != nil {
+		logger.Debug("no cache yet")
 		if err == sql.ErrNoRows {
 			logger.Info("user ao cache will be built because it does not exist", zap.String("dn", caller.DistinguishedName), zap.String("userdn", user.DistinguishedName))
 			rebuild = true
@@ -130,6 +133,7 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 			return err
 		}
 	} else {
+		logger.Debug("cache exists, checking hash value")
 		// If hash isn't the same...
 		if useraocache.SHA256Hash != snippetHash {
 			if !useraocache.IsCaching {
@@ -140,6 +144,7 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 				logger.Info("cache is already being rebuilt for change to hash", zap.String("dn", caller.DistinguishedName))
 			}
 		} else {
+			logger.Debug("hash is same, checking if caching")
 			// hash is the same, see if caching
 			if useraocache.IsCaching {
 				// if caching and older than 2 minutes ...
@@ -155,6 +160,7 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 	}
 
 	if rebuild {
+		logger.Debug("rebuilding user cache")
 		// Init
 		useraocache.UserID = user.ID
 		useraocache.CacheDate.Time = time.Now()

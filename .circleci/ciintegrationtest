@@ -1,3 +1,0 @@
-#!/bin/bash
-
-docker exec ci_odrive_1 /bin/bash -c 'export OD_EXTERNAL_PORT=443 OD_AAC_TEST_PORT=9000 GOPATH=/gosrc && cd /gosrc/src/bitbucket.di2e.net/dime/object-drive-server && go test -timeout 3000m -v $(go list ./... | grep -v /vendor/ | grep -v /docker/  )'

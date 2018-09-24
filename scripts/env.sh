@@ -25,6 +25,7 @@ export OD_CACHE_WALKSLEEP=
 export OD_DB_CA=
 export OD_DB_CERT=
 export OD_DB_CONN_PARAMS=
+export OD_DB_CONNMAXLIFETIME=
 export OD_DB_HOST=
 export OD_DB_KEY=
 export OD_DB_MAXIDLECONNS=
