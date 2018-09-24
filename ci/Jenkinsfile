@@ -89,7 +89,7 @@ node('docker') {
         // get tag
         git_tag = sh(returnStdout: true, script: "git tag --contains | head -1").trim()
         // build_number save to file
-        sh "echo ${BUILD_NUMBER} > BUILDNUMBER"
+        sh "echo ${BUILD_NUMBER} > ${projectpath}/BUILDNUMBER"
         // get version
         version_display = sh(returnStdout: true, script: "grep -m 1 '## Release' changelog.md | sed -E -e 's/[[:blank:]]+/\\n/g' | grep -m 1 v").trim()
         version_parts = version_display.replace("v","") .split('\\.')
