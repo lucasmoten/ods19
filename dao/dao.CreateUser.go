@@ -20,7 +20,7 @@ func (dao *DataAccessLayer) CreateUser(user models.ODUser) (models.ODUser, error
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODUser{}, err
 	}
-	dbUser, err := createUserInTransaction(dao.GetLogger(), tx, user)
+	dbUser, err := createUserInTransaction(tx, dao, user)
 	if err != nil {
 		dao.GetLogger().Error("Error in CreateUser", zap.Error(err))
 		tx.Rollback()
@@ -30,7 +30,7 @@ func (dao *DataAccessLayer) CreateUser(user models.ODUser) (models.ODUser, error
 	return dbUser, err
 }
 
-func createUserInTransaction(logger *zap.Logger, tx *sqlx.Tx, user models.ODUser) (models.ODUser, error) {
+func createUserInTransaction(tx *sqlx.Tx, dao *DataAccessLayer, user models.ODUser) (models.ODUser, error) {
 	var dbUser models.ODUser
 	addUserStatement, err := tx.Preparex(
 		`insert user set createdBy = ?, distinguishedName = ?, displayName = ?, email = ?`)
@@ -55,15 +55,15 @@ func createUserInTransaction(logger *zap.Logger, tx *sqlx.Tx, user models.ODUser
 		return dbUser, err
 	}
 	if rowCount < 1 {
-		logger.Warn("no rows were added when inserting the user!")
+		dao.GetLogger().Warn("no rows were added when inserting the user!")
 	}
 	// Get the newly added user
 	dbUser, err = getUserByDistinguishedNameInTransaction(tx, user)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			logger.Error("user was not found even after just adding", zap.Error(err))
+			dao.GetLogger().Error("user was not found even after just adding", zap.Error(err))
 		} else {
-			logger.Error("an error occurred retrieving newly added user", zap.Error(err))
+			dao.GetLogger().Error("an error occurred retrieving newly added user", zap.Error(err))
 		}
 		return dbUser, err
 	}

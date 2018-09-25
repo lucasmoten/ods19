@@ -7,7 +7,6 @@ import (
 
 	"bitbucket.di2e.net/dime/object-drive-server/dao"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
-	"bitbucket.di2e.net/dime/object-drive-server/server"
 )
 
 func TestDAOGetChildObjects(t *testing.T) {
@@ -20,7 +19,13 @@ func TestDAOGetChildObjects(t *testing.T) {
 	parent.Name = "Test GetChildObjects Parent"
 	parent.CreatedBy = usernames[1]
 	parent.TypeName = models.ToNullString("Test Type")
-	parent.RawAcm.String = server.ValidACMUnclassified
+	parent.RawAcm.String = ValidACMUnclassified
+	objectType, err := d.GetObjectTypeByName(parent.TypeName.String, true, parent.CreatedBy)
+	if err != nil {
+		t.Error(err)
+	} else {
+		parent.TypeID = objectType.ID
+	}
 	dbParent, err := d.CreateObject(&parent)
 	if err != nil {
 		t.Error(err)
@@ -40,8 +45,9 @@ func TestDAOGetChildObjects(t *testing.T) {
 	child.Name = "Test GetChildObjects Child"
 	child.CreatedBy = usernames[1]
 	child.ParentID = dbParent.ID
+	child.TypeID = objectType.ID
 	child.TypeName = models.ToNullString("Test Type")
-	child.RawAcm.String = server.ValidACMUnclassified
+	child.RawAcm.String = ValidACMUnclassified
 	dbChild, err := d.CreateObject(&child)
 	if err != nil {
 		t.Error(err)

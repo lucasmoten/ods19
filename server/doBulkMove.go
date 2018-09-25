@@ -96,9 +96,9 @@ func (h AppServer) doBulkMove(ctx context.Context, w http.ResponseWriter, r *htt
 		}
 		auditOriginal := NewResourceFromObject(dbObject)
 
-		code, errCause, msg := moveObjectRaw(
-			dao,
+		code, msg, errCause := moveObjectRaw(
 			ctx,
+			dao,
 			caller,
 			getKnownResourceStringsFromUserGroups(ctx),
 			aacAuth,

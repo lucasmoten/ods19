@@ -122,7 +122,7 @@ func TestUpdateObject298(t *testing.T) {
 	// do the request
 	trafficLogs[APISampleFile].Request(t, req,
 		&TrafficLogDescription{
-			OperationName:       "Properties update",
+			OperationName:       "Modify Object Properties",
 			RequestDescription:  "Ask for updated properties",
 			ResponseDescription: "Get response",
 		},

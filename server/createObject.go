@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -141,6 +142,12 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
 	}
 
+	if err := handleTypeName(ctx, h, &obj); err != nil {
+		herr = NewAppError(http.StatusInternalServerError, err, "error setting type for object")
+		h.publishError(gem, herr)
+		return abortUploadObject(logger, dp, &obj, isMultipart, herr)
+	}
+
 	createdObject, err = dao.CreateObject(&obj)
 	if err != nil {
 		herr = NewAppError(http.StatusInternalServerError, err, "error storing object")
@@ -183,6 +190,34 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 	return nil
 }
 
+func handleTypeName(ctx context.Context, h AppServer, obj *models.ODObject) error {
+	dao := DAOFromContext(ctx)
+	var err error
+	if len(obj.TypeID) == 0 {
+		obj.TypeID = nil
+	}
+	if obj.TypeID == nil {
+		var objectType models.ODObjectType
+		if cacheItem := h.TypeLruCache.Get(obj.TypeName.String); cacheItem != nil {
+			logger.Debug("getting object type from lru memory cache")
+			objectType = cacheItem.Value().(models.ODObjectType)
+		} else {
+			addIfMissing := true
+			createAs := obj.ModifiedBy
+			if len(createAs) == 0 {
+				createAs = obj.CreatedBy
+			}
+			objectType, err = dao.GetObjectTypeByName(obj.TypeName.String, addIfMissing, createAs)
+			if err != nil {
+				return err
+			}
+			h.TypeLruCache.Set(obj.TypeName.String, objectType, time.Minute*5)
+		}
+		obj.TypeID = objectType.ID
+	}
+	return nil
+}
+
 // handleIntermediateFoldersDuringCreation parses the object name and as necessary creates folder
 // hierarchy leading up to the object name delimited by / and \ reserved characters. Note that this
 // should not be applied for object updates since it can change the location of an object which is
@@ -211,12 +246,15 @@ func handleIntermediateFoldersDuringCreation(ctx context.Context, h AppServer, u
 
 		// If an object already exists for this part ...
 		var matchedObject models.ODObject
-		if matchedObjects.TotalRows > 0 {
+		if matchedObjects.TotalRows > 0 && len(matchedObjects.Objects) > 0 {
 			matchedObject = matchedObjects.Objects[0]
 		} else {
 			// There is no object with this part name yet.  need to create it. Use same
 			// settings for the acm and permissions
 			folderObj := newFolderBasedOnObject(obj)
+			if err := handleTypeName(ctx, h, &folderObj); err != nil {
+				return err
+			}
 			folderObj.Name = partName
 			// permissions need to be copied as new objects as they'll get ids assigned
 			// during the create call
@@ -474,7 +512,7 @@ func removeOrphanedFile(logger *zap.Logger, d ciphertext.CiphertextCache, conten
 	orphanedName := ciphertext.NewFileName(fileID, ".orphaned")
 	var err error
 	if _, err := d.Files().Stat(d.Resolve(uploadedName)); os.IsNotExist(err) {
-		logger.Info("file sent was not stored locally, no need to remove or rename")
+		logger.Debug("file sent was not stored locally, no need to remove or rename")
 		return
 	}
 	if d != nil {

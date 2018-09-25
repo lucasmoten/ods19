@@ -236,7 +236,7 @@ func (h AppServer) beginUpload(ctx context.Context, caller Caller, part *multipa
 		return nil, herr, err
 	}
 	//Make sure that we can compute throughput from this (the message name and param name are important)
-	LoggerFromContext(ctx).Info("received content stream from client", zap.Int64("bytes", bytes))
+	LoggerFromContext(ctx).Debug("received content stream from client", zap.Int64("bytes", bytes))
 	return drainFunc, herr, err
 }
 
@@ -289,7 +289,7 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 		d.Files().Remove(outFileUploading)
 		return nil, NewAppError(http.StatusInternalServerError, err, msg), err
 	}
-	logger.Info("file enqueued", zap.String("fileID", string(fileID)))
+	logger.Debug("file enqueued", zap.String("fileID", string(fileID)))
 
 	// Record metadata
 	obj.ContentHash = checksum

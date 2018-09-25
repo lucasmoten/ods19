@@ -9,7 +9,7 @@ import tarfile
 import errno
 import shutil
 import sys
-import commands
+#import commands
 import re
 
 import argparse
@@ -98,7 +98,7 @@ def metadatadb_build(tag="latest"):
         subprocess.check_call(["go-bindata", "schema", "migrations", "../../defaultcerts/client-mysql/id", "../../defaultcerts/client-mysql/trust"]) 
         subprocess.check_call(["go", "build"]) 
     except Exception as e:
-        print e
+        print(e)
         raise
 
     binary = os.path.join(odrive_database, "odrive-database")
@@ -131,7 +131,7 @@ def gatekeeper_build(tag="latest"):
     build_dir = os.path.join(gatekeeper_dir, 'build')
 
     if os.path.exists(build_dir):
-        print 'Build directory exists. Removing...'
+        print('Build directory exists. Removing...')
         shutil.rmtree(build_dir)
 
     # Move checked-in resources/fs to build directory
@@ -250,17 +250,21 @@ def clean_images(services):
     """
     
     to_clean = []
-    output = commands.getoutput('docker images')
+    #output = commands.getoutput('docker images')
+    p3sp=subprocess.Popen(["docker", "images"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p3o=p3sp.communicate()[0]
+    output = p3o
+
     # Output index 1 is one long string. Split on newlines.
-    lines = output.split('\n')
+    lines = output.split(b'\n')
     # Skip the header row
     for line in lines[1:]:
-        splitted = re.split('\s{2,}', line)
-        repository, tag, image_id = splitted[0], splitted[1], splitted[2]
-        if repository in services or repository == '<none>':
-
-            logger.info(' Cleaning images:\t{0}\t{1}\t{2}'.format(repository, tag, image_id))
-            to_clean.append(image_id)
+        if len(line) > 0:
+            splitted = re.split(b'\s{2,}', line)
+            repository, tag, image_id = splitted[0], splitted[1], splitted[2]
+            if repository in services or repository == '<none>':
+                logger.info(' Cleaning images:\t{0}\t{1}\t{2}'.format(repository, tag, image_id))
+                to_clean.append(image_id)
 
     if not to_clean:
         return
@@ -274,11 +278,17 @@ def clean_images(services):
         subprocess.check_call(stop_cmd)
         logger.debug('Removing stopped containers...')
         # get stopped image ids
-        stopped = commands.getoutput('docker ps -f "status=exited" -q').split('\n')
+        #stopped = commands.getoutput('docker ps -f "status=exited" -q').split('\n')
+        #stopped = subprocess.check_output('docker ps -f "status=exited" -q').split('\n')
+        p3sp=subprocess.Popen(['docker','ps','-f','status=exited', '-q'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        p3o=p3sp.communicate()[0]
+        stopped = p3o.split(b'\n')
         for container_id in stopped:
-            rm_stopped_cmd = ['docker', 'rm', '-f', container_id]
-            if container_id:
-                subprocess.check_call(rm_stopped_cmd)
+            if len(container_id) > 0:
+                print(container_id)
+                rm_stopped_cmd = ['docker', 'rm', '-f', container_id]
+                if container_id:
+                    subprocess.check_call(rm_stopped_cmd)
         rm_cmd = ['docker-compose', 'rm', '-f']
         subprocess.check_call(rm_cmd)
         cmd = ['docker', 'rmi', '-f']
@@ -314,7 +324,7 @@ def tar_directory(input, output_dir="build", output_archive=None):
     with closing(tarfile.open(output_archive, 'w:gz')) as t:
         for item in os.listdir(input):
             t.add(os.path.join(input, item), arcname=item)
-    print "Created archive: {0}".format(output_archive)
+    print("Created archive: {0}".format(output_archive))
 
 
 class Builder(object):

@@ -38,7 +38,7 @@ func TestListObjectsRoot(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	trafficLogs[APISampleFile].Request(t, req,
 		&TrafficLogDescription{
-			OperationName:       "Get a root object listing",
+			OperationName:       "List Root Objects for User",
 			RequestDescription:  "Send a response for a paged listing",
 			ResponseDescription: "We get back a page from the listing",
 			ResponseBodyHide:    true, //this might be kind of big due to test re-runs

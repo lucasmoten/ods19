@@ -30,6 +30,7 @@ func (dao *DataAccessLayer) GetRootObjectsByUser(user models.ODUser, pagingReque
 
 func getRootObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	loadProperties := true
+	loadPermissions := true
 	response := models.ODObjectResultset{}
 	// NOTE: While this looks similar to GetChildObjectsByUser there is more at
 	// stake here as there is the requirement that the object permission grantee
@@ -58,7 +59,7 @@ func getRootObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	// Load full meta, properties, and permissions
 	for i := 0; i < len(response.Objects); i++ {
-		obj, err := getObjectInTransaction(tx, response.Objects[i], loadProperties)
+		obj, err := getObjectInTransaction(tx, response.Objects[i], loadPermissions, loadProperties)
 		if err != nil {
 			return response, err
 		}

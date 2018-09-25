@@ -1,0 +1,29 @@
+Name:   ODrive 1.0.11 CI Build 2100
+Tag:    v1.0.11
+Commit: d6e5c1dd3ff6b761426263cb888cbd0859a3fd88
+Date:   November 15, 2017
+
+FIX: Gitlab CI configuration for docker login
+NEW: Allowable ciphers can be provided as environment variable OD_SERVER_CIPHERS
+NEW: ACL Whitelist values can be provided with environment variables beginning with OD_SERVER_ACL_WHITELIST
+ENH: Updated to latest version of gm-fabric-go SDK
+FIX: Delete and recreate property when changing its value to register deletion for filtering
+FIX: Get Object Revisions will now return proper changes for property names and values
+DOC: Adding indication of exact build numbers to generated docs
+DOC: Corrections to API docs for delete operations
+
+For Upgrading
+DB: No database update is required if upgrading from v1.0.6 or newer. The 
+current expected schema version is 20170726.
+Server: 
+If you are upgrading from v1.0.10 or newer, then perform a standard upgrade as 
+follows
+  yum upgrade object-drive-1.0.11.2100.x86_64.rpm
+If you are upgrading from a version prior to v1.0.10, then changes to the 
+versioning scheme in the package metadata will cause the above upgrade to fail
+for does not update installed package. You can force an update by using the 
+rpm command as follows
+  rpm --force --upgrade object-drive-1.0.11.2100.x86_64.rpm
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.11.2100.x86_64.rpm

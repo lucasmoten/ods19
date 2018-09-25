@@ -15,12 +15,13 @@ import (
 // loadProperties flag pulls in nested properties associated with the object.
 func (dao *DataAccessLayer) GetObject(object models.ODObject, loadProperties bool) (models.ODObject, error) {
 	defer util.Time("GetObject")()
+	loadPermissions := true
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("could not begin transaction", zap.Error(err))
 		return models.ODObject{}, err
 	}
-	dbObject, err := getObjectInTransaction(tx, object, loadProperties)
+	dbObject, err := getObjectInTransaction(tx, object, loadPermissions, loadProperties)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			dao.GetLogger().Error("error in getobject", zap.Error(err))
@@ -34,7 +35,7 @@ func (dao *DataAccessLayer) GetObject(object models.ODObject, loadProperties boo
 	return dbObject, err
 }
 
-func getObjectInTransaction(tx *sqlx.Tx, object models.ODObject, loadProperties bool) (models.ODObject, error) {
+func getObjectInTransaction(tx *sqlx.Tx, object models.ODObject, loadPermissions, loadProperties bool) (models.ODObject, error) {
 	var dbObject models.ODObject
 
 	if len(object.ID) == 0 {
@@ -81,11 +82,13 @@ func getObjectInTransaction(tx *sqlx.Tx, object models.ODObject, loadProperties 
 	}
 
 	// Load Permissions
-	dbPermissions, dbPermErr := getPermissionsForObjectInTransaction(tx, object)
-	dbObject.Permissions = dbPermissions
-	if dbPermErr != nil {
-		err = dbPermErr
-		return dbObject, err
+	if loadPermissions {
+		dbPermissions, dbPermErr := getPermissionsForObjectInTransaction(tx, object)
+		dbObject.Permissions = dbPermissions
+		if dbPermErr != nil {
+			err = dbPermErr
+			return dbObject, err
+		}
 	}
 
 	// Load properties if requested

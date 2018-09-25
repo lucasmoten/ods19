@@ -8,7 +8,6 @@ import (
 
 	"bitbucket.di2e.net/dime/object-drive-server/dao"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
-	"bitbucket.di2e.net/dime/object-drive-server/server"
 )
 
 func TestDAOGetObjectRevisionsByUser(t *testing.T) {
@@ -21,7 +20,7 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	object.CreatedBy = users[1].DistinguishedName
 	object.Name = "Test Object Revision"
 	object.TypeName = models.ToNullString("Test Object")
-	acmUforTP1TP2 := server.ValidACMUnclassified
+	acmUforTP1TP2 := ValidACMUnclassified
 	acmUforTP1TP2 = strings.Replace(acmUforTP1TP2, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s","%s"]`, models.AACFlatten(usernames[1]), models.AACFlatten(usernames[2])), -1)
 	object.RawAcm = models.ToNullString(acmUforTP1TP2)
 	permissions := make([]models.ODObjectPermission, 2)
@@ -46,6 +45,12 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	permissions[1].AllowRead = true
 	permissions[1].AllowUpdate = true
 	object.Permissions = permissions
+	objectType, err := d.GetObjectTypeByName(object.TypeName.String, true, object.CreatedBy)
+	if err != nil {
+		t.Error(err)
+	} else {
+		object.TypeID = objectType.ID
+	}
 	dbObject, err := d.CreateObject(&object)
 	if err != nil {
 		t.Error("Failed to create object")
@@ -54,6 +59,7 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 		t.Error("Expected ID to be set")
 	}
 	object = dbObject
+	t.Logf("object type id: %s", hex.EncodeToString(object.TypeID))
 	ct1 := object.ChangeToken
 
 	// Change it once
@@ -95,6 +101,7 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 	}
 	if resultset.TotalRows != 3 {
 		t.Errorf("Expected 3 revisions, got %d", resultset.TotalRows)
+		t.Logf("objects in resultset: %d", len(resultset.Objects))
 	}
 	t.Logf("Object ID: %s", hex.EncodeToString(object.ID))
 	for _, obj := range resultset.Objects {

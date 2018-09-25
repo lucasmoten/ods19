@@ -420,7 +420,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 		byteRange,
 	)
 
-	logger.Info("sent content stream to client", zap.Int64("bytes", actualLength), zap.Any("byterange", byteRange))
+	logger.Debug("sent content stream to client", zap.Int64("bytes", actualLength), zap.Any("byterange", byteRange))
 	if err != nil {
 		//Error here isn't a constant, but it's indicative of client disconnecting and
 		//not bothering to eat all the bytes we sent back (as promised).  So be quiet

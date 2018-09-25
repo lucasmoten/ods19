@@ -65,7 +65,7 @@ func (h AppServer) copyObject(ctx context.Context, w http.ResponseWriter, r *htt
 	}
 
 	if ok, code, err := isExpungedOrAnscestorDeletedErr(dbObject); !ok {
-		herr := NewAppError(code, err, "expunged or ancesor deleted")
+		herr := NewAppError(code, err, "expunged or ancestor deleted")
 		h.publishError(gem, herr)
 		return herr
 	}

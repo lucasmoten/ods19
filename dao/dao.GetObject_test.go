@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
-	"bitbucket.di2e.net/dime/object-drive-server/server"
 )
 
 func TestDAOGetObject(t *testing.T) {
@@ -38,8 +37,13 @@ func TestDAOGetObject(t *testing.T) {
 	properties[0].ClassificationPM = models.ToNullString("UNCLASSIFIED")
 	obj.Properties = properties
 
-	obj.RawAcm = models.ToNullString(server.ValidACMUnclassified)
-
+	obj.RawAcm = models.ToNullString(ValidACMUnclassified)
+	objectType, err := d.GetObjectTypeByName(obj.TypeName.String, true, obj.CreatedBy)
+	if err != nil {
+		t.Error(err)
+	} else {
+		obj.TypeID = objectType.ID
+	}
 	dbObject, err := d.CreateObject(&obj)
 	if err != nil {
 		t.Error(err)

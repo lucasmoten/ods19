@@ -1,0 +1,16 @@
+Name:   ODrive 1.0.3 CI Build 1795
+Tag:    v1.0.3
+Commit: 700d35771d0e3c4233db1e5fb30ff10a7980d0ae
+Date:   July 17, 2017
+
+FIX: Cleanup uploaded files when metadata validation fails during create/update
+ENH: Log when we need to drain files up to S3 after an odrive restart
+ENH: Add check for found flag in response to get snippets during authorization
+FIX: Change Owner now validates that caller is member of group when changing ownership to group
+ENH: Resource Strings for OwnedBy and Permission may be specified in short form group/{projectname}/{groupname}
+
+For Upgrading
+DB: The database schema remains at version 20170630.
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.3.1795.x86_64.rpm

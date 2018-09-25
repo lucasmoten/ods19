@@ -142,7 +142,7 @@ func TestUpdateObjectWithProperties(t *testing.T) {
 	doPropertyUpdate(t, clientID, created.ID, fmt.Sprintf(updateTemplate, created.ID, acm, created.ChangeToken),
 		trafficLogs[APISampleFile],
 		&TrafficLogDescription{
-			OperationName: "Update a property",
+			OperationName: "Modify Object Property",
 			RequestDescription: `
 				Update a property.  It is required to pass in changeToken as proof that we have seen the latest version.
 				`,

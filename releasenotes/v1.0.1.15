@@ -1,0 +1,13 @@
+Name:   ODrive 1.0.1 CI Build 1045 (Release v1.0.1.15)
+Tag:    v1.0.1.15
+Commit: 54f384aa1a5624d4727b0b9ce6c5b98bed0d7645
+Date:   February 22, 2017
+
+ENH: Build number and git commit sha1 now exposed with the --version flag
+FIX: Uncached large files no longer truncated at 16MB during download
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.1.1045.x86_64.rpm
+
+Current Drive UI Tarball
+https://s3.amazonaws.com/odrive-builds/bedrock-drive-ui-v1.0.2-rc3-dist.tar.gz

@@ -338,7 +338,7 @@ func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 	defer fIn.Close()
 
 	if size > 0 && d.PermanentStorage != nil {
-		d.Logger.Info(
+		d.Logger.Debug(
 			"writeback to permanent storage",
 			zap.String("bucket", *d.PermanentStorage.GetName()),
 			zap.String("key", *key),
@@ -348,6 +348,8 @@ func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 		if err != nil {
 			d.Logger.Warn(
 				"could not write to permanent storage",
+				zap.String("bucket", *d.PermanentStorage.GetName()),
+				zap.String("key", *key),
 				zap.Error(err),
 			)
 			return err
@@ -367,7 +369,7 @@ func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 		return err
 	}
 	if d.PermanentStorage != nil {
-		d.Logger.Info(
+		d.Logger.Debug(
 			"permanent storage stored",
 			zap.String("rname", string(rName)),
 		)

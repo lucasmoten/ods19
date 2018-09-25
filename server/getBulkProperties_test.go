@@ -49,7 +49,7 @@ func TestGetBulkProperties(t *testing.T) {
 	}
 	trafficLogs[APISampleFile].Request(t, req,
 		&TrafficLogDescription{
-			OperationName:       "Bulk Properties get",
+			OperationName:       "Bulk Retrieve Object Properties",
 			RequestDescription:  "Get a set of (existing!) objects in bulk",
 			ResponseDescription: "Response to getting objects in bulk",
 		},

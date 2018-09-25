@@ -45,7 +45,7 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 	dao := DAOFromContext(ctx)
 
 	// Get object
-	requestObject, err = parseDeleteObjectRequest(r, ctx)
+	requestObject, err = parseDeleteObjectRequest(ctx, r)
 	if err != nil {
 		herr := NewAppError(http.StatusBadRequest, err, "Error parsing JSON")
 		h.publishError(gem, herr)
@@ -105,7 +105,7 @@ func (h AppServer) deleteObject(ctx context.Context, w http.ResponseWriter, r *h
 }
 
 // This same handler is used for both deleting an object (POST as new state), or deleting forever (DELETE)
-func parseDeleteObjectRequest(r *http.Request, ctx context.Context) (models.ODObject, error) {
+func parseDeleteObjectRequest(ctx context.Context, r *http.Request) (models.ODObject, error) {
 	var jsonObject protocol.DeleteObjectRequest
 	var requestObject models.ODObject
 	var err error

@@ -43,7 +43,7 @@ func (h AppServer) deleteObjectForever(ctx context.Context, w http.ResponseWrite
 	dao := DAOFromContext(ctx)
 
 	// Parse Request in sent format
-	requestObject, err = parseDeleteObjectRequest(r, ctx)
+	requestObject, err = parseDeleteObjectRequest(ctx, r)
 	if err != nil {
 		herr := NewAppError(http.StatusBadRequest, err, "Error parsing JSON")
 		h.publishError(gem, herr)

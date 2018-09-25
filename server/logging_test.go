@@ -19,7 +19,7 @@ import (
   //Mark the request with a description of what we are doing
   tl.Request(t, req,
     &TrafficLogDescription{
-       OperationName: "Make an object",
+       OperationName: "Create Object",
        RequestDescription: `
            This POST request is multi-part mime, and
            places an object into odrive so we can get back an id ....

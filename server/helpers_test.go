@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"bitbucket.di2e.net/dime/object-drive-server/config"
-	"bitbucket.di2e.net/dime/object-drive-server/server"
 
 	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
@@ -149,7 +148,7 @@ func makeFolderViaJSON(folderName string, clientid int, t *testing.T) *protocol.
 func makeFolderWithParentViaJSON(folderName string, parentID string, clientid int, t *testing.T) *protocol.Object {
 
 	nameWithTimestamp := folderName + strconv.FormatInt(time.Now().Unix(), 10)
-	obj, err := makeFolderWithACMWithParentViaJSON(nameWithTimestamp, parentID, server.ValidACMUnclassified, clientid)
+	obj, err := makeFolderWithACMWithParentViaJSON(nameWithTimestamp, parentID, ValidACMUnclassified, clientid)
 
 	if err != nil {
 		t.Errorf("Error creating folder %s: %v\n", folderName, err)

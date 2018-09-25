@@ -18,7 +18,7 @@ func testBulkMoveCall(t *testing.T, clientid int, inObjects []protocol.MoveObjec
 	failNowOnErr(t, err, "Unable to set up request")
 	trafficLogs[APISampleFile].Request(t, req,
 		&TrafficLogDescription{
-			OperationName:       "Bulk move",
+			OperationName:       "Bulk Move Objects to a new Parent",
 			RequestDescription:  "A list of object ids with change token and new parent",
 			ResponseDescription: "Any errors that happened",
 		},

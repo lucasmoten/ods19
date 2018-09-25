@@ -1,0 +1,24 @@
+Name:   ODrive 1.0.16 CI Build 2338
+Tag:    v1.0.16
+Commit: 817cee1de9333abcc4f6e9f4ef5ce67ab3bb5d0a
+Date:   June 28, 2018
+
+ENH: Filters can now be applied against custom properties for list/search operations
+ENH: Permissions for objects will now be returned in a deterministic order by grantee
+DEV: Removed duplicate reference to odrive-indexer in docker-compose file
+NEW: Added support for restoring a version of an object
+NEW: Added restore version support to the golang client libraries
+ENH: Removed changetoken check for individual property modifications during update
+
+For Upgrading
+DB: No database update is required if upgrading from v1.0.6 or newer. The current expected schema version is 20170726.
+Server: If you are upgrading from v1.0.10 or newer, then perform a standard upgrade as follows
+  yum upgrade object-drive-1.0.16.2338.x86_64.rpm
+If you are upgrading from a version prior to v1.0.10, then changes to the versioning scheme in the package metadata will cause the above upgrade to fail for does not update installed package. You can force an update by using the rpm command as follows
+  rpm --force --upgrade object-drive-1.0.16.2338.x86_64.rpm
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.16.2338.x86_64.rpm
+
+Container
+Available in Docker Registry as deciphernow/odrive:v1.0.16

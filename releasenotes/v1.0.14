@@ -1,0 +1,32 @@
+Name:   ODrive 1.0.14 CI Build 2281
+Tag:    v1.0.14
+Commit: 04bbf79110cad6c6400e66330f34244a2375960e
+Date:   February 28, 2018
+
+FIX: Added missing interface definition in golang client libraries
+CFG: Developer configuration updates for UI
+ENH: Warmup time for AAC now settable via environment variables OD_AAC_WARMUP_TIME
+ENH: Recheck interval for AAC health check now settable via environment variables OD_AAC_RECHECK_TIME
+ENH: Retry delay for zookeeper connection now settable via environment variable OD_ZK_RETRYDELAY
+REF: Upgraded AWS-SDK-GO to v1.12.75 (2018-02-12)
+FIX: Fixed locations where transaction need restarted after rollback during retry
+ENH: Experimental retrieval of file stream and object listings by path at /files/{path}
+ENH: The golang client library is now linked from the API Documentation
+NEW: Added support for creating a copy of an existing object
+FIX: Creating Object with Stream using client library now trims whitespace of provided object name.
+FIX: Retrieving file stream now trims whitespace of object name, and returns only base filename
+FIX: Close HTTP Header Injection attacks in headers returned when retrieving file streams
+NEW: Added expunge support to the golang client libraries
+
+For Upgrading
+DB: No database update is required if upgrading from v1.0.6 or newer. The current expected schema version is 20170726.
+Server: If you are upgrading from v1.0.10 or newer, then perform a standard upgrade as follows
+  yum upgrade object-drive-1.0.14.2281.x86_64.rpm
+If you are upgrading from a version prior to v1.0.10, then changes to the versioning scheme in the package metadata will cause the above upgrade to fail for does not update installed package. You can force an update by using the rpm command as follows
+  rpm --force --upgrade object-drive-1.0.14.2281.x86_64.rpm
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.14.2281.x86_64.rpm
+
+Container
+Available in Docker Registry as deciphernow/odrive:v1.0.14

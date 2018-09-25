@@ -155,6 +155,11 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	}
 
 	dbObject.ModifiedBy = caller.DistinguishedName
+	if err := handleTypeName(ctx, h, &dbObject); err != nil {
+		herr := NewAppError(http.StatusInternalServerError, err, "error setting type for object")
+		h.publishError(gem, herr)
+		return abortUploadObject(logger, dp, &dbObject, true, herr)
+	}
 	err = dao.UpdateObject(&dbObject)
 	if err != nil {
 		herr = NewAppError(http.StatusInternalServerError, err, "error storing object")

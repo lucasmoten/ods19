@@ -64,7 +64,7 @@ func expungeObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.O
 	}
 
 	// Fetch object
-	dbObject, err := getObjectInTransaction(tx, object, false)
+	dbObject, err := getObjectInTransaction(tx, object, false, false)
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func expungeObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.O
 	deletedAtLeastOne := true
 	pagingRequest := PagingRequest{PageNumber: 1, PageSize: MaxPageSize}
 	for hasUndeletedChildren {
-		pagedResultset, err := getChildObjectsInTransaction(tx, pagingRequest, dbObject, false)
+		pagedResultset, err := getChildObjectsInTransaction(tx, pagingRequest, dbObject, true, false)
 		hasUndeletedChildren = (pagedResultset.PageCount > pagingRequest.PageNumber) && deletedAtLeastOne
 		for i := 0; i < len(pagedResultset.Objects); i++ {
 			deletedAtLeastOne = false

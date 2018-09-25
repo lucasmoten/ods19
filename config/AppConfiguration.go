@@ -307,7 +307,7 @@ func NewAACSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) AACC
 	conf.HostName = cascade(OD_AAC_HOST, confFile.AACSettings.HostName, "")
 	conf.Port = cascade(OD_AAC_PORT, confFile.AACSettings.Port, "")
 
-	conf.AACAnnouncementPoint = cascade(OD_ZK_AAC, confFile.AACSettings.AACAnnouncementPoint, "/cte/service/aac/1.0/thrift")
+	conf.AACAnnouncementPoint = cascade(OD_ZK_AAC, confFile.AACSettings.AACAnnouncementPoint, "/cte/service/aac/1.2/thrift")
 
 	// If ZKAddrs is set, we attempt to discover AAC from a non-default Zookeeper cluster.
 	conf.ZKAddrs = CascadeStringSlice(OD_AAC_ZK_ADDRS, confFile.AACSettings.ZKAddrs, empty)

@@ -1,0 +1,28 @@
+Name:   ODrive 1.0.1 CI Build 934 (Release v1.0.1.13)
+Tag:    v1.0.1.13
+Commit: 2be3776237fee825ebccdfa301214c6828276cb2
+Date:   January 30, 2017
+
+ENH: Calculated full path and unique names for objects.
+Slashes present when creating objects will be treated as path delimiters and create intermediate folders, if missing
+Slashes are now restricted characters from updates.
+Existing objects are transformed.
+Objects whose names are prefixed with portion marks will also be broken up and treated as intermediate folders. Support for portion marking the name/title of an object is planned for a later release. If you must have this now, recommend using underscores in place of slashes
+ENH: Bulk Delete objects: DELETE /objects
+ENH: Bulk Move objects: POST /objects/move
+FIX: Restore ability to update properties on objects
+ENH: Bulk Change owner objects: POST /objects/owner/{resourceString}
+ENH: Return properties in search results consistent with other list calls
+ENH: Check database schema version on startup. Must match expected. Wait for migration before terminating.
+NEW: Emit events with audit payload for all handlers to support ICS 500-27
+NEW: Build Changelog into HTML and link from API Documentation
+
+
+When the RPM is upgraded, the database tool should be run to update the schema to 20161230
+source /opt/services/object-drive-1.0/env.sh;/opt/services/object-drive-1.0/database migrate up
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.1.934.x86_64.rpm
+
+Current Drive UI Tarball
+https://s3.amazonaws.com/odrive-builds/bedrock-drive-ui-v1.0.2-rc3-dist.tar.gz

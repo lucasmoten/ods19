@@ -1,0 +1,28 @@
+Name:   ODrive 1.0.13 CI Build 2230
+Tag:    v1.0.13
+Commit: 34008d0c9a3e816222763aa108ec74630aaa3c90
+Date:   January 31, 2018
+
+FIX: Corrected count of objects and groups when listing groups
+FIX: Minor spelling discrepancy for Kafka logging on startup
+FIX: Fixed client library search call to url encode query parameters
+FIX: Remove temporary containers when building documentation
+ENH: Enforce non-usage of CGO in odb build and continuous integration
+CFG: Development envrionment, CI, and Customer bundle now referencing AAC 1.2.2-SNAPSHOT
+DOC: Includes further guidance for development environment setup
+FIX: Added deadlock and lock wait timeout handler to create object type
+ENH: Successive updates on same object is now throttled to 50ms
+NEW: Added revision support to the golang client libraries
+
+For Upgrading
+DB: No database update is required if upgrading from v1.0.6 or newer. The current expected schema version is 20170726.
+Server: If you are upgrading from v1.0.10 or newer, then perform a standard upgrade as follows
+   yum upgrade object-drive-1.0.13.2230.x86_64.rpm
+If you are upgrading from a version prior to v1.0.10, then changes to the versioning scheme in the package metadata will cause the above upgrade to fail for does not update installed package. You can force an update by using the rpm command as follows
+  rpm --force --upgrade object-drive-1.0.13.2230.x86_64.rpm
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.13.2230.x86_64.rpm
+
+Container
+Available in Docker Registry as deciphernow/odrive:v1.0.13

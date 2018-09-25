@@ -17,17 +17,8 @@ func testBulkOwnershipCall(t *testing.T, clientid int, inObjects []protocol.Obje
 	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 	failNowOnErr(t, err, "Unable to set up request")
-	trafficLogs[APISampleFile].Request(t, req,
-		&TrafficLogDescription{
-			OperationName:       "Bulk ownership change",
-			RequestDescription:  "Files owned by tester10",
-			ResponseDescription: "Are now owned by tester09",
-		},
-	)
-
 	res, err := clients[clientid].Client.Do(req)
 	failNowOnErr(t, err, "Unable to do request")
-	trafficLogs[APISampleFile].Response(t, res)
 
 	statusMustBe(t, 200, res, "update failed")
 

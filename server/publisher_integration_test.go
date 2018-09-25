@@ -9,7 +9,6 @@ import (
 	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/events"
 	"bitbucket.di2e.net/dime/object-drive-server/protocol"
-	"bitbucket.di2e.net/dime/object-drive-server/server"
 
 	"github.com/Shopify/sarama"
 )
@@ -25,10 +24,10 @@ func TestPublishEvents(t *testing.T) {
 	clientID := 0
 
 	// Perform API calls that we expect to generate events on Kafka queue: create and then delete
-	_, obj := doTestCreateObjectSimple(t, "test data", clientID, nil, nil, server.ValidACMUnclassified)
+	_, obj := doTestCreateObjectSimple(t, "test data", clientID, nil, nil, ValidACMUnclassified)
 	published[obj.ID] = append(published[obj.ID], "create")
 
-	_, obj = doTestUpdateObjectSimple(t, "updated data", clientID, obj, nil, nil, server.ValidACMUnclassified)
+	_, obj = doTestUpdateObjectSimple(t, "updated data", clientID, obj, nil, nil, ValidACMUnclassified)
 	published[obj.ID] = append(published[obj.ID], "update")
 	po := protocol.Object{ID: obj.ID}
 	po.ChangeToken = obj.ChangeToken

@@ -1,0 +1,18 @@
+Name:   ODrive 1.0.8 CI Build 1891
+Tag:    v1.0.8
+Commit: 697c3d5f7e74a8c9f885d3177cedeb5b1eddf935
+Date:   August 17, 2017
+
+ENH: DB upgrade tool now checks which version of MySQL to leverage performance_schema for reading variables.
+ENH: DB Migration for 20170630 rollup now creates constraints and indexes prior to transforming data
+ENH: DB Migration for 20170630 now has significant time improvement for processing permissions
+
+For Upgrading
+DB: No database update is required if upgrading from v1.0.6 or v1.0.7. The current expected schema version is 20170726.
+Server: Follow guidance for updating existing installation summarized as follows
+  stop the service: service object-drive-1.0 stop
+  perform the upgrade: yum upgrade object-drive-1.0.8.1891.x86_64.rpm
+  start the service: service object-drive-1.0 start
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.8.1891.x86_64.rpm

@@ -19,33 +19,36 @@ func (dao *DataAccessLayer) GetParents(child models.ODObject) ([]models.ODObject
 	if child.ParentID == nil || len(child.ParentID) == 0 {
 		return parents, nil
 	}
-
+	dao.GetLogger().Debug("dao starting txn for GetParents")
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return nil, err
 	}
-
+	dao.GetLogger().Debug("dao passing  txn into getParentsInTransaction")
 	parents, err = getParentsInTransaction(tx, child)
-
+	dao.GetLogger().Debug("dao returned txn from getParentsInTransaction")
 	if err != nil {
+		dao.GetLogger().Debug("dao rolling back txn for GetParents")
 		dao.GetLogger().Error("Error in GetParents", zap.Error(err))
 		tx.Rollback()
 	} else {
+		dao.GetLogger().Debug("dao committing txn for GetParents")
 		tx.Commit()
 	}
+	dao.GetLogger().Debug("dao finished txn for GetParents")
 
 	return parents, nil
 }
 
 func getParentsInTransaction(tx *sqlx.Tx, child models.ODObject) ([]models.ODObject, error) {
+	loadPermissions := true // auth checks in getobject depend on this for determiniing redaction of parents in breadcrumbs
+	loadProperties := false
 	var parents []models.ODObject
-
 	var queryObj models.ODObject
 	queryObj.ID = child.ParentID
 	for {
-
-		parent, err := getObjectInTransaction(tx, queryObj, false)
+		parent, err := getObjectInTransaction(tx, queryObj, loadPermissions, loadProperties)
 		if err != nil {
 			return nil, err
 		}

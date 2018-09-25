@@ -1,0 +1,19 @@
+Name:   ODrive 1.0.6 CI Build 1823
+Tag:    v1.0.6
+Commit: 2d1a934b4a5d635d21909187f365d2775eccac53
+Date:   July 26, 2017
+
+FIX: Database migrations run from rollup script 20170630 now use correct value for permission mac. Schema is now 20170726
+
+For Upgrading
+DB: The database schema requires an update with this release to 20170726. 
+This update corrects permission signatures for those systems that were migrated 
+using the rollup 20170630 script in a previous release. If you previously 
+upgraded from any 1.0.1.x release to 1.0.2-1.0.5, this database update may 
+take a few minutes, depending on the number of objects and permissions in the system. 
+For most instances, including those previously affected, this should be a fast 
+running update and can be safely run in the background. Refer to guidance for 
+migrating the schema
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.6.1823.x86_64.rpm

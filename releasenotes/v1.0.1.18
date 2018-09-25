@@ -1,0 +1,20 @@
+Name:   ODrive 1.0.1 CI Build 1194 (Release v1.0.1.18)
+Tag:    v1.0.1.18
+Commit: 5c02efe52ae0cec726329ab3f2ad109a1668f779
+Date:   March 31, 2017
+
+FIX: Check that cache files exist before attempting to remove them.
+FIX: Path Delimiter validation for Update Object to permit slashes.
+ENH: Allow owner to be specified on object create.
+FIX: Service init script will now check lock state before starting.
+FIX: Return cause of error to caller for failure to create object.
+DOC: API Documentation now denotes dates in RFC3339 format.
+FIX: Centralized how our IP address is determined.
+FIX: Init script now checks that paths are configured as absolute.
+ENH: Init script now uses logging with log levels.
+ENH: Server startup will now block forever until main ZK cluster is reachable.
+REF: Internal refactor for retrieving object revisions.
+FIX: Normalized checks on Content-Type expecting application/json to permit charset.
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.1.1194.x86_64.rpm

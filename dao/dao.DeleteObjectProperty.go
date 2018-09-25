@@ -61,11 +61,11 @@ func deleteObjectPropertyInTransaction(tx *sqlx.Tx, objectProperty models.ODObje
 	if err != nil {
 		return err
 	}
+	defer updateObjectPropertyStatement.Close()
 	_, err = updateObjectPropertyStatement.Exec(dbObjectProperty.ModifiedBy, dbObjectProperty.IsDeleted, dbObjectProperty.ID)
 	if err != nil {
 		return err
 	}
-	updateObjectPropertyStatement.Close()
 	// Mark relationship between the property and objects as deleted
 	updateRelationshipStatement, err := tx.Preparex(
 		`update object_property set modifiedby = ?, isdeleted = ? where propertyid = ?`)

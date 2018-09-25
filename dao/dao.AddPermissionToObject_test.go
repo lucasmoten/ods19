@@ -7,7 +7,6 @@ import (
 
 	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
-	"bitbucket.di2e.net/dime/object-drive-server/server"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
@@ -21,7 +20,13 @@ func TestDAOAddPermissionToObject(t *testing.T) {
 	object.Name = "Test Object for Permissions"
 	object.CreatedBy = usernames[1]
 	object.TypeName = models.ToNullString("Test Type")
-	object.RawAcm = models.ToNullString(server.ValidACMUnclassified)
+	object.RawAcm = models.ToNullString(ValidACMUnclassified)
+	objectType, err := d.GetObjectTypeByName(object.TypeName.String, true, object.CreatedBy)
+	if err != nil {
+		t.Error(err)
+	} else {
+		object.TypeID = objectType.ID
+	}
 	dbObject, err := d.CreateObject(&object)
 	if err != nil {
 		t.Error(err)

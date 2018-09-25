@@ -1,0 +1,22 @@
+Name:   ODrive 1.0.1 CI Build 719 (Release v1.0.1.12)
+Tag:    v1.0.1.12
+Commit: f50d428d61a9a3d9ccb42b58df2d8ae7ef1930bc
+Date:   December 23, 2016
+
+ENH: Determination of content type from file extension on upload expanded to larger list
+ENH: Autoscale shutdown from lifecycle messages now handle 10 messages at a time, configured via OD_AWS_SQS_BATCHSIZE
+NEW: Empty Trash: DELETE /trashed
+NEW: Bulk Get Properties: GET /objects/properties
+FIX: OD_ZK_ANNOUNCE no longer must be 4 parts, and default changed to /services/object-drive/1.0
+FIX: Service init script only changes ownership of certificates if they are found under OD_BASEPATH
+DOC: API Documentation updated with sectiosn for empty trash and retrieving bulk objects
+
+
+When the RPM is upgraded, the database tool should be run to update the schema to 20161223
+source /opt/services/object-drive-1.0/env.sh;/opt/services/object-drive-1.0/database migrate up
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.1.719.x86_64.rpm
+
+Current Drive UI Tarball
+https://s3.amazonaws.com/odrive-builds/bedrock-drive-ui-v1.0.2-rc3-dist.tar.gz

@@ -1,0 +1,16 @@
+Name:   ODrive 1.0.1 CI Build 511 (Release v1.0.1.8)
+Tag:    v1.0.1.8
+Commit: 69bac6ee7142a16ba6acaa7c927c43dfb11421e9
+Date:   November 17, 2016
+
+NEW: CORS support in the server
+DOC: API Documentation now reflects chagnes where OwnedBy field is now stored and returned in serialized resource format
+NEW: Masterkey refactored down into cache layer
+FIX: Recover under race condition for user creation
+NEW: Kafka is discoverable from its own ZK cluster, not just default ZK
+NEW: RPM updated to use /opt/services/object-drive installation path
+FIX: Port announced for service in ZK is based upon actual server port selected
+FIX: Prevent non-owners from moving objects
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/odrive-1.0.1.511-1.x86_64.rpm

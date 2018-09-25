@@ -14,6 +14,16 @@ node('docker') {
     def projectpath
     def govgopath
 
+    stage('Check Compatibility with FIPS') {
+        if(env.NODE_NAME == "jslv4-prod-gw1a.aws.di2e.net") {
+            sh "echo Current node is jslv4-prod-gw1a.aws.di2e.net which is believed to have FIPS enabled and will fail to upload RPM to S3."
+            sh "echo Not even going to do the work here since its all for not"
+            sh "echo If you are seeing this message, go ahead and kick off a rebuild and play roulette on which machine gets the job"
+            sh "echo jslv3-prod-gw1a.aws.di2e.net was a known good at one time"
+            error("Build failed because job ran on an environment with FIPS enabled")
+        }
+    }
+
     stage('Install Tools') {
         // These first three values are changeable if you want to upgrade to newer versions of go
         golang_folder = "/home/jenkins/go-1.11"
@@ -167,13 +177,14 @@ node('docker') {
         withCredentials([usernamePassword(credentialsId: 'dime_svc_acct', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
             sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/object-drive-server/object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm"
         }
-        if (git_tag != "") {
-            // To S3
-            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'MEME_S3_CREDS',
-                        usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                sh "aws s3 cp ./object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm s3://builds.363-283.io/"
-            }
+
+        // To S3
+        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'MEME_S3_CREDS',
+                    usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+            sh "aws configure set default.s3.signature_version s3v4"
+            sh "aws s3 cp ./object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm s3://meme-yum-repo/"
         }
+
     }
 
     stage('Tag and Push Docker Images') {

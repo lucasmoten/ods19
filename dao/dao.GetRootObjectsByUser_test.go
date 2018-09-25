@@ -7,7 +7,6 @@ import (
 
 	"bitbucket.di2e.net/dime/object-drive-server/dao"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
-	"bitbucket.di2e.net/dime/object-drive-server/server"
 )
 
 func TestDAOGetRootObjectsByUser(t *testing.T) {
@@ -36,7 +35,7 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 	object1.Name = "Test GetRootObjectsByUser for user1"
 	object1.CreatedBy = users[1].DistinguishedName
 	object1.TypeName = models.ToNullString("Test Type")
-	acmUforTP1 := server.ValidACMUnclassified
+	acmUforTP1 := ValidACMUnclassified
 	acmUforTP1 = strings.Replace(acmUforTP1, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s"]`, models.AACFlatten(usernames[1])), -1)
 	object1.RawAcm = models.ToNullString(acmUforTP1)
 	permissions1 := make([]models.ODObjectPermission, 1)
@@ -51,6 +50,12 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 	permissions1[0].AllowUpdate = true
 	permissions1[0].AllowDelete = true
 	object1.Permissions = permissions1
+	objectType, err := d.GetObjectTypeByName(object1.TypeName.String, true, object1.CreatedBy)
+	if err != nil {
+		t.Error(err)
+	} else {
+		object1.TypeID = objectType.ID
+	}
 	dbObject1, err := d.CreateObject(&object1)
 	if err != nil {
 		t.Error(err)
@@ -69,8 +74,9 @@ func TestDAOGetRootObjectsByUser(t *testing.T) {
 	var object2 models.ODObject
 	object2.Name = "Test GetRootObjectsByUser for user2"
 	object2.CreatedBy = users[2].DistinguishedName
+	object2.TypeID = objectType.ID
 	object2.TypeName = models.ToNullString("Test Type")
-	acmUforTP2 := server.ValidACMUnclassified
+	acmUforTP2 := ValidACMUnclassified
 	acmUforTP2 = strings.Replace(acmUforTP2, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s"]`, models.AACFlatten(usernames[2])), -1)
 	object2.RawAcm = models.ToNullString(acmUforTP2)
 	permissions2 := make([]models.ODObjectPermission, 1)
@@ -139,7 +145,7 @@ func TestDAOGetRootObjectsForBobbyTables(t *testing.T) {
 	object1.Name = "Test GetRootObjectsByUser for bobby 'tables"
 	object1.CreatedBy = user1.DistinguishedName
 	object1.TypeName = models.ToNullString("Test Type")
-	acmUforBobbyTables := server.ValidACMUnclassified
+	acmUforBobbyTables := ValidACMUnclassified
 	acmUforBobbyTables = strings.Replace(acmUforBobbyTables, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s"]`, models.AACFlatten(users[11].DistinguishedName)), -1)
 	object1.RawAcm = models.ToNullString(acmUforBobbyTables)
 	permissions1 := make([]models.ODObjectPermission, 1)
@@ -154,6 +160,12 @@ func TestDAOGetRootObjectsForBobbyTables(t *testing.T) {
 	permissions1[0].AllowUpdate = true
 	permissions1[0].AllowDelete = true
 	object1.Permissions = permissions1
+	objectType, err := d.GetObjectTypeByName(object1.TypeName.String, true, object1.CreatedBy)
+	if err != nil {
+		t.Error(err)
+	} else {
+		object1.TypeID = objectType.ID
+	}
 	dbObject1, err := d.CreateObject(&object1)
 	if err != nil {
 		t.Error(err)

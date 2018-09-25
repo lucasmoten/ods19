@@ -79,7 +79,7 @@ func TestExpungeDeleted(t *testing.T) {
 	// do the request
 	trafficLogs[APISampleFile].Request(t, req,
 		&TrafficLogDescription{
-			OperationName:       "Take out the trash",
+			OperationName:       "Empty (Expunge) Trash",
 			RequestDescription:  "Simple clean trash request (expunge deleted objects)",
 			ResponseDescription: "The response may be partial, so we keep doing until trash is gone if we need to",
 		},

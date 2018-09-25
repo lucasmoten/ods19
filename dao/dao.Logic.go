@@ -25,13 +25,14 @@ func (dao *DataAccessLayer) IsParentIDADescendent(id []byte, parentID []byte) (b
 }
 
 func isParentIDADescendentInTransaction(tx *sqlx.Tx, id []byte, parentID []byte) (bool, error) {
-
+	loadPermissions := false
+	loadProperties := false
 	if parentID == nil {
 		return false, nil
 	}
 	var targetObject models.ODObject
 	targetObject.ID = parentID
-	dbObject, err := getObjectInTransaction(tx, targetObject, false)
+	dbObject, err := getObjectInTransaction(tx, targetObject, loadPermissions, loadProperties)
 	if err != nil {
 		return true, err
 	}

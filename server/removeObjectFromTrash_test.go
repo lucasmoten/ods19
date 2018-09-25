@@ -48,7 +48,7 @@ func TestHTTPUndeleteObject(t *testing.T) {
 	}
 	trafficLogs[APISampleFile].Request(t, req,
 		&TrafficLogDescription{
-			OperationName:       "Undelete a file",
+			OperationName:       "Undelete/Restore a file from trash",
 			RequestDescription:  "We can use the id of a file to rescue it from the trash.",
 			ResponseDescription: "This is the restored object.",
 		},
@@ -155,10 +155,12 @@ func TestUndeleteExpungedObjectFails(t *testing.T) {
 	}
 	fakeQueue := kafka.NewFakeAsyncProducer(nil)
 	s := server.AppServer{
-		RootDAO:       fakeDAO,
-		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
-		AAC:           fakeAAC,
-		EventQueue:    fakeQueue,
+		RootDAO:         fakeDAO,
+		UsersLruCache:   ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
+		UserAOsLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
+		TypeLruCache:    ccache.New(ccache.Configure().MaxSize(100).ItemsToPrune(5)),
+		AAC:             fakeAAC,
+		EventQueue:      fakeQueue,
 	}
 
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
@@ -216,10 +218,12 @@ func TestUndeleteObjectWithDeletedAncestorFails(t *testing.T) {
 	}
 	fakeQueue := kafka.NewFakeAsyncProducer(nil)
 	s := server.AppServer{
-		RootDAO:       fakeDAO,
-		AAC:           fakeAAC,
-		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
-		EventQueue:    fakeQueue,
+		RootDAO:         fakeDAO,
+		AAC:             fakeAAC,
+		UsersLruCache:   ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
+		UserAOsLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
+		TypeLruCache:    ccache.New(ccache.Configure().MaxSize(100).ItemsToPrune(5)),
+		EventQueue:      fakeQueue,
 	}
 
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"

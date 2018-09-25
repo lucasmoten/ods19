@@ -6,7 +6,6 @@ import (
 
 	"bitbucket.di2e.net/dime/object-drive-server/dao"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
-	"bitbucket.di2e.net/dime/object-drive-server/server"
 )
 
 func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
@@ -19,7 +18,7 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	parent.Name = "Test Parent Object for GetChildObjectsWithPropertiesByUser"
 	parent.CreatedBy = users[1].DistinguishedName
 	parent.TypeName = models.ToNullString("File")
-	parent.RawAcm.String = server.ValidACMUnclassified
+	parent.RawAcm.String = ValidACMUnclassified
 	permissions := make([]models.ODObjectPermission, 1)
 	permissions[0].CreatedBy = parent.CreatedBy
 	permissions[0].Grantee = models.AACFlatten(parent.CreatedBy)
@@ -33,6 +32,12 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	permissions[0].AllowDelete = true
 	permissions[0].AllowShare = true
 	parent.Permissions = permissions
+	objectType, err := d.GetObjectTypeByName(parent.TypeName.String, true, parent.CreatedBy)
+	if err != nil {
+		t.Error(err)
+	} else {
+		parent.TypeID = objectType.ID
+	}
 	dbParent, err := d.CreateObject(&parent)
 	if dbParent.ID == nil {
 		t.Error("expected ID to be set")
@@ -48,9 +53,10 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	var child1 models.ODObject
 	child1.Name = "Test Child Object 1 for GetChildObjectsWithPropertiesByUser"
 	child1.CreatedBy = users[1].DistinguishedName
+	child1.TypeID = objectType.ID
 	child1.TypeName = models.ToNullString("File")
 	child1.ParentID = dbParent.ID
-	child1.RawAcm.String = server.ValidACMUnclassified
+	child1.RawAcm.String = ValidACMUnclassified
 	permissions1 := make([]models.ODObjectPermission, 1)
 	permissions1[0].CreatedBy = child1.CreatedBy
 	permissions1[0].Grantee = models.AACFlatten(child1.CreatedBy)
@@ -98,9 +104,10 @@ func TestDAOGetChildObjectsWithPropertiesByUser(t *testing.T) {
 	var child2 models.ODObject
 	child2.Name = "Test Child Object 2 for GetChildObjectsWithPropertiesByUser"
 	child2.CreatedBy = users[1].DistinguishedName
+	child2.TypeID = objectType.ID
 	child2.TypeName = models.ToNullString("File")
 	child2.ParentID = dbParent.ID
-	child2.RawAcm.String = server.ValidACMUnclassified
+	child2.RawAcm.String = ValidACMUnclassified
 	permissions2 := make([]models.ODObjectPermission, 1)
 	permissions2[0].CreatedBy = child2.CreatedBy
 	permissions2[0].Grantee = models.AACFlatten(child2.CreatedBy)

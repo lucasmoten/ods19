@@ -1,0 +1,28 @@
+Name:   ODrive 1.0.17 CI Build 2723
+Tag:    v1.0.17
+Commit: c9a7a44262db90c6839e0fa01b8abbb94db9f1d0
+Date:   September 24, 2018
+
+FIX: Postprocessing list/search filtering now includes TotalRows
+REF: Dev & Build process now use DIAS Simulator 1.1.0
+REF: Imports switched over to new home repository in bitbucket
+NEW: Recheck interval for ZK health check now settable via environment variables OD_ZK_RECHECK_TIME
+NEW: Added support for configuring logger in development or production mode OD_LOG_MODE
+NEW: Added support for configuring the HTTP Server Timeouts using OD_SERVER_TIMEOUT_IDLE, OD_SERVER_TIMEOUT_READ, OD_SERVER_TIMEOUT_READHEADER, and OD_SERVER_TIMEOUT_WRITE
+NEW: Added support for additional ciphers used during C-S communication.
+NEW: Jenkins support for building binaries and docker images
+NEW: Added support for configuring maximum lifetime of database connections using OD_DB_CONNMAXLIFETIME
+
+For Upgrading
+DB: No database update is required if upgrading from v1.0.6 or newer. The current expected schema version is 20170726.
+Server: If you are upgrading from v1.0.10 or newer, then perform a standard upgrade as follows
+  yum upgrade object-drive-1.0-1.0.17-2723.20180924.x86_64.rpm
+If you are upgrading from a version prior to v1.0.10, then changes to the versioning scheme in the package metadata will cause the above upgrade to fail for does not update installed package. You can force an update by using the rpm command as follows
+  rpm --force --upgrade object-drive-1.0-1.0.17-2723.20180924.x86_64.rpm
+
+Prebuilt RPM
+https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/object-drive-server/object-drive-1.0-1.0.17-2723.20180924.x86_64.rpm
+
+Containers
+Server: docker-dime.di2e.net/dime/object-drive-server:v1.0.17
+Database: docker-dime.di2e.net/dime/object-drive-metadatadb:v1.0.17

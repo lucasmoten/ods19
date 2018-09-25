@@ -232,6 +232,11 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 	// Call metadata connector to update the object in the data store
 	// Force the modified by to be that of the caller
 	requestObject.ModifiedBy = caller.DistinguishedName
+	if err := handleTypeName(ctx, h, &requestObject); err != nil {
+		herr := NewAppError(http.StatusInternalServerError, err, "error setting type for object")
+		h.publishError(gem, herr)
+		return herr
+	}
 	err = dao.UpdateObject(&requestObject)
 	if err != nil {
 		herr := NewAppError(http.StatusInternalServerError, err, "DAO Error updating object")
