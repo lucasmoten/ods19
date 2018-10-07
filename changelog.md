@@ -16,6 +16,10 @@ FORMAT: 1A
 
 # Group Changelog
 
+## Release v1.0.18 (October 5, 2018)
+---------------------
+* FIX: Add unique error logging for new cert pool
+
 ## Release v1.0.17 (September 24, 2018)
 ---------------------
 * FIX: Postprocessing list/search filtering now includes TotalRows
