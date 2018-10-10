@@ -39,12 +39,11 @@ Amazon Web Services environment variables contain credentials for AWS used for S
 | Name | Description | Default |
 | --- | --- | --- |
 | OD_AWS_ACCESS_KEY_ID | The AWS Access Key. Available here: https://console.aws.amazon.com/iam/home |  |
-| OD_AWS_ENDPOINT | The AWS S3 URL endpoint to use. Documented at: http://docs.aws.amazon.com/general/latest/gr/rande.html | |
 | OD_AWS_REGION | The AWS region to use. (i.e. us-east-1, us-west-2).  |  |
 | OD_AWS_S3_BUCKET | The S3 Bucket name to use.  The credentials used defined in OD_AWS_SECRET_ACCESS_KEY and OD_AWS_ACCESS_KEY_ID must have READ and WRITE privileges to the bucket. |  |
-| OD_AWS_S3_ENDPOINT | On the high side we must override this to point to the location of S3 services. OD_AWS_ENDPOINT is a deprecated duplicate of this variable | s3.amazonaws.com |
+| OD_AWS_S3_ENDPOINT | The AWS S3 URL endpoint to use. Documented at: http://docs.aws.amazon.com/general/latest/gr/rande.html. OD_AWS_ENDPOINT is a deprecated duplicate of this variable | s3.amazonaws.com |
+| OD_AWS_S3_FETCH_MB | The size (in MB) of chunks to pull from S3 in cases where Object Drive is re-caching from S3.  This is a compromise between response time vs billing caused by S3 billing per request.|16|
 | OD_AWS_SECRET_ACCESS_KEY | AWS secret key. Access and secret key variables override credentials stored in credential and config files.  Note that if a token.jar is installed onto the system, we can use the Bedrock encrypt format like `ENC{...}` |  |
-|OD_AWS_S3_FETCH_MB| The size (in MB) of chunks to pull from S3 in cases where Object Drive is re-caching from S3.  This is a compromise between response time vs billing caused by S3 billing per request.|16|
 
 ### AWS Autoscaling
 CloudWatch, SQS, and AutoScale with alarms (installed in AWS) interact to produce autoscaling behavior.
@@ -56,7 +55,6 @@ CloudWatch, SQS, and AutoScale with alarms (installed in AWS) interact to produc
 | OD_AWS_ASG_NAME | This is the name of the autoscaling group.  | set blank to disable notifying autoscale |
 | OD_AWS_CLOUDWATCH_ENDPOINT| The loction of cloudwatch monitoring | On the high side, we must override endpoint names.  Therefore, we will need an override (that begins with monitoring) for cloudwatch| monitoring.us-east-1.amazonaws.com|
 | OD_AWS_CLOUDWATCH_NAME|When reporting to cloud watch, we must report into a namespace.  In production, it's the same as the zk url. | Leave blank to disable cloudwatch reports.  Usually set same as OD_ZK_ANNOUNCE is used as the value because it is unique per cluster.  If it is blank, then metrics are logged rather than sent to cloud watch. |
-| OD_AWS_ENDPOINT|On the high side we must override this to point to the location of S3 services. | leave blank by default. Set on high side |
 | OD_AWS_SQS_BATCHSIZE | The number of messages (1-10) to request from lifecycle queue per polling interval to examine for shutdown | 10 |
 | OD_AWS_SQS_ENDPOINT | The name of the SQS service. | leave blank by default, which is implicitly sqs.us-east-1.amazonaws.com |
 | OD_AWS_SQS_INTERVAL | Poll interval for the lifecycle queue in seconds | 60 |
@@ -80,8 +78,8 @@ The database is used to store metadata about objects and supports querying for m
 | Name | Description | Default |
 | --- | --- | --- |
 | OD_DB_CA | The path to the certificate authority folder or file containing public certificate(s) to trust as the server when connecting to the database over TLS.  |  |
-| OD_DB_CN | The cn of the ssl cert of the database. | fqdn.for.metadatadb.local (default is for testing only) |
 | OD_DB_CERT | The path to the public certificate for the user credentials connecting to the database.  |  |
+| OD_DB_CN | The cn of the ssl cert of the database. | fqdn.for.metadatadb.local (default is for testing only) |
 | OD_DB_CONN_PARAMS | Custom parameters to include for the database connection. For MySQL/MariaDB, we are using `parseTime=true&collation=utf8_unicode_ci&readTimeout=30s` |  |
 | OD_DB_CONNMAXLIFETIME | The maximum amount of time, in seconds, that a database connection may be reused. 0 indicates indefinitely. | 30 | 
 | OD_DB_HOST | The name or IP address of the MySQL / MariaDB / Aurora conforming database.  |  |
@@ -100,10 +98,10 @@ Object Drive publishes a single event stream for client applications.
 | Name | Description | Default |
 | --- | --- | --- |
 | OD_EVENT_KAFKA_ADDRS | A comma-separated list of **host:port** pairs.  These are Kafka brokers. | |
-| OD_EVENT_ZK_ADDRS | A comma-separated list of **host:port** pairs. These are ZK nodes.  | |
 | OD_EVENT_PUBLISH_FAILURE_ACTIONS | A comma delimited list of event action types that should be published to kafka if request failed. The default value * enables all failure events to be published. Permissible values are access, authenticate, create, delete, list, undelete, unknown, update, zip. | * |
 | OD_EVENT_PUBLISH_SUCCESS_ACTIONS | A comma delimited list of event action types that should be published to kafka if request succeeded. The default value * enables all success events to be published. Permissible values are access, authenticate, create, delete, list, undelete, unknown, update, zip. | * |
 | OD_EVENT_TOPIC | The name of the topic for which events will be published to. | odrive-event |
+| OD_EVENT_ZK_ADDRS | A comma-separated list of **host:port** pairs. These are ZK nodes.  | |
 
 **NOTE:** If both the Kafka broker and ZooKeeper address options are blank, Object Drive will not publish events.
 
@@ -112,9 +110,9 @@ ObjectDrive itself just logs to stdout.  But when the service script launches it
 
 | Name | Description | Default |
 | --- | --- | --- |
-| OD_LOG_MODE | Denotes whether logging is in development or production mode.  When in development mode, stack traces will be output for WARN level messages and above. For production mode, stack traces are only output in ERROR level. Permissible values are production, development | Production |
 | OD_LOG_LEVEL | Should be Info (OD_LOG_LEVEL=0, -1 is Debug, 0 is Info, 1 is Warn, 2 is Error, 3 is Fatal, etc.) for production systems | 0 |
 | OD_LOG_LOCATION | The location of a log file, supplied in `env.sh`  to override log location. | object-drive.log |
+| OD_LOG_MODE | Denotes whether logging is in development or production mode.  When in development mode, stack traces will be output for WARN level messages and above. For production mode, stack traces are only output in ERROR level. Permissible values are production, development | Production |
 
 ### Peer to Peer
 Peer nodes of Object Drive within a cluster can communicate with each other to leverage local cache
@@ -122,8 +120,8 @@ Peer nodes of Object Drive within a cluster can communicate with each other to l
 | Name | Description | Default |
 | --- | --- | --- |
 | OD_PEER_CN | The name associated with the certificate.  This may need to change when certificates are changed, but if it works at default, leave it.  This `MUST` be set in order to connect. |  |
-| OD_PEER_SIGNIFIER | This is a pseudonym used to signify a P2P client, which is set because it prevents users from accessing via nginx.  This generally doesn't need to be changed. | P2P |
 | OD_PEER_INSECURE_SKIP_VERIFY | This turns off certificate verification.  Do not do this.  Leave this value at its default. | false |
+| OD_PEER_SIGNIFIER | This is a pseudonym used to signify a P2P client, which is set because it prevents users from accessing via nginx.  This generally doesn&apos;t need to be changed. | P2P |
 
 ### Server
 Remaining server settings are noted here
@@ -163,17 +161,9 @@ Zookeeper is used to announce the availability of this instance of the object dr
 
 ### Development 
 
-**DEVELOPMENT ONLY** 
-
-The following are convenience variables that work in conjunction with development scripts (mysql-client.sh and mysql-aws.sh), or for running integration tests against the object drive service directly instead of through nginx or other edge gateway platform.
+The following are convenience variables that work in conjunction with running integration tests against the object drive service directly instead of through nginx or other edge gateway platform.
 
 | Name | Description | Default |
 | --- | --- | --- |
-| OD_DB_AWS_MYSQL_MASTER_USER | OD_DB_USERNAME override for aws staging instance  |  |
-| OD_DB_AWS_MYSQL_MASTER_PASSWORD | OD_DB_PASSWORD override for aws staging instance  |  |
-| OD_DB_AWS_MYSQL_ENDPOINT | OD_DB_HOST override for aws staging instance  |  |
-| OD_DB_AWS_MYSQL_PORT | OD_DB_PORT override for aws staging instance  |  |
-| OD_DB_AWS_MYSQL_DATABASE_NAME | OD_DB_SCHEMA override for aws staging instance  |  |
-| OD_DB_AWS_MYSQL_SSL_CA_PATH | OD_DB_CA override for aws staging instance  |  |
 | OD_EXTERNAL_HOST | **DEVELOPMENT ONLY** Allows for overriding the host name used for go tests when checking server integration tests.  | proxier |
 | OD_EXTERNAL_PORT | **DEVELOPMENT ONLY** Allows for overriding the port used for go tests when checking server integration tests direct to Object Drive.  | 8080 |

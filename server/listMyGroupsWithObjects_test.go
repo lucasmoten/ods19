@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"bitbucket.di2e.net/dime/object-drive-server/protocol"
-	"bitbucket.di2e.net/dime/object-drive-server/server"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
@@ -81,7 +80,7 @@ func makeObjectOwnedByGroup(t *testing.T, clientid int, ownedby string) {
 	obj.Name = "TestListMyGroupsWithObjects " + strconv.FormatInt(time.Now().Unix(), 10)
 	obj.TypeName = "Folder"
 	obj.OwnedBy = ownedby
-	obj.RawAcm = server.ValidACMUnclassified
+	obj.RawAcm = ValidACMUnclassified
 	jsonBody, err := json.Marshal(obj)
 	if err != nil {
 		t.Logf("Unable to marshal json for request:%v", err)

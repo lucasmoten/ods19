@@ -49,10 +49,12 @@ func TestListObjectsTrashedJSONResponse(t *testing.T) {
 	}
 	fakeQueue := kafka.NewFakeAsyncProducer(nil)
 	s := server.AppServer{
-		RootDAO:       &fakeDAO,
-		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
-		AAC:           &fakeAAC,
-		EventQueue:    fakeQueue,
+		RootDAO:         &fakeDAO,
+		UsersLruCache:   ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
+		UserAOsLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
+		TypeLruCache:    ccache.New(ccache.Configure().MaxSize(100).ItemsToPrune(5)),
+		AAC:             &fakeAAC,
+		EventQueue:      fakeQueue,
 	}
 	s.InitRegex()
 

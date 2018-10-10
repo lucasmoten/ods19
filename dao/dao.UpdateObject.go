@@ -89,7 +89,8 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 }
 
 func updateObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessLayer, object *models.ODObject) (bool, error) {
-
+	loadPermissions := true
+	loadProperties := true
 	var acmCreated bool
 
 	// Pre-DB Validation
@@ -105,9 +106,15 @@ func updateObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 	if len(object.ParentID) == 0 {
 		object.ParentID = nil
 	}
+	if len(object.TypeID) == 0 {
+		object.TypeID = nil
+	}
+	if object.TypeID == nil {
+		return false, ErrMissingTypeID
+	}
 
 	// Fetch current state of object
-	dbObject, err := getObjectInTransaction(tx, *object, true)
+	dbObject, err := getObjectInTransaction(tx, *object, loadPermissions, loadProperties)
 	if err != nil {
 		return acmCreated, fmt.Errorf("updateobject error retrieving object, %s", err.Error())
 	}
@@ -128,14 +135,6 @@ func updateObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 		currentTime = time.Now().UTC()
 		timeSinceCurrentRevision = currentTime.Sub(dbObject.ModifiedDate) / 1000
 	}
-	// lookup type, assign its id to the object for reference
-	if object.TypeID == nil {
-		objectType, err := dao.GetObjectTypeByName(object.TypeName.String, true, object.ModifiedBy)
-		if err != nil {
-			return acmCreated, fmt.Errorf("UpdateObject Error calling GetObjectTypeByName, %s", err.Error())
-		}
-		object.TypeID = objectType.ID
-	}
 
 	// Assign a generic name if this object name is being cleared
 	if len(object.Name) == 0 {
@@ -155,7 +154,7 @@ func updateObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 				userRequested.DisplayName = models.ToNullString(config.GetCommonName(userRequested.DistinguishedName))
 				userRequested.CreatedBy = object.CreatedBy
 				userCreated := models.ODUser{}
-				userCreated, err = createUserInTransaction(logger, tx, userRequested)
+				userCreated, err = createUserInTransaction(tx, dao, userRequested)
 				object.OwnedBy = models.ToNullString("user/" + userCreated.DistinguishedName)
 			}
 		}
@@ -283,7 +282,7 @@ func updateObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 		}
 		if permission.IsCreating() && !permission.IsDeleted {
 			permission.CreatedBy = object.ModifiedBy
-			createdPermission, err := addPermissionToObjectInTransaction(logger, tx, *object, &permission)
+			createdPermission, err := addPermissionToObjectInTransaction(tx, dao, *object, &permission)
 			if err != nil {
 				return acmCreated, fmt.Errorf("error saving permission #%d {%s) when updating object:%v", permIdx, permission, err)
 			}
@@ -294,7 +293,7 @@ func updateObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 	}
 
 	// Refetch object again with properties and permissions
-	dbObject, err = getObjectInTransaction(tx, *object, true)
+	dbObject, err = getObjectInTransaction(tx, *object, loadPermissions, loadProperties)
 	if err != nil {
 		return acmCreated, fmt.Errorf("updateobject error retrieving object %v, %s", object, err.Error())
 	}

@@ -5,7 +5,6 @@ import (
 
 	"bitbucket.di2e.net/dime/object-drive-server/dao"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
-	"bitbucket.di2e.net/dime/object-drive-server/server"
 )
 
 func TestDAOGetRootObjects(t *testing.T) {
@@ -27,7 +26,13 @@ func TestDAOGetRootObjects(t *testing.T) {
 	object1.Name = "Test GetRootObjects"
 	object1.CreatedBy = usernames[1]
 	object1.TypeName = models.ToNullString("Test Type")
-	object1.RawAcm.String = server.ValidACMUnclassified
+	object1.RawAcm.String = ValidACMUnclassified
+	objectType, err := d.GetObjectTypeByName(object1.TypeName.String, true, object1.CreatedBy)
+	if err != nil {
+		t.Error(err)
+	} else {
+		object1.TypeID = objectType.ID
+	}
 	dbObject1, err := d.CreateObject(&object1)
 	if err != nil {
 		t.Error(err)

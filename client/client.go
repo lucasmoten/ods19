@@ -81,7 +81,10 @@ func NewClient(conf Config) (*Client, error) {
 	}
 	caPool := x509.NewCertPool()
 	if caPool.AppendCertsFromPEM(trust) == false {
-		return nil, fmt.Errorf("%s", conf.Trust)
+		if len(trust) > 0 {
+			return nil, fmt.Errorf("while appending certs in trust file %s", conf.Trust)
+		}
+		return nil, fmt.Errorf("no certificates listed in trust file %s", conf.Trust)
 	}
 	cert, err := tls.LoadX509KeyPair(conf.Cert, conf.Key)
 	if err != nil {

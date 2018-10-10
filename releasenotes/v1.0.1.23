@@ -1,0 +1,11 @@
+Name:   ODrive 1.0.1 CI Build 1428 (Release v1.0.1.23)
+Tag:    v1.0.1.23
+Commit: 1f800869503445597bfb70167ca7d306a2c628da
+Date:   May 4, 2017
+
+FIX: Allow Content-Transfer-Encoding to be specified as binary, 8bit, or 7bit.
+FIX: Allow Content-Type to support charset values of utf-8 or iso-8859-1.
+NEW: Operation /groups returns information about groups for which caller is a member of that owns objects.
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.1.1428.x86_64.rpm

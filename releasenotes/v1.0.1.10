@@ -1,0 +1,14 @@
+Name:   ODrive 1.0.1 CI Build 623 (Release v1.0.1.10)
+Tag:    v1.0.1.10
+Commit: f4028f27e3c2b6254f4206cfed7fc34838b7cfe7
+Date:   December 8, 2016
+
+FIX: RPM updated to create services group, and change ownership to object-drive:services
+ENH: Performance improvements to database list/search operations, and additional indexing on key columns
+FIX: Object-Drive Service Init script no longer assigns group to process to prevent failure.
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.1.623.x86_64.rpm
+
+Current Drive UI Tarball
+https://s3.amazonaws.com/odrive-builds/bedrock-drive-ui-v1.0.2-rc3-dist.tar.gz

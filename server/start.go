@@ -49,7 +49,7 @@ func Start(conf config.AppConfiguration) error {
 		}
 	}
 	app.RootDAO = d
-	go daoReadOnlyCheck(app)
+	go daoReadOnlyCheck(app, conf.DatabaseConnection)
 
 	zone := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
 	cache, loggableErr := ciphertext.NewS3CiphertextCache(zone, conf.CacheSettings, dbID)
@@ -187,6 +187,9 @@ func connectWithZookeeperTry(app *AppServer, zkBasePath string, zkAddress string
 	if err != nil {
 		return err
 	}
+	if app.DefaultZK != nil && app.DefaultZK.Conn != nil && zkState != nil && app.DefaultZK.Conn != zkState.Conn {
+		app.DefaultZK.Conn.Close()
+	}
 	app.DefaultZK = zkState
 	// These pointer assignments will be overwritten if OD_EVENT_ZK_ADDRS or OD_AAC_ZK_ADDRS is set.
 	app.EventQueueZK = zkState
@@ -223,8 +226,7 @@ func zkKeepalive(app *AppServer, conf config.AppConfiguration) {
 				logger.Debug("zkKeepalive checking health")
 				children, _, err := app.DefaultZK.Conn.Children(conf.ZK.BasepathOdrive + "/https")
 				if err != nil {
-					logger.Debug("zkKeepalive health check failure, attempting reconnect")
-					connectWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, conf.ZK.Timeout, conf.ZK.RetryDelay)
+					logger.Debug("zkKeepalive health check failure looking for children at our endpoint")
 				} else {
 					if len(children) > 0 {
 						// make sure our ephemeral node exists!
@@ -238,17 +240,13 @@ func zkKeepalive(app *AppServer, conf config.AppConfiguration) {
 						if foundOurself {
 							logger.Debug("zkKeepalive health check success")
 						} else {
-							logger.Debug("zkKeepalive health check failed to find our node, attempting reconnect")
-							connectWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, conf.ZK.Timeout, conf.ZK.RetryDelay)
+							logger.Debug("zkKeepalive health check failed to find our node, reannouncing")
 							zookeeper.DoReAnnouncements(app.DefaultZK, logger)
-							// may need serviceannouncement instead
 						}
 
 					} else {
-						logger.Debug("zkKeepalive health check failure, no children, including us, at announcement path, attempting reconnect")
-						connectWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, conf.ZK.Timeout, conf.ZK.RetryDelay)
+						logger.Debug("zkKeepalive health check failure, no children, including us, at announcement path, reannouncing")
 						zookeeper.DoReAnnouncements(app.DefaultZK, logger)
-						// may need serviceannouncement instead
 					}
 				}
 			} else {
@@ -346,7 +344,7 @@ func aacReconnect(app *AppServer, conf config.AppConfiguration) {
 			continue
 		}
 		// we have a client. let's run a test before we set the pointer.
-		_, err = client.ValidateAcm(ValidACMUnclassified)
+		_, err = client.ValidateAcm(conf.AACSettings.HealthCheck)
 		if err != nil {
 			logger.Error("aacReconnect: call to ValidateAcm failed", zap.Any("announceData", info))
 			continue
@@ -392,7 +390,7 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 		// Test our connection after an event hits our queue.
 		var err error
 		if app.AAC != nil {
-			_, err = app.AAC.ValidateAcm(ValidACMUnclassified)
+			_, err = app.AAC.ValidateAcm(conf.AACSettings.HealthCheck)
 		}
 		if app.AAC == nil || err != nil {
 			if app.AAC == nil {
@@ -411,7 +409,7 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 					port := announcement.ServiceEndpoint.Port
 					aacc, err := aac.GetAACClient(host, port, aacConf.CAPath, aacConf.ClientCert, aacConf.ClientKey)
 					if err == nil {
-						_, err = aacc.ValidateAcm(ValidACMUnclassified)
+						_, err = aacc.ValidateAcm(conf.AACSettings.HealthCheck)
 						if err != nil {
 							logger.Error("aac reconnect check error", zap.Error(err))
 						} else {
@@ -453,14 +451,32 @@ func blockForRequiredServices(l *zap.Logger, conf config.AppConfiguration) {
 	l.Info("zookeeper cluster found", zap.String("addrs", conf.ZK.Address))
 }
 
-func daoReadOnlyCheck(app *AppServer) {
+func daoReadOnlyCheck(app *AppServer, dbconf config.DatabaseConfiguration) {
 
 	t := time.NewTicker(time.Duration(30 * time.Second))
 
 	for {
 		select {
 		case <-t.C:
-			logger.Debug("db readonly-flag checking health")
+			curOpenConns := app.RootDAO.GetOpenConnections()
+			logger.Debug("db checking health", zap.Int("open-conns", curOpenConns))
+			maxOpenConns := int(config.GetEnvOrDefaultInt(config.OD_DB_MAXOPENCONNS, 10))
+
+			if curOpenConns >= maxOpenConns {
+				logger.Warn("db connections at peak. consider increasing OD_DB_MAXOPENCONNS", zap.Int("max-open-conns", maxOpenConns), zap.Int("cur-open-conns", curOpenConns))
+				logger.Info("db closing and reopening database")
+				err := app.RootDAO.GetDatabase().Close()
+				if err != nil {
+					logger.Error("db encountered error while closing database", zap.Error(err))
+				}
+				d, _, err := dao.NewDataAccessLayer(dbconf, dao.WithLogger(logger))
+				if err != nil {
+					logger.Error("db encountered error while reopening database", zap.Error(err))
+				}
+				app.RootDAO = d
+				logger.Info("db reopened")
+			}
+
 			beforeReadOnly := app.RootDAO.IsReadOnly(false)
 			// refreshes
 			afterReadOnly := app.RootDAO.IsReadOnly(true)
@@ -472,7 +488,7 @@ func daoReadOnlyCheck(app *AppServer) {
 					logger.Info("dao is read only")
 				}
 			}
-			logger.Debug("db readonly-flag health check success")
+			logger.Debug("db health check success")
 		case <-shutdown:
 			t.Stop()
 			return

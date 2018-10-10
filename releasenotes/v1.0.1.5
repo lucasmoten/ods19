@@ -1,0 +1,13 @@
+Name:   ODrive 1.0.1 CI Build 270 (Release v1.0.1.5)
+Tag:    v1.0.1.5
+Commit: 45816ec09b69a0323a4c3d23166e237967239e77
+Date:   October 21, 2016
+
+NEW: disableS3 with an empty S3 Bucket variable. it works with load balancing due to p2p caching.
+FIX: large stalls as load balanced clients wait for S3 ciphertext is taken care of with p2p caching. it created instability when viewing large videos.
+NEW: odrive-database utility supports migrations.
+NEW: List of objects shared to the user (/shares) will exclude those whose parent is also shared to them.
+NEW: List of objects shared to others (/shared) will exclude those whose parent is also shared to others.
+NEW: List of objects shared to everyone (/sharedpublic) will exclude those whose parent is also shared to everyone.
+FIX: Breadcrumbs will be limited to the first parents accessible to a user. No longer returning the complete list with redacted folder names
+NEW: Autoscaling report gets messages triggered by a CloudWatch alarm writes to SQS so we shut down and tell Autoscale

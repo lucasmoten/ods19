@@ -20,34 +20,34 @@ import (
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
-func moveObjectRaw(dao dao.DAO, ctx context.Context, caller Caller, resourceStrings []string, aacAuth *auth.AACAuth, requestObject models.ODObject, dbObject *models.ODObject) (int, error, string) {
+func moveObjectRaw(ctx context.Context, dao dao.DAO, caller Caller, resourceStrings []string, aacAuth *auth.AACAuth, requestObject models.ODObject, dbObject *models.ODObject) (int, string, error) {
 
 	// Capture and overwrite here for comparison later after the update
 	requestObject.ChangeCount = dbObject.ChangeCount
 
 	// Auth check
 	if ok := isUserAllowedToUpdate(ctx, dbObject); !ok {
-		return http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to update this object"
+		return http.StatusForbidden, "Forbidden - User does not have permission to update this object", errors.New("Forbidden")
 	}
 	if !aacAuth.IsUserOwner(caller.DistinguishedName, resourceStrings, dbObject.OwnedBy.String) {
-		return http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User must be an object owner to move the object"
+		return http.StatusForbidden, "Forbidden - User must be an object owner to move the object", errors.New("Forbidden")
 	}
 
 	// Object state check
 	if dbObject.IsDeleted {
 		switch {
 		case dbObject.IsExpunged:
-			return http.StatusGone, errors.New("Forbidden"), "The object no longer exists."
+			return http.StatusGone, "The object no longer exists.", errors.New("Forbidden")
 		case dbObject.IsAncestorDeleted && !dbObject.IsDeleted:
-			return http.StatusMethodNotAllowed, errors.New("Forbidden"), "The object cannot be modified because an ancestor is deleted."
+			return http.StatusBadRequest, "The object cannot be modified because an ancestor is deleted.", errors.New("Forbidden")
 		case dbObject.IsDeleted:
-			return http.StatusMethodNotAllowed, errors.New("Forbidden"), "The object is currently in the trash. Use removeObjectFromTrash to restore it"
+			return http.StatusBadRequest, "The object is currently in the trash. Use removeObjectFromTrash to restore it", errors.New("Forbidden")
 		}
 	}
 	// Check that the change token on the object passed in matches the current
 	// state of the object in the data store
 	if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) != 0 {
-		return http.StatusPreconditionRequired, errors.New("Precondition required: ChangeToken does not match expected value"), "ChangeToken does not match expected value. Object may have been changed by another request."
+		return http.StatusBadRequest, "ChangeToken does not match expected value. Object may have been changed by another request.", errors.New("Precondition required: ChangeToken does not match expected value")
 	}
 
 	// Check that the parent of the object passed in is different then the current
@@ -65,33 +65,33 @@ func moveObjectRaw(dao dao.DAO, ctx context.Context, caller Caller, resourceStri
 			// Look up the parent
 			dbParent, err := dao.GetObject(targetParent, false)
 			if err != nil {
-				return http.StatusBadRequest, err, "Error retrieving parent to move object into"
+				return http.StatusBadRequest, "Error retrieving parent to move object into", err
 			}
 			// Check if the user has permission to create children under the target
 			// object for which they are moving this one to (the parentID)
 			if ok := isUserAllowedToCreate(ctx, &dbParent); !ok {
-				return http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to move this object to target"
+				return http.StatusForbidden, "Forbidden - User does not have permission to move this object to target", errors.New("Forbidden")
 			}
 
 			// Parent must not be deleted
 			if targetParent.IsDeleted {
 				if targetParent.IsExpunged {
-					return http.StatusGone, errors.New("Forbidden"), "Unable to move object into an object that does not exist"
+					return http.StatusGone, "Unable to move object into an object that does not exist", errors.New("Forbidden")
 				}
-				return http.StatusMethodNotAllowed, errors.New("Forbidden"), "Unable to move object into an object that is deleted"
+				return http.StatusBadRequest, "Unable to move object into an object that is deleted", errors.New("Forbidden")
 			}
 
 			// #60 Check that the parent being assigned for the object passed in does not
 			// result in a circular reference
 			if bytes.Compare(requestObject.ParentID, requestObject.ID) == 0 {
-				return http.StatusBadRequest, err, "ParentID cannot be set to the ID of the object. Circular references are not allowed."
+				return http.StatusBadRequest, "ParentID cannot be set to the ID of the object. Circular references are not allowed.", err
 			}
 			circular, err := dao.IsParentIDADescendent(requestObject.ID, requestObject.ParentID)
 			if err != nil {
-				return http.StatusInternalServerError, err, "Error retrieving ancestor to check for circular references"
+				return http.StatusInternalServerError, "Error retrieving ancestor to check for circular references", err
 			}
 			if circular {
-				return http.StatusBadRequest, errors.New("Forbidden"), "ParentID cannot be set to the value specified as would result in a circular reference"
+				return http.StatusBadRequest, "ParentID cannot be set to the value specified as would result in a circular reference", errors.New("Forbidden")
 			}
 		}
 	}
@@ -105,17 +105,17 @@ func moveObjectRaw(dao dao.DAO, ctx context.Context, caller Caller, resourceStri
 	err := dao.UpdateObject(dbObject)
 	if err != nil {
 		log.Printf("Error updating object: %v", err)
-		return http.StatusInternalServerError, nil, "Error saving object in new location"
+		return http.StatusInternalServerError, "Error saving object in new location", nil
 	}
 
 	// After the update, check that key values have changed...
 	if dbObject.ChangeCount <= requestObject.ChangeCount {
-		return http.StatusInternalServerError, nil, "ChangeCount didn't update when processing move request"
+		return http.StatusInternalServerError, "ChangeCount didn't update when processing move request", nil
 	}
 	if strings.Compare(requestObject.ChangeToken, dbObject.ChangeToken) == 0 {
-		return http.StatusInternalServerError, nil, "ChangeToken didn't update when processing move request"
+		return http.StatusInternalServerError, "ChangeToken didn't update when processing move request", nil
 	}
-	return 0, nil, ""
+	return 0, "", nil
 }
 
 func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
@@ -137,7 +137,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 		h.publishError(gem, herr)
 		return herr
 	}
-	requestObject, err = parseMoveObjectRequestAsJSON(r, ctx)
+	requestObject, err = parseMoveObjectRequestAsJSON(ctx, r)
 	if err != nil {
 		herr := NewAppError(http.StatusBadRequest, err, "Error parsing JSON")
 		h.publishError(gem, herr)
@@ -154,9 +154,9 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	}
 	auditOriginal := NewResourceFromObject(dbObject)
 
-	code, errCause, msg := moveObjectRaw(
-		dao,
+	code, msg, errCause := moveObjectRaw(
 		ctx,
+		dao,
 		caller,
 		getKnownResourceStringsFromUserGroups(ctx),
 		aacAuth,
@@ -196,7 +196,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 	return nil
 }
 
-func parseMoveObjectRequestAsJSON(r *http.Request, ctx context.Context) (models.ODObject, error) {
+func parseMoveObjectRequestAsJSON(ctx context.Context, r *http.Request) (models.ODObject, error) {
 	var jsonObject protocol.MoveObjectRequest
 	var requestObject models.ODObject
 	var err error

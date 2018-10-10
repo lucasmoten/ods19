@@ -48,7 +48,7 @@ func TestMoveObject(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	trafficLogs[APISampleFile].Request(t, req,
 		&TrafficLogDescription{
-			OperationName:       "Move an object",
+			OperationName:       "Move Object",
 			RequestDescription:  "Request that an object be moved to a new location",
 			ResponseDescription: "The object in its new location",
 		},
@@ -154,7 +154,7 @@ func TestMoveObjectWrongChangeToken(t *testing.T) {
 	moveReq1 := makeHTTPRequestFromInterface(t, "POST", moveuri, objChangeToken)
 	moveRes1, err := clients[tester10].Client.Do(moveReq1)
 	failNowOnErr(t, err, "Unable to do request")
-	statusMustBe(t, http.StatusPreconditionRequired, moveRes1, "Bad status when moving folder 2 under folder 1")
+	statusMustBe(t, http.StatusBadRequest, moveRes1, "Bad status when moving folder 2 under folder 1")
 	util.FinishBody(moveRes1.Body)
 }
 

@@ -1,0 +1,13 @@
+Name:   ODrive 1.0.1 CI Build 1073 (Release v1.0.1.16)
+Tag:    v1.0.1.16
+Commit: d15fa7325e4d3e29b5e371359ac455c82dcade63
+Date:   February 28, 2017
+
+ENH: Latest git tag is embedded in --version flag.
+FIX: Bugfix to listing shared objects and trash for users with apostrophe in DN
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.1.1073.x86_64.rpm
+
+Current Drive UI Tarball
+https://s3.amazonaws.com/odrive-builds/bedrock-drive-ui-v1.0.2-rc3-dist.tar.gz

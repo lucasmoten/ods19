@@ -64,7 +64,7 @@ install -m 640 -D ${ODRIVE_ROOT}/server/static/images/odrive-service.png ${ODRIV
 #install -m 640 -D ${ODRIVE_ROOT}/server/static/images/odrive-version.png ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/images/odrive-version.png
 install -m 640 -D ${ODRIVE_ROOT}/server/static/js/getObjectStream.png ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/js/getObjectStream.png
 install -m 640 -D ${ODRIVE_ROOT}/server/static/js/etag.png ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/js/etag.png
-#install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/APISample.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/APISample.html
+install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/APISample.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/APISample.html
 install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/ObjectDriveSDK.java ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/ObjectDriveSDK.java
 #install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/api.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/api.html
 install -m 640 -D ${ODRIVE_ROOT}/server/static/templates/changelog.html ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-1.0/libs/server/static/templates/changelog.html

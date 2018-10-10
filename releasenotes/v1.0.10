@@ -1,0 +1,33 @@
+Name:   ODrive 1.0.10 CI Build 2045
+Tag:    v1.0.10
+Commit: d449488d10846b3dc9362477f6e5f8108f8f56fc
+Date:   October 17, 2017
+
+FIX: Resolve deadlock on inserting user ao cache
+FIX: Allow saving new grantees introduced in user ao cache
+ENH: Reduce time between check for user ao cache and creation/update
+ENH: Improve logging of kafka connections on startup
+ENH: RPM upgrade will stop and start service if running during upgrade
+ENH: Status check on service will indicate process id when running
+ENH: Support configuration of publish topic via OD_EVENT_TOPIC
+DOC: Updated API Documentation with filter conditions and corrected Change Owner
+FIX: SysV init script reports exit code 3 from status when odrive is not running
+FIX: SysV init script correctly propagates exit code when sys.exit is called
+DEG: Added IsPDFAvailable field to json responses for object metadata
+NEW: Added a distributable quick start dockerized environment
+ENH: Improve performance saving user snippet definition
+ENH: database tool now resolves ip when using default config to favor non 127.0.0.1
+DOC: Add service architecture diagram to documentation
+ENH: Restructured RPM generation to include version and build number
+FIX: Database migration tool no longer hardcodes name as odrive-database
+
+For Upgrading
+DB: No database update is required if upgrading from v1.0.6 or newer. The current expected schema version is 20170726.
+Server: The RPM in this release changes the versioning scheme in the package metadata and a normal attempt to upgrade using yum will fail. Perform a forced upgrade as follows
+  rpm --force --upgrade object-drive-1.0.10.2045.x86_64.rpm
+  
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.10.2045.x86_64.rpm
+
+Container
+Available in Docker Registry as deciphernow/odrive:v1.0.10

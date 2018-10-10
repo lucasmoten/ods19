@@ -84,30 +84,29 @@ func getAcmGranteeInTransaction(tx *sqlx.Tx, grantee string) (models.ODAcmGrante
 // CreateAcmGrantee creates an AcmGrantee record if it does not already exist, otherwise fetches by the grantee name.
 func (dao *DataAccessLayer) CreateAcmGrantee(acmGrantee models.ODAcmGrantee) (models.ODAcmGrantee, error) {
 	defer util.Time("CreateAcmGrantee")()
-	logger := dao.GetLogger()
 	retryCounter := dao.DeadlockRetryCounter
 	retryDelay := dao.DeadlockRetryDelay
 	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded"}
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		logger.Error("could not begin transaction", zap.Error(err))
+		dao.GetLogger().Error("could not begin transaction", zap.Error(err))
 		return models.ODAcmGrantee{}, err
 	}
-	response, err := createAcmGranteeInTransaction(dao.GetLogger(), tx, acmGrantee)
+	response, err := createAcmGranteeInTransaction(tx, dao, acmGrantee)
 	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
-		logger.Debug("restarting transaction for CreateAcmGrantee", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
+		dao.GetLogger().Debug("restarting transaction for CreateAcmGrantee", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
 		tx.Rollback()
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		retryCounter--
 		tx, err = dao.MetadataDB.Beginx()
 		if err != nil {
-			logger.Error("could not begin transaction", zap.Error(err))
+			dao.GetLogger().Error("could not begin transaction", zap.Error(err))
 			return models.ODAcmGrantee{}, err
 		}
-		response, err = createAcmGranteeInTransaction(dao.GetLogger(), tx, acmGrantee)
+		response, err = createAcmGranteeInTransaction(tx, dao, acmGrantee)
 	}
 	if err != nil {
-		logger.Error("error in createacmgrantee", zap.Error(err))
+		dao.GetLogger().Error("error in createacmgrantee", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -115,7 +114,7 @@ func (dao *DataAccessLayer) CreateAcmGrantee(acmGrantee models.ODAcmGrantee) (mo
 	return response, err
 }
 
-func createAcmGranteeInTransaction(logger *zap.Logger, tx *sqlx.Tx, acmGrantee models.ODAcmGrantee) (models.ODAcmGrantee, error) {
+func createAcmGranteeInTransaction(tx *sqlx.Tx, dao *DataAccessLayer, acmGrantee models.ODAcmGrantee) (models.ODAcmGrantee, error) {
 
 	// If grantee is for a user, check that user specified exists
 	userDN := acmGrantee.UserDistinguishedName.String
@@ -128,7 +127,7 @@ func createAcmGranteeInTransaction(logger *zap.Logger, tx *sqlx.Tx, acmGrantee m
 			userRequested.DistinguishedName = userDN
 			userRequested.DisplayName = models.ToNullString(config.GetCommonName(userDN))
 			userRequested.CreatedBy = userDN
-			_, err = createUserInTransaction(logger, tx, userRequested)
+			_, err = createUserInTransaction(tx, dao, userRequested)
 		}
 		if !acmGrantee.DisplayName.Valid || acmGrantee.DisplayName.String == "" {
 			acmGrantee.DisplayName = models.ToNullString(config.GetCommonName(userDN))
@@ -153,11 +152,12 @@ func createAcmGranteeInTransaction(logger *zap.Logger, tx *sqlx.Tx, acmGrantee m
 	if err != nil {
 		return dbAcmGrantee, err
 	}
-
+	defer addAcmGranteeStatement.Close()
 	result, err := addAcmGranteeStatement.Exec(acmGrantee.Grantee, acmGrantee.ResourceString,
 		acmGrantee.ProjectName, acmGrantee.ProjectDisplayName, acmGrantee.GroupName,
 		acmGrantee.UserDistinguishedName, acmGrantee.DisplayName)
 	if err != nil {
+		dao.GetLogger().Warn("error executing addacmgranteestatement", zap.Error(err))
 		// Possible race condition here... Grantee must be unique, and if
 		// a parallel request is adding them then this attempt to insert will fail.
 		// Attempt to retrieve them
@@ -173,16 +173,16 @@ func createAcmGranteeInTransaction(logger *zap.Logger, tx *sqlx.Tx, acmGrantee m
 		return dbAcmGrantee, err
 	}
 	if rowCount < 1 {
-		logger.Warn("no rows were added when inserting the grantee!")
+		dao.GetLogger().Warn("no rows were added when inserting the grantee!")
 	}
-	addAcmGranteeStatement.Close()
+	//addAcmGranteeStatement.Close()
 	// Get the newly added grantee
 	dbAcmGrantee, err = getAcmGranteeInTransaction(tx, acmGrantee.Grantee)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			logger.Error("grantee was not found even after just adding", zap.Error(err))
+			dao.GetLogger().Error("grantee was not found even after just adding", zap.Error(err))
 		} else {
-			logger.Error("an error occurred retrieving newly added grantee", zap.Error(err))
+			dao.GetLogger().Error("an error occurred retrieving newly added grantee", zap.Error(err))
 		}
 		return dbAcmGrantee, err
 	}

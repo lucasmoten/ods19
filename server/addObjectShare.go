@@ -192,7 +192,7 @@ func commonObjectSharePrep(ctx context.Context, r *http.Request) (models.ODObjec
 	}
 
 	//Get the json data from the request and map to an array of permission objects
-	permissions, err = parseObjectShareRequest(r, ctx)
+	permissions, err = parseObjectShareRequest(ctx, r)
 	if err != nil {
 		return rollupPermission, permissions, dbObject, NewAppError(http.StatusBadRequest, err, "Error parsing request")
 	}
@@ -310,7 +310,7 @@ func hasPermissionsForGrantee(obj *models.ODObject, grantee string) bool {
 	return false
 }
 
-func parseObjectShareRequest(r *http.Request, ctx context.Context) ([]models.ODObjectPermission, error) {
+func parseObjectShareRequest(ctx context.Context, r *http.Request) ([]models.ODObjectPermission, error) {
 	var requestedShare protocol.ObjectShare
 	var requestedPermissions []models.ODObjectPermission
 	var err error

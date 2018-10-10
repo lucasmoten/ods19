@@ -1,0 +1,9 @@
+Name:   ODrive 1.0.1 CI Build 1290 (Release v1.0.1.20)
+Tag:    v1.0.1.20
+Commit: 635cb3ee68106325756b01470f386621faa82b9d
+Date:   April 19, 2017
+
+FIX: Migration for 20170331 now forces creation of aacflatten function if not present.
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.1.1290.x86_64.rpm

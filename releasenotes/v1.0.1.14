@@ -1,0 +1,19 @@
+Name:   ODrive 1.0.1 CI Build 1028 (Release v1.0.1.14)
+Tag:    v1.0.1.14
+Commit: d29924cbcb1d3fa4aba3113c58bf297b976d727a
+Date:   February 9, 2017
+
+FIX: Service process now assigned group and user when sudoing down from root.
+ENH: Orphaned files that cannot be removed due to permissions are renamed to permit service termination.
+ENH: Service init script for restart handles discrepent pidfile.
+FIX: Fixed minor bug in how zip files are processed if puller can't be initialized
+ENH: Cached files that cannot be removed due to faulty permissions are truncated if allowed to free up space.
+FIX: Cache purging of files when space consumed is above high watermark no longer considers age.
+FIX: Improve durability of connection to AAC to reduce unnecessary rpc client shutdown.
+FIX: Close connection to ZK when polling for AAC connection every 30 sec.
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.1.1028.x86_64.rpm
+
+Current Drive UI Tarball
+https://s3.amazonaws.com/odrive-builds/bedrock-drive-ui-v1.0.2-rc3-dist.tar.gz

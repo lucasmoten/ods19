@@ -23,6 +23,7 @@ func (h AppServer) getStats(ctx context.Context, w http.ResponseWriter, r *http.
 
 	fmt.Fprint(w, "{\n")
 
+	fmt.Fprintf(w, "\t\"database/openconnections\": %d,\n", h.RootDAO.GetOpenConnections())
 	autoscale.CloudWatchDump(w)
 	renderErrorCounters(w)
 

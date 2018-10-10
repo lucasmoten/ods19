@@ -15,7 +15,6 @@ import (
 
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
 	"bitbucket.di2e.net/dime/object-drive-server/protocol"
-	"bitbucket.di2e.net/dime/object-drive-server/server"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 	"bitbucket.di2e.net/dime/object-drive-server/utils"
 )
@@ -46,7 +45,7 @@ func TestCreateObjectMalicious(t *testing.T) {
       "acm": "%s",
       "createdBy": "CN=POTUS,C=US"
     }
-    `, jsonEscape(server.ValidACMUnclassified))
+    `, jsonEscape(ValidACMUnclassified))
 	t.Log(jsonString)
 	jsonBody := []byte(jsonString)
 
@@ -399,7 +398,7 @@ func TestCreateWithPermissionsOwnedBy(t *testing.T) {
 	httpCreate.Header.Set("Content-Type", "application/json")
 	t.Logf("execute client")
 	createdObject := doCreateObjectRequestWithTrafficLog(t, tester10, httpCreate, 200, &TrafficLogDescription{
-		OperationName:       "create owned by group",
+		OperationName:       "Create Object owned by group",
 		RequestDescription:  "add in ownedBy group",
 		ResponseDescription: "object added, but immediately owned by the group",
 	})
@@ -532,7 +531,7 @@ func TestCreateWithPermissionsNewUser3(t *testing.T) {
 	httpCreate.Header.Set("Content-Type", "application/json")
 	t.Logf("execute client")
 	trafficLogsDescription := &TrafficLogDescription{
-		OperationName:       "Create object shared to new user on create with resource string format",
+		OperationName:       "Create Object shared to new user on create with resource string format",
 		RequestDescription:  "Create file using resource string format",
 		ResponseDescription: "New user has the share",
 	}
@@ -594,30 +593,12 @@ func genericTestCreateStreamWithPermissions(t *testing.T, ownedBy string, codeEx
 	if err != nil {
 		t.Errorf("Unable to create HTTP request: %v\n", err)
 	}
-
-	trafficLogs[APISampleFile].Request(t, req,
-		&TrafficLogDescription{
-			OperationName: "Create an object stream with explicit permissions set",
-			RequestDescription: `
-			This object is created with a user explicitly put into the DCTC group ODrive
-			`,
-			ResponseDescription: `
-			The object should have have permissions put in according to what we explicitly set,
-			rather than solely based on the ACM contents.
-			Note that the original DN of the user is converted to lower case ("normalized").
-			References to users and groups from permissions have a "flattened" DN which strips non alphanumeric
-			(or underscore) characters.
-			`,
-		},
-	)
-
 	client := clients[tester10].Client
 	res, err := client.Do(req)
 	if err != nil {
 		t.Errorf("Unable to do request:%v\n", err)
 		t.FailNow()
 	}
-	trafficLogs[APISampleFile].Response(t, res)
 	defer util.FinishBody(res.Body)
 
 	if res.StatusCode != codeExpected {
@@ -651,7 +632,7 @@ func TestCreateFoldersMultiLevelsDeep(t *testing.T) {
 		newFolder := protocol.CreateObjectRequest{}
 		newFolder.ParentID = parentFolder.ID
 		newFolder.Name = fmt.Sprintf("Folders Multi Levels Deep %d", curDepth)
-		newFolder.RawAcm = server.ValidACMUnclassified
+		newFolder.RawAcm = ValidACMUnclassified
 		newFolder.TypeName = "Folder"
 		createReq := makeHTTPRequestFromInterface(t, "POST", createURI, newFolder)
 		createRes, err := clients[tester1].Client.Do(createReq)
@@ -679,7 +660,7 @@ func TestCreateObjectWithParentSetInJSON(t *testing.T) {
 	folder2Obj.Name = "Test Folder 2"
 	folder2Obj.ParentID = folder1.ID
 	folder2Obj.TypeName = "Folder"
-	folder2Obj.RawAcm = server.ValidACMUnclassified
+	folder2Obj.RawAcm = ValidACMUnclassified
 	newobjuri := mountPoint + "/objects"
 	createFolderReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, folder2Obj)
 	createFolderRes, err := clients[tester10].Client.Do(createFolderReq)
@@ -697,7 +678,7 @@ func TestCreateObjectWithUSPersonsData(t *testing.T) {
 	myobject := protocol.CreateObjectRequest{}
 	myobject.Name = "This has US Persons Data"
 	myobject.TypeName = "Arbitrary Object"
-	myobject.RawAcm = server.ValidACMUnclassified
+	myobject.RawAcm = ValidACMUnclassified
 	myobject.ContainsUSPersonsData = "Yes"
 	newobjuri := mountPoint + "/objects"
 	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
@@ -731,7 +712,7 @@ func TestCreateObjectWithUSPersonsDataNotSet(t *testing.T) {
 	myobject := protocol.CreateObjectRequest{}
 	myobject.Name = "This has Unknown US Persons Data"
 	myobject.TypeName = "Arbitrary Object"
-	myobject.RawAcm = server.ValidACMUnclassified
+	myobject.RawAcm = ValidACMUnclassified
 	newobjuri := mountPoint + "/objects"
 	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
 	createObjectRes, err := clients[tester10].Client.Do(createObjectReq)
@@ -761,7 +742,7 @@ func TestCreateObjectWithFOIAExempt(t *testing.T) {
 	myobject := protocol.CreateObjectRequest{}
 	myobject.Name = "This has FOIA Exempt"
 	myobject.TypeName = "Arbitrary Object"
-	myobject.RawAcm = server.ValidACMUnclassified
+	myobject.RawAcm = ValidACMUnclassified
 	myobject.ExemptFromFOIA = "Yes"
 	newobjuri := mountPoint + "/objects"
 	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
@@ -795,7 +776,7 @@ func TestCreateObjectWithFOIAExemptNotSet(t *testing.T) {
 	myobject := protocol.CreateObjectRequest{}
 	myobject.Name = "This has Unknown FOIA Exemption"
 	myobject.TypeName = "Arbitrary Object"
-	myobject.RawAcm = server.ValidACMUnclassified
+	myobject.RawAcm = ValidACMUnclassified
 	newobjuri := mountPoint + "/objects"
 	createObjectReq := makeHTTPRequestFromInterface(t, "POST", newobjuri, myobject)
 	createObjectRes, err := clients[tester10].Client.Do(createObjectReq)
@@ -1108,7 +1089,7 @@ func TestCreateStreamWithNewPermissions(t *testing.T) {
 
 	trafficLogs[APISampleFile].Request(t, req,
 		&TrafficLogDescription{
-			OperationName: "Create an object stream with explicit permissions set using API 1.1",
+			OperationName: "Create Object having stream with explicit permissions set using new permission format",
 			RequestDescription: `
 			This object is created with full CRUDS given to the owner, but explicit CRUD given to
 			members of the DCTC ODrive group.
@@ -1157,7 +1138,7 @@ func TestCreateObjectWithPathing(t *testing.T) {
 	folderA.NamePathDelimiter = "/"
 	folderA.TypeName = "Folder"
 	folderA.ParentID = folder1.ID
-	folderA.RawAcm = server.ValidACMUnclassified
+	folderA.RawAcm = ValidACMUnclassified
 	createFolderAReq := makeHTTPRequestFromInterface(t, "POST", folderuri, folderA)
 	createFolderARes, err := clients[tester10].Client.Do(createFolderAReq)
 	defer util.FinishBody(createFolderARes.Body)
@@ -1223,7 +1204,7 @@ func TestCreateObjectWithPathing(t *testing.T) {
 	folderB.NamePathDelimiter = "/"
 	folderB.TypeName = "Folder"
 	folderB.ParentID = folder1.ID
-	folderB.RawAcm = server.ValidACMUnclassified
+	folderB.RawAcm = ValidACMUnclassified
 	createFolderBReq := makeHTTPRequestFromInterface(t, "POST", folderuri, folderB)
 	createFolderBRes, err := clients[tester10].Client.Do(createFolderBReq)
 	defer util.FinishBody(createFolderBRes.Body)
@@ -1703,7 +1684,7 @@ func TestCreateObjectOwnedByGroupViaShortResourceName(t *testing.T) {
 func TestCreateObjectMinimal(t *testing.T) {
 	// This test creates an object with the minimal information required.
 	// If we could avoid requiring an ACM here, then object-drive could arguably be considered a data lake
-	theobj, err := clients[0].C.CreateObject(protocol.CreateObjectRequest{RawAcm: server.ValidACMUnclassified}, nil)
+	theobj, err := clients[0].C.CreateObject(protocol.CreateObjectRequest{RawAcm: ValidACMUnclassified}, nil)
 	failNowOnErr(t, err, "unable to do request")
 	t.Logf("object: %v", theobj)
 }

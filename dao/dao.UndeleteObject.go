@@ -29,6 +29,8 @@ func (dao *DataAccessLayer) UndeleteObject(object *models.ODObject) (models.ODOb
 }
 
 func undeleteObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, object *models.ODObject) (models.ODObject, error) {
+	loadPermissions := false
+	loadProperties := false
 	var dbObject models.ODObject
 
 	if object.ID == nil {
@@ -54,7 +56,7 @@ func undeleteObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, object *models
 		return dbObject, err
 	}
 
-	dbObject, err = getObjectInTransaction(tx, *object, false)
+	dbObject, err = getObjectInTransaction(tx, *object, loadPermissions, loadProperties)
 
 	return dbObject, nil
 }

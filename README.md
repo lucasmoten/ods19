@@ -72,6 +72,12 @@ sudo apt-get update
 sudo apt-get install python2.7 python-pip
 ```
 
+For Mac, can use brew as follows
+```
+brew install python@2
+export PATH="/usr/local/opt/python@2/libexec/bin:$PATH"
+```
+
 #### Dot and Graphviz
 
 Building documentation requires dot to be installed. 

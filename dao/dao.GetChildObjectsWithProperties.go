@@ -28,5 +28,7 @@ func (dao *DataAccessLayer) GetChildObjectsWithProperties(
 }
 
 func getChildObjectsWithPropertiesInTransaction(tx *sqlx.Tx, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
-	return getChildObjectsInTransaction(tx, pagingRequest, object, true)
+	loadPermissions := true
+	loadProperties := true
+	return getChildObjectsInTransaction(tx, pagingRequest, object, loadPermissions, loadProperties)
 }

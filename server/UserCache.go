@@ -117,9 +117,16 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 	user.Snippets = snippets
 	rebuild := false
 	built := false
+	var useraocache models.ODUserAOCache
+	var err error
 
-	logger.Debug("getting user ao cache from DB")
-	useraocache, err := dao.GetUserAOCacheByDistinguishedName(user)
+	if cacheItem := h.UserAOsLruCache.Get(caller.DistinguishedName); cacheItem != nil {
+		logger.Debug("getting user ao cache from lru memory cache")
+		useraocache = cacheItem.Value().(models.ODUserAOCache)
+	} else {
+		logger.Debug("getting user ao cache from DB")
+		useraocache, err = dao.GetUserAOCacheByDistinguishedName(user)
+	}
 	// If no user ao cache yet ..
 	if err != nil {
 		logger.Debug("no cache yet")
@@ -147,6 +154,7 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 			logger.Debug("hash is same, checking if caching")
 			// hash is the same, see if caching
 			if useraocache.IsCaching {
+				logger.Debug("user ao is caching")
 				// if caching and older than 2 minutes ...
 				if time.Since(useraocache.CacheDate.Time).Minutes() > 2.0 {
 					// something may be wrong (or else we're going to create a race condition)
@@ -155,6 +163,8 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 				} else {
 					logger.Info("cache being rebuilt for same hash but has not exceeded 2 minute", zap.String("dn", caller.DistinguishedName))
 				}
+			} else {
+				logger.Debug("not caching, no rebuild needed")
 			}
 		}
 	}
@@ -244,6 +254,9 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 			}
 		}
 	}
+
+	logger.Debug("saving useraocache to lru memory cache")
+	h.UserAOsLruCache.Set(caller.DistinguishedName, useraocache, time.Minute*10)
 
 	if rebuild {
 		for !built && isUserAOCacheBeingBuilt(dao, user, useraocache) {

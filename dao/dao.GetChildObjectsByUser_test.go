@@ -8,7 +8,6 @@ import (
 
 	"bitbucket.di2e.net/dime/object-drive-server/dao"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
-	"bitbucket.di2e.net/dime/object-drive-server/server"
 )
 
 func TestDAOGetChildObjectsByUser(t *testing.T) {
@@ -24,7 +23,7 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 	parent.CreatedBy = usernames[1]
 	parent.TypeName.String = "Test Type"
 	parent.TypeName.Valid = true
-	parent.RawAcm.String = server.ValidACMUnclassified
+	parent.RawAcm.String = ValidACMUnclassified
 	// NEW! Add permissions...
 	permissions := make([]models.ODObjectPermission, 2)
 	permissions[0].CreatedBy = parent.CreatedBy
@@ -47,6 +46,12 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 	permissions[1].AllowCreate = true
 	permissions[1].AllowRead = true
 	parent.Permissions = permissions
+	objectType, err := d.GetObjectTypeByName(parent.TypeName.String, true, parent.CreatedBy)
+	if err != nil {
+		t.Error(err)
+	} else {
+		parent.TypeID = objectType.ID
+	}
 	dbParent, err := d.CreateObject(&parent)
 	if err != nil {
 		t.Error(err)
@@ -65,9 +70,10 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 		child1.Name = "Test GetChildObjectsByUser Child by TP1"
 		child1.CreatedBy = usernames[1]
 		child1.ParentID = dbParent.ID
+		child1.TypeID = objectType.ID
 		child1.TypeName.String = "Test Type"
 		child1.TypeName.Valid = true
-		acmUforTP1 := server.ValidACMUnclassified
+		acmUforTP1 := ValidACMUnclassified
 		acmUforTP1 = strings.Replace(acmUforTP1, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s"]`, models.AACFlatten(usernames[1])), -1)
 		child1.RawAcm = models.ToNullString(acmUforTP1)
 		// NEW! Add permissions...
@@ -105,8 +111,9 @@ func TestDAOGetChildObjectsByUser(t *testing.T) {
 		child2.Name = "Test GetChildObjectsByUser Child by TP2"
 		child2.CreatedBy = usernames[2]
 		child2.ParentID = dbParent.ID
+		child2.TypeID = objectType.ID
 		child2.TypeName = models.ToNullString("Test Type")
-		acmUforTP1TP2 := server.ValidACMUnclassified
+		acmUforTP1TP2 := ValidACMUnclassified
 		acmUforTP1TP2 = strings.Replace(acmUforTP1TP2, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s","%s"]`, models.AACFlatten(usernames[1]), models.AACFlatten(usernames[2])), -1)
 		child2.RawAcm = models.ToNullString(acmUforTP1TP2)
 		// NEW! Add permissions...

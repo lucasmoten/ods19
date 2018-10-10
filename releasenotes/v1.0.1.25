@@ -1,0 +1,21 @@
+Name:   ODrive 1.0.1 CI Build 1602 (Release v1.0.1.25)
+Tag:    v1.0.1.25
+Commit: 45cdd73ff395334eb5a484a236608cbd781cca0c
+Date:   June 5, 2017
+
+ENH: Clean up error message when cannot connect to AAC
+ENH: allow impersonating requests in the client library with new config field "Impersonation"
+REF: Performance improvements for #409 are always enabled and no longer toggleable. OD_OPTION_409 no longer needs to be set.
+ENH: Allow recursive application of updates to object sharing permissions while retaining other elements of ACM.
+ENH: Add testing features to odrive-test-cli: upload random datasuits, specify tester creds, override partial configs.
+FIX: Normalization of Permissions and ACM having permissions with grantees not declared in acm share will now retain read access. (Seen when creating objects)
+FIX: Updating object with acm and no permissions will remove existing permissions with grantees not present in revised acm
+FIX: Updating object without acm but with permissions will merge provided permissions to existing acm.
+FIX: Flatten resulting ACM after Normalizing Permissions and ACM to ensure f_* keys can be joined appropriately.
+ENH: Improve insert/update performance by only checking to associate ACM to users when a new ACM is created.
+
+For Upgrading
+CFG: The environment variable OD_OPTION_409 is no longer necessary. This can be removed from env.sh in deployments.
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.1.1602.x86_64.rpm

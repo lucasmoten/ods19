@@ -55,7 +55,7 @@ func TestEtag(t *testing.T) {
 	res3 := doGetObjectRequest(t, clientID, req3, 304,
 		trafficLogs[APISampleFile],
 		&TrafficLogDescription{
-			OperationName:      "Client Caching",
+			OperationName:      "Client Caching with Etags",
 			RequestDescription: "Use the Etag header sent back as If-none-match to get a 304 indicating that the content has not changed",
 			ResponseDescription: `
 				We get back the code rather than wastefully sending back the whole file when it has not changed.  

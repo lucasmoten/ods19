@@ -1,0 +1,16 @@
+Name:   ODrive 1.0.9 CI Build 1901
+Tag:    v1.0.9
+Commit: 295ceddb20bbab0648bfa51a2c2bf99b88904cf6
+Date:   August 28, 2017
+
+FIX: Migration for 20170630 combined drops fk_object_permission_grantee before ix_grantee
+
+For Upgrading
+DB: No database update is required if upgrading from v1.0.6, v1.0.7, or v1.0.8. The current expected schema version is 20170726.
+Server: Follow guidance for updating existing installation summarized as follows
+  stop the service: service object-drive-1.0 stop
+  perform the upgrade: yum upgrade object-drive-1.0.9.1901.x86_64.rpm
+  start the service: service object-drive-1.0 start
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.9.1901.x86_64.rpm

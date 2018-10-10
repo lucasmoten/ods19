@@ -14,13 +14,17 @@ import (
 // exist, optionally calls CreateObjectType to add it.
 func (dao *DataAccessLayer) GetObjectTypeByName(typeName string, addIfMissing bool, createdBy string) (models.ODObjectType, error) {
 	defer util.Time("GetObjectTypeByName")()
+	dao.GetLogger().Debug("dao starting txn for GetObjectTypeByName")
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectType{}, err
 	}
+	dao.GetLogger().Debug("dao passing  txn into getObjectTypeByNameInTransaction")
 	objectType, err := getObjectTypeByNameInTransaction(tx, typeName)
+	dao.GetLogger().Debug("dao returned txn from getObjectTypeByNameInTransaction")
 	if err != nil {
+		dao.GetLogger().Debug("dao rolling back txn for GetObjectTypeByName")
 		tx.Rollback()
 		if (err == sql.ErrNoRows) && addIfMissing {
 			objectType, err = dao.CreateObjectType(&models.ODObjectType{Name: typeName, CreatedBy: createdBy})
@@ -29,6 +33,7 @@ func (dao *DataAccessLayer) GetObjectTypeByName(typeName string, addIfMissing bo
 			dao.GetLogger().Error("Error in GetObjectTypeByName", zap.Error(err))
 		}
 	} else {
+		dao.GetLogger().Debug("dao committing txn for GetObjectTypeByName")
 		tx.Commit()
 		if objectType.IsDeleted && addIfMissing {
 			objectType, err = dao.CreateObjectType(&models.ODObjectType{Name: typeName, CreatedBy: createdBy})
@@ -37,6 +42,7 @@ func (dao *DataAccessLayer) GetObjectTypeByName(typeName string, addIfMissing bo
 			dao.GetLogger().Error("Error in GetObjectTypeByName", zap.Error(err))
 		}
 	}
+	dao.GetLogger().Debug("dao finished txn for GetObjectTypeByName")
 	return objectType, err
 }
 

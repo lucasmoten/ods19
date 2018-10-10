@@ -27,6 +27,7 @@ func (dao *DataAccessLayer) GetTrashedObjectsByUser(user models.ODUser, pagingRe
 
 func getTrashedObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	loadProperties := true
+	loadPermissions := true
 	var response models.ODObjectResultset
 	var err error
 
@@ -54,7 +55,7 @@ func getTrashedObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagin
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	// Load full meta, properties, and permissions
 	for i := 0; i < len(response.Objects); i++ {
-		obj, err := getObjectInTransaction(tx, response.Objects[i], loadProperties)
+		obj, err := getObjectInTransaction(tx, response.Objects[i], loadPermissions, loadProperties)
 		if err != nil {
 			return response, err
 		}

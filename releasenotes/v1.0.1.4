@@ -1,0 +1,17 @@
+Name:   ODrive 1.0.1 CI Build 191 (Release v1.0.1.4)
+Tag:    v1.0.1.4
+Commit: f0b2ffabc066043feb39bf874603494654f55a3b
+Date:   October 11, 2016
+
+FIX: Shared with Me now excludes objects shared to Everyone
+NEW: Allow many more config values to be specified in odrive.yml
+DOC: Endpoints to add and remove object shares are deprecated, as is ability to provide permissions when creating object.
+NEW: All events now wrapped with global event model (GEM), with odrive-specific payload field
+NEW: An array of breadcrumb objects is returned with an object's properties
+FIX: Default Kafka configuration resolved
+FIX: Update Object Properties will now carry over stream based fields to new revision
+FIX: ACM part processing will now skip empty values instead of failing to store update.
+FIX: Update Object with ACM Share now ensures owner retains read access.
+FIX: Existing objects have full CRUDS permissions assigned to owners.
+FIX: List of objects /shared to others will exclude those that are private to the user.
+NEW: CloudWatch metrics that enable the setting of alarms by admins (an auto-scaling prerequisite)

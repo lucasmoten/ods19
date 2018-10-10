@@ -46,7 +46,7 @@ func TestZipCorrect(t *testing.T) {
 	}
 	doTestZip(t, objs, someDataString, duplicates, http.StatusOK, trafficLogs[APISampleFile],
 		&TrafficLogDescription{
-			OperationName:       "Zip up some files",
+			OperationName:       "Zip a Collection of Files by IDs",
 			RequestDescription:  "Select a set of individual files (not directories) and send their identifiers in the request",
 			ResponseDescription: "We get back a binary zip file as a response",
 			ResponseBodyHide:    true,

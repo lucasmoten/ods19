@@ -1,0 +1,13 @@
+Name:   ODrive 1.0.1 CI Build 653 (Release v1.0.1.11)
+Tag:    v1.0.1.11
+Commit: 91b1fde90850823319b3becc07b26e5f518a2572
+Date:   December 8, 2016
+
+ENH: Added more logging for AAC Client connection when receiving announce data
+FIX: RPM adds user and group if not present. Now deletes only on uninstall, not upgrades.
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.1.653.x86_64.rpm
+
+Current Drive UI Tarball
+https://s3.amazonaws.com/odrive-builds/bedrock-drive-ui-v1.0.2-rc3-dist.tar.gz

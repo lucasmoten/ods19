@@ -46,7 +46,7 @@ func TestGetObjectBreadcrumbs(t *testing.T) {
 	json.Unmarshal(data, &obj)
 
 	if len(obj.Breadcrumbs) != 3 {
-		t.Errorf("expected Breadcrumbs length 1, got %v\n", len(obj.Breadcrumbs))
+		t.Errorf("expected Breadcrumbs length 3, got %v\n", len(obj.Breadcrumbs))
 	}
 
 	t.Log("All names in folderD's breadcrumbs are visible")
@@ -127,6 +127,7 @@ func TestGetObject_PrivateObjectsRedactedInBreadcrumbs(t *testing.T) {
 
 	if len(obj.Breadcrumbs) != 1 {
 		t.Errorf("expected Breadcrumbs length 1, got %v\n", len(obj.Breadcrumbs))
+		t.FailNow()
 	}
 
 	i := 0
@@ -166,7 +167,7 @@ func TestAppServerGetObjectAgainstFake(t *testing.T) {
 	perms := []models.ODObjectPermission{readPermission}
 	obj := models.ODObject{Permissions: perms}
 	obj.ID = []byte(guid)
-	obj.RawAcm.String, obj.RawAcm.Valid = server.ValidACMUnclassified, true
+	obj.RawAcm.String, obj.RawAcm.Valid = ValidACMUnclassified, true
 
 	fakeServer := setupFakeServerWithObjectForUser(user, obj)
 
@@ -205,7 +206,7 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 		UserAttributes: "{\"diasUserGroups\":{\"projects\":[{\"projectName\":\"DCTC\",\"groupNames\":[\"ODrive\"]}]}}",
 	}
 	acmInfo := aac.AcmInfo{
-		Acm: server.ValidACMUnclassified,
+		Acm: ValidACMUnclassified,
 	}
 	acmResponse := aac.AcmResponse{
 		Success:  true,
@@ -223,9 +224,11 @@ func setupFakeServerWithObjectForUser(user models.ODUser, obj models.ODObject) *
 	}
 	fakeQueue := kafka.NewFakeAsyncProducer(nil)
 	fakeServer := server.AppServer{RootDAO: &fakeDAO,
-		AAC:           &fakeAAC,
-		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
-		EventQueue:    fakeQueue,
+		AAC:             &fakeAAC,
+		UsersLruCache:   ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
+		UserAOsLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
+		TypeLruCache:    ccache.New(ccache.Configure().MaxSize(100).ItemsToPrune(5)),
+		EventQueue:      fakeQueue,
 	}
 
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"

@@ -1,0 +1,15 @@
+Name:   ODrive 1.0.1 CI Build 1118 (Release v1.0.1.17)
+Tag:    v1.0.1.17
+Commit: 9a1ee6cc66732bdb3bee7fb4d65d2917d72671e0
+Date:   March 2, 2017
+
+
+FIX: Path Delimiter for internal storage is now using record separator in place of forward slash
+ENH: Create Object operation may specify namePathDelimiter to override default
+ENH: Latest git tag is embedded in --version flag.
+
+When the RPM is upgraded, the database tool should be run to update the schema to 20170301
+source /opt/services/object-drive-1.0/env.sh;/opt/services/object-drive-1.0/database migrate up
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.1.1118.x86_64.rpm

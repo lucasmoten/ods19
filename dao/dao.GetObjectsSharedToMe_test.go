@@ -9,7 +9,6 @@ import (
 
 	"bitbucket.di2e.net/dime/object-drive-server/dao"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
-	"bitbucket.di2e.net/dime/object-drive-server/server"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
@@ -31,7 +30,7 @@ func TestDAOGetObjectsSharedToMe(t *testing.T) {
 	object1.CreatedBy = users[1].DistinguishedName
 	object1.Name = searchPrefix + " object1 (shared to user1)"
 	object1.TypeName = models.ToNullString("Test Object")
-	acmUforTP1TP2 := server.ValidACMUnclassified
+	acmUforTP1TP2 := ValidACMUnclassified
 	acmUforTP1TP2 = strings.Replace(acmUforTP1TP2, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s","%s"]`, models.AACFlatten(usernames[1]), models.AACFlatten(usernames[2])), -1)
 	object1.RawAcm = models.ToNullString(acmUforTP1TP2)
 	permissions1 := make([]models.ODObjectPermission, 2)
@@ -54,6 +53,12 @@ func TestDAOGetObjectsSharedToMe(t *testing.T) {
 	permissions1[1].AcmGrantee.UserDistinguishedName = models.ToNullString(users[2].DistinguishedName)
 	permissions1[1].AllowRead = true
 	object1.Permissions = permissions1
+	objectType, err := d.GetObjectTypeByName(object1.TypeName.String, true, object1.CreatedBy)
+	if err != nil {
+		t.Error(err)
+	} else {
+		object1.TypeID = objectType.ID
+	}
 	createdObject1, err := d.CreateObject(&object1)
 	if err != nil {
 		t.Error("Failed to create object")
@@ -67,8 +72,9 @@ func TestDAOGetObjectsSharedToMe(t *testing.T) {
 	var object2 models.ODObject
 	object2.CreatedBy = users[1].DistinguishedName
 	object2.Name = searchPrefix + " object2 (shared to everyone)"
+	object2.TypeID = objectType.ID
 	object2.TypeName = models.ToNullString("Test Object")
-	object2.RawAcm.String = server.ValidACMUnclassified
+	object2.RawAcm.String = ValidACMUnclassified
 	permissions2 := make([]models.ODObjectPermission, 2)
 	permissions2[0].CreatedBy = object2.CreatedBy
 	permissions2[0].Grantee = models.AACFlatten(object2.CreatedBy)
@@ -176,7 +182,7 @@ func TestDAOGetObjectsSharedToMeWithApostropheInDN595(t *testing.T) {
 	object1.CreatedBy = users[1].DistinguishedName
 	object1.Name = searchPrefix + " object1 (shared to user11)"
 	object1.TypeName = models.ToNullString("Test Object")
-	acmUforTP1TP11 := server.ValidACMUnclassified
+	acmUforTP1TP11 := ValidACMUnclassified
 	acmUforTP1TP11 = strings.Replace(acmUforTP1TP11, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s","%s"]`, models.AACFlatten(object1.CreatedBy), models.AACFlatten(users[11].DistinguishedName)), -1)
 	object1.RawAcm = models.ToNullString(acmUforTP1TP11)
 	permissions1 := make([]models.ODObjectPermission, 2)
@@ -199,6 +205,12 @@ func TestDAOGetObjectsSharedToMeWithApostropheInDN595(t *testing.T) {
 	permissions1[1].AcmGrantee.UserDistinguishedName = models.ToNullString(users[11].DistinguishedName)
 	permissions1[1].AllowRead = true
 	object1.Permissions = permissions1
+	objectType, err := d.GetObjectTypeByName(object1.TypeName.String, true, object1.CreatedBy)
+	if err != nil {
+		t.Error(err)
+	} else {
+		object1.TypeID = objectType.ID
+	}
 	createdObject1, err := d.CreateObject(&object1)
 	if err != nil {
 		t.Error("Failed to create object")
@@ -207,6 +219,7 @@ func TestDAOGetObjectsSharedToMeWithApostropheInDN595(t *testing.T) {
 		t.Error("Expected ID to be set")
 	}
 	object1 = createdObject1
+	time.Sleep(1 * time.Second)
 
 	t.Logf("* Setting up search filter")
 	paging := dao.PagingRequest{}

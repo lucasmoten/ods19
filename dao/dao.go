@@ -40,6 +40,7 @@ type DAO interface {
 	GetChildObjectsByUser(user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
 	GetChildObjectsWithProperties(pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
 	GetChildObjectsWithPropertiesByUser(user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error)
+	GetDatabase() *sqlx.DB
 	GetDBState() (models.DBState, error)
 	GetGroupsForUser(user models.ODUser) (models.GroupSpaceResultset, error)
 	GetLogger() *zap.Logger
@@ -53,6 +54,7 @@ type DAO interface {
 	GetObjectsIHaveShared(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error)
 	GetObjectsSharedToEveryone(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error)
 	GetObjectsSharedToMe(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error)
+	GetOpenConnections() int
 	GetParents(child models.ODObject) ([]models.ODObject, error)
 	GetPermissionsForObject(object models.ODObject) ([]models.ODObjectPermission, error)
 	GetPropertiesForObject(object models.ODObject) ([]models.ODObjectPropertyEx, error)
@@ -75,12 +77,12 @@ type DAO interface {
 	SetUserAOCacheByDistinguishedName(useraocache *models.ODUserAOCache, user models.ODUser) error
 	UndeleteObject(object *models.ODObject) (models.ODObject, error)
 	UpdateObject(object *models.ODObject) error
-	UpdateObjectProperty(objectProperty models.ODObjectPropertyEx) error
 	UpdatePermission(permission models.ODObjectPermission) error
 }
 
 // DataAccessLayer is a concrete DAO implementation with a true DB connection.
 type DataAccessLayer struct {
+	// Config
 	// MetadataDB is the connection.
 	MetadataDB *sqlx.DB
 	// Logger has a default, but can be updated by passing options to constructor.
@@ -191,6 +193,16 @@ func pingDB(d *DataAccessLayer) error {
 		}
 	}
 	return err
+}
+
+// GetDatabase returns the current database handle
+func (d *DataAccessLayer) GetDatabase() *sqlx.DB {
+	return d.MetadataDB
+}
+
+// GetOpenConnections returns the current number of open connections to the database
+func (d *DataAccessLayer) GetOpenConnections() int {
+	return d.MetadataDB.Stats().OpenConnections
 }
 
 // IsReadOnly returns the current state of whether this DAO is considered read only

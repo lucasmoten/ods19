@@ -38,10 +38,13 @@ or new features added.
 
 Use these prefixes when editing the changelog.
 
+* CFG - Configuration changes to build processes
+* DB  - A database schema change has occurred that requires migration
+* DOC - Documentation improvements or cleanup
+* ENH - Existing feature is altered with new functionality or significantly changed.
 * FIX - If this change contains a bugfix or security fix to an existing feature.
 * NEW - Implementation of a new feature or API operation.
-* Enhancement - Existing feature is altered with new functionality or significantly changed.
-* Refactor - No material changes to interfaces or business logic. General code cleanup. 
+* REF - No material changes to interfaces or business logic. General code cleanup. 
 
 ## Style Guide
 
@@ -64,7 +67,7 @@ fixes can be added to the middle of the sprint, but not without discussion.
 
 To create a release, do the following:
 
-1. Pick a version number for the release. Our example below is **0.1.0**
+1. Pick a version number for the release. Our example below is **0.0.0**
 2. Add that version number as a header in CHANGELOG.md and write a description
    of what's changed there. MR that update to CHANGELOG.md to **develop** branch. 
 3. When the MR of changes is accepted, **one team member** does the following

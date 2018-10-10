@@ -29,6 +29,7 @@ func (dao *DataAccessLayer) GetRootObjects(pagingRequest PagingRequest) (models.
 
 func getRootObjectsInTransaction(tx *sqlx.Tx, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	loadProperties := true
+	loadPermissions := true
 	response := models.ODObjectResultset{}
 	query := `
     select 
@@ -52,7 +53,7 @@ func getRootObjectsInTransaction(tx *sqlx.Tx, pagingRequest PagingRequest) (mode
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	// Load full meta, properties, and permissions
 	for i := 0; i < len(response.Objects); i++ {
-		obj, err := getObjectInTransaction(tx, response.Objects[i], loadProperties)
+		obj, err := getObjectInTransaction(tx, response.Objects[i], loadPermissions, loadProperties)
 		if err != nil {
 			return response, err
 		}

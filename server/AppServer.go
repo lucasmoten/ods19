@@ -35,17 +35,32 @@ import (
 )
 
 // Constants serve as keys for setting values on a request-scoped Context.
+
+// ContextKey defines the data type for keys used in the context
+type ContextKey int
+
 const (
-	CallerVal = iota
+	// CallerVal is the key for a Caller struct representing the http user in the context
+	CallerVal ContextKey = iota
+	// CaptureGroupsVal is the key for regex capture groups when parsing the request
 	CaptureGroupsVal
+	// GEMVal is the key for the GEM being prepared and passed through the context
 	GEMVal
+	// UserVal is the key for the User struct representing the dao user in the context
 	UserVal
+	// Logger is the key for the logger passed through the context
 	Logger
+	// SessionID is the key for the session identifier passed through the context
 	SessionID
+	// DAO is the key for the DAO passed through the context (TODO: Determine why need to do this)
 	DAO
+	// Groups is the key for the groups the user is a member of passed through the context
 	Groups
+	// Snippets is the key for the AAC snippets associated with the user on the context
 	Snippets
+	// RequestMethod is the key identifying the request method
 	RequestMethod
+	// RequestURI is the key identifying the request URI
 	RequestURI
 )
 
@@ -81,6 +96,10 @@ type AppServer struct {
 	DefaultZK *zookeeper.ZKState
 	// UsersLruCache contains a cache of users with support to purge those least recently used when filling. Up to 1000 users will be retained in memory
 	UsersLruCache *ccache.Cache
+	// UserAOsLruCache contains a cache of user authorization objects with support to purge those least recently used when filling. Up to 1000 User AOs will be retained in memory
+	UserAOsLruCache *ccache.Cache
+	// TypeLruCache contains a cache of object types frequently used
+	TypeLruCache *ccache.Cache
 	// AclWhitelist provides a list of distinguished names allowed to perform impersonation
 	ACLImpersonationWhitelist []string
 }
@@ -102,6 +121,8 @@ func NewAppServer(conf config.ServerSettingsConfiguration) (*AppServer, error) {
 	}
 
 	usersLruCache := ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50))
+	userAOsLruCache := ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50))
+	typeLruCache := ccache.New(ccache.Configure().MaxSize(100).ItemsToPrune(5))
 
 	staticDir, err := resolvePath(conf.PathToStaticFiles)
 	if err != nil {
@@ -117,6 +138,8 @@ func NewAppServer(conf config.ServerSettingsConfiguration) (*AppServer, error) {
 		TemplateCache:             templates,
 		StaticDir:                 staticDir,
 		UsersLruCache:             usersLruCache,
+		UserAOsLruCache:           userAOsLruCache,
+		TypeLruCache:              typeLruCache,
 		ACLImpersonationWhitelist: conf.ACLImpersonationWhitelist,
 	}
 
@@ -203,19 +226,12 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	sessionRequestCount := 0
 	if len(sessionID) == 0 {
 		sessionID = newSessionID()
-	} else {
-		v := r.Header.Get("sessionrc")
-		i, e := strconv.Atoi(v)
-		if e == nil {
-			sessionRequestCount = i
-		}
 	}
 	sessionRequestCount = sessionRequestCount + 1
 	w.Header().Add("sessionid", sessionID)
-	w.Header().Add("sessionrc", strconv.Itoa(sessionRequestCount))
 
 	caller := CallerFromRequest(r)
-	logger := config.RootLogger.With(zap.String("session", sessionID), zap.String("sessionrc", strconv.Itoa(sessionRequestCount)))
+	logger := config.RootLogger.With(zap.String("session", sessionID))
 	defer logCrashInServeHTTP(logger, w)
 
 	// Authentication check GEM
@@ -335,6 +351,7 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Adding the groups to Caller and into context
+	logger.Debug("adding groups to caller and into context")
 	caller.Groups = groups
 	ctx = ContextWithCaller(ctx, caller)
 	ctx = ContextWithSnippets(ctx, snippets)
@@ -768,6 +785,7 @@ func resolvePath(p string) (string, error) {
 	return p, nil
 }
 
+// StaticRxData contains an association of the regular expression, patterns, and timers of recognized requests
 type StaticRxData struct {
 	Pattern  string
 	RX       *regexp.Regexp

@@ -1,0 +1,24 @@
+Name:   ODrive 1.0.1 CI Build 1338 (Release v1.0.1.21)
+Tag:    v1.0.1.21
+Commit: 7088a9b3b182f97a8865cc3105e04f36089c40bc
+Date:   April 21, 2017
+
+CFG: Docker container for metadatadb innodb_buffer_pool_size being set to 128MB.
+FIX: Docker container for aac upgraded to 1.1.4
+FIX: Migration Script for 20161230 is now more resilient to multiple runs.
+ENH: Wait up to 10 minutes for kafka availability on startup before failing.
+FIX: Saving grantee during permission creation is now being normalized.
+FIX: Database AACFlatten function now applies lowercase.
+
+For Upgrading
+DB: The database schema version is now 20170421. A migration should be performed.
+
+For Upgrading and Installing
+CFG: Set export OD_OPTION_409=true in env.sh to enable performance improvements.
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.1.1326.x86_64.rpm
+Only valid when using MariaDB
+
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.1.1338.x86_64.rpm
+Should be valid for MariaDB and MySQL. Addresses useraocache.cachedate not null without default assignment.

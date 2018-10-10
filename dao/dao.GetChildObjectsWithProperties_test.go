@@ -8,7 +8,6 @@ import (
 
 	"bitbucket.di2e.net/dime/object-drive-server/dao"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
-	"bitbucket.di2e.net/dime/object-drive-server/server"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
@@ -25,7 +24,13 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	parent.Name = "Test Parent Object for GetChildObjectsWithProperties" + timeSuffix
 	parent.CreatedBy = usernames[1]
 	parent.TypeName = models.ToNullString("File")
-	parent.RawAcm.String = server.ValidACMUnclassified
+	parent.RawAcm.String = ValidACMUnclassified
+	objectType, err := d.GetObjectTypeByName(parent.TypeName.String, true, parent.CreatedBy)
+	if err != nil {
+		t.Error(err)
+	} else {
+		parent.TypeID = objectType.ID
+	}
 	dbParent, err := d.CreateObject(&parent)
 	if dbParent.ID == nil {
 		t.Error("expected ID to be set")
@@ -41,9 +46,10 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	var child1 models.ODObject
 	child1.Name = "Test Child Object 1 for GetChildObjectsWithProperties" + timeSuffix
 	child1.CreatedBy = usernames[1]
+	child1.TypeID = objectType.ID
 	child1.TypeName = models.ToNullString("File")
 	child1.ParentID = dbParent.ID
-	child1.RawAcm.String = server.ValidACMUnclassified
+	child1.RawAcm.String = ValidACMUnclassified
 	dbChild1, err := d.CreateObject(&child1)
 	if dbChild1.ID == nil {
 		t.Error("expected ID to be set")
@@ -79,9 +85,10 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	var child2 models.ODObject
 	child2.Name = "Test Child Object 2 for GetChildObjectsWithProperties" + timeSuffix
 	child2.CreatedBy = usernames[1]
+	child2.TypeID = objectType.ID
 	child2.TypeName = models.ToNullString("File")
 	child2.ParentID = dbParent.ID
-	child2.RawAcm.String = server.ValidACMUnclassified
+	child2.RawAcm.String = ValidACMUnclassified
 	dbChild2, err := d.CreateObject(&child2)
 	if dbChild2.ID == nil {
 		t.Error("expected ID to be set")

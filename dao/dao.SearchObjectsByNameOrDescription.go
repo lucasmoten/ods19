@@ -36,6 +36,7 @@ func (dao *DataAccessLayer) SearchObjectsByNameOrDescription(user models.ODUser,
 }
 
 func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, loadProperties bool) (models.ODObjectResultset, error) {
+	loadPermissions := true
 	response := models.ODObjectResultset{}
 
 	// NOTE: distinct is unfortunately used here because object_permission
@@ -63,7 +64,7 @@ func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUs
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	// Load full meta, properties, and permissions
 	for i := 0; i < len(response.Objects); i++ {
-		obj, err := getObjectInTransaction(tx, response.Objects[i], loadProperties)
+		obj, err := getObjectInTransaction(tx, response.Objects[i], loadPermissions, loadProperties)
 		if err != nil {
 			return response, err
 		}

@@ -15,31 +15,41 @@ import (
 // grant, and permissions.
 func (dao *DataAccessLayer) AddPermissionToObject(object models.ODObject, permission *models.ODObjectPermission) (models.ODObjectPermission, error) {
 	defer util.Time("AddPermissionToObject")
+	dao.GetLogger().Debug("dao starting txn for AddPermissionToObject")
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("could not begin transaction", zap.Error(err))
 		return models.ODObjectPermission{}, err
 	}
-	response, err := addPermissionToObjectInTransaction(dao.GetLogger(), tx, object, permission)
+	dao.GetLogger().Debug("dao passing  txn into addPermissionToObjectInTransaction")
+	response, err := addPermissionToObjectInTransaction(tx, dao, object, permission)
+	dao.GetLogger().Debug("dao returned txn from addPermissionToObjectInTransaction")
 	if err != nil {
 		dao.GetLogger().Error("error in addpermissiontoobject", zap.Error(err))
+		dao.GetLogger().Debug("dao rolling back txn for AddPermissionToObject")
 		tx.Rollback()
 	} else {
+		dao.GetLogger().Debug("dao committing txn for AddPermissionToObject")
 		tx.Commit()
 	}
+	dao.GetLogger().Debug("dao finished txn for AddPermissionToObject")
 	return response, err
 }
 
-func addPermissionToObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, object models.ODObject, permission *models.ODObjectPermission) (models.ODObjectPermission, error) {
+func addPermissionToObjectInTransaction(tx *sqlx.Tx, dao *DataAccessLayer, object models.ODObject, permission *models.ODObjectPermission) (models.ODObjectPermission, error) {
 
 	var dbPermission models.ODObjectPermission
 
 	// Check that grantee specified exists
 	permission.Grantee = models.AACFlatten(permission.Grantee)
+	dao.GetLogger().Debug("dao passing  txn into getAcmGranteeInTransaction")
 	dbAcmGrantee, dbAcmGranteeErr := getAcmGranteeInTransaction(tx, permission.Grantee)
+	dao.GetLogger().Debug("dao returned txn from getAcmGranteeInTransaction")
 	if dbAcmGranteeErr == sql.ErrNoRows {
 		// Add if it didnt
-		dbAcmGrantee, dbAcmGranteeErr = createAcmGranteeInTransaction(logger, tx, permission.AcmGrantee)
+		dao.GetLogger().Debug("dao passing  txn into createAcmGranteeInTransaction")
+		dbAcmGrantee, dbAcmGranteeErr = createAcmGranteeInTransaction(tx, dao, permission.AcmGrantee)
+		dao.GetLogger().Debug("dao returned txn from createAcmGranteeInTransaction")
 		if dbAcmGranteeErr != nil {
 			return dbPermission, dbAcmGranteeErr
 		}

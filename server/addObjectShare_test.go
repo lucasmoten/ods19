@@ -16,7 +16,6 @@ import (
 	"bitbucket.di2e.net/dime/object-drive-server/utils"
 
 	"bitbucket.di2e.net/dime/object-drive-server/protocol"
-	"bitbucket.di2e.net/dime/object-drive-server/server"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
@@ -446,7 +445,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	t.Logf("* Update object as testperson10 to change ACM to be U")
 	//folderUpdate := createdFolder -- object changed from adding permission(s) so created object does not have current change token
 	folderUpdate := updatedObject
-	folderUpdate.RawAcm = server.ValidACMUnclassified
+	folderUpdate.RawAcm = ValidACMUnclassified
 	updateuri := mountPoint + "/objects/" + folderUpdate.ID + "/properties"
 	jsonBody, err = json.Marshal(folderUpdate)
 	if err != nil {

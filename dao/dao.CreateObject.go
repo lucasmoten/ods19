@@ -19,11 +19,11 @@ import (
 // CreateObject ...
 func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObject, error) {
 	defer util.Time("CreateObject")()
-	logger := dao.GetLogger()
 	var obj models.ODObject
+	dao.GetLogger().Debug("dao starting txn for CreateObject")
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		logger.Error("could not begin transaction", zap.Error(err))
+		dao.GetLogger().Error("could not begin transaction", zap.Error(err))
 		return models.ODObject{}, err
 	}
 	var dbObject models.ODObject
@@ -31,31 +31,45 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 
 	retryCounter := dao.DeadlockRetryCounter
 	retryDelay := dao.DeadlockRetryDelay
-	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded"}
-	dbObject, acmCreated, err = createObjectInTransaction(logger, tx, dao, object)
+	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded", "Field name must be unique"}
+	dao.GetLogger().Debug("dao passing  txn into createObjectInTransaction")
+	dbObject, acmCreated, err = createObjectInTransaction(tx, dao, object)
+	dao.GetLogger().Debug("dao returned txn from createObjectInTransaction")
+	dao.GetLogger().Debug("dao checking for errors from creating object")
 	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
-		logger.Debug("restarting transaction for CreateObject", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
+		dao.GetLogger().Debug("dao restarting transaction for creating object", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
+		dao.GetLogger().Debug("-- txn rollback", zap.Int64("retryCounter", retryCounter))
 		tx.Rollback()
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		retryCounter--
+		dao.GetLogger().Debug("-- txn begin", zap.Int64("retryCounter", retryCounter))
 		tx, err = dao.MetadataDB.Beginx()
 		if err != nil {
-			logger.Error("could not begin transaction", zap.Error(err))
+			dao.GetLogger().Error("could not begin transaction", zap.Error(err))
 			return models.ODObject{}, err
 		}
-		dbObject, acmCreated, err = createObjectInTransaction(logger, tx, dao, object)
+		dao.GetLogger().Debug("dao passing  txn into createObjectInTransaction during retry")
+		dbObject, acmCreated, err = createObjectInTransaction(tx, dao, object)
+		dao.GetLogger().Debug("dao returned txn from createObjectInTransaction during retry")
 	}
 	if err != nil {
-		logger.Error("error in CreateObject", zap.Error(err))
+		dao.GetLogger().Error("error in CreateObject", zap.Error(err))
+		dao.GetLogger().Debug("dao rolling back txn for CreateObject")
 		tx.Rollback()
 	} else {
+		dao.GetLogger().Debug("dao committing txn for CreateObject")
 		tx.Commit()
+	}
+	dao.GetLogger().Debug("dao finished txn for CreateObject")
+	if err == nil {
+		dao.GetLogger().Debug("dao checking if new acm created")
 		// Calculate in background and as separate transaction...
 		if acmCreated {
 			runasync := true
 			if runasync {
+				dao.GetLogger().Debug("dao determined new acm was created, and will associate asynchronously")
 				if err := insertAssociationOfACMToModifiedByIfValid(dao, dbObject); err != nil {
-					logger.Error("error associating the acm on this object to the user that created it!", zap.Error(err), zap.String("ObjectID", hex.EncodeToString(dbObject.ID)), zap.String("modifiedby", dbObject.ModifiedBy), zap.Int64("acmID", dbObject.ACMID))
+					dao.GetLogger().Error("error associating the acm on this object to the user that created it!", zap.Error(err), zap.String("ObjectID", hex.EncodeToString(dbObject.ID)), zap.String("modifiedby", dbObject.ModifiedBy), zap.Int64("acmID", dbObject.ACMID))
 				}
 				go func() {
 					done := make(chan bool)
@@ -73,21 +87,26 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 					}
 				}()
 			} else {
+				dao.GetLogger().Debug("dao determined new acm was created, and will associate now")
 				done := make(chan bool, 1)
 				dao.AssociateUsersToNewACM(dbObject, done)
 			}
+		} else {
+			dao.GetLogger().Debug("dao acm was pre-existing")
 		}
 		// Refetch
+		dao.GetLogger().Debug("dao retrieving object that was just created")
 		obj, err = dao.GetObject(dbObject, true)
 		if err != nil {
-			logger.Error("error in CreateObject subsequent GetObject call]")
+			dao.GetLogger().Error("error in CreateObject subsequent GetObject call")
 			return models.ODObject{}, err
 		}
+		dao.GetLogger().Debug("dao object retrieved, ready to return")
 	}
 	return obj, err
 }
 
-func createObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessLayer, object *models.ODObject) (models.ODObject, bool, error) {
+func createObjectInTransaction(tx *sqlx.Tx, dao *DataAccessLayer, object *models.ODObject) (models.ODObject, bool, error) {
 
 	var dbObject models.ODObject
 	var acmCreated bool
@@ -101,27 +120,26 @@ func createObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 	if object.CreatedBy == "" {
 		return dbObject, acmCreated, errors.New("cannot create object, createdby field is missing")
 	}
+	if object.TypeID == nil {
+		return dbObject, acmCreated, errors.New("cannot create object, typeid field is missing")
+	}
 
 	// Add creator if not yet present. (From direct DAO calls)
 	userRequested := models.ODUser{}
 	userRequested.DistinguishedName = object.CreatedBy
+	dao.GetLogger().Debug("dao passing  txn into getUserByDistinguishedNameInTransaction")
 	_, err := getUserByDistinguishedNameInTransaction(tx, userRequested)
+	dao.GetLogger().Debug("dao returned txn from getUserByDistinguishedNameInTransaction")
 	if err != nil && err == sql.ErrNoRows {
 		// Not yet in database, we need to add them
 		userRequested.DistinguishedName = object.CreatedBy
 		userRequested.DisplayName = models.ToNullString(config.GetCommonName(object.CreatedBy))
 		userRequested.CreatedBy = object.CreatedBy
 		userCreated := models.ODUser{}
-		userCreated, err = createUserInTransaction(logger, tx, userRequested)
+		dao.GetLogger().Debug("dao passing  txn into createUserInTransaction")
+		userCreated, err = createUserInTransaction(tx, dao, userRequested)
+		dao.GetLogger().Debug("dao returned txn from createUserInTransaction")
 		object.CreatedBy = userCreated.DistinguishedName
-	}
-
-	if object.TypeID == nil {
-		objectType, err := dao.GetObjectTypeByName(object.TypeName.String, true, object.CreatedBy)
-		if err != nil {
-			return dbObject, acmCreated, fmt.Errorf("CreateObject Error calling GetObjectTypeByName, %s", err.Error())
-		}
-		object.TypeID = objectType.ID
 	}
 
 	if len(object.Name) == 0 {
@@ -144,11 +162,13 @@ func createObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 		return dbObject, acmCreated, fmt.Errorf("Error normalizing ACM on new object: %v (acm: %s)", err.Error(), object.RawAcm.String)
 	}
 	object.RawAcm.String = newACMNormalized
+	dao.GetLogger().Debug("dao passing  txn into setObjectACM2ForObjectInTransaction")
 	acmCreated, err = setObjectACM2ForObjectInTransaction(tx, dao, object)
+	dao.GetLogger().Debug("dao returned txn from setObjectACM2ForObjectInTransaction")
 	if err != nil {
 		return dbObject, acmCreated, fmt.Errorf("Error assigning ACM ID for object: %s", err.Error())
 	}
-
+	dao.GetLogger().Debug("dao preparing stmt for insert to object")
 	addObjectStatement, err := tx.Preparex(`insert object set 
         createdBy = ?
         ,typeId = ?
@@ -169,19 +189,23 @@ func createObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 	if err != nil {
 		return dbObject, acmCreated, fmt.Errorf("CreateObject Preparing add object statement, %s", err.Error())
 	}
+	dao.GetLogger().Debug("dao prepared stmt will have deferred close")
 	defer addObjectStatement.Close()
+	dao.GetLogger().Debug("dao executing stmt for insert to object")
 	result, err := addObjectStatement.Exec(object.CreatedBy, object.TypeID,
 		object.Name, object.Description.String, object.ParentID,
 		object.ContentConnector.String, object.RawAcm.String,
 		object.ContentType.String, object.ContentSize.Int64, object.ContentHash,
 		object.EncryptIV, object.ContainsUSPersonsData, object.ExemptFromFOIA, object.OwnedBy.String,
 		object.ACMID)
+	dao.GetLogger().Debug("dao checking for errors from insert to object")
 	if err != nil {
 		errMsg := err.Error()
 		return dbObject, acmCreated, fmt.Errorf("createobject error executing add object statement, %s", errMsg)
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
+		dao.GetLogger().Error("dao error getting rows affected in createObjectInTransaction")
 		return dbObject, acmCreated, fmt.Errorf("createobject error checking result for rows affected, %s", err.Error())
 	}
 	if rowsAffected <= 0 {
@@ -229,7 +253,8 @@ func createObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
         and o.name = ? 
         and o.contentConnector = ?
         and o.isdeleted = 0 
-    order by o.createddate desc limit 1`
+	order by o.createddate desc limit 1`
+	dao.GetLogger().Debug("dao txn used to get inserted object")
 	err = tx.Get(&dbObject, getObjectStatement, object.CreatedBy, object.TypeID, object.Name, object.ContentConnector)
 	if err != nil {
 		return dbObject, acmCreated, fmt.Errorf("CreateObject Error retrieving object, %s", err.Error())
@@ -249,7 +274,9 @@ func createObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 				objectProperty.ClassificationPM.String = property.ClassificationPM.String
 				objectProperty.ClassificationPM.Valid = true
 			}
+			dao.GetLogger().Debug("dao passing  txn into addPropertyToObjectInTransaction")
 			dbProperty, err := addPropertyToObjectInTransaction(tx, dbObject, &objectProperty)
+			dao.GetLogger().Debug("dao returned txn from addPropertyToObjectInTransaction")
 			if err != nil {
 				return dbObject, acmCreated, fmt.Errorf("Error saving property %d (%s) when creating object", i, property.Name)
 			}
@@ -263,7 +290,9 @@ func createObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 	for i, permission := range object.Permissions {
 		if !permission.IsDeleted && permission.Grantee != "" {
 			permission.CreatedBy = dbObject.CreatedBy
-			dbPermission, err := addPermissionToObjectInTransaction(logger, tx, dbObject, &permission)
+			dao.GetLogger().Debug("dao passing  txn into addPermissionToObjectInTransaction")
+			dbPermission, err := addPermissionToObjectInTransaction(tx, dao, dbObject, &permission)
+			dao.GetLogger().Debug("dao returned txn from addPermissionToObjectInTransaction")
 			if err != nil {
 				return dbObject, acmCreated, fmt.Errorf("Error saving permission # %d {Grantee: \"%s\") when creating object:%v", i, permission.Grantee, err)
 			}
@@ -273,6 +302,6 @@ func createObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 			object.Permissions[i] = dbPermission
 		}
 	}
-
+	dao.GetLogger().Debug("dao completed complex nested txn series for createObjectInTransaction")
 	return dbObject, acmCreated, nil
 }

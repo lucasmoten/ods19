@@ -22,16 +22,30 @@ func TestDAOUndeleteObjectWithChildren(t *testing.T) {
 
 	// Create folder1.
 	folder1 := NewObjectWithPermissionsAndProperties(usernames[1], "Folder")
-	folder1, err := d.CreateObject(&folder1)
+	folderType, err := d.GetObjectTypeByName(folder1.TypeName.String, true, folder1.CreatedBy)
+	if err != nil {
+		t.Error(err)
+	} else {
+		folder1.TypeID = folderType.ID
+	}
+	folder1, err = d.CreateObject(&folder1)
 
 	// Set up children of folder1.
 	objA := NewObjectWithPermissionsAndProperties(usernames[1], "File")
+	fileType, err := d.GetObjectTypeByName(objA.TypeName.String, true, objA.CreatedBy)
+	if err != nil {
+		t.Error(err)
+	} else {
+		objA.TypeID = fileType.ID
+	}
 	folder1, objA, err = CreateParentChildObjectRelationship(folder1, objA)
 
 	objB := NewObjectWithPermissionsAndProperties(usernames[1], "File")
+	objB.TypeID = fileType.ID
 	folder1, objB, err = CreateParentChildObjectRelationship(folder1, objB)
 
 	folder2 := NewObjectWithPermissionsAndProperties(usernames[1], "Folder")
+	folder2.TypeID = folderType.ID
 	folder1, folder2, err = CreateParentChildObjectRelationship(folder1, folder2)
 
 	objA, err = d.CreateObject(&objA)
@@ -43,12 +57,15 @@ func TestDAOUndeleteObjectWithChildren(t *testing.T) {
 
 	// folder2 already created. Set up children of folder2.
 	objC := NewObjectWithPermissionsAndProperties(usernames[1], "File")
+	objC.TypeID = fileType.ID
 	folder2, objC, err = CreateParentChildObjectRelationship(folder2, objC)
 
 	folder3 := NewObjectWithPermissionsAndProperties(usernames[1], "Folder")
+	folder3.TypeID = folderType.ID
 	folder2, folder3, err = CreateParentChildObjectRelationship(folder2, folder3)
 
 	objE := NewObjectWithPermissionsAndProperties(usernames[1], "File")
+	objE.TypeID = fileType.ID
 	folder2, objE, err = CreateParentChildObjectRelationship(folder2, objE)
 
 	objC, err = d.CreateObject(&objC)
@@ -60,6 +77,7 @@ func TestDAOUndeleteObjectWithChildren(t *testing.T) {
 
 	// folder3 already created. Set up children of folder3.
 	objD := NewObjectWithPermissionsAndProperties(usernames[1], "File")
+	objD.TypeID = fileType.ID
 	folder3, objD, err = CreateParentChildObjectRelationship(folder3, objD)
 
 	objD, err = d.CreateObject(&objD)

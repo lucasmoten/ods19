@@ -1,0 +1,29 @@
+Name:   ODrive 1.0.12 CI Build 2173
+Tag:    v1.0.12
+Commit: 36837dc8fa361a918d6db0f366ec8607be658af1
+Date:   December 20, 2017
+
+ENH: Enriched Payload of Events to include more fields from object for change actions
+REF: Changed imports to github.com/deciphernow/object-drive-server
+REF: Changed references to vendored uber-zap to go.uber.org/zap, upgraded to 1.7.1
+ENH: Logging output changed to tab delimit timestamp, log level, message, and fields
+ENH: Allow validation acm to be configurable as environment variable OD_AAC_HEALTHCHECK
+ENH: Log level set via OD_LOG_LEVEL now supports numeric and text representations of level
+FIX: SysV init script for lockfile now resides in installation folder
+FIX: SysV init script no longer uses Shell for subprocesses
+ENH: A more descriptive error message is returned when providing file stream before objectmetadata
+ENH: Object names are trimmed of whitespace on create/update
+NEW: Added search support to the golang client libraries
+
+For Upgrading
+DB: No database update is required if upgrading from v1.0.6 or newer. The current expected schema version is 20170726.
+Server: If you are upgrading from v1.0.10 or newer, then perform a standard upgrade as follows
+  yum upgrade object-drive-1.0.12.2173.x86_64.rpm
+If you are upgrading from a version prior to v1.0.10, then changes to the versioning scheme in the package metadata will cause the above upgrade to fail for does not update installed package. You can force an update by using the rpm command as follows
+  rpm --force --upgrade object-drive-1.0.12.2173.x86_64.rpm
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.12.2173.x86_64.rpm
+
+Container
+Available in Docker Registry as deciphernow/odrive:v1.0.12

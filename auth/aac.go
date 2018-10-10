@@ -41,10 +41,18 @@ type AACAuth struct {
 // NewAACAuth is a helper that builds an AACAuth from a provided logger and service connection
 func NewAACAuth(logger *zap.Logger, service aac.AacService) *AACAuth {
 	a := &AACAuth{Logger: logger, Service: service, Version: "1.1"}
-	// lm - Set AAC version based upon announcement point info, otherwise continue to assume 1.1
+	a.Logger.Debug("aacauth initialized")
+	// lm - Set AAC version based upon announcement point info
 	AACAnnouncementPoint := os.Getenv(config.OD_ZK_AAC)
-	if len(AACAnnouncementPoint) > 0 && strings.Contains(AACAnnouncementPoint, "/1.0/") {
-		a.Version = "1.0"
+	if len(AACAnnouncementPoint) > 0 {
+		aacapparts := strings.Split(AACAnnouncementPoint, "/")
+		if len(aacapparts) > 1 {
+			a.Version = aacapparts[len(aacapparts)-2]
+		}
+		if strings.Contains(AACAnnouncementPoint, "/1.0/") {
+			a.Logger.Warn("aacauth is initialized with version 1.0 of AAC")
+			a.Version = "1.0"
+		}
 	}
 	return a
 }
@@ -52,6 +60,7 @@ func NewAACAuth(logger *zap.Logger, service aac.AacService) *AACAuth {
 // GetAttributesForUser for AACAuth
 func (aac *AACAuth) GetAttributesForUser(userIdentity string) (*acm.ODriveUserAttributes, error) {
 	defer util.Time("GetAttributesForUser")()
+	aac.Logger.Debug("calling aacauth.getattributesforuser", zap.String("userIdentity", userIdentity))
 	// No User (Anonymous)
 	if userIdentity == "" {
 		return nil, ErrUserNotSpecified
@@ -96,6 +105,7 @@ func (aac *AACAuth) GetAttributesForUser(userIdentity string) (*acm.ODriveUserAt
 // GetFlattenedACM for AACAuth
 func (aac *AACAuth) GetFlattenedACM(acm string) (string, []string, error) {
 	defer util.Time("GetFlattenACM")()
+	aac.Logger.Debug("calling aacauth.getflattenedacm")
 	// Checks that dont depend on service availability
 	// No ACM
 	if acm == "" {
@@ -145,6 +155,7 @@ func (aac *AACAuth) GetFlattenedACM(acm string) (string, []string, error) {
 // GetGroupsForUser for AACAuth
 func (aac *AACAuth) GetGroupsForUser(userIdentity string) ([]string, error) {
 	defer util.Time("GetGroupsForUser")()
+	aac.Logger.Debug("calling aacauth.getgroupsforuser", zap.String("userIdentity", userIdentity))
 	snippets, err := aac.GetSnippetsForUser(userIdentity)
 	if err != nil {
 		return nil, err
@@ -155,12 +166,14 @@ func (aac *AACAuth) GetGroupsForUser(userIdentity string) ([]string, error) {
 // GetGroupsFromSnippets for AACAuth
 func (aac *AACAuth) GetGroupsFromSnippets(snippets *acm.ODriveRawSnippetFields) []string {
 	defer util.Time("GetGroupsFromSnippets")()
+	aac.Logger.Debug("calling aacauth.getgroupsfromsnippets")
 	return aacGetGroupsFromSnippets(aac.Logger, snippets)
 }
 
 // GetSnippetsForUser for AACAuth
 func (aac *AACAuth) GetSnippetsForUser(userIdentity string) (*acm.ODriveRawSnippetFields, error) {
 	defer util.Time("GetSnippetsForUser")()
+	aac.Logger.Debug("calling aacauth.getsnippetsforuser", zap.String("userIdentity", userIdentity))
 	// No User (Anonymous)
 	if userIdentity == "" {
 		return nil, ErrUserNotSpecified
@@ -211,12 +224,14 @@ func (aac *AACAuth) GetSnippetsForUser(userIdentity string) (*acm.ODriveRawSnipp
 // InjectPermissionsIntoACM for AACAuth
 func (aac *AACAuth) InjectPermissionsIntoACM(permissions []models.ODObjectPermission, acm string) (string, error) {
 	defer util.Time("InjectPermissionsIntoACM")()
+	aac.Logger.Debug("calling aacauth.injectpermissionsintoacm")
 	return aacInjectPermissionsIntoACM(aac.Logger, permissions, acm)
 }
 
 // IsUserAuthorizedForACM for AACAuth
 func (aac *AACAuth) IsUserAuthorizedForACM(userIdentity string, acm string) (bool, error) {
 	defer util.Time("IsUserAuthorizedForACM")()
+	aac.Logger.Debug("calling aacauth.isuserauthorizedforacm", zap.String("userIdentity", userIdentity))
 	// Checks that dont depend on service availability
 	// No ACM
 	if acm == "" {
@@ -267,12 +282,14 @@ func (aac *AACAuth) IsUserAuthorizedForACM(userIdentity string, acm string) (boo
 // IsUserOwner for AACAuth
 func (aac *AACAuth) IsUserOwner(userIdentity string, resourceStrings []string, objectOwner string) bool {
 	defer util.Time("IsUserOwner")()
+	aac.Logger.Debug("calling aacauth.isuserowner", zap.String("userIdentity", userIdentity))
 	return aacIsUserOwner(aac.Logger, userIdentity, resourceStrings, objectOwner)
 }
 
 // NormalizePermissionsFromACM for AACAuth
 func (aac *AACAuth) NormalizePermissionsFromACM(objectOwner string, permissions []models.ODObjectPermission, acm string, isCreating bool) ([]models.ODObjectPermission, string, error) {
 	defer util.Time("NormalizePermissionsFromACM")()
+	aac.Logger.Debug("calling aacauth.normalizepermissionsfromacm")
 	modifiedPermissions, modifiedACM, err := aacNormalizePermissionsFromACM(aac.Logger, objectOwner, permissions, acm, isCreating)
 	// Service call for flattening populates f_* values
 	modifiedACM, _, err = aac.GetFlattenedACM(modifiedACM)
@@ -295,6 +312,7 @@ func (aac *AACAuth) NormalizePermissionsFromACM(objectOwner string, permissions 
 // RebuildACMFromPermissions for AACAuth
 func (aac *AACAuth) RebuildACMFromPermissions(permissions []models.ODObjectPermission, acm string) (string, error) {
 	defer util.Time("RebuildACMFromPermissions")()
+	aac.Logger.Debug("calling aacauth.rebuildacmfrompermissions")
 	return aacRebuildACMFromPermissions(aac.Logger, permissions, acm)
 }
 

@@ -1,0 +1,23 @@
+Name:   ODrive 1.0.1 CI Build 1386 (Release v1.0.1.22)
+Tag:    v1.0.1.22
+Commit: e7a764aa92b8e66ff00aa89d02e6851b3061b820
+Date:   May 1, 2017
+
+DOC: API Documentation now denotes length, minvalue, maxlength, maxvalue.
+FIX: Permit contentType to be specified during update without a content stream.
+CFG: Database tool compatibility with MySQL 5.7 (requires parameter show_compatibility_56 = 1)
+FIX: Add support for creating objects owned by group with pathing at time of creation.
+FIX: Security fix for client certificate checks to AAC and peer odrives
+DOC: API Documentation correction to create object size sample denoting contentSize as a number.
+FIX: Build process will install graphviz to satisfy plantuml need for dot for diagram generation.
+DOC: API Documentation denotes that content streams should not have encoding or character sets.
+
+For Upgrading
+DB: The database schema version is now 20170421. A migration should be performed.
+
+For Upgrading and Installing
+  CFG: Set export OD_OPTION_409=true in env.sh or docker-compose.yml to enable performance improvements.
+  CFG: Set export OD_AAC_CN=twl-server-generic2 in env.sh or docker-compose.yml to securely connect to AAC with certificate verification.
+
+Prebuilt RPM
+AWS S3 bucket odrive-builds at /circle/rpms/release/object-drive-1.0.1.1386.x86_64.rpm

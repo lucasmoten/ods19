@@ -31,6 +31,7 @@ func (dao *DataAccessLayer) GetObjectsSharedToMe(user models.ODUser, pagingReque
 
 func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	loadProperties := true
+	loadPermissions := true
 	response := models.ODObjectResultset{}
 
 	// Filter out object owned by since owner's don't need to list items they've shared to themself
@@ -61,7 +62,7 @@ func getObjectsSharedToMeInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRe
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	// Load full meta, properties, and permissions
 	for i := 0; i < len(response.Objects); i++ {
-		obj, err := getObjectInTransaction(tx, response.Objects[i], loadProperties)
+		obj, err := getObjectInTransaction(tx, response.Objects[i], loadPermissions, loadProperties)
 		if err != nil {
 			return response, err
 		}

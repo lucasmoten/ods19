@@ -3,6 +3,7 @@ package dao
 import (
 	"errors"
 
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 
 	"time"
@@ -134,6 +135,11 @@ func (fake *FakeDAO) GetChildObjectsWithPropertiesByUser(
 	return fake.ObjectResultSet, fake.Err
 }
 
+// GetDatabase for FakeDAO
+func (fake *FakeDAO) GetDatabase() *sqlx.DB {
+	return nil
+}
+
 // GetDBState for FakeDAO
 func (fake *FakeDAO) GetDBState() (models.DBState, error) {
 	fake.DBState.SchemaVersion = SchemaVersion
@@ -252,6 +258,11 @@ func (fake *FakeDAO) GetRootObjectsWithPropertiesByUser(user models.ODUser, pagi
 	return fake.ObjectResultSet, fake.Err
 }
 
+// GetOpenConnections for FakeDAO
+func (fake *FakeDAO) GetOpenConnections() int {
+	return 0
+}
+
 // GetTrashedObjectsByUser for FakeDAO.
 func (fake *FakeDAO) GetTrashedObjectsByUser(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
@@ -315,11 +326,6 @@ func (fake *FakeDAO) UndeleteObject(object *models.ODObject) (models.ODObject, e
 
 // UpdateObject for FakeDAO.
 func (fake *FakeDAO) UpdateObject(object *models.ODObject) error {
-	return fake.Err
-}
-
-// UpdateObjectProperty for FakeDAO.
-func (fake *FakeDAO) UpdateObjectProperty(objectProperty models.ODObjectPropertyEx) error {
 	return fake.Err
 }
 

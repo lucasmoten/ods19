@@ -24,7 +24,6 @@ import (
 	"bitbucket.di2e.net/dime/object-drive-server/dao"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
 	"bitbucket.di2e.net/dime/object-drive-server/protocol"
-	"bitbucket.di2e.net/dime/object-drive-server/server"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
@@ -78,7 +77,7 @@ func TestDBMigration20161230(t *testing.T) {
 	modelObj.CreatedBy = username
 	modelObj.TypeName.String = "File"
 	modelObj.TypeName.Valid = true
-	modelObj.RawAcm.String = server.ValidACMUnclassified
+	modelObj.RawAcm.String = ValidACMUnclassified
 	createdObj, err := d.CreateObject(&modelObj)
 	if err != nil {
 		t.Logf("Error creating object: %v\n", err)
@@ -224,6 +223,7 @@ func addGranteeIfNotExistsBefore20161230(t *testing.T, d *dao.DataAccessLayer, p
 		addAcmGranteeStatement, err := tx.Preparex(
 			`insert acmgrantee 
 			set grantee = ?, projectName = ?, projectDisplayName = ?, groupName = ?, userDistinguishedName = ?, displayName = ?`)
+		addAcmGranteeStatement.Close()
 		if err != nil {
 			tx.Rollback()
 			t.Logf("Error preparing statement for acmgrantee %v", err)
@@ -239,7 +239,6 @@ func addGranteeIfNotExistsBefore20161230(t *testing.T, d *dao.DataAccessLayer, p
 			t.Fail()
 			return
 		}
-		addAcmGranteeStatement.Close()
 		tx.Commit()
 	}
 	// grantee exists

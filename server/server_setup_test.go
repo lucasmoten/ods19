@@ -325,7 +325,7 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 	perms[0].AllowRead = true
 	obj := models.ODObject{Permissions: perms}
 	obj.ID = []byte(guid)
-	obj.RawAcm.String = server.ValidACMUnclassified
+	obj.RawAcm.String = ValidACMUnclassified
 	obj.RawAcm.Valid = true
 
 	fakeDAO := dao.FakeDAO{
@@ -382,9 +382,11 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 	fakeQueue := kafka.NewFakeAsyncProducer(nil)
 
 	s := server.AppServer{RootDAO: &fakeDAO,
-		AAC:           &fakeAAC,
-		UsersLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
-		EventQueue:    fakeQueue,
+		AAC:             &fakeAAC,
+		UsersLruCache:   ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
+		UserAOsLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
+		TypeLruCache:    ccache.New(ccache.Configure().MaxSize(100).ItemsToPrune(5)),
+		EventQueue:      fakeQueue,
 	}
 	// Panics occur if regex routes are not compiled with InitRegex()
 	s.InitRegex()

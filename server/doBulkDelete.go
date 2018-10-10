@@ -43,6 +43,12 @@ func (h AppServer) doBulkDelete(ctx context.Context, w http.ResponseWriter, r *h
 		h.publishError(gem, herr)
 		return herr
 	}
+	// Limit bulk delete operation to 1000 items
+	if len(objects) > 1000 {
+		herr := NewAppError(http.StatusBadRequest, err, "Cannot delete more then 1000 objects at a time")
+		h.publishError(gem, herr)
+		return herr
+	}
 
 	var bulkResponse []protocol.ObjectError
 	for _, o := range objects {

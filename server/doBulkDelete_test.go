@@ -16,16 +16,8 @@ func testBulkDeleteCall(t *testing.T, clientid int, inObjects []protocol.ObjectV
 	failNowOnErr(t, err, "Unable to marshal json")
 	req, err := http.NewRequest("DELETE", deleteuri, bytes.NewBuffer(jsonBody))
 	failNowOnErr(t, err, "Cannot setup http request")
-	trafficLogs[APISampleFile].Request(t, req,
-		&TrafficLogDescription{
-			OperationName:       "Bulk delete",
-			RequestDescription:  "A list of object ids with change token",
-			ResponseDescription: "Any errors that happened",
-		},
-	)
 	res, err := clients[clientid].Client.Do(req)
 	failNowOnErr(t, err, "Unable to do request")
-	trafficLogs[APISampleFile].Response(t, res)
 
 	bytes, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -84,12 +76,12 @@ func TestBulkDelete(t *testing.T) {
 	testBulkDeleteCall(t, clientid, inObjects, 7, 2)
 }
 
-func TestBulkDelete4000(t *testing.T) {
+func TestBulkDelete1000(t *testing.T) {
 	clientid := 0
 	var inObjects []protocol.ObjectVersioned
-	o := makeFolderViaJSON("Test BulkDelete4000", clientid, t)
-	// Add the same item to be deleted 4000 times
-	for i := 0; i < 4000; i++ {
+	o := makeFolderViaJSON("Test BulkDelete1000", clientid, t)
+	// Add the same item to be deleted 1000 times
+	for i := 0; i < 1000; i++ {
 		inObject := protocol.ObjectVersioned{
 			ObjectID:    o.ID,
 			ChangeToken: o.ChangeToken,
@@ -97,5 +89,37 @@ func TestBulkDelete4000(t *testing.T) {
 		inObjects = append(inObjects, inObject)
 	}
 	// Delete them in bulk
-	testBulkDeleteCall(t, clientid, inObjects, 4000, 0)
+	testBulkDeleteCall(t, clientid, inObjects, 1000, 0)
+}
+func TestBulkDelete1001(t *testing.T) {
+	clientid := 0
+	var inObjects []protocol.ObjectVersioned
+	o := makeFolderViaJSON("Test BulkDelete1001", clientid, t)
+	// Add the same item to be deleted 1001 times
+	for i := 0; i < 1001; i++ {
+		inObject := protocol.ObjectVersioned{
+			ObjectID:    o.ID,
+			ChangeToken: o.ChangeToken,
+		}
+		inObjects = append(inObjects, inObject)
+	}
+	// Delete them in bulk
+	deleteuri := mountPoint + "/objects"
+	jsonBody, err := json.Marshal(inObjects)
+	failNowOnErr(t, err, "Unable to marshal json")
+	req, err := http.NewRequest("DELETE", deleteuri, bytes.NewBuffer(jsonBody))
+	failNowOnErr(t, err, "Cannot setup http request")
+	res, err := clients[clientid].Client.Do(req)
+	failNowOnErr(t, err, "Unable to do request")
+	_, err = ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Logf("unable to read body: %v", err)
+		t.FailNow()
+	} else {
+		statusMustBe(t, http.StatusBadRequest, res, "")
+	}
+	// ok, now remove an item and run it through for cleanup
+	inObjects = inObjects[1:]
+	testBulkDeleteCall(t, clientid, inObjects, 1000, 0)
+
 }

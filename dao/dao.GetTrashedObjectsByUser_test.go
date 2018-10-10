@@ -9,7 +9,6 @@ import (
 
 	"bitbucket.di2e.net/dime/object-drive-server/dao"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
-	"bitbucket.di2e.net/dime/object-drive-server/server"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
@@ -24,6 +23,12 @@ func TestDAOGetTrashedObjectsByUser(t *testing.T) {
 	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: 1000}
 	// Create an object.
 	objA := createTestObjectAllPermissions(users[3].DistinguishedName)
+	objectType, err := d.GetObjectTypeByName(objA.TypeName.String, true, objA.CreatedBy)
+	if err != nil {
+		t.Error(err)
+	} else {
+		objA.TypeID = objectType.ID
+	}
 	createdA, err := d.CreateObject(&objA)
 	if err != nil {
 		t.Fatalf("Error creating objA: %v\n", err)
@@ -190,11 +195,18 @@ func createParentChildObjectPair(username string) (parent models.ODObject, child
 
 	parent = createTestObjectAllPermissions(username)
 	child = createTestObjectAllPermissions(username)
+	objectType, err := d.GetObjectTypeByName(parent.TypeName.String, true, parent.CreatedBy)
+	if err != nil {
+		return parent, child, err
+	} else {
+		parent.TypeID = objectType.ID
+	}
 	parent, err = d.CreateObject(&parent)
 	if err != nil {
 		return parent, child, err
 	}
 	child.ParentID = parent.ID
+	child.TypeID = objectType.ID
 	child, err = d.CreateObject(&child)
 	return parent, child, err
 }
@@ -209,7 +221,7 @@ func createTestObjectAllPermissions(username string) models.ODObject {
 	obj.Name = name
 	obj.CreatedBy = username
 	obj.TypeName = models.ToNullString("File")
-	acm := server.ValidACMUnclassified
+	acm := ValidACMUnclassified
 	acm = strings.Replace(acm, `"f_share":[]`, fmt.Sprintf(`"f_share":["%s"]`, models.AACFlatten(username)), -1)
 	obj.RawAcm = models.ToNullString(acm)
 	var perms models.ODObjectPermission

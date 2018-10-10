@@ -8,7 +8,6 @@ import (
 
 	"bitbucket.di2e.net/dime/object-drive-server/dao"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
-	"bitbucket.di2e.net/dime/object-drive-server/server"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
@@ -23,6 +22,12 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 
 	// Create object 1 and maintain reference to delete later
 	obj1 := setupObjectForDAOSearchObjectsTest("Search Object 1" + timeSuffix)
+	objectType, err := d.GetObjectTypeByName(obj1.TypeName.String, true, obj1.CreatedBy)
+	if err != nil {
+		t.Error(err)
+	} else {
+		obj1.TypeID = objectType.ID
+	}
 	dbObject1, err := d.CreateObject(&obj1)
 	if err != nil {
 		t.Error(err)
@@ -33,6 +38,7 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 
 	// Create object 2 and maintain reference to delete later
 	obj2 := setupObjectForDAOSearchObjectsTest("Search Object 2" + timeSuffix)
+	obj2.TypeID = objectType.ID
 	dbObject2, err := d.CreateObject(&obj2)
 	if err != nil {
 		t.Error(err)
@@ -144,10 +150,17 @@ func TestDAOSearchObjectsAndOrFilter(t *testing.T) {
 
 	// Create object 1 and maintain reference to delete later
 	obj1 := setupObjectForDAOSearchObjectsTest(obj1Name)
+	objectType, err := d.GetObjectTypeByName(obj1.TypeName.String, true, obj1.CreatedBy)
+	if err != nil {
+		t.Error(err)
+	} else {
+		obj1.TypeID = objectType.ID
+	}
 	d.CreateObject(&obj1)
 
 	// Create object 2 and maintain reference to delete later
 	obj2 := setupObjectForDAOSearchObjectsTest(obj2Name)
+	obj2.TypeID = objectType.ID
 	d.CreateObject(&obj2)
 
 	// OR test (default filter match type)
@@ -197,6 +210,6 @@ func setupObjectForDAOSearchObjectsTest(name string) models.ODObject {
 	permissions[0].AllowDelete = true
 	permissions[0].AllowShare = true
 	obj.Permissions = permissions
-	obj.RawAcm.String = server.ValidACMUnclassified
+	obj.RawAcm.String = ValidACMUnclassified
 	return obj
 }

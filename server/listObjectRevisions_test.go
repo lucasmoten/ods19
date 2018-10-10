@@ -19,7 +19,7 @@ func TestUpdateObjectWithClassificationDrop(t *testing.T) {
 		&TrafficLogDescription{
 			OperationName:       "Create Classified File About Grey Aliens",
 			RequestDescription:  "Generate a file with high classification",
-			ResponseDescription: "Get an object to update",
+			ResponseDescription: "The response shows the created file with populated metadata. Take note of classification and changecount",
 		},
 		ValidACMTopSecretSITK)
 	t.Logf("Verifying newly created file exists")
@@ -32,7 +32,7 @@ func TestUpdateObjectWithClassificationDrop(t *testing.T) {
 		&TrafficLogDescription{
 			OperationName:       "Declassify File About Grey Aliens",
 			RequestDescription:  "Lower the classification request",
-			ResponseDescription: "The redacted file",
+			ResponseDescription: "The response shows the updated file at a different classfication. Changecount and other internal core metadata have changed",
 		},
 		ValidACMUnclassifiedFOUO)
 	t.Logf("Check the access from a user with lower clearance")
@@ -43,14 +43,28 @@ func TestUpdateObjectWithClassificationDrop(t *testing.T) {
 	t.Logf("Lower cleared user should not be able to see highly classified version")
 	expectingReadForObjectIDVersion(t, http.StatusForbidden, 0, updated.ID, unclearedID)
 
-	t.Logf("Lower cleared user lists versions")
 	uri := mountPoint + "/revisions/" + updated.ID
 	req := makeHTTPRequestFromInterface(t, "GET", uri, nil)
+
+	t.Logf("Higher cleared user lists versions")
+	trafficLogs[APISampleFile].Request(t, req,
+		&TrafficLogDescription{
+			OperationName:       "Show Revisions on Declassified File About Grey Aliens Who Has Clearance",
+			RequestDescription:  "Ask for revisions as a user who can see all the versions",
+			ResponseDescription: "All versions returned, note the changecounts",
+		},
+	)
+	resHigh, err := clients[clientID].Client.Do(req)
+	failNowOnErr(t, err, "Unable to do request")
+	statusExpected(t, 200, resHigh, "Bad status when getting revisions")
+	trafficLogs[APISampleFile].Response(t, resHigh)
+
+	t.Logf("Lower cleared user lists versions")
 	trafficLogs[APISampleFile].Request(t, req,
 		&TrafficLogDescription{
 			OperationName:       "Show Revisions on Declassified File About Grey Aliens",
-			RequestDescription:  "Ask for revisions",
-			ResponseDescription: "Show redacted listing (should not have secret information)",
+			RequestDescription:  "Ask for revisions as a user who can only see the unclassified version",
+			ResponseDescription: "Only the latest version is returned, note the changecount",
 		},
 	)
 	res, err := clients[unclearedID].Client.Do(req)
