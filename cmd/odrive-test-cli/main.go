@@ -16,7 +16,6 @@ import (
 
 	"bitbucket.di2e.net/dime/object-drive-server/client"
 	"bitbucket.di2e.net/dime/object-drive-server/config"
-	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 	"bitbucket.di2e.net/greymatter/gov-go/testcerts"
 
@@ -149,8 +148,8 @@ func main() {
 					return err
 				}
 
-				var permissions = protocol.Permission{
-					Read: protocol.PermissionCapability{
+				var permissions = client.Permission{
+					Read: client.PermissionCapability{
 						AllowedResources: []string{fmt.Sprintf("user/cn=test tester%s,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester%s", tester, tester)},
 					}}
 
@@ -159,7 +158,7 @@ func main() {
 						fmt.Printf("uploading %s...", fileName)
 					}
 
-					var obj = protocol.CreateObjectRequest{
+					var obj = client.CreateObjectRequest{
 						TypeName:   "File",
 						Name:       fileName,
 						RawAcm:     `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"]}`,
@@ -248,8 +247,8 @@ func main() {
 						return err
 					}
 
-					var permissions = protocol.Permission{
-						Read: protocol.PermissionCapability{
+					var permissions = client.Permission{
+						Read: client.PermissionCapability{
 							AllowedResources: []string{resource},
 						},
 					}
@@ -258,7 +257,7 @@ func main() {
 
 					fullName := path.Join(fakePath, fReader.Name())
 
-					var obj = protocol.CreateObjectRequest{
+					var obj = client.CreateObjectRequest{
 						TypeName:          "File",
 						Name:              fullName,
 						NamePathDelimiter: "/",

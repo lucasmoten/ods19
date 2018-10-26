@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"bitbucket.di2e.net/dime/object-drive-server/client"
 	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
@@ -157,7 +158,7 @@ func TestChangeOwnerToGroupWithClient(t *testing.T) {
 	clientid := 0
 
 	t.Logf("* Creating a private object")
-	createObjectRequest := protocol.CreateObjectRequest{}
+	createObjectRequest := client.CreateObjectRequest{}
 	createObjectRequest.Name = "Test ChangeOwner to Group"
 	createObjectRequest.TypeName = "Folder"
 	createObjectRequest.RawAcm = ValidACMUnclassifiedFOUOSharedToTester10
@@ -169,7 +170,7 @@ func TestChangeOwnerToGroupWithClient(t *testing.T) {
 
 	t.Logf("* Changing ownership to group")
 	newowner := "group/dctc/dctc/odrive_g1"
-	changeOwnerRequest := protocol.ChangeOwnerRequest{}
+	changeOwnerRequest := client.ChangeOwnerRequest{}
 	changeOwnerRequest.ID = createdObject.ID
 	changeOwnerRequest.ChangeToken = createdObject.ChangeToken
 	changeOwnerRequest.NewOwner = newowner
@@ -213,7 +214,7 @@ func TestChangeOwnerRecursive(t *testing.T) {
 	root, child1, child2, child3 := randomName("root"), randomName("child1"), randomName("child2"), randomName("child3")
 
 	t.Logf("Create object hierarchy:\n root: %s\n child1: %s\n child2: %s\n child3: %s\n", root, child1, child2, child3)
-	cor := protocol.CreateObjectRequest{
+	cor := client.CreateObjectRequest{
 		NamePathDelimiter: ":::",
 		Name:              strings.Join([]string{root, child1, child2, child3}, ":::"),
 		RawAcm:            ValidACMUnclassifiedFOUOSharedToTester10,
@@ -236,7 +237,7 @@ func TestChangeOwnerRecursive(t *testing.T) {
 
 	// ChangeOwnerRequest for child1 with ApplyRecursively true.
 	newOwner := "user/" + fakeDN1
-	chor := protocol.ChangeOwnerRequest{
+	chor := client.ChangeOwnerRequest{
 		ChangeToken:      child1Obj.ChangeToken,
 		ApplyRecursively: true,
 		ID:               child1Obj.ID,

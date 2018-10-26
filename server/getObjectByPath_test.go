@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"bitbucket.di2e.net/dime/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/client"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
@@ -27,7 +27,7 @@ func TestGetObjectByPathForUser(t *testing.T) {
 
 	// setup objects
 	// The html file
-	cor1 := protocol.CreateObjectRequest{
+	cor1 := client.CreateObjectRequest{
 		Name:        "TestGetObjectsByPathForUser.html",
 		RawAcm:      `{"version":"2.1.0","classif":"U"}`,
 		ContentType: "text/html",
@@ -37,7 +37,7 @@ func TestGetObjectByPathForUser(t *testing.T) {
 	clients[tester10].C.CreateObject(cor1, f1)
 	// The linked image
 	imageurl := "https://media.giphy.com/media/VlzUkJJzvz0UU/giphy.gif"
-	cor2 := protocol.CreateObjectRequest{
+	cor2 := client.CreateObjectRequest{
 		Name:        "animated.gif",
 		RawAcm:      `{"version":"2.1.0","classif":"U"}`,
 		ContentType: "image/gif",
@@ -61,7 +61,7 @@ func TestGetObjectByPathForGroup(t *testing.T) {
 	// setup objects
 
 	// The html file
-	cor1 := protocol.CreateObjectRequest{
+	cor1 := client.CreateObjectRequest{
 		Name:        "TestGetObjectsByPathForGroup.html",
 		RawAcm:      `{"version":"2.1.0","classif":"U"}`,
 		ContentType: "text/html",
@@ -96,7 +96,7 @@ Grey Matter.
 
 	// The linked image
 	imageurl := "http://deciphernow.com/img/diagrams/diagram-gm-data.png"
-	cor2 := protocol.CreateObjectRequest{
+	cor2 := client.CreateObjectRequest{
 		Name:        "diagram-gm-data.png",
 		RawAcm:      `{"version":"2.1.0","classif":"U"}`,
 		ContentType: "image/png",
@@ -112,7 +112,7 @@ Grey Matter.
 
 	// How about an MP4
 	mp4url := "https://r1---sn-ab5sznld.googlevideo.com/videoplayback?ei=Yw6JWpqUEobA8wTj-pDIDg&key=yt6&initcwndbps=1646250&expire=1518953155&pl=19&itag=18&mt=1518931480&ms=au,rdu&requiressl=yes&mime=video/mp4&dur=168.483&id=o-AGVenT0xptAyMOBz4kRgbMFsYBDBn_cVtJehuWNWlc6v&c=WEB&mn=sn-ab5sznld,sn-ab5l6n67&mm=31,29&ip=209.205.200.210&sparams=clen,dur,ei,gir,id,initcwndbps,ip,ipbits,itag,lmt,mime,mm,mn,ms,mv,pl,ratebypass,requiressl,source,expire&mv=m&lmt=1517957677303776&ipbits=0&gir=yes&ratebypass=yes&fvip=1&clen=7757173&signature=BFA0D4FED9649AFC52097A81835E32E5C025007B.9A8A764872B3AFA62EACF85EB272EC5FC099AC43&source=youtube&type=video%2Fmp4%3B+codecs%3D%22avc1.42001E%2C+mp4a.40.2%22&quality=medium&title=(Hdvidz.in)_SpaceX-Launches-The-Falcon-Heavy-Rocket--Why-Its-Such-A-Big-Deal-For-Elon-Musk--TIME"
-	cor3 := protocol.CreateObjectRequest{
+	cor3 := client.CreateObjectRequest{
 		Name:        "spacexvid.mp4",
 		RawAcm:      `{"version":"2.1.0","classif":"U"}`,
 		ContentType: "video/mp4",

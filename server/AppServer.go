@@ -102,6 +102,8 @@ type AppServer struct {
 	TypeLruCache *ccache.Cache
 	// AclWhitelist provides a list of distinguished names allowed to perform impersonation
 	ACLImpersonationWhitelist []string
+	// Version is set at runtime based on compile time flags
+	Version string
 }
 
 // NewAppServer creates an AppServer.
@@ -141,6 +143,7 @@ func NewAppServer(conf config.ServerSettingsConfiguration) (*AppServer, error) {
 		UserAOsLruCache:           userAOsLruCache,
 		TypeLruCache:              typeLruCache,
 		ACLImpersonationWhitelist: conf.ACLImpersonationWhitelist,
+		Version:                   conf.Version,
 	}
 
 	app.InitRegex()
@@ -229,6 +232,9 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	sessionRequestCount = sessionRequestCount + 1
 	w.Header().Add("sessionid", sessionID)
+	if len(h.Version) > 0 {
+		w.Header().Add("odrive-server", h.Version)
+	}
 
 	caller := CallerFromRequest(r)
 	logger := config.RootLogger.With(zap.String("session", sessionID))

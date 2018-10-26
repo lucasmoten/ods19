@@ -16,9 +16,10 @@ FORMAT: 1A
 
 # Group Changelog
 
-## Release v1.0.18~beta (Unreleased December 21, 2018)
+## Release v1.0.18 (November 14, 2018)
 ---------------------
 * DOC: Release notes that complement this changelog have been migrated for posterity
+* DOC: System Admin Guide updated with FIPS 140-2 info
 * FIX: Limited Bulk Delete to 1000 items (4000 was exceeding 30 seconds)
 * FIX: Restored API Sample from traffic logs generated when running integration tests
 * FIX: Spelling correction in error response for get properties and copy object operations
@@ -27,10 +28,15 @@ FORMAT: 1A
 * FIX: ODrive Client now gives error if initializing empty trust file
 * FIX: Service will no longer open excessive connections to ZK from Keepalive check
 * FIX: Configurable OD_AAC_HEALTHCHECK ACM now applies in all 4 places healthchecks performed
+* FIX: API documentation for Update Object indicates contentType can be provided
+* NEW: LRU Caching enabled for User AO and Object Types to improve performance
+* NEW: A new command line flag 'isfips' will report whether compiled with BoringCrypto/BoringSSL
+* NEW: Now optionally built using Golang 1.11b4 with BoringCrypto/BoringSSL module support for FIPS
+* NEW: Additional docker image generation with boring crypto have `-bc` suffix
 * ENH: DB Healthcheck reports open connection count, and will force close/reopen when at max
 * ENH: DB connection count is now reported in metrics available at /stats
-* ENH: LRU Caching enabled for User AO and Object Types to improve performance
-* ENH: Additional debug logging added to AAC calls, DAO calls, and changed level of others
+* ENH: Additional debug logging added to AAC calls, DAO calls, and changed level of others 
+* ENH: Client.go for service now encapsulates protocol objects improving portability
 * REF: DAO tests no longer depend on server package
 * CFG: Server timeouts in docker-compose set to allow up to 60 seconds to write response
 

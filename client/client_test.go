@@ -18,7 +18,6 @@ import (
 	"bitbucket.di2e.net/dime/object-drive-server/client"
 	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/events"
-	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 )
 
 func getEnvWithDefault(name string, def string) string {
@@ -58,8 +57,8 @@ var conf = client.Config{
 	Remote:     mountPoint,
 }
 
-var permissions = protocol.Permission{
-	Read: protocol.PermissionCapability{
+var permissions = client.Permission{
+	Read: client.PermissionCapability{
 		AllowedResources: []string{"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us/test tester10"},
 	}}
 
@@ -95,7 +94,7 @@ func TestCreateObjectNoStream(t *testing.T) {
 		t.Fatalf("could not create client: %v", err)
 	}
 
-	var upObj = protocol.CreateObjectRequest{
+	var upObj = client.CreateObjectRequest{
 		TypeName:              "Folder",
 		Name:                  "TestDir",
 		NamePathDelimiter:     fmt.Sprintf("%v", os.PathSeparator),
@@ -128,7 +127,7 @@ func TestImpersonation(t *testing.T) {
 	c.Verbose = testing.Verbose()
 
 	t.Logf("MyDN: %s", c.MyDN)
-	cor := protocol.CreateObjectRequest{
+	cor := client.CreateObjectRequest{
 		Name:   "impersonados",
 		RawAcm: ValidACMUnclassifiedFOUOSharedToTester10,
 	}
@@ -148,7 +147,7 @@ func TestListRootObjects(t *testing.T) {
 		t.Fatalf("could not create client: %v", err)
 	}
 	c.Verbose = testing.Verbose()
-	pr := protocol.PagingRequest{}
+	pr := client.PagingRequest{}
 	_, err = c.Search(pr, false)
 	if err != nil {
 		t.Errorf("search error listing root objects: %v", err)
@@ -167,7 +166,7 @@ func TestMoveObject(t *testing.T) {
 		fmt.Printf("error creating test file")
 	}
 
-	var fileReq = protocol.CreateObjectRequest{
+	var fileReq = client.CreateObjectRequest{
 		TypeName:              "File",
 		Name:                  "ToMoveOrNotToMove",
 		NamePathDelimiter:     fmt.Sprintf("%v", os.PathSeparator),
@@ -185,7 +184,7 @@ func TestMoveObject(t *testing.T) {
 	require.Nil(t, err, "error creating file to move", err)
 
 	// Now create the folder in which to move it.
-	var dirReq = protocol.CreateObjectRequest{
+	var dirReq = client.CreateObjectRequest{
 		TypeName:              "Folder",
 		Name:                  "MovedTo",
 		NamePathDelimiter:     fmt.Sprintf("%v", os.PathSeparator),
@@ -203,7 +202,7 @@ func TestMoveObject(t *testing.T) {
 	require.Nil(t, err, "Error creating object with no stream %s", err)
 
 	// Mow perform the move
-	var moveReq = protocol.MoveObjectRequest{
+	var moveReq = client.MoveObjectRequest{
 		ID:          fileObj.ID,
 		ChangeToken: fileObj.ChangeToken,
 		ParentID:    dirObj.ID,
@@ -245,31 +244,31 @@ func TestRestoreVersion(t *testing.T) {
 		t.Fatalf("could not create client: %v", err)
 	}
 	c.Verbose = testing.Verbose()
-	cor := protocol.CreateObjectRequest{
+	cor := client.CreateObjectRequest{
 		Name:       "restoreversion1",
 		RawAcm:     `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"]}`,
 		OwnedBy:    "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-		Properties: []protocol.Property{protocol.Property{Name: "p1", Value: "original"}},
+		Properties: []client.Property{client.Property{Name: "p1", Value: "original"}},
 	}
 	obj, err := c.CreateObject(cor, nil)
 	if err != nil {
 		t.Errorf("create object error: %v", err)
 	}
-	var uor1 = protocol.UpdateObjectRequest{
+	var uor1 = client.UpdateObjectRequest{
 		Name:        "change1",
 		ID:          obj.ID,
 		ChangeToken: obj.ChangeToken,
-		Properties:  []protocol.Property{protocol.Property{Name: "p1", Value: "v1"}, protocol.Property{Name: "p2", Value: "v2"}},
+		Properties:  []client.Property{client.Property{Name: "p1", Value: "v1"}, client.Property{Name: "p2", Value: "v2"}},
 	}
 	uo1, err := c.UpdateObject(uor1)
 	if err != nil {
 		t.Errorf("error updating object: %v", err)
 	}
-	var uor2 = protocol.UpdateObjectRequest{
+	var uor2 = client.UpdateObjectRequest{
 		Name:        "change2",
 		ID:          obj.ID,
 		ChangeToken: uo1.ChangeToken,
-		Properties:  []protocol.Property{protocol.Property{Name: "p1", Value: "changed"}, protocol.Property{Name: "p2", Value: ""}, protocol.Property{Name: "p3", Value: "new"}},
+		Properties:  []client.Property{client.Property{Name: "p1", Value: "changed"}, client.Property{Name: "p2", Value: ""}, client.Property{Name: "p3", Value: "new"}},
 	}
 	uo2, err := c.UpdateObject(uor2)
 	if err != nil {
@@ -345,7 +344,7 @@ func TestRoundTrip(t *testing.T) {
 		fullFilePath := path.Join(testDir, file.Name())
 		t.Log(fullFilePath)
 
-		var upObj = protocol.CreateObjectRequest{
+		var upObj = client.CreateObjectRequest{
 			TypeName:              "File",
 			Name:                  file.Name(),
 			NamePathDelimiter:     fmt.Sprintf("%v", os.PathSeparator),
@@ -398,8 +397,8 @@ func TestSearchObjects(t *testing.T) {
 	// Leverage another test to create a file named `ToMoveOrNotToMove` and move it into a folder `MovedTo`
 	TestMoveObject(t)
 
-	pr := protocol.PagingRequest{}
-	pr.FilterSettings = append(pr.FilterSettings, protocol.FilterSetting{FilterField: "name", Condition: "equals", Expression: "ToMoveOrNotToMove"})
+	pr := client.PagingRequest{}
+	pr.FilterSettings = append(pr.FilterSettings, client.FilterSetting{FilterField: "name", Condition: "equals", Expression: "ToMoveOrNotToMove"})
 	ors, err := c.Search(pr, true)
 	if err != nil {
 		t.Errorf("search error listing root objects: %v", err)
@@ -415,7 +414,7 @@ func TestUpdateObject(t *testing.T) {
 		t.Fatalf("could not create client: %v", err)
 	}
 	c.Verbose = testing.Verbose()
-	cor := protocol.CreateObjectRequest{
+	cor := client.CreateObjectRequest{
 		RawAcm:  `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
 		OwnedBy: "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
 	}
@@ -423,7 +422,7 @@ func TestUpdateObject(t *testing.T) {
 	if err != nil {
 		t.Errorf("create object error: %v", err)
 	}
-	var uor = protocol.UpdateObjectRequest{
+	var uor = client.UpdateObjectRequest{
 		Name:        "espresso",
 		ID:          obj.ID,
 		ChangeToken: obj.ChangeToken,
@@ -442,7 +441,7 @@ func TestUpdateObjectAndStream(t *testing.T) {
 		t.Fatalf("could not create client: %v", err)
 	}
 	c.Verbose = testing.Verbose()
-	cor := protocol.CreateObjectRequest{
+	cor := client.CreateObjectRequest{
 		Name:    "Mets",
 		RawAcm:  `{"version":"2.1.0","classif":"U","owner_prod":[],"atom_energy":[],"sar_id":[],"sci_ctrls":[],"disponly_to":[""],"dissem_ctrls":[],"non_ic":[],"rel_to":[],"fgi_open":[],"fgi_protect":[],"portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"accms":[],"macs":[],"oc_attribs":[{"orgs":[],"missions":[],"regions":[]}],"f_clearance":["u"],"f_sci_ctrls":[],"f_accms":[],"f_oc_org":[],"f_regions":[],"f_missions":[],"f_share":[],"f_atom_energy":[],"f_macs":[],"disp_only":""}`,
 		OwnedBy: "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
@@ -451,7 +450,7 @@ func TestUpdateObjectAndStream(t *testing.T) {
 	if err != nil {
 		t.Errorf("create object error: %v", err)
 	}
-	var uoasr = protocol.UpdateObjectAndStreamRequest{
+	var uoasr = client.UpdateObjectAndStreamRequest{
 		Name:        "Astros",
 		ID:          obj.ID,
 		ChangeToken: obj.ChangeToken,

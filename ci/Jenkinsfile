@@ -13,6 +13,8 @@ node('docker') {
     def scmVars
     def projectpath
     def govgopath
+    def use_boring_crypto
+    def boring_crypto_version
 
     stage('Check Compatibility with FIPS') {
         if(env.NODE_NAME == "jslv4-prod-gw1a.aws.di2e.net") {
@@ -25,17 +27,24 @@ node('docker') {
     }
 
     stage('Install Tools') {
-        // These first three values are changeable if you want to upgrade to newer versions of go
-        golang_folder = "/home/jenkins/go-1.11"
-        golang_tar_file = "go1.11.linux-amd64.tar.gz"
-        golang_tar_sum = "b3fcf280ff86558e0559e185b601c9eade0fd24c900b4c63cd14d1d38613e499"
+        use_boring_crypto = true
+
+        if (use_boring_crypto) {
+            boring_crypto_version = "b4"
+            golang_folder = "/home/jenkins/go-1.11b4"
+            golang_tar_file = "go1.11b4.linux-amd64.tar.gz"
+            golang_tar_sum = "d53417b2071af0104fbc15a957000bccdcb5bbc094df0401f67d51968f7f2e4e"
+        } else {
+            golang_folder = "/home/jenkins/go-1.11"
+            golang_tar_file = "go1.11.linux-amd64.tar.gz"
+            golang_tar_sum = "b3fcf280ff86558e0559e185b601c9eade0fd24c900b4c63cd14d1d38613e499"
+        }
         // This is the secret sauce to setting environment variables within the pipeline
         script {
             env.GOPATH = "${JENKINS_HOME}/workspace/gocode"
             sh "mkdir -p ${GOPATH}/bin"
             sh "mkdir -p ${GOPATH}/src/bitbucket.di2e.net/dime"
             env.PATH = "${GOPATH}/bin:${PATH}"
-            
         }
         projectpath = "/home/jenkins/workspace/gocode/src/bitbucket.di2e.net/dime/object-drive-server"
         script {
@@ -45,7 +54,11 @@ node('docker') {
         // Check if go installed already
         if(!fileExists("${golang_folder}/go/bin/")) {
             // Download it
-            sh "wget -q https://dl.google.com/go/${golang_tar_file}"
+            if (use_boring_crypto) {
+                sh "wget -q https://go-boringcrypto.storage.googleapis.com/${golang_tar_file}"
+            } else {
+                sh "wget -q https://dl.google.com/go/${golang_tar_file}"
+            }
             // Check the sha256sum
             actualSum = sh(returnStdout: true, script: "sha256sum ${golang_tar_file}").trim()
             actualSum = actualSum.replace("${golang_tar_file}","").trim()
@@ -128,10 +141,15 @@ node('docker') {
             version_patch = '0'
         }
         version_full = version_major + "." + version_minor + "." + version_patch
+        if (use_boring_crypto) {
+            version_full = version_full + boring_crypto_version
+            version_display = version_display + boring_crypto_version
+        }
         script {
             env.CIRCLE_BUILD_NUM = "${BUILD_NUMBER}"
             env.CIRCLE_SHA1 = "${commit_id}"
             env.TAG_VERSION = "${git_tag}"
+            env.VERSION_DISPLAY = "${version_display}"
         }
     }
 
@@ -141,15 +159,27 @@ node('docker') {
     }
 
     stage('Build Binaries') {
-        sh "cd ${projectpath}/cmd/odrive && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags '-X main.Build=${BUILD_NUMBER} -X main.Commit=${commit_id} -X main.Version=${version_full}'"      
-        sh "cd ${projectpath}/cmd/obfuscate && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build"
-        sh "cd ${projectpath}/cmd/odrive-database && go-bindata schema migrations ../../defaultcerts/client-mysql/id ../../defaultcerts/client-mysql/trust"
-        sh "cd ${projectpath}/cmd/odrive-database && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags '-X main.Build=${BUILD_NUMBER} -X main.Commit=${commit_id} -X main.Version=${version_full}'"
+        if (use_boring_crypto) {
+            sh "cd ${projectpath}/cmd/odrive && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags '-X main.Build=${BUILD_NUMBER} -X main.Commit=${commit_id} -X main.Version=${version_full}'"      
+            sh "cd ${projectpath}/cmd/obfuscate && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build"
+            sh "cd ${projectpath}/cmd/odrive-database && go-bindata schema migrations ../../defaultcerts/client-mysql/id ../../defaultcerts/client-mysql/trust"
+            sh "cd ${projectpath}/cmd/odrive-database && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags '-X main.Build=${BUILD_NUMBER} -X main.Commit=${commit_id} -X main.Version=${version_full}'"
+        } else {
+            sh "cd ${projectpath}/cmd/odrive && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags '-X main.Build=${BUILD_NUMBER} -X main.Commit=${commit_id} -X main.Version=${version_full}'"      
+            sh "cd ${projectpath}/cmd/obfuscate && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build"
+            sh "cd ${projectpath}/cmd/odrive-database && go-bindata schema migrations ../../defaultcerts/client-mysql/id ../../defaultcerts/client-mysql/trust"
+            sh "cd ${projectpath}/cmd/odrive-database && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags '-X main.Build=${BUILD_NUMBER} -X main.Commit=${commit_id} -X main.Version=${version_full}'"
+        }
     }
 
     stage('Build Docker Image') {
-        sh "cd ${projectpath} && ./odb --build -i deciphernow/odrive -t latest"
-        sh "cd ${projectpath} && ./odb --build -i deciphernow/metadatadb -t latest"
+        if (use_boring_crypto) {
+            sh "cd ${projectpath} && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 ./odb --build -i deciphernow/odrive-bc -t latest"
+            sh "cd ${projectpath} && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 ./odb --build -i deciphernow/metadatadb -t latest"
+        } else {
+            sh "cd ${projectpath} && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ./odb --build -i deciphernow/odrive -t latest"
+            sh "cd ${projectpath} && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ./odb --build -i deciphernow/metadatadb -t latest"
+        }
     }
 
     stage('Run and Test ????') {
@@ -190,14 +220,24 @@ node('docker') {
     stage('Tag and Push Docker Images') {
         // Tag and push images into docker-dime.di2e.net/dime/object-drive-server
         // latest
-        sh "docker tag deciphernow/odrive:latest docker-dime.di2e.net/dime/object-drive-server:latest"
+        if (use_boring_crypto) {
+            sh "docker tag deciphernow/odrive-bc:latest docker-dime.di2e.net/dime/object-drive-server:latest"
+        } else {
+            sh "docker tag deciphernow/odrive:latest docker-dime.di2e.net/dime/object-drive-server:latest"
+        }
         sh "docker tag deciphernow/metadatadb:latest docker-dime.di2e.net/dime/object-drive-metadatadb:latest"
+
         // by commit id
         // sh "docker tag deciphernow/odrive:latest docker-dime.di2e.net/dime/object-drive-server:${commit_id}"
         // sh "docker tag deciphernow/metadatadb:latest docker-dime.di2e.net/dime/object-drive-metadatadb:${commit_id}"
+
         // tagged release
         if (git_tag != "") {
-            sh "docker tag deciphernow/odrive:latest docker-dime.di2e.net/dime/object-drive-server:${version_display}"
+            if (use_boring_crypto) {
+                sh "docker tag deciphernow/odrive-bc:latest docker-dime.di2e.net/dime/object-drive-server:${version_display}-bc"
+            } else {
+                sh "docker tag deciphernow/odrive:latest docker-dime.di2e.net/dime/object-drive-server:${version_display}"
+            }
             sh "docker tag deciphernow/metadatadb:latest docker-dime.di2e.net/dime/object-drive-metadatadb:${version_display}"
         }
 
@@ -208,7 +248,11 @@ node('docker') {
             // docker.image('docker-dime.di2e.net/dime/object-drive-server:' + commit_id).push()
             // docker.image('docker-dime.di2e.net/dime/object-drive-metadatadb:' + commit_id).push()
             if (git_tag != "") {
-                docker.image('docker-dime.di2e.net/dime/object-drive-server:' + version_display).push()
+                if (use_boring_crypto) {
+                    docker.image('docker-dime.di2e.net/dime/object-drive-server:' + version_display + '-bc').push()
+                } else {
+                    docker.image('docker-dime.di2e.net/dime/object-drive-server:' + version_display).push()
+                }
                 docker.image('docker-dime.di2e.net/dime/object-drive-metadatadb:' + version_display).push()
             }
         }

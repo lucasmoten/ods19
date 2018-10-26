@@ -1,6 +1,23 @@
-FROM deciphernow/centos-openssl-go:1.7
+FROM centos:6.7
 
-RUN yum install -y anacron
+RUN yum -y update; \
+    yum -y install wget; \
+    yum -y install tar; \
+    yum -y install openssl-devel; \
+    yum -y install sudo; \
+    yum -y install rpm-build; \
+    yum -y install git; \
+    yum -y install gcc; \
+    yum -y install yum-plugin-ovl; \
+    yum -y install anacron;
+
+RUN wget https://storage.googleapis.com/golang/go1.11.1.linux-amd64.tar.gz
+RUN tar -C /usr/local -xzf go1.11.1.linux-amd64.tar.gz
+ENV PATH /usr/local/go/bin:$PATH
+ENV GOPATH /go
+
+RUN mkdir -p /go/src/bitbucket.di2e.net/dime/object-drive-server
+
 COPY build /go/src/bitbucket.di2e.net/dime/object-drive-server
 
 EXPOSE 4430

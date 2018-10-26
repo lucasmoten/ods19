@@ -238,6 +238,8 @@ type ServerSettingsConfiguration struct {
 	// request's header is read. Like ReadTimeout, it does not
 	// let Handlers make decisions on a per-request basis.
 	WriteTimeout int64 `yaml:"timeout_write"`
+	// Version is set at runtime based on compile time flags
+	Version string
 }
 
 // ZKSettings holds the data required to communicate with default Zookeeper.

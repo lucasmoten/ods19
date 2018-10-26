@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"runtime"
 	"time"
 
 	"github.com/Shopify/sarama"
@@ -33,7 +35,9 @@ func main() {
 	cliParser := cli.NewApp()
 	cliParser.Name = "odrive"
 	cliParser.Usage = "object-drive-server binary"
-	cliParser.Version = fmt.Sprintf("%s build :%s", Version, Build)
+	if len(Version) > 0 && len(Build) > 0 {
+		cliParser.Version = fmt.Sprintf("%s build %s (%s)", Version, Build, Commit)
+	}
 
 	var defaultCiphers cli.StringSlice
 	defaultCiphers.Set("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
@@ -113,6 +117,32 @@ func main() {
 			Flags:  globalFlags,
 			Action: serviceTest,
 		},
+		{
+			Name:  "isfips",
+			Usage: "Report FIPS 140-2 compliance",
+			Action: func(ctx *cli.Context) error {
+				fmt.Println("FIPS 140-2 compliance check for BoringCrypto module")
+				fmt.Println()
+				fmt.Printf("Built with Go runtime.version: %s\n", runtime.Version())
+
+				rbc := regexp.MustCompile(`(?P<base_go_version>go[\d\.]*)(?P<boringcrypto_enabled>b)(?P<boringcrypto_update_version>\d*)`)
+				mbc := rbc.FindStringSubmatch(runtime.Version())
+				if len(mbc) > 0 {
+					for i, n := range rbc.SubexpNames() {
+						if i > 0 {
+							fmt.Printf("\t%s = %s\n", n, mbc[i])
+						}
+					}
+					fmt.Println("The version of Go used to compile this binary uses BoringCrypto")
+				} else {
+					fmt.Println("The Go runtime.version doesn't appear to include BoringCrypto")
+				}
+				fmt.Println()
+				fmt.Println("If Go is available, you may also check whether the binary is using symbols from the module ")
+				fmt.Println("  go tool nm odrive | grep \"crypto/internal/boring._cgo\" ")
+				return nil
+			},
+		},
 	}
 
 	cliParser.Flags = globalFlags
@@ -125,8 +155,16 @@ func main() {
 			zap.String("templateDir", opts.TemplateDir),
 			zap.String("tlsMinimumVersion", opts.TLSMinimumVersion))
 
+		conf.ServerSettings.Version = cliParser.Version
+
 		for _, v := range conf.ServerSettings.ACLImpersonationWhitelist {
 			config.RootLogger.Info("permitted to impersonate", zap.String("whitelisted dn", v))
+		}
+
+		rbc := regexp.MustCompile(`(?P<base_go_version>go[\d\.]*)(?P<boringcrypto_enabled>b)(?P<boringcrypto_update_version>\d*)`)
+		mbc := rbc.FindStringSubmatch(runtime.Version())
+		if len(mbc) > 0 {
+			config.RootLogger.Info("boring-crypto", zap.String("update", mbc[3]), zap.String("runtime.Version", runtime.Version()))
 		}
 
 		err := server.Start(conf)

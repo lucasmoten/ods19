@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"bitbucket.di2e.net/dime/object-drive-server/client"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 	"bitbucket.di2e.net/dime/object-drive-server/utils"
 
@@ -191,7 +192,7 @@ func TestUpdateObject(t *testing.T) {
 		t.Logf("bad status: %s", res.Status)
 		t.FailNow()
 	}
-	var updatedFolder protocol.Object
+	var updatedFolder client.Object
 	err = util.FullDecode(res.Body, &updatedFolder)
 	if err != nil {
 		t.Logf("Error decoding json to Object: %v", err)
@@ -219,7 +220,7 @@ func TestUpdateObjectToHaveNoName(t *testing.T) {
 	folder := makeFolderViaJSON("Test Folder for Update ", clientid, t)
 
 	// Attempt to rename the folder
-	updateObjectRequest := protocol.UpdateObjectRequest{}
+	updateObjectRequest := client.UpdateObjectRequest{}
 	updateObjectRequest.ID = folder.ID
 	updateObjectRequest.Name = ""
 	updateObjectRequest.ChangeToken = folder.ChangeToken

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"bitbucket.di2e.net/dime/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/client"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
@@ -160,7 +160,7 @@ func TestGetObjectStream1076(t *testing.T) {
 	baseName := "TestGetObjectStream1076%s.txt%s"
 
 	// setup objects
-	cor := protocol.CreateObjectRequest{
+	cor := client.CreateObjectRequest{
 		Name:        "TestGetObjectStream1076().gif",
 		RawAcm:      `{"version":"2.1.0","classif":"U"}`,
 		ContentType: "text/plain",

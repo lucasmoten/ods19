@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"bitbucket.di2e.net/dime/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/client"
 )
 
 func TestCopyObject(t *testing.T) {
@@ -15,7 +15,7 @@ func TestCopyObject(t *testing.T) {
 	// "share":{"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}	// private to tester10
 
 	// 1. Create object private to tester10
-	create1 := protocol.CreateObjectRequest{
+	create1 := client.CreateObjectRequest{
 		Name:     "TestCopyObject",
 		RawAcm:   `{"version":"2.1.0","classif":"U","share":{"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}}`,
 		TypeName: "TestObject",
@@ -26,7 +26,7 @@ func TestCopyObject(t *testing.T) {
 	}
 
 	// 2. Attempt copy as tester1, who can't read this object yet
-	copy2 := protocol.CopyObjectRequest{
+	copy2 := client.CopyObjectRequest{
 		ID: res1.ID,
 	}
 	_, err = clients[tester1].C.CopyObject(copy2)
@@ -40,13 +40,13 @@ func TestCopyObject(t *testing.T) {
 	}
 
 	// 3. Update, renaming, and sharing to everyone
-	update3 := protocol.UpdateObjectRequest{
+	update3 := client.UpdateObjectRequest{
 		ID:          res1.ID,
 		ChangeToken: res1.ChangeToken,
 		Name:        "TestCopyObject-renamed",
 		RawAcm:      `{"version":"2.1.0","classif":"U"}`, // ends up shared to everyone
 		TypeName:    "TestObject",
-		Permission:  protocol.Permission{},
+		Permission:  client.Permission{},
 	}
 	res3, err := clients[tester10].C.UpdateObject(update3)
 	if err != nil {
@@ -54,14 +54,14 @@ func TestCopyObject(t *testing.T) {
 	}
 
 	// 4. Update, set a description, and sharing to everyone
-	update4 := protocol.UpdateObjectRequest{
+	update4 := client.UpdateObjectRequest{
 		ID:          res1.ID,
 		ChangeToken: res3.ChangeToken,
 		Name:        "TestCopyObject-renamed",
 		Description: "Tester10 will see all three revisions. Everyone else will only have access to 2",
 		RawAcm:      `{"version":"2.1.0","classif":"U"}`, // ends up shared to everyone
 		TypeName:    "TestObject",
-		Permission:  protocol.Permission{},
+		Permission:  client.Permission{},
 	}
 	res4, err := clients[tester10].C.UpdateObject(update4)
 	if err != nil {
@@ -69,7 +69,7 @@ func TestCopyObject(t *testing.T) {
 	}
 
 	// 5. Copy the object, now that we have read
-	copy5 := protocol.CopyObjectRequest{
+	copy5 := client.CopyObjectRequest{
 		ID: res1.ID, // could just as easily be res3.ID or res4.ID since this value does not change
 	}
 	res5, err := clients[tester1].C.CopyObject(copy5)
