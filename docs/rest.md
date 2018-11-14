@@ -393,6 +393,7 @@ This creates a new revision of the object.
          * group/dctc/odrive_g1
          * group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1
          * group/-Everyone
+    + contentType: `text/plain` (string, maxlength=255, optional) - The suggested mime type for the content stream for this object.
     + containsUSPersonsData: `Yes` (string, maxlength=255, optional) - Indicates if this object contains US Persons data.
         + Default: `Unknown`  
         + Members
@@ -549,7 +550,7 @@ This creates a new revision of the object.
          * group/dctc/odrive_g1
          * group/dctc/DCTC/ODrive_G1/DCTC ODrive_G1
          * group/-Everyone
-    + contentType: `text/html` (string, maxlength=255, optional) - The suggested mime type for the content stream if given for this object.
+    + contentType: `text/html` (string, maxlength=255, optional) - The suggested mime type for the content stream for this object.
     + contentSize: 0 (number, maxvalue=9223372036854775807, optional) - The length of the content stream, in bytes. If there is no content stream, this value should be 0.  The maxvalue given here is theoretical based upon the maximum allowable value represented in 8 bytes. The actual maximum size of an object is initially constrained by free disk storage space in the local cache on the instance the object is being created.
     + containsUSPersonsData: `Yes` (string, maxlength=255, optional) - Indicates if this object contains US Persons data.
         + Default: `Unknown`  

@@ -1,6 +1,6 @@
 #!/bin/bash
 
 for im in `docker images | grep '<none>' | awk '{print $3}'`; do docker rmi --force $im; done
-for im in `docker images | grep 'metadatadb ' | awk '{print $3}'`; do docker rmi --force $im; done
+for im in `docker images | grep 'odrive-bc' | awk '{print $3}'`; do docker rmi --force $im; done
 rm -rf build
 

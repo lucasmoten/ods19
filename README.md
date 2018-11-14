@@ -340,12 +340,12 @@ If that worked, now we know Object Drive is working!
 
 ##### 2. Commandline tests 
 Tests can be run locally if the suite of containers defined in **docker/docker-compose.yml**
-are built and running. Run `go test ./...` from the root of this project.
+are built and running. Run `go test ./... -count 1` from the root of this project.
 
 Assuming that everything is up and running in all of the previous steps, we can run the testing suite on the code to make sure that it is actually going properly.
 So in the root directory of `object-drive-server` run:
 ``` bash
-go test ./... -timeout 3000m
+go test ./... -count 1 -timeout 3000m
 ```
 This will take a long time to run. 
 The default timeout for go tests is 5 minutes so we told it to take 300 minutes here.

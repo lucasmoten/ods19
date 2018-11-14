@@ -27,15 +27,15 @@ Features supported:
   + Update a file or folder metadata or content stream
   + Delete a file or folder
   + Share access to object to other users or groups
-+ All retrieval operations are automatically filtered based upon user authorization object associated with credentials.
++ Automatic filtering based upon user authorization object associated with credentials.
 + Associated content stream is encrypted at rest using AES-256 CTR encryption.
-+ Content streams of objects may be retrieved via traditional serial or partial range request operations and include support for ETags.
-+ Automatic versioning of objects when metadata or content stream is updated with ability to retrieve prior versions
++ Content streams may be retrieved via serial or partial range request operations and use of ETags.
++ Automatic versioning of objects when metadata or content stream is updated.
 + Objects may be marked deleted, restored from trash, or permanently deleted.
-+ Objects created by users are by default owned by that user unless assigned to a group for which they are a member.
-+ Ownership of objects may be transferred from the current owner, or member of a group if owned by a group.
-+ Auxiliary operations for packaging several objects into a compressed archive (zip) or performing bulk operations
-
++ Objects created by users are owned by that user unless set to a group for which they are a member.
++ Ownership of objects may be transferred to new resource by existing owner or member of group.
++ Auxiliary operations for packaging several objects into a compressed archive (zip)
++ Optionally built integrating BoringCrypto module for FIPS 140-2 compliance.  When the service is built with Go using this module, the version identifier will have a suffix matching that of the BoringCrypto update version (currently b4)
 
 ## Service Dependencies
 

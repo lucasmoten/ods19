@@ -9,7 +9,7 @@ import (
 
 	"github.com/tidwall/gjson"
 
-	"bitbucket.di2e.net/dime/object-drive-server/protocol"
+	"bitbucket.di2e.net/dime/object-drive-server/client"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 	"bitbucket.di2e.net/dime/object-drive-server/utils"
 )
@@ -30,7 +30,7 @@ func TestUpdateObjectShareRecursive(t *testing.T) {
 		requester int
 
 		// Updated permissions for UpdateObject. None are passed to CreateObject.
-		perms protocol.Permission
+		perms client.Permission
 
 		// initialACM is given to CreateObject
 		initialACM string
@@ -42,28 +42,28 @@ func TestUpdateObjectShareRecursive(t *testing.T) {
 			0, // creator
 			0, // sharer
 			2, // requester
-			protocol.Permission{ // updated permissions. None are passed at first.
-				Create: protocol.PermissionCapability{
+			client.Permission{ // updated permissions. None are passed at first.
+				Create: client.PermissionCapability{
 					AllowedResources: []string{
 						"user/" + fakeDN1 + "/test tester02",
 					},
 				},
-				Read: protocol.PermissionCapability{
+				Read: client.PermissionCapability{
 					AllowedResources: []string{
 						"user/" + fakeDN1 + "/test tester02",
 					},
 				},
-				Update: protocol.PermissionCapability{
+				Update: client.PermissionCapability{
 					AllowedResources: []string{
 						"user/" + fakeDN1 + "/test tester02",
 					},
 				},
-				Delete: protocol.PermissionCapability{
+				Delete: client.PermissionCapability{
 					AllowedResources: []string{
 						"user/" + fakeDN1 + "/test tester02",
 					},
 				},
-				Share: protocol.PermissionCapability{
+				Share: client.PermissionCapability{
 					AllowedResources: []string{
 						"user/" + fakeDN1 + "/test tester02",
 					},
@@ -80,7 +80,7 @@ func TestUpdateObjectShareRecursive(t *testing.T) {
 		t.Logf("Create object hierarchy:\n root: %s\n child1: %s\n child2: %s\n child3: %s\n",
 			root, child1, child2, child3)
 
-		cor := protocol.CreateObjectRequest{
+		cor := client.CreateObjectRequest{
 			NamePathDelimiter: ":::",
 			Name:              strings.Join([]string{root, child1, child2, child3}, ":::"),
 			RawAcm:            c.initialACM,
@@ -112,7 +112,7 @@ func TestUpdateObjectShareRecursive(t *testing.T) {
 			t.Errorf("expected creator to have access to child1: %v", err)
 		}
 
-		uor := protocol.UpdateObjectRequest{
+		uor := client.UpdateObjectRequest{
 			ID:             child1Obj.ID,
 			ChangeToken:    child1Obj.ChangeToken,
 			RecursiveShare: true,
@@ -239,7 +239,7 @@ func TestUpdateObjectAndStreamShareRecursive(t *testing.T) {
 		requester int
 
 		// Updated permissions for UpdateObjectAndStream. None are passed to CreateObject.
-		perms protocol.Permission
+		perms client.Permission
 
 		// streamContents is copied into an io.Reader for UpdateObjectAndStream
 		streamContents []byte
@@ -254,28 +254,28 @@ func TestUpdateObjectAndStreamShareRecursive(t *testing.T) {
 			0, // creator
 			0, // sharer
 			1, // requester
-			protocol.Permission{ // updated permissions. None are passed at first.
-				Create: protocol.PermissionCapability{
+			client.Permission{ // updated permissions. None are passed at first.
+				Create: client.PermissionCapability{
 					AllowedResources: []string{
 						"user/" + fakeDN1 + "/test tester01",
 					},
 				},
-				Read: protocol.PermissionCapability{
+				Read: client.PermissionCapability{
 					AllowedResources: []string{
 						"user/" + fakeDN1 + "/test tester01",
 					},
 				},
-				Update: protocol.PermissionCapability{
+				Update: client.PermissionCapability{
 					AllowedResources: []string{
 						"user/" + fakeDN1 + "/test tester01",
 					},
 				},
-				Delete: protocol.PermissionCapability{
+				Delete: client.PermissionCapability{
 					AllowedResources: []string{
 						"user/" + fakeDN1 + "/test tester01",
 					},
 				},
-				Share: protocol.PermissionCapability{
+				Share: client.PermissionCapability{
 					AllowedResources: []string{
 						"user/" + fakeDN1 + "/test tester01",
 					},
@@ -293,7 +293,7 @@ func TestUpdateObjectAndStreamShareRecursive(t *testing.T) {
 		t.Logf("Create object hierarchy:\n root: %s\n child1: %s\n child2: %s\n child3: %s\n",
 			root, child1, child2, child3)
 
-		cor := protocol.CreateObjectRequest{
+		cor := client.CreateObjectRequest{
 			NamePathDelimiter: ":::",
 			Name:              strings.Join([]string{root, child1, child2, child3}, ":::"),
 			RawAcm:            c.initialACM,
@@ -313,7 +313,7 @@ func TestUpdateObjectAndStreamShareRecursive(t *testing.T) {
 			t.Errorf("expected creator to have access to child1: %v", err)
 		}
 
-		uor := protocol.UpdateObjectAndStreamRequest{
+		uor := client.UpdateObjectAndStreamRequest{
 			ID: child1Obj.ID,
 			// NOTE(cm): If we do not supply a name here, we get
 			// "status":400,"message":"file must be supplied as multipart mime part"

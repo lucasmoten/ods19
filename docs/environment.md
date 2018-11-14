@@ -110,7 +110,7 @@ ObjectDrive itself just logs to stdout.  But when the service script launches it
 
 | Name | Description | Default |
 | --- | --- | --- |
-| OD_LOG_LEVEL | Should be Info (OD_LOG_LEVEL=0, -1 is Debug, 0 is Info, 1 is Warn, 2 is Error, 3 is Fatal, etc.) for production systems | 0 |
+| OD_LOG_LEVEL | Indicates what level of logging, and above importance, should be logged.  Permissible values are -1, 0, 1, 2, 3 or the textual equivalents: DEBUG, INFO, WARN, ERROR, FATAL.  For production systems, INFO or WARN is recommended.  DEBUG level may be used but due to the verbosity, will incur a performance cost of about 5-7%. | 0 |
 | OD_LOG_LOCATION | The location of a log file, supplied in `env.sh`  to override log location. | object-drive.log |
 | OD_LOG_MODE | Denotes whether logging is in development or production mode.  When in development mode, stack traces will be output for WARN level messages and above. For production mode, stack traces are only output in ERROR level. Permissible values are production, development | Production |
 

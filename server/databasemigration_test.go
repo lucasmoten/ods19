@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"bitbucket.di2e.net/dime/object-drive-server/ciphertext"
+	"bitbucket.di2e.net/dime/object-drive-server/client"
 	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/crypto"
 	"bitbucket.di2e.net/dime/object-drive-server/dao"
@@ -164,7 +165,7 @@ func TestDBSchemaVersionReadOnly(t *testing.T) {
 	time.Sleep(30 * time.Second)
 
 	t.Logf("Attempt to create an object in read only state")
-	obj := protocol.CreateObjectRequest{
+	obj := client.CreateObjectRequest{
 		Name:     fmt.Sprintf("TestDBSchemaVersionReadOnly %s", nanotime),
 		RawAcm:   `{"classif":"U"}`,
 		TypeName: "Folder"}
@@ -183,7 +184,7 @@ func TestDBSchemaVersionReadOnly(t *testing.T) {
 	time.Sleep(30 * time.Second)
 
 	t.Logf("Attempt to create an object in writeable state")
-	writeableobj := protocol.CreateObjectRequest{Name: fmt.Sprintf("TestDBSchemaVersionWritable %s", nanotime), RawAcm: `{"classif":"U"}`, TypeName: "Folder"}
+	writeableobj := client.CreateObjectRequest{Name: fmt.Sprintf("TestDBSchemaVersionWritable %s", nanotime), RawAcm: `{"classif":"U"}`, TypeName: "Folder"}
 	_, err = clients[0].C.CreateObject(writeableobj, nil)
 	if err != nil {
 		t.Logf("%s", err.Error())

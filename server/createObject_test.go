@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"bitbucket.di2e.net/dime/object-drive-server/client"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
 	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
@@ -1634,7 +1635,7 @@ func TestCreateObjectWithNameNearMaxLength(t *testing.T) {
 	testname += ".docx"
 	t.Logf("object name: %s", testname)
 
-	cor := protocol.CreateObjectRequest{
+	cor := client.CreateObjectRequest{
 		Name:   testname,
 		RawAcm: ValidACMUnclassifiedFOUOSharedToTester10,
 	}
@@ -1664,7 +1665,7 @@ func TestCreateObjectOwnedByGroupViaShortResourceName(t *testing.T) {
 	testname += ownedbyin
 	t.Logf("object name: %s", testname)
 
-	cor := protocol.CreateObjectRequest{
+	cor := client.CreateObjectRequest{
 		Name:    testname,
 		RawAcm:  ValidACMUnclassifiedFOUOSharedToTester10,
 		OwnedBy: ownedbyin,
@@ -1684,7 +1685,7 @@ func TestCreateObjectOwnedByGroupViaShortResourceName(t *testing.T) {
 func TestCreateObjectMinimal(t *testing.T) {
 	// This test creates an object with the minimal information required.
 	// If we could avoid requiring an ACM here, then object-drive could arguably be considered a data lake
-	theobj, err := clients[0].C.CreateObject(protocol.CreateObjectRequest{RawAcm: ValidACMUnclassified}, nil)
+	theobj, err := clients[0].C.CreateObject(client.CreateObjectRequest{RawAcm: ValidACMUnclassified}, nil)
 	failNowOnErr(t, err, "unable to do request")
 	t.Logf("object: %v", theobj)
 }
@@ -1798,7 +1799,7 @@ func TestCreateObjectsWithACMSeries(t *testing.T) {
 		acm += `}`
 		objname := fmt.Sprintf("TestCreateObjectsWithACMSeries %d", i)
 		t.Logf("creating acm series %d for acm %s", i, acm)
-		clients[tester10].C.CreateObject(protocol.CreateObjectRequest{Name: objname, RawAcm: acm}, nil)
+		clients[tester10].C.CreateObject(client.CreateObjectRequest{Name: objname, RawAcm: acm}, nil)
 	}
 }
 

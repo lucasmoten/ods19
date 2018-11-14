@@ -63,6 +63,9 @@ def force_access(filename):
 
 def get_version():
     changelogverline = subprocess.check_output(['grep', '-m', '1', '## Release', 'changelog.md'])
+    goversion = subprocess.check_output(['go','version'])
+    if "b4" in goversion.split()[2]:
+        return changelogverline.split()[2] + "b4"
     return changelogverline.split()[2]
 
 #-------------------------------------------------------------------------------
