@@ -16,6 +16,15 @@ FORMAT: 1A
 
 # Group Changelog
 
+## Release v1.0.19 (In Development)
+---------------------
+* DOC: Readme no longer references gitlab, and gives description of service
+* DOC: API Documentation adds clarity on Bulk Delete operation
+* FIX: ODB script will now properly build odrive-database dependency for docker images
+* CFG: Jenkins updated to build with Go 1.11.4 or 1.11.4b4
+* CFG: Docker Compose files reference images from docker-dime.di2e.net
+* CFG: Previous docker-compose.yml is renamed for full stack. New docker-compose is for local development
+
 ## Release v1.0.18 (November 14, 2018)
 ---------------------
 * DOC: Release notes that complement this changelog have been migrated for posterity

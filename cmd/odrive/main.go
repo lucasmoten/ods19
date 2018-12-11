@@ -195,7 +195,7 @@ func serviceTest(ctx *cli.Context) error {
 	switch service {
 	case S3Service:
 		s3Config := config.NewS3Config()
-		if !ciphertext.TestS3Connection(amazon.NewAWSSession(s3Config.AWSConfig, config.RootLogger)) {
+		if !ciphertext.TestS3Connection(amazon.NewAWSSession(s3Config.AWSConfig, config.RootLogger, "S3 connection test")) {
 			fmt.Println("ERROR: Cannot access S3 bucket.")
 			os.Exit(1)
 		} else {

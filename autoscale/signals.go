@@ -326,9 +326,9 @@ func WatchForShutdown(z *zookeeper.ZKState, logger *zap.Logger) {
 	sqsConfig := config.NewAutoScalingConfig()
 
 	//We use this to get remote messages to shut down
-	var sqsSession AutoScalerSQS = sqs.New(amazon.NewAWSSession(sqsConfig.AWSConfigSQS, logger))
+	var sqsSession AutoScalerSQS = sqs.New(amazon.NewAWSSession(sqsConfig.AWSConfigSQS, logger, "autoscaler SQS"))
 	//We need this if we want to stay alive after getting a termination message.
-	var asgSession AutoScalerASG = autoscaling.New(amazon.NewAWSSession(sqsConfig.AWSConfigASG, logger))
+	var asgSession AutoScalerASG = autoscaling.New(amazon.NewAWSSession(sqsConfig.AWSConfigASG, logger, "autoscaler ASG"))
 
 	as := &AutoScaler{
 		Logger:      logger,

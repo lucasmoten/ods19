@@ -97,11 +97,11 @@ Object Drive publishes a single event stream for client applications.
 
 | Name | Description | Default |
 | --- | --- | --- |
-| OD_EVENT_KAFKA_ADDRS | A comma-separated list of **host:port** pairs.  These are Kafka brokers. | |
+| OD_EVENT_KAFKA_ADDRS | A comma-separated list of **host:port** pairs.  These are Kafka brokers. If both OD_EVENT_KAFKA_ADDRS and OD_EVENT_ZK_ADDRS are provided, then OD_EVENT_KAFKA_ADDRS will take precedence. | |
 | OD_EVENT_PUBLISH_FAILURE_ACTIONS | A comma delimited list of event action types that should be published to kafka if request failed. The default value * enables all failure events to be published. Permissible values are access, authenticate, create, delete, list, undelete, unknown, update, zip. | * |
 | OD_EVENT_PUBLISH_SUCCESS_ACTIONS | A comma delimited list of event action types that should be published to kafka if request succeeded. The default value * enables all success events to be published. Permissible values are access, authenticate, create, delete, list, undelete, unknown, update, zip. | * |
 | OD_EVENT_TOPIC | The name of the topic for which events will be published to. | odrive-event |
-| OD_EVENT_ZK_ADDRS | A comma-separated list of **host:port** pairs. These are ZK nodes.  | |
+| OD_EVENT_ZK_ADDRS | A comma-separated list of **host:port** pairs. These are Zookeeper nodes. If both OD_EVENT_KAFKA_ADDRS and OD_EVENT_ZK_ADDRS are provided, then OD_EVENT_KAFKA_ADDRS will take precedence.  Configurations using OD_EVENT_ZK_ADDRS will reconnect on failure. | |
 
 **NOTE:** If both the Kafka broker and ZooKeeper address options are blank, Object Drive will not publish events.
 

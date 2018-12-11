@@ -102,7 +102,7 @@ type DatabaseConfiguration struct {
 	Protocol string `yaml:"protocol"`
 	// Host is the database hostname.
 	Host string `yaml:"host"`
-	// Port is the database port. Commonly 3363 for MySQL.
+	// Port is the database port. Commonly 3306 for MySQL.
 	Port string `yaml:"port"`
 	// Schema is the database name to connect to. A single server can host
 	// many logical schemas. The object drive default is "metadatadb".

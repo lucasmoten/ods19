@@ -2,6 +2,9 @@
 import os, subprocess, datetime
 
 # This script is run during docker build.
+os.environ["CGO_ENABLED"] = "1"
+os.environ["GOOS"] = "linux"
+os.environ["GOARCH"] = "amd64"
 
 odrive_root = "/go/src/bitbucket.di2e.net/dime/object-drive-server"
 database_root = os.path.join(odrive_root, "cmd", "odrive-database")
@@ -9,9 +12,7 @@ binary_root = os.path.join(odrive_root, "cmd", "odrive")
 obfuscate_root = os.path.join(odrive_root, "cmd", "obfuscate")
 os.chdir(database_root)
 subprocess.check_call(["tar", "cvfz", "odrive-schema-V1.tar.gz", "schema"])
-os.environ["CGO_ENABLED"] = "1"
-os.environ["GOOS"] = "linux"
-os.environ["GOARCH"] = "amd64"
+subprocess.check_call(["go", "build"])
 #os.environ["LD_LIBRARY_PATH"] = "/opt/glibc-2.14/lib"
 os.chdir(obfuscate_root)
 subprocess.check_call(["go", "build"])

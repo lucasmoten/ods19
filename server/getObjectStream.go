@@ -256,13 +256,15 @@ func sanitizeDisposition(s string) string {
 
 func sanitizeAgainstCRLFInHeader(s string) string {
 	o := s
-	// Disallow any carriage returns, line feeds
+	// Disallow any carriage returns, line feeds, null
 	o = strings.Replace(o, "\r", "", -1)
 	o = strings.Replace(o, "%0d", "", -1)
 	o = strings.Replace(o, "%0D", "", -1)
 	o = strings.Replace(o, "\n", "", -1)
 	o = strings.Replace(o, "%0a", "", -1)
 	o = strings.Replace(o, "%0A", "", -1)
+	o = strings.Replace(o, "%00", "_", -1)
+	o = strings.Replace(o, "\x00", "_", -1)
 	return o
 }
 

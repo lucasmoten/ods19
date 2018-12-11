@@ -24,9 +24,9 @@ Map of repo names to their valid git remotes, and the branch to checkout.
 """
 GIT_DEPENDENCIES = {
     'object-drive-ui':
-        ('ssh://git@gitlab.363-283.io:2252/cte/object-drive-ui.git', 'develop'),
+        ('ssh://git@bitbucket.di2e.net:7999/dime/object-drive-ui.git', 'develop'),
     'dias-simulator':
-        ('ssh://git@gitlab.363-283.io:2252/bedrock/dias-simulator.git', 'master'),
+        ('ssh://git@bitbucket.di2e.net:7999/dime/dias-simulator.git', 'master'),
 }
 
 """
@@ -673,9 +673,9 @@ def parse_args():
     default_images= ["deciphernow/odrive",
                      "deciphernow/odrive-bc",
                      "deciphernow/gatekeeper",
+                     "deciphernow/metadatadb",
                      "deciphernow/odriverpm",
                      "deciphernow/odriverpm-bc",
-                     "deciphernow/metadatadb",
                      "deciphernow/dias"]
     
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
