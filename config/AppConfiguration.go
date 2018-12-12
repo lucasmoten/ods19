@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	odrivecrypto "bitbucket.di2e.net/dime/object-drive-server/crypto"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 	"bitbucket.di2e.net/greymatter/gov-go/gov/encryptor"
 
@@ -194,6 +195,13 @@ type DiskCacheOpts struct {
 // ServerSettingsConfiguration holds the attributes needed for
 // setting up an AppServer listener.
 type ServerSettingsConfiguration struct {
+	// EncryptEnabled indicates indicates whether or not file streams will be encrypted at rest.
+	EncryptEnabled       bool
+	EncryptEnabledString string `yaml:"encrypt_enabled"`
+	//EncryptableFunctions contains the set of functions to be used for encryption.  When EncryptEnabled is true
+	//they encrypt, otherwise they do not. This structure is used throughout
+	//the application to support the ability to turn file encryption off and on.
+	EncryptableFunctions EncryptableFunctions
 	// BasePath is the root URL for static assets. Only used for debug UI.
 	BasePath string `yaml:"base_path"`
 	// ListenPort is the port the server listens on. Default is 4430.
@@ -402,8 +410,8 @@ func NewDatabaseConfigFromEnv(confFile AppConfiguration, opts CommandLineOpts) D
 	dbConf.Params = cascade(OD_DB_CONN_PARAMS, confFile.DatabaseConnection.Params, "parseTime=true&collation=utf8_unicode_ci&readTimeout=30s")
 	dbConf.Protocol = cascade(OD_DB_PROTOCOL, confFile.DatabaseConnection.Protocol, "tcp")
 	dbConf.Driver = cascade(OD_DB_DRIVER, confFile.DatabaseConnection.Driver, DBDRIVERMYSQL)
-	dbConf.UseTLS = cascadeBoolFromString(OD_DB_USE_TLS, confFile.DatabaseConnection.UseTLSString, true)
-	dbConf.SkipVerify = cascadeBoolFromString(OD_DB_SKIP_VERIFY, confFile.DatabaseConnection.SkipVerifyString, false)
+	dbConf.UseTLS = CascadeBoolFromString(OD_DB_USE_TLS, confFile.DatabaseConnection.UseTLSString, true)
+	dbConf.SkipVerify = CascadeBoolFromString(OD_DB_SKIP_VERIFY, confFile.DatabaseConnection.SkipVerifyString, false)
 	dbConf.MaxIdleConns = cascadeInt(OD_DB_MAXIDLECONNS, confFile.DatabaseConnection.MaxIdleConns, 10)
 	dbConf.MaxOpenConns = cascadeInt(OD_DB_MAXOPENCONNS, confFile.DatabaseConnection.MaxOpenConns, 10)
 	dbConf.MaxConnLifetime = cascadeInt(OD_DB_CONNMAXLIFETIME, confFile.DatabaseConnection.MaxConnLifetime, 30)
@@ -510,6 +518,8 @@ func newServerSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) S
 	settings.ReadTimeout = cascadeInt(OD_SERVER_TIMEOUT_READ, confFile.ServerSettings.ReadTimeout, 0)
 	settings.ReadHeaderTimeout = cascadeInt(OD_SERVER_TIMEOUT_READHEADER, confFile.ServerSettings.ReadHeaderTimeout, 5)
 	settings.WriteTimeout = cascadeInt(OD_SERVER_TIMEOUT_WRITE, confFile.ServerSettings.WriteTimeout, 3600)
+	settings.EncryptEnabled = CascadeBoolFromString(OD_ENCRYPT_ENABLED, confFile.ServerSettings.EncryptEnabledString, true)
+	settings.EncryptableFunctions = NewEncryptableFunctions(settings.EncryptEnabled)
 
 	// Defaults
 	settings.MinimumVersion = opts.TLSMinimumVersion
@@ -531,6 +541,23 @@ func newServerSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) S
 	}
 
 	return settings
+}
+
+//NewEncryptableFunctions creates the set of function that can have optional encryption
+func NewEncryptableFunctions(encryptEnabled bool) EncryptableFunctions {
+	if encryptEnabled {
+		return EncryptableFunctions{
+			EncryptionBanner:       NoopEncryptionBannerF,
+			EncryptionWarning:      NoopEncryptionWarningF,
+			DoCipherByReaderWriter: odrivecrypto.DoCipherByReaderWriter,
+		}
+	} else {
+		return EncryptableFunctions{
+			EncryptionBanner:       EncryptionBannerF,
+			EncryptionWarning:      EncryptionWarningF,
+			DoCipherByReaderWriter: odrivecrypto.DoNocipherByReaderWriter,
+		}
+	}
 }
 
 // newZKSettingsFromEnv inspects the environment and returns a AACConfiguration.
@@ -726,7 +753,7 @@ func cascade(fromEnv, fromFile, defaultVal string) string {
 	return defaultVal
 }
 
-func cascadeBoolFromString(fromEnv string, fromFile string, defaultVal bool) bool {
+func CascadeBoolFromString(fromEnv string, fromFile string, defaultVal bool) bool {
 	if envVal := os.Getenv(fromEnv); envVal != "" {
 		return (strings.ToLower(envVal) == "true")
 	}

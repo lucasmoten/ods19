@@ -38,6 +38,8 @@ func Start(conf config.AppConfiguration) error {
 		return err
 	}
 
+	logger.Info(conf.ServerSettings.EncryptableFunctions.EncryptionBanner())
+
 	d, dbID, err := dao.NewDataAccessLayer(conf.DatabaseConnection, dao.WithLogger(logger))
 	if err != nil {
 		logger.Error("error configuring dao.  check envrionment variable settings for OD_DB_*", zap.Error(err))

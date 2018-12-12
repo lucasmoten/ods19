@@ -161,6 +161,7 @@ func TestUndeleteExpungedObjectFails(t *testing.T) {
 		TypeLruCache:    ccache.New(ccache.Configure().MaxSize(100).ItemsToPrune(5)),
 		AAC:             fakeAAC,
 		EventQueue:      fakeQueue,
+		Conf:            FakeServerSettingsConfiguration(),
 	}
 
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
@@ -224,6 +225,7 @@ func TestUndeleteObjectWithDeletedAncestorFails(t *testing.T) {
 		UserAOsLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
 		TypeLruCache:    ccache.New(ccache.Configure().MaxSize(100).ItemsToPrune(5)),
 		EventQueue:      fakeQueue,
+		Conf:            FakeServerSettingsConfiguration(),
 	}
 
 	whitelistedDN := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"

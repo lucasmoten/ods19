@@ -236,6 +236,9 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("odrive-server", h.Version)
 	}
 
+	encWarningKey, encWarningVal := h.Conf.EncryptableFunctions.EncryptionWarning()
+	w.Header().Add(encWarningKey, encWarningVal)
+
 	caller := CallerFromRequest(r)
 	logger := config.RootLogger.With(zap.String("session", sessionID))
 	defer logCrashInServeHTTP(logger, w)

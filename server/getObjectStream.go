@@ -412,7 +412,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	iv := adjustIV(object.EncryptIV, byteRange)
 	//Actually send back the cipherFile
 	var actualLength int64
-	_, actualLength, err = crypto.DoCipherByReaderWriter(
+	_, actualLength, err = h.Conf.EncryptableFunctions.DoCipherByReaderWriter(
 		logger,
 		cipherReader,
 		w,

@@ -207,7 +207,7 @@ func zipWriteFile(
 	// Actually send back the cipherFile to zip stream - decrypted
 	byteRange := &crypto.ByteRange{Start: 0, Stop: -1}
 	var actualLength int64
-	_, actualLength, err = crypto.DoCipherByReaderWriter(
+	_, actualLength, err = h.Conf.EncryptableFunctions.DoCipherByReaderWriter(
 		logger,
 		cipherReader,
 		w,

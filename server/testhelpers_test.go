@@ -17,6 +17,7 @@ import (
 	"strings"
 	"testing"
 
+	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
 	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
@@ -528,4 +529,11 @@ func hashMD5OfFile(file *os.File) ([]byte, error) {
 	}
 
 	return hash.Sum(nil), nil
+}
+
+func FakeServerSettingsConfiguration() config.ServerSettingsConfiguration {
+	encryptEnabled := (strings.ToLower(getEnvWithDefault(config.OD_ENCRYPT_ENABLED, "true")) == "true")
+	return config.ServerSettingsConfiguration{
+		EncryptableFunctions: config.NewEncryptableFunctions(encryptEnabled),
+	}
 }

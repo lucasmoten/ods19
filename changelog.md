@@ -32,6 +32,7 @@ FORMAT: 1A
 * CFG: Renamed environment variables for database `OD_DEADLOCK_RETRYCOUNTER` becomes `OD_DB_DEADLOCK_RETRYCOUNTER`
 * CFG: Renamed environment variables for database `OD_DEADLOCK_RETRYDELAYMS` becomes `OD_DB_DEADLOCK_RETRYDELAYMS`
 * ENH: Adding support for configuration file vs environment variables
+* ENH: Adds new option to store files in unencrypted form based upon a configuration file setting.	
 
 ## Release v1.0.18 (November 14, 2018)
 ---------------------
