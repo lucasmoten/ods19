@@ -3,7 +3,6 @@ server {
     listen 80;
     listen 443 ssl default_server;
     server_name localhost;
-    ssl on;
     error_log   /dev/stdout debug;
 
 
@@ -57,46 +56,6 @@ ES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:
     }
 
 
-
-
-    #
-    # Proxy Finder Proxy to docker container
-    #
-    location ^~ /services/finder/1.0/ {
-        rewrite ^/services/finder/1.0/(.*) /$1 break;
-        # The command we provide in docker-compose.yml will use 'envsubst' to replace ${VAR} placeholders shown below
-        # with actual values.
-        proxy_pass https://${FINDER_HOST}:${FINDER_PORT};
-        proxy_set_header USER_DN    $ssl_client_s_dn;
-        proxy_set_header EXTERNAL_SYS_DN 'cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us';
-        proxy_set_header Host       $host;
-        proxy_set_header X-Real-IP  $remote_addr;
-    }
-    location ^~ /services/csx/proxy/1.2/ {
-        rewrite ^/services/csx/proxy/1.2/(.*) /$1 break;
-        # The command we provide in docker-compose.yml will use 'envsubst' to replace ${VAR} placeholders shown below
-        # with actual values.
-        proxy_pass https://${FINDER_HOST}:${FINDER_PORT};
-        proxy_set_header USER_DN    $ssl_client_s_dn;
-        proxy_set_header EXTERNAL_SYS_DN 'cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us';
-        proxy_set_header Host       $host;
-        proxy_set_header X-Real-IP  $remote_addr;
-    }
-
-
-    #
-    # Proxy CTE User Service to docker container
-    #
-    location ^~ /services/userservice/1.0/ {
-        rewrite ^/services/userservice/1.0/(.*) /$1 break;
-        # The command we provide in docker-compose.yml will use 'envsubst' to replace ${VAR} placeholders shown below
-        # with actual values.
-        proxy_pass https://${CTE_USER_SERVICE_HOST}:${CTE_USER_SERVICE_PORT};
-        proxy_set_header USER_DN    $ssl_client_s_dn;
-        proxy_set_header Host       $host;
-        proxy_set_header X-Real-IP  $remote_addr;
-    }
-
     #
     # Proxy aac requests to docker container
     #
@@ -130,14 +89,6 @@ ES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:
         proxy_set_header X-Real-IP  $remote_addr;
     }
 
-    #location /services/apps/1.0 {
-    #    expires -1;
-    #    proxy_pass https://${CTE_APPS_SERVICE_HOST}:${CTE_APPS_SERVICE_PORT}/services/apps/1.0;
-    #    proxy_set_header USER_DN    $ssl_client_s_dn;
-    #    proxy_set_header Host       $host;
-    #    proxy_set_header X-Real-IP  $remote_addr;
-    #}
-
     location /services/apps/1.0/apps/id/chm_drive {
         try_files $uri /apps/drive/json/chm_drive.json;
     }
@@ -148,45 +99,27 @@ ES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:
         try_files $uri /apps/drive/json/piwik.php;
     }
 
-    location /services/ess/1.0 {
-            expires -1;
-
-            # determine USER_DN and EXTERNAL_SYS_DN (if USER_DN exists, impersonation is true)
-            set $user_dn_value $ssl_client_s_dn;
-            set $external_sys_dn_value '';
-            if ($http_user_dn) {
-                set $user_dn_value $http_user_dn;
-                set $external_sys_dn_value $ssl_client_s_dn_value;
-            }
-
-            proxy_set_header EXTERNAL_SYS_DN $external_sys_dn_value;
-            proxy_set_header USER_DN $user_dn_value;
-
-            proxy_pass               http://es:9200/services/ess/1.0;
+    #
+    # Workaround for jspm_packages living outside the gulp dev package
+    #
+    location ~ ^/apps/finder/jspm_packages/ {
+        root /etc/nginx/apps;
+        rewrite ^/apps/finder/jspm_packages/(.*) /jspm_packages/finder/$1 break;
+        try_files $uri index.html;
     }
 
+    #
+    # Proxy to app finder
+    #
+    location /apps/finder/ {
+        root /opt/;
+        try_files $uri /apps/finder/index.html;
+    }
 
-     #
-     # Workaround for jspm_packages living outside the gulp dev package
-     #
-     location ~ ^/apps/finder/jspm_packages/ {
-         root /etc/nginx/apps;
-         rewrite ^/apps/finder/jspm_packages/(.*) /jspm_packages/finder/$1 break;
-         try_files $uri index.html;
-     }
-
-     #
-     # Proxy to app finder
-     #
-     location /apps/finder/ {
-         root /opt/;
-         try_files $uri /apps/finder/index.html;
-     }
-
-     location /apps/drive/ {
-         root /opt/;
-         try_files $uri /apps/drive/index.html;
-     }
+    location /apps/drive/ {
+        root /opt/;
+        try_files $uri /apps/drive/index.html;
+    }
 
     location /acm {
         proxy_pass https://${AAC_SERVICE_HOST}:${AAC_SERVICE_PORT};
@@ -195,26 +128,6 @@ ES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:
         proxy_set_header X-Real-IP  $remote_addr;
     }
 
-
-
-#    location / {
-#         expires -1;
-#         proxy_pass              http://builder:9000;
-#         # websocket config for browserSync
-#         proxy_http_version 1.1;
-#         proxy_set_header Upgrade $http_upgrade;
-#         proxy_set_header Connection "upgrade";
-#         proxy_set_header Host $host;
-#    }
-
-
-    #
-    # Proxy 2-way SSL connections (i.e., client pki cert) to dockerized Piwik analytics service
-    #
-    #location ^~ /piwik/ {
-    #    rewrite ^/piwik/(.*) /$1 break;
-    #    proxy_pass      http://piwik-proxy:1280;
-    #}
 
     #
     # Proxy to bedrock-static-assets

@@ -1,12 +1,15 @@
 package server_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
 	"testing"
+	"time"
 
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 
@@ -484,5 +487,76 @@ func TestListObjectsForNonExistentUser(t *testing.T) {
 	if res.StatusCode != http.StatusForbidden {
 		log.Printf("bad status: %s", res.Status)
 		t.FailNow()
+	}
+}
+
+func TestListObjectsWithOCUSGOV(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+	DN4TP := strconv.FormatInt(time.Now().Unix(), 10)
+	theFilename := "jira-DIMEODS-1183-" + DN4TP + ".png"
+	method := "POST"
+	uri := mountPoint + "/objects"
+	jiraDIMEODS1183 := `
+------WebKitFormBoundaryJcb70Da1bmhPiYzE
+Content-Disposition: form-data; name="ObjectMetadata"
+
+{"content":{"ext":"png"},"type":"image/png","file":{},"acm":{"fgi_open":[],"rel_to":[],"dissem_countries":["USA"],"sci_ctrls":["HCS-P","SI-G"],"owner_prod":["USA"],"portion":"TS//HCS-P/SI-G//OC-USGOV/NF","disp_only":"","disponly_to":[],"banner":"TOP SECRET//HCS-P/SI-G//ORCON-USGOV/NOFORN","non_ic":[],"classif":"TS","atom_energy":[],"dissem_ctrls":["OC-USGOV","NF"],"sar_id":[],"version":"2.1.0","fgi_protect":[],"share":{"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}},"user_dn":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","permission":{"create":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"delete":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"read":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"share":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"update":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}},"name":"` + theFilename + `"}
+------WebKitFormBoundaryJcb70Da1bmhPiYzE
+Content-Disposition: form-data; name="filestream"; filename="` + theFilename + `"
+Content-Type: image/png
+
+
+------WebKitFormBoundaryJcb70Da1bmhPiYzE--
+	
+	`
+	t.Logf(`* Attempt to upload file with OC-USGOV having name ` + theFilename)
+	var requestBuffer *bytes.Buffer
+	requestBuffer = bytes.NewBufferString(jiraDIMEODS1183)
+	req, err := http.NewRequest(method, uri, requestBuffer)
+	if err != nil {
+		t.Logf("Error setting up HTTP request: %v", err)
+		t.FailNow()
+	}
+	req.Header.Set("Content-Type", "multipart/form-data; boundary=----WebKitFormBoundaryJcb70Da1bmhPiYzE")
+	createObjectRes, err := clients[tester10].Client.Do(req)
+	defer util.FinishBody(createObjectRes.Body)
+	t.Logf("* Processing Response")
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, createObjectRes, "Bad status when creating object")
+	data, _ := ioutil.ReadAll(createObjectRes.Body)
+	t.Logf("* Length of data in response is %d", len(data))
+
+	t.Logf("* Listing objects with the name " + theFilename)
+	method = "GET"
+	uri = uri + "?filterMatchType=and&filterField=name&condition=equals&expression=" + theFilename
+	reqList, err := http.NewRequest(method, uri, nil)
+	if err != nil {
+		t.Logf("Error setting up HTTP request to list objects: %v", err)
+		t.FailNow()
+	}
+	listObjectRes, err := clients[tester10].Client.Do(reqList)
+	defer util.FinishBody(listObjectRes.Body)
+	t.Logf("* Processing Response from List")
+	failNowOnErr(t, err, "Unable to do request")
+	statusMustBe(t, 200, listObjectRes, "Bad status when listing objects")
+	dataList, _ := ioutil.ReadAll(listObjectRes.Body)
+	//t.Logf("%s", dataList)
+	var ret protocol.ObjectResultset
+	jsonErr := json.Unmarshal(dataList, &ret)
+	if jsonErr != nil {
+		t.Logf("Error unmarshalling body to json object")
+		t.FailNow()
+	}
+	if ret.TotalRows != 1 {
+		t.Logf("Unexpected number of results returned. Got %d expected 1", ret.TotalRows)
+		t.FailNow()
+	}
+	if ret.Objects[0].Name == theFilename {
+		t.Logf("Object found")
+	} else {
+		t.Logf("Object returned in list didn't match expected name. Got '%s', expected '%s'", ret.Objects[0].Name, theFilename)
 	}
 }

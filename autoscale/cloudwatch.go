@@ -101,8 +101,11 @@ func CloudWatchStartInterval(tracker *performance.JobReporters, now int64) {
 	cwAccumulatorMutex.Unlock()
 }
 
-// log debug info to cloudwatch that you can see if you sdet log level to debug
+// log debug info to cloudwatch that you can see if you set log level to debug
 func logMetricDatum(logger *zap.Logger, d *cloudwatch.MetricDatum) {
+	if d.Value == nil {
+		return
+	}
 	logger.Debug(
 		"cloudwatch datum",
 		zap.String("MetricName", *d.MetricName),
@@ -264,7 +267,7 @@ func CloudWatchReportingStart(tracker *performance.JobReporters) {
 		//We use an immutable dimension that marks this as the odrive service, where we actually report to CloudWatch
 		//for the IP (presuming they are unique, which is generally true outside of docker deployments)
 		namespace = aws.String(cwConfig.Name)
-		cwSession = cloudwatch.New(amazon.NewAWSSession(cwConfig.AWSConfig, logger))
+		cwSession = cloudwatch.New(amazon.NewAWSSession(cwConfig.AWSConfig, logger, "cloudwatch"))
 		if cwSession == nil {
 			logger.Warn("cloudwatch txn fail on null session")
 		}

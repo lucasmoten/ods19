@@ -3,23 +3,22 @@ version: '2'
 services:
 
   dias:
-    image: deciphernow/dias:1.1.0    
+    image: docker-dime.di2e.net/dime/dias-simulator:1.1.0    
     ports:
       - "8443:443"
 
   zk:
-    image: wurstmeister/zookeeper:3.4.6
+    image: docker-dime.di2e.net/backend/zookeeper:3.4.9
     ports:
       - "2181:2181"
 
   redis:
-    image: docker.363-283.io/docker/backend:redis-3.2.2
+    image: docker-dime.di2e.net/backend/redis:3.2.2
     depends_on:
       - zk
 
   aac:
-    #image: docker.363-283.io/cte/cte-security-service:1.2.2-SNAPSHOT
-    image: docker.363-283.io/cte/cte-security-service:latest
+    image: docker-dime.di2e.net/dime/aac-service:1.2.3
     tty: true
     stdin_open: true
     ports:
@@ -44,7 +43,7 @@ services:
       - dias
 
   metadatadb:
-    image: "deciphernow/metadatadb:latest"
+    image: docker-dime.di2e.net/dime/object-drive-metadatadb:v1.0.18b4
     mem_limit: 1024m
     cpuset: "0"
     environment:
@@ -59,7 +58,7 @@ services:
     command: "./docker-entrypoint.sh mysqld_safe"
 
   odrive:
-    image: "deciphernow/odrive:latest"
+    image: docker-dime.di2e.net/dime/object-drive-server:v1.0.18b4-bc
     environment:
         - OD_AAC_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
         - OD_AAC_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.cert.pem

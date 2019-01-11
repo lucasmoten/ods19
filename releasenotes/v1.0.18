@@ -1,0 +1,41 @@
+Name:   ODrive 1.0.18 CI Build 2768
+Tag:    v1.0.18
+Commit: 0f4c39edd2878081d80e640d6f49492f2f4f8f88
+Date:   November 14, 2018
+
+DOC: Release notes that complement this changelog have been migrated for posterity
+DOC: System Admin Guide updated with FIPS 140-2 info
+FIX: Limited Bulk Delete to 1000 items (4000 was exceeding 30 seconds)
+FIX: Restored API Sample from traffic logs generated when running integration tests
+FIX: Spelling correction in error response for get properties and copy object operations
+FIX: Duplicate user caches will be removed after update, and ignored during retrieve check
+FIX: DB connections closed inside deadlock detection loops after execution
+FIX: ODrive Client now gives error if initializing empty trust file
+FIX: Service will no longer open excessive connections to ZK from Keepalive check
+FIX: Configurable OD_AAC_HEALTHCHECK ACM now applies in all 4 places healthchecks performed
+FIX: API documentation for Update Object indicates contentType can be provided
+NEW: LRU Caching enabled for User AO and Object Types to improve performance
+NEW: A new command line flag 'isfips' will report whether compiled with BoringCrypto/BoringSSL
+NEW: Now optionally built using Golang 1.11b4 with BoringCrypto/BoringSSL module support for FIPS
+NEW: Additional docker image generation with boring crypto have `-bc` suffix
+ENH: DB Healthcheck reports open connection count, and will force close/reopen when at max
+ENH: DB connection count is now reported in metrics available at /stats
+ENH: Additional debug logging added to AAC calls, DAO calls, and changed level of others 
+ENH: Client.go for service now encapsulates protocol objects improving portability
+REF: DAO tests no longer depend on server package
+CFG: Server timeouts in docker-compose set to allow up to 60 seconds to write response
+
+
+For Upgrading
+DB: No database update is required if upgrading from v1.0.6 or newer. The current expected schema version is 20170726.
+Server: If you are upgrading from v1.0.10 or newer, then perform a standard upgrade as follows
+  yum upgrade object-drive-1.0-1.0.18b4-2768.20181114.x86_64.rpm
+If you are upgrading from a version prior to v1.0.10, then changes to the versioning scheme in the package metadata will cause the above upgrade to fail for does not update installed package. You can force an update by using the rpm command as follows
+  rpm --force --upgrade object-drive-1.0-1.0.18b4-2768.20181114.x86_64.rpm
+
+Prebuilt RPM
+https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/object-drive-server/object-drive-1.0-1.0.18b4-2768.20181114.x86_64.rpm
+
+Containers
+Server: docker-dime.di2e.net/dime/object-drive-server:v1.0.18b4-bc
+Database: docker-dime.di2e.net/dime/object-drive-metadatadb:v1.0.18b4

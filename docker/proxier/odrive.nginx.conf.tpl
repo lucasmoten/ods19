@@ -164,30 +164,6 @@ ES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:
             proxy_pass               http://es:9200/services/ess/1.0;
     }
 
-
-    #
-    # csx-saved-search-service requests to docker container
-    #
-    #location ^~ /services/saved-search/1.0/ {
-    #    rewrite ^/services/saved-search/1.0/(.*) /$1 break;
-    #    # The command we provide in docker-compose.yml will use 'envsubst' to replace ${VAR} placeholders shown below
-    #    # with actual values.
-    #    proxy_pass https://${SAVED_SEARCH_SERVICE_HOST}:${SAVED_SEARCH_SERVICE_PORT};
-    #    proxy_set_header USER_DN    $ssl_client_s_dn;
-    #    proxy_set_header Host       $host;
-    #    proxy_set_header X-Real-IP  $remote_addr;
-    #}
-
-    #
-    # Proxy 2-way SSL connections (i.e., client pki cert) to AWS-based services
-    #
-    #location ^~ /services/ {
-    #    proxy_pass https://bedrock.363-283.io;
-    #    proxy_set_header USER_DN $ssl_client_s_dn;
-    #    proxy_set_header Host      $host;
-    #    proxy_set_header X-Real-IP $remote_addr;
-    #}
-
      #
      # Workaround for jspm_packages living outside the gulp dev package
      #

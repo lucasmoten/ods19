@@ -1,7 +1,7 @@
 node('docker') {
 
     cleanWs()
-    sh 'printenv'
+    //sh 'printenv'
 
     def commit_id
     def git_tag
@@ -16,28 +16,28 @@ node('docker') {
     def use_boring_crypto
     def boring_crypto_version
 
-    stage('Check Compatibility with FIPS') {
-        if(env.NODE_NAME == "jslv4-prod-gw1a.aws.di2e.net") {
-            sh "echo Current node is jslv4-prod-gw1a.aws.di2e.net which is believed to have FIPS enabled and will fail to upload RPM to S3."
-            sh "echo Not even going to do the work here since its all for not"
-            sh "echo If you are seeing this message, go ahead and kick off a rebuild and play roulette on which machine gets the job"
-            sh "echo jslv3-prod-gw1a.aws.di2e.net was a known good at one time"
-            error("Build failed because job ran on an environment with FIPS enabled")
-        }
-    }
+    // stage('Verify not running on FIPS enabled system') {
+    //     if(env.NODE_NAME == "jslv4-prod-gw1a.aws.di2e.net") {
+    //         sh "echo Current node is jslv4-prod-gw1a.aws.di2e.net which is believed to have FIPS enabled and will fail to upload RPM to S3."
+    //         sh "echo Not even going to do the work here since its all for not"
+    //         sh "echo If you are seeing this message, go ahead and kick off a rebuild and play roulette on which machine gets the job"
+    //         sh "echo jslv3-prod-gw1a.aws.di2e.net was a known good at one time"
+    //         error("Build failed because job ran on an environment with FIPS enabled")
+    //     }
+    // }
 
     stage('Install Tools') {
         use_boring_crypto = true
 
         if (use_boring_crypto) {
             boring_crypto_version = "b4"
-            golang_folder = "/home/jenkins/go-1.11b4"
-            golang_tar_file = "go1.11b4.linux-amd64.tar.gz"
-            golang_tar_sum = "d53417b2071af0104fbc15a957000bccdcb5bbc094df0401f67d51968f7f2e4e"
+            golang_folder = "/home/jenkins/go-1.11.4b4"
+            golang_tar_file = "go1.11.4b4.linux-amd64.tar.gz"
+            golang_tar_sum = "e708ef7ecaf17a3e8e6deceadfa167cc1162f710f97ea4bc124d3837d6e2eaa1"
         } else {
-            golang_folder = "/home/jenkins/go-1.11"
-            golang_tar_file = "go1.11.linux-amd64.tar.gz"
-            golang_tar_sum = "b3fcf280ff86558e0559e185b601c9eade0fd24c900b4c63cd14d1d38613e499"
+            golang_folder = "/home/jenkins/go-1.11.4"
+            golang_tar_file = "go1.11.4.linux-amd64.tar.gz"
+            golang_tar_sum = "fb26c30e6a04ad937bbc657a1b5bba92f80096af1e8ee6da6430c045a8db3a5b"
         }
         // This is the secret sauce to setting environment variables within the pipeline
         script {
@@ -209,10 +209,12 @@ node('docker') {
         }
 
         // To S3
-        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'MEME_S3_CREDS',
-                    usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-            sh "aws configure set default.s3.signature_version s3v4"
-            sh "aws s3 cp ./object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm s3://meme-yum-repo/"
+        withDockerContainer(args: "-u root -v /var/run/docker.sock:/var/run/docker.sock", image: "docker.363-283.io/docker/backend:maven-3.3.9-jdk-8") {
+            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'MEME_S3_CREDS',
+                        usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                sh "aws configure set default.s3.signature_version s3v4"
+                sh "aws s3 cp ./object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm s3://meme-yum-repo/"
+            }
         }
 
     }
@@ -234,7 +236,7 @@ node('docker') {
         // tagged release
         if (git_tag != "") {
             if (use_boring_crypto) {
-                sh "docker tag deciphernow/odrive-bc:latest docker-dime.di2e.net/dime/object-drive-server:${version_display}-bc"
+                sh "docker tag deciphernow/odrive-bc:latest docker-dime.di2e.net/dime/object-drive-server:${version_display}"
             } else {
                 sh "docker tag deciphernow/odrive:latest docker-dime.di2e.net/dime/object-drive-server:${version_display}"
             }
@@ -248,11 +250,7 @@ node('docker') {
             // docker.image('docker-dime.di2e.net/dime/object-drive-server:' + commit_id).push()
             // docker.image('docker-dime.di2e.net/dime/object-drive-metadatadb:' + commit_id).push()
             if (git_tag != "") {
-                if (use_boring_crypto) {
-                    docker.image('docker-dime.di2e.net/dime/object-drive-server:' + version_display + '-bc').push()
-                } else {
-                    docker.image('docker-dime.di2e.net/dime/object-drive-server:' + version_display).push()
-                }
+                docker.image('docker-dime.di2e.net/dime/object-drive-server:' + version_display).push()
                 docker.image('docker-dime.di2e.net/dime/object-drive-metadatadb:' + version_display).push()
             }
         }

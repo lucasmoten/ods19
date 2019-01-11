@@ -228,7 +228,6 @@ func GetDistinguishedName(theCert *x509.Certificate) string {
 
 // GetNormalizedDistinguishedName returns a normalized distinguished name that
 // reverses the apache format and comma delimits.
-// Logic rewritten to be modeled after https://gitlab.363-283.io/cte/cte-service-framework/blob/develop/core/src/main/scala/gov/ic/cte/server/security/DNHelper.scala
 func GetNormalizedDistinguishedName(distinguishedName string) string {
 	if len(distinguishedName) == 0 {
 		return distinguishedName

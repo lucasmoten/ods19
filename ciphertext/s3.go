@@ -111,7 +111,7 @@ func NewS3CiphertextCache(zone CiphertextCacheZone, conf config.S3CiphertextCach
 	logger := config.RootLogger.With(zap.String("session", "CiphertextCache"))
 
 	s3Config := config.NewS3Config()
-	sess := amazon.NewAWSSession(s3Config.AWSConfig, logger)
+	sess := amazon.NewAWSSession(s3Config.AWSConfig, logger, "S3 ciphertextcache")
 
 	//Assign permanent storage if we have a bucket name
 	var permanentStorage PermanentStorage

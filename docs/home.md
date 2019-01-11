@@ -94,7 +94,7 @@ A [client library](static/client.go) for projects using Go is available. It supp
 
 ### Java
 
-A [client library](https://gitlab.363-283.io/bedrock/object-drive-client) for projects using Java is available. It supports the following capabilities
+A [client library](https://bitbucket.di2e.net/projects/DIME/repos/object-drive-client/browse) for projects using Java is available. It supports the following capabilities
 
 + Create a new document in Object Drive
 + Retrieve an existing document from Object Drive

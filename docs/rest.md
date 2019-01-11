@@ -313,7 +313,7 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
 
 ### Bulk Delete Objects [DELETE]
 
-Delete a set of objects.  It requires the id and the change token for each one.
+Delete a set of objects to the trash.  It requires the id and the change token for each one.  This operation is limited to a maximum of 1000 items deleted per request.  
 
 + Request (application/json)
 

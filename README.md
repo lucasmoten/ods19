@@ -1,5 +1,7 @@
 # Object Drive Server
 
+Object Drive provides for secure storage and high performance retrieval of hierarchical folder organization of objects that are named, owned and managed by users and their groups. Access control is facilitated by integration of the User AO and Object ACM model through AAC policy guidance. File streams are encrypted in transit and at rest.
+
 # API Documentation
 
 API documentation for the Object Drive service may be reviewed at the root of an instantiated object-drive server,
@@ -11,7 +13,18 @@ previewed [here](./docs/home.md), or accessed from this [live instance on MEME](
 Step by step information for starting Object Drive from complete scratch.
 
 ## 1. Set up go
-1. Make sure `go` is installed, for macs with homebrew it is as simple as `brew install go` or you can download the installer for your platform from https://golang.org/dl/.
+1. Make sure `go` is installed
+
+For macs with homebrew it is as simple as `brew install go`
+
+You can download the installer for your platform from https://golang.org/dl/.
+At the time of writing, the latest available version was GO 1.11.2
+
+Since v1.0.18 of Object Drive, the project now supports BoringCrypto. To build the project with BoringCrypto, download go from https://go-boringcrypto.storage.googleapis.com/
+
+SHA 256 Sum hashes available for released versions here: https://go.googlesource.com/go/+/dev.boringcrypto/misc/boring/RELEASES
+
+At the time of writing, the latest available release version is https://go-boringcrypto.storage.googleapis.com/go1.11b4.linux-amd64.tar.gz
 
 2. Set up your "go path". Go is generally centered around a single workspace for *everything*.
  This is usually at `~/go`.
@@ -55,32 +68,50 @@ Step by step information for starting Object Drive from complete scratch.
 This project depends on OpenSSL, and binds to C code (uses CGO).
 This means you may need to set the `PKG_CONFIG_PATH` variable. This can vary by distribution.
 
-1. Apple has deprecated use of OpenSSL in favor of its own TLS and crypto libraries, so install it.
+##### Mac
+
+Apple has deprecated use of OpenSSL in favor of its own TLS and crypto libraries, so install it.
 On macs with homebrew use `brew install openssl`.
 
-2. Object Drive uses the openssl C bindings, so add it to the correct environment variable.
-If using a mac use `export PKG_CONFIG_PATH="$(brew --prefix openssl)/lib/pkgconfig"` or on linux it may be: `export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig"`
+Object Drive uses the openssl C bindings, so add it to the correct environment variable.
+If using a mac use `export PKG_CONFIG_PATH="$(brew --prefix openssl)/lib/pkgconfig"` 
+
+##### Linux
+
+Object Drive uses the openssl C bindings, so add it to the correct environment variable.
+If using linux it may be: `export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig"`
 
 
 #### Python
 
 The scripts depend on python 2. 
 
-Install in Ubuntu linux via
-```
-sudo apt-get update
-sudo apt-get install python2.7 python-pip
-```
-
+##### Mac
 For Mac, can use brew as follows
 ```
 brew install python@2
 export PATH="/usr/local/opt/python@2/libexec/bin:$PATH"
 ```
 
+##### Linux
+
+Using Ubuntu, this may be installed in Linux via
+```
+sudo apt-get update
+sudo apt-get install python2.7 python-pip
+```
+
 #### Dot and Graphviz
 
 Building documentation requires dot to be installed. 
+
+##### Mac
+
+This may be present by default?
+
+If not, there's probably a way to do in brew. If you find this to be the case, please log an issue to update this README
+
+##### Linux
 
 Install in Ubuntu Linux via
 ```
@@ -94,6 +125,14 @@ Building documentation and container images requires docker to be installed.
 
 Follow the guidance for your platform from the [Docker page](https://docs.docker.com/install/linux/docker-ce/ubuntu/#install-using-the-repository)
 
+##### Mac
+
+Unfortunately, you're kinda on your own for how to do Docker and Docker-Compose on a mac.
+
+It may be more involved for mapping host names, and also increasing resource limits beyond default of 2GB of memory if its still running in a virtualized environment.
+
+
+##### Linux
 In addition, install docker-compose in Ubuntu Linux via
 ```
 sudo apt-get install docker-compose
@@ -110,6 +149,8 @@ newgrp docker
 #### AWS CLI
 
 Use the following commands to install the AWS CLI
+
+This depends on python
 
 ```
 pip install awscli --upgrade --user
@@ -141,34 +182,40 @@ Consider this a volatile directory. This can be anywhere, but a fine choice is `
 
 
 #### Dependent Projects
-If you are developing changes with AAC and DIAS, you will need to retrieve those from a private gitlab repository at gitlab.363-283.io. The project names are
+If you are developing changes with AAC and DIAS, you will need to retrieve those from the repository in DI2E.
 
-* AAC is at cte/cte-security-service
-  * A docker image is available at: `docker.363-283.io/cte/cte-security-service:1.2.2-SNAPSHOT`
+a private git repository at bitbucket.di2e.net. The project names are
+
+* AAC is at https://bitbucket.di2e.net/projects/DIME/repos/aac-service/browse
+  * A docker image is available at: `docker-dime.di2e.net/dime/aac-service:1.2.3`
 * Redis is used by AAC
-  * A docker image is available at: `docker.363-283.io/docker/backend:redis-3.2.2`
-* DIAS is at bedrock/dias-simulator
-  * A docker image is available at: `deciphernow/dias:1.1.0`
+  * A docker image is available at: `docker-dime.di2e.net/backend/redis:3.2.2`
+* DIAS is at https://bitbucket.di2e.net/projects/DIME/repos/dias-simulator/browse
+  * A docker image is available at: `docker-dime.di2e.net/dime/dias-simulator:1.1.0`
 
 Additional external projects referenced by the docker-compose file for testing full event to indexing, and user access
 
 * Finder is a facade around elastic search.
   * A docker image is available at: `docker.363-283.io/bedrock/finder-service:1.0.0-SNAPSHOT`
+  * This should be moved to: `docker-dime.di2e.net/dime/finder-service:1.0`
 * Elastic Search gives some json document search capability
-  * A docker image is available at: `docker.363-283.io/docker/backend:elasticsearch-1.7.2`
+  * A docker image is available at: `docker-dime.di2e.net/backend/elasticsearch:1.7.2`
 * ODrive Indexer listens for events on kafka, and saves to Elastic Search
-  * A docker image is available at: `docker.363-283.io/bedrock/object-drive-indexer-service:1.0.0-SNAPSHOT`
+  * A docker image is available at: `docker-dime.di2e.net/dime/object-drive-indexer-service:2.1.0-SNAPSHOT`
 * User Service
-  * A docker image is available at: `docker.363-283.io/chimera/user-service:1.0.1-SNAPSHOT`
+  * A docker image is available at: `docker-dime.di2e.net/dime/user-service:1.1.1-SNAPSHOT`
 * Postgres is used by the user service for storing data
-  * A docker image is available at: `docker.363-283.io/docker/backend:postgres-9.4`
+  * A docker image is available at: `docker-dime.di2e.net/backend/postgres:9.4`
   
 
-If you have gitlab.363-283.io credentials, you can clone these projects into OD_ROOT as follows
+If you have DI2E credentials, you can clone these projects into OD_ROOT as follows
 ```
-cd $OD_ROOT
-git clone ssh://git@gitlab.363-283.io:2252/cte/cte-security-service.git
-git clone ssh://git@gitlab.363-283.io:2252/bedrock/dias-simulator.git
+cd $GOPATH
+mkdir -p src/bitbucket.di2e.net/dime
+cd src/bitbutcket.di2e.net/dime
+
+git clone ssh://git@bitbucket.di2e.net:7999/dime/aac-service.git
+git clone ssh://git@bitbucket.di2e.net:7999/dime/dias-simulator.git
 ```
 
 When these are present, they can be built when calling `./odb --build`, which will allow you to edit configuration in your dias-simulator instance to alter user permissions for testing.
@@ -223,8 +270,9 @@ A simplified mapping of the certificates looks like this:
 | test_0.p12 | tester10 | TS/SI/TK/G/HCS | DCTC/ODrive, DCTC/ODrive_G1 |
 
 What is actually granted depends on the dias system in use.
-We reference the dias simulator, and profiles can be found here: https://gitlab.363-283.io/bedrock/dias-simulator/blob/master/client/users
+We reference the dias simulator, and profiles can be found here: https://bitbucket.di2e.net/projects/DIME/repos/dias-simulator/browse/client/users
 
+##### Mac
 On a mac, this is handled using your keychain. If you use chrome follow the *Importing your Certificate into Chrome* section of https://www.comodo.com/support/products/authentication_certs/setup/mac_chrome.php for installing the certificates. 
 You will need the certificates found in `$GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/clients/`. The password for all of the `.p12` certification files is `password`. 
 
@@ -276,7 +324,7 @@ mkdir bitbucket.di2e.net/
 cd bitbucket.di2e.net/
 mkdir dime
 cd dime
-git clone https://${USERNAME}@bitbucket.di2e.net/scm/dime/object-drive-server.git
+git clone ssh://git@bitbucket.di2e.net:7999/dime/object-drive-server.git
 ```
 
 Most of the work is being done on the `develop` branch so that is probably what you will want to use that code:
@@ -285,11 +333,24 @@ cd object-drive-server
 git checkout develop
 ```
 
+If making changes to source code, follow these guidelines
+```
+git fetch
+get checkout develop
+get rebase origin/develop
+get checkout -b some-new-branch-name
+```
+In short, dont make changes directly to the develop branch
+
+
+
 Then you should be able to run the following within a go program
 
 ```go
 import "bitbucket.di2e.net/dime/object-drive-server/somepackage"
 ```
+
+If you haven't done so already, you now have the certificates downloaded that were referenced in step 3. You can go ahead and import them into your browser.
 
 ## 5. Build and start the Object Drive Source code
 1. We should be able to move on to building the code!
@@ -318,7 +379,13 @@ import "bitbucket.di2e.net/dime/object-drive-server/somepackage"
     ``` bash
     ./installui
     ```
+    Read access to the decipherers s3 bucket is necessary to retrieve the referenced tarball.
+
     This should download all of the css and html that are needed to make the UI and run everything. The UI should be visible at: https://localhost:8080/apps/drive/home .
+
+    At the time of this writing, this will download version 1.1.2 of the Drive App from September 26, 2017.  
+    
+    It is suitable for viewing files, but may have limitations on uploading files.  It may work for searches that hit the the elasticsearch indexes.
 
 
 ## 6. Run Tests
