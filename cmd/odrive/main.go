@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"runtime"
 	"time"
@@ -48,10 +47,6 @@ func main() {
 			Usage: "A Go ciphersuite for TLS configuration. Can be specified multiple times. See: https://golang.org/src/crypto/tls/cipher_suites.go",
 			Value: &defaultCiphers,
 		},
-		cli.BoolTFlag{
-			Name:  "useTLS",
-			Usage: "Serve content over TLS. Defaults to true.",
-		},
 		cli.StringSliceFlag{
 			Name:  "whitelist",
 			Usage: "Whitelisted DNs for impersonation",
@@ -63,13 +58,11 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "staticRoot",
-			Usage: "Path to static files. Defaults to libs/server/static",
-			Value: filepath.Join("..", "..", "server", "static"),
+			Usage: "Path to static files relative to binary. e.g. ../../server/static",
 		},
 		cli.StringFlag{
 			Name:  "templateDir",
-			Usage: "Path to template files. Defaults to libs/server/static/templates",
-			Value: filepath.Join("..", "..", "server", "static", "templates"),
+			Usage: "Path to template files relative to binary. e.g. ../../server/static/templates",
 		},
 		cli.StringFlag{
 			Name:  "tlsMinimumVersion",

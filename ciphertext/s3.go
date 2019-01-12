@@ -106,8 +106,8 @@ func (s *PermanentStorageData) GetStream(key *string, begin, end int64) (io.Read
 	return out.Body, nil
 }
 
-// NewS3CiphertextCache sets up a drain with default parameters overridden by environment variables
-func NewS3CiphertextCache(zone CiphertextCacheZone, conf config.S3CiphertextCacheOpts, dbID string) (*CiphertextCacheData, *util.Loggable) {
+// NewDiskCache sets up a drain with default parameters overridden by environment variables
+func NewDiskCache(zone CiphertextCacheZone, conf config.DiskCacheOpts, dbID string) (*CiphertextCacheData, *util.Loggable) {
 	logger := config.RootLogger.With(zap.String("session", "CiphertextCache"))
 
 	s3Config := config.NewS3Config()

@@ -324,7 +324,6 @@ func newAppConfigurationWithDefaults() config.AppConfiguration {
 	whitelist := []string{"cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"}
 	opts := config.CommandLineOpts{
 		Ciphers:           []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"},
-		UseTLS:            true,
 		Conf:              filepath.Join(projectRoot, "dao", "testfixtures", "testconf.yml"),
 		TLSMinimumVersion: "1.2",
 	}

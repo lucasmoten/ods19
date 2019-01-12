@@ -10,13 +10,13 @@ import (
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
-func cacheParams(root, partition string) (string, ciphertext.CiphertextCacheZone, config.S3CiphertextCacheOpts, string) {
+func cacheParams(root, partition string) (string, ciphertext.CiphertextCacheZone, config.DiskCacheOpts, string) {
 	// Ensure that uses of decryptor will succeed
 	os.Setenv(config.OD_TOKENJAR_LOCATION, "../defaultcerts/token.jar")
 
 	masterKey := "testkey"
 	chunkSize16MB := int64(16 * 1024 * 1024)
-	conf := config.S3CiphertextCacheOpts{
+	conf := config.DiskCacheOpts{
 		Root:          root,
 		Partition:     partition,
 		LowWatermark:  float64(0.50),

@@ -12,8 +12,7 @@ import (
 )
 
 // GetAACClient creates a new AacServiceClient.
-func GetAACClient(aacHost string, aacPort int, trustPath, certPath, keyPath string) (*AacServiceClient, error) {
-	serverCN := config.GetEnvOrDefault(config.OD_AAC_CN, "")
+func GetAACClient(aacHost string, aacPort int, trustPath, certPath, keyPath string, serverCN string) (*AacServiceClient, error) {
 	insecureSkipVerify := config.GetEnvOrDefault(config.OD_AAC_INSECURE_SKIP_VERIFY, "false") == "true"
 	conn, err := ssl.NewTLSClientConn(
 		trustPath,

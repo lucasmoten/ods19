@@ -1,7 +1,15 @@
+@Library('service')
+import dime.jenkins.Service
+
+def service = new Service(this, env)
+
 node('docker') {
 
     cleanWs()
-    //sh 'printenv'
+    sh 'printenv'
+    def saltEnvs = ['aws']
+    def serviceName = 'object-drive'
+    def serviceVersion = '1.0'
 
     def commit_id
     def git_tag
@@ -15,6 +23,7 @@ node('docker') {
     def govgopath
     def use_boring_crypto
     def boring_crypto_version
+    def tarroot
 
     // stage('Verify not running on FIPS enabled system') {
     //     if(env.NODE_NAME == "jslv4-prod-gw1a.aws.di2e.net") {
@@ -28,16 +37,13 @@ node('docker') {
 
     stage('Install Tools') {
         use_boring_crypto = true
-
         if (use_boring_crypto) {
             boring_crypto_version = "b4"
             golang_folder = "/home/jenkins/go-1.11.4b4"
             golang_tar_file = "go1.11.4b4.linux-amd64.tar.gz"
             golang_tar_sum = "e708ef7ecaf17a3e8e6deceadfa167cc1162f710f97ea4bc124d3837d6e2eaa1"
         } else {
-            golang_folder = "/home/jenkins/go-1.11.4"
-            golang_tar_file = "go1.11.4.linux-amd64.tar.gz"
-            golang_tar_sum = "fb26c30e6a04ad937bbc657a1b5bba92f80096af1e8ee6da6430c045a8db3a5b"
+            error("Boring Crypto is required for Go Builds in this environment")
         }
         // This is the secret sauce to setting environment variables within the pipeline
         script {
@@ -47,6 +53,7 @@ node('docker') {
             env.PATH = "${GOPATH}/bin:${PATH}"
         }
         projectpath = "/home/jenkins/workspace/gocode/src/bitbucket.di2e.net/dime/object-drive-server"
+        tarroot = "${projectpath}/tarprep"
         script {
             env.ODRIVE_ROOT = "${projectpath}"
         }
@@ -57,7 +64,7 @@ node('docker') {
             if (use_boring_crypto) {
                 sh "wget -q https://go-boringcrypto.storage.googleapis.com/${golang_tar_file}"
             } else {
-                sh "wget -q https://dl.google.com/go/${golang_tar_file}"
+                error("Boring Crypto is required for Go Builds in this environment")
             }
             // Check the sha256sum
             actualSum = sh(returnStdout: true, script: "sha256sum ${golang_tar_file}").trim()
@@ -66,7 +73,7 @@ node('docker') {
             if (actualSum != golang_tar_sum) {
                 sh "echo Expected Value: ${golang_tar_sum}"
                 sh "echo   Actual Value: ${actualSum}"
-                error "Actual SHA256SUM of golang download didn't match expected value. Halting"
+                error("Actual SHA256SUM of golang download didn't match expected value. Halting")
             } else {
                 sh "echo sha256sum validated: ${actualSum}"
             }
@@ -95,15 +102,17 @@ node('docker') {
         }
     }
 
-    stage('Checkout Code') {
+    stage('Get Code and Version') {
+        // unfortunately have to check out again to get a reference to the scmVars.GIT_COMMIT that
+        // actually resulted in this job being kicked off!!!  Its not an environment variable
+        // TODO: Determine if there is a way to reference the COMMIT Notification information.
         scmVars = checkout scm
+
         // copy into the go path so we can build it
         sh "mkdir -p ${projectpath}"
         sh "cd ${JENKINS_HOME}/workspace/gocode/src/bitbucket.di2e.net/dime && rm -rf object-drive-server"
-        sh "cp -r ${JENKINS_HOME}/workspace/DIME/object-drive-server ${JENKINS_HOME}/workspace/gocode/src/bitbucket.di2e.net/dime/"
-    }
+        sh "cp -r ${WORKSPACE} ${JENKINS_HOME}/workspace/gocode/src/bitbucket.di2e.net/dime/"
 
-    stage('Determine Version') {
         // get commit id
         commit_id = scmVars.GIT_COMMIT
         sh "echo ${commit_id}"
@@ -141,9 +150,13 @@ node('docker') {
             version_patch = '0'
         }
         version_full = version_major + "." + version_minor + "." + version_patch
+        version_display = version_full // effectively remove the prefix 'v' from doc rendering and docker image tags
         if (use_boring_crypto) {
             version_full = version_full + boring_crypto_version
             version_display = version_display + boring_crypto_version
+        }
+        if (git_tag == "") {
+            version_display = version_display + "-release-candidate"
         }
         script {
             env.CIRCLE_BUILD_NUM = "${BUILD_NUMBER}"
@@ -153,106 +166,97 @@ node('docker') {
         }
     }
 
-    stage('Build Documentation') {
-        sh "mkdir -p ${projectpath}/server/static/templates"
-        sh "cd ${projectpath} && ./makedocs ${version_display} ${BUILD_NUMBER}"
-    }
-
-    stage('Build Binaries') {
-        if (use_boring_crypto) {
-            sh "cd ${projectpath}/cmd/odrive && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags '-X main.Build=${BUILD_NUMBER} -X main.Commit=${commit_id} -X main.Version=${version_full}'"      
-            sh "cd ${projectpath}/cmd/obfuscate && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build"
-            sh "cd ${projectpath}/cmd/odrive-database && go-bindata schema migrations ../../defaultcerts/client-mysql/id ../../defaultcerts/client-mysql/trust"
-            sh "cd ${projectpath}/cmd/odrive-database && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags '-X main.Build=${BUILD_NUMBER} -X main.Commit=${commit_id} -X main.Version=${version_full}'"
-        } else {
-            sh "cd ${projectpath}/cmd/odrive && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags '-X main.Build=${BUILD_NUMBER} -X main.Commit=${commit_id} -X main.Version=${version_full}'"      
-            sh "cd ${projectpath}/cmd/obfuscate && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build"
-            sh "cd ${projectpath}/cmd/odrive-database && go-bindata schema migrations ../../defaultcerts/client-mysql/id ../../defaultcerts/client-mysql/trust"
-            sh "cd ${projectpath}/cmd/odrive-database && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags '-X main.Build=${BUILD_NUMBER} -X main.Commit=${commit_id} -X main.Version=${version_full}'"
-        }
-    }
-
-    stage('Build Docker Image') {
-        if (use_boring_crypto) {
-            sh "cd ${projectpath} && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 ./odb --build -i deciphernow/odrive-bc -t latest"
-            sh "cd ${projectpath} && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 ./odb --build -i deciphernow/metadatadb -t latest"
-        } else {
-            sh "cd ${projectpath} && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ./odb --build -i deciphernow/odrive -t latest"
-            sh "cd ${projectpath} && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ./odb --build -i deciphernow/metadatadb -t latest"
-        }
-    }
-
-    stage('Run and Test ????') {
-        // TODO: docker-compose to start the stack
-        // TODO: wait for startup
-        // TODO: run integration tests, producing api samples
-    }
-
-    stage('Package and Deploy RPM') {
-        // Make it!
-        build_date = sh(returnStdout: true, script: "date +%Y%m%d").trim()
-        script {
-            env.ODRIVE_BUILDDATE="${build_date}"
-        }
-        sh "cd ${projectpath} && ./makerpm ${version_full} ${commit_id} ${git_tag}"
-        sh "mv ${projectpath}/object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm ${WORKSPACE}"
-
-        // Archived as job output
-        archiveArtifacts artifacts: '*.rpm'
-
-        // To Bamboo
-        // TODO:     sh "./ci/deploy"
-        
-        // To Nexus
-        withCredentials([usernamePassword(credentialsId: 'dime_svc_acct', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-            sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/object-drive-server/object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm"
-        }
-
-        // To S3
-        withDockerContainer(args: "-u root -v /var/run/docker.sock:/var/run/docker.sock", image: "docker.363-283.io/docker/backend:maven-3.3.9-jdk-8") {
-            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'MEME_S3_CREDS',
-                        usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                sh "aws configure set default.s3.signature_version s3v4"
-                sh "aws s3 cp ./object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm s3://meme-yum-repo/"
-            }
-        }
-
-    }
-
-    stage('Tag and Push Docker Images') {
-        // Tag and push images into docker-dime.di2e.net/dime/object-drive-server
-        // latest
-        if (use_boring_crypto) {
-            sh "docker tag deciphernow/odrive-bc:latest docker-dime.di2e.net/dime/object-drive-server:latest"
-        } else {
-            sh "docker tag deciphernow/odrive:latest docker-dime.di2e.net/dime/object-drive-server:latest"
-        }
-        sh "docker tag deciphernow/metadatadb:latest docker-dime.di2e.net/dime/object-drive-metadatadb:latest"
-
-        // by commit id
-        // sh "docker tag deciphernow/odrive:latest docker-dime.di2e.net/dime/object-drive-server:${commit_id}"
-        // sh "docker tag deciphernow/metadatadb:latest docker-dime.di2e.net/dime/object-drive-metadatadb:${commit_id}"
-
-        // tagged release
-        if (git_tag != "") {
+    stage('Build') {
+        parallel docs: {
+            sh "mkdir -p ${projectpath}/server/static/templates"
+            sh "cd ${projectpath} && ./makedocs ${version_display} ${BUILD_NUMBER}"
+        }, binaries: {
             if (use_boring_crypto) {
-                sh "docker tag deciphernow/odrive-bc:latest docker-dime.di2e.net/dime/object-drive-server:${version_display}"
+                sh "cd ${projectpath}/cmd/odrive && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags '-X main.Build=${BUILD_NUMBER} -X main.Commit=${commit_id} -X main.Version=${version_full}'"      
+                sh "cd ${projectpath}/cmd/obfuscate && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build"
+                sh "cd ${projectpath}/cmd/odrive-database && go-bindata schema migrations ../../defaultcerts/client-mysql/id ../../defaultcerts/client-mysql/trust"
+                sh "cd ${projectpath}/cmd/odrive-database && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags '-X main.Build=${BUILD_NUMBER} -X main.Commit=${commit_id} -X main.Version=${version_full}'"
             } else {
-                sh "docker tag deciphernow/odrive:latest docker-dime.di2e.net/dime/object-drive-server:${version_display}"
+                sh "cd ${projectpath}/cmd/odrive && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags '-X main.Build=${BUILD_NUMBER} -X main.Commit=${commit_id} -X main.Version=${version_full}'"      
+                sh "cd ${projectpath}/cmd/obfuscate && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build"
+                sh "cd ${projectpath}/cmd/odrive-database && go-bindata schema migrations ../../defaultcerts/client-mysql/id ../../defaultcerts/client-mysql/trust"
+                sh "cd ${projectpath}/cmd/odrive-database && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags '-X main.Build=${BUILD_NUMBER} -X main.Commit=${commit_id} -X main.Version=${version_full}'"
             }
-            sh "docker tag deciphernow/metadatadb:latest docker-dime.di2e.net/dime/object-drive-metadatadb:${version_display}"
         }
+    }
 
-        // Push images
-        docker.withRegistry('http://docker-dime.di2e.net', 'dime_svc_acct') {
-            docker.image('docker-dime.di2e.net/dime/object-drive-server:latest').push()
-            docker.image('docker-dime.di2e.net/dime/object-drive-metadatadb:latest').push()
-            // docker.image('docker-dime.di2e.net/dime/object-drive-server:' + commit_id).push()
-            // docker.image('docker-dime.di2e.net/dime/object-drive-metadatadb:' + commit_id).push()
-            if (git_tag != "") {
+    stage('Package and Deployment') {
+        parallel docker: {
+            docker_push_latest = false // promotes usage of unstable images. 
+            docker_push_commitid = false
+
+            // Use ODB to package images. 
+            sh "cd ${projectpath} && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 ./odb --build -i deciphernow/odrive-bc -t unsupported-tag"
+            sh "cd ${projectpath} && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 ./odb --build -i deciphernow/metadatadb -t unsupported-tag"
+
+            // Tag and push images into the following using the dime_svc_acct
+            //          docker-dime.di2e.net/dime/object-drive-server
+            //          docker-dime.di2e.net/dime/object-drive-metadatadb
+            sh "docker tag deciphernow/odrive-bc:unsupported-tag docker-dime.di2e.net/dime/object-drive-server:${version_display}"
+            sh "docker tag deciphernow/metadatadb:unsupported-tag docker-dime.di2e.net/dime/object-drive-metadatadb:${version_display}"
+            docker.withRegistry('http://docker-dime.di2e.net', 'dime_svc_acct') {
                 docker.image('docker-dime.di2e.net/dime/object-drive-server:' + version_display).push()
                 docker.image('docker-dime.di2e.net/dime/object-drive-metadatadb:' + version_display).push()
             }
+        }, rpm: {
+            // Make it!
+            build_date = sh(returnStdout: true, script: "date +%Y%m%d").trim()
+            script {
+                env.ODRIVE_BUILDDATE="${build_date}"
+            }
+            sh "cd ${projectpath} && ./makerpm ${version_full} ${commit_id} ${git_tag}"
+            sh "mv ${projectpath}/object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm ${WORKSPACE}"
+            // Archived as job output
+            archiveArtifacts artifacts: '*.rpm'
+            // To Nexus
+            withCredentials([usernamePassword(credentialsId: 'dime_svc_acct', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/object-drive-server/object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm"
+            }
+            // To S3
+            withDockerContainer(args: "-u root -v /var/run/docker.sock:/var/run/docker.sock", image: "docker-dime.di23.net/docker/backend:maven-3.3.9-jdk-8") {
+                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'MEME_S3_CREDS',
+                            usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                    sh "aws configure set default.s3.signature_version s3v4"
+                    sh "aws s3 cp ./object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm s3://meme-yum-repo/"
+                }
+            }
+        }, tar: {
+            // setup folder to act as root
+            sh "rm -rf ${tarroot}"
+            sh "mkdir -p ${tarroot}/bin && mkdir -p ${tarroot}/etc && mkdir -p ${tarroot}/log"
+            // bin - binaries and executables
+            sh "cp ${projectpath}/cmd/odrive/odrive ${tarroot}/bin/odrive"
+            sh "cp ${projectpath}/cmd/odrive-database/odrive-database ${tarroot}/bin/database"
+            sh "cp ${projectpath}/cmd/obfuscate/obfuscate ${tarroot}/bin/obfuscate"
+            // etc - configuration (includes static images, documentation, etc)
+            sh "cp ${projectpath}/cmd/odrive/odrive.yml ${tarroot}/etc/object-drive.yml"
+            sh "mkdir -p ${tarroot}/etc/server/static/css && mkdir -p ${tarroot}/etc/server/static/images && mkdir -p ${tarroot}/etc/server/static/js && mkdir -p ${tarroot}/etc/server/static/templates"
+            sh "cp ${projectpath}/server/static/client.go ${tarroot}/etc/server/static/client.go"
+            sh "cp ${projectpath}/server/static/css/source_code_pro.css ${tarroot}/etc/server/static/css/source_code_pro.css"
+            sh "cp ${projectpath}/server/static/favicon.ico ${tarroot}/etc/server/static/favicon.ico"
+            sh "cp ${projectpath}/server/static/object-drive-1.0-sag.pdf ${tarroot}/etc/server/static/object-drive-1.0-sag.pdf"
+            sh "cp ${projectpath}/server/static/images/odrive-service.png ${tarroot}/etc/server/static/images/odrive-service.png"
+            sh "cp ${projectpath}/server/static/js/getObjectStream.png ${tarroot}/etc/server/static/images/getObjectStream.png"
+            sh "cp ${projectpath}/server/static/js/etag.png ${tarroot}/etc/server/static/js/etag.png"
+            sh "cp ${projectpath}/server/static/templates/APISample.html ${tarroot}/etc/server/static/templates/APISample.html"
+            sh "cp ${projectpath}/server/static/templates/ObjectDriveSDK.java ${tarroot}/etc/server/static/templates/ObjectDriveSDK.java"
+            sh "cp ${projectpath}/server/static/templates/changelog.html ${tarroot}/etc/server/static/templates/changelog.html"
+            sh "cp ${projectpath}/server/static/templates/environment.html ${tarroot}/etc/server/static/templates/environment.html"
+            sh "cp ${projectpath}/server/static/templates/events.html ${tarroot}/etc/server/static/templates/events.html"
+            sh "cp ${projectpath}/server/static/templates/home.html ${tarroot}/etc/server/static/templates/home.html"
+            sh "cp ${projectpath}/server/static/templates/rest.html ${tarroot}/etc/server/static/templates/rest.html"
+            // tar it up
+            tarFilename = "object-drive-1.0.tgz"
+            projectTarFile = "${WORKSPACE}/${tarFilename}" //${JENKINS_HOME}/workspace/DIME/object-drive-server/object-drive-1.0.tgz"
+            sh "cd ${projectpath} && tar -cvzf ${tarFilename} -C ${tarroot} etc bin log && mv ${tarFilename} ${projectTarFile}"
+            archiveArtifacts artifacts: '*.tgz'
+            // deploy it
+            service.buildAndDeploy(serviceName, serviceVersion, saltEnvs, projectTarFile)
         }
     }
 }

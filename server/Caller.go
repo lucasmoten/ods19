@@ -95,39 +95,47 @@ func (c *Caller) ValidateHeaders(whitelist []string, r *http.Request) error {
 			c.TransactionType = "IMPERSONATION"
 			if !canImpersonateUser(whitelist, sslClientSDn, userDn) ||
 				!canImpersonateUser(whitelist, externalSysDn, userDn) {
-				return fmt.Errorf("Unauthorized: Either or both of the ssl_client_s_dn or external_sys_dn are not authorized to impersonate or have access.")
+				msg := "Unauthorized: Either or both of the ssl_client_s_dn or external_sys_dn are not authorized to impersonate or have access."
+				return fmt.Errorf(msg)
 			}
 			return nil
 		} else if have(userDn) && have(sslClientSDn) && !have(externalSysDn) {
 			c.TransactionType = "IMPERSONATION"
 			if !canImpersonateUser(whitelist, sslClientSDn, userDn) {
-				return fmt.Errorf("Unauthorized: The ssl_client_s_dn is not authorized to impersonate or have access.")
+				msg := "Unauthorized: The ssl_client_s_dn is not authorized to impersonate or have access."
+				return fmt.Errorf(msg)
 			}
 			return nil
 		} else if !have(userDn) && have(sslClientSDn) && have(externalSysDn) {
 			c.TransactionType = "IMPERSONATION"
-			return fmt.Errorf("Unauthorized: Missing the user_dn")
+			msg := "Unauthorized: Missing the user_dn"
+			return fmt.Errorf(msg)
 		} else {
 			c.TransactionType = "UNKNOWN"
-			return fmt.Errorf("Unauthorized: Invalid connection. Required headers, user_dn and possibly external_sys_dn are missing.")
+			msg := "Unauthorized: Invalid connection. Required headers, user_dn and possibly external_sys_dn are missing."
+			return fmt.Errorf(msg)
 		}
 	} else {
 		c.TransactionType = "IMPERSONATION"
 		if have(userDn) && have(sslClientSDn) && have(externalSysDn) {
 			if !canImpersonateUser(whitelist, sslClientSDn, userDn) ||
 				!canImpersonateUser(whitelist, externalSysDn, userDn) {
-				return fmt.Errorf("Unauthorized: Either or both of the ssl_client_s_dn or external_sys_dn are not authorized to impersonate or have access.")
+				msg := "Unauthorized: Either or both of the ssl_client_s_dn or external_sys_dn are not authorized to impersonate or have access."
+				return fmt.Errorf(msg)
 			}
 			return nil
 		} else if have(userDn) && have(sslClientSDn) {
 			if !canImpersonateUser(whitelist, sslClientSDn, userDn) {
-				return fmt.Errorf("Unauthorized: The ssl_client_s_dn is not authorized to impersonate or have access.")
+				msg := "Unauthorized: The ssl_client_s_dn is not authorized to impersonate or have access."
+				return fmt.Errorf(msg)
 			}
 			return nil
 		} else if have(userDn) {
-			return fmt.Errorf("Unauthorized: Connection is not authorized to impersonate. Neither ssl_client_s_dn or external_sys_dn were found.")
+			msg := "Unauthorized: Connection is not authorized to impersonate. Neither ssl_client_s_dn or external_sys_dn were found."
+			return fmt.Errorf(msg)
 		}
-		return fmt.Errorf("Unauthorized: Invalid connection. Required headers are missing, user_dn, ssl_client_s_dn, and or external_sys_dn.")
+		msg := "Unauthorized: Invalid connection. Required headers are missing, user_dn, ssl_client_s_dn, and or external_sys_dn."
+		return fmt.Errorf(msg)
 	}
 }
 
