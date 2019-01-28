@@ -39,9 +39,9 @@ node('docker') {
         use_boring_crypto = true
         if (use_boring_crypto) {
             boring_crypto_version = "b4"
-            golang_folder = "/home/jenkins/go-1.11.4b4"
-            golang_tar_file = "go1.11.4b4.linux-amd64.tar.gz"
-            golang_tar_sum = "e708ef7ecaf17a3e8e6deceadfa167cc1162f710f97ea4bc124d3837d6e2eaa1"
+            golang_folder = "/home/jenkins/go-1.11.5b4"
+            golang_tar_file = "go1.11.5b4.linux-amd64.tar.gz"
+            golang_tar_sum = "9b5b2972b452da9ba6bba65bab18fb9e8fbda31b5c489275710e5429d76f568c"
         } else {
             error("Boring Crypto is required for Go Builds in this environment")
         }

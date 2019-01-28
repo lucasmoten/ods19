@@ -13,12 +13,12 @@ RUN yum -y update; \
     yum -y install glibc;
 
 # Go
-RUN wget https://go-boringcrypto.storage.googleapis.com/go1.11b4.linux-amd64.tar.gz
-RUN tar -C /usr/local -xzf go1.11b4.linux-amd64.tar.gz
+RUN wget https://go-boringcrypto.storage.googleapis.com/go1.11.5b4.linux-amd64.tar.gz
+RUN tar -C /usr/local -xzf go1.11.5b4.linux-amd64.tar.gz
 ENV PATH /usr/local/go/bin:$PATH
 ENV GOPATH /go
 
-# GLIBC 2.14 needed for golang 1.11b4 compile with CGO
+# GLIBC 2.14 needed for golang 1.11.5b4 compile with CGO
 #RUN wget http://ftp.gnu.org/gnu/glibc/glibc-2.14.tar.gz 
 #RUN mkdir -p /glibc_install && tar -C /glibc_install -xzf glibc-2.14.tar.gz && cd /glibc_install && cd glibc-2.14 && mkdir build && cd build && ../configure --prefix=/opt/glibc-2.14 && make -j4 && sudo make install
 #ENV LD_LIBRARY_PATH=/opt/glibc-2.14/lib
