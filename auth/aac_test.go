@@ -36,9 +36,10 @@ func newAACAuth(t *testing.T) auth.AACAuth {
 	trustPath := filepath.Join("..", "defaultcerts", "client-aac", "trust", "client.trust.pem")
 	certPath := filepath.Join("..", "defaultcerts", "client-aac", "id", "client.cert.pem")
 	keyPath := filepath.Join("..", "defaultcerts", "client-aac", "id", "client.key.pem")
+	serverCN := "twl-server-generic2"
 
 	t.Logf("AAC client initializing with trust: %s, cert: %s, key: %s", trustPath, certPath, keyPath)
-	aacClient, err := aac.GetAACClient(aacHost, aacPort, trustPath, certPath, keyPath)
+	aacClient, err := aac.GetAACClient(aacHost, aacPort, trustPath, certPath, keyPath, serverCN)
 	if err != nil {
 		t.Logf("Error getting AAC Client %s", err.Error())
 		t.FailNow()
@@ -743,7 +744,8 @@ func newAACAuthRaw() (*auth.AACAuth, error) {
 	trustPath := filepath.Join("..", "defaultcerts", "client-aac", "trust", "client.trust.pem")
 	certPath := filepath.Join("..", "defaultcerts", "client-aac", "id", "client.cert.pem")
 	keyPath := filepath.Join("..", "defaultcerts", "client-aac", "id", "client.key.pem")
-	aacClient, err := aac.GetAACClient("aac", getAACPort(), trustPath, certPath, keyPath)
+	serverCN := "twl-server-generic2"
+	aacClient, err := aac.GetAACClient("aac", getAACPort(), trustPath, certPath, keyPath, serverCN)
 	if err != nil {
 		return nil, err
 	}

@@ -67,7 +67,6 @@ func TestMain(m *testing.M) {
 	certPath := filepath.Join("..", "defaultcerts", "client-aac", "id", "client.cert.pem")
 	keyPath := filepath.Join("..", "defaultcerts", "client-aac", "id", "client.key.pem")
 
-	//serverCN := config.GetEnvOrDefault(config.OD_AAC_CN, "")
 	serverCN := "twl-server-generic2"
 
 	// Setup connection config with SSL

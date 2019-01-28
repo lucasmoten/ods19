@@ -12,7 +12,7 @@ import (
 
 // buildServerTLSConfig prepares a tls.Config object for this application to
 // listen for connecting clients.
-func buildServerTLSConfig(caPath, certPath, keyPath string, clientCert bool, ciphers []string, minVersion string) tls.Config {
+func buildServerTLSConfig(caPath, certPath, keyPath string, ciphers []string, minVersion string) tls.Config {
 	// Client Certificate pool
 	// The set of root certificate authorities that the sever will use to verify
 	// client certificates
@@ -21,10 +21,7 @@ func buildServerTLSConfig(caPath, certPath, keyPath string, clientCert bool, cip
 	// Server public and private certificate
 	serverCert := buildx509Identity(certPath, keyPath)
 
-	clientAuthType := tls.NoClientCert
-	if clientCert {
-		clientAuthType = tls.RequireAndVerifyClientCert
-	}
+	clientAuthType := tls.RequireAndVerifyClientCert
 
 	preferServerCiphers := false
 	cipherSuites := buildCipherSuites(ciphers)

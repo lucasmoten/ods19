@@ -52,7 +52,7 @@ func Start(conf config.AppConfiguration) error {
 	go daoReadOnlyCheck(app, conf.DatabaseConnection)
 
 	zone := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
-	cache, loggableErr := ciphertext.NewS3CiphertextCache(zone, conf.CacheSettings, dbID)
+	cache, loggableErr := ciphertext.NewDiskCache(zone, conf.CacheSettings, dbID)
 	if loggableErr != nil {
 		loggableErr.ToFatal(logger)
 	}
@@ -132,6 +132,7 @@ func configureEventQueue(app *AppServer, conf config.EventQueueConfiguration, zk
 
 	if len(conf.KafkaAddrs) > 0 {
 		logger.Info("using direct connect for kafka queue")
+		// TODO: DIMEODS-1156, this direct kafka connect needs a go routine watcher to re-establish if it fails.
 		var err error
 		app.EventQueue, err = kafka.NewAsyncProducer(conf.KafkaAddrs, kafka.WithLogger(logger), kafka.WithPublishActions(conf.PublishSuccessActions, conf.PublishFailureActions), kafka.WithTopic(conf.Topic))
 		if err != nil {
@@ -338,7 +339,8 @@ func aacReconnect(app *AppServer, conf config.AppConfiguration) {
 		trust := conf.AACSettings.CAPath
 		cert := conf.AACSettings.ClientCert
 		key := conf.AACSettings.ClientKey
-		client, err := aac.GetAACClient(host, port, trust, cert, key)
+		commonname := conf.AACSettings.CommonName
+		client, err := aac.GetAACClient(host, port, trust, cert, key, commonname)
 		if err != nil {
 			logger.Error("aacReconnect: error creating aac client with announce data", zap.Any("announceData", info))
 			continue
@@ -407,7 +409,7 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 					// Try a new host,port
 					host := announcement.ServiceEndpoint.Host
 					port := announcement.ServiceEndpoint.Port
-					aacc, err := aac.GetAACClient(host, port, aacConf.CAPath, aacConf.ClientCert, aacConf.ClientKey)
+					aacc, err := aac.GetAACClient(host, port, aacConf.CAPath, aacConf.ClientCert, aacConf.ClientKey, aacConf.CommonName)
 					if err == nil {
 						_, err = aacc.ValidateAcm(conf.AACSettings.HealthCheck)
 						if err != nil {

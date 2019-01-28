@@ -92,7 +92,7 @@ type CiphertextCacheData struct {
 //
 func NewCiphertextCacheRaw(
 	zone CiphertextCacheZone,
-	conf *config.S3CiphertextCacheOpts,
+	conf *config.DiskCacheOpts,
 	dbID string,
 	logger *zap.Logger,
 	permanentStorage PermanentStorage,

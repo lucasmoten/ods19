@@ -21,10 +21,12 @@ import (
 	"go.uber.org/zap"
 )
 
+// DBDRIVERMYSQL provides identifer for MySQL database driver.
+const DBDRIVERMYSQL = "mysql"
+
 var (
-	defaultDBDriver = "mysql"
-	defaultDBHost   = "metadatadb"
-	defaultDBPort   = "3306"
+	defaultDBHost = "metadatadb"
+	defaultDBPort = "3306"
 	// DefaultBucket is the name of the S3 storage bucket to use for encrypted files
 	DefaultBucket = getEnvOrDefault(OD_AWS_S3_BUCKET, "")
 )
@@ -37,7 +39,7 @@ type AppConfiguration struct {
 	DatabaseConnection DatabaseConfiguration       `yaml:"database"`
 	ServerSettings     ServerSettingsConfiguration `yaml:"server"`
 	AACSettings        AACConfiguration            `yaml:"aac"`
-	CacheSettings      S3CiphertextCacheOpts       `yaml:"disk_cache"`
+	CacheSettings      DiskCacheOpts               `yaml:"disk_cache"`
 	ZK                 ZKSettings                  `yaml:"zk"`
 	EventQueue         EventQueueConfiguration     `yaml:"event_queue"`
 }
@@ -51,6 +53,8 @@ type AACConfiguration struct {
 	ClientCert string `yaml:"cert"`
 	// ClientKey is the path to a PEM encoded private key.
 	ClientKey string `yaml:"key"`
+	// CommonName is the name we expect all AAC servers to have when enforcing certificate validation
+	CommonName string `yaml:"common_name"`
 	// Healthcheck is an ACM expected to pass validation
 	HealthCheck string `yaml:"healthcheck"`
 	// Hostname is the hostname of the AAC service
@@ -74,8 +78,6 @@ type AACConfiguration struct {
 type CommandLineOpts struct {
 	// Ciphers is a list of TLS ciphers we are willing to accept.
 	Ciphers []string
-	// UseTLS specifies whether we will only accept TLS connections.
-	UseTLS bool
 	// StaticRootPath is a path to the static web assets directory.
 	StaticRootPath string
 	// TemplateDir is the path to Go templates directory.
@@ -109,7 +111,7 @@ type DatabaseConfiguration struct {
 	Schema string `yaml:"schema"`
 	// Params are custom connection params injected into the DSN. These
 	// will vary depending on your server's configuration.
-	Params string `yaml:"conn_params"`
+	Params string `yaml:"params"`
 	// UseTLS determines whether you should connect to the database with TLS.
 	// This is currently hardcoded to true.
 	UseTLS bool `yaml:"use_tls"`
@@ -130,6 +132,12 @@ type DatabaseConfiguration struct {
 	// DeadlockRetryDelay is the time to wait in milliseconds before retrying
 	// a statement in a transaction that is failing due to a deadlock
 	DeadlockRetryDelay int64 `yaml:"deadlock_retrydelay"`
+	// MaxIdleConns is the maximum number of idle connections in the connection pool
+	MaxIdleConns int64 `yaml:"max_idle_conns"`
+	// MaxOpenConns is the maximum number of open connections to the database
+	MaxOpenConns int64 `yaml:"max_open_conns"`
+	// MaxConnLifetime is the maximum lifetime, in seconds that a connection may be reused
+	MaxConnLifetime int64 `yaml:"max_conn_lifetime"`
 }
 
 // EventQueueConfiguration configures publishing to the Kafka event queue.
@@ -151,8 +159,8 @@ type EventQueueConfiguration struct {
 	Topic string `yaml:"topic"`
 }
 
-// S3CiphertextCacheOpts describes our current disk cache configuration.
-type S3CiphertextCacheOpts struct {
+// DiskCacheOpts describes our current disk cache configuration.
+type DiskCacheOpts struct {
 	// Root specifies an absolute or relative path to set the root directory of
 	// the local cache. All uploads are cached on disk. This directory must be
 	// writable by the server process.
@@ -188,17 +196,12 @@ type ServerSettingsConfiguration struct {
 	ListenPort string `yaml:"port"`
 	// ListenBind is the address to bind to. Hardcoded to 0.0.0.0
 	ListenBind string `yaml:"bind"`
-	// UseTLS controls whether the server requires TLS. Default is true.
-	UseTLS bool `yaml:"use_tls"`
 	// CAPath is the path to a PEM encoded certificate of our CA.
 	CAPath string `yaml:"trust"`
 	// ServerCertChain is the path to our server's PEM encoded cert.
 	ServerCertChain string `yaml:"cert"`
 	// ServerKey is the path to our server's PEM encoded key.
 	ServerKey string `yaml:"key"`
-	// RequireClientCert specifies whether clients must present a certificate
-	// signed by our CA. Default is true.
-	RequireClientCert bool `yaml:"require_client_cert"`
 	// CipherSuites specifies the ciphers we will accept. Common values are
 	// TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 and TLS_RSA_WITH_AES_128_CBC_SHA
 	CipherSuites []string `yaml:"ciphers"`
@@ -274,16 +277,16 @@ func NewAppConfiguration(opts CommandLineOpts) AppConfiguration {
 	}
 
 	dbConf := NewDatabaseConfigFromEnv(confFile, opts)
-	serverSettings := NewServerSettingsFromEnv(confFile, opts)
-	aacSettings := NewAACSettingsFromEnv(confFile, opts)
-	cacheSettings := NewS3CiphertextCacheOpts(confFile, opts)
-	zkSettings := NewZKSettingsFromEnv(confFile, opts)
+	serverSettings := newServerSettingsFromEnv(confFile, opts)
+	aacSettings := newAACSettingsFromEnv(confFile, opts)
+	cacheSettings := newDiskCacheOpts(confFile, opts)
+	zkSettings := newZKSettingsFromEnv(confFile, opts)
 	if zkSettings.Port == "" {
 		zkSettings.Port = serverSettings.ListenPort
 	}
-	eventQueue := NewEventQueueConfiguration(confFile, opts)
+	eventQueue := newEventQueueConfiguration(confFile, opts)
 
-	return AppConfiguration{
+	appConf := AppConfiguration{
 		AACSettings:        aacSettings,
 		CacheSettings:      cacheSettings,
 		DatabaseConnection: dbConf,
@@ -291,16 +294,21 @@ func NewAppConfiguration(opts CommandLineOpts) AppConfiguration {
 		ServerSettings:     serverSettings,
 		ZK:                 zkSettings,
 	}
+
+	setEnvironmentFromConfiguration(appConf)
+
+	return appConf
 }
 
-// NewAACSettingsFromEnv inspects the environment and returns a AACConfiguration.
-func NewAACSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) AACConfiguration {
+// newAACSettingsFromEnv inspects the environment and returns a AACConfiguration.
+func newAACSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) AACConfiguration {
 
 	var conf AACConfiguration
 
 	conf.CAPath = cascade(OD_AAC_CA, confFile.AACSettings.CAPath, "")
 	conf.ClientCert = cascade(OD_AAC_CERT, confFile.AACSettings.ClientCert, "")
 	conf.ClientKey = cascade(OD_AAC_KEY, confFile.AACSettings.ClientKey, "")
+	conf.CommonName = cascade(OD_AAC_CN, confFile.AACSettings.CommonName, "")
 
 	// Healthcheck
 	conf.HealthCheck = cascade(OD_AAC_HEALTHCHECK, confFile.AACSettings.HealthCheck, "{\"version\":\"2.1.0\",\"classif\":\"U\"}")
@@ -325,7 +333,6 @@ func NewAACSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) AACC
 // context. The actual parsing is handled by the cli framework.
 func NewCommandLineOpts(clictx *cli.Context) CommandLineOpts {
 	ciphers := clictx.StringSlice("addCipher")
-	useTLS := clictx.BoolT("useTLS")
 	// NOTE: cli lib appends to []string that already contains the "default" value. Must trim
 	// the default cipher if addCipher is passed at command line.
 	if len(ciphers) > 1 {
@@ -335,7 +342,7 @@ func NewCommandLineOpts(clictx *cli.Context) CommandLineOpts {
 	// Config file YAML is parsed elsewhere. This is just the path.
 	confPath := clictx.String("conf")
 
-	// Static Files Directory (Optional. Has a default, but can be set to empty for no static files)
+	// Static Files Directory (Optional. Can be set to empty for no static files)
 	staticRootPath := clictx.String("staticRoot")
 	if len(staticRootPath) > 0 {
 		if _, err := os.Stat(staticRootPath); os.IsNotExist(err) {
@@ -344,7 +351,7 @@ func NewCommandLineOpts(clictx *cli.Context) CommandLineOpts {
 		}
 	}
 
-	// Template Directory (Optional. Has a default, but can be set to empty for no templates)
+	// Template Directory (Optional. Can be set to empty for no templates)
 	templateDir := clictx.String("templateDir")
 	if len(templateDir) > 0 {
 		if _, err := os.Stat(templateDir); os.IsNotExist(err) {
@@ -361,7 +368,6 @@ func NewCommandLineOpts(clictx *cli.Context) CommandLineOpts {
 
 	return CommandLineOpts{
 		Ciphers:           ciphers,
-		UseTLS:            useTLS,
 		Conf:              confPath,
 		StaticRootPath:    staticRootPath,
 		TemplateDir:       templateDir,
@@ -390,6 +396,15 @@ func NewDatabaseConfigFromEnv(confFile AppConfiguration, opts CommandLineOpts) D
 	dbConf.ClientCert = cascade(OD_DB_CERT, confFile.DatabaseConnection.ClientCert, "")
 	dbConf.ClientKey = cascade(OD_DB_KEY, confFile.DatabaseConnection.ClientKey, "")
 	dbConf.Params = cascade(OD_DB_CONN_PARAMS, confFile.DatabaseConnection.Params, "parseTime=true&collation=utf8_unicode_ci&readTimeout=30s")
+	dbConf.Protocol = cascade(OD_DB_PROTOCOL, confFile.DatabaseConnection.Protocol, "tcp")
+	dbConf.Driver = cascade(OD_DB_DRIVER, confFile.DatabaseConnection.Driver, DBDRIVERMYSQL)
+	dbConf.UseTLS = cascadeBool(OD_DB_USE_TLS, confFile.DatabaseConnection.UseTLS, true)
+	dbConf.SkipVerify = true
+	dbConf.MaxIdleConns = cascadeInt(OD_DB_MAXIDLECONNS, confFile.DatabaseConnection.MaxIdleConns, 10)
+	dbConf.MaxOpenConns = cascadeInt(OD_DB_MAXOPENCONNS, confFile.DatabaseConnection.MaxOpenConns, 10)
+	dbConf.MaxConnLifetime = cascadeInt(OD_DB_CONNMAXLIFETIME, confFile.DatabaseConnection.MaxConnLifetime, 30)
+	dbConf.DeadlockRetryCounter = cascadeInt(OD_DB_DEADLOCK_RETRYCOUNTER, confFile.DatabaseConnection.DeadlockRetryCounter, 30)
+	dbConf.DeadlockRetryDelay = cascadeInt(OD_DB_DEADLOCK_RETRYDELAYMS, confFile.DatabaseConnection.DeadlockRetryDelay, 55)
 
 	// Sanity readTimeout
 	if !strings.Contains(dbConf.Params, "readTimeout=") {
@@ -397,21 +412,11 @@ func NewDatabaseConfigFromEnv(confFile AppConfiguration, opts CommandLineOpts) D
 		dbConf.Params = dbConf.Params + "&readTimeout=30s"
 	}
 
-	// Defaults
-	dbConf.Protocol = "tcp"
-	dbConf.Driver = defaultDBDriver
-	dbConf.UseTLS = true
-	dbConf.SkipVerify = true
-
-	// Parameters necessary to handle deadlock situations
-	dbConf.DeadlockRetryCounter = cascadeInt(OD_DEADLOCK_RETRYCOUNTER, confFile.DatabaseConnection.DeadlockRetryCounter, 30)
-	dbConf.DeadlockRetryDelay = cascadeInt(OD_DEADLOCK_RETRYDELAYMS, confFile.DatabaseConnection.DeadlockRetryDelay, 55)
-
 	return dbConf
 }
 
-// NewEventQueueConfiguration reades the environment to provide the configuration for the Kafka event queue.
-func NewEventQueueConfiguration(confFile AppConfiguration, opts CommandLineOpts) EventQueueConfiguration {
+// newEventQueueConfiguration reades the environment to provide the configuration for the Kafka event queue.
+func newEventQueueConfiguration(confFile AppConfiguration, opts CommandLineOpts) EventQueueConfiguration {
 	var eqc EventQueueConfiguration
 	eqc.KafkaAddrs = CascadeStringSlice(OD_EVENT_KAFKA_ADDRS, confFile.EventQueue.KafkaAddrs, empty)
 	eqc.ZKAddrs = CascadeStringSlice(OD_EVENT_ZK_ADDRS, confFile.EventQueue.ZKAddrs, empty)
@@ -454,9 +459,8 @@ func MaybeDecrypt(val string) (string, error) {
 	return val, nil
 }
 
-// NewS3CiphertextCacheOpts reads the environment to provide the configuration options for
-// S3CiphertextCache.
-func NewS3CiphertextCacheOpts(confFile AppConfiguration, opts CommandLineOpts) S3CiphertextCacheOpts {
+// newDiskCacheOpts reads the environment to provide the configuration options for DiskCache.
+func newDiskCacheOpts(confFile AppConfiguration, opts CommandLineOpts) DiskCacheOpts {
 	masterKey, err := MaybeDecrypt(cascade(OD_ENCRYPT_MASTERKEY, confFile.CacheSettings.MasterKey, ""))
 	if err != nil {
 		// If we get an error parsing the masterKey here we CANNOT continue, because we may begin writing
@@ -469,7 +473,7 @@ func NewS3CiphertextCacheOpts(confFile AppConfiguration, opts CommandLineOpts) S
 		)
 		os.Exit(1)
 	}
-	settings := S3CiphertextCacheOpts{
+	settings := DiskCacheOpts{
 		Root:          cascade(OD_CACHE_ROOT, confFile.CacheSettings.Root, "."),
 		Partition:     cascade(OD_CACHE_PARTITION, confFile.CacheSettings.Partition, "cache"),
 		LowWatermark:  cascadeFloat(OD_CACHE_LOWWATERMARK, confFile.CacheSettings.LowWatermark, .50),
@@ -486,43 +490,47 @@ func NewS3CiphertextCacheOpts(confFile AppConfiguration, opts CommandLineOpts) S
 	return settings
 }
 
-// NewServerSettingsFromEnv inspects the environment and returns a ServerSettingsConfiguration.
-func NewServerSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) ServerSettingsConfiguration {
+// newServerSettingsFromEnv inspects the environment and returns a ServerSettingsConfiguration.
+func newServerSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) ServerSettingsConfiguration {
 
 	var settings ServerSettingsConfiguration
 
 	// From env
 	settings.BasePath = cascade(OD_SERVER_BASEPATH, confFile.ServerSettings.BasePath, "/services/object-drive/1.0")
-	settings.ListenPort = cascade(OD_SERVER_PORT, confFile.ServerSettings.ListenPort, "4430")
 	settings.CAPath = cascade(OD_SERVER_CA, confFile.ServerSettings.CAPath, "")
 	settings.ServerCertChain = cascade(OD_SERVER_CERT, confFile.ServerSettings.ServerCertChain, "")
 	settings.ServerKey = cascade(OD_SERVER_KEY, confFile.ServerSettings.ServerKey, "")
-
-	// Use environment, configuration file, or cli options (includes a default) for the Cipher Suites (whichver has values first is used)
-	settings.CipherSuites = selectNonEmptyStringSlice(CascadeStringSlice(OD_SERVER_CIPHERS, confFile.ServerSettings.CipherSuites, opts.Ciphers))
-
-	// Use cli options, environment, or configuration file for the ACL whitelist (whichever has values first is used)
-	settings.ACLImpersonationWhitelist = selectNonEmptyStringSlice(opts.Whitelist, getEnvSliceFromPrefix(OD_SERVER_ACL_WHITELIST), confFile.ServerSettings.ACLImpersonationWhitelist)
-
-	// Timeouts
+	settings.ListenBind = cascade(OD_SERVER_BINDADDRESS, confFile.ServerSettings.ListenBind, "0.0.0.0")
+	settings.ListenPort = cascade(OD_SERVER_PORT, confFile.ServerSettings.ListenPort, "4430")
 	settings.IdleTimeout = cascadeInt(OD_SERVER_TIMEOUT_IDLE, confFile.ServerSettings.IdleTimeout, 60)
 	settings.ReadTimeout = cascadeInt(OD_SERVER_TIMEOUT_READ, confFile.ServerSettings.ReadTimeout, 0)
 	settings.ReadHeaderTimeout = cascadeInt(OD_SERVER_TIMEOUT_READHEADER, confFile.ServerSettings.ReadHeaderTimeout, 5)
 	settings.WriteTimeout = cascadeInt(OD_SERVER_TIMEOUT_WRITE, confFile.ServerSettings.WriteTimeout, 3600)
 
 	// Defaults
-	settings.ListenBind = "0.0.0.0"
-	settings.UseTLS = opts.UseTLS
-	settings.RequireClientCert = true
 	settings.MinimumVersion = opts.TLSMinimumVersion
-	settings.PathToStaticFiles = opts.StaticRootPath
-	settings.PathToTemplateFiles = opts.TemplateDir
+	// Use environment, configuration file, or cli options (includes a default) for the Cipher Suites (whichver has values first is used)
+	settings.CipherSuites = selectNonEmptyStringSlice(CascadeStringSlice(OD_SERVER_CIPHERS, confFile.ServerSettings.CipherSuites, opts.Ciphers))
+
+	// Use cli options, environment, or configuration file for the ACL whitelist (whichever has values first is used)
+	settings.ACLImpersonationWhitelist = selectNonEmptyStringSlice(opts.Whitelist, getEnvSliceFromPrefix(OD_SERVER_ACL_WHITELIST), confFile.ServerSettings.ACLImpersonationWhitelist)
+	// Command line argument, if given, supersedes environment, configuration file, and default for static root and templates
+	if len(opts.StaticRootPath) > 0 {
+		settings.PathToStaticFiles = opts.StaticRootPath
+	} else {
+		settings.PathToStaticFiles = cascade(OD_SERVER_STATIC_ROOT, confFile.ServerSettings.PathToStaticFiles, "")
+	}
+	if len(opts.TemplateDir) > 0 {
+		settings.PathToTemplateFiles = opts.TemplateDir
+	} else {
+		settings.PathToTemplateFiles = cascade(OD_SERVER_TEMPLATE_ROOT, confFile.ServerSettings.PathToTemplateFiles, "")
+	}
 
 	return settings
 }
 
-// NewZKSettingsFromEnv inspects the environment and returns a AACConfiguration.
-func NewZKSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) ZKSettings {
+// newZKSettingsFromEnv inspects the environment and returns a AACConfiguration.
+func newZKSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) ZKSettings {
 
 	var conf ZKSettings
 	conf.Address = cascade(OD_ZK_URL, confFile.ZK.Address, "zk:2181")
@@ -543,7 +551,7 @@ func (r *DatabaseConfiguration) GetDatabaseHandle() (*sqlx.DB, error) {
 	if r.UseTLS {
 		dbTLS := r.buildTLSConfig()
 		switch r.Driver {
-		case defaultDBDriver:
+		case DBDRIVERMYSQL:
 			mysql.RegisterTLSConfig("custom", &dbTLS)
 		default:
 			panic("Driver not supported")
@@ -551,9 +559,9 @@ func (r *DatabaseConfiguration) GetDatabaseHandle() (*sqlx.DB, error) {
 	}
 	// Setup handle to the database
 	db, err := sqlx.Open(r.Driver, r.buildDSN())
-	db.SetConnMaxLifetime(time.Second * time.Duration(getEnvOrDefaultInt(OD_DB_CONNMAXLIFETIME, 30)))
-	db.SetMaxIdleConns(int(getEnvOrDefaultInt(OD_DB_MAXIDLECONNS, 10)))
-	db.SetMaxOpenConns(int(getEnvOrDefaultInt(OD_DB_MAXOPENCONNS, 10)))
+	db.SetConnMaxLifetime(time.Second * time.Duration(r.MaxConnLifetime))
+	db.SetMaxIdleConns(int(r.MaxIdleConns))
+	db.SetMaxOpenConns(int(r.MaxConnLifetime))
 	return db, err
 }
 
@@ -627,7 +635,7 @@ func (r *DatabaseConfiguration) buildDSN() string {
 		} else {
 			// default port by database type
 			switch r.Driver {
-			case defaultDBDriver:
+			case DBDRIVERMYSQL:
 				dbDSN += defaultDBPort
 			default:
 				panic("Driver not supported")
@@ -694,7 +702,7 @@ func (conf *DatabaseConfiguration) buildTLSConfig() tls.Config {
 // buildTLSConfig prepares a standard go tls.Config with trusted CAs and
 // server identity certificates to listen for connecting clients
 func (r *ServerSettingsConfiguration) buildTLSConfig() tls.Config {
-	return buildServerTLSConfig(r.CAPath, r.ServerCertChain, r.ServerKey, r.RequireClientCert, r.CipherSuites, r.MinimumVersion)
+	return buildServerTLSConfig(r.CAPath, r.ServerCertChain, r.ServerKey, r.CipherSuites, r.MinimumVersion)
 }
 
 func cascade(fromEnv, fromFile, defaultVal string) string {
@@ -702,6 +710,16 @@ func cascade(fromEnv, fromFile, defaultVal string) string {
 		return envVal
 	}
 	if fromFile != "" {
+		return fromFile
+	}
+	return defaultVal
+}
+
+func cascadeBool(fromEnv string, fromFile bool, defaultVal bool) bool {
+	if envVal := os.Getenv(fromEnv); envVal != "" {
+		return (strings.ToLower(envVal) == "true")
+	}
+	if fromFile {
 		return fromFile
 	}
 	return defaultVal
@@ -912,4 +930,102 @@ func NewAutoScalingConfig() *AutoScalingConfig {
 		ret.QueueBatchSize = 1
 	}
 	return ret
+}
+
+// setEnvironmentFromConfiguration will assign back to environment variables what the current
+// configuration is. This is currently a helper function because there are places in the code
+// that use the environment directly without regard to what the configuration of the app is.
+// Not all environment variables are currently supported by the yaml configuration and structs
+// defined above, so those lines are commented out below
+func setEnvironmentFromConfiguration(conf AppConfiguration) {
+
+	os.Setenv(OD_AAC_CA, conf.AACSettings.CAPath)
+	os.Setenv(OD_AAC_CERT, conf.AACSettings.ClientCert)
+	os.Setenv(OD_AAC_CN, conf.AACSettings.CommonName)
+	os.Setenv(OD_AAC_HEALTHCHECK, conf.AACSettings.HealthCheck)
+	os.Setenv(OD_AAC_HOST, conf.AACSettings.HostName)
+	//os.Setenv(OD_AAC_INSECURE_SKIP_VERIFY,
+	os.Setenv(OD_AAC_KEY, conf.AACSettings.ClientKey)
+	os.Setenv(OD_AAC_PORT, conf.AACSettings.Port)
+	os.Setenv(OD_AAC_RECHECK_TIME, string(conf.AACSettings.RecheckTime))
+	os.Setenv(OD_AAC_WARMUP_TIME, string(conf.AACSettings.WarmupTime))
+	os.Setenv(OD_AAC_ZK_ADDRS, strings.Join(conf.AACSettings.ZKAddrs, ","))
+	// os.Setenv(OD_AWS_ACCESS_KEY_ID,
+	// os.Setenv(OD_AWS_ASG_EC2,
+	// os.Setenv(OD_AWS_ASG_ENDPOINT,
+	// os.Setenv(OD_AWS_ASG_NAME,
+	// os.Setenv(OD_AWS_CLOUDWATCH_ENDPOINT,
+	// os.Setenv(OD_AWS_CLOUDWATCH_INTERVAL,
+	// os.Setenv(OD_AWS_CLOUDWATCH_NAME,
+	// os.Setenv(OD_AWS_REGION,
+	// os.Setenv(OD_AWS_S3_BUCKET,
+	// os.Setenv(OD_AWS_S3_ENDPOINT,
+	// os.Setenv(OD_AWS_S3_FETCH_MB,
+	// os.Setenv(OD_AWS_SECRET_ACCESS_KEY,
+	// os.Setenv(OD_AWS_SQS_BATCHSIZE,
+	// os.Setenv(OD_AWS_SQS_ENDPOINT,
+	// os.Setenv(OD_AWS_SQS_INTERVAL,
+	// os.Setenv(OD_AWS_SQS_NAME,
+	// os.Setenv(OD_CACHE_EVICTAGE,
+	// os.Setenv(OD_CACHE_HIGHWATERMARK,
+	// os.Setenv(OD_CACHE_LOWWATERMARK,
+	// os.Setenv(OD_CACHE_PARTITION,
+	// os.Setenv(OD_CACHE_ROOT,
+	// os.Setenv(OD_CACHE_WALKSLEEP,
+	// os.Setenv(OD_DB_CA,
+	// os.Setenv(OD_DB_CERT,
+	// os.Setenv(OD_DB_CONN_PARAMS,
+	// os.Setenv(OD_DB_CONNMAXLIFETIME,
+	// os.Setenv(OD_DB_DEADLOCK_RETRYCOUNTER,
+	// os.Setenv(OD_DB_DEADLOCK_RETRYDELAYMS,
+	// os.Setenv(OD_DB_DRIVER,
+	// os.Setenv(OD_DB_HOST,
+	// os.Setenv(OD_DB_KEY,
+	// os.Setenv(OD_DB_MAXIDLECONNS,
+	// os.Setenv(OD_DB_MAXOPENCONNS,
+	// os.Setenv(OD_DB_PASSWORD,
+	// os.Setenv(OD_DB_PORT,
+	// os.Setenv(OD_DB_PROTOCOL,
+	// os.Setenv(OD_DB_SCHEMA,
+	// os.Setenv(OD_DB_USE_TLS,
+	// os.Setenv(OD_DB_USERNAME,
+	// os.Setenv(OD_ENCRYPT_MASTERKEY,
+	// os.Setenv(OD_EVENT_KAFKA_ADDRS,
+	// os.Setenv(OD_EVENT_PUBLISH_FAILURE_ACTIONS,
+	// os.Setenv(OD_EVENT_PUBLISH_SUCCESS_ACTIONS,
+	// os.Setenv(OD_EVENT_TOPIC,
+	// os.Setenv(OD_EVENT_ZK_ADDRS,
+	// os.Setenv(OD_EXTERNAL_HOST,
+	// os.Setenv(OD_EXTERNAL_PORT,
+	// os.Setenv(OD_LOG_LEVEL,
+	// os.Setenv(OD_LOG_LOCATION,
+	// os.Setenv(OD_LOG_MODE,
+	// os.Setenv(OD_PEER_CN,
+	// os.Setenv(OD_PEER_SIGNIFIER,
+	// os.Setenv(OD_PEER_INSECURE_SKIP_VERIFY,
+	// os.Setenv(OD_SERVER_ACL_WHITELIST,
+	// os.Setenv(OD_SERVER_BASEPATH,
+	// os.Setenv(OD_SERVER_BINDADDRESS,
+	// os.Setenv(OD_SERVER_CA,
+	// os.Setenv(OD_SERVER_CERT,
+	// os.Setenv(OD_SERVER_CIPHERS,
+	// os.Setenv(OD_SERVER_KEY,
+	// os.Setenv(OD_SERVER_PORT,
+	// os.Setenv(OD_SERVER_STATIC_FILES,
+	// os.Setenv(OD_SERVER_TEMPLATE_FILES,
+	// os.Setenv(OD_SERVER_TIMEOUT_IDLE,
+	// os.Setenv(OD_SERVER_TIMEOUT_READ,
+	// os.Setenv(OD_SERVER_TIMEOUT_READHEADER,
+	// os.Setenv(OD_SERVER_TIMEOUT_WRITE,
+	// os.Setenv(OD_TOKENJAR_LOCATION,
+	// os.Setenv(OD_TOKENJAR_PASSWORD,
+	// os.Setenv(OD_ZK_AAC,
+	os.Setenv(OD_ZK_ANNOUNCE, conf.AACSettings.AACAnnouncementPoint)
+	// os.Setenv(OD_ZK_MYIP,
+	// os.Setenv(OD_ZK_MYPORT,
+	// os.Setenv(OD_ZK_RECHECK_TIME,
+	// os.Setenv(OD_ZK_RETRYDELAY,
+	// os.Setenv(OD_ZK_TIMEOUT,
+	// os.Setenv(OD_ZK_URL,
+
 }

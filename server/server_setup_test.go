@@ -90,7 +90,7 @@ func testSettings() {
 		os.Exit(1)
 	}
 
-	settings := config.S3CiphertextCacheOpts{
+	settings := config.DiskCacheOpts{
 		Root:          root,
 		Partition:     "partition0",
 		LowWatermark:  .50,

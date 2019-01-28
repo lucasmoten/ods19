@@ -16,6 +16,9 @@ database:
     key: ""
     deadlock_retrycounter: 30
     deadlock_retrydelay: 55
+    max_idle_conns: 10
+    max_open_conns: 10
+    max_conn_lifetime: 30
 
 server:
     base_path: "blah/blah"
@@ -48,6 +51,8 @@ disk_cache:
     high_watermark: 0
     evict_age: 0
     walk_sleep: 0
+    chunk_size:
+    masterkey: ""
 
 aac:
     trust: "foo"

@@ -26,9 +26,11 @@ AAC Integration is used for authorization requests. At the time of this writing 
 | OD_AAC_CA | The path to the certificate authority folder or file containing public certificate(s) to trust as the server when connecting to AAC.  |  |
 | OD_AAC_CERT | The path to the public certificate for the user credentials connecting to AAC.  |  |
 | OD_AAC_CN | The CN that we expect all AAC servers to have.  We use this when we enforce certificate verification.  This `MUST` be set in order to connect. | |
+| OD_AAC_HOST | The host of the AAC server to perform a direct connect instead of discovery. | |
 | OD_AAC_HEALTHCHECK | An acm expected to validate against the AAC service. | {"version":"2.1.0","classif":"U"} |
 | OD_AAC_INSECURE_SKIP_VERIFY | This turns off certificate verification.  Do not do this.  Leave this value at its default. | false |
 | OD_AAC_KEY | The path to the private key for the user credentials connecting to AAC.  |  |
+| OD_AAC_PORT | The port of the AAC server to perform a direct connect instead of discovery. | |
 | OD_AAC_RECHECK_TIME | The interval seconds between AAC health status checks (1-600) | 30 |
 | OD_AAC_WARMUP_TIME | The number of seconds to wait for ZK before checking health of AAC (1-60) | 10 |
 | OD_AAC_ZK_ADDRS | Comma-separated list of host:port pairs to connect to a Zookeeper cluster specific to AAC discovery  |  |
@@ -82,12 +84,16 @@ The database is used to store metadata about objects and supports querying for m
 | OD_DB_CN | The cn of the ssl cert of the database. | fqdn.for.metadatadb.local (default is for testing only) |
 | OD_DB_CONN_PARAMS | Custom parameters to include for the database connection. For MySQL/MariaDB, we are using `parseTime=true&collation=utf8_unicode_ci&readTimeout=30s` |  |
 | OD_DB_CONNMAXLIFETIME | The maximum amount of time, in seconds, that a database connection may be reused. 0 indicates indefinitely. | 30 | 
+| OD_DB_DEADLOCK_RETRYCOUNTER | Indicates the number of times a create or update operation should be retried if the transaction fails due to a database deadlock | 30 |
+| OD_DB_DEADLOCK_RETRYDELAYMS | The duration in milliseconds between retry attempts for a create or update operation when a transaction fails due to a deadlock in the database | 55 |
+| OD_DB_DRIVER | The database driver to use. Supported values are `mysql`. | mysql |
 | OD_DB_HOST | The name or IP address of the MySQL / MariaDB / Aurora conforming database.  |  |
 | OD_DB_KEY | The path to the private key for the user credentials connecting to the database.  |  | 
 | OD_DB_MAXIDLECONNS | The maximum number of database connections to keep idle. Overrides language default of 2.  | 10 |
 | OD_DB_MAXOPENCONNS | The maximum number of database connections to keep open. Overrides language default of unlimited.  | 10 |
 | OD_DB_PASSWORD | The password portion of credentials when connecting to the database. Note that if a token.jar is installed onto the system, we can use the Bedrock encrypt format like `ENC{...} |  |
 | OD_DB_PORT | The port that the MySQL / MariaDB / Aurora instance is listening on.  |  |
+| OD_DB_PROTOCOL | The protocol to use when communicating with the database. Supported values are `tcp`. | tcp |
 | OD_DB_SCHEMA | The schema to connect to after logging into the database.  |  |
 | OD_DB_USERNAME | The username portion of credentials when connecting to database.  |  |
 
@@ -128,16 +134,17 @@ Remaining server settings are noted here
 
 | Name | Description | Default |
 | --- | --- | --- |
-| OD_DEADLOCK_RETRYCOUNTER | Indicates the number of times a create or update operation should be retried if the transaction fails due to a database deadlock | 30 |
-| OD_DEADLOCK_RETRYDELAYMS | The duration in milliseconds between retry attempts for a create or update operation when a transaction fails due to a deadlock in the database | 55 |
 | **OD_ENCRYPT_MASTERKEY** | **Required** The secret master key used as part of the encryption key for all files stored in the system. If this value is changed, all file keys must be adjusted at the same time. If you don't set this, the service will shut down.  Note that if a token.jar is installed onto the system, we can use the Bedrock encrypt format like `ENC{...} | |
 | OD_SERVER_ACL_WHITELIST*n* | One or more environment variable prefixes to denote distinguished name assigned to the access control whitelist that controls whether a connector can impersonate as another identity. | |
 | OD_SERVER_BASEPATH | The base URL root. Used in debug UIs.    | "/services/object-drive/1.0" |
+| OD_SERVER_BINDADDRESS | The default interface address to bind the listener to. For all interfaces, use 0.0.0.0. | 0.0.0.0 |
 | OD_SERVER_CA | The path to the certificate authority folder or file containing public certificate(s) to trust as the server.    |  |
 | OD_SERVER_CERT |The path to the public certificate for the server credentials.  |  |
 | OD_SERVER_CIPHERS | A comma delimited list of ciphers to be allowed for connections. Valid values are TLS_RSA_WITH_RC4_128_SHA, TLS_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA (recommended), TLS_RSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_ECDSA_WITH_RC4_128_SHA, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_RC4_128_SHA, TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 (recommended), TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305, TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305 |  |
 | OD_SERVER_KEY | The path to the server's private key.   |  |
 | OD_SERVER_PORT | The port for which this object-drive instance will listen on. Binding to ports below 1024 require setting additional security settings on the system.  | 4430 |
+| OD_SERVER_STATIC_ROOT | The location on disk where static assets are stored. | |
+| OD_SERVER_TEMPLATE_ROOT | The location on disk where Go templates are stored. | |
 | OD_SERVER_TIMEOUT_IDLE | This is the maximum amount of time to wait for the next request when keep-alives are enabled, in seconds | 60 |
 | OD_SERVER_TIMEOUT_READ | This is the maximum duration for reading the entire request, including the body | |
 | OD_SERVER_TIMEOUT_READHEADER | This is the amount of time allowed to read request headers, in seconds | 5 |

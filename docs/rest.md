@@ -16,6 +16,36 @@ FORMAT: 1A
 
 # Group RESTful API
 
+## Request Headers
+
+Headers may be provided as part of the request for all API calls.  Those that
+are understood by the service are as follows
+
+### Application Logging Headers
+
+* APPLICATION - If this value is set, then it will be assigned in the 
+  payload.audit_event.Creator of the global event message. If no value
+  is set in this header, the value reported defaults to `Object Drive`
+* X-Forwarded-For - If this value is set, then it will be assigned in the
+  xForwardedForIp of the global event message
+
+### Cross Origin Resource Sharing (CORS) Headers
+
+The standard headers for CORS are supported.  The CORS policy exposed by the
+server is a permissive policy.
+
+### Impersonation Headers
+
+These headers are only used when a request is being proxied or otherwise
+authorized to perform requests on behalf of other users.
+
+* EXTERNAL_SYS_DN - If provided, the service expects this value to be in the
+  access control list for impersonation.
+* USER_DN
+* SSL_CLIENT_S_DN - The service expects this to be set by an edge node, match
+  the current PKI for the request, and be included in the access control list
+  for impersonation.
+
 ## Data Type Guidance
 
 Dates are serialized in responses in RFC3339 format. RFC3339 is an ISO 8601 

@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import uuid
 
 #-------------------------------------------------------------------------------
 
@@ -96,11 +97,17 @@ def inject_replacements(filename, changelogver, buildnumber, outname=None):
 
 dockercmd = 'cat %s | docker run --rm -i deciphernow/aglio:2.3.0 sh -c "cat > f.md ; /usr/local/bin/aglio -i f.md -o f.html &> /dev/null; cat f.html" > %s'
 if __name__ == "__main__":
-    convert_cmds = [dockercmd % ("docs/home.md","docs/home.html"),
-                    dockercmd % ("docs/rest.md","docs/rest.html"),
-                    dockercmd % ("docs/environment.md", "docs/environment.html"),
-                    dockercmd % ("changelog.md", "docs/changelog.html"),
-                    dockercmd % ("docs/events.md", "docs/events.html")]
+    # This temporary folder is used to isolate generation and processing from
+    # markdown to html across processes that call this script concurrently.
+    # Mostly from CI for parallel pipeline for RPM and Docker
+    tmpfolder = str(uuid.uuid4())
+    os.makedirs(os.path.join("docs", tmpfolder)) 
+
+    convert_cmds = [dockercmd % ("docs/home.md",        os.path.join("docs", tmpfolder, "home.html")),
+                    dockercmd % ("docs/rest.md",        os.path.join("docs", tmpfolder, "rest.html")),
+                    dockercmd % ("docs/environment.md", os.path.join("docs", tmpfolder, "environment.html")),
+                    dockercmd % ("changelog.md",        os.path.join("docs", tmpfolder, "changelog.html")),
+                    dockercmd % ("docs/events.md",      os.path.join("docs", tmpfolder, "events.html"))]
 
     for cmd in convert_cmds:
         print(cmd)
@@ -118,18 +125,18 @@ if __name__ == "__main__":
     changelogver = get_version()     
     buildnumber = get_buildnumber()   
     initial_dir = os.getcwd()
-    os.chdir('docs')
-    shutil.copy('home.html',os.path.join('..','server', 'home.html'))    
-    shutil.copy('home.html',os.path.join('..','server', 'root.html'))    
+    os.chdir(os.path.join('docs', tmpfolder))
+    shutil.copy('home.html',os.path.join('..', '..', 'server', 'home.html'))    
+    shutil.copy('home.html',os.path.join('..', '..', 'server', 'root.html'))    
     for item in glob.glob('*.html'):
-        print("must copy %s" % (item))
-        #--Assert files are editable by current user.  Needed to resolve issues
-        #--with Circle-CI
+        print("removing styles, inject replacements, and move: %s" % (item))
         if not os.access(item, os.W_OK):
             force_access(item)
         strip_external_styles(item)
         inject_replacements(item, changelogver, buildnumber)
-        shutil.move(item, os.path.join('..',final_dir, item))    
+        shutil.move(item, os.path.join('..', '..', final_dir, item))    
+    os.chdir('..')
+    os.rmdir(tmpfolder)
     command = ["./builddiagrams"]
     if len(sys.argv) > 1:
         command.extend(sys.argv[1:])

@@ -24,6 +24,8 @@ FORMAT: 1A
 * CFG: Jenkins updated to build with Go 1.11.4 or 1.11.4b4
 * CFG: Docker Compose files reference images from docker-dime.di2e.net
 * CFG: Previous docker-compose.yml is renamed for full stack. New docker-compose is for local development
+* CFG: Jenkins parallelization of Docker, RPM, and TAR outputs
+* ENH: Adding support for configuration file vs environment variables
 
 ## Release v1.0.18 (November 14, 2018)
 ---------------------
