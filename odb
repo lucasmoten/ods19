@@ -25,8 +25,6 @@ Map of repo names to their valid git remotes, and the branch to checkout.
 GIT_DEPENDENCIES = {
     'object-drive-ui':
         ('ssh://git@bitbucket.di2e.net:7999/dime/object-drive-ui.git', 'develop'),
-    'dias-simulator':
-        ('ssh://git@bitbucket.di2e.net:7999/dime/dias-simulator.git', 'master'),
 }
 
 """
@@ -260,24 +258,7 @@ def packagingbc_build(tag="latest"):
     # Use our Dockerfile from this directory
     dockerfile = os.path.join(packagingbc_dir, "Dockerfile")
     run_dockerfile(dockerfile, "deciphernow/odriverpm-bc", tag)
-    shutil.rmtree(build_dir)
-
-def dias_build(self, tag="latest"):
-    """ Build the dias simulator docker image
-    """
-    
-    od_root = os.getenv("OD_ROOT")
-    if len(od_root) > 0 and os.path.exists(od_root):
-        dias_path = os.path.join(od_root, 'dias-simulator')
-        if os.path.exists(dias_path):
-            os.chdir(dias_path)
-            dockerfile = os.path.abspath('./Dockerfile')
-            run_dockerfile(dockerfile, "deciphernow/dias", tag)
-        else:
-            self.logger.info("DIAS Simulator not cloned into OD_ROOT at {0}. Check README.md. Skipping DIAS build.".format(dias_path))
-    else:
-        self.logger.info("OD_ROOT is undefined. Skipping DIAS build")
-    
+    shutil.rmtree(build_dir)    
 
 def run_dockerfile(dockerfile, image, tag="latest"):
     """ Runs the docker build for a given 
@@ -431,8 +412,6 @@ class Builder(object):
         self.inspect_toolchain()
         self.clone_branch('object-drive-ui', GIT_DEPENDENCIES['object-drive-ui'][0],
                              GIT_DEPENDENCIES['object-drive-ui'][1], build=False)
-        self.clone_branch('dias-simulator', GIT_DEPENDENCIES['dias-simulator'][0],
-                             GIT_DEPENDENCIES['dias-simulator'][1], build=False)
 
         self.docker('aac')
         odrive_build()
@@ -441,7 +420,6 @@ class Builder(object):
         gatekeeper_build()
         packaging_build()
         packagingbc_build()
-        dias_build(self)
         
         self.logger.info("Build Finished")
 
@@ -468,8 +446,6 @@ class Builder(object):
             metadatadb_build(tag)
         elif 'gatekeeper' in image_name:
             gatekeeper_build(tag)
-        elif 'dias' in image_name:
-            dias_build(self, tag)
         else:
             raise ValueError("Image name not known: {0}".format(image_name))
 
@@ -675,8 +651,7 @@ def parse_args():
                      "deciphernow/gatekeeper",
                      "deciphernow/metadatadb",
                      "deciphernow/odriverpm",
-                     "deciphernow/odriverpm-bc",
-                     "deciphernow/dias"]
+                     "deciphernow/odriverpm-bc"]
     
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description=textwrap.dedent(description))

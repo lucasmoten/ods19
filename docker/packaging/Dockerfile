@@ -11,8 +11,8 @@ RUN yum -y update; \
     yum -y install yum-plugin-ovl; \
     yum -y install anacron;
 
-RUN wget https://storage.googleapis.com/golang/go1.11.1.linux-amd64.tar.gz
-RUN tar -C /usr/local -xzf go1.11.1.linux-amd64.tar.gz
+RUN wget https://storage.googleapis.com/golang/go1.11.5.linux-amd64.tar.gz
+RUN tar -C /usr/local -xzf go1.11.5.linux-amd64.tar.gz
 ENV PATH /usr/local/go/bin:$PATH
 ENV GOPATH /go
 

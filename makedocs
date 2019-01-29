@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import uuid
+import platform
 
 #-------------------------------------------------------------------------------
 
@@ -88,10 +89,16 @@ def inject_replacements(filename, changelogver, buildnumber, outname=None):
     outname : bool, opt
         Outname to write to.  If not supplied, will write in-place.
     """
-    
-    subprocess.check_call(['sed', '-i', 's/{0}/{1}/ '.format(re.escape('--Version--'),changelogver), filename])
-    subprocess.check_call(['sed', '-i', 's/{0}/{1}/ '.format(re.escape('--BuildNumber--'),buildnumber), filename])
-    subprocess.check_call(['sed', '-i', 's/{0}/{1}/ '.format(re.escape('--BuildDate--'),datetime.datetime.today().strftime('%Y-%m-%d')), filename])
+
+    if platform == "linux" or platform == "linux2":
+        subprocess.check_call(['sed', '-i', 's/{0}/{1}/ '.format(re.escape('--Version--'),changelogver), filename])
+        subprocess.check_call(['sed', '-i', 's/{0}/{1}/ '.format(re.escape('--BuildNumber--'),buildnumber), filename])
+        subprocess.check_call(['sed', '-i', 's/{0}/{1}/ '.format(re.escape('--BuildDate--'),datetime.datetime.today().strftime('%Y-%m-%d')), filename])
+
+    if platform == "darwin":
+        subprocess.check_call(['sed', '-i', '\'\'', '-e', 's/{0}/{1}/ '.format(re.escape('--Version--'),changelogver), filename])
+        subprocess.check_call(['sed', '-i', '\'\'', '-e', 's/{0}/{1}/ '.format(re.escape('--BuildNumber--'),buildnumber), filename])
+        subprocess.check_call(['sed', '-i', '\'\'', '-e', 's/{0}/{1}/ '.format(re.escape('--BuildDate--'),datetime.datetime.today().strftime('%Y-%m-%d')), filename])
 
 #-------------------------------------------------------------------------------
 
