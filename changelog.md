@@ -25,6 +25,11 @@ FORMAT: 1A
 * CFG: Docker Compose files reference images from docker-dime.di2e.net
 * CFG: Previous docker-compose.yml is renamed for full stack. New docker-compose is for local development
 * CFG: Jenkins parallelization of Docker, RPM, and TAR outputs
+* CFG: Support additional configuration by environment variables 
+* CFG: Add new environment variables for configuring database `OD_DB_DRIVER`, `OD_DB_PROTOCOL`, `OD_DB_USE_TLS`
+* CFG: Add new environment variables for server listener and assets `OD_SERVER_BINDADDRESS`, `OD_SERVER_STATIC_ROOT`, `OD_SERVER_TEMPLATE_ROOT`
+* CFG: Renamed environment variables for database `OD_DEADLOCK_RETRYCOUNTER` becomes `OD_DB_DEADLOCK_RETRYCOUNTER`
+* CFG: Renamed environment variables for database `OD_DEADLOCK_RETRYDELAYMS` becomes `OD_DB_DEADLOCK_RETRYDELAYMS`
 * ENH: Adding support for configuration file vs environment variables
 
 ## Release v1.0.18 (November 14, 2018)
