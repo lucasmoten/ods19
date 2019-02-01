@@ -225,13 +225,13 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var matched string
 	beginTSInMS := util.NowMS()
 
-	sessionID := r.Header.Get("sessionid")
+	sessionID := r.Header.Get("Session-Id")
 	sessionRequestCount := 0
 	if len(sessionID) == 0 {
 		sessionID = newSessionID()
 	}
 	sessionRequestCount = sessionRequestCount + 1
-	w.Header().Add("sessionid", sessionID)
+	w.Header().Add("Session-Id", sessionID)
 	if len(h.Version) > 0 {
 		w.Header().Add("odrive-server", h.Version)
 	}
