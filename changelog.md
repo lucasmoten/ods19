@@ -21,6 +21,7 @@ FORMAT: 1A
 * DOC: Readme no longer references gitlab, gives description of service, and guidance on making RPM
 * DOC: API Documentation adds clarity on Bulk Delete operation
 * FIX: ODB script will now properly build odrive-database dependency for docker images
+* FIX: Header for session identifier changed to `Session-Id` standard
 * CFG: Jenkins updated to build with 1.11.5b4
 * CFG: Docker Compose files reference images from docker-dime.di2e.net
 * CFG: Previous docker-compose.yml is renamed for full stack. New docker-compose is for local development
