@@ -9,10 +9,10 @@ aws s3 cp s3://decipherers/$TARFILE $TARFILE
   mkdir ui
   cd ui
   tar xvf ../$TARFILE
-  cp $GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/customer/bundle/docker/settings.json opt/apps/drive/json/settings.json
-  cp $GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/customer/bundle/docker/chm_drive.json opt/apps/drive/json/chm_drive.json
-  cp $GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/customer/bundle/docker/piwik.js opt/apps/drive/json/piwik.js
-  cp $GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/customer/bundle/docker/piwik.php opt/apps/drive/json/piwik.php
+  cp ../proxier/drive/settings.json opt/apps/drive/json/settings.json
+  cp ../proxier/drive/chm_drive.json opt/apps/drive/json/chm_drive.json
+  cp ../proxier/drive/piwik.js opt/apps/drive/json/piwik.js
+  cp ../proxier/drive/piwik.php opt/apps/drive/json/piwik.php
   tar cvf ../ui.tar *
 )
 docker cp ui.tar docker_proxier_1:ui.tar
