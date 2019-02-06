@@ -54,7 +54,7 @@ func main() {
 		cli.StringFlag{
 			Name:  "conf",
 			Usage: "Path to yaml configuration file.",
-			Value: "odrive.yml",
+			Value: "./odrive.yml",
 		},
 		cli.StringFlag{
 			Name:  "staticRoot",
@@ -143,10 +143,10 @@ func main() {
 	cliParser.Action = func(c *cli.Context) error {
 		opts := config.NewCommandLineOpts(c)
 		conf := config.NewAppConfiguration(opts)
-		config.RootLogger.Info("configuration-settings", zap.String("confPath", opts.Conf),
-			zap.String("staticRoot", opts.StaticRootPath),
-			zap.String("templateDir", opts.TemplateDir),
-			zap.String("tlsMinimumVersion", opts.TLSMinimumVersion))
+		config.RootLogger.Info("configuration-settings", zap.String("--conf", opts.Conf),
+			zap.String("--staticRoot", opts.StaticRootPath),
+			zap.String("--templateDir", opts.TemplateDir),
+			zap.String("--tlsMinimumVersion", opts.TLSMinimumVersion))
 
 		conf.ServerSettings.Version = cliParser.Version
 

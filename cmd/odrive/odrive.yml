@@ -1,3 +1,29 @@
+database:
+    driver: "mysql"
+    username: "dbuser"
+    password: "dbPassword"
+    protocol: "tcp"
+    host: "metadatadb"
+    port: "3306"
+    schema: "metadatadb"
+    params: "parseTime=true&collation=utf8_unicode_ci&readTimeout=30s"
+    use_tls: true
+    insecure_skip_verify: false
+    trust: "/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/trust"
+    cert: ""
+    key: ""
+    deadlock_retrycounter: 30
+    deadlock_retrydelay: 55
+    max_idle_conns: 10
+    max_open_conns: 10
+    max_conn_lifetime: 30
+
 server:
     acl_whitelist:
         - cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us
+    static_root: "/go/src/bitbucket.di2e.net/dime/object-drive-server/server/static"
+    template_root: "/go/src/bitbucket.di2e.net/dime/object-drive-server/server/static/templates"
+    timeout_idle: 60
+    timeout_read: 0
+    timeout_readheader: 5
+    timeout_write: 3600

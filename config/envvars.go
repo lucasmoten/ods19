@@ -56,6 +56,7 @@ const (
 	OD_DB_PORT                       = "OD_DB_PORT"
 	OD_DB_PROTOCOL                   = "OD_DB_PROTOCOL"
 	OD_DB_SCHEMA                     = "OD_DB_SCHEMA"
+	OD_DB_SKIP_VERIFY                = "OD_DB_SKIP_VERIFY"
 	OD_DB_USE_TLS                    = "OD_DB_USE_TLS"
 	OD_DB_USERNAME                   = "OD_DB_USERNAME"
 	OD_ENCRYPT_MASTERKEY             = "OD_ENCRYPT_MASTERKEY"
@@ -148,6 +149,7 @@ var Vars = []string{OD_AAC_CA,
 	OD_DB_PORT,
 	OD_DB_PROTOCOL,
 	OD_DB_SCHEMA,
+	OD_DB_SKIP_VERIFY,
 	OD_DB_USE_TLS,
 	OD_DB_USERNAME,
 	OD_ENCRYPT_MASTERKEY,
