@@ -113,11 +113,15 @@ type DatabaseConfiguration struct {
 	// will vary depending on your server's configuration.
 	Params string `yaml:"params"`
 	// UseTLS determines whether you should connect to the database with TLS.
-	// This is currently hardcoded to true.
-	UseTLS bool `yaml:"use_tls"`
+	// Defaults to true
+	UseTLS bool
+	// UseTLSString allows converting string value to bool from configuration
+	UseTLSString string `yaml:"use_tls"`
 	// SkipVerify controls whether the hostname of an SSL peer is verified.
-	// This is hardcoded to false for legacy compatibility reasons.
-	SkipVerify bool `yaml:"insecure_skip_veriry"`
+	// Defaults to false
+	SkipVerify bool
+	// SkipVerifyString allows converting string value to bool from configuration
+	SkipVerifyString string `yaml:"insecure_skip_verify"`
 	// CAPath is the path to a PEM encoded certificate. For connecting to
 	// some test databases this might be the only SSL asset required, if
 	// 2-way SSL is not enforced.
@@ -398,8 +402,8 @@ func NewDatabaseConfigFromEnv(confFile AppConfiguration, opts CommandLineOpts) D
 	dbConf.Params = cascade(OD_DB_CONN_PARAMS, confFile.DatabaseConnection.Params, "parseTime=true&collation=utf8_unicode_ci&readTimeout=30s")
 	dbConf.Protocol = cascade(OD_DB_PROTOCOL, confFile.DatabaseConnection.Protocol, "tcp")
 	dbConf.Driver = cascade(OD_DB_DRIVER, confFile.DatabaseConnection.Driver, DBDRIVERMYSQL)
-	dbConf.UseTLS = cascadeBool(OD_DB_USE_TLS, confFile.DatabaseConnection.UseTLS, true)
-	dbConf.SkipVerify = true
+	dbConf.UseTLS = cascadeBoolFromString(OD_DB_USE_TLS, confFile.DatabaseConnection.UseTLSString, true)
+	dbConf.SkipVerify = cascadeBoolFromString(OD_DB_SKIP_VERIFY, confFile.DatabaseConnection.SkipVerifyString, false)
 	dbConf.MaxIdleConns = cascadeInt(OD_DB_MAXIDLECONNS, confFile.DatabaseConnection.MaxIdleConns, 10)
 	dbConf.MaxOpenConns = cascadeInt(OD_DB_MAXOPENCONNS, confFile.DatabaseConnection.MaxOpenConns, 10)
 	dbConf.MaxConnLifetime = cascadeInt(OD_DB_CONNMAXLIFETIME, confFile.DatabaseConnection.MaxConnLifetime, 30)
@@ -556,6 +560,8 @@ func (r *DatabaseConfiguration) GetDatabaseHandle() (*sqlx.DB, error) {
 		default:
 			panic("Driver not supported")
 		}
+	} else {
+		logger.Warn("database client connection is not using tls", zap.String(OD_DB_USE_TLS, os.Getenv(OD_DB_USE_TLS)))
 	}
 	// Setup handle to the database
 	db, err := sqlx.Open(r.Driver, r.buildDSN())
@@ -680,7 +686,11 @@ func (conf *DatabaseConfiguration) buildTLSConfig() tls.Config {
 	// server this config will be used to connect to.
 	rootCAsCertPool := buildCertPoolFromPath(conf.CAPath, "for client")
 
-	// Client public and private certificate
+	if conf.SkipVerify {
+		logger.Warn("database tls client connection is not verifying server")
+	}
+
+	// Return a 1-way (server trust) if no client certificate configured
 	if len(conf.ClientCert) == 0 || len(conf.ClientKey) == 0 {
 		return tls.Config{
 			RootCAs:            rootCAsCertPool,
@@ -688,8 +698,9 @@ func (conf *DatabaseConfiguration) buildTLSConfig() tls.Config {
 			InsecureSkipVerify: conf.SkipVerify,
 		}
 	}
-	clientCert := buildx509Identity(conf.ClientCert, conf.ClientKey)
 
+	// Return a 2-way (client/server trust) if client certificates are configured
+	clientCert := buildx509Identity(conf.ClientCert, conf.ClientKey)
 	return tls.Config{
 		RootCAs:            rootCAsCertPool,
 		Certificates:       clientCert,
@@ -715,12 +726,12 @@ func cascade(fromEnv, fromFile, defaultVal string) string {
 	return defaultVal
 }
 
-func cascadeBool(fromEnv string, fromFile bool, defaultVal bool) bool {
+func cascadeBoolFromString(fromEnv string, fromFile string, defaultVal bool) bool {
 	if envVal := os.Getenv(fromEnv); envVal != "" {
 		return (strings.ToLower(envVal) == "true")
 	}
-	if fromFile {
-		return fromFile
+	if fromFile != "" {
+		return (strings.ToLower(fromFile) == "true")
 	}
 	return defaultVal
 }
@@ -987,7 +998,8 @@ func setEnvironmentFromConfiguration(conf AppConfiguration) {
 	// os.Setenv(OD_DB_PORT,
 	// os.Setenv(OD_DB_PROTOCOL,
 	// os.Setenv(OD_DB_SCHEMA,
-	// os.Setenv(OD_DB_USE_TLS,
+	os.Setenv(OD_DB_SKIP_VERIFY, strconv.FormatBool(conf.DatabaseConnection.SkipVerify))
+	os.Setenv(OD_DB_USE_TLS, strconv.FormatBool(conf.DatabaseConnection.UseTLS))
 	// os.Setenv(OD_DB_USERNAME,
 	// os.Setenv(OD_ENCRYPT_MASTERKEY,
 	// os.Setenv(OD_EVENT_KAFKA_ADDRS,

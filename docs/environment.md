@@ -95,6 +95,7 @@ The database is used to store metadata about objects and supports querying for m
 | OD_DB_PORT | The port that the MySQL / MariaDB / Aurora instance is listening on.  |  |
 | OD_DB_PROTOCOL | The protocol to use when communicating with the database. Supported values are `tcp`. | tcp |
 | OD_DB_SCHEMA | The schema to connect to after logging into the database.  |  |
+| OD_DB_SKIP_VERIFY | Indicates whether the hostname of an SSL peer is verified. | false |
 | OD_DB_USE_TLS | Indicates whether the database connection should use TLS. | true |
 | OD_DB_USERNAME | The username portion of credentials when connecting to database.  |  |
 

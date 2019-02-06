@@ -10,7 +10,7 @@ database:
     schema: ""
     params: ""
     use_tls: true
-    insecure_skip_verify: true
+    insecure_skip_verify: false
     trust: ""
     cert: ""
     key: ""
