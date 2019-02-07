@@ -20,7 +20,7 @@ services:
     stdin_open: true
     ports:
       - "9093:9000"
-      - "7444:8443"
+      - "7444:7444"
     environment:
         - COM_DECIPHERNOW_SERVER_CONFIG_ZK_ZOOKEEPERCONNECTION=zk:2181
         - COM_DECIPHERNOW_SERVER_CONFIG_ZK_ANNOUNCEMENTPOINT=/cte/service/aac/1.2
@@ -41,7 +41,7 @@ services:
 
   cte-user-service:
     hostname: cte-user-service
-    image: docker-dime.di2e.net/dime/user-service:1.1.1-SNAPSHOT
+    image: docker.363-283.io/chimera/user-service:1.0.1-SNAPSHOT
     environment:
         - ELASTICSEARCH_HOST=es
         - ZK_HOST=zk
@@ -75,9 +75,9 @@ services:
         - OD_PEER_CN=twl-server-generic2
         - OD_PEER_INSECURE_SKIP_VERIFY=false
         - OD_AWS_ACCESS_KEY_ID=$OD_AWS_ACCESS_KEY_ID
-        - OD_AWS_ENDPOINT                    # has default
+        - OD_AWS_S3_ENDPOINT                    # has default
         - OD_AWS_REGION=us-east-1             # has default
-        - OD_AWS_S3_BUCKET
+        - OD_AWS_S3_BUCKET=
         - OD_AWS_SECRET_ACCESS_KEY=$OD_AWS_SECRET_ACCESS_KEY
         - OD_AWS_SECRET_KEY=$OD_AWS_SECRET_ACCESS_KEY
         - OD_CACHE_EVICTAGE                   # has default
@@ -147,7 +147,7 @@ services:
         - OD_AWS_ACCESS_KEY_ID=$OD_AWS_ACCESS_KEY_ID
         - OD_AWS_ENDPOINT                    # has default
         - OD_AWS_REGION=us-east-1             # has default
-        - OD_AWS_S3_BUCKET
+        - OD_AWS_S3_BUCKET=
         - OD_AWS_SECRET_ACCESS_KEY=$OD_AWS_SECRET_ACCESS_KEY
         - OD_AWS_SECRET_KEY=$OD_AWS_SECRET_ACCESS_KEY
         - OD_CACHE_EVICTAGE                   # has default
@@ -266,7 +266,7 @@ services:
     image: nginx
     environment:
        - AAC_SERVICE_HOST=aac
-       - AAC_SERVICE_PORT=8443
+       - AAC_SERVICE_PORT=7444
        - FINDER_HOST=finder
        - FINDER_PORT=8443
        - CTE_APPS_SERVICE_HOST=apps

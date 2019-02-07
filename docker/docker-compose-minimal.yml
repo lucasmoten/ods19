@@ -23,7 +23,7 @@ services:
     stdin_open: true
     ports:
       - "9093:9000"
-      - "7444:8443"
+      - "7444:7444"
     environment:
         - COM_DECIPHERNOW_SERVER_CONFIG_ZK_ZOOKEEPERCONNECTION=zk:2181
         - COM_DECIPHERNOW_SERVER_CONFIG_ZK_ANNOUNCEMENTPOINT=/cte/service/aac/1.2

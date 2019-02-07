@@ -1,14 +1,18 @@
 #!/bin/bash
 
-TARFILE=ui-2017-09-26.tar
+TARFILE=odrive-ui-1.2.10-2019-02-07.tar.gz
 cd $GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/docker
-rm ui-*.tar
+rm odrive-ui-*.tar.gz*
 rm ui.tar
+rm -rf ui/
 aws s3 cp s3://decipherers/$TARFILE $TARFILE
 (
   mkdir ui
   cd ui
   tar xvf ../$TARFILE
+  mkdir -p opt/apps/drive/
+  mv dist/* opt/apps/drive/
+  rm -rf dist/
   cp ../proxier/drive/settings.json opt/apps/drive/json/settings.json
   cp ../proxier/drive/chm_drive.json opt/apps/drive/json/chm_drive.json
   cp ../proxier/drive/piwik.js opt/apps/drive/json/piwik.js
