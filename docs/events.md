@@ -46,7 +46,7 @@ This is the global event "envelope" that all services use in this framework
 | eventChain | []GUID | An array of GUIDs. Will be empty if the event is never enriched. |
 | schemaVersion | string | Represents the major and minor version of the event schema, e.g. `1.0`. |
 | originatorToken | []string | Identifiers, usually consisting of subject distinguished name from X509 certificates or resource strings for the originators of the event. This consists of end user and/or system users and/or system impersonators. | 
-| eventType | string | A globally unique string identifying the soruce system, e.g. `object-drive-event`. |
+| eventType | string | A globally unique string identifying the source system, e.g. `object-drive-event`. |
 | timestamp | datetime | A unix timestamp, numerically represented in JSON. |
 | xForwardedForIp | string | The IP address of the end user. Required for auditing. | 
 | systemIp | string | The IP address of the system that emitted the event. |
@@ -55,7 +55,7 @@ This is the global event "envelope" that all services use in this framework
 
 ## Object Drive Event model
 
-The Global Event Model emitted from Object Drive includs a payload that conforms to the following
+The Global Event Model emitted from Object Drive includes a payload that conforms to the following
 
 | Field | Data Type | Since | Description |
 | --- | --- | --- | --- |

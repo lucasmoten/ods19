@@ -16,7 +16,7 @@ VERSION:
    
 COMMANDS:
      example-conf	print an example configuration file
-     test-connection	establish connection to odrive and check for erros
+     test-connection	establish connection to odrive and check for errors
      upload		upload file to odrive
      test-fill		upload a sample of random files and directories to the server
 

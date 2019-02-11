@@ -1,10 +1,10 @@
 @startuml
 scale 2/3
-User -> Nginx: GET $PREFIX/objects/$ID/stream\nas $DN\nEtag
-Nginx -> Odrive: GET /objects/$ID/stream\nUSER_DN=$DN\nEtag
+User -> Nginx: GET $PREFIX/objects/$ID/stream\nas $DN\nETag
+Nginx -> Odrive: GET /objects/$ID/stream\nUSER_DN=$DN\nETag
 alt record not found
     Odrive -> Nginx: 500 Internal Error
-else Etag Match
+else ETag Match
     Odrive -> Nginx: 304 Not Modified
 else record found
     Odrive -> AAC: Authorization (Security Clearance) Lookup

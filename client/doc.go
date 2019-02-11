@@ -6,7 +6,7 @@ Below briefly illustrates a simple cycle of creating a client and using it to pe
 a few operations.  The first step is to create a new client.
 
   var conf = Config{
-    // Setup certs, odrive URL, etc
+    // Setup certs, Object Drive service endpoint URL, etc
   }
 
   client, err := NewClient(conf)

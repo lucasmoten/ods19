@@ -52,7 +52,7 @@ Features supported:
 ## Setup
 
 Refer to the [Environment](static/templates/environment.html) variables page for the purpose of each configuration option for setting up object drive whether using an RPM installation, or Docker Image launched with Docker Compose. Several values have defaults, but you do have to configure the following at a minimum:
-* MySQL/MariaDB/Aurora Database, which you can populate using the odrive-database tool, or use a premade docker image
+* MySQL/MariaDB/Aurora Database, which you can populate using the odrive-database tool, or by using an available docker image
 * Database connection settings: OD_DB_CA, OD_DB_CERT, OD_DB_HOST, OD_DB_KEY, OD_DB_PASSWORD, OD_DB_PORT, OD_DB_SCHEMA, OD_DB_USERNAME
 * AAC connection settings: OD_AAC_CA, OD_AAC_CERT, OD_AAC_CN, OD_AAC_KEY
 * Server connection settings: OD_SERVER_CA, OD_SERVER_CERT, OD_SERVER_KEY

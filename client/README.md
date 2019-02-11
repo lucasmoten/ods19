@@ -1,7 +1,7 @@
 
 # Clients
 
-Besides the odrive UI that will be at:  `https://gatekeeper:8080/apps/drive/index.html` once containers start, there is a client library available.  The client can be used directly, as is called in the 
+Apart from the Drive UI available at:  `https://proxier:8080/apps/drive/index.html` once containers start, there is a client library available.  The client can be used directly, as is called in the 
 Fetch function described here.  Or it is generally going to be more useful to call the client
 library in response to events (modifications to files).  
 

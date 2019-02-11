@@ -18,7 +18,7 @@ import (
 
 // updateTimeWindow defines the minimum time, in microseconds, between updates to an object for
 // isolating changes to revisions which track by time (e.g. when properties and permissions change)
-// this should be as small as possible to reduce throttling, but as long as necessary to accomodate
+// this should be as small as possible to reduce throttling, but as long as necessary to accommodate
 // associating the save of revision info. If it takes longer then this time period to save the data
 // it may not show up in the revision for properties
 const updateTimeWindowMS = 50
@@ -124,7 +124,7 @@ func updateObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 	}
 	// Check if deleted
 	if dbObject.IsDeleted {
-		return acmCreated, fmt.Errorf("unable to modify object if deleted. Call UndeletObject first")
+		return acmCreated, fmt.Errorf("unable to modify object if deleted. Call UndeleteObject first")
 	}
 	// Check if too recent
 	currentTime := time.Now().UTC()
@@ -243,7 +243,7 @@ func updateObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 					addProperty = false
 				}
 			}
-		} // dbPropety
+		} // dbProperty
 		if addProperty {
 			// Add the newly passed in property
 			var newProperty models.ODProperty

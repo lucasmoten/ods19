@@ -157,7 +157,7 @@ func TestDAOTransactionalUpdate(t *testing.T) {
 	if err != nil {
 		log.Printf("Error %v", err)
 	}
-	_, err = addObjectTypeStatement.Exec("Bob", typeName, "No Decription", "No Content Connector")
+	_, err = addObjectTypeStatement.Exec("Bob", typeName, "No Description", "No Content Connector")
 	if err != nil {
 		log.Printf("Error %v", err)
 	}

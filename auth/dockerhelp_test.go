@@ -15,15 +15,13 @@ import (
 	"testing"
 )
 
-// docker ps -a | grep zk | awk '{print $1}'
-
-// lucasmoten@lucas-ubuntu:~/workspace/cte/object-drive/docker$ docker ps -a | grep zk | awk '{print $1}'
+// Sampling...
+// $ docker ps -a | grep zk | awk '{print $1}'
 // eb6dde1947ce
-// lucasmoten@lucas-ubuntu:~/workspace/cte/object-drive/docker$ docker inspect -f '{{.NetworkSettings.IPAddress }}' eb6dde1947ce
-
-// lucasmoten@lucas-ubuntu:~/workspace/cte/object-drive/docker$ docker inspect -f '{{.HostConfig.NetworkMode }}' eb6dde1947ce
+// $ docker inspect -f '{{.NetworkSettings.IPAddress }}' eb6dde1947ce
+// $ docker inspect -f '{{.HostConfig.NetworkMode }}' eb6dde1947ce
 // docker_default
-// lucasmoten@lucas-ubuntu:~/workspace/cte/object-drive/docker$ docker inspect -f '{{.NetworkSettings.Networks.docker_default.IPAddress }}' eb6dde1947ce
+// $ docker inspect -f '{{.NetworkSettings.Networks.docker_default.IPAddress }}' eb6dde1947ce
 // 172.18.0.2
 
 // XXX When ports get exposed to the gateway, they may not be reachable by machine IP

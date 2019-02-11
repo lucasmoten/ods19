@@ -15,7 +15,7 @@ import (
 const mb int64 = 1024
 
 // DownloadFromS3 gets the targeted key from an S3 bucket and writes it to the
-// destKey localy. If no destKey is provided, the filename portion of key is used.
+// destKey locally. If no destKey is provided, the filename portion of key is used.
 func DownloadFromS3(bucketName, key, destKey string) error {
 
 	client := getS3ClientFromEnv()

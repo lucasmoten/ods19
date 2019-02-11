@@ -132,7 +132,7 @@ func CombineInterface(sourceInterface interface{}, interfaceToAdd interface{}) i
 						// unsupported type, do nothing with it
 					}
 				case "map":
-					// recurse
+					// recursive processing of this node
 					sMap[sK] = CombineInterface(sV, aV)
 				} // switch avType
 			} // if the keys for source and adding maps iteration is matched

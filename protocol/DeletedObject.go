@@ -27,7 +27,7 @@ type DeletedObject struct {
 	// existing value on record to prevent accidental overwrites.
 	ChangeToken string `json:"changeToken,omitempty"`
 	// OwnedBy indicates the individual user or group that currently owns the
-	// object and has implict full permissions on the object
+	// object and has implicit full permissions on the object
 	OwnedBy string `json:"ownedBy"`
 	// TypeID references the ODObjectType by its ID indicating the type of this
 	// object
@@ -66,7 +66,7 @@ type DeletedObject struct {
 	// Permissions is an array of Object Permissions associated with this object
 	// This might be null.  It could have a large list of permission objects
 	// relevant to this file (ie: shared with an organization)
-	Permissions []Permission_1_0 `json:"permissions,omitempty"`
+	Permissions []Permission1_0 `json:"permissions,omitempty"`
 	// Permission is the API 1.1+ version for providing permissions for users and groups with a resource and capability driven approach
 	Permission Permission `json:"permission,omitempty"`
 }

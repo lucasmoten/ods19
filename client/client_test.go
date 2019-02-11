@@ -86,7 +86,7 @@ func TestNewClient(t *testing.T) {
 	require.Nil(t, err, fmt.Sprintf("ERROR creating new client: %s", err))
 }
 
-// TestCreteObjectNoSTream tests the creation of an object with no stream, just metadata,
+// TestCreteObjectNoStream tests the creation of an object with no stream, just metadata,
 // such as a folder.
 func TestCreateObjectNoStream(t *testing.T) {
 	me, err := client.NewClient(conf)

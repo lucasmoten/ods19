@@ -66,7 +66,7 @@ var ciphertextCaches = make(map[CiphertextCacheZone]CiphertextCache)
 //
 // This implementation ASSUMES that main.go is setting us up with a provider per zone
 func FindCiphertextCacheByObject(obj *models.ODObject) CiphertextCache {
-	// When we have an API token, and a way to configure multiple providers, we simply pick a provider as a functino object's properties (already tested to work)
+	// When we have an API token, and a way to configure multiple providers, we simply pick a provider as a function object's properties (already tested to work)
 	// For now, every object is getting default, but we can't change this without getting unique configs per CiphertextCache
 	return FindCiphertextCache(S3_DEFAULT_CIPHERTEXT_CACHE)
 }

@@ -6,7 +6,7 @@ import (
 )
 
 // FakeAuth is suitable for tests. Add fields to this struct to hold fake
-// reponses for each of the methods that FakeAuth will implement. These fake
+// responses for each of the methods that FakeAuth will implement. These fake
 // response fields can be explicitly set, or setup functions can be defined.
 type FakeAuth struct {
 	Err                 error

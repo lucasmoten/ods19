@@ -18,21 +18,20 @@ FORMAT: 1A
 
 ## Release v1.0.19 (In Development)
 ---------------------
-* DOC: Readme no longer references gitlab, gives description of service, and guidance on making RPM
+* DOC: Readme no longer references GitLab, gives description of service, and guidance on making RPM
 * DOC: API Documentation adds clarity on Bulk Delete operation
 * FIX: ODB script will now properly build odrive-database dependency for docker images
 * FIX: Header for session identifier changed to `Session-Id` standard
 * CFG: Jenkins updated to build with 1.11.5b4
 * CFG: Docker Compose files reference images from docker-dime.di2e.net
 * CFG: Previous docker-compose.yml is renamed for full stack. New docker-compose is for local development
-* CFG: Jenkins parallelization of Docker, RPM, and TAR outputs
+* CFG: Jenkins parallel pipeline of Docker, RPM, and TAR outputs
 * CFG: Support additional configuration by environment variables 
 * CFG: Add new environment variables for configuring database `OD_DB_DRIVER`, `OD_DB_PROTOCOL`, `OD_DB_SKIP_VERIFY`, `OD_DB_USE_TLS`
 * CFG: Add new environment variables for server listener and assets `OD_SERVER_BINDADDRESS`, `OD_SERVER_STATIC_ROOT`, `OD_SERVER_TEMPLATE_ROOT`
 * CFG: Renamed environment variables for database `OD_DEADLOCK_RETRYCOUNTER` becomes `OD_DB_DEADLOCK_RETRYCOUNTER`
 * CFG: Renamed environment variables for database `OD_DEADLOCK_RETRYDELAYMS` becomes `OD_DB_DEADLOCK_RETRYDELAYMS`
-* ENH: Adding support for configuration file vs environment variables
-* ENH: Adds new option to store files in unencrypted form based upon a configuration file setting.	
+* CFG: Add new environment variables for setting encrypted mode `OD_ENCRYPT_ENABLED`
 
 ## Release v1.0.18 (November 14, 2018)
 ---------------------
@@ -44,14 +43,14 @@ FORMAT: 1A
 * FIX: Duplicate user caches will be removed after update, and ignored during retrieve check
 * FIX: DB connections closed inside deadlock detection loops after execution
 * FIX: ODrive Client now gives error if initializing empty trust file
-* FIX: Service will no longer open excessive connections to ZK from Keepalive check
-* FIX: Configurable OD_AAC_HEALTHCHECK ACM now applies in all 4 places healthchecks performed
+* FIX: Service will no longer open excessive connections to ZK from keep alive check
+* FIX: Configurable OD_AAC_HEALTHCHECK ACM now applies in all 4 places health checks performed
 * FIX: API documentation for Update Object indicates contentType can be provided
 * NEW: LRU Caching enabled for User AO and Object Types to improve performance
 * NEW: A new command line flag 'isfips' will report whether compiled with BoringCrypto/BoringSSL
 * NEW: Now optionally built using Golang 1.11b4 with BoringCrypto/BoringSSL module support for FIPS
 * NEW: Additional docker image generation with boring crypto have `-bc` suffix
-* ENH: DB Healthcheck reports open connection count, and will force close/reopen when at max
+* ENH: DB health check reports open connection count, and will force close/reopen when at max
 * ENH: DB connection count is now reported in metrics available at /stats
 * ENH: Additional debug logging added to AAC calls, DAO calls, and changed level of others 
 * ENH: Client.go for service now encapsulates protocol objects improving portability
@@ -62,7 +61,7 @@ FORMAT: 1A
 ---------------------
 * FIX: Postprocessing list/search filtering now includes TotalRows
 * REF: Dev & Build process now use DIAS Simulator 1.1.0
-* REF: Imports switched over to new home repository in bitbucket
+* REF: Imports switched over to new home repository in BitBucket
 * NEW: Recheck interval for ZK health check now settable via environment variables `OD_ZK_RECHECK_TIME`
 * NEW: Added support for configuring logger in development or production mode `OD_LOG_MODE`
 * NEW: Added support for configuring the HTTP Server Timeouts using `OD_SERVER_TIMEOUT_IDLE`, `OD_SERVER_TIMEOUT_READ`, `OD_SERVER_TIMEOUT_READHEADER`, and `OD_SERVER_TIMEOUT_WRITE`
@@ -77,7 +76,7 @@ FORMAT: 1A
 * DEV: Removed duplicate reference to odrive-indexer in docker-compose file
 * NEW: Added support for restoring a version of an object
 * NEW: Added restore version support to the golang client libraries
-* ENH: Removed changetoken check for individual property modifications during update
+* ENH: Removed ChangeToken check for individual property modifications during update
 
 ## Release v1.0.15 (April 27, 2018)
 ---------------------
@@ -86,11 +85,11 @@ FORMAT: 1A
 * DOC: Copy Object, Download File By Path, Download File By Group Path, List Files By Path, List Files By Group Path are now documented
 * DOC: Documentation now generated with deciphernow/aglio image
 * DOC: Fixed breadcrumb samples to have unique object ids between parent and child
-* FIX: Fixed bug where bulk move operation was always moving targetted objects to root folder
+* FIX: Fixed bug where bulk move operation was always moving targeted objects to root folder
 * FIX: Bulk operations will now properly clear action targets when preparing GEM
 * REF: Now using HTTP status code constants from net/http, with some corrections
 * FIX: Fixed erroneous error logging at service startup during canary check
-* DEV: A minimal docker-compose file is now available for integrators
+* DEV: A minimal docker-compose file is now available for use by integrator
 * FIX: No longer defaulting ServerName expectation of peer nodes within an instance
 
 ## Release v1.0.14 (February 28, 2018)
@@ -117,7 +116,7 @@ FORMAT: 1A
 * FIX: Fixed client library search call to url encode query parameters
 * FIX: Remove temporary containers when building documentation
 * ENH: Enforce non-usage of CGO in odb build and continuous integration
-* CFG: Development envrionment, CI, and Customer bundle now referencing AAC 1.2.2-SNAPSHOT
+* CFG: Development environment, CI, and Customer bundle now referencing AAC 1.2.2-SNAPSHOT
 * DOC: Includes further guidance for development environment setup
 * FIX: Added deadlock and lock wait timeout handler to create object type
 * ENH: Successive updates on same object is now throttled to 50ms
@@ -166,7 +165,7 @@ FORMAT: 1A
 * ENH: database tool now resolves ip when using default config to favor non 127.0.0.1
 * DOC: Add service architecture diagram to documentation
 * ENH: Restructured RPM generation to include version and build number
-* FIX: Database migration tool no longer hardcodes name as `odrive-database`
+* FIX: Database migration tool no longer hard codes name as `odrive-database`
 
 ## Release v1.0.9 (August 28, 2017)
 --------------------
@@ -175,7 +174,7 @@ FORMAT: 1A
 ## Release v1.0.8 (August 17, 2017)
 --------------------
 * ENH: DB upgrade tool now checks which version of MySQL to leverage performance_schema for reading variables
-* ENH: DB Migration for 20170630 rollup now creates constraints and indexes prior to transorming data
+* ENH: DB Migration for 20170630 rollup now creates constraints and indexes prior to transforming data
 * ENH: DB Migration for 20170630 now has significant time improvement for processing permissions
 
 ## Release v1.0.7 (August 8, 2017)

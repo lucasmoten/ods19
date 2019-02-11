@@ -2,12 +2,12 @@
 scale 2/3
 ref over Client: partially retrieve a stream
 Client -> Odrive: GET /objects/$ID/stream
-Odrive -> Client: 200 OK\nContent-Length: 10000\nEtag: 12341234
+Odrive -> Client: 200 OK\nContent-Length: 10000\nETag: 12341234
 Odrive ->x Client: read out header, then bytes: 0-3000, close connection
 
 ref over Client: Get if modified
 Client -> Odrive: GET /objects/$ID/stream\nIf-None-Match: 12341234
-Odrive -> Client: 304 Not Modified\nEtag: 12341234\n(no bytes sent back)
+Odrive -> Client: 304 Not Modified\nETag: 12341234\n(no bytes sent back)
 
 ref over Client: Get range only, as much as necessary
 Client -> Odrive: GET /objects/$ID/stream\nRange: bytes=3001-

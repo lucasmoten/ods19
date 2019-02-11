@@ -186,7 +186,7 @@ func trackMountLoop(z *ZKState, at string, handler AnnounceHandler) {
 				trackAnnouncementsLoop(z, at, handler)
 			} else {
 				zlogger.Info("zk mount check again")
-				//it doesnt exist yet, and no error.  wait until this changes
+				//it doesn't exist yet, and no error.  wait until this changes
 				ev := <-existsEvents
 				if ev.Err != nil {
 					zlogger.Error(

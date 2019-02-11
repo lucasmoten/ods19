@@ -254,7 +254,7 @@ func TestAACAuthInjectPermissionsIntoACM(t *testing.T) {
 			t.Fail()
 			continue
 		}
-		// If the result isnt what we expect
+		// If the result isn't what we expect
 		if subtest.expectedModifiedAcm != modifiedAcm {
 			subtest.failed = true
 			t.Logf("[x] Expected %s but got %s for injecting permissions", subtest.expectedModifiedAcm, modifiedAcm)
@@ -338,7 +338,7 @@ func TestAACAuthIsUserAuthorizedForACM(t *testing.T) {
 			t.Fail()
 			continue
 		}
-		// If the result isnt what we expect
+		// If the result isn't what we expect
 		if subtest.expectedIsAuthorized != authorized {
 			subtest.failed = true
 			t.Logf("[x] Expected %t but got %t for authorized", subtest.expectedIsAuthorized, authorized)
@@ -693,7 +693,7 @@ func TestAACAuthNormalizePermissionsFromACM(t *testing.T) {
 			t.Fail()
 			continue
 		}
-		// If the result isnt what we expect
+		// If the result isn't what we expect
 		if subtest.expectedModifiedAcm != modifiedAcm {
 			subtest.failed = true
 			t.Logf("[x] Expected acm of %s but got %s for normalizing permissions from acm", subtest.expectedModifiedAcm, modifiedAcm)
@@ -717,15 +717,15 @@ func TestAACAuthNormalizePermissionsFromACM(t *testing.T) {
 			}
 		}
 		for _, expectedModifiedPermission := range subtest.expectedModifiedPermissions {
-			expectedFoundInModfied := false
+			expectedFoundInModified := false
 			for _, modifiedPermission := range modifiedPermissions {
 				if modifiedPermission.IsDeleted == expectedModifiedPermission.IsDeleted {
 					if strings.ToLower(modifiedPermission.String()) == strings.ToLower(expectedModifiedPermission.String()) {
-						expectedFoundInModfied = true
+						expectedFoundInModified = true
 					}
 				}
 			}
-			if !expectedFoundInModfied {
+			if !expectedFoundInModified {
 				subtest.failed = true
 				t.Logf("[x] Permission '%s' was not found in modified list", expectedModifiedPermission.String())
 				t.Logf("    Deleted? %t", expectedModifiedPermission.IsDeleted)

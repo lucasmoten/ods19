@@ -11,7 +11,7 @@ type Error string
 func (e Error) Error() string { return string(e) }
 
 const (
-	// ErrACMResponseFailed is a sentinal error for the case when Success == false in an *AcmResponse
+	// ErrACMResponseFailed is a sentinel error for the case when Success == false in an *AcmResponse
 	// This error type can be returned when err == nil from the service API call itself,
 	// but the internal Success field shows false.
 	ErrACMResponseFailed = Error("auth: acm response type marked as failed")

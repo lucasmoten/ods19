@@ -10,12 +10,12 @@ database Cache
 database Storage
 ref over Metadata,Authorization,Cache,Storage,Peer: Backend concerns
 
-User -> Nginx: GET $PREFIX/objects/$ID/stream\nas $DN\nEtag
-Nginx -> Odrive: GET /objects/$ID/stream\nUSER_DN=$DN\nEtag
+User -> Nginx: GET $PREFIX/objects/$ID/stream\nas $DN\nETag
+Nginx -> Odrive: GET /objects/$ID/stream\nUSER_DN=$DN\nETag
 Odrive -> Metadata: Find record
 alt record not found
     Odrive -> Nginx: 500 Internal Error
-else Etag Match
+else ETag Match
     Odrive -> Nginx: 304 Not Modified
 else record found
     Metadata -> Odrive: Object record

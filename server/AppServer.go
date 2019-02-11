@@ -92,7 +92,7 @@ type AppServer struct {
 	StaticDir string
 	// Routes holds the compiled regular expressions used when matching routes. See InitRegex method.
 	Routes *StaticRx
-	// DefaultZK wraps a connection to the ZK cluster we announce to, and holds state for odrive's registration.
+	// DefaultZK wraps a connection to the ZK cluster we announce to, and holds state for the registration of this service.
 	DefaultZK *zookeeper.ZKState
 	// UsersLruCache contains a cache of users with support to purge those least recently used when filling. Up to 1000 users will be retained in memory
 	UsersLruCache *ccache.Cache

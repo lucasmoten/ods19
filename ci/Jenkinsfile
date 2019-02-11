@@ -16,7 +16,7 @@ node('docker') {
     def version_display
     def version_major
     def version_minor
-    def version_path
+    def version_patch
     def version_full
     def scmVars
     def projectpath
@@ -187,9 +187,6 @@ node('docker') {
 
     stage('Package and Deployment') {
         parallel docker: {
-            docker_push_latest = false // promotes usage of unstable images. 
-            docker_push_commitid = false
-
             // Use ODB to package images. 
             sh "cd ${projectpath} && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 ./odb --build -i deciphernow/odrive-bc -t unsupported-tag"
             sh "cd ${projectpath} && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 ./odb --build -i deciphernow/metadatadb -t unsupported-tag"
@@ -218,7 +215,7 @@ node('docker') {
                 sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/object-drive-server/object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm"
             }
             // To S3
-            withDockerContainer(args: "-u root -v /var/run/docker.sock:/var/run/docker.sock", image: "docker-dime.di23.net/docker/backend:maven-3.3.9-jdk-8") {
+            withDockerContainer(args: "-u root -v /var/run/docker.sock:/var/run/docker.sock", image: "docker-dime.di2e.net/docker/backend:maven-3.3.9-jdk-8") {
                 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'MEME_S3_CREDS',
                             usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh "aws configure set default.s3.signature_version s3v4"
@@ -256,7 +253,7 @@ node('docker') {
             sh "cd ${projectpath} && tar -cvzf ${tarFilename} -C ${tarroot} etc bin log && mv ${tarFilename} ${projectTarFile}"
             archiveArtifacts artifacts: '*.tgz'
             // deploy it
-            service.buildAndDeploy(serviceName, serviceVersion, saltEnvs, projectTarFile)
+            service.buildAndDeploy(serviceName, serviceVersion, version_patch, saltEnvs, projectTarFile)
         }
     }
 }

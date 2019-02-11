@@ -50,7 +50,7 @@ func TestReproduce268(t *testing.T) {
 	failNowOnErr(t, err, "could not unmarshal json response")
 	objResp.RawAcm = twice
 	objResp.Permission = protocol.Permission{}
-	objResp.Permissions = make([]protocol.Permission_1_0, 0)
+	objResp.Permissions = make([]protocol.Permission1_0, 0)
 
 	// Do the update
 	data2, err := json.Marshal(objResp)

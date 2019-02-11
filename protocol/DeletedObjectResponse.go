@@ -5,7 +5,8 @@ import "time"
 // DeletedObjectResponse is the response information provided when an object
 // is deleted from Object Drive
 type DeletedObjectResponse struct {
-	ID string
+	// ID is the unique identifier for the object that was deleted from Object Drive.
+	ID string `json:"id"`
 	// DeletedDate is the timestamp of when an item was deleted.
 	DeletedDate time.Time `json:"deletedDate"`
 	// CallerPermission is the composite permission the caller has for this object

@@ -13,7 +13,7 @@ import (
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
-func TestEtag(t *testing.T) {
+func TestETag(t *testing.T) {
 	clientID := 5
 	b := []byte(`abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@`)
 
@@ -27,25 +27,25 @@ func TestEtag(t *testing.T) {
 
 	responseObject := doCreateObjectRequest(t, clientID, req, 200)
 
-	//Ask for it in order to get the eTag and a 200
+	//Ask for it in order to get the ETag and a 200
 	req2, err := NewGetObjectStreamRequest(responseObject.ID, "")
 	if err != nil {
 		t.Errorf("Failure from redo get object stream: %v\n", err)
 	}
 	res2 := doGetObjectRequest(t, clientID, req2, 200, nil, nil)
-	eTag := res2.Header.Get("Etag")
+	eTag := res2.Header.Get("ETag")
 	util.FinishBody(res2.Body)
-	t.Logf("we got eTag:%s", eTag)
+	t.Logf("we got ETag:%s", eTag)
 	if len(eTag) == 0 {
-		//We have no situation where a stream does not return an Etag now
-		t.Errorf("We did not get an Etag back")
+		//We have no situation where a stream does not return an ETag now
+		t.Errorf("We did not get an ETag back")
 	}
 
 	if res2.StatusCode != http.StatusOK {
 		t.Errorf("bad status on get: %d", res2.StatusCode)
 	}
 
-	//Ask again with the eTag and get a 304
+	//Ask again with the ETag and get a 304
 	req3, err := NewGetObjectStreamRequest(responseObject.ID, "")
 	if err != nil {
 		t.Errorf("Failure from redo get object stream: %v\n", err)
@@ -55,25 +55,25 @@ func TestEtag(t *testing.T) {
 	res3 := doGetObjectRequest(t, clientID, req3, 304,
 		trafficLogs[APISampleFile],
 		&TrafficLogDescription{
-			OperationName:      "Client Caching with Etags",
-			RequestDescription: "Use the Etag header sent back as If-none-match to get a 304 indicating that the content has not changed",
+			OperationName:      "Client Caching using ETag",
+			RequestDescription: "Use the ETag header sent back as If-none-match to get a 304 indicating that the content has not changed",
 			ResponseDescription: `
 				We get back the code rather than wastefully sending back the whole file when it has not changed.  
 				304 means Not-Modified.  
 				Modern web browsers do this internally to avoid re-fetching unchanged content, 
 				especially with images and javascript.
-				When we get an object, we get an Etag back regardless of whether it was a 200 or 304.
+				When we get an object, we get an ETag back regardless of whether it was a 200 or 304.
 				`,
 		},
 	)
 	util.FinishBody(res3.Body)
 
-	//Ask with a wrong tag and get 200
+	//Ask with an invalid ETag and get 200
 	req4, err := NewGetObjectStreamRequest(responseObject.ID, "")
 	if err != nil {
 		t.Errorf("Failure from redo get object stream: %v\n", err)
 	}
-	//Some random tag that does not match
+	//Some random ETag that does not match
 	eTag2 := "9a29ea29e29eac3457b"
 	req4.Header.Set("If-none-match", eTag2)
 
@@ -115,7 +115,7 @@ func TestUploadAndGetByteRange(t *testing.T) {
 			`,
 			ResponseDescription: `
 			The response that comes back is truncated within the requested byte range.
-			Note that the Etag applies to the whole file, and not the parts.
+			Note that the ETag applies to the whole file, and not the parts.
 			`,
 		},
 	)

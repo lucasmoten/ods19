@@ -22,7 +22,7 @@ type ODAcmGrantee struct {
 	// grantee represents a group
 	GroupName NullString `db:"groupName"`
 	// UserDistinguishedName contains a user value portion of an AcmShare
-	// if this grantee represnts a user
+	// if this grantee represents a user
 	UserDistinguishedName NullString `db:"userDistinguishedName"`
 	// DisplayName is an optional display representation of the user or
 	// group for user interfaces

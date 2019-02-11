@@ -29,7 +29,7 @@ type Object struct {
 	// existing value on record to prevent accidental overwrites.
 	ChangeToken string `json:"changeToken,omitempty"`
 	// OwnedBy indicates the individual user or group that currently owns the
-	// object and has implict full permissions on the object
+	// object and has implicit full permissions on the object
 	OwnedBy string `json:"ownedBy"`
 	// TypeID references the ODObjectType by its ID indicating the type of this
 	// object
@@ -67,14 +67,14 @@ type Object struct {
 	// Permissions is an array of Object Permissions associated with this object
 	// This might be null.  It could have a large list of permission objects
 	// relevant to this file (ie: shared with an organization)
-	Permissions []Permission_1_0 `json:"permissions,omitempty"`
+	Permissions []Permission1_0 `json:"permissions,omitempty"`
 	// Permission is the API 1.1+ version for providing permissions for users and groups with a resource and capability driven approach
 	Permission Permission `json:"permission,omitempty"`
 	// Breadcrumbs is an array of Breadcrumb that may be returned on some API calls.
 	// Clients can use breadcrumbs to display a list of parents. The top-level
 	// parent should be the first item in the slice.
 	Breadcrumbs []Breadcrumb `json:"breadcrumbs,omitempty"`
-	// IsPDFAvailable is readded back in here to maintain backwards compatibility for
+	// IsPDFAvailable is retained here to maintain backwards compatibility for
 	// integrations that expect this field to exist and will break if it is not present
 	IsPDFAvailable bool `json:"isPDFAvailable"`
 }
@@ -107,16 +107,16 @@ func (obj Object) WithCallerPermission(caller Caller) Object {
 // WithConsolidatedPermissions iterates permissions on the object and combines
 // capabilities allowed for multiple resources removing duplicates
 func (obj Object) WithConsolidatedPermissions() Object {
-	obj = consolidatePermissions_1_0(obj)
+	obj = consolidatePermissions1_0(obj)
 	obj.Permission = obj.Permission.Consolidated()
 	return obj
 }
 
-func consolidatePermissions_1_0(obj Object) Object {
-	var consolidated []Permission_1_0
+func consolidatePermissions1_0(obj Object) Object {
+	var consolidated []Permission1_0
 	for _, perm := range obj.Permissions {
 		found := false
-		for cidx, cPerm := range consolidated {
+		for cIdx, cPerm := range consolidated {
 			if strings.Compare(cPerm.Grantee, perm.Grantee) == 0 {
 				found = true
 				cPerm.AllowCreate = cPerm.AllowCreate || perm.AllowCreate
@@ -124,7 +124,7 @@ func consolidatePermissions_1_0(obj Object) Object {
 				cPerm.AllowUpdate = cPerm.AllowUpdate || perm.AllowUpdate
 				cPerm.AllowDelete = cPerm.AllowDelete || perm.AllowDelete
 				cPerm.AllowShare = cPerm.AllowShare || perm.AllowShare
-				consolidated[cidx] = cPerm
+				consolidated[cIdx] = cPerm
 			}
 		}
 		if !found {

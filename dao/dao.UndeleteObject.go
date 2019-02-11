@@ -120,7 +120,7 @@ func undeleteAncestorChildren(logger *zap.Logger, tx *sqlx.Tx, object *models.OD
 		}
 	}
 
-	// Then, resursively call this function.
+	// Then, recursively call this function.
 	for _, child := range results.Objects {
 		err := undeleteAncestorChildren(logger, tx, &child)
 		if err != nil && err != sql.ErrNoRows {

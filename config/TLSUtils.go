@@ -125,7 +125,7 @@ func buildx509Identity(certFile string, keyFile string) []tls.Certificate {
 }
 
 // buildCertPoolFromPath prepares a certificate pool from the passed in file
-// path. If the file path is an indivdual file, then a single PEM is placed
+// path. If the file path is an individual file, then a single PEM is placed
 // in the pool. If it is a folder, then all files in the folder are added to the pool.
 func buildCertPoolFromPath(filePath string, poolName string) *x509.CertPool {
 	flogger := logger.With(zap.String("filepath", filePath)).With(zap.String("pool", poolName))

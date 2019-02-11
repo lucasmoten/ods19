@@ -63,7 +63,7 @@ func TestAcmWithShareForODrive(t *testing.T) {
 	createObjectRequest.TypeName = "Folder"
 	createObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{"projects":{"DCTC":{"disp_nm":"DCTC","groups":["ODrive"]}}}}`
 	createObjectRequest.ContentSize = 0
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	// prep http request
 	uriCreate := mountPoint + "/objects"
@@ -97,7 +97,7 @@ func TestAcmWithShareCreatorIsNotInWillForceThemIntoShare(t *testing.T) {
 	createObjectRequest.TypeName = "Folder"
 	createObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{"projects":{"DCTC":{"disp_nm":"DCTC","groups":["ODrive_G1"]}}}}`
 	createObjectRequest.ContentSize = 0
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	t.Logf("prep http request")
 	uriCreate := mountPoint + "/objects"
@@ -134,7 +134,7 @@ func TestAcmWithShareForODriveG1Allowed(t *testing.T) {
 	createObjectRequest.TypeName = "Folder"
 	createObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{"projects":{"DCTC":{"disp_nm":"DCTC","groups":["ODrive_G1"]}}}}`
 	createObjectRequest.ContentSize = 0
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	// prep http request
 	uriCreate := mountPoint + "/objects"
@@ -167,7 +167,7 @@ func TestAcmWithShareForODriveG2Allowed(t *testing.T) {
 	createObjectRequest.TypeName = "Folder"
 	createObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{"projects":{"DCTC":{"disp_nm":"DCTC","groups":["ODrive_G2"]}}}}`
 	createObjectRequest.ContentSize = 0
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	// prep http request
 	uriCreate := mountPoint + "/objects"
@@ -202,7 +202,7 @@ func TestAddReadShareForUser(t *testing.T) {
 	createObjectRequest.TypeName = "Folder"
 	createObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{"projects":{"DCTC":{"disp_nm":"DCTC","groups":["ODrive_G2"]}}}}`
 	createObjectRequest.ContentSize = 0
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	// prep http request
 	uriCreate := mountPoint + "/objects"
@@ -223,7 +223,7 @@ func TestAddReadShareForUser(t *testing.T) {
 	var createShareRequest protocol.ObjectShare
 	createShareRequest.AllowRead = true
 	createShareRequest.Share = makeUserShare("cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us")
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ = json.Marshal(createShareRequest)
 	t.Logf("TestAddReadShareForUser - prep http request")
 	uriShare := mountPoint + "/shared/" + createdObject.ID
@@ -260,7 +260,7 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	createObjectRequest.TypeName = "Folder"
 	createObjectRequest.RawAcm = `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{"projects":{"DCTC":{"disp_nm":"DCTC","groups":["ODrive_G2"]}}}}`
 	createObjectRequest.ContentSize = 0
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ := json.Marshal(createObjectRequest)
 	// prep http request
 	uriCreate := mountPoint + "/objects"
@@ -283,7 +283,7 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	var createShareRequest protocol.ObjectShare
 	createShareRequest.AllowRead = true
 	createShareRequest.Share = makeUserShare("cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us")
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ = json.Marshal(createShareRequest)
 	// prep http request
 	uriShare := mountPoint + "/shared/" + createdObject.ID
@@ -313,7 +313,7 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	createGroupShareRequest.AllowRead = true
 	createGroupShareRequest.AllowUpdate = true
 	createGroupShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G1")
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ = json.Marshal(createGroupShareRequest)
 	// prep http request
 	httpCreateGroupShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
@@ -340,7 +340,7 @@ func TestAddReadAndUpdateShareForUser(t *testing.T) {
 	tester9 := 9
 	updatedObject2.Name += " changed by Tester09"
 	uriUpdate := mountPoint + "/objects/" + updatedObject2.ID + "/properties"
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ = json.Marshal(updatedObject2)
 	// prep http request
 	httpUpdateObject, _ := http.NewRequest("POST", uriUpdate, bytes.NewBuffer(jsonBody))
@@ -397,7 +397,7 @@ func TestAddReadShareForGroupRemovesEveryone(t *testing.T) {
 	createGroupShareRequest.AllowRead = true
 	createGroupShareRequest.AllowUpdate = true
 	createGroupShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G2")
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ = json.Marshal(createGroupShareRequest)
 	// prep http request
 	uriShare := mountPoint + "/shared/" + createdObject.ID
@@ -573,7 +573,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 	createGroupShareRequest.AllowRead = true
 	createGroupShareRequest.AllowUpdate = true
 	createGroupShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G2")
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ = json.Marshal(createGroupShareRequest)
 	// prep http request
 	uriShare := mountPoint + "/shared/" + createdObject.ID
@@ -659,7 +659,7 @@ func TestAddReadShareToUserWithoutEveryone(t *testing.T) {
 	var createUserShareRequest protocol.ObjectShare
 	createUserShareRequest.AllowRead = true
 	createUserShareRequest.Share = makeUserShare(fakeDN0)
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ = json.Marshal(createUserShareRequest)
 	// prep http request
 	httpCreateUserShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
@@ -843,7 +843,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 	createGroupShareRequest.AllowRead = true
 	createGroupShareRequest.AllowUpdate = true
 	createGroupShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G2")
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ = json.Marshal(createGroupShareRequest)
 	// prep http request
 	uriShare := mountPoint + "/shared/" + createdObject.ID
@@ -929,7 +929,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 	var createUserShareRequest protocol.ObjectShare
 	createUserShareRequest.AllowRead = true
 	createUserShareRequest.Share = makeUserShare(fakeDN0)
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ = json.Marshal(createUserShareRequest)
 	// prep http request
 	httpCreateUserShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
@@ -1021,7 +1021,7 @@ func TestUpdateAcmWithoutSharingToUser(t *testing.T) {
 	updatedObject3.RawAcm = acmWithODriveG1
 	updatedObject3.Permission = protocol.Permission{}
 	uriUpdate := mountPoint + "/objects/" + createdObject.ID + "/properties"
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ = json.Marshal(updatedObject3)
 	// prep http request
 	httpUpdateObject, _ := http.NewRequest("POST", uriUpdate, bytes.NewBuffer(jsonBody))
@@ -1206,7 +1206,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	createGroupShareRequest.AllowRead = true
 	//createGroupShareRequest.AllowUpdate = true
 	createGroupShareRequest.Share = makeGroupShare("DCTC", "DCTC", "ODrive_G2")
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ = json.Marshal(createGroupShareRequest)
 	// prep http request
 	uriShare := mountPoint + "/shared/" + createdObject.ID
@@ -1292,7 +1292,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	var createUserShareRequest protocol.ObjectShare
 	createUserShareRequest.AllowRead = true
 	createUserShareRequest.Share = makeUserShare(fakeDN0)
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ = json.Marshal(createUserShareRequest)
 	// prep http request
 	httpCreateUserShare, _ := http.NewRequest("POST", uriShare, bytes.NewBuffer(jsonBody))
@@ -1383,7 +1383,7 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	updatedObject3.RawAcm = acmWithODriveG1
 	updatedObject3.Permission = protocol.Permission{}
 	uriUpdate := mountPoint + "/objects/" + createdObject.ID + "/properties"
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ = json.Marshal(updatedObject3)
 	// prep http request
 	httpUpdateObject, _ := http.NewRequest("POST", uriUpdate, bytes.NewBuffer(jsonBody))
@@ -1470,9 +1470,9 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 	t.Logf("Update O12 setting an ACM without a share, which will result in everyone getting access again")
 	acmWithNoShare := `{"version":"2.1.0","classif":"U","portion":"U","banner":"UNCLASSIFIED","dissem_countries":["USA"],"share":{}}`
 	updatedObject4.RawAcm = acmWithNoShare
-	updatedObject4.Permissions = []protocol.Permission_1_0{}
+	updatedObject4.Permissions = []protocol.Permission1_0{}
 	updatedObject4.Permission = protocol.Permission{}
-	// jsonify it
+	// convert to JSON
 	jsonBody, _ = json.Marshal(updatedObject4)
 	// prep http request
 	httpUpdateObject, _ = http.NewRequest("POST", uriUpdate, bytes.NewBuffer(jsonBody))
@@ -1559,10 +1559,10 @@ func TestUpdateAcmWithoutAnyShare(t *testing.T) {
 
 }
 
-func shouldHaveEveryonePermission(t *testing.T, objID string, clientIdxs ...int) {
+func shouldHaveEveryonePermission(t *testing.T, objID string, clientIndexes ...int) {
 	uri := mountPoint + "/objects/" + objID + "/properties"
 	getReq, _ := http.NewRequest("GET", uri, nil)
-	for _, i := range clientIdxs {
+	for _, i := range clientIndexes {
 		// reaches for package global clients
 		c := clients[i].Client
 		resp, err := c.Do(getReq)

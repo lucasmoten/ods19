@@ -50,7 +50,7 @@ func (h AppServer) listObjectShares(ctx context.Context, w http.ResponseWriter, 
 	}
 
 	// Response in requested format
-	apiResponse := mapping.MapODPermissionsToPermissions_1_0(&dbObject.Permissions)
+	apiResponse := mapping.MapODPermissionsToPermissions1_0(&dbObject.Permissions)
 	jsonResponse(w, apiResponse)
 	return nil
 }

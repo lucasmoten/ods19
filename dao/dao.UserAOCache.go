@@ -322,7 +322,7 @@ func updateUserAOCache(dao *DataAccessLayer, useraocache *models.ODUserAOCache) 
 		return fmt.Errorf("updateUserAOCache error determining rows affected, %s", err.Error())
 	}
 	if ra == 0 {
-		return fmt.Errorf("udpateUserAOCache did not affect any rows")
+		return fmt.Errorf("updateUserAOCache did not affect any rows")
 	}
 	return nil
 }
@@ -336,11 +336,11 @@ func deleteUserAOCacheParts(tx *sqlx.Tx, user models.ODUser) error {
 	defer stmt.Close()
 	result, err := stmt.Exec(user.ID)
 	if err != nil {
-		return fmt.Errorf("deleteuseraocachepart error executing delete statement, %s", err.Error())
+		return fmt.Errorf("deleteUserAOCachePart error executing delete statement, %s", err.Error())
 	}
 	_, err = result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("deleteuseraocachepart error determining rows affected, %s", err.Error())
+		return fmt.Errorf("deleteUserAOCachePart error determining rows affected, %s", err.Error())
 	}
 	return nil
 }
@@ -392,7 +392,7 @@ func insertUserAOCachePart(dao *DataAccessLayer, tx *sqlx.Tx, user models.ODUser
 }
 
 // RebuildUserACMCache examines the user authorization object cache parts and compares to acms to determine which
-// acms the user is elligible to see, and then forms a static link for use for fast filtering in search/list calls
+// acms the user is eligible to see, and then forms a static link for use for fast filtering in search/list calls
 func (dao *DataAccessLayer) RebuildUserACMCache(useraocache *models.ODUserAOCache, user models.ODUser, done chan bool, mode string) error {
 	defer func() { done <- true }()
 	tx, err := dao.MetadataDB.Beginx()
@@ -451,7 +451,7 @@ func associateUsersToNewACM(dao *DataAccessLayer, object models.ODObject, retryC
 		return err
 	}
 
-	// 1. Get elligible users
+	// 1. Get eligible users
 	var users []models.ODUser
 	if users, err = getUsersValidForACMByID(tx, object.ACMID); err != nil {
 		tx.Rollback()
@@ -597,7 +597,7 @@ func sqlIntSeq(ns []int64) string {
 		return ""
 	}
 
-	// Appr. 3 chars per num plus the comma.
+	// Approximately 3 chars per num plus the comma
 	estimate := len(ns) * 4
 	b := make([]byte, 0, estimate)
 	// Or simply

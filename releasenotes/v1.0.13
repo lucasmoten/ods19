@@ -8,7 +8,7 @@ FIX: Minor spelling discrepancy for Kafka logging on startup
 FIX: Fixed client library search call to url encode query parameters
 FIX: Remove temporary containers when building documentation
 ENH: Enforce non-usage of CGO in odb build and continuous integration
-CFG: Development envrionment, CI, and Customer bundle now referencing AAC 1.2.2-SNAPSHOT
+CFG: Development environment, CI, and Customer bundle now referencing AAC 1.2.2-SNAPSHOT
 DOC: Includes further guidance for development environment setup
 FIX: Added deadlock and lock wait timeout handler to create object type
 ENH: Successive updates on same object is now throttled to 50ms

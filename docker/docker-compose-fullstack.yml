@@ -146,7 +146,6 @@ services:
         - OD_PEER_CN=twl-server-generic2
         - OD_PEER_INSECURE_SKIP_VERIFY=false
         - OD_AWS_ACCESS_KEY_ID=$OD_AWS_ACCESS_KEY_ID
-        - OD_AWS_ENDPOINT                    # has default
         - OD_AWS_REGION=us-east-1             # has default
         - OD_AWS_S3_BUCKET=
         - OD_AWS_SECRET_ACCESS_KEY=$OD_AWS_SECRET_ACCESS_KEY

@@ -43,7 +43,7 @@ Amazon Web Services environment variables contain credentials for AWS used for S
 | OD_AWS_ACCESS_KEY_ID | The AWS Access Key. Available here: https://console.aws.amazon.com/iam/home |  |
 | OD_AWS_REGION | The AWS region to use. (i.e. us-east-1, us-west-2).  |  |
 | OD_AWS_S3_BUCKET | The S3 Bucket name to use.  The credentials used defined in OD_AWS_SECRET_ACCESS_KEY and OD_AWS_ACCESS_KEY_ID must have READ and WRITE privileges to the bucket. |  |
-| OD_AWS_S3_ENDPOINT | The AWS S3 URL endpoint to use. Documented at: http://docs.aws.amazon.com/general/latest/gr/rande.html. OD_AWS_ENDPOINT is a deprecated duplicate of this variable | s3.amazonaws.com |
+| OD_AWS_S3_ENDPOINT | The AWS S3 URL endpoint to use. Documented at: http://docs.aws.amazon.com/general/latest/gr/rande.html. | s3.amazonaws.com |
 | OD_AWS_S3_FETCH_MB | The size (in MB) of chunks to pull from S3 in cases where Object Drive is re-caching from S3.  This is a compromise between response time vs billing caused by S3 billing per request.|16|
 | OD_AWS_SECRET_ACCESS_KEY | AWS secret key. Access and secret key variables override credentials stored in credential and config files.  Note that if a token.jar is installed onto the system, we can use the Bedrock encrypt format like `ENC{...}` |  |
 
@@ -55,7 +55,7 @@ CloudWatch, SQS, and AutoScale with alarms (installed in AWS) interact to produc
 | OD_AWS_ASG_EC2 | This is the name assigned to the AMI instance that got launched, like a host name in the autoscaling group  | no default.  should be set to the AWS EC2 InstanceId (they look like: i-d0a2e853) if SQS and ASG are enabled |
 | OD_AWS_ASG_ENDPOINT | This is the location of the autoscaling service.  |  leave blank by default. which is implicitly autoscaling.amazonaws.com and redirects to autoscaling.us-east-1.amazonaws.com) |
 | OD_AWS_ASG_NAME | This is the name of the autoscaling group.  | set blank to disable notifying autoscale |
-| OD_AWS_CLOUDWATCH_ENDPOINT| The loction of cloudwatch monitoring | On the high side, we must override endpoint names.  Therefore, we will need an override (that begins with monitoring) for cloudwatch| monitoring.us-east-1.amazonaws.com|
+| OD_AWS_CLOUDWATCH_ENDPOINT| The location of cloudwatch monitoring | On the high side, we must override endpoint names.  Therefore, we will need an override (that begins with monitoring) for cloudwatch| monitoring.us-east-1.amazonaws.com|
 | OD_AWS_CLOUDWATCH_NAME|When reporting to cloud watch, we must report into a namespace.  In production, it's the same as the zk url. | Leave blank to disable cloudwatch reports.  Usually set same as OD_ZK_ANNOUNCE is used as the value because it is unique per cluster.  If it is blank, then metrics are logged rather than sent to cloud watch. |
 | OD_AWS_SQS_BATCHSIZE | The number of messages (1-10) to request from lifecycle queue per polling interval to examine for shutdown | 10 |
 | OD_AWS_SQS_ENDPOINT | The name of the SQS service. | leave blank by default, which is implicitly sqs.us-east-1.amazonaws.com |
@@ -129,7 +129,7 @@ Peer nodes of Object Drive within a cluster can communicate with each other to l
 | --- | --- | --- |
 | OD_PEER_CN | The name associated with the certificate.  This may need to change when certificates are changed, but if it works at default, leave it.  This `MUST` be set in order to connect. |  |
 | OD_PEER_INSECURE_SKIP_VERIFY | This turns off certificate verification.  Do not do this.  Leave this value at its default. | false |
-| OD_PEER_SIGNIFIER | This is a pseudonym used to signify a P2P client, which is set because it prevents users from accessing via nginx.  This generally doesn&apos;t need to be changed. | P2P |
+| OD_PEER_SIGNIFIER | This is a pseudonym used to signify a P2P client, which is set because it prevents users from accessing via nginx.  This generally does not need to be changed. | P2P |
 
 ### Server
 Remaining server settings are noted here
