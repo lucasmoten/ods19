@@ -387,6 +387,7 @@ func NewFakeServerWithDAOUsers() *server.AppServer {
 		UserAOsLruCache: ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50)),
 		TypeLruCache:    ccache.New(ccache.Configure().MaxSize(100).ItemsToPrune(5)),
 		EventQueue:      fakeQueue,
+		Conf:            FakeServerSettingsConfiguration(),
 	}
 	// Panics occur if regex routes are not compiled with InitRegex()
 	s.InitRegex()

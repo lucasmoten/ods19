@@ -12,7 +12,15 @@ import (
 	"bitbucket.di2e.net/dime/object-drive-server/crypto"
 )
 
-func TestBasicCipher(t *testing.T) {
+func TestWithEncryption(t *testing.T) {
+	theTest(t, crypto.DoCipherByReaderWriter)
+}
+
+func TestWithoutEncryption(t *testing.T) {
+	theTest(t, crypto.DoNocipherByReaderWriter)
+}
+
+func theTest(t *testing.T, cipher config.DoCipherByReaderWriter) {
 	logger := config.RootLogger
 
 	data := []byte(`
@@ -32,6 +40,7 @@ func TestBasicCipher(t *testing.T) {
 		Start: 0,
 		Stop:  int64(len(data) - 1),
 	}
+
 	key := crypto.CreateKey()
 	iv := crypto.CreateIV()
 
@@ -63,7 +72,7 @@ func TestBasicCipher(t *testing.T) {
 	defer fCipher.Close()
 
 	//Run the plaintext to get ciphertext
-	checksum, length, err := crypto.DoCipherByReaderWriter(logger, fPlain, fCipher, key, iv, "write", byteRange)
+	checksum, length, err := cipher(logger, fPlain, fCipher, key, iv, "write", byteRange)
 	if err != nil {
 		t.Errorf("Failed to compute full ciphertext:%v", err)
 	}
@@ -79,27 +88,27 @@ func TestBasicCipher(t *testing.T) {
 	fCipher.Close()
 
 	//This is the easy case with a default range
-	BasicCipherRaw(t, data, ciphertextName, byteRange, key, iv)
+	basicCipherRaw(t, data, ciphertextName, byteRange, key, iv, cipher)
 
 	//The first block is dropped and second truncated
 	byteRange.Start = 35
-	BasicCipherRaw(t, data, ciphertextName, byteRange, key, iv)
+	basicCipherRaw(t, data, ciphertextName, byteRange, key, iv, cipher)
 
 	//The last block is truncated
 	byteRange.Stop = 150
-	BasicCipherRaw(t, data, ciphertextName, byteRange, key, iv)
+	basicCipherRaw(t, data, ciphertextName, byteRange, key, iv, cipher)
 
 	//The a truncated block followed by dropped blocks
 	byteRange.Stop = 120
-	BasicCipherRaw(t, data, ciphertextName, byteRange, key, iv)
+	basicCipherRaw(t, data, ciphertextName, byteRange, key, iv, cipher)
 
 	//The a truncated block followed by dropped blocks
 	byteRange.Start = 65
-	BasicCipherRaw(t, data, ciphertextName, byteRange, key, iv)
+	basicCipherRaw(t, data, ciphertextName, byteRange, key, iv, cipher)
 
 }
 
-func BasicCipherRaw(t *testing.T, data []byte, ciphertextName string, byteRange *crypto.ByteRange, key []byte, iv []byte) {
+func basicCipherRaw(t *testing.T, data []byte, ciphertextName string, byteRange *crypto.ByteRange, key []byte, iv []byte, cipher config.DoCipherByReaderWriter) {
 	var err error
 	logger := config.RootLogger
 
@@ -121,7 +130,7 @@ func BasicCipherRaw(t *testing.T, data []byte, ciphertextName string, byteRange 
 	defer fReplain.Close()
 
 	//Generate plaintext again
-	_, _, err = crypto.DoCipherByReaderWriter(logger, fCipher, fReplain, key, iv, "reread", byteRange)
+	_, _, err = cipher(logger, fCipher, fReplain, key, iv, "reread", byteRange)
 	fReplain.Close()
 
 	//Read replain into a variable and compare it with expected result.

@@ -98,6 +98,7 @@ services:
         - OD_DB_PORT=3306
         - OD_DB_SCHEMA=metadatadb
         - OD_DB_USERNAME=dbuser
+        - OD_ENCRYPT_ENABLED
         - OD_ENCRYPT_MASTERKEY
         - OD_EVENT_KAFKA_ADDRS= #kafka:9092    # we need to scale this up, right?
         - OD_EVENT_ZK_ADDRS=zk:2181
@@ -168,6 +169,7 @@ services:
         - OD_DB_PORT=3306
         - OD_DB_SCHEMA=metadatadb
         - OD_DB_USERNAME=dbuser
+        - OD_ENCRYPT_ENABLED
         - OD_ENCRYPT_MASTERKEY
         - OD_EVENT_KAFKA_ADDRS= #kafka:9092    # we need to scale this up, right?
         - OD_EVENT_ZK_ADDRS=zk:2181

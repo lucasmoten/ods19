@@ -32,6 +32,19 @@ func TestParseWhitelistFromConfigFile(t *testing.T) {
 	}
 
 }
+
+func TestDefaultEncryptionEnabledTrue(t *testing.T) {
+	contents := readAllOrFail(t, "testfixtures/testconf.yml")
+	var conf config.AppConfiguration
+	err := yaml.Unmarshal(contents, &conf)
+	if err != nil {
+		t.Errorf("Could not unmarshal yaml config file: %v\n", err)
+	}
+	if conf.ServerSettings.EncryptEnabled {
+		t.Errorf("expected encrypt_enabled to be set to default (true) value: %v", conf.ServerSettings.EncryptEnabled)
+	}
+}
+
 func TestParseAppConfigurationFromConfigFile(t *testing.T) {
 	// os.Getenv() save out value to test cascade
 	reset1 := unsetReset("OD_DB_PORT")
@@ -42,6 +55,9 @@ func TestParseAppConfigurationFromConfigFile(t *testing.T) {
 
 	reset3 := unsetReset("OD_EVENT_TOPIC")
 	defer reset3()
+
+	reset4 := unsetReset("OD_ENCRYPT_ENABLED")
+	defer reset4()
 
 	contents := readAllOrFail(t, "testfixtures/complete.yml")
 	var conf config.AppConfiguration
@@ -70,6 +86,9 @@ func TestParseAppConfigurationFromConfigFile(t *testing.T) {
 	if conf.ServerSettings.ACLImpersonationWhitelist[0] != "foo" {
 
 		t.Errorf("expected whitelist entry foo but got: %s", conf.ServerSettings.ACLImpersonationWhitelist[0])
+	}
+	if conf.ServerSettings.EncryptEnabled {
+		t.Errorf("expected encrypt_enabled to be false: %v", conf.ServerSettings.EncryptEnabled)
 	}
 
 }

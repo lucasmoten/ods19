@@ -11,7 +11,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"math/big"
 
 	"go.uber.org/zap"
 )
@@ -29,8 +28,8 @@ func NewByteRange() *ByteRange {
 	return br
 }
 
-// CipherStreamReader takes statistics as it writes
-type CipherStreamReader struct {
+// cipherStreamReader takes statistics as it writes
+type cipherStreamReader struct {
 	S       cipher.Stream
 	R       io.Reader
 	H       hash.Hash
@@ -39,9 +38,9 @@ type CipherStreamReader struct {
 	Logger  *zap.Logger
 }
 
-// NewCipherStreamReader Create a new ciphered stream with hashing
-func NewCipherStreamReader(logger *zap.Logger, w cipher.Stream, r io.Reader) *CipherStreamReader {
-	return &CipherStreamReader{
+// newCipherStreamReader Create a new ciphered stream with hashing
+func newCipherStreamReader(logger *zap.Logger, w cipher.Stream, r io.Reader) *cipherStreamReader {
+	return &cipherStreamReader{
 		S:       w,
 		R:       r,
 		H:       sha256.New(),
@@ -52,7 +51,7 @@ func NewCipherStreamReader(logger *zap.Logger, w cipher.Stream, r io.Reader) *Ci
 }
 
 // Read takes statistics as it writes
-func (r *CipherStreamReader) Read(dst []byte) (n int, err error) {
+func (r *cipherStreamReader) Read(dst []byte) (n int, err error) {
 	n, err = r.R.Read(dst)
 	if err != nil {
 		if err == io.EOF {
@@ -69,14 +68,6 @@ func (r *CipherStreamReader) Read(dst []byte) (n int, err error) {
 	////is insightful to uncomment
 	//log.Printf("transferred:%d to %d", int64(n), r.Size)
 	return
-}
-
-//RSAComponents is effectively a parsed and unlocked pkcs12 store
-//It is the actual numbers required to do RSA computations
-type RSAComponents struct {
-	N *big.Int
-	D *big.Int
-	E *big.Int
 }
 
 // CreateRandomName gives each file a random name
@@ -180,15 +171,15 @@ func DoCipherByReaderWriter(
 		return nil, 0, err
 	}
 
-	reader := NewCipherStreamReader(logger, writeCipherStream, inFile)
+	reader := newCipherStreamReader(logger, writeCipherStream, inFile)
 
-	length, err = RangeCopy(outFile, reader, byteRange)
+	length, err = rangeCopy(outFile, reader, byteRange)
 	return reader.H.Sum(nil), reader.Size, err
 }
 
-// RangeCopy use begin for first byte location, and end is beyond the one we copy,
+// rangeCopy use begin for first byte location, and end is beyond the one we copy,
 // to be more like other APIs
-func RangeCopy(dst io.Writer, src io.Reader, byteRange *ByteRange) (int64, error) {
+func rangeCopy(dst io.Writer, src io.Reader, byteRange *ByteRange) (int64, error) {
 
 	if byteRange == nil {
 		return io.Copy(dst, src)

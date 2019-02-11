@@ -31,65 +31,37 @@
 		<h2>Table Of Contents</h2><ul><li><a href="#483716164">Change Owner for Object</a></li><li><a href="#2000488170">CORS Pre-flight check</a></li><li><a href="#2623193993">Create Object owned by group</a></li><li><a href="#2374969519">Share to new user that may use odrive in the future</a></li><li><a href="#2116130772">Create Object shared to new user on create with resource string format</a></li><li><a href="#981325595">Create Object having stream with explicit permissions set using new permission format</a></li><li><a href="#2569267939">Delete a folder</a></li><li><a href="#1391618934">Bulk Move Objects to a new Parent</a></li><li><a href="#1001142759">Empty (Expunge) Trash</a></li><li><a href="#1046142755">Bulk Retrieve Object Properties</a></li><li><a href="#2254291071">Client Caching with Etags</a></li><li><a href="#890140790">Range Request a file</a></li><li><a href="#1738951136">Zip a Collection of Files by IDs</a></li><li><a href="#3468999796">List Root Objects for a Group</a></li><li><a href="#3497412442">Create Classified File About Grey Aliens</a></li><li><a href="#1467011862">Declassify File About Grey Aliens</a></li><li><a href="#1105457739">Show Revisions on Declassified File About Grey Aliens Who Has Clearance</a></li><li><a href="#2339528389">Show Revisions on Declassified File About Grey Aliens</a></li><li><a href="#3833738823">List Root Objects for User</a></li><li><a href="#1634256523">Move Object</a></li><li><a href="#3233016391">Undelete/Restore a file from trash</a></li><li><a href="#2490985143">Modify Object Property</a></li><li><a href="#1017150633">Update the stream of an existing object</a></li><li><a href="#3766955599">Modify Object Properties</a></li><li><a href="#959183600">Update Object With New Property</a></li><li><a href="#3834796447">Update Object Change Property Value</a></li></ul><br/><h2 id=483716164>Change Owner for Object</h2>
 Transfer object ownership to a different user or group
 <pre class="request">
-<<<<<<< Updated upstream
-POST /services/object-drive/1.0/objects/11e9259abf1c7d0abff90242ac120004/owner/group/dctc/DCTC/ODrive_G1/DCTC%20ODrive_G1 HTTP/1.1
+POST /services/object-drive/1.0/objects/11e92e296614e78693420242ac120004/owner/group/dctc/DCTC/ODrive_G1/DCTC%20ODrive_G1 HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
-{"changeToken":"dcd172f3f0683147a5b65fb12ba017a5"}</pre>
-=======
-POST /services/object-drive/1.0/objects/11e92a2eb537737797db0242ac1e0006/owner/group/dctc/DCTC/ODrive_G1/DCTC%20ODrive_G1 HTTP/1.1
-Host: proxier:8080
-Content-Type: application/json
-
-{"changeToken":"64917276542d81f876915538af809391"}</pre>
->>>>>>> Stashed changes
+{"changeToken":"cb67def031706ff856c3a785bec153f8"}</pre>
 Ownership changed to designated resource, and moved to root
 <pre class="response">
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:56:57 GMT
+Date: Mon, 11 Feb 2019 18:18:15 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: c5ed6b97
-=======
-Date: Wed, 06 Feb 2019 16:46:11 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: 6cd8bfa5
->>>>>>> Stashed changes
+Session-Id: 0e9f8430
 Vary: Origin
 
-cf1
+cf2
 {
-<<<<<<< Updated upstream
-  "id": "11e9259abf1c7d0abff90242ac120004",
-  "createdDate": "2019-01-31T20:56:57.30159Z",
+  "id": "11e92e296614e78693420242ac120004",
+  "createdDate": "2019-02-11T18:18:15.269528Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-01-31T20:56:57.555303Z",
-=======
-  "id": "11e92a2eb537737797db0242ac1e0006",
-  "createdDate": "2019-02-06T16:46:10.438132Z",
-  "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-06T16:46:11.243515Z",
->>>>>>> Stashed changes
+  "modifiedDate": "2019-02-11T18:18:15.677695Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-<<<<<<< Updated upstream
-  "changeToken": "a5212c107dc9bca0e70d9f57dfde8946",
+  "changeToken": "a4175a0efac7e865cf7cf3cd5cb87574",
   "ownedBy": "group/dctc/dctc/odrive_g1",
-  "typeId": "11e9259ab46ef0c7bff90242ac120004",
-=======
-  "changeToken": "c626f32407219e9e5e641b7bf8a9ce90",
-  "ownedBy": "group/dctc/dctc/odrive_g1",
-  "typeId": "11e92a2e8a823b9797db0242ac1e0006",
->>>>>>> Stashed changes
+  "typeId": "11e92e294f61badf93420242ac120004",
   "typeName": "Folder",
   "name": "Test ChangeOwner to Group",
   "description": "",
@@ -198,8 +170,8 @@ cf1
     },
     "share": {
       "allow": [
-        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-        "group/dctc/dctc/odrive_g1"
+        "group/dctc/dctc/odrive_g1",
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
       ]
     }
   },
@@ -227,19 +199,12 @@ Access-Control-Allow-Methods: GET, PUT, DELETE, POST, HEAD, OPTIONS
 Access-Control-Allow-Origin: https://proxier:8080
 Access-Control-Max-Age: 600
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: text/plain; charset=utf-8
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:56:58 GMT
+Date: Mon, 11 Feb 2019 18:18:18 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: ab2c1221
-=======
-Date: Wed, 06 Feb 2019 16:46:17 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: 57ab1af9
->>>>>>> Stashed changes
+Session-Id: fe011cd1
 Vary: Origin
 X-Content-Type-Options: nosniff
 
@@ -291,47 +256,27 @@ object added, but immediately owned by the group
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:57:00 GMT
+Date: Mon, 11 Feb 2019 18:18:21 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 5ed6842b
-=======
-Date: Wed, 06 Feb 2019 16:46:22 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: 04c39815
->>>>>>> Stashed changes
+Session-Id: cdbb4461
 Vary: Origin
 
 8fe
 {
-<<<<<<< Updated upstream
-  "id": "11e9259ac0d9c905bff90242ac120004",
-  "createdDate": "2019-01-31T20:57:00.219856Z",
+  "id": "11e92e2969d526f393420242ac120004",
+  "createdDate": "2019-02-11T18:18:21.562629Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-01-31T20:57:00.219856Z",
-=======
-  "id": "11e92a2ebc6ae61d97db0242ac1e0006",
-  "createdDate": "2019-02-06T16:46:22.519376Z",
-  "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-06T16:46:22.519376Z",
->>>>>>> Stashed changes
+  "modifiedDate": "2019-02-11T18:18:21.562629Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 0,
-<<<<<<< Updated upstream
-  "changeToken": "96515b3f2255be25c7c196895f236618",
+  "changeToken": "badc7ccba841a2f7a5f595b9c170cd1e",
   "ownedBy": "group/dctc/dctc/odrive",
-  "typeId": "11e9259ab4ac4989bff90242ac120004",
-=======
-  "changeToken": "352817c332e56039f8529802d771ae8d",
-  "ownedBy": "group/dctc/dctc/odrive",
-  "typeId": "11e92a2e8ad4413097db0242ac1e0006",
->>>>>>> Stashed changes
+  "typeId": "11e92e294f8bae4593420242ac120004",
   "typeName": "",
   "name": "TestCreateWithPermissionsOwnedBy",
   "description": "",
@@ -432,11 +377,7 @@ Vary: Origin
 <h2 id=2374969519>Share to new user that may use odrive in the future</h2>
 Share file owned by tester 2 from tester 10 to tester 11
 <pre class="request">
-<<<<<<< Updated upstream
-POST /services/object-drive/1.0/shared/11e9259ac1375e19bff90242ac120004 HTTP/1.1
-=======
-POST /services/object-drive/1.0/shared/11e92a2ebdbfce2997db0242ac1e0006 HTTP/1.1
->>>>>>> Stashed changes
+POST /services/object-drive/1.0/shared/11e92e296a797cde93420242ac120004 HTTP/1.1
 Host: proxier:8080
 
 {
@@ -456,47 +397,27 @@ New user has the share
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:57:00 GMT
+Date: Mon, 11 Feb 2019 18:18:22 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 309632da
-=======
-Date: Wed, 06 Feb 2019 16:46:25 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: 95ec09ea
->>>>>>> Stashed changes
+Session-Id: 643a1c2a
 Vary: Origin
 
-f91
+f90
 {
-<<<<<<< Updated upstream
-  "id": "11e9259ac1375e19bff90242ac120004",
-  "createdDate": "2019-01-31T20:57:00.833181Z",
+  "id": "11e92e296a797cde93420242ac120004",
+  "createdDate": "2019-02-11T18:18:22.639623Z",
   "createdBy": "cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-01-31T20:57:00.964824Z",
-=======
-  "id": "11e92a2ebdbfce2997db0242ac1e0006",
-  "createdDate": "2019-02-06T16:46:24.753314Z",
-  "createdBy": "cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-06T16:46:25.093154Z",
->>>>>>> Stashed changes
+  "modifiedDate": "2019-02-11T18:18:22.83896Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-<<<<<<< Updated upstream
-  "changeToken": "a2a5d37a7542a0d4f2aa5c64b7614730",
+  "changeToken": "03d69f46337ec191f1a87c3a73ab2828",
   "ownedBy": "user/cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e9259ab4ac4989bff90242ac120004",
-=======
-  "changeToken": "bd3a03c3226e224bb3da765615db2e95",
-  "ownedBy": "user/cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92a2e8ad4413097db0242ac1e0006",
->>>>>>> Stashed changes
+  "typeId": "11e92e294f8bae4593420242ac120004",
   "typeName": "",
   "name": "TestCreateWithPermissionsNewUser2",
   "description": "",
@@ -590,9 +511,9 @@ f91
     },
     "read": {
       "allow": [
-        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
         "user/cn=test tester12,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-        "user/cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+        "user/cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
       ]
     },
     "update": {
@@ -607,8 +528,8 @@ f91
     },
     "share": {
       "allow": [
-        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-        "user/cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+        "user/cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
       ]
     }
   },
@@ -648,47 +569,27 @@ New user has the share
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:57:01 GMT
+Date: Mon, 11 Feb 2019 18:18:23 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: e01afd55
-=======
-Date: Wed, 06 Feb 2019 16:46:25 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: 5bad62c2
->>>>>>> Stashed changes
+Session-Id: 9167ce2d
 Vary: Origin
 
 ced
 {
-<<<<<<< Updated upstream
-  "id": "11e9259ac15f787abff90242ac120004",
-  "createdDate": "2019-01-31T20:57:01.095943Z",
+  "id": "11e92e296ab56be693420242ac120004",
+  "createdDate": "2019-02-11T18:18:23.032415Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-01-31T20:57:01.095943Z",
-=======
-  "id": "11e92a2ebe20060597db0242ac1e0006",
-  "createdDate": "2019-02-06T16:46:25.384143Z",
-  "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-06T16:46:25.384143Z",
->>>>>>> Stashed changes
+  "modifiedDate": "2019-02-11T18:18:23.032415Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 0,
-<<<<<<< Updated upstream
-  "changeToken": "0eaa933188e23ed39f78925250dc8d71",
+  "changeToken": "425124ac20146c49e52e1a0bf6b56dc0",
   "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e9259ab4ac4989bff90242ac120004",
-=======
-  "changeToken": "f4ea1d33ce11c88548342ab47d2a4988",
-  "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92a2e8ad4413097db0242ac1e0006",
->>>>>>> Stashed changes
+  "typeId": "11e92e294f8bae4593420242ac120004",
   "typeName": "",
   "name": "TestCreateWithPermissionsNewUser3",
   "description": "",
@@ -803,15 +704,9 @@ ced
 <pre class="request">
 POST /services/object-drive/1.0/objects HTTP/1.1
 Host: proxier:8080
-<<<<<<< Updated upstream
-Content-Type: multipart/form-data; boundary=84c75a5c14d178b773f210b4ada7d753f5f066f55f393414159b94991eef
+Content-Type: multipart/form-data; boundary=5bf405ba4435c1b687c8b341fb40f09d6ed1a9a773d56fa4b2b8d09340df
 
---84c75a5c14d178b773f210b4ada7d753f5f066f55f393414159b94991eef
-=======
-Content-Type: multipart/form-data; boundary=02bd30a3597c0409c1684dc662df4f3d63e6ce31a2ad5310c64d08d8d7bc
-
---02bd30a3597c0409c1684dc662df4f3d63e6ce31a2ad5310c64d08d8d7bc
->>>>>>> Stashed changes
+--5bf405ba4435c1b687c8b341fb40f09d6ed1a9a773d56fa4b2b8d09340df
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
@@ -846,20 +741,12 @@ Content-Type: application/json
   "containsUSPersonsData": "",
   "exemptFromFOIA": ""
 }
-<<<<<<< Updated upstream
---84c75a5c14d178b773f210b4ada7d753f5f066f55f393414159b94991eef
-=======
---02bd30a3597c0409c1684dc662df4f3d63e6ce31a2ad5310c64d08d8d7bc
->>>>>>> Stashed changes
+--5bf405ba4435c1b687c8b341fb40f09d6ed1a9a773d56fa4b2b8d09340df
 Content-Disposition: form-data; name="filestream"; filename="initialTestData2.txt"
 Content-Type: application/octet-stream
 
 Initial test data 2
-<<<<<<< Updated upstream
---84c75a5c14d178b773f210b4ada7d753f5f066f55f393414159b94991eef--
-=======
---02bd30a3597c0409c1684dc662df4f3d63e6ce31a2ad5310c64d08d8d7bc--
->>>>>>> Stashed changes
+--5bf405ba4435c1b687c8b341fb40f09d6ed1a9a773d56fa4b2b8d09340df--
 </pre>
 
 			The object should have have permissions put in according to what we explicitly set,
@@ -869,47 +756,27 @@ Initial test data 2
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:57:16 GMT
+Date: Mon, 11 Feb 2019 18:18:53 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: c2e0c636
-=======
-Date: Wed, 06 Feb 2019 16:47:17 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: 44bd275a
->>>>>>> Stashed changes
+Session-Id: d5f9aac6
 Vary: Origin
 
 cf4
 {
-<<<<<<< Updated upstream
-  "id": "11e9259aca63d310bff90242ac120004",
-  "createdDate": "2019-01-31T20:57:16.224026Z",
+  "id": "11e92e297cb4be7d93420242ac120004",
+  "createdDate": "2019-02-11T18:18:53.226886Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-01-31T20:57:16.224026Z",
-=======
-  "id": "11e92a2edd28212397db0242ac1e0006",
-  "createdDate": "2019-02-06T16:47:17.374188Z",
-  "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-06T16:47:17.374188Z",
->>>>>>> Stashed changes
+  "modifiedDate": "2019-02-11T18:18:53.226886Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 0,
-<<<<<<< Updated upstream
-  "changeToken": "002c477fd41956c8d245e3d00b220145",
+  "changeToken": "f44da4d17bb2d31cd1d7b6efc4164114",
   "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e9259ab4ac4989bff90242ac120004",
-=======
-  "changeToken": "b1438c9816b75a649838681e7e0b424a",
-  "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92a2e8ad4413097db0242ac1e0006",
->>>>>>> Stashed changes
+  "typeId": "11e92e294f8bae4593420242ac120004",
   "typeName": "",
   "name": "TestCreateWithNewPermissions",
   "description": "",
@@ -991,8 +858,8 @@ cf4
   "permission": {
     "create": {
       "allow": [
-        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-        "group/dctc/dctc/odrive"
+        "group/dctc/dctc/odrive",
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
       ]
     },
     "read": {
@@ -1003,8 +870,8 @@ cf4
     },
     "update": {
       "allow": [
-        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-        "group/dctc/dctc/odrive"
+        "group/dctc/dctc/odrive",
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
       ]
     },
     "delete": {
@@ -1027,19 +894,11 @@ cf4
 <h2 id=2569267939>Delete a folder</h2>
 Use a reference to the object to put it into the trash.
 <pre class="request">
-<<<<<<< Updated upstream
-POST /services/object-drive/1.0/objects/11e9259afc4c196dbff90242ac120004/trash HTTP/1.1
+POST /services/object-drive/1.0/objects/11e92e29bbed4b3593420242ac120004/trash HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
-{"changeToken":"e44eed57a578b28b7941f43bab70dbbe"}</pre>
-=======
-POST /services/object-drive/1.0/objects/11e92a2f4181917997db0242ac1e0006/trash HTTP/1.1
-Host: proxier:8080
-Content-Type: application/json
-
-{"changeToken":"eff22c075396cded95335de91c2da696"}</pre>
->>>>>>> Stashed changes
+{"changeToken":"c46ff3951739abd003a447cc0d7ab5fd"}</pre>
 
 				The trashed object is still in the system, 
 				so that it may be removed from trash if necessary.
@@ -1047,29 +906,17 @@ Content-Type: application/json
 HTTP/1.1 200 OK
 Content-Length: 247
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:58:39 GMT
+Date: Mon, 11 Feb 2019 18:20:39 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 32072635
+Session-Id: 9535267e
 Vary: Origin
 
 {
-  "ID": "11e9259afc4c196dbff90242ac120004",
-  "deletedDate": "2019-01-31T20:58:39.985718Z",
-=======
-Date: Wed, 06 Feb 2019 16:50:05 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: ecd2a232
-Vary: Origin
-
-{
-  "ID": "11e92a2f4181917997db0242ac1e0006",
-  "deletedDate": "2019-02-06T16:50:05.622794Z",
->>>>>>> Stashed changes
+  "ID": "11e92e29bbed4b3593420242ac120004",
+  "deletedDate": "2019-02-11T18:20:39.423866Z",
   "callerPermission": {
     "allowCreate": false,
     "allowRead": true,
@@ -1084,71 +931,40 @@ A list of object ids with change token and new parent
 POST /services/object-drive/1.0/objects/move HTTP/1.1
 Host: proxier:8080
 
-<<<<<<< Updated upstream
-[{"id":"11e9259b07aecfd7bff90242ac120004","changeToken":"f415222e9600f1ced1a3bea6644963e8","parentId":"11e9259b07a910c3bff90242ac120004"},{"id":"11e9259b07b5771ebff90242ac120004","changeToken":"03035f6776cd90f8b9d4f68f229b5368","parentId":"11e9259b07a910c3bff90242ac120004"},{"id":"11e9259b07bc38c7bff90242ac120004","changeToken":"f9600ad9e10a58f29b52acda754b77cd","parentId":"11e9259b07a910c3bff90242ac120004"},{"id":"11e9259b07c2af9ebff90242ac120004","changeToken":"4e12e86b3da4ccb69f14e1ac42fb1c97","parentId":"11e9259b07a910c3bff90242ac120004"},{"id":"11e9259b07c956e9bff90242ac120004","changeToken":"4981cc2236769ffa87c5d084503efdfb","parentId":"11e9259b07a910c3bff90242ac120004"}]</pre>
-=======
-[{"id":"11e92a2f718b714097db0242ac1e0006","changeToken":"f4b2af0a8ed6cfa6d1964cbabd4fc905","parentId":"11e92a2f7176c0db97db0242ac1e0006"},{"id":"11e92a2f71a3283597db0242ac1e0006","changeToken":"e7bb53a7d8cd4f893f02fcde204a65ec","parentId":"11e92a2f7176c0db97db0242ac1e0006"},{"id":"11e92a2f71bb967e97db0242ac1e0006","changeToken":"3feee1af23051d94049ff24c05185493","parentId":"11e92a2f7176c0db97db0242ac1e0006"},{"id":"11e92a2f71d3a06497db0242ac1e0006","changeToken":"1294925cec6690fc8cb793042fc682ae","parentId":"11e92a2f7176c0db97db0242ac1e0006"},{"id":"11e92a2f71e86e4d97db0242ac1e0006","changeToken":"a4518de68b3e5b4ea0b4e23b5010de0c","parentId":"11e92a2f7176c0db97db0242ac1e0006"}]</pre>
->>>>>>> Stashed changes
+[{"id":"11e92e29d797868f93420242ac120004","changeToken":"25feb1cecc273d0114ff61504c97bfc7","parentId":"11e92e29d786138593420242ac120004"},{"id":"11e92e29d7ad7ffe93420242ac120004","changeToken":"e13f647655b6941e96460b4f43465443","parentId":"11e92e29d786138593420242ac120004"},{"id":"11e92e29d7c2efd893420242ac120004","changeToken":"188c653bd609d340638021a3b0039ca8","parentId":"11e92e29d786138593420242ac120004"},{"id":"11e92e29d7d5b4f593420242ac120004","changeToken":"faffe9fa408c7119b91004537a335a1d","parentId":"11e92e29d786138593420242ac120004"},{"id":"11e92e29d7e82c7593420242ac120004","changeToken":"dbf7ef1b2deca7d2247fa880cc3e5b69","parentId":"11e92e29d786138593420242ac120004"}]</pre>
 Any errors that happened
 <pre class="response">
 HTTP/1.1 200 OK
 Content-Length: 387
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:58:59 GMT
+Date: Mon, 11 Feb 2019 18:21:27 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 3ae7629e
-=======
-Date: Wed, 06 Feb 2019 16:51:28 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: e08abcd6
->>>>>>> Stashed changes
+Session-Id: da538f58
 Status: √à
 Vary: Origin
 
 [
   {
-<<<<<<< Updated upstream
-    "objectId": "11e9259b07aecfd7bff90242ac120004",
+    "objectId": "11e92e29d797868f93420242ac120004",
     "code": 200
   },
   {
-    "objectId": "11e9259b07b5771ebff90242ac120004",
+    "objectId": "11e92e29d7ad7ffe93420242ac120004",
     "code": 200
   },
   {
-    "objectId": "11e9259b07bc38c7bff90242ac120004",
+    "objectId": "11e92e29d7c2efd893420242ac120004",
     "code": 200
   },
   {
-    "objectId": "11e9259b07c2af9ebff90242ac120004",
+    "objectId": "11e92e29d7d5b4f593420242ac120004",
     "code": 200
   },
   {
-    "objectId": "11e9259b07c956e9bff90242ac120004",
-=======
-    "objectId": "11e92a2f718b714097db0242ac1e0006",
-    "code": 200
-  },
-  {
-    "objectId": "11e92a2f71a3283597db0242ac1e0006",
-    "code": 200
-  },
-  {
-    "objectId": "11e92a2f71bb967e97db0242ac1e0006",
-    "code": 200
-  },
-  {
-    "objectId": "11e92a2f71d3a06497db0242ac1e0006",
-    "code": 200
-  },
-  {
-    "objectId": "11e92a2f71e86e4d97db0242ac1e0006",
->>>>>>> Stashed changes
+    "objectId": "11e92e29d7e82c7593420242ac120004",
     "code": 200
   }
 ]</pre>
@@ -1164,19 +980,12 @@ The response may be partial, so we keep doing until trash is gone if we need to
 HTTP/1.1 200 OK
 Content-Length: 26
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:59:02 GMT
+Date: Mon, 11 Feb 2019 18:21:34 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 7ff7ab4c
-=======
-Date: Wed, 06 Feb 2019 16:51:38 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: 29e341c7
->>>>>>> Stashed changes
+Session-Id: fb247a8a
 Status: 200
 Vary: Origin
 
@@ -1191,21 +1000,12 @@ Host: proxier:8080
 
 {
   "objectIds": [
-<<<<<<< Updated upstream
-    "11e9259b098195f7bff90242ac120004",
-    "11e9259b098898e4bff90242ac120004",
-    "11e9259b098f1e5cbff90242ac120004",
-    "11e9259b0995d767bff90242ac120004",
-    "11e9259b099cc7a3bff90242ac120004",
-    "11e9259b09a2e50fbff90242ac120004"
-=======
-    "11e92a2f78dbf32097db0242ac1e0006",
-    "11e92a2f78fae21197db0242ac1e0006",
-    "11e92a2f7917d7fc97db0242ac1e0006",
-    "11e92a2f793e614d97db0242ac1e0006",
-    "11e92a2f7965af7f97db0242ac1e0006",
-    "11e92a2f7987e8a897db0242ac1e0006"
->>>>>>> Stashed changes
+    "11e92e29dcb8ee6893420242ac120004",
+    "11e92e29dcc92d0793420242ac120004",
+    "11e92e29dcd8ef9793420242ac120004",
+    "11e92e29dce7eb0293420242ac120004",
+    "11e92e29dcf4592493420242ac120004",
+    "11e92e29dd05109e93420242ac120004"
   ]
 }</pre>
 Response to getting objects in bulk
@@ -1213,23 +1013,16 @@ Response to getting objects in bulk
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:59:02 GMT
+Date: Mon, 11 Feb 2019 18:21:35 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 5166c5b4
-=======
-Date: Wed, 06 Feb 2019 16:51:39 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: 65abcf20
->>>>>>> Stashed changes
+Session-Id: e1dc2f6a
 Status: 200
 Vary: Origin
 
-5418
+541a
 {
   "totalRows": 6,
   "pageCount": 1,
@@ -1238,171 +1031,19 @@ Vary: Origin
   "pageRows": 0,
   "objects": [
     {
-<<<<<<< Updated upstream
-      "id": "11e9259b098195f7bff90242ac120004",
-      "createdDate": "2019-01-31T20:59:02.115495Z",
+      "id": "11e92e29dcb8ee6893420242ac120004",
+      "createdDate": "2019-02-11T18:21:34.315537Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-01-31T20:59:02.115495Z",
-=======
-      "id": "11e92a2f78dbf32097db0242ac1e0006",
-      "createdDate": "2019-02-06T16:51:38.276441Z",
-      "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-06T16:51:38.276441Z",
->>>>>>> Stashed changes
+      "modifiedDate": "2019-02-11T18:21:34.315537Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-<<<<<<< Updated upstream
-      "changeToken": "3a414416fe6bf41e58cf90fef24c32a4",
+      "changeToken": "439034880b3eb1c63c294ae13b87ed7c",
       "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e9259ab46ef0c7bff90242ac120004",
+      "typeId": "11e92e294f61badf93420242ac120004",
       "typeName": "Folder",
-      "name": "Test Folder for Update 1548968342",
-=======
-      "changeToken": "4b38c19bdc0803fbae6f689257ec9a54",
-      "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e92a2e8a823b9797db0242ac1e0006",
-      "typeName": "Folder",
-      "name": "Test Folder for Update 1549471898",
->>>>>>> Stashed changes
-      "description": "",
-      "acm": {
-        "accms": [],
-        "atom_energy": [],
-        "banner": "UNCLASSIFIED",
-        "classif": "U",
-        "disp_only": "",
-        "disponly_to": [
-          ""
-        ],
-        "dissem_countries": [
-          "USA"
-        ],
-        "dissem_ctrls": [],
-        "f_accms": [],
-        "f_atom_energy": [],
-        "f_clearance": [
-          "u"
-        ],
-        "f_macs": [],
-        "f_missions": [],
-        "f_oc_org": [],
-        "f_regions": [],
-        "f_sar_id": [],
-        "f_sci_ctrls": [],
-        "f_share": [],
-        "fgi_open": [],
-        "fgi_protect": [],
-        "macs": [],
-        "non_ic": [],
-        "oc_attribs": [
-          {
-            "missions": [],
-            "orgs": [],
-            "regions": []
-          }
-        ],
-        "owner_prod": [],
-        "portion": "U",
-        "rel_to": [],
-        "sar_id": [],
-        "sci_ctrls": [],
-        "version": "2.1.0"
-      },
-      "contentType": "",
-      "contentSize": 0,
-      "contentHash": "",
-      "containsUSPersonsData": "Unknown",
-      "exemptFromFOIA": "Unknown",
-      "callerPermission": {
-        "allowCreate": true,
-        "allowRead": true,
-        "allowUpdate": true,
-        "allowDelete": true,
-        "allowShare": true
-      },
-      "permissions": [
-        {
-          "grantee": "_everyone",
-          "groupName": "-everyone",
-          "displayName": "-everyone",
-          "allowCreate": false,
-          "allowRead": true,
-          "allowUpdate": false,
-          "allowDelete": false,
-          "allowShare": false
-        },
-        {
-          "grantee": "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
-          "userDistinguishedName": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-          "displayName": "test tester10",
-          "allowCreate": true,
-          "allowRead": false,
-          "allowUpdate": true,
-          "allowDelete": true,
-          "allowShare": true
-        }
-      ],
-      "permission": {
-        "create": {
-          "allow": [
-            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
-          ]
-        },
-        "read": {
-          "allow": [
-            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-            "group/-everyone"
-          ]
-        },
-        "update": {
-          "allow": [
-            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
-          ]
-        },
-        "delete": {
-          "allow": [
-            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
-          ]
-        },
-        "share": {
-          "allow": [
-            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
-          ]
-        }
-      },
-      "isPDFAvailable": false
-    },
-    {
-<<<<<<< Updated upstream
-      "id": "11e9259b098898e4bff90242ac120004",
-      "createdDate": "2019-01-31T20:59:02.161462Z",
-      "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-01-31T20:59:02.161462Z",
-=======
-      "id": "11e92a2f78fae21197db0242ac1e0006",
-      "createdDate": "2019-02-06T16:51:38.479141Z",
-      "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-06T16:51:38.479141Z",
->>>>>>> Stashed changes
-      "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "deletedDate": "0001-01-01T00:00:00Z",
-      "deletedBy": "",
-      "changeCount": 0,
-<<<<<<< Updated upstream
-      "changeToken": "911d6dc3ff8e7c374e16edafbdf0c849",
-      "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e9259ab46ef0c7bff90242ac120004",
-      "typeName": "Folder",
-      "name": "Test Folder for Update 1548968342",
-=======
-      "changeToken": "f10f3d263aa954d3263bab18360e72e9",
-      "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e92a2e8a823b9797db0242ac1e0006",
-      "typeName": "Folder",
-      "name": "Test Folder for Update 1549471898",
->>>>>>> Stashed changes
+      "name": "Test Folder for Update 1549909294",
       "description": "",
       "acm": {
         "accms": [],
@@ -1512,34 +1153,19 @@ Vary: Origin
       "isPDFAvailable": false
     },
     {
-<<<<<<< Updated upstream
-      "id": "11e9259b098f1e5cbff90242ac120004",
-      "createdDate": "2019-01-31T20:59:02.204167Z",
+      "id": "11e92e29dcc92d0793420242ac120004",
+      "createdDate": "2019-02-11T18:21:34.421938Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-01-31T20:59:02.204167Z",
-=======
-      "id": "11e92a2f7917d7fc97db0242ac1e0006",
-      "createdDate": "2019-02-06T16:51:38.668973Z",
-      "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-06T16:51:38.668973Z",
->>>>>>> Stashed changes
+      "modifiedDate": "2019-02-11T18:21:34.421938Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-<<<<<<< Updated upstream
-      "changeToken": "5e2d5017dfc5a481d33723d1d8d2fe36",
+      "changeToken": "66010c167965f82a23abe86faddcbbb5",
       "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e9259ab46ef0c7bff90242ac120004",
+      "typeId": "11e92e294f61badf93420242ac120004",
       "typeName": "Folder",
-      "name": "Test Folder for Update 1548968342",
-=======
-      "changeToken": "72e34a3cd9e9de298a6212c7cb132bea",
-      "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e92a2e8a823b9797db0242ac1e0006",
-      "typeName": "Folder",
-      "name": "Test Folder for Update 1549471898",
->>>>>>> Stashed changes
+      "name": "Test Folder for Update 1549909294",
       "description": "",
       "acm": {
         "accms": [],
@@ -1649,34 +1275,19 @@ Vary: Origin
       "isPDFAvailable": false
     },
     {
-<<<<<<< Updated upstream
-      "id": "11e9259b0995d767bff90242ac120004",
-      "createdDate": "2019-01-31T20:59:02.248222Z",
+      "id": "11e92e29dcd8ef9793420242ac120004",
+      "createdDate": "2019-02-11T18:21:34.525148Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-01-31T20:59:02.248222Z",
-=======
-      "id": "11e92a2f793e614d97db0242ac1e0006",
-      "createdDate": "2019-02-06T16:51:38.921311Z",
-      "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-06T16:51:38.921311Z",
->>>>>>> Stashed changes
+      "modifiedDate": "2019-02-11T18:21:34.525148Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-<<<<<<< Updated upstream
-      "changeToken": "ad0a968e6d6735377f1776683d0a59e0",
+      "changeToken": "0e5037c77716d1a8c6f0eac4b270a9b4",
       "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e9259ab46ef0c7bff90242ac120004",
+      "typeId": "11e92e294f61badf93420242ac120004",
       "typeName": "Folder",
-      "name": "Test Folder for Update 1548968342",
-=======
-      "changeToken": "c1f0b7b7ae1e3099bbb0a2db49e927d7",
-      "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e92a2e8a823b9797db0242ac1e0006",
-      "typeName": "Folder",
-      "name": "Test Folder for Update 1549471898",
->>>>>>> Stashed changes
+      "name": "Test Folder for Update 1549909294",
       "description": "",
       "acm": {
         "accms": [],
@@ -1786,34 +1397,19 @@ Vary: Origin
       "isPDFAvailable": false
     },
     {
-<<<<<<< Updated upstream
-      "id": "11e9259b099cc7a3bff90242ac120004",
-      "createdDate": "2019-01-31T20:59:02.293754Z",
+      "id": "11e92e29dce7eb0293420242ac120004",
+      "createdDate": "2019-02-11T18:21:34.623494Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-01-31T20:59:02.293754Z",
-=======
-      "id": "11e92a2f7965af7f97db0242ac1e0006",
-      "createdDate": "2019-02-06T16:51:39.17905Z",
-      "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-06T16:51:39.17905Z",
->>>>>>> Stashed changes
+      "modifiedDate": "2019-02-11T18:21:34.623494Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-<<<<<<< Updated upstream
-      "changeToken": "48dfc3ee072b2defab763ae5fed7231e",
+      "changeToken": "71d76c1da1f1baf5146a0ba901b936e4",
       "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e9259ab46ef0c7bff90242ac120004",
+      "typeId": "11e92e294f61badf93420242ac120004",
       "typeName": "Folder",
-      "name": "Test Folder for Update 1548968342",
-=======
-      "changeToken": "e06c6eef5c16ccabbd3ce9c47ec2256b",
-      "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e92a2e8a823b9797db0242ac1e0006",
-      "typeName": "Folder",
-      "name": "Test Folder for Update 1549471898",
->>>>>>> Stashed changes
+      "name": "Test Folder for Update 1549909294",
       "description": "",
       "acm": {
         "accms": [],
@@ -1923,34 +1519,141 @@ Vary: Origin
       "isPDFAvailable": false
     },
     {
-<<<<<<< Updated upstream
-      "id": "11e9259b09a2e50fbff90242ac120004",
-      "createdDate": "2019-01-31T20:59:02.333785Z",
+      "id": "11e92e29dcf4592493420242ac120004",
+      "createdDate": "2019-02-11T18:21:34.704507Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-01-31T20:59:02.333785Z",
-=======
-      "id": "11e92a2f7987e8a897db0242ac1e0006",
-      "createdDate": "2019-02-06T16:51:39.403311Z",
-      "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-06T16:51:39.403311Z",
->>>>>>> Stashed changes
+      "modifiedDate": "2019-02-11T18:21:34.704507Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-<<<<<<< Updated upstream
-      "changeToken": "eb8935ae99729e30a1288a45677bb14e",
+      "changeToken": "b3bef3294c4514c144b32988156e34de",
       "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e9259ab46ef0c7bff90242ac120004",
+      "typeId": "11e92e294f61badf93420242ac120004",
       "typeName": "Folder",
-      "name": "Test Folder for Update 1548968342",
-=======
-      "changeToken": "89766d258b92d0ebedd4e4620e8e35bf",
+      "name": "Test Folder for Update 1549909294",
+      "description": "",
+      "acm": {
+        "accms": [],
+        "atom_energy": [],
+        "banner": "UNCLASSIFIED",
+        "classif": "U",
+        "disp_only": "",
+        "disponly_to": [
+          ""
+        ],
+        "dissem_countries": [
+          "USA"
+        ],
+        "dissem_ctrls": [],
+        "f_accms": [],
+        "f_atom_energy": [],
+        "f_clearance": [
+          "u"
+        ],
+        "f_macs": [],
+        "f_missions": [],
+        "f_oc_org": [],
+        "f_regions": [],
+        "f_sar_id": [],
+        "f_sci_ctrls": [],
+        "f_share": [],
+        "fgi_open": [],
+        "fgi_protect": [],
+        "macs": [],
+        "non_ic": [],
+        "oc_attribs": [
+          {
+            "missions": [],
+            "orgs": [],
+            "regions": []
+          }
+        ],
+        "owner_prod": [],
+        "portion": "U",
+        "rel_to": [],
+        "sar_id": [],
+        "sci_ctrls": [],
+        "version": "2.1.0"
+      },
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "containsUSPersonsData": "Unknown",
+      "exemptFromFOIA": "Unknown",
+      "callerPermission": {
+        "allowCreate": true,
+        "allowRead": true,
+        "allowUpdate": true,
+        "allowDelete": true,
+        "allowShare": true
+      },
+      "permissions": [
+        {
+          "grantee": "_everyone",
+          "groupName": "-everyone",
+          "displayName": "-everyone",
+          "allowCreate": false,
+          "allowRead": true,
+          "allowUpdate": false,
+          "allowDelete": false,
+          "allowShare": false
+        },
+        {
+          "grantee": "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+          "userDistinguishedName": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+          "displayName": "test tester10",
+          "allowCreate": true,
+          "allowRead": false,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true
+        }
+      ],
+      "permission": {
+        "create": {
+          "allow": [
+            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+          ]
+        },
+        "read": {
+          "allow": [
+            "group/-everyone",
+            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+          ]
+        },
+        "update": {
+          "allow": [
+            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+          ]
+        },
+        "delete": {
+          "allow": [
+            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+          ]
+        },
+        "share": {
+          "allow": [
+            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+          ]
+        }
+      },
+      "isPDFAvailable": false
+    },
+    {
+      "id": "11e92e29dd05109e93420242ac120004",
+      "createdDate": "2019-02-11T18:21:34.814359Z",
+      "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+      "modifiedDate": "2019-02-11T18:21:34.814359Z",
+      "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+      "deletedDate": "0001-01-01T00:00:00Z",
+      "deletedBy": "",
+      "changeCount": 0,
+      "changeToken": "d0f9211ab4c131a8d4fec4ac02b78f31",
       "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e92a2e8a823b9797db0242ac1e0006",
+      "typeId": "11e92e294f61badf93420242ac120004",
       "typeName": "Folder",
-      "name": "Test Folder for Update 1549471899",
->>>>>>> Stashed changes
+      "name": "Test Folder for Update 1549909294",
       "description": "",
       "acm": {
         "accms": [],
@@ -2067,11 +1770,7 @@ Vary: Origin
 <h2 id=2254291071>Client Caching with Etags</h2>
 Use the Etag header sent back as If-none-match to get a 304 indicating that the content has not changed
 <pre class="request">
-<<<<<<< Updated upstream
-GET /services/object-drive/1.0/objects/11e9259b0ae58f50bff90242ac120004/stream HTTP/1.1
-=======
-GET /services/object-drive/1.0/objects/11e92a2f7e1cab1097db0242ac1e0006/stream HTTP/1.1
->>>>>>> Stashed changes
+GET /services/object-drive/1.0/objects/11e92e29df6f424c93420242ac120004/stream HTTP/1.1
 Host: proxier:8080
 If-None-Match: "857cce23b6ba40d9a8330d9397981da58f5a8f413444c7a41c4201a1477651ef"
 
@@ -2088,22 +1787,13 @@ HTTP/1.1 304 Not Modified
 Accept-Ranges: bytes
 Classification-Banner: UNCLASSIFIED//FOUO
 Connection: keep-alive
-<<<<<<< Updated upstream
-Content-Disposition: inline; filename="7e7081abfbb2403c9b1f95860db95c27"
-Date: Thu, 31 Jan 2019 20:59:04 GMT
+Content-Disposition: inline; filename="478e8bd11dcc4e6aa084fcf894c55fdd"
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Date: Mon, 11 Feb 2019 18:21:38 GMT
 Etag: "857cce23b6ba40d9a8330d9397981da58f5a8f413444c7a41c4201a1477651ef"
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 467ee19f
-=======
-Content-Disposition: inline; filename="6bc7c7ccae444a0d9056331aa7ca022f"
-Content-Encrypted-At-Rest: TRUE
-Date: Wed, 06 Feb 2019 16:51:47 GMT
-Etag: "857cce23b6ba40d9a8330d9397981da58f5a8f413444c7a41c4201a1477651ef"
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: a5f162c2
->>>>>>> Stashed changes
+Session-Id: 653241f6
 Vary: Origin
 X-Content-Type-Options: nosniff
 
@@ -2116,11 +1806,7 @@ X-Content-Type-Options: nosniff
 			both the web server and the browser while using a small amount of memory.
 			
 <pre class="request">
-<<<<<<< Updated upstream
-GET /services/object-drive/1.0/objects/11e9259b0af5fdcebff90242ac120004/stream HTTP/1.1
-=======
-GET /services/object-drive/1.0/objects/11e92a2f7e58f9da97db0242ac1e0006/stream HTTP/1.1
->>>>>>> Stashed changes
+GET /services/object-drive/1.0/objects/11e92e29df93813a93420242ac120004/stream HTTP/1.1
 Host: proxier:8080
 Range: bytes=5-34
 
@@ -2135,26 +1821,15 @@ Content-Length: 30
 Accept-Ranges: bytes
 Classification-Banner: UNCLASSIFIED//FOUO
 Connection: keep-alive
-<<<<<<< Updated upstream
-Content-Disposition: inline; filename="28a6970cd350472da571434535edf61e"
+Content-Disposition: inline; filename="c318b1f338cb472696d30e933fb80dfd"
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Range: bytes 5-34/64
 Content-Type: text/plain
-Date: Thu, 31 Jan 2019 20:59:04 GMT
+Date: Mon, 11 Feb 2019 18:21:39 GMT
 Etag: "857cce23b6ba40d9a8330d9397981da58f5a8f413444c7a41c4201a1477651ef"
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 2370ebf4
-=======
-Content-Disposition: inline; filename="e389961c802f41ee8ff484156de9223c"
-Content-Encrypted-At-Rest: TRUE
-Content-Range: bytes 5-34/64
-Content-Type: text/plain
-Date: Wed, 06 Feb 2019 16:51:47 GMT
-Etag: "857cce23b6ba40d9a8330d9397981da58f5a8f413444c7a41c4201a1477651ef"
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: 6ab548b0
->>>>>>> Stashed changes
+Session-Id: 34fa6e11
 Vary: Origin
 
 fghijklmnopqrstuvwxyzABCDEFGHI</pre>
@@ -2166,157 +1841,80 @@ Host: proxier:8080
 
 {
 "objectIds": [
-<<<<<<< Updated upstream
-"11e9259b0cfd6df3bff90242ac120004",
-"11e9259b0d0663e8bff90242ac120004",
-"11e9259b0d0e5427bff90242ac120004",
-"11e9259b0d1768e3bff90242ac120004",
-"11e9259b0d20b27abff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d30c3f0bff90242ac120004",
-"11e9259b0d391b6abff90242ac120004",
-"11e9259b0d4261d7bff90242ac120004",
-"11e9259b0d4a3688bff90242ac120004",
-"11e9259b0d53b09cbff90242ac120004",
-"11e9259b0d66755bbff90242ac120004",
-"11e9259b0d700281bff90242ac120004",
-"11e9259b0d785402bff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004",
-"11e9259b0d284c0bbff90242ac120004"
-=======
-"11e92a2f8606db6097db0242ac1e0006",
-"11e92a2f8626e3b297db0242ac1e0006",
-"11e92a2f8645f1ed97db0242ac1e0006",
-"11e92a2f86642f1e97db0242ac1e0006",
-"11e92a2f8681efb697db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86cd13e597db0242ac1e0006",
-"11e92a2f86f8fae897db0242ac1e0006",
-"11e92a2f8726754197db0242ac1e0006",
-"11e92a2f8746f4fa97db0242ac1e0006",
-"11e92a2f8764913897db0242ac1e0006",
-"11e92a2f87a46a0f97db0242ac1e0006",
-"11e92a2f87c7ade397db0242ac1e0006",
-"11e92a2f87ef99da97db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006",
-"11e92a2f86a6ca5797db0242ac1e0006"
->>>>>>> Stashed changes
+"11e92e29e4aa8e9093420242ac120004",
+"11e92e29e4bb061f93420242ac120004",
+"11e92e29e4ccc52e93420242ac120004",
+"11e92e29e4de843393420242ac120004",
+"11e92e29e4ed923193420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e50f6c9d93420242ac120004",
+"11e92e29e51fab3b93420242ac120004",
+"11e92e29e532b40093420242ac120004",
+"11e92e29e545a3e993420242ac120004",
+"11e92e29e555e3ae93420242ac120004",
+"11e92e29e5750fe693420242ac120004",
+"11e92e29e587fb9f93420242ac120004",
+"11e92e29e59a270a93420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004",
+"11e92e29e4feed3893420242ac120004"
 ],
 "fileName": "drive.zip",
 "disposition": "inline"
@@ -2327,63 +1925,34 @@ HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Disposition: inline; filename=drive.zip
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/zip
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:59:08 GMT
+Date: Mon, 11 Feb 2019 18:21:49 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 5da55442
+Session-Id: f867f14c
 Vary: Origin
 
 a5c
-PK    dß?N             	 mapdata7.txtUT úaS\lat=5,long=6PKá\u      PK    dß?N             	 mapdata8.txtUT úaS\lat=5,long=6PKá\u      PK    cß?N             	 mapdata0.txtUT õaS\lat=5,long=6PKá\u      PK    dß?N             	 mapdata1.txtUT úaS\lat=5,long=6PKá\u      PK    dß?N             	 mapdata6.txtUT úaS\lat=5,long=6PKá\u      PK    dß?N             	 mapdata9.txtUT úaS\lat=5,long=6PKá\u      PK    dß?N             	 data.txtUT úaS\lat=5,long=6PKá\u      PK    dß?N             	 mapdata3.txtUT úaS\lat=5,long=6PKá\u      PK    dß?N             	 mapdata4.txtUT úaS\lat=5,long=6PKá\u      PK    dß?N             	 mapdata5.txtUT úaS\lat=5,long=6PKá\u      PK    dß?N             	 mapdata0(1).txtUT úaS\lat=5,long=6PKá\u      PK    dß?N             	 mapdata0(2).txtUT úaS\lat=5,long=6PKá\u      PK    dß?N             	 classification_manifest(1).txtUT úaS\lat=5,long=6PKá\u      PK    dß?N             	 mapdata2.txtUT úaS\lat=5,long=6PKá\u      PK    dß?N             	 classification_manifest.txtUT úaS\UNCLASSIFIED//FOUO
+PK    ∑íKN             	 mapdata2.txtUT ;Ωa\lat=5,long=6PKá\u      PK    ∏íKN             	 mapdata4.txtUT <Ωa\lat=5,long=6PKá\u      PK    ∏íKN             	 mapdata6.txtUT <Ωa\lat=5,long=6PKá\u      PK    ∏íKN             	 mapdata9.txtUT <Ωa\lat=5,long=6PKá\u      PK    ∏íKN             	 mapdata0.txtUT =Ωa\lat=5,long=6PKá\u      PK    ∑íKN             	 mapdata0(1).txtUT ;Ωa\lat=5,long=6PKá\u      PK    ∑íKN             	 mapdata3.txtUT ;Ωa\lat=5,long=6PKá\u      PK    ∏íKN             	 mapdata0(2).txtUT <Ωa\lat=5,long=6PKá\u      PK    ∏íKN             	 mapdata7.txtUT <Ωa\lat=5,long=6PKá\u      PK    ∏íKN             	 mapdata8.txtUT <Ωa\lat=5,long=6PKá\u      PK    ∏íKN             	 data.txtUT <Ωa\lat=5,long=6PKá\u      PK    ∑íKN             	 mapdata1.txtUT ;Ωa\lat=5,long=6PKá\u      PK    ∏íKN             	 mapdata5.txtUT <Ωa\lat=5,long=6PKá\u      PK    ∏íKN             	 classification_manifest(1).txtUT =Ωa\lat=5,long=6PKá\u      PK    ∏íKN             	 classification_manifest.txtUT =Ωa\UNCLASSIFIED//FOUO
 
-(U//FOUO) mapdata7.txt
-(U//FOUO) mapdata8.txt
-(U//FOUO) mapdata0.txt
-(U//FOUO) mapdata1.txt
+(U//FOUO) mapdata2.txt
+(U//FOUO) mapdata4.txt
 (U//FOUO) mapdata6.txt
 (U//FOUO) mapdata9.txt
-(U//FOUO) data.txt
-(U//FOUO) mapdata3.txt
-(U//FOUO) mapdata4.txt
-(U//FOUO) mapdata5.txt
-(U//FOUO) mapdata0(1).txt
-(U//FOUO) mapdata0(2).txt
-(U//FOUO) classification_manifest(1).txt
-(U//FOUO) mapdata2.txt
-
-UNCLASSIFIED//FOUO
-PK“)ç~  ~  PK    dß?Ná\u       	         ÄÅ    mapdata7.txtUT úaS\PK    dß?Ná\u       	         ÄÅO   mapdata8.txtUT úaS\PK    cß?Ná\u       	         ÄÅû   mapdata0.txtUT õaS\PK    dß?Ná\u       	         ÄÅÌ   mapdata1.txtUT úaS\PK    dß?Ná\u       	         ÄÅ<  mapdata6.txtUT úaS\PK    dß?Ná\u       	         ÄÅã  mapdata9.txtUT úaS\PK    dß?Ná\u       	         ÄÅ⁄  data.txtUT úaS\PK    dß?Ná\u       	         ÄÅ%  mapdata3.txtUT úaS\PK    dß?Ná\u       	         ÄÅt  mapdata4.txtUT úaS\PK    dß?Ná\u       	         ÄÅ√  mapdata5.txtUT úaS\PK    dß?Ná\u       	         ÄÅ  mapdata0(1).txtUT úaS\PK    dß?Ná\u       	         ÄÅd  mapdata0(2).txtUT úaS\PK    dß?Ná\u       	         ÄÅ∂  classification_manifest(1).txtUT úaS\PK    dß?Ná\u       	         ÄÅ  mapdata2.txtUT úaS\PK    dß?N“)ç~  ~   	         ÄÅf  classification_manifest.txtUT úaS\PK        6    
-=======
-Date: Wed, 06 Feb 2019 16:52:04 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: 6ac942ea
-Vary: Origin
-
-a5c
-PK    ÄÜFN             	 mapdata5.txtUT ±[\lat=5,long=6PKá\u      PK    ÄÜFN             	 mapdata6.txtUT ±[\lat=5,long=6PKá\u      PK    ÅÜFN             	 data.txtUT ≥[\lat=5,long=6PKá\u      PK    ÅÜFN             	 classification_manifest(1).txtUT ≥[\lat=5,long=6PKá\u      PK    ÄÜFN             	 mapdata0.txtUT ∞[\lat=5,long=6PKá\u      PK    ÄÜFN             	 mapdata1.txtUT ∞[\lat=5,long=6PKá\u      PK    ÄÜFN             	 mapdata2.txtUT ∞[\lat=5,long=6PKá\u      PK    ÅÜFN             	 mapdata0(1).txtUT ≤[\lat=5,long=6PKá\u      PK    ÅÜFN             	 mapdata0(2).txtUT ≥[\lat=5,long=6PKá\u      PK    ÄÜFN             	 mapdata3.txtUT ∞[\lat=5,long=6PKá\u      PK    ÄÜFN             	 mapdata4.txtUT ±[\lat=5,long=6PKá\u      PK    ÅÜFN             	 mapdata8.txtUT ≤[\lat=5,long=6PKá\u      PK    ÅÜFN             	 mapdata9.txtUT ≤[\lat=5,long=6PKá\u      PK    ÄÜFN             	 mapdata7.txtUT ±[\lat=5,long=6PKá\u      PK    ÇÜFN             	 classification_manifest.txtUT ¥[\UNCLASSIFIED//FOUO
-
-(U//FOUO) mapdata5.txt
-(U//FOUO) mapdata6.txt
-(U//FOUO) data.txt
-(U//FOUO) classification_manifest(1).txt
 (U//FOUO) mapdata0.txt
-(U//FOUO) mapdata1.txt
-(U//FOUO) mapdata2.txt
 (U//FOUO) mapdata0(1).txt
-(U//FOUO) mapdata0(2).txt
 (U//FOUO) mapdata3.txt
-(U//FOUO) mapdata4.txt
-(U//FOUO) mapdata8.txt
-(U//FOUO) mapdata9.txt
+(U//FOUO) mapdata0(2).txt
 (U//FOUO) mapdata7.txt
+(U//FOUO) mapdata8.txt
+(U//FOUO) data.txt
+(U//FOUO) mapdata1.txt
+(U//FOUO) mapdata5.txt
+(U//FOUO) classification_manifest(1).txt
 
 UNCLASSIFIED//FOUO
-PKÿ%ñŒ~  ~  PK    ÄÜFNá\u       	         ÄÅ    mapdata5.txtUT ±[\PK    ÄÜFNá\u       	         ÄÅO   mapdata6.txtUT ±[\PK    ÅÜFNá\u       	         ÄÅû   data.txtUT ≥[\PK    ÅÜFNá\u       	         ÄÅÈ   classification_manifest(1).txtUT ≥[\PK    ÄÜFNá\u       	         ÄÅJ  mapdata0.txtUT ∞[\PK    ÄÜFNá\u       	         ÄÅô  mapdata1.txtUT ∞[\PK    ÄÜFNá\u       	         ÄÅË  mapdata2.txtUT ∞[\PK    ÅÜFNá\u       	         ÄÅ7  mapdata0(1).txtUT ≤[\PK    ÅÜFNá\u       	         ÄÅâ  mapdata0(2).txtUT ≥[\PK    ÄÜFNá\u       	         ÄÅ€  mapdata3.txtUT ∞[\PK    ÄÜFNá\u       	         ÄÅ*  mapdata4.txtUT ±[\PK    ÅÜFNá\u       	         ÄÅy  mapdata8.txtUT ≤[\PK    ÅÜFNá\u       	         ÄÅ»  mapdata9.txtUT ≤[\PK    ÄÜFNá\u       	         ÄÅ  mapdata7.txtUT ±[\PK    ÇÜFNÿ%ñŒ~  ~   	         ÄÅf  classification_manifest.txtUT ¥[\PK        6    
->>>>>>> Stashed changes
+PK€6≠¸~  ~  PK    ∑íKNá\u       	         ÄÅ    mapdata2.txtUT ;Ωa\PK    ∏íKNá\u       	         ÄÅO   mapdata4.txtUT <Ωa\PK    ∏íKNá\u       	         ÄÅû   mapdata6.txtUT <Ωa\PK    ∏íKNá\u       	         ÄÅÌ   mapdata9.txtUT <Ωa\PK    ∏íKNá\u       	         ÄÅ<  mapdata0.txtUT =Ωa\PK    ∑íKNá\u       	         ÄÅã  mapdata0(1).txtUT ;Ωa\PK    ∑íKNá\u       	         ÄÅ›  mapdata3.txtUT ;Ωa\PK    ∏íKNá\u       	         ÄÅ,  mapdata0(2).txtUT <Ωa\PK    ∏íKNá\u       	         ÄÅ~  mapdata7.txtUT <Ωa\PK    ∏íKNá\u       	         ÄÅÕ  mapdata8.txtUT <Ωa\PK    ∏íKNá\u       	         ÄÅ  data.txtUT <Ωa\PK    ∑íKNá\u       	         ÄÅg  mapdata1.txtUT ;Ωa\PK    ∏íKNá\u       	         ÄÅ∂  mapdata5.txtUT <Ωa\PK    ∏íKNá\u       	         ÄÅ  classification_manifest(1).txtUT =Ωa\PK    ∏íKN€6≠¸~  ~   	         ÄÅf  classification_manifest.txtUT =Ωa\PK        6    
 0
 
 <span class="notshown">....</span>
@@ -2401,25 +1970,15 @@ Generate a file with high classification
 <pre class="request">
 POST /services/object-drive/1.0/objects HTTP/1.1
 Host: proxier:8080
-<<<<<<< Updated upstream
-Content-Type: multipart/form-data; boundary=d49c9dc54741672661dcb25d83037f40e66329f8491503e5857853bc400f
+Content-Type: multipart/form-data; boundary=ebe37725d3feb183182db9da0a868f36926d73ea029f6939a512d720c017
 
---d49c9dc54741672661dcb25d83037f40e66329f8491503e5857853bc400f
-=======
-Content-Type: multipart/form-data; boundary=702a740b16f1d543a6dd1144c8152766511a92a88d35195446c03f4fe92a
-
---702a740b16f1d543a6dd1144c8152766511a92a88d35195446c03f4fe92a
->>>>>>> Stashed changes
+--ebe37725d3feb183182db9da0a868f36926d73ea029f6939a512d720c017
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
 {
   "typeName": "File",
-<<<<<<< Updated upstream
-  "name": "8f69ef1ee41849009d04c9e0d870214d",
-=======
-  "name": "e9b03073e7c44197a0fafb0361540288",
->>>>>>> Stashed changes
+  "name": "5303dfce58fc4300817707a8c1305b1d",
   "description": "",
   "acm": {
     "accms": [],
@@ -2481,71 +2040,41 @@ Content-Type: application/json
   "containsUSPersonsData": "",
   "exemptFromFOIA": ""
 }
-<<<<<<< Updated upstream
---d49c9dc54741672661dcb25d83037f40e66329f8491503e5857853bc400f
-=======
---702a740b16f1d543a6dd1144c8152766511a92a88d35195446c03f4fe92a
->>>>>>> Stashed changes
+--ebe37725d3feb183182db9da0a868f36926d73ea029f6939a512d720c017
 Content-Disposition: form-data; name="filestream"; filename="initialTestData1.txt"
 Content-Type: application/octet-stream
 
 Area 51 Gray Alien Xenu says: It's time!
-<<<<<<< Updated upstream
---d49c9dc54741672661dcb25d83037f40e66329f8491503e5857853bc400f--
-=======
---702a740b16f1d543a6dd1144c8152766511a92a88d35195446c03f4fe92a--
->>>>>>> Stashed changes
+--ebe37725d3feb183182db9da0a868f36926d73ea029f6939a512d720c017--
 </pre>
 The response shows the created file with populated metadata. Take note of classification and changecount
 <pre class="response">
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:59:09 GMT
+Date: Mon, 11 Feb 2019 18:21:51 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 760f60fd
-=======
-Date: Wed, 06 Feb 2019 16:52:06 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: b63689ae
->>>>>>> Stashed changes
+Session-Id: f8c9dce5
 Vary: Origin
 
 ca5
 {
-<<<<<<< Updated upstream
-  "id": "11e9259b0dfe5520bff90242ac120004",
-  "createdDate": "2019-01-31T20:59:09.643933Z",
+  "id": "11e92e29e6c55ec393420242ac120004",
+  "createdDate": "2019-02-11T18:21:51.174304Z",
   "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-01-31T20:59:09.643933Z",
-=======
-  "id": "11e92a2f89e1385197db0242ac1e0006",
-  "createdDate": "2019-02-06T16:52:06.796108Z",
-  "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-06T16:52:06.796108Z",
->>>>>>> Stashed changes
+  "modifiedDate": "2019-02-11T18:21:51.174304Z",
   "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 0,
-<<<<<<< Updated upstream
-  "changeToken": "fbf344a9ef1432f3f7399d66d8ec8ca4",
+  "changeToken": "47bcba4e916f400beafb164cb1a45cbf",
   "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e9259ab36685a8bff90242ac120004",
+  "typeId": "11e92e294e26956b93420242ac120004",
   "typeName": "File",
-  "name": "8f69ef1ee41849009d04c9e0d870214d",
-=======
-  "changeToken": "1a0e574516668b599e228115b6d799af",
-  "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92a2e88851d3597db0242ac1e0006",
-  "typeName": "File",
-  "name": "e9b03073e7c44197a0fafb0361540288",
->>>>>>> Stashed changes
+  "name": "5303dfce58fc4300817707a8c1305b1d",
   "description": "",
   "acm": {
     "accms": [],
@@ -2668,34 +2197,19 @@ ca5
 <h2 id=1467011862>Declassify File About Grey Aliens</h2>
 Lower the classification request
 <pre class="request">
-<<<<<<< Updated upstream
-POST /services/object-drive/1.0/objects/11e9259b0dfe5520bff90242ac120004/stream HTTP/1.1
+POST /services/object-drive/1.0/objects/11e92e29e6c55ec393420242ac120004/stream HTTP/1.1
 Host: proxier:8080
-Content-Type: multipart/form-data; boundary=227354d187ff2b7af1cc9aaafa73e7f7f03959cce08f983903a52d8c4c8f
+Content-Type: multipart/form-data; boundary=ccf7abe2a474a0d2adebe06620fc992c6d7698217015e3371c62cf37f17f
 
---227354d187ff2b7af1cc9aaafa73e7f7f03959cce08f983903a52d8c4c8f
-=======
-POST /services/object-drive/1.0/objects/11e92a2f89e1385197db0242ac1e0006/stream HTTP/1.1
-Host: proxier:8080
-Content-Type: multipart/form-data; boundary=0d4c94d908fee66de031ab900f71fb96ce7db2afe7af3bbb91968c56ea94
-
---0d4c94d908fee66de031ab900f71fb96ce7db2afe7af3bbb91968c56ea94
->>>>>>> Stashed changes
+--ccf7abe2a474a0d2adebe06620fc992c6d7698217015e3371c62cf37f17f
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
 {
-<<<<<<< Updated upstream
-  "id": "11e9259b0dfe5520bff90242ac120004",
-  "changeToken": "fbf344a9ef1432f3f7399d66d8ec8ca4",
+  "id": "11e92e29e6c55ec393420242ac120004",
+  "changeToken": "47bcba4e916f400beafb164cb1a45cbf",
   "typeName": "File",
-  "name": "c84ebbfc69b643e7a45a65842fc87320",
-=======
-  "id": "11e92a2f89e1385197db0242ac1e0006",
-  "changeToken": "1a0e574516668b599e228115b6d799af",
-  "typeName": "File",
-  "name": "34d9546ae34144da8249f74646ec3acd",
->>>>>>> Stashed changes
+  "name": "5e43d718cb5d4ddf9de484b004f1d159",
   "description": "",
   "acm": {
     "accms": [],
@@ -2752,71 +2266,41 @@ Content-Type: application/json
   "exemptFromFOIA": "",
   "recursiveShare": false
 }
-<<<<<<< Updated upstream
---227354d187ff2b7af1cc9aaafa73e7f7f03959cce08f983903a52d8c4c8f
-=======
---0d4c94d908fee66de031ab900f71fb96ce7db2afe7af3bbb91968c56ea94
->>>>>>> Stashed changes
+--ccf7abe2a474a0d2adebe06620fc992c6d7698217015e3371c62cf37f17f
 Content-Disposition: form-data; name="filestream"; filename="initialTestData1.txt"
 Content-Type: application/octet-stream
 
 **** ** **** ***** **** says: It's time!
-<<<<<<< Updated upstream
---227354d187ff2b7af1cc9aaafa73e7f7f03959cce08f983903a52d8c4c8f--
-=======
---0d4c94d908fee66de031ab900f71fb96ce7db2afe7af3bbb91968c56ea94--
->>>>>>> Stashed changes
+--ccf7abe2a474a0d2adebe06620fc992c6d7698217015e3371c62cf37f17f--
 </pre>
 The response shows the updated file at a different classfication. Changecount and other internal core metadata have changed
 <pre class="response">
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:59:09 GMT
+Date: Mon, 11 Feb 2019 18:21:51 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 074bd845
-=======
-Date: Wed, 06 Feb 2019 16:52:07 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: bb8e9c59
->>>>>>> Stashed changes
+Session-Id: d0b95ea2
 Vary: Origin
 
 c6e
 {
-<<<<<<< Updated upstream
-  "id": "11e9259b0dfe5520bff90242ac120004",
-  "createdDate": "2019-01-31T20:59:09.643933Z",
+  "id": "11e92e29e6c55ec393420242ac120004",
+  "createdDate": "2019-02-11T18:21:51.174304Z",
   "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-01-31T20:59:09.760567Z",
-=======
-  "id": "11e92a2f89e1385197db0242ac1e0006",
-  "createdDate": "2019-02-06T16:52:06.796108Z",
-  "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-06T16:52:07.208018Z",
->>>>>>> Stashed changes
+  "modifiedDate": "2019-02-11T18:21:51.427095Z",
   "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-<<<<<<< Updated upstream
-  "changeToken": "c2c0d4414b2b526d85c541ad3492e60d",
+  "changeToken": "90fc3c911ae31ada959331b4c59030a9",
   "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e9259ab36685a8bff90242ac120004",
+  "typeId": "11e92e294e26956b93420242ac120004",
   "typeName": "File",
-  "name": "c84ebbfc69b643e7a45a65842fc87320",
-=======
-  "changeToken": "b741353eaaa3a15e7ad58e00030001be",
-  "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92a2e88851d3597db0242ac1e0006",
-  "typeName": "File",
-  "name": "34d9546ae34144da8249f74646ec3acd",
->>>>>>> Stashed changes
+  "name": "5e43d718cb5d4ddf9de484b004f1d159",
   "description": "",
   "acm": {
     "accms": [],
@@ -2905,8 +2389,8 @@ c6e
     },
     "read": {
       "allow": [
-        "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-        "group/-everyone"
+        "group/-everyone",
+        "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
       ]
     },
     "update": {
@@ -2933,11 +2417,7 @@ c6e
 <h2 id=1105457739>Show Revisions on Declassified File About Grey Aliens Who Has Clearance</h2>
 Ask for revisions as a user who can see all the versions
 <pre class="request">
-<<<<<<< Updated upstream
-GET /services/object-drive/1.0/revisions/11e9259b0dfe5520bff90242ac120004 HTTP/1.1
-=======
-GET /services/object-drive/1.0/revisions/11e92a2f89e1385197db0242ac1e0006 HTTP/1.1
->>>>>>> Stashed changes
+GET /services/object-drive/1.0/revisions/11e92e29e6c55ec393420242ac120004 HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
@@ -2947,19 +2427,12 @@ All versions returned, note the changecounts
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:59:09 GMT
+Date: Mon, 11 Feb 2019 18:21:51 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 86f66623
-=======
-Date: Wed, 06 Feb 2019 16:52:07 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: ff02e51b
->>>>>>> Stashed changes
+Session-Id: fc4ff22f
 Vary: Origin
 
 1d7e
@@ -2971,34 +2444,19 @@ Vary: Origin
   "pageRows": 2,
   "objects": [
     {
-<<<<<<< Updated upstream
-      "id": "11e9259b0dfe5520bff90242ac120004",
-      "createdDate": "2019-01-31T20:59:09.643933Z",
+      "id": "11e92e29e6c55ec393420242ac120004",
+      "createdDate": "2019-02-11T18:21:51.174304Z",
       "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-01-31T20:59:09.760567Z",
-=======
-      "id": "11e92a2f89e1385197db0242ac1e0006",
-      "createdDate": "2019-02-06T16:52:06.796108Z",
-      "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-06T16:52:07.208018Z",
->>>>>>> Stashed changes
+      "modifiedDate": "2019-02-11T18:21:51.427095Z",
       "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 1,
-<<<<<<< Updated upstream
-      "changeToken": "c2c0d4414b2b526d85c541ad3492e60d",
+      "changeToken": "90fc3c911ae31ada959331b4c59030a9",
       "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e9259ab36685a8bff90242ac120004",
+      "typeId": "11e92e294e26956b93420242ac120004",
       "typeName": "File",
-      "name": "c84ebbfc69b643e7a45a65842fc87320",
-=======
-      "changeToken": "b741353eaaa3a15e7ad58e00030001be",
-      "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e92a2e88851d3597db0242ac1e0006",
-      "typeName": "File",
-      "name": "34d9546ae34144da8249f74646ec3acd",
->>>>>>> Stashed changes
+      "name": "5e43d718cb5d4ddf9de484b004f1d159",
       "description": "",
       "acm": {
         "accms": [],
@@ -3087,8 +2545,8 @@ Vary: Origin
         },
         "read": {
           "allow": [
-            "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-            "group/-everyone"
+            "group/-everyone",
+            "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
           ]
         },
         "update": {
@@ -3110,34 +2568,19 @@ Vary: Origin
       "isPDFAvailable": false
     },
     {
-<<<<<<< Updated upstream
-      "id": "11e9259b0dfe5520bff90242ac120004",
-      "createdDate": "2019-01-31T20:59:09.643933Z",
+      "id": "11e92e29e6c55ec393420242ac120004",
+      "createdDate": "2019-02-11T18:21:51.174304Z",
       "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-01-31T20:59:09.643933Z",
-=======
-      "id": "11e92a2f89e1385197db0242ac1e0006",
-      "createdDate": "2019-02-06T16:52:06.796108Z",
-      "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-06T16:52:06.796108Z",
->>>>>>> Stashed changes
+      "modifiedDate": "2019-02-11T18:21:51.174304Z",
       "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-<<<<<<< Updated upstream
-      "changeToken": "fbf344a9ef1432f3f7399d66d8ec8ca4",
+      "changeToken": "47bcba4e916f400beafb164cb1a45cbf",
       "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e9259ab36685a8bff90242ac120004",
+      "typeId": "11e92e294e26956b93420242ac120004",
       "typeName": "File",
-      "name": "8f69ef1ee41849009d04c9e0d870214d",
-=======
-      "changeToken": "1a0e574516668b599e228115b6d799af",
-      "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e92a2e88851d3597db0242ac1e0006",
-      "typeName": "File",
-      "name": "e9b03073e7c44197a0fafb0361540288",
->>>>>>> Stashed changes
+      "name": "5303dfce58fc4300817707a8c1305b1d",
       "description": "",
       "acm": {
         "accms": [],
@@ -3262,11 +2705,7 @@ Vary: Origin
 <h2 id=2339528389>Show Revisions on Declassified File About Grey Aliens</h2>
 Ask for revisions as a user who can only see the unclassified version
 <pre class="request">
-<<<<<<< Updated upstream
-GET /services/object-drive/1.0/revisions/11e9259b0dfe5520bff90242ac120004 HTTP/1.1
-=======
-GET /services/object-drive/1.0/revisions/11e92a2f89e1385197db0242ac1e0006 HTTP/1.1
->>>>>>> Stashed changes
+GET /services/object-drive/1.0/revisions/11e92e29e6c55ec393420242ac120004 HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
@@ -3276,19 +2715,12 @@ Only the latest version is returned, note the changecount
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:59:09 GMT
+Date: Mon, 11 Feb 2019 18:21:51 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 7dfb4dac
-=======
-Date: Wed, 06 Feb 2019 16:52:07 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: 7861a172
->>>>>>> Stashed changes
+Session-Id: 7eddc1be
 Vary: Origin
 
 ed3
@@ -3300,34 +2732,19 @@ ed3
   "pageRows": 1,
   "objects": [
     {
-<<<<<<< Updated upstream
-      "id": "11e9259b0dfe5520bff90242ac120004",
-      "createdDate": "2019-01-31T20:59:09.643933Z",
+      "id": "11e92e29e6c55ec393420242ac120004",
+      "createdDate": "2019-02-11T18:21:51.174304Z",
       "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-01-31T20:59:09.760567Z",
-=======
-      "id": "11e92a2f89e1385197db0242ac1e0006",
-      "createdDate": "2019-02-06T16:52:06.796108Z",
-      "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-06T16:52:07.208018Z",
->>>>>>> Stashed changes
+      "modifiedDate": "2019-02-11T18:21:51.427095Z",
       "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 1,
-<<<<<<< Updated upstream
-      "changeToken": "c2c0d4414b2b526d85c541ad3492e60d",
+      "changeToken": "90fc3c911ae31ada959331b4c59030a9",
       "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e9259ab36685a8bff90242ac120004",
+      "typeId": "11e92e294e26956b93420242ac120004",
       "typeName": "File",
-      "name": "c84ebbfc69b643e7a45a65842fc87320",
-=======
-      "changeToken": "b741353eaaa3a15e7ad58e00030001be",
-      "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e92a2e88851d3597db0242ac1e0006",
-      "typeName": "File",
-      "name": "34d9546ae34144da8249f74646ec3acd",
->>>>>>> Stashed changes
+      "name": "5e43d718cb5d4ddf9de484b004f1d159",
       "description": "",
       "acm": {
         "accms": [],
@@ -3416,8 +2833,8 @@ ed3
         },
         "read": {
           "allow": [
-            "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-            "group/-everyone"
+            "group/-everyone",
+            "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
           ]
         },
         "update": {
@@ -3454,73 +2871,41 @@ Content-Type: application/json
 <h2 id=1634256523>Move Object</h2>
 Request that an object be moved to a new location
 <pre class="request">
-<<<<<<< Updated upstream
-POST /services/object-drive/1.0/objects/11e9259b13bf7aacbff90242ac120004/move/11e9259b13b6be8abff90242ac120004 HTTP/1.1
+POST /services/object-drive/1.0/objects/11e92e29f20ed61993420242ac120004/move/11e92e29f202d60b93420242ac120004 HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
-{"changeToken":"df32f0c152c69276848d748cf473cf63"}</pre>
-=======
-POST /services/object-drive/1.0/objects/11e92a2f9f16d33497db0242ac1e0006/move/11e92a2f9ef89fdb97db0242ac1e0006 HTTP/1.1
-Host: proxier:8080
-Content-Type: application/json
-
-{"changeToken":"f409bad5db5ade143e6c8b00b3c9cac7"}</pre>
->>>>>>> Stashed changes
+{"changeToken":"233b67205d553c22e50ef046298ebf48"}</pre>
 The object in its new location
 <pre class="response">
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:59:19 GMT
+Date: Mon, 11 Feb 2019 18:22:10 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 0db67004
-=======
-Date: Wed, 06 Feb 2019 16:52:42 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: ee7e0d05
->>>>>>> Stashed changes
+Session-Id: 973667a5
 Vary: Origin
 
 cc4
 {
-<<<<<<< Updated upstream
-  "id": "11e9259b13bf7aacbff90242ac120004",
-  "createdDate": "2019-01-31T20:59:19.298353Z",
+  "id": "11e92e29f20ed61993420242ac120004",
+  "createdDate": "2019-02-11T18:22:10.110429Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-01-31T20:59:19.382314Z",
-=======
-  "id": "11e92a2f9f16d33497db0242ac1e0006",
-  "createdDate": "2019-02-06T16:52:42.343131Z",
-  "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-06T16:52:42.816337Z",
->>>>>>> Stashed changes
+  "modifiedDate": "2019-02-11T18:22:10.330132Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-<<<<<<< Updated upstream
-  "changeToken": "f482ca049d64957b88a0ddde23dcb44e",
+  "changeToken": "6b8a333291576f20b2d5fefe794f38b4",
   "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e9259ab46ef0c7bff90242ac120004",
+  "typeId": "11e92e294f61badf93420242ac120004",
   "typeName": "Folder",
-  "name": "Test Folder 2 1548968359",
+  "name": "Test Folder 2 1549909330",
   "description": "",
-  "parentId": "11e9259b13b6be8abff90242ac120004",
-=======
-  "changeToken": "c6583a428a21d053e68667986ce042da",
-  "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92a2e8a823b9797db0242ac1e0006",
-  "typeName": "Folder",
-  "name": "Test Folder 2 1549471962",
-  "description": "",
-  "parentId": "11e92a2f9ef89fdb97db0242ac1e0006",
->>>>>>> Stashed changes
+  "parentId": "11e92e29f202d60b93420242ac120004",
   "acm": {
     "accms": [],
     "atom_energy": [],
@@ -3628,15 +3013,9 @@ cc4
   },
   "breadcrumbs": [
     {
-<<<<<<< Updated upstream
-      "id": "11e9259b13b6be8abff90242ac120004",
+      "id": "11e92e29f202d60b93420242ac120004",
       "parentId": "",
-      "name": "Test Folder 1 1548968359"
-=======
-      "id": "11e92a2f9ef89fdb97db0242ac1e0006",
-      "parentId": "",
-      "name": "Test Folder 1 1549471962"
->>>>>>> Stashed changes
+      "name": "Test Folder 1 1549909329"
     }
   ],
   "isPDFAvailable": false
@@ -3649,25 +3028,15 @@ We can use the id of a file to rescue it from the trash.
 <pre class="request">
 POST /services/object-drive/1.0/objects HTTP/1.1
 Host: proxier:8080
-<<<<<<< Updated upstream
-Content-Type: multipart/form-data; boundary=14553ac02cc2031ad37a0001f09bcb33a4034ee198f5253b679eaf8e0751
+Content-Type: multipart/form-data; boundary=d03779e9b82afa767d3d2db78c6a719bf5758338c6960a7aa1c5032ffaa4
 
---14553ac02cc2031ad37a0001f09bcb33a4034ee198f5253b679eaf8e0751
-=======
-Content-Type: multipart/form-data; boundary=d19b5807be51eb3ccd900295def874facb9ccbc7477d99b59a570aba8f14
-
---d19b5807be51eb3ccd900295def874facb9ccbc7477d99b59a570aba8f14
->>>>>>> Stashed changes
+--d03779e9b82afa767d3d2db78c6a719bf5758338c6960a7aa1c5032ffaa4
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
 {
   "typeName": "File",
-<<<<<<< Updated upstream
-  "name": "9c8493e727b04504ac837d8f088f34d6",
-=======
-  "name": "3996d5f5cf1c4ef984851985050f3cd2",
->>>>>>> Stashed changes
+  "name": "0dd97681ad1b4660aa1b011a34732cde",
   "description": "",
   "acm": {
     "accms": [],
@@ -3723,71 +3092,41 @@ Content-Type: application/json
   "containsUSPersonsData": "",
   "exemptFromFOIA": ""
 }
-<<<<<<< Updated upstream
---14553ac02cc2031ad37a0001f09bcb33a4034ee198f5253b679eaf8e0751
-=======
---d19b5807be51eb3ccd900295def874facb9ccbc7477d99b59a570aba8f14
->>>>>>> Stashed changes
+--d03779e9b82afa767d3d2db78c6a719bf5758338c6960a7aa1c5032ffaa4
 Content-Disposition: form-data; name="filestream"; filename="testfilename.txt"
 Content-Type: application/octet-stream
 
 Deletes are hard. Undeletes are harder!
-<<<<<<< Updated upstream
---14553ac02cc2031ad37a0001f09bcb33a4034ee198f5253b679eaf8e0751--
-=======
---d19b5807be51eb3ccd900295def874facb9ccbc7477d99b59a570aba8f14--
->>>>>>> Stashed changes
+--d03779e9b82afa767d3d2db78c6a719bf5758338c6960a7aa1c5032ffaa4--
 </pre>
 This is the restored object.
 <pre class="response">
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:59:51 GMT
+Date: Mon, 11 Feb 2019 18:22:15 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 01dfb9e9
-=======
-Date: Wed, 06 Feb 2019 16:52:54 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: b4e19df9
->>>>>>> Stashed changes
+Session-Id: d21ee1de
 Vary: Origin
 
 c6e
 {
-<<<<<<< Updated upstream
-  "id": "11e9259b27114095bff90242ac120004",
-  "createdDate": "2019-01-31T20:59:51.710993Z",
+  "id": "11e92e29f523d87993420242ac120004",
+  "createdDate": "2019-02-11T18:22:15.280861Z",
   "createdBy": "cn=test tester06,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-01-31T20:59:51.710993Z",
-=======
-  "id": "11e92a2fa6215a6897db0242ac1e0006",
-  "createdDate": "2019-02-06T16:52:54.156102Z",
-  "createdBy": "cn=test tester06,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-06T16:52:54.156102Z",
->>>>>>> Stashed changes
+  "modifiedDate": "2019-02-11T18:22:15.280861Z",
   "modifiedBy": "cn=test tester06,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 0,
-<<<<<<< Updated upstream
-  "changeToken": "1e9a2f5e008eafdf451b9854bfa92c64",
+  "changeToken": "5017fff1176f1c0a3aed1fa3870b4748",
   "ownedBy": "user/cn=test tester06,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e9259ab36685a8bff90242ac120004",
+  "typeId": "11e92e294e26956b93420242ac120004",
   "typeName": "File",
-  "name": "9c8493e727b04504ac837d8f088f34d6",
-=======
-  "changeToken": "6da89d2f7d89bfc2f2944967fd5d648f",
-  "ownedBy": "user/cn=test tester06,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92a2e88851d3597db0242ac1e0006",
-  "typeName": "File",
-  "name": "3996d5f5cf1c4ef984851985050f3cd2",
->>>>>>> Stashed changes
+  "name": "0dd97681ad1b4660aa1b011a34732cde",
   "description": "",
   "acm": {
     "accms": [],
@@ -3876,8 +3215,8 @@ c6e
     },
     "read": {
       "allow": [
-        "group/-everyone",
-        "user/cn=test tester06,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+        "user/cn=test tester06,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+        "group/-everyone"
       ]
     },
     "update": {
@@ -3906,54 +3245,31 @@ c6e
 				Update a property.  It is required to pass in changeToken as proof that we have seen the latest version.
 				
 <pre class="request">
-<<<<<<< Updated upstream
-POST /services/object-drive/1.0/objects/11e9259b29baa182bff90242ac120004/stream HTTP/1.1
+POST /services/object-drive/1.0/objects/11e92e29fbb5dbea93420242ac120004/stream HTTP/1.1
 Host: proxier:8080
-Content-Type: multipart/form-data; boundary=ad2c67ecf393fbe2f808b0dc68a55b4d26a9daf7be50607743a1cdec9258
+Content-Type: multipart/form-data; boundary=6ad3d652d6e6b52ae9a0e61c51f60f4fc4ac3c13d3f5004832bfb0aad067
 
---ad2c67ecf393fbe2f808b0dc68a55b4d26a9daf7be50607743a1cdec9258
-=======
-POST /services/object-drive/1.0/objects/11e92a2fb4a5665697db0242ac1e0006/stream HTTP/1.1
-Host: proxier:8080
-Content-Type: multipart/form-data; boundary=242485b2789f25c8943024c35524f2658900c991995eae2ae4b961fdedb1
-
---242485b2789f25c8943024c35524f2658900c991995eae2ae4b961fdedb1
->>>>>>> Stashed changes
+--6ad3d652d6e6b52ae9a0e61c51f60f4fc4ac3c13d3f5004832bfb0aad067
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
 
 {
-<<<<<<< Updated upstream
-	  "id": "11e9259b29baa182bff90242ac120004",
+	  "id": "11e92e29fbb5dbea93420242ac120004",
       "description": "describeit",
 	  "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"FOUO\"],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U//FOUO\",\"banner\":\"UNCLASSIFIED//FOUO\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
-	  "changeToken" : "38c01cc1955e735b15be3908d1edbf2c",
-=======
-	  "id": "11e92a2fb4a5665697db0242ac1e0006",
-      "description": "describeit",
-	  "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"FOUO\"],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U//FOUO\",\"banner\":\"UNCLASSIFIED//FOUO\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
-	  "changeToken" : "788b3b013605f2689558edf8c34776d8",
->>>>>>> Stashed changes
+	  "changeToken" : "ee25f182640cc7f75008682cd7311d7e",
 	  "properties" : [
           {"name":"dogname", "value":"arf", "classificationPM":"U"}
       ]
 }
 
-<<<<<<< Updated upstream
---ad2c67ecf393fbe2f808b0dc68a55b4d26a9daf7be50607743a1cdec9258
-=======
---242485b2789f25c8943024c35524f2658900c991995eae2ae4b961fdedb1
->>>>>>> Stashed changes
+--6ad3d652d6e6b52ae9a0e61c51f60f4fc4ac3c13d3f5004832bfb0aad067
 Content-Disposition: form-data; name="filestream"; filename="initialTestData3.txt"
 Content-Type: application/octet-stream
 
 Initial test data 3 asdf
-<<<<<<< Updated upstream
---ad2c67ecf393fbe2f808b0dc68a55b4d26a9daf7be50607743a1cdec9258--
-=======
---242485b2789f25c8943024c35524f2658900c991995eae2ae4b961fdedb1--
->>>>>>> Stashed changes
+--6ad3d652d6e6b52ae9a0e61c51f60f4fc4ac3c13d3f5004832bfb0aad067--
 </pre>
 
 				We get back an object with updated properties,
@@ -3962,51 +3278,29 @@ Initial test data 3 asdf
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:59:56 GMT
+Date: Mon, 11 Feb 2019 18:22:26 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 03d4ce56
-=======
-Date: Wed, 06 Feb 2019 16:53:19 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: dcd4fd39
->>>>>>> Stashed changes
+Session-Id: c0bde5b9
 Vary: Origin
 
 e87
 {
-<<<<<<< Updated upstream
-  "id": "11e9259b29baa182bff90242ac120004",
-  "createdDate": "2019-01-31T20:59:56.176456Z",
+  "id": "11e92e29fbb5dbea93420242ac120004",
+  "createdDate": "2019-02-11T18:22:26.304784Z",
   "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-01-31T20:59:56.295945Z",
-=======
-  "id": "11e92a2fb4a5665697db0242ac1e0006",
-  "createdDate": "2019-02-06T16:53:18.470055Z",
-  "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-06T16:53:19.217244Z",
->>>>>>> Stashed changes
+  "modifiedDate": "2019-02-11T18:22:26.506643Z",
   "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-<<<<<<< Updated upstream
-  "changeToken": "2aa3c26dc77959262dcd433bed10e774",
+  "changeToken": "87487df3aa56c658a86b0f2b40d85fba",
   "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e9259ab36685a8bff90242ac120004",
+  "typeId": "11e92e294e26956b93420242ac120004",
   "typeName": "File",
-  "name": "8f50b9af454a40f39121157cc59142e4",
-=======
-  "changeToken": "06d7c913c500fadfea6227826c115715",
-  "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92a2e88851d3597db0242ac1e0006",
-  "typeName": "File",
-  "name": "3248169898344839aaa1dc50fec895e5",
->>>>>>> Stashed changes
+  "name": "b157058debc8484eb247ede667cf3bd4",
   "description": "describeit",
   "acm": {
     "accms": [],
@@ -4060,23 +3354,13 @@ e87
   "exemptFromFOIA": "Unknown",
   "properties": [
     {
-<<<<<<< Updated upstream
-      "id": "11e9259b29cd0174bff90242ac120004",
-      "createdDate": "2019-01-31T20:59:56.297003Z",
+      "id": "11e92e29fbd4eb1793420242ac120004",
+      "createdDate": "2019-02-11T18:22:26.508424Z",
       "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-01-31T20:59:56.297003Z",
+      "modifiedDate": "2019-02-11T18:22:26.508424Z",
       "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "changeCount": 0,
-      "changeToken": "a3541e1da27e6335c9cb820246740823",
-=======
-      "id": "11e92a2fb517647f97db0242ac1e0006",
-      "createdDate": "2019-02-06T16:53:19.221119Z",
-      "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-06T16:53:19.221119Z",
-      "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "changeCount": 0,
-      "changeToken": "cc0eae264a138c96d93f6b5939e22a78",
->>>>>>> Stashed changes
+      "changeToken": "36257df016d23391322646de0c46ac5b",
       "name": "dogname",
       "value": "arf",
       "classificationPM": "U"
@@ -4158,25 +3442,15 @@ e87
 <pre class="request">
 POST /services/object-drive/1.0/objects HTTP/1.1
 Host: proxier:8080
-<<<<<<< Updated upstream
-Content-Type: multipart/form-data; boundary=babf45a0f35bf6d65e409414109bbb36ab48b05549a4b2b943db5bd1ab4e
+Content-Type: multipart/form-data; boundary=7e51cd788bfb1ed109c692a636e8c40530b8a1928a6e25f73c3c34b6bc2b
 
---babf45a0f35bf6d65e409414109bbb36ab48b05549a4b2b943db5bd1ab4e
-=======
-Content-Type: multipart/form-data; boundary=1cc5451aa4a21df22ac068fc4c3616f6e345ee303f1990ac8cb2b14fcf47
-
---1cc5451aa4a21df22ac068fc4c3616f6e345ee303f1990ac8cb2b14fcf47
->>>>>>> Stashed changes
+--7e51cd788bfb1ed109c692a636e8c40530b8a1928a6e25f73c3c34b6bc2b
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
 {
   "typeName": "File",
-<<<<<<< Updated upstream
-  "name": "ff4f5e515c8e4a5fa2e137eb8d7d5194",
-=======
-  "name": "c1ff3310d1584557804a5a452b7835aa",
->>>>>>> Stashed changes
+  "name": "d4131e1ad31c4e718c3db047929854bb",
   "description": "",
   "acm": {
     "banner": "UNCLASSIFIED//FOUO",
@@ -4210,72 +3484,41 @@ Content-Type: application/json
   "containsUSPersonsData": "",
   "exemptFromFOIA": ""
 }
-<<<<<<< Updated upstream
---babf45a0f35bf6d65e409414109bbb36ab48b05549a4b2b943db5bd1ab4e
+--7e51cd788bfb1ed109c692a636e8c40530b8a1928a6e25f73c3c34b6bc2b
 Content-Disposition: form-data; name="filestream"; filename="initialTestData1.txt"
 Content-Type: application/octet-stream
 
-549ab8062a7b4b4ca51e574d5a5e196f
---babf45a0f35bf6d65e409414109bbb36ab48b05549a4b2b943db5bd1ab4e--
-=======
---1cc5451aa4a21df22ac068fc4c3616f6e345ee303f1990ac8cb2b14fcf47
-Content-Disposition: form-data; name="filestream"; filename="initialTestData1.txt"
-Content-Type: application/octet-stream
-
-aa9e11d9cf6c4cf784cc77b41fb55f19
---1cc5451aa4a21df22ac068fc4c3616f6e345ee303f1990ac8cb2b14fcf47--
->>>>>>> Stashed changes
+9eef81f548d04eeca5c2edc2f388d8f7
+--7e51cd788bfb1ed109c692a636e8c40530b8a1928a6e25f73c3c34b6bc2b--
 </pre>
 We get back an object with updated json changeToken and version
 <pre class="response">
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:59:56 GMT
+Date: Mon, 11 Feb 2019 18:22:26 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 7f75176b
-=======
-Date: Wed, 06 Feb 2019 16:53:19 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: 653b33b7
->>>>>>> Stashed changes
+Session-Id: 0ff144a6
 Vary: Origin
 
 b91
 {
-<<<<<<< Updated upstream
-  "id": "11e9259b29d5ed83bff90242ac120004",
-  "createdDate": "2019-01-31T20:59:56.355354Z",
+  "id": "11e92e29fbebbbd293420242ac120004",
+  "createdDate": "2019-02-11T18:22:26.657768Z",
   "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-01-31T20:59:56.355354Z",
-=======
-  "id": "11e92a2fb54fbc3897db0242ac1e0006",
-  "createdDate": "2019-02-06T16:53:19.589977Z",
-  "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-06T16:53:19.589977Z",
->>>>>>> Stashed changes
+  "modifiedDate": "2019-02-11T18:22:26.657768Z",
   "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 0,
-<<<<<<< Updated upstream
-  "changeToken": "fce5b54907091d88f8333de604428b86",
+  "changeToken": "f2303de8d90042412dbead1f9ab1ca2a",
   "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e9259ab36685a8bff90242ac120004",
+  "typeId": "11e92e294e26956b93420242ac120004",
   "typeName": "File",
-  "name": "ff4f5e515c8e4a5fa2e137eb8d7d5194",
-=======
-  "changeToken": "47743eb820d2ef7b61fcb900b83cf99a",
-  "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92a2e88851d3597db0242ac1e0006",
-  "typeName": "File",
-  "name": "c1ff3310d1584557804a5a452b7835aa",
->>>>>>> Stashed changes
+  "name": "d4131e1ad31c4e718c3db047929854bb",
   "description": "",
   "acm": {
     "accms": [],
@@ -4312,11 +3555,7 @@ b91
   },
   "contentType": "text/plain",
   "contentSize": 32,
-<<<<<<< Updated upstream
-  "contentHash": "7c4ae8795e3cd7c3bbfb441218d2a2c3df0ff120d4a92f9562e43c77e4bcb608",
-=======
-  "contentHash": "076ec2cb6aac1a6d845d54efbfb2599163f30cbf8ae991ed93ac46b4a187f19f",
->>>>>>> Stashed changes
+  "contentHash": "5b00f85c0c0c84f37daae241c28204e1070b969295e2e939a30c7f4f8423de6c",
   "containsUSPersonsData": "Unknown",
   "exemptFromFOIA": "Unknown",
   "callerPermission": {
@@ -4356,8 +3595,8 @@ b91
     },
     "read": {
       "allow": [
-        "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-        "group/-everyone"
+        "group/-everyone",
+        "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
       ]
     },
     "update": {
@@ -4384,21 +3623,13 @@ b91
 <h2 id=3766955599>Modify Object Properties</h2>
 Ask for updated properties
 <pre class="request">
-<<<<<<< Updated upstream
-POST /services/object-drive/1.0/objects/11e9259b2a1e1c75bff90242ac120004/properties HTTP/1.1
-=======
-POST /services/object-drive/1.0/objects/11e92a2fb7c2a23d97db0242ac1e0006/properties HTTP/1.1
->>>>>>> Stashed changes
+POST /services/object-drive/1.0/objects/11e92e29fc96385f93420242ac120004/properties HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
 
 {
-<<<<<<< Updated upstream
-    "id": "11e9259b2a1e1c75bff90242ac120004",
-=======
-    "id": "11e92a2fb7c2a23d97db0242ac1e0006",
->>>>>>> Stashed changes
+    "id": "11e92e29fc96385f93420242ac120004",
     "acm": {
         "f_missions": [],
         "fgi_open": [],
@@ -4474,11 +3705,7 @@ Content-Type: application/json
             ]
         }
     },
-<<<<<<< Updated upstream
-    "changeToken": "195d87f92e7cc2485033acc2697862ab"
-=======
-    "changeToken": "aecab3f465704e34cddf5b728de93b3a"
->>>>>>> Stashed changes
+    "changeToken": "ce9cb68ba8218a45286429b5206f1c0a"
 }
 </pre>
 Get response
@@ -4486,51 +3713,29 @@ Get response
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:59:56 GMT
+Date: Mon, 11 Feb 2019 18:22:27 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 466ceb4a
-=======
-Date: Wed, 06 Feb 2019 16:53:24 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: ac20f4ab
->>>>>>> Stashed changes
+Session-Id: c32b1866
 Vary: Origin
 
 e8f
 {
-<<<<<<< Updated upstream
-  "id": "11e9259b2a1e1c75bff90242ac120004",
-  "createdDate": "2019-01-31T20:59:56.828368Z",
+  "id": "11e92e29fc96385f93420242ac120004",
+  "createdDate": "2019-02-11T18:22:27.775107Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-01-31T20:59:56.896097Z",
-=======
-  "id": "11e92a2fb7c2a23d97db0242ac1e0006",
-  "createdDate": "2019-02-06T16:53:23.698402Z",
-  "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-06T16:53:24.055934Z",
->>>>>>> Stashed changes
+  "modifiedDate": "2019-02-11T18:22:27.903168Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-<<<<<<< Updated upstream
-  "changeToken": "e6eee4f20943c9178a74ab664d494ddb",
+  "changeToken": "379180e56822133f5d1cb05ee518ea79",
   "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e9259ab46ef0c7bff90242ac120004",
+  "typeId": "11e92e294f61badf93420242ac120004",
   "typeName": "Folder",
-  "name": "Test Folder for Update 1548968396",
-=======
-  "changeToken": "be70ae6cb279d7eaa3d1eacd44a4267b",
-  "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92a2e8a823b9797db0242ac1e0006",
-  "typeName": "Folder",
-  "name": "Test Folder for Update 1549472003",
->>>>>>> Stashed changes
+  "name": "Test Folder for Update 1549909347",
   "description": "",
   "acm": {
     "accms": [],
@@ -4650,69 +3855,39 @@ e8f
 <h2 id=959183600>Update Object With New Property</h2>
 While updating the metadata for an object, include a dynamic property to be set
 <pre class="request">
-<<<<<<< Updated upstream
-POST /services/object-drive/1.0/objects/11e9259b2b60657ebff90242ac120004/properties HTTP/1.1
+POST /services/object-drive/1.0/objects/11e92e29ffafd35a93420242ac120004/properties HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
-{"id":"11e9259b2b60657ebff90242ac120004","createdDate":"2019-01-31T20:59:58.940541Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-01-31T20:59:58.940541Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","deletedDate":"0001-01-01T00:00:00Z","deletedBy":"","changeCount":0,"changeToken":"7f8a75fb73d374a686781c4746f0e422","ownedBy":"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","typeId":"11e9259ab46ef0c7bff90242ac120004","typeName":"Folder","name":"TestUpdateObjectProperty 1548968398","description":"","acm":{"accms":[],"atom_energy":[],"banner":"UNCLASSIFIED","classif":"U","disp_only":"","disponly_to":[""],"dissem_countries":["USA"],"dissem_ctrls":[],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":[],"fgi_open":[],"fgi_protect":[],"macs":[],"non_ic":[],"oc_attribs":[{"missions":[],"orgs":[],"regions":[]}],"owner_prod":[],"portion":"U","rel_to":[],"sar_id":[],"sci_ctrls":[],"version":"2.1.0"},"contentType":"","contentSize":0,"contentHash":"","containsUSPersonsData":"Unknown","exemptFromFOIA":"Unknown","properties":[{"id":"","createdDate":"0001-01-01T00:00:00Z","createdBy":"","modifiedDate":"0001-01-01T00:00:00Z","modifiedBy":"","changeCount":0,"changeToken":"","name":"custom-property","value":"property value 1","classificationPM":""}],"callerPermission":{"allowCreate":true,"allowRead":true,"allowUpdate":true,"allowDelete":true,"allowShare":true},"permissions":[{"grantee":"_everyone","groupName":"-everyone","displayName":"-everyone","allowCreate":false,"allowRead":true,"allowUpdate":false,"allowDelete":false,"allowShare":false},{"grantee":"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","userDistinguishedName":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","displayName":"test tester10","allowCreate":true,"allowRead":false,"allowUpdate":true,"allowDelete":true,"allowShare":true}],"permission":{"create":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"read":{"allow":["group/-everyone","user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"update":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"delete":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"share":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}},"isPDFAvailable":false}</pre>
-=======
-POST /services/object-drive/1.0/objects/11e92a2fc11995a897db0242ac1e0006/properties HTTP/1.1
-Host: proxier:8080
-Content-Type: application/json
-
-{"id":"11e92a2fc11995a897db0242ac1e0006","createdDate":"2019-02-06T16:53:39.331863Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-02-06T16:53:39.331863Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","deletedDate":"0001-01-01T00:00:00Z","deletedBy":"","changeCount":0,"changeToken":"d2f46c633e2f934506e18b09ff70e228","ownedBy":"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","typeId":"11e92a2e8a823b9797db0242ac1e0006","typeName":"Folder","name":"TestUpdateObjectProperty 1549472019","description":"","acm":{"accms":[],"atom_energy":[],"banner":"UNCLASSIFIED","classif":"U","disp_only":"","disponly_to":[""],"dissem_countries":["USA"],"dissem_ctrls":[],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":[],"fgi_open":[],"fgi_protect":[],"macs":[],"non_ic":[],"oc_attribs":[{"missions":[],"orgs":[],"regions":[]}],"owner_prod":[],"portion":"U","rel_to":[],"sar_id":[],"sci_ctrls":[],"version":"2.1.0"},"contentType":"","contentSize":0,"contentHash":"","containsUSPersonsData":"Unknown","exemptFromFOIA":"Unknown","properties":[{"id":"","createdDate":"0001-01-01T00:00:00Z","createdBy":"","modifiedDate":"0001-01-01T00:00:00Z","modifiedBy":"","changeCount":0,"changeToken":"","name":"custom-property","value":"property value 1","classificationPM":""}],"callerPermission":{"allowCreate":true,"allowRead":true,"allowUpdate":true,"allowDelete":true,"allowShare":true},"permissions":[{"grantee":"_everyone","groupName":"-everyone","displayName":"-everyone","allowCreate":false,"allowRead":true,"allowUpdate":false,"allowDelete":false,"allowShare":false},{"grantee":"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","userDistinguishedName":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","displayName":"test tester10","allowCreate":true,"allowRead":false,"allowUpdate":true,"allowDelete":true,"allowShare":true}],"permission":{"create":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"read":{"allow":["group/-everyone","user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"update":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"delete":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"share":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}},"isPDFAvailable":false}</pre>
->>>>>>> Stashed changes
+{"id":"11e92e29ffafd35a93420242ac120004","createdDate":"2019-02-11T18:22:32.976104Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-02-11T18:22:32.976104Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","deletedDate":"0001-01-01T00:00:00Z","deletedBy":"","changeCount":0,"changeToken":"3d79726406e308dc61885909aed7ac13","ownedBy":"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","typeId":"11e92e294f61badf93420242ac120004","typeName":"Folder","name":"TestUpdateObjectProperty 1549909352","description":"","acm":{"accms":[],"atom_energy":[],"banner":"UNCLASSIFIED","classif":"U","disp_only":"","disponly_to":[""],"dissem_countries":["USA"],"dissem_ctrls":[],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":[],"fgi_open":[],"fgi_protect":[],"macs":[],"non_ic":[],"oc_attribs":[{"missions":[],"orgs":[],"regions":[]}],"owner_prod":[],"portion":"U","rel_to":[],"sar_id":[],"sci_ctrls":[],"version":"2.1.0"},"contentType":"","contentSize":0,"contentHash":"","containsUSPersonsData":"Unknown","exemptFromFOIA":"Unknown","properties":[{"id":"","createdDate":"0001-01-01T00:00:00Z","createdBy":"","modifiedDate":"0001-01-01T00:00:00Z","modifiedBy":"","changeCount":0,"changeToken":"","name":"custom-property","value":"property value 1","classificationPM":""}],"callerPermission":{"allowCreate":true,"allowRead":true,"allowUpdate":true,"allowDelete":true,"allowShare":true},"permissions":[{"grantee":"_everyone","groupName":"-everyone","displayName":"-everyone","allowCreate":false,"allowRead":true,"allowUpdate":false,"allowDelete":false,"allowShare":false},{"grantee":"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","userDistinguishedName":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","displayName":"test tester10","allowCreate":true,"allowRead":false,"allowUpdate":true,"allowDelete":true,"allowShare":true}],"permission":{"create":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"read":{"allow":["group/-everyone","user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"update":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"delete":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"share":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}},"isPDFAvailable":false}</pre>
 Resulting object includes property
 <pre class="response">
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:59:59 GMT
+Date: Mon, 11 Feb 2019 18:22:33 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 8d4f9f9f
-=======
-Date: Wed, 06 Feb 2019 16:53:39 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: fae82381
->>>>>>> Stashed changes
+Session-Id: 8248ac63
 Vary: Origin
 
 e2d
 {
-<<<<<<< Updated upstream
-  "id": "11e9259b2b60657ebff90242ac120004",
-  "createdDate": "2019-01-31T20:59:58.940541Z",
+  "id": "11e92e29ffafd35a93420242ac120004",
+  "createdDate": "2019-02-11T18:22:32.976104Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-01-31T20:59:59.002503Z",
-=======
-  "id": "11e92a2fc11995a897db0242ac1e0006",
-  "createdDate": "2019-02-06T16:53:39.331863Z",
-  "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-06T16:53:39.746194Z",
->>>>>>> Stashed changes
+  "modifiedDate": "2019-02-11T18:22:33.082545Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-<<<<<<< Updated upstream
-  "changeToken": "b1349085d0fc2651f06db9bbbad07a25",
+  "changeToken": "46eeede2f859c71195fd36202e81f193",
   "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e9259ab46ef0c7bff90242ac120004",
+  "typeId": "11e92e294f61badf93420242ac120004",
   "typeName": "Folder",
-  "name": "TestUpdateObjectProperty 1548968398",
-=======
-  "changeToken": "712c3016f9de69ba66cd4fb7b91de0bc",
-  "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92a2e8a823b9797db0242ac1e0006",
-  "typeName": "Folder",
-  "name": "TestUpdateObjectProperty 1549472019",
->>>>>>> Stashed changes
+  "name": "TestUpdateObjectProperty 1549909352",
   "description": "",
   "acm": {
     "accms": [],
@@ -4764,23 +3939,13 @@ e2d
   "exemptFromFOIA": "Unknown",
   "properties": [
     {
-<<<<<<< Updated upstream
-      "id": "11e9259b2b6a1286bff90242ac120004",
-      "createdDate": "2019-01-31T20:59:59.004033Z",
+      "id": "11e92e29ffc0acdf93420242ac120004",
+      "createdDate": "2019-02-11T18:22:33.086491Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-01-31T20:59:59.004033Z",
+      "modifiedDate": "2019-02-11T18:22:33.086491Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "changeCount": 0,
-      "changeToken": "17321926091d475802c21b8c7fcd4bf2",
-=======
-      "id": "11e92a2fc159f01597db0242ac1e0006",
-      "createdDate": "2019-02-06T16:53:39.754328Z",
-      "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-06T16:53:39.754328Z",
-      "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "changeCount": 0,
-      "changeToken": "adccfc3292eaaadab4f3a2335e355329",
->>>>>>> Stashed changes
+      "changeToken": "04808d6ea0fbd70735e9ae45f1f9c87f",
       "name": "custom-property",
       "value": "property value 1",
       "classificationPM": ""
@@ -4851,70 +4016,39 @@ e2d
 <h2 id=3834796447>Update Object Change Property Value</h2>
 While updating the metadata for an object, change value of already existing dynamic property
 <pre class="request">
-<<<<<<< Updated upstream
-POST /services/object-drive/1.0/objects/11e9259b2b60657ebff90242ac120004/properties HTTP/1.1
+POST /services/object-drive/1.0/objects/11e92e29ffafd35a93420242ac120004/properties HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
-{"id":"11e9259b2b60657ebff90242ac120004","createdDate":"2019-01-31T20:59:58.940541Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-01-31T20:59:59.002503Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","deletedDate":"0001-01-01T00:00:00Z","deletedBy":"","changeCount":1,"changeToken":"b1349085d0fc2651f06db9bbbad07a25","ownedBy":"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","typeId":"11e9259ab46ef0c7bff90242ac120004","typeName":"Folder","name":"TestUpdateObjectProperty 1548968398","description":"","acm":{"accms":[],"atom_energy":[],"banner":"UNCLASSIFIED","classif":"U","disp_only":"","disponly_to":[""],"dissem_countries":["USA"],"dissem_ctrls":[],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":[],"fgi_open":[],"fgi_protect":[],"macs":[],"non_ic":[],"oc_attribs":[{"missions":[],"orgs":[],"regions":[]}],"owner_prod":[],"portion":"U","rel_to":[],"sar_id":[],"sci_ctrls":[],"version":"2.1.0"},"contentType":"","contentSize":0,"contentHash":"","containsUSPersonsData":"Unknown","exemptFromFOIA":"Unknown","properties":[{"id":"11e9259b2b6a1286bff90242ac120004","createdDate":"2019-01-31T20:59:59.004033Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-01-31T20:59:59.004033Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","changeCount":0,"changeToken":"17321926091d475802c21b8c7fcd4bf2","name":"custom-property","value":"new property value","classificationPM":""}],"callerPermission":{"allowCreate":true,"allowRead":true,"allowUpdate":true,"allowDelete":true,"allowShare":true},"permissions":[{"grantee":"_everyone","groupName":"-everyone","displayName":"-everyone","allowCreate":false,"allowRead":true,"allowUpdate":false,"allowDelete":false,"allowShare":false},{"grantee":"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","userDistinguishedName":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","displayName":"test tester10","allowCreate":true,"allowRead":false,"allowUpdate":true,"allowDelete":true,"allowShare":true}],"permission":{"create":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"read":{"allow":["group/-everyone","user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"update":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"delete":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"share":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}},"isPDFAvailable":false}</pre>
-=======
-POST /services/object-drive/1.0/objects/11e92a2fc11995a897db0242ac1e0006/properties HTTP/1.1
-Host: proxier:8080
-Content-Type: application/json
-
-{"id":"11e92a2fc11995a897db0242ac1e0006","createdDate":"2019-02-06T16:53:39.331863Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-02-06T16:53:39.746194Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","deletedDate":"0001-01-01T00:00:00Z","deletedBy":"","changeCount":1,"changeToken":"712c3016f9de69ba66cd4fb7b91de0bc","ownedBy":"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","typeId":"11e92a2e8a823b9797db0242ac1e0006","typeName":"Folder","name":"TestUpdateObjectProperty 1549472019","description":"","acm":{"accms":[],"atom_energy":[],"banner":"UNCLASSIFIED","classif":"U","disp_only":"","disponly_to":[""],"dissem_countries":["USA"],"dissem_ctrls":[],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":[],"fgi_open":[],"fgi_protect":[],"macs":[],"non_ic":[],"oc_attribs":[{"missions":[],"orgs":[],"regions":[]}],"owner_prod":[],"portion":"U","rel_to":[],"sar_id":[],"sci_ctrls":[],"version":"2.1.0"},"contentType":"","contentSize":0,"contentHash":"","containsUSPersonsData":"Unknown","exemptFromFOIA":"Unknown","properties":[{"id":"11e92a2fc159f01597db0242ac1e0006","createdDate":"2019-02-06T16:53:39.754328Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-02-06T16:53:39.754328Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","changeCount":0,"changeToken":"adccfc3292eaaadab4f3a2335e355329","name":"custom-property","value":"new property value","classificationPM":""}],"callerPermission":{"allowCreate":true,"allowRead":true,"allowUpdate":true,"allowDelete":true,"allowShare":true},"permissions":[{"grantee":"_everyone","groupName":"-everyone","displayName":"-everyone","allowCreate":false,"allowRead":true,"allowUpdate":false,"allowDelete":false,"allowShare":false},{"grantee":"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","userDistinguishedName":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","displayName":"test tester10","allowCreate":true,"allowRead":false,"allowUpdate":true,"allowDelete":true,"allowShare":true}],"permission":{"create":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"read":{"allow":["group/-everyone","user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"update":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"delete":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"share":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}},"isPDFAvailable":false}</pre>
->>>>>>> Stashed changes
+{"id":"11e92e29ffafd35a93420242ac120004","createdDate":"2019-02-11T18:22:32.976104Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-02-11T18:22:33.082545Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","deletedDate":"0001-01-01T00:00:00Z","deletedBy":"","changeCount":1,"changeToken":"46eeede2f859c71195fd36202e81f193","ownedBy":"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","typeId":"11e92e294f61badf93420242ac120004","typeName":"Folder","name":"TestUpdateObjectProperty 1549909352","description":"","acm":{"accms":[],"atom_energy":[],"banner":"UNCLASSIFIED","classif":"U","disp_only":"","disponly_to":[""],"dissem_countries":["USA"],"dissem_ctrls":[],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":[],"fgi_open":[],"fgi_protect":[],"macs":[],"non_ic":[],"oc_attribs":[{"missions":[],"orgs":[],"regions":[]}],"owner_prod":[],"portion":"U","rel_to":[],"sar_id":[],"sci_ctrls":[],"version":"2.1.0"},"contentType":"","contentSize":0,"contentHash":"","containsUSPersonsData":"Unknown","exemptFromFOIA":"Unknown","properties":[{"id":"11e92e29ffc0acdf93420242ac120004","createdDate":"2019-02-11T18:22:33.086491Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-02-11T18:22:33.086491Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","changeCount":0,"changeToken":"04808d6ea0fbd70735e9ae45f1f9c87f","name":"custom-property","value":"new property value","classificationPM":""}],"callerPermission":{"allowCreate":true,"allowRead":true,"allowUpdate":true,"allowDelete":true,"allowShare":true},"permissions":[{"grantee":"_everyone","groupName":"-everyone","displayName":"-everyone","allowCreate":false,"allowRead":true,"allowUpdate":false,"allowDelete":false,"allowShare":false},{"grantee":"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","userDistinguishedName":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","displayName":"test tester10","allowCreate":true,"allowRead":false,"allowUpdate":true,"allowDelete":true,"allowShare":true}],"permission":{"create":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"read":{"allow":["group/-everyone","user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"update":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"delete":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"share":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}},"isPDFAvailable":false}</pre>
 Resulting object shows property with new value
 <pre class="response">
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: TRUE
+Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
 Content-Type: application/json
-<<<<<<< Updated upstream
-Date: Thu, 31 Jan 2019 20:59:59 GMT
+Date: Mon, 11 Feb 2019 18:22:33 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Sessionid: 39b8e2f8
+Session-Id: a33679b0
 Vary: Origin
 
-e2c
+e2f
 {
-  "id": "11e9259b2b60657ebff90242ac120004",
-  "createdDate": "2019-01-31T20:59:58.940541Z",
+  "id": "11e92e29ffafd35a93420242ac120004",
+  "createdDate": "2019-02-11T18:22:32.976104Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-01-31T20:59:59.06458Z",
-=======
-Date: Wed, 06 Feb 2019 16:53:40 GMT
-Odrive-Server: 1 build 1 (1)
-Server: nginx/1.15.8
-Session-Id: ea4bb6c2
-Vary: Origin
-
-e2d
-{
-  "id": "11e92a2fc11995a897db0242ac1e0006",
-  "createdDate": "2019-02-06T16:53:39.331863Z",
-  "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-06T16:53:40.155438Z",
->>>>>>> Stashed changes
+  "modifiedDate": "2019-02-11T18:22:33.242613Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 2,
-<<<<<<< Updated upstream
-  "changeToken": "32122ec77d46153ee379c11e5983aadd",
+  "changeToken": "bc1450faffeb0f4908d6390746919ab0",
   "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e9259ab46ef0c7bff90242ac120004",
+  "typeId": "11e92e294f61badf93420242ac120004",
   "typeName": "Folder",
-  "name": "TestUpdateObjectProperty 1548968398",
-=======
-  "changeToken": "f92874d16f0e4d36c83eff3fc74e7770",
-  "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92a2e8a823b9797db0242ac1e0006",
-  "typeName": "Folder",
-  "name": "TestUpdateObjectProperty 1549472019",
->>>>>>> Stashed changes
+  "name": "TestUpdateObjectProperty 1549909352",
   "description": "",
   "acm": {
     "accms": [],
@@ -4966,23 +4100,13 @@ e2d
   "exemptFromFOIA": "Unknown",
   "properties": [
     {
-<<<<<<< Updated upstream
-      "id": "11e9259b2b73e259bff90242ac120004",
-      "createdDate": "2019-01-31T20:59:59.06836Z",
+      "id": "11e92e29ffd9b40e93420242ac120004",
+      "createdDate": "2019-02-11T18:22:33.250585Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-01-31T20:59:59.06836Z",
+      "modifiedDate": "2019-02-11T18:22:33.250585Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "changeCount": 0,
-      "changeToken": "b40138bc6e77fda0bf9c47e6e5185b5e",
-=======
-      "id": "11e92a2fc19968c297db0242ac1e0006",
-      "createdDate": "2019-02-06T16:53:40.17041Z",
-      "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-06T16:53:40.17041Z",
-      "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "changeCount": 0,
-      "changeToken": "4376f2d9f47fc1bcf8e160b66389f59b",
->>>>>>> Stashed changes
+      "changeToken": "086d9f75c1ee3a7c35f1cb9dae74fa7d",
       "name": "custom-property",
       "value": "new property value",
       "classificationPM": ""

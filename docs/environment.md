@@ -136,6 +136,7 @@ Remaining server settings are noted here
 
 | Name | Description | Default |
 | --- | --- | --- |
+| OD_ENCRYPT_ENABLED | Indicates whether file content should be encrypted at rest in local cache and permanent storage. | true |
 | **OD_ENCRYPT_MASTERKEY** | **Required** The secret master key used as part of the encryption key for all files stored in the system. If this value is changed, all file keys must be adjusted at the same time. If you don't set this, the service will shut down.  Note that if a token.jar is installed onto the system, we can use the Bedrock encrypt format like `ENC{...} | |
 | OD_SERVER_ACL_WHITELIST*n* | One or more environment variable prefixes to denote distinguished name assigned to the access control whitelist that controls whether a connector can impersonate as another identity. | |
 | OD_SERVER_BASEPATH | The base URL root. Used in debug UIs.    | "/services/object-drive/1.0" |
