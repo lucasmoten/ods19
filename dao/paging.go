@@ -52,7 +52,7 @@ type PagingRequest struct {
 	PageNumber int
 	// PageSize is the requested page size for this request
 	PageSize int
-	// FilterSettings is an array of fitler settings denoting field and conditional match expression to filter results
+	// FilterSettings is an array of filter settings denoting field and conditional match expression to filter results
 	FilterSettings []FilterSetting
 	// SortSettings is an array of sort settings denoting a field to sort on and direction
 	SortSettings []SortSetting

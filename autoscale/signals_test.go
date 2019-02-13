@@ -181,7 +181,7 @@ func TestAutoScale(t *testing.T) {
 		}
 		if !isOurMessage && deleted {
 			//Dont delete the messages of others
-			t.Logf("we deleted somebody else's message %d", i)
+			t.Logf("we deleted somebody elses message %d", i)
 			t.FailNow()
 		}
 	}

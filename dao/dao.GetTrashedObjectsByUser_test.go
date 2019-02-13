@@ -164,13 +164,13 @@ func TestDAOGetTrashedObjectsDeleteChild(t *testing.T) {
 	}
 	// Assert parent2 is in listObjects.
 	results, err = d.GetRootObjectsByUser(users[3], pagingRequest)
-	inlist := false
+	inList := false
 	for _, o := range results.Objects {
 		if o.Name == parent2.Name {
-			inlist = true
+			inList = true
 		}
 	}
-	if !inlist {
+	if !inList {
 		t.Logf("Object parent2 should show up in GetRootObjectsByUser.")
 		t.Fail()
 	}

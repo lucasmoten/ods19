@@ -13,7 +13,7 @@ import (
 )
 
 // FakeDAO is suitable for tests. Add fields to this struct to hold fake
-// reponses for each of the methods that FakeDAO will implement. These fake
+// responses for each of the methods that FakeDAO will implement. These fake
 // response fields can be explicitly set, or setup functions can be defined.
 type FakeDAO struct {
 	AcmGrantee          models.ODAcmGrantee
@@ -25,7 +25,7 @@ type FakeDAO struct {
 	Object              models.ODObject
 	ObjectPermission    models.ODObjectPermission
 	ObjectPermissions   []models.ODObjectPermission
-	ObjectProperites    []models.ODObjectPropertyEx
+	ObjectProperties    []models.ODObjectPropertyEx
 	ObjectPropertyEx    models.ODObjectPropertyEx
 	ObjectType          models.ODObjectType
 	ObjectResultSet     models.ODObjectResultset
@@ -220,12 +220,12 @@ func (fake *FakeDAO) GetPermissionsForObject(object models.ODObject) ([]models.O
 
 // GetPropertiesForObject for FakeDAO.
 func (fake *FakeDAO) GetPropertiesForObject(object models.ODObject) ([]models.ODObjectPropertyEx, error) {
-	return fake.ObjectProperites, nil
+	return fake.ObjectProperties, nil
 }
 
 // GetPropertiesForObjectRevision for FakeDAO
 func (fake *FakeDAO) GetPropertiesForObjectRevision(object models.ODObject) ([]models.ODObjectPropertyEx, error) {
-	return fake.ObjectProperites, nil
+	return fake.ObjectProperties, nil
 }
 
 // GetRootObjects for FakeDAO.

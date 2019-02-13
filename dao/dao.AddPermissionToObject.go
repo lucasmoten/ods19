@@ -46,7 +46,7 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, dao *DataAccessLayer, objec
 	dbAcmGrantee, dbAcmGranteeErr := getAcmGranteeInTransaction(tx, permission.Grantee)
 	dao.GetLogger().Debug("dao returned txn from getAcmGranteeInTransaction")
 	if dbAcmGranteeErr == sql.ErrNoRows {
-		// Add if it didnt
+		// Add if it didn't
 		dao.GetLogger().Debug("dao passing  txn into createAcmGranteeInTransaction")
 		dbAcmGrantee, dbAcmGranteeErr = createAcmGranteeInTransaction(tx, dao, permission.AcmGrantee)
 		dao.GetLogger().Debug("dao returned txn from createAcmGranteeInTransaction")

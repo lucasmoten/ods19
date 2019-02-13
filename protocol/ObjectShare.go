@@ -11,12 +11,12 @@ type ObjectShare struct {
 	// An ACM compliant share may be expressed as an object. Example format:
 	//  "share":{
 	//     "users":[
-	//        "cn=aldea amanda d cnaldad,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
+	//        "cn=amanda,ou=people,ou=dia,ou=dod,o=u.s. government,c=us"
 	//       ,"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
 	//       ]
 	//    ,"projects":{
-	//        "jifct_twl":{
-	//           "disp_nm":"JIFCT.TWL"
+	//        "something":{
+	//           "disp_nm":"Something"
 	//          ,"groups":[
 	//              "SLE"
 	//             ,"USER"

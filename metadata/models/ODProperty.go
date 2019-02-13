@@ -33,7 +33,7 @@ type ODProperty struct {
 	// newly created items, this value will reflect 0
 	ChangeCount int `db:"changeCount"`
 	// ChangeToken is generated value which is assigned at the database as a md5
-	// hash of the concatencation of the id, changeCount, and most recent
+	// hash of the concatenation of the id, changeCount, and most recent
 	// modifiedDate as a string delimited by colons. For API calls performing
 	// updates, the changeToken must be passed which will be compared against the
 	// current value on the record. If properly implemented by callers, this will

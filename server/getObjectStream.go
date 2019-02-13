@@ -359,7 +359,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 			rangeResponse := fmt.Sprintf("bytes %d-%d/%d", start, stop, fullLength)
 			w.Header().Set("Content-Range", rangeResponse)
 			etag := fmt.Sprintf("\"%s\"", contentHash)
-			w.Header().Set("Etag", etag)
+			w.Header().Set("ETag", etag)
 			if clientEtag == etag {
 				w.Header().Del("Content-Length")
 				herr := NewAppError(http.StatusNotModified, nil, "Not Modified")
@@ -372,7 +372,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 			finalStatus = NewAppError(http.StatusPartialContent, nil, "Partial Content")
 		} else {
 			etag := fmt.Sprintf("\"%s\"", contentHash)
-			w.Header().Set("Etag", etag)
+			w.Header().Set("ETag", etag)
 			if clientEtag == etag {
 				w.Header().Del("Content-Length")
 				herr := NewAppError(http.StatusNotModified, nil, "Not Modified")

@@ -984,7 +984,7 @@ type ObjectResultset struct {
 	Resultset
 	// Objects contains the list of objects in this (page of) results.
 	Objects []Object `json:"objects,omitempty"`
-	// ObjectErrors is a list of errors per objectid
+	// ObjectErrors is a list of errors per object id
 	ObjectErrors []ObjectError `json:"objectErrors,omitempty"`
 }
 
@@ -1042,7 +1042,7 @@ type Permission_1_0 struct {
 	// if this grantee represnts a user
 	UserDistinguishedName string `json:"userDistinguishedName,omitempty"`
 	// DisplayName is a friendly display name suitable for user interfaces for
-	// the grantee modeleed on the distinguished name common name, or project and group
+	// the grantee modeled on the distinguished name common name, or project and group
 	DisplayName string `json:"displayName,omitempty"`
 	// AllowCreate indicates whether the grantee has permission to create child
 	// objects beneath this object

@@ -24,7 +24,7 @@ func MapDAOGroupSpacesToProtocolGroupSpaces(i *[]models.GroupSpace) []protocol.G
 	return o
 }
 
-// MapDAOGroupSpaceRSToProtocolGroupSpaceRS converts an internal DAO GroupSpace Resultset into an API exposable protocl GroupSpace resultset
+// MapDAOGroupSpaceRSToProtocolGroupSpaceRS converts an internal DAO GroupSpace Resultset into an API exposable protocol GroupSpace resultset
 func MapDAOGroupSpaceRSToProtocolGroupSpaceRS(i *models.GroupSpaceResultset) protocol.GroupSpaceResultset {
 	o := protocol.GroupSpaceResultset{}
 	o.Resultset.TotalRows = i.Resultset.TotalRows

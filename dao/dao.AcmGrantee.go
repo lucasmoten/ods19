@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// GetAcmGrantee retrieves an exsiting AcmGrantee record by the grantee name.
+// GetAcmGrantee retrieves an existing AcmGrantee record by the grantee name.
 func (dao *DataAccessLayer) GetAcmGrantee(grantee string) (models.ODAcmGrantee, error) {
 	defer util.Time("GetAcmGrantee")()
 

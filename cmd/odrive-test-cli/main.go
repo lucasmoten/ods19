@@ -201,7 +201,7 @@ func main() {
 				if len(clictx.Args()) > 0 {
 					nArg, err := strconv.Atoi(clictx.Args()[0])
 					if err != nil {
-						fmt.Println("argument counldn't parse to int:", clictx.Args()[0])
+						fmt.Println("argument couldn't parse to int:", clictx.Args()[0])
 						return err
 					}
 					nFiles = nArg
@@ -466,7 +466,7 @@ func randomPath() string {
 	return baseDir
 }
 
-// randomFile opens a randomely named local file and appends a random
+// randomFile opens a randomly named local file and appends a random
 // body of characters into it.
 func randomFile() *os.File {
 	newFile, err := ioutil.TempFile("./", "testFile_")
@@ -492,7 +492,7 @@ func randBody(n int) string {
 }
 
 // parseTesterString translates a numerical string into the needed
-// value to use as testerXX in sending and recieving data from odrive.
+// value to use as testerXX in sending and receiving data from odrive.
 func parseTesterString(tester string) (string, error) {
 	i, err := strconv.Atoi(tester)
 	if err != nil {

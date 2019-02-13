@@ -186,7 +186,7 @@ func main() {
 	app.Run(os.Args)
 }
 
-// connect wraps the creation of a new sqlx.DB connection. A test ping is peformed on the connection before returning.
+// connect wraps the creation of a new sqlx.DB connection. A test ping is performed on the connection before returning.
 func connect(clictx *cli.Context) (*sqlx.DB, error) {
 	var conf config.AppConfiguration
 
@@ -355,7 +355,7 @@ func initialize(clictx *cli.Context) error {
 	if err := createSchema(db); err != nil {
 		return err
 	}
-	fmt.Println("inital schema created")
+	fmt.Println("initial schema created")
 	fmt.Println("applying migrations")
 	m := &migrate.AssetMigrationSource{
 		Asset:    AssetWithEnv,
@@ -489,7 +489,7 @@ func newTLSConfig(trustPath, certPath, keyPath string) (*tls.Config, error) {
 	if cert, err := tls.LoadX509KeyPair(certPath, keyPath); err == nil {
 		cfg.Certificates = []tls.Certificate{cert}
 	} else {
-		log.Printf("no valid client-side ssl certifcates provided\n")
+		log.Printf("no valid client-side ssl certificates provided\n")
 	}
 
 	cfg.BuildNameToCertificate()

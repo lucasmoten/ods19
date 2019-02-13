@@ -81,7 +81,7 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
 + Request With Content Stream (multipart/form-data; boundary=7518615725)
     When creating a new object with a content stream, such as a file, this must be presented in multipart/form-data format, with the metadata about the object provided in a field named 'ObjectMetadata' containing a JSON structure of the following fields.  The content stream for the object should be the second part, as the native bytes without use of encoding or character sets.
 
-    + typeName (string, maxlength=255, required) -  The type to be assigned to this object.  Custom types may be referenecd here for the purposes of rules or processing constraints and definition of properties.
+    + typeName (string, maxlength=255, required) -  The type to be assigned to this object.  Custom types may be referenced here for the purposes of rules or processing constraints and definition of properties.
        * File - This type may be assigned if no type is given, and you are creating an object with a stream
        * Folder - This type may be assigned if no type is given, and you are creating an object without a stream
     + name: `New File` (string, maxlength=255, optional) - The name to be given this object.  If no name is given, then objects are created with the default name pattern of `New <typeName>`.
@@ -263,7 +263,7 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
 + Request Without a Content Stream (application/json)
     When creating a new object without a content stream, such as a folder, the object definition may be specified directly in the request body as typified below.
 
-    + typeName (string, maxlength=255, required) -  The type to be assigned to this object.  Custom types may be referenecd here for the purposes of rules or processing constraints and definition of properties.
+    + typeName (string, maxlength=255, required) -  The type to be assigned to this object.  Custom types may be referenced here for the purposes of rules or processing constraints and definition of properties.
        * File - This type may be assigned if no type is given, and you are creating an object with a stream
        * Folder - This type may be assigned if no type is given, and you are creating an object without a stream
     + name: `New Folder` (string, maxlength=255, optional) - The name to be given this object.  If no name is given, then objects are created with the default name pattern of `New <typeName>`.
@@ -410,8 +410,8 @@ This creates a new revision of the object.
     + changeToken (string, length=32, required) - The current change token on the object
     + typeName: `Folder` (string, maxlength=255, optional) -  The type to be assigned to this object.  During update if no typeName is given, then the existing type will be retained
     + name (string, maxlength=255, optional) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.
-    + description (string, maxlength=10240, optional) - The new description to be given as an abstract of the objects content stream. If no value is provided, or this field is ommitted, then the description will not be changed.
-    + acm (object, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. https://confluence.363-283.io/pages/viewpage.action?pageId=557850. If no value is provided, or this field is ommitted, then the acm will not be changed. This value may be provided in either serialized string format, or nested object format.
+    + description (string, maxlength=10240, optional) - The new description to be given as an abstract of the objects content stream. If no value is provided, or this field is omitted, then the description will not be changed.
+    + acm (object, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. https://confluence.363-283.io/pages/viewpage.action?pageId=557850. If no value is provided, or this field is omitted, then the acm will not be changed. This value may be provided in either serialized string format, or nested object format.
     + permission (PermissionRequest, optional) - [1.1] The permissions associated with this object by capability and resource allowed.  Resources take the following form:
        * {resourceType}/{serialized-representation}/{optional-display-name}
        * Examples for Users
@@ -437,7 +437,7 @@ This creates a new revision of the object.
             + `No`
             + `Unknown`
     + properties (properties array, optional) -  An array of custom properties to be associated with this object for property changes. For the properties specified, those who do not match existing properties on the object by name will be added. For the properties that do match existing properties by name, if the value specified is blank or empty, then the existing property will be deleted, otherwise, the property will be updated to the new value. If properties are not specified in the array, then existing properties on the object are retained. Properties are only removed from an object if they are provided, with their value set to an empty string.
-    + recursiveShare (boolean, optional) - If set to true, updates to sharing and permissions are applied to an objects children. Note that this initiates an asyncrhronous operation on the server, in the background. Clients may need to wait for changes to take effect.
+    + recursiveShare (boolean, optional) - If set to true, updates to sharing and permissions are applied to an objects children. Note that this initiates an asynchronous operation on the server, in the background. Clients may need to wait for changes to take effect.
 
     + Attributes (UpdateObject)
 
@@ -480,13 +480,13 @@ Otherwise, the client must read the data in a streaming fashion to ensure that o
 Use of this feature is not just for performance, as not following this may keep the client from working correctly at all (by getting timeout and out of memory errors).
 
 Actual browser behavior is far more complex than simply retrieving the files, and it is a good idea for custom clients to follow these conventions to get good performance.
-When an object stream comes back, it will specify an `Etag` value.  The client should remember this value, and resend an `If-None-Match` which contains the known `Etag` value.
+When an object stream comes back, it will specify an `ETag` value.  The client should remember this value, and resend an `If-None-Match` which contains the known `ETag` value.
 If the content has not been changed (ie: there is no new version for this file), then a `304 Not Modified` will be sent back instead of a stream.
 For situations where there are a lot of URLs that resolve to images, and the browser is fetching them just because it doesn't know if they changed, the speedup is going to be dramatic.
 
 ![Get Object Stream](static/js/getObjectStream.png)
 
-In addition to Etag, real browsers do range requesting, particularly for video.  If a browser goes to get a stream, it will look at its mime type and content-length.
+In addition to ETag, browsers may do range requesting for larger resources.  If a browser goes to get a stream, it will look at its mime type and content-length.
 The browser may decide to simply read a small amount of the file from a 200 OK response, and cut off reading the stream early (close the connection).
 Then when the browser needs more bytes, it will put in a header like `Range: 23433-432178` to select a specific chunk for more bytes, or leave the range open-ended like `Range:23433-`,
 where the browser may again close the connection at its leisure.  When it does this, it will get a `206 Partial Content` code rather than a 200 OK.
@@ -566,9 +566,9 @@ This creates a new revision of the object.
     + id: `11e5e48664f5d8c789020242ac110002` (string, length=32, required) - The unique identifier of the object hex encoded to a string. This value must match the objectId provided in the URI.
     + changeToken (string, length=32, required) - A hash value expected to match the targeted object’s current changeToken value. This value is retrieved from get or list operations.
     + typeName (string, maxlength=255, optional) -  The new type to be assigned to this object. Common types include 'File', 'Folder'. If no value is provided or this field is omitted, then the type will not be changed.
-    + name (string, maxlength=255, optional) - The new name to be given this object. It does not have to be unique. It may refer to a conventional filename and extension. If no value is provided, or this field is ommitted, then the name will not be changed.
-    + description (string, maxlength=10240, optional) - The new description to be given as an abstract of the objects content stream. If no value is provided, or this field is ommitted, then the description will not be changed.
-    + acm (object, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. https://confluence.363-283.io/pages/viewpage.action?pageId=557850. If no value is provided, or this field is ommitted, then the acm will not be changed.  This value may be provided in either serialized string format, or nested object format.
+    + name (string, maxlength=255, optional) - The new name to be given this object. It does not have to be unique. It may refer to a conventional filename and extension. If no value is provided, or this field is omitted, then the name will not be changed.
+    + description (string, maxlength=10240, optional) - The new description to be given as an abstract of the objects content stream. If no value is provided, or this field is omitted, then the description will not be changed.
+    + acm (object, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. https://confluence.363-283.io/pages/viewpage.action?pageId=557850. If no value is provided, or this field is omitted, then the acm will not be changed.  This value may be provided in either serialized string format, or nested object format.
     + permission (PermissionRequest, optional) - [1.1] The permissions associated with this object by capability and resource allowed.  Resources take the following form:
        * {resourceType}/{serialized-representation}/{optional-display-name}
        * Examples for Users
@@ -595,7 +595,7 @@ This creates a new revision of the object.
             + `No`
             + `Unknown`
     + properties (properties array, optional) -  An array of custom properties to be associated with this object for property changes. For the properties specified, those who do not match existing properties on the object by name will be added. For the properties that do match existing properties by name, if the value specified is blank or empty, then the existing property will be deleted, otherwise, the property will be updated to the new value. If properties are not specified in the array, then existing properties on the object are retained. Properties are only removed from an object if they are provided, with their value set to an empty string.
-    + recursiveShare (boolean, optional) - If set to true, updates to sharing and permissions are applied to an objects children. Note that this initiates an asyncrhronous operation on the server, in the background. Clients may need to wait for changes to take effect.
+    + recursiveShare (boolean, optional) - If set to true, updates to sharing and permissions are applied to an objects children. Note that this initiates an asynchronous operation on the server, in the background. Clients may need to wait for changes to take effect.
 
     The content stream for the object should be the second part, as the native bytes without use of encoding or character sets.
            
@@ -1375,7 +1375,7 @@ This microservice operation retrieves a list of objects that are shared to every
 ### Download File By Path [GET]
 This microservice operation is experimental (since v1.0.14). This microservice operation retrieves a file content stream given a standard URI path. For each component of the path the service will identify matching file or folder of that name for which the user has read access to iteratively until it reaches the final node.  If a user does not have read access to any component of the path, an error code will be returned.  This is a convenience function around manually making calls to list/search for objects with a given name to accomplish the same.
 
-Headers are passed along to support range requests, ETags, and so forth.
+Headers are passed along to support range requests, ETag values, and so forth.
 
 + Response 200
 
@@ -1523,7 +1523,7 @@ to accomplish the same.
 ### Download Group File By Path [GET]
 This microservice operation is experimental (since v1.0.14). This microservice operation retrieves a file content stream given a standard URI path. For each component of the path the service will identify matching file or folder of that name for which the user has read access to iteratively until it reaches the final node.  If a user does not have read access to any component of the path, an error code will be returned.  This is a convenience function around manually making calls to list/search for objects with a given name to accomplish the same.
 
-Headers are passed along to support range requests, ETags, and so forth.
+Headers are passed along to support range requests, ETag values, and so forth.
 
 + Response 200
 
@@ -2152,7 +2152,7 @@ User Stats provides metrics information for the user's total number of objects a
         Internal Server Error
 
 
-# Group Auxillary &amp; Bulk Operations
+# Group Auxiliary &amp; Bulk Operations
 
 ---
 
@@ -2202,7 +2202,7 @@ possible a list of Errors coming back with the objects that came back successful
                 "typeName": "File",
                 "name": "gettysburgaddress.txt",
                 "description": "Description here",
-                "parentId": "",
+                "parentId": "11e5e4867a6e3d8489020242ac110002",
                 "acm": {
                     "banner": "UNCLASSIFIED",
                     "classif": "U",
@@ -2372,7 +2372,7 @@ possible a list of Errors coming back with the objects that came back successful
                 "typeName": "File",
                 "name": "gettysburgaddress.txt",
                 "description": "Description here",
-                "parentId": "",
+                "parentId": "11e5e4867a6e3d8489020242ac110002",
                 "acm": {
                     "banner": "UNCLASSIFIED",
                     "classif": "U",
@@ -2798,7 +2798,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + typeName: `File` (string) - The display name of the type assigned this object.
 + name: `gettysburgaddress.txt` (string) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.
 + description: `Description here` (string) - An abstract of the object's purpose.
-+ parentId: ` ` (string, optional) - The unique identifier of the objects parent hex encoded to a string. This may be used to traverse up the tree. For objects stored at the root of a user, this value will be null.
++ parentId: `11e5e4867a6e3d8489020242ac110002` (string, optional) - The unique identifier of the objects parent hex encoded to a string. This may be used to traverse up the tree. For objects stored at the root of a user, this value will be null.
 + acm (ACMResponse, required) - The acm value associated with this object in object form
 + permission (PermissionResponse, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.

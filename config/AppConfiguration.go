@@ -176,7 +176,7 @@ type DiskCacheOpts struct {
 	// the cache eviction routine will operate on items in the cache.
 	LowWatermark float64 `yaml:"low_watermark"`
 	// HighWatermark denotes a  percentage of local storage. If exceeded, cache
-	// items older than EvictAge will be eligible for puge.
+	// items older than EvictAge will be eligible for purge.
 	HighWatermark float64 `yaml:"high_waterwark"`
 	// EvictAge denotes the minimum age, in seconds, a file in cache before it
 	// is eligible for purge from the cache to free up space.
@@ -221,7 +221,7 @@ type ServerSettingsConfiguration struct {
 	MinimumVersion string `yaml:"min_version"`
 	// ACLImpersonationWhitelist is a list of Distinguished Names. If a client
 	// (usually another machine) is on this list, it may pass us another DN in
-	// an HTTP header, and "impersonate" that identitiy. The common use case
+	// an HTTP header, and "impersonate" that identity. The common use case
 	// is for an edge proxy (such as nginx) to pass through requests from users
 	// outside the network. This configuration option must be specified in YAML
 	// or on the command line.
@@ -427,7 +427,7 @@ func NewDatabaseConfigFromEnv(confFile AppConfiguration, opts CommandLineOpts) D
 	return dbConf
 }
 
-// newEventQueueConfiguration reades the environment to provide the configuration for the Kafka event queue.
+// newEventQueueConfiguration reads the environment to provide the configuration for the Kafka event queue.
 func newEventQueueConfiguration(confFile AppConfiguration, opts CommandLineOpts) EventQueueConfiguration {
 	var eqc EventQueueConfiguration
 	eqc.KafkaAddrs = CascadeStringSlice(OD_EVENT_KAFKA_ADDRS, confFile.EventQueue.KafkaAddrs, empty)
@@ -523,7 +523,7 @@ func newServerSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) S
 
 	// Defaults
 	settings.MinimumVersion = opts.TLSMinimumVersion
-	// Use environment, configuration file, or cli options (includes a default) for the Cipher Suites (whichver has values first is used)
+	// Use environment, configuration file, or cli options (includes a default) for the Cipher Suites (whichever has values first is used)
 	settings.CipherSuites = selectNonEmptyStringSlice(CascadeStringSlice(OD_SERVER_CIPHERS, confFile.ServerSettings.CipherSuites, opts.Ciphers))
 
 	// Use cli options, environment, or configuration file for the ACL whitelist (whichever has values first is used)
@@ -916,7 +916,7 @@ func NewAWSConfig(endpoint string) *AWSConfig {
 	var err error
 	ret.SecretAccessKey, err = MaybeDecrypt(getEnvOrDefault(OD_AWS_SECRET_ACCESS_KEY, getEnvOrDefault("AWS_SECRET_ACCESS_KEY", "")))
 	if err != nil {
-		log.Printf("The AWS_SECRET_ACCESS_KEY was supplied encrypted with the ENC{...} scheme, but it's not valid.  Supply this key unencrypted, or re-encrypt it so that it's valid and matches token.jar: %v", err)
+		log.Printf("The AWS_SECRET_ACCESS_KEY was supplied encrypted with the ENC{...} scheme, but it's not valid.  Supply this key un-encrypted, or re-encrypt it so that it's valid and matches token.jar: %v", err)
 		os.Exit(1)
 	}
 	return ret
@@ -925,17 +925,7 @@ func NewAWSConfig(endpoint string) *AWSConfig {
 // NewS3Config is the s3 session
 func NewS3Config() *S3Config {
 	ret := &S3Config{}
-	name := OD_AWS_S3_ENDPOINT
-	s3Endpoint := getEnvOrDefault(OD_AWS_S3_ENDPOINT, "")
-	if s3Endpoint == "" {
-		s3EndpointOld := getEnvOrDefault("OD_AWS_ENDPOINT", "")
-		if s3EndpointOld != "" {
-			s3Endpoint = s3EndpointOld
-			name = "OD_AWS_ENDPOINT"
-			logger.Error("OD_AWS_ENDPOINT must be renamed to OD_AWS_S3_ENDPOINT in your env.sh")
-		}
-	}
-	ret.AWSConfig = NewAWSConfig(name)
+	ret.AWSConfig = NewAWSConfig(OD_AWS_S3_ENDPOINT)
 	return ret
 }
 

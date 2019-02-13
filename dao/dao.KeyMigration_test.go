@@ -72,7 +72,7 @@ func TestDAOKeyMigrateRotate(t *testing.T) {
 	if err != nil {
 		t.Errorf("unable to invoke stored function: %v", err)
 	}
-	t.Logf("migrated encrypteKey: %s", result)
+	t.Logf("migrated encryptedKey: %s", result)
 
 	if strings.Compare(result, hex.EncodeToString(newEncryptedKey)) != 0 {
 		t.Error("migrated to wrong key")
@@ -153,7 +153,7 @@ func TestDAOKeyMigrateRotate(t *testing.T) {
 	if err != nil {
 		t.Errorf("unable to invoke stored function: %v", err)
 	}
-	t.Logf("rotated encrypteKey: %s", result)
+	t.Logf("rotated encryptedKey: %s", result)
 
 	if strings.Compare(result, hex.EncodeToString(rotatedEncryptedKey)) != 0 {
 		t.Error("rotated to wrong key")

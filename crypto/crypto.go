@@ -64,9 +64,6 @@ func (r *cipherStreamReader) Read(dst []byte) (n int, err error) {
 	r.S.XORKeyStream(dst[:n], dst[:n])
 	r.Size += int64(n)
 	r.Written += int64(n)
-	////XXX not good for performance, but we are getting cut-offs, and this
-	////is insightful to uncomment
-	//log.Printf("transferred:%d to %d", int64(n), r.Size)
 	return
 }
 

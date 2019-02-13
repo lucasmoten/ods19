@@ -146,10 +146,10 @@ func createObjectInTransaction(tx *sqlx.Tx, dao *DataAccessLayer, object *models
 		object.Name = "New " + object.TypeName.String
 	}
 
-	// Assign a random content connector value if this object doesnt have one
+	// Assign a random content connector value if this object doesn't have one
 	//
 	// This value is normally set for objects having a content stream.  For folder objects, this value is not
-	// initially set, but we leverage it below as a psuedo unique identifier for fetching the created
+	// initially set, but we leverage it below as a pseudo unique identifier for fetching the created
 	// record. This is because the truly unique identifier is generated in the database as a non-predictive
 	// GUID.
 	if len(object.ContentConnector.String) == 0 {

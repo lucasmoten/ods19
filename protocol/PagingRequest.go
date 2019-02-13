@@ -20,7 +20,7 @@ type PagingRequest struct {
 	PageSize int `json:"pageSize,omitempty"`
 	// ObjectID if provided provides a focus for paging, often the ParentID
 	ObjectID string `json:"objectId,omitempty"`
-	// FilterSettings is an array of fitler settings denoting field and conditional match expression to filter results
+	// FilterSettings is an array of filter settings denoting field and conditional match expression to filter results
 	FilterSettings []FilterSetting `json:"filterSettings,omitempty"`
 	// SortSettings is an array of sort settings denoting a field to sort on and direction
 	SortSettings []SortSetting `json:"sortSettings,omitempty"`
@@ -30,18 +30,18 @@ type PagingRequest struct {
 
 // newPagingRequestFromURLValues creates a new PagingRequest from the following URL params:
 // pageNumber, pageSize, and parentId. Params are case-sensitive.
-func newPagingRequestFromURLValues(vals url.Values) (PagingRequest, error) {
+func newPagingRequestFromURLValues(urlValues url.Values) (PagingRequest, error) {
 
 	pagingRequest := PagingRequest{}
 
 	// Paging provided as querystring arguments
-	pagingRequest.PageNumber = GetQueryParamAsPositiveInt(vals, []string{"PageNumber", "pageNumber"}, 1)
-	pagingRequest.PageSize = GetQueryParamAsPositiveInt(vals, []string{"PageSize", "pageSize"}, 20)
+	pagingRequest.PageNumber = GetQueryParamAsPositiveInt(urlValues, []string{"PageNumber", "pageNumber"}, 1)
+	pagingRequest.PageSize = GetQueryParamAsPositiveInt(urlValues, []string{"PageSize", "pageSize"}, 20)
 
-	pagingRequest.FilterSettings = makeFilterSettingsFromQueryParam(vals)
-	pagingRequest.SortSettings = makeSortSettingsFromQueryParam(vals)
+	pagingRequest.FilterSettings = makeFilterSettingsFromQueryParam(urlValues)
+	pagingRequest.SortSettings = makeSortSettingsFromQueryParam(urlValues)
 
-	switch strings.ToLower(strings.TrimSpace(vals.Get("filterMatchType"))) {
+	switch strings.ToLower(strings.TrimSpace(urlValues.Get("filterMatchType"))) {
 	case "all", "and":
 		pagingRequest.FilterMatchType = "and"
 	default:
@@ -49,7 +49,7 @@ func newPagingRequestFromURLValues(vals url.Values) (PagingRequest, error) {
 	}
 
 	// parentID not required, so setting empty string is OK.
-	parentIDString := vals.Get("parentId")
+	parentIDString := urlValues.Get("parentId")
 	if len(parentIDString) > 0 {
 		// Assign it
 		pagingRequest.ObjectID = parentIDString
@@ -93,8 +93,8 @@ func NewPagingRequest(r *http.Request, captured map[string]string, isObjectIDReq
 	// Paging information...
 	switch r.Method {
 	case "GET":
-		vals := r.URL.Query()
-		pr, _ := newPagingRequestFromURLValues(vals)
+		urlValues := r.URL.Query()
+		pr, _ := newPagingRequestFromURLValues(urlValues)
 		pagingRequest = &pr
 	case "POST":
 		if util.IsApplicationJSON(r.Header.Get("Content-Type")) {
@@ -133,12 +133,12 @@ func NewPagingRequest(r *http.Request, captured map[string]string, isObjectIDReq
 
 // GetQueryParamAsPositiveInt takes a list of names to check and default value and returns
 // the first matching numeric value from the querystring parameters
-func GetQueryParamAsPositiveInt(vals url.Values, names []string, defaultValue int) int {
+func GetQueryParamAsPositiveInt(urlValues url.Values, names []string, defaultValue int) int {
 	rv := 0
 	found := false
 	for _, n := range names {
 		if len(n) > 0 {
-			s := vals.Get(n)
+			s := urlValues.Get(n)
 			if len(s) > 0 {
 				v, err := strconv.Atoi(s)
 				if err == nil && v > 0 {
@@ -155,12 +155,12 @@ func GetQueryParamAsPositiveInt(vals url.Values, names []string, defaultValue in
 	return rv
 }
 
-func makeFilterSettingsFromQueryParam(vals url.Values) []FilterSetting {
+func makeFilterSettingsFromQueryParam(urlValues url.Values) []FilterSetting {
 	rv := []FilterSetting{}
 
-	filterFields := vals["filterField"]
-	conditions := vals["condition"]
-	expressions := vals["expression"]
+	filterFields := urlValues["filterField"]
+	conditions := urlValues["condition"]
+	expressions := urlValues["expression"]
 
 	if len(filterFields) > 0 && len(conditions) > 0 && len(expressions) > 0 {
 		for i, filterField := range filterFields {
@@ -187,22 +187,22 @@ func makeFilterSettingsFromQueryParam(vals url.Values) []FilterSetting {
 	return rv
 }
 
-func makeSortSettingsFromQueryParam(vals url.Values) []SortSetting {
+func makeSortSettingsFromQueryParam(urlValues url.Values) []SortSetting {
 	rv := []SortSetting{}
 
-	sortFields := vals["sortField"]
-	sortAscendings := vals["sortAscending"]
+	sortFields := urlValues["sortField"]
+	sortAscendingValues := urlValues["sortAscending"]
 
 	if len(sortFields) > 0 {
 		for i, sortField := range sortFields {
 			sortSetting := SortSetting{}
 			sortSetting.SortField = sortField
-			if len(sortAscendings) > i {
-				sortSetting.SortAscending = (sortAscendings[i] == "true")
+			if len(sortAscendingValues) > i {
+				sortSetting.SortAscending = (sortAscendingValues[i] == "true")
 			} else {
-				if len(sortAscendings) > 0 {
+				if len(sortAscendingValues) > 0 {
 					// use first/only sortAscending in query
-					sortSetting.SortAscending = (sortAscendings[0] == "true")
+					sortSetting.SortAscending = (sortAscendingValues[0] == "true")
 				} else {
 					// default
 				}

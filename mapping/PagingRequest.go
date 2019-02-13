@@ -6,7 +6,7 @@ import (
 )
 
 // MapPagingRequestToDAOPagingRequest converts a protocol PagingRequest to the
-// similarl structured PagingRequest in the dao package for use in database calls
+// similarly structured PagingRequest in the dao package for use in database calls
 func MapPagingRequestToDAOPagingRequest(i *protocol.PagingRequest) dao.PagingRequest {
 	o := dao.PagingRequest{PageNumber: i.PageNumber, PageSize: i.PageSize}
 	o.FilterSettings = mapFilterSettingsToDAOFilterSettings(&i.FilterSettings)

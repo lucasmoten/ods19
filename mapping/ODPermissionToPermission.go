@@ -10,10 +10,10 @@ import (
 	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 )
 
-// MapODPermissionToPermission_1_0 converts an internal ODPermission model to an
-// API exposable Permission_1_0
-func MapODPermissionToPermission_1_0(i *models.ODObjectPermission) protocol.Permission_1_0 {
-	o := protocol.Permission_1_0{}
+// MapODPermissionToPermission1_0 converts an internal ODPermission model to an
+// API exposable Permission1_0
+func MapODPermissionToPermission1_0(i *models.ODObjectPermission) protocol.Permission1_0 {
+	o := protocol.Permission1_0{}
 	o.Grantee = i.Grantee
 	o.ProjectName = i.AcmGrantee.ProjectName.String
 	o.ProjectDisplayName = i.AcmGrantee.ProjectDisplayName.String
@@ -40,21 +40,21 @@ func MapODCommonPermissionToCallerPermission(i *models.ODCommonPermission) proto
 	return o
 }
 
-// MapODPermissionsToPermissions_1_0 converts an array of internal ODPermission
+// MapODPermissionsToPermissions1_0 converts an array of internal ODPermission
 // models to an array of API exposable Permission
-func MapODPermissionsToPermissions_1_0(i *[]models.ODObjectPermission) []protocol.Permission_1_0 {
-	o := make([]protocol.Permission_1_0, len(*i))
+func MapODPermissionsToPermissions1_0(i *[]models.ODObjectPermission) []protocol.Permission1_0 {
+	o := make([]protocol.Permission1_0, len(*i))
 	for p, q := range *i {
-		o[p] = MapODPermissionToPermission_1_0(&q)
+		o[p] = MapODPermissionToPermission1_0(&q)
 	}
 	o = applyEveryonePermissionsIfExists(o)
 	return o
 }
 
-func applyEveryonePermissionsIfExists(i []protocol.Permission_1_0) []protocol.Permission_1_0 {
-	o := make([]protocol.Permission_1_0, len(i))
+func applyEveryonePermissionsIfExists(i []protocol.Permission1_0) []protocol.Permission1_0 {
+	o := make([]protocol.Permission1_0, len(i))
 	hasEveryone := false
-	var everyonePermissions *protocol.Permission_1_0
+	var everyonePermissions *protocol.Permission1_0
 	for _, q := range i {
 		if strings.Compare(q.GroupName, models.EveryoneGroup) == 0 {
 			everyonePermissions = &q
@@ -66,7 +66,7 @@ func applyEveryonePermissionsIfExists(i []protocol.Permission_1_0) []protocol.Pe
 		return i
 	}
 	for idx, q := range i {
-		var permWithEveryone protocol.Permission_1_0
+		var permWithEveryone protocol.Permission1_0
 		permWithEveryone.Grantee = q.Grantee
 		permWithEveryone.ProjectName = q.ProjectName
 		permWithEveryone.ProjectDisplayName = q.ProjectDisplayName

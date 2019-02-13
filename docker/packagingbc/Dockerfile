@@ -46,4 +46,4 @@ RUN chmod +x build_package_install.py
 RUN chmod +x service_wrapper.py
 RUN ./build_package_install.py
 WORKDIR /go/src/bitbucket.di2e.net/dime/object-drive-server
-CMD ["bash"]
+CMD ["./service_wrapper.py"]

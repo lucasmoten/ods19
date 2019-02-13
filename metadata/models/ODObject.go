@@ -32,7 +32,7 @@ type ODObject struct {
 	// newly created items, this value will reflect 0
 	ChangeCount int `db:"changeCount"`
 	// ChangeToken is generated value which is assigned at the database as a md5
-	// hash of the concatencation of the id, changeCount, and most recent
+	// hash of the concatenation of the id, changeCount, and most recent
 	// modifiedDate as a string delimited by colons. For API calls performing
 	// updates, the changeToken must be passed which will be compared against the
 	// current value on the record. If properly implemented by callers, this will
@@ -51,7 +51,7 @@ type ODObject struct {
 	// as expunged if IsExpunged is set to true
 	ExpungedBy NullString `db:"expungedBy" json:"-"`
 	// OwnedBy indicates the individual user or group that currently owns the
-	// object and has implict full permissions on the object
+	// object and has implicit full permissions on the object
 	OwnedBy NullString `db:"ownedBy"`
 	// TypeID references the ODObjectType by its ID indicating the type of this
 	// object
@@ -77,7 +77,7 @@ type ODObject struct {
 	// bytes
 	ContentSize NullInt64 `db:"contentSize"`
 	// ContentHash represents a hash (MD5? SHA1? SHA256?) of the contents of the
-	// object stream and can be used for deduplication with other objects stored
+	// object stream and can be used for de-duplication with other objects stored
 	// in a backend repository.
 	ContentHash []byte `db:"contentHash"`
 	// EncryptIV contains the initialization vector information for encrypting the

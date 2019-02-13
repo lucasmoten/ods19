@@ -14,7 +14,7 @@ type ObjectResultset struct {
 	Resultset
 	// Objects contains the list of objects in this (page of) results.
 	Objects []Object `json:"objects,omitempty"`
-	// ObjectErrors is a list of errors per objectid
+	// ObjectErrors is a list of errors per object id
 	ObjectErrors []ObjectError `json:"objectErrors,omitempty"`
 }
 

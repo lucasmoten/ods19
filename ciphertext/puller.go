@@ -18,7 +18,7 @@ const (
 // Puller is a virtual io.ReadCloser that gets range-requested chunks out of S3 to look like one contiguous file.
 // It hides the range requesting out of PermanentStorage, to look like a file handle that just keeps giving back data.
 //
-// Note: periodically re-visit the design of this, as a proper way to range request streamingly out of S3
+// Note: periodically re-visit the design of this, as a proper way to range request a stream out of S3
 // would allow us to simplify the design and not have to chunk the pull at all.  We chunk the pull because
 // S3 will hold the entire chunk in memory after stalling until it gets that chunk.  A change to the S3 API
 // might let us simplify a lot of things:
@@ -116,19 +116,19 @@ func (p *Puller) getFileHandle(begin, end int64, p2p bool) (io.ReadCloser, error
 	}
 	// try p2p if asked, or if no PermanentStorage even exists
 	p.IsLocal = false
-	var filep2p io.ReadCloser
+	var fileP2P io.ReadCloser
 	// Having no permanent storage is like an implicit p2p flag
 	if p2p || p.IsP2P || p.CiphertextCache.GetPermanentStorage() == nil {
-		filep2p, err = useP2PFile(p.Logger, p.CiphertextCache.CiphertextCacheZone, p.RName, begin)
+		fileP2P, err = useP2PFile(p.Logger, p.CiphertextCache.CiphertextCacheZone, p.RName, begin)
 		if err != nil {
 			p.Logger.Info("puller cant use p2p", zap.Error(err))
 		}
 	}
-	if filep2p != nil {
+	if fileP2P != nil {
 		// If we got a chunk p2p, then we need to be allowed to continue to run p2p for the remainder of this pull
 		p.IsP2P = true
 		p.From = pullFromPeer
-		return filep2p, nil
+		return fileP2P, nil
 	}
 	if p.CiphertextCache.GetPermanentStorage() == nil {
 		// We are doomed to lose connection here.  It will get logged.
@@ -154,12 +154,12 @@ func (p *Puller) More(useP2P bool) error {
 	end := int64(-1)
 
 	// Compute the indices that we need for getting this range
-	clen := p.ChunkSize
-	if p.Index+clen < p.TotalLen {
-		// end is only used if PermanentStorate was chosen - because we can't just stream huge files with s3manager.
-		end = p.Index + clen - 1
+	cLength := p.ChunkSize
+	if p.Index+cLength < p.TotalLen {
+		// end is only used if PermanentStorage was chosen - because we can't just stream huge files with s3manager.
+		end = p.Index + cLength - 1
 	} else {
-		clen = p.TotalLen - p.Index
+		cLength = p.TotalLen - p.Index
 	}
 
 	f, err := p.getFileHandle(begin, end, useP2P)
@@ -167,12 +167,12 @@ func (p *Puller) More(useP2P bool) error {
 	if p.From != pullFromStorage {
 		// Recompute for at least a 1GB chunk len to avoid
 		// open/close/search every 16MB - bad performance on large file downloads
-		clen = int64(1024 * 1024 * 1024)
-		if p.Index+clen < p.TotalLen {
-			// this is computed for consistency, but note that we only reference clen after this.
-			end = p.Index + clen - 1
+		cLength = int64(1024 * 1024 * 1024)
+		if p.Index+cLength < p.TotalLen {
+			// this is computed for consistency, but note that we only reference cLength after this.
+			end = p.Index + cLength - 1
 		} else {
-			clen = p.TotalLen - p.Index
+			cLength = p.TotalLen - p.Index
 		}
 	}
 
@@ -188,7 +188,7 @@ func (p *Puller) More(useP2P bool) error {
 		p.Logger.Error("puller cannot get filehandle")
 	}
 	p.File = f
-	p.Remaining = clen
+	p.Remaining = cLength
 	return nil
 }
 
