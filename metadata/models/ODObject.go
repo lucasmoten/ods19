@@ -76,9 +76,8 @@ type ODObject struct {
 	// ContentSize denotes the length of the content stream for this object, in
 	// bytes
 	ContentSize NullInt64 `db:"contentSize"`
-	// ContentHash represents a hash (MD5? SHA1? SHA256?) of the contents of the
-	// object stream and can be used for de-duplication with other objects stored
-	// in a backend repository.
+	// ContentHash represents a SHA256 hash of the contents of the object stream and
+	// can be used for de-duplication with other objects stored in a backend repository.
 	ContentHash []byte `db:"contentHash"`
 	// EncryptIV contains the initialization vector information for encrypting the
 	// content stream for this object at result

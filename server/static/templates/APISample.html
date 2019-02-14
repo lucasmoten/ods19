@@ -28,40 +28,40 @@
 
 			This is a sampling of successful tests that exhibit correct cases for using the API,
 			at the level of http traffic.  
-		<h2>Table Of Contents</h2><ul><li><a href="#483716164">Change Owner for Object</a></li><li><a href="#2000488170">CORS Pre-flight check</a></li><li><a href="#2623193993">Create Object owned by group</a></li><li><a href="#2374969519">Share to new user that may use odrive in the future</a></li><li><a href="#2116130772">Create Object shared to new user on create with resource string format</a></li><li><a href="#981325595">Create Object having stream with explicit permissions set using new permission format</a></li><li><a href="#2569267939">Delete a folder</a></li><li><a href="#1391618934">Bulk Move Objects to a new Parent</a></li><li><a href="#1001142759">Empty (Expunge) Trash</a></li><li><a href="#1046142755">Bulk Retrieve Object Properties</a></li><li><a href="#2254291071">Client Caching with Etags</a></li><li><a href="#890140790">Range Request a file</a></li><li><a href="#1738951136">Zip a Collection of Files by IDs</a></li><li><a href="#3468999796">List Root Objects for a Group</a></li><li><a href="#3497412442">Create Classified File About Grey Aliens</a></li><li><a href="#1467011862">Declassify File About Grey Aliens</a></li><li><a href="#1105457739">Show Revisions on Declassified File About Grey Aliens Who Has Clearance</a></li><li><a href="#2339528389">Show Revisions on Declassified File About Grey Aliens</a></li><li><a href="#3833738823">List Root Objects for User</a></li><li><a href="#1634256523">Move Object</a></li><li><a href="#3233016391">Undelete/Restore a file from trash</a></li><li><a href="#2490985143">Modify Object Property</a></li><li><a href="#1017150633">Update the stream of an existing object</a></li><li><a href="#3766955599">Modify Object Properties</a></li><li><a href="#959183600">Update Object With New Property</a></li><li><a href="#3834796447">Update Object Change Property Value</a></li></ul><br/><h2 id=483716164>Change Owner for Object</h2>
+		<h2>Table Of Contents</h2><ul><li><a href="#483716164">Change Owner for Object</a></li><li><a href="#2000488170">CORS Pre-flight check</a></li><li><a href="#2623193993">Create Object owned by group</a></li><li><a href="#2374969519">Share to new user that may use odrive in the future</a></li><li><a href="#2116130772">Create Object shared to new user on create with resource string format</a></li><li><a href="#981325595">Create Object having stream with explicit permissions set using new permission format</a></li><li><a href="#2569267939">Delete a folder</a></li><li><a href="#1391618934">Bulk Move Objects to a new Parent</a></li><li><a href="#1001142759">Empty (Expunge) Trash</a></li><li><a href="#1046142755">Bulk Retrieve Object Properties</a></li><li><a href="#994442692">Client Caching using ETag</a></li><li><a href="#890140790">Range Request a file</a></li><li><a href="#1738951136">Zip a Collection of Files by IDs</a></li><li><a href="#3468999796">List Root Objects for a Group</a></li><li><a href="#3497412442">Create Classified File About Grey Aliens</a></li><li><a href="#1467011862">Declassify File About Grey Aliens</a></li><li><a href="#1105457739">Show Revisions on Declassified File About Grey Aliens Who Has Clearance</a></li><li><a href="#2339528389">Show Revisions on Declassified File About Grey Aliens</a></li><li><a href="#3833738823">List Root Objects for User</a></li><li><a href="#1634256523">Move Object</a></li><li><a href="#3233016391">Undelete/Restore a file from trash</a></li><li><a href="#2490985143">Modify Object Property</a></li><li><a href="#1017150633">Update the stream of an existing object</a></li><li><a href="#3766955599">Modify Object Properties</a></li><li><a href="#959183600">Update Object With New Property</a></li><li><a href="#3834796447">Update Object Change Property Value</a></li></ul><br/><h2 id=483716164>Change Owner for Object</h2>
 Transfer object ownership to a different user or group
 <pre class="request">
-POST /services/object-drive/1.0/objects/11e92e296614e78693420242ac120004/owner/group/dctc/DCTC/ODrive_G1/DCTC%20ODrive_G1 HTTP/1.1
+POST /services/object-drive/1.0/objects/11e930a5fc502b0dbe0b0242ac120003/owner/group/dctc/DCTC/ODrive_G1/DCTC%20ODrive_G1 HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
-{"changeToken":"cb67def031706ff856c3a785bec153f8"}</pre>
+{"changeToken":"3453531c2395af1e4d6a92318606a309"}</pre>
 Ownership changed to designated resource, and moved to root
 <pre class="response">
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:18:15 GMT
+Date: Thu, 14 Feb 2019 22:15:07 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: 0e9f8430
+Session-Id: 1a8fd403
 Vary: Origin
 
 cf2
 {
-  "id": "11e92e296614e78693420242ac120004",
-  "createdDate": "2019-02-11T18:18:15.269528Z",
+  "id": "11e930a5fc502b0dbe0b0242ac120003",
+  "createdDate": "2019-02-14T22:15:07.235878Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-11T18:18:15.677695Z",
+  "modifiedDate": "2019-02-14T22:15:07.463561Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-  "changeToken": "a4175a0efac7e865cf7cf3cd5cb87574",
+  "changeToken": "83ab0c7b48b3c18d0900c461fb76bce2",
   "ownedBy": "group/dctc/dctc/odrive_g1",
-  "typeId": "11e92e294f61badf93420242ac120004",
+  "typeId": "11e930a5f1bcaacabe0b0242ac120003",
   "typeName": "Folder",
   "name": "Test ChangeOwner to Group",
   "description": "",
@@ -199,12 +199,12 @@ Access-Control-Allow-Methods: GET, PUT, DELETE, POST, HEAD, OPTIONS
 Access-Control-Allow-Origin: https://proxier:8080
 Access-Control-Max-Age: 600
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: text/plain; charset=utf-8
-Date: Mon, 11 Feb 2019 18:18:18 GMT
+Date: Thu, 14 Feb 2019 22:15:08 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: fe011cd1
+Session-Id: 104f5949
 Vary: Origin
 X-Content-Type-Options: nosniff
 
@@ -256,27 +256,27 @@ object added, but immediately owned by the group
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:18:21 GMT
+Date: Thu, 14 Feb 2019 22:15:10 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: cdbb4461
+Session-Id: 174a353e
 Vary: Origin
 
 8fe
 {
-  "id": "11e92e2969d526f393420242ac120004",
-  "createdDate": "2019-02-11T18:18:21.562629Z",
+  "id": "11e930a5fe00cdfcbe0b0242ac120003",
+  "createdDate": "2019-02-14T22:15:10.071202Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-11T18:18:21.562629Z",
+  "modifiedDate": "2019-02-14T22:15:10.071202Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 0,
-  "changeToken": "badc7ccba841a2f7a5f595b9c170cd1e",
+  "changeToken": "ee9b57be62de874623caedbb94da9192",
   "ownedBy": "group/dctc/dctc/odrive",
-  "typeId": "11e92e294f8bae4593420242ac120004",
+  "typeId": "11e930a5f1feed57be0b0242ac120003",
   "typeName": "",
   "name": "TestCreateWithPermissionsOwnedBy",
   "description": "",
@@ -377,7 +377,7 @@ Vary: Origin
 <h2 id=2374969519>Share to new user that may use odrive in the future</h2>
 Share file owned by tester 2 from tester 10 to tester 11
 <pre class="request">
-POST /services/object-drive/1.0/shared/11e92e296a797cde93420242ac120004 HTTP/1.1
+POST /services/object-drive/1.0/shared/11e930a5fe5f93cbbe0b0242ac120003 HTTP/1.1
 Host: proxier:8080
 
 {
@@ -397,27 +397,27 @@ New user has the share
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:18:22 GMT
+Date: Thu, 14 Feb 2019 22:15:10 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: 643a1c2a
+Session-Id: 0671efdf
 Vary: Origin
 
 f90
 {
-  "id": "11e92e296a797cde93420242ac120004",
-  "createdDate": "2019-02-11T18:18:22.639623Z",
+  "id": "11e930a5fe5f93cbbe0b0242ac120003",
+  "createdDate": "2019-02-14T22:15:10.692269Z",
   "createdBy": "cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-11T18:18:22.83896Z",
+  "modifiedDate": "2019-02-14T22:15:10.82267Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-  "changeToken": "03d69f46337ec191f1a87c3a73ab2828",
+  "changeToken": "20e8acb77311553c865da8ec8bf4839d",
   "ownedBy": "user/cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92e294f8bae4593420242ac120004",
+  "typeId": "11e930a5f1feed57be0b0242ac120003",
   "typeName": "",
   "name": "TestCreateWithPermissionsNewUser2",
   "description": "",
@@ -511,9 +511,9 @@ f90
     },
     "read": {
       "allow": [
-        "user/cn=test tester12,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
         "user/cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+        "user/cn=test tester12,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
       ]
     },
     "update": {
@@ -569,27 +569,27 @@ New user has the share
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:18:23 GMT
+Date: Thu, 14 Feb 2019 22:15:11 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: 9167ce2d
+Session-Id: 10998476
 Vary: Origin
 
 ced
 {
-  "id": "11e92e296ab56be693420242ac120004",
-  "createdDate": "2019-02-11T18:18:23.032415Z",
+  "id": "11e930a5fe8a474ebe0b0242ac120003",
+  "createdDate": "2019-02-14T22:15:10.972069Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-11T18:18:23.032415Z",
+  "modifiedDate": "2019-02-14T22:15:10.972069Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 0,
-  "changeToken": "425124ac20146c49e52e1a0bf6b56dc0",
+  "changeToken": "314736e57a6ddceace845dfd4ca7a4c9",
   "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92e294f8bae4593420242ac120004",
+  "typeId": "11e930a5f1feed57be0b0242ac120003",
   "typeName": "",
   "name": "TestCreateWithPermissionsNewUser3",
   "description": "",
@@ -704,9 +704,9 @@ ced
 <pre class="request">
 POST /services/object-drive/1.0/objects HTTP/1.1
 Host: proxier:8080
-Content-Type: multipart/form-data; boundary=5bf405ba4435c1b687c8b341fb40f09d6ed1a9a773d56fa4b2b8d09340df
+Content-Type: multipart/form-data; boundary=25151881bc1896f292c4308b79e4fc1368d4710c3f39f08dd8593a6b81bc
 
---5bf405ba4435c1b687c8b341fb40f09d6ed1a9a773d56fa4b2b8d09340df
+--25151881bc1896f292c4308b79e4fc1368d4710c3f39f08dd8593a6b81bc
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
@@ -741,12 +741,12 @@ Content-Type: application/json
   "containsUSPersonsData": "",
   "exemptFromFOIA": ""
 }
---5bf405ba4435c1b687c8b341fb40f09d6ed1a9a773d56fa4b2b8d09340df
+--25151881bc1896f292c4308b79e4fc1368d4710c3f39f08dd8593a6b81bc
 Content-Disposition: form-data; name="filestream"; filename="initialTestData2.txt"
 Content-Type: application/octet-stream
 
 Initial test data 2
---5bf405ba4435c1b687c8b341fb40f09d6ed1a9a773d56fa4b2b8d09340df--
+--25151881bc1896f292c4308b79e4fc1368d4710c3f39f08dd8593a6b81bc--
 </pre>
 
 			The object should have have permissions put in according to what we explicitly set,
@@ -756,27 +756,27 @@ Initial test data 2
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:18:53 GMT
+Date: Thu, 14 Feb 2019 22:15:26 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: d5f9aac6
+Session-Id: ddb97d44
 Vary: Origin
 
 cf4
 {
-  "id": "11e92e297cb4be7d93420242ac120004",
-  "createdDate": "2019-02-11T18:18:53.226886Z",
+  "id": "11e930a60787f4e5be0b0242ac120003",
+  "createdDate": "2019-02-14T22:15:26.056324Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-11T18:18:53.226886Z",
+  "modifiedDate": "2019-02-14T22:15:26.056324Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 0,
-  "changeToken": "f44da4d17bb2d31cd1d7b6efc4164114",
+  "changeToken": "f4ce4c6276cf5f94c7ced31bd5b85a5d",
   "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92e294f8bae4593420242ac120004",
+  "typeId": "11e930a5f1feed57be0b0242ac120003",
   "typeName": "",
   "name": "TestCreateWithNewPermissions",
   "description": "",
@@ -858,8 +858,8 @@ cf4
   "permission": {
     "create": {
       "allow": [
-        "group/dctc/dctc/odrive",
-        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+        "group/dctc/dctc/odrive"
       ]
     },
     "read": {
@@ -876,8 +876,8 @@ cf4
     },
     "delete": {
       "allow": [
-        "group/dctc/dctc/odrive",
-        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+        "group/dctc/dctc/odrive"
       ]
     },
     "share": {
@@ -894,11 +894,11 @@ cf4
 <h2 id=2569267939>Delete a folder</h2>
 Use a reference to the object to put it into the trash.
 <pre class="request">
-POST /services/object-drive/1.0/objects/11e92e29bbed4b3593420242ac120004/trash HTTP/1.1
+POST /services/object-drive/1.0/objects/11e930a639765aacaa4e0242ac120005/trash HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
-{"changeToken":"c46ff3951739abd003a447cc0d7ab5fd"}</pre>
+{"changeToken":"0414013d9e791e72fa4441a54734e71d"}</pre>
 
 				The trashed object is still in the system, 
 				so that it may be removed from trash if necessary.
@@ -906,17 +906,17 @@ Content-Type: application/json
 HTTP/1.1 200 OK
 Content-Length: 247
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:20:39 GMT
+Date: Thu, 14 Feb 2019 22:16:49 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: 9535267e
+Session-Id: 6474f997
 Vary: Origin
 
 {
-  "ID": "11e92e29bbed4b3593420242ac120004",
-  "deletedDate": "2019-02-11T18:20:39.423866Z",
+  "id": "11e930a639765aacaa4e0242ac120005",
+  "deletedDate": "2019-02-14T22:16:49.860366Z",
   "callerPermission": {
     "allowCreate": false,
     "allowRead": true,
@@ -931,40 +931,40 @@ A list of object ids with change token and new parent
 POST /services/object-drive/1.0/objects/move HTTP/1.1
 Host: proxier:8080
 
-[{"id":"11e92e29d797868f93420242ac120004","changeToken":"25feb1cecc273d0114ff61504c97bfc7","parentId":"11e92e29d786138593420242ac120004"},{"id":"11e92e29d7ad7ffe93420242ac120004","changeToken":"e13f647655b6941e96460b4f43465443","parentId":"11e92e29d786138593420242ac120004"},{"id":"11e92e29d7c2efd893420242ac120004","changeToken":"188c653bd609d340638021a3b0039ca8","parentId":"11e92e29d786138593420242ac120004"},{"id":"11e92e29d7d5b4f593420242ac120004","changeToken":"faffe9fa408c7119b91004537a335a1d","parentId":"11e92e29d786138593420242ac120004"},{"id":"11e92e29d7e82c7593420242ac120004","changeToken":"dbf7ef1b2deca7d2247fa880cc3e5b69","parentId":"11e92e29d786138593420242ac120004"}]</pre>
+[{"id":"11e930a645bd8242aa4e0242ac120005","changeToken":"eddb2b325db396767eacd1dacc10c8c8","parentId":"11e930a645b636b2aa4e0242ac120005"},{"id":"11e930a645c43a15aa4e0242ac120005","changeToken":"61f397e3b8861add74393663a17bb559","parentId":"11e930a645b636b2aa4e0242ac120005"},{"id":"11e930a645cc3dfdaa4e0242ac120005","changeToken":"69b95f98a9364bce1236b31ddbca4d03","parentId":"11e930a645b636b2aa4e0242ac120005"},{"id":"11e930a645d2e8c2aa4e0242ac120005","changeToken":"af93bfcf7e1b96e01ec44c061e676f0f","parentId":"11e930a645b636b2aa4e0242ac120005"},{"id":"11e930a645da9e2baa4e0242ac120005","changeToken":"93ab0c673bade05f1f5252dc357e610f","parentId":"11e930a645b636b2aa4e0242ac120005"}]</pre>
 Any errors that happened
 <pre class="response">
 HTTP/1.1 200 OK
 Content-Length: 387
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:21:27 GMT
+Date: Thu, 14 Feb 2019 22:17:11 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: da538f58
+Session-Id: 79827296
 Status: Ãˆ
 Vary: Origin
 
 [
   {
-    "objectId": "11e92e29d797868f93420242ac120004",
+    "objectId": "11e930a645bd8242aa4e0242ac120005",
     "code": 200
   },
   {
-    "objectId": "11e92e29d7ad7ffe93420242ac120004",
+    "objectId": "11e930a645c43a15aa4e0242ac120005",
     "code": 200
   },
   {
-    "objectId": "11e92e29d7c2efd893420242ac120004",
+    "objectId": "11e930a645cc3dfdaa4e0242ac120005",
     "code": 200
   },
   {
-    "objectId": "11e92e29d7d5b4f593420242ac120004",
+    "objectId": "11e930a645d2e8c2aa4e0242ac120005",
     "code": 200
   },
   {
-    "objectId": "11e92e29d7e82c7593420242ac120004",
+    "objectId": "11e930a645da9e2baa4e0242ac120005",
     "code": 200
   }
 ]</pre>
@@ -980,17 +980,17 @@ The response may be partial, so we keep doing until trash is gone if we need to
 HTTP/1.1 200 OK
 Content-Length: 26
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:21:34 GMT
+Date: Thu, 14 Feb 2019 22:17:13 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: fb247a8a
+Session-Id: 6d2d1207
 Status: 200
 Vary: Origin
 
 {
-  "expunged_count": 12
+  "expunged_count": 10
 }</pre>
 <h2 id=1046142755>Bulk Retrieve Object Properties</h2>
 Get a set of (existing!) objects in bulk
@@ -1000,12 +1000,12 @@ Host: proxier:8080
 
 {
   "objectIds": [
-    "11e92e29dcb8ee6893420242ac120004",
-    "11e92e29dcc92d0793420242ac120004",
-    "11e92e29dcd8ef9793420242ac120004",
-    "11e92e29dce7eb0293420242ac120004",
-    "11e92e29dcf4592493420242ac120004",
-    "11e92e29dd05109e93420242ac120004"
+    "11e930a647a6fbedaa4e0242ac120005",
+    "11e930a647adc90faa4e0242ac120005",
+    "11e930a647b3b878aa4e0242ac120005",
+    "11e930a647ba1673aa4e0242ac120005",
+    "11e930a647c19c34aa4e0242ac120005",
+    "11e930a647c82cc9aa4e0242ac120005"
   ]
 }</pre>
 Response to getting objects in bulk
@@ -1013,16 +1013,16 @@ Response to getting objects in bulk
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:21:35 GMT
+Date: Thu, 14 Feb 2019 22:17:13 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: e1dc2f6a
+Session-Id: 2946c892
 Status: 200
 Vary: Origin
 
-541a
+5416
 {
   "totalRows": 6,
   "pageCount": 1,
@@ -1031,19 +1031,19 @@ Vary: Origin
   "pageRows": 0,
   "objects": [
     {
-      "id": "11e92e29dcb8ee6893420242ac120004",
-      "createdDate": "2019-02-11T18:21:34.315537Z",
+      "id": "11e930a647a6fbedaa4e0242ac120005",
+      "createdDate": "2019-02-14T22:17:13.63393Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-11T18:21:34.315537Z",
+      "modifiedDate": "2019-02-14T22:17:13.63393Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-      "changeToken": "439034880b3eb1c63c294ae13b87ed7c",
+      "changeToken": "264fd3c4ca13d0fa9a2c7b68df383c2d",
       "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e92e294f61badf93420242ac120004",
+      "typeId": "11e930a63965e348aa4e0242ac120005",
       "typeName": "Folder",
-      "name": "Test Folder for Update 1549909294",
+      "name": "Test Folder for Update 1550182633",
       "description": "",
       "acm": {
         "accms": [],
@@ -1153,19 +1153,19 @@ Vary: Origin
       "isPDFAvailable": false
     },
     {
-      "id": "11e92e29dcc92d0793420242ac120004",
-      "createdDate": "2019-02-11T18:21:34.421938Z",
+      "id": "11e930a647adc90faa4e0242ac120005",
+      "createdDate": "2019-02-14T22:17:13.67846Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-11T18:21:34.421938Z",
+      "modifiedDate": "2019-02-14T22:17:13.67846Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-      "changeToken": "66010c167965f82a23abe86faddcbbb5",
+      "changeToken": "b1b52c4e1c75bed1944f7f21b30c4eae",
       "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e92e294f61badf93420242ac120004",
+      "typeId": "11e930a63965e348aa4e0242ac120005",
       "typeName": "Folder",
-      "name": "Test Folder for Update 1549909294",
+      "name": "Test Folder for Update 1550182633",
       "description": "",
       "acm": {
         "accms": [],
@@ -1275,19 +1275,19 @@ Vary: Origin
       "isPDFAvailable": false
     },
     {
-      "id": "11e92e29dcd8ef9793420242ac120004",
-      "createdDate": "2019-02-11T18:21:34.525148Z",
+      "id": "11e930a647b3b878aa4e0242ac120005",
+      "createdDate": "2019-02-14T22:17:13.717422Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-11T18:21:34.525148Z",
+      "modifiedDate": "2019-02-14T22:17:13.717422Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-      "changeToken": "0e5037c77716d1a8c6f0eac4b270a9b4",
+      "changeToken": "a68015b8ff5941b5e716c26c47b198b4",
       "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e92e294f61badf93420242ac120004",
+      "typeId": "11e930a63965e348aa4e0242ac120005",
       "typeName": "Folder",
-      "name": "Test Folder for Update 1549909294",
+      "name": "Test Folder for Update 1550182633",
       "description": "",
       "acm": {
         "accms": [],
@@ -1397,19 +1397,19 @@ Vary: Origin
       "isPDFAvailable": false
     },
     {
-      "id": "11e92e29dce7eb0293420242ac120004",
-      "createdDate": "2019-02-11T18:21:34.623494Z",
+      "id": "11e930a647ba1673aa4e0242ac120005",
+      "createdDate": "2019-02-14T22:17:13.759152Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-11T18:21:34.623494Z",
+      "modifiedDate": "2019-02-14T22:17:13.759152Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-      "changeToken": "71d76c1da1f1baf5146a0ba901b936e4",
+      "changeToken": "e14dfc8762b0d6b85d81ec6fbc2871e1",
       "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e92e294f61badf93420242ac120004",
+      "typeId": "11e930a63965e348aa4e0242ac120005",
       "typeName": "Folder",
-      "name": "Test Folder for Update 1549909294",
+      "name": "Test Folder for Update 1550182633",
       "description": "",
       "acm": {
         "accms": [],
@@ -1519,19 +1519,19 @@ Vary: Origin
       "isPDFAvailable": false
     },
     {
-      "id": "11e92e29dcf4592493420242ac120004",
-      "createdDate": "2019-02-11T18:21:34.704507Z",
+      "id": "11e930a647c19c34aa4e0242ac120005",
+      "createdDate": "2019-02-14T22:17:13.808397Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-11T18:21:34.704507Z",
+      "modifiedDate": "2019-02-14T22:17:13.808397Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-      "changeToken": "b3bef3294c4514c144b32988156e34de",
+      "changeToken": "b98101e57df9a069f2a5396c1f9b9769",
       "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e92e294f61badf93420242ac120004",
+      "typeId": "11e930a63965e348aa4e0242ac120005",
       "typeName": "Folder",
-      "name": "Test Folder for Update 1549909294",
+      "name": "Test Folder for Update 1550182633",
       "description": "",
       "acm": {
         "accms": [],
@@ -1641,19 +1641,19 @@ Vary: Origin
       "isPDFAvailable": false
     },
     {
-      "id": "11e92e29dd05109e93420242ac120004",
-      "createdDate": "2019-02-11T18:21:34.814359Z",
+      "id": "11e930a647c82cc9aa4e0242ac120005",
+      "createdDate": "2019-02-14T22:17:13.851461Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-11T18:21:34.814359Z",
+      "modifiedDate": "2019-02-14T22:17:13.851461Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-      "changeToken": "d0f9211ab4c131a8d4fec4ac02b78f31",
+      "changeToken": "e9c06d7c86c4604b37a9cbb29eddcc8c",
       "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e92e294f61badf93420242ac120004",
+      "typeId": "11e930a63965e348aa4e0242ac120005",
       "typeName": "Folder",
-      "name": "Test Folder for Update 1549909294",
+      "name": "Test Folder for Update 1550182633",
       "description": "",
       "acm": {
         "accms": [],
@@ -1767,10 +1767,10 @@ Vary: Origin
 0
 
 </pre>
-<h2 id=2254291071>Client Caching with Etags</h2>
-Use the Etag header sent back as If-none-match to get a 304 indicating that the content has not changed
+<h2 id=994442692>Client Caching using ETag</h2>
+Use the ETag header sent back as If-none-match to get a 304 indicating that the content has not changed
 <pre class="request">
-GET /services/object-drive/1.0/objects/11e92e29df6f424c93420242ac120004/stream HTTP/1.1
+GET /services/object-drive/1.0/objects/11e930a6495fcb7daa4e0242ac120005/stream HTTP/1.1
 Host: proxier:8080
 If-None-Match: "857cce23b6ba40d9a8330d9397981da58f5a8f413444c7a41c4201a1477651ef"
 
@@ -1780,20 +1780,20 @@ If-None-Match: "857cce23b6ba40d9a8330d9397981da58f5a8f413444c7a41c4201a1477651ef
 				304 means Not-Modified.  
 				Modern web browsers do this internally to avoid re-fetching unchanged content, 
 				especially with images and javascript.
-				When we get an object, we get an Etag back regardless of whether it was a 200 or 304.
+				When we get an object, we get an ETag back regardless of whether it was a 200 or 304.
 				
 <pre class="response">
 HTTP/1.1 304 Not Modified
 Accept-Ranges: bytes
 Classification-Banner: UNCLASSIFIED//FOUO
 Connection: keep-alive
-Content-Disposition: inline; filename="478e8bd11dcc4e6aa084fcf894c55fdd"
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
-Date: Mon, 11 Feb 2019 18:21:38 GMT
+Content-Disposition: inline; filename="c638c7e781304b09866c9b074f6bea13"
+Content-Encrypted-At-Rest: TRUE
+Date: Thu, 14 Feb 2019 22:17:16 GMT
 Etag: "857cce23b6ba40d9a8330d9397981da58f5a8f413444c7a41c4201a1477651ef"
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: 653241f6
+Session-Id: 8a356db5
 Vary: Origin
 X-Content-Type-Options: nosniff
 
@@ -1806,14 +1806,14 @@ X-Content-Type-Options: nosniff
 			both the web server and the browser while using a small amount of memory.
 			
 <pre class="request">
-GET /services/object-drive/1.0/objects/11e92e29df93813a93420242ac120004/stream HTTP/1.1
+GET /services/object-drive/1.0/objects/11e930a6496faf92aa4e0242ac120005/stream HTTP/1.1
 Host: proxier:8080
 Range: bytes=5-34
 
 </pre>
 
 			The response that comes back is truncated within the requested byte range.
-			Note that the Etag applies to the whole file, and not the parts.
+			Note that the ETag applies to the whole file, and not the parts.
 			
 <pre class="response">
 HTTP/1.1 206 Partial Content
@@ -1821,15 +1821,15 @@ Content-Length: 30
 Accept-Ranges: bytes
 Classification-Banner: UNCLASSIFIED//FOUO
 Connection: keep-alive
-Content-Disposition: inline; filename="c318b1f338cb472696d30e933fb80dfd"
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Disposition: inline; filename="7bb5080d9fb94f2e9192b248234cd339"
+Content-Encrypted-At-Rest: TRUE
 Content-Range: bytes 5-34/64
 Content-Type: text/plain
-Date: Mon, 11 Feb 2019 18:21:39 GMT
+Date: Thu, 14 Feb 2019 22:17:16 GMT
 Etag: "857cce23b6ba40d9a8330d9397981da58f5a8f413444c7a41c4201a1477651ef"
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: 34fa6e11
+Session-Id: 059f56b3
 Vary: Origin
 
 fghijklmnopqrstuvwxyzABCDEFGHI</pre>
@@ -1841,80 +1841,80 @@ Host: proxier:8080
 
 {
 "objectIds": [
-"11e92e29e4aa8e9093420242ac120004",
-"11e92e29e4bb061f93420242ac120004",
-"11e92e29e4ccc52e93420242ac120004",
-"11e92e29e4de843393420242ac120004",
-"11e92e29e4ed923193420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e50f6c9d93420242ac120004",
-"11e92e29e51fab3b93420242ac120004",
-"11e92e29e532b40093420242ac120004",
-"11e92e29e545a3e993420242ac120004",
-"11e92e29e555e3ae93420242ac120004",
-"11e92e29e5750fe693420242ac120004",
-"11e92e29e587fb9f93420242ac120004",
-"11e92e29e59a270a93420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004",
-"11e92e29e4feed3893420242ac120004"
+"11e930a64bb4ca25aa4e0242ac120005",
+"11e930a64bbcb076aa4e0242ac120005",
+"11e930a64bc4eba1aa4e0242ac120005",
+"11e930a64bcdff69aa4e0242ac120005",
+"11e930a64bd60d78aa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64be77a08aa4e0242ac120005",
+"11e930a64befc578aa4e0242ac120005",
+"11e930a64bfb5541aa4e0242ac120005",
+"11e930a64c02ed49aa4e0242ac120005",
+"11e930a64c0bd663aa4e0242ac120005",
+"11e930a64c1c8936aa4e0242ac120005",
+"11e930a64c25faf0aa4e0242ac120005",
+"11e930a64c2fe2f3aa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005",
+"11e930a64bdf504aaa4e0242ac120005"
 ],
 "fileName": "drive.zip",
 "disposition": "inline"
@@ -1925,34 +1925,34 @@ HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Disposition: inline; filename=drive.zip
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/zip
-Date: Mon, 11 Feb 2019 18:21:49 GMT
+Date: Thu, 14 Feb 2019 22:17:21 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: f867f14c
+Session-Id: 7da33658
 Vary: Origin
 
 a5c
-PK    ·’KN             	 mapdata2.txtUT ;½a\lat=5,long=6PK‡\u      PK    ¸’KN             	 mapdata4.txtUT <½a\lat=5,long=6PK‡\u      PK    ¸’KN             	 mapdata6.txtUT <½a\lat=5,long=6PK‡\u      PK    ¸’KN             	 mapdata9.txtUT <½a\lat=5,long=6PK‡\u      PK    ¸’KN             	 mapdata0.txtUT =½a\lat=5,long=6PK‡\u      PK    ·’KN             	 mapdata0(1).txtUT ;½a\lat=5,long=6PK‡\u      PK    ·’KN             	 mapdata3.txtUT ;½a\lat=5,long=6PK‡\u      PK    ¸’KN             	 mapdata0(2).txtUT <½a\lat=5,long=6PK‡\u      PK    ¸’KN             	 mapdata7.txtUT <½a\lat=5,long=6PK‡\u      PK    ¸’KN             	 mapdata8.txtUT <½a\lat=5,long=6PK‡\u      PK    ¸’KN             	 data.txtUT <½a\lat=5,long=6PK‡\u      PK    ·’KN             	 mapdata1.txtUT ;½a\lat=5,long=6PK‡\u      PK    ¸’KN             	 mapdata5.txtUT <½a\lat=5,long=6PK‡\u      PK    ¸’KN             	 classification_manifest(1).txtUT =½a\lat=5,long=6PK‡\u      PK    ¸’KN             	 classification_manifest.txtUT =½a\UNCLASSIFIED//FOUO
+PK    *²NN             	 mapdata2.txtUT ðèe\lat=5,long=6PK‡\u      PK    *²NN             	 mapdata3.txtUT ðèe\lat=5,long=6PK‡\u      PK    *²NN             	 data.txtUT ñèe\lat=5,long=6PK‡\u      PK    *²NN             	 mapdata0.txtUT ñèe\lat=5,long=6PK‡\u      PK    *²NN             	 mapdata0(1).txtUT ðèe\lat=5,long=6PK‡\u      PK    *²NN             	 mapdata6.txtUT ðèe\lat=5,long=6PK‡\u      PK    *²NN             	 classification_manifest(1).txtUT ñèe\lat=5,long=6PK‡\u      PK    *²NN             	 mapdata1.txtUT ðèe\lat=5,long=6PK‡\u      PK    *²NN             	 mapdata5.txtUT ðèe\lat=5,long=6PK‡\u      PK    *²NN             	 mapdata7.txtUT ðèe\lat=5,long=6PK‡\u      PK    *²NN             	 mapdata8.txtUT ðèe\lat=5,long=6PK‡\u      PK    *²NN             	 mapdata9.txtUT ðèe\lat=5,long=6PK‡\u      PK    *²NN             	 mapdata0(2).txtUT ñèe\lat=5,long=6PK‡\u      PK    *²NN             	 mapdata4.txtUT ðèe\lat=5,long=6PK‡\u      PK    *²NN             	 classification_manifest.txtUT ñèe\UNCLASSIFIED//FOUO
 
 (U//FOUO) mapdata2.txt
-(U//FOUO) mapdata4.txt
-(U//FOUO) mapdata6.txt
-(U//FOUO) mapdata9.txt
+(U//FOUO) mapdata3.txt
+(U//FOUO) data.txt
 (U//FOUO) mapdata0.txt
 (U//FOUO) mapdata0(1).txt
-(U//FOUO) mapdata3.txt
-(U//FOUO) mapdata0(2).txt
-(U//FOUO) mapdata7.txt
-(U//FOUO) mapdata8.txt
-(U//FOUO) data.txt
+(U//FOUO) mapdata6.txt
+(U//FOUO) classification_manifest(1).txt
 (U//FOUO) mapdata1.txt
 (U//FOUO) mapdata5.txt
-(U//FOUO) classification_manifest(1).txt
+(U//FOUO) mapdata7.txt
+(U//FOUO) mapdata8.txt
+(U//FOUO) mapdata9.txt
+(U//FOUO) mapdata0(2).txt
+(U//FOUO) mapdata4.txt
 
 UNCLASSIFIED//FOUO
-PKÛ6­ü~  ~  PK    ·’KN‡\u       	         €    mapdata2.txtUT ;½a\PK    ¸’KN‡\u       	         €O   mapdata4.txtUT <½a\PK    ¸’KN‡\u       	         €ž   mapdata6.txtUT <½a\PK    ¸’KN‡\u       	         €í   mapdata9.txtUT <½a\PK    ¸’KN‡\u       	         €<  mapdata0.txtUT =½a\PK    ·’KN‡\u       	         €‹  mapdata0(1).txtUT ;½a\PK    ·’KN‡\u       	         €Ý  mapdata3.txtUT ;½a\PK    ¸’KN‡\u       	         €,  mapdata0(2).txtUT <½a\PK    ¸’KN‡\u       	         €~  mapdata7.txtUT <½a\PK    ¸’KN‡\u       	         €Í  mapdata8.txtUT <½a\PK    ¸’KN‡\u       	         €  data.txtUT <½a\PK    ·’KN‡\u       	         €g  mapdata1.txtUT ;½a\PK    ¸’KN‡\u       	         €¶  mapdata5.txtUT <½a\PK    ¸’KN‡\u       	         €  classification_manifest(1).txtUT =½a\PK    ¸’KNÛ6­ü~  ~   	         €f  classification_manifest.txtUT =½a\PK        6    
+PKš…~  ~  PK    *²NN‡\u       	         €    mapdata2.txtUT ðèe\PK    *²NN‡\u       	         €O   mapdata3.txtUT ðèe\PK    *²NN‡\u       	         €ž   data.txtUT ñèe\PK    *²NN‡\u       	         €é   mapdata0.txtUT ñèe\PK    *²NN‡\u       	         €8  mapdata0(1).txtUT ðèe\PK    *²NN‡\u       	         €Š  mapdata6.txtUT ðèe\PK    *²NN‡\u       	         €Ù  classification_manifest(1).txtUT ñèe\PK    *²NN‡\u       	         €:  mapdata1.txtUT ðèe\PK    *²NN‡\u       	         €‰  mapdata5.txtUT ðèe\PK    *²NN‡\u       	         €Ø  mapdata7.txtUT ðèe\PK    *²NN‡\u       	         €'  mapdata8.txtUT ðèe\PK    *²NN‡\u       	         €v  mapdata9.txtUT ðèe\PK    *²NN‡\u       	         €Å  mapdata0(2).txtUT ñèe\PK    *²NN‡\u       	         €  mapdata4.txtUT ðèe\PK    *²NNš…~  ~   	         €f  classification_manifest.txtUT ñèe\PK        6    
 0
 
 <span class="notshown">....</span>
@@ -1970,15 +1970,15 @@ Generate a file with high classification
 <pre class="request">
 POST /services/object-drive/1.0/objects HTTP/1.1
 Host: proxier:8080
-Content-Type: multipart/form-data; boundary=ebe37725d3feb183182db9da0a868f36926d73ea029f6939a512d720c017
+Content-Type: multipart/form-data; boundary=b0ae21f6dd834c0cc680c4dcc079d86ed4434bc2d78cd77e9dd5ab903f2f
 
---ebe37725d3feb183182db9da0a868f36926d73ea029f6939a512d720c017
+--b0ae21f6dd834c0cc680c4dcc079d86ed4434bc2d78cd77e9dd5ab903f2f
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
 {
   "typeName": "File",
-  "name": "5303dfce58fc4300817707a8c1305b1d",
+  "name": "fcff83a5a7f54423be34e7b06ef25bb0",
   "description": "",
   "acm": {
     "accms": [],
@@ -2040,41 +2040,41 @@ Content-Type: application/json
   "containsUSPersonsData": "",
   "exemptFromFOIA": ""
 }
---ebe37725d3feb183182db9da0a868f36926d73ea029f6939a512d720c017
+--b0ae21f6dd834c0cc680c4dcc079d86ed4434bc2d78cd77e9dd5ab903f2f
 Content-Disposition: form-data; name="filestream"; filename="initialTestData1.txt"
 Content-Type: application/octet-stream
 
 Area 51 Gray Alien Xenu says: It's time!
---ebe37725d3feb183182db9da0a868f36926d73ea029f6939a512d720c017--
+--b0ae21f6dd834c0cc680c4dcc079d86ed4434bc2d78cd77e9dd5ab903f2f--
 </pre>
 The response shows the created file with populated metadata. Take note of classification and changecount
 <pre class="response">
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:21:51 GMT
+Date: Thu, 14 Feb 2019 22:17:22 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: f8c9dce5
+Session-Id: 7d610696
 Vary: Origin
 
 ca5
 {
-  "id": "11e92e29e6c55ec393420242ac120004",
-  "createdDate": "2019-02-11T18:21:51.174304Z",
+  "id": "11e930a64cb21a80aa4e0242ac120005",
+  "createdDate": "2019-02-14T22:17:22.095414Z",
   "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-11T18:21:51.174304Z",
+  "modifiedDate": "2019-02-14T22:17:22.095414Z",
   "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 0,
-  "changeToken": "47bcba4e916f400beafb164cb1a45cbf",
+  "changeToken": "280bc81bcc579246214586a7494c97c2",
   "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92e294e26956b93420242ac120004",
+  "typeId": "11e930a647de05beaa4e0242ac120005",
   "typeName": "File",
-  "name": "5303dfce58fc4300817707a8c1305b1d",
+  "name": "fcff83a5a7f54423be34e7b06ef25bb0",
   "description": "",
   "acm": {
     "accms": [],
@@ -2197,19 +2197,19 @@ ca5
 <h2 id=1467011862>Declassify File About Grey Aliens</h2>
 Lower the classification request
 <pre class="request">
-POST /services/object-drive/1.0/objects/11e92e29e6c55ec393420242ac120004/stream HTTP/1.1
+POST /services/object-drive/1.0/objects/11e930a64cb21a80aa4e0242ac120005/stream HTTP/1.1
 Host: proxier:8080
-Content-Type: multipart/form-data; boundary=ccf7abe2a474a0d2adebe06620fc992c6d7698217015e3371c62cf37f17f
+Content-Type: multipart/form-data; boundary=1a020c17e4222b6c7a1de1585563fbfa7f4e239e9db350920fe52518292a
 
---ccf7abe2a474a0d2adebe06620fc992c6d7698217015e3371c62cf37f17f
+--1a020c17e4222b6c7a1de1585563fbfa7f4e239e9db350920fe52518292a
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
 {
-  "id": "11e92e29e6c55ec393420242ac120004",
-  "changeToken": "47bcba4e916f400beafb164cb1a45cbf",
+  "id": "11e930a64cb21a80aa4e0242ac120005",
+  "changeToken": "280bc81bcc579246214586a7494c97c2",
   "typeName": "File",
-  "name": "5e43d718cb5d4ddf9de484b004f1d159",
+  "name": "8f7cfef3256349159cb33facc69fac82",
   "description": "",
   "acm": {
     "accms": [],
@@ -2266,41 +2266,41 @@ Content-Type: application/json
   "exemptFromFOIA": "",
   "recursiveShare": false
 }
---ccf7abe2a474a0d2adebe06620fc992c6d7698217015e3371c62cf37f17f
+--1a020c17e4222b6c7a1de1585563fbfa7f4e239e9db350920fe52518292a
 Content-Disposition: form-data; name="filestream"; filename="initialTestData1.txt"
 Content-Type: application/octet-stream
 
 **** ** **** ***** **** says: It's time!
---ccf7abe2a474a0d2adebe06620fc992c6d7698217015e3371c62cf37f17f--
+--1a020c17e4222b6c7a1de1585563fbfa7f4e239e9db350920fe52518292a--
 </pre>
 The response shows the updated file at a different classfication. Changecount and other internal core metadata have changed
 <pre class="response">
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:21:51 GMT
+Date: Thu, 14 Feb 2019 22:17:22 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: d0b95ea2
+Session-Id: 4c88e527
 Vary: Origin
 
 c6e
 {
-  "id": "11e92e29e6c55ec393420242ac120004",
-  "createdDate": "2019-02-11T18:21:51.174304Z",
+  "id": "11e930a64cb21a80aa4e0242ac120005",
+  "createdDate": "2019-02-14T22:17:22.095414Z",
   "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-11T18:21:51.427095Z",
+  "modifiedDate": "2019-02-14T22:17:22.187534Z",
   "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-  "changeToken": "90fc3c911ae31ada959331b4c59030a9",
+  "changeToken": "cb267ca20033e8c00e9a8d3dbbdb3d6f",
   "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92e294e26956b93420242ac120004",
+  "typeId": "11e930a647de05beaa4e0242ac120005",
   "typeName": "File",
-  "name": "5e43d718cb5d4ddf9de484b004f1d159",
+  "name": "8f7cfef3256349159cb33facc69fac82",
   "description": "",
   "acm": {
     "accms": [],
@@ -2417,7 +2417,7 @@ c6e
 <h2 id=1105457739>Show Revisions on Declassified File About Grey Aliens Who Has Clearance</h2>
 Ask for revisions as a user who can see all the versions
 <pre class="request">
-GET /services/object-drive/1.0/revisions/11e92e29e6c55ec393420242ac120004 HTTP/1.1
+GET /services/object-drive/1.0/revisions/11e930a64cb21a80aa4e0242ac120005 HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
@@ -2427,12 +2427,12 @@ All versions returned, note the changecounts
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:21:51 GMT
+Date: Thu, 14 Feb 2019 22:17:22 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: fc4ff22f
+Session-Id: 03e510c4
 Vary: Origin
 
 1d7e
@@ -2444,19 +2444,19 @@ Vary: Origin
   "pageRows": 2,
   "objects": [
     {
-      "id": "11e92e29e6c55ec393420242ac120004",
-      "createdDate": "2019-02-11T18:21:51.174304Z",
+      "id": "11e930a64cb21a80aa4e0242ac120005",
+      "createdDate": "2019-02-14T22:17:22.095414Z",
       "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-11T18:21:51.427095Z",
+      "modifiedDate": "2019-02-14T22:17:22.187534Z",
       "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 1,
-      "changeToken": "90fc3c911ae31ada959331b4c59030a9",
+      "changeToken": "cb267ca20033e8c00e9a8d3dbbdb3d6f",
       "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e92e294e26956b93420242ac120004",
+      "typeId": "11e930a647de05beaa4e0242ac120005",
       "typeName": "File",
-      "name": "5e43d718cb5d4ddf9de484b004f1d159",
+      "name": "8f7cfef3256349159cb33facc69fac82",
       "description": "",
       "acm": {
         "accms": [],
@@ -2568,19 +2568,19 @@ Vary: Origin
       "isPDFAvailable": false
     },
     {
-      "id": "11e92e29e6c55ec393420242ac120004",
-      "createdDate": "2019-02-11T18:21:51.174304Z",
+      "id": "11e930a64cb21a80aa4e0242ac120005",
+      "createdDate": "2019-02-14T22:17:22.095414Z",
       "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-11T18:21:51.174304Z",
+      "modifiedDate": "2019-02-14T22:17:22.095414Z",
       "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-      "changeToken": "47bcba4e916f400beafb164cb1a45cbf",
+      "changeToken": "280bc81bcc579246214586a7494c97c2",
       "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e92e294e26956b93420242ac120004",
+      "typeId": "11e930a647de05beaa4e0242ac120005",
       "typeName": "File",
-      "name": "5303dfce58fc4300817707a8c1305b1d",
+      "name": "fcff83a5a7f54423be34e7b06ef25bb0",
       "description": "",
       "acm": {
         "accms": [],
@@ -2705,7 +2705,7 @@ Vary: Origin
 <h2 id=2339528389>Show Revisions on Declassified File About Grey Aliens</h2>
 Ask for revisions as a user who can only see the unclassified version
 <pre class="request">
-GET /services/object-drive/1.0/revisions/11e92e29e6c55ec393420242ac120004 HTTP/1.1
+GET /services/object-drive/1.0/revisions/11e930a64cb21a80aa4e0242ac120005 HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
@@ -2715,12 +2715,12 @@ Only the latest version is returned, note the changecount
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:21:51 GMT
+Date: Thu, 14 Feb 2019 22:17:22 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: 7eddc1be
+Session-Id: 83ad9d49
 Vary: Origin
 
 ed3
@@ -2732,19 +2732,19 @@ ed3
   "pageRows": 1,
   "objects": [
     {
-      "id": "11e92e29e6c55ec393420242ac120004",
-      "createdDate": "2019-02-11T18:21:51.174304Z",
+      "id": "11e930a64cb21a80aa4e0242ac120005",
+      "createdDate": "2019-02-14T22:17:22.095414Z",
       "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-11T18:21:51.427095Z",
+      "modifiedDate": "2019-02-14T22:17:22.187534Z",
       "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 1,
-      "changeToken": "90fc3c911ae31ada959331b4c59030a9",
+      "changeToken": "cb267ca20033e8c00e9a8d3dbbdb3d6f",
       "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e92e294e26956b93420242ac120004",
+      "typeId": "11e930a647de05beaa4e0242ac120005",
       "typeName": "File",
-      "name": "5e43d718cb5d4ddf9de484b004f1d159",
+      "name": "8f7cfef3256349159cb33facc69fac82",
       "description": "",
       "acm": {
         "accms": [],
@@ -2871,41 +2871,41 @@ Content-Type: application/json
 <h2 id=1634256523>Move Object</h2>
 Request that an object be moved to a new location
 <pre class="request">
-POST /services/object-drive/1.0/objects/11e92e29f20ed61993420242ac120004/move/11e92e29f202d60b93420242ac120004 HTTP/1.1
+POST /services/object-drive/1.0/objects/11e930a650bb3262aa4e0242ac120005/move/11e930a650b4fd88aa4e0242ac120005 HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
-{"changeToken":"233b67205d553c22e50ef046298ebf48"}</pre>
+{"changeToken":"a6fcdb76e5ae21131c1bc78877983e6c"}</pre>
 The object in its new location
 <pre class="response">
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:22:10 GMT
+Date: Thu, 14 Feb 2019 22:17:28 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: 973667a5
+Session-Id: 0ff8ae05
 Vary: Origin
 
 cc4
 {
-  "id": "11e92e29f20ed61993420242ac120004",
-  "createdDate": "2019-02-11T18:22:10.110429Z",
+  "id": "11e930a650bb3262aa4e0242ac120005",
+  "createdDate": "2019-02-14T22:17:28.865903Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-11T18:22:10.330132Z",
+  "modifiedDate": "2019-02-14T22:17:28.958351Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-  "changeToken": "6b8a333291576f20b2d5fefe794f38b4",
+  "changeToken": "f303641a63817666aa93a21827b819c3",
   "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92e294f61badf93420242ac120004",
+  "typeId": "11e930a63965e348aa4e0242ac120005",
   "typeName": "Folder",
-  "name": "Test Folder 2 1549909330",
+  "name": "Test Folder 2 1550182648",
   "description": "",
-  "parentId": "11e92e29f202d60b93420242ac120004",
+  "parentId": "11e930a650b4fd88aa4e0242ac120005",
   "acm": {
     "accms": [],
     "atom_energy": [],
@@ -2991,8 +2991,8 @@ cc4
     },
     "read": {
       "allow": [
-        "group/-everyone",
-        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+        "group/-everyone"
       ]
     },
     "update": {
@@ -3013,9 +3013,9 @@ cc4
   },
   "breadcrumbs": [
     {
-      "id": "11e92e29f202d60b93420242ac120004",
+      "id": "11e930a650b4fd88aa4e0242ac120005",
       "parentId": "",
-      "name": "Test Folder 1 1549909329"
+      "name": "Test Folder 1 1550182648"
     }
   ],
   "isPDFAvailable": false
@@ -3028,15 +3028,15 @@ We can use the id of a file to rescue it from the trash.
 <pre class="request">
 POST /services/object-drive/1.0/objects HTTP/1.1
 Host: proxier:8080
-Content-Type: multipart/form-data; boundary=d03779e9b82afa767d3d2db78c6a719bf5758338c6960a7aa1c5032ffaa4
+Content-Type: multipart/form-data; boundary=19e30dff32a41b97ddabb80af5458283b443d80fe74e9d1547e79cc4c517
 
---d03779e9b82afa767d3d2db78c6a719bf5758338c6960a7aa1c5032ffaa4
+--19e30dff32a41b97ddabb80af5458283b443d80fe74e9d1547e79cc4c517
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
 {
   "typeName": "File",
-  "name": "0dd97681ad1b4660aa1b011a34732cde",
+  "name": "ed42c04605af432ca4db95666b697387",
   "description": "",
   "acm": {
     "accms": [],
@@ -3092,41 +3092,41 @@ Content-Type: application/json
   "containsUSPersonsData": "",
   "exemptFromFOIA": ""
 }
---d03779e9b82afa767d3d2db78c6a719bf5758338c6960a7aa1c5032ffaa4
+--19e30dff32a41b97ddabb80af5458283b443d80fe74e9d1547e79cc4c517
 Content-Disposition: form-data; name="filestream"; filename="testfilename.txt"
 Content-Type: application/octet-stream
 
 Deletes are hard. Undeletes are harder!
---d03779e9b82afa767d3d2db78c6a719bf5758338c6960a7aa1c5032ffaa4--
+--19e30dff32a41b97ddabb80af5458283b443d80fe74e9d1547e79cc4c517--
 </pre>
 This is the restored object.
 <pre class="response">
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:22:15 GMT
+Date: Thu, 14 Feb 2019 22:18:01 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: d21ee1de
+Session-Id: e08a76f6
 Vary: Origin
 
 c6e
 {
-  "id": "11e92e29f523d87993420242ac120004",
-  "createdDate": "2019-02-11T18:22:15.280861Z",
+  "id": "11e930a66439cfa4aa4e0242ac120005",
+  "createdDate": "2019-02-14T22:18:01.572395Z",
   "createdBy": "cn=test tester06,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-11T18:22:15.280861Z",
+  "modifiedDate": "2019-02-14T22:18:01.572395Z",
   "modifiedBy": "cn=test tester06,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 0,
-  "changeToken": "5017fff1176f1c0a3aed1fa3870b4748",
+  "changeToken": "0f50a4e06b96237d3209ea763a06f1a9",
   "ownedBy": "user/cn=test tester06,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92e294e26956b93420242ac120004",
+  "typeId": "11e930a647de05beaa4e0242ac120005",
   "typeName": "File",
-  "name": "0dd97681ad1b4660aa1b011a34732cde",
+  "name": "ed42c04605af432ca4db95666b697387",
   "description": "",
   "acm": {
     "accms": [],
@@ -3215,8 +3215,8 @@ c6e
     },
     "read": {
       "allow": [
-        "user/cn=test tester06,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-        "group/-everyone"
+        "group/-everyone",
+        "user/cn=test tester06,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
       ]
     },
     "update": {
@@ -3245,31 +3245,31 @@ c6e
 				Update a property.  It is required to pass in changeToken as proof that we have seen the latest version.
 				
 <pre class="request">
-POST /services/object-drive/1.0/objects/11e92e29fbb5dbea93420242ac120004/stream HTTP/1.1
+POST /services/object-drive/1.0/objects/11e930a66780ee17aa4e0242ac120005/stream HTTP/1.1
 Host: proxier:8080
-Content-Type: multipart/form-data; boundary=6ad3d652d6e6b52ae9a0e61c51f60f4fc4ac3c13d3f5004832bfb0aad067
+Content-Type: multipart/form-data; boundary=cb84630d24cdd11a4a88f9a4b66861dadc43450b9dd3d4a478dec7219dd3
 
---6ad3d652d6e6b52ae9a0e61c51f60f4fc4ac3c13d3f5004832bfb0aad067
+--cb84630d24cdd11a4a88f9a4b66861dadc43450b9dd3d4a478dec7219dd3
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
 
 {
-	  "id": "11e92e29fbb5dbea93420242ac120004",
+	  "id": "11e930a66780ee17aa4e0242ac120005",
       "description": "describeit",
 	  "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"FOUO\"],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U//FOUO\",\"banner\":\"UNCLASSIFIED//FOUO\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
-	  "changeToken" : "ee25f182640cc7f75008682cd7311d7e",
+	  "changeToken" : "4e6b5f5c6f7b9bf091f592da7a5dac09",
 	  "properties" : [
           {"name":"dogname", "value":"arf", "classificationPM":"U"}
       ]
 }
 
---6ad3d652d6e6b52ae9a0e61c51f60f4fc4ac3c13d3f5004832bfb0aad067
+--cb84630d24cdd11a4a88f9a4b66861dadc43450b9dd3d4a478dec7219dd3
 Content-Disposition: form-data; name="filestream"; filename="initialTestData3.txt"
 Content-Type: application/octet-stream
 
 Initial test data 3 asdf
---6ad3d652d6e6b52ae9a0e61c51f60f4fc4ac3c13d3f5004832bfb0aad067--
+--cb84630d24cdd11a4a88f9a4b66861dadc43450b9dd3d4a478dec7219dd3--
 </pre>
 
 				We get back an object with updated properties,
@@ -3278,29 +3278,29 @@ Initial test data 3 asdf
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:22:26 GMT
+Date: Thu, 14 Feb 2019 22:18:07 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: c0bde5b9
+Session-Id: 7d3ad743
 Vary: Origin
 
 e87
 {
-  "id": "11e92e29fbb5dbea93420242ac120004",
-  "createdDate": "2019-02-11T18:22:26.304784Z",
+  "id": "11e930a66780ee17aa4e0242ac120005",
+  "createdDate": "2019-02-14T22:18:07.071618Z",
   "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-11T18:22:26.506643Z",
+  "modifiedDate": "2019-02-14T22:18:07.176915Z",
   "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-  "changeToken": "87487df3aa56c658a86b0f2b40d85fba",
+  "changeToken": "3adea8a67a2389f8db7f7926cdcf519a",
   "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92e294e26956b93420242ac120004",
+  "typeId": "11e930a647de05beaa4e0242ac120005",
   "typeName": "File",
-  "name": "b157058debc8484eb247ede667cf3bd4",
+  "name": "5393427e107a42c390dcb5a73610d8a1",
   "description": "describeit",
   "acm": {
     "accms": [],
@@ -3354,13 +3354,13 @@ e87
   "exemptFromFOIA": "Unknown",
   "properties": [
     {
-      "id": "11e92e29fbd4eb1793420242ac120004",
-      "createdDate": "2019-02-11T18:22:26.508424Z",
+      "id": "11e930a6679125c8aa4e0242ac120005",
+      "createdDate": "2019-02-14T22:18:07.178025Z",
       "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-11T18:22:26.508424Z",
+      "modifiedDate": "2019-02-14T22:18:07.178025Z",
       "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "changeCount": 0,
-      "changeToken": "36257df016d23391322646de0c46ac5b",
+      "changeToken": "554f425ad5ff8c20ab9f761a5cbf9a95",
       "name": "dogname",
       "value": "arf",
       "classificationPM": "U"
@@ -3442,15 +3442,15 @@ e87
 <pre class="request">
 POST /services/object-drive/1.0/objects HTTP/1.1
 Host: proxier:8080
-Content-Type: multipart/form-data; boundary=7e51cd788bfb1ed109c692a636e8c40530b8a1928a6e25f73c3c34b6bc2b
+Content-Type: multipart/form-data; boundary=dc1801d1eabec2878539418608f8e48c7a6d0bf8e49aa9eeb40bec0db67d
 
---7e51cd788bfb1ed109c692a636e8c40530b8a1928a6e25f73c3c34b6bc2b
+--dc1801d1eabec2878539418608f8e48c7a6d0bf8e49aa9eeb40bec0db67d
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
 {
   "typeName": "File",
-  "name": "d4131e1ad31c4e718c3db047929854bb",
+  "name": "cbfe82d45a6742e4a89a744b06e2dc2d",
   "description": "",
   "acm": {
     "banner": "UNCLASSIFIED//FOUO",
@@ -3484,41 +3484,41 @@ Content-Type: application/json
   "containsUSPersonsData": "",
   "exemptFromFOIA": ""
 }
---7e51cd788bfb1ed109c692a636e8c40530b8a1928a6e25f73c3c34b6bc2b
+--dc1801d1eabec2878539418608f8e48c7a6d0bf8e49aa9eeb40bec0db67d
 Content-Disposition: form-data; name="filestream"; filename="initialTestData1.txt"
 Content-Type: application/octet-stream
 
-9eef81f548d04eeca5c2edc2f388d8f7
---7e51cd788bfb1ed109c692a636e8c40530b8a1928a6e25f73c3c34b6bc2b--
+0eae9d71596441238db76a33fbbf75f5
+--dc1801d1eabec2878539418608f8e48c7a6d0bf8e49aa9eeb40bec0db67d--
 </pre>
 We get back an object with updated json changeToken and version
 <pre class="response">
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:22:26 GMT
+Date: Thu, 14 Feb 2019 22:18:07 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: 0ff144a6
+Session-Id: 67d1c5fc
 Vary: Origin
 
 b91
 {
-  "id": "11e92e29fbebbbd293420242ac120004",
-  "createdDate": "2019-02-11T18:22:26.657768Z",
+  "id": "11e930a6679b5bf3aa4e0242ac120005",
+  "createdDate": "2019-02-14T22:18:07.244812Z",
   "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-11T18:22:26.657768Z",
+  "modifiedDate": "2019-02-14T22:18:07.244812Z",
   "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 0,
-  "changeToken": "f2303de8d90042412dbead1f9ab1ca2a",
+  "changeToken": "970e4a324f6d703602dfefa5e565dcc8",
   "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92e294e26956b93420242ac120004",
+  "typeId": "11e930a647de05beaa4e0242ac120005",
   "typeName": "File",
-  "name": "d4131e1ad31c4e718c3db047929854bb",
+  "name": "cbfe82d45a6742e4a89a744b06e2dc2d",
   "description": "",
   "acm": {
     "accms": [],
@@ -3555,7 +3555,7 @@ b91
   },
   "contentType": "text/plain",
   "contentSize": 32,
-  "contentHash": "5b00f85c0c0c84f37daae241c28204e1070b969295e2e939a30c7f4f8423de6c",
+  "contentHash": "84d75a64979100536043ffad7f289cd065783200f34715688f81b7fcff352916",
   "containsUSPersonsData": "Unknown",
   "exemptFromFOIA": "Unknown",
   "callerPermission": {
@@ -3623,13 +3623,13 @@ b91
 <h2 id=3766955599>Modify Object Properties</h2>
 Ask for updated properties
 <pre class="request">
-POST /services/object-drive/1.0/objects/11e92e29fc96385f93420242ac120004/properties HTTP/1.1
+POST /services/object-drive/1.0/objects/11e930a667e4ed9aaa4e0242ac120005/properties HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
 
 {
-    "id": "11e92e29fc96385f93420242ac120004",
+    "id": "11e930a667e4ed9aaa4e0242ac120005",
     "acm": {
         "f_missions": [],
         "fgi_open": [],
@@ -3705,7 +3705,7 @@ Content-Type: application/json
             ]
         }
     },
-    "changeToken": "ce9cb68ba8218a45286429b5206f1c0a"
+    "changeToken": "a4fdb5a00efb96004fb9b575c7fb0d5a"
 }
 </pre>
 Get response
@@ -3713,29 +3713,29 @@ Get response
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:22:27 GMT
+Date: Thu, 14 Feb 2019 22:18:07 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: c32b1866
+Session-Id: 7d681a03
 Vary: Origin
 
-e8f
+e8e
 {
-  "id": "11e92e29fc96385f93420242ac120004",
-  "createdDate": "2019-02-11T18:22:27.775107Z",
+  "id": "11e930a667e4ed9aaa4e0242ac120005",
+  "createdDate": "2019-02-14T22:18:07.726978Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-11T18:22:27.903168Z",
+  "modifiedDate": "2019-02-14T22:18:07.86788Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-  "changeToken": "379180e56822133f5d1cb05ee518ea79",
+  "changeToken": "3e301690316004bf22e2a8372f3ac91e",
   "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92e294f61badf93420242ac120004",
+  "typeId": "11e930a63965e348aa4e0242ac120005",
   "typeName": "Folder",
-  "name": "Test Folder for Update 1549909347",
+  "name": "Test Folder for Update 1550182687",
   "description": "",
   "acm": {
     "accms": [],
@@ -3855,39 +3855,39 @@ e8f
 <h2 id=959183600>Update Object With New Property</h2>
 While updating the metadata for an object, include a dynamic property to be set
 <pre class="request">
-POST /services/object-drive/1.0/objects/11e92e29ffafd35a93420242ac120004/properties HTTP/1.1
+POST /services/object-drive/1.0/objects/11e930a6694a6f01aa4e0242ac120005/properties HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
-{"id":"11e92e29ffafd35a93420242ac120004","createdDate":"2019-02-11T18:22:32.976104Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-02-11T18:22:32.976104Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","deletedDate":"0001-01-01T00:00:00Z","deletedBy":"","changeCount":0,"changeToken":"3d79726406e308dc61885909aed7ac13","ownedBy":"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","typeId":"11e92e294f61badf93420242ac120004","typeName":"Folder","name":"TestUpdateObjectProperty 1549909352","description":"","acm":{"accms":[],"atom_energy":[],"banner":"UNCLASSIFIED","classif":"U","disp_only":"","disponly_to":[""],"dissem_countries":["USA"],"dissem_ctrls":[],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":[],"fgi_open":[],"fgi_protect":[],"macs":[],"non_ic":[],"oc_attribs":[{"missions":[],"orgs":[],"regions":[]}],"owner_prod":[],"portion":"U","rel_to":[],"sar_id":[],"sci_ctrls":[],"version":"2.1.0"},"contentType":"","contentSize":0,"contentHash":"","containsUSPersonsData":"Unknown","exemptFromFOIA":"Unknown","properties":[{"id":"","createdDate":"0001-01-01T00:00:00Z","createdBy":"","modifiedDate":"0001-01-01T00:00:00Z","modifiedBy":"","changeCount":0,"changeToken":"","name":"custom-property","value":"property value 1","classificationPM":""}],"callerPermission":{"allowCreate":true,"allowRead":true,"allowUpdate":true,"allowDelete":true,"allowShare":true},"permissions":[{"grantee":"_everyone","groupName":"-everyone","displayName":"-everyone","allowCreate":false,"allowRead":true,"allowUpdate":false,"allowDelete":false,"allowShare":false},{"grantee":"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","userDistinguishedName":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","displayName":"test tester10","allowCreate":true,"allowRead":false,"allowUpdate":true,"allowDelete":true,"allowShare":true}],"permission":{"create":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"read":{"allow":["group/-everyone","user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"update":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"delete":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"share":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}},"isPDFAvailable":false}</pre>
+{"id":"11e930a6694a6f01aa4e0242ac120005","createdDate":"2019-02-14T22:18:10.069892Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-02-14T22:18:10.069892Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","deletedDate":"0001-01-01T00:00:00Z","deletedBy":"","changeCount":0,"changeToken":"98f0449c1fc7c4c3c6489f6fd17e1a00","ownedBy":"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","typeId":"11e930a63965e348aa4e0242ac120005","typeName":"Folder","name":"TestUpdateObjectProperty 1550182690","description":"","acm":{"accms":[],"atom_energy":[],"banner":"UNCLASSIFIED","classif":"U","disp_only":"","disponly_to":[""],"dissem_countries":["USA"],"dissem_ctrls":[],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":[],"fgi_open":[],"fgi_protect":[],"macs":[],"non_ic":[],"oc_attribs":[{"missions":[],"orgs":[],"regions":[]}],"owner_prod":[],"portion":"U","rel_to":[],"sar_id":[],"sci_ctrls":[],"version":"2.1.0"},"contentType":"","contentSize":0,"contentHash":"","containsUSPersonsData":"Unknown","exemptFromFOIA":"Unknown","properties":[{"id":"","createdDate":"0001-01-01T00:00:00Z","createdBy":"","modifiedDate":"0001-01-01T00:00:00Z","modifiedBy":"","changeCount":0,"changeToken":"","name":"custom-property","value":"property value 1","classificationPM":""}],"callerPermission":{"allowCreate":true,"allowRead":true,"allowUpdate":true,"allowDelete":true,"allowShare":true},"permissions":[{"grantee":"_everyone","groupName":"-everyone","displayName":"-everyone","allowCreate":false,"allowRead":true,"allowUpdate":false,"allowDelete":false,"allowShare":false},{"grantee":"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","userDistinguishedName":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","displayName":"test tester10","allowCreate":true,"allowRead":false,"allowUpdate":true,"allowDelete":true,"allowShare":true}],"permission":{"create":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"read":{"allow":["group/-everyone","user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"update":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"delete":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"share":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}},"isPDFAvailable":false}</pre>
 Resulting object includes property
 <pre class="response">
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:22:33 GMT
+Date: Thu, 14 Feb 2019 22:18:10 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: 8248ac63
+Session-Id: 6603c73d
 Vary: Origin
 
 e2d
 {
-  "id": "11e92e29ffafd35a93420242ac120004",
-  "createdDate": "2019-02-11T18:22:32.976104Z",
+  "id": "11e930a6694a6f01aa4e0242ac120005",
+  "createdDate": "2019-02-14T22:18:10.069892Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-11T18:22:33.082545Z",
+  "modifiedDate": "2019-02-14T22:18:10.126606Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-  "changeToken": "46eeede2f859c71195fd36202e81f193",
+  "changeToken": "ce833194d3ee59f741187dc185ae1bc1",
   "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92e294f61badf93420242ac120004",
+  "typeId": "11e930a63965e348aa4e0242ac120005",
   "typeName": "Folder",
-  "name": "TestUpdateObjectProperty 1549909352",
+  "name": "TestUpdateObjectProperty 1550182690",
   "description": "",
   "acm": {
     "accms": [],
@@ -3939,13 +3939,13 @@ e2d
   "exemptFromFOIA": "Unknown",
   "properties": [
     {
-      "id": "11e92e29ffc0acdf93420242ac120004",
-      "createdDate": "2019-02-11T18:22:33.086491Z",
+      "id": "11e930a66953352daa4e0242ac120005",
+      "createdDate": "2019-02-14T22:18:10.127545Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-11T18:22:33.086491Z",
+      "modifiedDate": "2019-02-14T22:18:10.127545Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "changeCount": 0,
-      "changeToken": "04808d6ea0fbd70735e9ae45f1f9c87f",
+      "changeToken": "4c76cce976cb1858142a6e44d742dd13",
       "name": "custom-property",
       "value": "property value 1",
       "classificationPM": ""
@@ -4016,39 +4016,39 @@ e2d
 <h2 id=3834796447>Update Object Change Property Value</h2>
 While updating the metadata for an object, change value of already existing dynamic property
 <pre class="request">
-POST /services/object-drive/1.0/objects/11e92e29ffafd35a93420242ac120004/properties HTTP/1.1
+POST /services/object-drive/1.0/objects/11e930a6694a6f01aa4e0242ac120005/properties HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
-{"id":"11e92e29ffafd35a93420242ac120004","createdDate":"2019-02-11T18:22:32.976104Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-02-11T18:22:33.082545Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","deletedDate":"0001-01-01T00:00:00Z","deletedBy":"","changeCount":1,"changeToken":"46eeede2f859c71195fd36202e81f193","ownedBy":"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","typeId":"11e92e294f61badf93420242ac120004","typeName":"Folder","name":"TestUpdateObjectProperty 1549909352","description":"","acm":{"accms":[],"atom_energy":[],"banner":"UNCLASSIFIED","classif":"U","disp_only":"","disponly_to":[""],"dissem_countries":["USA"],"dissem_ctrls":[],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":[],"fgi_open":[],"fgi_protect":[],"macs":[],"non_ic":[],"oc_attribs":[{"missions":[],"orgs":[],"regions":[]}],"owner_prod":[],"portion":"U","rel_to":[],"sar_id":[],"sci_ctrls":[],"version":"2.1.0"},"contentType":"","contentSize":0,"contentHash":"","containsUSPersonsData":"Unknown","exemptFromFOIA":"Unknown","properties":[{"id":"11e92e29ffc0acdf93420242ac120004","createdDate":"2019-02-11T18:22:33.086491Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-02-11T18:22:33.086491Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","changeCount":0,"changeToken":"04808d6ea0fbd70735e9ae45f1f9c87f","name":"custom-property","value":"new property value","classificationPM":""}],"callerPermission":{"allowCreate":true,"allowRead":true,"allowUpdate":true,"allowDelete":true,"allowShare":true},"permissions":[{"grantee":"_everyone","groupName":"-everyone","displayName":"-everyone","allowCreate":false,"allowRead":true,"allowUpdate":false,"allowDelete":false,"allowShare":false},{"grantee":"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","userDistinguishedName":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","displayName":"test tester10","allowCreate":true,"allowRead":false,"allowUpdate":true,"allowDelete":true,"allowShare":true}],"permission":{"create":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"read":{"allow":["group/-everyone","user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"update":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"delete":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"share":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}},"isPDFAvailable":false}</pre>
+{"id":"11e930a6694a6f01aa4e0242ac120005","createdDate":"2019-02-14T22:18:10.069892Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-02-14T22:18:10.126606Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","deletedDate":"0001-01-01T00:00:00Z","deletedBy":"","changeCount":1,"changeToken":"ce833194d3ee59f741187dc185ae1bc1","ownedBy":"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","typeId":"11e930a63965e348aa4e0242ac120005","typeName":"Folder","name":"TestUpdateObjectProperty 1550182690","description":"","acm":{"accms":[],"atom_energy":[],"banner":"UNCLASSIFIED","classif":"U","disp_only":"","disponly_to":[""],"dissem_countries":["USA"],"dissem_ctrls":[],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":[],"fgi_open":[],"fgi_protect":[],"macs":[],"non_ic":[],"oc_attribs":[{"missions":[],"orgs":[],"regions":[]}],"owner_prod":[],"portion":"U","rel_to":[],"sar_id":[],"sci_ctrls":[],"version":"2.1.0"},"contentType":"","contentSize":0,"contentHash":"","containsUSPersonsData":"Unknown","exemptFromFOIA":"Unknown","properties":[{"id":"11e930a66953352daa4e0242ac120005","createdDate":"2019-02-14T22:18:10.127545Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-02-14T22:18:10.127545Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","changeCount":0,"changeToken":"4c76cce976cb1858142a6e44d742dd13","name":"custom-property","value":"new property value","classificationPM":""}],"callerPermission":{"allowCreate":true,"allowRead":true,"allowUpdate":true,"allowDelete":true,"allowShare":true},"permissions":[{"grantee":"_everyone","groupName":"-everyone","displayName":"-everyone","allowCreate":false,"allowRead":true,"allowUpdate":false,"allowDelete":false,"allowShare":false},{"grantee":"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","userDistinguishedName":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","displayName":"test tester10","allowCreate":true,"allowRead":false,"allowUpdate":true,"allowDelete":true,"allowShare":true}],"permission":{"create":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"read":{"allow":["group/-everyone","user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"update":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"delete":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"share":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}},"isPDFAvailable":false}</pre>
 Resulting object shows property with new value
 <pre class="response">
 HTTP/1.1 200 OK
 Transfer-Encoding: chunked
 Connection: keep-alive
-Content-Encrypted-At-Rest: FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only.
+Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Mon, 11 Feb 2019 18:22:33 GMT
+Date: Thu, 14 Feb 2019 22:18:10 GMT
 Odrive-Server: 1 build 1 (1)
 Server: nginx/1.15.8
-Session-Id: a33679b0
+Session-Id: 3a430a54
 Vary: Origin
 
-e2f
+e2e
 {
-  "id": "11e92e29ffafd35a93420242ac120004",
-  "createdDate": "2019-02-11T18:22:32.976104Z",
+  "id": "11e930a6694a6f01aa4e0242ac120005",
+  "createdDate": "2019-02-14T22:18:10.069892Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-11T18:22:33.242613Z",
+  "modifiedDate": "2019-02-14T22:18:10.19531Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 2,
-  "changeToken": "bc1450faffeb0f4908d6390746919ab0",
+  "changeToken": "95ae4740cbe91987011b55691b49a223",
   "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e92e294f61badf93420242ac120004",
+  "typeId": "11e930a63965e348aa4e0242ac120005",
   "typeName": "Folder",
-  "name": "TestUpdateObjectProperty 1549909352",
+  "name": "TestUpdateObjectProperty 1550182690",
   "description": "",
   "acm": {
     "accms": [],
@@ -4100,13 +4100,13 @@ e2f
   "exemptFromFOIA": "Unknown",
   "properties": [
     {
-      "id": "11e92e29ffd9b40e93420242ac120004",
-      "createdDate": "2019-02-11T18:22:33.250585Z",
+      "id": "11e930a6695df380aa4e0242ac120005",
+      "createdDate": "2019-02-14T22:18:10.197959Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-11T18:22:33.250585Z",
+      "modifiedDate": "2019-02-14T22:18:10.197959Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "changeCount": 0,
-      "changeToken": "086d9f75c1ee3a7c35f1cb9dae74fa7d",
+      "changeToken": "106148d066cd51c36eda70643a512e3b",
       "name": "custom-property",
       "value": "new property value",
       "classificationPM": ""

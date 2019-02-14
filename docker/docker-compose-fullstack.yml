@@ -77,7 +77,7 @@ services:
         - OD_AWS_ACCESS_KEY_ID=$OD_AWS_ACCESS_KEY_ID
         - OD_AWS_S3_ENDPOINT                    # has default
         - OD_AWS_REGION=us-east-1             # has default
-        - OD_AWS_S3_BUCKET=
+        - OD_AWS_S3_BUCKET
         - OD_AWS_SECRET_ACCESS_KEY=$OD_AWS_SECRET_ACCESS_KEY
         - OD_AWS_SECRET_KEY=$OD_AWS_SECRET_ACCESS_KEY
         - OD_CACHE_EVICTAGE                   # has default
@@ -98,7 +98,7 @@ services:
         - OD_DB_PORT=3306
         - OD_DB_SCHEMA=metadatadb
         - OD_DB_USERNAME=dbuser
-        - OD_ENCRYPT_ENABLED
+        - OD_ENCRYPT_ENABLED=true
         - OD_ENCRYPT_MASTERKEY
         - OD_EVENT_KAFKA_ADDRS= #kafka:9092    # we need to scale this up, right?
         - OD_EVENT_ZK_ADDRS=zk:2181
@@ -145,11 +145,10 @@ services:
         - OD_AAC_INSECURE_SKIP_VERIFY=true
         - OD_PEER_CN=twl-server-generic2
         - OD_PEER_INSECURE_SKIP_VERIFY=false
-        - OD_AWS_ACCESS_KEY_ID=$OD_AWS_ACCESS_KEY_ID
+        - OD_AWS_ACCESS_KEY_ID
         - OD_AWS_REGION=us-east-1             # has default
-        - OD_AWS_S3_BUCKET=
-        - OD_AWS_SECRET_ACCESS_KEY=$OD_AWS_SECRET_ACCESS_KEY
-        - OD_AWS_SECRET_KEY=$OD_AWS_SECRET_ACCESS_KEY
+        - OD_AWS_S3_BUCKET
+        - OD_AWS_SECRET_ACCESS_KEY
         - OD_CACHE_EVICTAGE                   # has default
         - OD_CACHE_HIGHWATERMARK              # has default
         - OD_CACHE_LOWWATERMARK               # has default
@@ -168,7 +167,7 @@ services:
         - OD_DB_PORT=3306
         - OD_DB_SCHEMA=metadatadb
         - OD_DB_USERNAME=dbuser
-        - OD_ENCRYPT_ENABLED
+        - OD_ENCRYPT_ENABLED=true
         - OD_ENCRYPT_MASTERKEY
         - OD_EVENT_KAFKA_ADDRS= #kafka:9092    # we need to scale this up, right?
         - OD_EVENT_ZK_ADDRS=zk:2181
@@ -211,6 +210,7 @@ services:
       - MYSQL_DATABASE=metadatadb
       - MYSQL_ROOT_PASSWORD=dbRootPassword
       - MYSQL_PASSWORD=dbPassword
+      - OD_ENCRYPT_ENABLED
       - OD_ENCRYPT_MASTERKEY
     ports:
       - 3306:3306

@@ -87,6 +87,16 @@ services:
         - OD_AAC_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.key.pem
         - OD_AAC_CN=twl-server-generic2
         - OD_AAC_INSECURE_SKIP_VERIFY=true
+        - OD_AWS_ACCESS_KEY_ID
+        - OD_AWS_REGION
+        - OD_AWS_S3_BUCKET
+        - OD_AWS_SECRET_ACCESS_KEY
+        - OD_CACHE_EVICTAGE                   # has default
+        - OD_CACHE_HIGHWATERMARK              # has default
+        - OD_CACHE_LOWWATERMARK               # has default
+        - OD_CACHE_ROOT
+        - OD_CACHE_WALKSLEEP
+        - OD_CACHE_PARTITION
         - OD_PEER_CN=twl-server-generic2
         - OD_DB_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/trust
         - OD_DB_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
@@ -97,8 +107,8 @@ services:
         - OD_DB_PORT=3306
         - OD_DB_SCHEMA=metadatadb
         - OD_DB_USERNAME=dbuser
-        - OD_ENCRYPT_ENABLED=false
-        - OD_ENCRYPT_MASTERKEY=
+        - OD_ENCRYPT_ENABLED
+        - OD_ENCRYPT_MASTERKEY
         - OD_SERVER_ACL_WHITELIST1=cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us
         - OD_SERVER_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/trust.pem
         - OD_SERVER_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.cert.pem

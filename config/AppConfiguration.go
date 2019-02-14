@@ -289,14 +289,17 @@ func NewAppConfiguration(opts CommandLineOpts) AppConfiguration {
 	}
 
 	dbConf := NewDatabaseConfigFromEnv(confFile, opts)
+	confFile.DatabaseConnection = dbConf
 	serverSettings := newServerSettingsFromEnv(confFile, opts)
+	confFile.ServerSettings = serverSettings
 	aacSettings := newAACSettingsFromEnv(confFile, opts)
+	confFile.AACSettings = aacSettings
 	cacheSettings := newDiskCacheOpts(confFile, opts)
+	confFile.CacheSettings = cacheSettings
 	zkSettings := newZKSettingsFromEnv(confFile, opts)
-	if zkSettings.Port == "" {
-		zkSettings.Port = serverSettings.ListenPort
-	}
+	confFile.ZK = zkSettings
 	eventQueue := newEventQueueConfiguration(confFile, opts)
+	confFile.EventQueue = eventQueue
 
 	appConf := AppConfiguration{
 		AACSettings:        aacSettings,
@@ -485,6 +488,11 @@ func newDiskCacheOpts(confFile AppConfiguration, opts CommandLineOpts) DiskCache
 		)
 		os.Exit(1)
 	}
+	if !confFile.ServerSettings.EncryptEnabled {
+		masterKey = ""
+	} else if masterKey == "" {
+		log.Fatal("You must set master encryption key with OD_ENCRYPT_MASTERKEY to start the service when encryption is enabled")
+	}
 	settings := DiskCacheOpts{
 		Root:          cascade(OD_CACHE_ROOT, confFile.CacheSettings.Root, "."),
 		Partition:     cascade(OD_CACHE_PARTITION, confFile.CacheSettings.Partition, "cache"),
@@ -494,10 +502,6 @@ func newDiskCacheOpts(confFile AppConfiguration, opts CommandLineOpts) DiskCache
 		WalkSleep:     cascadeInt(OD_CACHE_WALKSLEEP, confFile.CacheSettings.WalkSleep, 30),
 		MasterKey:     masterKey,
 		ChunkSize:     cascadeInt(OD_AWS_S3_FETCH_MB, confFile.CacheSettings.ChunkSize, 16),
-	}
-	//Note: masterKey is a singleton value now.  But there will need to be one per OD_CACHE_PARTITION now
-	if settings.MasterKey == "" {
-		log.Fatal("You must set master encryption key with OD_ENCRYPT_MASTERKEY to start odrive")
 	}
 	return settings
 }
@@ -567,7 +571,7 @@ func newZKSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) ZKSet
 	conf.Address = cascade(OD_ZK_URL, confFile.ZK.Address, "zk:2181")
 	conf.BasepathOdrive = cascade(OD_ZK_ANNOUNCE, confFile.ZK.BasepathOdrive, "/services/object-drive/1.0")
 	conf.IP = cascade(OD_ZK_MYIP, confFile.ZK.IP, util.GetIP(logger))
-	conf.Port = cascade(OD_ZK_MYPORT, confFile.ZK.Port, "")
+	conf.Port = cascade(OD_ZK_MYPORT, confFile.ZK.Port, confFile.ServerSettings.ListenPort)
 	conf.Timeout = cascadeInt(OD_ZK_TIMEOUT, confFile.ZK.Timeout, 5)
 	conf.RetryDelay = cascadeInt(OD_ZK_RETRYDELAY, confFile.ZK.RetryDelay, 3)
 	conf.RecheckTime = cascadeInt(OD_ZK_RECHECK_TIME, confFile.ZK.RecheckTime, 30)

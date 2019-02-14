@@ -206,7 +206,7 @@ func (d *CiphertextCacheData) masterKeyCheck() *util.Loggable {
 		os.Remove(nameCached)
 		return util.NewLoggable("ciphertextcache canary mismatch", nil,
 			zap.String("detail",
-				"OD_ENCRYPT_MASTERKEY value was used to encrypt files.  Other cluster members are using a different key.  Check your key.",
+				"Other cluster members are using different values for OD_ENCRYPT_MASTERKEY or OD_ENCRYPT_ENABLED. Check your configuration settings.",
 			),
 			zap.String("haveCanary", have),
 			zap.String("expectCanary", expected),
