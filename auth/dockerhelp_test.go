@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
-	"testing"
 )
 
 // Sampling...
@@ -31,7 +30,7 @@ import (
 //
 // Also, forcing routable addresses is a problem inside a container because even if docker is installed, it won't find the daemon.
 
-func getNetworkModeForContainer(t *testing.T, containerID string) string {
+func getNetworkModeForContainer(containerID string) (string, error) {
 
 	goTemplate := "'{{ .HostConfig.NetworkMode }}'"
 	var cmd *exec.Cmd
@@ -41,37 +40,35 @@ func getNetworkModeForContainer(t *testing.T, containerID string) string {
 	err := cmd.Run()
 	// If error running, then just return the input
 	if err != nil {
-		t.Logf("WARNING: Error running docker inspect command: %s", err.Error())
-		return ""
+		return "", err
 	}
 	networkMode := getStringFromBuffer(out)
-	t.Logf("NetworkMode reported as %s", networkMode)
-	return networkMode
+	return networkMode, nil
 }
 
-func getIPAddressForContainer(t *testing.T, containerID string) string {
-	networkMode := getNetworkModeForContainer(t, containerID)
+func getIPAddressForContainer(containerID string) (string, error) {
+	networkMode, err := getNetworkModeForContainer(containerID)
+	if err != nil {
+		return "", fmt.Errorf("error getting network mode: %s", err.Error())
+	}
 	if networkMode == "default" {
-		t.Logf("Not using NetworkMode for IP lookup")
 		networkMode = ""
 	}
 	if len(networkMode) > 0 {
 		networkMode = ".Networks." + networkMode
 	}
 	goTemplate := fmt.Sprintf("'{{ .NetworkSettings%s.IPAddress }}'", networkMode)
-	t.Logf("Resulting inspection template: %s", goTemplate)
 	var cmd *exec.Cmd
 	var out bytes.Buffer
 	cmd = exec.Command("docker", "inspect", "--format", goTemplate, containerID)
 	cmd.Stdout = &out
-	err := cmd.Run()
+	err = cmd.Run()
 	// If error running, then just return the input
 	if err != nil {
-		t.Logf("WARNING: Error running docker inspect command: %s", err.Error())
-		return ""
+		return "", err
 	}
 	addr := getStringFromBuffer(out)
-	return addr
+	return addr, nil
 }
 
 func getStringFromBuffer(b bytes.Buffer) string {
@@ -81,7 +78,7 @@ func getStringFromBuffer(b bytes.Buffer) string {
 	return o
 }
 
-func getDockerContainerIDFromName(t *testing.T, name string) string {
+func getDockerContainerIDFromName(name string) (string, error) {
 	// Commands
 	var cmds []*exec.Cmd
 	cmds = append(cmds, exec.Command("docker", "ps", "-a"))
@@ -95,50 +92,45 @@ func getDockerContainerIDFromName(t *testing.T, name string) string {
 		var err error
 		// Connect each command's stdin to the previous command's stdout
 		if cmds[i+1].Stdin, err = cmd.StdoutPipe(); err != nil {
-			t.Logf("Error piping commands for cmds[%d+1].Stdin = cmd.StdoutPipe. %s", i, err.Error())
-			t.FailNow()
+			return "", err
 		}
 		// Connect each command's stderr to a buffer
 		cmd.Stderr = &stderr
 	}
 	cmds[last].Stdout, cmds[last].Stderr = &output, &stderr
 	// Start each command
-	for i, cmd := range cmds {
+	for _, cmd := range cmds {
 		if err := cmd.Start(); err != nil {
-			t.Logf("Error starting command %d %s", i, err.Error())
-			t.FailNow()
+			return "", err
 		}
 	}
 	// Wait for each command to complete
-	for i, cmd := range cmds {
+	for _, cmd := range cmds {
 		if err := cmd.Wait(); err != nil {
-			t.Logf("Error waiting for command %d %s", i, err.Error())
-			t.FailNow()
+			return "", err
 		}
 	}
 	containerid := getStringFromBuffer(output)
 	containerid = strings.TrimSpace(strings.Split(containerid, "\n")[0])
-	t.Logf("Container ID for %s is %s", name, containerid)
-	return containerid
+	return containerid, nil
 }
 
-func getAddrFromDockerHost(t *testing.T, i string) string {
+func getAddrFromDockerHost(i string) (string, error) {
 	// docker_aac_1.docker_default
 	// If not docker, then just return the input
 	if !strings.Contains(i, "docker") {
-		t.Logf("Host is not a docker container")
-		return i
+		//t.Logf("Host is not a docker container")
+		return i, nil
 	}
-	t.Logf("Host is a docker container string.  Inspecting for IP Address.")
+
 	// Assume format is `{container-name}.{NetworkMode}``
 	hostparts := strings.Split(i, ".")
 	// If not enough parts, just return the input
 	if len(hostparts) < 2 {
-		return i
+		return i, nil
 	}
 	// Build up inspection format using network mode
 	containerName := fmt.Sprintf("%s", hostparts[0])
-	addr := getIPAddressForContainer(t, containerName)
-	t.Logf("Using IP Address %s instead", addr)
-	return addr
+	return getIPAddressForContainer(containerName)
+
 }

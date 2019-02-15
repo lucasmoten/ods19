@@ -143,6 +143,7 @@ func main() {
 	cliParser.Action = func(c *cli.Context) error {
 		opts := config.NewCommandLineOpts(c)
 		conf := config.NewAppConfiguration(opts)
+		config.RootLogger.Info("Starting Object Drive", zap.String("version", cliParser.Version))
 		config.RootLogger.Info("configuration-settings", zap.String("--conf", opts.Conf),
 			zap.String("--staticRoot", opts.StaticRootPath),
 			zap.String("--templateDir", opts.TemplateDir),

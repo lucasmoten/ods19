@@ -16,7 +16,7 @@ FORMAT: 1A
 
 # Group Changelog
 
-## Release v1.0.19 (In Development)
+## Release v1.0.19 (Unreleased)
 ---------------------
 * DOC: Readme no longer references GitLab, gives description of service, and guidance on making RPM
 * DOC: API Documentation adds clarity on Bulk Delete operation
@@ -32,6 +32,7 @@ FORMAT: 1A
 * CFG: Renamed environment variables for database `OD_DEADLOCK_RETRYCOUNTER` becomes `OD_DB_DEADLOCK_RETRYCOUNTER`
 * CFG: Renamed environment variables for database `OD_DEADLOCK_RETRYDELAYMS` becomes `OD_DB_DEADLOCK_RETRYDELAYMS`
 * CFG: Add new environment variables for setting encrypted mode `OD_ENCRYPT_ENABLED`
+* OPS: GLIBC dependencies now included and will be pushed to repos by Jenkins
 
 ## Release v1.0.18 (November 14, 2018)
 ---------------------

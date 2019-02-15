@@ -38,11 +38,11 @@ func Start(conf config.AppConfiguration) error {
 		return err
 	}
 
-	logger.Info(conf.ServerSettings.EncryptableFunctions.EncryptionBanner())
+	logger.Info(conf.ServerSettings.EncryptableFunctions.EncryptionStateBanner())
 
 	d, dbID, err := dao.NewDataAccessLayer(conf.DatabaseConnection, dao.WithLogger(logger))
 	if err != nil {
-		logger.Error("error configuring dao.  check envrionment variable settings for OD_DB_*", zap.Error(err))
+		logger.Error("error configuring dao.  check environment variable settings for OD_DB_*", zap.Error(err))
 		return err
 	}
 	if d.ReadOnly {
@@ -134,7 +134,8 @@ func configureEventQueue(app *AppServer, conf config.EventQueueConfiguration, zk
 
 	if len(conf.KafkaAddrs) > 0 {
 		logger.Info("using direct connect for kafka queue")
-		// TODO: DIMEODS-1156, this direct kafka connect needs a go routine watcher to re-establish if it fails.
+		// DIMEODS-1156 - direct connect has no watcher to re-establish if it fails.
+		logger.Warn("direct connect is not as durable as discovery via zookeeper. consider using OD_EVENT_ZK_ADDRS instead for durability")
 		var err error
 		app.EventQueue, err = kafka.NewAsyncProducer(conf.KafkaAddrs, kafka.WithLogger(logger), kafka.WithPublishActions(conf.PublishSuccessActions, conf.PublishFailureActions), kafka.WithTopic(conf.Topic))
 		if err != nil {

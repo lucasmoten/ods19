@@ -213,6 +213,11 @@ node('docker') {
             // To Nexus
             withCredentials([usernamePassword(credentialsId: 'dime_svc_acct', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                 sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/object-drive-server/object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm"
+                // Dependencies
+                sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file glibc/glibc-2.15-60.el6.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/glibc/glibc-2.15-60.el6.x86_64.rpm"
+                sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file glibc/glibc-common-2.15-60.el6.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/glibc/glibc-common-2.15-60.el6.x86_64.rpm"
+                sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file glibc/glibc-devel-2.15-60.el6.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/glibc/glibc-devel-2.15-60.el6.x86_64.rpm"
+                sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file glibc/glibc-headers-2.15-60.el6.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/glibc/glibc-headers-2.15-60.el6.x86_64.rpm"
             }
             // To S3
             withDockerContainer(args: "-u root -v /var/run/docker.sock:/var/run/docker.sock", image: "docker-dime.di2e.net/docker/backend:maven-3.3.9-jdk-8") {
@@ -220,6 +225,11 @@ node('docker') {
                             usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh "aws configure set default.s3.signature_version s3v4"
                     sh "aws s3 cp ./object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm s3://meme-yum-repo/"
+                    // Dependencies
+                    sh "aws s3 cp ./glibc/glibc-2.15-60.el6.x86_64.rpm s3://meme-yum-repo"
+                    sh "aws s3 cp ./glibc/glibc-common-2.15-60.el6.x86_64.rpm s3://meme-yum-repo"
+                    sh "aws s3 cp ./glibc/glibc-devel-2.15-60.el6.x86_64.rpm s3://meme-yum-repo"
+                    sh "aws s3 cp ./glibc/glibc-headers-2.15-60.el6.x86_64.rpm s3://meme-yum-repo"
                 }
             }
         }, tar: {

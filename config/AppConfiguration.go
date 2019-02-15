@@ -551,14 +551,14 @@ func newServerSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) S
 func NewEncryptableFunctions(encryptEnabled bool) EncryptableFunctions {
 	if encryptEnabled {
 		return EncryptableFunctions{
-			EncryptionBanner:       NoopEncryptionBannerF,
-			EncryptionWarning:      NoopEncryptionWarningF,
+			EncryptionStateBanner:  EncryptionBannerTrue,
+			EncryptionStateHeader:  EncryptionHeaderTrue,
 			DoCipherByReaderWriter: odrivecrypto.DoCipherByReaderWriter,
 		}
 	} else {
 		return EncryptableFunctions{
-			EncryptionBanner:       EncryptionBannerF,
-			EncryptionWarning:      EncryptionWarningF,
+			EncryptionStateBanner:  EncryptionBannerFalse,
+			EncryptionStateHeader:  EncryptionHeaderFalse,
 			DoCipherByReaderWriter: odrivecrypto.DoNocipherByReaderWriter,
 		}
 	}

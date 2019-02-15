@@ -59,7 +59,7 @@ func getAACPort() int {
 func TestMain(m *testing.M) {
 
 	// using the announcements, get the host + port
-	aacHost := "aac"
+	aacHost := "localhost" // "aac"
 	aacPort := fmt.Sprintf("%d", getAACPort())
 
 	// AAC trust, client public & private key
