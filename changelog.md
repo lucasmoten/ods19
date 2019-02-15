@@ -20,13 +20,13 @@ FORMAT: 1A
 ---------------------
 * DOC: Readme no longer references GitLab, gives description of service, and guidance on making RPM
 * DOC: API Documentation adds clarity on Bulk Delete operation
+* ENH: Added support for running service without encryption of files at rest
 * FIX: ODB script will now properly build odrive-database dependency for docker images
 * FIX: Header for session identifier changed to `Session-Id` standard
 * CFG: Jenkins updated to build with 1.11.5b4
 * CFG: Docker Compose files reference images from docker-dime.di2e.net
 * CFG: Previous docker-compose.yml is renamed for full stack. New docker-compose is for local development
 * CFG: Jenkins parallel pipeline of Docker, RPM, and TAR outputs
-* CFG: Support additional configuration by environment variables 
 * CFG: Add new environment variables for configuring database `OD_DB_DRIVER`, `OD_DB_PROTOCOL`, `OD_DB_SKIP_VERIFY`, `OD_DB_USE_TLS`
 * CFG: Add new environment variables for server listener and assets `OD_SERVER_BINDADDRESS`, `OD_SERVER_STATIC_ROOT`, `OD_SERVER_TEMPLATE_ROOT`
 * CFG: Renamed environment variables for database `OD_DEADLOCK_RETRYCOUNTER` becomes `OD_DB_DEADLOCK_RETRYCOUNTER`
