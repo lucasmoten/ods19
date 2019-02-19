@@ -7,14 +7,14 @@ import (
 )
 
 var funcs = EncryptableFunctions{
-	EncryptionBanner:       EncryptionBannerF,
-	EncryptionWarning:      EncryptionWarningF,
+	EncryptionStateBanner:  EncryptionBannerFalse,
+	EncryptionStateHeader:  EncryptionHeaderFalse,
 	DoCipherByReaderWriter: odrivecrypto.DoCipherByReaderWriter,
 }
 
 func TestEncryptionBanner(t *testing.T) {
-	actual := funcs.EncryptionBanner()
-	expected := EncryptionBannerF()
+	actual := funcs.EncryptionStateBanner()
+	expected := EncryptionBannerFalse()
 	if actual != expected {
 		t.Errorf("EncryptionBanner())  %q, want %q", actual, expected)
 	}
@@ -22,10 +22,10 @@ func TestEncryptionBanner(t *testing.T) {
 
 func TestNoopEncryptionBanner(t *testing.T) {
 	var funcs = EncryptableFunctions{
-		EncryptionBanner: NoopEncryptionBannerF,
+		EncryptionStateBanner: EncryptionBannerTrue,
 	}
-	actual := funcs.EncryptionBanner()
-	expected := NoopEncryptionBannerF()
+	actual := funcs.EncryptionStateBanner()
+	expected := EncryptionBannerTrue()
 	if actual != expected {
 		t.Errorf("Noop EncryptionBanner())  %q, want %q", actual, expected)
 	}
@@ -33,11 +33,11 @@ func TestNoopEncryptionBanner(t *testing.T) {
 
 func TestEncryptionWarning(t *testing.T) {
 	var funcs = EncryptableFunctions{
-		EncryptionWarning: EncryptionWarningF,
+		EncryptionStateHeader: EncryptionHeaderFalse,
 	}
 
-	actualKey, actualVal := funcs.EncryptionWarning()
-	expectedKey, expectedVal := EncryptionWarningF()
+	actualKey, actualVal := funcs.EncryptionStateHeader()
+	expectedKey, expectedVal := EncryptionHeaderFalse()
 	if actualKey != expectedKey || actualVal != expectedVal {
 		t.Errorf("EncryptionWarning())  %q, %q, want %q, %q", actualKey, actualVal, expectedKey, expectedVal)
 	}
@@ -45,10 +45,10 @@ func TestEncryptionWarning(t *testing.T) {
 
 func TestNoopEncryptionWarning(t *testing.T) {
 	var funcs = EncryptableFunctions{
-		EncryptionWarning: NoopEncryptionWarningF,
+		EncryptionStateHeader: EncryptionHeaderTrue,
 	}
-	actualKey, actualVal := funcs.EncryptionWarning()
-	expectedKey, expectedVal := NoopEncryptionWarningF()
+	actualKey, actualVal := funcs.EncryptionStateHeader()
+	expectedKey, expectedVal := EncryptionHeaderTrue()
 	if actualKey != expectedKey || actualVal != expectedVal {
 		t.Errorf("Noop EncryptionWarning())  %q, %q, want %q, %q", actualKey, actualVal, expectedKey, expectedVal)
 	}

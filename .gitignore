@@ -15,6 +15,7 @@ release
 
 # Ignore build artifacts
 *.rpm
+!glibc/*.rpm
 *.pyc
 
 # Delve debugger compiled binaries
@@ -36,6 +37,7 @@ docs/*.html
 docker/ui
 docker/ui.tar
 docker/ui-*.tar
+docker/odrive-ui-*.tar.gz*
 
 # Bbuild logs
 odrive_build.log

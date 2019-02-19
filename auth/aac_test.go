@@ -17,6 +17,9 @@ import (
 )
 
 func getAACPort() int {
+	// TODO: modify dockerhelp_test.go to be able to lookup environment variable values in container
+	// will want to get COM_DECIPHERNOW_SERVER_CONFIG_THRIFT_PORT from Config.Env (get 9000)
+	// Then, compare that to the exposed ports in HostConfig.PortBindings (map 9000 to 9093)
 	aacPortOverride := os.Getenv("OD_AAC_TEST_PORT")
 	if len(aacPortOverride) > 0 {
 		p, err := strconv.Atoi(aacPortOverride)
@@ -28,9 +31,25 @@ func getAACPort() int {
 	return 9093
 }
 
+func getAACAddress() string {
+	return "localhost"
+	//return "aac"
+	container, err := getDockerContainerIDFromName("docker_aac_1")
+	if err != nil {
+		log.Printf("error getting containerid: %v", err)
+		return "aac"
+	}
+	addr, err := getIPAddressForContainer(container)
+	if err != nil {
+		log.Printf("error getting address: %v", err)
+		return "aac"
+	}
+	return addr
+}
+
 func newAACAuth(t *testing.T) auth.AACAuth {
 	// AAC server and port hardcoded
-	aacHost := "aac"
+	aacHost := getAACAddress()
 	aacPort := getAACPort()
 	// AAC trust, client public & private key
 	trustPath := filepath.Join("..", "defaultcerts", "client-aac", "trust", "client.trust.pem")
@@ -745,7 +764,7 @@ func newAACAuthRaw() (*auth.AACAuth, error) {
 	certPath := filepath.Join("..", "defaultcerts", "client-aac", "id", "client.cert.pem")
 	keyPath := filepath.Join("..", "defaultcerts", "client-aac", "id", "client.key.pem")
 	serverCN := "twl-server-generic2"
-	aacClient, err := aac.GetAACClient("aac", getAACPort(), trustPath, certPath, keyPath, serverCN)
+	aacClient, err := aac.GetAACClient(getAACAddress(), getAACPort(), trustPath, certPath, keyPath, serverCN)
 	if err != nil {
 		return nil, err
 	}
@@ -761,7 +780,7 @@ func stallForAvailability() int {
 
 	// Do this on every try to check the server
 	retryFunc := func() int {
-		log.Printf("try connection: %s:%d", "aac", getAACPort())
+		log.Printf("try connection: %s:%d", getAACAddress(), getAACPort())
 		aacAuth, err := newAACAuthRaw()
 		if err != nil {
 			log.Printf("aac not ready: %v", err)

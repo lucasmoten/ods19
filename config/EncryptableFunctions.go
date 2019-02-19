@@ -20,30 +20,30 @@ type DoCipherByReaderWriter func(
 ) (checksum []byte, length int64, err error)
 
 //Pure
-type EncryptionWarning func() (string, string)
+type EncryptionStateHeader func() (string, string)
 
 //Pure
-type EncryptionBanner func() string
+type EncryptionStateBanner func() string
 
 type EncryptableFunctions struct {
-	EncryptionBanner       EncryptionBanner
-	EncryptionWarning      EncryptionWarning
+	EncryptionStateBanner  EncryptionStateBanner
+	EncryptionStateHeader  EncryptionStateHeader
 	DoCipherByReaderWriter DoCipherByReaderWriter
 }
 
-func EncryptionWarningF() (key, value string) {
+func EncryptionHeaderFalse() (key, value string) {
 	return "Content-Encrypted-At-Rest", "FALSE. The service is running without encrypting data at rest. Files are encrypted in transit only."
 }
 
-func NoopEncryptionWarningF() (key, value string) {
+func EncryptionHeaderTrue() (key, value string) {
 	return "Content-Encrypted-At-Rest", "TRUE"
 }
 
-func NoopEncryptionBannerF() string {
-	return ""
+func EncryptionBannerTrue() string {
+	return "encryption of data at rest enabled"
 }
 
-func EncryptionBannerF() string {
+func EncryptionBannerFalse() string {
 	return " \n" +
 		"============================================================ \n" +
 		"============================================================ \n" +
