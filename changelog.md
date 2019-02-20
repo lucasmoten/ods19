@@ -16,13 +16,16 @@ FORMAT: 1A
 
 # Group Changelog
 
-## Release v1.0.19 (Unreleased)
+## Release v1.0.19 (February 20, 2019)
 ---------------------
 * DOC: Readme no longer references GitLab, gives description of service, and guidance on making RPM
 * DOC: API Documentation adds clarity on Bulk Delete operation
 * ENH: Added support for running service without encryption of files at rest
 * FIX: ODB script will now properly build odrive-database dependency for docker images
 * FIX: Header for session identifier changed to `Session-Id` standard
+* FIX: Race condition in ACMGrantee logic including handling of no rows
+* FIX: Status codes reported from authorization checks
+* FIX: Transaction handling of creation of new ACMs its parts, keys and values.
 * CFG: Jenkins updated to build with 1.11.5b4
 * CFG: Docker Compose files reference images from docker-dime.di2e.net
 * CFG: Previous docker-compose.yml is renamed for full stack. New docker-compose is for local development

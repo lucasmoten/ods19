@@ -16,19 +16,20 @@ import (
 
 func authHTTPErr(err error) int {
 	// Type conversion to auth.Error with our error string
-	switch auth.Error(err.Error()) {
-	case auth.ErrACMNotSpecified,
-		auth.ErrACMNotValid,
-		auth.ErrACMResponseFailed:
-		return http.StatusBadRequest
-	case auth.ErrUserNotAuthorized:
+	e := err.Error()
+	switch true {
+	case strings.HasPrefix(e, auth.ErrUserNotAuthorized.Error()):
 		return http.StatusForbidden
-	case auth.ErrFailToCheckUserAccess,
-		auth.ErrFailToFlattenACM,
-		auth.ErrFailToInjectPermissions,
-		auth.ErrFailToNormalizePermissions,
-		auth.ErrFailToRebuildACMFromPermissions,
-		auth.ErrFailToRetrieveSnippets:
+	case strings.HasPrefix(e, auth.ErrACMNotSpecified.Error()),
+		strings.HasPrefix(e, auth.ErrACMNotValid.Error()),
+		strings.HasPrefix(e, auth.ErrACMResponseFailed.Error()):
+		return http.StatusBadRequest
+	case strings.HasPrefix(e, auth.ErrFailToCheckUserAccess.Error()),
+		strings.HasPrefix(e, auth.ErrFailToFlattenACM.Error()),
+		strings.HasPrefix(e, auth.ErrFailToInjectPermissions.Error()),
+		strings.HasPrefix(e, auth.ErrFailToNormalizePermissions.Error()),
+		strings.HasPrefix(e, auth.ErrFailToRebuildACMFromPermissions.Error()),
+		strings.HasPrefix(e, auth.ErrFailToRetrieveSnippets.Error()):
 		return http.StatusBadGateway
 	default:
 		log.Printf("WARNING: default response due to unmapped error %v\n", err)
