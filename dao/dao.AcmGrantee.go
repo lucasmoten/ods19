@@ -86,7 +86,7 @@ func (dao *DataAccessLayer) CreateAcmGrantee(acmGrantee models.ODAcmGrantee) (mo
 	defer util.Time("CreateAcmGrantee")()
 	retryCounter := dao.DeadlockRetryCounter
 	retryDelay := dao.DeadlockRetryDelay
-	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded"}
+	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded", sql.ErrNoRows.Error()}
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("could not begin transaction", zap.Error(err))
@@ -146,34 +146,39 @@ func createAcmGranteeInTransaction(tx *sqlx.Tx, dao *DataAccessLayer, acmGrantee
 	acmGrantee.Grantee = models.AACFlatten(acmGrantee.Grantee)
 
 	var dbAcmGrantee models.ODAcmGrantee
-	addAcmGranteeStatement, err := tx.Preparex(
-		`insert acmgrantee 
+	dbAcmGrantee, err := getAcmGranteeInTransaction(tx, acmGrantee.Grantee)
+	if err != nil || dbAcmGrantee.Grantee != acmGrantee.Grantee {
+
+		addAcmGranteeStatement, err := tx.Preparex(
+			`insert acmgrantee 
          set grantee = ?, resourceString = ?, projectName = ?, projectDisplayName = ?, groupName = ?, userDistinguishedName = ?, displayName = ?`)
-	if err != nil {
-		return dbAcmGrantee, err
-	}
-	defer addAcmGranteeStatement.Close()
-	result, err := addAcmGranteeStatement.Exec(acmGrantee.Grantee, acmGrantee.ResourceString,
-		acmGrantee.ProjectName, acmGrantee.ProjectDisplayName, acmGrantee.GroupName,
-		acmGrantee.UserDistinguishedName, acmGrantee.DisplayName)
-	if err != nil {
-		dao.GetLogger().Warn("error executing addacmgranteestatement", zap.Error(err))
-		// Possible race condition here... Grantee must be unique, and if
-		// a parallel request is adding them then this attempt to insert will fail.
-		// Attempt to retrieve them
-		dbAcmGrantee, err = getAcmGranteeInTransaction(tx, acmGrantee.Grantee)
 		if err != nil {
 			return dbAcmGrantee, err
 		}
-		// Created already, and the get has populated the object, so return
-		return dbAcmGrantee, nil
-	}
-	rowCount, err := result.RowsAffected()
-	if err != nil {
-		return dbAcmGrantee, err
-	}
-	if rowCount < 1 {
-		dao.GetLogger().Warn("no rows were added when inserting the grantee!")
+		defer addAcmGranteeStatement.Close()
+		result, err := addAcmGranteeStatement.Exec(acmGrantee.Grantee, acmGrantee.ResourceString,
+			acmGrantee.ProjectName, acmGrantee.ProjectDisplayName, acmGrantee.GroupName,
+			acmGrantee.UserDistinguishedName, acmGrantee.DisplayName)
+		if err != nil {
+			dao.GetLogger().Warn("error executing addacmgranteestatement", zap.Error(err))
+			// Possible race condition here... Grantee must be unique, and if
+			// a parallel request is adding them then this attempt to insert will fail.
+			// Attempt to retrieve them
+			dbAcmGrantee, err = getAcmGranteeInTransaction(tx, acmGrantee.Grantee)
+			if err != nil {
+				dao.GetLogger().Warn("error getting acmgrantee in transaction", zap.Error(err))
+				return dbAcmGrantee, err
+			}
+			// Created already, and the get has populated the object, so return
+			return dbAcmGrantee, nil
+		}
+		rowCount, err := result.RowsAffected()
+		if err != nil {
+			return dbAcmGrantee, err
+		}
+		if rowCount < 1 {
+			dao.GetLogger().Warn("no rows were added when inserting the grantee!")
+		}
 	}
 	//addAcmGranteeStatement.Close()
 	// Get the newly added grantee

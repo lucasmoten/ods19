@@ -77,7 +77,7 @@ func setObjectACM2ForObjectInTransaction(tx *sqlx.Tx, dao *DataAccessLayer, obje
 		return false, fmt.Errorf("Unable to convert ACM to map")
 	}
 	overallFlattenedACM := getOverallFlattenedACM(acmMap)
-	acm, acmCreated, err := getAcm2ByNameInTransaction(dao, overallFlattenedACM, true)
+	acm, acmCreated, err := getAcm2ByNameInTransaction(tx, dao, overallFlattenedACM, true)
 	if err != nil {
 		return false, err
 	}
@@ -141,20 +141,15 @@ func setObjectACM2ForObjectInTransaction(tx *sqlx.Tx, dao *DataAccessLayer, obje
 	return acmCreated, nil
 }
 
-func getAcm2ByNameInTransaction(dao *DataAccessLayer, namedValue string, addIfMissing bool) (models.ODAcm2, bool, error) {
+func getAcm2ByNameInTransaction(tx *sqlx.Tx, dao *DataAccessLayer, namedValue string, addIfMissing bool) (models.ODAcm2, bool, error) {
 	created := false
 	var result models.ODAcm2
 	logger := dao.GetLogger()
-	tx, err := dao.MetadataDB.Beginx()
-	if err != nil {
-		logger.Error("could not begin transaction", zap.Error(err))
-		return result, created, err
-	}
 	retryCounter := dao.DeadlockRetryCounter
 	retryDelay := dao.DeadlockRetryDelay
 	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded", sql.ErrNoRows.Error()}
 	stmt := `select id, sha256hash, flattenedacm from acm2 where flattenedacm = ?`
-	err = tx.Get(&result, stmt, namedValue)
+	err := tx.Get(&result, stmt, namedValue)
 	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
 		retryCounter--
 		if err == sql.ErrNoRows && addIfMissing {
@@ -176,9 +171,6 @@ func getAcm2ByNameInTransaction(dao *DataAccessLayer, namedValue string, addIfMi
 	}
 	if err != nil {
 		logger.Error("error in getAcm2ByNameInTransaction", zap.Error(err))
-		tx.Rollback()
-	} else {
-		tx.Commit()
 	}
 	return result, created, err
 }

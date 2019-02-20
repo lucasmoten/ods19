@@ -141,10 +141,10 @@ func updateObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 		object.Name = "Unnamed " + object.TypeName.String
 	}
 
-	// Add ownedby if a user that is not yet present.
-	ownedby := object.OwnedBy.String
-	if len(ownedby) > 0 {
-		acmGrantee := models.NewODAcmGranteeFromResourceName(ownedby)
+	// Add ownedBy if a user that is not yet present.
+	ownedBy := object.OwnedBy.String
+	if len(ownedBy) > 0 {
+		acmGrantee := models.NewODAcmGranteeFromResourceName(ownedBy)
 		if acmGrantee.UserDistinguishedName.Valid && len(acmGrantee.UserDistinguishedName.String) > 0 {
 			userRequested := models.ODUser{}
 			userRequested.DistinguishedName = acmGrantee.UserDistinguishedName.String

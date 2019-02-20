@@ -25,16 +25,19 @@ import (
 
 func (h AppServer) changeOwner(ctx context.Context, w http.ResponseWriter, r *http.Request) *AppError {
 
+	logger := LoggerFromContext(ctx)
+	caller, _ := CallerFromContext(ctx)
+	dao := DAOFromContext(ctx)
+	gem, _ := GEMFromContext(ctx)
+
+	gem.Action = "update"
+	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventModify")
+	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "OWNERSHIP_MODIFY")
+
 	var requestObject models.ODObject
 	var err error
 	var recursive bool
 
-	caller, _ := CallerFromContext(ctx)
-	dao := DAOFromContext(ctx)
-	gem, _ := GEMFromContext(ctx)
-	gem.Action = "update"
-	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventModify")
-	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "OWNERSHIP_MODIFY")
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	captured, _ := CaptureGroupsFromContext(ctx)
 
@@ -97,7 +100,7 @@ func (h AppServer) changeOwner(ctx context.Context, w http.ResponseWriter, r *ht
 		}
 		allowed := false
 		for _, groupString := range userGroupResourceStrings {
-			log.Println(fmt.Sprintf("target: %s, groupstring: %s", targetResourceString, groupString))
+			logger.Debug("checking target resourcestring for owner against groups", zap.String("resourceString", targetResourceString), zap.String("groupString", groupString))
 			if groupString == targetResourceString {
 				allowed = true
 				requestObject.OwnedBy = models.ToNullString(targetResourceString)
