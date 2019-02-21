@@ -1,6 +1,6 @@
 FORMAT: 1A
 
-# Object Drive 1.0 
+# Object Drive
 
 <table style="width:100%;border:0px;padding:0px;border-spacing:0;border-collapse:collapse;font-family:Helvetica;font-size:10pt;vertical-align:center;"><tbody><tr><td style="padding:0px;font-size:10pt;">Version</td><td style="padding:0px;font-size:10pt;">--Version--</td><td style="width:20%;font-size:8pt;"> </td><td style="padding:0px;font-size:10pt;">Build</td><td style="padding:0px;font-size:10pt;">--BuildNumber--</td><td style="width:20%;font-size:8pt;"></td><td style="padding:0px;font-size:10pt;">Date</td><td style="padding:0px;font-size:10pt;">--BuildDate--</td></tr></tbody></table>
 
@@ -13,8 +13,35 @@ FORMAT: 1A
 + [Emitted Events documentation](events.html)
 + [Environment](environment.html)
 + [Changelog](changelog.html)
++ [BoringCrypto](boringcrypto.html)
 
 # Group Changelog
+
+## Release v1.0.20 (April 2, 2019)
+---------------------
+* DB: The database schema is now 20190225. A migration _may_ be performed.
+  * This is a deviation from past versions where service upgrades required migrating the database
+  * This version will by default be compatible with 20170726 and 20190225 schema to support blue/green.
+* DOC: Added page covering BoringCrypto integration for FIPS 140-2
+* ENH: Update Python based scripts to work with Python 2.7 and 3.x
+* ENH: Go Client now supports retrieving stream of revision
+* ENH: Version for major.minor is controlled from this changelog throughout the service
+* ENH: A background process will now check for files in the uploaded state to drain to S3
+* FIX: Fixed environment variable value reassignment on startup
+* FIX: Fixed CRUD of useraocache records in database and related errors preventing user access
+* FIX: Connecting to AAC now picks a random member instead of always defaulting to the first found
+* FIX: Background write attempts to drain file to permanent storage no longer use excessive CPU
+* FIX: Cache watermark is now threshold percent, and added support for file sleep to reduce CPU exhaustion
+* FIX: Refactored calls for cache purge iteration to improve performance
+* FIX: Fixed stats reporting of cpu and memory allocation to accurately reflect usage and whats reserved
+* CFG: New environment variables for customizing LRU cache settings `OD_USERAOCACHE_LRU_TIME`, `OD_USERAOCACHE_TIMEOUT`
+* CFG: New environment variables to control use of peer instances in cluster `OD_PEER_ENABLED`
+* CFG: New environment variable for constraining file cache `OD_CACHE_FILELIMIT`
+* CFG: New environment variable for cache boundaries `OD_CACHE_LOWTHRESHOLDPERCENT`, `OD_CACHE_HIGHTHRESHOLDPERCENT`
+* CFG: New environment variable to force sleeping between file checks during cache purge iteration `OD_CACHE_FILESLEEP`
+* TST: Adding centos7 docker container to fullstack to test run on centos7
+* TST: Adding quadinstance-docker-compose.yml with 2 aacs
+* TST: Tested with 30000+ unique ACMS and 4 instances in a cluster.
 
 ## Release v1.0.19 (February 20, 2019)
 ---------------------
@@ -407,8 +434,8 @@ FORMAT: 1A
 * FIX: odrive-database migration script 2-down fixed
 * DOC: API Documentation updated to reflect changes to Create/Update object, responses, improved URI examples, and search filtering.
 * NEW: Search and List operations support AND filters in addition to default OR
-* NEW: Update Object request supports passing updated permissions in new 1.1 format
-* NEW: Create Object request supports providing permissions in new 1.1 format
+* NEW: Update Object request supports passing updated permissions in new 1.0.1.16 format
+* NEW: Create Object request supports providing permissions in new 1.0.1.16 format
 
 ## Release v1.0.1.5 (October 11, 2016)
 ----------------

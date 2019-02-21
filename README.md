@@ -170,9 +170,11 @@ Building documentation requires dot to be installed.
 
 #### Mac
 
-This may be present by default?
+For Mac, can use brew as follows
 
-If not, there's probably a way to do in brew. If you find this to be the case, please log an issue to update this README
+```
+brew install graphviz
+```
 
 #### Linux
 
@@ -390,7 +392,6 @@ OD_SERVER_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/se
 OD_SERVER_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.cert.pem
 OD_SERVER_CIPHERS=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA
 OD_SERVER_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.key.pem
-OD_ZK_ANNOUNCE=/cte/service/object-drive/1.0
 OD_ZK_AAC=/cte/service/aac/1.2/thrift
 ```
 
@@ -465,6 +466,11 @@ are built and running.  Run the following from the root of the project
 go test ./... -count 1 -timeout 300m
 ```
 This will take a few minutes to run. 
+
+The APISample.html will be modified when running tests. You SHOULD run tests and commit this
+file when opening a pull request so that it can be bundled in documentation as samples since
+the current CI/CD solution does not run tests.
+
 The default timeout for go tests is 5 minutes so we told it to take 300 minutes here.
 
 
@@ -549,13 +555,14 @@ Documentation and binaries will be built inside the container.
 An RPM will be built, owned by root with the following naming pattern
 `object-drive-{major}.{minor}-{version}-{buildnumber}.{YYYY}{MM}{DD}.x86_64.rpm`
 
-For example: object-drive-1.0-v1.0.19-SNAPSHOT.20190128.x86_64.rpm
+For example: object-drive-1.1-v1.1.0-SNAPSHOT.20190225.x86_64.rpm
 
-The makerpm script supports passing arguments to specify the version and build number used for the
-package and filename.  For example, to make an RPM as version 1.0.9 and build 2600, you can call
+The makerpm script supports passing arguments to specify the version, build number, and tag version
+used for the package and filename.  For example, to make an RPM as version 1.1.0 and build 2600, 
+and tag you can call
 
 ```
-./makerpm 1.0.9 2600
+./makerpm 1.1.0 2600 v1.1.0b4
 ```
 
 When no arguments are given, the version number is taken by parsing the top most release entry

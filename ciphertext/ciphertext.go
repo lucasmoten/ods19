@@ -1,12 +1,15 @@
 package ciphertext
 
 import (
+	"crypto/rand"
 	"crypto/tls"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -19,7 +22,7 @@ import (
 var (
 	// PeerSignifier indicates an identifer to use for identifying that the request is from a peer instance. It should be a value
 	// that will not be presented as the user id from normal PKI connections which are distinguished names.
-	// Leave this alone!  We are blocking direct access to this endpoing by setting it to something that can't be a DN.
+	// Leave this alone!  We are blocking direct access to this endpoint by setting it to something that can't be a DN.
 	// It has to be the same for all peers.  If we needed it, real identifier is the cert DN which is set on
 	// the user context for other values.  It CANNOT be associated with a particular user, because background processes will
 	// do this on behalf of nobody in particular.
@@ -40,6 +43,13 @@ type PeerMapData struct {
 	CA      string
 	Cert    string
 	CertKey string
+}
+
+// CreateRandomName gives each file a random name
+func CreateRandomName() string {
+	key := make([]byte, 26)
+	rand.Read(key)
+	return hex.EncodeToString(key)
 }
 
 // ScheduleSetPeers sets a new peer set - there is only one thread that calls this
@@ -86,15 +96,15 @@ func NewTLSClientConn(trustPath, certPath, keyPath, serverName, host, port strin
 	}, nil
 }
 
-// UseLocalFile returns a handle to either the .cached file or .uploaded file
+// UseLocalFile returns a handle to either the FileStateCached file or FileStateUploaded file
 //  It is the caller's responsibility to close the file handle
 func UseLocalFile(logger *zap.Logger, d CiphertextCache, rName FileId, cipherStartAt int64) (*os.File, int64, error) {
 	var cipherFile *os.File
 	var err error
 	var length int64
 
-	cipherFilePathUploaded := d.Resolve(NewFileName(rName, ".uploaded"))
-	cipherFilePathCached := d.Resolve(NewFileName(rName, ".cached"))
+	cipherFilePathUploaded := d.Resolve(NewFileName(rName, FileStateUploaded))
+	cipherFilePathCached := d.Resolve(NewFileName(rName, FileStateCached))
 
 	//Try the uploaded file
 	info, ierr := d.Files().Stat(cipherFilePathUploaded)
@@ -125,7 +135,7 @@ func UseLocalFile(logger *zap.Logger, d CiphertextCache, rName FileId, cipherSta
 	}
 	//Update the timestamps to note the last time it was used
 	// This is done here, as well as successful end just in case of failures midstream.
-	tm := time.Now()
+	tm := time.Now().UTC()
 	d.Files().Chtimes(cipherFilePathCached, tm, tm)
 
 	return cipherFile, length, nil
@@ -136,6 +146,9 @@ func UseLocalFile(logger *zap.Logger, d CiphertextCache, rName FileId, cipherSta
 //
 // It is the CALLER's responsibility to close io.ReadCloser !!
 func useP2PFile(logger *zap.Logger, zone CiphertextCacheZone, rName FileId, begin int64) (io.ReadCloser, error) {
+	if strings.ToLower(os.Getenv(config.OD_PEER_ENABLED)) != "true" {
+		return nil, nil
+	}
 	//Iterate over the current value of peerMap.  Do NOT lock this loop, as there is long IO in here.
 	connectionMapMutex.RLock()
 	thisMap := peerMap

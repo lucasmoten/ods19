@@ -142,9 +142,9 @@ func (fake *FakeDAO) GetDatabase() *sqlx.DB {
 
 // GetDBState for FakeDAO
 func (fake *FakeDAO) GetDBState() (models.DBState, error) {
-	fake.DBState.SchemaVersion = SchemaVersion
+	fake.DBState.SchemaVersion = SchemaVersionsSupported[0]
 	fake.DBState.Identifier = "fake"
-	fake.DBState.CreateDate = time.Now()
+	fake.DBState.CreateDate = time.Now().UTC()
 	return fake.DBState, fake.Err
 }
 
@@ -258,8 +258,8 @@ func (fake *FakeDAO) GetRootObjectsWithPropertiesByUser(user models.ODUser, pagi
 	return fake.ObjectResultSet, fake.Err
 }
 
-// GetOpenConnections for FakeDAO
-func (fake *FakeDAO) GetOpenConnections() int {
+// GetOpenConnectionCount for FakeDAO
+func (fake *FakeDAO) GetOpenConnectionCount() int {
 	return 0
 }
 

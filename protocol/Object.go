@@ -68,7 +68,7 @@ type Object struct {
 	// This might be null.  It could have a large list of permission objects
 	// relevant to this file (ie: shared with an organization)
 	Permissions []Permission1_0 `json:"permissions,omitempty"`
-	// Permission is the API 1.1+ version for providing permissions for users and groups with a resource and capability driven approach
+	// Permission is the API 1.0.1.16+ version for providing permissions for users and groups with a resource and capability driven approach
 	Permission Permission `json:"permission,omitempty"`
 	// Breadcrumbs is an array of Breadcrumb that may be returned on some API calls.
 	// Clients can use breadcrumbs to display a list of parents. The top-level

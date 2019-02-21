@@ -31,11 +31,11 @@
 		<h2>Table Of Contents</h2><ul><li><a href="#483716164">Change Owner for Object</a></li><li><a href="#2000488170">CORS Pre-flight check</a></li><li><a href="#2623193993">Create Object owned by group</a></li><li><a href="#2374969519">Share to new user that may use odrive in the future</a></li><li><a href="#2116130772">Create Object shared to new user on create with resource string format</a></li><li><a href="#981325595">Create Object having stream with explicit permissions set using new permission format</a></li><li><a href="#2569267939">Delete a folder</a></li><li><a href="#1391618934">Bulk Move Objects to a new Parent</a></li><li><a href="#1001142759">Empty (Expunge) Trash</a></li><li><a href="#1046142755">Bulk Retrieve Object Properties</a></li><li><a href="#994442692">Client Caching using ETag</a></li><li><a href="#890140790">Range Request a file</a></li><li><a href="#1738951136">Zip a Collection of Files by IDs</a></li><li><a href="#3468999796">List Root Objects for a Group</a></li><li><a href="#3497412442">Create Classified File About Grey Aliens</a></li><li><a href="#1467011862">Declassify File About Grey Aliens</a></li><li><a href="#1105457739">Show Revisions on Declassified File About Grey Aliens Who Has Clearance</a></li><li><a href="#2339528389">Show Revisions on Declassified File About Grey Aliens</a></li><li><a href="#3833738823">List Root Objects for User</a></li><li><a href="#1634256523">Move Object</a></li><li><a href="#3233016391">Undelete/Restore a file from trash</a></li><li><a href="#2490985143">Modify Object Property</a></li><li><a href="#1017150633">Update the stream of an existing object</a></li><li><a href="#3766955599">Modify Object Properties</a></li><li><a href="#959183600">Update Object With New Property</a></li><li><a href="#3834796447">Update Object Change Property Value</a></li></ul><br/><h2 id=483716164>Change Owner for Object</h2>
 Transfer object ownership to a different user or group
 <pre class="request">
-POST /services/object-drive/1.0/objects/11e935329da51a24975d0242ac120005/owner/group/dctc/DCTC/ODrive_G1/DCTC%20ODrive_G1 HTTP/1.1
+POST /services/object-drive/1.0/objects/11e955640d77eef8870d0242ac120005/owner/group/dctc/DCTC/ODrive_G1/DCTC%20ODrive_G1 HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
-{"changeToken":"c192b15a2af3ea5bbb1a4b195f329523"}</pre>
+{"changeToken":"3bd61e12711b4010976e8ff9039f3555"}</pre>
 Ownership changed to designated resource, and moved to root
 <pre class="response">
 HTTP/1.1 200 OK
@@ -43,25 +43,25 @@ Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:11:52 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:26:22 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: d31c8c7e
+Session-Id: 61e17192
 Vary: Origin
 
 cf2
 {
-  "id": "11e935329da51a24975d0242ac120005",
-  "createdDate": "2019-02-20T17:11:52.098883Z",
+  "id": "11e955640d77eef8870d0242ac120005",
+  "createdDate": "2019-04-02T16:26:22.256359Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-20T17:11:52.499992Z",
+  "modifiedDate": "2019-04-02T16:26:22.495852Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-  "changeToken": "1d4ce2e6fa6a28d31ba8fd078a6b519b",
+  "changeToken": "0c0bdb149a44e1326e9704e028b4b7e7",
   "ownedBy": "group/dctc/dctc/odrive_g1",
-  "typeId": "11e93532817fafc4975d0242ac120005",
+  "typeId": "11e95564015f9667870d0242ac120005",
   "typeName": "Folder",
   "name": "Test ChangeOwner to Group",
   "description": "",
@@ -170,8 +170,8 @@ cf2
     },
     "share": {
       "allow": [
-        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-        "group/dctc/dctc/odrive_g1"
+        "group/dctc/dctc/odrive_g1",
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
       ]
     }
   },
@@ -201,10 +201,10 @@ Access-Control-Max-Age: 600
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: text/plain; charset=utf-8
-Date: Wed, 20 Feb 2019 17:11:56 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:26:23 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: 5d614efd
+Session-Id: e9e53da1
 Vary: Origin
 X-Content-Type-Options: nosniff
 
@@ -258,25 +258,25 @@ Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:12:01 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:26:25 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: ba39775e
+Session-Id: 25ee5a68
 Vary: Origin
 
 8fe
 {
-  "id": "11e93532a369c842975d0242ac120005",
-  "createdDate": "2019-02-20T17:12:01.776493Z",
+  "id": "11e955640f75da9a870d0242ac120005",
+  "createdDate": "2019-04-02T16:26:25.598126Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-20T17:12:01.776493Z",
+  "modifiedDate": "2019-04-02T16:26:25.598126Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 0,
-  "changeToken": "fe9164b9a0b051edde3a11ffe09e25aa",
+  "changeToken": "3738dc739e1de26c0fbe7020c20c9079",
   "ownedBy": "group/dctc/dctc/odrive",
-  "typeId": "11e9353281c52b07975d0242ac120005",
+  "typeId": "11e955640196a552870d0242ac120005",
   "typeName": "",
   "name": "TestCreateWithPermissionsOwnedBy",
   "description": "",
@@ -377,7 +377,7 @@ Vary: Origin
 <h2 id=2374969519>Share to new user that may use odrive in the future</h2>
 Share file owned by tester 2 from tester 10 to tester 11
 <pre class="request">
-POST /services/object-drive/1.0/shared/11e93532a4e4264a975d0242ac120005 HTTP/1.1
+POST /services/object-drive/1.0/shared/11e955640fe889ae870d0242ac120005 HTTP/1.1
 Host: proxier:8080
 
 {
@@ -399,25 +399,25 @@ Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:12:04 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:26:26 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: 848666f3
+Session-Id: db87cac4
 Vary: Origin
 
 f90
 {
-  "id": "11e93532a4e4264a975d0242ac120005",
-  "createdDate": "2019-02-20T17:12:04.25607Z",
+  "id": "11e955640fe889ae870d0242ac120005",
+  "createdDate": "2019-04-02T16:26:26.349804Z",
   "createdBy": "cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-20T17:12:04.519077Z",
+  "modifiedDate": "2019-04-02T16:26:26.49575Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-  "changeToken": "b702a117d18a313245d9fd888d3aee26",
+  "changeToken": "b1704eb9ffa11929694a90340dd8f28f",
   "ownedBy": "user/cn=test tester02,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e9353281c52b07975d0242ac120005",
+  "typeId": "11e955640196a552870d0242ac120005",
   "typeName": "",
   "name": "TestCreateWithPermissionsNewUser2",
   "description": "",
@@ -571,25 +571,25 @@ Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:12:04 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:26:26 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: e47212b2
+Session-Id: 2813e2cd
 Vary: Origin
 
-ceb
+ce9
 {
-  "id": "11e93532a536fafd975d0242ac120005",
-  "createdDate": "2019-02-20T17:12:04.79893Z",
+  "id": "11e955641014f15e870d0242ac120005",
+  "createdDate": "2019-04-02T16:26:26.6408Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-20T17:12:04.79893Z",
+  "modifiedDate": "2019-04-02T16:26:26.6408Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 0,
-  "changeToken": "f8cfcd53a96d9ab76db70ff6f83f5fe6",
+  "changeToken": "e4b706dc1edc8107dc7338aa3c3f371a",
   "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e9353281c52b07975d0242ac120005",
+  "typeId": "11e955640196a552870d0242ac120005",
   "typeName": "",
   "name": "TestCreateWithPermissionsNewUser3",
   "description": "",
@@ -704,9 +704,9 @@ ceb
 <pre class="request">
 POST /services/object-drive/1.0/objects HTTP/1.1
 Host: proxier:8080
-Content-Type: multipart/form-data; boundary=68890ec743cfbb458a6d076c7e7b7e74d41c59c3b275d6268da0f68bd232
+Content-Type: multipart/form-data; boundary=f1491616280cb60cf8aeecf34286c9fde254ae68b1d4c7e2f1a5202afdfb
 
---68890ec743cfbb458a6d076c7e7b7e74d41c59c3b275d6268da0f68bd232
+--f1491616280cb60cf8aeecf34286c9fde254ae68b1d4c7e2f1a5202afdfb
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
@@ -741,12 +741,12 @@ Content-Type: application/json
   "containsUSPersonsData": "",
   "exemptFromFOIA": ""
 }
---68890ec743cfbb458a6d076c7e7b7e74d41c59c3b275d6268da0f68bd232
+--f1491616280cb60cf8aeecf34286c9fde254ae68b1d4c7e2f1a5202afdfb
 Content-Disposition: form-data; name="filestream"; filename="initialTestData2.txt"
 Content-Type: application/octet-stream
 
 Initial test data 2
---68890ec743cfbb458a6d076c7e7b7e74d41c59c3b275d6268da0f68bd232--
+--f1491616280cb60cf8aeecf34286c9fde254ae68b1d4c7e2f1a5202afdfb--
 </pre>
 
 			The object should have have permissions put in according to what we explicitly set,
@@ -758,25 +758,25 @@ Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:14:11 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:26:46 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: c3d4c4a7
+Session-Id: ea7e269a
 Vary: Origin
 
 cf4
 {
-  "id": "11e93532f09278d1975d0242ac120005",
-  "createdDate": "2019-02-20T17:14:11.227712Z",
+  "id": "11e955641b9e9d5e870d0242ac120005",
+  "createdDate": "2019-04-02T16:26:45.997891Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-20T17:14:11.227712Z",
+  "modifiedDate": "2019-04-02T16:26:45.997891Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 0,
-  "changeToken": "8c7cad92424e1679a3eaa9e9ddc5c48f",
+  "changeToken": "8fa118d11595a31bd7206724b728695c",
   "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e9353281c52b07975d0242ac120005",
+  "typeId": "11e955640196a552870d0242ac120005",
   "typeName": "",
   "name": "TestCreateWithNewPermissions",
   "description": "",
@@ -870,14 +870,14 @@ cf4
     },
     "update": {
       "allow": [
-        "group/dctc/dctc/odrive",
-        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+        "group/dctc/dctc/odrive"
       ]
     },
     "delete": {
       "allow": [
-        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-        "group/dctc/dctc/odrive"
+        "group/dctc/dctc/odrive",
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
       ]
     },
     "share": {
@@ -894,11 +894,11 @@ cf4
 <h2 id=2569267939>Delete a folder</h2>
 Use a reference to the object to put it into the trash.
 <pre class="request">
-POST /services/object-drive/1.0/objects/11e935333c83b29d975d0242ac120005/trash HTTP/1.1
+POST /services/object-drive/1.0/objects/11e955644e8ee9df870d0242ac120005/trash HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
-{"changeToken":"581869814a1012b0872d3e05b5d062e4"}</pre>
+{"changeToken":"bda8b46229a616b023e3e65ec7df4886"}</pre>
 
 				The trashed object is still in the system, 
 				so that it may be removed from trash if necessary.
@@ -908,15 +908,15 @@ Content-Length: 247
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:16:18 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:28:11 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: 58b591df
+Session-Id: 3555a3ae
 Vary: Origin
 
 {
-  "id": "11e935333c83b29d975d0242ac120005",
-  "deletedDate": "2019-02-20T17:16:18.670039Z",
+  "id": "11e955644e8ee9df870d0242ac120005",
+  "deletedDate": "2019-04-02T16:28:11.490906Z",
   "callerPermission": {
     "allowCreate": false,
     "allowRead": true,
@@ -931,7 +931,7 @@ A list of object ids with change token and new parent
 POST /services/object-drive/1.0/objects/move HTTP/1.1
 Host: proxier:8080
 
-[{"id":"11e935334a0c079b975d0242ac120005","changeToken":"0c4ce7569a2c440d62bfc1f3fd7bc1bb","parentId":"11e9353349f26ee2975d0242ac120005"},{"id":"11e935334a25d741975d0242ac120005","changeToken":"e8bf4eb5c8c322da9c261cf7e65a6e18","parentId":"11e9353349f26ee2975d0242ac120005"},{"id":"11e935334a41e0ae975d0242ac120005","changeToken":"329e4e4738c3c9ca9d0f0b7a6ea57341","parentId":"11e9353349f26ee2975d0242ac120005"},{"id":"11e935334a5a851a975d0242ac120005","changeToken":"73688d5e456f683c96b042077eb80885","parentId":"11e9353349f26ee2975d0242ac120005"},{"id":"11e935334a748f66975d0242ac120005","changeToken":"c693a01db7c7d2651c091481630f712e","parentId":"11e9353349f26ee2975d0242ac120005"}]</pre>
+[{"id":"11e9556459d308cf870d0242ac120005","changeToken":"bf1a214185be8f2dba94b460adde5c15","parentId":"11e9556459cb9105870d0242ac120005"},{"id":"11e9556459d9e0c3870d0242ac120005","changeToken":"f5760d3d48f1246d4bb53697e30eaf24","parentId":"11e9556459cb9105870d0242ac120005"},{"id":"11e9556459dfe46e870d0242ac120005","changeToken":"a4b6716abd541ae3a4342499f530c735","parentId":"11e9556459cb9105870d0242ac120005"},{"id":"11e9556459e6a5e9870d0242ac120005","changeToken":"e88d650d12edd415bda1730f99518370","parentId":"11e9556459cb9105870d0242ac120005"},{"id":"11e9556459efe228870d0242ac120005","changeToken":"e61c7cf978dd8d9b8eb41fc80d6fcce2","parentId":"11e9556459cb9105870d0242ac120005"}]</pre>
 Any errors that happened
 <pre class="response">
 HTTP/1.1 200 OK
@@ -939,32 +939,32 @@ Content-Length: 387
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:16:42 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:28:31 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: 63e1e3a2
+Session-Id: 2c2ee107
 Status: √à
 Vary: Origin
 
 [
   {
-    "objectId": "11e935334a0c079b975d0242ac120005",
+    "objectId": "11e9556459d308cf870d0242ac120005",
     "code": 200
   },
   {
-    "objectId": "11e935334a25d741975d0242ac120005",
+    "objectId": "11e9556459d9e0c3870d0242ac120005",
     "code": 200
   },
   {
-    "objectId": "11e935334a41e0ae975d0242ac120005",
+    "objectId": "11e9556459dfe46e870d0242ac120005",
     "code": 200
   },
   {
-    "objectId": "11e935334a5a851a975d0242ac120005",
+    "objectId": "11e9556459e6a5e9870d0242ac120005",
     "code": 200
   },
   {
-    "objectId": "11e935334a748f66975d0242ac120005",
+    "objectId": "11e9556459efe228870d0242ac120005",
     "code": 200
   }
 ]</pre>
@@ -982,10 +982,10 @@ Content-Length: 26
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:16:48 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:28:33 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: cb44c888
+Session-Id: 9726b895
 Status: 200
 Vary: Origin
 
@@ -1000,12 +1000,12 @@ Host: proxier:8080
 
 {
   "objectIds": [
-    "11e935334ea2c52b975d0242ac120005",
-    "11e935334ebcb166975d0242ac120005",
-    "11e935334ed591af975d0242ac120005",
-    "11e935334eef9962975d0242ac120005",
-    "11e935334f079e2a975d0242ac120005",
-    "11e935334f21f97e975d0242ac120005"
+    "11e955645bbf37e0870d0242ac120005",
+    "11e955645bc6e527870d0242ac120005",
+    "11e955645bce514b870d0242ac120005",
+    "11e955645bd52ea0870d0242ac120005",
+    "11e955645bdc3a1c870d0242ac120005",
+    "11e955645be25392870d0242ac120005"
   ]
 }</pre>
 Response to getting objects in bulk
@@ -1015,14 +1015,14 @@ Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:16:50 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:28:33 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: 1ffb1313
+Session-Id: 39717af1
 Status: 200
 Vary: Origin
 
-541a
+5418
 {
   "totalRows": 6,
   "pageCount": 1,
@@ -1031,141 +1031,19 @@ Vary: Origin
   "pageRows": 0,
   "objects": [
     {
-      "id": "11e935334ea2c52b975d0242ac120005",
-      "createdDate": "2019-02-20T17:16:49.040335Z",
+      "id": "11e955645bbf37e0870d0242ac120005",
+      "createdDate": "2019-04-02T16:28:33.585745Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-20T17:16:49.040335Z",
+      "modifiedDate": "2019-04-02T16:28:33.585745Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-      "changeToken": "2a3e553067ad44fba7df45bcab9c4e50",
+      "changeToken": "3d2c161d6f20ae377c855a36125925f1",
       "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e93532817fafc4975d0242ac120005",
+      "typeId": "11e95564015f9667870d0242ac120005",
       "typeName": "Folder",
-      "name": "Test Folder for Update 1550683008",
-      "description": "",
-      "acm": {
-        "accms": [],
-        "atom_energy": [],
-        "banner": "UNCLASSIFIED",
-        "classif": "U",
-        "disp_only": "",
-        "disponly_to": [
-          ""
-        ],
-        "dissem_countries": [
-          "USA"
-        ],
-        "dissem_ctrls": [],
-        "f_accms": [],
-        "f_atom_energy": [],
-        "f_clearance": [
-          "u"
-        ],
-        "f_macs": [],
-        "f_missions": [],
-        "f_oc_org": [],
-        "f_regions": [],
-        "f_sar_id": [],
-        "f_sci_ctrls": [],
-        "f_share": [],
-        "fgi_open": [],
-        "fgi_protect": [],
-        "macs": [],
-        "non_ic": [],
-        "oc_attribs": [
-          {
-            "missions": [],
-            "orgs": [],
-            "regions": []
-          }
-        ],
-        "owner_prod": [],
-        "portion": "U",
-        "rel_to": [],
-        "sar_id": [],
-        "sci_ctrls": [],
-        "version": "2.1.0"
-      },
-      "contentType": "",
-      "contentSize": 0,
-      "contentHash": "",
-      "containsUSPersonsData": "Unknown",
-      "exemptFromFOIA": "Unknown",
-      "callerPermission": {
-        "allowCreate": true,
-        "allowRead": true,
-        "allowUpdate": true,
-        "allowDelete": true,
-        "allowShare": true
-      },
-      "permissions": [
-        {
-          "grantee": "_everyone",
-          "groupName": "-everyone",
-          "displayName": "-everyone",
-          "allowCreate": false,
-          "allowRead": true,
-          "allowUpdate": false,
-          "allowDelete": false,
-          "allowShare": false
-        },
-        {
-          "grantee": "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
-          "userDistinguishedName": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-          "displayName": "test tester10",
-          "allowCreate": true,
-          "allowRead": false,
-          "allowUpdate": true,
-          "allowDelete": true,
-          "allowShare": true
-        }
-      ],
-      "permission": {
-        "create": {
-          "allow": [
-            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
-          ]
-        },
-        "read": {
-          "allow": [
-            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-            "group/-everyone"
-          ]
-        },
-        "update": {
-          "allow": [
-            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
-          ]
-        },
-        "delete": {
-          "allow": [
-            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
-          ]
-        },
-        "share": {
-          "allow": [
-            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
-          ]
-        }
-      },
-      "isPDFAvailable": false
-    },
-    {
-      "id": "11e935334ebcb166975d0242ac120005",
-      "createdDate": "2019-02-20T17:16:49.210187Z",
-      "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-20T17:16:49.210187Z",
-      "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "deletedDate": "0001-01-01T00:00:00Z",
-      "deletedBy": "",
-      "changeCount": 0,
-      "changeToken": "8449609cd7b7bd5c5e76f59b958a8bb9",
-      "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e93532817fafc4975d0242ac120005",
-      "typeName": "Folder",
-      "name": "Test Folder for Update 1550683009",
+      "name": "Test Folder for Update 1554222513",
       "description": "",
       "acm": {
         "accms": [],
@@ -1275,19 +1153,19 @@ Vary: Origin
       "isPDFAvailable": false
     },
     {
-      "id": "11e935334ed591af975d0242ac120005",
-      "createdDate": "2019-02-20T17:16:49.373277Z",
+      "id": "11e955645bc6e527870d0242ac120005",
+      "createdDate": "2019-04-02T16:28:33.636137Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-20T17:16:49.373277Z",
+      "modifiedDate": "2019-04-02T16:28:33.636137Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-      "changeToken": "1279718b181d1b6d141b8baf4e199440",
+      "changeToken": "5ce50f04f9efc3c86540ec3abb1b398e",
       "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e93532817fafc4975d0242ac120005",
+      "typeId": "11e95564015f9667870d0242ac120005",
       "typeName": "Folder",
-      "name": "Test Folder for Update 1550683009",
+      "name": "Test Folder for Update 1554222513",
       "description": "",
       "acm": {
         "accms": [],
@@ -1397,19 +1275,19 @@ Vary: Origin
       "isPDFAvailable": false
     },
     {
-      "id": "11e935334eef9962975d0242ac120005",
-      "createdDate": "2019-02-20T17:16:49.543855Z",
+      "id": "11e955645bce514b870d0242ac120005",
+      "createdDate": "2019-04-02T16:28:33.684798Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-20T17:16:49.543855Z",
+      "modifiedDate": "2019-04-02T16:28:33.684798Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-      "changeToken": "5405032c6116a8f465f9a384198af088",
+      "changeToken": "1179d1cbfaab386961eb81e4fa598ff1",
       "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e93532817fafc4975d0242ac120005",
+      "typeId": "11e95564015f9667870d0242ac120005",
       "typeName": "Folder",
-      "name": "Test Folder for Update 1550683009",
+      "name": "Test Folder for Update 1554222513",
       "description": "",
       "acm": {
         "accms": [],
@@ -1519,19 +1397,19 @@ Vary: Origin
       "isPDFAvailable": false
     },
     {
-      "id": "11e935334f079e2a975d0242ac120005",
-      "createdDate": "2019-02-20T17:16:49.701276Z",
+      "id": "11e955645bd52ea0870d0242ac120005",
+      "createdDate": "2019-04-02T16:28:33.72972Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-20T17:16:49.701276Z",
+      "modifiedDate": "2019-04-02T16:28:33.72972Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-      "changeToken": "1908f72ba2501f4424c84e81f5a336f8",
+      "changeToken": "03e424e35aa7d4a4cd13c82f3474b613",
       "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e93532817fafc4975d0242ac120005",
+      "typeId": "11e95564015f9667870d0242ac120005",
       "typeName": "Folder",
-      "name": "Test Folder for Update 1550683009",
+      "name": "Test Folder for Update 1554222513",
       "description": "",
       "acm": {
         "accms": [],
@@ -1641,19 +1519,141 @@ Vary: Origin
       "isPDFAvailable": false
     },
     {
-      "id": "11e935334f21f97e975d0242ac120005",
-      "createdDate": "2019-02-20T17:16:49.874009Z",
+      "id": "11e955645bdc3a1c870d0242ac120005",
+      "createdDate": "2019-04-02T16:28:33.775966Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-20T17:16:49.874009Z",
+      "modifiedDate": "2019-04-02T16:28:33.775966Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-      "changeToken": "b4459933a592bcec35f530fde1497f99",
+      "changeToken": "cf57029853a83fc9be4d0fb1bcf7c006",
       "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e93532817fafc4975d0242ac120005",
+      "typeId": "11e95564015f9667870d0242ac120005",
       "typeName": "Folder",
-      "name": "Test Folder for Update 1550683009",
+      "name": "Test Folder for Update 1554222513",
+      "description": "",
+      "acm": {
+        "accms": [],
+        "atom_energy": [],
+        "banner": "UNCLASSIFIED",
+        "classif": "U",
+        "disp_only": "",
+        "disponly_to": [
+          ""
+        ],
+        "dissem_countries": [
+          "USA"
+        ],
+        "dissem_ctrls": [],
+        "f_accms": [],
+        "f_atom_energy": [],
+        "f_clearance": [
+          "u"
+        ],
+        "f_macs": [],
+        "f_missions": [],
+        "f_oc_org": [],
+        "f_regions": [],
+        "f_sar_id": [],
+        "f_sci_ctrls": [],
+        "f_share": [],
+        "fgi_open": [],
+        "fgi_protect": [],
+        "macs": [],
+        "non_ic": [],
+        "oc_attribs": [
+          {
+            "missions": [],
+            "orgs": [],
+            "regions": []
+          }
+        ],
+        "owner_prod": [],
+        "portion": "U",
+        "rel_to": [],
+        "sar_id": [],
+        "sci_ctrls": [],
+        "version": "2.1.0"
+      },
+      "contentType": "",
+      "contentSize": 0,
+      "contentHash": "",
+      "containsUSPersonsData": "Unknown",
+      "exemptFromFOIA": "Unknown",
+      "callerPermission": {
+        "allowCreate": true,
+        "allowRead": true,
+        "allowUpdate": true,
+        "allowDelete": true,
+        "allowShare": true
+      },
+      "permissions": [
+        {
+          "grantee": "_everyone",
+          "groupName": "-everyone",
+          "displayName": "-everyone",
+          "allowCreate": false,
+          "allowRead": true,
+          "allowUpdate": false,
+          "allowDelete": false,
+          "allowShare": false
+        },
+        {
+          "grantee": "cntesttester10oupeopleoudaeouchimeraou_s_governmentcus",
+          "userDistinguishedName": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+          "displayName": "test tester10",
+          "allowCreate": true,
+          "allowRead": false,
+          "allowUpdate": true,
+          "allowDelete": true,
+          "allowShare": true
+        }
+      ],
+      "permission": {
+        "create": {
+          "allow": [
+            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+          ]
+        },
+        "read": {
+          "allow": [
+            "group/-everyone",
+            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+          ]
+        },
+        "update": {
+          "allow": [
+            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+          ]
+        },
+        "delete": {
+          "allow": [
+            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+          ]
+        },
+        "share": {
+          "allow": [
+            "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+          ]
+        }
+      },
+      "isPDFAvailable": false
+    },
+    {
+      "id": "11e955645be25392870d0242ac120005",
+      "createdDate": "2019-04-02T16:28:33.815918Z",
+      "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+      "modifiedDate": "2019-04-02T16:28:33.815918Z",
+      "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+      "deletedDate": "0001-01-01T00:00:00Z",
+      "deletedBy": "",
+      "changeCount": 0,
+      "changeToken": "e13091dd88707c491b455cfacb8c8c40",
+      "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+      "typeId": "11e95564015f9667870d0242ac120005",
+      "typeName": "Folder",
+      "name": "Test Folder for Update 1554222513",
       "description": "",
       "acm": {
         "accms": [],
@@ -1770,7 +1770,7 @@ Vary: Origin
 <h2 id=994442692>Client Caching using ETag</h2>
 Use the ETag header sent back as If-none-match to get a 304 indicating that the content has not changed
 <pre class="request">
-GET /services/object-drive/1.0/objects/11e93533536dd2f2975d0242ac120005/stream HTTP/1.1
+GET /services/object-drive/1.0/objects/11e955645d2cc38b870d0242ac120005/stream HTTP/1.1
 Host: proxier:8080
 If-None-Match: "857cce23b6ba40d9a8330d9397981da58f5a8f413444c7a41c4201a1477651ef"
 
@@ -1787,13 +1787,13 @@ HTTP/1.1 304 Not Modified
 Accept-Ranges: bytes
 Classification-Banner: UNCLASSIFIED//FOUO
 Connection: keep-alive
-Content-Disposition: inline; filename="ae031c16f94c46caad556cc259d996c6"
+Content-Disposition: inline; filename="750537351fe343c7b75608870d324dbb"
 Content-Encrypted-At-Rest: TRUE
-Date: Wed, 20 Feb 2019 17:16:57 GMT
+Date: Tue, 02 Apr 2019 16:28:36 GMT
 Etag: "857cce23b6ba40d9a8330d9397981da58f5a8f413444c7a41c4201a1477651ef"
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: 473507dc
+Session-Id: c3692aac
 Vary: Origin
 X-Content-Type-Options: nosniff
 
@@ -1806,7 +1806,7 @@ X-Content-Type-Options: nosniff
 			both the web server and the browser while using a small amount of memory.
 			
 <pre class="request">
-GET /services/object-drive/1.0/objects/11e9353353b8a3a4975d0242ac120005/stream HTTP/1.1
+GET /services/object-drive/1.0/objects/11e955645d445b3a870d0242ac120005/stream HTTP/1.1
 Host: proxier:8080
 Range: bytes=5-34
 
@@ -1821,15 +1821,15 @@ Content-Length: 30
 Accept-Ranges: bytes
 Classification-Banner: UNCLASSIFIED//FOUO
 Connection: keep-alive
-Content-Disposition: inline; filename="9d4be6e954d0402ca9127bdc5e185995"
+Content-Disposition: inline; filename="a49649c861bf406090c42641a91cbb54"
 Content-Encrypted-At-Rest: TRUE
 Content-Range: bytes 5-34/64
 Content-Type: text/plain
-Date: Wed, 20 Feb 2019 17:16:57 GMT
+Date: Tue, 02 Apr 2019 16:28:36 GMT
 Etag: "857cce23b6ba40d9a8330d9397981da58f5a8f413444c7a41c4201a1477651ef"
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: e0b3a370
+Session-Id: 6f2ecb60
 Vary: Origin
 
 fghijklmnopqrstuvwxyzABCDEFGHI</pre>
@@ -1841,80 +1841,80 @@ Host: proxier:8080
 
 {
 "objectIds": [
-"11e935335c872d57975d0242ac120005",
-"11e935335cb24b6d975d0242ac120005",
-"11e935335cdc8696975d0242ac120005",
-"11e935335d06ccaa975d0242ac120005",
-"11e935335d2d5c4a975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d7f6fc6975d0242ac120005",
-"11e935335dab4ee4975d0242ac120005",
-"11e935335dd2f543975d0242ac120005",
-"11e935335dfc746a975d0242ac120005",
-"11e935335e237a35975d0242ac120005",
-"11e935335e75564f975d0242ac120005",
-"11e935335eaafd00975d0242ac120005",
-"11e935335ee1e1c9975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005",
-"11e935335d567e7f975d0242ac120005"
+"11e955645f779857870d0242ac120005",
+"11e955645f811755870d0242ac120005",
+"11e955645f8bb139870d0242ac120005",
+"11e955645f95b521870d0242ac120005",
+"11e955645f9f2c0f870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fb26fce870d0242ac120005",
+"11e955645fbc4600870d0242ac120005",
+"11e955645fc512e3870d0242ac120005",
+"11e955645fce40b5870d0242ac120005",
+"11e955645fd96e61870d0242ac120005",
+"11e955645fec46ea870d0242ac120005",
+"11e955645ff642b5870d0242ac120005",
+"11e9556460017acc870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005",
+"11e955645fa9674b870d0242ac120005"
 ],
 "fileName": "drive.zip",
 "disposition": "inline"
@@ -1927,32 +1927,32 @@ Connection: keep-alive
 Content-Disposition: inline; filename=drive.zip
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/zip
-Date: Wed, 20 Feb 2019 17:17:18 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:28:40 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: d671b793
+Session-Id: caa8be30
 Vary: Origin
 
 a5c
-PK    &äTN             	 mapdata1.txtUT òãm\lat=5,long=6PKá\u      PK    &äTN             	 mapdata2.txtUT òãm\lat=5,long=6PKá\u      PK    &äTN             	 mapdata5.txtUT ôãm\lat=5,long=6PKá\u      PK    'äTN             	 mapdata9.txtUT öãm\lat=5,long=6PKá\u      PK    'äTN             	 data.txtUT õãm\lat=5,long=6PKá\u      PK    'äTN             	 mapdata0.txtUT õãm\lat=5,long=6PKá\u      PK    &äTN             	 mapdata6.txtUT ôãm\lat=5,long=6PKá\u      PK    (äTN             	 classification_manifest(1).txtUT úãm\lat=5,long=6PKá\u      PK    &äTN             	 mapdata3.txtUT ôãm\lat=5,long=6PKá\u      PK    &äTN             	 mapdata4.txtUT ôãm\lat=5,long=6PKá\u      PK    'äTN             	 mapdata7.txtUT öãm\lat=5,long=6PKá\u      PK    'äTN             	 mapdata8.txtUT öãm\lat=5,long=6PKá\u      PK    'äTN             	 mapdata0(1).txtUT õãm\lat=5,long=6PKá\u      PK    &äTN             	 mapdata0(2).txtUT òãm\lat=5,long=6PKá\u      PK    )äTN             	 classification_manifest.txtUT ûãm\UNCLASSIFIED//FOUO
+PK    îÉÇN             	 mapdata3.txtUT ∏ç£\lat=5,long=6PKá\u      PK    îÉÇN             	 mapdata7.txtUT ∏ç£\lat=5,long=6PKá\u      PK    ìÉÇN             	 mapdata0.txtUT ∑ç£\lat=5,long=6PKá\u      PK    îÉÇN             	 mapdata6.txtUT ∏ç£\lat=5,long=6PKá\u      PK    îÉÇN             	 mapdata8.txtUT ∏ç£\lat=5,long=6PKá\u      PK    îÉÇN             	 data.txtUT ∏ç£\lat=5,long=6PKá\u      PK    ìÉÇN             	 mapdata2.txtUT ∑ç£\lat=5,long=6PKá\u      PK    îÉÇN             	 mapdata4.txtUT ∏ç£\lat=5,long=6PKá\u      PK    îÉÇN             	 mapdata0(1).txtUT ∏ç£\lat=5,long=6PKá\u      PK    îÉÇN             	 mapdata0(2).txtUT ∏ç£\lat=5,long=6PKá\u      PK    îÉÇN             	 classification_manifest(1).txtUT ∏ç£\lat=5,long=6PKá\u      PK    ìÉÇN             	 mapdata1.txtUT ∑ç£\lat=5,long=6PKá\u      PK    îÉÇN             	 mapdata5.txtUT ∏ç£\lat=5,long=6PKá\u      PK    îÉÇN             	 mapdata9.txtUT ∏ç£\lat=5,long=6PKá\u      PK    îÉÇN             	 classification_manifest.txtUT ∏ç£\UNCLASSIFIED//FOUO
 
-(U//FOUO) mapdata1.txt
-(U//FOUO) mapdata2.txt
-(U//FOUO) mapdata5.txt
-(U//FOUO) mapdata9.txt
-(U//FOUO) data.txt
+(U//FOUO) mapdata3.txt
+(U//FOUO) mapdata7.txt
 (U//FOUO) mapdata0.txt
 (U//FOUO) mapdata6.txt
-(U//FOUO) classification_manifest(1).txt
-(U//FOUO) mapdata3.txt
-(U//FOUO) mapdata4.txt
-(U//FOUO) mapdata7.txt
 (U//FOUO) mapdata8.txt
+(U//FOUO) data.txt
+(U//FOUO) mapdata2.txt
+(U//FOUO) mapdata4.txt
 (U//FOUO) mapdata0(1).txt
 (U//FOUO) mapdata0(2).txt
+(U//FOUO) classification_manifest(1).txt
+(U//FOUO) mapdata1.txt
+(U//FOUO) mapdata5.txt
+(U//FOUO) mapdata9.txt
 
 UNCLASSIFIED//FOUO
-PK˙≠∑I~  ~  PK    &äTNá\u       	         ÄÅ    mapdata1.txtUT òãm\PK    &äTNá\u       	         ÄÅO   mapdata2.txtUT òãm\PK    &äTNá\u       	         ÄÅû   mapdata5.txtUT ôãm\PK    'äTNá\u       	         ÄÅÌ   mapdata9.txtUT öãm\PK    'äTNá\u       	         ÄÅ<  data.txtUT õãm\PK    'äTNá\u       	         ÄÅá  mapdata0.txtUT õãm\PK    &äTNá\u       	         ÄÅ÷  mapdata6.txtUT ôãm\PK    (äTNá\u       	         ÄÅ%  classification_manifest(1).txtUT úãm\PK    &äTNá\u       	         ÄÅÜ  mapdata3.txtUT ôãm\PK    &äTNá\u       	         ÄÅ’  mapdata4.txtUT ôãm\PK    'äTNá\u       	         ÄÅ$  mapdata7.txtUT öãm\PK    'äTNá\u       	         ÄÅs  mapdata8.txtUT öãm\PK    'äTNá\u       	         ÄÅ¬  mapdata0(1).txtUT õãm\PK    &äTNá\u       	         ÄÅ  mapdata0(2).txtUT òãm\PK    )äTN˙≠∑I~  ~   	         ÄÅf  classification_manifest.txtUT ûãm\PK        6    
+PK´ë`ì~  ~  PK    îÉÇNá\u       	         ÄÅ    mapdata3.txtUT ∏ç£\PK    îÉÇNá\u       	         ÄÅO   mapdata7.txtUT ∏ç£\PK    ìÉÇNá\u       	         ÄÅû   mapdata0.txtUT ∑ç£\PK    îÉÇNá\u       	         ÄÅÌ   mapdata6.txtUT ∏ç£\PK    îÉÇNá\u       	         ÄÅ<  mapdata8.txtUT ∏ç£\PK    îÉÇNá\u       	         ÄÅã  data.txtUT ∏ç£\PK    ìÉÇNá\u       	         ÄÅ÷  mapdata2.txtUT ∑ç£\PK    îÉÇNá\u       	         ÄÅ%  mapdata4.txtUT ∏ç£\PK    îÉÇNá\u       	         ÄÅt  mapdata0(1).txtUT ∏ç£\PK    îÉÇNá\u       	         ÄÅ∆  mapdata0(2).txtUT ∏ç£\PK    îÉÇNá\u       	         ÄÅ  classification_manifest(1).txtUT ∏ç£\PK    ìÉÇNá\u       	         ÄÅy  mapdata1.txtUT ∑ç£\PK    îÉÇNá\u       	         ÄÅ»  mapdata5.txtUT ∏ç£\PK    îÉÇNá\u       	         ÄÅ  mapdata9.txtUT ∏ç£\PK    îÉÇN´ë`ì~  ~   	         ÄÅf  classification_manifest.txtUT ∏ç£\PK        6    
 0
 
 <span class="notshown">....</span>
@@ -1970,15 +1970,15 @@ Generate a file with high classification
 <pre class="request">
 POST /services/object-drive/1.0/objects HTTP/1.1
 Host: proxier:8080
-Content-Type: multipart/form-data; boundary=bbbd6baab8fb80494d063490626ceba91f5e8135882aeb83ecd4414603c3
+Content-Type: multipart/form-data; boundary=27a7ea422db6850f5a01e8cce4fd16c90023817c5173e485c29a7e30e416
 
---bbbd6baab8fb80494d063490626ceba91f5e8135882aeb83ecd4414603c3
+--27a7ea422db6850f5a01e8cce4fd16c90023817c5173e485c29a7e30e416
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
 {
   "typeName": "File",
-  "name": "b00d4795ac1c4813a6ca5596b761d51e",
+  "name": "6f3bdfcb973841daab4289fa1b541d6c",
   "description": "",
   "acm": {
     "accms": [],
@@ -2040,12 +2040,12 @@ Content-Type: application/json
   "containsUSPersonsData": "",
   "exemptFromFOIA": ""
 }
---bbbd6baab8fb80494d063490626ceba91f5e8135882aeb83ecd4414603c3
+--27a7ea422db6850f5a01e8cce4fd16c90023817c5173e485c29a7e30e416
 Content-Disposition: form-data; name="filestream"; filename="initialTestData1.txt"
 Content-Type: application/octet-stream
 
 Area 51 Gray Alien Xenu says: It's time!
---bbbd6baab8fb80494d063490626ceba91f5e8135882aeb83ecd4414603c3--
+--27a7ea422db6850f5a01e8cce4fd16c90023817c5173e485c29a7e30e416--
 </pre>
 The response shows the created file with populated metadata. Take note of classification and changecount
 <pre class="response">
@@ -2054,27 +2054,27 @@ Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:17:20 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:28:41 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: d7da2d5b
+Session-Id: 448c0159
 Vary: Origin
 
-ca3
+ca5
 {
-  "id": "11e93533611cd958975d0242ac120005",
-  "createdDate": "2019-02-20T17:17:20.03941Z",
+  "id": "11e9556460aa29fc870d0242ac120005",
+  "createdDate": "2019-04-02T16:28:41.836447Z",
   "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-20T17:17:20.03941Z",
+  "modifiedDate": "2019-04-02T16:28:41.836447Z",
   "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 0,
-  "changeToken": "88f8fd9c201e26ea439c7e8b8d4b2723",
+  "changeToken": "50d82ba46edb97918f00ae01a45d5174",
   "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e93532807f690f975d0242ac120005",
+  "typeId": "11e9556400c924d6870d0242ac120005",
   "typeName": "File",
-  "name": "b00d4795ac1c4813a6ca5596b761d51e",
+  "name": "6f3bdfcb973841daab4289fa1b541d6c",
   "description": "",
   "acm": {
     "accms": [],
@@ -2197,19 +2197,19 @@ ca3
 <h2 id=1467011862>Declassify File About Grey Aliens</h2>
 Lower the classification request
 <pre class="request">
-POST /services/object-drive/1.0/objects/11e93533611cd958975d0242ac120005/stream HTTP/1.1
+POST /services/object-drive/1.0/objects/11e9556460aa29fc870d0242ac120005/stream HTTP/1.1
 Host: proxier:8080
-Content-Type: multipart/form-data; boundary=ee9a03fd92c35300129fcc0c1a0b0994452f0b2db8421f6001ab90b800af
+Content-Type: multipart/form-data; boundary=1f40e4969954942ae7e2d52c098d8c316fb46cb4f318c48f10b46c2c50fd
 
---ee9a03fd92c35300129fcc0c1a0b0994452f0b2db8421f6001ab90b800af
+--1f40e4969954942ae7e2d52c098d8c316fb46cb4f318c48f10b46c2c50fd
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
 {
-  "id": "11e93533611cd958975d0242ac120005",
-  "changeToken": "88f8fd9c201e26ea439c7e8b8d4b2723",
+  "id": "11e9556460aa29fc870d0242ac120005",
+  "changeToken": "50d82ba46edb97918f00ae01a45d5174",
   "typeName": "File",
-  "name": "8c8fc2a86fbf44c1be3550cc2317e09f",
+  "name": "87606ca0447b4b19aa86d52ed41dab7b",
   "description": "",
   "acm": {
     "accms": [],
@@ -2266,12 +2266,12 @@ Content-Type: application/json
   "exemptFromFOIA": "",
   "recursiveShare": false
 }
---ee9a03fd92c35300129fcc0c1a0b0994452f0b2db8421f6001ab90b800af
+--1f40e4969954942ae7e2d52c098d8c316fb46cb4f318c48f10b46c2c50fd
 Content-Disposition: form-data; name="filestream"; filename="initialTestData1.txt"
 Content-Type: application/octet-stream
 
 **** ** **** ***** **** says: It's time!
---ee9a03fd92c35300129fcc0c1a0b0994452f0b2db8421f6001ab90b800af--
+--1f40e4969954942ae7e2d52c098d8c316fb46cb4f318c48f10b46c2c50fd--
 </pre>
 The response shows the updated file at a different classfication. Changecount and other internal core metadata have changed
 <pre class="response">
@@ -2280,27 +2280,27 @@ Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:17:20 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:28:41 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: 9e1fc573
+Session-Id: 0d792348
 Vary: Origin
 
-c6d
+c6e
 {
-  "id": "11e93533611cd958975d0242ac120005",
-  "createdDate": "2019-02-20T17:17:20.03941Z",
+  "id": "11e9556460aa29fc870d0242ac120005",
+  "createdDate": "2019-04-02T16:28:41.836447Z",
   "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-20T17:17:20.354983Z",
+  "modifiedDate": "2019-04-02T16:28:41.966253Z",
   "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-  "changeToken": "54fd395c76736a9ae66c1450c91ab404",
+  "changeToken": "d8e4d446bda3f7e2b62dbb428f8523b4",
   "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e93532807f690f975d0242ac120005",
+  "typeId": "11e9556400c924d6870d0242ac120005",
   "typeName": "File",
-  "name": "8c8fc2a86fbf44c1be3550cc2317e09f",
+  "name": "87606ca0447b4b19aa86d52ed41dab7b",
   "description": "",
   "acm": {
     "accms": [],
@@ -2389,8 +2389,8 @@ c6d
     },
     "read": {
       "allow": [
-        "group/-everyone",
-        "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+        "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+        "group/-everyone"
       ]
     },
     "update": {
@@ -2417,7 +2417,7 @@ c6d
 <h2 id=1105457739>Show Revisions on Declassified File About Grey Aliens Who Has Clearance</h2>
 Ask for revisions as a user who can see all the versions
 <pre class="request">
-GET /services/object-drive/1.0/revisions/11e93533611cd958975d0242ac120005 HTTP/1.1
+GET /services/object-drive/1.0/revisions/11e9556460aa29fc870d0242ac120005 HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
@@ -2429,13 +2429,13 @@ Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:17:21 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:28:42 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: c4807d6a
+Session-Id: 3f8a4bcc
 Vary: Origin
 
-1d7b
+1d7e
 {
   "totalRows": 2,
   "pageCount": 1,
@@ -2444,19 +2444,19 @@ Vary: Origin
   "pageRows": 2,
   "objects": [
     {
-      "id": "11e93533611cd958975d0242ac120005",
-      "createdDate": "2019-02-20T17:17:20.03941Z",
+      "id": "11e9556460aa29fc870d0242ac120005",
+      "createdDate": "2019-04-02T16:28:41.836447Z",
       "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-20T17:17:20.354983Z",
+      "modifiedDate": "2019-04-02T16:28:41.966253Z",
       "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 1,
-      "changeToken": "54fd395c76736a9ae66c1450c91ab404",
+      "changeToken": "d8e4d446bda3f7e2b62dbb428f8523b4",
       "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e93532807f690f975d0242ac120005",
+      "typeId": "11e9556400c924d6870d0242ac120005",
       "typeName": "File",
-      "name": "8c8fc2a86fbf44c1be3550cc2317e09f",
+      "name": "87606ca0447b4b19aa86d52ed41dab7b",
       "description": "",
       "acm": {
         "accms": [],
@@ -2568,19 +2568,19 @@ Vary: Origin
       "isPDFAvailable": false
     },
     {
-      "id": "11e93533611cd958975d0242ac120005",
-      "createdDate": "2019-02-20T17:17:20.03941Z",
+      "id": "11e9556460aa29fc870d0242ac120005",
+      "createdDate": "2019-04-02T16:28:41.836447Z",
       "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-20T17:17:20.03941Z",
+      "modifiedDate": "2019-04-02T16:28:41.836447Z",
       "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 0,
-      "changeToken": "88f8fd9c201e26ea439c7e8b8d4b2723",
+      "changeToken": "50d82ba46edb97918f00ae01a45d5174",
       "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e93532807f690f975d0242ac120005",
+      "typeId": "11e9556400c924d6870d0242ac120005",
       "typeName": "File",
-      "name": "b00d4795ac1c4813a6ca5596b761d51e",
+      "name": "6f3bdfcb973841daab4289fa1b541d6c",
       "description": "",
       "acm": {
         "accms": [],
@@ -2705,7 +2705,7 @@ Vary: Origin
 <h2 id=2339528389>Show Revisions on Declassified File About Grey Aliens</h2>
 Ask for revisions as a user who can only see the unclassified version
 <pre class="request">
-GET /services/object-drive/1.0/revisions/11e93533611cd958975d0242ac120005 HTTP/1.1
+GET /services/object-drive/1.0/revisions/11e9556460aa29fc870d0242ac120005 HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
@@ -2717,13 +2717,13 @@ Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:17:21 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:28:42 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: f18c419b
+Session-Id: 7f640fcc
 Vary: Origin
 
-ed2
+ed3
 {
   "totalRows": 1,
   "pageCount": 1,
@@ -2732,19 +2732,19 @@ ed2
   "pageRows": 1,
   "objects": [
     {
-      "id": "11e93533611cd958975d0242ac120005",
-      "createdDate": "2019-02-20T17:17:20.03941Z",
+      "id": "11e9556460aa29fc870d0242ac120005",
+      "createdDate": "2019-04-02T16:28:41.836447Z",
       "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-20T17:17:20.354983Z",
+      "modifiedDate": "2019-04-02T16:28:41.966253Z",
       "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "deletedDate": "0001-01-01T00:00:00Z",
       "deletedBy": "",
       "changeCount": 1,
-      "changeToken": "54fd395c76736a9ae66c1450c91ab404",
+      "changeToken": "d8e4d446bda3f7e2b62dbb428f8523b4",
       "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "typeId": "11e93532807f690f975d0242ac120005",
+      "typeId": "11e9556400c924d6870d0242ac120005",
       "typeName": "File",
-      "name": "8c8fc2a86fbf44c1be3550cc2317e09f",
+      "name": "87606ca0447b4b19aa86d52ed41dab7b",
       "description": "",
       "acm": {
         "accms": [],
@@ -2871,11 +2871,11 @@ Content-Type: application/json
 <h2 id=1634256523>Move Object</h2>
 Request that an object be moved to a new location
 <pre class="request">
-POST /services/object-drive/1.0/objects/11e935336bd24969975d0242ac120005/move/11e935336bb98c9a975d0242ac120005 HTTP/1.1
+POST /services/object-drive/1.0/objects/11e955647589d1e1870d0242ac120005/move/11e9556475828b92870d0242ac120005 HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
-{"changeToken":"29d8613bbfbc0c422f33b595f86ac2ca"}</pre>
+{"changeToken":"3179e02e7d3821fe5677888483ee89cb"}</pre>
 The object in its new location
 <pre class="response">
 HTTP/1.1 200 OK
@@ -2883,29 +2883,29 @@ Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:17:38 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:29:16 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: 9faa33e6
+Session-Id: a7a9de5c
 Vary: Origin
 
 cc4
 {
-  "id": "11e935336bd24969975d0242ac120005",
-  "createdDate": "2019-02-20T17:17:38.005683Z",
+  "id": "11e955647589d1e1870d0242ac120005",
+  "createdDate": "2019-04-02T16:29:16.856625Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-20T17:17:38.086602Z",
+  "modifiedDate": "2019-04-02T16:29:16.961735Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-  "changeToken": "3634dfa8335dcc85626d0fc8984f5f04",
+  "changeToken": "5587ba3ec8e932af1862eb24e3a12dea",
   "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e93532817fafc4975d0242ac120005",
+  "typeId": "11e95564015f9667870d0242ac120005",
   "typeName": "Folder",
-  "name": "Test Folder 2 1550683057",
+  "name": "Test Folder 2 1554222556",
   "description": "",
-  "parentId": "11e935336bb98c9a975d0242ac120005",
+  "parentId": "11e9556475828b92870d0242ac120005",
   "acm": {
     "accms": [],
     "atom_energy": [],
@@ -2991,8 +2991,8 @@ cc4
     },
     "read": {
       "allow": [
-        "group/-everyone",
-        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+        "group/-everyone"
       ]
     },
     "update": {
@@ -3013,9 +3013,9 @@ cc4
   },
   "breadcrumbs": [
     {
-      "id": "11e935336bb98c9a975d0242ac120005",
+      "id": "11e9556475828b92870d0242ac120005",
       "parentId": "",
-      "name": "Test Folder 1 1550683057"
+      "name": "Test Folder 1 1554222556"
     }
   ],
   "isPDFAvailable": false
@@ -3028,15 +3028,15 @@ We can use the id of a file to rescue it from the trash.
 <pre class="request">
 POST /services/object-drive/1.0/objects HTTP/1.1
 Host: proxier:8080
-Content-Type: multipart/form-data; boundary=9ef969d77851e72dd66e0fcfb8b3c81573e0cbedb56a117614c56cd6b172
+Content-Type: multipart/form-data; boundary=81ccda88ccae3eff070fe10bf3cfd3a8bd7a5d3bc7ca6196ece226e42187
 
---9ef969d77851e72dd66e0fcfb8b3c81573e0cbedb56a117614c56cd6b172
+--81ccda88ccae3eff070fe10bf3cfd3a8bd7a5d3bc7ca6196ece226e42187
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
 {
   "typeName": "File",
-  "name": "2fcb74ab546b4de59aa3660d3396bc69",
+  "name": "a84be67ea4fa41cba9366b3e22f6bc75",
   "description": "",
   "acm": {
     "accms": [],
@@ -3092,12 +3092,12 @@ Content-Type: application/json
   "containsUSPersonsData": "",
   "exemptFromFOIA": ""
 }
---9ef969d77851e72dd66e0fcfb8b3c81573e0cbedb56a117614c56cd6b172
+--81ccda88ccae3eff070fe10bf3cfd3a8bd7a5d3bc7ca6196ece226e42187
 Content-Disposition: form-data; name="filestream"; filename="testfilename.txt"
 Content-Type: application/octet-stream
 
 Deletes are hard. Undeletes are harder!
---9ef969d77851e72dd66e0fcfb8b3c81573e0cbedb56a117614c56cd6b172--
+--81ccda88ccae3eff070fe10bf3cfd3a8bd7a5d3bc7ca6196ece226e42187--
 </pre>
 This is the restored object.
 <pre class="response">
@@ -3106,27 +3106,27 @@ Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:18:15 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:29:49 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: d6c8c8aa
+Session-Id: f34100f0
 Vary: Origin
 
 c6e
 {
-  "id": "11e9353382575561975d0242ac120005",
-  "createdDate": "2019-02-20T17:18:15.787491Z",
+  "id": "11e9556489284d10870d0242ac120005",
+  "createdDate": "2019-04-02T16:29:49.771874Z",
   "createdBy": "cn=test tester06,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-20T17:18:15.787491Z",
+  "modifiedDate": "2019-04-02T16:29:49.771874Z",
   "modifiedBy": "cn=test tester06,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 0,
-  "changeToken": "01716b4bf1523a5698791bde62c792b7",
+  "changeToken": "1922f37644b157a23eb2d3db0c61cf83",
   "ownedBy": "user/cn=test tester06,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e93532807f690f975d0242ac120005",
+  "typeId": "11e9556400c924d6870d0242ac120005",
   "typeName": "File",
-  "name": "2fcb74ab546b4de59aa3660d3396bc69",
+  "name": "a84be67ea4fa41cba9366b3e22f6bc75",
   "description": "",
   "acm": {
     "accms": [],
@@ -3245,31 +3245,31 @@ c6e
 				Update a property.  It is required to pass in changeToken as proof that we have seen the latest version.
 				
 <pre class="request">
-POST /services/object-drive/1.0/objects/11e935338bc885f5975d0242ac120005/stream HTTP/1.1
+POST /services/object-drive/1.0/objects/11e955648c14da1c870d0242ac120005/stream HTTP/1.1
 Host: proxier:8080
-Content-Type: multipart/form-data; boundary=7dad34bbfe69dafa8de11e82566e1f120c251fef9e3a41f69c38adef30d2
+Content-Type: multipart/form-data; boundary=b4326baa0c424f2b5f3a8bb98d9641a9b3f62481b860651ff2ab908e1f94
 
---7dad34bbfe69dafa8de11e82566e1f120c251fef9e3a41f69c38adef30d2
+--b4326baa0c424f2b5f3a8bb98d9641a9b3f62481b860651ff2ab908e1f94
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
 
 {
-	  "id": "11e935338bc885f5975d0242ac120005",
+	  "id": "11e955648c14da1c870d0242ac120005",
       "description": "describeit",
 	  "acm": "{\"version\":\"2.1.0\",\"classif\":\"U\",\"owner_prod\":[],\"atom_energy\":[],\"sar_id\":[],\"sci_ctrls\":[],\"disponly_to\":[\"\"],\"dissem_ctrls\":[\"FOUO\"],\"non_ic\":[],\"rel_to\":[],\"fgi_open\":[],\"fgi_protect\":[],\"portion\":\"U//FOUO\",\"banner\":\"UNCLASSIFIED//FOUO\",\"dissem_countries\":[\"USA\"],\"accms\":[],\"macs\":[],\"oc_attribs\":[{\"orgs\":[],\"missions\":[],\"regions\":[]}],\"f_clearance\":[\"u\"],\"f_sci_ctrls\":[],\"f_accms\":[],\"f_oc_org\":[],\"f_regions\":[],\"f_missions\":[],\"f_share\":[],\"f_atom_energy\":[],\"f_macs\":[],\"disp_only\":\"\"}",
-	  "changeToken" : "2b70f2440e189218b3010bcceac3ab98",
+	  "changeToken" : "262e73decd8ca48decf9d41ffd67d362",
 	  "properties" : [
           {"name":"dogname", "value":"arf", "classificationPM":"U"}
       ]
 }
 
---7dad34bbfe69dafa8de11e82566e1f120c251fef9e3a41f69c38adef30d2
+--b4326baa0c424f2b5f3a8bb98d9641a9b3f62481b860651ff2ab908e1f94
 Content-Disposition: form-data; name="filestream"; filename="initialTestData3.txt"
 Content-Type: application/octet-stream
 
 Initial test data 3 asdf
---7dad34bbfe69dafa8de11e82566e1f120c251fef9e3a41f69c38adef30d2--
+--b4326baa0c424f2b5f3a8bb98d9641a9b3f62481b860651ff2ab908e1f94--
 </pre>
 
 				We get back an object with updated properties,
@@ -3280,27 +3280,27 @@ Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:18:31 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:29:54 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: a5cf1ab1
+Session-Id: d72b1ca9
 Vary: Origin
 
-e85
+e87
 {
-  "id": "11e935338bc885f5975d0242ac120005",
-  "createdDate": "2019-02-20T17:18:31.628735Z",
+  "id": "11e955648c14da1c870d0242ac120005",
+  "createdDate": "2019-04-02T16:29:54.677667Z",
   "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-20T17:18:31.966128Z",
+  "modifiedDate": "2019-04-02T16:29:54.824135Z",
   "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-  "changeToken": "fe5d890683c4ac993c176bc3205b61bb",
+  "changeToken": "90a5565a45cc468c6dc3bfb5f98ead9e",
   "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e93532807f690f975d0242ac120005",
+  "typeId": "11e9556400c924d6870d0242ac120005",
   "typeName": "File",
-  "name": "bd268ac8f3d34c29bf3d1697aa9550f7",
+  "name": "523cf9a7fcc24c8bad2754b76377d5e8",
   "description": "describeit",
   "acm": {
     "accms": [],
@@ -3354,13 +3354,13 @@ e85
   "exemptFromFOIA": "Unknown",
   "properties": [
     {
-      "id": "11e935338bfc2c4f975d0242ac120005",
-      "createdDate": "2019-02-20T17:18:31.96738Z",
+      "id": "11e955648c2b6e98870d0242ac120005",
+      "createdDate": "2019-04-02T16:29:54.825728Z",
       "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-20T17:18:31.96738Z",
+      "modifiedDate": "2019-04-02T16:29:54.825728Z",
       "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "changeCount": 0,
-      "changeToken": "cd0b106ab063caec1a119cb440e3b035",
+      "changeToken": "f10d2bb124418a814332a0fec4d4e695",
       "name": "dogname",
       "value": "arf",
       "classificationPM": "U"
@@ -3442,15 +3442,15 @@ e85
 <pre class="request">
 POST /services/object-drive/1.0/objects HTTP/1.1
 Host: proxier:8080
-Content-Type: multipart/form-data; boundary=1f8b56aa8165a92a304d7f29e2f41aaf44e93e1b445019075459bc5c6ff2
+Content-Type: multipart/form-data; boundary=43d48c23f669020ec7ac7934ff98df87777e3ff40dee02bcdd28f9cc5aa8
 
---1f8b56aa8165a92a304d7f29e2f41aaf44e93e1b445019075459bc5c6ff2
+--43d48c23f669020ec7ac7934ff98df87777e3ff40dee02bcdd28f9cc5aa8
 Content-Disposition: form-data; name="ObjectMetadata"
 Content-Type: application/json
 
 {
   "typeName": "File",
-  "name": "08b5b260e9ef4aa49d08b976467fe570",
+  "name": "af2b45e512a54bdb9f2b6979be131ed6",
   "description": "",
   "acm": {
     "banner": "UNCLASSIFIED//FOUO",
@@ -3484,12 +3484,12 @@ Content-Type: application/json
   "containsUSPersonsData": "",
   "exemptFromFOIA": ""
 }
---1f8b56aa8165a92a304d7f29e2f41aaf44e93e1b445019075459bc5c6ff2
+--43d48c23f669020ec7ac7934ff98df87777e3ff40dee02bcdd28f9cc5aa8
 Content-Disposition: form-data; name="filestream"; filename="initialTestData1.txt"
 Content-Type: application/octet-stream
 
-e8d57fb997cd442bbd8e66fd88579528
---1f8b56aa8165a92a304d7f29e2f41aaf44e93e1b445019075459bc5c6ff2--
+450f195b1dd54022a39935643a1857f0
+--43d48c23f669020ec7ac7934ff98df87777e3ff40dee02bcdd28f9cc5aa8--
 </pre>
 We get back an object with updated json changeToken and version
 <pre class="response">
@@ -3498,27 +3498,27 @@ Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:18:32 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:29:54 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: 559c5c49
+Session-Id: e0b78db5
 Vary: Origin
 
 b91
 {
-  "id": "11e935338c25a06b975d0242ac120005",
-  "createdDate": "2019-02-20T17:18:32.238955Z",
+  "id": "11e955648c37fe09870d0242ac120005",
+  "createdDate": "2019-04-02T16:29:54.907905Z",
   "createdBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-20T17:18:32.238955Z",
+  "modifiedDate": "2019-04-02T16:29:54.907905Z",
   "modifiedBy": "cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 0,
-  "changeToken": "8a2e576d6acb9136485a2b1b442a88ea",
+  "changeToken": "b963381c7c44b562342cc372ed00a6cc",
   "ownedBy": "user/cn=test tester05,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e93532807f690f975d0242ac120005",
+  "typeId": "11e9556400c924d6870d0242ac120005",
   "typeName": "File",
-  "name": "08b5b260e9ef4aa49d08b976467fe570",
+  "name": "af2b45e512a54bdb9f2b6979be131ed6",
   "description": "",
   "acm": {
     "accms": [],
@@ -3555,7 +3555,7 @@ b91
   },
   "contentType": "text/plain",
   "contentSize": 32,
-  "contentHash": "dae0e8912be1b0af461de821250dbee84d187e1654e6c64aa8131da7c99c9ab9",
+  "contentHash": "d094bcccdae0cb4a67cdcabc9c642d9aa89bceadbd18c63e1ad04ab890708b5a",
   "containsUSPersonsData": "Unknown",
   "exemptFromFOIA": "Unknown",
   "callerPermission": {
@@ -3623,13 +3623,13 @@ b91
 <h2 id=3766955599>Modify Object Properties</h2>
 Ask for updated properties
 <pre class="request">
-POST /services/object-drive/1.0/objects/11e935338d3e3334975d0242ac120005/properties HTTP/1.1
+POST /services/object-drive/1.0/objects/11e955648c90848d870d0242ac120005/properties HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
 
 {
-    "id": "11e935338d3e3334975d0242ac120005",
+    "id": "11e955648c90848d870d0242ac120005",
     "acm": {
         "f_missions": [],
         "fgi_open": [],
@@ -3705,7 +3705,7 @@ Content-Type: application/json
             ]
         }
     },
-    "changeToken": "6dfb9d6d31eed0a2c5ea6863e32242f6"
+    "changeToken": "593902c30cc381f6f13d5c9bc23cba2d"
 }
 </pre>
 Get response
@@ -3715,27 +3715,27 @@ Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:18:34 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:29:55 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: d1212781
+Session-Id: 8b9355e8
 Vary: Origin
 
 e8f
 {
-  "id": "11e935338d3e3334975d0242ac120005",
-  "createdDate": "2019-02-20T17:18:34.077718Z",
+  "id": "11e955648c90848d870d0242ac120005",
+  "createdDate": "2019-04-02T16:29:55.488079Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-20T17:18:34.442692Z",
+  "modifiedDate": "2019-04-02T16:29:55.564966Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-  "changeToken": "2351d30bdd742b4d488c7542e138533e",
+  "changeToken": "058a7620294abce52def2e1472a7d4b6",
   "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e93532817fafc4975d0242ac120005",
+  "typeId": "11e95564015f9667870d0242ac120005",
   "typeName": "Folder",
-  "name": "Test Folder for Update 1550683113",
+  "name": "Test Folder for Update 1554222595",
   "description": "",
   "acm": {
     "accms": [],
@@ -3837,8 +3837,8 @@ e8f
     },
     "delete": {
       "allow": [
-        "user/cn=ling chen,ou=people,ou=jitfct.twl,ou=six 3 systems,o=u.s. government,c=us",
-        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
+        "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
+        "user/cn=ling chen,ou=people,ou=jitfct.twl,ou=six 3 systems,o=u.s. government,c=us"
       ]
     },
     "share": {
@@ -3855,11 +3855,11 @@ e8f
 <h2 id=959183600>Update Object With New Property</h2>
 While updating the metadata for an object, include a dynamic property to be set
 <pre class="request">
-POST /services/object-drive/1.0/objects/11e9353392e7bc2d975d0242ac120005/properties HTTP/1.1
+POST /services/object-drive/1.0/objects/11e955648e1a90ac870d0242ac120005/properties HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
-{"id":"11e9353392e7bc2d975d0242ac120005","createdDate":"2019-02-20T17:18:43.577364Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-02-20T17:18:43.577364Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","deletedDate":"0001-01-01T00:00:00Z","deletedBy":"","changeCount":0,"changeToken":"4b7dc755714ef48f9cefe778a9d35e87","ownedBy":"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","typeId":"11e93532817fafc4975d0242ac120005","typeName":"Folder","name":"TestUpdateObjectProperty 1550683123","description":"","acm":{"accms":[],"atom_energy":[],"banner":"UNCLASSIFIED","classif":"U","disp_only":"","disponly_to":[""],"dissem_countries":["USA"],"dissem_ctrls":[],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":[],"fgi_open":[],"fgi_protect":[],"macs":[],"non_ic":[],"oc_attribs":[{"missions":[],"orgs":[],"regions":[]}],"owner_prod":[],"portion":"U","rel_to":[],"sar_id":[],"sci_ctrls":[],"version":"2.1.0"},"contentType":"","contentSize":0,"contentHash":"","containsUSPersonsData":"Unknown","exemptFromFOIA":"Unknown","properties":[{"id":"","createdDate":"0001-01-01T00:00:00Z","createdBy":"","modifiedDate":"0001-01-01T00:00:00Z","modifiedBy":"","changeCount":0,"changeToken":"","name":"custom-property","value":"property value 1","classificationPM":""}],"callerPermission":{"allowCreate":true,"allowRead":true,"allowUpdate":true,"allowDelete":true,"allowShare":true},"permissions":[{"grantee":"_everyone","groupName":"-everyone","displayName":"-everyone","allowCreate":false,"allowRead":true,"allowUpdate":false,"allowDelete":false,"allowShare":false},{"grantee":"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","userDistinguishedName":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","displayName":"test tester10","allowCreate":true,"allowRead":false,"allowUpdate":true,"allowDelete":true,"allowShare":true}],"permission":{"create":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"read":{"allow":["group/-everyone","user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"update":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"delete":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"share":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}},"isPDFAvailable":false}</pre>
+{"id":"11e955648e1a90ac870d0242ac120005","createdDate":"2019-04-02T16:29:58.070551Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-04-02T16:29:58.070551Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","deletedDate":"0001-01-01T00:00:00Z","deletedBy":"","changeCount":0,"changeToken":"d5ce1ca212d13e99b354f579b3e8f027","ownedBy":"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","typeId":"11e95564015f9667870d0242ac120005","typeName":"Folder","name":"TestUpdateObjectProperty 1554222598","description":"","acm":{"accms":[],"atom_energy":[],"banner":"UNCLASSIFIED","classif":"U","disp_only":"","disponly_to":[""],"dissem_countries":["USA"],"dissem_ctrls":[],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":[],"fgi_open":[],"fgi_protect":[],"macs":[],"non_ic":[],"oc_attribs":[{"missions":[],"orgs":[],"regions":[]}],"owner_prod":[],"portion":"U","rel_to":[],"sar_id":[],"sci_ctrls":[],"version":"2.1.0"},"contentType":"","contentSize":0,"contentHash":"","containsUSPersonsData":"Unknown","exemptFromFOIA":"Unknown","properties":[{"id":"","createdDate":"0001-01-01T00:00:00Z","createdBy":"","modifiedDate":"0001-01-01T00:00:00Z","modifiedBy":"","changeCount":0,"changeToken":"","name":"custom-property","value":"property value 1","classificationPM":""}],"callerPermission":{"allowCreate":true,"allowRead":true,"allowUpdate":true,"allowDelete":true,"allowShare":true},"permissions":[{"grantee":"_everyone","groupName":"-everyone","displayName":"-everyone","allowCreate":false,"allowRead":true,"allowUpdate":false,"allowDelete":false,"allowShare":false},{"grantee":"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","userDistinguishedName":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","displayName":"test tester10","allowCreate":true,"allowRead":false,"allowUpdate":true,"allowDelete":true,"allowShare":true}],"permission":{"create":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"read":{"allow":["group/-everyone","user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"update":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"delete":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"share":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}},"isPDFAvailable":false}</pre>
 Resulting object includes property
 <pre class="response">
 HTTP/1.1 200 OK
@@ -3867,27 +3867,27 @@ Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:18:43 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:29:58 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: 80558ff9
+Session-Id: 919364cd
 Vary: Origin
 
 e2d
 {
-  "id": "11e9353392e7bc2d975d0242ac120005",
-  "createdDate": "2019-02-20T17:18:43.577364Z",
+  "id": "11e955648e1a90ac870d0242ac120005",
+  "createdDate": "2019-04-02T16:29:58.070551Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-20T17:18:43.835081Z",
+  "modifiedDate": "2019-04-02T16:29:58.132338Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 1,
-  "changeToken": "d28879495313a3bed77481b4da06c4b9",
+  "changeToken": "ca036ed9ae290e058f53aea9995f5642",
   "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e93532817fafc4975d0242ac120005",
+  "typeId": "11e95564015f9667870d0242ac120005",
   "typeName": "Folder",
-  "name": "TestUpdateObjectProperty 1550683123",
+  "name": "TestUpdateObjectProperty 1554222598",
   "description": "",
   "acm": {
     "accms": [],
@@ -3939,13 +3939,13 @@ e2d
   "exemptFromFOIA": "Unknown",
   "properties": [
     {
-      "id": "11e93533930f4b59975d0242ac120005",
-      "createdDate": "2019-02-20T17:18:43.836727Z",
+      "id": "11e955648e242f28870d0242ac120005",
+      "createdDate": "2019-04-02T16:29:58.133679Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-20T17:18:43.836727Z",
+      "modifiedDate": "2019-04-02T16:29:58.133679Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "changeCount": 0,
-      "changeToken": "b0f87d6df9882197b43084512da63874",
+      "changeToken": "26737ebf11065fbae810ead7df6e7d70",
       "name": "custom-property",
       "value": "property value 1",
       "classificationPM": ""
@@ -4016,11 +4016,11 @@ e2d
 <h2 id=3834796447>Update Object Change Property Value</h2>
 While updating the metadata for an object, change value of already existing dynamic property
 <pre class="request">
-POST /services/object-drive/1.0/objects/11e9353392e7bc2d975d0242ac120005/properties HTTP/1.1
+POST /services/object-drive/1.0/objects/11e955648e1a90ac870d0242ac120005/properties HTTP/1.1
 Host: proxier:8080
 Content-Type: application/json
 
-{"id":"11e9353392e7bc2d975d0242ac120005","createdDate":"2019-02-20T17:18:43.577364Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-02-20T17:18:43.835081Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","deletedDate":"0001-01-01T00:00:00Z","deletedBy":"","changeCount":1,"changeToken":"d28879495313a3bed77481b4da06c4b9","ownedBy":"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","typeId":"11e93532817fafc4975d0242ac120005","typeName":"Folder","name":"TestUpdateObjectProperty 1550683123","description":"","acm":{"accms":[],"atom_energy":[],"banner":"UNCLASSIFIED","classif":"U","disp_only":"","disponly_to":[""],"dissem_countries":["USA"],"dissem_ctrls":[],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":[],"fgi_open":[],"fgi_protect":[],"macs":[],"non_ic":[],"oc_attribs":[{"missions":[],"orgs":[],"regions":[]}],"owner_prod":[],"portion":"U","rel_to":[],"sar_id":[],"sci_ctrls":[],"version":"2.1.0"},"contentType":"","contentSize":0,"contentHash":"","containsUSPersonsData":"Unknown","exemptFromFOIA":"Unknown","properties":[{"id":"11e93533930f4b59975d0242ac120005","createdDate":"2019-02-20T17:18:43.836727Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-02-20T17:18:43.836727Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","changeCount":0,"changeToken":"b0f87d6df9882197b43084512da63874","name":"custom-property","value":"new property value","classificationPM":""}],"callerPermission":{"allowCreate":true,"allowRead":true,"allowUpdate":true,"allowDelete":true,"allowShare":true},"permissions":[{"grantee":"_everyone","groupName":"-everyone","displayName":"-everyone","allowCreate":false,"allowRead":true,"allowUpdate":false,"allowDelete":false,"allowShare":false},{"grantee":"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","userDistinguishedName":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","displayName":"test tester10","allowCreate":true,"allowRead":false,"allowUpdate":true,"allowDelete":true,"allowShare":true}],"permission":{"create":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"read":{"allow":["group/-everyone","user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"update":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"delete":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"share":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}},"isPDFAvailable":false}</pre>
+{"id":"11e955648e1a90ac870d0242ac120005","createdDate":"2019-04-02T16:29:58.070551Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-04-02T16:29:58.132338Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","deletedDate":"0001-01-01T00:00:00Z","deletedBy":"","changeCount":1,"changeToken":"ca036ed9ae290e058f53aea9995f5642","ownedBy":"user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","typeId":"11e95564015f9667870d0242ac120005","typeName":"Folder","name":"TestUpdateObjectProperty 1554222598","description":"","acm":{"accms":[],"atom_energy":[],"banner":"UNCLASSIFIED","classif":"U","disp_only":"","disponly_to":[""],"dissem_countries":["USA"],"dissem_ctrls":[],"f_accms":[],"f_atom_energy":[],"f_clearance":["u"],"f_macs":[],"f_missions":[],"f_oc_org":[],"f_regions":[],"f_sar_id":[],"f_sci_ctrls":[],"f_share":[],"fgi_open":[],"fgi_protect":[],"macs":[],"non_ic":[],"oc_attribs":[{"missions":[],"orgs":[],"regions":[]}],"owner_prod":[],"portion":"U","rel_to":[],"sar_id":[],"sci_ctrls":[],"version":"2.1.0"},"contentType":"","contentSize":0,"contentHash":"","containsUSPersonsData":"Unknown","exemptFromFOIA":"Unknown","properties":[{"id":"11e955648e242f28870d0242ac120005","createdDate":"2019-04-02T16:29:58.133679Z","createdBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","modifiedDate":"2019-04-02T16:29:58.133679Z","modifiedBy":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","changeCount":0,"changeToken":"26737ebf11065fbae810ead7df6e7d70","name":"custom-property","value":"new property value","classificationPM":""}],"callerPermission":{"allowCreate":true,"allowRead":true,"allowUpdate":true,"allowDelete":true,"allowShare":true},"permissions":[{"grantee":"_everyone","groupName":"-everyone","displayName":"-everyone","allowCreate":false,"allowRead":true,"allowUpdate":false,"allowDelete":false,"allowShare":false},{"grantee":"cntesttester10oupeopleoudaeouchimeraou_s_governmentcus","userDistinguishedName":"cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us","displayName":"test tester10","allowCreate":true,"allowRead":false,"allowUpdate":true,"allowDelete":true,"allowShare":true}],"permission":{"create":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"read":{"allow":["group/-everyone","user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"update":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"delete":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"share":{"allow":["user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]}},"isPDFAvailable":false}</pre>
 Resulting object shows property with new value
 <pre class="response">
 HTTP/1.1 200 OK
@@ -4028,27 +4028,27 @@ Transfer-Encoding: chunked
 Connection: keep-alive
 Content-Encrypted-At-Rest: TRUE
 Content-Type: application/json
-Date: Wed, 20 Feb 2019 17:18:44 GMT
-Odrive-Server: v1.0.19b4 build SNAPSHOT (c5102d87)
+Date: Tue, 02 Apr 2019 16:29:58 GMT
+Odrive-Server: 1.0.20b4 build SNAPSHOT (d94e5a68)
 Server: nginx/1.15.8
-Session-Id: d7a5f303
+Session-Id: 024e722e
 Vary: Origin
 
 e2f
 {
-  "id": "11e9353392e7bc2d975d0242ac120005",
-  "createdDate": "2019-02-20T17:18:43.577364Z",
+  "id": "11e955648e1a90ac870d0242ac120005",
+  "createdDate": "2019-04-02T16:29:58.070551Z",
   "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "modifiedDate": "2019-02-20T17:18:44.111319Z",
+  "modifiedDate": "2019-04-02T16:29:58.219757Z",
   "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
   "deletedDate": "0001-01-01T00:00:00Z",
   "deletedBy": "",
   "changeCount": 2,
-  "changeToken": "e9d716b2a6b7220622e7b20b10a361ad",
+  "changeToken": "0dfa34afde753d70811b24086e2d0f0c",
   "ownedBy": "user/cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-  "typeId": "11e93532817fafc4975d0242ac120005",
+  "typeId": "11e95564015f9667870d0242ac120005",
   "typeName": "Folder",
-  "name": "TestUpdateObjectProperty 1550683123",
+  "name": "TestUpdateObjectProperty 1554222598",
   "description": "",
   "acm": {
     "accms": [],
@@ -4100,13 +4100,13 @@ e2f
   "exemptFromFOIA": "Unknown",
   "properties": [
     {
-      "id": "11e935339339a305975d0242ac120005",
-      "createdDate": "2019-02-20T17:18:44.114243Z",
+      "id": "11e955648e32ba45870d0242ac120005",
+      "createdDate": "2019-04-02T16:29:58.229007Z",
       "createdBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
-      "modifiedDate": "2019-02-20T17:18:44.114243Z",
+      "modifiedDate": "2019-04-02T16:29:58.229007Z",
       "modifiedBy": "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us",
       "changeCount": 0,
-      "changeToken": "69592259ec8c068d4d0b1a3109d976af",
+      "changeToken": "91edb46574c1a1ac6a8f8f31527ca890",
       "name": "custom-property",
       "value": "new property value",
       "classificationPM": ""

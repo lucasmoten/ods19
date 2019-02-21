@@ -13,7 +13,6 @@ fi
 ARG_VERSION=${1}
 if [ ${#1} -eq 0 ]
 then
-  #ARG_VERSION=$(grep 'ODRIVE_VERSION:' circle.yml | awk '{ print $2}' | sed -e 's/^"//' -e 's/"$//')
   ARG_VERSION=$(grep -m 1 '## Release' changelog.md|awk '{print $3}')b4
   echo Version was not specified. Using $ARG_VERSION
 fi

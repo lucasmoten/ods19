@@ -3,9 +3,13 @@ package ciphertext
 import (
 	"fmt"
 	"io"
+	"os"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
+
+	"bitbucket.di2e.net/dime/object-drive-server/config"
 )
 
 const (
@@ -50,7 +54,7 @@ type Puller struct {
 	IsLocal bool
 	// IsP2P lets caller know that we should try P2P -- because we previously got a chunk from it
 	IsP2P bool
-	// This lets the caller know exactly where File was populated from.
+	// From lets the caller know exactly where File was populated from using the constants above.
 	// We use it to set a large chunk for non-PermanentStorage to make range requesting not pointlessly scrap and
 	// get a new File every 16MB; which is unfortunately necessary with s3manager due to holding things in memory.
 	From int
@@ -74,7 +78,7 @@ func (d *CiphertextCacheData) NewPuller(logger *zap.Logger, rName FileId, totalL
 
 	//look in permanent storage first
 	err := p.More(false)
-	if err != nil {
+	if err != nil && (strings.ToLower(os.Getenv(config.OD_PEER_ENABLED)) == "true") {
 		//This will find it in a peer if it wasn't already found
 		err = p.More(true)
 	}

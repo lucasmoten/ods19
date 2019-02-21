@@ -1,6 +1,6 @@
 FORMAT: 1A
 
-# Object Drive 1.0 
+# Object Drive
 
 <table style="width:100%;border:0px;padding:0px;border-spacing:0;border-collapse:collapse;font-family:Helvetica;font-size:10pt;vertical-align:center;"><tbody><tr><td style="padding:0px;font-size:10pt;">Version</td><td style="padding:0px;font-size:10pt;">--Version--</td><td style="width:20%;font-size:8pt;"> </td><td style="padding:0px;font-size:10pt;">Build</td><td style="padding:0px;font-size:10pt;">--BuildNumber--</td><td style="width:20%;font-size:8pt;"></td><td style="padding:0px;font-size:10pt;">Date</td><td style="padding:0px;font-size:10pt;">--BuildDate--</td></tr></tbody></table>
 
@@ -13,6 +13,7 @@ FORMAT: 1A
 + [Emitted Events documentation](static/templates/events.html)
 + [Environment](static/templates/environment.html)
 + [Changelog](static/templates/changelog.html)
++ [BoringCrypto](static/templates/boringcrypto.html)
 
 # Group Service Overview
 The Object Drive Service provides for secure storage and high performance retrieval of hierarchical folder organization of objects that are named, owned and managed by users and their groups.
@@ -80,14 +81,16 @@ The http level result of calling APIs that happens inside of SSL:
 A [client library](static/client.go) for projects using Go is available. It supports the following capabilities
 
 +	ChangeOwner - Ownership grants full CRUDS, and also controls who can change ownership or move an object
-+ CopyObject - Makes a full copy of an object including properties and whichever revisions the user can see and sets the calling user as the owner of the new object
++   CopyObject - Makes a full copy of an object including properties and whichever revisions the user can see and sets the calling user as the owner of the new object
 +	CreateObject - For file or folder creation, with and without content streams
 +	DeleteObject - Marks as deleted, sending the object to the trash
-+ ExpungeObject - Deletes the object. Not restorable from trash
++   ExpungeObject - Deletes the object. Not restorable from trash
 +	GetObject - Retrieves the properties of an object
 +	GetObjectStream - Retrieves the content stream / body of an object
 +	GetRevisions - Listing of object revisions
++   GetRevisionStream - Retrieves the content stream / body of a specific revision of an object
 +	MoveObject - Changes the parent reference for an object
++   RestoreRevision - Restores a prior revision as the current version without needing to upload the file
 +	Search - For listing objects at root, under a folder, and filters across all objects
 +	UpdateObject - Updating just the metadata and properties of an object
 +	UpdateObjectAndStream - Used when also need to update the content stream

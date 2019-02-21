@@ -16,6 +16,7 @@ type LayeredCache struct {
 	size        int64
 	deletables  chan *Item
 	promotables chan *Item
+	donec       chan struct{}
 }
 
 // Create a new layered cache with the specified configuration.
@@ -38,15 +39,22 @@ func Layered(config *Configuration) *LayeredCache {
 		bucketMask:    uint32(config.buckets) - 1,
 		buckets:       make([]*layeredBucket, config.buckets),
 		deletables:    make(chan *Item, config.deleteBuffer),
-		promotables:   make(chan *Item, config.promoteBuffer),
 	}
 	for i := 0; i < int(config.buckets); i++ {
 		c.buckets[i] = &layeredBucket{
 			buckets: make(map[string]*bucket),
 		}
 	}
-	go c.worker()
+	c.restart()
 	return c
+}
+
+func (c *LayeredCache) ItemCount() int {
+	count := 0
+	for _, b := range c.buckets {
+		count += b.itemCount()
+	}
+	return count
 }
 
 // Get an item from the cache. Returns nil if the item wasn't found.
@@ -62,6 +70,24 @@ func (c *LayeredCache) Get(primary, secondary string) *Item {
 		c.promote(item)
 	}
 	return item
+}
+
+// Get the secondary cache for a given primary key. This operation will
+// never return nil. In the case where the primary key does not exist, a
+// new, underlying, empty bucket will be created and returned.
+func (c *LayeredCache) GetOrCreateSecondaryCache(primary string) *SecondaryCache {
+	primaryBkt := c.bucket(primary)
+	bkt := primaryBkt.getSecondaryBucket(primary)
+	primaryBkt.Lock()
+	if bkt == nil {
+		bkt = &bucket{lookup: make(map[string]*Item)}
+		primaryBkt.buckets[primary] = bkt
+	}
+	primaryBkt.Unlock()
+	return &SecondaryCache{
+		bucket: bkt,
+		pCache: c,
+	}
 }
 
 // Used when the cache was created with the Track() configuration option.
@@ -95,7 +121,7 @@ func (c *LayeredCache) Replace(primary, secondary string, value interface{}) boo
 // Attempts to get the value from the cache and calles fetch on a miss.
 // If fetch returns an error, no value is cached and the error is returned back
 // to the caller.
-func (c *LayeredCache) Fetch(primary, secondary string, duration time.Duration, fetch func() (interface{}, error)) (interface{}, error) {
+func (c *LayeredCache) Fetch(primary, secondary string, duration time.Duration, fetch func() (interface{}, error)) (*Item, error) {
 	item := c.Get(primary, secondary)
 	if item != nil {
 		return item, nil
@@ -131,6 +157,17 @@ func (c *LayeredCache) Clear() {
 	c.list = list.New()
 }
 
+func (c *LayeredCache) Stop() {
+	close(c.promotables)
+	<-c.donec
+}
+
+func (c *LayeredCache) restart() {
+	c.promotables = make(chan *Item, c.promoteBuffer)
+	c.donec = make(chan struct{})
+	go c.worker()
+}
+
 func (c *LayeredCache) set(primary, secondary string, value interface{}, duration time.Duration) *Item {
 	item, existing := c.bucket(primary).set(primary, secondary, value, duration)
 	if existing != nil {
@@ -151,17 +188,24 @@ func (c *LayeredCache) promote(item *Item) {
 }
 
 func (c *LayeredCache) worker() {
+	defer close(c.donec)
 	for {
 		select {
-		case item := <-c.promotables:
+		case item, ok := <-c.promotables:
+			if ok == false {
+				return
+			}
 			if c.doPromote(item) && c.size > c.maxSize {
 				c.gc()
 			}
 		case item := <-c.deletables:
 			if item.element == nil {
-				item.promotions = -2
+				atomic.StoreInt32(&item.promotions, -2)
 			} else {
 				c.size -= item.size
+				if c.onDelete != nil {
+					c.onDelete(item)
+				}
 				c.list.Remove(item.element)
 			}
 		}
@@ -170,13 +214,13 @@ func (c *LayeredCache) worker() {
 
 func (c *LayeredCache) doPromote(item *Item) bool {
 	// deleted before it ever got promoted
-	if item.promotions == -2 {
+	if atomic.LoadInt32(&item.promotions) == -2 {
 		return false
 	}
 	if item.element != nil { //not a new item
 		if item.shouldPromote(c.getsPerPromote) {
 			c.list.MoveToFront(item.element)
-			item.promotions = 0
+			atomic.StoreInt32(&item.promotions, 0)
 		}
 		return false
 	}

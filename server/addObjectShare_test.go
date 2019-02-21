@@ -303,7 +303,7 @@ func TestAddObjectShareAndVerifyACM(t *testing.T) {
 	}
 
 	t.Logf("* Create object as testperson10 with ACM that is TS")
-	createdFolder, err := makeFolderWithACMViaJSON("TestAddFolderWithTSSITK-"+strconv.FormatInt(time.Now().Unix(), 10), ValidACMTopSecretSITK, 0)
+	createdFolder, err := makeFolderWithACMViaJSON("TestAddFolderWithTSSITK-"+strconv.FormatInt(time.Now().UTC().Unix(), 10), ValidACMTopSecretSITK, 0)
 	if err != nil {
 		t.Logf("Error making folder 1: %v", err)
 		t.FailNow()

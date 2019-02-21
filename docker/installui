@@ -1,5 +1,8 @@
 #!/bin/bash
 
+ODRIVE_VERSION=$(grep -m 1 '## Release' ../changelog.md|awk '{print $3}')
+ODRIVE_VERSION_MAJOR_MINOR=$(awk '{printf "%s.%s", $1, $2}' <<< "${ODRIVE_VERSION//[^0-9]/ }")
+
 TARFILE=odrive-ui-1.2.10-2019-02-07.tar.gz
 cd $GOPATH/src/bitbucket.di2e.net/dime/object-drive-server/docker
 rm odrive-ui-*.tar.gz*
@@ -14,6 +17,14 @@ aws s3 cp s3://decipherers/$TARFILE $TARFILE
   mv dist/* opt/apps/drive/
   rm -rf dist/
   cp ../proxier/drive/settings.json opt/apps/drive/json/settings.json
+  if [[ "$OSTYPE" == "linux-gnu" ]]; then
+    sed -i s/--MajorMinorVersion--/${ODRIVE_VERSION_MAJOR_MINOR}/ opt/apps/drive/json/settings.json
+  elif [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' -e s/--MajorMinorVersion--/${ODRIVE_VERSION_MAJOR_MINOR}/ opt/apps/drive/json/settings.json
+  else
+    echo "Platform unknown. Unable to perform required replacements for object drive endpoint in settings.json"
+    exit 1
+  fi
   cp ../proxier/drive/chm_drive.json opt/apps/drive/json/chm_drive.json
   cp ../proxier/drive/piwik.js opt/apps/drive/json/piwik.js
   cp ../proxier/drive/piwik.php opt/apps/drive/json/piwik.php
@@ -22,3 +33,4 @@ aws s3 cp s3://decipherers/$TARFILE $TARFILE
 docker cp ui.tar docker_proxier_1:ui.tar
 docker exec docker_proxier_1 tar xvf /ui.tar
 docker exec docker_proxier_1 chown -R nginx:nginx /opt/apps
+rm -rf ui/

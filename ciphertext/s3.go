@@ -79,7 +79,7 @@ func (s *PermanentStorageData) Download(fOut io.WriterAt, key *string) (int64, e
 func s3Backoff() {
 	minimumDelay := 50
 	maximumDelay := 1200
-	randomDelay := rand.New(rand.NewSource(time.Now().UnixNano())).Intn(maximumDelay-minimumDelay) + minimumDelay
+	randomDelay := rand.New(rand.NewSource(time.Now().UTC().UnixNano())).Intn(maximumDelay-minimumDelay) + minimumDelay
 	time.Sleep(time.Duration(randomDelay) * time.Millisecond)
 }
 

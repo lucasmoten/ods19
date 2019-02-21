@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/Shopify/sarama"
@@ -76,7 +77,7 @@ func main() {
 			Name:  "schemaversion",
 			Usage: "Expected DB Schema version in use.",
 			Action: func(ctx *cli.Context) error {
-				fmt.Printf("Schema Version Needed: %s\n", dao.SchemaVersion)
+				fmt.Printf("Schema Version Needs one of: %s\n", strings.Join(dao.SchemaVersionsSupported, ","))
 				return nil
 			},
 		},
@@ -142,15 +143,13 @@ func main() {
 
 	cliParser.Action = func(c *cli.Context) error {
 		opts := config.NewCommandLineOpts(c)
+		opts.Version = cliParser.Version
 		conf := config.NewAppConfiguration(opts)
 		config.RootLogger.Info("Starting Object Drive", zap.String("version", cliParser.Version))
 		config.RootLogger.Info("configuration-settings", zap.String("--conf", opts.Conf),
 			zap.String("--staticRoot", opts.StaticRootPath),
 			zap.String("--templateDir", opts.TemplateDir),
 			zap.String("--tlsMinimumVersion", opts.TLSMinimumVersion))
-
-		conf.ServerSettings.Version = cliParser.Version
-
 		for _, v := range conf.ServerSettings.ACLImpersonationWhitelist {
 			config.RootLogger.Info("permitted to impersonate", zap.String("whitelisted dn", v))
 		}

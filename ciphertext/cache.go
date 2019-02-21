@@ -3,14 +3,11 @@ package ciphertext
 import (
 	"fmt"
 	"io"
-	"math/rand"
 	"os"
 	"path"
-	"runtime/debug"
+	"path/filepath"
 	"strings"
 	"time"
-
-	"syscall"
 
 	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
@@ -24,49 +21,39 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	// PurgeAnomaly error code given when we purged something that wasn't cleaned up
-	PurgeAnomaly = 1500
-	// FailPurgeAnomaly error code given when we failed to purge something that wasn't cleaned up
-	FailPurgeAnomaly = 1501
-	// FailCacheWalk error code given when we tried to walk cache, and something went wrong
-	FailCacheWalk = 1502
-	// FailWriteback error code given when we could not cache to drain
-	FailWriteback = 1504
-)
+const FileStateCached = ".cached"
+const FileStateCaching = ".caching"
+const FileStateUploaded = ".uploaded"
+const FileStateUploading = ".uploading"
+const FileStateOrphaned = ".orphaned"
 
 // CiphertextCacheData moves data from cache to the drain.
 type CiphertextCacheData struct {
 	// ChunkSize is the size of blocks to pull from PermanentStorage
 	ChunkSize int64
-	// The key that this CiphertextCache is stored under
+	// CiphertextCacheZone is an identifier of the type of cache that CiphertextCache is stored under
 	CiphertextCacheZone CiphertextCacheZone
-	// Where the CacheLocation is rooted on disk (ie: a very large drive mounted)
+	// files represents the root mount point of the cache location on disk (e.g. /cacheroot)
 	files FileSystem
-
-	// This is the place to write back persistence
+	// PermanentStorage is the place to write back persistence
 	PermanentStorage PermanentStorage
-
-	// Location of the cache
+	// CacheLocationString is a subfolder underneath the root comprising partition and database identifier
 	CacheLocationString string
-
-	// Dont begin purging anything until we are at this fraction of disk for cache
-	lowWatermark float64
-
-	// Keep things in cache for a few minutes minimum, then delete based on value
+	// lowThresholdPercent denotes the lower threshold fraction where purging should be considered unless
+	// the fileLimit is set
+	lowThresholdPercent float64
+	// ageEligibleForEviction indicates how long, in seconds, cached files should remain before eligible
 	ageEligibleForEviction int64
-
-	// If we get to the high watermark, just start deleting until we get under it.
-	// Note that if in the time period ageEligibleForEviction you upload enough
-	// to stay at the highWatermark, you won't be able to stay within your cache limits.
-	highWatermark float64
-
-	// The time to wait to walk the files
+	// highTresholdPercent denotes the upper threshold fraction where purging must occur more aggressively
+	highThresholdPercent float64
+	// fileLimit denotes max number of files to keep in cache. A value <= 0 is unlimited, the default
+	fileLimit int64
+	// walkSleep is the time to wait after a cache purge iteration before checking again
 	walkSleep time.Duration
-
+	// fileSleep is the time to wait between each file is checked
+	fileSleep time.Duration
 	// Logger for logging
 	Logger *zap.Logger
-
 	// MasterKey is the secret passphrase used in scrambling keys
 	MasterKey string
 }
@@ -102,14 +89,16 @@ func NewCiphertextCacheRaw(
 		CiphertextCacheZone:    zone,
 		PermanentStorage:       permanentStorage,
 		files:                  CiphertextCacheFilesystemMountPoint{conf.Root},
-		CacheLocationString:    conf.Partition + "/" + dbID,
-		lowWatermark:           conf.LowWatermark,
+		CacheLocationString:    filepath.Join(conf.Partition, dbID),
+		lowThresholdPercent:    conf.LowThresholdPercent,
 		ageEligibleForEviction: conf.EvictAge,
-		highWatermark:          conf.HighWatermark,
+		highThresholdPercent:   conf.HighThresholdPercent,
 		walkSleep:              time.Duration(conf.WalkSleep) * time.Second,
 		ChunkSize:              conf.ChunkSize * 1024 * 1024,
 		Logger:                 logger,
 		MasterKey:              conf.MasterKey,
+		fileLimit:              conf.FileLimit,
+		fileSleep:              time.Duration(conf.FileSleep) * time.Millisecond,
 	}
 	CacheMustExist(d, logger)
 
@@ -135,7 +124,7 @@ func (d *CiphertextCacheData) haveCanary(rName FileId) (string, *util.Loggable) 
 		}
 		return "", util.NewLoggable("ciphertextcache expected check fail", err)
 	}
-	rNameCached := NewFileName(rName, ".cached")
+	rNameCached := NewFileName(rName, FileStateCached)
 	nameCached := d.Files().Resolve(d.Resolve(rNameCached))
 	_, err = os.Stat(nameCached)
 
@@ -158,7 +147,7 @@ func (d *CiphertextCacheData) haveCanary(rName FileId) (string, *util.Loggable) 
 
 // expectCanary specifies which canary we expect, and writes it back so that it makes it to PermanentStorage
 func (d *CiphertextCacheData) expectCanary(rName FileId, expected string) *util.Loggable {
-	nameUploaded := d.Files().Resolve(d.Resolve(NewFileName(rName, ".uploaded")))
+	nameUploaded := d.Files().Resolve(d.Resolve(NewFileName(rName, FileStateUploaded)))
 	defer os.Remove(nameUploaded)
 	// Create the expected canary to write back.
 	f, err := os.Create(nameUploaded)
@@ -167,7 +156,7 @@ func (d *CiphertextCacheData) expectCanary(rName FileId, expected string) *util.
 	}
 	f.Write([]byte(expected))
 	f.Close()
-	// After writeback, it should get renamed to .cached
+	// After writeback, it should get renamed to cached state
 	err = d.Writeback(rName, int64(len(expected)))
 	if err != nil {
 		return util.NewLoggable("ciphertextcache expected writeback fail", err)
@@ -201,7 +190,7 @@ func (d *CiphertextCacheData) masterKeyCheck() *util.Loggable {
 	// Fail if we don't have what we expected and we have something specific
 	if have != expected {
 		// If we are going to fail to come up, delete the cached key, as it's invalid.
-		rNameCached := NewFileName(rName, ".cached")
+		rNameCached := NewFileName(rName, FileStateCached)
 		nameCached := d.Files().Resolve(d.Resolve(rNameCached))
 		os.Remove(nameCached)
 		return util.NewLoggable("ciphertextcache canary mismatch", nil,
@@ -226,39 +215,12 @@ func (d *CiphertextCacheData) GetMasterKey() string {
 
 // Resolve a name to somewhere in the cache, given the rName
 func (d *CiphertextCacheData) Resolve(fName FileName) FileNameCached {
-	return FileNameCached(d.CacheLocationString + "/" + string(fName))
+	return FileNameCached(filepath.Join(d.CacheLocationString, string(fName)))
 }
 
 // Files is the mount point of instances
 func (d *CiphertextCacheData) Files() FileSystem {
 	return d.files
-}
-
-type Walker func(fqName string) error
-
-func Walk(fqCache string, walker Walker) error {
-	d, err := os.Open(fqCache)
-	if err != nil {
-		return err
-	}
-	defer d.Close()
-	for {
-		dirnames, err := d.Readdirnames(1000)
-		if err != nil {
-			if err == io.EOF {
-				return nil
-			}
-			return err
-		}
-		for i := 0; i < len(dirnames); i++ {
-			// avoid double-slash in name, which probably causes a mismatch vs S3
-			if strings.HasSuffix(fqCache, "/") || strings.HasPrefix(dirnames[i], "/") {
-				walker(fmt.Sprintf("%s%s", fqCache, dirnames[i]))
-			} else {
-				walker(fmt.Sprintf("%s/%s", fqCache, dirnames[i]))
-			}
-		}
-	}
 }
 
 // DrainUploadedFilesToSafetyRaw is the drain without the goroutine at the end
@@ -269,46 +231,46 @@ func (d *CiphertextCacheData) DrainUploadedFilesToSafetyRaw() {
 	}
 	//Walk through the cache, and handle .uploaded files
 	fqCache := d.Files().Resolve(d.Resolve(""))
-	err := Walk(
-		fqCache,
-		// We need to capture d because this interface won't let us pass it
-		func(fqName string) (errReturn error) {
-			ext := path.Ext(fqName)
-			if ext == ".uploaded" {
-				d.Logger.Info("there is an uploaded file that we need to handle", zap.String("fqName", fqName))
-				f, err := os.Stat(fqName)
-				if err != nil {
-					d.Logger.Error("there is an uploaded file that we cannot stat", zap.Error(err))
+	for {
+		err := Walk(
+			fqCache,
+			// We need to capture d because this interface won't let us pass it
+			func(fqName string) (errReturn error) {
+				ext := path.Ext(fqName)
+				if ext == FileStateUploaded {
+					d.Logger.Info("there is an uploaded file that we need to handle", zap.String("fqName", fqName))
+					f, err := os.Stat(fqName)
+					if err != nil {
+						d.Logger.Error("there is an uploaded file that we cannot stat", zap.Error(err))
+						return err
+					}
+					if f.IsDir() {
+						d.Logger.Info("we have a directory with a .uploaded extension in the cache", zap.String("fqName", fqName))
+						return nil
+					}
+					size := f.Size()
+					fBase := path.Base(fqName)
+					rName := FileId(fBase[:len(fBase)-len(ext)])
+					err = d.Writeback(rName, size)
+					if err != nil {
+						d.Logger.Warn("error draining cache", zap.Error(err))
+					}
 					return err
 				}
-				if f.IsDir() {
-					d.Logger.Info("we have a directory with a .uploaded extension in the cache", zap.String("fqName", fqName))
-					return nil
-				}
-				size := f.Size()
-				fBase := path.Base(fqName)
-				rName := FileId(fBase[:len(fBase)-len(ext)])
-				err = d.Writeback(rName, size)
-				if err != nil {
-					d.Logger.Warn("error draining cache", zap.Error(err))
-				}
-			}
-			//Note: dont remove .uploading or .caching files as there may be another odrive using this cache
-			// purge routine will handle it if it gets old.
-			return nil
-		},
-	)
-	if err != nil {
-		d.Logger.Warn("unable to walk cache", zap.Error(err))
+				return nil
+			},
+		)
+		if err != nil {
+			d.Logger.Warn("unable to walk cache", zap.Error(err))
+		}
+		time.Sleep(d.walkSleep)
 	}
 }
 
 // DrainUploadedFilesToSafety moves files that were not completely sent to PermanentStorage yet, so that the instance is disposable.
 // This can happen if the server reboots.
 func (d *CiphertextCacheData) DrainUploadedFilesToSafety() {
-	d.DrainUploadedFilesToSafetyRaw()
-	d.Logger.Info("cache purge start")
-	//Only now can we start to purge files
+	go d.DrainUploadedFilesToSafetyRaw()
 	go d.CachePurge()
 }
 
@@ -322,7 +284,7 @@ func toKey(s string) *string {
 // Dont delete the file here if something goes wrong... because the caller tries this multiple times
 //
 func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
-	outFileUploaded := d.Resolve(FileName(rName + ".uploaded"))
+	outFileUploaded := d.Resolve(FileName(rName + FileStateUploaded))
 	key := toKey(string(d.Resolve(NewFileName(rName, ""))))
 
 	//Get a filehandle to read the file to write back to permanent storage
@@ -357,7 +319,7 @@ func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 	}
 
 	//Rename the file to note success
-	outFileCached := d.Resolve(NewFileName(rName, ".cached"))
+	outFileCached := d.Resolve(NewFileName(rName, FileStateCached))
 	err = d.Files().Rename(outFileUploaded, outFileCached)
 	if err != nil {
 		d.Logger.Warn(
@@ -406,8 +368,8 @@ func (d *CiphertextCacheData) doDownloadFromPermanentStorage(foutCaching FileNam
 func (d *CiphertextCacheData) BackgroundRecache(rName FileId, totalLength int64) {
 
 	logger := d.Logger
-	cachingPath := d.Resolve(NewFileName(rName, ".caching"))
-	cachedPath := d.Resolve(NewFileName(rName, ".cached"))
+	cachingPath := d.Resolve(NewFileName(rName, FileStateCaching))
+	cachedPath := d.Resolve(NewFileName(rName, FileStateCached))
 
 	logger.Info(
 		"caching file",
@@ -435,13 +397,13 @@ func (d *CiphertextCacheData) BackgroundRecache(rName FileId, totalLength int64)
 func (d *CiphertextCacheData) Recache(rName FileId) error {
 
 	// If it's already cached, then we have no work to do
-	foutCached := d.Resolve(NewFileName(rName, ".cached"))
+	foutCached := d.Resolve(NewFileName(rName, FileStateCached))
 	if _, err := d.Files().Stat(foutCached); os.IsExist(err) {
 		return nil
 	}
 
 	// We are not supposed to be trying to get multiple copies of the same ciphertext into cache at same time
-	foutCaching := d.Resolve(NewFileName(rName, ".caching"))
+	foutCaching := d.Resolve(NewFileName(rName, FileStateCaching))
 	if _, err := d.Files().Stat(foutCaching); os.IsExist(err) {
 		return err
 	}
@@ -470,39 +432,45 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 		if d.PermanentStorage != nil {
 			if err.Error() != PermanentStorageNotFoundErrorString {
 				d.Logger.Info("download from permanent storage was not successful", zap.Error(err))
-			}
-		}
-		// Check p2p.... it may be there...
-		var filep2p io.ReadCloser
-		filep2p, err = useP2PFile(d.Logger, d.CiphertextCacheZone, rName, 0)
-		if err != nil {
-			d.Logger.Info("p2p cannot find", zap.Error(err))
-		}
-		if filep2p != nil {
-			defer filep2p.Close()
-			fOut, err = d.Files().Create(foutCaching)
-			if err == nil {
-				// We need to copy the *whole* file in this case.
-				_, err = io.Copy(fOut, filep2p)
-				fOut.Close()
-				if err != nil {
-					d.Logger.Info("p2p recache failed", zap.Error(err))
-				} else {
-					d.Logger.Info("p2p recache success")
+			} else {
+				if rName == "canary" {
+					return err
 				}
-				// leave err where it is.
 			}
-		} else {
-			if d.PermanentStorage == nil {
-				// single node without permanent storage and does not have
-				return nil
+		}
+		if strings.ToLower(os.Getenv(config.OD_PEER_ENABLED)) == "true" {
+			// Check p2p.... it may be there...
+			var filep2p io.ReadCloser
+			filep2p, err = useP2PFile(d.Logger, d.CiphertextCacheZone, rName, 0)
+			if err != nil {
+				d.Logger.Info("p2p cannot find", zap.Error(err))
+			}
+			if filep2p != nil {
+				defer filep2p.Close()
+				fOut, err = d.Files().Create(foutCaching)
+				if err == nil {
+					// We need to copy the *whole* file in this case.
+					_, err = io.Copy(fOut, filep2p)
+					fOut.Close()
+					if err != nil {
+						d.Logger.Info("p2p recache failed", zap.Error(err))
+					} else {
+						d.Logger.Info("p2p recache success")
+					}
+					// leave err where it is.
+				}
+			} else {
+				if d.PermanentStorage == nil {
+					// single node without permanent storage and does not have
+					return nil
+				}
 			}
 		}
 	}
 
 	// This only exists for exotic corner cases.  Without network errors,
 	// this block should be unreachable.
-	tries := 22
+	tries := 4 // 4=~15 seconds max; 8 = ~ 2mins max
 	waitTime := 1 * time.Second
 	prevWaitTime := 0 * time.Second
 	for tries > 0 && err != nil && d.PermanentStorage != nil {
@@ -516,10 +484,11 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 				zap.Duration("seconds", waitTime/(time.Second)),
 				zap.Int("more tries", tries-1),
 				zap.String("key", string(rName)),
+				zap.Error(err),
 			)
 			// Without a file length, this is our best guess
 			time.Sleep(waitTime)
-			// Fibonacci progression 1 1 2 3 ... ... 22 of them gives a total wait time of about 2 mins, or almost 8GB
+			// Fibonacci progression 1 1 2 3 ... ... 8 of them gives a total wait time of about 2 mins
 			oldWaitTime := waitTime
 			waitTime = prevWaitTime + waitTime
 			prevWaitTime = oldWaitTime
@@ -548,7 +517,7 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 // CacheMustExist ensures that the cache directory exists.
 func CacheMustExist(d CiphertextCache, logger *zap.Logger) (err error) {
 	if _, err = d.Files().Stat(d.Resolve("")); os.IsNotExist(err) {
-		err = d.Files().MkdirAll(d.Resolve(""), 0700)
+		err = d.Files().MkdirAll(d.Resolve(""), os.FileMode(int(0700)))
 		cacheResolved := d.Files().Resolve(d.Resolve(""))
 		logger.Info(
 			"creating cache",
@@ -561,156 +530,6 @@ func CacheMustExist(d CiphertextCache, logger *zap.Logger) (err error) {
 	return err
 }
 
-// filePurgeVisit visits every file in the cache to see if we should delete it.
-//
-// The whole point of this is to keep the cache as large as possible without
-// filling up the disk, while maximizing the hit rate.  This means that we must
-// estimate what is going to be a hit (lower age since last touched), and if
-// a file is 10x larger its hit is worth 10x as much because it costs 10x as much to get it.
-// The file size matters in the decision to remove files, but the age since last use
-// matters much more.  We are expecting the getObjectStreamX to timestamp this file
-// every time it's downloaded to ensure that we correctly value the file.
-//
-// Behavior:
-//  disk usage below lowWatermark: ignore this file
-//  disk usage above highWatermark: delete this file if it's old enough for eviction
-//  disk usage in range of watermarks:
-//      if file is too young to evict at all: ignore this file
-//      if int(size/(age*age)) == 0: delete this file
-//
-//  The net effect is that some files remain young because they were recently uploaded or fetched.
-//  Multiplying times filesize recognizes that the penalty for deleting a large file is proportional
-//  to its size.  But because 1/(age*age) drops rapidly, even very large files will quickly become
-//  eligible for deletion if not used.  If there are many files that are accessed often, then the large files
-//  will be selected for deletion.  Large files that keep getting used will stay in cache
-//  as long as they keep getting used.  Because they take N times longer to get stamped due to
-//  the length of the file transfer, it is fair to make it take N times longer to get evicted.
-//
-//  The graph will look like a sawtooth between lowWatermark and highWatermark, where there is
-//  a delay in size drops that is dependent on size and doubly dependent on age since last access.
-//  Size and Age prioritize what is still sitting in cache when we hit lowWatermark.
-//
-func filePurgeVisit(d *CiphertextCacheData, fqName string, usage float64) (errReturn error) {
-	// Note: cached files are the 99.99% case
-	f, err := os.Stat(fqName)
-	if err != nil {
-		d.Logger.Error(
-			"unable to stat file",
-			zap.String("filename", fqName),
-			zap.Error(err),
-		)
-		return nil
-	}
-
-	//Ignore directories.  We should not have an unbounded number of directories.
-	//And we must ignore h.CacheLocation
-	if f.IsDir() || !f.Mode().IsRegular() {
-		return nil
-	}
-
-	//Size and age determine the value of the file
-	t := f.ModTime().Unix()     //In units of second
-	n := time.Now().Unix()      //In units of second
-	ageInSeconds := (n - t) + 1 // Ensure > 0
-	size := f.Size()
-	ext := path.Ext(string(fqName))
-
-	oneWeek := int64(60 * 60 * 24 * 7)
-
-	switch {
-	//Note that .cached files are persistently stored already
-	case ext == ".cached":
-		// Remove if above high watermark, or if aged and above the low watermark
-		// Limit for file upload is effectively the space between high watermark and disk filled.
-		oldEnoughToEvict := (ageInSeconds > d.ageEligibleForEviction)
-		fullEnoughToEvict := (usage > d.lowWatermark)
-		// ie: highWatermark 0.9, lowWatermark 0.7, usage 0.95:
-		// 0.05 over high watermark,
-		// 0.25 over low watermark - so delete 1/4 of the data randomly
-		mustEvict := ((usage-d.highWatermark) > 0 && rand.Float64() < (usage-d.lowWatermark))
-		// expect usage to sawtooth between lowWatermark and highWatermark
-		// with the value of the file setting priority until we hit highWatermark
-		if (oldEnoughToEvict && fullEnoughToEvict) || mustEvict {
-			value := size / (ageInSeconds * ageInSeconds)
-			if value == 0 || mustEvict {
-				//Name is fully qualified, so use os call!
-				if _, err := os.Stat(fqName); err == nil {
-					errReturn := os.Remove(fqName)
-					if errReturn != nil {
-						d.Logger.Error(
-							"unable to purge cached file",
-							zap.String("filename", fqName),
-							zap.Error(errReturn),
-						)
-						attemptToEmptyFile(d, fqName)
-						return nil
-					}
-					d.Logger.Info(
-						"purge",
-						zap.String("filename", fqName),
-						zap.Int64("ageinseconds", ageInSeconds),
-						zap.Int64("size", size),
-						zap.Float64("usage", usage),
-					)
-				}
-			}
-		}
-	case ext == ".orphaned":
-		if _, err := os.Stat(fqName); err == nil {
-			errReturn := os.Remove(fqName)
-			if errReturn != nil {
-				d.Logger.Error("unable to purge orphaned file", zap.String("filename", fqName), zap.Error(errReturn))
-				attemptToEmptyFile(d, fqName)
-				return nil
-			}
-		}
-	case ext == ".uploaded":
-		if ageInSeconds > oneWeek {
-			// There is something clearly wrong here.  Log it
-			d.Logger.Error("ciphertextcache file not uploaded after a long time", zap.String("filename", fqName))
-			return nil
-		}
-	default:
-		//If something has been here for a week, and it's not cached, then it's
-		//garbage.  If a machine has been turned off for a few days, the files
-		//might legitimately be awaiting upload.  Other states are certainly
-		//garbage after only a few hours.
-		if ageInSeconds > oneWeek {
-			if _, err := os.Stat(fqName); err == nil {
-				errReturn := os.Remove(fqName)
-				if errReturn != nil {
-					d.Logger.Error(
-						"unable to purge",
-						zap.String("filename", fqName),
-						zap.Error(errReturn),
-					)
-					attemptToEmptyFile(d, fqName)
-					return nil
-				}
-				//Count this anomaly
-				d.Logger.Warn(
-					"purged for age",
-					zap.String("filename", fqName),
-					zap.Int64("age", ageInSeconds),
-					zap.Float64("usage", usage),
-				)
-			}
-			return nil
-		}
-	}
-	return
-}
-
-func attemptToEmptyFile(d *CiphertextCacheData, fqName string) {
-	if _, err := os.Stat(fqName); err == nil {
-		e := os.Truncate(fqName, 0)
-		if e != nil {
-			d.Logger.Error("unable to empty file", zap.String("filename", fqName), zap.Error(e))
-		}
-		d.Logger.Info("truncated file to free space", zap.String("filename", fqName))
-	}
-}
-
 // CacheInventory writes an inventory of what's in the cache to a writer for the stats page
 func (d *CiphertextCacheData) CacheInventory(w io.Writer, verbose bool) {
 	fqCache := d.Files().Resolve(d.Resolve(""))
@@ -719,7 +538,7 @@ func (d *CiphertextCacheData) CacheInventory(w io.Writer, verbose bool) {
 		fqCache,
 		func(fqName string) error {
 			if strings.Compare(fqName, fqCache) != 0 {
-				if verbose || strings.HasSuffix(fqName, ".uploaded") {
+				if verbose || strings.HasSuffix(fqName, FileStateUploaded) {
 					fmt.Fprintf(w, "%s\n", fqName)
 				}
 			}
@@ -737,7 +556,7 @@ func (d *CiphertextCacheData) CountUploaded() int {
 		fqCache,
 		func(name string) error {
 			if strings.Compare(name, fqCache) != 0 {
-				if strings.HasSuffix(name, ".uploaded") {
+				if strings.HasSuffix(name, FileStateUploaded) {
 					fi, e := os.Stat(name)
 					if e != nil {
 						return e
@@ -751,66 +570,6 @@ func (d *CiphertextCacheData) CountUploaded() int {
 		},
 	)
 	return uploaded
-}
-
-func cachePurgeIteration(d *CiphertextCacheData, usage float64) {
-	defer func() {
-		if r := recover(); r != nil {
-			d.Logger.Error(
-				"purge crash",
-				zap.Any("context", r),
-				zap.String("stack", string(debug.Stack())),
-			)
-		}
-	}()
-
-	fqCache := d.Files().Resolve(d.Resolve(""))
-	err := Walk(
-		fqCache,
-		func(fqName string) (errReturn error) {
-			return filePurgeVisit(d, fqName, usage)
-		},
-	)
-	if err != nil {
-		d.Logger.Error(
-			"unable to walk cache",
-			zap.String("filename", fqCache),
-			zap.Error(err),
-		)
-	}
-}
-
-// CachePurge will periodically delete files that do not need to be in the cache.
-func (d *CiphertextCacheData) CachePurge() {
-	if d.PermanentStorage == nil {
-		d.Logger.Info("permanent storage is nil.  purge is disabled.")
-		return
-	}
-	// read from environment variables:
-	//    lowWatermark (floating point 0..1)
-	//    highWatermark (floating point 0..1)
-	//    ageEligibleForEviction (integer seconds)
-	for {
-		//Get the current disk space usage
-		fqCache := d.Files().Resolve(d.Resolve(""))
-		sfs := syscall.Statfs_t{}
-		err := syscall.Statfs(fqCache, &sfs)
-		if err != nil {
-			d.Logger.Error(
-				"unable to purge on statfs fail",
-				zap.String("filename", fqCache),
-				zap.Error(err),
-			)
-		} else {
-			//Fraction of disk used
-			usage := 1.0 - float64(sfs.Bavail)/float64(sfs.Blocks)
-			//don't even bother walking if we are below the low watermark
-			if usage > d.lowWatermark {
-				cachePurgeIteration(d, usage)
-			}
-		}
-		time.Sleep(d.walkSleep)
-	}
 }
 
 // GetPermanentStorage gets the permanent storage provider plugged into this cache

@@ -36,8 +36,10 @@ const (
 	OD_AWS_SQS_INTERVAL              = "OD_AWS_SQS_INTERVAL"
 	OD_AWS_SQS_NAME                  = "OD_AWS_SQS_NAME"
 	OD_CACHE_EVICTAGE                = "OD_CACHE_EVICTAGE"
-	OD_CACHE_HIGHWATERMARK           = "OD_CACHE_HIGHWATERMARK"
-	OD_CACHE_LOWWATERMARK            = "OD_CACHE_LOWWATERMARK"
+	OD_CACHE_FILELIMIT               = "OD_CACHE_FILELIMIT"
+	OD_CACHE_FILESLEEP               = "OD_CACHE_FILESLEEP"
+	OD_CACHE_HIGHTHRESHOLDPERCENT    = "OD_CACHE_HIGHTHRESHOLDPERCENT"
+	OD_CACHE_LOWTHRESHOLDPERCENT     = "OD_CACHE_LOWTHRESHOLDPERCENT"
 	OD_CACHE_PARTITION               = "OD_CACHE_PARTITION"
 	OD_CACHE_ROOT                    = "OD_CACHE_ROOT"
 	OD_CACHE_WALKSLEEP               = "OD_CACHE_WALKSLEEP"
@@ -55,6 +57,7 @@ const (
 	OD_DB_PASSWORD                   = "OD_DB_PASSWORD"
 	OD_DB_PORT                       = "OD_DB_PORT"
 	OD_DB_PROTOCOL                   = "OD_DB_PROTOCOL"
+	OD_DB_RECHECK_TIME               = "OD_DB_RECHECK_TIME"
 	OD_DB_SCHEMA                     = "OD_DB_SCHEMA"
 	OD_DB_SKIP_VERIFY                = "OD_DB_SKIP_VERIFY"
 	OD_DB_USE_TLS                    = "OD_DB_USE_TLS"
@@ -72,6 +75,7 @@ const (
 	OD_LOG_LOCATION                  = "OD_LOG_LOCATION"
 	OD_LOG_MODE                      = "OD_LOG_MODE"
 	OD_PEER_CN                       = "OD_PEER_CN"
+	OD_PEER_ENABLED                  = "OD_PEER_ENABLED"
 	OD_PEER_INSECURE_SKIP_VERIFY     = "OD_PEER_INSECURE_SKIP_VERIFY"
 	OD_PEER_SIGNIFIER                = "OD_PEER_SIGNIFIER"
 	OD_SERVER_ACL_WHITELIST          = "OD_SERVER_ACL_WHITELIST"
@@ -90,6 +94,8 @@ const (
 	OD_SERVER_TIMEOUT_WRITE          = "OD_SERVER_TIMEOUT_WRITE"
 	OD_TOKENJAR_LOCATION             = "OD_TOKENJAR_LOCATION"
 	OD_TOKENJAR_PASSWORD             = "OD_TOKENJAR_PASSWORD"
+	OD_USERAOCACHE_LRU_TIME          = "OD_USERAOCACHE_LRU_TIME"
+	OD_USERAOCACHE_TIMEOUT           = "OD_USERAOCACHE_TIMEOUT"
 	OD_ZK_AAC                        = "OD_ZK_AAC"
 	OD_ZK_ANNOUNCE                   = "OD_ZK_ANNOUNCE"
 	OD_ZK_MYIP                       = "OD_ZK_MYIP"
@@ -130,8 +136,10 @@ var Vars = []string{OD_AAC_CA,
 	OD_AWS_SQS_INTERVAL,
 	OD_AWS_SQS_NAME,
 	OD_CACHE_EVICTAGE,
-	OD_CACHE_HIGHWATERMARK,
-	OD_CACHE_LOWWATERMARK,
+	OD_CACHE_FILELIMIT,
+	OD_CACHE_FILESLEEP,
+	OD_CACHE_HIGHTHRESHOLDPERCENT,
+	OD_CACHE_LOWTHRESHOLDPERCENT,
 	OD_CACHE_PARTITION,
 	OD_CACHE_ROOT,
 	OD_CACHE_WALKSLEEP,
@@ -149,6 +157,7 @@ var Vars = []string{OD_AAC_CA,
 	OD_DB_PASSWORD,
 	OD_DB_PORT,
 	OD_DB_PROTOCOL,
+	OD_DB_RECHECK_TIME,
 	OD_DB_SCHEMA,
 	OD_DB_SKIP_VERIFY,
 	OD_DB_USE_TLS,
@@ -166,6 +175,7 @@ var Vars = []string{OD_AAC_CA,
 	OD_LOG_LOCATION,
 	OD_LOG_MODE,
 	OD_PEER_CN,
+	OD_PEER_ENABLED,
 	OD_PEER_SIGNIFIER,
 	OD_PEER_INSECURE_SKIP_VERIFY,
 	OD_SERVER_ACL_WHITELIST,
@@ -184,6 +194,8 @@ var Vars = []string{OD_AAC_CA,
 	OD_SERVER_TIMEOUT_WRITE,
 	OD_TOKENJAR_LOCATION,
 	OD_TOKENJAR_PASSWORD,
+	OD_USERAOCACHE_LRU_TIME,
+	OD_USERAOCACHE_TIMEOUT,
 	OD_ZK_AAC,
 	OD_ZK_ANNOUNCE,
 	OD_ZK_MYIP,
@@ -241,11 +253,6 @@ odrive --conf /opt/services/object-drive/odrive.yml \
 // as a template ith all the variables exported.
 func GenerateSourceEnvScript() {
 	tmpl, err := template.New("script").Parse(`#!/bin/bash
-
-#
-# Please review /etc/init.d/object-drive-1.0 for default logging location if OD_LOG_LOCATION is not set
-#
-
 {{ range $i, $v := .Variables }}export {{ $v }}=
 {{ end }}
 

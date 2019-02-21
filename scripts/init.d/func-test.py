@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# This script has been updated to work with python 2.7 and python 3.6
 
 import sys, os, subprocess, re, time, signal, logging
 from stat import *
@@ -32,24 +33,25 @@ def get_pid_for_process(service):
         return -1
 
 def test_var_expansion():
-    print "test_var_expansion"
+    print("test_var_expansion")
     cwd = os.getcwd()
     thepath = os.path.join(cwd, "env-sample.sh")
     shell_source(thepath)
     # OD_CACHE_ROOT
     ret_root = os.getenv("OD_CACHE_ROOT")
-    exp_root = "/opt/services/object-drive-1.0/cache"
+    exp_root = "/opt/services/object-drive-0.0/cache"
     if ret_root != exp_root:
         raise ValueError("OD_CACHE_ROOT=%s, expected %s" % (ret_root, exp_root))
     # OD_LOG_LOCATION
     ret_log = os.getenv("OD_LOG_LOCATION")
-    exp_log = "/opt/services/object-drive-1.0/log/object-drive.log"
+    exp_log = "/opt/services/object-drive-0.0/log/object-drive.log"
     if ret_log != exp_log:
         raise ValueError("OD_LOG_LOCATION=%s, expected %s" % (ret_log, exp_log))
+    print("..[ok]")
     return 0
 
 def test_var_quotes():
-    print "test_var_quotes"
+    print("test_var_quotes")
     cwd = os.getcwd()
     thepath = os.path.join(cwd, "env-sample.sh")
     shell_source(thepath)
@@ -63,13 +65,15 @@ def test_var_quotes():
     exp_ciphers = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA"
     if ret_ciphers != exp_ciphers:
         raise ValueError("OD_SERVER_CIPHERS=%s, expected %s" % (ret_ciphers, exp_ciphers))
+    print("..[ok]")
     return 0    
 
 def test_pid_check():
-    print "test_pid_check"
-    pid = get_pid_for_process("dockerd")
+    print("test_pid_check")
+    pid = int(get_pid_for_process("dockerd"))
     if pid < 1:
         raise ValueError("No process id found for dockerd")
+    print("..[ok]")
     return 0
 
 if __name__ == '__main__':
@@ -83,5 +87,6 @@ if __name__ == '__main__':
     except:
         # Other errors
         extype, value = sys.exc_info()[:2]
-        print >> sys.stderr, "ERROR: %s (%s)" % (extype, value)
+        errmsg = "ERROR: %s (%s)" % (extype, value)
+        print(errmsg, file=sys.stderr)
         sys.exit(1)

@@ -71,7 +71,7 @@ func TestCreateFolderAtRoot(t *testing.T) {
 
 	// Body
 	folder := protocol.Object{}
-	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().Unix(), 10)
+	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().UTC().Unix(), 10)
 	folder.TypeName = "Folder"
 	folder.RawAcm = ValidACMUnclassified
 	// Cannot use nil for string
@@ -137,7 +137,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 
 	// Body
 	folder := protocol.Object{}
-	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().Unix(), 10)
+	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().UTC().Unix(), 10)
 	folder.TypeName = "Folder"
 	folder.ParentID = ""
 	folder.RawAcm = ValidACMUnclassified
@@ -185,7 +185,7 @@ func TestCreateFolderUnderFolderAtRoot(t *testing.T) {
 
 	// - This creates the subfolder
 	folder.ParentID = createdFolder.ID
-	folder.Name = "Test Subfolder " + strconv.FormatInt(time.Now().Unix(), 10)
+	folder.Name = "Test Subfolder " + strconv.FormatInt(time.Now().UTC().Unix(), 10)
 	folder.RawAcm = ValidACMUnclassified
 	jsonBody, err = json.Marshal(folder)
 	if err != nil {
@@ -253,7 +253,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 
 	// Body
 	folder := protocol.Object{}
-	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().Unix(), 10)
+	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().UTC().Unix(), 10)
 	folder.TypeName = "Folder"
 	folder.ParentID = ""
 	folder.RawAcm = ValidACMUnclassified
@@ -283,7 +283,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithoutPermission(t *testin
 
 	// - This creates the subfolder
 	folder.ParentID = createdFolder.ID
-	folder.Name = "Test Subfolder " + strconv.FormatInt(time.Now().Unix(), 10)
+	folder.Name = "Test Subfolder " + strconv.FormatInt(time.Now().UTC().Unix(), 10)
 	folder.RawAcm = ValidACMUnclassified
 	jsonBody, err = json.Marshal(folder)
 	if err != nil {
@@ -335,7 +335,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 	// Body
 	t.Logf("* Creating folder at root")
 	folder := protocol.CreateObjectRequest{}
-	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().Unix(), 10)
+	folder.Name = "Test Folder At Root " + strconv.FormatInt(time.Now().UTC().Unix(), 10)
 	folder.TypeName = "Folder"
 	folder.ParentID = ""
 	folder.RawAcm = ValidACMUnclassified
@@ -400,7 +400,7 @@ func TestCreateFolderUnderFolderAtRootAsDifferentUserWithPermission(t *testing.T
 
 	t.Logf("* Creating subfolder")
 	folder.ParentID = createdFolder.ID
-	folder.Name = "Test Subfolder " + strconv.FormatInt(time.Now().Unix(), 10)
+	folder.Name = "Test Subfolder " + strconv.FormatInt(time.Now().UTC().Unix(), 10)
 	folder.RawAcm = ValidACMUnclassified
 	jsonBody, err = json.Marshal(folder)
 	if err != nil {

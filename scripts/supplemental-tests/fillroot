@@ -1,0 +1,21 @@
+#!/bin/bash
+
+set -euo pipefail
+
+ODRIVE_VERSION=$(grep -m 1 '## Release' ../../changelog.md|awk '{print $3}')
+ODRIVE_VERSION_MAJOR_MINOR=$(awk '{printf "%s.%s", $1, $2}' <<< "${ODRIVE_VERSION//[^0-9]/ }")
+
+export CA='../../defaultcerts/clients/client.trust.pem'
+export CERT='../../defaultcerts/clients/test_0.cert.pem'
+export KEY='../../defaultcerts/clients/test_0.key.pem'
+
+export UDN='cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us'
+export SDN="cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
+
+COUNTER=0
+while true; do
+  let COUNTER=COUNTER+1 
+  #curl --silent --header "USER_DN: ${UDN}" --header "EXTERNAL_SYS_DN: ${SDN}" --header "SSL_CLIENT_S_DN: ${SDN}" --form 'ObjectMetadata={"typeName":"File","name":"DISP-'${DTFMT}'/'${COUNTER}'","namePathDelimiter":"/","acm":{"classif":"U","version":"2.1.0"}}' --form 'blob=@"curlupload"' --insecure --cacert ${CA} --cert ${CERT} --key ${KEY} https://localhost:8080/services/object-drive/${ODRIVE_VERSION_MAJOR_MINOR}/objects >> /dev/null
+  curl --silent --form 'ObjectMetadata={"typeName":"File","name":"FILLROOT-'${COUNTER}'","acm":{"classif":"U","version":"2.1.0"}}' --form 'blob=@"fillroot"' --insecure --cacert ${CA} --cert ${CERT} --key ${KEY} https://localhost:8080/services/object-drive/${ODRIVE_VERSION_MAJOR_MINOR}/objects >> /dev/null
+done
+

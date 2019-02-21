@@ -37,12 +37,13 @@ var empty []string
 // AppConfiguration is a structure that defines the known configuration format
 // for this application.
 type AppConfiguration struct {
-	DatabaseConnection DatabaseConfiguration       `yaml:"database"`
-	ServerSettings     ServerSettingsConfiguration `yaml:"server"`
-	AACSettings        AACConfiguration            `yaml:"aac"`
-	CacheSettings      DiskCacheOpts               `yaml:"disk_cache"`
-	ZK                 ZKSettings                  `yaml:"zk"`
-	EventQueue         EventQueueConfiguration     `yaml:"event_queue"`
+	DatabaseConnection  DatabaseConfiguration       `yaml:"database"`
+	ServerSettings      ServerSettingsConfiguration `yaml:"server"`
+	AACSettings         AACConfiguration            `yaml:"aac"`
+	CacheSettings       DiskCacheOpts               `yaml:"disk_cache"`
+	ZK                  ZKSettings                  `yaml:"zk"`
+	EventQueue          EventQueueConfiguration     `yaml:"event_queue"`
+	UserAOCacheSettings UserAOCacheConfiguration    `yaml:"useraocache"`
 }
 
 // AACConfiguration holds data required for an AAC client. Host and port are often
@@ -73,10 +74,10 @@ type AACConfiguration struct {
 	RecheckTime int64 `yaml:"recheck_time"`
 }
 
-// CommandLineOpts holds command line options parsed on application start. This
+// ValueOpts holds options which can be passed from command line options on application start. This
 // object is passed to many higher level constructors, so that command line params
 // can override certain configurations.
-type CommandLineOpts struct {
+type ValueOpts struct {
 	// Ciphers is a list of TLS ciphers we are willing to accept.
 	Ciphers []string
 	// StaticRootPath is a path to the static web assets directory.
@@ -89,6 +90,8 @@ type CommandLineOpts struct {
 	Conf string
 	// Whitelist holds ACL whitelist entries passed at the command line.
 	Whitelist []string
+	// Version is set at runtime based on compile time flags
+	Version string
 }
 
 // DatabaseConfiguration is a structure that defines the attributes
@@ -172,17 +175,22 @@ type DiskCacheOpts struct {
 	Root string `yaml:"root_dir"`
 	// Partition is an optional path prefix for objects written to S3.
 	Partition string `yaml:"partition"`
-	// LowWatermark denotes a percentage of local storage that must be used before
+	// LowThresholdPercent denotes a percentage of local storage that must be used before
 	// the cache eviction routine will operate on items in the cache.
-	LowWatermark float64 `yaml:"low_watermark"`
-	// HighWatermark denotes a  percentage of local storage. If exceeded, cache
+	LowThresholdPercent float64 `yaml:"low_threshold_percent"`
+	// HighThresholdPercent denotes a  percentage of local storage. If exceeded, cache
 	// items older than EvictAge will be eligible for purge.
-	HighWatermark float64 `yaml:"high_waterwark"`
+	HighThresholdPercent float64 `yaml:"high_threshold_percent"`
 	// EvictAge denotes the minimum age, in seconds, a file in cache before it
 	// is eligible for purge from the cache to free up space.
 	EvictAge int64 `yaml:"evict_age"`
-	// Walk sleep sets frequency, in seconds, for which all files in the cache are
-	// examined to determine if they should be purged.
+	// FileLimit indicates a maximum number of cached files to keep if over 0.
+	FileLimit int64 `yaml:"file_limit"`
+	// FileSleep sets duration in milliseconds, for which the cache purge operation
+	// should delay between each file being reviewed to allow CPU to rest
+	FileSleep int64 `yaml:"file_sleep"`
+	// WalkSleep sets duration in seconds, for which the cache purge operation should
+	// be delayed between each check of all files to determine if they should be purged.
 	WalkSleep int64 `yaml:"walk_sleep"`
 	// MasterKey is the master encryption key. This must be kept safe. Losing this
 	// key will make encrypted data unrecoverable.
@@ -202,8 +210,6 @@ type ServerSettingsConfiguration struct {
 	//they encrypt, otherwise they do not. This structure is used throughout
 	//the application to support the ability to turn file encryption off and on.
 	EncryptableFunctions EncryptableFunctions
-	// BasePath is the root URL for static assets. Only used for debug UI.
-	BasePath string `yaml:"base_path"`
 	// ListenPort is the port the server listens on. Default is 4430.
 	ListenPort string `yaml:"port"`
 	// ListenBind is the address to bind to. Hardcoded to 0.0.0.0
@@ -253,8 +259,24 @@ type ServerSettingsConfiguration struct {
 	// request's header is read. Like ReadTimeout, it does not
 	// let Handlers make decisions on a per-request basis.
 	WriteTimeout int64 `yaml:"timeout_write"`
+	// PeerEnabled indicates indicates whether or not peer caches can be leveraged for stream retrieval
+	PeerEnabled       bool
+	PeerEnabledString string `yaml:"peer_enabled"`
 	// Version is set at runtime based on compile time flags
 	Version string
+	// VersionMajorMinor is set at runtime based on compile time flags
+	VersionMajorMinor string
+}
+
+// UserAOCacheConfiguration holds configuration for managing user ao cache rebuilds
+type UserAOCacheConfiguration struct {
+	// UserAOCacheTimeout is maximum duration, in seconds, to allow a cache
+	// of user's AO to be built before attempting a rebuild
+	UserAOCacheTimeout int64 `yaml:"useraocache_time`
+	// RecheckTime is the interval seconds between User AO Cache health status checks
+	RecheckTime int64 `yaml:"recheck_time"`
+	// LruTime is the allowable time in seconds to hold a record in LRU Cache
+	LruTime int64 `yaml:"lru_time"`
 }
 
 // ZKSettings holds the data required to communicate with default Zookeeper.
@@ -266,9 +288,9 @@ type ZKSettings struct {
 	Port string `yaml:"port"`
 	// Address is the address of the Zookeeper cluster we attempt to connect to.
 	Address string `yaml:"address"`
-	// BasepathOdrive is a Zookeeper path. We register ourselves as an ephemeral
+	// AnnouncementPoint is a Zookeeper path. We register ourselves as an ephemeral
 	// node under this path.
-	BasepathOdrive string `yaml:"register_odrive_as"`
+	AnnouncementPoint string `yaml:"register_odrive_as"`
 	// Timeout configures a timeout for the Zookeeper driver in seconds.
 	Timeout int64 `yaml:"timeout"`
 	// RetryDelay configures the number of seconds between retry attempts to connect
@@ -280,11 +302,11 @@ type ZKSettings struct {
 // NewAppConfiguration loads the configuration from the different sources in the environment.
 // If multiple configuration sources can be used, the order of precedence is: env var overrides
 // config file.
-func NewAppConfiguration(opts CommandLineOpts) AppConfiguration {
+func NewAppConfiguration(opts ValueOpts) AppConfiguration {
 
 	confFile, err := LoadYAMLConfig(opts.Conf)
 	if err != nil {
-		fmt.Printf("Error loading yaml configuration at path %v: %v\n", confFile, err)
+		fmt.Printf("Error loading yaml configuration at path %v: %v\n", opts.Conf, err)
 		os.Exit(1)
 	}
 
@@ -300,14 +322,17 @@ func NewAppConfiguration(opts CommandLineOpts) AppConfiguration {
 	confFile.ZK = zkSettings
 	eventQueue := newEventQueueConfiguration(confFile, opts)
 	confFile.EventQueue = eventQueue
+	useraocacheSettings := newUserAOCacheSettingsFromEnv(confFile, opts)
+	confFile.UserAOCacheSettings = useraocacheSettings
 
 	appConf := AppConfiguration{
-		AACSettings:        aacSettings,
-		CacheSettings:      cacheSettings,
-		DatabaseConnection: dbConf,
-		EventQueue:         eventQueue,
-		ServerSettings:     serverSettings,
-		ZK:                 zkSettings,
+		AACSettings:         aacSettings,
+		CacheSettings:       cacheSettings,
+		DatabaseConnection:  dbConf,
+		EventQueue:          eventQueue,
+		ServerSettings:      serverSettings,
+		ZK:                  zkSettings,
+		UserAOCacheSettings: useraocacheSettings,
 	}
 
 	setEnvironmentFromConfiguration(appConf)
@@ -316,7 +341,7 @@ func NewAppConfiguration(opts CommandLineOpts) AppConfiguration {
 }
 
 // newAACSettingsFromEnv inspects the environment and returns a AACConfiguration.
-func newAACSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) AACConfiguration {
+func newAACSettingsFromEnv(confFile AppConfiguration, opts ValueOpts) AACConfiguration {
 
 	var conf AACConfiguration
 
@@ -344,9 +369,9 @@ func newAACSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) AACC
 	return conf
 }
 
-// NewCommandLineOpts instantiates CommandLineOpts from a pointer to the parsed command line
+// NewCommandLineOpts instantiates ValueOpts from a pointer to the parsed command line
 // context. The actual parsing is handled by the cli framework.
-func NewCommandLineOpts(clictx *cli.Context) CommandLineOpts {
+func NewCommandLineOpts(clictx *cli.Context) ValueOpts {
 	ciphers := clictx.StringSlice("addCipher")
 	// NOTE: cli lib appends to []string that already contains the "default" value. Must trim
 	// the default cipher if addCipher is passed at command line.
@@ -381,7 +406,7 @@ func NewCommandLineOpts(clictx *cli.Context) CommandLineOpts {
 	// Whitelist (Optional. Usually provided via yaml configuration.)
 	whitelist := clictx.StringSlice("whitelist")
 
-	return CommandLineOpts{
+	return ValueOpts{
 		Ciphers:           ciphers,
 		Conf:              confPath,
 		StaticRootPath:    staticRootPath,
@@ -392,7 +417,7 @@ func NewCommandLineOpts(clictx *cli.Context) CommandLineOpts {
 }
 
 // NewDatabaseConfigFromEnv inspects the environment and returns a DatabaseConfiguration.
-func NewDatabaseConfigFromEnv(confFile AppConfiguration, opts CommandLineOpts) DatabaseConfiguration {
+func NewDatabaseConfigFromEnv(confFile AppConfiguration, opts ValueOpts) DatabaseConfiguration {
 
 	var dbConf DatabaseConfiguration
 
@@ -400,7 +425,7 @@ func NewDatabaseConfigFromEnv(confFile AppConfiguration, opts CommandLineOpts) D
 	dbConf.Username = cascade(OD_DB_USERNAME, confFile.DatabaseConnection.Username, "")
 	pwd, err := MaybeDecrypt(cascade(OD_DB_PASSWORD, confFile.DatabaseConnection.Password, ""))
 	if err != nil {
-		log.Printf("Unable to decrypt database password: %v", err)
+		logger.Warn("Unable to decrypt database password:", zap.Error(err))
 		os.Exit(1)
 	}
 	dbConf.Password = pwd
@@ -431,7 +456,7 @@ func NewDatabaseConfigFromEnv(confFile AppConfiguration, opts CommandLineOpts) D
 }
 
 // newEventQueueConfiguration reads the environment to provide the configuration for the Kafka event queue.
-func newEventQueueConfiguration(confFile AppConfiguration, opts CommandLineOpts) EventQueueConfiguration {
+func newEventQueueConfiguration(confFile AppConfiguration, opts ValueOpts) EventQueueConfiguration {
 	var eqc EventQueueConfiguration
 	eqc.KafkaAddrs = CascadeStringSlice(OD_EVENT_KAFKA_ADDRS, confFile.EventQueue.KafkaAddrs, empty)
 	eqc.ZKAddrs = CascadeStringSlice(OD_EVENT_ZK_ADDRS, confFile.EventQueue.ZKAddrs, empty)
@@ -450,7 +475,7 @@ func GetTokenJarKey() ([]byte, error) {
 	}
 	tokenJar := os.Getenv(OD_TOKENJAR_LOCATION)
 	if tokenJar == "" {
-		tokenJar = "/opt/services/object-drive-1.0/token.jar"
+		tokenJar = "/opt/services/object-drive-1.1/token.jar"
 	}
 	key, err := encryptor.KeyFromTokenJar(tokenJar, rootPassword)
 	if err != nil {
@@ -459,7 +484,7 @@ func GetTokenJarKey() ([]byte, error) {
 	return key, nil
 }
 
-// MaybeDecrypt is ONLY used for startup config.  It is fatal when this fails.
+// MaybeDecrypt is called from places that need to leverage the token.jar as part of value decryption
 func MaybeDecrypt(val string) (string, error) {
 	if strings.HasPrefix(val, "ENC{") && strings.HasSuffix(val, "}") {
 		key, err := GetTokenJarKey()
@@ -475,7 +500,7 @@ func MaybeDecrypt(val string) (string, error) {
 }
 
 // newDiskCacheOpts reads the environment to provide the configuration options for DiskCache.
-func newDiskCacheOpts(confFile AppConfiguration, opts CommandLineOpts) DiskCacheOpts {
+func newDiskCacheOpts(confFile AppConfiguration, opts ValueOpts) DiskCacheOpts {
 	masterKey, err := MaybeDecrypt(cascade(OD_ENCRYPT_MASTERKEY, confFile.CacheSettings.MasterKey, ""))
 	if err != nil {
 		// If we get an error parsing the masterKey here we CANNOT continue, because we may begin writing
@@ -494,25 +519,39 @@ func newDiskCacheOpts(confFile AppConfiguration, opts CommandLineOpts) DiskCache
 		log.Fatal("You must set master encryption key with OD_ENCRYPT_MASTERKEY to start the service when encryption is enabled")
 	}
 	settings := DiskCacheOpts{
-		Root:          cascade(OD_CACHE_ROOT, confFile.CacheSettings.Root, "."),
-		Partition:     cascade(OD_CACHE_PARTITION, confFile.CacheSettings.Partition, "cache"),
-		LowWatermark:  cascadeFloat(OD_CACHE_LOWWATERMARK, confFile.CacheSettings.LowWatermark, .50),
-		HighWatermark: cascadeFloat(OD_CACHE_HIGHWATERMARK, confFile.CacheSettings.HighWatermark, .75),
-		EvictAge:      cascadeInt(OD_CACHE_EVICTAGE, confFile.CacheSettings.EvictAge, 300),
-		WalkSleep:     cascadeInt(OD_CACHE_WALKSLEEP, confFile.CacheSettings.WalkSleep, 30),
-		MasterKey:     masterKey,
-		ChunkSize:     cascadeInt(OD_AWS_S3_FETCH_MB, confFile.CacheSettings.ChunkSize, 16),
+		Root:                 cascade(OD_CACHE_ROOT, confFile.CacheSettings.Root, "."),
+		Partition:            cascade(OD_CACHE_PARTITION, confFile.CacheSettings.Partition, "cache"),
+		LowThresholdPercent:  cascadeFloat(OD_CACHE_LOWTHRESHOLDPERCENT, confFile.CacheSettings.LowThresholdPercent, cascadeFloat("OD_CACHE_LOWWATERMARK", confFile.CacheSettings.LowThresholdPercent, .50)),
+		HighThresholdPercent: cascadeFloat(OD_CACHE_HIGHTHRESHOLDPERCENT, confFile.CacheSettings.HighThresholdPercent, cascadeFloat("OD_CACHE_HIGHWATERMARK", confFile.CacheSettings.HighThresholdPercent, .75)),
+		EvictAge:             cascadeInt(OD_CACHE_EVICTAGE, confFile.CacheSettings.EvictAge, 300),
+		WalkSleep:            cascadeInt(OD_CACHE_WALKSLEEP, confFile.CacheSettings.WalkSleep, 30),
+		MasterKey:            masterKey,
+		ChunkSize:            cascadeInt(OD_AWS_S3_FETCH_MB, confFile.CacheSettings.ChunkSize, 16),
+		FileLimit:            cascadeInt(OD_CACHE_FILELIMIT, confFile.CacheSettings.FileLimit, 0),
+		FileSleep:            cascadeInt(OD_CACHE_FILESLEEP, confFile.CacheSettings.FileSleep, 0),
+	}
+	// Permit inputs as whole number percentages, and constrain by simple sanity checks
+	if settings.LowThresholdPercent > 1 {
+		settings.LowThresholdPercent = settings.LowThresholdPercent / 100.0
+	}
+	if settings.HighThresholdPercent > 1 {
+		settings.HighThresholdPercent = settings.HighThresholdPercent / 100.0
+	}
+	if settings.HighThresholdPercent > 100 {
+		settings.HighThresholdPercent = 1.0
+	}
+	if settings.LowThresholdPercent > settings.HighThresholdPercent {
+		settings.LowThresholdPercent = 1.0
 	}
 	return settings
 }
 
 // newServerSettingsFromEnv inspects the environment and returns a ServerSettingsConfiguration.
-func newServerSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) ServerSettingsConfiguration {
+func newServerSettingsFromEnv(confFile AppConfiguration, opts ValueOpts) ServerSettingsConfiguration {
 
 	var settings ServerSettingsConfiguration
 
 	// From env
-	settings.BasePath = cascade(OD_SERVER_BASEPATH, confFile.ServerSettings.BasePath, "/services/object-drive/1.0")
 	settings.CAPath = cascade(OD_SERVER_CA, confFile.ServerSettings.CAPath, "")
 	settings.ServerCertChain = cascade(OD_SERVER_CERT, confFile.ServerSettings.ServerCertChain, "")
 	settings.ServerKey = cascade(OD_SERVER_KEY, confFile.ServerSettings.ServerKey, "")
@@ -524,6 +563,14 @@ func newServerSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) S
 	settings.WriteTimeout = cascadeInt(OD_SERVER_TIMEOUT_WRITE, confFile.ServerSettings.WriteTimeout, 3600)
 	settings.EncryptEnabled = CascadeBoolFromString(OD_ENCRYPT_ENABLED, confFile.ServerSettings.EncryptEnabledString, true)
 	settings.EncryptableFunctions = NewEncryptableFunctions(settings.EncryptEnabled)
+	settings.PeerEnabled = CascadeBoolFromString(OD_PEER_ENABLED, confFile.ServerSettings.PeerEnabledString, true)
+
+	// From opts, affected by compile time
+	settings.Version = opts.Version
+	// Determine major/minor from full version string
+	majorminor := strings.Replace(settings.Version, "v", "", -1)
+	majorminor = fmt.Sprintf("%s.%s", strings.Split(majorminor, ".")[0], strings.Split(majorminor, ".")[0])
+	settings.VersionMajorMinor = majorminor
 
 	// Defaults
 	settings.MinimumVersion = opts.TLSMinimumVersion
@@ -547,6 +594,15 @@ func newServerSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) S
 	return settings
 }
 
+func newUserAOCacheSettingsFromEnv(confFile AppConfiguration, opts ValueOpts) UserAOCacheConfiguration {
+	var settings UserAOCacheConfiguration
+
+	settings.LruTime = cascadeInt(OD_USERAOCACHE_LRU_TIME, confFile.UserAOCacheSettings.LruTime, 600)
+	settings.UserAOCacheTimeout = cascadeInt(OD_USERAOCACHE_TIMEOUT, confFile.UserAOCacheSettings.UserAOCacheTimeout, 40)
+
+	return settings
+}
+
 //NewEncryptableFunctions creates the set of function that can have optional encryption
 func NewEncryptableFunctions(encryptEnabled bool) EncryptableFunctions {
 	if encryptEnabled {
@@ -565,11 +621,10 @@ func NewEncryptableFunctions(encryptEnabled bool) EncryptableFunctions {
 }
 
 // newZKSettingsFromEnv inspects the environment and returns a AACConfiguration.
-func newZKSettingsFromEnv(confFile AppConfiguration, opts CommandLineOpts) ZKSettings {
-
+func newZKSettingsFromEnv(confFile AppConfiguration, opts ValueOpts) ZKSettings {
 	var conf ZKSettings
 	conf.Address = cascade(OD_ZK_URL, confFile.ZK.Address, "zk:2181")
-	conf.BasepathOdrive = cascade(OD_ZK_ANNOUNCE, confFile.ZK.BasepathOdrive, "/services/object-drive/1.0")
+	conf.AnnouncementPoint = cascade(OD_ZK_ANNOUNCE, confFile.ZK.AnnouncementPoint, fmt.Sprintf("/services/object-drive/%s", confFile.ServerSettings.VersionMajorMinor))
 	conf.IP = cascade(OD_ZK_MYIP, confFile.ZK.IP, util.GetIP(logger))
 	conf.Port = cascade(OD_ZK_MYPORT, confFile.ZK.Port, confFile.ServerSettings.ListenPort)
 	conf.Timeout = cascadeInt(OD_ZK_TIMEOUT, confFile.ZK.Timeout, 5)
@@ -767,7 +822,7 @@ func CascadeBoolFromString(fromEnv string, fromFile string, defaultVal bool) boo
 	return defaultVal
 }
 
-func cascadeFloat(fromEnv string, fromFile, defaultVal float64) float64 {
+func cascadeFloat(fromEnv string, fromFile float64, defaultVal float64) float64 {
 	if parsed, err := strconv.ParseFloat(os.Getenv(fromEnv), 64); err == nil {
 		return parsed
 	}
@@ -954,6 +1009,9 @@ func NewAutoScalingConfig() *AutoScalingConfig {
 	if ret.PollingInterval < 5 {
 		ret.PollingInterval = 5
 	}
+	if ret.PollingInterval > 60 {
+		ret.PollingInterval = 60
+	}
 	ret.QueueBatchSize = getEnvOrDefaultInt(OD_AWS_SQS_BATCHSIZE, 10)
 	if ret.QueueBatchSize > 10 {
 		ret.QueueBatchSize = 10
@@ -970,7 +1028,6 @@ func NewAutoScalingConfig() *AutoScalingConfig {
 // Not all environment variables are currently supported by the yaml configuration and structs
 // defined above, so those lines are commented out below
 func setEnvironmentFromConfiguration(conf AppConfiguration) {
-
 	os.Setenv(OD_AAC_CA, conf.AACSettings.CAPath)
 	os.Setenv(OD_AAC_CERT, conf.AACSettings.ClientCert)
 	os.Setenv(OD_AAC_CN, conf.AACSettings.CommonName)
@@ -979,8 +1036,8 @@ func setEnvironmentFromConfiguration(conf AppConfiguration) {
 	//os.Setenv(OD_AAC_INSECURE_SKIP_VERIFY,
 	os.Setenv(OD_AAC_KEY, conf.AACSettings.ClientKey)
 	os.Setenv(OD_AAC_PORT, conf.AACSettings.Port)
-	os.Setenv(OD_AAC_RECHECK_TIME, string(conf.AACSettings.RecheckTime))
-	os.Setenv(OD_AAC_WARMUP_TIME, string(conf.AACSettings.WarmupTime))
+	os.Setenv(OD_AAC_RECHECK_TIME, strconv.FormatInt(conf.AACSettings.RecheckTime, 10))
+	os.Setenv(OD_AAC_WARMUP_TIME, strconv.FormatInt(conf.AACSettings.WarmupTime, 10))
 	os.Setenv(OD_AAC_ZK_ADDRS, strings.Join(conf.AACSettings.ZKAddrs, ","))
 	// os.Setenv(OD_AWS_ACCESS_KEY_ID,
 	// os.Setenv(OD_AWS_ASG_EC2,
@@ -992,73 +1049,80 @@ func setEnvironmentFromConfiguration(conf AppConfiguration) {
 	// os.Setenv(OD_AWS_REGION,
 	// os.Setenv(OD_AWS_S3_BUCKET,
 	// os.Setenv(OD_AWS_S3_ENDPOINT,
-	// os.Setenv(OD_AWS_S3_FETCH_MB,
+	os.Setenv(OD_AWS_S3_FETCH_MB, strconv.FormatInt(conf.CacheSettings.ChunkSize, 10))
 	// os.Setenv(OD_AWS_SECRET_ACCESS_KEY,
 	// os.Setenv(OD_AWS_SQS_BATCHSIZE,
 	// os.Setenv(OD_AWS_SQS_ENDPOINT,
 	// os.Setenv(OD_AWS_SQS_INTERVAL,
 	// os.Setenv(OD_AWS_SQS_NAME,
-	// os.Setenv(OD_CACHE_EVICTAGE,
-	// os.Setenv(OD_CACHE_HIGHWATERMARK,
-	// os.Setenv(OD_CACHE_LOWWATERMARK,
-	// os.Setenv(OD_CACHE_PARTITION,
-	// os.Setenv(OD_CACHE_ROOT,
-	// os.Setenv(OD_CACHE_WALKSLEEP,
-	// os.Setenv(OD_DB_CA,
-	// os.Setenv(OD_DB_CERT,
-	// os.Setenv(OD_DB_CONN_PARAMS,
-	// os.Setenv(OD_DB_CONNMAXLIFETIME,
-	// os.Setenv(OD_DB_DEADLOCK_RETRYCOUNTER,
-	// os.Setenv(OD_DB_DEADLOCK_RETRYDELAYMS,
-	// os.Setenv(OD_DB_DRIVER,
-	// os.Setenv(OD_DB_HOST,
-	// os.Setenv(OD_DB_KEY,
-	// os.Setenv(OD_DB_MAXIDLECONNS,
-	// os.Setenv(OD_DB_MAXOPENCONNS,
-	// os.Setenv(OD_DB_PASSWORD,
-	// os.Setenv(OD_DB_PORT,
-	// os.Setenv(OD_DB_PROTOCOL,
-	// os.Setenv(OD_DB_SCHEMA,
+	os.Setenv(OD_CACHE_EVICTAGE, strconv.FormatInt(conf.CacheSettings.EvictAge, 10))
+	os.Setenv(OD_CACHE_FILELIMIT, strconv.FormatInt(conf.CacheSettings.FileLimit, 10))
+	os.Setenv(OD_CACHE_FILESLEEP, strconv.FormatInt(conf.CacheSettings.FileSleep, 10))
+	os.Setenv(OD_CACHE_HIGHTHRESHOLDPERCENT, fmt.Sprintf("%v", conf.CacheSettings.HighThresholdPercent))
+	os.Setenv(OD_CACHE_LOWTHRESHOLDPERCENT, fmt.Sprintf("%v", conf.CacheSettings.LowThresholdPercent))
+	os.Setenv(OD_CACHE_PARTITION, conf.CacheSettings.Partition)
+	os.Setenv(OD_CACHE_ROOT, conf.CacheSettings.Root)
+	os.Setenv(OD_CACHE_WALKSLEEP, strconv.FormatInt(conf.CacheSettings.WalkSleep, 10))
+	os.Setenv(OD_DB_CA, conf.DatabaseConnection.CAPath)
+	os.Setenv(OD_DB_CERT, conf.DatabaseConnection.ClientCert)
+	os.Setenv(OD_DB_CONN_PARAMS, conf.DatabaseConnection.Params)
+	os.Setenv(OD_DB_CONNMAXLIFETIME, strconv.FormatInt(conf.DatabaseConnection.MaxConnLifetime, 10))
+	os.Setenv(OD_DB_DEADLOCK_RETRYCOUNTER, strconv.FormatInt(conf.DatabaseConnection.DeadlockRetryCounter, 10))
+	os.Setenv(OD_DB_DEADLOCK_RETRYDELAYMS, strconv.FormatInt(conf.DatabaseConnection.DeadlockRetryDelay, 10))
+	os.Setenv(OD_DB_DRIVER, conf.DatabaseConnection.Driver)
+	os.Setenv(OD_DB_HOST, conf.DatabaseConnection.Host)
+	os.Setenv(OD_DB_KEY, conf.DatabaseConnection.ClientKey)
+	os.Setenv(OD_DB_MAXIDLECONNS, strconv.FormatInt(conf.DatabaseConnection.MaxIdleConns, 10))
+	os.Setenv(OD_DB_MAXOPENCONNS, strconv.FormatInt(conf.DatabaseConnection.MaxOpenConns, 10))
+	os.Setenv(OD_DB_PASSWORD, conf.DatabaseConnection.Password)
+	os.Setenv(OD_DB_PORT, conf.DatabaseConnection.Port)
+	os.Setenv(OD_DB_PROTOCOL, conf.DatabaseConnection.Protocol)
+	os.Setenv(OD_DB_SCHEMA, conf.DatabaseConnection.Schema)
 	os.Setenv(OD_DB_SKIP_VERIFY, strconv.FormatBool(conf.DatabaseConnection.SkipVerify))
 	os.Setenv(OD_DB_USE_TLS, strconv.FormatBool(conf.DatabaseConnection.UseTLS))
-	// os.Setenv(OD_DB_USERNAME,
-	// os.Setenv(OD_ENCRYPT_MASTERKEY,
-	// os.Setenv(OD_EVENT_KAFKA_ADDRS,
-	// os.Setenv(OD_EVENT_PUBLISH_FAILURE_ACTIONS,
-	// os.Setenv(OD_EVENT_PUBLISH_SUCCESS_ACTIONS,
-	// os.Setenv(OD_EVENT_TOPIC,
-	// os.Setenv(OD_EVENT_ZK_ADDRS,
+	os.Setenv(OD_DB_USERNAME, conf.DatabaseConnection.Username)
+	os.Setenv(OD_ENCRYPT_ENABLED, strconv.FormatBool(conf.ServerSettings.EncryptEnabled))
+	os.Setenv(OD_ENCRYPT_MASTERKEY, conf.CacheSettings.MasterKey)
+	os.Setenv(OD_EVENT_KAFKA_ADDRS, strings.Join(conf.EventQueue.KafkaAddrs, ","))
+	os.Setenv(OD_EVENT_PUBLISH_FAILURE_ACTIONS, strings.Join(conf.EventQueue.PublishFailureActions, ","))
+	os.Setenv(OD_EVENT_PUBLISH_SUCCESS_ACTIONS, strings.Join(conf.EventQueue.PublishSuccessActions, ","))
+	os.Setenv(OD_EVENT_TOPIC, conf.EventQueue.Topic)
+	os.Setenv(OD_EVENT_ZK_ADDRS, strings.Join(conf.EventQueue.ZKAddrs, ","))
 	// os.Setenv(OD_EXTERNAL_HOST,
 	// os.Setenv(OD_EXTERNAL_PORT,
 	// os.Setenv(OD_LOG_LEVEL,
 	// os.Setenv(OD_LOG_LOCATION,
 	// os.Setenv(OD_LOG_MODE,
 	// os.Setenv(OD_PEER_CN,
+	os.Setenv(OD_PEER_ENABLED, strconv.FormatBool(conf.ServerSettings.PeerEnabled))
 	// os.Setenv(OD_PEER_SIGNIFIER,
 	// os.Setenv(OD_PEER_INSECURE_SKIP_VERIFY,
-	// os.Setenv(OD_SERVER_ACL_WHITELIST,
-	// os.Setenv(OD_SERVER_BASEPATH,
-	// os.Setenv(OD_SERVER_BINDADDRESS,
-	// os.Setenv(OD_SERVER_CA,
-	// os.Setenv(OD_SERVER_CERT,
-	// os.Setenv(OD_SERVER_CIPHERS,
-	// os.Setenv(OD_SERVER_KEY,
-	// os.Setenv(OD_SERVER_PORT,
-	// os.Setenv(OD_SERVER_STATIC_FILES,
-	// os.Setenv(OD_SERVER_TEMPLATE_FILES,
-	// os.Setenv(OD_SERVER_TIMEOUT_IDLE,
-	// os.Setenv(OD_SERVER_TIMEOUT_READ,
-	// os.Setenv(OD_SERVER_TIMEOUT_READHEADER,
-	// os.Setenv(OD_SERVER_TIMEOUT_WRITE,
+	for idx, val := range conf.ServerSettings.ACLImpersonationWhitelist {
+		os.Setenv(fmt.Sprintf("%s%d", OD_SERVER_ACL_WHITELIST, idx), val)
+	}
+	os.Setenv(OD_SERVER_BINDADDRESS, conf.ServerSettings.ListenBind)
+	os.Setenv(OD_SERVER_CA, conf.ServerSettings.CAPath)
+	os.Setenv(OD_SERVER_CERT, conf.ServerSettings.ServerCertChain)
+	os.Setenv(OD_SERVER_CIPHERS, strings.Join(conf.ServerSettings.CipherSuites, ","))
+	os.Setenv(OD_SERVER_KEY, conf.ServerSettings.ServerKey)
+	os.Setenv(OD_SERVER_PORT, conf.ServerSettings.ListenPort)
+	os.Setenv(OD_SERVER_STATIC_ROOT, conf.ServerSettings.PathToStaticFiles)
+	os.Setenv(OD_SERVER_TEMPLATE_ROOT, conf.ServerSettings.PathToTemplateFiles)
+	os.Setenv(OD_SERVER_TIMEOUT_IDLE, strconv.FormatInt(conf.ServerSettings.IdleTimeout, 10))
+	os.Setenv(OD_SERVER_TIMEOUT_READ, strconv.FormatInt(conf.ServerSettings.ReadTimeout, 10))
+	os.Setenv(OD_SERVER_TIMEOUT_READHEADER, strconv.FormatInt(conf.ServerSettings.ReadHeaderTimeout, 10))
+	os.Setenv(OD_SERVER_TIMEOUT_WRITE, strconv.FormatInt(conf.ServerSettings.WriteTimeout, 10))
 	// os.Setenv(OD_TOKENJAR_LOCATION,
 	// os.Setenv(OD_TOKENJAR_PASSWORD,
-	// os.Setenv(OD_ZK_AAC,
-	os.Setenv(OD_ZK_ANNOUNCE, conf.AACSettings.AACAnnouncementPoint)
-	// os.Setenv(OD_ZK_MYIP,
-	// os.Setenv(OD_ZK_MYPORT,
-	// os.Setenv(OD_ZK_RECHECK_TIME,
-	// os.Setenv(OD_ZK_RETRYDELAY,
-	// os.Setenv(OD_ZK_TIMEOUT,
-	// os.Setenv(OD_ZK_URL,
+	os.Setenv(OD_USERAOCACHE_LRU_TIME, strconv.FormatInt(conf.UserAOCacheSettings.LruTime, 10))
+	os.Setenv(OD_USERAOCACHE_TIMEOUT, strconv.FormatInt(conf.UserAOCacheSettings.UserAOCacheTimeout, 10))
+	os.Setenv(OD_ZK_AAC, conf.AACSettings.AACAnnouncementPoint)
+	os.Setenv(OD_ZK_ANNOUNCE, conf.ZK.AnnouncementPoint)
+	os.Setenv(OD_ZK_MYIP, conf.ZK.IP)
+	os.Setenv(OD_ZK_MYPORT, conf.ZK.Port)
+	os.Setenv(OD_ZK_RECHECK_TIME, strconv.FormatInt(conf.ZK.RecheckTime, 10))
+	os.Setenv(OD_ZK_RETRYDELAY, strconv.FormatInt(conf.ZK.RetryDelay, 10))
+	os.Setenv(OD_ZK_TIMEOUT, strconv.FormatInt(conf.ZK.Timeout, 10))
+	os.Setenv(OD_ZK_URL, conf.ZK.Address)
 
 }

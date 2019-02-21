@@ -107,7 +107,7 @@ func zipWriteManifest(ctx context.Context, aacClient aac.AacService, zw *zip.Wri
 	}
 
 	// Begin writing the manifest (associate portion with individual files)
-	header, err := zip.FileInfoHeader(newManifestInfo("classification_manifest.txt", time.Now()))
+	header, err := zip.FileInfoHeader(newManifestInfo("classification_manifest.txt", time.Now().UTC()))
 	if err != nil {
 		return NewAppError(http.StatusInternalServerError, err, "Unable to create file acm info header")
 	}

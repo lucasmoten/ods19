@@ -22,8 +22,8 @@ import javax.json.*;
   
   
   #!/bin/bash
-  endpoint=https://bedrock.363-283.io/services/object-drive/1.0
-  endpoint=https://proxier:8080/services/object-drive/1.0
+  endpoint=https://meme.363-283.io/services/object-drive/0.0
+  endpoint=https://proxier:8080/services/object-drive/0.0
   classpath=.:javax.json-1.0.4.jar
   javac -classpath $classpath ObjectDriveSDK.java && java -classpath $classpath ObjectDriveSDK \
     $endpoint \
@@ -44,7 +44,7 @@ public class ObjectDriveSDK {
     public static void main(String[] args) throws Exception {
         //Include initial part of URL, like:
         //
-        //   https://bedrock.363-283.io/services/object-drive/1.0
+        //   https://meme.363-283.io/services/object-drive/0.0
         //
         String apiEndpoint = args[0];
         

@@ -10,33 +10,6 @@ then
   cp internal/etag.png            ../server/static/js/etag.png
   mkdir -p ../server/static/images
   cp images/odrive-service.png    ../server/static/images/odrive-service.png
-
-  # if [ $(which convert | wc -l) -eq 1 ];
-  # then
-  #   ARG_VERSION=${1}
-  #   if [ ${#1} -eq 0 ]
-  #   then
-  #     ARG_VERSION=$(grep 'ODRIVE_VERSION:' ../circle.yml | awk '{ print $2}' | sed -e 's/^"//' -e 's/"$//')
-  #     echo Version was not specified. Using $ARG_VERSION
-  #   fi
-  #   ARG_BUILDNUM=${2}
-  #   if [ ${#2} -eq 0 ]
-  #   then  
-  #     ARG_BUILDNUM="SNAPSHOT"
-  #     if [ -z ${CIRCLE_BUILD_NUM} ]; then
-  #       echo Build Number was not specified. Using $ARG_BUILDNUM
-  #     fi
-  #   fi
-  #   echo "Creating image for odrive-version from ${ARG_VERSION}"
-  #   convert -background white -fill black -font Helvetica -pointsize 10 label:${ARG_VERSION} ../server/static/images/odrive-version.png
-  #   echo "Creating image for odrive-buildnum from ${ARG_BUILDNUM}"
-  #   convert -background white -fill black -font Helvetica -pointsize 10 label:${ARG_BUILDNUM} ../server/static/images/odrive-buildnum.png
-  #   echo "Creating image for odrive-builddate"
-  #   THEDATE=`date +%Y%m%d%H%M` 
-  #   convert -background white -fill black -font Helvetica -pointsize 10 label:${THEDATE} ../server/static/images/odrive-builddate.png
-  # else
-  #   echo "ImageMagick is not installed. convert must be in the path, as it is used by builddiagrams to generate images for build version and numbering"
-  # fi
 else
   echo "Graphviz is not installed. dot must be in the path, as it is used by plantuml.jar to produce the UML diagrams"
 fi

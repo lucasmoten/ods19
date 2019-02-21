@@ -1,6 +1,6 @@
 FORMAT: 1A
 
-# Object Drive 1.0 
+# Object Drive
 
 <table style="width:100%;border:0px;padding:0px;border-spacing:0;border-collapse:collapse;font-family:Helvetica;font-size:10pt;vertical-align:center;"><tbody><tr><td style="padding:0px;font-size:10pt;">Version</td><td style="padding:0px;font-size:10pt;">--Version--</td><td style="width:20%;font-size:8pt;"> </td><td style="padding:0px;font-size:10pt;">Build</td><td style="padding:0px;font-size:10pt;">--BuildNumber--</td><td style="width:20%;font-size:8pt;"></td><td style="padding:0px;font-size:10pt;">Date</td><td style="padding:0px;font-size:10pt;">--BuildDate--</td></tr></tbody></table>
 
@@ -13,6 +13,7 @@ FORMAT: 1A
 + [Emitted Events documentation](events.html)
 + [Environment](environment.html)
 + [Changelog](changelog.html)
++ [BoringCrypto](boringcrypto.html)
 
 # Group Environment Setup
 
@@ -40,12 +41,12 @@ Amazon Web Services environment variables contain credentials for AWS used for S
 
 | Name | Description | Default |
 | --- | --- | --- |
-| OD_AWS_ACCESS_KEY_ID | The AWS Access Key. Available here: https://console.aws.amazon.com/iam/home |  |
+| OD_AWS_ACCESS_KEY_ID | The AWS Access Key if not using IAM roles.  |  |
 | OD_AWS_REGION | The AWS region to use. (i.e. us-east-1, us-west-2).  |  |
 | OD_AWS_S3_BUCKET | The S3 Bucket name to use.  The credentials used defined in OD_AWS_SECRET_ACCESS_KEY and OD_AWS_ACCESS_KEY_ID must have READ and WRITE privileges to the bucket. |  |
-| OD_AWS_S3_ENDPOINT | The AWS S3 URL endpoint to use. Documented at: http://docs.aws.amazon.com/general/latest/gr/rande.html. | s3.amazonaws.com |
+| OD_AWS_S3_ENDPOINT | The AWS S3 URL endpoint to use. [Documented here](http://docs.aws.amazon.com/general/latest/gr/rande.html). | s3.amazonaws.com |
 | OD_AWS_S3_FETCH_MB | The size (in MB) of chunks to pull from S3 in cases where Object Drive is re-caching from S3.  This is a compromise between response time vs billing caused by S3 billing per request.|16|
-| OD_AWS_SECRET_ACCESS_KEY | AWS secret key. Access and secret key variables override credentials stored in credential and config files.  Note that if a token.jar is installed onto the system, we can use the Bedrock encrypt format like `ENC{...}` |  |
+| OD_AWS_SECRET_ACCESS_KEY | AWS secret key. Access and secret key variables override credentials stored in credential and config files.  Values in `ENC{...}` are assumed to be encrypted. |  |
 
 ### AWS Autoscaling
 CloudWatch, SQS, and AutoScale with alarms (installed in AWS) interact to produce autoscaling behavior.
@@ -59,20 +60,41 @@ CloudWatch, SQS, and AutoScale with alarms (installed in AWS) interact to produc
 | OD_AWS_CLOUDWATCH_NAME|When reporting to cloud watch, we must report into a namespace.  In production, it's the same as the zk url. | Leave blank to disable cloudwatch reports.  Usually set same as OD_ZK_ANNOUNCE is used as the value because it is unique per cluster.  If it is blank, then metrics are logged rather than sent to cloud watch. |
 | OD_AWS_SQS_BATCHSIZE | The number of messages (1-10) to request from lifecycle queue per polling interval to examine for shutdown | 10 |
 | OD_AWS_SQS_ENDPOINT | The name of the SQS service. | leave blank by default, which is implicitly sqs.us-east-1.amazonaws.com |
-| OD_AWS_SQS_INTERVAL | Poll interval for the lifecycle queue in seconds | 60 |
+| OD_AWS_SQS_INTERVAL | Poll interval for the lifecycle queue in seconds. Valid values between 5 and 60. | 60 |
 | OD_AWS_SQS_NAME | This is the name of the lifecycle queue.  Blank to disable use of SQS for this purpose. When left blank (default), the shutdown by message is disabled |  |
 
-### Cache
+### Cache for Files
 Storage cache on disk as an intermediary for upload/download to and from S3
 
 | Name | Description | Default |
 | --- | --- | --- |
 | OD_CACHE_EVICTAGE | Denotes the minimum age, in seconds, a file in cache before it is eligible for eviction (purge) from the cache to free up space.  | 300 |
-| OD_CACHE_HIGHWATERMARK | Denotes a percentage of the file storage on the local mount point as the high size such that when the total space used exceeds the allocated percentage, a file in the cache will be purged if its age last used exceeds the eviction age time.  | 0.75 |
-| OD_CACHE_LOWWATERMARK | Denotes a percentage of the file storage on the local mount point as the low size where total consumption must be at least that specified for files to be considered for purging.  | 0.50 |
+| OD_CACHE_FILELIMIT | Denotes the maximum number of cached files to keep. A value of 0 allows for unlimited files. This settings is useful if an excessive amount of time and processing is spent on checking large quantities of small files. | 0 |
+| OD_CACHE_FILESLEEP | Denotes the duration, in milliseconds, for which the cache purge operation should sleep prior to processing each file. | 0 |
+| OD_CACHE_HIGHTHRESHOLDPERCENT | Denotes a percentage of the file storage on the local mount point as the high size such that when the total space used exceeds the allocated percentage, a file in the cache will be purged if its age last used exceeds the eviction age time.  | 0.75 |
+| OD_CACHE_LOWTHRESHOLDPERCENT | Denotes a percentage of the file storage on the local mount point as the low size where total consumption must be at least that specified for files to be considered for purging.  | 0.50 |
 | OD_CACHE_PARTITION | An optional path for prefixing folders as part of the key in S3 prior to the cache folder. Intended for delineating different environments. For example, the Jenkins Continuous Integration Build Environment uses "jenkins/build" to easily identify files that were put in by the jenkins build instances that may safely be purged from the system.  |  |
-| OD_CACHE_ROOT | An optional absolute or relative path to set the root of the local cache settings to override the default which beings in the same folder as working directory from which the Object Drive instance was started.  Object Drive should be run as user "object-drive-1.0" rather than "root", and OD_CACHE_ROOT should be readable and writable by this user.  When installed via an rpm, the launch of the Object Drive daemon is handled by the init script in /etc/init.d.| . |
-| OD_CACHE_WALKSLEEP | Denotes the frequency, in seconds, for which all files in the cache are examined to determine if they should be purged.  | 30 |
+| OD_CACHE_ROOT | An optional absolute or relative path to set the root of the local cache settings to override the default which beings in the same folder as working directory from which the Object Drive instance was started.  Object Drive should be run as user "object-drive" or "services" group rather than "root", and OD_CACHE_ROOT should be readable and writable by this user.  When installed via an rpm, the launch of the Object Drive daemon is handled by the init script in /etc/init.d.| . |
+| OD_CACHE_WALKSLEEP | Denotes the duration, in seconds, for which the cache purge operation should sleep prior to starting the next iteration.  | 30 |
+
+### Cache Peer to Peer
+Peer nodes of Object Drive within a cluster can communicate with each other to leverage local cache
+
+| Name | Description | Default |
+| --- | --- | --- |
+| OD_PEER_CN | The name associated with the certificate.  This may need to change when certificates are changed, but if it works at default, leave it.  This `MUST` be set in order to connect when this feature is enabled. |  |
+| OD_PEER_ENABLED | Indicates whether an instance is permitted to retrieve ciphertext from its peers. | true |
+| OD_PEER_INSECURE_SKIP_VERIFY | This turns off certificate verification.  Do not do this.  Leave this value at its default. | false |
+| OD_PEER_SIGNIFIER | This is a pseudonym used to signify a P2P client, which is set because it prevents users from accessing via nginx.  This generally does not need to be changed. | P2P |
+
+### Cache for User AO
+Configuration settings for managing the internal user authorization object cache that contributes to improved performance in ACM associations
+
+| Name | Description | Default |
+| --- | --- | --- |
+| OD_USERAOCACHE_LRU_TIME | The time in seconds that a user AO will be cached in memory unless necessary to evict per least-recently-used caching constraints. | 600 |
+| OD_USERAOCACHE_TIMEOUT | The permitted time in seconds to allow a User AO Cache rebuild to happen asynchronously before it will be assumed to have failed and permit another thread to attempt rebuild. | 40 |
+
 
 ### Database for Metadata
 The database is used to store metadata about objects and supports querying for matching objects to drive list operations and filter for user access.
@@ -81,19 +103,19 @@ The database is used to store metadata about objects and supports querying for m
 | --- | --- | --- |
 | OD_DB_CA | The path to the certificate authority folder or file containing public certificate(s) to trust as the server when connecting to the database over TLS.  |  |
 | OD_DB_CERT | The path to the public certificate for the user credentials connecting to the database.  |  |
-| OD_DB_CN | The cn of the ssl cert of the database. | fqdn.for.metadatadb.local (default is for testing only) |
-| OD_DB_CONN_PARAMS | Custom parameters to include for the database connection. For MySQL/MariaDB, we are using `parseTime=true&collation=utf8_unicode_ci&readTimeout=30s` |  |
+| OD_DB_CONN_PARAMS | Custom parameters to include for the database connection. For MySQL/MariaDB, we are using parseTime=true&collation=utf8_unicode_ci&readTimeout=30s |  |
 | OD_DB_CONNMAXLIFETIME | The maximum amount of time, in seconds, that a database connection may be reused. 0 indicates indefinitely. | 30 | 
 | OD_DB_DEADLOCK_RETRYCOUNTER | Indicates the number of times a create or update operation should be retried if the transaction fails due to a database deadlock | 30 |
 | OD_DB_DEADLOCK_RETRYDELAYMS | The duration in milliseconds between retry attempts for a create or update operation when a transaction fails due to a deadlock in the database | 55 |
-| OD_DB_DRIVER | The database driver to use. Supported values are `mysql`. | mysql |
+| OD_DB_DRIVER | The database driver to use. Supported values are <ul><li>mysql</li></ul> | mysql |
 | OD_DB_HOST | The name or IP address of the MySQL / MariaDB / Aurora conforming database.  |  |
 | OD_DB_KEY | The path to the private key for the user credentials connecting to the database.  |  | 
 | OD_DB_MAXIDLECONNS | The maximum number of database connections to keep idle. Overrides language default of 2.  | 10 |
 | OD_DB_MAXOPENCONNS | The maximum number of database connections to keep open. Overrides language default of unlimited.  | 10 |
-| OD_DB_PASSWORD | The password portion of credentials when connecting to the database. Note that if a token.jar is installed onto the system, we can use the Bedrock encrypt format like `ENC{...} |  |
+| OD_DB_PASSWORD | The password portion of credentials when connecting to the database. Values in `ENC{...}` are assumed to be encrypted. |  |
 | OD_DB_PORT | The port that the MySQL / MariaDB / Aurora instance is listening on.  |  |
-| OD_DB_PROTOCOL | The protocol to use when communicating with the database. Supported values are `tcp`. | tcp |
+| OD_DB_PROTOCOL | The protocol to use when communicating with the database. Supported values are <ul><li>tcp</li></ul> | tcp |
+| OD_DB_RECHECK_TIME | The interval seconds between database health status checks. Values less than 1 will disable the health check. | 30 |
 | OD_DB_SCHEMA | The schema to connect to after logging into the database.  |  |
 | OD_DB_SKIP_VERIFY | Indicates whether the hostname of an SSL peer is verified. | false |
 | OD_DB_USE_TLS | Indicates whether the database connection should use TLS. | true |
@@ -105,7 +127,7 @@ Object Drive publishes a single event stream for client applications.
 
 | Name | Description | Default |
 | --- | --- | --- |
-| OD_EVENT_KAFKA_ADDRS | A comma-separated list of **host:port** pairs.  These are Kafka brokers. If both OD_EVENT_KAFKA_ADDRS and OD_EVENT_ZK_ADDRS are provided, then OD_EVENT_KAFKA_ADDRS will take precedence. | |
+| OD_EVENT_KAFKA_ADDRS | A comma-separated list of **host:port** pairs.  These are Kafka brokers. If both OD_EVENT_KAFKA_ADDRS and OD_EVENT_ZK_ADDRS are provided, then OD_EVENT_KAFKA_ADDRS will take precedence.  Production environments should use OD_EVENT_ZK_ADDRS instead. | |
 | OD_EVENT_PUBLISH_FAILURE_ACTIONS | A comma delimited list of event action types that should be published to kafka if request failed. The default value * enables all failure events to be published. Permissible values are access, authenticate, create, delete, list, undelete, unknown, update, zip. | * |
 | OD_EVENT_PUBLISH_SUCCESS_ACTIONS | A comma delimited list of event action types that should be published to kafka if request succeeded. The default value * enables all success events to be published. Permissible values are access, authenticate, create, delete, list, undelete, unknown, update, zip. | * |
 | OD_EVENT_TOPIC | The name of the topic for which events will be published to. | odrive-event |
@@ -122,28 +144,18 @@ ObjectDrive itself just logs to stdout.  But when the service script launches it
 | OD_LOG_LOCATION | The location of a log file, supplied in `env.sh`  to override log location. | object-drive.log |
 | OD_LOG_MODE | Denotes whether logging is in development or production mode.  When in development mode, stack traces will be output for WARN level messages and above. For production mode, stack traces are only output in ERROR level. Permissible values are production, development | Production |
 
-### Peer to Peer
-Peer nodes of Object Drive within a cluster can communicate with each other to leverage local cache
-
-| Name | Description | Default |
-| --- | --- | --- |
-| OD_PEER_CN | The name associated with the certificate.  This may need to change when certificates are changed, but if it works at default, leave it.  This `MUST` be set in order to connect. |  |
-| OD_PEER_INSECURE_SKIP_VERIFY | This turns off certificate verification.  Do not do this.  Leave this value at its default. | false |
-| OD_PEER_SIGNIFIER | This is a pseudonym used to signify a P2P client, which is set because it prevents users from accessing via nginx.  This generally does not need to be changed. | P2P |
-
 ### Server
 Remaining server settings are noted here
 
 | Name | Description | Default |
 | --- | --- | --- |
 | OD_ENCRYPT_ENABLED | Indicates whether file content should be encrypted at rest in local cache and permanent storage. | true |
-| **OD_ENCRYPT_MASTERKEY** | **Required** The secret master key used as part of the encryption key for all files stored in the system. If this value is changed, all file keys must be adjusted at the same time. If you don't set this, the service will shut down.  Note that if a token.jar is installed onto the system, we can use the Bedrock encrypt format like `ENC{...} | |
+| **OD_ENCRYPT_MASTERKEY** | **Required** The secret master key used as part of the encryption key for all files stored in the system. If this value is changed, all file keys must be adjusted at the same time. If you don't set this, the service will shut down. Values in `ENC{...}` are assumed to be encrypted. | |
 | OD_SERVER_ACL_WHITELIST*n* | One or more environment variable prefixes to denote distinguished name assigned to the access control whitelist that controls whether a connector can impersonate as another identity. | |
-| OD_SERVER_BASEPATH | The base URL root. Used in debug UIs.    | "/services/object-drive/1.0" |
 | OD_SERVER_BINDADDRESS | The default interface address to bind the listener to. For all interfaces, use 0.0.0.0. | 0.0.0.0 |
 | OD_SERVER_CA | The path to the certificate authority folder or file containing public certificate(s) to trust as the server.    |  |
 | OD_SERVER_CERT |The path to the public certificate for the server credentials.  |  |
-| OD_SERVER_CIPHERS | A comma delimited list of ciphers to be allowed for connections. Valid values are TLS_RSA_WITH_RC4_128_SHA, TLS_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA (recommended), TLS_RSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_ECDSA_WITH_RC4_128_SHA, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_RC4_128_SHA, TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 (recommended), TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305, TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305 |  |
+| OD_SERVER_CIPHERS | A comma delimited list of ciphers to be allowed for connections. Valid values are <ul><li>TLS_RSA_WITH_RC4_128_SHA</li><li>TLS_RSA_WITH_3DES_EDE_CBC_SHA</li><li>TLS_RSA_WITH_AES_128_CBC_SHA</li><li>TLS_RSA_WITH_AES_256_CBC_SHA</li><li>TLS_ECDHE_ECDSA_WITH_RC4_128_SHA</li><li>TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA</li><li>TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA</li><li>TLS_ECDHE_RSA_WITH_RC4_128_SHA</li><li>TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA</li><li>TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA</li><li>TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA</li><li>TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</li><li>TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256</li><li>TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384</li><li>TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384</li><li>TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305</li><li>TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305</li></ul> The following values are recommended <ul><li>TLS_RSA_WITH_AES_128_CBC_SHA</li><li>TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</li></ul> |  |
 | OD_SERVER_KEY | The path to the server's private key.   |  |
 | OD_SERVER_PORT | The port for which this object-drive instance will listen on. Binding to ports below 1024 require setting additional security settings on the system.  | 4430 |
 | OD_SERVER_STATIC_ROOT | The location on disk where static assets are stored. | |
@@ -152,7 +164,7 @@ Remaining server settings are noted here
 | OD_SERVER_TIMEOUT_READ | This is the maximum duration for reading the entire request, including the body | |
 | OD_SERVER_TIMEOUT_READHEADER | This is the amount of time allowed to read request headers, in seconds | 5 |
 | OD_SERVER_TIMEOUT_WRITE | This is the maximum duration before timing out writes of the response, in seconds | 3600 |
-| OD_TOKENJAR_LOCATION | If a token.jar is placed on the filesystem to support Bedrock secret encryption format, then this is the full location of that jar file.  That jar is presumed to have used OD_TOKENJAR_PASSWORD in its generation | `/opt/services/object-drive-1.0/token.jar` |
+| OD_TOKENJAR_LOCATION | If a token.jar is placed on the filesystem to support Bedrock secret encryption format, then this is the full location of that jar file.  That jar is presumed to have used OD_TOKENJAR_PASSWORD in its generation | `/opt/services/object-drive-$MajorMinorVersion/token.jar` |
 | OD_TOKENJAR_PASSWORD | This is the password that is embedded into code that is authorized to decrypt secrets that we cannot avoid writing down on the system.  The security of the system does not lie in this password, but in the fact that each token.jar should be using a fresh sample.dat that has a fresh key per cluster.  This value generally does not need an override, but it is here in case it does get changed without recompiling the code.  | Embedded in compiled code |
 
 ### Zookeeper
@@ -161,7 +173,7 @@ Zookeeper is used to announce the availability of this instance of the object dr
 | Name | Description | Default |
 | --- | --- | --- |
 | OD_ZK_AAC | The announce point for AAC nodes.  Matches gatekeeper config cluster.aac.zk-location | /cte/service/aac/1.0/thrift |
-| OD_ZK_ANNOUNCE|The mount point for announcements where our zookeeper https node is placed.   This should match the gatekeeper cluster.odrive.zk-location without the https part | /services/object-drive/1.0 |
+| OD_ZK_ANNOUNCE|The mount point for announcements where our zookeeper https node is placed.   This should match the gatekeeper cluster.odrive.zk-location without the https part | /services/object-drive/$MajorMinorVersion |
 | OD_ZK_MYIP | The IP address of the Object-Drive server as reported to Zookeeper. If this environment variable is defined it will override the value detected as the server's IP address on startup. | globalconfig.MyIP |
 | OD_ZK_MYPORT | The Port of the Object-Drive server as reported to Zookeeper. If this environment variable is defined it will override the value detected as the server's listening port on startup. | serverPort _4430_ |
 | OD_ZK_RECHECK_TIME | The interval seconds between ZK health status checks (1-600) | 30 |

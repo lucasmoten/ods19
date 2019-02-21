@@ -3,6 +3,7 @@ package ciphertext_test
 import (
 	"io"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"bitbucket.di2e.net/dime/object-drive-server/ciphertext"
@@ -17,16 +18,16 @@ func cacheParams(root, partition string) (string, ciphertext.CiphertextCacheZone
 	masterKey := "testkey"
 	chunkSize16MB := int64(16 * 1024 * 1024)
 	conf := config.DiskCacheOpts{
-		Root:          root,
-		Partition:     partition,
-		LowWatermark:  float64(0.50),
-		HighWatermark: float64(0.75),
-		EvictAge:      int64(60 * 5),
-		WalkSleep:     120,
-		ChunkSize:     chunkSize16MB,
-		MasterKey:     masterKey,
+		Root:                 root,
+		Partition:            partition,
+		LowThresholdPercent:  float64(0.50),
+		HighThresholdPercent: float64(0.75),
+		EvictAge:             int64(60 * 5),
+		WalkSleep:            120,
+		ChunkSize:            chunkSize16MB,
+		MasterKey:            masterKey,
 	}
-	at := conf.Root + "/" + conf.Partition
+	at := filepath.Join(conf.Root, conf.Partition)
 	dbID := "dbtest"
 	zone := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
 	return at, zone, conf, dbID
@@ -58,7 +59,7 @@ func TestCacheSimple(t *testing.T) {
 		t.FailNow()
 	}
 	rName := ciphertext.FileId("sourcetest")
-	fNameUploaded := d.Resolve(ciphertext.NewFileName(rName, ".uploaded"))
+	fNameUploaded := d.Resolve(ciphertext.NewFileName(rName, ciphertext.FileStateUploaded))
 
 	fOut, err := d.Files().Create(fNameUploaded)
 	if err != nil {
@@ -79,7 +80,7 @@ func TestCacheSimple(t *testing.T) {
 	}
 	t.Logf("wrote back source to PermanentStorage")
 
-	fNameCached := d.Resolve(ciphertext.NewFileName(rName, ".cached"))
+	fNameCached := d.Resolve(ciphertext.NewFileName(rName, ciphertext.FileStateCached))
 	err = d.Files().Remove(fNameCached)
 	if err != nil {
 		t.Logf("unable to purge file from cache: %v", err)

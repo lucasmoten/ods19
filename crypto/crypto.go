@@ -67,13 +67,6 @@ func (r *cipherStreamReader) Read(dst []byte) (n int, err error) {
 	return
 }
 
-// CreateRandomName gives each file a random name
-func CreateRandomName() string {
-	key := make([]byte, 32)
-	rand.Read(key)
-	return hex.EncodeToString(key)
-}
-
 // DoMAC generates a repeatable hash value from the concatenation of key components of the permission, to be used as a message authentication code
 func DoMAC(passphrase string, permissionIV []byte, grantee string, c, r, u, d, s bool, encryptedKey []byte) []byte {
 	//TODO: use value types

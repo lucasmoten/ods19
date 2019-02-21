@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 	"bitbucket.di2e.net/dime/object-drive-server/utils"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
@@ -150,7 +151,7 @@ func getAcm2ByNameInTransaction(tx *sqlx.Tx, dao *DataAccessLayer, namedValue st
 	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded", sql.ErrNoRows.Error()}
 	stmt := `select id, sha256hash, flattenedacm from acm2 where flattenedacm = ?`
 	err := tx.Get(&result, stmt, namedValue)
-	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
+	for retryCounter > 0 && err != nil && util.ContainsAny(err.Error(), retryOnErrorMessageContains) {
 		retryCounter--
 		if err == sql.ErrNoRows && addIfMissing {
 			result.FlattenedACM = namedValue
@@ -165,12 +166,12 @@ func getAcm2ByNameInTransaction(tx *sqlx.Tx, dao *DataAccessLayer, namedValue st
 			created = true
 			break
 		}
-		logger.Debug("restarting transaction for getAcm2ByNameInTransaction", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
+		logger.Debug("dao retrying getAcm2ByNameInTransaction", zap.String("retryReason", util.FirstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		err = tx.Get(&result, stmt, namedValue)
 	}
 	if err != nil {
-		logger.Error("error in getAcm2ByNameInTransaction", zap.Error(err))
+		logger.Error("dao error in getAcm2ByNameInTransaction", zap.Error(err))
 	}
 	return result, created, err
 }
@@ -207,14 +208,14 @@ func getAcmKey2ByName(dao *DataAccessLayer, namedValue string, addIfMissing bool
 	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded", sql.ErrNoRows.Error()}
 	stmt := `select id, name from acmkey2 where name = ?`
 	err = tx.Get(&result, stmt, namedValue)
-	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
-		logger.Debug("restarting transaction for getAcmKey2ByName", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
+	for retryCounter > 0 && err != nil && util.ContainsAny(err.Error(), retryOnErrorMessageContains) {
+		logger.Debug("dao retrying getAcmKey2ByName", zap.String("retryReason", util.FirstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
 		tx.Rollback()
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		retryCounter--
 		tx, err = dao.MetadataDB.Beginx()
 		if err != nil {
-			logger.Error("could not begin transaction", zap.Error(err))
+			logger.Error("dao could not begin transaction", zap.Error(err))
 			return result, err
 		}
 		err = tx.Get(&result, stmt, namedValue)
@@ -226,7 +227,7 @@ func getAcmKey2ByName(dao *DataAccessLayer, namedValue string, addIfMissing bool
 		}
 	}
 	if err != nil {
-		logger.Error("error in getAcmKey2ByName", zap.Error(err))
+		logger.Error("dao error in getAcmKey2ByName", zap.Error(err))
 		tx.Rollback()
 		return result, fmt.Errorf("error creating acm key when missing: %s", err.Error())
 	}
@@ -260,8 +261,8 @@ func getAcmValue2ByName(dao *DataAccessLayer, namedValue string, addIfMissing bo
 	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded", sql.ErrNoRows.Error()}
 	stmt := `select id, name from acmvalue2 where name = ?`
 	err = tx.Get(&result, stmt, namedValue)
-	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
-		logger.Debug("restarting transaction for getAcmValue2ByName", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
+	for retryCounter > 0 && err != nil && util.ContainsAny(err.Error(), retryOnErrorMessageContains) {
+		logger.Debug("dao retrying getAcmValue2ByName", zap.String("retryReason", util.FirstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		retryCounter--
 		if err = tx.Get(&result, stmt, namedValue); err != nil {
@@ -271,12 +272,12 @@ func getAcmValue2ByName(dao *DataAccessLayer, namedValue string, addIfMissing bo
 					continue
 				}
 			} else {
-				logger.Error("error retrieving value", zap.Error(err))
+				logger.Error("dao error retrieving value via getAcmValue2ByName", zap.Error(err), zap.String("namedvalue", namedValue))
 			}
 		}
 	}
 	if err != nil {
-		logger.Error("error in getAcmValue2ByName", zap.Error(err))
+		logger.Error("dao error in getAcmValue2ByName", zap.Error(err))
 		tx.Rollback()
 		return result, fmt.Errorf("error creating acm value when missing value %s: %s", namedValue, err.Error())
 	}

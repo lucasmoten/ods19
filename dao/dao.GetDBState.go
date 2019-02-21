@@ -11,7 +11,7 @@ import (
 
 // GetDBState retrieves the database state including schema version and identifier used for cache location
 func (dao *DataAccessLayer) GetDBState() (models.DBState, error) {
-	dao.GetLogger().Debug("dao starting txn for GetDBState", zap.Int("open-connections before check", dao.GetOpenConnections()))
+	dao.GetLogger().Debug("dao starting txn for GetDBState", zap.Int("open-connections before check", dao.GetOpenConnectionCount()))
 	defer util.Time("GetDBState")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {

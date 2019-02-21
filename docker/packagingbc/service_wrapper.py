@@ -1,4 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+# This script has been updated to work with python 2.7 and python 3.4
+# This script is run within the docker container after installing python 3.4
 
 import os, subprocess
 from pwd import getpwnam
@@ -7,7 +9,7 @@ import time
 
 """
 This file should be invoked from docker-compose. We take the env passed in
-and use it to template out a new /opt/services/object-drive-1.0/env.sh file 
+and use it to template out a new env.sh file in the install directory
 internal to the container. Then we start object-drive
 """
 def tail_f(file):
@@ -28,7 +30,9 @@ if __name__ == '__main__':
     for k in os.environ.keys():
         env_for_proc[k] = os.getenv(k, "")
 
-    env_script = "/opt/services/object-drive-1.0/env.sh"
+    version = "--MajorMinorVersion--"
+
+    env_script = "/opt/services/object-drive-" + version + "/env.sh"
 
     if os.path.exists(env_script):
         os.remove(env_script)
@@ -37,7 +41,7 @@ if __name__ == '__main__':
         f.write("#!/bin/bash \n")
         f.write("\n")
         for k, v in env_for_proc.iteritems():
-            print 'Adding to env.sh: %s %s' % (k, v)
+            print('Adding to env.sh: %s %s' % (k, v))
             if k == "OD_DB_CONN_PARAMS":
                 f.write("export {0}=\"{1}\"\n".format(k, v))
                 continue
@@ -46,10 +50,10 @@ if __name__ == '__main__':
 
         f.write("\n")
 
-    subprocess.check_call(["service", "object-drive-1.0", "start"], env=env_for_proc)
+    subprocess.check_call(["service", "object-drive-" + version, "start"], env=env_for_proc)
 
     # Simulate tail -f.
-    for line in tail_f(open("/opt/services/object-drive-1.0/log/object-drive.log")):
-        print line
+    for line in tail_f(open("/opt/services/object-drive-" + version + "/log/object-drive.log")):
+        print(line)
 
     

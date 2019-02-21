@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# This script has been updated to work with python 2.7 and python 3.6
+
 import os
 import sys
 import logging
@@ -39,62 +41,18 @@ COMMANDS_REQUIRED = [
 def odrive_build(tag="latest"):
     """ Build the odrive docker container.
     """
-    
-    odrive_dir = os.path.join(PROJECT_ROOT, 'docker', 'odrive')
-    build_dir = os.path.join(odrive_dir, 'build')
-    if os.path.exists(build_dir):
-        logger.debug("removing previous build dir: {0}".format(build_dir))
-        shutil.rmtree(build_dir)
+    docker_dir = os.path.join(PROJECT_ROOT, 'docker', 'odrive')
+    os.chdir(docker_dir)
+    subprocess.check_call(['./makeimage'])    
 
-    # Run `govendor sync` and copy source tree locally.
-    os.chdir(PROJECT_ROOT)
-    subprocess.check_call(['./makedocs'])
-    subprocess.check_call(['govendor', 'sync'])
-    
-    # NOTE: we copy odrive source to a build dir, but exclude docker folder
-    # list contents of dir
-    go_packages = [pkg for pkg in filter(os.path.isdir, glob("*")) if not pkg == "docker"]
-
-    # loop through that list and copy to build directory
-    for pkg in go_packages:
-        shutil.copytree(pkg, os.path.join(build_dir, pkg))
-    
-    os.chdir(odrive_dir)
-    dockerfile = os.path.abspath("./Dockerfile")
-    # Invoke the Dockerfile.
-    run_dockerfile(dockerfile, "deciphernow/odrive", tag)
-    # Clean up build directory.
-    shutil.rmtree(build_dir)
 
 def odrivebc_build(tag="latest"):
     """ Build the odrive boring crypto docker container.
-    """
-    
-    odrivebc_dir = os.path.join(PROJECT_ROOT, 'docker', 'odrivebc')
-    build_dir = os.path.join(odrivebc_dir, 'build')
-    if os.path.exists(build_dir):
-        logger.debug("removing previous build dir: {0}".format(build_dir))
-        shutil.rmtree(build_dir)
+    """    
+    docker_dir = os.path.join(PROJECT_ROOT, 'docker', 'odrivebc')
+    os.chdir(docker_dir)
+    subprocess.check_call(['./makeimage'])
 
-    # Run `govendor sync` and copy source tree locally.
-    os.chdir(PROJECT_ROOT)
-    subprocess.check_call(['./makedocs'])
-    subprocess.check_call(['govendor', 'sync'])
-    
-    # NOTE: we copy odrive source to a build dir, but exclude docker folder
-    # list contents of dir
-    go_packages = [pkg for pkg in filter(os.path.isdir, glob("*")) if not pkg == "docker"]
-
-    # loop through that list and copy to build directory
-    for pkg in go_packages:
-        shutil.copytree(pkg, os.path.join(build_dir, pkg))
-    
-    os.chdir(odrivebc_dir)
-    dockerfile = os.path.abspath("./Dockerfile")
-    # Invoke the Dockerfile.
-    run_dockerfile(dockerfile, "deciphernow/odrive-bc", tag)
-    # Clean up build directory.
-    shutil.rmtree(build_dir)
 
 def metadatadb_build(tag="latest"):
     """ Build the database docker image 
@@ -145,98 +103,21 @@ def metadatadb_build(tag="latest"):
     run_dockerfile(dockerfile, "deciphernow/metadatadb", tag)
     os.remove("odrive-database")
 
-
-def gatekeeper_build(tag="latest"):
-    gatekeeper_dir = os.path.join(PROJECT_ROOT, 'docker', 'gatekeeper')
-    build_dir = os.path.join(gatekeeper_dir, 'build')
-
-    if os.path.exists(build_dir):
-        print('Build directory exists. Removing...')
-        shutil.rmtree(build_dir)
-
-    # Move checked-in resources/fs to build directory
-    checked_in_resources = os.path.join(gatekeeper_dir, 'resources', 'fs')
-    build_fs = os.path.join(build_dir, 'fs')
-    shutil.copytree(checked_in_resources, build_fs)
-
-    shutil.copyfile(os.path.join(PROJECT_ROOT,'defaultcerts','server','server.cert.pem'), os.path.join(gatekeeper_dir,'build','fs','etc','nginx','server.cert.pem'))
-    shutil.copyfile(os.path.join(PROJECT_ROOT,'defaultcerts','server','server.key.pem'), os.path.join(gatekeeper_dir,'build','fs','etc','nginx','server.key.pem'))
-    shutil.copyfile(os.path.join(PROJECT_ROOT,'defaultcerts','server','server.trust.pem'), os.path.join(gatekeeper_dir,'build','fs','etc','nginx','server.trust.pem'))
-
-    # tar up the fake filesystem
-    tar_path = os.path.abspath(os.path.join(build_dir, 'fs'))
-    tar_directory(tar_path, output_archive=os.path.join(gatekeeper_dir, 'fs.tgz'))
-
-    # Run Docker Build
-    dockerfile = os.path.join(PROJECT_ROOT, 'docker', 'gatekeeper', 'Dockerfile')
-    run_dockerfile(dockerfile, 'deciphernow/gatekeeper', tag)    
-
-
 def packaging_build(tag="latest"):
     """ Build the packager docker image
     
     """
-    
-    packaging_dir = os.path.join(PROJECT_ROOT, 'docker', 'packaging')
-    build_dir = os.path.join(packaging_dir, 'build')
-    if os.path.exists(build_dir):
-        shutil.rmtree(build_dir)
-
-    os.chdir(PROJECT_ROOT)
-    
-    # NOTE: we copy odrive source to a build dir, but exclude docker folder
-    # list contents of dir
-    go_packages = [pkg for pkg in filter(os.path.isdir, glob("*")) if not pkg == "docker"]
-
-    # loop through that list and copy to build directory
-    for pkg in go_packages:
-        shutil.copytree(pkg, os.path.join(build_dir, pkg))
-
-    os.chdir(packaging_dir)
-    # Copy in custom RPM-building script for container
-    build_script = "build_package_install.py"
-    shutil.copyfile(build_script, os.path.join(build_dir, build_script))
-    # Copy in custom env.sh-replacing and service wrapper
-    wrapper = "service_wrapper.py"
-    shutil.copyfile(wrapper, os.path.join(build_dir, wrapper))
-    
-    # Use our Dockerfile from this directory
-    dockerfile = os.path.join(packaging_dir, "Dockerfile")
-    run_dockerfile(dockerfile, "deciphernow/odriverpm", tag)
-    shutil.rmtree(build_dir)
+    docker_dir = os.path.join(PROJECT_ROOT, 'docker', 'packaging')
+    os.chdir(docker_dir)
+    subprocess.check_call(['./makeimage'])    
 
 def packagingbc_build(tag="latest"):
     """ Build the packager docker image with rpm having odrive built with boring crypto
     
     """
-    
-    packagingbc_dir = os.path.join(PROJECT_ROOT, 'docker', 'packagingbc')
-    build_dir = os.path.join(packagingbc_dir, 'build')
-    if os.path.exists(build_dir):
-        shutil.rmtree(build_dir)
-
-    os.chdir(PROJECT_ROOT)
-    
-    # NOTE: we copy odrive source to a build dir, but exclude docker folder
-    # list contents of dir
-    go_packages = [pkg for pkg in filter(os.path.isdir, glob("*")) if not pkg == "docker"]
-
-    # loop through that list and copy to build directory
-    for pkg in go_packages:
-        shutil.copytree(pkg, os.path.join(build_dir, pkg))
-
-    os.chdir(packagingbc_dir)
-    # Copy in custom RPM-building script for container
-    build_script = "build_package_install.py"
-    shutil.copyfile(build_script, os.path.join(build_dir, build_script))
-    # Copy in custom env.sh-replacing and service wrapper
-    wrapper = "service_wrapper.py"
-    shutil.copyfile(wrapper, os.path.join(build_dir, wrapper))
-    
-    # Use our Dockerfile from this directory
-    dockerfile = os.path.join(packagingbc_dir, "Dockerfile")
-    run_dockerfile(dockerfile, "deciphernow/odriverpm-bc", tag)
-    shutil.rmtree(build_dir)    
+    docker_dir = os.path.join(PROJECT_ROOT, 'docker', 'packagingbc')
+    os.chdir(docker_dir)
+    subprocess.check_call(['./makeimage'])    
 
 def run_dockerfile(dockerfile, image, tag="latest"):
     """ Runs the docker build for a given 
@@ -255,7 +136,7 @@ def run_dockerfile(dockerfile, image, tag="latest"):
     try:
         build_dir = os.path.split(dockerfile)[0]
         subprocess.check_call(
-                ['docker', 'build', '-t', name_with_tag, build_dir],
+                ['docker', 'build', '--no-cache', '-t', name_with_tag, build_dir],
                 stdout=sys.stdout, stderr=sys.stderr)
     except subprocess.CalledProcessError:
         raise
@@ -386,7 +267,6 @@ class Builder(object):
         odrive_build()
         odrivebc_build()
         metadatadb_build()
-        gatekeeper_build()
         packaging_build()
         packagingbc_build()
         
@@ -413,8 +293,6 @@ class Builder(object):
             odrive_build(tag)
         elif 'metadatadb' in image_name:
             metadatadb_build(tag)
-        elif 'gatekeeper' in image_name:
-            gatekeeper_build(tag)
         else:
             raise ValueError("Image name not known: {0}".format(image_name))
 
@@ -567,7 +445,6 @@ def parse_args():
     
     default_images= ["deciphernow/odrive",
                      "deciphernow/odrive-bc",
-                     "deciphernow/gatekeeper",
                      "deciphernow/metadatadb",
                      "deciphernow/odriverpm",
                      "deciphernow/odriverpm-bc"]

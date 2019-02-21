@@ -9,14 +9,14 @@ import (
 
 	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
-// SchemaVersion marks compatibility with previously created databases.
-// On startup, we should be checking the schema, and raise some alarm if
-// the schema is out of date, or trigger a migration, etc.
-var SchemaVersion = "20170726"
+// SchemaVersionsSupported marks compatibility with different schema versions of a previously created database.
+// On startup, we should be checking the schema, and raise some alarm if the schema is out of date, or trigger a migration, etc.
+var SchemaVersionsSupported = strings.Split(config.GetEnvOrDefault("OD_DB_SCHEMAVERSIONS", "20170726,20190225"), ",")
 var mutexReadOnly sync.Mutex
 
 // DAO defines the contract our app has with the database.
@@ -54,7 +54,7 @@ type DAO interface {
 	GetObjectsIHaveShared(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error)
 	GetObjectsSharedToEveryone(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error)
 	GetObjectsSharedToMe(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error)
-	GetOpenConnections() int
+	GetOpenConnectionCount() int
 	GetParents(child models.ODObject) ([]models.ODObject, error)
 	GetPermissionsForObject(object models.ODObject) ([]models.ODObjectPermission, error)
 	GetPropertiesForObject(object models.ODObject) ([]models.ODObjectPropertyEx, error)
@@ -134,7 +134,7 @@ func NewDataAccessLayer(conf config.DatabaseConfiguration, opts ...Opt) (*DataAc
 		return nil, "", fmt.Errorf("getting db state failed: %v", err)
 	}
 	d.SchemaVersion = state.SchemaVersion
-	if d.SchemaVersion == SchemaVersion {
+	if util.ContainsAny(d.SchemaVersion, SchemaVersionsSupported) {
 		d.ReadOnly = false
 	}
 
@@ -179,10 +179,10 @@ func pingDB(d *DataAccessLayer) error {
 			switch {
 			case err != nil:
 				logger.Info(fmt.Sprintf("database online but schema not yet populated. rechecking in %d seconds", sleep))
-			case state.SchemaVersion != SchemaVersion:
-				logger.Info(fmt.Sprintf("database online with schema at version %s but expecting %s. rechecking in %d seconds for pending migration", state.SchemaVersion, SchemaVersion, sleep))
-			case state.SchemaVersion == SchemaVersion:
-				logger.Info(fmt.Sprintf("database online at schema version %s", SchemaVersion))
+			case !util.ContainsAny(state.SchemaVersion, SchemaVersionsSupported):
+				logger.Info(fmt.Sprintf("database online with schema at version %s but expecting one of %s. rechecking in %d seconds for pending migration", state.SchemaVersion, strings.Join(SchemaVersionsSupported, ","), sleep))
+			case util.ContainsAny(state.SchemaVersion, SchemaVersionsSupported):
+				logger.Info(fmt.Sprintf("database online at schema version %s", state.SchemaVersion))
 				sleep = 0
 			}
 		}
@@ -200,8 +200,8 @@ func (d *DataAccessLayer) GetDatabase() *sqlx.DB {
 	return d.MetadataDB
 }
 
-// GetOpenConnections returns the current number of open connections to the database
-func (d *DataAccessLayer) GetOpenConnections() int {
+// GetOpenConnectionCount returns the current number of open connections to the database
+func (d *DataAccessLayer) GetOpenConnectionCount() int {
 	return d.MetadataDB.Stats().OpenConnections
 }
 
@@ -221,13 +221,13 @@ func (d *DataAccessLayer) IsReadOnly(refresh bool) bool {
 			d.Logger.Warn("getting db state failed", zap.Error(err))
 		} else {
 			d.SchemaVersion = state.SchemaVersion
-			if d.SchemaVersion == SchemaVersion {
+			if util.ContainsAny(d.SchemaVersion, SchemaVersionsSupported) {
 				d.ReadOnly = false
 			}
 			afterReadOnly := d.ReadOnly
 			if beforeReadOnly != afterReadOnly {
 				if afterReadOnly {
-					d.Logger.Info(fmt.Sprintf("database online with schema at version %s but expecting %s. readonly = %t", d.SchemaVersion, SchemaVersion, afterReadOnly))
+					d.Logger.Info(fmt.Sprintf("database online with schema at version %s but expecting one of %s. readonly = %t", d.SchemaVersion, strings.Join(SchemaVersionsSupported, ","), afterReadOnly))
 				} else {
 					d.Logger.Info(fmt.Sprintf("database online with schema at version %s", d.SchemaVersion))
 				}
@@ -238,24 +238,6 @@ func (d *DataAccessLayer) IsReadOnly(refresh bool) bool {
 	return result
 }
 
-func containsAny(msg string, a []string) bool {
-	for _, s := range a {
-		if strings.Contains(msg, s) {
-			return true
-		}
-	}
-	return false
-}
-func firstMatch(msg string, a []string) string {
-	for _, s := range a {
-		if strings.Contains(msg, s) {
-			return s
-		}
-	}
-	return ""
-
-}
-
 func execStatementWithDeadlockRetry(dao *DataAccessLayer, funcLbl string, query string) error {
 	retryCounter := dao.DeadlockRetryCounter
 	retryDelay := dao.DeadlockRetryDelay
@@ -263,9 +245,9 @@ func execStatementWithDeadlockRetry(dao *DataAccessLayer, funcLbl string, query 
 	logger := dao.GetLogger()
 	// Looper with forced entry (actual err for retries is assigned at bottom of the loop)
 	err := fmt.Errorf("First Attempt")
-	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
+	for retryCounter > 0 && err != nil && util.ContainsAny(err.Error(), retryOnErrorMessageContains) {
 		if retryCounter != dao.DeadlockRetryCounter {
-			logger.Debug("restarting transaction", zap.String("funcLbl", funcLbl), zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
+			logger.Debug("dao restarting transaction", zap.String("funcLbl", funcLbl), zap.String("retryReason", util.FirstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
 		}
 		var errBeginx error
 		tx, errBeginx := dao.MetadataDB.Beginx()
@@ -286,6 +268,7 @@ func execStatementWithDeadlockRetry(dao *DataAccessLayer, funcLbl string, query 
 			tx.Rollback()
 			time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		} else {
+			dao.GetLogger().Debug("dao committed transaction", zap.String("funcLbl", funcLbl))
 			tx.Commit()
 		}
 	}

@@ -15,34 +15,13 @@ import (
 	yaml "gopkg.in/yaml.v2"
 
 	"bitbucket.di2e.net/dime/object-drive-server/client"
-	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 	"bitbucket.di2e.net/greymatter/gov-go/testcerts"
 
 	"github.com/urfave/cli"
 )
 
-func getEnvWithDefault(name string, def string) string {
-	val := os.Getenv(name)
-	if val == "" {
-		return def
-	}
-	return val
-}
-
-var schemeAuthority = fmt.Sprintf(
-	"https://%s:%s",
-	getEnvWithDefault(config.OD_EXTERNAL_HOST, "proxier"),
-	getEnvWithDefault(config.OD_EXTERNAL_PORT, "8080"),
-)
-
-// This is duplicated from server_test, so that these variables cannot
-// accidentally be used in the running server.  We can't do imports
-// of foreign test packages.
-var mountPoint = fmt.Sprintf(
-	"%s/services/object-drive/1.0",
-	schemeAuthority,
-)
+var mountPoint = util.GetClientMountPoint()
 
 func main() {
 
@@ -194,7 +173,7 @@ func main() {
 			Flags: []cli.Flag{confFlag, jsonFlag, yamlFlag, testerFlag, queueFlag, threadFlag},
 			Action: func(clictx *cli.Context) error {
 
-				rand.Seed(time.Now().Unix())
+				rand.Seed(time.Now().UTC().Unix())
 				// Default to 10 items, parsing the first numerical argument if supplied
 				// by the user.
 				nFiles := 10

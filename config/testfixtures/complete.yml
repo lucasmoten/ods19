@@ -47,8 +47,8 @@ server:
 disk_cache:
     root_dir: ""
     partitiion: ""
-    low_watermark: 0
-    high_watermark: 0
+    low_threshold_percent: 40
+    high_threshold_percent: 90
     evict_age: 0
     walk_sleep: 0
     chunk_size:
